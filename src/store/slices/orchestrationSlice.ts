@@ -1,31 +1,17 @@
 import * as Sentry from '@sentry/react';
-import { Club, Player, PlayerAttributes, TransferListing, SeasonHistory, IncomingOffer, IncomingLoanOffer, FacilitiesState, Position, Message, Match, MatchEvent, LeagueId, SeasonTurnover, LeagueTableEntry, JobVacancy, PenaltyKick } from '@/types/game';
-import { calculateReputationTier, generateJobVacancies, generateProactiveOffer, generateUnemployedOffer, getRetirementAge, calculateLegacyScore, getReputationTierLabel, generateCompetitors } from '@/utils/managerCareer';
+import { Club, Player, PlayerAttributes, TransferListing, IncomingOffer, IncomingLoanOffer, FacilitiesState, Message, Match, MatchEvent, LeagueId, LeagueTableEntry, JobVacancy, PenaltyKick } from '@/types/game';
+import { calculateReputationTier, generateJobVacancies, generateProactiveOffer, generateUnemployedOffer, getReputationTierLabel, generateCompetitors } from '@/utils/managerCareer';
 import {
-  GROWTH_TACTICAL_PER_MATCH, GROWTH_MOTIVATION_PER_MORALE_EVENT, GROWTH_SCOUTING_PER_ASSIGNMENT,
-  GROWTH_DISCIPLINE_PER_CLEAN_MATCH, MOD_DISCIPLINE_CARDS, MOD_TACTICAL_FAMILIARITY, MOD_YOUTH_GROWTH,
-  MOD_SCOUTING_SPEED, JOB_MARKET_REFRESH_WEEKS, STAT_MAX, MOTM_CHECK_INTERVAL, MOTM_MIN_MATCHES,
-  REP_PROMOTION, REP_RELEGATION, REP_OVERACHIEVE_BONUS, REP_UNDERACHIEVE_PENALTY,
-  REP_WIN, REP_DRAW, REP_LOSS, REP_TITLE, REP_CUP_WIN, REP_SACKING, REP_MIN, REP_MAX,
-  FORCED_RETIREMENT_UNEMPLOYED_WEEKS,
-  PROACTIVE_OFFER_CHECK_INTERVAL, PROACTIVE_OFFER_MAX_PENDING,
-  UNEMPLOYED_OFFER_CHECK_INTERVAL, UNEMPLOYED_OFFER_MAX_PENDING,
+  GROWTH_TACTICAL_PER_MATCH, GROWTH_MOTIVATION_PER_MORALE_EVENT, GROWTH_SCOUTING_PER_ASSIGNMENT, GROWTH_DISCIPLINE_PER_CLEAN_MATCH, MOD_DISCIPLINE_CARDS, MOD_TACTICAL_FAMILIARITY, MOD_YOUTH_GROWTH, MOD_SCOUTING_SPEED, JOB_MARKET_REFRESH_WEEKS, STAT_MAX, MOTM_CHECK_INTERVAL, MOTM_MIN_MATCHES, REP_WIN, REP_DRAW, REP_LOSS, REP_MIN, REP_MAX, FORCED_RETIREMENT_UNEMPLOYED_WEEKS, PROACTIVE_OFFER_CHECK_INTERVAL, PROACTIVE_OFFER_MAX_PENDING, UNEMPLOYED_OFFER_CHECK_INTERVAL, UNEMPLOYED_OFFER_MAX_PENDING,
 } from '@/config/managerCareer';
 import { ALL_CLUBS, buildLeagueTable, generateDivisionFixtures, buildAllDivisionTables, DERBIES, LEAGUES, getDerbyIntensity, getDerbyName, clearLeagueTableCache, generateFriendlies, getLeaguesByCountry } from '@/data/league';
-import { FRIENDLY_BOARD_CONFIDENCE_MULT, BOARD_OBJ_ALL_COMPLETE_XP, BOARD_OBJ_ALL_COMPLETE_CONFIDENCE, BOARD_REVIEW_RELAX_THRESHOLD, BOARD_REVIEW_RAISE_THRESHOLD, BOARD_REVIEW_ADJUST_POSITIONS, INTERNATIONAL_BREAK_WEEKS, INTERNATIONAL_BREAK_FITNESS_COST, INTERNATIONAL_CALLUP_MIN_OVR, INTERNATIONAL_SNUB_MIN_OVR, CALLUP_SNUB_MORALE_PENALTY, POST_TOURNAMENT_FITNESS_COST_HIGH, POST_TOURNAMENT_FITNESS_COST_LOW } from '@/config/gameBalance';
-import { generateSquad, selectBestLineup, generatePlayer, calculateOverall, buildPlayerFromTemplate } from '@/utils/playerGen';
+import { FRIENDLY_BOARD_CONFIDENCE_MULT, BOARD_REVIEW_RELAX_THRESHOLD, BOARD_REVIEW_RAISE_THRESHOLD, BOARD_REVIEW_ADJUST_POSITIONS, INTERNATIONAL_BREAK_WEEKS, INTERNATIONAL_BREAK_FITNESS_COST, INTERNATIONAL_CALLUP_MIN_OVR, INTERNATIONAL_SNUB_MIN_OVR, CALLUP_SNUB_MORALE_PENALTY, POST_TOURNAMENT_FITNESS_COST_HIGH, POST_TOURNAMENT_FITNESS_COST_LOW } from '@/config/gameBalance';
+import { generateSquad, selectBestLineup, calculateOverall, buildPlayerFromTemplate } from '@/utils/playerGen';
 import { resetRealPlayerClaims, claimRealPlayer } from '@/utils/realPlayerPicker';
 import type { PlayerTemplate } from '@/data/playerTemplates';
 import { getActivePool, drawForMarket, drawForFaPoolSeed } from '@/utils/communityPackPool';
 import {
-  CP_FA_SEED_COUNT_BY_SEASON,
-  CP_FA_SEED_ELITE_COUNT,
-  CP_FA_SEED_TOP_COUNT,
-  CP_FA_SEED_ELITE_MIN_OVR,
-  CP_FA_SEED_TOP_MIN_OVR,
-  CP_FA_SEED_MID_MIN_OVR,
-  CP_FA_SEED_MIN_AGE,
-  CP_FA_SEED_MAX_AGE,
+  CP_FA_SEED_COUNT_BY_SEASON, CP_FA_SEED_ELITE_COUNT, CP_FA_SEED_TOP_COUNT, CP_FA_SEED_ELITE_MIN_OVR, CP_FA_SEED_TOP_MIN_OVR, CP_FA_SEED_MID_MIN_OVR, CP_FA_SEED_MIN_AGE, CP_FA_SEED_MAX_AGE,
 } from '@/config/aiSimulation';
 import { simulateMatch, simulateHalf, finalizeMatch, generateMatchWeather } from '@/engine/match';
 import { generateInitialStaff, generateStaffMarket, getStaffBonus, getTrainingStaffBonus } from '@/utils/staff';
@@ -44,94 +30,45 @@ import { fnv1a } from '@/utils/hashString';
 import { migrateLegacySave, saveSessionSnapshot, readSaveSlot, readSaveSlotBackup, writeSaveSlot, promoteSaveBackup, removeSaveSlot, recoverStaleSaveTmp, trimFixturesForSave, trimFixtureArrayForSave } from '@/store/helpers/persistence';
 import { migrateSaveData, validateSaveShape, isSaveFromNewerVersion, CURRENT_VERSION } from '@/utils/saveMigration';
 import { checkAchievements, ACHIEVEMENTS, getAchievementXP } from '@/utils/achievements';
-import { generateCupDraw, advanceCupRound, getCupResultForClub, getRoundName } from '@/data/cup';
-import { getChampionsCupQualifiers, getShieldCupQualifiers, getConferenceCupQualifiers, generateContinentalDraw } from '@/data/continentalDraw';
-import { updateCoefficients } from '@/utils/continentalCoefficients';
-import { simulateGroupMatchday, getCurrentMatchday, isGroupStageComplete, generateKnockoutFromGroups, simulateKnockoutLeg, isKnockoutRoundComplete, advanceKnockoutRound, getContinentalResultForClub, createEphemeralClub, findPlayerContinentalMatch } from '@/utils/continental';
-import { CONTINENTAL_GROUP_WEEKS, CONTINENTAL_R16_WEEKS, CONTINENTAL_QF_WEEKS, CONTINENTAL_SF_WEEKS, CONTINENTAL_FINAL_WEEK, DOMESTIC_SUPER_CUP_WEEK, CONTINENTAL_SUPER_CUP_WEEK, CONTINENTAL_PRIZE_MONEY, REP_CHAMPIONS_CUP_WIN, REP_SHIELD_CUP_WIN, REP_CONFERENCE_CUP_WIN, REP_LEAGUE_CUP_WIN, REP_CONTINENTAL_GROUP, REP_CONTINENTAL_KNOCKOUT } from '@/config/continental';
+import { generateCupDraw, advanceCupRound, getRoundName } from '@/data/cup';
+
+import { simulateGroupMatchday, getCurrentMatchday, isGroupStageComplete, generateKnockoutFromGroups, simulateKnockoutLeg, isKnockoutRoundComplete, advanceKnockoutRound, createEphemeralClub, findPlayerContinentalMatch } from '@/utils/continental';
+import { CONTINENTAL_GROUP_WEEKS, CONTINENTAL_R16_WEEKS, CONTINENTAL_QF_WEEKS, CONTINENTAL_SF_WEEKS, CONTINENTAL_FINAL_WEEK, DOMESTIC_SUPER_CUP_WEEK, CONTINENTAL_SUPER_CUP_WEEK, CONTINENTAL_PRIZE_MONEY } from '@/config/continental';
 import { generatePressConference } from '@/data/pressConferences';
 import { isPro } from '@/utils/monetization';
 import { getMentorBonus } from '@/utils/chemistry';
 import { INITIAL_FAMILIARITY_SEED } from '@/config/chemistry';
-import { checkChallengeComplete, checkChallengeFailed, CHALLENGES } from '@/data/challenges';
-import { calculateSeasonAwards } from '@/utils/seasonAwards';
-import { calculateBallonDOr, getBallonDOrValueBoost } from '@/utils/ballonDor';
+import { checkChallengeFailed, CHALLENGES } from '@/data/challenges';
+
 import { getLeadershipBonus, wantsTransfer } from '@/utils/personality';
 import { buildTransferTalk } from '@/utils/transferTalk';
-import { createEmptyRecords, updateRecords, findBiggestWin } from '@/utils/records';
-import { getFarewellSummary } from '@/utils/playerNarratives';
+import { createEmptyRecords } from '@/utils/records';
+
 import { calculateWeeklyMerchRevenue, getDefaultMerchState } from '@/utils/merchandise';
 import { DEFAULT_MONETIZATION_STATE } from '@/config/monetization';
 import { MERCH_PRICING_TIERS, MERCH_CAMPAIGN_COOLDOWN_WEEKS } from '@/config/merchandise';
 import { getEffectiveStadiumLevel } from '@/utils/facilities';
 import { MOTIVATE_ATTACK_BOOST, MOTIVATE_FOUL_BONUS, CALM_DEFENSE_BOOST, CALM_FOUL_REDUCTION, DEMAND_ATTACK_BOOST, DEMAND_DEFENSE_PENALTY, MOTIVATE_FITNESS_DRAIN_MULT, CALM_FITNESS_DRAIN_MULT, DEMAND_FITNESS_DRAIN_MULT } from '@/config/teamTalk';
 import {
-  TOTAL_WEEKS, STARTING_BOARD_CONFIDENCE, STARTING_TACTICAL_FAMILIARITY,
-  CONFIDENCE_MIN,
-  PHYSIO_RECOVERY_BOOST_THRESHOLD, PHYSIO_RECOVERY_CHANCE, PHYSIO_INJURY_REDUCTION_PER_QUALITY, ASSISTANT_MANAGER_FAMILIARITY_BOOST,
-  CONTRACT_WARNING_WEEKS, CONTRACT_WARNING_OVERALL_THRESHOLD, CONTRACT_WARNING_YOUTH_AGE_MAX, CONTRACT_WARNING_YOUTH_POTENTIAL_MIN,
-  CONTRACT_MORALE_HIT_WEEK_THRESHOLD, CONTRACT_MORALE_HIT_OVERALL_THRESHOLD, CONTRACT_MORALE_HIT_AMOUNT, CONTRACT_MORALE_MIN,
-  MATCHDAY_INCOME_PER_FAN, COMMERCIAL_INCOME_PER_REP, COMMERCIAL_INCOME_BASE, STADIUM_INCOME_PER_LEVEL,
-  POSITION_PRIZE_PER_RANK, POSITION_PRIZE_MAX_RANK,
-  SCOUTING_COST_PER_ASSIGNMENT,
-  FAN_MOOD_BASE, FAN_MOOD_SCALE,
-  STADIUM_LEVEL_DIVISOR, MEDICAL_LEVEL_FACTOR, RECOVERY_LEVEL_FACTOR, FACILITY_MAX_LEVEL,
-  SEASON_END_CONFIDENCE,
-  MIN_SQUAD_SIZE, MAX_SQUAD_SIZE, REPLACEMENT_QUALITY_REP_MULTIPLIER, REPLACEMENT_QUALITY_BASE, REPLACEMENT_QUALITY_VARIANCE,
-  GENERIC_FILL_POSITIONS,
-  LISTING_PRICE_MIN_MULTIPLIER, LISTING_PRICE_RANDOM_RANGE, INITIAL_LISTINGS_MIN, INITIAL_LISTINGS_RANGE,
-  SEASON_YOUTH_INTAKE_MIN, SEASON_YOUTH_INTAKE_RANGE,
-  LOAN_PLAY_CHANCE_HIGH, LOAN_PLAY_CHANCE_LOW, LOAN_DEV_BASE_CHANCE, LOAN_DEV_REP_FACTOR,
-  LOAN_QUALITY_FORMULA_REP_MULT, LOAN_QUALITY_FORMULA_BASE, LOAN_FITNESS_DRAIN, LOAN_YOUNG_AGE_THRESHOLD,
-  AI_LOAN_OFFER_CHANCE, AI_LOAN_DURATIONS, AI_LOAN_WAGE_SPLITS, AI_LOAN_RECALL_CLAUSE_CHANCE, AI_LOAN_OBLIGATORY_BUY_CHANCE, AI_LOAN_OBLIGATORY_BUY_MULTIPLIER,
-  getExpectedPosition,
-  STREAK_MORALE_THRESHOLD, STREAK_MORALE_BONUS, STREAK_INCOME_THRESHOLD, STREAK_INCOME_MULTIPLIER, STREAK_FORM_THRESHOLD, STREAK_FORM_BONUS,
-  BOARD_REVIEW_WEEKS,
-  MORALE_BENCH_WEEKLY_LOSS, MORALE_BENCH_MIN, BENCH_REST_BONUS,
-  CUP_EXTRA_TIME_GOAL_CHANCE, CUP_PENALTY_GK_QUALITY_FACTOR, CUP_PENALTY_KICKS,
-  CONGESTED_FIXTURE_INJURY_MULTIPLIER,
-  MOTIVATOR_MORALE_BOOST, YOUTH_DEVELOPER_BOOST,
-  VALUE_AGE_MULTIPLIERS, TRAINING_GROUND_BOOST, GOLDEN_GEN_MIN_POTENTIAL,
-  FFP_WAGE_RATIO_WARNING, FFP_WAGE_RATIO_CRITICAL, FFP_CONFIDENCE_PENALTY, FFP_CRITICAL_CONFIDENCE_PENALTY,
-  MANAGER_SALARY_RATIO_WARNING, MANAGER_SALARY_RATIO_CRITICAL, MANAGER_SALARY_CONFIDENCE_PENALTY,
-  FREE_AGENT_POOL_MAX,
-  UNHAPPY_THRESHOLD, UNHAPPY_WEEKS_TO_REQUEST, UNHAPPY_CONTAGION_WEEKS, UNHAPPY_CONTAGION_MORALE_HIT,
-  MAX_FINANCE_HISTORY, MAX_CAREER_TIMELINE,
-  OBJECTIVE_CYCLE_WEEKS,
-  RARE_OBJECTIVE_XP_MULTIPLIER, LEGENDARY_OBJECTIVE_XP_MULTIPLIER,
-  CUP_EXTRA_TIME_REPUTATION_DIVISOR, FORFEIT_SCORE,
-  SIM_PENALTY_BASE_WIN_CHANCE, SIM_PENALTY_MENTAL_SCALE,
-  LINEUP_SIZE,
+  TOTAL_WEEKS, STARTING_BOARD_CONFIDENCE, STARTING_TACTICAL_FAMILIARITY, CONFIDENCE_MIN, PHYSIO_RECOVERY_BOOST_THRESHOLD, PHYSIO_RECOVERY_CHANCE, PHYSIO_INJURY_REDUCTION_PER_QUALITY, ASSISTANT_MANAGER_FAMILIARITY_BOOST, CONTRACT_WARNING_WEEKS, CONTRACT_WARNING_OVERALL_THRESHOLD, CONTRACT_WARNING_YOUTH_AGE_MAX, CONTRACT_WARNING_YOUTH_POTENTIAL_MIN, CONTRACT_MORALE_HIT_WEEK_THRESHOLD, CONTRACT_MORALE_HIT_OVERALL_THRESHOLD, CONTRACT_MORALE_HIT_AMOUNT, CONTRACT_MORALE_MIN, MATCHDAY_INCOME_PER_FAN, COMMERCIAL_INCOME_PER_REP, COMMERCIAL_INCOME_BASE, STADIUM_INCOME_PER_LEVEL, POSITION_PRIZE_PER_RANK, POSITION_PRIZE_MAX_RANK, SCOUTING_COST_PER_ASSIGNMENT, FAN_MOOD_BASE, FAN_MOOD_SCALE, STADIUM_LEVEL_DIVISOR, MEDICAL_LEVEL_FACTOR, RECOVERY_LEVEL_FACTOR, FACILITY_MAX_LEVEL, LISTING_PRICE_MIN_MULTIPLIER, LISTING_PRICE_RANDOM_RANGE, LOAN_PLAY_CHANCE_HIGH, LOAN_PLAY_CHANCE_LOW, LOAN_DEV_BASE_CHANCE, LOAN_DEV_REP_FACTOR, LOAN_QUALITY_FORMULA_REP_MULT, LOAN_QUALITY_FORMULA_BASE, LOAN_FITNESS_DRAIN, LOAN_YOUNG_AGE_THRESHOLD, AI_LOAN_OFFER_CHANCE, AI_LOAN_DURATIONS, AI_LOAN_WAGE_SPLITS, AI_LOAN_RECALL_CLAUSE_CHANCE, AI_LOAN_OBLIGATORY_BUY_CHANCE, AI_LOAN_OBLIGATORY_BUY_MULTIPLIER, getExpectedPosition, STREAK_MORALE_THRESHOLD, STREAK_MORALE_BONUS, STREAK_INCOME_THRESHOLD, STREAK_INCOME_MULTIPLIER, STREAK_FORM_THRESHOLD, STREAK_FORM_BONUS, BOARD_REVIEW_WEEKS, MORALE_BENCH_WEEKLY_LOSS, MORALE_BENCH_MIN, BENCH_REST_BONUS, CUP_EXTRA_TIME_GOAL_CHANCE, CUP_PENALTY_GK_QUALITY_FACTOR, CUP_PENALTY_KICKS, CONGESTED_FIXTURE_INJURY_MULTIPLIER, MOTIVATOR_MORALE_BOOST, YOUTH_DEVELOPER_BOOST, VALUE_AGE_MULTIPLIERS, TRAINING_GROUND_BOOST, FFP_WAGE_RATIO_WARNING, FFP_WAGE_RATIO_CRITICAL, FFP_CONFIDENCE_PENALTY, FFP_CRITICAL_CONFIDENCE_PENALTY, MANAGER_SALARY_RATIO_WARNING, MANAGER_SALARY_RATIO_CRITICAL, MANAGER_SALARY_CONFIDENCE_PENALTY, FREE_AGENT_POOL_MAX, UNHAPPY_THRESHOLD, UNHAPPY_WEEKS_TO_REQUEST, UNHAPPY_CONTAGION_WEEKS, UNHAPPY_CONTAGION_MORALE_HIT, MAX_FINANCE_HISTORY, MAX_CAREER_TIMELINE, OBJECTIVE_CYCLE_WEEKS, RARE_OBJECTIVE_XP_MULTIPLIER, LEGENDARY_OBJECTIVE_XP_MULTIPLIER, CUP_EXTRA_TIME_REPUTATION_DIVISOR, FORFEIT_SCORE, SIM_PENALTY_BASE_WIN_CHANCE, SIM_PENALTY_MENTAL_SCALE, LINEUP_SIZE,
 } from '@/config/gameBalance';
 import {
-  SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END,
-  AI_OFFER_CHANCE, AI_OFFER_MIN_BUDGET_RATIO, AI_OFFER_POSITION_THRESHOLD,
-  URGENCY_NONE, URGENCY_ONE, URGENCY_TWO_PLUS,
-  OFFER_FEE_BASE, OFFER_FEE_RANDOM_RANGE, OFFER_MAX_BUDGET_RATIO,
-  RUMOR_CHANCE, DEADLINE_DAY_OFFER_MULTIPLIER, DEADLINE_DAY_BID_PREMIUM, DEADLINE_PANIC_OFFER_COUNT, DEADLINE_PANIC_BID_PREMIUM, DEADLINE_BARGAIN_DISCOUNT, DEADLINE_MULTI_BID_CHANCE,
-  MARKET_REPLENISH_THRESHOLD, LISTING_EXPIRY_WEEKS, CLUB_LISTING_EXPIRY_WEEKS, LISTING_RELIST_CHANCE, LISTING_RELIST_DISCOUNT,
-  FREE_AGENT_SPAWN_CHANCE, OFFER_EXPIRY_WEEKS,
-  UNSOLICITED_OFFER_CHANCE, UNSOLICITED_FEE_BASE, UNSOLICITED_FEE_RANGE,
-  COMPETING_BID_PREMIUM,
-  ASKING_PRICE_BID_ANCHOR,
-  INJURY_BID_DISCOUNT, LONG_INJURY_BID_DISCOUNT, LONG_INJURY_WEEKS_THRESHOLD,
-  PRE_SEASON_END, PRE_SEASON_OFFER_MULTIPLIER, PRE_SEASON_UNSOLICITED_MULTIPLIER, PRE_SEASON_RUMOR_MULTIPLIER,
+  SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END, AI_OFFER_CHANCE, AI_OFFER_MIN_BUDGET_RATIO, AI_OFFER_POSITION_THRESHOLD, URGENCY_NONE, URGENCY_ONE, URGENCY_TWO_PLUS, OFFER_FEE_BASE, OFFER_FEE_RANDOM_RANGE, OFFER_MAX_BUDGET_RATIO, RUMOR_CHANCE, DEADLINE_DAY_OFFER_MULTIPLIER, DEADLINE_DAY_BID_PREMIUM, DEADLINE_PANIC_OFFER_COUNT, DEADLINE_PANIC_BID_PREMIUM, DEADLINE_BARGAIN_DISCOUNT, DEADLINE_MULTI_BID_CHANCE, MARKET_REPLENISH_THRESHOLD, LISTING_EXPIRY_WEEKS, CLUB_LISTING_EXPIRY_WEEKS, LISTING_RELIST_CHANCE, LISTING_RELIST_DISCOUNT, FREE_AGENT_SPAWN_CHANCE, OFFER_EXPIRY_WEEKS, UNSOLICITED_OFFER_CHANCE, UNSOLICITED_FEE_BASE, UNSOLICITED_FEE_RANGE, COMPETING_BID_PREMIUM, ASKING_PRICE_BID_ANCHOR, INJURY_BID_DISCOUNT, LONG_INJURY_BID_DISCOUNT, LONG_INJURY_WEEKS_THRESHOLD, PRE_SEASON_END, PRE_SEASON_OFFER_MULTIPLIER, PRE_SEASON_UNSOLICITED_MULTIPLIER, PRE_SEASON_RUMOR_MULTIPLIER,
 } from '@/config/transfers';
 import { getPerformanceMultiplier, getContractLengthFactor } from '@/utils/transferOffers';
 import { generateInitialMarket, generateInitialFreeAgents, replenishMarket, replenishMarketPreSeason, generatePreSeasonMarket, spawnFreeAgents, processListingExpiry } from '@/utils/transferMarketGen';
 import { PENALTY_CONVERSION_RATE, SHOUT_MODIFIERS, SHOUT_CUMULATIVE_SCALE, NATIONAL_OVR_STR_MIN, NATIONAL_OVR_STR_MAX, NATIONAL_OVR_STR_FLOOR, NATIONAL_OVR_STR_RANGE } from '@/config/matchEngine';
 import { calculatePlayerValue } from '@/config/playerGeneration';
 import {
-  VERDICT_EXCELLENT_OFFSET, VERDICT_ACCEPTABLE_OFFSET, BOARD_SACKING_THRESHOLD,
   STORYLINE_CHAIN_TRIGGER_CHANCE, STORYLINE_CHAIN_MIN_WEEK,
 } from '@/config/playoffs';
 import { applyPlayerDevelopment, resetSeasonGrowth, hydrateSeasonGrowth, seasonGrowthTracker } from '@/store/helpers/development';
-import { applySeasonTurnover, applyPromotionRelegation, generateReplacementClub } from '@/utils/promotionRelegation';
+
 import { generateStorylines } from '@/utils/storylines';
 import { STORYLINE_CHAINS, shouldTriggerChain } from '@/data/storylineChains';
 import type { ActiveStorylineChain, StorylineEvent } from '@/types/game';
-import { getTournamentForSeason, generateTournament, processGroupWeek, generateKnockoutBracket, processKnockoutRound, autoSelectNationalSquad, generateNationalTeamPool } from '@/utils/international';
-import { NATIONAL_CALLUP_MORALE_BOOST, INTERNATIONAL_FITNESS_COST, NT_JOB_REHIRE_REPUTATION, NT_JOB_OFFER_DURATION_WEEKS, REP_INTL_TOURNAMENT_WIN, REP_INTL_FINAL, REP_INTL_SEMI, REP_INTL_KNOCKOUT, REP_INTL_GROUP_EXIT, NT_SACK_GROUP_EXIT_THRESHOLD } from '@/config/gameBalance';
+import { processGroupWeek, generateKnockoutBracket, processKnockoutRound } from '@/utils/international';
+import { NATIONAL_CALLUP_MORALE_BOOST, INTERNATIONAL_FITNESS_COST, REP_INTL_TOURNAMENT_WIN, REP_INTL_FINAL, REP_INTL_SEMI, REP_INTL_KNOCKOUT, REP_INTL_GROUP_EXIT, NT_SACK_GROUP_EXIT_THRESHOLD } from '@/config/gameBalance';
 import { generateRandomEvents } from '@/utils/randomEvents';
 import { getWinStreak, detectMatchDrama } from '@/utils/celebrations';
 import { generateCliffhangers } from '@/utils/weekPreview';
@@ -141,23 +78,17 @@ import { generateAIManagerProfile, getAICounterTactics } from '@/config/aiManage
 import { processAIWeekly } from '@/utils/aiSimulation';
 import { INJURY_TYPES } from '@/config/gameBalance';
 import { createMilestone } from '@/utils/milestones';
-import { createDefaultProgression, grantXP, XP_REWARDS, MANAGER_PERKS, canUnlockPerk, hasPerk, dynastyMult } from '@/utils/managerPerks';
+import { createDefaultProgression, grantXP, MANAGER_PERKS, canUnlockPerk, hasPerk, dynastyMult } from '@/utils/managerPerks';
 import { buildHallEntry, saveToHall } from '@/utils/hallOfManagers';
 import { initializeClubPowerRankings, updateEloRatings } from '@/utils/teamRankings';
 import type { CareerMilestone, PerkId, ManagerProgression } from '@/types/game';
 import { processMatchResult } from '@/store/helpers/matchProcessing';
-import { processSponsorWeek, processSponsorSeasonEnd, generateStarterDeals } from '@/store/slices/sponsorSlice';
+import { processSponsorWeek, generateStarterDeals } from '@/store/slices/sponsorSlice';
 import {
-  rebuildRealPlayerClaims,
-  generateAIInjuryDetails,
-  applyAIMatchEvents,
-  generateObjectives,
+  rebuildRealPlayerClaims, generateAIInjuryDetails, applyAIMatchEvents, generateObjectives,
 } from '@/store/slices/orchestration/helpers';
 import {
-  generateLeagueCupDraw,
-  getContinentalMatchLabel,
-  isAggregateDecided,
-  advanceLeagueCupRound,
+  generateLeagueCupDraw, getContinentalMatchLabel, isAggregateDecided, advanceLeagueCupRound,
 } from '@/store/slices/orchestration/tournaments';
 import { endSeasonImpl } from '@/store/slices/orchestration/seasonEnd';
 
@@ -482,12 +413,9 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
 // migrateLegacySave and getSlotSummaries extracted to @/store/helpers/persistence
 export { getSlotSummaries } from '@/store/helpers/persistence';
 
-
-
 // `weightedPickFromRecord`, `generateAIInjuryDetails`, `applyAIMatchEvents`,
 // `rebuildRealPlayerClaims` and `generateObjectives` extracted to
 // `./orchestration/helpers.ts` — see the import at the top of this file.
-
 
 /** International break week implementation */
 function advanceInternationalWeekImpl(set: Set, get: Get) {
@@ -1216,7 +1144,6 @@ function processTournamentResultWithWinner(
 }
 
 // `advanceLeagueCupRound` is exported from `./orchestration/tournaments.ts`.
-
 
 /** Compute cumulative shout modifiers from match shouts for use as simulation modifiers */
 function computeShoutMods(matchShouts: { type: keyof typeof SHOUT_MODIFIERS }[]) {
