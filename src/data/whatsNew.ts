@@ -79,7 +79,9 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Pro subscription onboarding now describes the analytics you actually get — tactical match insights and a per-match performance summary.',
       'Inbox now shows an amber warning if your Pro payment fails so you can update billing before features lapse.',
     ],
-    fixed: [],
+    fixed: [
+      'Hall of Managers no longer breaks if stored data is invalid.',
+    ],
   },
   {
     version: '1.0.4',
