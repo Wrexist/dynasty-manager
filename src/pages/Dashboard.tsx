@@ -5,6 +5,8 @@ import { getSuffix, resolveClub } from '@/utils/helpers';
 import { getConfidenceColor, getFanConfidenceColor, getFanConfidence } from '@/utils/uiHelpers';
 import { usePlayerClub, useLeaguePosition, useCurrentMatch, useUnreadCount, findTournamentMatch, useSquadAverageMorale } from '@/hooks/useGameSelectors';
 import { GlassPanel } from '@/components/game/GlassPanel';
+import { CompetitionStatusCard } from '@/components/dashboard/CompetitionStatusCard';
+import { BoardObjectivesCard } from '@/components/dashboard/BoardObjectivesCard';
 import { PressConference } from '@/components/game/PressConference';
 import { WelcomeOverlay } from '@/components/game/WelcomeOverlay';
 import { Button } from '@/components/ui/button';
@@ -1944,164 +1946,98 @@ const Dashboard = () => {
 
       {/* Cup Status */}
       {cup.currentRound && (
-        <GlassPanel className="p-4" onClick={() => setScreen('cup')}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Award className={cn('w-5 h-5', cup.winner === playerClubId ? 'text-primary' : cup.eliminated ? 'text-destructive' : 'text-muted-foreground')} />
-              <div>
-                <p className="text-sm font-semibold text-foreground">Domestic Cup</p>
-                <p className="text-xs text-muted-foreground">
-                  {cup.winner ? `Winner: ${clubs[cup.winner]?.shortName}` : cup.eliminated ? 'Eliminated' : getRoundName(cup.currentRound)}
-                </p>
-              </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-muted-foreground" />
-          </div>
-        </GlassPanel>
+        <CompetitionStatusCard
+          title="Domestic Cup"
+          icon={Award}
+          iconClassName={cn(cup.winner === playerClubId ? 'text-primary' : cup.eliminated ? 'text-destructive' : 'text-muted-foreground')}
+          status={cup.winner ? `Winner: ${clubs[cup.winner]?.shortName}` : cup.eliminated ? 'Eliminated' : getRoundName(cup.currentRound)}
+          onClick={() => setScreen('cup')}
+        />
       )}
 
       {/* League Cup Status */}
       {leagueCup && leagueCup.currentRound && (
-        <GlassPanel className="p-4" onClick={() => setScreen('league-cup')}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Award className={cn('w-5 h-5', leagueCup.winner === playerClubId ? 'text-emerald-400' : leagueCup.eliminated ? 'text-destructive' : 'text-muted-foreground')} />
-              <div>
-                <p className="text-sm font-semibold text-foreground">League Cup</p>
-                <p className="text-xs text-muted-foreground">
-                  {leagueCup.winner ? `Winner: ${clubs[leagueCup.winner]?.shortName}` : leagueCup.eliminated ? 'Eliminated' : getRoundName(leagueCup.currentRound)}
-                </p>
-              </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-muted-foreground" />
-          </div>
-        </GlassPanel>
+        <CompetitionStatusCard
+          title="League Cup"
+          icon={Award}
+          iconClassName={cn(leagueCup.winner === playerClubId ? 'text-emerald-400' : leagueCup.eliminated ? 'text-destructive' : 'text-muted-foreground')}
+          status={leagueCup.winner ? `Winner: ${clubs[leagueCup.winner]?.shortName}` : leagueCup.eliminated ? 'Eliminated' : getRoundName(leagueCup.currentRound)}
+          onClick={() => setScreen('league-cup')}
+        />
       )}
 
       {/* Champions Cup Status */}
       {championsCup && (
-        <GlassPanel className="p-4" onClick={() => setScreen('champions-cup')}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Trophy className={cn('w-5 h-5', championsCup.winnerId === playerClubId ? 'text-blue-400' : championsCup.playerEliminated ? 'text-destructive' : 'text-blue-400/70')} />
-              <div>
-                <p className="text-sm font-semibold text-foreground">Champions Cup</p>
-                <p className="text-xs text-muted-foreground">
-                  {championsCup.winnerId
-                    ? `Winner: ${(clubs[championsCup.winnerId] || virtualClubs[championsCup.winnerId])?.shortName || '?'}`
-                    : championsCup.playerEliminated ? 'Eliminated'
-                    : championsCup.currentPhase === 'group' ? 'Group Stage'
-                    : championsCup.currentRound || 'Knockout'}
-                </p>
-              </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-muted-foreground" />
-          </div>
-        </GlassPanel>
+        <CompetitionStatusCard
+          title="Champions Cup"
+          icon={Trophy}
+          iconClassName={cn(championsCup.winnerId === playerClubId ? 'text-blue-400' : championsCup.playerEliminated ? 'text-destructive' : 'text-blue-400/70')}
+          status={
+            championsCup.winnerId
+              ? `Winner: ${(clubs[championsCup.winnerId] || virtualClubs[championsCup.winnerId])?.shortName || '?'}`
+              : championsCup.playerEliminated ? 'Eliminated'
+              : championsCup.currentPhase === 'group' ? 'Group Stage'
+              : championsCup.currentRound || 'Knockout'
+          }
+          onClick={() => setScreen('champions-cup')}
+        />
       )}
 
       {/* Shield Cup Status */}
       {shieldCup && (
-        <GlassPanel className="p-4" onClick={() => setScreen('shield-cup')}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Shield className={cn('w-5 h-5', shieldCup.winnerId === playerClubId ? 'text-orange-400' : shieldCup.playerEliminated ? 'text-destructive' : 'text-orange-400/70')} />
-              <div>
-                <p className="text-sm font-semibold text-foreground">Shield Cup</p>
-                <p className="text-xs text-muted-foreground">
-                  {shieldCup.winnerId
-                    ? `Winner: ${(clubs[shieldCup.winnerId] || virtualClubs[shieldCup.winnerId])?.shortName || '?'}`
-                    : shieldCup.playerEliminated ? 'Eliminated'
-                    : shieldCup.currentPhase === 'group' ? 'Group Stage'
-                    : shieldCup.currentRound || 'Knockout'}
-                </p>
-              </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-muted-foreground" />
-          </div>
-        </GlassPanel>
+        <CompetitionStatusCard
+          title="Shield Cup"
+          icon={Shield}
+          iconClassName={cn(shieldCup.winnerId === playerClubId ? 'text-orange-400' : shieldCup.playerEliminated ? 'text-destructive' : 'text-orange-400/70')}
+          status={
+            shieldCup.winnerId
+              ? `Winner: ${(clubs[shieldCup.winnerId] || virtualClubs[shieldCup.winnerId])?.shortName || '?'}`
+              : shieldCup.playerEliminated ? 'Eliminated'
+              : shieldCup.currentPhase === 'group' ? 'Group Stage'
+              : shieldCup.currentRound || 'Knockout'
+          }
+          onClick={() => setScreen('shield-cup')}
+        />
       )}
 
       {/* Conference Cup Status */}
       {conferenceCup && (
-        <GlassPanel className="p-4" onClick={() => setScreen('conference-cup')}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Award className={cn('w-5 h-5', conferenceCup.winnerId === playerClubId ? 'text-emerald-400' : conferenceCup.playerEliminated ? 'text-destructive' : 'text-emerald-400/70')} />
-              <div>
-                <p className="text-sm font-semibold text-foreground">Conference Cup</p>
-                <p className="text-xs text-muted-foreground">
-                  {conferenceCup.winnerId
-                    ? `Winner: ${(clubs[conferenceCup.winnerId] || virtualClubs[conferenceCup.winnerId])?.shortName || '?'}`
-                    : conferenceCup.playerEliminated ? 'Eliminated'
-                    : conferenceCup.currentPhase === 'group' ? 'Group Stage'
-                    : conferenceCup.currentRound || 'Knockout'}
-                </p>
-              </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-muted-foreground" />
-          </div>
-        </GlassPanel>
+        <CompetitionStatusCard
+          title="Conference Cup"
+          icon={Award}
+          iconClassName={cn(conferenceCup.winnerId === playerClubId ? 'text-emerald-400' : conferenceCup.playerEliminated ? 'text-destructive' : 'text-emerald-400/70')}
+          status={
+            conferenceCup.winnerId
+              ? `Winner: ${(clubs[conferenceCup.winnerId] || virtualClubs[conferenceCup.winnerId])?.shortName || '?'}`
+              : conferenceCup.playerEliminated ? 'Eliminated'
+              : conferenceCup.currentPhase === 'group' ? 'Group Stage'
+              : conferenceCup.currentRound || 'Knockout'
+          }
+          onClick={() => setScreen('conference-cup')}
+        />
       )}
 
       {/* Super Cup Status */}
       {(domesticSuperCup || continentalSuperCup) && (
-        <GlassPanel className="p-4" onClick={() => setScreen('super-cup')}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Trophy className={cn('w-5 h-5', (domesticSuperCup?.winnerId === playerClubId || continentalSuperCup?.winnerId === playerClubId) ? 'text-amber-400' : 'text-muted-foreground')} />
-              <div>
-                <p className="text-sm font-semibold text-foreground">Super Cup</p>
-                <p className="text-xs text-muted-foreground">
-                  {domesticSuperCup?.winnerId
-                    ? `Winner: ${clubs[domesticSuperCup.winnerId]?.shortName || '?'}`
-                    : domesticSuperCup?.played === false ? `Week ${domesticSuperCup.week}`
-                    : 'View matches'}
-                </p>
-              </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-muted-foreground" />
-          </div>
-        </GlassPanel>
+        <CompetitionStatusCard
+          title="Super Cup"
+          icon={Trophy}
+          iconClassName={cn((domesticSuperCup?.winnerId === playerClubId || continentalSuperCup?.winnerId === playerClubId) ? 'text-amber-400' : 'text-muted-foreground')}
+          status={
+            domesticSuperCup?.winnerId
+              ? `Winner: ${clubs[domesticSuperCup.winnerId]?.shortName || '?'}`
+              : domesticSuperCup?.played === false ? `Week ${domesticSuperCup.week}`
+              : 'View matches'
+          }
+          onClick={() => setScreen('super-cup')}
+        />
       )}
 
       {/* Board Objectives */}
-      <GlassPanel className="p-4" onClick={() => setScreen('board')}>
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-xs text-muted-foreground uppercase tracking-wider">Board Objectives</p>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">
-              {boardObjectives.filter(o => o.completed).length}/{boardObjectives.length} completed
-            </span>
-            <ChevronRight className="w-4 h-4 text-muted-foreground" />
-          </div>
-        </div>
-        {/* Progress bar */}
-        <div className="h-1.5 bg-muted/30 rounded-full overflow-hidden mb-3">
-          <div
-            className="h-full bg-primary rounded-full transition-all duration-500"
-            style={{ width: `${boardObjectives.length > 0 ? (boardObjectives.filter(o => o.completed).length / boardObjectives.length) * 100 : 0}%` }}
-          />
-        </div>
-        <div className="space-y-2">
-          {boardObjectives.map(obj => (
-            <div key={obj.id} className="flex items-center gap-2">
-              <div className={cn(
-                'w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0',
-                obj.completed
-                  ? 'bg-emerald-500 border-emerald-500'
-                  : obj.priority === 'critical' ? 'border-destructive' : obj.priority === 'important' ? 'border-primary' : 'border-muted-foreground'
-              )}>
-                {obj.completed && <span className="text-[8px] text-white font-bold">✓</span>}
-              </div>
-              <span className={cn(
-                'text-sm',
-                obj.completed ? 'text-muted-foreground line-through' : 'text-foreground'
-              )}>{obj.description}</span>
-            </div>
-          ))}
-        </div>
-      </GlassPanel>
+      <BoardObjectivesCard
+        boardObjectives={boardObjectives}
+        onClick={() => setScreen('board')}
+      />
 
       {/* Session Stats */}
       {sessionStats && sessionStats.weeksPlayed > 0 && (
