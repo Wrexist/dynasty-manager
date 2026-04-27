@@ -78,6 +78,8 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Pro upsell on press conferences only appears on questions that genuinely have a Pro response — no more bait prompts.',
       'Pro subscription onboarding now describes the analytics you actually get — tactical match insights and a per-match performance summary.',
       'Inbox now shows an amber warning if your Pro payment fails so you can update billing before features lapse.',
+      'Pack opening drops the cluttered title overlay for a tier-tinted caption — no more gold text on silver packs.',
+      'Tap the pack itself during the build-up to rip it open immediately, with foil shreds bursting from the seam.',
     ],
     fixed: [],
   },
