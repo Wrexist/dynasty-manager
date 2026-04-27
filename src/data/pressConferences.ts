@@ -27,6 +27,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'It\'s a step in the right direction, but we can\'t get carried away.', effects: { morale: 8, boardConfidence: 4, fanMood: 4 } },
         deflect: { text: 'Let\'s not get ahead of ourselves. One game at a time.', effects: { morale: 3, boardConfidence: 2, fanMood: 1 } },
       },
+      proOption: { tone: 'analytical', text: 'The momentum data is undeniable but we keep the focus narrow. We track week-by-week metrics, not media narratives.', effects: { morale: 8, boardConfidence: 5, fanMood: 7 } },
     },
     {
       question: 'Your striker was clinical today. How important is his form to the team right now?',
@@ -35,6 +36,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'He\'d be the first to say it\'s a team effort. We create the chances, he finishes them.', effects: { morale: 10, boardConfidence: 3, fanMood: 5 } },
         deflect: { text: 'Individual performances matter less than the collective. The system works.', effects: { morale: 5, boardConfidence: 2, fanMood: 3 } },
       },
+      proOption: { tone: 'analytical', text: 'His xG and conversion numbers are elite for this level. He\'s in the form of his life and we\'ve built our patterns around that strength.', effects: { morale: 9, boardConfidence: 5, fanMood: 8 } },
     },
     {
       question: 'You made some bold tactical changes at half-time. Was that always the plan?',
@@ -52,6 +54,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'Confidence is good but we keep each other grounded. Nobody gets complacent in my squad.', effects: { morale: 10, boardConfidence: 4, fanMood: 4 } },
         deflect: { text: 'Three wins is nice, but there are no prizes handed out in March. We keep going.', effects: { morale: 4, boardConfidence: 2, fanMood: 1 } },
       },
+      proOption: { tone: 'analytical', text: 'Our underlying numbers have been climbing for weeks — the wins are starting to reflect that. Process before outcome, every time.', effects: { morale: 9, boardConfidence: 6, fanMood: 7 } },
     },
     {
       question: 'Your midfield completely controlled the tempo today. Is that something you\'ve been working on specifically?',
@@ -69,6 +72,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'The whole team defends as a unit. It starts from the front and everyone does their job.', effects: { morale: 10, boardConfidence: 4, fanMood: 5 } },
         deflect: { text: 'One clean sheet doesn\'t make a season. We take each game as it comes.', effects: { morale: 4, boardConfidence: 2, fanMood: 1 } },
       },
+      proOption: { tone: 'strategic', text: 'We restructured the defensive line\'s pressing triggers in pre-season. The shape is more compact and the data shows opponents are getting fewer high-value chances.', effects: { morale: 8, boardConfidence: 6, fanMood: 6 } },
     },
     {
       question: 'Some fans are already talking about a title challenge. Is that realistic?',
@@ -77,6 +81,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'It\'s flattering but we\'re taking it one game at a time. A lot can change.', effects: { morale: 6, boardConfidence: 5, fanMood: 3 } },
         deflect: { text: 'I don\'t listen to that noise. We focus on what we can control.', effects: { morale: 3, boardConfidence: 3, fanMood: -1 } },
       },
+      proOption: { tone: 'analytical', text: 'The points-per-game projection is encouraging but it\'s a long season. We benchmark against title-winning sides week to week and adjust accordingly.', effects: { morale: 7, boardConfidence: 6, fanMood: 8 } },
     },
   ],
   post_loss: [
@@ -96,6 +101,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'I understand their frustration. We owe them better performances.', effects: { morale: -2, boardConfidence: 4, fanMood: 6 } },
         deflect: { text: 'I\'m focused on the training ground, not speculation.', effects: { morale: 2, boardConfidence: 0, fanMood: -2 } },
       },
+      proOption: { tone: 'analytical', text: 'I\'ve already broken down the tape. The structural issue is fixable — small spacing tweaks in the press will change the outcome of these games.', effects: { morale: 6, boardConfidence: 5, fanMood: 4 } }
     },
     {
       question: 'You conceded early and never recovered. Is there a mentality problem in this squad?',
@@ -113,6 +119,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'We made individual errors that were punished. We\'ll look at everything this week.', effects: { morale: -2, boardConfidence: 3, fanMood: 5 } },
         deflect: { text: 'Team selection is my business. I don\'t discuss it publicly.', effects: { morale: 0, boardConfidence: -1, fanMood: -3 } },
       },
+      proOption: { tone: 'analytical', text: 'The video is clear: we\'re losing one specific duel pattern. We\'ll drill it Monday and Tuesday — it\'s a fixable, identifiable issue.', effects: { morale: 6, boardConfidence: 5, fanMood: 4 } },
     },
     {
       question: 'You\'ve now lost three of your last five. Is this a crisis?',
@@ -130,6 +137,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'Hindsight is a wonderful thing. I\'ll review everything and learn from it.', effects: { morale: -1, boardConfidence: 3, fanMood: 4 } },
         deflect: { text: 'I\'d rather not go into specific decisions. We win and lose as a team.', effects: { morale: 1, boardConfidence: 0, fanMood: -1 } },
       },
+      proOption: { tone: 'strategic', text: 'In hindsight the data suggested a different change. We log every decision and learn from it — that\'s how the staff get better game by game.', effects: { morale: 5, boardConfidence: 4, fanMood: 3 } },
     },
     {
       question: 'The fans booed at full time. Do you understand their frustration?',
@@ -138,6 +146,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'Of course. They pay good money and deserve better. We owe them a response.', effects: { morale: -2, boardConfidence: 4, fanMood: 6 } },
         deflect: { text: 'I didn\'t hear anything. My focus was on the dressing room.', effects: { morale: 0, boardConfidence: 1, fanMood: -5 } },
       },
+      proOption: { tone: 'humble', text: 'Of course they\'re frustrated — so am I. But I\'ll show you the same data I show the players: we\'re trending the right way and the results will follow.', effects: { morale: 7, boardConfidence: 4, fanMood: 6 } },
     },
     {
       question: 'Are you concerned about the number of goals you\'re conceding?',
@@ -146,6 +155,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'It\'s something we need to address urgently. We\'re working on it every day.', effects: { morale: -1, boardConfidence: 5, fanMood: 3 } },
         deflect: { text: 'Football is a game of fine margins. We\'ll look at the data and adjust.', effects: { morale: 1, boardConfidence: 2, fanMood: 0 } },
       },
+      proOption: { tone: 'analytical', text: 'The xGA has dropped three weeks running — we\'re conceding bad-luck goals, not big chances. Stay the course and the numbers will normalise.', effects: { morale: 6, boardConfidence: 5, fanMood: 4 } },
     },
   ],
   post_draw: [
@@ -156,6 +166,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'A point away from home is always valuable in this league.', effects: { morale: 5, boardConfidence: 2, fanMood: 3 } },
         deflect: { text: 'The table will tell the story at the end of the season.', effects: { morale: 2, boardConfidence: 1, fanMood: 0 } },
       },
+      proOption: { tone: 'analytical', text: 'The xG was even, the underlying battle was even. A draw reflects the data — neither side did enough to deserve more.', effects: { morale: 6, boardConfidence: 4, fanMood: 4 } },
     },
     {
       question: 'You had a late equaliser ruled out. Do you feel hard done by?',
@@ -164,6 +175,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'Decisions go for you and against you over a season. We need to put ourselves in positions where it doesn\'t matter.', effects: { morale: 6, boardConfidence: 3, fanMood: 2 } },
         deflect: { text: 'I haven\'t seen it back yet, so I won\'t comment on the decision.', effects: { morale: 2, boardConfidence: 1, fanMood: 0 } },
       },
+      proOption: { tone: 'strategic', text: 'We don\'t spend energy on decisions we can\'t control. The staff will review the call internally and feed it into how we coach the patterns.', effects: { morale: 6, boardConfidence: 5, fanMood: 3 } },
     },
     {
       question: 'Both teams cancelled each other out. Is this a sign you need more creativity?',
@@ -181,6 +193,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'We need to be more clinical. Creating chances is one thing, finishing them is another.', effects: { morale: 4, boardConfidence: 3, fanMood: 2 } },
         deflect: { text: 'Football is unpredictable. On another day we score three or four.', effects: { morale: 2, boardConfidence: 1, fanMood: 1 } },
       },
+      proOption: { tone: 'strategic', text: 'We\'re working on a new rotation against deep blocks — extra movement in the half-spaces. The pattern is coming, just needs more reps.', effects: { morale: 7, boardConfidence: 5, fanMood: 4 } },
     },
     {
       question: 'Your goalkeeper kept you in it with some big saves. Is a draw a good result considering?',
@@ -189,6 +202,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'He was fantastic. Honestly, a point might be a fair reflection given how the game played out.', effects: { morale: 6, boardConfidence: 2, fanMood: 3 } },
         deflect: { text: 'Goalkeepers make saves, that\'s their job. We move on to the next one.', effects: { morale: 2, boardConfidence: 1, fanMood: 0 } },
       },
+      proOption: { tone: 'analytical', text: 'His save percentage on high-value chances is among the best in the division. He\'s a system-defining asset and the metrics back that up.', effects: { morale: 8, boardConfidence: 5, fanMood: 6 } },
     },
     {
       question: 'You had chances to win it late on. Is a draw a missed opportunity?',
@@ -197,6 +211,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'We created chances which is positive, but we need to be more clinical.', effects: { morale: 7, boardConfidence: 3, fanMood: 3 } },
         deflect: { text: 'You could say the same about both sides. A draw was a fair result.', effects: { morale: 3, boardConfidence: 2, fanMood: 0 } },
       },
+      proOption: { tone: 'analytical', text: 'We out-chanced them on big chances 4-1 in the last 20 minutes. Finishing variance evens out — keep generating that volume and the results will come.', effects: { morale: 6, boardConfidence: 5, fanMood: 4 } },
     },
     {
       question: 'The second half was much better than the first. What changed at the break?',
@@ -205,6 +220,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'We made some adjustments and the players responded brilliantly. Credit to them.', effects: { morale: 9, boardConfidence: 4, fanMood: 4 } },
         deflect: { text: 'I\'d rather keep the tactical details between myself and the squad.', effects: { morale: 2, boardConfidence: 1, fanMood: -1 } },
       },
+      proOption: { tone: 'strategic', text: 'We adjusted to a back-three at the break and the data showed an immediate jump in territory and entries. The shape change won us the half outright.', effects: { morale: 7, boardConfidence: 6, fanMood: 5 } },
     },
     {
       question: 'This is the third draw in a row now. Is that a pattern you\'re worried about?',
@@ -224,6 +240,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'We respect the opponent but believe in our quality.', effects: { morale: 6, boardConfidence: 4, fanMood: 4 } },
         deflect: { text: 'It\'s another game. We treat every match the same.', effects: { morale: 2, boardConfidence: 1, fanMood: -1 } },
       },
+      proOption: { tone: 'analytical', text: 'We\'ve modelled their last twelve matches and identified three repeatable triggers we can exploit. The squad has spent the week drilling those exact scenarios.', effects: { morale: 8, boardConfidence: 7, fanMood: 6 } },
     },
     {
       question: 'This is a local derby with a lot of history. What does this fixture mean to you and the club?',
@@ -232,6 +249,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'We know what it means to the supporters. We\'ll give everything for them.', effects: { morale: 7, boardConfidence: 3, fanMood: 7 } },
         deflect: { text: 'Emotions run high in these games, but we have to stay professional and focused.', effects: { morale: 3, boardConfidence: 2, fanMood: 1 } },
       },
+      proOption: { tone: 'visionary', text: 'Derbies aren\'t won on emotion — they\'re won on the small details that emotion makes you forget. We\'ve prepared for the chaos so the players don\'t have to.', effects: { morale: 9, boardConfidence: 6, fanMood: 9 } },
     },
     {
       question: 'Your opponents are top of the table. Do you see this as a free hit or a chance to make a statement?',
@@ -249,6 +267,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'It\'s a challenge, but it\'s also an opportunity for others to stake their claim.', effects: { morale: 6, boardConfidence: 4, fanMood: 4 } },
         deflect: { text: 'Every team deals with this throughout the season. It\'s nothing new.', effects: { morale: 3, boardConfidence: 2, fanMood: 1 } },
       },
+      proOption: { tone: 'analytical', text: 'The fitness team has individualised load plans for every depth player. We know exactly who is fresh enough to start and who needs to come off the bench.', effects: { morale: 7, boardConfidence: 6, fanMood: 4 } },
     },
     {
       question: 'The atmosphere is expected to be hostile away from home. How do you prepare your players mentally for that?',
@@ -266,6 +285,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'We need to be braver in those big moments. Sometimes we\'ve been too cautious.', effects: { morale: 4, boardConfidence: 5, fanMood: 4 } },
         deflect: { text: 'Records don\'t win you the next game. We prepare the same way regardless of the opponent.', effects: { morale: 3, boardConfidence: 2, fanMood: 0 } },
       },
+      proOption: { tone: 'strategic', text: 'We\'ve audited those games and identified the same recurring failure pattern. The plan this week is built specifically to break that pattern.', effects: { morale: 7, boardConfidence: 6, fanMood: 5 } },
     },
     {
       question: 'The last meeting between these two sides was a fiery affair. Are you expecting the same intensity?',
@@ -285,6 +305,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'Every player has a price, but we\'re not actively looking to sell.', effects: { morale: -2, boardConfidence: 5, fanMood: -2 } },
         deflect: { text: 'I don\'t comment on speculation. Next question.', effects: { morale: 3, boardConfidence: 1, fanMood: 0 } },
       },
+      proOption: { tone: 'strategic', text: 'Every senior player has a defined valuation and a defined role in the project. Outside interest doesn\'t change either of those things.', effects: { morale: 7, boardConfidence: 6, fanMood: 5 } },
     },
     {
       question: 'Reports suggest a bid has been rejected for your captain. Is the club holding firm?',
@@ -293,6 +314,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'We\'ve made our position clear. But ultimately these things are never entirely in your control.', effects: { morale: 0, boardConfidence: 4, fanMood: 1 } },
         deflect: { text: 'Transfer business is handled behind closed doors, not in press conferences.', effects: { morale: 2, boardConfidence: 2, fanMood: -1 } },
       },
+      proOption: { tone: 'strategic', text: 'The valuation reflects his contribution to our system, not just his raw output. A bid that doesn\'t recognise that is a bid we don\'t entertain.', effects: { morale: 9, boardConfidence: 6, fanMood: 7 } },
     },
     {
       question: 'With the transfer window open, are you looking to bring anyone in?',
@@ -310,6 +332,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'I\'ll always listen to proposals that could improve the squad, but nothing is agreed.', effects: { morale: -1, boardConfidence: 5, fanMood: 0 } },
         deflect: { text: 'Swap deals, cash deals, free agents — I don\'t discuss specifics with the media.', effects: { morale: 2, boardConfidence: 2, fanMood: -1 } },
       },
+      proOption: { tone: 'analytical', text: 'We model every potential swap on data fit and contract terms before it gets to my desk. If the numbers don\'t justify it, the conversation ends quickly.', effects: { morale: 6, boardConfidence: 5, fanMood: 4 } },
     },
     {
       question: 'A rival manager has publicly praised your star player. Do you think they\'re trying to unsettle him?',
@@ -327,6 +350,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'These things are complicated. We\'ll respect whatever decision he makes.', effects: { morale: 3, boardConfidence: 4, fanMood: 2 } },
         deflect: { text: 'Contract situations are private. I won\'t be discussing it publicly.', effects: { morale: 2, boardConfidence: 2, fanMood: -1 } },
       },
+      proOption: { tone: 'strategic', text: 'The negotiation is structured and ongoing. We\'ve got contingencies modelled either way — the project doesn\'t depend on one signature.', effects: { morale: 6, boardConfidence: 5, fanMood: 4 } },
     },
     {
       question: 'Agents have been spotted at your last few matches. Is something brewing behind the scenes?',
@@ -335,6 +359,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'I\'m not aware of any approaches. My focus is purely on the football.', effects: { morale: 4, boardConfidence: 3, fanMood: 2 } },
         deflect: { text: 'I don\'t keep tabs on who\'s in the stands. That\'s not my department.', effects: { morale: 2, boardConfidence: 1, fanMood: 0 } },
       },
+      proOption: { tone: 'visionary', text: 'Agents come to matches because the project is attractive. That\'s a signal of where we\'re heading, not a problem to be managed.', effects: { morale: 7, boardConfidence: 5, fanMood: 5 } },
     },
   ],
   poor_form: [
@@ -345,6 +370,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'We\'re working on it every day on the training ground. Hard work fixes everything.', effects: { morale: 4, boardConfidence: 5, fanMood: 4 } },
         deflect: { text: 'We need some time. Rome wasn\'t built in a day.', effects: { morale: 0, boardConfidence: -3, fanMood: -4 } },
       },
+      proOption: { tone: 'analytical', text: 'I\'ve broken the slump down to one repeating defensive transition error. We\'ll drill it relentlessly this week — it\'s identifiable and fixable.', effects: { morale: 6, boardConfidence: 5, fanMood: 4 } },
     },
     {
       question: 'Some fans are calling for your head on social media. How do you respond to that?',
@@ -353,6 +379,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'The fans have every right to be frustrated. It\'s on me to deliver better results.', effects: { morale: -1, boardConfidence: 4, fanMood: 5 } },
         deflect: { text: 'I don\'t do social media. I focus on what happens on the pitch.', effects: { morale: 1, boardConfidence: 0, fanMood: -1 } },
       },
+      proOption: { tone: 'strategic', text: 'I focus on what the data tells me, not the noise. The plan is the plan, the metrics are improving, and I trust the process.', effects: { morale: 6, boardConfidence: 6, fanMood: 3 } },
     },
     {
       question: 'Are you worried about being dragged into a relegation battle at this rate?',
@@ -370,6 +397,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'Everyone has to earn their place. If young players are training better, they\'ll get opportunities.', effects: { morale: 3, boardConfidence: 4, fanMood: 5 } },
         deflect: { text: 'Selection matters are for me to decide. I\'ll pick whoever gives us the best chance.', effects: { morale: 1, boardConfidence: 0, fanMood: -1 } },
       },
+      proOption: { tone: 'analytical', text: 'The fitness data shows the senior core is carrying high cumulative load. A controlled rotation week, not a wholesale change, is what the numbers are asking for.', effects: { morale: 6, boardConfidence: 5, fanMood: 3 } },
     },
     {
       question: 'Confidence looks shot out there. How do you rebuild belief in a struggling squad?',
@@ -387,6 +415,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'Maybe I need to simplify things. If the message isn\'t getting through, that\'s on me.', effects: { morale: 2, boardConfidence: 6, fanMood: 5 } },
         deflect: { text: 'I\'m not going to publicly dissect our tactical setup. We\'ll work on it behind closed doors.', effects: { morale: 0, boardConfidence: 1, fanMood: -2 } },
       },
+      proOption: { tone: 'strategic', text: 'We\'ve simplified the in-possession patterns to give the players clearer reference points. Complexity is the enemy when confidence is low.', effects: { morale: 7, boardConfidence: 5, fanMood: 4 } },
     },
     {
       question: 'You\'ve scored just twice in the last five matches. Where are the goals going to come from?',
@@ -406,6 +435,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'Team spirit and hard work. Everyone is pulling in the same direction.', effects: { morale: 12, boardConfidence: 3, fanMood: 6 } },
         deflect: { text: 'Let\'s stay grounded. Plenty of football left to play.', effects: { morale: 3, boardConfidence: 2, fanMood: 1 } },
       },
+      proOption: { tone: 'analytical', text: 'The underlying metrics have been climbing for two months — the results have just caught up. This isn\'t variance, it\'s the system maturing.', effects: { morale: 8, boardConfidence: 6, fanMood: 6 } },
     },
     {
       question: 'You\'re in the promotion places. Is it too early to talk about going up?',
@@ -414,6 +444,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'We\'re in a good position but there\'s a long way to go. We just keep taking it week by week.', effects: { morale: 7, boardConfidence: 5, fanMood: 4 } },
         deflect: { text: 'I\'m not looking at the table yet. Ask me again in April.', effects: { morale: 3, boardConfidence: 2, fanMood: 1 } },
       },
+      proOption: { tone: 'analytical', text: 'The points-per-game projection is exciting but I focus on the next match\'s expected difficulty, not the table. Process beats prediction every time.', effects: { morale: 6, boardConfidence: 5, fanMood: 4 } },
     },
     {
       question: 'Your young players have been outstanding recently. Is this the future of the club?',
@@ -431,6 +462,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'Dreams are for the fans. My job is to prepare the team game by game and see where it takes us.', effects: { morale: 7, boardConfidence: 5, fanMood: 4 } },
         deflect: { text: 'There\'s a lot of football between now and the end of the season. I\'m not thinking that far ahead.', effects: { morale: 3, boardConfidence: 2, fanMood: 1 } },
       },
+      proOption: { tone: 'visionary', text: 'I dream about it — but my job is to convert dreams into a process. The players know exactly what trophies cost in points, performance, and discipline.', effects: { morale: 8, boardConfidence: 5, fanMood: 8 } },
     },
     {
       question: 'Rival managers are starting to call you title contenders publicly. Does that add pressure?',
@@ -448,6 +480,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'It\'s a team effort. Everyone from front to back is putting in the defensive work.', effects: { morale: 10, boardConfidence: 4, fanMood: 4 } },
         deflect: { text: 'I don\'t like to focus on individual stats. The results speak for themselves.', effects: { morale: 3, boardConfidence: 2, fanMood: 1 } },
       },
+      proOption: { tone: 'strategic', text: 'We restructured the rest-defence shape after the international break. Opponents are now getting their lowest-quality chances against us in over a year.', effects: { morale: 8, boardConfidence: 6, fanMood: 6 } },
     },
     {
       question: 'Players are queuing up to praise your man-management. What\'s your philosophy on handling a squad?',
@@ -476,6 +509,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'Any promotion would be a fantastic achievement. We\'ll take whatever route gets us there.', effects: { morale: 7, boardConfidence: 5, fanMood: 5 } },
         deflect: { text: 'I don\'t set public targets. That only creates unnecessary pressure.', effects: { morale: 3, boardConfidence: 3, fanMood: 1 } },
       },
+      proOption: { tone: 'strategic', text: 'Automatic is the target. Playoffs are a financial and squad-cost we\'ve modelled and prefer to avoid — the data favours pushing for top two now.', effects: { morale: 8, boardConfidence: 7, fanMood: 7 } },
     },
     {
       question: 'Several of your players have attracted interest from clubs in the league above. Is that a distraction?',
@@ -484,6 +518,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'It\'s flattering for the lads, but their heads are firmly here. We have unfinished business.', effects: { morale: 7, boardConfidence: 4, fanMood: 5 } },
         deflect: { text: 'I don\'t engage with speculation about individual players during the business end of the season.', effects: { morale: 3, boardConfidence: 2, fanMood: 0 } },
       },
+      proOption: { tone: 'strategic', text: 'Every key contract has been extended in advance for exactly this scenario. We\'re not negotiating from weakness when the lights are brightest.', effects: { morale: 9, boardConfidence: 7, fanMood: 6 } },
     },
     {
       question: 'Your recent results have been inconsistent. Are nerves creeping in as the finish line approaches?',
@@ -501,6 +536,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'The fans have been incredible. They deserve promotion as much as anyone in that dressing room.', effects: { morale: 9, boardConfidence: 4, fanMood: 8 } },
         deflect: { text: 'Good atmosphere helps, but ultimately it\'s what happens on the pitch that decides things.', effects: { morale: 4, boardConfidence: 2, fanMood: 1 } },
       },
+      proOption: { tone: 'visionary', text: 'A packed stadium is worth measurable points across a season. We\'ve quantified the home-advantage swing and we feed off it deliberately.', effects: { morale: 8, boardConfidence: 5, fanMood: 9 } },
     },
     {
       question: 'If you secure promotion, how ready is the squad to compete at the higher level?',
@@ -518,6 +554,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'We have to be smart with our resources. We may not outspend them but we can outsmart them.', effects: { morale: 6, boardConfidence: 6, fanMood: 4 } },
         deflect: { text: 'I don\'t concern myself with what other clubs are doing. Our focus is internal.', effects: { morale: 3, boardConfidence: 2, fanMood: 0 } },
       },
+      proOption: { tone: 'analytical', text: 'Our recruitment model targets value, not headlines. The squad cost-per-point is among the best in the league — that\'s how you compete without matching wage bills.', effects: { morale: 7, boardConfidence: 7, fanMood: 5 } },
     },
     {
       question: 'The fixture list looks brutal over the next month. How do you manage fatigue in a promotion run-in?',
@@ -546,6 +583,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'We\'ve had honest conversations. They understand the challenges and we\'re working together to fix things.', effects: { morale: 3, boardConfidence: 6, fanMood: 3 } },
         deflect: { text: 'What happens between me and the board stays private. My focus is on the pitch.', effects: { morale: 1, boardConfidence: 1, fanMood: -1 } },
       },
+      proOption: { tone: 'strategic', text: 'The board and I align on the survival plan and the metrics that signal it\'s working. We\'re reviewing those numbers together every week — there are no surprises.', effects: { morale: 6, boardConfidence: 7, fanMood: 4 } },
     },
     {
       question: 'Do you regret not strengthening the squad in the transfer window?',
@@ -554,6 +592,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'Hindsight is easy. We tried to bring people in but the right deals weren\'t there. We work with what we have.', effects: { morale: 3, boardConfidence: 4, fanMood: 4 } },
         deflect: { text: 'Transfer windows are done. There\'s no point looking backwards. We focus on what\'s ahead.', effects: { morale: 2, boardConfidence: 1, fanMood: 0 } },
       },
+      proOption: { tone: 'analytical', text: 'We modelled the transfer market against squad needs and the ROI didn\'t justify a panic buy. We\'re committed to solving this with the players we have.', effects: { morale: 6, boardConfidence: 5, fanMood: 3 } },
     },
     {
       question: 'Some players look like they\'ve already given up. How do you motivate a squad in freefall?',
@@ -571,6 +610,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'It\'s going to be incredibly tough, I won\'t lie. But as long as there\'s a chance, we fight.', effects: { morale: 5, boardConfidence: 4, fanMood: 5 } },
         deflect: { text: 'I don\'t deal in hypotheticals. We focus on the next game and only the next game.', effects: { morale: 2, boardConfidence: 1, fanMood: 0 } },
       },
+      proOption: { tone: 'analytical', text: 'The points-needed model says it\'s tight but achievable. Every match has a clear target and the squad knows exactly what it takes from here.', effects: { morale: 7, boardConfidence: 6, fanMood: 4 } },
     },
     {
       question: 'You\'ve got a run of winnable fixtures coming up. Is this the moment to save your season?',
@@ -579,6 +619,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'There are no easy games at this level. We respect every opponent.', effects: { morale: 4, boardConfidence: 4, fanMood: 2 } },
         deflect: { text: 'Winnable? Every game is tough when you\'re down there. I don\'t subscribe to that thinking.', effects: { morale: 2, boardConfidence: 2, fanMood: -1 } },
       },
+      proOption: { tone: 'strategic', text: 'We\'ve mapped each upcoming opponent\'s vulnerabilities and built the game plans accordingly. The fixture list is a weapon if you prepare correctly.', effects: { morale: 8, boardConfidence: 6, fanMood: 5 } },
     },
     {
       question: 'Some of your experienced players have been through relegation scraps before. Are they helping guide the younger lads?',
@@ -607,6 +648,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'The market dictates prices, not us. But we believe he\'ll give us great value over the life of his contract.', effects: { morale: 5, boardConfidence: 5, fanMood: 3 } },
         deflect: { text: 'Transfer fees are between the clubs. I judge players by what they do on the pitch.', effects: { morale: 3, boardConfidence: 2, fanMood: 0 } },
       },
+      proOption: { tone: 'analytical', text: 'Our model values him at this number based on age, role, and projected output. We\'re paying for what he\'ll deliver, not what the headline suggests.', effects: { morale: 7, boardConfidence: 6, fanMood: 5 } },
     },
     {
       question: 'How quickly can we expect to see the new signing in the starting lineup?',
@@ -615,6 +657,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'We\'ll integrate him carefully. There\'s a settling-in period and we need to respect that.', effects: { morale: 4, boardConfidence: 5, fanMood: 3 } },
         deflect: { text: 'Team selection is always based on training performance. He\'ll be treated no differently.', effects: { morale: 3, boardConfidence: 3, fanMood: 1 } },
       },
+      proOption: { tone: 'strategic', text: 'We\'ve mapped his on-boarding into specific tactical phases. Bench rotation first, then targeted starts — the data tells us exactly when he\'s ready.', effects: { morale: 7, boardConfidence: 6, fanMood: 5 } },
     },
     {
       question: 'Does this signing signal your ambition to the rest of the league?',
@@ -632,6 +675,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'I\'ve spoken to them personally. Nobody loses their place without a fair fight for it.', effects: { morale: 7, boardConfidence: 4, fanMood: 4 } },
         deflect: { text: 'Private conversations between me and my players stay private.', effects: { morale: 2, boardConfidence: 2, fanMood: 0 } },
       },
+      proOption: { tone: 'visionary', text: 'Healthy competition lifts the standard for everyone. The numbers prove it: squads with internal competition outperform — that\'s a feature of the project, not a threat.', effects: { morale: 8, boardConfidence: 6, fanMood: 5 } },
     },
     {
       question: 'The new signing reportedly chose you over several other clubs. What convinced him to come here?',
@@ -640,6 +684,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'It was a team effort — the board, the staff, and the vision we presented. We sold the project well.', effects: { morale: 7, boardConfidence: 6, fanMood: 5 } },
         deflect: { text: 'You\'d have to ask him that. I\'m just glad he\'s here.', effects: { morale: 3, boardConfidence: 1, fanMood: 2 } },
       },
+      proOption: { tone: 'visionary', text: 'He saw the data on our development pathway and the trajectory of the squad. Smart players choose projects with measurable upside — that\'s what we sold him.', effects: { morale: 9, boardConfidence: 7, fanMood: 7 } },
     },
     {
       question: 'How does this signing fit into your long-term vision for the club?',
@@ -668,6 +713,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'We\'re reviewing everything with the medical team. If something needs to change, we\'ll change it.', effects: { morale: 3, boardConfidence: 6, fanMood: 5 } },
         deflect: { text: 'I don\'t discuss medical matters in detail. Our staff are excellent and I trust them completely.', effects: { morale: 2, boardConfidence: 2, fanMood: 0 } },
       },
+      proOption: { tone: 'analytical', text: 'I\'ve audited the load and impact data with the medical team. The pattern points to bad luck, not methodology — but we\'ve still tightened recovery protocols.', effects: { morale: 6, boardConfidence: 6, fanMood: 4 } },
     },
     {
       question: 'Are you considering dipping into the loan market to cover the gaps?',
@@ -676,6 +722,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'We\'re keeping all options open. If the right player is available to help in the short term, we\'d look at it.', effects: { morale: 4, boardConfidence: 5, fanMood: 3 } },
         deflect: { text: 'Transfer decisions are made privately. We\'ll do whatever\'s best for the club.', effects: { morale: 2, boardConfidence: 2, fanMood: 0 } },
       },
+      proOption: { tone: 'strategic', text: 'The loan market has been screened against our profile filters. We have two specific targets identified and ready to move on if the situation worsens.', effects: { morale: 7, boardConfidence: 6, fanMood: 5 } },
     },
     {
       question: 'Your captain is among the injured. Who steps up as leader now?',
@@ -693,6 +740,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'It\'s a difficult period but we\'re doing everything to get players back as quickly and safely as possible.', effects: { morale: 5, boardConfidence: 4, fanMood: 5 } },
         deflect: { text: 'Worry doesn\'t help. We focus on what we can control and take it week by week.', effects: { morale: 2, boardConfidence: 1, fanMood: 0 } },
       },
+      proOption: { tone: 'analytical', text: 'We\'ve modelled every realistic squad availability scenario through the run-in. The points-per-game projection holds across all of them — the season is not derailed.', effects: { morale: 7, boardConfidence: 6, fanMood: 5 } },
     },
     {
       question: 'You\'ve been forced to play players out of position recently. How are they coping with that?',
@@ -701,6 +749,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'It\'s not ideal and I appreciate the sacrifice they\'re making. They\'re giving everything for the team.', effects: { morale: 9, boardConfidence: 4, fanMood: 5 } },
         deflect: { text: 'Modern footballers need to be versatile. It\'s part of the game.', effects: { morale: 3, boardConfidence: 2, fanMood: 0 } },
       },
+      proOption: { tone: 'strategic', text: 'We mapped every player\'s secondary positions in pre-season for exactly this scenario. The data shows minimal performance drop-off — versatility was built in by design.', effects: { morale: 7, boardConfidence: 6, fanMood: 4 } },
     },
     {
       question: 'Some of the younger players drafted in have actually looked impressive. Could this crisis be a blessing in disguise?',
@@ -729,6 +778,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'Every manager has their own style. I respect them but we\'re fully focused on our own preparation.', effects: { morale: 6, boardConfidence: 4, fanMood: 3 } },
         deflect: { text: 'I don\'t read what other managers say. My energy goes into the training ground.', effects: { morale: 3, boardConfidence: 2, fanMood: 0 } },
       },
+      proOption: { tone: 'strategic', text: 'External noise is a variable we control by ignoring it. The squad\'s entire focus this week has been the data on their patterns — nothing else.', effects: { morale: 8, boardConfidence: 6, fanMood: 7 } },
     },
     {
       question: 'The form book goes out the window in derbies. Does that concern you?',
@@ -746,6 +796,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'We\'ve spoken about keeping our composure. Passion is great, but not at the cost of discipline.', effects: { morale: 6, boardConfidence: 5, fanMood: 4 } },
         deflect: { text: 'That\'s ancient history. This is a new squad and a new chapter.', effects: { morale: 3, boardConfidence: 2, fanMood: 1 } },
       },
+      proOption: { tone: 'strategic', text: 'We\'ve coordinated with the staff and the club\'s safety team on every detail. On the pitch, we channel the emotion into structure — that\'s how derbies are won.', effects: { morale: 7, boardConfidence: 6, fanMood: 6 } },
     },
     {
       question: 'A derby win could define the season for the fans. Do you embrace that expectation or try to block it out?',
@@ -763,6 +814,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'The captain speaks for all of us. The squad is united and desperate to put on a show.', effects: { morale: 9, boardConfidence: 4, fanMood: 7 } },
         deflect: { text: 'Actions speak louder than words. We\'ll let our football do the talking.', effects: { morale: 4, boardConfidence: 3, fanMood: 2 } },
       },
+      proOption: { tone: 'visionary', text: 'A derby win lives in the data and the memory. We\'ve built the week\'s preparation around delivering both — the numbers say we\'re ready.', effects: { morale: 9, boardConfidence: 6, fanMood: 9 } },
     },
     {
       question: 'Ticket demand has been unprecedented for this one. Does a sellout crowd change the dynamic?',
