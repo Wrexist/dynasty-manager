@@ -78,6 +78,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Tightened native bridge typing for in-app purchases and haptics.',
       'Hardened the matchday flow with new safety tests for penalty shootouts and prestige resets.',
       'Locked down transfer market behaviour with new tests for offers, releases, renewals, and free agents.',
+      'Added safety net tests for the new quick-sell flow on packs.',
     ],
     fixed: [
       'Fixed France (and other top nations) appearing as #25 in the world rankings.',
