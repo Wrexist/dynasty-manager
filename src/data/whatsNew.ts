@@ -82,6 +82,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Locked down the Smart Sub recommender so injuries always trigger a swap and tactical context counts late in matches.',
       'Refactored the season game-loop module for cleaner internals.',
       'Continued tightening the season game-loop module for cleaner internals.',
+      'Cleaner Transfer screen — News tab and Free Agent signing modal now load as their own components.',
     ],
     fixed: [
       'Fixed France (and other top nations) appearing as #25 in the world rankings.',
