@@ -45,6 +45,10 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<!-- Export compliance (EAR 740.17(b)(1)): NO — app does not implement
+	     custom/proprietary crypto. Networking uses only platform TLS (HTTPS)
+	     for Sentry, RevenueCat, and Google Mobile Ads / SKAdNetwork; no
+	     additional encryption registration is required. -->
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>NSUserTrackingUsageDescription</key>
