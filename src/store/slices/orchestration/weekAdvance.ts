@@ -5,7 +5,11 @@ import {
 } from '@/config/managerCareer';
 import { buildLeagueTable, buildAllDivisionTables, LEAGUES } from '@/data/league';
 
-import { generateStaffMarket, getStaffBonus } from '@/utils/staff';
+import { generateStaffMarket, getStaffBonus, ensureStaffFields } from '@/utils/staff';
+import {
+  STAFF_DEFAULT_MORALE, STAFF_MORALE_WEEKLY_DRIFT,
+  STAFF_MORALE_WIN_BONUS, STAFF_MORALE_LOSS_PENALTY,
+} from '@/config/staff';
 
 import type { GameState } from '../../storeTypes';
 import { addMsg, pick, shuffle } from '@/utils/helpers';
@@ -33,7 +37,7 @@ import { CONTINENTAL_FINAL_WEEK, CONTINENTAL_GROUP_WEEKS, CONTINENTAL_QF_WEEKS, 
 import { AI_LOAN_OFFER_CHANCE, AI_LOAN_RECALL_CLAUSE_CHANCE, ASSISTANT_MANAGER_FAMILIARITY_BOOST, BENCH_REST_BONUS, BOARD_REVIEW_ADJUST_POSITIONS, BOARD_REVIEW_RAISE_THRESHOLD, BOARD_REVIEW_RELAX_THRESHOLD, BOARD_REVIEW_WEEKS, CALLUP_SNUB_MORALE_PENALTY, COMMERCIAL_INCOME_BASE, COMMERCIAL_INCOME_PER_REP, CONGESTED_FIXTURE_INJURY_MULTIPLIER, CONTRACT_MORALE_HIT_AMOUNT, CONTRACT_MORALE_HIT_OVERALL_THRESHOLD, CONTRACT_MORALE_HIT_WEEK_THRESHOLD, CONTRACT_MORALE_MIN, CONTRACT_WARNING_OVERALL_THRESHOLD, CONTRACT_WARNING_WEEKS, CONTRACT_WARNING_YOUTH_AGE_MAX, CONTRACT_WARNING_YOUTH_POTENTIAL_MIN, CUP_EXTRA_TIME_GOAL_CHANCE, CUP_EXTRA_TIME_REPUTATION_DIVISOR, CUP_PENALTY_GK_QUALITY_FACTOR, CUP_PENALTY_KICKS, FACILITY_MAX_LEVEL, FAN_MOOD_BASE, FAN_MOOD_SCALE, FFP_CONFIDENCE_PENALTY, FFP_CRITICAL_CONFIDENCE_PENALTY, FFP_WAGE_RATIO_CRITICAL, FFP_WAGE_RATIO_WARNING, FORFEIT_SCORE, INJURY_TYPES, INTERNATIONAL_BREAK_FITNESS_COST, INTERNATIONAL_BREAK_WEEKS, INTERNATIONAL_CALLUP_MIN_OVR, INTERNATIONAL_FITNESS_COST, INTERNATIONAL_SNUB_MIN_OVR, LEGENDARY_OBJECTIVE_XP_MULTIPLIER, LINEUP_SIZE, LOAN_DEV_BASE_CHANCE, LOAN_DEV_REP_FACTOR, LOAN_FITNESS_DRAIN, LOAN_PLAY_CHANCE_HIGH, LOAN_PLAY_CHANCE_LOW, LOAN_QUALITY_FORMULA_BASE, LOAN_QUALITY_FORMULA_REP_MULT, LOAN_YOUNG_AGE_THRESHOLD, MANAGER_SALARY_CONFIDENCE_PENALTY, MANAGER_SALARY_RATIO_CRITICAL, MANAGER_SALARY_RATIO_WARNING, MATCHDAY_INCOME_PER_FAN, MAX_CAREER_TIMELINE, MAX_FINANCE_HISTORY, MORALE_BENCH_MIN, MORALE_BENCH_WEEKLY_LOSS, NT_SACK_GROUP_EXIT_THRESHOLD, OBJECTIVE_CYCLE_WEEKS, PHYSIO_INJURY_REDUCTION_PER_QUALITY, PHYSIO_RECOVERY_BOOST_THRESHOLD, PHYSIO_RECOVERY_CHANCE, POSITION_PRIZE_MAX_RANK, POSITION_PRIZE_PER_RANK, POST_TOURNAMENT_FITNESS_COST_HIGH, POST_TOURNAMENT_FITNESS_COST_LOW, RARE_OBJECTIVE_XP_MULTIPLIER, REP_INTL_FINAL, REP_INTL_GROUP_EXIT, REP_INTL_KNOCKOUT, REP_INTL_SEMI, REP_INTL_TOURNAMENT_WIN, SCOUTING_COST_PER_ASSIGNMENT, SIM_PENALTY_BASE_WIN_CHANCE, SIM_PENALTY_MENTAL_SCALE, STADIUM_INCOME_PER_LEVEL, STREAK_FORM_BONUS, STREAK_FORM_THRESHOLD, STREAK_INCOME_MULTIPLIER, STREAK_INCOME_THRESHOLD, STREAK_MORALE_BONUS, STREAK_MORALE_THRESHOLD, TRAINING_GROUND_BOOST, UNHAPPY_CONTAGION_MORALE_HIT, UNHAPPY_CONTAGION_WEEKS, UNHAPPY_THRESHOLD, UNHAPPY_WEEKS_TO_REQUEST, VALUE_AGE_MULTIPLIERS, YOUTH_DEVELOPER_BOOST } from '@/config/gameBalance';
 import { FORCED_RETIREMENT_UNEMPLOYED_WEEKS, GROWTH_DISCIPLINE_PER_CLEAN_MATCH, GROWTH_MOTIVATION_PER_MORALE_EVENT, GROWTH_SCOUTING_PER_ASSIGNMENT, GROWTH_TACTICAL_PER_MATCH, MOD_SCOUTING_SPEED, MOD_TACTICAL_FAMILIARITY, MOD_YOUTH_GROWTH, STAT_MAX, UNEMPLOYED_OFFER_CHECK_INTERVAL, UNEMPLOYED_OFFER_MAX_PENDING } from '@/config/managerCareer';
 import { NATIONAL_OVR_STR_FLOOR, NATIONAL_OVR_STR_MAX, NATIONAL_OVR_STR_MIN, NATIONAL_OVR_STR_RANGE, PENALTY_CONVERSION_RATE } from '@/config/matchEngine';
-import { MERCH_CAMPAIGN_COOLDOWN_WEEKS, MERCH_PRICING_TIERS } from '@/config/merchandise';
+import { MERCH_CAMPAIGN_COOLDOWN_WEEKS, MERCH_PRICING_TIERS, SIGNATURE_DROP_COOLDOWN_WEEKS } from '@/config/merchandise';
 import { calculatePlayerValue } from '@/config/playerGeneration';
 import { STORYLINE_CHAIN_MIN_WEEK, STORYLINE_CHAIN_TRIGGER_CHANCE } from '@/config/playoffs';
 import { MAX_SCOUT_REPORTS } from '@/config/scouting';
@@ -1848,14 +1852,37 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
         const baseDevGain = 1 + youthCoachQuality * 0.3 + newFacilities.youthLevel * 0.2;
         const careerYouthMod = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.youthDevelopment * MOD_YOUTH_GROWTH : 0;
         const ydm = dynastyMult(state.managerProgression);
-        const devGain = hasPerk(state.managerProgression, 'youth_developer') ? baseDevGain * (1 + YOUTH_DEVELOPER_BOOST * ydm + careerYouthMod) : baseDevGain * (1 + careerYouthMod);
+        // Focused prospects get a small dev gain bonus to encourage active management
+        const focusBoost = (prospect.trainingFocus && prospect.trainingFocus !== 'balanced') ? 1.1 : 1;
+        const devGain = (hasPerk(state.managerProgression, 'youth_developer') ? baseDevGain * (1 + YOUTH_DEVELOPER_BOOST * ydm + careerYouthMod) : baseDevGain * (1 + careerYouthMod)) * focusBoost;
         prospect.developmentScore = Math.min(100, prospect.developmentScore + devGain);
+        // Focus biasing — 8% chance per week to nudge a focus-aligned attribute
+        const focus = prospect.trainingFocus;
+        if (focus && focus !== 'balanced' && Math.random() < 0.08) {
+          type AttrKey = keyof PlayerAttributes;
+          const attrPool: Record<'technical' | 'physical' | 'mental', AttrKey[]> = {
+            technical: ['shooting', 'passing', 'mental'],
+            physical: ['pace', 'physical', 'defending'],
+            mental: ['mental', 'passing', 'defending'],
+          };
+          const attrs = attrPool[focus];
+          const attr = attrs[Math.floor(Math.random() * attrs.length)];
+          const before = yp.attributes[attr] ?? 0;
+          if (before < yp.potential) {
+            const newAttrs = { ...yp.attributes, [attr]: Math.min(yp.potential, before + 1) };
+            const newOverall = Math.round(
+              (newAttrs.pace + newAttrs.shooting + newAttrs.passing + newAttrs.defending + newAttrs.physical + newAttrs.mental) / 6,
+            );
+            newPlayers[prospect.playerId] = { ...yp, attributes: newAttrs, overall: Math.max(yp.overall, newOverall) };
+          }
+        }
       }
       // Bust risk: low-potential prospects can lose potential permanently (1% per week)
       const bustChance = yp.potential < 55 ? 0.01 : yp.potential < 65 ? 0.005 : 0;
       if (Math.random() < bustChance) {
         const drop = 3 + Math.floor(Math.random() * 3); // lose 3-5 potential
-        const bustedPlayer = { ...yp, potential: Math.max(yp.overall, yp.potential - drop) };
+        const ypUpdated = newPlayers[prospect.playerId] || yp;
+        const bustedPlayer = { ...ypUpdated, potential: Math.max(ypUpdated.overall, ypUpdated.potential - drop) };
         newPlayers[prospect.playerId] = bustedPlayer;
         newMessages = addMsg(newMessages, {
           week: newWeek, season, type: 'development',
@@ -1863,7 +1890,8 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
           body: `Youth prospect ${yp.firstName} ${yp.lastName}'s development ceiling appears to have dropped. Potential now ${bustedPlayer.potential}.`,
         });
       }
-      prospect.readyToPromote = yp.overall >= 55 || prospect.developmentScore >= 80;
+      const ypFinal = newPlayers[prospect.playerId] || yp;
+      prospect.readyToPromote = ypFinal.overall >= 55 || prospect.developmentScore >= 80;
       newYouthAcademy.prospects[i] = prospect;
     }
   }
@@ -1877,6 +1905,29 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   const thisWeekMatch = updatedFixtures.find(m => m.week === week && m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
   const derbyIncomeIntensity = thisWeekMatch ? getDerbyIntensity(thisWeekMatch.homeClubId, thisWeekMatch.awayClubId) : 0;
   const derbyIncomeBonus = derbyIncomeIntensity > 0 ? 1 + 0.25 * derbyIncomeIntensity : 1;
+
+  // Staff morale & weekly performance tick (extends the existing `newStaff`
+  // from the mid-season market refresh block above).
+  const moraleTickedMembers = newStaff.members.map(m => {
+    const ensured = ensureStaffFields(m);
+    let morale = ensured.morale ?? STAFF_DEFAULT_MORALE;
+    const driftRate = (ensured.traits || []).includes('veteran')
+      ? STAFF_MORALE_WEEKLY_DRIFT * 0.5
+      : STAFF_MORALE_WEEKLY_DRIFT;
+    if (morale > 50) morale = Math.max(50, morale - driftRate);
+    else if (morale < 50) morale = Math.min(50, morale + driftRate);
+    if ((ensured.traits || []).includes('motivator') && morale < 40) morale = 40;
+    if (thisWeekMatch && thisWeekMatch.played) {
+      const isHome = thisWeekMatch.homeClubId === playerClubId;
+      const myScore = isHome ? thisWeekMatch.homeGoals : thisWeekMatch.awayGoals;
+      const oppScore = isHome ? thisWeekMatch.awayGoals : thisWeekMatch.homeGoals;
+      if (myScore > oppScore) morale = Math.min(100, morale + STAFF_MORALE_WIN_BONUS);
+      else if (myScore < oppScore) morale = Math.max(0, morale - STAFF_MORALE_LOSS_PENALTY);
+    }
+    const perf = ensured.performance ?? { trainingGains: 0, youthPromotions: 0, scoutFinds: 0, injuriesPrevented: 0, weeksAtClub: 0 };
+    return { ...ensured, morale, performance: { ...perf, weeksAtClub: perf.weeksAtClub + 1 } };
+  });
+  newStaff = { ...newStaff, members: moraleTickedMembers };
   const streakIncomeMult = currentWinStreak >= STREAK_INCOME_THRESHOLD ? 1 + STREAK_INCOME_MULTIPLIER : 1;
   const matchdayIncome = Math.round(playerClub.fanBase * MATCHDAY_INCOME_PER_FAN * fanMoodMult * derbyIncomeBonus * streakIncomeMult);
   const commercialIncome = Math.round(COMMERCIAL_INCOME_BASE + playerClub.reputation * COMMERCIAL_INCOME_PER_REP);
@@ -1961,6 +2012,40 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   // Decrement star player dip / signing buzz
   if (newMerch.starPlayerDip > 0) newMerch.starPlayerDip -= 1;
   if (newMerch.starSigningBuzz > 0) newMerch.starSigningBuzz -= 1;
+  // Decrement signature drop timer
+  if (newMerch.signatureDrop && newMerch.signatureDrop.weeksRemaining > 0) {
+    const remaining = newMerch.signatureDrop.weeksRemaining - 1;
+    if (remaining <= 0) {
+      newMessages = addMsg(newMessages, {
+        week: newWeek, season, type: 'general',
+        title: `Signature Drop Ended`,
+        body: `${newMerch.signatureDrop.playerName}'s signature line has finished its run.`,
+      });
+      newMerch.signatureDrop = null;
+      // Apply the standard cooldown after a natural end so back-to-back
+      // drops aren't free relative to manual cancellation.
+      newMerch.signatureDropCooldownWeeks = SIGNATURE_DROP_COOLDOWN_WEEKS;
+    } else {
+      newMerch.signatureDrop = { ...newMerch.signatureDrop, weeksRemaining: remaining };
+    }
+  }
+  if ((newMerch.signatureDropCooldownWeeks ?? 0) > 0) {
+    newMerch.signatureDropCooldownWeeks = (newMerch.signatureDropCooldownWeeks ?? 0) - 1;
+  }
+  // Decrement derby buzz
+  if ((newMerch.derbyBuzzWeeks ?? 0) > 0) newMerch.derbyBuzzWeeks = (newMerch.derbyBuzzWeeks ?? 0) - 1;
+  // Apply derby buzz when player just played a derby
+  if (thisWeekMatch && derbyIncomeIntensity > 0) {
+    newMerch.derbyBuzzWeeks = Math.max(newMerch.derbyBuzzWeeks ?? 0, 2); // 2 weeks of buzz
+  }
+  // Update win streak: only fire on player league/cup matches the player participated in
+  if (thisWeekMatch && thisWeekMatch.played) {
+    const isHome = thisWeekMatch.homeClubId === playerClubId;
+    const myScore = isHome ? thisWeekMatch.homeGoals : thisWeekMatch.awayGoals;
+    const oppScore = isHome ? thisWeekMatch.awayGoals : thisWeekMatch.homeGoals;
+    if (myScore > oppScore) newMerch.winStreak = (newMerch.winStreak ?? 0) + 1;
+    else newMerch.winStreak = 0;
+  }
   // Apply pricing fan mood impact
   const pricingMoodDelta = MERCH_PRICING_TIERS[newMerch.pricingTier].fanMoodImpact;
   const cultHeroFloor = hasPerk(state.managerProgression, 'cult_hero') ? 40 : 0;

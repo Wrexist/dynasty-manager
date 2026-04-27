@@ -72,6 +72,10 @@ export const RELEASE_NOTES: ReleaseNote[] = [
     new: [
       'Three-day free trial of Dynasty Pro on every new game.',
       'Every press conference now has a Pro-only analytical or strategic response option — full coverage across all 88 questions.',
+      'Backroom staff now have personality traits, morale, and contracts you can actively manage.',
+      'Praise or criticise staff to lift their morale, then renew their contract before they walk.',
+      'Youth Academy gets per-prospect training focus and limited Spotlight Sessions for big dev boosts.',
+      'Merchandise gains player Signature Drops, derby-week buzz, and a win-streak revenue bonus.',
     ],
     improved: [
       'Subscription onboarding now auto-enrols you into the monthly plan after the trial — cancel anytime.',
@@ -79,8 +83,13 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Pro subscription onboarding now describes the analytics you actually get — tactical match insights and a per-match performance summary.',
       'Inbox now shows an amber warning if your Pro payment fails so you can update billing before features lapse.',
       'Pack shop cards are now cleaner — the tier name sits up top and a single tap-friendly button replaces the cluttered text panel.',
+      'Staff effectiveness now scales with morale — keep the backroom happy and they get more out of training, scouting, and youth.',
+      'Star players can now headline limited-edition Signature Drops on the Merchandise tab for a multi-week revenue spike.',
+      'Tighter validation of league and club data during long careers.',
     ],
-    fixed: [],
+    fixed: [
+      'Hall of Managers no longer breaks if stored data is invalid.',
+    ],
   },
   {
     version: '1.0.4',

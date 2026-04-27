@@ -10,7 +10,7 @@ import type { Club, Player, FormationType } from '@/types/game';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 65;
+const CURRENT_VERSION = 66;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -984,6 +984,73 @@ const migrations: Record<number, MigrationFn> = {
         free: {},
         ad: oldBucket?.counts || {},
       },
+    };
+  },
+
+  // v65 → v66: Staff depth + youth focus + merch player drops.
+  //   - StaffMember gains optional morale/traits/contractYearsRemaining/
+  //     seasonsAtClub/performance/lastInteractionWeek/lastRenewalWeek.
+  //     Backfilled with sensible defaults so older saves load cleanly.
+  //   - YouthAcademy gains spotlightUsesRemaining (2 per season).
+  //   - YouthProspects gain optional trainingFocus and spotlightedThisSeason.
+  //   - MerchState gains signatureDrop, signatureDropCooldownWeeks,
+  //     signatureDropsUsedThisSeason, winStreak, derbyBuzzWeeks.
+  //   The runtime `ensureStaffFields` helper also patches at use-time, so
+  //   this migration is mostly belt-and-braces for clean state shape.
+  65: (data) => {
+    const staff = data.staff as { members?: unknown[]; availableHires?: unknown[] } | undefined;
+    type StaffLike = {
+      id: string; firstName: string; lastName: string; role: string;
+      quality: number; wage: number;
+      morale?: number; traits?: string[]; contractYearsRemaining?: number;
+      seasonsAtClub?: number; performance?: unknown;
+      lastInteractionWeek?: number; lastRenewalWeek?: number;
+    };
+    const upgradeMember = (m: StaffLike): StaffLike => ({
+      ...m,
+      morale: typeof m.morale === 'number' ? m.morale : 70,
+      traits: Array.isArray(m.traits) ? m.traits : [],
+      contractYearsRemaining: typeof m.contractYearsRemaining === 'number' ? m.contractYearsRemaining : 2,
+      seasonsAtClub: typeof m.seasonsAtClub === 'number' ? m.seasonsAtClub : 0,
+      performance: m.performance ?? { trainingGains: 0, youthPromotions: 0, scoutFinds: 0, injuriesPrevented: 0, weeksAtClub: 0 },
+      lastInteractionWeek: typeof m.lastInteractionWeek === 'number' ? m.lastInteractionWeek : -99,
+      lastRenewalWeek: typeof m.lastRenewalWeek === 'number' ? m.lastRenewalWeek : -99,
+    });
+    const upgradedStaff = staff ? {
+      ...staff,
+      members: Array.isArray(staff.members) ? (staff.members as StaffLike[]).map(upgradeMember) : [],
+      availableHires: Array.isArray(staff.availableHires) ? (staff.availableHires as StaffLike[]).map(upgradeMember) : [],
+    } : { members: [], availableHires: [] };
+
+    const youth = data.youthAcademy as { prospects?: unknown[]; nextIntakePreview?: unknown[]; youthPreviewEnhanced?: boolean; spotlightUsesRemaining?: number } | undefined;
+    type ProspectLike = { playerId: string; readyToPromote: boolean; developmentScore: number; trainingFocus?: string; spotlightedThisSeason?: boolean };
+    const upgradedYouth = {
+      prospects: Array.isArray(youth?.prospects) ? (youth!.prospects as ProspectLike[]).map(p => ({
+        ...p,
+        trainingFocus: p.trainingFocus ?? 'balanced',
+        spotlightedThisSeason: p.spotlightedThisSeason ?? false,
+      })) : [],
+      nextIntakePreview: Array.isArray(youth?.nextIntakePreview) ? youth!.nextIntakePreview : [],
+      youthPreviewEnhanced: !!youth?.youthPreviewEnhanced,
+      spotlightUsesRemaining: typeof youth?.spotlightUsesRemaining === 'number' ? youth!.spotlightUsesRemaining : 2,
+    };
+
+    const merch = data.merchandise as Record<string, unknown> | undefined;
+    const upgradedMerch = merch ? {
+      ...merch,
+      signatureDrop: merch.signatureDrop ?? null,
+      signatureDropCooldownWeeks: typeof merch.signatureDropCooldownWeeks === 'number' ? merch.signatureDropCooldownWeeks : 0,
+      signatureDropsUsedThisSeason: Array.isArray(merch.signatureDropsUsedThisSeason) ? merch.signatureDropsUsedThisSeason : [],
+      winStreak: typeof merch.winStreak === 'number' ? merch.winStreak : 0,
+      derbyBuzzWeeks: typeof merch.derbyBuzzWeeks === 'number' ? merch.derbyBuzzWeeks : 0,
+    } : merch;
+
+    return {
+      ...data,
+      version: 66,
+      staff: upgradedStaff,
+      youthAcademy: upgradedYouth,
+      ...(upgradedMerch ? { merchandise: upgradedMerch } : {}),
     };
   },
 
