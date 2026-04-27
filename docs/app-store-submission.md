@@ -282,7 +282,7 @@ Before uploading the build to App Store Connect:
 - [ ] Distribution certificate + provisioning profile set up
 - [ ] TestFlight build uploaded via `ios-testflight.yml` workflow
 - [ ] Internal TestFlight testing passed (no crashes, launches on clean device)
-- [ ] Export compliance questionnaire answered (standard encryption only — `ITSAppUsesNonExemptEncryption = NO` in Info.plist, since we only use HTTPS)
+- [ ] Export compliance questionnaire answered: **`ITSAppUsesNonExemptEncryption` = `false` (NO)** is correct — the app does not use non-exempt encryption. Crash reporting (Sentry), purchases (RevenueCat), and ads (Google Mobile Ads) use **HTTPS over the OS TLS stack only** (no custom crypto). In-app `crypto.randomUUID()` is exempt OS API usage, not export-controlled encryption.
 - [ ] Content rights confirmed (all club names, player names are fictional/generated — NO real Premier League / FIFPro licensing needed; verify no real player name ever surfaces via generation)
 - [ ] Demo account info for App Review (N/A — game is single-player offline, add a note in the review info field)
 - [ ] App Review notes written (explain offline nature, how to start a new save, and that the game has no login)

@@ -30,6 +30,9 @@
  * If you don't know it yet at commit time, set `build: null` and the CI step
  * will inject `run_number` into the shipped bundle. Historical entries must
  * keep the real build number that went out to TestFlight.
+ *
+ * iOS export compliance: `ITSAppUsesNonExemptEncryption` = false is correct
+ * (HTTPS-only third-party SDKs — see comment above that key in Info.plist).
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
