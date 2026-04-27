@@ -130,6 +130,26 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
     : topOvr >= 75 ? 300 : 0
   );
 
+  // Foil-shred params — generated once per explode entry. Inlining the
+  // randoms in the .map() would re-roll them on any re-render during the
+  // ~0.7s burst, retargeting in-flight Framer Motion animations mid-flight.
+  const foilShreds = useMemo(() => {
+    if (phase !== 'explode' || prefersReducedMotion) return [];
+    return Array.from({ length: 18 }).map((_, i) => {
+      const angle = (i / 18) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
+      const distance = 220 + Math.random() * 200;
+      return {
+        i,
+        dx: Math.cos(angle) * distance,
+        dy: Math.sin(angle) * distance,
+        w: 6 + Math.random() * 8,
+        h: 2 + Math.random() * 3,
+        rot: (Math.random() - 0.5) * 720,
+        duration: 0.7 + Math.random() * 0.4,
+      };
+    });
+  }, [phase, prefersReducedMotion]);
+
   // Beat orchestration
   useEffect(() => {
     if (phase !== 'portal') return;
@@ -682,34 +702,24 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
             />
             {!prefersReducedMotion && (
               <div className="absolute left-1/2 top-1/2 pointer-events-none" aria-hidden>
-                {Array.from({ length: 18 }).map((_, i) => {
-                  const angle = (i / 18) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
-                  const distance = 220 + Math.random() * 200;
-                  const dx = Math.cos(angle) * distance;
-                  const dy = Math.sin(angle) * distance;
-                  const w = 6 + Math.random() * 8;
-                  const h = 2 + Math.random() * 3;
-                  const rot = (Math.random() - 0.5) * 720;
-                  const duration = 0.7 + Math.random() * 0.4;
-                  return (
-                    <motion.span
-                      key={`shred-${i}`}
-                      className="absolute rounded-[1px]"
-                      style={{
-                        width: w,
-                        height: h,
-                        top: 0,
-                        left: 0,
-                        background: `linear-gradient(90deg, ${tierDef.gradientFrom}, ${tierDef.gradientTo})`,
-                        boxShadow: `0 0 6px ${tierDef.accent}`,
-                        willChange: 'transform, opacity',
-                      }}
-                      initial={{ x: 0, y: 0, opacity: 1, rotate: 0 }}
-                      animate={{ x: dx, y: dy, opacity: 0, rotate: rot }}
-                      transition={{ duration, ease: [0.22, 1, 0.36, 1] }}
-                    />
-                  );
-                })}
+                {foilShreds.map((s) => (
+                  <motion.span
+                    key={`shred-${s.i}`}
+                    className="absolute rounded-[1px]"
+                    style={{
+                      width: s.w,
+                      height: s.h,
+                      top: 0,
+                      left: 0,
+                      background: `linear-gradient(90deg, ${tierDef.gradientFrom}, ${tierDef.gradientTo})`,
+                      boxShadow: `0 0 6px ${tierDef.accent}`,
+                      willChange: 'transform, opacity',
+                    }}
+                    initial={{ x: 0, y: 0, opacity: 1, rotate: 0 }}
+                    animate={{ x: s.dx, y: s.dy, opacity: 0, rotate: s.rot }}
+                    transition={{ duration: s.duration, ease: [0.22, 1, 0.36, 1] }}
+                  />
+                ))}
               </div>
             )}
             <PackConfetti count={prefersReducedMotion ? 0 : confettiCount} hueBase={topOvr >= 90 ? 48 : topOvr >= 84 ? 35 : 43} hueRange={28} />
