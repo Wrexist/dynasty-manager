@@ -4,10 +4,13 @@
  */
 
 import type { GameState } from '../storeTypes';
-import type { MerchProductLine, MerchPricingTier, MerchCampaignType } from '@/types/game';
+import type { MerchProductLine, MerchPricingTier, MerchCampaignType, MerchSignatureDrop } from '@/types/game';
 import { addMsg } from '@/utils/helpers';
-import { isProductLineUnlocked, canLaunchCampaign, getDefaultMerchState } from '@/utils/merchandise';
-import { MERCH_PRODUCT_LINES, MERCH_CAMPAIGNS, MERCH_CAMPAIGN_COOLDOWN_WEEKS } from '@/config/merchandise';
+import { isProductLineUnlocked, canLaunchCampaign, getDefaultMerchState, getSignatureDropBonus, getPlayerMarketability } from '@/utils/merchandise';
+import {
+  MERCH_PRODUCT_LINES, MERCH_CAMPAIGNS, MERCH_CAMPAIGN_COOLDOWN_WEEKS,
+  SIGNATURE_DROP_COST, SIGNATURE_DROP_WEEKS, SIGNATURE_DROP_COOLDOWN_WEEKS,
+} from '@/config/merchandise';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -115,6 +118,67 @@ export const createMerchandiseSlice = (set: Set, get: Get) => ({
         campaignCooldownWeeks: MERCH_CAMPAIGN_COOLDOWN_WEEKS,
       },
       messages: newMessages,
+    });
+  },
+
+  launchSignatureDrop: (playerId: string) => {
+    const state = get();
+    const club = state.clubs[state.playerClubId];
+    if (!club) return { success: false, message: 'No club found.' };
+    const merch = state.merchandise;
+    if (merch.signatureDrop && merch.signatureDrop.weeksRemaining > 0) {
+      return { success: false, message: 'A signature drop is already running.' };
+    }
+    if ((merch.signatureDropCooldownWeeks ?? 0) > 0) {
+      return { success: false, message: `Cooldown: ${merch.signatureDropCooldownWeeks}w remaining.` };
+    }
+    const used = merch.signatureDropsUsedThisSeason ?? [];
+    if (used.includes(playerId)) {
+      return { success: false, message: 'This player already had a drop this season.' };
+    }
+    const player = state.players[playerId];
+    if (!player) return { success: false, message: 'Player not found.' };
+    if (getPlayerMarketability(player) <= 0) {
+      return { success: false, message: 'Player needs more match action to be marketable.' };
+    }
+    if (club.budget < SIGNATURE_DROP_COST) {
+      return { success: false, message: `Need £${Math.round(SIGNATURE_DROP_COST / 1000)}K to launch.` };
+    }
+    const weeklyBonus = getSignatureDropBonus(player);
+    const drop: MerchSignatureDrop = {
+      playerId,
+      playerName: `${player.firstName} ${player.lastName}`,
+      weeksRemaining: SIGNATURE_DROP_WEEKS,
+      totalWeeks: SIGNATURE_DROP_WEEKS,
+      weeklyBonus,
+    };
+    const newClub = { ...club, budget: club.budget - SIGNATURE_DROP_COST };
+    const newMessages = addMsg(state.messages, {
+      week: state.week, season: state.season, type: 'general',
+      title: `Signature Drop: ${player.firstName} ${player.lastName}`,
+      body: `Limited-edition kit and merch line dropped. Expect ~£${Math.round(weeklyBonus / 1000)}K extra revenue per week for ${SIGNATURE_DROP_WEEKS} weeks.`,
+    });
+    set({
+      merchandise: {
+        ...merch,
+        signatureDrop: drop,
+        signatureDropsUsedThisSeason: [...used, playerId],
+      },
+      clubs: { ...state.clubs, [state.playerClubId]: newClub },
+      messages: newMessages,
+    });
+    return { success: true, message: `${player.firstName}'s signature drop is live.` };
+  },
+
+  cancelSignatureDrop: () => {
+    const state = get();
+    if (!state.merchandise.signatureDrop) return;
+    set({
+      merchandise: {
+        ...state.merchandise,
+        signatureDrop: null,
+        signatureDropCooldownWeeks: SIGNATURE_DROP_COOLDOWN_WEEKS,
+      },
     });
   },
 });

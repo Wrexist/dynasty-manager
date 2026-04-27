@@ -5,16 +5,19 @@ import { cn } from '@/lib/utils';
 import { formatMoney } from '@/utils/helpers';
 import {
   ShoppingBag, Flag, Shirt, Gem, Globe, TrendingUp, TrendingDown,
-  Zap, Clock, Lock, Tag, Star, ChevronRight, X,
+  Zap, Clock, Lock, Tag, Star, ChevronRight, X, Flame, Swords, Sparkles,
 } from 'lucide-react';
 import {
   MERCH_PRODUCT_LINES, MERCH_PRICING_TIERS, MERCH_CAMPAIGNS,
+  SIGNATURE_DROP_COST, SIGNATURE_DROP_WEEKS, WIN_STREAK_BONUS_THRESHOLD,
 } from '@/config/merchandise';
 import { PageHint } from '@/components/game/PageHint';
 import {
   isProductLineUnlocked, getStarPlayerMerch, canLaunchCampaign,
-  calculateWeeklyMerchRevenue, getMerchOperatingCost,
+  calculateWeeklyMerchRevenue, getMerchOperatingCost, getSignatureDropBonus,
 } from '@/utils/merchandise';
+import { successToast, errorToast } from '@/utils/gameToast';
+import { hapticLight } from '@/utils/haptics';
 import type { MerchProductLine, MerchPricingTier, MerchCampaignType } from '@/types/game';
 
 const PRODUCT_LINE_ICONS: Record<MerchProductLine, React.ElementType> = {
@@ -42,6 +45,8 @@ const MerchandisePage = () => {
   const setMerchPricing = useGameStore(s => s.setMerchPricing);
   const launchCampaign = useGameStore(s => s.launchCampaign);
   const cancelCampaign = useGameStore(s => s.cancelCampaign);
+  const launchSignatureDrop = useGameStore(s => s.launchSignatureDrop);
+  const cancelSignatureDrop = useGameStore(s => s.cancelSignatureDrop);
   const selectPlayer = useGameStore(s => s.selectPlayer);
   const setScreen = useGameStore(s => s.setScreen);
   const club = clubs[playerClubId];
@@ -162,6 +167,55 @@ const MerchandisePage = () => {
           <div className="mt-2 bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-2 flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-emerald-400" />
             <span className="text-xs text-emerald-400 font-medium">New signing buzz! ({merchandise.starSigningBuzz}w remaining)</span>
+          </div>
+        )}
+
+        {/* Win streak indicator */}
+        {(merchandise.winStreak ?? 0) >= WIN_STREAK_BONUS_THRESHOLD && (
+          <div className="mt-2 bg-amber-500/10 border border-amber-500/30 rounded-lg p-2 flex items-center gap-2">
+            <Flame className="w-4 h-4 text-amber-400" />
+            <span className="text-xs text-amber-300 font-medium tabular-nums">{merchandise.winStreak}-win streak — fans are flooding the shop</span>
+          </div>
+        )}
+
+        {/* Derby buzz indicator */}
+        {(merchandise.derbyBuzzWeeks ?? 0) > 0 && (
+          <div className="mt-2 bg-rose-500/10 border border-rose-500/30 rounded-lg p-2 flex items-center gap-2">
+            <Swords className="w-4 h-4 text-rose-400" />
+            <span className="text-xs text-rose-300 font-medium">Derby buzz active ({merchandise.derbyBuzzWeeks}w left)</span>
+          </div>
+        )}
+
+        {/* Signature drop banner */}
+        {merchandise.signatureDrop && merchandise.signatureDrop.weeksRemaining > 0 && (
+          <div className="mt-2 bg-fuchsia-500/10 border border-fuchsia-500/30 rounded-lg p-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 min-w-0">
+                <Sparkles className="w-4 h-4 text-fuchsia-400 shrink-0" />
+                <span className="text-xs font-semibold text-fuchsia-300 truncate">
+                  {merchandise.signatureDrop.playerName} Signature Drop
+                </span>
+              </div>
+              <button
+                onClick={() => cancelSignatureDrop()}
+                className="text-muted-foreground hover:text-destructive p-1"
+                title="End drop early (starts cooldown)"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div className="mt-1.5 flex items-center gap-2">
+              <div className="flex-1 h-1.5 bg-muted/20 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-fuchsia-500/60 rounded-full transition-all"
+                  style={{ width: `${((merchandise.signatureDrop.totalWeeks - merchandise.signatureDrop.weeksRemaining) / merchandise.signatureDrop.totalWeeks) * 100}%` }}
+                />
+              </div>
+              <span className="text-[10px] text-muted-foreground tabular-nums">{merchandise.signatureDrop.weeksRemaining}w left</span>
+            </div>
+            <span className="text-[10px] text-fuchsia-300 font-semibold tabular-nums">
+              +{formatMoney(merchandise.signatureDrop.weeklyBonus)}/wk
+            </span>
           </div>
         )}
       </GlassPanel>
@@ -312,10 +366,13 @@ const MerchandisePage = () => {
 
       {/* Star Players */}
       <GlassPanel className="p-4">
-        <div className="flex items-center gap-1.5 mb-3">
+        <div className="flex items-center gap-1.5 mb-1">
           <Star className="w-4 h-4 text-primary" />
           <span className="text-xs font-semibold text-foreground uppercase tracking-wider">Star Player Merch</span>
         </div>
+        <p className="text-[10px] text-muted-foreground mb-3">
+          Drop a {SIGNATURE_DROP_WEEKS}-week signature line for £{Math.round(SIGNATURE_DROP_COST / 1000)}K to spike weekly revenue.
+        </p>
         {starPlayers.length === 0 ? (
           <p className="text-xs text-muted-foreground">No players with enough appearances yet.</p>
         ) : (
@@ -323,27 +380,59 @@ const MerchandisePage = () => {
             {starPlayers.map((sp, idx) => {
               const player = players[sp.playerId];
               if (!player) return null;
+              const dropBonus = getSignatureDropBonus(player);
+              const usedThisSeason = (merchandise.signatureDropsUsedThisSeason ?? []).includes(sp.playerId);
+              const dropActive = !!merchandise.signatureDrop && merchandise.signatureDrop.weeksRemaining > 0;
+              const cooldown = merchandise.signatureDropCooldownWeeks ?? 0;
+              const canDrop = !dropActive && cooldown <= 0 && !usedThisSeason && club.budget >= SIGNATURE_DROP_COST;
+              const blockerReason = dropActive ? 'Drop running'
+                : cooldown > 0 ? `Cooldown ${cooldown}w`
+                : usedThisSeason ? 'Used this season'
+                : club.budget < SIGNATURE_DROP_COST ? 'Need more budget'
+                : '';
               return (
-                <button
-                  key={sp.playerId}
-                  onClick={() => { selectPlayer(sp.playerId); setScreen('player-detail'); }}
-                  className="flex items-center gap-3 w-full p-2.5 rounded-xl bg-muted/10 hover:bg-muted/20 transition-all active:scale-[0.98]"
-                >
-                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                    <span className="text-xs font-bold text-primary">#{idx + 1}</span>
-                  </div>
-                  <div className="flex-1 text-left min-w-0">
-                    <p className="text-sm font-semibold text-foreground truncate">{sp.name}</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {player.position} · OVR {player.overall} · {player.goals}G {player.assists}A
-                    </p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-xs font-bold text-primary tabular-nums">{formatMoney(sp.merchBonus)}/wk</p>
-                    <p className="text-[10px] text-muted-foreground">Score: {sp.marketability}</p>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-                </button>
+                <div key={sp.playerId} className="bg-muted/10 rounded-xl p-2.5">
+                  <button
+                    onClick={() => { selectPlayer(sp.playerId); setScreen('player-detail'); }}
+                    className="flex items-center gap-3 w-full hover:bg-muted/20 transition-all rounded-lg active:scale-[0.98]"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                      <span className="text-xs font-bold text-primary">#{idx + 1}</span>
+                    </div>
+                    <div className="flex-1 text-left min-w-0">
+                      <p className="text-sm font-semibold text-foreground truncate">{sp.name}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {player.position} · OVR {player.overall} · {player.goals}G {player.assists}A
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-xs font-bold text-primary tabular-nums">{formatMoney(sp.merchBonus)}/wk</p>
+                      <p className="text-[10px] text-muted-foreground">Score: {sp.marketability}</p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      hapticLight();
+                      const r = launchSignatureDrop(sp.playerId);
+                      if (r.success) successToast('Signature Drop', r.message);
+                      else errorToast(r.message);
+                    }}
+                    disabled={!canDrop}
+                    className={cn(
+                      'mt-2 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all min-h-[36px]',
+                      canDrop
+                        ? 'bg-fuchsia-500/15 text-fuchsia-300 hover:bg-fuchsia-500/25 active:scale-[0.97]'
+                        : 'bg-muted/20 text-muted-foreground/60 cursor-not-allowed',
+                    )}
+                  >
+                    <Sparkles className="w-3 h-3" />
+                    {canDrop
+                      ? `Launch Drop · +${formatMoney(dropBonus)}/wk · £${Math.round(SIGNATURE_DROP_COST / 1000)}K`
+                      : blockerReason || `Drop · +${formatMoney(dropBonus)}/wk`}
+                  </button>
+                </div>
               );
             })}
           </div>

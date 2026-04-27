@@ -5,7 +5,7 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { PlayerCard, PLAYER_CARD_SIZE_PX } from '@/components/game/PlayerCard';
 import { StatusPill } from '@/components/game/StatusPill';
 import { PlayerStatusBadges } from '@/components/game/PlayerStatusBadges';
-import { GraduationCap, Star, ArrowUpRight, Trash2, Wrench, Users, X, Check } from 'lucide-react';
+import { GraduationCap, Star, ArrowUpRight, Trash2, Wrench, Users, X, Check, Zap, Brain, Target, Dumbbell } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { getPotentialInfo, posBadgeColor } from '@/utils/uiHelpers';
@@ -15,6 +15,14 @@ import { PAGE_HINTS } from '@/config/ui';
 import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { successToast, infoToast, errorToast } from '@/utils/gameToast';
 import { PageHint } from '@/components/game/PageHint';
+import type { YouthFocus } from '@/types/game';
+
+const FOCUS_OPTIONS: { id: YouthFocus; label: string; short: string; Icon: typeof Star; tone: string }[] = [
+  { id: 'balanced', label: 'Balanced', short: 'BAL', Icon: Star, tone: 'text-muted-foreground' },
+  { id: 'technical', label: 'Technical', short: 'TEC', Icon: Target, tone: 'text-primary' },
+  { id: 'physical', label: 'Physical', short: 'PHY', Icon: Dumbbell, tone: 'text-emerald-400' },
+  { id: 'mental', label: 'Mental', short: 'MEN', Icon: Brain, tone: 'text-cyan-400' },
+];
 
 function devBarColor(score: number): string {
   if (score >= 80) return 'bg-emerald-500';
@@ -42,9 +50,13 @@ const YouthAcademy = () => {
   const promoteYouth = useGameStore(s => s.promoteYouth);
   const releaseYouth = useGameStore(s => s.releaseYouth);
   const selectPlayer = useGameStore(s => s.selectPlayer);
+  const setYouthFocus = useGameStore(s => s.setYouthFocus);
+  const spotlightYouth = useGameStore(s => s.spotlightYouth);
   const [confirmReleaseId, setConfirmReleaseId] = useState<string | null>(null);
+  const [focusEditorId, setFocusEditorId] = useState<string | null>(null);
   const youthPreviewEnhanced = youthAcademy.youthPreviewEnhanced;
   const club = clubs[playerClubId];
+  const spotlightUsesRemaining = youthAcademy.spotlightUsesRemaining ?? 2;
 
   const youthCoachQuality = useMemo(() => getStaffBonus(staff.members, 'youth-coach'), [staff.members]);
   const youthLevel = facilities.youthLevel;
@@ -83,6 +95,19 @@ const YouthAcademy = () => {
     infoToast('Player Released', `${rp?.firstName ?? ''} ${rp?.lastName ?? ''} has left the academy`);
   };
 
+  const handleSpotlight = (playerId: string) => {
+    hapticLight();
+    const r = spotlightYouth(playerId);
+    if (r.success) successToast('Spotlight Session', r.message);
+    else errorToast(r.message);
+  };
+
+  const handleFocusChange = (playerId: string, focus: YouthFocus) => {
+    hapticLight();
+    setYouthFocus(playerId, focus);
+    setFocusEditorId(null);
+  };
+
   return (
     <div className="max-w-lg mx-auto">
       <PageHint screen="youthAcademy" title={PAGE_HINTS.youthAcademy.title} body={PAGE_HINTS.youthAcademy.body} />
@@ -91,7 +116,7 @@ const YouthAcademy = () => {
 
         {/* Academy Stats Summary */}
         <GlassPanel className="p-3">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-4 gap-3">
             <div className="text-center">
               <p className="text-lg font-display font-bold text-foreground tabular-nums">{youthAcademy.prospects.length}</p>
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Prospects</p>
@@ -103,6 +128,10 @@ const YouthAcademy = () => {
             <div className="text-center">
               <p className="text-lg font-display font-bold text-primary tabular-nums">+{devSpeedBonus}%</p>
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Dev. Speed</p>
+            </div>
+            <div className="text-center">
+              <p className={cn('text-lg font-display font-bold tabular-nums', spotlightUsesRemaining > 0 ? 'text-amber-400' : 'text-muted-foreground')}>{spotlightUsesRemaining}</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Spotlights</p>
             </div>
           </div>
         </GlassPanel>
@@ -157,6 +186,11 @@ const YouthAcademy = () => {
                 const player = players[prospect.playerId];
                 if (!player) return null;
                 const isConfirming = confirmReleaseId === prospect.playerId;
+                const focus = (prospect.trainingFocus ?? 'balanced') as YouthFocus;
+                const focusDef = FOCUS_OPTIONS.find(f => f.id === focus) || FOCUS_OPTIONS[0];
+                const FocusIcon = focusDef.Icon;
+                const isFocusEditing = focusEditorId === prospect.playerId;
+                const canSpotlight = spotlightUsesRemaining > 0 && !prospect.spotlightedThisSeason;
 
                 return (
                   <motion.div
@@ -210,6 +244,57 @@ const YouthAcademy = () => {
                           style={{ width: `${prospect.developmentScore}%` }}
                         />
                       </div>
+                    </div>
+
+                    {/* Focus + Spotlight row */}
+                    <div className="mt-1.5 flex items-center gap-1" style={{ width: PLAYER_CARD_SIZE_PX.lg }}>
+                      {!isFocusEditing ? (
+                        <button
+                          type="button"
+                          onClick={() => { hapticLight(); setFocusEditorId(prospect.playerId); }}
+                          className={cn('flex-1 flex items-center justify-center gap-0.5 py-1 rounded-md bg-muted/20 hover:bg-muted/40 active:scale-[0.97] transition-all')}
+                          title="Tap to set training focus"
+                        >
+                          <FocusIcon className={cn('w-2.5 h-2.5', focusDef.tone)} />
+                          <span className={cn('text-[9px] font-bold tracking-wider', focusDef.tone)}>{focusDef.short}</span>
+                        </button>
+                      ) : (
+                        <div className="flex-1 grid grid-cols-4 gap-0.5">
+                          {FOCUS_OPTIONS.map(opt => {
+                            const Active = opt.Icon;
+                            const isCurrent = opt.id === focus;
+                            return (
+                              <button
+                                key={opt.id}
+                                onClick={() => handleFocusChange(prospect.playerId, opt.id)}
+                                className={cn(
+                                  'flex items-center justify-center py-1 rounded-md text-[8px] active:scale-[0.94] transition-all',
+                                  isCurrent ? 'bg-primary/25 ring-1 ring-primary/40' : 'bg-muted/20 hover:bg-muted/40',
+                                )}
+                                title={opt.label}
+                              >
+                                <Active className={cn('w-2.5 h-2.5', isCurrent ? 'text-primary' : opt.tone)} />
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => canSpotlight && handleSpotlight(prospect.playerId)}
+                        disabled={!canSpotlight}
+                        className={cn(
+                          'p-1 rounded-md transition-all',
+                          prospect.spotlightedThisSeason
+                            ? 'bg-amber-400/20 text-amber-400 cursor-default'
+                            : canSpotlight
+                              ? 'bg-amber-400/15 text-amber-300 hover:bg-amber-400/30 active:scale-[0.94]'
+                              : 'bg-muted/20 text-muted-foreground/40 cursor-not-allowed',
+                        )}
+                        title={prospect.spotlightedThisSeason ? 'Spotlighted this season' : canSpotlight ? `Spotlight (boost dev +22) · ${spotlightUsesRemaining} left` : 'No spotlights left this season'}
+                      >
+                        <Zap className="w-3 h-3" />
+                      </button>
                     </div>
 
                     {/* Action row */}
