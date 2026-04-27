@@ -81,6 +81,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Added safety net tests for the new quick-sell flow on packs.',
       'Locked down the Smart Sub recommender so injuries always trigger a swap and tactical context counts late in matches.',
       'Refactored the season game-loop module for cleaner internals.',
+      'Continued tightening the season game-loop module for cleaner internals.',
     ],
     fixed: [
       'Fixed France (and other top nations) appearing as #25 in the world rankings.',

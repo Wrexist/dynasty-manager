@@ -44,11 +44,11 @@ import { fnv1a } from '@/utils/hashString';
 import { migrateLegacySave, saveSessionSnapshot, readSaveSlot, readSaveSlotBackup, writeSaveSlot, promoteSaveBackup, removeSaveSlot, recoverStaleSaveTmp, trimFixturesForSave, trimFixtureArrayForSave } from '@/store/helpers/persistence';
 import { migrateSaveData, validateSaveShape, isSaveFromNewerVersion, CURRENT_VERSION } from '@/utils/saveMigration';
 import { checkAchievements, ACHIEVEMENTS, getAchievementXP } from '@/utils/achievements';
-import { generateCupDraw, advanceCupRound, getCupResultForClub, getRoundName, CUP_BYE_MARKER } from '@/data/cup';
+import { generateCupDraw, advanceCupRound, getCupResultForClub, getRoundName } from '@/data/cup';
 import { getChampionsCupQualifiers, getShieldCupQualifiers, getConferenceCupQualifiers, generateContinentalDraw } from '@/data/continentalDraw';
 import { updateCoefficients } from '@/utils/continentalCoefficients';
 import { simulateGroupMatchday, getCurrentMatchday, isGroupStageComplete, generateKnockoutFromGroups, simulateKnockoutLeg, isKnockoutRoundComplete, advanceKnockoutRound, getContinentalResultForClub, createEphemeralClub, findPlayerContinentalMatch } from '@/utils/continental';
-import { CONTINENTAL_GROUP_WEEKS, CONTINENTAL_R16_WEEKS, CONTINENTAL_QF_WEEKS, CONTINENTAL_SF_WEEKS, CONTINENTAL_FINAL_WEEK, LEAGUE_CUP_WEEKS, DOMESTIC_SUPER_CUP_WEEK, CONTINENTAL_SUPER_CUP_WEEK, CONTINENTAL_PRIZE_MONEY, REP_CHAMPIONS_CUP_WIN, REP_SHIELD_CUP_WIN, REP_CONFERENCE_CUP_WIN, REP_LEAGUE_CUP_WIN, REP_CONTINENTAL_GROUP, REP_CONTINENTAL_KNOCKOUT } from '@/config/continental';
+import { CONTINENTAL_GROUP_WEEKS, CONTINENTAL_R16_WEEKS, CONTINENTAL_QF_WEEKS, CONTINENTAL_SF_WEEKS, CONTINENTAL_FINAL_WEEK, DOMESTIC_SUPER_CUP_WEEK, CONTINENTAL_SUPER_CUP_WEEK, CONTINENTAL_PRIZE_MONEY, REP_CHAMPIONS_CUP_WIN, REP_SHIELD_CUP_WIN, REP_CONFERENCE_CUP_WIN, REP_LEAGUE_CUP_WIN, REP_CONTINENTAL_GROUP, REP_CONTINENTAL_KNOCKOUT } from '@/config/continental';
 import { generatePressConference } from '@/data/pressConferences';
 import { isPro } from '@/utils/monetization';
 import { getMentorBonus } from '@/utils/chemistry';
@@ -153,6 +153,12 @@ import {
   applyAIMatchEvents,
   generateObjectives,
 } from '@/store/slices/orchestration/helpers';
+import {
+  generateLeagueCupDraw,
+  getContinentalMatchLabel,
+  isAggregateDecided,
+  advanceLeagueCupRound,
+} from '@/store/slices/orchestration/tournaments';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -895,86 +901,8 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
   }
 }
 
-/**
- * Generate a League Cup (secondary domestic cup) draw.
- * Same structure as the main cup but scheduled on different weeks.
- */
-function generateLeagueCupDraw(clubIds: string[]): import('@/types/game').LeagueCupState {
-  const ties: import('@/types/game').CupTie[] = [];
-  const shuffled = shuffle([...clubIds]);
-
-  let startRound: import('@/types/game').CupRound = 'R1';
-  if (shuffled.length <= 8) startRound = 'R3';
-  else if (shuffled.length <= 16) startRound = 'R2';
-
-  for (let i = 0; i + 1 < shuffled.length; i += 2) {
-    ties.push({
-      id: crypto.randomUUID(),
-      round: startRound,
-      homeClubId: shuffled[i],
-      awayClubId: shuffled[i + 1],
-      played: false,
-      homeGoals: 0,
-      awayGoals: 0,
-      week: LEAGUE_CUP_WEEKS[startRound],
-    });
-  }
-
-  if (shuffled.length % 2 === 1) {
-    ties.push({
-      id: crypto.randomUUID(),
-      round: startRound,
-      homeClubId: shuffled[shuffled.length - 1],
-      awayClubId: CUP_BYE_MARKER,
-      played: true,
-      homeGoals: 1,
-      awayGoals: 0,
-      week: LEAGUE_CUP_WEEKS[startRound],
-    });
-  }
-
-  return { ties, currentRound: startRound, eliminated: false, winner: null };
-}
-
-/**
- * Advance the League Cup to the next round (mirrors advanceCupRound but uses LEAGUE_CUP_WEEKS).
- */
-/**
- * Build a descriptive label for a continental match (e.g. "Champions Cup — Group A MD3").
- */
-function getContinentalMatchLabel(
-  compName: string,
-  matchInfo: { type: 'group'; groupIdx: number; matchIdx: number } | { type: 'knockout'; tieIdx: number; leg: 1 | 2 },
-  tourney: import('@/types/game').ContinentalTournamentState,
-): string {
-  if (matchInfo.type === 'group') {
-    return `${compName} — Group ${String.fromCharCode(65 + matchInfo.groupIdx)} MD${matchInfo.matchIdx + 1}`;
-  }
-  const tie = tourney.knockoutTies[matchInfo.tieIdx];
-  const roundNames: Record<string, string> = { R16: 'Round of 16', QF: 'Quarter-Final', SF: 'Semi-Final', F: 'Final' };
-  const roundLabel = roundNames[tie.round] || tie.round;
-  if (tie.round === 'F') return `${compName} — ${roundLabel}`;
-  return `${compName} — ${roundLabel} Leg ${matchInfo.leg}`;
-}
-
-/**
- * Check if a continental knockout leg 2 aggregate is already decided (not tied).
- * Returns true if the aggregate is NOT tied (i.e., extra time is NOT needed).
- * For non-knockout, non-leg-2, or missing data, returns false (allow normal extra time logic).
- */
-function isAggregateDecided(state: GameState, leg2HomeGoals: number, leg2AwayGoals: number): boolean {
-  if (!state.currentContinentalMatchId || !state.currentContinentalCompetition) return false;
-  const tourney = state.currentContinentalCompetition === 'champions_cup' ? state.championsCup : state.currentContinentalCompetition === 'shield_cup' ? state.shieldCup : state.conferenceCup;
-  if (!tourney) return false;
-  const matchInfo = findPlayerContinentalMatch(tourney, state.week, state.playerClubId);
-  if (!matchInfo || matchInfo.type !== 'knockout' || matchInfo.leg !== 2) return false;
-  const tie = tourney.knockoutTies[matchInfo.tieIdx];
-  // Aggregate: tie.homeClubId's total = leg1Home + leg2Away, tie.awayClubId's total = leg1Away + leg2Home
-  // In leg 2, home/away are swapped from the tie's perspective
-  const homeAgg = tie.leg1HomeGoals + leg2AwayGoals;
-  const awayAgg = tie.leg1AwayGoals + leg2HomeGoals;
-  return homeAgg !== awayAgg;
-}
+// `generateLeagueCupDraw`, `getContinentalMatchLabel`, `isAggregateDecided`,
+// and `advanceLeagueCupRound` extracted to `./orchestration/tournaments.ts`.
 
 /**
  * Process tournament match result: updates the correct tournament state and cleans up ephemeral players.
@@ -1286,53 +1214,7 @@ function processTournamentResultWithWinner(
   return { stateUpdates: updates, cleanedPlayers };
 }
 
-function advanceLeagueCupRound(cup: import('@/types/game').LeagueCupState): import('@/types/game').LeagueCupState {
-  const ROUND_ORDER: import('@/types/game').CupRound[] = ['R1', 'R2', 'R3', 'R4', 'QF', 'SF', 'F'];
-  const currentRound = cup.currentRound;
-  if (!currentRound || currentRound === 'F') return cup;
-
-  const roundIdx = ROUND_ORDER.indexOf(currentRound);
-  const nextRound = ROUND_ORDER[roundIdx + 1];
-  if (!nextRound) return cup;
-
-  const currentTies = cup.ties.filter(t => t.round === currentRound && t.played);
-  const winners = currentTies.map(t => {
-    if (t.awayClubId === CUP_BYE_MARKER) return t.homeClubId;
-    if (t.winnerId) return t.winnerId;
-    return t.homeGoals > t.awayGoals ? t.homeClubId :
-      t.awayGoals > t.homeGoals ? t.awayClubId :
-      Math.random() < 0.5 ? t.homeClubId : t.awayClubId;
-  });
-
-  const shuffled = shuffle([...winners]);
-  const newTies: import('@/types/game').CupTie[] = [];
-  for (let i = 0; i + 1 < shuffled.length; i += 2) {
-    newTies.push({
-      id: crypto.randomUUID(),
-      round: nextRound,
-      homeClubId: shuffled[i],
-      awayClubId: shuffled[i + 1],
-      played: false,
-      homeGoals: 0,
-      awayGoals: 0,
-      week: LEAGUE_CUP_WEEKS[nextRound],
-    });
-  }
-  if (shuffled.length % 2 === 1) {
-    newTies.push({
-      id: crypto.randomUUID(),
-      round: nextRound,
-      homeClubId: shuffled[shuffled.length - 1],
-      awayClubId: CUP_BYE_MARKER,
-      played: true,
-      homeGoals: 1,
-      awayGoals: 0,
-      week: LEAGUE_CUP_WEEKS[nextRound],
-    });
-  }
-
-  return { ...cup, ties: [...cup.ties, ...newTies], currentRound: nextRound };
-}
+// `advanceLeagueCupRound` is exported from `./orchestration/tournaments.ts`.
 
 /** endSeason implementation — extracted to keep the slice method thin. */
 function endSeasonImpl(set: Set, get: Get) {
