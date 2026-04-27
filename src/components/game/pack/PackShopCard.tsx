@@ -46,7 +46,7 @@ export const PackShopCard = memo(function PackShopCard({ tier, affordable, squad
   let ctaLabel: string;
   if (method === 'free') ctaLabel = 'Open Free';
   else if (method === 'ad') ctaLabel = 'Watch Ad';
-  else if (method === 'iap') ctaLabel = `Buy ${tier.iapPriceDisplay || ''}`.trim();
+  else if (method === 'iap') ctaLabel = tier.iapPriceDisplay ? `Buy ${tier.iapPriceDisplay}` : 'In-App Purchase';
   else if (method === 'currency') ctaLabel = `Buy ${formatMoney(tier.price)}`;
   else ctaLabel = resetCountdown ? `In ${resetCountdown}` : 'Tomorrow';
 
