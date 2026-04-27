@@ -85,7 +85,7 @@ export interface GameState {
   tactics: TacticalInstructions;
   tacticalPresets: import('@/types/game').TacticalPreset[];
   training: TrainingState;
-  staff: { members: StaffMember[]; availableHires: StaffMember[] };
+  staff: { members: StaffMember[]; availableHires: StaffMember[]; lastMarketRefreshWeek?: number; lastMarketRefreshSeason?: number };
   scouting: ScoutingState;
   youthAcademy: YouthAcademyState;
   facilities: FacilitiesState;
@@ -326,6 +326,10 @@ export interface GameState {
   setIndividualTraining: (playerId: string, focus: TrainingModule | null) => void;
   hireStaff: (staffId: string) => void;
   fireStaff: (staffId: string) => void;
+  praiseStaff: (staffId: string) => { success: boolean; message: string };
+  criticizeStaff: (staffId: string) => { success: boolean; message: string };
+  renewStaffContract: (staffId: string) => { success: boolean; message: string };
+  refreshStaffMarket: () => { success: boolean; message: string };
   assignScout: (region: ScoutRegion) => void;
   cancelAssignment: (assignmentId: string) => void;
   boostScoutReports: () => void;
@@ -334,6 +338,8 @@ export interface GameState {
   removeFromWatchList: (playerId: string) => void;
   promoteYouth: (playerId: string) => { success: boolean; message?: string };
   releaseYouth: (playerId: string) => void;
+  setYouthFocus: (playerId: string, focus: import('@/types/game').YouthFocus) => void;
+  spotlightYouth: (playerId: string) => { success: boolean; message: string };
   startUpgrade: (type: 'training' | 'youth' | 'medical' | 'recovery' | 'stadium-north' | 'stadium-south' | 'stadium-east' | 'stadium-west') => void;
 
   // Actions — Achievements
@@ -371,6 +377,8 @@ export interface GameState {
   setMerchPricing: (tier: MerchPricingTier) => void;
   launchCampaign: (type: MerchCampaignType) => { success: boolean; message: string };
   cancelCampaign: () => void;
+  launchSignatureDrop: (playerId: string) => { success: boolean; message: string };
+  cancelSignatureDrop: () => void;
 
   // Actions — Manager Progression
   unlockPerk: (perkId: PerkId) => { success: boolean; message: string };

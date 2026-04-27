@@ -812,6 +812,33 @@ export interface TrainingState {
 // ── Staff ──
 export type StaffRole = 'assistant-manager' | 'first-team-coach' | 'fitness-coach' | 'goalkeeping-coach' | 'scout' | 'youth-coach' | 'physio';
 
+/**
+ * Personality / specialism traits. 1–2 per staff member, baked at generation.
+ * Traits add small effective-quality bonuses in their domain and influence
+ * morale dynamics. Display on StaffPage as colored chips.
+ */
+export type StaffTrait =
+  | 'tactician'        // +1 effective for asst-manager / first-team-coach
+  | 'motivator'        // higher morale floor; stronger praise gain
+  | 'talent_spotter'   // +1 effective for scout / youth-coach
+  | 'innovator'        // +1 effective for first-team-coach / fitness-coach
+  | 'disciplinarian'   // +1 effective for physio
+  | 'veteran'          // morale decays slower; stable performer
+  | 'rising_star';     // gains +1 quality every 2 seasons (max cap)
+
+export interface StaffPerformance {
+  /** Player attribute gains attributable to this staff member this season. */
+  trainingGains: number;
+  /** Promoted youths credited (incremented when youth-coach is on staff at promotion). */
+  youthPromotions: number;
+  /** Scout reports completed by this scout. */
+  scoutFinds: number;
+  /** Approximate injuries prevented by physio (seasonal estimate). */
+  injuriesPrevented: number;
+  /** Weeks they have been on staff (used for "Seasons at Club" derivation). */
+  weeksAtClub: number;
+}
+
 export interface StaffMember {
   id: string;
   firstName: string;
@@ -819,6 +846,20 @@ export interface StaffMember {
   role: StaffRole;
   quality: number;
   wage: number;
+  /** Morale 0-100. Affects effective quality (0.6× at 0 → 1.2× at 100). */
+  morale?: number;
+  /** Personality / specialism chips (1-2). */
+  traits?: StaffTrait[];
+  /** Years remaining on contract. Decremented at season end. 0 = walks away. */
+  contractYearsRemaining?: number;
+  /** Total seasons at the club (informational). */
+  seasonsAtClub?: number;
+  /** Running tally for the current season (resets at season end). */
+  performance?: StaffPerformance;
+  /** Week number of last praise/criticize action (used for 4-week cooldown). */
+  lastInteractionWeek?: number;
+  /** Week number of last contract renewal (used for renewal lockout). */
+  lastRenewalWeek?: number;
 }
 
 // ── Scouting ──
@@ -849,16 +890,28 @@ export interface ScoutingState {
 }
 
 // ── Youth Academy ──
+/**
+ * Per-prospect coaching focus. Biases the attribute group that gains in the
+ * weekly youth tick. `balanced` is the default.
+ */
+export type YouthFocus = 'balanced' | 'technical' | 'physical' | 'mental';
+
 export interface YouthProspect {
   playerId: string;
   readyToPromote: boolean;
   developmentScore: number;
+  /** Per-prospect coaching focus. Defaults to 'balanced' on intake. */
+  trainingFocus?: YouthFocus;
+  /** Set when the prospect has been given a spotlight session this season. */
+  spotlightedThisSeason?: boolean;
 }
 
 export interface YouthAcademyState {
   prospects: YouthProspect[];
   nextIntakePreview: { position: Position; estimatedPotential: number }[];
   youthPreviewEnhanced: boolean;
+  /** Spotlight sessions remaining this season. Refilled at season end. */
+  spotlightUsesRemaining?: number;
 }
 
 // ── Facilities ──
@@ -1267,6 +1320,19 @@ export interface MerchCampaign {
   revenueBoost: number; // e.g. 0.8 = +80%
 }
 
+/**
+ * One-week revenue spike tied to a specific star player. Stacks with other
+ * boosts. Limited to 1 active drop at a time, with a cooldown.
+ */
+export interface MerchSignatureDrop {
+  playerId: string;
+  playerName: string;
+  weeksRemaining: number;
+  totalWeeks: number;
+  /** Flat extra weekly revenue while active. */
+  weeklyBonus: number;
+}
+
 export interface MerchState {
   activeProductLines: MerchProductLine[];
   pricingTier: MerchPricingTier;
@@ -1277,6 +1343,16 @@ export interface MerchState {
   starPlayerDip: number; // weeks remaining of post-sale merch dip
   starSigningBuzz: number; // weeks remaining of post-signing merch boost
   kitLaunchUsedThisSeason: boolean; // prevents multiple kit launches per season
+  /** Active signature drop (nullable). Optional for save compat. */
+  signatureDrop?: MerchSignatureDrop | null;
+  /** Cooldown in weeks before another signature drop can be launched. */
+  signatureDropCooldownWeeks?: number;
+  /** Tracks player IDs that have had a signature drop this season (one per player per season). */
+  signatureDropsUsedThisSeason?: string[];
+  /** Current win streak (any competition). Drives the streak revenue bonus. */
+  winStreak?: number;
+  /** Set to a small number of weeks when a derby is played (auto-spike). */
+  derbyBuzzWeeks?: number;
 }
 
 // ── Cliffhanger System ──

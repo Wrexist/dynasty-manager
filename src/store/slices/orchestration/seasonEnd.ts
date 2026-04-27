@@ -8,7 +8,7 @@ import { buildLeagueTable, generateDivisionFixtures, buildAllDivisionTables, LEA
 import { BOARD_OBJ_ALL_COMPLETE_XP, BOARD_OBJ_ALL_COMPLETE_CONFIDENCE } from '@/config/gameBalance';
 import { generateSquad, selectBestLineup, generatePlayer } from '@/utils/playerGen';
 
-import { generateStaffMarket, getStaffBonus } from '@/utils/staff';
+import { generateStaffMarket, getStaffBonus, ensureStaffFields } from '@/utils/staff';
 
 import { generateYouthProspects, generateIntakePreview } from '@/utils/youth';
 import type { GameState } from '../../storeTypes';
@@ -919,6 +919,45 @@ function finalizeSeason(
 
   const newAvailableHires = generateStaffMarket();
 
+  // Staff season tick: decrement contracts, walk-aways, rising-star bumps, reset performance.
+  // Semantics: contractYearsRemaining N at season start = N more end-of-season ticks
+  // before the member walks. So a fresh 2y deal lasts exactly 2 seasons:
+  //   start S1 = 2 → end S1 tick = 1 → start S2 = 1 → end S2 tick = 0 → walks.
+  const staffAfterSeason: typeof state.staff.members = [];
+  for (const m of state.staff.members) {
+    const ensured = ensureStaffFields(m);
+    const remaining = (ensured.contractYearsRemaining ?? 1) - 1;
+    if (remaining <= 0) {
+      // Contract expired — they walk
+      newMessages = addMsg(newMessages, {
+        week: 1, season: newSeason, type: 'general',
+        title: `${ensured.firstName} ${ensured.lastName} Departed`,
+        body: `Their contract has expired. Renew before the end of next season to keep them.`,
+      });
+      continue;
+    }
+    let updatedQuality = ensured.quality;
+    const seasonsAtClub = (ensured.seasonsAtClub ?? 0) + 1;
+    // Rising stars gain +1 quality every 2 seasons until they hit 9
+    if ((ensured.traits || []).includes('rising_star') && seasonsAtClub > 0 && seasonsAtClub % 2 === 0 && ensured.quality < 9) {
+      updatedQuality = Math.min(9, ensured.quality + 1);
+      newMessages = addMsg(newMessages, {
+        week: 1, season: newSeason, type: 'general',
+        title: `${ensured.firstName} ${ensured.lastName} Improving`,
+        body: `Quality has risen to ${updatedQuality}. They are growing into the role.`,
+      });
+    }
+    staffAfterSeason.push({
+      ...ensured,
+      quality: updatedQuality,
+      contractYearsRemaining: remaining,
+      seasonsAtClub,
+      performance: { trainingGains: 0, youthPromotions: 0, scoutFinds: 0, injuriesPrevented: 0, weeksAtClub: 0 },
+    });
+  }
+  // Use the season-ticked staff list when committing the new season
+  const newStaffMembers = staffAfterSeason;
+
   let endChallenge = state.activeChallenge;
   if (endChallenge && !endChallenge.completed && !endChallenge.failed) {
     const cupWon = state.cup.winner === playerClubId;
@@ -984,9 +1023,14 @@ function finalizeSeason(
       activeCampaign: null,
       campaignCooldownWeeks: 0,
       kitLaunchUsedThisSeason: false,
+      signatureDrop: null,
+      signatureDropCooldownWeeks: 0,
+      signatureDropsUsedThisSeason: [],
+      derbyBuzzWeeks: 0,
+      // winStreak survives across seasons (player progresses through final fixtures)
     },
-    youthAcademy: { prospects: newYouthProspects, nextIntakePreview: newIntakePreview, youthPreviewEnhanced: false },
-    staff: { ...state.staff, availableHires: newAvailableHires },
+    youthAcademy: { prospects: newYouthProspects, nextIntakePreview: newIntakePreview, youthPreviewEnhanced: false, spotlightUsesRemaining: 2 },
+    staff: { ...state.staff, members: newStaffMembers, availableHires: newAvailableHires, lastMarketRefreshWeek: undefined, lastMarketRefreshSeason: undefined },
     scouting: { ...state.scouting, assignments: [], reports: [], discoveredPlayers: [] },
     cup: newCup,
     leagueCup: newLeagueCup,

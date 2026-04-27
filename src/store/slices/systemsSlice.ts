@@ -1,13 +1,22 @@
-import { TacticalInstructions, TrainingState, TrainingModule, ScoutRegion, FacilitiesState, TacticalPreset, StadiumStands } from '@/types/game';
+import { TacticalInstructions, TrainingState, TrainingModule, ScoutRegion, FacilitiesState, TacticalPreset, StadiumStands, YouthFocus } from '@/types/game';
 import type { GameState } from '../storeTypes';
 import { addMsg } from '@/utils/helpers';
 import { GROWTH_YOUTH_PER_PROMOTION, STAT_MAX as CAREER_STAT_MAX } from '@/config/managerCareer';
 import { createAssignment } from '@/utils/scouting';
 import { STARTING_TACTICAL_FAMILIARITY, FACILITY_COST_PER_LEVEL, FACILITY_BASE_UPGRADE_WEEKS, FACILITY_MAX_LEVEL, STAND_COST_PER_LEVEL, STAND_BASE_UPGRADE_WEEKS, MAX_SQUAD_SIZE } from '@/config/gameBalance';
 import { MAX_TACTICAL_PRESETS } from '@/config/monetization';
-import { STAFF_HIRING_FEE_WEEKS } from '@/config/staff';
+import {
+  STAFF_HIRING_FEE_WEEKS,
+  STAFF_PRAISE_GAIN, STAFF_CRITICIZE_LOSS, STAFF_INTERACTION_COOLDOWN,
+  STAFF_RENEWAL_FEE_WEEKS, STAFF_RENEWAL_WAGE_RAISE, STAFF_RENEWAL_COOLDOWN, STAFF_CONTRACT_YEARS,
+  STAFF_MARKET_REFRESH_FEE, STAFF_MARKET_REFRESH_COOLDOWN,
+} from '@/config/staff';
+import { generateStaffMarket, ensureStaffFields, absWeek } from '@/utils/staff';
 import { STAND_INFO } from '@/utils/facilities';
 import { placePlayerInClub } from '../helpers/rosterOps';
+
+const SPOTLIGHT_DEV_BOOST = 22;
+const SPOTLIGHT_DEFAULT_USES = 2;
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -20,7 +29,7 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
   } as TrainingState,
   staff: { members: [], availableHires: [] } as GameState['staff'],
   scouting: { maxAssignments: 1, assignments: [], reports: [], discoveredPlayers: [] } as GameState['scouting'],
-  youthAcademy: { prospects: [], nextIntakePreview: [], youthPreviewEnhanced: false } as GameState['youthAcademy'],
+  youthAcademy: { prospects: [], nextIntakePreview: [], youthPreviewEnhanced: false, spotlightUsesRemaining: SPOTLIGHT_DEFAULT_USES } as GameState['youthAcademy'],
   facilities: { trainingLevel: 5, youthLevel: 5, stadiumStands: { north: 5, south: 5, east: 5, west: 5 }, medicalLevel: 5, recoveryLevel: 5, upgradeInProgress: null } as GameState['facilities'],
   financeHistory: [] as GameState['financeHistory'],
   tacticalPresets: [] as TacticalPreset[],
@@ -120,7 +129,7 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
       body: `${hire.firstName} ${hire.lastName} has joined your staff as ${hire.role.replace(/-/g, ' ')}. Hiring fee: £${Math.round(hiringFee / 1000)}K.`,
     });
     set({
-      staff: { members: newMembers, availableHires: newAvailable },
+      staff: { ...state.staff, members: newMembers, availableHires: newAvailable },
       clubs: { ...state.clubs, [state.playerClubId]: newClub },
       scouting: { ...state.scouting, maxAssignments: scoutCount },
       messages: newMessages,
@@ -145,6 +154,124 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
       scouting: { ...state.scouting, maxAssignments: scoutCount, assignments: trimmedAssignments },
       messages: newMessages,
     });
+  },
+
+  praiseStaff: (staffId: string) => {
+    const state = get();
+    const idx = state.staff.members.findIndex(s => s.id === staffId);
+    if (idx < 0) return { success: false, message: 'Staff member not found.' };
+    const member = ensureStaffFields(state.staff.members[idx]);
+    // Absolute-week math so cooldowns survive season rollover.
+    const nowAbs = absWeek(state.season, state.week);
+    const lastAbs = member.lastInteractionWeek ?? -99;
+    const weeksSince = nowAbs - lastAbs;
+    if (weeksSince < STAFF_INTERACTION_COOLDOWN) {
+      const left = STAFF_INTERACTION_COOLDOWN - weeksSince;
+      return { success: false, message: `Cooldown: ${left} week${left === 1 ? '' : 's'} until you can talk to them again.` };
+    }
+    const traits = member.traits || [];
+    // Motivators get more from being praised; veterans appreciate recognition slightly less.
+    const gain = STAFF_PRAISE_GAIN + (traits.includes('motivator') ? 4 : 0) + (traits.includes('veteran') ? -1 : 0);
+    const updated: typeof member = {
+      ...member,
+      morale: Math.min(100, (member.morale ?? 70) + gain),
+      lastInteractionWeek: nowAbs,
+    };
+    const newMembers = state.staff.members.slice();
+    newMembers[idx] = updated;
+    set({ staff: { ...state.staff, members: newMembers } });
+    return { success: true, message: `${member.firstName} appreciates the recognition (+${gain} morale).` };
+  },
+
+  criticizeStaff: (staffId: string) => {
+    const state = get();
+    const idx = state.staff.members.findIndex(s => s.id === staffId);
+    if (idx < 0) return { success: false, message: 'Staff member not found.' };
+    const member = ensureStaffFields(state.staff.members[idx]);
+    const nowAbs = absWeek(state.season, state.week);
+    const lastAbs = member.lastInteractionWeek ?? -99;
+    const weeksSince = nowAbs - lastAbs;
+    if (weeksSince < STAFF_INTERACTION_COOLDOWN) {
+      const left = STAFF_INTERACTION_COOLDOWN - weeksSince;
+      return { success: false, message: `Cooldown: ${left} week${left === 1 ? '' : 's'} until you can talk to them again.` };
+    }
+    const loss = STAFF_CRITICIZE_LOSS + ((member.traits || []).includes('veteran') ? -1 : 0);
+    const updated: typeof member = {
+      ...member,
+      morale: Math.max(0, (member.morale ?? 70) - loss),
+      lastInteractionWeek: nowAbs,
+    };
+    const newMembers = state.staff.members.slice();
+    newMembers[idx] = updated;
+    set({ staff: { ...state.staff, members: newMembers } });
+    return { success: true, message: `${member.firstName} took the criticism on board (-${loss} morale).` };
+  },
+
+  renewStaffContract: (staffId: string) => {
+    const state = get();
+    const idx = state.staff.members.findIndex(s => s.id === staffId);
+    if (idx < 0) return { success: false, message: 'Staff member not found.' };
+    const member = ensureStaffFields(state.staff.members[idx]);
+    const nowAbs = absWeek(state.season, state.week);
+    const lastRenew = member.lastRenewalWeek ?? -99;
+    if (nowAbs - lastRenew < STAFF_RENEWAL_COOLDOWN) {
+      return { success: false, message: 'They renewed recently — wait before negotiating again.' };
+    }
+    const club = state.clubs[state.playerClubId];
+    if (!club) return { success: false, message: 'No active club.' };
+    const fee = Math.round(member.wage * STAFF_RENEWAL_FEE_WEEKS);
+    if (club.budget < fee) return { success: false, message: `Need £${Math.round(fee / 1000)}K to renew.` };
+    const newWage = Math.round(member.wage * (1 + STAFF_RENEWAL_WAGE_RAISE));
+    const updated: typeof member = {
+      ...member,
+      wage: newWage,
+      contractYearsRemaining: Math.max(member.contractYearsRemaining ?? 0, 0) + STAFF_CONTRACT_YEARS,
+      morale: Math.min(100, (member.morale ?? 70) + 6),
+      lastRenewalWeek: nowAbs,
+    };
+    const newMembers = state.staff.members.slice();
+    newMembers[idx] = updated;
+    const newClub = { ...club, budget: club.budget - fee };
+    const newMessages = addMsg(state.messages, {
+      week: state.week, season: state.season, type: 'general',
+      title: `${member.firstName} ${member.lastName} Renewed`,
+      body: `Contract extended by ${STAFF_CONTRACT_YEARS} seasons. New wage £${Math.round(newWage / 1000)}K/w. Renewal fee: £${Math.round(fee / 1000)}K.`,
+    });
+    set({
+      staff: { ...state.staff, members: newMembers },
+      clubs: { ...state.clubs, [state.playerClubId]: newClub },
+      messages: newMessages,
+    });
+    return { success: true, message: `Contract renewed for ${STAFF_CONTRACT_YEARS} more seasons.` };
+  },
+
+  refreshStaffMarket: () => {
+    const state = get();
+    const club = state.clubs[state.playerClubId];
+    if (!club) return { success: false, message: 'No active club.' };
+    const lastWeek = state.staff.lastMarketRefreshWeek ?? -99;
+    const lastSeason = state.staff.lastMarketRefreshSeason ?? -99;
+    const sameSeason = lastSeason === state.season;
+    const weeksSince = sameSeason ? state.week - lastWeek : 99;
+    if (sameSeason && weeksSince < STAFF_MARKET_REFRESH_COOLDOWN) {
+      const left = STAFF_MARKET_REFRESH_COOLDOWN - weeksSince;
+      return { success: false, message: `Network needs ${left} more week${left === 1 ? '' : 's'} to find new candidates.` };
+    }
+    if (club.budget < STAFF_MARKET_REFRESH_FEE) {
+      return { success: false, message: `Need £${Math.round(STAFF_MARKET_REFRESH_FEE / 1000)}K to scout new candidates.` };
+    }
+    const newAvailable = generateStaffMarket();
+    const newClub = { ...club, budget: club.budget - STAFF_MARKET_REFRESH_FEE };
+    set({
+      staff: {
+        ...state.staff,
+        availableHires: newAvailable,
+        lastMarketRefreshWeek: state.week,
+        lastMarketRefreshSeason: state.season,
+      },
+      clubs: { ...state.clubs, [state.playerClubId]: newClub },
+    });
+    return { success: true, message: 'Fresh staff candidates have been identified.' };
   },
 
   assignScout: (region: ScoutRegion) => {
@@ -238,6 +365,48 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
       youthAcademy: { ...state.youthAcademy, prospects: newProspects },
       players: restPlayers,
     });
+  },
+
+  setYouthFocus: (playerId: string, focus: YouthFocus) => {
+    const state = get();
+    const idx = state.youthAcademy.prospects.findIndex(p => p.playerId === playerId);
+    if (idx < 0) return;
+    const newProspects = state.youthAcademy.prospects.slice();
+    newProspects[idx] = { ...newProspects[idx], trainingFocus: focus };
+    set({ youthAcademy: { ...state.youthAcademy, prospects: newProspects } });
+  },
+
+  spotlightYouth: (playerId: string) => {
+    const state = get();
+    const remaining = state.youthAcademy.spotlightUsesRemaining ?? SPOTLIGHT_DEFAULT_USES;
+    if (remaining <= 0) return { success: false, message: 'No spotlight sessions left this season.' };
+    const idx = state.youthAcademy.prospects.findIndex(p => p.playerId === playerId);
+    if (idx < 0) return { success: false, message: 'Prospect not found.' };
+    const prospect = state.youthAcademy.prospects[idx];
+    if (prospect.spotlightedThisSeason) return { success: false, message: 'Already spotlighted this season.' };
+    const player = state.players[playerId];
+    if (!player) return { success: false, message: 'Player not found.' };
+    const newProspects = state.youthAcademy.prospects.slice();
+    newProspects[idx] = {
+      ...prospect,
+      developmentScore: Math.min(100, prospect.developmentScore + SPOTLIGHT_DEV_BOOST),
+      spotlightedThisSeason: true,
+      readyToPromote: prospect.readyToPromote || (player.overall >= 55 || (prospect.developmentScore + SPOTLIGHT_DEV_BOOST) >= 80),
+    };
+    const newMessages = addMsg(state.messages, {
+      week: state.week, season: state.season, type: 'development',
+      title: `${player.firstName} ${player.lastName} Spotlight`,
+      body: `${player.firstName} got an extended development session. Development +${SPOTLIGHT_DEV_BOOST}.`,
+    });
+    set({
+      youthAcademy: {
+        ...state.youthAcademy,
+        prospects: newProspects,
+        spotlightUsesRemaining: remaining - 1,
+      },
+      messages: newMessages,
+    });
+    return { success: true, message: `${player.firstName} ${player.lastName} got a development boost.` };
   },
 
   startUpgrade: (type: 'training' | 'youth' | 'medical' | 'recovery' | 'stadium-north' | 'stadium-south' | 'stadium-east' | 'stadium-west') => {
