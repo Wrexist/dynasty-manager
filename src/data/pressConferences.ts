@@ -146,7 +146,7 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
         humble: { text: 'Of course. They pay good money and deserve better. We owe them a response.', effects: { morale: -2, boardConfidence: 4, fanMood: 6 } },
         deflect: { text: 'I didn\'t hear anything. My focus was on the dressing room.', effects: { morale: 0, boardConfidence: 1, fanMood: -5 } },
       },
-      proOption: { tone: 'humble', text: 'Of course they\'re frustrated — so am I. But I\'ll show you the same data I show the players: we\'re trending the right way and the results will follow.', effects: { morale: 7, boardConfidence: 4, fanMood: 6 } },
+      proOption: { tone: 'analytical', text: 'Of course they\'re frustrated — so am I. But I\'ll show you the same data I show the players: we\'re trending the right way and the results will follow.', effects: { morale: 7, boardConfidence: 4, fanMood: 6 } },
     },
     {
       question: 'Are you concerned about the number of goals you\'re conceding?',
