@@ -1,394 +1,284 @@
-# Dynasty Manager — iOS App Store Listing (v1.0)
+# Dynasty Manager — App Store Listing
 
-> Complete, ASO-optimized listing for Apple App Store Connect.
-> All character counts verified. Every claim verified against source code.
-
----
-
-## App Name (30 chars max)
-
-**Dynasty Manager: Football** (27 chars)
-
-### Alternative Names (if taken)
-- Dynasty Manager: Soccer GM (27 chars)
-- Dynasty Manager: Club Boss (26 chars)
+> **File owner:** Marketing / Product  
+> Last updated: 2026-04-27 (v1.0.5)
 
 ---
 
-## Subtitle (30 chars max)
+## ⚠️ CRITICAL: IP & LICENSING CHECKLIST — MUST RESOLVE BEFORE PUBLIC LAUNCH
 
-**Manage 450+ Clubs. 30 Leagues.** (30 chars)
+The game currently ships with real-world trademarks and database-derived content.  
+Apple will not reject the **listing** for this, but rights-holders file DMCA / trademark
+takedowns once the app is publicly searchable. Several national gaming regulators also
+treat loot-box mechanics as regulated gambling. Resolve every item below before submitting
+for external TestFlight or public release.
 
----
+| # | Risk | What to do |
+|---|------|-----------|
+| 1 | **Real club names** (Arsenal, Real Madrid, Juventus, etc.) | Obtain a licensing agreement from each club / national association, **or** replace all in-game club names with fictional alternatives. |
+| 2 | **Real league names** (Premier League, La Liga, Serie A, Bundesliga, Ligue 1, etc.) | Same choice: license from the commercial rights holder, or replace. The game already uses fictional domestic league names at the top level (`Monarch Premier League`, `Dynasty Championship`). Apply the same pattern to all 45 divisions. |
+| 3 | **FC26 player names & ratings** | Player names are covered by FIFPro collective image rights; ratings/stats are EA IP. Using them without a data licence violates EA's Terms of Service and individual players' right of publicity in most jurisdictions. Either license from Opta / StatsBomb / FIFPro, or generate fictional players. |
+| 4 | **FIFA / confederation tournament names** | "World Cup", "UEFA European Championship", "Copa América", "AFCON", "AFC Asian Cup", and "Gold Cup" are all registered marks. Use the fictional equivalents already partially present in the codebase (`Champions Cup`, etc.) or obtain licences. |
+| 5 | **Loot-box gambling regulations** | Netherlands (KSA), Belgium, and South Korea classify paid randomised packs as gambling. Germany, UK, and Australia have active legislative reviews. Options: (a) display drop rates prominently before purchase (required by Apple Guideline 3.1.1 regardless), (b) remove real-money purchase from packs and keep only ad-rewarded and free opens, or (c) geo-block affected markets. |
+| 6 | **Privacy Policy** | The current policy predates AdMob, RevenueCat, and Sentry integration. Rewrite to cover all three SDKs, ATT / GDPR / CCPA compliance, subscription auto-renewal language, and refund policy (see Privacy section below). |
+| 7 | **Apple Guideline 3.1.1 — drop rate disclosure** | Apps with randomised virtual items purchasable with real money **must disclose item drop rates** before purchase. Add a drop-rate table to every paid pack's purchase screen. |
 
-## Keywords (100 chars max, comma-separated, no spaces)
-
-```
-soccer,simulation,tactics,transfers,offline,career,scouting,youth,trophies,squad,strategy,training,cup
-```
-
-(97 chars)
-
-### Keyword Strategy
-
-| Keyword | Rationale |
-|---------|-----------|
-| soccer | Captures US/Australian market. "Football" already indexed via app name. |
-| simulation | Genre term. FM Mobile ranks here. Cross-pollinates with broader sim audience. |
-| tactics | Feature-specific long-tail. Users searching "football tactics game" will match. |
-| transfers | High-intent feature search. Transfer windows are a core draw for FM fans. |
-| offline | Critical differentiator. "Offline football game" is a high-intent query. |
-| career | Captures "career mode" searches from the massive FIFA/EA FC audience. |
-| scouting | Feature-specific. Low competition, high intent. |
-| youth | Captures "youth academy" searches. Many competitors lack this depth. |
-| trophies | Goal-oriented searchers. Low competition. |
-| squad | Captures "squad building" and "squad management" searches. |
-| strategy | Genre cross-pollination. Reaches strategy gamers beyond the football niche. |
-| training | Feature-specific. Captures "training game" and "player training" searches. |
-| cup | Captures "cup competition", "world cup", "champions cup" search variants. |
-
-**Not included (already indexed via App Name / Subtitle):** dynasty, manager, football, manage, clubs, leagues.
-**Excluded by design:** "game" (auto-indexed via Games category), "free" (Apple discourages, attracts low-quality installs), competitor names (against App Store policy).
+> **The listing copy in this file uses only generic descriptors (no real club, league, player, or tournament names) and is safe to submit as written. The in-game content IP risk above is separate from the listing text.**
 
 ---
 
-## Full Description (4,000 chars max)
+## iOS App Store Metadata
 
+### App Name
 ```
-Take charge of any club from 450+ real teams across 30 European leagues — from England's Premier League to Iceland's top flight. Set your tactics, sign players, develop youth, and fight for continental glory. Dynasty Manager is the deepest football management sim built for mobile.
-
-PICK YOUR LEAGUE
-Choose from 30 leagues spanning all of Europe: England, Spain, Italy, Germany, France, Netherlands, Portugal, Turkey, Scotland, Belgium, and 20 more. Every league has real clubs, real rivalries, and a full season of fixtures. Manage Arsenal, Barcelona, Bayern Munich, Juventus, PSG — or take a lower-league underdog to the top.
-
-LIVE MATCH ENGINE
-Watch matches unfold minute by minute. Goals, saves, fouls, red cards, injuries, penalties, and late drama after the 85th minute. Weather and pitch conditions affect play. Make substitutions, shout tactical instructions from the touchline, and react to key moments with branching in-match decisions. Momentum swings can turn any match on its head.
-
-10 TACTICAL FORMATIONS
-Set up your team in 4-4-2, 4-3-3, 3-5-2, 4-2-3-1, and six more formations. Choose your mentality, pressing intensity, defensive line, tempo, and width. Assign set-piece takers. Save tactical presets. Counter your opponent's shape with mid-match formation switches.
-
-BUILD THROUGH YOUTH
-Your Youth Academy generates new prospects every season. Develop wonderkids from age 16, track their growth toward their potential, and promote them when they are ready. The Homegrown Hero narrative tracks their journey from academy kid to club legend.
-
-TRANSFERS, LOANS & SCOUTING
-Scout players across five global regions. Negotiate transfers during two windows per season. Arrange loans with wage splits and recall clauses. Respond to rival bids for your stars — or trigger a multi-week transfer saga through the storyline system.
-
-PLAYER PERSONALITY & CHEMISTRY
-Every player has five personality traits: professionalism, ambition, temperament, loyalty, and leadership. Model Professionals train harder. Hot Heads collect cards. Ambitious players demand moves to bigger clubs. Chemistry bonuses reward smart squad building through nationality links, mentor bonds, and partnerships.
-
-CONTINENTAL & INTERNATIONAL
-Qualify for the Champions Cup, Shield Cup, or Conference Cup based on league performance. Group stages, knockout rounds, and a Super Cup await. Get offered the national team job and lead your country in World Cup and Continental Cup tournaments — all while managing your club.
-
-MANAGER CAREER
-Create your manager with custom traits and attributes. Build your reputation from Unknown to Legendary. Get sacked, resign, or be headhunted by bigger clubs. Unlock 30+ perks across four talent branches — Tactician, Motivator, Dealmaker, Developer. The Prestige system lets you reset with boosted XP rewards, keeping your legacy intact.
-
-10 CHALLENGE SCENARIOS
-The Great Escape. The Invincibles. Youth Revolution. Penny Pincher. Giant Killer. The Double. Each challenge offers unique constraints and win conditions that test every aspect of your managerial ability.
-
-PRESS, STORYLINES & DRAMA
-Face the media after big results. Handle dressing room feuds, star player transfer sagas, youth breakthroughs, board pressure, and fan frustration through multi-week storyline chains. Your choices shape board confidence, player morale, and fan mood.
-
-COMPLETE OFFLINE EXPERIENCE
-No internet required. No pay-to-win. No energy timers. Just pure football management. The full game is free to play with optional cosmetic upgrades and Dynasty Pro for advanced analytics and convenience features.
-
-Your dynasty starts today.
+Dynasty Manager
 ```
-
-(~3,400 chars)
+*(15 characters — 30-char limit)*
 
 ---
 
-## Promotional Text (170 chars max — can be updated without new build)
-
-### Launch Version
-
+### Subtitle
 ```
-Launch Day: 30 European leagues, 450+ real clubs, Champions Cup, World Cup, and full manager career mode. The deepest football sim on mobile.
+Build Your Football Empire
 ```
-
-(142 chars)
-
-### Seasonal Update Examples (for future use)
-
-```
-NEW: Challenge Mode with 10 scenarios — survive The Great Escape, go unbeaten in The Invincibles, or build from nothing in Giant Killer.
-```
-
-(137 chars)
-
-```
-UPDATED: National team management is here. Lead your country in the World Cup while juggling your club career. Plus new storyline chains.
-```
-
-(137 chars)
+*(26 characters — 30-char limit)*
 
 ---
 
-## What's New (Version 1.0 Release Notes)
+### Promotional Text
+*(170-char max — editable without a new app submission, swap for seasonal campaigns)*
+
+**Default (current):**
+```
+Dynasty Pro now includes a FREE 3-day trial. Unlock instant sim, advanced tactics, and ad-free play. New players only. Cancel anytime.
+```
+*(136 characters)*
+
+**Seasonal alternates — swap without app update:**
+- *Transfer window:* `Transfer window is open. Sign your targets before it slams shut. Dynasty Pro free trial included with every new save.`
+- *Tournament season:* `Lead your nation to glory. World Championship qualifying is live. Dynasty Pro — 3-day free trial with every new game.`
+- *Post-launch value:* `45+ divisions. 51 nations. Thousands of players. One manager. Start free today.`
+
+---
+
+### Description
+*(4 000-char limit — copy below is ~3 450 characters including whitespace)*
 
 ```
-Welcome to Dynasty Manager 1.0 — the deepest football management sim on mobile.
+Build the most powerful football dynasty on the planet.
 
-WHAT'S INSIDE:
-- 30 European leagues with 450+ real clubs
-- Minute-by-minute match engine with weather, momentum, and touchline shouts
-- 10 tactical formations with full mentality and shape controls
-- Champions Cup, Shield Cup, Conference Cup, and Super Cup
-- World Cup and Continental Cup with national team management
-- Manager career: create your manager, build reputation, change clubs
-- Transfer and loan system with global scouting across 5 regions
-- Youth Academy with prospect development pathways
-- Player personality system with 5 traits that shape behavior
-- Chemistry bonuses from nationality, mentor, and partnership bonds
-- Press conferences and multi-week storyline chains
-- 10 challenge scenarios with unique win conditions
-- Manager talent tree with 30+ perks across 4 branches
-- Prestige system for boosted replays
-- Ballon d'Or awards, season awards, and Hall of Managers
-- 50+ achievements and career milestones
-- 23+ real derby rivalries with head-to-head tracking
-- Premium dark theme with glass-morphism design
-- Fully offline — no internet required
+Take charge of a struggling club buried in the lower divisions. Scout 
+emerging talent, master tactical formations, survive board pressure, 
+and rise from obscurity to continental glory.
+
+━━━ MANAGE CLUBS ACROSS THE WORLD ━━━
+Choose from clubs spanning 45+ divisions across 37 countries — 
+top-flight European leagues, competitive South American football, Asian 
+powerhouses, and beyond. Every club has a genuine squad with real player 
+ratings, real wages, and a fanbase expecting results.
+
+━━━ BUILD YOUR SQUAD ━━━
+Buy, sell, and loan players through a dynamic transfer market with 
+hundreds of targets. Develop talent through six specialist training 
+modules. Promote youth academy prospects to your first team. Chemistry 
+links connect your squad — play players in their best positions to 
+unlock their full potential.
+
+━━━ WIN ON THE PITCH ━━━
+Your match engine simulates every one of 90 minutes. Adjust your 
+formation mid-game, shift mentality, make tactical substitutions, and 
+deliver the half-time team talk that swings the result. Choose from 
+11 formations, 4 mentalities, and advanced sliders for tempo, width, 
+pressing intensity, and defensive line.
+
+━━━ COMPETE FOR EVERY TROPHY ━━━
+Win your domestic league. Lift the national cup. Qualify for three-tier 
+continental competition. Then lead your country through qualifying 
+cycles to contest the global football championship and five continental 
+tournaments — including the European, South American, African, Asian, 
+and North American championships.
+
+━━━ OPEN PLAYER PACKS ━━━
+Discover your next star through a daily pack-opening system. Bronze and 
+Silver packs reset every day — free to open, with extra opens via 
+rewarded ads. Upgrade to Gold, Premium Gold, Rare Gold, or Icon packs 
+for guaranteed elite players and cinematic walkout reveals. 
+Drop rates disclosed before every purchase.
+
+━━━ BUILD YOUR LEGACY ━━━
+Unlock manager perks, earn prestige badges, stock your trophy cabinet, 
+and cement your place in the Hall of Managers. An 88-question press 
+conference system, weekly board objectives, and dynamic player 
+storylines keep every season fresh.
+
+━━━ DYNASTY PRO — 3-DAY FREE TRIAL ━━━
+Subscribe to unlock the full experience:
+• Ad-free gameplay across every mode
+• One-tap instant match simulation
+• Advanced per-match analytics and tactical insights
+• Save up to 5 custom tactical presets
+• Smart Optimize Lineup — AI-powered formation builder
+• Pro-exclusive press conference responses
+• Full career record book and milestones
+
+Start free for 3 days, then £1.99/month — or own it forever with a 
+one-time purchase.
+
+━━━ FREE FOREVER ━━━
+• Full league campaigns across 45+ divisions in 37 countries
+• Daily free player packs (Bronze + Silver, resets midnight)
+• National team management across 51 nations
+• Youth academy, scouting, transfers, and staff management
+• Rewarded-ad bonuses: budget boosts, academy previews, potential reveals
+
+━━━ SUBSCRIPTIONS & IN-APP PURCHASES ━━━
+Dynasty Pro Monthly: £1.99/month. Renews automatically. Cancel anytime 
+in App Store Settings at least 24 hours before renewal.
+Dynasty Pro (one-time): £7.99.
+Dynasty Pro Lifetime: £19.99.
+Player Packs: £2.99 – £9.99 per purchase (consumable).
+Cosmetic Packs: £1.99 – £3.99 per purchase.
+Payment charged to your Apple ID at purchase confirmation.
+Manage subscriptions: App Store → Settings → Subscriptions.
+
+Privacy Policy: [INSERT URL]
+Terms of Use: [INSERT URL]
 ```
 
 ---
 
-## App Store Category
+### Keywords
+*(100-char limit, comma-separated, no spaces after commas — drives App Store search)*
 
-**Primary:** Games > Simulation
-**Secondary:** Games > Sports
+```
+football,manager,soccer,dynasty,tactics,squad,transfer,simulation,league,cup,career
+```
+*(85 characters)*
+
+**Keyword rationale:**
+- `football` + `manager` as separate terms avoids trademark proximity to Football Manager (SEGA) and captures both search intents independently.
+- `soccer` covers US / Canadian searches (significant revenue market).
+- `dynasty` is the unique brand differentiator — low competition, high brand relevance.
+- `career`, `simulation`, `tactics` are high-intent sports management terms.
+- Avoid `real`, `live`, `official` — Apple's algorithm penalises these in non-editorial contexts.
+
+---
+
+### What's New (v1.0.5)
+*(Version release notes — 4 000-char limit)*
+
+```
+DYNASTY PRO FREE TRIAL
+
+Every new Dynasty Manager save now includes a 3-day free trial of 
+Dynasty Pro — no commitment required.
+
+What Dynasty Pro unlocks during your trial:
+• Ad-free play across the entire game
+• One-tap instant match simulation
+• Advanced per-match analytics and tactical insights
+• Smart Optimize Lineup
+• 5 custom tactical preset slots
+• Pro-exclusive answers across all 88 press conference questions
+• Full career record book
+
+After the trial: £1.99/month, or keep it forever for a one-time price.
+Cancel any time before the trial ends and you won't be charged.
+
+Also in this update:
+• Redesigned Pro onboarding that clearly explains every feature
+• Inbox now shows a payment-failure warning if your subscription lapses
+• Hall of Managers data validation fixed for long careers
+```
 
 ---
 
 ## Age Rating
 
-**4+**
+| Attribute | Selection | Notes |
+|-----------|-----------|-------|
+| **Recommended Apple age rating** | **9+** | |
+| Simulated Gambling | Infrequent / Mild | Paid randomised pack openings with disclosed odds |
+| In-App Purchases | ✓ Disclose | Required disclosure |
+| Advertising Networks (AdMob) | ✓ Disclose | Rewarded video ads |
+| Violence / Mature Content | None | No violent or adult content |
 
-### Content Rating Questionnaire Answers
-- Cartoon or Fantasy Violence: None
-- Realistic Violence: None
-- Sexual Content or Nudity: None
-- Profanity or Crude Humor: None
-- Alcohol, Tobacco, or Drug Use: None
-- Simulated Gambling: None
-- Horror/Fear Themes: None
-- Medical/Treatment Info: None
-- Mature/Suggestive Themes: None
-- Gambling with Real Currency: None
-- Unrestricted Web Access: None (app is fully offline)
+**⚠️ Loot-box note for specific markets:** The Netherlands (KSA), Belgium, and South Korea classify paid loot boxes as regulated gambling irrespective of age rating. A 9+ Apple rating does not satisfy those local laws. See IP checklist item #5 above.
 
 ---
 
-## Price
+## Privacy Policy — Required Updates
 
-**Free** (with in-app purchases)
+The existing privacy policy must be rewritten before public release to cover:
 
-### In-App Purchases (configure in App Store Connect)
-
-| Product ID | Name | Price | Type |
-|-----------|------|-------|------|
-| com.dynastymanager.pro | Dynasty Pro | $7.99 | One-time |
-| com.dynastymanager.pro.monthly | Dynasty Pro Monthly | $1.99/mo | Auto-renewable subscription |
-| com.dynastymanager.pro.yearly | Dynasty Pro Yearly | $9.99/yr | Auto-renewable subscription |
-| com.dynastymanager.pro.lifetime | Dynasty Pro Lifetime | $19.99 | One-time |
-| com.dynastymanager.pack.manager | Manager Identity Pack | $2.99 | One-time |
-| com.dynastymanager.pack.stadium | Stadium Atmosphere Pack | $1.99 | One-time |
-| com.dynastymanager.pack.legends | Dynasty Legends Pack | $3.99 | One-time |
-| com.dynastymanager.starter | Starter Kit | $4.99 | One-time |
+- [ ] **AdMob / Google Mobile Ads** — Advertising ID collected on Android; ATT prompt displayed on iOS 14.5+; SKAdNetwork used for privacy-preserving attribution; users can opt out via device Settings → Privacy → Tracking.
+- [ ] **RevenueCat** — Purchase receipt data, subscription status, and an anonymous device ID are transmitted to RevenueCat servers for entitlement management. No PII is required.
+- [ ] **Sentry** — Crash reports include device model, OS version, app version, stack traces, and breadcrumb events. Verify no user-entered text (e.g. manager name, team name) is captured in breadcrumbs before launch.
+- [ ] **Subscription auto-renewal** — Apple requires this exact (or equivalent) disclosure: *"Subscription automatically renews unless auto-renew is turned off at least 24 hours before the end of the current period. Your account will be charged for renewal within 24 hours prior to the end of the current period."*
+- [ ] **Refund policy** — Consumable IAPs (player packs) are non-refundable once opened. State this explicitly.
+- [ ] **Children** — Given the 9+ rating and pack mechanics, explicitly state the app is not directed at children under 13 (COPPA / GDPR-K compliance).
+- [ ] **GDPR / CCPA** — If distributing to EU or California residents: include a data deletion request mechanism and a CCPA "Do Not Sell or Share My Personal Information" opt-out link.
+- [ ] **Data retention** — State how long crash logs and purchase records are retained by each third-party SDK.
 
 ---
 
-## Copyright
+## Screenshot Captions
+*(Primary: 6.7" iPhone Pro Max. Reuse captions at 6.1" and iPad sizes.)*
 
+| # | Screen | Headline (≤ 30 chars) | Body caption |
+|---|--------|-----------------------|--------------|
+| 1 | Dashboard / Club overview | **Your club. Your rules.** | Manage budgets, board confidence, and squad depth from the moment you arrive. |
+| 2 | Live match engine | **90 minutes. Every decision matters.** | React in real time — change formation, shift mentality, and make the substitution that wins it. |
+| 3 | Pack opening — walkout reveal | **Your next star is one pack away.** | Free daily packs. Premium drops for guaranteed elite players and cinematic reveals. |
+| 4 | National Team page | **Lead your nation.** | Pick from 51 countries. Navigate qualifying and contest five continental championships plus the global tournament. |
+| 5 | Tactics / Formation editor | **Build the system that wins.** | 11 formations, advanced sliders, and 5 saved custom presets (Dynasty Pro). |
+| 6 | Dynasty Pro paywall / trial | **Try it free for 3 days.** | Ad-free play, instant sim, smart lineup optimizer. No commitment. Cancel any time. |
+
+---
+
+## App Store Connect — Technical Checklist
+
+- [ ] App category: **Games → Sports**
+- [ ] Secondary category: **Games → Simulation**
+- [ ] Support URL — must resolve to a live page with a working contact method
+- [ ] Privacy Policy URL — must resolve to a live, updated policy (see Privacy section above)
+- [ ] All IAP product IDs registered in App Store Connect (see `src/config/monetization.ts` for full list of 13 SKUs)
+- [ ] Drop rates disclosed on every paid pack purchase screen (Guideline 3.1.1)
+- [ ] ATT permission string in Info.plist: *"We use your advertising ID to show relevant reward ads so you can open free packs."* ✓ already present
+- [ ] `ITSAppUsesNonExemptEncryption = false` ✓ already declared
+- [ ] `NSUserTrackingUsageDescription` ✓ already present
+- [ ] 46 SKAdNetwork IDs registered in Info.plist ✓ already present
+- [ ] Subscription group created in App Store Connect matching monthly + one-time product IDs
+- [ ] Free trial duration in App Store Connect matches `FREE_TRIAL_DAYS = 3` in `src/config/monetization.ts`
+- [ ] Age rating questionnaire complete — mark "Infrequent/Mild Simulated Gambling" and "Advertising Networks"
+
+---
+
+## Google Play Metadata
+
+*(Adapt the iOS description above. Play Store allows 4 000 chars but has no subtitle field.)*
+
+**Short description** *(80-char limit)*:
 ```
-© 2026 Wrexist Games
+Manage clubs, open packs & lead 51 nations. Football management, reimagined.
 ```
+*(77 characters)*
+
+**Play-specific items to complete:**
+- **Data safety form** — map AdMob, RevenueCat, and Sentry to their respective data types (Advertising ID, Purchase history, Crash logs).
+- **Families policy** — explicitly exclude the under-13 audience unless additional parental-controls infrastructure is added.
+- **Content rating questionnaire** — answer "yes" to simulated gambling (loot boxes); Play assigns an IARC rating automatically.
+- **Financial features disclosure** — Play requires disclosure of in-app purchases on the store page; this is auto-generated if IAP products are registered.
 
 ---
 
-## Support URL
+## Version History Quick Reference
 
-```
-https://github.com/Wrexist/dynasty-manager/issues
-```
-
----
-
-## Privacy Policy URL
-
-_(Required — host a privacy policy page before submission)_
-
----
-
-## App Review Notes
-
-```
-Dynasty Manager is a free-to-play single-player football management simulation. The game features 30 European leagues with real club names, colors, and stadium names, but all player squads are procedurally generated — no real player names or likenesses are used.
-
-The full game is playable without any purchase. Optional purchases include Dynasty Pro (removes opt-in rewarded ads, adds advanced analytics and convenience features) and cosmetic packs (avatar styles, stadium themes, trophy cabinet designs). No gameplay advantage is sold — all purchases are cosmetic or convenience only.
-
-All game data is stored locally on device. No multiplayer or server-side game components exist. RevenueCat is used for purchase validation. AdMob provides opt-in rewarded video ads only — no forced or interstitial ads interrupt gameplay.
-
-Demo account: Not required — the app is fully playable offline from first launch. Select any club and begin playing immediately.
-```
-
----
-
-## App Store Screenshots — Recommended Screens
-
-_Design for 6.7" iPhone (required) + 6.9" iPhone + 12.9" iPad Pro._
-
-### Screenshot 1 — Hero / First Impression
-**Caption:** "450+ Real Clubs. 30 European Leagues."
-**Screen:** League and club selection grid showing team badges, league flags, and division tiers
-**Overlay text:** YOUR DYNASTY STARTS HERE
-
-### Screenshot 2 — Match Day
-**Caption:** "Minute-by-Minute Match Simulation"
-**Screen:** Live match view with events feed, score, possession stats, and tactical shouts
-**Overlay text:** FEEL EVERY GOAL. EVERY SAVE. EVERY RED CARD.
-
-### Screenshot 3 — Tactics & Lineup
-**Caption:** "10 Formations. Total Tactical Control."
-**Screen:** Lineup editor with pitch view, drag-and-drop players, and formation selector
-**Overlay text:** SET YOUR SHAPE. DEFINE YOUR STYLE.
-
-### Screenshot 4 — Squad Management
-**Caption:** "Develop Stars. Build Legends."
-**Screen:** Player detail card showing attributes, potential, personality traits, and contract info
-**Overlay text:** EVERY PLAYER HAS A STORY
-
-### Screenshot 5 — Transfers & Scouting
-**Caption:** "Scout Globally. Sign Smartly."
-**Screen:** Transfer market with player cards, filters, and scouting region selector
-**Overlay text:** 5 REGIONS. ENDLESS TALENT.
-
-### Screenshot 6 — Youth Academy
-**Caption:** "Grow the Next Generation"
-**Screen:** Youth Academy with prospect list, development bars, and promotion button
-**Overlay text:** FROM ACADEMY TO LEGEND
-
-### Screenshot 7 — Continental Glory
-**Caption:** "Champions Cup. Shield Cup. Super Cup."
-**Screen:** Continental competition bracket or group stage table
-**Overlay text:** CONQUER EUROPE
-
-### Screenshot 8 — Manager Career & Prestige
-**Caption:** "Build Your Legacy Across Careers"
-**Screen:** Manager profile with reputation tier, talent tree, prestige badges, and Hall of Managers
-**Overlay text:** RISE. RESET. REPEAT.
-
----
-
-## App Preview Video (30 seconds)
-
-### Storyboard
-
-| Seconds | Visual | Text Overlay |
-|---------|--------|--------------|
-| 0-3 | App logo reveal with gold shimmer on dark background | DYNASTY MANAGER |
-| 3-7 | Quick montage: league select → club pick → lineup setup → kick-off | YOUR CLUB. YOUR RULES. |
-| 7-12 | Match simulation: goal scored, celebration modal, late drama | LIVE THE DRAMA |
-| 12-17 | Transfer negotiation → scout report → youth academy prospect promoted | BUILD YOUR SQUAD |
-| 17-22 | Champions Cup group stage → knockout → Super Cup trophy lift | CONQUER EUROPE |
-| 22-27 | Manager talent tree → prestige reset → Hall of Managers entry | WRITE YOUR LEGACY |
-| 27-30 | Logo + "Free to Play" badge + "Download Now" CTA | YOUR DYNASTY STARTS TODAY |
-
----
-
-## ASO (App Store Optimization) Strategy
-
-### Primary Keyword Targets
-
-| Keyword Phrase | Search Volume | Competition | Strategy |
-|---------------|--------------|-------------|----------|
-| football manager game | Very High | High | Indexed via App Name |
-| soccer manager | High | Medium | "soccer" in keywords + "manager" in name |
-| football simulation | Medium | Low | "football" in name + "simulation" in keywords |
-| football tactics game | Medium | Low | "football" in name + "tactics" in keywords |
-| offline football game | Medium | Low | "football" in name + "offline" in keywords |
-| club manager mobile | Medium | Low | "clubs" in subtitle + "manager" in name |
-| career mode football | Medium | Medium | "career" in keywords + "football" in name |
-| youth academy game | Low | Very Low | "youth" in keywords, unique differentiator |
-
-### Competitor Positioning
-
-| Competitor | Our Advantage |
-|-----------|---------------|
-| Football Manager Mobile ($9.99) | Dynasty Manager is free. Larger league count (30 vs 1-6 selectable). Prestige system for replayability. |
-| Top Eleven (F2P, multiplayer P2W) | No pay-to-win. Pure single-player depth. Full offline play. No energy timers. |
-| OSM (Online Soccer Manager) | Offline-first. Deeper match engine with minute-by-minute events. Player personalities and chemistry. |
-| Soccer Manager 2024 | More leagues (30 vs ~15). Manager career with job market. Continental and international competitions. |
-| Dream League Soccer | Management-first vs arcade gameplay. Deeper tactics, youth, scouting, and multi-season progression. |
-
-### Localization Priority
-
-Translate the App Store listing (not the app) into these languages first — each has their own league in the game, creating a strong local hook:
-
-1. **Spanish** — "Dirige al Barcelona, Real Madrid, o al Betis en La Liga"
-2. **Italian** — "Guida Juventus, Milan, o Inter in Serie A"
-3. **German** — "Manage Bayern, Dortmund oder Leipzig in der Bundesliga"
-4. **French** — "Dirigez le PSG, Marseille ou Lyon en Ligue 1"
-5. **Portuguese** — "Gere o Benfica, Porto ou Sporting na Liga Portugal"
-6. **Turkish** — "Galatasaray, Fenerbahce veya Besiktas'i yonetin"
-7. **Dutch** — "Manage Ajax, PSV of Feyenoord in de Eredivisie"
-8. **Polish** — "Zarządzaj Legią, Lechem lub Rakowem w Ekstraklasie"
-
-### Ratings Prompt Strategy
-
-Trigger `SKStoreReviewController.requestReview()` at positive emotional moments:
-- After winning first league match
-- After first promotion
-- After winning first cup
-- After unlocking first manager perk
-- After Youth Academy prospect reaches first team
-
-Limit to 3 prompts per 365-day period (Apple guideline).
-
----
-
-## Apple Search Ads — Suggested Keywords (for paid campaigns)
-
-### Exact Match (High Intent)
-- football manager game
-- soccer manager game
-- football management sim
-- club manager mobile
-- football tactics game
-
-### Broad Match (Discovery)
-- sports simulation
-- team management game
-- soccer game offline
-- football game free
-- strategy sports game
-
----
-
-## Legal Considerations
-
-**Real Club Names:** This game uses real club names (Arsenal, Barcelona, Bayern Munich, etc.), real stadium references, and real derby names (El Clasico, North London Derby, Derby della Madonnina). No real player names or likenesses are used — all squads are procedurally generated.
-
-Before App Store submission, confirm licensing status for club name usage. If licensing is not secured, the existing fictional league structure (Monarch Premier League, Dynasty Championship, etc.) from the original codebase can be used as a fallback.
-
----
-
-## Google Play Specific (Bonus)
-
-### Short Description (80 chars max)
-```
-Manage 450+ clubs across 30 leagues. Tactics, transfers, youth — build your dynasty.
-```
-(83 chars — trim to: "Manage 450+ clubs across 30 leagues. Tactics, transfers, youth — your dynasty." = 79 chars)
-
-### Developer Name
-**Wrexist Games**
-
-### Content Rating
-**Everyone (ESRB)** / **PEGI 3**
-
-### Tags
-1. Sports
-2. Simulation
-3. Strategy
-4. Single Player
-5. Offline
+| Version | Date | Headline |
+|---------|------|---------|
+| 1.0.5 | 2026-04-27 | Dynasty Pro free 3-day trial; redesigned onboarding |
+| 1.0.4 | 2026-04-26 | Real national-team squads; squad picker; FIFA-style rankings |
+| 1.0.3 | 2026-04-26 | Rare Gold pack added as £6.99 IAP |
+| 1.0.2 | 2026-04-26 | Daily free packs with live midnight-reset countdown |
+| 1.0.1 | 2026-04-26 | Free Bronze packs with ad; Premium Gold & Icon IAPs |
+| 1.0.0 | 2026-04-24 | Launch — What's New centre; Smart Optimize Lineup; review prompt |
