@@ -85,6 +85,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Cleaner Transfer screen — News tab and Free Agent signing modal now load as their own components.',
       'Cleaner Dashboard internals — competition status and board objectives now load as their own components.',
       'Refactored the match engine for cleaner internals.',
+      'Cleaner MatchDay screen — score header and match-speed picker now load as their own components.',
     ],
     fixed: [
       'Fixed France (and other top nations) appearing as #25 in the world rankings.',

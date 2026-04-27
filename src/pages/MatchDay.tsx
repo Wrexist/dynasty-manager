@@ -9,8 +9,8 @@ import { Button } from '@/components/ui/button';
 import { MatchEvent, Match, Club, ContinentalTournamentState, TeamTalkType } from '@/types/game';
 import { resolveClub } from '@/utils/helpers';
 import { cn } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Play, FastForward, Pause, RefreshCw, Zap, Flame, Shield, AlertTriangle, Calendar, MapPin, Trophy, Hand, Clock, Crown, type LucideIcon } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { ArrowLeft, Play, FastForward, Pause, RefreshCw, Zap, Flame, Shield, AlertTriangle, Calendar, MapPin, Trophy, Hand, Clock, type LucideIcon } from 'lucide-react';
 import { hapticHeavy, hapticMedium, hapticLight, hapticSuccess } from '@/utils/haptics';
 import { KEY_MOMENT_LOSING_MINUTE, KEY_MOMENT_TIGHT_FINISH_MINUTE, MAX_SUBSTITUTIONS, KEY_MOMENT_DOMINANT_POSSESSION_MIN, KEY_MOMENT_POSSESSION_THRESHOLD, KEY_MOMENT_NEAR_MISS_COUNT, SHOUT_DURATION, SHOUT_COOLDOWN, MAX_SHOUTS_PER_MATCH, MATCH_LOW_FITNESS_THRESHOLD, FITNESS_DEGRADE_PER_MINUTE, PRESSING_FITNESS_DRAIN_PER_POINT, PRESSING_FITNESS_DRAIN_BASELINE, TEMPO_FAST_FITNESS_DRAIN_MOD, TEMPO_SLOW_FITNESS_DRAIN_MOD } from '@/config/matchEngine';
 import { MOTIVATE_FITNESS_DRAIN_MULT, CALM_FITNESS_DRAIN_MULT, DEMAND_FITNESS_DRAIN_MULT } from '@/config/teamTalk';
@@ -30,11 +30,12 @@ import { MENTALITIES, getAvailableFormations } from '@/config/tactics';
 import { KEY_MOMENT_CHOICES } from '@/config/keyMoments';
 import { infoToast } from '@/utils/gameToast';
 import { PageHint } from '@/components/game/PageHint';
+import { ScoreHeader } from '@/components/matchday/ScoreHeader';
+import { MatchSpeedPicker } from '@/components/matchday/MatchSpeedPicker';
 import { PAGE_HINTS, GOAL_FLASH_MS } from '@/config/ui';
 import { getActiveCosmetic, isPro } from '@/utils/monetization';
 import { hasPerk } from '@/utils/managerPerks';
 import { areColorsSimilar } from '@/utils/uiHelpers';
-import { YellowCardIcon, RedCardIcon } from '@/components/game/PlayerAvatar';
 import { PenaltyShootout } from '@/components/game/PenaltyShootout';
 import { Megaphone, BarChart3, Activity, ChevronDown, ChevronUp, Users, ShieldCheck, Layers } from 'lucide-react';
 
@@ -710,101 +711,28 @@ const MatchDayInner = () => {
   return (
     <div className={cn("max-w-lg mx-auto px-4 py-4 space-y-3", stadiumTheme && `stadium-${stadiumTheme.replace('stadium-', '')}`, pitchSkin && `pitch-${pitchSkin.replace('pitch-', '')}`)}>
       {phase === 'pre' && <PageHint screen="matchDay" title={PAGE_HINTS.matchDay.title} body={PAGE_HINTS.matchDay.body} />}
-      {/* Score Header */}
-      <GlassPanel className={cn("p-5 transition-all duration-300", goalFlash && "border-primary/60 shadow-[0_0_20px_hsl(var(--primary)/0.3)]")}>
-        <p className="text-[10px] text-muted-foreground uppercase tracking-wider text-center mb-3">
-          {phase === 'pre' ? `Week ${week}${isCupMatch ? ' — Cup' : ''}` : phase === 'half_time' ? 'Half Time' : phase === 'extra_time_break' ? 'Extra Time' : phase === 'penalties' ? 'Penalties' : isLive ? `${currentMin}'` : 'Full Time'}
-        </p>
-        <div className="flex items-center justify-center gap-6">
-          <div className="text-center">
-            <div className="w-12 h-12 rounded-full mx-auto mb-1 flex items-center justify-center text-xs font-bold" style={{ backgroundColor: homeClub.color, color: homeClub.secondaryColor }}>{homeClub.shortName}</div>
-            <p className="text-xs font-bold text-foreground">{homeClub.shortName}</p>
-            {(homeYellowCards > 0 || homeRedCards > 0) && (
-              <div className="mt-1 flex items-center justify-center gap-1 text-[9px] font-semibold">
-                {homeYellowCards > 0 && (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-400/15 px-1.5 py-0.5 text-amber-300">
-                    <YellowCardIcon size={10} /> {homeYellowCards}
-                  </span>
-                )}
-                {homeRedCards > 0 && (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-red-400/50 bg-red-500/20 px-1.5 py-0.5 text-red-300 animate-pulse">
-                    <RedCardIcon size={10} /> {homeRedCards}
-                  </span>
-                )}
-              </div>
-            )}
-            {homeRedCards > 0 && (
-              <p className="mt-1 text-[9px] font-bold uppercase tracking-wide text-red-300">
-                {homePlayersOnPitch} men
-              </p>
-            )}
-          </div>
-          <div className="text-center" aria-live="polite" aria-atomic="true" role="status">
-            <p className="text-4xl font-black text-foreground tabular-nums font-display flex items-center justify-center gap-1">
-              <AnimatePresence mode="popLayout">
-                <motion.span
-                  key={phase === 'half_time' ? `ht-h-${htHomeGoals}` : `h-${homeGoals}`}
-                  initial={{ scale: 1.4, color: 'hsl(160, 84%, 39%)' }}
-                  animate={{ scale: 1, color: 'hsl(0, 0%, 95%)' }}
-                  transition={{ duration: 0.4, type: 'spring', stiffness: 300 }}
-                >
-                  {phase === 'half_time' ? htHomeGoals : homeGoals}
-                </motion.span>
-              </AnimatePresence>
-              <span>-</span>
-              <AnimatePresence mode="popLayout">
-                <motion.span
-                  key={phase === 'half_time' ? `ht-a-${htAwayGoals}` : `a-${awayGoals}`}
-                  initial={{ scale: 1.4, color: 'hsl(160, 84%, 39%)' }}
-                  animate={{ scale: 1, color: 'hsl(0, 0%, 95%)' }}
-                  transition={{ duration: 0.4, type: 'spring', stiffness: 300 }}
-                >
-                  {phase === 'half_time' ? htAwayGoals : awayGoals}
-                </motion.span>
-              </AnimatePresence>
-            </p>
-          </div>
-          <div className="text-center">
-            <div className="w-12 h-12 rounded-full mx-auto mb-1 flex items-center justify-center text-xs font-bold" style={{ backgroundColor: awayClub.color, color: awayClub.secondaryColor }}>{awayClub.shortName}</div>
-            <p className="text-xs font-bold text-foreground">{awayClub.shortName}</p>
-            {(awayYellowCards > 0 || awayRedCards > 0) && (
-              <div className="mt-1 flex items-center justify-center gap-1 text-[9px] font-semibold">
-                {awayYellowCards > 0 && (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-400/15 px-1.5 py-0.5 text-amber-300">
-                    <YellowCardIcon size={10} /> {awayYellowCards}
-                  </span>
-                )}
-                {awayRedCards > 0 && (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-red-400/50 bg-red-500/20 px-1.5 py-0.5 text-red-300 animate-pulse">
-                    <RedCardIcon size={10} /> {awayRedCards}
-                  </span>
-                )}
-              </div>
-            )}
-            {awayRedCards > 0 && (
-              <p className="mt-1 text-[9px] font-bold uppercase tracking-wide text-red-300">
-                {awayPlayersOnPitch} men
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Live xG Tracker */}
-        {(isLive || phase === 'half_time' || phase === 'extra_time_break') && (liveHomeXG > 0 || liveAwayXG > 0) && (
-          <div className="flex justify-between mt-2 text-[9px] text-muted-foreground/70 tabular-nums">
-            <span>xG: {liveHomeXG.toFixed(2)}</span>
-            <span>xG: {liveAwayXG.toFixed(2)}</span>
-          </div>
-        )}
-
-        {(isLive || phase === 'half_time' || phase === 'extra_time_break') && (
-          <div className="mt-2">
-            <div className="h-1 bg-muted rounded-full overflow-hidden">
-              <motion.div className="h-full bg-primary rounded-full" animate={{ width: `${(currentMin / (phase === 'extra_time' ? 120 : 90)) * 100}%` }} />
-            </div>
-          </div>
-        )}
-      </GlassPanel>
+      <ScoreHeader
+        phase={phase}
+        week={week}
+        currentMin={currentMin}
+        isLive={isLive}
+        isCupMatch={isCupMatch}
+        homeClub={homeClub}
+        awayClub={awayClub}
+        homeGoals={homeGoals}
+        awayGoals={awayGoals}
+        htHomeGoals={htHomeGoals}
+        htAwayGoals={htAwayGoals}
+        homeYellowCards={homeYellowCards}
+        homeRedCards={homeRedCards}
+        awayYellowCards={awayYellowCards}
+        awayRedCards={awayRedCards}
+        homePlayersOnPitch={homePlayersOnPitch}
+        awayPlayersOnPitch={awayPlayersOnPitch}
+        liveHomeXG={liveHomeXG}
+        liveAwayXG={liveAwayXG}
+        goalFlash={goalFlash}
+      />
 
       {/* Momentum Meter & Tactical Insights */}
       {isLive && (
@@ -925,32 +853,12 @@ const MatchDayInner = () => {
               <span className="text-primary font-bold">vs</span>
               <span>{awayClub.shortName}: {clubs[match.awayClubId]?.formation || '4-3-3'}</span>
             </div>
-            <div className="flex items-center justify-center gap-1.5">
-              <span className="text-[10px] text-muted-foreground mr-1">Speed:</span>
-              <div className="flex bg-muted/20 rounded-lg border border-border/30 p-0.5">
-                {MATCH_SPEEDS.map(s => {
-                  const locked = s.pro && !userIsPro;
-                  return (
-                    <button
-                      key={s.value}
-                      type="button"
-                      onClick={() => locked ? setScreen('shop') : setSpeed(s.value)}
-                      className={cn(
-                        'px-2 py-1 rounded-md text-[10px] font-medium transition-all flex items-center gap-0.5',
-                        locked
-                          ? 'text-muted-foreground/40 cursor-default'
-                          : speed === s.value
-                            ? 'bg-primary/20 text-primary'
-                            : 'text-muted-foreground hover:text-foreground'
-                      )}
-                    >
-                      {locked && <Crown className="w-2.5 h-2.5" />}
-                      {s.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            <MatchSpeedPicker
+              speed={speed}
+              userIsPro={userIsPro}
+              onSelect={setSpeed}
+              onLockedSelect={() => setScreen('shop')}
+            />
             <Button className="w-full h-12 text-base font-bold gap-2" onClick={() => { hapticLight(); kickOff(); }}>
               <Play className="w-5 h-5" /> Kick Off
             </Button>
@@ -1140,32 +1048,12 @@ const MatchDayInner = () => {
 
           {/* Match Speed at half-time */}
           <GlassPanel className="p-3">
-            <div className="flex items-center justify-center gap-1.5">
-              <span className="text-[10px] text-muted-foreground mr-1">Speed:</span>
-              <div className="flex bg-muted/20 rounded-lg border border-border/30 p-0.5">
-                {MATCH_SPEEDS.map(s => {
-                  const locked = s.pro && !userIsPro;
-                  return (
-                    <button
-                      key={s.value}
-                      type="button"
-                      onClick={() => locked ? setScreen('shop') : setSpeed(s.value)}
-                      className={cn(
-                        'px-2 py-1 rounded-md text-[10px] font-medium transition-all flex items-center gap-0.5',
-                        locked
-                          ? 'text-muted-foreground/40 cursor-default'
-                          : speed === s.value
-                            ? 'bg-primary/20 text-primary'
-                            : 'text-muted-foreground hover:text-foreground'
-                      )}
-                    >
-                      {locked && <Crown className="w-2.5 h-2.5" />}
-                      {s.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            <MatchSpeedPicker
+              speed={speed}
+              userIsPro={userIsPro}
+              onSelect={setSpeed}
+              onLockedSelect={() => setScreen('shop')}
+            />
           </GlassPanel>
 
           <div className="h-16" /> {/* spacer for sticky button */}
@@ -1285,32 +1173,12 @@ const MatchDayInner = () => {
 
           {/* Match Speed before extra time */}
           <GlassPanel className="p-3">
-            <div className="flex items-center justify-center gap-1.5">
-              <span className="text-[10px] text-muted-foreground mr-1">Speed:</span>
-              <div className="flex bg-muted/20 rounded-lg border border-border/30 p-0.5">
-                {MATCH_SPEEDS.map(s => {
-                  const locked = s.pro && !userIsPro;
-                  return (
-                    <button
-                      key={s.value}
-                      type="button"
-                      onClick={() => locked ? setScreen('shop') : setSpeed(s.value)}
-                      className={cn(
-                        'px-2 py-1 rounded-md text-[10px] font-medium transition-all flex items-center gap-0.5',
-                        locked
-                          ? 'text-muted-foreground/40 cursor-default'
-                          : speed === s.value
-                            ? 'bg-primary/20 text-primary'
-                            : 'text-muted-foreground hover:text-foreground'
-                      )}
-                    >
-                      {locked && <Crown className="w-2.5 h-2.5" />}
-                      {s.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            <MatchSpeedPicker
+              speed={speed}
+              userIsPro={userIsPro}
+              onSelect={setSpeed}
+              onLockedSelect={() => setScreen('shop')}
+            />
           </GlassPanel>
 
           <div className="h-16" /> {/* spacer for sticky button */}
