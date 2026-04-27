@@ -110,6 +110,8 @@ const InboxPage = () => {
   const players = useGameStore((s) => s.players);
   const week = useGameStore((s) => s.week);
   const gameMode = useGameStore((s) => s.gameMode);
+  const monetization = useGameStore((s) => s.monetization);
+  const inGracePeriod = monetization?.subscription?.isInGracePeriod === true;
   const markMessageRead = useGameStore((s) => s.markMessageRead);
   const markAllRead = useGameStore((s) => s.markAllRead);
   const setScreen = useGameStore((s) => s.setScreen);
@@ -207,6 +209,23 @@ const InboxPage = () => {
         title="Inbox"
         body="All club communications in one place — transfer offers, injury updates, board messages, and more. Use the filter to find specific message types. Some messages have actions you can take directly."
       />
+
+      {inGracePeriod && (
+        <button
+          type="button"
+          onClick={() => setScreen('settings')}
+          className="w-full text-left flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 transition-colors hover:bg-amber-500/15"
+        >
+          <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold text-amber-300 uppercase tracking-wide">Pro Payment Issue</p>
+            <p className="text-xs text-foreground/90 mt-0.5">
+              Your subscription couldn't be renewed. Update your payment method to keep Pro features active.
+            </p>
+            <p className="text-[10px] text-amber-400 mt-1">Tap to manage subscription →</p>
+          </div>
+        </button>
+      )}
 
       <div className="flex items-center justify-between">
         <div>
