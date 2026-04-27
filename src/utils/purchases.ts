@@ -22,32 +22,48 @@ const REVENUECAT_API_KEY = import.meta.env.VITE_REVENUECAT_API_KEY || 'test_CBbg
 /** Set to true once production RevenueCat keys are configured and native plugins restored. */
 const NATIVE_MONETIZATION_READY = true;
 
-let initialized = false;
+let initPromise: Promise<boolean> | null = null;
 let listenerRemover: (() => void) | null = null;
 
-/** Initialize RevenueCat SDK. Call once at app startup. */
-export async function initPurchases(): Promise<void> {
-  if (initialized) return;
+/**
+ * Initialize RevenueCat SDK. Safe to call multiple times — the in-flight
+ * promise is memoized. Returns true once the SDK is configured (or when
+ * running off-device, where monetization is mocked). On failure, the
+ * cached promise is cleared so the next caller retries — important because
+ * a transient launch-time failure must not permanently break "Restore
+ * Purchases".
+ */
+export async function initPurchases(): Promise<boolean> {
   if (!Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) {
-    initialized = true;
-    return;
+    return false;
   }
+  if (initPromise) return initPromise;
 
-  try {
-    const { Purchases, LOG_LEVEL } = await import('@revenuecat/purchases-capacitor');
-    const logLevel = import.meta.env.DEV ? LOG_LEVEL.DEBUG : LOG_LEVEL.INFO;
-    await Purchases.setLogLevel({ level: logLevel });
-    await Promise.race([
-      Purchases.configure({ apiKey: REVENUECAT_API_KEY }),
-      new Promise<void>((_, reject) => setTimeout(() => reject(new Error('RevenueCat init timeout')), 5000)),
-    ]);
-    initialized = true;
-  } catch (err) {
-    console.warn('[Purchases] Failed to initialize RevenueCat:', err);
-    Sentry.captureException(err, { tags: { context: 'purchases.init' } });
-    // Mark initialized to prevent retry loops — purchases will use mock mode
-    initialized = true;
-  }
+  initPromise = (async () => {
+    try {
+      const { Purchases, LOG_LEVEL } = await import('@revenuecat/purchases-capacitor');
+      const logLevel = import.meta.env.DEV ? LOG_LEVEL.DEBUG : LOG_LEVEL.INFO;
+      await Purchases.setLogLevel({ level: logLevel });
+      await Promise.race([
+        Purchases.configure({ apiKey: REVENUECAT_API_KEY }),
+        new Promise<void>((_, reject) => setTimeout(() => reject(new Error('RevenueCat init timeout')), 5000)),
+      ]);
+      return true;
+    } catch (err) {
+      console.warn('[Purchases] Failed to initialize RevenueCat:', err);
+      Sentry.captureException(err, { tags: { context: 'purchases.init' } });
+      initPromise = null;
+      return false;
+    }
+  })();
+  return initPromise;
+}
+
+/** Ensure the SDK is configured before issuing a call. Throws on failure
+ *  so user-triggered flows surface a real error instead of a silent no-op. */
+async function ensureConfigured(): Promise<void> {
+  const ok = await initPurchases();
+  if (!ok) throw new Error('RevenueCat SDK is not configured');
 }
 
 /**
@@ -67,6 +83,7 @@ export async function purchaseConsumable(productId: ProductId): Promise<boolean>
   }
 
   try {
+    await ensureConfigured();
     const { Purchases } = await import('@revenuecat/purchases-capacitor');
     const offerings = await Purchases.getOfferings() as {
       current?: { availablePackages: { product: { identifier: string } }[] };
@@ -100,6 +117,7 @@ export async function purchaseProduct(productId: ProductId): Promise<ProductId[]
   }
 
   try {
+    await ensureConfigured();
     const { Purchases } = await import('@revenuecat/purchases-capacitor');
     // SDK types unavailable in web builds — use structural typing
     const offerings = await Purchases.getOfferings() as {
@@ -141,6 +159,7 @@ export async function restorePurchases(): Promise<ProductId[]> {
   }
 
   try {
+    await ensureConfigured();
     const { Purchases } = await import('@revenuecat/purchases-capacitor');
     const { customerInfo } = await Purchases.restorePurchases();
     return mapEntitlements(customerInfo);
@@ -158,6 +177,7 @@ export async function getEntitlements(): Promise<ProductId[]> {
   }
 
   try {
+    await ensureConfigured();
     const { Purchases } = await import('@revenuecat/purchases-capacitor');
     const { customerInfo } = await Purchases.getCustomerInfo();
     return mapEntitlements(customerInfo);
@@ -176,6 +196,7 @@ export async function getCustomerInfo(): Promise<any | null> {
   }
 
   try {
+    await ensureConfigured();
     const { Purchases } = await import('@revenuecat/purchases-capacitor');
     const { customerInfo } = await Purchases.getCustomerInfo();
     return customerInfo;
@@ -257,6 +278,7 @@ export async function presentPaywall(offeringIdentifier?: string): Promise<Paywa
   }
 
   try {
+    await ensureConfigured();
     const { RevenueCatUI } = await import('@revenuecat/purchases-capacitor-ui');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const options: any = {};
@@ -282,6 +304,7 @@ export async function presentPaywallIfNeeded(entitlementId: string = 'pro'): Pro
   if (!Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) return 'not_presented';
 
   try {
+    await ensureConfigured();
     const { RevenueCatUI } = await import('@revenuecat/purchases-capacitor-ui');
     const { result } = await RevenueCatUI.presentPaywallIfNeeded({
       requiredEntitlementIdentifier: entitlementId,
@@ -319,6 +342,7 @@ export async function openSubscriptionManagement(): Promise<boolean> {
   if (!Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) return false;
 
   try {
+    await ensureConfigured();
     const { Purchases } = await import('@revenuecat/purchases-capacitor');
     const { customerInfo } = await Purchases.getCustomerInfo();
     const managementUrl = customerInfo?.managementURL;
@@ -344,6 +368,7 @@ export async function startEntitlementListener(
 ): Promise<void> {
   if (!Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) return;
   try {
+    await ensureConfigured();
     const { Purchases } = await import('@revenuecat/purchases-capacitor');
     const callbackId = await Purchases.addCustomerInfoUpdateListener((info) => {
       const ids = mapEntitlements(info);
