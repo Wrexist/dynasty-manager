@@ -28,8 +28,6 @@ export async function initAds(): Promise<void> {
   }
 
   try {
-    // Optional native plugin — may not be installed in dev/web environments.
-    // @ts-expect-error dynamic optional import resolved only at runtime on native
     const { AdMob } = await import('@capacitor-community/admob');
 
     // Request tracking authorization first (iOS 14+ ATT requirement).
@@ -57,7 +55,6 @@ export async function showRewardedAd(): Promise<boolean> {
   }
 
   try {
-    // @ts-expect-error dynamic optional import resolved only at runtime on native
     const { AdMob } = await import('@capacitor-community/admob');
     const adId = Capacitor.getPlatform() === 'ios' ? REWARDED_AD_UNIT_IOS : REWARDED_AD_UNIT_ANDROID;
 

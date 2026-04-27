@@ -11,6 +11,8 @@
  */
 
 import * as Sentry from '@sentry/react';
+import type { CustomerInfo } from '@revenuecat/purchases-capacitor';
+import type { PresentPaywallOptions } from '@revenuecat/purchases-capacitor-ui';
 import type { ProductId, SubscriptionInfo } from '@/types/game';
 import { PRODUCTS } from '@/config/monetization';
 import { Capacitor } from '@capacitor/core';
@@ -169,8 +171,7 @@ export async function getEntitlements(): Promise<ProductId[]> {
 }
 
 /** Get raw customer info for subscription extraction. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function getCustomerInfo(): Promise<any | null> {
+export async function getCustomerInfo(): Promise<CustomerInfo | null> {
   if (!Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) {
     return null;
   }
@@ -190,8 +191,7 @@ export async function getCustomerInfo(): Promise<any | null> {
  *  Consumable pack IAPs (premium_gold, icon) are intentionally NOT listed
  *  here — they grant a single pack open at purchase time and must not be
  *  restored as permanent entitlements. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function mapEntitlements(customerInfo: any): ProductId[] {
+function mapEntitlements(customerInfo: CustomerInfo | null | undefined): ProductId[] {
   const validIds: ProductId[] = [
     'com.dynastymanager.pro',
     'com.dynastymanager.pro.monthly',
@@ -224,8 +224,7 @@ function mapEntitlements(customerInfo: any): ProductId[] {
  * Extract subscription info from RevenueCat CustomerInfo.
  * Returns null if no active subscription is found.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function extractSubscriptionInfo(customerInfo: any): SubscriptionInfo | null {
+export function extractSubscriptionInfo(customerInfo: CustomerInfo | null | undefined): SubscriptionInfo | null {
   const activeEntitlements = customerInfo?.entitlements?.active;
   if (!activeEntitlements) return null;
 
@@ -258,8 +257,7 @@ export async function presentPaywall(offeringIdentifier?: string): Promise<Paywa
 
   try {
     const { RevenueCatUI } = await import('@revenuecat/purchases-capacitor-ui');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const options: any = {};
+    const options: PresentPaywallOptions = {};
 
     if (offeringIdentifier) {
       const { Purchases } = await import('@revenuecat/purchases-capacitor');
@@ -340,7 +338,7 @@ export async function openSubscriptionManagement(): Promise<boolean> {
  * another device, family sharing, or subscription renewals).
  */
 export async function startEntitlementListener(
-  onUpdate: (productIds: ProductId[], customerInfo: unknown) => void
+  onUpdate: (productIds: ProductId[], customerInfo: CustomerInfo) => void
 ): Promise<void> {
   if (!Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) return;
   try {

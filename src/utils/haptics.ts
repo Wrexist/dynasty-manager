@@ -2,14 +2,14 @@
 // Import dynamically to avoid build errors before Capacitor is installed
 // Respects the hapticsEnabled game setting (defaults to true)
 
+import type { HapticsPlugin } from '@capacitor/haptics';
 import { useGameStore } from '@/store/gameStore';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let Haptics: any = null;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let ImpactStyle: any = null;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let NotificationType: any = null;
+type HapticsModule = typeof import('@capacitor/haptics');
+
+let Haptics: HapticsPlugin | false | null = null;
+let ImpactStyle: HapticsModule['ImpactStyle'] | null = null;
+let NotificationType: HapticsModule['NotificationType'] | null = null;
 
 async function loadHaptics() {
   if (Haptics !== null) return;
