@@ -1149,6 +1149,7 @@ export interface PressConference {
   context: 'post_win' | 'post_loss' | 'post_draw' | 'pre_big_match' | 'transfer_rumour' | 'poor_form' | 'good_form' | 'promotion_race' | 'relegation_battle' | 'new_signing' | 'injury_crisis' | 'derby_preview';
   question: string;
   options: [PressOption, PressOption, PressOption] | [PressOption, PressOption, PressOption, PressOption];
+  hasProOption?: boolean;
 }
 
 // ── Player Chemistry ──

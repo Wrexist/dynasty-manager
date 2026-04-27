@@ -792,6 +792,7 @@ export function generatePressConference(context: PressConference['context'], pro
       context,
       question: chosen.question,
       options: [...baseOptions, { tone: chosen.proOption.tone, text: chosen.proOption.text, effects: chosen.proOption.effects }],
+      hasProOption: true,
     };
   }
 
@@ -800,6 +801,7 @@ export function generatePressConference(context: PressConference['context'], pro
     context,
     question: chosen.question,
     options: baseOptions,
+    hasProOption: Boolean(chosen.proOption),
   };
 }
 
