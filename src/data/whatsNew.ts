@@ -76,6 +76,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Real FC26 player pool always seeds your national team candidates — no more random-name squads when you take a top nation like France.',
       'World ranking on the National Team page now reflects each nation\'s real FIFA-style ranking instead of a flat #25 placeholder.',
       'Tightened native bridge typing for in-app purchases and haptics.',
+      'Hardened the matchday flow with new safety tests for penalty shootouts and prestige resets.',
     ],
     fixed: [
       'Fixed France (and other top nations) appearing as #25 in the world rankings.',
