@@ -18,6 +18,7 @@ import {
   FITNESS_ZONE_GREEN, FITNESS_ZONE_YELLOW,
 } from '@/config/training';
 import { calculatePlayerValue } from '@/config/playerGeneration';
+import { getPlayerRarity, getRarityValueMultiplier } from '@/utils/playerRarity';
 import { seasonGrowthTracker } from '@/store/helpers/development';
 import { MAX_SEASON_GROWTH, RECOVERY_FITNESS_BONUS_PER_LEVEL } from '@/config/gameBalance';
 
@@ -135,7 +136,9 @@ export function applyWeeklyTraining(
   const finalOverall = calculateOverall(updated.attributes, updated.position);
   updated.growthDelta = finalOverall - player.overall;
   updated.overall = finalOverall;
-  updated.value = calculatePlayerValue(updated.overall);
+  // Rarity may shift on overall change (e.g. promotion to icon at OVR 88).
+  updated.rarity = getPlayerRarity(updated);
+  updated.value = Math.round(calculatePlayerValue(updated.overall) * getRarityValueMultiplier(updated.rarity));
 
   const additionalGrowth = Math.max(0, finalOverall - teamOverall);
   if (additionalGrowth > 0) {

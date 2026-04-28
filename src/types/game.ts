@@ -101,6 +101,20 @@ export interface PlayerPersonality {
 
 export type PersonalityLabel = 'Model Professional' | 'Born Leader' | 'Club Legend' | 'Maverick' | 'Loyal Servant' | 'Steady Hand' | 'Hot Head' | 'Enigma' | 'Ambitious' | 'Laid Back' | 'Determined';
 
+/**
+ * Player rarity tier — derived from overall rating + Ballon d'Or pedigree.
+ *  - `legend`: world-class superstar with sustained award-winning form (OVR ≥ 90 + Ballon d'Or pedigree, or OVR ≥ 93)
+ *  - `icon`:   elite superstar (OVR ≥ 88) — recognised globally, premium wage and value
+ *  - `star`:   established first-team-quality at top level (OVR ≥ 82)
+ *  - `rare`:   solid professional, regular starter (OVR ≥ 75)
+ *  - `common`: rotation player or below (OVR < 75)
+ *
+ * Legend and icon tiers carry permanent value/wage premiums and trigger hype
+ * effects (walkout animations, special badges). The tier is recomputed on
+ * every meaningful overall change (development, training, decline, awards).
+ */
+export type PlayerRarity = 'common' | 'rare' | 'star' | 'icon' | 'legend';
+
 // ── Injury System ──
 export type InjuryType = 'knock' | 'muscle_strain' | 'hamstring' | 'ligament' | 'fracture' | 'concussion' | 'acl';
 export type InjurySeverity = 'minor' | 'moderate' | 'severe';
@@ -177,6 +191,8 @@ export interface Player {
   fcId?: string;
   heightCm?: number;
   weightKg?: number;
+  /** Rarity tier — see `PlayerRarity`. Recomputed whenever overall changes. */
+  rarity?: PlayerRarity;
 }
 
 export interface PlayerAppearance {

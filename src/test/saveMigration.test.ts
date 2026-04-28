@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 
 describe('saveMigration', () => {
-  it('should have current version set to 66', () => {
-    expect(CURRENT_VERSION).toBe(66);
+  it('should have current version set to 67', () => {
+    expect(CURRENT_VERSION).toBe(67);
   });
 
   it('v57 → v59 chains cleanly with a realistic halfTimeState payload', () => {
@@ -138,6 +138,34 @@ describe('saveMigration', () => {
     const v63Data: Record<string, unknown> = { version: 63 };
     const result = migrateSaveData(v63Data) as Record<string, unknown>;
     expect(result.dailyPackOpens).toEqual({ date: '', free: {}, ad: {} });
+  });
+
+  it('v66 → v67 backfills rarity tier on every player', () => {
+    const v66Data: Record<string, unknown> = {
+      version: 66,
+      players: {
+        legend: { id: 'legend', overall: 95, value: 100_000_000, wage: 400_000, ballonDOrPlacements: [] },
+        icon: { id: 'icon', overall: 89, value: 80_000_000, wage: 250_000, ballonDOrPlacements: [] },
+        squad: { id: 'squad', overall: 70, value: 5_000_000, wage: 50_000, ballonDOrPlacements: [] },
+      },
+    };
+    const result = migrateSaveData(v66Data) as Record<string, unknown>;
+    const players = result.players as Record<string, { rarity: string; value: number; wage: number }>;
+    expect(players.legend.rarity).toBe('legend');
+    expect(players.icon.rarity).toBe('icon');
+    expect(players.squad.rarity).toBe('common');
+    // Legends/icons get value+wage inflated by the rarity multiplier; common is untouched.
+    expect(players.legend.value).toBeGreaterThan(100_000_000);
+    expect(players.icon.value).toBeGreaterThan(80_000_000);
+    expect(players.squad.value).toBe(5_000_000);
+    expect(players.squad.wage).toBe(50_000);
+  });
+
+  it('v66 → v67 leaves saves without a players map untouched', () => {
+    const v66Data: Record<string, unknown> = { version: 66 };
+    const result = migrateSaveData(v66Data) as Record<string, unknown>;
+    expect(result.version).toBe(CURRENT_VERSION);
+    expect(result.players).toBeUndefined();
   });
 
   it('should perform clean break at v22→v23 (European leagues expansion)', () => {

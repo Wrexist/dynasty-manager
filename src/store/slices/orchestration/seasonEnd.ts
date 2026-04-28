@@ -26,6 +26,7 @@ import { DOMESTIC_SUPER_CUP_WEEK, CONTINENTAL_SUPER_CUP_WEEK, REP_CHAMPIONS_CUP_
 import { checkChallengeComplete, CHALLENGES } from '@/data/challenges';
 import { calculateSeasonAwards } from '@/utils/seasonAwards';
 import { calculateBallonDOr, getBallonDOrValueBoost } from '@/utils/ballonDor';
+import { getPlayerRarity } from '@/utils/playerRarity';
 
 import { createEmptyRecords, updateRecords, findBiggestWin } from '@/utils/records';
 import { getFarewellSummary } from '@/utils/playerNarratives';
@@ -108,11 +109,16 @@ export function endSeasonImpl(set: Set, get: Get) {
     const boost = getBallonDOrValueBoost(entry.rank);
     const placement = { season, rank: entry.rank, score: entry.score };
     const existing = p.ballonDOrPlacements || [];
-    ballonDOrPlayers[entry.playerId] = {
+    const updatedPlayer: Player = {
       ...p,
       value: Math.round(p.value * (1 + boost)),
       ballonDOrPlacements: [...existing, placement],
     };
+    // Top placements can promote a player up the rarity ladder (e.g. an
+    // 88-rated player who wins the Ballon d'Or this season, or a 90-rated
+    // player who hits their 3rd top-25 placement and graduates to legend).
+    updatedPlayer.rarity = getPlayerRarity(updatedPlayer);
+    ballonDOrPlayers[entry.playerId] = updatedPlayer;
   }
 
   // Compute end-of-season squad average OVR for enrichment

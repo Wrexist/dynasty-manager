@@ -13,6 +13,7 @@ import {
 } from '@/config/gameBalance';
 import { TRAINING_FOCUS_BONUS, MODULE_ATTR_MAP } from '@/config/training';
 import { calculatePlayerValue } from '@/config/playerGeneration';
+import { getPlayerRarity, getRarityValueMultiplier } from '@/utils/playerRarity';
 
 // Per-season growth tracking to cap total growth
 export const seasonGrowthTracker: Record<string, number> = {};
@@ -65,12 +66,17 @@ export function applyPlayerDevelopment(p: Player, trainingFocus: string, mentorB
     seasonGrowthTracker[p.id] = (seasonGrowthTracker[p.id] || 0) + updated.growthDelta;
   }
 
-  // Age-adjusted value: peak at 25-28, discount young and old
+  // Recompute rarity tier so legends/icons keep their badge as overall shifts.
+  updated.rarity = getPlayerRarity(updated);
+
+  // Age-adjusted value: peak at 24-28, discount young and old. Rarity tier
+  // multiplier layers on top — legends keep premium value even when ageing.
   let ageMult = 0.25;
   for (const tier of VALUE_AGE_MULTIPLIERS) {
     if (p.age <= tier.maxAge) { ageMult = tier.multiplier; break; }
   }
-  updated.value = Math.round(calculatePlayerValue(updated.overall) * ageMult);
+  const rarityMult = getRarityValueMultiplier(updated.rarity);
+  updated.value = Math.round(calculatePlayerValue(updated.overall) * ageMult * rarityMult);
   return updated;
 }
 

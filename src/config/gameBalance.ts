@@ -3,7 +3,7 @@
  * Season structure, board confidence, player development, finances, and more.
  */
 
-import type { PlayerAttributes, Position } from '@/types/game';
+import type { PlayerAttributes, PlayerRarity, Position } from '@/types/game';
 
 // ── Season Structure ──
 export const TOTAL_WEEKS = 46;
@@ -58,17 +58,58 @@ export const POSITION_DEV_BONUS: Record<string, Partial<Record<keyof PlayerAttri
 };
 
 // ── Value Age Multipliers (calibrated to real transfer market age curves) ──
+// Tightened in v67 rebalance: peak window widened to 24-28 (modern football
+// prime), teen prospects nudged up (clubs pay premiums for them), and the
+// 32+ cliff steepened to mirror the real market — a 33yo legend keeps shirt
+// sales but loses transfer value sharply unless their rarity tier props it up.
 export const VALUE_AGE_MULTIPLIERS = [
-  { maxAge: 18, multiplier: 0.30 },   // Very young prospect
-  { maxAge: 20, multiplier: 0.50 },   // Young prospect
-  { maxAge: 22, multiplier: 0.75 },   // Emerging talent
-  { maxAge: 24, multiplier: 0.90 },   // Rising player
-  { maxAge: 27, multiplier: 1.00 },   // Prime peak
-  { maxAge: 29, multiplier: 0.85 },   // Late prime
-  { maxAge: 31, multiplier: 0.60 },   // Declining
-  { maxAge: 33, multiplier: 0.35 },   // Veteran
-  { maxAge: Infinity, multiplier: 0.15 },  // End of career
+  { maxAge: 18, multiplier: 0.35 },   // Very young prospect — modern teen premium
+  { maxAge: 20, multiplier: 0.58 },   // Young prospect
+  { maxAge: 22, multiplier: 0.82 },   // Emerging talent
+  { maxAge: 24, multiplier: 0.95 },   // Rising player approaching peak
+  { maxAge: 28, multiplier: 1.00 },   // Prime peak (24-28 widened from 25-27)
+  { maxAge: 30, multiplier: 0.82 },   // Late prime
+  { maxAge: 32, multiplier: 0.55 },   // Declining
+  { maxAge: 34, multiplier: 0.28 },   // Veteran
+  { maxAge: Infinity, multiplier: 0.10 },  // End of career
 ] as const;
+
+// ── Player Rarity Tier ──
+/** OVR thresholds for rarity classification. Legends are the top ~0.5% of
+ *  generated players (cap is 86, so only real-template superstars qualify
+ *  without Ballon d'Or hardware). */
+export const RARITY_LEGEND_OVR = 90;
+export const RARITY_LEGEND_OVR_FLOOR = 93;   // OVR ≥ 93 → legend regardless of awards
+export const RARITY_ICON_OVR = 88;
+export const RARITY_STAR_OVR = 82;
+export const RARITY_RARE_OVR = 75;
+/** Ballon d'Or top-3 placements required to upgrade a 90+ player to legend. */
+export const RARITY_LEGEND_TOP3_PLACEMENTS = 1;
+/** Ballon d'Or top-25 placements required to upgrade a 90+ player to legend. */
+export const RARITY_LEGEND_TOP25_PLACEMENTS = 3;
+/** Ballon d'Or top-25 placements required to upgrade an 88+ player to icon. */
+export const RARITY_ICON_TOP25_PLACEMENTS = 1;
+
+/** Value multipliers by rarity. Legends command a 2.5× premium — captures
+ *  the real-world reality that a Ballon d'Or-tier 30yo costs more than a
+ *  generic 89-rated 26yo despite the worse age curve. */
+export const RARITY_VALUE_MULTIPLIERS: Record<PlayerRarity, number> = {
+  legend: 2.50,
+  icon: 1.65,
+  star: 1.18,
+  rare: 1.04,
+  common: 1.00,
+};
+
+/** Wage multipliers by rarity. Legends earn ~1.7× base wage — they print
+ *  shirt sales and commercial rev so clubs pay up to retain them. */
+export const RARITY_WAGE_MULTIPLIERS: Record<PlayerRarity, number> = {
+  legend: 1.70,
+  icon: 1.35,
+  star: 1.12,
+  rare: 1.02,
+  common: 1.00,
+};
 
 // ── Board Confidence ──
 export const CONFIDENCE_WIN_CHANGE = 4;
@@ -672,12 +713,15 @@ export const FACILITY_MILESTONES: Record<string, { level: number; label: string 
   ],
 };
 
-/** Value multiplier for Ballon d'Or top-25 placements (rank → multiplier) */
+/** Value multiplier for Ballon d'Or top-25 placements (rank → multiplier).
+ *  Bumped at the top in v67 rebalance — the winner now adds +40% on top of
+ *  the rarity-tier premium, so a Ballon d'Or hat-trick winner is meaningfully
+ *  richer than a "merely" 90-rated star with no hardware. */
 export const BALLON_DOR_VALUE_BOOST: Record<number, number> = {
-  1: 0.30,   // Winner: +30% value
-  2: 0.22,
-  3: 0.18,
-  4: 0.14,
+  1: 0.40,   // Winner: +40% value
+  2: 0.30,
+  3: 0.22,
+  4: 0.16,
   5: 0.12,
   10: 0.08,  // Top 10: +8%
   25: 0.04,  // Top 25: +4%

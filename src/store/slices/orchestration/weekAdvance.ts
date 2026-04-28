@@ -68,6 +68,7 @@ import { dynastyMult } from '@/utils/managerPerks';
 import { calculateWeeklyMerchRevenue } from '@/utils/merchandise';
 import { getLeadershipBonus, wantsTransfer } from '@/utils/personality';
 import { calculateOverall } from '@/utils/playerGen';
+import { getPlayerRarity, getRarityValueMultiplier } from '@/utils/playerRarity';
 import { generateRandomEvents } from '@/utils/randomEvents';
 import { completeAssignment } from '@/utils/scouting';
 import { getTrainingStaffBonus } from '@/utils/staff';
@@ -2165,12 +2166,14 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
           attrs[attr] = Math.min(99, attrs[attr] + 1);
           lp.attributes = attrs;
           lp.overall = calculateOverall(attrs, lp.position);
-          // Recalculate value after development
+          lp.rarity = getPlayerRarity(lp);
+          // Recalculate value after development — rarity multiplier layers on
+          // top of the age curve so legends keep premium value while ageing.
           let ageMult = 0.25;
           for (const tier of VALUE_AGE_MULTIPLIERS) {
             if (lp.age <= tier.maxAge) { ageMult = tier.multiplier; break; }
           }
-          lp.value = Math.round(calculatePlayerValue(lp.overall) * ageMult);
+          lp.value = Math.round(calculatePlayerValue(lp.overall) * ageMult * getRarityValueMultiplier(lp.rarity));
         }
       }
       newPlayers[loan.playerId] = lp;

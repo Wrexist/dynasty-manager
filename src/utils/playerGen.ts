@@ -2,6 +2,7 @@ import { Player, Position, PlayerAttributes, FormationType, FORMATION_POSITIONS,
 import { generatePersonality } from '@/utils/personality';
 import { pick, clamp } from '@/utils/helpers';
 import { generatePlayerAppearance } from '@/config/playerAppearance';
+import { getPlayerRarity, getRarityValueMultiplier, getRarityWageMultiplier } from '@/utils/playerRarity';
 import {
   PLAYER_MIN_AGE, PLAYER_AGE_RANGE, YOUNG_AGE_THRESHOLD, YOUNG_POTENTIAL_GAP, OLD_POTENTIAL_GAP,
   PROFILE_ATTRIBUTE_VARIANCE, POSITION_WEIGHTS as CONFIG_POSITION_WEIGHTS, DEFAULT_POSITION_WEIGHTS,
@@ -190,7 +191,9 @@ export function generatePlayer(position: Position, quality: number, clubId: stri
   const overall = calculateOverall(attrs, position);
   const age = PLAYER_MIN_AGE + Math.floor(Math.random() * PLAYER_AGE_RANGE);
   const potential = clamp(overall + Math.floor(Math.random() * (age < YOUNG_AGE_THRESHOLD ? YOUNG_POTENTIAL_GAP : OLD_POTENTIAL_GAP)));
-  const value = calculatePlayerValue(overall);
+  const rarity = getPlayerRarity({ overall });
+  const value = Math.round(calculatePlayerValue(overall) * getRarityValueMultiplier(rarity));
+  const wage = Math.round(calculatePlayerWage(overall) * getRarityWageMultiplier(rarity));
   const leagueKey = typeof divisionTier === 'string' ? divisionTier : undefined;
   const nationality = pickNationality(leagueKey);
   const { firstName, lastName } = pickNameForNationality(nationality);
@@ -205,8 +208,9 @@ export function generatePlayer(position: Position, quality: number, clubId: stri
     overall,
     potential,
     clubId,
-    wage: calculatePlayerWage(overall),
+    wage,
     value,
+    rarity,
     contractEnd: season + CONTRACT_BASE_YEARS + Math.floor(Math.random() * CONTRACT_RANDOM_YEARS),
     fitness: FITNESS_BASE + Math.floor(Math.random() * FITNESS_RANGE),
     morale: MORALE_BASE + Math.floor(Math.random() * MORALE_RANGE),
@@ -337,8 +341,12 @@ export function buildPlayerFromTemplate(
     player.heightCm,
     player.weightKg,
   );
-  player.value = calculatePlayerValue(player.overall);
-  player.wage = calculatePlayerWage(player.overall);
+  // Real-template stars (OVR ≥ 88) inherit Icon/Legend rarity automatically,
+  // which boosts both value and wage so a 91-rated icon costs ~1.65× a generic
+  // 91-rated procedural player.
+  player.rarity = getPlayerRarity(player);
+  player.value = Math.round(calculatePlayerValue(player.overall) * getRarityValueMultiplier(player.rarity));
+  player.wage = Math.round(calculatePlayerWage(player.overall) * getRarityWageMultiplier(player.rarity));
   return player;
 }
 
@@ -447,7 +455,9 @@ export function generateSquad(clubId: string, quality: number, season: number, d
     }
     const starPotGap = Math.round((3 + Math.floor(Math.random() * 5)) * scale);
     star.potential = clamp(Math.max(star.overall + starPotGap, star.potential), 1, GENERATED_PLAYER_POTENTIAL_CAP);
-    star.value = calculatePlayerValue(star.overall);
+    star.rarity = getPlayerRarity(star);
+    star.value = Math.round(calculatePlayerValue(star.overall) * getRarityValueMultiplier(star.rarity));
+    star.wage = Math.round(calculatePlayerWage(star.overall) * getRarityWageMultiplier(star.rarity));
 
     const veterans = proceduralFillers.filter(p => p.age >= 30 && p !== star);
     if (veterans.length > 0) {
@@ -470,7 +480,9 @@ export function generateSquad(clubId: string, quality: number, season: number, d
         vet.overall = calculateOverall(vetAttrs, vet.position);
       }
       vet.potential = vet.overall;
-      vet.value = calculatePlayerValue(vet.overall);
+      vet.rarity = getPlayerRarity(vet);
+      vet.value = Math.round(calculatePlayerValue(vet.overall) * getRarityValueMultiplier(vet.rarity));
+      vet.wage = Math.round(calculatePlayerWage(vet.overall) * getRarityWageMultiplier(vet.rarity));
       if (vet.personality) vet.personality.leadership = Math.max(vet.personality.leadership, 16);
     }
   }
