@@ -94,6 +94,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Set-piece and penalty taker pickers now show squad-style player cards in a 3-column grid, sorted by role-relevant rating with the three attributes that matter for that role.',
       'Tactics page now opens advanced instructions by default and the Starting XI rating card is slimmer with a refined Liquid Glass look.',
       'In-match pause now uses the same Liquid Glass sliders as Tactics, with a cleaner header, clearer sections, and a bolder Resume button.',
+      'Smart Optimize Lineup result now opens in a polished glass popup with chemistry-aware insight.',
     ],
     fixed: [],
   },

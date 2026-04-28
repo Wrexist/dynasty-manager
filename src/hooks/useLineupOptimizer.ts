@@ -2,10 +2,10 @@ import * as Sentry from '@sentry/react';
 import { useState, useMemo, useCallback } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
-import { infoToast, successToast } from '@/utils/gameToast';
 import { LINEUP_SIZE } from '@/config/gameBalance';
 import { toast } from 'sonner';
 import { positionalOverall } from '@/utils/autoFillLineup';
+import type { OptimizeResult } from '@/components/game/OptimizeResultModal';
 
 /**
  * Shared hook for the "Optimize Lineup" button used by MatchPrep and TacticsPage.
@@ -21,6 +21,8 @@ export function useLineupOptimizer() {
   const autoFillTeam = useGameStore(s => s.autoFillTeam);
   const club = clubs[playerClubId];
   const [autoFilling, setAutoFilling] = useState(false);
+  const [result, setResult] = useState<OptimizeResult | null>(null);
+  const dismissResult = useCallback(() => setResult(null), []);
 
   const lineupPlayers = useMemo(() => {
     if (!club) return [];
@@ -52,19 +54,18 @@ export function useLineupOptimizer() {
     if (!club) return;
     setAutoFilling(true);
     try {
-      const result = autoFillTeam();
+      const fillOutcome = autoFillTeam();
 
-      if (result.proRequired) {
+      if (fillOutcome.proRequired) {
         toast.warning('Smart Optimizer is a Dynasty Pro feature.');
         return;
       }
 
-      if (result.undersized) {
-        toast.warning(result.undersizedDetail);
+      if (fillOutcome.undersized) {
+        toast.warning(fillOutcome.undersizedDetail);
         return;
       }
 
-      // Only compute OVR diff for Pro users who passed the gate.
       const oldLineup = [...club.lineup];
       const oldAvg = Math.round(
         oldLineup.map(id => players[id]).filter(Boolean)
@@ -80,12 +81,12 @@ export function useLineupOptimizer() {
         : oldAvg;
       const diff = newAvg - oldAvg;
 
-      if (result.changes > 0) {
-        const ovrPart = diff !== 0 ? `, ${diff > 0 ? '+' : ''}${diff} OVR` : '';
-        successToast(`${result.changes} change${result.changes > 1 ? 's' : ''} made${ovrPart}`, `Chemistry: ${result.chemistryLabel} (+${(result.chemistryBonus * 100).toFixed(1)}%)`);
-      } else {
-        infoToast('Lineup already optimal');
-      }
+      setResult({
+        changes: fillOutcome.changes,
+        ovrDiff: diff,
+        chemistryLabel: fillOutcome.chemistryLabel,
+        chemistryBonus: fillOutcome.chemistryBonus,
+      });
     } catch (err) {
       Sentry.captureException(err, { tags: { context: 'autoFillLineup' } });
       toast.error('Failed to optimize lineup');
@@ -94,5 +95,5 @@ export function useLineupOptimizer() {
     }
   }, [club, players, autoFillTeam, playerClubId]);
 
-  return { potentialGain, autoFilling, optimizeLineup };
+  return { potentialGain, autoFilling, optimizeLineup, result, dismissResult };
 }
