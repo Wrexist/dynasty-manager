@@ -74,11 +74,11 @@ export function getPlayerTier(overall: number | null | undefined): PlayerTier {
 }
 
 /**
- * Tier-themed shield artwork for the player-card background layer. Seven
- * bands over six PNGs so Gold and Legendary each split into "standard" and
- * "premium" artwork, keeping top-end pulls visually distinct from 80-rated
- * cards. Common tier reuses the Bronze shield under a desaturate filter so we
- * don't need a seventh asset.
+ * Tier-themed shield artwork for the player-card background layer. Legends
+ * (90+) get the white icon shield; every other gold-rated player (80–89) gets
+ * the rare gold shield, so the icon look is reserved as a true top-end
+ * differentiator. Silver and Bronze cover the mid/lower bands, with Common
+ * reusing the Bronze shield under a desaturate filter.
  */
 export interface PlayerCardArt {
   src: string;
@@ -90,7 +90,6 @@ export function getPlayerCardArt(overall: number | null | undefined): PlayerCard
     return { src: '/player-cards/bronze.webp', filter: 'grayscale(1) brightness(0.55)' };
   }
   if (overall >= 90) return { src: '/player-cards/icon.webp' };
-  if (overall >= 85) return { src: '/player-cards/premium.webp' };
   if (overall >= 80) return { src: '/player-cards/gold.webp' };
   if (overall >= 70) return { src: '/player-cards/silver.webp' };
   if (overall >= 60) return { src: '/player-cards/bronze.webp' };

@@ -75,6 +75,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Match Day, LIVE and Pro badges now glow on the surface they sit on.',
       'Title screen Settings now matches the in-game Settings — same toggles, layout, and shared components.',
       'Set-piece and penalty taker pickers now show squad-style player cards in a 3-column grid, sorted by role-relevant rating with the three attributes that matter for that role.',
+      'Legend cards (90+ overall) keep their unique white shield while every other gold-rated player now shares the same rare gold card.',
     ],
     fixed: [],
   },
