@@ -239,12 +239,12 @@ export const SIM_PENALTY_MENTAL_SCALE = 0.3;
 export const MORALE_APPEARANCE_BOOST = 2;
 
 // ── AI Loan Offers ──
+// Note: AI_LOAN_DURATIONS, AI_LOAN_WAGE_SPLITS, AI_LOAN_OBLIGATORY_BUY_CHANCE,
+// and AI_LOAN_OBLIGATORY_BUY_MULTIPLIER live in `config/aiSimulation.ts` and
+// are imported from there by both consumers (utils/aiSimulation.ts and
+// orchestration/weekAdvance.ts) — single source of truth.
 export const AI_LOAN_OFFER_CHANCE = 0.08;
-export const AI_LOAN_DURATIONS = [12, 16, 20, 24] as const;
-export const AI_LOAN_WAGE_SPLITS = [50, 60, 75, 100] as const;
 export const AI_LOAN_RECALL_CLAUSE_CHANCE = 0.4;
-export const AI_LOAN_OBLIGATORY_BUY_CHANCE = 0.2;
-export const AI_LOAN_OBLIGATORY_BUY_MULTIPLIER = 0.8;
 
 // ── Win Streak Bonuses ──
 export const STREAK_MORALE_THRESHOLD = 3;

@@ -17,6 +17,7 @@ import { readSessionJson, writeSessionJson, removeSessionKey, STORAGE_KEYS } fro
 import { hapticLight } from '@/utils/haptics';
 import { LoadingOverlay } from '@/components/LoadingOverlay';
 import { errorToast } from '@/utils/gameToast';
+import { getStarRatingColor } from '@/utils/uiHelpers';
 
 
 
@@ -443,12 +444,7 @@ const ClubSelection = () => {
                                     <p className="text-[11px] text-foreground/90 font-medium truncate leading-tight">{player.name}</p>
                                     <div className="flex items-baseline gap-1.5 mt-1">
                                       <span className="text-[9px] uppercase tracking-wider text-muted-foreground/50 font-semibold">{player.position}</span>
-                                      <span className={cn(
-                                        'text-xs font-bold tabular-nums',
-                                        player.rating >= 90 ? 'text-emerald-400' :
-                                        player.rating >= 85 ? 'text-primary' :
-                                        player.rating >= 80 ? 'text-amber-400' : 'text-muted-foreground'
-                                      )}>{player.rating}</span>
+                                      <span className={cn('text-xs font-bold tabular-nums', getStarRatingColor(player.rating))}>{player.rating}</span>
                                     </div>
                                   </div>
                                 ))}

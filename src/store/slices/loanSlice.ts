@@ -64,7 +64,7 @@ export const createLoanSlice = (set: Set, get: Get) => ({
     // Compute loaned wage share once to ensure both clubs agree on the amount
     const loanWageShare = Math.round(player.wage * wageSplit / 100);
     // Source club still pays (100 - wageSplit)% of wage
-    updatedFrom.wageBill -= loanWageShare;
+    updatedFrom.wageBill = Math.max(0, updatedFrom.wageBill - loanWageShare);
 
     const updatedTo = { ...toClub };
     updatedTo.playerIds = [...updatedTo.playerIds, playerId];
@@ -78,10 +78,14 @@ export const createLoanSlice = (set: Set, get: Get) => ({
       playerId,
     });
 
-    // Clean up shortlist, scout watch list, and transfer market for loaned player
+    // Clean up shortlist, scout watch list, transfer market, and stale incoming
+    // offers for the loaned player. executeSale now rejects sales of on-loan
+    // players defensively, but pruning stale offers also prevents misleading UI.
     const cleanedShortlist = state.shortlist.filter(id => id !== playerId);
     const cleanedWatchList = state.scoutWatchList.filter(id => id !== playerId);
     const cleanedMarket = state.transferMarket.filter(l => l.playerId !== playerId);
+    const cleanedIncomingOffers = state.incomingOffers.filter(o => o.playerId !== playerId);
+    const cleanedIncomingLoanOffers = state.incomingLoanOffers.filter(o => o.playerId !== playerId);
 
     const loanOutClubs = placePlayerInClub(
       { ...state.clubs, [updatedFrom.id]: updatedFrom, [updatedTo.id]: updatedTo },
@@ -94,6 +98,7 @@ export const createLoanSlice = (set: Set, get: Get) => ({
       activeLoans: [...state.activeLoans, loan],
       messages: newMessages,
       shortlist: cleanedShortlist, scoutWatchList: cleanedWatchList, transferMarket: cleanedMarket,
+      incomingOffers: cleanedIncomingOffers, incomingLoanOffers: cleanedIncomingLoanOffers,
     });
 
     return { success: true, message: `${player.firstName} ${player.lastName} loaned to ${toClub.name}!` };

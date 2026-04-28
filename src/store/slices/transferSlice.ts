@@ -53,6 +53,11 @@ const executeSale = (state: GameState, offer: { id: string; playerId: string; bu
   const player = state.players[offer.playerId];
   const buyerClub = state.clubs[offer.buyerClubId];
   if (!player || !buyerClub) return { success: false, message: 'Invalid offer.' };
+  // Defence-in-depth: stale offers can survive if cleanup elsewhere ever drops a step.
+  // Refuse to sell players who no longer belong to the user's club (released, sold,
+  // contract-expired) — otherwise the buyer's fee gets credited for a free agent.
+  if (player.clubId !== state.playerClubId) return { success: false, message: 'Player is no longer at your club.' };
+  if (player.onLoan) return { success: false, message: 'Player is currently on loan and cannot be sold.' };
 
   const newPlayers = { ...state.players };
   const sellerClub = { ...state.clubs[state.playerClubId] };
@@ -650,6 +655,11 @@ export const createTransferSlice = (set: Set, get: Get) => ({
       players: { ...state.players, [playerId]: releasedPlayer },
       clubs: { ...state.clubs, [club.id]: club },
       freeAgents: [...state.freeAgents, playerId],
+      transferMarket: state.transferMarket.filter(l => l.playerId !== playerId),
+      incomingOffers: state.incomingOffers.filter(o => o.playerId !== playerId),
+      incomingLoanOffers: state.incomingLoanOffers.filter(o => o.playerId !== playerId),
+      shortlist: state.shortlist.filter(id => id !== playerId),
+      scoutWatchList: state.scoutWatchList.filter(id => id !== playerId),
       messages: newMessages,
     });
     return { success: true, message: `${player.firstName} ${player.lastName} released. Severance: £${(severance / 1e6).toFixed(1)}M.` };

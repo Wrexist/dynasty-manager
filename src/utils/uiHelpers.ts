@@ -40,6 +40,19 @@ export function getRatingColor(value: number): string {
   return 'text-muted-foreground';
 }
 
+/**
+ * Text color for "star player" displays (club previews, manager creation).
+ * Uses a tighter 90/85/80 ladder than {@link getRatingColor} because every
+ * star is by definition above 80, so the standard thresholds would paint
+ * every value emerald.
+ */
+export function getStarRatingColor(value: number): string {
+  if (value >= 90) return 'text-emerald-400';
+  if (value >= 85) return 'text-primary';
+  if (value >= 80) return 'text-amber-400';
+  return 'text-muted-foreground';
+}
+
 /** Get a hex color matching the player-rating tier (for inline style borders/strokes). */
 export function getRatingHex(value: number | undefined): string {
   if (value == null) return '#6b7280';
