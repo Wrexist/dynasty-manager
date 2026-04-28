@@ -117,6 +117,10 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Staff effectiveness now scales with morale — keep the backroom happy and they get more out of training, scouting, and youth.',
       'Star players can now headline limited-edition Signature Drops on the Merchandise tab for a multi-week revenue spike.',
       'Tighter validation of league and club data during long careers.',
+      'Stadium screen now shows a named tier (Basic → Modern → Iconic), highlights the recommended next stand to upgrade, and fits everything above the fold.',
+      'Stadium artwork comes alive with mowed pitch stripes, a glowing crowd that fills as stands grow, floodlights that switch on at modern tier, and a tower-crane silhouette on whichever stand is being built.',
+      'Stadium plays a gold ripple and inner flash on the stand that just finished upgrading, so each construction job lands with a celebratory beat.',
+      'Season rollover now clears the cached league standings, eliminating a documented but unwired invariant that could occasionally hand stale tables back into promotion/relegation maths.',
     ],
     fixed: [
       'Hall of Managers no longer breaks if stored data is invalid.',

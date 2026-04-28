@@ -4,7 +4,7 @@ import { calculateReputationTier, generateJobVacancies, getRetirementAge, calcul
 import {
   REP_PROMOTION, REP_RELEGATION, REP_OVERACHIEVE_BONUS, REP_UNDERACHIEVE_PENALTY, REP_TITLE, REP_CUP_WIN, REP_SACKING, REP_MIN, REP_MAX,
 } from '@/config/managerCareer';
-import { buildLeagueTable, generateDivisionFixtures, buildAllDivisionTables, LEAGUES, generateFriendlies, getLeaguesByCountry } from '@/data/league';
+import { buildLeagueTable, generateDivisionFixtures, buildAllDivisionTables, LEAGUES, generateFriendlies, getLeaguesByCountry, clearLeagueTableCache } from '@/data/league';
 import { BOARD_OBJ_ALL_COMPLETE_XP, BOARD_OBJ_ALL_COMPLETE_CONFIDENCE } from '@/config/gameBalance';
 import { generateSquad, selectBestLineup, generatePlayer } from '@/utils/playerGen';
 
@@ -669,6 +669,14 @@ function finalizeSeason(
     newDivisionFixtures[leagueId] = generateDivisionFixtures(clubIds, otherLeague?.totalWeeks || TOTAL_WEEKS);
   }
 
+  // Drop the memoized standings before computing the new season's tables —
+  // the old entries are keyed by `playedCount:clubIds` from the just-finished
+  // season and are now meaningless. The cache documents this invariant
+  // (see clearLeagueTableCache in src/data/league.ts) but the call site was
+  // missing here, which is the kind of stale state that produces the
+  // intermittent "promoted club not in division" failures in the longevity
+  // stress suite.
+  clearLeagueTableCache();
   const newDivisionTables: Record<string, LeagueTableEntry[]> = buildAllDivisionTables(newDivisionFixtures, newDivisionClubs);
   const newFixtures = newDivisionFixtures[newPlayerDivision];
   const newLeagueTable = newDivisionTables[newPlayerDivision];

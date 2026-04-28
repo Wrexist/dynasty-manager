@@ -9,7 +9,7 @@ import { Dumbbell, GraduationCap, Stethoscope, RefreshCw, ArrowUp, Clock, Trendi
 import { cn } from '@/lib/utils';
 import { FACILITY_COST_PER_LEVEL, FACILITY_BASE_UPGRADE_WEEKS, FACILITY_MAX_LEVEL, STAND_COST_PER_LEVEL, STAND_BASE_UPGRADE_WEEKS, STADIUM_INCOME_PER_LEVEL } from '@/config/gameBalance';
 import { PageHint } from '@/components/game/PageHint';
-import { STAND_INFO, getEffectiveStadiumLevel, getStadiumCapacity } from '@/utils/facilities';
+import { STAND_INFO, getEffectiveStadiumLevel, getStadiumCapacity, getStadiumTier, getRecommendedStand } from '@/utils/facilities';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { StandKey, FacilityTab } from '@/types/game';
 
@@ -32,17 +32,20 @@ const FacilitiesPage = () => {
   const [selectedStand, setSelectedStand] = useState<StandKey | null>(null);
   const [confirmUpgrade, setConfirmUpgrade] = useState<string | null>(null);
   const [celebration, setCelebration] = useState<{ title: string; description: string } | null>(null);
+  // Stand whose upgrade just completed — drives the gold ripple/flash on the SVG.
+  // Bumped with a fresh nonce so the same stand finishing twice still re-triggers the animation.
+  const [justUpgraded, setJustUpgraded] = useState<{ stand: StandKey; nonce: number } | null>(null);
   const prevUpgradeRef = useRef(facilities.upgradeInProgress);
   const club = clubs[playerClubId];
 
-  // Detect when a max-level upgrade completes
+  // Detect when an upgrade completes — fire the ripple, and the celebration modal at max level
   useEffect(() => {
     const prev = prevUpgradeRef.current;
     prevUpgradeRef.current = facilities.upgradeInProgress;
     if (prev && !facilities.upgradeInProgress) {
-      // An upgrade just completed — check if it reached max level
       if (prev.type.startsWith('stadium-')) {
         const stand = prev.type.replace('stadium-', '') as StandKey;
+        setJustUpgraded({ stand, nonce: Date.now() });
         if (facilities.stadiumStands[stand] >= FACILITY_MAX_LEVEL) {
           setCelebration({ title: `${STAND_INFO[stand].label} — Max Level!`, description: `Your ${STAND_INFO[stand].label} has reached world-class status! The fans are delighted.` });
         }
@@ -60,9 +63,21 @@ const FacilitiesPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [facilities.upgradeInProgress, facilities.stadiumStands, facilities.trainingLevel, facilities.youthLevel, facilities.medicalLevel, facilities.recoveryLevel]);
 
+  // Clear the ripple after the CSS animation has finished (1.2s ring + a little buffer).
+  useEffect(() => {
+    if (!justUpgraded) return;
+    const id = setTimeout(() => setJustUpgraded(null), 1400);
+    return () => clearTimeout(id);
+  }, [justUpgraded]);
+
   const effectiveLevel = getEffectiveStadiumLevel(facilities);
   const weeklyRevenue = effectiveLevel * STADIUM_INCOME_PER_LEVEL;
   const upgradeType = facilities.upgradeInProgress?.type || null;
+  const tier = getStadiumTier(effectiveLevel);
+  // Don't recommend a stand once the player has selected one or an upgrade is in flight.
+  const recommendedStand = !selectedStand && !facilities.upgradeInProgress
+    ? getRecommendedStand(facilities.stadiumStands)
+    : null;
 
   const getUpgradeProgress = (type: string): number | null => {
     if (!facilities.upgradeInProgress || facilities.upgradeInProgress.type !== type) return null;
@@ -110,13 +125,7 @@ const FacilitiesPage = () => {
         body="Expand your stadium stand by stand for more matchday revenue, and upgrade training, medical, youth, and recovery facilities for lasting competitive advantages."
       />
 
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-display font-bold text-foreground">Facilities</h2>
-        {club && <span className="text-xs text-muted-foreground">Budget: £{(club.budget / 1e6).toFixed(1)}M</span>}
-      </div>
-
-      {/* Tab pills */}
+      {/* Tab pills — page title and budget already shown in TopBar */}
       <div className="flex gap-1.5">
         {(['stadium', 'facilities'] as const).map(t => (
           <button
@@ -144,10 +153,18 @@ const FacilitiesPage = () => {
             transition={{ duration: 0.15 }}
             className="space-y-3"
           >
-            {/* Stadium name */}
-            {club?.stadiumName && (
-              <p className="text-xs text-muted-foreground text-center">{club.stadiumName}</p>
-            )}
+            {/* Stadium name + tier headline */}
+            <div className="text-center space-y-0.5">
+              {club?.stadiumName && (
+                <p className="text-xs text-muted-foreground">{club.stadiumName}</p>
+              )}
+              <p className="text-[11px]">
+                <span className="text-foreground font-semibold">{tier.current}</span>
+                {tier.next && tier.nextAt !== null && (
+                  <span className="text-muted-foreground"> → {tier.next} at Lv.{tier.nextAt}</span>
+                )}
+              </p>
+            </div>
 
             {/* Stadium SVG */}
             <GlassPanel className="p-3">
@@ -157,6 +174,9 @@ const FacilitiesPage = () => {
                 onSelectStand={setSelectedStand}
                 upgradeInProgressType={upgradeType}
                 clubColor={club?.color || '#3b82f6'}
+                recommendedStand={recommendedStand}
+                justUpgradedStand={justUpgraded?.stand ?? null}
+                justUpgradedNonce={justUpgraded?.nonce ?? 0}
               />
             </GlassPanel>
 
@@ -202,7 +222,14 @@ const FacilitiesPage = () => {
 
             {/* Quick upgrade hint if no stand selected */}
             {!selectedStand && (
-              <p className="text-[10px] text-muted-foreground text-center">Tap a stand to view details and upgrade</p>
+              recommendedStand ? (
+                <p className="text-[10px] text-center">
+                  <span className="text-emerald-400 font-semibold">Recommended:</span>{' '}
+                  <span className="text-muted-foreground">tap the {STAND_INFO[recommendedStand].label} to upgrade next</span>
+                </p>
+              ) : (
+                <p className="text-[10px] text-muted-foreground text-center">Tap a stand to view details and upgrade</p>
+              )
             )}
           </motion.div>
         ) : (
