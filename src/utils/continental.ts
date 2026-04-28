@@ -472,10 +472,10 @@ export function getKnockoutRoundName(round: string): string {
 export function createEphemeralClub(
   vc: VirtualClub,
   season: number,
-  useRealPlayers: boolean = true,
+  useRealNames: boolean = true,
 ): { club: Club; players: Record<string, Player> } {
   const quality = 32 + vc.reputation * 10; // rep 1→42, 2→52, 3→62, 4→72, 5→82
-  const squad = generateSquad(vc.id, quality, season, vc.leagueId, /* isInitialSeason */ false, useRealPlayers);
+  const squad = generateSquad(vc.id, quality, season, vc.leagueId, /* isInitialSeason */ false, useRealNames);
 
   const playerMap: Record<string, Player> = {};
   const playerIds: string[] = [];

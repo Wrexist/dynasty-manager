@@ -274,15 +274,25 @@ export function buildPlayerFromTemplate(
   clubId: string,
   season: number,
   nationalityOverride?: string,
+  useRealNames: boolean = true,
 ): Player {
   const nationality = nationalityOverride ?? t.nat;
   const player = generatePlayer(t.pos, t.ovr, clubId, season);
-  // Community-pack templates (auto-derived from FC26 short_name) often
-  // ship as `"E."` / `"A. Van"`; expand to a full first name so cards
-  // and lists don't render a bare initial.
-  const expansionSeed = t.fcId ?? `${t.fn}|${t.ln}|${nationality}|${t.pos}`;
-  player.firstName = expandAbbreviatedFirstName(t.fn, nationality, expansionSeed);
-  player.lastName = t.ln;
+  if (useRealNames) {
+    // Community-pack templates (auto-derived from FC26 short_name) often
+    // ship as `"E."` / `"A. Van"`; expand to a full first name so cards
+    // and lists don't render a bare initial.
+    const expansionSeed = t.fcId ?? `${t.fn}|${t.ln}|${nationality}|${t.pos}`;
+    player.firstName = expandAbbreviatedFirstName(t.fn, nationality, expansionSeed);
+    player.lastName = t.ln;
+  } else {
+    // Anonymized mode: keep every stat the template carries, but pick a
+    // plausible name from the same nationality's pool so the squad still
+    // reads as authentic without exposing real player identities.
+    const { firstName, lastName } = pickNameForNationality(nationality);
+    player.firstName = firstName;
+    player.lastName = lastName;
+  }
   player.age = t.age;
   player.nationality = nationality;
   if (t.pot !== undefined) {
@@ -332,18 +342,17 @@ export function buildPlayerFromTemplate(
   return player;
 }
 
-export function generateSquad(clubId: string, quality: number, season: number, divisionTier?: number | string, isInitialSeason: boolean = false, useRealPlayers: boolean = true): Player[] {
+export function generateSquad(clubId: string, quality: number, season: number, divisionTier?: number | string, isInitialSeason: boolean = false, useRealNames: boolean = true): Player[] {
   const scale = qualityScale(quality);
-  // When the player opted out of the community pack, skip both real-data
-  // sources entirely: club roster templates carry real names + ratings, and
-  // the FC26 national pool is what `pickUnclaimedRealPlayer` draws from.
-  // The procedural fallback below already uses realistic football-style
-  // names via `pickNameForNationality`, so opt-out squads stay believable.
-  const templates = useRealPlayers ? (CLUB_TEMPLATES[resolveSquadKey(clubId)] || []) : [];
+  // Real-player TEMPLATES (stats, positions, ages) are always used so opt-out
+  // saves still feel like a curated football world. The `useRealNames` flag
+  // only controls whether the template's real name survives or gets replaced
+  // by a pool-picked alias for the same nationality.
+  const templates = CLUB_TEMPLATES[resolveSquadKey(clubId)] || [];
   // Claim template names up-front so the real-player picker doesn't hand
   // the same person to another club as a filler later in the init loop.
   for (const t of templates) claimRealPlayer(t);
-  const templatePlayers: Player[] = templates.map(t => buildPlayerFromTemplate(t, clubId, season));
+  const templatePlayers: Player[] = templates.map(t => buildPlayerFromTemplate(t, clubId, season, undefined, useRealNames));
 
   // ── Step 2: Determine remaining positions to fill ──
   const positionsFilled: Record<string, number> = {};
@@ -365,12 +374,7 @@ export function generateSquad(clubId: string, quality: number, season: number, d
   // coverage get no extra filler — the world still grows via weekly signings,
   // youth intake, and free agents. Filler slots are taken in SQUAD_TEMPLATE
   // order, so critical positions (GK first) are covered before depth roles.
-  //
-  // The min-target top-up only makes sense alongside real templates; with
-  // `useRealPlayers=false` there are zero templates, and slicing to 16 in
-  // SQUAD_TEMPLATE order would leave every club with no attackers. Fill the
-  // full template instead so generated-only saves get balanced squads.
-  const fillerPositions = (isInitialSeason && useRealPlayers)
+  const fillerPositions = isInitialSeason
     ? remainingPositions.slice(0, Math.max(0, INITIAL_SQUAD_MIN_TARGET - templatePlayers.length))
     : remainingPositions;
 
@@ -386,10 +390,10 @@ export function generateSquad(clubId: string, quality: number, season: number, d
     const nationality = pickNationality(leagueKeyForNationality);
     // Bias the real-player pick toward the club's quality tier so a
     // 4th-division side doesn't accidentally sign Mbappé as a filler.
-    const realTemplate = useRealPlayers ? pickUnclaimedRealPlayer(nationality, pos, {
+    const realTemplate = pickUnclaimedRealPlayer(nationality, pos, {
       minOvr: Math.max(REAL_FILLER_OVR_FLOOR, quality - REAL_FILLER_OVR_BAND_BELOW),
       maxOvr: Math.min(REAL_FILLER_OVR_CEIL, quality + REAL_FILLER_OVR_BAND_ABOVE),
-    }) : null;
+    });
     if (realTemplate) {
       // Only canonicalise nationality when the picker's choice is an
       // alias of the preferred nation (e.g. Holland ↔ Netherlands). On
@@ -398,7 +402,7 @@ export function generateSquad(clubId: string, quality: number, season: number, d
       const overrideNat = isNationalityAliasOf(realTemplate.nat, nationality)
         ? nationality
         : undefined;
-      const real = buildPlayerFromTemplate(realTemplate, clubId, season, overrideNat);
+      const real = buildPlayerFromTemplate(realTemplate, clubId, season, overrideNat, useRealNames);
       realFillerIds.add(real.id);
       return real;
     }
