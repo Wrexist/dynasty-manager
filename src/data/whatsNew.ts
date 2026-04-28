@@ -61,6 +61,25 @@ export { readWhatsNewSeenVersion, writeWhatsNewSeenVersion };
  */
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.0.8',
+    build: null,
+    date: '2026-04-28',
+    headline: 'Match-day, squad and stat polish.',
+    summary: 'Form pips, position chips, fitness bars and the in-match timer all get the same gradient + glow treatment as last build\'s progress bars. Trophy celebrations now sit on a proper gold halo.',
+    highlights: [],
+    new: [],
+    improved: [
+      'Form pips (W/D/L) and position chips (GK/DEF/MID/FWD) now have proper gradient depth instead of flat tints.',
+      'Live match timer bar glows on the surface during play.',
+      'Player attribute bars (Pace, Shooting, Passing…) get the same gradient + glow as the new progress bars.',
+      'Trophy and award celebrations now sit on a soft gold halo with cream-gradient stat tiles.',
+      'Player card fitness bars switched from flat hex fill to a colored gradient with matching glow.',
+      'Legend cards (90+ overall) keep their unique white shield while every other gold-rated player now shares the same rare gold card.',
+      'Coach Checklist and other dashboard panels collapse smoothly without stutter.',
+    ],
+    fixed: [],
+  },
+  {
     version: '1.0.7',
     build: null,
     date: '2026-04-28',
@@ -77,8 +96,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Set-piece and penalty taker pickers now show squad-style player cards in a 3-column grid, sorted by role-relevant rating with the three attributes that matter for that role.',
       'Tactics page now opens advanced instructions by default and the Starting XI rating card is slimmer with a refined Liquid Glass look.',
       'In-match pause now uses the same Liquid Glass sliders as Tactics, with a cleaner header, clearer sections, and a bolder Resume button.',
-      'Legend cards (90+ overall) keep their unique white shield while every other gold-rated player now shares the same rare gold card.',
-      'Coach Checklist and other dashboard panels collapse smoothly without stutter.',
+      'Smart Optimize Lineup result now opens in a polished glass popup with chemistry-aware insight.',
     ],
     fixed: [],
   },

@@ -8,6 +8,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { YellowCardIcon, RedCardIcon } from '@/components/game/PlayerAvatar';
+import { PremiumProgress } from '@/components/game/PremiumProgress';
 import { cn } from '@/lib/utils';
 import type { Club } from '@/types/game';
 
@@ -151,9 +152,12 @@ export function ScoreHeader({
 
       {showProgressBar && (
         <div className="mt-2">
-          <div className="h-1 bg-muted rounded-full overflow-hidden">
-            <motion.div className="h-full bg-primary rounded-full" animate={{ width: `${(currentMin / (phase === 'extra_time' ? 120 : 90)) * 100}%` }} />
-          </div>
+          <PremiumProgress
+            size="sm"
+            glow
+            animate={false}
+            value={(currentMin / (phase === 'extra_time' ? 120 : 90)) * 100}
+          />
         </div>
       )}
     </GlassPanel>

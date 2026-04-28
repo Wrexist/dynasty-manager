@@ -190,12 +190,14 @@ export function getMatchRatingColor(rating: number): string {
   return 'text-amber-400';
 }
 
-/** Get bg + text classes for a position badge (GK=amber, DEF=blue, MID=emerald, ATT=red) */
+/** Get bg + text classes for a position badge (GK=amber, DEF=sky, MID=emerald, ATT=rose) */
 export function posBadgeColor(pos: Position): string {
-  if (pos === 'GK') return 'bg-amber-500/20 text-amber-400';
-  if (['CB', 'LB', 'RB'].includes(pos)) return 'bg-blue-500/20 text-blue-400';
-  if (['CDM', 'CM', 'CAM', 'LM', 'RM'].includes(pos)) return 'bg-emerald-500/20 text-emerald-400';
-  return 'bg-red-500/20 text-red-400';
+  const base =
+    'bg-gradient-to-b ring-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-1px_0_rgba(0,0,0,0.2)]';
+  if (pos === 'GK') return `${base} from-amber-400/30 to-amber-600/15 text-amber-200 ring-amber-400/35`;
+  if (['CB', 'LB', 'RB'].includes(pos)) return `${base} from-sky-400/30 to-sky-600/15 text-sky-200 ring-sky-400/35`;
+  if (['CDM', 'CM', 'CAM', 'LM', 'RM'].includes(pos)) return `${base} from-emerald-400/30 to-emerald-600/15 text-emerald-200 ring-emerald-400/35`;
+  return `${base} from-rose-400/30 to-rose-600/15 text-rose-200 ring-rose-400/35`;
 }
 
 /** Get combined bg + text classes for a rating badge (e.g. 'bg-emerald-500/20 text-emerald-400') */

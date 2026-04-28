@@ -4,6 +4,7 @@ import { getSuffix } from '@/utils/helpers';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { LineupEditor } from '@/components/game/LineupEditor';
 import { OptimizeLineupButton } from '@/components/game/OptimizeLineupButton';
+import { OptimizeResultModal } from '@/components/game/OptimizeResultModal';
 import { Swords, AlertTriangle, Flame, Info, Shield, Zap, ArrowUp, ArrowDown, Minus, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getRatingBadgeClasses, getRatingColor } from '@/utils/uiHelpers';
@@ -46,7 +47,7 @@ const MatchPrep = () => {
   })));
   const setScreen = useGameStore((s) => s.setScreen);
   const playCurrentMatch = useGameStore((s) => s.playCurrentMatch);
-  const { potentialGain, autoFilling, optimizeLineup } = useLineupOptimizer();
+  const { potentialGain, autoFilling, optimizeLineup, result: optimizeResult, dismissResult: dismissOptimizeResult } = useLineupOptimizer();
 
   const myClub = clubs[playerClubId];
 
@@ -547,6 +548,8 @@ const MatchPrep = () => {
           )}
         </div>
       </div>
+
+      <OptimizeResultModal result={optimizeResult} onDismiss={dismissOptimizeResult} />
     </div>
   );
 };
