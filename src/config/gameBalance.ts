@@ -657,9 +657,15 @@ export const MAX_PLAYER_MATCH_HISTORY = 20;
 
 // ── Ballon d'Or ──
 export const BALLON_DOR_TOP_N = 25;
-/** Weights for the Ballon d'Or scoring formula */
+/** Minimum appearances to be eligible for the Ballon d'Or ranking. Below
+ *  this floor a player's counting stats aren't a meaningful sample. */
+export const BALLON_DOR_MIN_APPEARANCES = 8;
+/** Weights for the Ballon d'Or scoring formula. Bumped `overall` 1.5 → 2.0
+ *  in the v68 rebalance so a 90-rated player gets +180 from raw quality
+ *  before any goals/assists land — keeps elite squads from being knocked
+ *  out by lower-tier free-scorers. */
 export const BALLON_DOR_WEIGHTS = {
-  overall: 1.5,
+  overall: 2.0,
   goals: 3.0,
   assists: 2.0,
   appearances: 0.5,
@@ -668,7 +674,7 @@ export const BALLON_DOR_WEIGHTS = {
   cleanSheets: 1.0,
   avgRating: 3.0,
   discipline: 1.0,
-  divisionTier: 1.0,
+  divisionTier: 1.5,
   continentalBonus: 1.0,
 } as const;
 export const BALLON_DOR_POSITION_MULTIPLIERS: Record<string, { goals: number; assists: number; cleanSheets: number }> = {
@@ -681,7 +687,24 @@ export const BALLON_DOR_POSITION_MULTIPLIERS: Record<string, { goals: number; as
 };
 export const BALLON_DOR_YELLOW_PENALTY = 0.3;
 export const BALLON_DOR_RED_PENALTY = 3.0;
-export const BALLON_DOR_DIVISION_BONUS: Record<number, number> = { 1: 20, 2: 12, 3: 6, 4: 0 };
+/** Flat division-tier bonus (added to the score, multiplied by the
+ *  divisionTier weight). Top-flight contribution roughly doubled in the
+ *  v68 rebalance. */
+export const BALLON_DOR_DIVISION_BONUS: Record<number, number> = { 1: 30, 2: 16, 3: 8, 4: 0 };
+
+/**
+ * Division tier multiplier applied to **counting-stat scores** (goals,
+ * assists, clean sheets) and — at a softer sqrt curve — to the avg-rating
+ * score. A 30-goal striker in tier-4 contributes 30×3.0×1.0×0.25 = 22.5
+ * from goals, vs 90 in tier-1. This stops a Foundation League free-scorer
+ * outranking a Premier League elite forward.
+ */
+export const BALLON_DOR_DIVISION_COUNTING_SCALE: Record<number, number> = {
+  1: 1.00,
+  2: 0.70,
+  3: 0.45,
+  4: 0.25,
+};
 
 /** Milestone descriptions shown on facility cards at key levels */
 export const FACILITY_MILESTONES: Record<string, { level: number; label: string }[]> = {

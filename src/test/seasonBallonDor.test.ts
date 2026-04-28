@@ -111,7 +111,7 @@ describe('calculateBallonDOr — basic invariants', () => {
     expect(ranking.length).toBe(BALLON_DOR_TOP_N);
   });
 
-  it('excludes players with fewer than 5 appearances', () => {
+  it('excludes players below BALLON_DOR_MIN_APPEARANCES', () => {
     const { clubs, table, players } = smallScenario();
     const ranking = calculateBallonDOr(players, clubs, table, {});
     expect(ranking.find(e => e.playerId === 'rare')).toBeUndefined();
@@ -246,6 +246,43 @@ describe('calculateBallonDOr — modifiers', () => {
     const clean = ranking.find(e => e.playerId === 'clean')!;
     const dirty = ranking.find(e => e.playerId === 'dirty')!;
     expect(clean.score).toBeGreaterThan(dirty.score);
+  });
+
+  it('division counting scale — tier-1 striker outranks tier-4 striker with MORE goals', () => {
+    // The whole point of the v68 tier-scaling rebalance: a 25-goal Premier
+    // League striker should beat a 35-goal Foundation League striker. Pre-
+    // rebalance, the T4 player would have won outright (goals × 3.0 ×
+    // posMult had no division scaling).
+    const clubs = clubsMap([
+      buildClub({ id: 'top', shortName: 'TOP', divisionId: 'eng' }),    // qualityTier 1
+      buildClub({ id: 'low', shortName: 'LOW', divisionId: 'eng-4' }),  // qualityTier 4
+    ]);
+    const table = buildOrderedTable(['top', 'low']);
+    const players: Player[] = [
+      buildPlayer({ id: 't1-elite', clubId: 'top', position: 'ST', overall: 88, goals: 25, assists: 8, appearances: 32, age: 27 }),
+      buildPlayer({ id: 't4-scorer', clubId: 'low', position: 'ST', overall: 78, goals: 35, assists: 10, appearances: 32, age: 27 }),
+    ];
+    const ranking = calculateBallonDOr(players, clubs, table, {});
+    const t1 = ranking.find(e => e.playerId === 't1-elite')!;
+    const t4 = ranking.find(e => e.playerId === 't4-scorer')!;
+    expect(t1.score).toBeGreaterThan(t4.score);
+  });
+
+  it('overall-rating weight — high-OVR player ranks above low-OVR with similar counting stats', () => {
+    // Bumping `BALLON_DOR_WEIGHTS.overall` 1.5 → 2.0 means a 90-rated
+    // striker with 20 goals beats a 75-rated striker with the same 20.
+    const clubs = clubsMap([buildClub({ id: 'a', shortName: 'A', divisionId: 'eng' })]);
+    const table = buildOrderedTable(['a']);
+    const players: Player[] = [
+      buildPlayer({ id: 'elite', clubId: 'a', position: 'ST', overall: 90, goals: 20, assists: 6, appearances: 30, age: 27 }),
+      buildPlayer({ id: 'rotation', clubId: 'a', position: 'ST', overall: 75, goals: 20, assists: 6, appearances: 30, age: 27 }),
+    ];
+    const ranking = calculateBallonDOr(players, clubs, table, {});
+    const elite = ranking.find(e => e.playerId === 'elite')!;
+    const rotation = ranking.find(e => e.playerId === 'rotation')!;
+    expect(elite.score).toBeGreaterThan(rotation.score);
+    // Rotation player should still be ranked (eligible) — just behind.
+    expect(rotation.rank).toBeGreaterThan(elite.rank);
   });
 
   it('continental bonus rewards Champions Cup winner over non-participant', () => {

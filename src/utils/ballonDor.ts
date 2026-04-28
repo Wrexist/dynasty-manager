@@ -1,8 +1,10 @@
 import { Player, Club, LeagueTableEntry, BallonDOrEntry, ContinentalTournamentState } from '@/types/game';
 import {
-  BALLON_DOR_TOP_N, BALLON_DOR_WEIGHTS, BALLON_DOR_VALUE_BOOST,
+  BALLON_DOR_TOP_N, BALLON_DOR_MIN_APPEARANCES, BALLON_DOR_WEIGHTS,
+  BALLON_DOR_VALUE_BOOST,
   BALLON_DOR_POSITION_MULTIPLIERS, BALLON_DOR_YELLOW_PENALTY,
   BALLON_DOR_RED_PENALTY, BALLON_DOR_DIVISION_BONUS,
+  BALLON_DOR_DIVISION_COUNTING_SCALE,
   BALLON_DOR_CONTINENTAL_BONUS,
 } from '@/config/gameBalance';
 import { LEAGUES } from '@/data/league';
@@ -82,12 +84,20 @@ function calculatePlayerScore(
   const w = BALLON_DOR_WEIGHTS;
   const pm = BALLON_DOR_POSITION_MULTIPLIERS[player.position] || DEFAULT_POSITION_MULTIPLIER;
 
+  // Counting-stat scale by division tier. Goals/assists/clean sheets in
+  // lower tiers count progressively less — a 30-goal Foundation League
+  // striker shouldn't outrank a 25-goal Premier League elite. Avg rating
+  // uses a softer sqrt of the same scale because it's already context-aware
+  // (match sim accounts for opponent strength).
+  const countingScale = BALLON_DOR_DIVISION_COUNTING_SCALE[divisionTier] ?? 0.25;
+  const ratingScale = Math.sqrt(countingScale);
+
   // Base score from overall rating (0-100 scale)
   const overallScore = player.overall * w.overall;
 
-  // Position-scaled goal and assist contributions
-  const goalScore = player.goals * w.goals * pm.goals;
-  const assistScore = player.assists * w.assists * pm.assists;
+  // Position-scaled and division-scaled goal/assist contributions
+  const goalScore = player.goals * w.goals * pm.goals * countingScale;
+  const assistScore = player.assists * w.assists * pm.assists * countingScale;
 
   // Appearance bonus — rewards consistent availability
   const appScore = Math.min(player.appearances, 46) * w.appearances;
@@ -99,16 +109,19 @@ function calculatePlayerScore(
   const positionNorm = (totalTeams - teamPosition) / Math.max(1, totalTeams - 1);
   const positionBonus = Math.sqrt(Math.max(0, positionNorm)) * 30 * w.teamPosition;
 
-  // Position-scaled clean sheet bonus
-  const cleanSheetScore = teamCleanSheets * w.cleanSheets * pm.cleanSheets;
+  // Position-scaled and division-scaled clean sheet bonus
+  const cleanSheetScore = teamCleanSheets * w.cleanSheets * pm.cleanSheets * countingScale;
 
-  // Average match rating (0-10 scale, scaled up for meaningful impact)
-  const ratingScore = getAvgRating(player) * 10 * w.avgRating;
+  // Average match rating (0-10 scale, scaled up for meaningful impact).
+  // Softer division scale (sqrt) — match sim already accounts for opponent
+  // strength so we don't double-penalise lower-tier ratings.
+  const ratingScore = getAvgRating(player) * 10 * w.avgRating * ratingScale;
 
   // Discipline penalty — yellow and red cards hurt ranking
   const disciplineScore = -(player.yellowCards * BALLON_DOR_YELLOW_PENALTY + player.redCards * BALLON_DOR_RED_PENALTY) * w.discipline;
 
-  // Division tier bonus — higher divisions rewarded
+  // Division tier bonus — higher divisions rewarded (additive, on top of
+  // the counting-stat scale)
   const divisionScore = (BALLON_DOR_DIVISION_BONUS[divisionTier] ?? 0) * w.divisionTier;
 
   // Continental tournament bonus — deep runs in Champions Cup / Shield Cup
@@ -207,7 +220,7 @@ export function calculateBallonDOr(
 
   // Score every player who made at least 5 appearances
   const scored = allPlayers
-    .filter(p => p.appearances >= 5 && p.clubId)
+    .filter(p => p.appearances >= BALLON_DOR_MIN_APPEARANCES && p.clubId)
     .map(p => {
       const clubPos = clubPositionMap[p.clubId] || { position: 10, totalTeams: 20, cleanSheets: 0, divisionTier: 4 };
       const contBonus = getContinentalBonusForClub(p.clubId, championsCup || null, shieldCup || null, conferenceCup || null);

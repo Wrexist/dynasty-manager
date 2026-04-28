@@ -86,6 +86,8 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Players now carry a rarity tier (Legend/Icon/Star/Rare). Legends are rarer, more valuable, and command premium wages.',
       'Refined the player age curve so prime years (24-28) hold value longer and post-32 decline tracks the real transfer market.',
       'Ballon d\'Or winners get a bigger value boost — top 4 placements all bumped.',
+      'Ballon d\'Or rebalanced — goals and assists outside the top-tier leagues now count progressively less, and elite overall ratings carry more weight in the ranking.',
+      'Ballon d\'Or eligibility raised to 8 appearances to filter out fluky low-sample seasons.',
     ],
     fixed: [],
   },
