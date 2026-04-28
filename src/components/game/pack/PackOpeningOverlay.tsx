@@ -51,6 +51,10 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
   const [walkoutQueue, setWalkoutQueue] = useState<Player[]>([]);
   const [currentWalkout, setCurrentWalkout] = useState<Player | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  // Charge-phase scheduling lives in refs so a user tap-to-rip can cancel
+  // the auto-advance timer/interval without depending on stale state.
+  const chargeTimerRef = useRef<number | null>(null);
+  const chargeRumbleRef = useRef<number | null>(null);
   // Linger timer between walkouts. Held in a ref so rapid double-complete
   // (child finish + Escape) can't slice the queue twice, and so it gets
   // cleared on unmount.
@@ -126,6 +130,26 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
     : topOvr >= 75 ? 300 : 0
   );
 
+  // Foil-shred params — generated once per explode entry. Inlining the
+  // randoms in the .map() would re-roll them on any re-render during the
+  // ~0.7s burst, retargeting in-flight Framer Motion animations mid-flight.
+  const foilShreds = useMemo(() => {
+    if (phase !== 'explode' || prefersReducedMotion) return [];
+    return Array.from({ length: 18 }).map((_, i) => {
+      const angle = (i / 18) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
+      const distance = 220 + Math.random() * 200;
+      return {
+        i,
+        dx: Math.cos(angle) * distance,
+        dy: Math.sin(angle) * distance,
+        w: 6 + Math.random() * 8,
+        h: 2 + Math.random() * 3,
+        rot: (Math.random() - 0.5) * 720,
+        duration: 0.7 + Math.random() * 0.4,
+      };
+    });
+  }, [phase, prefersReducedMotion]);
+
   // Beat orchestration
   useEffect(() => {
     if (phase !== 'portal') return;
@@ -143,15 +167,40 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
 
   useEffect(() => {
     if (phase !== 'charge') return;
-    // Charging rumble pulse
-    const rumbleInterval = window.setInterval(() => hapticMedium(), 180);
-    const t = window.setTimeout(() => {
-      window.clearInterval(rumbleInterval);
+    // Charging rumble pulse — held in refs so a tap-to-rip can cancel
+    // the same scheduling without resetting effect state.
+    chargeRumbleRef.current = window.setInterval(() => hapticMedium(), 180);
+    chargeTimerRef.current = window.setTimeout(() => {
+      if (chargeRumbleRef.current !== null) window.clearInterval(chargeRumbleRef.current);
+      chargeRumbleRef.current = null;
+      chargeTimerRef.current = null;
       setPhase('explode');
       hapticHeavy();
     }, chargeLength);
-    return () => { window.clearInterval(rumbleInterval); window.clearTimeout(t); };
+    return () => {
+      if (chargeRumbleRef.current !== null) window.clearInterval(chargeRumbleRef.current);
+      if (chargeTimerRef.current !== null) window.clearTimeout(chargeTimerRef.current);
+      chargeRumbleRef.current = null;
+      chargeTimerRef.current = null;
+    };
   }, [phase, chargeLength]);
+
+  // Tap-to-rip: short-circuits the charge timer so users can drive the
+  // payoff themselves instead of watching the pack auto-shake. Only valid
+  // during arrival/charge; ignored at every other beat.
+  const tapToRip = useCallback(() => {
+    if (phase !== 'arrival' && phase !== 'charge') return;
+    if (chargeRumbleRef.current !== null) {
+      window.clearInterval(chargeRumbleRef.current);
+      chargeRumbleRef.current = null;
+    }
+    if (chargeTimerRef.current !== null) {
+      window.clearTimeout(chargeTimerRef.current);
+      chargeTimerRef.current = null;
+    }
+    hapticHeavy();
+    setPhase('explode');
+  }, [phase]);
 
   useEffect(() => {
     if (phase !== 'explode') return;
@@ -290,6 +339,45 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
         )}
       </AnimatePresence>
 
+      {/* Tier caption — small, tier-tinted, sits above the pack. Replaces
+          the old in-pack frosted label that hard-coded gold gradient text
+          on every tier (silver pack reading as gold-on-silver). Fades out
+          before the pack tears so the explosion frame stays uncluttered. */}
+      <AnimatePresence>
+        {(phase === 'arrival' || phase === 'charge') && (
+          <motion.div
+            key="tier-caption"
+            className="absolute left-1/2 -translate-x-1/2 top-[calc(50%-260px)] flex flex-col items-center pointer-events-none text-center px-6"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.4, delay: 0.15 }}
+          >
+            <span
+              className="text-[9px] uppercase font-semibold tracking-[0.42em] text-white/60"
+              style={{ textShadow: '0 1px 4px rgba(0,0,0,0.7)' }}
+            >
+              Dynasty Pack
+            </span>
+            <span
+              className="mt-1 text-[22px] font-display font-black tracking-[0.04em] uppercase leading-none"
+              style={{
+                color: tierDef.accent,
+                textShadow: `0 0 18px color-mix(in srgb, ${tierDef.accent} 55%, transparent), 0 2px 8px rgba(0,0,0,0.85)`,
+              }}
+            >
+              {tierDef.label}
+            </span>
+            <span
+              className="mt-1.5 text-[9px] uppercase font-medium tracking-[0.3em] text-white/55"
+              style={{ textShadow: '0 1px 3px rgba(0,0,0,0.7)' }}
+            >
+              {tierDef.cards} {tierDef.cards === 1 ? 'Player' : 'Players'}
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* The pack itself — visible during arrival + charge + tears open on explode.
           The pack art asset already carries its own marble/foil styling, so we
           skip the gradient frame / inset borders that were fighting the artwork.
@@ -299,7 +387,23 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
         {(phase === 'arrival' || phase === 'charge' || phase === 'explode') && (
           <motion.div
             key="pack"
-            className="relative flex flex-col items-center justify-center pointer-events-none"
+            role={phase === 'arrival' || phase === 'charge' ? 'button' : undefined}
+            aria-label={phase === 'arrival' || phase === 'charge' ? 'Tap to rip open the pack' : undefined}
+            tabIndex={phase === 'arrival' || phase === 'charge' ? 0 : -1}
+            onClick={phase === 'arrival' || phase === 'charge' ? tapToRip : undefined}
+            onKeyDown={(e) => {
+              if (phase !== 'arrival' && phase !== 'charge') return;
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                tapToRip();
+              }
+            }}
+            className={cn(
+              'relative flex flex-col items-center justify-center',
+              phase === 'arrival' || phase === 'charge'
+                ? 'cursor-pointer pointer-events-auto'
+                : 'pointer-events-none',
+            )}
             style={{
               width: 260,
               height: 360,
@@ -474,43 +578,6 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                 )}
               </AnimatePresence>
 
-              {/* Text overlay — sits across both halves but uses its own
-                  absolute positioning so it fades out quickly on explode
-                  while the halves still have time to fly away. Frosted
-                  glass bar + gold gradient title + mirrored blurred
-                  reflection so the label reads as reflective liquid glass
-                  rather than plain outlined text. */}
-              <motion.div
-                className="absolute inset-0 flex flex-col items-center justify-end pb-8 text-white px-4 text-center pointer-events-none"
-                initial={{ opacity: 0, y: 10 }}
-                animate={phase === 'explode'
-                  ? { opacity: 0, y: -10 }
-                  : { opacity: 1, y: 0 }}
-                transition={phase === 'explode'
-                  ? { duration: 0.15 }
-                  : { duration: 0.5, delay: 0.2 }}
-              >
-                <div className="pack-label-frost rounded-2xl px-4 py-2.5 flex flex-col items-center gap-1">
-                  <span className="pack-subtitle-reflective text-[10px] uppercase font-semibold">
-                    Dynasty Pack
-                  </span>
-                  <div className="relative leading-none">
-                    <span className="pack-title-reflective block text-[34px] font-display font-black tracking-tight">
-                      {tierDef.label}
-                    </span>
-                    <span
-                      aria-hidden
-                      className="pack-title-reflective pack-title-reflection absolute inset-x-0 top-full block text-[34px] font-display font-black tracking-tight"
-                    >
-                      {tierDef.label}
-                    </span>
-                  </div>
-                  <span className="pack-subtitle-reflective text-[10px] font-medium opacity-95 mt-0.5">
-                    {tierDef.cards} {tierDef.cards === 1 ? 'Player' : 'Players'}
-                  </span>
-                </div>
-              </motion.div>
-
               {/* Tier-coloured glow leaks during charge — escaping through
                   the tear seam and around the pack body. Tinted by the top
                   pull's tier so the rarity is subtly telegraphed. */}
@@ -551,6 +618,32 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
         )}
       </AnimatePresence>
 
+      {/* Tap-to-open hint — pulses during the charge beat to telegraph
+          that the user can drive the payoff themselves rather than just
+          watching. Hidden under reduced-motion (no pulse) but the pack
+          itself is still tappable for keyboard/click users. */}
+      <AnimatePresence>
+        {phase === 'charge' && (
+          <motion.div
+            key="rip-hint"
+            className="absolute left-1/2 -translate-x-1/2 top-[calc(50%+200px)] text-center pointer-events-none"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4, delay: 0.3 }}
+          >
+            <motion.span
+              className="text-[10px] uppercase tracking-[0.4em] font-semibold text-white/75"
+              style={{ textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}
+              animate={prefersReducedMotion ? undefined : { opacity: [0.55, 1, 0.55] }}
+              transition={prefersReducedMotion ? undefined : { duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              Tap to open
+            </motion.span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Ambient floating motes — during arrival/charge. Skipped under
           reduced-motion; count trimmed from 20 → 8 and blur filter dropped
           so each particle stays on the compositor fast path. */}
@@ -581,7 +674,10 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
         </div>
       )}
 
-      {/* Explosion — shockwave + flash + confetti */}
+      {/* Explosion — shockwave + flash + foil shreds + confetti. The
+          shred layer is deterministic per-render but visually random:
+          18 small foil rectangles fly out from the seam in a 360° spread
+          to sell the "ripped wrapper" feel a Pokémon-pack opening lives on. */}
       <AnimatePresence>
         {phase === 'explode' && (
           <>
@@ -601,9 +697,31 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
               key="flash"
               className="absolute inset-0 bg-white pointer-events-none"
               initial={{ opacity: 0 }}
-              animate={{ opacity: [0, 0.32, 0] }}
-              transition={{ duration: 0.26, times: [0, 0.3, 1] }}
+              animate={{ opacity: [0, 0.42, 0] }}
+              transition={{ duration: 0.32, times: [0, 0.25, 1] }}
             />
+            {!prefersReducedMotion && (
+              <div className="absolute left-1/2 top-1/2 pointer-events-none" aria-hidden>
+                {foilShreds.map((s) => (
+                  <motion.span
+                    key={`shred-${s.i}`}
+                    className="absolute rounded-[1px]"
+                    style={{
+                      width: s.w,
+                      height: s.h,
+                      top: 0,
+                      left: 0,
+                      background: `linear-gradient(90deg, ${tierDef.gradientFrom}, ${tierDef.gradientTo})`,
+                      boxShadow: `0 0 6px ${tierDef.accent}`,
+                      willChange: 'transform, opacity',
+                    }}
+                    initial={{ x: 0, y: 0, opacity: 1, rotate: 0 }}
+                    animate={{ x: s.dx, y: s.dy, opacity: 0, rotate: s.rot }}
+                    transition={{ duration: s.duration, ease: [0.22, 1, 0.36, 1] }}
+                  />
+                ))}
+              </div>
+            )}
             <PackConfetti count={prefersReducedMotion ? 0 : confettiCount} hueBase={topOvr >= 90 ? 48 : topOvr >= 84 ? 35 : 43} hueRange={28} />
           </>
         )}

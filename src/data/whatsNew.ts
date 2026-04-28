@@ -82,6 +82,8 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Pro upsell on press conferences only appears on questions that genuinely have a Pro response — no more bait prompts.',
       'Pro subscription onboarding now describes the analytics you actually get — tactical match insights and a per-match performance summary.',
       'Inbox now shows an amber warning if your Pro payment fails so you can update billing before features lapse.',
+      'Pack opening drops the cluttered title overlay for a tier-tinted caption — no more gold text on silver packs.',
+      'Tap the pack itself during the build-up to rip it open immediately, with foil shreds bursting from the seam.',
       'Pack shop cards are now cleaner — the tier name sits up top and a single tap-friendly button replaces the cluttered text panel.',
       'Staff effectiveness now scales with morale — keep the backroom happy and they get more out of training, scouting, and youth.',
       'Star players can now headline limited-edition Signature Drops on the Merchandise tab for a multi-week revenue spike.',
