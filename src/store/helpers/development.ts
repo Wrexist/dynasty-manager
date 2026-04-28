@@ -9,10 +9,9 @@ import {
   PLAYING_TIME_BONUS_MAX, PLAYING_TIME_BONUS_PER_APP,
   DECLINE_AGE_THRESHOLD, STEEP_DECLINE_AGE_THRESHOLD,
   DECLINE_FACTOR_NORMAL, DECLINE_FACTOR_STEEP, DECLINE_BASE_CHANCE, DECLINE_ATTR_MULTIPLIERS,
-  VALUE_AGE_MULTIPLIERS,
 } from '@/config/gameBalance';
 import { TRAINING_FOCUS_BONUS, MODULE_ATTR_MAP } from '@/config/training';
-import { calculatePlayerValue } from '@/config/playerGeneration';
+import { recomputePlayerValueOnly } from '@/utils/playerEconomics';
 
 // Per-season growth tracking to cap total growth
 export const seasonGrowthTracker: Record<string, number> = {};
@@ -65,12 +64,11 @@ export function applyPlayerDevelopment(p: Player, trainingFocus: string, mentorB
     seasonGrowthTracker[p.id] = (seasonGrowthTracker[p.id] || 0) + updated.growthDelta;
   }
 
-  // Age-adjusted value: peak at 25-28, discount young and old
-  let ageMult = 0.25;
-  for (const tier of VALUE_AGE_MULTIPLIERS) {
-    if (p.age <= tier.maxAge) { ageMult = tier.multiplier; break; }
-  }
-  updated.value = Math.round(calculatePlayerValue(updated.overall) * ageMult);
+  // Single-helper recompute keeps development pricing identical to training,
+  // packs, and transfers — rarity, age curve, and Ballon d'Or placement
+  // premium all factored in. Wage is unchanged here (it's contract-driven,
+  // not attribute-driven).
+  recomputePlayerValueOnly(updated);
   return updated;
 }
 

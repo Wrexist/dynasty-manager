@@ -1,9 +1,15 @@
-import { Player, Club, LeagueTableEntry, BallonDOrEntry, ContinentalTournamentState } from '@/types/game';
+import { Player, Club, LeagueTableEntry, BallonDOrEntry, ContinentalTournamentState, CupState, LeagueCupState, InternationalTournamentState, InternationalKnockoutRound } from '@/types/game';
 import {
-  BALLON_DOR_TOP_N, BALLON_DOR_WEIGHTS, BALLON_DOR_VALUE_BOOST,
+  BALLON_DOR_TOP_N, BALLON_DOR_MIN_APPEARANCES, BALLON_DOR_WEIGHTS,
+  BALLON_DOR_VALUE_BOOST,
   BALLON_DOR_POSITION_MULTIPLIERS, BALLON_DOR_YELLOW_PENALTY,
   BALLON_DOR_RED_PENALTY, BALLON_DOR_DIVISION_BONUS,
+  BALLON_DOR_DIVISION_COUNTING_SCALE,
   BALLON_DOR_CONTINENTAL_BONUS,
+  BALLON_DOR_LEAGUE_TITLE_BONUS,
+  BALLON_DOR_DOMESTIC_CUP_WIN_BONUS,
+  BALLON_DOR_LEAGUE_CUP_WIN_BONUS,
+  BALLON_DOR_INTL_TOURNAMENT_BONUS,
 } from '@/config/gameBalance';
 import { LEAGUES } from '@/data/league';
 
@@ -66,10 +72,36 @@ function getContinentalBonusForClub(
 }
 
 /**
+ * Determine the deepest international-tournament round a nation reached
+ * (or `null` if they didn't qualify). Returns the matching bonus value
+ * from BALLON_DOR_INTL_TOURNAMENT_BONUS — winner outranks final, etc.
+ */
+function getIntlTournamentBonusForNation(
+  nationality: string,
+  tournament: InternationalTournamentState | null | undefined,
+): number {
+  if (!tournament || !nationality) return 0;
+  // Winner outranks every other stage.
+  if (tournament.winner === nationality) return BALLON_DOR_INTL_TOURNAMENT_BONUS.winner;
+  // Walk knockout rounds from deepest (final) outwards. A nation that lost
+  // in the SF still reached the SF — check membership in tie home/away.
+  const rounds: InternationalKnockoutRound[] = ['F', 'SF', 'QF', 'R16'];
+  for (const round of rounds) {
+    const tie = tournament.knockoutTies.find(t => t.round === round && (t.homeNation === nationality || t.awayNation === nationality));
+    if (tie) return BALLON_DOR_INTL_TOURNAMENT_BONUS[round];
+  }
+  // Group-stage participation only — no bonus per design.
+  const inGroup = tournament.groups.some(g => g.teams.includes(nationality));
+  if (inGroup) return BALLON_DOR_INTL_TOURNAMENT_BONUS.group;
+  return 0;
+}
+
+/**
  * Calculate a player's Ballon d'Or score based on season performance.
  * Position-aware formula considers goals, assists, overall rating, average
  * match rating, appearances, form, team finishing position, clean sheets,
- * discipline, division tier, and continental tournament performance.
+ * discipline, division tier, continental tournament performance, league
+ * title, domestic cup, league cup, and international tournament wins.
  */
 function calculatePlayerScore(
   player: Player,
@@ -78,16 +110,28 @@ function calculatePlayerScore(
   teamCleanSheets: number,
   divisionTier: number,
   continentalBonus: number,
+  leagueTitleWon: boolean,
+  domesticCupWon: boolean,
+  leagueCupWon: boolean,
+  intlTournamentBonus: number,
 ): number {
   const w = BALLON_DOR_WEIGHTS;
   const pm = BALLON_DOR_POSITION_MULTIPLIERS[player.position] || DEFAULT_POSITION_MULTIPLIER;
 
+  // Counting-stat scale by division tier. Goals/assists/clean sheets in
+  // lower tiers count progressively less — a 30-goal Foundation League
+  // striker shouldn't outrank a 25-goal Premier League elite. Avg rating
+  // uses a softer sqrt of the same scale because it's already context-aware
+  // (match sim accounts for opponent strength).
+  const countingScale = BALLON_DOR_DIVISION_COUNTING_SCALE[divisionTier] ?? 0.25;
+  const ratingScale = Math.sqrt(countingScale);
+
   // Base score from overall rating (0-100 scale)
   const overallScore = player.overall * w.overall;
 
-  // Position-scaled goal and assist contributions
-  const goalScore = player.goals * w.goals * pm.goals;
-  const assistScore = player.assists * w.assists * pm.assists;
+  // Position-scaled and division-scaled goal/assist contributions
+  const goalScore = player.goals * w.goals * pm.goals * countingScale;
+  const assistScore = player.assists * w.assists * pm.assists * countingScale;
 
   // Appearance bonus — rewards consistent availability
   const appScore = Math.min(player.appearances, 46) * w.appearances;
@@ -99,23 +143,37 @@ function calculatePlayerScore(
   const positionNorm = (totalTeams - teamPosition) / Math.max(1, totalTeams - 1);
   const positionBonus = Math.sqrt(Math.max(0, positionNorm)) * 30 * w.teamPosition;
 
-  // Position-scaled clean sheet bonus
-  const cleanSheetScore = teamCleanSheets * w.cleanSheets * pm.cleanSheets;
+  // Position-scaled and division-scaled clean sheet bonus
+  const cleanSheetScore = teamCleanSheets * w.cleanSheets * pm.cleanSheets * countingScale;
 
-  // Average match rating (0-10 scale, scaled up for meaningful impact)
-  const ratingScore = getAvgRating(player) * 10 * w.avgRating;
+  // Average match rating (0-10 scale, scaled up for meaningful impact).
+  // Softer division scale (sqrt) — match sim already accounts for opponent
+  // strength so we don't double-penalise lower-tier ratings.
+  const ratingScore = getAvgRating(player) * 10 * w.avgRating * ratingScale;
 
   // Discipline penalty — yellow and red cards hurt ranking
   const disciplineScore = -(player.yellowCards * BALLON_DOR_YELLOW_PENALTY + player.redCards * BALLON_DOR_RED_PENALTY) * w.discipline;
 
-  // Division tier bonus — higher divisions rewarded
+  // Division tier bonus — higher divisions rewarded (additive, on top of
+  // the counting-stat scale)
   const divisionScore = (BALLON_DOR_DIVISION_BONUS[divisionTier] ?? 0) * w.divisionTier;
 
   // Continental tournament bonus — deep runs in Champions Cup / Shield Cup
   const continentalScore = continentalBonus * w.continentalBonus;
 
+  // Trophy bonuses — silverware finally moves the needle.
+  // League title is on top of the existing sqrt teamPosition curve so
+  // champions clearly pull away from runners-up.
+  const leagueTitleScore = leagueTitleWon ? BALLON_DOR_LEAGUE_TITLE_BONUS * w.leagueTitle : 0;
+  const domesticCupScore = domesticCupWon ? BALLON_DOR_DOMESTIC_CUP_WIN_BONUS * w.domesticCup : 0;
+  const leagueCupScore = leagueCupWon ? BALLON_DOR_LEAGUE_CUP_WIN_BONUS * w.leagueCup : 0;
+  // International tournament — applied per-nationality so a Brazilian
+  // World Cup winner gets the bonus regardless of where their club plays.
+  const intlScore = intlTournamentBonus * w.intlTournament;
+
   return overallScore + goalScore + assistScore + appScore + formScore
-    + positionBonus + cleanSheetScore + ratingScore + disciplineScore + divisionScore + continentalScore;
+    + positionBonus + cleanSheetScore + ratingScore + disciplineScore + divisionScore + continentalScore
+    + leagueTitleScore + domesticCupScore + leagueCupScore + intlScore;
 }
 
 /**
@@ -153,6 +211,10 @@ export function getBallonDOrValueBoost(rank: number): number {
 /**
  * Calculate the Ballon d'Or top 25 for the season.
  * Returns the ranking entries and does NOT mutate any state.
+ *
+ * Trophy state (`cup`, `leagueCup`, `internationalTournament`) is optional —
+ * historic seasons from older saves may not carry it. Missing state is
+ * treated as "no trophy bonus" rather than throwing.
  */
 export function calculateBallonDOr(
   allPlayers: Player[],
@@ -162,6 +224,9 @@ export function calculateBallonDOr(
   championsCup?: ContinentalTournamentState | null,
   shieldCup?: ContinentalTournamentState | null,
   conferenceCup?: ContinentalTournamentState | null,
+  cup?: CupState | null,
+  leagueCup?: LeagueCupState | null,
+  internationalTournament?: InternationalTournamentState | null,
 ): BallonDOrEntry[] {
   // No ranking possible without league data or players
   if (leagueTable.length === 0 && Object.keys(divisionTables).length === 0) return [];
@@ -169,8 +234,9 @@ export function calculateBallonDOr(
 
   const totalTeams = leagueTable.length || 20;
 
-  // Build a lookup: clubId → league position, clean sheets, and division tier
-  const clubPositionMap: Record<string, { position: number; totalTeams: number; cleanSheets: number; divisionTier: number }> = {};
+  // Build a lookup: clubId → league position, clean sheets, division tier,
+  // and whether they won their division (1st place gets the league-title bonus).
+  const clubPositionMap: Record<string, { position: number; totalTeams: number; cleanSheets: number; divisionTier: number; wonLeague: boolean }> = {};
 
   // Map division IDs to quality tiers
   const divisionTierMap: Record<string, number> = {};
@@ -186,6 +252,7 @@ export function calculateBallonDOr(
       totalTeams,
       cleanSheets: entry.cleanSheets || 0,
       divisionTier: club ? (divisionTierMap[club.divisionId] ?? 4) : 4,
+      wonLeague: i === 0,
     };
   }
   // Also include other division tables
@@ -200,18 +267,36 @@ export function calculateBallonDOr(
           totalTeams: divTotal,
           cleanSheets: entry.cleanSheets || 0,
           divisionTier: club ? (divisionTierMap[club.divisionId] ?? 4) : 4,
+          wonLeague: i === 0,
         };
       }
     }
   }
 
-  // Score every player who made at least 5 appearances
+  const domesticCupWinnerId = cup?.winner || null;
+  const leagueCupWinnerId = leagueCup?.winner || null;
+
+  // Score every eligible player
   const scored = allPlayers
-    .filter(p => p.appearances >= 5 && p.clubId)
+    .filter(p => p.appearances >= BALLON_DOR_MIN_APPEARANCES && p.clubId)
     .map(p => {
-      const clubPos = clubPositionMap[p.clubId] || { position: 10, totalTeams: 20, cleanSheets: 0, divisionTier: 4 };
+      const clubPos = clubPositionMap[p.clubId] || { position: 10, totalTeams: 20, cleanSheets: 0, divisionTier: 4, wonLeague: false };
       const contBonus = getContinentalBonusForClub(p.clubId, championsCup || null, shieldCup || null, conferenceCup || null);
-      const score = calculatePlayerScore(p, clubPos.position, clubPos.totalTeams, clubPos.cleanSheets, clubPos.divisionTier, contBonus);
+      const domesticCupWon = p.clubId === domesticCupWinnerId;
+      const leagueCupWon = p.clubId === leagueCupWinnerId;
+      const intlBonus = getIntlTournamentBonusForNation(p.nationality, internationalTournament || null);
+      const score = calculatePlayerScore(
+        p,
+        clubPos.position,
+        clubPos.totalTeams,
+        clubPos.cleanSheets,
+        clubPos.divisionTier,
+        contBonus,
+        clubPos.wonLeague,
+        domesticCupWon,
+        leagueCupWon,
+        intlBonus,
+      );
       const club = clubs[p.clubId];
       const avgRating = Math.round(getAvgRating(p) * 10) / 10;
       return {

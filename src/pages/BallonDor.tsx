@@ -4,7 +4,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { PlayerCard } from '@/components/game/PlayerCard';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, ChevronUp, Trophy, Crown } from 'lucide-react';
+import { ChevronDown, ChevronUp, Trophy, Crown, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { darken, lighten } from '@/utils/colorUtils';
@@ -259,6 +259,50 @@ const RankingRow = ({ entry, index, isExpanded, onToggle, isPlayerClub }: {
   );
 };
 
+/** Liquid-glass panel showing the current reigning top-10 holders.
+ *  Always rendered when at least one player holds the BdO card — at game
+ *  start this is the seeded top 10, after season-end it's the latest cycle's
+ *  top 10. Cards are sorted by overall (desc) since rank from a prior season
+ *  doesn't necessarily map to current quality. */
+const ReigningHoldersPanel = ({ holders, onNavigate }: { holders: Player[]; onNavigate: (id: string) => void }) => (
+  <GlassPanel className="p-4 border-[hsl(43,96%,46%)]/25 relative overflow-hidden">
+    <motion.div
+      className="absolute inset-0 pointer-events-none"
+      style={{
+        background:
+          'radial-gradient(circle at 12% 0%, hsl(43,96%,46%,0.12), transparent 55%),' +
+          'radial-gradient(circle at 88% 100%, hsl(43,96%,46%,0.08), transparent 60%)',
+      }}
+      aria-hidden
+    />
+    <div className="relative z-10">
+      <div className="flex items-center gap-2 mb-3">
+        <Sparkles className="w-4 h-4 text-[hsl(43,96%,56%)]" />
+        <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-[hsl(43,96%,56%)]">
+          Reigning Top 10
+        </h3>
+        <span className="ml-auto text-[10px] text-muted-foreground">{holders.length} active</span>
+      </div>
+      <p className="text-xs text-muted-foreground mb-3">
+        Carrying the Ballon d'Or card and a stats boost until the next ceremony.
+      </p>
+      <div className="grid grid-cols-3 gap-2">
+        {holders.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => onNavigate(p.id)}
+            className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 rounded-xl"
+            aria-label={`${p.firstName} ${p.lastName}, ${p.overall} overall — view details`}
+          >
+            <PlayerCard player={p} size="sm" interactive="none" compact />
+          </button>
+        ))}
+      </div>
+    </div>
+  </GlassPanel>
+);
+
 const BallonDor = () => {
   const { seasonHistory, playerClubId, clubs, previousScreen, players } = useGameStore(useShallow(s => ({
     seasonHistory: s.seasonHistory,
@@ -279,6 +323,14 @@ const BallonDor = () => {
     [seasonHistory],
   );
 
+  // Current reigning top-10 holders — derived from the live `players` map so
+  // it stays accurate after retirements/transfers between ceremonies.
+  const reigningHolders = useMemo(() => {
+    return Object.values(players)
+      .filter(p => typeof p.ballonDOrTop10HoldSeason === 'number' && p.clubId)
+      .sort((a, b) => b.overall - a.overall);
+  }, [players]);
+
   const activeSeason = selectedSeason ?? seasonsWithData[0]?.season ?? null;
   const activeData = seasonsWithData.find(h => h.season === activeSeason);
   const ranking = activeData?.ballonDOrRanking || [];
@@ -294,15 +346,24 @@ const BallonDor = () => {
 
   if (seasonsWithData.length === 0) {
     return (
-      <div className="max-w-lg mx-auto px-4 py-8 text-center space-y-3">
-        <Trophy className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
-        <p className="text-muted-foreground">
-          The Ballon d'Or ceremony takes place at the end of each season.
-        </p>
-        <p className="text-xs text-muted-foreground">
-          Complete a full season to see the top 25 players ranked.
-        </p>
-        <Button variant="secondary" onClick={() => setScreen(previousScreen || 'dashboard')}>Back</Button>
+      <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="text-center"
+        >
+          <h2 className="text-xl font-black text-foreground font-display">Ballon d'Or</h2>
+          <p className="text-xs text-muted-foreground mt-1">
+            Complete a full season to see the next top 25 ranked.
+          </p>
+        </motion.div>
+        {reigningHolders.length > 0 && (
+          <ReigningHoldersPanel holders={reigningHolders} onNavigate={navigateToPlayer} />
+        )}
+        <div className="text-center">
+          <Button variant="secondary" onClick={() => setScreen(previousScreen || 'dashboard')}>Back</Button>
+        </div>
       </div>
     );
   }
@@ -343,6 +404,11 @@ const BallonDor = () => {
           The 25 best players of the season
         </p>
       </motion.div>
+
+      {/* Reigning top-10 — visible whenever any player still holds the card */}
+      {reigningHolders.length > 0 && (
+        <ReigningHoldersPanel holders={reigningHolders} onNavigate={navigateToPlayer} />
+      )}
 
       {/* Winner spotlight */}
       {winner && (

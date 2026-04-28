@@ -3,6 +3,7 @@ import { LEAGUES, getLeaguesByCountry, generateDivisionFixtures, ALL_CLUBS } fro
 import { generateSquad, selectBestLineup, expandAbbreviatedFirstName } from '@/utils/playerGen';
 import { autoFillBestTeam } from '@/utils/autoFillLineup';
 import { NATIONS } from '@/data/nations';
+import { getPlayerRarity, getRarityValueMultiplier, getRarityWageMultiplier } from '@/utils/playerRarity';
 import type { Club, Player, FormationType } from '@/types/game';
 /**
  * Save migration system for Dynasty Manager.
@@ -10,7 +11,7 @@ import type { Club, Player, FormationType } from '@/types/game';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 66;
+const CURRENT_VERSION = 67;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -1051,6 +1052,45 @@ const migrations: Record<number, MigrationFn> = {
       staff: upgradedStaff,
       youthAcademy: upgradedYouth,
       ...(upgradedMerch ? { merchandise: upgradedMerch } : {}),
+    };
+  },
+
+  // v66 → v67: Player rarity tier rebalance.
+  //   - Adds `rarity` field on every Player, derived from current overall +
+  //     ballonDOrPlacements (legend = OVR ≥ 90 + Ballon d'Or pedigree, etc).
+  //   - Recomputes value/wage with the new rarity multiplier so existing
+  //     legends become more valuable on first load (matches new generation).
+  //   - Refines the VALUE_AGE_MULTIPLIERS curve — peak window 24-28, sharper
+  //     drop after 32. The recomputation here doesn't apply the new age curve
+  //     to value (that happens naturally via `applyPlayerDevelopment` next
+  //     week), so the migration is conservative: it only adds rarity and
+  //     scales current value/wage by the new rarity multiplier.
+  66: (data) => {
+    const players = data.players as Record<string, Player> | undefined;
+    let upgradedPlayers = players;
+    if (players && typeof players === 'object') {
+      upgradedPlayers = {};
+      for (const [id, p] of Object.entries(players)) {
+        if (!p || typeof p !== 'object') {
+          upgradedPlayers[id] = p;
+          continue;
+        }
+        const next: Player = { ...p };
+        next.rarity = getPlayerRarity(next);
+        const valueMult = getRarityValueMultiplier(next.rarity);
+        const wageMult = getRarityWageMultiplier(next.rarity);
+        // Only inflate — never deflate — to keep the migration safe for old
+        // saves where value/wage might already include third-party tweaks.
+        if (valueMult > 1) next.value = Math.round((next.value || 0) * valueMult);
+        if (wageMult > 1) next.wage = Math.round((next.wage || 0) * wageMult);
+        upgradedPlayers[id] = next;
+      }
+    }
+
+    return {
+      ...data,
+      version: 67,
+      ...(upgradedPlayers ? { players: upgradedPlayers } : {}),
     };
   },
 

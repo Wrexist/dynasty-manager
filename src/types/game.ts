@@ -101,6 +101,35 @@ export interface PlayerPersonality {
 
 export type PersonalityLabel = 'Model Professional' | 'Born Leader' | 'Club Legend' | 'Maverick' | 'Loyal Servant' | 'Steady Hand' | 'Hot Head' | 'Enigma' | 'Ambitious' | 'Laid Back' | 'Determined';
 
+/**
+ * Player rarity tier — derived from overall rating + Ballon d'Or pedigree.
+ *  - `legend`: world-class superstar with sustained award-winning form (OVR ≥ 90 + Ballon d'Or pedigree, or OVR ≥ 93)
+ *  - `icon`:   elite superstar (OVR ≥ 88) — recognised globally, premium wage and value
+ *  - `star`:   established first-team-quality at top level (OVR ≥ 82)
+ *  - `rare`:   solid professional, regular starter (OVR ≥ 75)
+ *  - `common`: rotation player or below (OVR < 75)
+ *
+ * Legend and icon tiers carry permanent value/wage premiums and trigger hype
+ * effects (walkout animations, special badges). The tier is recomputed on
+ * every meaningful overall change (development, training, decline, awards).
+ */
+export type PlayerRarity = 'common' | 'rare' | 'star' | 'icon' | 'legend';
+
+/** Resolved tier/Ballon-d'Or shield artwork for the player-card background. */
+export interface PlayerCardArt {
+  src: string;
+  filter?: string;
+}
+
+/** Options for {@link PlayerCardArt} resolution — currently only the
+ *  Ballon d'Or top-10 override, which outranks every overall-based tier. */
+export interface PlayerCardArtOptions {
+  /** When true, return the Ballon d'Or top-10 card instead of the tier shield.
+   *  Set this for players whose `ballonDOrTop10HoldSeason` is the current
+   *  reigning season — see src/utils/ballonDorBoost.ts for the lifecycle. */
+  ballonDorTop10?: boolean;
+}
+
 // ── Injury System ──
 export type InjuryType = 'knock' | 'muscle_strain' | 'hamstring' | 'ligament' | 'fracture' | 'concussion' | 'acl';
 export type InjurySeverity = 'minor' | 'moderate' | 'severe';
@@ -177,6 +206,24 @@ export interface Player {
   fcId?: string;
   heightCm?: number;
   weightKg?: number;
+  /** Rarity tier — see `PlayerRarity`. Recomputed whenever overall changes. */
+  rarity?: PlayerRarity;
+  /**
+   * Season in which the player most recently finished in the Ballon d'Or
+   * top 10. While set, the player is the reigning top-10 holder — they
+   * carry a stats boost and the special `ballondor.png` card. The marker is
+   * refreshed each season they re-make the top 10, and cleared at next
+   * season-end if they drop out (along with reverting the stats boost).
+   */
+  ballonDOrTop10HoldSeason?: number;
+  /**
+   * Per-attribute deltas applied by the active Ballon d'Or top-10 boost.
+   * Stored as deltas (not absolute snapshots) so development, training, and
+   * decline that happen *during* the reign are preserved when the boost is
+   * reverted — we just subtract these numbers and the rest of the player's
+   * progression stays intact.
+   */
+  ballonDOrTop10BoostDeltas?: Partial<PlayerAttributes>;
 }
 
 export interface PlayerAppearance {

@@ -104,8 +104,11 @@ export const SCREEN_GROUPS: GameScreen[][] = [
 export const PINNED_DRAWER_SCREENS: GameScreen[] = ['inbox', 'league-table', 'calendar', 'help'];
 
 // Minimum season required before certain drawer items become visible (progressive disclosure)
+// Ballon d'Or is visible from season 1 because the world starts with reigning
+// top-10 holders carrying the special card — players can browse them before
+// completing their first season.
 export const DRAWER_PROGRESSIVE_SCREENS: Partial<Record<GameScreen, number>> = {
-  'ballon-dor': 2,
+  'ballon-dor': 1,
   'hall-of-managers': 2,
   'comparison': 2,
 };

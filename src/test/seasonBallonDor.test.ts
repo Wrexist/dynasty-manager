@@ -20,6 +20,9 @@ import {
 import type {
   Club,
   ContinentalTournamentState,
+  CupState,
+  InternationalTournamentState,
+  LeagueCupState,
   LeagueTableEntry,
   Player,
 } from '@/types/game';
@@ -111,7 +114,7 @@ describe('calculateBallonDOr — basic invariants', () => {
     expect(ranking.length).toBe(BALLON_DOR_TOP_N);
   });
 
-  it('excludes players with fewer than 5 appearances', () => {
+  it('excludes players below BALLON_DOR_MIN_APPEARANCES', () => {
     const { clubs, table, players } = smallScenario();
     const ranking = calculateBallonDOr(players, clubs, table, {});
     expect(ranking.find(e => e.playerId === 'rare')).toBeUndefined();
@@ -248,6 +251,43 @@ describe('calculateBallonDOr — modifiers', () => {
     expect(clean.score).toBeGreaterThan(dirty.score);
   });
 
+  it('division counting scale — tier-1 striker outranks tier-4 striker with MORE goals', () => {
+    // The whole point of the v68 tier-scaling rebalance: a 25-goal Premier
+    // League striker should beat a 35-goal Foundation League striker. Pre-
+    // rebalance, the T4 player would have won outright (goals × 3.0 ×
+    // posMult had no division scaling).
+    const clubs = clubsMap([
+      buildClub({ id: 'top', shortName: 'TOP', divisionId: 'eng' }),    // qualityTier 1
+      buildClub({ id: 'low', shortName: 'LOW', divisionId: 'eng-4' }),  // qualityTier 4
+    ]);
+    const table = buildOrderedTable(['top', 'low']);
+    const players: Player[] = [
+      buildPlayer({ id: 't1-elite', clubId: 'top', position: 'ST', overall: 88, goals: 25, assists: 8, appearances: 32, age: 27 }),
+      buildPlayer({ id: 't4-scorer', clubId: 'low', position: 'ST', overall: 78, goals: 35, assists: 10, appearances: 32, age: 27 }),
+    ];
+    const ranking = calculateBallonDOr(players, clubs, table, {});
+    const t1 = ranking.find(e => e.playerId === 't1-elite')!;
+    const t4 = ranking.find(e => e.playerId === 't4-scorer')!;
+    expect(t1.score).toBeGreaterThan(t4.score);
+  });
+
+  it('overall-rating weight — high-OVR player ranks above low-OVR with similar counting stats', () => {
+    // Bumping `BALLON_DOR_WEIGHTS.overall` 1.5 → 2.0 means a 90-rated
+    // striker with 20 goals beats a 75-rated striker with the same 20.
+    const clubs = clubsMap([buildClub({ id: 'a', shortName: 'A', divisionId: 'eng' })]);
+    const table = buildOrderedTable(['a']);
+    const players: Player[] = [
+      buildPlayer({ id: 'elite', clubId: 'a', position: 'ST', overall: 90, goals: 20, assists: 6, appearances: 30, age: 27 }),
+      buildPlayer({ id: 'rotation', clubId: 'a', position: 'ST', overall: 75, goals: 20, assists: 6, appearances: 30, age: 27 }),
+    ];
+    const ranking = calculateBallonDOr(players, clubs, table, {});
+    const elite = ranking.find(e => e.playerId === 'elite')!;
+    const rotation = ranking.find(e => e.playerId === 'rotation')!;
+    expect(elite.score).toBeGreaterThan(rotation.score);
+    // Rotation player should still be ranked (eligible) — just behind.
+    expect(rotation.rank).toBeGreaterThan(elite.rank);
+  });
+
   it('continental bonus rewards Champions Cup winner over non-participant', () => {
     const clubs = clubsMap([
       buildClub({ id: 'eu', shortName: 'EU', divisionId: 'eng', reputation: 5 }),
@@ -273,5 +313,106 @@ describe('calculateBallonDOr — modifiers', () => {
     const winner = ranking.find(e => e.playerId === 'eu-star')!;
     const nonEu = ranking.find(e => e.playerId === 'neu-star')!;
     expect(winner.score).toBeGreaterThan(nonEu.score);
+  });
+
+  // ── Trophy bonuses ──────────────────────────────────────────────────
+
+  it('league title — champions outrank otherwise-identical 2nd-placed players', () => {
+    const clubs = clubsMap([
+      buildClub({ id: 'champ', shortName: 'CMP', divisionId: 'eng', reputation: 5 }),
+      buildClub({ id: 'second', shortName: 'SEC', divisionId: 'eng', reputation: 5 }),
+    ]);
+    const table = buildOrderedTable(['champ', 'second']);
+    const players: Player[] = [
+      buildPlayer({ id: 'champ-star', clubId: 'champ', position: 'ST', overall: 85, goals: 22, assists: 8, appearances: 30, age: 27 }),
+      buildPlayer({ id: 'second-star', clubId: 'second', position: 'ST', overall: 85, goals: 22, assists: 8, appearances: 30, age: 27 }),
+    ];
+    const ranking = calculateBallonDOr(players, clubs, table, {});
+    const champ = ranking.find(e => e.playerId === 'champ-star')!;
+    const second = ranking.find(e => e.playerId === 'second-star')!;
+    // sqrt position curve already favours the champion; the league-title
+    // bonus widens the gap further. Assert a meaningful margin (≥10).
+    expect(champ.score - second.score).toBeGreaterThanOrEqual(10);
+  });
+
+  it('domestic cup win adds a meaningful trophy bonus', () => {
+    const clubs = clubsMap([
+      buildClub({ id: 'cupwin', shortName: 'CUP', divisionId: 'eng', reputation: 5 }),
+      buildClub({ id: 'cuploss', shortName: 'CL', divisionId: 'eng', reputation: 5 }),
+    ]);
+    const table = buildOrderedTable(['cupwin', 'cuploss']);
+    const players: Player[] = [
+      buildPlayer({ id: 'cup-hero', clubId: 'cupwin', position: 'CM', overall: 82, goals: 12, assists: 14, appearances: 30, age: 26 }),
+      buildPlayer({ id: 'no-cup', clubId: 'cuploss', position: 'CM', overall: 82, goals: 12, assists: 14, appearances: 30, age: 26 }),
+    ];
+    const cup: CupState = { ties: [], currentRound: null, eliminated: false, winner: 'cupwin' };
+    // Empty division-tables param + cup state passed through.
+    const ranking = calculateBallonDOr(players, clubs, table, {}, undefined, undefined, undefined, cup);
+    const hero = ranking.find(e => e.playerId === 'cup-hero')!;
+    const noCup = ranking.find(e => e.playerId === 'no-cup')!;
+    expect(hero.score).toBeGreaterThan(noCup.score);
+  });
+
+  it('league cup win adds a smaller trophy bonus than the main domestic cup', () => {
+    // Put a neutral club at 1st so neither cup-winner picks up the
+    // league-title bonus — we're isolating the FA-vs-League-cup gap.
+    const clubs = clubsMap([
+      buildClub({ id: 'champ', shortName: 'CHP', divisionId: 'eng', reputation: 5 }),
+      buildClub({ id: 'lcwin', shortName: 'LCW', divisionId: 'eng', reputation: 5 }),
+      buildClub({ id: 'fawin', shortName: 'FAW', divisionId: 'eng', reputation: 5 }),
+    ]);
+    // Pad the table so both winners share a non-1st position bracket; the
+    // FA winner needs the higher table slot to isolate the cup-vs-cup gap.
+    const table = buildOrderedTable(['champ', 'fawin', 'lcwin']);
+    const players: Player[] = [
+      buildPlayer({ id: 'lc', clubId: 'lcwin', position: 'CM', overall: 82, goals: 10, assists: 10, appearances: 30, age: 26 }),
+      buildPlayer({ id: 'fa', clubId: 'fawin', position: 'CM', overall: 82, goals: 10, assists: 10, appearances: 30, age: 26 }),
+    ];
+    const cup: CupState = { ties: [], currentRound: null, eliminated: false, winner: 'fawin' };
+    const leagueCup: LeagueCupState = { ties: [], currentRound: null, eliminated: false, winner: 'lcwin' };
+    const ranking = calculateBallonDOr(
+      players, clubs, table, {}, undefined, undefined, undefined, cup, leagueCup,
+    );
+    const fa = ranking.find(e => e.playerId === 'fa')!;
+    const lc = ranking.find(e => e.playerId === 'lc')!;
+    expect(fa.score).toBeGreaterThan(lc.score);
+  });
+
+  it('international tournament — World Cup winner gets the headline bonus', () => {
+    const clubs = clubsMap([
+      buildClub({ id: 'a', shortName: 'A', divisionId: 'eng', reputation: 5 }),
+      buildClub({ id: 'b', shortName: 'B', divisionId: 'eng', reputation: 5 }),
+    ]);
+    const table = buildOrderedTable(['a', 'b']);
+    const players: Player[] = [
+      buildPlayer({ id: 'wc-winner', nationality: 'Brazil', clubId: 'a', position: 'ST', overall: 85, goals: 18, assists: 6, appearances: 30, age: 27 }),
+      buildPlayer({ id: 'no-wc', nationality: 'England', clubId: 'b', position: 'ST', overall: 85, goals: 18, assists: 6, appearances: 30, age: 27 }),
+    ];
+    const intl: InternationalTournamentState = {
+      type: 'world-cup',
+      name: 'World Cup',
+      season: 1,
+      phase: 'complete',
+      groups: [
+        { name: 'A', teams: ['Brazil', 'England'], fixtures: [], table: [] },
+      ],
+      knockoutTies: [
+        { id: 't1', round: 'F', homeNation: 'Brazil', awayNation: 'France', played: true, homeGoals: 1, awayGoals: 0, week: 50, winnerId: 'Brazil' },
+        { id: 't2', round: 'R16', homeNation: 'England', awayNation: 'Spain', played: true, homeGoals: 0, awayGoals: 1, week: 47, winnerId: 'Spain' },
+      ],
+      currentRound: null,
+      playerEliminated: false,
+      winner: 'Brazil',
+      currentWeek: 52,
+      squadConfirmed: true,
+    };
+    const ranking = calculateBallonDOr(
+      players, clubs, table, {}, undefined, undefined, undefined, undefined, undefined, intl,
+    );
+    const winner = ranking.find(e => e.playerId === 'wc-winner')!;
+    const loser = ranking.find(e => e.playerId === 'no-wc')!;
+    // Brazil wins → +60. England exits R16 → +5. That's a 55-point swing,
+    // dwarfing other modifiers when counting stats are equal.
+    expect(winner.score - loser.score).toBeGreaterThanOrEqual(40);
   });
 });

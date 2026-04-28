@@ -1,8 +1,8 @@
 import type { Club, Player, PlayerAttributes, Position, PackTierKey, PackRarityWeights } from '@/types/game';
 import { generatePlayer, calculateOverall } from '@/utils/playerGen';
 import { pick, clamp } from '@/utils/helpers';
-import { calculatePlayerValue, calculatePlayerWage } from '@/config/playerGeneration';
 import { MAX_SQUAD_SIZE } from '@/config/gameBalance';
+import { recomputeDerivedEconomics } from '@/utils/playerEconomics';
 import {
   PACK_TIER_MAP,
   PACK_POSITION_POOL,
@@ -95,9 +95,9 @@ function rollPackPlayer(
   }
   player.overall = clamp(derived, lo, hi);
 
-  // Wage/value derive from the final overall.
-  player.wage = calculatePlayerWage(player.overall);
-  player.value = calculatePlayerValue(player.overall);
+  // Pack-pulled players run through the shared economics helper so the
+  // walkout reveal carries the right rarity/value/wage premium.
+  recomputeDerivedEconomics(player);
   // Potential floors at overall — never below.
   if (player.potential < player.overall) player.potential = player.overall;
   return player;
@@ -219,8 +219,7 @@ export function generateAiCounterSignings(
       derived = calculateOverall(player.attributes, player.position);
     }
     player.overall = clamp(derived, floor, ceiling);
-    player.wage = calculatePlayerWage(player.overall);
-    player.value = calculatePlayerValue(player.overall);
+    recomputeDerivedEconomics(player);
     if (player.potential < player.overall) player.potential = player.overall;
     player.joinedSeason = season;
     perClub[club.id] = [player];

@@ -17,7 +17,7 @@ import {
   STREAK_THRESHOLDS, STREAK_MULTIPLIERS, STREAK_MAX,
   FITNESS_ZONE_GREEN, FITNESS_ZONE_YELLOW,
 } from '@/config/training';
-import { calculatePlayerValue } from '@/config/playerGeneration';
+import { recomputePlayerValueOnly } from '@/utils/playerEconomics';
 import { seasonGrowthTracker } from '@/store/helpers/development';
 import { MAX_SEASON_GROWTH, RECOVERY_FITNESS_BONUS_PER_LEVEL } from '@/config/gameBalance';
 
@@ -135,7 +135,10 @@ export function applyWeeklyTraining(
   const finalOverall = calculateOverall(updated.attributes, updated.position);
   updated.growthDelta = finalOverall - player.overall;
   updated.overall = finalOverall;
-  updated.value = calculatePlayerValue(updated.overall);
+  // Single-helper recompute keeps training pricing identical to development,
+  // packs, and transfers. Wage stays put — training tweaks attributes, not
+  // contract terms (those run through the contracts flow).
+  recomputePlayerValueOnly(updated);
 
   const additionalGrowth = Math.max(0, finalOverall - teamOverall);
   if (additionalGrowth > 0) {

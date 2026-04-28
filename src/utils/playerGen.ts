@@ -2,10 +2,10 @@ import { Player, Position, PlayerAttributes, FormationType, FORMATION_POSITIONS,
 import { generatePersonality } from '@/utils/personality';
 import { pick, clamp } from '@/utils/helpers';
 import { generatePlayerAppearance } from '@/config/playerAppearance';
+import { recomputeDerivedEconomics, recomputePlayerValueOnly } from '@/utils/playerEconomics';
 import {
   PLAYER_MIN_AGE, PLAYER_AGE_RANGE, YOUNG_AGE_THRESHOLD, YOUNG_POTENTIAL_GAP, OLD_POTENTIAL_GAP,
   PROFILE_ATTRIBUTE_VARIANCE, POSITION_WEIGHTS as CONFIG_POSITION_WEIGHTS, DEFAULT_POSITION_WEIGHTS,
-  calculatePlayerValue, calculatePlayerWage,
   CONTRACT_BASE_YEARS, CONTRACT_RANDOM_YEARS,
   FITNESS_BASE, FITNESS_RANGE, MORALE_BASE, MORALE_RANGE, FORM_BASE, FORM_RANGE,
   SQUAD_TEMPLATE as CONFIG_SQUAD_TEMPLATE, AGE_BUCKETS as CONFIG_AGE_BUCKETS, PEAK_AGE_BUCKET,
@@ -190,11 +190,10 @@ export function generatePlayer(position: Position, quality: number, clubId: stri
   const overall = calculateOverall(attrs, position);
   const age = PLAYER_MIN_AGE + Math.floor(Math.random() * PLAYER_AGE_RANGE);
   const potential = clamp(overall + Math.floor(Math.random() * (age < YOUNG_AGE_THRESHOLD ? YOUNG_POTENTIAL_GAP : OLD_POTENTIAL_GAP)));
-  const value = calculatePlayerValue(overall);
   const leagueKey = typeof divisionTier === 'string' ? divisionTier : undefined;
   const nationality = pickNationality(leagueKey);
   const { firstName, lastName } = pickNameForNationality(nationality);
-  return {
+  const player: Player = {
     id: crypto.randomUUID(),
     firstName,
     lastName,
@@ -205,8 +204,9 @@ export function generatePlayer(position: Position, quality: number, clubId: stri
     overall,
     potential,
     clubId,
-    wage: calculatePlayerWage(overall),
-    value,
+    wage: 0,
+    value: 0,
+    rarity: undefined,
     contractEnd: season + CONTRACT_BASE_YEARS + Math.floor(Math.random() * CONTRACT_RANDOM_YEARS),
     fitness: FITNESS_BASE + Math.floor(Math.random() * FITNESS_RANGE),
     morale: MORALE_BASE + Math.floor(Math.random() * MORALE_RANGE),
@@ -226,6 +226,10 @@ export function generatePlayer(position: Position, quality: number, clubId: stri
     skillMoves: pickWeightedSkillMoves(),
     joinedSeason: season,
   };
+  // Single source of truth for rarity/value/wage — keeps generated players
+  // in sync with development, training, and pack pricing models.
+  recomputeDerivedEconomics(player);
+  return player;
 }
 
 /** Weighted random skill moves: 1★ 15%, 2★ 40%, 3★ 30%, 4★ 12%, 5★ 3% */
@@ -337,8 +341,9 @@ export function buildPlayerFromTemplate(
     player.heightCm,
     player.weightKg,
   );
-  player.value = calculatePlayerValue(player.overall);
-  player.wage = calculatePlayerWage(player.overall);
+  // Real-template stars (OVR ≥ 88) inherit Icon/Legend rarity automatically
+  // via the shared economics helper — same pricing model as generated players.
+  recomputeDerivedEconomics(player);
   return player;
 }
 
@@ -447,7 +452,9 @@ export function generateSquad(clubId: string, quality: number, season: number, d
     }
     const starPotGap = Math.round((3 + Math.floor(Math.random() * 5)) * scale);
     star.potential = clamp(Math.max(star.overall + starPotGap, star.potential), 1, GENERATED_PLAYER_POTENTIAL_CAP);
-    star.value = calculatePlayerValue(star.overall);
+    // Boost paths refresh value only (wage stays at the generatePlayer roll)
+    // so the Math.random() sequence matches the historical squad-gen pattern.
+    recomputePlayerValueOnly(star);
 
     const veterans = proceduralFillers.filter(p => p.age >= 30 && p !== star);
     if (veterans.length > 0) {
@@ -470,7 +477,7 @@ export function generateSquad(clubId: string, quality: number, season: number, d
         vet.overall = calculateOverall(vetAttrs, vet.position);
       }
       vet.potential = vet.overall;
-      vet.value = calculatePlayerValue(vet.overall);
+      recomputePlayerValueOnly(vet);
       if (vet.personality) vet.personality.leadership = Math.max(vet.personality.leadership, 16);
     }
   }

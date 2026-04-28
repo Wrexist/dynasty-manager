@@ -61,6 +61,11 @@ export function calculateWageDemand(player: Player, clubReputation: number): num
   // Club reputation: bigger clubs = higher wage expectations
   const repFactor = 1 + clubReputation * CONTRACT_REP_MULTIPLIER;
 
+  // NOTE: rarity premium is already baked into `player.wage` at generation
+  // and migration time, so `baseDemand` already carries it. Don't multiply
+  // again here — that would square the premium for legends/icons and make
+  // contract renewals impossibly expensive.
+
   const demand = Math.round(baseDemand * ageFactor * qualityFactor * formFactor * moraleFactor * repFactor);
   // Round to nearest 1000 so demands align with the UI slider step
   const rounded = Math.round(demand / 1000) * 1000;
