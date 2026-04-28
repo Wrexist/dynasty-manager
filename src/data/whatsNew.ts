@@ -73,6 +73,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Promotion and relegation banners now read with serious cinematic weight.',
       'Trophy Cabinet empty shelves swap a dashed placeholder for a soft gold halo.',
       'Match Day, LIVE and Pro badges now glow on the surface they sit on.',
+      'Tactics page now opens advanced instructions by default and the Starting XI rating card is slimmer with a refined Liquid Glass look.',
     ],
     fixed: [],
   },
