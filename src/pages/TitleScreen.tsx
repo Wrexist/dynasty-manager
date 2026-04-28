@@ -14,6 +14,7 @@ import { errorToast } from '@/utils/gameToast';
 import { hapticMedium, hapticLight } from '@/utils/haptics';
 import {
   readCommunityPackSlotPref,
+  writeCommunityPackSlotPref,
   clearCommunityPackSlotPref,
   isSaveStorageHydrated,
   getFlag,

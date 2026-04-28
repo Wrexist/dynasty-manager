@@ -1216,23 +1216,36 @@ const MatchDayInner = () => {
         <>
           {paused ? (
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.2 }}>
-              <GlassPanel className="p-4 border-primary/40 space-y-3">
-                <div className="flex items-center gap-2">
-                  <Pause className="w-4 h-4 text-primary" />
-                  <p className="text-sm font-bold text-foreground">Match Paused — {currentMin}'</p>
+              <GlassPanel className="p-4 border-primary/40 space-y-4">
+                {/* Header — centered with thin divider for a calmer pause moment */}
+                <div className="flex flex-col items-center gap-1 pb-3 border-b border-border/30">
+                  <div className="flex items-center gap-2">
+                    <Pause className="w-4 h-4 text-primary" />
+                    <p className="text-sm font-bold text-foreground tracking-wide">Match Paused</p>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground tabular-nums">{currentMin}'</p>
                 </div>
 
-                <TacticalPanel variant="compact" tactics={tactics} setTactics={setTactics} />
+                {/* Tactical sliders — same Liquid Glass control as the Tactics page */}
+                <div className="space-y-2">
+                  <p className="text-[10px] text-muted-foreground/80 uppercase tracking-wider font-semibold">Adjustments</p>
+                  <TacticalPanel variant="compact" tactics={tactics} setTactics={setTactics} />
+                </div>
 
-                {/* In-Match Formation Switch */}
-                <FormationPicker />
+                {/* Formation */}
+                <div className="space-y-2">
+                  <p className="text-[10px] text-muted-foreground/80 uppercase tracking-wider font-semibold">Formation</p>
+                  <FormationPicker />
+                </div>
 
+                {/* Primary action — substitution */}
                 {matchSubsUsed < MAX_SUBSTITUTIONS && (
                   <button
                     onClick={() => setSubSheetOpen(true)}
-                    className="w-full py-2 rounded-lg bg-muted/30 text-xs text-muted-foreground hover:bg-muted/50 flex items-center justify-center gap-1.5"
+                    className="w-full py-2.5 rounded-xl bg-primary/15 hover:bg-primary/25 border border-primary/30 text-primary text-sm font-semibold flex items-center justify-center gap-2 active:scale-[0.985] transition-all"
                   >
-                    <RefreshCw className="w-3 h-3" /> Make Substitution ({MAX_SUBSTITUTIONS - matchSubsUsed} left)
+                    <RefreshCw className="w-4 h-4" /> Make Substitution
+                    <span className="text-[10px] font-medium opacity-70">({MAX_SUBSTITUTIONS - matchSubsUsed} left)</span>
                   </button>
                 )}
 
@@ -1343,9 +1356,9 @@ const MatchDayInner = () => {
                   )}
                 </div>
 
-                <div className="flex gap-2">
-                  <Button size="sm" className="flex-1" onClick={handleResume}>
-                    <Play className="w-3.5 h-3.5 mr-1.5" /> Resume
+                <div className="flex gap-2 pt-1">
+                  <Button className="flex-1 h-11 text-sm font-bold gap-2" onClick={handleResume}>
+                    <Play className="w-4 h-4" /> Resume
                   </Button>
                   <button
                     onClick={() => {
@@ -1354,7 +1367,7 @@ const MatchDayInner = () => {
                       const next = available[(idx + 1) % available.length];
                       setSpeed(next.value);
                     }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-muted/40 text-foreground hover:bg-muted/60 border border-border/30 transition-all"
+                    className="flex items-center gap-1.5 px-4 h-11 rounded-xl text-xs font-semibold bg-muted/40 text-foreground hover:bg-muted/60 border border-border/30 transition-all"
                   >
                     <FastForward className="w-3.5 h-3.5" /> {MATCH_SPEEDS.find(s => s.value === speed)?.label ?? 'Normal'}
                   </button>
