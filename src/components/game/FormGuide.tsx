@@ -6,11 +6,27 @@ interface FormGuideProps {
   className?: string;
 }
 
-const FORM_COLORS = {
-  W: 'bg-emerald-500',
-  D: 'bg-amber-500',
-  L: 'bg-destructive',
-} as const;
+// Premium pips: vertical gradient + inner highlight + tinted glow.
+const FORM_STYLE: Record<'W' | 'D' | 'L', React.CSSProperties> = {
+  W: {
+    background: 'linear-gradient(180deg, #6EE7B7 0%, #10B981 55%, #047857 100%)',
+    boxShadow:
+      'inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -1px 0 rgba(0,0,0,0.25), 0 0 6px rgba(16,185,129,0.55)',
+    textShadow: '0 1px 1px rgba(0,0,0,0.45)',
+  },
+  D: {
+    background: 'linear-gradient(180deg, #FDE68A 0%, #F59E0B 55%, #B45309 100%)',
+    boxShadow:
+      'inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(0,0,0,0.25), 0 0 6px rgba(245,158,11,0.5)',
+    textShadow: '0 1px 1px rgba(0,0,0,0.45)',
+  },
+  L: {
+    background: 'linear-gradient(180deg, #FCA5A5 0%, #E11D48 55%, #9F1239 100%)',
+    boxShadow:
+      'inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -1px 0 rgba(0,0,0,0.25), 0 0 6px rgba(225,29,72,0.55)',
+    textShadow: '0 1px 1px rgba(0,0,0,0.45)',
+  },
+};
 
 const SIZE_CLASSES = {
   sm: 'w-3.5 h-3.5 text-[8px]',
@@ -25,10 +41,10 @@ export function FormGuide({ form, size = 'default', className }: FormGuideProps)
         <span
           key={i}
           className={cn(
-            'rounded-full flex items-center justify-center font-bold text-white',
+            'rounded-full inline-flex items-center justify-center font-bold text-white leading-none',
             SIZE_CLASSES[size],
-            FORM_COLORS[r]
           )}
+          style={FORM_STYLE[r]}
         >
           {r}
         </span>

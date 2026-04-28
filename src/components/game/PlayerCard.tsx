@@ -368,12 +368,16 @@ export const PlayerCard = memo(function PlayerCard({
                 style={{ top: '61%', paddingLeft: tk.paddingXPx * 0.4, paddingRight: tk.paddingXPx * 0.4 }}
               >
                 <div
-                  className="h-[2px] w-full rounded-full bg-black/60 overflow-hidden shadow-[0_0_2px_rgba(0,0,0,0.8)]"
+                  className="h-[2px] w-full rounded-full bg-black/65 overflow-hidden shadow-[inset_0_0_0_0.5px_rgba(255,255,255,0.06),0_0_2px_rgba(0,0,0,0.8)]"
                   aria-label={`Fitness ${player.fitness}%`}
                 >
                   <div
-                    className="h-full"
-                    style={{ width: `${Math.max(0, Math.min(100, player.fitness))}%`, backgroundColor: fitnessColor }}
+                    className="h-full rounded-full"
+                    style={{
+                      width: `${Math.max(0, Math.min(100, player.fitness))}%`,
+                      background: `linear-gradient(180deg, color-mix(in srgb, ${fitnessColor} 55%, white) 0%, ${fitnessColor} 60%, color-mix(in srgb, ${fitnessColor} 75%, black) 100%)`,
+                      boxShadow: `0 0 4px ${fitnessColor}99, inset 0 1px 0 rgba(255,255,255,0.35)`,
+                    }}
                   />
                 </div>
               </div>
