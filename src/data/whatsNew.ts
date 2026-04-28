@@ -92,6 +92,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
     fixed: [
       'Hall of Managers no longer breaks if stored data is invalid.',
       'Picking \'Use Generated Players\' now keeps real-world ratings and squad shape but renames every player to a plausible alias from the same nationality — no more recognisable names if you opted out.',
+      'Releasing a player now also clears any pending offers and listings for them, so old bids can\'t accidentally pay out for someone who is already a free agent.',
     ],
   },
   {
