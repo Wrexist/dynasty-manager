@@ -9,7 +9,7 @@ import { Dumbbell, GraduationCap, Stethoscope, RefreshCw, ArrowUp, Clock, Trendi
 import { cn } from '@/lib/utils';
 import { FACILITY_COST_PER_LEVEL, FACILITY_BASE_UPGRADE_WEEKS, FACILITY_MAX_LEVEL, STAND_COST_PER_LEVEL, STAND_BASE_UPGRADE_WEEKS, STADIUM_INCOME_PER_LEVEL } from '@/config/gameBalance';
 import { PageHint } from '@/components/game/PageHint';
-import { STAND_INFO, getEffectiveStadiumLevel, getStadiumCapacity } from '@/utils/facilities';
+import { STAND_INFO, getEffectiveStadiumLevel, getStadiumCapacity, getStadiumTier, getRecommendedStand } from '@/utils/facilities';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { StandKey, FacilityTab } from '@/types/game';
 
@@ -63,6 +63,11 @@ const FacilitiesPage = () => {
   const effectiveLevel = getEffectiveStadiumLevel(facilities);
   const weeklyRevenue = effectiveLevel * STADIUM_INCOME_PER_LEVEL;
   const upgradeType = facilities.upgradeInProgress?.type || null;
+  const tier = getStadiumTier(effectiveLevel);
+  // Don't recommend a stand once the player has selected one or an upgrade is in flight.
+  const recommendedStand = !selectedStand && !facilities.upgradeInProgress
+    ? getRecommendedStand(facilities.stadiumStands)
+    : null;
 
   const getUpgradeProgress = (type: string): number | null => {
     if (!facilities.upgradeInProgress || facilities.upgradeInProgress.type !== type) return null;
@@ -110,13 +115,7 @@ const FacilitiesPage = () => {
         body="Expand your stadium stand by stand for more matchday revenue, and upgrade training, medical, youth, and recovery facilities for lasting competitive advantages."
       />
 
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-display font-bold text-foreground">Facilities</h2>
-        {club && <span className="text-xs text-muted-foreground">Budget: £{(club.budget / 1e6).toFixed(1)}M</span>}
-      </div>
-
-      {/* Tab pills */}
+      {/* Tab pills — page title and budget already shown in TopBar */}
       <div className="flex gap-1.5">
         {(['stadium', 'facilities'] as const).map(t => (
           <button
@@ -144,10 +143,18 @@ const FacilitiesPage = () => {
             transition={{ duration: 0.15 }}
             className="space-y-3"
           >
-            {/* Stadium name */}
-            {club?.stadiumName && (
-              <p className="text-xs text-muted-foreground text-center">{club.stadiumName}</p>
-            )}
+            {/* Stadium name + tier headline */}
+            <div className="text-center space-y-0.5">
+              {club?.stadiumName && (
+                <p className="text-xs text-muted-foreground">{club.stadiumName}</p>
+              )}
+              <p className="text-[11px]">
+                <span className="text-foreground font-semibold">{tier.current}</span>
+                {tier.next && tier.nextAt !== null && (
+                  <span className="text-muted-foreground"> → {tier.next} at Lv.{tier.nextAt}</span>
+                )}
+              </p>
+            </div>
 
             {/* Stadium SVG */}
             <GlassPanel className="p-3">
@@ -157,6 +164,7 @@ const FacilitiesPage = () => {
                 onSelectStand={setSelectedStand}
                 upgradeInProgressType={upgradeType}
                 clubColor={club?.color || '#3b82f6'}
+                recommendedStand={recommendedStand}
               />
             </GlassPanel>
 
@@ -202,7 +210,14 @@ const FacilitiesPage = () => {
 
             {/* Quick upgrade hint if no stand selected */}
             {!selectedStand && (
-              <p className="text-[10px] text-muted-foreground text-center">Tap a stand to view details and upgrade</p>
+              recommendedStand ? (
+                <p className="text-[10px] text-center">
+                  <span className="text-emerald-400 font-semibold">Recommended:</span>{' '}
+                  <span className="text-muted-foreground">tap the {STAND_INFO[recommendedStand].label} to upgrade next</span>
+                </p>
+              ) : (
+                <p className="text-[10px] text-muted-foreground text-center">Tap a stand to view details and upgrade</p>
+              )
             )}
           </motion.div>
         ) : (
