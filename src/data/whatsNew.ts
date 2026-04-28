@@ -61,6 +61,23 @@ export { readWhatsNewSeenVersion, writeWhatsNewSeenVersion };
  */
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.0.8',
+    build: null,
+    date: '2026-04-28',
+    headline: 'Match-day, squad and stat polish.',
+    summary: 'Form pips, position chips, fitness bars and the in-match timer all get the same gradient + glow treatment as last build\'s progress bars. Trophy celebrations now sit on a proper gold halo.',
+    highlights: [],
+    new: [],
+    improved: [
+      'Form pips (W/D/L) and position chips (GK/DEF/MID/FWD) now have proper gradient depth instead of flat tints.',
+      'Live match timer bar glows on the surface during play.',
+      'Player attribute bars (Pace, Shooting, Passing…) get the same gradient + glow as the new progress bars.',
+      'Trophy and award celebrations now sit on a soft gold halo with cream-gradient stat tiles.',
+      'Player card fitness bars switched from flat hex fill to a colored gradient with matching glow.',
+    ],
+    fixed: [],
+  },
+  {
     version: '1.0.7',
     build: null,
     date: '2026-04-28',

@@ -128,12 +128,17 @@ export function CelebrationModal({ open, onClose, title, description, icon, stat
               {/* Icon */}
               {icon && (
                 <motion.div
-                  className="flex justify-center"
+                  className="flex justify-center relative"
                   initial={{ scale: 0, rotate: -20 }}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ type: 'spring', stiffness: 400, damping: 15, delay: 0.15 }}
                 >
-                  <DynamicIcon name={icon} className="w-12 h-12 text-primary" />
+                  <span
+                    aria-hidden
+                    className="absolute inset-0 m-auto w-20 h-20 rounded-full blur-2xl opacity-80"
+                    style={{ background: 'radial-gradient(circle, hsl(43 96% 55% / 0.55) 0%, transparent 70%)' }}
+                  />
+                  <DynamicIcon name={icon} className="w-14 h-14 text-primary relative drop-shadow-[0_4px_18px_hsl(43_96%_46%/0.6)]" />
                 </motion.div>
               )}
 
@@ -166,9 +171,23 @@ export function CelebrationModal({ open, onClose, title, description, icon, stat
                   transition={{ delay: 0.4 }}
                 >
                   {stats.map((stat, i) => (
-                    <div key={i} className="bg-muted/30 rounded-lg px-3 py-2">
-                      <p className="text-[10px] text-muted-foreground uppercase">{stat.label}</p>
-                      <p className="text-sm font-bold text-foreground">{stat.value}</p>
+                    <div
+                      key={i}
+                      className="rounded-lg px-3 py-2 relative overflow-hidden"
+                      style={{
+                        background:
+                          'linear-gradient(180deg, hsl(var(--primary)/0.12) 0%, hsl(var(--primary)/0.04) 100%)',
+                        boxShadow:
+                          'inset 0 1px 0 rgba(255,255,255,0.06), inset 0 0 0 1px hsl(var(--primary)/0.2), 0 8px 18px -10px hsl(var(--primary)/0.35)',
+                      }}
+                    >
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{stat.label}</p>
+                      <p
+                        className="text-base font-black tabular-nums bg-clip-text text-transparent"
+                        style={{ backgroundImage: 'linear-gradient(180deg, #FFF6D8 0%, hsl(var(--foreground)) 100%)' }}
+                      >
+                        {stat.value}
+                      </p>
                     </div>
                   ))}
                 </motion.div>
