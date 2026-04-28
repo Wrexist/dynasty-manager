@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Lock, Sparkles, ShieldCheck, Play, ShoppingBag, Gift } from 'lucide-react';
+import { Lock, ShieldCheck, Play, ShoppingBag, Gift } from 'lucide-react';
+import { PremiumSparkle } from '@/components/game/icons/PremiumSparkle';
 import type { PackTierDefinition, PackUnlockMethod } from '@/types/game';
 import { formatMoney } from '@/utils/helpers';
 import { cn } from '@/lib/utils';
@@ -148,7 +149,7 @@ export const PackShopCard = memo(function PackShopCard({ tier, affordable, squad
           <div className="flex flex-col items-end gap-1">
             {featured && (
               <span className="flex items-center gap-1 h-5 px-2 text-[9px] uppercase tracking-widest rounded-full text-white bg-black/45 border border-white/20 backdrop-blur">
-                <Sparkles className="w-2.5 h-2.5" /> Featured
+                <PremiumSparkle className="w-3 h-3" withSatellite={false} /> Featured
               </span>
             )}
             <span className="flex items-center gap-1 h-5 px-2 text-[10px] font-bold tabular-nums rounded-full text-white bg-black/45 border border-white/20 backdrop-blur">

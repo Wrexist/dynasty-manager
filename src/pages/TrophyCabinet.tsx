@@ -4,6 +4,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Trophy, Award, Star, Medal, Lock } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
+import { PremiumCheck } from '@/components/game/icons/PremiumCheck';
 import { cn } from '@/lib/utils';
 import { getSuffix } from '@/utils/helpers';
 import { ACHIEVEMENTS, getTierColor } from '@/utils/achievements';
@@ -336,9 +337,7 @@ const TrophyCabinet = () => {
                         </p>
                       </div>
                       {unlocked ? (
-                        <span className={cn('text-[10px] font-bold', getTierColor(a.tier))}>
-                          ✓
-                        </span>
+                        <PremiumCheck className={cn('w-3 h-3 shrink-0', getTierColor(a.tier))} />
                       ) : a.progress && !a.hidden ? (() => {
                         const prog = a.progress(useGameStore.getState());
                         if (!prog || prog.current <= 0) return null;

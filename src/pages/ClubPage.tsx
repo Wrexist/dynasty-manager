@@ -7,6 +7,7 @@ import { getConfidenceColor, getFanConfidenceColor } from '@/utils/uiHelpers';
 import { getWeeklyIncome, getNetWeeklyIncome } from '@/utils/financeHelpers';
 import { FAN_MOOD_HIGH_THRESHOLD, FAN_MOOD_MID_THRESHOLD } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
+import { PremiumCheck } from '@/components/game/icons/PremiumCheck';
 import { useSquadSummary } from '@/hooks/useGameSelectors';
 
 const ClubPage = () => {
@@ -200,7 +201,7 @@ const ClubPage = () => {
             <div key={obj.id} className="flex items-center gap-2">
               <div className={cn('w-1.5 h-1.5 rounded-full', obj.priority === 'critical' ? 'bg-destructive' : obj.priority === 'important' ? 'bg-primary' : 'bg-muted-foreground')} />
               <span className="text-xs text-muted-foreground">{obj.description}</span>
-              {obj.completed && <span className="text-xs text-emerald-400">✓</span>}
+              {obj.completed && <PremiumCheck className="w-3 h-3 text-emerald-400" />}
             </div>
           ))}
         </div>

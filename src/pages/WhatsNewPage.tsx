@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { useGameStore } from '@/store/gameStore';
-import { Sparkles, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
+import { PremiumSparkle } from '@/components/game/icons/PremiumSparkle';
 import { cn } from '@/lib/utils';
 import {
   RELEASE_NOTES,
@@ -110,7 +111,7 @@ const WhatsNewPage = ({ standalone = false }: WhatsNewPageProps) => {
             <ArrowLeft className="w-4 h-4" />
           </button>
         )}
-        <Sparkles className="w-4 h-4 text-primary" />
+        <PremiumSparkle className="w-4 h-4" />
         <h2 className="font-display text-base font-bold text-foreground tracking-tight">
           Update Log
         </h2>
@@ -134,7 +135,7 @@ const WhatsNewPage = ({ standalone = false }: WhatsNewPageProps) => {
 
       {notes.length === 0 && (
         <GlassPanel className="p-6 text-center">
-          <Sparkles className="w-7 h-7 text-muted-foreground/40 mx-auto mb-2" />
+          <PremiumSparkle className="w-7 h-7 mx-auto mb-2 opacity-40" withSatellite={false} />
           <p className="text-xs text-muted-foreground">No release notes yet.</p>
         </GlassPanel>
       )}

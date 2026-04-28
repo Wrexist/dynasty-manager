@@ -15,6 +15,7 @@ import {
   Dumbbell, AlertTriangle, Banknote, Users, Shield, BarChart3, UserPlus, Award, Flame, Zap, Loader2, FastForward, Package,
 } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
+import { PremiumCheck } from '@/components/game/icons/PremiumCheck';
 import { getRoundName } from '@/data/cup';
 import { LEAGUES } from '@/data/league';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
@@ -1052,10 +1053,10 @@ const Dashboard = () => {
                           <p className={cn('text-xs font-semibold', task.completed ? 'text-emerald-400' : 'text-foreground')}>{task.title}</p>
                           <div className="flex items-center gap-1.5 shrink-0">
                             <span className={cn(
-                              'text-[9px] font-bold px-1.5 py-0.5 rounded',
+                              'inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded',
                               task.completed ? 'text-emerald-400/70 bg-emerald-500/10' : 'text-primary/70 bg-primary/10'
                             )}>
-                              {task.completed ? '✓' : '+'}{task.xpReward} XP
+                              {task.completed ? <PremiumCheck className="w-2.5 h-2.5" /> : '+'}{task.xpReward} XP
                             </span>
                             <span className={cn(
                               'text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded',
@@ -1372,8 +1373,8 @@ const Dashboard = () => {
                           </div>
                         )}
                       </div>
-                      <span className={cn('text-[10px] font-bold shrink-0', obj.completed ? 'text-emerald-400' : 'text-sky-400')}>
-                        {obj.completed ? '✓' : `+${effectiveObjXp(obj)} XP`}
+                      <span className={cn('inline-flex items-center text-[10px] font-bold shrink-0', obj.completed ? 'text-emerald-400' : 'text-sky-400')}>
+                        {obj.completed ? <PremiumCheck className="w-3 h-3" /> : `+${effectiveObjXp(obj)} XP`}
                       </span>
                       <FloatingXP amount={effectiveObjXp(obj)} show={justCompletedObj.has(obj.objectiveId)} />
                     </div>

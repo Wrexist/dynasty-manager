@@ -61,6 +61,19 @@ export { readWhatsNewSeenVersion, writeWhatsNewSeenVersion };
  */
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.0.6',
+    build: null,
+    date: '2026-04-28',
+    headline: 'Sharper icons, smoother menus.',
+    summary: 'The What\'s New badge, pack \'Featured\' chip and the Hidden Gem reveal all get a fresh, hand-crafted gold sparkle. Completed objectives now sport a crisp tick instead of a stray emoji.',
+    highlights: [],
+    new: [],
+    improved: [
+      'Polished the sparkle and check icons across the menu, packs and gem reveal — no more cheap-looking glyphs.',
+    ],
+    fixed: [],
+  },
+  {
     version: '1.0.5',
     build: null,
     date: '2026-04-27',

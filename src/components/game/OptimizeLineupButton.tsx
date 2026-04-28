@@ -1,5 +1,6 @@
-import { Sparkles, Crown } from 'lucide-react';
+import { Crown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PremiumSparkle } from '@/components/game/icons/PremiumSparkle';
 
 interface OptimizeLineupButtonProps {
   potentialGain: number;
@@ -41,7 +42,7 @@ export function OptimizeLineupButton({ potentialGain, autoFilling, onOptimize }:
             mixBlendMode: 'screen',
           }}
         />
-        <Sparkles className={cn('relative w-4 h-4', autoFilling && 'animate-spin')} />
+        <PremiumSparkle className={cn('relative w-4 h-4', autoFilling && 'animate-spin')} withSatellite={false} />
         <span className="relative">{autoFilling ? 'Optimizing...' : 'Smart Optimize Lineup'}</span>
         {/* PRO badge — signals that this is a paid Dynasty Pro feature */}
         <span

@@ -6,6 +6,7 @@
  */
 import { ChevronRight } from 'lucide-react';
 import { GlassPanel } from '@/components/game/GlassPanel';
+import { PremiumCheck } from '@/components/game/icons/PremiumCheck';
 import { cn } from '@/lib/utils';
 import type { BoardObjective } from '@/types/game';
 
@@ -46,7 +47,7 @@ export function BoardObjectivesCard({ boardObjectives, onClick }: BoardObjective
                 ? 'bg-emerald-500 border-emerald-500'
                 : obj.priority === 'critical' ? 'border-destructive' : obj.priority === 'important' ? 'border-primary' : 'border-muted-foreground'
             )}>
-              {obj.completed && <span className="text-[8px] text-white font-bold">✓</span>}
+              {obj.completed && <PremiumCheck className="w-2.5 h-2.5 text-white" />}
             </div>
             <span className={cn(
               'text-sm',

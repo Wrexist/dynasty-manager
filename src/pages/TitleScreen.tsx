@@ -6,7 +6,8 @@ import { getSlotSummaries } from '@/store/slices/orchestrationSlice';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { Play, Settings, Trash2, Save, Swords, Eye, HelpCircle, RefreshCw, Mail, Crown, ExternalLink, ChevronRight, RotateCcw, Sparkles } from 'lucide-react';
+import { Play, Settings, Trash2, Save, Swords, Eye, HelpCircle, RefreshCw, Mail, Crown, ExternalLink, ChevronRight, RotateCcw } from 'lucide-react';
+import { PremiumSparkle } from '@/components/game/icons/PremiumSparkle';
 import { cn } from '@/lib/utils';
 import { getSuffix } from '@/utils/helpers';
 import { signalReady, saveStorageReady } from '@/main';
@@ -228,7 +229,7 @@ const TitleScreen = () => {
         style={{ top: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}
         aria-label={whatsNewUnseen ? 'What’s new — unread update' : 'What’s new'}
       >
-        <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />
+        <PremiumSparkle className="w-4 h-4 shrink-0" />
         <span>What&apos;s New!</span>
         {whatsNewUnseen && (
           <span
@@ -597,7 +598,7 @@ const TitleScreen = () => {
                       className="w-full justify-start gap-3 h-11"
                       onClick={() => navigate('/whats-new')}
                     >
-                      <Sparkles className="w-4 h-4" />
+                      <PremiumSparkle className="w-4 h-4" withSatellite={false} />
                       <span className="flex-1 text-left">What&apos;s New</span>
                       <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium">
                         <span>v{LATEST_RELEASE.version}</span>
