@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dynasty Manager — Build Your Football Legacy</title>
+  <meta name="description" content="Take charge of one of 92 football clubs across 4 divisions. Manage tactics, transfers, and training. Build a dynasty that lasts generations." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      color: #e2e8f0;
+      background: #0f1524;
+      line-height: 1.6;
+    }
+    a { color: #4a90d9; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* NAV */
+    nav {
+      position: sticky;
+      top: 0;
+      background: rgba(15, 21, 36, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 100;
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      color: #d4a017;
+      font-size: 1rem;
+    }
+    .nav-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, #d4a017, #a87010);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+    .nav-links {
+      display: flex;
+      gap: 20px;
+      font-size: 0.85rem;
+      color: #94a3b8;
+    }
+    .nav-links a { color: #94a3b8; }
+
+    /* HERO */
+    .hero {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 72px 24px 64px;
+      text-align: center;
+    }
+    .hero-badge {
+      display: inline-block;
+      background: rgba(212,160,23,0.12);
+      border: 1px solid rgba(212,160,23,0.3);
+      color: #d4a017;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 100px;
+      margin-bottom: 24px;
+    }
+    .hero h1 {
+      font-size: clamp(2rem, 6vw, 3.2rem);
+      font-weight: 800;
+      color: #f1f5f9;
+      line-height: 1.15;
+      margin: 0 0 20px;
+    }
+    .hero h1 span { color: #d4a017; }
+    .hero p {
+      font-size: 1.05rem;
+      color: #94a3b8;
+      max-width: 520px;
+      margin: 0 auto 36px;
+    }
+    .cta-row {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .btn-primary {
+      background: #d4a017;
+      color: #0f1524;
+      font-weight: 700;
+      font-size: 0.95rem;
+      padding: 13px 28px;
+      border-radius: 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-primary:hover { background: #e6b020; text-decoration: none; }
+    .btn-secondary {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: #e2e8f0;
+      font-weight: 600;
+      font-size: 0.95rem;
+      padding: 13px 28px;
+      border-radius: 10px;
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,0.1); text-decoration: none; }
+
+    /* APP PREVIEW MOCKUP */
+    .mockup-wrap {
+      max-width: 320px;
+      margin: 56px auto 0;
+      position: relative;
+    }
+    .mockup-phone {
+      background: linear-gradient(160deg, rgba(212,160,23,0.08) 0%, rgba(74,144,217,0.06) 100%);
+      border: 1px solid rgba(212,160,23,0.2);
+      border-radius: 28px;
+      padding: 28px 20px;
+      text-align: center;
+    }
+    .mockup-screen {
+      background: #0a0f1e;
+      border-radius: 16px;
+      padding: 24px 16px 32px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .mockup-title { color: #d4a017; font-weight: 800; font-size: 1.1rem; margin-bottom: 4px; }
+    .mockup-sub { color: #64748b; font-size: 0.75rem; margin-bottom: 16px; }
+    .mockup-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .mockup-stat {
+      background: rgba(255,255,255,0.04);
+      border-radius: 8px;
+      padding: 10px;
+      text-align: left;
+    }
+    .mockup-stat-val { font-size: 1.2rem; font-weight: 700; color: #d4a017; }
+    .mockup-stat-lbl { font-size: 0.68rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+    .mockup-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 12px 0; }
+    .mockup-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.82rem;
+      margin-bottom: 6px;
+    }
+    .mockup-row .lbl { color: #64748b; }
+    .mockup-row .val { color: #e2e8f0; font-weight: 600; }
+    .mockup-row .val.green { color: #34d399; }
+    .mockup-row .val.gold { color: #d4a017; }
+
+    /* FEATURES */
+    .section {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 64px 24px;
+    }
+    .section-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #d4a017;
+      margin-bottom: 12px;
+    }
+    .section h2 {
+      font-size: clamp(1.5rem, 4vw, 2rem);
+      font-weight: 800;
+      color: #f1f5f9;
+      margin: 0 0 12px;
+    }
+    .section-intro { color: #94a3b8; margin-bottom: 40px; max-width: 520px; }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+    }
+    .feature-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 14px;
+      padding: 20px;
+    }
+    .feature-icon {
+      font-size: 1.6rem;
+      margin-bottom: 12px;
+      display: block;
+    }
+    .feature-card h3 {
+      color: #e2e8f0;
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin: 0 0 6px;
+    }
+    .feature-card p {
+      color: #64748b;
+      font-size: 0.85rem;
+      margin: 0;
+    }
+
+    /* DIVIDER */
+    .divider {
+      height: 1px;
+      background: linear-gradient(to right, transparent, rgba(212,160,23,0.2), transparent);
+      margin: 0 24px;
+    }
+
+    /* STATS STRIP */
+    .stats-strip {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 0;
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 48px 24px;
+    }
+    .stat-item {
+      flex: 1;
+      min-width: 140px;
+      text-align: center;
+      padding: 16px;
+    }
+    .stat-item .big { font-size: 2.2rem; font-weight: 800; color: #d4a017; line-height: 1; }
+    .stat-item .lbl { font-size: 0.8rem; color: #64748b; margin-top: 4px; }
+
+    /* TESTIMONIAL / QUOTE */
+    .quote-box {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 0 24px 64px;
+    }
+    .quote-inner {
+      background: rgba(212,160,23,0.05);
+      border: 1px solid rgba(212,160,23,0.15);
+      border-radius: 16px;
+      padding: 32px;
+      text-align: center;
+    }
+    .quote-inner p {
+      font-size: 1.1rem;
+      font-style: italic;
+      color: #e2e8f0;
+      margin: 0 0 16px;
+    }
+    .quote-inner span { font-size: 0.85rem; color: #64748b; }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid rgba(255,255,255,0.06);
+      padding: 32px 24px;
+      max-width: 760px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 0.82rem;
+      color: #475569;
+    }
+    .footer-links { display: flex; gap: 16px; flex-wrap: wrap; }
+    .footer-links a { color: #475569; }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="nav-brand">
+      <div class="nav-icon">&#9917;</div>
+      Dynasty Manager
+    </div>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="support.html">Support</a>
+      <a href="privacy-policy.html">Privacy</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-badge">Now on iOS &amp; Android</div>
+    <h1>Build Your<br /><span>Football Legacy</span></h1>
+    <p>Take charge of one of 92 clubs across 4 divisions. Manage transfers, tactics, and training — then watch your dynasty grow.</p>
+    <div class="cta-row">
+      <a href="https://apps.apple.com/app/dynasty-manager" class="btn-primary">
+        &#x2B07;&nbsp; Download on the App Store
+      </a>
+      <a href="support.html" class="btn-secondary">Get Support</a>
+    </div>
+
+    <!-- PHONE MOCKUP -->
+    <div class="mockup-wrap">
+      <div class="mockup-phone">
+        <div class="mockup-screen">
+          <div class="mockup-title">DYNASTY MANAGER</div>
+          <div class="mockup-sub">Season 3 · Monarch Premier League</div>
+          <div class="mockup-stats">
+            <div class="mockup-stat">
+              <div class="mockup-stat-val">1st</div>
+              <div class="mockup-stat-lbl">Position</div>
+            </div>
+            <div class="mockup-stat">
+              <div class="mockup-stat-val">68</div>
+              <div class="mockup-stat-lbl">Points</div>
+            </div>
+            <div class="mockup-stat">
+              <div class="mockup-stat-val">+34</div>
+              <div class="mockup-stat-lbl">Goal Diff</div>
+            </div>
+            <div class="mockup-stat">
+              <div class="mockup-stat-val">Wk 32</div>
+              <div class="mockup-stat-lbl">Current</div>
+            </div>
+          </div>
+          <div class="mockup-divider"></div>
+          <div class="mockup-row">
+            <span class="lbl">Last Result</span>
+            <span class="val green">W 3–1</span>
+          </div>
+          <div class="mockup-row">
+            <span class="lbl">Next Match</span>
+            <span class="val">vs City FC</span>
+          </div>
+          <div class="mockup-row">
+            <span class="lbl">Top Scorer</span>
+            <span class="val gold">Marcus King · 22g</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS STRIP -->
+  <div class="divider"></div>
+  <div class="stats-strip">
+    <div class="stat-item">
+      <div class="big">92</div>
+      <div class="lbl">Playable Clubs</div>
+    </div>
+    <div class="stat-item">
+      <div class="big">4</div>
+      <div class="lbl">Divisions</div>
+    </div>
+    <div class="stat-item">
+      <div class="big">46</div>
+      <div class="lbl">Weeks Per Season</div>
+    </div>
+    <div class="stat-item">
+      <div class="big">7</div>
+      <div class="lbl">Formations</div>
+    </div>
+  </div>
+  <div class="divider"></div>
+
+  <!-- FEATURES -->
+  <section class="section" id="features">
+    <div class="section-label">What's Inside</div>
+    <h2>Everything a Manager Needs</h2>
+    <p class="section-intro">From tactical depth to transfer drama — Dynasty Manager packs a full football management experience into your pocket.</p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <span class="feature-icon">&#127942;</span>
+        <h3>4 Divisions, 92 Clubs</h3>
+        <p>Start at a minnow and work your way to the Monarch Premier League, or defend the top-flight title with a giant.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">&#9917;</span>
+        <h3>Live Match Engine</h3>
+        <p>Event-based, minute-by-minute simulation with late drama, red cards, injuries, and stunning upsets.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">&#129517;</span>
+        <h3>Tactical Depth</h3>
+        <p>7 formations, custom lineups, set-piece instructions, and in-match substitutions that swing results.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">&#128176;</span>
+        <h3>Transfer Market</h3>
+        <p>Negotiate deals, handle loan moves, and unearth hidden gems before rival managers snap them up.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">&#128200;</span>
+        <h3>Player Development</h3>
+        <p>Young players grow toward their potential with training and match minutes. Veteran stars slowly decline.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">&#127894;</span>
+        <h3>Cup Competitions</h3>
+        <p>Knockout cup runs alongside your league campaign. Every match matters when one loss ends your dream.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">&#128640;</span>
+        <h3>Promotion &amp; Relegation</h3>
+        <p>Auto-promotion spots, tense playoff finals, and the ever-present threat of dropping a division.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">&#127941;</span>
+        <h3>Manager Prestige</h3>
+        <p>Earn perks, unlock achievements, and build your legacy across multiple seasons and clubs.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- QUOTE -->
+  <div class="quote-box">
+    <div class="quote-inner">
+      <p>"The deepest mobile football management sim I've played — real tactics, real transfers, real consequences."</p>
+      <span>Built for fans who want more than a casual kick-about</span>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <span>&copy; 2026 Dynasty Manager. All rights reserved.</span>
+    <div class="footer-links">
+      <a href="support.html">Support</a>
+      <a href="privacy-policy.html">Privacy Policy</a>
+      <a href="terms-of-service.html">Terms of Service</a>
+    </div>
+  </footer>
+
+</body>
+</html>

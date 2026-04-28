@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Support — Dynasty Manager</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 32px 16px 64px;
+      color: #e2e8f0;
+      background: #0f1524;
+      line-height: 1.6;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 40px;
+    }
+    .logo-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, #d4a017, #a87010);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+    .logo-text { font-size: 1.1rem; font-weight: 700; color: #d4a017; }
+    .logo-sub { font-size: 0.8rem; color: #94a3b8; }
+    h1 { color: #d4a017; font-size: 1.6rem; margin: 0 0 8px; }
+    .subtitle { color: #94a3b8; margin-bottom: 40px; }
+    h2 { color: #d4a017; font-size: 1.05rem; margin: 2rem 0 0.5rem; }
+    p, li { font-size: 0.95rem; }
+    ul { padding-left: 1.25rem; }
+    li { margin-bottom: 4px; }
+    a { color: #4a90d9; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 20px 22px;
+      margin-bottom: 12px;
+    }
+    .card summary {
+      font-weight: 600;
+      color: #e2e8f0;
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .card summary::after {
+      content: '+';
+      color: #d4a017;
+      font-size: 1.2rem;
+      line-height: 1;
+    }
+    details[open] > summary::after { content: '−'; }
+    .card p { margin: 12px 0 0; color: #94a3b8; font-size: 0.9rem; }
+    .contact-box {
+      background: rgba(212, 160, 23, 0.08);
+      border: 1px solid rgba(212, 160, 23, 0.25);
+      border-radius: 12px;
+      padding: 24px;
+      margin-top: 40px;
+      text-align: center;
+    }
+    .contact-box h2 { margin-top: 0; }
+    .contact-box p { color: #94a3b8; margin-bottom: 16px; }
+    .email-btn {
+      display: inline-block;
+      background: #d4a017;
+      color: #0f1524;
+      font-weight: 700;
+      font-size: 0.95rem;
+      padding: 10px 24px;
+      border-radius: 8px;
+      text-decoration: none;
+    }
+    .email-btn:hover { background: #e6b020; text-decoration: none; }
+    .footer-links {
+      margin-top: 48px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      font-size: 0.85rem;
+      color: #64748b;
+    }
+    .footer-links a { color: #64748b; }
+  </style>
+</head>
+<body>
+
+  <div class="logo">
+    <div class="logo-icon">&#9917;</div>
+    <div>
+      <div class="logo-text">Dynasty Manager</div>
+      <div class="logo-sub">Football Management Simulation</div>
+    </div>
+  </div>
+
+  <h1>Support</h1>
+  <p class="subtitle">Find answers to common questions below, or reach out directly and we'll get back to you.</p>
+
+  <h2>Frequently Asked Questions</h2>
+
+  <details class="card">
+    <summary>How do I save my game?</summary>
+    <p>Dynasty Manager saves your progress automatically after every week and every match. You don't need to manually save. Your save is stored locally on your device.</p>
+  </details>
+
+  <details class="card">
+    <summary>My game save is gone — what happened?</summary>
+    <p>Game data is stored locally on your device. Deleting and reinstalling the app or clearing app storage will erase your save. We recommend keeping the app installed and avoiding full app data resets. Cloud save is on our roadmap for a future update.</p>
+  </details>
+
+  <details class="card">
+    <summary>How do I restore my in-app purchases?</summary>
+    <p>Open the app, go to Settings, and tap "Restore Purchases." Your purchase is tied to your Apple ID (App Store) or Google account (Play Store). Make sure you're signed in with the same account you used to purchase. If the issue persists, contact us below.</p>
+  </details>
+
+  <details class="card">
+    <summary>The app is crashing — what should I do?</summary>
+    <p>Try force-closing the app and reopening it. If crashes continue, restart your device and ensure the app is updated to the latest version. If you're still experiencing issues, email us with your device model and iOS/Android version so we can investigate.</p>
+  </details>
+
+  <details class="card">
+    <summary>How does promotion and relegation work?</summary>
+    <p>At the end of each season, the top clubs are promoted and the bottom clubs are relegated. In Divisions 2–4 there are also playoff rounds where clubs finishing 3rd–6th compete for the final promotion spots. Your final league position determines everything.</p>
+  </details>
+
+  <details class="card">
+    <summary>How do transfers and the transfer window work?</summary>
+    <p>The transfer window is open during weeks 1–8 and weeks 20–24 of the season. Outside these windows you can still view the market and set sell listings, but deals cannot be completed. Use the Transfer page to make offers, negotiate contracts, and manage loans.</p>
+  </details>
+
+  <details class="card">
+    <summary>Why won't a player accept my contract offer?</summary>
+    <p>Players consider wage demands, contract length, your club's division, and their personal ambitions. Try increasing the wage, adjusting the contract length, or improving your club's prestige before re-negotiating. Some players simply prefer higher-division clubs.</p>
+  </details>
+
+  <details class="card">
+    <summary>Can I play Dynasty Manager offline?</summary>
+    <p>Yes — Dynasty Manager is fully playable offline. All game simulation runs on your device. An internet connection is only required to process in-app purchases or restore entitlements.</p>
+  </details>
+
+  <details class="card">
+    <summary>How do player ratings and development work?</summary>
+    <p>Young players (under 24) can grow toward their potential through training, match minutes, and development events. Veterans (31 and over) may see gradual attribute decline. Regular first-team football and good training facilities accelerate development.</p>
+  </details>
+
+  <details class="card">
+    <summary>How do I cancel my subscription?</summary>
+    <p>Subscriptions are managed through your device's app store — not through Dynasty Manager directly. On iOS: Settings → Apple ID → Subscriptions. On Android: Play Store → Account → Payments &amp; subscriptions. Cancel at least 24 hours before renewal to avoid being charged for the next period.</p>
+  </details>
+
+  <div class="contact-box">
+    <h2>Still need help?</h2>
+    <p>We typically respond within 1–2 business days. Include your device model and app version for faster help.</p>
+    <a href="mailto:support@dynastymanager.com" class="email-btn">Email Support</a>
+  </div>
+
+  <div class="footer-links">
+    <a href="privacy-policy.html">Privacy Policy</a>
+    <a href="terms-of-service.html">Terms of Service</a>
+    <a href="landing.html">About Dynasty Manager</a>
+    <span>&copy; 2026 Dynasty Manager</span>
+  </div>
+
+</body>
+</html>
