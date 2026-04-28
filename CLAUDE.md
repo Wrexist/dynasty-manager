@@ -64,12 +64,30 @@ Steps:
 The script logs which path it took (`workflow input` vs.
 `auto-generated from PRs`) so the workflow run is auditable.
 
+### Recovering from a failed TestFlight deploy
+
+The auto-generation handles this for you — you do **not** need to bump
+the version again to "save" the work from a failed attempt:
+
+| Scenario | What happens | What you do |
+|---|---|---|
+| Build failed at the same version (e.g. v1.0.10 attempt #2) | The runner-only mutation never committed back to `main`, so `whatsNew.ts` on `main` still shows the previous shipped version. The next run reads exactly the same PR window. | Re-trigger the workflow as-is. The same PRs (plus any new ones) ship. |
+| You bumped past the failure (v1.0.10 failed → v1.0.11) | The lower-bound walks back via `git log` to the first commit whose `package.json.version` differs from the current one — i.e. the v1.0.9 → v1.0.10 bump. PRs from the failed v1.0.10 attempt **and** anything merged since are both included. | Trigger the workflow at v1.0.11. No data is lost. |
+| No new PRs since the last shipped build | `build-whats-new.mjs` exits early with an actionable message instead of producing an empty entry. | Either ship a manual bullet (`npm run whats-new -- improved "..."`) or skip the run. |
+
+**Don't bump the version unnecessarily.** Re-running the workflow with the
+same `package.json.version` is supported and preferred when the previous
+attempt failed.
+
 ### Local commands
 
 ```bash
-# Generate the top entry from merged PRs locally (requires `gh` auth).
-# Headline/summary are optional — omit them to auto-generate.
-node scripts/build-whats-new.mjs --dry-run
+# Preview what the next deploy would generate, without writing files.
+# Shows last shipped version, version delta, and the PRs that would ship.
+npm run whats-new:plan
+node scripts/build-whats-new.mjs --dry-run                       # equivalent
+
+# Force a hand-crafted headline/summary preview.
 node scripts/build-whats-new.mjs --headline "..." --summary "..." --dry-run
 
 # Hand-edit a single bullet using the same helper CI uses internally.

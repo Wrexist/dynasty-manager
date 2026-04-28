@@ -106,6 +106,34 @@ function listEntries(source) {
   return entries;
 }
 
+/** Parse a SemVer-ish version string into [major, minor, patch] integers.
+ *  Returns null if the input doesn't look like a version. Used to gauge how
+ *  far the current version has drifted past the last shipped one. */
+function parseSemver(v) {
+  const m = String(v || '').match(/^(\d+)\.(\d+)\.(\d+)/);
+  return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null;
+}
+
+/** Describe the kind of bump from `prev` → `cur` (major / minor / patch /
+ *  multi-patch / equal / regression / unknown). Drives the deploy-state
+ *  banner so the runner logs say things like "two patch versions ahead of
+ *  last shipped — likely a re-run after a failed attempt". */
+function describeVersionDelta(prev, cur) {
+  const a = parseSemver(prev);
+  const b = parseSemver(cur);
+  if (!a || !b) return { kind: 'unknown', label: 'unknown' };
+  if (a[0] === b[0] && a[1] === b[1] && a[2] === b[2]) return { kind: 'equal', label: 'same as last shipped' };
+  if (b[0] > a[0]) return { kind: 'major', label: `major bump (+${b[0] - a[0]}.0.0)` };
+  if (b[0] === a[0] && b[1] > a[1]) return { kind: 'minor', label: `minor bump (+0.${b[1] - a[1]}.0)` };
+  if (b[0] === a[0] && b[1] === a[1] && b[2] > a[2]) {
+    const diff = b[2] - a[2];
+    return diff === 1
+      ? { kind: 'patch', label: 'patch bump (+0.0.1)' }
+      : { kind: 'multi-patch', label: `+0.0.${diff} patches ahead` };
+  }
+  return { kind: 'regression', label: 'BEHIND last shipped' };
+}
+
 function tryGit(cmd) {
   try {
     return execSync(cmd, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
@@ -309,11 +337,46 @@ const sinceDate = SINCE_OVERRIDE || determineSinceDate(source, pkgVersion);
 const headIso = getHeadCommitTime();
 const lowerIso = SINCE_OVERRIDE ? null : getPreviousReleaseTime(pkgVersion);
 
-console.log(`Building What's New entry for v${pkgVersion}`);
-console.log(`  Repo:        ${REPO}`);
-console.log(`  Since (date): ${sinceDate} (coarse pre-filter for gh search)`);
-console.log(`  Lower bound:  ${lowerIso || '(none — shallow clone or no previous release)'}`);
-console.log(`  Upper bound:  ${headIso || '(none — git not available)'}`);
+// ── Deploy-state banner ───────────────────────────────────────────────
+// Spell out the version state up-front so the workflow log makes it
+// obvious whether this is a fresh build, a re-run after failure, or an
+// unintended re-deploy. The "smart" recovery story (PRs from failed
+// attempts are preserved automatically) lives in the actual logic
+// further down, but this banner is what makes it AUDITABLE.
+const allEntries = listEntries(source);
+const previousShipped = allEntries.find(e => e.version !== pkgVersion) || allEntries[0];
+const topEntry = allEntries[0] || null;
+const versionDelta = previousShipped ? describeVersionDelta(previousShipped.version, pkgVersion) : { kind: 'first', label: 'first release' };
+// Detect the case where the user is re-deploying without bumping. The
+// runner-side mutation never commits back, so whatsNew.ts on main only
+// has an entry at this version if a previous run already SUCCEEDED and
+// committed it back. If a top entry exists at this version, it's either
+// a backfill or a re-deploy of an already-shipped build.
+const sameVersionAsTop = topEntry && topEntry.version === pkgVersion;
+
+console.log('═'.repeat(60));
+console.log(`What's New plan for v${pkgVersion}`);
+console.log('═'.repeat(60));
+console.log(`  Repo:           ${REPO}`);
+console.log(`  Last shipped:   ${previousShipped ? `v${previousShipped.version} (${previousShipped.date})` : '(none — first release)'}`);
+console.log(`  Current:        v${pkgVersion}`);
+console.log(`  Version delta:  ${versionDelta.label}`);
+if (sameVersionAsTop) {
+  console.log('  ⚠  whatsNew.ts already has a top entry at this version — likely a re-deploy of a previously shipped build, or a local backfill.');
+}
+if (versionDelta.kind === 'multi-patch') {
+  console.log('  ⓘ  Multiple patch versions ahead of last shipped. If earlier patch attempts failed, their PRs are still included automatically (the lower bound walks back to the last DIFFERENT version on disk).');
+}
+if (versionDelta.kind === 'equal') {
+  console.log('  ⓘ  Same version as last shipped — re-running the deploy. PRs merged since the original ship-date will be picked up.');
+}
+if (versionDelta.kind === 'regression') {
+  console.log('  ✗  Current version is BEHIND last shipped. This is almost certainly a mistake. Bump package.json before continuing.');
+}
+console.log('');
+console.log(`  Since (date):   ${sinceDate} (coarse pre-filter for gh search)`);
+console.log(`  Lower bound:    ${lowerIso || '(none — shallow clone or no previous release)'}`);
+console.log(`  Upper bound:    ${headIso || '(none — git not available)'}`);
 console.log('');
 
 if (!headIso) {
@@ -354,6 +417,30 @@ const droppedByBounds = before - prs.length;
 
 console.log(`  Found ${prs.length} merged PR(s) in window.${droppedByBounds > 0 ? ` (Dropped ${droppedByBounds} outside ISO bounds.)` : ''}`);
 console.log('');
+
+// Empty-window guidance. Without this, the script would still set the
+// headline+summary, then check-whats-new.mjs would fail downstream with a
+// generic "no bullets" error and the user would have to read three log
+// sections to figure out what happened. Bail early with one clear,
+// actionable message instead.
+if (prs.length === 0) {
+  console.error('');
+  console.error('::error::No merged PRs in this window — there is nothing to ship.');
+  console.error('');
+  console.error('  Likely causes:');
+  if (versionDelta.kind === 'equal' || sameVersionAsTop) {
+    console.error('    • You re-deployed the same version (v' + pkgVersion + ') with no new merges since.');
+    console.error('      → If the previous attempt actually succeeded, this is expected — skip the run.');
+    console.error('      → If it failed, merge the next change (or wait for one) and re-trigger.');
+  } else {
+    console.error('    • The version was bumped on a commit that came AFTER all the PRs you wanted to ship.');
+    console.error('      → Check `git log --first-parent -- package.json` to see when the bump landed.');
+    console.error('    • The previous shipped entry already covers everything that\'s merged.');
+    console.error('      → Either ship a manual bullet via `npm run whats-new -- improved "..."`, or skip the build.');
+  }
+  console.error('');
+  process.exit(1);
+}
 
 // ── Classify ────────────────────────────────────────────────────────────
 const planned = []; // { number, category, bullet }
