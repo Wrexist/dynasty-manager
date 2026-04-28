@@ -3,19 +3,16 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
 import { getSlotSummaries } from '@/store/slices/orchestrationSlice';
-import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { Play, Settings, Trash2, Save, Swords, Eye, HelpCircle, RefreshCw, Mail, Crown, ExternalLink, ChevronRight, RotateCcw } from 'lucide-react';
+import { Play, Settings, Trash2, Save, Swords, ChevronRight, RotateCcw } from 'lucide-react';
 import { PremiumSparkle } from '@/components/game/icons/PremiumSparkle';
 import { cn } from '@/lib/utils';
 import { getSuffix } from '@/utils/helpers';
 import { signalReady, saveStorageReady } from '@/main';
-import { infoToast, successToast, errorToast } from '@/utils/gameToast';
+import { errorToast } from '@/utils/gameToast';
 import { hapticMedium, hapticLight } from '@/utils/haptics';
 import {
-  removeFlag,
-  clearFlagsByPrefix,
   readCommunityPackSlotPref,
   writeCommunityPackSlotPref,
   clearCommunityPackSlotPref,
@@ -24,26 +21,19 @@ import {
   STORAGE_KEYS,
 } from '@/store/helpers/persistence';
 import { CommunityPackPopup } from '@/components/CommunityPackPopup';
-import { restorePurchases, openSubscriptionManagement, getCustomerInfo, extractSubscriptionInfo } from '@/utils/purchases';
 import { isPro, isSubscriptionActive } from '@/utils/monetization';
-import { PRODUCTS } from '@/config/monetization';
-import { MATCH_SPEEDS } from '@/config/matchSpeed';
-import { hasUnseenWhatsNew, LATEST_RELEASE } from '@/data/whatsNew';
+import { hasUnseenWhatsNew } from '@/data/whatsNew';
+import { SettingsBody } from './SettingsPage';
 import type { TitleFloatingCircle } from '@/types/game';
 
 
 const TitleScreen = () => {
   const navigate = useNavigate();
-  const settings = useGameStore(s => s.settings);
   const monetization = useGameStore(s => s.monetization);
   const loadGame = useGameStore(s => s.loadGame);
   const resetGame = useGameStore(s => s.resetGame);
-  const updateSettings = useGameStore(s => s.updateSettings);
-  const restoreEntitlements = useGameStore(s => s.restoreEntitlements);
-  const updateSubscription = useGameStore(s => s.updateSubscription);
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [restoringPurchases, setRestoringPurchases] = useState(false);
   // Which slot is currently prompting the community pack popup. null = hidden.
   const [communityPackSlot, setCommunityPackSlot] = useState<number | null>(null);
   const userIsPro = isPro(monetization);
@@ -138,32 +128,6 @@ const TitleScreen = () => {
     clearCommunityPackSlotPref(slot);
     setConfirmDelete(null);
     setRefreshKey(k => k + 1);
-  };
-
-  const handleRestorePurchases = async () => {
-    setRestoringPurchases(true);
-    try {
-      const granted = await restorePurchases();
-      if (granted.length > 0) {
-        restoreEntitlements(granted);
-        successToast('Purchases Restored', `${granted.length} product${granted.length > 1 ? 's' : ''} restored.`);
-      } else {
-        infoToast('No Purchases Found', 'No previous purchases were found for this account.');
-      }
-      const info = await getCustomerInfo();
-      if (info) updateSubscription(extractSubscriptionInfo(info));
-    } catch {
-      errorToast('Restore Failed', 'Could not restore purchases. Please try again.');
-    } finally {
-      setRestoringPurchases(false);
-    }
-  };
-
-  const handleManageSubscription = async () => {
-    const opened = await openSubscriptionManagement();
-    if (!opened) {
-      errorToast('Not Available', 'Please visit your App Store or Play Store settings to manage your subscription.');
-    }
   };
 
   // Generate floating circle definitions once
@@ -430,208 +394,12 @@ const TitleScreen = () => {
                 </GlassPanel>
               </button>
             </SheetTrigger>
-            <SheetContent side="bottom" className="bg-background border-border/50 rounded-t-2xl max-h-[85vh]">
+            <SheetContent side="bottom" className="bg-background border-border/50 rounded-t-2xl h-[85vh] max-h-[85vh] flex flex-col">
               <SheetHeader>
                 <SheetTitle className="text-foreground">Settings</SheetTitle>
               </SheetHeader>
-              <div className="space-y-3 py-4 overflow-y-auto">
-                {/* Match Speed */}
-                <GlassPanel className="p-4">
-                  <h3 className="text-sm font-semibold text-foreground mb-3">Match Speed</h3>
-                  <div className="flex bg-muted/20 rounded-lg border border-border/30 p-0.5">
-                    {MATCH_SPEEDS.map(s => {
-                      const locked = s.pro && !userIsPro;
-                      return (
-                        <button
-                          key={s.value}
-                          onClick={() => !locked && updateSettings({ matchSpeed: s.value })}
-                          className={cn(
-                            'flex-1 flex items-center justify-center gap-0.5 py-2.5 rounded-md text-xs font-semibold transition-all',
-                            locked
-                              ? 'text-muted-foreground/40 cursor-default'
-                              : settings.matchSpeed === s.value
-                                ? 'bg-primary/20 text-primary'
-                                : 'text-muted-foreground hover:text-foreground'
-                          )}
-                        >
-                          {locked && <Crown className="w-2.5 h-2.5" />}
-                          {s.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </GlassPanel>
-
-                {/* Display */}
-                <GlassPanel className="p-4">
-                  <h3 className="text-sm font-semibold text-foreground mb-3">Display</h3>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Eye className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm text-foreground">Show OVR on pitch</span>
-                      </div>
-                      <button
-                        onClick={() => updateSettings({ showOverallOnPitch: !settings.showOverallOnPitch })}
-                        className={cn(
-                          'w-10 h-6 rounded-full transition-colors relative',
-                          settings.showOverallOnPitch ? 'bg-primary' : 'bg-muted/50'
-                        )}
-                      >
-                        <div className={cn(
-                          'w-4 h-4 bg-white rounded-full absolute top-1 transition-transform',
-                          settings.showOverallOnPitch ? 'translate-x-5' : 'translate-x-1'
-                        )} />
-                      </button>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <RotateCcw className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm text-foreground">Auto-save</span>
-                      </div>
-                      <button
-                        onClick={() => updateSettings({ autoSave: !settings.autoSave })}
-                        className={cn(
-                          'w-10 h-6 rounded-full transition-colors relative',
-                          settings.autoSave ? 'bg-primary' : 'bg-muted/50'
-                        )}
-                      >
-                        <div className={cn(
-                          'w-4 h-4 bg-white rounded-full absolute top-1 transition-transform',
-                          settings.autoSave ? 'translate-x-5' : 'translate-x-1'
-                        )} />
-                      </button>
-                    </div>
-                  </div>
-                </GlassPanel>
-
-                {/* Purchases & Subscription */}
-                <GlassPanel className="p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-foreground">Purchases</h3>
-                    {userIsPro && (
-                      <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
-                        <Crown className="w-3 h-3" /> Pro
-                      </span>
-                    )}
-                  </div>
-                  {hasActiveSub && monetization.subscription && (
-                    <div className="bg-muted/20 rounded-lg p-3 mb-3 space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-foreground">
-                          {PRODUCTS[monetization.subscription.productId]?.name || 'Dynasty Pro'}
-                        </span>
-                        <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-semibold capitalize">
-                          {monetization.subscription.tier}
-                        </span>
-                      </div>
-                      {monetization.subscription.expiresAt && (
-                        <p className="text-[10px] text-muted-foreground">
-                          {monetization.subscription.willRenew ? 'Renews' : 'Expires'}:{' '}
-                          {new Date(monetization.subscription.expiresAt).toLocaleDateString()}
-                        </p>
-                      )}
-                      {monetization.subscription.isInGracePeriod && (
-                        <p className="text-[10px] text-amber-400">
-                          Payment issue detected. Please update your payment method.
-                        </p>
-                      )}
-                    </div>
-                  )}
-                  <div className="space-y-2">
-                    {hasActiveSub && (
-                      <Button
-                        variant="secondary"
-                        className="w-full justify-start gap-3 h-11"
-                        onClick={handleManageSubscription}
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                        Manage Subscription
-                      </Button>
-                    )}
-                    <Button
-                      variant="secondary"
-                      className="w-full justify-start gap-3 h-11"
-                      onClick={handleRestorePurchases}
-                      disabled={restoringPurchases}
-                    >
-                      <RefreshCw className={cn('w-4 h-4', restoringPurchases && 'animate-spin')} />
-                      {restoringPurchases ? 'Restoring...' : 'Restore Purchases'}
-                    </Button>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground mt-2">
-                    Restore previously purchased items from your App Store or Play Store account.
-                  </p>
-                </GlassPanel>
-
-                {/* Support */}
-                <GlassPanel className="p-4">
-                  <h3 className="text-sm font-semibold text-foreground mb-3">Support</h3>
-                  <Button
-                    variant="secondary"
-                    className="w-full justify-start gap-3 h-11"
-                    onClick={() => window.open('mailto:support@dynastymanager.com?subject=Dynasty%20Manager%20Support', '_blank')}
-                  >
-                    <Mail className="w-4 h-4" />
-                    Contact Support
-                  </Button>
-                </GlassPanel>
-
-                {/* Help */}
-                <GlassPanel className="p-4">
-                  <h3 className="text-sm font-semibold text-foreground mb-3">Help</h3>
-                  <div className="space-y-2">
-                    <Button
-                      variant="secondary"
-                      className="w-full justify-start gap-3 h-11"
-                      onClick={() => {
-                        removeFlag('dynasty-welcome-shown');
-                        clearFlagsByPrefix('dynasty-hint-');
-                        infoToast('Tutorial Reset', 'The welcome tutorial and page hints will show again.');
-                      }}
-                    >
-                      <HelpCircle className="w-4 h-4" />
-                      Replay Tutorial
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      className="w-full justify-start gap-3 h-11"
-                      onClick={() => navigate('/whats-new')}
-                    >
-                      <PremiumSparkle className="w-4 h-4" withSatellite={false} />
-                      <span className="flex-1 text-left">What&apos;s New</span>
-                      <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium">
-                        <span>v{LATEST_RELEASE.version}</span>
-                        {whatsNewUnseen && (
-                          <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                        )}
-                      </span>
-                    </Button>
-                  </div>
-                </GlassPanel>
-
-                {/* About */}
-                <GlassPanel className="p-4 space-y-3">
-                  <div className="flex items-center gap-3">
-                    <img
-                      src="/logo.png"
-                      alt="Dynasty Manager"
-                      className="w-10 h-10 shrink-0 drop-shadow-[0_0_10px_hsl(var(--primary)/0.3)]"
-                    />
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">Dynasty Manager</p>
-                      <p className="text-xs text-muted-foreground">v0.2 Alpha — Football Edition</p>
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    A football management simulation. Pick a club, manage your squad, set tactics,
-                    handle transfers, and lead your team to glory across multiple seasons.
-                  </p>
-                </GlassPanel>
-
-                <p className="text-[10px] text-muted-foreground/50 text-center pb-2">
-                  Game data is saved locally in your browser.
-                </p>
+              <div className="flex-1 overflow-y-auto -mx-6 px-6 pt-2">
+                <SettingsBody variant="title" />
               </div>
             </SheetContent>
           </Sheet>
