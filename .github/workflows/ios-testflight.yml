@@ -1,11 +1,27 @@
 name: iOS TestFlight Deploy
 on:
   workflow_dispatch:
+    inputs:
+      headline:
+        description: "Top-of-screen App Store hook (3-8 words). Required."
+        required: true
+        type: string
+      summary:
+        description: "1-3 sentence player-facing summary of this build. Required."
+        required: true
+        type: string
+      since:
+        description: "Optional: ISO date (YYYY-MM-DD) to override the merge cutoff. Defaults to the previous shipped entry's date in whatsNew.ts."
+        required: false
+        type: string
 
 jobs:
   build:
     runs-on: macos-latest
     timeout-minutes: 45
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - name: Validate required secrets
         env:
@@ -64,20 +80,33 @@ jobs:
       - run: npm run lint
       - run: npm run test
 
-      # ─── What's New guard ──────────────────────────────────────────────
-      # Fails the build if src/data/whatsNew.ts is missing a top entry for
-      # the current package.json version, or if that entry is incomplete
-      # (no headline / summary / date / bullet points). Prepend a new entry
-      # to RELEASE_NOTES before triggering this workflow. See CLAUDE.md →
-      # "TestFlight release notes — MANDATORY" for the authoring rules.
-      - name: Validate What's New entry for this build
+      # ─── What's New: auto-generate from merged PRs ─────────────────────
+      # Generates the top entry of src/data/whatsNew.ts from PRs merged into
+      # main since the previous shipped release. The headline + summary come
+      # from workflow inputs (App Store voice can't be derived from PR data),
+      # bullets are pulled from a `## What's New` section in each PR body or
+      # the PR title as fallback. Categorisation comes from PR labels:
+      # `type:highlight` / `type:new` / `type:improved` / `type:fixed`. PRs
+      # labelled `skip-changelog`, `dependencies`, etc. are excluded. This
+      # mutation is scoped to the runner — the repo copy stays as-is.
+      - name: Generate What's New entry from merged PRs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ARGS=(--headline "${{ inputs.headline }}" --summary "${{ inputs.summary }}")
+          if [ -n "${{ inputs.since }}" ]; then
+            ARGS+=(--since "${{ inputs.since }}")
+          fi
+          node scripts/build-whats-new.mjs "${ARGS[@]}"
+
+      # Validates that the generated entry matches package.json.version and
+      # has all required fields. Belt-and-braces with build-whats-new.mjs.
+      - name: Validate What's New entry
         run: node scripts/check-whats-new.mjs
 
       # Inject the TestFlight build number (github.run_number) into the top
       # RELEASE_NOTES entry's `build` field before bundling, so the shipped
-      # app shows the real CFBundleVersion in its in-app What's New card
-      # even if the PR author left `build: null`. This mutation is scoped
-      # to the CI runner — the repo copy stays as-is.
+      # app shows the real CFBundleVersion in its in-app What's New card.
       - name: Inject build number into What's New
         run: node scripts/check-whats-new.mjs --inject-build ${{ github.run_number }}
 
