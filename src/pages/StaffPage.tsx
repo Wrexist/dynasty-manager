@@ -4,7 +4,8 @@ import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import {
   Plus, ArrowUpRight, X, Shield, Dumbbell, Heart, Search, GraduationCap, Activity,
-  UserCheck, RefreshCw, ThumbsUp, ThumbsDown, FileText, Sparkles, Clock, AlertTriangle,
+  UserCheck, RefreshCw, FileText, Sparkles, Clock, AlertTriangle,
+  MessageSquare, Smile, Frown, Info,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { StaffRole, StaffMember, StaffTrait } from '@/types/game';
@@ -146,6 +147,7 @@ const StaffPage = () => {
   const [confirmFireId, setConfirmFireId] = useState<string | null>(null);
   const [confirmReplaceId, setConfirmReplaceId] = useState<string | null>(null);
   const [expandedTraitsId, setExpandedTraitsId] = useState<string | null>(null);
+  const [chatOpenId, setChatOpenId] = useState<string | null>(null);
 
   const membersByRole: Record<string, StaffMember | undefined> = {};
   for (const m of staff.members) {
@@ -322,9 +324,10 @@ const StaffPage = () => {
                       <button
                         type="button"
                         onClick={() => setExpandedTraitsId(traitsExpanded ? null : current.id)}
-                        className="text-[9px] text-muted-foreground/70 hover:text-muted-foreground underline-offset-2 hover:underline"
+                        aria-label={traitsExpanded ? 'Hide trait descriptions' : 'Show trait descriptions'}
+                        className="ml-0.5 p-0.5 rounded text-muted-foreground/60 hover:text-foreground transition-colors"
                       >
-                        {traitsExpanded ? 'hide' : 'what these mean'}
+                        <Info className="w-3 h-3" />
                       </button>
                     </div>
                   )}
@@ -336,20 +339,65 @@ const StaffPage = () => {
                     </div>
                   )}
 
-                  {/* Morale + effective output */}
+                  {/* Morale + Have-a-word button */}
                   <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
                       <MoraleDot morale={currentMorale} />
                       <span className="text-[10px] text-muted-foreground">Morale</span>
                       <MoraleBar morale={currentMorale} />
+                      <span className={cn(
+                        'text-[10px] font-medium tabular-nums shrink-0',
+                        moraleMult >= 1.05 ? 'text-emerald-400' : moraleMult <= 0.95 ? 'text-amber-400' : 'text-muted-foreground',
+                      )}>
+                        {moraleMult >= 1 ? '+' : ''}{Math.round((moraleMult - 1) * 100)}%
+                      </span>
                     </div>
-                    <span className={cn(
-                      'text-[10px] font-medium tabular-nums',
-                      moraleMult >= 1.05 ? 'text-emerald-400' : moraleMult <= 0.95 ? 'text-amber-400' : 'text-muted-foreground',
-                    )}>
-                      {moraleMult >= 1 ? '+' : ''}{Math.round((moraleMult - 1) * 100)}% output
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setChatOpenId(chatOpenId === current.id ? null : current.id)}
+                      disabled={!interactReady}
+                      className={cn(
+                        'flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold transition-all min-h-[28px] shrink-0',
+                        interactReady
+                          ? 'bg-primary/15 text-primary hover:bg-primary/25 active:scale-[0.97]'
+                          : 'bg-muted/20 text-muted-foreground/50 cursor-not-allowed',
+                      )}
+                      title={interactReady ? 'Have a word with this staff member' : `Cooldown: ${interactCooldown}w`}
+                    >
+                      <MessageSquare className="w-3 h-3" />
+                      {interactReady ? 'Have a word' : `${interactCooldown}w`}
+                    </button>
                   </div>
+
+                  {/* Inline praise/criticise picker */}
+                  {chatOpenId === current.id && interactReady && (
+                    <div className="flex items-center gap-1.5 bg-muted/10 rounded-md p-1.5">
+                      <button
+                        type="button"
+                        onClick={() => { handlePraise(current); setChatOpenId(null); }}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded text-[10px] font-semibold bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 active:scale-[0.97] transition-all min-h-[36px]"
+                      >
+                        <Smile className="w-3.5 h-3.5" />
+                        Praise <span className="text-emerald-400/80 font-normal">· +morale</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { handleCriticize(current); setChatOpenId(null); }}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded text-[10px] font-semibold bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 active:scale-[0.97] transition-all min-h-[36px]"
+                      >
+                        <Frown className="w-3.5 h-3.5" />
+                        Criticise <span className="text-amber-400/80 font-normal">· −morale</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setChatOpenId(null)}
+                        aria-label="Close"
+                        className="p-1.5 rounded text-muted-foreground hover:text-foreground transition-colors min-h-[36px] min-w-[36px]"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
 
                   {/* Effective stat line */}
                   <div className="flex items-center justify-between">
@@ -359,26 +407,43 @@ const StaffPage = () => {
                     )}>
                       {getStatEffect(role, currentEffective)}
                     </span>
-                    <span className="text-[10px] text-muted-foreground/70">Eff. Q{currentEffective.toFixed(1)}</span>
+                    <span className="text-[10px] text-muted-foreground/70 tabular-nums">
+                      Effective {currentEffective.toFixed(1)}
+                    </span>
                   </div>
 
                   {/* Performance summary */}
                   {current.performance && (
-                    <div className="flex items-center gap-3 text-[9px] text-muted-foreground/80 border-t border-border/30 pt-1.5">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] text-muted-foreground/80 border-t border-border/30 pt-1.5">
                       {(current.seasonsAtClub ?? 0) > 0 && (
-                        <span><span className="text-foreground/80 font-semibold">{current.seasonsAtClub}</span>s@club</span>
+                        <span>
+                          <span className="text-foreground/80 font-semibold tabular-nums">{current.seasonsAtClub}</span>
+                          {' '}{current.seasonsAtClub === 1 ? 'season' : 'seasons'} at club
+                        </span>
                       )}
                       {role === 'youth-coach' && (
-                        <span><span className="text-foreground/80 font-semibold">{current.performance.youthPromotions}</span> promos</span>
+                        <span>
+                          <span className="text-foreground/80 font-semibold tabular-nums">{current.performance.youthPromotions}</span>
+                          {' '}youth promoted
+                        </span>
                       )}
                       {role === 'scout' && (
-                        <span><span className="text-foreground/80 font-semibold">{current.performance.scoutFinds}</span> reports</span>
+                        <span>
+                          <span className="text-foreground/80 font-semibold tabular-nums">{current.performance.scoutFinds}</span>
+                          {' '}scout reports
+                        </span>
                       )}
                       {role === 'physio' && (
-                        <span><span className="text-foreground/80 font-semibold">{current.performance.injuriesPrevented}</span> saves</span>
+                        <span>
+                          <span className="text-foreground/80 font-semibold tabular-nums">{current.performance.injuriesPrevented}</span>
+                          {' '}injuries averted
+                        </span>
                       )}
                       {(role === 'first-team-coach' || role === 'fitness-coach' || role === 'goalkeeping-coach' || role === 'assistant-manager') && (
-                        <span><span className="text-foreground/80 font-semibold">{current.performance.trainingGains}</span> dev gains</span>
+                        <span>
+                          <span className="text-foreground/80 font-semibold tabular-nums">{current.performance.trainingGains}</span>
+                          {' '}player improvements
+                        </span>
                       )}
                     </div>
                   )}
@@ -408,30 +473,6 @@ const StaffPage = () => {
                       </div>
                     ) : (
                       <div className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => handlePraise(current)}
-                          disabled={!interactReady}
-                          className={cn(
-                            'p-1.5 rounded-md transition-all min-h-[32px] min-w-[32px]',
-                            interactReady ? 'bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 active:scale-[0.94]' : 'bg-muted/20 text-muted-foreground/50 cursor-not-allowed',
-                          )}
-                          title={interactReady ? 'Praise (+morale)' : `Cooldown: ${interactCooldown}w`}
-                        >
-                          <ThumbsUp className="w-3 h-3" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleCriticize(current)}
-                          disabled={!interactReady}
-                          className={cn(
-                            'p-1.5 rounded-md transition-all min-h-[32px] min-w-[32px]',
-                            interactReady ? 'bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 active:scale-[0.94]' : 'bg-muted/20 text-muted-foreground/50 cursor-not-allowed',
-                          )}
-                          title={interactReady ? 'Criticise (-morale)' : `Cooldown: ${interactCooldown}w`}
-                        >
-                          <ThumbsDown className="w-3 h-3" />
-                        </button>
                         <button
                           type="button"
                           onClick={() => handleRenew(current)}

@@ -61,6 +61,20 @@ export { readWhatsNewSeenVersion, writeWhatsNewSeenVersion };
  */
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.0.9',
+    build: null,
+    date: '2026-04-28',
+    headline: 'Clearer staff conversations.',
+    summary: 'The Staff page now has a single \'Have a word\' button next to morale that opens a clear Praise / Criticise picker, instead of two unlabelled thumbs. Trait info and performance numbers are easier to read at a glance.',
+    highlights: [],
+    new: [],
+    improved: [
+      'Talking to staff is now a clear \'Have a word\' button on the morale row, with explicit Praise and Criticise options.',
+      'Staff trait labels and performance summaries now read in plain English (\'1 season at club\', \'4 player improvements\') instead of cryptic shorthand.',
+    ],
+    fixed: [],
+  },
+  {
     version: '1.0.8',
     build: null,
     date: '2026-04-28',
