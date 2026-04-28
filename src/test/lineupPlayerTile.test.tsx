@@ -124,7 +124,7 @@ describe('TierBorderFrame', () => {
 });
 
 describe('LineupPlayerTile shield art integration', () => {
-  it('renders the premium shield for an 85 OVR starter', () => {
+  it('renders the gold shield for an 85 OVR starter (icon is reserved for 90+ legends)', () => {
     const { container } = render(
       <LineupPlayerTile
         player={makePlayer({ overall: 85 })}
@@ -134,7 +134,9 @@ describe('LineupPlayerTile shield art integration', () => {
         onClick={() => { /* noop */ }}
       />,
     );
-    expect(container.querySelector('img[src*="premium.webp"]')).not.toBeNull();
+    expect(container.querySelector('img[src*="gold.webp"]')).not.toBeNull();
+    expect(container.querySelector('img[src*="premium.webp"]')).toBeNull();
+    expect(container.querySelector('img[src*="icon.webp"]')).toBeNull();
   });
 
   it('renders the bronze shield for a 62 OVR player', () => {

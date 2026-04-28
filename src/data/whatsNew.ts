@@ -76,6 +76,8 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Player attribute bars (Pace, Shooting, Passing…) get the same gradient + glow as the new progress bars.',
       'Trophy and award celebrations now sit on a soft gold halo with cream-gradient stat tiles.',
       'Player card fitness bars switched from flat hex fill to a colored gradient with matching glow.',
+      'Legend cards (90+ overall) keep their unique white shield while every other gold-rated player now shares the same rare gold card.',
+      'Coach Checklist and other dashboard panels collapse smoothly without stutter.',
       'Players now carry a rarity tier (Legend/Icon/Star/Rare). Legends are rarer, more valuable, and command premium wages.',
       'Refined the player age curve so prime years (24-28) hold value longer and post-32 decline tracks the real transfer market.',
       'Ballon d\'Or winners get a bigger value boost — top 4 placements all bumped.',
