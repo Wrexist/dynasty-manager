@@ -7,8 +7,11 @@
  * `iOS TestFlight Deploy` workflow before `check-whats-new.mjs`.
  *
  * Inputs (CLI args, workflow-dispatch inputs in CI):
- *   --headline "..."   App Store-style hook (required)
- *   --summary  "..."   1–3 sentence player-facing summary (required)
+ *   --headline "..."   App Store-style hook (optional — auto-generated from
+ *                      the lead PR's bullet when omitted)
+ *   --summary  "..."   1–3 sentence player-facing summary (optional —
+ *                      auto-generated from the lead bullets + category counts
+ *                      when omitted)
  *   --since    YYYY-MM-DD  override the merge cutoff (default: read from whatsNew.ts)
  *   --repo     owner/name  default: Wrexist/dynasty-manager
  *   --dry-run             list what would be added without mutating the file
@@ -24,6 +27,15 @@
  * The script shells out to `npm run whats-new -- <cmd>` for the actual file
  * mutations so we reuse the existing helper's dedupe + render logic and
  * don't drift in formatting.
+ *
+ * Auto-fallback voice (when --headline / --summary omitted):
+ *   - Headline → first bullet from the highest-priority non-empty category
+ *     (highlight > new > improved > fixed).
+ *   - Summary  → first 1-2 lead bullets joined as prose, plus a tail
+ *     enumerating remaining changes by category count. Always passes
+ *     check-whats-new.mjs's >=20-char minimum.
+ *   Both fields stay overridable for builds that deserve hand-crafted
+ *   App Store voice. Empty inputs in the workflow form trigger the fallback.
  */
 
 import { execSync } from 'child_process';
@@ -42,17 +54,16 @@ function getFlag(name) {
   const i = args.indexOf(`--${name}`);
   return i >= 0 ? args[i + 1] : null;
 }
-const HEADLINE = getFlag('headline');
-const SUMMARY = getFlag('summary');
+const HEADLINE_INPUT = getFlag('headline');
+const SUMMARY_INPUT = getFlag('summary');
 const SINCE_OVERRIDE = getFlag('since');
 const REPO = getFlag('repo') || 'Wrexist/dynasty-manager';
 const DRY_RUN = args.includes('--dry-run');
 
-if (!HEADLINE || !SUMMARY) {
-  console.error('::error::build-whats-new requires --headline "..." and --summary "..."');
-  console.error('Both fields gate the App Store voice — they cannot be derived from PRs.');
-  process.exit(1);
-}
+// Treat all-whitespace inputs as omitted so the workflow form's empty fields
+// route to the auto-fallback path instead of writing blank strings.
+const HEADLINE = HEADLINE_INPUT && HEADLINE_INPUT.trim().length > 0 ? HEADLINE_INPUT.trim() : null;
+const SUMMARY = SUMMARY_INPUT && SUMMARY_INPUT.trim().length > 0 ? SUMMARY_INPUT.trim() : null;
 
 const SKIP_LABELS = new Set([
   'skip-changelog',
@@ -183,6 +194,80 @@ function normaliseTitle(title) {
     .trim();
 }
 
+/** Stable priority ordering used by both the bullet append loop and the
+ *  auto-headline / auto-summary fallback. Highlights surface first, then
+ *  new features, then improvements, then fixes. Within a category we keep
+ *  PR-number order so older work shows ahead of newer work. */
+const ENTRY_ORDER = { highlight: 0, new: 1, improved: 2, fixed: 3 };
+function sortPlannedByPriority(planned) {
+  return [...planned].sort((a, b) => {
+    const o = ENTRY_ORDER[a.category] - ENTRY_ORDER[b.category];
+    return o !== 0 ? o : a.number - b.number;
+  });
+}
+
+function pluralize(n, singular, plural = `${singular}s`) {
+  return n === 1 ? singular : plural;
+}
+
+function joinNaturally(parts) {
+  if (parts.length === 0) return '';
+  if (parts.length === 1) return parts[0];
+  if (parts.length === 2) return `${parts[0]} and ${parts[1]}`;
+  return `${parts.slice(0, -1).join(', ')}, and ${parts[parts.length - 1]}`;
+}
+
+/** Build a "X highlights, Y new features, Z improvements, W fixes" phrase
+ *  from a list of planned bullets. `excludeBullets` keeps lead bullets that
+ *  already appear earlier in the summary out of the count. Returns null if
+ *  there's nothing left to enumerate. */
+function buildCategoryCountPhrase(planned, { excludeBullets = [] } = {}) {
+  const counts = { highlight: 0, new: 0, improved: 0, fixed: 0 };
+  const excluded = new Set(excludeBullets);
+  for (const p of planned) {
+    if (excluded.has(p.bullet)) {
+      excluded.delete(p.bullet); // only exclude one match per duplicate
+      continue;
+    }
+    counts[p.category]++;
+  }
+  const parts = [];
+  if (counts.highlight > 0) parts.push(`${counts.highlight} more ${pluralize(counts.highlight, 'highlight')}`);
+  if (counts.new > 0) parts.push(`${counts.new} new ${pluralize(counts.new, 'feature')}`);
+  if (counts.improved > 0) parts.push(`${counts.improved} ${pluralize(counts.improved, 'improvement')}`);
+  if (counts.fixed > 0) parts.push(`${counts.fixed} ${pluralize(counts.fixed, 'fix', 'fixes')}`);
+  if (parts.length === 0) return null;
+  return joinNaturally(parts);
+}
+
+/** Auto-generate the headline when the workflow input is empty. Picks the
+ *  first bullet from the highest-priority non-empty category. Bullets in
+ *  this codebase are already capitalised + period-terminated by the helper,
+ *  so we use them verbatim. */
+function buildAutoHeadline(planned) {
+  if (planned.length === 0) return 'Stability and polish update.';
+  return sortPlannedByPriority(planned)[0].bullet;
+}
+
+/** Auto-generate the summary when the workflow input is empty. Joins the
+ *  top 1-2 priority bullets as prose and appends an enumerated tail for the
+ *  rest. Always returns a string >=20 chars (the floor enforced by
+ *  check-whats-new.mjs). */
+function buildAutoSummary(planned) {
+  if (planned.length === 0) return 'Internal updates and stability improvements for this build.';
+
+  const sorted = sortPlannedByPriority(planned);
+  const leadCount = Math.min(2, sorted.length);
+  const leadBullets = sorted.slice(0, leadCount).map(p => p.bullet);
+  const lead = leadBullets.join(' ');
+
+  const tail = buildCategoryCountPhrase(planned, { excludeBullets: leadBullets });
+  if (!tail) {
+    return lead.length >= 20 ? lead : `${lead} A focused update for this build.`;
+  }
+  return `${lead} Plus ${tail} across the rest of the build.`;
+}
+
 function runHelper(category, text) {
   if (DRY_RUN) {
     console.log(`  [dry-run] ${category}: "${text}"`);
@@ -303,14 +388,23 @@ if (skipped.length > 0) {
 }
 console.log('');
 
+// ── Resolve headline + summary (auto-fallback when omitted) ────────────
+const finalHeadline = HEADLINE ?? buildAutoHeadline(planned);
+const finalSummary = SUMMARY ?? buildAutoSummary(planned);
+
+console.log('  Headline source: ' + (HEADLINE ? 'workflow input' : 'auto-generated from PRs'));
+console.log(`    "${finalHeadline}"`);
+console.log('  Summary source:  ' + (SUMMARY ? 'workflow input' : 'auto-generated from PRs'));
+console.log(`    "${finalSummary}"`);
+console.log('');
+
 // ── Set headline + summary first (also creates the entry if needed) ────
-runHelperField('headline', HEADLINE);
-runHelperField('summary', SUMMARY);
+runHelperField('headline', finalHeadline);
+runHelperField('summary', finalSummary);
 
 // ── Append bullets, sorted by category priority then PR number ─────────
-const ORDER = { highlight: 0, new: 1, improved: 2, fixed: 3 };
 planned.sort((a, b) => {
-  const o = ORDER[a.category] - ORDER[b.category];
+  const o = ENTRY_ORDER[a.category] - ENTRY_ORDER[b.category];
   return o !== 0 ? o : a.number - b.number;
 });
 

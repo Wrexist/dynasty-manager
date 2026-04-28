@@ -25,22 +25,24 @@ then `scripts/check-whats-new.mjs` validates and gates the build.
 
 ### Triggering `iOS TestFlight Deploy`
 
-The workflow takes two required inputs (the App Store voice that PRs cannot
-provide) plus an optional cutoff override:
+All workflow inputs are optional. Leave them blank for a fully automatic
+build (recommended) or fill them in for hand-crafted App Store voice:
 
 | Input | Required | Notes |
 |-------|----------|-------|
-| `headline` | yes | 3–8 word hook, e.g. "Cup glory, smarter AI, faster matches." |
-| `summary`  | yes | 1–3 sentences, player-facing tone. |
-| `since`    | no  | ISO date `YYYY-MM-DD` to override the merge cutoff. Default: the date of the previous shipped entry in `whatsNew.ts`. |
+| `headline` | no | 3–8 word hook, e.g. "Cup glory, smarter AI, faster matches." Leave blank to auto-generate from the lead merged PR's bullet. |
+| `summary`  | no | 1–3 sentences, player-facing tone. Leave blank to auto-generate from the lead bullets + category counts. |
+| `since`    | no | ISO date `YYYY-MM-DD` to override the merge cutoff. Default: the date of the previous shipped entry in `whatsNew.ts`. |
 
 Steps:
 
 1. **Bump `package.json` version** (semver) on `main` first.
-2. **Trigger the workflow** with the headline + summary inputs.
+2. **Trigger the workflow.** Leaving headline + summary blank gives a
+   ship-now build; filling them in overrides the auto-generated voice.
 3. The workflow:
    - Runs `build-whats-new.mjs` → fetches merged PRs via `gh pr list`,
-     classifies by label, writes the entry on the runner.
+     classifies by label, writes the entry on the runner. Auto-generates
+     headline + summary from the classified PRs when inputs are empty.
    - Runs `check-whats-new.mjs` → validates the entry has all required fields.
    - Runs `check-whats-new.mjs --inject-build ${{ github.run_number }}`
      → stamps the real CFBundleVersion before bundling.
@@ -50,10 +52,24 @@ Steps:
    exists only for the bundled app. If you want to backfill the entry into
    git, run the same script locally and commit the result.
 
+### Auto-fallback voice (when inputs are blank)
+
+- **Headline** → first bullet from the highest-priority non-empty category
+  (highlight > new > improved > fixed). Bullets are already capitalised and
+  period-terminated by the helper, so they read as a complete sentence.
+- **Summary** → first 1–2 lead bullets joined as prose, plus a tail
+  enumerating the rest by category count. Always passes the `>=20` char
+  validation in `check-whats-new.mjs`.
+
+The script logs which path it took (`workflow input` vs.
+`auto-generated from PRs`) so the workflow run is auditable.
+
 ### Local commands
 
 ```bash
 # Generate the top entry from merged PRs locally (requires `gh` auth).
+# Headline/summary are optional — omit them to auto-generate.
+node scripts/build-whats-new.mjs --dry-run
 node scripts/build-whats-new.mjs --headline "..." --summary "..." --dry-run
 
 # Hand-edit a single bullet using the same helper CI uses internally.
