@@ -15,6 +15,7 @@ import { ManagerStatBar } from '@/components/game/ManagerStatBar';
 import { ManagerAvatar } from '@/components/game/ManagerAvatar';
 import { DEFAULT_APPEARANCE } from '@/config/managerAppearance';
 import { createDefaultManager, generateBaseAttributes, applyTraitBonuses, generateStartingOffers, negotiateSalary, getManagerBonusLabel } from '@/utils/managerCareer';
+import { getStarRatingColor } from '@/utils/uiHelpers';
 import { STARTING_AGE_MIN, STARTING_AGE_MAX, TRAITS_TO_PICK, MAX_NEGOTIATION_ROUNDS, SALARY_COUNTER_MAX_INCREASE } from '@/config/managerCareer';
 import { CLUBS_DATA } from '@/data/league';
 import { toast } from 'sonner';
@@ -380,12 +381,7 @@ const ManagerCreation = () => {
                                       <p className="text-[11px] text-foreground/80 font-medium truncate">{player.name}</p>
                                       <div className="flex items-center gap-1.5">
                                         <span className="text-[10px] text-muted-foreground/60">{player.position}</span>
-                                        <span className={cn(
-                                          'text-[10px] font-bold',
-                                          player.rating >= 90 ? 'text-emerald-400' :
-                                          player.rating >= 85 ? 'text-primary' :
-                                          player.rating >= 80 ? 'text-amber-400' : 'text-muted-foreground'
-                                        )}>{player.rating}</span>
+                                        <span className={cn('text-[10px] font-bold', getStarRatingColor(player.rating))}>{player.rating}</span>
                                       </div>
                                     </div>
                                   ))}
