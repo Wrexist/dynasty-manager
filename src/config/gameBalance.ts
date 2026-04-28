@@ -87,8 +87,6 @@ export const RARITY_RARE_OVR = 75;
 export const RARITY_LEGEND_TOP3_PLACEMENTS = 1;
 /** Ballon d'Or top-25 placements required to upgrade a 90+ player to legend. */
 export const RARITY_LEGEND_TOP25_PLACEMENTS = 3;
-/** Ballon d'Or top-25 placements required to upgrade an 88+ player to icon. */
-export const RARITY_ICON_TOP25_PLACEMENTS = 1;
 
 /** Value multipliers by rarity. Legends command a 2.5× premium — captures
  *  the real-world reality that a Ballon d'Or-tier 30yo costs more than a
@@ -712,6 +710,15 @@ export const FACILITY_MILESTONES: Record<string, { level: number; label: string 
     { level: 10, label: 'World-class recovery' },
   ],
 };
+
+// ── Ballon d'Or Top-10 Reign ──
+/** Top-N rank that earns the special card + stats boost (top 10). */
+export const BALLON_DOR_TOP10_RANK = 10;
+/** Flat per-attribute boost applied to current top-10 holders. Stays for one
+ *  Ballon d'Or cycle — reverted at next season-end if player drops out of
+ *  the top 10. Picked to be felt in match sim without dwarfing the rarity
+ *  premium or eclipsing the natural 90+ legend tier. */
+export const BALLON_DOR_TOP10_ATTR_BOOST = 3;
 
 /** Value multiplier for Ballon d'Or top-25 placements (rank → multiplier).
  *  Bumped at the top in v67 rebalance — the winner now adds +40% on top of

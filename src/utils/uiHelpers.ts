@@ -85,7 +85,19 @@ export interface PlayerCardArt {
   filter?: string;
 }
 
-export function getPlayerCardArt(overall: number | null | undefined): PlayerCardArt {
+export interface PlayerCardArtOptions {
+  /** When true, override the tier shield with the Ballon d'Or top-10 card.
+   *  Set this for players whose `ballonDOrTop10HoldSeason` is the current
+   *  reigning season — the override outranks every overall-based tier. */
+  ballonDorTop10?: boolean;
+}
+
+export function getPlayerCardArt(overall: number | null | undefined, options?: PlayerCardArtOptions): PlayerCardArt {
+  if (options?.ballonDorTop10) {
+    // Ballon d'Or top-10 card outranks every tier shield. Lasts until the
+    // next BdO ceremony — see src/utils/ballonDorBoost.ts for the lifecycle.
+    return { src: '/player-cards/ballondor.png' };
+  }
   if (overall == null || !Number.isFinite(overall)) {
     return { src: '/player-cards/bronze.webp', filter: 'grayscale(1) brightness(0.55)' };
   }

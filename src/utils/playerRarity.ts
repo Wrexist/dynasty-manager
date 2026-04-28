@@ -3,7 +3,6 @@ import {
   RARITY_LEGEND_OVR, RARITY_LEGEND_OVR_FLOOR, RARITY_ICON_OVR,
   RARITY_STAR_OVR, RARITY_RARE_OVR,
   RARITY_LEGEND_TOP3_PLACEMENTS, RARITY_LEGEND_TOP25_PLACEMENTS,
-  RARITY_ICON_TOP25_PLACEMENTS,
   RARITY_VALUE_MULTIPLIERS, RARITY_WAGE_MULTIPLIERS,
 } from '@/config/gameBalance';
 
@@ -15,7 +14,6 @@ import {
  *   - OVR ≥ 90 + ≥1 Ballon d'Or top-3 placement     → legend
  *   - OVR ≥ 90 + ≥3 Ballon d'Or top-25 placements   → legend
  *   - OVR ≥ 90 (no awards yet)                      → icon
- *   - OVR ≥ 88 + ≥1 Ballon d'Or top-25 placement    → icon
  *   - OVR ≥ 88                                      → icon
  *   - OVR ≥ 82                                      → star
  *   - OVR ≥ 75                                      → rare
@@ -35,10 +33,11 @@ export function getPlayerRarity(player: Pick<Player, 'overall' | 'ballonDOrPlace
   if (ovr >= RARITY_LEGEND_OVR && top3 >= RARITY_LEGEND_TOP3_PLACEMENTS) return 'legend';
   if (ovr >= RARITY_LEGEND_OVR && top25 >= RARITY_LEGEND_TOP25_PLACEMENTS) return 'legend';
 
-  // Icon: world-class baseline, optionally award-touched.
+  // Icon: world-class baseline. Award pedigree is captured by the legend
+  // promotion above — at OVR < 88 we don't second-tier-promote based on
+  // history, so a former Ballon d'Or finalist who's slipped to 87 OVR is
+  // a star (matches the doc'd OVR thresholds).
   if (ovr >= RARITY_ICON_OVR) return 'icon';
-  if (ovr >= RARITY_LEGEND_OVR) return 'icon'; // unreachable in practice — kept defensive
-  if (ovr >= RARITY_ICON_OVR - 1 && top25 >= RARITY_ICON_TOP25_PLACEMENTS) return 'icon';
 
   if (ovr >= RARITY_STAR_OVR) return 'star';
   if (ovr >= RARITY_RARE_OVR) return 'rare';

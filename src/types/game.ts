@@ -193,6 +193,22 @@ export interface Player {
   weightKg?: number;
   /** Rarity tier — see `PlayerRarity`. Recomputed whenever overall changes. */
   rarity?: PlayerRarity;
+  /**
+   * Season in which the player most recently finished in the Ballon d'Or
+   * top 10. While set, the player is the reigning top-10 holder — they
+   * carry a stats boost and the special `ballondor.png` card. The marker is
+   * refreshed each season they re-make the top 10, and cleared at next
+   * season-end if they drop out (along with reverting the stats boost).
+   */
+  ballonDOrTop10HoldSeason?: number;
+  /**
+   * Per-attribute deltas applied by the active Ballon d'Or top-10 boost.
+   * Stored as deltas (not absolute snapshots) so development, training, and
+   * decline that happen *during* the reign are preserved when the boost is
+   * reverted — we just subtract these numbers and the rest of the player's
+   * progression stays intact.
+   */
+  ballonDOrTop10BoostDeltas?: Partial<PlayerAttributes>;
 }
 
 export interface PlayerAppearance {

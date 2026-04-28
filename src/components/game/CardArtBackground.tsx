@@ -18,6 +18,8 @@ interface CardArtBackgroundProps {
    * club-color tint sits on top). Default 0.6 keeps rating/name text crisp.
    */
   overlayStrength?: number;
+  /** When true, render the Ballon d'Or top-10 card in place of the tier shield. */
+  ballonDorTop10?: boolean;
   className?: string;
 }
 
@@ -33,9 +35,10 @@ export const CardArtBackground = memo(function CardArtBackground({
   variant = 'full',
   eager = false,
   overlayStrength = 0.6,
+  ballonDorTop10 = false,
   className,
 }: CardArtBackgroundProps) {
-  const { src, filter } = getPlayerCardArt(overall);
+  const { src, filter } = getPlayerCardArt(overall, { ballonDorTop10 });
 
   const imgStyle =
     variant === 'top-strip'

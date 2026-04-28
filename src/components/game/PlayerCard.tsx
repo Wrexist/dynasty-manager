@@ -142,7 +142,9 @@ export const PlayerCard = memo(function PlayerCard({
   className,
 }: PlayerCardProps) {
   const tk = sizeTokens(size);
-  const cardArt = getPlayerCardArt(player.overall);
+  const cardArt = getPlayerCardArt(player.overall, {
+    ballonDorTop10: typeof player.ballonDOrTop10HoldSeason === 'number',
+  });
   const prefersReducedMotion = useReducedMotion();
   const [statView, setStatView] = useState<StatView>(0);
 

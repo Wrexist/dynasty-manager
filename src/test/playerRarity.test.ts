@@ -86,6 +86,14 @@ describe('getPlayerRarity — Ballon d\'Or pedigree', () => {
     expect(getPlayerRarity({ overall: 88, ballonDOrPlacements: [placement(20)] })).toBe('icon');
   });
 
+  it('does NOT promote OVR 87 to icon even with award history', () => {
+    // Codex review: the docs/config say RARITY_ICON_OVR = 88. A player who
+    // has slipped below that floor is a star regardless of past hardware,
+    // matching the "rarity tracks current quality" intent.
+    expect(getPlayerRarity({ overall: 87, ballonDOrPlacements: [placement(5)] })).toBe('star');
+    expect(getPlayerRarity({ overall: 87, ballonDOrPlacements: [placement(1), placement(2)] })).toBe('star');
+  });
+
   it('handles missing ballonDOrPlacements field safely', () => {
     expect(getPlayerRarity({ overall: 85 })).toBe('star');
     expect(getPlayerRarity({ overall: 92 })).toBe('icon');

@@ -1,5 +1,4 @@
 import type { Player, ContractOffer } from '@/types/game';
-import { getPlayerRarity, getRarityWageMultiplier } from '@/utils/playerRarity';
 import {
   CONTRACT_NEAR_EXPIRY_SEASONS,
   CONTRACT_AGE_BRACKETS, CONTRACT_DEFAULT_AGE_FACTOR,
@@ -62,13 +61,12 @@ export function calculateWageDemand(player: Player, clubReputation: number): num
   // Club reputation: bigger clubs = higher wage expectations
   const repFactor = 1 + clubReputation * CONTRACT_REP_MULTIPLIER;
 
-  // Rarity factor: legends/icons know their worth and demand premium wages.
-  // Falls through to 1.0 for common/rare so the existing curve is unchanged.
-  // We re-derive rarity defensively in case `player.rarity` is stale (older
-  // saves) — getPlayerRarity is pure and cheap.
-  const rarityFactor = getRarityWageMultiplier(player.rarity ?? getPlayerRarity(player));
+  // NOTE: rarity premium is already baked into `player.wage` at generation
+  // and migration time, so `baseDemand` already carries it. Don't multiply
+  // again here — that would square the premium for legends/icons and make
+  // contract renewals impossibly expensive.
 
-  const demand = Math.round(baseDemand * ageFactor * qualityFactor * formFactor * moraleFactor * repFactor * rarityFactor);
+  const demand = Math.round(baseDemand * ageFactor * qualityFactor * formFactor * moraleFactor * repFactor);
   // Round to nearest 1000 so demands align with the UI slider step
   const rounded = Math.round(demand / 1000) * 1000;
   return Math.max(CONTRACT_MINIMUM_WAGE, rounded || demand);

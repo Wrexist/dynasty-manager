@@ -53,6 +53,25 @@ import { claimRealPlayer, resetRealPlayerClaims } from '@/utils/realPlayerPicker
 import { generateInitialStaff } from '@/utils/staff';
 import { initializeClubPowerRankings } from '@/utils/teamRankings';
 import { generateInitialFreeAgents } from '@/utils/transferMarketGen';
+import { applyBallonDorTop10Boost } from '@/utils/ballonDorBoost';
+import { BALLON_DOR_TOP10_RANK } from '@/config/gameBalance';
+
+/**
+ * Pick the 10 reigning Ballon d'Or top-10 holders from the freshly-generated
+ * player pool. Sorts club-affiliated active players by overall (descending)
+ * and takes the top {@link BALLON_DOR_TOP10_RANK}. Free agents and youth
+ * prospects are excluded — the BdO ranks active club players only. Mutates
+ * by returning references; the caller applies the boost.
+ */
+function pickInitialBallonDorTop10(allPlayers: Record<string, Player>): Player[] {
+  const candidates = Object.values(allPlayers).filter(p => p.clubId && !p.injured);
+  candidates.sort((a, b) => {
+    if (b.overall !== a.overall) return b.overall - a.overall;
+    // Tie-break by age (younger = more "current form" worthy of the seed).
+    return a.age - b.age;
+  });
+  return candidates.slice(0, BALLON_DOR_TOP10_RANK);
+}
 /**
  * Game initialization extracted from orchestrationSlice.ts.
  *
@@ -323,6 +342,16 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
   const cup = generateCupDraw(leagueClubIds);
   const leagueCup = generateLeagueCupDraw(leagueClubIds);
   const friendlies = generateFriendlies(clubId, leagueClubIds);
+
+  // Seed the 10 reigning Ballon d'Or top-10 holders. Picks the highest-OVR
+  // active club players in the world and grants them the temp stats boost +
+  // special card. Their reign expires at the end of season 1: those who
+  // re-make the new top 10 keep it, others revert. `season - 1 = 0` is just
+  // a marker — the boost lifecycle only cares whether the field is set.
+  const seededTop10 = pickInitialBallonDorTop10(allPlayers);
+  for (const p of seededTop10) {
+    applyBallonDorTop10Boost(p, 0);
+  }
 
   set({
     gameStarted: true, playerClubId: clubId, season: 1, week: 1, totalWeeks: league?.totalWeeks || TOTAL_WEEKS,

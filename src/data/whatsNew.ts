@@ -68,8 +68,13 @@ export const RELEASE_NOTES: ReleaseNote[] = [
     summary: 'Form pips, position chips, fitness bars and the in-match timer all get the same gradient + glow treatment as last build\'s progress bars. Trophy celebrations now sit on a proper gold halo.',
     highlights: [
       'Legendary players now stand out — premium values, hype animations, and Ballon d\'Or pedigree drives the legend tier.',
+      'Top 10 Ballon d\'Or finishers earn a unique gold-medal card and stats boost — held until the next ceremony.',
     ],
-    new: [],
+    new: [
+      'Ballon d\'Or page accessible from Season 1 with a Reigning Top 10 panel showing the current card holders.',
+      '10 world-class players start each new save reigning at the top of the Ballon d\'Or — your first season is the chase to dethrone them.',
+      'When your player makes the Ballon d\'Or top 10, you get a dedicated inbox celebration explaining the card + boost.',
+    ],
     improved: [
       'Form pips (W/D/L) and position chips (GK/DEF/MID/FWD) now have proper gradient depth instead of flat tints.',
       'Live match timer bar glows on the surface during play.',
