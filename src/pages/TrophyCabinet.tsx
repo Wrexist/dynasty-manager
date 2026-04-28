@@ -5,6 +5,7 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { Trophy, Award, Star, Medal, Lock } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { PremiumCheck } from '@/components/game/icons/PremiumCheck';
+import { PremiumProgress } from '@/components/game/PremiumProgress';
 import { cn } from '@/lib/utils';
 import { getSuffix } from '@/utils/helpers';
 import { ACHIEVEMENTS, getTierColor } from '@/utils/achievements';
@@ -77,16 +78,15 @@ const TrophyCabinet = () => {
                 <Medal className="w-4 h-4 text-primary" />
                 <span className="text-xs font-bold text-foreground">Achievement Progress</span>
               </div>
-              <span className="text-sm font-black text-primary tabular-nums">{pct}%</span>
+              <span
+                className="text-sm font-black tabular-nums bg-clip-text text-transparent"
+                style={{ backgroundImage: 'linear-gradient(135deg, hsl(43 96% 70%), hsl(43 96% 46%) 60%, hsl(35 80% 38%))' }}
+              >
+                {pct}%
+              </span>
             </div>
-            <div className="h-2 bg-muted/30 rounded-full overflow-hidden mb-2">
-              <motion.div
-                className="h-full bg-primary rounded-full"
-                initial={{ width: 0 }}
-                animate={{ width: `${pct}%` }}
-                transition={{ duration: 0.6, ease: 'easeOut' }}
-              />
-            </div>
+            <PremiumProgress value={pct} className="mb-2" glow />
+
             <div className="flex items-center justify-between text-[10px] text-muted-foreground">
               <span>{unlocked}/{totalVisible} unlocked</span>
               <div className="flex items-center gap-3">
@@ -108,8 +108,16 @@ const TrophyCabinet = () => {
         </div>
         {leagueTitles.length === 0 ? (
           <div className="text-center py-4">
-            <div className="w-12 h-12 rounded-xl bg-muted/30 border border-dashed border-border/50 mx-auto mb-2 flex items-center justify-center">
-              <Trophy className="w-5 h-5 text-muted-foreground/30" />
+            <div
+              className="w-14 h-14 rounded-2xl mx-auto mb-2 flex items-center justify-center relative"
+              style={{
+                background:
+                  'radial-gradient(circle at 35% 30%, hsl(var(--primary)/0.18) 0%, hsl(var(--primary)/0.06) 55%, transparent 80%)',
+                boxShadow:
+                  'inset 0 1px 0 rgba(255,255,255,0.06), inset 0 0 0 1px hsl(var(--primary)/0.18), 0 0 24px -8px hsl(var(--primary)/0.4)',
+              }}
+            >
+              <Trophy className="w-6 h-6 text-primary/40" />
             </div>
             <p className="text-[10px] text-muted-foreground">Win the league to earn your first title</p>
           </div>
@@ -141,8 +149,16 @@ const TrophyCabinet = () => {
         </div>
         {cupWins === 0 ? (
           <div className="text-center py-4">
-            <div className="w-12 h-12 rounded-xl bg-muted/30 border border-dashed border-border/50 mx-auto mb-2 flex items-center justify-center">
-              <Award className="w-5 h-5 text-muted-foreground/30" />
+            <div
+              className="w-14 h-14 rounded-2xl mx-auto mb-2 flex items-center justify-center"
+              style={{
+                background:
+                  'radial-gradient(circle at 35% 30%, rgba(251,191,36,0.18) 0%, rgba(251,191,36,0.06) 55%, transparent 80%)',
+                boxShadow:
+                  'inset 0 1px 0 rgba(255,255,255,0.06), inset 0 0 0 1px rgba(251,191,36,0.2), 0 0 24px -8px rgba(251,191,36,0.45)',
+              }}
+            >
+              <Award className="w-6 h-6 text-amber-400/45" />
             </div>
             <p className="text-[10px] text-muted-foreground">Win the Dynasty Cup to fill this shelf</p>
           </div>

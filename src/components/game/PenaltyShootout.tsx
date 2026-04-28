@@ -5,6 +5,37 @@ import { cn } from '@/lib/utils';
 import { hapticMedium } from '@/utils/haptics';
 import type { PenaltyKick } from '@/types/game';
 
+function PenaltyMark({ scored }: { scored: boolean }) {
+  return (
+    <svg viewBox="0 0 16 16" className="w-3.5 h-3.5" aria-hidden="true">
+      <defs>
+        <radialGradient id={scored ? 'pk-scored' : 'pk-missed'} cx="35%" cy="35%" r="80%">
+          {scored ? (
+            <>
+              <stop offset="0%" stopColor="#A7F3D0" />
+              <stop offset="55%" stopColor="#10B981" />
+              <stop offset="100%" stopColor="#047857" />
+            </>
+          ) : (
+            <>
+              <stop offset="0%" stopColor="#FCA5A5" stopOpacity="0.25" />
+              <stop offset="100%" stopColor="#7F1D1D" stopOpacity="0.05" />
+            </>
+          )}
+        </radialGradient>
+      </defs>
+      {scored ? (
+        <circle cx="8" cy="8" r="5.5" fill={`url(#pk-scored)`} stroke="#34D399" strokeOpacity="0.55" strokeWidth="0.6" />
+      ) : (
+        <>
+          <circle cx="8" cy="8" r="5.5" fill={`url(#pk-missed)`} stroke="currentColor" strokeOpacity="0.55" strokeWidth="1.2" />
+          <path d="M5.5 5.5 L10.5 10.5 M10.5 5.5 L5.5 10.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeOpacity="0.85" />
+        </>
+      )}
+    </svg>
+  );
+}
+
 export function PenaltyShootout() {
   const kicks = useGameStore(s => s.penaltyShootoutKicks);
   const revealIndex = useGameStore(s => s.penaltyShootoutRevealIndex);
@@ -41,12 +72,12 @@ export function PenaltyShootout() {
         {rounds.map((r) => (
           <div key={r.round} className="flex items-center gap-2 text-xs">
             <span className="w-6 text-muted-foreground tabular-nums text-right">{r.round}</span>
-            <span className={cn('w-6 text-center font-bold', r.home?.scored ? 'text-emerald-400' : 'text-destructive')}>
-              {r.home ? (r.home.scored ? '●' : '○') : ''}
+            <span className={cn('w-6 flex justify-center', r.home?.scored ? 'text-emerald-400' : 'text-destructive')}>
+              {r.home ? <PenaltyMark scored={r.home.scored} /> : null}
             </span>
             <span className="flex-1" />
-            <span className={cn('w-6 text-center font-bold', r.away?.scored ? 'text-emerald-400' : 'text-destructive')}>
-              {r.away ? (r.away.scored ? '●' : '○') : ''}
+            <span className={cn('w-6 flex justify-center', r.away?.scored ? 'text-emerald-400' : 'text-destructive')}>
+              {r.away ? <PenaltyMark scored={r.away.scored} /> : null}
             </span>
           </div>
         ))}

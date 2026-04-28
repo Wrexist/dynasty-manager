@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { PremiumCheck } from '@/components/game/icons/PremiumCheck';
+import { PremiumProgress } from '@/components/game/PremiumProgress';
 import { getRoundName } from '@/data/cup';
 import { LEAGUES } from '@/data/league';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
@@ -1019,12 +1020,14 @@ const Dashboard = () => {
             </div>
             <span className="text-[10px] text-muted-foreground">{completedCoachTasks}/{coachTasks.length} done</span>
           </button>
-          <div className="h-1.5 rounded-full bg-muted/40 overflow-hidden mt-2">
-            <div
-              className={cn('h-full transition-all duration-300', allCoachTasksDone ? 'bg-emerald-500' : 'bg-primary')}
-              style={{ width: `${coachTasks.length > 0 ? Math.round((completedCoachTasks / coachTasks.length) * 100) : 0}%` }}
-            />
-          </div>
+          <PremiumProgress
+            className="mt-2"
+            size="sm"
+            tone={allCoachTasksDone ? 'emerald' : 'primary'}
+            value={coachTasks.length > 0 ? Math.round((completedCoachTasks / coachTasks.length) * 100) : 0}
+            glow={allCoachTasksDone}
+            animate={false}
+          />
           <AnimatePresence initial={false}>
             {!coachCollapsed && (
               <motion.div
@@ -1361,12 +1364,12 @@ const Dashboard = () => {
                         <p className="text-[10px] text-muted-foreground truncate">{obj.description}</p>
                         {!obj.completed && obj.progress && (
                           <div className="mt-1.5 flex items-center gap-2">
-                            <div className="flex-1 h-1.5 bg-muted/30 rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-primary rounded-full transition-all"
-                                style={{ width: `${Math.min(100, (obj.progress.current / obj.progress.target) * 100)}%` }}
-                              />
-                            </div>
+                            <PremiumProgress
+                              className="flex-1"
+                              size="sm"
+                              animate={false}
+                              value={Math.min(100, (obj.progress.current / obj.progress.target) * 100)}
+                            />
                             <span className="text-[9px] text-muted-foreground tabular-nums">
                               {obj.progress.current}/{obj.progress.target}
                             </span>
@@ -1442,12 +1445,13 @@ const Dashboard = () => {
                         <p className="text-[10px] text-muted-foreground truncate">{a.description}</p>
                         {a.prog && (
                           <div className="mt-1.5 flex items-center gap-2">
-                            <div className="flex-1 h-1.5 bg-muted/30 rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-sky-400 rounded-full transition-all"
-                                style={{ width: `${Math.min(100, (a.prog.current / a.prog.target) * 100)}%` }}
-                              />
-                            </div>
+                            <PremiumProgress
+                              className="flex-1"
+                              size="sm"
+                              tone="sky"
+                              animate={false}
+                              value={Math.min(100, (a.prog.current / a.prog.target) * 100)}
+                            />
                             <span className="text-[9px] text-muted-foreground tabular-nums">
                               {a.prog.current}/{a.prog.target} · +{a.tier === 'gold' ? ACHIEVEMENT_XP_GOLD : a.tier === 'silver' ? ACHIEVEMENT_XP_SILVER : ACHIEVEMENT_XP_BRONZE} XP
                             </span>
@@ -1485,14 +1489,7 @@ const Dashboard = () => {
                 <span className="text-muted-foreground">Next level</span>
                 <span className="text-primary font-semibold tabular-nums">{xpProgress.current}/{xpProgress.needed}</span>
               </div>
-              <div className="h-1.5 bg-muted/30 rounded-full overflow-hidden">
-                <motion.div
-                  className="h-full bg-primary rounded-full"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${xpProgress.percentage}%` }}
-                  transition={{ duration: 0.5 }}
-                />
-              </div>
+              <PremiumProgress size="sm" value={xpProgress.percentage} />
             </div>
             {nextPerk && (
               <p className="text-[9px] text-muted-foreground mt-1.5 truncate">
@@ -1779,16 +1776,12 @@ const Dashboard = () => {
           )}>
             {boardConfidence}%
           </p>
-          <div className="w-full h-1.5 rounded-full bg-muted/40 mt-1.5 overflow-hidden">
-            <motion.div
-              className={cn(
-                "h-full rounded-full",
-                boardConfidence > 50 ? "bg-emerald-500" : boardConfidence > 25 ? "bg-amber-500" : "bg-destructive"
-              )}
-              animate={{ width: `${boardConfidence}%` }}
-              transition={{ duration: 0.6, ease: 'easeOut' }}
-            />
-          </div>
+          <PremiumProgress
+            className="mt-1.5"
+            size="sm"
+            tone={boardConfidence > 50 ? 'emerald' : boardConfidence > 25 ? 'amber' : 'rose'}
+            value={boardConfidence}
+          />
           <p className="text-[10px] text-muted-foreground mt-1">
             {boardConfidence > 70 ? 'Secure' : boardConfidence > 40 ? 'Under pressure' : 'Sacking risk!'}
           </p>

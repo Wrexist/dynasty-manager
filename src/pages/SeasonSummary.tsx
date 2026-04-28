@@ -98,16 +98,37 @@ const SeasonSummary = () => {
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="space-y-4">
         <div className="text-center mb-6">
-          <Trophy className="w-12 h-12 text-primary mx-auto mb-2" />
-          <h2 className="text-2xl font-black text-foreground font-display">Season {latest.season} Complete</h2>
+          <div className="relative inline-block mb-2">
+            <span
+              aria-hidden
+              className="absolute inset-0 rounded-full blur-2xl opacity-70"
+              style={{ background: 'radial-gradient(circle, hsl(43 96% 55% / 0.5) 0%, transparent 70%)' }}
+            />
+            <Trophy className="w-12 h-12 text-primary relative drop-shadow-[0_4px_18px_hsl(43_96%_46%/0.55)]" />
+          </div>
+          <h2
+            className="text-2xl font-black font-display tracking-tight bg-clip-text text-transparent"
+            style={{ backgroundImage: 'linear-gradient(180deg, #FFF6D8 0%, hsl(var(--foreground)) 50%, hsl(var(--foreground)/0.85) 100%)' }}
+          >
+            Season {latest.season} Complete
+          </h2>
         </div>
 
         {/* Promoted Banner */}
         {latest.promoted && (
           <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2, duration: 0.6, type: 'spring' }} onAnimationComplete={() => hapticHeavy()}>
             <GlassPanel className="p-5 text-center border-emerald-500/50 bg-emerald-500/10">
-              <ArrowUp className="w-10 h-10 text-emerald-400 mx-auto mb-2" />
-              <p className="text-2xl font-black text-emerald-400 font-display">PROMOTED!</p>
+              <ArrowUp className="w-10 h-10 text-emerald-300 mx-auto mb-2 drop-shadow-[0_0_10px_rgba(16,185,129,0.65)]" />
+              <p
+                className="text-3xl font-black font-display tracking-[0.18em] bg-clip-text text-transparent"
+                style={{
+                  backgroundImage: 'linear-gradient(180deg, #ECFDF5 0%, #6EE7B7 45%, #10B981 100%)',
+                  textShadow: '0 0 24px rgba(16,185,129,0.45)',
+                  filter: 'drop-shadow(0 1px 0 rgba(0,0,0,0.4))',
+                }}
+              >
+                PROMOTED!
+              </p>
               <p className="text-sm text-emerald-400/80 mt-1">
                 Congratulations! You've earned promotion to a higher division.
               </p>
@@ -119,8 +140,17 @@ const SeasonSummary = () => {
         {latest.replaced && !latest.promoted && (
           <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2, duration: 0.6, type: 'spring' }} onAnimationComplete={() => hapticHeavy()}>
             <GlassPanel className="p-5 text-center border-destructive/50 bg-destructive/10">
-              <ArrowDown className="w-10 h-10 text-destructive mx-auto mb-2" />
-              <p className="text-2xl font-black text-destructive font-display">RELEGATED</p>
+              <ArrowDown className="w-10 h-10 text-rose-300 mx-auto mb-2 drop-shadow-[0_0_10px_rgba(244,63,94,0.6)]" />
+              <p
+                className="text-3xl font-black font-display tracking-[0.18em] bg-clip-text text-transparent"
+                style={{
+                  backgroundImage: 'linear-gradient(180deg, #FFE4E6 0%, #FB7185 45%, #BE123C 100%)',
+                  textShadow: '0 0 24px rgba(244,63,94,0.4)',
+                  filter: 'drop-shadow(0 1px 0 rgba(0,0,0,0.4))',
+                }}
+              >
+                RELEGATED
+              </p>
               <p className="text-sm text-destructive/80 mt-1">
                 Your club has been relegated to a lower division.
               </p>

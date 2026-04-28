@@ -7,6 +7,7 @@
 import { ChevronRight } from 'lucide-react';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { PremiumCheck } from '@/components/game/icons/PremiumCheck';
+import { PremiumProgress } from '@/components/game/PremiumProgress';
 import { cn } from '@/lib/utils';
 import type { BoardObjective } from '@/types/game';
 
@@ -31,13 +32,7 @@ export function BoardObjectivesCard({ boardObjectives, onClick }: BoardObjective
           <ChevronRight className="w-4 h-4 text-muted-foreground" />
         </div>
       </div>
-      {/* Progress bar */}
-      <div className="h-1.5 bg-muted/30 rounded-full overflow-hidden mb-3">
-        <div
-          className="h-full bg-primary rounded-full transition-all duration-500"
-          style={{ width: `${progressPct}%` }}
-        />
-      </div>
+      <PremiumProgress className="mb-3" size="sm" value={progressPct} />
       <div className="space-y-2">
         {boardObjectives.map(obj => (
           <div key={obj.id} className="flex items-center gap-2">

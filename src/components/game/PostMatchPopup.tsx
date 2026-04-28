@@ -2,6 +2,7 @@ import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { resolveClub } from '@/utils/helpers';
 import { GlassPanel } from '@/components/game/GlassPanel';
+import { PremiumProgress } from '@/components/game/PremiumProgress';
 import { Button } from '@/components/ui/button';
 import { Trophy, TrendingUp, TrendingDown, Minus, Zap, Shield, Star, Activity } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -104,7 +105,15 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
             </p>
             <div className="flex items-center justify-center gap-4">
               <div className="text-center">
-                <div className="w-8 h-8 rounded-full mx-auto mb-0.5 flex items-center justify-center text-[9px] font-bold" style={{ backgroundColor: homeClub?.color, color: homeClub?.secondaryColor }}>
+                <div
+                  className="w-9 h-9 rounded-full mx-auto mb-0.5 flex items-center justify-center text-[9px] font-bold relative"
+                  style={{
+                    background: `radial-gradient(circle at 32% 28%, color-mix(in srgb, ${homeClub?.color} 75%, white) 0%, ${homeClub?.color} 55%, color-mix(in srgb, ${homeClub?.color} 70%, black) 100%)`,
+                    color: homeClub?.secondaryColor,
+                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -1px 0 rgba(0,0,0,0.35), 0 2px 8px -2px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.08)',
+                    textShadow: '0 1px 0 rgba(0,0,0,0.35)',
+                  }}
+                >
                   {homeClub?.shortName}
                 </div>
               </div>
@@ -119,7 +128,15 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
               )}
             </div>
               <div className="text-center">
-                <div className="w-8 h-8 rounded-full mx-auto mb-0.5 flex items-center justify-center text-[9px] font-bold" style={{ backgroundColor: awayClub?.color, color: awayClub?.secondaryColor }}>
+                <div
+                  className="w-9 h-9 rounded-full mx-auto mb-0.5 flex items-center justify-center text-[9px] font-bold relative"
+                  style={{
+                    background: `radial-gradient(circle at 32% 28%, color-mix(in srgb, ${awayClub?.color} 75%, white) 0%, ${awayClub?.color} 55%, color-mix(in srgb, ${awayClub?.color} 70%, black) 100%)`,
+                    color: awayClub?.secondaryColor,
+                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -1px 0 rgba(0,0,0,0.35), 0 2px 8px -2px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.08)',
+                    textShadow: '0 1px 0 rgba(0,0,0,0.35)',
+                  }}
+                >
                   {awayClub?.shortName}
                 </div>
               </div>
@@ -190,14 +207,7 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
               <span className="text-muted-foreground">Level {managerProgression.level}</span>
               <span className="text-primary font-semibold">{managerProgression.xp}/{xpNeeded} XP</span>
             </div>
-            <div className="h-2 bg-muted/30 rounded-full overflow-hidden">
-              <motion.div
-                className="h-full bg-primary rounded-full"
-                initial={{ width: `${Math.max(0, xpProgress - (lastMatchXPGain / xpNeeded) * 100)}%` }}
-                animate={{ width: `${xpProgress}%` }}
-                transition={{ duration: 0.8, delay: 0.3 }}
-              />
-            </div>
+            <PremiumProgress value={xpProgress} glow />
           </div>
 
           {/* MOTM */}
