@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { Button } from '@/components/ui/button';
-import { Sparkles, MapPin, TrendingUp, Banknote, Briefcase, UserCheck } from 'lucide-react';
+import { MapPin, TrendingUp, Banknote, Briefcase, UserCheck } from 'lucide-react';
+import { PremiumSparkle } from '@/components/game/icons/PremiumSparkle';
 import { cn } from '@/lib/utils';
 import { hapticHeavy } from '@/utils/haptics';
 import { calculateWageDemand, formatWage } from '@/utils/contracts';
@@ -97,7 +98,7 @@ export function GemRevealModal() {
               animate={{ rotate: 0, scale: 1 }}
               transition={{ delay: 0.2, type: 'spring' }}
             >
-              <Sparkles className="w-8 h-8 text-primary mx-auto mb-2" />
+              <PremiumSparkle className="w-10 h-10 mx-auto mb-2 drop-shadow-[0_0_10px_hsl(43_96%_55%/0.55)]" />
             </motion.div>
             <p className="text-lg font-black text-primary font-display uppercase tracking-wide">Hidden Gem Found!</p>
             <div className="flex items-center justify-center gap-1.5 mt-1">

@@ -7,6 +7,7 @@ import { ConfirmDialog } from '@/components/game/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Trophy, Briefcase, Calendar, Award, LogOut, TrendingUp, GitBranch } from 'lucide-react';
 import { ManagerAvatar } from '@/components/game/ManagerAvatar';
+import { PremiumCheck } from '@/components/game/icons/PremiumCheck';
 import { cn } from '@/lib/utils';
 import { MANAGER_TRAITS } from '@/config/managerCareer';
 import { calculateLegacyScore, getRetirementAge, getManagerBonusLabel } from '@/utils/managerCareer';
@@ -116,11 +117,12 @@ const CareerOverview = () => {
                 <span
                   key={i}
                   className={cn(
-                    'text-[9px] px-1.5 py-0.5 rounded font-semibold',
+                    'inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded font-semibold',
                     b.met ? 'bg-emerald-500/20 text-emerald-400' : 'bg-muted/30 text-muted-foreground'
                   )}
                 >
-                  {getManagerBonusLabel(b.condition)}: £{(b.amount / 1000).toFixed(0)}k {b.met ? '✓' : ''}
+                  {getManagerBonusLabel(b.condition)}: £{(b.amount / 1000).toFixed(0)}k
+                  {b.met && <PremiumCheck className="w-2.5 h-2.5" />}
                 </span>
               ))}
             </div>

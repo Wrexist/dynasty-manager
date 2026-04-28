@@ -6,13 +6,14 @@ import {
   BarChart3, MapPin, CalendarDays, PenLine, Angry, Phone, Newspaper,
   Mic, Clock, Eye, Sunset, TrendingDown, Home, Plane, Wrench,
   CheckCircle2, Pickaxe,
-  Sparkles, UserMinus, AlertTriangle, AlertCircle, RotateCcw,
+  UserMinus, AlertTriangle, AlertCircle, RotateCcw,
   HeartCrack, Repeat, LayoutGrid, Award,
   Castle, Gem, Scale,
   Users, Heart, ShoppingCart, DollarSign, FileText,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PremiumSparkle } from '@/components/game/icons/PremiumSparkle';
 
 const ICON_MAP: Record<string, LucideIcon> = {
   trophy: Trophy,
@@ -59,7 +60,6 @@ const ICON_MAP: Record<string, LucideIcon> = {
   wrench: Wrench,
   'check-circle': CheckCircle2,
   pickaxe: Pickaxe,
-  sparkles: Sparkles,
   'user-minus': UserMinus,
   'alert-triangle': AlertTriangle,
   'alert-circle': AlertCircle,
@@ -84,6 +84,9 @@ interface DynamicIconProps {
 }
 
 export function DynamicIcon({ name, className }: DynamicIconProps) {
+  if (name === 'sparkles') {
+    return <PremiumSparkle className={cn('w-4 h-4', className)} />;
+  }
   const Icon = ICON_MAP[name];
   if (!Icon) return <Star className={cn('w-4 h-4', className)} />;
   return <Icon className={cn('w-4 h-4', className)} />;

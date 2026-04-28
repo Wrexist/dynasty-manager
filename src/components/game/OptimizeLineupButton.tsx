@@ -1,5 +1,6 @@
-import { Sparkles, Crown } from 'lucide-react';
+import { Crown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PremiumSparkle } from '@/components/game/icons/PremiumSparkle';
 
 interface OptimizeLineupButtonProps {
   potentialGain: number;
@@ -41,14 +42,19 @@ export function OptimizeLineupButton({ potentialGain, autoFilling, onOptimize }:
             mixBlendMode: 'screen',
           }}
         />
-        <Sparkles className={cn('relative w-4 h-4', autoFilling && 'animate-spin')} />
+        <PremiumSparkle className={cn('relative w-4 h-4', autoFilling && 'animate-spin')} withSatellite={false} />
         <span className="relative">{autoFilling ? 'Optimizing...' : 'Smart Optimize Lineup'}</span>
         {/* PRO badge — signals that this is a paid Dynasty Pro feature */}
         <span
-          className="relative ml-1 inline-flex items-center gap-0.5 rounded-full bg-primary-foreground/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider"
+          className="relative ml-1 inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#3a2a05]"
+          style={{
+            background: 'linear-gradient(180deg, #FFF1B8 0%, #FCD34D 50%, #B45309 100%)',
+            boxShadow:
+              'inset 0 1px 0 rgba(255,255,255,0.65), inset 0 -1px 0 rgba(0,0,0,0.3), 0 0 8px rgba(252,211,77,0.55)',
+          }}
           aria-label="Dynasty Pro feature"
         >
-          <Crown className="w-2.5 h-2.5" />
+          <Crown className="w-2.5 h-2.5 drop-shadow-[0_1px_0_rgba(255,255,255,0.4)]" />
           Pro
         </span>
       </button>

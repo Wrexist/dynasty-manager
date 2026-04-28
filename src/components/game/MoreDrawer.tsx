@@ -14,6 +14,7 @@ import { PINNED_DRAWER_SCREENS, DRAWER_PROGRESSIVE_SCREENS, UNEMPLOYED_ALLOWED_S
 import { NEW_PLAYER_DRAWER_WEEK_THRESHOLD } from '@/config/ui';
 import { getSuffix } from '@/utils/helpers';
 import { useCareerUnemployed } from '@/hooks/useGameSelectors';
+import { CountBadge } from '@/components/game/CountBadge';
 
 // Liquid-glass tile shared by pinned quick-actions and drawer rows. Mirrors
 // the GlassPanel treatment (gradient + thick-rim inset shadow + specular top
@@ -272,16 +273,27 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
                 >
                   <div className="relative">
                     <Icon className={cn('w-5 h-5 drop-shadow-[0_1px_0_rgba(0,0,0,0.4)]', isActive ? 'text-primary' : 'text-primary/90')} />
-                    {screen === 'inbox' && unread > 0 && (
-                      <div className="absolute -top-1.5 -right-2.5 min-w-[16px] h-4 bg-destructive rounded-full flex items-center justify-center px-1 shadow-[0_0_0_1.5px_hsl(222_30%_7%)]">
-                        <span className="text-[9px] font-bold text-destructive-foreground">{unread > 9 ? '9+' : unread}</span>
-                      </div>
+                    {screen === 'inbox' && (
+                      <CountBadge
+                        count={unread}
+                        pulse
+                        className="absolute -top-1.5 -right-2.5"
+                      />
                     )}
                   </div>
                   <span className="text-[11px] font-medium text-foreground/95 relative">{label}</span>
                   {/* Contextual hints on pinned items */}
                   {screen === 'calendar' && hasMatchThisWeek && (
-                    <span className="text-[9px] text-emerald-400 font-semibold relative">Match Day</span>
+                    <span
+                      className="inline-flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full text-emerald-100 relative"
+                      style={{
+                        background: 'linear-gradient(180deg, rgba(110,231,183,0.25) 0%, rgba(16,185,129,0.3) 100%)',
+                        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.18), inset 0 0 0 1px rgba(16,185,129,0.4), 0 0 8px rgba(16,185,129,0.35)',
+                      }}
+                    >
+                      <span className="w-1 h-1 rounded-full bg-emerald-300 shadow-[0_0_4px_rgba(110,231,183,0.85)] animate-pulse" />
+                      Match Day
+                    </span>
                   )}
                   {screen === 'league-table' && leaguePosition && (
                     <span className="text-[9px] text-muted-foreground relative">{leaguePosition}{getSuffix(leaguePosition)}</span>
@@ -464,18 +476,30 @@ function DrawerListItem({ item, currentScreen, onNav, unread, hasPendingCupMatch
       <div className="flex-1 text-left min-w-0 relative">
         <div className="flex items-center gap-2">
           <p className="text-sm font-semibold text-foreground">{label}</p>
-          {screen === 'inbox' && unread > 0 && (
-            <span className="text-[10px] bg-destructive text-destructive-foreground px-1.5 py-0.5 rounded-full font-bold shadow-[0_0_0_1.5px_hsl(222_30%_7%)]">
-              {unread}
-            </span>
-          )}
+          {screen === 'inbox' && <CountBadge count={unread} pulse cap={99} />}
           {screen === 'cup' && hasPendingCupMatch && (
-            <span className="text-[10px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full font-bold">
+            <span
+              className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full text-white animate-pulse"
+              style={{
+                background: 'linear-gradient(180deg, #FB7185 0%, #E11D48 60%, #9F1239 100%)',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -1px 0 rgba(0,0,0,0.25), 0 0 8px rgba(239,68,68,0.55)',
+                textShadow: '0 1px 1px rgba(0,0,0,0.4)',
+              }}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_4px_rgba(255,255,255,0.85)]" />
               LIVE
             </span>
           )}
           {screen === 'league-cup' && hasPendingLeagueCupMatch && (
-            <span className="text-[10px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full font-bold">
+            <span
+              className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full text-white animate-pulse"
+              style={{
+                background: 'linear-gradient(180deg, #FB7185 0%, #E11D48 60%, #9F1239 100%)',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -1px 0 rgba(0,0,0,0.25), 0 0 8px rgba(239,68,68,0.55)',
+                textShadow: '0 1px 1px rgba(0,0,0,0.4)',
+              }}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_4px_rgba(255,255,255,0.85)]" />
               LIVE
             </span>
           )}

@@ -5,7 +5,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
 import { NATIONS, NATION_STARS } from '@/data/nations';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Check, Loader2, Search, User, Globe, Sparkles, Briefcase, Star, TrendingUp, Building2, Trophy, Users, MapPin, HandCoins, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Loader2, Search, User, Globe, Briefcase, Star, TrendingUp, Building2, Trophy, Users, MapPin, HandCoins, X } from 'lucide-react';
+import { PremiumSparkle } from '@/components/game/icons/PremiumSparkle';
 import { cn } from '@/lib/utils';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { LIQUID_GLASS_SURFACE } from '@/components/game/GlassPanel';
@@ -445,7 +446,7 @@ const ManagerCreation = () => {
             {step === 'traits' && (
               <div className="space-y-4 pb-20">
                 <div className="flex items-center gap-3 mb-2">
-                  <Sparkles className="w-5 h-5 text-primary" />
+                  <PremiumSparkle className="w-5 h-5" />
                   <div>
                     <h2 className="text-base font-bold text-foreground">Choose Your Traits</h2>
                     <p className="text-xs text-muted-foreground">Pick {TRAITS_TO_PICK} traits that define your management style</p>

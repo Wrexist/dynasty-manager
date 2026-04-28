@@ -61,6 +61,35 @@ export { readWhatsNewSeenVersion, writeWhatsNewSeenVersion };
  */
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.0.7',
+    build: null,
+    date: '2026-04-28',
+    headline: 'A glossier, more cinematic UI.',
+    summary: 'Penalty kick markers, progress bars, status badges and the Season-Complete and PROMOTED banners all got hand-crafted upgrades — every flat pixel now has depth, gradient and glow.',
+    highlights: [],
+    new: [],
+    improved: [
+      'Penalty shootout markers, progress bars and unread badges all got a glassy, glowing makeover.',
+      'Promotion and relegation banners now read with serious cinematic weight.',
+      'Trophy Cabinet empty shelves swap a dashed placeholder for a soft gold halo.',
+      'Match Day, LIVE and Pro badges now glow on the surface they sit on.',
+    ],
+    fixed: [],
+  },
+  {
+    version: '1.0.6',
+    build: null,
+    date: '2026-04-28',
+    headline: 'Sharper icons, smoother menus.',
+    summary: 'The What\'s New badge, pack \'Featured\' chip and the Hidden Gem reveal all get a fresh, hand-crafted gold sparkle. Completed objectives now sport a crisp tick instead of a stray emoji.',
+    highlights: [],
+    new: [],
+    improved: [
+      'Polished the sparkle and check icons across the menu, packs and gem reveal — no more cheap-looking glyphs.',
+    ],
+    fixed: [],
+  },
+  {
     version: '1.0.5',
     build: null,
     date: '2026-04-27',

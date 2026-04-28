@@ -7,6 +7,7 @@ import { getReputationTierLabel, getReputationTierShortLabel } from '@/utils/man
 import { getSuffix } from '@/utils/helpers';
 import { getRecentForm } from '@/utils/formGuide';
 import { FormGuide } from '@/components/game/FormGuide';
+import { CountBadge } from '@/components/game/CountBadge';
 import { LEAGUES } from '@/data/league';
 import { DETAIL_SCREENS, BACK_TARGET, SCREEN_TITLES, UNEMPLOYED_MAIN_TABS } from '@/config/navigation';
 import { hapticMedium } from '@/utils/haptics';
@@ -181,11 +182,11 @@ export function TopBar() {
             className="relative p-2 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
           >
             <Mail className="w-4 h-4" />
-            {unreadCount > 0 && (
-              <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white leading-none">
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </span>
-            )}
+            <CountBadge
+              count={unreadCount}
+              pulse
+              className="absolute top-0.5 right-0.5"
+            />
           </button>
           <button
             disabled={matchLocked}

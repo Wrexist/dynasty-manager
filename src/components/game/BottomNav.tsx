@@ -88,7 +88,11 @@ export function BottomNav() {
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                       transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-                      className="absolute -top-1 -right-1.5 w-2 h-2 bg-primary rounded-full animate-pulse"
+                      className="absolute -top-1 -right-1.5 w-2 h-2 rounded-full animate-pulse"
+                      style={{
+                        background: 'radial-gradient(circle at 35% 30%, hsl(43 96% 75%) 0%, hsl(43 96% 50%) 60%, hsl(35 80% 38%) 100%)',
+                        boxShadow: '0 0 6px hsl(var(--primary)/0.85), inset 0 0 0 1px rgba(255,255,255,0.25)',
+                      }}
                     />
                   )}
                   {screen === 'dashboard' && !hasJobOffers && unreadCount > 0 && (
@@ -96,7 +100,11 @@ export function BottomNav() {
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                       transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-                      className="absolute -top-1 -right-1.5 w-2 h-2 bg-destructive rounded-full animate-pulse"
+                      className="absolute -top-1 -right-1.5 w-2 h-2 rounded-full animate-pulse"
+                      style={{
+                        background: 'radial-gradient(circle at 35% 30%, #FCA5A5 0%, #E11D48 60%, #9F1239 100%)',
+                        boxShadow: '0 0 6px rgba(239,68,68,0.85), inset 0 0 0 1px rgba(255,255,255,0.25)',
+                      }}
                     />
                   )}
                   {screen === 'inbox' && unreadCount > 0 && (
@@ -104,7 +112,11 @@ export function BottomNav() {
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                       transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-                      className="absolute -top-1 -right-1.5 w-2 h-2 bg-destructive rounded-full animate-pulse"
+                      className="absolute -top-1 -right-1.5 w-2 h-2 rounded-full animate-pulse"
+                      style={{
+                        background: 'radial-gradient(circle at 35% 30%, #FCA5A5 0%, #E11D48 60%, #9F1239 100%)',
+                        boxShadow: '0 0 6px rgba(239,68,68,0.85), inset 0 0 0 1px rgba(255,255,255,0.25)',
+                      }}
                     />
                   )}
                   {screen === 'transfers' && pendingOffers > 0 && (
@@ -112,7 +124,11 @@ export function BottomNav() {
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                       transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-                      className="absolute -top-1 -right-1.5 w-2 h-2 bg-destructive rounded-full animate-pulse"
+                      className="absolute -top-1 -right-1.5 w-2 h-2 rounded-full animate-pulse"
+                      style={{
+                        background: 'radial-gradient(circle at 35% 30%, #FCA5A5 0%, #E11D48 60%, #9F1239 100%)',
+                        boxShadow: '0 0 6px rgba(239,68,68,0.85), inset 0 0 0 1px rgba(255,255,255,0.25)',
+                      }}
                     />
                   )}
                 </span>

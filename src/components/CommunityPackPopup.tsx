@@ -1,4 +1,5 @@
-import { Sparkles, Users, ShieldAlert } from 'lucide-react';
+import { Users, ShieldAlert } from 'lucide-react';
+import { PremiumSparkle } from '@/components/game/icons/PremiumSparkle';
 import { motion, useReducedMotion } from 'framer-motion';
 import {
   Dialog,
@@ -109,7 +110,7 @@ function CommunityPackPopupInner({ open, onChoice, onClose }: CommunityPackPopup
           <DialogHeader>
             <div className="flex items-center gap-2">
               <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/15 border border-primary/30 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.25)]">
-                <Sparkles className="w-4 h-4 text-primary" />
+                <PremiumSparkle className="w-4 h-4" withSatellite={false} />
               </div>
               <DialogTitle className="font-display text-xl tracking-tight text-foreground">
                 Community Pack
