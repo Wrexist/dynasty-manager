@@ -3,6 +3,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { LineupEditor } from '@/components/game/LineupEditor';
 import { OptimizeLineupButton } from '@/components/game/OptimizeLineupButton';
+import { OptimizeResultModal } from '@/components/game/OptimizeResultModal';
 import { cn } from '@/lib/utils';
 import { calculateChemistryLinks, getChemistryBonus, getChemistryLabel } from '@/utils/chemistry';
 import { MENTOR_SENIOR_AGE, MENTOR_JUNIOR_AGE } from '@/config/chemistry';
@@ -54,7 +55,7 @@ const TacticsPage = () => {
   const [showAllChem, setShowAllChem] = useState(false);
   const [showAdvancedTactics, setShowAdvancedTactics] = useState(false);
   const userIsPro = isPro(monetization);
-  const { potentialGain, autoFilling, optimizeLineup } = useLineupOptimizer();
+  const { potentialGain, autoFilling, optimizeLineup, result: optimizeResult, dismissResult: dismissOptimizeResult } = useLineupOptimizer();
 
   // Memoize lineup players (used by team rating breakdown and set-piece filters)
   const lineupPlayers = useMemo(() => {
@@ -636,6 +637,8 @@ const TacticsPage = () => {
           </div>
         </div>
       </GlassPanel>
+
+      <OptimizeResultModal result={optimizeResult} onDismiss={dismissOptimizeResult} />
     </div>
   );
 };
