@@ -432,6 +432,24 @@ export function endSeasonImpl(set: Set, get: Get) {
         body: `${headline}\n\n${lines}\n\nThey carry the Ballon d'Or card and a stats boost until the next ceremony — keep them in form to defend their place.`,
       });
     }
+
+    // Honourable mentions — players who made the top 25 but missed the
+    // top-10 reign. They still pick up a market-value boost, so it's worth
+    // a callout even though they don't get the card.
+    const yourTop25Honourable = yourRanked
+      .filter(e => e.rank > BALLON_DOR_TOP10_RANK)
+      .sort((a, b) => a.rank - b.rank);
+    if (yourTop25Honourable.length > 0) {
+      const lines = yourTop25Honourable.map(e => `• ${e.playerName} — #${e.rank}`).join('\n');
+      const headline = yourTop25Honourable.length === 1
+        ? `${yourTop25Honourable[0].playerName} placed #${yourTop25Honourable[0].rank} in the Ballon d'Or top 25.`
+        : `${yourTop25Honourable.length} of your players placed in the Ballon d'Or top 25.`;
+      newMessages = addMsg(newMessages, {
+        week: state.week, season, type: 'general',
+        title: "Ballon d'Or Top 25 — Honourable Mentions",
+        body: `${headline}\n\n${lines}\n\nA top-25 placement lifts their market value and cements their reputation. One more level and they unlock the Ballon d'Or card next year.`,
+      });
+    }
   }
 
   finalizeSeason(set, get, history, updatedRecords, workingClubs, workingPlayers, turnover, newDivisionClubs, newPlayerDiv, newMessages);
