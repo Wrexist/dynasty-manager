@@ -95,18 +95,55 @@ function listEntries(source) {
   return entries;
 }
 
-/** Determine the "since" date — the last shipped entry's date, i.e. the
- *  most recent entry whose version differs from the current pkg version. */
-function determineSince(source, pkgVersion) {
+function tryGit(cmd) {
+  try {
+    return execSync(cmd, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+  } catch {
+    return null;
+  }
+}
+
+/** ISO timestamp of the build commit (HEAD). Used as the upper bound so PRs
+ *  merged AFTER actions/checkout pinned its SHA can't slip into the notes
+ *  for a build whose binary doesn't contain them. */
+function getHeadCommitTime() {
+  return tryGit('git log -1 --format=%cI HEAD');
+}
+
+/** ISO timestamp of the most recent first-parent commit on the build branch
+ *  whose package.json carries a DIFFERENT version than the current one — i.e.
+ *  the commit just before the version bump that introduced this release. PRs
+ *  merged at or before this timestamp belong to the previous shipped build
+ *  and must be excluded.
+ *
+ *  Requires full git history (workflow checkout uses fetch-depth: 0). On a
+ *  shallow clone the helper returns null and we degrade to a date-only
+ *  filter, which is fine for the common case but loses the same-day
+ *  precision fix. */
+function getPreviousReleaseTime(currentVersion) {
+  const log = tryGit('git log --first-parent --pretty=%H%x09%cI HEAD -- package.json');
+  if (!log) return null;
+  for (const line of log.split('\n')) {
+    const [sha, iso] = line.split('\t');
+    if (!sha || !iso) continue;
+    const pkgJson = tryGit(`git show ${sha}:package.json`);
+    if (!pkgJson) continue;
+    let v;
+    try { v = JSON.parse(pkgJson).version; } catch { continue; }
+    if (v && v !== currentVersion) return iso;
+  }
+  return null;
+}
+
+/** Determine the coarse YYYY-MM-DD `since` for the gh PR query. Used as a
+ *  pre-filter only — final inclusion is decided by ISO-timestamp bounds. */
+function determineSinceDate(source, pkgVersion) {
   const entries = listEntries(source);
   if (entries.length === 0) {
     fail('whatsNew.ts has no entries — cannot determine merge cutoff.');
   }
   const previousShipped = entries.find(e => e.version !== pkgVersion);
-  if (!previousShipped) {
-    // Only entries are for the current version — fall back to the topmost.
-    return entries[0].date;
-  }
+  if (!previousShipped) return entries[0].date;
   return previousShipped.date;
 }
 
@@ -175,19 +212,42 @@ function runHelperField(field, value) {
 const pkg = readJson(PKG_PATH);
 const pkgVersion = pkg.version;
 const source = readFileSync(WHATS_NEW_PATH, 'utf8');
-const since = SINCE_OVERRIDE || determineSince(source, pkgVersion);
+
+// Coarse pre-filter for the gh search query — we cast a wide net, then
+// narrow client-side with the precise ISO bounds below.
+const sinceDate = SINCE_OVERRIDE || determineSinceDate(source, pkgVersion);
+
+// Precise bounds. Lower = the previous release commit's timestamp on this
+// branch (so same-day re-runs don't replay already-shipped PRs). Upper =
+// the build commit's timestamp (so PRs merged after actions/checkout pinned
+// HEAD can't slip into a build whose binary doesn't contain them).
+const headIso = getHeadCommitTime();
+const lowerIso = SINCE_OVERRIDE ? null : getPreviousReleaseTime(pkgVersion);
 
 console.log(`Building What's New entry for v${pkgVersion}`);
-console.log(`  Repo:  ${REPO}`);
-console.log(`  Since: ${since} (PRs merged on/after this date)`);
+console.log(`  Repo:        ${REPO}`);
+console.log(`  Since (date): ${sinceDate} (coarse pre-filter for gh search)`);
+console.log(`  Lower bound:  ${lowerIso || '(none — shallow clone or no previous release)'}`);
+console.log(`  Upper bound:  ${headIso || '(none — git not available)'}`);
 console.log('');
+
+if (!headIso) {
+  console.warn('::warning::Could not read HEAD commit time. PRs merged after ' +
+    'actions/checkout will not be filtered out. Ensure git is available and ' +
+    'fetch-depth: 0 is set on the checkout step.');
+}
+if (!lowerIso && !SINCE_OVERRIDE) {
+  console.warn('::warning::Could not find the previous release commit. Falling ' +
+    'back to date-only lower bound. Same-day re-runs may re-include already-' +
+    'shipped PRs. Ensure fetch-depth: 0 is set on the checkout step.');
+}
 
 // ── Fetch merged PRs via gh CLI ─────────────────────────────────────────
 let prs;
 try {
   const out = execSync(
     `gh pr list --repo ${REPO} --base main --state merged ` +
-    `--search "merged:>=${since}" ` +
+    `--search "merged:>=${sinceDate}" ` +
     `--json number,title,body,labels,mergedAt ` +
     `--limit 200`,
     { encoding: 'utf8' },
@@ -197,7 +257,17 @@ try {
   fail(`gh pr list failed: ${err.message}. Is the GH CLI authenticated? (GITHUB_TOKEN required.)`);
 }
 
-console.log(`  Found ${prs.length} merged PR(s) since ${since}.`);
+// Narrow with the precise ISO bounds.
+const before = prs.length;
+prs = prs.filter(pr => {
+  if (!pr.mergedAt) return false;
+  if (lowerIso && pr.mergedAt <= lowerIso) return false;
+  if (headIso && pr.mergedAt > headIso) return false;
+  return true;
+});
+const droppedByBounds = before - prs.length;
+
+console.log(`  Found ${prs.length} merged PR(s) in window.${droppedByBounds > 0 ? ` (Dropped ${droppedByBounds} outside ISO bounds.)` : ''}`);
 console.log('');
 
 // ── Classify ────────────────────────────────────────────────────────────

@@ -70,6 +70,13 @@ jobs:
           echo "All required secrets are configured."
 
       - uses: actions/checkout@v4
+        with:
+          # Full history needed by build-whats-new.mjs to (a) find the
+          # previous release commit's timestamp for a precise lower bound on
+          # the merged-PR query, and (b) read HEAD's commit time as the
+          # upper bound so PRs merged after this checkout can't leak into
+          # the notes for a build that doesn't contain them.
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
