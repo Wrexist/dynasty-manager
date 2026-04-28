@@ -479,8 +479,15 @@ function StandRect({ x, y, width, height, standKey, level, selected, upgrading, 
           {Array.from({ length: seatRows }, (_, row) => {
             const { axisStart, axisEnd, cross } = rowGeometry(row);
             const span = axisEnd - axisStart;
-            const seatLen = horizontal ? span / seatPerRow * 0.8 : 1.2;
-            const seatThk = horizontal ? 1.2 : span / seatPerRow * 0.8;
+            // `seatLen` is always the seat's dimension along the row (long
+            // axis of the stand). `seatThk` is always the perpendicular
+            // (thin) dimension. The rect's width/height assignment below
+            // swaps them based on orientation — the values themselves do
+            // NOT depend on orientation. Mixing the two caused side-stand
+            // seats to be wide-along-x at high levels, which collapsed the
+            // tiered look (rows ~4-5px apart, seats ~12px wide).
+            const seatLen = span / seatPerRow * 0.8;
+            const seatThk = 1.2;
             const stepX = horizontal ? span / seatPerRow : 0;
             const stepY = horizontal ? 0 : span / seatPerRow;
             const shade = rowShade(row);
