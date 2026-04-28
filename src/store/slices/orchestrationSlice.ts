@@ -413,7 +413,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         stadiumCapacity: cd.stadiumCapacity,
       };
 
-      const squad = generateSquad(club.id, cd.squadQuality, state.season, leagueId);
+      const squad = generateSquad(club.id, cd.squadQuality, state.season, leagueId, /* isInitialSeason */ false, /* useRealNames */ state.communityPackEnabled);
       let totalWages = 0;
       squad.forEach(p => {
         newPlayers[p.id] = p;

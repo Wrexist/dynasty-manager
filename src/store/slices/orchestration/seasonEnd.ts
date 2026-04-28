@@ -246,7 +246,7 @@ export function endSeasonImpl(set: Set, get: Get) {
           // bias filler nationality distribution (e.g. 'eng', 'eng-2'),
           // not the numeric qualityTier (1–4). Passing the number drops
           // the league-aware bias into the DEFAULT distribution bucket.
-          const squad = generateSquad(clubId, clubData.squadQuality, season, cl.id);
+          const squad = generateSquad(clubId, clubData.squadQuality, season, cl.id, /* isInitialSeason */ false, /* useRealNames */ state.communityPackEnabled);
           let totalWages = 0;
           squad.forEach(p => { workingPlayers[p.id] = p; newClub.playerIds.push(p.id); totalWages += p.wage; });
           newClub.wageBill = totalWages;
@@ -289,7 +289,7 @@ export function endSeasonImpl(set: Set, get: Get) {
       };
       // Pass league id (not numeric qualityTier) so generateSquad picks
       // an appropriate nationality distribution bucket for the country.
-      const squad = generateSquad(clubId, clubData.squadQuality, season, playerDiv);
+      const squad = generateSquad(clubId, clubData.squadQuality, season, playerDiv, /* isInitialSeason */ false, /* useRealNames */ state.communityPackEnabled);
       let totalWages = 0;
       squad.forEach(p => { workingPlayers[p.id] = p; newClub.playerIds.push(p.id); totalWages += p.wage; });
       newClub.wageBill = totalWages;

@@ -776,7 +776,7 @@ const migrations: Record<number, MigrationFn> = {
           stadiumCapacity: cd.stadiumCapacity,
         };
 
-        const squad = generateSquad(club.id, cd.squadQuality, season, cd.divisionId);
+        const squad = generateSquad(club.id, cd.squadQuality, season, cd.divisionId, /* isInitialSeason */ false, /* useRealNames */ data.communityPackEnabled === true);
         let totalWages = 0;
         for (const p of squad) {
           players[p.id] = p;

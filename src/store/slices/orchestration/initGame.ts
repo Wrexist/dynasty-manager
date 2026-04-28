@@ -158,7 +158,7 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
           if (t.fcId) assignedFcIds.push(t.fcId);
           return buildPlayerFromTemplate(t, club.id, 1);
         })
-      : generateSquad(club.id, cd.squadQuality, 1, cd.divisionId, /* isInitialSeason */ true);
+      : generateSquad(club.id, cd.squadQuality, 1, cd.divisionId, /* isInitialSeason */ true, /* useRealNames */ communityPackEnabled);
     let totalWages = 0;
     squad.forEach(p => {
       allPlayers[p.id] = p;
