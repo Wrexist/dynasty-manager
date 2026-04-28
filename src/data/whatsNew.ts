@@ -73,6 +73,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Promotion and relegation banners now read with serious cinematic weight.',
       'Trophy Cabinet empty shelves swap a dashed placeholder for a soft gold halo.',
       'Match Day, LIVE and Pro badges now glow on the surface they sit on.',
+      'Title screen Settings now matches the in-game Settings — same toggles, layout, and shared components.',
     ],
     fixed: [],
   },
