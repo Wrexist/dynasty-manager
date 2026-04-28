@@ -74,6 +74,8 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Player attribute bars (Pace, Shooting, Passing…) get the same gradient + glow as the new progress bars.',
       'Trophy and award celebrations now sit on a soft gold halo with cream-gradient stat tiles.',
       'Player card fitness bars switched from flat hex fill to a colored gradient with matching glow.',
+      'Legend cards (90+ overall) keep their unique white shield while every other gold-rated player now shares the same rare gold card.',
+      'Coach Checklist and other dashboard panels collapse smoothly without stutter.',
     ],
     fixed: [],
   },
