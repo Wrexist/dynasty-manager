@@ -1,69 +1,71 @@
 # CLAUDE.md — Dynasty Manager
 
-## ⚠️ MANDATORY: TestFlight Release Notes ("What's New")
+## TestFlight Release Notes ("What's New")
 
-**Every TestFlight build MUST ship with a fresh `src/data/whatsNew.ts` entry.**
-The iOS TestFlight workflow runs `scripts/check-whats-new.mjs` and fails the
-build if the top entry is missing or incomplete.
+**Players see in-app release notes generated automatically from merged PRs.**
+The iOS TestFlight workflow runs `scripts/build-whats-new.mjs` to assemble the
+top entry of `src/data/whatsNew.ts` from PRs merged since the previous release,
+then `scripts/check-whats-new.mjs` validates and gates the build.
 
-### Every PR's default: add a bullet with `npm run whats-new`
+### Per-PR conventions (no manual `whatsNew.ts` edits needed)
 
-Most of the time you won't be editing `whatsNew.ts` by hand — use the helper:
+- **Categorise via labels** (one per PR):
+  `type:highlight` · `type:new` · `type:improved` · `type:fixed`.
+  Default if no label = `improved`.
+- **Bullet text** — by default, the PR title (with conventional-commit prefix
+  stripped) is used. To control the wording, add a `## What's New` section to
+  the PR body with one or more `- bullet text` lines:
+  ```markdown
+  ## What's New
+  - Smart Optimize Lineup result now opens in a polished glass popup.
+  ```
+- **Skip a PR entirely** — apply any of:
+  `skip-changelog`, `no-changelog`, `dependencies`, `infra`, `ci`.
+  (Dependabot PRs are auto-labelled `dependencies`.)
+
+### Triggering `iOS TestFlight Deploy`
+
+The workflow takes two required inputs (the App Store voice that PRs cannot
+provide) plus an optional cutoff override:
+
+| Input | Required | Notes |
+|-------|----------|-------|
+| `headline` | yes | 3–8 word hook, e.g. "Cup glory, smarter AI, faster matches." |
+| `summary`  | yes | 1–3 sentences, player-facing tone. |
+| `since`    | no  | ISO date `YYYY-MM-DD` to override the merge cutoff. Default: the date of the previous shipped entry in `whatsNew.ts`. |
+
+Steps:
+
+1. **Bump `package.json` version** (semver) on `main` first.
+2. **Trigger the workflow** with the headline + summary inputs.
+3. The workflow:
+   - Runs `build-whats-new.mjs` → fetches merged PRs via `gh pr list`,
+     classifies by label, writes the entry on the runner.
+   - Runs `check-whats-new.mjs` → validates the entry has all required fields.
+   - Runs `check-whats-new.mjs --inject-build ${{ github.run_number }}`
+     → stamps the real CFBundleVersion before bundling.
+   - Builds, archives, uploads to TestFlight.
+4. **The runner-only mutation does not commit back to `main`.** The repo's
+   `whatsNew.ts` keeps its historical entries; the regenerated top entry
+   exists only for the bundled app. If you want to backfill the entry into
+   git, run the same script locally and commit the result.
+
+### Local commands
 
 ```bash
+# Generate the top entry from merged PRs locally (requires `gh` auth).
+node scripts/build-whats-new.mjs --headline "..." --summary "..." --dry-run
+
+# Hand-edit a single bullet using the same helper CI uses internally.
 npm run whats-new -- new       "Added adaptive AI tactics."
 npm run whats-new -- improved  "Match engine runs 30% faster."
 npm run whats-new -- fixed     "Fixed crash on Cup Final."
 npm run whats-new -- highlight "Rival managers now adapt to scoreline."
 npm run whats-new -- show                   # preview current top entry
+
+# Validate the same way CI does.
+npm run whats-new:check
 ```
-
-The helper appends to the existing top entry, or auto-creates a new one if
-`package.json` was just bumped. Bullets are auto-capitalized + period-
-terminated. It is idempotent and safe to run multiple times.
-
-**PR check:** `.github/workflows/pr-checks.yml` runs a `whats-new-check` job
-that fails any PR which changes user-visible files but doesn't update
-`src/data/whatsNew.ts`. The job posts an inline comment with the exact fix
-command. Escape hatches — add one of these labels if a PR genuinely doesn't
-need a changelog entry: `skip-changelog`, `no-changelog`, `dependencies`,
-`infra`, `ci` (label matching is case-insensitive). Draft PRs are skipped.
-
-> **Heads-up — `package.json` changes count as user-visible.** That's so a
-> version bump alone trips the guard and reminds you to add release notes.
-> Dependabot PRs are auto-labelled `dependencies` and skip automatically;
-> manual dep bumps that touch `package.json` will trip the check — apply
-> the `dependencies` label or add a one-line note via `npm run whats-new`.
-
-### Before triggering `iOS TestFlight Deploy`:
-
-1. **Bump `package.json` version** (semver — patch for fixes, minor for features).
-2. **Confirm the top entry is complete** — run `npm run whats-new -- show`.
-   The helper already created the entry on your first `npm run whats-new -- <cat>`
-   call; just make sure the `headline` and `summary` are filled in:
-   ```bash
-   npm run whats-new -- headline "Short App Store hook."
-   npm run whats-new -- summary  "One to three sentence player summary."
-   ```
-3. **Keep all prior entries.** Never delete history.
-4. **Write App Store style:**
-   - `headline` — 3–8 word hook (e.g. "Cup glory, smarter AI, faster matches.").
-   - `summary` — 1–3 sentences, player-facing tone, says what actually changed.
-   - Every bullet is a complete sentence ending with a period.
-   - **Never** mention refactors, lint, tests, file names, or internal work.
-     Write for a player who has never seen the codebase.
-5. **`build`** — leave as `null`. CI injects `github.run_number` automatically
-   at bundle time so the shipped app shows the real CFBundleVersion.
-
-### Validation:
-
-```bash
-npm run whats-new:check       # same script CI runs
-```
-
-The iOS TestFlight workflow runs this automatically before the archive step,
-then re-runs it with `--inject-build ${{ github.run_number }}` to stamp the
-real build number into the shipped bundle.
 
 ### Where players see it:
 
