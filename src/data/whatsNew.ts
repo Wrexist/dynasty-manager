@@ -89,6 +89,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
     ],
     fixed: [
       'Hall of Managers no longer breaks if stored data is invalid.',
+      'Picking \'Use Generated Players\' now actually generates fictional players instead of loading the community pack.',
     ],
   },
   {

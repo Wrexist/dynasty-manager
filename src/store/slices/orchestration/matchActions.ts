@@ -415,7 +415,7 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
     const oppId = homeId === playerClubId ? awayId : homeId;
     const vc = (state.virtualClubs || {})[oppId];
     if (vc) {
-      ephemeralClub = createEphemeralClub(vc, season);
+      ephemeralClub = createEphemeralClub(vc, season, state.communityPackEnabled);
       effectiveClubs = { ...clubs, [oppId]: ephemeralClub.club };
       effectivePlayers = { ...players, ...ephemeralClub.players };
     }
@@ -426,7 +426,7 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
     const oppId = superCup.homeClubId === playerClubId ? superCup.awayClubId : superCup.homeClubId;
     const vc = (state.virtualClubs || {})[oppId];
     if (vc) {
-      ephemeralClub = createEphemeralClub(vc, season);
+      ephemeralClub = createEphemeralClub(vc, season, state.communityPackEnabled);
       effectiveClubs = { ...clubs, [oppId]: ephemeralClub.club };
       effectivePlayers = { ...players, ...ephemeralClub.players };
     }
@@ -876,7 +876,7 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
     const oppId = homeId === playerClubId ? awayId : homeId;
     const vc = (state.virtualClubs || {})[oppId];
     if (vc) {
-      ephemeralClub = createEphemeralClub(vc, season);
+      ephemeralClub = createEphemeralClub(vc, season, state.communityPackEnabled);
       effectiveClubs = { ...clubs, [oppId]: ephemeralClub.club };
       effectivePlayers = { ...players, ...ephemeralClub.players };
     }
@@ -887,7 +887,7 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
     const oppId = superCup.homeClubId === playerClubId ? superCup.awayClubId : superCup.homeClubId;
     const vc = (state.virtualClubs || {})[oppId];
     if (vc) {
-      ephemeralClub = createEphemeralClub(vc, season);
+      ephemeralClub = createEphemeralClub(vc, season, state.communityPackEnabled);
       effectiveClubs = { ...clubs, [oppId]: ephemeralClub.club };
       effectivePlayers = { ...players, ...ephemeralClub.players };
     }
