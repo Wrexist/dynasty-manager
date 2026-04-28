@@ -52,7 +52,7 @@ const TacticsPage = () => {
   const club = clubs[playerClubId];
   const [presetName, setPresetName] = useState('');
   const [showAllChem, setShowAllChem] = useState(false);
-  const [showAdvancedTactics, setShowAdvancedTactics] = useState(false);
+  const [showAdvancedTactics, setShowAdvancedTactics] = useState(true);
   const userIsPro = isPro(monetization);
   const { potentialGain, autoFilling, optimizeLineup } = useLineupOptimizer();
 
@@ -281,57 +281,79 @@ const TacticsPage = () => {
         <ProUpsell feature="Optimize Lineup" />
       )}
 
-      {/* Team Rating Summary */}
+      {/* Team Rating Summary — slim Liquid Glass row */}
       {teamRating && (
-        <GlassPanel className="p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Swords className="w-4 h-4 text-primary" />
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Starting XI Rating</p>
-          </div>
-          <div className="flex items-center justify-center mb-3">
-            <div className={cn(
-              'w-16 h-16 rounded-xl flex flex-col items-center justify-center',
-              getRatingBadgeClasses(teamRating.overall)
-            )}>
-              <span className="text-2xl font-black tabular-nums leading-none">{teamRating.overall}</span>
-              <span className="text-[9px] font-semibold opacity-70 mt-0.5">OVR</span>
+        <GlassPanel className="px-3 py-2.5">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <div className="flex items-center gap-1.5">
+              <Swords className="w-3 h-3 text-primary" />
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Starting XI</p>
+            </div>
+            <div className="flex items-center gap-2 text-[10px]">
+              <span>
+                <span className="text-muted-foreground/70">Bench </span>
+                <span className={cn('font-semibold tabular-nums', getRatingColor(teamRating.subsAvg))}>{teamRating.subsAvg}</span>
+              </span>
+              <span className="text-muted-foreground/20">·</span>
+              <span>
+                <span className="text-muted-foreground/70">Fit </span>
+                <span className={cn(
+                  'font-semibold tabular-nums',
+                  teamRating.avgFitness >= 80 ? 'text-emerald-400' :
+                  teamRating.avgFitness >= 60 ? 'text-amber-400' :
+                  'text-destructive'
+                )}>{teamRating.avgFitness}%</span>
+              </span>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="flex items-stretch gap-1.5">
+            {/* OVR pill — primary emphasis */}
+            <div className={cn(
+              'relative flex-1 flex items-center justify-center gap-1.5 rounded-xl px-2 py-1.5 overflow-hidden',
+              'bg-gradient-to-b from-white/[0.06] to-transparent',
+              'shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-1px_0_rgba(0,0,0,0.25),0_0_0_1px_rgba(255,255,255,0.06)_inset]',
+              getRatingBadgeClasses(teamRating.overall)
+            )}>
+              <span className="text-[9px] font-semibold opacity-70 tracking-wider">OVR</span>
+              <span className="text-base font-black tabular-nums leading-none">{teamRating.overall}</span>
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 top-0 h-1/2 rounded-t-xl"
+                style={{
+                  background: 'radial-gradient(120% 90% at 50% -30%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 60%)',
+                  mixBlendMode: 'screen',
+                }}
+              />
+            </div>
             {[
               { label: 'DEF', value: teamRating.def, icon: <Shield className="w-3 h-3 text-sky-400" /> },
               { label: 'MID', value: teamRating.mid, icon: <Swords className="w-3 h-3 text-amber-400" /> },
               { label: 'ATT', value: teamRating.att, icon: <Target className="w-3 h-3 text-emerald-400" /> },
-            ].map(u => (
-              <div key={u.label} className={cn(
-                'text-center rounded-lg py-2',
-                teamRating.weakest !== null && u.value === teamRating.weakest
-                  ? 'bg-amber-500/10 border border-amber-500/20'
-                  : 'bg-muted/20'
-              )}>
-                <div className="flex items-center justify-center gap-1 mb-1">
+            ].map(u => {
+              const isWeak = teamRating.weakest !== null && u.value === teamRating.weakest;
+              return (
+                <div key={u.label} className={cn(
+                  'relative flex-1 flex items-center justify-center gap-1 rounded-xl px-2 py-1.5 overflow-hidden',
+                  'bg-gradient-to-b from-white/[0.04] to-transparent',
+                  'shadow-[inset_0_1px_0_rgba(255,255,255,0.10),inset_0_-1px_0_rgba(0,0,0,0.22),0_0_0_1px_rgba(255,255,255,0.04)_inset]',
+                  isWeak
+                    ? 'bg-amber-500/10 ring-1 ring-amber-500/20'
+                    : 'bg-muted/20'
+                )}>
                   {u.icon}
-                  <span className="text-[10px] text-muted-foreground font-semibold">{u.label}</span>
+                  <span className="text-[9px] text-muted-foreground font-semibold tracking-wider">{u.label}</span>
+                  <span className={cn('text-sm font-bold tabular-nums leading-none', getRatingColor(u.value))}>{u.value}</span>
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute inset-x-0 top-0 h-1/2 rounded-t-xl"
+                    style={{
+                      background: 'radial-gradient(120% 80% at 50% -30%, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0) 60%)',
+                      mixBlendMode: 'screen',
+                    }}
+                  />
                 </div>
-                <span className={cn('text-sm font-bold tabular-nums', getRatingColor(u.value))}>{u.value}</span>
-              </div>
-            ))}
-          </div>
-          <div className="mt-2 flex items-center justify-center gap-3 text-[10px]">
-            <span>
-              <span className="text-muted-foreground">Bench: </span>
-              <span className={cn('font-bold tabular-nums', getRatingColor(teamRating.subsAvg))}>{teamRating.subsAvg}</span>
-            </span>
-            <span className="text-muted-foreground/30">|</span>
-            <span>
-              <span className="text-muted-foreground">Fitness: </span>
-              <span className={cn(
-                'font-bold tabular-nums',
-                teamRating.avgFitness >= 80 ? 'text-emerald-400' :
-                teamRating.avgFitness >= 60 ? 'text-amber-400' :
-                'text-destructive'
-              )}>{teamRating.avgFitness}%</span>
-            </span>
+              );
+            })}
           </div>
         </GlassPanel>
       )}

@@ -1,6 +1,7 @@
 import { cn } from '@/lib/utils';
 import { MENTALITIES, TEMPOS, WIDTHS, DEFENSIVE_LINES, PRESSING_OPTIONS } from '@/config/tactics';
 import type { TacticalInstructions } from '@/types/game';
+import { LiquidGlassSlider } from './LiquidGlassSlider';
 
 interface TacticalPanelProps {
   tactics: TacticalInstructions;
@@ -8,170 +9,70 @@ interface TacticalPanelProps {
   variant: 'compact' | 'full';
 }
 
-const isPressingActive = (current: number, value: number) =>
-  Math.abs(current - value) <= 12;
-
+/**
+ * Tactical instructions panel — shared between half-time, in-match pause,
+ * and key-moment screens. Uses the same {@link LiquidGlassSlider} as the
+ * Tactics page so controls are consistent app-wide.
+ */
 export function TacticalPanel({ tactics, setTactics, variant }: TacticalPanelProps) {
   const isCompact = variant === 'compact';
   const labelClass = cn(
-    'text-muted-foreground uppercase tracking-wider',
-    isCompact ? 'text-[10px] mb-1.5' : 'text-xs mb-2'
+    'text-muted-foreground uppercase tracking-wider font-semibold',
+    isCompact ? 'text-[10px] mb-1' : 'text-xs mb-1.5',
   );
-  const btnText = isCompact ? 'text-[9px]' : 'text-[10px]';
-  const btnPy = isCompact ? 'py-1.5' : 'py-2';
-
-  const activeClass = 'bg-primary/20 text-primary border border-primary/30';
-  const inactiveClass = 'bg-muted/30 text-muted-foreground hover:bg-muted/50';
-
-  const btnBase = cn('flex-1 rounded-lg font-semibold capitalize transition-all', btnText, btnPy);
+  const rowGap = isCompact ? 'space-y-3' : 'space-y-4';
 
   return (
-    <div className={isCompact ? 'space-y-2' : 'space-y-3'}>
-      {/* Mentality — always full row (5 items) */}
+    <div className={rowGap}>
       <div>
         <p className={labelClass}>Mentality</p>
-        <div className={cn('flex', isCompact ? 'gap-1' : 'gap-1.5')}>
-          {MENTALITIES.map(m => (
-            <button
-              key={m.value}
-              onClick={() => setTactics({ mentality: m.value })}
-              className={cn(btnBase, tactics.mentality === m.value ? activeClass : inactiveClass)}
-            >
-              {m.label}
-            </button>
-          ))}
-        </div>
+        <LiquidGlassSlider
+          ariaLabel="Mentality"
+          options={MENTALITIES}
+          value={tactics.mentality}
+          onChange={v => setTactics({ mentality: v })}
+        />
       </div>
 
-      {/* Compact: Tempo + Pressing side by side */}
-      {isCompact ? (
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <p className={labelClass}>Tempo</p>
-            <div className="flex gap-1">
-              {TEMPOS.map(t => (
-                <button
-                  key={t.value}
-                  onClick={() => setTactics({ tempo: t.value })}
-                  className={cn(btnBase, tactics.tempo === t.value ? activeClass : inactiveClass)}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <p className={labelClass}>Pressing</p>
-            <div className="flex gap-1">
-              {PRESSING_OPTIONS.map(p => (
-                <button
-                  key={p.value}
-                  onClick={() => setTactics({ pressingIntensity: p.value })}
-                  className={cn(btnBase, isPressingActive(tactics.pressingIntensity, p.value) ? activeClass : inactiveClass)}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      ) : (
-        <>
-          <div>
-            <p className={labelClass}>Tempo</p>
-            <div className="flex gap-1.5">
-              {TEMPOS.map(t => (
-                <button
-                  key={t.value}
-                  onClick={() => setTactics({ tempo: t.value })}
-                  className={cn(btnBase, tactics.tempo === t.value ? activeClass : inactiveClass)}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <p className={labelClass}>Pressing</p>
-            <div className="flex gap-1.5">
-              {PRESSING_OPTIONS.map(p => (
-                <button
-                  key={p.value}
-                  onClick={() => setTactics({ pressingIntensity: p.value })}
-                  className={cn(btnBase, isPressingActive(tactics.pressingIntensity, p.value) ? activeClass : inactiveClass)}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
+      <div>
+        <p className={labelClass}>Tempo</p>
+        <LiquidGlassSlider
+          ariaLabel="Tempo"
+          options={TEMPOS}
+          value={tactics.tempo}
+          onChange={v => setTactics({ tempo: v })}
+        />
+      </div>
 
-      {/* Compact: Width + Defensive Line side by side */}
-      {isCompact ? (
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <p className={labelClass}>Width</p>
-            <div className="flex gap-1">
-              {WIDTHS.map(w => (
-                <button
-                  key={w.value}
-                  onClick={() => setTactics({ width: w.value })}
-                  className={cn(btnBase, tactics.width === w.value ? activeClass : inactiveClass)}
-                >
-                  {w.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <p className={labelClass}>Def. Line</p>
-            <div className="flex gap-1">
-              {DEFENSIVE_LINES.map(d => (
-                <button
-                  key={d.value}
-                  onClick={() => setTactics({ defensiveLine: d.value })}
-                  className={cn(btnBase, tactics.defensiveLine === d.value ? activeClass : inactiveClass)}
-                >
-                  {d.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      ) : (
-        <>
-          <div>
-            <p className={labelClass}>Width</p>
-            <div className="flex gap-1.5">
-              {WIDTHS.map(w => (
-                <button
-                  key={w.value}
-                  onClick={() => setTactics({ width: w.value })}
-                  className={cn(btnBase, tactics.width === w.value ? activeClass : inactiveClass)}
-                >
-                  {w.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <p className={labelClass}>Defensive Line</p>
-            <div className="flex gap-1.5">
-              {DEFENSIVE_LINES.map(d => (
-                <button
-                  key={d.value}
-                  onClick={() => setTactics({ defensiveLine: d.value })}
-                  className={cn(btnBase, tactics.defensiveLine === d.value ? activeClass : inactiveClass)}
-                >
-                  {d.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
+      <div>
+        <p className={labelClass}>Pressing</p>
+        <LiquidGlassSlider
+          ariaLabel="Pressing"
+          options={PRESSING_OPTIONS}
+          value={tactics.pressingIntensity}
+          onChange={v => setTactics({ pressingIntensity: v })}
+        />
+      </div>
+
+      <div>
+        <p className={labelClass}>Width</p>
+        <LiquidGlassSlider
+          ariaLabel="Team Width"
+          options={WIDTHS}
+          value={tactics.width}
+          onChange={v => setTactics({ width: v })}
+        />
+      </div>
+
+      <div>
+        <p className={labelClass}>Defensive Line</p>
+        <LiquidGlassSlider
+          ariaLabel="Defensive Line"
+          options={DEFENSIVE_LINES}
+          value={tactics.defensiveLine}
+          onChange={v => setTactics({ defensiveLine: v })}
+        />
+      </div>
     </div>
   );
 }
