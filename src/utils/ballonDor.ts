@@ -120,11 +120,14 @@ function calculatePlayerScore(
 
   // Counting-stat scale by division tier. Goals/assists/clean sheets in
   // lower tiers count progressively less — a 30-goal Foundation League
-  // striker shouldn't outrank a 25-goal Premier League elite. Avg rating
-  // uses a softer sqrt of the same scale because it's already context-aware
-  // (match sim accounts for opponent strength).
-  const countingScale = BALLON_DOR_DIVISION_COUNTING_SCALE[divisionTier] ?? 0.25;
-  const ratingScale = Math.sqrt(countingScale);
+  // striker shouldn't outrank a 25-goal Premier League elite. v70: avg
+  // rating now uses the same scale (no sqrt softening) so a Championship
+  // CB averaging 8.3 doesn't outrun a Premier League striker averaging
+  // 7.4. Match sim does adjust ratings by opponent strength but the gap
+  // between top-5 and the rest is large enough that the cushioning was
+  // actively hurting realism.
+  const countingScale = BALLON_DOR_DIVISION_COUNTING_SCALE[divisionTier] ?? 0.08;
+  const ratingScale = countingScale;
 
   // Base score from overall rating (0-100 scale)
   const overallScore = player.overall * w.overall;
@@ -147,8 +150,7 @@ function calculatePlayerScore(
   const cleanSheetScore = teamCleanSheets * w.cleanSheets * pm.cleanSheets * countingScale;
 
   // Average match rating (0-10 scale, scaled up for meaningful impact).
-  // Softer division scale (sqrt) — match sim already accounts for opponent
-  // strength so we don't double-penalise lower-tier ratings.
+  // Same division scale as counting stats — see countingScale comment.
   const ratingScore = getAvgRating(player) * 10 * w.avgRating * ratingScale;
 
   // Discipline penalty — yellow and red cards hurt ranking
