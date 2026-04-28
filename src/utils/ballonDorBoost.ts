@@ -15,9 +15,8 @@
 import type { Player, PlayerAttributes } from '@/types/game';
 import { clamp } from '@/utils/helpers';
 import { calculateOverall } from '@/utils/playerGen';
-import { calculatePlayerValue, calculatePlayerWage } from '@/config/playerGeneration';
-import { getPlayerRarity, getRarityValueMultiplier, getRarityWageMultiplier } from '@/utils/playerRarity';
-import { BALLON_DOR_TOP10_ATTR_BOOST, VALUE_AGE_MULTIPLIERS } from '@/config/gameBalance';
+import { recomputeDerivedEconomics } from '@/utils/playerEconomics';
+import { BALLON_DOR_TOP10_ATTR_BOOST } from '@/config/gameBalance';
 
 const ATTR_KEYS: (keyof PlayerAttributes)[] = ['pace', 'shooting', 'passing', 'defending', 'physical', 'mental'];
 
@@ -83,16 +82,11 @@ export function revertBallonDorTop10Boost<T extends Player>(player: T): T {
   return player;
 }
 
-/** Recompute overall/value/wage/rarity after an attribute change. */
+/** Recompute overall and derived economics after an attribute change.
+ *  Routes through the shared `recomputeDerivedEconomics` helper so the
+ *  pricing model (rarity × age × Ballon d'Or placement premium) stays
+ *  identical across every game flow. */
 function recalculateDerivedFields(player: Player): void {
   player.overall = calculateOverall(player.attributes, player.position);
-  player.rarity = getPlayerRarity(player);
-  let ageMult = 0.25;
-  for (const tier of VALUE_AGE_MULTIPLIERS) {
-    if (player.age <= tier.maxAge) { ageMult = tier.multiplier; break; }
-  }
-  const rarityValueMult = getRarityValueMultiplier(player.rarity);
-  const rarityWageMult = getRarityWageMultiplier(player.rarity);
-  player.value = Math.round(calculatePlayerValue(player.overall) * ageMult * rarityValueMult);
-  player.wage = Math.round(calculatePlayerWage(player.overall) * rarityWageMult);
+  recomputeDerivedEconomics(player);
 }

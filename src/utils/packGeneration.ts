@@ -1,9 +1,8 @@
 import type { Club, Player, PlayerAttributes, Position, PackTierKey, PackRarityWeights } from '@/types/game';
 import { generatePlayer, calculateOverall } from '@/utils/playerGen';
 import { pick, clamp } from '@/utils/helpers';
-import { calculatePlayerValue, calculatePlayerWage } from '@/config/playerGeneration';
 import { MAX_SQUAD_SIZE } from '@/config/gameBalance';
-import { getPlayerRarity, getRarityValueMultiplier, getRarityWageMultiplier } from '@/utils/playerRarity';
+import { recomputeDerivedEconomics } from '@/utils/playerEconomics';
 import {
   PACK_TIER_MAP,
   PACK_POSITION_POOL,
@@ -96,12 +95,9 @@ function rollPackPlayer(
   }
   player.overall = clamp(derived, lo, hi);
 
-  // Rarity tier and wage/value derive from the final overall. Pack-pulled
-  // legends are extra valuable so the walkout reveal lands on a card the
-  // player actually wants to keep, not flip immediately.
-  player.rarity = getPlayerRarity(player);
-  player.wage = Math.round(calculatePlayerWage(player.overall) * getRarityWageMultiplier(player.rarity));
-  player.value = Math.round(calculatePlayerValue(player.overall) * getRarityValueMultiplier(player.rarity));
+  // Pack-pulled players run through the shared economics helper so the
+  // walkout reveal carries the right rarity/value/wage premium.
+  recomputeDerivedEconomics(player);
   // Potential floors at overall — never below.
   if (player.potential < player.overall) player.potential = player.overall;
   return player;
@@ -223,9 +219,7 @@ export function generateAiCounterSignings(
       derived = calculateOverall(player.attributes, player.position);
     }
     player.overall = clamp(derived, floor, ceiling);
-    player.rarity = getPlayerRarity(player);
-    player.wage = Math.round(calculatePlayerWage(player.overall) * getRarityWageMultiplier(player.rarity));
-    player.value = Math.round(calculatePlayerValue(player.overall) * getRarityValueMultiplier(player.rarity));
+    recomputeDerivedEconomics(player);
     if (player.potential < player.overall) player.potential = player.overall;
     player.joinedSeason = season;
     perClub[club.id] = [player];

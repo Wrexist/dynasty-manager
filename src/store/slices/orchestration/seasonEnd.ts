@@ -25,9 +25,10 @@ import { DOMESTIC_SUPER_CUP_WEEK, CONTINENTAL_SUPER_CUP_WEEK, REP_CHAMPIONS_CUP_
 
 import { checkChallengeComplete, CHALLENGES } from '@/data/challenges';
 import { calculateSeasonAwards } from '@/utils/seasonAwards';
-import { calculateBallonDOr, getBallonDOrValueBoost } from '@/utils/ballonDor';
+import { calculateBallonDOr } from '@/utils/ballonDor';
 import { getPlayerRarity } from '@/utils/playerRarity';
 import { applyBallonDorTop10Boost, revertBallonDorTop10Boost, hasBallonDorTop10Reign } from '@/utils/ballonDorBoost';
+import { recomputePlayerValueOnly as recomputePlacementValue } from '@/utils/playerEconomics';
 import { BALLON_DOR_TOP10_RANK } from '@/config/gameBalance';
 
 import { createEmptyRecords, updateRecords, findBiggestWin } from '@/utils/records';
@@ -103,32 +104,42 @@ export function endSeasonImpl(set: Set, get: Get) {
   const ballonDOrRanking = calculateBallonDOr(allPlayersList, clubs, leagueTable, state.divisionTables || {}, state.championsCup, state.shieldCup, state.conferenceCup);
 
   // Apply Ballon d'Or value boosts and record placements on a shallow copy
-  // (avoid mutating the store's `players` reference directly)
+  // (avoid mutating the store's `players` reference directly).
+  //
+  // Order of operations matters: the placement is recorded BEFORE either the
+  // top-10 boost or any rarity recompute runs, so the placement's value
+  // premium is captured by `recomputeDerivedEconomics` (via
+  // `getBallonDorPlacementPremium`) on the first recompute. This avoids the
+  // clobber bug where earlier code applied the boost first then had it wiped
+  // by the rarity/value recompute path.
   const ballonDOrPlayers: Record<string, Player> = {};
   const top10HoldersThisSeason = new Set<string>();
   for (const entry of ballonDOrRanking) {
     const p = players[entry.playerId];
     if (!p) continue;
-    const boost = getBallonDOrValueBoost(entry.rank);
     const placement = { season, rank: entry.rank, score: entry.score };
     const existing = p.ballonDOrPlacements || [];
     const updatedPlayer: Player = {
       ...p,
       attributes: { ...p.attributes },
-      value: Math.round(p.value * (1 + boost)),
       ballonDOrPlacements: [...existing, placement],
     };
-    // Top-10 finishers earn the Ballon d'Or card + stats boost. Holds for
-    // exactly one cycle: refreshed if they re-make next year's top 10,
-    // reverted otherwise (handled in the second pass below).
+    // Top-10 finishers earn the Ballon d'Or card + stats boost. The boost
+    // path internally calls recomputeDerivedEconomics, which factors in the
+    // newly-added placement so the value premium survives.
     if (entry.rank <= BALLON_DOR_TOP10_RANK) {
       applyBallonDorTop10Boost(updatedPlayer, season);
       top10HoldersThisSeason.add(entry.playerId);
+    } else {
+      // Non-top-10 placements: just refresh derived economics so the new
+      // placement premium lands in `value`. Rarity may also shift (e.g. 90+
+      // graduating to legend on their 3rd top-25 placement).
+      updatedPlayer.rarity = getPlayerRarity(updatedPlayer);
+      // Inline recompute to avoid pulling another helper into this file —
+      // matches the formula used everywhere else (overall × age × rarity ×
+      // placement premium, captured by recomputeDerivedEconomics).
+      recomputePlacementValue(updatedPlayer);
     }
-    // Top placements can promote a player up the rarity ladder (e.g. an
-    // 88-rated player who wins the Ballon d'Or this season, or a 90-rated
-    // player who hits their 3rd top-25 placement and graduates to legend).
-    updatedPlayer.rarity = getPlayerRarity(updatedPlayer);
     ballonDOrPlayers[entry.playerId] = updatedPlayer;
   }
 

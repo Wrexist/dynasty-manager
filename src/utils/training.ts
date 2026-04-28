@@ -17,8 +17,7 @@ import {
   STREAK_THRESHOLDS, STREAK_MULTIPLIERS, STREAK_MAX,
   FITNESS_ZONE_GREEN, FITNESS_ZONE_YELLOW,
 } from '@/config/training';
-import { calculatePlayerValue } from '@/config/playerGeneration';
-import { getPlayerRarity, getRarityValueMultiplier } from '@/utils/playerRarity';
+import { recomputePlayerValueOnly } from '@/utils/playerEconomics';
 import { seasonGrowthTracker } from '@/store/helpers/development';
 import { MAX_SEASON_GROWTH, RECOVERY_FITNESS_BONUS_PER_LEVEL } from '@/config/gameBalance';
 
@@ -136,9 +135,10 @@ export function applyWeeklyTraining(
   const finalOverall = calculateOverall(updated.attributes, updated.position);
   updated.growthDelta = finalOverall - player.overall;
   updated.overall = finalOverall;
-  // Rarity may shift on overall change (e.g. promotion to icon at OVR 88).
-  updated.rarity = getPlayerRarity(updated);
-  updated.value = Math.round(calculatePlayerValue(updated.overall) * getRarityValueMultiplier(updated.rarity));
+  // Single-helper recompute keeps training pricing identical to development,
+  // packs, and transfers. Wage stays put — training tweaks attributes, not
+  // contract terms (those run through the contracts flow).
+  recomputePlayerValueOnly(updated);
 
   const additionalGrowth = Math.max(0, finalOverall - teamOverall);
   if (additionalGrowth > 0) {

@@ -97,15 +97,15 @@ function generateMarketPlayer(
   const player = generatePlayer(position, quality, '', season);
   player.age = age;
 
-  // Recalculate value/wage with age — younger players worth more, vets less.
-  // Rarity multiplier layers on top so generated icons/legends carry premium.
+  // Market listings use a steeper age curve (AGE_PRICE_MULTIPLIER) than the
+  // standard VALUE_AGE_MULTIPLIERS — the listing market punishes 30+ players
+  // harder than the in-club dev curve. Rarity multipliers still match the
+  // global pricing model.
   player.rarity = getPlayerRarity(player);
-  const rarityValueMult = getRarityValueMultiplier(player.rarity);
-  const rarityWageMult = getRarityWageMultiplier(player.rarity);
   const baseValue = calculatePlayerValue(player.overall);
   const ageMultiplier = getAgePriceMultiplier(age);
-  player.value = Math.round(baseValue * ageMultiplier * rarityValueMult);
-  player.wage = Math.round(calculatePlayerWage(player.overall) * rarityWageMult);
+  player.value = Math.round(baseValue * ageMultiplier * getRarityValueMultiplier(player.rarity));
+  player.wage = Math.round(calculatePlayerWage(player.overall) * getRarityWageMultiplier(player.rarity));
 
   // Adjust potential based on age
   if (age <= 22) {

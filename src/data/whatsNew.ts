@@ -67,7 +67,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
     headline: 'Match-day, squad and stat polish.',
     summary: 'Form pips, position chips, fitness bars and the in-match timer all get the same gradient + glow treatment as last build\'s progress bars. Trophy celebrations now sit on a proper gold halo.',
     highlights: [
-      'Legendary players now stand out — premium values, hype animations, and Ballon d\'Or pedigree drives the legend tier.',
+      'Legendary players now stand out — premium values, hype animations, and Ballon d\'Or pedigree drive the legend tier.',
       'Top 10 Ballon d\'Or finishers earn a unique gold-medal card and stats boost — held until the next ceremony.',
     ],
     new: [

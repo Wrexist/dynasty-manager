@@ -115,6 +115,21 @@ export type PersonalityLabel = 'Model Professional' | 'Born Leader' | 'Club Lege
  */
 export type PlayerRarity = 'common' | 'rare' | 'star' | 'icon' | 'legend';
 
+/** Resolved tier/Ballon-d'Or shield artwork for the player-card background. */
+export interface PlayerCardArt {
+  src: string;
+  filter?: string;
+}
+
+/** Options for {@link PlayerCardArt} resolution — currently only the
+ *  Ballon d'Or top-10 override, which outranks every overall-based tier. */
+export interface PlayerCardArtOptions {
+  /** When true, return the Ballon d'Or top-10 card instead of the tier shield.
+   *  Set this for players whose `ballonDOrTop10HoldSeason` is the current
+   *  reigning season — see src/utils/ballonDorBoost.ts for the lifecycle. */
+  ballonDorTop10?: boolean;
+}
+
 // ── Injury System ──
 export type InjuryType = 'knock' | 'muscle_strain' | 'hamstring' | 'ligament' | 'fracture' | 'concussion' | 'acl';
 export type InjurySeverity = 'minor' | 'moderate' | 'severe';

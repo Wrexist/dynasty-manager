@@ -3,7 +3,7 @@
  * Centralized color/rating logic used across pages and components.
  */
 
-import { PlayerAttributes, Position } from '@/types/game';
+import { PlayerAttributes, PlayerCardArt, PlayerCardArtOptions, Position } from '@/types/game';
 import { FAN_CONFIDENCE_FAN_WEIGHT, FAN_CONFIDENCE_BOARD_WEIGHT } from '@/config/gameBalance';
 import {
   RATING_COLOR_THRESHOLDS,
@@ -79,18 +79,11 @@ export function getPlayerTier(overall: number | null | undefined): PlayerTier {
  * the rare gold shield, so the icon look is reserved as a true top-end
  * differentiator. Silver and Bronze cover the mid/lower bands, with Common
  * reusing the Bronze shield under a desaturate filter.
+ *
+ * The PlayerCardArt + PlayerCardArtOptions types live in src/types/game.ts
+ * (single source of truth for all game types).
  */
-export interface PlayerCardArt {
-  src: string;
-  filter?: string;
-}
-
-export interface PlayerCardArtOptions {
-  /** When true, override the tier shield with the Ballon d'Or top-10 card.
-   *  Set this for players whose `ballonDOrTop10HoldSeason` is the current
-   *  reigning season — the override outranks every overall-based tier. */
-  ballonDorTop10?: boolean;
-}
+export type { PlayerCardArt, PlayerCardArtOptions };
 
 export function getPlayerCardArt(overall: number | null | undefined, options?: PlayerCardArtOptions): PlayerCardArt {
   if (options?.ballonDorTop10) {

@@ -157,6 +157,8 @@ describe('saveMigration', () => {
     // Legends/icons get value+wage inflated by the rarity multiplier; common is untouched.
     expect(players.legend.value).toBeGreaterThan(100_000_000);
     expect(players.icon.value).toBeGreaterThan(80_000_000);
+    expect(players.legend.wage).toBeGreaterThan(400_000);
+    expect(players.icon.wage).toBeGreaterThan(250_000);
     expect(players.squad.value).toBe(5_000_000);
     expect(players.squad.wage).toBe(50_000);
   });

@@ -349,8 +349,21 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
   // re-make the new top 10 keep it, others revert. `season - 1 = 0` is just
   // a marker — the boost lifecycle only cares whether the field is set.
   const seededTop10 = pickInitialBallonDorTop10(allPlayers);
+  const affectedClubIds = new Set<string>();
   for (const p of seededTop10) {
     applyBallonDorTop10Boost(p, 0);
+    if (p.clubId) affectedClubIds.add(p.clubId);
+  }
+  // The boost recalculates `player.wage`, so any club hosting a seeded
+  // holder needs its `wageBill` aggregate refreshed before week-1 finance
+  // runs — otherwise the dashboard's "weekly cost" reads stale.
+  for (const clubId of affectedClubIds) {
+    const club = clubs[clubId];
+    if (!club) continue;
+    club.wageBill = club.playerIds.reduce(
+      (sum, pid) => sum + (allPlayers[pid]?.wage || 0),
+      0,
+    );
   }
 
   set({
