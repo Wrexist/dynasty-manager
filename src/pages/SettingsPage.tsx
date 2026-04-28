@@ -99,7 +99,9 @@ function ToggleRow({ icon: Icon, label, description, value, onChange }: {
   );
 }
 
-const SettingsPageInner = () => {
+export type SettingsVariant = 'title' | 'in-game';
+
+const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
   const settings = useGameStore(s => s.settings);
   const monetization = useGameStore(s => s.monetization);
   const activeSlot = useGameStore(s => s.activeSlot);
@@ -205,8 +207,10 @@ const SettingsPageInner = () => {
   };
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
-      <h2 className="text-lg font-display font-bold text-foreground tracking-tight">Settings</h2>
+    <div className={cn(variant === 'in-game' ? 'max-w-lg mx-auto px-4 py-4' : '', 'space-y-3')}>
+      {variant === 'in-game' && (
+        <h2 className="text-lg font-display font-bold text-foreground tracking-tight">Settings</h2>
+      )}
 
       {/* ─── Gameplay ─── */}
       <SettingsSection title="Gameplay">
@@ -227,7 +231,14 @@ const SettingsPageInner = () => {
                 return (
                   <button
                     key={s.value}
-                    onClick={() => locked ? setScreen('shop') : updateSettings({ matchSpeed: s.value })}
+                    onClick={() => {
+                      if (locked) {
+                        if (variant === 'in-game') setScreen('shop');
+                        else navigate('/subscribe');
+                        return;
+                      }
+                      updateSettings({ matchSpeed: s.value });
+                    }}
                     className={cn(
                       'flex-1 flex items-center justify-center gap-1 py-2 rounded-full text-xs font-semibold transition-all',
                       locked
@@ -257,7 +268,8 @@ const SettingsPageInner = () => {
         </div>
       </SettingsSection>
 
-      {/* ─── Community Pack ─── */}
+      {/* ─── Community Pack ─── (in-game only — depends on activeSlot) */}
+      {variant === 'in-game' && (
       <SettingsSection title="Community Pack">
         <ToggleRow
           icon={Users}
@@ -297,6 +309,7 @@ const SettingsPageInner = () => {
           Changing this applies to new games only — existing saves keep the setting they were started with.
         </p>
       </SettingsSection>
+      )}
 
       {/* ─── Display & Accessibility ─── */}
       <SettingsSection title="Display & Accessibility">
@@ -344,9 +357,12 @@ const SettingsPageInner = () => {
       {/* ─── Data ─── */}
       <SettingsSection title="Data">
         <div className="space-y-3">
-          <SaveStatusIndicator />
-
-          <div className="border-t border-white/10" />
+          {variant === 'in-game' && (
+            <>
+              <SaveStatusIndicator />
+              <div className="border-t border-white/10" />
+            </>
+          )}
 
           <ToggleRow
             icon={RotateCcw}
@@ -356,6 +372,8 @@ const SettingsPageInner = () => {
             onChange={() => updateSettings({ autoSave: !settings.autoSave })}
           />
 
+          {variant === 'in-game' && (
+          <>
           <div className="border-t border-white/10" />
 
           <div className="space-y-2">
@@ -412,6 +430,8 @@ const SettingsPageInner = () => {
               </div>
             )}
           </div>
+          </>
+          )}
         </div>
       </SettingsSection>
 
@@ -430,13 +450,15 @@ const SettingsPageInner = () => {
               Replay Tutorial
             </span>
           </LiquidButton>
-          <LiquidButton onClick={() => setScreen('help')}>
-            <span className="flex items-center justify-start gap-3 px-3">
-              <BookOpen className="w-4 h-4" />
-              Game Guide
-            </span>
-          </LiquidButton>
-          <LiquidButton onClick={() => setScreen('whats-new')}>
+          {variant === 'in-game' && (
+            <LiquidButton onClick={() => setScreen('help')}>
+              <span className="flex items-center justify-start gap-3 px-3">
+                <BookOpen className="w-4 h-4" />
+                Game Guide
+              </span>
+            </LiquidButton>
+          )}
+          <LiquidButton onClick={() => variant === 'in-game' ? setScreen('whats-new') : navigate('/whats-new')}>
             <span className="flex items-center justify-start gap-3 px-3 w-full">
               <Sparkles className="w-4 h-4" />
               <span className="flex-1 text-left">What&apos;s New</span>
@@ -739,7 +761,16 @@ const SettingsPageInner = () => {
 // import/export, slot operations) renders a friendly fallback with telemetry
 // tagged `settings`, instead of bombing the surrounding game shell.
 const SettingsPage = () => (
-  <ErrorBoundary scope="settings"><SettingsPageInner /></ErrorBoundary>
+  <ErrorBoundary scope="settings"><SettingsBodyInner variant="in-game" /></ErrorBoundary>
+);
+
+// Shared settings body — used by the in-game SettingsPage and the TitleScreen
+// settings sheet so both surfaces stay in sync. The `variant` prop hides the
+// in-game-only sections (Save/Load/Main Menu/Reset, Community Pack, Game Guide,
+// SaveStatusIndicator) and routes match-speed-lock + What's New through the
+// right navigation for each surface.
+export const SettingsBody = ({ variant = 'in-game' }: { variant?: SettingsVariant } = {}) => (
+  <ErrorBoundary scope="settings"><SettingsBodyInner variant={variant} /></ErrorBoundary>
 );
 
 export default SettingsPage;

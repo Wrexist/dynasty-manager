@@ -73,6 +73,8 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Promotion and relegation banners now read with serious cinematic weight.',
       'Trophy Cabinet empty shelves swap a dashed placeholder for a soft gold halo.',
       'Match Day, LIVE and Pro badges now glow on the surface they sit on.',
+      'Title screen Settings now matches the in-game Settings — same toggles, layout, and shared components.',
+      'Set-piece and penalty taker pickers now show squad-style player cards in a 3-column grid, sorted by role-relevant rating with the three attributes that matter for that role.',
     ],
     fixed: [],
   },

@@ -17,7 +17,7 @@ import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS, PRESSING_LOW_THRESHOLD, PRESSING_MED_THRESHOLD, HELP_TEXTS } from '@/config/ui';
 import { InfoTip } from '@/components/game/InfoTip';
 import { LiquidGlassSlider } from '@/components/game/LiquidGlassSlider';
-import { PlayerSelect } from '@/components/game/PlayerSelect';
+import { SetPiecePicker } from '@/components/game/SetPiecePicker';
 import { useLineupOptimizer } from '@/hooks/useLineupOptimizer';
 import { infoToast } from '@/utils/gameToast';
 import { hapticLight } from '@/utils/haptics';
@@ -616,22 +616,20 @@ const TacticsPage = () => {
         <div className="space-y-3">
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">Corner / Free Kick Taker</label>
-            <PlayerSelect
+            <SetPiecePicker
+              role="setpiece"
               players={lineupPlayers.filter(p => p.position !== 'GK')}
               selectedId={club.setPieceTakerId}
               onChange={setSetPieceTaker}
-              placeholder="Auto (best passing + shooting)"
-              sortMode="setpiece"
             />
           </div>
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">Penalty Taker</label>
-            <PlayerSelect
+            <SetPiecePicker
+              role="penalty"
               players={lineupPlayers.filter(p => p.position !== 'GK')}
               selectedId={club.penaltyTakerId}
               onChange={setPenaltyTaker}
-              placeholder="Auto (best shooting + mental)"
-              sortMode="penalty"
             />
           </div>
         </div>
