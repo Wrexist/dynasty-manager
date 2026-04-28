@@ -32,17 +32,20 @@ const FacilitiesPage = () => {
   const [selectedStand, setSelectedStand] = useState<StandKey | null>(null);
   const [confirmUpgrade, setConfirmUpgrade] = useState<string | null>(null);
   const [celebration, setCelebration] = useState<{ title: string; description: string } | null>(null);
+  // Stand whose upgrade just completed — drives the gold ripple/flash on the SVG.
+  // Bumped with a fresh nonce so the same stand finishing twice still re-triggers the animation.
+  const [justUpgraded, setJustUpgraded] = useState<{ stand: StandKey; nonce: number } | null>(null);
   const prevUpgradeRef = useRef(facilities.upgradeInProgress);
   const club = clubs[playerClubId];
 
-  // Detect when a max-level upgrade completes
+  // Detect when an upgrade completes — fire the ripple, and the celebration modal at max level
   useEffect(() => {
     const prev = prevUpgradeRef.current;
     prevUpgradeRef.current = facilities.upgradeInProgress;
     if (prev && !facilities.upgradeInProgress) {
-      // An upgrade just completed — check if it reached max level
       if (prev.type.startsWith('stadium-')) {
         const stand = prev.type.replace('stadium-', '') as StandKey;
+        setJustUpgraded({ stand, nonce: Date.now() });
         if (facilities.stadiumStands[stand] >= FACILITY_MAX_LEVEL) {
           setCelebration({ title: `${STAND_INFO[stand].label} — Max Level!`, description: `Your ${STAND_INFO[stand].label} has reached world-class status! The fans are delighted.` });
         }
@@ -59,6 +62,13 @@ const FacilitiesPage = () => {
     // retrigger on unrelated field updates.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [facilities.upgradeInProgress, facilities.stadiumStands, facilities.trainingLevel, facilities.youthLevel, facilities.medicalLevel, facilities.recoveryLevel]);
+
+  // Clear the ripple after the CSS animation has finished (1.2s ring + a little buffer).
+  useEffect(() => {
+    if (!justUpgraded) return;
+    const id = setTimeout(() => setJustUpgraded(null), 1400);
+    return () => clearTimeout(id);
+  }, [justUpgraded]);
 
   const effectiveLevel = getEffectiveStadiumLevel(facilities);
   const weeklyRevenue = effectiveLevel * STADIUM_INCOME_PER_LEVEL;
@@ -165,6 +175,8 @@ const FacilitiesPage = () => {
                 upgradeInProgressType={upgradeType}
                 clubColor={club?.color || '#3b82f6'}
                 recommendedStand={recommendedStand}
+                justUpgradedStand={justUpgraded?.stand ?? null}
+                justUpgradedNonce={justUpgraded?.nonce ?? 0}
               />
             </GlassPanel>
 

@@ -11,6 +11,11 @@ interface StadiumViewProps {
   upgradeInProgressType: string | null;
   clubColor: string;
   recommendedStand?: StandKey | null;
+  /** When set, the matching stand briefly plays a gold ripple/flash celebration. */
+  justUpgradedStand?: StandKey | null;
+  /** Bumped each time a new upgrade completes — forces React to remount the
+   *  ripple <g> so the CSS animation re-runs even when the same stand finishes twice. */
+  justUpgradedNonce?: number;
 }
 
 const STAND_KEYS: StandKey[] = ['north', 'south', 'east', 'west'];
@@ -28,7 +33,7 @@ function getStandTier(level: number): string {
   return 'Empty';
 }
 
-export function StadiumView({ stands, selectedStand, onSelectStand, upgradeInProgressType, clubColor, recommendedStand }: StadiumViewProps) {
+export function StadiumView({ stands, selectedStand, onSelectStand, upgradeInProgressType, clubColor, recommendedStand, justUpgradedStand, justUpgradedNonce = 0 }: StadiumViewProps) {
   const isUpgrading = (stand: StandKey) => upgradeInProgressType === `stadium-${stand}`;
   const effectiveLevel = getEffectiveStadiumLevel({ stadiumStands: stands, trainingLevel: 0, youthLevel: 0, medicalLevel: 0, recoveryLevel: 0, upgradeInProgress: null });
   const showCorners = effectiveLevel >= 8;
@@ -97,6 +102,8 @@ export function StadiumView({ stands, selectedStand, onSelectStand, upgradeInPro
           selected={selectedStand === 'north'}
           upgrading={isUpgrading('north')}
           recommended={recommendedStand === 'north'}
+          justUpgraded={justUpgradedStand === 'north'}
+          justUpgradedNonce={justUpgradedNonce}
           clubColor={clubColor}
           onClick={() => onSelectStand('north')}
         />
@@ -109,6 +116,8 @@ export function StadiumView({ stands, selectedStand, onSelectStand, upgradeInPro
           selected={selectedStand === 'south'}
           upgrading={isUpgrading('south')}
           recommended={recommendedStand === 'south'}
+          justUpgraded={justUpgradedStand === 'south'}
+          justUpgradedNonce={justUpgradedNonce}
           clubColor={clubColor}
           onClick={() => onSelectStand('south')}
         />
@@ -121,6 +130,8 @@ export function StadiumView({ stands, selectedStand, onSelectStand, upgradeInPro
           selected={selectedStand === 'west'}
           upgrading={isUpgrading('west')}
           recommended={recommendedStand === 'west'}
+          justUpgraded={justUpgradedStand === 'west'}
+          justUpgradedNonce={justUpgradedNonce}
           clubColor={clubColor}
           onClick={() => onSelectStand('west')}
         />
@@ -133,6 +144,8 @@ export function StadiumView({ stands, selectedStand, onSelectStand, upgradeInPro
           selected={selectedStand === 'east'}
           upgrading={isUpgrading('east')}
           recommended={recommendedStand === 'east'}
+          justUpgraded={justUpgradedStand === 'east'}
+          justUpgradedNonce={justUpgradedNonce}
           clubColor={clubColor}
           onClick={() => onSelectStand('east')}
         />
@@ -220,6 +233,8 @@ interface StandRectProps {
   selected: boolean;
   upgrading: boolean;
   recommended: boolean;
+  justUpgraded: boolean;
+  justUpgradedNonce: number;
   clubColor: string;
   onClick: () => void;
 }
@@ -236,7 +251,7 @@ function rand(seed: number): number {
   return x - Math.floor(x);
 }
 
-function StandRect({ x, y, width, height, standKey, level, selected, upgrading, recommended, clubColor, onClick }: StandRectProps) {
+function StandRect({ x, y, width, height, standKey, level, selected, upgrading, recommended, justUpgraded, justUpgradedNonce, clubColor, onClick }: StandRectProps) {
   const opacity = getStandOpacity(level);
   const isElite = level >= FACILITY_MAX_LEVEL;
   const handleClick = () => { hapticLight(); onClick(); };
@@ -352,6 +367,32 @@ function StandRect({ x, y, width, height, standKey, level, selected, upgrading, 
           />
           <ConstructionCrane x={x + width / 2} y={y + height / 2} scale={Math.min(width, height) / 50} />
         </>
+      )}
+      {/* Just-upgraded celebration — gold inner flash + two expanding rings.
+          The {nonce} key forces a fresh mount so the CSS animation re-fires. */}
+      {justUpgraded && (
+        <g key={justUpgradedNonce} pointerEvents="none">
+          <rect
+            x={x} y={y} width={width} height={height} rx={6}
+            fill={GOLD}
+            className="stadium-upgrade-fill"
+          />
+          <rect
+            x={x - 3} y={y - 3} width={width + 6} height={height + 6} rx={8}
+            fill="none"
+            stroke={GOLD}
+            strokeWidth={2}
+            className="stadium-upgrade-ring"
+          />
+          <rect
+            x={x - 3} y={y - 3} width={width + 6} height={height + 6} rx={8}
+            fill="none"
+            stroke={GOLD}
+            strokeWidth={1.5}
+            className="stadium-upgrade-ring"
+            style={{ animationDelay: '0.18s' }}
+          />
+        </g>
       )}
     </g>
   );
