@@ -28,27 +28,28 @@ interface PackShopCardProps {
 }
 
 /**
- * Pack card with an Apple-style Liquid Glass overlay. The pack art bleeds
- * to the page (no hairline frame); label, price, and a Buy button live
- * inside a translucent glass panel at the bottom that refracts colour
- * from the art behind it via backdrop-blur + backdrop-saturate. Guarantee
- * badge floats over the art top-right.
+ * Pack card with the tier label floating in a small glass chip at the
+ * top-left (paired with the guarantee badge top-right) and a single
+ * compact CTA chip at the bottom. The pack art bleeds to the edges so
+ * the visual hierarchy is: art first, then a clean label and one tap
+ * target. Price for paid packs is inlined into the CTA so there's no
+ * duplicate text container.
  */
 export const PackShopCard = memo(function PackShopCard({ tier, affordable, squadOk, onSelect, featured, method, freeRemaining, adRemaining, resetCountdown }: PackShopCardProps) {
   const noMethod = method === null;
   const disabled = !squadOk || noMethod || !affordable;
   const prefersReducedMotion = useReducedMotion();
 
-  // CTA chip text + icon vary by active unlock method.
-  const ctaLabel = method === 'free'
-    ? 'Open Free'
-    : method === 'ad'
-      ? 'Watch'
-      : method === 'iap'
-        ? 'Buy'
-        : method === 'currency'
-          ? 'Buy'
-          : 'Tomorrow';
+  // CTA chip text + icon vary by active unlock method. Price is folded
+  // into the label for paid methods so the card carries no second text
+  // line — one chip says everything the user needs to act.
+  let ctaLabel: string;
+  if (method === 'free') ctaLabel = 'Open Free';
+  else if (method === 'ad') ctaLabel = 'Watch Ad';
+  else if (method === 'iap') ctaLabel = tier.iapPriceDisplay ? `Buy ${tier.iapPriceDisplay}` : 'In-App Purchase';
+  else if (method === 'currency') ctaLabel = `Buy ${formatMoney(tier.price)}`;
+  else ctaLabel = resetCountdown ? `In ${resetCountdown}` : 'Tomorrow';
+
   const lockedReason = !squadOk
     ? 'Full'
     : noMethod
@@ -57,25 +58,16 @@ export const PackShopCard = memo(function PackShopCard({ tier, affordable, squad
         ? 'Budget'
         : 'Store';
 
-  // Bottom-row price/availability line. Free is the headline when free
-  // opens remain; once free is used we step down to ad / iap / currency.
-  // We also surface "X left today" so the user knows their daily quota.
-  let priceLine: string;
-  if (method === 'free') {
-    priceLine = freeRemaining > 1
-      ? `FREE · ${freeRemaining} left today`
-      : 'FREE · today\'s daily';
-  } else if (method === 'ad') {
-    priceLine = adRemaining > 0
-      ? `Free · ${adRemaining} ad${adRemaining === 1 ? '' : 's'} left today`
-      : 'Watch ad';
-  } else if (method === 'iap') {
-    priceLine = tier.iapPriceDisplay || 'In-app purchase';
-  } else if (method === 'currency') {
-    priceLine = formatMoney(tier.price);
-  } else {
-    priceLine = resetCountdown ? `Resets in ${resetCountdown}` : 'Come back tomorrow';
-  }
+  // a11y price summary — only used in aria-label, not rendered.
+  const ariaPrice = method === 'free'
+    ? `free, ${freeRemaining} left today`
+    : method === 'ad'
+      ? `watch an ad, ${adRemaining} left today`
+      : method === 'iap'
+        ? tier.iapPriceDisplay || 'in-app purchase'
+        : method === 'currency'
+          ? formatMoney(tier.price)
+          : 'unavailable today';
 
   const CtaIcon = method === 'free'
     ? Gift
@@ -97,7 +89,7 @@ export const PackShopCard = memo(function PackShopCard({ tier, affordable, squad
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-2xl',
         disabled && 'opacity-60 grayscale cursor-not-allowed',
       )}
-      aria-label={`${ctaLabel} ${tier.label}, ${priceLine}${disabled ? ` (unavailable — ${lockedReason.toLowerCase()})` : ''}`}
+      aria-label={`${ctaLabel} ${tier.label}, ${ariaPrice}${disabled ? ` (unavailable — ${lockedReason.toLowerCase()})` : ''}`}
     >
       <div
         className={cn(
@@ -137,86 +129,59 @@ export const PackShopCard = memo(function PackShopCard({ tier, affordable, squad
           />
         )}
 
-        {/* Floating badges — top-right. Guarantee chip always shows; featured
-            adds a sparkle pill above it. */}
-        <div className="absolute top-2 right-2 flex flex-col items-end gap-1 z-10">
-          {featured && (
-            <span className="flex items-center gap-1 h-5 px-2 text-[9px] uppercase tracking-widest rounded-full text-white bg-black/45 border border-white/20 backdrop-blur">
-              <Sparkles className="w-2.5 h-2.5" /> Featured
-            </span>
-          )}
-          <span className="flex items-center gap-1 h-5 px-2 text-[10px] font-bold tabular-nums rounded-full text-white bg-black/45 border border-white/20 backdrop-blur">
-            <ShieldCheck className="w-2.5 h-2.5" />
-            {tier.guaranteedMinOvr}+
-          </span>
-        </div>
-
-        {/* Liquid-glass overlay — label, price, Buy button. Sits on top of
-            the art so `backdrop-blur` picks up the tier's palette and tints
-            the glass, the way Apple's Liquid Glass refracts the content
-            behind it. */}
-        <div className={cn('absolute inset-x-2 z-10', featured ? 'bottom-2' : 'bottom-1.5')}>
-          <div
+        {/* Top row — tier label (left) + guarantee/featured badges (right).
+            Title lives in its own glass chip so it's always fully visible
+            (no truncation) and never competes with the art for space. */}
+        <div className="absolute inset-x-2 top-2 flex items-start justify-between gap-2 z-10">
+          <span
             className={cn(
-              'relative overflow-hidden rounded-2xl',
-              'bg-white/10 backdrop-blur-2xl backdrop-saturate-150',
-              'border border-white/25',
-              'shadow-[inset_0_1px_0_0_rgba(255,255,255,0.45),inset_0_-1px_1px_rgba(0,0,0,0.25),0_10px_28px_-10px_rgba(0,0,0,0.55)]',
+              'inline-flex items-center rounded-full',
+              'bg-white/15 backdrop-blur-xl backdrop-saturate-150 border border-white/25',
+              'shadow-[inset_0_1px_0_rgba(255,255,255,0.45),0_4px_10px_-4px_rgba(0,0,0,0.5)]',
+              'font-display font-bold text-white uppercase tracking-wide',
+              'drop-shadow-[0_1px_2px_rgba(0,0,0,0.55)]',
+              featured ? 'h-7 px-3 text-xs' : 'h-6 px-2.5 text-[11px]',
             )}
           >
-            {/* Top specular highlight — the bright rim along the top edge
-                of a glass surface. */}
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/30 via-white/5 to-transparent" />
-            {/* Soft bottom shadow inside the glass for depth. */}
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/25 to-transparent" />
-
-            <div className={cn('relative flex items-center justify-between gap-2', featured ? 'px-3 py-2.5' : 'px-2.5 py-2')}>
-              <div className="min-w-0">
-                <h3
-                  className={cn(
-                    'font-display font-bold text-white leading-tight truncate',
-                    'drop-shadow-[0_1px_2px_rgba(0,0,0,0.55)]',
-                    featured ? 'text-base' : 'text-sm',
-                  )}
-                >
-                  {tier.label}
-                </h3>
-                <p
-                  className={cn(
-                    'font-semibold tabular-nums text-white/85 leading-none mt-0.5',
-                    'drop-shadow-[0_1px_2px_rgba(0,0,0,0.55)]',
-                    featured ? 'text-xs' : 'text-[11px]',
-                  )}
-                >
-                  {priceLine}
-                </p>
-              </div>
-
-              {/* Liquid-glass action chip — matches the panel's material
-                  language: translucent white tint, rim highlight, top
-                  specular gloss, gentle outer shadow. */}
-              <span
-                className={cn(
-                  'shrink-0 relative inline-flex items-center justify-center overflow-hidden',
-                  'rounded-full font-semibold uppercase tracking-widest',
-                  'border backdrop-blur-xl backdrop-saturate-150',
-                  'shadow-[inset_0_1px_0_rgba(255,255,255,0.55),inset_0_-1px_0_rgba(0,0,0,0.2),0_4px_12px_-4px_rgba(0,0,0,0.5)]',
-                  disabled
-                    ? 'bg-white/10 border-white/20 text-white/70'
-                    : 'bg-white/20 border-white/35 text-white',
-                  featured ? 'h-8 px-3.5 text-[11px] gap-1' : 'h-7 px-3 text-[10px] gap-1',
-                )}
-              >
-                <span className="pointer-events-none absolute inset-x-1 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/55 to-transparent" />
-                {disabled
-                  ? <Lock className="relative w-3 h-3" />
-                  : CtaIcon
-                    ? <CtaIcon className="relative w-3 h-3" />
-                    : null}
-                <span className="relative">{disabled ? lockedReason : ctaLabel}</span>
+            {tier.label}
+          </span>
+          <div className="flex flex-col items-end gap-1">
+            {featured && (
+              <span className="flex items-center gap-1 h-5 px-2 text-[9px] uppercase tracking-widest rounded-full text-white bg-black/45 border border-white/20 backdrop-blur">
+                <Sparkles className="w-2.5 h-2.5" /> Featured
               </span>
-            </div>
+            )}
+            <span className="flex items-center gap-1 h-5 px-2 text-[10px] font-bold tabular-nums rounded-full text-white bg-black/45 border border-white/20 backdrop-blur">
+              <ShieldCheck className="w-2.5 h-2.5" />
+              {tier.guaranteedMinOvr}+
+            </span>
           </div>
+        </div>
+
+        {/* Bottom — single floating action chip. Price for paid packs is
+            inlined into the label, so this is the only text the user has
+            to read to act. */}
+        <div className={cn('absolute inset-x-0 z-10 flex justify-center', featured ? 'bottom-3' : 'bottom-2')}>
+          <span
+            className={cn(
+              'shrink-0 relative inline-flex items-center justify-center overflow-hidden',
+              'rounded-full font-semibold uppercase tracking-widest',
+              'border backdrop-blur-xl backdrop-saturate-150',
+              'shadow-[inset_0_1px_0_rgba(255,255,255,0.55),inset_0_-1px_0_rgba(0,0,0,0.2),0_4px_12px_-4px_rgba(0,0,0,0.5)]',
+              disabled
+                ? 'bg-white/10 border-white/20 text-white/70'
+                : 'bg-white/25 border-white/40 text-white',
+              featured ? 'h-9 px-4 text-[11px] gap-1.5' : 'h-8 px-3.5 text-[10px] gap-1.5',
+            )}
+          >
+            <span className="pointer-events-none absolute inset-x-1 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/55 to-transparent" />
+            {disabled
+              ? <Lock className="relative w-3 h-3" />
+              : CtaIcon
+                ? <CtaIcon className="relative w-3 h-3" />
+                : null}
+            <span className="relative">{disabled ? lockedReason : ctaLabel}</span>
+          </span>
         </div>
       </div>
     </motion.button>
