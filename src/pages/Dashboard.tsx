@@ -68,7 +68,15 @@ import { computeObjectiveProgress } from '@/utils/weeklyObjectives';
 import { getCompetitionInfo } from '@/utils/competitionBadge';
 
 const WELCOME_KEY = 'dynasty-welcome-shown';
-const COLLAPSE_SPRING = { type: 'spring' as const, stiffness: 300, damping: 24 };
+// Collapse panels animate `height: auto`, which triggers a layout pass on
+// every frame. Spring physics + auto-height re-measures the content each
+// frame and stutters under load (especially with nested motion children
+// like the per-task FloatingXP). A duration-bounded tween with a smooth
+// ease-out cubic finishes in a known number of frames, no re-measuring.
+const COLLAPSE_TRANSITION = { type: 'tween' as const, duration: 0.22, ease: [0.32, 0.72, 0, 1] as const };
+// The chevron rotate is a cheap GPU transform — keep the bouncy spring
+// feel for the affordance toggle without paying the height-animation cost.
+const CHEVRON_SPRING = { type: 'spring' as const, stiffness: 320, damping: 26 };
 // Each tile's tint composes three utilities: foreground icon color,
 // a radial `glow` behind the tile, and a translucent `chip` background
 // for the icon badge. Keeping adjacent tiles visually distinct is the
@@ -1012,7 +1020,7 @@ const Dashboard = () => {
             className="w-full flex items-center justify-between rounded-md px-1 -mx-1 hover:bg-white/5 transition-colors"
           >
             <div className="flex items-center gap-1.5">
-              <motion.div animate={{ rotate: coachCollapsed ? 0 : 90 }} transition={COLLAPSE_SPRING}>
+              <motion.div animate={{ rotate: coachCollapsed ? 0 : 90 }} transition={CHEVRON_SPRING}>
                 <ChevronRight className="w-3 h-3 text-primary" />
               </motion.div>
               <p className="text-[10px] text-primary uppercase tracking-wider font-semibold">Coach Checklist</p>
@@ -1035,8 +1043,9 @@ const Dashboard = () => {
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                transition={COLLAPSE_SPRING}
+                transition={COLLAPSE_TRANSITION}
                 className="overflow-hidden"
+                style={{ willChange: 'height' }}
               >
                 <div className="space-y-2 mt-3">
                   {coachTasks.map((task) => (
@@ -1222,7 +1231,7 @@ const Dashboard = () => {
             className="w-full flex items-center justify-between rounded-md px-1 -mx-1 hover:bg-white/5 transition-colors"
           >
             <div className="flex items-center gap-1.5">
-              <motion.div animate={{ rotate: sagaCollapsed ? 0 : 90 }} transition={COLLAPSE_SPRING}>
+              <motion.div animate={{ rotate: sagaCollapsed ? 0 : 90 }} transition={CHEVRON_SPRING}>
                 <ChevronRight className="w-3 h-3 text-amber-400" />
               </motion.div>
               <p className="text-[10px] text-amber-400 uppercase tracking-wider font-semibold">Active Sagas</p>
@@ -1236,8 +1245,9 @@ const Dashboard = () => {
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                transition={COLLAPSE_SPRING}
+                transition={COLLAPSE_TRANSITION}
                 className="overflow-hidden"
+                style={{ willChange: 'height' }}
               >
                 <div className="space-y-2 mt-3">
                   {activeSagas.map((saga) => {
@@ -1308,7 +1318,7 @@ const Dashboard = () => {
             className="w-full flex items-center justify-between rounded-md px-1 -mx-1 hover:bg-white/5 transition-colors"
           >
             <div className="flex items-center gap-2">
-              <motion.div animate={{ rotate: objectivesCollapsed ? 0 : 90 }} transition={COLLAPSE_SPRING}>
+              <motion.div animate={{ rotate: objectivesCollapsed ? 0 : 90 }} transition={CHEVRON_SPRING}>
                 <ChevronRight className="w-3 h-3 text-amber-400" />
               </motion.div>
               <p className="text-xs font-bold text-foreground uppercase tracking-wider">Monthly Objectives</p>
@@ -1338,8 +1348,9 @@ const Dashboard = () => {
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                transition={COLLAPSE_SPRING}
+                transition={COLLAPSE_TRANSITION}
                 className="overflow-hidden"
+                style={{ willChange: 'height' }}
               >
                 <div className="space-y-2 mt-3">
                   {objectivesWithProgress.map((obj) => (
@@ -1399,7 +1410,7 @@ const Dashboard = () => {
               aria-expanded={!achievementsCollapsed}
               className="flex items-center gap-1.5 rounded-md px-1 -mx-1 hover:bg-white/5 transition-colors"
             >
-              <motion.div animate={{ rotate: achievementsCollapsed ? 0 : 90 }} transition={COLLAPSE_SPRING}>
+              <motion.div animate={{ rotate: achievementsCollapsed ? 0 : 90 }} transition={CHEVRON_SPRING}>
                 <ChevronRight className="w-3 h-3 text-sky-400" />
               </motion.div>
               <p className="text-[10px] text-sky-400 uppercase tracking-wider font-semibold">Achievements</p>
@@ -1422,8 +1433,9 @@ const Dashboard = () => {
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                transition={COLLAPSE_SPRING}
+                transition={COLLAPSE_TRANSITION}
                 className="overflow-hidden"
+                style={{ willChange: 'height' }}
               >
                 <div className="space-y-2 mt-3">
                   {achievementProgress.map((a) => (
