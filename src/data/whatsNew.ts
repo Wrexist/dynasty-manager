@@ -88,6 +88,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Ballon d\'Or winners get a bigger value boost — top 4 placements all bumped.',
       'Ballon d\'Or rebalanced — goals and assists outside the top-tier leagues now count progressively less, and elite overall ratings carry more weight in the ranking.',
       'Ballon d\'Or eligibility raised to 8 appearances to filter out fluky low-sample seasons.',
+      'Ballon d\'Or now weights silverware — league title (+25), domestic cup (+22), league cup (+12), and international tournament wins (+60 for World Cup) all factor into the ranking.',
     ],
     fixed: [],
   },

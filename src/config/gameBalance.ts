@@ -663,7 +663,8 @@ export const BALLON_DOR_MIN_APPEARANCES = 8;
 /** Weights for the Ballon d'Or scoring formula. Bumped `overall` 1.5 → 2.0
  *  in the v68 rebalance so a 90-rated player gets +180 from raw quality
  *  before any goals/assists land — keeps elite squads from being knocked
- *  out by lower-tier free-scorers. */
+ *  out by lower-tier free-scorers. Trophy weights (league/cup/intl) added
+ *  in v69 so silverware actually moves the needle. */
 export const BALLON_DOR_WEIGHTS = {
   overall: 2.0,
   goals: 3.0,
@@ -676,6 +677,38 @@ export const BALLON_DOR_WEIGHTS = {
   discipline: 1.0,
   divisionTier: 1.5,
   continentalBonus: 1.0,
+  leagueTitle: 1.0,
+  domesticCup: 1.0,
+  leagueCup: 1.0,
+  intlTournament: 1.0,
+} as const;
+
+// ── Ballon d'Or — Trophy Bonuses ──
+/** Flat bonus for finishing 1st in your league (top of `leagueTable`).
+ *  Layered on top of the existing sqrt team-position curve so champions
+ *  pull clear of even the second-place runners-up. */
+export const BALLON_DOR_LEAGUE_TITLE_BONUS = 25;
+
+/** Domestic cup (FA-Cup style) bonus — winner only. Runners-up don't
+ *  count: a cup final loss is good but the BdO panel rewards trophies. */
+export const BALLON_DOR_DOMESTIC_CUP_WIN_BONUS = 22;
+
+/** League Cup (secondary domestic knockout) bonus. Smaller than the main
+ *  domestic cup because it's the lesser trophy in real football. */
+export const BALLON_DOR_LEAGUE_CUP_WIN_BONUS = 12;
+
+/** International tournament stage bonus, awarded to every player whose
+ *  nationality reached that stage (regardless of whether they played for
+ *  the user's national team — AI nations carry their best players
+ *  implicitly). World Cup winner is the headline of any season's BdO.
+ *  Group stage gets nothing — qualification alone isn't worth a vote. */
+export const BALLON_DOR_INTL_TOURNAMENT_BONUS = {
+  winner: 60,
+  F: 30,        // runner-up (reached the final)
+  SF: 18,       // semi-final
+  QF: 10,
+  R16: 5,
+  group: 0,     // group-stage exit — no bonus
 } as const;
 export const BALLON_DOR_POSITION_MULTIPLIERS: Record<string, { goals: number; assists: number; cleanSheets: number }> = {
   GK: { goals: 4.0, assists: 2.0, cleanSheets: 2.0 }, CB: { goals: 3.5, assists: 1.5, cleanSheets: 1.5 },

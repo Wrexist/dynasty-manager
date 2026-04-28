@@ -101,7 +101,18 @@ export function endSeasonImpl(set: Set, get: Get) {
   const seasonAwards = calculateSeasonAwards(allPlayersList, clubs, leagueTable, playerClubId);
 
   // Ballon d'Or ranking — top 25 players of the season
-  const ballonDOrRanking = calculateBallonDOr(allPlayersList, clubs, leagueTable, state.divisionTables || {}, state.championsCup, state.shieldCup, state.conferenceCup);
+  const ballonDOrRanking = calculateBallonDOr(
+    allPlayersList,
+    clubs,
+    leagueTable,
+    state.divisionTables || {},
+    state.championsCup,
+    state.shieldCup,
+    state.conferenceCup,
+    state.cup,
+    state.leagueCup,
+    state.internationalTournament,
+  );
 
   // Apply Ballon d'Or value boosts and record placements on a shallow copy
   // (avoid mutating the store's `players` reference directly).
