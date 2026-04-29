@@ -99,26 +99,19 @@ const QualityBar = ({ quality, compact }: { quality: number; compact?: boolean }
 };
 
 const MoraleDot = ({ morale }: { morale: number }) => {
-  const style: React.CSSProperties = morale >= 75
-    ? {
-        background: 'radial-gradient(circle at 35% 30%, #A7F3D0 0%, #10B981 60%, #047857 100%)',
-        boxShadow: '0 0 4px rgba(16,185,129,0.7), inset 0 0 0 0.5px rgba(255,255,255,0.25)',
-      }
-    : morale >= 50
-    ? {
-        background: 'radial-gradient(circle at 35% 30%, hsl(43 96% 75%) 0%, hsl(43 96% 50%) 60%, hsl(35 80% 38%) 100%)',
-        boxShadow: '0 0 4px hsl(var(--primary)/0.7), inset 0 0 0 0.5px rgba(255,255,255,0.25)',
-      }
-    : morale >= 30
-    ? {
-        background: 'radial-gradient(circle at 35% 30%, #FDE68A 0%, #F59E0B 60%, #B45309 100%)',
-        boxShadow: '0 0 4px rgba(245,158,11,0.7), inset 0 0 0 0.5px rgba(255,255,255,0.25)',
-      }
-    : {
-        background: 'radial-gradient(circle at 35% 30%, #FCA5A5 0%, #E11D48 60%, #9F1239 100%)',
-        boxShadow: '0 0 4px rgba(225,29,72,0.7), inset 0 0 0 0.5px rgba(255,255,255,0.25)',
-      };
-  return <span className="inline-block w-2 h-2 rounded-full" style={style} />;
+  const tone =
+    morale >= 75 ? 'bg-emerald-500'
+    : morale >= 50 ? 'bg-primary'
+    : morale >= 30 ? 'bg-amber-500'
+    : 'bg-destructive';
+  return (
+    <span
+      className={cn(
+        'inline-block w-2 h-2 rounded-full ring-1 ring-white/25 shadow-lg',
+        tone,
+      )}
+    />
+  );
 };
 
 const MoraleBar = ({ morale }: { morale: number }) => {

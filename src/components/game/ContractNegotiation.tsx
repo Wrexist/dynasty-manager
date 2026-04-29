@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
+import { GlassPanel } from '@/components/game/GlassPanel';
 import { cn } from '@/lib/utils';
 import { X, ArrowRight, Check, AlertTriangle, Minus, Plus, Calendar } from 'lucide-react';
 import { formatWage, getPreferredYears, getYearsAdjustment, getAcceptanceHint } from '@/utils/contracts';
@@ -173,40 +174,28 @@ export function ContractNegotiation() {
 
               {/* Player demand vs your offer */}
               <div className="grid grid-cols-2 gap-3">
-                <div
-                  className="rounded-xl p-3 text-center relative overflow-hidden"
-                  style={{
-                    background: 'linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%)',
-                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), inset 0 0 0 1px rgba(255,255,255,0.08), 0 2px 8px -4px rgba(0,0,0,0.5)',
-                  }}
-                >
+                <GlassPanel className="p-3 text-center">
                   <p className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider">Player Demands</p>
                   <p
-                    className={cn('text-xl font-black tabular-nums rounded px-1 transition-colors bg-clip-text text-transparent', demandFlash)}
-                    style={{ backgroundImage: 'linear-gradient(180deg, #FFF6D8 0%, hsl(var(--foreground)) 100%)' }}
+                    className={cn(
+                      'text-xl font-black tabular-nums rounded px-1 transition-colors',
+                      'bg-gradient-to-b from-foreground/95 to-foreground/70 bg-clip-text text-transparent',
+                      demandFlash,
+                    )}
                   >
                     {formatWage(activeNegotiation.demandedWage)}
                   </p>
                   <p className="text-[10px] text-muted-foreground mt-1">for {preferredYears} yr{preferredYears !== 1 ? 's' : ''}</p>
-                </div>
-                <div
-                  className="rounded-xl p-3 text-center relative overflow-hidden"
-                  style={{
-                    background: 'linear-gradient(180deg, hsl(var(--primary)/0.18) 0%, hsl(var(--primary)/0.05) 100%)',
-                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), inset 0 0 0 1px hsl(var(--primary)/0.3), 0 0 18px -8px hsl(var(--primary)/0.5)',
-                  }}
-                >
+                </GlassPanel>
+                <GlassPanel className="p-3 text-center ring-1 ring-primary/30">
                   <p className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider">Your Offer</p>
-                  <p
-                    className="text-xl font-black tabular-nums bg-clip-text text-transparent"
-                    style={{ backgroundImage: 'linear-gradient(180deg, hsl(43 96% 78%) 0%, hsl(43 96% 50%) 100%)' }}
-                  >
+                  <p className="text-xl font-black tabular-nums bg-gradient-to-b from-primary to-primary/70 bg-clip-text text-transparent">
                     {formatWage(customWage ?? activeNegotiation.offeredWage)}
                   </p>
-                  <p className={cn('text-[10px] mt-1 font-medium', yearsDiff === 0 ? 'text-emerald-400' : yearsDiff > 0 ? 'text-emerald-400' : 'text-red-400')}>
+                  <p className={cn('text-[10px] mt-1 font-medium', yearsDiff === 0 ? 'text-emerald-400' : yearsDiff > 0 ? 'text-emerald-400' : 'text-destructive')}>
                     for {currentYears} yr{currentYears !== 1 ? 's' : ''}
                   </p>
-                </div>
+                </GlassPanel>
               </div>
 
               {/* Player mood */}
@@ -252,35 +241,20 @@ export function ContractNegotiation() {
 
                 {/* Years preference visual: dots showing 1-5 with preferred marked */}
                 <div className="flex items-center justify-center gap-1">
-                  {[1, 2, 3, 4, 5].map(yr => {
+                  {Array.from({ length: CONTRACT_MAX_YEARS }, (_, i) => i + 1).map(yr => {
                     const filled = yr <= currentYears;
                     const wanted = yr <= preferredYears;
-                    let style: React.CSSProperties;
-                    if (filled && wanted) {
-                      style = {
-                        background: 'linear-gradient(180deg, #6EE7B7 0%, #10B981 60%, #047857 100%)',
-                        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.45), 0 0 6px rgba(16,185,129,0.55)',
-                      };
-                    } else if (filled && !wanted) {
-                      style = {
-                        background: 'linear-gradient(180deg, #6EE7B7 0%, #10B981 100%)',
-                        opacity: 0.4,
-                      };
-                    } else if (wanted) {
-                      style = {
-                        background: 'linear-gradient(180deg, #FCA5A5 0%, #E11D48 100%)',
-                        opacity: 0.55,
-                        boxShadow: '0 0 5px rgba(225,29,72,0.45)',
-                      };
-                    } else {
-                      style = {
-                        background: 'rgba(255,255,255,0.06)',
-                        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
-                      };
-                    }
                     return (
                       <div key={yr} className="flex flex-col items-center gap-0.5">
-                        <div className="w-6 h-1.5 rounded-full transition-all" style={style} />
+                        <div
+                          className={cn(
+                            'w-6 h-1.5 rounded-full transition-all bg-gradient-to-b',
+                            filled && wanted && 'from-emerald-300 via-emerald-500 to-emerald-700 shadow-lg',
+                            filled && !wanted && 'from-emerald-300 to-emerald-600 opacity-40',
+                            !filled && wanted && 'from-rose-300 to-rose-600 opacity-60',
+                            !filled && !wanted && 'bg-foreground/5',
+                          )}
+                        />
                         {yr === preferredYears && (
                           <span className="text-[8px] text-muted-foreground leading-none">wanted</span>
                         )}
@@ -391,13 +365,7 @@ export function ContractNegotiation() {
                 const wageDiff = offeredWage - player.wage;
                 const totalCost = activeNegotiation.agentFee + (activeNegotiation.loyaltyBonus || 0);
                 return (
-                  <div
-                    className="rounded-xl p-3 space-y-1.5 text-xs relative overflow-hidden"
-                    style={{
-                      background: 'linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%)',
-                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), inset 0 0 0 1px rgba(255,255,255,0.07)',
-                    }}
-                  >
+                  <GlassPanel className="p-3 space-y-1.5 text-xs">
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Budget Impact</p>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Wage bill change</span>
@@ -411,11 +379,11 @@ export function ContractNegotiation() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Budget after</span>
-                      <span className={cn('font-semibold tabular-nums', club.budget - totalCost < 0 ? 'text-red-400' : 'text-foreground')}>
+                      <span className={cn('font-semibold tabular-nums', club.budget - totalCost < 0 ? 'text-destructive' : 'text-foreground')}>
                         £{((club.budget - totalCost) / 1e6).toFixed(1)}M
                       </span>
                     </div>
-                  </div>
+                  </GlassPanel>
                 );
               })()}
 

@@ -3,6 +3,7 @@ import { useGameStore } from '@/store/gameStore';
 import { cn } from '@/lib/utils';
 import { X, BookOpen } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
+import { GlassPanel } from '@/components/game/GlassPanel';
 import { motion } from 'framer-motion';
 import { hapticMedium } from '@/utils/haptics';
 import { STORYLINE_CHAINS } from '@/data/storylineChains';
@@ -65,24 +66,17 @@ export function StorylineModal() {
       </div>
 
       {/* Body */}
-      <div
-        className="relative rounded-xl p-3 overflow-hidden"
-        style={{
-          background: 'linear-gradient(180deg, rgba(251,191,36,0.06) 0%, rgba(255,255,255,0.015) 100%)',
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.07), inset 0 0 0 1px rgba(251,191,36,0.18)',
-        }}
-      >
-        {/* Left accent stripe — amber for storyline narrative tone */}
+      <GlassPanel className="p-3 ring-1 ring-amber-500/20">
+        {/* Left accent stripe — amber for storyline narrative tone. */}
         <span
           aria-hidden
-          className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-xl"
-          style={{ background: 'linear-gradient(180deg, rgba(251,191,36,0.7) 0%, rgba(251,191,36,0.15) 100%)' }}
+          className="absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-amber-400/70 to-amber-400/15"
         />
         <div className="flex items-start gap-2 pl-1">
           <BookOpen className="w-4 h-4 text-amber-400/80 mt-0.5 shrink-0" />
           <p className="text-sm text-foreground leading-relaxed">{pendingStoryline.body}</p>
         </div>
-      </div>
+      </GlassPanel>
 
       {/* Response Options */}
       <div className="space-y-2">

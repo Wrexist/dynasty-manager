@@ -25,10 +25,11 @@ const FOCUS_OPTIONS: { id: YouthFocus; label: string; short: string; Icon: typeo
   { id: 'mental', label: 'Mental', short: 'MEN', Icon: Brain, tone: 'text-cyan-400' },
 ];
 
-function devBarTone(score: number): 'emerald' | 'primary' | 'amber' {
+function devBarTone(score: number): 'emerald' | 'primary' | 'amber' | 'rose' {
   if (score >= 80) return 'emerald';
-  if (score >= 40) return 'primary';
-  return 'amber';
+  if (score >= 70) return 'primary';
+  if (score >= 60) return 'amber';
+  return 'rose';
 }
 
 function devTextColor(score: number): string {

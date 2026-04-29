@@ -2,6 +2,7 @@ import { useGameStore } from '@/store/gameStore';
 import { cn } from '@/lib/utils';
 import { Mic, X, MessageSquare } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
+import { GlassPanel } from '@/components/game/GlassPanel';
 import type { PressResponseTone } from '@/types/game';
 import { isPro } from '@/utils/monetization';
 import { ProUpsell } from '@/components/game/ProUpsell';
@@ -47,24 +48,17 @@ export function PressConference() {
       </div>
 
       {/* Question */}
-      <div
-        className="relative rounded-xl p-3 overflow-hidden"
-        style={{
-          background: 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.015) 100%)',
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.07), inset 0 0 0 1px rgba(255,255,255,0.07)',
-        }}
-      >
-        {/* Left accent stripe */}
+      <GlassPanel className="p-3">
+        {/* Left accent stripe — primary tone for press tone. */}
         <span
           aria-hidden
-          className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-xl"
-          style={{ background: 'linear-gradient(180deg, hsl(var(--primary)/0.6) 0%, hsl(var(--primary)/0.15) 100%)' }}
+          className="absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-primary/60 to-primary/15"
         />
         <div className="flex items-start gap-2 pl-1">
           <MessageSquare className="w-4 h-4 text-primary/70 mt-0.5 shrink-0" />
           <p className="text-sm text-foreground italic">&ldquo;{pendingPressConference.question}&rdquo;</p>
         </div>
-      </div>
+      </GlassPanel>
 
       {/* Response Options */}
       <div className="space-y-2">
