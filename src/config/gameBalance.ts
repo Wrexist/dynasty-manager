@@ -500,6 +500,17 @@ export const TRANSFER_TALK_CONVINCE_FAIL_MORALE = 5;
  * 200 fits the seasonal inflow without flooring memory or list-render cost.
  */
 export const FREE_AGENT_POOL_MAX = 200;
+
+/**
+ * Forced retirement age — at season-end any player whose post-aging age
+ * reaches this threshold is retired regardless of their remaining contract
+ * length. Without this gate a 35-year-old who signs a 5-year contract
+ * could play into their 40s indefinitely as long as the club kept renewing.
+ * 40 picks the realistic upper bound (real careers end here for ~99% of
+ * players) while leaving room for a few veterans (Buffon, Ibrahimović) to
+ * play into their 39th year.
+ */
+export const FORCED_RETIREMENT_AGE = 40;
 // ── Cliffhanger System ──
 /** Maximum number of cliffhangers shown per week */
 export const MAX_CLIFFHANGERS = 3;

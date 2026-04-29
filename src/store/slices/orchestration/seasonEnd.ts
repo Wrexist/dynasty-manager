@@ -35,7 +35,7 @@ import { createEmptyRecords, updateRecords, findBiggestWin } from '@/utils/recor
 import { getFarewellSummary } from '@/utils/playerNarratives';
 
 import {
-  TOTAL_WEEKS, CONFIDENCE_MIN, SEASON_END_CONFIDENCE, MIN_SQUAD_SIZE, MAX_SQUAD_SIZE, REPLACEMENT_QUALITY_REP_MULTIPLIER, REPLACEMENT_QUALITY_BASE, REPLACEMENT_QUALITY_VARIANCE, GENERIC_FILL_POSITIONS, LISTING_PRICE_MIN_MULTIPLIER, LISTING_PRICE_RANDOM_RANGE, INITIAL_LISTINGS_MIN, INITIAL_LISTINGS_RANGE, SEASON_YOUTH_INTAKE_MIN, SEASON_YOUTH_INTAKE_RANGE, getExpectedPosition, GOLDEN_GEN_MIN_POTENTIAL, FREE_AGENT_POOL_MAX,
+  TOTAL_WEEKS, CONFIDENCE_MIN, SEASON_END_CONFIDENCE, MIN_SQUAD_SIZE, MAX_SQUAD_SIZE, REPLACEMENT_QUALITY_REP_MULTIPLIER, REPLACEMENT_QUALITY_BASE, REPLACEMENT_QUALITY_VARIANCE, GENERIC_FILL_POSITIONS, LISTING_PRICE_MIN_MULTIPLIER, LISTING_PRICE_RANDOM_RANGE, INITIAL_LISTINGS_MIN, INITIAL_LISTINGS_RANGE, SEASON_YOUTH_INTAKE_MIN, SEASON_YOUTH_INTAKE_RANGE, getExpectedPosition, GOLDEN_GEN_MIN_POTENTIAL, FREE_AGENT_POOL_MAX, FORCED_RETIREMENT_AGE,
 } from '@/config/gameBalance';
 
 import { generateInitialMarket, generatePreSeasonMarket } from '@/utils/transferMarketGen';
@@ -548,6 +548,20 @@ function finalizeSeason(
   }
   const farewells: { playerId: string; playerName: string; seasonsServed: number; stats: { label: string; value: string }[] }[] = [];
 
+  // Detach a departing player from their club: drop from playerIds/lineup/
+  // subs and reduce wageBill. Used by both the forced-retirement and
+  // contract-expiry branches below.
+  const detachFromClub = (aged: Player) => {
+    const club = newClubs[aged.clubId];
+    if (!club) return;
+    const updatedClub = { ...club };
+    updatedClub.playerIds = updatedClub.playerIds.filter(id => id !== aged.id);
+    updatedClub.lineup = updatedClub.lineup.filter(id => id !== aged.id);
+    updatedClub.subs = updatedClub.subs.filter(id => id !== aged.id);
+    updatedClub.wageBill = Math.max(0, updatedClub.wageBill - aged.wage);
+    newClubs[updatedClub.id] = updatedClub;
+  };
+
   Object.values(mergedPlayers).forEach(p => {
     // Existing FAs already processed above — skip to avoid double-aging and
     // double-adding them to freeAgentIds.
@@ -565,15 +579,27 @@ function finalizeSeason(
       loanFromClubId: undefined, loanToClubId: undefined, lowMoraleWeeks: 0, wantsToLeave: false, transferCooldownUntilWeek: undefined, lastTransferTalkWeek: undefined,
       listedForSale: false,
     };
+
+    // Forced retirement — age cap overrides remaining contract years. Without
+    // this a 35-year-old who signs a 5-year deal would play indefinitely.
+    if (aged.age >= FORCED_RETIREMENT_AGE) {
+      detachFromClub(aged);
+      // Track farewells for retiring players from user's club, mirroring the
+      // contract-expiry branch below.
+      if (p.clubId === playerClubId) {
+        const farewell = getFarewellSummary(p, season, p.joinedSeason);
+        if (farewell.shouldShow) {
+          farewells.push({ playerId: p.id, playerName: `${p.firstName} ${p.lastName}`, seasonsServed: farewell.seasonsServed, stats: farewell.stats });
+        }
+      }
+      // Retired players never enter the FA pool — they're gone.
+      return;
+    }
+
     if (aged.contractEnd <= season) {
       const club = newClubs[aged.clubId];
       if (club) {
-        const updatedClub = { ...club };
-        updatedClub.playerIds = updatedClub.playerIds.filter(id => id !== aged.id);
-        updatedClub.lineup = updatedClub.lineup.filter(id => id !== aged.id);
-        updatedClub.subs = updatedClub.subs.filter(id => id !== aged.id);
-        updatedClub.wageBill = Math.max(0, updatedClub.wageBill - aged.wage);
-        newClubs[updatedClub.id] = updatedClub;
+        detachFromClub(aged);
         // Track farewells for departing players from user's club
         if (p.clubId === playerClubId) {
           const farewell = getFarewellSummary(p, season, p.joinedSeason);
