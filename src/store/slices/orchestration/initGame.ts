@@ -54,23 +54,61 @@ import { generateInitialStaff } from '@/utils/staff';
 import { initializeClubPowerRankings } from '@/utils/teamRankings';
 import { generateInitialFreeAgents } from '@/utils/transferMarketGen';
 import { applyBallonDorTop10Boost } from '@/utils/ballonDorBoost';
-import { BALLON_DOR_TOP10_RANK } from '@/config/gameBalance';
+import { BALLON_DOR_TOP10_RANK, BALLON_DOR_ELITE_CLUB_BONUS } from '@/config/gameBalance';
+import { CLUB_TEMPLATES } from '@/data/playerTemplates';
 
 /**
- * Pick the 10 reigning Ballon d'Or top-10 holders from the freshly-generated
- * player pool. Sorts club-affiliated active players by overall (descending)
- * and takes the top {@link BALLON_DOR_TOP10_RANK}. Free agents and youth
- * prospects are excluded — the BdO ranks active club players only. Mutates
- * by returning references; the caller applies the boost.
+ * Pick the 10 reigning Ballon d'Or top-10 holders for a freshly initialised
+ * save. Pool: real loaded country pyramid players + synthetic "ghost" stars
+ * from elite global clubs not in the loaded save (Real Madrid / Bayern /
+ * PSG etc.) so the seed feels like a global award rather than a single-
+ * country shortlist. Weighted random sampling from the top 22 keeps OVR
+ * dominant but reshuffles the ten between saves. Picked ghosts must be
+ * inserted into `allPlayers` by the caller so their reign survives saves.
  */
-function pickInitialBallonDorTop10(allPlayers: Record<string, Player>): Player[] {
-  const candidates = Object.values(allPlayers).filter(p => p.clubId && !p.injured);
-  candidates.sort((a, b) => {
-    if (b.overall !== a.overall) return b.overall - a.overall;
-    // Tie-break by age (younger = more "current form" worthy of the seed).
-    return a.age - b.age;
-  });
-  return candidates.slice(0, BALLON_DOR_TOP10_RANK);
+function pickInitialBallonDorTop10(
+  allPlayers: Record<string, Player>,
+  loadedClubIdSet: Record<string, true>,
+): { picks: Player[]; ghosts: Player[] } {
+  const POOL = 22;
+  const realCandidates = Object.values(allPlayers).filter(p => p.clubId && !p.injured);
+
+  const ghostCandidates: Player[] = [];
+  for (const clubId of Object.keys(BALLON_DOR_ELITE_CLUB_BONUS)) {
+    if (loadedClubIdSet[clubId]) continue;
+    const templates = CLUB_TEMPLATES[clubId] || [];
+    if (templates.length === 0) continue;
+    const topStars = [...templates].sort((a, b) => b.ovr - a.ovr).slice(0, 2);
+    for (const t of topStars) {
+      const ghost = buildPlayerFromTemplate(t, clubId, 1, undefined, true);
+      ghost.clubId = clubId;
+      ghostCandidates.push(ghost);
+    }
+  }
+
+  const candidatePool = [...realCandidates, ...ghostCandidates]
+    .sort((a, b) => b.overall !== a.overall ? b.overall - a.overall : a.age - b.age)
+    .slice(0, POOL);
+
+  // Weighted random selection without replacement. Weights run from POOL
+  // down to 1, so the highest-OVR candidate is ~22× more likely than the
+  // bottom — every save lands on a different ten while feeling realistic.
+  const picks: Player[] = [];
+  const remaining = [...candidatePool];
+  while (picks.length < BALLON_DOR_TOP10_RANK && remaining.length > 0) {
+    const totalWeight = remaining.reduce((s, _, i) => s + (POOL - i), 0);
+    let r = Math.random() * totalWeight;
+    let pickedIdx = 0;
+    for (let i = 0; i < remaining.length; i++) {
+      r -= POOL - i;
+      if (r <= 0) { pickedIdx = i; break; }
+    }
+    picks.push(remaining.splice(pickedIdx, 1)[0]);
+  }
+
+  const pickedIds: Record<string, true> = {};
+  for (const p of picks) pickedIds[p.id] = true;
+  return { picks, ghosts: ghostCandidates.filter(g => pickedIds[g.id]) };
 }
 /**
  * Game initialization extracted from orchestrationSlice.ts.
@@ -343,16 +381,30 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
   const leagueCup = generateLeagueCupDraw(leagueClubIds);
   const friendlies = generateFriendlies(clubId, leagueClubIds);
 
-  // Seed the 10 reigning Ballon d'Or top-10 holders. Picks the highest-OVR
-  // active club players in the world and grants them the temp stats boost +
-  // special card. Their reign expires at the end of season 1: those who
-  // re-make the new top 10 keep it, others revert. `season - 1 = 0` is just
-  // a marker — the boost lifecycle only cares whether the field is set.
-  const seededTop10 = pickInitialBallonDorTop10(allPlayers);
+  // Seed the 10 reigning Ballon d'Or top-10 holders. Picks from the
+  // combined real-loaded + global-elite-ghost pool with weighted random
+  // sampling, so each save lands on a different (but realistic) ten —
+  // Salah / Haaland / Vinicius / Mbappé / Bellingham etc. shuffle around
+  // instead of being identical every restart. Their reign expires at
+  // season 1's award ceremony: those who re-make the new top 10 keep it,
+  // others revert. `season - 1 = 0` is just a marker — the boost lifecycle
+  // only cares whether the field is set.
+  const loadedClubIdSet: Record<string, true> = {};
+  for (const id of Object.keys(clubs)) loadedClubIdSet[id] = true;
+  const { picks: seededTop10, ghosts: seededGhosts } = pickInitialBallonDorTop10(allPlayers, loadedClubIdSet);
+  // Persist any picked ghost stars into the players map so the reigning-
+  // top-10 panel can render them. They have a real-world clubId for
+  // narrative context but no entry in the `clubs` map, so the rest of the
+  // game (lineups, transfers, AI sims) treats them as nonexistent.
+  for (const g of seededGhosts) {
+    allPlayers[g.id] = g;
+  }
   const affectedClubIds = new Set<string>();
   for (const p of seededTop10) {
     applyBallonDorTop10Boost(p, 0);
-    if (p.clubId) affectedClubIds.add(p.clubId);
+    // Only refresh wage bills for clubs actually loaded in this save —
+    // ghost-club holders don't affect any real club's finances.
+    if (p.clubId && clubs[p.clubId]) affectedClubIds.add(p.clubId);
   }
   // The boost recalculates `player.wage`, so any club hosting a seeded
   // holder needs its `wageBill` aggregate refreshed before week-1 finance
