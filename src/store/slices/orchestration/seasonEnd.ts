@@ -1283,7 +1283,9 @@ function finalizeSeason(
     const tournament = generateTournament(tournamentType, season, postState.managerNationality);
 
     // Top up national team pool before tournament (replenishes aged-out players)
-    const topUpPlayers = generateNationalTeamPool(postState.managerNationality, postState.players, season);
+    const topUpPlayers = generateNationalTeamPool(postState.managerNationality, postState.players, season, {
+      communityPackEnabled: postState.communityPackEnabled,
+    });
     const tournamentPlayers = Object.keys(topUpPlayers).length > 0
       ? { ...postState.players, ...topUpPlayers }
       : postState.players;

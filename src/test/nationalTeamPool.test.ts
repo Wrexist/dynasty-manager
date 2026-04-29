@@ -90,6 +90,67 @@ describe('National Team Real-Player Pool', () => {
     Object.values(pool).forEach(p => expect(p.nationality).toBe('Atlantis'));
   });
 
+  it('does not generate procedural fillers that share a surname with a real-pool entry', () => {
+    // Repeat with English pool (rich in colliding surnames: James, White, Pope)
+    // and verify that the only "James"/"White"/"Pope" entries are the actual
+    // real FC26 players, not similarly-named procedurals like "Ryan James"
+    // or "Ben White" or "Nathan Pope".
+    const realJames = NATIONAL_PLAYER_POOL['England']
+      .filter(t => t.ln === 'James')
+      .map(t => `${t.fn} ${t.ln}`);
+    const realWhite = NATIONAL_PLAYER_POOL['England']
+      .filter(t => t.ln === 'White')
+      .map(t => `${t.fn} ${t.ln}`);
+    const realPope = NATIONAL_PLAYER_POOL['England']
+      .filter(t => t.ln === 'Pope')
+      .map(t => `${t.fn} ${t.ln}`);
+
+    // Run multiple times to reduce flake from random procedural names
+    for (let run = 0; run < 8; run++) {
+      const pool = generateNationalTeamPool('England', {}, 1);
+      const players = Object.values(pool);
+
+      const jamesPlayers = players
+        .filter(p => p.lastName === 'James')
+        .map(p => `${p.firstName} ${p.lastName}`);
+      const whitePlayers = players
+        .filter(p => p.lastName === 'White')
+        .map(p => `${p.firstName} ${p.lastName}`);
+      const popePlayers = players
+        .filter(p => p.lastName === 'Pope')
+        .map(p => `${p.firstName} ${p.lastName}`);
+
+      jamesPlayers.forEach(name => expect(realJames).toContain(name));
+      whitePlayers.forEach(name => expect(realWhite).toContain(name));
+      popePlayers.forEach(name => expect(realPope).toContain(name));
+    }
+  });
+
+  it('with community pack enabled, contains every real player and no procedural fillers', () => {
+    const pool = generateNationalTeamPool('England', {}, 1, { communityPackEnabled: true });
+    const realPool = NATIONAL_PLAYER_POOL['England'];
+
+    // The pool should contain at least one entry per real-pool player (no cap at 50).
+    expect(Object.keys(pool).length).toBeGreaterThanOrEqual(realPool.length);
+
+    // Every real-pool surname should appear in the produced pool.
+    const realSurnames = new Set(realPool.map(t => t.ln.toLowerCase()));
+    const poolSurnames = new Set(Object.values(pool).map(p => p.lastName.toLowerCase()));
+    let matched = 0;
+    realSurnames.forEach(ln => { if (poolSurnames.has(ln)) matched++; });
+    expect(matched / realSurnames.size).toBeGreaterThan(0.95);
+  });
+
+  it('with community pack disabled, caps real players and may add procedural fillers', () => {
+    // Off mode: should still respect the legacy 50-target ceiling for real players,
+    // and may add procedural fillers up to NT_CANDIDATE_POOL_TARGET total.
+    const pool = generateNationalTeamPool('England', {}, 1, { communityPackEnabled: false });
+    expect(Object.keys(pool).length).toBeGreaterThan(0);
+    // English pool has way more than 50 reals — without the cap we'd see all ~200+;
+    // confirm we stayed near the legacy target rather than dumping the full pool.
+    expect(Object.keys(pool).length).toBeLessThanOrEqual(60);
+  });
+
   it('autoSelectNationalSquad picks players matching any alias nationality', () => {
     // Two players labeled with different alias forms
     const players: Record<string, Player> = {

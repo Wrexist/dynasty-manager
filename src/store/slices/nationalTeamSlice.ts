@@ -21,7 +21,9 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
     const formation = '4-3-3' as FormationType;
 
     // Generate national team candidate pool (sandbox mode starts with full squad)
-    const poolPlayers = generateNationalTeamPool(nationality, state.players, state.season || 1);
+    const poolPlayers = generateNationalTeamPool(nationality, state.players, state.season || 1, {
+      communityPackEnabled: state.communityPackEnabled,
+    });
     const allPlayers = { ...state.players, ...poolPlayers };
     const poolPlayerIds = Object.keys(poolPlayers);
 
@@ -93,7 +95,9 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
     const formation = '4-3-3' as FormationType;
 
     // Generate national team candidate pool so there are enough eligible players
-    const poolPlayers = generateNationalTeamPool(nationality, state.players, state.season);
+    const poolPlayers = generateNationalTeamPool(nationality, state.players, state.season, {
+      communityPackEnabled: state.communityPackEnabled,
+    });
     const allPlayers = { ...state.players, ...poolPlayers };
 
     // Auto-select best 23-man squad from all eligible players
