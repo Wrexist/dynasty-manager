@@ -1,4 +1,4 @@
-import { Player, Club, LeagueTableEntry, BallonDOrEntry, ContinentalTournamentState, CupState, LeagueCupState, InternationalTournamentState, InternationalKnockoutRound } from '@/types/game';
+import { Player, Club, LeagueTableEntry, BallonDOrEntry, ContinentalTournamentState, CupState, LeagueCupState, InternationalTournamentState, InternationalKnockoutRound, Position } from '@/types/game';
 import {
   BALLON_DOR_TOP_N, BALLON_DOR_MIN_APPEARANCES, BALLON_DOR_WEIGHTS,
   BALLON_DOR_VALUE_BOOST,
@@ -10,8 +10,10 @@ import {
   BALLON_DOR_DOMESTIC_CUP_WIN_BONUS,
   BALLON_DOR_LEAGUE_CUP_WIN_BONUS,
   BALLON_DOR_INTL_TOURNAMENT_BONUS,
+  BALLON_DOR_ELITE_CLUB_BONUS,
 } from '@/config/gameBalance';
-import { LEAGUES } from '@/data/league';
+import { LEAGUES, ALL_CLUBS } from '@/data/league';
+import { CLUB_TEMPLATES } from '@/data/playerTemplates';
 
 const DEFAULT_POSITION_MULTIPLIER = { goals: 1.0, assists: 1.5, cleanSheets: 0 };
 
@@ -97,6 +99,129 @@ function getIntlTournamentBonusForNation(
 }
 
 /**
+ * Synthesise Ballon d'Or candidates for elite clubs not present in the
+ * loaded game state.
+ *
+ * Architectural context: `initGame` only loads clubs from the player's
+ * country (English pyramid for a Manchester City save, Spanish for a
+ * Real Madrid save, etc.). That keeps memory + per-tick cost small but
+ * means the BdO candidate pool excludes Real Madrid / Bayern / PSG /
+ * Inter etc. when you're managing in England, which is unrealistic —
+ * the real award is voted across every league simultaneously.
+ *
+ * This function fills that gap by pulling FC26 templates for elite
+ * clubs that *aren't* in the loaded `clubs` map, generating plausible
+ * season output for each star, and producing pre-scored BdO entries.
+ * Stats are stochastic but anchored on the player's `ovr` and position
+ * so a 92-rated forward typically posts 25-35 goals while a 82-rated
+ * CB might post 3-7. League outcome is assumed favourable (top-3
+ * finish) since we cannot model their actual season.
+ */
+function getGlobalEliteEntries(loadedClubIds: Set<string>): BallonDOrEntry[] {
+  const w = BALLON_DOR_WEIGHTS;
+  const entries: BallonDOrEntry[] = [];
+  const clubColorById: Record<string, { shortName: string; color: string }> = {};
+  for (const cd of ALL_CLUBS) {
+    clubColorById[cd.id] = { shortName: cd.shortName, color: cd.color };
+  }
+
+  for (const clubId of Object.keys(BALLON_DOR_ELITE_CLUB_BONUS)) {
+    if (loadedClubIds.has(clubId)) continue;
+    const templates = CLUB_TEMPLATES[clubId] || [];
+    if (templates.length === 0) continue;
+
+    // Take the top 4 by ovr — mirrors how real BdO clusters the same club
+    const topStars = [...templates].sort((a, b) => b.ovr - a.ovr).slice(0, 4);
+    const eliteBonus = BALLON_DOR_ELITE_CLUB_BONUS[clubId] ?? 0;
+    const meta = clubColorById[clubId] || { shortName: clubId.slice(0, 3).toUpperCase(), color: '#888' };
+
+    for (let idx = 0; idx < topStars.length; idx++) {
+      const t = topStars[idx];
+      const pm = BALLON_DOR_POSITION_MULTIPLIERS[t.pos] || DEFAULT_POSITION_MULTIPLIER;
+
+      // Position-aware synthetic season output. Anchored on overall —
+      // a 92-rated striker scores more than an 84-rated one. Tuned to
+      // match a real-world star's *typical* season output so ghosts and
+      // loaded-club stars compete fairly. Cluster cap (idx-scaled drop)
+      // ensures only one or two players per ghost club land in the top
+      // 10, leaving room for Premier League / loaded-pyramid stars.
+      const ovrLift = Math.max(0, (t.ovr - 80) / 14);
+      // Cluster decay — deeper squad members get progressively weaker
+      // stats so a Tier-S club doesn't claim 4 top-10 spots from synthetic
+      // output alone. idx 0 = full strength, idx 3 = ~70%.
+      const clusterDecay = 1 - idx * 0.10;
+      const isAttacker = (['ST', 'LW', 'RW', 'CAM'] as Position[]).includes(t.pos);
+      const isMidfielder = (['CM', 'CDM', 'LM', 'RM'] as Position[]).includes(t.pos);
+      const goalsBase = isAttacker ? 11 : isMidfielder ? 3 : 1;
+      const goalsRng = isAttacker ? 10 : isMidfielder ? 4 : 2;
+      const assistsBase = isAttacker ? 5 : isMidfielder ? 5 : 1;
+      const assistsRng = isAttacker ? 7 : isMidfielder ? 5 : 2;
+      const goals = Math.max(0, Math.round((goalsBase + ovrLift * 4 + (Math.random() - 0.5) * goalsRng) * clusterDecay));
+      const assists = Math.max(0, Math.round((assistsBase + ovrLift * 2.5 + (Math.random() - 0.5) * assistsRng) * clusterDecay));
+      const apps = 32 + Math.floor(Math.random() * 8);
+      // Avg rating tracks ovr but caps at 7.4 so ghosts can't outrun
+      // real loaded-club stars on rating alone.
+      const avgRating = Math.max(6.4, Math.min(7.4, 6.3 + (t.ovr - 75) / 26 + (Math.random() - 0.5) * 0.4));
+
+      // Synthetic team finish — assume mid-pack of the top 5 (positions
+      // 3-6). Every elite club can drop here in a "down" season; this
+      // makes ghosts feel like averages, not always champions.
+      const teamPosition = idx === 0 ? 3 : idx === 1 ? 4 : idx === 2 ? 5 : 6;
+      const totalTeams = 20;
+      const divisionTier = 1;
+      const isTierS = eliteBonus >= 90;
+      // League title only for Tier-S top star, and rarely (1 in 4) so it
+      // emerges in maybe 1-2 ghost clubs per season — much more realistic
+      // than the previous "every club's #1 wins their league".
+      const ghostWonLeague = idx === 0 && isTierS && Math.random() < 0.25;
+
+      // Apply the same scoring formula as real candidates so synthetic
+      // entries compete on equal footing.
+      const countingScale = BALLON_DOR_DIVISION_COUNTING_SCALE[divisionTier] ?? 1;
+      const ratingScale = countingScale;
+      const overallScore = t.ovr * w.overall;
+      const goalScore = goals * w.goals * pm.goals * countingScale;
+      const assistScore = assists * w.assists * pm.assists * countingScale;
+      const appScore = Math.min(apps, 46) * w.appearances;
+      const formScore = (72 / 100) * 20 * w.form; // realistic form, not peak
+      const positionNorm = (totalTeams - teamPosition) / Math.max(1, totalTeams - 1);
+      const positionBonus = Math.sqrt(Math.max(0, positionNorm)) * 30 * w.teamPosition;
+      // No clean-sheet team data for synthetic squads — approximate using
+      // a typical top-club value so GKs/CBs aren't unfairly punished.
+      const teamCleanSheets = 12;
+      const cleanSheetScore = teamCleanSheets * w.cleanSheets * pm.cleanSheets * countingScale;
+      const ratingScore = avgRating * 10 * w.avgRating * ratingScale;
+      const divisionScore = (BALLON_DOR_DIVISION_BONUS[divisionTier] ?? 0) * w.divisionTier;
+      // League title only when the synthetic season modelled a champion
+      // performance for this player (set above in `ghostWonLeague`).
+      const leagueTitleScore = ghostWonLeague ? BALLON_DOR_LEAGUE_TITLE_BONUS * w.leagueTitle : 0;
+      const eliteScore = eliteBonus * w.eliteClub;
+
+      const score = overallScore + goalScore + assistScore + appScore + formScore
+        + positionBonus + cleanSheetScore + ratingScore + divisionScore
+        + leagueTitleScore + eliteScore;
+
+      entries.push({
+        playerId: `__bdo-ghost-${t.fcId || `${clubId}-${t.fn}-${t.ln}`}`,
+        playerName: `${t.fn} ${t.ln}`,
+        clubName: meta.shortName,
+        clubColor: meta.color,
+        position: t.pos,
+        overall: t.ovr,
+        age: t.age,
+        rank: 0,
+        score: Math.round(score * 10) / 10,
+        goals,
+        assists,
+        appearances: apps,
+        avgRating: Math.round(avgRating * 10) / 10,
+      });
+    }
+  }
+  return entries;
+}
+
+/**
  * Calculate a player's Ballon d'Or score based on season performance.
  * Position-aware formula considers goals, assists, overall rating, average
  * match rating, appearances, form, team finishing position, clean sheets,
@@ -114,17 +239,21 @@ function calculatePlayerScore(
   domesticCupWon: boolean,
   leagueCupWon: boolean,
   intlTournamentBonus: number,
+  eliteClubBonus: number,
 ): number {
   const w = BALLON_DOR_WEIGHTS;
   const pm = BALLON_DOR_POSITION_MULTIPLIERS[player.position] || DEFAULT_POSITION_MULTIPLIER;
 
   // Counting-stat scale by division tier. Goals/assists/clean sheets in
   // lower tiers count progressively less — a 30-goal Foundation League
-  // striker shouldn't outrank a 25-goal Premier League elite. Avg rating
-  // uses a softer sqrt of the same scale because it's already context-aware
-  // (match sim accounts for opponent strength).
-  const countingScale = BALLON_DOR_DIVISION_COUNTING_SCALE[divisionTier] ?? 0.25;
-  const ratingScale = Math.sqrt(countingScale);
+  // striker shouldn't outrank a 25-goal Premier League elite. v70: avg
+  // rating now uses the same scale (no sqrt softening) so a Championship
+  // CB averaging 8.3 doesn't outrun a Premier League striker averaging
+  // 7.4. Match sim does adjust ratings by opponent strength but the gap
+  // between top-5 and the rest is large enough that the cushioning was
+  // actively hurting realism.
+  const countingScale = BALLON_DOR_DIVISION_COUNTING_SCALE[divisionTier] ?? 0.08;
+  const ratingScale = countingScale;
 
   // Base score from overall rating (0-100 scale)
   const overallScore = player.overall * w.overall;
@@ -147,8 +276,7 @@ function calculatePlayerScore(
   const cleanSheetScore = teamCleanSheets * w.cleanSheets * pm.cleanSheets * countingScale;
 
   // Average match rating (0-10 scale, scaled up for meaningful impact).
-  // Softer division scale (sqrt) — match sim already accounts for opponent
-  // strength so we don't double-penalise lower-tier ratings.
+  // Same division scale as counting stats — see countingScale comment.
   const ratingScore = getAvgRating(player) * 10 * w.avgRating * ratingScale;
 
   // Discipline penalty — yellow and red cards hurt ranking
@@ -167,13 +295,19 @@ function calculatePlayerScore(
   const leagueTitleScore = leagueTitleWon ? BALLON_DOR_LEAGUE_TITLE_BONUS * w.leagueTitle : 0;
   const domesticCupScore = domesticCupWon ? BALLON_DOR_DOMESTIC_CUP_WIN_BONUS * w.domesticCup : 0;
   const leagueCupScore = leagueCupWon ? BALLON_DOR_LEAGUE_CUP_WIN_BONUS * w.leagueCup : 0;
+  // Elite-club prestige bonus — players at real-world heavyweight clubs
+  // (Real Madrid, Man City, Bayern, PSG, etc.) carry a flat boost to
+  // mirror real BdO voting bias toward clubs that win UCL trophies and
+  // dominate transfer markets. See BALLON_DOR_ELITE_CLUB_BONUS for tiers.
+  const eliteScore = eliteClubBonus * w.eliteClub;
+
   // International tournament — applied per-nationality so a Brazilian
   // World Cup winner gets the bonus regardless of where their club plays.
   const intlScore = intlTournamentBonus * w.intlTournament;
 
   return overallScore + goalScore + assistScore + appScore + formScore
     + positionBonus + cleanSheetScore + ratingScore + disciplineScore + divisionScore + continentalScore
-    + leagueTitleScore + domesticCupScore + leagueCupScore + intlScore;
+    + leagueTitleScore + domesticCupScore + leagueCupScore + intlScore + eliteScore;
 }
 
 /**
@@ -227,6 +361,11 @@ export function calculateBallonDOr(
   cup?: CupState | null,
   leagueCup?: LeagueCupState | null,
   internationalTournament?: InternationalTournamentState | null,
+  /** When true, synthesise candidates for elite clubs not loaded in the
+   *  player's country pyramid (Real Madrid / Bayern / PSG when in
+   *  England, etc.). Default false to keep pure-fixture unit tests
+   *  clean; production seasonEnd opts in. */
+  injectGlobalElites: boolean = false,
 ): BallonDOrEntry[] {
   // No ranking possible without league data or players
   if (leagueTable.length === 0 && Object.keys(divisionTables).length === 0) return [];
@@ -276,8 +415,14 @@ export function calculateBallonDOr(
   const domesticCupWinnerId = cup?.winner || null;
   const leagueCupWinnerId = leagueCup?.winner || null;
 
+  // Synthesise BdO entries for elite clubs not in the loaded country pyramid
+  // (e.g. Real Madrid / Bayern / PSG when you're managing in England). See
+  // getGlobalEliteEntries for the rationale.
+  const loadedClubIds = new Set(Object.keys(clubs));
+  const ghostEntries = injectGlobalElites ? getGlobalEliteEntries(loadedClubIds) : [];
+
   // Score every eligible player
-  const scored = allPlayers
+  const realScored = allPlayers
     .filter(p => p.appearances >= BALLON_DOR_MIN_APPEARANCES && p.clubId)
     .map(p => {
       const clubPos = clubPositionMap[p.clubId] || { position: 10, totalTeams: 20, cleanSheets: 0, divisionTier: 4, wonLeague: false };
@@ -285,6 +430,7 @@ export function calculateBallonDOr(
       const domesticCupWon = p.clubId === domesticCupWinnerId;
       const leagueCupWon = p.clubId === leagueCupWinnerId;
       const intlBonus = getIntlTournamentBonusForNation(p.nationality, internationalTournament || null);
+      const eliteBonus = BALLON_DOR_ELITE_CLUB_BONUS[p.clubId] ?? 0;
       const score = calculatePlayerScore(
         p,
         clubPos.position,
@@ -296,6 +442,7 @@ export function calculateBallonDOr(
         domesticCupWon,
         leagueCupWon,
         intlBonus,
+        eliteBonus,
       );
       const club = clubs[p.clubId];
       const avgRating = Math.round(getAvgRating(p) * 10) / 10;
@@ -314,7 +461,13 @@ export function calculateBallonDOr(
         appearances: p.appearances,
         avgRating,
       } as BallonDOrEntry;
-    })
+    });
+
+  // Merge real game-state candidates with synthesised global elites and
+  // re-sort the combined pool. Ghost entries are ranked alongside real
+  // ones, which is what the player should see — a Real Madrid winger and
+  // a Manchester City striker competing on the same leaderboard.
+  const scored = [...realScored, ...ghostEntries]
     .sort((a, b) => {
       // Primary: score descending
       if (b.score !== a.score) return b.score - a.score;

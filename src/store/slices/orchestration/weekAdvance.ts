@@ -1305,7 +1305,12 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   // Sync player's division fixtures back into divisionFixtures
   updatedDivisionFixtures[playerDiv] = updatedFixtures;
 
-  // Simulate non-player initialized leagues
+  // Simulate non-player initialized leagues. Player stats (goals, assists,
+  // appearances, ratings) are recorded via applyAIMatchEvents so that
+  // BdO/top-scorer/season-history calculations can reference players from
+  // every league, not just the user's. Without this, La Liga / Bundesliga
+  // / Ligue 1 stars never accumulate season output and BdO becomes a
+  // single-league award by accident.
   for (const leagueId of Object.keys(state.divisionClubs)) {
     if (leagueId === playerDiv) continue;
     const leagueFixtures = updatedDivisionFixtures[leagueId];
@@ -1325,6 +1330,8 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
       }
       const { result } = simulateMatch(m, hc, ac, hp, ap);
       updatedLeagueFixtures[i] = result;
+      applyAIMatchEvents(result.events, newPlayers, clubs, week, hp, ap, result.homeGoals, result.awayGoals, eloRankings, m.homeClubId, m.awayClubId);
+      updateEloRatings(eloRankings, m.homeClubId, m.awayClubId, result.homeGoals, result.awayGoals, 'league');
     }
     updatedDivisionFixtures[leagueId] = updatedLeagueFixtures;
   }
