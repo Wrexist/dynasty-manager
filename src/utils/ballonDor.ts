@@ -140,29 +140,40 @@ function getGlobalEliteEntries(loadedClubIds: Set<string>): BallonDOrEntry[] {
       const pm = BALLON_DOR_POSITION_MULTIPLIERS[t.pos] || DEFAULT_POSITION_MULTIPLIER;
 
       // Position-aware synthetic season output. Anchored on overall —
-      // a 92-rated striker scores more than an 84-rated one.
-      const ovrLift = Math.max(0, (t.ovr - 80) / 12);
+      // a 92-rated striker scores more than an 84-rated one. Tuned to
+      // match a real-world star's *typical* season output so ghosts and
+      // loaded-club stars compete fairly. Cluster cap (idx-scaled drop)
+      // ensures only one or two players per ghost club land in the top
+      // 10, leaving room for Premier League / loaded-pyramid stars.
+      const ovrLift = Math.max(0, (t.ovr - 80) / 14);
+      // Cluster decay — deeper squad members get progressively weaker
+      // stats so a Tier-S club doesn't claim 4 top-10 spots from synthetic
+      // output alone. idx 0 = full strength, idx 3 = ~70%.
+      const clusterDecay = 1 - idx * 0.10;
       const isAttacker = (['ST', 'LW', 'RW', 'CAM'] as Position[]).includes(t.pos);
       const isMidfielder = (['CM', 'CDM', 'LM', 'RM'] as Position[]).includes(t.pos);
-      const goalsBase = isAttacker ? 18 : isMidfielder ? 5 : 2;
-      const goalsRng = isAttacker ? 14 : isMidfielder ? 6 : 4;
-      const assistsBase = isAttacker ? 7 : isMidfielder ? 7 : 2;
-      const assistsRng = isAttacker ? 9 : isMidfielder ? 7 : 4;
-      // Math.random() jitter — kept modest so deterministic-ish seeded
-      // tests don't drift wildly each run.
-      const goals = Math.max(0, Math.round(goalsBase + ovrLift * 6 + (Math.random() - 0.3) * goalsRng));
-      const assists = Math.max(0, Math.round(assistsBase + ovrLift * 4 + (Math.random() - 0.3) * assistsRng));
-      const apps = 36 + Math.floor(Math.random() * 8);
-      // Avg rating tracks ovr — a 92 plays at ~7.7, an 82 at ~6.8.
-      const avgRating = Math.max(6.5, Math.min(8.6, 6.4 + (t.ovr - 75) / 18 + (Math.random() - 0.5) * 0.3));
+      const goalsBase = isAttacker ? 11 : isMidfielder ? 3 : 1;
+      const goalsRng = isAttacker ? 10 : isMidfielder ? 4 : 2;
+      const assistsBase = isAttacker ? 5 : isMidfielder ? 5 : 1;
+      const assistsRng = isAttacker ? 7 : isMidfielder ? 5 : 2;
+      const goals = Math.max(0, Math.round((goalsBase + ovrLift * 4 + (Math.random() - 0.5) * goalsRng) * clusterDecay));
+      const assists = Math.max(0, Math.round((assistsBase + ovrLift * 2.5 + (Math.random() - 0.5) * assistsRng) * clusterDecay));
+      const apps = 32 + Math.floor(Math.random() * 8);
+      // Avg rating tracks ovr but caps at 7.4 so ghosts can't outrun
+      // real loaded-club stars on rating alone.
+      const avgRating = Math.max(6.4, Math.min(7.4, 6.3 + (t.ovr - 75) / 26 + (Math.random() - 0.5) * 0.4));
 
-      // Tier-1 league assumed (every elite club listed plays in a top-5
-      // league). We assign a top-3 finish to the highest-rated player and
-      // worse positions to deeper squad members so a single elite club
-      // doesn't sweep the top 4 just on cluster effect.
-      const teamPosition = idx === 0 ? 1 : idx === 1 ? 2 : idx === 2 ? 3 : 4;
+      // Synthetic team finish — assume mid-pack of the top 5 (positions
+      // 3-6). Every elite club can drop here in a "down" season; this
+      // makes ghosts feel like averages, not always champions.
+      const teamPosition = idx === 0 ? 3 : idx === 1 ? 4 : idx === 2 ? 5 : 6;
       const totalTeams = 20;
       const divisionTier = 1;
+      const isTierS = eliteBonus >= 90;
+      // League title only for Tier-S top star, and rarely (1 in 4) so it
+      // emerges in maybe 1-2 ghost clubs per season — much more realistic
+      // than the previous "every club's #1 wins their league".
+      const ghostWonLeague = idx === 0 && isTierS && Math.random() < 0.25;
 
       // Apply the same scoring formula as real candidates so synthetic
       // entries compete on equal footing.
@@ -172,18 +183,18 @@ function getGlobalEliteEntries(loadedClubIds: Set<string>): BallonDOrEntry[] {
       const goalScore = goals * w.goals * pm.goals * countingScale;
       const assistScore = assists * w.assists * pm.assists * countingScale;
       const appScore = Math.min(apps, 46) * w.appearances;
-      const formScore = (80 / 100) * 20 * w.form; // assume strong form
+      const formScore = (72 / 100) * 20 * w.form; // realistic form, not peak
       const positionNorm = (totalTeams - teamPosition) / Math.max(1, totalTeams - 1);
       const positionBonus = Math.sqrt(Math.max(0, positionNorm)) * 30 * w.teamPosition;
       // No clean-sheet team data for synthetic squads — approximate using
       // a typical top-club value so GKs/CBs aren't unfairly punished.
-      const teamCleanSheets = 14;
+      const teamCleanSheets = 12;
       const cleanSheetScore = teamCleanSheets * w.cleanSheets * pm.cleanSheets * countingScale;
       const ratingScore = avgRating * 10 * w.avgRating * ratingScale;
       const divisionScore = (BALLON_DOR_DIVISION_BONUS[divisionTier] ?? 0) * w.divisionTier;
-      // Highest-rated star at the club is assumed to have led them to a
-      // league title.
-      const leagueTitleScore = idx === 0 ? BALLON_DOR_LEAGUE_TITLE_BONUS * w.leagueTitle : 0;
+      // League title only when the synthetic season modelled a champion
+      // performance for this player (set above in `ghostWonLeague`).
+      const leagueTitleScore = ghostWonLeague ? BALLON_DOR_LEAGUE_TITLE_BONUS * w.leagueTitle : 0;
       const eliteScore = eliteBonus * w.eliteClub;
 
       const score = overallScore + goalScore + assistScore + appScore + formScore
