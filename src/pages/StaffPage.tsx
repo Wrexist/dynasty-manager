@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { StaffRole, StaffMember, StaffTrait } from '@/types/game';
 import { PAGE_HINTS } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
+import { PremiumProgress } from '@/components/game/PremiumProgress';
 import {
   STAFF_HIRING_FEE_WEEKS, STAFF_INTERACTION_COOLDOWN, STAFF_MARKET_REFRESH_FEE,
   STAFF_RENEWAL_FEE_WEEKS, STAFF_RENEWAL_COOLDOWN,
@@ -82,30 +83,43 @@ const ALL_ROLES: StaffRole[] = [
 
 const QualityBar = ({ quality, compact }: { quality: number; compact?: boolean }) => {
   const pct = (quality / 10) * 100;
-  const color = quality >= 8 ? 'bg-emerald-500' : quality >= 6 ? 'bg-primary' : quality >= 4 ? 'bg-amber-500' : 'bg-muted-foreground';
+  const tone = quality >= 8 ? 'emerald' : quality >= 6 ? 'primary' : quality >= 4 ? 'amber' : 'rose';
   return (
     <div className={cn('flex items-center gap-2', compact ? 'w-20' : 'w-24')}>
-      <div className={cn('flex-1 rounded-full overflow-hidden', compact ? 'h-1.5' : 'h-2', 'bg-muted/40')}>
-        <div className={cn('h-full rounded-full transition-all', color)} style={{ width: `${pct}%` }} />
-      </div>
+      <PremiumProgress
+        className="flex-1"
+        size={compact ? 'sm' : 'md'}
+        tone={tone}
+        animate={false}
+        value={pct}
+      />
       <span className={cn('font-semibold tabular-nums', compact ? 'text-[10px]' : 'text-xs', 'text-foreground')}>{quality}</span>
     </div>
   );
 };
 
 const MoraleDot = ({ morale }: { morale: number }) => {
-  const tone = morale >= 75 ? 'bg-emerald-400' : morale >= 50 ? 'bg-primary' : morale >= 30 ? 'bg-amber-400' : 'bg-destructive';
-  return <span className={cn('inline-block w-1.5 h-1.5 rounded-full', tone)} />;
+  const tone =
+    morale >= 75 ? 'bg-emerald-500'
+    : morale >= 50 ? 'bg-primary'
+    : morale >= 30 ? 'bg-amber-500'
+    : 'bg-destructive';
+  return (
+    <span
+      className={cn(
+        'inline-block w-2 h-2 rounded-full ring-1 ring-white/25 shadow-lg',
+        tone,
+      )}
+    />
+  );
 };
 
 const MoraleBar = ({ morale }: { morale: number }) => {
   const pct = Math.max(0, Math.min(100, morale));
-  const color = pct >= 75 ? 'bg-emerald-500' : pct >= 50 ? 'bg-primary' : pct >= 30 ? 'bg-amber-500' : 'bg-destructive';
+  const tone = pct >= 75 ? 'emerald' : pct >= 50 ? 'primary' : pct >= 30 ? 'amber' : 'rose';
   return (
     <div className="flex items-center gap-1.5 w-16">
-      <div className="flex-1 h-1 bg-muted/40 rounded-full overflow-hidden">
-        <div className={cn('h-full rounded-full transition-all', color)} style={{ width: `${pct}%` }} />
-      </div>
+      <PremiumProgress className="flex-1" size="sm" tone={tone} animate={false} value={pct} />
       <span className="text-[9px] text-muted-foreground tabular-nums w-5 text-right">{Math.round(pct)}</span>
     </div>
   );

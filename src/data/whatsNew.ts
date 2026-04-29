@@ -61,6 +61,22 @@ export { readWhatsNewSeenVersion, writeWhatsNewSeenVersion };
  */
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.0.10',
+    build: null,
+    date: '2026-04-29',
+    headline: 'Negotiations and tabs get a glow-up.',
+    summary: 'Contract talks, press conferences, storyline modals, staff and youth bars, and the sub-tab navigation all get the gradient + depth treatment to match the rest of the polished UI.',
+    highlights: [],
+    new: [],
+    improved: [
+      'Contract negotiations now have proper depth — demand and offer cards use gradient panels and the wage figures read in cream/gold gradient text.',
+      'Press conference questions and storyline narratives now sit on glass cards with a coloured accent stripe.',
+      'Staff quality and morale bars and youth development bars all switched to the new gradient + glow treatment.',
+      'Sub-tabs (Squad / Tactics / Training and friends) now glow with a metallic gold pill on the active tab.',
+    ],
+    fixed: [],
+  },
+  {
     version: '1.0.9',
     build: null,
     date: '2026-04-28',

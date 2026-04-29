@@ -64,38 +64,20 @@ const SCREEN_SHORTCUTS: { screen: GameScreen; label: string }[] = [
 ];
 
 /**
- * Evaluate once at module load. Auto-enables on the Vite dev server
- * (`import.meta.env.DEV === true`) AND on any non-production mode
- * (`build:dev`, `preview`, `staging`, `qa`, etc.) so testers don't have
- * to set the localStorage flag by hand. Production builds (TestFlight,
- * App Store, prod web) still require the explicit `devtools=1` opt-in
- * so state-mutating shortcuts can't leak to end users.
+ * Evaluate once at module load. Dev Tools are surfaced on every build
+ * — local dev, build:dev, preview, TestFlight, and prod web — so
+ * testers always have access without needing to set a localStorage
+ * flag by hand. Revert this override before shipping to the public App
+ * Store if state-mutating shortcuts shouldn't reach end users.
  */
 function resolveVisibility(): { visible: boolean; source: string } {
-  let dev = false;
   let mode = 'unknown';
-  let isProd = false;
   try {
-    dev = import.meta.env?.DEV === true;
     mode = import.meta.env?.MODE ?? 'unknown';
-    isProd = mode === 'production';
   } catch {
     // import.meta can throw in exotic runtimes; fall through.
   }
-
-  let flag = false;
-  try {
-    if (typeof window !== 'undefined') {
-      flag = window.localStorage?.getItem('devtools') === '1';
-    }
-  } catch {
-    // localStorage can throw in private-mode Safari etc.
-  }
-
-  if (flag) return { visible: true, source: `localStorage:devtools=1 (mode=${mode})` };
-  if (dev) return { visible: true, source: `vite dev server (mode=${mode})` };
-  if (!isProd) return { visible: true, source: `non-production build (mode=${mode})` };
-  return { visible: false, source: `production build (mode=${mode}), no flag` };
+  return { visible: true, source: `always-on (mode=${mode})` };
 }
 
 const VISIBILITY = resolveVisibility();

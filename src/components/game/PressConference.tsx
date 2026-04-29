@@ -2,6 +2,7 @@ import { useGameStore } from '@/store/gameStore';
 import { cn } from '@/lib/utils';
 import { Mic, X, MessageSquare } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
+import { GlassPanel } from '@/components/game/GlassPanel';
 import type { PressResponseTone } from '@/types/game';
 import { isPro } from '@/utils/monetization';
 import { ProUpsell } from '@/components/game/ProUpsell';
@@ -47,12 +48,17 @@ export function PressConference() {
       </div>
 
       {/* Question */}
-      <div className="bg-muted/30 rounded-lg p-3">
-        <div className="flex items-start gap-2">
-          <MessageSquare className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
-          <p className="text-sm text-foreground italic">"{pendingPressConference.question}"</p>
+      <GlassPanel className="p-3">
+        {/* Left accent stripe — primary tone for press tone. */}
+        <span
+          aria-hidden
+          className="absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-primary/60 to-primary/15"
+        />
+        <div className="flex items-start gap-2 pl-1">
+          <MessageSquare className="w-4 h-4 text-primary/70 mt-0.5 shrink-0" />
+          <p className="text-sm text-foreground italic">&ldquo;{pendingPressConference.question}&rdquo;</p>
         </div>
-      </div>
+      </GlassPanel>
 
       {/* Response Options */}
       <div className="space-y-2">

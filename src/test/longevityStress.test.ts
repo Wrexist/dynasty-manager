@@ -309,10 +309,19 @@ describe('Phase 2 — injuries + transfer window execution', () => {
   });
 
   it('2C: executeTransfer succeeds in window week 8, fails when closed week 9 and 25', { timeout: 60_000 }, () => {
+    // Pick an affordable listing so the assertion targets the window gate
+    // rather than the budget gate. Player-value rebalances upstream can
+    // shift listing prices into ranges that exceed the starting budget,
+    // which would silently flip this test from "verify mechanism" to
+    // "verify insufficient-funds rejection" — not its intent.
     const findListing = () => {
       const st = useGameStore.getState();
+      const buyer = st.clubs[st.playerClubId];
+      const budget = buyer?.budget ?? 0;
       const listing = st.transferMarket.find(
-        l => l.sellerClubId && st.clubs[l.sellerClubId]?.playerIds.includes(l.playerId),
+        l => l.sellerClubId
+          && st.clubs[l.sellerClubId]?.playerIds.includes(l.playerId)
+          && l.askingPrice <= budget,
       );
       return listing;
     };

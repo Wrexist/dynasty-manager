@@ -1,0 +1,29 @@
+{
+  "$schema": "./bundle-budget.schema.json",
+  "_doc": [
+    "Single source of truth for the CI bundle-size guard.",
+    "Two thresholds for core JS:",
+    "  - coreJsTargetBytes: aspirational target. Exceeding it logs a",
+    "    warning but does NOT fail CI. Acts as a tripwire so we notice",
+    "    drift without blocking incremental UX work.",
+    "  - coreJsHardLimitBytes: real ceiling. Exceeding it FAILS CI.",
+    "    Set with enough headroom that day-to-day PRs don't need to",
+    "    touch this file. Bump only when a deliberate decision is made",
+    "    to redefine the ceiling (e.g. lazy-loading nationalPool data,",
+    "    or a major data-pool addition).",
+    "Why two thresholds?",
+    "  Previously every UX-polish wave bumped the same yaml line and",
+    "  collided in merges. Splitting target (soft) from hard limit",
+    "  (rare) means concurrent UX PRs land without conflict.",
+    "Numbers explained:",
+    "  - 7.75 MB target = current main baseline after icon/UI-polish",
+    "    + squad-builder waves. Re-tune downward when we lazy-load",
+    "    nationalPool.",
+    "  - 9.00 MB hard limit = ~1.25 MB headroom over target. Roughly",
+    "    hundreds of small UX PRs of headroom before another bump."
+  ],
+  "coreJsTargetBytes": 8126464,
+  "coreJsHardLimitBytes": 9437184,
+  "communityPackHardLimitBytes": 4194304,
+  "mainChunkHardLimitBytes": 1228800
+}

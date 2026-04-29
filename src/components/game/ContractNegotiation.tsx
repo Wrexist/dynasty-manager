@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
+import { GlassPanel } from '@/components/game/GlassPanel';
 import { cn } from '@/lib/utils';
 import { X, ArrowRight, Check, AlertTriangle, Minus, Plus, Calendar } from 'lucide-react';
 import { formatWage, getPreferredYears, getYearsAdjustment, getAcceptanceHint } from '@/utils/contracts';
@@ -173,18 +174,28 @@ export function ContractNegotiation() {
 
               {/* Player demand vs your offer */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-muted/30 rounded-lg p-3 text-center">
-                  <p className="text-[10px] text-muted-foreground mb-1">Player Demands</p>
-                  <p className={cn('text-lg font-bold text-foreground rounded px-1 transition-colors', demandFlash)}>{formatWage(activeNegotiation.demandedWage)}</p>
+                <GlassPanel className="p-3 text-center">
+                  <p className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider">Player Demands</p>
+                  <p
+                    className={cn(
+                      'text-xl font-black tabular-nums rounded px-1 transition-colors',
+                      'bg-gradient-to-b from-foreground/95 to-foreground/70 bg-clip-text text-transparent',
+                      demandFlash,
+                    )}
+                  >
+                    {formatWage(activeNegotiation.demandedWage)}
+                  </p>
                   <p className="text-[10px] text-muted-foreground mt-1">for {preferredYears} yr{preferredYears !== 1 ? 's' : ''}</p>
-                </div>
-                <div className="bg-primary/10 rounded-lg p-3 text-center">
-                  <p className="text-[10px] text-muted-foreground mb-1">Your Offer</p>
-                  <p className="text-lg font-bold text-primary">{formatWage(customWage ?? activeNegotiation.offeredWage)}</p>
-                  <p className={cn('text-[10px] mt-1 font-medium', yearsDiff === 0 ? 'text-emerald-400' : yearsDiff > 0 ? 'text-emerald-400' : 'text-red-400')}>
+                </GlassPanel>
+                <GlassPanel className="p-3 text-center ring-1 ring-primary/30">
+                  <p className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider">Your Offer</p>
+                  <p className="text-xl font-black tabular-nums bg-gradient-to-b from-primary to-primary/70 bg-clip-text text-transparent">
+                    {formatWage(customWage ?? activeNegotiation.offeredWage)}
+                  </p>
+                  <p className={cn('text-[10px] mt-1 font-medium', yearsDiff === 0 ? 'text-emerald-400' : yearsDiff > 0 ? 'text-emerald-400' : 'text-destructive')}>
                     for {currentYears} yr{currentYears !== 1 ? 's' : ''}
                   </p>
-                </div>
+                </GlassPanel>
               </div>
 
               {/* Player mood */}
@@ -230,19 +241,26 @@ export function ContractNegotiation() {
 
                 {/* Years preference visual: dots showing 1-5 with preferred marked */}
                 <div className="flex items-center justify-center gap-1">
-                  {[1, 2, 3, 4, 5].map(yr => (
-                    <div key={yr} className="flex flex-col items-center gap-0.5">
-                      <div className={cn(
-                        'w-6 h-1.5 rounded-full transition-colors',
-                        yr <= currentYears
-                          ? yr <= preferredYears ? 'bg-emerald-500' : 'bg-emerald-500/40'
-                          : yr <= preferredYears ? 'bg-red-400/50' : 'bg-muted/30',
-                      )} />
-                      {yr === preferredYears && (
-                        <span className="text-[8px] text-muted-foreground leading-none">wanted</span>
-                      )}
-                    </div>
-                  ))}
+                  {Array.from({ length: CONTRACT_MAX_YEARS }, (_, i) => i + 1).map(yr => {
+                    const filled = yr <= currentYears;
+                    const wanted = yr <= preferredYears;
+                    return (
+                      <div key={yr} className="flex flex-col items-center gap-0.5">
+                        <div
+                          className={cn(
+                            'w-6 h-1.5 rounded-full transition-all bg-gradient-to-b',
+                            filled && wanted && 'from-emerald-300 via-emerald-500 to-emerald-700 shadow-lg',
+                            filled && !wanted && 'from-emerald-300 to-emerald-600 opacity-40',
+                            !filled && wanted && 'from-rose-300 to-rose-600 opacity-60',
+                            !filled && !wanted && 'bg-foreground/5',
+                          )}
+                        />
+                        {yr === preferredYears && (
+                          <span className="text-[8px] text-muted-foreground leading-none">wanted</span>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {/* Years feedback */}
@@ -347,25 +365,25 @@ export function ContractNegotiation() {
                 const wageDiff = offeredWage - player.wage;
                 const totalCost = activeNegotiation.agentFee + (activeNegotiation.loyaltyBonus || 0);
                 return (
-                  <div className="bg-muted/20 rounded-lg p-3 space-y-1.5 text-xs">
+                  <GlassPanel className="p-3 space-y-1.5 text-xs">
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Budget Impact</p>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Wage bill change</span>
-                      <span className={cn('font-semibold', wageDiff > 0 ? 'text-amber-400' : wageDiff < 0 ? 'text-emerald-400' : 'text-foreground')}>
+                      <span className={cn('font-semibold tabular-nums', wageDiff > 0 ? 'text-amber-400' : wageDiff < 0 ? 'text-emerald-400' : 'text-foreground')}>
                         {wageDiff > 0 ? '+' : ''}{formatWage(wageDiff)}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Upfront cost</span>
-                      <span className="text-foreground">£{(totalCost / 1000).toFixed(0)}K</span>
+                      <span className="text-foreground tabular-nums">£{(totalCost / 1000).toFixed(0)}K</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Budget after</span>
-                      <span className={cn('font-semibold', club.budget - totalCost < 0 ? 'text-red-400' : 'text-foreground')}>
+                      <span className={cn('font-semibold tabular-nums', club.budget - totalCost < 0 ? 'text-destructive' : 'text-foreground')}>
                         £{((club.budget - totalCost) / 1e6).toFixed(1)}M
                       </span>
                     </div>
-                  </div>
+                  </GlassPanel>
                 );
               })()}
 

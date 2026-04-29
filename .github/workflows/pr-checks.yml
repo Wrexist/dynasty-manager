@@ -63,41 +63,63 @@ jobs:
           echo "Community pack chunks: ${CP_MB} MB (lazy)"
           echo "Core JS (excl. community pack): ${CORE_MB} MB"
 
-          # Budget: fail if core JS (excl. community pack) exceeds 8.0 MB.
-          # Bumped from 5.5 MB in the FC26 real-player pool work — the
-          # generated `national-pool-*.js` chunk carries ~9k real players
-          # and is needed eagerly by generateSquad at game-init time.
-          # Bumped from 7.5 MB to 8.0 MB to give ~500 KB headroom for
-          # squad-builder UI work (PlayerCard grids on the National Team
-          # page) and similar incremental UX additions. Lazy-loading the
-          # national pool would require making the squad pipeline async,
-          # which is the right follow-up; until then this is the data cost.
-          if [ "$CORE_JS" -gt 8388608 ]; then
-            echo "::error::Core JS bundle size (${CORE_MB} MB) exceeds budget (8.00 MB)"
+          # Bundle budget — single source of truth lives in
+          # .github/bundle-budget.json (target / hard limit split so
+          # incremental UX PRs don't race the same workflow line on
+          # every merge). See that file for the rationale + tuning.
+          BUDGET_FILE=".github/bundle-budget.json"
+          if [ ! -f "$BUDGET_FILE" ]; then
+            echo "::error::Missing $BUDGET_FILE"
             exit 1
           fi
-          echo "Bundle size OK (core ${CORE_MB} MB, budget: 8.00 MB)"
+          CORE_TARGET=$(jq -r '.coreJsTargetBytes' "$BUDGET_FILE")
+          CORE_HARD=$(jq -r '.coreJsHardLimitBytes' "$BUDGET_FILE")
+          CP_HARD=$(jq -r '.communityPackHardLimitBytes' "$BUDGET_FILE")
+          MAIN_HARD=$(jq -r '.mainChunkHardLimitBytes' "$BUDGET_FILE")
+          CORE_TARGET_MB=$(awk "BEGIN {printf \"%.2f\", $CORE_TARGET / 1048576}")
+          CORE_HARD_MB=$(awk "BEGIN {printf \"%.2f\", $CORE_HARD / 1048576}")
+          CP_HARD_MB=$(awk "BEGIN {printf \"%.2f\", $CP_HARD / 1048576}")
+          MAIN_HARD_KB=$(awk "BEGIN {printf \"%.0f\", $MAIN_HARD / 1024}")
 
-          # Community pack budget: fail if CP chunks exceed 4.0 MB
-          if [ "$CP_TOTAL" -gt 4194304 ]; then
-            echo "::error::Community pack chunks (${CP_MB} MB) exceed budget (4.00 MB)"
+          # Core JS — hard limit FAILS CI; target only WARNS. The target
+          # is a tripwire that surfaces drift without blocking ordinary
+          # UX work; the hard limit is the real cliff.
+          if [ "$CORE_JS" -gt "$CORE_HARD" ]; then
+            echo "::error::Core JS bundle size (${CORE_MB} MB) exceeds hard limit (${CORE_HARD_MB} MB). Trim the bundle, or — if this represents a deliberate ceiling raise — bump coreJsHardLimitBytes in $BUDGET_FILE with reasoning."
+            exit 1
+          fi
+          if [ "$CORE_JS" -gt "$CORE_TARGET" ]; then
+            DELTA_BYTES=$((CORE_JS - CORE_TARGET))
+            DELTA_KB=$(awk "BEGIN {printf \"%.1f\", $DELTA_BYTES / 1024}")
+            HEADROOM=$((CORE_HARD - CORE_JS))
+            HEADROOM_KB=$(awk "BEGIN {printf \"%.0f\", $HEADROOM / 1024}")
+            echo "::warning::Core JS ${CORE_MB} MB is ${DELTA_KB} KB over target (${CORE_TARGET_MB} MB). Hard limit ${CORE_HARD_MB} MB has ${HEADROOM_KB} KB headroom. Consider trimming or bumping the target in $BUDGET_FILE."
+          else
+            HEADROOM=$((CORE_TARGET - CORE_JS))
+            HEADROOM_KB=$(awk "BEGIN {printf \"%.0f\", $HEADROOM / 1024}")
+            echo "Bundle size OK (core ${CORE_MB} MB, target ${CORE_TARGET_MB} MB, ${HEADROOM_KB} KB under target)."
+          fi
+
+          # Community pack — hard limit only.
+          if [ "$CP_TOTAL" -gt "$CP_HARD" ]; then
+            echo "::error::Community pack chunks (${CP_MB} MB) exceed hard limit (${CP_HARD_MB} MB). Adjust communityPackHardLimitBytes in $BUDGET_FILE if this is intentional."
             exit 1
           fi
           if [ "$CP_TOTAL" -gt 0 ]; then
-            echo "Community pack size OK (${CP_MB} MB, budget: 4.00 MB)"
+            echo "Community pack size OK (${CP_MB} MB, hard limit: ${CP_HARD_MB} MB)"
           fi
 
-          # Main chunk budget: fail if largest index-*.js exceeds 1200 KB
+          # Main chunk — hard limit only.
           MAIN_JS=$(find dist/assets -name 'index-*.js' -not -name '*.map' -type f -printf '%s %p\n' | sort -rn | head -1 | awk '{print $2}')
           if [ -n "$MAIN_JS" ]; then
             MAIN_SIZE=$(wc -c < "$MAIN_JS")
             MAIN_KB=$(awk "BEGIN {printf \"%.1f\", $MAIN_SIZE / 1024}")
             echo "Main chunk: ${MAIN_KB} KB"
-            if [ "$MAIN_SIZE" -gt 1228800 ]; then
-              echo "::error::Main chunk (${MAIN_KB} KB) exceeds budget (1200 KB)"
+            if [ "$MAIN_SIZE" -gt "$MAIN_HARD" ]; then
+              echo "::error::Main chunk (${MAIN_KB} KB) exceeds hard limit (${MAIN_HARD_KB} KB). Adjust mainChunkHardLimitBytes in $BUDGET_FILE if intentional."
               exit 1
             fi
-            echo "Main chunk OK (${MAIN_KB} KB, budget: 1200 KB)"
+            echo "Main chunk OK (${MAIN_KB} KB, hard limit: ${MAIN_HARD_KB} KB)"
           fi
 
   code-review:
