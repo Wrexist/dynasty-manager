@@ -246,79 +246,55 @@ const YouthAcademy = () => {
                       </div>
                     </div>
 
-                    {/* Training controls: Focus picker + one-shot Boost */}
-                    <div className="mt-1.5" style={{ width: PLAYER_CARD_SIZE_PX.lg }}>
+                    {/* Focus + Spotlight row */}
+                    <div className="mt-1.5 flex items-center gap-1" style={{ width: PLAYER_CARD_SIZE_PX.lg }}>
                       {!isFocusEditing ? (
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => { hapticLight(); setFocusEditorId(prospect.playerId); }}
-                            className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md bg-muted/25 hover:bg-muted/40 active:scale-[0.97] transition-all border border-border/40"
-                            title={`Training focus: ${focusDef.label}. Tap to change.`}
-                          >
-                            <FocusIcon className={cn('w-3 h-3 shrink-0', focusDef.tone)} />
-                            <span className={cn('text-[9px] font-bold tracking-wider uppercase', focusDef.tone)}>{focusDef.short}</span>
-                            <ChevronDown className="w-2.5 h-2.5 text-muted-foreground/60 shrink-0" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => canSpotlight && handleSpotlight(prospect.playerId)}
-                            disabled={!canSpotlight}
-                            className={cn(
-                              'flex items-center justify-center gap-1 py-1.5 px-2 rounded-md transition-all border',
-                              prospect.spotlightedThisSeason
-                                ? 'bg-amber-400/15 border-amber-400/30 text-amber-400 cursor-default'
-                                : canSpotlight
-                                  ? 'bg-amber-400/20 border-amber-400/40 text-amber-300 hover:bg-amber-400/30 active:scale-[0.94] shadow-[0_0_12px_-4px_rgba(251,191,36,0.45)]'
-                                  : 'bg-muted/15 border-border/30 text-muted-foreground/40 cursor-not-allowed',
-                            )}
-                            title={prospect.spotlightedThisSeason ? 'Already boosted this season' : canSpotlight ? `Boost — instantly adds +22% development. ${spotlightUsesRemaining} left this season.` : 'No boosts remaining this season'}
-                          >
-                            <Zap className={cn('w-3 h-3 shrink-0', prospect.spotlightedThisSeason && 'fill-current')} />
-                            <span className="text-[9px] font-bold tracking-wider uppercase">
-                              {prospect.spotlightedThisSeason ? 'Boosted' : 'Boost'}
-                            </span>
-                          </button>
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => { hapticLight(); setFocusEditorId(prospect.playerId); }}
+                          className="flex-1 flex items-center justify-center gap-1 py-1 rounded-md bg-muted/20 hover:bg-muted/40 active:scale-[0.97] transition-all"
+                        >
+                          <FocusIcon className={cn('w-2.5 h-2.5', focusDef.tone)} />
+                          <span className={cn('text-[9px] font-bold tracking-wider', focusDef.tone)}>{focusDef.short}</span>
+                          <ChevronDown className="w-2.5 h-2.5 text-muted-foreground/60" />
+                        </button>
                       ) : (
-                        <div className="rounded-md bg-muted/15 border border-border/40 p-1 space-y-1">
-                          <div className="flex items-center justify-between px-1">
-                            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider">Train as</span>
-                            <button
-                              type="button"
-                              onClick={() => setFocusEditorId(null)}
-                              className="p-0.5 rounded hover:bg-muted/30 active:scale-[0.94] transition-all"
-                              aria-label="Close focus picker"
-                            >
-                              <X className="w-2.5 h-2.5 text-muted-foreground" />
-                            </button>
-                          </div>
-                          <div className="grid grid-cols-2 gap-1">
-                            {FOCUS_OPTIONS.map(opt => {
-                              const Active = opt.Icon;
-                              const isCurrent = opt.id === focus;
-                              return (
-                                <button
-                                  key={opt.id}
-                                  type="button"
-                                  onClick={() => handleFocusChange(prospect.playerId, opt.id)}
-                                  className={cn(
-                                    'relative flex items-center justify-center gap-1 py-1.5 rounded-md text-[9px] font-bold tracking-wider uppercase transition-all active:scale-[0.94] border',
-                                    isCurrent
-                                      ? 'bg-primary/20 border-primary/50 text-primary'
-                                      : 'bg-muted/25 border-border/30 hover:bg-muted/40',
-                                  )}
-                                  title={opt.label}
-                                >
-                                  <Active className={cn('w-2.5 h-2.5 shrink-0', isCurrent ? 'text-primary' : opt.tone)} />
-                                  <span className={cn(isCurrent ? 'text-primary' : opt.tone)}>{opt.short}</span>
-                                  {isCurrent && <Check className="w-2.5 h-2.5 text-primary shrink-0" />}
-                                </button>
-                              );
-                            })}
-                          </div>
+                        <div className="flex-1 grid grid-cols-4 gap-0.5">
+                          {FOCUS_OPTIONS.map(opt => {
+                            const Active = opt.Icon;
+                            const isCurrent = opt.id === focus;
+                            return (
+                              <button
+                                key={opt.id}
+                                onClick={() => handleFocusChange(prospect.playerId, opt.id)}
+                                className={cn(
+                                  'flex items-center justify-center py-1 rounded-md active:scale-[0.94] transition-all',
+                                  isCurrent ? 'bg-primary/25 ring-1 ring-primary/40' : 'bg-muted/20 hover:bg-muted/40',
+                                )}
+                                title={opt.label}
+                              >
+                                <Active className={cn('w-2.5 h-2.5', isCurrent ? 'text-primary' : opt.tone)} />
+                              </button>
+                            );
+                          })}
                         </div>
                       )}
+                      <button
+                        type="button"
+                        onClick={() => canSpotlight && handleSpotlight(prospect.playerId)}
+                        disabled={!canSpotlight}
+                        className={cn(
+                          'flex items-center gap-0.5 py-1 px-1.5 rounded-md transition-all',
+                          prospect.spotlightedThisSeason
+                            ? 'bg-amber-400/20 text-amber-400 cursor-default'
+                            : canSpotlight
+                              ? 'bg-amber-400/15 text-amber-300 hover:bg-amber-400/30 active:scale-[0.94]'
+                              : 'bg-muted/20 text-muted-foreground/40 cursor-not-allowed',
+                        )}
+                      >
+                        <Zap className="w-2.5 h-2.5" />
+                        <span className="text-[8px] font-bold tracking-wider">BOOST</span>
+                      </button>
                     </div>
 
                     {/* Action row */}
