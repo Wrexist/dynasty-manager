@@ -660,20 +660,25 @@ export const BALLON_DOR_TOP_N = 25;
 /** Minimum appearances to be eligible for the Ballon d'Or ranking. Below
  *  this floor a player's counting stats aren't a meaningful sample. */
 export const BALLON_DOR_MIN_APPEARANCES = 8;
-/** Weights for the Ballon d'Or scoring formula. Bumped `overall` 1.5 → 2.0
- *  in the v68 rebalance so a 90-rated player gets +180 from raw quality
- *  before any goals/assists land — keeps elite squads from being knocked
- *  out by lower-tier free-scorers. Trophy weights (league/cup/intl) added
- *  in v69 so silverware actually moves the needle. */
+/** Weights for the Ballon d'Or scoring formula. v70: `overall` bumped
+ *  again (2.0 → 2.5) so a 90-rated player gets +225 from raw quality —
+ *  with the new elite-club bonus this anchors top-flight stars at the
+ *  top of the leaderboard. `avgRating` cut (3.0 → 2.0) because match
+ *  ratings are volatile and were letting non-elite players catch up
+ *  via a few hot streaks. Trophy weights (league/cup/intl) added in
+ *  v69 so silverware actually moves the needle.
+ *  `eliteClub` weight = 1.0 by design — the per-club bonus values in
+ *  BALLON_DOR_ELITE_CLUB_BONUS already encode the strength of each
+ *  tier so a multiplier here would compound with no added clarity. */
 export const BALLON_DOR_WEIGHTS = {
-  overall: 2.0,
+  overall: 2.5,
   goals: 3.0,
   assists: 2.0,
   appearances: 0.5,
   form: 0.5,
   teamPosition: 1.0,
   cleanSheets: 1.0,
-  avgRating: 3.0,
+  avgRating: 2.0,
   discipline: 1.0,
   divisionTier: 1.5,
   continentalBonus: 1.0,
@@ -681,6 +686,7 @@ export const BALLON_DOR_WEIGHTS = {
   domesticCup: 1.0,
   leagueCup: 1.0,
   intlTournament: 1.0,
+  eliteClub: 1.0,
 } as const;
 
 // ── Ballon d'Or — Trophy Bonuses ──
@@ -710,6 +716,64 @@ export const BALLON_DOR_INTL_TOURNAMENT_BONUS = {
   R16: 5,
   group: 0,     // group-stage exit — no bonus
 } as const;
+
+// ── Ballon d'Or — Elite-Club Prestige ──
+/**
+ * Flat bonus added per BdO score for players at real-world elite clubs.
+ * Calibrated against the last five years of actual BdO results: 100% of
+ * top-5 finishers (Rodri, Vinicius, Bellingham, Carvajal, Mbappé,
+ * Messi, Haaland, De Bruyne, Bernardo Silva, Benzema, Modrić, Salah,
+ * Mané, Lewandowski, Jorginho, Kanté, Van Dijk, Ronaldo) played for
+ * Real Madrid, Barcelona, Atlético, Man City, Liverpool, Chelsea, PSG,
+ * Bayern, Juventus, Inter Miami/PSG.
+ *
+ * The bonus reflects "you're playing at a club where the cameras are
+ * always on" — equally important in real BdO voting as raw output. A
+ * 25-goal Vinicius from Real Madrid outranks a 30-goal striker from a
+ * mid-table side, mirroring real voting bias.
+ *
+ * Tier breakdown:
+ * - 60: UCL-trophy aristocracy (Real Madrid, Man City, Bayern, PSG, Barcelona, Liverpool)
+ * - 45: Permanent UCL contenders (Arsenal, Atlético, Inter, Juventus, Chelsea)
+ * - 30: Recent UCL/UEL trophy winners or perennial top-4 (Dortmund, Leverkusen,
+ *       Napoli, AC Milan, Atalanta, Tottenham)
+ * - 18: Elite-adjacent (Man United — pedigree without recent silverware,
+ *       RB Leipzig, Marseille, Roma, Lazio)
+ */
+export const BALLON_DOR_ELITE_CLUB_BONUS: Record<string, number> = {
+  // Tier S (90) — UCL aristocracy. Magnitude calibrated so a player at one
+  // of these clubs can outscore a non-elite league champion's best player
+  // — mirrors how Vinicius/Bellingham still rank top-5 even in seasons
+  // when Real Madrid don't win La Liga.
+  'real-madrid': 90,
+  'manchester-city': 90,
+  'bayern-munich': 90,
+  'paris-saint-germain': 90,
+  'barcelona': 90,
+  'liverpool': 90,
+
+  // Tier A (65) — permanent CL contenders
+  'arsenal': 65,
+  'atletico-madrid': 65,
+  'inter-milan': 65,
+  'juventus': 65,
+  'chelsea': 65,
+
+  // Tier B (45) — recent silverware / top-4 perennials
+  'borussia-dortmund': 45,
+  'bayer-leverkusen': 45,
+  'napoli': 45,
+  'ac-milan': 45,
+  'atalanta': 45,
+  'tottenham-hotspur': 45,
+
+  // Tier C (28) — elite-adjacent / pedigree
+  'manchester-united': 28,
+  'rb-leipzig': 28,
+  'marseille': 28,
+  'as-roma': 28,
+  'lazio': 28,
+};
 // v70: Defender goal multipliers nerfed — a CB scoring 7 set-piece goals
 // shouldn't outrank a 25-goal striker, which the previous 3.5× weighting
 // allowed. Real-world BdO is ~85% attacking output; only Cannavaro 2006

@@ -100,7 +100,11 @@ export function endSeasonImpl(set: Set, get: Get) {
   const topScorer = allPlayersList.filter(p => p.goals > 0).sort((a, b) => b.goals - a.goals)[0];
   const seasonAwards = calculateSeasonAwards(allPlayersList, clubs, leagueTable, playerClubId);
 
-  // Ballon d'Or ranking — top 25 players of the season
+  // Ballon d'Or ranking — top 25 players of the season. `injectGlobalElites`
+  // adds synthetic candidates for top-5 league clubs not in the loaded
+  // pyramid so a Manchester City save still sees Real Madrid / PSG / Bayern
+  // stars contesting the trophy, mirroring how real-world BdO is voted
+  // across every league simultaneously.
   const ballonDOrRanking = calculateBallonDOr(
     allPlayersList,
     clubs,
@@ -112,6 +116,7 @@ export function endSeasonImpl(set: Set, get: Get) {
     state.cup,
     state.leagueCup,
     state.internationalTournament,
+    /* injectGlobalElites */ true,
   );
 
   // Apply Ballon d'Or value boosts and record placements on a shallow copy
