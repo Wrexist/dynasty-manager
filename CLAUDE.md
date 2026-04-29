@@ -25,22 +25,24 @@ then `scripts/check-whats-new.mjs` validates and gates the build.
 
 ### Triggering `iOS TestFlight Deploy`
 
-The workflow takes two required inputs (the App Store voice that PRs cannot
-provide) plus an optional cutoff override:
+All workflow inputs are optional. Leave them blank for a fully automatic
+build (recommended) or fill them in for hand-crafted App Store voice:
 
 | Input | Required | Notes |
 |-------|----------|-------|
-| `headline` | yes | 3–8 word hook, e.g. "Cup glory, smarter AI, faster matches." |
-| `summary`  | yes | 1–3 sentences, player-facing tone. |
-| `since`    | no  | ISO date `YYYY-MM-DD` to override the merge cutoff. Default: the date of the previous shipped entry in `whatsNew.ts`. |
+| `headline` | no | 3–8 word hook, e.g. "Cup glory, smarter AI, faster matches." Leave blank to auto-generate from the lead merged PR's bullet. |
+| `summary`  | no | 1–3 sentences, player-facing tone. Leave blank to auto-generate from the lead bullets + category counts. |
+| `since`    | no | ISO date `YYYY-MM-DD` to override the merge cutoff. Default: the date of the previous shipped entry in `whatsNew.ts`. |
 
 Steps:
 
 1. **Bump `package.json` version** (semver) on `main` first.
-2. **Trigger the workflow** with the headline + summary inputs.
+2. **Trigger the workflow.** Leaving headline + summary blank gives a
+   ship-now build; filling them in overrides the auto-generated voice.
 3. The workflow:
    - Runs `build-whats-new.mjs` → fetches merged PRs via `gh pr list`,
-     classifies by label, writes the entry on the runner.
+     classifies by label, writes the entry on the runner. Auto-generates
+     headline + summary from the classified PRs when inputs are empty.
    - Runs `check-whats-new.mjs` → validates the entry has all required fields.
    - Runs `check-whats-new.mjs --inject-build ${{ github.run_number }}`
      → stamps the real CFBundleVersion before bundling.
@@ -50,10 +52,42 @@ Steps:
    exists only for the bundled app. If you want to backfill the entry into
    git, run the same script locally and commit the result.
 
+### Auto-fallback voice (when inputs are blank)
+
+- **Headline** → first bullet from the highest-priority non-empty category
+  (highlight > new > improved > fixed). Bullets are already capitalised and
+  period-terminated by the helper, so they read as a complete sentence.
+- **Summary** → first 1–2 lead bullets joined as prose, plus a tail
+  enumerating the rest by category count. Always passes the `>=20` char
+  validation in `check-whats-new.mjs`.
+
+The script logs which path it took (`workflow input` vs.
+`auto-generated from PRs`) so the workflow run is auditable.
+
+### Recovering from a failed TestFlight deploy
+
+The auto-generation handles this for you — you do **not** need to bump
+the version again to "save" the work from a failed attempt:
+
+| Scenario | What happens | What you do |
+|---|---|---|
+| Build failed at the same version (e.g. v1.0.10 attempt #2) | The runner-only mutation never committed back to `main`, so `whatsNew.ts` on `main` still shows the previous shipped version. The next run reads exactly the same PR window. | Re-trigger the workflow as-is. The same PRs (plus any new ones) ship. |
+| You bumped past the failure (v1.0.10 failed → v1.0.11) | The lower-bound walks back via `git log` to the first commit whose `package.json.version` differs from the current one — i.e. the v1.0.9 → v1.0.10 bump. PRs from the failed v1.0.10 attempt **and** anything merged since are both included. | Trigger the workflow at v1.0.11. No data is lost. |
+| No new PRs since the last shipped build | `build-whats-new.mjs` exits early with an actionable message instead of producing an empty entry. | Either ship a manual bullet (`npm run whats-new -- improved "..."`) or skip the run. |
+
+**Don't bump the version unnecessarily.** Re-running the workflow with the
+same `package.json.version` is supported and preferred when the previous
+attempt failed.
+
 ### Local commands
 
 ```bash
-# Generate the top entry from merged PRs locally (requires `gh` auth).
+# Preview what the next deploy would generate, without writing files.
+# Shows last shipped version, version delta, and the PRs that would ship.
+npm run whats-new:plan
+node scripts/build-whats-new.mjs --dry-run                       # equivalent
+
+# Force a hand-crafted headline/summary preview.
 node scripts/build-whats-new.mjs --headline "..." --summary "..." --dry-run
 
 # Hand-edit a single bullet using the same helper CI uses internally.

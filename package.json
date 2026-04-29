@@ -31,7 +31,8 @@
     "prepare": "husky",
     "version:sync": "node scripts/sync-version.mjs",
     "whats-new": "node scripts/add-whats-new-entry.mjs",
-    "whats-new:check": "node scripts/check-whats-new.mjs"
+    "whats-new:check": "node scripts/check-whats-new.mjs",
+    "whats-new:plan": "node scripts/build-whats-new.mjs --dry-run"
   },
   "lint-staged": {
     "*.{ts,tsx}": [

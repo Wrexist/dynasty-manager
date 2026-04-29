@@ -7,8 +7,11 @@
  * `iOS TestFlight Deploy` workflow before `check-whats-new.mjs`.
  *
  * Inputs (CLI args, workflow-dispatch inputs in CI):
- *   --headline "..."   App Store-style hook (required)
- *   --summary  "..."   1–3 sentence player-facing summary (required)
+ *   --headline "..."   App Store-style hook (optional — auto-generated from
+ *                      the lead PR's bullet when omitted)
+ *   --summary  "..."   1–3 sentence player-facing summary (optional —
+ *                      auto-generated from the lead bullets + category counts
+ *                      when omitted)
  *   --since    YYYY-MM-DD  override the merge cutoff (default: read from whatsNew.ts)
  *   --repo     owner/name  default: Wrexist/dynasty-manager
  *   --dry-run             list what would be added without mutating the file
@@ -24,6 +27,15 @@
  * The script shells out to `npm run whats-new -- <cmd>` for the actual file
  * mutations so we reuse the existing helper's dedupe + render logic and
  * don't drift in formatting.
+ *
+ * Auto-fallback voice (when --headline / --summary omitted):
+ *   - Headline → first bullet from the highest-priority non-empty category
+ *     (highlight > new > improved > fixed).
+ *   - Summary  → first 1-2 lead bullets joined as prose, plus a tail
+ *     enumerating remaining changes by category count. Always passes
+ *     check-whats-new.mjs's >=20-char minimum.
+ *   Both fields stay overridable for builds that deserve hand-crafted
+ *   App Store voice. Empty inputs in the workflow form trigger the fallback.
  */
 
 import { execSync } from 'child_process';
@@ -42,17 +54,16 @@ function getFlag(name) {
   const i = args.indexOf(`--${name}`);
   return i >= 0 ? args[i + 1] : null;
 }
-const HEADLINE = getFlag('headline');
-const SUMMARY = getFlag('summary');
+const HEADLINE_INPUT = getFlag('headline');
+const SUMMARY_INPUT = getFlag('summary');
 const SINCE_OVERRIDE = getFlag('since');
 const REPO = getFlag('repo') || 'Wrexist/dynasty-manager';
 const DRY_RUN = args.includes('--dry-run');
 
-if (!HEADLINE || !SUMMARY) {
-  console.error('::error::build-whats-new requires --headline "..." and --summary "..."');
-  console.error('Both fields gate the App Store voice — they cannot be derived from PRs.');
-  process.exit(1);
-}
+// Treat all-whitespace inputs as omitted so the workflow form's empty fields
+// route to the auto-fallback path instead of writing blank strings.
+const HEADLINE = HEADLINE_INPUT && HEADLINE_INPUT.trim().length > 0 ? HEADLINE_INPUT.trim() : null;
+const SUMMARY = SUMMARY_INPUT && SUMMARY_INPUT.trim().length > 0 ? SUMMARY_INPUT.trim() : null;
 
 const SKIP_LABELS = new Set([
   'skip-changelog',
@@ -93,6 +104,34 @@ function listEntries(source) {
     entries.push({ version: m[1], date: m[2] });
   }
   return entries;
+}
+
+/** Parse a SemVer-ish version string into [major, minor, patch] integers.
+ *  Returns null if the input doesn't look like a version. Used to gauge how
+ *  far the current version has drifted past the last shipped one. */
+function parseSemver(v) {
+  const m = String(v || '').match(/^(\d+)\.(\d+)\.(\d+)/);
+  return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null;
+}
+
+/** Describe the kind of bump from `prev` → `cur` (major / minor / patch /
+ *  multi-patch / equal / regression / unknown). Drives the deploy-state
+ *  banner so the runner logs say things like "two patch versions ahead of
+ *  last shipped — likely a re-run after a failed attempt". */
+function describeVersionDelta(prev, cur) {
+  const a = parseSemver(prev);
+  const b = parseSemver(cur);
+  if (!a || !b) return { kind: 'unknown', label: 'unknown' };
+  if (a[0] === b[0] && a[1] === b[1] && a[2] === b[2]) return { kind: 'equal', label: 'same as last shipped' };
+  if (b[0] > a[0]) return { kind: 'major', label: `major bump (+${b[0] - a[0]}.0.0)` };
+  if (b[0] === a[0] && b[1] > a[1]) return { kind: 'minor', label: `minor bump (+0.${b[1] - a[1]}.0)` };
+  if (b[0] === a[0] && b[1] === a[1] && b[2] > a[2]) {
+    const diff = b[2] - a[2];
+    return diff === 1
+      ? { kind: 'patch', label: 'patch bump (+0.0.1)' }
+      : { kind: 'multi-patch', label: `+0.0.${diff} patches ahead` };
+  }
+  return { kind: 'regression', label: 'BEHIND last shipped' };
 }
 
 function tryGit(cmd) {
@@ -183,6 +222,80 @@ function normaliseTitle(title) {
     .trim();
 }
 
+/** Stable priority ordering used by both the bullet append loop and the
+ *  auto-headline / auto-summary fallback. Highlights surface first, then
+ *  new features, then improvements, then fixes. Within a category we keep
+ *  PR-number order so older work shows ahead of newer work. */
+const ENTRY_ORDER = { highlight: 0, new: 1, improved: 2, fixed: 3 };
+function sortPlannedByPriority(planned) {
+  return [...planned].sort((a, b) => {
+    const o = ENTRY_ORDER[a.category] - ENTRY_ORDER[b.category];
+    return o !== 0 ? o : a.number - b.number;
+  });
+}
+
+function pluralize(n, singular, plural = `${singular}s`) {
+  return n === 1 ? singular : plural;
+}
+
+function joinNaturally(parts) {
+  if (parts.length === 0) return '';
+  if (parts.length === 1) return parts[0];
+  if (parts.length === 2) return `${parts[0]} and ${parts[1]}`;
+  return `${parts.slice(0, -1).join(', ')}, and ${parts[parts.length - 1]}`;
+}
+
+/** Build a "X highlights, Y new features, Z improvements, W fixes" phrase
+ *  from a list of planned bullets. `excludeBullets` keeps lead bullets that
+ *  already appear earlier in the summary out of the count. Returns null if
+ *  there's nothing left to enumerate. */
+function buildCategoryCountPhrase(planned, { excludeBullets = [] } = {}) {
+  const counts = { highlight: 0, new: 0, improved: 0, fixed: 0 };
+  const excluded = new Set(excludeBullets);
+  for (const p of planned) {
+    if (excluded.has(p.bullet)) {
+      excluded.delete(p.bullet); // only exclude one match per duplicate
+      continue;
+    }
+    counts[p.category]++;
+  }
+  const parts = [];
+  if (counts.highlight > 0) parts.push(`${counts.highlight} more ${pluralize(counts.highlight, 'highlight')}`);
+  if (counts.new > 0) parts.push(`${counts.new} new ${pluralize(counts.new, 'feature')}`);
+  if (counts.improved > 0) parts.push(`${counts.improved} ${pluralize(counts.improved, 'improvement')}`);
+  if (counts.fixed > 0) parts.push(`${counts.fixed} ${pluralize(counts.fixed, 'fix', 'fixes')}`);
+  if (parts.length === 0) return null;
+  return joinNaturally(parts);
+}
+
+/** Auto-generate the headline when the workflow input is empty. Picks the
+ *  first bullet from the highest-priority non-empty category. Bullets in
+ *  this codebase are already capitalised + period-terminated by the helper,
+ *  so we use them verbatim. */
+function buildAutoHeadline(planned) {
+  if (planned.length === 0) return 'Stability and polish update.';
+  return sortPlannedByPriority(planned)[0].bullet;
+}
+
+/** Auto-generate the summary when the workflow input is empty. Joins the
+ *  top 1-2 priority bullets as prose and appends an enumerated tail for the
+ *  rest. Always returns a string >=20 chars (the floor enforced by
+ *  check-whats-new.mjs). */
+function buildAutoSummary(planned) {
+  if (planned.length === 0) return 'Internal updates and stability improvements for this build.';
+
+  const sorted = sortPlannedByPriority(planned);
+  const leadCount = Math.min(2, sorted.length);
+  const leadBullets = sorted.slice(0, leadCount).map(p => p.bullet);
+  const lead = leadBullets.join(' ');
+
+  const tail = buildCategoryCountPhrase(planned, { excludeBullets: leadBullets });
+  if (!tail) {
+    return lead.length >= 20 ? lead : `${lead} A focused update for this build.`;
+  }
+  return `${lead} Plus ${tail} across the rest of the build.`;
+}
+
 function runHelper(category, text) {
   if (DRY_RUN) {
     console.log(`  [dry-run] ${category}: "${text}"`);
@@ -224,11 +337,46 @@ const sinceDate = SINCE_OVERRIDE || determineSinceDate(source, pkgVersion);
 const headIso = getHeadCommitTime();
 const lowerIso = SINCE_OVERRIDE ? null : getPreviousReleaseTime(pkgVersion);
 
-console.log(`Building What's New entry for v${pkgVersion}`);
-console.log(`  Repo:        ${REPO}`);
-console.log(`  Since (date): ${sinceDate} (coarse pre-filter for gh search)`);
-console.log(`  Lower bound:  ${lowerIso || '(none — shallow clone or no previous release)'}`);
-console.log(`  Upper bound:  ${headIso || '(none — git not available)'}`);
+// ── Deploy-state banner ───────────────────────────────────────────────
+// Spell out the version state up-front so the workflow log makes it
+// obvious whether this is a fresh build, a re-run after failure, or an
+// unintended re-deploy. The "smart" recovery story (PRs from failed
+// attempts are preserved automatically) lives in the actual logic
+// further down, but this banner is what makes it AUDITABLE.
+const allEntries = listEntries(source);
+const previousShipped = allEntries.find(e => e.version !== pkgVersion) || allEntries[0];
+const topEntry = allEntries[0] || null;
+const versionDelta = previousShipped ? describeVersionDelta(previousShipped.version, pkgVersion) : { kind: 'first', label: 'first release' };
+// Detect the case where the user is re-deploying without bumping. The
+// runner-side mutation never commits back, so whatsNew.ts on main only
+// has an entry at this version if a previous run already SUCCEEDED and
+// committed it back. If a top entry exists at this version, it's either
+// a backfill or a re-deploy of an already-shipped build.
+const sameVersionAsTop = topEntry && topEntry.version === pkgVersion;
+
+console.log('═'.repeat(60));
+console.log(`What's New plan for v${pkgVersion}`);
+console.log('═'.repeat(60));
+console.log(`  Repo:           ${REPO}`);
+console.log(`  Last shipped:   ${previousShipped ? `v${previousShipped.version} (${previousShipped.date})` : '(none — first release)'}`);
+console.log(`  Current:        v${pkgVersion}`);
+console.log(`  Version delta:  ${versionDelta.label}`);
+if (sameVersionAsTop) {
+  console.log('  ⚠  whatsNew.ts already has a top entry at this version — likely a re-deploy of a previously shipped build, or a local backfill.');
+}
+if (versionDelta.kind === 'multi-patch') {
+  console.log('  ⓘ  Multiple patch versions ahead of last shipped. If earlier patch attempts failed, their PRs are still included automatically (the lower bound walks back to the last DIFFERENT version on disk).');
+}
+if (versionDelta.kind === 'equal') {
+  console.log('  ⓘ  Same version as last shipped — re-running the deploy. PRs merged since the original ship-date will be picked up.');
+}
+if (versionDelta.kind === 'regression') {
+  console.log('  ✗  Current version is BEHIND last shipped. This is almost certainly a mistake. Bump package.json before continuing.');
+}
+console.log('');
+console.log(`  Since (date):   ${sinceDate} (coarse pre-filter for gh search)`);
+console.log(`  Lower bound:    ${lowerIso || '(none — shallow clone or no previous release)'}`);
+console.log(`  Upper bound:    ${headIso || '(none — git not available)'}`);
 console.log('');
 
 if (!headIso) {
@@ -270,6 +418,30 @@ const droppedByBounds = before - prs.length;
 console.log(`  Found ${prs.length} merged PR(s) in window.${droppedByBounds > 0 ? ` (Dropped ${droppedByBounds} outside ISO bounds.)` : ''}`);
 console.log('');
 
+// Empty-window guidance. Without this, the script would still set the
+// headline+summary, then check-whats-new.mjs would fail downstream with a
+// generic "no bullets" error and the user would have to read three log
+// sections to figure out what happened. Bail early with one clear,
+// actionable message instead.
+if (prs.length === 0) {
+  console.error('');
+  console.error('::error::No merged PRs in this window — there is nothing to ship.');
+  console.error('');
+  console.error('  Likely causes:');
+  if (versionDelta.kind === 'equal' || sameVersionAsTop) {
+    console.error('    • You re-deployed the same version (v' + pkgVersion + ') with no new merges since.');
+    console.error('      → If the previous attempt actually succeeded, this is expected — skip the run.');
+    console.error('      → If it failed, merge the next change (or wait for one) and re-trigger.');
+  } else {
+    console.error('    • The version was bumped on a commit that came AFTER all the PRs you wanted to ship.');
+    console.error('      → Check `git log --first-parent -- package.json` to see when the bump landed.');
+    console.error('    • The previous shipped entry already covers everything that\'s merged.');
+    console.error('      → Either ship a manual bullet via `npm run whats-new -- improved "..."`, or skip the build.');
+  }
+  console.error('');
+  process.exit(1);
+}
+
 // ── Classify ────────────────────────────────────────────────────────────
 const planned = []; // { number, category, bullet }
 const skipped = []; // { number, reason }
@@ -303,14 +475,23 @@ if (skipped.length > 0) {
 }
 console.log('');
 
+// ── Resolve headline + summary (auto-fallback when omitted) ────────────
+const finalHeadline = HEADLINE ?? buildAutoHeadline(planned);
+const finalSummary = SUMMARY ?? buildAutoSummary(planned);
+
+console.log('  Headline source: ' + (HEADLINE ? 'workflow input' : 'auto-generated from PRs'));
+console.log(`    "${finalHeadline}"`);
+console.log('  Summary source:  ' + (SUMMARY ? 'workflow input' : 'auto-generated from PRs'));
+console.log(`    "${finalSummary}"`);
+console.log('');
+
 // ── Set headline + summary first (also creates the entry if needed) ────
-runHelperField('headline', HEADLINE);
-runHelperField('summary', SUMMARY);
+runHelperField('headline', finalHeadline);
+runHelperField('summary', finalSummary);
 
 // ── Append bullets, sorted by category priority then PR number ─────────
-const ORDER = { highlight: 0, new: 1, improved: 2, fixed: 3 };
 planned.sort((a, b) => {
-  const o = ORDER[a.category] - ORDER[b.category];
+  const o = ENTRY_ORDER[a.category] - ENTRY_ORDER[b.category];
   return o !== 0 ? o : a.number - b.number;
 });
 
