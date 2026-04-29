@@ -5,7 +5,7 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { LiquidButton } from '@/components/game/LiquidButton';
 import { SaveStatusIndicator } from '@/components/game/SaveStatusIndicator';
 import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users, Bug, ChartBar, Sparkles, Wrench } from 'lucide-react';
-import { DevToolsBody, DEV_TOOLS_VISIBLE } from '@/components/dev/DevToolsPanel';
+import { DevToolsBody } from '@/components/dev/DevToolsPanel';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { useState, useRef, useEffect } from 'react';
@@ -435,6 +435,22 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
         </div>
       </SettingsSection>
 
+      {/* ─── Dev Tools ─── (mirror of the floating trigger; surfaced near
+          the top so testers can find it on TestFlight without hunting. Same
+          controls as the bottom-right pill — opens in a bottom sheet.) */}
+      <SettingsSection title="Dev Tools">
+        <LiquidButton tone="amber" onClick={() => setDevToolsOpen(true)}>
+          <span className="flex items-center justify-start gap-3 px-3">
+            <Wrench className="w-4 h-4" />
+            Open Dev Tools
+          </span>
+        </LiquidButton>
+        <p className="text-[10px] text-muted-foreground mt-2 leading-snug">
+          Screen shortcuts, time advance, budget adjust, save/reset, and
+          scenario seeders — all in one bottom sheet.
+        </p>
+      </SettingsSection>
+
       {/* ─── Help ─── */}
       <SettingsSection title="Help">
         <div className="space-y-2">
@@ -637,25 +653,6 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
           <p className="text-[10px] text-muted-foreground mt-2 leading-snug">
             Fires an uncaught error to verify the crash-reporting pipeline.
             Visible only in development builds.
-          </p>
-        </SettingsSection>
-      )}
-
-      {/* ─── Dev Tools (mirror of the floating trigger) ───
-          Same visibility gate as the bottom-right pill, so we don't surface
-          state-mutating shortcuts in shipped prod builds. Useful when the
-          floating button goes off-screen or is occluded by an overlay. */}
-      {DEV_TOOLS_VISIBLE && (
-        <SettingsSection title="Dev Tools">
-          <LiquidButton tone="amber" onClick={() => setDevToolsOpen(true)}>
-            <span className="flex items-center justify-start gap-3 px-3">
-              <Wrench className="w-4 h-4" />
-              Open Dev Tools
-            </span>
-          </LiquidButton>
-          <p className="text-[10px] text-muted-foreground mt-2 leading-snug">
-            Same controls as the floating dev pill — screen shortcuts, time
-            advance, budget adjust, save/reset. Opens in a bottom sheet.
           </p>
         </SettingsSection>
       )}
