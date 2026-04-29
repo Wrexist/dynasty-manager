@@ -126,6 +126,43 @@ describe('National Team Real-Player Pool', () => {
     }
   });
 
+  it('keeps homonymous real players when their fcIds differ', () => {
+    // Regression for codex review on PR #500: the old name-based dedup inside
+    // the real-pool loop dropped any second template sharing fn|ln, even
+    // when fcIds differed. Verify that for any nationality whose pool has a
+    // duplicate display name, both fcIds still appear in the produced pool.
+    let tested = 0;
+    for (const [nationality, templates] of Object.entries(NATIONAL_PLAYER_POOL)) {
+      const seen = new Map<string, string[]>(); // nameKey -> fcIds
+      for (const t of templates) {
+        if (!t.fcId) continue;
+        const key = `${t.fn.toLowerCase()}|${t.ln.toLowerCase()}`;
+        const list = seen.get(key) ?? [];
+        list.push(t.fcId);
+        seen.set(key, list);
+      }
+      const homonyms = [...seen.entries()].filter(([, ids]) => ids.length > 1);
+      if (homonyms.length === 0) continue;
+
+      const pool = generateNationalTeamPool(nationality, {}, 1, { communityPackEnabled: true });
+      // We can't directly look up by fcId in the produced pool (player IDs
+      // are random UUIDs), so check that the count of pool entries with
+      // the homonymous display name matches the number of distinct real
+      // templates with that name.
+      for (const [nameKey, fcIds] of homonyms) {
+        const [fn, ln] = nameKey.split('|');
+        const matches = Object.values(pool).filter(
+          p => p.firstName.toLowerCase() === fn && p.lastName.toLowerCase() === ln,
+        );
+        expect(matches.length).toBeGreaterThanOrEqual(fcIds.length);
+        tested++;
+      }
+      if (tested >= 3) break; // a few nationalities is enough proof
+    }
+    // Sanity: we must have actually exercised the homonym path somewhere.
+    expect(tested).toBeGreaterThan(0);
+  });
+
   it('with community pack enabled, contains every real player and no procedural fillers', () => {
     const pool = generateNationalTeamPool('England', {}, 1, { communityPackEnabled: true });
     const realPool = NATIONAL_PLAYER_POOL['England'];

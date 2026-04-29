@@ -631,24 +631,42 @@ export function generateNationalTeamPool(
   const newPlayers: Record<string, Player> = {};
 
   // ── Step 1: Inject real FC26 pool entries ──
-  // Track full names AND surnames so we can later block procedural fillers
-  // that would create faux duplicates ("Ryan James" alongside real "Reece James").
-  const existingNameKeys = new Set(
+  // `inGameNameKeys` snapshots names that already exist as in-game players so
+  // we never re-add them from the real pool. `blockedSurnames` captures
+  // surnames the procedural fallback must avoid colliding with. Both are
+  // initialised from `existing` only — the real-pool loop intentionally does
+  // not add to `inGameNameKeys`, otherwise two distinct FC26 players sharing
+  // a display name (e.g. multiple "Lucas Silva"s, "Lukas Müller"s) would
+  // silently drop the second one and break the community-pack promise of
+  // exposing every real candidate.
+  const inGameNameKeys = new Set(
     existing.map(p => `${p.firstName.toLowerCase()}|${p.lastName.toLowerCase()}`)
   );
   const blockedSurnames = new Set(existing.map(p => p.lastName.toLowerCase()));
+  // Names already accumulated in the resulting pool — used by the procedural
+  // fallback below to avoid re-stamping a name that's just been added (real
+  // OR existing). Distinct from `inGameNameKeys` because we add to it freely
+  // for procedural-dedup purposes without affecting real-pool dedup.
+  const accumulatedNameKeys = new Set(inGameNameKeys);
 
   const realPool = getRealPoolForNationality(nationality);
   // With the community pack on, every real international is fair game — no
   // cap. With it off, retain the legacy NT_CANDIDATE_POOL_TARGET ceiling so
   // procedural players still feature heavily.
   const realCap = communityPackEnabled ? Infinity : NT_CANDIDATE_POOL_TARGET;
+  // Within-loop dedup keyed on fcId so distinct real players who happen to
+  // share a display name both pass through. Falls back to a name-based key
+  // for templates without an fcId (legacy CLUB_TEMPLATES entries).
+  const seenRealKeys = new Set<string>();
   let realAdded = 0;
   for (const t of realPool) {
     if (realAdded >= realCap) break;
-    const key = `${t.fn.toLowerCase()}|${t.ln.toLowerCase()}`;
-    if (existingNameKeys.has(key)) continue; // already in-game via club squad
-    existingNameKeys.add(key);
+    const nameKey = `${t.fn.toLowerCase()}|${t.ln.toLowerCase()}`;
+    if (inGameNameKeys.has(nameKey)) continue; // already in-game via club squad
+    const dedupKey = t.fcId ? `id:${t.fcId}` : `n:${nameKey}`;
+    if (seenRealKeys.has(dedupKey)) continue;
+    seenRealKeys.add(dedupKey);
+    accumulatedNameKeys.add(nameKey);
     blockedSurnames.add(t.ln.toLowerCase());
     // Pass canonical nationality so appearance generation uses the game's
     // nation name rather than the FC26 alias (e.g. "Netherlands" not "Holland")
@@ -697,7 +715,7 @@ export function generateNationalTeamPool(
       const candidate = pickNameForNationality(nationality);
       const fullKey = `${candidate.firstName.toLowerCase()}|${candidate.lastName.toLowerCase()}`;
       const surnameKey = candidate.lastName.toLowerCase();
-      if (existingNameKeys.has(fullKey)) continue;
+      if (accumulatedNameKeys.has(fullKey)) continue;
       if (blockedSurnames.has(surnameKey)) continue;
       firstName = candidate.firstName;
       lastName = candidate.lastName;
@@ -712,7 +730,7 @@ export function generateNationalTeamPool(
     // twice). Surnames are NOT added to blockedSurnames — multiple procedural
     // players can share a surname; the surname block is reserved for real-
     // pool entries to prevent the "Ryan James / Reece James" effect.
-    existingNameKeys.add(`${firstName.toLowerCase()}|${lastName.toLowerCase()}`);
+    accumulatedNameKeys.add(`${firstName.toLowerCase()}|${lastName.toLowerCase()}`);
 
     player.firstName = firstName;
     player.lastName = lastName;
