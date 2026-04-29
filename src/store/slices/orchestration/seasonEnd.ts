@@ -252,6 +252,21 @@ export function endSeasonImpl(set: Set, get: Get) {
 
   let workingClubs = { ...clubs };
   const workingPlayers = { ...players, ...ballonDOrPlayers };
+
+  // Drop "ghost" Ballon d'Or holders whose reign just ended. These were
+  // synthesised at game-init from elite global clubs not loaded into this
+  // save; once they lose top-10 they no longer serve a display purpose, so
+  // we delete them rather than letting the players map accumulate dead
+  // refs across seasons. A ghost is identified by having a clubId that
+  // isn't in the current clubs map (real loaded players always have a
+  // valid clubId or empty string for free agents).
+  for (const id of Object.keys(workingPlayers)) {
+    const p = workingPlayers[id];
+    if (!p || !p.clubId) continue;
+    if (workingClubs[p.clubId]) continue; // real player, club is loaded
+    if (typeof p.ballonDOrTop10HoldSeason === 'number') continue; // still reigning
+    delete workingPlayers[id];
+  }
   let newDivisionClubs = { ...state.divisionClubs };
   let newPlayerDiv = playerDiv;
   const turnover: SeasonTurnover = { leagueId: playerDiv, promotedClubs: [], relegatedClubs: [], playoffWinners: [] };
