@@ -6,7 +6,7 @@ import { PremiumProgress } from '@/components/game/PremiumProgress';
 import { PlayerCard, PLAYER_CARD_SIZE_PX } from '@/components/game/PlayerCard';
 import { StatusPill } from '@/components/game/StatusPill';
 import { PlayerStatusBadges } from '@/components/game/PlayerStatusBadges';
-import { GraduationCap, Star, ArrowUpRight, Trash2, Wrench, Users, X, Check, Zap, Brain, Target, Dumbbell } from 'lucide-react';
+import { GraduationCap, Star, ArrowUpRight, Trash2, Wrench, Users, X, Check, Zap, Brain, Target, Dumbbell, ChevronDown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { getPotentialInfo, posBadgeColor } from '@/utils/uiHelpers';
@@ -254,11 +254,11 @@ const YouthAcademy = () => {
                         <button
                           type="button"
                           onClick={() => { hapticLight(); setFocusEditorId(prospect.playerId); }}
-                          className={cn('flex-1 flex items-center justify-center gap-0.5 py-1 rounded-md bg-muted/20 hover:bg-muted/40 active:scale-[0.97] transition-all')}
-                          title="Tap to set training focus"
+                          className="flex-1 flex items-center justify-center gap-1 py-1 rounded-md bg-muted/20 hover:bg-muted/40 active:scale-[0.97] transition-all"
                         >
                           <FocusIcon className={cn('w-2.5 h-2.5', focusDef.tone)} />
                           <span className={cn('text-[9px] font-bold tracking-wider', focusDef.tone)}>{focusDef.short}</span>
+                          <ChevronDown className="w-2.5 h-2.5 text-muted-foreground/60" />
                         </button>
                       ) : (
                         <div className="flex-1 grid grid-cols-4 gap-0.5">
@@ -270,7 +270,7 @@ const YouthAcademy = () => {
                                 key={opt.id}
                                 onClick={() => handleFocusChange(prospect.playerId, opt.id)}
                                 className={cn(
-                                  'flex items-center justify-center py-1 rounded-md text-[8px] active:scale-[0.94] transition-all',
+                                  'flex items-center justify-center py-1 rounded-md active:scale-[0.94] transition-all',
                                   isCurrent ? 'bg-primary/25 ring-1 ring-primary/40' : 'bg-muted/20 hover:bg-muted/40',
                                 )}
                                 title={opt.label}
@@ -286,16 +286,16 @@ const YouthAcademy = () => {
                         onClick={() => canSpotlight && handleSpotlight(prospect.playerId)}
                         disabled={!canSpotlight}
                         className={cn(
-                          'p-1 rounded-md transition-all',
+                          'flex items-center gap-0.5 py-1 px-1.5 rounded-md transition-all',
                           prospect.spotlightedThisSeason
                             ? 'bg-amber-400/20 text-amber-400 cursor-default'
                             : canSpotlight
                               ? 'bg-amber-400/15 text-amber-300 hover:bg-amber-400/30 active:scale-[0.94]'
                               : 'bg-muted/20 text-muted-foreground/40 cursor-not-allowed',
                         )}
-                        title={prospect.spotlightedThisSeason ? 'Spotlighted this season' : canSpotlight ? `Spotlight (boost dev +22) · ${spotlightUsesRemaining} left` : 'No spotlights left this season'}
                       >
-                        <Zap className="w-3 h-3" />
+                        <Zap className="w-2.5 h-2.5" />
+                        <span className="text-[8px] font-bold tracking-wider">BOOST</span>
                       </button>
                     </div>
 
