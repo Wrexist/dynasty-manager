@@ -132,15 +132,22 @@ jobs:
           xcodebuild -version
           echo "iOS SDKs available:"
           xcodebuild -showsdks | grep -i ios || true
-          # Beta Xcodes on fresh runners can ship without the iOS platform
-          # (only macOS / simulator). If iphoneos is missing, download it so
-          # `-destination 'generic/platform=iOS'` resolves to a real device.
-          if ! xcodebuild -showsdks | grep -qi 'iphoneos'; then
-            echo "iOS platform missing; downloading..."
-            xcodebuild -downloadPlatform iOS
-            echo "iOS SDKs after download:"
-            xcodebuild -showsdks | grep -i ios || true
-          fi
+          echo "Installed iOS Simulator runtimes:"
+          xcrun simctl list runtimes 2>/dev/null | grep -i 'iOS' || echo "(none)"
+          # Always (re-)download the iOS platform. This ensures both the
+          # iphoneos SDK *and* a simulator runtime matching the SDK version
+          # are present. Even when archiving for `generic/platform=iOS`,
+          # actool validates simulator runtime availability when compiling
+          # asset catalogs — if the runner's pre-installed runtimes lag
+          # behind the Xcode SDK (e.g. Xcode 26.5 SDK 23F5054d vs. only
+          # iOS 26.4 / 23E254a runtime on disk), archive fails with
+          # "No simulator runtime version from [...] available to use with
+          # iphonesimulator SDK version <X>". The command is idempotent
+          # when the platform is already current.
+          echo "Ensuring iOS platform + matching simulator runtime are installed..."
+          xcodebuild -downloadPlatform iOS
+          echo "iOS Simulator runtimes after download:"
+          xcrun simctl list runtimes 2>/dev/null | grep -i 'iOS' || true
 
       # ─── What's New: auto-generate from merged PRs ─────────────────────
       # Generates the top entry of src/data/whatsNew.ts from PRs merged into
