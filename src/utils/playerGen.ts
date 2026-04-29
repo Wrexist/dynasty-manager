@@ -24,6 +24,37 @@ import { NATIONALITY_NAME_POOLS, FALLBACK_FIRST_NAMES, FALLBACK_LAST_NAMES } fro
 import { CLUB_TEMPLATES, type PlayerTemplate } from '@/data/playerTemplates';
 import { resolveSquadKey } from '@/data/clubTemplateAliases';
 import { claimRealPlayer, pickUnclaimedRealPlayer, isNationalityAliasOf } from '@/utils/realPlayerPicker';
+import { NATIONAL_PLAYER_POOL } from '@/data/nationalPlayerPool';
+
+/**
+ * Lookup real first names by fcId across every nationality pool. Built lazily
+ * so the (large) NATIONAL_PLAYER_POOL only walks once per process. Used by
+ * buildPlayerFromTemplate to recover full names when a community-pack
+ * template ships an abbreviated form like "M. Salah" but the same fcId in
+ * the national pool stores the full "Mohamed".
+ *
+ * Both prefixed ("fc26-209331") and bare ("209331") keys are registered
+ * because byClub.ts strips the fc26- prefix while NATIONAL_PLAYER_POOL keeps
+ * it.
+ */
+let realFirstNameByFcId: Map<string, string> | null = null;
+function getRealFirstNameByFcId(): Map<string, string> {
+  if (realFirstNameByFcId) return realFirstNameByFcId;
+  const map = new Map<string, string>();
+  for (const pool of Object.values(NATIONAL_PLAYER_POOL)) {
+    for (const t of pool) {
+      if (!t.fcId) continue;
+      // Skip templates whose own first name is just an initial — they can't
+      // help us recover a real name.
+      if (ABBREVIATED_FIRST_NAME_RE.test(t.fn.trim())) continue;
+      map.set(t.fcId, t.fn);
+      const bare = t.fcId.replace(/^fc26-/, '');
+      if (bare !== t.fcId) map.set(bare, t.fn);
+    }
+  }
+  realFirstNameByFcId = map;
+  return map;
+}
 
 const ALL_NATIONALITIES = [
   'England', 'Spain', 'France', 'Germany', 'Italy', 'Brazil', 'Argentina', 'Portugal',
@@ -284,10 +315,22 @@ export function buildPlayerFromTemplate(
   const player = generatePlayer(t.pos, t.ovr, clubId, season);
   if (useRealNames) {
     // Community-pack templates (auto-derived from FC26 short_name) often
-    // ship as `"E."` / `"A. Van"`; expand to a full first name so cards
-    // and lists don't render a bare initial.
-    const expansionSeed = t.fcId ?? `${t.fn}|${t.ln}|${nationality}|${t.pos}`;
-    player.firstName = expandAbbreviatedFirstName(t.fn, nationality, expansionSeed);
+    // ship as `"E."` / `"A. Van"`; resolve to the canonical first name from
+    // NATIONAL_PLAYER_POOL by fcId when possible (so "M. Salah" expands to
+    // "Mohamed Salah", not the random "Mahmoud" the deterministic name-pool
+    // expander would otherwise pick). Fall through to the abbreviation-pool
+    // expander when no match exists.
+    let resolved: string | null = null;
+    if (t.fcId && ABBREVIATED_FIRST_NAME_RE.test(t.fn.trim())) {
+      const real = getRealFirstNameByFcId().get(t.fcId);
+      if (real) resolved = real;
+    }
+    if (resolved) {
+      player.firstName = resolved;
+    } else {
+      const expansionSeed = t.fcId ?? `${t.fn}|${t.ln}|${nationality}|${t.pos}`;
+      player.firstName = expandAbbreviatedFirstName(t.fn, nationality, expansionSeed);
+    }
     player.lastName = t.ln;
   } else {
     // Anonymized mode: keep every stat the template carries, but pick a

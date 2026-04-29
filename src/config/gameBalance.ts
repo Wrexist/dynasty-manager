@@ -660,6 +660,14 @@ export const BALLON_DOR_TOP_N = 25;
 /** Minimum appearances to be eligible for the Ballon d'Or ranking. Below
  *  this floor a player's counting stats aren't a meaningful sample. */
 export const BALLON_DOR_MIN_APPEARANCES = 8;
+/** Soft cap on entries from any single division (e.g. eng-1 / esp-1 /
+ *  ger-1). Once a division has BALLON_DOR_MAX_PER_DIVISION players in the
+ *  ranking, additional candidates from that division are deferred so the
+ *  top 25 features players from multiple leagues — mirrors the real
+ *  Ballon d'Or where the EPL/La Liga/Bundesliga/Serie A all coexist. The
+ *  cap is "soft" in that if there aren't enough qualifying players from
+ *  other divisions to fill the 25, the over-cap leagues backfill. */
+export const BALLON_DOR_MAX_PER_DIVISION = 6;
 /** Weights for the Ballon d'Or scoring formula. v70: `overall` bumped
  *  again (2.0 → 2.5) so a 90-rated player gets +225 from raw quality —
  *  with the new elite-club bonus this anchors top-flight stars at the
