@@ -49,11 +49,10 @@ function bucketForPosition(pos: string): PositionBucket {
 }
 
 const NationalTeamPage = () => {
-  const { nationalTeam, managerNationality, players, clubs, setScreen, updateNationalSquad, setNationalFormation, internationalTournament, selectPlayer } = useGameStore(useShallow(s => ({
+  const { nationalTeam, managerNationality, players, setScreen, updateNationalSquad, setNationalFormation, internationalTournament, selectPlayer } = useGameStore(useShallow(s => ({
     nationalTeam: s.nationalTeam,
     managerNationality: s.managerNationality,
     players: s.players,
-    clubs: s.clubs,
     setScreen: s.setScreen,
     updateNationalSquad: s.updateNationalSquad,
     setNationalFormation: s.setNationalFormation,
@@ -517,18 +516,16 @@ const NationalTeamPage = () => {
             </div>
             {/* Overall progress bar */}
             <div className="h-1.5 rounded-full bg-muted/30 overflow-hidden mb-3">
-              <motion.div
+              <div
                 className={cn(
-                  'h-full rounded-full',
+                  'h-full rounded-full transition-[width] duration-300 ease-out',
                   squadPlayers.length === NATIONAL_SQUAD_SIZE
                     ? 'bg-emerald-400'
                     : squadPlayers.length > NATIONAL_SQUAD_SIZE
                       ? 'bg-destructive'
                       : 'bg-primary',
                 )}
-                initial={false}
-                animate={{ width: `${Math.min(100, (squadPlayers.length / NATIONAL_SQUAD_SIZE) * 100)}%` }}
-                transition={{ duration: 0.3, ease: 'easeOut' }}
+                style={{ width: `${Math.min(100, (squadPlayers.length / NATIONAL_SQUAD_SIZE) * 100)}%` }}
               />
             </div>
             {/* Position quota chips */}
@@ -615,70 +612,38 @@ const NationalTeamPage = () => {
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-3 justify-items-center">
-                    <AnimatePresence initial={false}>
-                      {poolPlayers.map((player, i) => {
-                        const inSquad = squadSet.has(player.id);
-                        const isFull = squadPlayers.length >= NATIONAL_SQUAD_SIZE;
-                        const disabled = !inSquad && isFull;
-                        return (
-                          <motion.button
-                            key={player.id}
-                            type="button"
-                            onClick={() => !disabled && handleTogglePlayer(player.id)}
-                            disabled={disabled}
-                            initial={{ opacity: 0, y: 6 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: Math.min(i * 0.012, 0.18) }}
-                            className={cn(
-                              'relative rounded-2xl transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
-                              inSquad
-                                ? 'shadow-[0_0_0_2px_hsl(var(--primary)/0.7),0_0_18px_hsl(var(--primary)/0.35)]'
-                                : disabled
-                                  ? 'opacity-35 cursor-not-allowed grayscale'
-                                  : 'opacity-90 hover:opacity-100 active:scale-[0.97]',
-                            )}
-                          >
-                            <PlayerCard
-                              player={player}
-                              size="lg"
-                              interactive="none"
-                              showConditionView={false}
-                            />
-                            {/* Picked-state checkmark — top-left corner, plays
-                                nicely with the existing OVR/POS in that area
-                                because it sits clipped against the rim. */}
-                            {inSquad && (
-                              <div className="absolute -top-1.5 -left-1.5 w-7 h-7 rounded-full bg-primary text-primary-foreground border-2 border-background flex items-center justify-center shadow-lg z-10">
-                                <Check className="w-3.5 h-3.5" />
-                              </div>
-                            )}
-                            {/* Status badges (injury/contract). In picker
-                                mode we don't surface XI/SUB. */}
-                            <div className="absolute top-1.5 right-1.5 z-10 pointer-events-none">
-                              <PlayerStatusBadges
-                                player={player}
-                                season={season}
-                                week={week}
-                                hideContract
-                              />
+                    {poolPlayers.map((player) => {
+                      const inSquad = squadSet.has(player.id);
+                      const disabled = !inSquad && squadPlayers.length >= NATIONAL_SQUAD_SIZE;
+                      return (
+                        <button
+                          key={player.id}
+                          type="button"
+                          onClick={() => !disabled && handleTogglePlayer(player.id)}
+                          disabled={disabled}
+                          className={cn(
+                            'relative rounded-2xl transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
+                            inSquad
+                              ? 'shadow-[0_0_0_2px_hsl(var(--primary)/0.7),0_0_18px_hsl(var(--primary)/0.35)]'
+                              : disabled
+                                ? 'opacity-35 cursor-not-allowed grayscale'
+                                : 'active:scale-[0.97]',
+                          )}
+                        >
+                          <PlayerCard
+                            player={player}
+                            size="lg"
+                            interactive="none"
+                            showConditionView={false}
+                          />
+                          {inSquad && (
+                            <div className="absolute -top-1.5 -left-1.5 w-7 h-7 rounded-full bg-primary text-primary-foreground border-2 border-background flex items-center justify-center shadow-lg z-10">
+                              <Check className="w-3.5 h-3.5" />
                             </div>
-                            {/* Caps + club footer chip */}
-                            <div className="absolute bottom-1.5 left-1.5 right-1.5 flex items-center justify-between gap-1 pointer-events-none">
-                              <span className="px-1.5 py-0.5 rounded-md bg-black/70 backdrop-blur-sm text-[9px] font-semibold text-white/90 truncate max-w-[70%]">
-                                {player.clubId && clubs[player.clubId]
-                                  ? clubs[player.clubId].shortName
-                                  : 'External'}
-                              </span>
-                              {(player.internationalCaps ?? 0) > 0 && (
-                                <span className="px-1.5 py-0.5 rounded-md bg-black/70 backdrop-blur-sm text-[9px] font-semibold text-white/90 tabular-nums">
-                                  {player.internationalCaps}c
-                                </span>
-                              )}
-                            </div>
-                          </motion.button>
-                        );
-                      })}
-                    </AnimatePresence>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               );
@@ -709,15 +674,12 @@ const NationalTeamPage = () => {
                       </p>
                     </div>
                     <div className="grid grid-cols-2 gap-3 justify-items-center">
-                      {groupPlayers.map((player, i) => {
+                      {groupPlayers.map((player) => {
                         const isStarter = lineupSet.has(player.id);
                         const isSub = subsSet.has(player.id);
                         return (
-                          <motion.div
+                          <div
                             key={player.id}
-                            initial={i < 12 ? { opacity: 0, y: 6 } : false}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: Math.min(i * 0.02, 0.25), duration: 0.15 }}
                             className={cn('relative', player.injured && 'opacity-70')}
                           >
                             <PlayerCard
@@ -742,14 +704,7 @@ const NationalTeamPage = () => {
                                 }
                               />
                             </div>
-                            {(player.internationalCaps ?? 0) > 0 && (
-                              <div className="absolute bottom-1.5 left-1.5 right-1.5 flex justify-end pointer-events-none">
-                                <span className="px-1.5 py-0.5 rounded-md bg-black/70 backdrop-blur-sm text-[9px] font-semibold text-white/90 tabular-nums">
-                                  {player.internationalCaps}c
-                                </span>
-                              </div>
-                            )}
-                          </motion.div>
+                          </div>
                         );
                       })}
                     </div>
