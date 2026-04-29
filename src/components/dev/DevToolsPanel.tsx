@@ -64,18 +64,21 @@ const SCREEN_SHORTCUTS: { screen: GameScreen; label: string }[] = [
 ];
 
 /**
- * Evaluate once at module load. Only the Vite dev server (`import.meta
- * .env.DEV === true`) auto-enables the panel; every other build — prod,
- * staging, qa, build:dev, preview — requires the localStorage opt-in so
- * custom modes like `vite build --mode staging` can't accidentally ship
- * state-mutating shortcuts to end users.
+ * Evaluate once at module load. Auto-enables on the Vite dev server
+ * (`import.meta.env.DEV === true`) AND on any non-production mode
+ * (`build:dev`, `preview`, `staging`, `qa`, etc.) so testers don't have
+ * to set the localStorage flag by hand. Production builds (TestFlight,
+ * App Store, prod web) still require the explicit `devtools=1` opt-in
+ * so state-mutating shortcuts can't leak to end users.
  */
 function resolveVisibility(): { visible: boolean; source: string } {
   let dev = false;
   let mode = 'unknown';
+  let isProd = false;
   try {
     dev = import.meta.env?.DEV === true;
     mode = import.meta.env?.MODE ?? 'unknown';
+    isProd = mode === 'production';
   } catch {
     // import.meta can throw in exotic runtimes; fall through.
   }
@@ -91,7 +94,8 @@ function resolveVisibility(): { visible: boolean; source: string } {
 
   if (flag) return { visible: true, source: `localStorage:devtools=1 (mode=${mode})` };
   if (dev) return { visible: true, source: `vite dev server (mode=${mode})` };
-  return { visible: false, source: `non-dev build (mode=${mode}), no flag` };
+  if (!isProd) return { visible: true, source: `non-production build (mode=${mode})` };
+  return { visible: false, source: `production build (mode=${mode}), no flag` };
 }
 
 const VISIBILITY = resolveVisibility();
