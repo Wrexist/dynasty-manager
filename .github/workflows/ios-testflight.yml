@@ -109,6 +109,12 @@ jobs:
             | sort -V \
             | tail -1) || true )
           if [ -z "$XCODE" ]; then
+            echo "::warning::No stable Xcode 26+ found; falling back to the latest beta. The iOS platform may need to be downloaded explicitly."
+            XCODE=$( (ls -d /Applications/Xcode_2[6-9]*.app /Applications/Xcode_[3-9][0-9]*.app 2>/dev/null \
+              | sort -V \
+              | tail -1) || true )
+          fi
+          if [ -z "$XCODE" ]; then
             echo "::error::No Xcode 26+ found on the runner. Apple requires iOS 26 SDK for App Store uploads (error 90725)."
             echo "Installed Xcode versions:"
             ls -d /Applications/Xcode*.app 2>/dev/null || echo "(none)"
@@ -116,9 +122,25 @@ jobs:
           fi
           echo "Selecting $XCODE"
           sudo xcode-select -s "$XCODE/Contents/Developer"
+          # GitHub macOS runners pre-set DEVELOPER_DIR in the job environment,
+          # which takes precedence over `xcode-select` for every subsequent
+          # step. Without this GITHUB_ENV line the archive step silently
+          # reverts to the runner's default Xcode (often a beta whose iOS
+          # platform component is missing — the cause of "iOS 26.5 is not
+          # installed" archive failures).
+          echo "DEVELOPER_DIR=$XCODE/Contents/Developer" >> "$GITHUB_ENV"
           xcodebuild -version
           echo "iOS SDKs available:"
           xcodebuild -showsdks | grep -i ios || true
+          # Beta Xcodes on fresh runners can ship without the iOS platform
+          # (only macOS / simulator). If iphoneos is missing, download it so
+          # `-destination 'generic/platform=iOS'` resolves to a real device.
+          if ! xcodebuild -showsdks | grep -qi 'iphoneos'; then
+            echo "iOS platform missing; downloading..."
+            xcodebuild -downloadPlatform iOS
+            echo "iOS SDKs after download:"
+            xcodebuild -showsdks | grep -i ios || true
+          fi
 
       # ─── What's New: auto-generate from merged PRs ─────────────────────
       # Generates the top entry of src/data/whatsNew.ts from PRs merged into
