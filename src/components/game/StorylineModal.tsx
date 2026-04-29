@@ -65,10 +65,22 @@ export function StorylineModal() {
       </div>
 
       {/* Body */}
-      <div className="bg-muted/30 rounded-lg p-3">
-        <div className="flex items-start gap-2">
-          <BookOpen className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
-          <p className="text-sm text-foreground">{pendingStoryline.body}</p>
+      <div
+        className="relative rounded-xl p-3 overflow-hidden"
+        style={{
+          background: 'linear-gradient(180deg, rgba(251,191,36,0.06) 0%, rgba(255,255,255,0.015) 100%)',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.07), inset 0 0 0 1px rgba(251,191,36,0.18)',
+        }}
+      >
+        {/* Left accent stripe — amber for storyline narrative tone */}
+        <span
+          aria-hidden
+          className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-xl"
+          style={{ background: 'linear-gradient(180deg, rgba(251,191,36,0.7) 0%, rgba(251,191,36,0.15) 100%)' }}
+        />
+        <div className="flex items-start gap-2 pl-1">
+          <BookOpen className="w-4 h-4 text-amber-400/80 mt-0.5 shrink-0" />
+          <p className="text-sm text-foreground leading-relaxed">{pendingStoryline.body}</p>
         </div>
       </div>
 

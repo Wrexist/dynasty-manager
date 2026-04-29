@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
+import { PremiumProgress } from '@/components/game/PremiumProgress';
 import { PlayerCard, PLAYER_CARD_SIZE_PX } from '@/components/game/PlayerCard';
 import { StatusPill } from '@/components/game/StatusPill';
 import { PlayerStatusBadges } from '@/components/game/PlayerStatusBadges';
@@ -24,10 +25,10 @@ const FOCUS_OPTIONS: { id: YouthFocus; label: string; short: string; Icon: typeo
   { id: 'mental', label: 'Mental', short: 'MEN', Icon: Brain, tone: 'text-cyan-400' },
 ];
 
-function devBarColor(score: number): string {
-  if (score >= 80) return 'bg-emerald-500';
-  if (score >= 40) return 'bg-primary';
-  return 'bg-amber-500';
+function devBarTone(score: number): 'emerald' | 'primary' | 'amber' {
+  if (score >= 80) return 'emerald';
+  if (score >= 40) return 'primary';
+  return 'amber';
 }
 
 function devTextColor(score: number): string {
@@ -238,12 +239,12 @@ const YouthAcademy = () => {
                           {Math.round(prospect.developmentScore)}%
                         </span>
                       </div>
-                      <div className="w-full h-1 bg-muted/50 rounded-full overflow-hidden">
-                        <div
-                          className={cn('h-full rounded-full transition-all duration-500', devBarColor(prospect.developmentScore))}
-                          style={{ width: `${prospect.developmentScore}%` }}
-                        />
-                      </div>
+                      <PremiumProgress
+                        size="sm"
+                        animate={false}
+                        tone={devBarTone(prospect.developmentScore)}
+                        value={prospect.developmentScore}
+                      />
                     </div>
 
                     {/* Focus + Spotlight row */}

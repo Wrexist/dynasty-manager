@@ -65,7 +65,12 @@ export function SubNav({ items, layoutId = 'subnav-pill' }: SubNavProps) {
                       ? { duration: 0 }
                       : { type: 'spring', stiffness: 500, damping: 38, mass: 0.8 }
                   }
-                  className="absolute inset-0 rounded-full bg-primary/90 shadow-[inset_0_1px_0_hsl(var(--foreground)/0.2),0_2px_8px_hsl(var(--primary)/0.3)] will-change-transform"
+                  className="absolute inset-0 rounded-full will-change-transform"
+                  style={{
+                    background: 'linear-gradient(180deg, hsl(43 96% 60%) 0%, hsl(var(--primary)) 55%, hsl(35 80% 38%) 100%)',
+                    boxShadow:
+                      'inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -1px 0 rgba(0,0,0,0.25), 0 2px 12px -2px hsl(var(--primary)/0.55)',
+                  }}
                 />
               )}
               <span className="relative inline-flex items-center gap-1.5">
