@@ -5,7 +5,7 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { LiquidButton } from '@/components/game/LiquidButton';
 import { SaveStatusIndicator } from '@/components/game/SaveStatusIndicator';
 import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users, Bug, ChartBar, Sparkles, Wrench } from 'lucide-react';
-import { DevToolsBody } from '@/components/dev/DevToolsPanel';
+import { DevToolsBody, DEV_TOOLS_VISIBLE } from '@/components/dev/DevToolsPanel';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { useState, useRef, useEffect } from 'react';
@@ -435,21 +435,23 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
         </div>
       </SettingsSection>
 
-      {/* ─── Dev Tools ─── (mirror of the floating trigger; surfaced near
-          the top so testers can find it on TestFlight without hunting. Same
-          controls as the bottom-right pill — opens in a bottom sheet.) */}
-      <SettingsSection title="Dev Tools">
-        <LiquidButton tone="amber" onClick={() => setDevToolsOpen(true)}>
-          <span className="flex items-center justify-start gap-3 px-3">
-            <Wrench className="w-4 h-4" />
-            Open Dev Tools
-          </span>
-        </LiquidButton>
-        <p className="text-[10px] text-muted-foreground mt-2 leading-snug">
-          Screen shortcuts, time advance, budget adjust, save/reset, and
-          scenario seeders — all in one bottom sheet.
-        </p>
-      </SettingsSection>
+      {/* ─── Dev Tools ─── Mirror of the floating trigger; only mounted
+          when DevTools are enabled (non-production build, or
+          localStorage.devtools=1 in prod for TestFlight debugging). */}
+      {DEV_TOOLS_VISIBLE && (
+        <SettingsSection title="Dev Tools">
+          <LiquidButton tone="amber" onClick={() => setDevToolsOpen(true)}>
+            <span className="flex items-center justify-start gap-3 px-3">
+              <Wrench className="w-4 h-4" />
+              Open Dev Tools
+            </span>
+          </LiquidButton>
+          <p className="text-[10px] text-muted-foreground mt-2 leading-snug">
+            Screen shortcuts, time advance, budget adjust, save/reset, and
+            scenario seeders — all in one bottom sheet.
+          </p>
+        </SettingsSection>
+      )}
 
       {/* ─── Help ─── */}
       <SettingsSection title="Help">
@@ -671,24 +673,27 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
       {/* Dev Tools Sheet — hosts the shared DevToolsBody inside a bottom
           sheet so Settings has a reliable entry point when the floating
           pill is hidden. Sheet provides its own overlay + X close; we
-          hide the body's internal X to avoid a visual duplicate. */}
-      <Sheet open={devToolsOpen} onOpenChange={setDevToolsOpen}>
-        <SheetContent
-          side="bottom"
-          className={cn(
-            'rounded-t-3xl border-0 p-0',
-            'bg-gradient-to-b from-[hsl(222_35%_14%/0.92)] via-[hsl(222_28%_10%/0.95)] to-[hsl(222_40%_7%/0.98)]',
-            'backdrop-blur-2xl backdrop-saturate-150',
-            'shadow-[0_0_0_0.5px_rgba(255,255,255,0.14)_inset,inset_0_1px_0_rgba(255,255,255,0.25),0_-20px_60px_-20px_rgba(0,0,0,0.7)]',
-            'h-[85vh] max-h-[85vh] flex flex-col',
-          )}
-        >
-          <SheetHeader className="sr-only">
-            <SheetTitle>Dev Tools</SheetTitle>
-          </SheetHeader>
-          <DevToolsBody onClose={() => setDevToolsOpen(false)} showCloseButton={false} />
-        </SheetContent>
-      </Sheet>
+          hide the body's internal X to avoid a visual duplicate. Only
+          mounted when DevTools are enabled for the build. */}
+      {DEV_TOOLS_VISIBLE && (
+        <Sheet open={devToolsOpen} onOpenChange={setDevToolsOpen}>
+          <SheetContent
+            side="bottom"
+            className={cn(
+              'rounded-t-3xl border-0 p-0',
+              'bg-gradient-to-b from-[hsl(222_35%_14%/0.92)] via-[hsl(222_28%_10%/0.95)] to-[hsl(222_40%_7%/0.98)]',
+              'backdrop-blur-2xl backdrop-saturate-150',
+              'shadow-[0_0_0_0.5px_rgba(255,255,255,0.14)_inset,inset_0_1px_0_rgba(255,255,255,0.25),0_-20px_60px_-20px_rgba(0,0,0,0.7)]',
+              'h-[85vh] max-h-[85vh] flex flex-col',
+            )}
+          >
+            <SheetHeader className="sr-only">
+              <SheetTitle>Dev Tools</SheetTitle>
+            </SheetHeader>
+            <DevToolsBody onClose={() => setDevToolsOpen(false)} showCloseButton={false} />
+          </SheetContent>
+        </Sheet>
+      )}
 
       {/* Feedback Sheet — matching liquid-glass treatment */}
       <Sheet open={feedbackOpen} onOpenChange={setFeedbackOpen}>
