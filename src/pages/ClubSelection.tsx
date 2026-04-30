@@ -5,8 +5,9 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
 import { CLUBS_DATA, LEAGUES, getLeaguesByCountry } from '@/data/league';
 import { CLUBS_BY_LEAGUE, LEAGUE_REGIONS } from '@/data/leagues';
-import { NATIONS, NATION_STARS } from '@/data/nations';
+import { NATIONS, getNationStarPlayers } from '@/data/nations';
 import { FlagIcon } from '@/components/game/FlagIcon';
+import { PlayerCard } from '@/components/game/PlayerCard';
 import { Button } from '@/components/ui/button';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { ArrowLeft, Wallet, Users, Loader2, Search, Globe, X, Building2, Sprout } from 'lucide-react';
@@ -17,7 +18,6 @@ import { readSessionJson, writeSessionJson, removeSessionKey, STORAGE_KEYS } fro
 import { hapticLight } from '@/utils/haptics';
 import { LoadingOverlay } from '@/components/LoadingOverlay';
 import { errorToast } from '@/utils/gameToast';
-import { getStarRatingColor } from '@/utils/uiHelpers';
 
 
 
@@ -392,7 +392,7 @@ const ClubSelection = () => {
                   </h3>
                   <div className="space-y-2">
                     {nations.map((nation, i) => {
-                      const stars = NATION_STARS[nation.name] || [];
+                      const starPlayers = getNationStarPlayers(nation.name);
                       const isSelected = selectedNationality === nation.name;
                       const rankClass =
                         nation.baseRanking <= 5 ? 'text-emerald-400' :
@@ -437,16 +437,16 @@ const ClubSelection = () => {
                                 <span className="text-[9px] font-semibold text-muted-foreground/50 uppercase tracking-wider">World</span>
                               </div>
                             </div>
-                            {stars.length > 0 && (
-                              <div className="mt-3 pt-3 border-t border-white/[0.06] grid grid-cols-3 gap-2">
-                                {stars.map((player) => (
-                                  <div key={player.name} className="min-w-0">
-                                    <p className="text-[11px] text-foreground/90 font-medium truncate leading-tight">{player.name}</p>
-                                    <div className="flex items-baseline gap-1.5 mt-1">
-                                      <span className="text-[9px] uppercase tracking-wider text-muted-foreground/50 font-semibold">{player.position}</span>
-                                      <span className={cn('text-xs font-bold tabular-nums', getStarRatingColor(player.rating))}>{player.rating}</span>
-                                    </div>
-                                  </div>
+                            {starPlayers.length > 0 && (
+                              <div className="mt-3 pt-3 border-t border-white/[0.06] flex justify-around gap-2">
+                                {starPlayers.map((player) => (
+                                  <PlayerCard
+                                    key={player.id}
+                                    player={player}
+                                    size="md"
+                                    interactive="none"
+                                    showConditionView={false}
+                                  />
                                 ))}
                               </div>
                             )}
