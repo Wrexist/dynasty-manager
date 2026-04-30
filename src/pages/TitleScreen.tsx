@@ -406,7 +406,7 @@ const TitleScreen = () => {
         </motion.div>
       </div>
 
-      <p className="absolute bottom-5 text-[10px] text-muted-foreground/50 tracking-[0.4em] font-display">v0.2 ALPHA</p>
+      <p className="absolute bottom-5 text-[10px] text-muted-foreground/50 tracking-[0.4em] font-display">v{__APP_VERSION__}</p>
 
       <CommunityPackPopup
         open={communityPackSlot !== null}

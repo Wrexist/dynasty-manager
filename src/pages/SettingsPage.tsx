@@ -28,7 +28,7 @@ import { SAVE_CONFIRMATION_MS } from '@/config/ui';
 import { MATCH_SPEEDS } from '@/config/matchSpeed';
 import { hasUnseenWhatsNew, LATEST_RELEASE } from '@/data/whatsNew';
 
-const APP_VERSION = 'v1.0.0 · Football Edition';
+const APP_VERSION = `v${__APP_VERSION__} · Football Edition`;
 
 /** Section wrapper — thin adapter that adds the settings-standard padding +
  *  title around the shared GlassPanel primitive. Every section on this page
