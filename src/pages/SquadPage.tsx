@@ -85,14 +85,23 @@ const SquadPage = () => {
   const lineupSet = useMemo(() => new Set(club?.lineup || []), [club?.lineup]);
   const subsSet = useMemo(() => new Set(club?.subs || []), [club?.subs]);
 
-  // Position group counts for depth summary
-  const depthCounts = useMemo(() => ({
-    GK: fullSquad.filter(p => p.position === 'GK').length,
-    DEF: fullSquad.filter(p => ['CB', 'LB', 'RB'].includes(p.position)).length,
-    MID: fullSquad.filter(p => ['CDM', 'CM', 'CAM', 'LM', 'RM'].includes(p.position)).length,
-    ATT: fullSquad.filter(p => ['LW', 'RW', 'ST'].includes(p.position)).length,
-  }), [fullSquad]);
-  const maxDepth = Math.max(...Object.values(depthCounts), 1);
+  // Position group counts for depth summary. Single-pass tally so we walk
+  // the squad once instead of four times per memo, and we fold `maxDepth`
+  // into the same memo so it doesn't recompute on unrelated re-renders.
+  const { depthCounts, maxDepth } = useMemo(() => {
+    const counts = { GK: 0, DEF: 0, MID: 0, ATT: 0 };
+    for (const p of fullSquad) {
+      const pos = p.position;
+      if (pos === 'GK') counts.GK++;
+      else if (pos === 'CB' || pos === 'LB' || pos === 'RB') counts.DEF++;
+      else if (pos === 'CDM' || pos === 'CM' || pos === 'CAM' || pos === 'LM' || pos === 'RM') counts.MID++;
+      else counts.ATT++;
+    }
+    return {
+      depthCounts: counts,
+      maxDepth: Math.max(counts.GK, counts.DEF, counts.MID, counts.ATT, 1),
+    };
+  }, [fullSquad]);
 
   const contractAlerts = useMemo(() => {
     const byRating = (a: Player, b: Player) => b.overall - a.overall;
