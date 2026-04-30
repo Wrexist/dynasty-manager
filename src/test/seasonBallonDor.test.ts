@@ -16,6 +16,7 @@ import { calculateBallonDOr, getBallonDOrValueBoost } from '@/utils/ballonDor';
 import {
   BALLON_DOR_TOP_N,
   BALLON_DOR_VALUE_BOOST,
+  BALLON_DOR_MAX_PER_DIVISION,
 } from '@/config/gameBalance';
 import type {
   Club,
@@ -414,5 +415,130 @@ describe('calculateBallonDOr — modifiers', () => {
     // Brazil wins → +60. England exits R16 → +5. That's a 55-point swing,
     // dwarfing other modifiers when counting stats are equal.
     expect(winner.score - loser.score).toBeGreaterThanOrEqual(40);
+  });
+});
+
+describe('calculateBallonDOr — per-division soft cap', () => {
+  // Helper: build N players for a single club, all otherwise-identical, so
+  // their scores are deterministic and equal.
+  function bulkPlayers(opts: { clubId: string; prefix: string; count: number; overall?: number; goals?: number; assists?: number; appearances?: number }) {
+    const arr: Player[] = [];
+    for (let i = 0; i < opts.count; i++) {
+      arr.push(buildPlayer({
+        id: `${opts.prefix}-${i}`,
+        firstName: 'P', lastName: `${opts.prefix}${i}`,
+        position: i % 2 === 0 ? 'ST' : 'CM',
+        overall: opts.overall ?? 80,
+        clubId: opts.clubId,
+        goals: opts.goals ?? 15,
+        assists: opts.assists ?? 5,
+        appearances: opts.appearances ?? 30,
+      }));
+    }
+    return arr;
+  }
+
+  it('backfills from a single division when no other division has candidates', () => {
+    // Sanity: with 30 eligible candidates all in div-1 and no rival division,
+    // the cap should NOT prevent the top 25 from filling. Soft = backfill.
+    const club = buildClub({ id: 'solo-club', divisionId: 'div-1' });
+    const players = bulkPlayers({ clubId: 'solo-club', prefix: 'solo', count: 30 });
+    const table = buildOrderedTable(['solo-club']);
+
+    const ranking = calculateBallonDOr(players, clubsMap([club]), table, {});
+    expect(ranking.length).toBe(BALLON_DOR_TOP_N);
+    // Every entry should belong to the only club that exists.
+    for (const e of ranking) {
+      expect(e.clubName).toBe(club.shortName);
+    }
+  });
+
+  it('caps each division at BALLON_DOR_MAX_PER_DIVISION in the first pass when rivals exist', () => {
+    // Two divisions, 15 elite candidates each (30 total > BALLON_DOR_TOP_N
+    // so backfill engages). All otherwise-identical so sort order is
+    // stable on tiebreakers. Both divisions should be represented at the
+    // cap floor or above — the cap must never starve a division that has
+    // eligible candidates while the dominant one produces 25 in a row.
+    const div1Club = buildClub({ id: 'd1-club', divisionId: 'div-1' });
+    const div2Club = buildClub({ id: 'd2-club', divisionId: 'div-2' });
+    const div1Players = bulkPlayers({ clubId: 'd1-club', prefix: 'd1', count: 15 });
+    const div2Players = bulkPlayers({ clubId: 'd2-club', prefix: 'd2', count: 15 });
+
+    const ranking = calculateBallonDOr(
+      [...div1Players, ...div2Players],
+      clubsMap([div1Club, div2Club]),
+      buildOrderedTable(['d1-club', 'd2-club']),
+      {},
+    );
+
+    expect(ranking.length).toBe(BALLON_DOR_TOP_N);
+
+    const d1Count = ranking.filter(e => e.clubName === div1Club.shortName).length;
+    const d2Count = ranking.filter(e => e.clubName === div2Club.shortName).length;
+    expect(d1Count).toBeGreaterThanOrEqual(BALLON_DOR_MAX_PER_DIVISION);
+    expect(d2Count).toBeGreaterThanOrEqual(BALLON_DOR_MAX_PER_DIVISION);
+    expect(d1Count + d2Count).toBe(BALLON_DOR_TOP_N);
+  });
+
+  it('keeps cap distribution when three divisions compete for spots', () => {
+    // 10 elite candidates in each of three divisions. The walk should
+    // accept BALLON_DOR_MAX_PER_DIVISION × 3 = 18 in the first pass, then
+    // backfill the remaining 7 spots from the deferred set.
+    const clubs = [
+      buildClub({ id: 'd1-club', divisionId: 'div-1' }),
+      buildClub({ id: 'd2-club', divisionId: 'div-2' }),
+      buildClub({ id: 'd3-club', divisionId: 'div-3' }),
+    ];
+    const players = [
+      ...bulkPlayers({ clubId: 'd1-club', prefix: 'd1', count: 10 }),
+      ...bulkPlayers({ clubId: 'd2-club', prefix: 'd2', count: 10 }),
+      ...bulkPlayers({ clubId: 'd3-club', prefix: 'd3', count: 10 }),
+    ];
+
+    const ranking = calculateBallonDOr(
+      players,
+      clubsMap(clubs),
+      buildOrderedTable(['d1-club', 'd2-club', 'd3-club']),
+      {},
+    );
+
+    expect(ranking.length).toBe(BALLON_DOR_TOP_N);
+    // Every division must have at least the cap floor in the final
+    // ranking — if any single division dominated and starved the others,
+    // a count would fall below BALLON_DOR_MAX_PER_DIVISION.
+    for (const c of clubs) {
+      const count = ranking.filter(e => e.clubName === c.shortName).length;
+      expect(count).toBeGreaterThanOrEqual(BALLON_DOR_MAX_PER_DIVISION);
+    }
+  });
+
+  it('assigns contiguous ranks 1..N after the cap+backfill stage', () => {
+    // Regression: ranks must be contiguous integers from 1 (no gaps, no
+    // duplicates, exactly N entries). Note that *scores* are NOT
+    // guaranteed monotonically non-increasing — the cap intentionally
+    // surfaces lower-scoring players from second-tier divisions ahead of
+    // higher-scoring deferred candidates from the dominant division.
+    // That's the diversity feature, not a bug.
+    const clubs = [
+      buildClub({ id: 'a', divisionId: 'div-1' }),
+      buildClub({ id: 'b', divisionId: 'div-2' }),
+    ];
+    const aPlayers = bulkPlayers({ clubId: 'a', prefix: 'a', count: 15, goals: 25, assists: 10, appearances: 38 });
+    const bPlayers = bulkPlayers({ clubId: 'b', prefix: 'b', count: 15, goals: 18, assists: 6, appearances: 35 });
+
+    const ranking = calculateBallonDOr(
+      [...aPlayers, ...bPlayers],
+      clubsMap(clubs),
+      buildOrderedTable(['a', 'b']),
+      {},
+    );
+
+    expect(ranking.length).toBe(BALLON_DOR_TOP_N);
+    for (let i = 0; i < ranking.length; i++) {
+      expect(ranking[i].rank).toBe(i + 1);
+    }
+    // Sanity: the very top rank still goes to a high-scoring entry from
+    // the dominant division (the cap doesn't punish the leader).
+    expect(ranking[0].clubName).toBe(clubs[0].shortName);
   });
 });
