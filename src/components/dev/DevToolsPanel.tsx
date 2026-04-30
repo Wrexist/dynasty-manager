@@ -25,6 +25,7 @@ import { useGameStore } from '@/store/gameStore';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { GameScreen } from '@/types/game';
+import { getFlag, STORAGE_KEYS } from '@/store/helpers/persistence';
 import {
   adjustBudget,
   armPackPity,
@@ -64,11 +65,12 @@ const SCREEN_SHORTCUTS: { screen: GameScreen; label: string }[] = [
 ];
 
 /**
- * Evaluate once at module load. Dev Tools are surfaced on every build
- * — local dev, build:dev, preview, TestFlight, and prod web — so
- * testers always have access without needing to set a localStorage
- * flag by hand. Revert this override before shipping to the public App
- * Store if state-mutating shortcuts shouldn't reach end users.
+ * Evaluate once at module load. Dev Tools ship hidden in any
+ * production-mode bundle. They surface in non-production Vite modes
+ * (`npm run dev`, `npm run build:dev`, vitest) and can be force-enabled
+ * in a production-mode build (TestFlight, `npm run preview`, prod web)
+ * by setting `localStorage.devtools = '1'` and reloading — handy for
+ * one-off QA without re-cutting a build.
  */
 function resolveVisibility(): { visible: boolean; source: string } {
   let mode = 'unknown';
@@ -77,7 +79,16 @@ function resolveVisibility(): { visible: boolean; source: string } {
   } catch {
     // import.meta can throw in exotic runtimes; fall through.
   }
-  return { visible: true, source: `always-on (mode=${mode})` };
+
+  if (mode !== 'production') {
+    return { visible: true, source: `mode=${mode}` };
+  }
+
+  if (getFlag(STORAGE_KEYS.DEV_TOOLS_FLAG)) {
+    return { visible: true, source: `localStorage.${STORAGE_KEYS.DEV_TOOLS_FLAG}=1` };
+  }
+
+  return { visible: false, source: `mode=${mode}` };
 }
 
 const VISIBILITY = resolveVisibility();
