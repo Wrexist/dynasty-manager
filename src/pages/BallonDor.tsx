@@ -1,10 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { PlayerCard } from '@/components/game/PlayerCard';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, ChevronUp, Trophy, Crown, Award } from 'lucide-react';
+import { ChevronDown, Trophy, Crown, Award } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { BallonDOrEntry, Player } from '@/types/game';
@@ -144,12 +144,15 @@ const RankingRow = ({ entry, isExpanded, onToggle, isPlayerClub }: {
       <button
         type="button"
         onClick={onToggle}
+        aria-expanded={isExpanded}
+        aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${entry.playerName} ranked #${entry.rank}`}
         className={cn(
           'w-full flex items-center gap-3 p-2.5 rounded-xl transition-all',
           style.bg, style.glow,
           'border', style.border,
           isPlayerClub && 'ring-1 ring-primary/30',
           'hover:brightness-110 active:scale-[0.99]',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-1 focus-visible:ring-offset-background',
         )}
       >
         <div className={cn(
@@ -182,11 +185,14 @@ const RankingRow = ({ entry, isExpanded, onToggle, isPlayerClub }: {
             </p>
             <p className="text-[8px] text-muted-foreground mt-0.5">pts</p>
           </div>
-          {isExpanded ? (
-            <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" />
-          ) : (
+          <motion.div
+            aria-hidden
+            animate={{ rotate: isExpanded ? 180 : 0 }}
+            transition={{ duration: 0.18 }}
+            className="shrink-0"
+          >
             <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
-          )}
+          </motion.div>
         </div>
       </button>
 
@@ -277,6 +283,191 @@ const ReigningHoldersPanel = ({ holders, onNavigate, canNavigate }: {
   </GlassPanel>
 );
 
+/** Body of one season's ceremony — the winner spotlight, podium and full
+ *  ranking. Pulled out as a sub-component so each year in the stacked
+ *  history collapses/expands independently while sharing the same layout. */
+const SeasonCeremony = ({
+  ranking,
+  players,
+  playerClubName,
+  expandedRank,
+  setExpandedRank,
+  navigateToPlayer,
+}: {
+  ranking: BallonDOrEntry[];
+  players: Record<string, Player>;
+  playerClubName: string;
+  expandedRank: number | null;
+  setExpandedRank: (rank: number | null) => void;
+  navigateToPlayer: (id: string) => void;
+}) => {
+  const winner = ranking[0];
+  const yourPlayers = ranking.filter(e => e.clubName === playerClubName);
+  return (
+    <div className="space-y-4">
+      {winner && (
+        <WinnerSpotlight
+          entry={winner}
+          player={players[winner.playerId] ?? null}
+          onNavigate={() => navigateToPlayer(winner.playerId)}
+        />
+      )}
+
+      {ranking.length >= 3 && (
+        <div className="grid grid-cols-2 gap-3">
+          {[ranking[1], ranking[2]].map(entry => {
+            const style = getMedalStyle(entry.rank);
+            return (
+              <button
+                key={entry.playerId}
+                type="button"
+                onClick={() => navigateToPlayer(entry.playerId)}
+                className={cn(
+                  'w-full p-3 rounded-xl text-center border transition-all hover:brightness-110 active:scale-[0.99] backdrop-blur-sm',
+                  style.bg, style.border, style.glow,
+                )}
+              >
+                <div className={cn(
+                  'w-7 h-7 rounded-lg flex items-center justify-center mx-auto mb-2 font-black text-sm shadow-inner',
+                  entry.rank === 2 && 'bg-gradient-to-br from-[hsl(var(--silver))] to-[hsl(var(--silver)/0.7)] text-black',
+                  entry.rank === 3 && 'bg-gradient-to-br from-[hsl(var(--bronze))] to-[hsl(var(--bronze)/0.7)] text-black',
+                )}>
+                  {entry.rank}
+                </div>
+                <p className={cn('text-xs font-bold truncate', style.text)}>{entry.playerName}</p>
+                <div className="flex items-center justify-center gap-1 mt-1">
+                  <div className="w-1.5 h-1.5 rounded-full ring-1 ring-white/15" style={{ backgroundColor: entry.clubColor }} />
+                  <span className="text-[10px] text-muted-foreground truncate">{entry.clubName}</span>
+                </div>
+                <p className={cn('text-base font-black mt-1 tabular-nums leading-none', style.text)}>
+                  {entry.score.toFixed(1)}
+                </p>
+                <p className="text-[9px] text-muted-foreground mt-0.5">{entry.goals}G · {entry.assists}A</p>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {ranking.length > 3 && (
+        <GlassPanel className="p-3">
+          <div className="flex items-center justify-between mb-2.5 px-1">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-[0.22em] font-bold">
+              Full Ranking
+            </p>
+            <p className="text-[10px] text-muted-foreground tabular-nums">
+              {ranking.length} players
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            {ranking.slice(3).map(entry => (
+              <RankingRow
+                key={entry.playerId}
+                entry={entry}
+                isExpanded={expandedRank === entry.rank}
+                onToggle={() => setExpandedRank(expandedRank === entry.rank ? null : entry.rank)}
+                isPlayerClub={entry.clubName === playerClubName}
+              />
+            ))}
+          </div>
+        </GlassPanel>
+      )}
+
+      {yourPlayers.length > 0 && (
+        <GlassPanel className="p-4 border-primary/20 relative overflow-hidden">
+          <div
+            aria-hidden
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: 'radial-gradient(ellipse 60% 50% at 0% 0%, hsl(var(--primary)/0.08), transparent 70%)' }}
+          />
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-2">
+              <Crown className="w-3.5 h-3.5 text-primary" />
+              <p className="text-[10px] text-primary uppercase tracking-[0.22em] font-bold">
+                Your Players in Top 25
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              {yourPlayers.map(entry => (
+                <button
+                  key={entry.playerId}
+                  type="button"
+                  onClick={() => navigateToPlayer(entry.playerId)}
+                  className="w-full flex items-center gap-3 text-left hover:bg-primary/5 rounded-lg p-1.5 transition-colors"
+                >
+                  <span className="text-xs font-black text-primary tabular-nums w-7 shrink-0">
+                    #{entry.rank}
+                  </span>
+                  <span className="text-xs font-bold text-foreground flex-1 truncate">
+                    {entry.playerName}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground shrink-0">
+                    {entry.goals}G · {entry.assists}A
+                  </span>
+                  <span className="text-xs font-black text-primary tabular-nums shrink-0">
+                    {entry.score.toFixed(1)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </GlassPanel>
+      )}
+    </div>
+  );
+};
+
+/** Collapsed-year header — shows season + winner name + chevron toggle. */
+const SeasonHeader = ({ season, winner, isOpen, isLatest, onToggle }: {
+  season: number;
+  winner: BallonDOrEntry | undefined;
+  isOpen: boolean;
+  isLatest: boolean;
+  onToggle: () => void;
+}) => (
+  <button
+    type="button"
+    onClick={onToggle}
+    aria-expanded={isOpen}
+    aria-label={`${isOpen ? 'Collapse' : 'Expand'} Season ${season} ceremony${winner ? `, winner ${winner.playerName}` : ''}`}
+    className={cn(
+      'w-full flex items-center gap-3 p-3 rounded-xl border transition-all',
+      'bg-card/60 backdrop-blur-xl hover:brightness-110 active:scale-[0.99]',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+      isLatest
+        ? 'border-[hsl(43,96%,46%)]/35 shadow-[0_4px_14px_rgba(0,0,0,0.35)]'
+        : 'border-border/50',
+    )}
+  >
+    <Trophy className={cn('w-4 h-4 shrink-0', isLatest ? 'text-[hsl(43,96%,62%)]' : 'text-muted-foreground')} />
+    <div className="flex-1 text-left min-w-0">
+      <div className="flex items-center gap-2">
+        <p className={cn('text-xs font-black tabular-nums', isLatest ? 'text-[hsl(43,96%,62%)]' : 'text-foreground')}>
+          Season {season}
+        </p>
+        {isLatest && (
+          <span className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-[hsl(43,96%,46%)]/20 text-[hsl(43,96%,62%)]">
+            Latest
+          </span>
+        )}
+      </div>
+      {winner && (
+        <p className="text-[11px] text-muted-foreground truncate">
+          Winner · {winner.playerName} · {winner.clubName}
+        </p>
+      )}
+    </div>
+    <motion.div
+      aria-hidden
+      animate={{ rotate: isOpen ? 180 : 0 }}
+      transition={{ duration: 0.18 }}
+      className="shrink-0"
+    >
+      <ChevronDown className="w-4 h-4 text-muted-foreground" />
+    </motion.div>
+  </button>
+);
+
 const BallonDor = () => {
   const { seasonHistory, playerClubId, clubs, previousScreen, players } = useGameStore(useShallow(s => ({
     seasonHistory: s.seasonHistory,
@@ -288,13 +479,38 @@ const BallonDor = () => {
   const setScreen = useGameStore(s => s.setScreen);
   const selectPlayer = useGameStore(s => s.selectPlayer);
 
-  const [selectedSeason, setSelectedSeason] = useState<number | null>(null);
-  const [expandedRank, setExpandedRank] = useState<number | null>(null);
+  const [expandedRank, setExpandedRank] = useState<{ season: number; rank: number } | null>(null);
 
   const seasonsWithData = useMemo(
     () => seasonHistory.filter(h => h.ballonDOrRanking && h.ballonDOrRanking.length > 0).reverse(),
     [seasonHistory],
   );
+
+  const latestSeason = seasonsWithData[0]?.season ?? null;
+
+  // Default open set: only the latest season's ceremony is expanded. Tracking
+  // `lastSeenLatest` in a ref lets us detect when a NEW ceremony arrives
+  // (latestSeason changes) and reset the open set so the new latest replaces
+  // the previously-expanded one — the prior year auto-collapses.
+  const [openSeasons, setOpenSeasons] = useState<Set<number>>(
+    () => latestSeason !== null ? new Set([latestSeason]) : new Set(),
+  );
+  const lastSeenLatest = useRef<number | null>(latestSeason);
+  useEffect(() => {
+    if (latestSeason !== lastSeenLatest.current) {
+      lastSeenLatest.current = latestSeason;
+      setOpenSeasons(latestSeason !== null ? new Set([latestSeason]) : new Set());
+      setExpandedRank(null);
+    }
+  }, [latestSeason]);
+
+  const toggleSeason = (s: number) => {
+    setOpenSeasons(prev => {
+      const next = new Set(prev);
+      if (next.has(s)) next.delete(s); else next.add(s);
+      return next;
+    });
+  };
 
   // Reigning top-10 holders — derived from the live `players` map. Includes
   // both real loaded players and the synthetic global-elite ghosts seeded at
@@ -304,11 +520,6 @@ const BallonDor = () => {
       .filter(p => typeof p.ballonDOrTop10HoldSeason === 'number' && p.clubId)
       .sort((a, b) => b.overall - a.overall);
   }, [players]);
-
-  const activeSeason = selectedSeason ?? seasonsWithData[0]?.season ?? null;
-  const activeData = seasonsWithData.find(h => h.season === activeSeason);
-  const ranking = activeData?.ballonDOrRanking || [];
-  const winner = ranking[0];
 
   const playerClubName = clubs[playerClubId]?.shortName || '';
 
@@ -324,33 +535,13 @@ const BallonDor = () => {
 
   const heroSubtitle = seasonsWithData.length === 0
     ? 'Complete a season to crown the next legend.'
-    : `Season ${activeSeason} — the 25 finest of the year.`;
+    : seasonsWithData.length === 1
+      ? `Season ${latestSeason} — the 25 finest of the year.`
+      : `${seasonsWithData.length} ceremonies · latest is Season ${latestSeason}.`;
 
   return (
     <div className="max-w-lg mx-auto px-4 py-3 space-y-4 pb-8">
       <PageHero subtitle={heroSubtitle} />
-
-      {/* Season selector — pill toggle, only when 2+ seasons exist */}
-      {seasonsWithData.length > 1 && (
-        <div className="flex items-center justify-center">
-          <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-card/60 backdrop-blur-xl border border-border/50 shadow-[0_4px_18px_rgba(0,0,0,0.35)]">
-            {seasonsWithData.slice(0, 5).map(h => (
-              <button
-                key={h.season}
-                onClick={() => { setSelectedSeason(h.season); setExpandedRank(null); }}
-                className={cn(
-                  'px-3 py-1 rounded-lg text-[11px] font-black tabular-nums transition-all',
-                  h.season === activeSeason
-                    ? 'bg-[hsl(43,96%,46%)]/20 text-[hsl(43,96%,62%)] shadow-inner ring-1 ring-[hsl(43,96%,46%)]/35'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/30',
-                )}
-              >
-                S{h.season}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Reigning panel — show whenever any holder is active */}
       {reigningHolders.length > 0 && (
@@ -377,124 +568,46 @@ const BallonDor = () => {
           </div>
         </>
       ) : (
-        <>
-          {/* Winner spotlight */}
-          {winner && (
-            <WinnerSpotlight
-              entry={winner}
-              player={players[winner.playerId] ?? null}
-              onNavigate={() => navigateToPlayer(winner.playerId)}
-            />
-          )}
-
-          {/* Podium (2nd and 3rd) */}
-          {ranking.length >= 3 && (
-            <div className="grid grid-cols-2 gap-3">
-              {[ranking[1], ranking[2]].map(entry => {
-                const style = getMedalStyle(entry.rank);
-                return (
-                  <button
-                    key={entry.playerId}
-                    type="button"
-                    onClick={() => navigateToPlayer(entry.playerId)}
-                    className={cn(
-                      'w-full p-3 rounded-xl text-center border transition-all hover:brightness-110 active:scale-[0.99] backdrop-blur-sm',
-                      style.bg, style.border, style.glow,
-                    )}
-                  >
-                    <div className={cn(
-                      'w-7 h-7 rounded-lg flex items-center justify-center mx-auto mb-2 font-black text-sm shadow-inner',
-                      entry.rank === 2 && 'bg-gradient-to-br from-[hsl(var(--silver))] to-[hsl(var(--silver)/0.7)] text-black',
-                      entry.rank === 3 && 'bg-gradient-to-br from-[hsl(var(--bronze))] to-[hsl(var(--bronze)/0.7)] text-black',
-                    )}>
-                      {entry.rank}
-                    </div>
-                    <p className={cn('text-xs font-bold truncate', style.text)}>{entry.playerName}</p>
-                    <div className="flex items-center justify-center gap-1 mt-1">
-                      <div className="w-1.5 h-1.5 rounded-full ring-1 ring-white/15" style={{ backgroundColor: entry.clubColor }} />
-                      <span className="text-[10px] text-muted-foreground truncate">{entry.clubName}</span>
-                    </div>
-                    <p className={cn('text-base font-black mt-1 tabular-nums leading-none', style.text)}>
-                      {entry.score.toFixed(1)}
-                    </p>
-                    <p className="text-[9px] text-muted-foreground mt-0.5">{entry.goals}G · {entry.assists}A</p>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Full ranking list (4-25) */}
-          {ranking.length > 3 && (
-            <GlassPanel className="p-3">
-              <div className="flex items-center justify-between mb-2.5 px-1">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-[0.22em] font-bold">
-                  Full Ranking
-                </p>
-                <p className="text-[10px] text-muted-foreground tabular-nums">
-                  {ranking.length} players
-                </p>
-              </div>
-              <div className="space-y-1.5">
-                {ranking.slice(3).map(entry => (
-                  <RankingRow
-                    key={entry.playerId}
-                    entry={entry}
-                    isExpanded={expandedRank === entry.rank}
-                    onToggle={() => setExpandedRank(expandedRank === entry.rank ? null : entry.rank)}
-                    isPlayerClub={entry.clubName === playerClubName}
-                  />
-                ))}
-              </div>
-            </GlassPanel>
-          )}
-
-          {/* Your players highlight */}
-          {(() => {
-            const yourPlayers = ranking.filter(e => e.clubName === playerClubName);
-            if (yourPlayers.length === 0) return null;
+        <div className="space-y-3">
+          {seasonsWithData.map((seasonData, index) => {
+            const season = seasonData.season;
+            const isOpen = openSeasons.has(season);
+            const isLatest = index === 0;
+            const ranking = seasonData.ballonDOrRanking || [];
+            const winner = ranking[0];
             return (
-              <GlassPanel className="p-4 border-primary/20 relative overflow-hidden">
-                <div
-                  aria-hidden
-                  className="absolute inset-0 pointer-events-none"
-                  style={{ background: 'radial-gradient(ellipse 60% 50% at 0% 0%, hsl(var(--primary)/0.08), transparent 70%)' }}
+              <div key={season} className="space-y-3">
+                <SeasonHeader
+                  season={season}
+                  winner={winner}
+                  isOpen={isOpen}
+                  isLatest={isLatest}
+                  onToggle={() => toggleSeason(season)}
                 />
-                <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Crown className="w-3.5 h-3.5 text-primary" />
-                    <p className="text-[10px] text-primary uppercase tracking-[0.22em] font-bold">
-                      Your Players in Top 25
-                    </p>
-                  </div>
-                  <div className="space-y-1.5">
-                    {yourPlayers.map(entry => (
-                      <button
-                        key={entry.playerId}
-                        type="button"
-                        onClick={() => navigateToPlayer(entry.playerId)}
-                        className="w-full flex items-center gap-3 text-left hover:bg-primary/5 rounded-lg p-1.5 transition-colors"
-                      >
-                        <span className="text-xs font-black text-primary tabular-nums w-7 shrink-0">
-                          #{entry.rank}
-                        </span>
-                        <span className="text-xs font-bold text-foreground flex-1 truncate">
-                          {entry.playerName}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground shrink-0">
-                          {entry.goals}G · {entry.assists}A
-                        </span>
-                        <span className="text-xs font-black text-primary tabular-nums shrink-0">
-                          {entry.score.toFixed(1)}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </GlassPanel>
+                <AnimatePresence initial={false}>
+                  {isOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="overflow-hidden"
+                    >
+                      <SeasonCeremony
+                        ranking={ranking}
+                        players={players}
+                        playerClubName={playerClubName}
+                        expandedRank={expandedRank?.season === season ? expandedRank.rank : null}
+                        setExpandedRank={r => setExpandedRank(r === null ? null : { season, rank: r })}
+                        navigateToPlayer={navigateToPlayer}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             );
-          })()}
-        </>
+          })}
+        </div>
       )}
     </div>
   );

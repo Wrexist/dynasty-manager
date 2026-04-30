@@ -347,6 +347,67 @@ describe('endSeason — contract expiry', () => {
     const club = after.clubs[before.playerClubId];
     expect(club.playerIds).not.toContain(target!.id);
   });
+
+  it('force-retires contracted players at the age cap regardless of remaining years', () => {
+    // Regression: pre-fix, the retirement gate was `contractEnd <= season`,
+    // so a 39-year-old with 5 contract years left bypassed retirement and
+    // played indefinitely. After the fix, hitting FORCED_RETIREMENT_AGE
+    // (post-aging) detaches them from their club and drops them from
+    // newPlayers entirely.
+    fillLeagueTablesForRollover();
+    const before = getState();
+    const playerClub = before.clubs[before.playerClubId];
+
+    const target = playerClub.playerIds
+      .map(id => before.players[id])
+      .filter(Boolean)[0];
+    expect(target).toBeDefined();
+
+    // 39 going on 40 (post-aging), with 5 years left on the contract.
+    useGameStore.setState({
+      players: {
+        ...before.players,
+        [target!.id]: { ...target!, age: 39, contractEnd: before.season + 5 },
+      },
+    });
+
+    endSeasonSeeded(99);
+
+    const after = getState();
+    // Player vanishes from the players map, the FA pool, AND the club.
+    expect(after.players[target!.id]).toBeUndefined();
+    expect(after.freeAgents).not.toContain(target!.id);
+    const club = after.clubs[before.playerClubId];
+    expect(club.playerIds).not.toContain(target!.id);
+    expect(club.lineup).not.toContain(target!.id);
+    expect(club.subs).not.toContain(target!.id);
+  });
+
+  it('keeps under-cap contracted players (38 with 5 years left should survive)', () => {
+    // Sanity check companion to the force-retirement test: a 38-year-old
+    // (post-aging 39) with a long contract should NOT trigger the cap.
+    fillLeagueTablesForRollover();
+    const before = getState();
+    const playerClub = before.clubs[before.playerClubId];
+
+    const target = playerClub.playerIds
+      .map(id => before.players[id])
+      .filter(Boolean)[0];
+    expect(target).toBeDefined();
+
+    useGameStore.setState({
+      players: {
+        ...before.players,
+        [target!.id]: { ...target!, age: 38, contractEnd: before.season + 5 },
+      },
+    });
+
+    endSeasonSeeded(99);
+
+    const after = getState();
+    expect(after.players[target!.id]).toBeDefined();
+    expect(after.players[target!.id].age).toBe(39);
+  });
 });
 
 describe('endSeason — free agent pool maintenance', () => {

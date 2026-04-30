@@ -232,4 +232,205 @@ describe('saveMigration', () => {
     const result = migrateSaveData(v61) as Record<string, unknown>;
     expect(result.version).toBe(CURRENT_VERSION);
   });
+
+  // ─── Targeted v59 → v67 step coverage ─────────────────────────────────
+  // Each test starts at the version BEFORE the schema change and asserts
+  // the specific field added/transformed by that step survives the chain
+  // up to CURRENT_VERSION. Catches schema regressions when CURRENT_VERSION
+  // bumps without a corresponding migration step.
+
+  it('v59 → v60 seeds communityPackEnabled and cpPool defaults', () => {
+    const v59: Record<string, unknown> = { version: 59 };
+    const out = migrateSaveData(v59) as Record<string, unknown>;
+    expect(out.communityPackEnabled).toBe(false);
+    const cp = out.cpPool as Record<string, unknown>;
+    expect(cp).toBeDefined();
+    expect(cp.shuffleSeed).toBe(0);
+    expect(cp.cursor).toBe(0);
+    expect(Array.isArray(cp.usedFcIds)).toBe(true);
+    expect(Array.isArray(cp.marketListings)).toBe(true);
+    expect(cp.lastMarketRefreshWeek).toBe(0);
+  });
+
+  it('v59 → v60 preserves an existing cpPool if already present', () => {
+    const v59: Record<string, unknown> = {
+      version: 59,
+      cpPool: { shuffleSeed: 42, cursor: 7, usedFcIds: ['x'], marketListings: ['y'], lastMarketRefreshWeek: 12 },
+      communityPackEnabled: true,
+    };
+    const out = migrateSaveData(v59) as Record<string, unknown>;
+    expect(out.communityPackEnabled).toBe(true);
+    const cp = out.cpPool as Record<string, unknown>;
+    expect(cp.shuffleSeed).toBe(42);
+    expect(cp.cursor).toBe(7);
+    expect(cp.usedFcIds).toEqual(['x']);
+  });
+
+  it('v60 → v61 adds cpPool.lastSeedSeason = 99 for old saves', () => {
+    // Default 99 means "treat in-progress saves as past the seed window"
+    // so we don't retro-inject FAs into mid-game state.
+    const v60: Record<string, unknown> = {
+      version: 60,
+      cpPool: { shuffleSeed: 0, cursor: 0, usedFcIds: [], marketListings: [], lastMarketRefreshWeek: 0 },
+    };
+    const out = migrateSaveData(v60) as Record<string, unknown>;
+    const cp = out.cpPool as Record<string, unknown>;
+    expect(cp.lastSeedSeason).toBe(99);
+  });
+
+  it('v60 → v61 preserves an existing lastSeedSeason value', () => {
+    const v60: Record<string, unknown> = {
+      version: 60,
+      cpPool: { shuffleSeed: 0, cursor: 0, usedFcIds: [], marketListings: [], lastMarketRefreshWeek: 0, lastSeedSeason: 3 },
+    };
+    const out = migrateSaveData(v60) as Record<string, unknown>;
+    const cp = out.cpPool as Record<string, unknown>;
+    expect(cp.lastSeedSeason).toBe(3);
+  });
+
+  it('v62 → v63 backfills adPackOpens with empty bucket', () => {
+    const v62: Record<string, unknown> = { version: 62 };
+    const out = migrateSaveData(v62) as Record<string, unknown>;
+    const ap = out.adPackOpens as Record<string, unknown>;
+    expect(ap).toBeDefined();
+    expect(ap.date).toBe('');
+    expect(ap.counts).toEqual({});
+  });
+
+  it('v63 → v64 carries old adPackOpens.counts into dailyPackOpens.ad', () => {
+    const v63: Record<string, unknown> = {
+      version: 63,
+      adPackOpens: { date: '2026-04-29', counts: { bronze: 2, silver: 1 } },
+    };
+    const out = migrateSaveData(v63) as Record<string, unknown>;
+    const dp = out.dailyPackOpens as Record<string, unknown>;
+    expect(dp.date).toBe('2026-04-29');
+    expect(dp.ad).toEqual({ bronze: 2, silver: 1 });
+    expect(dp.free).toEqual({}); // fresh bucket so today's free pack is available
+  });
+
+  it('v63 → v64 falls back gracefully when adPackOpens is missing', () => {
+    const v63: Record<string, unknown> = { version: 63 };
+    const out = migrateSaveData(v63) as Record<string, unknown>;
+    const dp = out.dailyPackOpens as Record<string, unknown>;
+    expect(dp.date).toBe('');
+    expect(dp.free).toEqual({});
+    expect(dp.ad).toEqual({});
+  });
+
+  it('v64 → v65 recomputes nationalTeam.fifaRanking from canonical NATIONS data', () => {
+    // The pre-fix bug hardcoded fifaRanking to 25 on init for every nation;
+    // v64→v65 backfills from NATIONS[].baseRanking. France should NOT remain
+    // at the bogus 25 — the migration writes whatever NATIONS has.
+    const v64: Record<string, unknown> = {
+      version: 64,
+      nationalTeam: { nationality: 'France', fifaRanking: 25, squad: [], lineup: [], subs: [], formation: '4-3-3', caps: {}, internationalGoals: {}, results: [], poolPlayerIds: [] },
+    };
+    const out = migrateSaveData(v64) as Record<string, unknown>;
+    const nt = out.nationalTeam as { nationality: string; fifaRanking: number };
+    expect(nt.nationality).toBe('France');
+    // Whatever ranking NATIONS carries for France, it should not be 25 (the bug).
+    expect(nt.fifaRanking).not.toBe(25);
+    expect(typeof nt.fifaRanking).toBe('number');
+  });
+
+  it('v64 → v65 marks pre-existing tournaments as squadConfirmed', () => {
+    const v64: Record<string, unknown> = {
+      version: 64,
+      internationalTournament: { type: 'world-cup', season: 1, groups: [], knockoutTies: [] },
+    };
+    const out = migrateSaveData(v64) as Record<string, unknown>;
+    const tourney = out.internationalTournament as { squadConfirmed?: boolean };
+    expect(tourney.squadConfirmed).toBe(true);
+  });
+
+  it('v64 → v65 leaves squadConfirmed alone when already set', () => {
+    const v64: Record<string, unknown> = {
+      version: 64,
+      internationalTournament: { type: 'continental', season: 2, squadConfirmed: false, groups: [], knockoutTies: [] },
+    };
+    const out = migrateSaveData(v64) as Record<string, unknown>;
+    const tourney = out.internationalTournament as { squadConfirmed: boolean };
+    expect(tourney.squadConfirmed).toBe(false);
+  });
+
+  it('v65 → v66 backfills staff member fields with sane defaults', () => {
+    const v65: Record<string, unknown> = {
+      version: 65,
+      staff: {
+        members: [
+          { id: 's1', firstName: 'Alex', lastName: 'Coach', role: 'head-coach', quality: 80, wage: 5000 },
+        ],
+        availableHires: [],
+      },
+    };
+    const out = migrateSaveData(v65) as Record<string, unknown>;
+    const staff = out.staff as { members: Array<Record<string, unknown>> };
+    const m = staff.members[0];
+    expect(m.morale).toBe(70);
+    expect(m.traits).toEqual([]);
+    expect(m.contractYearsRemaining).toBe(2);
+    expect(m.seasonsAtClub).toBe(0);
+    expect(m.performance).toBeDefined();
+  });
+
+  it('v65 → v66 adds youthAcademy.spotlightUsesRemaining default', () => {
+    const v65: Record<string, unknown> = {
+      version: 65,
+      youthAcademy: { prospects: [], nextIntakePreview: [], youthPreviewEnhanced: false },
+    };
+    const out = migrateSaveData(v65) as Record<string, unknown>;
+    const ya = out.youthAcademy as Record<string, unknown>;
+    expect(ya.spotlightUsesRemaining).toBe(2);
+  });
+
+  it('v65 → v66 backfills merchandise signature-drop fields when merchandise exists', () => {
+    const v65: Record<string, unknown> = {
+      version: 65,
+      merchandise: { strategy: 'balanced' },
+    };
+    const out = migrateSaveData(v65) as Record<string, unknown>;
+    const merch = out.merchandise as Record<string, unknown>;
+    expect(merch.signatureDrop).toBeNull();
+    expect(merch.signatureDropCooldownWeeks).toBe(0);
+    expect(merch.winStreak).toBe(0);
+    expect(merch.derbyBuzzWeeks).toBe(0);
+  });
+
+  it('v66 → v67 stamps every player with a rarity field', () => {
+    const v66: Record<string, unknown> = {
+      version: 66,
+      players: {
+        p1: { id: 'p1', firstName: 'A', lastName: 'B', overall: 92, age: 28, value: 100_000_000, wage: 500_000, ballonDOrPlacements: [{ season: 1, rank: 1, score: 999 }] },
+        p2: { id: 'p2', firstName: 'C', lastName: 'D', overall: 65, age: 21, value: 1_000_000, wage: 5_000, ballonDOrPlacements: [] },
+      },
+    };
+    const out = migrateSaveData(v66) as Record<string, unknown>;
+    const players = out.players as Record<string, { rarity?: string; value?: number; wage?: number }>;
+    expect(players.p1.rarity).toBeDefined();
+    expect(typeof players.p1.rarity).toBe('string');
+    expect(players.p2.rarity).toBeDefined();
+  });
+
+  it('v66 → v67 only inflates value/wage by rarity multiplier — never deflates', () => {
+    // Bronze-tier players have multiplier <= 1; the migration explicitly
+    // skips that branch so tweaked saves don't lose money.
+    const v66: Record<string, unknown> = {
+      version: 66,
+      players: {
+        bronze: { id: 'bronze', firstName: 'L', lastName: 'M', overall: 55, age: 30, value: 500_000, wage: 2_000, ballonDOrPlacements: [] },
+      },
+    };
+    const out = migrateSaveData(v66) as Record<string, unknown>;
+    const players = out.players as Record<string, { value: number; wage: number }>;
+    expect(players.bronze.value).toBeGreaterThanOrEqual(500_000);
+    expect(players.bronze.wage).toBeGreaterThanOrEqual(2_000);
+  });
+
+  it('v66 → v67 leaves saves without players untouched', () => {
+    const v66: Record<string, unknown> = { version: 66 };
+    expect(() => migrateSaveData(v66)).not.toThrow();
+    const out = migrateSaveData(v66) as Record<string, unknown>;
+    expect(out.version).toBe(CURRENT_VERSION);
+  });
 });

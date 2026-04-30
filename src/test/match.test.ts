@@ -609,3 +609,141 @@ describe('Match Engine — AI Sub Edge Cases', () => {
     }
   });
 });
+
+describe('Match Engine — Squad-validity forfeit path', () => {
+  // FIFA Law 3 says you can't field fewer than 7 players. The match engine
+  // pre-flights this via `isSquadValid` (>=7 players, must include a GK)
+  // and short-circuits to a forfeit result before running any simulation.
+  // Pre-fix this codepath was uncovered — a regression here would silently
+  // crash or produce garbage match output.
+
+  function pickWinner(result: Match): 'home' | 'away' | 'draw' {
+    if (result.homeGoals > result.awayGoals) return 'home';
+    if (result.awayGoals > result.homeGoals) return 'away';
+    return 'draw';
+  }
+
+  it('forfeits the match when home has fewer than 7 players', () => {
+    const homePlayers = [
+      makePlayer('h-gk', 'home', 'GK', 70),
+      makePlayer('h-cb', 'home', 'CB', 70),
+      makePlayer('h-cm', 'home', 'CM', 70),
+    ]; // only 3 players
+    const { club: awayClub, players: awayPlayers } = makeLineup('away', '4-3-3', 70);
+    const homeClub: Club = {
+      id: 'home', name: 'Home FC', shortName: 'HOM', color: '#fff', secondaryColor: '#000',
+      budget: 0, wageBill: 0, reputation: 70, facilities: 5, youthRating: 5, fanBase: 5, boardPatience: 60,
+      playerIds: homePlayers.map(p => p.id), formation: '4-3-3',
+      lineup: homePlayers.map(p => p.id), subs: [], divisionId: 'eng',
+    };
+
+    const { result, playerRatings, matchInjuries } = simulateMatch(
+      makeMatch('forfeit-1'), homeClub, awayClub, homePlayers, awayPlayers,
+    );
+
+    expect(result.played).toBe(true);
+    expect(pickWinner(result)).toBe('away');
+    expect(result.homeGoals).toBe(0);
+    expect(result.awayGoals).toBe(3);
+    // Forfeit path produces a single full_time event noting the forfeit;
+    // no kickoff, no commentary, no card events.
+    expect(result.events.length).toBe(1);
+    expect(result.events[0].type).toBe('full_time');
+    expect(result.events[0].description.toLowerCase()).toContain('forfeit');
+    expect(playerRatings).toEqual([]);
+    expect(matchInjuries).toEqual({});
+  });
+
+  it('forfeits the match when away has no goalkeeper', () => {
+    const { club: homeClub, players: homePlayers } = makeLineup('home', '4-3-3', 70);
+    // 11 outfield players with no GK — fails the `players.some(p => p.position === 'GK')` half of isSquadValid.
+    const awayPlayers: Player[] = [
+      makePlayer('a-cb1', 'away', 'CB', 70),
+      makePlayer('a-cb2', 'away', 'CB', 70),
+      makePlayer('a-cb3', 'away', 'CB', 70),
+      makePlayer('a-lb', 'away', 'LB', 70),
+      makePlayer('a-rb', 'away', 'RB', 70),
+      makePlayer('a-cm1', 'away', 'CM', 70),
+      makePlayer('a-cm2', 'away', 'CM', 70),
+      makePlayer('a-cm3', 'away', 'CM', 70),
+      makePlayer('a-st1', 'away', 'ST', 70),
+      makePlayer('a-st2', 'away', 'ST', 70),
+      makePlayer('a-st3', 'away', 'ST', 70),
+    ];
+    const awayClub: Club = {
+      id: 'away', name: 'Away FC', shortName: 'AWA', color: '#fff', secondaryColor: '#000',
+      budget: 0, wageBill: 0, reputation: 70, facilities: 5, youthRating: 5, fanBase: 5, boardPatience: 60,
+      playerIds: awayPlayers.map(p => p.id), formation: '4-3-3',
+      lineup: awayPlayers.map(p => p.id), subs: [], divisionId: 'eng',
+    };
+
+    const { result } = simulateMatch(
+      makeMatch('forfeit-2'), homeClub, awayClub, homePlayers, awayPlayers,
+    );
+
+    expect(pickWinner(result)).toBe('home');
+    expect(result.homeGoals).toBe(3);
+    expect(result.awayGoals).toBe(0);
+    expect(result.events[0].description.toLowerCase()).toContain('forfeit');
+  });
+
+  it('does NOT forfeit when both sides have exactly 7 players including a GK', () => {
+    // Boundary case: MIN_PLAYERS_TO_CONTINUE = 7 for AI teams. Squad of
+    // exactly 7 with a GK should pass validity and produce a normal result.
+    const buildMin7 = (clubId: string): Player[] => [
+      makePlayer(`${clubId}-gk`, clubId, 'GK', 70),
+      makePlayer(`${clubId}-cb1`, clubId, 'CB', 70),
+      makePlayer(`${clubId}-cb2`, clubId, 'CB', 70),
+      makePlayer(`${clubId}-cm1`, clubId, 'CM', 70),
+      makePlayer(`${clubId}-cm2`, clubId, 'CM', 70),
+      makePlayer(`${clubId}-st1`, clubId, 'ST', 70),
+      makePlayer(`${clubId}-st2`, clubId, 'ST', 70),
+    ];
+    const homePlayers = buildMin7('home');
+    const awayPlayers = buildMin7('away');
+    const homeClub: Club = {
+      id: 'home', name: 'Home FC', shortName: 'HOM', color: '#fff', secondaryColor: '#000',
+      budget: 0, wageBill: 0, reputation: 70, facilities: 5, youthRating: 5, fanBase: 5, boardPatience: 60,
+      playerIds: homePlayers.map(p => p.id), formation: '4-3-3',
+      lineup: homePlayers.map(p => p.id), subs: [], divisionId: 'eng',
+    };
+    const awayClub: Club = { ...homeClub, id: 'away', name: 'Away FC', shortName: 'AWA',
+      playerIds: awayPlayers.map(p => p.id), lineup: awayPlayers.map(p => p.id) };
+
+    const { result } = simulateMatch(
+      makeMatch('boundary-7'), homeClub, awayClub, homePlayers, awayPlayers,
+    );
+
+    // Match ran normally — kickoff present, full_time at the end, no forfeit message.
+    expect(result.events[0].type).toBe('kickoff');
+    expect(result.events[result.events.length - 1].type).toBe('full_time');
+    expect(result.events[result.events.length - 1].description.toLowerCase()).not.toContain('forfeit');
+  });
+
+  it('forfeits both ways with a 0-3 default loss when both squads are invalid', () => {
+    // Edge case: both teams below 7. Engine still picks one side as the
+    // forfeit and awards the other — `isSquadValid` checks home first.
+    const homePlayers = [makePlayer('h-only', 'home', 'GK', 70)];
+    const awayPlayers = [makePlayer('a-only', 'away', 'GK', 70)];
+    const homeClub: Club = {
+      id: 'home', name: 'Home FC', shortName: 'HOM', color: '#fff', secondaryColor: '#000',
+      budget: 0, wageBill: 0, reputation: 70, facilities: 5, youthRating: 5, fanBase: 5, boardPatience: 60,
+      playerIds: ['h-only'], formation: '4-3-3', lineup: ['h-only'], subs: [], divisionId: 'eng',
+    };
+    const awayClub: Club = { ...homeClub, id: 'away', name: 'Away FC', shortName: 'AWA',
+      playerIds: ['a-only'], lineup: ['a-only'] };
+
+    const { result } = simulateMatch(
+      makeMatch('double-forfeit'), homeClub, awayClub, homePlayers, awayPlayers,
+    );
+
+    expect(result.played).toBe(true);
+    // The forfeit logic (match.ts:1782-1789) sets `forfeitHome = !homeValid ? 0 : 3`,
+    // so when home is invalid the home side gets 0; same for away. With both
+    // invalid, both end at 0-0 and there's a forfeit description event.
+    expect(result.homeGoals).toBe(0);
+    expect(result.awayGoals).toBe(0);
+    expect(result.events[0].type).toBe('full_time');
+    expect(result.events[0].description.toLowerCase()).toContain('forfeit');
+  });
+});

@@ -457,7 +457,7 @@ const TrainingPage = () => {
             </ResponsiveContainer>
             <div className="flex items-center justify-center gap-4 mt-1">
               <div className="flex items-center gap-1">
-                <div className="w-3 h-0.5 rounded" style={{ backgroundColor: 'hsl(160 84% 39%)' }} />
+                <div className="w-3 h-0.5 rounded bg-emerald-600" />
                 <span className="text-[9px] text-muted-foreground">Your Squad</span>
               </div>
               <div className="flex items-center gap-1">

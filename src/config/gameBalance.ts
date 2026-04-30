@@ -500,6 +500,17 @@ export const TRANSFER_TALK_CONVINCE_FAIL_MORALE = 5;
  * 200 fits the seasonal inflow without flooring memory or list-render cost.
  */
 export const FREE_AGENT_POOL_MAX = 200;
+
+/**
+ * Forced retirement age — at season-end any player whose post-aging age
+ * reaches this threshold is retired regardless of their remaining contract
+ * length. Without this gate a 35-year-old who signs a 5-year contract
+ * could play into their 40s indefinitely as long as the club kept renewing.
+ * 40 picks the realistic upper bound (real careers end here for ~99% of
+ * players) while leaving room for a few veterans (Buffon, Ibrahimović) to
+ * play into their 39th year.
+ */
+export const FORCED_RETIREMENT_AGE = 40;
 // ── Cliffhanger System ──
 /** Maximum number of cliffhangers shown per week */
 export const MAX_CLIFFHANGERS = 3;
@@ -660,6 +671,14 @@ export const BALLON_DOR_TOP_N = 25;
 /** Minimum appearances to be eligible for the Ballon d'Or ranking. Below
  *  this floor a player's counting stats aren't a meaningful sample. */
 export const BALLON_DOR_MIN_APPEARANCES = 8;
+/** Soft cap on entries from any single division (e.g. eng-1 / esp-1 /
+ *  ger-1). Once a division has BALLON_DOR_MAX_PER_DIVISION players in the
+ *  ranking, additional candidates from that division are deferred so the
+ *  top 25 features players from multiple leagues — mirrors the real
+ *  Ballon d'Or where the EPL/La Liga/Bundesliga/Serie A all coexist. The
+ *  cap is "soft" in that if there aren't enough qualifying players from
+ *  other divisions to fill the 25, the over-cap leagues backfill. */
+export const BALLON_DOR_MAX_PER_DIVISION = 6;
 /** Weights for the Ballon d'Or scoring formula. v70: `overall` bumped
  *  again (2.0 → 2.5) so a 90-rated player gets +225 from raw quality —
  *  with the new elite-club bonus this anchors top-flight stars at the

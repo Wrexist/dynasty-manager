@@ -11,6 +11,7 @@ import {
   BALLON_DOR_LEAGUE_CUP_WIN_BONUS,
   BALLON_DOR_INTL_TOURNAMENT_BONUS,
   BALLON_DOR_ELITE_CLUB_BONUS,
+  BALLON_DOR_MAX_PER_DIVISION,
 } from '@/config/gameBalance';
 import { LEAGUES, ALL_CLUBS } from '@/data/league';
 import { CLUB_TEMPLATES } from '@/data/playerTemplates';
@@ -117,13 +118,19 @@ function getIntlTournamentBonusForNation(
  * CB might post 3-7. League outcome is assumed favourable (top-3
  * finish) since we cannot model their actual season.
  */
-function getGlobalEliteEntries(loadedClubIds: Set<string>): BallonDOrEntry[] {
+/** Internal scored shape — adds divisionId to the public BallonDOrEntry so
+ *  the league-diversity cap can run before we strip the field for the
+ *  serialised history entry. */
+type ScoredEntry = BallonDOrEntry & { _divisionId: string };
+
+function getGlobalEliteEntries(loadedClubIds: Set<string>): ScoredEntry[] {
   const w = BALLON_DOR_WEIGHTS;
-  const entries: BallonDOrEntry[] = [];
-  const clubColorById: Record<string, { shortName: string; color: string }> = {};
+  const entries: ScoredEntry[] = [];
+  const clubMetaById: Record<string, { shortName: string; color: string; divisionId: string }> = {};
   for (const cd of ALL_CLUBS) {
-    clubColorById[cd.id] = { shortName: cd.shortName, color: cd.color };
+    clubMetaById[cd.id] = { shortName: cd.shortName, color: cd.color, divisionId: cd.divisionId };
   }
+  const clubColorById = clubMetaById; // alias kept for the existing ghost block readability
 
   for (const clubId of Object.keys(BALLON_DOR_ELITE_CLUB_BONUS)) {
     if (loadedClubIds.has(clubId)) continue;
@@ -133,7 +140,7 @@ function getGlobalEliteEntries(loadedClubIds: Set<string>): BallonDOrEntry[] {
     // Take the top 4 by ovr — mirrors how real BdO clusters the same club
     const topStars = [...templates].sort((a, b) => b.ovr - a.ovr).slice(0, 4);
     const eliteBonus = BALLON_DOR_ELITE_CLUB_BONUS[clubId] ?? 0;
-    const meta = clubColorById[clubId] || { shortName: clubId.slice(0, 3).toUpperCase(), color: '#888' };
+    const meta = clubColorById[clubId] || { shortName: clubId.slice(0, 3).toUpperCase(), color: '#888', divisionId: '' };
 
     for (let idx = 0; idx < topStars.length; idx++) {
       const t = topStars[idx];
@@ -215,6 +222,7 @@ function getGlobalEliteEntries(loadedClubIds: Set<string>): BallonDOrEntry[] {
         assists,
         appearances: apps,
         avgRating: Math.round(avgRating * 10) / 10,
+        _divisionId: meta.divisionId,
       });
     }
   }
@@ -422,7 +430,7 @@ export function calculateBallonDOr(
   const ghostEntries = injectGlobalElites ? getGlobalEliteEntries(loadedClubIds) : [];
 
   // Score every eligible player
-  const realScored = allPlayers
+  const realScored: ScoredEntry[] = allPlayers
     .filter(p => p.appearances >= BALLON_DOR_MIN_APPEARANCES && p.clubId)
     .map(p => {
       const clubPos = clubPositionMap[p.clubId] || { position: 10, totalTeams: 20, cleanSheets: 0, divisionTier: 4, wonLeague: false };
@@ -460,24 +468,71 @@ export function calculateBallonDOr(
         assists: p.assists,
         appearances: p.appearances,
         avgRating,
-      } as BallonDOrEntry;
+        _divisionId: club?.divisionId || '',
+      };
     });
 
   // Merge real game-state candidates with synthesised global elites and
   // re-sort the combined pool. Ghost entries are ranked alongside real
   // ones, which is what the player should see — a Real Madrid winger and
   // a Manchester City striker competing on the same leaderboard.
-  const scored = [...realScored, ...ghostEntries]
-    .sort((a, b) => {
-      // Primary: score descending
-      if (b.score !== a.score) return b.score - a.score;
-      // Tiebreakers: goals → assists → appearances → overall
-      if (b.goals !== a.goals) return b.goals - a.goals;
-      if (b.assists !== a.assists) return b.assists - a.assists;
-      if (b.appearances !== a.appearances) return b.appearances - a.appearances;
-      return b.overall - a.overall;
-    })
-    .slice(0, BALLON_DOR_TOP_N);
+  const sorted = [...realScored, ...ghostEntries].sort((a, b) => {
+    // Primary: score descending
+    if (b.score !== a.score) return b.score - a.score;
+    // Tiebreakers: goals → assists → appearances → overall
+    if (b.goals !== a.goals) return b.goals - a.goals;
+    if (b.assists !== a.assists) return b.assists - a.assists;
+    if (b.appearances !== a.appearances) return b.appearances - a.appearances;
+    return b.overall - a.overall;
+  });
+
+  // Soft per-division cap: walk in score order, accept everyone until a
+  // division reaches BALLON_DOR_MAX_PER_DIVISION, then defer further
+  // candidates from that division. Backfill the deferred ones at the end
+  // if the top 25 isn't full (e.g. only one or two real-world divisions
+  // are represented in this save). Empty divisionId (loose ghost / data
+  // gap) is treated as uncapped so we never starve a load with sparse
+  // metadata.
+  const accepted: ScoredEntry[] = [];
+  const deferred: ScoredEntry[] = [];
+  const divisionCounts = new Map<string, number>();
+  for (const entry of sorted) {
+    if (accepted.length >= BALLON_DOR_TOP_N) break;
+    const div = entry._divisionId;
+    if (!div) {
+      accepted.push(entry);
+      continue;
+    }
+    const count = divisionCounts.get(div) ?? 0;
+    if (count >= BALLON_DOR_MAX_PER_DIVISION) {
+      deferred.push(entry);
+      continue;
+    }
+    accepted.push(entry);
+    divisionCounts.set(div, count + 1);
+  }
+  for (const entry of deferred) {
+    if (accepted.length >= BALLON_DOR_TOP_N) break;
+    accepted.push(entry);
+  }
+
+  // Strip the internal _divisionId before returning so the serialised
+  // BallonDOrEntry stays clean.
+  const scored: BallonDOrEntry[] = accepted.map(e => ({
+    playerId: e.playerId,
+    playerName: e.playerName,
+    clubName: e.clubName,
+    clubColor: e.clubColor,
+    position: e.position,
+    overall: e.overall,
+    age: e.age,
+    rank: e.rank,
+    score: e.score,
+    goals: e.goals,
+    assists: e.assists,
+    appearances: e.appearances,
+    avgRating: e.avgRating,
+  }));
 
   // Assign ranks
   scored.forEach((entry, i) => {

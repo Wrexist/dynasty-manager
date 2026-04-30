@@ -9,7 +9,7 @@ import { PlayerStatusBadges } from '@/components/game/PlayerStatusBadges';
 import { GraduationCap, Star, ArrowUpRight, Trash2, Wrench, Users, X, Check, Zap, Brain, Target, Dumbbell, ChevronDown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { getPotentialInfo, posBadgeColor } from '@/utils/uiHelpers';
+import { getPotentialInfo, posBadgeColor, getRatingColor } from '@/utils/uiHelpers';
 import { getStaffBonus } from '@/utils/staff';
 import { hapticLight } from '@/utils/haptics';
 import { PAGE_HINTS } from '@/config/ui';
@@ -30,12 +30,6 @@ function devBarTone(score: number): 'emerald' | 'primary' | 'amber' | 'rose' {
   if (score >= 70) return 'primary';
   if (score >= 60) return 'amber';
   return 'rose';
-}
-
-function devTextColor(score: number): string {
-  if (score >= 80) return 'text-emerald-400';
-  if (score >= 40) return 'text-primary';
-  return 'text-amber-400';
 }
 
 const YouthAcademy = () => {
@@ -236,7 +230,7 @@ const YouthAcademy = () => {
                     <div className="mt-1.5" style={{ width: PLAYER_CARD_SIZE_PX.lg }}>
                       <div className="flex items-center justify-between mb-0.5">
                         <span className="text-[9px] text-muted-foreground uppercase tracking-wider">Dev</span>
-                        <span className={cn('text-[9px] font-semibold tabular-nums', devTextColor(prospect.developmentScore))}>
+                        <span className={cn('text-[9px] font-semibold tabular-nums', getRatingColor(prospect.developmentScore))}>
                           {Math.round(prospect.developmentScore)}%
                         </span>
                       </div>

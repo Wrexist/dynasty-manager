@@ -23,6 +23,7 @@ import {
   CONTINENTAL_CUP_GROUPS,
   NATIONAL_SQUAD_SIZE,
   NT_CANDIDATE_POOL_TARGET,
+  LOW_FITNESS_THRESHOLD,
 } from '@/config/gameBalance';
 import { generatePlayer, pickNameForNationality, buildPlayerFromTemplate } from '@/utils/playerGen';
 import { generatePlayerAppearance } from '@/config/playerAppearance';
@@ -535,14 +536,40 @@ export function processKnockoutRound(
   return { updatedTies, nextRoundTies, playerTie, roundComplete, tournamentComplete, winner };
 }
 
-/** Auto-select the best 23 players of a nationality from all players in the game */
+/** Auto-select the best 23 players of a nationality from all players in the game.
+ *
+ *  Eligibility filters:
+ *    - Nationality match (with FC26 alias resolution)
+ *    - Not currently injured
+ *    - Age >= 17
+ *    - Not currently suspended (suspendedUntilWeek <= currentWeek)
+ *    - Fitness above the LOW_FITNESS_THRESHOLD floor — a player at 30%
+ *      fitness is exhausted and shouldn't be picked over a fresh 75 OVR
+ *      backup. Optional `currentWeek` param keeps the function callable
+ *      from places that don't have a week handy (tests, sandbox init);
+ *      when undefined the suspension check is skipped but fitness still
+ *      applies.
+ */
 export function autoSelectNationalSquad(
   nationality: string,
   allPlayers: Record<string, Player>,
+  currentWeek?: number,
 ): string[] {
   const nats = new Set(resolveNationalityAliases(nationality));
   const eligible = Object.values(allPlayers)
-    .filter(p => nats.has(p.nationality) && !p.injured && p.age >= 17)
+    .filter(p => {
+      if (!nats.has(p.nationality)) return false;
+      if (p.injured) return false;
+      if (p.age < 17) return false;
+      // Suspended players miss the next match window — exclude when the
+      // caller supplied the current week.
+      if (currentWeek !== undefined && p.suspendedUntilWeek && p.suspendedUntilWeek > currentWeek) return false;
+      // Low-fitness exhaustion. Treat undefined fitness as max (legacy
+      // saves don't always track it on every code path).
+      const fit = p.fitness ?? 100;
+      if (fit < LOW_FITNESS_THRESHOLD) return false;
+      return true;
+    })
     .sort((a, b) => b.overall - a.overall);
 
   // Pick best 23, ensuring position coverage
@@ -595,44 +622,79 @@ const NT_QUALITY_TIERS = [
   { min: 60, max: 67, count: 10 },  // young prospects
 ];
 
+/** Max attempts to re-roll a procedural name when its surname collides with a
+ *  real-pool entry already added to the national team. Keeps the loop bounded
+ *  while still avoiding the "Ryan James / Reece James" near-duplicate effect. */
+const NT_PROCEDURAL_NAME_RETRIES = 8;
+
 /**
  * Generate a pool of national team candidate players for a given nationality.
  * Called when the user accepts the national team coaching job, to ensure
  * enough eligible real-name candidates exist for squad selection.
  *
  * Strategy:
- *   1. Always inject the top non-duplicate real FC26 players from
- *      NATIONAL_PLAYER_POOL — even if there are already 50+ procedurally
- *      generated players of that nationality in-game (those have fake names
- *      and undermine the "pick real stars" experience).
- *   2. If the combined pool still falls short of the candidate target,
- *      fill the remaining slots with procedural players.
+ *   1. Always inject real FC26 players from NATIONAL_PLAYER_POOL first.
+ *      With community pack enabled, we add the FULL pool (uncapped) so the
+ *      manager sees every real international, not just the top NT_CANDIDATE_
+ *      POOL_TARGET. With it disabled, we cap at NT_CANDIDATE_POOL_TARGET to
+ *      keep parity with the procedural-flavoured experience.
+ *   2. Fall back to procedural generation only if the combined pool falls
+ *      below NATIONAL_SQUAD_SIZE (community pack on) or NT_CANDIDATE_POOL_
+ *      TARGET (community pack off). Procedural players are surname-deduped
+ *      against the real pool so we never end up with "Ryan James" sitting
+ *      next to "Reece James" or "Ben White" next to "Benjamin White".
  */
 export function generateNationalTeamPool(
   nationality: string,
   existingPlayers: Record<string, Player>,
   season: number,
+  options: { communityPackEnabled?: boolean } = {},
 ): Record<string, Player> {
+  const communityPackEnabled = options.communityPackEnabled === true;
   const nats = new Set(resolveNationalityAliases(nationality));
   const existing = Object.values(existingPlayers)
     .filter(p => nats.has(p.nationality) && !p.injured && p.age >= 17);
 
   const newPlayers: Record<string, Player> = {};
 
-  // ── Step 1: Always top up from real FC26 pool (across all aliases) ──
-  // We keep adding real-name FC26 players up to the candidate target so a
-  // manager always has the actual star players to choose from, regardless of
-  // how many procedurally-named players already exist in club squads.
-  const existingNameKeys = new Set(
+  // ── Step 1: Inject real FC26 pool entries ──
+  // `inGameNameKeys` snapshots names that already exist as in-game players so
+  // we never re-add them from the real pool. `blockedSurnames` captures
+  // surnames the procedural fallback must avoid colliding with. Both are
+  // initialised from `existing` only — the real-pool loop intentionally does
+  // not add to `inGameNameKeys`, otherwise two distinct FC26 players sharing
+  // a display name (e.g. multiple "Lucas Silva"s, "Lukas Müller"s) would
+  // silently drop the second one and break the community-pack promise of
+  // exposing every real candidate.
+  const inGameNameKeys = new Set(
     existing.map(p => `${p.firstName.toLowerCase()}|${p.lastName.toLowerCase()}`)
   );
+  const blockedSurnames = new Set(existing.map(p => p.lastName.toLowerCase()));
+  // Names already accumulated in the resulting pool — used by the procedural
+  // fallback below to avoid re-stamping a name that's just been added (real
+  // OR existing). Distinct from `inGameNameKeys` because we add to it freely
+  // for procedural-dedup purposes without affecting real-pool dedup.
+  const accumulatedNameKeys = new Set(inGameNameKeys);
+
   const realPool = getRealPoolForNationality(nationality);
+  // With the community pack on, every real international is fair game — no
+  // cap. With it off, retain the legacy NT_CANDIDATE_POOL_TARGET ceiling so
+  // procedural players still feature heavily.
+  const realCap = communityPackEnabled ? Infinity : NT_CANDIDATE_POOL_TARGET;
+  // Within-loop dedup keyed on fcId so distinct real players who happen to
+  // share a display name both pass through. Falls back to a name-based key
+  // for templates without an fcId (legacy CLUB_TEMPLATES entries).
+  const seenRealKeys = new Set<string>();
   let realAdded = 0;
   for (const t of realPool) {
-    if (realAdded >= NT_CANDIDATE_POOL_TARGET) break;
-    const key = `${t.fn.toLowerCase()}|${t.ln.toLowerCase()}`;
-    if (existingNameKeys.has(key)) continue; // already in-game via club squad
-    existingNameKeys.add(key);
+    if (realAdded >= realCap) break;
+    const nameKey = `${t.fn.toLowerCase()}|${t.ln.toLowerCase()}`;
+    if (inGameNameKeys.has(nameKey)) continue; // already in-game via club squad
+    const dedupKey = t.fcId ? `id:${t.fcId}` : `n:${nameKey}`;
+    if (seenRealKeys.has(dedupKey)) continue;
+    seenRealKeys.add(dedupKey);
+    accumulatedNameKeys.add(nameKey);
+    blockedSurnames.add(t.ln.toLowerCase());
     // Pass canonical nationality so appearance generation uses the game's
     // nation name rather than the FC26 alias (e.g. "Netherlands" not "Holland")
     const player = buildPlayerFromTemplate(t, '', season, nationality);
@@ -640,9 +702,15 @@ export function generateNationalTeamPool(
     realAdded++;
   }
 
-  // ── Step 2: Fall back to procedural generation if the combined pool is short ──
+  // ── Step 2: Procedural fallback (only when the real pool is short) ──
+  // With the community pack on, the user explicitly opted into "all real
+  // players". Only invoke procedural generation as a safety net when the
+  // combined pool can't even fill a 23-man squad — which only happens for
+  // very small nations with skeletal FC26 data. With it off, fill up to the
+  // legacy NT_CANDIDATE_POOL_TARGET so squad selection has room to breathe.
   const totalAfter = existing.length + realAdded;
-  const remaining = Math.max(0, NT_CANDIDATE_POOL_TARGET - totalAfter);
+  const fallbackTarget = communityPackEnabled ? NATIONAL_SQUAD_SIZE : NT_CANDIDATE_POOL_TARGET;
+  const remaining = Math.max(0, fallbackTarget - totalAfter);
   if (remaining <= 0) return newPlayers;
 
   let posIndex = 0;
@@ -664,7 +732,33 @@ export function generateNationalTeamPool(
 
     const player = generatePlayer(position, quality, '', season);
     player.nationality = nationality;
-    const { firstName, lastName } = pickNameForNationality(nationality);
+
+    // Pick a name whose surname doesn't collide with a real-pool entry.
+    // Re-roll up to NT_PROCEDURAL_NAME_RETRIES times to avoid pseudo-duplicates
+    // like "Nathan Pope" appearing alongside real "Nicholas Pope".
+    let firstName = '';
+    let lastName = '';
+    for (let attempt = 0; attempt < NT_PROCEDURAL_NAME_RETRIES; attempt++) {
+      const candidate = pickNameForNationality(nationality);
+      const fullKey = `${candidate.firstName.toLowerCase()}|${candidate.lastName.toLowerCase()}`;
+      const surnameKey = candidate.lastName.toLowerCase();
+      if (accumulatedNameKeys.has(fullKey)) continue;
+      if (blockedSurnames.has(surnameKey)) continue;
+      firstName = candidate.firstName;
+      lastName = candidate.lastName;
+      break;
+    }
+    if (!firstName || !lastName) {
+      // Couldn't find a non-real-colliding name in the budget — skip this slot.
+      // Better to ship a slightly smaller pool than an obvious dupe.
+      continue;
+    }
+    // Only block the full name (so we don't stamp out the same fake person
+    // twice). Surnames are NOT added to blockedSurnames — multiple procedural
+    // players can share a surname; the surname block is reserved for real-
+    // pool entries to prevent the "Ryan James / Reece James" effect.
+    accumulatedNameKeys.add(`${firstName.toLowerCase()}|${lastName.toLowerCase()}`);
+
     player.firstName = firstName;
     player.lastName = lastName;
     player.clubId = '';

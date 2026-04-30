@@ -21,12 +21,14 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
     const formation = '4-3-3' as FormationType;
 
     // Generate national team candidate pool (sandbox mode starts with full squad)
-    const poolPlayers = generateNationalTeamPool(nationality, state.players, state.season || 1);
+    const poolPlayers = generateNationalTeamPool(nationality, state.players, state.season || 1, {
+      communityPackEnabled: state.communityPackEnabled,
+    });
     const allPlayers = { ...state.players, ...poolPlayers };
     const poolPlayerIds = Object.keys(poolPlayers);
 
     // Auto-select best 23-man squad
-    const squad = autoSelectNationalSquad(nationality, allPlayers);
+    const squad = autoSelectNationalSquad(nationality, allPlayers, state.week);
     const squadPlayerObjs = squad.map(id => allPlayers[id]).filter(Boolean);
     let lineup: string[] = [];
     let subs: string[] = [];
@@ -93,11 +95,13 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
     const formation = '4-3-3' as FormationType;
 
     // Generate national team candidate pool so there are enough eligible players
-    const poolPlayers = generateNationalTeamPool(nationality, state.players, state.season);
+    const poolPlayers = generateNationalTeamPool(nationality, state.players, state.season, {
+      communityPackEnabled: state.communityPackEnabled,
+    });
     const allPlayers = { ...state.players, ...poolPlayers };
 
     // Auto-select best 23-man squad from all eligible players
-    const squad = autoSelectNationalSquad(nationality, allPlayers);
+    const squad = autoSelectNationalSquad(nationality, allPlayers, state.week);
 
     // Auto-select best lineup and subs from the squad
     const squadPlayerObjs = squad.map(id => allPlayers[id]).filter(Boolean);

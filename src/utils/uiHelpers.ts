@@ -41,6 +41,19 @@ export function getRatingColor(value: number): string {
 }
 
 /**
+ * Get the bg + text + border tuple for a rating badge (the chip-shape
+ * commonly rendered next to a player's overall on rosters and pickers).
+ * Centralises what used to be ad-hoc local helpers in NationalSquadPicker
+ * and YouthAcademy that drifted from the documented 80/70/60 thresholds.
+ */
+export function getRatingBadge(value: number): string {
+  for (const t of RATING_COLOR_THRESHOLDS) {
+    if (value >= t.min) return t.badgeClass;
+  }
+  return 'bg-muted/20 text-muted-foreground border-border/30';
+}
+
+/**
  * Text color for "star player" displays (club previews, manager creation).
  * Uses a tighter 90/85/80 ladder than {@link getRatingColor} because every
  * star is by definition above 80, so the standard thresholds would paint

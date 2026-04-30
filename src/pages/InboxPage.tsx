@@ -230,11 +230,13 @@ const InboxPage = () => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold text-foreground font-display">Inbox</h2>
-          <p className="text-xs text-muted-foreground">
-            {hasActiveFilter
-              ? `${filteredUnread} unread · ${filtered.length} of ${messages.length} messages`
-              : `${totalUnread} unread · ${messages.length} messages`}
-          </p>
+          {messages.length > 0 && (
+            <p className="text-xs text-muted-foreground">
+              {hasActiveFilter
+                ? `${filteredUnread} unread · ${filtered.length} of ${messages.length} messages`
+                : `${totalUnread} unread · ${messages.length} messages`}
+            </p>
+          )}
         </div>
         {(hasActiveFilter ? filteredUnread : totalUnread) > 0 && (
           <button type="button" onClick={handleMarkAllRead} className="flex items-center gap-1 text-xs text-primary hover:underline">
@@ -244,8 +246,9 @@ const InboxPage = () => {
         )}
       </div>
 
-      {/* Filter Dropdown */}
-      <div className="relative" ref={dropdownRef}>
+      {/* Filter Dropdown — hidden when there are no messages at all to avoid
+          cluttering the empty state with controls that can't do anything. */}
+      <div className={cn('relative', messages.length === 0 && 'hidden')} ref={dropdownRef}>
         <button
           onClick={() => setFilterOpen(prev => !prev)}
           className={cn(
