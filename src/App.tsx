@@ -8,7 +8,6 @@ import { useGameStore } from "@/store/gameStore";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SaveRecoveryDialog } from "@/components/SaveRecoveryDialog";
 import { AnalyticsConsentModal } from "@/components/AnalyticsConsentModal";
-import { DevToolsPanel } from "@/components/dev/DevToolsPanel";
 import TitleScreen from "./pages/TitleScreen";
 import NotFound from "./pages/NotFound";
 import { readAnalyticsConsent } from "@/store/helpers/persistence";
@@ -93,10 +92,6 @@ const App = () => {
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
-          {/* Global dev tools — render outside the router so the panel is
-              visible on title, onboarding, and in-game. Self-gated on
-              Vite DEV mode or localStorage flag; no-ops in production. */}
-          <DevToolsPanel />
         </HashRouter>
       </TooltipProvider>
     </MotionConfig>
