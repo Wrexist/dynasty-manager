@@ -3,6 +3,9 @@
  * Used for national team selection and international tournament generation.
  */
 
+import type { Player } from '@/types/game';
+import { NATIONAL_PLAYER_POOL } from '@/data/nationalPlayerPool';
+
 export interface NationData {
   name: string;
   confederation: 'UEFA' | 'CONMEBOL' | 'CAF' | 'AFC' | 'CONCACAF';
@@ -74,279 +77,66 @@ export const NATIONS: NationData[] = [
   { name: 'Jamaica', confederation: 'CONCACAF', baseRanking: 60, color: '#009B3A', secondaryColor: '#FED100' },
 ];
 
-/** Notable star players per nation for display in selection screen */
-export interface NationStarPlayer {
-  name: string;
-  position: string;
-  rating: number;
+/**
+ * Build minimal Player objects for the top 3 stars of a nation, drawn from
+ * NATIONAL_PLAYER_POOL (FC26-derived rosters). Used by the nation-selection
+ * screen to render PlayerCard previews so names + stats stay consistent
+ * with the rest of the game. Cached per-nation since the pool is static.
+ */
+const nationStarPlayerCache = new Map<string, Player[]>();
+
+export function getNationStarPlayers(nationName: string): Player[] {
+  const cached = nationStarPlayerCache.get(nationName);
+  if (cached) return cached;
+  const pool = NATIONAL_PLAYER_POOL[nationName];
+  if (!pool || pool.length === 0) {
+    nationStarPlayerCache.set(nationName, []);
+    return [];
+  }
+  const players: Player[] = pool.slice(0, 3).map((t, i) => ({
+    id: `nation-star-${nationName}-${i}`,
+    firstName: t.fn,
+    lastName: t.ln,
+    age: t.age,
+    nationality: nationName,
+    position: t.pos,
+    overall: t.ovr,
+    potential: t.pot ?? t.ovr,
+    attributes: {
+      pace: t.pace ?? 70,
+      shooting: t.shooting ?? 70,
+      passing: t.passing ?? 70,
+      defending: t.defending ?? 70,
+      physical: t.physical ?? 70,
+      mental: t.mental ?? 70,
+    },
+    clubId: '',
+    wage: 0,
+    value: 0,
+    contractEnd: 0,
+    fitness: 100,
+    morale: 100,
+    form: 100,
+    injured: false,
+    injuryWeeks: 0,
+    goals: 0,
+    assists: 0,
+    appearances: 0,
+    careerGoals: 0,
+    careerAssists: 0,
+    careerAppearances: 0,
+    yellowCards: 0,
+    redCards: 0,
+    skillMoves: t.skillMoves ?? 3,
+    alternatePositions: t.altPos,
+    source: t.source,
+    fcId: t.fcId,
+    heightCm: t.heightCm,
+    weightKg: t.weightKg,
+  } as Player));
+  nationStarPlayerCache.set(nationName, players);
+  return players;
 }
-
-export const NATION_STARS: Record<string, NationStarPlayer[]> = {
-  // UEFA
-  'England': [
-    { name: 'J. Bellingham', position: 'CM', rating: 91 },
-    { name: 'B. Saka', position: 'RW', rating: 89 },
-    { name: 'C. Palmer', position: 'CAM', rating: 88 },
-  ],
-  'France': [
-    { name: 'K. Mbappé', position: 'ST', rating: 93 },
-    { name: 'A. Tchouaméni', position: 'CDM', rating: 87 },
-    { name: 'A. Griezmann', position: 'CAM', rating: 86 },
-  ],
-  'Spain': [
-    { name: 'L. Yamal', position: 'RW', rating: 91 },
-    { name: 'P. Gavi', position: 'CM', rating: 87 },
-    { name: 'D. Olmo', position: 'CAM', rating: 87 },
-  ],
-  'Germany': [
-    { name: 'F. Wirtz', position: 'CAM', rating: 90 },
-    { name: 'J. Kimmich', position: 'CDM', rating: 88 },
-    { name: 'N. Schlotterbeck', position: 'CB', rating: 86 },
-  ],
-  'Italy': [
-    { name: 'G. Donnarumma', position: 'GK', rating: 87 },
-    { name: 'N. Barella', position: 'CM', rating: 87 },
-    { name: 'F. Dimarco', position: 'LB', rating: 86 },
-  ],
-  'Portugal': [
-    { name: 'B. Silva', position: 'CAM', rating: 89 },
-    { name: 'R. Dias', position: 'CB', rating: 87 },
-    { name: 'R. Leão', position: 'LW', rating: 86 },
-  ],
-  'Netherlands': [
-    { name: 'F. de Jong', position: 'CM', rating: 87 },
-    { name: 'C. Gakpo', position: 'LW', rating: 87 },
-    { name: 'X. Simons', position: 'CAM', rating: 86 },
-  ],
-  'Belgium': [
-    { name: 'K. De Bruyne', position: 'CAM', rating: 90 },
-    { name: 'J. Doku', position: 'RW', rating: 86 },
-    { name: 'A. Onana', position: 'CM', rating: 85 },
-  ],
-  'Croatia': [
-    { name: 'J. Gvardiol', position: 'CB', rating: 87 },
-    { name: 'L. Modrić', position: 'CM', rating: 87 },
-    { name: 'M. Kovačić', position: 'CM', rating: 85 },
-  ],
-  'Denmark': [
-    { name: 'R. Højlund', position: 'ST', rating: 86 },
-    { name: 'P. Højbjerg', position: 'CDM', rating: 84 },
-    { name: 'A. Christensen', position: 'CB', rating: 83 },
-  ],
-  'Switzerland': [
-    { name: 'G. Xhaka', position: 'CM', rating: 86 },
-    { name: 'M. Akanji', position: 'CB', rating: 85 },
-    { name: 'D. Ndoye', position: 'RW', rating: 82 },
-  ],
-  'Poland': [
-    { name: 'R. Lewandowski', position: 'ST', rating: 88 },
-    { name: 'P. Zieliński', position: 'CM', rating: 84 },
-    { name: 'J. Kiwior', position: 'CB', rating: 82 },
-  ],
-  'Turkey': [
-    { name: 'H. Çalhanoğlu', position: 'CM', rating: 86 },
-    { name: 'A. Güler', position: 'CAM', rating: 85 },
-    { name: 'F. Kadıoğlu', position: 'LB', rating: 83 },
-  ],
-  'Serbia': [
-    { name: 'D. Vlahović', position: 'ST', rating: 86 },
-    { name: 'S. Milinković-Savić', position: 'CM', rating: 85 },
-    { name: 'S. Pavlović', position: 'CB', rating: 82 },
-  ],
-  'Czech Republic': [
-    { name: 'P. Schick', position: 'ST', rating: 83 },
-    { name: 'T. Souček', position: 'CDM', rating: 82 },
-    { name: 'V. Černý', position: 'RW', rating: 81 },
-  ],
-  'Austria': [
-    { name: 'M. Sabitzer', position: 'CM', rating: 84 },
-    { name: 'K. Laimer', position: 'CM', rating: 83 },
-    { name: 'P. Lienhart', position: 'CB', rating: 81 },
-  ],
-  'Ukraine': [
-    { name: 'A. Dovbyk', position: 'ST', rating: 84 },
-    { name: 'O. Zinchenko', position: 'LB', rating: 84 },
-    { name: 'M. Mudryk', position: 'LW', rating: 83 },
-  ],
-  'Scotland': [
-    { name: 'A. Robertson', position: 'LB', rating: 85 },
-    { name: 'S. McTominay', position: 'CM', rating: 84 },
-    { name: 'J. McGinn', position: 'CM', rating: 82 },
-  ],
-  'Wales': [
-    { name: 'B. Johnson', position: 'LW', rating: 82 },
-    { name: 'E. Ampadu', position: 'CB', rating: 80 },
-    { name: 'D. James', position: 'RW', rating: 79 },
-  ],
-  'Norway': [
-    { name: 'E. Haaland', position: 'ST', rating: 94 },
-    { name: 'M. Ødegaard', position: 'CAM', rating: 90 },
-    { name: 'S. Berge', position: 'CDM', rating: 82 },
-  ],
-  'Sweden': [
-    { name: 'V. Gyökeres', position: 'ST', rating: 88 },
-    { name: 'A. Isak', position: 'ST', rating: 87 },
-    { name: 'D. Kulusevski', position: 'RW', rating: 85 },
-  ],
-  'Hungary': [
-    { name: 'D. Szoboszlai', position: 'CAM', rating: 85 },
-    { name: 'P. Gulácsi', position: 'GK', rating: 82 },
-    { name: 'W. Orbán', position: 'CB', rating: 81 },
-  ],
-  'Ireland': [
-    { name: 'C. Ogbene', position: 'LW', rating: 78 },
-    { name: 'A. Omobamidele', position: 'CB', rating: 76 },
-    { name: 'J. Molumby', position: 'CM', rating: 75 },
-  ],
-  'Greece': [
-    { name: 'V. Pavlidis', position: 'ST', rating: 81 },
-    { name: 'K. Mavropanos', position: 'CB', rating: 80 },
-    { name: 'A. Bakasetas', position: 'CAM', rating: 78 },
-  ],
-
-  // CONMEBOL
-  'Brazil': [
-    { name: 'V. Jr.', position: 'LW', rating: 93 },
-    { name: 'R. Goes', position: 'RW', rating: 88 },
-    { name: 'E. Militão', position: 'CB', rating: 87 },
-  ],
-  'Argentina': [
-    { name: 'J. Álvarez', position: 'ST', rating: 89 },
-    { name: 'C. Romero', position: 'CB', rating: 87 },
-    { name: 'R. De Paul', position: 'CM', rating: 85 },
-  ],
-  'Uruguay': [
-    { name: 'F. Valverde', position: 'CM', rating: 88 },
-    { name: 'D. Núñez', position: 'ST', rating: 87 },
-    { name: 'R. Araújo', position: 'CB', rating: 85 },
-  ],
-  'Colombia': [
-    { name: 'L. Díaz', position: 'LW', rating: 87 },
-    { name: 'J. Arias', position: 'RW', rating: 83 },
-    { name: 'R. Ríos', position: 'CDM', rating: 83 },
-  ],
-  'Ecuador': [
-    { name: 'M. Caicedo', position: 'CDM', rating: 85 },
-    { name: 'P. Hincapié', position: 'CB', rating: 81 },
-    { name: 'G. Plata', position: 'RW', rating: 80 },
-  ],
-  'Paraguay': [
-    { name: 'M. Almirón', position: 'CAM', rating: 80 },
-    { name: 'J. Enciso', position: 'RW', rating: 79 },
-    { name: 'G. Gómez', position: 'CB', rating: 79 },
-  ],
-  'Chile': [
-    { name: 'A. Sánchez', position: 'ST', rating: 82 },
-    { name: 'C. Aránguiz', position: 'CM', rating: 80 },
-    { name: 'G. Medel', position: 'CB', rating: 78 },
-  ],
-  'Peru': [
-    { name: 'P. Guerrero', position: 'ST', rating: 78 },
-    { name: 'R. Tapia', position: 'CDM', rating: 77 },
-    { name: 'A. Carrillo', position: 'RW', rating: 76 },
-  ],
-
-  // CAF
-  'Nigeria': [
-    { name: 'V. Osimhen', position: 'ST', rating: 88 },
-    { name: 'A. Lookman', position: 'LW', rating: 85 },
-    { name: 'W. Ndidi', position: 'CDM', rating: 83 },
-  ],
-  'Senegal': [
-    { name: 'S. Mané', position: 'LW', rating: 86 },
-    { name: 'K. Koulibaly', position: 'CB', rating: 84 },
-    { name: 'I. Sarr', position: 'RW', rating: 83 },
-  ],
-  'Morocco': [
-    { name: 'A. Hakimi', position: 'RB', rating: 89 },
-    { name: 'Y. En-Nesyri', position: 'ST', rating: 84 },
-    { name: 'S. Amrabat', position: 'CDM', rating: 83 },
-  ],
-  'Ghana': [
-    { name: 'M. Kudus', position: 'CAM', rating: 85 },
-    { name: 'T. Partey', position: 'CDM', rating: 84 },
-    { name: 'I. Fatawu', position: 'RW', rating: 82 },
-  ],
-  'Ivory Coast': [
-    { name: 'S. Haller', position: 'ST', rating: 82 },
-    { name: 'F. Kessié', position: 'CM', rating: 81 },
-    { name: 'S. Fofana', position: 'CM', rating: 80 },
-  ],
-  'Cameroon': [
-    { name: 'A. Onana', position: 'GK', rating: 86 },
-    { name: 'B. Mbeumo', position: 'RW', rating: 84 },
-    { name: 'F. Anguissa', position: 'CDM', rating: 84 },
-  ],
-  'Egypt': [
-    { name: 'M. Salah', position: 'RW', rating: 90 },
-    { name: 'O. Marmoush', position: 'LW', rating: 84 },
-    { name: 'M. Elneny', position: 'CDM', rating: 79 },
-  ],
-  'Algeria': [
-    { name: 'R. Mahrez', position: 'RW', rating: 84 },
-    { name: 'I. Bennacer', position: 'CM', rating: 82 },
-    { name: 'Y. Atal', position: 'RB', rating: 80 },
-  ],
-  'Mali': [
-    { name: 'A. Traoré', position: 'CM', rating: 80 },
-    { name: 'M. Djenepo', position: 'LW', rating: 78 },
-    { name: 'Y. Koné', position: 'CB', rating: 77 },
-  ],
-  'Gabon': [
-    { name: 'P. Aubameyang', position: 'ST', rating: 82 },
-    { name: 'D. Bouanga', position: 'LW', rating: 79 },
-    { name: 'B. Ecuele Manga', position: 'CB', rating: 75 },
-  ],
-
-  // AFC
-  'Japan': [
-    { name: 'T. Kubo', position: 'RW', rating: 86 },
-    { name: 'K. Mitoma', position: 'LW', rating: 85 },
-    { name: 'W. Endo', position: 'CDM', rating: 83 },
-  ],
-  'South Korea': [
-    { name: 'H. Son', position: 'LW', rating: 88 },
-    { name: 'K. Min-jae', position: 'CB', rating: 87 },
-    { name: 'L. Kang-in', position: 'CAM', rating: 84 },
-  ],
-  'Saudi Arabia': [
-    { name: 'S. Al-Dawsari', position: 'LW', rating: 80 },
-    { name: 'Y. Al-Shahrani', position: 'LB', rating: 78 },
-    { name: 'F. Al-Muwallad', position: 'ST', rating: 77 },
-  ],
-  'Australia': [
-    { name: 'M. Leckie', position: 'RW', rating: 79 },
-    { name: 'R. McGree', position: 'CM', rating: 78 },
-    { name: 'M. Ryan', position: 'GK', rating: 77 },
-  ],
-
-  // CONCACAF
-  'USA': [
-    { name: 'C. Pulisic', position: 'CAM', rating: 86 },
-    { name: 'T. Adams', position: 'CDM', rating: 84 },
-    { name: 'W. McKennie', position: 'CM', rating: 82 },
-  ],
-  'Mexico': [
-    { name: 'S. Giménez', position: 'ST', rating: 84 },
-    { name: 'H. Lozano', position: 'RW', rating: 83 },
-    { name: 'E. Álvarez', position: 'CDM', rating: 82 },
-  ],
-  'Jamaica': [
-    { name: 'L. Bailey', position: 'LW', rating: 83 },
-    { name: 'M. Antonio', position: 'ST', rating: 79 },
-    { name: 'E. Pinnock', position: 'CB', rating: 76 },
-  ],
-  'Canada': [
-    { name: 'A. Davies', position: 'LB', rating: 86 },
-    { name: 'J. David', position: 'ST', rating: 85 },
-    { name: 'T. Buchanan', position: 'RW', rating: 80 },
-  ],
-  'Costa Rica': [
-    { name: 'K. Navas', position: 'GK', rating: 83 },
-    { name: 'J. Campbell', position: 'ST', rating: 78 },
-    { name: 'F. Calvo', position: 'CB', rating: 76 },
-  ],
-};
 
 /** Get a nation by name */
 export function getNation(name: string): NationData | undefined {

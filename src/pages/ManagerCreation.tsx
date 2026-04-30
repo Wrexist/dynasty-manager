@@ -3,7 +3,8 @@ import { useState, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
-import { NATIONS, NATION_STARS } from '@/data/nations';
+import { NATIONS, getNationStarPlayers } from '@/data/nations';
+import { PlayerCard } from '@/components/game/PlayerCard';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ArrowRight, Check, Loader2, Search, User, Globe, Briefcase, Star, TrendingUp, Building2, Trophy, Users, MapPin, HandCoins, X } from 'lucide-react';
 import { PremiumSparkle } from '@/components/game/icons/PremiumSparkle';
@@ -16,7 +17,6 @@ import { ManagerStatBar } from '@/components/game/ManagerStatBar';
 import { ManagerAvatar } from '@/components/game/ManagerAvatar';
 import { DEFAULT_APPEARANCE } from '@/config/managerAppearance';
 import { createDefaultManager, generateBaseAttributes, applyTraitBonuses, generateStartingOffers, negotiateSalary, getManagerBonusLabel } from '@/utils/managerCareer';
-import { getStarRatingColor } from '@/utils/uiHelpers';
 import { STARTING_AGE_MIN, STARTING_AGE_MAX, TRAITS_TO_PICK, MAX_NEGOTIATION_ROUNDS, SALARY_COUNTER_MAX_INCREASE } from '@/config/managerCareer';
 import { CLUBS_DATA } from '@/data/league';
 import { toast } from 'sonner';
@@ -330,7 +330,7 @@ const ManagerCreation = () => {
                     </div>
                     <div className="space-y-2">
                       {nations.map((nation, i) => {
-                        const stars = NATION_STARS[nation.name] || [];
+                        const starPlayers = getNationStarPlayers(nation.name);
                         const isSelected = nationality === nation.name;
                         return (
                           <motion.div
@@ -375,16 +375,16 @@ const ManagerCreation = () => {
                               </div>
 
                               {/* Star players */}
-                              {stars.length > 0 && (
-                                <div className="flex items-center gap-3 mt-2.5 pt-2 border-t border-border/20">
-                                  {stars.map((player) => (
-                                    <div key={player.name} className="flex-1 min-w-0">
-                                      <p className="text-[11px] text-foreground/80 font-medium truncate">{player.name}</p>
-                                      <div className="flex items-center gap-1.5">
-                                        <span className="text-[10px] text-muted-foreground/60">{player.position}</span>
-                                        <span className={cn('text-[10px] font-bold', getStarRatingColor(player.rating))}>{player.rating}</span>
-                                      </div>
-                                    </div>
+                              {starPlayers.length > 0 && (
+                                <div className="flex items-center justify-around gap-2 mt-2.5 pt-2 border-t border-border/20">
+                                  {starPlayers.map((player) => (
+                                    <PlayerCard
+                                      key={player.id}
+                                      player={player}
+                                      size="md"
+                                      interactive="none"
+                                      showConditionView={false}
+                                    />
                                   ))}
                                 </div>
                               )}
