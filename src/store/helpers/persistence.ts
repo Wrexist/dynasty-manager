@@ -248,12 +248,6 @@ export const STORAGE_KEYS = {
    *  showing on every subsequent New Game tap. Returning Pro users skip
    *  the check entirely. */
   SUBSCRIBE_ONBOARDING_SEEN: 'dynasty-subscribe-onboarding-seen',
-  /** localStorage: opt-in flag to force-enable Dev Tools in a production
-   *  build. Set to '1' (via the browser console) to surface the floating
-   *  Dev Tools pill + Settings entry on TestFlight without re-cutting a
-   *  build. Non-production builds always show Dev Tools regardless of
-   *  this flag. */
-  DEV_TOOLS_FLAG: 'devtools',
 } as const;
 
 /** Read the latest "What's New" version the user has acknowledged. */
