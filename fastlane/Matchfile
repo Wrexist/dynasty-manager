@@ -1,0 +1,7 @@
+git_url(ENV["MATCH_GIT_URL"])
+
+app_identifier(["com.dynastymanager"])
+type("appstore")
+readonly(true)
+
+team_id(ENV["APPLE_TEAM_ID"])

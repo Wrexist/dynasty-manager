@@ -31,13 +31,13 @@ jobs:
     steps:
       - name: Validate required secrets
         env:
-          APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-          ASC_API_KEY_BASE64: ${{ secrets.ASC_API_KEY_BASE64 }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_SSH_PRIVATE_KEY: ${{ secrets.MATCH_SSH_PRIVATE_KEY }}
           VITE_REVENUECAT_API_KEY: ${{ secrets.VITE_REVENUECAT_API_KEY }}
         run: |
           missing=0
@@ -50,20 +50,20 @@ jobs:
 
           echo "Checking required secrets..."
 
-          check_secret "APPLE_CERTIFICATE_BASE64" \
-            "Base64-encoded .p12 distribution certificate"
-          check_secret "APPLE_CERTIFICATE_PASSWORD" \
-            "Password for the .p12 certificate"
-          check_secret "APPLE_PROVISIONING_PROFILE" \
-            "Base64-encoded App Store provisioning profile (.mobileprovision)"
           check_secret "APPLE_TEAM_ID" \
             "Apple Developer Team ID (10-character string)"
-          check_secret "ASC_API_KEY_ID" \
+          check_secret "ASC_KEY_ID" \
             "App Store Connect API Key ID (create at appstoreconnect.apple.com/access/integrations/api)"
           check_secret "ASC_ISSUER_ID" \
             "App Store Connect Issuer ID (found at appstoreconnect.apple.com/access/integrations/api)"
-          check_secret "ASC_API_KEY_BASE64" \
-            "Base64-encoded App Store Connect API private key (.p8 file)"
+          check_secret "ASC_KEY_P8" \
+            "App Store Connect API private key (.p8 file) content"
+          check_secret "MATCH_GIT_URL" \
+            "Git URL for fastlane match certificates/profiles repo"
+          check_secret "MATCH_PASSWORD" \
+            "Password to decrypt fastlane match repo"
+          check_secret "MATCH_SSH_PRIVATE_KEY" \
+            "SSH private key that can read the match repo"
           # VITE_REVENUECAT_API_KEY is optional — code falls back to a test key when absent
           if [ -z "$VITE_REVENUECAT_API_KEY" ]; then
             echo "::warning::VITE_REVENUECAT_API_KEY not set — build will use the embedded test key. Add your production key at: Settings > Secrets and variables > Actions (RevenueCat > Project > API Keys, starts with appl_)"
@@ -201,143 +201,68 @@ jobs:
           rm -f "$ICON.jpg"
           echo "Alpha channel removed from app icon"
 
-      - name: Set build number from run number
-        run: |
-          FILE=ios/App/App.xcodeproj/project.pbxproj
-          BUILD=${{ github.run_number }}
-          sed -i '' "s/CURRENT_PROJECT_VERSION = [0-9]*;/CURRENT_PROJECT_VERSION = ${BUILD};/g" "$FILE"
-          echo "Build number set to: $BUILD"
-
-      - name: Import certificate
+      - name: Set up SSH for Match
         env:
-          CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
-          PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          MATCH_SSH_PRIVATE_KEY: ${{ secrets.MATCH_SSH_PRIVATE_KEY }}
         run: |
-          echo "$CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/cert.p12"
-          security create-keychain -p "" build.keychain
-          security default-keychain -s build.keychain
-          security unlock-keychain -p "" build.keychain
-          security import "$RUNNER_TEMP/cert.p12" -k build.keychain -P "$PASSWORD" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+          set -euo pipefail
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+          echo "$MATCH_SSH_PRIVATE_KEY" > "$HOME/.ssh/id_rsa"
+          chmod 600 "$HOME/.ssh/id_rsa"
+          eval "$(ssh-agent -s)"
+          ssh-add "$HOME/.ssh/id_rsa"
+          touch "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
 
-      - name: Import provisioning profile
-        env:
-          PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
-        run: |
-          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
-          echo "$PROFILE" | base64 --decode > "$HOME/Library/MobileDevice/Provisioning Profiles/profile.mobileprovision"
-
-      - name: Build archive
-        run: |
-          cd ios/App
-          xcodebuild archive \
-            -project App.xcodeproj \
-            -scheme App \
-            -archivePath "$RUNNER_TEMP/App.xcarchive" \
-            -destination 'generic/platform=iOS' \
-            -configuration Release \
-            DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }} \
-            CODE_SIGN_STYLE=Manual \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
-            OTHER_CODE_SIGN_FLAGS="--keychain build.keychain"
-
-      - name: Set up App Store Connect API key
-        env:
-          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
-          ASC_API_KEY: ${{ secrets.ASC_API_KEY_BASE64 }}
-        run: |
-          KEY_DIR="$HOME/.appstoreconnect/private_keys"
-          KEY_FILE="$KEY_DIR/AuthKey_${ASC_API_KEY_ID}.p8"
-          mkdir -p "$KEY_DIR"
-
-          # Debug: show secret shape without revealing content
-          RAW_LEN=${#ASC_API_KEY}
-          RAW_LINES=$(echo "$ASC_API_KEY" | wc -l | tr -d ' ')
-          RAW_FIRST=$(echo "$ASC_API_KEY" | head -1 | cut -c1-5)
-          echo "Secret diagnostics: length=${RAW_LEN}, lines=${RAW_LINES}, starts_with='${RAW_FIRST}'"
-
-          # Strategy 1: base64 decode
-          printf '%s' "$ASC_API_KEY" | base64 --decode > "$KEY_FILE" 2>/dev/null || true
-          if grep -q "BEGIN PRIVATE KEY" "$KEY_FILE" 2>/dev/null; then
-            echo "Key decoded from base64 successfully"
-          else
-            # Strategy 2: raw content via echo (preserves newlines)
-            echo "$ASC_API_KEY" > "$KEY_FILE"
-            if grep -q "BEGIN PRIVATE KEY" "$KEY_FILE" 2>/dev/null; then
-              echo "Key written from raw content successfully"
-            else
-              # Strategy 3: maybe double-base64-encoded
-              printf '%s' "$ASC_API_KEY" | base64 --decode 2>/dev/null | base64 --decode > "$KEY_FILE" 2>/dev/null || true
-              if grep -q "BEGIN PRIVATE KEY" "$KEY_FILE" 2>/dev/null; then
-                echo "Key decoded from double-base64 successfully"
-              fi
-            fi
-          fi
-
-          # Clean up carriage returns and leading/trailing blank lines
-          sed -i '' $'s/\r$//' "$KEY_FILE" 2>/dev/null || sed -i $'s/\r$//' "$KEY_FILE"
-
-          chmod 600 "$KEY_FILE"
-
-          if [ ! -s "$KEY_FILE" ]; then
-            echo "::error::API key file is empty — check ASC_API_KEY_BASE64 secret"
+          MATCH_HOST=$(echo "${{ secrets.MATCH_GIT_URL }}" | sed -E 's#(ssh://)?([^@]+@)?([^/:]+).*#\3#')
+          if [ -z "$MATCH_HOST" ]; then
+            echo "::error::Unable to parse host from MATCH_GIT_URL"
             exit 1
           fi
-          if ! grep -q "BEGIN PRIVATE KEY" "$KEY_FILE"; then
-            echo "::error::API key is not a valid .p8 file"
-            echo "::error::File size: $(wc -c < "$KEY_FILE" | tr -d ' ') bytes, lines: $(wc -l < "$KEY_FILE" | tr -d ' ')"
-            echo "::error::First 5 chars: '${RAW_FIRST}'"
-            echo "::error::Expected .p8 content starting with: -----BEGIN PRIVATE KEY-----"
-            echo "::error::Steps: 1) Open your .p8 file in TextEdit/Notepad  2) Verify it starts with -----BEGIN PRIVATE KEY-----  3) Select All > Copy  4) Paste into ASC_API_KEY_BASE64 secret"
-            exit 1
-          fi
-          echo "API key written to $KEY_FILE ($(wc -c < "$KEY_FILE" | tr -d ' ') bytes)"
+          ssh-keyscan -H "$MATCH_HOST" >> "$HOME/.ssh/known_hosts" 2>/dev/null
 
-      - name: Export & Upload to TestFlight
+      - name: Set up App Store Connect API key (Fastlane JSON)
         env:
-          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
         run: |
-          cat > exportOptions.plist << 'PLIST'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
-            "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>method</key>
-            <string>app-store-connect</string>
-            <key>teamID</key>
-            <string>${{ secrets.APPLE_TEAM_ID }}</string>
-            <key>signingStyle</key>
-            <string>manual</string>
-            <key>provisioningProfiles</key>
-            <dict>
-              <key>com.dynastymanager</key>
-              <string>Dynasty Manager App Store</string>
-            </dict>
-            <key>destination</key>
-            <string>upload</string>
-            <key>uploadBitcode</key>
-            <false/>
-            <key>uploadSymbols</key>
-            <true/>
-          </dict>
-          </plist>
-          PLIST
-          xcodebuild -exportArchive \
-            -archivePath "$RUNNER_TEMP/App.xcarchive" \
-            -exportPath "$RUNNER_TEMP/export" \
-            -exportOptionsPlist exportOptions.plist \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_API_KEY_ID}.p8" \
-            -authenticationKeyID "$ASC_API_KEY_ID" \
-            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
-          echo "Export + upload complete — build should appear in TestFlight within 5-30 minutes"
+          set -euo pipefail
+          KEY_PATH="$RUNNER_TEMP/AuthKey_${ASC_KEY_ID}.p8"
+          JSON_PATH="$RUNNER_TEMP/asc_api_key.json"
 
-      - name: Clean up credentials
-        if: always()
+          printf '%s\n' "$ASC_KEY_P8" > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+
+          KEY_PATH="$KEY_PATH" JSON_PATH="$JSON_PATH" python3 - << 'PY'
+          import json, os
+          key_id = os.environ["ASC_KEY_ID"]
+          issuer_id = os.environ["ASC_ISSUER_ID"]
+          key_path = os.environ["KEY_PATH"]
+          json_path = os.environ["JSON_PATH"]
+          data = {
+            "key_id": key_id,
+            "issuer_id": issuer_id,
+            "key_filepath": key_path,
+            "in_house": False,
+          }
+          with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(data, f)
+          PY
+
+          echo "ASC_API_KEY_PATH=$JSON_PATH" >> "$GITHUB_ENV"
+
+      - name: Install Ruby gems (Fastlane)
         run: |
-          security delete-keychain build.keychain 2>/dev/null || true
-          rm -f "$RUNNER_TEMP/cert.p12"
-          rm -f "$HOME/Library/MobileDevice/Provisioning Profiles/profile.mobileprovision"
-          rm -rf "$HOME/.appstoreconnect"
+          bundle config set path vendor/bundle
+          bundle install --jobs 4 --retry 3
+
+      - name: Upload to TestFlight via Fastlane (Match readonly + Pilot)
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          ASC_API_KEY_PATH: ${{ env.ASC_API_KEY_PATH }}
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
+        run: bundle exec fastlane ios beta
