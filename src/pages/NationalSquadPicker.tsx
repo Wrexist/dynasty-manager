@@ -18,6 +18,7 @@ import { FlagIcon } from '@/components/game/FlagIcon';
 import { Button } from '@/components/ui/button';
 import { PageHint } from '@/components/game/PageHint';
 import { LIQUID_GLASS_SURFACE } from '@/components/game/GlassPanel';
+import { getRatingBadge } from '@/utils/uiHelpers';
 import { PAGE_HINTS } from '@/config/ui';
 import { NATIONAL_SQUAD_SIZE } from '@/config/gameBalance';
 import { selectBestLineup } from '@/utils/playerGen';
@@ -46,14 +47,6 @@ function bucketForPosition(pos: string): 'GK' | 'DEF' | 'MID' | 'FWD' {
   if (['CB', 'LB', 'RB'].includes(pos)) return 'DEF';
   if (['CDM', 'CM', 'CAM', 'LM', 'RM'].includes(pos)) return 'MID';
   return 'FWD';
-}
-
-function ratingTone(overall: number) {
-  if (overall >= 85) return 'bg-fuchsia-500/20 text-fuchsia-300 border-fuchsia-500/40';
-  if (overall >= 80) return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40';
-  if (overall >= 75) return 'bg-sky-500/20 text-sky-400 border-sky-500/40';
-  if (overall >= 70) return 'bg-amber-500/20 text-amber-400 border-amber-500/40';
-  return 'bg-muted/20 text-muted-foreground border-border/30';
 }
 
 const NationalSquadPicker = () => {
@@ -354,7 +347,7 @@ const NationalSquadPicker = () => {
                       >
                         <div className={cn(
                           'w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold shrink-0 border',
-                          ratingTone(player.overall),
+                          getRatingBadge(player.overall),
                         )}>
                           {player.overall}
                         </div>

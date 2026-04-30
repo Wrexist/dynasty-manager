@@ -6,11 +6,14 @@
 import type { GameScreen, Position } from '@/types/game';
 
 // ── Rating Color Thresholds (overall, attribute values) ──
+// Each tier carries a `textClass` (foreground only), `bgClass` (solid fill),
+// and `badgeClass` (translucent fill + matching text + border — used for
+// inline rating chips on rosters and squad pickers).
 export const RATING_COLOR_THRESHOLDS = [
-  { min: 80, textClass: 'text-emerald-400', bgClass: 'bg-emerald-500' },
-  { min: 70, textClass: 'text-sky-400', bgClass: 'bg-sky-500' },
-  { min: 60, textClass: 'text-amber-400', bgClass: 'bg-amber-500' },
-  { min: 0,  textClass: 'text-muted-foreground', bgClass: 'bg-destructive' },
+  { min: 80, textClass: 'text-emerald-400', bgClass: 'bg-emerald-500', badgeClass: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' },
+  { min: 70, textClass: 'text-sky-400',     bgClass: 'bg-sky-500',     badgeClass: 'bg-sky-500/20 text-sky-400 border-sky-500/40' },
+  { min: 60, textClass: 'text-amber-400',   bgClass: 'bg-amber-500',   badgeClass: 'bg-amber-500/20 text-amber-400 border-amber-500/40' },
+  { min: 0,  textClass: 'text-muted-foreground', bgClass: 'bg-destructive', badgeClass: 'bg-muted/20 text-muted-foreground border-border/30' },
 ] as const;
 
 // ── Player Tier Thresholds (Legendary / Gold / Silver / Bronze / Common) ──
