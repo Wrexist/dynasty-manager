@@ -65,12 +65,12 @@ const SCREEN_SHORTCUTS: { screen: GameScreen; label: string }[] = [
 ];
 
 /**
- * Evaluate once at module load. Dev Tools ship hidden in production
- * builds. They surface in any non-production Vite mode (`npm run dev`,
- * `npm run build:dev`, tests, preview) and can be force-enabled in a
- * production build by setting `localStorage.devtools = '1'` and
- * reloading — handy for one-off TestFlight debugging without re-cutting
- * a build.
+ * Evaluate once at module load. Dev Tools ship hidden in any
+ * production-mode bundle. They surface in non-production Vite modes
+ * (`npm run dev`, `npm run build:dev`, vitest) and can be force-enabled
+ * in a production-mode build (TestFlight, `npm run preview`, prod web)
+ * by setting `localStorage.devtools = '1'` and reloading — handy for
+ * one-off QA without re-cutting a build.
  */
 function resolveVisibility(): { visible: boolean; source: string } {
   let mode = 'unknown';
