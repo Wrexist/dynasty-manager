@@ -17,6 +17,11 @@ import {
 } from '@/utils/communityPackPool';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 import { cpLeagueSquads } from '@/data/communityPack/cpLeagueSquads';
+import {
+  readCommunityPackSlotPref,
+  writeCommunityPackSlotPref,
+  clearCommunityPackSlotPref,
+} from '@/store/helpers/persistence';
 
 /** Small synthetic pool so tests run fast and stay deterministic without
  *  pulling the real ~1.8MB freeAgents dataset into test memory. */
@@ -385,6 +390,83 @@ describe('communityPack: cpLeagueSquads registry', () => {
       expect(typeof p.pos).toBe('string');
       expect(typeof p.ovr).toBe('number');
       expect(typeof p.age).toBe('number');
+    }
+  });
+});
+
+describe('communityPack: per-slot preference toggle (read/write/clear)', () => {
+  // The CP toggle in SettingsPage stores its choice as a per-slot
+  // localStorage flag, so the next "New Game" click on that slot can
+  // skip the welcome popup and seed initGame with the right options.
+  // These tests cover the persistence layer round-trip — the bug class
+  // here is "user toggles, value doesn't stick" or "slot 1 leaks into
+  // slot 2".
+
+  it('read returns null when no preference has been set', () => {
+    localStorage.removeItem('dynasty-cp-slot-99');
+    expect(readCommunityPackSlotPref(99)).toBe(null);
+  });
+
+  it('round-trips a true preference', () => {
+    writeCommunityPackSlotPref(7, true);
+    expect(readCommunityPackSlotPref(7)).toBe(true);
+    clearCommunityPackSlotPref(7);
+  });
+
+  it('round-trips a false preference (explicit opt-out, NOT null)', () => {
+    // Explicit `false` must be distinguishable from "never asked" (null)
+    // so the new-game flow knows whether to show the popup again.
+    writeCommunityPackSlotPref(8, false);
+    expect(readCommunityPackSlotPref(8)).toBe(false);
+    clearCommunityPackSlotPref(8);
+  });
+
+  it('keeps slots isolated — writing slot 1 does not affect slot 2', () => {
+    writeCommunityPackSlotPref(1, true);
+    writeCommunityPackSlotPref(2, false);
+    expect(readCommunityPackSlotPref(1)).toBe(true);
+    expect(readCommunityPackSlotPref(2)).toBe(false);
+    expect(readCommunityPackSlotPref(3)).toBe(null);
+    clearCommunityPackSlotPref(1);
+    clearCommunityPackSlotPref(2);
+  });
+
+  it('clearCommunityPackSlotPref removes the value (read returns null again)', () => {
+    writeCommunityPackSlotPref(5, true);
+    expect(readCommunityPackSlotPref(5)).toBe(true);
+    clearCommunityPackSlotPref(5);
+    expect(readCommunityPackSlotPref(5)).toBe(null);
+  });
+
+  it('updating from true to false updates the stored value', () => {
+    writeCommunityPackSlotPref(6, true);
+    expect(readCommunityPackSlotPref(6)).toBe(true);
+    writeCommunityPackSlotPref(6, false);
+    expect(readCommunityPackSlotPref(6)).toBe(false);
+    clearCommunityPackSlotPref(6);
+  });
+
+  it('does not throw when localStorage is unavailable (returns null instead)', () => {
+    // jsdom localStorage will normally succeed; here we shadow the
+    // global to simulate a Safari Private Browsing-style failure where
+    // every getItem throws. The helper must swallow the error and
+    // return null, not crash the page mount.
+    const realStorage = globalThis.localStorage;
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      get(): never { throw new Error('storage unavailable'); },
+    });
+    try {
+      expect(() => readCommunityPackSlotPref(1)).not.toThrow();
+      expect(readCommunityPackSlotPref(1)).toBe(null);
+      expect(() => writeCommunityPackSlotPref(1, true)).not.toThrow();
+      expect(() => clearCommunityPackSlotPref(1)).not.toThrow();
+    } finally {
+      Object.defineProperty(globalThis, 'localStorage', {
+        configurable: true,
+        value: realStorage,
+        writable: true,
+      });
     }
   });
 });
