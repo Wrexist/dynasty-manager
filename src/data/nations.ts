@@ -94,7 +94,7 @@ export const NATION_STARS: Record<string, NationStarPlayer[]> = {
     { name: 'A. Griezmann', position: 'CAM', rating: 86 },
   ],
   'Spain': [
-    { name: 'R. Yamal', position: 'RW', rating: 91 },
+    { name: 'L. Yamal', position: 'RW', rating: 91 },
     { name: 'P. Gavi', position: 'CM', rating: 87 },
     { name: 'D. Olmo', position: 'CAM', rating: 87 },
   ],
@@ -151,12 +151,12 @@ export const NATION_STARS: Record<string, NationStarPlayer[]> = {
   'Serbia': [
     { name: 'D. Vlahović', position: 'ST', rating: 86 },
     { name: 'S. Milinković-Savić', position: 'CM', rating: 85 },
-    { name: 'N. Pavlović', position: 'CB', rating: 82 },
+    { name: 'S. Pavlović', position: 'CB', rating: 82 },
   ],
   'Czech Republic': [
     { name: 'P. Schick', position: 'ST', rating: 83 },
     { name: 'T. Souček', position: 'CDM', rating: 82 },
-    { name: 'A. Černý', position: 'RW', rating: 81 },
+    { name: 'V. Černý', position: 'RW', rating: 81 },
   ],
   'Austria': [
     { name: 'M. Sabitzer', position: 'CM', rating: 84 },
@@ -249,7 +249,7 @@ export const NATION_STARS: Record<string, NationStarPlayer[]> = {
   // CAF
   'Nigeria': [
     { name: 'V. Osimhen', position: 'ST', rating: 88 },
-    { name: 'S. Lookman', position: 'LW', rating: 85 },
+    { name: 'A. Lookman', position: 'LW', rating: 85 },
     { name: 'W. Ndidi', position: 'CDM', rating: 83 },
   ],
   'Senegal': [
@@ -265,7 +265,7 @@ export const NATION_STARS: Record<string, NationStarPlayer[]> = {
   'Ghana': [
     { name: 'M. Kudus', position: 'CAM', rating: 85 },
     { name: 'T. Partey', position: 'CDM', rating: 84 },
-    { name: 'A. Fatawu', position: 'RW', rating: 82 },
+    { name: 'I. Fatawu', position: 'RW', rating: 82 },
   ],
   'Ivory Coast': [
     { name: 'S. Haller', position: 'ST', rating: 82 },
@@ -274,7 +274,7 @@ export const NATION_STARS: Record<string, NationStarPlayer[]> = {
   ],
   'Cameroon': [
     { name: 'A. Onana', position: 'GK', rating: 86 },
-    { name: 'M. Mbeumo', position: 'RW', rating: 84 },
+    { name: 'B. Mbeumo', position: 'RW', rating: 84 },
     { name: 'F. Anguissa', position: 'CDM', rating: 84 },
   ],
   'Egypt': [
@@ -285,7 +285,7 @@ export const NATION_STARS: Record<string, NationStarPlayer[]> = {
   'Algeria': [
     { name: 'R. Mahrez', position: 'RW', rating: 84 },
     { name: 'I. Bennacer', position: 'CM', rating: 82 },
-    { name: 'A. Atal', position: 'RB', rating: 80 },
+    { name: 'Y. Atal', position: 'RB', rating: 80 },
   ],
   'Mali': [
     { name: 'A. Traoré', position: 'CM', rating: 80 },
@@ -311,13 +311,13 @@ export const NATION_STARS: Record<string, NationStarPlayer[]> = {
   ],
   'Saudi Arabia': [
     { name: 'S. Al-Dawsari', position: 'LW', rating: 80 },
-    { name: 'H. Al-Shahrani', position: 'LB', rating: 78 },
+    { name: 'Y. Al-Shahrani', position: 'LB', rating: 78 },
     { name: 'F. Al-Muwallad', position: 'ST', rating: 77 },
   ],
   'Australia': [
     { name: 'M. Leckie', position: 'RW', rating: 79 },
-    { name: 'J. McGree', position: 'CM', rating: 78 },
-    { name: 'T. Ryan', position: 'GK', rating: 77 },
+    { name: 'R. McGree', position: 'CM', rating: 78 },
+    { name: 'M. Ryan', position: 'GK', rating: 77 },
   ],
 
   // CONCACAF
@@ -334,7 +334,7 @@ export const NATION_STARS: Record<string, NationStarPlayer[]> = {
   'Jamaica': [
     { name: 'L. Bailey', position: 'LW', rating: 83 },
     { name: 'M. Antonio', position: 'ST', rating: 79 },
-    { name: 'E. Palmer', position: 'CB', rating: 76 },
+    { name: 'E. Pinnock', position: 'CB', rating: 76 },
   ],
   'Canada': [
     { name: 'A. Davies', position: 'LB', rating: 86 },
@@ -344,7 +344,7 @@ export const NATION_STARS: Record<string, NationStarPlayer[]> = {
   'Costa Rica': [
     { name: 'K. Navas', position: 'GK', rating: 83 },
     { name: 'J. Campbell', position: 'ST', rating: 78 },
-    { name: 'B. Calvo', position: 'CB', rating: 76 },
+    { name: 'F. Calvo', position: 'CB', rating: 76 },
   ],
 };
 
