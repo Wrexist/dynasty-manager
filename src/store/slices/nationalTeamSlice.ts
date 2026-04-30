@@ -28,7 +28,7 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
     const poolPlayerIds = Object.keys(poolPlayers);
 
     // Auto-select best 23-man squad
-    const squad = autoSelectNationalSquad(nationality, allPlayers);
+    const squad = autoSelectNationalSquad(nationality, allPlayers, state.week);
     const squadPlayerObjs = squad.map(id => allPlayers[id]).filter(Boolean);
     let lineup: string[] = [];
     let subs: string[] = [];
@@ -101,7 +101,7 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
     const allPlayers = { ...state.players, ...poolPlayers };
 
     // Auto-select best 23-man squad from all eligible players
-    const squad = autoSelectNationalSquad(nationality, allPlayers);
+    const squad = autoSelectNationalSquad(nationality, allPlayers, state.week);
 
     // Auto-select best lineup and subs from the squad
     const squadPlayerObjs = squad.map(id => allPlayers[id]).filter(Boolean);

@@ -23,6 +23,7 @@ import {
   CONTINENTAL_CUP_GROUPS,
   NATIONAL_SQUAD_SIZE,
   NT_CANDIDATE_POOL_TARGET,
+  LOW_FITNESS_THRESHOLD,
 } from '@/config/gameBalance';
 import { generatePlayer, pickNameForNationality, buildPlayerFromTemplate } from '@/utils/playerGen';
 import { generatePlayerAppearance } from '@/config/playerAppearance';
@@ -535,14 +536,40 @@ export function processKnockoutRound(
   return { updatedTies, nextRoundTies, playerTie, roundComplete, tournamentComplete, winner };
 }
 
-/** Auto-select the best 23 players of a nationality from all players in the game */
+/** Auto-select the best 23 players of a nationality from all players in the game.
+ *
+ *  Eligibility filters:
+ *    - Nationality match (with FC26 alias resolution)
+ *    - Not currently injured
+ *    - Age >= 17
+ *    - Not currently suspended (suspendedUntilWeek <= currentWeek)
+ *    - Fitness above the LOW_FITNESS_THRESHOLD floor — a player at 30%
+ *      fitness is exhausted and shouldn't be picked over a fresh 75 OVR
+ *      backup. Optional `currentWeek` param keeps the function callable
+ *      from places that don't have a week handy (tests, sandbox init);
+ *      when undefined the suspension check is skipped but fitness still
+ *      applies.
+ */
 export function autoSelectNationalSquad(
   nationality: string,
   allPlayers: Record<string, Player>,
+  currentWeek?: number,
 ): string[] {
   const nats = new Set(resolveNationalityAliases(nationality));
   const eligible = Object.values(allPlayers)
-    .filter(p => nats.has(p.nationality) && !p.injured && p.age >= 17)
+    .filter(p => {
+      if (!nats.has(p.nationality)) return false;
+      if (p.injured) return false;
+      if (p.age < 17) return false;
+      // Suspended players miss the next match window — exclude when the
+      // caller supplied the current week.
+      if (currentWeek !== undefined && p.suspendedUntilWeek && p.suspendedUntilWeek > currentWeek) return false;
+      // Low-fitness exhaustion. Treat undefined fitness as max (legacy
+      // saves don't always track it on every code path).
+      const fit = p.fitness ?? 100;
+      if (fit < LOW_FITNESS_THRESHOLD) return false;
+      return true;
+    })
     .sort((a, b) => b.overall - a.overall);
 
   // Pick best 23, ensuring position coverage

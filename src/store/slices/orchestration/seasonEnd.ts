@@ -1319,7 +1319,7 @@ function finalizeSeason(
     const mergedPoolIds = [...new Set([...existingPoolIds, ...Object.keys(topUpPlayers)])];
 
     // Auto-select national squad from the full pool
-    const squad = autoSelectNationalSquad(postState.managerNationality, tournamentPlayers);
+    const squad = autoSelectNationalSquad(postState.managerNationality, tournamentPlayers, postState.week);
     const nt = postState.nationalTeam
       ? { ...postState.nationalTeam, squad, poolPlayerIds: mergedPoolIds }
       : null;
