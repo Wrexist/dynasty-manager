@@ -4,7 +4,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { PlayerCard } from '@/components/game/PlayerCard';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, ChevronUp, Trophy, Crown, Award } from 'lucide-react';
+import { ChevronDown, Trophy, Crown, Award } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { BallonDOrEntry, Player } from '@/types/game';
@@ -144,12 +144,15 @@ const RankingRow = ({ entry, isExpanded, onToggle, isPlayerClub }: {
       <button
         type="button"
         onClick={onToggle}
+        aria-expanded={isExpanded}
+        aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${entry.playerName} ranked #${entry.rank}`}
         className={cn(
           'w-full flex items-center gap-3 p-2.5 rounded-xl transition-all',
           style.bg, style.glow,
           'border', style.border,
           isPlayerClub && 'ring-1 ring-primary/30',
           'hover:brightness-110 active:scale-[0.99]',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-1 focus-visible:ring-offset-background',
         )}
       >
         <div className={cn(
@@ -182,11 +185,14 @@ const RankingRow = ({ entry, isExpanded, onToggle, isPlayerClub }: {
             </p>
             <p className="text-[8px] text-muted-foreground mt-0.5">pts</p>
           </div>
-          {isExpanded ? (
-            <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" />
-          ) : (
+          <motion.div
+            aria-hidden
+            animate={{ rotate: isExpanded ? 180 : 0 }}
+            transition={{ duration: 0.18 }}
+            className="shrink-0"
+          >
             <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
-          )}
+          </motion.div>
         </div>
       </button>
 
@@ -422,9 +428,12 @@ const SeasonHeader = ({ season, winner, isOpen, isLatest, onToggle }: {
   <button
     type="button"
     onClick={onToggle}
+    aria-expanded={isOpen}
+    aria-label={`${isOpen ? 'Collapse' : 'Expand'} Season ${season} ceremony${winner ? `, winner ${winner.playerName}` : ''}`}
     className={cn(
       'w-full flex items-center gap-3 p-3 rounded-xl border transition-all',
       'bg-card/60 backdrop-blur-xl hover:brightness-110 active:scale-[0.99]',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
       isLatest
         ? 'border-[hsl(43,96%,46%)]/35 shadow-[0_4px_14px_rgba(0,0,0,0.35)]'
         : 'border-border/50',
@@ -448,11 +457,14 @@ const SeasonHeader = ({ season, winner, isOpen, isLatest, onToggle }: {
         </p>
       )}
     </div>
-    {isOpen ? (
-      <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" />
-    ) : (
-      <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
-    )}
+    <motion.div
+      aria-hidden
+      animate={{ rotate: isOpen ? 180 : 0 }}
+      transition={{ duration: 0.18 }}
+      className="shrink-0"
+    >
+      <ChevronDown className="w-4 h-4 text-muted-foreground" />
+    </motion.div>
   </button>
 );
 
