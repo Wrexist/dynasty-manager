@@ -44,8 +44,20 @@ jobs:
           sed -i '' "s/CURRENT_PROJECT_VERSION = [0-9]*;/CURRENT_PROJECT_VERSION = ${{ github.run_number }};/g" "$FILE"
 
       - run: npm ci
-      - run: npm run build
+
+      - name: Build web bundle with production keys
+        env:
+          VITE_REVENUECAT_API_KEY: ${{ secrets.VITE_REVENUECAT_API_KEY }}
+        run: npm run build
+
       - run: npx cap sync ios
+
+      - name: Strip alpha channel from App Store icon
+        run: |
+          ICON=ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png
+          sips -s format jpeg -s formatOptions 100 "$ICON" --out "$ICON.jpg"
+          sips -s format png "$ICON.jpg" --out "$ICON"
+          rm -f "$ICON.jpg"
 
       - name: Deploy to TestFlight
         env:
