@@ -657,7 +657,17 @@ const Dashboard = () => {
 
       {/* Career Mode Info Panel */}
       {gameMode === 'career' && careerManager && (
-        <GlassPanel className="p-3 cursor-pointer" onClick={() => setScreen(jobOffers.length > 0 ? 'job-market' : 'career-overview')}>
+        <GlassPanel
+          className="p-3 cursor-pointer"
+          onClick={() => setScreen(jobOffers.length > 0 ? 'job-market' : 'career-overview')}
+          aria-label={
+            careerManager.contract
+              ? 'Open career — view job market or resign'
+              : jobOffers.length > 0
+                ? 'Open job market — review offers'
+                : 'Open career overview'
+          }
+        >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
@@ -695,6 +705,7 @@ const Dashboard = () => {
                   </span>
                 )}
               </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground/70 shrink-0" aria-hidden />
             </div>
           </div>
           {jobOffers.length > 0 && (
