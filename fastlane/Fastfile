@@ -18,7 +18,7 @@ platform :ios do
       type:           "appstore",
       app_identifier: "com.dynastymanager",
       git_url:        ENV["MATCH_GIT_URL"],
-      readonly:       true,
+      readonly:       false,
       api_key:        api_key
     )
 
