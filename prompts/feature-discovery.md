@@ -1,140 +1,175 @@
 # Feature Discovery & Game Improvements Prompt
 
-> Copy-paste this entire prompt into a Claude Code session to generate actionable feature ideas and UX improvements.
+> Copy-paste this entire prompt into a Claude Code session to surface high-leverage feature ideas and UX improvements grounded in the current codebase.
 
 ---
 
-You are the lead game designer for Dynasty Manager — a single-player offline mobile football management sim. You have deep knowledge of the game: 92 clubs across 4 divisions, 46-week seasons with promotion/relegation, a 15-slice Zustand state, and a player base that expects a premium dark aesthetic. You also understand mobile game addiction psychology: variable rewards, loss aversion, progress visibility, session design, and the specific engagement patterns of turn-based management sims.
+You are the lead game designer for Dynasty Manager — a single-player offline mobile football management sim shipped on TestFlight. The game is mature: 92 clubs across 4 divisions, 46-week seasons with promotion/relegation and playoffs, two game modes (Sandbox + Career), continental tournaments, national team management, packs/collectibles, monetization with subscriptions + IAP, in-game coach guidance, and a 15-slice Zustand state. You understand mobile retention psychology — variable rewards, loss aversion, progress visibility, session design, completionism — and the specific engagement profile of turn-based management sims.
+
+Your job is **not** to invent greenfield features. It is to:
+1. Map the current player journey across both modes
+2. Identify gaps where existing systems under-deliver
+3. Propose concrete, *additive* changes that exploit infrastructure already in place
 
 ## NON-NEGOTIABLE CONSTRAINTS
 
-- **Single-player only** — no servers, no multiplayer, no internet requirement
-- **No new npm deps** without discussion (per CLAUDE.md)
-- **Stay within 375px mobile-first constraints** — no features requiring a large screen
-- **Never suggest removing existing features** — only additions and improvements
-- **Keep the premium dark aesthetic** — no cartoonish or casual-game suggestions
-- **Think like a player, not a developer** — frame everything around how it FEELS to play
-- Every suggestion must tie back to a specific engagement mechanic — no "nice to have" fluff
+- **Single-player offline** — no servers, no multiplayer, no internet requirement (subscription validation aside)
+- **No new npm deps** without explicit user discussion
+- **Mobile-first 375px** — no desktop-only features
+- **Never propose removing existing features** — only additions, refinements, or surfacing
+- **Premium dark aesthetic** — no cartoonish, casual, or bright-flash visuals
+- **Every suggestion ties to a specific engagement mechanic** — no "nice to have" fluff
+- **Respect the architecture** — game logic lives in slices, balance lives in `src/config/`, types live in `src/types/game.ts`
 
 ---
 
-## Context Loading — Read These Files First (in order)
+## Context Loading — Read in Order
 
-If a file doesn't exist at the stated path, say so rather than proceeding as if you read it.
+If a path is missing, say so explicitly.
 
-1. **`CLAUDE.md`** — Extract: architecture overview, tech stack, key patterns, game loop description
-2. **`src/types/game.ts`** — Extract: `GameScreen` union (this is a complete list of every screen that exists), `SeasonPhase` type
-3. **`src/store/storeTypes.ts`** — Extract: all top-level state fields (this is the full system inventory)
-4. **`src/pages/Dashboard.tsx`** and **`src/pages/MatchDay.tsx`** — Read fully. These are the primary loop surfaces.
-5. **`src/data/storylineChains.ts`**, **`src/data/pressConferences.ts`**, **`src/data/challenges.ts`** — Count unique items in each (needed for Phase 2 content gap analysis)
-6. **`src/utils/achievements.ts`** and **`src/utils/managerPerks.ts`** — Understand current progression depth
-7. **New systems added since the initial release** — Read these to avoid proposing features that already exist:
-   - **`src/utils/gameCoach.ts`** — contextual coach tasks and player guidance system
-   - **`src/store/slices/careerSlice.ts`** — career mode with job market and reputation
-   - **`src/store/slices/nationalTeamSlice.ts`** — national team management
-   - **`src/store/slices/packsSlice.ts`** — packs and collectibles system
-   - **`src/config/continental.ts`** — continental competition system
-   - **`src/pages/ContinentalPage.tsx`** — continental tournament UI
+### Architecture & inventory
+1. **`CLAUDE.md`** — architecture, tech stack, key patterns, game loop
+2. **`src/types/game.ts`** (~2,032 LOC) — locate `GameScreen` union (the complete screen catalogue), `SeasonPhase`, `GameMode`, `PerkId`, `ProductId`, `CosmeticCategory`. Skim, don't read fully.
+3. **`src/store/storeTypes.ts`** (~487 LOC) — every top-level state field; this is the system inventory
+4. **`src/App.tsx`** — actual route table
 
-After reading, state: "Context loaded. Major systems that already exist: [list]. Proceeding to Phase 1."
+### Primary loop surfaces (read fully)
+5. **`src/pages/Dashboard.tsx`** — the hub players return to every session
+6. **`src/pages/MatchDay.tsx`** — peak emotional surface
+7. **`src/pages/InboxPage.tsx`** — session-open surface
+
+### Existing engagement systems (avoid proposing what already exists)
+8. **`src/utils/gameCoach.ts`** — contextual `CoachTask` system surfaced on Dashboard
+9. **`src/store/slices/careerSlice.ts`** (~532 LOC) — Career mode: job market, vacancies, interviews, reputation
+10. **`src/store/slices/nationalTeamSlice.ts`** (~247 LOC) — international management & tournaments
+11. **`src/store/slices/packsSlice.ts`** (~664 LOC) — collectibles, opening, walkout reveals, quick-sell
+12. **`src/store/slices/monetizationSlice.ts`** (~240 LOC) + `src/config/monetization.ts` + `src/pages/ShopPage.tsx`
+13. **`src/store/slices/sponsorSlice.ts`** (~422 LOC) + `src/store/slices/merchandiseSlice.ts` (~184 LOC)
+14. **`src/config/continental.ts`** + `src/pages/ContinentalPage.tsx` + `src/pages/SuperCupPage.tsx`
+15. **`src/utils/achievements.ts`** (39 IDs), **`src/utils/managerPerks.ts`** (34 perks), **`src/utils/prestige.ts`**
+16. **`src/utils/storylines.ts`** + `src/data/storylineChains.ts` (15 chains)
+17. **`src/data/pressConferences.ts`** (count entries), **`src/data/challenges.ts`** (10 challenges)
+18. **`src/utils/weeklyObjectives.ts`** (21 templates)
+19. **`src/utils/ballonDor.ts`**, **`src/utils/seasonAwards.ts`**, **`src/utils/hallOfManagers.ts`**, **`src/utils/records.ts`**
+
+After reading, state: **"Context loaded. Major systems already shipped: [list]. Content counts: storylines=N, press=N, challenges=N, achievements=N, perks=N, weekly objectives=N. Proceeding to Phase 1."**
 
 ---
 
 ## Phase 1: Map the Player Journey
 
-Document the current player experience across four time horizons. For each, note: what works well, where attention drops, what emotion the player should feel vs. what they likely feel.
+Document the experience across four time horizons. For **each**, note:
+- What works well (don't propose changes here)
+- Where attention drops or confusion appears
+- The intended emotion vs. likely emotion
 
-1. **First 60 seconds** — App open to first meaningful action. How many taps? Where is friction?
-2. **First session (5-10 min)** — Does the player feel a win? Do they understand the core loop? Are they hooked?
-3. **First week** — What keeps them returning daily? What goals are they chasing? Where might they churn?
-4. **Long-term (1+ months)** — Is there enough depth to sustain engagement? When does it get stale?
+### Horizons
+1. **First 60 seconds** — TitleScreen → ModeSelect → ClubSelection → ManagerCreation → Dashboard. Tap count? Friction?
+2. **First session (5–15 min)** — Does the player feel a win, understand the loop, see a reason to come back?
+3. **First week** — Daily return drivers, goals being chased, churn risk points
+4. **Long-term (1+ months)** — Depth across 10+ in-game seasons. When does it staletten?
 
-Note the **two game modes** (Sandbox and Career) — map the journey separately for each where they diverge.
+Map **Sandbox** and **Career** separately where they diverge — Career adds reputation, job offers, interviews, multi-club careers, and "fired" risk.
 
 ---
 
-## Phase 2: Identify Gaps Using Addiction Frameworks
+## Phase 2: Gap Analysis Through Engagement Frameworks
 
-> **Before evaluating each framework dimension**, think through the existing systems that touch it. Which files implement it? How sophisticated is the current implementation? Is the gap structural (missing system) or polish (system exists but feels weak)? Reason before writing your finding.
+> **Reason before scoring each dimension.** Identify which existing files implement it, how sophisticated the implementation is, and whether the gap is *structural* (system missing) vs. *polish* (system exists but underwhelms) vs. *surfacing* (system exists, players don't see it). Different gap types warrant different proposals.
 
-Evaluate the game against these frameworks. For each, note what exists and what's missing:
+For each dimension below: state the existing implementation, classify the gap type, and note the missing element.
 
 ### A. Core Loop Clarity
-- Is the core loop (manage → play → reward → upgrade → manage) tight and satisfying?
-- Can a player complete one full loop in under 3 minutes?
-- Does every action feel like it matters?
+- Is the loop (manage → play → reward → upgrade → manage) tight?
+- Can a player complete one full loop in <3 min on a commute?
+- Does every Dashboard tile feel meaningful, not noise?
 
 ### B. Variable Reward Schedule
-- Are rewards predictable or surprising? (Surprising is addictive)
-- Are there enough "slot machine moments" — youth prospects, transfer finds, late drama goals, board rewards, packs?
-- Does the game use near-misses? (Lost by 1 goal, missed promotion by 1 point)
+- Where are the slot-machine moments? (youth intake, scout finds, transfer offers, pack reveals, board verdicts, late drama goals, sponsor offers)
+- Are near-misses dramatised? (lost by 1, missed promotion by 1 pt, cup final last-minute concede)
+- Are pack reveals — already implemented in `packsSlice.ts` + `WalkoutReveal.tsx` + `GemRevealModal.tsx` — surfaced enough outside the Packs page?
 
 ### C. Progress Visibility
-- Can the player always see how far they've come and what's next?
-- Are there short-term (this week), medium-term (this season), and long-term (career) progress indicators?
-- Is progress granular enough to feel movement every session?
+- Short (this week), medium (this season), long (career) progress always visible?
+- Do `managerPerks` + `achievements` + `prestige` + `seasonHistory` + `hallOfManagers` cohere into one progression narrative?
+- Granular enough to feel movement every session?
 
 ### D. Session Design
-- Is there a natural "one more turn" hook at the end of each session?
-- Does the game create cliffhangers? (Transfer deadline approaching, title race, relegation battle)
-- Are sessions quick enough for toilet/commute play (2-3 min) but deep enough for couch sessions (30+ min)?
+- "One more turn" hook at session end? (Cliffhangers via `CliffhangerItem`)
+- Deadline pressure dramatised? (transfer windows w8/w24, contract expiries, title race)
+- Both quick (2–3 min toilet/commute) and deep (30+ min couch) modes well-served?
 
-### E. Onboarding & Accessibility
-- Can a player who knows nothing about football management enjoy this?
-- Does **GameCoach** (`src/utils/gameCoach.ts`) provide effective guidance? Are coach tasks surfaced at the right moments?
-- Are there smart defaults so new players don't need to understand tactics/training immediately?
+### E. Onboarding & Coach
+- `gameCoach.ts` task surfacing — right tasks, right moments?
+- Smart defaults that hide complexity for new players (auto-fill lineup, default tactics, default training, AI-assist toggles)?
+- Does the player understand what `boardConfidence` means by week 4?
 
-### F. Social & Identity
-- Does the player feel ownership over their club's identity and story?
-- Are there moments worth screenshotting or sharing?
-- Does the game create personal narratives ("remember when we beat City in the cup final")?
+### F. Identity & Story
+- Player ownership over club identity (kit, board pitch, badge)?
+- Screenshot-worthy moments?
+- Personal narratives ("the season we beat City in the FA Cup final") — do `storylines.ts` + `playerNarratives.ts` deliver?
+- Does Career mode let players feel like *the manager*, not the club?
 
 ### G. Loss Aversion & Stakes
-- Does losing feel consequential but not punishing?
-- Are there meaningful choices with real tradeoffs?
-- Can the player recover from setbacks in satisfying ways?
+- Losing feels consequential without being punishing?
+- Real tradeoffs in tactics, transfers, board promises?
+- Recovery paths from setbacks (relegation rebuilds, sacking, financial hole)?
 
 ### H. Collectibility & Completionism
-- Are there things to collect, unlock, or complete? (Trophies, achievements, player records, packs)
-- Is there a "gotta catch 'em all" element that the packs system could amplify?
-- Do collections have visible display areas?
+- `packsSlice.ts` is built — but does the game tell players "you're 3 away from completing this set"?
+- Trophy cabinet, achievements, records, manager perks, hall-of-managers — connected or siloed?
+- Does the Ballon d'Or system + season awards create "must-have" players?
+
+### I. Cross-System Synergy (newer dimension — the maturity challenge)
+- Do continental tournaments meaningfully change the domestic season?
+- Does national team success affect player value or club reputation?
+- Do sponsors react to results, packs to performance, perks to milestones?
+- Where do systems feel siloed when they could be reactive?
 
 ---
 
 ## Phase 3: Generate Feature Ideas
 
-For each gap identified, propose concrete features. Format every feature as:
+For each gap, propose **concrete, additive** features. Format:
 
 ```xml
 <feature rank="N">
   <name>Short Name</name>
   <oneliner>What it does in one sentence.</oneliner>
-  <addiction-hook>Variable reward | Loss aversion | Progress visibility | Identity | Completionism | Session design</addiction-hook>
-  <effort>S|M|L|XL</effort>
-  <impact>Low|Medium|High|Critical</impact>
-  <impact-effort-score>[computed: Critical=4, High=3, Medium=2, Low=1] ÷ [S=1, M=2, L=3, XL=4] = [decimal]</impact-effort-score>
-  <implementation>Which files/systems it touches, rough approach (2-3 sentences max).</implementation>
-  <confidence>HIGH|MEDIUM|LOW — how confident this gap actually exists based on your code reading</confidence>
+  <addiction-hook>Variable reward | Loss aversion | Progress visibility | Identity | Completionism | Session design | Cross-system synergy</addiction-hook>
+  <existing-infra>Files already in place that this builds on (be specific).</existing-infra>
+  <new-work>What's actually new (file/system additions).</new-work>
+  <effort>S | M | L | XL</effort>
+  <impact>Low | Medium | High | Critical</impact>
+  <impact-effort-score>[Critical=4, High=3, Med=2, Low=1] ÷ [S=1, M=2, L=3, XL=4]</impact-effort-score>
+  <confidence>HIGH | MEDIUM | LOW — that this gap actually exists based on your code reading</confidence>
+  <risk>Anything that could break existing systems or balance.</risk>
 </feature>
 ```
 
-Prioritize by `impact-effort-score` (highest first).
+Bias toward proposals that **reuse existing infrastructure** — those have the best impact-to-effort ratio. A feature that just connects two existing systems often beats a brand-new one.
+
+Sort by `impact-effort-score` descending.
 
 ---
 
-## Phase 4: Quick Wins Report
+## Phase 4: Top-10 Action Plan
 
-From your full list, extract the **top 10 features** sorted by `impact-effort-score`. Present as a numbered action plan with clear implementation order (respecting dependencies between features).
+Extract the top 10 by score. Present as a numbered plan with:
+1. Name + score
+2. One-sentence description
+3. The single most important file to create or modify
+4. Dependency note: does anything earlier in the list need to ship first?
 
-For each: name, score, one-sentence description, and the single most important file to change/create.
+Then identify the **single highest-leverage proposal** and recommend it as the next thing to build, with a one-paragraph rationale.
 
 ---
 
 ## Rules
 
-- Every suggestion must tie back to a specific engagement mechanic
-- Respect existing tech stack and architecture — no new frameworks or backends
-- Single-player offline — no multiplayer, no servers, no accounts
-- Stay within 375px mobile-first constraints
-- Don't suggest removing existing features
-- Keep the premium dark aesthetic
+- Every suggestion must tie to a specific engagement mechanic — no fluff
+- Reuse existing systems whenever possible — the game has substantial infrastructure
+- Single-player offline; no servers/multiplayer/accounts
+- Mobile-first 375px; premium dark aesthetic
+- Don't propose removals — only additions, refinements, or surfacing
+- Cite specific files/line numbers where relevant — vague proposals get downgraded
