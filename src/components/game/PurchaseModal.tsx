@@ -9,16 +9,20 @@ interface PurchaseModalProps {
   onConfirm: () => void;
   onCancel: () => void;
   loading?: boolean;
+  /** Optional localised price string from the store (e.g. "kr 149,99").
+   *  Falls back to the USD config price when omitted. */
+  storePrice?: string;
 }
 
-export function PurchaseModal({ productId, onConfirm, onCancel, loading }: PurchaseModalProps) {
+export function PurchaseModal({ productId, onConfirm, onCancel, loading, storePrice }: PurchaseModalProps) {
   const product = PRODUCTS[productId];
   if (!product) return null;
 
   const isSubscription = product.type === 'subscription';
+  const basePrice = storePrice || `$${product.priceUsd.toFixed(2)}`;
   const priceLabel = isSubscription && product.billingPeriod && product.billingPeriod !== 'one-time'
-    ? `$${product.priceUsd.toFixed(2)}${product.billingPeriod}`
-    : `$${product.priceUsd.toFixed(2)}`;
+    ? `${basePrice}${product.billingPeriod}`
+    : basePrice;
 
   return (
     <AnimatePresence>

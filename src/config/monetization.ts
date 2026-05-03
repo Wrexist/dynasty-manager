@@ -45,7 +45,7 @@ export const PRODUCTS: Record<ProductId, ProductDef> = {
   'com.dynastymanager.pro.annual': {
     id: 'com.dynastymanager.pro.annual',
     name: 'Dynasty Pro Annual',
-    description: 'All Pro features, billed yearly. Save 37% vs monthly.',
+    description: 'All Pro features, billed yearly.',
     priceUsd: 14.99,
     type: 'subscription',
     subscriptionTier: 'annual',

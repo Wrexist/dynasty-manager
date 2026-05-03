@@ -20,6 +20,12 @@ export type AnalyticsEvent =
   | { name: 'save_loaded'; data: { slot: number } }
   | { name: 'community_pack_enabled'; data: Record<string, never> }
   | { name: 'community_pack_disabled'; data: Record<string, never> }
+  | { name: 'purchase_initiated'; data: { productId: string } }
+  | { name: 'purchase_completed'; data: { productId: string } }
+  | { name: 'purchase_cancelled'; data: { productId: string } }
+  | { name: 'purchase_failed'; data: { productId: string } }
+  | { name: 'restore_clicked'; data: Record<string, never> }
+  | { name: 'restore_completed'; data: { restoredCount: number } }
   | { name: 'crash'; data: { category: string } };
 
 export type AnalyticsEventName = AnalyticsEvent['name'];

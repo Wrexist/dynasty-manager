@@ -1,17 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { PurchaseModal } from '@/components/game/PurchaseModal';
-import { Crown, Check, Sparkles, Package, Shield, Timer, CreditCard, ExternalLink, RefreshCw, ChevronDown, ChevronUp, Star, Zap } from 'lucide-react';
+import { Crown, Check, Sparkles, Package, Shield, Timer, CreditCard, ExternalLink, RefreshCw, ChevronDown, ChevronUp, Star, Zap, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PRODUCTS, PRO_FEATURE_LABELS, PRO_FEATURES, STARTER_KIT, COSMETIC_ITEMS } from '@/config/monetization';
 import { isPro, hasProduct, isStarterKitAvailable, getStarterKitRemainingMs, getOwnedCosmetics, getActiveCosmetic, isSubscriptionActive } from '@/utils/monetization';
 import type { CosmeticCategory } from '@/types/game';
 import type { ProductId, ProFeature } from '@/types/game';
-import { purchaseProduct as purchaseViaSDK, restorePurchases as restoreViaSDK, presentPaywall, getEntitlements, getCustomerInfo, extractSubscriptionInfo, openSubscriptionManagement } from '@/utils/purchases';
+import { purchaseProduct as purchaseViaSDK, restorePurchases as restoreViaSDK, presentPaywall, getEntitlements, getCustomerInfo, extractSubscriptionInfo, openSubscriptionManagement, getStorePrices } from '@/utils/purchases';
 import { hapticMedium } from '@/utils/haptics';
 import { infoToast, successToast, errorToast } from '@/utils/gameToast';
 import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
+import { track } from '@/utils/analytics';
 
 const formatPrice = (usd: number) => `$${usd.toFixed(2)}`;
 
@@ -70,16 +71,31 @@ const ShopPage = () => {
   const [restoring, setRestoring] = useState(false);
   const userIsPro = isPro(monetization);
   const hasActiveSub = isSubscriptionActive(monetization);
+  const onMonthlyPlan = monetization.subscription?.tier === 'monthly';
   const starterKitAvailable = isStarterKitAvailable(monetization);
   const starterKitMs = getStarterKitRemainingMs(monetization);
 
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
   const [purchasing, setPurchasing] = useState(false);
   const [expandedPack, setExpandedPack] = useState<ProductId | null>(null);
+  // Localised store prices fetched from RevenueCat. Empty on web/dev — falls
+  // back to the USD config price for display.
+  const [storePrices, setStorePrices] = useState<Partial<Record<ProductId, string>>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    getStorePrices().then(prices => { if (!cancelled) setStorePrices(prices); });
+    return () => { cancelled = true; };
+  }, []);
+
+  /** Display price — store-localised when available, USD config price otherwise. */
+  const priceFor = (productId: ProductId) =>
+    storePrices[productId] || formatPrice(PRODUCTS[productId].priceUsd);
 
   const handlePurchase = (productId: ProductId) => {
     setPurchaseError(null);
     setPurchaseProduct(productId);
+    track('purchase_initiated', { productId });
   };
 
   /** Sync entitlements + subscription from RevenueCat after a purchase or restore */
@@ -92,22 +108,26 @@ const ShopPage = () => {
 
   const handleConfirmPurchase = async () => {
     if (!purchaseProduct || purchasing) return;
+    const productId = purchaseProduct;
     setPurchasing(true);
     setPurchaseError(null);
     try {
-      const granted = await purchaseViaSDK(purchaseProduct);
-      // granted=[] means the user cancelled the native StoreKit dialog —
-      // close the modal silently without claiming a successful purchase.
+      const granted = await purchaseViaSDK(productId);
+      // granted=[] means the user cancelled the native StoreKit dialog.
       if (granted.length === 0) {
+        track('purchase_cancelled', { productId });
+        infoToast('Purchase Cancelled', 'No charge was made.');
         setPurchaseProduct(null);
         return;
       }
       restoreEntitlements(granted);
       await syncAfterPurchase();
       hapticMedium();
+      track('purchase_completed', { productId });
       successToast('Purchase complete!');
       setPurchaseProduct(null);
     } catch {
+      track('purchase_failed', { productId });
       setPurchaseError('Purchase failed. Please try again.');
     } finally {
       setPurchasing(false);
@@ -117,6 +137,7 @@ const ShopPage = () => {
   const handleRestore = async () => {
     setRestoring(true);
     setPurchaseError(null);
+    track('restore_clicked', {});
     try {
       const granted = await restoreViaSDK();
       if (granted.length > 0) {
@@ -126,6 +147,7 @@ const ShopPage = () => {
         infoToast('No Purchases Found', 'No previous purchases were found for this account.');
       }
       await syncAfterPurchase();
+      track('restore_completed', { restoredCount: granted.length });
     } catch {
       errorToast('Restore Failed', 'Could not restore purchases. Please try again.');
     } finally {
@@ -202,7 +224,7 @@ const ShopPage = () => {
             </div>
             <div className="flex items-baseline gap-2 mt-3 mb-3">
               <span className="text-lg font-bold text-[hsl(var(--gold))]">
-                {formatPrice(PRODUCTS['com.dynastymanager.bundle.all'].priceUsd)}
+                {priceFor('com.dynastymanager.bundle.all')}
               </span>
               <span className="text-xs text-muted-foreground/60 line-through">
                 {formatPrice(BUNDLE_INDIVIDUAL_TOTAL)}
@@ -239,7 +261,7 @@ const ShopPage = () => {
             onClick={() => handlePurchase('com.dynastymanager.pack.manager')}
             className="mt-3 w-full py-2 rounded-lg bg-[hsl(var(--gold))] text-[hsl(30,20%,10%)] font-bold text-sm active:scale-[0.98] transition-transform"
           >
-            Claim — {formatPrice(STARTER_KIT.priceUsd)}
+            Claim — {priceFor('com.dynastymanager.pack.manager')}
           </button>
         </GlassPanel>
       )}
@@ -291,6 +313,34 @@ const ShopPage = () => {
               >
                 <ExternalLink className="w-3 h-3" />
                 Manage Subscription
+              </button>
+            </GlassPanel>
+          )}
+
+          {/* Annual upsell — shown only when the user is on the monthly plan
+              and would save by switching. The actual swap happens in the
+              store (App Store / Play Store) once they purchase the annual
+              SKU; RevenueCat handles the proration / cross-grade. */}
+          {onMonthlyPlan && (
+            <GlassPanel className="p-4 border-emerald-500/30 bg-emerald-500/[0.04] mb-3">
+              <div className="flex items-center gap-2 mb-1">
+                <TrendingUp className="w-4 h-4 text-emerald-400" />
+                <span className="text-sm font-semibold text-emerald-400">Switch to Annual</span>
+                <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold ml-auto">
+                  Save {ANNUAL_SAVINGS_PCT}%
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mb-2">
+                Pay yearly and save vs your current monthly plan — same Pro features.
+              </p>
+              <p className="text-[10px] text-muted-foreground/60 mb-3">
+                Just ${ANNUAL_PER_MONTH}/month billed yearly
+              </p>
+              <button
+                onClick={() => handlePurchase('com.dynastymanager.pro.annual')}
+                className="w-full py-2.5 rounded-lg bg-emerald-500/90 hover:bg-emerald-500 text-white font-bold text-sm active:scale-[0.98] transition-all shadow-[0_0_12px_rgba(16,185,129,0.25)]"
+              >
+                Upgrade — {priceFor('com.dynastymanager.pro.annual')}/year
               </button>
             </GlassPanel>
           )}
@@ -349,7 +399,7 @@ const ShopPage = () => {
                             : 'bg-muted/50 hover:bg-muted text-foreground border border-border/50'
                       )}
                     >
-                      {formatPrice(product.priceUsd)}{product.billingPeriod && product.billingPeriod !== 'one-time' ? product.billingPeriod : ''}
+                      {priceFor(productId)}{product.billingPeriod && product.billingPeriod !== 'one-time' ? product.billingPeriod : ''}
                     </button>
                   </GlassPanel>
                 );
@@ -370,7 +420,7 @@ const ShopPage = () => {
                     onClick={() => handlePurchase('com.dynastymanager.pro')}
                     className="px-4 py-2 rounded-lg bg-muted/50 hover:bg-muted text-foreground font-bold text-sm active:scale-[0.98] transition-all border border-border/50 shrink-0"
                   >
-                    {formatPrice(PRODUCTS['com.dynastymanager.pro'].priceUsd)}
+                    {priceFor('com.dynastymanager.pro')}
                   </button>
                 </div>
               </GlassPanel>
@@ -469,7 +519,7 @@ const ShopPage = () => {
                     onClick={() => handlePurchase(productId)}
                     className="w-full py-2 rounded-lg bg-muted/50 hover:bg-muted text-foreground font-semibold text-sm active:scale-[0.98] transition-all border border-border/50"
                   >
-                    {formatPrice(product.priceUsd)}
+                    {priceFor(productId)}
                   </button>
                 )}
               </GlassPanel>
@@ -500,7 +550,7 @@ const ShopPage = () => {
             onClick={() => handlePurchase('com.dynastymanager.bundle.all')}
             className="w-full py-2.5 rounded-lg bg-[hsl(var(--gold))] text-[hsl(30,20%,10%)] font-bold text-sm active:scale-[0.98] transition-transform shadow-[0_0_12px_hsl(var(--gold)/0.2)]"
           >
-            Get Everything — {formatPrice(PRODUCTS['com.dynastymanager.bundle.all'].priceUsd)}
+            Get Everything — {priceFor('com.dynastymanager.bundle.all')}
           </button>
         </GlassPanel>
       )}
@@ -581,6 +631,7 @@ const ShopPage = () => {
       {purchaseProduct && (
         <PurchaseModal
           productId={purchaseProduct}
+          storePrice={storePrices[purchaseProduct]}
           onConfirm={handleConfirmPurchase}
           onCancel={() => setPurchaseProduct(null)}
           loading={purchasing}
