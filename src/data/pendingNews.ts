@@ -44,7 +44,9 @@ export interface PendingRelease {
 export const PENDING_NEWS: PendingRelease = {
   highlights: [],
   new: [],
-  improved: [],
+  improved: [
+    'Rewrite all prompts to match the matured codebase.',
+  ],
   fixed: [],
   headline: null,
   summary: null,
