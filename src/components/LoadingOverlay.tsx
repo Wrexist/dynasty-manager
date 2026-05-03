@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { useScrollLock } from '@/hooks/useScrollLock';
 
 interface LoadingOverlayProps {
   /** When true, the overlay is rendered and a scrim blocks input. */
@@ -34,6 +35,10 @@ export function LoadingOverlay({
   variant = 'page',
   className,
 }: LoadingOverlayProps) {
+  // Page-variant overlays sit over the whole viewport, so the user could
+  // otherwise pull-to-refresh or scroll the background while a critical
+  // op is in flight. Panel variant is scoped, no body lock needed.
+  useScrollLock(open && variant === 'page');
   return (
     <AnimatePresence>
       {open && (

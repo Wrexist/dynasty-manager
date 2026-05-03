@@ -3,6 +3,8 @@ import type { ProductId } from '@/types/game';
 import { Crown, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
+import { useScrollLock } from '@/hooks/useScrollLock';
+import { hapticLight, hapticMedium } from '@/utils/haptics';
 
 interface PurchaseModalProps {
   productId: ProductId;
@@ -12,8 +14,12 @@ interface PurchaseModalProps {
 }
 
 export function PurchaseModal({ productId, onConfirm, onCancel, loading }: PurchaseModalProps) {
+  useScrollLock(true);
   const product = PRODUCTS[productId];
   if (!product) return null;
+
+  const handleConfirm = () => { hapticMedium(); onConfirm(); };
+  const handleCancel = () => { hapticLight(); onCancel(); };
 
   const isSubscription = product.type === 'subscription';
   const priceLabel = isSubscription && product.billingPeriod && product.billingPeriod !== 'one-time'
@@ -28,7 +34,7 @@ export function PurchaseModal({ productId, onConfirm, onCancel, loading }: Purch
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-        onClick={onCancel}
+        onClick={handleCancel}
       >
         <motion.div
           key="purchase-card"
@@ -46,7 +52,12 @@ export function PurchaseModal({ productId, onConfirm, onCancel, loading }: Purch
                 {isSubscription ? 'Confirm Subscription' : 'Confirm Purchase'}
               </h3>
             </div>
-            <button type="button" onClick={onCancel} className="text-muted-foreground hover:text-foreground">
+            <button
+              type="button"
+              onClick={handleCancel}
+              aria-label={isSubscription ? 'Close subscription dialog' : 'Close purchase dialog'}
+              className="text-muted-foreground hover:text-foreground p-1 -m-1"
+            >
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -63,7 +74,7 @@ export function PurchaseModal({ productId, onConfirm, onCancel, loading }: Purch
             </div>
 
             <button
-              onClick={onConfirm}
+              onClick={handleConfirm}
               disabled={loading}
               className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm active:scale-[0.98] transition-transform disabled:opacity-50"
             >
@@ -71,7 +82,7 @@ export function PurchaseModal({ productId, onConfirm, onCancel, loading }: Purch
             </button>
 
             <button
-              onClick={onCancel}
+              onClick={handleCancel}
               disabled={loading}
               className="w-full py-2 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
             >
