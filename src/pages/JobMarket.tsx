@@ -9,7 +9,7 @@ import { ConfirmDialog } from '@/components/game/ConfirmDialog';
 import { BoardPitch } from '@/components/game/BoardPitch';
 import { FormGuide } from '@/components/game/FormGuide';
 import { Briefcase, DollarSign, Clock, Check, X, LogOut, ArrowLeft, Building2, TrendingUp, Handshake, Users, Plus, Minus, ChevronDown, ChevronUp } from 'lucide-react';
-import { toast } from 'sonner';
+import { errorToast, infoToast, successToast } from '@/utils/gameToast';
 import { getManagerBonusLabel, getReputationTierLabel } from '@/utils/managerCareer';
 import { getSuffix } from '@/utils/helpers';
 import { PageHint } from '@/components/game/PageHint';
@@ -42,7 +42,7 @@ const JobMarket = () => {
   const handleApply = (vacancyId: string) => {
     const result = startInterview(vacancyId);
     if (!result.success) {
-      toast.error('Cannot Apply', { description: result.message });
+      errorToast('Cannot Apply', result.message);
     }
   };
 
@@ -414,11 +414,11 @@ function OfferCard({
     const updated = updatedOffers.find(o => o.id === offer.id);
     if (updated) {
       if (updated.negotiationStatus === 'accepted') {
-        toast.success('Terms Accepted!', { description: `Salary: £${(updated.salary / 1000).toFixed(1)}k/wk, ${updated.contractLength}yr contract` });
+        successToast('Terms Accepted!', `Salary: £${(updated.salary / 1000).toFixed(1)}k/wk, ${updated.contractLength}yr contract`);
       } else if (updated.negotiationStatus === 'final') {
-        toast('Final Offer', { description: `The board won't negotiate further. £${(updated.salary / 1000).toFixed(1)}k/wk, ${updated.contractLength}yr` });
+        infoToast('Final Offer', `The board won't negotiate further. £${(updated.salary / 1000).toFixed(1)}k/wk, ${updated.contractLength}yr`);
       } else {
-        toast('Counter-Offer', { description: `Board countered: £${(updated.salary / 1000).toFixed(1)}k/wk, ${updated.contractLength}yr contract` });
+        infoToast('Counter-Offer', `Board countered: £${(updated.salary / 1000).toFixed(1)}k/wk, ${updated.contractLength}yr contract`);
       }
     }
   };

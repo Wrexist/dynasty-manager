@@ -52,7 +52,7 @@ export async function initPurchases(): Promise<boolean> {
       ]);
       return true;
     } catch (err) {
-      console.warn('[Purchases] Failed to initialize RevenueCat:', err);
+      if (import.meta.env.DEV) console.warn('[Purchases] Failed to initialize RevenueCat:', err);
       Sentry.captureException(err, { tags: { context: 'purchases.init' } });
       initPromise = null;
       return false;
@@ -406,7 +406,7 @@ export async function openSubscriptionManagement(): Promise<boolean> {
     }
     return false;
   } catch (err) {
-    console.warn('[Purchases] Could not open subscription management:', err);
+    if (import.meta.env.DEV) console.warn('[Purchases] Could not open subscription management:', err);
     return false;
   }
 }
@@ -432,7 +432,7 @@ export async function startEntitlementListener(
       void Purchases.removeCustomerInfoUpdateListener({ listenerToRemove: callbackId });
     };
   } catch (err) {
-    console.warn('[Purchases] Failed to add listener:', err);
+    if (import.meta.env.DEV) console.warn('[Purchases] Failed to add listener:', err);
   }
 }
 
