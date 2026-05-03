@@ -11,7 +11,7 @@ import { getRatingColor, getRatingBadgeClasses } from '@/utils/uiHelpers';
 import { MENTALITIES, WIDTHS, TEMPOS, DEFENSIVE_LINES, PRESSING_OPTIONS, STYLE_PRESETS, getAvailableFormations } from '@/config/tactics';
 import type { StylePreset } from '@/config/tactics';
 import { FORMATION_POSITIONS, type Position, type ChemistryLink } from '@/types/game';
-import { AlertTriangle, Ban, BookOpen, ChevronDown, ChevronUp, Globe, Handshake, Heart, HeartPulse, Save, Trash2, Upload, Shield, Swords, Target, Zap } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Ban, BookOpen, ChevronDown, ChevronUp, Globe, Handshake, Heart, HeartPulse, Save, Trash2, Upload, Shield, Swords, Target, Zap } from 'lucide-react';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { useState, useMemo } from 'react';
 import { PageHint } from '@/components/game/PageHint';
@@ -269,8 +269,10 @@ const TacticsPage = () => {
           ))}
         </div>
         {club.defensiveFormation && (
-          <p className="text-[10px] text-muted-foreground mt-2">
-            Attack: {club.formation} → Defend: {club.defensiveFormation}
+          <p className="text-[10px] text-muted-foreground mt-2 inline-flex items-center gap-1">
+            <span>Attack: {club.formation}</span>
+            <ArrowRight className="w-2.5 h-2.5 text-muted-foreground/70 shrink-0" aria-hidden />
+            <span>Defend: {club.defensiveFormation}</span>
           </p>
         )}
       </GlassPanel>
@@ -387,13 +389,20 @@ const TacticsPage = () => {
             displayA = senior;
             displayB = senior === a ? b : a;
           }
-          const sep = link.type === 'mentor' ? '→' : '&';
           const meta = typeMeta[link.type];
           return (
             <div key={`${link.type}-${link.playerIdA}-${link.playerIdB}-${idx}`} className="flex items-center gap-2 bg-muted/20 rounded px-2 py-1">
               {meta.icon}
               {link.type === 'nationality' && <FlagIcon nationality={a.nationality} size={12} />}
-              <span className="text-[10px] text-foreground flex-1 truncate">{displayA.lastName} {sep} {displayB.lastName}</span>
+              <span className="text-[10px] text-foreground flex-1 truncate inline-flex items-center gap-1 min-w-0">
+                <span className="truncate">{displayA.lastName}</span>
+                {link.type === 'mentor' ? (
+                  <ArrowRight className="w-2.5 h-2.5 text-amber-400 shrink-0" aria-hidden />
+                ) : (
+                  <span className="text-muted-foreground/70 shrink-0">&amp;</span>
+                )}
+                <span className="truncate">{displayB.lastName}</span>
+              </span>
               <span className={cn('text-[9px] font-bold', meta.color)}>+{link.strength}</span>
             </div>
           );

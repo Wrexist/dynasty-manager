@@ -5,7 +5,7 @@ import { ConfirmDialog } from '@/components/game/ConfirmDialog';
 import { CelebrationModal } from '@/components/game/CelebrationModal';
 import { StadiumView } from '@/components/game/StadiumView';
 import { FacilityCard } from '@/components/game/FacilityCard';
-import { Dumbbell, GraduationCap, Stethoscope, RefreshCw, ArrowUp, Clock, TrendingUp } from 'lucide-react';
+import { Dumbbell, GraduationCap, Stethoscope, RefreshCw, ArrowUp, Clock, TrendingUp, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FACILITY_COST_PER_LEVEL, FACILITY_BASE_UPGRADE_WEEKS, FACILITY_MAX_LEVEL, STAND_COST_PER_LEVEL, STAND_BASE_UPGRADE_WEEKS, STADIUM_INCOME_PER_LEVEL } from '@/config/gameBalance';
 import { PageHint } from '@/components/game/PageHint';
@@ -158,10 +158,13 @@ const FacilitiesPage = () => {
               {club?.stadiumName && (
                 <p className="text-xs text-muted-foreground">{club.stadiumName}</p>
               )}
-              <p className="text-[11px]">
+              <p className="text-[11px] inline-flex items-center justify-center gap-1.5">
                 <span className="text-foreground font-semibold">{tier.current}</span>
                 {tier.next && tier.nextAt !== null && (
-                  <span className="text-muted-foreground"> → {tier.next} at Lv.{tier.nextAt}</span>
+                  <span className="text-muted-foreground inline-flex items-center gap-1.5">
+                    <ArrowRight className="w-3 h-3 text-primary/70 shrink-0" aria-hidden />
+                    {tier.next} at Lv.{tier.nextAt}
+                  </span>
                 )}
               </p>
             </div>

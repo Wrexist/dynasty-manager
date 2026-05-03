@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { Trophy, Award, Star, Medal, Lock } from 'lucide-react';
+import { Trophy, Award, Star, Medal, Lock, ChevronRight } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { PremiumCheck } from '@/components/game/icons/PremiumCheck';
 import { PremiumProgress } from '@/components/game/PremiumProgress';
@@ -303,9 +303,10 @@ const TrophyCabinet = () => {
             <button
               type="button"
               onClick={() => setScreen('ballon-dor')}
-              className="text-[10px] text-primary mt-2 w-full text-center font-bold hover:underline"
+              className="mt-2 w-full text-center font-bold text-[10px] text-primary hover:underline inline-flex items-center justify-center gap-1"
             >
-              View Full Rankings →
+              View Full Rankings
+              <ChevronRight className="w-3 h-3" />
             </button>
           </GlassPanel>
         );

@@ -7,7 +7,7 @@ import { PlayerCard } from '@/components/game/PlayerCard';
 import { cn } from '@/lib/utils';
 import { Player } from '@/types/game';
 import type { SquadSortKey, SquadStatusFilter } from '@/types/game';
-import { ShoppingCart, UserSearch, AlertTriangle, FileText, Users, ChevronDown } from 'lucide-react';
+import { ShoppingCart, UserSearch, AlertTriangle, FileText, Users, ChevronDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getRatingColor, posBadgeColor } from '@/utils/uiHelpers';
 import { hapticLight } from '@/utils/haptics';
@@ -372,11 +372,16 @@ const SquadPage = () => {
                 }
               }}
               className={cn(
-                'px-2 py-1 rounded text-[10px] uppercase tracking-wider transition-colors whitespace-nowrap shrink-0 active:scale-[0.95]',
+                'px-2 py-1 rounded text-[10px] uppercase tracking-wider transition-colors whitespace-nowrap shrink-0 active:scale-[0.95] inline-flex items-center gap-0.5',
                 sortBy === s ? 'text-primary font-bold' : 'text-muted-foreground'
               )}
             >
-              {s}{sortBy === s ? (sortAsc ? ' ↑' : ' ↓') : ''}
+              <span>{s}</span>
+              {sortBy === s && (
+                sortAsc
+                  ? <ArrowUp className="w-2.5 h-2.5" aria-label="ascending" />
+                  : <ArrowDown className="w-2.5 h-2.5" aria-label="descending" />
+              )}
             </button>
           ))}
         </div>

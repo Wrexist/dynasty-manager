@@ -6,7 +6,7 @@ import { resolveClub } from '@/utils/helpers';
 import { guardAsync } from '@/utils/asyncGuard';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { EmptyState } from '@/components/EmptyState';
-import { ChevronRight, Flame, Calendar, HeartPulse, Star, TrendingUp, TrendingDown, Minus, MapPin, Shield, ArrowLeft, Trophy, ArrowUp, ArrowDown } from 'lucide-react';
+import { ChevronRight, Flame, Calendar, HeartPulse, Star, TrendingUp, TrendingDown, Minus, MapPin, Shield, ArrowLeft, ArrowRight, Trophy, ArrowUp, ArrowDown } from 'lucide-react';
 import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { cn } from '@/lib/utils';
 
@@ -444,8 +444,9 @@ const MatchReview = () => {
                             <>
                               <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider" aria-hidden>(OG)</span>
                               {benefitingClubShort && (
-                                <span className="text-[10px] text-muted-foreground/80 font-medium tabular-nums" aria-hidden>
-                                  → {benefitingClubShort}
+                                <span className="text-[10px] text-muted-foreground/80 font-medium tabular-nums inline-flex items-center gap-1" aria-hidden>
+                                  <ArrowRight className="w-3 h-3 text-amber-400/80 shrink-0" />
+                                  {benefitingClubShort}
                                 </span>
                               )}
                             </>
@@ -833,8 +834,10 @@ const MatchReview = () => {
                     : `Holding ${newPos}${getSuffix(newPos)}`}
                 </p>
                 {delta !== 0 && (
-                  <p className="text-[10px] text-muted-foreground">
-                    {oldPos}{getSuffix(oldPos)} → {newPos}{getSuffix(newPos)} in the table
+                  <p className="text-[10px] text-muted-foreground inline-flex items-center gap-1">
+                    <span>{oldPos}{getSuffix(oldPos)}</span>
+                    <ArrowRight className="w-2.5 h-2.5 text-muted-foreground/70 shrink-0" aria-hidden />
+                    <span>{newPos}{getSuffix(newPos)} in the table</span>
                   </p>
                 )}
               </div>

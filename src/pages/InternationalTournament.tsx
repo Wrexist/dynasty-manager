@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { cn } from '@/lib/utils';
-import { Globe, Trophy, Play, Calendar, Flag } from 'lucide-react';
+import { Globe, Trophy, Play, Calendar, Flag, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { guardAsync } from '@/utils/asyncGuard';
 import { PAGE_HINTS } from '@/config/ui';
@@ -116,7 +116,11 @@ const InternationalTournament = () => {
               </div>
               <div className="bg-muted/20 rounded-lg p-2 border border-border/30 text-center">
                 <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Knockout</p>
-                <p className="text-xs font-bold text-foreground">{isWorldCup ? 'R16 → F' : 'QF → F'}</p>
+                <p className="text-xs font-bold text-foreground inline-flex items-center justify-center gap-1">
+                  <span>{isWorldCup ? 'R16' : 'QF'}</span>
+                  <ArrowRight className="w-3 h-3 text-primary/70 shrink-0" aria-hidden />
+                  <span>F</span>
+                </p>
               </div>
             </div>
 
