@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { PENDING_NEWS, PENDING_CATEGORIES, type PendingRelease } from '@/data/pendingNews';
-// @ts-expect-error — helper module is .mjs, no .d.ts. Imported for end-to-end coverage.
 import * as io from '../../scripts/lib/whatsNewIO.mjs';
 
 /** Render PENDING_NEWS to source, parse it back, and assert round-trip equality.

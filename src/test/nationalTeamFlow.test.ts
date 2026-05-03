@@ -283,11 +283,12 @@ describe('National team flow — confirmNationalSquad', () => {
       },
       internationalTournament: {
         type: 'world-cup',
+        name: 'World Cup Season 1',
         season: 1,
         phase: 'group',
         groups: [],
         knockoutTies: [],
-        currentRound: 'group',
+        currentRound: null,
         playerEliminated: false,
         winner: null,
         currentWeek: 47,
