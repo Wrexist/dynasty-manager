@@ -22,6 +22,15 @@ platform :ios do
       api_key:        api_key
     )
 
+    update_code_signing_settings(
+      path:                  "ios/App/App.xcodeproj",
+      use_automatic_signing: false,
+      bundle_identifier:     "com.dynastymanager",
+      team_id:               ENV["sigh_com.dynastymanager_appstore_team-id"],
+      profile_name:          ENV["sigh_com.dynastymanager_appstore_profile-name"],
+      code_sign_identity:    "Apple Distribution"
+    )
+
     build_app(
       project:       "ios/App/App.xcodeproj",
       scheme:        "App",
