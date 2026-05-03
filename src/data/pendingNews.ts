@@ -51,6 +51,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Add bulk keep/sell actions to pack opening summary.',
     'Turn /docs into a marketing + privacy + support site.',
     'Release hygiene: gate prod console, harden modals & splash.',
+    'Make career resign / job-market path discoverable.',
   ],
   fixed: [],
   headline: null,
