@@ -1,48 +1,85 @@
-# Dynasty Manager — Privacy Policy Site
+# Dynasty Manager — Marketing & Support Site
 
-Standalone static page that hosts the public Privacy Policy required by Apple's
-App Review process. Lives alongside other internal docs in this folder, but
-`vercel.json` rewrites every request to `index.html`, so the internal markdown
-files are not exposed to the public.
+Static marketing/support/privacy site that lives in `docs/`. Designed to be
+deployed as its own Vercel project, separate from the React app at the
+repo root.
+
+## Pages
+
+| Path | File | Purpose |
+|---|---|---|
+| `/` | `index.html` | Landing page — hero, features, stats, CTAs |
+| `/privacy` | `privacy.html` | Privacy Policy (the URL Apple App Review requires) |
+| `/support` | `support.html` | Support page — FAQ + contact emails |
+
+`styles.css` holds the shared dark-glass styling so all three pages stay in
+sync.
 
 ## Deploying to Vercel
 
+This site must be deployed as its own Vercel project — **not** as the same
+project that builds the React app at the repo root.
+
 1. In Vercel, click **Add New… → Project** and import the `dynasty-manager`
-   repository.
-2. On the configuration screen, set:
+   repository (you can import the same repo into multiple projects).
+2. On the configuration screen:
    - **Framework Preset:** `Other`
    - **Root Directory:** `docs`
-   - **Build Command:** *(leave blank)*
-   - **Output Directory:** *(leave blank — Vercel serves the folder as static)*
+   - **Build Command:** *(leave blank — overriding off)*
+   - **Output Directory:** *(leave blank)*
 3. Click **Deploy**. Vercel returns a URL like
-   `https://dynasty-manager-privacy.vercel.app`.
-4. Optional: in **Settings → Domains**, attach a custom domain such as
-   `privacy.dynastymanager.app`.
-5. Paste the resulting URL into App Store Connect → **App Privacy → Privacy
-   Policy URL**.
+   `https://dynasty-manager-site.vercel.app`.
+4. **Settings → Deployment Protection →** disable Vercel Authentication for
+   production so Apple's reviewer (and the public) can reach the pages.
+5. Optional: **Settings → Domains** → attach a custom domain such as
+   `dynastymanager.app`.
+6. Paste the resulting privacy URL into App Store Connect →
+   **App Privacy → Privacy Policy URL** (e.g. `https://your-domain/privacy`).
+7. Paste the support URL into App Store Connect → **App Information →
+   Support URL** (e.g. `https://your-domain/support`).
+
+### If `dynasty-manager-two.vercel.app` currently serves the React app
+
+That project was created with Root Directory at the repo root, so Vercel
+detected Vite and built the game. Two ways to fix it:
+
+**A. Reconfigure that project to serve `docs/`:**
+1. Settings → General → Root Directory → set to `docs` → Save.
+2. Settings → General → Framework Preset → change to **Other**.
+3. Build & Output Settings → leave Build Command and Output Directory
+   blank (toggle "Override" on if needed and leave the value empty).
+4. Deployments tab → latest deploy → ⋯ → **Redeploy**.
+
+**B. Create a second Vercel project pointing to `docs/`:**
+Follow the steps in *Deploying to Vercel* above, and leave the existing
+project as the game preview. You'll have two URLs — one for the game,
+one for marketing/privacy/support.
+
+## Why redirects in `vercel.json`?
+
+`docs/` also contains internal markdown reports (release audits, balance
+notes, etc.) that ship with the repo. The `vercel.json` redirects send any
+`*.md` or `*.json` request back to `/`, so the deployed Vercel site only
+ever serves the three public pages plus `styles.css`. The internal docs
+remain repo-only and are unreachable from the public URL.
 
 ## Local preview
 
 ```bash
 cd docs
 npx serve .
-# or just open docs/index.html directly in a browser
+# then open http://localhost:3000
 ```
 
-## Editing the policy
+Or open `docs/index.html` directly in a browser (clean-URL routing won't
+work, but the pages render fine).
 
-`index.html` is a single self-contained file — no build step. Update the
-"Effective date" in the header whenever you make a material change, and keep
-the disclosures in sync with the **App Privacy** answers in App Store Connect.
+## Editing
+
+All three pages are self-contained HTML — no build step. Update the
+"Effective date" on the privacy page whenever you make a material change,
+and keep its disclosures in sync with the **App Privacy** answers in
+App Store Connect.
 
 If a future build introduces analytics, ads, or App Tracking Transparency,
-update sections **3** (Information We Do Not Collect) and **4** (App Tracking
-Transparency) before that build ships.
-
-## Why the rewrite?
-
-`docs/` also contains internal markdown reports (release audits, balance
-notes, etc.). The `vercel.json` rewrite rule sends every incoming path to
-`index.html`, which means the deployed Vercel site only ever serves the
-privacy policy — the markdown files in this folder remain repo-only and are
-never reachable from the public Vercel URL.
+update sections **3** and **4** of `privacy.html` before that build ships.
