@@ -5,7 +5,7 @@
  * single setter for the type filter; owns no other state.
  */
 import { motion } from 'framer-motion';
-import { Calendar, Newspaper, ArrowUpRight, Repeat2, Users, TrendingUp } from 'lucide-react';
+import { Calendar, Newspaper, ArrowUpRight, Repeat2, Users, TrendingUp, ArrowRight } from 'lucide-react';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { cn } from '@/lib/utils';
 import { hapticLight } from '@/utils/haptics';
@@ -161,14 +161,14 @@ export function NewsTab({
                           {entry.type === 'free_agent' ? (
                             <>Signed by <span className="text-foreground font-medium">{toClub?.shortName || '?'}</span></>
                           ) : (
-                            <>
+                            <span className="inline-flex items-center gap-1">
                               <span className="text-foreground">{fromClub?.shortName || '?'}</span>
-                              {' → '}
+                              <ArrowRight className="w-3 h-3 text-primary/70 shrink-0" aria-hidden />
                               <span className="text-foreground">{toClub?.shortName || '?'}</span>
                               {entry.type === 'loan' && entry.loanDuration && (
                                 <span className="text-amber-400 ml-1">({entry.loanDuration}wk loan)</span>
                               )}
-                            </>
+                            </span>
                           )}
                         </p>
                       </div>

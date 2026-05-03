@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { Mail, MailOpen, CheckCheck, Trophy, Stethoscope, ArrowLeftRight, TrendingUp, Megaphone, FileText, ChevronDown, ChevronUp, BookOpen, Handshake, Filter, BellDot, ExternalLink, MessageCircle, Globe, AlertTriangle, Check, Circle, Loader2, Clock } from 'lucide-react';
+import { Mail, MailOpen, CheckCheck, Trophy, Stethoscope, ArrowLeftRight, TrendingUp, Megaphone, FileText, ChevronDown, ChevronRight, ChevronUp, BookOpen, Handshake, Filter, BellDot, ExternalLink, MessageCircle, Globe, AlertTriangle, Check, Circle, Loader2, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Message, GameScreen } from '@/types/game';
@@ -222,7 +222,10 @@ const InboxPage = () => {
             <p className="text-xs text-foreground/90 mt-0.5">
               Your subscription couldn't be renewed. Update your payment method to keep Pro features active.
             </p>
-            <p className="text-[10px] text-amber-400 mt-1">Tap to manage subscription →</p>
+            <p className="text-[10px] text-amber-400 mt-1 inline-flex items-center gap-0.5">
+              Tap to manage subscription
+              <ChevronRight className="w-3 h-3 shrink-0" aria-hidden />
+            </p>
           </div>
         </button>
       )}

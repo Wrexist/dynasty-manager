@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { Dumbbell, Flame, Shield, Brain, Target, Zap, ChevronDown, ChevronUp, Trophy, AlertTriangle, TrendingUp, Heart } from 'lucide-react';
+import { Dumbbell, Flame, Shield, Brain, Target, Zap, ChevronDown, ChevronRight, ChevronUp, Trophy, AlertTriangle, TrendingUp, TrendingDown, Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TrainingModule } from '@/types/game';
 import { PageHint } from '@/components/game/PageHint';
@@ -668,19 +668,18 @@ const TrainingPage = () => {
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
                         <span className="text-xs text-muted-foreground tabular-nums">{p.overall - (p.growthDelta || 0)}</span>
-                        <span className="text-[10px] text-muted-foreground">→</span>
+                        <ChevronRight className="w-3 h-3 text-muted-foreground/70" aria-hidden />
                         <span className={cn(
                           'text-xs font-bold tabular-nums',
                           (p.growthDelta || 0) > 0 ? 'text-emerald-400' : 'text-destructive'
                         )}>
                           {p.overall}
                         </span>
-                        <span className={cn(
-                          'text-[10px] font-bold',
-                          (p.growthDelta || 0) > 0 ? 'text-emerald-400' : 'text-destructive'
-                        )}>
-                          {(p.growthDelta || 0) > 0 ? '↑' : '↓'}
-                        </span>
+                        {(p.growthDelta || 0) > 0 ? (
+                          <TrendingUp className="w-3 h-3 text-emerald-400" aria-label="overall up" />
+                        ) : (
+                          <TrendingDown className="w-3 h-3 text-destructive" aria-label="overall down" />
+                        )}
                       </div>
                     </button>
                   );

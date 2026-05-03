@@ -6,7 +6,7 @@ import { getReputationTierLabel, getManagerBonusLabel } from '@/utils/managerCar
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { PlayerCard } from '@/components/game/PlayerCard';
 import { Button } from '@/components/ui/button';
-import { Trophy, Star, Award, Users, ChevronDown, ChevronUp, ArrowDown, ArrowUp } from 'lucide-react';
+import { Trophy, Star, Award, Users, ChevronDown, ChevronUp, ChevronRight, ArrowDown, ArrowUp } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { LEAGUES } from '@/data/league';
 import { AdRewardButton } from '@/components/game/AdRewardButton';
@@ -412,9 +412,10 @@ const SeasonSummary = () => {
                 <button
                   type="button"
                   onClick={() => setScreen('ballon-dor')}
-                  className="text-[10px] text-primary mt-1 w-full text-center font-bold hover:underline"
+                  className="mt-1 w-full text-center font-bold text-[10px] text-primary hover:underline inline-flex items-center justify-center gap-1"
                 >
-                  View Full Rankings →
+                  View Full Rankings
+                  <ChevronRight className="w-3 h-3" />
                 </button>
               </GlassPanel>
             </motion.div>

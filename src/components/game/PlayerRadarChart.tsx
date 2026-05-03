@@ -39,16 +39,26 @@ export const PlayerRadarChart = memo(function PlayerRadarChart({ attributes, cha
           {payload.value}
         </text>
         {change != null && change !== 0 && (
-          <text
-            textAnchor="middle"
-            fontSize={PLAYER_RADAR.CHANGE_FONT_SIZE}
-            fontWeight="bold"
-            fill={change > 0 ? PLAYER_RADAR.CHANGE_POSITIVE_COLOR : PLAYER_RADAR.CHANGE_NEGATIVE_COLOR}
-            dy={12}
+          <g
+            transform={`translate(0, ${12})`}
             aria-label={change > 0 ? `Increased by ${change}` : `Decreased by ${Math.abs(change)}`}
           >
-            {change > 0 ? `↑+${change}` : `↓${change}`}
-          </text>
+            {/* Filled triangle arrow — crisp at any zoom, replaces ↑/↓ glyph. */}
+            <path
+              d={change > 0 ? 'M -7 1 L -4 -3 L -1 1 Z' : 'M -7 -3 L -4 1 L -1 -3 Z'}
+              fill={change > 0 ? PLAYER_RADAR.CHANGE_POSITIVE_COLOR : PLAYER_RADAR.CHANGE_NEGATIVE_COLOR}
+            />
+            <text
+              x={1}
+              textAnchor="start"
+              fontSize={PLAYER_RADAR.CHANGE_FONT_SIZE}
+              fontWeight="bold"
+              fill={change > 0 ? PLAYER_RADAR.CHANGE_POSITIVE_COLOR : PLAYER_RADAR.CHANGE_NEGATIVE_COLOR}
+              dy={1}
+            >
+              {change > 0 ? `+${change}` : `${change}`}
+            </text>
+          </g>
         )}
       </g>
     );

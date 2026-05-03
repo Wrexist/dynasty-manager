@@ -8,6 +8,7 @@ import { ChevronDown, Trophy, Crown, Award } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { BallonDOrEntry, Player } from '@/types/game';
+import { PremiumLaurel } from '@/components/game/icons/PremiumLaurel';
 
 const RANK_MEDAL_COLORS: Record<number, { bg: string; text: string; border: string; glow: string }> = {
   1: { bg: 'bg-[hsl(43,96%,46%)]/15', text: 'text-[hsl(43,96%,62%)]', border: 'border-[hsl(43,96%,46%)]/35', glow: 'shadow-[0_0_24px_hsl(43,96%,46%,0.28)]' },
@@ -66,9 +67,13 @@ const WinnerSpotlight = ({ entry, player, onNavigate }: { entry: BallonDOrEntry;
           style={{ background: 'linear-gradient(90deg, transparent, hsl(43,96%,46%,0.55), transparent)' }}
         />
 
-        <p className="relative z-10 text-[10px] text-[hsl(43,96%,62%)] uppercase tracking-[0.22em] font-black mb-3">
-          ★ Winner ★
-        </p>
+        <div className="relative z-10 inline-flex items-center justify-center gap-2 mb-3">
+          <PremiumLaurel className="w-3 h-[18px] scale-x-[-1] drop-shadow-[0_0_6px_hsl(43,96%,46%,0.45)]" />
+          <p className="text-[10px] text-[hsl(43,96%,62%)] uppercase tracking-[0.32em] font-black leading-none">
+            Winner
+          </p>
+          <PremiumLaurel className="w-3 h-[18px] drop-shadow-[0_0_6px_hsl(43,96%,46%,0.45)]" />
+        </div>
 
         <div className="relative z-10 mx-auto mb-3 inline-block">
           {player ? (
