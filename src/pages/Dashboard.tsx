@@ -87,7 +87,7 @@ const QUICK_LINKS = [
   { label: 'Squad',     screen: 'squad'        as const, icon: Users,     color: 'text-sky-400',     glow: 'bg-sky-500',     chip: 'bg-sky-500/10 border-sky-500/30' },
   { label: 'Tactics',   screen: 'tactics'      as const, icon: Shield,    color: 'text-blue-400',    glow: 'bg-blue-500',    chip: 'bg-blue-500/10 border-blue-500/30' },
   { label: 'Training',  screen: 'training'     as const, icon: Dumbbell,  color: 'text-emerald-400', glow: 'bg-emerald-500', chip: 'bg-emerald-500/10 border-emerald-500/30' },
-  { label: 'Packs',     screen: 'packs'        as const, icon: Package,   color: 'text-fuchsia-400', glow: 'bg-fuchsia-500', chip: 'bg-fuchsia-500/10 border-fuchsia-500/30' },
+  { label: 'Packs',     screen: 'packs'        as const, icon: Package,   color: 'text-yellow-300',  glow: 'bg-yellow-400',  chip: 'bg-yellow-400/10 border-yellow-400/30' },
   { label: 'Transfers', screen: 'transfers'    as const, icon: UserPlus,  color: 'text-rose-400',    glow: 'bg-rose-500',    chip: 'bg-rose-500/10 border-rose-500/30' },
   { label: 'Cup',       screen: 'cup'          as const, icon: BarChart3, color: 'text-orange-400',  glow: 'bg-orange-500',  chip: 'bg-orange-500/10 border-orange-500/30' },
 ];
@@ -619,7 +619,7 @@ const Dashboard = () => {
     ...(lineupIncomplete ? { squad: 'bg-destructive' } : {}),
     ...(transferWindowOpen ? { transfers: 'bg-emerald-500' } : {}),
     ...(training.tacticalFamiliarity < 40 ? { training: 'bg-amber-500' } : {}),
-    ...(packPityPrimed ? { packs: 'bg-fuchsia-400' } : {}),
+    ...(packPityPrimed ? { packs: 'bg-yellow-400' } : {}),
   };
 
   return (

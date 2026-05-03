@@ -39,7 +39,7 @@ export function getPlayerNarratives(
 
   // Veteran Leader: 30+, high leadership
   if (player.age >= 30 && (player.personality?.leadership ?? 10) >= 15 && player.overall >= 68) {
-    tags.push({ tag: 'Veteran Leader', description: 'Experience and wisdom', color: 'text-purple-400' });
+    tags.push({ tag: 'Veteran Leader', description: 'Experience and wisdom', color: 'text-amber-400' });
   }
 
   // Fan Favourite: high appearances with good form

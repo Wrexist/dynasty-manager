@@ -683,7 +683,7 @@ const ClubSelection = () => {
                 <div className={cn(LIQUID_ROW_CLASS, 'px-2 py-2 text-center')}>
                   <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-1/2" style={LIQUID_SPECULAR_STYLE} />
                   <div className="relative">
-                    <Sprout className="w-3.5 h-3.5 text-purple-400 mx-auto mb-0.5" />
+                    <Sprout className="w-3.5 h-3.5 text-teal-400 mx-auto mb-0.5" />
                     <div className="text-[11px] font-bold text-foreground tabular-nums">{selectedClub.youthRating}</div>
                     <div className="text-[8px] text-muted-foreground">Youth</div>
                   </div>

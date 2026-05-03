@@ -30,7 +30,7 @@ const typeColors: Record<Message['type'], MessageColorScheme> = {
   transfer:      { iconBg: 'bg-amber-500/20',   iconText: 'text-amber-400',   border: 'border-amber-500/30',   dot: 'bg-amber-500' },
   contract:      { iconBg: 'bg-orange-500/20',  iconText: 'text-orange-400',  border: 'border-orange-500/30',  dot: 'bg-orange-500' },
   development:   { iconBg: 'bg-blue-500/20',    iconText: 'text-blue-400',    border: 'border-blue-500/30',    dot: 'bg-blue-500' },
-  board:         { iconBg: 'bg-purple-500/20',   iconText: 'text-purple-400',  border: 'border-purple-500/30',  dot: 'bg-purple-500' },
+  board:         { iconBg: 'bg-rose-500/20',     iconText: 'text-rose-400',    border: 'border-rose-500/30',    dot: 'bg-rose-500' },
   match_preview: { iconBg: 'bg-cyan-500/20',    iconText: 'text-cyan-400',    border: 'border-cyan-500/30',    dot: 'bg-cyan-500' },
   match_result:  { iconBg: 'bg-primary/20',     iconText: 'text-primary',     border: 'border-primary/30',     dot: 'bg-primary' },
   general:       { iconBg: 'bg-sky-500/15',      iconText: 'text-sky-400',         border: 'border-sky-500/20',     dot: 'bg-sky-400' },
@@ -94,7 +94,7 @@ function getMessageAction(msg: Message, gameMode: string | undefined): { label: 
 
 const FILTER_OPTIONS: { label: string; types: Message['type'][]; icon: React.ElementType; color: string }[] = [
   { label: 'Match', types: ['match_preview', 'match_result'], icon: Trophy, color: 'text-cyan-400' },
-  { label: 'Board', types: ['board'], icon: Megaphone, color: 'text-purple-400' },
+  { label: 'Board', types: ['board'], icon: Megaphone, color: 'text-rose-400' },
   { label: 'Transfer', types: ['transfer'], icon: ArrowLeftRight, color: 'text-amber-400' },
   { label: 'Injury', types: ['injury'], icon: Stethoscope, color: 'text-red-400' },
   { label: 'Contract', types: ['contract'], icon: FileText, color: 'text-orange-400' },

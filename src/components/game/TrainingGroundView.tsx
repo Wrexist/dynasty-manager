@@ -34,7 +34,7 @@ const MODULE_STYLES: Record<TrainingModule, { bg: string; border: string; text: 
   fitness: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', text: 'text-emerald-400', bar: 'bg-emerald-500', dot: 'bg-emerald-400' },
   attacking: { bg: 'bg-red-500/10', border: 'border-red-500/30', text: 'text-red-400', bar: 'bg-red-500', dot: 'bg-red-400' },
   defending: { bg: 'bg-blue-500/10', border: 'border-blue-500/30', text: 'text-blue-400', bar: 'bg-blue-500', dot: 'bg-blue-400' },
-  mentality: { bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-400', bar: 'bg-purple-500', dot: 'bg-purple-400' },
+  mentality: { bg: 'bg-rose-500/10', border: 'border-rose-500/30', text: 'text-rose-400', bar: 'bg-rose-500', dot: 'bg-rose-400' },
   'set-pieces': { bg: 'bg-amber-500/10', border: 'border-amber-500/30', text: 'text-amber-400', bar: 'bg-amber-500', dot: 'bg-amber-400' },
   tactical: { bg: 'bg-primary/10', border: 'border-primary/30', text: 'text-primary', bar: 'bg-primary', dot: 'bg-primary' },
 };

@@ -16,7 +16,7 @@ vi.mock('@/utils/haptics', () => ({
 const ITEMS: SubNavItem[] = [
   { screen: 'transfers', label: 'Transfers' },
   { screen: 'scouting', label: 'Scouting' },
-  { screen: 'packs', label: 'Packs', dot: 'bg-fuchsia-400' },
+  { screen: 'packs', label: 'Packs', dot: 'bg-yellow-400' },
 ];
 
 describe('SubNav', () => {

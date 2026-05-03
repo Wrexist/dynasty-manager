@@ -37,7 +37,7 @@ const HIGHLIGHT_TONE_CLASS: Record<MatchHighlightTone, { dot: string; text: stri
   disallowed: { dot: 'bg-red-500',     text: 'text-red-400' },
   neutral:    { dot: 'bg-amber-400',   text: 'text-amber-400' },
   'own-goal': { dot: 'bg-amber-500',   text: 'text-amber-400' },
-  sub:        { dot: 'bg-indigo-400',  text: 'text-indigo-400' },
+  sub:        { dot: 'bg-sky-400',     text: 'text-sky-400' },
 };
 const HIGHLIGHT_LABEL: Partial<Record<MatchEvent['type'], string>> = {
   goal: 'GOAL', free_kick_goal: 'FREE KICK', long_range_goal: 'LONG RANGE',

@@ -53,7 +53,7 @@ export const TALENT_BRANCHES: { id: TalentBranch; name: string; icon: string; co
   { id: 'tactician', name: 'Tactician', icon: 'swords', color: 'text-blue-400' },
   { id: 'motivator', name: 'Motivator', icon: 'megaphone', color: 'text-amber-400' },
   { id: 'dealmaker', name: 'Dealmaker', icon: 'handshake', color: 'text-emerald-400' },
-  { id: 'developer', name: 'Developer', icon: 'sprout', color: 'text-purple-400' },
+  { id: 'developer', name: 'Developer', icon: 'sprout', color: 'text-teal-400' },
 ];
 
 /** Get perks for a specific branch, sorted by row */

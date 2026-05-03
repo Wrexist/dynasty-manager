@@ -57,7 +57,7 @@ export const EVENT_TONE_CLASS: Record<MatchHighlightTone, { dot: string; text: s
   disallowed: { dot: 'bg-red-500',     text: 'text-red-400',     pill: 'bg-red-500/10 border-red-500/30' },
   neutral:    { dot: 'bg-amber-400',   text: 'text-amber-400',   pill: 'bg-amber-500/10 border-amber-500/30' },
   'own-goal': { dot: 'bg-amber-500',   text: 'text-amber-400',   pill: 'bg-amber-500/10 border-amber-500/30' },
-  sub:        { dot: 'bg-indigo-400',  text: 'text-indigo-400',  pill: 'bg-indigo-500/10 border-indigo-500/30' },
+  sub:        { dot: 'bg-sky-400',     text: 'text-sky-400',     pill: 'bg-sky-500/10 border-sky-500/30' },
 };
 
 /** Extra per-type tone overrides for live commentary where MatchReview's map doesn't cover. */

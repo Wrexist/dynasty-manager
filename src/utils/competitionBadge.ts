@@ -32,7 +32,7 @@ export function getCompetitionInfo(
     return { name: 'Conference Cup', color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/30', borderAccent: 'border-emerald-500/40' };
   }
   if (base === 'Super Cup' || base === 'Continental Super Cup') {
-    return { name: base, color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/30', borderAccent: 'border-purple-500/40' };
+    return { name: base, color: 'text-rose-400', bg: 'bg-rose-500/10 border-rose-500/30', borderAccent: 'border-rose-500/40' };
   }
   // League match
   if (options?.inPlayoffs) {
