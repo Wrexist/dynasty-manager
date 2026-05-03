@@ -32,7 +32,9 @@
     "version:sync": "node scripts/sync-version.mjs",
     "whats-new": "node scripts/add-whats-new-entry.mjs",
     "whats-new:check": "node scripts/check-whats-new.mjs",
-    "whats-new:plan": "node scripts/build-whats-new.mjs --dry-run"
+    "whats-new:seal": "node scripts/seal-whats-new.mjs",
+    "whats-new:plan": "node scripts/seal-whats-new.mjs --dry-run",
+    "whats-new:append-pr": "node scripts/append-pending-from-pr.mjs"
   },
   "lint-staged": {
     "*.{ts,tsx}": [

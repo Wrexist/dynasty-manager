@@ -2,58 +2,48 @@
 /**
  * add-whats-new-entry.mjs — the "smooth path" for authoring release notes.
  *
+ * Writes to `src/data/pendingNews.ts` — the staging area for the *next*,
+ * unshipped version. When `package.json.version` advances past the top of
+ * `whatsNew.ts`, `scripts/seal-whats-new.mjs` folds these bullets into a new
+ * sealed entry and resets the pending file.
+ *
  * Usage (via `npm run whats-new -- <cmd> [arg]`):
  *
- *   npm run whats-new -- new       "Short, player-facing description of what you added."
+ *   npm run whats-new -- new       "Short, player-facing description."
  *   npm run whats-new -- improved  "Describe an improvement."
  *   npm run whats-new -- fixed     "Describe a user-visible bug fix."
  *   npm run whats-new -- highlight "Marquee change worth calling out."
  *
- *   npm run whats-new -- headline "Faster matches, sharper AI."
- *   npm run whats-new -- summary  "One to three sentence player-facing summary."
- *   npm run whats-new -- date     2026-04-28       (defaults to today on new entries)
+ *   npm run whats-new -- headline  "Faster matches, sharper AI."
+ *   npm run whats-new -- summary   "One to three sentence player summary."
+ *   npm run whats-new -- clear     # reset the pending entry to empty
  *
- *   npm run whats-new -- show                       # prints the current top entry
+ *   npm run whats-new -- show      # print pending + last shipped status
  *
- * Behavior:
- *   - If the top RELEASE_NOTES entry's `version` === `package.json.version`,
- *     the command mutates the existing entry.
- *   - If the top entry is for an older version (i.e. you just bumped
- *     `package.json`), a new entry is prepended automatically with today's
- *     date + placeholder headline/summary, and your bullet is added to it.
- *   - `headline` / `summary` / `date` replace in place.
- *   - The script writes back `src/data/whatsNew.ts` with stable formatting
- *     so diffs stay readable. It never deletes historical entries.
+ * Behaviour:
+ *   - `headline` / `summary` are optional manual overrides. Leave them unset
+ *     (`null`) to let the seal step auto-generate them from the lead bullets.
+ *   - Bullets are normalised (capitalised + trailing period) before write,
+ *     so "fixed crash" / "Fixed crash." / "Fixed crash" all dedupe to one.
+ *   - `clear` is destructive on the pending file only — sealed entries in
+ *     `whatsNew.ts` are never touched.
  *
  * Philosophy: one command, no prompts, idempotent. Safe to run repeatedly.
  */
 
-import { readFileSync, writeFileSync } from 'fs';
-import { resolve, dirname } from 'path';
-import { fileURLToPath } from 'url';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const root = resolve(__dirname, '..');
-
-const WHATS_NEW_PATH = resolve(root, 'src/data/whatsNew.ts');
-const PKG_PATH = resolve(root, 'package.json');
-
-const CATEGORIES = ['highlights', 'new', 'improved', 'fixed'];
-const CATEGORY_ALIASES = {
-  highlight: 'highlights',
-  highlights: 'highlights',
-  feature: 'new',
-  features: 'new',
-  new: 'new',
-  improve: 'improved',
-  improved: 'improved',
-  improvement: 'improved',
-  improvements: 'improved',
-  fix: 'fixed',
-  fixed: 'fixed',
-  bug: 'fixed',
-  bugfix: 'fixed',
-};
+import {
+  CATEGORY_ALIASES,
+  CATEGORIES,
+  PENDING_NEWS_PATH,
+  WHATS_NEW_PATH,
+  parsePendingNews,
+  parseTopEntry,
+  readFile,
+  readPkgVersion,
+  writePendingNews,
+  writeFile,
+  normaliseBullet,
+} from './lib/whatsNewIO.mjs';
 
 /* ────────────────────────────────────────────────────────────────────────
  * CLI parsing
@@ -72,43 +62,25 @@ function printHelp() {
   console.log(`
 Dynasty Manager — What's New helper
 
-Append a bullet:
+Append a bullet (writes to src/data/pendingNews.ts):
   npm run whats-new -- new       "Added adaptive AI tactics."
   npm run whats-new -- improved  "Match engine runs 30% faster."
   npm run whats-new -- fixed     "Fixed crash on Cup Final."
   npm run whats-new -- highlight "Rival managers adapt to scoreline."
 
-Set a field on the top entry:
-  npm run whats-new -- headline "Short App Store hook."
-  npm run whats-new -- summary  "One to three sentence player summary."
-  npm run whats-new -- date     2026-04-28
+Set / clear an optional override on the pending entry:
+  npm run whats-new -- headline  "Short App Store hook."
+  npm run whats-new -- summary   "One to three sentence player summary."
+  npm run whats-new -- headline  ""        # clear (back to auto)
+  npm run whats-new -- clear              # wipe pending bullets
 
 Inspect:
   npm run whats-new -- show
 
-If package.json.version has advanced past the current top entry, a new
-top entry is created automatically before your command is applied.
+Pending bullets are sealed into src/data/whatsNew.ts when package.json
+version advances past the top of whatsNew.ts (see scripts/seal-whats-new.mjs,
+or run \`npm run whats-new:seal\`).
 `);
-}
-
-/* ────────────────────────────────────────────────────────────────────────
- * File I/O
- * ──────────────────────────────────────────────────────────────────────── */
-
-function readPkgVersion() {
-  const pkg = JSON.parse(readFileSync(PKG_PATH, 'utf8'));
-  if (!pkg.version || pkg.version === '0.0.0') {
-    fail('package.json version is missing or 0.0.0');
-  }
-  return pkg.version;
-}
-
-function readSource() {
-  return readFileSync(WHATS_NEW_PATH, 'utf8');
-}
-
-function writeSource(next) {
-  writeFileSync(WHATS_NEW_PATH, next, 'utf8');
 }
 
 function fail(msg) {
@@ -121,222 +93,22 @@ function ok(msg) {
 }
 
 /* ────────────────────────────────────────────────────────────────────────
- * Source-text surgery — locate and parse the top RELEASE_NOTES entry.
+ * Mutators
  * ──────────────────────────────────────────────────────────────────────── */
 
-function findArrayStart(source) {
-  const m = source.match(/export const RELEASE_NOTES:\s*ReleaseNote\[\]\s*=\s*\[/);
-  if (!m) fail('Could not find `export const RELEASE_NOTES` in src/data/whatsNew.ts');
-  return m.index + m[0].length;
-}
-
-function findTopEntryBounds(source) {
-  const arrayStart = findArrayStart(source);
-  let i = arrayStart;
-  while (i < source.length && source[i] !== '{' && source[i] !== ']') i++;
-  if (source[i] !== '{') return null; // empty array
-  const entryStart = i;
-  let depth = 0;
-  let inString = null;
-  for (let j = entryStart; j < source.length; j++) {
-    const ch = source[j];
-    if (inString) {
-      if (ch === inString) {
-        // Escaped only when preceded by an ODD number of backslashes
-        // (`\'` escapes, `\\'` does not, `\\\'` escapes again, ...).
-        let bs = 0;
-        for (let k = j - 1; k >= 0 && source[k] === '\\'; k--) bs++;
-        if (bs % 2 === 0) inString = null;
-      }
-      continue;
-    }
-    if (ch === "'" || ch === '"' || ch === '`') { inString = ch; continue; }
-    if (ch === '{') depth++;
-    else if (ch === '}') {
-      depth--;
-      if (depth === 0) return { start: entryStart, end: j + 1, arrayStart };
-    }
-  }
-  fail('Top RELEASE_NOTES entry has unbalanced braces — fix the file manually.');
-}
-
-function extractString(block, field) {
-  const patterns = [
-    new RegExp(`\\b${field}\\s*:\\s*'((?:\\\\.|[^'\\\\])*)'`),
-    new RegExp(`\\b${field}\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"`),
-    new RegExp(`\\b${field}\\s*:\\s*\`((?:\\\\.|[^\`\\\\])*)\``),
-  ];
-  for (const re of patterns) {
-    const m = block.match(re);
-    if (m) return unescape(m[1]);
-  }
-  return null;
-}
-
-function extractRaw(block, field) {
-  const re = new RegExp(`\\b${field}\\s*:\\s*([^,\\n]+)[,\\n]`);
-  const m = block.match(re);
-  return m ? m[1].trim() : null;
-}
-
-function extractArray(block, field) {
-  // Match `<field>: [ ... ]` balancing brackets conservatively.
-  const re = new RegExp(`\\b${field}\\s*:\\s*\\[([\\s\\S]*?)\\]`);
-  const m = block.match(re);
-  if (!m) return [];
-  const items = [];
-  // Pull out each string literal item.
-  const str = /(['"\`])((?:\\.|(?!\1).)*)\1/g;
-  let sm;
-  while ((sm = str.exec(m[1])) !== null) {
-    items.push(unescape(sm[2]));
-  }
-  return items;
-}
-
-function unescape(s) {
-  return s.replace(/\\(['"` nrt\\])/g, (_, c) => {
-    if (c === 'n') return '\n';
-    if (c === 't') return '\t';
-    if (c === 'r') return '\r';
-    return c;
-  });
-}
-
-function parseTopEntry(source) {
-  const bounds = findTopEntryBounds(source);
-  if (!bounds) return { bounds: null, fields: null };
-  const block = source.slice(bounds.start, bounds.end);
-  const fields = {
-    version: extractString(block, 'version'),
-    buildRaw: extractRaw(block, 'build'),
-    date: extractString(block, 'date'),
-    headline: extractString(block, 'headline'),
-    summary: extractString(block, 'summary'),
-    highlights: extractArray(block, 'highlights'),
-    new: extractArray(block, 'new'),
-    improved: extractArray(block, 'improved'),
-    fixed: extractArray(block, 'fixed'),
-  };
-  return { bounds, block, fields };
-}
-
-/* ────────────────────────────────────────────────────────────────────────
- * Stringification — render an entry object back into TS source.
- * ──────────────────────────────────────────────────────────────────────── */
-
-function strLit(s) {
-  // Single-quoted with escaped backslashes, apostrophes, and control chars.
-  // Matches the existing file's convention so git diffs stay minimal, and
-  // round-trips multi-line input safely (the parser side translates `\n`
-  // back to a real newline, so emitting the literal `\n` sequence is the
-  // only way to preserve it inside a single-quoted TS string).
-  return (
-    "'" +
-    String(s)
-      .replace(/\\/g, '\\\\')
-      .replace(/'/g, "\\'")
-      .replace(/\n/g, '\\n')
-      .replace(/\r/g, '\\r')
-      .replace(/\t/g, '\\t') +
-    "'"
-  );
-}
-
-function renderArray(indent, items) {
-  if (!items || items.length === 0) return '[]';
-  const inner = items.map(i => `${indent}  ${strLit(i)},`).join('\n');
-  return `[\n${inner}\n${indent}]`;
-}
-
-function renderEntry(fields, { indent = '  ' } = {}) {
-  // NOTE: we deliberately don't emit a trailing comma on the closing brace
-  // — our insertion points replace just `{...}` and the surrounding source
-  // already carries array-separator commas.
-  const build = fields.buildRaw ?? 'null';
-  const lines = [
-    `${indent}{`,
-    `${indent}  version: ${strLit(fields.version)},`,
-    `${indent}  build: ${build},`,
-    `${indent}  date: ${strLit(fields.date)},`,
-    `${indent}  headline: ${strLit(fields.headline || '')},`,
-    `${indent}  summary: ${strLit(fields.summary || '')},`,
-    `${indent}  highlights: ${renderArray(`${indent}  `, fields.highlights)},`,
-    `${indent}  new: ${renderArray(`${indent}  `, fields.new)},`,
-    `${indent}  improved: ${renderArray(`${indent}  `, fields.improved)},`,
-    `${indent}  fixed: ${renderArray(`${indent}  `, fields.fixed)},`,
-    `${indent}}`,
-  ];
-  return lines.join('\n');
-}
-
-/* ────────────────────────────────────────────────────────────────────────
- * Commands
- * ──────────────────────────────────────────────────────────────────────── */
-
-function todayIso() {
-  const d = new Date();
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
-}
-
-/** Ensure the top entry is for the current package.json version. If not,
- *  prepend a fresh placeholder entry and return the parsed state. */
-function ensureCurrentTopEntry(source, pkgVersion) {
-  const parsed = parseTopEntry(source);
-  if (parsed.fields && parsed.fields.version === pkgVersion) {
-    return { source, ...parsed, created: false };
-  }
-
-  // Create a new top entry immediately after the `[`. We emit:
-  //     [
-  //       { <new entry fields> },
-  //       { <existing entries> },
-  //       ...
-  //     ]
-  const arrayStart = findArrayStart(source);
-
-  const newFields = {
-    version: pkgVersion,
-    buildRaw: 'null',
-    date: todayIso(),
-    headline: '',
-    summary: '',
-    highlights: [],
-    new: [],
-    improved: [],
-    fixed: [],
-  };
-  const rendered = renderEntry(newFields, { indent: '  ' });
-
-  const before = source.slice(0, arrayStart);
-  const after = source.slice(arrayStart);
-  // Insert the new entry + its array-separator comma + a newline before the
-  // existing content. Leave the rest of the file untouched.
-  const nextSource = `${before}\n${rendered},${after}`;
-
-  ok(`Created new top entry for v${pkgVersion} (date: ${newFields.date}).`);
-  const reparsed = parseTopEntry(nextSource);
-  return { source: nextSource, ...reparsed, created: true };
+function readPendingState() {
+  const source = readFile(PENDING_NEWS_PATH);
+  return { source, ...parsePendingNews(source) };
 }
 
 function appendBullet(category, text) {
-  if (!text) fail(`Missing bullet text. Example: npm run whats-new -- ${category} "Your change here."`);
-  const pkgVersion = readPkgVersion();
-  const source = readSource();
-  const state = ensureCurrentTopEntry(source, pkgVersion);
+  if (!text) {
+    fail(`Missing bullet text. Example: npm run whats-new -- ${category} "Your change here."`);
+  }
+  const bullet = normaliseBullet(text);
+  if (!bullet) fail('Bullet text is empty after normalisation.');
 
-  // Normalize bullet — capitalize first letter, ensure trailing period.
-  // The same normalization runs on every invocation, so the dedupe check
-  // below catches "fixed crash" / "Fixed crash." / "fixed crash" all as
-  // the same bullet.
-  let bullet = text.trim();
-  if (bullet.length === 0) fail('Bullet text is empty.');
-  bullet = bullet[0].toUpperCase() + bullet.slice(1);
-  if (!/[.!?]$/.test(bullet)) bullet += '.';
-
+  const state = readPendingState();
   const existing = state.fields[category] || [];
   if (existing.includes(bullet)) {
     ok(`\`${category}\` already contains "${bullet}" — no change.`);
@@ -344,77 +116,80 @@ function appendBullet(category, text) {
   }
 
   const next = { ...state.fields, [category]: [...existing, bullet] };
+  const newSource = writePendingNews(state.source, next);
+  writeFile(PENDING_NEWS_PATH, newSource);
+  ok(`Appended to pending \`${category}\`: "${bullet}"`);
+}
 
-  // Re-render the top entry in place, preserving its leading indent so the
-  // diff is minimal. state.bounds.start points at `{`, so we strip the
-  // rendered output's leading whitespace before splicing it back.
-  const block = state.source.slice(state.bounds.start, state.bounds.end);
-  const leadingIndent = (block.match(/^(\s*)/) || ['', ''])[1] || '  ';
-  const rerendered = renderEntry(next, { indent: leadingIndent });
-  const renderedFromBrace = rerendered.replace(/^\s*/, '');
-
-  const finalSource =
-    state.source.slice(0, state.bounds.start) +
-    renderedFromBrace +
-    state.source.slice(state.bounds.end);
-
-  writeSource(finalSource);
-  ok(`Appended to \`${category}\`: "${bullet}"`);
-  if (state.created) {
-    console.log(`\n  ⚠  Don't forget to set the headline + summary:`);
-    console.log(`     npm run whats-new -- headline "Short App Store hook."`);
-    console.log(`     npm run whats-new -- summary  "One to three sentence summary."`);
+function setOverride(field, value) {
+  const state = readPendingState();
+  // Empty string clears the override back to null (auto-generation).
+  const next = { ...state.fields, [field]: value === '' ? null : value };
+  const newSource = writePendingNews(state.source, next);
+  writeFile(PENDING_NEWS_PATH, newSource);
+  if (next[field] === null) {
+    ok(`Cleared pending \`${field}\` — seal will auto-generate it.`);
+  } else {
+    ok(`Set pending \`${field}\` to: "${next[field]}"`);
   }
 }
 
-function setField(field, value) {
-  if (!value) fail(`Missing value. Example: npm run whats-new -- ${field} "Your text here."`);
-  const pkgVersion = readPkgVersion();
-  const source = readSource();
-  const state = ensureCurrentTopEntry(source, pkgVersion);
-
-  if (field === 'date' && !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    fail(`date must be ISO YYYY-MM-DD (got "${value}").`);
-  }
-
-  const next = { ...state.fields, [field]: value };
-
-  const block = state.source.slice(state.bounds.start, state.bounds.end);
-  const leadingIndent = (block.match(/^(\s*)/) || ['', ''])[1] || '  ';
-  const rerendered = renderEntry(next, { indent: leadingIndent });
-  const renderedFromBrace = rerendered.replace(/^\s*/, '');
-
-  const finalSource =
-    state.source.slice(0, state.bounds.start) +
-    renderedFromBrace +
-    state.source.slice(state.bounds.end);
-
-  writeSource(finalSource);
-  ok(`Set \`${field}\` to: "${value}"`);
+function clearPending() {
+  const state = readPendingState();
+  const next = {
+    headline: null,
+    summary: null,
+    highlights: [],
+    new: [],
+    improved: [],
+    fixed: [],
+  };
+  const newSource = writePendingNews(state.source, next);
+  writeFile(PENDING_NEWS_PATH, newSource);
+  const had = (
+    state.fields.highlights.length +
+    state.fields.new.length +
+    state.fields.improved.length +
+    state.fields.fixed.length
+  );
+  ok(`Cleared pending (${had} bullet${had === 1 ? '' : 's'} removed).`);
 }
 
-function showTopEntry() {
+function show() {
   const pkgVersion = readPkgVersion();
-  const source = readSource();
-  const parsed = parseTopEntry(source);
-  if (!parsed.fields) {
-    console.log('  (RELEASE_NOTES array is empty.)');
-    return;
-  }
-  const f = parsed.fields;
-  const match = f.version === pkgVersion ? '✓ matches package.json' : `⚠  package.json is v${pkgVersion}`;
-  const totalBullets = (f.highlights.length + f.new.length + f.improved.length + f.fixed.length);
+  const pendingSource = readFile(PENDING_NEWS_PATH);
+  const pending = parsePendingNews(pendingSource).fields;
+  const whatsNew = parseTopEntry(readFile(WHATS_NEW_PATH));
+  const top = whatsNew?.fields;
+
   console.log('');
-  console.log(`  Top entry:  v${f.version}  (${match})`);
-  console.log(`  Date:       ${f.date}`);
-  console.log(`  Build:      ${f.buildRaw}`);
-  console.log(`  Headline:   ${f.headline || '(empty — set with `npm run whats-new -- headline "..."`)'}`);
-  console.log(`  Summary:    ${f.summary || '(empty — set with `npm run whats-new -- summary "..."`)'}`);
-  console.log(`  Bullets:    ${totalBullets} total`);
+  console.log(`  package.json:    v${pkgVersion}`);
+  if (top) {
+    const match = top.version === pkgVersion ? '✓ already sealed' : '⚠ awaiting seal';
+    console.log(`  whatsNew.ts top: v${top.version} (${top.date}) — ${match}`);
+  } else {
+    console.log('  whatsNew.ts top: (none — first release)');
+  }
+
+  const total = (
+    pending.highlights.length +
+    pending.new.length +
+    pending.improved.length +
+    pending.fixed.length
+  );
+  console.log('');
+  console.log(`  Pending bullets: ${total} total`);
+  console.log(`  Headline:        ${pending.headline ?? '(auto-generated at seal)'}`);
+  console.log(`  Summary:         ${pending.summary ?? '(auto-generated at seal)'}`);
   for (const cat of CATEGORIES) {
-    if (f[cat].length === 0) continue;
+    const list = pending[cat] || [];
+    if (list.length === 0) continue;
     console.log(`    ${cat}:`);
-    for (const b of f[cat]) console.log(`      • ${b}`);
+    for (const b of list) console.log(`      • ${b}`);
+  }
+  if (top && top.version !== pkgVersion && total > 0) {
+    console.log('');
+    console.log(`  → Seal these into v${pkgVersion} with: npm run whats-new:seal`);
   }
   console.log('');
 }
@@ -423,20 +198,34 @@ function showTopEntry() {
  * Dispatch
  * ──────────────────────────────────────────────────────────────────────── */
 
-if (cmd === 'show' || cmd === 'list') {
-  showTopEntry();
-  process.exit(0);
-}
+try {
+  if (cmd === 'show' || cmd === 'list') {
+    show();
+    process.exit(0);
+  }
 
-if (cmd === 'headline' || cmd === 'summary' || cmd === 'date') {
-  setField(cmd, arg);
-  process.exit(0);
-}
+  if (cmd === 'clear' || cmd === 'reset') {
+    clearPending();
+    process.exit(0);
+  }
 
-const categoryKey = CATEGORY_ALIASES[cmd];
-if (categoryKey) {
-  appendBullet(categoryKey, arg);
-  process.exit(0);
-}
+  if (cmd === 'headline' || cmd === 'summary') {
+    setOverride(cmd, arg);
+    process.exit(0);
+  }
 
-fail(`Unknown command: "${cmd}". Run \`npm run whats-new -- --help\` for usage.`);
+  // `date` no longer applies to the pending entry — date is stamped at seal.
+  if (cmd === 'date') {
+    fail('`date` is set automatically when bullets are sealed. Run `npm run whats-new -- show` to inspect.');
+  }
+
+  const categoryKey = CATEGORY_ALIASES[cmd];
+  if (categoryKey) {
+    appendBullet(categoryKey, arg);
+    process.exit(0);
+  }
+
+  fail(`Unknown command: "${cmd}". Run \`npm run whats-new -- --help\` for usage.`);
+} catch (err) {
+  fail(err.message || String(err));
+}
