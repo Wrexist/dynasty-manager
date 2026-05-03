@@ -47,15 +47,19 @@ interface WelcomeOverlayProps {
 
 export function WelcomeOverlay({ onComplete }: WelcomeOverlayProps) {
   const [step, setStep] = useState(0);
-  const current = STEPS[step];
+  // Clamp into range so rapid double-taps that queue multiple `setStep`
+  // calls (each using the previous queued state) can't advance past the
+  // final step and produce `STEPS[n] === undefined`.
+  const safeStep = Math.min(Math.max(step, 0), STEPS.length - 1);
+  const current = STEPS[safeStep];
   const Icon = current.icon;
-  const isLast = step === STEPS.length - 1;
+  const isLast = safeStep === STEPS.length - 1;
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/70 px-4 pb-8 safe-area-bottom" role="dialog" aria-modal="true" aria-labelledby="welcome-overlay-title">
       <AnimatePresence mode="wait">
         <motion.div
-          key={step}
+          key={safeStep}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
@@ -85,25 +89,25 @@ export function WelcomeOverlay({ onComplete }: WelcomeOverlayProps) {
                   <div
                     key={i}
                     className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                      i === step ? 'bg-primary' : i < step ? 'bg-primary/40' : 'bg-muted'
+                      i === safeStep ? 'bg-primary' : i < safeStep ? 'bg-primary/40' : 'bg-muted'
                     }`}
                   />
                 ))}
               </div>
-              <span className="text-[10px] text-muted-foreground">{step + 1} of {STEPS.length}</span>
+              <span className="text-[10px] text-muted-foreground">{safeStep + 1} of {STEPS.length}</span>
             </div>
 
             <div className="flex gap-2">
-              {step > 0 && (
+              {safeStep > 0 && (
                 <button
-                  onClick={() => setStep(s => s - 1)}
+                  onClick={() => setStep(s => Math.max(0, s - 1))}
                   className="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Back
                 </button>
               )}
               <button
-                onClick={() => isLast ? onComplete() : setStep(s => s + 1)}
+                onClick={() => isLast ? onComplete() : setStep(s => Math.min(STEPS.length - 1, s + 1))}
                 className="flex items-center gap-1 px-4 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-semibold active:scale-[0.97] transition-transform"
               >
                 {isLast ? 'Dashboard' : 'Next'}
