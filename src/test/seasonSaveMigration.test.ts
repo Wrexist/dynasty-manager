@@ -50,13 +50,13 @@ describe('validateSaveShape', () => {
   it('rejects arrays at the root', () => {
     const result = validateSaveShape([]);
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.reason).toMatch(/not an object/);
+    if (result.ok === false) expect(result.reason).toMatch(/not an object/);
   });
 
   it('rejects when playerClubId is missing or empty', () => {
     const r1 = validateSaveShape({ ...makeMinimalSave(), playerClubId: '' });
     expect(r1.ok).toBe(false);
-    if (!r1.ok) expect(r1.reason).toMatch(/playerClubId/);
+    if (r1.ok === false) expect(r1.reason).toMatch(/playerClubId/);
 
     const noPC = makeMinimalSave() as Record<string, unknown>;
     delete noPC.playerClubId;
@@ -104,13 +104,13 @@ describe('validateSaveShape', () => {
       clubs: { 'manchester-city': {} },
     });
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.reason).toMatch(/not present in clubs/);
+    if (result.ok === false) expect(result.reason).toMatch(/not present in clubs/);
   });
 
   it('returns a discriminated-union failure with a reason string', () => {
     const result = validateSaveShape({});
     expect(result.ok).toBe(false);
-    if (!result.ok) {
+    if (result.ok === false) {
       expect(typeof result.reason).toBe('string');
       expect(result.reason.length).toBeGreaterThan(0);
     }

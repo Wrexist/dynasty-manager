@@ -1252,8 +1252,11 @@ export function simulateHalf(
             momentum = isHome
               ? Math.max(-100, momentum - MOMENTUM_GOAL_SWING)
               : Math.min(100, momentum + MOMENTUM_GOAL_SWING);
-            // Replace the goal event with a disallowed event
+            // Replace the goal event with a disallowed event. Pop both the
+            // goal event and the build-up commentary that preceded it so the
+            // narration doesn't carry an orphan "they break forward..." line.
             events.pop(); // remove the goal event we just pushed
+            events.pop(); // remove the build-up commentary we pushed before it
             const disallowedPlayer = actualScorerId !== scorer.id
               ? eligibleSquad.find(p => p.id === actualScorerId) : scorer;
             const disallowedName = disallowedPlayer
