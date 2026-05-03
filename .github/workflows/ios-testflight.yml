@@ -1,343 +1,69 @@
-name: iOS TestFlight Deploy
+name: iOS TestFlight
+
 on:
   workflow_dispatch:
-    inputs:
-      headline:
-        description: "Optional: App Store-style hook (3-8 words). Leave blank to auto-generate from the lead merged PR."
-        required: false
-        type: string
-      summary:
-        description: "Optional: 1-3 sentence player-facing summary. Leave blank to auto-generate from merged PRs since the last release."
-        required: false
-        type: string
-      since:
-        description: "Optional: ISO date (YYYY-MM-DD) to override the merge cutoff. Defaults to the previous shipped entry's date in whatsNew.ts."
-        required: false
-        type: string
+
+concurrency:
+  group: ios-testflight-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   build:
-    # macos-26 runner ships Xcode 26.x by default, which carries the iOS 26
-    # SDK that Apple requires for App Store uploads (error 90725 — "All iOS
-    # apps must be built with iOS 26 SDK or later"). The earlier macos-latest
-    # / macos-15 runner defaulted to Xcode 16.x (iOS 18 SDK) which Apple now
-    # rejects at upload time. The explicit xcode-select step below is a
-    # safety net in case GitHub bumps the runner's default Xcode in future.
-    runs-on: macos-26
+    runs-on: macos-latest
     timeout-minutes: 45
-    permissions:
-      contents: read
-      pull-requests: read
     steps:
-      - name: Validate required secrets
-        env:
-          APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
-          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-          ASC_API_KEY_BASE64: ${{ secrets.ASC_API_KEY_BASE64 }}
-          VITE_REVENUECAT_API_KEY: ${{ secrets.VITE_REVENUECAT_API_KEY }}
-        run: |
-          missing=0
-          check_secret() {
-            if [ -z "${!1}" ]; then
-              echo "::error::Missing secret: $1 — $2"
-              missing=$((missing + 1))
-            fi
-          }
-
-          echo "Checking required secrets..."
-
-          check_secret "APPLE_CERTIFICATE_BASE64" \
-            "Base64-encoded .p12 distribution certificate"
-          check_secret "APPLE_CERTIFICATE_PASSWORD" \
-            "Password for the .p12 certificate"
-          check_secret "APPLE_PROVISIONING_PROFILE" \
-            "Base64-encoded App Store provisioning profile (.mobileprovision)"
-          check_secret "APPLE_TEAM_ID" \
-            "Apple Developer Team ID (10-character string)"
-          check_secret "ASC_API_KEY_ID" \
-            "App Store Connect API Key ID (create at appstoreconnect.apple.com/access/integrations/api)"
-          check_secret "ASC_ISSUER_ID" \
-            "App Store Connect Issuer ID (found at appstoreconnect.apple.com/access/integrations/api)"
-          check_secret "ASC_API_KEY_BASE64" \
-            "Base64-encoded App Store Connect API private key (.p8 file)"
-          # VITE_REVENUECAT_API_KEY is optional — code falls back to a test key when absent
-          if [ -z "$VITE_REVENUECAT_API_KEY" ]; then
-            echo "::warning::VITE_REVENUECAT_API_KEY not set — build will use the embedded test key. Add your production key at: Settings > Secrets and variables > Actions (RevenueCat > Project > API Keys, starts with appl_)"
-          fi
-
-          if [ "$missing" -gt 0 ]; then
-            echo "::error::$missing required secret(s) missing. Add them at: Settings > Secrets and variables > Actions"
-            exit 1
-          fi
-          echo "All required secrets are configured."
-
       - uses: actions/checkout@v4
-        with:
-          # Full history needed by build-whats-new.mjs to (a) find the
-          # previous release commit's timestamp for a precise lower bound on
-          # the merged-PR query, and (b) read HEAD's commit time as the
-          # upper bound so PRs merged after this checkout can't leak into
-          # the notes for a build that doesn't contain them.
-          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm'
+          cache: npm
+
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ruby
+          bundler-cache: true
+
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.MATCH_SSH_PRIVATE_KEY }}
+
+      - name: Trust GitHub SSH host key
+        run: ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+      - name: Stamp build number from run number
+        run: |
+          FILE=ios/App/App.xcodeproj/project.pbxproj
+          sed -i '' "s/CURRENT_PROJECT_VERSION = [0-9]*;/CURRENT_PROJECT_VERSION = ${{ github.run_number }};/g" "$FILE"
 
       - run: npm ci
-      - run: npm run lint
-      - run: npm run test
 
-      # Apple App Store rejects builds compiled with anything below the
-      # iOS 26 SDK (error 90725). The runner has multiple Xcode 26.x apps
-      # installed; pick the highest stable one explicitly so we don't
-      # silently regress to a default that drifts back below 26.
-      - name: Select latest stable Xcode (>= 26 for iOS 26 SDK)
-        run: |
-          set -e
-          # Wrap the discovery pipeline in `|| true` because GitHub's bash
-          # has `pipefail` enabled — without it, an empty `ls` glob or a
-          # grep that filters everything out would abort the step before
-          # we get to print our own diagnostic message below.
-          XCODE=$( (ls -d /Applications/Xcode_2[6-9]*.app /Applications/Xcode_[3-9][0-9]*.app 2>/dev/null \
-            | grep -v -i beta \
-            | sort -V \
-            | tail -1) || true )
-          if [ -z "$XCODE" ]; then
-            echo "::warning::No stable Xcode 26+ found; falling back to the latest beta. The iOS platform may need to be downloaded explicitly."
-            XCODE=$( (ls -d /Applications/Xcode_2[6-9]*.app /Applications/Xcode_[3-9][0-9]*.app 2>/dev/null \
-              | sort -V \
-              | tail -1) || true )
-          fi
-          if [ -z "$XCODE" ]; then
-            echo "::error::No Xcode 26+ found on the runner. Apple requires iOS 26 SDK for App Store uploads (error 90725)."
-            echo "Installed Xcode versions:"
-            ls -d /Applications/Xcode*.app 2>/dev/null || echo "(none)"
-            exit 1
-          fi
-          echo "Selecting $XCODE"
-          sudo xcode-select -s "$XCODE/Contents/Developer"
-          # GitHub macOS runners pre-set DEVELOPER_DIR in the job environment,
-          # which takes precedence over `xcode-select` for every subsequent
-          # step. Without this GITHUB_ENV line the archive step silently
-          # reverts to the runner's default Xcode (often a beta whose iOS
-          # platform component is missing — the cause of "iOS 26.5 is not
-          # installed" archive failures).
-          echo "DEVELOPER_DIR=$XCODE/Contents/Developer" >> "$GITHUB_ENV"
-          xcodebuild -version
-          echo "iOS SDKs available:"
-          xcodebuild -showsdks | grep -i ios || true
-          echo "Installed iOS Simulator runtimes:"
-          xcrun simctl list runtimes 2>/dev/null | grep -i 'iOS' || echo "(none)"
-          # Always (re-)download the iOS platform. This ensures both the
-          # iphoneos SDK *and* a simulator runtime matching the SDK version
-          # are present. Even when archiving for `generic/platform=iOS`,
-          # actool validates simulator runtime availability when compiling
-          # asset catalogs — if the runner's pre-installed runtimes lag
-          # behind the Xcode SDK (e.g. Xcode 26.5 SDK 23F5054d vs. only
-          # iOS 26.4 / 23E254a runtime on disk), archive fails with
-          # "No simulator runtime version from [...] available to use with
-          # iphonesimulator SDK version <X>". The command is idempotent
-          # when the platform is already current.
-          echo "Ensuring iOS platform + matching simulator runtime are installed..."
-          xcodebuild -downloadPlatform iOS
-          echo "iOS Simulator runtimes after download:"
-          xcrun simctl list runtimes 2>/dev/null | grep -i 'iOS' || true
-
-      # ─── What's New: auto-generate from merged PRs ─────────────────────
-      # Generates the top entry of src/data/whatsNew.ts from PRs merged into
-      # main since the previous shipped release. Bullets are pulled from a
-      # `## What's New` section in each PR body or the PR title as fallback.
-      # Categorisation comes from PR labels: `type:highlight` / `type:new` /
-      # `type:improved` / `type:fixed`. PRs labelled `skip-changelog`,
-      # `dependencies`, etc. are excluded. The headline + summary are
-      # auto-generated from those bullets when the workflow inputs are empty,
-      # or used verbatim when supplied for hand-crafted App Store voice.
-      # This mutation is scoped to the runner — the repo copy stays as-is.
-      - name: Generate What's New entry from merged PRs
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          ARGS=()
-          if [ -n "${{ inputs.headline }}" ]; then
-            ARGS+=(--headline "${{ inputs.headline }}")
-          fi
-          if [ -n "${{ inputs.summary }}" ]; then
-            ARGS+=(--summary "${{ inputs.summary }}")
-          fi
-          if [ -n "${{ inputs.since }}" ]; then
-            ARGS+=(--since "${{ inputs.since }}")
-          fi
-          node scripts/build-whats-new.mjs "${ARGS[@]}"
-
-      # Validates that the generated entry matches package.json.version and
-      # has all required fields. Belt-and-braces with build-whats-new.mjs.
-      - name: Validate What's New entry
-        run: node scripts/check-whats-new.mjs
-
-      # Inject the TestFlight build number (github.run_number) into the top
-      # RELEASE_NOTES entry's `build` field before bundling, so the shipped
-      # app shows the real CFBundleVersion in its in-app What's New card.
-      - name: Inject build number into What's New
-        run: node scripts/check-whats-new.mjs --inject-build ${{ github.run_number }}
-
-      - name: Build with production keys
+      - name: Build web bundle with production keys
         env:
           VITE_REVENUECAT_API_KEY: ${{ secrets.VITE_REVENUECAT_API_KEY }}
         run: npm run build
-      - run: npm run version:sync
+
       - run: npx cap sync ios
 
-      - name: Strip alpha channel from app icon
+      - name: Strip alpha channel from App Store icon
         run: |
           ICON=ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png
           sips -s format jpeg -s formatOptions 100 "$ICON" --out "$ICON.jpg"
           sips -s format png "$ICON.jpg" --out "$ICON"
           rm -f "$ICON.jpg"
-          echo "Alpha channel removed from app icon"
 
-      - name: Set build number from run number
-        run: |
-          FILE=ios/App/App.xcodeproj/project.pbxproj
-          BUILD=${{ github.run_number }}
-          sed -i '' "s/CURRENT_PROJECT_VERSION = [0-9]*;/CURRENT_PROJECT_VERSION = ${BUILD};/g" "$FILE"
-          echo "Build number set to: $BUILD"
-
-      - name: Import certificate
+      - name: Deploy to TestFlight
         env:
-          CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
-          PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-        run: |
-          echo "$CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/cert.p12"
-          security create-keychain -p "" build.keychain
-          security default-keychain -s build.keychain
-          security unlock-keychain -p "" build.keychain
-          security import "$RUNNER_TEMP/cert.p12" -k build.keychain -P "$PASSWORD" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
-
-      - name: Import provisioning profile
-        env:
-          PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
-        run: |
-          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
-          echo "$PROFILE" | base64 --decode > "$HOME/Library/MobileDevice/Provisioning Profiles/profile.mobileprovision"
-
-      - name: Build archive
-        run: |
-          cd ios/App
-          xcodebuild archive \
-            -project App.xcodeproj \
-            -scheme App \
-            -archivePath "$RUNNER_TEMP/App.xcarchive" \
-            -destination 'generic/platform=iOS' \
-            -configuration Release \
-            DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }} \
-            CODE_SIGN_STYLE=Manual \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
-            OTHER_CODE_SIGN_FLAGS="--keychain build.keychain"
-
-      - name: Set up App Store Connect API key
-        env:
-          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
-          ASC_API_KEY: ${{ secrets.ASC_API_KEY_BASE64 }}
-        run: |
-          KEY_DIR="$HOME/.appstoreconnect/private_keys"
-          KEY_FILE="$KEY_DIR/AuthKey_${ASC_API_KEY_ID}.p8"
-          mkdir -p "$KEY_DIR"
-
-          # Debug: show secret shape without revealing content
-          RAW_LEN=${#ASC_API_KEY}
-          RAW_LINES=$(echo "$ASC_API_KEY" | wc -l | tr -d ' ')
-          RAW_FIRST=$(echo "$ASC_API_KEY" | head -1 | cut -c1-5)
-          echo "Secret diagnostics: length=${RAW_LEN}, lines=${RAW_LINES}, starts_with='${RAW_FIRST}'"
-
-          # Strategy 1: base64 decode
-          printf '%s' "$ASC_API_KEY" | base64 --decode > "$KEY_FILE" 2>/dev/null || true
-          if grep -q "BEGIN PRIVATE KEY" "$KEY_FILE" 2>/dev/null; then
-            echo "Key decoded from base64 successfully"
-          else
-            # Strategy 2: raw content via echo (preserves newlines)
-            echo "$ASC_API_KEY" > "$KEY_FILE"
-            if grep -q "BEGIN PRIVATE KEY" "$KEY_FILE" 2>/dev/null; then
-              echo "Key written from raw content successfully"
-            else
-              # Strategy 3: maybe double-base64-encoded
-              printf '%s' "$ASC_API_KEY" | base64 --decode 2>/dev/null | base64 --decode > "$KEY_FILE" 2>/dev/null || true
-              if grep -q "BEGIN PRIVATE KEY" "$KEY_FILE" 2>/dev/null; then
-                echo "Key decoded from double-base64 successfully"
-              fi
-            fi
-          fi
-
-          # Clean up carriage returns and leading/trailing blank lines
-          sed -i '' $'s/\r$//' "$KEY_FILE" 2>/dev/null || sed -i $'s/\r$//' "$KEY_FILE"
-
-          chmod 600 "$KEY_FILE"
-
-          if [ ! -s "$KEY_FILE" ]; then
-            echo "::error::API key file is empty — check ASC_API_KEY_BASE64 secret"
-            exit 1
-          fi
-          if ! grep -q "BEGIN PRIVATE KEY" "$KEY_FILE"; then
-            echo "::error::API key is not a valid .p8 file"
-            echo "::error::File size: $(wc -c < "$KEY_FILE" | tr -d ' ') bytes, lines: $(wc -l < "$KEY_FILE" | tr -d ' ')"
-            echo "::error::First 5 chars: '${RAW_FIRST}'"
-            echo "::error::Expected .p8 content starting with: -----BEGIN PRIVATE KEY-----"
-            echo "::error::Steps: 1) Open your .p8 file in TextEdit/Notepad  2) Verify it starts with -----BEGIN PRIVATE KEY-----  3) Select All > Copy  4) Paste into ASC_API_KEY_BASE64 secret"
-            exit 1
-          fi
-          echo "API key written to $KEY_FILE ($(wc -c < "$KEY_FILE" | tr -d ' ') bytes)"
-
-      - name: Export & Upload to TestFlight
-        env:
-          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
-          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-        run: |
-          cat > exportOptions.plist << 'PLIST'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
-            "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>method</key>
-            <string>app-store-connect</string>
-            <key>teamID</key>
-            <string>${{ secrets.APPLE_TEAM_ID }}</string>
-            <key>signingStyle</key>
-            <string>manual</string>
-            <key>provisioningProfiles</key>
-            <dict>
-              <key>com.dynastymanager</key>
-              <string>Dynasty Manager App Store</string>
-            </dict>
-            <key>destination</key>
-            <string>upload</string>
-            <key>uploadBitcode</key>
-            <false/>
-            <key>uploadSymbols</key>
-            <true/>
-          </dict>
-          </plist>
-          PLIST
-          xcodebuild -exportArchive \
-            -archivePath "$RUNNER_TEMP/App.xcarchive" \
-            -exportPath "$RUNNER_TEMP/export" \
-            -exportOptionsPlist exportOptions.plist \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_API_KEY_ID}.p8" \
-            -authenticationKeyID "$ASC_API_KEY_ID" \
-            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
-          echo "Export + upload complete — build should appear in TestFlight within 5-30 minutes"
-
-      - name: Clean up credentials
-        if: always()
-        run: |
-          security delete-keychain build.keychain 2>/dev/null || true
-          rm -f "$RUNNER_TEMP/cert.p12"
-          rm -f "$HOME/Library/MobileDevice/Provisioning Profiles/profile.mobileprovision"
-          rm -rf "$HOME/.appstoreconnect"
+          ASC_KEY_ID:     ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID:  ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8:     ${{ secrets.ASC_KEY_P8 }}
+          MATCH_GIT_URL:  ${{ secrets.MATCH_GIT_URL }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+        run: bundle exec fastlane ios beta
