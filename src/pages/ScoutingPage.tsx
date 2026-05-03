@@ -176,9 +176,11 @@ const ScoutingPage = () => {
                         </div>
                       </div>
                       <button
+                        type="button"
                         onClick={() => scoutWatchList.includes(report.playerId) ? removeFromWatchList(report.playerId) : addToWatchList(report.playerId)}
-                        className="p-1 rounded-md hover:bg-primary/20 transition-colors"
+                        className="p-2.5 -m-1.5 rounded-md hover:bg-primary/20 transition-colors"
                         title={scoutWatchList.includes(report.playerId) ? 'Remove from watch list' : 'Add to watch list'}
+                        aria-label={scoutWatchList.includes(report.playerId) ? 'Remove from watch list' : 'Add to watch list'}
                       >
                         <Star className={cn('w-4 h-4', scoutWatchList.includes(report.playerId) ? 'text-primary fill-primary' : 'text-muted-foreground')} />
                       </button>
@@ -217,9 +219,11 @@ const ScoutingPage = () => {
                       <div className="flex items-center gap-1.5">
                         <span className="text-[10px] text-muted-foreground/60 italic">Signed elsewhere</span>
                         <button
+                          type="button"
                           onClick={() => dismissScoutReport(report.id)}
-                          className="p-0.5 rounded hover:bg-destructive/20 transition-colors"
+                          className="p-2.5 -m-1.5 rounded hover:bg-destructive/20 transition-colors"
                           title="Dismiss report"
+                          aria-label="Dismiss scout report"
                         >
                           <X className="w-3 h-3 text-muted-foreground/50 hover:text-destructive" />
                         </button>
