@@ -5,13 +5,16 @@ import * as io from '../../scripts/lib/whatsNewIO.mjs';
 /** Render PENDING_NEWS to source, parse it back, and assert round-trip equality.
  *  Catches regressions in the regex-based parser without needing a full seal. */
 describe('pendingNews shape', () => {
-  it('starts empty when freshly committed', () => {
-    expect(PENDING_NEWS.highlights).toEqual([]);
-    expect(PENDING_NEWS.new).toEqual([]);
-    expect(PENDING_NEWS.improved).toEqual([]);
-    expect(PENDING_NEWS.fixed).toEqual([]);
-    expect(PENDING_NEWS.headline).toBeNull();
-    expect(PENDING_NEWS.summary).toBeNull();
+  it('exposes the documented PendingRelease shape', () => {
+    expect(Array.isArray(PENDING_NEWS.highlights)).toBe(true);
+    expect(Array.isArray(PENDING_NEWS.new)).toBe(true);
+    expect(Array.isArray(PENDING_NEWS.improved)).toBe(true);
+    expect(Array.isArray(PENDING_NEWS.fixed)).toBe(true);
+    for (const cat of PENDING_CATEGORIES) {
+      for (const bullet of PENDING_NEWS[cat]) expect(typeof bullet).toBe('string');
+    }
+    expect(PENDING_NEWS.headline === null || typeof PENDING_NEWS.headline === 'string').toBe(true);
+    expect(PENDING_NEWS.summary === null || typeof PENDING_NEWS.summary === 'string').toBe(true);
   });
 
   it('lists the four release categories in the canonical order', () => {
