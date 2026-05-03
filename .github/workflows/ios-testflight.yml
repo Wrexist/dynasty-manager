@@ -55,6 +55,17 @@ jobs:
 
       - run: npm ci
 
+      # Fold any pending bullets in src/data/pendingNews.ts into a fresh
+      # top entry on src/data/whatsNew.ts. Idempotent — if the current
+      # package.json version is already sealed, this is a no-op. The
+      # mutation lives only on the runner; we don't commit it back to main.
+      - name: Seal pending What's New into whatsNew.ts
+        run: npm run whats-new:seal
+
+      # Validate the now-top entry and stamp it with the real CFBundleVersion.
+      - name: Validate + stamp What's New build number
+        run: node scripts/check-whats-new.mjs --inject-build ${{ github.run_number }}
+
       - name: Build web bundle with production keys
         env:
           VITE_REVENUECAT_API_KEY: ${{ secrets.VITE_REVENUECAT_API_KEY }}

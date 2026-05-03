@@ -1,0 +1,100 @@
+name: Append Pending News on PR Merge
+
+# Whenever a PR merges into main, run scripts/append-pending-from-pr.mjs to
+# parse the PR's `## What's New` body section (or fall back to the PR title)
+# and append the bullets to `src/data/pendingNews.ts`. Then commit + push the
+# updated file back to main with `[skip ci]` so the follow-up commit doesn't
+# cause an infinite CI loop.
+#
+# When the next iOS TestFlight Deploy runs, `npm run whats-new:seal` folds
+# whatever's in `pendingNews.ts` into a fresh top entry in `whatsNew.ts` and
+# resets pending. So this workflow's only job is keeping pending up to date.
+#
+# Skip behaviour:
+#   - PRs labelled `skip-changelog` / `no-changelog` / `dependencies` /
+#     `infra` / `ci` are short-circuited inside the script.
+#   - If the PR's bullets already exist in pending (idempotent re-runs), the
+#     script reports "noop" and no commit is made.
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+# Only one append-pending job per branch at a time. Without this, two PRs
+# merged seconds apart would both try to push to main and one would fail.
+concurrency:
+  group: append-pending-news
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  append:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          # Need a real token (not the default GITHUB_TOKEN-as-actor) so the
+          # follow-up push triggers no further runs of THIS workflow on
+          # itself. We add `[skip ci]` to the message regardless.
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # Pull the latest main in case other auto-append commits landed while
+      # this PR was being merged.
+      - name: Pull latest main
+        run: git pull --rebase --autostash origin main
+
+      - name: Append pending news
+        id: append
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -e
+          # Capture script output so we can read the action= line and decide
+          # whether to commit.
+          OUT=$(node scripts/append-pending-from-pr.mjs)
+          echo "$OUT"
+          ACTION=$(echo "$OUT" | grep -E '^action=' | tail -1 | cut -d= -f2)
+          COUNT=$(echo "$OUT" | grep -E '^appended_count=' | tail -1 | cut -d= -f2 || echo 0)
+          echo "action=$ACTION" >> $GITHUB_OUTPUT
+          echo "count=$COUNT" >> $GITHUB_OUTPUT
+
+      - name: Commit + push pending update
+        if: steps.append.outputs.action == 'append'
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          COUNT: ${{ steps.append.outputs.count }}
+        run: |
+          set -e
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add src/data/pendingNews.ts
+          if git diff --cached --quiet; then
+            echo "No staged changes — nothing to commit."
+            exit 0
+          fi
+          BULLET_WORD="bullet"
+          if [ "$COUNT" != "1" ]; then BULLET_WORD="bullets"; fi
+          git commit -m "chore(news): append ${COUNT} ${BULLET_WORD} from #${PR_NUMBER} [skip ci]" \
+                     -m "Auto-appended from PR: ${PR_TITLE}"
+          # Retry push up to 3 times — main may move under us as multiple PRs merge.
+          for i in 1 2 3; do
+            if git push origin HEAD:main; then exit 0; fi
+            echo "Push attempt $i failed; rebasing and retrying."
+            git pull --rebase origin main
+          done
+          echo "::error::Failed to push pending update after 3 retries."
+          exit 1

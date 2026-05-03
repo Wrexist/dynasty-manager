@@ -2,19 +2,31 @@
 
 ## TestFlight Release Notes ("What's New")
 
-**Players see in-app release notes generated automatically from merged PRs.**
-The iOS TestFlight workflow runs `scripts/build-whats-new.mjs` to assemble the
-top entry of `src/data/whatsNew.ts` from PRs merged since the previous release,
-then `scripts/check-whats-new.mjs` validates and gates the build.
+**Players see in-app release notes that accumulate automatically as PRs merge.**
+Two files live in `src/data/`:
 
-### Per-PR conventions (no manual `whatsNew.ts` edits needed)
+- `pendingNews.ts` — staging area for the *next, unshipped* version. Bullets
+  pile up here as work happens.
+- `whatsNew.ts` — append-only history of every shipped TestFlight build. The
+  top entry is the build players currently see in-app.
+
+The lifecycle is simple: **append → seal → ship**.
+
+### 1. Append (during development)
+
+Bullets land in `pendingNews.ts` two ways:
+
+**A. Automatically on PR merge.** The `Append Pending News` workflow
+(`.github/workflows/append-pending-news.yml`) runs whenever a PR closes as
+merged on `main`. It parses the PR's labels + body and commits the bullets
+back to `pendingNews.ts` with a `[skip ci]` message.
 
 - **Categorise via labels** (one per PR):
   `type:highlight` · `type:new` · `type:improved` · `type:fixed`.
   Default if no label = `improved`.
 - **Bullet text** — by default, the PR title (with conventional-commit prefix
   stripped) is used. To control the wording, add a `## What's New` section to
-  the PR body with one or more `- bullet text` lines:
+  the PR body:
   ```markdown
   ## What's New
   - Smart Optimize Lineup result now opens in a polished glass popup.
@@ -23,36 +35,71 @@ then `scripts/check-whats-new.mjs` validates and gates the build.
   `skip-changelog`, `no-changelog`, `dependencies`, `infra`, `ci`.
   (Dependabot PRs are auto-labelled `dependencies`.)
 
-### Triggering `iOS TestFlight Deploy`
+**B. Manually anytime.**
 
-All workflow inputs are optional. Leave them blank for a fully automatic
-build (recommended) or fill them in for hand-crafted App Store voice:
+```bash
+npm run whats-new -- new       "Added adaptive AI tactics."
+npm run whats-new -- improved  "Match engine runs 30% faster."
+npm run whats-new -- fixed     "Fixed crash on Cup Final."
+npm run whats-new -- highlight "Rival managers now adapt to scoreline."
+
+# Optional manual overrides — leave unset for auto-generation at seal time.
+npm run whats-new -- headline  "Faster matches, sharper AI."
+npm run whats-new -- summary   "One to three sentence player-facing summary."
+
+npm run whats-new -- show      # inspect pending state
+npm run whats-new -- clear     # wipe pending bullets (rarely needed)
+```
+
+Both paths are idempotent — re-running the same PR or the same
+`whats-new -- improved "..."` command twice is a no-op.
+
+### 2. Seal (when version is bumped)
+
+When `package.json.version` advances past the top of `whatsNew.ts`,
+`scripts/seal-whats-new.mjs` folds the pending bullets into a fresh top
+entry and resets `pendingNews.ts`. The seal:
+
+- Stamps the new entry with `version` from `package.json`, today's date,
+  `build: null` (CI injects the real number).
+- Uses manual `headline`/`summary` overrides if set; otherwise auto-generates
+  them from the lead bullets (priority: highlights → new → improved → fixed).
+- Falls back to a `Stability and polish improvements.` bullet if pending is
+  empty (so empty version bumps still produce a valid card).
+
+The seal is **idempotent**: if the current version is already the top entry,
+it's a no-op.
+
+```bash
+npm run whats-new:plan      # dry-run preview of what seal would do
+npm run whats-new:seal      # actually seal (writes whatsNew.ts + resets pending)
+npm run whats-new:check     # validate the top entry of whatsNew.ts
+```
+
+### 3. Ship (TestFlight workflow)
+
+`iOS TestFlight Deploy` (`.github/workflows/ios-testflight.yml`) runs the
+seal automatically before the build:
 
 | Input | Required | Notes |
 |-------|----------|-------|
-| `headline` | no | 3–8 word hook, e.g. "Cup glory, smarter AI, faster matches." Leave blank to auto-generate from the lead merged PR's bullet. |
-| `summary`  | no | 1–3 sentences, player-facing tone. Leave blank to auto-generate from the lead bullets + category counts. |
-| `since`    | no | ISO date `YYYY-MM-DD` to override the merge cutoff. Default: the date of the previous shipped entry in `whatsNew.ts`. |
+| `marketing_version` | no | Override `package.json.version` for this build only. Leave blank to use whatever's currently in `package.json`. |
 
-Steps:
+Steps the workflow performs:
 
-1. **Bump `package.json` version** (semver) on `main` first.
-2. **Trigger the workflow.** Leaving headline + summary blank gives a
-   ship-now build; filling them in overrides the auto-generated voice.
-3. The workflow:
-   - Runs `build-whats-new.mjs` → fetches merged PRs via `gh pr list`,
-     classifies by label, writes the entry on the runner. Auto-generates
-     headline + summary from the classified PRs when inputs are empty.
-   - Runs `check-whats-new.mjs` → validates the entry has all required fields.
-   - Runs `check-whats-new.mjs --inject-build ${{ github.run_number }}`
-     → stamps the real CFBundleVersion before bundling.
-   - Builds, archives, uploads to TestFlight.
-4. **The runner-only mutation does not commit back to `main`.** The repo's
-   `whatsNew.ts` keeps its historical entries; the regenerated top entry
-   exists only for the bundled app. If you want to backfill the entry into
-   git, run the same script locally and commit the result.
+1. Optional `npm version <input>` — bumps `package.json` (runner-only).
+2. `npm ci`.
+3. `npm run whats-new:seal` — folds pending into `whatsNew.ts`.
+4. `node scripts/check-whats-new.mjs --inject-build ${{ github.run_number }}`
+   — validates the top entry and stamps the real CFBundleVersion.
+5. `npm run build`, `cap sync ios`, `fastlane ios beta`.
 
-### Auto-fallback voice (when inputs are blank)
+**Runner-only mutations are NOT committed back to `main`.** The pending file
+on `main` keeps whatever bullets were there. If you want a sealed entry to
+live in git after a successful deploy, run `npm run whats-new:seal` locally,
+commit the result, and push.
+
+### Authoring tone (auto-generated voice)
 
 - **Headline** → first bullet from the highest-priority non-empty category
   (highlight > new > improved > fixed). Bullets are already capitalised and
@@ -60,46 +107,22 @@ Steps:
 - **Summary** → first 1–2 lead bullets joined as prose, plus a tail
   enumerating the rest by category count. Always passes the `>=20` char
   validation in `check-whats-new.mjs`.
-
-The script logs which path it took (`workflow input` vs.
-`auto-generated from PRs`) so the workflow run is auditable.
+- **Override anytime** with `npm run whats-new -- headline "..."` /
+  `summary "..."` before sealing.
 
 ### Recovering from a failed TestFlight deploy
 
-The auto-generation handles this for you — you do **not** need to bump
-the version again to "save" the work from a failed attempt:
+The seal step never commits back, so the pending file on `main` stays intact
+and you can re-run safely:
 
 | Scenario | What happens | What you do |
 |---|---|---|
-| Build failed at the same version (e.g. v1.0.10 attempt #2) | The runner-only mutation never committed back to `main`, so `whatsNew.ts` on `main` still shows the previous shipped version. The next run reads exactly the same PR window. | Re-trigger the workflow as-is. The same PRs (plus any new ones) ship. |
-| You bumped past the failure (v1.0.10 failed → v1.0.11) | The lower-bound walks back via `git log` to the first commit whose `package.json.version` differs from the current one — i.e. the v1.0.9 → v1.0.10 bump. PRs from the failed v1.0.10 attempt **and** anything merged since are both included. | Trigger the workflow at v1.0.11. No data is lost. |
-| No new PRs since the last shipped build | `build-whats-new.mjs` exits early with an actionable message instead of producing an empty entry. | Either ship a manual bullet (`npm run whats-new -- improved "..."`) or skip the run. |
+| Build failed at the same version (e.g. v1.0.10 attempt #2) | `whatsNew.ts` on `main` still shows the previous shipped version, and `pendingNews.ts` still holds the bullets. Re-running the workflow re-seals the same content. | Re-trigger the workflow as-is. |
+| You bumped past the failure (v1.0.10 failed → v1.0.11) | Pending still holds everything that was meant for v1.0.10 — nothing was lost. The seal at v1.0.11 picks it all up plus anything merged since. | Trigger at v1.0.11. |
+| No bullets in pending when version is bumped | Seal emits a `Stability and polish improvements.` placeholder so the build still passes `check-whats-new.mjs`. | Either accept the placeholder or run `npm run whats-new -- improved "..."` first. |
 
-**Don't bump the version unnecessarily.** Re-running the workflow with the
-same `package.json.version` is supported and preferred when the previous
-attempt failed.
-
-### Local commands
-
-```bash
-# Preview what the next deploy would generate, without writing files.
-# Shows last shipped version, version delta, and the PRs that would ship.
-npm run whats-new:plan
-node scripts/build-whats-new.mjs --dry-run                       # equivalent
-
-# Force a hand-crafted headline/summary preview.
-node scripts/build-whats-new.mjs --headline "..." --summary "..." --dry-run
-
-# Hand-edit a single bullet using the same helper CI uses internally.
-npm run whats-new -- new       "Added adaptive AI tactics."
-npm run whats-new -- improved  "Match engine runs 30% faster."
-npm run whats-new -- fixed     "Fixed crash on Cup Final."
-npm run whats-new -- highlight "Rival managers now adapt to scoreline."
-npm run whats-new -- show                   # preview current top entry
-
-# Validate the same way CI does.
-npm run whats-new:check
-```
+**Don't bump the version unnecessarily.** Re-running with the same
+`package.json.version` is supported and is a no-op once already sealed.
 
 ### Where players see it:
 
