@@ -49,6 +49,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Fix WelcomeOverlay step bounds to prevent undefined access.',
     'Add privacy policy site for App Store submission.',
     'Add bulk keep/sell actions to pack opening summary.',
+    'Turn /docs into a marketing + privacy + support site.',
   ],
   fixed: [],
   headline: null,
