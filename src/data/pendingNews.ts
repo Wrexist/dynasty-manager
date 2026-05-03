@@ -46,6 +46,7 @@ export const PENDING_NEWS: PendingRelease = {
   new: [],
   improved: [
     'Rewrite all prompts to match the matured codebase.',
+    'Fix WelcomeOverlay step bounds to prevent undefined access.',
   ],
   fixed: [],
   headline: null,
