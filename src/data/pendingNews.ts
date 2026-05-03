@@ -47,6 +47,7 @@ export const PENDING_NEWS: PendingRelease = {
   improved: [
     'Rewrite all prompts to match the matured codebase.',
     'Fix WelcomeOverlay step bounds to prevent undefined access.',
+    'Add privacy policy site for App Store submission.',
   ],
   fixed: [],
   headline: null,
