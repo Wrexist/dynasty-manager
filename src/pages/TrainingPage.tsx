@@ -25,7 +25,7 @@ const MODULE_INFO: { module: TrainingModule; label: string; icon: React.ElementT
   { module: 'fitness', label: 'Fitness', icon: Dumbbell, color: 'text-emerald-400' },
   { module: 'attacking', label: 'Attacking', icon: Flame, color: 'text-red-400' },
   { module: 'defending', label: 'Defending', icon: Shield, color: 'text-blue-400' },
-  { module: 'mentality', label: 'Mentality', icon: Brain, color: 'text-purple-400' },
+  { module: 'mentality', label: 'Mentality', icon: Brain, color: 'text-rose-400' },
   { module: 'set-pieces', label: 'Set Pieces', icon: Target, color: 'text-amber-400' },
   { module: 'tactical', label: 'Tactical', icon: Zap, color: 'text-primary' },
 ];
@@ -41,7 +41,7 @@ const MODULE_COLORS: Record<string, { bg: string; border: string; text: string; 
   'fitness': { bg: 'bg-emerald-500/15', border: 'border-emerald-500/40', text: 'text-emerald-400', dot: 'bg-emerald-400' },
   'attacking': { bg: 'bg-red-500/15', border: 'border-red-500/40', text: 'text-red-400', dot: 'bg-red-400' },
   'defending': { bg: 'bg-blue-500/15', border: 'border-blue-500/40', text: 'text-blue-400', dot: 'bg-blue-400' },
-  'mentality': { bg: 'bg-purple-500/15', border: 'border-purple-500/40', text: 'text-purple-400', dot: 'bg-purple-400' },
+  'mentality': { bg: 'bg-rose-500/15', border: 'border-rose-500/40', text: 'text-rose-400', dot: 'bg-rose-400' },
   'set-pieces': { bg: 'bg-amber-500/15', border: 'border-amber-500/40', text: 'text-amber-400', dot: 'bg-amber-400' },
   'tactical': { bg: 'bg-primary/15', border: 'border-primary/40', text: 'text-primary', dot: 'bg-primary' },
 };

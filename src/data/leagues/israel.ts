@@ -11,7 +11,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   replacedSlots: 0,
   description: 'Competitive Israeli top flight featuring historic Maccabi and Hapoel clubs, with passionate fanbases and emerging talent.',
   difficulty: 'Hard',
-  colorClass: 'text-indigo-400',
+  colorClass: 'text-blue-300',
   prizeMoney: 300000,
   averageWage: 5000,
   qualityTier: 3,

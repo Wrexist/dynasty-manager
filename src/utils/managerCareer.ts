@@ -215,7 +215,7 @@ export function getReputationColor(tier: ReputationTier): string {
     unknown: 'text-muted-foreground',
     regional: 'text-blue-400',
     national: 'text-emerald-400',
-    continental: 'text-purple-400',
+    continental: 'text-cyan-400',
     world_class: 'text-amber-400',
     legendary: 'text-primary',
   };

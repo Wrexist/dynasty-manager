@@ -11,7 +11,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   replacedSlots: 0,
   description: 'The most watched and commercially powerful football league in the world, featuring intense competition from top to bottom.',
   difficulty: 'Very Hard',
-  colorClass: 'text-purple-400',
+  colorClass: 'text-amber-300',
   prizeMoney: 176000000,
   averageWage: 120000,
   qualityTier: 1,

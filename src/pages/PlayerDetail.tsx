@@ -36,7 +36,7 @@ const TRAINING_MODULE_INFO: { module: TrainingModule; label: string; icon: React
   { module: 'fitness', label: 'Fitness', icon: Dumbbell, color: 'text-emerald-400' },
   { module: 'attacking', label: 'Attacking', icon: Flame, color: 'text-red-400' },
   { module: 'defending', label: 'Defending', icon: Shield, color: 'text-blue-400' },
-  { module: 'mentality', label: 'Mentality', icon: Brain, color: 'text-purple-400' },
+  { module: 'mentality', label: 'Mentality', icon: Brain, color: 'text-rose-400' },
   { module: 'set-pieces', label: 'Set Pieces', icon: Target, color: 'text-amber-400' },
   { module: 'tactical', label: 'Tactical', icon: Zap, color: 'text-primary' },
 ];

@@ -202,7 +202,7 @@ const NationalSquadPicker = () => {
           'border border-primary/30 p-5 shadow-[0_0_30px_hsl(var(--primary)/0.18)]',
         )}
       >
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-transparent to-fuchsia-500/5 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-transparent to-amber-500/5 pointer-events-none" />
         <div className="relative space-y-4">
           <div className="flex items-center gap-4">
             <div

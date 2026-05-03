@@ -188,11 +188,11 @@ const MerchandisePage = () => {
 
         {/* Signature drop banner */}
         {merchandise.signatureDrop && merchandise.signatureDrop.weeksRemaining > 0 && (
-          <div className="mt-2 bg-fuchsia-500/10 border border-fuchsia-500/30 rounded-lg p-2.5">
+          <div className="mt-2 bg-amber-500/10 border border-amber-500/30 rounded-lg p-2.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 min-w-0">
-                <Sparkles className="w-4 h-4 text-fuchsia-400 shrink-0" />
-                <span className="text-xs font-semibold text-fuchsia-300 truncate">
+                <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+                <span className="text-xs font-semibold text-amber-300 truncate">
                   {merchandise.signatureDrop.playerName} Signature Drop
                 </span>
               </div>
@@ -207,13 +207,13 @@ const MerchandisePage = () => {
             <div className="mt-1.5 flex items-center gap-2">
               <div className="flex-1 h-1.5 bg-muted/20 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-fuchsia-500/60 rounded-full transition-all"
+                  className="h-full bg-amber-500/60 rounded-full transition-all"
                   style={{ width: `${((merchandise.signatureDrop.totalWeeks - merchandise.signatureDrop.weeksRemaining) / merchandise.signatureDrop.totalWeeks) * 100}%` }}
                 />
               </div>
               <span className="text-[10px] text-muted-foreground tabular-nums">{merchandise.signatureDrop.weeksRemaining}w left</span>
             </div>
-            <span className="text-[10px] text-fuchsia-300 font-semibold tabular-nums">
+            <span className="text-[10px] text-amber-300 font-semibold tabular-nums">
               +{formatMoney(merchandise.signatureDrop.weeklyBonus)}/wk
             </span>
           </div>
@@ -423,7 +423,7 @@ const MerchandisePage = () => {
                     className={cn(
                       'mt-2 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all min-h-[36px]',
                       canDrop
-                        ? 'bg-fuchsia-500/15 text-fuchsia-300 hover:bg-fuchsia-500/25 active:scale-[0.97]'
+                        ? 'bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 active:scale-[0.97]'
                         : 'bg-muted/20 text-muted-foreground/60 cursor-not-allowed',
                     )}
                   >

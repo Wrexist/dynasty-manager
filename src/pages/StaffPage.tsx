@@ -132,7 +132,7 @@ const TRAIT_TONE: Record<StaffTrait, string> = {
   innovator: 'bg-cyan-500/15 text-cyan-300 border-cyan-500/25',
   disciplinarian: 'bg-rose-500/15 text-rose-300 border-rose-500/25',
   veteran: 'bg-muted/40 text-muted-foreground border-border/40',
-  rising_star: 'bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/25',
+  rising_star: 'bg-sky-500/15 text-sky-300 border-sky-500/25',
 };
 
 const TraitChip = ({ trait }: { trait: StaffTrait }) => (

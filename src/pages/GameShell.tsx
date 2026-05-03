@@ -154,7 +154,7 @@ const GameShell = () => {
     if (group[0] === 'transfers') {
       const items = MARKET_SUB_NAV.map(item =>
         item.screen === 'packs' && packPityCounter >= PACK_PITY_THRESHOLD - 2
-          ? { ...item, dot: 'bg-fuchsia-400' }
+          ? { ...item, dot: 'bg-yellow-400' }
           : item,
       );
       return { items, layoutId: 'subnav-pill-market' };

@@ -18,7 +18,7 @@ const ATTR_LABELS: Record<string, { label: string; color: string }> = {
   passing: { label: 'PAS', color: 'bg-emerald-500' },
   defending: { label: 'DEF', color: 'bg-blue-500' },
   physical: { label: 'PHY', color: 'bg-amber-500' },
-  mental: { label: 'MEN', color: 'bg-purple-500' },
+  mental: { label: 'MEN', color: 'bg-rose-500' },
 };
 
 export function DrillCard({ drill, selected, onSelect, injuryRisk }: DrillCardProps) {
