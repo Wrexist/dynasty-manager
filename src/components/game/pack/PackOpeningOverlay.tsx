@@ -26,6 +26,10 @@ interface PackOpeningOverlayProps {
   onKeep?: (playerId: string) => void;
   /** Quick-sell the pulled player at {@link QUICK_SELL_RATE} of market value. */
   onQuickSell?: (playerId: string) => void;
+  /** Bulk-keep every remaining player in the summary. */
+  onKeepAll?: () => void;
+  /** Bulk quick-sell every remaining player in the summary. */
+  onSellAll?: () => void;
   /** Per-player placement map from openPack so the reveal modal can badge pulls. */
   placement?: Record<string, PackPlayerPlacement>;
 }
@@ -43,7 +47,7 @@ type Phase = 'portal' | 'arrival' | 'charge' | 'explode' | 'reveal' | 'walkout' 
  *
  * Mounts a portal so the overlay sits above bottom nav and other UI.
  */
-export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKeep, onQuickSell }: PackOpeningOverlayProps) {
+export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKeep, onQuickSell, onKeepAll, onSellAll }: PackOpeningOverlayProps) {
   const tierDef = PACK_TIER_MAP[tier];
   const prefersReducedMotion = useReducedMotion();
   const [phase, setPhase] = useState<Phase>('portal');
@@ -813,6 +817,78 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
               );
             })}
           </div>
+
+          {phase === 'summary' && players.length >= 2 && (onKeepAll || onSellAll) && (() => {
+            const sellAllTotal = players.reduce(
+              (sum, p) => sum + Math.max(0, Math.round((p.value || 0) * QUICK_SELL_RATE)),
+              0,
+            );
+            return (
+              <motion.div
+                className="flex items-center gap-2.5 mt-1"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: 0.1 + players.length * 0.04 }}
+              >
+                <button
+                  type="button"
+                  onClick={() => { hapticLight(); onKeepAll?.(); }}
+                  disabled={!onKeepAll}
+                  className={cn(
+                    'relative overflow-hidden flex items-center justify-center',
+                    'min-w-[120px] h-11 px-5 rounded-full',
+                    'text-[11px] font-display font-bold uppercase tracking-[0.22em] text-white',
+                    'bg-gradient-to-b from-white/[0.14] to-white/[0.06]',
+                    'border border-white/25 backdrop-blur-2xl backdrop-saturate-150',
+                    'shadow-[inset_0_1px_0_rgba(255,255,255,0.4),inset_0_-1px_0_rgba(0,0,0,0.32),0_10px_24px_-12px_rgba(0,0,0,0.55)]',
+                    'active:scale-[0.97] active:bg-white/[0.18] transition-[transform,background-color] duration-150',
+                    'disabled:opacity-40 disabled:cursor-not-allowed',
+                  )}
+                >
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute inset-x-0 top-0 h-1/2 rounded-t-full"
+                    style={{
+                      background:
+                        'radial-gradient(120% 90% at 50% -30%, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.05) 38%, rgba(255,255,255,0) 70%)',
+                      mixBlendMode: 'screen',
+                    }}
+                  />
+                  <span className="relative">Keep All</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { hapticMedium(); onSellAll?.(); }}
+                  disabled={!onSellAll || sellAllTotal <= 0}
+                  aria-label={`Sell all for ${formatMoney(sellAllTotal)}`}
+                  className={cn(
+                    'relative overflow-hidden flex flex-col items-center justify-center leading-tight',
+                    'min-w-[140px] h-11 px-5 rounded-full',
+                    'text-amber-950',
+                    'bg-gradient-to-b from-amber-200 via-amber-300 to-amber-500',
+                    'border border-amber-100/80',
+                    'shadow-[inset_0_1px_0_rgba(255,255,255,0.65),inset_0_-1px_0_rgba(120,60,0,0.4),0_10px_28px_-10px_rgba(251,191,36,0.6)]',
+                    'active:scale-[0.97] transition-[transform] duration-150',
+                    'disabled:opacity-40 disabled:cursor-not-allowed',
+                  )}
+                >
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute inset-x-0 top-0 h-1/2 rounded-t-full"
+                    style={{
+                      background:
+                        'radial-gradient(120% 90% at 50% -30%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.1) 40%, rgba(255,255,255,0) 72%)',
+                      mixBlendMode: 'screen',
+                    }}
+                  />
+                  <span className="relative text-[11px] font-display font-bold uppercase tracking-[0.18em]">Sell All</span>
+                  <span className="relative tabular-nums tracking-tight text-[10px] font-black">
+                    {formatMoney(sellAllTotal)}
+                  </span>
+                </button>
+              </motion.div>
+            );
+          })()}
 
           {phase === 'reveal' && (
             <motion.button

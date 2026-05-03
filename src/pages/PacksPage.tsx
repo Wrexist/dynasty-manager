@@ -99,6 +99,33 @@ const PacksPage = () => {
     setOpening(prev => prev ? { ...prev, players: prev.players.filter(p => p.id !== playerId) } : prev);
   };
 
+  const handleKeepAll = () => {
+    setOpening(prev => prev ? { ...prev, players: [] } : prev);
+  };
+
+  const handleSellAll = () => {
+    const remaining = opening?.players ?? [];
+    if (remaining.length === 0) return;
+    let total = 0;
+    let sold = 0;
+    let lastError: string | undefined;
+    for (const p of remaining) {
+      const result = quickSellPackedPlayer(p.id);
+      if (result.success && typeof result.amount === 'number') {
+        total += result.amount;
+        sold += 1;
+      } else if (!result.success) {
+        lastError = result.message;
+      }
+    }
+    if (sold > 0) {
+      successToast(`Sold ${sold} player${sold === 1 ? '' : 's'}`, `+${formatMoney(total)} to budget.`);
+    } else if (lastError) {
+      errorToast('Cannot sell all', lastError);
+    }
+    setOpening(prev => prev ? { ...prev, players: [] } : prev);
+  };
+
   useEffect(() => {
     PACK_TIERS.forEach((t) => { if (t.artSrc) { const img = new Image(); img.src = t.artSrc; } });
   }, []);
@@ -457,6 +484,8 @@ const PacksPage = () => {
             onClose={() => setOpening(null)}
             onKeep={handleKeep}
             onQuickSell={handleQuickSell}
+            onKeepAll={handleKeepAll}
+            onSellAll={handleSellAll}
             placement={opening.placement}
           />
         )}
