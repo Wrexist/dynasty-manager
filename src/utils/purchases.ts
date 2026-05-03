@@ -172,9 +172,46 @@ export async function restorePurchases(): Promise<ProductId[]> {
   }
 }
 
-/** Get current customer entitlements without making a purchase. */
-export async function getEntitlements(): Promise<ProductId[]> {
+/**
+ * Fetch localised price strings for every product RevenueCat exposes.
+ * Returns the StoreKit-formatted string (e.g. "$14.99", "kr 149,99",
+ * "€9,99") so the shop UI can display prices in the user's actual
+ * currency instead of the USD fallback baked into config. Returns an
+ * empty object on web/dev or if offerings can't be fetched — callers
+ * should fall back to the USD config price in that case.
+ */
+export async function getStorePrices(): Promise<Partial<Record<ProductId, string>>> {
   if (!Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) {
+    return {};
+  }
+
+  try {
+    await ensureConfigured();
+    const { Purchases } = await import('@revenuecat/purchases-capacitor');
+    const offerings = await Purchases.getOfferings() as {
+      current?: { availablePackages: { product: { identifier: string; priceString?: string } }[] };
+      all?: Record<string, { availablePackages: { product: { identifier: string; priceString?: string } }[] }>;
+    };
+    const allPackages = [
+      ...(offerings.current?.availablePackages || []),
+      ...Object.values(offerings.all || {}).flatMap(o => o.availablePackages || []),
+    ];
+    const prices: Partial<Record<ProductId, string>> = {};
+    for (const pkg of allPackages) {
+      const id = pkg.product.identifier as ProductId;
+      const priceString = pkg.product.priceString;
+      if (priceString && !prices[id]) prices[id] = priceString;
+    }
+    return prices;
+  } catch (err) {
+    if (import.meta.env.DEV) console.error('[Purchases] getStorePrices failed:', err);
+    Sentry.captureException(err, { tags: { context: 'purchases.getStorePrices' } });
+    return {};
+  }
+}
+
+/** Get current customer entitlements without making a purchase. */
+export async function getEntitlements(): Promise<ProductId[]> {  if (!Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) {
     return [];
   }
 
@@ -216,6 +253,7 @@ function mapEntitlements(customerInfo: CustomerInfo | null | undefined): Product
   const validIds: ProductId[] = [
     'com.dynastymanager.pro',
     'com.dynastymanager.pro.monthly',
+    'com.dynastymanager.pro.annual',
     'com.dynastymanager.pro.lifetime',
     'com.dynastymanager.pack.manager',
     'com.dynastymanager.pack.stadium',
@@ -234,9 +272,19 @@ function mapEntitlements(customerInfo: CustomerInfo | null | undefined): Product
     }
   }
 
-  // Also check allPurchasedProductIdentifiers (fallback for non-consumables)
+  // Also check allPurchasedProductIdentifiers as a fallback. RevenueCat
+  // populates this list with EVERY purchase the user has ever made,
+  // including expired subscriptions — so we must skip subscription SKUs
+  // here, otherwise an expired annual/monthly plan would grant Pro
+  // indefinitely. For non-consumable one-time purchases (Pro, Lifetime,
+  // packs, bundle) the list is a reliable forever-record.
   const allIds = customerInfo?.allPurchasedProductIdentifiers || [];
-  for (const id of allIds) purchased.add(id);
+  for (const id of allIds) {
+    const product = PRODUCTS[id as ProductId];
+    if (product && product.type !== 'subscription') {
+      purchased.add(id);
+    }
+  }
 
   return Array.from(purchased).filter((id): id is ProductId => validIds.includes(id as ProductId));
 }

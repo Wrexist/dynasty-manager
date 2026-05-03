@@ -42,6 +42,15 @@ export const PRODUCTS: Record<ProductId, ProductDef> = {
     subscriptionTier: 'monthly',
     billingPeriod: '/month',
   },
+  'com.dynastymanager.pro.annual': {
+    id: 'com.dynastymanager.pro.annual',
+    name: 'Dynasty Pro Annual',
+    description: 'All Pro features, billed yearly.',
+    priceUsd: 14.99,
+    type: 'subscription',
+    subscriptionTier: 'annual',
+    billingPeriod: '/year',
+  },
   'com.dynastymanager.pro.lifetime': {
     id: 'com.dynastymanager.pro.lifetime',
     name: 'Dynasty Pro Lifetime',
@@ -75,7 +84,7 @@ export const PRODUCTS: Record<ProductId, ProductDef> = {
     id: 'com.dynastymanager.bundle.all',
     name: 'Dynasty Edition',
     description: 'Everything — Dynasty Pro plus all cosmetic packs.',
-    priceUsd: 9.99,
+    priceUsd: 14.99,
     type: 'one_time',
     includes: [
       'com.dynastymanager.pro',
@@ -127,12 +136,23 @@ export const CONSUMABLE_PRODUCT_IDS: ProductId[] = [
   'com.dynastymanager.pack.icon',
 ];
 
-/** Product IDs that grant Pro access (one-time purchases + subscriptions) */
-export const PRO_PRODUCT_IDS: ProductId[] = [
+/** One-time / non-consumable product IDs that grant Pro forever once owned.
+ *  Only these IDs may be checked against `monetization.entitlements` to
+ *  determine Pro status — subscription SKUs (monthly/annual) live and die
+ *  with `monetization.subscription.expiresAt`, since RevenueCat keeps
+ *  expired sub IDs in `allPurchasedProductIdentifiers` indefinitely. */
+export const PRO_ONE_TIME_PRODUCT_IDS: ProductId[] = [
   'com.dynastymanager.pro',
-  'com.dynastymanager.pro.monthly',
   'com.dynastymanager.pro.lifetime',
   'com.dynastymanager.bundle.all',
+];
+
+/** Every product (one-time + subscription) that conveys Pro access. Use for
+ *  validation / catalog logic — NOT for entitlement checks. */
+export const PRO_PRODUCT_IDS: ProductId[] = [
+  ...PRO_ONE_TIME_PRODUCT_IDS,
+  'com.dynastymanager.pro.monthly',
+  'com.dynastymanager.pro.annual',
 ];
 
 // ── Pro Features ──
