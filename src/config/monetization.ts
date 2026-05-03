@@ -42,6 +42,15 @@ export const PRODUCTS: Record<ProductId, ProductDef> = {
     subscriptionTier: 'monthly',
     billingPeriod: '/month',
   },
+  'com.dynastymanager.pro.annual': {
+    id: 'com.dynastymanager.pro.annual',
+    name: 'Dynasty Pro Annual',
+    description: 'All Pro features, billed yearly. Save 37% vs monthly.',
+    priceUsd: 14.99,
+    type: 'subscription',
+    subscriptionTier: 'annual',
+    billingPeriod: '/year',
+  },
   'com.dynastymanager.pro.lifetime': {
     id: 'com.dynastymanager.pro.lifetime',
     name: 'Dynasty Pro Lifetime',
@@ -75,7 +84,7 @@ export const PRODUCTS: Record<ProductId, ProductDef> = {
     id: 'com.dynastymanager.bundle.all',
     name: 'Dynasty Edition',
     description: 'Everything — Dynasty Pro plus all cosmetic packs.',
-    priceUsd: 9.99,
+    priceUsd: 14.99,
     type: 'one_time',
     includes: [
       'com.dynastymanager.pro',
@@ -131,6 +140,7 @@ export const CONSUMABLE_PRODUCT_IDS: ProductId[] = [
 export const PRO_PRODUCT_IDS: ProductId[] = [
   'com.dynastymanager.pro',
   'com.dynastymanager.pro.monthly',
+  'com.dynastymanager.pro.annual',
   'com.dynastymanager.pro.lifetime',
   'com.dynastymanager.bundle.all',
 ];

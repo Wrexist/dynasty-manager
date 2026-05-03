@@ -10,7 +10,7 @@ import type { CosmeticCategory } from '@/types/game';
 import type { ProductId, ProFeature } from '@/types/game';
 import { purchaseProduct as purchaseViaSDK, restorePurchases as restoreViaSDK, presentPaywall, getEntitlements, getCustomerInfo, extractSubscriptionInfo, openSubscriptionManagement } from '@/utils/purchases';
 import { hapticMedium } from '@/utils/haptics';
-import { infoToast } from '@/utils/gameToast';
+import { infoToast, successToast, errorToast } from '@/utils/gameToast';
 import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
 
 const formatPrice = (usd: number) => `$${usd.toFixed(2)}`;
@@ -35,6 +35,7 @@ const FEATURE_ICONS: Record<ProFeature, React.ElementType> = {
 
 const SUBSCRIPTION_PRODUCTS: ProductId[] = [
   'com.dynastymanager.pro.monthly',
+  'com.dynastymanager.pro.annual',
   'com.dynastymanager.pro.lifetime',
 ];
 
@@ -52,6 +53,12 @@ const BUNDLE_SAVINGS_PCT = Math.round((1 - PRODUCTS['com.dynastymanager.bundle.a
 
 /** Per-day cost for monthly subscription */
 const MONTHLY_PER_DAY = (PRODUCTS['com.dynastymanager.pro.monthly'].priceUsd / 30).toFixed(2);
+/** Effective per-month cost when paying annually (for value framing) */
+const ANNUAL_PER_MONTH = (PRODUCTS['com.dynastymanager.pro.annual'].priceUsd / 12).toFixed(2);
+/** % savings of annual vs paying monthly for a year */
+const ANNUAL_SAVINGS_PCT = Math.round(
+  (1 - PRODUCTS['com.dynastymanager.pro.annual'].priceUsd / (PRODUCTS['com.dynastymanager.pro.monthly'].priceUsd * 12)) * 100,
+);
 
 const ShopPage = () => {
   const monetization = useGameStore(s => s.monetization);
@@ -89,12 +96,16 @@ const ShopPage = () => {
     setPurchaseError(null);
     try {
       const granted = await purchaseViaSDK(purchaseProduct);
-      if (granted.length > 0) {
-        restoreEntitlements(granted);
+      // granted=[] means the user cancelled the native StoreKit dialog —
+      // close the modal silently without claiming a successful purchase.
+      if (granted.length === 0) {
+        setPurchaseProduct(null);
+        return;
       }
+      restoreEntitlements(granted);
       await syncAfterPurchase();
       hapticMedium();
-      infoToast('Purchase complete!');
+      successToast('Purchase complete!');
       setPurchaseProduct(null);
     } catch {
       setPurchaseError('Purchase failed. Please try again.');
@@ -110,10 +121,13 @@ const ShopPage = () => {
       const granted = await restoreViaSDK();
       if (granted.length > 0) {
         restoreEntitlements(granted);
+        successToast('Purchases Restored', `${granted.length} product${granted.length > 1 ? 's' : ''} restored.`);
+      } else {
+        infoToast('No Purchases Found', 'No previous purchases were found for this account.');
       }
       await syncAfterPurchase();
     } catch {
-      setPurchaseError('Restore failed. Please try again.');
+      errorToast('Restore Failed', 'Could not restore purchases. Please try again.');
     } finally {
       setRestoring(false);
     }
@@ -288,6 +302,7 @@ const ShopPage = () => {
                 const product = PRODUCTS[productId];
                 const isLifetime = product.subscriptionTier === 'lifetime';
                 const isMonthly = product.subscriptionTier === 'monthly';
+                const isAnnual = product.subscriptionTier === 'annual';
 
                 return (
                   <GlassPanel
@@ -295,11 +310,17 @@ const ShopPage = () => {
                     className={cn(
                       'p-4 relative',
                       isLifetime && 'border-[hsl(var(--gold)/0.4)] bg-[hsl(var(--gold)/0.04)]',
+                      isAnnual && 'border-emerald-500/40 bg-emerald-500/[0.04]',
                     )}
                   >
                     <div className="flex items-center justify-between mb-1">
                       <h4 className="text-sm font-semibold text-foreground">{product.name}</h4>
                       <div className="flex items-center gap-1.5">
+                        {isAnnual && (
+                          <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold">
+                            Save {ANNUAL_SAVINGS_PCT}%
+                          </span>
+                        )}
                         {isLifetime && (
                           <span className="text-[10px] bg-[hsl(var(--gold)/0.15)] text-[hsl(var(--gold))] px-2 py-0.5 rounded-full font-bold">
                             Best Value
@@ -311,6 +332,9 @@ const ShopPage = () => {
                     {isMonthly && (
                       <p className="text-[10px] text-muted-foreground/60 mb-2">Just ${MONTHLY_PER_DAY}/day — cancel anytime</p>
                     )}
+                    {isAnnual && (
+                      <p className="text-[10px] text-muted-foreground/60 mb-2">Just ${ANNUAL_PER_MONTH}/month — billed yearly</p>
+                    )}
                     {isLifetime && (
                       <p className="text-[10px] text-muted-foreground/60 mb-2">One-time purchase, yours forever</p>
                     )}
@@ -320,7 +344,9 @@ const ShopPage = () => {
                         'w-full py-2.5 rounded-lg font-bold text-sm active:scale-[0.98] transition-all',
                         isLifetime
                           ? 'bg-[hsl(var(--gold))] text-[hsl(30,20%,10%)] shadow-[0_0_12px_hsl(var(--gold)/0.2)]'
-                          : 'bg-muted/50 hover:bg-muted text-foreground border border-border/50'
+                          : isAnnual
+                            ? 'bg-emerald-500/90 hover:bg-emerald-500 text-white shadow-[0_0_12px_rgba(16,185,129,0.25)]'
+                            : 'bg-muted/50 hover:bg-muted text-foreground border border-border/50'
                       )}
                     >
                       {formatPrice(product.priceUsd)}{product.billingPeriod && product.billingPeriod !== 'one-time' ? product.billingPeriod : ''}

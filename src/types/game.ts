@@ -1434,6 +1434,7 @@ export interface SessionStats {
 export type ProductId =
   | 'com.dynastymanager.pro'
   | 'com.dynastymanager.pro.monthly'
+  | 'com.dynastymanager.pro.annual'
   | 'com.dynastymanager.pro.lifetime'
   | 'com.dynastymanager.pack.manager'
   | 'com.dynastymanager.pack.stadium'
@@ -1444,7 +1445,7 @@ export type ProductId =
   | 'com.dynastymanager.pack.rare_gold'
   | 'com.dynastymanager.pack.icon';
 
-export type SubscriptionTier = 'trial' | 'monthly' | 'lifetime';
+export type SubscriptionTier = 'trial' | 'monthly' | 'annual' | 'lifetime';
 
 export interface SubscriptionInfo {
   tier: SubscriptionTier;
