@@ -7,7 +7,7 @@
  */
 
 import type { MonetizationState, ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo } from '@/types/game';
-import { COSMETIC_ITEMS, AD_REWARD_LIMITS, STARTER_KIT_WINDOW_MS, PRO_PRODUCT_IDS } from '@/config/monetization';
+import { COSMETIC_ITEMS, AD_REWARD_LIMITS, STARTER_KIT_WINDOW_MS, PRO_ONE_TIME_PRODUCT_IDS } from '@/config/monetization';
 
 /** Check if a subscription has expired */
 function isSubscriptionExpired(sub: SubscriptionInfo): boolean {
@@ -20,11 +20,12 @@ export function isSubscriptionActive(state: MonetizationState): boolean {
   return state.subscription != null && !isSubscriptionExpired(state.subscription);
 }
 
-/** Check if the player has Dynasty Pro (via one-time purchase OR active subscription) */
+/** Check if the player has Dynasty Pro (via one-time purchase OR active subscription).
+ *  Subscription SKUs are intentionally NOT checked against `entitlements`
+ *  because RevenueCat keeps expired subs in `allPurchasedProductIdentifiers`
+ *  forever — the only valid source for sub status is `subscription.expiresAt`. */
 export function isPro(state: MonetizationState): boolean {
-  // One-time purchase or bundle
-  if (PRO_PRODUCT_IDS.some(id => state.entitlements.includes(id))) return true;
-  // Active subscription
+  if (PRO_ONE_TIME_PRODUCT_IDS.some(id => state.entitlements.includes(id))) return true;
   if (isSubscriptionActive(state)) return true;
   return false;
 }

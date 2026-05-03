@@ -136,13 +136,23 @@ export const CONSUMABLE_PRODUCT_IDS: ProductId[] = [
   'com.dynastymanager.pack.icon',
 ];
 
-/** Product IDs that grant Pro access (one-time purchases + subscriptions) */
-export const PRO_PRODUCT_IDS: ProductId[] = [
+/** One-time / non-consumable product IDs that grant Pro forever once owned.
+ *  Only these IDs may be checked against `monetization.entitlements` to
+ *  determine Pro status — subscription SKUs (monthly/annual) live and die
+ *  with `monetization.subscription.expiresAt`, since RevenueCat keeps
+ *  expired sub IDs in `allPurchasedProductIdentifiers` indefinitely. */
+export const PRO_ONE_TIME_PRODUCT_IDS: ProductId[] = [
   'com.dynastymanager.pro',
-  'com.dynastymanager.pro.monthly',
-  'com.dynastymanager.pro.annual',
   'com.dynastymanager.pro.lifetime',
   'com.dynastymanager.bundle.all',
+];
+
+/** Every product (one-time + subscription) that conveys Pro access. Use for
+ *  validation / catalog logic — NOT for entitlement checks. */
+export const PRO_PRODUCT_IDS: ProductId[] = [
+  ...PRO_ONE_TIME_PRODUCT_IDS,
+  'com.dynastymanager.pro.monthly',
+  'com.dynastymanager.pro.annual',
 ];
 
 // ── Pro Features ──

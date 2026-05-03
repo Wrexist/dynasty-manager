@@ -272,9 +272,19 @@ function mapEntitlements(customerInfo: CustomerInfo | null | undefined): Product
     }
   }
 
-  // Also check allPurchasedProductIdentifiers (fallback for non-consumables)
+  // Also check allPurchasedProductIdentifiers as a fallback. RevenueCat
+  // populates this list with EVERY purchase the user has ever made,
+  // including expired subscriptions — so we must skip subscription SKUs
+  // here, otherwise an expired annual/monthly plan would grant Pro
+  // indefinitely. For non-consumable one-time purchases (Pro, Lifetime,
+  // packs, bundle) the list is a reliable forever-record.
   const allIds = customerInfo?.allPurchasedProductIdentifiers || [];
-  for (const id of allIds) purchased.add(id);
+  for (const id of allIds) {
+    const product = PRODUCTS[id as ProductId];
+    if (product && product.type !== 'subscription') {
+      purchased.add(id);
+    }
+  }
 
   return Array.from(purchased).filter((id): id is ProductId => validIds.includes(id as ProductId));
 }
