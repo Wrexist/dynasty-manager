@@ -52,6 +52,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Turn /docs into a marketing + privacy + support site.',
     'Release hygiene: gate prod console, harden modals & splash.',
     'Make career resign / job-market path discoverable.',
+    'Add annual subscription tier and localized pricing support.',
   ],
   fixed: [],
   headline: null,
