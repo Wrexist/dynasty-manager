@@ -872,16 +872,22 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     // Only clean up if a match was in progress (halfTimeState or matchPhase indicates mid-match)
     if (state.matchPhase === 'none' && !state.halfTimeState) return;
     // Remove ephemeral (virtual) club players and clubs that were injected for continental matches.
-    // Virtual club IDs are real club IDs (no 'virtual-' prefix); we identify them by membership in
-    // state.virtualClubs and ensure they aren't referenced by any league fixture before deletion.
-    // Ephemeral player IDs are prefixed `vc-` (see createEphemeralClub) — we sweep those too.
+    // Virtual club IDs are real club IDs (no 'virtual-' prefix). `state.virtualClubs` may contain
+    // real loaded clubs from OTHER divisions (continental qualifiers from cross-division loaded
+    // leagues — see continentalDraw.ts) — we must not delete those. The canonical "is this a real
+    // loaded club?" registry is `divisionClubs`; a club is ephemeral iff it isn't listed in any
+    // loaded division. Ephemeral player IDs are prefixed `vc-` (see createEphemeralClub).
+    const loadedClubIds = new Set<string>();
+    for (const ids of Object.values(state.divisionClubs || {})) {
+      for (const id of ids) loadedClubIds.add(id);
+    }
     const virtualIds = Object.keys(state.virtualClubs || {});
     const newClubs = { ...state.clubs };
     const newPlayers = { ...state.players };
     let mutated = false;
     for (const vid of virtualIds) {
       if (!newClubs[vid]) continue;
-      if (state.fixtures.some(f => f.homeClubId === vid || f.awayClubId === vid)) continue;
+      if (loadedClubIds.has(vid)) continue;
       delete newClubs[vid];
       mutated = true;
     }
