@@ -53,6 +53,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Release hygiene: gate prod console, harden modals & splash.',
     'Make career resign / job-market path discoverable.',
     'Add annual subscription tier and localized pricing support.',
+    'Disable ads + ATT for v1 to unblock App Review.',
   ],
   fixed: [],
   headline: null,
