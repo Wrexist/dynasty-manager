@@ -47,8 +47,8 @@
 	<true/>
 	<!-- Export compliance (EAR 740.17(b)(1)): NO — app does not implement
 	     custom/proprietary crypto. Networking uses only platform TLS (HTTPS)
-	     for Sentry, RevenueCat, and Google Mobile Ads (linked but dormant in
-	     v1); no additional encryption registration is required. -->
+	     for Sentry and RevenueCat; no additional encryption registration is
+	     required. -->
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>NSAppTransportSecurity</key>
@@ -56,15 +56,5 @@
 		<key>NSAllowsArbitraryLoadsInWebContent</key>
 		<true/>
 	</dict>
-	<!-- Google Mobile Ads SDK is bundled via @capacitor-community/admob.
-	     The SDK requires GADApplicationIdentifier in Info.plist or it
-	     crashes the app on launch — even if AdMob.initialize() is never
-	     called. NATIVE_ADS_READY=false in src/utils/ads.ts keeps the SDK
-	     dormant; this key only satisfies the framework's load-time check.
-	     NSUserTrackingUsageDescription and SKAdNetworkItems remain removed
-	     so App Privacy can stay "no tracking" until ads are actually
-	     enabled in a future build. -->
-	<key>GADApplicationIdentifier</key>
-	<string>ca-app-pub-2286247955186424~9847041449</string>
 </dict>
 </plist>
