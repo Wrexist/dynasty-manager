@@ -238,10 +238,6 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
     nt.lineup = nt.lineup.map(id => id === outId ? inId : id);
     // Swap in subs if present
     nt.subs = nt.subs.map(id => id === outId ? inId : id);
-    // If the outgoing player was in lineup, put replacement in subs instead (safer)
-    if (state.nationalTeam.lineup.includes(outId) && !nt.lineup.includes(inId)) {
-      nt.subs = [...nt.subs.filter(id => id !== inId), inId];
-    }
     _set({ nationalTeam: nt });
   },
 });
