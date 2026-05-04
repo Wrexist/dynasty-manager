@@ -2,12 +2,23 @@
  * AdMob rewarded ad wrapper for Dynasty Manager.
  * All ads are opt-in only — the player chooses to watch for a reward.
  *
- * V1 STATUS: ads are disabled. NATIVE_ADS_READY = false keeps the SDK
- * dormant (no AdMob.initialize, no plist reads, no ATT prompt). The iOS
- * Info.plist also has NSUserTrackingUsageDescription / GADApplicationIdentifier
- * / SKAdNetworkItems removed to match. Re-enable in a future build by
- * flipping the flag, restoring the plist keys, and updating App Privacy
- * to declare tracking via Device ID for Third-Party Advertising.
+ * V1 STATUS: ads are disabled at the JS layer. NATIVE_ADS_READY = false
+ * keeps AdMob.initialize() from being called, so no ATT prompt fires and
+ * no ad requests go out.
+ *
+ * iOS Info.plist on this branch:
+ *   - NSUserTrackingUsageDescription: REMOVED (App Privacy stays "no tracking")
+ *   - SKAdNetworkItems:               REMOVED (no ad attribution networks)
+ *   - GADApplicationIdentifier:       KEPT — the Google Mobile Ads SDK
+ *     crashes the app on launch if this key is missing, even when
+ *     AdMob.initialize() is never called. Keeping it does not enable
+ *     tracking and does not affect App Review.
+ *
+ * Re-enable ads in a future build by:
+ *   1. Flip NATIVE_ADS_READY = true (below)
+ *   2. Restore NSUserTrackingUsageDescription + SKAdNetworkItems in Info.plist
+ *   3. Update App Privacy to declare Device ID -> tracking, Third-Party Ads
+ *   4. Update the privacy policy at docs/privacy.html to mention advertising
  */
 
 import { Capacitor } from '@capacitor/core';
