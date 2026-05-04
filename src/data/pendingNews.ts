@@ -54,6 +54,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Make career resign / job-market path discoverable.',
     'Add annual subscription tier and localized pricing support.',
     'Disable ads + ATT for v1 to unblock App Review.',
+    'Restore GADApplicationIdentifier — AdMob SDK crashes withou….',
   ],
   fixed: [],
   headline: null,
