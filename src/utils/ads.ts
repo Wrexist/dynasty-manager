@@ -7,7 +7,12 @@
  * no ad requests go out.
  *
  * iOS Info.plist on this branch:
- *   - NSUserTrackingUsageDescription: REMOVED (App Privacy stays "no tracking")
+ *   - NSUserTrackingUsageDescription: KEPT — App Store review error 90683
+ *     requires this string because the bundled AdMob SDK references the
+ *     ATT API, even though we never call requestTrackingAuthorization()
+ *     while NATIVE_ADS_READY is false. Localized per-locale in
+ *     ios/App/App/*.lproj/InfoPlist.strings. Including the string does
+ *     not by itself change App Privacy declarations.
  *   - SKAdNetworkItems:               REMOVED (no ad attribution networks)
  *   - GADApplicationIdentifier:       KEPT — the Google Mobile Ads SDK
  *     crashes the app on launch if this key is missing, even when
@@ -16,7 +21,8 @@
  *
  * Re-enable ads in a future build by:
  *   1. Flip NATIVE_ADS_READY = true (below)
- *   2. Restore NSUserTrackingUsageDescription + SKAdNetworkItems in Info.plist
+ *   2. Restore SKAdNetworkItems in Info.plist (NSUserTrackingUsageDescription
+ *      is already present)
  *   3. Update App Privacy to declare Device ID -> tracking, Third-Party Ads
  *   4. Update the privacy policy at docs/privacy.html to mention advertising
  */
@@ -28,8 +34,9 @@ const REWARDED_AD_UNIT_IOS = import.meta.env.VITE_ADMOB_REWARDED_IOS || 'ca-app-
 const REWARDED_AD_UNIT_ANDROID = import.meta.env.VITE_ADMOB_REWARDED_ANDROID || 'ca-app-pub-3940256099942544/5224354917';
 
 /** Set to true once production AdMob IDs are configured, the iOS Info.plist
- *  re-includes NSUserTrackingUsageDescription / GADApplicationIdentifier /
- *  SKAdNetworkItems, and App Privacy declares tracking. */
+ *  re-includes SKAdNetworkItems, and App Privacy declares tracking.
+ *  NSUserTrackingUsageDescription / GADApplicationIdentifier are already
+ *  present so the SDK can be linked without crashing on launch. */
 export const NATIVE_ADS_READY = false;
 
 let adInitialized = false;

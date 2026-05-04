@@ -60,11 +60,17 @@
 	     The SDK requires GADApplicationIdentifier in Info.plist or it
 	     crashes the app on launch — even if AdMob.initialize() is never
 	     called. NATIVE_ADS_READY=false in src/utils/ads.ts keeps the SDK
-	     dormant; this key only satisfies the framework's load-time check.
-	     NSUserTrackingUsageDescription and SKAdNetworkItems remain removed
-	     so App Privacy can stay "no tracking" until ads are actually
-	     enabled in a future build. -->
+	     dormant. SKAdNetworkItems remains removed so App Privacy can stay
+	     "no tracking" until ads are actually enabled in a future build. -->
 	<key>GADApplicationIdentifier</key>
 	<string>ca-app-pub-2286247955186424~9847041449</string>
+	<!-- NSUserTrackingUsageDescription is required by App Store review
+	     (error ITMS-90683) because the bundled AdMob SDK references the
+	     App Tracking Transparency API, even when the SDK stays dormant.
+	     The string is also localized per-locale via the *.lproj/InfoPlist.strings
+	     files; this entry is the default fallback. ATT is only requested
+	     once NATIVE_ADS_READY flips to true in src/utils/ads.ts. -->
+	<key>NSUserTrackingUsageDescription</key>
+	<string>We use your advertising identifier to show relevant rewarded ads so you can earn free pack openings and in-game rewards.</string>
 </dict>
 </plist>
