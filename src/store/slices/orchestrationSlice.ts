@@ -871,40 +871,33 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const state = get();
     // Only clean up if a match was in progress (halfTimeState or matchPhase indicates mid-match)
     if (state.matchPhase === 'none' && !state.halfTimeState) return;
-    // Remove ephemeral (virtual) club players and clubs that were injected for continental matches
+    // Remove ephemeral (virtual) club players and clubs that were injected for continental matches.
+    // Virtual club IDs are real club IDs (no 'virtual-' prefix); we identify them by membership in
+    // state.virtualClubs and ensure they aren't referenced by any league fixture before deletion.
+    // Ephemeral player IDs are prefixed `vc-` (see createEphemeralClub) — we sweep those too.
     const virtualIds = Object.keys(state.virtualClubs || {});
-    if (virtualIds.length > 0) {
-      const newClubs = { ...state.clubs };
-      const newPlayers = { ...state.players };
-      for (const vid of virtualIds) {
-        // Only remove clubs that were ephemeral injections (they start with 'virtual-')
-        if (vid.startsWith('virtual-') && newClubs[vid]) {
-          // Remove ephemeral players belonging to this club
-          const club = newClubs[vid];
-          if (club.playerIds) {
-            for (const pid of club.playerIds) {
-              delete newPlayers[pid];
-            }
-          }
-          delete newClubs[vid];
-        }
-      }
-      set({
-        clubs: newClubs, players: newPlayers,
-        halfTimeState: null, currentMatchWeather: null, matchPhase: 'none' as const,
-        currentCupTieId: null, currentLeagueCupTieId: null,
-        currentContinentalMatchId: null, currentContinentalCompetition: null,
-        matchSubsUsed: 0,
-      });
-    } else {
-      // No virtual clubs to clean — just reset match tracking state
-      set({
-        halfTimeState: null, currentMatchWeather: null, matchPhase: 'none' as const,
-        currentCupTieId: null, currentLeagueCupTieId: null,
-        currentContinentalMatchId: null, currentContinentalCompetition: null,
-        matchSubsUsed: 0,
-      });
+    const newClubs = { ...state.clubs };
+    const newPlayers = { ...state.players };
+    let mutated = false;
+    for (const vid of virtualIds) {
+      if (!newClubs[vid]) continue;
+      if (state.fixtures.some(f => f.homeClubId === vid || f.awayClubId === vid)) continue;
+      delete newClubs[vid];
+      mutated = true;
     }
+    for (const pid of Object.keys(newPlayers)) {
+      if (pid.startsWith('vc-')) {
+        delete newPlayers[pid];
+        mutated = true;
+      }
+    }
+    set({
+      ...(mutated ? { clubs: newClubs, players: newPlayers } : {}),
+      halfTimeState: null, currentMatchWeather: null, matchPhase: 'none' as const,
+      currentCupTieId: null, currentLeagueCupTieId: null,
+      currentContinentalMatchId: null, currentContinentalCompetition: null,
+      matchSubsUsed: 0,
+    });
   },
 
   resetGame: (slot?: number) => {

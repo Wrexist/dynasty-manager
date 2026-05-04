@@ -125,8 +125,14 @@ describe('orchestrationSlice — cleanupAbandonedMatch', () => {
   });
 
   it('removes ephemeral virtual clubs and their players', () => {
+    // Production uses real club IDs as virtualClubs keys (no synthetic prefix —
+    // see continentalDraw.ts) and `vc-<clubId>-<playerId>` for ephemeral
+    // player IDs (see createEphemeralClub in utils/continental.ts). The
+    // cleanup must match those exact conventions.
+    const VC_CLUB_ID = 'continental-test-fc';
+    const VC_PLAYER_ID = `vc-${VC_CLUB_ID}-p1`;
     const fakePlayer: Player = {
-      id: 'virtual-p1', clubId: 'virtual-1', firstName: 'V', lastName: 'X',
+      id: VC_PLAYER_ID, clubId: VC_CLUB_ID, firstName: 'V', lastName: 'X',
       age: 25, position: 'GK', overall: 75, potential: 80, form: 70, morale: 70,
       fitness: 100, injured: false, contractEnd: 2030, wage: 1000, value: 100000,
       goals: 0, assists: 0, appearances: 0,
@@ -135,23 +141,23 @@ describe('orchestrationSlice — cleanupAbandonedMatch', () => {
       nationality: 'XX', personality: 'professional',
     } as unknown as Player;
     const fakeClub: Club = {
-      id: 'virtual-1', name: 'V FC', shortName: 'V', color: '#000', secondaryColor: '#fff',
+      id: VC_CLUB_ID, name: 'V FC', shortName: 'V', color: '#000', secondaryColor: '#fff',
       budget: 0, wageBill: 0, reputation: 50, facilities: 1, youthRating: 1, fanBase: 1000,
-      boardPatience: 50, playerIds: ['virtual-p1'], formation: '4-3-3', lineup: [], subs: [],
+      boardPatience: 50, playerIds: [VC_PLAYER_ID], formation: '4-3-3', lineup: [], subs: [],
       divisionId: 'div-1', stadiumName: 'V Stadium', stadiumCapacity: 1000,
     } as unknown as Club;
 
     useGameStore.setState({
       matchPhase: 'first_half',
-      virtualClubs: { 'virtual-1': { id: 'virtual-1', name: 'V FC' } as never },
-      clubs: { ...useGameStore.getState().clubs, 'virtual-1': fakeClub },
-      players: { ...useGameStore.getState().players, 'virtual-p1': fakePlayer },
+      virtualClubs: { [VC_CLUB_ID]: { id: VC_CLUB_ID, name: 'V FC' } as never },
+      clubs: { ...useGameStore.getState().clubs, [VC_CLUB_ID]: fakeClub },
+      players: { ...useGameStore.getState().players, [VC_PLAYER_ID]: fakePlayer },
     });
 
     useGameStore.getState().cleanupAbandonedMatch();
     const s = useGameStore.getState();
-    expect(s.clubs['virtual-1']).toBeUndefined();
-    expect(s.players['virtual-p1']).toBeUndefined();
+    expect(s.clubs[VC_CLUB_ID]).toBeUndefined();
+    expect(s.players[VC_PLAYER_ID]).toBeUndefined();
     expect(s.matchPhase).toBe('none');
   });
 });

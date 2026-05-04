@@ -443,6 +443,7 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
     : leagueCupTie ? `League Cup — ${leagueCupTie.round}`
     : continentalComp === 'champions_cup' ? 'Champions Cup'
     : continentalComp === 'shield_cup' ? 'Shield Cup'
+    : continentalComp === 'conference_cup' ? 'Conference Cup'
     : superCup ? (superCup.type === 'domestic' ? 'Super Cup' : 'Continental Super Cup')
     : null;
 
@@ -960,6 +961,7 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
     : leagueCupTie ? `League Cup — ${leagueCupTie.round}`
     : champMatch && continentalTourney ? getContinentalMatchLabel('Champions Cup', champMatch, continentalTourney)
     : shieldMatch && continentalTourney ? getContinentalMatchLabel('Shield Cup', shieldMatch, continentalTourney)
+    : confMatch && continentalTourney ? getContinentalMatchLabel('Conference Cup', confMatch, continentalTourney)
     : superCup ? (superCup.type === 'domestic' ? 'Super Cup' : 'Continental Super Cup')
     : null;
   set({
