@@ -59,10 +59,17 @@ function processTournamentResult(
   for (const pid of Object.keys(realPlayers)) {
     if (pid.startsWith('vc-')) delete realPlayers[pid];
   }
-  // Also clean ephemeral club from clubs
+  // Also clean ephemeral club from clubs. `state.virtualClubs` may contain real loaded
+  // clubs from other divisions (continental qualifiers); a club is ephemeral iff it isn't
+  // registered in any loaded `divisionClubs`. A fixture-only guard would wrongly delete
+  // real cross-division loaded clubs (e.g. cup winners from a non-player league).
+  const loadedClubIds = new Set<string>();
+  for (const ids of Object.values(state.divisionClubs || {})) {
+    for (const id of ids) loadedClubIds.add(id);
+  }
   const realClubs = { ...state.clubs };
   for (const cid of Object.keys(realClubs)) {
-    if ((state.virtualClubs || {})[cid] && !state.fixtures.some(f => f.homeClubId === cid || f.awayClubId === cid)) {
+    if ((state.virtualClubs || {})[cid] && !loadedClubIds.has(cid)) {
       delete realClubs[cid];
     }
   }
@@ -254,9 +261,15 @@ function processTournamentResultWithWinner(
   for (const pid of Object.keys(realPlayers)) {
     if (pid.startsWith('vc-')) delete realPlayers[pid];
   }
+  // See processTournamentResult: real loaded clubs from other divisions can appear in
+  // `virtualClubs`; only delete clubs that aren't registered in any loaded division.
+  const loadedClubIds = new Set<string>();
+  for (const ids of Object.values(state.divisionClubs || {})) {
+    for (const id of ids) loadedClubIds.add(id);
+  }
   const realClubs = { ...state.clubs };
   for (const cid of Object.keys(realClubs)) {
-    if ((state.virtualClubs || {})[cid] && !state.fixtures.some(f => f.homeClubId === cid || f.awayClubId === cid)) {
+    if ((state.virtualClubs || {})[cid] && !loadedClubIds.has(cid)) {
       delete realClubs[cid];
     }
   }
@@ -414,7 +427,12 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
     }
     const oppId = homeId === playerClubId ? awayId : homeId;
     const vc = (state.virtualClubs || {})[oppId];
-    if (vc) {
+    // Only create an ephemeral club when the opponent isn't already loaded.
+    // When `vc` is the player's own loaded league (cup winner / cross-division
+    // qualifier), `clubs[oppId]` is the real club — generating an ephemeral
+    // copy would overwrite its real squad/budget on `set({ clubs })` and the
+    // post-match `vc-*` player sweep would then strand its `playerIds`.
+    if (vc && !clubs[oppId]) {
       ephemeralClub = createEphemeralClub(vc, season, state.communityPackEnabled);
       effectiveClubs = { ...clubs, [oppId]: ephemeralClub.club };
       effectivePlayers = { ...players, ...ephemeralClub.players };
@@ -425,7 +443,7 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   } else if (superCup) {
     const oppId = superCup.homeClubId === playerClubId ? superCup.awayClubId : superCup.homeClubId;
     const vc = (state.virtualClubs || {})[oppId];
-    if (vc) {
+    if (vc && !clubs[oppId]) {
       ephemeralClub = createEphemeralClub(vc, season, state.communityPackEnabled);
       effectiveClubs = { ...clubs, [oppId]: ephemeralClub.club };
       effectivePlayers = { ...players, ...ephemeralClub.players };
@@ -873,10 +891,11 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
       }
       matchId = tie.id;
     }
-    // Create ephemeral club for the continental opponent
+    // Create ephemeral club for the continental opponent — only when the
+    // opponent isn't already a loaded real club (see playCurrentMatchImpl).
     const oppId = homeId === playerClubId ? awayId : homeId;
     const vc = (state.virtualClubs || {})[oppId];
-    if (vc) {
+    if (vc && !clubs[oppId]) {
       ephemeralClub = createEphemeralClub(vc, season, state.communityPackEnabled);
       effectiveClubs = { ...clubs, [oppId]: ephemeralClub.club };
       effectivePlayers = { ...players, ...ephemeralClub.players };
@@ -887,7 +906,7 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   } else if (superCup) {
     const oppId = superCup.homeClubId === playerClubId ? superCup.awayClubId : superCup.homeClubId;
     const vc = (state.virtualClubs || {})[oppId];
-    if (vc) {
+    if (vc && !clubs[oppId]) {
       ephemeralClub = createEphemeralClub(vc, season, state.communityPackEnabled);
       effectiveClubs = { ...clubs, [oppId]: ephemeralClub.club };
       effectivePlayers = { ...players, ...ephemeralClub.players };
