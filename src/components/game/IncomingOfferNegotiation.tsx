@@ -12,6 +12,7 @@ import { FlagIcon } from '@/components/game/FlagIcon';
 import { INCOMING_NEGOTIATE_MAX_MULTIPLIER, NEGOTIATION_MAX_STRIKES } from '@/config/transfers';
 import { StrikeIndicator } from '@/components/game/StrikeIndicator';
 import { PlayerCard } from '@/components/game/PlayerCard';
+import { hapticError, hapticHeavy, hapticLight, hapticMedium, hapticSuccess, hapticWarning } from '@/utils/haptics';
 import {
   X, Banknote, Users, Shield, ArrowRight, RotateCcw, Handshake, XCircle, Lock,
 } from 'lucide-react';
@@ -80,6 +81,7 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
   []);
 
   const handleSubmitCounter = useCallback((fee: number) => {
+    hapticMedium();
     setPhase('thinking');
     setFinalFee(fee);
     timersRef.current.push(setTimeout(() => {
@@ -102,6 +104,7 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
 
   const handleAcceptBuyerCounter = useCallback(() => {
     if (!buyerCounterFee) return;
+    hapticHeavy();
     const fee = buyerCounterFee;
     setPhase('thinking');
     setFinalFee(fee);
@@ -119,11 +122,29 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
   }, [buyerCounterFee, offer.id, acceptIncomingOfferAtFee, strikeKey, clearNegotiationStrikes]);
 
   const handleRevise = useCallback(() => {
+    hapticLight();
     setPhase('negotiate');
     setOutcome(null);
     setResultMessage('');
     setBuyerCounterFee(null);
   }, []);
+
+  const handleClose = useCallback(() => {
+    hapticLight();
+    onClose();
+  }, [onClose]);
+
+  // Result reveal haptic — accepted = success ding, rejected = error buzz,
+  // counter = warning tick. Fires once per result transition.
+  const lastFeltOutcomeRef = useRef<Outcome | null>(null);
+  useEffect(() => {
+    if (phase !== 'result' || !outcome) return;
+    if (lastFeltOutcomeRef.current === outcome) return;
+    lastFeltOutcomeRef.current = outcome;
+    if (outcome === 'accepted') hapticSuccess();
+    else if (outcome === 'rejected') hapticError();
+    else if (outcome === 'counter') hapticWarning();
+  }, [phase, outcome]);
 
   if (!player || !buyerClub || !sellerClub) return null;
 
@@ -187,7 +208,7 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
                     <StrikeIndicator strikes={NEGOTIATION_MAX_STRIKES} latestOutcome={null} />
                     <button
                       type="button"
-                      onClick={onClose}
+                      onClick={handleClose}
                       className="w-full py-3 rounded-xl text-sm font-bold text-muted-foreground bg-muted/30 hover:bg-muted/50 active:scale-[0.98] transition-all mt-2"
                     >
                       Close
@@ -202,7 +223,7 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
                     <p className="text-sm font-bold text-foreground font-display">Counter-Offer</p>
                     {strikeCount > 0 && <StrikeIndicator strikes={strikeCount} latestOutcome={null} />}
                   </div>
-                  <button type="button" onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-muted/50 transition-colors">
+                  <button type="button" onClick={handleClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-muted/50 transition-colors">
                     <X className="w-4 h-4 text-muted-foreground" />
                   </button>
                 </div>
@@ -485,7 +506,7 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
                 </motion.div>
 
                 <motion.button
-                  onClick={onClose}
+                  onClick={handleClose}
                   className="w-full py-3 rounded-xl text-sm font-bold bg-emerald-600 text-white hover:bg-emerald-700 active:scale-[0.98] transition-all mt-1 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -556,7 +577,7 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
                 >
                   <button
                     type="button"
-                    onClick={onClose}
+                    onClick={handleClose}
                     className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-muted-foreground bg-muted/30 hover:bg-muted/50 active:scale-[0.98] transition-all"
                   >
                     Walk Away
@@ -640,7 +661,7 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
                 >
                   <button
                     type="button"
-                    onClick={onClose}
+                    onClick={handleClose}
                     className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-muted-foreground bg-muted/30 hover:bg-muted/50 active:scale-[0.98] transition-all"
                   >
                     Walk Away
@@ -673,7 +694,7 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={handleClose}
                   className="flex-1 py-3 rounded-xl text-sm font-semibold text-muted-foreground bg-muted/30 hover:bg-muted/50 active:scale-[0.98] transition-all"
                 >
                   Cancel

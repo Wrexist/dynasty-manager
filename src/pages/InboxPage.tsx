@@ -9,6 +9,7 @@ import type { MessageColorScheme } from '@/types/game';
 import { TRANSFER_TALK_RETRY_WEEKS } from '@/config/personality';
 import { STORYLINE_CHAINS } from '@/data/storylineChains';
 import { PageHint } from '@/components/game/PageHint';
+import { hapticLight, hapticMedium } from '@/utils/haptics';
 
 const typeIcon: Record<Message['type'], React.ElementType> = {
   match_preview: Trophy,
@@ -136,6 +137,7 @@ const InboxPage = () => {
   }, [filterOpen]);
 
   const toggleFilter = (label: string) => {
+    hapticLight();
     setActiveFilters(prev => {
       const next = new Set(prev);
       if (next.has(label)) next.delete(label);
@@ -175,8 +177,10 @@ const InboxPage = () => {
   const hasActiveFilter = activeFilters.size > 0 || unreadOnly;
   const activeCount = activeFilters.size + (unreadOnly ? 1 : 0);
 
-  // Filter-aware mark all read
+  // Filter-aware mark all read — hapticMedium because it's a commit across
+  // potentially many messages (more weight than a single tap).
   const handleMarkAllRead = () => {
+    hapticMedium();
     if (hasActiveFilter) {
       filtered.forEach(m => { if (!m.read) markMessageRead(m.id); });
     } else {
@@ -185,6 +189,7 @@ const InboxPage = () => {
   };
 
   const clearAllFilters = () => {
+    hapticLight();
     setActiveFilters(new Set());
     setUnreadOnly(false);
   };
@@ -253,7 +258,7 @@ const InboxPage = () => {
           cluttering the empty state with controls that can't do anything. */}
       <div className={cn('relative', messages.length === 0 && 'hidden')} ref={dropdownRef}>
         <button
-          onClick={() => setFilterOpen(prev => !prev)}
+          onClick={() => { hapticLight(); setFilterOpen(prev => !prev); }}
           className={cn(
             'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all',
             hasActiveFilter
@@ -276,7 +281,7 @@ const InboxPage = () => {
             <div className="p-2 space-y-0.5">
               {/* Unread only toggle */}
               <button
-                onClick={() => setUnreadOnly(prev => !prev)}
+                onClick={() => { hapticLight(); setUnreadOnly(prev => !prev); }}
                 className={cn(
                   'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs transition-colors',
                   unreadOnly ? 'bg-primary/15 text-foreground' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
@@ -635,7 +640,7 @@ const InboxPage = () => {
                             <div className="flex items-center gap-1.5">
                               {msg.playerId && players[msg.playerId] && !hasTransferTalk && (
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); selectPlayer(msg.playerId!); }}
+                                  onClick={(e) => { e.stopPropagation(); hapticLight(); selectPlayer(msg.playerId!); }}
                                   className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all hover:brightness-125 bg-primary/10 text-primary"
                                 >
                                   View Player <ExternalLink className="w-3 h-3" />
@@ -643,7 +648,7 @@ const InboxPage = () => {
                               )}
                               {hasTransferTalk ? (
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); openTransferTalk(msg.playerId!); setScreen('dashboard'); }}
+                                  onClick={(e) => { e.stopPropagation(); hapticMedium(); openTransferTalk(msg.playerId!); setScreen('dashboard'); }}
                                   className={cn(
                                     'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all hover:brightness-125',
                                     colors.iconBg, colors.iconText
@@ -653,7 +658,7 @@ const InboxPage = () => {
                                 </button>
                               ) : action ? (
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); if (action.screen === 'match-review') loadMatchForReview(msg.week); setScreen(action.screen); }}
+                                  onClick={(e) => { e.stopPropagation(); hapticLight(); if (action.screen === 'match-review') loadMatchForReview(msg.week); setScreen(action.screen); }}
                                   className={cn(
                                     'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all hover:brightness-125',
                                     colors.iconBg, colors.iconText

@@ -1,8 +1,9 @@
+import { useEffect, useRef } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { Button } from '@/components/ui/button';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { cn } from '@/lib/utils';
-import { hapticMedium } from '@/utils/haptics';
+import { hapticError, hapticLight, hapticSuccess } from '@/utils/haptics';
 import type { PenaltyKick } from '@/types/game';
 
 function PenaltyMark({ scored }: { scored: boolean }) {
@@ -41,12 +42,30 @@ export function PenaltyShootout() {
   const revealIndex = useGameStore(s => s.penaltyShootoutRevealIndex);
   const revealNext = useGameStore(s => s.revealNextPenaltyKick);
   const skipAll = useGameStore(s => s.skipPenaltyShootout);
+  const playerClubId = useGameStore(s => s.playerClubId);
+  const currentMatchResult = useGameStore(s => s.currentMatchResult);
 
   const revealed = kicks.slice(0, revealIndex);
   const allRevealed = revealIndex >= kicks.length;
   const lastKick = revealed[revealed.length - 1];
   const homeScore = lastKick?.homeTotal ?? 0;
   const awayScore = lastKick?.awayTotal ?? 0;
+
+  // Differentiated haptic on each new kick reveal — your striker scoring is
+  // different from your goalkeeper saving. Player team goal / opponent miss
+  // = success; player team miss / opponent goal = error. Matches the live-
+  // match scoring pattern (hapticSuccess on userScored, hapticHeavy on opp).
+  const lastFeltIndexRef = useRef(0);
+  useEffect(() => {
+    if (!lastKick || !currentMatchResult) return;
+    if (revealIndex <= lastFeltIndexRef.current) return;
+    lastFeltIndexRef.current = revealIndex;
+    const isPlayerHome = currentMatchResult.homeClubId === playerClubId;
+    const isPlayerKick = lastKick.isHome === isPlayerHome;
+    const goodForPlayer = isPlayerKick ? lastKick.scored : !lastKick.scored;
+    if (goodForPlayer) hapticSuccess();
+    else hapticError();
+  }, [revealIndex, lastKick, currentMatchResult, playerClubId]);
 
   // Group kicks by round for display
   const rounds: { round: number; home?: PenaltyKick; away?: PenaltyKick }[] = [];
@@ -86,10 +105,10 @@ export function PenaltyShootout() {
       {/* Actions */}
       {!allRevealed ? (
         <div className="flex gap-2">
-          <Button className="flex-1" onClick={() => { hapticMedium(); revealNext(); }}>
+          <Button className="flex-1" onClick={() => { hapticLight(); revealNext(); }}>
             Next Kick
           </Button>
-          <Button variant="outline" className="flex-1" onClick={skipAll}>
+          <Button variant="outline" className="flex-1" onClick={() => { hapticLight(); skipAll(); }}>
             Skip to Result
           </Button>
         </div>

@@ -190,6 +190,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
   };
 
   const handleCancel = () => {
+    hapticLight();
     if (selectedInId) {
       setSelectedInId(null);
     } else if (selectedOutId) {
@@ -556,7 +557,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
                 ? `${injuredPlayer.lastName} is injured but you have no substitutions left. Your team will continue with 10 players.`
                 : 'All 5 substitutions have been used. No more changes can be made.'}
             </p>
-            <Button className="w-full max-w-xs" onClick={() => onDismissWithoutSub?.()}>
+            <Button className="w-full max-w-xs" onClick={() => { hapticLight(); onDismissWithoutSub?.(); }}>
               Acknowledge
             </Button>
           </div>
@@ -607,7 +608,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
               {/* Force mode: "Continue without sub" option */}
               {forceMode && (
                 <button
-                  onClick={() => onDismissWithoutSub?.()}
+                  onClick={() => { hapticLight(); onDismissWithoutSub?.(); }}
                   className="w-full mt-3 py-2.5 rounded-lg bg-muted/20 border border-border/30 text-xs text-muted-foreground hover:bg-muted/40 transition-colors flex items-center justify-center gap-1.5"
                 >
                   <AlertCircle className="w-3 h-3" /> Continue without substitution
