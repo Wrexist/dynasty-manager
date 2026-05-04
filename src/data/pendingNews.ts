@@ -55,6 +55,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Add annual subscription tier and localized pricing support.',
     'Disable ads + ATT for v1 to unblock App Review.',
     'Restore GADApplicationIdentifier — AdMob SDK crashes withou….',
+    'Protect cross-division loaded clubs from cleanup.',
   ],
   fixed: [],
   headline: null,
