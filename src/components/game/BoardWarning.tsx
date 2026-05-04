@@ -1,6 +1,8 @@
 import { motion } from 'framer-motion';
+import { useEffect } from 'react';
 import { AlertTriangle, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { hapticError, hapticLight, hapticWarning } from '@/utils/haptics';
 
 interface BoardWarningProps {
   confidence: number;
@@ -58,6 +60,16 @@ const SEVERITY_STYLES = {
 
 export function BoardWarning({ confidence, onDismiss }: BoardWarningProps) {
   const warning = getWarningLevel(confidence);
+  // Critical = error notification (the buzz that says "something is broken").
+  // Caution + danger = warning notification (the gentler "watch out" tick).
+  // Re-fires only when severity changes, not on every render.
+  const severity = warning?.severity;
+  useEffect(() => {
+    if (!severity) return;
+    if (severity === 'critical') hapticError();
+    else hapticWarning();
+  }, [severity]);
+
   if (!warning) return null;
 
   const styles = SEVERITY_STYLES[warning.severity];
@@ -86,7 +98,7 @@ export function BoardWarning({ confidence, onDismiss }: BoardWarningProps) {
             <p className={cn('text-xs font-black uppercase tracking-wider', styles.title)}>
               {warning.title}
             </p>
-            <button type="button" onClick={onDismiss} className="p-2 -mr-1 hover:bg-muted/30 rounded transition-colors">
+            <button type="button" onClick={() => { hapticLight(); onDismiss(); }} className="p-2 -mr-1 hover:bg-muted/30 rounded transition-colors">
               <X className="w-3.5 h-3.5 text-muted-foreground" />
             </button>
           </div>
