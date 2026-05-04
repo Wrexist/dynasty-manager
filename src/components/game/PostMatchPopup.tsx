@@ -12,6 +12,7 @@ import { getSuffix } from '@/utils/helpers';
 import { getMatchRatingColor } from '@/utils/uiHelpers';
 import { RotateCcw } from 'lucide-react';
 import { useScrollLock } from '@/hooks/useScrollLock';
+import { hapticHeavy, hapticLight } from '@/utils/haptics';
 
 interface PostMatchPopupProps {
   onContinue: () => void;
@@ -224,13 +225,13 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
 
           {lost && hasPerk(managerProgression, 'invincible') && !invincibleUsedThisSeason && preMatchSnapshot && (
             <button
-              onClick={() => rewindMatch()}
+              onClick={() => { hapticHeavy(); rewindMatch(); }}
               className="w-full flex items-center justify-center gap-2 h-10 mb-2 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-400 text-sm font-bold hover:bg-amber-500/25 transition-all"
             >
               <RotateCcw className="w-4 h-4" /> Rewind Match (1 per season)
             </button>
           )}
-          <Button className="w-full h-11 text-sm font-bold" onClick={onContinue}>
+          <Button className="w-full h-11 text-sm font-bold" onClick={() => { hapticLight(); onContinue(); }}>
             Continue
           </Button>
         </GlassPanel>

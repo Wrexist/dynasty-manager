@@ -6,6 +6,7 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import type { PressResponseTone } from '@/types/game';
 import { isPro } from '@/utils/monetization';
 import { ProUpsell } from '@/components/game/ProUpsell';
+import { hapticLight, hapticMedium } from '@/utils/haptics';
 
 const TONE_STYLES: Record<PressResponseTone, { label: string; color: string; icon: string }> = {
   confident: { label: 'Bold', color: 'border-primary/50 hover:bg-primary/10', icon: 'dumbbell' },
@@ -39,7 +40,7 @@ export function PressConference() {
           </div>
         </div>
         <button
-          onClick={dismissPress}
+          onClick={() => { hapticLight(); dismissPress(); }}
           className="p-1.5 rounded-lg hover:bg-muted/50 transition-colors"
           title="Skip (small penalty)"
         >
@@ -67,7 +68,7 @@ export function PressConference() {
           return (
             <button
               key={option.tone}
-              onClick={() => respondToPress(option.tone)}
+              onClick={() => { hapticMedium(); respondToPress(option.tone); }}
               className={cn(
                 'w-full text-left p-3 rounded-lg border transition-all active:scale-[0.98]',
                 style.color

@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect } from 'react';
 import { X } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { Button } from '@/components/ui/button';
@@ -6,6 +7,7 @@ import { useScrollLock } from '@/hooks/useScrollLock';
 import { cn } from '@/lib/utils';
 import type { Achievement } from '@/utils/achievements';
 import { getTierColor, getTierBgColor, getAchievementXP } from '@/utils/achievements';
+import { hapticSuccess } from '@/utils/haptics';
 
 interface AchievementUnlockModalProps {
   open: boolean;
@@ -48,6 +50,12 @@ function Sparkle({ index: _index }: { index: number }) {
 
 export function AchievementUnlockModal({ open, onClose, achievement }: AchievementUnlockModalProps) {
   useScrollLock(open);
+
+  // Match the CelebrationModal pattern — fire one success notification haptic
+  // exactly when the modal opens, in time with the badge spring-in.
+  useEffect(() => {
+    if (open && achievement) hapticSuccess();
+  }, [open, achievement]);
 
   if (!achievement) return null;
 
