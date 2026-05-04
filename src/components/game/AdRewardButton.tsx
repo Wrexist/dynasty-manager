@@ -6,7 +6,7 @@ import { isPro, canClaimAdReward } from '@/utils/monetization';
 import { AD_REWARDS } from '@/config/monetization';
 import type { AdRewardType } from '@/types/game';
 import { hapticLight } from '@/utils/haptics';
-import { showRewardedAd } from '@/utils/ads';
+import { NATIVE_ADS_READY, showRewardedAd } from '@/utils/ads';
 
 interface AdRewardButtonProps {
   rewardType: AdRewardType;
@@ -30,6 +30,10 @@ export function AdRewardButton({ rewardType, onRewardClaimed, claimContext, clas
   const canClaim = canClaimAdReward(monetization, rewardType, season, claimContext);
 
   if (!canClaim) return null;
+  // V1: ads are disabled. Hide the "Watch Ad" affordance from free users so
+  // they don't tap a button that can't deliver. Pro users keep the instant
+  // "Claim" path because it doesn't depend on an ad.
+  if (!userIsPro && !NATIVE_ADS_READY) return null;
 
   const reward = AD_REWARDS[rewardType];
 

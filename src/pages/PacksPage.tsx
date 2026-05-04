@@ -17,7 +17,7 @@ import { formatMoney } from '@/utils/helpers';
 import { cn } from '@/lib/utils';
 import { errorToast, infoToast, successToast } from '@/utils/gameToast';
 import type { Player } from '@/types/game';
-import { showRewardedAd } from '@/utils/ads';
+import { NATIVE_ADS_READY, showRewardedAd } from '@/utils/ads';
 import { purchaseConsumable } from '@/utils/purchases';
 
 function playerTier(ovr: number) {
@@ -152,6 +152,9 @@ const PacksPage = () => {
     return Math.max(0, cap - usedToday(tier).free);
   };
   const adRemaining = (tier: PackTierDefinition): number => {
+    // V1: ads are disabled at the native layer, so the ad-unlock path is
+    // never offered. Re-enables automatically when NATIVE_ADS_READY flips.
+    if (!NATIVE_ADS_READY) return 0;
     const cap = tier.adDailyLimit ?? 0;
     if (cap === 0) return 0;
     return Math.max(0, cap - usedToday(tier).ad);

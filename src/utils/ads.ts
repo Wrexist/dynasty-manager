@@ -2,10 +2,12 @@
  * AdMob rewarded ad wrapper for Dynasty Manager.
  * All ads are opt-in only — the player chooses to watch for a reward.
  *
- * SETUP REQUIRED:
- * 1. Create an AdMob account at https://admob.google.com
- * 2. Create a rewarded ad unit for iOS and Android
- * 3. Replace the placeholder ad unit IDs below with your real IDs
+ * V1 STATUS: ads are disabled. NATIVE_ADS_READY = false keeps the SDK
+ * dormant (no AdMob.initialize, no plist reads, no ATT prompt). The iOS
+ * Info.plist also has NSUserTrackingUsageDescription / GADApplicationIdentifier
+ * / SKAdNetworkItems removed to match. Re-enable in a future build by
+ * flipping the flag, restoring the plist keys, and updating App Privacy
+ * to declare tracking via Device ID for Third-Party Advertising.
  */
 
 import { Capacitor } from '@capacitor/core';
@@ -14,12 +16,14 @@ import { Capacitor } from '@capacitor/core';
 const REWARDED_AD_UNIT_IOS = import.meta.env.VITE_ADMOB_REWARDED_IOS || 'ca-app-pub-3940256099942544/1712485313';
 const REWARDED_AD_UNIT_ANDROID = import.meta.env.VITE_ADMOB_REWARDED_ANDROID || 'ca-app-pub-3940256099942544/5224354917';
 
-/** Set to true once production AdMob IDs are configured and native plugin restored. */
-const NATIVE_ADS_READY = true;
+/** Set to true once production AdMob IDs are configured, the iOS Info.plist
+ *  re-includes NSUserTrackingUsageDescription / GADApplicationIdentifier /
+ *  SKAdNetworkItems, and App Privacy declares tracking. */
+export const NATIVE_ADS_READY = false;
 
-let adInitialized = true;
+let adInitialized = false;
 
-/** Initialize the AdMob SDK. Call once at app startup. */
+/** Initialize the AdMob SDK. Call once at app startup. No-op when ads are disabled. */
 export async function initAds(): Promise<void> {
   if (adInitialized) return;
   if (!Capacitor.isNativePlatform() || !NATIVE_ADS_READY) {
@@ -48,10 +52,11 @@ export async function initAds(): Promise<void> {
   }
 }
 
-/** Show a rewarded ad. Resolves true if the user watched the full ad. */
+/** Show a rewarded ad. Resolves true if the user watched the full ad,
+ *  false if the ad couldn't load or ads are disabled in this build. */
 export async function showRewardedAd(): Promise<boolean> {
   if (!Capacitor.isNativePlatform() || !NATIVE_ADS_READY) {
-    return true;
+    return false;
   }
 
   try {
