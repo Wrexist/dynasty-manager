@@ -1,97 +1,47 @@
 /**
- * AdMob rewarded ad wrapper for Dynasty Manager.
- * All ads are opt-in only — the player chooses to watch for a reward.
+ * Ads stub for Dynasty Manager.
  *
- * V1 STATUS: ads are disabled at the JS layer. NATIVE_ADS_READY = false
- * keeps AdMob.initialize() from being called, so no ATT prompt fires and
- * no ad requests go out.
+ * V1 STATUS: ads are disabled at every layer. The Google Mobile Ads SDK
+ * (`@capacitor-community/admob`) was previously linked but dormant — its
+ * internal `GADApplicationVerifyPublisherInitializedCorrectly` check fired
+ * from a background dispatch block at launch and crashed TestFlight builds
+ * because `[GADMobileAds.sharedInstance startWithCompletionHandler:]` was
+ * never called. Adding `GADApplicationIdentifier` to Info.plist alone is no
+ * longer enough on GMA SDK v12+; the SDK requires a real `start()` call.
  *
- * iOS Info.plist on this branch:
- *   - NSUserTrackingUsageDescription: KEPT — App Store review error 90683
- *     requires this string because the bundled AdMob SDK references the
- *     ATT API, even though we never call requestTrackingAuthorization()
- *     while NATIVE_ADS_READY is false. Localized per-locale in
- *     ios/App/App/*.lproj/InfoPlist.strings. Including the string does
- *     not by itself change App Privacy declarations.
- *   - SKAdNetworkItems:               REMOVED (no ad attribution networks)
- *   - GADApplicationIdentifier:       KEPT — the Google Mobile Ads SDK
- *     crashes the app on launch if this key is missing, even when
- *     AdMob.initialize() is never called. Keeping it does not enable
- *     tracking and does not affect App Review.
+ * Rather than initialize a tracking SDK we don't use, the plugin has been
+ * fully removed for V1. It's gone from `package.json`, from
+ * `ios/App/CapApp-SPM/Package.swift`, and the AdMob-related Info.plist
+ * keys (`GADApplicationIdentifier`, `NSUserTrackingUsageDescription`,
+ * `SKAdNetworkItems`) plus the matching `*.lproj/InfoPlist.strings`
+ * translations have all been deleted — no ATT-using SDK is linked, so
+ * App Store review won't request the purpose string (ITMS-90683 was
+ * caused by AdMob's reference to the ATT API). App Privacy stays "no
+ * tracking" with no linked ad framework.
  *
- * Re-enable ads in a future build by:
- *   1. Flip NATIVE_ADS_READY = true (below)
- *   2. Restore SKAdNetworkItems in Info.plist (NSUserTrackingUsageDescription
- *      is already present)
- *   3. Update App Privacy to declare Device ID -> tracking, Third-Party Ads
- *   4. Update the privacy policy at docs/privacy.html to mention advertising
+ * `NATIVE_ADS_READY = false` keeps every callsite (AdRewardButton, PacksPage)
+ * gracefully gated off. Re-enable ads in a future build by:
+ *   1. `npm install @capacitor-community/admob`
+ *   2. Re-add the package + product to `ios/App/CapApp-SPM/Package.swift`
+ *      (or run `npx cap sync ios` to regenerate it).
+ *   3. Restore `GADApplicationIdentifier`, `NSUserTrackingUsageDescription`,
+ *      and `SKAdNetworkItems` in Info.plist, plus the localized purpose
+ *      strings in `ios/App/App/*.lproj/InfoPlist.strings`.
+ *   4. Update App Privacy to declare Device ID -> tracking, Third-Party Ads
+ *      and the privacy policy at docs/privacy.html.
+ *   5. Replace this file with a real implementation that calls
+ *      `AdMob.initialize()` at startup.
  */
 
-import { Capacitor } from '@capacitor/core';
-
-// Ad unit IDs — set via environment variables for production, falls back to Google's test IDs
-const REWARDED_AD_UNIT_IOS = import.meta.env.VITE_ADMOB_REWARDED_IOS || 'ca-app-pub-3940256099942544/1712485313';
-const REWARDED_AD_UNIT_ANDROID = import.meta.env.VITE_ADMOB_REWARDED_ANDROID || 'ca-app-pub-3940256099942544/5224354917';
-
-/** Set to true once production AdMob IDs are configured, the iOS Info.plist
- *  re-includes SKAdNetworkItems, and App Privacy declares tracking.
- *  NSUserTrackingUsageDescription / GADApplicationIdentifier are already
- *  present so the SDK can be linked without crashing on launch. */
+/** Set to true once AdMob is reinstalled and configured for production. */
 export const NATIVE_ADS_READY = false;
 
-let adInitialized = false;
-
-/** Initialize the AdMob SDK. Call once at app startup. No-op when ads are disabled. */
+/** Initialize the AdMob SDK. No-op while ads are disabled. */
 export async function initAds(): Promise<void> {
-  if (adInitialized) return;
-  if (!Capacitor.isNativePlatform() || !NATIVE_ADS_READY) {
-    adInitialized = true;
-    return;
-  }
-
-  try {
-    const { AdMob } = await import('@capacitor-community/admob');
-
-    // Request tracking authorization first (iOS 14+ ATT requirement).
-    // This must happen before AdMob.initialize() to avoid SDK issues.
-    try { await AdMob.requestTrackingAuthorization(); }
-    catch { /* User denied or not supported — proceed without tracking */ }
-
-    // Wrap in a timeout so a stuck SDK doesn't block app startup forever
-    await Promise.race([
-      AdMob.initialize({ initializeForTesting: import.meta.env.DEV }),
-      new Promise<void>((_, reject) => setTimeout(() => reject(new Error('AdMob init timeout')), 5000)),
-    ]);
-    adInitialized = true;
-  } catch (err) {
-    console.warn('[Ads] Failed to initialize AdMob:', err);
-    // Mark initialized to prevent retry loops — ads simply won't show
-    adInitialized = true;
-  }
+  // Intentionally empty. The plugin is not installed in V1.
 }
 
-/** Show a rewarded ad. Resolves true if the user watched the full ad,
- *  false if the ad couldn't load or ads are disabled in this build. */
+/** Show a rewarded ad. Always resolves false while ads are disabled. */
 export async function showRewardedAd(): Promise<boolean> {
-  if (!Capacitor.isNativePlatform() || !NATIVE_ADS_READY) {
-    return false;
-  }
-
-  try {
-    const { AdMob } = await import('@capacitor-community/admob');
-    const adId = Capacitor.getPlatform() === 'ios' ? REWARDED_AD_UNIT_IOS : REWARDED_AD_UNIT_ANDROID;
-
-    await AdMob.prepareRewardVideoAd({ adId });
-    const result = await AdMob.showRewardVideoAd();
-    // result.type will be 'RewardedAdReward' if user earned the reward
-    return !!result;
-  } catch (err: unknown) {
-    const error = err as { code?: string };
-    if (error.code === 'AD_NOT_READY' || error.code === 'AD_NOT_LOADED') {
-      console.warn('[Ads] No ad available');
-      return false;
-    }
-    if (import.meta.env.DEV) console.error('[Ads] Rewarded ad error:', err);
-    return false;
-  }
+  return false;
 }
