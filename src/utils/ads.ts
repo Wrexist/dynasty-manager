@@ -10,9 +10,13 @@
  * longer enough on GMA SDK v12+; the SDK requires a real `start()` call.
  *
  * Rather than initialize a tracking SDK we don't use, the plugin has been
- * fully removed for V1: it's gone from `package.json`, from
- * `ios/App/CapApp-SPM/Package.swift`, and `GADApplicationIdentifier` has
- * been removed from `ios/App/App/Info.plist`. App Privacy stays "no
+ * fully removed for V1. It's gone from `package.json`, from
+ * `ios/App/CapApp-SPM/Package.swift`, and the AdMob-related Info.plist
+ * keys (`GADApplicationIdentifier`, `NSUserTrackingUsageDescription`,
+ * `SKAdNetworkItems`) plus the matching `*.lproj/InfoPlist.strings`
+ * translations have all been deleted — no ATT-using SDK is linked, so
+ * App Store review won't request the purpose string (ITMS-90683 was
+ * caused by AdMob's reference to the ATT API). App Privacy stays "no
  * tracking" with no linked ad framework.
  *
  * `NATIVE_ADS_READY = false` keeps every callsite (AdRewardButton, PacksPage)
@@ -21,7 +25,8 @@
  *   2. Re-add the package + product to `ios/App/CapApp-SPM/Package.swift`
  *      (or run `npx cap sync ios` to regenerate it).
  *   3. Restore `GADApplicationIdentifier`, `NSUserTrackingUsageDescription`,
- *      and `SKAdNetworkItems` in Info.plist.
+ *      and `SKAdNetworkItems` in Info.plist, plus the localized purpose
+ *      strings in `ios/App/App/*.lproj/InfoPlist.strings`.
  *   4. Update App Privacy to declare Device ID -> tracking, Third-Party Ads
  *      and the privacy policy at docs/privacy.html.
  *   5. Replace this file with a real implementation that calls

@@ -56,6 +56,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Disable ads + ATT for v1 to unblock App Review.',
     'Restore GADApplicationIdentifier — AdMob SDK crashes withou….',
     'Protect cross-division loaded clubs from cleanup.',
+    'Add NSUserTrackingUsageDescription to fix App Store error 90683.',
   ],
   fixed: [],
   headline: null,
