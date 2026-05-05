@@ -57,6 +57,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Restore GADApplicationIdentifier — AdMob SDK crashes withou….',
     'Protect cross-division loaded clubs from cleanup.',
     'Add NSUserTrackingUsageDescription to fix App Store error 90683.',
+    'Remove AdMob plugin to stop GAD launch crash.',
   ],
   fixed: [],
   headline: null,
