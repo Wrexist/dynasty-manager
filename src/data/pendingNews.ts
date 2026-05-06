@@ -55,6 +55,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Add annual subscription tier and localized pricing support.',
     'Protect cross-division loaded clubs from cleanup.',
     'Add launch-crash guardrails so AdMob can\'t regress into the binary.',
+    'Add missing sv.lproj/InfoPlist.strings to unblock TestFlight archive.',
   ],
   fixed: [],
   headline: null,
