@@ -54,6 +54,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Make career resign / job-market path discoverable.',
     'Add annual subscription tier and localized pricing support.',
     'Protect cross-division loaded clubs from cleanup.',
+    'Add launch-crash guardrails so AdMob can\'t regress into the binary.',
   ],
   fixed: [],
   headline: null,
