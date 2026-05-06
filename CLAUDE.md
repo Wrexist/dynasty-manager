@@ -188,6 +188,23 @@ This fetches latest `origin/main` and creates a clean branch. NEVER branch from 
 | `npm run branch -- name` | Create feature branch from latest origin/main |
 | `npm run typecheck` | Standalone TypeScript check |
 
+### ⚠️ Merging ≠ Shipping to TestFlight
+
+**The iOS TestFlight workflow is `workflow_dispatch` only — it does NOT run on `push` to `main`.** Merging a fix into `main` does **not** put it on the user's phone. The TestFlight binary on their device only changes when someone manually triggers `iOS TestFlight Deploy` and waits for the build (~15 min) and TestFlight propagation.
+
+**This bit users hard during the AdMob crash saga (PR #523 → #527 → #528 → #529):** Claude said "the fix is shipped" after merging, but TestFlight build 136 was still on the phone with the crash, because no new build had been triggered.
+
+**When you fix a crash or any user-visible bug, after merging always tell the user:**
+
+> The fix is on `main`, but your TestFlight phone is still running the previous build. To actually deploy:
+>
+> 1. Open https://github.com/Wrexist/dynasty-manager/actions/workflows/ios-testflight.yml
+> 2. Click **"Run workflow"** (top right) → leave `marketing_version` blank → green button
+> 3. Wait ~15 min for the build, then update from TestFlight on your phone
+> 4. The new build's CFBundleVersion will be the GitHub Actions `run_number` (so e.g. 137, 138, …)
+
+**To verify a crash is actually fixed for the user, ask for a new crash report and confirm the version/build number is HIGHER than the last crashing build.** Same build number = same binary = same bug.
+
 ---
 
 ## Project Overview
