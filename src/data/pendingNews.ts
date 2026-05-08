@@ -43,21 +43,18 @@ export interface PendingRelease {
 
 export const PENDING_NEWS: PendingRelease = {
   highlights: [],
-  new: [],
-  improved: [
-    'Rewrite all prompts to match the matured codebase.',
-    'Fix WelcomeOverlay step bounds to prevent undefined access.',
-    'Add privacy policy site for App Store submission.',
-    'Add bulk keep/sell actions to pack opening summary.',
-    'Turn /docs into a marketing + privacy + support site.',
-    'Release hygiene: gate prod console, harden modals & splash.',
-    'Make career resign / job-market path discoverable.',
-    'Add annual subscription tier and localized pricing support.',
-    'Protect cross-division loaded clubs from cleanup.',
-    'Add launch-crash guardrails so AdMob can\'t regress into the binary.',
-    'Add missing sv.lproj/InfoPlist.strings to unblock TestFlight archive.',
+  new: [
+    'Dynasty Pro annual plan added, with localized pricing.',
   ],
-  fixed: [],
+  improved: [
+    'Pack opening summary now has bulk keep and bulk sell actions.',
+    'Resigning your job and the manager job market are easier to find from the menus.',
+  ],
+  fixed: [
+    'Fixed rare launch crashes related to ads.',
+    'Loaded clubs from other divisions are no longer wiped during cleanup.',
+    'Fixed an issue where the welcome tour could fail mid-step.',
+  ],
   headline: null,
   summary: null,
 };
