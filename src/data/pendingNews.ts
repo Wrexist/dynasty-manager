@@ -49,6 +49,7 @@ export const PENDING_NEWS: PendingRelease = {
   improved: [
     'Pack opening summary now has bulk keep and bulk sell actions.',
     'Resigning your job and the manager job market are easier to find from the menus.',
+    'Reorganize pending news and release notes for clarity.',
   ],
   fixed: [
     'Fixed rare launch crashes related to ads.',
