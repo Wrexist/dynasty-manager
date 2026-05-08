@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       marketing_version:
-        description: 'Marketing version, e.g. 1.0.11. Leave blank to use package.json (currently 1.0.10).'
+        description: 'Marketing version, e.g. 1.0.12. Leave blank to use the version in package.json. Must be >= the latest entry in src/data/whatsNew.ts or the build will fail loudly.'
         required: false
         type: string
         default: ''
@@ -54,6 +54,22 @@ jobs:
           sed -i '' "s/CURRENT_PROJECT_VERSION = [0-9]*;/CURRENT_PROJECT_VERSION = ${{ github.run_number }};/g" "$FILE"
 
       - run: npm ci
+
+      # Print the resolved marketing version + build number prominently so
+      # operators can sanity-check what's about to ship from the run summary.
+      - name: Echo resolved version and build number
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          echo "::notice::Shipping marketing_version=${PKG_VERSION} build=${{ github.run_number }}"
+          echo "Marketing version: ${PKG_VERSION}"
+          echo "Build number:      ${{ github.run_number }}"
+
+      # Fail fast if the resolved marketing version is lower than the most
+      # recently sealed entry in whatsNew.ts. This catches the silent-regression
+      # bug where a TestFlight upload lands on an older version train and
+      # disappears from the user's TestFlight view.
+      - name: Guard against marketing version regression
+        run: node scripts/check-marketing-version.mjs
 
       # Fold any pending bullets in src/data/pendingNews.ts into a fresh
       # top entry on src/data/whatsNew.ts. Idempotent — if the current
