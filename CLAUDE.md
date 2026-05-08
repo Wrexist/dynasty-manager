@@ -89,15 +89,35 @@ Steps the workflow performs:
 
 1. Optional `npm version <input>` — bumps `package.json` (runner-only).
 2. `npm ci`.
-3. `npm run whats-new:seal` — folds pending into `whatsNew.ts`.
-4. `node scripts/check-whats-new.mjs --inject-build ${{ github.run_number }}`
+3. **Echo resolved version + build** — prints `marketing_version` and
+   `build_number` as a `::notice::` annotation at the top of the run summary.
+   Sanity-check this matches what you intended *before* the upload step runs.
+4. **Marketing version regression guard** —
+   `node scripts/check-marketing-version.mjs` fails the build if
+   `package.json.version` is lower than the top entry of `src/data/whatsNew.ts`.
+   This blocks the silent-regression bug where TestFlight uploads land on an
+   older version train and disappear from the user's TestFlight view.
+   Locally: `npm run version:check`.
+5. `npm run whats-new:seal` — folds pending into `whatsNew.ts`.
+6. `node scripts/check-whats-new.mjs --inject-build ${{ github.run_number }}`
    — validates the top entry and stamps the real CFBundleVersion.
-5. `npm run build`, `cap sync ios`, `fastlane ios beta`.
+7. `npm run build`, `cap sync ios`, `fastlane ios beta`.
 
 **Runner-only mutations are NOT committed back to `main`.** The pending file
 on `main` keeps whatever bullets were there. If you want a sealed entry to
 live in git after a successful deploy, run `npm run whats-new:seal` locally,
 commit the result, and push.
+
+> **Why the regression guard exists (TestFlight build #142 saga):** The
+> TestFlight binary on the device was 1.0.11/136 (the AdMob-crash build).
+> Someone triggered the workflow with a blank `marketing_version` while
+> `package.json` still read 1.0.10, so the workflow built and uploaded
+> 1.0.10/142. Apple accepted the upload but parked it under a separate older
+> version train, which is invisible from the user's TestFlight view of 1.0.11.
+> The fix was to bump `package.json` to 1.0.12 and re-trigger. The guard now
+> refuses to ship when `package.json.version` < the latest sealed
+> `whatsNew.ts` entry, which catches the common case of "blank input + stale
+> package.json + a more-recent version was shipped via override".
 
 ### Authoring tone (auto-generated voice)
 

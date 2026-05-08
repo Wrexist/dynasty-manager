@@ -1,7 +1,7 @@
 {
   "name": "dynasty-manager",
   "private": true,
-  "version": "1.0.10",
+  "version": "1.0.12",
   "type": "module",
   "engines": {
     "node": ">=18.0.0",
@@ -30,6 +30,7 @@
     "validate-cp": "node scripts/validateCommunityPack.mjs",
     "prepare": "husky",
     "version:sync": "node scripts/sync-version.mjs",
+    "version:check": "node scripts/check-marketing-version.mjs",
     "whats-new": "node scripts/add-whats-new-entry.mjs",
     "whats-new:check": "node scripts/check-whats-new.mjs",
     "whats-new:seal": "node scripts/seal-whats-new.mjs",
