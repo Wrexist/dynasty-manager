@@ -13,6 +13,7 @@ import { hapticMedium } from '@/utils/haptics';
 import { infoToast, successToast, errorToast } from '@/utils/gameToast';
 import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
 import { track } from '@/utils/analytics';
+import { IAP_DISABLED } from '@/utils/featureFlags';
 
 const formatPrice = (usd: number) => `$${usd.toFixed(2)}`;
 
@@ -61,7 +62,16 @@ const ANNUAL_SAVINGS_PCT = Math.round(
   (1 - PRODUCTS['com.dynastymanager.pro.annual'].priceUsd / (PRODUCTS['com.dynastymanager.pro.monthly'].priceUsd * 12)) * 100,
 );
 
-const ShopPage = () => {
+// Screenshot build: when IAPs are disabled, redirect away from the Shop
+// route so direct nav can't surface it. Rendered in place of the full page
+// to keep the heavy ShopPage hooks out of the build path.
+const ShopDisabledRedirect = () => {
+  const setScreen = useGameStore(s => s.setScreen);
+  useEffect(() => { setScreen('dashboard'); }, [setScreen]);
+  return null;
+};
+
+const ShopPageInner = () => {
   const monetization = useGameStore(s => s.monetization);
   const restoreEntitlements = useGameStore(s => s.restoreEntitlements);
   const updateSubscription = useGameStore(s => s.updateSubscription);
@@ -640,5 +650,7 @@ const ShopPage = () => {
     </div>
   );
 };
+
+const ShopPage = IAP_DISABLED ? ShopDisabledRedirect : ShopPageInner;
 
 export default ShopPage;

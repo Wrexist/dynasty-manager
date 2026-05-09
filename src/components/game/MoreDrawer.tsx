@@ -9,6 +9,7 @@ import {
   Settings, MoreHorizontal, ChevronRight, ChevronDown, GitCompare, User, Star, Award, ShoppingBag, Crown, HelpCircle, Globe, Briefcase, Search
 } from 'lucide-react';
 import { hapticLight } from '@/utils/haptics';
+import { IAP_DISABLED } from '@/utils/featureFlags';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { PINNED_DRAWER_SCREENS, DRAWER_PROGRESSIVE_SCREENS, UNEMPLOYED_ALLOWED_SCREENS } from '@/config/navigation';
 import { NEW_PLAYER_DRAWER_WEEK_THRESHOLD } from '@/config/ui';
@@ -329,6 +330,8 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
             let visibleItems = baseItems.filter(i => !hiddenScreens.has(i.screen));
             // Hide club-specific screens when unemployed
             if (isUnemployed) visibleItems = visibleItems.filter(i => UNEMPLOYED_ALLOWED_SCREENS.has(i.screen));
+            // Screenshot build: hide the Shop entry when IAPs are disabled
+            if (IAP_DISABLED) visibleItems = visibleItems.filter(i => i.screen !== 'shop');
 
             if (isSearching) {
               // When searching, show ALL items (including progressive ones) that match
