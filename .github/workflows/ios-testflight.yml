@@ -44,9 +44,17 @@ jobs:
       - name: Trust GitHub SSH host key
         run: ssh-keyscan github.com >> ~/.ssh/known_hosts
 
+      - name: Validate marketing version override
+        if: github.event.inputs.marketing_version != ''
+        env:
+          MARKETING_VERSION: ${{ github.event.inputs.marketing_version }}
+        run: node scripts/check-marketing-version.mjs --candidate "$MARKETING_VERSION"
+
       - name: Override marketing version (only when input is set)
         if: github.event.inputs.marketing_version != ''
-        run: npm version ${{ github.event.inputs.marketing_version }} --no-git-tag-version --allow-same-version
+        env:
+          MARKETING_VERSION: ${{ github.event.inputs.marketing_version }}
+        run: npm version "$MARKETING_VERSION" --no-git-tag-version --allow-same-version
 
       - name: Stamp build number from run number
         run: |
