@@ -9,21 +9,78 @@
   <meta property="og:title" content="Dynasty Manager — Build a footballing dynasty." />
   <meta property="og:description" content="92 clubs, 4 divisions, deep tactics, single-player offline football management — on iPhone and iPad." />
   <meta property="og:type" content="website" />
+  <meta property="og:image" content="icon-192.png" />
   <meta name="theme-color" content="#0b0e15" />
+  <link rel="icon" href="favicon.ico" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=DM+Sans:wght@400;500;600&family=Fraunces:ital,opsz,wght@0,9..144,400;1,9..144,300;1,9..144,400;1,9..144,500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <!-- ====================== SVG ICON DEFINITIONS ====================== -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-tiers" viewBox="0 0 24 24">
+        <rect x="10" y="3" width="4" height="2.5" rx="0.5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <rect x="8"  y="8" width="8" height="2.5" rx="0.5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <rect x="6"  y="13" width="12" height="2.5" rx="0.5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <rect x="4"  y="18" width="16" height="2.5" rx="0.5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      </symbol>
+      <symbol id="i-play" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M10 8.5l5.5 3.5L10 15.5z" fill="currentColor"/>
+      </symbol>
+      <symbol id="i-sliders" viewBox="0 0 24 24">
+        <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M4 6h3M11 6h9"/>
+          <circle cx="9" cy="6" r="1.8"/>
+          <path d="M4 12h9M17 12h3"/>
+          <circle cx="15" cy="12" r="1.8"/>
+          <path d="M4 18h5M13 18h7"/>
+          <circle cx="11" cy="18" r="1.8"/>
+        </g>
+      </symbol>
+      <symbol id="i-swap" viewBox="0 0 24 24">
+        <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 8h14"/>
+          <path d="M15 5l3 3-3 3"/>
+          <path d="M20 16H6"/>
+          <path d="M9 13l-3 3 3 3"/>
+        </g>
+      </symbol>
+      <symbol id="i-leaf" viewBox="0 0 24 24">
+        <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22V11"/>
+          <path d="M12 11C12 7.5 14.5 5 18 5C18 8.5 15.5 11 12 11Z"/>
+          <path d="M12 14C12 11 9.5 9 6 9C6 12 8.5 14 12 14Z"/>
+        </g>
+      </symbol>
+      <symbol id="i-trophy" viewBox="0 0 24 24">
+        <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/>
+          <path d="M7 6H4v2a3 3 0 0 0 3 3"/>
+          <path d="M17 6h3v2a3 3 0 0 1-3 3"/>
+          <path d="M10 16h4v3h-4z"/>
+          <path d="M8 19h8"/>
+        </g>
+      </symbol>
+      <symbol id="i-arrow" viewBox="0 0 24 24">
+        <path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+    </defs>
+  </svg>
+
   <header class="site-header">
     <div class="container">
       <a class="brand" href="index.html">
-        <span class="brand-mark">D</span>
+        <img class="brand-mark" src="logo.png" alt="" width="32" height="32" />
         <span>Dynasty Manager</span>
       </a>
       <nav class="site-nav">
         <a href="#features">Features</a>
+        <a href="#systems">Systems</a>
         <a href="#showcase">In&nbsp;Game</a>
         <a href="#numbers">Scale</a>
         <a href="support.html">Support</a>
@@ -37,7 +94,7 @@
       <div class="container">
         <span class="hero-eyebrow reveal">
           <span class="dot" aria-hidden="true"></span>
-          Coming Soon · iOS · 2026
+          Coming Soon · iPhone &amp; iPad · 2026
         </span>
 
         <h1 class="hero-title reveal delay-1">
@@ -46,19 +103,20 @@
         </h1>
 
         <p class="hero-lead reveal delay-2">
-          Take charge of any of ninety-two clubs across four divisions.
-          Set tactics, develop youth, win cups, and write your legacy
-          across decades of seasons — on iPhone and iPad.
+          From Foundation League obscurity to top-flight glory.
+          Pick a club. Set the tactics. Sign the stars. Win the silverware.
+          Sixteen interlocking systems. Ninety-two clubs. Infinite seasons —
+          entirely on device, entirely offline.
         </p>
 
         <div class="hero-cta-row reveal delay-3">
           <a class="btn-primary" href="#features">
             See what's inside
-            <span aria-hidden="true">→</span>
+            <svg width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg>
           </a>
           <a class="btn-ghost" href="support.html">
             Get on the early access list
-            <span class="arrow" aria-hidden="true">→</span>
+            <svg class="arrow" width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg>
           </a>
         </div>
 
@@ -74,6 +132,29 @@
       </div>
     </section>
 
+    <!-- ========================= VALUE STRIP ========================= -->
+    <section aria-label="What makes Dynasty Manager different">
+      <div class="container">
+        <div class="value-strip reveal">
+          <div class="value">
+            <span class="tag">Premium feel</span>
+            <h3>A game that respects your time.</h3>
+            <p>Glass-morphism UI, every screen sized for one hand, every motion measured.</p>
+          </div>
+          <div class="value">
+            <span class="tag">Real depth</span>
+            <h3>Decisions that actually ripple.</h3>
+            <p>Sixteen interlocking systems — the board notices, the press notices, the dressing room notices.</p>
+          </div>
+          <div class="value">
+            <span class="tag">Yours alone</span>
+            <h3>No accounts. No ads. Ever.</h3>
+            <p>Single-player, fully offline. Your save lives on your device. One price. One game.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ========================= MARQUEE ========================= -->
     <div class="marquee" aria-hidden="true">
       <div class="marquee-track">
@@ -85,7 +166,6 @@
         <span><em class="em">Relegation</em><span class="dot"></span></span>
         <span>Hall of Managers<span class="dot"></span></span>
         <span><em class="em">Press Room</em><span class="dot"></span></span>
-        <!-- duplicate for seamless loop -->
         <span>Tactics<span class="dot"></span></span>
         <span><em class="em">Transfers</em><span class="dot"></span></span>
         <span>Youth Academy<span class="dot"></span></span>
@@ -116,120 +196,265 @@
         <div class="bento">
           <article class="card wide reveal">
             <span class="num">01</span>
-            <div class="icon" aria-hidden="true">⚽</div>
-            <h3>Ninety-two clubs across four divisions.</h3>
+            <div class="icon"><svg width="22" height="22" aria-hidden="true"><use href="#i-tiers"/></svg></div>
+            <h3>Ninety-two clubs. A real pyramid.</h3>
             <p>
-              From the Monarch Premier League down to the Foundation League —
-              pick your starting point and rise (or fall) through the pyramid.
-              Every club has its own colours, history, and reputation.
+              From Foundation League obscurity to the Monarch Premier League.
+              Every club has its own colours, expectations, and rivals.
+              Auto-promotion, end-of-season playoffs, relegation that hurts —
+              the football pyramid, faithfully simulated.
             </p>
           </article>
 
           <article class="card tall reveal delay-1">
             <span class="num">02</span>
-            <div class="icon" aria-hidden="true">🎯</div>
-            <h3>Live match engine.</h3>
+            <div class="icon"><svg width="22" height="22" aria-hidden="true"><use href="#i-play"/></svg></div>
+            <h3>The match. Minute by minute.</h3>
             <p>
-              Minute-by-minute simulation with key events, mid-match
-              substitutions, post-match analysis, and the late drama you
-              always remember — goals after the eighty-fifth.
+              Live commentary, momentum swings, mid-match subs, post-match
+              analysis. And the eighty-fifth-minute drama you always
+              remember — your striker on the volley, your keeper a saint or
+              a villain.
             </p>
           </article>
 
           <article class="card third reveal delay-2">
             <span class="num">03</span>
-            <div class="icon" aria-hidden="true">📋</div>
-            <h3>Deep tactics.</h3>
+            <div class="icon"><svg width="22" height="22" aria-hidden="true"><use href="#i-sliders"/></svg></div>
+            <h3>Tactics with teeth.</h3>
             <p>
-              Seven formations, twelve positions, set-piece routines,
-              mentality, pressing.
+              Seven formations. Pressing intensity. Set-piece routines.
+              Mentality from park-the-bus to all-out attack.
             </p>
           </article>
 
           <article class="card third reveal delay-3">
             <span class="num">04</span>
-            <div class="icon" aria-hidden="true">💼</div>
-            <h3>Transfers &amp; loans.</h3>
+            <div class="icon"><svg width="22" height="22" aria-hidden="true"><use href="#i-swap"/></svg></div>
+            <h3>Chemistry that earns its place.</h3>
             <p>
-              Two windows a season. Negotiate offers, structure loans,
-              balance the wage bill.
+              Player cards with chemistry links across the pitch. Build the
+              right shape and the squad clicks — bonus ratings included.
             </p>
           </article>
 
           <article class="card half reveal">
             <span class="num">05</span>
-            <div class="icon" aria-hidden="true">🌱</div>
-            <h3>Youth &amp; development.</h3>
+            <div class="icon"><svg width="22" height="22" aria-hidden="true"><use href="#i-leaf"/></svg></div>
+            <h3>Youth that grows in front of you.</h3>
             <p>
-              Scout regens, run a youth academy, and watch young players
-              grow toward their potential while veterans gracefully decline.
+              Run a youth academy. Scout regens with hidden potential.
+              Promote them, loan them out, watch them peak — and watch
+              your veterans gracefully decline.
             </p>
           </article>
 
           <article class="card half reveal delay-1">
             <span class="num">06</span>
-            <div class="icon" aria-hidden="true">🏆</div>
-            <h3>Promotion, relegation &amp; cups.</h3>
+            <div class="icon"><svg width="22" height="22" aria-hidden="true"><use href="#i-trophy"/></svg></div>
+            <h3>Cup nights. Trophy cabinets. Legacy.</h3>
             <p>
-              Auto-promotion, end-of-season playoffs, the FA-style domestic
-              cup, and a Hall of Managers that remembers every legacy.
+              The FA-style domestic cup, the end-of-season playoffs, the
+              Hall of Managers that remembers every save, every promotion,
+              every relegation.
             </p>
           </article>
         </div>
       </div>
     </section>
 
-    <!-- ========================= SHOWCASE ========================= -->
+    <!-- ========================= SYSTEMS ========================= -->
+    <section class="block" id="systems">
+      <div class="container">
+        <div class="section-meta reveal">
+          <span class="num">02</span><span>Systems</span>
+        </div>
+        <h2 class="section-title reveal">
+          Every system you'd expect —<br />
+          <span class="accent">and a few you wouldn't.</span>
+        </h2>
+        <p class="section-lead reveal delay-1">
+          Sixteen interlocking systems. Decisions ripple. The board notices.
+          The press notices. Players have opinions and remember how they
+          were treated. You're not just picking a starting eleven — you're
+          running a club.
+        </p>
+
+        <div class="systems-grid reveal delay-2">
+          <div class="system-tile">
+            <span class="num">01</span>
+            <h4>Match Engine</h4>
+            <p>Event-based, minute-by-minute simulation with momentum, fatigue, and live commentary.</p>
+          </div>
+          <div class="system-tile">
+            <span class="num">02</span>
+            <h4>Tactics &amp; Set Pieces</h4>
+            <p>Seven formations, mentality, pressing intensity, and corner / free-kick routines.</p>
+          </div>
+          <div class="system-tile">
+            <span class="num">03</span>
+            <h4>Transfer Market</h4>
+            <p>Two windows per season. Bids, counter-offers, agent demands, deadline drama.</p>
+          </div>
+          <div class="system-tile">
+            <span class="num">04</span>
+            <h4>Loan System</h4>
+            <p>Send youth out for game time. Bring in stars on short-term deals with wage shares.</p>
+          </div>
+          <div class="system-tile">
+            <span class="num">05</span>
+            <h4>Youth Academy</h4>
+            <p>Promote regens, watch them grow toward hidden potential, and convert them to first-team.</p>
+          </div>
+          <div class="system-tile">
+            <span class="num">06</span>
+            <h4>Scouting Network</h4>
+            <p>Assign scouts to regions and competitions. Discover hidden gems before rivals do.</p>
+          </div>
+          <div class="system-tile">
+            <span class="num">07</span>
+            <h4>Training Programs</h4>
+            <p>Position drills, fitness blocks, individual development plans — and players who plateau.</p>
+          </div>
+          <div class="system-tile">
+            <span class="num">08</span>
+            <h4>Staff Hiring</h4>
+            <p>Assistants, coaches, scouts, and medics. Better staff means better outcomes everywhere.</p>
+          </div>
+          <div class="system-tile">
+            <span class="num">09</span>
+            <h4>Press Room</h4>
+            <p>Pre-match and post-match conferences with morale-shifting answers and rival jabs.</p>
+          </div>
+          <div class="system-tile">
+            <span class="num">10</span>
+            <h4>Storyline Chains</h4>
+            <p>Multi-week narratives — feuds, rivalries, comebacks — built from your own results.</p>
+          </div>
+          <div class="system-tile">
+            <span class="num">11</span>
+            <h4>Board Expectations</h4>
+            <p>Hit the target, get the budget. Miss it, get the sack. Negotiate season objectives.</p>
+          </div>
+          <div class="system-tile">
+            <span class="num">12</span>
+            <h4>Player Personalities</h4>
+            <p>Hot-heads, professionals, fan favourites, dressing-room glue — all reactively modelled.</p>
+          </div>
+          <div class="system-tile">
+            <span class="num">13</span>
+            <h4>Chemistry</h4>
+            <p>Players who play together, click together. Pick your lineup with links in mind.</p>
+          </div>
+          <div class="system-tile">
+            <span class="num">14</span>
+            <h4>Finance &amp; Wage Bill</h4>
+            <p>Sponsorships, prize money, gate receipts. Don't blow the budget before deadline day.</p>
+          </div>
+          <div class="system-tile">
+            <span class="num">15</span>
+            <h4>Manager Perks</h4>
+            <p>Earn prestige, unlock perks. Shape your managerial archetype across careers.</p>
+          </div>
+          <div class="system-tile">
+            <span class="num">16</span>
+            <h4>Hall of Managers</h4>
+            <p>Every save, every trophy, every relegation. A permanent record of your dynasty.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================= SHOWCASE 1 — LINEUP ========================= -->
     <section class="block" id="showcase">
       <div class="container">
         <div class="showcase">
           <div class="copy">
             <div class="section-meta reveal">
-              <span class="num">02</span><span>In Game</span>
+              <span class="num">03</span><span>Match Prep</span>
             </div>
             <h2 class="section-title reveal">
-              Designed for the<br />
-              <span class="accent">long thumb.</span>
+              Set the lineup.<br />
+              <span class="accent">Win the link-up.</span>
             </h2>
             <p class="section-lead reveal delay-1">
-              Premium dark UI. Glass-morphism panels. Gold accents that
-              earn their place. Every screen sized for one hand on the
-              train, every button reachable on a 6.7-inch display.
+              Drag your starting eleven into a 4-3-3. Watch chemistry links
+              light up across the pitch. Tap <strong>Smart Optimize Lineup</strong>
+              and let your assistant find the strongest XI you've got —
+              chemistry, form, and overall, balanced.
             </p>
             <a class="btn-ghost reveal delay-2" href="#numbers">
               See the scale of it
-              <span class="arrow" aria-hidden="true">→</span>
+              <svg class="arrow" width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg>
             </a>
           </div>
 
-          <div class="device reveal delay-1" role="img" aria-label="Dynasty Manager squad screen mockup">
-            <div class="screen">
-              <span class="badge">Squad · Matchday 14</span>
-              <h4>First Team</h4>
-              <p class="sub">23 players · avg overall 78</p>
+          <div class="screenshot reveal delay-1">
+            <img src="ingame/dynasty-manager-02-lineup.png"
+                 alt="Dynasty Manager match prep screen — set your lineup with chemistry links and player cards."
+                 loading="lazy" decoding="async" />
+          </div>
+        </div>
+      </div>
+    </section>
 
-              <div class="row">
-                <div class="avatar">RM</div>
-                <div class="name">R. Marlowe<br /><small style="color: var(--muted-2); font-size: 10px;">ST · 26</small></div>
-                <div class="rating">86</div>
-              </div>
-              <div class="row">
-                <div class="avatar">JS</div>
-                <div class="name">J. Sant'Ana<br /><small style="color: var(--muted-2); font-size: 10px;">CAM · 24</small></div>
-                <div class="rating">83</div>
-              </div>
-              <div class="row">
-                <div class="avatar">DK</div>
-                <div class="name">D. Køhler<br /><small style="color: var(--muted-2); font-size: 10px;">CB · 29</small></div>
-                <div class="rating">81</div>
-              </div>
-
-              <div class="stat-line">
-                <span class="pill hot">Form ↑</span>
-                <span class="pill">Wage £312k</span>
-                <span class="pill">3 offers</span>
-              </div>
+    <!-- ========================= SHOWCASE 2 — MATCH ENGINE ========================= -->
+    <section class="block">
+      <div class="container">
+        <div class="showcase flip">
+          <div class="copy">
+            <div class="section-meta reveal">
+              <span class="num">04</span><span>Match Day</span>
             </div>
+            <h2 class="section-title reveal">
+              Ninety minutes.<br />
+              <span class="accent">Never the same.</span>
+            </h2>
+            <p class="section-lead reveal delay-1">
+              An event-driven match engine. Live commentary as the move
+              unfolds. Momentum that swings. Subs you make on the fly. And
+              the eighty-fifth-minute drama that decides whether you're
+              celebrating or rebuilding.
+            </p>
+            <a class="btn-ghost reveal delay-2" href="#systems">
+              See every system
+              <svg class="arrow" width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg>
+            </a>
+          </div>
+
+          <div class="screenshot reveal delay-1">
+            <img src="ingame/dynasty-manager-03-minute.png"
+                 alt="Dynasty Manager live match engine — minute-by-minute simulation with events and substitutions."
+                 loading="lazy" decoding="async" />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================= GALLERY ========================= -->
+    <section class="block" id="gallery" style="padding-top: 0;">
+      <div class="container">
+        <div class="section-meta reveal">
+          <span class="num">05</span><span>More from inside</span>
+        </div>
+        <h2 class="section-title reveal">
+          A career, <span class="accent">at a glance.</span>
+        </h2>
+        <p class="section-lead reveal delay-1">
+          Every screen you'll spend time in. Dark, dense, and
+          beautifully sparse — built for the long haul.
+        </p>
+
+        <div class="gallery reveal delay-2" aria-label="In-game screens gallery">
+          <div class="gallery-track">
+            <div class="gallery-card"><img src="ingame/dynasty-manager-01-dynasty.png" alt="Build your dynasty — club home screen." loading="lazy" decoding="async" /></div>
+            <div class="gallery-card"><img src="ingame/dynasty-manager-04-upgrade.png" alt="Upgrade your facilities and staff." loading="lazy" decoding="async" /></div>
+            <div class="gallery-card"><img src="ingame/dynasty-manager-05-dominate.png" alt="Dominate the league across four divisions." loading="lazy" decoding="async" /></div>
+            <div class="gallery-card"><img src="ingame/dynasty-manager-06-matters.png" alt="Every decision matters." loading="lazy" decoding="async" /></div>
+            <div class="gallery-card"><img src="ingame/dynasty-manager-07-battle.png" alt="Cup battles and knockout nights." loading="lazy" decoding="async" /></div>
+            <div class="gallery-card"><img src="ingame/dynasty-manager-08-stars.png" alt="Sign and develop stars." loading="lazy" decoding="async" /></div>
+            <div class="gallery-card"><img src="ingame/dynasty-manager-09-books.png" alt="Balance the books and the wage bill." loading="lazy" decoding="async" /></div>
+            <div class="gallery-card"><img src="ingame/dynasty-manager-10-nation.png" alt="Compete across the nation." loading="lazy" decoding="async" /></div>
           </div>
         </div>
       </div>
@@ -239,13 +464,14 @@
     <section class="block stats-block" id="numbers">
       <div class="container">
         <div class="section-meta reveal">
-          <span class="num">03</span><span>By the numbers</span>
+          <span class="num">06</span><span>By the numbers</span>
         </div>
         <h2 class="section-title reveal">
           A world built to <span class="accent">last.</span>
         </h2>
         <p class="section-lead reveal delay-1">
-          Persistent careers measured in decades, not minutes.
+          Persistent careers measured in decades. Sixteen systems, ninety-two clubs,
+          and enough fixtures to keep you up past midnight.
         </p>
 
         <div class="stats-grid">
@@ -257,12 +483,32 @@
           <div class="stat reveal delay-1">
             <span class="label">Divisions</span>
             <span class="value">4</span>
-            <span class="caption">From the Monarch Premier League to the Foundation League.</span>
+            <span class="caption">A connected pyramid with promotion and relegation.</span>
           </div>
           <div class="stat reveal delay-2">
             <span class="label">League Weeks</span>
             <span class="value">46</span>
             <span class="caption">A real season's worth of fixtures, every season.</span>
+          </div>
+          <div class="stat reveal delay-3">
+            <span class="label">Game Systems</span>
+            <span class="value">16</span>
+            <span class="caption">Tactics, transfers, youth, press, board, and more.</span>
+          </div>
+          <div class="stat reveal">
+            <span class="label">Formations</span>
+            <span class="value">7</span>
+            <span class="caption">From 4-4-2 to 3-4-3 diamond — set them up your way.</span>
+          </div>
+          <div class="stat reveal delay-1">
+            <span class="label">Positions</span>
+            <span class="value">12</span>
+            <span class="caption">Every role on the pitch, modelled distinctly.</span>
+          </div>
+          <div class="stat reveal delay-2">
+            <span class="label">Transfer Windows</span>
+            <span class="value">2</span>
+            <span class="caption">Summer rebuild, winter top-up. Use them wisely.</span>
           </div>
           <div class="stat reveal delay-3">
             <span class="label">Seasons</span>
@@ -273,25 +519,120 @@
       </div>
     </section>
 
+    <!-- ========================= PRINCIPLES ========================= -->
+    <section class="block" id="principles">
+      <div class="container">
+        <div class="section-meta reveal">
+          <span class="num">07</span><span>Principles</span>
+        </div>
+        <h2 class="section-title reveal">
+          What we <span class="accent">left out.</span>
+        </h2>
+        <p class="section-lead reveal delay-1">
+          A premium career game shouldn't feel like a slot machine. Here's
+          what you won't find in Dynasty Manager — by design.
+        </p>
+
+        <div class="principles">
+          <div class="principle reveal">
+            <span class="strike">01 — Absent</span>
+            <span class="label">Accounts</span>
+            <span class="reason">No sign-ups. No email. Open the app, pick a club, start a career.</span>
+          </div>
+          <div class="principle reveal delay-1">
+            <span class="strike">02 — Absent</span>
+            <span class="label">Servers</span>
+            <span class="reason">Every save lives on your device. Works on the train, on a flight, anywhere.</span>
+          </div>
+          <div class="principle reveal delay-2">
+            <span class="strike">03 — Absent</span>
+            <span class="label">Advertising</span>
+            <span class="reason">No banner ads, no rewarded videos, no interstitials between matches.</span>
+          </div>
+          <div class="principle reveal delay-3">
+            <span class="strike">04 — Absent</span>
+            <span class="label">Tracking</span>
+            <span class="reason">No analytics SDKs. No third-party identifiers. We don't watch you play.</span>
+          </div>
+          <div class="principle reveal">
+            <span class="strike">05 — Absent</span>
+            <span class="label">Microtransactions</span>
+            <span class="reason">No card packs, no premium currency, no pay-to-win. One price. One game.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================= FAQ ========================= -->
+    <section class="block" id="questions">
+      <div class="container-narrow">
+        <div class="section-meta reveal">
+          <span class="num">08</span><span>Questions</span>
+        </div>
+        <h2 class="section-title reveal" style="text-align:center; margin-inline:auto;">
+          The <span class="accent">short answers.</span>
+        </h2>
+        <p class="section-lead reveal delay-1" style="text-align:center; margin-inline:auto;">
+          A few you'll likely ask. Full answers, plus more, on the
+          <a href="support.html">support page</a>.
+        </p>
+
+        <div class="faq-list reveal delay-2">
+          <details class="faq">
+            <summary>Is the game playable offline?</summary>
+            <p>
+              Yes — Dynasty Manager runs fully offline. There is no online
+              mode, no leaderboards, no required network connection.
+            </p>
+          </details>
+          <details class="faq">
+            <summary>Are there ads or in-app purchases?</summary>
+            <p>
+              Not in the current build. If that ever changes, we'll update
+              the privacy policy and App Store disclosures first.
+            </p>
+          </details>
+          <details class="faq">
+            <summary>Where is my save game stored?</summary>
+            <p>
+              Inside the app's private sandbox storage on your device.
+              It's never uploaded to a server.
+            </p>
+          </details>
+          <details class="faq">
+            <summary>Will there be an Android version?</summary>
+            <p>
+              We're focused on shipping a great iOS release first. Android
+              is on the roadmap but doesn't yet have a release date.
+            </p>
+          </details>
+        </div>
+      </div>
+    </section>
+
     <!-- ========================= CLOSER ========================= -->
     <section class="closer">
       <div class="container-narrow">
-        <h2 class="section-title reveal">
+        <span class="appstore-card reveal">
+          <span class="pulse" aria-hidden="true"></span>
+          <span>Coming to <strong>App Store</strong> · 2026</span>
+        </span>
+        <h2 class="section-title reveal" style="margin-top: var(--r-3);">
           Made for the <span class="accent">long&nbsp;game.</span>
         </h2>
         <p class="section-lead reveal delay-1">
-          Single-player. Fully offline. Your save lives on your device — not
-          on a server. No subscriptions, no leaderboards, no nonsense. Just
-          you and the long arc of a career you'll remember.
+          One price. Forever. No subscriptions, no microtransactions, no
+          accounts, no ads. Just you, your club, and the long arc of a
+          career you'll remember.
         </p>
         <div class="reveal delay-2" style="display:flex; gap: 24px; justify-content:center; flex-wrap: wrap; margin-top: 16px;">
           <a class="btn-primary" href="support.html">
-            Talk to us
-            <span aria-hidden="true">→</span>
+            Get on the early access list
+            <svg width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg>
           </a>
           <a class="btn-ghost" href="privacy.html">
             Read the privacy policy
-            <span class="arrow" aria-hidden="true">→</span>
+            <svg class="arrow" width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg>
           </a>
         </div>
       </div>
@@ -303,7 +644,7 @@
     <div class="container">
       <div class="footer-col footer-brand">
         <a class="brand" href="index.html">
-          <span class="brand-mark">D</span>
+          <img class="brand-mark" src="logo.png" alt="" width="32" height="32" />
           <span>Dynasty Manager</span>
         </a>
         <p>A premium single-player football management simulation. Built independently, shipped with care.</p>
@@ -312,6 +653,7 @@
         <h5>Product</h5>
         <ul>
           <li><a href="#features">Features</a></li>
+          <li><a href="#systems">Systems</a></li>
           <li><a href="#showcase">In&nbsp;Game</a></li>
           <li><a href="#numbers">Scale</a></li>
         </ul>
