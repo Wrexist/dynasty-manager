@@ -1,116 +1,93 @@
 import * as Sentry from '@sentry/react';
 import { useEffect, useMemo, useState } from 'react';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
 import {
   Crown,
-  Zap,
-  LineChart,
-  Mic2,
-  ScrollText,
-  Layers,
-  Shield,
-  Sparkles,
-  ChevronRight,
-  ChevronLeft,
   Check,
   Loader2,
-  Gift,
+  RefreshCw,
+  Sparkles,
+  X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { hapticLight, hapticMedium } from '@/utils/haptics';
-import { successToast, errorToast } from '@/utils/gameToast';
+import { successToast, errorToast, infoToast } from '@/utils/gameToast';
 import { setFlag, STORAGE_KEYS } from '@/store/helpers/persistence';
-import { purchaseProduct } from '@/utils/purchases';
+import {
+  purchaseProduct,
+  restorePurchases,
+  getEntitlements,
+  getCustomerInfo,
+  extractSubscriptionInfo,
+  getStorePrices,
+} from '@/utils/purchases';
 import {
   FREE_TRIAL_DAYS,
   PRODUCTS,
   TRIAL_TARGET_PRODUCT_ID,
 } from '@/config/monetization';
+import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
+import type { ProductId } from '@/types/game';
+import { track } from '@/utils/analytics';
 
-interface FeatureCard {
-  id: string;
-  icon: typeof Crown;
+/**
+ * Apple-compliant in-app paywall (Guideline 3.1.2(c)).
+ *
+ * Requirements covered here, in the purchase flow itself:
+ * - Subscription title (e.g. "Dynasty Pro Annual")
+ * - Length of subscription (Yearly / Monthly / Lifetime one-time)
+ * - Price of subscription, with billed amount displayed most prominently
+ * - Functional links to Terms of Use (EULA) and Privacy Policy
+ * - Restore Purchases entry point
+ * - Free-trial copy is subordinate to the billed amount (font, size, weight)
+ *
+ * This screen REPLACES the RevenueCat-hosted paywall (`presentPaywall`)
+ * because that paywall is configured in the RC dashboard and shipped with
+ * missing tier labels + missing legal links, triggering App Store review
+ * rejections. All Pro purchase flows now route here.
+ */
+
+const PRO_FEATURE_BULLETS: { title: string; description: string }[] = [
+  { title: 'Ad-Free Experience', description: 'No banners, no video pre-rolls. Ever.' },
+  { title: 'Instant Match Sim', description: 'Long-press to fast-forward a match in under a second.' },
+  { title: 'Advanced Analytics', description: 'Possession, conversion, and per-match performance reads.' },
+  { title: 'Custom Tactics Creator', description: 'Save up to 5 tactical presets and switch mid-season.' },
+  { title: 'Expanded Press Conferences', description: 'More tones, deeper questions, dynamic fan reactions.' },
+  { title: 'Historical Record Book', description: 'Every signing, season, and cup run preserved.' },
+  { title: 'Pro Manager Badge', description: 'Premium gold ring on your avatar across the app.' },
+];
+
+interface PlanRow {
+  productId: ProductId;
+  /** Bold, prominent title shown on the row. */
   title: string;
-  tagline: string;
-  description: string;
-  /** HSL hue for the accent ring/glow on this card */
-  hue: number;
+  /** Length of subscription, shown plainly to satisfy Apple 3.1.2(c). */
+  lengthLabel: string;
+  /** Optional small caption shown ABOVE the price (subordinate). */
+  trialCaption?: string;
+  /** Optional badge displayed at the right (e.g. "BEST VALUE", "POPULAR"). */
+  badge?: string;
 }
 
-const FEATURES: FeatureCard[] = [
+const PLAN_ROWS: PlanRow[] = [
   {
-    id: 'ad_free',
-    icon: Shield,
-    title: 'Ad-Free Forever',
-    tagline: 'Pure focus on the football',
-    description:
-      'Manage matches, transfers, and seasons without a single interruption. No banners. No video pre-rolls. Ever.',
-    hue: 215,
+    productId: 'com.dynastymanager.pro.annual',
+    title: 'Dynasty Pro — Yearly',
+    lengthLabel: '12 months · auto-renews yearly',
+    badge: 'BEST VALUE',
   },
   {
-    id: 'instant_sim',
-    icon: Zap,
-    title: 'Instant Match Sim',
-    tagline: 'Skip to the result',
-    description:
-      'Long-press to fast-forward an entire match in under a second. Perfect for grinding late-season fixtures.',
-    hue: 43,
+    productId: 'com.dynastymanager.pro.lifetime',
+    title: 'Dynasty Pro — Lifetime',
+    lengthLabel: 'One-time purchase · no renewal',
   },
   {
-    id: 'analytics',
-    icon: LineChart,
-    title: 'Match Insights',
-    tagline: 'Tactical reads after every match',
-    description:
-      'Possession reads, conversion analysis, and a per-match performance summary — the patterns the box-score hides.',
-    hue: 280,
-  },
-  {
-    id: 'tactics',
-    icon: Layers,
-    title: 'Custom Tactics Creator',
-    tagline: 'Save up to 5 tactical presets',
-    description:
-      'Design your gegenpress, your park-the-bus, and your big-game pragmatic — switch between them mid-season.',
-    hue: 165,
-  },
-  {
-    id: 'press',
-    icon: Mic2,
-    title: 'Expanded Press Conferences',
-    tagline: 'More voice, more drama',
-    description:
-      'Unlock extra response tones, deeper journalist questions, and dynamic fanbase reactions to every word.',
-    hue: 25,
-  },
-  {
-    id: 'records',
-    icon: ScrollText,
-    title: 'Historical Record Book',
-    tagline: 'Your dynasty, immortalised',
-    description:
-      'Track every signing, every season, every cup run across the entire history of your save.',
-    hue: 320,
-  },
-  {
-    id: 'optimize',
-    icon: Sparkles,
-    title: 'Optimize Lineup',
-    tagline: 'Tap once. Best XI.',
-    description:
-      'Let the assistant pick your sharpest, fittest, in-form starting eleven for any fixture in one tap.',
-    hue: 200,
-  },
-  {
-    id: 'badge',
-    icon: Crown,
-    title: 'Pro Manager Badge',
-    tagline: 'Wear it on every menu',
-    description:
-      'A premium gold ring around your manager avatar — visible in every press shot, lineup, and Hall of Managers entry.',
-    hue: 43,
+    productId: 'com.dynastymanager.pro.monthly',
+    title: 'Dynasty Pro — Monthly',
+    lengthLabel: 'Auto-renews monthly',
+    trialCaption: `${FREE_TRIAL_DAYS}-day free trial included`,
   },
 ];
 
@@ -120,79 +97,110 @@ const SubscribeOnboarding = () => {
   const reduceMotion = useReducedMotion();
   const grantEntitlement = useGameStore(s => s.grantEntitlement);
   const startFreeTrial = useGameStore(s => s.startFreeTrial);
+  const restoreEntitlementsAction = useGameStore(s => s.restoreEntitlements);
+  const updateSubscription = useGameStore(s => s.updateSubscription);
 
   const navState = (location.state as { slot?: number; communityPackEnabled?: boolean; returnTo?: string }) || {};
   const slot = navState.slot ?? 1;
   const communityPackEnabled = navState.communityPackEnabled === true;
   const returnTo = navState.returnTo || '/mode-select';
 
-  const [step, setStep] = useState(0);
   const [purchasing, setPurchasing] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  // Default to Yearly — it's the best value AND the row whose billed amount
+  // Apple needs to see prominently displayed.
+  const [selected, setSelected] = useState<ProductId>('com.dynastymanager.pro.annual');
 
-  const monthlyProduct = PRODUCTS[TRIAL_TARGET_PRODUCT_ID];
-  const monthlyPrice = `$${monthlyProduct.priceUsd.toFixed(2)}`;
-
-  // Auto-advance through feature cards every 3.2s. Pauses while purchasing,
-  // and the user can step manually with the chevrons / dots — manual
-  // interaction resets the timer.
-  const [autoAdvanceKey, setAutoAdvanceKey] = useState(0);
+  // Localised store prices fetched from RevenueCat. Empty on web/dev — falls
+  // back to the USD config price for display.
+  const [storePrices, setStorePrices] = useState<Partial<Record<ProductId, string>>>({});
   useEffect(() => {
-    if (reduceMotion || purchasing) return;
-    const id = setTimeout(() => {
-      setStep(s => (s + 1) % FEATURES.length);
-    }, 3200);
-    return () => clearTimeout(id);
-  }, [step, autoAdvanceKey, reduceMotion, purchasing]);
+    let cancelled = false;
+    getStorePrices().then(prices => { if (!cancelled) setStorePrices(prices); });
+    return () => { cancelled = true; };
+  }, []);
 
-  const goNextStep = () => {
-    hapticLight();
-    setStep(s => (s + 1) % FEATURES.length);
-    setAutoAdvanceKey(k => k + 1);
-  };
-
-  const goPrevStep = () => {
-    hapticLight();
-    setStep(s => (s - 1 + FEATURES.length) % FEATURES.length);
-    setAutoAdvanceKey(k => k + 1);
-  };
+  const priceFor = (productId: ProductId) =>
+    storePrices[productId] || `$${PRODUCTS[productId].priceUsd.toFixed(2)}`;
 
   const finish = () => {
     setFlag(STORAGE_KEYS.SUBSCRIBE_ONBOARDING_SEEN);
     navigate(returnTo, { state: { slot, communityPackEnabled } });
   };
 
-  const handleStartTrial = async () => {
+  const syncAfterPurchase = async () => {
+    const ids = await getEntitlements();
+    if (ids.length > 0) restoreEntitlementsAction(ids);
+    const info = await getCustomerInfo();
+    if (info) updateSubscription(extractSubscriptionInfo(info));
+  };
+
+  const handleSubscribe = async () => {
     hapticMedium();
     setPurchasing(true);
+    track('purchase_initiated', { productId: selected });
     try {
-      // Trigger the native paywall flow. On iOS / Android, the App Store /
-      // Play Store handles the introductory free-trial pricing automatically
-      // for the monthly product (configure the introductory offer in App
-      // Store Connect / Google Play Console for full free trial).
-      const granted = await purchaseProduct(TRIAL_TARGET_PRODUCT_ID);
-
-      // Mark the user as Pro-via-trial locally so all gated features unlock
-      // immediately. On native, the entitlement listener will pick up the
-      // real subscription info shortly after; until then this is the source
-      // of truth used by `isPro()`.
-      startFreeTrial();
-      if (granted.length > 0) {
-        granted.forEach(id => grantEntitlement(id));
+      const granted = await purchaseProduct(selected);
+      if (granted.length === 0) {
+        // User cancelled the StoreKit dialog.
+        track('purchase_cancelled', { productId: selected });
+        infoToast('Purchase Cancelled', 'No charge was made.');
+        return;
       }
 
+      granted.forEach(id => grantEntitlement(id));
+
+      // If the user picked the monthly plan, the App Store Connect
+      // introductory offer grants the free trial automatically — mirror it
+      // locally so gated features unlock immediately.
+      if (selected === TRIAL_TARGET_PRODUCT_ID) startFreeTrial();
+
+      await syncAfterPurchase();
+      track('purchase_completed', { productId: selected });
+
+      const product = PRODUCTS[selected];
+      const isTrial = selected === TRIAL_TARGET_PRODUCT_ID;
       successToast(
-        `${FREE_TRIAL_DAYS}-Day Trial Started!`,
-        `Pro is unlocked. You'll be charged ${monthlyPrice}/month after the trial unless you cancel.`,
+        isTrial ? `${FREE_TRIAL_DAYS}-Day Trial Started!` : 'Welcome to Dynasty Pro!',
+        isTrial
+          ? `Pro is unlocked. You'll be charged ${priceFor(selected)}/month after the trial unless you cancel.`
+          : `${product.name} is now active.`,
       );
       finish();
     } catch (err) {
-      Sentry.captureException(err, { tags: { context: 'subscribe-onboarding.startTrial' } });
+      track('purchase_failed', { productId: selected });
+      Sentry.captureException(err, { tags: { context: 'subscribe-onboarding.subscribe' }, extra: { productId: selected } });
       errorToast(
-        'Trial Could Not Start',
+        'Purchase Could Not Complete',
         'Something went wrong with the App Store. You can try again from Settings later.',
       );
     } finally {
       setPurchasing(false);
+    }
+  };
+
+  const handleRestore = async () => {
+    if (restoring || purchasing) return;
+    hapticLight();
+    setRestoring(true);
+    track('restore_clicked', {});
+    try {
+      const granted = await restorePurchases();
+      if (granted.length > 0) {
+        restoreEntitlementsAction(granted);
+        await syncAfterPurchase();
+        successToast('Purchases Restored', `${granted.length} product${granted.length > 1 ? 's' : ''} restored.`);
+        track('restore_completed', { restoredCount: granted.length });
+        finish();
+      } else {
+        infoToast('No Purchases Found', 'No previous purchases were found for this account.');
+        track('restore_completed', { restoredCount: 0 });
+      }
+    } catch (err) {
+      Sentry.captureException(err, { tags: { context: 'subscribe-onboarding.restore' } });
+      errorToast('Restore Failed', 'Could not restore purchases. Please try again.');
+    } finally {
+      setRestoring(false);
     }
   };
 
@@ -202,281 +210,181 @@ const SubscribeOnboarding = () => {
     finish();
   };
 
-  // Pre-compute a soft tinted radial halo for the current feature, used
-  // both behind the icon and as the page-level ambient glow.
-  const accentHue = FEATURES[step].hue;
-  const accentColor = useMemo(() => `hsl(${accentHue} 80% 60%)`, [accentHue]);
-  const accentColorAlpha = useMemo(
-    () => (alpha: number) => `hsl(${accentHue} 80% 60% / ${alpha})`,
-    [accentHue],
-  );
+  const openLegal = (url: string) => () => {
+    hapticLight();
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
 
-  const ActiveIcon = FEATURES[step].icon;
+  const selectedProduct = PRODUCTS[selected];
+  const isTrialPlan = selected === TRIAL_TARGET_PRODUCT_ID;
+  const billingSummary = useMemo(() => {
+    if (isTrialPlan) {
+      return `Free for ${FREE_TRIAL_DAYS} days, then ${priceFor(selected)} per month. Auto-renews until cancelled.`;
+    }
+    if (selectedProduct.type === 'subscription') {
+      const period = selectedProduct.billingPeriod?.replace('/', '') || 'period';
+      return `${priceFor(selected)} per ${period}. Auto-renews until cancelled.`;
+    }
+    return `${priceFor(selected)} one-time payment. No subscription, no renewal.`;
+    // priceFor is recomputed every render — depending on storePrices captures it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected, storePrices, isTrialPlan, selectedProduct]);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center px-5 pt-8 pb-6 relative overflow-hidden safe-area-top safe-area-bottom">
-      {/* Ambient halo — pulses subtly with the current feature accent. */}
+    <div className="min-h-screen bg-background flex flex-col items-center px-4 sm:px-5 pt-6 pb-6 relative overflow-hidden safe-area-top safe-area-bottom">
+      {/* Ambient halo */}
       <motion.div
         aria-hidden
         className="absolute inset-0 pointer-events-none"
         animate={{
           background: [
-            `radial-gradient(60% 50% at 50% 18%, hsl(${accentHue} 80% 55% / 0.18) 0%, transparent 65%)`,
-            `radial-gradient(70% 55% at 50% 22%, hsl(${accentHue} 80% 55% / 0.22) 0%, transparent 65%)`,
-            `radial-gradient(60% 50% at 50% 18%, hsl(${accentHue} 80% 55% / 0.18) 0%, transparent 65%)`,
+            'radial-gradient(60% 50% at 50% 18%, hsl(43 80% 55% / 0.16) 0%, transparent 65%)',
+            'radial-gradient(70% 55% at 50% 22%, hsl(43 80% 55% / 0.20) 0%, transparent 65%)',
+            'radial-gradient(60% 50% at 50% 18%, hsl(43 80% 55% / 0.16) 0%, transparent 65%)',
           ],
         }}
-        transition={{ duration: 5, ease: 'easeInOut', repeat: Infinity }}
+        transition={{ duration: 6, ease: 'easeInOut', repeat: Infinity }}
       />
 
-      {/* Floating background orbs — pure CSS drift, GPU-friendly. */}
-      <div
-        aria-hidden
-        className="title-float-circle absolute rounded-full blur-3xl pointer-events-none"
-        style={{
-          width: 320,
-          height: 320,
-          left: '10%',
-          top: '8%',
-          backgroundColor: `hsl(${accentHue} 90% 55%)`,
-          opacity: 0.08,
-          animation: 'float-drift 24s ease-in-out infinite',
-          ['--drift-x' as string]: '70px',
-          ['--drift-y' as string]: '50px',
-        } as React.CSSProperties}
-      />
-      <div
-        aria-hidden
-        className="title-float-circle absolute rounded-full blur-3xl pointer-events-none"
-        style={{
-          width: 240,
-          height: 240,
-          right: '6%',
-          bottom: '12%',
-          backgroundColor: `hsl(${(accentHue + 60) % 360} 90% 55%)`,
-          opacity: 0.06,
-          animation: 'float-drift 28s ease-in-out infinite',
-          ['--drift-x' as string]: '-50px',
-          ['--drift-y' as string]: '-40px',
-        } as React.CSSProperties}
-      />
-
-      {/* Header — Skip pill (top-right). */}
-      <div className="relative z-10 w-full max-w-md flex items-center justify-between mb-3">
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35 }}
-          className="flex items-center gap-1.5 pl-2.5 pr-3 py-1.5 rounded-full bg-amber-400/[0.08] border border-amber-300/30 backdrop-blur-md text-[11px] font-semibold text-amber-200 tracking-wide shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
-        >
-          <Gift className="w-3.5 h-3.5" />
-          <span>{FREE_TRIAL_DAYS}-Day Free Trial</span>
-        </motion.div>
-
-        <motion.button
+      {/* Header — skip button (top-right) */}
+      <div className="relative z-10 w-full max-w-md flex items-center justify-end mb-2">
+        <button
           type="button"
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, delay: 0.05 }}
-          whileTap={{ scale: 0.94 }}
           onClick={handleSkip}
           disabled={purchasing}
-          className="text-[11px] font-semibold text-muted-foreground/80 hover:text-foreground transition-colors px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/10 backdrop-blur-md disabled:opacity-40"
+          aria-label="Close paywall"
+          className="w-9 h-9 rounded-full flex items-center justify-center bg-white/[0.06] border border-white/10 text-foreground/80 hover:text-foreground transition-colors disabled:opacity-40"
         >
-          Maybe later
-        </motion.button>
+          <X className="w-4 h-4" />
+        </button>
       </div>
 
-      {/* Title block — Dynasty Pro */}
+      {/* Title block */}
       <motion.div
-        initial={{ opacity: 0, y: -10 }}
+        initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: 'easeOut' }}
-        className="relative z-10 text-center mb-5"
+        transition={{ duration: 0.4, ease: 'easeOut' }}
+        className="relative z-10 text-center mb-4 w-full max-w-md"
       >
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <Crown className="w-5 h-5 text-primary drop-shadow-[0_0_10px_hsl(var(--primary)/0.55)]" />
-          <p className="text-[10px] uppercase tracking-[0.42em] text-primary/90 font-semibold font-display">
-            Dynasty Pro
-          </p>
-          <Crown className="w-5 h-5 text-primary drop-shadow-[0_0_10px_hsl(var(--primary)/0.55)]" />
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 border border-primary/40 mb-3 shadow-[0_0_24px_hsl(var(--primary)/0.35)]">
+          <Crown className="w-8 h-8 text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.6)]" />
         </div>
-        <h1 className="text-[2rem] leading-[1.05] font-black text-foreground tracking-tight font-display">
-          Manage like a legend.
+        <h1 className="text-2xl font-black text-foreground font-display tracking-tight">
+          Unlock Dynasty Pro
         </h1>
-        <p className="text-sm text-muted-foreground mt-2 px-2">
-          Unlock the full toolkit. Try it free for {FREE_TRIAL_DAYS} days.
+        <p className="text-xs text-muted-foreground mt-1.5">
+          Full toolkit. Cancel anytime in Settings → Apple ID → Subscriptions.
         </p>
       </motion.div>
 
-      {/* Feature carousel — interactive Liquid Glass card */}
-      <div className="relative z-10 w-full max-w-md flex-1 flex flex-col">
-        <div className="relative">
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={FEATURES[step].id}
-              initial={{ opacity: 0, y: 20, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -16, scale: 0.97 }}
-              transition={{ duration: reduceMotion ? 0 : 0.4, ease: 'easeOut' }}
-              className={cn(
-                'relative overflow-hidden rounded-3xl px-5 py-7 transform-gpu',
-                'bg-gradient-to-br from-[hsl(222_35%_14%/0.78)] via-[hsl(222_30%_9%/0.82)] to-[hsl(222_40%_7%/0.88)]',
-                'backdrop-blur-2xl backdrop-saturate-150',
-                'shadow-[0_0_0_0.5px_rgba(255,255,255,0.18)_inset,inset_0_1px_0_rgba(255,255,255,0.22),inset_0_-1px_0_rgba(0,0,0,0.45),0_30px_70px_-20px_rgba(0,0,0,0.7)]',
-              )}
-            >
-              {/* Specular crescent — bright sky reflected on polished glass */}
-              <div
-                aria-hidden
-                className="pointer-events-none absolute inset-x-0 top-0 h-1/2"
-                style={{
-                  background:
-                    'radial-gradient(120% 90% at 50% -20%, rgba(255,255,255,0.26) 0%, rgba(255,255,255,0.07) 30%, rgba(255,255,255,0) 62%)',
-                  mixBlendMode: 'screen',
-                }}
-              />
-              {/* Edge refraction streaks at the rim */}
-              <div
-                aria-hidden
-                className="pointer-events-none absolute inset-0 rounded-3xl"
-                style={{
-                  background:
-                    'linear-gradient(90deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0) 6%, rgba(255,255,255,0) 94%, rgba(255,255,255,0.12) 100%)',
-                }}
-              />
-              {/* Slow shimmer sweep across the card */}
-              {!reduceMotion && (
-                <motion.div
-                  aria-hidden
-                  className="pointer-events-none absolute inset-0"
-                  style={{
-                    background:
-                      'linear-gradient(115deg, transparent 40%, rgba(255,255,255,0.07) 50%, transparent 60%)',
-                  }}
-                  initial={{ x: '-100%' }}
-                  animate={{ x: '120%' }}
-                  transition={{ duration: 4, repeat: Infinity, repeatDelay: 3.5, ease: 'easeInOut' }}
-                />
-              )}
-              {/* Tinted halo behind the icon */}
-              <div
-                aria-hidden
-                className="pointer-events-none absolute -top-12 left-1/2 -translate-x-1/2 w-72 h-72 rounded-full blur-3xl"
-                style={{
-                  background: `radial-gradient(closest-side, ${accentColorAlpha(0.35)}, transparent 70%)`,
-                  opacity: 0.55,
-                }}
-              />
-
-              <div className="relative flex flex-col items-center text-center">
-                {/* Icon plate */}
-                <motion.div
-                  initial={{ scale: 0.6, opacity: 0, rotate: -8 }}
-                  animate={{ scale: 1, opacity: 1, rotate: 0 }}
-                  transition={{ duration: 0.45, ease: 'backOut' }}
-                  className={cn(
-                    'relative w-20 h-20 rounded-2xl flex items-center justify-center mb-5',
-                    'border backdrop-blur-xl',
-                    'shadow-[inset_0_1px_0_rgba(255,255,255,0.4),inset_0_-1px_0_rgba(0,0,0,0.4),0_18px_42px_-12px_rgba(0,0,0,0.55)]',
-                  )}
-                  style={{
-                    background: `linear-gradient(160deg, ${accentColor} 0%, hsl(${accentHue} 50% 28%) 100%)`,
-                    borderColor: `hsl(${accentHue} 80% 70% / 0.45)`,
-                  }}
-                >
-                  <ActiveIcon className="w-10 h-10 text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]" />
-                  {/* Inner specular highlight on the icon plate */}
-                  <div
-                    aria-hidden
-                    className="pointer-events-none absolute inset-0 rounded-2xl"
-                    style={{
-                      background:
-                        'linear-gradient(180deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 50%)',
-                      mixBlendMode: 'screen',
-                    }}
-                  />
-                </motion.div>
-
-                <p
-                  className="text-[10px] font-semibold uppercase tracking-[0.32em] mb-1.5"
-                  style={{ color: `hsl(${accentHue} 85% 75%)` }}
-                >
-                  {FEATURES[step].tagline}
-                </p>
-                <h2 className="text-2xl font-black text-foreground font-display tracking-tight mb-2.5">
-                  {FEATURES[step].title}
-                </h2>
-                <p className="text-sm text-foreground/80 leading-relaxed max-w-[28ch]">
-                  {FEATURES[step].description}
-                </p>
+      {/* Feature bullets */}
+      <div className="relative z-10 w-full max-w-md mb-5">
+        <ul className="space-y-1.5">
+          {PRO_FEATURE_BULLETS.map(({ title, description }) => (
+            <li key={title} className="flex items-start gap-2.5">
+              <span className="mt-0.5 flex-shrink-0 w-4 h-4 rounded-full bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center">
+                <Check className="w-2.5 h-2.5 text-emerald-300" strokeWidth={3} />
+              </span>
+              <div className="leading-snug">
+                <span className="text-[13px] font-semibold text-foreground">{title}</span>
+                <span className="text-[11px] text-muted-foreground"> — {description}</span>
               </div>
-            </motion.div>
-          </AnimatePresence>
-
-          {/* Step chevrons — appear on the card edges so they read as part of the carousel */}
-          <button
-            type="button"
-            onClick={goPrevStep}
-            disabled={purchasing}
-            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 w-9 h-9 rounded-full flex items-center justify-center text-foreground/70 hover:text-foreground bg-black/30 backdrop-blur-md border border-white/10 transition-colors disabled:opacity-30"
-            aria-label="Previous feature"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <button
-            type="button"
-            onClick={goNextStep}
-            disabled={purchasing}
-            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1 w-9 h-9 rounded-full flex items-center justify-center text-foreground/70 hover:text-foreground bg-black/30 backdrop-blur-md border border-white/10 transition-colors disabled:opacity-30"
-            aria-label="Next feature"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Step dots */}
-        <div className="flex items-center justify-center gap-1.5 mt-4">
-          {FEATURES.map((f, i) => {
-            const active = i === step;
-            return (
-              <button
-                key={f.id}
-                type="button"
-                onClick={() => { hapticLight(); setStep(i); setAutoAdvanceKey(k => k + 1); }}
-                aria-label={`Show feature: ${f.title}`}
-                className={cn(
-                  'rounded-full transition-all duration-300',
-                  active ? 'w-6 h-1.5 bg-primary shadow-[0_0_8px_hsl(var(--primary)/0.55)]' : 'w-1.5 h-1.5 bg-white/25 hover:bg-white/40',
-                )}
-              />
-            );
-          })}
-        </div>
-
-        {/* Trust row */}
-        <div className="mt-5 flex items-center justify-center gap-4 text-[10px] text-muted-foreground/80 font-medium">
-          <span className="flex items-center gap-1">
-            <Check className="w-3 h-3 text-emerald-400" /> Cancel anytime
-          </span>
-          <span className="flex items-center gap-1">
-            <Check className="w-3 h-3 text-emerald-400" /> No charge for {FREE_TRIAL_DAYS} days
-          </span>
-          <span className="flex items-center gap-1">
-            <Check className="w-3 h-3 text-emerald-400" /> {monthlyPrice}/mo after
-          </span>
-        </div>
+            </li>
+          ))}
+        </ul>
       </div>
 
-      {/* Sticky CTA — primary trial button + secondary skip */}
-      <div className="relative z-10 w-full max-w-md mt-5 flex flex-col gap-2.5">
+      {/* Plan rows */}
+      <div className="relative z-10 w-full max-w-md space-y-2 mb-4">
+        {PLAN_ROWS.map(row => {
+          const product = PRODUCTS[row.productId];
+          const isSelected = selected === row.productId;
+          const isAnnualBest = row.badge === 'BEST VALUE';
+          // Apple 3.1.2(c) — billed amount must be the most prominent
+          // pricing element. We show the full price + cadence in bold,
+          // and any per-month framing in a smaller, lighter caption.
+          const billedAmount = row.productId === 'com.dynastymanager.pro.lifetime'
+            ? priceFor(row.productId)
+            : `${priceFor(row.productId)}${product.billingPeriod || ''}`;
+
+          return (
+            <button
+              key={row.productId}
+              type="button"
+              onClick={() => { hapticLight(); setSelected(row.productId); }}
+              disabled={purchasing}
+              aria-pressed={isSelected}
+              className={cn(
+                'w-full text-left rounded-2xl border px-4 py-3 transition-colors flex items-center gap-3',
+                'bg-card/60 backdrop-blur-xl',
+                isSelected
+                  ? 'border-primary/60 bg-primary/[0.06] shadow-[0_0_0_1px_hsl(var(--primary)/0.6)_inset]'
+                  : 'border-border/60 hover:border-border',
+                isAnnualBest && !isSelected && 'border-[hsl(var(--gold)/0.35)]',
+                'disabled:opacity-60',
+              )}
+            >
+              {/* Radio indicator */}
+              <span
+                aria-hidden
+                className={cn(
+                  'flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors',
+                  isSelected ? 'border-primary bg-primary' : 'border-muted-foreground/40',
+                )}
+              >
+                {isSelected && <Check className="w-3 h-3 text-primary-foreground" strokeWidth={3} />}
+              </span>
+
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span className="text-[13px] font-bold text-foreground truncate">{row.title}</span>
+                  {row.badge && (
+                    <span className="text-[9px] font-bold uppercase tracking-wider bg-[hsl(var(--gold)/0.18)] text-[hsl(var(--gold))] px-1.5 py-0.5 rounded">
+                      {row.badge}
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-snug">
+                  {row.lengthLabel}
+                </p>
+                {row.trialCaption && (
+                  <p className="text-[10px] text-muted-foreground/80 leading-snug mt-0.5">
+                    {row.trialCaption}
+                  </p>
+                )}
+              </div>
+
+              {/* Price — billed amount must be the most prominent
+                  element per Apple 3.1.2(c). Heavier weight, larger text,
+                  and primary colour vs the muted subtitle. */}
+              <div className="text-right flex-shrink-0">
+                <div className="text-lg font-black text-foreground leading-tight tracking-tight font-display">
+                  {billedAmount}
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Billing summary — explicit, non-misleading sentence describing what
+          the user will be charged. Apple wants the billed amount to be the
+          clearest element; this paragraph spells it out in plain text. */}
+      <div className="relative z-10 w-full max-w-md mb-3">
+        <p className="text-[11px] text-foreground/80 text-center leading-relaxed px-2">
+          {billingSummary}
+        </p>
+      </div>
+
+      {/* Primary CTA */}
+      <div className="relative z-10 w-full max-w-md">
         <motion.button
           type="button"
           whileTap={{ scale: purchasing ? 1 : 0.985 }}
-          onClick={handleStartTrial}
-          disabled={purchasing}
+          onClick={handleSubscribe}
+          disabled={purchasing || restoring}
           className={cn(
-            'relative w-full h-14 rounded-2xl font-bold text-base overflow-hidden',
+            'relative w-full h-13 py-3.5 rounded-2xl font-bold text-base overflow-hidden',
             'bg-gradient-to-b from-primary/95 to-primary/75 text-primary-foreground',
             'border border-primary/40',
             'shadow-[inset_0_1px_0_rgba(255,255,255,0.55),inset_0_-1px_0_rgba(0,0,0,0.4),0_18px_38px_-10px_hsl(43_96%_46%/0.6)]',
@@ -484,45 +392,73 @@ const SubscribeOnboarding = () => {
             'disabled:opacity-70 disabled:cursor-default',
           )}
         >
-          {/* Inner top highlight stripe */}
-          <span
-            aria-hidden
-            className="absolute inset-x-3 top-0.5 h-px rounded-full bg-white/45"
-          />
-          {/* Shimmer sweep across CTA — disabled while purchasing */}
+          <span className="absolute inset-x-3 top-0.5 h-px rounded-full bg-white/45" aria-hidden />
           {!reduceMotion && !purchasing && (
             <motion.span
               aria-hidden
               className="absolute inset-y-0 w-1/3"
               style={{
                 background:
-                  'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.35) 50%, transparent 100%)',
+                  'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.32) 50%, transparent 100%)',
               }}
               initial={{ x: '-120%' }}
               animate={{ x: '320%' }}
               transition={{ duration: 2.6, repeat: Infinity, repeatDelay: 2, ease: 'easeInOut' }}
             />
           )}
-          <span className="relative flex items-center justify-center gap-2.5">
+          <span className="relative flex items-center justify-center gap-2">
             {purchasing ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Starting Trial…
+                Processing…
               </>
             ) : (
               <>
                 <Sparkles className="w-5 h-5" />
-                Start {FREE_TRIAL_DAYS}-Day Free Trial
+                {isTrialPlan
+                  ? `Start ${FREE_TRIAL_DAYS}-Day Free Trial`
+                  : `Continue — ${priceFor(selected)}${selectedProduct.billingPeriod || ''}`}
               </>
             )}
           </span>
         </motion.button>
-
-        <p className="text-center text-[10px] text-muted-foreground/70 leading-snug">
-          Free for {FREE_TRIAL_DAYS} days, then {monthlyPrice}/month. Auto-renews until cancelled in your{' '}
-          App Store account settings. Manage anytime from Settings → Purchases.
-        </p>
       </div>
+
+      {/* Footer: Restore + Terms + Privacy — required by Apple 3.1.2(c).
+          Equal-weight links sit directly under the CTA so they are visible
+          inside the same purchase flow without scrolling. */}
+      <div className="relative z-10 w-full max-w-md mt-3 flex items-center justify-center gap-4 text-[11px] font-semibold">
+        <button
+          type="button"
+          onClick={handleRestore}
+          disabled={restoring || purchasing}
+          className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+        >
+          <RefreshCw className={cn('w-3 h-3', restoring && 'animate-spin')} />
+          {restoring ? 'Restoring…' : 'Restore Purchases'}
+        </button>
+        <span aria-hidden className="text-muted-foreground/40">·</span>
+        <button
+          type="button"
+          onClick={openLegal(TERMS_URL)}
+          className="text-muted-foreground hover:text-foreground transition-colors underline-offset-2 hover:underline"
+        >
+          Terms of Use
+        </button>
+        <span aria-hidden className="text-muted-foreground/40">·</span>
+        <button
+          type="button"
+          onClick={openLegal(PRIVACY_URL)}
+          className="text-muted-foreground hover:text-foreground transition-colors underline-offset-2 hover:underline"
+        >
+          Privacy Policy
+        </button>
+      </div>
+
+      <p className="relative z-10 w-full max-w-md mt-2 text-center text-[10px] text-muted-foreground/70 leading-snug px-2">
+        Subscriptions auto-renew unless cancelled at least 24 hours before the end of the current period.
+        Manage or cancel anytime in Settings → Apple ID → Subscriptions.
+      </p>
     </div>
   );
 };

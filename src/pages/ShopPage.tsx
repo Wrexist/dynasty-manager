@@ -8,7 +8,8 @@ import { PRODUCTS, PRO_FEATURE_LABELS, PRO_FEATURES, STARTER_KIT, COSMETIC_ITEMS
 import { isPro, hasProduct, isStarterKitAvailable, getStarterKitRemainingMs, getOwnedCosmetics, getActiveCosmetic, isSubscriptionActive } from '@/utils/monetization';
 import type { CosmeticCategory } from '@/types/game';
 import type { ProductId, ProFeature } from '@/types/game';
-import { purchaseProduct as purchaseViaSDK, restorePurchases as restoreViaSDK, presentPaywall, getEntitlements, getCustomerInfo, extractSubscriptionInfo, openSubscriptionManagement, getStorePrices } from '@/utils/purchases';
+import { useNavigate } from 'react-router-dom';
+import { purchaseProduct as purchaseViaSDK, restorePurchases as restoreViaSDK, getEntitlements, getCustomerInfo, extractSubscriptionInfo, openSubscriptionManagement, getStorePrices } from '@/utils/purchases';
 import { hapticMedium } from '@/utils/haptics';
 import { infoToast, successToast, errorToast } from '@/utils/gameToast';
 import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
@@ -62,6 +63,7 @@ const ANNUAL_SAVINGS_PCT = Math.round(
 );
 
 const ShopPage = () => {
+  const navigate = useNavigate();
   const monetization = useGameStore(s => s.monetization);
   const restoreEntitlements = useGameStore(s => s.restoreEntitlements);
   const updateSubscription = useGameStore(s => s.updateSubscription);
@@ -155,16 +157,9 @@ const ShopPage = () => {
     }
   };
 
-  const handlePresentPaywall = async () => {
+  const handlePresentPaywall = () => {
     setPurchaseError(null);
-    const result = await presentPaywall();
-    if (result === 'purchased' || result === 'restored') {
-      await syncAfterPurchase();
-      hapticMedium();
-    } else if (result === 'error') {
-      setPurchaseError('Could not load paywall. Try purchasing below.');
-    }
-    // 'not_presented' on web — fall through to inline UI
+    navigate('/subscribe', { state: { returnTo: '/game' } });
   };
 
   const handleManageSubscription = async () => {
