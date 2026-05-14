@@ -24,6 +24,8 @@ import { triggerTestError } from '@/utils/sentry';
 import { refreshAnalyticsConsent, track } from '@/utils/analytics';
 import { isPro, isSubscriptionActive } from '@/utils/monetization';
 import { PRODUCTS } from '@/config/monetization';
+import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
+import { openExternalUrl } from '@/utils/externalUrl';
 import { SAVE_CONFIRMATION_MS } from '@/config/ui';
 import { MATCH_SPEEDS } from '@/config/matchSpeed';
 import { hasUnseenWhatsNew, LATEST_RELEASE } from '@/data/whatsNew';
@@ -175,7 +177,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
     const categoryLabels = { bug: 'Bug Report', feature: 'Feature Request', general: 'General Feedback' };
     const subject = encodeURIComponent(`[${categoryLabels[feedbackCategory]}] Dynasty Manager Feedback`);
     const body = encodeURIComponent(feedbackMessage.trim());
-    window.open(`mailto:support@dynastymanager.com?subject=${subject}&body=${body}`, '_blank');
+    void openExternalUrl(`mailto:support@dynastymanager.com?subject=${subject}&body=${body}`);
     successToast('Thank You!', 'Your email client has been opened with your feedback.');
     setFeedbackMessage('');
     setFeedbackCategory('general');
@@ -535,7 +537,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
       <SettingsSection title="Support">
         <div className="space-y-2">
           <LiquidButton
-            onClick={() => window.open('mailto:support@dynastymanager.com?subject=Dynasty%20Manager%20Support', '_blank')}
+            onClick={() => { void openExternalUrl('mailto:support@dynastymanager.com?subject=Dynasty%20Manager%20Support'); }}
           >
             <span className="flex items-center justify-start gap-3 px-3">
               <Mail className="w-4 h-4" />
@@ -557,13 +559,13 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
       {/* ─── Legal ─── */}
       <SettingsSection title="Legal">
         <div className="space-y-2">
-          <LiquidButton onClick={() => window.open('/privacy-policy.html', '_blank')}>
+          <LiquidButton onClick={() => { void openExternalUrl(PRIVACY_URL); }}>
             <span className="flex items-center justify-start gap-3 px-3">
               <Shield className="w-4 h-4" />
               Privacy Policy
             </span>
           </LiquidButton>
-          <LiquidButton onClick={() => window.open('/terms-of-service.html', '_blank')}>
+          <LiquidButton onClick={() => { void openExternalUrl(TERMS_URL); }}>
             <span className="flex items-center justify-start gap-3 px-3">
               <FileText className="w-4 h-4" />
               Terms of Service

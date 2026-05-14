@@ -29,6 +29,7 @@ import {
   TRIAL_TARGET_PRODUCT_ID,
 } from '@/config/monetization';
 import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
+import { openExternalUrl } from '@/utils/externalUrl';
 import type { ProductId } from '@/types/game';
 import { track } from '@/utils/analytics';
 
@@ -212,7 +213,7 @@ const SubscribeOnboarding = () => {
 
   const openLegal = (url: string) => () => {
     hapticLight();
-    window.open(url, '_blank', 'noopener,noreferrer');
+    void openExternalUrl(url);
   };
 
   const selectedProduct = PRODUCTS[selected];

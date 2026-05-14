@@ -346,7 +346,8 @@ export async function openSubscriptionManagement(): Promise<boolean> {
     const { customerInfo } = await Purchases.getCustomerInfo();
     const managementUrl = customerInfo?.managementURL;
     if (managementUrl) {
-      window.open(managementUrl, '_blank');
+      const { openExternalUrl } = await import('@/utils/externalUrl');
+      void openExternalUrl(managementUrl);
       return true;
     }
     return false;

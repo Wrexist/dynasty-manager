@@ -13,6 +13,7 @@ import { purchaseProduct as purchaseViaSDK, restorePurchases as restoreViaSDK, g
 import { hapticMedium } from '@/utils/haptics';
 import { infoToast, successToast, errorToast } from '@/utils/gameToast';
 import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
+import { openExternalUrl } from '@/utils/externalUrl';
 import { track } from '@/utils/analytics';
 
 const formatPrice = (usd: number) => `$${usd.toFixed(2)}`;
@@ -616,9 +617,21 @@ const ShopPage = () => {
           Purchases can be restored on any device linked to your App Store / Play Store account.
         </p>
         <p>
-          <a href={TERMS_URL} target="_blank" rel="noopener noreferrer" className="underline hover:text-muted-foreground">Terms of Service</a>
+          <button
+            type="button"
+            onClick={() => { void openExternalUrl(TERMS_URL); }}
+            className="underline hover:text-muted-foreground transition-colors"
+          >
+            Terms of Service
+          </button>
           {' · '}
-          <a href={PRIVACY_URL} target="_blank" rel="noopener noreferrer" className="underline hover:text-muted-foreground">Privacy Policy</a>
+          <button
+            type="button"
+            onClick={() => { void openExternalUrl(PRIVACY_URL); }}
+            className="underline hover:text-muted-foreground transition-colors"
+          >
+            Privacy Policy
+          </button>
         </p>
       </div>
 
