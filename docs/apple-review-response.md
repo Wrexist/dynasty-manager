@@ -16,7 +16,7 @@ Thanks for the feedback. Please find the requested information below.
 
 ### 1. Screen recording
 
-A screen recording captured on a physical **iPhone 15 Pro running iOS 18.4**
+A screen recording captured on a physical **iPhone 15 running iOS 26.4.2**
 is attached to this reply. It begins with a cold launch and walks through:
 
 - **App launch** → splash → title screen → "What's New" tile.
@@ -46,14 +46,9 @@ is therefore nothing further to demonstrate in those categories.
 
 | Device | OS |
 |---|---|
-| iPhone 15 Pro (physical) | iOS 18.4 |
-| iPhone 13 (physical) | iOS 17.6 |
-| iPhone SE 3rd gen (physical) | iOS 17.5 |
-| iPad (10th gen) (physical) | iPadOS 18.3 |
-| iPhone 15 Pro Simulator | iOS 18.2 |
-| iPhone SE Simulator | iOS 16.4 (minimum deployment target) |
+| iPhone 15 (physical) | iOS 26.4.2 |
 
-All builds distributed to internal testers via TestFlight before submission.
+All builds distributed via TestFlight before submission.
 
 ---
 
@@ -173,7 +168,7 @@ protected third-party material:
 
 ### Summary checklist (Apple's 7 items)
 
-1. ✅ Screen recording attached (physical iPhone 15 Pro, iOS 18.4, core
+1. ✅ Screen recording attached (physical iPhone 15, iOS 26.4.2, core
    flow + IAP paywall).
 2. ✅ Tested devices listed above.
 3. ✅ Purpose, audience, and value provided above.
