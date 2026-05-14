@@ -484,6 +484,84 @@ h2.section-title .accent {
   }
 }
 
+/* ---------- Value strip (post-hero) ---------- */
+.value-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+@media (max-width: 800px) {
+  .value-strip { grid-template-columns: 1fr; }
+  .value-strip .value { border-right: none !important; border-bottom: 1px solid var(--border); }
+  .value-strip .value:last-child { border-bottom: none; }
+}
+.value-strip .value {
+  padding: var(--r-4) var(--r-3);
+  border-right: 1px solid var(--border);
+}
+.value-strip .value:last-child { border-right: none; }
+.value-strip .value .tag {
+  display: block;
+  font-family: var(--heading);
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 12px;
+}
+.value-strip .value h3 {
+  font-family: var(--heading);
+  font-size: clamp(20px, 2.4vw, 28px);
+  font-weight: 600;
+  margin: 0 0 8px;
+  letter-spacing: -0.005em;
+  line-height: 1.1;
+}
+.value-strip .value p {
+  color: var(--muted);
+  font-size: 14px;
+  margin: 0;
+  line-height: 1.6;
+  max-width: 32ch;
+}
+
+/* ---------- Showcase flipped (image left, copy right) ---------- */
+.showcase.flip .copy { order: 2; }
+.showcase.flip .screenshot { order: 1; }
+@media (max-width: 900px) {
+  .showcase.flip .copy { order: 1; }
+  .showcase.flip .screenshot { order: 2; }
+}
+
+/* ---------- App Store callout (closer) ---------- */
+.appstore-card {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--r-2);
+  padding: var(--r-2) var(--r-3);
+  margin-top: var(--r-3);
+  background: var(--panel);
+  border: 1px solid var(--border-2);
+  border-radius: 999px;
+  font-family: var(--heading);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--muted);
+}
+.appstore-card strong {
+  color: var(--text);
+  font-weight: 600;
+}
+.appstore-card .pulse {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 12px var(--gold);
+  animation: pulse 2.4s var(--ease) infinite;
+}
+
 /* ---------- Gallery (real screenshots) ---------- */
 .gallery {
   position: relative;
