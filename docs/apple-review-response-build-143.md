@@ -80,17 +80,18 @@ What is now visible inside the purchase flow itself:
 | **Length** of each subscription ("12 months · auto-renews yearly", "Auto-renews monthly", "One-time purchase · no renewal") | Subtitle on each plan row |
 | **Price** of each subscription ($14.99/year, $1.99/month, $19.99 lifetime — localised by Apple StoreKit) | Right-aligned, largest, heaviest weight on every row |
 | **Per-period billing summary sentence** ("$14.99 per year. Auto-renews until cancelled.") | Centered paragraph directly above the CTA |
-| **Functional link to Terms of Use (EULA)** | https://dynastymanager.app/terms — footer of the paywall, opens in system browser |
-| **Functional link to Privacy Policy** | https://dynastymanager.app/privacy — footer of the paywall, opens in system browser |
+| **Functional link to Terms of Use (EULA)** | Apple's standard EULA — https://www.apple.com/legal/internet-services/itunes/dev/stdeula/ — footer of the paywall, opens in system browser |
+| **Functional link to Privacy Policy** | https://wrexist.github.io/dynasty-manager/privacy.html — footer of the paywall, opens in system browser |
 | **Restore Purchases** | Footer of the paywall, opens the Apple StoreKit restore flow |
 
 App Store Connect metadata:
 
-- **Privacy Policy URL** field: `https://dynastymanager.app/privacy`
-  (already set).
-- **App Description** now contains the standard Apple EULA link:
-  `https://www.apple.com/legal/internet-services/itunes/dev/stdeula/`
-  in addition to our custom Terms of Use URL.
+- **Privacy Policy URL** field is set to
+  `https://wrexist.github.io/dynasty-manager/privacy.html`.
+- **EULA**: we use Apple's standard EULA
+  (`https://www.apple.com/legal/internet-services/itunes/dev/stdeula/`),
+  linked from inside the paywall as "Terms of Use". No custom EULA has
+  been uploaded to App Store Connect, per Apple's allowed default.
 
 ---
 
