@@ -3,6 +3,7 @@ import type { ProductId } from '@/types/game';
 import { Crown, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
+import { openExternalUrl } from '@/utils/externalUrl';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { hapticLight, hapticMedium } from '@/utils/haptics';
 
@@ -99,9 +100,21 @@ export function PurchaseModal({ productId, onConfirm, onCancel, loading, storePr
               ? 'Auto-renews until cancelled. Manage in your App Store or Play Store settings.'
               : 'One-time purchase. Works offline. No recurring charges.'}
             {' '}
-            <a href={TERMS_URL} target="_blank" rel="noopener noreferrer" className="underline">Terms</a>
+            <button
+              type="button"
+              onClick={() => { void openExternalUrl(TERMS_URL); }}
+              className="underline hover:text-muted-foreground transition-colors"
+            >
+              Terms
+            </button>
             {' · '}
-            <a href={PRIVACY_URL} target="_blank" rel="noopener noreferrer" className="underline">Privacy</a>
+            <button
+              type="button"
+              onClick={() => { void openExternalUrl(PRIVACY_URL); }}
+              className="underline hover:text-muted-foreground transition-colors"
+            >
+              Privacy
+            </button>
           </p>
         </motion.div>
       </motion.div>
