@@ -12,7 +12,6 @@
 
 import * as Sentry from '@sentry/react';
 import type { CustomerInfo } from '@revenuecat/purchases-capacitor';
-import type { PresentPaywallOptions } from '@revenuecat/purchases-capacitor-ui';
 import type { ProductId, SubscriptionInfo } from '@/types/game';
 import { PRODUCTS } from '@/config/monetization';
 import { Capacitor } from '@capacitor/core';
@@ -322,69 +321,15 @@ export function extractSubscriptionInfo(customerInfo: CustomerInfo | null | unde
   };
 }
 
-// ── Paywall Presentation ──
-
-type PaywallResult = 'purchased' | 'restored' | 'cancelled' | 'error' | 'not_presented';
-
-/** Present the RevenueCat native paywall. Returns the outcome. */
-export async function presentPaywall(offeringIdentifier?: string): Promise<PaywallResult> {
-  if (!Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) {
-    return 'not_presented';
-  }
-
-  try {
-    await ensureConfigured();
-    const { RevenueCatUI } = await import('@revenuecat/purchases-capacitor-ui');
-    const options: PresentPaywallOptions = {};
-
-    if (offeringIdentifier) {
-      const { Purchases } = await import('@revenuecat/purchases-capacitor');
-      const offerings = await Purchases.getOfferings();
-      const offering = offerings.all?.[offeringIdentifier];
-      if (offering) options.offering = offering;
-    }
-
-    const { result } = await RevenueCatUI.presentPaywall(options);
-    return mapPaywallResult(result);
-  } catch (err) {
-    if (import.meta.env.DEV) console.error('[Purchases] Paywall presentation failed:', err);
-    Sentry.captureException(err, { tags: { context: 'purchases.presentPaywall' }, extra: { offeringIdentifier } });
-    return 'error';
-  }
-}
-
-/** Present the paywall only if the user lacks the specified entitlement. */
-export async function presentPaywallIfNeeded(entitlementId: string = 'pro'): Promise<PaywallResult> {
-  if (!Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) return 'not_presented';
-
-  try {
-    await ensureConfigured();
-    const { RevenueCatUI } = await import('@revenuecat/purchases-capacitor-ui');
-    const { result } = await RevenueCatUI.presentPaywallIfNeeded({
-      requiredEntitlementIdentifier: entitlementId,
-    });
-    return mapPaywallResult(result);
-  } catch (err) {
-    if (import.meta.env.DEV) console.error('[Purchases] Paywall presentation failed:', err);
-    Sentry.captureException(err, { tags: { context: 'purchases.presentPaywallIfNeeded' }, extra: { entitlementId } });
-    return 'error';
-  }
-}
-
-// PAYWALL_RESULT is a string enum exported from @revenuecat/purchases-capacitor-ui
-// Values: "NOT_PRESENTED", "ERROR", "CANCELLED", "PURCHASED", "RESTORED"
-function mapPaywallResult(result: string): PaywallResult {
-  switch (result) {
-    case 'NOT_PRESENTED': return 'not_presented';
-    case 'ERROR': return 'error';
-    case 'CANCELLED': return 'cancelled';
-    case 'PURCHASED': return 'purchased';
-    case 'RESTORED': return 'restored';
-    default: return 'error';
-  }
-}
-
 // ── Subscription Management ──
+//
+// The RevenueCat-hosted paywall (`RevenueCatUI.presentPaywall`) was removed
+// in response to App Store review feedback (Guideline 3.1.2(c)). The hosted
+// paywall is configured in the RevenueCat dashboard and was missing the
+// required disclosures (subscription title/length on every tier, in-flow
+// Terms of Use + Privacy Policy links, billed-amount prominence). All Pro
+// purchase flows now go through the in-app SubscribeOnboarding screen which
+// renders the disclosures Apple requires directly under our control.
 
 /**
  * Open the platform-specific subscription management page.
