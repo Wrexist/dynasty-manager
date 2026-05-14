@@ -8,6 +8,7 @@ import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, Refresh
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { useState, useRef, useEffect } from 'react';
+import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 import { infoToast, successToast, errorToast } from '@/utils/gameToast';
 import { hapticMedium } from '@/utils/haptics';
 import {
@@ -133,6 +134,10 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackCategory, setFeedbackCategory] = useState<'bug' | 'feature' | 'general'>('general');
   const [feedbackMessage, setFeedbackMessage] = useState('');
+  // iOS keyboard height — used to lift the bottom sheet so the textarea
+  // and Send button stay visible above the on-screen keyboard.
+  const keyboardInset = useKeyboardInset();
+  const feedbackTextareaRef = useRef<HTMLTextAreaElement>(null);
   // Analytics consent — device-level pref, lives outside the save. Seed from
   // localStorage; toggling writes back immediately.
   const [analyticsGranted, setAnalyticsGranted] = useState(() => readAnalyticsConsent() === 'granted');
@@ -652,15 +657,26 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
         <p className="text-[10px] text-muted-foreground">{APP_VERSION}</p>
       </div>
 
-      {/* Feedback Sheet — matching liquid-glass treatment */}
+      {/* Feedback Sheet — matching liquid-glass treatment.
+          `paddingBottom` adapts to the on-screen keyboard height so the
+          textarea and Send button stay above the keyboard on iOS, where
+          Capacitor's `resize: 'body'` keyboard mode leaves
+          `position: fixed` overlays anchored at the viewport bottom.
+          The `bottom` offset works in tandem so the sheet animates
+          smoothly into place. */}
       <Sheet open={feedbackOpen} onOpenChange={setFeedbackOpen}>
         <SheetContent
           side="bottom"
+          style={{
+            paddingBottom: keyboardInset > 0 ? keyboardInset + 24 : undefined,
+            transition: 'padding-bottom 180ms ease-out',
+          }}
           className={cn(
             'rounded-t-3xl border-0 p-5',
             'bg-gradient-to-b from-[hsl(222_35%_14%/0.92)] via-[hsl(222_28%_10%/0.95)] to-[hsl(222_40%_7%/0.98)]',
             'backdrop-blur-2xl backdrop-saturate-150',
             'shadow-[0_0_0_0.5px_rgba(255,255,255,0.14)_inset,inset_0_1px_0_rgba(255,255,255,0.25),0_-20px_60px_-20px_rgba(0,0,0,0.7)]',
+            'max-h-[88vh] overflow-y-auto',
           )}
         >
           <SheetHeader>
@@ -691,8 +707,21 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
 
             {/* Message textarea */}
             <textarea
+              ref={feedbackTextareaRef}
               value={feedbackMessage}
               onChange={(e) => setFeedbackMessage(e.target.value)}
+              onFocus={() => {
+                // Once the keyboard finishes opening (~250ms), pull the
+                // textarea into view. Belt-and-braces alongside the
+                // sheet-level padding fix — covers the case where the user
+                // has typed enough text that the caret is below the fold.
+                setTimeout(() => {
+                  feedbackTextareaRef.current?.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center',
+                  });
+                }, 280);
+              }}
               placeholder="Tell us what's on your mind…"
               aria-label="Feedback message"
               className="w-full mt-4 p-3 rounded-2xl bg-white/5 border border-white/15 backdrop-blur-md text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-1px_0_rgba(0,0,0,0.3)]"
