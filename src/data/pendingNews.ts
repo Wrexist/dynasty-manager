@@ -52,6 +52,10 @@ export const PENDING_NEWS: PendingRelease = {
     'Reorganize pending news and release notes for clarity.',
     'Add marketing version regression guard for TestFlight builds.',
     'Add Apple App Review response for Guideline 2.1 information request.',
+    'Apple-compliant in-app paywall with all required subscription disclosures visible in the purchase flow.',
+    'Restore Purchases entry point integrated into the paywall.',
+    'Ability to purchase Yearly or Lifetime plans in addition to the free-trial Monthly plan.',
+    'Clear, non-misleading billing information with billed amount as the most prominent element.',
   ],
   fixed: [
     'Fixed rare launch crashes related to ads.',
