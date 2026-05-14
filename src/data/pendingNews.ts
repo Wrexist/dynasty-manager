@@ -51,6 +51,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Resigning your job and the manager job market are easier to find from the menus.',
     'Reorganize pending news and release notes for clarity.',
     'Add marketing version regression guard for TestFlight builds.',
+    'Add Apple App Review response for Guideline 2.1 information request.',
   ],
   fixed: [
     'Fixed rare launch crashes related to ads.',
