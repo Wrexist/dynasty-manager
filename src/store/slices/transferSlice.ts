@@ -27,6 +27,7 @@ import { STAR_SIGNING_BUZZ_WEEKS, STAR_PLAYER_SALE_DIP_WEEKS, CAMPAIGN_STAR_SIGN
 import { getStarPlayerMerch } from '@/utils/merchandise';
 import { CHALLENGES } from '@/data/challenges';
 import { detachPlayerFromAllClubs } from '../helpers/rosterOps';
+import { calcReleaseImpact } from '@/utils/releaseCalc';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -632,24 +633,29 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const club = { ...state.clubs[state.playerClubId] };
     if (club.playerIds.length <= MIN_SQUAD_SIZE) return { success: false, message: `Cannot release — squad would drop below minimum size (${MIN_SQUAD_SIZE}).` };
 
-    // Severance: remaining contract weeks × wage
-    const remainingSeasons = Math.max(0, player.contractEnd - state.season);
-    const remainingWeeks = remainingSeasons * (state.totalWeeks || TOTAL_WEEKS) + Math.max(0, (state.totalWeeks || TOTAL_WEEKS) - state.week);
-    const severance = Math.round(player.wage * remainingWeeks);
-    if (club.budget < severance) return { success: false, message: `Insufficient funds for severance pay (£${(severance / 1e6).toFixed(1)}M).` };
+    const impact = calcReleaseImpact(player, state.season, state.week, state.totalWeeks || TOTAL_WEEKS);
+    const clauseCost = impact.clauseCost;
+    if (club.budget < clauseCost) return { success: false, message: `Insufficient funds for release clause (£${(clauseCost / 1e6).toFixed(1)}M).` };
 
-    club.budget -= severance;
+    club.budget -= clauseCost;
     club.playerIds = club.playerIds.filter(id => id !== playerId);
     club.lineup = club.lineup.filter(id => id !== playerId);
     club.subs = club.subs.filter(id => id !== playerId);
     club.wageBill = Math.max(0, club.wageBill - player.wage);
 
     const releasedPlayer = { ...player, clubId: '', contractEnd: state.season, listedForSale: false, sellOnPercentage: undefined, sellOnClubId: undefined };
+
+    const rippleBlurb = impact.reasons.length > 0
+      ? ` Supporters reacted: ${impact.reasons.map(r => r.label).join(', ')}.`
+      : '';
     const newMessages = addMsg(state.messages, {
       week: state.week, season: state.season, type: 'transfer',
       title: `${player.lastName} Released`,
-      body: `${player.firstName} ${player.lastName} has been released. Severance: £${(severance / 1e6).toFixed(1)}M.`,
+      body: `${player.firstName} ${player.lastName} has been released for a release clause of £${(clauseCost / 1e6).toFixed(1)}M.${rippleBlurb}`,
     });
+
+    const nextFanMood = Math.max(0, Math.min(100, state.fanMood + impact.fanMoodDelta));
+    const nextBoardConfidence = Math.max(0, Math.min(100, state.boardConfidence + impact.boardConfidenceDelta));
 
     set({
       players: { ...state.players, [playerId]: releasedPlayer },
@@ -661,8 +667,11 @@ export const createTransferSlice = (set: Set, get: Get) => ({
       shortlist: state.shortlist.filter(id => id !== playerId),
       scoutWatchList: state.scoutWatchList.filter(id => id !== playerId),
       messages: newMessages,
+      fanMood: nextFanMood,
+      boardConfidence: nextBoardConfidence,
+      seasonTotalExpenses: (state.seasonTotalExpenses || 0) + clauseCost,
     });
-    return { success: true, message: `${player.firstName} ${player.lastName} released. Severance: £${(severance / 1e6).toFixed(1)}M.` };
+    return { success: true, message: `${player.firstName} ${player.lastName} released. Clause: £${(clauseCost / 1e6).toFixed(1)}M.` };
   },
 
   renewContract: (playerId: string, years: number, newWage: number) => {

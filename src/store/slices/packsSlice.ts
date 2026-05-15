@@ -2,7 +2,7 @@ import type { OpenedPackRecord, OpenPackResult, PackTierKey, PackUnlockMethod, P
 import type { GameState } from '../storeTypes';
 import { addMsg } from '@/utils/helpers';
 import { MAX_SQUAD_SIZE, FFP_WAGE_RATIO_WARNING } from '@/config/gameBalance';
-import { PACK_TIER_MAP, RECENT_PULLS_LIMIT } from '@/config/packs';
+import { PACK_TIER_MAP, QUICK_SELL_RATE, RECENT_PULLS_LIMIT } from '@/config/packs';
 import { generateAiCounterSignings, generatePackContents, shouldPityTrigger, updatedPityCounter } from '@/utils/packGeneration';
 import { CHALLENGES } from '@/data/challenges';
 import { grantXP, XP_REWARDS } from '@/utils/managerPerks';
@@ -567,11 +567,11 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     return { success: true, message: `${player.firstName} ${player.lastName} released.` };
   },
 
-  /** Quick-sell a just-packed player for 65% of their market value. Same
-   *  freshness guard as {@link releasePackedPlayer} — only the latest
-   *  pack's roster, same (season, week). Unlike release, this credits the
-   *  club budget instead of charging severance: it's a liquidity escape
-   *  for dupes and low-OVR pulls. */
+  /** Quick-sell a just-packed player for {@link QUICK_SELL_RATE} of their
+   *  market value. Same freshness guard as {@link releasePackedPlayer} —
+   *  only the latest pack's roster, same (season, week). Unlike release,
+   *  this credits the club budget instead of charging severance: it's a
+   *  liquidity escape for dupes and low-OVR pulls. */
   quickSellPackedPlayer: (playerId: string): QuickSellPackedPlayerResult => {
     const state = get();
     const last = (state.openedPacks || [])[0];
@@ -588,7 +588,7 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       return { success: false, message: 'Not your player.' };
     }
     const club = state.clubs[state.playerClubId];
-    const amount = Math.max(0, Math.round((player.value || 0) * 0.65));
+    const amount = Math.max(0, Math.round((player.value || 0) * QUICK_SELL_RATE));
 
     const strippedClub = {
       ...club,
@@ -642,7 +642,7 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       season: state.season,
       type: 'transfer',
       title: `${player.lastName} Quick-Sold`,
-      body: `${player.firstName} ${player.lastName} was quick-sold for £${amount.toLocaleString()} (65% of market value).`,
+      body: `${player.firstName} ${player.lastName} was quick-sold for £${amount.toLocaleString()} (${Math.round(QUICK_SELL_RATE * 100)}% of market value).`,
     });
 
     set({

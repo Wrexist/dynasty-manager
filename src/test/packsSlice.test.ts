@@ -6,6 +6,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
+import { QUICK_SELL_RATE } from '@/config/packs';
 
 const CLUB_ID = 'celtic';
 
@@ -17,7 +18,7 @@ function initAndGetState() {
 beforeEach(() => { initAndGetState(); });
 
 describe('packsSlice — quickSellPackedPlayer', () => {
-  it('credits the club budget at 65% of player value', () => {
+  it('credits the club budget at the configured quick-sell rate', () => {
     const state = useGameStore.getState();
     useGameStore.setState({
       clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 50_000_000 } },
@@ -27,7 +28,7 @@ describe('packsSlice — quickSellPackedPlayer', () => {
     const target = open.players![0];
 
     const budgetBefore = useGameStore.getState().clubs[state.playerClubId].budget;
-    const expectedAmount = Math.max(0, Math.round((target.value || 0) * 0.65));
+    const expectedAmount = Math.max(0, Math.round((target.value || 0) * QUICK_SELL_RATE));
 
     const result = useGameStore.getState().quickSellPackedPlayer(target.id);
     expect(result.success).toBe(true);

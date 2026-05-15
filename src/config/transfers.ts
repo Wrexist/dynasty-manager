@@ -266,3 +266,23 @@ export const CLUB_LISTING_EXPIRY_WEEKS = 16;
 // Chance to relist expired listing with reduced price
 export const LISTING_RELIST_CHANCE = 0.4;
 export const LISTING_RELIST_DISCOUNT = 0.15; // 15% price reduction
+
+// ── Player Release (contract termination clause) ──
+// Releasing a player terminates their contract for a one-off "buyout" fee
+// equal to remaining wages × this percentage. 100% would be full severance
+// (very expensive on long contracts) — 35% lands closer to real-world
+// buyout clauses while still making release a meaningful financial decision.
+export const RELEASE_CLAUSE_PERCENTAGE = 0.35;
+// Players at/above this OVR are treated as "stars" — releasing them dents
+// fan mood and board confidence (fans don't forgive selling icons for free).
+export const RELEASE_STAR_OVR_THRESHOLD = 80;
+export const RELEASE_STAR_FAN_MOOD_PENALTY = 8;
+export const RELEASE_STAR_BOARD_PENALTY = 5;
+// Long-serving squad members trigger a smaller dip even if not elite.
+export const RELEASE_LEGEND_SEASONS = 5;
+export const RELEASE_LEGEND_FAN_MOOD_PENALTY = 5;
+export const RELEASE_LEGEND_BOARD_PENALTY = 3;
+// High-potential youngsters released without service trigger a wasted-potential dip.
+export const RELEASE_WASTED_POTENTIAL_OVR = 80;
+export const RELEASE_WASTED_POTENTIAL_AGE = 22;
+export const RELEASE_WASTED_POTENTIAL_FAN_MOOD_PENALTY = 4;

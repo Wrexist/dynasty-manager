@@ -6,10 +6,11 @@ import { EmptyState } from '@/components/EmptyState';
 import { StatBar } from '@/components/game/StatBar';
 import { Button } from '@/components/ui/button';
 import { POSITION_COMPATIBILITY, type Position, type TrainingModule } from '@/types/game';
-import { Heart, Zap, TrendingUp, Tag, X, Target, Activity, FileText, Brain, Award, HeartPulse, Stethoscope, AlertTriangle, Dumbbell, Flame, Shield, Banknote, Repeat2, Trophy, Medal } from 'lucide-react';
+import { Heart, Zap, TrendingUp, Tag, X, Target, Activity, FileText, Brain, Award, HeartPulse, Stethoscope, AlertTriangle, Dumbbell, Flame, Shield, Banknote, Repeat2, Trophy, Medal, Skull } from 'lucide-react';
 import { TransferApproach } from '@/components/game/TransferApproach';
 import { LoanNegotiation } from '@/components/game/LoanNegotiation';
 import { ListForSaleModal } from '@/components/game/ListForSaleModal';
+import { ReleasePlayerModal } from '@/components/game/ReleasePlayerModal';
 import { motion } from 'framer-motion';
 import { getPlayerNarratives } from '@/utils/playerNarratives';
 import { cn } from '@/lib/utils';
@@ -79,6 +80,7 @@ const PlayerDetail = () => {
   const [showApproach, setShowApproach] = useState(false);
   const [showLoanRequest, setShowLoanRequest] = useState(false);
   const [showListConfirm, setShowListConfirm] = useState(false);
+  const [showReleaseConfirm, setShowReleaseConfirm] = useState(false);
   const [showFullHistory, setShowFullHistory] = useState(false);
 
   const player = selectedPlayerId ? players[selectedPlayerId] : null;
@@ -950,16 +952,28 @@ const PlayerDetail = () => {
         );
       })()}
 
-      {/* Sell Button */}
+      {/* Sell / Release Buttons */}
       {isOwnPlayer && (
-        <Button
-          variant={player.listedForSale ? 'outline' : 'secondary'}
-          className="w-full gap-2"
-          onClick={handleSell}
-        >
-          {player.listedForSale ? <X className="w-4 h-4" /> : <Tag className="w-4 h-4" />}
-          {player.listedForSale ? 'Remove from Transfer List' : 'List for Sale'}
-        </Button>
+        <div className="space-y-2">
+          <Button
+            variant={player.listedForSale ? 'outline' : 'secondary'}
+            className="w-full gap-2"
+            onClick={handleSell}
+          >
+            {player.listedForSale ? <X className="w-4 h-4" /> : <Tag className="w-4 h-4" />}
+            {player.listedForSale ? 'Remove from Transfer List' : 'List for Sale'}
+          </Button>
+          {!player.onLoan && (
+            <Button
+              variant="outline"
+              className="w-full gap-2 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              onClick={() => { hapticLight(); setShowReleaseConfirm(true); }}
+            >
+              <Skull className="w-4 h-4" /> Release Player
+              <span className="text-[10px] text-muted-foreground ml-auto">Pay clause to terminate</span>
+            </Button>
+          )}
+        </div>
       )}
 
       {/* Contract Renewal */}
@@ -1041,6 +1055,19 @@ const PlayerDetail = () => {
           player={player}
           onClose={() => setShowListConfirm(false)}
           onListed={handleListComplete}
+        />
+      )}
+
+      {/* Release Player Modal */}
+      {showReleaseConfirm && (
+        <ReleasePlayerModal
+          player={player}
+          onClose={() => setShowReleaseConfirm(false)}
+          onReleased={() => {
+            successToast(`${player.lastName} released`, 'Their contract has been terminated.');
+            selectPlayer(null);
+            setScreen('squad');
+          }}
         />
       )}
     </div>

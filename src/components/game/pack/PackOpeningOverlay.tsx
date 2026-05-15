@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import type { PackPlayerPlacement, PackTierKey, Player } from '@/types/game';
-import { MAX_WALKOUTS_PER_PACK, PACK_ANIM, PACK_TIER_MAP, WALKOUT_OVR_THRESHOLD } from '@/config/packs';
+import { MAX_WALKOUTS_PER_PACK, PACK_ANIM, PACK_TIER_MAP, QUICK_SELL_RATE, WALKOUT_OVR_THRESHOLD } from '@/config/packs';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { hapticHeavy, hapticLight, hapticMedium } from '@/utils/haptics';
 import { formatMoney } from '@/utils/helpers';
@@ -14,9 +14,6 @@ import { WalkoutReveal } from './WalkoutReveal';
 import { tierForOvr } from './packHelpers';
 import { cn } from '@/lib/utils';
 
-/** Quick-sell refund rate — matches packsSlice.quickSellPackedPlayer. */
-const QUICK_SELL_RATE = 0.65;
-
 interface PackOpeningOverlayProps {
   tier: PackTierKey;
   players: Player[];
@@ -24,7 +21,7 @@ interface PackOpeningOverlayProps {
   onClose: () => void;
   /** Keep the pulled player — just removes them from the summary view. */
   onKeep?: (playerId: string) => void;
-  /** Quick-sell the pulled player at {@link QUICK_SELL_RATE} of market value. */
+  /** Quick-sell the pulled player at QUICK_SELL_RATE of market value (see config/packs). */
   onQuickSell?: (playerId: string) => void;
   /** Bulk-keep every remaining player in the summary. */
   onKeepAll?: () => void;

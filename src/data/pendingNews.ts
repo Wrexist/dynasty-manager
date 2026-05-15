@@ -42,12 +42,18 @@ export interface PendingRelease {
 }
 
 export const PENDING_NEWS: PendingRelease = {
-  highlights: [],
+  highlights: [
+    'New Release flow lets you terminate any player\'s contract for a one-off release clause — 35% of their remaining wages instead of paying out the full deal.',
+  ],
   new: [
     'Dynasty Pro annual plan added, with localized pricing.',
+    'Release Player button on the player detail screen with a premium confirmation modal that previews clause cost, squad impact, and fan/board backlash.',
+    'Squad page surfaces release candidates — fringe and aging players who drain wages — with one-tap access to a Bulk Release Wizard.',
   ],
   improved: [
     'Pack opening summary now has bulk keep and bulk sell actions.',
+    'Pack quick-sell rate rebalanced to 35% of market value so packs feel more like a luxury draw than a coin-flip.',
+    'Releasing a fan favourite, club legend, or wasted-potential youngster now dents fan mood and board confidence — and the modal warns you up front.',
     'Resigning your job and the manager job market are easier to find from the menus.',
     'Reorganize pending news and release notes for clarity.',
     'Add marketing version regression guard for TestFlight builds.',

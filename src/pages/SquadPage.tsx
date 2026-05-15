@@ -7,7 +7,7 @@ import { PlayerCard } from '@/components/game/PlayerCard';
 import { cn } from '@/lib/utils';
 import { Player } from '@/types/game';
 import type { SquadSortKey, SquadStatusFilter } from '@/types/game';
-import { ShoppingCart, UserSearch, AlertTriangle, FileText, Users, ChevronDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { ShoppingCart, UserSearch, AlertTriangle, FileText, Users, ChevronDown, ArrowUp, ArrowDown, Skull } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getRatingColor, posBadgeColor } from '@/utils/uiHelpers';
 import { hapticLight } from '@/utils/haptics';
@@ -17,6 +17,12 @@ import { FlagIcon } from '@/components/game/FlagIcon';
 import { getContractUrgency } from '@/utils/contracts';
 import { StatusPill } from '@/components/game/StatusPill';
 import { PlayerStatusBadges } from '@/components/game/PlayerStatusBadges';
+import { ReleaseWizardModal } from '@/components/game/ReleaseWizardModal';
+import { calcReleaseImpact } from '@/utils/releaseCalc';
+import { formatMoney } from '@/utils/helpers';
+import { MIN_SQUAD_SIZE } from '@/config/gameBalance';
+
+const SURPLUS_APPEARANCE_RATIO = 0.15;
 
 const SORT_OPTIONS: SquadSortKey[] = ['overall', 'potential', 'age', 'value', 'fitness', 'morale', 'wage', 'form'];
 
@@ -65,9 +71,9 @@ function ContractAlertChip({ p, variant, onSelect, onRenew }: {
 }
 
 const SquadPage = () => {
-  const { playerClubId, clubs, players, season, week } = useGameStore(useShallow(s => ({
+  const { playerClubId, clubs, players, season, week, totalWeeks } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId, clubs: s.clubs, players: s.players,
-    season: s.season, week: s.week,
+    season: s.season, week: s.week, totalWeeks: s.totalWeeks,
   })));
   const selectPlayer = useGameStore(s => s.selectPlayer);
   const setScreen = useGameStore(s => s.setScreen);
@@ -77,6 +83,8 @@ const SquadPage = () => {
   const [sortAsc, setSortAsc] = useState(false);
   const [statusFilters, setStatusFilters] = useState<Set<SquadStatusFilter>>(new Set());
   const [contractAlertsOpen, setContractAlertsOpen] = useState(false);
+  const [releaseCandidatesOpen, setReleaseCandidatesOpen] = useState(false);
+  const [showReleaseWizard, setShowReleaseWizard] = useState(false);
 
   const club = clubs[playerClubId];
 
@@ -109,6 +117,37 @@ const SquadPage = () => {
     const nearExpiry = fullSquad.filter(p => getContractUrgency(p.contractEnd, season) === 'near').sort(byRating);
     return { expiring, nearExpiry, total: expiring.length + nearExpiry.length };
   }, [fullSquad, season]);
+
+  const releaseCandidates = useMemo(() => {
+    if (!club) return { candidates: [] as Player[], totalWageDrain: 0 };
+    const lineupOrSubs = new Set([...club.lineup, ...club.subs]);
+    const minAppearances = Math.max(1, Math.floor(week * SURPLUS_APPEARANCE_RATIO));
+    const candidates = fullSquad
+      .filter(p => {
+        if (p.onLoan) return false;
+        if (p.injured && p.injuryWeeks && p.injuryWeeks > 8) return true;
+        const seldomUsed = !lineupOrSubs.has(p.id) && (week < 4 || p.appearances < minAppearances);
+        const aging = p.age >= 30 && p.overall < 70;
+        return seldomUsed || aging;
+      })
+      .sort((a, b) => b.wage - a.wage);
+    const totalWageDrain = candidates.reduce((sum, p) => sum + p.wage, 0);
+    return { candidates, totalWageDrain };
+  }, [fullSquad, club, week]);
+
+  const releaseAffordableCount = useMemo(() => {
+    if (!club || releaseCandidates.candidates.length === 0) return 0;
+    let runningBudget = club.budget;
+    let count = 0;
+    for (const p of [...releaseCandidates.candidates].sort((a, b) =>
+      calcReleaseImpact(a, season, week, totalWeeks).clauseCost
+        - calcReleaseImpact(b, season, week, totalWeeks).clauseCost,
+    )) {
+      const cost = calcReleaseImpact(p, season, week, totalWeeks).clauseCost;
+      if (runningBudget >= cost) { runningBudget -= cost; count++; }
+    }
+    return count;
+  }, [releaseCandidates.candidates, club, season, week, totalWeeks]);
 
   const depthColors: Record<string, string> = {
     GK: 'bg-amber-500',
@@ -283,6 +322,63 @@ const SquadPage = () => {
           </GlassPanel>
         )}
 
+        {/* Release Candidates (surplus players) */}
+        {releaseCandidates.candidates.length > 0 && (club?.playerIds.length || 0) > MIN_SQUAD_SIZE && (
+          <GlassPanel className="p-3 border-destructive/20">
+            <button
+              onClick={() => { hapticLight(); setReleaseCandidatesOpen(prev => !prev); }}
+              className="flex items-center gap-2 w-full"
+            >
+              <Skull className="w-3.5 h-3.5 text-destructive shrink-0" />
+              <p className="text-[10px] text-destructive font-semibold uppercase tracking-wider">Release Candidates</p>
+              <span className="text-[9px] font-bold text-destructive bg-destructive/15 px-1.5 py-0.5 rounded-full tabular-nums">
+                {releaseCandidates.candidates.length}
+              </span>
+              <span className="text-[9px] text-muted-foreground ml-auto tabular-nums">
+                {formatMoney(releaseCandidates.totalWageDrain)}/wk drain
+              </span>
+              <ChevronDown className={cn(
+                'w-3 h-3 text-destructive/60 transition-transform duration-200 ml-1',
+                !releaseCandidatesOpen && '-rotate-90',
+              )} />
+            </button>
+            {releaseCandidatesOpen && (
+              <div className="space-y-2 mt-2.5">
+                <p className="text-[10px] text-muted-foreground/80 leading-snug">
+                  These players have barely featured or are aging cheaply — release them to free up wages and a squad slot. Costs a one-off clause based on remaining wages.
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {releaseCandidates.candidates.slice(0, 8).map(p => (
+                    <button
+                      key={p.id}
+                      onClick={() => { hapticLight(); selectPlayer(p.id); }}
+                      className="flex items-center gap-1.5 border border-destructive/20 bg-destructive/5 rounded-lg px-2 py-1.5 hover:bg-destructive/10 transition-colors"
+                      title={`${p.firstName} ${p.lastName} · ${p.appearances} apps · ${formatMoney(p.wage)}/wk`}
+                    >
+                      <span className={cn('text-[11px] font-bold tabular-nums leading-none', getRatingColor(p.overall))}>{p.overall}</span>
+                      <span className={cn('text-[8px] font-bold px-1 py-0.5 rounded leading-none', posBadgeColor(p.position))}>{p.position}</span>
+                      <span className="text-[10px] font-medium text-destructive/90 truncate max-w-[80px]">{p.lastName}</span>
+                      <span className="text-[8px] text-muted-foreground tabular-nums">{p.age}y</span>
+                    </button>
+                  ))}
+                  {releaseCandidates.candidates.length > 8 && (
+                    <span className="text-[10px] text-muted-foreground self-center">+{releaseCandidates.candidates.length - 8} more</span>
+                  )}
+                </div>
+                <button
+                  onClick={() => { hapticLight(); setShowReleaseWizard(true); }}
+                  className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors active:scale-[0.98]"
+                >
+                  <Skull className="w-3 h-3" /> Bulk Release Wizard
+                  {releaseAffordableCount > 0 && (
+                    <span className="text-[9px] font-medium text-destructive/70">· up to {releaseAffordableCount} affordable</span>
+                  )}
+                </button>
+              </div>
+            )}
+          </GlassPanel>
+        )}
+
         {/* Positional Depth Chart */}
         {(() => {
           const positions: { pos: string; label: string; players: typeof fullSquad }[] = [
@@ -449,6 +545,12 @@ const SquadPage = () => {
           </div>
         )}
       </div>
+      {showReleaseWizard && (
+        <ReleaseWizardModal
+          candidates={releaseCandidates.candidates}
+          onClose={() => setShowReleaseWizard(false)}
+        />
+      )}
     </div>
   );
 };

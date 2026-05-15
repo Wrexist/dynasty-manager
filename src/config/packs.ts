@@ -166,6 +166,12 @@ export const PACK_PITY_THRESHOLD = 8;
 /** Max recent pulls shown in the shop's "Recent pulls" strip. */
 export const RECENT_PULLS_LIMIT = 5;
 
+/** Refund rate applied when a packed player is quick-sold. Intentionally
+ *  steep — pack pulls are a luxury draw, so the refund only recoups a
+ *  fraction of market value. UI and slice MUST read from here so the
+ *  amount shown on the Sell button matches what the slice credits. */
+export const QUICK_SELL_RATE = 0.35;
+
 /** Positions considered when rolling players for a pack. Keeps rolls fair
  *  across the pitch rather than favouring any one slot. */
 export const PACK_POSITION_POOL: Position[] = ['GK', 'CB', 'LB', 'RB', 'CDM', 'CM', 'CAM', 'LM', 'RM', 'LW', 'RW', 'ST'];
