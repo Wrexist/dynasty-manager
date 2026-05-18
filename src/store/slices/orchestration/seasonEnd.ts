@@ -1238,6 +1238,19 @@ function finalizeSeason(
       return xp;
     })()),
     seasonGrowthTracker: {},
+    // GC stale pair-familiarity keys — pairs that include a player no
+    // longer on the user's roster are dead. Without this, the map grows
+    // unboundedly with player turnover (audit found ~11k stale keys at
+    // 30 seasons, all serialised every save).
+    pairFamiliarity: (() => {
+      const surviving = new Set(state.clubs[playerClubId]?.playerIds || []);
+      const pruned: Record<string, number> = {};
+      for (const [key, fam] of Object.entries(state.pairFamiliarity || {})) {
+        const [a, b] = key.split('-');
+        if (surviving.has(a) && surviving.has(b)) pruned[key] = fam;
+      }
+      return pruned;
+    })(),
     // Reset season enrichment tracking for the new season
     seasonStartAvgOVR: history.squadStrengthDelta?.endAvgOVR || 0,
     seasonTransfersBought: [],
