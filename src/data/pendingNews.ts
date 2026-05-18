@@ -62,6 +62,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Fixed rare launch crashes related to ads.',
     'Loaded clubs from other divisions are no longer wiped during cleanup.',
     'Fixed an issue where the welcome tour could fail mid-step.',
+    'Settings → Contact Support and Send Feedback now actually open your email client (previously the button did nothing on iOS) and email the right address.',
   ],
   headline: null,
   summary: null,

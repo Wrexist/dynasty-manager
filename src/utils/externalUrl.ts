@@ -20,6 +20,22 @@ import { Capacitor } from '@capacitor/core';
  * Bound Domains restriction.
  */
 export async function openExternalUrl(url: string): Promise<void> {
+  // `mailto:` (and similar custom schemes — `tel:`, `sms:`) are NOT
+  // handled by SFSafariViewController on iOS — it expects http(s) URLs
+  // and silently fails on a mailto. Route schemes through
+  // `window.location.href` instead, which triggers the system URL
+  // handler (Mail.app on iOS, default mail client on Android/web).
+  // App Bound Domains doesn't apply to non-http schemes, so this path
+  // works inside WKWebView with the strict iOS config.
+  const isCustomScheme = /^(mailto|tel|sms):/i.test(url);
+  if (isCustomScheme) {
+    try {
+      window.location.href = url;
+    } catch (err) {
+      Sentry.captureException(err, { tags: { context: 'externalUrl.scheme' }, extra: { url } });
+    }
+    return;
+  }
   if (Capacitor.isNativePlatform()) {
     try {
       const { Browser } = await import('@capacitor/browser');

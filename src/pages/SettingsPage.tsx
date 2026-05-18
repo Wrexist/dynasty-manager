@@ -103,6 +103,21 @@ function ToggleRow({ icon: Icon, label, description, value, onChange }: {
 
 export type SettingsVariant = 'title' | 'in-game';
 
+// Where support / feedback emails route. Single source of truth so both
+// the "Contact Support" button and the "Send Feedback" sheet stay in
+// lockstep — changing one without the other was a real footgun before.
+const SUPPORT_EMAIL = 'esportmanagerhelp@gmail.com';
+
+// Build-time constant injected by Vite (`define`). Falls back to 'dev'
+// under vitest where the define doesn't run. Included in the email
+// body so triage can see what version the user is on.
+declare const __APP_VERSION__: string;
+function getAppVersion(): string {
+  try {
+    return typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev';
+  } catch { return 'dev'; }
+}
+
 const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
   const settings = useGameStore(s => s.settings);
   const monetization = useGameStore(s => s.monetization);
@@ -181,8 +196,13 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
   const handleSendFeedback = () => {
     const categoryLabels = { bug: 'Bug Report', feature: 'Feature Request', general: 'General Feedback' };
     const subject = encodeURIComponent(`[${categoryLabels[feedbackCategory]}] Dynasty Manager Feedback`);
-    const body = encodeURIComponent(feedbackMessage.trim());
-    void openExternalUrl(`mailto:support@dynastymanager.com?subject=${subject}&body=${body}`);
+    // Body = user's message + a "Sent from" footer with app version so
+    // triage can see what build the user is on without asking. Two
+    // newlines and a divider keep the footer visually separable from
+    // the user's text in any mail client.
+    const footer = `\n\n---\nSent from Dynasty Manager v${getAppVersion()}`;
+    const body = encodeURIComponent(feedbackMessage.trim() + footer);
+    void openExternalUrl(`mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`);
     successToast('Thank You!', 'Your email client has been opened with your feedback.');
     setFeedbackMessage('');
     setFeedbackCategory('general');
@@ -542,7 +562,11 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
       <SettingsSection title="Support">
         <div className="space-y-2">
           <LiquidButton
-            onClick={() => { void openExternalUrl('mailto:support@dynastymanager.com?subject=Dynasty%20Manager%20Support'); }}
+            onClick={() => {
+              const subject = encodeURIComponent('[Support] Dynasty Manager Help Request');
+              const body = encodeURIComponent(`Hi, I need help with...\n\n---\nSent from Dynasty Manager v${getAppVersion()}`);
+              void openExternalUrl(`mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`);
+            }}
           >
             <span className="flex items-center justify-start gap-3 px-3">
               <Mail className="w-4 h-4" />
