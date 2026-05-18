@@ -845,26 +845,25 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   const state = get();
   const { week, fixtures, clubs, players, playerClubId, tactics, training, season } = state;
   const friendlyMatch = state.friendlies?.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
-  const leagueMatch = !friendlyMatch ? fixtures.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId)) : null;
 
-  // Check for cup tie if no league/friendly match
-  const cupTie = !friendlyMatch && !leagueMatch ? state.cup.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
-
-  // Check continental matches
-  const champMatch = !friendlyMatch && !leagueMatch && !cupTie ? findPlayerContinentalMatch(state.championsCup, week, playerClubId) : null;
-  const shieldMatch = !friendlyMatch && !leagueMatch && !cupTie && !champMatch ? findPlayerContinentalMatch(state.shieldCup, week, playerClubId) : null;
-  const confMatch = !friendlyMatch && !leagueMatch && !cupTie && !champMatch && !shieldMatch ? findPlayerContinentalMatch(state.conferenceCup, week, playerClubId) : null;
+  // Priority: friendly → continental → cup → leagueCup → superCup → league.
+  // Mirrors the order in playCurrentMatchImpl — see the comment there for the
+  // reasoning. MatchDay uses THIS function for the interactive flow, so the
+  // priority must match or the continental fix gets bypassed for live play.
+  const champMatch = !friendlyMatch ? findPlayerContinentalMatch(state.championsCup, week, playerClubId) : null;
+  const shieldMatch = !friendlyMatch && !champMatch ? findPlayerContinentalMatch(state.shieldCup, week, playerClubId) : null;
+  const confMatch = !friendlyMatch && !champMatch && !shieldMatch ? findPlayerContinentalMatch(state.conferenceCup, week, playerClubId) : null;
   const continentalMatch = champMatch || shieldMatch || confMatch;
   const continentalComp = champMatch ? 'champions_cup' as const : shieldMatch ? 'shield_cup' as const : confMatch ? 'conference_cup' as const : null;
   const continentalTourney = champMatch ? state.championsCup : shieldMatch ? state.shieldCup : confMatch ? state.conferenceCup : null;
-
-  // Check league cup
-  const leagueCupTie = !friendlyMatch && !leagueMatch && !cupTie && !continentalMatch ? state.leagueCup?.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
-
-  // Check super cups
-  const superCup = !friendlyMatch && !leagueMatch && !cupTie && !continentalMatch && !leagueCupTie
+  const cupTie = !friendlyMatch && !continentalMatch ? state.cup.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
+  const leagueCupTie = !friendlyMatch && !continentalMatch && !cupTie ? state.leagueCup?.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
+  const superCup = !friendlyMatch && !continentalMatch && !cupTie && !leagueCupTie
     ? (state.domesticSuperCup && !state.domesticSuperCup.played && state.domesticSuperCup.week === week && (state.domesticSuperCup.homeClubId === playerClubId || state.domesticSuperCup.awayClubId === playerClubId) ? state.domesticSuperCup : null)
       || (state.continentalSuperCup && !state.continentalSuperCup.played && state.continentalSuperCup.week === week && (state.continentalSuperCup.homeClubId === playerClubId || state.continentalSuperCup.awayClubId === playerClubId) ? state.continentalSuperCup : null)
+    : null;
+  const leagueMatch = !friendlyMatch && !continentalMatch && !cupTie && !leagueCupTie && !superCup
+    ? fixtures.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId))
     : null;
 
   // Build match object from the detected source
@@ -1040,7 +1039,20 @@ export function playSecondHalfImpl(set: Set, get: Get): Match | null {
     }
   }
 
-  const match = friendlyMatch || leagueMatch || (cupTie ? { id: cupTie.id, week: cupTie.week, homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match : null) || tournamentMatch;
+  // Match selection must honour the in-progress match the FIRST half started.
+  // `currentCupTieId === '__tournament__'` marks continental/league-cup/super-cup
+  // ties; a real cup id marks a Dynasty Cup tie. Either way, those state IDs
+  // win — only fall through to friendly/league when no in-progress tournament
+  // or cup tie is set. Previously the chain put `leagueMatch` ahead of the
+  // tournament one, so a week with both league + continental fixtures would
+  // start in continental for the first half, then silently switch to the
+  // league match in the second half (with the half-time state of the wrong
+  // game still attached).
+  const match: Match | null = isTournamentMatch
+    ? tournamentMatch
+    : cupTie
+      ? { id: cupTie.id, week: cupTie.week, homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match
+      : (friendlyMatch || leagueMatch || null);
   if (!match) return null;
 
   const hc = clubs[match.homeClubId];

@@ -60,6 +60,7 @@ const TransferPage = () => {
   const buyLoanedPlayer = useGameStore(s => s.buyLoanedPlayer);
   const respondToLoanOffer = useGameStore(s => s.respondToLoanOffer);
   const signFreeAgent = useGameStore(s => s.signFreeAgent);
+  const cancelLoanRequest = useGameStore(s => s.cancelLoanRequest);
   const setScreen = useGameStore(s => s.setScreen);
   const setTransferFilter = useGameStore(s => s.setTransferFilter);
 
@@ -755,6 +756,10 @@ const TransferPage = () => {
                 const p = players[req.playerId];
                 if (!p) return null;
                 const ownerClub = clubs[req.toClubId];
+                // Counter offers block fresh requests for the same player via
+                // the slice's dedupe guard. Surfacing a Cancel action here is
+                // the only way for the user to clear a counter they don't want
+                // to accept — otherwise the dedupe creates a permanent dead-end.
                 return (
                   <TransferPlayerCard
                     key={req.id}
@@ -763,7 +768,7 @@ const TransferPage = () => {
                     subtitle={
                       <>
                         <div>From: <span className="text-foreground">{ownerClub?.name || '?'}</span></div>
-                        <div className="flex gap-3 mt-1 text-[10px]">
+                        <div className="flex gap-3 mt-1 text-[10px] items-center">
                           <span>{req.durationWeeks} weeks</span>
                           <span>Wage: {req.wageSplit}%</span>
                           {req.recallClause && <span className="text-blue-400">Recall</span>}
@@ -776,6 +781,19 @@ const TransferPage = () => {
                           )}>
                             {req.status === 'pending' ? 'Awaiting Response' : req.status.charAt(0).toUpperCase() + req.status.slice(1)}
                           </span>
+                          {req.status === 'counter' && req.counterWageSplit != null && (
+                            <span className="text-amber-400/80 ml-auto">
+                              wants {req.counterWageSplit}%
+                              {req.counterDuration != null && req.counterDuration !== req.durationWeeks ? ` / ${req.counterDuration}w` : ''}
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); cancelLoanRequest(req.id); }}
+                            className="px-1.5 py-0.5 rounded border border-border/40 bg-muted/30 text-muted-foreground hover:text-foreground hover:bg-muted/50 text-[9px] uppercase tracking-wider"
+                          >
+                            {req.status === 'counter' ? 'Dismiss' : 'Clear'}
+                          </button>
                         </div>
                       </>
                     }
