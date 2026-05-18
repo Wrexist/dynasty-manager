@@ -1060,7 +1060,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
           newTimeline.push(createMilestone('cup_win', 'Cup Winners!', `Won the cup in Season ${season}!`, season, week, 'medal'));
         }
       } else {
-        newCup = advanceCupRound(newCup);
+        newCup = advanceCupRound(newCup, state.clubs, state.players);
       }
     }
   }

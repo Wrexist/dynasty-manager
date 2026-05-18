@@ -1,6 +1,6 @@
-import { CupTie, CupRound, CupState } from '@/types/game';
+import { CupTie, CupRound, CupState, Club, Player } from '@/types/game';
 import { shuffle } from '@/utils/helpers';
-import { CUP_PENALTY_WIN_CHANCE, CUP_PENALTY_KICKS } from '@/config/gameBalance';
+import { getClubGKQuality, simulatePenaltyShootout } from '@/utils/penaltyShootout';
 
 export const CUP_BYE_MARKER = '__BYE__';
 
@@ -69,7 +69,11 @@ export function generateCupDraw(clubIds: string[]): CupState {
   };
 }
 
-export function advanceCupRound(cup: CupState): CupState {
+export function advanceCupRound(
+  cup: CupState,
+  clubs: Record<string, Club> = {},
+  players: Record<string, Player> = {},
+): CupState {
   const currentRound = cup.currentRound;
   if (!currentRound || currentRound === 'F') return cup;
 
@@ -85,25 +89,24 @@ export function advanceCupRound(cup: CupState): CupState {
     if (t.awayClubId === CUP_BYE_MARKER) return t.homeClubId;
     if (t.homeGoals > t.awayGoals) return t.homeClubId;
     if (t.awayGoals > t.homeGoals) return t.awayClubId;
-    // Penalty shootout for drawn matches
-    let homeGoals = 0, awayGoals = 0;
-    for (let kick = 0; kick < CUP_PENALTY_KICKS; kick++) {
-      if (Math.random() < CUP_PENALTY_WIN_CHANCE) homeGoals++;
-      if (Math.random() < CUP_PENALTY_WIN_CHANCE) awayGoals++;
-    }
-    // Sudden death if still tied after regulation kicks — both always take, divergence decides
-    while (homeGoals === awayGoals) {
-      const hScore = Math.random() < CUP_PENALTY_WIN_CHANCE ? 1 : 0;
-      const aScore = Math.random() < CUP_PENALTY_WIN_CHANCE ? 1 : 0;
-      homeGoals += hScore;
-      awayGoals += aScore;
-    }
-    // Store shootout result on the tie
+    // Penalty shootout for drawn matches — routes through the shared helper
+    // so AI cup ties use the same GK-quality-weighted formula and early-
+    // termination logic as user-facing shootouts. Empty clubs/players maps
+    // fall back to neutral 0.5 GK quality, which preserves the legacy
+    // behaviour for callers that haven't yet wired the context through.
+    const homeClub = clubs[t.homeClubId];
+    const awayClub = clubs[t.awayClubId];
+    const so = simulatePenaltyShootout({
+      homeName: homeClub?.shortName || t.homeClubId,
+      awayName: awayClub?.shortName || t.awayClubId,
+      homeGKQuality: getClubGKQuality(homeClub, players),
+      awayGKQuality: getClubGKQuality(awayClub, players),
+    });
     const tieIdx = updatedTies.findIndex(ut => ut.id === t.id);
     if (tieIdx >= 0) {
-      updatedTies[tieIdx] = { ...updatedTies[tieIdx], penaltyShootout: { home: homeGoals, away: awayGoals } };
+      updatedTies[tieIdx] = { ...updatedTies[tieIdx], penaltyShootout: { home: so.homeScore, away: so.awayScore } };
     }
-    return homeGoals > awayGoals ? t.homeClubId : t.awayClubId;
+    return so.winner === 'home' ? t.homeClubId : t.awayClubId;
   });
 
   const shuffled = shuffle([...winners]);
