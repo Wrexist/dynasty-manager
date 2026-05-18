@@ -518,9 +518,13 @@ export const createLoanSlice = (set: Set, get: Get) => ({
     const userClub = state.clubs[state.playerClubId];
     if (!ownerClub || !userClub) return { outcome: 'rejected' as const, message: 'Invalid club.' };
 
-    // Check for duplicate request
-    const existing = state.outgoingLoanRequests.find(r => r.playerId === playerId && r.status === 'pending');
-    if (existing) return { outcome: 'rejected' as const, message: 'You already have a pending loan request for this player.' };
+    // Dedupe: block a fresh request when a counter is still pending (the
+    // user must accept or cancel it first). Previously the slice checked
+    // for status='pending' but NEVER wrote any entries to
+    // `outgoingLoanRequests`, so this guard never fired and users could
+    // spam the same loan request repeatedly.
+    const existing = state.outgoingLoanRequests.find(r => r.playerId === playerId && r.status === 'counter');
+    if (existing) return { outcome: 'rejected' as const, message: 'You already have a pending counter-offer for this player — accept or cancel it first.' };
 
     // Evaluate acceptance
     const eval_ = get().evaluateLoanRequest(playerId, duration, wageSplit);
@@ -588,6 +592,25 @@ export const createLoanSlice = (set: Set, get: Get) => ({
       const counterWageSplit = Math.min(100, wageSplit + 10 + Math.floor(Math.random() * 15));
       const counterDuration = duration > 12 ? Math.max(4, duration - Math.floor(Math.random() * 8) - 4) : duration;
 
+      // Persist the counter as a tracked request so the user can see it on
+      // the Transfer page and accept / cancel it. Required for the dedupe
+      // guard above to ever fire.
+      const counterRequest: OutgoingLoanRequest = {
+        id: crypto.randomUUID(),
+        playerId,
+        toClubId: player.clubId,
+        durationWeeks: duration,
+        wageSplit,
+        recallClause,
+        obligatoryBuyFee,
+        week: state.week,
+        season: state.season,
+        status: 'counter',
+        counterWageSplit,
+        counterDuration,
+      };
+      set({ outgoingLoanRequests: [...state.outgoingLoanRequests, counterRequest] });
+
       return {
         outcome: 'counter' as const,
         counterWageSplit,
@@ -596,7 +619,21 @@ export const createLoanSlice = (set: Set, get: Get) => ({
       };
     }
 
-    // Rejected
+    // Rejected — persist a short-lived record so the page can show the
+    // rejection note rather than silently swallowing the request.
+    const rejectedRequest: OutgoingLoanRequest = {
+      id: crypto.randomUUID(),
+      playerId,
+      toClubId: player.clubId,
+      durationWeeks: duration,
+      wageSplit,
+      recallClause,
+      obligatoryBuyFee,
+      week: state.week,
+      season: state.season,
+      status: 'rejected',
+    };
+    set({ outgoingLoanRequests: [...state.outgoingLoanRequests, rejectedRequest] });
     return { outcome: 'rejected' as const, message: `${ownerClub.name} have rejected your loan request for ${player.lastName}. The club considers the player too important.` };
   },
 

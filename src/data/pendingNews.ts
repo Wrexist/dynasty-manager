@@ -62,6 +62,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Fixed rare launch crashes related to ads.',
     'Loaded clubs from other divisions are no longer wiped during cleanup.',
     'Fixed an issue where the welcome tour could fail mid-step.',
+    'Loan counter-offers now appear in the Transfer page and are tracked properly — you can no longer accidentally spam the same loan request, and counter-offers no longer vanish the moment you close the dialog.',
   ],
   headline: null,
   summary: null,
