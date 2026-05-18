@@ -11,7 +11,7 @@ import type { Club, Player, FormationType } from '@/types/game';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 67;
+const CURRENT_VERSION = 68;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -1093,6 +1093,39 @@ const migrations: Record<number, MigrationFn> = {
       ...(upgradedPlayers ? { players: upgradedPlayers } : {}),
     };
   },
+
+  // v67 → v68: Backfill 13 GameState fields that were mutated by gameplay
+  // but never written to the save payload. Pre-v68 saves silently dropped
+  // `seasonTotalExpenses` (and all the other listed fields) on every
+  // reload, so finance summaries, season trackers, the Pro-only
+  // `tacticalPresets`, and the Community Pack opt-in survived only as
+  // long as the tab stayed open. New saves carry these forward; this
+  // migration seeds defaults for in-progress saves so the loader's
+  // fallback path doesn't run on every load forever.
+  67: (data) => ({
+    ...data,
+    version: 68,
+    contractStrikes: data.contractStrikes || {},
+    tacticalPresets: data.tacticalPresets || [],
+    transferFilters: data.transferFilters || {
+      tab: 'market', posFilter: 0, searchQuery: '',
+      sortBy: 'overall', faSortBy: 'overall', divFilter: 'all',
+      newsTypeFilter: 'all', hideUnaffordable: false, showShortlistOnly: false,
+    },
+    pendingGemReveal: data.pendingGemReveal ?? null,
+    pendingTransferTalk: data.pendingTransferTalk ?? null,
+    seasonStartAvgOVR: data.seasonStartAvgOVR ?? 0,
+    seasonTransfersBought: data.seasonTransfersBought || [],
+    seasonTransfersSold: data.seasonTransfersSold || [],
+    seasonTotalIncome: data.seasonTotalIncome ?? 0,
+    seasonTotalExpenses: data.seasonTotalExpenses ?? 0,
+    clubPowerRankings: data.clubPowerRankings || {},
+    communityPackEnabled: data.communityPackEnabled ?? false,
+    cpPool: data.cpPool || {
+      shuffleSeed: 0, cursor: 0, usedFcIds: [], marketListings: [],
+      lastMarketRefreshWeek: 0, lastSeedSeason: 0,
+    },
+  }),
 
   // v64 → v65: National team `fifaRanking` was hardcoded to 25 on init —
   // recompute from the canonical per-nation `baseRanking` so France no
