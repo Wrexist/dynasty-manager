@@ -26,7 +26,7 @@ import { hasPerk, dynastyMult } from '@/utils/managerPerks';
 import { STAR_SIGNING_BUZZ_WEEKS, STAR_PLAYER_SALE_DIP_WEEKS, CAMPAIGN_STAR_SIGNING_MIN_VALUE } from '@/config/merchandise';
 import { getStarPlayerMerch } from '@/utils/merchandise';
 import { CHALLENGES } from '@/data/challenges';
-import { detachPlayerFromAllClubs } from '../helpers/rosterOps';
+import { detachPlayerFromAllClubs, purgePlayerReferences } from '../helpers/rosterOps';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -123,23 +123,22 @@ const executeSale = (state: GameState, offer: { id: string; playerId: string; bu
     const currentDip = state.merchandise?.starPlayerDip || 0;
     merchDipUpdate.merchandise = { ...state.merchandise, starPlayerDip: Math.max(currentDip, STAR_PLAYER_SALE_DIP_WEEKS) };
   }
-  // Clean up any active loans involving the sold player
-  const cleanedLoans = state.activeLoans.filter(l => l.playerId !== offer.playerId);
-  // Remove this offer + all offers for same player
-  const cleanedOffers = state.incomingOffers.filter(o => o.playerId !== offer.playerId);
-
-  // Clean up shortlist and scout watch list for the sold player
-  const cleanedShortlist = state.shortlist.filter(id => id !== offer.playerId);
-  const cleanedWatchList = state.scoutWatchList.filter(id => id !== offer.playerId);
+  // Unified reference purge — was missing outgoingLoanRequests,
+  // negotiationStrikes, contractStrikes, pendingTransferTalk before.
+  // We also override `transferMarket` after the helper because executeSale
+  // computed a richer `newMarket` (which might add new listings, not just
+  // remove the sold player's row).
+  const purged = purgePlayerReferences(state, offer.playerId);
 
   const currentSold = state.seasonTransfersSold || [];
   set({
     players: newPlayers,
     clubs: updatedClubs,
-    transferMarket: newMarket, incomingOffers: cleanedOffers, incomingLoanOffers: state.incomingLoanOffers.filter(o => o.playerId !== offer.playerId), activeLoans: cleanedLoans, messages: msg, managerStats: ms,
-    shortlist: cleanedShortlist, scoutWatchList: cleanedWatchList,
+    messages: msg, managerStats: ms,
+    ...purged,
+    transferMarket: newMarket,
     seasonTransfersSold: [...currentSold, { playerName: `${player.firstName} ${player.lastName}`, fee }],
-    ...(farewellEntry ? { pendingFarewell: [...state.pendingFarewell, farewellEntry] } : {}),
+    ...(farewellEntry ? { pendingFarewell: [...purged.pendingFarewell!, farewellEntry] } : {}),
     ...merchDipUpdate,
   });
   return { success: true, message: `${player.firstName} ${player.lastName} sold for £${(fee / 1e6).toFixed(1)}M!${sellOnNote}` };
@@ -655,12 +654,12 @@ export const createTransferSlice = (set: Set, get: Get) => ({
       players: { ...state.players, [playerId]: releasedPlayer },
       clubs: { ...state.clubs, [club.id]: club },
       freeAgents: [...state.freeAgents, playerId],
-      transferMarket: state.transferMarket.filter(l => l.playerId !== playerId),
-      incomingOffers: state.incomingOffers.filter(o => o.playerId !== playerId),
-      incomingLoanOffers: state.incomingLoanOffers.filter(o => o.playerId !== playerId),
-      shortlist: state.shortlist.filter(id => id !== playerId),
-      scoutWatchList: state.scoutWatchList.filter(id => id !== playerId),
       messages: newMessages,
+      // Unified state-wide reference cleanup — was missing
+      // activeLoans, outgoingLoanRequests, negotiationStrikes,
+      // contractStrikes, pendingFarewell, pendingTransferTalk before.
+      // See purgePlayerReferences for the full list.
+      ...purgePlayerReferences(state, playerId),
     });
     return { success: true, message: `${player.firstName} ${player.lastName} released. Severance: £${(severance / 1e6).toFixed(1)}M.` };
   },

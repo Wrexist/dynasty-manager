@@ -15,6 +15,7 @@ import {
   buildAutoFillContext,
   candidatesCanCrackSquad,
 } from '@/utils/autoFillContext';
+import { purgePlayerReferences } from '../helpers/rosterOps';
 
 /** Match transferSlice's challenge gate. Packs count as signings — respect
  *  noTransfers and youthOnly scenario flags. Returns a blocking message or
@@ -586,6 +587,11 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       // Severance counts as a season-level expense so the Finance summary
       // reflects the true cost of pack churn.
       seasonTotalExpenses: (state.seasonTotalExpenses || 0) + severance,
+      // Reference cleanup — pack release uses the same surface area as
+      // a regular release (a freshly-packed player can have a pending
+      // transfer talk, scout note, or farewell entry if they were a
+      // re-pack of a former squad member).
+      ...purgePlayerReferences(state, playerId),
     });
 
     return { success: true, message: `${player.firstName} ${player.lastName} released.` };
@@ -684,6 +690,8 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       // arrives with no Income line). Now that this field survives save/load,
       // the under-reporting is permanent.
       seasonTotalIncome: (state.seasonTotalIncome || 0) + amount,
+      // Reference cleanup parity with regular release flows.
+      ...purgePlayerReferences(state, playerId),
     });
 
     return {
