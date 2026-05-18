@@ -42,9 +42,13 @@ export interface PendingRelease {
 }
 
 export const PENDING_NEWS: PendingRelease = {
-  highlights: [],
+  highlights: [
+    'Subscribe paywall now spells out "Pay $0 Today" with your exact first-charge date when you start the free trial — no more guesswork about when (or if) you\'ll be billed.',
+  ],
   new: [
     'Dynasty Pro annual plan added, with localized pricing.',
+    'Yearly plan now shows the per-month equivalent and savings vs monthly billing, so you can compare plans at a glance.',
+    'Subscribe button copy is plan-specific: "Try Pro Free for 3 Days" with "$0 today · cancel anytime" subtitle on the trial plan; "Unlock Pro Forever" on Lifetime.',
   ],
   improved: [
     'Pack opening summary now has bulk keep and bulk sell actions.',

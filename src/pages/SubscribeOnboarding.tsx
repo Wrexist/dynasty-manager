@@ -10,6 +10,9 @@ import {
   RefreshCw,
   Sparkles,
   X,
+  Calendar,
+  ShieldCheck,
+  Bell,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { hapticLight, hapticMedium } from '@/utils/haptics';
@@ -70,6 +73,68 @@ interface PlanRow {
   trialCaption?: string;
   /** Optional badge displayed at the right (e.g. "BEST VALUE", "POPULAR"). */
   badge?: string;
+}
+
+/** Date the user's first charge would land on if they start the trial right
+ *  now. Trial = FREE_TRIAL_DAYS calendar days; we add one day to land on the
+ *  charge date itself (Apple bills on day N+1, not day N). Locale-aware so a
+ *  user in Tokyo sees a date in their format, not a US default. */
+function formatFirstChargeDate(): string {
+  const d = new Date(Date.now() + (FREE_TRIAL_DAYS + 1) * 24 * 60 * 60 * 1000);
+  try {
+    return d.toLocaleDateString(undefined, { month: 'long', day: 'numeric' });
+  } catch {
+    // Fallback for engines that don't support `undefined` locale.
+    return `${d.getMonth() + 1}/${d.getDate()}`;
+  }
+}
+
+/** Tolerant numeric parse for localised store prices. Handles every
+ *  format App Store / Play Store hands back: "$1.99", "€14,99", "¥1,500",
+ *  "US$120.00", "€1.200,00", etc. Returns null when no usable number can
+ *  be extracted — callers MUST treat the supportive captions as optional
+ *  so we never render "NaN/mo". */
+function parsePriceAmount(display: string): number | null {
+  const cleaned = display.replace(/[^\d.,]/g, '');
+  if (!cleaned) return null;
+  let normalised = cleaned;
+  if (cleaned.includes(',') && cleaned.includes('.')) {
+    // Both separators present — the LAST one is the decimal.
+    const lastDot = cleaned.lastIndexOf('.');
+    const lastComma = cleaned.lastIndexOf(',');
+    normalised = lastComma > lastDot ? cleaned.replace(/\./g, '').replace(',', '.') : cleaned.replace(/,/g, '');
+  } else if (cleaned.includes(',') && /,\d{1,2}$/.test(cleaned)) {
+    // Single separator, comma with 1-2 trailing digits → comma is decimal.
+    normalised = cleaned.replace(/\./g, '').replace(',', '.');
+  } else {
+    // Treat any remaining commas as thousands separators.
+    normalised = cleaned.replace(/,/g, '');
+  }
+  const n = parseFloat(normalised);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+/** "$14.99" → "$1.25" (per-month equivalent of the yearly plan).
+ *  Returns null when the input can't be parsed. */
+function perMonthFromYearly(yearlyDisplay: string): string | null {
+  const yearly = parsePriceAmount(yearlyDisplay);
+  if (yearly === null) return null;
+  const monthly = yearly / 12;
+  // Preserve the currency symbol from the yearly display so we don't have to
+  // hardcode `$`. Grab everything that isn't a digit / dot / comma.
+  const currencyPrefix = yearlyDisplay.match(/^[^\d.,\s-]+/)?.[0] || '$';
+  return `${currencyPrefix}${monthly.toFixed(2)}`;
+}
+
+/** Yearly vs. monthly savings as a rounded percent ("37%"). Returns null
+ *  when either price can't be parsed. */
+function yearlyDiscountPercent(yearlyDisplay: string, monthlyDisplay: string): number | null {
+  const yearly = parsePriceAmount(yearlyDisplay);
+  const monthly = parsePriceAmount(monthlyDisplay);
+  if (yearly === null || monthly === null) return null;
+  const yearlyPerMonth = yearly / 12;
+  const saving = Math.round((1 - yearlyPerMonth / monthly) * 100);
+  return saving > 0 ? saving : null;
 }
 
 const PLAN_ROWS: PlanRow[] = [
@@ -307,6 +372,18 @@ const SubscribeOnboarding = () => {
           const billedAmount = row.productId === 'com.dynastymanager.pro.lifetime'
             ? priceFor(row.productId)
             : `${priceFor(row.productId)}${product.billingPeriod || ''}`;
+          // Yearly plan: surface the per-month equivalent as a SUBORDINATE
+          // caption (smaller, lighter) so it never out-competes the billed
+          // amount above it — Apple 3.1.2(c) is unforgiving on this.
+          // Conversion research (RevenueCat, Apple ASA) consistently shows
+          // per-month framing on yearly plans lifts conversion 15-30%
+          // because users mentally compare it to the monthly row.
+          const annualPerMonth = row.productId === 'com.dynastymanager.pro.annual'
+            ? perMonthFromYearly(priceFor(row.productId))
+            : null;
+          const monthlyDiscount = row.productId === 'com.dynastymanager.pro.annual'
+            ? yearlyDiscountPercent(priceFor(row.productId), priceFor('com.dynastymanager.pro.monthly'))
+            : null;
 
           return (
             <button
@@ -348,6 +425,14 @@ const SubscribeOnboarding = () => {
                 <p className="text-[11px] text-muted-foreground leading-snug">
                   {row.lengthLabel}
                 </p>
+                {annualPerMonth && (
+                  <p className="text-[10px] text-emerald-300/90 leading-snug mt-0.5 font-semibold">
+                    Just {annualPerMonth}/mo
+                    {monthlyDiscount != null && (
+                      <span className="text-emerald-300/70 font-medium"> · Save {monthlyDiscount}% vs monthly</span>
+                    )}
+                  </p>
+                )}
                 {row.trialCaption && (
                   <p className="text-[10px] text-muted-foreground/80 leading-snug mt-0.5">
                     {row.trialCaption}
@@ -368,6 +453,50 @@ const SubscribeOnboarding = () => {
         })}
       </div>
 
+      {/* Trial-anxiety reducer — only when the Monthly trial plan is selected.
+          Three things converge to push hesitating users over the line:
+            1. A loud "Pay $0 Today" headline (the literal worry).
+            2. The exact first-charge date in plain language (no math required).
+            3. A reminder that Apple sends a heads-up before billing.
+          Apple compliance: the BILLED AMOUNT ($X/month) still wins prominence
+          because the plan row above shows it in `text-lg font-black`, while
+          this callout uses smaller weights and a supporting tone. The "Free"
+          framing is paired with the explicit charge date — not a misleading
+          standalone "Free!" claim. */}
+      {isTrialPlan && (
+        <motion.div
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25 }}
+          className="relative z-10 w-full max-w-md mb-3 rounded-2xl border border-emerald-400/30 bg-emerald-500/[0.08] px-4 py-3"
+        >
+          <div className="flex items-baseline justify-between mb-2">
+            <span className="text-[13px] font-bold text-emerald-300 uppercase tracking-wider">
+              Pay $0 Today
+            </span>
+            <span className="text-[10px] text-emerald-200/70 font-medium">
+              No payment required now
+            </span>
+          </div>
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2 text-[11px] text-foreground/85">
+              <Calendar className="w-3 h-3 text-emerald-300 flex-shrink-0" />
+              <span>
+                First charge on <strong className="text-foreground">{formatFirstChargeDate()}</strong> — {priceFor(selected)}/month
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-[11px] text-foreground/85">
+              <Bell className="w-3 h-3 text-emerald-300 flex-shrink-0" />
+              <span>Apple emails you a reminder before billing starts</span>
+            </div>
+            <div className="flex items-center gap-2 text-[11px] text-foreground/85">
+              <ShieldCheck className="w-3 h-3 text-emerald-300 flex-shrink-0" />
+              <span>Cancel anytime during the trial — pay nothing</span>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       {/* Billing summary — explicit, non-misleading sentence describing what
           the user will be charged. Apple wants the billed amount to be the
           clearest element; this paragraph spells it out in plain text. */}
@@ -385,7 +514,7 @@ const SubscribeOnboarding = () => {
           onClick={handleSubscribe}
           disabled={purchasing || restoring}
           className={cn(
-            'relative w-full h-13 py-3.5 rounded-2xl font-bold text-base overflow-hidden',
+            'relative w-full min-h-[52px] py-3.5 rounded-2xl font-bold text-base overflow-hidden',
             'bg-gradient-to-b from-primary/95 to-primary/75 text-primary-foreground',
             'border border-primary/40',
             'shadow-[inset_0_1px_0_rgba(255,255,255,0.55),inset_0_-1px_0_rgba(0,0,0,0.4),0_18px_38px_-10px_hsl(43_96%_46%/0.6)]',
@@ -413,12 +542,25 @@ const SubscribeOnboarding = () => {
                 <Loader2 className="w-5 h-5 animate-spin" />
                 Processing…
               </>
+            ) : isTrialPlan ? (
+              <span className="relative flex flex-col items-center justify-center leading-none">
+                <span className="flex items-center gap-2 text-base font-bold">
+                  <Sparkles className="w-5 h-5" />
+                  Try Pro Free for {FREE_TRIAL_DAYS} Days
+                </span>
+                <span className="text-[10px] font-medium text-primary-foreground/80 mt-1">
+                  $0 today · cancel anytime
+                </span>
+              </span>
+            ) : selected === 'com.dynastymanager.pro.lifetime' ? (
+              <>
+                <Sparkles className="w-5 h-5" />
+                Unlock Pro Forever — {priceFor(selected)}
+              </>
             ) : (
               <>
                 <Sparkles className="w-5 h-5" />
-                {isTrialPlan
-                  ? `Start ${FREE_TRIAL_DAYS}-Day Free Trial`
-                  : `Continue — ${priceFor(selected)}${selectedProduct.billingPeriod || ''}`}
+                Unlock Pro — {priceFor(selected)}{selectedProduct.billingPeriod || ''}
               </>
             )}
           </span>
