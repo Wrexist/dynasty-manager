@@ -13,9 +13,9 @@ import { hasPerk } from '@/utils/managerPerks';
 
 import { getAICounterTactics } from '@/config/aiManager';
 import { CONTINENTAL_PRIZE_MONEY } from '@/config/continental';
-import { CUP_EXTRA_TIME_GOAL_CHANCE, CUP_EXTRA_TIME_REPUTATION_DIVISOR, CUP_PENALTY_GK_QUALITY_FACTOR, CUP_PENALTY_KICKS, FORFEIT_SCORE, FRIENDLY_BOARD_CONFIDENCE_MULT, LINEUP_SIZE, MOTIVATOR_MORALE_BOOST } from '@/config/gameBalance';
+import { CUP_EXTRA_TIME_GOAL_CHANCE, CUP_EXTRA_TIME_REPUTATION_DIVISOR, CUP_PENALTY_KICKS, FORFEIT_SCORE, FRIENDLY_BOARD_CONFIDENCE_MULT, LINEUP_SIZE, MOTIVATOR_MORALE_BOOST } from '@/config/gameBalance';
 import { MOD_DISCIPLINE_CARDS, REP_DRAW, REP_LOSS, REP_WIN } from '@/config/managerCareer';
-import { PENALTY_CONVERSION_RATE, SHOUT_CUMULATIVE_SCALE, SHOUT_MODIFIERS } from '@/config/matchEngine';
+import { SHOUT_CUMULATIVE_SCALE, SHOUT_MODIFIERS } from '@/config/matchEngine';
 import { CALM_DEFENSE_BOOST, CALM_FITNESS_DRAIN_MULT, CALM_FOUL_REDUCTION, DEMAND_ATTACK_BOOST, DEMAND_DEFENSE_PENALTY, DEMAND_FITNESS_DRAIN_MULT, MOTIVATE_ATTACK_BOOST, MOTIVATE_FITNESS_DRAIN_MULT, MOTIVATE_FOUL_BONUS } from '@/config/teamTalk';
 import { advanceCupRound, getRoundName } from '@/data/cup';
 import { getDerbyIntensity } from '@/data/league';
@@ -24,7 +24,8 @@ import { HalfState, finalizeMatch, generateMatchWeather, simulateHalf, simulateM
 import { processMatchResult } from '@/store/helpers/matchProcessing';
 import { applyAIMatchEvents } from '@/store/slices/orchestration/helpers';
 import { advanceLeagueCupRound, getContinentalMatchLabel, isAggregateDecided } from '@/store/slices/orchestration/tournaments';
-import type { MatchEvent, PenaltyKick } from '@/types/game';
+import type { MatchEvent } from '@/types/game';
+import { simulatePenaltyShootout } from '@/utils/penaltyShootout';
 import { detectMatchDrama } from '@/utils/celebrations';
 import { advanceKnockoutRound, createEphemeralClub, findPlayerContinentalMatch, generateKnockoutFromGroups, isGroupStageComplete, isKnockoutRoundComplete } from '@/utils/continental';
 import { dynastyMult } from '@/utils/managerPerks';
@@ -97,7 +98,7 @@ function processTournamentResult(
           newCup.winner = cupWinnerId; newCup.currentRound = null;
           awardPrizeMoney(cupWinnerId === playerClubId ? CONTINENTAL_PRIZE_MONEY.dynasty_cup_winner : CONTINENTAL_PRIZE_MONEY.dynasty_cup_runner_up);
         }
-      } else { Object.assign(newCup, advanceCupRound(newCup)); }
+      } else { Object.assign(newCup, advanceCupRound(newCup, state.clubs, state.players)); }
     }
     const isHome = result.homeClubId === playerClubId;
     const playerWon = isHome ? result.homeGoals > result.awayGoals : result.awayGoals > result.homeGoals;
@@ -383,20 +384,30 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   if (state.gameMode === 'career' && !state.careerManager?.contract) return null;
   const { week, fixtures, clubs, players, playerClubId, tactics, training, season } = state;
 
-  // ── Detect match type: friendly → league → cup → continental → league cup → super cup ──
+  // ── Detect match type ──
+  // Priority: friendly → continental → cup → leagueCup → superCup → league.
+  // Continental and cup ties must win over league fixtures: when both fall on
+  // the same week, the user MUST play the high-stakes tie interactively or it
+  // gets silently skipped (continental's group-stage AI sim explicitly skips
+  // the player's match in expectation of interactive play — leaving league
+  // ahead in priority caused 0-played continental campaigns and the user
+  // being eliminated without ever seeing a game). The conflicting league
+  // fixture gets AI-simulated by advanceWeek's div-fixture loop instead.
   const friendlyMatch = state.friendlies?.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
-  const leagueMatch = !friendlyMatch ? fixtures.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId)) : null;
-  const cupTie = !friendlyMatch && !leagueMatch ? state.cup.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
-  const champMatch = !friendlyMatch && !leagueMatch && !cupTie ? findPlayerContinentalMatch(state.championsCup, week, playerClubId) : null;
-  const shieldMatch = !friendlyMatch && !leagueMatch && !cupTie && !champMatch ? findPlayerContinentalMatch(state.shieldCup, week, playerClubId) : null;
-  const confMatch = !friendlyMatch && !leagueMatch && !cupTie && !champMatch && !shieldMatch ? findPlayerContinentalMatch(state.conferenceCup, week, playerClubId) : null;
+  const champMatch = !friendlyMatch ? findPlayerContinentalMatch(state.championsCup, week, playerClubId) : null;
+  const shieldMatch = !friendlyMatch && !champMatch ? findPlayerContinentalMatch(state.shieldCup, week, playerClubId) : null;
+  const confMatch = !friendlyMatch && !champMatch && !shieldMatch ? findPlayerContinentalMatch(state.conferenceCup, week, playerClubId) : null;
   const continentalMatch = champMatch || shieldMatch || confMatch;
   const continentalComp = champMatch ? 'champions_cup' as const : shieldMatch ? 'shield_cup' as const : confMatch ? 'conference_cup' as const : null;
   const continentalTourney = champMatch ? state.championsCup : shieldMatch ? state.shieldCup : confMatch ? state.conferenceCup : null;
-  const leagueCupTie = !friendlyMatch && !leagueMatch && !cupTie && !continentalMatch ? state.leagueCup?.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
-  const superCup = !friendlyMatch && !leagueMatch && !cupTie && !continentalMatch && !leagueCupTie
+  const cupTie = !friendlyMatch && !continentalMatch ? state.cup.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
+  const leagueCupTie = !friendlyMatch && !continentalMatch && !cupTie ? state.leagueCup?.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
+  const superCup = !friendlyMatch && !continentalMatch && !cupTie && !leagueCupTie
     ? (state.domesticSuperCup && !state.domesticSuperCup.played && state.domesticSuperCup.week === week && (state.domesticSuperCup.homeClubId === playerClubId || state.domesticSuperCup.awayClubId === playerClubId) ? state.domesticSuperCup : null)
       || (state.continentalSuperCup && !state.continentalSuperCup.played && state.continentalSuperCup.week === week && (state.continentalSuperCup.homeClubId === playerClubId || state.continentalSuperCup.awayClubId === playerClubId) ? state.continentalSuperCup : null)
+    : null;
+  const leagueMatch = !friendlyMatch && !continentalMatch && !cupTie && !leagueCupTie && !superCup
+    ? fixtures.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId))
     : null;
 
   // Build match object from the detected source
@@ -574,18 +585,10 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
           const awayGK = ap.find(p => p.position === 'GK');
           const homeGKQ = homeGK ? (homeGK.attributes.defending + homeGK.attributes.mental) / 200 : 0.5;
           const awayGKQ = awayGK ? (awayGK.attributes.defending + awayGK.attributes.mental) / 200 : 0.5;
-          let penHome = 0, penAway = 0;
-          for (let i = 0; i < CUP_PENALTY_KICKS; i++) {
-            if (Math.random() > awayGKQ * CUP_PENALTY_GK_QUALITY_FACTOR + (1 - PENALTY_CONVERSION_RATE)) penHome++;
-            if (Math.random() > homeGKQ * CUP_PENALTY_GK_QUALITY_FACTOR + (1 - PENALTY_CONVERSION_RATE)) penAway++;
-          }
-          while (penHome === penAway) {
-            if (Math.random() > awayGKQ * CUP_PENALTY_GK_QUALITY_FACTOR + (1 - PENALTY_CONVERSION_RATE)) penHome++;
-            if (Math.random() > homeGKQ * CUP_PENALTY_GK_QUALITY_FACTOR + (1 - PENALTY_CONVERSION_RATE)) penAway++;
-          }
-          penaltyShootout = { home: penHome, away: penAway };
-          if (penHome > penAway) hGoals++; else aGoals++;
-          cupEvents.push({ minute: 120, type: 'penalty_shootout', clubId: penHome > penAway ? match.homeClubId : match.awayClubId, description: `${penHome > penAway ? hc.shortName : ac.shortName} win on penalties (${penHome}-${penAway})!` });
+          const so = simulatePenaltyShootout({ homeName: hc.shortName, awayName: ac.shortName, homeGKQuality: homeGKQ, awayGKQuality: awayGKQ });
+          penaltyShootout = { home: so.homeScore, away: so.awayScore };
+          if (so.winner === 'home') hGoals++; else aGoals++;
+          cupEvents.push({ minute: 120, type: 'penalty_shootout', clubId: so.winner === 'home' ? match.homeClubId : match.awayClubId, description: `${so.winner === 'home' ? hc.shortName : ac.shortName} win on penalties (${so.homeScore}-${so.awayScore})!` });
         }
 
         finalResult = { ...result, homeGoals: hGoals, awayGoals: aGoals, events: cupEvents, penaltyShootout };
@@ -1336,7 +1339,7 @@ export function playExtraTimeImpl(set: Set, get: Get): Match | null {
               set({ clubs: { ...clubs, [playerClubId]: { ...club, budget: club.budget + prize } } });
             }
           }
-        } else { Object.assign(newCup, advanceCupRound(newCup)); }
+        } else { Object.assign(newCup, advanceCupRound(newCup, state.clubs, state.players)); }
       }
       set({
         currentMatchResult: result, halfTimeState: null, matchPhase: 'full_time',
@@ -1379,31 +1382,12 @@ export function playPenaltiesImpl(set: Set, get: Get): Match | null {
   const homeGKQuality = homeGK ? (homeGK.attributes.defending + homeGK.attributes.mental) / 200 : 0.5;
   const awayGKQuality = awayGK ? (awayGK.attributes.defending + awayGK.attributes.mental) / 200 : 0.5;
 
-  let penHome = 0, penAway = 0;
-  const kicks: PenaltyKick[] = [];
-  for (let i = 0; i < CUP_PENALTY_KICKS; i++) {
-    const hScores = Math.random() > awayGKQuality * CUP_PENALTY_GK_QUALITY_FACTOR + (1 - PENALTY_CONVERSION_RATE);
-    if (hScores) penHome++;
-    kicks.push({ round: i + 1, isHome: true, takerName: hc.shortName, scored: hScores, homeTotal: penHome, awayTotal: penAway });
-
-    const aScores = Math.random() > homeGKQuality * CUP_PENALTY_GK_QUALITY_FACTOR + (1 - PENALTY_CONVERSION_RATE);
-    if (aScores) penAway++;
-    kicks.push({ round: i + 1, isHome: false, takerName: ac.shortName, scored: aScores, homeTotal: penHome, awayTotal: penAway });
-  }
-  // Sudden death
-  let sdRound = CUP_PENALTY_KICKS;
-  while (penHome === penAway) {
-    sdRound++;
-    const hScores = Math.random() > awayGKQuality * CUP_PENALTY_GK_QUALITY_FACTOR + (1 - PENALTY_CONVERSION_RATE);
-    if (hScores) penHome++;
-    kicks.push({ round: sdRound, isHome: true, takerName: hc.shortName, scored: hScores, homeTotal: penHome, awayTotal: penAway });
-
-    const aScores = Math.random() > homeGKQuality * CUP_PENALTY_GK_QUALITY_FACTOR + (1 - PENALTY_CONVERSION_RATE);
-    if (aScores) penAway++;
-    kicks.push({ round: sdRound, isHome: false, takerName: ac.shortName, scored: aScores, homeTotal: penHome, awayTotal: penAway });
-
-    if (hScores !== aScores) break;
-  }
+  const { kicks } = simulatePenaltyShootout({
+    homeName: hc.shortName,
+    awayName: ac.shortName,
+    homeGKQuality,
+    awayGKQuality,
+  });
 
   // Store kicks for kick-by-kick reveal — finalization happens in revealNextPenaltyKick / skipPenaltyShootout
   set({ penaltyShootoutKicks: kicks, penaltyShootoutRevealIndex: 0 });
@@ -1523,7 +1507,7 @@ export function skipPenaltyShootoutImpl(set: Set, get: Get): void {
         const prize = winnerId === playerClubId ? CONTINENTAL_PRIZE_MONEY.dynasty_cup_winner : CONTINENTAL_PRIZE_MONEY.dynasty_cup_runner_up;
         const club = clubs[playerClubId];
         if (club) set({ clubs: { ...clubs, [playerClubId]: { ...club, budget: club.budget + prize } } });
-      } else { Object.assign(newCup, advanceCupRound(newCup)); }
+      } else { Object.assign(newCup, advanceCupRound(newCup, state.clubs, state.players)); }
     }
     set({
       currentMatchResult: { ...result, penaltyShootout }, halfTimeState: null, matchPhase: 'full_time',
