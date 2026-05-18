@@ -29,7 +29,7 @@ import { calculateBallonDOr } from '@/utils/ballonDor';
 import { getPlayerRarity } from '@/utils/playerRarity';
 import { applyBallonDorTop10Boost, revertBallonDorTop10Boost, hasBallonDorTop10Reign } from '@/utils/ballonDorBoost';
 import { recomputePlayerValueOnly as recomputePlacementValue } from '@/utils/playerEconomics';
-import { BALLON_DOR_TOP10_RANK } from '@/config/gameBalance';
+import { BALLON_DOR_TOP10_RANK, MAX_CAREER_TIMELINE } from '@/config/gameBalance';
 
 import { createEmptyRecords, updateRecords, findBiggestWin } from '@/utils/records';
 import { getFarewellSummary } from '@/utils/playerNarratives';
@@ -1218,7 +1218,10 @@ function finalizeSeason(
       if (state.conferenceCup?.winnerId === playerClubId) {
         milestones.push(createMilestone('cup_win', 'Conference Cup Winners!', `Won the Conference Cup in Season ${season}!`, season, TOTAL_WEEKS, 'medal'));
       }
-      return milestones;
+      // Cap at MAX_CAREER_TIMELINE so a 30-season campaign doesn't accumulate
+      // 2700+ entries in the saved array (every match-action spread copies
+      // the full list). The newest entries are most useful for the UI.
+      return milestones.slice(-MAX_CAREER_TIMELINE);
     })(),
     managerProgression: grantXP(state.managerProgression, (() => {
       let xp = XP_REWARDS.seasonEnd;

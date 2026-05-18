@@ -647,6 +647,16 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     // fire after we've swapped in the loaded data and write it back, which
     // is a wasted write at best and slot-crossover at worst.
     cancelPendingSave();
+    // Mid-match safety: if a match is in progress, abandon it FIRST so
+    // we don't clobber halfTimeState / matchPhase out from under a
+    // mid-render MatchDay component. The old behaviour was: set()
+    // resets `halfTimeState: null, matchPhase: 'none'` while MatchDay's
+    // animation loop still holds a stale ref → guaranteed crash on the
+    // next animation frame.
+    const currentState = get();
+    if (currentState.matchPhase !== 'none' || currentState.halfTimeState) {
+      currentState.cleanupAbandonedMatch();
+    }
     resetSeasonGrowth();
     clearLeagueTableCache();
     migrateLegacySave();
@@ -968,6 +978,19 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       currentCupTieId: null, currentLeagueCupTieId: null,
       currentContinentalMatchId: null, currentContinentalCompetition: null,
       matchSubsUsed: 0,
+      // Audit finding: previously these match-scoped state fields persisted
+      // across an abandoned match, so e.g. an abandoned penalty shootout
+      // left `penaltyShootoutKicks` populated for the next match. Reset
+      // them all to canonical defaults so a fresh match starts clean.
+      currentMatchResult: null,
+      matchPlayerRatings: [],
+      matchTeamTalk: 'none' as const,
+      matchShouts: [],
+      penaltyShootoutKicks: [],
+      penaltyShootoutRevealIndex: 0,
+      preMatchSnapshot: null,
+      lastMatchDrama: null,
+      lastMatchCompetition: null,
     });
   },
 
@@ -976,6 +999,13 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     // Kill any pending idle save before wiping the slot — otherwise it fires
     // after reset and resurrects the slot we just deleted.
     cancelPendingSave();
+    // Mid-match safety: same guard as loadGame. Abandon a match in flight
+    // before wiping state so MatchDay's render loop doesn't dereference
+    // a state slice we're about to zero out.
+    const currentState = get();
+    if (currentState.matchPhase !== 'none' || currentState.halfTimeState) {
+      currentState.cleanupAbandonedMatch();
+    }
     removeSaveSlot(s);
     resetSaveHash();
     set({
@@ -985,6 +1015,11 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       messages: [], seasonHistory: [], incomingOffers: [],
       matchPlayerRatings: [], halfTimeState: null, currentMatchWeather: null, matchPhase: 'none' as const,
       currentMatchResult: null, matchSubsUsed: 0, currentCupTieId: null,
+      // Match-scoped state that previously persisted across resets — audit
+      // finding O2 (stale shootout kicks, leftover team talk, etc.).
+      matchTeamTalk: 'none' as const, matchShouts: [],
+      penaltyShootoutKicks: [], penaltyShootoutRevealIndex: 0,
+      preMatchSnapshot: null, lastMatchDrama: null, lastMatchCompetition: null,
       transferMarket: [], shortlist: [], scoutWatchList: [], transferNews: [],
       activeLoans: [], incomingLoanOffers: [], outgoingLoanRequests: [],
       cup: { ties: [], currentRound: null, eliminated: false, winner: null },
@@ -994,7 +1029,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       dailyPackOpens: { date: '', free: {}, ad: {} },
       activeStorylineChains: [], completedStorylineChainIds: [], weeklyObjectives: [],
       objectiveStreak: 0, objectivesStartWeek: 1, completedCoachTaskIds: [],
-      weekCliffhangers: [], rivalries: {}, lastMatchDrama: null, lastMatchCompetition: null,
+      weekCliffhangers: [], rivalries: {},
       sessionStats: { startWeek: 1, startSeason: 1, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 },
       weeklyDigest: null, careerTimeline: [],
       gameMode: 'sandbox', careerManager: null, jobVacancies: [], jobOffers: [],
