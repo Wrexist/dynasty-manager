@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
@@ -273,7 +274,12 @@ const PacksPage = () => {
       }
       successToast('Purchase complete', `${tier.label} unlocked.`);
       setOpening({ tier: tierKey, players: result.players, pityTriggered: result.pityTriggered, placement: result.placement });
-    } catch {
+    } catch (err) {
+      // Capture the actual error to Sentry — silent catch was making it
+      // impossible to triage real IAP failures (receipt validation throws,
+      // RevenueCat SDK errors mid-purchase, etc.). The user toast stays
+      // generic to avoid leaking implementation details.
+      Sentry.captureException(err, { tags: { context: 'PacksPage.iap' }, extra: { tierKey } });
       errorToast('Purchase failed', 'Please try again.');
     } finally {
       setBusy(false);

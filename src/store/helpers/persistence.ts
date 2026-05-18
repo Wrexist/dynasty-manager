@@ -416,7 +416,16 @@ export function readSaveSlot(slot: number): string | null {
  *  sees the save immediately, and step 3 guarantees the next session does
  *  too (IDB transactions are ACID). localStorage is purely a compatibility
  *  mirror for older code paths and tests. */
-export function writeSaveSlot(slot: number, json: string): void {
+export interface SaveWriteResult {
+  /** localStorage mirror status — known synchronously. False on quota
+   *  exceeded; the memory cache is always updated and IDB is in flight. */
+  lsOk: boolean;
+  /** IDB write outcome. Resolves true on success, false on quota / IDB
+   *  unavailable / transaction abort. Never rejects — `idbPut` swallows. */
+  idbPromise: Promise<boolean>;
+}
+
+export function writeSaveSlot(slot: number, json: string): SaveWriteResult {
   const mainKey = STORAGE_KEYS.saveSlot(slot);
   const backupKey = STORAGE_KEYS.saveSlotBackup(slot);
   const tmpKey = STORAGE_KEYS.saveSlotTmp(slot);
@@ -433,26 +442,30 @@ export function writeSaveSlot(slot: number, json: string): void {
   // doesn't get salvaged later as a phantom older save.
   try { localStorage.removeItem(tmpKey); } catch { /* ignore */ }
 
-  // Step 3: fire IDB writes. Fire-and-forget — the memory cache already
-  // holds the data so a dropped promise is visible in the next hydration,
-  // not a user-visible failure.
-  void idbPut(mainKey, json);
+  // Step 3: fire IDB writes. We capture the main-write Promise (and ignore
+  // the backup-write outcome — the main write is what determines whether
+  // the slot survives a reload). The caller can use this to detect the
+  // "both disk paths failed" case and surface a Save Failed warning.
+  const idbPromise = idbPut(mainKey, json);
   if (oldMain) void idbPut(backupKey, oldMain);
   else void idbDel(backupKey);
 
   // Step 4: best-effort localStorage mirror. On quota exceeded we drop
   // whatever was there so the two stores don't diverge — IDB is truth.
+  let lsOk = true;
   try {
     localStorage.setItem(mainKey, json);
     if (oldMain) lsSetSafe(backupKey, oldMain);
     else lsRemoveSafe(backupKey);
   } catch {
-    // Quota exceeded — drop the mirror. Do NOT throw; the IDB + memory
-    // write already succeeded. Users used to see "Save Failed" here
-    // because the old path threw SAVE_WRITE_FAILED; that's gone now.
+    // Quota exceeded — drop the mirror. The caller now sees `lsOk: false`
+    // and can await `idbPromise` to decide whether to warn the user.
+    lsOk = false;
     lsRemoveSafe(mainKey);
     lsRemoveSafe(backupKey);
   }
+
+  return { lsOk, idbPromise };
 }
 
 /** Read the staging-area payload for a slot. Retained for backward compat —

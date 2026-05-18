@@ -319,53 +319,70 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
     return;
   }
 
-  let saveFailed = false;
+  // writeSaveSlot returns { lsOk, idbPromise } so we can detect when BOTH
+  // disk paths failed and actually surface the "Save Failed" warning. The
+  // previous version did try/catch on writeSaveSlot, but writeSaveSlot
+  // never throws on quota exceeded (it swallows internally) — so the
+  // warning was dead code. The memory cache is always updated, so the
+  // session continues fine; the warning is specifically for "this save
+  // will not survive an app restart".
+  let saveResult: ReturnType<typeof writeSaveSlot>;
   try {
-    writeSaveSlot(s, json);
+    saveResult = writeSaveSlot(s, json);
     lastSavedHash = payloadHash;
   } catch (err) {
-    saveFailed = true;
+    // Memory cache write or stringify itself threw — true OOM scenario.
     const errTime = Date.now();
     if (errTime - lastSaveErrorLogAt > 10000) {
-      Sentry.captureException(err, { tags: { context: 'saveGame' } });
+      Sentry.captureException(err, { tags: { context: 'saveGame.throw' } });
       lastSaveErrorLogAt = errTime;
     }
-    // Use functional set() so we read the freshest messages — the idle
-    // callback may have been scheduled seconds ago and state has moved on.
-    set(s0 => {
-      const hasSaveWarningThisWeek = s0.messages.some(
-        m => m.title === 'Save Failed' && m.week === s0.week && m.season === s0.season,
-      );
-      if (hasSaveWarningThisWeek) return {};
-      return {
-        messages: addMsg(s0.messages, {
-          type: 'warning',
-          title: 'Save Failed',
-          body: 'Your game could not be saved. We’ll keep retrying automatically. If this keeps happening, restart the app.',
-          week: s0.week,
-          season: s0.season,
-        }),
-      };
-    });
+    set({ saveStatus: 'failed', saveFailureMessage: 'Save could not be written' });
+    addGameBreadcrumb('save', 'Save threw', { week: state.week, season: state.season, slot: s, bytes: json.length });
+    return;
   }
 
-  if (saveFailed) {
-    set({ saveStatus: 'failed', saveFailureMessage: 'Save could not be written' });
-    addGameBreadcrumb('save', 'Save failed', {
-      week: state.week,
-      season: state.season,
-      slot: s,
-      bytes: json.length,
+  set({ saveStatus: 'saved', lastSavedAt: Date.now(), saveFailureMessage: null });
+  addGameBreadcrumb('save', 'Save succeeded (memory + at-least-one-disk)', {
+    week: state.week,
+    season: state.season,
+    slot: s,
+    bytes: json.length,
+    lsOk: saveResult.lsOk,
+  });
+  track('save_created', { slot: s, bytes: json.length });
+
+  // If localStorage rejected the write (quota exceeded), wait for the IDB
+  // outcome. If IDB also failed, the save is in memory ONLY and will be
+  // lost on app restart — surface a clear warning to the user's inbox so
+  // they can free up device storage. De-dupe to once-per-week so we don't
+  // spam during a long burning-quota episode.
+  if (!saveResult.lsOk) {
+    void saveResult.idbPromise.then(idbOk => {
+      if (idbOk) return; // IDB succeeded — save is persistent, no warning needed
+      const errTime = Date.now();
+      if (errTime - lastSaveErrorLogAt > 10000) {
+        Sentry.captureMessage('[saveGame] Both localStorage and IDB rejected the write', 'error');
+        lastSaveErrorLogAt = errTime;
+      }
+      set(s0 => {
+        const hasSaveWarningThisWeek = s0.messages.some(
+          m => m.title === 'Save Could Not Persist' && m.week === s0.week && m.season === s0.season,
+        );
+        if (hasSaveWarningThisWeek) return {};
+        return {
+          saveStatus: 'failed' as const,
+          saveFailureMessage: 'Save kept in memory only',
+          messages: addMsg(s0.messages, {
+            type: 'warning',
+            title: 'Save Could Not Persist',
+            body: 'Device storage is full — your progress is in memory but won\'t survive an app restart. Free up storage in Settings → General → iPhone Storage.',
+            week: s0.week,
+            season: s0.season,
+          }),
+        };
+      });
     });
-  } else {
-    set({ saveStatus: 'saved', lastSavedAt: Date.now(), saveFailureMessage: null });
-    addGameBreadcrumb('save', 'Save succeeded', {
-      week: state.week,
-      season: state.season,
-      slot: s,
-      bytes: json.length,
-    });
-    track('save_created', { slot: s, bytes: json.length });
   }
 
   // Save session snapshot for "Welcome back" recap
@@ -656,7 +673,15 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
           // Promote the backup to primary so the next save cycle starts from
           // a known-good state.
           promoteSaveBackup(s, backupRaw);
-        } catch { /* both corrupt */ }
+        } catch (backupErr) {
+          // Capture the backup-parse failure too — previously the catch was
+          // silent, so on real-world double-corruption we had no fingerprint
+          // for triage (only the first warning at line ~659 was captured).
+          Sentry.captureException(backupErr, {
+            tags: { context: 'loadGame.backupParse', slot: String(s) },
+            extra: { backupBytes: backupRaw.length, primarySnippet: raw.slice(0, 100), backupSnippet: backupRaw.slice(0, 100) },
+          });
+        }
       }
       if (parsed === null) {
         set({ loadError: { slot: s, kind: 'corrupt', canRecover: false, reason: 'primary and backup both unparseable' } });
