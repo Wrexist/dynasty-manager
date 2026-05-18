@@ -1,4 +1,5 @@
-import { Component, type ReactNode } from 'react';
+import * as Sentry from '@sentry/react';
+import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { useGameStore } from '@/store/gameStore';
 
@@ -16,6 +17,18 @@ export class ErrorBoundary extends Component<Props, State> {
 
   static getDerivedStateFromError(error: Error): State {
     return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo): void {
+    // Mirror the capture in src/components/ErrorBoundary.tsx — previously
+    // this in-game variant swallowed errors silently, so a crash that
+    // bubbled past PageErrorBoundary into this outer boundary was
+    // invisible to triage. Sentry receives the React component stack
+    // alongside the JS error.
+    Sentry.captureException(error, {
+      tags: { context: 'game-error-boundary' },
+      extra: { componentStack: info.componentStack },
+    });
   }
 
   handleReturnToDashboard = () => {

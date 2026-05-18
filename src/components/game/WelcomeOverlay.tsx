@@ -97,18 +97,28 @@ export function WelcomeOverlay({ onComplete }: WelcomeOverlayProps) {
               <span className="text-[10px] text-muted-foreground">{safeStep + 1} of {STEPS.length}</span>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
+              {/* Skip exits the tutorial at any step. Returning users
+                  shouldn't have to click through all 6 panels every time
+                  they start a new save. */}
+              <button
+                onClick={onComplete}
+                className="min-h-11 px-3 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Skip tutorial"
+              >
+                Skip
+              </button>
               {safeStep > 0 && (
                 <button
                   onClick={() => setStep(s => Math.max(0, s - 1))}
-                  className="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  className="min-h-11 px-3 text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Back
                 </button>
               )}
               <button
                 onClick={() => isLast ? onComplete() : setStep(s => Math.min(STEPS.length - 1, s + 1))}
-                className="flex items-center gap-1 px-4 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-semibold active:scale-[0.97] transition-transform"
+                className="min-h-11 flex items-center gap-1 px-4 bg-primary text-primary-foreground rounded-lg text-xs font-semibold active:scale-[0.97] transition-transform"
               >
                 {isLast ? 'Dashboard' : 'Next'}
                 {!isLast && <ChevronRight className="w-3 h-3" />}

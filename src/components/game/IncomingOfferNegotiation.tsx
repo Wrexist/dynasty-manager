@@ -223,7 +223,7 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
                     <p className="text-sm font-bold text-foreground font-display">Counter-Offer</p>
                     {strikeCount > 0 && <StrikeIndicator strikes={strikeCount} latestOutcome={null} />}
                   </div>
-                  <button type="button" onClick={handleClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-muted/50 transition-colors">
+                  <button type="button" onClick={handleClose} aria-label="Close" className="min-w-11 min-h-11 -mr-2 flex items-center justify-center rounded-lg hover:bg-muted/50 transition-colors">
                     <X className="w-4 h-4 text-muted-foreground" />
                   </button>
                 </div>
