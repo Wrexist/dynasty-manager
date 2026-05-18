@@ -186,3 +186,83 @@ describe('packsSlice — canOpenPack edge cases', () => {
     expect(typeof result.ok).toBe('boolean');
   });
 });
+
+describe('packsSlice — MIN_SQUAD_SIZE guards', () => {
+  it('rejects releasePackedPlayer when squad is at minimum size', () => {
+    const state = useGameStore.getState();
+    const club = state.clubs[state.playerClubId];
+    useGameStore.setState({
+      clubs: { ...state.clubs, [state.playerClubId]: { ...club, budget: 50_000_000 } },
+    });
+    const open = useGameStore.getState().openPack('bronze');
+    expect(open.success).toBe(true);
+    const target = open.players![0];
+
+    // Trim squad to minimum size (pack adds players, so trim below cap first)
+    const updatedClub = useGameStore.getState().clubs[state.playerClubId];
+    useGameStore.setState({
+      clubs: {
+        ...useGameStore.getState().clubs,
+        [state.playerClubId]: { ...updatedClub, playerIds: updatedClub.playerIds.slice(0, 22) },
+      },
+    });
+
+    const result = useGameStore.getState().releasePackedPlayer(target.id);
+    expect(result.success).toBe(false);
+    expect(result.message).toMatch(/minimum size/i);
+  });
+
+  it('rejects quickSellPackedPlayer when squad is at minimum size', () => {
+    const state = useGameStore.getState();
+    const club = state.clubs[state.playerClubId];
+    useGameStore.setState({
+      clubs: { ...state.clubs, [state.playerClubId]: { ...club, budget: 50_000_000 } },
+    });
+    const open = useGameStore.getState().openPack('bronze');
+    expect(open.success).toBe(true);
+    const target = open.players![0];
+
+    const updatedClub = useGameStore.getState().clubs[state.playerClubId];
+    useGameStore.setState({
+      clubs: {
+        ...useGameStore.getState().clubs,
+        [state.playerClubId]: { ...updatedClub, playerIds: updatedClub.playerIds.slice(0, 22) },
+      },
+    });
+
+    const result = useGameStore.getState().quickSellPackedPlayer(target.id);
+    expect(result.success).toBe(false);
+    expect(result.message).toMatch(/minimum size/i);
+  });
+});
+
+describe('packsSlice — paid-IAP rejection surfaces refund signal', () => {
+  it('flags paidButRejected when IAP re-validation fails on squad cap', () => {
+    const state = useGameStore.getState();
+    const club = state.clubs[state.playerClubId];
+    // Fill the squad to MAX_SQUAD_SIZE so the soft-gate `slotsAvailable < tier.cards`
+    // fires. This simulates state drift between IAP pre-flight and grant — in
+    // practice the page's `busy` flag prevents drift, but if it ever fires
+    // the slice MUST tell the page that the user paid so support can refund.
+    const filled = Array.from({ length: 40 }, (_, i) => `filler-${i}`);
+    useGameStore.setState({
+      clubs: { ...state.clubs, [state.playerClubId]: { ...club, playerIds: filled, budget: 50_000_000 } },
+    });
+
+    const result = useGameStore.getState().openPack('icon', { method: 'iap', skipPayment: true });
+    expect(result.success).toBe(false);
+    expect(result.paidButRejected).toBe(true);
+  });
+
+  it('does NOT flag paidButRejected on free/currency rejections (no real cost)', () => {
+    const state = useGameStore.getState();
+    const club = state.clubs[state.playerClubId];
+    const filled = Array.from({ length: 40 }, (_, i) => `filler-${i}`);
+    useGameStore.setState({
+      clubs: { ...state.clubs, [state.playerClubId]: { ...club, playerIds: filled } },
+    });
+    const result = useGameStore.getState().openPack('bronze', { method: 'free' });
+    expect(result.success).toBe(false);
+    expect(result.paidButRejected).toBeUndefined();
+  });
+});

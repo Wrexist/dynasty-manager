@@ -1,7 +1,8 @@
+import * as Sentry from '@sentry/react';
 import type { OpenedPackRecord, OpenPackResult, PackTierKey, PackUnlockMethod, Player, QuickSellPackedPlayerResult, ReleasePackedPlayerResult } from '@/types/game';
 import type { GameState } from '../storeTypes';
 import { addMsg } from '@/utils/helpers';
-import { MAX_SQUAD_SIZE, FFP_WAGE_RATIO_WARNING } from '@/config/gameBalance';
+import { MAX_SQUAD_SIZE, MIN_SQUAD_SIZE, FFP_WAGE_RATIO_WARNING } from '@/config/gameBalance';
 import { PACK_TIER_MAP, RECENT_PULLS_LIMIT } from '@/config/packs';
 import { generateAiCounterSignings, generatePackContents, shouldPityTrigger, updatedPityCounter } from '@/utils/packGeneration';
 import { CHALLENGES } from '@/data/challenges';
@@ -194,12 +195,32 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     }
 
     // Run the same eligibility checks the page used to pre-validate. If
-    // anything has changed between pre-flight and now (state changed
-    // mid-ad, etc.), we still refuse to grant the pack — the page is
-    // responsible for refunding/handling on its end.
+    // anything has changed between pre-flight and now (challenge flipped,
+    // squad cap exceeded), we still refuse to grant the pack — defense in
+    // depth against pages that bypass `canOpenPack`. The page is the
+    // single gatekeeper for ad playback and consumable IAP completion.
+    //
+    // For paid `iap` opens, surface a `paidButRejected` flag so the page
+    // can route the user to support instead of just showing a generic
+    // error toast — they paid real money and deserve a clear next step.
+    // We also fire a Sentry alert because this scenario should be
+    // impossible in practice (the UI's `busy` flag prevents any state-
+    // mutating action during the IAP flight); if it ever fires in
+    // production, that's a bug we need to know about.
     const eligible = evaluateOpenPack(state, tierKey, method);
     if (eligible.ok === false) {
-      return { success: false, message: eligible.message };
+      const paidButRejected = method === 'iap' && skipPayment === true;
+      if (paidButRejected) {
+        Sentry.captureMessage(
+          `[openPack] Paid IAP rejected at re-validation — investigate. tier=${tierKey} reason=${eligible.message}`,
+          'error',
+        );
+      }
+      return {
+        success: false,
+        message: eligible.message,
+        ...(paidButRejected ? { paidButRejected: true } : {}),
+      };
     }
 
     const club = state.clubs[state.playerClubId]!;
@@ -490,6 +511,9 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       return { success: false, message: 'Not your player.' };
     }
     const club = state.clubs[state.playerClubId];
+    if (club.playerIds.length <= MIN_SQUAD_SIZE) {
+      return { success: false, message: `Cannot release — squad would drop below minimum size (${MIN_SQUAD_SIZE}).` };
+    }
     const severance = Math.round(player.wage);
     if (club.budget < severance) {
       return { success: false, message: `Need £${severance.toLocaleString()} for one week's severance.` };
@@ -588,6 +612,9 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       return { success: false, message: 'Not your player.' };
     }
     const club = state.clubs[state.playerClubId];
+    if (club.playerIds.length <= MIN_SQUAD_SIZE) {
+      return { success: false, message: `Cannot quick-sell — squad would drop below minimum size (${MIN_SQUAD_SIZE}).` };
+    }
     const amount = Math.max(0, Math.round((player.value || 0) * 0.65));
 
     const strippedClub = {

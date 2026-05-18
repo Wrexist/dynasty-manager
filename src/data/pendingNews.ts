@@ -62,6 +62,8 @@ export const PENDING_NEWS: PendingRelease = {
     'Fixed rare launch crashes related to ads.',
     'Loaded clubs from other divisions are no longer wiped during cleanup.',
     'Fixed an issue where the welcome tour could fail mid-step.',
+    'Pack quick-release and quick-sell now respect the minimum squad size — you can no longer drop your squad below 22 players via the pack summary.',
+    'If a paid pack purchase is ever blocked by an eligibility issue, you now get a clear "purchase succeeded but pack was blocked" message that points to support, instead of a generic error.',
   ],
   headline: null,
   summary: null,
