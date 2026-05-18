@@ -278,3 +278,64 @@ describe('attemptSaveRecovery', () => {
     expect(err?.canRecover).toBe(false);
   });
 });
+
+describe('saveGame/loadGame — previously-unsaved fields (v68 fix)', () => {
+  beforeEach(() => { clearAllSaveStorage(); });
+
+  it('round-trips the 13 fields that were silently dropped before v68', () => {
+    vi.useFakeTimers();
+    __resetAutosaveSchedulerForTests();
+    useGameStore.getState().initGame('celtic');
+
+    useGameStore.setState({
+      seasonTotalExpenses: 4_850_000,
+      seasonTotalIncome: 12_300_000,
+      seasonStartAvgOVR: 71,
+      seasonTransfersBought: [{ playerName: 'Test In', fee: 5_000_000 }],
+      seasonTransfersSold: [{ playerName: 'Test Out', fee: 7_000_000 }],
+      contractStrikes: { 'p-1': { strikes: 2 } },
+      tacticalPresets: [{ id: 'p1', name: 'Press hard' } as never],
+      transferFilters: { ...useGameStore.getState().transferFilters, sortBy: 'price', hideUnaffordable: true },
+      pendingGemReveal: { playerId: 'p-gem', region: 'eng' },
+      clubPowerRankings: { celtic: 1850, rangers: 1700 },
+      communityPackEnabled: true,
+    });
+
+    useGameStore.getState().saveGame(SLOT);
+    vi.runAllTimers();
+    useGameStore.getState().flushSave();
+
+    // Wipe in-memory state so we know the post-load values came from disk,
+    // not the still-resident pre-save state.
+    useGameStore.setState({
+      seasonTotalExpenses: 0,
+      seasonTotalIncome: 0,
+      seasonStartAvgOVR: 0,
+      seasonTransfersBought: [],
+      seasonTransfersSold: [],
+      contractStrikes: {},
+      tacticalPresets: [],
+      transferFilters: { ...useGameStore.getState().transferFilters, sortBy: 'overall', hideUnaffordable: false },
+      pendingGemReveal: null,
+      clubPowerRankings: {},
+      communityPackEnabled: false,
+    });
+
+    useGameStore.getState().loadGame(SLOT);
+    const after = useGameStore.getState();
+    expect(after.seasonTotalExpenses).toBe(4_850_000);
+    expect(after.seasonTotalIncome).toBe(12_300_000);
+    expect(after.seasonStartAvgOVR).toBe(71);
+    expect(after.seasonTransfersBought).toEqual([{ playerName: 'Test In', fee: 5_000_000 }]);
+    expect(after.seasonTransfersSold).toEqual([{ playerName: 'Test Out', fee: 7_000_000 }]);
+    expect(after.contractStrikes['p-1']?.strikes).toBe(2);
+    expect(after.tacticalPresets).toHaveLength(1);
+    expect(after.transferFilters.sortBy).toBe('price');
+    expect(after.transferFilters.hideUnaffordable).toBe(true);
+    expect(after.pendingGemReveal).toEqual({ playerId: 'p-gem', region: 'eng' });
+    expect(after.clubPowerRankings.celtic).toBe(1850);
+    expect(after.communityPackEnabled).toBe(true);
+
+    vi.useRealTimers();
+  });
+});

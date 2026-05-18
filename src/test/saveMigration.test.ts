@@ -2,8 +2,45 @@ import { describe, it, expect } from 'vitest';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 
 describe('saveMigration', () => {
-  it('should have current version set to 67', () => {
-    expect(CURRENT_VERSION).toBe(67);
+  it('should have current version set to 68', () => {
+    expect(CURRENT_VERSION).toBe(68);
+  });
+
+  it('v67 → v68 backfills the 13 previously-unsaved GameState fields', () => {
+    const v67: Record<string, unknown> = { version: 67, playerClubId: 'celtic' };
+    const out = migrateSaveData(v67) as Record<string, unknown>;
+    expect(out.version).toBe(CURRENT_VERSION);
+    expect(out.contractStrikes).toEqual({});
+    expect(out.tacticalPresets).toEqual([]);
+    expect(out.transferFilters).toMatchObject({ tab: 'market', sortBy: 'overall' });
+    expect(out.pendingGemReveal).toBeNull();
+    expect(out.pendingTransferTalk).toBeNull();
+    expect(out.seasonStartAvgOVR).toBe(0);
+    expect(out.seasonTransfersBought).toEqual([]);
+    expect(out.seasonTransfersSold).toEqual([]);
+    expect(out.seasonTotalIncome).toBe(0);
+    expect(out.seasonTotalExpenses).toBe(0);
+    expect(out.clubPowerRankings).toEqual({});
+    expect(out.communityPackEnabled).toBe(false);
+    expect(out.cpPool).toMatchObject({ cursor: 0, usedFcIds: [] });
+  });
+
+  it('v67 → v68 preserves real values when fields are already populated', () => {
+    const v67: Record<string, unknown> = {
+      version: 67,
+      playerClubId: 'celtic',
+      seasonTotalExpenses: 4_850_000,
+      seasonTotalIncome: 12_000_000,
+      communityPackEnabled: true,
+      tacticalPresets: [{ id: 'p1', name: 'Press hard' }],
+      contractStrikes: { 'player-1': { strikes: 1 } },
+    };
+    const out = migrateSaveData(v67) as Record<string, unknown>;
+    expect(out.seasonTotalExpenses).toBe(4_850_000);
+    expect(out.seasonTotalIncome).toBe(12_000_000);
+    expect(out.communityPackEnabled).toBe(true);
+    expect(out.tacticalPresets).toEqual([{ id: 'p1', name: 'Press hard' }]);
+    expect(out.contractStrikes).toEqual({ 'player-1': { strikes: 1 } });
   });
 
   it('v57 → v59 chains cleanly with a realistic halfTimeState payload', () => {

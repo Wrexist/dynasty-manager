@@ -62,6 +62,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Fixed rare launch crashes related to ads.',
     'Loaded clubs from other divisions are no longer wiped during cleanup.',
     'Fixed an issue where the welcome tour could fail mid-step.',
+    'Saved games now correctly persist season finance totals, transfer history, tactical presets, contract negotiation cooldowns, club power rankings, and Community Pack opt-in — previously these silently reset on every reload.',
   ],
   headline: null,
   summary: null,

@@ -272,6 +272,24 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
     lastPackWeek: state.lastPackWeek || 0,
     lastPackSeason: state.lastPackSeason || 0,
     dailyPackOpens: state.dailyPackOpens || { date: '', free: {}, ad: {} },
+    // ── Previously-unsaved fields (v68 fix) ──
+    // Each of these is mutated by gameplay but was missing from the save
+    // payload, so accumulated state was silently dropped on every reload.
+    // `seasonTotalExpenses` in particular swallowed pack-severance, pack
+    // quick-sells, and the release-clause flow.
+    contractStrikes: state.contractStrikes || {},
+    tacticalPresets: state.tacticalPresets || [],
+    transferFilters: state.transferFilters,
+    pendingGemReveal: state.pendingGemReveal || null,
+    pendingTransferTalk: state.pendingTransferTalk || null,
+    seasonStartAvgOVR: state.seasonStartAvgOVR || 0,
+    seasonTransfersBought: state.seasonTransfersBought || [],
+    seasonTransfersSold: state.seasonTransfersSold || [],
+    seasonTotalIncome: state.seasonTotalIncome || 0,
+    seasonTotalExpenses: state.seasonTotalExpenses || 0,
+    clubPowerRankings: state.clubPowerRankings || {},
+    communityPackEnabled: state.communityPackEnabled || false,
+    cpPool: state.cpPool || { shuffleSeed: 0, cursor: 0, usedFcIds: [], marketListings: [], lastMarketRefreshWeek: 0, lastSeedSeason: 0 },
   };
   let json = JSON.stringify(saveData);
 
@@ -781,6 +799,28 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         jobOffers: data.jobOffers || [],
         activeInterview: data.activeInterview || null,
         seasonGrowthTracker: data.seasonGrowthTracker || {},
+        // ── Previously-unsaved-field backfills (v68 fix) ──
+        // Older saves that pre-date the fix won't have these keys, so we
+        // fall back to the same defaults the slices declare. New saves
+        // carry real values forward via `...data` above; these lines are
+        // a safety net for older slot data.
+        contractStrikes: data.contractStrikes || {},
+        tacticalPresets: data.tacticalPresets || [],
+        transferFilters: data.transferFilters || {
+          tab: 'market', posFilter: 0, searchQuery: '',
+          sortBy: 'overall', faSortBy: 'overall', divFilter: 'all',
+          newsTypeFilter: 'all', hideUnaffordable: false, showShortlistOnly: false,
+        },
+        pendingGemReveal: data.pendingGemReveal || null,
+        pendingTransferTalk: data.pendingTransferTalk || null,
+        seasonStartAvgOVR: data.seasonStartAvgOVR ?? 0,
+        seasonTransfersBought: data.seasonTransfersBought || [],
+        seasonTransfersSold: data.seasonTransfersSold || [],
+        seasonTotalIncome: data.seasonTotalIncome ?? 0,
+        seasonTotalExpenses: data.seasonTotalExpenses ?? 0,
+        clubPowerRankings: data.clubPowerRankings || {},
+        communityPackEnabled: data.communityPackEnabled || false,
+        cpPool: data.cpPool || { shuffleSeed: 0, cursor: 0, usedFcIds: [], marketListings: [], lastMarketRefreshWeek: 0, lastSeedSeason: 0 },
         // Loaded data IS the current on-disk state → reflect that in the
         // indicator so it doesn't sit blank until the first autosave fires.
         saveStatus: 'saved' as const,
