@@ -1053,6 +1053,17 @@ export function playSecondHalfImpl(set: Set, get: Get): Match | null {
     : cupTie
       ? { id: cupTie.id, week: cupTie.week, homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match
       : (friendlyMatch || leagueMatch || null);
+
+  // Tournament rebuild can return null if the tournament state mutated
+  // between halves (rare — typically requires a save-load or dev action
+  // mid-match). Falling back to `leagueMatch` would silently switch
+  // competitions; better to abandon cleanly so the user sees a clear
+  // error instead of being softlocked at half-time with no resume path.
+  if (isTournamentMatch && !match) {
+    Sentry.captureMessage('[playSecondHalf] Tournament match rebuild returned null — aborting', 'error');
+    get().cleanupAbandonedMatch();
+    return null;
+  }
   if (!match) return null;
 
   const hc = clubs[match.homeClubId];

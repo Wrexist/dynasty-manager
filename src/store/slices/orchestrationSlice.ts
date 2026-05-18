@@ -976,6 +976,24 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       sponsorDeals: [], sponsorOffers: [], sponsorSlotCooldowns: {}, negotiationStrikes: {}, contractStrikes: {},
       merchandise: getDefaultMerchState(),
       continentalCoefficients: {},
+      // v68 newly-persisted fields — must reset here too so a New Game after
+      // a Load doesn't inherit stale session aggregates / opt-in flags.
+      tacticalPresets: [],
+      transferFilters: {
+        tab: 'market', posFilter: 0, searchQuery: '',
+        sortBy: 'overall', faSortBy: 'overall', divFilter: 'all',
+        newsTypeFilter: 'all', hideUnaffordable: false, showShortlistOnly: false,
+      },
+      pendingGemReveal: null,
+      pendingTransferTalk: null,
+      seasonStartAvgOVR: 0,
+      seasonTransfersBought: [],
+      seasonTransfersSold: [],
+      seasonTotalIncome: 0,
+      seasonTotalExpenses: 0,
+      clubPowerRankings: {},
+      communityPackEnabled: false,
+      cpPool: { shuffleSeed: 0, cursor: 0, usedFcIds: [], marketListings: [], lastMarketRefreshWeek: 0, lastSeedSeason: 0 },
       monetization: {
         ...DEFAULT_MONETIZATION_STATE,
         // Preserve purchases and subscription across save resets

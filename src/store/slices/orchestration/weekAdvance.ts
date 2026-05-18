@@ -926,7 +926,43 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   // Simulate AI matches for player's division
   const weekMatches = fixtures.filter(m => m.week === week && !m.played);
   const updatedFixtures = [...fixtures];
-  const aiMatches = weekMatches.filter(m => m.homeClubId !== playerClubId && m.awayClubId !== playerClubId);
+
+  // When the user plays a higher-priority match this week (continental, cup,
+  // leagueCup, superCup, friendly), the priority chain in playCurrentMatchImpl
+  // / playFirstHalfImpl picks that match for interactive play and leaves the
+  // user's league fixture un-played. We need to auto-sim it here — otherwise
+  // it lingers forever, the player's club ends the season with fewer played
+  // matches than the rest of the league, and the table is broken.
+  const playerPlayedNonLeagueThisWeek =
+    (state.friendlies?.some(m => m.played && m.week === week && (m.homeClubId === playerClubId || m.awayClubId === playerClubId)) ?? false)
+    || state.cup.ties.some(t => t.played && t.week === week && (t.homeClubId === playerClubId || t.awayClubId === playerClubId))
+    || (state.leagueCup?.ties?.some(t => t.played && t.week === week && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) ?? false)
+    || (state.domesticSuperCup?.played === true && state.domesticSuperCup.week === week && (state.domesticSuperCup.homeClubId === playerClubId || state.domesticSuperCup.awayClubId === playerClubId))
+    || (state.continentalSuperCup?.played === true && state.continentalSuperCup.week === week && (state.continentalSuperCup.homeClubId === playerClubId || state.continentalSuperCup.awayClubId === playerClubId))
+    || [state.championsCup, state.shieldCup, state.conferenceCup].some(t => {
+      if (!t) return false;
+      const inGroup = t.groups?.some(g => g.matches.some(m => m.played && m.week === week && (m.homeClubId === playerClubId || m.awayClubId === playerClubId))) ?? false;
+      const inKO = t.knockoutTies?.some(tie =>
+        (tie.homeClubId === playerClubId || tie.awayClubId === playerClubId)
+        && ((tie.week1 === week && tie.leg1Played) || (tie.week2 === week && tie.leg2Played)),
+      ) ?? false;
+      return inGroup || inKO;
+    });
+
+  const aiMatches = weekMatches.filter(m => {
+    const involvesPlayer = m.homeClubId === playerClubId || m.awayClubId === playerClubId;
+    if (!involvesPlayer) return true;
+    // Player's league fixture: only auto-sim if they already played a
+    // higher-priority match this week (otherwise they're about to play
+    // it interactively via MatchDay).
+    return playerPlayedNonLeagueThisWeek;
+  });
+
+  // Surface a single inbox message after the loop if we auto-simmed the
+  // player's league fixture. Captured here so we know which fixture to name.
+  const orphanLeagueFixture = playerPlayedNonLeagueThisWeek
+    ? weekMatches.find(m => m.homeClubId === playerClubId || m.awayClubId === playerClubId)
+    : null;
 
   const updatedDivisionFixtures = { ...state.divisionFixtures };
   const playerDiv = state.playerDivision;
@@ -960,6 +996,25 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     updatedFixtures[idx] = result;
     applyAIMatchEvents(result.events, newPlayers, clubs, week, hp, ap, result.homeGoals, result.awayGoals, eloRankings, m.homeClubId, m.awayClubId);
     updateEloRatings(eloRankings, m.homeClubId, m.awayClubId, result.homeGoals, result.awayGoals, 'league');
+  }
+
+  // Notify the user that their league fixture was auto-simulated because they
+  // had a higher-priority match this week.
+  if (orphanLeagueFixture) {
+    const simmedIdx = updatedFixtures.findIndex(f => f.id === orphanLeagueFixture.id);
+    const simmed = simmedIdx >= 0 ? updatedFixtures[simmedIdx] : null;
+    if (simmed?.played) {
+      const oppId = simmed.homeClubId === playerClubId ? simmed.awayClubId : simmed.homeClubId;
+      const oppName = clubs[oppId]?.shortName || clubs[oppId]?.name || 'Opponent';
+      const playerHome = simmed.homeClubId === playerClubId;
+      const ourGoals = playerHome ? simmed.homeGoals : simmed.awayGoals;
+      const theirGoals = playerHome ? simmed.awayGoals : simmed.homeGoals;
+      newMessages = addMsg(newMessages, {
+        week, season, type: 'match_result',
+        title: 'League Fixture Auto-Simulated',
+        body: `Your assistant played the league fixture vs ${oppName} (${ourGoals}-${theirGoals}) while you focused on the higher-stakes match this week.`,
+      });
+    }
   }
 
   // Simulate cup matches for this week (and any orphaned ties from past weeks)
