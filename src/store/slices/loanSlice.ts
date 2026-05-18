@@ -620,7 +620,11 @@ export const createLoanSlice = (set: Set, get: Get) => ({
     }
 
     // Rejected — persist a short-lived record so the page can show the
-    // rejection note rather than silently swallowing the request.
+    // rejection note rather than silently swallowing the request. Prune any
+    // OTHER rejected entries for the same player at the same time so a chain
+    // of refused requests doesn't accumulate in the saved array indefinitely
+    // (each entry is ~10 fields × N players × long-running careers = real
+    // serialization bloat).
     const rejectedRequest: OutgoingLoanRequest = {
       id: crypto.randomUUID(),
       playerId,
@@ -633,7 +637,10 @@ export const createLoanSlice = (set: Set, get: Get) => ({
       season: state.season,
       status: 'rejected',
     };
-    set({ outgoingLoanRequests: [...state.outgoingLoanRequests, rejectedRequest] });
+    const prunedRequests = state.outgoingLoanRequests.filter(r =>
+      !(r.playerId === playerId && r.status === 'rejected'),
+    );
+    set({ outgoingLoanRequests: [...prunedRequests, rejectedRequest] });
     return { outcome: 'rejected' as const, message: `${ownerClub.name} have rejected your loan request for ${player.lastName}. The club considers the player too important.` };
   },
 

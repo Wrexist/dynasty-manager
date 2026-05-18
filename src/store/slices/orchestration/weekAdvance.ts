@@ -705,6 +705,13 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   playerClub.playerIds.forEach(pid => {
     if (!newPlayers[pid]) return;
     let p = { ...newPlayers[pid] };
+    // Reset weekly growthDelta at the start of each player's pass so
+    // applyPlayerDevelopment's training-delta accumulator can't pick up a
+    // stale value from a prior week. Without this, injured players who skip
+    // applyWeeklyTraining (which would have zeroed the field) would have
+    // last week's gain added to this week's dev delta — silently inflating
+    // their displayed growth.
+    p.growthDelta = 0;
     if (p.injured) {
       const recoveryBoost = physioBonus >= PHYSIO_RECOVERY_BOOST_THRESHOLD && Math.random() < PHYSIO_RECOVERY_CHANCE ? 1 : 0;
       p.injuryWeeks = Math.max(0, p.injuryWeeks - 1 - recoveryBoost);
@@ -1119,7 +1126,10 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
           newTimeline.push(createMilestone('cup_win', 'Cup Winners!', `Won the cup in Season ${season}!`, season, week, 'medal'));
         }
       } else {
-        newCup = advanceCupRound(newCup, state.clubs, state.players);
+        // Pass the post-training/development player map so GK quality
+        // computation sees the freshest attributes rather than the
+        // top-of-week snapshot.
+        newCup = advanceCupRound(newCup, state.clubs, newPlayers);
       }
     }
   }

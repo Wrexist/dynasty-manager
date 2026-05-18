@@ -678,6 +678,12 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       freeAgents: [...state.freeAgents, playerId],
       openedPacks: newOpenedPacks,
       messages: newMessages,
+      // Mirror `releasePackedPlayer`'s tracking of severance into expenses:
+      // quick-sell credits the budget so it MUST also bump seasonTotalIncome,
+      // otherwise the SeasonSummary shows a stealth cash surplus (money
+      // arrives with no Income line). Now that this field survives save/load,
+      // the under-reporting is permanent.
+      seasonTotalIncome: (state.seasonTotalIncome || 0) + amount,
     });
 
     return {
