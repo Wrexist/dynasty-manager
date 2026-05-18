@@ -71,6 +71,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Player development cards now show the COMBINED training + growth gain, instead of just the development portion.',
     'Unhappiness no longer snowballs through the dressing room — contagion now fires once per spell when a player first crosses the threshold, instead of every week thereafter.',
     'Training streaks no longer reset when you briefly switch focus — an accidental mid-week swap will no longer wipe a 6-week streak you built up.',
+    'Loan counter-offers now appear in the Transfer page and are tracked properly — you can no longer accidentally spam the same loan request, and counter-offers no longer vanish the moment you close the dialog.',
   ],
   headline: null,
   summary: null,
