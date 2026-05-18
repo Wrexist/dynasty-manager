@@ -1902,6 +1902,10 @@ export interface OpenPackResult {
   lineupChanges?: number;
   /** Which unlock method was used for this open. */
   method?: PackUnlockMethod;
+  /** Set when an IAP pack was charged in the App Store but the slice
+   *  refused at re-validation. The page MUST surface a support / refund
+   *  path to the user rather than a generic error toast. */
+  paidButRejected?: boolean;
 }
 
 export interface ReleasePackedPlayerResult {

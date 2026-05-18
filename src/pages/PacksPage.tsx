@@ -261,7 +261,14 @@ const PacksPage = () => {
       }
       const result = openPack(tierKey, { method, skipPayment: true });
       if (!result.success || !result.players) {
-        errorToast('Could not open pack', result.message);
+        if (result.paidButRejected) {
+          errorToast(
+            'Purchase succeeded but pack was blocked',
+            `${result.message} Your payment will be investigated — contact support if the pack isn't credited within 24 hours.`,
+          );
+        } else {
+          errorToast('Could not open pack', result.message);
+        }
         return;
       }
       successToast('Purchase complete', `${tier.label} unlocked.`);

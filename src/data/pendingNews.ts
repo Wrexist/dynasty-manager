@@ -66,6 +66,8 @@ export const PENDING_NEWS: PendingRelease = {
     'Continental ties now take priority over league fixtures on the same week — previously you could be silently eliminated from a continental group stage if your league had a match the same week.',
     'Penalty shootouts now stop the moment the result is decided, instead of always firing all 10 kicks.',
     'AI cup penalty shootouts now use the same goalkeeper-weighted formula as the ones you play, so identical teams meeting in different paths roll the same odds.',
+    'Pack quick-release and quick-sell now respect the minimum squad size — you can no longer drop your squad below 22 players via the pack summary.',
+    'If a paid pack purchase is ever blocked by an eligibility issue, you now get a clear "purchase succeeded but pack was blocked" message that points to support, instead of a generic error.',
   ],
   headline: null,
   summary: null,
