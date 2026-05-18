@@ -315,8 +315,18 @@ export function generateInjuryDetails(isFoulRelated: boolean, medicalLevel: numb
 }
 
 /** Validate a squad has enough players to field a team.
- *  Player's team requires 11; AI teams allow down to 7 (injury-depleted squads). */
+ *  Player's team requires 11; AI teams allow down to 7 (injury-depleted squads).
+ *  Also rejects squads with duplicate player IDs — data corruption from a
+ *  botched transfer can leave the same player on both clubs' lineups,
+ *  and the match engine would double-count their events. */
 export function isSquadValid(players: Player[], isPlayerTeam = false): boolean {
   const minPlayers = isPlayerTeam ? 11 : 7;
-  return players.length >= minPlayers && players.some(p => p.position === 'GK');
+  if (players.length < minPlayers) return false;
+  if (!players.some(p => p.position === 'GK')) return false;
+  const ids = new Set<string>();
+  for (const p of players) {
+    if (ids.has(p.id)) return false;
+    ids.add(p.id);
+  }
+  return true;
 }

@@ -827,7 +827,13 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
     Sentry.captureException(err, { tags: { context: 'playCurrentMatch' } });
     try {
       get().cleanupAbandonedMatch();
+      // Navigate back to the dashboard — without this, the React tree
+      // stays mounted on MatchDay with halfTimeState now null, and the
+      // next render reads from a stale slot → crash loop. Forcing a
+      // screen change unmounts MatchDay cleanly so the user lands on a
+      // safe page with the inbox message explaining what happened.
       set({
+        currentScreen: 'dashboard',
         messages: addMsg(get().messages, {
           week: get().week, season: get().season, type: 'general',
           title: 'Match Error',
@@ -1240,7 +1246,10 @@ export function playSecondHalfImpl(set: Set, get: Get): Match | null {
     Sentry.captureException(err, { tags: { context: 'playSecondHalf' } });
     try {
       get().cleanupAbandonedMatch();
+      // Same as playCurrentMatch — navigate away from MatchDay so the
+      // crash doesn't render-loop on a stale halfTimeState ref.
       set({
+        currentScreen: 'dashboard',
         messages: addMsg(get().messages, {
           week: get().week, season: get().season, type: 'general',
           title: 'Match Error',

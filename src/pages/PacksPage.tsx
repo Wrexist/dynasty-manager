@@ -105,8 +105,13 @@ const PacksPage = () => {
   };
 
   const handleSellAll = () => {
+    if (busy) return;
     const remaining = opening?.players ?? [];
     if (remaining.length === 0) return;
+    // Set busy for the duration of the loop — without it, a double-tap on
+    // Sell All while the toast is still pending could enter this function
+    // twice and mutate openedPacks records out from under the iteration.
+    setBusy(true);
     let total = 0;
     let sold = 0;
     let lastError: string | undefined;
@@ -119,6 +124,7 @@ const PacksPage = () => {
         lastError = result.message;
       }
     }
+    setBusy(false);
     if (sold > 0) {
       successToast(`Sold ${sold} player${sold === 1 ? '' : 's'}`, `+${formatMoney(total)} to budget.`);
     } else if (lastError) {
