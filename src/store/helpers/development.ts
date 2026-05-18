@@ -17,7 +17,12 @@ import { recomputePlayerValueOnly } from '@/utils/playerEconomics';
 export const seasonGrowthTracker: Record<string, number> = {};
 
 export function applyPlayerDevelopment(p: Player, trainingFocus: string, mentorBonus: number = 0, trainingGroundBoost: number = 0): Player {
-  const updated = { ...p, attributes: { ...p.attributes }, growthDelta: 0 };
+  // Preserve any upstream growthDelta (set by applyWeeklyTraining when it ran
+  // earlier in the week pipeline). Previously this function overwrote that
+  // delta with just the development gain, so the UI showed only half the
+  // story when both passes produced gains. We now accumulate onto it.
+  const trainingDelta = p.growthDelta || 0;
+  const updated = { ...p, attributes: { ...p.attributes }, growthDelta: trainingDelta };
   const oldOverall = p.overall;
 
   if (p.age < GROWTH_AGE_THRESHOLD) {
@@ -57,11 +62,14 @@ export function applyPlayerDevelopment(p: Player, trainingFocus: string, mentorB
   }
 
   updated.overall = calculateOverall(updated.attributes, updated.position);
-  updated.growthDelta = updated.overall - oldOverall;
+  const devDelta = updated.overall - oldOverall;
+  updated.growthDelta = trainingDelta + devDelta;
 
-  // Track season growth
-  if (updated.growthDelta > 0) {
-    seasonGrowthTracker[p.id] = (seasonGrowthTracker[p.id] || 0) + updated.growthDelta;
+  // Only track the development portion against the season cap — applyWeeklyTraining
+  // already credits its own gains into seasonGrowthTracker, so adding the combined
+  // delta would double-count and trigger the cap prematurely.
+  if (devDelta > 0) {
+    seasonGrowthTracker[p.id] = (seasonGrowthTracker[p.id] || 0) + devDelta;
   }
 
   // Single-helper recompute keeps development pricing identical to training,
