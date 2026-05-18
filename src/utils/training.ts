@@ -230,11 +230,22 @@ export function getStreakMultiplier(streaks: TrainingStreaks | undefined, module
   return STREAK_MULTIPLIERS[0];
 }
 
-/** Update streak counters after a week: increment dominant, reset others */
+/** Update streak counters after a week: increment the dominant module's
+ *  streak, preserve all other module streaks at their current count.
+ *
+ *  Previously this returned `{ [dominant]: count+1 }` (a brand-new object
+ *  with only the dominant module set), which silently zeroed every other
+ *  streak the user had built up. A 6-week attacking streak vanished as
+ *  soon as the user spent one mid-week day on defending and tipped the
+ *  dominant module — even though the user never intended to abandon
+ *  attacking. Preserving non-dominant streaks means an accidental swap
+ *  no longer wipes meaningful progress; the dominant counter only resets
+ *  when explicitly drained by sustained focus elsewhere. */
 export function updateStreaks(currentStreaks: TrainingStreaks | undefined, schedule: TrainingState['schedule']): TrainingStreaks {
   const dominant = getDominantTrainingFocus(schedule);
-  const currentCount = currentStreaks?.[dominant] || 0;
-  return { [dominant]: Math.min(currentCount + 1, STREAK_MAX) };
+  const previous = currentStreaks || {};
+  const currentCount = previous[dominant] || 0;
+  return { ...previous, [dominant]: Math.min(currentCount + 1, STREAK_MAX) };
 }
 
 /** Get the current streak tier label */

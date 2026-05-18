@@ -805,8 +805,12 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
           set({ pendingTransferTalk: buildTransferTalk(p, 'low_morale') });
         }
       }
-      if (p.lowMoraleWeeks >= UNHAPPY_CONTAGION_WEEKS) {
-        // Morale contagion: affect 2 random teammates
+      if (p.lowMoraleWeeks === UNHAPPY_CONTAGION_WEEKS) {
+        // Morale contagion fires ONCE per unhappiness spell, on the week the
+        // counter just crosses the threshold. Previously this fired every
+        // week as long as the counter stayed ≥ threshold, so two unhappy
+        // stars for 12w produced 24 contagion events and snowballed into a
+        // dressing-room collapse with no per-spell cooldown.
         const teammates = playerClub.playerIds.filter(id => id !== pid);
         const shuffled = shuffle(teammates);
         for (let ti = 0; ti < Math.min(2, shuffled.length); ti++) {
