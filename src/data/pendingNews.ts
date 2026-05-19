@@ -92,6 +92,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Post-match, mid-season, session-recap, and gem-reveal popups now announce themselves to screen readers as dialogs.',
     'Match Prep "Ready to Play" / "Sim" buttons now sit clearly above the bottom navigation on notched iPhones — they were partially clipped by the home-indicator gesture area.',
     'First app launch is meaningfully faster on cellular: the 2.5MB real-player roster bundle (~400KB gzipped) no longer downloads up-front — it now streams in the background while you read the title screen, and is fully cached by the time you tap "New Game".',
+    'Corrupt-save detection: if a save slot, session snapshot, or hall-of-managers record fails to parse, the event is now reported to our triage pipeline (anonymised) so we can find and fix the cause instead of guessing.',
   ],
   headline: null,
   summary: null,

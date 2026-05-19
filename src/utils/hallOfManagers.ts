@@ -1,5 +1,6 @@
 import { SeasonHistory } from '@/types/game';
 import { readHallData, writeHallData } from '@/store/helpers/persistence';
+import { addGameBreadcrumb } from '@/utils/sentry';
 
 export interface HallEntry {
   id: string;
@@ -18,12 +19,24 @@ export interface HallEntry {
 
 /** Load hall of managers from localStorage */
 export function loadHall(): HallEntry[] {
+  let raw: string | null = null;
   try {
-    const raw = readHallData();
+    raw = readHallData();
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
-  } catch {
+  } catch (err) {
+    // Corrupt hall data silently loses every past dynasty's record —
+    // a deeply unpleasant surprise. Breadcrumb so we can see how often
+    // this happens in the wild.
+    if (raw !== null) {
+      try {
+        addGameBreadcrumb('save', 'Hall of managers parse failed', {
+          rawLen: raw.length,
+          message: err instanceof Error ? err.message : String(err),
+        });
+      } catch { /* breadcrumb must never throw */ }
+    }
     return [];
   }
 }

@@ -1,5 +1,25 @@
 import type { SlotSummary } from '@/types/game';
 import { idbGet, idbPut, idbDel, idbKeys, requestPersistentStorage } from './idbStorage';
+import { addGameBreadcrumb } from '@/utils/sentry';
+
+/**
+ * Centralised corruption breadcrumb. We don't surface these to the user
+ * (every parse-fail call site already has a sensible fallback — return
+ * null, mark slot as empty, etc.) but we DO want to see them in Sentry
+ * so we can spot a class of corruption hitting many users before they
+ * file support tickets. Throws are swallowed defensively — a breadcrumb
+ * helper should never be the thing that breaks save loading.
+ */
+function breadcrumbCorruption(site: string, raw: string | null, err: unknown): void {
+  try {
+    addGameBreadcrumb('save', `Persistence parse failed: ${site}`, {
+      site,
+      rawLen: raw?.length ?? 0,
+      rawHead: raw ? raw.slice(0, 80) : '',
+      message: err instanceof Error ? err.message : String(err),
+    });
+  } catch { /* breadcrumb must never throw */ }
+}
 
 // ── Durable Save Storage ──
 //
@@ -179,11 +199,17 @@ export function clearFlagsByPrefix(prefix: string): void {
  *  Returns null on any failure (unavailable / parse error / SSR). */
 export function readSessionJson<T>(key: string): T | null {
   if (typeof window === 'undefined') return null;
+  let raw: string | null = null;
   try {
-    const raw = sessionStorage.getItem(key);
+    raw = sessionStorage.getItem(key);
     if (!raw) return null;
     return JSON.parse(raw) as T;
-  } catch {
+  } catch (err) {
+    // sessionStorage.getItem throwing means storage is unavailable
+    // (Safari private mode) — silent fallback is correct. A throw past
+    // the getItem call means the data was non-null but JSON.parse choked,
+    // which IS corruption — breadcrumb it so we know.
+    if (raw !== null) breadcrumbCorruption(`readSessionJson:${key}`, raw, err);
     return null;
   }
 }
@@ -355,11 +381,15 @@ export function saveSessionSnapshot(snap: SessionSnapshot): void {
 }
 
 export function loadSessionSnapshot(): SessionSnapshot | null {
+  let raw: string | null = null;
   try {
-    const raw = localStorage.getItem(SNAPSHOT_KEY);
+    raw = localStorage.getItem(SNAPSHOT_KEY);
     if (!raw) return null;
     return JSON.parse(raw) as SessionSnapshot;
-  } catch { return null; }
+  } catch (err) {
+    if (raw !== null) breadcrumbCorruption('loadSessionSnapshot', raw, err);
+    return null;
+  }
 }
 
 export function clearSessionSnapshot(): void {
@@ -618,7 +648,12 @@ export function getSlotSummaries(): SlotSummary[] {
         position = `${pos}`;
       }
       return { slot, exists: true, clubName: club?.name, season: data.season, week: data.week, position, gameMode: data.gameMode || 'sandbox' };
-    } catch {
+    } catch (err) {
+      // Slot data exists but failed to parse — corruption. Without the
+      // breadcrumb the user just sees their populated slot rendered as
+      // an empty "New Game" row on TitleScreen, with no signal to us
+      // that a save was lost.
+      breadcrumbCorruption(`getSlotSummaries:slot${slot}`, raw, err);
       return { slot, exists: false };
     }
   });
