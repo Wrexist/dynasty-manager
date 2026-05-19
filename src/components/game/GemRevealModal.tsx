@@ -82,6 +82,9 @@ export function GemRevealModal() {
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-[58] flex items-center justify-center bg-black/70 px-4"
         onClick={dismiss}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Gem player reveal"
       >
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}

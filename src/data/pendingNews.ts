@@ -88,6 +88,8 @@ export const PENDING_NEWS: PendingRelease = {
     'League table rows are now keyboard-accessible (Enter / Space opens the club) and announce the club name to screen readers.',
     'Pack opening now announces each revealed player to screen readers via an aria-live region — the cinematic reveal is no longer silent for VoiceOver users.',
     'Packs page countdown ticker no longer re-renders the whole page once per second — bumped to 30s intervals (the displayed format only changes per-minute anyway).',
+    'Save slots on the title screen now show a brief loading shimmer while saves hydrate — previously the rows flashed as empty "New Game" placeholders for a few hundred ms on mobile, risking an accidental tap that would have created a new save over your existing one.',
+    'Post-match, mid-season, session-recap, and gem-reveal popups now announce themselves to screen readers as dialogs.',
   ],
   headline: null,
   summary: null,

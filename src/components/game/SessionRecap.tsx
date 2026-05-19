@@ -81,6 +81,9 @@ export function SessionRecap() {
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-[54] flex items-end justify-center bg-black/60 px-4 pb-8 safe-area-bottom"
           onClick={dismiss}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Session recap"
         >
           <motion.div
             initial={{ opacity: 0, y: 40 }}

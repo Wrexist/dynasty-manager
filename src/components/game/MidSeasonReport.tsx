@@ -61,7 +61,12 @@ export function MidSeasonReport({ onDismiss }: MidSeasonReportProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 px-4">
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 px-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Mid-season report"
+    >
       <AnimatePresence>
         <motion.div
           initial={{ opacity: 0, scale: 0.9, y: 20 }}

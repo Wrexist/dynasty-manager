@@ -85,6 +85,9 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
       animate={{ opacity: 1 }}
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
       style={{ touchAction: 'none' }}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Post-match summary"
     >
       <motion.div
         initial={{ scale: 0.9, y: 20 }}
