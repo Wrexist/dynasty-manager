@@ -47,6 +47,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Dynasty Pro annual plan added, with localized pricing.',
   ],
   improved: [
+    'New careers now start with a kit-sleeve sponsor offer waiting in the Finance page on day 1, with a six-week review window — so the sponsorship system is visible from your very first session instead of staying empty until you upgrade your stadium.',
     'Pack opening summary now has bulk keep and bulk sell actions.',
     'Resigning your job and the manager job market are easier to find from the menus.',
     'Reorganize pending news and release notes for clarity.',

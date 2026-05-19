@@ -328,6 +328,46 @@ export function processSponsorSeasonEnd(state: GameState): Partial<GameState> {
   };
 }
 
+/**
+ * Generate introductory pending offers shown to brand-new managers, alongside
+ * the auto-signed `generateStarterDeals` kit_main + digital. The goal is UX,
+ * not income — without this, the Finance page's "Pending Offers" section is
+ * empty until at least week 2 of a new save (the first time the periodic
+ * generator fires) and even then only for facility-unlocked slots, so for
+ * low-rep careers the user may not see a single pending offer until they
+ * upgrade their stadium. That makes the whole sponsorship system feel
+ * invisible during the critical first hour of play.
+ *
+ * Generates one pending kit_sleeve offer at week 1 with a wider expiry window
+ * (2x the normal SPONSOR_OFFER_EXPIRY) so casual users who don't beeline to
+ * Finance still get to act on it before it lapses. The offer obeys all
+ * standard reputation + eligibility rules; bottom-tier clubs simply pull from
+ * the tier 1 sponsor pool. Callers should pass an already-populated
+ * `usedSponsorIds` list (from `generateStarterDeals`) so we don't double-book
+ * the same brand across the welcome screen.
+ */
+export function generateStarterOffers(
+  reputation: number,
+  season: number,
+  starterDeals: SponsorDeal[],
+): SponsorOffer[] {
+  const offers: SponsorOffer[] = [];
+  const usedSponsorIds = starterDeals.map(d => d.sponsorId);
+  // Pull the offer through the standard generator so all of the slot-tier /
+  // reputation-aware payment scaling applies, then hand-extend the expiry so
+  // first-time users who don't visit Finance until they've played a couple of
+  // weeks of friendlies still see the offer waiting.
+  const offerData = generateOffer('kit_sleeve', reputation, usedSponsorIds, 1, season);
+  if (offerData) {
+    offers.push({
+      id: crypto.randomUUID(),
+      ...offerData,
+      expiresWeek: offerData.expiresWeek + 3,
+    });
+  }
+  return offers;
+}
+
 /** Generate starter deals for a new game */
 export function generateStarterDeals(reputation: number, season: number): SponsorDeal[] {
   const deals: SponsorDeal[] = [];
