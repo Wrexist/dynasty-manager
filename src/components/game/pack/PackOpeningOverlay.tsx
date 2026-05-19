@@ -297,6 +297,21 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
     return () => window.removeEventListener('keydown', onKey);
   }, [phase, onClose, revealAll, onWalkoutComplete]);
 
+  // Visually-hidden live announcer — reads out the most recent pull as
+  // each card flips so screen-reader users hear the same reveal sighted
+  // users see. Without this, the dramatic flip animation was a silent
+  // event and the user had to navigate the card grid manually to learn
+  // what they pulled.
+  const lastRevealedPlayer = useMemo(() => {
+    if (revealedSet.size === 0) return null;
+    // Find the most recently revealed player by iterating the original
+    // order and picking the highest-index one that's in revealedSet.
+    for (let i = players.length - 1; i >= 0; i--) {
+      if (revealedSet.has(players[i].id)) return players[i];
+    }
+    return null;
+  }, [revealedSet, players]);
+
   const overlay = (
     <motion.div
       ref={containerRef}
@@ -315,6 +330,18 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
         willChange: 'opacity',
       }}
     >
+      {/* Screen-reader announcer — visually hidden but updates as each
+          pack card flips. Uses `aria-live="polite"` so announcements
+          queue without interrupting in-progress narration of the
+          previous reveal. */}
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {lastRevealedPlayer && phase === 'reveal' && (
+          <p>
+            Revealed {lastRevealedPlayer.position} {lastRevealedPlayer.firstName} {lastRevealedPlayer.lastName}, {lastRevealedPlayer.overall} overall.
+          </p>
+        )}
+      </div>
+
       {/* Vignette pulse on portal open */}
       <AnimatePresence>
         {phase === 'portal' && (

@@ -836,10 +836,14 @@ const Dashboard = () => {
         // Only show full-width banner when <=4 weeks left; otherwise users find transfers via quick links
         if (weeksLeft > 4) return null;
         return (
-          <div className={cn(
-            'rounded-xl px-3 py-2 flex items-center justify-between cursor-pointer',
-            isUrgent ? 'bg-amber-500/10 border border-amber-500/30' : 'bg-primary/5 border border-primary/20'
-          )} onClick={() => setScreen('transfers')}>
+          <button
+            type="button"
+            onClick={() => setScreen('transfers')}
+            className={cn(
+              'w-full rounded-xl px-3 py-2 flex items-center justify-between cursor-pointer text-left transition-colors',
+              isUrgent ? 'bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/15' : 'bg-primary/5 border border-primary/20 hover:bg-primary/10'
+            )}
+          >
             <div className="flex items-center gap-2">
               <ShoppingBag className={cn('w-4 h-4', isUrgent ? 'text-amber-400' : 'text-primary')} />
               <span className={cn('text-xs font-semibold', isUrgent ? 'text-amber-400' : 'text-primary')}>
@@ -849,7 +853,7 @@ const Dashboard = () => {
             <span className={cn('text-[10px] font-medium', isUrgent ? 'text-amber-400' : 'text-muted-foreground')}>
               {weeksLeft} week{weeksLeft !== 1 ? 's' : ''} remaining
             </span>
-          </div>
+          </button>
         );
       })()}
       {activeChallenge?.completed && (
@@ -1183,10 +1187,14 @@ const Dashboard = () => {
               <span className="text-[10px] font-medium text-primary/70">Fam {training.tacticalFamiliarity}%</span>
             </div>
             {transferWindowOpen && (
-              <div className="inline-flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2.5 py-1 cursor-pointer" onClick={() => setScreen('transfers')}>
+              <button
+                type="button"
+                onClick={() => setScreen('transfers')}
+                className="inline-flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2.5 py-1 cursor-pointer hover:bg-emerald-500/15 transition-colors"
+              >
                 <ShoppingBag className="w-3 h-3 text-emerald-400" />
                 <span className="text-[10px] font-medium text-emerald-400">Window open</span>
-              </div>
+              </button>
             )}
             <span className="text-[10px] text-muted-foreground">
               Wk {week} / S{season} · {week <= SUMMER_WINDOW_END ? 'Pre-Season' : week < WINTER_WINDOW_START ? 'Autumn' : week <= WINTER_WINDOW_END ? 'Winter' : week <= SPRING_PHASE_END_WEEK ? 'Spring' : 'Run-In'}

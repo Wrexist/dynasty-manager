@@ -415,9 +415,13 @@ const LeagueTable = () => {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: Math.min(i * 0.02, 0.4), duration: 0.2 }}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`View ${club?.shortName || club?.name || 'club'}`}
                       onClick={() => selectClub(entry.clubId)}
+                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectClub(entry.clubId); } }}
                       className={cn(
-                        'border-b border-border/10 cursor-pointer active:bg-muted/30 transition-colors',
+                        'border-b border-border/10 cursor-pointer active:bg-muted/30 transition-colors focus-visible:outline-none focus-visible:bg-muted/40',
                         zoneBgClass(zone),
                         isPlayer && 'bg-primary/5 shadow-[inset_0_0_12px_hsl(var(--primary)/0.05)] border-l-2 border-l-primary'
                       )}

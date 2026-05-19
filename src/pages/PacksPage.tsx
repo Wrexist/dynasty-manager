@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/react';
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
-import { Package, Coins, Flame, Clock } from 'lucide-react';
+import { Package, Coins, Flame, Clock, Loader2 } from 'lucide-react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel, LIQUID_GLASS_SURFACE } from '@/components/game/GlassPanel';
 import { PageHint } from '@/components/game/PageHint';
@@ -74,10 +74,13 @@ const PacksPage = () => {
   const [busy, setBusy] = useState(false);
 
   // Live countdown to next midnight (when free + ad daily quotas reset).
-  // Recomputed every second; cheap because the page is lightweight.
+  // Ticks every 30s — the countdown display is `Xh YYm` granularity (see
+  // formatCountdown), so per-second re-rendering of the entire ~500-line
+  // tree was pure waste. 30s catches the minute-boundary flips fast
+  // enough that the user never sees a stale value.
   const [, forceTick] = useState(0);
   useEffect(() => {
-    const id = setInterval(() => forceTick(t => t + 1), 1000);
+    const id = setInterval(() => forceTick(t => t + 1), 30_000);
     return () => clearInterval(id);
   }, []);
   const msToReset = msUntilNextMidnight();
@@ -519,6 +522,25 @@ const PacksPage = () => {
           />
         )}
       </AnimatePresence>
+
+      {/* Visible busy overlay during the 1-30s ad-watch / IAP-confirm
+          gap. Previously the only feedback was a disabled state on the
+          pack tile — users tapped, nothing visible happened for 1-2s,
+          and they retapped. Now a centered spinner blocks the page and
+          confirms the action is in flight. */}
+      {busy && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm pointer-events-auto"
+          role="status"
+          aria-label="Processing purchase"
+        >
+          <div className="flex flex-col items-center gap-3 bg-card/90 border border-border/50 rounded-2xl px-6 py-5 shadow-xl">
+            <Loader2 className="w-7 h-7 text-primary animate-spin" />
+            <p className="text-xs font-medium text-foreground">Processing…</p>
+            <p className="text-[10px] text-muted-foreground text-center max-w-[200px]">Do not close the app until this finishes.</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
