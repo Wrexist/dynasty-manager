@@ -369,8 +369,8 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
     { id: crypto.randomUUID(), week: 1, season: 1, type: 'board', title: 'Welcome, Manager!', body: `The board of ${initClub.name} welcomes you. We expect great things this season. Check your objectives in the Club tab.`, read: false },
     { id: crypto.randomUUID(), week: 1, season: 1, type: 'general', title: 'Transfer Window Open', body: 'The transfer window is now open. Scout the market and strengthen your squad before it closes in Week 8.', read: false },
     { id: crypto.randomUUID(), week: 1, season: 1, type: 'transfer', title: 'Pre-Season Market Surge', body: 'Clubs are aggressively reshaping their squads during pre-season. Expect more transfer activity and higher-quality players on the market before league fixtures begin in Week 4.', read: false },
-    { id: crypto.randomUUID(), week: 1, season: 1, type: 'general', title: 'Set Your Tactics', body: 'Your assistant has set a default 4-4-2 formation, but you can change it from the Tactics tab. Sticking with one shape builds tactical familiarity over the season — a real boost in matches.', read: false },
-    { id: crypto.randomUUID(), week: 1, season: 1, type: 'general', title: 'Send Out a Scout', body: 'You have scouting assignments available. Visit Scouting from the More menu and send a scout to a region — Domestic returns the fastest reports, while Asia and Africa often surface the best hidden gems.', read: false },
+    { id: crypto.randomUUID(), week: 1, season: 1, type: 'general', title: 'Set Your Tactics', body: 'Your assistant has set a default 4-4-2 formation. To change it: tap "Tactics" in the bottom navigation bar. Inside Tactics, the seven formation badges at the top let you pick a new shape (4-3-3 attacks more, 5-3-2 defends more). Tap "Save" when done. Sticking with one shape builds tactical familiarity — a real boost in matches.', read: false },
+    { id: crypto.randomUUID(), week: 1, season: 1, type: 'general', title: 'Send Out a Scout', body: 'Scouts find players you would never see on the open market. To send one: tap "More" in the bottom navigation bar, then tap "Scouting". Scroll to the "Send Scout" section and tap a region. Domestic returns reports in 2 weeks, Asia and Africa take 4-5 weeks but tend to surface higher-potential youngsters. Reports arrive automatically in your inbox.', read: false },
   ];
 
   const pcInit = clubs[clubId];
@@ -442,7 +442,7 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
       season: 1,
       type: 'sponsorship',
       title: 'Sponsor Offer Awaiting Review',
-      body: `Welcome aboard — a local brand has put together a kit-sleeve offer for your club. Open the Finance page from More → Finance to review the terms and sign it on. The deal pays weekly income for the rest of the season.`,
+      body: `Welcome aboard — a local brand has put a kit-sleeve sponsorship on the table for your club. To review it: tap "More" in the bottom navigation bar (three dots, bottom-right), then tap "Finance". Scroll down to the "Pending Offers" section and tap the row to see the weekly payment, duration, and bonus condition. Tap "Accept" to sign the deal — it'll pay weekly income for the rest of the season on top of your matchday revenue.`,
       read: false,
     });
   }

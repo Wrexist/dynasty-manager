@@ -208,6 +208,11 @@ export function removeSessionKey(key: string): void {
 export const STORAGE_KEYS = {
   /** sessionStorage: mid-onboarding draft (club selection). Tab-scoped. */
   ONBOARDING_DRAFT: 'dynasty-onboarding-draft',
+  /** sessionStorage: per-tab dismissal of the week-1 onboarding checklist.
+   *  Cleared on tab close so reopening the app brings it back while the
+   *  career is still in week 1. Not save-scoped — same checklist applies
+   *  to every new career, dismiss state is intentionally not persisted. */
+  ONBOARDING_CHECKLIST_DISMISSED: 'dynasty-onboarding-checklist-dismissed',
   /** sessionStorage: in-flight community pack opt-in for new-game onboarding.
    *  Set by the community pack popup before the user reaches club selection;
    *  null until the popup is answered. Tab-scoped, cleared once the career
