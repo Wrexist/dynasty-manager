@@ -27,7 +27,7 @@ import {
 } from '@/config/gameBalance';
 import { generatePlayer, pickNameForNationality, buildPlayerFromTemplate } from '@/utils/playerGen';
 import { generatePlayerAppearance } from '@/config/playerAppearance';
-import { NATIONAL_PLAYER_POOL } from '@/data/nationalPlayerPool';
+import { getNationalPoolSync } from '@/data/nationalPlayerPoolAccess';
 
 /**
  * Nationality aliases — maps the game's canonical nation names (src/data/nations.ts)
@@ -57,6 +57,7 @@ export function resolveNationalityAliases(nationality: string): string[] {
 /** Combined pool of real FC26 templates for a nationality, merged across all aliases. */
 function getRealPoolForNationality(nationality: string) {
   const names = resolveNationalityAliases(nationality);
+  const NATIONAL_PLAYER_POOL = getNationalPoolSync();
   const merged = names.flatMap(n => NATIONAL_PLAYER_POOL[n] ?? []);
   // Dedup by fn+ln+pos (some names appear in multiple alias entries)
   const seen = new Set<string>();

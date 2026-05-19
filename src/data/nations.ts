@@ -4,7 +4,7 @@
  */
 
 import type { Player } from '@/types/game';
-import { NATIONAL_PLAYER_POOL } from '@/data/nationalPlayerPool';
+import { getNationalPoolSync, onNationalPoolLoaded } from '@/data/nationalPlayerPoolAccess';
 
 export interface NationData {
   name: string;
@@ -84,11 +84,15 @@ export const NATIONS: NationData[] = [
  * with the rest of the game. Cached per-nation since the pool is static.
  */
 const nationStarPlayerCache = new Map<string, Player[]>();
+// Star previews resolved while the lazy pool was still loading would all
+// land as empty arrays and stick. Drop the cache when the pool lands so
+// the next render rebuilds against real data.
+onNationalPoolLoaded(() => { nationStarPlayerCache.clear(); });
 
 export function getNationStarPlayers(nationName: string): Player[] {
   const cached = nationStarPlayerCache.get(nationName);
   if (cached) return cached;
-  const pool = NATIONAL_PLAYER_POOL[nationName];
+  const pool = getNationalPoolSync()[nationName];
   if (!pool || pool.length === 0) {
     nationStarPlayerCache.set(nationName, []);
     return [];

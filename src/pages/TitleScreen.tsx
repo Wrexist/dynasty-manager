@@ -48,10 +48,16 @@ const TitleScreen = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const whatsNewUnseen = useMemo(() => hasUnseenWhatsNew(), [refreshKey]);
 
-  // Prefetch the Dashboard chunk while the user reads the title screen
+  // Prefetch the Dashboard chunk while the user reads the title screen.
+  // Also kick off the ~2.5MB national player pool fetch in the background —
+  // it's not needed for the title screen itself, but New Game / Continue
+  // will both need it within a few seconds, so we want it warming in the
+  // network cache while the user is reading. Both prefetches are
+  // fire-and-forget; failures fall through to lazy fetch on first use.
   useEffect(() => {
     const timer = setTimeout(() => {
       import('./Dashboard').catch(() => {});
+      import('@/data/nationalPlayerPoolAccess').then(m => m.loadNationalPool()).catch(() => {});
     }, 1500);
     return () => clearTimeout(timer);
   }, []);

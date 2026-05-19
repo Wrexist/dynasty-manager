@@ -3,6 +3,7 @@ import { Club, Player, TransferListing, Match, LeagueTableEntry } from '@/types/
 import { buildLeagueTable, generateDivisionFixtures, LEAGUES, generateFriendlies, getLeaguesByCountry } from '@/data/league';
 
 import { generateSquad, selectBestLineup } from '@/utils/playerGen';
+import { loadNationalPool } from '@/data/nationalPlayerPoolAccess';
 
 import { generateStaffMarket, getStaffBonus } from '@/utils/staff';
 
@@ -124,6 +125,16 @@ type Get = () => GameState;
 
 export async function initGameImpl(set: Set, get: Get, clubId: string, options?: { communityPackEnabled?: boolean }): Promise<void> {
   const communityPackEnabled = options?.communityPackEnabled ?? false;
+
+  // The national player pool is lazy-loaded to keep it off the boot bundle.
+  // TitleScreen prefetches it ~1.5s after mount, so by the time the user
+  // reaches "Start Dynasty" the chunk is almost always already cached. We
+  // fire-and-forget here as a safety net (not awaited) — the autosave test
+  // suite explicitly pins the invariant that initGame's synchronous body
+  // runs without any pre-await on the non-CP path. If the pool isn't loaded
+  // yet, squad generation gracefully falls back to fully procedural names
+  // (the real-player picker has a documented null-return → fallback path).
+  loadNationalPool().catch(() => undefined);
 
   // Division is derived from club metadata, not the user's name — safe to
   // ship as a breadcrumb field. `clubId` is a stable internal id ("eng-liv"

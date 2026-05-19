@@ -1,6 +1,6 @@
 import type { Position, PickRealPlayerOptions } from '@/types/game';
 import type { PlayerTemplate } from '@/data/playerTemplates';
-import { NATIONAL_PLAYER_POOL } from '@/data/nationalPlayerPool';
+import { getNationalPoolSync, onNationalPoolLoaded } from '@/data/nationalPlayerPoolAccess';
 import { pick } from '@/utils/helpers';
 
 export type { PickRealPlayerOptions };
@@ -52,7 +52,10 @@ const claimedNames = new Set<string>();
 // Memoised "all nationalities merged" pool for the global-fallback path.
 // Cleared on resetRealPlayerClaims so dev tools / tests that mutate
 // NATIONAL_PLAYER_POOL between resets see fresh data on next call.
+// Also cleared when the lazy pool finally lands — otherwise we'd cache
+// an empty dedupe list built while the pool was still loading.
 let allPoolsCache: PlayerTemplate[] | null = null;
+onNationalPoolLoaded(() => { allPoolsCache = null; });
 
 function nameKey(fn: string, ln: string): string {
   return `${fn.toLowerCase()}|${ln.toLowerCase()}`;
@@ -108,6 +111,7 @@ function dedupKey(t: PlayerTemplate): string {
 function dedupedPool(aliases: string[]): PlayerTemplate[] {
   const merged: PlayerTemplate[] = [];
   const seen = new Set<string>();
+  const NATIONAL_PLAYER_POOL = getNationalPoolSync();
   for (const alias of aliases) {
     const pool = NATIONAL_PLAYER_POOL[alias];
     if (!pool) continue;
@@ -128,7 +132,7 @@ function poolFor(nationality: string): PlayerTemplate[] {
 
 function poolForAll(): PlayerTemplate[] {
   if (allPoolsCache) return allPoolsCache;
-  allPoolsCache = dedupedPool(Object.keys(NATIONAL_PLAYER_POOL));
+  allPoolsCache = dedupedPool(Object.keys(getNationalPoolSync()));
   return allPoolsCache;
 }
 

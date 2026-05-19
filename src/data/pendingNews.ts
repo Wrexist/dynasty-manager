@@ -91,6 +91,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Save slots on the title screen now show a brief loading shimmer while saves hydrate — previously the rows flashed as empty "New Game" placeholders for a few hundred ms on mobile, risking an accidental tap that would have created a new save over your existing one.',
     'Post-match, mid-season, session-recap, and gem-reveal popups now announce themselves to screen readers as dialogs.',
     'Match Prep "Ready to Play" / "Sim" buttons now sit clearly above the bottom navigation on notched iPhones — they were partially clipped by the home-indicator gesture area.',
+    'First app launch is meaningfully faster on cellular: the 2.5MB real-player roster bundle (~400KB gzipped) no longer downloads up-front — it now streams in the background while you read the title screen, and is fully cached by the time you tap "New Game".',
   ],
   headline: null,
   summary: null,
