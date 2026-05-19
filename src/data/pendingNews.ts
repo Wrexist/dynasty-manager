@@ -49,6 +49,8 @@ export const PENDING_NEWS: PendingRelease = {
   improved: [
     'New careers now start with a kit-sleeve sponsor offer waiting in the Finance page on day 1, with a six-week review window — so the sponsorship system is visible from your very first session instead of staying empty until you upgrade your stadium.',
     'Two new starter inbox messages on new careers nudge you toward Tactics and Scouting — two screens that previously had no day-1 visibility.',
+    'Brand-new "Getting Started" checklist now sits at the top of your Dashboard during the first week of a new career — tap any row for an over-explicit step-by-step walkthrough (with the exact buttons to press), then "Take me there" to navigate. Auto-dismisses once you advance the week.',
+    'Every starter inbox message now spells out the exact navigation path ("tap More, then Finance, scroll to Pending Offers, tap the row") instead of assuming you already know where things live.',
     'Pack opening summary now has bulk keep and bulk sell actions.',
     'Resigning your job and the manager job market are easier to find from the menus.',
     'Reorganize pending news and release notes for clarity.',
