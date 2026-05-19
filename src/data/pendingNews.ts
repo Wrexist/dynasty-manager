@@ -62,6 +62,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Fixed rare launch crashes related to ads.',
     'Loaded clubs from other divisions are no longer wiped during cleanup.',
     'Fixed an issue where the welcome tour could fail mid-step.',
+    'Modal popups (welcome tour, post-match summary, mid-season report, session recap, weekly digest, gem reveal, talent-tree perk details) now properly trap keyboard focus and dismiss on Escape, instead of letting Tab drift to buttons hidden behind the backdrop.',
   ],
   headline: null,
   summary: null,

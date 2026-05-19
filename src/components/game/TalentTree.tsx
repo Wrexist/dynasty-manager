@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { Button } from '@/components/ui/button';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useEscapeClose } from '@/hooks/useEscapeClose';
 import {
   TALENT_BRANCHES,
   getBranchPerks,
@@ -295,13 +297,20 @@ function PerkDetailSheet({ perk, progression, onUnlock, onClose }: PerkDetailShe
   // Capstone-specific info
   const isCapstone = perk.branch === 'capstone';
   const highBranches = isCapstone ? countHighBranches(progression) : 0;
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(containerRef, true);
+  useEscapeClose(onClose);
 
   return (
     <motion.div
+      ref={containerRef}
       className="fixed inset-0 z-[60] flex items-end justify-center px-4 pb-20 safe-area-bottom"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Perk details: ${perk.name}`}
     >
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />

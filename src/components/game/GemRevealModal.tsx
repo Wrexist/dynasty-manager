@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -13,6 +13,8 @@ import { getPersonalityLabel } from '@/utils/personality';
 import { TransferNegotiation } from '@/components/game/TransferNegotiation';
 import { PlayerBadge } from '@/components/game/PlayerBadge';
 import { formatMoney } from '@/utils/helpers';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useEscapeClose } from '@/hooks/useEscapeClose';
 
 export function GemRevealModal() {
   const { gem, players, clubs, playerClubId, transferMarket } = useGameStore(useShallow(s => ({
@@ -31,6 +33,14 @@ export function GemRevealModal() {
     setShowNegotiation(false);
   }, [gem?.playerId]);
 
+  // Focus trap + Escape dismiss. Hooks must run before any early return.
+  // Dismiss references state via the store getter so we don't need to
+  // close over a value computed below.
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const dismiss = () => { useGameStore.setState({ pendingGemReveal: null }); };
+  useFocusTrap(containerRef, !!gem);
+  useEscapeClose(dismiss, !!gem);
+
   if (!gem) return null;
 
   const player = players[gem.playerId];
@@ -45,10 +55,6 @@ export function GemRevealModal() {
   const personalityLabel = player.personality ? getPersonalityLabel(player.personality) : null;
 
   const listing = transferMarket.find(l => l.playerId === gem.playerId);
-
-  const dismiss = () => {
-    useGameStore.setState({ pendingGemReveal: null });
-  };
 
   const handleSignPlayer = () => {
     if (listing) {
@@ -77,11 +83,15 @@ export function GemRevealModal() {
   return (
     <AnimatePresence>
       <motion.div
+        ref={containerRef}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-[58] flex items-center justify-center bg-black/70 px-4"
         onClick={dismiss}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Gem player reveal"
       >
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}

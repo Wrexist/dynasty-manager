@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { resolveClub } from '@/utils/helpers';
@@ -12,6 +13,8 @@ import { getSuffix } from '@/utils/helpers';
 import { getMatchRatingColor } from '@/utils/uiHelpers';
 import { RotateCcw } from 'lucide-react';
 import { useScrollLock } from '@/hooks/useScrollLock';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useEscapeClose } from '@/hooks/useEscapeClose';
 import { hapticHeavy, hapticLight } from '@/utils/haptics';
 
 interface PostMatchPopupProps {
@@ -39,6 +42,9 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
   const rewindMatch = useGameStore(s => s.rewindMatch);
 
   useScrollLock(!!currentMatchResult);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(containerRef, !!currentMatchResult);
+  useEscapeClose(onContinue, !!currentMatchResult);
 
   if (!currentMatchResult) return null;
 
@@ -81,10 +87,14 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
 
   return (
     <motion.div
+      ref={containerRef}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
       style={{ touchAction: 'none' }}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Post-match summary"
     >
       <motion.div
         initial={{ scale: 0.9, y: 20 }}
