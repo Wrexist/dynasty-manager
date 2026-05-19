@@ -43,7 +43,7 @@ import { FACILITY_MAX_LEVEL, MEDICAL_LEVEL_FACTOR, RECOVERY_LEVEL_FACTOR, STADIU
 import { DEFAULT_MONETIZATION_STATE } from '@/config/monetization';
 import { ALL_CLUBS, DERBIES, clearLeagueTableCache } from '@/data/league';
 import type { PlayerTemplate } from '@/data/playerTemplates';
-import { generateStarterDeals } from '@/store/slices/sponsorSlice';
+import { generateStarterDeals, generateStarterOffers } from '@/store/slices/sponsorSlice';
 import type { Message } from '@/types/game';
 import { drawForFaPoolSeed, drawForMarket, getActivePool } from '@/utils/communityPackPool';
 import { createDefaultProgression } from '@/utils/managerPerks';
@@ -418,6 +418,27 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
     );
   }
 
+  // Surface the sponsorship system on day 1 — kit_main + digital are
+  // auto-signed by generateStarterDeals, but the Finance page's Pending
+  // Offers section would otherwise sit empty until the periodic offer
+  // generator fires (week 2 at earliest, and only for slots that have
+  // already been unlocked by facilities). Generate one introductory
+  // kit_sleeve offer and queue an inbox welcome message pointing the
+  // user at Finance.
+  const starterSponsorDeals = generateStarterDeals(pcInit.reputation, 1);
+  const starterSponsorOffers = generateStarterOffers(pcInit.reputation, 1, starterSponsorDeals);
+  if (starterSponsorOffers.length > 0) {
+    messages.push({
+      id: crypto.randomUUID(),
+      week: 1,
+      season: 1,
+      type: 'sponsorship',
+      title: 'Sponsor Offer Awaiting Review',
+      body: `Welcome aboard — a local brand has put together a kit-sleeve offer for your club. Open the Finance page from More → Finance to review the terms and sign it on. The deal pays weekly income for the rest of the season.`,
+      read: false,
+    });
+  }
+
   set({
     gameStarted: true, playerClubId: clubId, season: 1, week: 1, totalWeeks: league?.totalWeeks || TOTAL_WEEKS,
     gameMode: get().gameMode || 'sandbox',
@@ -498,8 +519,8 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
     lastPackWeek: 0,
     lastPackSeason: 0,
     dailyPackOpens: { date: '', free: {}, ad: {} },
-    sponsorDeals: generateStarterDeals(pcInit.reputation, 1),
-    sponsorOffers: [],
+    sponsorDeals: starterSponsorDeals,
+    sponsorOffers: starterSponsorOffers,
     sponsorSlotCooldowns: {},
     negotiationStrikes: {},
     contractStrikes: {},
