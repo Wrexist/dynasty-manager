@@ -359,10 +359,18 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
     ? Math.round(startingPlayers.reduce((s, p) => s + p.overall, 0) / startingPlayers.length)
     : 0;
 
+  // Starter inbox messages. The first three are the long-standing welcome
+  // set; the latter two were added as part of the onboarding plan (Phase 3)
+  // to actively point new managers at the Tactics and Scouting screens —
+  // two systems that don't otherwise surface themselves during the first
+  // week of play. All five are read=false so they show up unread in the
+  // inbox; the inbox unread badge becomes a "go look at this" signal.
   const messages: Message[] = [
     { id: crypto.randomUUID(), week: 1, season: 1, type: 'board', title: 'Welcome, Manager!', body: `The board of ${initClub.name} welcomes you. We expect great things this season. Check your objectives in the Club tab.`, read: false },
     { id: crypto.randomUUID(), week: 1, season: 1, type: 'general', title: 'Transfer Window Open', body: 'The transfer window is now open. Scout the market and strengthen your squad before it closes in Week 8.', read: false },
     { id: crypto.randomUUID(), week: 1, season: 1, type: 'transfer', title: 'Pre-Season Market Surge', body: 'Clubs are aggressively reshaping their squads during pre-season. Expect more transfer activity and higher-quality players on the market before league fixtures begin in Week 4.', read: false },
+    { id: crypto.randomUUID(), week: 1, season: 1, type: 'general', title: 'Set Your Tactics', body: 'Your assistant has set a default 4-4-2 formation, but you can change it from the Tactics tab. Sticking with one shape builds tactical familiarity over the season — a real boost in matches.', read: false },
+    { id: crypto.randomUUID(), week: 1, season: 1, type: 'general', title: 'Send Out a Scout', body: 'You have scouting assignments available. Visit Scouting from the More menu and send a scout to a region — Domestic returns the fastest reports, while Asia and Africa often surface the best hidden gems.', read: false },
   ];
 
   const pcInit = clubs[clubId];
