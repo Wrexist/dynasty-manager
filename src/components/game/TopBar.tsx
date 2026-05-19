@@ -56,7 +56,7 @@ export function TopBar() {
   }, [xpProgress.percentage]);
 
   if (!club && !isUnemployed) return (
-    <header role="banner" className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/30 safe-area-top">
+    <header role="banner" className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/30 safe-area-top transform-gpu" style={{ contain: 'layout' }}>
       <div className="flex items-center justify-center h-14 px-4 max-w-lg mx-auto">
         <span className="text-xs text-muted-foreground">Loading...</span>
       </div>
@@ -81,7 +81,14 @@ export function TopBar() {
     : rawBack;
 
   return (
-    <header role="banner" className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/30 safe-area-top">
+    // `transform-gpu` + `contain: layout` defends against an iOS WebView
+    // bug where `position: fixed` on the TopBar appeared mid-page after
+    // certain state mutations (audit: "I kicked accept loan and scrolled
+    // down"). Forcing GPU compositing pins the bar to its own layer that
+    // tracks the viewport instead of inheriting a containing block from
+    // an ancestor's transient transform. BottomNav already uses the same
+    // pattern — see /home/user/dynasty-manager/src/components/game/BottomNav.tsx.
+    <header role="banner" className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/30 safe-area-top transform-gpu" style={{ contain: 'layout' }}>
       {/* XP Progress Bar — positioned at top edge to avoid looking like a tab indicator */}
       <div className="max-w-lg mx-auto px-4 pt-0.5">
         <div className="h-[3px] bg-muted/30 rounded-full overflow-hidden">

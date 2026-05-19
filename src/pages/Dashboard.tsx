@@ -453,6 +453,7 @@ const Dashboard = () => {
 
   const objectivesWithProgress = useMemo(() => {
     if (!club) return weeklyObjectives;
+    const state = useGameStore.getState();
     const ctx = {
       playerClubId,
       players,
@@ -462,6 +463,17 @@ const Dashboard = () => {
       week,
       season,
       lineup: club.lineup || [],
+      // Pass every match source so pre-season friendlies, cup ties,
+      // and continental matches actually move match-based objective
+      // progress (was previously league-only).
+      friendlies: state.friendlies,
+      cupTies: state.cup?.ties,
+      leagueCupTies: state.leagueCup?.ties,
+      championsCup: state.championsCup,
+      shieldCup: state.shieldCup,
+      conferenceCup: state.conferenceCup,
+      domesticSuperCup: state.domesticSuperCup,
+      continentalSuperCup: state.continentalSuperCup,
     };
     return computeObjectiveProgress(weeklyObjectives, ctx);
   }, [weeklyObjectives, club, players, playerClubId, fixtures, leagueTable, week, season]);

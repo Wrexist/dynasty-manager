@@ -2308,6 +2308,18 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   const objCtx: ObjectiveContext = {
     playerClubId, players: newPlayers, playerIds: playerClub.playerIds,
     fixtures: updatedFixtures, leagueTable, week, season, lineup: playerClub.lineup,
+    // Include every match source so match-based objectives count
+    // pre-season friendlies, cup ties, and continental matches —
+    // not just league fixtures. Was a real bug ("Goal Fest 0/3"
+    // after a 5-goal friendly because the friendly was invisible).
+    friendlies: state.friendlies,
+    cupTies: state.cup?.ties,
+    leagueCupTies: state.leagueCup?.ties,
+    championsCup: state.championsCup,
+    shieldCup: state.shieldCup,
+    conferenceCup: state.conferenceCup,
+    domesticSuperCup: state.domesticSuperCup,
+    continentalSuperCup: state.continentalSuperCup,
   };
   const currentStreak = state.objectiveStreak || 0;
   const objStartWeek = state.objectivesStartWeek || 1;

@@ -298,15 +298,33 @@ const PacksPage = () => {
     <div className="max-w-lg mx-auto">
       <PageHint screen="packs" title={PAGE_HINTS.packs.title} body={PAGE_HINTS.packs.body} />
 
-      <div className="px-4 pb-6 space-y-4">
-        {/* Header + budget chip */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-display font-bold text-foreground flex items-center gap-2">
-              <Package className="w-5 h-5 text-primary" />
-              Player Packs
-            </h2>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Spend budget, sign players instantly.</p>
+      <div className="px-4 pb-6 space-y-3">
+        {/* Compact status row — budget + squad + reset countdown all on
+            one line. The "Player Packs" title block above this used to
+            cost ~60px of vertical space before the pack tile even
+            started, on a page where the user is already on the Packs
+            tab — redundant signage. Now it's one dense row so the
+            featured pack image is visible above the fold on a 375px
+            phone (audit finding). */}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-widest">
+            <span className={cn(
+              'px-2 py-1 rounded-md border flex items-center gap-1',
+              squadSize >= MAX_SQUAD_SIZE
+                ? 'border-destructive/40 text-destructive bg-destructive/10'
+                : 'border-border/60 text-muted-foreground bg-muted/20',
+            )}>
+              <Package className="w-3 h-3" /> Squad {squadSize}/{MAX_SQUAD_SIZE}
+            </span>
+            {dailyAllowanceUsed && (
+              <span
+                className="px-2 py-1 rounded-md border border-primary/40 text-primary bg-primary/10 flex items-center gap-1 tabular-nums"
+                aria-live="polite"
+                aria-label={`Free packs reset in ${formatCountdown(msToReset)}`}
+              >
+                <Clock className="w-3 h-3" /> Resets in {formatCountdown(msToReset)}
+              </span>
+            )}
           </div>
           <div
             className={cn(
@@ -321,34 +339,12 @@ const PacksPage = () => {
           </div>
         </div>
 
-        {/* Squad cap chip + reset countdown. The reset chip only shows
-            once a free or ad open has been used today — no point telling
-            the user about a reset that has nothing to reset. */}
-        <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-widest">
-          <span className={cn(
-            'px-2 py-1 rounded-md border',
-            squadSize >= MAX_SQUAD_SIZE
-              ? 'border-destructive/40 text-destructive bg-destructive/10'
-              : 'border-border/60 text-muted-foreground bg-muted/20',
-          )}>
-            Squad {squadSize}/{MAX_SQUAD_SIZE}
-          </span>
-          {dailyAllowanceUsed && (
-            <span
-              className="px-2 py-1 rounded-md border border-primary/40 text-primary bg-primary/10 flex items-center gap-1 tabular-nums"
-              aria-live="polite"
-              aria-label={`Free packs reset in ${formatCountdown(msToReset)}`}
-            >
-              <Clock className="w-3 h-3" /> Free packs reset in {formatCountdown(msToReset)}
-            </span>
-          )}
-        </div>
-
-        {/* Featured hero */}
+        {/* Featured hero — header inlined to save vertical space; the
+            flame + label + pack are visually one unit. */}
         <div>
-          <div className="flex items-center gap-2 mb-2">
-            <Flame className="w-4 h-4 text-primary" />
-            <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Featured Pack</h3>
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <Flame className="w-3.5 h-3.5 text-primary" />
+            <h3 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Featured Pack</h3>
           </div>
           <PackShopCard
             featured
@@ -365,7 +361,7 @@ const PacksPage = () => {
 
         {/* Standard pack grid */}
         <div>
-          <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">All Packs</h3>
+          <h3 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">All Packs</h3>
           <div className="grid grid-cols-2 gap-3">
             {nonFeatured.map(tier => (
               <PackShopCard
