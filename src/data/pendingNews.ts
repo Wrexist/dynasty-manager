@@ -90,6 +90,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Packs page countdown ticker no longer re-renders the whole page once per second — bumped to 30s intervals (the displayed format only changes per-minute anyway).',
     'Save slots on the title screen now show a brief loading shimmer while saves hydrate — previously the rows flashed as empty "New Game" placeholders for a few hundred ms on mobile, risking an accidental tap that would have created a new save over your existing one.',
     'Post-match, mid-season, session-recap, and gem-reveal popups now announce themselves to screen readers as dialogs.',
+    'Match Prep "Ready to Play" / "Sim" buttons now sit clearly above the bottom navigation on notched iPhones — they were partially clipped by the home-indicator gesture area.',
   ],
   headline: null,
   summary: null,
