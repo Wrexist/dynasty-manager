@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { PRODUCTS } from '@/config/monetization';
 import type { ProductId } from '@/types/game';
 import { Crown, X } from 'lucide-react';
@@ -19,11 +20,25 @@ interface PurchaseModalProps {
 
 export function PurchaseModal({ productId, onConfirm, onCancel, loading, storePrice }: PurchaseModalProps) {
   useScrollLock(true);
-  const product = PRODUCTS[productId];
-  if (!product) return null;
 
   const handleConfirm = () => { hapticMedium(); onConfirm(); };
   const handleCancel = () => { hapticLight(); onCancel(); };
+
+  // Escape-to-dismiss. App Store review flags payment screens that aren't
+  // dismissable by standard means. `loading` blocks dismissal mid-purchase
+  // so the user can't cancel a transaction that's already in flight.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !loading) { e.preventDefault(); handleCancel(); }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+    // handleCancel is recreated each render but only closes over onCancel/haptic;
+    // re-binding per render is cheap and keeps the listener current.
+  });
+
+  const product = PRODUCTS[productId];
+  if (!product) return null;
 
   const isSubscription = product.type === 'subscription';
   const basePrice = storePrice || `$${product.priceUsd.toFixed(2)}`;
@@ -49,11 +64,14 @@ export function PurchaseModal({ productId, onConfirm, onCancel, loading, storePr
           transition={{ type: 'spring', stiffness: 400, damping: 30 }}
           className="bg-card/95 backdrop-blur-xl border border-border/50 rounded-2xl p-6 max-w-sm w-full space-y-4"
           onClick={e => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="purchase-modal-title"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Crown className="w-5 h-5 text-primary" />
-              <h3 className="text-base font-display font-bold text-foreground">
+              <h3 id="purchase-modal-title" className="text-base font-display font-bold text-foreground">
                 {isSubscription ? 'Confirm Subscription' : 'Confirm Purchase'}
               </h3>
             </div>
@@ -61,7 +79,7 @@ export function PurchaseModal({ productId, onConfirm, onCancel, loading, storePr
               type="button"
               onClick={handleCancel}
               aria-label={isSubscription ? 'Close subscription dialog' : 'Close purchase dialog'}
-              className="text-muted-foreground hover:text-foreground p-1 -m-1"
+              className="flex items-center justify-center min-w-[44px] min-h-[44px] -m-2.5 text-muted-foreground hover:text-foreground"
             >
               <X className="w-5 h-5" />
             </button>

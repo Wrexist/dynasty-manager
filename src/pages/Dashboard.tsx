@@ -1171,10 +1171,15 @@ const Dashboard = () => {
               <span className="text-[10px] font-medium text-primary/70">Fam {training.tacticalFamiliarity}%</span>
             </div>
             {transferWindowOpen && (
-              <div className="inline-flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2.5 py-1 cursor-pointer" onClick={() => setScreen('transfers')}>
+              <button
+                type="button"
+                onClick={() => setScreen('transfers')}
+                aria-label="Transfer window open — open transfers"
+                className="inline-flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2.5 py-1 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+              >
                 <ShoppingBag className="w-3 h-3 text-emerald-400" />
                 <span className="text-[10px] font-medium text-emerald-400">Window open</span>
-              </div>
+              </button>
             )}
             <span className="text-[10px] text-muted-foreground">
               Wk {week} / S{season} · {week <= SUMMER_WINDOW_END ? 'Pre-Season' : week < WINTER_WINDOW_START ? 'Autumn' : week <= WINTER_WINDOW_END ? 'Winter' : week <= SPRING_PHASE_END_WEEK ? 'Spring' : 'Run-In'}
