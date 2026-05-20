@@ -65,6 +65,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Clear, non-misleading billing information with billed amount as the most prominent element.',
     'Fix external URL navigation and iOS keyboard handling in sheets.',
     'Add week-1 onboarding checklist and fix save persistence bugs.',
+    'Claude/phase 1 all critical fixes.',
   ],
   fixed: [
     'Fixed rare launch crashes related to ads.',
