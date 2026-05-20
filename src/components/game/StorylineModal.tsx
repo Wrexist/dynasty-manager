@@ -57,9 +57,10 @@ export function StorylineModal() {
           </div>
         </div>
         <button
+          type="button"
           onClick={dismissStoryline}
-          className="p-1.5 rounded-lg hover:bg-muted/50 transition-colors"
-          title="Dismiss"
+          className="flex items-center justify-center min-w-[44px] min-h-[44px] -m-2.5 rounded-lg hover:bg-muted/50 transition-colors"
+          aria-label="Dismiss storyline event"
         >
           <X className="w-4 h-4 text-muted-foreground" />
         </button>

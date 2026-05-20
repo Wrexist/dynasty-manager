@@ -516,7 +516,12 @@ const MatchDayInner = () => {
   }, [phase]);
 
   useEffect(() => {
-    eventsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Auto-scroll the live event feed. At Instant match speed the event
+    // count climbs many times per second; stacking smooth-scroll animations
+    // janks low-end Android. `behavior: 'instant'` snaps without queueing
+    // animations — the feed still tracks the latest event, just without the
+    // compounding-animation cost.
+    eventsEndRef.current?.scrollIntoView({ behavior: 'instant' as ScrollBehavior });
   }, [visibleEvents.length]);
 
   const handlePause = () => {
@@ -971,6 +976,8 @@ const MatchDayInner = () => {
                       setTeamTalk(talk.id as TeamTalkType);
                       infoToast(`"${talk.description}"`);
                     }}
+                    aria-pressed={isSelected}
+                    aria-label={`${talk.label} team talk: ${talk.description}`}
                     className={cn(
                       "w-full flex items-start gap-3 p-3 rounded-xl transition-all text-left",
                       isSelected
@@ -987,7 +994,7 @@ const MatchDayInner = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className={cn("text-xs font-semibold", isSelected ? 'text-primary' : 'text-foreground')}>{talk.label}</span>
-                        {isSelected && <span className="text-[8px] text-primary/70 uppercase tracking-wider font-medium">Selected</span>}
+                        {isSelected && <span className="text-[10px] text-primary/70 uppercase tracking-wider font-medium">Selected</span>}
                       </div>
                       <p className="text-[10px] text-muted-foreground mt-0.5 italic">"{talk.description}"</p>
                       <div className="flex flex-wrap gap-1 mt-1.5">
@@ -1093,6 +1100,8 @@ const MatchDayInner = () => {
                       setTeamTalk(talk.id as TeamTalkType);
                       infoToast(`"${talk.description}"`);
                     }}
+                    aria-pressed={isSelected}
+                    aria-label={`${talk.label} team talk: ${talk.description}`}
                     className={cn(
                       "w-full flex items-start gap-3 p-3 rounded-xl transition-all text-left",
                       isSelected
@@ -1109,7 +1118,7 @@ const MatchDayInner = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className={cn("text-xs font-semibold", isSelected ? 'text-primary' : 'text-foreground')}>{talk.label}</span>
-                        {isSelected && <span className="text-[8px] text-primary/70 uppercase tracking-wider font-medium">Selected</span>}
+                        {isSelected && <span className="text-[10px] text-primary/70 uppercase tracking-wider font-medium">Selected</span>}
                       </div>
                       <p className="text-[10px] text-muted-foreground mt-0.5 italic">"{talk.description}"</p>
                       <div className="flex flex-wrap gap-1 mt-1.5">

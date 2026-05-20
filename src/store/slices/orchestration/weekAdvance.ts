@@ -164,10 +164,14 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
         table: group.table, // Will be rebuilt below
       }));
 
-      // Rebuild tables for groups that had the player match
+      // Rebuild tables for groups that had the player match. We rebuild
+      // whenever the group contains the player's just-played fixture —
+      // previously an `!allPlayed` guard also gated this, which wrongly
+      // SKIPPED the rebuild when the player's match was the group's final
+      // fixture, leaving that result out of the standings and mis-seeding
+      // the knockout bracket.
       const rebuiltGroups = finalGroups.map(group => {
-        const allPlayed = group.fixtures.every(f => f.played || f.week > currentWeek);
-        if (!allPlayed && group.fixtures.some(f => f.id === playerMatchThisWeek.id)) {
+        if (group.fixtures.some(f => f.id === playerMatchThisWeek.id)) {
           // Need to rebuild this group's table
           const entries: Record<string, { nationality: string; played: number; won: number; drawn: number; lost: number; goalsFor: number; goalsAgainst: number; points: number }> = {};
           group.teams.forEach(t => { entries[t] = { nationality: t, played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, points: 0 }; });
@@ -705,6 +709,13 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   playerClub.playerIds.forEach(pid => {
     if (!newPlayers[pid]) return;
     let p = { ...newPlayers[pid] };
+    // Reset weekly growthDelta at the start of each player's pass so
+    // applyPlayerDevelopment's training-delta accumulator can't pick up a
+    // stale value from a prior week. Without this, injured players who skip
+    // applyWeeklyTraining (which would have zeroed the field) would have
+    // last week's gain added to this week's dev delta — silently inflating
+    // their displayed growth.
+    p.growthDelta = 0;
     if (p.injured) {
       const recoveryBoost = physioBonus >= PHYSIO_RECOVERY_BOOST_THRESHOLD && Math.random() < PHYSIO_RECOVERY_CHANCE ? 1 : 0;
       p.injuryWeeks = Math.max(0, p.injuryWeeks - 1 - recoveryBoost);
@@ -805,8 +816,12 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
           set({ pendingTransferTalk: buildTransferTalk(p, 'low_morale') });
         }
       }
-      if (p.lowMoraleWeeks >= UNHAPPY_CONTAGION_WEEKS) {
-        // Morale contagion: affect 2 random teammates
+      if (p.lowMoraleWeeks === UNHAPPY_CONTAGION_WEEKS) {
+        // Morale contagion fires ONCE per unhappiness spell, on the week the
+        // counter just crosses the threshold. Previously this fired every
+        // week as long as the counter stayed ≥ threshold, so two unhappy
+        // stars for 12w produced 24 contagion events and snowballed into a
+        // dressing-room collapse with no per-spell cooldown.
         const teammates = playerClub.playerIds.filter(id => id !== pid);
         const shuffled = shuffle(teammates);
         for (let ti = 0; ti < Math.min(2, shuffled.length); ti++) {
@@ -922,7 +937,43 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   // Simulate AI matches for player's division
   const weekMatches = fixtures.filter(m => m.week === week && !m.played);
   const updatedFixtures = [...fixtures];
-  const aiMatches = weekMatches.filter(m => m.homeClubId !== playerClubId && m.awayClubId !== playerClubId);
+
+  // When the user plays a higher-priority match this week (continental, cup,
+  // leagueCup, superCup, friendly), the priority chain in playCurrentMatchImpl
+  // / playFirstHalfImpl picks that match for interactive play and leaves the
+  // user's league fixture un-played. We need to auto-sim it here — otherwise
+  // it lingers forever, the player's club ends the season with fewer played
+  // matches than the rest of the league, and the table is broken.
+  const playerPlayedNonLeagueThisWeek =
+    (state.friendlies?.some(m => m.played && m.week === week && (m.homeClubId === playerClubId || m.awayClubId === playerClubId)) ?? false)
+    || state.cup.ties.some(t => t.played && t.week === week && (t.homeClubId === playerClubId || t.awayClubId === playerClubId))
+    || (state.leagueCup?.ties?.some(t => t.played && t.week === week && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) ?? false)
+    || (state.domesticSuperCup?.played === true && state.domesticSuperCup.week === week && (state.domesticSuperCup.homeClubId === playerClubId || state.domesticSuperCup.awayClubId === playerClubId))
+    || (state.continentalSuperCup?.played === true && state.continentalSuperCup.week === week && (state.continentalSuperCup.homeClubId === playerClubId || state.continentalSuperCup.awayClubId === playerClubId))
+    || [state.championsCup, state.shieldCup, state.conferenceCup].some(t => {
+      if (!t) return false;
+      const inGroup = t.groups?.some(g => g.matches.some(m => m.played && m.week === week && (m.homeClubId === playerClubId || m.awayClubId === playerClubId))) ?? false;
+      const inKO = t.knockoutTies?.some(tie =>
+        (tie.homeClubId === playerClubId || tie.awayClubId === playerClubId)
+        && ((tie.week1 === week && tie.leg1Played) || (tie.week2 === week && tie.leg2Played)),
+      ) ?? false;
+      return inGroup || inKO;
+    });
+
+  const aiMatches = weekMatches.filter(m => {
+    const involvesPlayer = m.homeClubId === playerClubId || m.awayClubId === playerClubId;
+    if (!involvesPlayer) return true;
+    // Player's league fixture: only auto-sim if they already played a
+    // higher-priority match this week (otherwise they're about to play
+    // it interactively via MatchDay).
+    return playerPlayedNonLeagueThisWeek;
+  });
+
+  // Surface a single inbox message after the loop if we auto-simmed the
+  // player's league fixture. Captured here so we know which fixture to name.
+  const orphanLeagueFixture = playerPlayedNonLeagueThisWeek
+    ? weekMatches.find(m => m.homeClubId === playerClubId || m.awayClubId === playerClubId)
+    : null;
 
   const updatedDivisionFixtures = { ...state.divisionFixtures };
   const playerDiv = state.playerDivision;
@@ -956,6 +1007,25 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     updatedFixtures[idx] = result;
     applyAIMatchEvents(result.events, newPlayers, clubs, week, hp, ap, result.homeGoals, result.awayGoals, eloRankings, m.homeClubId, m.awayClubId);
     updateEloRatings(eloRankings, m.homeClubId, m.awayClubId, result.homeGoals, result.awayGoals, 'league');
+  }
+
+  // Notify the user that their league fixture was auto-simulated because they
+  // had a higher-priority match this week.
+  if (orphanLeagueFixture) {
+    const simmedIdx = updatedFixtures.findIndex(f => f.id === orphanLeagueFixture.id);
+    const simmed = simmedIdx >= 0 ? updatedFixtures[simmedIdx] : null;
+    if (simmed?.played) {
+      const oppId = simmed.homeClubId === playerClubId ? simmed.awayClubId : simmed.homeClubId;
+      const oppName = clubs[oppId]?.shortName || clubs[oppId]?.name || 'Opponent';
+      const playerHome = simmed.homeClubId === playerClubId;
+      const ourGoals = playerHome ? simmed.homeGoals : simmed.awayGoals;
+      const theirGoals = playerHome ? simmed.awayGoals : simmed.homeGoals;
+      newMessages = addMsg(newMessages, {
+        week, season, type: 'match_result',
+        title: 'League Fixture Auto-Simulated',
+        body: `Your assistant played the league fixture vs ${oppName} (${ourGoals}-${theirGoals}) while you focused on the higher-stakes match this week.`,
+      });
+    }
   }
 
   // Simulate cup matches for this week (and any orphaned ties from past weeks)
@@ -1060,7 +1130,10 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
           newTimeline.push(createMilestone('cup_win', 'Cup Winners!', `Won the cup in Season ${season}!`, season, week, 'medal'));
         }
       } else {
-        newCup = advanceCupRound(newCup);
+        // Pass the post-training/development player map so GK quality
+        // computation sees the freshest attributes rather than the
+        // top-of-week snapshot.
+        newCup = advanceCupRound(newCup, state.clubs, newPlayers);
       }
     }
   }
@@ -2239,6 +2312,18 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   const objCtx: ObjectiveContext = {
     playerClubId, players: newPlayers, playerIds: playerClub.playerIds,
     fixtures: updatedFixtures, leagueTable, week, season, lineup: playerClub.lineup,
+    // Include every match source so match-based objectives count
+    // pre-season friendlies, cup ties, and continental matches —
+    // not just league fixtures. Was a real bug ("Goal Fest 0/3"
+    // after a 5-goal friendly because the friendly was invisible).
+    friendlies: state.friendlies,
+    cupTies: state.cup?.ties,
+    leagueCupTies: state.leagueCup?.ties,
+    championsCup: state.championsCup,
+    shieldCup: state.shieldCup,
+    conferenceCup: state.conferenceCup,
+    domesticSuperCup: state.domesticSuperCup,
+    continentalSuperCup: state.continentalSuperCup,
   };
   const currentStreak = state.objectiveStreak || 0;
   const objStartWeek = state.objectivesStartWeek || 1;

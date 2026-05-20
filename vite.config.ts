@@ -116,7 +116,13 @@ export default defineConfig(() => ({
           }
           if (id.includes('src/data/communityPack/cpLeagueSquads')) return 'cpLeagueSquads';
           if (id.includes('src/data/playerTemplates')) return 'squad-data';
-          if (id.includes('src/data/nationalPlayerPool')) return 'national-pool';
+          // NOTE: src/data/nationalPlayerPool intentionally has no manualChunks
+          // rule. It's loaded exclusively via dynamic import() from
+          // nationalPlayerPoolAccess.ts; letting Rollup auto-split it keeps the
+          // ~2.5MB chunk out of the eager modulepreload list (same trick as
+          // the recharts comment above). Manually naming it 'national-pool'
+          // would put it back in <link rel=modulepreload> and undo the lazy
+          // load.
         },
       },
     },

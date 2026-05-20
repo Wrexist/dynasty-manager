@@ -9,6 +9,7 @@
  */
 
 import type { Club } from '@/types/game';
+import type { GameState } from '../storeTypes';
 
 /**
  * Remove a player id from every club's roster-tracking arrays
@@ -38,6 +39,60 @@ export function detachPlayerFromAllClubs(
     };
   }
   return out;
+}
+
+/**
+ * Strip every state-wide reference to a player ID. Any code path that
+ * removes a player from active play (sale, release, free-agent dropoff)
+ * MUST run this to prevent ghost references in:
+ *   - transferMarket, incomingOffers, incomingLoanOffers, outgoingLoanRequests,
+ *     activeLoans, shortlist, scoutWatchList
+ *   - negotiationStrikes, contractStrikes (keyed by playerId)
+ *   - pendingFarewell, pendingTransferTalk
+ *   - merchandise.signatureDrop.playerId (if it references this player)
+ *
+ * Pre-fix audit findings: `executeSale` cleaned transferMarket +
+ * incomingOffers + activeLoans but missed outgoingLoanRequests,
+ * pendingFarewell, sponsorDeals references. `releasePlayer` missed
+ * activeLoans, outgoingLoanRequests, negotiationStrikes,
+ * contractStrikes, pendingFarewell, pendingTransferTalk. Centralising
+ * the cleanup here means future "remove player" paths can't drift.
+ *
+ * Returns a `Partial<GameState>` for the slice to spread into its
+ * `set()` call. Caller is responsible for the players[id] mutation
+ * (clubId='' or removal) — this helper only touches reference arrays.
+ */
+export function purgePlayerReferences(
+  state: GameState,
+  playerId: string,
+): Partial<GameState> {
+  const negotiationStrikes = { ...state.negotiationStrikes };
+  delete negotiationStrikes[playerId];
+  const contractStrikes = { ...(state.contractStrikes || {}) };
+  delete contractStrikes[playerId];
+
+  return {
+    transferMarket: state.transferMarket.filter(l => l.playerId !== playerId),
+    incomingOffers: state.incomingOffers.filter(o => o.playerId !== playerId),
+    incomingLoanOffers: state.incomingLoanOffers.filter(o => o.playerId !== playerId),
+    outgoingLoanRequests: state.outgoingLoanRequests.filter(r => r.playerId !== playerId),
+    activeLoans: state.activeLoans.filter(l => l.playerId !== playerId),
+    shortlist: state.shortlist.filter(id => id !== playerId),
+    scoutWatchList: state.scoutWatchList.filter(id => id !== playerId),
+    negotiationStrikes,
+    contractStrikes,
+    pendingFarewell: state.pendingFarewell.filter(f => f.playerId !== playerId),
+    // If a transfer-talk modal is open for THIS player, dismiss it so
+    // the modal isn't stuck on a ghost reference. Other players' talks
+    // stay intact.
+    pendingTransferTalk: state.pendingTransferTalk?.playerId === playerId
+      ? null
+      : state.pendingTransferTalk,
+    // Cancel a pending merchandise signature drop pinned to this player.
+    merchandise: state.merchandise?.signatureDrop?.playerId === playerId
+      ? { ...state.merchandise, signatureDrop: null }
+      : state.merchandise,
+  };
 }
 
 /**

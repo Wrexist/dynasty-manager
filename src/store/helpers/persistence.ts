@@ -1,5 +1,25 @@
 import type { SlotSummary } from '@/types/game';
 import { idbGet, idbPut, idbDel, idbKeys, requestPersistentStorage } from './idbStorage';
+import { addGameBreadcrumb } from '@/utils/sentry';
+
+/**
+ * Centralised corruption breadcrumb. We don't surface these to the user
+ * (every parse-fail call site already has a sensible fallback — return
+ * null, mark slot as empty, etc.) but we DO want to see them in Sentry
+ * so we can spot a class of corruption hitting many users before they
+ * file support tickets. Throws are swallowed defensively — a breadcrumb
+ * helper should never be the thing that breaks save loading.
+ */
+function breadcrumbCorruption(site: string, raw: string | null, err: unknown): void {
+  try {
+    addGameBreadcrumb('save', `Persistence parse failed: ${site}`, {
+      site,
+      rawLen: raw?.length ?? 0,
+      rawHead: raw ? raw.slice(0, 80) : '',
+      message: err instanceof Error ? err.message : String(err),
+    });
+  } catch { /* breadcrumb must never throw */ }
+}
 
 // ── Durable Save Storage ──
 //
@@ -179,11 +199,17 @@ export function clearFlagsByPrefix(prefix: string): void {
  *  Returns null on any failure (unavailable / parse error / SSR). */
 export function readSessionJson<T>(key: string): T | null {
   if (typeof window === 'undefined') return null;
+  let raw: string | null = null;
   try {
-    const raw = sessionStorage.getItem(key);
+    raw = sessionStorage.getItem(key);
     if (!raw) return null;
     return JSON.parse(raw) as T;
-  } catch {
+  } catch (err) {
+    // sessionStorage.getItem throwing means storage is unavailable
+    // (Safari private mode) — silent fallback is correct. A throw past
+    // the getItem call means the data was non-null but JSON.parse choked,
+    // which IS corruption — breadcrumb it so we know.
+    if (raw !== null) breadcrumbCorruption(`readSessionJson:${key}`, raw, err);
     return null;
   }
 }
@@ -208,6 +234,11 @@ export function removeSessionKey(key: string): void {
 export const STORAGE_KEYS = {
   /** sessionStorage: mid-onboarding draft (club selection). Tab-scoped. */
   ONBOARDING_DRAFT: 'dynasty-onboarding-draft',
+  /** sessionStorage: per-tab dismissal of the week-1 onboarding checklist.
+   *  Cleared on tab close so reopening the app brings it back while the
+   *  career is still in week 1. Not save-scoped — same checklist applies
+   *  to every new career, dismiss state is intentionally not persisted. */
+  ONBOARDING_CHECKLIST_DISMISSED: 'dynasty-onboarding-checklist-dismissed',
   /** sessionStorage: in-flight community pack opt-in for new-game onboarding.
    *  Set by the community pack popup before the user reaches club selection;
    *  null until the popup is answered. Tab-scoped, cleared once the career
@@ -355,11 +386,15 @@ export function saveSessionSnapshot(snap: SessionSnapshot): void {
 }
 
 export function loadSessionSnapshot(): SessionSnapshot | null {
+  let raw: string | null = null;
   try {
-    const raw = localStorage.getItem(SNAPSHOT_KEY);
+    raw = localStorage.getItem(SNAPSHOT_KEY);
     if (!raw) return null;
     return JSON.parse(raw) as SessionSnapshot;
-  } catch { return null; }
+  } catch (err) {
+    if (raw !== null) breadcrumbCorruption('loadSessionSnapshot', raw, err);
+    return null;
+  }
 }
 
 export function clearSessionSnapshot(): void {
@@ -416,7 +451,16 @@ export function readSaveSlot(slot: number): string | null {
  *  sees the save immediately, and step 3 guarantees the next session does
  *  too (IDB transactions are ACID). localStorage is purely a compatibility
  *  mirror for older code paths and tests. */
-export function writeSaveSlot(slot: number, json: string): void {
+export interface SaveWriteResult {
+  /** localStorage mirror status — known synchronously. False on quota
+   *  exceeded; the memory cache is always updated and IDB is in flight. */
+  lsOk: boolean;
+  /** IDB write outcome. Resolves true on success, false on quota / IDB
+   *  unavailable / transaction abort. Never rejects — `idbPut` swallows. */
+  idbPromise: Promise<boolean>;
+}
+
+export function writeSaveSlot(slot: number, json: string): SaveWriteResult {
   const mainKey = STORAGE_KEYS.saveSlot(slot);
   const backupKey = STORAGE_KEYS.saveSlotBackup(slot);
   const tmpKey = STORAGE_KEYS.saveSlotTmp(slot);
@@ -433,26 +477,30 @@ export function writeSaveSlot(slot: number, json: string): void {
   // doesn't get salvaged later as a phantom older save.
   try { localStorage.removeItem(tmpKey); } catch { /* ignore */ }
 
-  // Step 3: fire IDB writes. Fire-and-forget — the memory cache already
-  // holds the data so a dropped promise is visible in the next hydration,
-  // not a user-visible failure.
-  void idbPut(mainKey, json);
+  // Step 3: fire IDB writes. We capture the main-write Promise (and ignore
+  // the backup-write outcome — the main write is what determines whether
+  // the slot survives a reload). The caller can use this to detect the
+  // "both disk paths failed" case and surface a Save Failed warning.
+  const idbPromise = idbPut(mainKey, json);
   if (oldMain) void idbPut(backupKey, oldMain);
   else void idbDel(backupKey);
 
   // Step 4: best-effort localStorage mirror. On quota exceeded we drop
   // whatever was there so the two stores don't diverge — IDB is truth.
+  let lsOk = true;
   try {
     localStorage.setItem(mainKey, json);
     if (oldMain) lsSetSafe(backupKey, oldMain);
     else lsRemoveSafe(backupKey);
   } catch {
-    // Quota exceeded — drop the mirror. Do NOT throw; the IDB + memory
-    // write already succeeded. Users used to see "Save Failed" here
-    // because the old path threw SAVE_WRITE_FAILED; that's gone now.
+    // Quota exceeded — drop the mirror. The caller now sees `lsOk: false`
+    // and can await `idbPromise` to decide whether to warn the user.
+    lsOk = false;
     lsRemoveSafe(mainKey);
     lsRemoveSafe(backupKey);
   }
+
+  return { lsOk, idbPromise };
 }
 
 /** Read the staging-area payload for a slot. Retained for backward compat —
@@ -605,7 +653,12 @@ export function getSlotSummaries(): SlotSummary[] {
         position = `${pos}`;
       }
       return { slot, exists: true, clubName: club?.name, season: data.season, week: data.week, position, gameMode: data.gameMode || 'sandbox' };
-    } catch {
+    } catch (err) {
+      // Slot data exists but failed to parse — corruption. Without the
+      // breadcrumb the user just sees their populated slot rendered as
+      // an empty "New Game" row on TitleScreen, with no signal to us
+      // that a save was lost.
+      breadcrumbCorruption(`getSlotSummaries:slot${slot}`, raw, err);
       return { slot, exists: false };
     }
   });

@@ -40,6 +40,7 @@ import { StorylineModal } from '@/components/game/StorylineModal';
 import { PlayerTransferTalk } from '@/components/game/PlayerTransferTalk';
 import { AchievementUnlockModal } from '@/components/game/AchievementUnlockModal';
 import { PageHint } from '@/components/game/PageHint';
+import { OnboardingChecklist } from '@/components/game/OnboardingChecklist';
 import { ACHIEVEMENTS } from '@/utils/achievements';
 import type { Achievement } from '@/utils/achievements';
 import { FarewellModal } from '@/components/game/FarewellModal';
@@ -453,6 +454,7 @@ const Dashboard = () => {
 
   const objectivesWithProgress = useMemo(() => {
     if (!club) return weeklyObjectives;
+    const state = useGameStore.getState();
     const ctx = {
       playerClubId,
       players,
@@ -462,6 +464,17 @@ const Dashboard = () => {
       week,
       season,
       lineup: club.lineup || [],
+      // Pass every match source so pre-season friendlies, cup ties,
+      // and continental matches actually move match-based objective
+      // progress (was previously league-only).
+      friendlies: state.friendlies,
+      cupTies: state.cup?.ties,
+      leagueCupTies: state.leagueCup?.ties,
+      championsCup: state.championsCup,
+      shieldCup: state.shieldCup,
+      conferenceCup: state.conferenceCup,
+      domesticSuperCup: state.domesticSuperCup,
+      continentalSuperCup: state.continentalSuperCup,
     };
     return computeObjectiveProgress(weeklyObjectives, ctx);
   }, [weeklyObjectives, club, players, playerClubId, fixtures, leagueTable, week, season]);
@@ -633,6 +646,10 @@ const Dashboard = () => {
         title="Your Dashboard"
         body="This is your weekly hub. Check upcoming matches, review finances, track objectives, and advance to the next week. Visit Squad to manage players, Tactics to set formations, and Transfers to buy or sell."
       />
+
+      {/* Week-1 onboarding checklist for brand-new careers. Self-hides after
+          the user advances week or dismisses it. */}
+      <OnboardingChecklist />
 
       {/* Mid-Season Report (shown at week 23, once per season) */}
       {showMidSeason && <MidSeasonReport onDismiss={dismissMidSeason} />}
@@ -824,10 +841,14 @@ const Dashboard = () => {
         // Only show full-width banner when <=4 weeks left; otherwise users find transfers via quick links
         if (weeksLeft > 4) return null;
         return (
-          <div className={cn(
-            'rounded-xl px-3 py-2 flex items-center justify-between cursor-pointer',
-            isUrgent ? 'bg-amber-500/10 border border-amber-500/30' : 'bg-primary/5 border border-primary/20'
-          )} onClick={() => setScreen('transfers')}>
+          <button
+            type="button"
+            onClick={() => setScreen('transfers')}
+            className={cn(
+              'w-full rounded-xl px-3 py-2 flex items-center justify-between cursor-pointer text-left transition-colors',
+              isUrgent ? 'bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/15' : 'bg-primary/5 border border-primary/20 hover:bg-primary/10'
+            )}
+          >
             <div className="flex items-center gap-2">
               <ShoppingBag className={cn('w-4 h-4', isUrgent ? 'text-amber-400' : 'text-primary')} />
               <span className={cn('text-xs font-semibold', isUrgent ? 'text-amber-400' : 'text-primary')}>
@@ -837,7 +858,7 @@ const Dashboard = () => {
             <span className={cn('text-[10px] font-medium', isUrgent ? 'text-amber-400' : 'text-muted-foreground')}>
               {weeksLeft} week{weeksLeft !== 1 ? 's' : ''} remaining
             </span>
-          </div>
+          </button>
         );
       })()}
       {activeChallenge?.completed && (
@@ -1171,10 +1192,15 @@ const Dashboard = () => {
               <span className="text-[10px] font-medium text-primary/70">Fam {training.tacticalFamiliarity}%</span>
             </div>
             {transferWindowOpen && (
-              <div className="inline-flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2.5 py-1 cursor-pointer" onClick={() => setScreen('transfers')}>
+              <button
+                type="button"
+                onClick={() => setScreen('transfers')}
+                aria-label="Transfer window open — open transfers"
+                className="inline-flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2.5 py-1 cursor-pointer hover:bg-emerald-500/15 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+              >
                 <ShoppingBag className="w-3 h-3 text-emerald-400" />
                 <span className="text-[10px] font-medium text-emerald-400">Window open</span>
-              </div>
+              </button>
             )}
             <span className="text-[10px] text-muted-foreground">
               Wk {week} / S{season} · {week <= SUMMER_WINDOW_END ? 'Pre-Season' : week < WINTER_WINDOW_START ? 'Autumn' : week <= WINTER_WINDOW_END ? 'Winter' : week <= SPRING_PHASE_END_WEEK ? 'Spring' : 'Run-In'}

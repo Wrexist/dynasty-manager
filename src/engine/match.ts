@@ -243,10 +243,15 @@ export function simulateHalf(
   // Guard against empty squads — return a forfeit-like state (clone refs to avoid mutation)
   if (homePlayers.length === 0 || awayPlayers.length === 0) {
     const forfeitHome = homePlayers.length === 0;
+    // simulateMatch calls simulateHalf twice (1-45, then 46-90 with prevState).
+    // Only apply the +3 forfeit goals on the FIRST half — otherwise an
+    // empty-squad match scores 3 in each half and finishes 6-0 instead of
+    // the intended 3-0. The second-half call just carries prevState forward.
+    const forfeitGoals = prevState ? 0 : 3;
     return {
       events: [...(prevState?.events ?? [])],
-      homeGoals: (prevState?.homeGoals ?? 0) + (forfeitHome ? 0 : 3),
-      awayGoals: (prevState?.awayGoals ?? 0) + (forfeitHome ? 3 : 0),
+      homeGoals: (prevState?.homeGoals ?? 0) + (forfeitHome ? 0 : forfeitGoals),
+      awayGoals: (prevState?.awayGoals ?? 0) + (forfeitHome ? forfeitGoals : 0),
       homeShots: prevState?.homeShots ?? 0,
       awayShots: prevState?.awayShots ?? 0,
       homeSoT: prevState?.homeSoT ?? 0,

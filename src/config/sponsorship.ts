@@ -12,7 +12,14 @@ import { getEffectiveStadiumLevel } from '@/utils/facilities';
 export const SPONSOR_SLOTS: SponsorSlotDef[] = [
   { id: 'kit_main',       label: 'Kit Main Sponsor',     valueTier: 1.0,  unlock: null },
   { id: 'digital',        label: 'Digital Partner',       valueTier: 0.15, unlock: null },
-  { id: 'kit_sleeve',     label: 'Kit Sleeve Sponsor',    valueTier: 0.35, unlock: { facilityType: 'stadium', level: 3 } },
+  // kit_sleeve intentionally unlocks from day 1: it is the slot we use as
+  // the onboarding pending offer in `generateStarterOffers`, so it has to
+  // be accept-able even by a new manager at a basic-stadium club. Tier 1
+  // sleeve sponsors pay ~£2-7K/week at low-rep clubs, so the early income
+  // boost is small but the UX win is meaningful — without this, the
+  // entire Pending Offers section sits empty until the user upgrades the
+  // stadium, hiding a core gameplay system through the first hour.
+  { id: 'kit_sleeve',     label: 'Kit Sleeve Sponsor',    valueTier: 0.35, unlock: null },
   { id: 'match_ball',     label: 'Match Ball Partner',    valueTier: 0.2,  unlock: { facilityType: 'stadium', level: 4 } },
   { id: 'training_kit',   label: 'Training Kit Sponsor',  valueTier: 0.3,  unlock: { facilityType: 'training', level: 4 } },
   { id: 'academy',        label: 'Academy Partner',       valueTier: 0.25, unlock: { facilityType: 'youth', level: 5 } },

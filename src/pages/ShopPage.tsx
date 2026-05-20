@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import { useState, useEffect } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -129,9 +130,19 @@ const ShopPage = () => {
       track('purchase_completed', { productId });
       successToast('Purchase complete!');
       setPurchaseProduct(null);
-    } catch {
+    } catch (err) {
+      // The throw could come from before OR after the App Store charge —
+      // RevenueCat's SDK doesn't always distinguish receipt-validation
+      // failures from network errors. Defensive recovery: attempt a
+      // post-failure sync so a successful charge gets picked up on the
+      // next entitlement read (RevenueCat re-fetches receipt). Capture
+      // the actual error to Sentry so we can triage real-money issues.
+      Sentry.captureException(err, { tags: { context: 'ShopPage.purchase' }, extra: { productId } });
+      try { await syncAfterPurchase(); } catch { /* second-stage sync best-effort */ }
       track('purchase_failed', { productId });
-      setPurchaseError('Purchase failed. Please try again.');
+      setPurchaseError(
+        'Purchase could not be confirmed. If you were charged, restore purchases from Settings — your entitlement will be granted. Contact support if it persists.',
+      );
     } finally {
       setPurchasing(false);
     }
@@ -151,7 +162,8 @@ const ShopPage = () => {
       }
       await syncAfterPurchase();
       track('restore_completed', { restoredCount: granted.length });
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err, { tags: { context: 'ShopPage.restore' } });
       errorToast('Restore Failed', 'Could not restore purchases. Please try again.');
     } finally {
       setRestoring(false);

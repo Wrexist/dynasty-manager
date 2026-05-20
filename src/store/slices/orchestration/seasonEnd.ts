@@ -29,7 +29,7 @@ import { calculateBallonDOr } from '@/utils/ballonDor';
 import { getPlayerRarity } from '@/utils/playerRarity';
 import { applyBallonDorTop10Boost, revertBallonDorTop10Boost, hasBallonDorTop10Reign } from '@/utils/ballonDorBoost';
 import { recomputePlayerValueOnly as recomputePlacementValue } from '@/utils/playerEconomics';
-import { BALLON_DOR_TOP10_RANK } from '@/config/gameBalance';
+import { BALLON_DOR_TOP10_RANK, MAX_CAREER_TIMELINE } from '@/config/gameBalance';
 
 import { createEmptyRecords, updateRecords, findBiggestWin } from '@/utils/records';
 import { getFarewellSummary } from '@/utils/playerNarratives';
@@ -822,7 +822,19 @@ function finalizeSeason(
   // If the player was promoted/relegated, use the top tier's table (continental qualifies top-tier only)
   const topTierLeagueId = getLeaguesByCountry(leagueInfo?.countryId || newPlayerDivision)
     .find(l => l.tier === 1)?.id || newPlayerDivision;
-  const prevLeagueTable = newDivisionTables[topTierLeagueId] || state.leagueTable;
+  // Continental qualification must read the COMPLETED season's standings.
+  // `newDivisionTables` is built from freshly-regenerated fixtures (0 games
+  // played) — using it would seed continental tournaments from an empty,
+  // effectively-random table. `state.divisionFixtures` still holds the
+  // just-finished season's fixtures at this point (the regenerated fixtures
+  // are only committed in the final set() below), so build the completed
+  // top-tier table from it.
+  const completedTopTierTable = state.divisionFixtures[topTierLeagueId] && state.divisionClubs[topTierLeagueId]?.length
+    ? buildLeagueTable(state.divisionFixtures[topTierLeagueId], state.divisionClubs[topTierLeagueId])
+    : null;
+  const prevLeagueTable = completedTopTierTable
+    || newDivisionTables[topTierLeagueId]
+    || state.leagueTable;
   const playerClubMap: Record<string, { name: string; shortName: string; color: string; reputation: number }> = {};
   for (const [id, club] of Object.entries(newClubs)) {
     playerClubMap[id] = { name: club.name, shortName: club.shortName, color: club.color, reputation: club.reputation };
@@ -1218,7 +1230,10 @@ function finalizeSeason(
       if (state.conferenceCup?.winnerId === playerClubId) {
         milestones.push(createMilestone('cup_win', 'Conference Cup Winners!', `Won the Conference Cup in Season ${season}!`, season, TOTAL_WEEKS, 'medal'));
       }
-      return milestones;
+      // Cap at MAX_CAREER_TIMELINE so a 30-season campaign doesn't accumulate
+      // 2700+ entries in the saved array (every match-action spread copies
+      // the full list). The newest entries are most useful for the UI.
+      return milestones.slice(-MAX_CAREER_TIMELINE);
     })(),
     managerProgression: grantXP(state.managerProgression, (() => {
       let xp = XP_REWARDS.seasonEnd;
@@ -1235,6 +1250,19 @@ function finalizeSeason(
       return xp;
     })()),
     seasonGrowthTracker: {},
+    // GC stale pair-familiarity keys — pairs that include a player no
+    // longer on the user's roster are dead. Without this, the map grows
+    // unboundedly with player turnover (audit found ~11k stale keys at
+    // 30 seasons, all serialised every save).
+    pairFamiliarity: (() => {
+      const surviving = new Set(state.clubs[playerClubId]?.playerIds || []);
+      const pruned: Record<string, number> = {};
+      for (const [key, fam] of Object.entries(state.pairFamiliarity || {})) {
+        const [a, b] = key.split('-');
+        if (surviving.has(a) && surviving.has(b)) pruned[key] = fam;
+      }
+      return pruned;
+    })(),
     // Reset season enrichment tracking for the new season
     seasonStartAvgOVR: history.squadStrengthDelta?.endAvgOVR || 0,
     seasonTransfersBought: [],

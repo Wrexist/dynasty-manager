@@ -10,6 +10,7 @@ import { PLAYER_CARD_SIZE_PX } from '@/components/game/PlayerCard';
 import { PackArt } from './PackArt';
 import { PackCard } from './PackCard';
 import { PackConfetti } from './PackConfetti';
+import { PackStarfield } from './PackStarfield';
 import { WalkoutReveal } from './WalkoutReveal';
 import { tierForOvr } from './packHelpers';
 import { cn } from '@/lib/utils';
@@ -297,6 +298,21 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
     return () => window.removeEventListener('keydown', onKey);
   }, [phase, onClose, revealAll, onWalkoutComplete]);
 
+  // Visually-hidden live announcer — reads out the most recent pull as
+  // each card flips so screen-reader users hear the same reveal sighted
+  // users see. Without this, the dramatic flip animation was a silent
+  // event and the user had to navigate the card grid manually to learn
+  // what they pulled.
+  const lastRevealedPlayer = useMemo(() => {
+    if (revealedSet.size === 0) return null;
+    // Find the most recently revealed player by iterating the original
+    // order and picking the highest-index one that's in revealedSet.
+    for (let i = players.length - 1; i >= 0; i--) {
+      if (revealedSet.has(players[i].id)) return players[i];
+    }
+    return null;
+  }, [revealedSet, players]);
+
   const overlay = (
     <motion.div
       ref={containerRef}
@@ -315,6 +331,23 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
         willChange: 'opacity',
       }}
     >
+      {/* Cosmic parallax starfield — sits behind every other layer (first
+          DOM child) to give the dark backdrop real depth. Drift is pure CSS
+          and self-disables under reduced motion. */}
+      <PackStarfield />
+
+      {/* Screen-reader announcer — visually hidden but updates as each
+          pack card flips. Uses `aria-live="polite"` so announcements
+          queue without interrupting in-progress narration of the
+          previous reveal. */}
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {lastRevealedPlayer && phase === 'reveal' && (
+          <p>
+            Revealed {lastRevealedPlayer.position} {lastRevealedPlayer.firstName} {lastRevealedPlayer.lastName}, {lastRevealedPlayer.overall} overall.
+          </p>
+        )}
+      </div>
+
       {/* Vignette pulse on portal open */}
       <AnimatePresence>
         {phase === 'portal' && (
@@ -496,10 +529,26 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
             {/* The pack art itself — split into two halves so explode can tear
                 it apart along a jagged horizontal seam. Each half shows the
                 same asset but clipped to its slice. When not exploding the
-                seam is invisible since the halves align pixel-perfect. */}
-            <div
+                seam is invisible since the halves align pixel-perfect.
+
+                During `arrival` this container also carries a gentle infinite
+                idle float (slow bob + micro-tilt) so the pack feels alive
+                while it waits for the tap. The float is decoupled from the
+                pack's entrance spring (which lives on the parent) and is
+                pinned back to neutral the instant `charge` begins so it can't
+                fight the charge shake or the explode tear. */}
+            <motion.div
               className="relative w-full h-full"
               style={{ transformStyle: 'preserve-3d' }}
+              animate={phase === 'arrival' && !prefersReducedMotion
+                ? { y: [0, -9, 0], rotateZ: [0, 1.1, 0, -1.1, 0] }
+                : { y: 0, rotateZ: 0 }}
+              transition={phase === 'arrival' && !prefersReducedMotion
+                ? {
+                    y: { duration: 3.8, repeat: Infinity, ease: 'easeInOut' },
+                    rotateZ: { duration: 5.4, repeat: Infinity, ease: 'easeInOut' },
+                  }
+                : { duration: 0.3, ease: 'easeOut' }}
             >
               {/* Top half */}
               <motion.div
@@ -617,7 +666,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                   transition={{ duration: 1.2, ease: 'easeInOut', repeat: Infinity }}
                 />
               )}
-            </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -697,12 +746,20 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
               animate={{ width: '120vmax', height: '120vmax', opacity: 0 }}
               transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
             />
+            {/* Cinematic white bloom — a radial core that blooms outward
+                rather than a flat full-screen fill, so the reveal lands like
+                a burst of light from the torn pack instead of a hard cut. */}
             <motion.div
               key="flash"
-              className="absolute inset-0 bg-white pointer-events-none"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: [0, 0.42, 0] }}
-              transition={{ duration: 0.32, times: [0, 0.25, 1] }}
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background:
+                  'radial-gradient(circle at 50% 46%, #fff 0%, rgba(255,255,255,0.88) 24%, rgba(255,255,255,0) 68%)',
+                willChange: 'transform, opacity',
+              }}
+              initial={{ opacity: 0, scale: 0.35 }}
+              animate={{ opacity: [0, 0.95, 0], scale: [0.35, 1.5, 2.4] }}
+              transition={{ duration: 0.5, times: [0, 0.32, 1], ease: [0.22, 1, 0.36, 1] }}
             />
             {!prefersReducedMotion && (
               <div className="absolute left-1/2 top-1/2 pointer-events-none" aria-hidden>

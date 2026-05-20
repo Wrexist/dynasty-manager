@@ -106,7 +106,7 @@ export function ListForSaleModal({ player, onClose, onListed }: Props) {
                 <Tag className="w-3.5 h-3.5 text-primary" aria-hidden />
                 <p id="list-for-sale-title" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">List for Sale</p>
               </div>
-              <button type="button" onClick={onClose} aria-label="Close" className="p-1.5 -mr-1.5 rounded-lg hover:bg-muted/50 transition-colors">
+              <button type="button" onClick={onClose} aria-label="Close" className="min-w-11 min-h-11 -mr-2 flex items-center justify-center rounded-lg hover:bg-muted/50 transition-colors">
                 <X className="w-4 h-4 text-muted-foreground" />
               </button>
             </div>

@@ -54,6 +54,12 @@ const TacticsPage = () => {
   const [presetName, setPresetName] = useState('');
   const [showAllChem, setShowAllChem] = useState(false);
   const [showAdvancedTactics, setShowAdvancedTactics] = useState(true);
+  // Tactical presets are real user work — losing one to a misfire on a
+  // 28-px icon button (audit finding) is the kind of small-but-real bug
+  // that frustrates returning users. Hold the delete behind a confirm
+  // step; the same row's button toggles to a confirm icon, second tap
+  // commits the delete.
+  const [pendingDeletePresetId, setPendingDeletePresetId] = useState<string | null>(null);
   const userIsPro = isPro(monetization);
   const { potentialGain, autoFilling, optimizeLineup, result: optimizeResult, dismissResult: dismissOptimizeResult } = useLineupOptimizer();
 
@@ -504,18 +510,33 @@ const TacticsPage = () => {
                   </div>
                   <button
                     onClick={() => { loadTacticalPreset(preset.id); infoToast(`Loaded "${preset.name}"`); }}
-                    className="p-1.5 rounded-lg hover:bg-primary/20 text-primary transition-colors"
+                    className="min-w-11 min-h-11 flex items-center justify-center rounded-lg hover:bg-primary/20 text-primary transition-colors"
                     title="Load preset"
+                    aria-label={`Load preset ${preset.name}`}
                   >
-                    <Upload className="w-3.5 h-3.5" />
+                    <Upload className="w-4 h-4" />
                   </button>
-                  <button
-                    onClick={() => deleteTacticalPreset(preset.id)}
-                    className="p-1.5 rounded-lg hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"
-                    title="Delete preset"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  {pendingDeletePresetId === preset.id ? (
+                    <button
+                      onClick={() => { deleteTacticalPreset(preset.id); setPendingDeletePresetId(null); infoToast(`Deleted "${preset.name}"`); }}
+                      onBlur={() => setPendingDeletePresetId(null)}
+                      className="min-w-11 min-h-11 flex items-center justify-center rounded-lg bg-destructive/20 text-destructive border border-destructive/40 transition-colors"
+                      title="Confirm delete"
+                      aria-label={`Confirm delete preset ${preset.name}`}
+                      autoFocus
+                    >
+                      <span className="text-[10px] font-bold uppercase tracking-wider">Delete?</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setPendingDeletePresetId(preset.id)}
+                      className="min-w-11 min-h-11 flex items-center justify-center rounded-lg hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"
+                      title="Delete preset"
+                      aria-label={`Delete preset ${preset.name}`}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

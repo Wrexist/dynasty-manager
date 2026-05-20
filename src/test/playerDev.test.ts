@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { generatePlayer, calculateOverall } from '@/utils/playerGen';
+import { applyPlayerDevelopment, resetSeasonGrowth } from '@/store/helpers/development';
+import type { Player } from '@/types/game';
 
 describe('playerDev', () => {
   describe('generatePlayer', () => {
@@ -47,6 +49,47 @@ describe('playerDev', () => {
       const stOvr = calculateOverall(attrs, 'ST');
       const cbOvr = calculateOverall(attrs, 'CB');
       expect(stOvr).toBeGreaterThan(cbOvr);
+    });
+  });
+
+  describe('applyPlayerDevelopment — growthDelta accumulator', () => {
+    const makePlayer = (overrides: Partial<Player> = {}): Player => {
+      const attrs = { pace: 60, shooting: 60, passing: 60, defending: 60, physical: 60, mental: 60 };
+      const overall = calculateOverall(attrs, 'ST');
+      return {
+        id: 'p-test',
+        firstName: 'Test', lastName: 'Subject', age: 22,
+        position: 'ST', overall, potential: 90,
+        attributes: { ...attrs },
+        clubId: 'c', wage: 10000, value: 100000, contractEnd: 5,
+        morale: 70, form: 70, fitness: 100,
+        appearances: 0, goals: 0, assists: 0,
+        careerAppearances: 0, careerGoals: 0, careerAssists: 0,
+        yellowCards: 0, redCards: 0,
+        nationality: 'ENG',
+        ...overrides,
+      } as unknown as Player;
+    };
+
+    it('preserves and accumulates an upstream training growthDelta', () => {
+      resetSeasonGrowth();
+      // Construct a player whose post-training pass already carries a +2 delta.
+      // applyPlayerDevelopment must add the dev portion to it, not overwrite.
+      const player = makePlayer({ id: 'p-test-1', growthDelta: 2 });
+      const updated = applyPlayerDevelopment(player, 'attacking', 0, 0);
+      // The combined delta must be at LEAST the upstream training delta
+      // (development is stochastic but never negative for a 22yo growing
+      // toward a higher potential, so the floor is exactly 2).
+      expect(updated.growthDelta).toBeGreaterThanOrEqual(2);
+    });
+
+    it('treats a missing growthDelta as zero (no double-zero subtraction)', () => {
+      resetSeasonGrowth();
+      const player = makePlayer({ id: 'p-test-2' });
+      const updated = applyPlayerDevelopment(player, 'attacking', 0, 0);
+      // For a 22yo at OVR ~60 with potential 90, devDelta is 0 or positive
+      // — never negative. The accumulator must respect that.
+      expect(updated.growthDelta).toBeGreaterThanOrEqual(0);
     });
   });
 });

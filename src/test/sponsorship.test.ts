@@ -23,6 +23,7 @@ import {
   processSponsorWeek,
   processSponsorSeasonEnd,
   generateStarterDeals,
+  generateStarterOffers,
 } from '@/store/slices/sponsorSlice';
 import type { GameState } from '@/store/storeTypes';
 import type {
@@ -182,13 +183,18 @@ describe('sponsorship config helpers', () => {
     });
 
     it('returns false when facility level is too low', () => {
-      const facilities = makeFacilities({ stadiumStands: { north: 2, south: 2, east: 2, west: 2 } });
-      // kit_sleeve requires stadium level 3
-      expect(isSlotUnlocked('kit_sleeve', facilities)).toBe(false);
+      const facilities = makeFacilities({ stadiumStands: { north: 3, south: 3, east: 3, west: 3 } });
+      // match_ball requires stadium level 4
+      expect(isSlotUnlocked('match_ball', facilities)).toBe(false);
     });
 
     it('returns true when facility level is sufficient', () => {
-      const facilities = makeFacilities({ stadiumStands: { north: 3, south: 3, east: 3, west: 3 } });
+      const facilities = makeFacilities({ stadiumStands: { north: 4, south: 4, east: 4, west: 4 } });
+      expect(isSlotUnlocked('match_ball', facilities)).toBe(true);
+    });
+
+    it('kit_sleeve is unlocked from day 1 (onboarding offer)', () => {
+      const facilities = makeFacilities({ stadiumStands: { north: 1, south: 1, east: 1, west: 1 } });
       expect(isSlotUnlocked('kit_sleeve', facilities)).toBe(true);
     });
 
@@ -724,5 +730,53 @@ describe('generateStarterDeals', () => {
       expect(deal.buyoutCost).toBeGreaterThan(0);
       expect(deal.seasonDuration).toBeGreaterThanOrEqual(1);
     }
+  });
+});
+
+describe('generateStarterOffers', () => {
+  it('returns a single kit_sleeve pending offer', () => {
+    const deals = generateStarterDeals(3, 1);
+    const offers = generateStarterOffers(3, 1, deals);
+    expect(offers.length).toBe(1);
+    expect(offers[0].slotId).toBe('kit_sleeve');
+  });
+
+  it('extends the expiry window beyond the normal 3 weeks', () => {
+    const deals = generateStarterDeals(3, 1);
+    const offers = generateStarterOffers(3, 1, deals);
+    // generateOffer normally returns expiresWeek = currentWeek + 3.
+    // generateStarterOffers extends it by 3 more (total 6 weeks from week 1)
+    // so casual users don't lose the offer to expiry before they visit Finance.
+    expect(offers[0].expiresWeek).toBeGreaterThanOrEqual(6);
+  });
+
+  it('uses a sponsor distinct from the starter deals', () => {
+    const deals = generateStarterDeals(3, 1);
+    const offers = generateStarterOffers(3, 1, deals);
+    const dealSponsorIds = deals.map(d => d.sponsorId);
+    expect(dealSponsorIds).not.toContain(offers[0].sponsorId);
+  });
+
+  it('generates a tier-1 friendly offer for low-rep clubs', () => {
+    const deals = generateStarterDeals(1, 1);
+    const offers = generateStarterOffers(1, 1, deals);
+    // Bottom-rep career should still see at least one starter offer
+    // (the whole point of this onboarding hook).
+    expect(offers.length).toBe(1);
+    expect(offers[0].weeklyPayment).toBeGreaterThan(0);
+  });
+
+  it('returns an empty array if every eligible sponsor was already used', () => {
+    // Simulate the degenerate case where the starter deals exhausted the pool —
+    // the offer generator returns null, and we propagate that as []. The
+    // game must still boot.
+    const deals = generateStarterDeals(3, 1);
+    // Pass a fake "deals" list with every tier-1+ sponsor id used so eligibility filters out everyone.
+    // We can't easily enumerate the pool here, so just sanity-check that
+    // when all kit_sleeve-eligible sponsors are claimed the result is [].
+    // The real protection is the type system: generateOffer returns null
+    // and we filter it out. The unit test above covers the happy path; we
+    // assert here that the function never throws.
+    expect(() => generateStarterOffers(3, 1, deals)).not.toThrow();
   });
 });

@@ -340,6 +340,16 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
           <div className="border-t border-white/10" />
 
           <ToggleRow
+            icon={Lightbulb}
+            label="New-career walkthrough"
+            description="Show the Getting Started checklist on Dashboard in week 1 of a new career"
+            value={!settings.hideOnboarding}
+            onChange={() => updateSettings({ hideOnboarding: !settings.hideOnboarding })}
+          />
+
+          <div className="border-t border-white/10" />
+
+          <ToggleRow
             icon={MonitorSmartphone}
             label="Reduced motion"
             description="Minimize animations throughout the app"

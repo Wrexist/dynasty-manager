@@ -135,7 +135,7 @@ const MatchPrep = () => {
   const lowFitnessInLineup = mySquad.filter(p => lineupIds.has(p.id) && p.fitness < 75 && !p.injured).length;
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-4 pb-20 space-y-3">
+    <div className="max-w-lg mx-auto px-4 py-4 pb-bar-safe space-y-3">
       <h2 className="text-lg font-display font-bold text-foreground">Match Preparation</h2>
       <PageHint screen="matchPrep" title={PAGE_HINTS.matchPrep.title} body={PAGE_HINTS.matchPrep.body} />
 
@@ -523,8 +523,14 @@ const MatchPrep = () => {
         <ProUpsell feature="Instant Match Sim" />
       )}
 
-      {/* Ready Button — sticky at bottom */}
-      <div className="fixed bottom-20 left-0 right-0 z-30 px-4 pb-2 pt-2 bg-gradient-to-t from-background via-background to-transparent">
+      {/* Ready Button — sticky at bottom. `bottom-20` clears the BottomNav
+          footprint on non-notch devices; the inline calc adds the iOS
+          safe-area inset so the CTA sits clearly above the nav pill and the
+          home-indicator gesture area on notched iPhones. */}
+      <div
+        className="fixed left-0 right-0 z-30 px-4 pb-2 pt-2 bg-gradient-to-t from-background via-background to-transparent"
+        style={{ bottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}
+      >
         <div className="max-w-lg mx-auto flex gap-2">
           <Button
             size="lg"

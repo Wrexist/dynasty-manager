@@ -48,10 +48,16 @@ const TitleScreen = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const whatsNewUnseen = useMemo(() => hasUnseenWhatsNew(), [refreshKey]);
 
-  // Prefetch the Dashboard chunk while the user reads the title screen
+  // Prefetch the Dashboard chunk while the user reads the title screen.
+  // Also kick off the ~2.5MB national player pool fetch in the background —
+  // it's not needed for the title screen itself, but New Game / Continue
+  // will both need it within a few seconds, so we want it warming in the
+  // network cache while the user is reading. Both prefetches are
+  // fire-and-forget; failures fall through to lazy fetch on first use.
   useEffect(() => {
     const timer = setTimeout(() => {
       import('./Dashboard').catch(() => {});
+      import('@/data/nationalPlayerPoolAccess').then(m => m.loadNationalPool()).catch(() => {});
     }, 1500);
     return () => clearTimeout(timer);
   }, []);
@@ -252,7 +258,33 @@ const TitleScreen = () => {
           </p>
         </motion.div>
 
-        {slots.map((slot, idx) => (
+        {!hydrated ? (
+          // Save slots live in IndexedDB; until hydration lands, render skeleton
+          // rows that match the populated-slot shape. Without this the empty
+          // "New Game" state flashes for ~100-300ms on mobile and the user can
+          // tap it before their real save loads — risking an accidental overwrite.
+          [1, 2, 3].map((slotN, idx) => (
+            <motion.div
+              key={`skeleton-${slotN}`}
+              custom={idx + 1}
+              variants={buttonVariants}
+              initial="hidden"
+              animate="visible"
+              aria-busy="true"
+              aria-label="Loading save slot"
+            >
+              <GlassPanel className="p-0">
+                <div className="flex items-center gap-3 px-4 py-3.5">
+                  <div className="w-11 h-11 rounded-xl bg-white/[0.04] border border-white/10 animate-pulse shrink-0" />
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <div className="h-3 w-2/3 rounded bg-white/[0.06] animate-pulse" />
+                    <div className="h-2.5 w-1/2 rounded bg-white/[0.04] animate-pulse" />
+                  </div>
+                </div>
+              </GlassPanel>
+            </motion.div>
+          ))
+        ) : slots.map((slot, idx) => (
           <motion.div key={slot.slot} custom={idx + 1} variants={buttonVariants} initial="hidden" animate="visible">
             {slot.exists ? (
               <GlassPanel className="p-0">

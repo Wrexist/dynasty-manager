@@ -24,7 +24,7 @@ import { NATIONALITY_NAME_POOLS, FALLBACK_FIRST_NAMES, FALLBACK_LAST_NAMES } fro
 import { CLUB_TEMPLATES, type PlayerTemplate } from '@/data/playerTemplates';
 import { resolveSquadKey } from '@/data/clubTemplateAliases';
 import { claimRealPlayer, pickUnclaimedRealPlayer, isNationalityAliasOf } from '@/utils/realPlayerPicker';
-import { NATIONAL_PLAYER_POOL } from '@/data/nationalPlayerPool';
+import { getNationalPoolSync, onNationalPoolLoaded } from '@/data/nationalPlayerPoolAccess';
 
 /**
  * Lookup real first names by fcId across every nationality pool. Built lazily
@@ -38,10 +38,14 @@ import { NATIONAL_PLAYER_POOL } from '@/data/nationalPlayerPool';
  * it.
  */
 let realFirstNameByFcId: Map<string, string> | null = null;
+// The lookup walks the entire pool, so if we build it before the lazy pool
+// has resolved, we'd cache an empty map. Drop it on pool-loaded so the next
+// caller rebuilds against the real data.
+onNationalPoolLoaded(() => { realFirstNameByFcId = null; });
 function getRealFirstNameByFcId(): Map<string, string> {
   if (realFirstNameByFcId) return realFirstNameByFcId;
   const map = new Map<string, string>();
-  for (const pool of Object.values(NATIONAL_PLAYER_POOL)) {
+  for (const pool of Object.values(getNationalPoolSync())) {
     for (const t of pool) {
       if (!t.fcId) continue;
       // Skip templates whose own first name is just an initial — they can't

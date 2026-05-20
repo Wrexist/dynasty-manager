@@ -1,4 +1,4 @@
-import { Player, Match, LeagueTableEntry, ObjectiveRarity } from '@/types/game';
+import { Player, Match, LeagueTableEntry, ObjectiveRarity, ContinentalTournamentState, CupTie, SuperCupMatch } from '@/types/game';
 import { shuffle } from '@/utils/helpers';
 import {
   RARE_OBJECTIVE_CHANCE, LEGENDARY_OBJECTIVE_CHANCE,
@@ -39,6 +39,20 @@ export interface ObjectiveContext {
   week: number;
   season: number;
   lineup: string[];
+  // Optional additional match sources. When provided, `getThisWeekMatch`
+  // searches them too — without them, only league fixtures count, which
+  // means pre-season friendlies, cup ties, league cup ties, and
+  // continental matches were silently invisible to every match-based
+  // objective. Audit finding: user scored 5 goals in a pre-season
+  // friendly and "Goal Fest 0/3" never moved.
+  friendlies?: Match[];
+  cupTies?: CupTie[];
+  leagueCupTies?: CupTie[];
+  championsCup?: ContinentalTournamentState | null;
+  shieldCup?: ContinentalTournamentState | null;
+  conferenceCup?: ContinentalTournamentState | null;
+  domesticSuperCup?: SuperCupMatch | null;
+  continentalSuperCup?: SuperCupMatch | null;
 }
 
 // ── Objective Templates ──
@@ -422,10 +436,59 @@ const MATCH_OBJECTIVE_IDS = [
 ];
 
 function getThisWeekMatch(ctx: ObjectiveContext): Match | undefined {
-  return ctx.fixtures.find(
-    m => m.played && m.week === ctx.week &&
-      (m.homeClubId === ctx.playerClubId || m.awayClubId === ctx.playerClubId)
-  );
+  // Search every match source the user could have played this week, not
+  // just league fixtures. Without this, pre-season friendlies, cup ties,
+  // continental matches, and super cups never moved match-based
+  // objectives (e.g. the "Goal Fest 0/3" bug where the user scored 5 in
+  // a pre-season friendly and progress never updated). Priority mirrors
+  // the user-facing match priority chain in matchActions.ts so a week
+  // with multiple matches reports the one the user actually played.
+  const inPlayerWeek = (m: { week: number; played?: boolean; homeClubId: string; awayClubId: string }) =>
+    m.played === true && m.week === ctx.week
+    && (m.homeClubId === ctx.playerClubId || m.awayClubId === ctx.playerClubId);
+
+  // Continental tournaments — rebuild a Match-shaped object from the
+  // group/knockout structures the objectives can read uniformly.
+  const continentalMatch = (() => {
+    const tourneys = [ctx.championsCup, ctx.shieldCup, ctx.conferenceCup];
+    for (const t of tourneys) {
+      if (!t) continue;
+      for (const g of t.groups || []) {
+        const m = g.matches.find(inPlayerWeek);
+        if (m) {
+          return { id: m.id, week: m.week, homeClubId: m.homeClubId, awayClubId: m.awayClubId, played: true, homeGoals: m.homeGoals ?? 0, awayGoals: m.awayGoals ?? 0, events: [] } as Match;
+        }
+      }
+      for (const tie of t.knockoutTies || []) {
+        if (tie.homeClubId !== ctx.playerClubId && tie.awayClubId !== ctx.playerClubId) continue;
+        if (tie.week1 === ctx.week && tie.leg1Played) {
+          return { id: `${tie.id}-l1`, week: tie.week1, homeClubId: tie.homeClubId, awayClubId: tie.awayClubId, played: true, homeGoals: tie.leg1HomeGoals ?? 0, awayGoals: tie.leg1AwayGoals ?? 0, events: [] } as Match;
+        }
+        if (tie.week2 === ctx.week && tie.leg2Played && tie.round !== 'F') {
+          return { id: `${tie.id}-l2`, week: tie.week2, homeClubId: tie.awayClubId, awayClubId: tie.homeClubId, played: true, homeGoals: tie.leg2HomeGoals ?? 0, awayGoals: tie.leg2AwayGoals ?? 0, events: [] } as Match;
+        }
+      }
+    }
+    return undefined;
+  })();
+  if (continentalMatch) return continentalMatch;
+
+  const cupTie = ctx.cupTies?.find(inPlayerWeek);
+  if (cupTie) {
+    return { id: cupTie.id, week: cupTie.week, homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, played: true, homeGoals: cupTie.homeGoals, awayGoals: cupTie.awayGoals, events: [] } as Match;
+  }
+  const leagueCupTie = ctx.leagueCupTies?.find(inPlayerWeek);
+  if (leagueCupTie) {
+    return { id: leagueCupTie.id, week: leagueCupTie.week, homeClubId: leagueCupTie.homeClubId, awayClubId: leagueCupTie.awayClubId, played: true, homeGoals: leagueCupTie.homeGoals, awayGoals: leagueCupTie.awayGoals, events: [] } as Match;
+  }
+
+  const superCup = [ctx.domesticSuperCup, ctx.continentalSuperCup].find(s => s && inPlayerWeek(s));
+  if (superCup) {
+    return { id: `super-${superCup.type}`, week: superCup.week, homeClubId: superCup.homeClubId, awayClubId: superCup.awayClubId, played: true, homeGoals: superCup.homeGoals ?? 0, awayGoals: superCup.awayGoals ?? 0, events: [] } as Match;
+  }
+
+  return ctx.fixtures.find(inPlayerWeek)
+    || ctx.friendlies?.find(inPlayerWeek);
 }
 
 /** Generate 3 random monthly objectives, with variable rarity.

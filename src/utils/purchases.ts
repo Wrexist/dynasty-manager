@@ -340,20 +340,33 @@ export function extractSubscriptionInfo(customerInfo: CustomerInfo | null | unde
 export async function openSubscriptionManagement(): Promise<boolean> {
   if (!Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) return false;
 
+  // Apple's universal subscription-management URL — works on every iOS
+  // device even when RevenueCat hasn't synced customerInfo yet. Used as
+  // a fallback when `customerInfo.managementURL` is missing (audit
+  // finding: without it, a flaky RC sync left the user with no way to
+  // manage their subscription).
+  const APPLE_SUB_FALLBACK = 'https://apps.apple.com/account/subscriptions';
+
   try {
     await ensureConfigured();
     const { Purchases } = await import('@revenuecat/purchases-capacitor');
     const { customerInfo } = await Purchases.getCustomerInfo();
-    const managementUrl = customerInfo?.managementURL;
-    if (managementUrl) {
-      const { openExternalUrl } = await import('@/utils/externalUrl');
-      void openExternalUrl(managementUrl);
-      return true;
-    }
-    return false;
+    const managementUrl = customerInfo?.managementURL || APPLE_SUB_FALLBACK;
+    const { openExternalUrl } = await import('@/utils/externalUrl');
+    void openExternalUrl(managementUrl);
+    return true;
   } catch (err) {
     if (import.meta.env.DEV) console.warn('[Purchases] Could not open subscription management:', err);
-    return false;
+    Sentry.captureException(err, { tags: { context: 'purchases.openSubscriptionManagement' } });
+    // Even on RevenueCat failure, route through Apple's universal URL
+    // so the user can still cancel their subscription.
+    try {
+      const { openExternalUrl } = await import('@/utils/externalUrl');
+      void openExternalUrl(APPLE_SUB_FALLBACK);
+      return true;
+    } catch {
+      return false;
+    }
   }
 }
 

@@ -1,7 +1,8 @@
+import * as Sentry from '@sentry/react';
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
-import { Package, Coins, Flame, Clock } from 'lucide-react';
+import { Package, Coins, Flame, Clock, Loader2 } from 'lucide-react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel, LIQUID_GLASS_SURFACE } from '@/components/game/GlassPanel';
 import { PageHint } from '@/components/game/PageHint';
@@ -73,10 +74,13 @@ const PacksPage = () => {
   const [busy, setBusy] = useState(false);
 
   // Live countdown to next midnight (when free + ad daily quotas reset).
-  // Recomputed every second; cheap because the page is lightweight.
+  // Ticks every 30s — the countdown display is `Xh YYm` granularity (see
+  // formatCountdown), so per-second re-rendering of the entire ~500-line
+  // tree was pure waste. 30s catches the minute-boundary flips fast
+  // enough that the user never sees a stale value.
   const [, forceTick] = useState(0);
   useEffect(() => {
-    const id = setInterval(() => forceTick(t => t + 1), 1000);
+    const id = setInterval(() => forceTick(t => t + 1), 30_000);
     return () => clearInterval(id);
   }, []);
   const msToReset = msUntilNextMidnight();
@@ -104,8 +108,13 @@ const PacksPage = () => {
   };
 
   const handleSellAll = () => {
+    if (busy) return;
     const remaining = opening?.players ?? [];
     if (remaining.length === 0) return;
+    // Set busy for the duration of the loop — without it, a double-tap on
+    // Sell All while the toast is still pending could enter this function
+    // twice and mutate openedPacks records out from under the iteration.
+    setBusy(true);
     let total = 0;
     let sold = 0;
     let lastError: string | undefined;
@@ -118,6 +127,7 @@ const PacksPage = () => {
         lastError = result.message;
       }
     }
+    setBusy(false);
     if (sold > 0) {
       successToast(`Sold ${sold} player${sold === 1 ? '' : 's'}`, `+${formatMoney(total)} to budget.`);
     } else if (lastError) {
@@ -261,12 +271,24 @@ const PacksPage = () => {
       }
       const result = openPack(tierKey, { method, skipPayment: true });
       if (!result.success || !result.players) {
-        errorToast('Could not open pack', result.message);
+        if (result.paidButRejected) {
+          errorToast(
+            'Purchase succeeded but pack was blocked',
+            `${result.message} Your payment will be investigated — contact support if the pack isn't credited within 24 hours.`,
+          );
+        } else {
+          errorToast('Could not open pack', result.message);
+        }
         return;
       }
       successToast('Purchase complete', `${tier.label} unlocked.`);
       setOpening({ tier: tierKey, players: result.players, pityTriggered: result.pityTriggered, placement: result.placement });
-    } catch {
+    } catch (err) {
+      // Capture the actual error to Sentry — silent catch was making it
+      // impossible to triage real IAP failures (receipt validation throws,
+      // RevenueCat SDK errors mid-purchase, etc.). The user toast stays
+      // generic to avoid leaking implementation details.
+      Sentry.captureException(err, { tags: { context: 'PacksPage.iap' }, extra: { tierKey } });
       errorToast('Purchase failed', 'Please try again.');
     } finally {
       setBusy(false);
@@ -279,15 +301,33 @@ const PacksPage = () => {
     <div className="max-w-lg mx-auto">
       <PageHint screen="packs" title={PAGE_HINTS.packs.title} body={PAGE_HINTS.packs.body} />
 
-      <div className="px-4 pb-6 space-y-4">
-        {/* Header + budget chip */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-display font-bold text-foreground flex items-center gap-2">
-              <Package className="w-5 h-5 text-primary" />
-              Player Packs
-            </h2>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Spend budget, sign players instantly.</p>
+      <div className="px-4 pb-6 space-y-3">
+        {/* Compact status row — budget + squad + reset countdown all on
+            one line. The "Player Packs" title block above this used to
+            cost ~60px of vertical space before the pack tile even
+            started, on a page where the user is already on the Packs
+            tab — redundant signage. Now it's one dense row so the
+            featured pack image is visible above the fold on a 375px
+            phone (audit finding). */}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-widest">
+            <span className={cn(
+              'px-2 py-1 rounded-md border flex items-center gap-1',
+              squadSize >= MAX_SQUAD_SIZE
+                ? 'border-destructive/40 text-destructive bg-destructive/10'
+                : 'border-border/60 text-muted-foreground bg-muted/20',
+            )}>
+              <Package className="w-3 h-3" /> Squad {squadSize}/{MAX_SQUAD_SIZE}
+            </span>
+            {dailyAllowanceUsed && (
+              <span
+                className="px-2 py-1 rounded-md border border-primary/40 text-primary bg-primary/10 flex items-center gap-1 tabular-nums"
+                aria-live="polite"
+                aria-label={`Free packs reset in ${formatCountdown(msToReset)}`}
+              >
+                <Clock className="w-3 h-3" /> Resets in {formatCountdown(msToReset)}
+              </span>
+            )}
           </div>
           <div
             className={cn(
@@ -302,34 +342,12 @@ const PacksPage = () => {
           </div>
         </div>
 
-        {/* Squad cap chip + reset countdown. The reset chip only shows
-            once a free or ad open has been used today — no point telling
-            the user about a reset that has nothing to reset. */}
-        <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-widest">
-          <span className={cn(
-            'px-2 py-1 rounded-md border',
-            squadSize >= MAX_SQUAD_SIZE
-              ? 'border-destructive/40 text-destructive bg-destructive/10'
-              : 'border-border/60 text-muted-foreground bg-muted/20',
-          )}>
-            Squad {squadSize}/{MAX_SQUAD_SIZE}
-          </span>
-          {dailyAllowanceUsed && (
-            <span
-              className="px-2 py-1 rounded-md border border-primary/40 text-primary bg-primary/10 flex items-center gap-1 tabular-nums"
-              aria-live="polite"
-              aria-label={`Free packs reset in ${formatCountdown(msToReset)}`}
-            >
-              <Clock className="w-3 h-3" /> Free packs reset in {formatCountdown(msToReset)}
-            </span>
-          )}
-        </div>
-
-        {/* Featured hero */}
+        {/* Featured hero — header inlined to save vertical space; the
+            flame + label + pack are visually one unit. */}
         <div>
-          <div className="flex items-center gap-2 mb-2">
-            <Flame className="w-4 h-4 text-primary" />
-            <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Featured Pack</h3>
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <Flame className="w-3.5 h-3.5 text-primary" />
+            <h3 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Featured Pack</h3>
           </div>
           <PackShopCard
             featured
@@ -346,7 +364,7 @@ const PacksPage = () => {
 
         {/* Standard pack grid */}
         <div>
-          <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">All Packs</h3>
+          <h3 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">All Packs</h3>
           <div className="grid grid-cols-2 gap-3">
             {nonFeatured.map(tier => (
               <PackShopCard
@@ -504,6 +522,25 @@ const PacksPage = () => {
           />
         )}
       </AnimatePresence>
+
+      {/* Visible busy overlay during the 1-30s ad-watch / IAP-confirm
+          gap. Previously the only feedback was a disabled state on the
+          pack tile — users tapped, nothing visible happened for 1-2s,
+          and they retapped. Now a centered spinner blocks the page and
+          confirms the action is in flight. */}
+      {busy && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm pointer-events-auto"
+          role="status"
+          aria-label="Processing purchase"
+        >
+          <div className="flex flex-col items-center gap-3 bg-card/90 border border-border/50 rounded-2xl px-6 py-5 shadow-xl">
+            <Loader2 className="w-7 h-7 text-primary animate-spin" />
+            <p className="text-xs font-medium text-foreground">Processing…</p>
+            <p className="text-[10px] text-muted-foreground text-center max-w-[200px]">Do not close the app until this finishes.</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

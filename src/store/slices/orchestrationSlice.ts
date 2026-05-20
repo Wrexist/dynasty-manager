@@ -272,6 +272,27 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
     lastPackWeek: state.lastPackWeek || 0,
     lastPackSeason: state.lastPackSeason || 0,
     dailyPackOpens: state.dailyPackOpens || { date: '', free: {}, ad: {} },
+    // ── Previously-unsaved fields (v68 fix) ──
+    // Each of these is mutated by gameplay but was missing from the save
+    // payload, so accumulated state was silently dropped on every reload.
+    // `seasonTotalExpenses` in particular swallowed pack-severance, pack
+    // quick-sells, and the release-clause flow. Community Pack: without
+    // cpPool/communityPackEnabled a reloaded CP save re-shuffles the real
+    // player pool (duplicate players league-wide) and reverts to fictional
+    // names. clubPowerRankings: ELO ratings reset to empty without it.
+    contractStrikes: state.contractStrikes || {},
+    tacticalPresets: state.tacticalPresets || [],
+    transferFilters: state.transferFilters,
+    pendingGemReveal: state.pendingGemReveal || null,
+    pendingTransferTalk: state.pendingTransferTalk || null,
+    seasonStartAvgOVR: state.seasonStartAvgOVR || 0,
+    seasonTransfersBought: state.seasonTransfersBought || [],
+    seasonTransfersSold: state.seasonTransfersSold || [],
+    seasonTotalIncome: state.seasonTotalIncome || 0,
+    seasonTotalExpenses: state.seasonTotalExpenses || 0,
+    clubPowerRankings: state.clubPowerRankings || {},
+    communityPackEnabled: state.communityPackEnabled || false,
+    cpPool: state.cpPool || { shuffleSeed: 0, cursor: 0, usedFcIds: [], marketListings: [], lastMarketRefreshWeek: 0, lastSeedSeason: 0 },
   };
   let json = JSON.stringify(saveData);
 
@@ -301,53 +322,70 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
     return;
   }
 
-  let saveFailed = false;
+  // writeSaveSlot returns { lsOk, idbPromise } so we can detect when BOTH
+  // disk paths failed and actually surface the "Save Failed" warning. The
+  // previous version did try/catch on writeSaveSlot, but writeSaveSlot
+  // never throws on quota exceeded (it swallows internally) — so the
+  // warning was dead code. The memory cache is always updated, so the
+  // session continues fine; the warning is specifically for "this save
+  // will not survive an app restart".
+  let saveResult: ReturnType<typeof writeSaveSlot>;
   try {
-    writeSaveSlot(s, json);
+    saveResult = writeSaveSlot(s, json);
     lastSavedHash = payloadHash;
   } catch (err) {
-    saveFailed = true;
+    // Memory cache write or stringify itself threw — true OOM scenario.
     const errTime = Date.now();
     if (errTime - lastSaveErrorLogAt > 10000) {
-      Sentry.captureException(err, { tags: { context: 'saveGame' } });
+      Sentry.captureException(err, { tags: { context: 'saveGame.throw' } });
       lastSaveErrorLogAt = errTime;
     }
-    // Use functional set() so we read the freshest messages — the idle
-    // callback may have been scheduled seconds ago and state has moved on.
-    set(s0 => {
-      const hasSaveWarningThisWeek = s0.messages.some(
-        m => m.title === 'Save Failed' && m.week === s0.week && m.season === s0.season,
-      );
-      if (hasSaveWarningThisWeek) return {};
-      return {
-        messages: addMsg(s0.messages, {
-          type: 'warning',
-          title: 'Save Failed',
-          body: 'Your game could not be saved. We’ll keep retrying automatically. If this keeps happening, restart the app.',
-          week: s0.week,
-          season: s0.season,
-        }),
-      };
-    });
+    set({ saveStatus: 'failed', saveFailureMessage: 'Save could not be written' });
+    addGameBreadcrumb('save', 'Save threw', { week: state.week, season: state.season, slot: s, bytes: json.length });
+    return;
   }
 
-  if (saveFailed) {
-    set({ saveStatus: 'failed', saveFailureMessage: 'Save could not be written' });
-    addGameBreadcrumb('save', 'Save failed', {
-      week: state.week,
-      season: state.season,
-      slot: s,
-      bytes: json.length,
+  set({ saveStatus: 'saved', lastSavedAt: Date.now(), saveFailureMessage: null });
+  addGameBreadcrumb('save', 'Save succeeded (memory + at-least-one-disk)', {
+    week: state.week,
+    season: state.season,
+    slot: s,
+    bytes: json.length,
+    lsOk: saveResult.lsOk,
+  });
+  track('save_created', { slot: s, bytes: json.length });
+
+  // If localStorage rejected the write (quota exceeded), wait for the IDB
+  // outcome. If IDB also failed, the save is in memory ONLY and will be
+  // lost on app restart — surface a clear warning to the user's inbox so
+  // they can free up device storage. De-dupe to once-per-week so we don't
+  // spam during a long burning-quota episode.
+  if (!saveResult.lsOk) {
+    void saveResult.idbPromise.then(idbOk => {
+      if (idbOk) return; // IDB succeeded — save is persistent, no warning needed
+      const errTime = Date.now();
+      if (errTime - lastSaveErrorLogAt > 10000) {
+        Sentry.captureMessage('[saveGame] Both localStorage and IDB rejected the write', 'error');
+        lastSaveErrorLogAt = errTime;
+      }
+      set(s0 => {
+        const hasSaveWarningThisWeek = s0.messages.some(
+          m => m.title === 'Save Could Not Persist' && m.week === s0.week && m.season === s0.season,
+        );
+        if (hasSaveWarningThisWeek) return {};
+        return {
+          saveStatus: 'failed' as const,
+          saveFailureMessage: 'Save kept in memory only',
+          messages: addMsg(s0.messages, {
+            type: 'warning',
+            title: 'Save Could Not Persist',
+            body: 'Device storage is full — your progress is in memory but won\'t survive an app restart. Free up storage in Settings → General → iPhone Storage.',
+            week: s0.week,
+            season: s0.season,
+          }),
+        };
+      });
     });
-  } else {
-    set({ saveStatus: 'saved', lastSavedAt: Date.now(), saveFailureMessage: null });
-    addGameBreadcrumb('save', 'Save succeeded', {
-      week: state.week,
-      season: state.season,
-      slot: s,
-      bytes: json.length,
-    });
-    track('save_created', { slot: s, bytes: json.length });
   }
 
   // Save session snapshot for "Welcome back" recap
@@ -612,6 +650,16 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     // fire after we've swapped in the loaded data and write it back, which
     // is a wasted write at best and slot-crossover at worst.
     cancelPendingSave();
+    // Mid-match safety: if a match is in progress, abandon it FIRST so
+    // we don't clobber halfTimeState / matchPhase out from under a
+    // mid-render MatchDay component. The old behaviour was: set()
+    // resets `halfTimeState: null, matchPhase: 'none'` while MatchDay's
+    // animation loop still holds a stale ref → guaranteed crash on the
+    // next animation frame.
+    const currentState = get();
+    if (currentState.matchPhase !== 'none' || currentState.halfTimeState) {
+      currentState.cleanupAbandonedMatch();
+    }
     resetSeasonGrowth();
     clearLeagueTableCache();
     migrateLegacySave();
@@ -638,7 +686,15 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
           // Promote the backup to primary so the next save cycle starts from
           // a known-good state.
           promoteSaveBackup(s, backupRaw);
-        } catch { /* both corrupt */ }
+        } catch (backupErr) {
+          // Capture the backup-parse failure too — previously the catch was
+          // silent, so on real-world double-corruption we had no fingerprint
+          // for triage (only the first warning at line ~659 was captured).
+          Sentry.captureException(backupErr, {
+            tags: { context: 'loadGame.backupParse', slot: String(s) },
+            extra: { backupBytes: backupRaw.length, primarySnippet: raw.slice(0, 100), backupSnippet: backupRaw.slice(0, 100) },
+          });
+        }
       }
       if (parsed === null) {
         set({ loadError: { slot: s, kind: 'corrupt', canRecover: false, reason: 'primary and backup both unparseable' } });
@@ -693,7 +749,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         // Backfill settings with defaults for fields added after save was created
         settings: {
           matchSpeed: 600, showOverallOnPitch: true, autoSave: true, hapticsEnabled: true,
-          hidePageHints: false, confirmAllOffers: false, reducedMotion: false,
+          hidePageHints: false, hideOnboarding: false, confirmAllOffers: false, reducedMotion: false,
           ...(data.settings || {}),
         },
         currentScreen:
@@ -781,6 +837,31 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         jobOffers: data.jobOffers || [],
         activeInterview: data.activeInterview || null,
         seasonGrowthTracker: data.seasonGrowthTracker || {},
+        // ── Previously-unsaved-field backfills (v68 fix) ──
+        // Older saves that pre-date the fix won't have these keys, so we
+        // fall back to the same defaults the slices declare. New saves
+        // carry real values forward via `...data` above; these lines are
+        // a safety net for older slot data.
+        contractStrikes: data.contractStrikes || {},
+        tacticalPresets: data.tacticalPresets || [],
+        transferFilters: data.transferFilters || {
+          tab: 'market', posFilter: 0, searchQuery: '',
+          sortBy: 'overall', faSortBy: 'overall', divFilter: 'all',
+          newsTypeFilter: 'all', hideUnaffordable: false, showShortlistOnly: false,
+        },
+        pendingGemReveal: data.pendingGemReveal || null,
+        pendingTransferTalk: data.pendingTransferTalk || null,
+        seasonStartAvgOVR: data.seasonStartAvgOVR ?? 0,
+        seasonTransfersBought: data.seasonTransfersBought || [],
+        seasonTransfersSold: data.seasonTransfersSold || [],
+        seasonTotalIncome: data.seasonTotalIncome ?? 0,
+        seasonTotalExpenses: data.seasonTotalExpenses ?? 0,
+        clubPowerRankings: data.clubPowerRankings || {},
+        communityPackEnabled: data.communityPackEnabled || false,
+        cpPool: data.cpPool || { shuffleSeed: 0, cursor: 0, usedFcIds: [], marketListings: [], lastMarketRefreshWeek: 0, lastSeedSeason: 0 },
+        // Transient match-scoped field — reset on load so a team talk from
+        // a previously-loaded slot can't leak into the freshly loaded game.
+        matchTeamTalk: 'none' as const,
         // Loaded data IS the current on-disk state → reflect that in the
         // indicator so it doesn't sit blank until the first autosave fires.
         saveStatus: 'saved' as const,
@@ -903,6 +984,19 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       currentCupTieId: null, currentLeagueCupTieId: null,
       currentContinentalMatchId: null, currentContinentalCompetition: null,
       matchSubsUsed: 0,
+      // Audit finding: previously these match-scoped state fields persisted
+      // across an abandoned match, so e.g. an abandoned penalty shootout
+      // left `penaltyShootoutKicks` populated for the next match. Reset
+      // them all to canonical defaults so a fresh match starts clean.
+      currentMatchResult: null,
+      matchPlayerRatings: [],
+      matchTeamTalk: 'none' as const,
+      matchShouts: [],
+      penaltyShootoutKicks: [],
+      penaltyShootoutRevealIndex: 0,
+      preMatchSnapshot: null,
+      lastMatchDrama: null,
+      lastMatchCompetition: null,
     });
   },
 
@@ -911,6 +1005,13 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     // Kill any pending idle save before wiping the slot — otherwise it fires
     // after reset and resurrects the slot we just deleted.
     cancelPendingSave();
+    // Mid-match safety: same guard as loadGame. Abandon a match in flight
+    // before wiping state so MatchDay's render loop doesn't dereference
+    // a state slice we're about to zero out.
+    const currentState = get();
+    if (currentState.matchPhase !== 'none' || currentState.halfTimeState) {
+      currentState.cleanupAbandonedMatch();
+    }
     removeSaveSlot(s);
     resetSaveHash();
     set({
@@ -920,6 +1021,11 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       messages: [], seasonHistory: [], incomingOffers: [],
       matchPlayerRatings: [], halfTimeState: null, currentMatchWeather: null, matchPhase: 'none' as const,
       currentMatchResult: null, matchSubsUsed: 0, currentCupTieId: null,
+      // Match-scoped state that previously persisted across resets — audit
+      // finding O2 (stale shootout kicks, leftover team talk, etc.).
+      matchTeamTalk: 'none' as const, matchShouts: [],
+      penaltyShootoutKicks: [], penaltyShootoutRevealIndex: 0,
+      preMatchSnapshot: null, lastMatchDrama: null, lastMatchCompetition: null,
       transferMarket: [], shortlist: [], scoutWatchList: [], transferNews: [],
       activeLoans: [], incomingLoanOffers: [], outgoingLoanRequests: [],
       cup: { ties: [], currentRound: null, eliminated: false, winner: null },
@@ -929,13 +1035,31 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       dailyPackOpens: { date: '', free: {}, ad: {} },
       activeStorylineChains: [], completedStorylineChainIds: [], weeklyObjectives: [],
       objectiveStreak: 0, objectivesStartWeek: 1, completedCoachTaskIds: [],
-      weekCliffhangers: [], rivalries: {}, lastMatchDrama: null, lastMatchCompetition: null,
+      weekCliffhangers: [], rivalries: {},
       sessionStats: { startWeek: 1, startSeason: 1, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 },
       weeklyDigest: null, careerTimeline: [],
       gameMode: 'sandbox', careerManager: null, jobVacancies: [], jobOffers: [],
       sponsorDeals: [], sponsorOffers: [], sponsorSlotCooldowns: {}, negotiationStrikes: {}, contractStrikes: {},
       merchandise: getDefaultMerchState(),
       continentalCoefficients: {},
+      // v68 newly-persisted fields — must reset here too so a New Game after
+      // a Load doesn't inherit stale session aggregates / opt-in flags.
+      tacticalPresets: [],
+      transferFilters: {
+        tab: 'market', posFilter: 0, searchQuery: '',
+        sortBy: 'overall', faSortBy: 'overall', divFilter: 'all',
+        newsTypeFilter: 'all', hideUnaffordable: false, showShortlistOnly: false,
+      },
+      pendingGemReveal: null,
+      pendingTransferTalk: null,
+      seasonStartAvgOVR: 0,
+      seasonTransfersBought: [],
+      seasonTransfersSold: [],
+      seasonTotalIncome: 0,
+      seasonTotalExpenses: 0,
+      clubPowerRankings: {},
+      communityPackEnabled: false,
+      cpPool: { shuffleSeed: 0, cursor: 0, usedFcIds: [], marketListings: [], lastMarketRefreshWeek: 0, lastSeedSeason: 0 },
       monetization: {
         ...DEFAULT_MONETIZATION_STATE,
         // Preserve purchases and subscription across save resets
@@ -993,52 +1117,68 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       preserveProgression = false;
     }
 
-    // Reinitialize game with new club. initGame is only async when Community
-    // Pack is enabled (dynamic imports); in the prestige-reset flow CP is
-    // never threaded through, so this is effectively sync. Still guard with
-    // guardAsync in case a future change enables CP through this path.
-    guardAsync(
-      get().initGame(newClubId),
-      'resetAfterPrestige.initGame',
-      { title: 'Reset failed', body: 'Could not restart for prestige bonus.' },
-    );
+    // Reinitialize game with new club. `initGame` is declared async but its
+    // body runs fully synchronously (including its `set()`) when Community
+    // Pack is disabled — and the prestige-reset flow never threads CP
+    // through — so the post-init `get()` below reliably sees the
+    // initialised state. `applyPrestigeBonuses` is therefore called
+    // synchronously after init AND chained onto the promise: if a future
+    // change ever makes this path async, the `.then()` re-applies the
+    // bonuses against the now-settled state. Re-application is idempotent
+    // (prestigeLevel set to a fixed value, budget multiplier applied to
+    // the post-init club budget) so the double-call is safe.
+    let bonusesApplied = false;
+    const applyPrestigeBonuses = () => {
+      const freshState = get();
+      const updatedProg = preserveProgression
+        ? { ...currentProg, prestigeLevel: newPrestigeLevel }
+        : { ...freshState.managerProgression, prestigeLevel: newPrestigeLevel };
 
-    // Apply prestige bonuses after init
-    const freshState = get();
-    const updatedProg = preserveProgression
-      ? { ...currentProg, prestigeLevel: newPrestigeLevel }
-      : { ...freshState.managerProgression, prestigeLevel: newPrestigeLevel };
+      const updates: Partial<GameState> = {
+        managerProgression: updatedProg,
+        currentScreen: 'dashboard' as const,
+      };
 
-    const updates: Partial<GameState> = {
-      managerProgression: updatedProg,
-      currentScreen: 'dashboard' as const,
+      // Apply budget multiplier — guarded by `bonusesApplied` so the
+      // sync call + the promise `.then()` don't compound the multiplier.
+      if (budgetMultiplier !== 1 && !bonusesApplied) {
+        const newClubs = { ...freshState.clubs };
+        const club = { ...newClubs[newClubId] };
+        club.budget = Math.round(club.budget * budgetMultiplier);
+        newClubs[newClubId] = club;
+        updates.clubs = newClubs;
+      }
+
+      // Carry over career timeline and achievements for all prestige modes
+      if (preserveProgression && !bonusesApplied) {
+        updates.careerTimeline = [...state.careerTimeline, {
+          id: crypto.randomUUID(),
+          type: 'prestige',
+          title: `Prestige ${newPrestigeLevel}`,
+          description: `Started a new journey with prestige level ${newPrestigeLevel}.`,
+          season: state.season,
+          week: state.week,
+          icon: 'star',
+        }];
+        updates.unlockedAchievements = state.unlockedAchievements;
+        updates.seasonHistory = state.seasonHistory;
+      }
+
+      bonusesApplied = true;
+      set(updates);
     };
 
-    // Apply budget multiplier
-    if (budgetMultiplier !== 1) {
-      const newClubs = { ...freshState.clubs };
-      const club = { ...newClubs[newClubId] };
-      club.budget = Math.round(club.budget * budgetMultiplier);
-      newClubs[newClubId] = club;
-      updates.clubs = newClubs;
+    const initResult = get().initGame(newClubId);
+    applyPrestigeBonuses();
+    // If init turned out to be async, re-apply once it settles so the
+    // prestige level survives the init's own state write.
+    if (initResult && typeof (initResult as Promise<void>).then === 'function') {
+      guardAsync(
+        (initResult as Promise<void>).then(applyPrestigeBonuses),
+        'resetAfterPrestige.initGame',
+        { title: 'Reset failed', body: 'Could not restart for prestige bonus.' },
+      );
     }
-
-    // Carry over career timeline and achievements for all prestige modes
-    if (preserveProgression) {
-      updates.careerTimeline = [...state.careerTimeline, {
-        id: crypto.randomUUID(),
-        type: 'prestige',
-        title: `Prestige ${newPrestigeLevel}`,
-        description: `Started a new journey with prestige level ${newPrestigeLevel}.`,
-        season: state.season,
-        week: state.week,
-        icon: 'star',
-      }];
-      updates.unlockedAchievements = state.unlockedAchievements;
-      updates.seasonHistory = state.seasonHistory;
-    }
-
-    set(updates);
   },
 
   // ── Farewell ──
