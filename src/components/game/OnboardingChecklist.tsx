@@ -28,7 +28,7 @@
  * the GlassPanel decorative specular layer, matching the rest of the
  * dark glass-morphism design language.
  */
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -37,6 +37,8 @@ import type { GameScreen } from '@/types/game';
 import { hapticLight } from '@/utils/haptics';
 import { readSessionJson, writeSessionJson, STORAGE_KEYS } from '@/store/helpers/persistence';
 import { LIQUID_GLASS_SURFACE } from '@/components/game/GlassPanel';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useEscapeClose } from '@/hooks/useEscapeClose';
 import { cn } from '@/lib/utils';
 
 const DISMISS_KEY = STORAGE_KEYS.ONBOARDING_CHECKLIST_DISMISSED;
@@ -72,6 +74,14 @@ export function OnboardingChecklist() {
 
   const [dismissed, setDismissed] = useState(() => readSessionJson<boolean>(DISMISS_KEY) === true);
   const [activeWalkthrough, setActiveWalkthrough] = useState<ChecklistItem | null>(null);
+
+  // Focus trap + Escape close for the walkthrough modal. Hooks must run
+  // unconditionally before the early-return guards below, so they're
+  // declared here and keyed off `activeWalkthrough` being non-null.
+  const walkthroughRef = useRef<HTMLDivElement | null>(null);
+  const closeWalkthrough = () => setActiveWalkthrough(null);
+  useFocusTrap(walkthroughRef, activeWalkthrough !== null);
+  useEscapeClose(closeWalkthrough, activeWalkthrough !== null);
 
   // Hard gates: hide entirely if not a brand-new career, if the user has
   // dismissed it this session, or if they've globally opted out via Settings.
@@ -272,6 +282,7 @@ export function OnboardingChecklist() {
       <AnimatePresence>
         {activeWalkthrough && (
           <motion.div
+            ref={walkthroughRef}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
