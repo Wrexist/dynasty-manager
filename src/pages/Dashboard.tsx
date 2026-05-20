@@ -1195,7 +1195,8 @@ const Dashboard = () => {
               <button
                 type="button"
                 onClick={() => setScreen('transfers')}
-                className="inline-flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2.5 py-1 cursor-pointer hover:bg-emerald-500/15 transition-colors"
+                aria-label="Transfer window open — open transfers"
+                className="inline-flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2.5 py-1 cursor-pointer hover:bg-emerald-500/15 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
               >
                 <ShoppingBag className="w-3 h-3 text-emerald-400" />
                 <span className="text-[10px] font-medium text-emerald-400">Window open</span>

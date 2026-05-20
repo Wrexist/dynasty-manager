@@ -822,7 +822,19 @@ function finalizeSeason(
   // If the player was promoted/relegated, use the top tier's table (continental qualifies top-tier only)
   const topTierLeagueId = getLeaguesByCountry(leagueInfo?.countryId || newPlayerDivision)
     .find(l => l.tier === 1)?.id || newPlayerDivision;
-  const prevLeagueTable = newDivisionTables[topTierLeagueId] || state.leagueTable;
+  // Continental qualification must read the COMPLETED season's standings.
+  // `newDivisionTables` is built from freshly-regenerated fixtures (0 games
+  // played) — using it would seed continental tournaments from an empty,
+  // effectively-random table. `state.divisionFixtures` still holds the
+  // just-finished season's fixtures at this point (the regenerated fixtures
+  // are only committed in the final set() below), so build the completed
+  // top-tier table from it.
+  const completedTopTierTable = state.divisionFixtures[topTierLeagueId] && state.divisionClubs[topTierLeagueId]?.length
+    ? buildLeagueTable(state.divisionFixtures[topTierLeagueId], state.divisionClubs[topTierLeagueId])
+    : null;
+  const prevLeagueTable = completedTopTierTable
+    || newDivisionTables[topTierLeagueId]
+    || state.leagueTable;
   const playerClubMap: Record<string, { name: string; shortName: string; color: string; reputation: number }> = {};
   for (const [id, club] of Object.entries(newClubs)) {
     playerClubMap[id] = { name: club.name, shortName: club.shortName, color: club.color, reputation: club.reputation };

@@ -516,7 +516,12 @@ const MatchDayInner = () => {
   }, [phase]);
 
   useEffect(() => {
-    eventsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Auto-scroll the live event feed. At Instant match speed the event
+    // count climbs many times per second; stacking smooth-scroll animations
+    // janks low-end Android. `behavior: 'instant'` snaps without queueing
+    // animations — the feed still tracks the latest event, just without the
+    // compounding-animation cost.
+    eventsEndRef.current?.scrollIntoView({ behavior: 'instant' as ScrollBehavior });
   }, [visibleEvents.length]);
 
   const handlePause = () => {

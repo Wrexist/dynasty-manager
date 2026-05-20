@@ -276,7 +276,10 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
     // Each of these is mutated by gameplay but was missing from the save
     // payload, so accumulated state was silently dropped on every reload.
     // `seasonTotalExpenses` in particular swallowed pack-severance, pack
-    // quick-sells, and the release-clause flow.
+    // quick-sells, and the release-clause flow. Community Pack: without
+    // cpPool/communityPackEnabled a reloaded CP save re-shuffles the real
+    // player pool (duplicate players league-wide) and reverts to fictional
+    // names. clubPowerRankings: ELO ratings reset to empty without it.
     contractStrikes: state.contractStrikes || {},
     tacticalPresets: state.tacticalPresets || [],
     transferFilters: state.transferFilters,
@@ -856,6 +859,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         clubPowerRankings: data.clubPowerRankings || {},
         communityPackEnabled: data.communityPackEnabled || false,
         cpPool: data.cpPool || { shuffleSeed: 0, cursor: 0, usedFcIds: [], marketListings: [], lastMarketRefreshWeek: 0, lastSeedSeason: 0 },
+        // Transient match-scoped field — reset on load so a team talk from
+        // a previously-loaded slot can't leak into the freshly loaded game.
+        matchTeamTalk: 'none' as const,
         // Loaded data IS the current on-disk state → reflect that in the
         // indicator so it doesn't sit blank until the first autosave fires.
         saveStatus: 'saved' as const,
@@ -1111,52 +1117,68 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       preserveProgression = false;
     }
 
-    // Reinitialize game with new club. initGame is only async when Community
-    // Pack is enabled (dynamic imports); in the prestige-reset flow CP is
-    // never threaded through, so this is effectively sync. Still guard with
-    // guardAsync in case a future change enables CP through this path.
-    guardAsync(
-      get().initGame(newClubId),
-      'resetAfterPrestige.initGame',
-      { title: 'Reset failed', body: 'Could not restart for prestige bonus.' },
-    );
+    // Reinitialize game with new club. `initGame` is declared async but its
+    // body runs fully synchronously (including its `set()`) when Community
+    // Pack is disabled — and the prestige-reset flow never threads CP
+    // through — so the post-init `get()` below reliably sees the
+    // initialised state. `applyPrestigeBonuses` is therefore called
+    // synchronously after init AND chained onto the promise: if a future
+    // change ever makes this path async, the `.then()` re-applies the
+    // bonuses against the now-settled state. Re-application is idempotent
+    // (prestigeLevel set to a fixed value, budget multiplier applied to
+    // the post-init club budget) so the double-call is safe.
+    let bonusesApplied = false;
+    const applyPrestigeBonuses = () => {
+      const freshState = get();
+      const updatedProg = preserveProgression
+        ? { ...currentProg, prestigeLevel: newPrestigeLevel }
+        : { ...freshState.managerProgression, prestigeLevel: newPrestigeLevel };
 
-    // Apply prestige bonuses after init
-    const freshState = get();
-    const updatedProg = preserveProgression
-      ? { ...currentProg, prestigeLevel: newPrestigeLevel }
-      : { ...freshState.managerProgression, prestigeLevel: newPrestigeLevel };
+      const updates: Partial<GameState> = {
+        managerProgression: updatedProg,
+        currentScreen: 'dashboard' as const,
+      };
 
-    const updates: Partial<GameState> = {
-      managerProgression: updatedProg,
-      currentScreen: 'dashboard' as const,
+      // Apply budget multiplier — guarded by `bonusesApplied` so the
+      // sync call + the promise `.then()` don't compound the multiplier.
+      if (budgetMultiplier !== 1 && !bonusesApplied) {
+        const newClubs = { ...freshState.clubs };
+        const club = { ...newClubs[newClubId] };
+        club.budget = Math.round(club.budget * budgetMultiplier);
+        newClubs[newClubId] = club;
+        updates.clubs = newClubs;
+      }
+
+      // Carry over career timeline and achievements for all prestige modes
+      if (preserveProgression && !bonusesApplied) {
+        updates.careerTimeline = [...state.careerTimeline, {
+          id: crypto.randomUUID(),
+          type: 'prestige',
+          title: `Prestige ${newPrestigeLevel}`,
+          description: `Started a new journey with prestige level ${newPrestigeLevel}.`,
+          season: state.season,
+          week: state.week,
+          icon: 'star',
+        }];
+        updates.unlockedAchievements = state.unlockedAchievements;
+        updates.seasonHistory = state.seasonHistory;
+      }
+
+      bonusesApplied = true;
+      set(updates);
     };
 
-    // Apply budget multiplier
-    if (budgetMultiplier !== 1) {
-      const newClubs = { ...freshState.clubs };
-      const club = { ...newClubs[newClubId] };
-      club.budget = Math.round(club.budget * budgetMultiplier);
-      newClubs[newClubId] = club;
-      updates.clubs = newClubs;
+    const initResult = get().initGame(newClubId);
+    applyPrestigeBonuses();
+    // If init turned out to be async, re-apply once it settles so the
+    // prestige level survives the init's own state write.
+    if (initResult && typeof (initResult as Promise<void>).then === 'function') {
+      guardAsync(
+        (initResult as Promise<void>).then(applyPrestigeBonuses),
+        'resetAfterPrestige.initGame',
+        { title: 'Reset failed', body: 'Could not restart for prestige bonus.' },
+      );
     }
-
-    // Carry over career timeline and achievements for all prestige modes
-    if (preserveProgression) {
-      updates.careerTimeline = [...state.careerTimeline, {
-        id: crypto.randomUUID(),
-        type: 'prestige',
-        title: `Prestige ${newPrestigeLevel}`,
-        description: `Started a new journey with prestige level ${newPrestigeLevel}.`,
-        season: state.season,
-        week: state.week,
-        icon: 'star',
-      }];
-      updates.unlockedAchievements = state.unlockedAchievements;
-      updates.seasonHistory = state.seasonHistory;
-    }
-
-    set(updates);
   },
 
   // ── Farewell ──
