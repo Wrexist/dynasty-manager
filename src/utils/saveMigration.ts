@@ -1167,6 +1167,16 @@ export function migrateSaveData(data: Record<string, unknown>): Record<string, u
   while (version < CURRENT_VERSION) {
     const migrate = migrations[version];
     if (!migrate) {
+      // A gap in the migration chain — `version` is below CURRENT_VERSION
+      // but no migration step exists to advance it. Without flagging this,
+      // the partially-migrated save silently passes validateSaveShape and
+      // loads with mixed-version data. Mark it so the caller can surface a
+      // recovery prompt instead of trusting the half-migrated payload.
+      Sentry.captureException(
+        new Error(`saveMigration: missing migration step for version ${version}`),
+        { tags: { context: 'saveMigration', fromVersion: String(version) } },
+      );
+      migrated = { ...migrated, migrationError: true };
       break;
     }
     try {

@@ -164,10 +164,14 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
         table: group.table, // Will be rebuilt below
       }));
 
-      // Rebuild tables for groups that had the player match
+      // Rebuild tables for groups that had the player match. We rebuild
+      // whenever the group contains the player's just-played fixture —
+      // previously an `!allPlayed` guard also gated this, which wrongly
+      // SKIPPED the rebuild when the player's match was the group's final
+      // fixture, leaving that result out of the standings and mis-seeding
+      // the knockout bracket.
       const rebuiltGroups = finalGroups.map(group => {
-        const allPlayed = group.fixtures.every(f => f.played || f.week > currentWeek);
-        if (!allPlayed && group.fixtures.some(f => f.id === playerMatchThisWeek.id)) {
+        if (group.fixtures.some(f => f.id === playerMatchThisWeek.id)) {
           // Need to rebuild this group's table
           const entries: Record<string, { nationality: string; played: number; won: number; drawn: number; lost: number; goalsFor: number; goalsAgainst: number; points: number }> = {};
           group.teams.forEach(t => { entries[t] = { nationality: t, played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, points: 0 }; });
