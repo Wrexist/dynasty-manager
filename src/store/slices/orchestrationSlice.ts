@@ -1032,13 +1032,17 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       preserveProgression = false;
     }
 
-    // Apply the prestige bonuses AFTER init completes. `initGame` is async
-    // when Community Pack is enabled (dynamic imports). Even though the
-    // prestige-reset flow doesn't currently thread CP through, reading
-    // `get()` before init resolves would see stale state and the post-init
-    // `set()` would race the init's own write. Chaining off the resolved
-    // promise (via Promise.resolve, which handles the sync `void` case too)
-    // makes this correct regardless of whether init runs sync or async.
+    // Reinitialize game with new club. `initGame` is declared async but its
+    // body runs fully synchronously (including its `set()`) when Community
+    // Pack is disabled — and the prestige-reset flow never threads CP
+    // through — so the post-init `get()` below reliably sees the
+    // initialised state. `applyPrestigeBonuses` is therefore called
+    // synchronously after init AND chained onto the promise: if a future
+    // change ever makes this path async, the `.then()` re-applies the
+    // bonuses against the now-settled state. Re-application is idempotent
+    // (prestigeLevel set to a fixed value, budget multiplier applied to
+    // the post-init club budget) so the double-call is safe.
+    let bonusesApplied = false;
     const applyPrestigeBonuses = () => {
       const freshState = get();
       const updatedProg = preserveProgression
@@ -1050,8 +1054,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         currentScreen: 'dashboard' as const,
       };
 
-      // Apply budget multiplier
-      if (budgetMultiplier !== 1) {
+      // Apply budget multiplier — guarded by `bonusesApplied` so the
+      // sync call + the promise `.then()` don't compound the multiplier.
+      if (budgetMultiplier !== 1 && !bonusesApplied) {
         const newClubs = { ...freshState.clubs };
         const club = { ...newClubs[newClubId] };
         club.budget = Math.round(club.budget * budgetMultiplier);
@@ -1060,7 +1065,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       }
 
       // Carry over career timeline and achievements for all prestige modes
-      if (preserveProgression) {
+      if (preserveProgression && !bonusesApplied) {
         updates.careerTimeline = [...state.careerTimeline, {
           id: crypto.randomUUID(),
           type: 'prestige',
@@ -1074,14 +1079,21 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         updates.seasonHistory = state.seasonHistory;
       }
 
+      bonusesApplied = true;
       set(updates);
     };
 
-    guardAsync(
-      Promise.resolve(get().initGame(newClubId)).then(applyPrestigeBonuses),
-      'resetAfterPrestige.initGame',
-      { title: 'Reset failed', body: 'Could not restart for prestige bonus.' },
-    );
+    const initResult = get().initGame(newClubId);
+    applyPrestigeBonuses();
+    // If init turned out to be async, re-apply once it settles so the
+    // prestige level survives the init's own state write.
+    if (initResult && typeof (initResult as Promise<void>).then === 'function') {
+      guardAsync(
+        (initResult as Promise<void>).then(applyPrestigeBonuses),
+        'resetAfterPrestige.initGame',
+        { title: 'Reset failed', body: 'Could not restart for prestige bonus.' },
+      );
+    }
   },
 
   // ── Farewell ──
