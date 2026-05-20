@@ -756,6 +756,7 @@ export interface GameSettings {
   autoSave: boolean;
   hapticsEnabled: boolean;
   hidePageHints: boolean;
+  hideOnboarding: boolean;
   confirmAllOffers: boolean;
   reducedMotion: boolean;
 }

@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -7,6 +8,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { getSuffix } from '@/utils/helpers';
 import { getExpectedPosition } from '@/config/gameBalance';
 import { Trophy, TrendingUp, TrendingDown, Target, Minus } from 'lucide-react';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useEscapeClose } from '@/hooks/useEscapeClose';
 
 interface MidSeasonReportProps {
   onDismiss: () => void;
@@ -18,6 +21,9 @@ export function MidSeasonReport({ onDismiss }: MidSeasonReportProps) {
     leagueTable: s.leagueTable, fixtures: s.fixtures, boardConfidence: s.boardConfidence, season: s.season,
   })));
   const club = clubs[playerClubId];
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(containerRef, !!club);
+  useEscapeClose(onDismiss, !!club);
   if (!club) return null;
 
   const entry = leagueTable.find(e => e.clubId === playerClubId);
@@ -62,6 +68,7 @@ export function MidSeasonReport({ onDismiss }: MidSeasonReportProps) {
 
   return (
     <div
+      ref={containerRef}
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 px-4"
       role="dialog"
       aria-modal="true"

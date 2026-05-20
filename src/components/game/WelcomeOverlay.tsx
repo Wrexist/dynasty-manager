@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Target, ChevronRight, Trophy, LayoutDashboard, Users, Swords, ShoppingBag } from 'lucide-react';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useEscapeClose } from '@/hooks/useEscapeClose';
 
 const STEPS = [
   {
@@ -54,9 +56,12 @@ export function WelcomeOverlay({ onComplete }: WelcomeOverlayProps) {
   const current = STEPS[safeStep];
   const Icon = current.icon;
   const isLast = safeStep === STEPS.length - 1;
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(containerRef, true);
+  useEscapeClose(onComplete);
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/70 px-4 pb-8 safe-area-bottom" role="dialog" aria-modal="true" aria-labelledby="welcome-overlay-title">
+    <div ref={containerRef} className="fixed inset-0 z-[60] flex items-end justify-center bg-black/70 px-4 pb-8 safe-area-bottom" role="dialog" aria-modal="true" aria-labelledby="welcome-overlay-title">
       <AnimatePresence mode="wait">
         <motion.div
           key={safeStep}

@@ -44,7 +44,7 @@ import { FACILITY_MAX_LEVEL, MEDICAL_LEVEL_FACTOR, RECOVERY_LEVEL_FACTOR, STADIU
 import { DEFAULT_MONETIZATION_STATE } from '@/config/monetization';
 import { ALL_CLUBS, DERBIES, clearLeagueTableCache } from '@/data/league';
 import type { PlayerTemplate } from '@/data/playerTemplates';
-import { generateStarterDeals } from '@/store/slices/sponsorSlice';
+import { generateStarterDeals, generateStarterOffers } from '@/store/slices/sponsorSlice';
 import type { Message } from '@/types/game';
 import { drawForFaPoolSeed, drawForMarket, getActivePool } from '@/utils/communityPackPool';
 import { createDefaultProgression } from '@/utils/managerPerks';
@@ -370,10 +370,18 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
     ? Math.round(startingPlayers.reduce((s, p) => s + p.overall, 0) / startingPlayers.length)
     : 0;
 
+  // Starter inbox messages. The first three are the long-standing welcome
+  // set; the latter two were added as part of the onboarding plan (Phase 3)
+  // to actively point new managers at the Tactics and Scouting screens —
+  // two systems that don't otherwise surface themselves during the first
+  // week of play. All five are read=false so they show up unread in the
+  // inbox; the inbox unread badge becomes a "go look at this" signal.
   const messages: Message[] = [
     { id: crypto.randomUUID(), week: 1, season: 1, type: 'board', title: 'Welcome, Manager!', body: `The board of ${initClub.name} welcomes you. We expect great things this season. Check your objectives in the Club tab.`, read: false },
     { id: crypto.randomUUID(), week: 1, season: 1, type: 'general', title: 'Transfer Window Open', body: 'The transfer window is now open. Scout the market and strengthen your squad before it closes in Week 8.', read: false },
     { id: crypto.randomUUID(), week: 1, season: 1, type: 'transfer', title: 'Pre-Season Market Surge', body: 'Clubs are aggressively reshaping their squads during pre-season. Expect more transfer activity and higher-quality players on the market before league fixtures begin in Week 4.', read: false },
+    { id: crypto.randomUUID(), week: 1, season: 1, type: 'general', title: 'Set Your Tactics', body: 'Your assistant has set a default 4-4-2 formation. To change it: tap "Tactics" in the bottom navigation bar. Inside Tactics, the seven formation badges at the top let you pick a new shape (4-3-3 attacks more, 5-3-2 defends more). Tap "Save" when done. Sticking with one shape builds tactical familiarity — a real boost in matches.', read: false },
+    { id: crypto.randomUUID(), week: 1, season: 1, type: 'general', title: 'Send Out a Scout', body: 'Scouts find players you would never see on the open market. To send one: tap "More" in the bottom navigation bar, then tap "Scouting". Scroll to the "Send Scout" section and tap a region. Domestic returns reports in 2 weeks, Asia and Africa take 4-5 weeks but tend to surface higher-potential youngsters. Reports arrive automatically in your inbox.', read: false },
   ];
 
   const pcInit = clubs[clubId];
@@ -429,6 +437,27 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
     );
   }
 
+  // Surface the sponsorship system on day 1 — kit_main + digital are
+  // auto-signed by generateStarterDeals, but the Finance page's Pending
+  // Offers section would otherwise sit empty until the periodic offer
+  // generator fires (week 2 at earliest, and only for slots that have
+  // already been unlocked by facilities). Generate one introductory
+  // kit_sleeve offer and queue an inbox welcome message pointing the
+  // user at Finance.
+  const starterSponsorDeals = generateStarterDeals(pcInit.reputation, 1);
+  const starterSponsorOffers = generateStarterOffers(pcInit.reputation, 1, starterSponsorDeals);
+  if (starterSponsorOffers.length > 0) {
+    messages.push({
+      id: crypto.randomUUID(),
+      week: 1,
+      season: 1,
+      type: 'sponsorship',
+      title: 'Sponsor Offer Awaiting Review',
+      body: `Welcome aboard — a local brand has put a kit-sleeve sponsorship on the table for your club. To review it: tap "More" in the bottom navigation bar (three dots, bottom-right), then tap "Finance". Scroll down to the "Pending Offers" section and tap the row to see the weekly payment, duration, and bonus condition. Tap "Accept" to sign the deal — it'll pay weekly income for the rest of the season on top of your matchday revenue.`,
+      read: false,
+    });
+  }
+
   set({
     gameStarted: true, playerClubId: clubId, season: 1, week: 1, totalWeeks: league?.totalWeeks || TOTAL_WEEKS,
     gameMode: get().gameMode || 'sandbox',
@@ -439,7 +468,7 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
     transferMarket, shortlist: [], scoutWatchList: [], freeAgents: initialFreeAgentIds, transferNews: [], boardObjectives: objectives, boardConfidence: STARTING_BOARD_CONFIDENCE,
     currentScreen: 'dashboard', previousScreen: null, currentMatchResult: null, trainingFocus: 'fitness',
     messages, seasonHistory: [], incomingOffers: [], matchSubsUsed: 0, matchPhase: 'none', matchTeamTalk: 'none', currentCupTieId: null,
-    settings: { matchSpeed: 600, showOverallOnPitch: true, autoSave: true, hapticsEnabled: true, hidePageHints: false, confirmAllOffers: false, reducedMotion: false },
+    settings: { matchSpeed: 600, showOverallOnPitch: true, autoSave: true, hapticsEnabled: true, hidePageHints: false, hideOnboarding: false, confirmAllOffers: false, reducedMotion: false },
     tactics: { mentality: 'balanced', width: 'normal', tempo: 'normal', defensiveLine: 'normal', pressingIntensity: 50 },
     training: {
       schedule: { mon: 'fitness', tue: 'attacking', wed: 'defending', thu: 'mentality', fri: 'tactical' },
@@ -509,8 +538,8 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
     lastPackWeek: 0,
     lastPackSeason: 0,
     dailyPackOpens: { date: '', free: {}, ad: {} },
-    sponsorDeals: generateStarterDeals(pcInit.reputation, 1),
-    sponsorOffers: [],
+    sponsorDeals: starterSponsorDeals,
+    sponsorOffers: starterSponsorOffers,
     sponsorSlotCooldowns: {},
     negotiationStrikes: {},
     contractStrikes: {},

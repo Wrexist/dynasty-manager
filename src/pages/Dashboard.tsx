@@ -40,6 +40,7 @@ import { StorylineModal } from '@/components/game/StorylineModal';
 import { PlayerTransferTalk } from '@/components/game/PlayerTransferTalk';
 import { AchievementUnlockModal } from '@/components/game/AchievementUnlockModal';
 import { PageHint } from '@/components/game/PageHint';
+import { OnboardingChecklist } from '@/components/game/OnboardingChecklist';
 import { ACHIEVEMENTS } from '@/utils/achievements';
 import type { Achievement } from '@/utils/achievements';
 import { FarewellModal } from '@/components/game/FarewellModal';
@@ -645,6 +646,10 @@ const Dashboard = () => {
         title="Your Dashboard"
         body="This is your weekly hub. Check upcoming matches, review finances, track objectives, and advance to the next week. Visit Squad to manage players, Tactics to set formations, and Transfers to buy or sell."
       />
+
+      {/* Week-1 onboarding checklist for brand-new careers. Self-hides after
+          the user advances week or dismisses it. */}
+      <OnboardingChecklist />
 
       {/* Mid-Season Report (shown at week 23, once per season) */}
       {showMidSeason && <MidSeasonReport onDismiss={dismissMidSeason} />}

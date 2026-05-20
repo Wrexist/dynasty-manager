@@ -6,6 +6,8 @@ import { loadSessionSnapshot, clearSessionSnapshot } from '@/store/helpers/persi
 import { TrendingUp, TrendingDown, ArrowRight, Clock, Heart, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePlayerClub, useLeaguePosition } from '@/hooks/useGameSelectors';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useEscapeClose } from '@/hooks/useEscapeClose';
 
 export function SessionRecap() {
   const [show, setShow] = useState(false);
@@ -40,6 +42,9 @@ export function SessionRecap() {
   }, [week, season]);
 
   const dismiss = () => setShow(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(containerRef, show);
+  useEscapeClose(dismiss, show);
 
   if (!show || !snapshot || !club) return null;
 
@@ -76,6 +81,7 @@ export function SessionRecap() {
     <AnimatePresence>
       {show && (
         <motion.div
+          ref={containerRef}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}

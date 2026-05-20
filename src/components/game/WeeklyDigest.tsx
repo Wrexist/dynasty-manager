@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { Button } from '@/components/ui/button';
 import {
   DollarSign, Heart, AlertTriangle, Activity, Mail,
@@ -83,6 +84,8 @@ export function WeeklyDigest() {
   const dismiss = () => {
     useGameStore.setState({ weeklyDigest: null });
   };
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(containerRef, !!digest);
 
   if (!digest) return null;
 
@@ -134,6 +137,7 @@ export function WeeklyDigest() {
   return (
     <AnimatePresence mode="wait">
       <motion.div
+        ref={containerRef}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
