@@ -32,18 +32,27 @@ if (iosUpdated !== pbxproj) {
   console.log('  iOS: no changes needed');
 }
 
-// --- Android: update versionName in build.gradle ---
+// --- Android: update the versionName fallback default in build.gradle ---
+// build.gradle resolves versionName from the VERSION_NAME env var (the
+// android-build workflow passes it explicitly) and falls back to a literal
+// default for local / unconfigured builds. We keep that fallback in sync
+// with package.json so an env-less build never ships a stale 1.0.0.
 const gradlePath = resolve(root, 'android/app/build.gradle');
 let gradle = readFileSync(gradlePath, 'utf8');
-const androidUpdated = gradle.replace(
-  /versionName "[\d.]+"/,
-  `versionName "${version}"`
-);
+const androidVersionRe = /(versionName\s+System\.getenv\("VERSION_NAME"\)\s*\?:\s*")[\d.]+(")/;
+if (!androidVersionRe.test(gradle)) {
+  console.error(
+    'Error: could not find the versionName fallback in android/app/build.gradle. ' +
+      'Expected: versionName System.getenv("VERSION_NAME") ?: "x.y.z"'
+  );
+  process.exit(1);
+}
+const androidUpdated = gradle.replace(androidVersionRe, `$1${version}$2`);
 if (androidUpdated !== gradle) {
   writeFileSync(gradlePath, androidUpdated);
-  console.log(`  Android versionName → "${version}"`);
+  console.log(`  Android versionName fallback → "${version}"`);
 } else {
-  console.log('  Android: no changes needed');
+  console.log(`  Android: versionName fallback already "${version}"`);
 }
 
 console.log('Done.');
