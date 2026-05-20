@@ -268,7 +268,12 @@ describe('orchestrationSlice — penalty shootout flow', () => {
     const result = useGameStore.getState().playPenalties();
     expect(result).not.toBeNull();
     const s = useGameStore.getState();
-    expect(s.penaltyShootoutKicks.length).toBeGreaterThanOrEqual(10);
+    // A shootout stops the moment the result is mathematically decided
+    // (see penaltyShootout.ts:55) — the earliest a best-of-5 can be
+    // settled is 6 kicks (3-0 after round 3), and sudden death extends
+    // it past 10. So the sequence is anywhere from 6 upward; asserting
+    // a fixed 10 was wrong and flaked whenever a shootout ended early.
+    expect(s.penaltyShootoutKicks.length).toBeGreaterThanOrEqual(6);
     expect(s.penaltyShootoutRevealIndex).toBe(0);
     // Final score is a winner — totals must differ on the last kick
     const last = s.penaltyShootoutKicks[s.penaltyShootoutKicks.length - 1];
