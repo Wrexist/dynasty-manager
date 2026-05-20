@@ -272,6 +272,26 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
     lastPackWeek: state.lastPackWeek || 0,
     lastPackSeason: state.lastPackSeason || 0,
     dailyPackOpens: state.dailyPackOpens || { date: '', free: {}, ad: {} },
+    // ── Audit fix: fields that were silently resetting on every reload ──
+    // Community Pack: without these, a reloaded CP save re-shuffles the real
+    // player pool (duplicate players league-wide) and reverts to fictional
+    // names on the next squad regen.
+    communityPackEnabled: state.communityPackEnabled,
+    cpPool: state.cpPool,
+    // ELO power rankings — updated after every match; absent here meant every
+    // reload reset all team strength ratings to empty.
+    clubPowerRankings: state.clubPowerRankings,
+    // Season-summary accumulators — reloading mid-season zeroed these, so the
+    // end-of-season report showed wrong net spend / income / OVR delta.
+    seasonStartAvgOVR: state.seasonStartAvgOVR,
+    seasonTransfersBought: state.seasonTransfersBought,
+    seasonTransfersSold: state.seasonTransfersSold,
+    seasonTotalIncome: state.seasonTotalIncome,
+    seasonTotalExpenses: state.seasonTotalExpenses,
+    // Contract-renewal negotiation lockouts (sibling of the saved
+    // negotiationStrikes) and Pro tactical presets — both reset on reload.
+    contractStrikes: state.contractStrikes,
+    tacticalPresets: state.tacticalPresets,
   };
   let json = JSON.stringify(saveData);
 
@@ -781,6 +801,25 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         jobOffers: data.jobOffers || [],
         activeInterview: data.activeInterview || null,
         seasonGrowthTracker: data.seasonGrowthTracker || {},
+        // ── Audit fix: explicit fallbacks for the newly-persisted fields ──
+        // `...data` already spreads these when present; the explicit lines
+        // below guarantee a sane value for saves written before this fix
+        // (where the keys are absent) AND prevent a stale value carrying
+        // over from a previously-loaded slot in the same session.
+        communityPackEnabled: data.communityPackEnabled ?? false,
+        cpPool: data.cpPool || { shuffleSeed: 0, cursor: 0, usedFcIds: [], marketListings: [], lastMarketRefreshWeek: 0, lastSeedSeason: 0 },
+        clubPowerRankings: data.clubPowerRankings || {},
+        seasonStartAvgOVR: data.seasonStartAvgOVR ?? 0,
+        seasonTransfersBought: data.seasonTransfersBought || [],
+        seasonTransfersSold: data.seasonTransfersSold || [],
+        seasonTotalIncome: data.seasonTotalIncome ?? 0,
+        seasonTotalExpenses: data.seasonTotalExpenses ?? 0,
+        contractStrikes: data.contractStrikes || {},
+        tacticalPresets: data.tacticalPresets || [],
+        // Transient fields that must not leak across a slot switch.
+        pendingTransferTalk: null,
+        pendingGemReveal: null,
+        matchTeamTalk: 'none' as const,
         // Loaded data IS the current on-disk state → reflect that in the
         // indicator so it doesn't sit blank until the first autosave fires.
         saveStatus: 'saved' as const,
@@ -993,52 +1032,56 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       preserveProgression = false;
     }
 
-    // Reinitialize game with new club. initGame is only async when Community
-    // Pack is enabled (dynamic imports); in the prestige-reset flow CP is
-    // never threaded through, so this is effectively sync. Still guard with
-    // guardAsync in case a future change enables CP through this path.
+    // Apply the prestige bonuses AFTER init completes. `initGame` is async
+    // when Community Pack is enabled (dynamic imports). Even though the
+    // prestige-reset flow doesn't currently thread CP through, reading
+    // `get()` before init resolves would see stale state and the post-init
+    // `set()` would race the init's own write. Chaining off the resolved
+    // promise (via Promise.resolve, which handles the sync `void` case too)
+    // makes this correct regardless of whether init runs sync or async.
+    const applyPrestigeBonuses = () => {
+      const freshState = get();
+      const updatedProg = preserveProgression
+        ? { ...currentProg, prestigeLevel: newPrestigeLevel }
+        : { ...freshState.managerProgression, prestigeLevel: newPrestigeLevel };
+
+      const updates: Partial<GameState> = {
+        managerProgression: updatedProg,
+        currentScreen: 'dashboard' as const,
+      };
+
+      // Apply budget multiplier
+      if (budgetMultiplier !== 1) {
+        const newClubs = { ...freshState.clubs };
+        const club = { ...newClubs[newClubId] };
+        club.budget = Math.round(club.budget * budgetMultiplier);
+        newClubs[newClubId] = club;
+        updates.clubs = newClubs;
+      }
+
+      // Carry over career timeline and achievements for all prestige modes
+      if (preserveProgression) {
+        updates.careerTimeline = [...state.careerTimeline, {
+          id: crypto.randomUUID(),
+          type: 'prestige',
+          title: `Prestige ${newPrestigeLevel}`,
+          description: `Started a new journey with prestige level ${newPrestigeLevel}.`,
+          season: state.season,
+          week: state.week,
+          icon: 'star',
+        }];
+        updates.unlockedAchievements = state.unlockedAchievements;
+        updates.seasonHistory = state.seasonHistory;
+      }
+
+      set(updates);
+    };
+
     guardAsync(
-      get().initGame(newClubId),
+      Promise.resolve(get().initGame(newClubId)).then(applyPrestigeBonuses),
       'resetAfterPrestige.initGame',
       { title: 'Reset failed', body: 'Could not restart for prestige bonus.' },
     );
-
-    // Apply prestige bonuses after init
-    const freshState = get();
-    const updatedProg = preserveProgression
-      ? { ...currentProg, prestigeLevel: newPrestigeLevel }
-      : { ...freshState.managerProgression, prestigeLevel: newPrestigeLevel };
-
-    const updates: Partial<GameState> = {
-      managerProgression: updatedProg,
-      currentScreen: 'dashboard' as const,
-    };
-
-    // Apply budget multiplier
-    if (budgetMultiplier !== 1) {
-      const newClubs = { ...freshState.clubs };
-      const club = { ...newClubs[newClubId] };
-      club.budget = Math.round(club.budget * budgetMultiplier);
-      newClubs[newClubId] = club;
-      updates.clubs = newClubs;
-    }
-
-    // Carry over career timeline and achievements for all prestige modes
-    if (preserveProgression) {
-      updates.careerTimeline = [...state.careerTimeline, {
-        id: crypto.randomUUID(),
-        type: 'prestige',
-        title: `Prestige ${newPrestigeLevel}`,
-        description: `Started a new journey with prestige level ${newPrestigeLevel}.`,
-        season: state.season,
-        week: state.week,
-        icon: 'star',
-      }];
-      updates.unlockedAchievements = state.unlockedAchievements;
-      updates.seasonHistory = state.seasonHistory;
-    }
-
-    set(updates);
   },
 
   // ── Farewell ──

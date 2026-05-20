@@ -4,6 +4,14 @@ import { CUP_PENALTY_WIN_CHANCE, CUP_PENALTY_KICKS } from '@/config/gameBalance'
 
 export const CUP_BYE_MARKER = '__BYE__';
 
+// Cup round weeks. The Final sits at week 43 specifically to dodge the
+// continental SF second leg (weeks 41-42) and the continental Final
+// (week 44): the player's continental knockout ties are NOT auto-simulated
+// by weekAdvance (simulateKnockoutLeg skips the player's own tie, expecting
+// interactive play), and `playCurrentMatchImpl` resolves a cup tie BEFORE a
+// continental match on the same week — so a cup-final/continental-SF week
+// collision would strand the continental tie unresolved and hang the
+// tournament. Week 43 is also clear of the League Cup Final (week 40).
 const CUP_WEEKS: Record<CupRound, number> = {
   R1: 4,
   R2: 8,
@@ -11,7 +19,7 @@ const CUP_WEEKS: Record<CupRound, number> = {
   R4: 20,
   QF: 28,
   SF: 36,
-  F: 42,
+  F: 43,
 };
 
 const ROUND_ORDER: CupRound[] = ['R1', 'R2', 'R3', 'R4', 'QF', 'SF', 'F'];
