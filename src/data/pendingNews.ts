@@ -53,6 +53,7 @@ export const PENDING_NEWS: PendingRelease = {
     'The checklist now uses the same Liquid Glass treatment as the rest of the app — backdrop blur, inset highlights, gold accent rail at the top — instead of the flat gold tint of the first draft.',
     'Checklist swaps the "Send a scout" row for a "Hire a scout from Staff" row when you have no scout on your books — no more rows that can never tick.',
     'Every starter inbox message now spells out the exact navigation path ("tap More, then Finance, scroll to Pending Offers, tap the row") instead of assuming you already know where things live.',
+    'Pack opening is more cinematic: a cosmic parallax starfield drifts behind the pack for real depth, the pack now has a gentle idle float while it waits for your tap, and the reveal lands on a radial white bloom instead of a flat flash.',
     'Pack opening summary now has bulk keep and bulk sell actions.',
     'Resigning your job and the manager job market are easier to find from the menus.',
     'Reorganize pending news and release notes for clarity.',

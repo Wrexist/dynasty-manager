@@ -289,6 +289,33 @@
   .player-avatar-idle { animation: none !important; }
 }
 
+/* ── Pack-opening cosmic starfield ──
+   Three parallax depth layers behind the pack. Each layer is one
+   compositor element drifting via transform (the stars are static painted
+   children), so the whole starfield costs 3 animated nodes regardless of
+   star count. `alternate` direction eases the drift back and forth so the
+   loop never jumps. Far layer drifts least → reads as deepest. */
+@keyframes pack-star-drift-far {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-5%, 3.5%, 0); }
+}
+@keyframes pack-star-drift-mid {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-10%, 7%, 0); }
+}
+@keyframes pack-star-drift-near {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-17%, 11%, 0); }
+}
+.pack-starfield-far  { animation: pack-star-drift-far  68s ease-in-out infinite alternate; will-change: transform; }
+.pack-starfield-mid  { animation: pack-star-drift-mid  52s ease-in-out infinite alternate; will-change: transform; }
+.pack-starfield-near { animation: pack-star-drift-near 40s ease-in-out infinite alternate; will-change: transform; }
+@media (prefers-reduced-motion: reduce) {
+  .pack-starfield-far,
+  .pack-starfield-mid,
+  .pack-starfield-near { animation: none; }
+}
+
 /* Title screen floating background circles (pure CSS, no JS animation
    overhead). Duration is applied inline from the JS config; we can't cap
    it here, but we can disable the drift entirely under reduced motion. */
