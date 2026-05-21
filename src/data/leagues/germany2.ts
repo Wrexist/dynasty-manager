@@ -18,7 +18,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   tier: 2,
   countryId: 'ger',
   promotionSpots: 2,
-  relegationSpots: 2,
+  relegationSpots: 3,
   playoffSpots: 1,
 };
 
