@@ -922,8 +922,12 @@ export function simulateHalf(
     if (homeAvailCount < MIN_PLAYERS_TO_CONTINUE || awayAvailCount < MIN_PLAYERS_TO_CONTINUE) {
       const side = homeAvailCount < MIN_PLAYERS_TO_CONTINUE ? 'home' : 'away';
       events.push({ minute, type: 'commentary', clubId: side === 'home' ? homeClub.id : awayClub.id, description: `Match abandoned — ${side === 'home' ? homeClub.shortName : awayClub.shortName} reduced below ${MIN_PLAYERS_TO_CONTINUE} players.` });
-      if (side === 'home') { homeGoals = Math.min(homeGoals, awayGoals); awayGoals = Math.max(awayGoals, homeGoals + 3); }
-      else { awayGoals = Math.min(awayGoals, homeGoals); homeGoals = Math.max(homeGoals, awayGoals + 3); }
+      // FIFA Law 3 forfeit: the team reduced below the minimum loses the
+      // match. The opponent is awarded at least a 3-0 win (or keeps the
+      // actual scoreline if they were already winning by more). The
+      // offending side's own goals are forfeited to 0.
+      if (side === 'home') { homeGoals = 0; awayGoals = Math.max(awayGoals, 3); }
+      else { awayGoals = 0; homeGoals = Math.max(homeGoals, 3); }
       abandonMatch = true;
       return true;
     }

@@ -95,8 +95,15 @@ export function OnboardingChecklist() {
     (managerProgression?.prestigeLevel ?? 0) === 0 &&
     !hideOnboarding;
 
+  // Only auto-close after the player has actually seen the card with tasks
+  // still pending. A brand-new career that happens to start already at 2/2
+  // (no sponsor offer generated + a scout pre-assigned) must NOT flash the
+  // card away before it is ever read.
+  const sawIncompleteRef = useRef(false);
   useEffect(() => {
-    if (!eligibleToShow || dismissed || !allTasksDone) return;
+    if (!eligibleToShow || dismissed) return;
+    if (!allTasksDone) { sawIncompleteRef.current = true; return; }
+    if (!sawIncompleteRef.current) return;
     writeSessionJson(DISMISS_KEY, true);
     const t = window.setTimeout(() => setDismissed(true), 1400);
     return () => window.clearTimeout(t);

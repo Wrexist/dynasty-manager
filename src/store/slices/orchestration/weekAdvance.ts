@@ -2132,7 +2132,11 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   const merchFanMood = Math.max(cultHeroFloor, Math.min(100, state.fanMood + pricingMoodDelta));
 
   // Process sponsorship system (offers, satisfaction, new deals)
-  const sponsorUpdates = processSponsorWeek({ ...state, week: newWeek, clubs: newClubs, messages: newMessages, currentMatchResult: thisWeekMatch ? state.currentMatchResult : null });
+  // Sponsor satisfaction must react to THIS week's league fixture, not the
+  // ambient `currentMatchResult` (which can be a cup tie or a stale result
+  // from an earlier week). `thisWeekMatch` is the player's league fixture
+  // and carries the same homeClubId/homeGoals/awayGoals shape.
+  const sponsorUpdates = processSponsorWeek({ ...state, week: newWeek, clubs: newClubs, messages: newMessages, currentMatchResult: thisWeekMatch && thisWeekMatch.played ? thisWeekMatch : null });
   if (sponsorUpdates.messages) newMessages = sponsorUpdates.messages;
 
   // Evaluate board objectives based on current league position

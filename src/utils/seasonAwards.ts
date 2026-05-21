@@ -14,12 +14,17 @@ export function calculateSeasonAwards(
     awards.push({ name: 'Golden Boot', recipientName: `${topScorer.firstName} ${topScorer.lastName}`, recipientClub: clubs[topScorer.clubId]?.shortName || '', stat: topScorer.goals });
   }
 
-  // Golden Glove (GK whose club conceded fewest goals)
-  const bestGK = [...allPlayers].filter(p => p.position === 'GK').sort((a, b) => {
-    return (leagueTable.find(e => e.clubId === a.clubId)?.goalsAgainst ?? 999) - (leagueTable.find(e => e.clubId === b.clubId)?.goalsAgainst ?? 999);
-  })[0];
-  if (bestGK) {
-    awards.push({ name: 'Golden Glove', recipientName: `${bestGK.firstName} ${bestGK.lastName}`, recipientClub: clubs[bestGK.clubId]?.shortName || '', stat: leagueTable.find(e => e.clubId === bestGK.clubId)?.goalsAgainst ?? 0 });
+  // Golden Glove — the keeper at the club that conceded fewest league goals.
+  // Pick that club's most-used keeper so a rarely-played backup who happens
+  // to be on the books of a strong defensive side cannot win it.
+  const bestDefClub = [...leagueTable].sort((a, b) => a.goalsAgainst - b.goalsAgainst)[0];
+  if (bestDefClub) {
+    const bestGK = allPlayers
+      .filter(p => p.position === 'GK' && p.clubId === bestDefClub.clubId && p.appearances > 0)
+      .sort((a, b) => b.appearances - a.appearances)[0];
+    if (bestGK) {
+      awards.push({ name: 'Golden Glove', recipientName: `${bestGK.firstName} ${bestGK.lastName}`, recipientClub: clubs[bestGK.clubId]?.shortName || '', stat: bestDefClub.goalsAgainst });
+    }
   }
 
   // Playmaker of the Season (top assists)
