@@ -66,6 +66,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Fix external URL navigation and iOS keyboard handling in sheets.',
     'Add week-1 onboarding checklist and fix save persistence bugs.',
     'Claude/phase 1 all critical fixes.',
+    'Bump marketing version to 1.0.13.',
   ],
   fixed: [
     'Fixed rare launch crashes related to ads.',
