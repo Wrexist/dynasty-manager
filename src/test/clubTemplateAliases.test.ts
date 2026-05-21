@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { CLUB_TEMPLATE_ALIASES, resolveSquadKey } from '@/data/clubTemplateAliases';
-import { CLUB_TEMPLATES } from '@/data/playerTemplates';
+import { ALL_SQUAD_TEMPLATES as CLUB_TEMPLATES } from '@/data/squads';
 import { ALL_CLUBS } from '@/data/league';
 
 describe('clubTemplateAliases', () => {

@@ -21,7 +21,8 @@ import {
   NATIONALITY_DISTRIBUTION,
 } from '@/config/playerGeneration';
 import { NATIONALITY_NAME_POOLS, FALLBACK_FIRST_NAMES, FALLBACK_LAST_NAMES } from '@/config/namePool';
-import { CLUB_TEMPLATES, type PlayerTemplate } from '@/data/playerTemplates';
+import { type PlayerTemplate } from '@/data/playerTemplates';
+import { getClubTemplatesSync } from '@/data/playerTemplatesAccess';
 import { resolveSquadKey } from '@/data/clubTemplateAliases';
 import { claimRealPlayer, pickUnclaimedRealPlayer, isNationalityAliasOf } from '@/utils/realPlayerPicker';
 import { getNationalPoolSync, onNationalPoolLoaded } from '@/data/nationalPlayerPoolAccess';
@@ -400,7 +401,7 @@ export function generateSquad(clubId: string, quality: number, season: number, d
   // saves still feel like a curated football world. The `useRealNames` flag
   // only controls whether the template's real name survives or gets replaced
   // by a pool-picked alias for the same nationality.
-  const templates = CLUB_TEMPLATES[resolveSquadKey(clubId)] || [];
+  const templates = getClubTemplatesSync()[resolveSquadKey(clubId)] || [];
   // Claim template names up-front so the real-player picker doesn't hand
   // the same person to another club as a filler later in the init loop.
   for (const t of templates) claimRealPlayer(t);
