@@ -3,7 +3,7 @@
  * Defines sponsor slots, sponsor pool, and all balancing constants.
  */
 
-import type { SponsorSlotDef, SponsorDef, SponsorBonusCondition, SponsorSlotId, FacilitiesState } from '@/types/game';
+import type { SponsorSlotDef, SponsorDef, SponsorBonusCondition, SponsorSlotId, FacilitiesState, SponsorNegotiationProposal, SponsorNegotiationResult } from '@/types/game';
 import { pick } from '@/utils/helpers';
 import { getEffectiveStadiumLevel } from '@/utils/facilities';
 
@@ -226,5 +226,100 @@ export function generateOffer(
     bonusCondition,
     buyoutCost,
     expiresWeek: currentWeek + SPONSOR_OFFER_EXPIRY,
+  };
+}
+
+// ── Negotiation (multi-round haggling) ──
+
+/** Maximum counter-proposals before the sponsor's offer becomes final. */
+export const SPONSOR_NEGOTIATION_MAX_ROUNDS = 3;
+
+// How far over the original offer's value the sponsor will stretch before it
+// stops being a friendly counter. Reputation widens the band; each round
+// already spent narrows it (the sponsor loses patience).
+const NEG_BASE_TOLERANCE = 0.10;
+const NEG_REP_TOLERANCE = 0.035;   // per reputation point
+const NEG_ROUND_PENALTY = 0.04;    // per round already used
+// A demand this far past tolerance makes the sponsor walk away entirely.
+const NEG_WITHDRAW_MARGIN = 0.20;
+// Lever weights in the demand index.
+const NEG_BONUS_WEIGHT = 0.45;     // bonus over-ask relative to pay over-ask
+const NEG_DURATION_WEIGHT = 0.12;  // per extra season asked (signed)
+
+/** Bounds the player's counter-proposal can move within, relative to the offer. */
+export function getSponsorNegotiationBounds(offer: SponsorNegotiationProposal) {
+  const round = (n: number, to: number) => Math.max(to, Math.round(n / to) * to);
+  return {
+    weeklyPayment: { min: offer.weeklyPayment, max: Math.round(offer.weeklyPayment * 1.75), step: round(offer.weeklyPayment * 0.05, 1000) },
+    performanceBonus: { min: offer.performanceBonus, max: Math.round(offer.performanceBonus * 2), step: round(offer.performanceBonus * 0.1, 1000) },
+    seasonDuration: { min: 1, max: 4, step: 1 },
+  };
+}
+
+/**
+ * Evaluate a player counter-proposal against the *original* offer. Measuring
+ * vs the immutable original (not the rolling counter) bounds total greed so
+ * the player can't ratchet by accepting a counter and re-pushing.
+ *
+ * Deterministic by design: the player learns where the line is, and the
+ * "risk they walk away" is the deterministic withdraw threshold — push past
+ * tolerance + margin and the sponsor leaves.
+ */
+export function evaluateSponsorNegotiation(
+  original: SponsorNegotiationProposal,
+  proposal: SponsorNegotiationProposal,
+  reputation: number,
+  roundsUsed: number,
+): SponsorNegotiationResult {
+  const payOver = Math.max(0, (proposal.weeklyPayment - original.weeklyPayment) / Math.max(1, original.weeklyPayment));
+  const bonusOver = Math.max(0, (proposal.performanceBonus - original.performanceBonus) / Math.max(1, original.performanceBonus));
+  const durationDelta = proposal.seasonDuration - original.seasonDuration;
+
+  const variableDemand = payOver + bonusOver * NEG_BONUS_WEIGHT;
+  const durationDemand = durationDelta * NEG_DURATION_WEIGHT;  // signed
+  const demand = variableDemand + durationDemand;
+
+  const tolerance = Math.max(
+    0.03,
+    NEG_BASE_TOLERANCE + reputation * NEG_REP_TOLERANCE - roundsUsed * NEG_ROUND_PENALTY,
+  );
+  const isFinal = roundsUsed + 1 >= SPONSOR_NEGOTIATION_MAX_ROUNDS;
+
+  // Within tolerance — sponsor agrees to the ask outright.
+  if (demand <= tolerance) {
+    return {
+      outcome: 'accepted',
+      weeklyPayment: proposal.weeklyPayment,
+      seasonDuration: proposal.seasonDuration,
+      performanceBonus: proposal.performanceBonus,
+      mood: demand <= tolerance * 0.45 ? 'pleased' : 'neutral',
+      isFinal,
+    };
+  }
+
+  // Too greedy — sponsor walks.
+  if (demand > tolerance + NEG_WITHDRAW_MARGIN) {
+    return {
+      outcome: 'withdrawn',
+      weeklyPayment: original.weeklyPayment,
+      seasonDuration: original.seasonDuration,
+      performanceBonus: original.performanceBonus,
+      mood: 'annoyed',
+      isFinal,
+    };
+  }
+
+  // Counter: scale the player's pay/bonus asks down so the total demand
+  // lands at tolerance. Duration is discrete — the sponsor concedes the
+  // length asked and haggles on the money instead.
+  const targetVariable = Math.max(0, tolerance - durationDemand);
+  const scale = variableDemand > 0 ? Math.min(1, targetVariable / variableDemand) : 0;
+  return {
+    outcome: 'countered',
+    weeklyPayment: Math.round(original.weeklyPayment + (proposal.weeklyPayment - original.weeklyPayment) * scale),
+    performanceBonus: Math.round(original.performanceBonus + (proposal.performanceBonus - original.performanceBonus) * scale),
+    seasonDuration: proposal.seasonDuration,
+    mood: 'neutral',
+    isFinal,
   };
 }

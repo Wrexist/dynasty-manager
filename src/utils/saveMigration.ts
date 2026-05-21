@@ -11,7 +11,7 @@ import type { Club, Player, FormationType } from '@/types/game';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 68;
+const CURRENT_VERSION = 69;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -1126,6 +1126,12 @@ const migrations: Record<number, MigrationFn> = {
       lastMarketRefreshWeek: 0, lastSeedSeason: 0,
     },
   }),
+
+  // v68 → v69: SponsorOffer gained an optional `negotiation` field for the
+  // multi-round haggling flow. Existing pending offers simply carry no
+  // negotiation (undefined) — the field is optional, so there is nothing
+  // to backfill; this is a clean version bump.
+  68: (data) => ({ ...data, version: 69 }),
 
   // v64 → v65: National team `fifaRanking` was hardcoded to 25 on init —
   // recompute from the canonical per-nation `baseRanking` so France no

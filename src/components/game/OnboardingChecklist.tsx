@@ -28,7 +28,7 @@
  * the GlassPanel decorative specular layer, matching the rest of the
  * dark glass-morphism design language.
  */
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -82,6 +82,25 @@ export function OnboardingChecklist() {
   const closeWalkthrough = () => setActiveWalkthrough(null);
   useFocusTrap(walkthroughRef, activeWalkthrough !== null);
   useEscapeClose(closeWalkthrough, activeWalkthrough !== null);
+
+  // Auto-complete: once both starter tasks are ticked, the checklist has
+  // served its purpose. Persist the dismissal immediately (so it never
+  // re-opens) and fade the card out after a short beat — long enough for
+  // the player to see it reach 2/2.
+  const sponsorTaskDone = sponsorOffers.length === 0;
+  const scoutTaskDone = scouting.maxAssignments > 0 && scouting.assignments.length > 0;
+  const allTasksDone = sponsorTaskDone && scoutTaskDone;
+  const eligibleToShow =
+    week === 1 && season === 1 &&
+    (managerProgression?.prestigeLevel ?? 0) === 0 &&
+    !hideOnboarding;
+
+  useEffect(() => {
+    if (!eligibleToShow || dismissed || !allTasksDone) return;
+    writeSessionJson(DISMISS_KEY, true);
+    const t = window.setTimeout(() => setDismissed(true), 1400);
+    return () => window.clearTimeout(t);
+  }, [eligibleToShow, dismissed, allTasksDone]);
 
   // Hard gates: hide entirely if not a brand-new career, if the user has
   // dismissed it this session, or if they've globally opted out via Settings.
