@@ -149,11 +149,32 @@ function main() {
     return;
   }
 
+  // Release notes are strictly player-facing. PRs from agent branches
+  // (claude/*, codex/* …) often carry only a branch-style title and no
+  // `## What's New` section, so the title fallback can leak text that names
+  // the AI tool or the dev workflow ("Claude/phase 1 all critical fixes").
+  // Drop any such bullet — add a `## What's New` section to the PR body to
+  // control the wording instead.
+  const FORBIDDEN_BULLET_RE =
+    /\b(claude|cursor|lovable|copilot|codex|chatgpt|gpt-?\d|vibe[\s-]?cod\w*|ai[\s-](generated|assisted|written))\b/i;
+  const userFacingBullets = bullets.filter(b => {
+    if (FORBIDDEN_BULLET_RE.test(b)) {
+      info(`Dropped bullet — names an AI/dev tool, not a player-facing change: "${b}"`);
+      return false;
+    }
+    return true;
+  });
+  if (userFacingBullets.length === 0) {
+    info('PR yielded no player-facing bullets after filtering AI/dev-tooling noise.');
+    console.log('action=skip');
+    return;
+  }
+
   const source = readFile(PENDING_NEWS_PATH);
   const { fields } = parsePendingNews(source);
   const existing = fields[field] || [];
   const additions = [];
-  for (const b of bullets) {
+  for (const b of userFacingBullets) {
     if (!existing.includes(b) && !additions.includes(b)) additions.push(b);
   }
 
