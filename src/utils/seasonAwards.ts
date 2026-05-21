@@ -20,8 +20,8 @@ export function calculateSeasonAwards(
   const bestDefClub = [...leagueTable].sort((a, b) => a.goalsAgainst - b.goalsAgainst)[0];
   if (bestDefClub) {
     const bestGK = allPlayers
-      .filter(p => p.position === 'GK' && p.clubId === bestDefClub.clubId && p.appearances > 0)
-      .sort((a, b) => b.appearances - a.appearances)[0];
+      .filter(p => p.position === 'GK' && p.clubId === bestDefClub.clubId)
+      .sort((a, b) => (b.appearances || 0) - (a.appearances || 0))[0];
     if (bestGK) {
       awards.push({ name: 'Golden Glove', recipientName: `${bestGK.firstName} ${bestGK.lastName}`, recipientClub: clubs[bestGK.clubId]?.shortName || '', stat: bestDefClub.goalsAgainst });
     }
