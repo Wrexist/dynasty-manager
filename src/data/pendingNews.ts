@@ -61,6 +61,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Ability to purchase Yearly or Lifetime plans in addition to the free-trial Monthly plan.',
     'Clear, non-misleading billing information with billed amount as the most prominent element.',
     'Fix external URL navigation and iOS keyboard handling in sheets.',
+    'Keep release notes strictly player-facing.',
   ],
   fixed: [
     'Fixed rare launch crashes related to ads.',
