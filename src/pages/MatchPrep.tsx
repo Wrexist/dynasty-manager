@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { getDerbyIntensity, getDerbyName, LEAGUES } from '@/data/league';
 import { getCompetitionInfo } from '@/utils/competitionBadge';
 import { FORMATION_POSITIONS, FormationType, type Position } from '@/types/game';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS } from '@/config/ui';
 import { isPro } from '@/utils/monetization';
@@ -48,6 +48,13 @@ const MatchPrep = () => {
   const setScreen = useGameStore((s) => s.setScreen);
   const playCurrentMatch = useGameStore((s) => s.playCurrentMatch);
   const { potentialGain, autoFilling, optimizeLineup, result: optimizeResult, dismissResult: dismissOptimizeResult } = useLineupOptimizer();
+  // Instant Sim skips all live tactical control — confirm before committing.
+  const [confirmSim, setConfirmSim] = useState(false);
+  const runSim = () => {
+    setConfirmSim(false);
+    const result = playCurrentMatch();
+    if (result) setScreen('match-review');
+  };
 
   const myClub = clubs[playerClubId];
 
@@ -544,16 +551,34 @@ const MatchPrep = () => {
               size="lg"
               variant="outline"
               className="h-14 px-4 font-bold gap-2 border-primary/50 text-primary bg-primary/10 hover:bg-primary/20 active:bg-primary/30"
-              onClick={() => {
-                const result = playCurrentMatch();
-                if (result) setScreen('match-review');
-              }}
+              onClick={() => setConfirmSim(true)}
             >
               <Zap className="w-5 h-5" /> Sim
             </Button>
           )}
         </div>
       </div>
+
+      {/* Confirm instant sim — it forfeits all live tactical control. */}
+      {confirmSim && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <GlassPanel className="p-5 max-w-sm w-full space-y-4">
+            <h3 className="text-base font-bold text-foreground font-display">Simulate this match?</h3>
+            <p className="text-sm text-muted-foreground">
+              Instant Sim plays the match out immediately — you won't be able to make
+              substitutions, change tactics, or influence it live.
+            </p>
+            <div className="flex gap-2">
+              <Button size="sm" className="flex-1 h-9 gap-1.5" onClick={runSim}>
+                <Zap className="w-4 h-4" /> Sim Match
+              </Button>
+              <Button size="sm" variant="outline" className="flex-1 h-9" onClick={() => setConfirmSim(false)}>
+                Cancel
+              </Button>
+            </div>
+          </GlassPanel>
+        </div>
+      )}
 
       <OptimizeResultModal result={optimizeResult} onDismiss={dismissOptimizeResult} />
     </div>

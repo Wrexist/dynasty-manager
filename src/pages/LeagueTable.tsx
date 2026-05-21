@@ -389,16 +389,18 @@ const LeagueTable = () => {
       {tab === 'table' && (
         <GlassPanel className="overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            {/* table-fixed so the Club column truncates cleanly instead of
+                the auto-layout squeezing every column at 375px width. */}
+            <table className="w-full text-sm table-fixed">
               <thead>
                 <tr className="border-b border-border/30">
-                  <th className="text-left p-2 text-[10px] text-muted-foreground uppercase w-7">#</th>
-                  <th className="text-left p-2 text-[10px] text-muted-foreground uppercase">Club</th>
-                  <th className="text-center p-2 text-[10px] text-muted-foreground uppercase w-7">P</th>
-                  <th className="text-center p-2 text-[10px] text-muted-foreground uppercase w-10">W-D-L</th>
-                  <th className="text-center p-2 text-[10px] text-muted-foreground uppercase w-8">GD</th>
-                  <th className="text-center p-2 text-[10px] text-muted-foreground uppercase w-8">Pts</th>
-                  <th className="text-center p-2 text-[10px] text-muted-foreground uppercase w-[4.5rem]">Form</th>
+                  <th className="text-left px-1 py-2 text-[10px] text-muted-foreground uppercase w-6">#</th>
+                  <th className="text-left px-1 py-2 text-[10px] text-muted-foreground uppercase">Club</th>
+                  <th className="text-center px-1 py-2 text-[10px] text-muted-foreground uppercase w-6">P</th>
+                  <th className="text-center px-1 py-2 text-[10px] text-muted-foreground uppercase w-[2.6rem]">W-D-L</th>
+                  <th className="text-center px-1 py-2 text-[10px] text-muted-foreground uppercase w-7">GD</th>
+                  <th className="text-center px-1 py-2 text-[10px] text-muted-foreground uppercase w-7">Pts</th>
+                  <th className="text-center px-1 py-2 text-[10px] text-muted-foreground uppercase w-[4rem]">Form</th>
                 </tr>
               </thead>
               <tbody>
@@ -426,34 +428,34 @@ const LeagueTable = () => {
                         isPlayer && 'bg-primary/5 shadow-[inset_0_0_12px_hsl(var(--primary)/0.05)] border-l-2 border-l-primary'
                       )}
                     >
-                      <td className={cn('p-2 text-xs', pos === 1 ? 'text-primary font-bold' : 'text-muted-foreground')}>
+                      <td className={cn('px-1 py-2 text-xs', pos === 1 ? 'text-primary font-bold' : 'text-muted-foreground')}>
                         <div className="flex items-center gap-0.5">
                           <span>{pos}</span>
                           {entry.form.length > 0 && entry.form[entry.form.length - 1] === 'W' && (
-                            <TrendingUp className="w-2.5 h-2.5 text-emerald-400" />
+                            <TrendingUp className="w-2.5 h-2.5 text-emerald-400 shrink-0" />
                           )}
                           {entry.form.length > 0 && entry.form[entry.form.length - 1] === 'L' && (
-                            <TrendingDown className="w-2.5 h-2.5 text-destructive" />
+                            <TrendingDown className="w-2.5 h-2.5 text-destructive shrink-0" />
                           )}
                         </div>
                       </td>
-                      <td className="p-2">
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: club?.color }} />
+                      <td className="px-1 py-2">
+                        <div className="flex items-center gap-1 min-w-0">
+                          <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: club?.color }} />
                           <span className={cn('text-xs font-medium truncate', isPlayer ? 'text-primary font-bold' : 'text-foreground')}>
                             {getClubDisplayName(club?.name || '?')}
                           </span>
                         </div>
                       </td>
-                      <td className="text-center p-2 text-xs text-muted-foreground tabular-nums">{entry.played}</td>
-                      <td className="text-center p-2 text-[10px] text-muted-foreground tabular-nums">{entry.won}-{entry.drawn}-{entry.lost}</td>
-                      <td className="text-center p-2 text-xs text-muted-foreground tabular-nums">{entry.goalDifference > 0 ? '+' : ''}{entry.goalDifference}</td>
-                      <td className="text-center p-2 text-xs font-bold text-foreground tabular-nums">{entry.points}</td>
-                      <td className="p-2">
+                      <td className="text-center px-1 py-2 text-xs text-muted-foreground tabular-nums">{entry.played}</td>
+                      <td className="text-center px-1 py-2 text-[10px] text-muted-foreground tabular-nums">{entry.won}-{entry.drawn}-{entry.lost}</td>
+                      <td className="text-center px-1 py-2 text-xs text-muted-foreground tabular-nums">{entry.goalDifference > 0 ? '+' : ''}{entry.goalDifference}</td>
+                      <td className="text-center px-1 py-2 text-xs font-bold text-foreground tabular-nums">{entry.points}</td>
+                      <td className="px-1 py-2">
                         <div className="flex gap-0.5 justify-center">
                           {entry.form.map((r, j) => (
                             <span key={j} className={cn(
-                              'w-3.5 h-3.5 rounded-sm flex items-center justify-center text-[7px] font-bold',
+                              'w-3 h-3 rounded-sm flex items-center justify-center text-[7px] font-bold shrink-0',
                               r === 'W' ? 'bg-emerald-500/20 text-emerald-400' : r === 'L' ? 'bg-destructive/20 text-destructive' : 'bg-muted text-muted-foreground'
                             )}>{r}</span>
                           ))}

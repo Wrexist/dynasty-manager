@@ -82,6 +82,7 @@ const TransferPage = () => {
   const [offerYears, setOfferYears] = useState(FREE_AGENT_DEFAULT_CONTRACT_YEARS);
   const [negotiatingListing, setNegotiatingListing] = useState<TransferListing | null>(null);
   const [confirmAction, setConfirmAction] = useState<{ offerId: string; accept: boolean; playerName: string; fee: number } | null>(null);
+  const [confirmLoanBuy, setConfirmLoanBuy] = useState<{ loanId: string; playerName: string; fee: number } | null>(null);
   const [negotiatingOffer, setNegotiatingOffer] = useState<IncomingOffer | null>(null);
 
   const club = clubs[playerClubId];
@@ -212,15 +213,15 @@ const TransferPage = () => {
   const confirmAllOffers = useGameStore(s => s.settings.confirmAllOffers);
 
   const handleRespondToOffer = (offerId: string, accept: boolean) => {
-    // Confirm significant offers (player overall >= 70 or fee >= 5M), or all offers if setting enabled
-    if (accept) {
-      const offer = incomingOffers.find(o => o.id === offerId);
-      const p = offer ? players[offer.playerId] : null;
-      if (p && (confirmAllOffers || p.overall >= SIGNIFICANT_OFFER_OVERALL || (offer && offer.fee >= SIGNIFICANT_OFFER_FEE))) {
-        hapticMedium();
-        setConfirmAction({ offerId, accept, playerName: `${p.firstName} ${p.lastName}`, fee: offer!.fee });
-        return;
-      }
+    // Confirm significant offers (player overall >= 70 or fee >= 5M), or all
+    // offers if the setting is enabled — for BOTH accept and reject, since a
+    // rejected bid is consumed and the deal cannot be recovered.
+    const offer = incomingOffers.find(o => o.id === offerId);
+    const p = offer ? players[offer.playerId] : null;
+    if (p && (confirmAllOffers || p.overall >= SIGNIFICANT_OFFER_OVERALL || (offer && offer.fee >= SIGNIFICANT_OFFER_FEE))) {
+      hapticMedium();
+      setConfirmAction({ offerId, accept, playerName: `${p.firstName} ${p.lastName}`, fee: offer!.fee });
+      return;
     }
     executeOfferResponse(offerId, accept);
   };
@@ -239,6 +240,13 @@ const TransferPage = () => {
   const handleUnlist = (playerId: string) => {
     unlistPlayer(playerId);
     infoToast('Player removed from transfer list.');
+  };
+
+  const runLoanBuy = () => {
+    if (!confirmLoanBuy) return;
+    const r = buyLoanedPlayer(confirmLoanBuy.loanId);
+    if (r.success) { hapticHeavy(); successToast(r.message); } else { errorToast(r.message); }
+    setConfirmLoanBuy(null);
   };
 
   return (
@@ -886,8 +894,7 @@ const TransferPage = () => {
                                   errorToast(`Insufficient funds — need ${formatMoney(fee)}.`);
                                   return;
                                 }
-                                const r = buyLoanedPlayer(loan.id);
-                                if (r.success) { hapticHeavy(); successToast(r.message); } else { errorToast(r.message); }
+                                setConfirmLoanBuy({ loanId: loan.id, playerName: `${p.firstName} ${p.lastName}`, fee });
                               }}
                             >
                               Buy Permanently — {formatMoney(loan.obligatoryBuyFee || Math.round(p.value * LOAN_BUY_FEE_MULTIPLIER))}
@@ -995,20 +1002,54 @@ const TransferPage = () => {
         />
       )}
 
-      {/* Confirm Accept Dialog */}
-      {confirmAction && (
+      {/* Confirm permanent loan purchase \u2014 an irreversible multi-million commitment. */}
+      {confirmLoanBuy && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
           <GlassPanel className="p-5 max-w-sm w-full space-y-4">
-            <h3 className="text-base font-bold text-foreground font-display">Confirm Sale</h3>
+            <h3 className="text-base font-bold text-foreground font-display">Sign permanently?</h3>
             <p className="text-sm text-muted-foreground">
-              Accept {'\u00A3'}{(confirmAction.fee / 1e6).toFixed(1)}M for <span className="text-foreground font-medium">{confirmAction.playerName}</span>? This cannot be undone.
+              Buy <span className="text-foreground font-medium">{confirmLoanBuy.playerName}</span> from
+              their parent club for {'\u00a3'}{(confirmLoanBuy.fee / 1e6).toFixed(1)}M? This permanent transfer cannot be undone.
             </p>
             <div className="flex gap-2">
               <Button
                 size="sm" className="flex-1 h-9 bg-emerald-600 hover:bg-emerald-700"
-                onClick={() => { hapticHeavy(); executeOfferResponse(confirmAction.offerId, true); }}
+                onClick={runLoanBuy}
               >
-                Confirm Sale
+                Confirm Signing
+              </Button>
+              <Button
+                size="sm" variant="outline" className="flex-1 h-9"
+                onClick={() => setConfirmLoanBuy(null)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </GlassPanel>
+        </div>
+      )}
+
+      {/* Confirm offer response \u2014 covers both Accept (sale) and Reject. */}
+      {confirmAction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <GlassPanel className="p-5 max-w-sm w-full space-y-4">
+            <h3 className="text-base font-bold text-foreground font-display">
+              {confirmAction.accept ? 'Confirm Sale' : 'Reject Offer'}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {confirmAction.accept ? (
+                <>Accept {'\u00A3'}{(confirmAction.fee / 1e6).toFixed(1)}M for <span className="text-foreground font-medium">{confirmAction.playerName}</span>? This cannot be undone.</>
+              ) : (
+                <>Reject the {'\u00A3'}{(confirmAction.fee / 1e6).toFixed(1)}M bid for <span className="text-foreground font-medium">{confirmAction.playerName}</span>? The offer will be withdrawn for good.</>
+              )}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                className={cn('flex-1 h-9', confirmAction.accept ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-destructive hover:bg-destructive/90')}
+                onClick={() => { hapticHeavy(); executeOfferResponse(confirmAction.offerId, confirmAction.accept); }}
+              >
+                {confirmAction.accept ? 'Confirm Sale' : 'Reject Offer'}
               </Button>
               <Button
                 size="sm" variant="outline" className="flex-1 h-9"
