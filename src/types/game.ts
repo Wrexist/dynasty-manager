@@ -1025,6 +1025,46 @@ export interface SponsorDeal {
   buyoutCost: number;
 }
 
+/** A player counter-proposal during sponsor negotiation. */
+export interface SponsorNegotiationProposal {
+  weeklyPayment: number;
+  seasonDuration: number;
+  performanceBonus: number;
+}
+
+/**
+ * Live state of a haggling negotiation on a pending SponsorOffer. Absent
+ * until the player sends their first counter-proposal. The payment/duration/
+ * bonus fields are the terms currently on the table — what `acceptSponsorOffer`
+ * signs if the player accepts now.
+ */
+export interface SponsorNegotiation {
+  /** Counter-proposals the player has sent so far. */
+  roundsUsed: number;
+  weeklyPayment: number;
+  seasonDuration: number;
+  performanceBonus: number;
+  /**
+   * - 'countered' : sponsor proposed these terms; player may haggle again or sign.
+   * - 'accepted'  : sponsor agreed to the player's exact ask.
+   * - 'final'     : last round reached — take-it-or-leave-it, no more haggling.
+   */
+  outcome: 'countered' | 'accepted' | 'final';
+  /** Sponsor's reaction to the last proposal — drives copy + colour. */
+  mood: 'pleased' | 'neutral' | 'annoyed';
+}
+
+/** Result of evaluating a player counter-proposal against the original offer. */
+export interface SponsorNegotiationResult {
+  outcome: 'accepted' | 'countered' | 'withdrawn';
+  weeklyPayment: number;
+  seasonDuration: number;
+  performanceBonus: number;
+  mood: 'pleased' | 'neutral' | 'annoyed';
+  /** True when this exchange exhausts the round budget. */
+  isFinal: boolean;
+}
+
 export interface SponsorOffer {
   id: string;
   sponsorId: string;
@@ -1035,6 +1075,8 @@ export interface SponsorOffer {
   bonusCondition: SponsorBonusCondition;
   buyoutCost: number;
   expiresWeek: number;
+  /** Present once the player has opened negotiations on this offer. */
+  negotiation?: SponsorNegotiation;
 }
 
 export interface SponsorSlotDef {

@@ -8,6 +8,9 @@ import {
   generatePerformanceBonus,
   generateBuyoutCost,
   generateOffer,
+  evaluateSponsorNegotiation,
+  getSponsorNegotiationBounds,
+  SPONSOR_NEGOTIATION_MAX_ROUNDS,
   SPONSOR_SLOTS,
   SPONSOR_POOL,
   SPONSOR_SATISFACTION_START,
@@ -778,5 +781,65 @@ describe('generateStarterOffers', () => {
     // and we filter it out. The unit test above covers the happy path; we
     // assert here that the function never throws.
     expect(() => generateStarterOffers(3, 1, deals)).not.toThrow();
+  });
+});
+
+// ── Negotiation ──
+
+describe('getSponsorNegotiationBounds', () => {
+  it('floors the player ask at the original offer and caps the upside', () => {
+    const b = getSponsorNegotiationBounds({ weeklyPayment: 10_000, seasonDuration: 1, performanceBonus: 80_000 });
+    expect(b.weeklyPayment.min).toBe(10_000);
+    expect(b.weeklyPayment.max).toBe(17_500);
+    expect(b.performanceBonus.min).toBe(80_000);
+    expect(b.performanceBonus.max).toBe(160_000);
+    expect(b.seasonDuration.min).toBe(1);
+    expect(b.seasonDuration.max).toBe(4);
+  });
+
+  it('uses positive step sizes even for tiny offers', () => {
+    const b = getSponsorNegotiationBounds({ weeklyPayment: 4_000, seasonDuration: 1, performanceBonus: 5_000 });
+    expect(b.weeklyPayment.step).toBeGreaterThan(0);
+    expect(b.performanceBonus.step).toBeGreaterThan(0);
+  });
+});
+
+describe('evaluateSponsorNegotiation', () => {
+  const original = { weeklyPayment: 10_000, seasonDuration: 1, performanceBonus: 80_000 };
+
+  it('accepts a modest ask within tolerance', () => {
+    const r = evaluateSponsorNegotiation(original, { ...original, weeklyPayment: 10_500 }, 3, 0);
+    expect(r.outcome).toBe('accepted');
+    expect(r.weeklyPayment).toBe(10_500);
+    expect(r.mood).toBe('pleased');
+  });
+
+  it('counters a mid-range ask with terms between original and proposal', () => {
+    const proposal = { ...original, weeklyPayment: 13_000 };
+    const r = evaluateSponsorNegotiation(original, proposal, 3, 0);
+    expect(r.outcome).toBe('countered');
+    expect(r.weeklyPayment).toBeGreaterThan(original.weeklyPayment);
+    expect(r.weeklyPayment).toBeLessThan(proposal.weeklyPayment);
+    expect(r.mood).toBe('neutral');
+  });
+
+  it('withdraws when the demand is wildly over tolerance', () => {
+    const r = evaluateSponsorNegotiation(original, { ...original, weeklyPayment: 18_000 }, 3, 0);
+    expect(r.outcome).toBe('withdrawn');
+    expect(r.mood).toBe('annoyed');
+  });
+
+  it('flags the final round once the round budget is spent', () => {
+    const r = evaluateSponsorNegotiation(original, { ...original, weeklyPayment: 13_000 }, 3, SPONSOR_NEGOTIATION_MAX_ROUNDS - 1);
+    expect(r.isFinal).toBe(true);
+  });
+
+  it('a higher club reputation widens the acceptance band', () => {
+    const proposal = { ...original, weeklyPayment: 12_500 };
+    const lowRep = evaluateSponsorNegotiation(original, proposal, 1, 0);
+    const highRep = evaluateSponsorNegotiation(original, proposal, 5, 0);
+    // Same ask: a top club gets a yes where a minnow only gets a counter.
+    expect(highRep.outcome).toBe('accepted');
+    expect(lowRep.outcome).toBe('countered');
   });
 });

@@ -2,8 +2,15 @@ import { describe, it, expect } from 'vitest';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 
 describe('saveMigration', () => {
-  it('should have current version set to 68', () => {
-    expect(CURRENT_VERSION).toBe(68);
+  it('should have current version set to 69', () => {
+    expect(CURRENT_VERSION).toBe(69);
+  });
+
+  it('v68 → v69 is a clean version bump (negotiation field is optional)', () => {
+    const v68: Record<string, unknown> = { version: 68, sponsorOffers: [{ id: 'o1' }] };
+    const result = migrateSaveData(v68);
+    expect(result.version).toBe(CURRENT_VERSION);
+    expect(result.sponsorOffers).toEqual([{ id: 'o1' }]);
   });
 
   it('v67 → v68 backfills the 13 previously-unsaved GameState fields', () => {

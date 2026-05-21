@@ -1,5 +1,5 @@
 import type { GameState } from '../storeTypes';
-import type { SponsorDeal, SponsorOffer } from '@/types/game';
+import type { SponsorDeal, SponsorOffer, SponsorNegotiation, SponsorNegotiationProposal } from '@/types/game';
 import { addMsg, formatMoney, clamp100 } from '@/utils/helpers';
 import { LEAGUES } from '@/data/league';
 import {
@@ -19,7 +19,10 @@ import {
   isSlotUnlocked,
   getSponsorById,
   generateOffer,
+  generateBuyoutCost,
   getBonusConditionLabel,
+  evaluateSponsorNegotiation,
+  SPONSOR_NEGOTIATION_MAX_ROUNDS,
 } from '@/config/sponsorship';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
@@ -48,18 +51,23 @@ export const createSponsorSlice = (set: Set, get: Get) => ({
     // Validate no cooldown
     if ((state.sponsorSlotCooldowns[offer.slotId] || 0) > state.week) return;
 
+    // Sign whatever terms are currently on the table — the negotiated
+    // position if the player haggled, otherwise the original offer.
+    const terms = offer.negotiation ?? offer;
     const deal: SponsorDeal = {
       id: crypto.randomUUID(),
       sponsorId: offer.sponsorId,
       slotId: offer.slotId,
-      weeklyPayment: offer.weeklyPayment,
-      seasonDuration: offer.seasonDuration,
+      weeklyPayment: terms.weeklyPayment,
+      seasonDuration: terms.seasonDuration,
       startSeason: state.season,
-      performanceBonus: offer.performanceBonus,
+      performanceBonus: terms.performanceBonus,
       bonusCondition: offer.bonusCondition,
       bonusMet: false,
       satisfaction: SPONSOR_SATISFACTION_START,
-      buyoutCost: offer.buyoutCost,
+      buyoutCost: offer.negotiation
+        ? generateBuyoutCost(terms.weeklyPayment, terms.seasonDuration)
+        : offer.buyoutCost,
     };
 
     const sponsor = getSponsorById(offer.sponsorId);
@@ -113,6 +121,59 @@ export const createSponsorSlice = (set: Set, get: Get) => ({
         title: 'Sponsorship Terminated',
         body: `You have terminated the ${sponsorName} deal. A buyout fee of ${formatMoney(deal.buyoutCost)} has been deducted. This slot has a ${SPONSOR_SLOT_COOLDOWN}-week cooldown.`,
       }),
+    });
+  },
+
+  negotiateSponsorOffer: (offerId: string, proposal: SponsorNegotiationProposal) => {
+    const state = get();
+    const offer = state.sponsorOffers.find(o => o.id === offerId);
+    if (!offer) return;
+    if (offer.expiresWeek <= state.week) return;
+
+    // Negotiation is closed once the sponsor has agreed or issued a final offer.
+    if (offer.negotiation && offer.negotiation.outcome !== 'countered') return;
+    const prevRounds = offer.negotiation?.roundsUsed ?? 0;
+    if (prevRounds >= SPONSOR_NEGOTIATION_MAX_ROUNDS) return;
+
+    const club = state.clubs[state.playerClubId];
+    if (!club) return;
+
+    const original = {
+      weeklyPayment: offer.weeklyPayment,
+      seasonDuration: offer.seasonDuration,
+      performanceBonus: offer.performanceBonus,
+    };
+    const result = evaluateSponsorNegotiation(original, proposal, club.reputation, prevRounds);
+    const sponsorName = getSponsorById(offer.sponsorId)?.name || 'The sponsor';
+    const slotLabel = SPONSOR_SLOTS.find(s => s.id === offer.slotId)?.label || 'sponsorship';
+
+    // Pushed too hard — the sponsor pulls the offer off the table entirely.
+    if (result.outcome === 'withdrawn') {
+      set({
+        sponsorOffers: state.sponsorOffers.filter(o => o.id !== offerId),
+        messages: addMsg(state.messages, {
+          week: state.week,
+          season: state.season,
+          type: 'sponsorship',
+          title: 'Sponsor Walked Away',
+          body: `${sponsorName} felt your demands for the ${slotLabel} were unreasonable and withdrew their offer.`,
+        }),
+      });
+      return;
+    }
+
+    const outcome: SponsorNegotiation['outcome'] =
+      result.outcome === 'accepted' ? 'accepted' : result.isFinal ? 'final' : 'countered';
+    const negotiation: SponsorNegotiation = {
+      roundsUsed: prevRounds + 1,
+      weeklyPayment: result.weeklyPayment,
+      seasonDuration: result.seasonDuration,
+      performanceBonus: result.performanceBonus,
+      outcome,
+      mood: result.mood,
+    };
+    set({
+      sponsorOffers: state.sponsorOffers.map(o => (o.id === offerId ? { ...o, negotiation } : o)),
     });
   },
 });
