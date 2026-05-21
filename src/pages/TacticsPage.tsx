@@ -139,8 +139,194 @@ const TacticsPage = () => {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
-      <PageHint screen="tactics" title={PAGE_HINTS.tactics.title} body={PAGE_HINTS.tactics.body} />
       <h2 className="text-lg font-bold text-foreground font-display">Tactics</h2>
+
+      {/* Team Rating Summary — slim Liquid Glass row */}
+      {teamRating && (
+        <GlassPanel className="px-3 py-2.5">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <div className="flex items-center gap-1.5">
+              <Swords className="w-3 h-3 text-primary" />
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Starting XI</p>
+            </div>
+            <div className="flex items-center gap-2 text-[10px]">
+              <span>
+                <span className="text-muted-foreground/70">Bench </span>
+                <span className={cn('font-semibold tabular-nums', getRatingColor(teamRating.subsAvg))}>{teamRating.subsAvg}</span>
+              </span>
+              <span className="text-muted-foreground/20">·</span>
+              <span>
+                <span className="text-muted-foreground/70">Fit </span>
+                <span className={cn(
+                  'font-semibold tabular-nums',
+                  teamRating.avgFitness >= 80 ? 'text-emerald-400' :
+                  teamRating.avgFitness >= 60 ? 'text-amber-400' :
+                  'text-destructive'
+                )}>{teamRating.avgFitness}%</span>
+              </span>
+            </div>
+          </div>
+          <div className="flex items-stretch gap-1.5">
+            {/* OVR pill — primary emphasis */}
+            <div className={cn(
+              'relative flex-1 flex items-center justify-center gap-1.5 rounded-xl px-2 py-1.5 overflow-hidden',
+              'bg-gradient-to-b from-white/[0.06] to-transparent',
+              'shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-1px_0_rgba(0,0,0,0.25),0_0_0_1px_rgba(255,255,255,0.06)_inset]',
+              getRatingBadgeClasses(teamRating.overall)
+            )}>
+              <span className="text-[9px] font-semibold opacity-70 tracking-wider">OVR</span>
+              <span className="text-base font-black tabular-nums leading-none">{teamRating.overall}</span>
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 top-0 h-1/2 rounded-t-xl"
+                style={{
+                  background: 'radial-gradient(120% 90% at 50% -30%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 60%)',
+                  mixBlendMode: 'screen',
+                }}
+              />
+            </div>
+            {[
+              { label: 'DEF', value: teamRating.def, icon: <Shield className="w-3 h-3 text-sky-400" /> },
+              { label: 'MID', value: teamRating.mid, icon: <Swords className="w-3 h-3 text-amber-400" /> },
+              { label: 'ATT', value: teamRating.att, icon: <Target className="w-3 h-3 text-emerald-400" /> },
+            ].map(u => {
+              const isWeak = teamRating.weakest !== null && u.value === teamRating.weakest;
+              return (
+                <div key={u.label} className={cn(
+                  'relative flex-1 flex items-center justify-center gap-1 rounded-xl px-2 py-1.5 overflow-hidden',
+                  'bg-gradient-to-b from-white/[0.04] to-transparent',
+                  'shadow-[inset_0_1px_0_rgba(255,255,255,0.10),inset_0_-1px_0_rgba(0,0,0,0.22),0_0_0_1px_rgba(255,255,255,0.04)_inset]',
+                  isWeak
+                    ? 'bg-amber-500/10 ring-1 ring-amber-500/20'
+                    : 'bg-muted/20'
+                )}>
+                  {u.icon}
+                  <span className="text-[9px] text-muted-foreground font-semibold tracking-wider">{u.label}</span>
+                  <span className={cn('text-sm font-bold tabular-nums leading-none', getRatingColor(u.value))}>{u.value}</span>
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute inset-x-0 top-0 h-1/2 rounded-t-xl"
+                    style={{
+                      background: 'radial-gradient(120% 80% at 50% -30%, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0) 60%)',
+                      mixBlendMode: 'screen',
+                    }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </GlassPanel>
+      )}
+
+      {/* Lineup Editor with Drag & Drop */}
+      <GlassPanel className="p-4">
+        <LineupEditor />
+      </GlassPanel>
+
+      {/* Optimize Lineup */}
+      {userIsPro ? (
+        <OptimizeLineupButton potentialGain={potentialGain} autoFilling={autoFilling} onOptimize={optimizeLineup} />
+      ) : (
+        <ProUpsell feature="Optimize Lineup" />
+      )}
+
+      {/* Chemistry Summary */}
+      {chemistry && chemistry.links.length > 0 && (() => {
+        const label = getChemistryLabel(chemistry.bonus);
+        const top = chemistry.sortedDesc.slice(0, 3);
+        const bottom = chemistry.links.length > 3 ? chemistry.sortedDesc.slice(-3).reverse() : [];
+        const typeMeta: Record<ChemistryLink['type'], { icon: JSX.Element; color: string; label: string }> = {
+          nationality: { icon: <Globe className="w-3 h-3 text-primary shrink-0" />, color: 'text-primary', label: 'Nationality' },
+          mentor: { icon: <BookOpen className="w-3 h-3 text-emerald-400 shrink-0" />, color: 'text-emerald-400', label: 'Mentor' },
+          partnership: { icon: <Handshake className="w-3 h-3 text-amber-400 shrink-0" />, color: 'text-amber-400', label: 'Partnership' },
+          loyalty: { icon: <Heart className="w-3 h-3 text-sky-400 shrink-0" />, color: 'text-sky-400', label: 'Loyalty' },
+        };
+        const renderRow = (link: ChemistryLink, idx: number) => {
+          const a = players[link.playerIdA];
+          const b = players[link.playerIdB];
+          if (!a || !b) return null;
+          let displayA = a, displayB = b;
+          if (link.type === 'mentor') {
+            const senior = a.age >= MENTOR_SENIOR_AGE && b.age <= MENTOR_JUNIOR_AGE ? a
+              : b.age >= MENTOR_SENIOR_AGE && a.age <= MENTOR_JUNIOR_AGE ? b
+              : a;
+            displayA = senior;
+            displayB = senior === a ? b : a;
+          }
+          const meta = typeMeta[link.type];
+          return (
+            <div key={`${link.type}-${link.playerIdA}-${link.playerIdB}-${idx}`} className="flex items-center gap-2 bg-muted/20 rounded px-2 py-1">
+              {meta.icon}
+              {link.type === 'nationality' && <FlagIcon nationality={a.nationality} size={12} />}
+              <span className="text-[10px] text-foreground flex-1 truncate inline-flex items-center gap-1 min-w-0">
+                <span className="truncate">{displayA.lastName}</span>
+                {link.type === 'mentor' ? (
+                  <ArrowRight className="w-2.5 h-2.5 text-amber-400 shrink-0" aria-hidden />
+                ) : (
+                  <span className="text-muted-foreground/70 shrink-0">&amp;</span>
+                )}
+                <span className="truncate">{displayB.lastName}</span>
+              </span>
+              <span className={cn('text-[9px] font-bold', meta.color)}>+{link.strength}</span>
+            </div>
+          );
+        };
+        return (
+          <GlassPanel className="p-4">
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Chemistry</p>
+              <div className="flex items-center gap-2">
+                <span className={cn('text-xs font-bold tabular-nums', label.color)}>+{Math.round(chemistry.bonus * 100)}%</span>
+                <span className={cn('text-[10px] font-semibold', label.color)}>{label.label}</span>
+                <span className="text-[9px] text-muted-foreground">· {chemistry.links.length} links</span>
+              </div>
+            </div>
+
+            {!showAllChem && (
+              <div className="space-y-2">
+                <div>
+                  <p className="text-[9px] text-muted-foreground font-semibold mb-1">STRONGEST</p>
+                  <div className="space-y-0.5">{top.map(renderRow)}</div>
+                </div>
+                {bottom.length > 0 && (
+                  <div>
+                    <p className="text-[9px] text-muted-foreground font-semibold mb-1">WEAKEST</p>
+                    <div className="space-y-0.5">{bottom.map(renderRow)}</div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {showAllChem && (
+              <div className="space-y-2 max-h-[30vh] overflow-y-auto">
+                {(['nationality', 'mentor', 'partnership', 'loyalty'] as const).map(type => {
+                  const group = chemistry.links.filter(l => l.type === type);
+                  if (group.length === 0) return null;
+                  return (
+                    <div key={type}>
+                      <div className="flex items-center gap-1.5 mb-1">
+                        {typeMeta[type].icon}
+                        <span className="text-[10px] text-muted-foreground font-semibold">{typeMeta[type].label} ({group.length})</span>
+                      </div>
+                      <div className="space-y-0.5">{group.map(renderRow)}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <button
+              onClick={() => setShowAllChem(v => !v)}
+              className="mt-3 w-full flex items-center justify-center gap-1 py-1.5 rounded-md text-[10px] font-semibold text-primary hover:bg-primary/10 transition-colors"
+            >
+              {showAllChem ? <>Show less <ChevronUp className="w-3 h-3" /></> : <>Show all <ChevronDown className="w-3 h-3" /></>}
+            </button>
+          </GlassPanel>
+        );
+      })()}
+
+      {/* Tactical setup — the guide hint introduces the formation controls below */}
+      <PageHint screen="tactics" title={PAGE_HINTS.tactics.title} body={PAGE_HINTS.tactics.body} />
 
       {/* Matchday Readiness */}
       {readiness && (() => {
@@ -282,190 +468,6 @@ const TacticsPage = () => {
           </p>
         )}
       </GlassPanel>
-
-      {/* Optimize Lineup */}
-      {userIsPro ? (
-        <OptimizeLineupButton potentialGain={potentialGain} autoFilling={autoFilling} onOptimize={optimizeLineup} />
-      ) : (
-        <ProUpsell feature="Optimize Lineup" />
-      )}
-
-      {/* Team Rating Summary — slim Liquid Glass row */}
-      {teamRating && (
-        <GlassPanel className="px-3 py-2.5">
-          <div className="flex items-center justify-between gap-2 mb-2">
-            <div className="flex items-center gap-1.5">
-              <Swords className="w-3 h-3 text-primary" />
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Starting XI</p>
-            </div>
-            <div className="flex items-center gap-2 text-[10px]">
-              <span>
-                <span className="text-muted-foreground/70">Bench </span>
-                <span className={cn('font-semibold tabular-nums', getRatingColor(teamRating.subsAvg))}>{teamRating.subsAvg}</span>
-              </span>
-              <span className="text-muted-foreground/20">·</span>
-              <span>
-                <span className="text-muted-foreground/70">Fit </span>
-                <span className={cn(
-                  'font-semibold tabular-nums',
-                  teamRating.avgFitness >= 80 ? 'text-emerald-400' :
-                  teamRating.avgFitness >= 60 ? 'text-amber-400' :
-                  'text-destructive'
-                )}>{teamRating.avgFitness}%</span>
-              </span>
-            </div>
-          </div>
-          <div className="flex items-stretch gap-1.5">
-            {/* OVR pill — primary emphasis */}
-            <div className={cn(
-              'relative flex-1 flex items-center justify-center gap-1.5 rounded-xl px-2 py-1.5 overflow-hidden',
-              'bg-gradient-to-b from-white/[0.06] to-transparent',
-              'shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-1px_0_rgba(0,0,0,0.25),0_0_0_1px_rgba(255,255,255,0.06)_inset]',
-              getRatingBadgeClasses(teamRating.overall)
-            )}>
-              <span className="text-[9px] font-semibold opacity-70 tracking-wider">OVR</span>
-              <span className="text-base font-black tabular-nums leading-none">{teamRating.overall}</span>
-              <div
-                aria-hidden
-                className="pointer-events-none absolute inset-x-0 top-0 h-1/2 rounded-t-xl"
-                style={{
-                  background: 'radial-gradient(120% 90% at 50% -30%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 60%)',
-                  mixBlendMode: 'screen',
-                }}
-              />
-            </div>
-            {[
-              { label: 'DEF', value: teamRating.def, icon: <Shield className="w-3 h-3 text-sky-400" /> },
-              { label: 'MID', value: teamRating.mid, icon: <Swords className="w-3 h-3 text-amber-400" /> },
-              { label: 'ATT', value: teamRating.att, icon: <Target className="w-3 h-3 text-emerald-400" /> },
-            ].map(u => {
-              const isWeak = teamRating.weakest !== null && u.value === teamRating.weakest;
-              return (
-                <div key={u.label} className={cn(
-                  'relative flex-1 flex items-center justify-center gap-1 rounded-xl px-2 py-1.5 overflow-hidden',
-                  'bg-gradient-to-b from-white/[0.04] to-transparent',
-                  'shadow-[inset_0_1px_0_rgba(255,255,255,0.10),inset_0_-1px_0_rgba(0,0,0,0.22),0_0_0_1px_rgba(255,255,255,0.04)_inset]',
-                  isWeak
-                    ? 'bg-amber-500/10 ring-1 ring-amber-500/20'
-                    : 'bg-muted/20'
-                )}>
-                  {u.icon}
-                  <span className="text-[9px] text-muted-foreground font-semibold tracking-wider">{u.label}</span>
-                  <span className={cn('text-sm font-bold tabular-nums leading-none', getRatingColor(u.value))}>{u.value}</span>
-                  <div
-                    aria-hidden
-                    className="pointer-events-none absolute inset-x-0 top-0 h-1/2 rounded-t-xl"
-                    style={{
-                      background: 'radial-gradient(120% 80% at 50% -30%, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0) 60%)',
-                      mixBlendMode: 'screen',
-                    }}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        </GlassPanel>
-      )}
-
-      {/* Lineup Editor with Drag & Drop */}
-      <GlassPanel className="p-4">
-        <LineupEditor />
-      </GlassPanel>
-
-      {/* Chemistry Summary */}
-      {chemistry && chemistry.links.length > 0 && (() => {
-        const label = getChemistryLabel(chemistry.bonus);
-        const top = chemistry.sortedDesc.slice(0, 3);
-        const bottom = chemistry.links.length > 3 ? chemistry.sortedDesc.slice(-3).reverse() : [];
-        const typeMeta: Record<ChemistryLink['type'], { icon: JSX.Element; color: string; label: string }> = {
-          nationality: { icon: <Globe className="w-3 h-3 text-primary shrink-0" />, color: 'text-primary', label: 'Nationality' },
-          mentor: { icon: <BookOpen className="w-3 h-3 text-emerald-400 shrink-0" />, color: 'text-emerald-400', label: 'Mentor' },
-          partnership: { icon: <Handshake className="w-3 h-3 text-amber-400 shrink-0" />, color: 'text-amber-400', label: 'Partnership' },
-          loyalty: { icon: <Heart className="w-3 h-3 text-sky-400 shrink-0" />, color: 'text-sky-400', label: 'Loyalty' },
-        };
-        const renderRow = (link: ChemistryLink, idx: number) => {
-          const a = players[link.playerIdA];
-          const b = players[link.playerIdB];
-          if (!a || !b) return null;
-          let displayA = a, displayB = b;
-          if (link.type === 'mentor') {
-            const senior = a.age >= MENTOR_SENIOR_AGE && b.age <= MENTOR_JUNIOR_AGE ? a
-              : b.age >= MENTOR_SENIOR_AGE && a.age <= MENTOR_JUNIOR_AGE ? b
-              : a;
-            displayA = senior;
-            displayB = senior === a ? b : a;
-          }
-          const meta = typeMeta[link.type];
-          return (
-            <div key={`${link.type}-${link.playerIdA}-${link.playerIdB}-${idx}`} className="flex items-center gap-2 bg-muted/20 rounded px-2 py-1">
-              {meta.icon}
-              {link.type === 'nationality' && <FlagIcon nationality={a.nationality} size={12} />}
-              <span className="text-[10px] text-foreground flex-1 truncate inline-flex items-center gap-1 min-w-0">
-                <span className="truncate">{displayA.lastName}</span>
-                {link.type === 'mentor' ? (
-                  <ArrowRight className="w-2.5 h-2.5 text-amber-400 shrink-0" aria-hidden />
-                ) : (
-                  <span className="text-muted-foreground/70 shrink-0">&amp;</span>
-                )}
-                <span className="truncate">{displayB.lastName}</span>
-              </span>
-              <span className={cn('text-[9px] font-bold', meta.color)}>+{link.strength}</span>
-            </div>
-          );
-        };
-        return (
-          <GlassPanel className="p-4">
-            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Chemistry</p>
-              <div className="flex items-center gap-2">
-                <span className={cn('text-xs font-bold tabular-nums', label.color)}>+{Math.round(chemistry.bonus * 100)}%</span>
-                <span className={cn('text-[10px] font-semibold', label.color)}>{label.label}</span>
-                <span className="text-[9px] text-muted-foreground">· {chemistry.links.length} links</span>
-              </div>
-            </div>
-
-            {!showAllChem && (
-              <div className="space-y-2">
-                <div>
-                  <p className="text-[9px] text-muted-foreground font-semibold mb-1">STRONGEST</p>
-                  <div className="space-y-0.5">{top.map(renderRow)}</div>
-                </div>
-                {bottom.length > 0 && (
-                  <div>
-                    <p className="text-[9px] text-muted-foreground font-semibold mb-1">WEAKEST</p>
-                    <div className="space-y-0.5">{bottom.map(renderRow)}</div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {showAllChem && (
-              <div className="space-y-2 max-h-[30vh] overflow-y-auto">
-                {(['nationality', 'mentor', 'partnership', 'loyalty'] as const).map(type => {
-                  const group = chemistry.links.filter(l => l.type === type);
-                  if (group.length === 0) return null;
-                  return (
-                    <div key={type}>
-                      <div className="flex items-center gap-1.5 mb-1">
-                        {typeMeta[type].icon}
-                        <span className="text-[10px] text-muted-foreground font-semibold">{typeMeta[type].label} ({group.length})</span>
-                      </div>
-                      <div className="space-y-0.5">{group.map(renderRow)}</div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            <button
-              onClick={() => setShowAllChem(v => !v)}
-              className="mt-3 w-full flex items-center justify-center gap-1 py-1.5 rounded-md text-[10px] font-semibold text-primary hover:bg-primary/10 transition-colors"
-            >
-              {showAllChem ? <>Show less <ChevronUp className="w-3 h-3" /></> : <>Show all <ChevronDown className="w-3 h-3" /></>}
-            </button>
-          </GlassPanel>
-        );
-      })()}
 
       {/* Style Presets */}
       <GlassPanel className="p-4">
