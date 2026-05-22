@@ -6,6 +6,15 @@ import { tierForOvr, tierGradient } from './packHelpers';
 import { PACK_ANIM } from '@/config/packs';
 import { hapticMedium } from '@/utils/haptics';
 import { PlayerCard, PLAYER_CARD_SIZE_PX } from '@/components/game/PlayerCard';
+import { PackCardAura } from './PackCardAura';
+
+// easeInOutCubic + a one-shot scale-compression for the flip. Module-level
+// so the keyframe arrays keep a stable reference across renders — otherwise
+// Framer Motion would re-fire the compression on every re-render while the
+// card stays revealed.
+const FLIP_EASE = [0.65, 0, 0.35, 1];
+const FLIP_SCALE_KEYFRAMES = [1, 0.9, 1.04, 1];
+const FLIP_SCALE_TIMES = [0, 0.42, 0.72, 1];
 
 interface PackCardProps {
   player: Player;
@@ -67,6 +76,10 @@ export const PackCard = memo(function PackCard({ player, revealed, onReveal, ent
       transition={{ delay: entranceDelay, type: 'spring', stiffness: 180, damping: 24 }}
       aria-label={revealed ? undefined : 'Tap to reveal'}
     >
+      {/* Rarity aura — appears the instant the card turns face-up, so the
+          pull's tier reads as a glow before the stats register. */}
+      {revealed && <PackCardAura tierKey={tier.key} />}
+
       <motion.div
         className="relative w-full h-full rounded-2xl"
         style={{
@@ -76,8 +89,20 @@ export const PackCard = memo(function PackCard({ player, revealed, onReveal, ent
           // keeps the face composited while on screen.
           willChange: hovered || revealed ? 'transform' : 'auto',
         }}
-        animate={{ rotateY: revealed ? 180 : 0, scale: hovered && !revealed ? 1.03 : 1 }}
-        transition={{ duration: PACK_ANIM.flipMs / 1000, type: 'spring', stiffness: 180, damping: 18 }}
+        animate={{
+          rotateY: revealed ? 180 : 0,
+          // A brief mid-flip compression + slight overshoot sells the 3D
+          // turn. Skipped under reduced motion (rotate only).
+          scale: revealed
+            ? (prefersReducedMotion ? 1 : FLIP_SCALE_KEYFRAMES)
+            : (hovered && !revealed ? 1.03 : 1),
+        }}
+        transition={{
+          rotateY: { duration: PACK_ANIM.flipMs / 1000, ease: FLIP_EASE },
+          scale: revealed
+            ? { duration: PACK_ANIM.flipMs / 1000, times: FLIP_SCALE_TIMES, ease: 'easeOut' }
+            : { duration: 0.18, ease: 'easeOut' },
+        }}
       >
         {/* Back — tier-gradient foil with dynasty crown monogram, inset
             rule, specular sheen and a shimmer sweep. Same visual language
