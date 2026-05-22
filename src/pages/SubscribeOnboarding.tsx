@@ -232,7 +232,7 @@ const SubscribeOnboarding = () => {
   }, [selected, storePrices, isTrialPlan, selectedProduct]);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center px-4 sm:px-5 pt-6 pb-6 relative overflow-hidden safe-area-top safe-area-bottom">
+    <div className="h-screen bg-background flex flex-col items-center px-4 sm:px-5 relative overflow-hidden safe-area-top safe-area-bottom">
       {/* Ambient halo */}
       <motion.div
         aria-hidden
@@ -248,7 +248,7 @@ const SubscribeOnboarding = () => {
       />
 
       {/* Header — skip button (top-right) */}
-      <div className="relative z-10 w-full max-w-md flex items-center justify-end mb-2">
+      <div className="relative z-10 w-full max-w-md flex items-center justify-end pt-3 pb-1 shrink-0">
         <button
           type="button"
           onClick={handleSkip}
@@ -260,125 +260,127 @@ const SubscribeOnboarding = () => {
         </button>
       </div>
 
-      {/* Title block */}
-      <motion.div
-        initial={{ opacity: 0, y: -8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: 'easeOut' }}
-        className="relative z-10 text-center mb-4 w-full max-w-md"
-      >
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 border border-primary/40 mb-3 shadow-[0_0_24px_hsl(var(--primary)/0.35)]">
-          <Crown className="w-8 h-8 text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.6)]" />
-        </div>
-        <h1 className="text-2xl font-black text-foreground font-display tracking-tight">
-          Unlock Dynasty Pro
-        </h1>
-        <p className="text-xs text-muted-foreground mt-1.5">
-          Full toolkit. Cancel anytime in Settings → Apple ID → Subscriptions.
-        </p>
-      </motion.div>
+      {/* Scrollable region — title + benefits. The purchase controls below
+          are pinned, so the CTA is always visible regardless of screen size. */}
+      <div className="relative z-10 w-full max-w-md flex-1 min-h-0 overflow-y-auto">
+        {/* Title block */}
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: 'easeOut' }}
+          className="text-center mb-4"
+        >
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 border border-primary/40 mb-2 shadow-[0_0_24px_hsl(var(--primary)/0.35)]">
+            <Crown className="w-7 h-7 text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.6)]" />
+          </div>
+          <h1 className="text-2xl font-black text-foreground font-display tracking-tight">
+            Unlock Dynasty Pro
+          </h1>
+          <p className="text-xs text-muted-foreground mt-1">
+            Full toolkit. Cancel anytime in Settings → Apple ID → Subscriptions.
+          </p>
+        </motion.div>
 
-      {/* Feature bullets */}
-      <div className="relative z-10 w-full max-w-md mb-5">
-        <ul className="space-y-1.5">
+        {/* Feature bullets — two columns so they take half the vertical space. */}
+        <ul className="grid grid-cols-2 gap-x-3 gap-y-2 pb-2">
           {PRO_FEATURE_BULLETS.map(({ title, description }) => (
-            <li key={title} className="flex items-start gap-2.5">
+            <li key={title} className="flex items-start gap-2">
               <span className="mt-0.5 flex-shrink-0 w-4 h-4 rounded-full bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center">
                 <Check className="w-2.5 h-2.5 text-emerald-300" strokeWidth={3} />
               </span>
-              <div className="leading-snug">
-                <span className="text-[13px] font-semibold text-foreground">{title}</span>
-                <span className="text-[11px] text-muted-foreground"> — {description}</span>
+              <div className="min-w-0 leading-snug">
+                <p className="text-[12px] font-semibold text-foreground leading-tight">{title}</p>
+                <p className="text-[10px] text-muted-foreground leading-snug mt-0.5">{description}</p>
               </div>
             </li>
           ))}
         </ul>
       </div>
 
-      {/* Plan rows */}
-      <div className="relative z-10 w-full max-w-md space-y-2 mb-4">
-        {PLAN_ROWS.map(row => {
-          const product = PRODUCTS[row.productId];
-          const isSelected = selected === row.productId;
-          const isAnnualBest = row.badge === 'BEST VALUE';
-          // Apple 3.1.2(c) — billed amount must be the most prominent
-          // pricing element. We show the full price + cadence in bold,
-          // and any per-month framing in a smaller, lighter caption.
-          const billedAmount = row.productId === 'com.dynastymanager.pro.lifetime'
-            ? priceFor(row.productId)
-            : `${priceFor(row.productId)}${product.billingPeriod || ''}`;
+      {/* Pinned purchase controls — plans + summary + CTA + legal stay on
+          screen so the user never has to scroll to act. */}
+      <div className="relative z-10 w-full max-w-md shrink-0 pt-3 pb-2 border-t border-white/[0.07]">
+        {/* Plan rows */}
+        <div className="space-y-2 mb-3">
+          {PLAN_ROWS.map(row => {
+            const product = PRODUCTS[row.productId];
+            const isSelected = selected === row.productId;
+            const isAnnualBest = row.badge === 'BEST VALUE';
+            // Apple 3.1.2(c) — billed amount must be the most prominent
+            // pricing element. We show the full price + cadence in bold,
+            // and any per-month framing in a smaller, lighter caption.
+            const billedAmount = row.productId === 'com.dynastymanager.pro.lifetime'
+              ? priceFor(row.productId)
+              : `${priceFor(row.productId)}${product.billingPeriod || ''}`;
 
-          return (
-            <button
-              key={row.productId}
-              type="button"
-              onClick={() => { hapticLight(); setSelected(row.productId); }}
-              disabled={purchasing}
-              aria-pressed={isSelected}
-              className={cn(
-                'w-full text-left rounded-2xl border px-4 py-3 transition-colors flex items-center gap-3',
-                'bg-card/60 backdrop-blur-xl',
-                isSelected
-                  ? 'border-primary/60 bg-primary/[0.06] shadow-[0_0_0_1px_hsl(var(--primary)/0.6)_inset]'
-                  : 'border-border/60 hover:border-border',
-                isAnnualBest && !isSelected && 'border-[hsl(var(--gold)/0.35)]',
-                'disabled:opacity-60',
-              )}
-            >
-              {/* Radio indicator */}
-              <span
-                aria-hidden
+            return (
+              <button
+                key={row.productId}
+                type="button"
+                onClick={() => { hapticLight(); setSelected(row.productId); }}
+                disabled={purchasing}
+                aria-pressed={isSelected}
                 className={cn(
-                  'flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors',
-                  isSelected ? 'border-primary bg-primary' : 'border-muted-foreground/40',
+                  'w-full text-left rounded-2xl border px-4 py-2.5 transition-colors flex items-center gap-3',
+                  'bg-card/60 backdrop-blur-xl',
+                  isSelected
+                    ? 'border-primary/60 bg-primary/[0.06] shadow-[0_0_0_1px_hsl(var(--primary)/0.6)_inset]'
+                    : 'border-border/60 hover:border-border',
+                  isAnnualBest && !isSelected && 'border-[hsl(var(--gold)/0.35)]',
+                  'disabled:opacity-60',
                 )}
               >
-                {isSelected && <Check className="w-3 h-3 text-primary-foreground" strokeWidth={3} />}
-              </span>
+                {/* Radio indicator */}
+                <span
+                  aria-hidden
+                  className={cn(
+                    'flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors',
+                    isSelected ? 'border-primary bg-primary' : 'border-muted-foreground/40',
+                  )}
+                >
+                  {isSelected && <Check className="w-3 h-3 text-primary-foreground" strokeWidth={3} />}
+                </span>
 
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <span className="text-[13px] font-bold text-foreground truncate">{row.title}</span>
-                  {row.badge && (
-                    <span className="text-[9px] font-bold uppercase tracking-wider bg-[hsl(var(--gold)/0.18)] text-[hsl(var(--gold))] px-1.5 py-0.5 rounded">
-                      {row.badge}
-                    </span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-[13px] font-bold text-foreground truncate">{row.title}</span>
+                    {row.badge && (
+                      <span className="text-[9px] font-bold uppercase tracking-wider bg-[hsl(var(--gold)/0.18)] text-[hsl(var(--gold))] px-1.5 py-0.5 rounded">
+                        {row.badge}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-snug">
+                    {row.lengthLabel}
+                  </p>
+                  {row.trialCaption && (
+                    <p className="text-[10px] text-muted-foreground/80 leading-snug mt-0.5">
+                      {row.trialCaption}
+                    </p>
                   )}
                 </div>
-                <p className="text-[11px] text-muted-foreground leading-snug">
-                  {row.lengthLabel}
-                </p>
-                {row.trialCaption && (
-                  <p className="text-[10px] text-muted-foreground/80 leading-snug mt-0.5">
-                    {row.trialCaption}
-                  </p>
-                )}
-              </div>
 
-              {/* Price — billed amount must be the most prominent
-                  element per Apple 3.1.2(c). Heavier weight, larger text,
-                  and primary colour vs the muted subtitle. */}
-              <div className="text-right flex-shrink-0">
-                <div className="text-lg font-black text-foreground leading-tight tracking-tight font-display">
-                  {billedAmount}
+                {/* Price — billed amount must be the most prominent
+                    element per Apple 3.1.2(c). Heavier weight, larger text,
+                    and primary colour vs the muted subtitle. */}
+                <div className="text-right flex-shrink-0">
+                  <div className="text-lg font-black text-foreground leading-tight tracking-tight font-display">
+                    {billedAmount}
+                  </div>
                 </div>
-              </div>
-            </button>
-          );
-        })}
-      </div>
+              </button>
+            );
+          })}
+        </div>
 
-      {/* Billing summary — explicit, non-misleading sentence describing what
-          the user will be charged. Apple wants the billed amount to be the
-          clearest element; this paragraph spells it out in plain text. */}
-      <div className="relative z-10 w-full max-w-md mb-3">
-        <p className="text-[11px] text-foreground/80 text-center leading-relaxed px-2">
+        {/* Billing summary — explicit, non-misleading sentence describing what
+            the user will be charged. Apple wants the billed amount to be the
+            clearest element; this paragraph spells it out in plain text. */}
+        <p className="text-[11px] text-foreground/80 text-center leading-relaxed px-2 mb-2.5">
           {billingSummary}
         </p>
-      </div>
 
-      {/* Primary CTA */}
-      <div className="relative z-10 w-full max-w-md">
+        {/* Primary CTA */}
         <motion.button
           type="button"
           whileTap={{ scale: purchasing ? 1 : 0.985 }}
@@ -423,43 +425,41 @@ const SubscribeOnboarding = () => {
             )}
           </span>
         </motion.button>
-      </div>
 
-      {/* Footer: Restore + Terms + Privacy — required by Apple 3.1.2(c).
-          Equal-weight links sit directly under the CTA so they are visible
-          inside the same purchase flow without scrolling. */}
-      <div className="relative z-10 w-full max-w-md mt-3 flex items-center justify-center gap-4 text-[11px] font-semibold">
-        <button
-          type="button"
-          onClick={handleRestore}
-          disabled={restoring || purchasing}
-          className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
-        >
-          <RefreshCw className={cn('w-3 h-3', restoring && 'animate-spin')} />
-          {restoring ? 'Restoring…' : 'Restore Purchases'}
-        </button>
-        <span aria-hidden className="text-muted-foreground/40">·</span>
-        <button
-          type="button"
-          onClick={openLegal(TERMS_URL)}
-          className="text-muted-foreground hover:text-foreground transition-colors underline-offset-2 hover:underline"
-        >
-          Terms of Use
-        </button>
-        <span aria-hidden className="text-muted-foreground/40">·</span>
-        <button
-          type="button"
-          onClick={openLegal(PRIVACY_URL)}
-          className="text-muted-foreground hover:text-foreground transition-colors underline-offset-2 hover:underline"
-        >
-          Privacy Policy
-        </button>
-      </div>
+        {/* Footer: Restore + Terms + Privacy — required by Apple 3.1.2(c). */}
+        <div className="mt-2.5 flex items-center justify-center gap-4 text-[11px] font-semibold">
+          <button
+            type="button"
+            onClick={handleRestore}
+            disabled={restoring || purchasing}
+            className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={cn('w-3 h-3', restoring && 'animate-spin')} />
+            {restoring ? 'Restoring…' : 'Restore Purchases'}
+          </button>
+          <span aria-hidden className="text-muted-foreground/40">·</span>
+          <button
+            type="button"
+            onClick={openLegal(TERMS_URL)}
+            className="text-muted-foreground hover:text-foreground transition-colors underline-offset-2 hover:underline"
+          >
+            Terms of Use
+          </button>
+          <span aria-hidden className="text-muted-foreground/40">·</span>
+          <button
+            type="button"
+            onClick={openLegal(PRIVACY_URL)}
+            className="text-muted-foreground hover:text-foreground transition-colors underline-offset-2 hover:underline"
+          >
+            Privacy Policy
+          </button>
+        </div>
 
-      <p className="relative z-10 w-full max-w-md mt-2 text-center text-[10px] text-muted-foreground/70 leading-snug px-2">
-        Subscriptions auto-renew unless cancelled at least 24 hours before the end of the current period.
-        Manage or cancel anytime in Settings → Apple ID → Subscriptions.
-      </p>
+        <p className="mt-1.5 text-center text-[10px] text-muted-foreground/70 leading-snug px-2">
+          Subscriptions auto-renew unless cancelled at least 24 hours before the end of the current period.
+          Manage or cancel anytime in Settings → Apple ID → Subscriptions.
+        </p>
+      </div>
     </div>
   );
 };
