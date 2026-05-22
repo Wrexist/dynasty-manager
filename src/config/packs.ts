@@ -193,6 +193,8 @@ export function getFeaturedPackTier(season: number, week: number): PackTierKey {
 
 /** All animation timings in ms. Tune here, not in components. */
 export const PACK_ANIM = {
+  /** Cinematic "opening…" beat — dim + loading ring before the pack scene. */
+  loadingMs: 1000,
   portalOpenMs: 400,
   arrivalMs: 600,
   chargeBaseMs: 1200,

@@ -10,7 +10,7 @@ import { PLAYER_CARD_SIZE_PX } from '@/components/game/PlayerCard';
 import { PackArt } from './PackArt';
 import { PackCard } from './PackCard';
 import { PackConfetti } from './PackConfetti';
-import { PackStarfield } from './PackStarfield';
+import { PackStadium } from './PackStadium';
 import { WalkoutReveal } from './WalkoutReveal';
 import { tierForOvr } from './packHelpers';
 import { cn } from '@/lib/utils';
@@ -35,7 +35,7 @@ interface PackOpeningOverlayProps {
   placement?: Record<string, PackPlayerPlacement>;
 }
 
-type Phase = 'portal' | 'arrival' | 'charge' | 'explode' | 'reveal' | 'walkout' | 'summary';
+type Phase = 'loading' | 'portal' | 'arrival' | 'charge' | 'explode' | 'reveal' | 'walkout' | 'summary';
 
 /**
  * Full-screen pack-opening sequence. Orchestrates six beats:
@@ -51,7 +51,7 @@ type Phase = 'portal' | 'arrival' | 'charge' | 'explode' | 'reveal' | 'walkout' 
 export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKeep, onQuickSell, onKeepAll, onSellAll }: PackOpeningOverlayProps) {
   const tierDef = PACK_TIER_MAP[tier];
   const prefersReducedMotion = useReducedMotion();
-  const [phase, setPhase] = useState<Phase>('portal');
+  const [phase, setPhase] = useState<Phase>('loading');
   const [revealedSet, setRevealedSet] = useState<Set<string>>(new Set());
   const [walkoutQueue, setWalkoutQueue] = useState<Player[]>([]);
   const [currentWalkout, setCurrentWalkout] = useState<Player | null>(null);
@@ -156,6 +156,15 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
   }, [phase, prefersReducedMotion]);
 
   // Beat orchestration
+  // Cinematic "opening…" beat — the dimmed stadium + a luxury loading ring
+  // play for ~1s before the pack scene, building anticipation.
+  useEffect(() => {
+    if (phase !== 'loading') return;
+    hapticLight();
+    const t = window.setTimeout(() => setPhase('portal'), PACK_ANIM.loadingMs);
+    return () => window.clearTimeout(t);
+  }, [phase]);
+
   useEffect(() => {
     if (phase !== 'portal') return;
     hapticLight();
@@ -331,10 +340,11 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
         willChange: 'opacity',
       }}
     >
-      {/* Cosmic parallax starfield — sits behind every other layer (first
-          DOM child) to give the dark backdrop real depth. Drift is pure CSS
-          and self-disables under reduced motion. */}
-      <PackStarfield />
+      {/* Cinematic stadium environment — floodlight banks, a breathing
+          central spotlight, drifting fog and floodlit motes. Sits behind
+          every other layer (first DOM child) and self-disables motion
+          under the OS reduced-motion setting. */}
+      <PackStadium />
 
       {/* Screen-reader announcer — visually hidden but updates as each
           pack card flips. Uses `aria-live="polite"` so announcements
@@ -347,6 +357,39 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
           </p>
         )}
       </div>
+
+      {/* Loading beat — a thin luxury ring spins over the dimmed stadium
+          before the pack flies in, so the open reads as a deliberate
+          cinematic moment rather than an instant cut. */}
+      <AnimatePresence>
+        {phase === 'loading' && (
+          <motion.div
+            key="loading"
+            className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+          >
+            <motion.div
+              className="w-14 h-14 rounded-full"
+              style={{
+                border: '2px solid rgba(255,255,255,0.08)',
+                borderTopColor: tierDef.accent,
+                boxShadow: `0 0 18px color-mix(in srgb, ${tierDef.accent} 45%, transparent)`,
+              }}
+              animate={prefersReducedMotion ? undefined : { rotate: 360 }}
+              transition={prefersReducedMotion ? undefined : { duration: 0.9, repeat: Infinity, ease: 'linear' }}
+            />
+            <span
+              className="mt-4 text-[10px] uppercase tracking-[0.4em] text-white/55"
+              style={{ textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}
+            >
+              Opening
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Vignette pulse on portal open */}
       <AnimatePresence>
