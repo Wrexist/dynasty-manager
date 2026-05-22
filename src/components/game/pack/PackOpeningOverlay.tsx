@@ -947,6 +947,24 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
           transition={{ duration: 0.35, ease: 'easeOut' }}
           style={{ willChange: phase === 'walkout' ? 'filter, opacity, transform' : 'auto' }}
         >
+          {/* Results header — springs in once the pack settles, giving the
+              summary a clear "results screen" identity. */}
+          {phase === 'summary' && (
+            <motion.div
+              className="text-center"
+              initial={{ opacity: 0, y: -16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ type: 'spring', stiffness: 240, damping: 22 }}
+            >
+              <p className="text-[10px] uppercase tracking-[0.4em] text-white/55">Pack Opened</p>
+              <p className="mt-1 text-lg font-display font-black text-white leading-none">
+                {players.length} {players.length === 1 ? 'Player' : 'Players'}
+              </p>
+              <p className="mt-1 text-[11px] text-white/55 tabular-nums">
+                Combined value {formatMoney(players.reduce((s, p) => s + (p.value || 0), 0))}
+              </p>
+            </motion.div>
+          )}
           <div className="flex flex-wrap justify-center gap-x-3 gap-y-4">
             {players.map((p, i) => {
               const quickSellAmount = Math.max(0, Math.round((p.value || 0) * QUICK_SELL_RATE));
@@ -1014,9 +1032,9 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
             return (
               <motion.div
                 className="flex items-center gap-2.5 mt-1"
-                initial={{ opacity: 0, y: 12 }}
+                initial={{ opacity: 0, y: 90 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, delay: 0.1 + players.length * 0.04 }}
+                transition={{ type: 'spring', stiffness: 220, damping: 26, delay: 0.1 + players.length * 0.04 }}
               >
                 <button
                   type="button"
