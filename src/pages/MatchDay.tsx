@@ -28,7 +28,7 @@ import { analyzeHalftime } from '@/config/halftimeAnalysis';
 import { TEAM_TALK_OPTIONS } from '@/config/ui';
 import { MENTALITIES, getAvailableFormations } from '@/config/tactics';
 import { KEY_MOMENT_CHOICES } from '@/config/keyMoments';
-import { infoToast } from '@/utils/gameToast';
+import { infoToast, errorToast } from '@/utils/gameToast';
 import { PageHint } from '@/components/game/PageHint';
 import { ScoreHeader } from '@/components/matchday/ScoreHeader';
 import { MatchSpeedPicker } from '@/components/matchday/MatchSpeedPicker';
@@ -225,6 +225,14 @@ const MatchDayInner = () => {
 
   const kickOff = () => {
     if (!match || !homeClub || !awayClub) return;
+    // Block kickoff with an incomplete XI — otherwise the player only
+    // discovers they are a man short once the match is already live.
+    const myClub = homeClub.id === playerClubId ? homeClub : awayClub;
+    const validStarters = myClub.lineup.filter(id => !!players[id]).length;
+    if (validStarters < 11) {
+      errorToast(`Incomplete lineup — only ${validStarters} of 11 starters. Set a full XI in Tactics first.`);
+      return;
+    }
     // Cache match data so it survives the fixture being marked as played
     matchCacheRef.current = { match, homeClub, awayClub };
     const halfState = playFirstHalf();

@@ -3,7 +3,10 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { Button } from '@/components/ui/button';
 import { Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRef } from 'react';
 import { useScrollLock } from '@/hooks/useScrollLock';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useEscapeClose } from '@/hooks/useEscapeClose';
 
 export function FarewellModal() {
   const pendingFarewell = useGameStore(s => s.pendingFarewell);
@@ -11,6 +14,9 @@ export function FarewellModal() {
   const current = pendingFarewell[0];
 
   useScrollLock(!!current);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(panelRef, !!current);
+  useEscapeClose(dismissFarewell, !!current);
 
   if (!current) return null;
 
@@ -28,6 +34,10 @@ export function FarewellModal() {
         onClick={dismissFarewell}
       >
         <motion.div
+          ref={panelRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Farewell to ${current.playerName}`}
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.1, duration: 0.3 }}
