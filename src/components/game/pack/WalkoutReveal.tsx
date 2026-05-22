@@ -5,6 +5,7 @@ import { PlayerCard } from '@/components/game/PlayerCard';
 import { PACK_ANIM, LEGENDARY_OVR_THRESHOLD } from '@/config/packs';
 import { tierForOvr } from './packHelpers';
 import { PackConfetti } from './PackConfetti';
+import { WalkoutStadium } from './WalkoutStadium';
 import { useTypewriter } from './useTypewriter';
 import { hapticHeavy, hapticLight, hapticMedium } from '@/utils/haptics';
 
@@ -75,10 +76,11 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
   return (
     <motion.div
       className="absolute inset-0 flex items-center justify-center overflow-hidden"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
+      initial={{ opacity: 0, scale: 1 }}
+      // Slow cinematic camera push-in across the walkout.
+      animate={{ opacity: 1, scale: prefersReducedMotion ? 1 : 1.05 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.25 }}
+      transition={{ opacity: { duration: 0.25 }, scale: { duration: 6.5, ease: 'easeOut' } }}
       onClick={skip}
     >
       {/* Deep tier vignette — darker than the overlay behind it so the grid
@@ -89,6 +91,11 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
           background: `radial-gradient(circle at 50% 46%, ${tier.gradientFrom}26 0%, rgba(0,0,0,0.82) 52%, #000 85%)`,
         }}
       />
+
+      {/* Legendary stadium dressing — spotlight, igniting floodlights, fog,
+          a hero silhouette behind the card, and a crowd flecked with
+          camera flashes. Only the very top tier earns the full walkout. */}
+      {isLegendary && <WalkoutStadium accent={tier.gradientVia} revealed={revealed} />}
 
       {/* Legendary rotating sun rays — tempo slowed; blur dropped so rays
           stay on the compositor fast path. */}

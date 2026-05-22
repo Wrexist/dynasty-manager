@@ -10,7 +10,7 @@ import { PLAYER_CARD_SIZE_PX } from '@/components/game/PlayerCard';
 import { PackArt } from './PackArt';
 import { PackCard } from './PackCard';
 import { PackConfetti } from './PackConfetti';
-import { PackStarfield } from './PackStarfield';
+import { PackStadium } from './PackStadium';
 import { WalkoutReveal } from './WalkoutReveal';
 import { tierForOvr } from './packHelpers';
 import { cn } from '@/lib/utils';
@@ -35,7 +35,7 @@ interface PackOpeningOverlayProps {
   placement?: Record<string, PackPlayerPlacement>;
 }
 
-type Phase = 'portal' | 'arrival' | 'charge' | 'explode' | 'reveal' | 'walkout' | 'summary';
+type Phase = 'loading' | 'portal' | 'arrival' | 'charge' | 'explode' | 'reveal' | 'walkout' | 'summary';
 
 /**
  * Full-screen pack-opening sequence. Orchestrates six beats:
@@ -51,7 +51,7 @@ type Phase = 'portal' | 'arrival' | 'charge' | 'explode' | 'reveal' | 'walkout' 
 export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKeep, onQuickSell, onKeepAll, onSellAll }: PackOpeningOverlayProps) {
   const tierDef = PACK_TIER_MAP[tier];
   const prefersReducedMotion = useReducedMotion();
-  const [phase, setPhase] = useState<Phase>('portal');
+  const [phase, setPhase] = useState<Phase>('loading');
   const [revealedSet, setRevealedSet] = useState<Set<string>>(new Set());
   const [walkoutQueue, setWalkoutQueue] = useState<Player[]>([]);
   const [currentWalkout, setCurrentWalkout] = useState<Player | null>(null);
@@ -156,6 +156,15 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
   }, [phase, prefersReducedMotion]);
 
   // Beat orchestration
+  // Cinematic "opening…" beat — the dimmed stadium + a luxury loading ring
+  // play for ~1s before the pack scene, building anticipation.
+  useEffect(() => {
+    if (phase !== 'loading') return;
+    hapticLight();
+    const t = window.setTimeout(() => setPhase('portal'), PACK_ANIM.loadingMs);
+    return () => window.clearTimeout(t);
+  }, [phase]);
+
   useEffect(() => {
     if (phase !== 'portal') return;
     hapticLight();
@@ -331,10 +340,11 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
         willChange: 'opacity',
       }}
     >
-      {/* Cosmic parallax starfield — sits behind every other layer (first
-          DOM child) to give the dark backdrop real depth. Drift is pure CSS
-          and self-disables under reduced motion. */}
-      <PackStarfield />
+      {/* Cinematic stadium environment — floodlight banks, a breathing
+          central spotlight, drifting fog and floodlit motes. Sits behind
+          every other layer (first DOM child) and self-disables motion
+          under the OS reduced-motion setting. */}
+      <PackStadium />
 
       {/* Screen-reader announcer — visually hidden but updates as each
           pack card flips. Uses `aria-live="polite"` so announcements
@@ -347,6 +357,39 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
           </p>
         )}
       </div>
+
+      {/* Loading beat — a thin luxury ring spins over the dimmed stadium
+          before the pack flies in, so the open reads as a deliberate
+          cinematic moment rather than an instant cut. */}
+      <AnimatePresence>
+        {phase === 'loading' && (
+          <motion.div
+            key="loading"
+            className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+          >
+            <motion.div
+              className="w-14 h-14 rounded-full"
+              style={{
+                border: '2px solid rgba(255,255,255,0.08)',
+                borderTopColor: tierDef.accent,
+                boxShadow: `0 0 18px color-mix(in srgb, ${tierDef.accent} 45%, transparent)`,
+              }}
+              animate={prefersReducedMotion ? undefined : { rotate: 360 }}
+              transition={prefersReducedMotion ? undefined : { duration: 0.9, repeat: Infinity, ease: 'linear' }}
+            />
+            <span
+              className="mt-4 text-[10px] uppercase tracking-[0.4em] text-white/55"
+              style={{ textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}
+            >
+              Opening
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Vignette pulse on portal open */}
       <AnimatePresence>
@@ -450,7 +493,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
             initial={{ opacity: 0, scale: 0.25, rotateY: 50, rotateX: -20, y: 140 }}
             animate={(() => {
               if (phase === 'explode') {
-                return { opacity: 1, scale: 1.06, rotateY: 0, rotateX: 0, y: 0 };
+                return { opacity: 1, scale: 1.16, rotateY: 0, rotateX: 0, y: 0 };
               }
               if (phase === 'charge') {
                 return {
@@ -550,21 +593,23 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                   }
                 : { duration: 0.3, ease: 'easeOut' }}
             >
-              {/* Top half */}
+              {/* Top flap — the smaller top third. On explode it peels up
+                  and rotates back so the pack reads as opening from the
+                  top seam, not splitting in half. */}
               <motion.div
                 className="absolute inset-0"
                 style={{
                   clipPath:
-                    'polygon(0 0, 100% 0, 100% 48%, 92% 50%, 85% 49%, 78% 51%, 70% 49%, 62% 51%, 55% 49%, 48% 52%, 40% 50%, 32% 52%, 24% 50%, 16% 52%, 8% 50%, 0 52%)',
+                    'polygon(0 0, 100% 0, 100% 33%, 90% 35%, 80% 32%, 70% 35%, 60% 32%, 50% 35%, 40% 32%, 30% 35%, 20% 32%, 10% 35%, 0 33%)',
                   willChange: phase === 'explode' ? 'transform, opacity' : 'auto',
                   filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.6))',
                 }}
                 initial={{ y: 0, rotate: 0, opacity: 1 }}
                 animate={phase === 'explode'
-                  ? { y: -460, rotate: -12, opacity: 0 }
+                  ? { y: -320, rotate: -20, opacity: 0 }
                   : { y: 0, rotate: 0, opacity: 1 }}
                 transition={phase === 'explode'
-                  ? { duration: 0.6, ease: [0.22, 1, 0.36, 1] }
+                  ? { duration: 0.62, ease: [0.22, 1, 0.36, 1] }
                   : { duration: 0 }}
               >
                 <PackArt
@@ -580,21 +625,22 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                 />
               </motion.div>
 
-              {/* Bottom half */}
+              {/* Pack body — the larger lower portion. Sinks slightly and
+                  dissolves as the flap opens and the card rises through. */}
               <motion.div
                 className="absolute inset-0"
                 style={{
                   clipPath:
-                    'polygon(0 52%, 8% 50%, 16% 52%, 24% 50%, 32% 52%, 40% 50%, 48% 52%, 55% 49%, 62% 51%, 70% 49%, 78% 51%, 85% 49%, 92% 50%, 100% 48%, 100% 100%, 0 100%)',
+                    'polygon(0 33%, 10% 35%, 20% 32%, 30% 35%, 40% 32%, 50% 35%, 60% 32%, 70% 35%, 80% 32%, 90% 35%, 100% 33%, 100% 100%, 0 100%)',
                   willChange: phase === 'explode' ? 'transform, opacity' : 'auto',
                   filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.6))',
                 }}
                 initial={{ y: 0, rotate: 0, opacity: 1 }}
                 animate={phase === 'explode'
-                  ? { y: 460, rotate: 12, opacity: 0 }
+                  ? { y: 70, rotate: 3, opacity: 0 }
                   : { y: 0, rotate: 0, opacity: 1 }}
                 transition={phase === 'explode'
-                  ? { duration: 0.6, ease: [0.22, 1, 0.36, 1] }
+                  ? { duration: 0.55, ease: [0.22, 1, 0.36, 1] }
                   : { duration: 0 }}
               >
                 <PackArt
@@ -617,7 +663,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                     key="seam-flash"
                     className="absolute left-0 right-0 pointer-events-none"
                     style={{
-                      top: '50%',
+                      top: '33%',
                       height: 6,
                       background: `linear-gradient(90deg, transparent, ${tierDef.accent}, white, ${tierDef.accent}, transparent)`,
                       boxShadow: `0 0 24px ${tierDef.accent}, 0 0 48px white`,
@@ -650,6 +696,72 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                     exit={{ opacity: 0 }}
                     transition={{ duration: chargeLength / 1000, ease: 'easeIn' }}
                   />
+                )}
+              </AnimatePresence>
+
+              {/* Top-seam energy — gold/tier energy gathers along the tear
+                  seam during charge, with a metallic shimmer and spark
+                  particles, telegraphing exactly where the pack opens. */}
+              <AnimatePresence>
+                {phase === 'charge' && (
+                  <motion.div
+                    key="seam-energy"
+                    className="absolute left-0 right-0 pointer-events-none"
+                    style={{ top: '33%', height: 44, transform: 'translateY(-50%)' }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: chargeLength / 1000, ease: 'easeIn' }}
+                  >
+                    {/* Soft bloom hugging the seam */}
+                    <div
+                      className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-11"
+                      style={{
+                        background: `radial-gradient(70% 100% at 50% 50%, color-mix(in srgb, ${tierDef.accent} 50%, transparent), transparent 72%)`,
+                        mixBlendMode: 'screen',
+                        filter: 'blur(7px)',
+                      }}
+                    />
+                    {/* Energy glow line */}
+                    <motion.div
+                      className="absolute left-3 right-3 top-1/2 -translate-y-1/2"
+                      style={{
+                        height: 3,
+                        borderRadius: 99,
+                        background: `linear-gradient(90deg, transparent, ${tierDef.accent}, #fff, ${tierDef.accent}, transparent)`,
+                        boxShadow: `0 0 14px ${tierDef.accent}, 0 0 30px color-mix(in srgb, ${tierDef.accent} 55%, transparent)`,
+                      }}
+                      animate={prefersReducedMotion
+                        ? { opacity: 0.95 }
+                        : { opacity: [0.45, 1, 0.6, 1], scaleX: [0.8, 1, 0.88, 1] }}
+                      transition={prefersReducedMotion ? undefined : { duration: 1, repeat: Infinity, ease: 'easeInOut' }}
+                    />
+                    {/* Spark particles flicking off the seam */}
+                    {!prefersReducedMotion && Array.from({ length: 8 }).map((_, i) => {
+                      const left = 10 + Math.random() * 80;
+                      const up = Math.random() > 0.5;
+                      const dist = 16 + Math.random() * 24;
+                      const dur = 0.5 + Math.random() * 0.45;
+                      const delay = Math.random() * 0.8;
+                      return (
+                        <motion.span
+                          key={`spark-${i}`}
+                          className="absolute rounded-full"
+                          style={{
+                            left: `${left}%`,
+                            top: '50%',
+                            width: 3,
+                            height: 3,
+                            background: '#fff',
+                            boxShadow: `0 0 6px ${tierDef.accent}`,
+                          }}
+                          initial={{ opacity: 0, y: 0 }}
+                          animate={{ opacity: [0, 1, 0], y: up ? -dist : dist }}
+                          transition={{ duration: dur, delay, repeat: Infinity, repeatDelay: 0.5, ease: 'easeOut' }}
+                        />
+                      );
+                    })}
+                  </motion.div>
                 )}
               </AnimatePresence>
 
@@ -759,7 +871,26 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
               }}
               initial={{ opacity: 0, scale: 0.35 }}
               animate={{ opacity: [0, 0.95, 0], scale: [0.35, 1.5, 2.4] }}
-              transition={{ duration: 0.5, times: [0, 0.32, 1], ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: 0.36, times: [0, 0.3, 1], ease: [0.22, 1, 0.36, 1] }}
+            />
+            {/* Anamorphic lens flare — a fast bright streak raking across
+                the burst, the cinematic "energy" beat of the reveal. */}
+            <motion.div
+              key="lens-flare"
+              className="absolute left-0 right-0 pointer-events-none"
+              style={{
+                top: '46%',
+                height: 4,
+                transform: 'translateY(-50%)',
+                background:
+                  'linear-gradient(90deg, transparent, rgba(255,255,255,0.85) 34%, #fff 50%, rgba(255,255,255,0.85) 66%, transparent)',
+                boxShadow: `0 0 28px 5px color-mix(in srgb, ${tierDef.accent} 65%, white)`,
+                filter: 'blur(1px)',
+                willChange: 'transform, opacity',
+              }}
+              initial={{ opacity: 0, scaleX: 0.15 }}
+              animate={{ opacity: [0, 1, 0], scaleX: [0.15, 1, 1.2] }}
+              transition={{ duration: 0.42, times: [0, 0.34, 1], ease: [0.22, 1, 0.36, 1] }}
             />
             {!prefersReducedMotion && (
               <div className="absolute left-1/2 top-1/2 pointer-events-none" aria-hidden>
@@ -816,6 +947,24 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
           transition={{ duration: 0.35, ease: 'easeOut' }}
           style={{ willChange: phase === 'walkout' ? 'filter, opacity, transform' : 'auto' }}
         >
+          {/* Results header — springs in once the pack settles, giving the
+              summary a clear "results screen" identity. */}
+          {phase === 'summary' && (
+            <motion.div
+              className="text-center"
+              initial={{ opacity: 0, y: -16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ type: 'spring', stiffness: 240, damping: 22 }}
+            >
+              <p className="text-[10px] uppercase tracking-[0.4em] text-white/55">Pack Opened</p>
+              <p className="mt-1 text-lg font-display font-black text-white leading-none">
+                {players.length} {players.length === 1 ? 'Player' : 'Players'}
+              </p>
+              <p className="mt-1 text-[11px] text-white/55 tabular-nums">
+                Combined value {formatMoney(players.reduce((s, p) => s + (p.value || 0), 0))}
+              </p>
+            </motion.div>
+          )}
           <div className="flex flex-wrap justify-center gap-x-3 gap-y-4">
             {players.map((p, i) => {
               const quickSellAmount = Math.max(0, Math.round((p.value || 0) * QUICK_SELL_RATE));
@@ -883,9 +1032,9 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
             return (
               <motion.div
                 className="flex items-center gap-2.5 mt-1"
-                initial={{ opacity: 0, y: 12 }}
+                initial={{ opacity: 0, y: 90 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, delay: 0.1 + players.length * 0.04 }}
+                transition={{ type: 'spring', stiffness: 220, damping: 26, delay: 0.1 + players.length * 0.04 }}
               >
                 <button
                   type="button"
