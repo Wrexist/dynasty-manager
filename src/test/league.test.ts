@@ -157,4 +157,28 @@ describe('league', () => {
       expect(esp.teamCount).toBeGreaterThanOrEqual(8);
     });
   });
+
+  describe('promotion/relegation pyramid balance', () => {
+    it('every adjacent tier exchanges an equal number of clubs', () => {
+      const byCountry: Record<string, typeof LEAGUES> = {};
+      for (const l of LEAGUES) {
+        (byCountry[l.countryId] ??= []).push(l);
+      }
+      for (const [countryId, leagues] of Object.entries(byCountry)) {
+        if (leagues.length < 2) continue;
+        const sorted = [...leagues].sort((a, b) => a.tier - b.tier);
+        for (let i = 0; i < sorted.length - 1; i++) {
+          const upper = sorted[i];
+          const lower = sorted[i + 1];
+          // A promotion playoff always crowns exactly one promoted club,
+          // however many clubs enter the bracket.
+          const promotedUp = lower.promotionSpots + (lower.playoffSpots > 0 ? 1 : 0);
+          expect(
+            upper.relegationSpots,
+            `${countryId}: ${lower.id} promotes ${promotedUp} but ${upper.id} relegates ${upper.relegationSpots} — the pyramid would drift / deny a promotion`,
+          ).toBe(promotedUp);
+        }
+      }
+    });
+  });
 });

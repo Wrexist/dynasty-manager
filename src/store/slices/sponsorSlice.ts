@@ -101,6 +101,21 @@ export const createSponsorSlice = (set: Set, get: Get) => ({
     const club = state.clubs[state.playerClubId];
     if (!club) return;
 
+    // The buyout is real cash — refuse the termination if the club cannot
+    // afford it rather than driving the budget negative.
+    if (club.budget < deal.buyoutCost) {
+      set({
+        messages: addMsg(state.messages, {
+          week: state.week,
+          season: state.season,
+          type: 'sponsorship',
+          title: 'Buyout Unaffordable',
+          body: `Terminating the ${sponsorName} deal requires a ${formatMoney(deal.buyoutCost)} buyout, but your budget is only ${formatMoney(club.budget)}. The deal stands.`,
+        }),
+      });
+      return;
+    }
+
     set({
       sponsorDeals: state.sponsorDeals.filter(d => d.id !== dealId),
       sponsorSlotCooldowns: {

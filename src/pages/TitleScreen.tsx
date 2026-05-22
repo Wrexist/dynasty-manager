@@ -58,6 +58,7 @@ const TitleScreen = () => {
     const timer = setTimeout(() => {
       import('./Dashboard').catch(() => {});
       import('@/data/nationalPlayerPoolAccess').then(m => m.loadNationalPool()).catch(() => {});
+      import('@/data/playerTemplatesAccess').then(m => m.loadClubTemplates()).catch(() => {});
     }, 1500);
     return () => clearTimeout(timer);
   }, []);

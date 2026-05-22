@@ -56,7 +56,7 @@ import { initializeClubPowerRankings } from '@/utils/teamRankings';
 import { generateInitialFreeAgents } from '@/utils/transferMarketGen';
 import { applyBallonDorTop10Boost } from '@/utils/ballonDorBoost';
 import { BALLON_DOR_TOP10_RANK, BALLON_DOR_ELITE_CLUB_BONUS } from '@/config/gameBalance';
-import { CLUB_TEMPLATES } from '@/data/playerTemplates';
+import { getClubTemplatesSync, loadClubTemplates } from '@/data/playerTemplatesAccess';
 
 /**
  * Pick the 10 reigning Ballon d'Or top-10 holders for a freshly initialised
@@ -77,7 +77,7 @@ function pickInitialBallonDorTop10(
   const ghostCandidates: Player[] = [];
   for (const clubId of Object.keys(BALLON_DOR_ELITE_CLUB_BONUS)) {
     if (loadedClubIdSet[clubId]) continue;
-    const templates = CLUB_TEMPLATES[clubId] || [];
+    const templates = getClubTemplatesSync()[clubId] || [];
     if (templates.length === 0) continue;
     const topStars = [...templates].sort((a, b) => b.ovr - a.ovr).slice(0, 2);
     for (const t of topStars) {
@@ -135,6 +135,10 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
   // yet, squad generation gracefully falls back to fully procedural names
   // (the real-player picker has a documented null-return → fallback path).
   loadNationalPool().catch(() => undefined);
+  // Same treatment for the ~2.1MB club squad templates — lazy-loaded off the
+  // boot path, prefetched by TitleScreen, fire-and-forget here as a safety
+  // net. Squad generation falls back to procedural names if it races.
+  loadClubTemplates().catch(() => undefined);
 
   // Division is derived from club metadata, not the user's name — safe to
   // ship as a breadcrumb field. `clubId` is a stable internal id ("eng-liv"

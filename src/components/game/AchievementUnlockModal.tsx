@@ -1,9 +1,11 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { Button } from '@/components/ui/button';
 import { useScrollLock } from '@/hooks/useScrollLock';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useEscapeClose } from '@/hooks/useEscapeClose';
 import { cn } from '@/lib/utils';
 import type { Achievement } from '@/utils/achievements';
 import { getTierColor, getTierBgColor, getAchievementXP } from '@/utils/achievements';
@@ -51,6 +53,11 @@ function Sparkle({ index: _index }: { index: number }) {
 export function AchievementUnlockModal({ open, onClose, achievement }: AchievementUnlockModalProps) {
   useScrollLock(open);
 
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const active = open && !!achievement;
+  useFocusTrap(panelRef, active);
+  useEscapeClose(onClose, active);
+
   // Match the CelebrationModal pattern — fire one success notification haptic
   // exactly when the modal opens, in time with the badge spring-in.
   useEffect(() => {
@@ -77,6 +84,10 @@ export function AchievementUnlockModal({ open, onClose, achievement }: Achieveme
 
           {/* Modal */}
           <motion.div
+            ref={panelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Achievement unlocked: ${achievement.title}`}
             className="relative bg-card/95 backdrop-blur-xl border-2 border-primary/50 rounded-2xl max-w-sm w-full p-6 overflow-hidden shadow-[0_0_60px_rgba(234,179,8,0.2)]"
             initial={{ scale: 0.7, opacity: 0, y: 30 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}

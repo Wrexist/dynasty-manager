@@ -1,6 +1,7 @@
 import type { GameState } from '../storeTypes';
 import { addMsg } from '@/utils/helpers';
 import { getFarewellSummary } from '@/utils/playerNarratives';
+import { absWeek } from '@/utils/staff';
 import { LEAGUES } from '@/data/league';
 import { GROWTH_NEGOTIATION_PER_TRANSFER as CAREER_NEGOTIATION_GROWTH, STAT_MAX as CAREER_STAT_MAX } from '@/config/managerCareer';
 import {
@@ -164,7 +165,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const state = get();
     const entry = state.negotiationStrikes[playerId];
     if (!entry?.cooldownUntil) return { locked: false, weeksRemaining: 0 };
-    const absoluteWeek = state.season * (state.totalWeeks || TOTAL_WEEKS) + state.week;
+    const absoluteWeek = absWeek(state.season, state.week);
     if (entry.cooldownUntil <= absoluteWeek) return { locked: false, weeksRemaining: 0 };
     return { locked: true, weeksRemaining: entry.cooldownUntil - absoluteWeek };
   },
@@ -173,7 +174,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const state = get();
     const current = state.negotiationStrikes[playerId] || { strikes: 0 };
     const newStrikes = Math.min(current.strikes + 1, NEGOTIATION_MAX_STRIKES);
-    const absoluteWeek = state.season * (state.totalWeeks || TOTAL_WEEKS) + state.week;
+    const absoluteWeek = absWeek(state.season, state.week);
     const updated: NegotiationStrike = {
       strikes: newStrikes,
       ...(newStrikes >= NEGOTIATION_MAX_STRIKES ? { cooldownUntil: absoluteWeek + NEGOTIATION_COOLDOWN_WEEKS } : {}),
@@ -191,7 +192,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
 
   clearExpiredCooldowns: () => {
     const state = get();
-    const absoluteWeek = state.season * (state.totalWeeks || TOTAL_WEEKS) + state.week;
+    const absoluteWeek = absWeek(state.season, state.week);
     const strikes = { ...state.negotiationStrikes };
     let changed = false;
     for (const key of Object.keys(strikes)) {

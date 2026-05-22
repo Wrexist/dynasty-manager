@@ -50,6 +50,7 @@ export function TopBar() {
     if (xpProgress.percentage > prevXpRef.current) {
       setXpGlow(true);
       const timer = setTimeout(() => setXpGlow(false), XP_GLOW_MS);
+      prevXpRef.current = xpProgress.percentage;
       return () => clearTimeout(timer);
     }
     prevXpRef.current = xpProgress.percentage;

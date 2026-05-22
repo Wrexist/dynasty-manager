@@ -183,6 +183,11 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
     if (!selectedOutId || !selectedInId) return;
     makeMatchSub(selectedOutId, selectedInId, matchMinute);
     hapticMedium();
+    // Confirm the sub landed — manual subs were previously the only sub
+    // path with no feedback toast (Smart Sub / Optimize both toast).
+    const outP = players[selectedOutId];
+    const inP = players[selectedInId];
+    if (outP && inP) successToast(`Sub made: ${inP.lastName} on for ${outP.lastName}.`);
     setSelectedOutId(null);
     setSelectedInId(null);
     onOpenChange(false);

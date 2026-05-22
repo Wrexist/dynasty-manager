@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateCupDraw, advanceCupRound, getCupResultForClub, getRoundName } from '@/data/cup';
+import { generateCupDraw, advanceCupRound, getCupResultForClub, getRoundName, CUP_BYE_MARKER } from '@/data/cup';
 
 function makeClubIds(count: number): string[] {
   return Array.from({ length: count }, (_, i) => `club-${i + 1}`);
@@ -7,39 +7,56 @@ function makeClubIds(count: number): string[] {
 
 describe('cup', () => {
   describe('generateCupDraw', () => {
-    it('should generate 10 ties from 20 clubs', () => {
-      const ids = makeClubIds(20);
-      const cup = generateCupDraw(ids);
-      expect(cup.ties).toHaveLength(10);
-      expect(cup.currentRound).toBe('R1');
+    it('seeds a 20-club field into a clean bracket via a preliminary round', () => {
+      const cup = generateCupDraw(makeClubIds(20));
+      // 20 → largest power of two is 16: 4 played ties + 12 byes → 16 clubs.
+      expect(cup.currentRound).toBe('R3');
+      expect(cup.ties.filter(t => t.awayClubId !== CUP_BYE_MARKER)).toHaveLength(4);
+      expect(cup.ties.filter(t => t.awayClubId === CUP_BYE_MARKER)).toHaveLength(12);
       expect(cup.eliminated).toBe(false);
       expect(cup.winner).toBeNull();
     });
 
     it('should include all clubs exactly once', () => {
-      const ids = makeClubIds(20);
-      const cup = generateCupDraw(ids);
-      const allClubs = cup.ties.flatMap(t => [t.homeClubId, t.awayClubId]);
+      const cup = generateCupDraw(makeClubIds(20));
+      const allClubs = cup.ties
+        .flatMap(t => [t.homeClubId, t.awayClubId])
+        .filter(id => id !== CUP_BYE_MARKER);
       expect(new Set(allClubs).size).toBe(20);
     });
 
-    it('should set all ties to R1 round', () => {
-      const ids = makeClubIds(20);
-      const cup = generateCupDraw(ids);
-      expect(cup.ties.every(t => t.round === 'R1')).toBe(true);
+    it('uses straight pairings with no byes when the field is a power of two', () => {
+      const cup = generateCupDraw(makeClubIds(16));
+      expect(cup.currentRound).toBe('R4');
+      expect(cup.ties).toHaveLength(8);
+      expect(cup.ties.every(t => t.awayClubId !== CUP_BYE_MARKER)).toBe(true);
+    });
+
+    it('a 24-club cup resolves to a real, contested Final (no walkover bye)', () => {
+      let cup = generateCupDraw(makeClubIds(24));
+      let guard = 0;
+      while (cup.currentRound && cup.currentRound !== 'F' && guard++ < 10) {
+        cup.ties
+          .filter(t => t.round === cup.currentRound && !t.played)
+          .forEach(t => { t.played = true; t.homeGoals = 1; t.awayGoals = 0; });
+        cup = advanceCupRound(cup);
+      }
+      const finalTies = cup.ties.filter(t => t.round === 'F');
+      expect(finalTies).toHaveLength(1);
+      expect(finalTies[0].homeClubId).not.toBe(CUP_BYE_MARKER);
+      expect(finalTies[0].awayClubId).not.toBe(CUP_BYE_MARKER);
     });
   });
 
   describe('advanceCupRound', () => {
     it('should create next round ties from winners', () => {
-      const ids = makeClubIds(20);
-      const cup = generateCupDraw(ids);
-      // Mark all R1 ties as played with home winning
+      const cup = generateCupDraw(makeClubIds(20));
+      // Resolve every R3 tie (byes are already played) with the home side winning.
       cup.ties.forEach(t => { t.played = true; t.homeGoals = 2; t.awayGoals = 1; });
       const advanced = advanceCupRound(cup);
-      expect(advanced.currentRound).toBe('R2');
-      const r2Ties = advanced.ties.filter(t => t.round === 'R2');
-      expect(r2Ties).toHaveLength(5);
+      // 4 tie winners + 12 byes = 16 clubs → 8 R4 ties.
+      expect(advanced.currentRound).toBe('R4');
+      expect(advanced.ties.filter(t => t.round === 'R4')).toHaveLength(8);
     });
 
     it('should not advance past final', () => {

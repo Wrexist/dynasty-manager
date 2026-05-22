@@ -14,7 +14,7 @@ import {
   BALLON_DOR_MAX_PER_DIVISION,
 } from '@/config/gameBalance';
 import { LEAGUES, ALL_CLUBS } from '@/data/league';
-import { CLUB_TEMPLATES } from '@/data/playerTemplates';
+import { getClubTemplatesSync } from '@/data/playerTemplatesAccess';
 
 const DEFAULT_POSITION_MULTIPLIER = { goals: 1.0, assists: 1.5, cleanSheets: 0 };
 
@@ -134,7 +134,7 @@ function getGlobalEliteEntries(loadedClubIds: Set<string>): ScoredEntry[] {
 
   for (const clubId of Object.keys(BALLON_DOR_ELITE_CLUB_BONUS)) {
     if (loadedClubIds.has(clubId)) continue;
-    const templates = CLUB_TEMPLATES[clubId] || [];
+    const templates = getClubTemplatesSync()[clubId] || [];
     if (templates.length === 0) continue;
 
     // Take the top 4 by ovr — mirrors how real BdO clusters the same club

@@ -26,55 +26,67 @@ const ROUND_ORDER: CupRound[] = ['R1', 'R2', 'R3', 'R4', 'QF', 'SF', 'F'];
 
 /**
  * Generate a domestic cup draw for all clubs in the player's league.
- * Simple knockout bracket — all clubs enter at R1.
- * For leagues with 10-20 teams, the bracket naturally fits within the available rounds.
+ *
+ * A clean knockout needs a power-of-two field. We reduce the entrant count
+ * to the largest power of two <= N with a single preliminary round of byes,
+ * then run a strictly bye-free bracket. The rounds used are the LAST
+ * `1 + log2(target)` entries of ROUND_ORDER so the decider always lands on
+ * the 'F' slot — earlier round slots simply go unused for small fields.
+ *
+ * This replaces the old approach, which paired a non-power-of-two field
+ * (e.g. a 24-club division) at R1 and let byes accumulate deep in the
+ * bracket — that could leave the Final itself an unplayed walkover bye and
+ * hand a club the trophy without a final being contested.
  */
 export function generateCupDraw(clubIds: string[]): CupState {
-  const ties: CupTie[] = [];
   const shuffled = shuffle([...clubIds]);
+  const n = shuffled.length;
 
-  // Determine the starting round based on the number of clubs
-  // We want the final to happen in the later rounds
-  // For 20 teams: R1 (20→10), R2 (10→...), etc.
-  // For 10 teams: Start at R2 so the final lands at QF/SF
-  let startRound: CupRound = 'R1';
-  if (shuffled.length <= 8) startRound = 'R3';
-  else if (shuffled.length <= 16) startRound = 'R2';
+  const mkTie = (round: CupRound, home: string, away: string, isBye: boolean): CupTie => ({
+    id: crypto.randomUUID(),
+    round,
+    homeClubId: home,
+    awayClubId: away,
+    played: isBye,
+    homeGoals: isBye ? 1 : 0,
+    awayGoals: 0,
+    week: CUP_WEEKS[round],
+  });
 
-  // Pair up clubs
-  for (let i = 0; i + 1 < shuffled.length; i += 2) {
-    ties.push({
-      id: crypto.randomUUID(),
-      round: startRound,
-      homeClubId: shuffled[i],
-      awayClubId: shuffled[i + 1],
-      played: false,
-      homeGoals: 0,
-      awayGoals: 0,
-      week: CUP_WEEKS[startRound],
-    });
+  // Degenerate field — nothing to contest.
+  if (n < 2) {
+    return { ties: [], currentRound: null, eliminated: false, winner: null };
   }
 
-  // Handle odd number: last club gets a bye
-  if (shuffled.length % 2 === 1) {
-    ties.push({
-      id: crypto.randomUUID(),
-      round: startRound,
-      homeClubId: shuffled[shuffled.length - 1],
-      awayClubId: CUP_BYE_MARKER,
-      played: true,
-      homeGoals: 1,
-      awayGoals: 0,
-      week: CUP_WEEKS[startRound],
-    });
+  // Largest power of two <= n.
+  let target = 1;
+  while (target * 2 <= n) target *= 2;
+
+  const needsPrelim = n > target;
+  const cleanRounds = Math.max(1, Math.round(Math.log2(target)));
+  const totalRounds = cleanRounds + (needsPrelim ? 1 : 0);
+  const startIdx = Math.max(0, ROUND_ORDER.length - totalRounds);
+  const startRound = ROUND_ORDER[startIdx];
+
+  const ties: CupTie[] = [];
+  if (needsPrelim) {
+    // (n - target) ties are played; the remaining clubs get a bye, leaving
+    // exactly `target` clubs (a power of two) for the next round.
+    const tieCount = n - target;
+    for (let i = 0; i < tieCount; i++) {
+      ties.push(mkTie(startRound, shuffled[i * 2], shuffled[i * 2 + 1], false));
+    }
+    for (let i = tieCount * 2; i < n; i++) {
+      ties.push(mkTie(startRound, shuffled[i], CUP_BYE_MARKER, true));
+    }
+  } else {
+    // n is already a power of two — straight pairings, no byes anywhere.
+    for (let i = 0; i + 1 < n; i += 2) {
+      ties.push(mkTie(startRound, shuffled[i], shuffled[i + 1], false));
+    }
   }
 
-  return {
-    ties,
-    currentRound: startRound,
-    eliminated: false,
-    winner: null,
-  };
+  return { ties, currentRound: startRound, eliminated: false, winner: null };
 }
 
 export function advanceCupRound(

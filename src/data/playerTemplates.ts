@@ -24,11 +24,11 @@ export interface PlayerTemplate {
   weightKg?: number;
 }
 
-import { ALL_SQUAD_TEMPLATES } from '@/data/squads';
-
 /**
- * Club-specific player templates for squad generation.
- * Players are procedurally generated, but templates allow seeding
- * recognizable players at specific clubs from real-life 2024-25 rosters.
+ * Club-specific player templates seed recognizable real-life players at
+ * specific clubs during squad generation.
+ *
+ * The squad data (~2.1MB) is intentionally NOT exported here as a static
+ * value — that would pull it onto the boot path. Access it lazily via
+ * `@/data/playerTemplatesAccess` (`getClubTemplatesSync()` / `loadClubTemplates()`).
  */
-export const CLUB_TEMPLATES: Record<string, PlayerTemplate[]> = ALL_SQUAD_TEMPLATES;

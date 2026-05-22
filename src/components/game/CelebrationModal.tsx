@@ -1,9 +1,11 @@
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { Button } from '@/components/ui/button';
 import { useScrollLock } from '@/hooks/useScrollLock';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useEscapeClose } from '@/hooks/useEscapeClose';
 import { useGameStore } from '@/store/gameStore';
 import { getActiveCosmetic } from '@/utils/monetization';
 import { COSMETIC_ITEMS } from '@/config/monetization';
@@ -78,6 +80,10 @@ export function CelebrationModal({ open, onClose, title, description, icon, stat
   const prefersReducedMotion = useReducedMotion();
   useScrollLock(open);
 
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(panelRef, open);
+  useEscapeClose(onClose, open);
+
   // Single source of truth for celebration moments — promotions, trophy
   // wins, season triumphs all funnel through this modal, so we fire one
   // success haptic on open instead of sprinkling them through callers.
@@ -100,6 +106,10 @@ export function CelebrationModal({ open, onClose, title, description, icon, stat
 
           {/* Modal */}
           <motion.div
+            ref={panelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={displayTitle}
             className="relative bg-card/95 backdrop-blur-xl border-2 border-primary/50 rounded-2xl max-w-sm w-full p-6 overflow-hidden shadow-[0_0_40px_rgba(234,179,8,0.15)]"
             initial={{ scale: 0.8, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
