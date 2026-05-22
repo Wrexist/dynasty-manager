@@ -542,6 +542,8 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
     lastPackWeek: 0,
     lastPackSeason: 0,
     dailyPackOpens: { date: '', free: {}, ad: {} },
+    weeklyPackOpens: { week: '', free: {}, ad: {} },
+    monthlyPackOpens: { month: '', free: {}, ad: {} },
     sponsorDeals: starterSponsorDeals,
     sponsorOffers: starterSponsorOffers,
     sponsorSlotCooldowns: {},

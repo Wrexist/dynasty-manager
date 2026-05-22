@@ -19,9 +19,9 @@ interface PackShopCardProps {
    *  this via `free → ad → iap → currency` priority. `null` means
    *  nothing is available right now (caps hit, no fallback). */
   method: PackUnlockMethod | null;
-  /** Free opens remaining today (0 if tier doesn't offer free opens). */
+  /** Free opens remaining in the current window (0 if tier offers none). */
   freeRemaining: number;
-  /** Ad opens remaining today (0 if tier doesn't offer ad opens). */
+  /** Ad opens remaining in the current window (0 if tier offers none). */
   adRemaining: number;
   /** Pre-formatted countdown string to next daily reset (e.g. "5h 23m").
    *  Only shown when the active method is locked behind a daily reset. */
@@ -61,9 +61,9 @@ export const PackShopCard = memo(function PackShopCard({ tier, affordable, squad
 
   // a11y price summary — only used in aria-label, not rendered.
   const ariaPrice = method === 'free'
-    ? `free, ${freeRemaining} left today`
+    ? `free, ${freeRemaining} left`
     : method === 'ad'
-      ? `watch an ad, ${adRemaining} left today`
+      ? `watch an ad, ${adRemaining} left`
       : method === 'iap'
         ? tier.iapPriceDisplay || 'in-app purchase'
         : method === 'currency'

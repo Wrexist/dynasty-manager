@@ -20,19 +20,11 @@ import { errorToast, infoToast, successToast } from '@/utils/gameToast';
 import type { Player } from '@/types/game';
 import { NATIVE_ADS_READY, showRewardedAd } from '@/utils/ads';
 import { purchaseConsumable } from '@/utils/purchases';
+import { dayKey, packOpensRemaining } from '@/utils/packLimits';
 
 function playerTier(ovr: number) {
   for (const t of PLAYER_TIER_THRESHOLDS) if (ovr >= t.min) return t;
   return PLAYER_TIER_THRESHOLDS[PLAYER_TIER_THRESHOLDS.length - 1];
-}
-
-/** Same YYYY-MM-DD key the slice uses to bucket per-day pack opens. */
-function todayDateKey(): string {
-  const d = new Date();
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
 }
 
 /** Milliseconds until the next local midnight (when daily allowances reset). */
@@ -54,7 +46,7 @@ function formatCountdown(ms: number): string {
 }
 
 const PacksPage = () => {
-  const { club, players, openedPacks, packPityCounter, season, week, dailyPackOpens } = useGameStore(useShallow((s) => ({
+  const { club, players, openedPacks, packPityCounter, season, week, dailyPackOpens, weeklyPackOpens, monthlyPackOpens } = useGameStore(useShallow((s) => ({
     club: s.clubs[s.playerClubId],
     players: s.players,
     openedPacks: s.openedPacks || [],
@@ -62,6 +54,8 @@ const PacksPage = () => {
     season: s.season,
     week: s.week,
     dailyPackOpens: s.dailyPackOpens || { date: '', free: {}, ad: {} },
+    weeklyPackOpens: s.weeklyPackOpens || { week: '', free: {}, ad: {} },
+    monthlyPackOpens: s.monthlyPackOpens || { month: '', free: {}, ad: {} },
   })));
   const openPack = useGameStore(s => s.openPack);
   const canOpenPack = useGameStore(s => s.canOpenPack);
@@ -146,29 +140,17 @@ const PacksPage = () => {
   const pityRemaining = Math.max(0, PACK_PITY_THRESHOLD - packPityCounter);
   const pityProgressPct = Math.min(100, (packPityCounter / PACK_PITY_THRESHOLD) * 100);
 
-  // Per-tier daily-bucket reads. Resets when the device's local date
-  // rolls over by virtue of the date key not matching any longer.
-  const today = todayDateKey();
-  const usedToday = (tier: PackTierDefinition): { free: number; ad: number } => {
-    if (dailyPackOpens.date !== today) return { free: 0, ad: 0 };
-    return {
-      free: dailyPackOpens.free[tier.key] || 0,
-      ad: dailyPackOpens.ad[tier.key] || 0,
-    };
-  };
-  const freeRemaining = (tier: PackTierDefinition): number => {
-    const cap = tier.freeDailyLimit ?? 0;
-    if (cap === 0) return 0;
-    return Math.max(0, cap - usedToday(tier).free);
-  };
-  const adRemaining = (tier: PackTierDefinition): number => {
-    // V1: ads are disabled at the native layer, so the ad-unlock path is
-    // never offered. Re-enables automatically when NATIVE_ADS_READY flips.
-    if (!NATIVE_ADS_READY) return 0;
-    const cap = tier.adDailyLimit ?? 0;
-    if (cap === 0) return 0;
-    return Math.max(0, cap - usedToday(tier).ad);
-  };
+  // Per-tier open-allowance reads. Each tier's free / ad window — daily,
+  // weekly, or monthly — is resolved inside `packLimits`; buckets reset
+  // implicitly once their period key rolls over.
+  const buckets = useMemo(
+    () => ({ dailyPackOpens, weeklyPackOpens, monthlyPackOpens }),
+    [dailyPackOpens, weeklyPackOpens, monthlyPackOpens],
+  );
+  const freeRemaining = (tier: PackTierDefinition): number =>
+    packOpensRemaining(buckets, tier, 'free');
+  const adRemaining = (tier: PackTierDefinition): number =>
+    NATIVE_ADS_READY ? packOpensRemaining(buckets, tier, 'ad') : 0;
 
   /** Pick the active method for a tier given today's usage. Mirrors the
    *  slice's `defaultMethodFor` priority: free → ad → iap → currency.
@@ -200,8 +182,8 @@ const PacksPage = () => {
    *  tiers — drives the "Free packs reset in Xh Ym" banner. We don't
    *  show the countdown when nothing has been used yet (no need to
    *  remind the user about a reset that doesn't matter). */
-  const dailyAllowanceUsed = PACK_TIERS.some(t =>
-    usedToday(t).free > 0 || usedToday(t).ad > 0,
+  const dailyAllowanceUsed = dailyPackOpens.date === dayKey() && PACK_TIERS.some(t =>
+    (dailyPackOpens.free[t.key] || 0) > 0 || (dailyPackOpens.ad[t.key] || 0) > 0,
   );
 
   const handleOpen = async (tierKey: PackTierKey) => {

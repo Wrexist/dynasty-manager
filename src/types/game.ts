@@ -1873,8 +1873,9 @@ export interface PackRarityWeights {
 }
 
 /** Method used to unlock a single pack open.
- *  - `free`: zero-cost daily allowance, capped by `freeDailyLimit`.
- *  - `ad`: rewarded video ad, capped by `adDailyLimit`. Used after free runs out.
+ *  - `free`: zero-cost allowance, capped by `freeDailyLimit` / `freeWeeklyLimit`.
+ *  - `ad`: rewarded video ad, capped by `adDailyLimit` / `adMonthlyLimit`.
+ *    Used after the free allowance runs out.
  *  - `currency`: spends in-game club budget at `price` per open.
  *  - `iap`: real-money in-app purchase via RevenueCat at `productId`.
  *
@@ -1907,9 +1908,16 @@ export interface PackTierDefinition {
   artSrc?: string;
   /** Free opens per real-world day (no ad, no payment). Default 0. */
   freeDailyLimit?: number;
+  /** Free opens per real-world week (no ad, no payment). When set, takes
+   *  precedence over `freeDailyLimit`. Default 0. */
+  freeWeeklyLimit?: number;
   /** Rewarded-ad opens per real-world day, used after free opens are
    *  exhausted. Default 0. */
   adDailyLimit?: number;
+  /** Rewarded-ad opens per real-world month. When set, takes precedence
+   *  over `adDailyLimit` — used for tiers where the ad path is a rare
+   *  taster before the IAP path. Default 0. */
+  adMonthlyLimit?: number;
   /** RevenueCat / store product identifier. When set, the pack supports
    *  unlimited consumable IAP opens after free/ad allowances run out. */
   productId?: ProductId;

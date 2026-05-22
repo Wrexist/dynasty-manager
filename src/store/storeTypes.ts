@@ -453,6 +453,21 @@ export interface GameState {
     free: Partial<Record<PackTierKey, number>>;
     ad: Partial<Record<PackTierKey, number>>;
   };
+  /** Per-real-week open counts — same shape as `dailyPackOpens` but keyed
+   *  by ISO week (`YYYY-Www`). Holds tiers with a weekly free allowance
+   *  (e.g. the Silver pack's 1 free per week). */
+  weeklyPackOpens: {
+    week: string;
+    free: Partial<Record<PackTierKey, number>>;
+    ad: Partial<Record<PackTierKey, number>>;
+  };
+  /** Per-real-month open counts — keyed by `YYYY-MM`. Holds tiers with a
+   *  monthly ad allowance (e.g. the Gold pack's 1 ad open per month). */
+  monthlyPackOpens: {
+    month: string;
+    free: Partial<Record<PackTierKey, number>>;
+    ad: Partial<Record<PackTierKey, number>>;
+  };
   /** Open a pack via a specific method. The page is responsible for
    *  picking the right method (free → ad → iap → currency priority) and
    *  for completing any out-of-band cost (showing the rewarded ad,

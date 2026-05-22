@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 
 describe('saveMigration', () => {
-  it('should have current version set to 69', () => {
-    expect(CURRENT_VERSION).toBe(69);
+  it('should have current version set to 70', () => {
+    expect(CURRENT_VERSION).toBe(70);
   });
 
   it('v68 → v69 is a clean version bump (negotiation field is optional)', () => {
@@ -11,6 +11,20 @@ describe('saveMigration', () => {
     const result = migrateSaveData(v68);
     expect(result.version).toBe(CURRENT_VERSION);
     expect(result.sponsorOffers).toEqual([{ id: 'o1' }]);
+  });
+
+  it('v69 → v70 adds the weekly + monthly pack-open buckets', () => {
+    const v69: Record<string, unknown> = {
+      version: 69,
+      dailyPackOpens: { date: '2026-05-22', free: { bronze: 1 }, ad: {} },
+    };
+    const result = migrateSaveData(v69) as Record<string, unknown>;
+    expect(result.version).toBe(CURRENT_VERSION);
+    // Existing daily bucket is untouched.
+    expect(result.dailyPackOpens).toEqual({ date: '2026-05-22', free: { bronze: 1 }, ad: {} });
+    // New buckets start empty so the next open begins a fresh window.
+    expect(result.weeklyPackOpens).toEqual({ week: '', free: {}, ad: {} });
+    expect(result.monthlyPackOpens).toEqual({ month: '', free: {}, ad: {} });
   });
 
   it('v67 → v68 backfills the 13 previously-unsaved GameState fields', () => {

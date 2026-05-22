@@ -11,7 +11,7 @@ import type { Club, Player, FormationType } from '@/types/game';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 69;
+const CURRENT_VERSION = 70;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -1132,6 +1132,18 @@ const migrations: Record<number, MigrationFn> = {
   // negotiation (undefined) — the field is optional, so there is nothing
   // to backfill; this is a clean version bump.
   68: (data) => ({ ...data, version: 69 }),
+
+  // v69 → v70: Pack opens now reset over three windows (daily / weekly /
+  // monthly) so the Silver pack's free open can reset weekly and the Gold
+  // pack's ad open monthly. Adds two new buckets alongside the existing
+  // `dailyPackOpens`. Existing saves start them empty so the next open
+  // begins a fresh window.
+  69: (data) => ({
+    ...data,
+    version: 70,
+    weeklyPackOpens: data.weeklyPackOpens || { week: '', free: {}, ad: {} },
+    monthlyPackOpens: data.monthlyPackOpens || { month: '', free: {}, ad: {} },
+  }),
 
   // v64 → v65: National team `fifaRanking` was hardcoded to 25 on init —
   // recompute from the canonical per-nation `baseRanking` so France no

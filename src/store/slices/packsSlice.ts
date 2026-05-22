@@ -4,6 +4,14 @@ import type { GameState } from '../storeTypes';
 import { addMsg } from '@/utils/helpers';
 import { MAX_SQUAD_SIZE, MIN_SQUAD_SIZE, FFP_WAGE_RATIO_WARNING } from '@/config/gameBalance';
 import { PACK_TIER_MAP, RECENT_PULLS_LIMIT } from '@/config/packs';
+import {
+  packOpensRemaining,
+  packOpensUsed,
+  periodLabel,
+  recordPackOpen,
+  resolvePackLimit,
+  type PackOpenBuckets,
+} from '@/utils/packLimits';
 import { generateAiCounterSignings, generatePackContents, shouldPityTrigger, updatedPityCounter } from '@/utils/packGeneration';
 import { CHALLENGES } from '@/data/challenges';
 import { grantXP, XP_REWARDS } from '@/utils/managerPerks';
@@ -37,28 +45,15 @@ type Get = () => GameState;
 // OpenedPackRecord, OpenPackResult, ReleasePackedPlayerResult all live in
 // `@/types/game` (single source of truth for domain types).
 
-/** Real-world date key (YYYY-MM-DD, device-local) used to bucket
- *  daily ad-pack opens. Lives in the slice so tests can stub `Date`
- *  without touching production timezone logic. */
-function todayDateKey(): string {
-  const d = new Date();
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
-}
-
 export type CanOpenPackResult = { ok: true } | { ok: false; message: string };
 
-/** Read today's free/ad open count for a given tier from state, defaulting
- *  to 0 if the bucket date no longer matches the device's current day. */
-function todayCounts(state: GameState, tierKey: PackTierKey): { free: number; ad: number } {
-  const today = todayDateKey();
-  const buckets = state.dailyPackOpens || { date: '', free: {}, ad: {} };
-  if (buckets.date !== today) return { free: 0, ad: 0 };
+/** Collect the three open-count buckets off game state in the shape the
+ *  `packLimits` helpers expect (daily / weekly / monthly reset windows). */
+function openBuckets(state: GameState): PackOpenBuckets {
   return {
-    free: buckets.free?.[tierKey] || 0,
-    ad: buckets.ad?.[tierKey] || 0,
+    dailyPackOpens: state.dailyPackOpens || { date: '', free: {}, ad: {} },
+    weeklyPackOpens: state.weeklyPackOpens || { week: '', free: {}, ad: {} },
+    monthlyPackOpens: state.monthlyPackOpens || { month: '', free: {}, ad: {} },
   };
 }
 
@@ -72,9 +67,9 @@ export function defaultMethodFor(
 ): PackUnlockMethod | null {
   const tier = PACK_TIER_MAP[tierKey];
   if (!tier) return null;
-  const used = todayCounts(state, tierKey);
-  if ((tier.freeDailyLimit ?? 0) > used.free) return 'free';
-  if ((tier.adDailyLimit ?? 0) > used.ad) return 'ad';
+  const buckets = openBuckets(state);
+  if (packOpensRemaining(buckets, tier, 'free') > 0) return 'free';
+  if (packOpensRemaining(buckets, tier, 'ad') > 0) return 'ad';
   if (tier.productId) return 'iap';
   if ((tier.price ?? 0) > 0) return 'currency';
   return null;
@@ -106,24 +101,26 @@ function evaluateOpenPack(
     };
   }
 
-  const used = todayCounts(state, tierKey);
+  const buckets = openBuckets(state);
 
   if (resolvedMethod === 'free') {
-    const cap = tier.freeDailyLimit ?? 0;
-    if (cap === 0) return { ok: false, message: `${tier.label} has no free opens.` };
-    if (used.free >= cap) {
+    const lim = resolvePackLimit(tier, 'free');
+    if (!lim) return { ok: false, message: `${tier.label} has no free opens.` };
+    if (packOpensUsed(buckets, tier, 'free') >= lim.limit) {
+      const window = lim.period === 'week' ? "This week's" : "Today's";
       return {
         ok: false,
-        message: `Today's free ${tier.label} already opened — come back tomorrow or watch an ad / buy more.`,
+        message: `${window} free ${tier.label} already opened — watch an ad or buy more, or come back when the ${periodLabel(lim.period)} resets.`,
       };
     }
   } else if (resolvedMethod === 'ad') {
-    const cap = tier.adDailyLimit ?? 0;
-    if (cap === 0) return { ok: false, message: `${tier.label} doesn't support ad opens.` };
-    if (used.ad >= cap) {
+    const lim = resolvePackLimit(tier, 'ad');
+    if (!lim) return { ok: false, message: `${tier.label} doesn't support ad opens.` };
+    if (packOpensUsed(buckets, tier, 'ad') >= lim.limit) {
+      const window = lim.period === 'month' ? 'Monthly' : 'Daily';
       return {
         ok: false,
-        message: `Daily ad limit reached — ${cap} ad opens per day for ${tier.label}.`,
+        message: `${window} ad limit reached — ${lim.limit} ad open${lim.limit === 1 ? '' : 's'} per ${periodLabel(lim.period)} for ${tier.label}.`,
       };
     }
   } else if (resolvedMethod === 'iap') {
@@ -151,6 +148,16 @@ export const createPacksSlice = (set: Set, get: Get) => ({
   lastPackSeason: 0,
   dailyPackOpens: { date: '', free: {}, ad: {} } as {
     date: string;
+    free: Partial<Record<PackTierKey, number>>;
+    ad: Partial<Record<PackTierKey, number>>;
+  },
+  weeklyPackOpens: { week: '', free: {}, ad: {} } as {
+    week: string;
+    free: Partial<Record<PackTierKey, number>>;
+    ad: Partial<Record<PackTierKey, number>>;
+  },
+  monthlyPackOpens: { month: '', free: {}, ad: {} } as {
+    month: string;
     free: Partial<Record<PackTierKey, number>>;
     ad: Partial<Record<PackTierKey, number>>;
   },
@@ -225,9 +232,6 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     }
 
     const club = state.clubs[state.playerClubId]!;
-    const today = todayDateKey();
-    const buckets = state.dailyPackOpens || { date: '', free: {}, ad: {} };
-    const usedToday = buckets.date === today ? buckets : { date: today, free: {}, ad: {} };
 
     const pityTriggered = shouldPityTrigger(state.packPityCounter || 0);
     const players = generatePackContents(tierKey, state.season, { pityTriggered });
@@ -435,23 +439,13 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       });
     }
 
-    // Bump the matching per-day bucket so daily caps survive save reloads.
-    // The date rolls over the moment a new ISO-day starts; existing
-    // buckets fall away with it.
-    let nextDailyOpens: GameState['dailyPackOpens'] = usedToday;
-    if (method === 'free') {
-      nextDailyOpens = {
-        date: today,
-        free: { ...usedToday.free, [tierKey]: (usedToday.free[tierKey] || 0) + 1 },
-        ad: usedToday.ad,
-      };
-    } else if (method === 'ad') {
-      nextDailyOpens = {
-        date: today,
-        free: usedToday.free,
-        ad: { ...usedToday.ad, [tierKey]: (usedToday.ad[tierKey] || 0) + 1 },
-      };
-    }
+    // Record the open against its limit bucket — daily, weekly, or
+    // monthly depending on the tier+method. Stale buckets reset implicitly
+    // inside `recordPackOpen`. iap / currency opens are uncapped and not
+    // tracked.
+    const bucketUpdate = (method === 'free' || method === 'ad')
+      ? recordPackOpen(openBuckets(state), tier, method)
+      : {};
 
     set({
       players: playersWithAi,
@@ -460,7 +454,7 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       packPityCounter: newPity,
       lastPackWeek: state.week,
       lastPackSeason: state.season,
-      dailyPackOpens: nextDailyOpens,
+      ...bucketUpdate,
       messages: newMessages,
       seasonTotalExpenses: (state.seasonTotalExpenses || 0) + budgetDeduction,
       managerProgression: newProgression,

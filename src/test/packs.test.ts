@@ -572,12 +572,14 @@ describe('Pack opening — AI counter-signings (league balance)', () => {
   it('AI signings stay strictly below the user\'s tier guarantee', () => {
     // Open a Gold pack (78+ user guarantee). AI signings must be ≤ 73 OVR
     // (78 − AI_BACKFILL_OVR_GAP). User's pack contains 5 cards; AI gets 2.
+    // Gold's free open path was retired — it now opens via a monthly ad
+    // (or IAP), so the test drives the `ad` method directly.
     const state = useGameStore.getState();
     useGameStore.setState({
       clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 50_000_000 } },
     });
     const beforeIds = new Set(Object.keys(useGameStore.getState().players));
-    const result = useGameStore.getState().openPack('gold');
+    const result = useGameStore.getState().openPack('gold', { method: 'ad', skipPayment: true });
     expect(result.success).toBe(true);
 
     const after = useGameStore.getState();
