@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Dynasty Manager — Poster 02 — Wonderkid</title>
+<link rel="stylesheet" href="_styles.css" />
+<style>
+  .card {
+    position: absolute;
+    top: 380px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 640px;
+    height: 880px;
+    border-radius: 32px;
+    background:
+      linear-gradient(135deg, hsl(43 96% 65%) 0%, hsl(43 96% 38%) 100%);
+    box-shadow:
+      0 24px 80px hsla(43 96% 46% / 0.5),
+      inset 0 0 0 4px hsla(43 96% 80% / 0.3);
+    padding: 48px;
+    color: hsl(222 40% 8%);
+  }
+  .card .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+  }
+  .card .ovr {
+    font-family: 'Oswald', sans-serif;
+    font-size: 144px;
+    font-weight: 700;
+    line-height: 0.85;
+  }
+  .card .position {
+    font-family: 'Oswald', sans-serif;
+    font-size: 48px;
+    font-weight: 600;
+    text-align: right;
+    margin-top: 16px;
+  }
+  .card .flag {
+    font-size: 64px;
+    margin-top: 8px;
+    text-align: right;
+  }
+  .card .portrait {
+    width: 100%;
+    height: 380px;
+    display: grid;
+    place-items: center;
+    font-size: 240px;
+    margin: 0 auto;
+  }
+  .card .name {
+    font-family: 'Oswald', sans-serif;
+    font-size: 72px;
+    font-weight: 700;
+    text-align: center;
+    margin-top: 16px;
+    letter-spacing: -0.01em;
+  }
+  .card .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-top: 32px;
+    text-align: center;
+  }
+  .card .stats .stat {
+    font-family: 'Oswald', sans-serif;
+  }
+  .card .stats .val {
+    font-size: 56px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .card .stats .lbl {
+    font-size: 24px;
+    opacity: 0.7;
+    letter-spacing: 0.05em;
+  }
+  .headline {
+    position: absolute;
+    top: 100px;
+    left: 80px;
+    right: 80px;
+    text-align: center;
+  }
+  .headline h1 {
+    font-size: 96px;
+    line-height: 1;
+    color: var(--foreground);
+  }
+  .headline .gold-amount {
+    color: var(--gold);
+    font-size: 120px;
+  }
+  .tagline {
+    position: absolute;
+    top: 1320px;
+    left: 80px;
+    right: 80px;
+    text-align: center;
+    font-family: 'Oswald', sans-serif;
+    font-size: 64px;
+    font-weight: 600;
+    color: var(--foreground);
+    line-height: 1.05;
+  }
+  .tagline .strike {
+    text-decoration: line-through;
+    text-decoration-color: hsl(0 84% 60%);
+    text-decoration-thickness: 6px;
+    color: var(--muted-foreground);
+  }
+  .cta {
+    position: absolute;
+    bottom: 320px;
+    left: 80px;
+    right: 80px;
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    padding: 40px;
+  }
+  .cta .text { flex: 1; }
+  .cta .name {
+    font-family: 'Oswald', sans-serif;
+    font-size: 56px;
+    font-weight: 700;
+  }
+  .cta .sub {
+    font-size: 28px;
+    color: var(--muted-foreground);
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+<div class="poster">
+  <div class="headline">
+    <h1><span class="gold-amount">£0</span> · 17 · <span class="gold">92 POT</span></h1>
+  </div>
+
+  <div class="card">
+    <div class="header">
+      <div>
+        <div class="ovr">92</div>
+        <div style="font-family: 'Oswald'; font-size: 32px; margin-top: 8px; opacity: 0.6;">POT 92</div>
+      </div>
+      <div>
+        <div class="position">ST</div>
+        <div class="flag">⚽</div>
+      </div>
+    </div>
+    <div class="portrait">⚡</div>
+    <div class="name">YOUR WONDERKID</div>
+    <div class="stats">
+      <div class="stat"><div class="val">94</div><div class="lbl">SHOOTING</div></div>
+      <div class="stat"><div class="val">89</div><div class="lbl">PACE</div></div>
+      <div class="stat"><div class="val">88</div><div class="lbl">PHYSICAL</div></div>
+    </div>
+  </div>
+
+  <div class="tagline">
+    <span class="strike">£80,000,000</span><br/>
+    <span class="gold-grad">NOT FOR SALE.</span>
+  </div>
+
+  <div class="cta glass">
+    <div class="app-icon">D</div>
+    <div class="text">
+      <div class="name">DYNASTY MANAGER</div>
+      <div class="sub">Find your wonderkid. <span class="gold">Free on iOS.</span></div>
+    </div>
+    <div class="free-badge">FREE</div>
+  </div>
+</div>
+</body>
+</html>

@@ -30,10 +30,12 @@ If `$ARGUMENTS` is empty or vague, ask the user which angle they want from: **wo
 ## Context Loading
 
 Before writing the brief, read:
-1. `package.json` — current version.
-2. `src/data/whatsNew.ts` — top-entry highlights are the freshest hook material.
-3. `src/config/packs.ts` — `PACK_TIERS` for any pack-related concept.
-4. If $ARGUMENTS references a specific game feature, find the page in `src/pages/` to ground the visual hook in real UI.
+1. `marketing/README.md` — kit overview and creator outreach guidance.
+2. `marketing/scripts/tiktok-*.md` — five shoot-ready scripts already exist (wonderkid-save, pack-reaction, bid-reject, promotion-rewind, why-is-this-free). **Do not duplicate.** Match their structure.
+3. `package.json` — current version.
+4. `src/data/whatsNew.ts` — top-entry highlights are the freshest hook material.
+5. `src/config/packs.ts` — `PACK_TIERS` for any pack-related concept.
+6. If $ARGUMENTS references a specific game feature, find the page in `src/pages/` to ground the visual hook in real UI.
 
 ## Output: TikTok Brief
 
@@ -103,9 +105,14 @@ Creator face-cam, hook (1s): "How is this game £0?" Cut to: 5 second tour — p
 ### 6. Getting-Sacked Banter
 Creator films: signed star striker, lost 6 in a row, sacked, laughing at the email from the board. Caption: "managed for 3 weeks and got sacked, this game is brutal lol." Self-deprecating works hard on TikTok football audience. CTA: "Dynasty Manager. Free. Will sack you within 8 weeks probably."
 
+## Deliverable
+
+**Save to `marketing/scripts/tiktok-NN-<slug>.md`**, mirroring `marketing/scripts/tiktok-01-wonderkid-save.md`.
+
 ## Next Steps
 
-- Identify 2-4 football-niche creators (10K-100K followers, banter voice). Reach out for paid content — typical rate $200-500 per Spark-eligible post including content rights.
+- Identify 2-4 football-niche creators (10K-100K followers, banter voice). Pay $200-500 per Spark-eligible post including content rights.
 - Run 3-5 hook variants × 1 body via Spark Ads. ~$300 for 7 days reads if the format works.
 - Kill at CPI > $5 after 5K impressions, scale at CPI < $3 + hold-rate > 12%.
 - If a Meta winner already exists (see `/project:ad-meta`), port that hook here first — winning hooks usually cross platforms.
+- For self-shoot footage: `Settings → Cinematic Capture` loops the Rare-Gold pack walkout for clean 9:16 screen recording.

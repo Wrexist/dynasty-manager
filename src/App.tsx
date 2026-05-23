@@ -21,6 +21,7 @@ const ModeSelect = lazy(() => import("./pages/ModeSelect"));
 const ManagerCreation = lazy(() => import("./pages/ManagerCreation"));
 const WhatsNewPage = lazy(() => import("./pages/WhatsNewPage"));
 const SubscribeOnboarding = lazy(() => import("./pages/SubscribeOnboarding"));
+const CinematicCapturePage = lazy(() => import("./pages/CinematicCapturePage"));
 
 // Loading fallback
 const LoadingFallback = () => (
@@ -88,6 +89,10 @@ const App = () => {
               <Route
                 path="/game"
                 element={<ErrorBoundary scope="game-shell"><GameShell /></ErrorBoundary>}
+              />
+              <Route
+                path="/cinematic-capture"
+                element={<ErrorBoundary scope="cinematic-capture"><CinematicCapturePage /></ErrorBoundary>}
               />
               <Route path="*" element={<NotFound />} />
             </Routes>

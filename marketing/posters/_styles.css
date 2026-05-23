@@ -1,0 +1,105 @@
+/*
+ * Shared styles for Dynasty Manager static poster ads.
+ * All posters are 1080×1920 (9:16). Open in any browser, screenshot.
+ * Or run `bash render-all.sh` to batch-render to PNG via headless Chromium.
+ *
+ * Color tokens mirror src/index.css so posters match the app exactly.
+ */
+
+:root {
+  --bg: hsl(222 30% 7%);
+  --bg-deep: hsl(222 40% 4%);
+  --card: hsl(222 25% 11%);
+  --foreground: hsl(220 15% 90%);
+  --muted-foreground: hsl(220 10% 65%);
+  --gold: hsl(43 96% 46%);
+  --gold-bright: hsl(43 96% 60%);
+  --gold-deep: hsl(43 96% 32%);
+  --accent: hsl(215 60% 50%);
+  --border: hsl(222 15% 18%);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 1080px;
+  height: 1920px;
+  overflow: hidden;
+  background: var(--bg-deep);
+  color: var(--foreground);
+  font-family: 'DM Sans', -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.poster {
+  position: relative;
+  width: 1080px;
+  height: 1920px;
+  background:
+    radial-gradient(ellipse at 50% 0%, hsl(222 30% 12%) 0%, transparent 60%),
+    linear-gradient(180deg, hsl(222 30% 7%) 0%, hsl(222 40% 4%) 100%);
+  overflow: hidden;
+}
+
+/* Glass card surface — same recipe as src/index.css glass utility */
+.glass {
+  background: hsla(222 25% 11% / 0.6);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid hsla(222 15% 28% / 0.5);
+  border-radius: 28px;
+}
+
+/* Headings — Oswald (mirrors app) */
+h1, h2, h3, .display {
+  font-family: 'Oswald', 'Helvetica Neue', sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.gold {
+  color: var(--gold);
+}
+
+.gold-grad {
+  background: linear-gradient(135deg, var(--gold-bright) 0%, var(--gold) 50%, var(--gold-deep) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* App-icon style chip */
+.app-icon {
+  width: 144px;
+  height: 144px;
+  border-radius: 32px;
+  background: linear-gradient(135deg, var(--gold-bright) 0%, var(--gold) 100%);
+  display: grid;
+  place-items: center;
+  font-family: 'Oswald', sans-serif;
+  font-size: 88px;
+  font-weight: 700;
+  color: hsl(222 40% 8%);
+  box-shadow:
+    0 8px 32px hsla(43 96% 46% / 0.4),
+    inset 0 -4px 12px hsla(0 0% 0% / 0.2);
+}
+
+/* "FREE" badge */
+.free-badge {
+  display: inline-block;
+  padding: 12px 28px;
+  border-radius: 999px;
+  background: hsl(160 84% 39%);
+  color: white;
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  font-size: 28px;
+}
+
+/* Safe-zone helpers — Reels/Stories overlay UI sits in bottom 250px and top 200px */
+.safe-zone-top { top: 220px; }
+.safe-zone-bottom { bottom: 280px; }
+
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=DM+Sans:wght@400;500;700&display=swap');

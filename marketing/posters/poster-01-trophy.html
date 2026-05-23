@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Dynasty Manager — Poster 01 — Trophy</title>
+<link rel="stylesheet" href="_styles.css" />
+<style>
+  .trophy-glow {
+    position: absolute;
+    top: 320px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 800px;
+    height: 800px;
+    background: radial-gradient(circle, hsla(43 96% 46% / 0.35) 0%, transparent 60%);
+    filter: blur(40px);
+  }
+  .trophy {
+    position: absolute;
+    top: 380px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 480px;
+    line-height: 1;
+    background: linear-gradient(180deg, hsl(43 96% 65%) 0%, hsl(43 96% 38%) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 4px 32px hsla(43 96% 46% / 0.6);
+  }
+  .confetti {
+    position: absolute;
+    top: 200px;
+    left: 0;
+    right: 0;
+    height: 800px;
+    pointer-events: none;
+  }
+  .confetti span {
+    position: absolute;
+    width: 12px;
+    height: 24px;
+    background: var(--gold);
+    border-radius: 2px;
+    opacity: 0.7;
+  }
+  .headline {
+    position: absolute;
+    top: 1120px;
+    left: 80px;
+    right: 80px;
+    text-align: center;
+  }
+  .headline .kicker {
+    font-size: 32px;
+    letter-spacing: 0.3em;
+    color: var(--muted-foreground);
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+  .headline h1 {
+    font-size: 128px;
+    line-height: 1;
+    color: var(--foreground);
+  }
+  .headline .sub {
+    font-size: 48px;
+    margin-top: 24px;
+    color: var(--muted-foreground);
+  }
+  .cta {
+    position: absolute;
+    bottom: 380px;
+    left: 80px;
+    right: 80px;
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    padding: 40px;
+  }
+  .cta .text {
+    flex: 1;
+  }
+  .cta .text .name {
+    font-family: 'Oswald', sans-serif;
+    font-size: 56px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .cta .text .sub {
+    font-size: 28px;
+    color: var(--muted-foreground);
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+<div class="poster">
+  <div class="trophy-glow"></div>
+  <div class="confetti">
+    <!-- 30 deterministic confetti shreds, pseudo-random positions -->
+    <span style="left: 12%; top: 8%;  transform: rotate(15deg);"></span>
+    <span style="left: 22%; top: 16%; transform: rotate(-22deg); background: hsl(43 96% 60%);"></span>
+    <span style="left: 38%; top: 12%; transform: rotate(8deg);"></span>
+    <span style="left: 52%; top: 22%; transform: rotate(-12deg); background: hsl(43 96% 70%);"></span>
+    <span style="left: 68%; top: 4%;  transform: rotate(28deg);"></span>
+    <span style="left: 82%; top: 18%; transform: rotate(-6deg);"></span>
+    <span style="left: 8%;  top: 38%; transform: rotate(22deg); background: hsl(43 96% 55%);"></span>
+    <span style="left: 28%; top: 44%; transform: rotate(-18deg);"></span>
+    <span style="left: 46%; top: 52%; transform: rotate(34deg);"></span>
+    <span style="left: 62%; top: 36%; transform: rotate(-28deg); background: hsl(43 96% 70%);"></span>
+    <span style="left: 78%; top: 48%; transform: rotate(12deg);"></span>
+    <span style="left: 92%; top: 28%; transform: rotate(-8deg); background: hsl(43 96% 55%);"></span>
+    <span style="left: 16%; top: 62%; transform: rotate(18deg);"></span>
+    <span style="left: 34%; top: 70%; transform: rotate(-24deg);"></span>
+    <span style="left: 58%; top: 64%; transform: rotate(8deg); background: hsl(43 96% 65%);"></span>
+    <span style="left: 74%; top: 72%; transform: rotate(-32deg);"></span>
+    <span style="left: 6%;  top: 84%; transform: rotate(28deg);"></span>
+    <span style="left: 24%; top: 88%; transform: rotate(-16deg); background: hsl(43 96% 70%);"></span>
+    <span style="left: 42%; top: 90%; transform: rotate(22deg);"></span>
+    <span style="left: 60%; top: 86%; transform: rotate(-4deg);"></span>
+    <span style="left: 80%; top: 92%; transform: rotate(18deg); background: hsl(43 96% 55%);"></span>
+  </div>
+
+  <div class="trophy">🏆</div>
+
+  <div class="headline">
+    <div class="kicker">PROMOTED TO THE</div>
+    <h1 class="gold-grad">PREMIER<br/>LEAGUE</h1>
+    <div class="sub">Started in div 4. Took 5 in-game seasons. And one weekend.</div>
+  </div>
+
+  <div class="cta glass">
+    <div class="app-icon">D</div>
+    <div class="text">
+      <div class="name">DYNASTY MANAGER</div>
+      <div class="sub">Build your football dynasty. <span class="gold">Free on iOS.</span></div>
+    </div>
+    <div class="free-badge">FREE</div>
+  </div>
+</div>
+</body>
+</html>

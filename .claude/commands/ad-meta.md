@@ -30,10 +30,12 @@ If `$ARGUMENTS` is empty or vague (e.g. "make a Meta ad"), ask which concept ang
 ## Context Loading
 
 Before writing the brief, read in order:
-1. `package.json` — confirm current version and any new feature flags.
-2. `src/data/whatsNew.ts` — top entry is the latest shipped build; the headline/highlights are the strongest hook fodder.
-3. `src/data/pendingNews.ts` — bullets queued for the next build. May surface a feature worth pre-marketing.
-4. `src/config/packs.ts` — `PACK_TIERS` and `guaranteedMinOvr` for any pack-related concept (Gold = 78+, Premium = 82+, Rare = 84+ with walkout, Icon = 88+ guaranteed walkout).
+1. `marketing/README.md` — the kit overview + ASO leak checklist (paid-burn-rate context).
+2. `marketing/scripts/meta-*.md` — five shoot-ready concrete scripts already exist. **Do not duplicate them.** Match their structure (Pitch → Hook variants table → Shot list → VO → Music → CTA → Capture → ffmpeg recipe → Why it converts → Test plan).
+3. `package.json` — confirm current version and any new feature flags.
+4. `src/data/whatsNew.ts` — top entry is the latest shipped build; the headline/highlights are the strongest hook fodder.
+5. `src/data/pendingNews.ts` — bullets queued for the next build. May surface a feature worth pre-marketing.
+6. `src/config/packs.ts` — `PACK_TIERS` and `guaranteedMinOvr` for any pack-related concept (Gold = 78+, Premium = 82+, Rare = 84+ with walkout, Icon = 88+ guaranteed walkout).
 
 ## Output: Ad Brief
 
@@ -99,8 +101,13 @@ Hook (1s): pack tier name "RARE GOLD" fills screen → instant cut to walkout re
 ### 5. Banter POV ("mate, you'll never guess")
 Hook (1s): UGC face-cam, caption "Mate. You'll never guess what just happened in my save." Body: handheld phone footage of last-minute equaliser → cup-final win → sacked next season for missing top-4 → laugh. Caption: "Football, basically." CTA: "Get sacked, free."
 
+## Deliverable
+
+**Save the brief to `marketing/scripts/meta-NN-<slug>.md`** where NN is the next free integer (read existing files to count). Mirror the structure of `marketing/scripts/meta-01-trophy-rewind.md` — that's the canonical template.
+
 ## Next Steps
 
-- After brief: shoot or commission. For UGC, pay 2-4 football-niche creators ~$200-500 each for content rights.
-- Test plan: 3-5 hook variants × 1 body = launch as Advantage+ Creative campaign. ~$500 for 10 days reads the winner. Kill at CPI > $6 after 5K impressions, scale at CPI < $4 + hold-rate > 10%.
-- Cross-port the winning Meta hook to TikTok via `/project:ad-tiktok`.
+- **Capture footage:** in-app via `Settings → Cinematic Capture`, OR commission UGC creator ~$200-500.
+- **Post-produce:** `bash marketing/postproduction/build-ad.sh --raw <file> --captions <srt> --music <mp3> --out <out>.mp4`.
+- **Launch:** 3-5 hook variants × 1 body as Advantage+ Creative. ~$500 for 10 days reads the winner. Kill at CPI > $6 after 5K impressions, scale at CPI < $4 + hold-rate > 10%.
+- **Cross-port** the winning Meta hook to TikTok via `/project:ad-tiktok`.

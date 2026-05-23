@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Dynasty Manager — Poster 04 — Transfer Bid</title>
+<link rel="stylesheet" href="_styles.css" />
+<style>
+  .phone-frame {
+    position: absolute;
+    top: 280px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 780px;
+    height: 1000px;
+    border-radius: 56px;
+    background: hsl(222 30% 5%);
+    border: 8px solid hsl(222 30% 14%);
+    box-shadow:
+      0 32px 80px hsla(0 0% 0% / 0.6),
+      inset 0 2px 0 hsla(220 15% 30% / 0.4);
+    overflow: hidden;
+  }
+  .phone-notch {
+    position: absolute;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 280px;
+    height: 32px;
+    background: hsl(222 30% 5%);
+    border-radius: 16px;
+  }
+  .notif-banner {
+    position: absolute;
+    top: 88px;
+    left: 32px;
+    right: 32px;
+    background: hsla(222 25% 11% / 0.92);
+    backdrop-filter: blur(20px);
+    border: 1px solid hsla(43 96% 46% / 0.4);
+    border-radius: 24px;
+    padding: 28px 32px;
+    box-shadow: 0 16px 48px hsla(0 0% 0% / 0.6);
+  }
+  .notif-banner .row1 {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .notif-banner .icon {
+    width: 56px;
+    height: 56px;
+    background: var(--gold);
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    color: hsl(222 40% 8%);
+    font-weight: 700;
+    font-size: 28px;
+    font-family: 'Oswald';
+  }
+  .notif-banner .meta {
+    flex: 1;
+    font-size: 22px;
+    color: var(--muted-foreground);
+    letter-spacing: 0.05em;
+  }
+  .notif-banner .timestamp {
+    font-size: 20px;
+    color: var(--muted-foreground);
+  }
+  .notif-banner .title {
+    font-family: 'Oswald', sans-serif;
+    font-size: 44px;
+    font-weight: 700;
+    color: var(--foreground);
+    margin-bottom: 8px;
+  }
+  .notif-banner .body {
+    font-size: 28px;
+    color: var(--foreground);
+    line-height: 1.3;
+  }
+  .notif-banner .body .fee {
+    color: var(--gold);
+    font-weight: 700;
+  }
+  .action-row {
+    position: absolute;
+    bottom: 340px;
+    left: 32px;
+    right: 32px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.2fr;
+    gap: 16px;
+  }
+  .action-row .btn {
+    border-radius: 20px;
+    padding: 24px;
+    text-align: center;
+    font-family: 'Oswald', sans-serif;
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+  .action-row .accept { background: hsla(140 70% 40% / 0.18); color: hsl(140 70% 65%); border: 2px solid hsla(140 70% 40% / 0.4); }
+  .action-row .negotiate { background: hsla(43 96% 46% / 0.18); color: hsl(43 96% 65%); border: 2px solid hsla(43 96% 46% / 0.4); }
+  .action-row .reject {
+    background: hsl(0 84% 50%);
+    color: white;
+    border: 2px solid hsl(0 84% 60%);
+    transform: scale(1.04);
+    box-shadow: 0 8px 32px hsla(0 84% 50% / 0.5);
+  }
+  .reject-stamp {
+    position: absolute;
+    bottom: 120px;
+    left: 50%;
+    transform: translateX(-50%) rotate(-12deg);
+    font-family: 'Oswald', sans-serif;
+    font-size: 96px;
+    font-weight: 700;
+    color: hsl(0 84% 50%);
+    border: 8px solid hsl(0 84% 50%);
+    padding: 16px 48px;
+    border-radius: 16px;
+    letter-spacing: 0.1em;
+    background: hsla(222 30% 5% / 0.4);
+  }
+  .headline {
+    position: absolute;
+    top: 100px;
+    left: 80px;
+    right: 80px;
+    text-align: center;
+  }
+  .headline h1 {
+    font-size: 96px;
+    line-height: 1;
+    color: var(--foreground);
+    letter-spacing: -0.02em;
+  }
+  .headline .gold {
+    color: var(--gold);
+  }
+  .cta {
+    position: absolute;
+    bottom: 280px;
+    left: 80px;
+    right: 80px;
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    padding: 36px;
+  }
+  .cta .text { flex: 1; }
+  .cta .name {
+    font-family: 'Oswald', sans-serif;
+    font-size: 52px;
+    font-weight: 700;
+  }
+  .cta .sub {
+    font-size: 26px;
+    color: var(--muted-foreground);
+    margin-top: 6px;
+  }
+</style>
+</head>
+<body>
+<div class="poster">
+  <div class="headline">
+    <h1>WOULD<br/>YOU <span class="gold">REJECT?</span></h1>
+  </div>
+
+  <div class="phone-frame">
+    <div class="phone-notch"></div>
+    <div class="notif-banner">
+      <div class="row1">
+        <div class="icon">RM</div>
+        <div class="meta">INCOMING TRANSFER OFFER</div>
+        <div class="timestamp">now</div>
+      </div>
+      <div class="title">Real Madrid bid £80,000,000</div>
+      <div class="body">For your 17-year-old striker. <span class="fee">+£32M over market value</span>.</div>
+    </div>
+
+    <div class="action-row">
+      <div class="btn accept">ACCEPT</div>
+      <div class="btn negotiate">NEGOTIATE</div>
+      <div class="btn reject">REJECT</div>
+    </div>
+
+    <div class="reject-stamp">REJECTED</div>
+  </div>
+
+  <div class="cta glass">
+    <div class="app-icon">D</div>
+    <div class="text">
+      <div class="name">DYNASTY MANAGER</div>
+      <div class="sub">Run your club. <span class="gold">Free on iOS.</span></div>
+    </div>
+    <div class="free-badge">FREE</div>
+  </div>
+</div>
+</body>
+</html>

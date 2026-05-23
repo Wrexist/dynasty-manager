@@ -35,10 +35,19 @@ If `$ARGUMENTS` is unclear, ask which of these the user means.
 ## Context Loading
 
 For any budget/scale recommendation, read:
-1. `package.json` — version (am I recommending around a TestFlight build window?).
-2. `src/data/whatsNew.ts` — most recent shipped highlights (creative fuel).
-3. `src/data/pendingNews.ts` — what's queued for next build (timing).
-4. If the user mentions retention/CVR numbers explicitly, anchor to those; don't re-derive.
+1. `marketing/README.md` — kit overview, ASO leak checklist, paid-burn-rate context.
+2. `marketing/scripts/` — 10 frame-precise scripts (5 Meta, 5 TikTok). When recommending creative direction, point at concrete script files instead of describing abstractly.
+3. `marketing/posters/` — 5 static HTML poster ads (open in browser, screenshot to PNG via `render-all.sh`).
+4. `marketing/postproduction/build-ad.sh` — the ffmpeg pipeline that assembles raw screen-recording + captions + music into a final 9:16 mp4.
+5. `marketing/ai-prompts.md` — Runway/Veo/Sora prompts for AI-generated bookend footage.
+6. `package.json` — version (am I recommending around a TestFlight build window?).
+7. `src/data/whatsNew.ts` — most recent shipped highlights (creative fuel).
+8. `src/data/pendingNews.ts` — what's queued for next build (timing).
+9. If the user mentions retention/CVR numbers explicitly, anchor to those; don't re-derive.
+
+## In-App Capture Tooling
+
+Dynasty Manager ships a hidden marketing route at `/cinematic-capture` (reachable via `Settings → Cinematic Capture`). It loops a Rare-Gold pack walkout with synthetic data, framed for 9:16 screen recording on a real iPhone. Use this for the highest-leverage creatives (pack-walkout, trophy-lift). When the user says "I don't have ad footage," your first answer should be this route + a 60-second iOS screen recording.
 
 ## Decision Framework — Should I Run Paid Now?
 

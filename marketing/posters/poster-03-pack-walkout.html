@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Dynasty Manager — Poster 03 — Pack Walkout</title>
+<link rel="stylesheet" href="_styles.css" />
+<style>
+  body {
+    background:
+      radial-gradient(ellipse at 50% 30%, hsla(43 96% 46% / 0.4) 0%, transparent 50%),
+      linear-gradient(180deg, hsl(222 30% 4%) 0%, hsl(222 40% 2%) 100%);
+  }
+  .poster {
+    background: transparent;
+  }
+  .tier-label {
+    position: absolute;
+    top: 200px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+  }
+  .tier-label .pack-name {
+    font-family: 'Oswald', sans-serif;
+    font-size: 96px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    background: linear-gradient(180deg, hsl(43 96% 80%), hsl(43 96% 38%));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .tier-label .sub {
+    font-size: 28px;
+    color: var(--muted-foreground);
+    letter-spacing: 0.3em;
+    margin-top: 12px;
+    text-transform: uppercase;
+  }
+  .walkout-stage {
+    position: absolute;
+    top: 450px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 720px;
+    height: 1000px;
+    display: grid;
+    place-items: center;
+  }
+  .shockwave-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 800px;
+    height: 800px;
+    border: 8px solid hsla(43 96% 60% / 0.5);
+    border-radius: 50%;
+    filter: blur(2px);
+  }
+  .shockwave-ring.inner {
+    width: 600px;
+    height: 600px;
+    border-color: hsla(43 96% 70% / 0.7);
+    border-width: 12px;
+  }
+  .hero-card {
+    position: relative;
+    z-index: 10;
+    width: 540px;
+    height: 760px;
+    border-radius: 32px;
+    background:
+      linear-gradient(180deg, hsl(43 96% 75%) 0%, hsl(43 96% 38%) 100%);
+    box-shadow:
+      0 32px 120px hsla(43 96% 46% / 0.7),
+      inset 0 0 0 6px hsla(43 96% 90% / 0.4);
+    padding: 56px;
+    color: hsl(222 40% 8%);
+    transform: scale(1.05);
+  }
+  .hero-card .top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .hero-card .ovr {
+    font-family: 'Oswald', sans-serif;
+    font-size: 160px;
+    font-weight: 700;
+    line-height: 0.85;
+  }
+  .hero-card .pos {
+    font-family: 'Oswald', sans-serif;
+    font-size: 56px;
+    font-weight: 600;
+    text-align: right;
+    margin-top: 24px;
+  }
+  .hero-card .icon-burst {
+    margin: 32px auto 0;
+    font-size: 220px;
+    text-align: center;
+    line-height: 1;
+  }
+  .hero-card .name {
+    font-family: 'Oswald', sans-serif;
+    font-size: 80px;
+    font-weight: 700;
+    text-align: center;
+    margin-top: 32px;
+    letter-spacing: -0.01em;
+  }
+  .hero-card .legendary-stamp {
+    text-align: center;
+    margin-top: 16px;
+    font-family: 'Oswald', sans-serif;
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+  }
+  .free-daily {
+    position: absolute;
+    top: 1480px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+  }
+  .free-daily h2 {
+    font-family: 'Oswald', sans-serif;
+    font-size: 88px;
+    font-weight: 700;
+    color: var(--foreground);
+    letter-spacing: -0.01em;
+    line-height: 1;
+  }
+  .free-daily h2 .em {
+    color: var(--gold);
+  }
+  .free-daily .sub {
+    font-size: 32px;
+    color: var(--muted-foreground);
+    margin-top: 16px;
+    letter-spacing: 0.05em;
+  }
+  .cta {
+    position: absolute;
+    bottom: 280px;
+    left: 80px;
+    right: 80px;
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    padding: 36px;
+  }
+  .cta .text { flex: 1; }
+  .cta .name {
+    font-family: 'Oswald', sans-serif;
+    font-size: 52px;
+    font-weight: 700;
+  }
+  .cta .sub {
+    font-size: 26px;
+    color: var(--muted-foreground);
+    margin-top: 6px;
+  }
+</style>
+</head>
+<body>
+<div class="poster">
+  <div class="tier-label">
+    <div class="pack-name">RARE GOLD</div>
+    <div class="sub">walkout possible</div>
+  </div>
+
+  <div class="walkout-stage">
+    <div class="shockwave-ring"></div>
+    <div class="shockwave-ring inner"></div>
+    <div class="hero-card">
+      <div class="top-row">
+        <div>
+          <div class="ovr">92</div>
+        </div>
+        <div>
+          <div class="pos">ST</div>
+        </div>
+      </div>
+      <div class="icon-burst">⚽</div>
+      <div class="name">WALKOUT</div>
+      <div class="legendary-stamp gold-grad">LEGENDARY</div>
+    </div>
+  </div>
+
+  <div class="free-daily">
+    <h2><span class="em">FREE</span> daily packs</h2>
+    <div class="sub">No paywall. No FOMO. Open one every day.</div>
+  </div>
+
+  <div class="cta glass">
+    <div class="app-icon">D</div>
+    <div class="text">
+      <div class="name">DYNASTY MANAGER</div>
+      <div class="sub">Open packs free daily. <span class="gold">Free on iOS.</span></div>
+    </div>
+    <div class="free-badge">FREE</div>
+  </div>
+</div>
+</body>
+</html>
