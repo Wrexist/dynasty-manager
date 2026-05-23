@@ -415,6 +415,9 @@ Custom project commands available via `/project:<name>` in Claude Code sessions.
 | `/project:review` | Code review | Reviewing changes against 20+ project-specific gotchas and conventions |
 | `/project:refactor` | Safe refactoring | Extracting logic from large files (especially orchestrationSlice at ~1,970 LOC) |
 | `/project:season` | Season & league logic | Working on promotion/relegation, playoffs, cup competitions, end-of-season |
+| `/project:ad-meta` | Meta / Instagram / Reels ad brief | Generating a 9:16 hook-first UA creative brief — UGC-aesthetic, Dynasty-Manager-aware |
+| `/project:ad-tiktok` | TikTok ad brief | Generating a Spark Ad / in-feed brief for football-niche creators |
+| `/project:marketing-playbook` | UA strategy reference | Budget / CPI / retention decisions, test plans, SKAN config — anchored to dynasty-manager's stage |
 
 **How they work:** Each command is a markdown file in `.claude/commands/` that preloads context files, project rules, and domain knowledge. When invoked, Claude reads the relevant source files and applies project-specific patterns automatically.
 
