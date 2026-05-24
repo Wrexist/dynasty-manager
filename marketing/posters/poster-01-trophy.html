@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Dynasty Manager — Trophy Rewind</title>
+<link rel="stylesheet" href="_styles.css" />
+<style>
+  /* Layout */
+  .layer-glow {
+    top: 280px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  /* Decorative spinning aura behind trophy */
+  .aura {
+    position: absolute;
+    top: 380px;
+    left: 50%;
+    width: 800px;
+    height: 800px;
+    transform: translateX(-50%);
+    background: conic-gradient(
+      from 0deg,
+      hsla(43 96% 50% / 0.0) 0%,
+      hsla(43 96% 50% / 0.18) 25%,
+      hsla(43 96% 50% / 0.0) 50%,
+      hsla(43 96% 50% / 0.18) 75%,
+      hsla(43 96% 50% / 0.0) 100%
+    );
+    border-radius: 50%;
+    filter: blur(32px);
+  }
+
+  /* Trophy SVG */
+  .trophy-stage {
+    position: absolute;
+    top: 480px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 540px;
+    height: 540px;
+    display: grid;
+    place-items: center;
+    z-index: 3;
+  }
+
+  .trophy-stage svg {
+    width: 100%;
+    height: 100%;
+    filter:
+      drop-shadow(0 16px 32px hsla(43 96% 30% / 0.6))
+      drop-shadow(0 0 80px hsla(43 96% 50% / 0.45));
+  }
+
+  /* Confetti */
+  .confetti {
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 1400px;
+    overflow: hidden;
+    z-index: 2;
+    pointer-events: none;
+  }
+  .confetti span {
+    position: absolute;
+    width: 10px;
+    height: 26px;
+    border-radius: 2px;
+    background: var(--gold);
+    opacity: 0.85;
+  }
+  .confetti .red   { background: hsl(0 84% 60%); }
+  .confetti .white { background: hsl(0 0% 95%); }
+  .confetti .deep  { background: hsl(43 96% 38%); width: 8px; height: 22px; }
+
+  /* Headline block */
+  .headline {
+    position: absolute;
+    top: 1080px;
+    left: 60px;
+    right: 60px;
+    text-align: center;
+    z-index: 6;
+  }
+  .headline .pre {
+    color: var(--muted-foreground);
+    margin-bottom: 22px;
+  }
+  .headline h1 {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 0.88;
+    font-size: 168px;
+    color: var(--foreground);
+  }
+  .headline h1 .em {
+    display: block;
+    background: linear-gradient(180deg, hsl(43 96% 78%) 0%, hsl(43 96% 50%) 55%, hsl(43 96% 32%) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .headline .sub {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 30px;
+    line-height: 1.4;
+    color: var(--foreground-muted);
+    margin-top: 28px;
+    max-width: 680px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .headline .sub strong { color: var(--gold-bright); font-weight: 600; }
+
+  /* Top kicker badge */
+  .top-badge {
+    position: absolute;
+    top: 280px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 28px;
+    border: 1px solid var(--border-bright);
+    border-radius: 999px;
+    background: hsla(43 96% 14% / 0.5);
+    backdrop-filter: blur(20px);
+    z-index: 6;
+  }
+  .top-badge span {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 500;
+    font-size: 22px;
+    letter-spacing: 0.32em;
+    color: var(--gold);
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+<div class="poster">
+
+  <div class="glow-gold layer-glow"></div>
+  <div class="aura anim-glow-spin"></div>
+
+  <div class="confetti">
+    <span style="left:  8%; top:  6%; transform: rotate(  14deg);"></span>
+    <span class="red"   style="left: 18%; top: 12%; transform: rotate( -22deg);"></span>
+    <span class="white" style="left: 28%; top:  4%; transform: rotate(  31deg);"></span>
+    <span               style="left: 42%; top: 18%; transform: rotate( -11deg);"></span>
+    <span class="deep"  style="left: 56%; top:  9%; transform: rotate(  42deg);"></span>
+    <span class="red"   style="left: 68%; top: 14%; transform: rotate( -28deg);"></span>
+    <span               style="left: 80%; top:  7%; transform: rotate(  19deg);"></span>
+    <span class="white" style="left: 92%; top: 22%; transform: rotate( -34deg);"></span>
+    <span               style="left:  4%; top: 34%; transform: rotate(  24deg);"></span>
+    <span class="deep"  style="left: 22%; top: 44%; transform: rotate( -18deg);"></span>
+    <span class="red"   style="left: 38%; top: 52%; transform: rotate(   8deg);"></span>
+    <span               style="left: 64%; top: 38%; transform: rotate( -38deg);"></span>
+    <span class="white" style="left: 78%; top: 48%; transform: rotate(  28deg);"></span>
+    <span               style="left: 92%; top: 30%; transform: rotate( -14deg);"></span>
+    <span class="deep"  style="left: 12%; top: 62%; transform: rotate(  18deg);"></span>
+    <span class="red"   style="left: 34%; top: 70%; transform: rotate( -28deg);"></span>
+    <span class="white" style="left: 58%; top: 64%; transform: rotate(  12deg);"></span>
+    <span               style="left: 74%; top: 72%; transform: rotate( -42deg);"></span>
+    <span class="deep"  style="left: 88%; top: 64%; transform: rotate(  22deg);"></span>
+    <span               style="left:  6%; top: 84%; transform: rotate(  28deg);"></span>
+    <span class="red"   style="left: 24%; top: 88%; transform: rotate( -16deg);"></span>
+    <span class="white" style="left: 42%; top: 90%; transform: rotate(  31deg);"></span>
+    <span class="deep"  style="left: 60%; top: 86%; transform: rotate(  -4deg);"></span>
+    <span               style="left: 80%; top: 92%; transform: rotate(  18deg);"></span>
+  </div>
+
+  <div class="top-badge anim-fade-up">
+    <span>Season 5 · Division 4 → Premier</span>
+  </div>
+
+  <div class="trophy-stage anim-fade-up delay-1">
+    <!-- Custom trophy SVG with metallic gold gradient -->
+    <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="goldMain" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stop-color="hsl(43, 96%, 85%)"/>
+          <stop offset="35%"  stop-color="hsl(43, 96%, 60%)"/>
+          <stop offset="65%"  stop-color="hsl(43, 96%, 40%)"/>
+          <stop offset="100%" stop-color="hsl(43, 96%, 25%)"/>
+        </linearGradient>
+        <linearGradient id="goldRim" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stop-color="hsl(43, 96%, 92%)"/>
+          <stop offset="100%" stop-color="hsl(43, 96%, 55%)"/>
+        </linearGradient>
+        <radialGradient id="goldShine" cx="50%" cy="30%" r="40%">
+          <stop offset="0%"   stop-color="hsla(43, 96%, 95%, 0.7)"/>
+          <stop offset="100%" stop-color="transparent"/>
+        </radialGradient>
+      </defs>
+
+      <!-- Base -->
+      <rect x="68" y="172" width="64" height="14" rx="3" fill="url(#goldMain)"/>
+      <rect x="78" y="158" width="44" height="14" fill="url(#goldMain)"/>
+
+      <!-- Stem -->
+      <rect x="92" y="118" width="16" height="40" fill="url(#goldMain)"/>
+
+      <!-- Cup base -->
+      <ellipse cx="100" cy="118" rx="36" ry="6" fill="url(#goldRim)"/>
+
+      <!-- Cup body -->
+      <path d="M 64 60 Q 64 110 100 116 Q 136 110 136 60 Z" fill="url(#goldMain)"/>
+
+      <!-- Cup rim -->
+      <ellipse cx="100" cy="58" rx="38" ry="8" fill="url(#goldRim)"/>
+      <ellipse cx="100" cy="58" rx="32" ry="5" fill="hsl(222, 50%, 4%)"/>
+
+      <!-- Handles -->
+      <path d="M 64 70 Q 36 76 36 96 Q 36 112 56 110" stroke="url(#goldMain)" stroke-width="8" fill="none" stroke-linecap="round"/>
+      <path d="M 136 70 Q 164 76 164 96 Q 164 112 144 110" stroke="url(#goldMain)" stroke-width="8" fill="none" stroke-linecap="round"/>
+
+      <!-- Shine highlight -->
+      <ellipse cx="86" cy="72" rx="10" ry="22" fill="url(#goldShine)"/>
+
+      <!-- Plaque -->
+      <rect x="74" y="178" width="52" height="6" rx="1" fill="hsl(222, 50%, 8%)"/>
+    </svg>
+  </div>
+
+  <div class="headline">
+    <div class="kicker-muted pre anim-fade-up delay-2">Promoted to the</div>
+    <h1 class="anim-fade-up delay-2">
+      <span class="em">PREMIER</span>
+      <span class="em">LEAGUE</span>
+    </h1>
+    <p class="sub anim-fade-up delay-3">
+      Started in <strong>division four</strong>. Took five in-game seasons.
+      And one weekend.
+    </p>
+  </div>
+
+  <div class="cta glass glass-gold anim-fade-up delay-4">
+    <div class="app-icon">
+      <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
+        <path d="M3 19h18v2H3v-2zM5 6l3 3 4-5 4 5 3-3v11H5V6z"/>
+      </svg>
+    </div>
+    <div class="text">
+      <div class="name">Dynasty Manager</div>
+      <div class="sub">Build your football dynasty. <span class="gold">Free on iOS.</span></div>
+    </div>
+    <div class="free-pill">FREE</div>
+  </div>
+</div>
+</body>
+</html>

@@ -15,6 +15,7 @@
 //     `isCelebratorySeason` for the canonical "good moment" check.
 
 import { Capacitor } from '@capacitor/core';
+import type { PackTierKey } from '@/types/game';
 import { readAppReviewState, writeAppReviewState } from '@/store/helpers/persistence';
 
 const MIN_DAYS_BETWEEN_PROMPTS = 60;
@@ -25,7 +26,21 @@ export type ReviewTrigger =
   | 'season-end-title'
   | 'season-end-promotion'
   | 'season-end-trophy'
-  | 'season-end-celebratory';
+  | 'season-end-celebratory'
+  | 'pack-elite-open';
+
+/** Pack tiers high-emotion enough to be worth a review prompt: Gold and
+ *  above are 5-card reveals with a 78+ guarantee, and the paid tiers carry
+ *  walkout odds. Bronze/Silver are low-stakes free dailies — never prompt
+ *  on those, or we'd burn Apple's 3-per-365 quota on a routine moment. */
+const REVIEW_WORTHY_PACK_TIERS: ReadonlySet<PackTierKey> = new Set<PackTierKey>([
+  'gold', 'premium', 'rare', 'icon',
+]);
+
+/** True iff opening a pack of this tier is a good moment to ask for a review. */
+export function isReviewWorthyPackTier(tier: PackTierKey): boolean {
+  return REVIEW_WORTHY_PACK_TIERS.has(tier);
+}
 
 /** Subset of SeasonHistoryEntry fields we need to decide if it's a good moment. */
 export interface SeasonReviewContext {

@@ -1,0 +1,306 @@
+/*
+ * Dynasty Manager — Poster ad design system
+ * 1080×1920 (9:16). Designed to be opened in Chrome and either
+ * (a) screenshot to PNG, or (b) recorded to mp4 via render-all.sh
+ * for static ad inventory on Meta / TikTok / App Store screenshots.
+ *
+ * Design language mirrors the app's dark-glass + gold premium aesthetic.
+ * Every poster uses the same 3-layer depth recipe:
+ *   1. base — deep gradient background
+ *   2. ambient — radial glow at composition focal point
+ *   3. content — layered glass surfaces with content
+ * + film-grain noise overlay tying the whole frame together.
+ */
+
+:root {
+  --bg: hsl(222 30% 7%);
+  --bg-deep: hsl(222 40% 4%);
+  --bg-darker: hsl(222 50% 2%);
+  --card: hsl(222 25% 11%);
+  --card-elev: hsl(222 25% 14%);
+  --foreground: hsl(220 15% 92%);
+  --foreground-muted: hsl(220 12% 75%);
+  --muted-foreground: hsl(220 10% 60%);
+  --muted-foreground-low: hsl(220 8% 45%);
+  --gold: hsl(43 96% 50%);
+  --gold-bright: hsl(43 96% 70%);
+  --gold-deep: hsl(43 96% 32%);
+  --gold-shadow: hsl(43 96% 18%);
+  --accent: hsl(215 60% 50%);
+  --accent-bright: hsl(215 70% 65%);
+  --border: hsla(222 15% 28% / 0.5);
+  --border-bright: hsla(43 96% 50% / 0.4);
+  --red: hsl(0 84% 55%);
+  --green: hsl(160 70% 45%);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 1080px;
+  height: 1920px;
+  overflow: hidden;
+  background: var(--bg-darker);
+  color: var(--foreground);
+  font-family: 'DM Sans', -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ * Layer 1 — Base canvas
+ * ──────────────────────────────────────────────────────────────────────*/
+
+.poster {
+  position: relative;
+  width: 1080px;
+  height: 1920px;
+  background:
+    radial-gradient(ellipse 1400px 800px at 50% -10%, hsl(222 30% 14%) 0%, transparent 60%),
+    radial-gradient(ellipse 1200px 1200px at 50% 110%, hsl(222 40% 8%) 0%, transparent 60%),
+    linear-gradient(180deg, hsl(222 35% 6%) 0%, hsl(222 50% 3%) 100%);
+  overflow: hidden;
+}
+
+/* Film-grain noise overlay — adds material texture so the dark backgrounds
+   don't read as flat digital fill. Pure SVG noise = zero http requests. */
+.poster::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence baseFrequency='0.85' numOctaves='2' seed='3'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.07 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  opacity: 0.4;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Vignette */
+.poster::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 50%, hsla(0 0% 0% / 0.6) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ * Layer 2 — Ambient glow (per-poster focal accent)
+ * ──────────────────────────────────────────────────────────────────────*/
+
+.glow-gold {
+  position: absolute;
+  width: 1000px;
+  height: 1000px;
+  border-radius: 50%;
+  background: radial-gradient(circle, hsla(43 96% 50% / 0.32) 0%, hsla(43 96% 50% / 0.08) 35%, transparent 60%);
+  filter: blur(40px);
+  pointer-events: none;
+}
+
+.glow-red {
+  position: absolute;
+  width: 800px; height: 800px; border-radius: 50%;
+  background: radial-gradient(circle, hsla(0 84% 55% / 0.25) 0%, transparent 60%);
+  filter: blur(40px);
+  pointer-events: none;
+}
+
+.glow-accent {
+  position: absolute;
+  width: 800px; height: 800px; border-radius: 50%;
+  background: radial-gradient(circle, hsla(215 60% 50% / 0.3) 0%, transparent 60%);
+  filter: blur(40px);
+  pointer-events: none;
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ * Layer 3 — Glass surfaces
+ * ──────────────────────────────────────────────────────────────────────*/
+
+.glass {
+  background: hsla(222 25% 14% / 0.6);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  box-shadow:
+    0 1px 0 hsla(220 30% 100% / 0.06) inset,
+    0 -1px 0 hsla(0 0% 0% / 0.4) inset,
+    0 24px 64px hsla(0 0% 0% / 0.5);
+  position: relative;
+  z-index: 5;
+}
+
+.glass-gold {
+  border-color: var(--border-bright);
+  box-shadow:
+    0 1px 0 hsla(43 96% 80% / 0.2) inset,
+    0 -1px 0 hsla(0 0% 0% / 0.4) inset,
+    0 24px 64px hsla(43 96% 30% / 0.3),
+    0 0 80px hsla(43 96% 50% / 0.15);
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ * Typography
+ * ──────────────────────────────────────────────────────────────────────*/
+
+.kicker {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  font-size: 22px;
+  color: var(--gold);
+}
+
+.kicker-muted {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  font-size: 22px;
+  color: var(--muted-foreground-low);
+}
+
+.display {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 0.9;
+}
+
+.gold-grad {
+  background: linear-gradient(180deg, hsl(43 96% 78%) 0%, hsl(43 96% 50%) 50%, hsl(43 96% 30%) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.silver-grad {
+  background: linear-gradient(180deg, hsl(0 0% 95%) 0%, hsl(220 10% 65%) 50%, hsl(220 15% 40%) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ * App icon (matches the actual app icon proportions)
+ * ──────────────────────────────────────────────────────────────────────*/
+
+.app-icon {
+  width: 144px;
+  height: 144px;
+  border-radius: 32px;
+  background: linear-gradient(135deg, hsl(43 96% 65%) 0%, hsl(43 96% 50%) 50%, hsl(43 96% 32%) 100%);
+  display: grid;
+  place-items: center;
+  position: relative;
+  box-shadow:
+    0 16px 48px hsla(43 96% 50% / 0.5),
+    inset 0 -6px 16px hsla(0 0% 0% / 0.3),
+    inset 0 2px 6px hsla(43 96% 90% / 0.3);
+}
+
+.app-icon svg {
+  width: 88px;
+  height: 88px;
+  color: hsl(222 50% 8%);
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ * CTA card (every poster has the same bottom CTA)
+ * ──────────────────────────────────────────────────────────────────────*/
+
+.cta {
+  position: absolute;
+  bottom: 220px;
+  left: 60px;
+  right: 60px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 28px;
+  z-index: 10;
+}
+
+.cta .text { flex: 1; }
+.cta .name {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 44px;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  color: var(--foreground);
+}
+.cta .sub {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 22px;
+  color: var(--muted-foreground);
+  margin-top: 6px;
+  letter-spacing: -0.005em;
+}
+.cta .sub .gold { color: var(--gold); font-weight: 600; }
+
+.free-pill {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  font-size: 26px;
+  color: hsl(160 70% 95%);
+  background: linear-gradient(180deg, hsl(160 70% 45%), hsl(160 70% 32%));
+  padding: 14px 26px;
+  border-radius: 999px;
+  box-shadow:
+    0 8px 24px hsla(160 70% 30% / 0.5),
+    inset 0 1px 0 hsla(160 70% 85% / 0.4);
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ * Safe-zone helpers
+ *   - Reels UI sits in bottom 250px and top 200px
+ *   - Stories UI overlap is similar
+ * Keep critical content in the middle 1080×1400 box.
+ * ──────────────────────────────────────────────────────────────────────*/
+
+.safe-zone-marker {
+  position: absolute;
+  inset: 220px 60px 220px 60px;
+  border: 1px dashed hsla(0 0% 100% / 0.04);
+  pointer-events: none;
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ * Subtle entrance animations — captures fine as static at frame 1.5s.
+ * If you record the HTML to mp4 (render-all.sh --video), they're "alive".
+ * ──────────────────────────────────────────────────────────────────────*/
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.7; }
+  50%      { opacity: 1; }
+}
+@keyframes glow-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes shimmer {
+  0%   { background-position: -100% 0; }
+  100% { background-position: 100% 0; }
+}
+
+.anim-fade-up    { animation: fade-up 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.anim-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
+.anim-glow-spin  { animation: glow-spin 24s linear infinite; }
+
+.delay-1 { animation-delay: 0.1s; }
+.delay-2 { animation-delay: 0.25s; }
+.delay-3 { animation-delay: 0.4s; }
+.delay-4 { animation-delay: 0.55s; }
+.delay-5 { animation-delay: 0.7s; }
+
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap');

@@ -1,0 +1,23 @@
+1
+00:00:00,000 --> 00:00:01,500
+[hook caption — pick one variant, max 6 words]
+
+2
+00:00:01,500 --> 00:00:04,000
+[body beat 1]
+
+3
+00:00:04,000 --> 00:00:06,000
+[body beat 2]
+
+4
+00:00:06,000 --> 00:00:09,000
+[body beat 3]
+
+5
+00:00:09,000 --> 00:00:12,000
+[payoff moment — the line that earns the install]
+
+6
+00:00:12,000 --> 00:00:15,000
+[CTA caption — "search Dynasty Manager" or "Free on iOS"]

@@ -268,12 +268,16 @@ src/
 ├── engine/match.ts     → Match sim (653 LOC, event-based, minute-by-minute)
 ├── hooks/              → use-toast, useGameSelectors, useSwipeGesture, useFlash
 ├── lib/utils.ts        → cn() utility
-├── pages/              → 33 pages (~7,600 LOC): Dashboard, Squad, Tactics, MatchDay,
+├── pages/              → 34 pages (~7,700 LOC): Dashboard, Squad, Tactics, MatchDay,
 │                         Transfer, Training, Staff, Scouting, YouthAcademy,
 │                         Facilities, Finance, MatchPrep, MatchReview, Cup,
 │                         Board, Perks, Prestige, TrophyCabinet, HallOfManagers,
 │                         SeasonSummary, PlayerDetail, ManagerProfile, Settings,
-│                         Inbox, CalendarView, ChallengePicker, LeagueTable, etc.
+│                         Inbox, CalendarView, ChallengePicker, LeagueTable,
+│                         CinematicCapturePage (hidden marketing-only route at
+│                         `/cinematic-capture`, reached via Settings → Cinematic
+│                         Capture; loops the Rare-Gold pack walkout with
+│                         synthetic data for 9:16 ad screen-recording).
 ├── store/
 │   ├── gameStore.ts    → 25-line Zustand composition layer
 │   ├── storeTypes.ts   → GameState interface (162 LOC)
@@ -415,6 +419,9 @@ Custom project commands available via `/project:<name>` in Claude Code sessions.
 | `/project:review` | Code review | Reviewing changes against 20+ project-specific gotchas and conventions |
 | `/project:refactor` | Safe refactoring | Extracting logic from large files (especially orchestrationSlice at ~1,970 LOC) |
 | `/project:season` | Season & league logic | Working on promotion/relegation, playoffs, cup competitions, end-of-season |
+| `/project:ad-meta` | Meta / Instagram / Reels ad brief | Generating a 9:16 hook-first UA creative brief — UGC-aesthetic, Dynasty-Manager-aware |
+| `/project:ad-tiktok` | TikTok ad brief | Generating a Spark Ad / in-feed brief for football-niche creators |
+| `/project:marketing-playbook` | UA strategy reference | Budget / CPI / retention decisions, test plans, SKAN config — anchored to dynasty-manager's stage |
 
 **How they work:** Each command is a markdown file in `.claude/commands/` that preloads context files, project rules, and domain knowledge. When invoked, Claude reads the relevant source files and applies project-specific patterns automatically.
 
@@ -477,6 +484,32 @@ Custom project commands available via `/project:<name>` in Claude Code sessions.
 - **commit-commands vs `npm run ship`:** `npm run ship` remains the preferred workflow (includes preflight). Use `/commit` only for smart message generation.
 - **feature-dev vs `/project:feature`:** `/project:feature` has dynasty-manager-specific scaffolding knowledge. feature-dev adds architectural analysis. Use both for complex features.
 - **GitHub MCP vs `gh` CLI:** `gh pr create` remains FORBIDDEN (no CLI auth). The GitHub MCP tools (`mcp__github__*`) use separate auth and ARE available for PR/issue operations.
+
+## Marketing Kit
+
+User-acquisition creative lives in `marketing/` and is referenced by the
+`/project:ad-meta`, `/project:ad-tiktok`, and `/project:marketing-playbook`
+commands.
+
+```
+marketing/
+├── README.md              ← kit overview + ASO leak checklist
+├── scripts/               ← 10 frame-precise ad scripts (5 Meta + 5 TikTok)
+├── posters/               ← 5 static HTML poster ads at 1080×1920 + render-all.sh
+├── postproduction/
+│   ├── build-ad.sh        ← ffmpeg pipeline: raw → captioned 9:16 mp4
+│   └── captions.template.srt
+└── ai-prompts.md          ← Runway / Veo / Sora prompts for AI bookend footage
+```
+
+Capture in-app footage via `Settings → Cinematic Capture` (route:
+`/cinematic-capture`). It loops a Rare-Gold pack walkout with synthetic
+players so the dev can screen-record clean 9:16 ad footage without
+leaking real save data.
+
+When asked for marketing/ad output, use the `/project:ad-*` commands
+which read this kit as their canonical context. New scripts go into
+`marketing/scripts/` following the existing template.
 
 ## Claude Code Project Settings
 

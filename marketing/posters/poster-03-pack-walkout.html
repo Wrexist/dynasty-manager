@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Dynasty Manager — Pack Walkout</title>
+<link rel="stylesheet" href="_styles.css" />
+<style>
+  /* Stage = the pack explode + walkout moment, frozen in time */
+  .stage {
+    position: absolute;
+    top: 280px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 1080px;
+    height: 1280px;
+    z-index: 4;
+  }
+
+  .center {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+  }
+
+  /* Multiple shockwave rings — pack-explode reference */
+  .shockwave {
+    position: absolute;
+    border: solid hsla(43 96% 70% / 0.5);
+    border-radius: 50%;
+    aspect-ratio: 1;
+    filter: blur(2px);
+  }
+  .shockwave.r1 { width: 1080px; border-width: 4px;  border-color: hsla(43 96% 70% / 0.15); }
+  .shockwave.r2 { width:  900px; border-width: 6px;  border-color: hsla(43 96% 70% / 0.25); }
+  .shockwave.r3 { width:  720px; border-width: 8px;  border-color: hsla(43 96% 70% / 0.45); }
+  .shockwave.r4 { width:  560px; border-width: 12px; border-color: hsla(43 96% 80% / 0.65); }
+
+  .ambient-flare {
+    position: absolute;
+    width: 1100px; height: 1100px;
+    background: radial-gradient(circle, hsla(43 96% 60% / 0.5) 0%, hsla(43 96% 50% / 0.15) 30%, transparent 60%);
+    border-radius: 50%;
+    filter: blur(40px);
+  }
+
+  /* Anamorphic lens flare line */
+  .flare-line {
+    position: absolute;
+    width: 1100px;
+    height: 14px;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      hsla(43 96% 70% / 0.3) 30%,
+      hsla(43 96% 85% / 0.9) 50%,
+      hsla(43 96% 70% / 0.3) 70%,
+      transparent 100%
+    );
+    filter: blur(2px);
+  }
+
+  /* Hero card — same DNA as poster-02 wonderkid but rotated 0 and larger */
+  .hero-card {
+    position: relative;
+    width: 520px;
+    height: 740px;
+    border-radius: 32px;
+    padding: 40px 36px;
+    color: hsl(222 50% 6%);
+    background:
+      radial-gradient(ellipse at 30% 18%, hsla(43 96% 95% / 0.5) 0%, transparent 50%),
+      linear-gradient(155deg, hsl(43 96% 75%) 0%, hsl(43 96% 52%) 45%, hsl(43 96% 30%) 100%);
+    box-shadow:
+      0 40px 120px hsla(43 96% 30% / 0.7),
+      0 0 160px hsla(43 96% 60% / 0.4),
+      inset 0 0 0 4px hsla(43 96% 95% / 0.5),
+      inset 0 0 0 6px hsla(43 96% 30% / 0.4),
+      inset 0 -8px 24px hsla(0 0% 0% / 0.25);
+    transform: scale(1.08);
+    z-index: 10;
+  }
+
+  .hero-card .corner {
+    position: absolute;
+    width: 56px; height: 56px;
+    border: 4px solid hsla(43 96% 30% / 0.4);
+  }
+  .hero-card .corner.tl { top: 16px; left: 16px;    border-right: none; border-bottom: none; }
+  .hero-card .corner.tr { top: 16px; right: 16px;   border-left: none;  border-bottom: none; }
+  .hero-card .corner.bl { bottom: 16px; left: 16px; border-right: none; border-top: none; }
+  .hero-card .corner.br { bottom: 16px; right: 16px; border-left: none;  border-top: none; }
+
+  .hero-card .top-row {
+    display: flex; justify-content: space-between; align-items: flex-start;
+  }
+  .hero-card .ovr {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: 168px;
+    line-height: 0.82;
+    letter-spacing: -0.04em;
+    text-shadow: 0 4px 8px hsla(0 0% 0% / 0.18);
+  }
+  .hero-card .pos {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: 40px;
+    letter-spacing: 0.06em;
+    text-align: right;
+  }
+  .hero-card .country {
+    font-family: 'Oswald', sans-serif;
+    font-size: 28px;
+    opacity: 0.7;
+    margin-top: 8px;
+    text-align: right;
+  }
+  .hero-card .icon {
+    margin: 32px auto 16px;
+    width: 220px; height: 220px;
+    display: grid; place-items: center;
+  }
+  .hero-card .name {
+    text-align: center;
+    margin-top: 12px;
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    line-height: 0.92;
+  }
+  .hero-card .name .first { font-size: 44px; opacity: 0.85; letter-spacing: 0.04em; }
+  .hero-card .name .last  { display: block; font-size: 84px; margin-top: 4px; letter-spacing: -0.01em; }
+  .hero-card .legendary-tag {
+    text-align: center;
+    margin-top: 18px;
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: 28px;
+    letter-spacing: 0.4em;
+    color: hsl(222 50% 6%);
+    opacity: 0.75;
+  }
+
+  /* Foil shred particles */
+  .shreds {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 8;
+  }
+  .shreds span {
+    position: absolute;
+    background: var(--gold);
+    border-radius: 1px;
+  }
+
+  /* Tier badge above stage */
+  .tier-mark {
+    position: absolute;
+    top: 230px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    z-index: 6;
+  }
+  .tier-mark .label {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: 96px;
+    letter-spacing: 0.18em;
+    line-height: 1;
+    background: linear-gradient(180deg, hsl(43 96% 85%) 0%, hsl(43 96% 50%) 60%, hsl(43 96% 30%) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 0 40px hsla(43 96% 50% / 0.4);
+  }
+  .tier-mark .sub {
+    margin-top: 8px;
+    font-family: 'Oswald', sans-serif;
+    font-weight: 500;
+    font-size: 22px;
+    letter-spacing: 0.35em;
+    color: var(--muted-foreground);
+    text-transform: uppercase;
+  }
+
+  /* Bottom verdict — "Free daily packs" */
+  .verdict {
+    position: absolute;
+    top: 1560px;
+    left: 60px;
+    right: 60px;
+    text-align: center;
+    z-index: 6;
+  }
+  .verdict h2 {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: 96px;
+    letter-spacing: -0.025em;
+    line-height: 0.92;
+    color: var(--foreground);
+  }
+  .verdict h2 .em {
+    background: linear-gradient(180deg, hsl(43 96% 78%) 0%, hsl(43 96% 50%) 50%, hsl(43 96% 32%) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .verdict .sub {
+    margin-top: 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 24px;
+    color: var(--muted-foreground);
+    letter-spacing: 0.04em;
+  }
+</style>
+</head>
+<body>
+<div class="poster">
+
+  <div class="tier-mark anim-fade-up">
+    <div class="label">RARE&nbsp;GOLD</div>
+    <div class="sub">Walkout possible · 5 cards</div>
+  </div>
+
+  <div class="stage">
+    <div class="center"><div class="ambient-flare anim-pulse-glow"></div></div>
+    <div class="center"><div class="shockwave r1"></div></div>
+    <div class="center"><div class="shockwave r2"></div></div>
+    <div class="center"><div class="shockwave r3"></div></div>
+    <div class="center"><div class="shockwave r4"></div></div>
+    <div class="center"><div class="flare-line"></div></div>
+
+    <div class="center">
+      <div class="hero-card anim-fade-up delay-2">
+        <div class="corner tl"></div>
+        <div class="corner tr"></div>
+        <div class="corner bl"></div>
+        <div class="corner br"></div>
+
+        <div class="top-row">
+          <div class="ovr">92</div>
+          <div>
+            <div class="pos">ST</div>
+            <div class="country">FRA</div>
+          </div>
+        </div>
+
+        <div class="icon">
+          <svg viewBox="0 0 200 200" fill="none">
+            <defs>
+              <linearGradient id="ballg" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%"   stop-color="hsla(0,0%,0%,0.18)"/>
+                <stop offset="100%" stop-color="hsla(0,0%,0%,0.05)"/>
+              </linearGradient>
+            </defs>
+            <circle cx="100" cy="100" r="78" fill="url(#ballg)"/>
+            <!-- football panel pattern -->
+            <polygon points="100,52 122,72 114,98 86,98 78,72" fill="hsla(0,0%,0%,0.25)"/>
+            <polygon points="100,52 122,72 138,62 130,40" fill="hsla(0,0%,0%,0.15)"/>
+            <polygon points="100,52 78,72 62,62 70,40" fill="hsla(0,0%,0%,0.15)"/>
+            <polygon points="86,98 78,72 62,62 50,86 64,116" fill="hsla(0,0%,0%,0.15)"/>
+            <polygon points="114,98 122,72 138,62 150,86 136,116" fill="hsla(0,0%,0%,0.15)"/>
+            <polygon points="86,98 114,98 136,116 100,138 64,116" fill="hsla(0,0%,0%,0.15)"/>
+          </svg>
+        </div>
+
+        <div class="name">
+          <span class="first">KYLIAN</span>
+          <span class="last">MBAPPÉ</span>
+        </div>
+        <div class="legendary-tag">LEGENDARY</div>
+      </div>
+    </div>
+
+    <div class="shreds">
+      <span style="left: 10%; top: 18%; width: 8px;  height: 32px; transform: rotate( 14deg);"></span>
+      <span style="left: 18%; top: 32%; width: 6px;  height: 22px; transform: rotate(-28deg); background: hsl(43 96% 65%);"></span>
+      <span style="left: 28%; top: 12%; width: 10px; height: 28px; transform: rotate( 38deg);"></span>
+      <span style="left: 38%; top: 24%; width: 6px;  height: 18px; transform: rotate(-12deg); background: hsl(43 96% 38%);"></span>
+      <span style="left: 76%; top: 18%; width: 8px;  height: 24px; transform: rotate( 22deg);"></span>
+      <span style="left: 84%; top: 28%; width: 10px; height: 30px; transform: rotate(-34deg);"></span>
+      <span style="left: 92%; top: 14%; width: 6px;  height: 20px; transform: rotate( 18deg); background: hsl(43 96% 65%);"></span>
+      <span style="left:  6%; top: 56%; width: 8px;  height: 26px; transform: rotate( 14deg);"></span>
+      <span style="left: 14%; top: 76%; width: 6px;  height: 18px; transform: rotate(-28deg); background: hsl(43 96% 38%);"></span>
+      <span style="left: 22%; top: 86%; width: 10px; height: 30px; transform: rotate( 38deg);"></span>
+      <span style="left: 80%; top: 58%; width: 8px;  height: 26px; transform: rotate(-22deg); background: hsl(43 96% 65%);"></span>
+      <span style="left: 88%; top: 82%; width: 10px; height: 28px; transform: rotate( 14deg);"></span>
+      <span style="left: 94%; top: 68%; width: 6px;  height: 18px; transform: rotate(-38deg);"></span>
+    </div>
+  </div>
+
+  <div class="verdict">
+    <h2 class="anim-fade-up delay-3">
+      <span class="em">Free</span> daily packs<br/>
+      <span class="em">Free</span> daily walkouts
+    </h2>
+    <div class="sub anim-fade-up delay-4">No paywall. No FOMO. Open one every day.</div>
+  </div>
+
+  <div class="cta glass glass-gold anim-fade-up delay-5">
+    <div class="app-icon">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 19h18v2H3v-2zM5 6l3 3 4-5 4 5 3-3v11H5V6z"/></svg>
+    </div>
+    <div class="text">
+      <div class="name">Dynasty Manager</div>
+      <div class="sub">Open packs free daily. <span class="gold">Free on iOS.</span></div>
+    </div>
+    <div class="free-pill">FREE</div>
+  </div>
+</div>
+</body>
+</html>

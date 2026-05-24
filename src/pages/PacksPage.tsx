@@ -20,6 +20,7 @@ import { errorToast, infoToast, successToast } from '@/utils/gameToast';
 import type { Player } from '@/types/game';
 import { NATIVE_ADS_READY, showRewardedAd } from '@/utils/ads';
 import { purchaseConsumable } from '@/utils/purchases';
+import { isReviewWorthyPackTier, maybeRequestReview } from '@/utils/appReview';
 
 function playerTier(ovr: number) {
   for (const t of PLAYER_TIER_THRESHOLDS) if (ovr >= t.min) return t;
@@ -502,7 +503,16 @@ const PacksPage = () => {
             tier={opening.tier}
             players={opening.players}
             pityTriggered={opening.pityTriggered}
-            onClose={() => setOpening(null)}
+            onClose={() => {
+              const { tier } = opening;
+              setOpening(null);
+              // Peak-satisfaction moment right after a Gold-or-better reveal —
+              // ask for a store review. Self-throttled (60-day gap, 4 lifetime)
+              // inside maybeRequestReview, so it never nags.
+              if (isReviewWorthyPackTier(tier)) {
+                void maybeRequestReview('pack-elite-open');
+              }
+            }}
             onKeep={handleKeep}
             onQuickSell={handleQuickSell}
             onKeepAll={handleKeepAll}
