@@ -2,139 +2,188 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Dynasty Manager — Poster 05 — Banter</title>
+<title>Dynasty Manager — Banter Save-Story</title>
 <link rel="stylesheet" href="_styles.css" />
 <style>
-  .quote {
+  .glow-pos {
+    top: 700px;
+    left: 30%;
+    transform: translateX(-50%);
+  }
+
+  /* Top kicker mark */
+  .mark {
     position: absolute;
-    top: 380px;
-    left: 80px;
-    right: 80px;
-    text-align: left;
+    top: 200px;
+    left: 60px;
+    z-index: 6;
+    display: flex;
+    align-items: center;
+    gap: 16px;
   }
-  .quote .opener {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 48px;
-    color: var(--muted-foreground);
-    font-style: italic;
-    letter-spacing: -0.01em;
-    margin-bottom: 32px;
-    line-height: 1.3;
+  .mark .dot {
+    width: 14px; height: 14px;
+    background: var(--gold);
+    border-radius: 50%;
+    box-shadow: 0 0 16px hsla(43 96% 50% / 0.8);
   }
-  .quote h1 {
+  .mark .label {
     font-family: 'Oswald', sans-serif;
-    font-size: 120px;
-    font-weight: 700;
-    line-height: 0.92;
-    color: var(--foreground);
-    letter-spacing: -0.03em;
-  }
-  .quote h1 .gold {
+    font-weight: 500;
+    font-size: 24px;
+    letter-spacing: 0.4em;
     color: var(--gold);
+    text-transform: uppercase;
   }
-  .quote h1 .strike {
+
+  /* Quote opener */
+  .opener {
+    position: absolute;
+    top: 280px;
+    left: 60px;
+    right: 60px;
+    z-index: 5;
+  }
+  .opener .lead {
+    font-family: 'DM Sans', sans-serif;
+    font-style: italic;
+    font-size: 42px;
+    line-height: 1.3;
+    color: var(--foreground-muted);
+    letter-spacing: -0.005em;
+    border-left: 4px solid var(--gold);
+    padding-left: 28px;
+  }
+
+  /* Match story stack */
+  .story {
+    position: absolute;
+    top: 480px;
+    left: 60px;
+    right: 60px;
+    z-index: 5;
+  }
+  .story .line {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    line-height: 0.95;
+    color: var(--foreground);
+    display: block;
+  }
+  .story .line.huge   { font-size: 168px; }
+  .story .line.big    { font-size: 124px; }
+  .story .line.med    { font-size: 96px; }
+  .story .line.gold-line   {
+    background: linear-gradient(180deg, hsl(43 96% 78%) 0%, hsl(43 96% 50%) 50%, hsl(43 96% 32%) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .story .line.strike {
+    color: var(--muted-foreground);
     text-decoration: line-through;
     text-decoration-color: hsl(0 84% 60%);
     text-decoration-thickness: 8px;
   }
-  .quote .signature {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 36px;
-    color: var(--muted-foreground);
-    margin-top: 56px;
-    letter-spacing: -0.01em;
+  .story .row {
+    display: flex;
+    align-items: baseline;
+    gap: 18px;
   }
-  .moment-card {
+  .story .sep {
+    width: 32px; height: 6px;
+    background: var(--gold);
+    margin: 0 12px;
+    border-radius: 2px;
+    align-self: center;
+  }
+
+  /* Side annotation */
+  .annotate {
     position: absolute;
-    top: 1100px;
-    left: 80px;
-    right: 80px;
-    padding: 48px;
-    background: hsla(0 84% 50% / 0.08);
-    border: 2px solid hsla(0 84% 50% / 0.25);
-    border-radius: 24px;
+    top: 1320px;
+    left: 60px;
+    right: 60px;
+    padding: 32px 36px;
+    z-index: 6;
   }
-  .moment-card .label {
+  .annotate .verdict-kicker {
     font-family: 'Oswald', sans-serif;
-    font-size: 28px;
     font-weight: 600;
-    letter-spacing: 0.2em;
+    font-size: 20px;
+    letter-spacing: 0.36em;
     color: hsl(0 84% 65%);
-    margin-bottom: 16px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
   }
-  .moment-card .copy {
+  .annotate .copy {
     font-family: 'DM Sans', sans-serif;
-    font-size: 44px;
-    color: var(--foreground);
+    font-size: 38px;
     line-height: 1.3;
+    color: var(--foreground);
+    letter-spacing: -0.01em;
     font-weight: 500;
   }
-  .moment-card .copy .em {
+  .annotate .copy .em {
     color: var(--gold);
     font-weight: 700;
-  }
-  .cta {
-    position: absolute;
-    bottom: 280px;
-    left: 80px;
-    right: 80px;
-    display: flex;
-    align-items: center;
-    gap: 32px;
-    padding: 36px;
-  }
-  .cta .text { flex: 1; }
-  .cta .name {
-    font-family: 'Oswald', sans-serif;
-    font-size: 52px;
-    font-weight: 700;
-  }
-  .cta .sub {
-    font-size: 26px;
-    color: var(--muted-foreground);
-    margin-top: 6px;
-  }
-  /* small kicker tag */
-  .kicker {
-    position: absolute;
-    top: 240px;
-    left: 80px;
-    font-family: 'Oswald', sans-serif;
-    font-size: 28px;
-    letter-spacing: 0.3em;
-    color: var(--gold);
-    text-transform: uppercase;
   }
 </style>
 </head>
 <body>
 <div class="poster">
-  <div class="kicker">A REAL SAVE STORY</div>
 
-  <div class="quote">
-    <div class="opener">"Mate. You'll never guess what just happened in my save."</div>
-    <h1>
-      <span class="gold">90+3.</span><br/>
-      1–1.<br/>
-      <span class="strike">SACKED.</span><br/>
-      <span class="gold">BICYCLE KICK.</span><br/>
-      WE WIN.
-    </h1>
-    <div class="signature">— every Dynasty Manager player, weekly</div>
+  <div class="glow-gold glow-pos"></div>
+
+  <div class="mark anim-fade-up">
+    <span class="dot"></span>
+    <span class="label">A real save story</span>
   </div>
 
-  <div class="moment-card">
-    <div class="label">VERDICT</div>
-    <div class="copy">"Honestly, what is this game. <span class="em">Get sacked. Probably.</span> Free on iOS."</div>
-  </div>
-
-  <div class="cta glass">
-    <div class="app-icon">D</div>
-    <div class="text">
-      <div class="name">DYNASTY MANAGER</div>
-      <div class="sub">A football manager that doesn't waste your time.</div>
+  <div class="opener">
+    <div class="lead anim-fade-up delay-1">
+      "Mate. You'll never guess what just happened in my save."
     </div>
-    <div class="free-badge">FREE</div>
+  </div>
+
+  <div class="story">
+    <div class="row anim-fade-up delay-2">
+      <span class="line med gold-line">90+3</span>
+      <span class="line med">·</span>
+      <span class="line med">1–1</span>
+    </div>
+    <div class="anim-fade-up delay-3" style="margin-top: 18px;">
+      <span class="line big strike">SACKED IN 6.</span>
+    </div>
+    <div class="anim-fade-up delay-4" style="margin-top: 18px;">
+      <span class="line huge gold-line">BICYCLE</span>
+    </div>
+    <div class="anim-fade-up delay-4" style="margin-top: -8px;">
+      <span class="line huge gold-line">KICK.</span>
+    </div>
+    <div class="anim-fade-up delay-5" style="margin-top: 18px;">
+      <span class="line big">WE WIN.</span>
+    </div>
+  </div>
+
+  <div class="annotate glass anim-fade-up delay-5">
+    <div class="verdict-kicker">— Verdict</div>
+    <div class="copy">
+      "Honestly, what is this game.<br/>
+      <span class="em">Get sacked. Probably.</span> Free on iOS."
+    </div>
+  </div>
+
+  <div class="cta glass anim-fade-up delay-5">
+    <div class="app-icon">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 19h18v2H3v-2zM5 6l3 3 4-5 4 5 3-3v11H5V6z"/></svg>
+    </div>
+    <div class="text">
+      <div class="name">Dynasty Manager</div>
+      <div class="sub">A football manager <span class="gold">that doesn't waste your time.</span></div>
+    </div>
+    <div class="free-pill">FREE</div>
   </div>
 </div>
 </body>

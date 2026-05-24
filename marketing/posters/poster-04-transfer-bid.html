@@ -2,205 +2,303 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Dynasty Manager — Poster 04 — Transfer Bid</title>
+<title>Dynasty Manager — Transfer Bid Reject</title>
 <link rel="stylesheet" href="_styles.css" />
 <style>
-  .phone-frame {
-    position: absolute;
-    top: 280px;
-    left: 50%;
+  .glow-pos {
+    top: 880px;
+    left: 60%;
     transform: translateX(-50%);
-    width: 780px;
-    height: 1000px;
-    border-radius: 56px;
+  }
+
+  /* Headline */
+  .headline {
+    position: absolute;
+    top: 200px;
+    left: 60px;
+    right: 60px;
+    text-align: center;
+    z-index: 6;
+  }
+  .headline .kicker { margin-bottom: 24px; color: var(--muted-foreground); }
+  .headline h1 {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: 144px;
+    letter-spacing: -0.04em;
+    line-height: 0.88;
+  }
+  .headline .em {
+    background: linear-gradient(180deg, hsl(43 96% 78%) 0%, hsl(43 96% 50%) 50%, hsl(43 96% 32%) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .headline .strike {
+    text-decoration: line-through;
+    text-decoration-color: hsl(0 84% 60%);
+    text-decoration-thickness: 8px;
+  }
+
+  /* Phone mockup */
+  .phone {
+    position: absolute;
+    top: 680px;
+    left: 50%;
+    transform: translateX(-50%) rotate(-2deg);
+    width: 700px;
+    height: 1020px;
+    border-radius: 64px;
     background: hsl(222 30% 5%);
     border: 8px solid hsl(222 30% 14%);
     box-shadow:
-      0 32px 80px hsla(0 0% 0% / 0.6),
+      0 56px 120px hsla(0 0% 0% / 0.7),
+      0 0 80px hsla(0 84% 30% / 0.2),
       inset 0 2px 0 hsla(220 15% 30% / 0.4);
     overflow: hidden;
+    z-index: 5;
   }
-  .phone-notch {
+  .phone .notch {
     position: absolute;
-    top: 24px;
-    left: 50%;
+    top: 22px; left: 50%;
     transform: translateX(-50%);
-    width: 280px;
-    height: 32px;
+    width: 240px; height: 32px;
     background: hsl(222 30% 5%);
     border-radius: 16px;
   }
-  .notif-banner {
+  .phone .status-time {
     position: absolute;
-    top: 88px;
-    left: 32px;
-    right: 32px;
-    background: hsla(222 25% 11% / 0.92);
+    top: 28px; left: 36px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 18px;
+    color: hsl(0 0% 95%);
+  }
+  .phone .status-icons {
+    position: absolute;
+    top: 28px; right: 36px;
+    display: flex;
+    gap: 8px;
+    color: hsl(0 0% 95%);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+  }
+
+  /* Bid notification card inside the phone */
+  .bid-card {
+    position: absolute;
+    top: 96px; left: 28px; right: 28px;
+    background: linear-gradient(180deg, hsla(222 25% 13% / 0.95), hsla(222 25% 9% / 0.95));
+    border: 1px solid hsla(43 96% 50% / 0.35);
+    border-radius: 28px;
+    padding: 28px;
+    box-shadow:
+      0 24px 60px hsla(0 0% 0% / 0.6),
+      0 0 0 1px hsla(43 96% 50% / 0.08);
     backdrop-filter: blur(20px);
-    border: 1px solid hsla(43 96% 46% / 0.4);
-    border-radius: 24px;
-    padding: 28px 32px;
-    box-shadow: 0 16px 48px hsla(0 0% 0% / 0.6);
   }
-  .notif-banner .row1 {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 16px;
+  .bid-card .header-row {
+    display: flex; align-items: center; gap: 14px; margin-bottom: 22px;
   }
-  .notif-banner .icon {
-    width: 56px;
-    height: 56px;
-    background: var(--gold);
+  .bid-card .club-crest {
+    width: 56px; height: 56px;
     border-radius: 14px;
-    display: grid;
-    place-items: center;
-    color: hsl(222 40% 8%);
-    font-weight: 700;
-    font-size: 28px;
-    font-family: 'Oswald';
-  }
-  .notif-banner .meta {
-    flex: 1;
-    font-size: 22px;
-    color: var(--muted-foreground);
-    letter-spacing: 0.05em;
-  }
-  .notif-banner .timestamp {
-    font-size: 20px;
-    color: var(--muted-foreground);
-  }
-  .notif-banner .title {
+    background: linear-gradient(135deg, hsl(360 90% 60%), hsl(360 90% 40%));
+    display: grid; place-items: center;
     font-family: 'Oswald', sans-serif;
-    font-size: 44px;
     font-weight: 700;
-    color: var(--foreground);
-    margin-bottom: 8px;
-  }
-  .notif-banner .body {
-    font-size: 28px;
-    color: var(--foreground);
-    line-height: 1.3;
-  }
-  .notif-banner .body .fee {
-    color: var(--gold);
-    font-weight: 700;
-  }
-  .action-row {
-    position: absolute;
-    bottom: 340px;
-    left: 32px;
-    right: 32px;
-    display: grid;
-    grid-template-columns: 1fr 1fr 1.2fr;
-    gap: 16px;
-  }
-  .action-row .btn {
-    border-radius: 20px;
-    padding: 24px;
-    text-align: center;
-    font-family: 'Oswald', sans-serif;
-    font-size: 32px;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-  }
-  .action-row .accept { background: hsla(140 70% 40% / 0.18); color: hsl(140 70% 65%); border: 2px solid hsla(140 70% 40% / 0.4); }
-  .action-row .negotiate { background: hsla(43 96% 46% / 0.18); color: hsl(43 96% 65%); border: 2px solid hsla(43 96% 46% / 0.4); }
-  .action-row .reject {
-    background: hsl(0 84% 50%);
     color: white;
-    border: 2px solid hsl(0 84% 60%);
-    transform: scale(1.04);
-    box-shadow: 0 8px 32px hsla(0 84% 50% / 0.5);
-  }
-  .reject-stamp {
-    position: absolute;
-    bottom: 120px;
-    left: 50%;
-    transform: translateX(-50%) rotate(-12deg);
-    font-family: 'Oswald', sans-serif;
-    font-size: 96px;
-    font-weight: 700;
-    color: hsl(0 84% 50%);
-    border: 8px solid hsl(0 84% 50%);
-    padding: 16px 48px;
-    border-radius: 16px;
-    letter-spacing: 0.1em;
-    background: hsla(222 30% 5% / 0.4);
-  }
-  .headline {
-    position: absolute;
-    top: 100px;
-    left: 80px;
-    right: 80px;
-    text-align: center;
-  }
-  .headline h1 {
-    font-size: 96px;
-    line-height: 1;
-    color: var(--foreground);
+    font-size: 24px;
     letter-spacing: -0.02em;
+    box-shadow: 0 6px 16px hsla(360 90% 30% / 0.5);
   }
-  .headline .gold {
-    color: var(--gold);
+  .bid-card .meta {
+    flex: 1;
+    font-family: 'DM Sans', sans-serif;
   }
-  .cta {
-    position: absolute;
-    bottom: 280px;
-    left: 80px;
-    right: 80px;
-    display: flex;
-    align-items: center;
-    gap: 32px;
-    padding: 36px;
+  .bid-card .meta .from {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--foreground);
+    line-height: 1.2;
   }
-  .cta .text { flex: 1; }
-  .cta .name {
-    font-family: 'Oswald', sans-serif;
-    font-size: 52px;
-    font-weight: 700;
-  }
-  .cta .sub {
-    font-size: 26px;
+  .bid-card .meta .tag {
+    font-size: 14px;
     color: var(--muted-foreground);
-    margin-top: 6px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+  .bid-card .timestamp {
+    font-size: 14px;
+    color: var(--muted-foreground);
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .bid-card .fee-block {
+    text-align: center;
+    margin: 18px 0 16px;
+  }
+  .bid-card .fee-block .fee {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: 84px;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    background: linear-gradient(180deg, hsl(43 96% 78%) 0%, hsl(43 96% 50%) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .bid-card .fee-block .premium {
+    margin-top: 8px;
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 8px;
+    background: hsla(160 70% 40% / 0.18);
+    color: hsl(160 70% 70%);
+    font-family: 'Oswald', sans-serif;
+    font-size: 14px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .bid-card .body-line {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 18px;
+    color: var(--foreground-muted);
+    line-height: 1.4;
+    text-align: center;
+    margin-bottom: 22px;
+  }
+
+  .bid-card .actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.3fr;
+    gap: 10px;
+  }
+  .bid-card .btn {
+    border-radius: 16px;
+    padding: 18px 12px;
+    text-align: center;
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .bid-card .btn.accept   { background: hsla(160 70% 40% / 0.14); color: hsl(160 70% 70%); border: 1.5px solid hsla(160 70% 40% / 0.35); }
+  .bid-card .btn.negotiate{ background: hsla(43 96% 50% / 0.14);  color: hsl(43 96% 70%);  border: 1.5px solid hsla(43 96% 50% / 0.35); }
+  .bid-card .btn.reject   {
+    background: linear-gradient(180deg, hsl(0 84% 56%), hsl(0 84% 44%));
+    color: white;
+    transform: scale(1.04);
+    box-shadow:
+      0 12px 32px hsla(0 84% 45% / 0.55),
+      inset 0 1px 0 hsla(0 84% 80% / 0.4);
+  }
+
+  /* REJECTED stamp */
+  .stamp {
+    position: absolute;
+    bottom: 220px; left: 50%;
+    transform: translateX(-50%) rotate(-8deg);
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: 88px;
+    letter-spacing: 0.08em;
+    color: hsl(0 84% 56%);
+    border: 8px solid hsl(0 84% 56%);
+    padding: 14px 36px;
+    border-radius: 14px;
+    background: hsla(222 30% 4% / 0.85);
+    box-shadow: 0 16px 48px hsla(0 84% 30% / 0.5);
+    z-index: 8;
+  }
+
+  /* Subtitle band */
+  .sub-band {
+    position: absolute;
+    top: 1620px;
+    left: 60px;
+    right: 60px;
+    text-align: center;
+    z-index: 6;
+  }
+  .sub-band .quote {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: 64px;
+    letter-spacing: -0.02em;
+    color: var(--foreground);
+  }
+  .sub-band .quote .em {
+    color: var(--gold);
   }
 </style>
 </head>
 <body>
 <div class="poster">
+
+  <div class="glow-red layer-glow" style="top: 580px; left: 50%; transform: translateX(-50%);"></div>
+
   <div class="headline">
-    <h1>WOULD<br/>YOU <span class="gold">REJECT?</span></h1>
+    <div class="kicker anim-fade-up">Sunday morning. Inbox check.</div>
+    <h1 class="anim-fade-up delay-1">
+      Would you <span class="em">reject?</span>
+    </h1>
   </div>
 
-  <div class="phone-frame">
-    <div class="phone-notch"></div>
-    <div class="notif-banner">
-      <div class="row1">
-        <div class="icon">RM</div>
-        <div class="meta">INCOMING TRANSFER OFFER</div>
+  <div class="phone anim-fade-up delay-2">
+    <div class="notch"></div>
+    <div class="status-time">9:41</div>
+    <div class="status-icons">5G ●● 87%</div>
+
+    <div class="bid-card">
+      <div class="header-row">
+        <div class="club-crest">RM</div>
+        <div class="meta">
+          <div class="from">Real Madrid C.F.</div>
+          <div class="tag">Incoming offer</div>
+        </div>
         <div class="timestamp">now</div>
       </div>
-      <div class="title">Real Madrid bid £80,000,000</div>
-      <div class="body">For your 17-year-old striker. <span class="fee">+£32M over market value</span>.</div>
+
+      <div class="fee-block">
+        <div class="fee">£80,000,000</div>
+        <div class="premium">+£32M over market value</div>
+      </div>
+
+      <div class="body-line">
+        Your 17-year-old striker.<br/>
+        <span style="color: var(--foreground); font-weight: 600;">Sign or stay?</span>
+      </div>
+
+      <div class="actions">
+        <div class="btn accept">Accept</div>
+        <div class="btn negotiate">Negotiate</div>
+        <div class="btn reject">Reject</div>
+      </div>
     </div>
 
-    <div class="action-row">
-      <div class="btn accept">ACCEPT</div>
-      <div class="btn negotiate">NEGOTIATE</div>
-      <div class="btn reject">REJECT</div>
-    </div>
-
-    <div class="reject-stamp">REJECTED</div>
+    <div class="stamp">REJECTED</div>
   </div>
 
-  <div class="cta glass">
-    <div class="app-icon">D</div>
+  <div class="sub-band">
+    <div class="quote anim-fade-up delay-3">
+      Some things <span class="em">money</span> can't buy.
+    </div>
+  </div>
+
+  <div class="cta glass anim-fade-up delay-4">
+    <div class="app-icon">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 19h18v2H3v-2zM5 6l3 3 4-5 4 5 3-3v11H5V6z"/></svg>
+    </div>
     <div class="text">
-      <div class="name">DYNASTY MANAGER</div>
+      <div class="name">Dynasty Manager</div>
       <div class="sub">Run your club. <span class="gold">Free on iOS.</span></div>
     </div>
-    <div class="free-badge">FREE</div>
+    <div class="free-pill">FREE</div>
   </div>
 </div>
 </body>

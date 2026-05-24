@@ -2,180 +2,325 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Dynasty Manager — Poster 02 — Wonderkid</title>
+<title>Dynasty Manager — Wonderkid Reveal</title>
 <link rel="stylesheet" href="_styles.css" />
 <style>
-  .card {
-    position: absolute;
+  .glow-pos {
     top: 380px;
     left: 50%;
     transform: translateX(-50%);
-    width: 640px;
-    height: 880px;
-    border-radius: 32px;
-    background:
-      linear-gradient(135deg, hsl(43 96% 65%) 0%, hsl(43 96% 38%) 100%);
-    box-shadow:
-      0 24px 80px hsla(43 96% 46% / 0.5),
-      inset 0 0 0 4px hsla(43 96% 80% / 0.3);
-    padding: 48px;
-    color: hsl(222 40% 8%);
   }
-  .card .header {
+
+  /* Top kicker */
+  .top-headline {
+    position: absolute;
+    top: 200px;
+    left: 60px;
+    right: 60px;
+    text-align: center;
+    z-index: 6;
+  }
+  .top-headline .kicker {
+    margin-bottom: 28px;
+  }
+  .top-headline h1 {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    line-height: 0.88;
+    color: var(--foreground);
+  }
+  .top-headline .row {
+    font-size: 132px;
+    display: flex;
+    justify-content: center;
+    align-items: baseline;
+    gap: 24px;
+  }
+  .top-headline .row .big {
+    font-size: 168px;
+  }
+  .top-headline .dot {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--gold);
+    box-shadow: 0 0 16px hsla(43 96% 50% / 0.8);
+    align-self: center;
+    margin-bottom: 18px;
+  }
+  .top-headline .gold-num {
+    background: linear-gradient(180deg, hsl(43 96% 78%) 0%, hsl(43 96% 50%) 50%, hsl(43 96% 32%) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Card hero */
+  .card-stage {
+    position: absolute;
+    top: 600px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px;
+    z-index: 5;
+    perspective: 1200px;
+  }
+
+  .card {
+    position: relative;
+    width: 100%;
+    height: 820px;
+    border-radius: 36px;
+    padding: 44px 40px 32px;
+    transform: rotate(-3deg) translateZ(0);
+    color: hsl(222 50% 6%);
+    background:
+      /* Inner sheen */
+      radial-gradient(ellipse at 30% 20%, hsla(43 96% 95% / 0.45) 0%, transparent 50%),
+      /* Main face */
+      linear-gradient(155deg, hsl(43 96% 72%) 0%, hsl(43 96% 52%) 45%, hsl(43 96% 36%) 100%);
+    box-shadow:
+      0 32px 96px hsla(43 96% 30% / 0.7),
+      0 0 120px hsla(43 96% 50% / 0.25),
+      inset 0 0 0 4px hsla(43 96% 92% / 0.4),
+      inset 0 0 0 6px hsla(43 96% 30% / 0.4),
+      inset 0 -8px 24px hsla(0 0% 0% / 0.25);
+  }
+
+  /* Decorative corner ornaments — replicates pack-card framing */
+  .card .corner {
+    position: absolute;
+    width: 64px; height: 64px;
+    border: 4px solid hsla(43 96% 30% / 0.4);
+    pointer-events: none;
+  }
+  .card .corner.tl { top: 20px; left: 20px;    border-right: none; border-bottom: none; }
+  .card .corner.tr { top: 20px; right: 20px;   border-left: none;  border-bottom: none; }
+  .card .corner.bl { bottom: 20px; left: 20px; border-right: none; border-top: none; }
+  .card .corner.br { bottom: 20px; right: 20px; border-left: none;  border-top: none; }
+
+  .card .top-row {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 24px;
   }
   .card .ovr {
     font-family: 'Oswald', sans-serif;
-    font-size: 144px;
     font-weight: 700;
     line-height: 0.85;
   }
-  .card .position {
+  .card .ovr .num {
+    font-size: 156px;
+    letter-spacing: -0.04em;
+    text-shadow: 0 4px 8px hsla(0 0% 0% / 0.15);
+  }
+  .card .ovr .pos {
+    display: block;
+    font-size: 36px;
+    margin-top: 4px;
+    letter-spacing: 0.05em;
+    opacity: 0.85;
+  }
+  .card .right-meta {
+    text-align: right;
     font-family: 'Oswald', sans-serif;
-    font-size: 48px;
+  }
+  .card .right-meta .country {
+    font-size: 32px;
     font-weight: 600;
-    text-align: right;
-    margin-top: 16px;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
   }
-  .card .flag {
-    font-size: 64px;
-    margin-top: 8px;
-    text-align: right;
+  .card .right-meta .age-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: flex-end;
+    font-size: 24px;
+    opacity: 0.75;
   }
-  .card .portrait {
-    width: 100%;
-    height: 380px;
+  .card .right-meta .age-row::before {
+    content: '';
+    width: 28px; height: 2px;
+    background: hsla(0 0% 0% / 0.4);
+  }
+
+  .card .portrait-frame {
+    margin: 32px auto 24px;
+    width: 320px; height: 320px;
+    position: relative;
     display: grid;
     place-items: center;
-    font-size: 240px;
-    margin: 0 auto;
   }
+  .card .portrait-frame::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle, hsla(0 0% 0% / 0.15) 0%, transparent 60%);
+    border-radius: 50%;
+  }
+  .card .portrait-frame .silhouette {
+    width: 100%;
+    height: 100%;
+  }
+
   .card .name {
     font-family: 'Oswald', sans-serif;
-    font-size: 72px;
     font-weight: 700;
+    font-size: 56px;
     text-align: center;
-    margin-top: 16px;
-    letter-spacing: -0.01em;
+    margin-top: 4px;
+    letter-spacing: -0.005em;
+    line-height: 1;
   }
-  .card .stats {
+  .card .name .last {
+    display: block;
+    font-size: 72px;
+    margin-top: 4px;
+  }
+
+  .card .stat-row {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     gap: 8px;
     margin-top: 32px;
-    text-align: center;
+    padding-top: 24px;
+    border-top: 2px solid hsla(0 0% 0% / 0.18);
   }
-  .card .stats .stat {
+  .card .stat-row .s {
+    text-align: center;
     font-family: 'Oswald', sans-serif;
   }
-  .card .stats .val {
-    font-size: 56px;
+  .card .stat-row .v {
+    font-size: 38px;
     font-weight: 700;
     line-height: 1;
   }
-  .card .stats .lbl {
-    font-size: 24px;
-    opacity: 0.7;
-    letter-spacing: 0.05em;
+  .card .stat-row .l {
+    font-size: 16px;
+    opacity: 0.65;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 6px;
   }
-  .headline {
+
+  /* Verdict strip below card */
+  .verdict {
     position: absolute;
-    top: 100px;
-    left: 80px;
-    right: 80px;
+    top: 1480px;
+    left: 60px;
+    right: 60px;
     text-align: center;
+    z-index: 6;
   }
-  .headline h1 {
-    font-size: 96px;
-    line-height: 1;
-    color: var(--foreground);
-  }
-  .headline .gold-amount {
-    color: var(--gold);
-    font-size: 120px;
-  }
-  .tagline {
-    position: absolute;
-    top: 1320px;
-    left: 80px;
-    right: 80px;
-    text-align: center;
+  .verdict .strike {
     font-family: 'Oswald', sans-serif;
-    font-size: 64px;
+    font-size: 56px;
     font-weight: 600;
-    color: var(--foreground);
-    line-height: 1.05;
-  }
-  .tagline .strike {
+    color: var(--muted-foreground);
     text-decoration: line-through;
     text-decoration-color: hsl(0 84% 60%);
     text-decoration-thickness: 6px;
-    color: var(--muted-foreground);
+    letter-spacing: -0.01em;
   }
-  .cta {
-    position: absolute;
-    bottom: 320px;
-    left: 80px;
-    right: 80px;
-    display: flex;
-    align-items: center;
-    gap: 32px;
-    padding: 40px;
-  }
-  .cta .text { flex: 1; }
-  .cta .name {
+  .verdict .line {
     font-family: 'Oswald', sans-serif;
-    font-size: 56px;
+    font-size: 88px;
     font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    margin-top: 14px;
+    color: var(--foreground);
   }
-  .cta .sub {
-    font-size: 28px;
-    color: var(--muted-foreground);
-    margin-top: 8px;
+  .verdict .line .em {
+    background: linear-gradient(180deg, hsl(43 96% 78%) 0%, hsl(43 96% 50%) 50%, hsl(43 96% 32%) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
 </style>
 </head>
 <body>
 <div class="poster">
-  <div class="headline">
-    <h1><span class="gold-amount">£0</span> · 17 · <span class="gold">92 POT</span></h1>
+
+  <div class="glow-gold glow-pos"></div>
+
+  <div class="top-headline">
+    <div class="kicker anim-fade-up">Season 1 · Free signing · 17 years old</div>
+    <h1 class="anim-fade-up delay-1">
+      <div class="row">
+        <span class="gold-num">£0</span>
+        <span class="dot"></span>
+        <span class="big">92</span>
+        <span class="dot"></span>
+        <span>POT</span>
+      </div>
+    </h1>
   </div>
 
-  <div class="card">
-    <div class="header">
-      <div>
-        <div class="ovr">92</div>
-        <div style="font-family: 'Oswald'; font-size: 32px; margin-top: 8px; opacity: 0.6;">POT 92</div>
+  <div class="card-stage anim-fade-up delay-2">
+    <div class="card">
+      <div class="corner tl"></div>
+      <div class="corner tr"></div>
+      <div class="corner bl"></div>
+      <div class="corner br"></div>
+
+      <div class="top-row">
+        <div class="ovr">
+          <div class="num">92</div>
+          <div class="pos">ST</div>
+        </div>
+        <div class="right-meta">
+          <div class="country">NOR</div>
+          <div class="age-row">17 YRS</div>
+        </div>
       </div>
-      <div>
-        <div class="position">ST</div>
-        <div class="flag">⚽</div>
+
+      <div class="portrait-frame">
+        <svg class="silhouette" viewBox="0 0 200 200" fill="none">
+          <defs>
+            <linearGradient id="silh" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"   stop-color="hsla(0, 0%, 0%, 0.25)"/>
+              <stop offset="100%" stop-color="hsla(0, 0%, 0%, 0.05)"/>
+            </linearGradient>
+          </defs>
+          <!-- Stylized footballer silhouette -->
+          <circle cx="100" cy="62" r="32" fill="url(#silh)"/>
+          <path d="M 56 200 Q 56 130 100 118 Q 144 130 144 200 Z" fill="url(#silh)"/>
+        </svg>
+      </div>
+
+      <div class="name">
+        Erling
+        <span class="last">HAALAND</span>
+      </div>
+
+      <div class="stat-row">
+        <div class="s"><div class="v">94</div><div class="l">SHO</div></div>
+        <div class="s"><div class="v">89</div><div class="l">PAC</div></div>
+        <div class="s"><div class="v">68</div><div class="l">PAS</div></div>
+        <div class="s"><div class="v">35</div><div class="l">DEF</div></div>
+        <div class="s"><div class="v">88</div><div class="l">PHY</div></div>
+        <div class="s"><div class="v">85</div><div class="l">DRI</div></div>
       </div>
     </div>
-    <div class="portrait">⚡</div>
-    <div class="name">YOUR WONDERKID</div>
-    <div class="stats">
-      <div class="stat"><div class="val">94</div><div class="lbl">SHOOTING</div></div>
-      <div class="stat"><div class="val">89</div><div class="lbl">PACE</div></div>
-      <div class="stat"><div class="val">88</div><div class="lbl">PHYSICAL</div></div>
+  </div>
+
+  <div class="verdict">
+    <div class="strike anim-fade-up delay-3">£80,000,000 bid · Real Madrid</div>
+    <div class="line anim-fade-up delay-4">
+      <span class="em">NOT</span> FOR <span class="em">SALE.</span>
     </div>
   </div>
 
-  <div class="tagline">
-    <span class="strike">£80,000,000</span><br/>
-    <span class="gold-grad">NOT FOR SALE.</span>
-  </div>
-
-  <div class="cta glass">
-    <div class="app-icon">D</div>
+  <div class="cta glass anim-fade-up delay-5">
+    <div class="app-icon">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 19h18v2H3v-2zM5 6l3 3 4-5 4 5 3-3v11H5V6z"/></svg>
+    </div>
     <div class="text">
-      <div class="name">DYNASTY MANAGER</div>
+      <div class="name">Dynasty Manager</div>
       <div class="sub">Find your wonderkid. <span class="gold">Free on iOS.</span></div>
     </div>
-    <div class="free-badge">FREE</div>
+    <div class="free-pill">FREE</div>
   </div>
 </div>
 </body>
