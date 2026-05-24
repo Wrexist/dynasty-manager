@@ -2,9 +2,10 @@
 #
 # render-all.sh — Batch-render every poster-*.html to PNG at 1080×1920.
 #
-# Uses Playwright's bundled Chromium for deterministic, high-DPI rendering.
-# Cleaner than puppeteer for one-off scripts and Playwright is already a
-# transitive dep elsewhere in this repo via the icons scraper.
+# Uses the already-installed Playwright (a project dependency, see
+# package.json) — not @latest from the network. Browsers are downloaded
+# once via `npm run scrape:icons:setup` (which is `playwright install
+# chromium`); rerunning this script reuses the cached binary.
 #
 # Usage:
 #   bash marketing/posters/render-all.sh
@@ -12,8 +13,10 @@
 # Output:
 #   marketing/posters/dist/poster-*.png  (1080×1920)
 #
-# Tip: PNGs are good enough for Meta Ads Manager / TikTok static
-# uploads. If you need 2x retina, edit RENDER_SCALE below to 2.
+# Tips:
+#   - Bump RENDER_SCALE to 2 for retina (2160×3840) PNGs.
+#   - To render to mp4 instead of PNG (animations preserved), use
+#     `--video` and ffmpeg with the resulting webm output.
 
 set -euo pipefail
 
@@ -22,46 +25,61 @@ mkdir -p dist
 
 RENDER_SCALE=1   # bump to 2 for retina
 
-command -v npx >/dev/null 2>&1 || {
-  echo "ERROR: npx not found. Install Node.js." >&2
+# Resolve repo root so we can require Playwright from node_modules.
+REPO_ROOT=$(cd "$(dirname "$0")/../.." && pwd)
+
+# Ensure Playwright + Chromium are available. If Playwright isn't installed
+# we can't proceed; if the browser binary isn't downloaded we fetch it.
+if [[ ! -d "$REPO_ROOT/node_modules/playwright" ]]; then
+  echo "ERROR: Playwright not installed. Run \`npm install\` in repo root." >&2
   exit 1
+fi
+if [[ ! -d "$HOME/.cache/ms-playwright" && ! -d "/root/.cache/ms-playwright" ]]; then
+  echo "Downloading Chromium for Playwright (~150MB, one-time)..."
+  (cd "$REPO_ROOT" && npx playwright install chromium)
+fi
+
+# Write the renderer to a temp file (cleaner than passing a multi-line script
+# through node -e, which mangles quoting on some shells).
+SCRIPT=$(mktemp -t render-posters-XXXX.mjs)
+trap 'rm -f "$SCRIPT"' EXIT
+
+cat > "$SCRIPT" <<'NODE'
+import { chromium } from 'playwright';
+import { readdirSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+
+const SCALE = Number(process.env.RENDER_SCALE || 1);
+
+const browser = await chromium.launch();
+const ctx = await browser.newContext({
+  viewport: { width: 1080, height: 1920 },
+  deviceScaleFactor: SCALE,
+});
+const page = await ctx.newPage();
+
+const files = readdirSync('.')
+  .filter((f) => /^poster-\d+.*\.html$/.test(f))
+  .sort();
+
+console.log(`Rendering ${files.length} posters at scale ${SCALE}x...`);
+
+for (const f of files) {
+  const url = pathToFileURL(resolve(f)).href;
+  const out = `dist/${f.replace(/\.html$/, '.png')}`;
+  await page.goto(url, { waitUntil: 'networkidle' });
+  // Allow web fonts + entrance animations to settle into their final frame.
+  await page.waitForTimeout(1200);
+  await page.screenshot({
+    path: out,
+    clip: { x: 0, y: 0, width: 1080, height: 1920 },
+  });
+  console.log(`  → ${out}`);
 }
 
-# Inline Node script — uses Playwright (npm install playwright if first run,
-# or it'll auto-install via npx).
-exec npx --yes playwright@latest -- node -e "
-const { chromium } = require('playwright');
-const path = require('path');
-const fs = require('fs');
+await browser.close();
+console.log('✅ Done. Outputs in marketing/posters/dist/');
+NODE
 
-const SCALE = $RENDER_SCALE;
-
-(async () => {
-  const browser = await chromium.launch();
-  const ctx = await browser.newContext({
-    viewport: { width: 1080, height: 1920 },
-    deviceScaleFactor: SCALE,
-  });
-  const page = await ctx.newPage();
-
-  const files = fs.readdirSync('.').filter(f => /^poster-\\d+.*\\.html$/.test(f)).sort();
-  console.log('Rendering ' + files.length + ' posters at scale ' + SCALE + 'x...');
-
-  for (const f of files) {
-    const inUrl = 'file://' + path.resolve(f);
-    const outPng = 'dist/' + f.replace(/\\.html$/, '.png');
-    await page.goto(inUrl, { waitUntil: 'networkidle' });
-    // Give web fonts an extra moment to settle.
-    await page.waitForTimeout(500);
-    await page.screenshot({
-      path: outPng,
-      fullPage: false,
-      clip: { x: 0, y: 0, width: 1080, height: 1920 },
-    });
-    console.log('  → ' + outPng);
-  }
-
-  await browser.close();
-  console.log('✅ Done. Outputs in marketing/posters/dist/');
-})();
-"
+RENDER_SCALE="$RENDER_SCALE" node --experimental-vm-modules "$SCRIPT"

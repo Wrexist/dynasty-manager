@@ -110,20 +110,34 @@ fi
 # ──────────────────────────────────────────────────────────────────────
 # Build audio filter chain
 # ──────────────────────────────────────────────────────────────────────
-
-# Audio inputs:
-#   [0:a] = raw recording's own audio (game sound — usually keep it as base)
-#   [1:a] = VO (if provided)
-#   [2:a] = music (if provided)
+#
+# Audio sources (any subset may be missing):
+#   [0:a] = raw recording's own audio (often missing on silent screen
+#           recordings — iOS Control Center capture defaults to mic-off)
+#   [N:a] = VO  (if provided, indexed after the raw)
+#   [N:a] = music (if provided, indexed after VO)
 
 AUDIO_INPUTS=("-i" "$RAW")
 AUDIO_FILTER_PARTS=()
 AUDIO_MIX_INPUTS=()
 NEXT_AUDIO_IDX=1
 
-# Always include source audio at low volume (game sound) — kept at 0.4 unless overridden.
-AUDIO_FILTER_PARTS+=("[0:a]volume=0.4[a0]")
-AUDIO_MIX_INPUTS+=("[a0]")
+# Detect whether the raw recording actually has an audio stream. Silent
+# screen recordings are the common case for iPhone game footage; without
+# this probe, the filter graph below would reference `[0:a]` and ffmpeg
+# would abort with "stream specifier matches no streams".
+command -v ffprobe >/dev/null 2>&1 || {
+  echo "ERROR: ffprobe not installed (ships with ffmpeg). On macOS: brew install ffmpeg" >&2
+  exit 1
+}
+RAW_AUDIO=$(ffprobe -v error -select_streams a -show_entries stream=codec_type -of csv=p=0 "$RAW" 2>/dev/null || true)
+if [[ -n "$RAW_AUDIO" ]]; then
+  # Include source audio at low volume (game sound under VO/music).
+  AUDIO_FILTER_PARTS+=("[0:a]volume=0.4[a0]")
+  AUDIO_MIX_INPUTS+=("[a0]")
+else
+  echo "  (raw has no audio track — skipping source audio mix)"
+fi
 
 if [[ -n "$VO" ]]; then
   if [[ ! -f "$VO" ]]; then echo "ERROR: VO not found: $VO" >&2; exit 1; fi
@@ -141,11 +155,25 @@ if [[ -n "$MUSIC" ]]; then
   NEXT_AUDIO_IDX=$((NEXT_AUDIO_IDX + 1))
 fi
 
-# Mix all available audio streams.
 NUM_INPUTS=${#AUDIO_MIX_INPUTS[@]}
-AUDIO_FILTER_PARTS+=("$(printf '%s' "${AUDIO_MIX_INPUTS[@]}")amix=inputs=${NUM_INPUTS}:duration=shortest:dropout_transition=0[aout]")
-
-AUDIO_FILTER_COMPLEX=$(IFS=';'; echo "${AUDIO_FILTER_PARTS[*]}")
+if [[ "$NUM_INPUTS" -eq 0 ]]; then
+  # Pathological case — silent raw and no VO/music. Synthesize a silent
+  # stereo track so the output mp4 still has an audio track (some social
+  # platforms reject video-only uploads). anullsrc generates indefinitely;
+  # `-shortest` on the encode keeps it tied to the video length.
+  AUDIO_FILTER_COMPLEX="anullsrc=r=48000:cl=stereo[aout]"
+  EXTRA_OUTPUT_FLAGS=("-shortest")
+elif [[ "$NUM_INPUTS" -eq 1 ]]; then
+  # Single source — no need for amix; just alias the existing label.
+  ONLY=${AUDIO_MIX_INPUTS[0]}
+  AUDIO_FILTER_PARTS+=("${ONLY}anull[aout]")
+  AUDIO_FILTER_COMPLEX=$(IFS=';'; echo "${AUDIO_FILTER_PARTS[*]}")
+  EXTRA_OUTPUT_FLAGS=()
+else
+  AUDIO_FILTER_PARTS+=("$(printf '%s' "${AUDIO_MIX_INPUTS[@]}")amix=inputs=${NUM_INPUTS}:duration=shortest:dropout_transition=0[aout]")
+  AUDIO_FILTER_COMPLEX=$(IFS=';'; echo "${AUDIO_FILTER_PARTS[*]}")
+  EXTRA_OUTPUT_FLAGS=()
+fi
 
 # ──────────────────────────────────────────────────────────────────────
 # Build ffmpeg command
@@ -179,6 +207,7 @@ ffmpeg -y \
   -pix_fmt yuv420p \
   -c:a aac -b:a 192k -ar 48000 \
   -movflags +faststart \
+  "${EXTRA_OUTPUT_FLAGS[@]}" \
   "$OUT"
 
 echo "✅ Built: $OUT"
