@@ -19,7 +19,8 @@ export function StorylineModal() {
     if (!pendingStoryline?.id.startsWith('chain-')) return null;
     const parts = pendingStoryline.id.split('-');
     const chainId = parts.slice(1, parts.length - 2).join('-');
-    const stepIdx = parseInt(parts[parts.length - 1], 10);
+    const stepIdxRaw = parseInt(parts[parts.length - 1], 10);
+    const stepIdx = Number.isFinite(stepIdxRaw) ? stepIdxRaw : 0;
     const chain = activeStorylineChains.find(c => c.chainId === chainId);
     const chainDef = STORYLINE_CHAINS.find(c => c.id === chainId);
     if (!chainDef) return null;

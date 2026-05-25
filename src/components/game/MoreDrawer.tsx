@@ -134,8 +134,8 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
   const setScreen = useGameStore(s => s.setScreen);
   const isUnemployed = useCareerUnemployed();
   const unread = messages.filter(m => !m.read).length;
-  const hasPendingCupMatch = cup?.ties?.some(t => !t.played && (t.homeClubId || t.awayClubId));
-  const hasPendingLeagueCupMatch = leagueCup?.ties?.some(t => !t.played && (t.homeClubId || t.awayClubId));
+  const hasPendingCupMatch = cup?.ties?.some(t => !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId));
+  const hasPendingLeagueCupMatch = leagueCup?.ties?.some(t => !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId));
 
   // Contextual data for pinned items
   const hasMatchThisWeek = useMemo(() =>

@@ -41,13 +41,20 @@ export async function initPurchases(): Promise<boolean> {
   if (initPromise) return initPromise;
 
   initPromise = (async () => {
+    let timerId: ReturnType<typeof setTimeout> | null = null;
     try {
       const { Purchases, LOG_LEVEL } = await import('@revenuecat/purchases-capacitor');
       const logLevel = import.meta.env.DEV ? LOG_LEVEL.DEBUG : LOG_LEVEL.INFO;
       await Purchases.setLogLevel({ level: logLevel });
+      // Race configure against a timeout. Clear the timer on resolution to
+      // prevent a leaked Promise rejection from firing 5s after success and
+      // polluting Sentry with phantom "RevenueCat init timeout" events.
+      const timeout = new Promise<void>((_, reject) => {
+        timerId = setTimeout(() => reject(new Error('RevenueCat init timeout')), 5000);
+      });
       await Promise.race([
         Purchases.configure({ apiKey: REVENUECAT_API_KEY }),
-        new Promise<void>((_, reject) => setTimeout(() => reject(new Error('RevenueCat init timeout')), 5000)),
+        timeout,
       ]);
       return true;
     } catch (err) {
@@ -55,6 +62,8 @@ export async function initPurchases(): Promise<boolean> {
       Sentry.captureException(err, { tags: { context: 'purchases.init' } });
       initPromise = null;
       return false;
+    } finally {
+      if (timerId) clearTimeout(timerId);
     }
   })();
   return initPromise;
@@ -101,7 +110,7 @@ export async function purchaseConsumable(productId: ProductId): Promise<boolean>
     await Purchases.purchasePackage({ aPackage: pkg as Parameters<typeof Purchases.purchasePackage>[0]['aPackage'] });
     return true;
   } catch (err: unknown) {
-    const error = err as { code?: string; userCancelled?: boolean };
+    const error = (err && typeof err === 'object' ? err : {}) as { code?: string; userCancelled?: boolean };
     if (error.userCancelled || error.code === 'PURCHASE_CANCELLED') {
       return false;
     }
@@ -142,7 +151,7 @@ export async function purchaseProduct(productId: ProductId): Promise<ProductId[]
     const { customerInfo } = await Purchases.purchasePackage({ aPackage: pkg as Parameters<typeof Purchases.purchasePackage>[0]['aPackage'] });
     return mapEntitlements(customerInfo);
   } catch (err: unknown) {
-    const error = err as { code?: string; userCancelled?: boolean };
+    const error = (err && typeof err === 'object' ? err : {}) as { code?: string; userCancelled?: boolean };
     if (error.userCancelled || error.code === 'PURCHASE_CANCELLED') {
       // User cancelled — not an error
       return [];
@@ -264,7 +273,10 @@ function mapEntitlements(customerInfo: CustomerInfo | null | undefined): Product
 
   // Check entitlements.active (RevenueCat v12 best practice)
   const activeEntitlements = customerInfo?.entitlements?.active;
-  if (activeEntitlements) {
+  // Guard against null (not just undefined) — RevenueCat's native SDK
+  // historically returned null here under failure modes. Object.keys(null)
+  // throws.
+  if (activeEntitlements && typeof activeEntitlements === 'object') {
     for (const key of Object.keys(activeEntitlements)) {
       const ent = activeEntitlements[key];
       if (ent?.productIdentifier) purchased.add(ent.productIdentifier);
@@ -293,32 +305,39 @@ function mapEntitlements(customerInfo: CustomerInfo | null | undefined): Product
  * Returns null if no active subscription is found.
  */
 export function extractSubscriptionInfo(customerInfo: CustomerInfo | null | undefined): SubscriptionInfo | null {
-  const activeEntitlements = customerInfo?.entitlements?.active;
-  if (!activeEntitlements) return null;
+  try {
+    const activeEntitlements = customerInfo?.entitlements?.active;
+    if (!activeEntitlements || typeof activeEntitlements !== 'object') return null;
 
-  // Look for a 'pro' or 'dynasty_pro' entitlement (configure in RevenueCat dashboard)
-  const proEntitlement = activeEntitlements['pro'] || activeEntitlements['dynasty_pro'];
-  if (!proEntitlement) return null;
+    // Look for a 'pro' or 'dynasty_pro' entitlement (configure in RevenueCat dashboard)
+    const proEntitlement = activeEntitlements['pro'] || activeEntitlements['dynasty_pro'];
+    if (!proEntitlement) return null;
 
-  const productId = proEntitlement.productIdentifier as ProductId;
-  const product = PRODUCTS[productId];
-  if (!product || (product.type !== 'subscription' && product.subscriptionTier !== 'lifetime')) return null;
+    const productId = proEntitlement.productIdentifier as ProductId;
+    const product = PRODUCTS[productId];
+    if (!product || (product.type !== 'subscription' && product.subscriptionTier !== 'lifetime')) return null;
 
-  // RevenueCat surfaces introductory free-trial periods through the
-  // `periodType` field on an active entitlement. Values: 'NORMAL' | 'INTRO'
-  // | 'TRIAL'. Either INTRO or TRIAL → the user is currently on a free
-  // (or introductory-priced) period, and we should display "Trial" copy.
-  const periodType: string | undefined = proEntitlement.periodType;
-  const isTrial = periodType === 'TRIAL' || periodType === 'INTRO';
+    // RevenueCat surfaces introductory free-trial periods through the
+    // `periodType` field on an active entitlement. Values: 'NORMAL' | 'INTRO'
+    // | 'TRIAL'. Either INTRO or TRIAL → the user is currently on a free
+    // (or introductory-priced) period, and we should display "Trial" copy.
+    const periodType: string | undefined = proEntitlement.periodType;
+    const isTrial = periodType === 'TRIAL' || periodType === 'INTRO';
 
-  return {
-    tier: isTrial ? 'trial' : product.subscriptionTier!,
-    productId,
-    expiresAt: proEntitlement.expirationDate || null,
-    isInGracePeriod: proEntitlement.billingIssueDetectedAt != null,
-    willRenew: !proEntitlement.unsubscribeDetectedAt,
-    isTrial,
-  };
+    return {
+      tier: isTrial ? 'trial' : product.subscriptionTier!,
+      productId,
+      expiresAt: proEntitlement.expirationDate || null,
+      isInGracePeriod: proEntitlement.billingIssueDetectedAt != null,
+      willRenew: !proEntitlement.unsubscribeDetectedAt,
+      isTrial,
+    };
+  } catch (err) {
+    // Defensive: a malformed entitlement object from RevenueCat shouldn't
+    // be able to crash the settings / shop / restore-purchases UI.
+    Sentry.captureException(err, { tags: { context: 'extractSubscriptionInfo' } });
+    return null;
+  }
 }
 
 // ── Subscription Management ──
@@ -382,6 +401,14 @@ export async function startEntitlementListener(
   if (!Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) return;
   try {
     await ensureConfigured();
+    // If a previous listener is still registered (e.g. GameShell unmounted
+    // and remounted), remove it before adding a new one — otherwise the
+    // RevenueCat native side retains both callbacks and the orphaned one
+    // can fire against a torn-down JS context (EXC_BAD_ACCESS).
+    if (listenerRemover) {
+      try { listenerRemover(); } catch { /* swallow */ }
+      listenerRemover = null;
+    }
     const { Purchases } = await import('@revenuecat/purchases-capacitor');
     const callbackId = await Purchases.addCustomerInfoUpdateListener((info) => {
       const ids = mapEntitlements(info);

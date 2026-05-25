@@ -503,6 +503,10 @@ const MatchDayInner = () => {
     prevGoalCountRef.current = currentGoalCount;
   }, [currentGoalCount, scoreChangingEvents, playerClubId]);
 
+  // Clear any pending goal-flash timer on unmount — otherwise the deferred
+  // setGoalFlash(false) fires on an unmounted component.
+  useEffect(() => () => clearTimeout(goalFlashTimerRef.current), []);
+
   useEffect(() => {
     if (phase === 'post') hapticMedium();
   }, [phase]);

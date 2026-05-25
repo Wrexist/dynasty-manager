@@ -36,8 +36,12 @@
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 	</array>
+	<!-- MUST be false: @capacitor/status-bar in src/main.tsx calls
+	     StatusBar.setStyle / setBackgroundColor which use UIApplication-
+	     style APIs. With this set to true, iOS 17+ raises
+	     NSInternalInconsistencyException and iOS 15.x can crash. -->
 	<key>UIViewControllerBasedStatusBarAppearance</key>
-	<true/>
+	<false/>
 	<!-- Export compliance (EAR 740.17(b)(1)): NO — app does not implement
 	     custom/proprietary crypto. Networking uses only platform TLS (HTTPS)
 	     for Sentry and RevenueCat; no additional encryption registration is

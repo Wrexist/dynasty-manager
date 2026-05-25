@@ -23,7 +23,10 @@ export async function openExternalUrl(url: string): Promise<void> {
   if (Capacitor.isNativePlatform()) {
     try {
       const { Browser } = await import('@capacitor/browser');
-      await Browser.open({ url, presentationStyle: 'popover' });
+      // Omit presentationStyle — 'popover' is iPad-only and on iPhone it
+      // silently degrades to pageSheet but can raise UIKit warnings on
+      // iOS 15.0-15.3 that occasionally throw NSInvalidArgumentException.
+      await Browser.open({ url });
       return;
     } catch (err) {
       Sentry.captureException(err, { tags: { context: 'externalUrl.native' }, extra: { url } });
