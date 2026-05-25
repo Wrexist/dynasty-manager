@@ -12,6 +12,21 @@ import { placePlayerInClub } from '../helpers/rosterOps';
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
 
+// Loans created before the wageSplit field existed (or with malformed
+// wage data after migration) propagate NaN into club.wageBill, which then
+// crashes finance dashboards and league-table rendering. Default to a
+// 50/50 split and zero wage so the arithmetic stays finite.
+const safeWageShare = (wage: number | undefined, splitPct: number | undefined): number => {
+  const w = Number.isFinite(wage as number) ? (wage as number) : 0;
+  const s = Number.isFinite(splitPct as number) ? (splitPct as number) : 50;
+  return Math.round((w * s) / 100);
+};
+const safeWageInverse = (wage: number | undefined, splitPct: number | undefined): number => {
+  const w = Number.isFinite(wage as number) ? (wage as number) : 0;
+  const s = Number.isFinite(splitPct as number) ? (splitPct as number) : 50;
+  return Math.round((w * (100 - s)) / 100);
+};
+
 export const createLoanSlice = (set: Set, get: Get) => ({
   activeLoans: [] as LoanDeal[],
   incomingLoanOffers: [] as GameState['incomingLoanOffers'],
@@ -62,7 +77,7 @@ export const createLoanSlice = (set: Set, get: Get) => ({
     updatedFrom.lineup = updatedFrom.lineup.filter(id => id !== playerId);
     updatedFrom.subs = updatedFrom.subs.filter(id => id !== playerId);
     // Compute loaned wage share once to ensure both clubs agree on the amount
-    const loanWageShare = Math.round(player.wage * wageSplit / 100);
+    const loanWageShare = safeWageShare(player.wage, wageSplit);
     // Source club still pays (100 - wageSplit)% of wage
     updatedFrom.wageBill = Math.max(0, updatedFrom.wageBill - loanWageShare);
 
@@ -133,7 +148,7 @@ export const createLoanSlice = (set: Set, get: Get) => ({
     toClub.playerIds = toClub.playerIds.filter(id => id !== loan.playerId);
     toClub.lineup = toClub.lineup.filter(id => id !== loan.playerId);
     toClub.subs = toClub.subs.filter(id => id !== loan.playerId);
-    const recallWageShare = Math.round(player.wage * loan.wageSplit / 100);
+    const recallWageShare = safeWageShare(player.wage, loan.wageSplit);
     toClub.wageBill = Math.max(0, toClub.wageBill - recallWageShare);
 
     fromClub.playerIds = [...fromClub.playerIds, loan.playerId];
@@ -210,11 +225,11 @@ export const createLoanSlice = (set: Set, get: Get) => ({
     sellerClub.playerIds = sellerClub.playerIds.filter(id => id !== offer.playerId);
     sellerClub.lineup = sellerClub.lineup.filter(id => id !== offer.playerId);
     sellerClub.subs = sellerClub.subs.filter(id => id !== offer.playerId);
-    sellerClub.wageBill = Math.max(0, sellerClub.wageBill - Math.round(player.wage * offer.wageSplit / 100));
+    sellerClub.wageBill = Math.max(0, sellerClub.wageBill - safeWageShare(player.wage, offer.wageSplit));
 
     const buyerClub = { ...fromClub };
     buyerClub.playerIds = [...buyerClub.playerIds, offer.playerId];
-    buyerClub.wageBill += Math.round(player.wage * offer.wageSplit / 100);
+    buyerClub.wageBill += safeWageShare(player.wage, offer.wageSplit);
 
     const msg = addMsg(state.messages, {
       week: state.week, season: state.season, type: 'transfer',
@@ -300,8 +315,8 @@ export const createLoanSlice = (set: Set, get: Get) => ({
         };
 
         // Fix wage bills — remove the split, add full wage to dest
-        fromClub.wageBill = Math.max(0, fromClub.wageBill - Math.round(player.wage * (100 - loan.wageSplit) / 100));
-        toClub.wageBill += Math.round(player.wage * (100 - loan.wageSplit) / 100);
+        fromClub.wageBill = Math.max(0, fromClub.wageBill - safeWageInverse(player.wage, loan.wageSplit));
+        toClub.wageBill += safeWageInverse(player.wage, loan.wageSplit);
 
         newClubs[fromClub.id] = fromClub;
         newClubs[toClub.id] = toClub;
@@ -327,8 +342,8 @@ export const createLoanSlice = (set: Set, get: Get) => ({
         // Notify if obligatory buy failed due to insufficient funds
         const buyFailed = loan.obligatoryBuyFee && toClub.budget < loan.obligatoryBuyFee;
 
-        toClub.wageBill = Math.max(0, toClub.wageBill - Math.round(player.wage * loan.wageSplit / 100));
-        fromClub.wageBill += Math.round(player.wage * loan.wageSplit / 100);
+        toClub.wageBill = Math.max(0, toClub.wageBill - safeWageShare(player.wage, loan.wageSplit));
+        fromClub.wageBill += safeWageShare(player.wage, loan.wageSplit);
 
         newClubs[toClub.id] = toClub;
         newClubs[fromClub.id] = fromClub;
@@ -378,8 +393,8 @@ export const createLoanSlice = (set: Set, get: Get) => ({
     sellerClub.budget += fee;
 
     // Fix wages: remove loan split, add full wage to buyer
-    buyerClub.wageBill += Math.round(player.wage * (100 - loan.wageSplit) / 100);
-    sellerClub.wageBill = Math.max(0, sellerClub.wageBill - Math.round(player.wage * (100 - loan.wageSplit) / 100));
+    buyerClub.wageBill += safeWageInverse(player.wage, loan.wageSplit);
+    sellerClub.wageBill = Math.max(0, sellerClub.wageBill - safeWageInverse(player.wage, loan.wageSplit));
 
     // Remove from seller's roster (already at buyer from loan)
     sellerClub.playerIds = sellerClub.playerIds.filter(id => id !== loan.playerId);
@@ -432,10 +447,10 @@ export const createLoanSlice = (set: Set, get: Get) => ({
     toClub.playerIds = toClub.playerIds.filter(id => id !== loan.playerId);
     toClub.lineup = toClub.lineup.filter(id => id !== loan.playerId);
     toClub.subs = toClub.subs.filter(id => id !== loan.playerId);
-    toClub.wageBill = Math.max(0, toClub.wageBill - Math.round(player.wage * loan.wageSplit / 100));
+    toClub.wageBill = Math.max(0, toClub.wageBill - safeWageShare(player.wage, loan.wageSplit));
 
     fromClub.playerIds = [...fromClub.playerIds, loan.playerId];
-    fromClub.wageBill += Math.round(player.wage * loan.wageSplit / 100);
+    fromClub.wageBill += safeWageShare(player.wage, loan.wageSplit);
 
     // Small morale penalty for early termination
     const updatedPlayer = {
@@ -559,11 +574,11 @@ export const createLoanSlice = (set: Set, get: Get) => ({
       updatedOwner.playerIds = updatedOwner.playerIds.filter(id => id !== playerId);
       updatedOwner.lineup = updatedOwner.lineup.filter(id => id !== playerId);
       updatedOwner.subs = updatedOwner.subs.filter(id => id !== playerId);
-      updatedOwner.wageBill = Math.max(0, updatedOwner.wageBill - Math.round(player.wage * wageSplit / 100));
+      updatedOwner.wageBill = Math.max(0, updatedOwner.wageBill - safeWageShare(player.wage, wageSplit));
 
       const updatedUser = { ...userClub };
       updatedUser.playerIds = [...updatedUser.playerIds, playerId];
-      updatedUser.wageBill += Math.round(player.wage * wageSplit / 100);
+      updatedUser.wageBill += safeWageShare(player.wage, wageSplit);
 
       const newMessages = addMsg(state.messages, {
         week: state.week, season: state.season, type: 'transfer',

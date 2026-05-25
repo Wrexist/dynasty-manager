@@ -117,6 +117,7 @@ const migrations: Record<number, MigrationFn> = {
     const players = data.players as Record<string, Record<string, unknown>> | undefined;
     if (players) {
       Object.values(players).forEach(p => {
+        if (!p || typeof p !== 'object') return;
         if (p.injured && !p.injuryDetails) {
           p.injuryDetails = {
             type: 'knock',
@@ -169,6 +170,7 @@ const migrations: Record<number, MigrationFn> = {
     const players = data.players as Record<string, Record<string, unknown>> | undefined;
     if (players) {
       Object.values(players).forEach(p => {
+        if (!p || typeof p !== 'object') return;
         if (p.lowMoraleWeeks === undefined) p.lowMoraleWeeks = 0;
         if (p.wantsToLeave === undefined) p.wantsToLeave = false;
       });
@@ -246,6 +248,7 @@ const migrations: Record<number, MigrationFn> = {
       // Lazy-import avoidance: inline lookup from CLUBS_DATA would create a circular dep.
       // Instead, provide sensible defaults — the stadium data will be correct for new games.
       Object.values(clubs).forEach(club => {
+        if (!club || typeof club !== 'object') return;
         if (club.stadiumName === undefined) club.stadiumName = 'Community Stadium';
         if (club.stadiumCapacity === undefined) club.stadiumCapacity = 10_000;
       });
@@ -492,6 +495,7 @@ const migrations: Record<number, MigrationFn> = {
     const clubs = data.clubs as Record<string, Record<string, unknown>> | undefined;
     if (clubs) {
       for (const club of Object.values(clubs)) {
+        if (!club || typeof club !== 'object') continue;
         if (!Array.isArray(club.subs)) club.subs = [];
         if (!Array.isArray(club.lineup)) club.lineup = [];
         if (!Array.isArray(club.playerIds)) club.playerIds = [];
@@ -514,6 +518,7 @@ const migrations: Record<number, MigrationFn> = {
       };
       for (const pid of Object.keys(players)) {
         const p = players[pid];
+        if (!p || typeof p !== 'object') continue;
         const app = p.appearance as Record<string, number> | undefined;
         if (app) {
           const h = hash(pid);
@@ -835,15 +840,24 @@ const migrations: Record<number, MigrationFn> = {
     if (!club || !club.formation) {
       return { ...data, version: 58 };
     }
+    // Filter strictly: any player missing the `attributes` field will crash
+    // autoFillBestTeam → positionalOverall → attrs.pace. Belt-and-braces seal.
     const squad = (club.playerIds || [])
       .map(id => players[id])
-      .filter(Boolean) as Player[];
+      .filter((p): p is Player => !!p && typeof p === 'object' && !!(p as Player).attributes);
     if (squad.length === 0) {
       return { ...data, version: 58 };
     }
     const week = (data.week as number) ?? 1;
     const season = (data.season as number) ?? 1;
-    const result = autoFillBestTeam(squad, club.formation as FormationType, week, season);
+    let result: ReturnType<typeof autoFillBestTeam>;
+    try {
+      result = autoFillBestTeam(squad, club.formation as FormationType, week, season);
+    } catch {
+      // If anything in the auto-fill path throws, skip the migration step
+      // rather than locking the user out of their save via SaveRecoveryDialog.
+      return { ...data, version: 58 };
+    }
     if (result.lineup.length === 0) {
       return { ...data, version: 58 };
     }

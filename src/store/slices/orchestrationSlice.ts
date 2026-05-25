@@ -734,17 +734,17 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     }
 
     try {
-      const clubIds = Object.keys(data.clubs);
-      const leagueTable = buildLeagueTable(data.fixtures, clubIds);
+      const clubIds = Object.keys(data.clubs || {});
+      const leagueTable = buildLeagueTable(data.fixtures || [], clubIds);
 
       // Ensure division data exists (backward compat for old saves)
       const playerDivision: LeagueId = data.playerDivision || 'eng';
       const divisionClubs: Record<string, string[]> = data.divisionClubs || { [playerDivision]: clubIds };
-      const divisionFixtures: Record<string, Match[]> = data.divisionFixtures || { [playerDivision]: data.fixtures };
+      const divisionFixtures: Record<string, Match[]> = data.divisionFixtures || { [playerDivision]: data.fixtures || [] };
       const divisionTables = buildAllDivisionTables(divisionFixtures, divisionClubs);
 
       set({
-        gameStarted: true, ...data, leagueTable,
+        ...data, gameStarted: true, leagueTable,
         activeSlot: s,
         // Backfill settings with defaults for fields added after save was created
         settings: {

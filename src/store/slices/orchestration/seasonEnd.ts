@@ -177,7 +177,7 @@ export function endSeasonImpl(set: Set, get: Get) {
   const endAvgOVR = endPlayers.length > 0 ? Math.round(endPlayers.reduce((s, p) => s + p.overall, 0) / endPlayers.length) : 0;
 
   const pc = clubs[playerClubId];
-  const expectedPos = getExpectedPosition(pc.reputation);
+  const expectedPos = getExpectedPosition(pc?.reputation ?? 3);
   let verdict: SeasonHistory['boardVerdict'] = 'acceptable';
   if (pos <= Math.max(1, expectedPos + VERDICT_EXCELLENT_OFFSET)) verdict = 'excellent';
   else if (pos <= expectedPos) verdict = 'good';
@@ -1034,10 +1034,14 @@ function finalizeSeason(
 
   const youthCoachQ = getStaffBonus(state.staff.members, 'youth-coach');
   const pcForYouth = newClubs[playerClubId];
-  const youthSquad = pcForYouth.playerIds.map(id => newPlayers[id]).filter(Boolean);
+  // Defensive: if the player's club was removed during promotion/relegation
+  // (only possible on a bug or corrupted league config), skip youth intake
+  // rather than crashing on undefined.playerIds.
+  const youthSquad = (pcForYouth?.playerIds || []).map(id => newPlayers[id]).filter(Boolean);
   const youthSquadQuality = youthSquad.length > 0 ? youthSquad.reduce((s, p) => s + p.overall, 0) / youthSquad.length : undefined;
+  const youthRatingForIntake = pcForYouth?.youthRating ?? 50;
   const { prospects: newYouthProspects, players: youthPlayers } = generateYouthProspects(
-    playerClubId, pcForYouth.youthRating, youthCoachQ, newSeason, SEASON_YOUTH_INTAKE_MIN + Math.floor(Math.random() * SEASON_YOUTH_INTAKE_RANGE), youthSquadQuality
+    playerClubId, youthRatingForIntake, youthCoachQ, newSeason, SEASON_YOUTH_INTAKE_MIN + Math.floor(Math.random() * SEASON_YOUTH_INTAKE_RANGE), youthSquadQuality
   );
   // Wonder Coach perk: +5 potential on all youth intake
   if (hasPerk(state.managerProgression, 'wonder_coach') && youthPlayers.length > 0) {
@@ -1057,13 +1061,13 @@ function finalizeSeason(
   // Prodigy Factory prestige perk: 2 extra youth prospects
   if (hasPerk(state.managerProgression, 'prodigy_factory')) {
     const { prospects: bonusProspects, players: bonusPlayers } = generateYouthProspects(
-      playerClubId, pcForYouth.youthRating, youthCoachQ, newSeason, 2, youthSquadQuality
+      playerClubId, youthRatingForIntake, youthCoachQ, newSeason, 2, youthSquadQuality
     );
     newYouthProspects.push(...bonusProspects);
     youthPlayers.push(...bonusPlayers);
   }
 
-  const newIntakePreview = generateIntakePreview(pcForYouth.youthRating);
+  const newIntakePreview = generateIntakePreview(youthRatingForIntake);
 
   newMessages = addMsg(newMessages, {
     week: 1, season: newSeason, type: 'general',
