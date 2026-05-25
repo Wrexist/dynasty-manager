@@ -228,7 +228,7 @@ const MatchDayInner = () => {
     // Block kickoff with an incomplete XI — otherwise the player only
     // discovers they are a man short once the match is already live.
     const myClub = homeClub.id === playerClubId ? homeClub : awayClub;
-    const validStarters = myClub.lineup.filter(id => !!players[id]).length;
+    const validStarters = (myClub.lineup || []).filter(id => !!players[id]).length;
     if (validStarters < 11) {
       errorToast(`Incomplete lineup — only ${validStarters} of 11 starters. Set a full XI in Tactics first.`);
       return;
@@ -1308,7 +1308,7 @@ const MatchDayInner = () => {
                           </div>
                         )}
                         <div className="space-y-1 max-h-32 overflow-y-auto">
-                          {clubs[playerClubId]?.lineup.filter(Boolean).map(pid => {
+                          {clubs[playerClubId]?.lineup?.filter(Boolean).map(pid => {
                             const p = players[pid];
                             if (!p) return null;
                             const fit = latestFitness[pid] ?? p.fitness;

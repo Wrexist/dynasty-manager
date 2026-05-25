@@ -380,7 +380,7 @@ const MatchReview = () => {
                     // player (engine always emits these together for forced subs). Fallback to
                     // a string probe so the UI stays correct even if the engine re-orders events.
                     const forcedSub = isSubstitution && !!ev.assistPlayerId && (
-                      match.events.some(other =>
+                      (match.events || []).some(other =>
                         other.type === 'injury'
                         && other.playerId === ev.assistPlayerId
                         && other.minute === ev.minute

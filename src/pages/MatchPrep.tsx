@@ -120,7 +120,7 @@ const MatchPrep = () => {
   const oppEntry = leagueTable.find(e => e.clubId === oppClubId);
 
   // Opponent key players
-  const oppPlayers = oppClub.playerIds.map(id => players[id]).filter(Boolean).sort((a, b) => b.overall - a.overall);
+  const oppPlayers = (oppClub.playerIds || []).map(id => players[id]).filter(Boolean).sort((a, b) => b.overall - a.overall);
   const oppKeyPlayers = oppPlayers.slice(0, 3);
 
   // Derby detection
@@ -128,8 +128,8 @@ const MatchPrep = () => {
   const derbyName = getDerbyName(match.homeClubId, match.awayClubId);
 
   // Fitness warnings — only for starting 11
-  const mySquad = myClub.playerIds.map(id => players[id]).filter(Boolean);
-  const lineupIds = new Set(myClub.lineup);
+  const mySquad = (myClub.playerIds || []).map(id => players[id]).filter(Boolean);
+  const lineupIds = new Set(myClub.lineup || []);
   const fitnessWarnings = mySquad.filter(p => lineupIds.has(p.id) && (p.fitness < 70 || p.injured));
 
   // Tactical analysis
@@ -486,9 +486,9 @@ const MatchPrep = () => {
           <h3 className="text-sm font-semibold text-foreground">Squad Depth</h3>
         </div>
         {(() => {
-          const myAllPlayers = myClub.playerIds.map(id => players[id]).filter(Boolean);
-          const myBest = myAllPlayers.length ? Math.max(...myAllPlayers.map(p => p.overall)) : 0;
-          const oppBest = oppPlayers.length ? Math.max(...oppPlayers.map(p => p.overall)) : 0;
+          const myAllPlayers = (myClub.playerIds || []).map(id => players[id]).filter(Boolean);
+          const myBest = myAllPlayers.length ? myAllPlayers.reduce((m, p) => p.overall > m ? p.overall : m, 0) : 0;
+          const oppBest = oppPlayers.length ? oppPlayers.reduce((m, p) => p.overall > m ? p.overall : m, 0) : 0;
           const myInjured = myAllPlayers.filter(p => p.injured).length;
           const oppInjured = oppPlayers.filter(p => p.injured).length;
           const rows = [

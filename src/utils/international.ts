@@ -301,6 +301,7 @@ function simulateInternationalMatch(
 }
 
 function poissonGoals(expected: number): number {
+  if (!Number.isFinite(expected) || expected <= 0) return 0;
   // Simple Poisson approximation
   const L = Math.exp(-expected);
   let k = 0;
@@ -308,6 +309,7 @@ function poissonGoals(expected: number): number {
   do {
     k++;
     p *= Math.random();
+    if (k > 20) break;
   } while (p > L);
   return Math.min(k - 1, 7); // cap at 7
 }

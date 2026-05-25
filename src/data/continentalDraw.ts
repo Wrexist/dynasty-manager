@@ -12,7 +12,7 @@ import {
   CONTINENTAL_TOTAL_TEAMS,
   CONTINENTAL_GROUP_WEEKS, GROUP_FIXTURE_TEMPLATE,
 } from '@/config/continental';
-import { shuffle } from '@/utils/helpers';
+import { shuffle, safeRandomUUID } from '@/utils/helpers';
 import { getSeedingScore } from '@/utils/continentalCoefficients';
 import { getLeagueRankings, type RankedLeague } from '@/utils/leagueRanking';
 
@@ -290,7 +290,7 @@ export function generateContinentalDraw(
     for (let md = 0; md < GROUP_FIXTURE_TEMPLATE.length; md++) {
       for (const [hi, ai] of GROUP_FIXTURE_TEMPLATE[md]) {
         matches.push({
-          id: crypto.randomUUID(),
+          id: safeRandomUUID(),
           matchday: md + 1,
           week: CONTINENTAL_GROUP_WEEKS[md],
           homeClubId: clubIds[hi],

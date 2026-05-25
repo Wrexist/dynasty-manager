@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/react';
 import type { OpenedPackRecord, OpenPackResult, PackTierKey, PackUnlockMethod, Player, QuickSellPackedPlayerResult, ReleasePackedPlayerResult } from '@/types/game';
 import type { GameState } from '../storeTypes';
-import { addMsg } from '@/utils/helpers';
+import { addMsg, safeRandomUUID } from '@/utils/helpers';
 import { MAX_SQUAD_SIZE, MIN_SQUAD_SIZE, FFP_WAGE_RATIO_WARNING } from '@/config/gameBalance';
 import { PACK_TIER_MAP, RECENT_PULLS_LIMIT } from '@/config/packs';
 import { generateAiCounterSignings, generatePackContents, shouldPityTrigger, updatedPityCounter } from '@/utils/packGeneration';
@@ -252,7 +252,7 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     };
 
     const record: OpenedPackRecord = {
-      id: crypto.randomUUID(),
+      id: safeRandomUUID(),
       tier: tierKey,
       season: state.season,
       week: state.week,

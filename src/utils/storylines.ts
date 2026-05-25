@@ -1,4 +1,5 @@
 import { Player, Message, Club, StorylineEvent } from '@/types/game';
+import { safeRandomUUID } from '@/utils/helpers';
 
 interface StorylineContext {
   week: number;
@@ -44,7 +45,7 @@ export function generateStorylines(ctx: StorylineContext): { messages: Storyline
         body: `Players are becoming frustrated with the recent run of ${ctx.recentResults.lost} defeats. Senior players are urging the squad to stick together.`,
       },
       event: {
-        id: crypto.randomUUID(),
+        id: safeRandomUUID(),
         title: 'Dressing Room Unrest',
         body: `Your squad is unhappy after ${ctx.recentResults.lost} defeats. How do you respond?`,
         icon: 'angry',
@@ -66,7 +67,7 @@ export function generateStorylines(ctx: StorylineContext): { messages: Storyline
         body: `The team is riding a ${ctx.recentResults.won}-game winning streak! Morale in the dressing room is sky-high.`,
       },
       event: {
-        id: crypto.randomUUID(),
+        id: safeRandomUUID(),
         title: 'Riding the Wave',
         body: `Your team is on a ${ctx.recentResults.won}-game winning streak. The media wants to know your thoughts.`,
         icon: 'trophy',
@@ -93,7 +94,7 @@ export function generateStorylines(ctx: StorylineContext): { messages: Storyline
           body: `Reports suggest ${suitor.name} are monitoring ${star.firstName} ${star.lastName}. The player's ambition could make him open to a move.`,
         },
         event: {
-          id: crypto.randomUUID(),
+          id: safeRandomUUID(),
           title: `${star.lastName} Linked with ${suitor.shortName}`,
           body: `${star.firstName} ${star.lastName} has been spotted talking to ${suitor.name} representatives. How do you handle it?`,
           icon: 'newspaper',
@@ -118,7 +119,7 @@ export function generateStorylines(ctx: StorylineContext): { messages: Storyline
         body: `Young talent ${prospect.firstName} ${prospect.lastName} (${prospect.age}) is attracting attention with impressive performances. Scouts from rival clubs have been spotted watching him.`,
       },
       event: {
-        id: crypto.randomUUID(),
+        id: safeRandomUUID(),
         title: `${prospect.lastName} Breaking Through`,
         body: `${prospect.firstName} ${prospect.lastName} is impressing everyone. Rival scouts are watching. What's your approach?`,
         icon: 'star',
@@ -140,7 +141,7 @@ export function generateStorylines(ctx: StorylineContext): { messages: Storyline
         body: `Supporters are voicing their displeasure on social media. Some fans are calling for changes after the team's poor league position.`,
       },
       event: {
-        id: crypto.randomUUID(),
+        id: safeRandomUUID(),
         title: 'Fans Demand Answers',
         body: 'Supporters are protesting outside the stadium. They want to see improvement. How do you respond?',
         icon: 'megaphone',
@@ -162,7 +163,7 @@ export function generateStorylines(ctx: StorylineContext): { messages: Storyline
         body: `The board are reportedly meeting to discuss the team's direction. Improved results in the second half of the season will be crucial.`,
       },
       event: {
-        id: crypto.randomUUID(),
+        id: safeRandomUUID(),
         title: 'Board Meeting',
         body: 'The board has summoned you for a mid-season review. Your position is under scrutiny.',
         icon: 'building',
@@ -213,7 +214,7 @@ export function generateStorylines(ctx: StorylineContext): { messages: Storyline
         body: `Staff have noticed ${hh.firstName} ${hh.lastName} getting increasingly frustrated in training sessions. Keep an eye on his discipline in upcoming matches.`,
       },
       event: {
-        id: crypto.randomUUID(),
+        id: safeRandomUUID(),
         title: `${hh.lastName} Losing His Cool`,
         body: `${hh.firstName} ${hh.lastName} has been aggressive in training. Other players are concerned.`,
         icon: 'angry',

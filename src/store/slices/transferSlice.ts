@@ -1,5 +1,5 @@
 import type { GameState } from '../storeTypes';
-import { addMsg } from '@/utils/helpers';
+import { addMsg, safeRandomUUID } from '@/utils/helpers';
 import { getFarewellSummary } from '@/utils/playerNarratives';
 import { absWeek } from '@/utils/staff';
 import { LEAGUES } from '@/data/league';
@@ -345,7 +345,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     // Record signing milestone if this is the most expensive signing ever
     const isRecordSigning = fee > state.managerStats.totalSpent * RECORD_SIGNING_SPEND_RATIO && fee >= RECORD_SIGNING_MIN_FEE;
     const newTimeline = isRecordSigning
-      ? [...state.careerTimeline, { id: crypto.randomUUID(), type: 'record_signing' as const, title: 'Record Signing', description: `Signed ${updatedPlayer.firstName} ${updatedPlayer.lastName} for £${(fee / 1e6).toFixed(1)}M from ${fromName}.`, season: state.season, week: state.week, icon: 'pen-line' }]
+      ? [...state.careerTimeline, { id: safeRandomUUID(), type: 'record_signing' as const, title: 'Record Signing', description: `Signed ${updatedPlayer.firstName} ${updatedPlayer.lastName} for £${(fee / 1e6).toFixed(1)}M from ${fromName}.`, season: state.season, week: state.week, icon: 'pen-line' }]
       : state.careerTimeline;
     if (oldClub) {
       updatedClubs[oldClub.id] = oldClub;

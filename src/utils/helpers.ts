@@ -6,6 +6,18 @@ export const pick = <T>(arr: T[]): T => {
   return arr[Math.floor(Math.random() * arr.length)];
 };
 
+// crypto.randomUUID was added to WebKit in iOS 15.4. The app's iOS deployment
+// target is 15.0, so calling it directly crashes on 15.0-15.3 devices. Guard
+// every call site through this helper.
+export function safeRandomUUID(): string {
+  try {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+  } catch { /* fall through */ }
+  return `u_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
 /** Fisher-Yates shuffle — uniformly random, unlike .sort(() => Math.random() - 0.5) */
 export function shuffle<T>(arr: T[]): T[] {
   const result = [...arr];
@@ -32,7 +44,7 @@ export function getSuffix(n: number): string {
 }
 
 export function addMsg(messages: Message[], msg: Omit<Message, 'id' | 'read'>): Message[] {
-  const newMsg: Message = { ...msg, id: crypto.randomUUID(), read: false };
+  const newMsg: Message = { ...msg, id: safeRandomUUID(), read: false };
   const updated = [newMsg, ...messages];
   return updated.slice(0, MAX_MESSAGES);
 }

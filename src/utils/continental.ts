@@ -8,7 +8,7 @@ import {
   CONTINENTAL_PENALTY_KICKS, CONTINENTAL_PENALTY_CONVERSION,
 } from '@/config/continental';
 import { generateSquad } from '@/utils/playerGen';
-import { shuffle } from '@/utils/helpers';
+import { shuffle, safeRandomUUID } from '@/utils/helpers';
 
 // ── Simplified Match Simulation ──
 
@@ -37,12 +37,16 @@ export function simulateContinentalMatch(
 
 /** Simple Poisson random number generator */
 function poissonRandom(lambda: number): number {
+  if (!Number.isFinite(lambda) || lambda <= 0) return 0;
+  // For very large lambda, Math.exp(-lambda) underflows to 0 and the loop
+  // never terminates. Cap iterations to keep the JS thread responsive on iOS.
   const L = Math.exp(-lambda);
   let k = 0;
   let p = 1;
   do {
     k++;
     p *= Math.random();
+    if (k > 20) break;
   } while (p > L);
   return k - 1;
 }
@@ -188,7 +192,7 @@ export function generateKnockoutFromGroups(
 
     const runnerUp = shuffledRunners.splice(matchedIdx, 1)[0];
     ties.push({
-      id: crypto.randomUUID(),
+      id: safeRandomUUID(),
       round: 'R16',
       homeClubId: winner,
       awayClubId: runnerUp,
@@ -406,7 +410,7 @@ export function advanceKnockoutRound(
   for (let i = 0; i + 1 < winners.length; i += 2) {
     const isFinal = nextRound === 'F';
     newTies.push({
-      id: crypto.randomUUID(),
+      id: safeRandomUUID(),
       round: nextRound,
       homeClubId: winners[i],
       awayClubId: winners[i + 1],

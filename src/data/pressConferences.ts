@@ -1,5 +1,5 @@
 import type { PressConference, PressOption, PressResponseTone } from '@/types/game';
-import { pick } from '@/utils/helpers';
+import { pick, safeRandomUUID } from '@/utils/helpers';
 import { PRESS_TRANSFER_RUMOUR_CHANCE, PRESS_POOR_FORM_LOSSES, PRESS_GOOD_FORM_WINS, PRESS_BIG_MATCH_REP_GAP, PRESS_PROMOTION_RACE_TOP_N, PRESS_RELEGATION_BATTLE_BOTTOM_N, PRESS_INJURY_CRISIS_MIN, PRESS_DERBY_PREVIEW_CHANCE } from '@/config/gameBalance';
 
 interface QuestionDef {
@@ -840,7 +840,7 @@ export function generatePressConference(context: PressConference['context'], pro
 
   if (proUser && chosen.proOption) {
     return {
-      id: crypto.randomUUID(),
+      id: safeRandomUUID(),
       context,
       question: chosen.question,
       options: [...baseOptions, { tone: chosen.proOption.tone, text: chosen.proOption.text, effects: chosen.proOption.effects }],
@@ -849,7 +849,7 @@ export function generatePressConference(context: PressConference['context'], pro
   }
 
   return {
-    id: crypto.randomUUID(),
+    id: safeRandomUUID(),
     context,
     question: chosen.question,
     options: baseOptions,

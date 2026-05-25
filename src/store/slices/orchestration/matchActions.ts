@@ -943,6 +943,7 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   // Need minimum players to simulate a match
   if (hp.length < 7 || ap.length < 7) return null;
 
+  try {
   // For ephemeral clubs: inject their players and club into state temporarily
   if (ephemeralClub) {
     set({ clubs: effectiveClubs, players: effectivePlayers });
@@ -1000,6 +1001,23 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
     lastMatchCompetition: matchCompetition,
   });
   return halfState;
+  } catch (err) {
+    Sentry.captureException(err, { tags: { context: 'playFirstHalf' } });
+    try {
+      get().cleanupAbandonedMatch();
+      set({
+        currentScreen: 'dashboard',
+        messages: addMsg(get().messages, {
+          week: get().week, season: get().season, type: 'general',
+          title: 'Match Error',
+          body: 'An error occurred during the match simulation. The match has been abandoned.',
+        }),
+      });
+    } catch (cleanupErr) {
+      Sentry.captureException(cleanupErr, { tags: { context: 'matchCleanup' } });
+    }
+    return null;
+  }
 }
 
 export function playSecondHalfImpl(set: Set, get: Get): Match | null {
@@ -1276,6 +1294,7 @@ export function playExtraTimeImpl(set: Set, get: Get): Match | null {
   // Need minimum players to continue into extra time
   if (hp.length < 7 || ap.length < 7) return null;
 
+  try {
   const isPlayerHome = currentMatchResult.homeClubId === playerClubId;
   const oppClubET = isPlayerHome ? ac : hc;
   const oppProfileET = oppClubET.aiManagerProfile;
@@ -1395,6 +1414,23 @@ export function playExtraTimeImpl(set: Set, get: Get): Match | null {
     matchPlayerRatings: [],
   });
   return etResult;
+  } catch (err) {
+    Sentry.captureException(err, { tags: { context: 'playExtraTime' } });
+    try {
+      get().cleanupAbandonedMatch();
+      set({
+        currentScreen: 'dashboard',
+        messages: addMsg(get().messages, {
+          week: get().week, season: get().season, type: 'general',
+          title: 'Match Error',
+          body: 'An error occurred during extra time. The match has been abandoned.',
+        }),
+      });
+    } catch (cleanupErr) {
+      Sentry.captureException(cleanupErr, { tags: { context: 'matchCleanup' } });
+    }
+    return null;
+  }
 }
 
 export function playPenaltiesImpl(set: Set, get: Get): Match | null {
@@ -1408,6 +1444,7 @@ export function playPenaltiesImpl(set: Set, get: Get): Match | null {
   const hp = (hc.lineup || []).map(id => players[id]).filter(Boolean);
   const ap = (ac.lineup || []).map(id => players[id]).filter(Boolean);
 
+  try {
   // Penalty shootout — pre-compute all kicks for kick-by-kick reveal
   const homeGK = hp.find(p => p.position === 'GK');
   const awayGK = ap.find(p => p.position === 'GK');
@@ -1424,6 +1461,23 @@ export function playPenaltiesImpl(set: Set, get: Get): Match | null {
   // Store kicks for kick-by-kick reveal — finalization happens in revealNextPenaltyKick / skipPenaltyShootout
   set({ penaltyShootoutKicks: kicks, penaltyShootoutRevealIndex: 0 });
   return currentMatchResult;
+  } catch (err) {
+    Sentry.captureException(err, { tags: { context: 'playPenalties' } });
+    try {
+      get().cleanupAbandonedMatch();
+      set({
+        currentScreen: 'dashboard',
+        messages: addMsg(get().messages, {
+          week: get().week, season: get().season, type: 'general',
+          title: 'Match Error',
+          body: 'An error occurred during the penalty shootout. The match has been abandoned.',
+        }),
+      });
+    } catch (cleanupErr) {
+      Sentry.captureException(cleanupErr, { tags: { context: 'matchCleanup' } });
+    }
+    return null;
+  }
 }
 
 export function revealNextPenaltyKickImpl(set: Set, get: Get): void {

@@ -71,11 +71,11 @@ export function buildHallEntry(
     seasons: seasonHistory.length,
     titles: seasonHistory.filter(h => h.position === 1).length,
     cupWins: seasonHistory.filter(h => h.cupResult === 'Winner').length,
-    bestPosition: seasonHistory.length > 0 ? Math.min(...seasonHistory.map(h => h.position)) : 20,
+    bestPosition: seasonHistory.length > 0 ? seasonHistory.reduce((m, h) => h.position < m ? h.position : m, Infinity) : 20,
     winRate: totalMatches > 0 ? Math.round((managerStats.totalWins / totalMatches) * 100) : 0,
     totalWins: managerStats.totalWins,
     totalMatches,
-    bestPoints: seasonHistory.length > 0 ? Math.max(...seasonHistory.map(h => h.points)) : 0,
+    bestPoints: seasonHistory.length > 0 ? seasonHistory.reduce((m, h) => h.points > m ? h.points : m, 0) : 0,
     prestigeLevel,
     recordedAt: Date.now(),
   };

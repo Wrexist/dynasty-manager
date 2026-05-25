@@ -4,7 +4,7 @@ import { TRANSFER_TALK_EMPATHIZE_MORALE_BOOST, TRANSFER_TALK_CONVINCE_SUCCESS_MO
 import { TRANSFER_DEMAND_COOLDOWN_WEEKS, TRANSFER_TALK_RETRY_WEEKS } from '@/config/personality';
 import { grantXP, hasPerk, dynastyMult } from '@/utils/managerPerks';
 import type { GameState } from '../storeTypes';
-import { addMsg, clamp } from '@/utils/helpers';
+import { addMsg, clamp, safeRandomUUID } from '@/utils/helpers';
 import { createContractOffer, negotiateRound, formatWage } from '@/utils/contracts';
 import { CONTRACT_MAX_STRIKES, CONTRACT_STRIKE_COOLDOWN_WEEKS, CONTRACT_ICON_STATUS_BONUS } from '@/config/contracts';
 import { CHALLENGES } from '@/data/challenges';
@@ -316,7 +316,7 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
             const loanWageShare = Math.round(player.wage * wageSplit / 100);
 
             const loan: import('@/types/game').LoanDeal = {
-              id: crypto.randomUUID(),
+              id: safeRandomUUID(),
               playerId: targetPlayerId,
               fromClubId: state.playerClubId,
               toClubId: destClub.id,

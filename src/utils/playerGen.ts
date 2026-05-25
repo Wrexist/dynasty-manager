@@ -1,6 +1,6 @@
 import { Player, Position, PlayerAttributes, FormationType, FORMATION_POSITIONS, canPlayPosition } from '@/types/game';
 import { generatePersonality } from '@/utils/personality';
-import { pick, clamp } from '@/utils/helpers';
+import { pick, clamp, safeRandomUUID } from '@/utils/helpers';
 import { generatePlayerAppearance } from '@/config/playerAppearance';
 import { recomputeDerivedEconomics, recomputePlayerValueOnly } from '@/utils/playerEconomics';
 import {
@@ -230,7 +230,7 @@ export function generatePlayer(position: Position, quality: number, clubId: stri
   const nationality = pickNationality(leagueKey);
   const { firstName, lastName } = pickNameForNationality(nationality);
   const player: Player = {
-    id: crypto.randomUUID(),
+    id: safeRandomUUID(),
     firstName,
     lastName,
     age,

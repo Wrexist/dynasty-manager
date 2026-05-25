@@ -1,6 +1,6 @@
 import { ScoutAssignment, ScoutReport, ScoutRegion, Position } from '@/types/game';
 import { generatePlayer } from './playerGen';
-import { pick } from './helpers';
+import { pick, safeRandomUUID } from './helpers';
 import {
   REGION_WEEKS as CONFIG_REGION_WEEKS,
   REGION_QUALITY_RANGE as CONFIG_REGION_QUALITY_RANGE,
@@ -17,7 +17,7 @@ const REGION_QUALITY_RANGE = CONFIG_REGION_QUALITY_RANGE;
 
 export function createAssignment(region: ScoutRegion): ScoutAssignment {
   return {
-    id: crypto.randomUUID(),
+    id: safeRandomUUID(),
     region,
     weeksRemaining: REGION_WEEKS[region],
     totalWeeks: REGION_WEEKS[region],
@@ -66,7 +66,7 @@ export function completeAssignment(
       : 'avoid';
 
     reports.push({
-      id: crypto.randomUUID(),
+      id: safeRandomUUID(),
       playerId: player.id,
       knowledgeLevel: knowledge,
       estimatedOverall,

@@ -1,5 +1,5 @@
 import { ClubData, Match, LeagueTableEntry, LeagueId, LeagueInfo, DerbyRivalry, CountryLeagueSystem } from '@/types/game';
-import { shuffle } from '@/utils/helpers';
+import { shuffle, safeRandomUUID } from '@/utils/helpers';
 
 // ── Import all leagues ──
 import { ALL_LEAGUES, ALL_CLUBS_DATA } from './leagues';
@@ -164,7 +164,7 @@ export function generateFixtures(clubIds: string[]): Match[] {
       const away = teams[total - 1 - i];
       if (home === '__bye__' || away === '__bye__') continue;
       matches.push({
-        id: crypto.randomUUID(),
+        id: safeRandomUUID(),
         week: round + 1,
         homeClubId: home,
         awayClubId: away,
@@ -182,7 +182,7 @@ export function generateFixtures(clubIds: string[]): Match[] {
   const firstHalf = [...matches];
   for (const m of firstHalf) {
     matches.push({
-      id: crypto.randomUUID(),
+      id: safeRandomUUID(),
       week: m.week + total - 1,
       homeClubId: m.awayClubId,
       awayClubId: m.homeClubId,
@@ -231,7 +231,7 @@ export function generateFriendlies(playerClubId: string, divisionClubIds: string
     const week = i + 1;
     const isHome = i % 2 === 0; // home, away, home
     return {
-      id: crypto.randomUUID(),
+      id: safeRandomUUID(),
       week,
       homeClubId: isHome ? playerClubId : opponentId,
       awayClubId: isHome ? opponentId : playerClubId,

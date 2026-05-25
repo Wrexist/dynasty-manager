@@ -12,7 +12,7 @@ import { generateStaffMarket, getStaffBonus, ensureStaffFields } from '@/utils/s
 
 import { generateYouthProspects, generateIntakePreview } from '@/utils/youth';
 import type { GameState } from '../../storeTypes';
-import { addMsg, pick, shuffle } from '@/utils/helpers';
+import { addMsg, pick, shuffle, safeRandomUUID } from '@/utils/helpers';
 
 import { addGameBreadcrumb } from '@/utils/sentry';
 import { track } from '@/utils/analytics';
@@ -1309,7 +1309,7 @@ function finalizeSeason(
         const expSeason = expWeek > TOTAL_WEEKS ? newSeason + 1 : newSeason;
         const finalExpWeek = expWeek > TOTAL_WEEKS ? expWeek - TOTAL_WEEKS : expWeek;
         const offer = {
-          id: crypto.randomUUID(),
+          id: safeRandomUUID(),
           nationality: cs.managerNationality,
           reason: cs.careerManager.nationalTeamSacked ? 'vacancy' as const : 'initial' as const,
           offerSeason: newSeason,

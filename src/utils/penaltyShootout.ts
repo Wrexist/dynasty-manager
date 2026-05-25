@@ -56,7 +56,12 @@ export function simulatePenaltyShootout(opts: ShootoutOpts): ShootoutResult {
   }
 
   let sdRound = CUP_PENALTY_KICKS;
-  while (penHome === penAway) {
+  // Safety cap: if GK quality + conversion-rate config ever produce a
+  // threshold where both teams always score (or always miss), the loop
+  // would never terminate and the iOS watchdog would kill the app. 30
+  // rounds is far beyond any real shootout (FIFA record is 25 kicks).
+  const MAX_SUDDEN_DEATH = 30;
+  while (penHome === penAway && sdRound - CUP_PENALTY_KICKS < MAX_SUDDEN_DEATH) {
     sdRound++;
     const hScored = homeScores();
     if (hScored) penHome++;
@@ -65,6 +70,12 @@ export function simulatePenaltyShootout(opts: ShootoutOpts): ShootoutResult {
     if (aScored) penAway++;
     kicks.push({ round: sdRound, isHome: false, takerName: awayName, scored: aScored, homeTotal: penHome, awayTotal: penAway });
     if (hScored !== aScored) break;
+  }
+  // If we hit the cap with scores still level, force a tiebreaker: home wins.
+  // This is a pathological-config safety, not a real shootout outcome.
+  if (penHome === penAway) {
+    penHome++;
+    kicks.push({ round: sdRound + 1, isHome: true, takerName: homeName, scored: true, homeTotal: penHome, awayTotal: penAway });
   }
 
   return { kicks, homeScore: penHome, awayScore: penAway, winner: penHome > penAway ? 'home' : 'away' };

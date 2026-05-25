@@ -8,7 +8,7 @@ import { generateSquad, selectBestLineup } from '@/utils/playerGen';
 import { simulateMatch } from '@/engine/match';
 
 import type { GameState } from '../storeTypes';
-import { addMsg } from '@/utils/helpers';
+import { addMsg, safeRandomUUID } from '@/utils/helpers';
 import { guardAsync } from '@/utils/asyncGuard';
 import { addGameBreadcrumb } from '@/utils/sentry';
 import { track } from '@/utils/analytics';
@@ -1152,7 +1152,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       // Carry over career timeline and achievements for all prestige modes
       if (preserveProgression && !bonusesApplied) {
         updates.careerTimeline = [...state.careerTimeline, {
-          id: crypto.randomUUID(),
+          id: safeRandomUUID(),
           type: 'prestige',
           title: `Prestige ${newPrestigeLevel}`,
           description: `Started a new journey with prestige level ${newPrestigeLevel}.`,

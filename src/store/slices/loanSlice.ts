@@ -1,5 +1,5 @@
 import type { GameState } from '../storeTypes';
-import { addMsg } from '@/utils/helpers';
+import { addMsg, safeRandomUUID } from '@/utils/helpers';
 import type { LoanDeal, OutgoingLoanRequest } from '@/types/game';
 import { TOTAL_WEEKS, LOAN_MIN_WEEKS_BEFORE_RECALL, MAX_SQUAD_SIZE } from '@/config/gameBalance';
 import {
@@ -35,7 +35,7 @@ export const createLoanSlice = (set: Set, get: Get) => ({
     wageSplit = Math.max(0, Math.min(100, wageSplit));
 
     const loan: LoanDeal = {
-      id: crypto.randomUUID(),
+      id: safeRandomUUID(),
       playerId,
       fromClubId: state.playerClubId,
       toClubId,
@@ -185,7 +185,7 @@ export const createLoanSlice = (set: Set, get: Get) => ({
 
     // Accept loan — player goes to the offering club
     const loan: LoanDeal = {
-      id: crypto.randomUUID(),
+      id: safeRandomUUID(),
       playerId: offer.playerId,
       fromClubId: state.playerClubId,
       toClubId: offer.fromClubId,
@@ -535,7 +535,7 @@ export const createLoanSlice = (set: Set, get: Get) => ({
     if (roll < eval_.acceptChance) {
       // Accepted — execute the loan
       const loan: LoanDeal = {
-        id: crypto.randomUUID(),
+        id: safeRandomUUID(),
         playerId,
         fromClubId: player.clubId,
         toClubId: state.playerClubId,
@@ -596,7 +596,7 @@ export const createLoanSlice = (set: Set, get: Get) => ({
       // the Transfer page and accept / cancel it. Required for the dedupe
       // guard above to ever fire.
       const counterRequest: OutgoingLoanRequest = {
-        id: crypto.randomUUID(),
+        id: safeRandomUUID(),
         playerId,
         toClubId: player.clubId,
         durationWeeks: duration,
@@ -626,7 +626,7 @@ export const createLoanSlice = (set: Set, get: Get) => ({
     // (each entry is ~10 fields × N players × long-running careers = real
     // serialization bloat).
     const rejectedRequest: OutgoingLoanRequest = {
-      id: crypto.randomUUID(),
+      id: safeRandomUUID(),
       playerId,
       toClubId: player.clubId,
       durationWeeks: duration,
