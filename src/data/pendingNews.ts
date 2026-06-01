@@ -65,6 +65,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Audit bug fixes + UX polish.',
     'Pack-opening remake — Phase 1: cinematic stadium + loading open.',
     'Harden error handling and lifecycle safety across iOS/native.',
+    'Enable iPad support by adding device family 2.',
   ],
   fixed: [
     'Fixed rare launch crashes related to ads.',
