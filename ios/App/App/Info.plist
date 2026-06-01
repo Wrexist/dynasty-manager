@@ -36,6 +36,13 @@
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 	</array>
+	<!-- Required when TARGETED_DEVICE_FAMILY includes iPad (=2). Without
+	     this, App Store validation rejects with ITMS-90474 because iPad
+	     multitasking requires either all four orientations OR an explicit
+	     opt-out via UIRequiresFullScreen. Dynasty Manager is a portrait-
+	     only game, so we opt out of multitasking on iPad too. -->
+	<key>UIRequiresFullScreen</key>
+	<true/>
 	<!-- MUST be false: @capacitor/status-bar in src/main.tsx calls
 	     StatusBar.setStyle / setBackgroundColor which use UIApplication-
 	     style APIs. With this set to true, iOS 17+ raises
