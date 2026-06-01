@@ -86,6 +86,11 @@ export default defineConfig(() => ({
     // Hidden: emit .map files for Sentry upload but don't reference them
     // from the JS. Keeps dist/ lean without losing symbolicated stack traces.
     sourcemap: 'hidden',
+    // Several chunks (recharts-using pages, nationalPlayerPool, league squad
+    // data) are intentionally larger than the default 500 KB threshold —
+    // they're lazy-loaded and stay out of the eager modulepreload set. The
+    // warning is noise in CI; raise the threshold.
+    chunkSizeWarningLimit: 3000,
     rollupOptions: {
       // AdMob plugin excluded from build until production ad IDs are configured.
       // Dynamic imports in ads.ts are guarded and never reached.

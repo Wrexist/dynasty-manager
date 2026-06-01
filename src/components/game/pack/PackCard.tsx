@@ -12,7 +12,9 @@ import { PackCardAura } from './PackCardAura';
 // so the keyframe arrays keep a stable reference across renders — otherwise
 // Framer Motion would re-fire the compression on every re-render while the
 // card stays revealed.
-const FLIP_EASE = [0.65, 0, 0.35, 1];
+// Typed as a fixed 4-tuple so framer-motion v12 accepts it as a cubic-bezier
+// Easing rather than a generic number[] (which it rejects).
+const FLIP_EASE: [number, number, number, number] = [0.65, 0, 0.35, 1];
 const FLIP_SCALE_KEYFRAMES = [1, 0.9, 1.04, 1];
 const FLIP_SCALE_TIMES = [0, 0.42, 0.72, 1];
 

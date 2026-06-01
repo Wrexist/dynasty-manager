@@ -1,3 +1,7 @@
+// Must be the first import. Initializes Sentry synchronously so any throw
+// during the heavier import chain below (App, gameStore, slices) still
+// reaches Sentry rather than being lost to the iOS native uncaught handler.
+import './bootstrap-sentry';
 import * as Sentry from "@sentry/react";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
