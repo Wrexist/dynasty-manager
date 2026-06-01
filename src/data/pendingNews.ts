@@ -64,6 +64,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Keep release notes strictly player-facing.',
     'Audit bug fixes + UX polish.',
     'Pack-opening remake — Phase 1: cinematic stadium + loading open.',
+    'Harden error handling and lifecycle safety across iOS/native.',
   ],
   fixed: [
     'Fixed rare launch crashes related to ads.',
