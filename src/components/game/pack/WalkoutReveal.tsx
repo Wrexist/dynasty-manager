@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import type { Player } from '@/types/game';
 import { PlayerCard } from '@/components/game/PlayerCard';
@@ -80,6 +80,66 @@ function ParticleDrift({ accent, count = 14 }: { accent: string; count?: number 
 // Order + labels match the on-card row in PlayerCard so the stat reveal
 // visually echoes the card the user is about to see flip face-up. DRI is
 // the canonical FC-style label for the `mental` attribute.
+/** Big tickered OVR overlay that floods the frame at the flip moment.
+ *  This is the single highest-impact number in the cinematic — the
+ *  rating dictates everything downstream — so it gets the biggest
+ *  visual treatment: scale-in, fast tick from 0, golden glow, then a
+ *  graceful fade as the stats start landing. */
+function OvrOverlay({
+  value,
+  accent,
+  durationMs,
+}: {
+  value: number;
+  accent: string;
+  durationMs: number;
+}) {
+  const [display, setDisplay] = useState(0);
+
+  useEffect(() => {
+    const start = performance.now();
+    const dur = Math.max(280, durationMs - 150);
+    let raf = 0;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / dur);
+      // Punchy easeOut quad so the number lands fast and settles slow.
+      const eased = 1 - Math.pow(1 - t, 2);
+      setDisplay(Math.round(value * eased));
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [value, durationMs]);
+
+  return (
+    <motion.div
+      className="absolute inset-0 flex items-center justify-center pointer-events-none"
+      initial={{ opacity: 0, scale: 0.4 }}
+      animate={{ opacity: [0, 1, 1, 0], scale: [0.4, 1.05, 1, 1.05] }}
+      transition={{
+        duration: durationMs / 1000,
+        times: [0, 0.18, 0.72, 1],
+        ease: [0.22, 1, 0.36, 1],
+      }}
+      aria-hidden
+    >
+      <span
+        className="font-display font-black leading-none tabular-nums select-none"
+        style={{
+          fontSize: 'clamp(120px, 38vw, 240px)',
+          color: '#fff',
+          WebkitTextStroke: `2px ${accent}`,
+          textShadow: `0 0 60px ${accent}cc, 0 0 120px ${accent}55, 0 6px 28px rgba(0,0,0,0.55)`,
+          letterSpacing: '-0.03em',
+          mixBlendMode: 'screen',
+        }}
+      >
+        {display}
+      </span>
+    </motion.div>
+  );
+}
+
 const ATTRIBUTE_ROW: Array<{ key: keyof Player['attributes']; label: string }> = [
   { key: 'pace', label: 'PAC' },
   { key: 'shooting', label: 'SHO' },
@@ -90,25 +150,37 @@ const ATTRIBUTE_ROW: Array<{ key: keyof Player['attributes']; label: string }> =
 ];
 
 /** Single attribute pill that ticks from 0 to its final value over ~360ms,
- *  delayed by its index in the row so the stats reveal in sequence. */
+ *  delayed by its index in the row so the stats reveal in sequence. Each
+ *  pill pops in scale (1 → 1.18 → 1) when its number lands — every stat
+ *  is its own little hit. The final pill in the row also fires the
+ *  crescendo callback (heavier haptic + halo flash in the parent). */
 function AttributePill({
   label,
   value,
   accent,
   delay,
+  isCrescendo,
+  onCrescendo,
   prefersReducedMotion,
 }: {
   label: string;
   value: number;
   accent: string;
   delay: number;
+  isCrescendo: boolean;
+  onCrescendo?: () => void;
   prefersReducedMotion: boolean;
 }) {
   const [display, setDisplay] = useState(prefersReducedMotion ? value : 0);
+  // Drives the pop-on-land scale animation. Toggling this is what tells
+  // framer-motion to animate from current scale to the keyframes.
+  const [landed, setLanded] = useState(prefersReducedMotion);
 
   useEffect(() => {
     if (prefersReducedMotion) {
       setDisplay(value);
+      setLanded(true);
+      if (isCrescendo) onCrescendo?.();
       return;
     }
     const startTimer = window.setTimeout(() => {
@@ -120,13 +192,20 @@ function AttributePill({
         const t = Math.min(1, (now - start) / dur);
         const eased = 1 - Math.pow(1 - t, 3);
         setDisplay(Math.round(value * eased));
-        if (t < 1) raf = requestAnimationFrame(tick);
+        if (t < 1) {
+          raf = requestAnimationFrame(tick);
+        } else {
+          // Number landed — pop the pill scale and fire crescendo if this
+          // is the final pill in the row.
+          setLanded(true);
+          if (isCrescendo) onCrescendo?.();
+        }
       };
       raf = requestAnimationFrame(tick);
       return () => cancelAnimationFrame(raf);
     }, delay);
     return () => window.clearTimeout(startTimer);
-  }, [value, delay, prefersReducedMotion]);
+  }, [value, delay, isCrescendo, onCrescendo, prefersReducedMotion]);
 
   return (
     <motion.div
@@ -138,8 +217,16 @@ function AttributePill({
         minWidth: 44,
       }}
       initial={{ opacity: 0, y: 12, scale: 0.9 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.35, delay: delay / 1000, ease: [0.22, 1, 0.36, 1] }}
+      animate={
+        landed && !prefersReducedMotion
+          ? { opacity: 1, y: 0, scale: [1, 1.18, 1] }
+          : { opacity: 1, y: 0, scale: 1 }
+      }
+      transition={
+        landed && !prefersReducedMotion
+          ? { duration: 0.32, ease: [0.22, 1, 0.36, 1] }
+          : { duration: 0.35, delay: delay / 1000, ease: [0.22, 1, 0.36, 1] }
+      }
     >
       <span className="text-[8px] uppercase tracking-[0.2em] font-semibold" style={{ color: `${accent}cc` }}>
         {label}
@@ -175,34 +262,50 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
   const isLegendary = player.overall >= LEGENDARY_OVR_THRESHOLD;
   const prefersReducedMotion = useReducedMotion();
 
-  const [phase, setPhase] = useState<'enter' | 'name' | 'flip' | 'stats' | 'hold' | 'done'>('enter');
+  const [phase, setPhase] = useState<'enter' | 'name' | 'breath' | 'flip' | 'stats' | 'hold' | 'done'>('enter');
+  // Crescendo flash — pulses on top of the halo when the LAST stat pill
+  // lands. The visual payoff that closes the stats sequence.
+  const [crescendoPulse, setCrescendoPulse] = useState(false);
+
+  const triggerCrescendo = useCallback(() => {
+    hapticHeavy();
+    setCrescendoPulse(true);
+    // Reset so a re-mount could replay; the flash itself is a one-shot
+    // animation driven by AnimatePresence on the element.
+    window.setTimeout(() => setCrescendoPulse(false), 900);
+  }, []);
 
   const name = `${player.firstName} ${player.lastName}`.toUpperCase();
   const typed = useTypewriter(
     name,
     PACK_ANIM.walkout.typewriterPerCharMs,
-    phase === 'name' || phase === 'flip' || phase === 'stats' || phase === 'hold',
+    phase === 'name' || phase === 'breath' || phase === 'flip' || phase === 'stats' || phase === 'hold',
     !!prefersReducedMotion,
   );
 
   // Total cinematic length — used by the skip-progress arc.
   const enterMs = PACK_ANIM.walkout.enterMs;
   const nameMs = Math.max(560, name.length * PACK_ANIM.walkout.typewriterPerCharMs + 140);
+  const breathMs = PACK_ANIM.walkout.breathMs;
   const flipMs = PACK_ANIM.walkout.flipMs;
   const statsMs = PACK_ANIM.walkout.statsMs;
   const holdMs = PACK_ANIM.walkout.holdMs;
-  const totalMs = enterMs + nameMs + flipMs + statsMs + holdMs;
+  const totalMs = enterMs + nameMs + breathMs + flipMs + statsMs + holdMs;
 
   useEffect(() => {
     hapticLight();
     const t1 = window.setTimeout(() => { setPhase('name'); hapticMedium(); }, enterMs);
-    const t2 = window.setTimeout(() => { setPhase('flip'); hapticHeavy(); }, enterMs + nameMs);
-    const t3 = window.setTimeout(() => { setPhase('stats'); }, enterMs + nameMs + flipMs);
-    const t4 = window.setTimeout(() => { setPhase('hold'); hapticMedium(); }, enterMs + nameMs + flipMs + statsMs);
-    const t5 = window.setTimeout(() => { setPhase('done'); onComplete(); }, totalMs);
+    // Held breath — the moment of silence before the climax. No haptic
+    // on entry; the absence of feedback IS the feedback.
+    const t2 = window.setTimeout(() => { setPhase('breath'); }, enterMs + nameMs);
+    // Climax — flip + heavy haptic + (kicked off in render) big OVR overlay.
+    const t3 = window.setTimeout(() => { setPhase('flip'); hapticHeavy(); }, enterMs + nameMs + breathMs);
+    const t4 = window.setTimeout(() => { setPhase('stats'); }, enterMs + nameMs + breathMs + flipMs);
+    const t5 = window.setTimeout(() => { setPhase('hold'); hapticMedium(); }, enterMs + nameMs + breathMs + flipMs + statsMs);
+    const t6 = window.setTimeout(() => { setPhase('done'); onComplete(); }, totalMs);
 
-    return () => { [t1, t2, t3, t4, t5].forEach(window.clearTimeout); };
-  }, [enterMs, nameMs, flipMs, statsMs, holdMs, totalMs, onComplete]);
+    return () => { [t1, t2, t3, t4, t5, t6].forEach(window.clearTimeout); };
+  }, [enterMs, nameMs, breathMs, flipMs, statsMs, holdMs, totalMs, onComplete]);
 
   const skip = () => {
     if (phase === 'done') return;
@@ -212,6 +315,12 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
 
   const revealed = phase === 'flip' || phase === 'stats' || phase === 'hold';
   const statsActive = phase === 'stats' || phase === 'hold';
+  // OVR overlay rides the flip → start of stats. Fades out as the stats
+  // pills start landing so it never competes with them.
+  const ovrOverlayActive = phase === 'flip';
+  // Held-breath beat — visual cue is that we briefly de-saturate the halo
+  // / dim the particles so the moment really lands as silence.
+  const isBreath = phase === 'breath';
   const tierGradient = `linear-gradient(135deg, ${tier.gradientFrom} 0%, ${tier.gradientVia} 45%, ${tier.gradientTo} 100%)`;
 
   return (
@@ -235,8 +344,18 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
 
       {/* Soft tier-coloured particle drift — ambient atmosphere that runs
           the whole cinematic. Reads as fairy dust rising through the
-          frame; never competes with the hero card for attention. */}
-      {!prefersReducedMotion && <ParticleDrift accent={tier.gradientVia} count={isLegendary ? 20 : 14} />}
+          frame; never competes with the hero card for attention.
+          Dims during the held-breath beat so the silence is felt as
+          silence, then snaps back to full intensity at the climax. */}
+      {!prefersReducedMotion && (
+        <motion.div
+          className="absolute inset-0 pointer-events-none"
+          animate={{ opacity: isBreath ? 0.35 : 1 }}
+          transition={{ duration: 0.25, ease: 'easeOut' }}
+        >
+          <ParticleDrift accent={tier.gradientVia} count={isLegendary ? 20 : 14} />
+        </motion.div>
+      )}
 
       {/* Legendary stadium dressing — spotlight, igniting floodlights, fog,
           a hero silhouette behind the card, and a crowd flecked with
@@ -313,6 +432,51 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
           />
         )}
       </AnimatePresence>
+
+      {/* Massive OVR overlay — the biggest dopamine number ticks up over
+          the card at the flip moment, then fades to let the stats land.
+          Composed with mix-blend-mode: screen so it adds light without
+          obscuring the card behind it. */}
+      <AnimatePresence>
+        {ovrOverlayActive && !prefersReducedMotion && (
+          <OvrOverlay
+            key="ovr-overlay"
+            value={player.overall}
+            accent={tier.gradientVia}
+            durationMs={PACK_ANIM.walkout.ovrOverlayMs}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Crescendo halo pulse — fires when the LAST stat pill lands. A
+          brief bright bloom centred on the card closes the stats reveal
+          with a "yes!" moment before settling into the hold phase. */}
+      <AnimatePresence>
+        {crescendoPulse && !prefersReducedMotion && (
+          <motion.div
+            key="crescendo-pulse"
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[54%] rounded-full pointer-events-none"
+            style={{
+              width: 560,
+              height: 560,
+              background: `radial-gradient(circle, #fff 0%, ${tier.gradientVia}55 22%, transparent 60%)`,
+              filter: 'blur(18px)',
+              mixBlendMode: 'screen',
+            }}
+            initial={{ opacity: 0, scale: 0.7 }}
+            animate={{ opacity: [0, 0.95, 0], scale: [0.7, 1.15, 1.3] }}
+            transition={{ duration: 0.85, times: [0, 0.32, 1], ease: [0.22, 1, 0.36, 1] }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Crescendo confetti burst — a quick burst of tier-coloured sparks
+          on the last stat landing. Legendary-only confetti already fires
+          elsewhere; this one runs for every walkout so the close beat
+          always lands with a sensory hit. */}
+      {crescendoPulse && !prefersReducedMotion && (
+        <PackConfetti count={16} hueBase={48} hueRange={28} />
+      )}
 
       {/* Floor shockwave rings on flip — expand outward at the reveal
           moment for weight. Three staggered rings over ~1.3s each. */}
@@ -515,6 +679,8 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
                   value={player.attributes[attr.key]}
                   accent={tier.gradientVia}
                   delay={i * PACK_ANIM.walkout.statsStaggerMs}
+                  isCrescendo={i === ATTRIBUTE_ROW.length - 1}
+                  onCrescendo={triggerCrescendo}
                   prefersReducedMotion={!!prefersReducedMotion}
                 />
               ))}

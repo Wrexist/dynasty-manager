@@ -208,7 +208,14 @@ export const PACK_ANIM = {
     typewriterPerCharMs: 45,
     ovrRollMs: 420,
     enterMs: 600,
+    /** Held-breath pause between name and flip — total stillness, no
+     *  particles, no halo pulse. The brain reads silence as "something
+     *  big is coming". Tunes the dopamine ramp. */
+    breathMs: 280,
     flipMs: 800,
+    /** OVR overlay — massive number ticks from 0 → rating over the card
+     *  during/right after the flip, then fades to let the stats land. */
+    ovrOverlayMs: 900,
     statsMs: 1500,
     statsStaggerMs: 200,
     holdMs: 2400,
