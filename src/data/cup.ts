@@ -1,5 +1,5 @@
 import { CupTie, CupRound, CupState, Club, Player } from '@/types/game';
-import { shuffle } from '@/utils/helpers';
+import { shuffle, safeRandomUUID } from '@/utils/helpers';
 import { getClubGKQuality, simulatePenaltyShootout } from '@/utils/penaltyShootout';
 
 export const CUP_BYE_MARKER = '__BYE__';
@@ -43,7 +43,7 @@ export function generateCupDraw(clubIds: string[]): CupState {
   const n = shuffled.length;
 
   const mkTie = (round: CupRound, home: string, away: string, isBye: boolean): CupTie => ({
-    id: crypto.randomUUID(),
+    id: safeRandomUUID(),
     round,
     homeClubId: home,
     awayClubId: away,
@@ -134,7 +134,7 @@ export function advanceCupRound(
   const newTies: CupTie[] = [];
   for (let i = 0; i + 1 < shuffled.length; i += 2) {
     newTies.push({
-      id: crypto.randomUUID(),
+      id: safeRandomUUID(),
       round: nextRound,
       homeClubId: shuffled[i],
       awayClubId: shuffled[i + 1],
@@ -146,7 +146,7 @@ export function advanceCupRound(
   }
   if (shuffled.length % 2 === 1) {
     newTies.push({
-      id: crypto.randomUUID(),
+      id: safeRandomUUID(),
       round: nextRound,
       homeClubId: shuffled[shuffled.length - 1],
       awayClubId: CUP_BYE_MARKER,

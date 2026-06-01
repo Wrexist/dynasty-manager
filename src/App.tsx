@@ -27,7 +27,7 @@ const CinematicCapturePage = lazy(() => import("./pages/CinematicCapturePage"));
 const LoadingFallback = () => (
   <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
     <img
-      src="/logo.png"
+      src="/logo.webp"
       alt="Dynasty Manager"
       className="w-20 h-20 drop-shadow-[0_0_16px_hsl(var(--primary)/0.35)] animate-pulse"
     />

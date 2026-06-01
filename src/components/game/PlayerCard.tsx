@@ -303,6 +303,7 @@ export const PlayerCard = memo(function PlayerCard({
           // suppress the secondary first-name row in that case.
           const isMononym =
             !!player.firstName &&
+            !!player.lastName &&
             player.firstName.trim().toLowerCase() === player.lastName.trim().toLowerCase();
           const showFirstName =
             !isMononym && (size === 'xs' ? compact : size === 'sm' ? true : !compact);

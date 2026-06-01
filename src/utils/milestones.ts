@@ -1,4 +1,5 @@
 import { CareerMilestone } from '@/types/game';
+import { safeRandomUUID } from '@/utils/helpers';
 
 /** Create a milestone entry */
 export function createMilestone(
@@ -9,7 +10,7 @@ export function createMilestone(
   week: number,
   icon?: string,
 ): CareerMilestone {
-  return { id: crypto.randomUUID(), type, title, description, season, week, icon };
+  return { id: safeRandomUUID(), type, title, description, season, week, icon };
 }
 
 /** Check for match-count milestones (50, 100, 200, 500) */

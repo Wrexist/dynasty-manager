@@ -8,7 +8,7 @@ import { generateSquad, selectBestLineup } from '@/utils/playerGen';
 import { simulateMatch } from '@/engine/match';
 
 import type { GameState } from '../storeTypes';
-import { addMsg } from '@/utils/helpers';
+import { addMsg, safeRandomUUID } from '@/utils/helpers';
 import { guardAsync } from '@/utils/asyncGuard';
 import { addGameBreadcrumb } from '@/utils/sentry';
 import { track } from '@/utils/analytics';
@@ -734,17 +734,17 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     }
 
     try {
-      const clubIds = Object.keys(data.clubs);
-      const leagueTable = buildLeagueTable(data.fixtures, clubIds);
+      const clubIds = Object.keys(data.clubs || {});
+      const leagueTable = buildLeagueTable(data.fixtures || [], clubIds);
 
       // Ensure division data exists (backward compat for old saves)
       const playerDivision: LeagueId = data.playerDivision || 'eng';
       const divisionClubs: Record<string, string[]> = data.divisionClubs || { [playerDivision]: clubIds };
-      const divisionFixtures: Record<string, Match[]> = data.divisionFixtures || { [playerDivision]: data.fixtures };
+      const divisionFixtures: Record<string, Match[]> = data.divisionFixtures || { [playerDivision]: data.fixtures || [] };
       const divisionTables = buildAllDivisionTables(divisionFixtures, divisionClubs);
 
       set({
-        gameStarted: true, ...data, leagueTable,
+        ...data, gameStarted: true, leagueTable,
         activeSlot: s,
         // Backfill settings with defaults for fields added after save was created
         settings: {
@@ -1152,7 +1152,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       // Carry over career timeline and achievements for all prestige modes
       if (preserveProgression && !bonusesApplied) {
         updates.careerTimeline = [...state.careerTimeline, {
-          id: crypto.randomUUID(),
+          id: safeRandomUUID(),
           type: 'prestige',
           title: `Prestige ${newPrestigeLevel}`,
           description: `Started a new journey with prestige level ${newPrestigeLevel}.`,

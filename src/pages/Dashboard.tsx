@@ -209,6 +209,14 @@ const Dashboard = () => {
   const [pendingAchievementQueue, setPendingAchievementQueue] = useState<Achievement[]>([]);
   const [currentAchievement, setCurrentAchievement] = useState<Achievement | null>(null);
   const prevAchievementRef = useRef<string[]>([]);
+  // Track staggered celebration-toast timers so they can be cancelled on
+  // unmount — otherwise toasts fire on a Dashboard that's been navigated
+  // away from, dispatching state to a torn-down component.
+  const celebrationTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useEffect(() => () => {
+    for (const t of celebrationTimersRef.current) clearTimeout(t);
+    celebrationTimersRef.current = [];
+  }, []);
 
   // Achievement unlock modal queue — triggers when pendingAchievementIds changes
   // Uses getState() for the action to avoid dependency instability (React #185 fix)
@@ -283,7 +291,8 @@ const Dashboard = () => {
       }
       if (minorOnes.length > 0) hapticMedium();
       minorOnes.forEach((c, i) => {
-        setTimeout(() => celebrationToast(c.title, c.description), i * CELEBRATION_STAGGER_MS);
+        const t = setTimeout(() => celebrationToast(c.title, c.description), i * CELEBRATION_STAGGER_MS);
+        celebrationTimersRef.current.push(t);
       });
     }
     prevWeekRef.current = week;
@@ -446,7 +455,7 @@ const Dashboard = () => {
     return ACHIEVEMENTS
       .filter(a => !a.hidden && !(unlockedAchievements || []).includes(a.id) && a.progress)
       .map(a => ({ ...a, prog: a.progress!(state) }))
-      .filter(a => a.prog && a.prog.current > 0)
+      .filter(a => a.prog && a.prog.current > 0 && a.prog.target > 0)
       .sort((a, b) => (b.prog!.current / b.prog!.target) - (a.prog!.current / a.prog!.target))
       .slice(0, 5);
   }, [unlockedAchievements, week]);

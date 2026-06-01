@@ -672,7 +672,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
       {/* ─── About ─── */}
       <div className="flex flex-col items-center gap-1.5 py-3">
         <img
-          src="/logo.png"
+          src="/logo.webp"
           alt="Dynasty Manager"
           className="w-12 h-12 drop-shadow-[0_0_12px_hsl(var(--primary)/0.35)]"
         />

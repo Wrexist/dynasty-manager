@@ -55,7 +55,7 @@ export function calculatePrestigeStats(
     totalSeasons: seasonHistory.length,
     titles: seasonHistory.filter(h => h.position === 1).length,
     cupWins: seasonHistory.filter(h => h.cupResult === 'Winner').length,
-    bestPosition: seasonHistory.length > 0 ? Math.min(...seasonHistory.map(h => h.position)) : 20,
+    bestPosition: seasonHistory.length > 0 ? seasonHistory.reduce((m, h) => h.position < m ? h.position : m, Infinity) : 20,
     totalWins: managerStats.totalWins,
     totalDraws: managerStats.totalDraws,
     totalLosses: managerStats.totalLosses,

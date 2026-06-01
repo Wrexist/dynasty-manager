@@ -14,7 +14,7 @@ import type {
 import type { GameState } from '../../storeTypes';
 import { CUP_BYE_MARKER } from '@/data/cup';
 import { LEAGUE_CUP_WEEKS } from '@/config/continental';
-import { shuffle } from '@/utils/helpers';
+import { shuffle, safeRandomUUID } from '@/utils/helpers';
 import { findPlayerContinentalMatch } from '@/utils/continental';
 
 /**
@@ -31,7 +31,7 @@ export function generateLeagueCupDraw(clubIds: string[]): LeagueCupState {
 
   for (let i = 0; i + 1 < shuffled.length; i += 2) {
     ties.push({
-      id: crypto.randomUUID(),
+      id: safeRandomUUID(),
       round: startRound,
       homeClubId: shuffled[i],
       awayClubId: shuffled[i + 1],
@@ -44,7 +44,7 @@ export function generateLeagueCupDraw(clubIds: string[]): LeagueCupState {
 
   if (shuffled.length % 2 === 1) {
     ties.push({
-      id: crypto.randomUUID(),
+      id: safeRandomUUID(),
       round: startRound,
       homeClubId: shuffled[shuffled.length - 1],
       awayClubId: CUP_BYE_MARKER,
@@ -120,7 +120,7 @@ export function advanceLeagueCupRound(cup: LeagueCupState): LeagueCupState {
   const newTies: CupTie[] = [];
   for (let i = 0; i + 1 < shuffled.length; i += 2) {
     newTies.push({
-      id: crypto.randomUUID(),
+      id: safeRandomUUID(),
       round: nextRound,
       homeClubId: shuffled[i],
       awayClubId: shuffled[i + 1],
@@ -132,7 +132,7 @@ export function advanceLeagueCupRound(cup: LeagueCupState): LeagueCupState {
   }
   if (shuffled.length % 2 === 1) {
     newTies.push({
-      id: crypto.randomUUID(),
+      id: safeRandomUUID(),
       round: nextRound,
       homeClubId: shuffled[shuffled.length - 1],
       awayClubId: CUP_BYE_MARKER,

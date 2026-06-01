@@ -1,6 +1,6 @@
 import type { GameState } from '../storeTypes';
 import type { SponsorDeal, SponsorOffer, SponsorNegotiation, SponsorNegotiationProposal } from '@/types/game';
-import { addMsg, formatMoney, clamp100 } from '@/utils/helpers';
+import { addMsg, formatMoney, clamp100, safeRandomUUID } from '@/utils/helpers';
 import { LEAGUES } from '@/data/league';
 import {
   SPONSOR_SLOTS,
@@ -55,7 +55,7 @@ export const createSponsorSlice = (set: Set, get: Get) => ({
     // position if the player haggled, otherwise the original offer.
     const terms = offer.negotiation ?? offer;
     const deal: SponsorDeal = {
-      id: crypto.randomUUID(),
+      id: safeRandomUUID(),
       sponsorId: offer.sponsorId,
       slotId: offer.slotId,
       weeklyPayment: terms.weeklyPayment,
@@ -289,7 +289,7 @@ export function processSponsorWeek(state: GameState): Partial<GameState> {
       const offerData = generateOffer(slot.id, club.reputation, allUsedIds, week, season);
       if (offerData) {
         const offer: SponsorOffer = {
-          id: crypto.randomUUID(),
+          id: safeRandomUUID(),
           ...offerData,
         };
         updatedOffers.push(offer);
@@ -436,7 +436,7 @@ export function generateStarterOffers(
   const offerData = generateOffer('kit_sleeve', reputation, usedSponsorIds, 1, season);
   if (offerData) {
     offers.push({
-      id: crypto.randomUUID(),
+      id: safeRandomUUID(),
       ...offerData,
       expiresWeek: offerData.expiresWeek + 3,
     });
@@ -454,7 +454,7 @@ export function generateStarterDeals(reputation: number, season: number): Sponso
   if (kitOffer) {
     usedSponsorIds.push(kitOffer.sponsorId);
     deals.push({
-      id: crypto.randomUUID(),
+      id: safeRandomUUID(),
       sponsorId: kitOffer.sponsorId,
       slotId: 'kit_main',
       weeklyPayment: kitOffer.weeklyPayment,
@@ -472,7 +472,7 @@ export function generateStarterDeals(reputation: number, season: number): Sponso
   const digitalOffer = generateOffer('digital', reputation, usedSponsorIds, 1, season);
   if (digitalOffer) {
     deals.push({
-      id: crypto.randomUUID(),
+      id: safeRandomUUID(),
       sponsorId: digitalOffer.sponsorId,
       slotId: 'digital',
       weeklyPayment: digitalOffer.weeklyPayment,

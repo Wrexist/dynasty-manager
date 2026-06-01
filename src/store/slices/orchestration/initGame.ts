@@ -1,4 +1,5 @@
 import { Club, Player, TransferListing, Match, LeagueTableEntry } from '@/types/game';
+import { safeRandomUUID } from '@/utils/helpers';
 
 import { buildLeagueTable, generateDivisionFixtures, LEAGUES, generateFriendlies, getLeaguesByCountry } from '@/data/league';
 
@@ -381,11 +382,11 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
   // week of play. All five are read=false so they show up unread in the
   // inbox; the inbox unread badge becomes a "go look at this" signal.
   const messages: Message[] = [
-    { id: crypto.randomUUID(), week: 1, season: 1, type: 'board', title: 'Welcome, Manager!', body: `The board of ${initClub.name} welcomes you. We expect great things this season. Check your objectives in the Club tab.`, read: false },
-    { id: crypto.randomUUID(), week: 1, season: 1, type: 'general', title: 'Transfer Window Open', body: 'The transfer window is now open. Scout the market and strengthen your squad before it closes in Week 8.', read: false },
-    { id: crypto.randomUUID(), week: 1, season: 1, type: 'transfer', title: 'Pre-Season Market Surge', body: 'Clubs are aggressively reshaping their squads during pre-season. Expect more transfer activity and higher-quality players on the market before league fixtures begin in Week 4.', read: false },
-    { id: crypto.randomUUID(), week: 1, season: 1, type: 'general', title: 'Set Your Tactics', body: 'Your assistant has set a default 4-4-2 formation. To change it: tap "Tactics" in the bottom navigation bar. Inside Tactics, the seven formation badges at the top let you pick a new shape (4-3-3 attacks more, 5-3-2 defends more). Tap "Save" when done. Sticking with one shape builds tactical familiarity — a real boost in matches.', read: false },
-    { id: crypto.randomUUID(), week: 1, season: 1, type: 'general', title: 'Send Out a Scout', body: 'Scouts find players you would never see on the open market. To send one: tap "More" in the bottom navigation bar, then tap "Scouting". Scroll to the "Send Scout" section and tap a region. Domestic returns reports in 2 weeks, Asia and Africa take 4-5 weeks but tend to surface higher-potential youngsters. Reports arrive automatically in your inbox.', read: false },
+    { id: safeRandomUUID(), week: 1, season: 1, type: 'board', title: 'Welcome, Manager!', body: `The board of ${initClub.name} welcomes you. We expect great things this season. Check your objectives in the Club tab.`, read: false },
+    { id: safeRandomUUID(), week: 1, season: 1, type: 'general', title: 'Transfer Window Open', body: 'The transfer window is now open. Scout the market and strengthen your squad before it closes in Week 8.', read: false },
+    { id: safeRandomUUID(), week: 1, season: 1, type: 'transfer', title: 'Pre-Season Market Surge', body: 'Clubs are aggressively reshaping their squads during pre-season. Expect more transfer activity and higher-quality players on the market before league fixtures begin in Week 4.', read: false },
+    { id: safeRandomUUID(), week: 1, season: 1, type: 'general', title: 'Set Your Tactics', body: 'Your assistant has set a default 4-4-2 formation. To change it: tap "Tactics" in the bottom navigation bar. Inside Tactics, the seven formation badges at the top let you pick a new shape (4-3-3 attacks more, 5-3-2 defends more). Tap "Save" when done. Sticking with one shape builds tactical familiarity — a real boost in matches.', read: false },
+    { id: safeRandomUUID(), week: 1, season: 1, type: 'general', title: 'Send Out a Scout', body: 'Scouts find players you would never see on the open market. To send one: tap "More" in the bottom navigation bar, then tap "Scouting". Scroll to the "Send Scout" section and tap a region. Domestic returns reports in 2 weeks, Asia and Africa take 4-5 weeks but tend to surface higher-potential youngsters. Reports arrive automatically in your inbox.', read: false },
   ];
 
   const pcInit = clubs[clubId];
@@ -452,7 +453,7 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
   const starterSponsorOffers = generateStarterOffers(pcInit.reputation, 1, starterSponsorDeals);
   if (starterSponsorOffers.length > 0) {
     messages.push({
-      id: crypto.randomUUID(),
+      id: safeRandomUUID(),
       week: 1,
       season: 1,
       type: 'sponsorship',

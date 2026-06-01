@@ -1,6 +1,6 @@
 import type { FormationType, NationalTeamState, InternationalTournamentState, NationalTeamOffer } from '@/types/game';
 import type { GameState } from '../storeTypes';
-import { addMsg } from '@/utils/helpers';
+import { addMsg, safeRandomUUID } from '@/utils/helpers';
 import { NT_JOB_OFFER_DURATION_WEEKS } from '@/config/gameBalance';
 import { generateNationalTeamPool, autoSelectNationalSquad } from '@/utils/international';
 import { selectBestLineup } from '@/utils/playerGen';
@@ -61,7 +61,7 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
     // Career mode: immediately offer the national team job (shown as popup)
     if (state.gameMode === 'career') {
       const offer: NationalTeamOffer = {
-        id: crypto.randomUUID(),
+        id: safeRandomUUID(),
         nationality,
         reason: 'initial',
         offerSeason: 1,
@@ -135,7 +135,7 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
     const careerTimeline = state.gameMode === 'career' ? [
       ...state.careerTimeline,
       {
-        id: crypto.randomUUID(),
+        id: safeRandomUUID(),
         type: 'national_team_appointed' as const,
         title: `${nationality} Manager`,
         description: `Appointed as ${nationality} national team manager.`,

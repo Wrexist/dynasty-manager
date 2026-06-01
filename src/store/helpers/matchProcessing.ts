@@ -40,6 +40,26 @@ export function processMatchResult(
   const hc = clubs[match.homeClubId];
   const ac = clubs[match.awayClubId];
 
+  // Guard against ephemeral/virtual clubs being cleaned up before processing
+  // (continental, super-cup, friendly opponents). Returning a safe shape lets
+  // the caller persist the fixture result without crashing.
+  if (!hc || !ac) {
+    return {
+      newPlayers,
+      updatedFixtures: state.fixtures.map(f => f.id === match.id ? result : f),
+      leagueTable: [],
+      confidence: state.boardConfidence || 50,
+      newMessages: messages,
+      managerStats: state.managerStats,
+      playerRatings,
+      won: false,
+      lost: false,
+      newMilestones: [] as CareerMilestone[],
+      managerProgression: state.managerProgression,
+      pairFamiliarity: state.pairFamiliarity || {},
+    };
+  }
+
   // Process events: goals, assists, injuries, cards
   result.events.forEach(ev => {
     const isGoalEv = (GOAL_EVENT_TYPES as readonly string[]).includes(ev.type);
@@ -158,14 +178,15 @@ export function processMatchResult(
   // Messages
   const oppId = isHome ? match.awayClubId : match.homeClubId;
   const oppClub = clubs[oppId];
+  const oppName = oppClub?.name || 'the opponent';
   const resultText = won ? 'Victory!' : lost ? 'Defeat.' : 'Draw.';
   const score = `${result.homeGoals}-${result.awayGoals}`;
   let newMessages = addMsg(messages, {
     week, season, type: 'match_result',
-    title: `${resultText} ${clubs[match.homeClubId].shortName} ${score} ${clubs[match.awayClubId].shortName}`,
-    body: won ? `A great result against ${oppClub.name}! The fans are delighted.`
-      : lost ? `A disappointing result against ${oppClub.name}. The board will want to see improvement.`
-      : `A hard-fought draw against ${oppClub.name}. Onwards.`,
+    title: `${resultText} ${hc.shortName} ${score} ${ac.shortName}`,
+    body: won ? `A great result against ${oppName}! The fans are delighted.`
+      : lost ? `A disappointing result against ${oppName}. The board will want to see improvement.`
+      : `A hard-fought draw against ${oppName}. Onwards.`,
   });
 
   // First-season encouragement: soften early losses for new players
@@ -196,14 +217,14 @@ export function processMatchResult(
   const newMilestones: CareerMilestone[] = [];
   const totalMatches = ms.totalWins + ms.totalDraws + ms.totalLosses;
   if (won && ms.totalWins === 1) {
-    newMilestones.push(createMilestone('first_win', 'First Victory', `Won ${result.homeGoals}-${result.awayGoals} against ${clubs[isHome ? match.awayClubId : match.homeClubId].name}.`, season, week, 'trophy'));
+    newMilestones.push(createMilestone('first_win', 'First Victory', `Won ${result.homeGoals}-${result.awayGoals} against ${oppName}.`, season, week, 'trophy'));
   }
   const matchMilestone = checkMatchMilestones(totalMatches, state.careerTimeline, season, week);
   if (matchMilestone) newMilestones.push(matchMilestone);
   // Biggest win milestone (5+ goal margin)
   const margin = won ? Math.abs(result.homeGoals - result.awayGoals) : 0;
   if (margin >= 5) {
-    newMilestones.push(createMilestone('biggest_win', 'Thrashing!', `${result.homeGoals}-${result.awayGoals} against ${clubs[isHome ? match.awayClubId : match.homeClubId].name}.`, season, week, 'circle'));
+    newMilestones.push(createMilestone('biggest_win', 'Thrashing!', `${result.homeGoals}-${result.awayGoals} against ${oppName}.`, season, week, 'circle'));
   }
 
   // XP for match result

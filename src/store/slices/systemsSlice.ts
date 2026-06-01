@@ -1,6 +1,6 @@
 import { TacticalInstructions, TrainingState, TrainingModule, ScoutRegion, FacilitiesState, TacticalPreset, StadiumStands, YouthFocus } from '@/types/game';
 import type { GameState } from '../storeTypes';
-import { addMsg } from '@/utils/helpers';
+import { addMsg, safeRandomUUID } from '@/utils/helpers';
 import { GROWTH_YOUTH_PER_PROMOTION, STAT_MAX as CAREER_STAT_MAX } from '@/config/managerCareer';
 import { createAssignment } from '@/utils/scouting';
 import { STARTING_TACTICAL_FAMILIARITY, FACILITY_COST_PER_LEVEL, FACILITY_BASE_UPGRADE_WEEKS, FACILITY_MAX_LEVEL, STAND_COST_PER_LEVEL, STAND_BASE_UPGRADE_WEEKS, MAX_SQUAD_SIZE } from '@/config/gameBalance';
@@ -42,7 +42,7 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
     const club = state.clubs[state.playerClubId];
     if (!club) return;
     const preset: TacticalPreset = {
-      id: crypto.randomUUID(),
+      id: safeRandomUUID(),
       name,
       formation: club.formation,
       tactics: { ...state.tactics },
@@ -336,7 +336,7 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
       body: `${player.firstName} ${player.lastName} (${player.position}, ${player.overall} OVR) has been promoted to the first team!`,
     });
     const youthMilestone = player.potential >= 70
-      ? { id: crypto.randomUUID(), type: 'youth_graduate' as const, title: 'Youth Graduate', description: `${player.firstName} ${player.lastName} (${player.position}, pot. ${player.potential}) promoted from the academy.`, season: state.season, week: state.week, icon: 'star' }
+      ? { id: safeRandomUUID(), type: 'youth_graduate' as const, title: 'Youth Graduate', description: `${player.firstName} ${player.lastName} (${player.position}, pot. ${player.potential}) promoted from the academy.`, season: state.season, week: state.week, icon: 'star' }
       : null;
     set({
       players: { ...state.players, [playerId]: updatedPlayer },

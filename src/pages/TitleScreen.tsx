@@ -230,7 +230,7 @@ const TitleScreen = () => {
             style={{ background: 'radial-gradient(circle, hsl(43 96% 46% / 0.35) 0%, transparent 70%)' }}
           />
           <img
-            src="/logo.png"
+            src="/logo.webp"
             alt="Dynasty Manager"
             className="w-28 h-28 drop-shadow-[0_6px_24px_hsl(43_96%_46%/0.35)]"
           />

@@ -1,4 +1,4 @@
-import { useState, useMemo, type ReactNode } from 'react';
+import { useEffect, useRef, useState, useMemo, type ReactNode } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import type { Club, Player } from '@/types/game';
@@ -83,6 +83,8 @@ const MatchReview = () => {
   const selectPlayer = useGameStore(s => s.selectPlayer);
   const userIsPro = isPro(monetization);
   const [isAdvancing, setIsAdvancing] = useState(false);
+  const advanceTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => () => clearTimeout(advanceTimerRef.current), []);
   const [highlightFilter, setHighlightFilter] = useState<'all' | 'us' | 'goals'>('all');
 
   const reducedMotion = useReducedMotion();
@@ -180,7 +182,7 @@ const MatchReview = () => {
       return;
     }
     setIsAdvancing(true);
-    setTimeout(() => {
+    advanceTimerRef.current = setTimeout(() => {
       // Read fresh state from the store (not stale closure from render time)
       const s = useGameStore.getState();
       const hasUnplayedLeague = s.fixtures.some(
@@ -380,7 +382,7 @@ const MatchReview = () => {
                     // player (engine always emits these together for forced subs). Fallback to
                     // a string probe so the UI stays correct even if the engine re-orders events.
                     const forcedSub = isSubstitution && !!ev.assistPlayerId && (
-                      match.events.some(other =>
+                      (match.events || []).some(other =>
                         other.type === 'injury'
                         && other.playerId === ev.assistPlayerId
                         && other.minute === ev.minute

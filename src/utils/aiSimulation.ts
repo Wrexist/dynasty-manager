@@ -8,7 +8,7 @@
 
 import type { Club, Player, Message, TransferListing, LoanDeal, Position, LeagueId, LeagueTableEntry, Mentality, FormationType } from '@/types/game';
 import type { TransferNewsEntry } from '@/types/game';
-import { pick, shuffle, addMsg } from '@/utils/helpers';
+import { pick, shuffle, addMsg, safeRandomUUID } from '@/utils/helpers';
 import { formatMoney } from '@/utils/helpers';
 import {
   MATCHDAY_INCOME_PER_FAN, COMMERCIAL_INCOME_PER_REP, COMMERCIAL_INCOME_BASE,
@@ -506,7 +506,7 @@ function processAIBuying(
 
     // Generate transfer news
     const newsEntry: TransferNewsEntry = {
-      id: crypto.randomUUID(),
+      id: safeRandomUUID(),
       week,
       season,
       type: 'transfer',
@@ -596,7 +596,7 @@ function processAILoans(
       : undefined;
 
     const loan: LoanDeal = {
-      id: crypto.randomUUID(),
+      id: safeRandomUUID(),
       playerId: candidateId,
       fromClubId: lendingClubId,
       toClubId: borrowerClubId,
@@ -636,7 +636,7 @@ function processAILoans(
     // Generate loan news for notable players
     if (candidate.overall >= AI_LOAN_NEWS_MIN_OVERALL) {
       const newsEntry: TransferNewsEntry = {
-        id: crypto.randomUUID(),
+        id: safeRandomUUID(),
         week,
         season,
         type: 'loan',
@@ -743,7 +743,7 @@ function processAIFreeAgents(
     // mid-division activity in the Phase E.5 balance sim.
     if (candidate.overall >= AI_FA_NEWS_MIN_OVERALL) {
       updNews.push({
-        id: crypto.randomUUID(),
+        id: safeRandomUUID(),
         week,
         season,
         type: 'free_agent',

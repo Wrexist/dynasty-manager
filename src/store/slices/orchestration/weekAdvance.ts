@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import { Club, Player, TransferListing, Match } from '@/types/game';
 import { calculateReputationTier, generateJobVacancies, generateCompetitors } from '@/utils/managerCareer';
 import {
@@ -12,7 +13,7 @@ import {
 } from '@/config/staff';
 
 import type { GameState } from '../../storeTypes';
-import { addMsg, pick, shuffle } from '@/utils/helpers';
+import { addMsg, pick, shuffle, safeRandomUUID } from '@/utils/helpers';
 
 import { DOMESTIC_SUPER_CUP_WEEK, CONTINENTAL_SUPER_CUP_WEEK } from '@/config/continental';
 
@@ -676,6 +677,16 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     return;
   }
   const { week, season, fixtures, clubs, players, playerClubId, training, staff, scouting, facilities, messages, boardConfidence } = state;
+
+  // Defensive guard: if playerClubId points at a missing club (corrupted save,
+  // mid-flight prestige reset, sacked manager whose club was purged), the
+  // entire week tick would crash on `pc.playerIds`. Bail out cleanly instead.
+  if (!playerClubId || !clubs[playerClubId]) {
+    Sentry.captureMessage('advanceWeek: missing player club', { level: 'warning', tags: { playerClubId: playerClubId || 'empty' } });
+    set({ week: state.week + 1 });
+    return;
+  }
+
   const newPlayers = { ...players };
   let newMessages = [...messages];
   const newTimeline: CareerMilestone[] = [];
@@ -685,7 +696,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   const digestRecoveries: string[] = [];
   const prevMorale = (() => {
     const pc = clubs[playerClubId];
-    const ids = pc.playerIds;
+    const ids = pc.playerIds || [];
     if (ids.length === 0) return 0;
     return Math.round(ids.reduce((s, id) => s + (players[id]?.morale || 0), 0) / ids.length);
   })();
@@ -1496,7 +1507,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
           offerFee = maxAffordable;
         }
         if (buyer.budget >= offerFee && offerFee <= buyer.budget * OFFER_MAX_BUDGET_RATIO) {
-          const offer: IncomingOffer = { id: crypto.randomUUID(), playerId: tp.id, buyerClubId: buyer.id, fee: offerFee, week: newWeek };
+          const offer: IncomingOffer = { id: safeRandomUUID(), playerId: tp.id, buyerClubId: buyer.id, fee: offerFee, week: newWeek };
           newOffers.push(offer);
           newMessages = addMsg(newMessages, {
             week: newWeek, season, type: 'transfer',
@@ -1763,7 +1774,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
       if (panicFee > bidder.budget * 0.6) continue; // Don't bid more than 60% of budget
       const existingOffer = newOffers.find(o => o.playerId === target.id && o.buyerClubId === bidderId);
       if (existingOffer) continue;
-      newOffers.push({ id: crypto.randomUUID(), playerId: target.id, buyerClubId: bidderId, fee: panicFee, week: newWeek });
+      newOffers.push({ id: safeRandomUUID(), playerId: target.id, buyerClubId: bidderId, fee: panicFee, week: newWeek });
       newMessages = addMsg(newMessages, { week: newWeek, season, type: 'transfer', title: `URGENT: Bid for ${target.lastName}`, body: `${bidder.name} have made a last-minute bid of £${(panicFee / 1e6).toFixed(1)}M for ${target.firstName} ${target.lastName}! Respond before the window closes.` });
       // Multi-bid: chance of a second club bidding for the same player
       if (Math.random() < DEADLINE_MULTI_BID_CHANCE) {
@@ -1772,7 +1783,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
         if (secondBidder) {
           const rivalFee = Math.round(panicFee * 1.1); // 10% above first bid
           if (rivalFee <= secondBidder.budget * 0.6) {
-            newOffers.push({ id: crypto.randomUUID(), playerId: target.id, buyerClubId: secondBidderId, fee: rivalFee, week: newWeek });
+            newOffers.push({ id: safeRandomUUID(), playerId: target.id, buyerClubId: secondBidderId, fee: rivalFee, week: newWeek });
             newMessages = addMsg(newMessages, { week: newWeek, season, type: 'transfer', title: `BIDDING WAR: ${target.lastName}`, body: `${secondBidder.name} have entered the race for ${target.firstName} ${target.lastName} with a rival bid of £${(rivalFee / 1e6).toFixed(1)}M!` });
           }
         }
@@ -2573,7 +2584,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
             // Don't send duplicate offers
             if (!newLoanOffers.some(o => o.playerId === fp.id)) {
               const offer: IncomingLoanOffer = {
-                id: crypto.randomUUID(),
+                id: safeRandomUUID(),
                 playerId: fp.id,
                 fromClubId: aiClub.id,
                 durationWeeks: pick([...AI_LOAN_DURATIONS]),

@@ -82,7 +82,7 @@ export function getSpecializationTitle(prog: ManagerProgression): string {
     branch,
     count: MANAGER_PERKS.filter(p => p.branch === branch && prog.unlockedPerks.includes(p.id)).length,
   }));
-  const maxCount = Math.max(...counts.map(c => c.count));
+  const maxCount = counts.reduce((m, c) => c.count > m ? c.count : m, 0);
   if (maxCount === 0) return '';
   const topBranches = counts.filter(c => c.count === maxCount);
   if (topBranches.length > 1) return 'The All-Rounder';

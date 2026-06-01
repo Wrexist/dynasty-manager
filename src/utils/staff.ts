@@ -1,5 +1,5 @@
 import { StaffMember, StaffRole, StaffTrait, StaffPerformance } from '@/types/game';
-import { pick } from './helpers';
+import { pick, safeRandomUUID } from './helpers';
 import {
   STAFF_WAGE_PER_QUALITY, STAFF_WAGE_RANDOM_RANGE, STAFF_QUALITY_MIN, STAFF_QUALITY_MAX,
   INITIAL_BASE_QUALITY_BONUS, INITIAL_BASE_QUALITY_CAP,
@@ -52,7 +52,7 @@ function freshPerformance(): StaffPerformance {
 function generateStaffMember(role: StaffRole, quality: number): StaffMember {
   const q = Math.max(STAFF_QUALITY_MIN, Math.min(STAFF_QUALITY_MAX, quality));
   return {
-    id: crypto.randomUUID(),
+    id: safeRandomUUID(),
     firstName: pick(FIRST_NAMES),
     lastName: pick(LAST_NAMES),
     role,

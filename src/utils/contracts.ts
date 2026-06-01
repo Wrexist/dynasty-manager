@@ -1,4 +1,5 @@
 import type { Player, ContractOffer } from '@/types/game';
+import { safeRandomUUID } from '@/utils/helpers';
 import {
   CONTRACT_NEAR_EXPIRY_SEASONS,
   CONTRACT_AGE_BRACKETS, CONTRACT_DEFAULT_AGE_FACTOR,
@@ -133,7 +134,7 @@ export function createContractOffer(
   const contractYears = yearsBracket ? yearsBracket.years : CONTRACT_DEFAULT_YEARS;
 
   return {
-    id: crypto.randomUUID(),
+    id: safeRandomUUID(),
     playerId: player.id,
     type: isRenewal ? 'renewal' : 'new',
     offeredWage: Math.round(Math.round(demandedWage * CONTRACT_INITIAL_OFFER_MULTIPLIER) / 1000) * 1000 || Math.round(demandedWage * CONTRACT_INITIAL_OFFER_MULTIPLIER),

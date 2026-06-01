@@ -1,3 +1,7 @@
+// Must be the first import. Initializes Sentry synchronously so any throw
+// during the heavier import chain below (App, gameStore, slices) still
+// reaches Sentry rather than being lost to the iOS native uncaught handler.
+import './bootstrap-sentry';
 import * as Sentry from "@sentry/react";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
@@ -38,19 +42,26 @@ requestAnimationFrame(() => {
   });
 });
 
-// Catch unhandled promise rejections (async errors outside React tree)
+// Catch unhandled promise rejections (async errors outside React tree).
+// event.reason can be undefined on iOS WKWebView when a fetch is aborted
+// during background; coerce to a real Error so Sentry actually captures it.
 window.addEventListener('unhandledrejection', (event) => {
+  const reason = event.reason ?? new Error('Unhandled rejection with no reason');
   addGameBreadcrumb('crash', 'Unhandled promise rejection');
   track('crash', { category: 'unhandled_rejection' });
-  Sentry.captureException(event.reason, { tags: { context: 'unhandledRejection' } });
+  Sentry.captureException(reason, { tags: { context: 'unhandledRejection' } });
 });
 
 // Catch uncaught synchronous errors outside the React tree. The Sentry SDK's
-// own GlobalHandlers integration covers this, but we piggy-back to drop a
-// breadcrumb — gives the dashboard one extra trail entry per crash.
+// own GlobalHandlers integration normally covers this, but we belt-and-braces
+// capture here too — when VITE_SENTRY_DSN is missing in a TestFlight build,
+// the SDK no-ops and we'd otherwise lose the error entirely.
 window.addEventListener('error', (event) => {
   addGameBreadcrumb('crash', 'Uncaught error', { message: event.message?.slice(0, 120) ?? null });
   track('crash', { category: 'uncaught_error' });
+  if (event.error) {
+    Sentry.captureException(event.error, { tags: { context: 'window.error' } });
+  }
 });
 
 // Save any pending state before the page goes away. We use flushForLifecycle()
@@ -62,8 +73,14 @@ window.addEventListener('error', (event) => {
 // Chrome. beforeunload is kept for desktop browsers that don't always fire
 // pagehide (e.g. Firefox on some flows).
 function flushOnLifecycle() {
-  const state = useGameStore.getState();
-  if (state.gameStarted) state.flushForLifecycle();
+  // Lifecycle handlers fire during page hide / app background. A throw here
+  // can hang the iOS WKWebView during backgrounding or corrupt the save.
+  try {
+    const state = useGameStore.getState();
+    if (state.gameStarted) state.flushForLifecycle();
+  } catch (err) {
+    Sentry.captureException(err, { tags: { context: 'flushOnLifecycle' } });
+  }
 }
 
 window.addEventListener('pagehide', flushOnLifecycle);
@@ -71,6 +88,26 @@ window.addEventListener('beforeunload', flushOnLifecycle);
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') flushOnLifecycle();
 });
+
+// Splash screen hide is idempotent — calling SplashScreen.hide() twice in
+// the same launch can throw on iOS 15.x (the view's CALayer may already be
+// dealloc'd). Memoize the in-flight / resolved promise so concurrent callers
+// share one hide attempt; reset to null on rejection so the 5s failsafe can
+// retry instead of leaving the user stuck on the splash.
+let hideSplashPromise: Promise<void> | null = null;
+function hideSplashOnce(): Promise<void> {
+  if (hideSplashPromise) return hideSplashPromise;
+  hideSplashPromise = (async () => {
+    try {
+      const { SplashScreen } = await import('@capacitor/splash-screen');
+      await SplashScreen.hide();
+    } catch (err) {
+      Sentry.captureException(err, { tags: { context: 'splash.hide' } });
+      hideSplashPromise = null;
+    }
+  })();
+  return hideSplashPromise;
+}
 
 // Initialize Capacitor plugins when running as native app
 async function initNative() {
@@ -84,11 +121,15 @@ async function initNative() {
       return;
     }
 
-    // Status bar — isolated so failure doesn't block splash hide
+    // Status bar — isolated so failure doesn't block splash hide.
+    // setBackgroundColor is Android-only; calling it on iOS is a no-op
+    // in current plugin versions but logged warnings on earlier 8.x.
     try {
       const { StatusBar, Style } = await import('@capacitor/status-bar');
       await StatusBar.setStyle({ style: Style.Dark });
-      await StatusBar.setBackgroundColor({ color: '#0f1524' });
+      if (Capacitor.getPlatform() === 'android') {
+        await StatusBar.setBackgroundColor({ color: '#0f1524' });
+      }
     } catch (err) {
       if (import.meta.env.DEV) console.warn('[initNative] StatusBar init failed:', err);
       Sentry.captureException(err, { tags: { context: 'initNative.StatusBar' } });
@@ -112,9 +153,13 @@ async function initNative() {
     try {
       const { App: CapApp } = await import('@capacitor/app');
       CapApp.addListener('pause', () => {
-        const state = useGameStore.getState();
-        if (state.gameStarted) {
-          state.flushForLifecycle();
+        try {
+          const state = useGameStore.getState();
+          if (state.gameStarted) {
+            state.flushForLifecycle();
+          }
+        } catch (err) {
+          Sentry.captureException(err, { tags: { context: 'capApp.pause' } });
         }
       });
     } catch (err) {
@@ -123,12 +168,11 @@ async function initNative() {
     }
 
     // Wait for React to paint before hiding splash (3s safety timeout)
-    const { SplashScreen } = await import('@capacitor/splash-screen');
     await Promise.race([
       appReady,
       new Promise<void>(resolve => setTimeout(resolve, 3000)),
     ]);
-    await SplashScreen.hide();
+    await hideSplashOnce();
   } catch (err) {
     if (import.meta.env.DEV) console.error('[initNative] Native initialization failed:', err);
     Sentry.captureException(err, { tags: { context: 'initNative' } });
@@ -137,11 +181,7 @@ async function initNative() {
 
 initNative();
 
-// Splash failsafe — if initNative throws before SplashScreen.hide() is reached
+// Splash failsafe — if initNative throws before splash hide is reached
 // (or that call itself rejects), TestFlight users would see a stuck splash.
-// Force-hide after 5s no matter what — runs once, harmless if splash is gone.
-setTimeout(() => {
-  void import('@capacitor/splash-screen')
-    .then(({ SplashScreen }) => SplashScreen.hide())
-    .catch(() => {});
-}, 5000);
+// Force-hide after 5s. hideSplashOnce guards against double-hide crashes.
+setTimeout(() => { void hideSplashOnce(); }, 5000);

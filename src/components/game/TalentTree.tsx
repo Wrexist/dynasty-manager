@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
@@ -27,6 +27,8 @@ interface TalentTreeProps {
 export function TalentTree({ progression, onUnlock }: TalentTreeProps) {
   const [selectedPerk, setSelectedPerk] = useState<ManagerPerk | null>(null);
   const [justUnlocked, setJustUnlocked] = useState<PerkId | null>(null);
+  const justUnlockedTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => () => clearTimeout(justUnlockedTimerRef.current), []);
   const capstone = getCapstonePerk();
   const isCapstoneUnlocked = progression.unlockedPerks.includes(capstone.id);
   const highBranches = countHighBranches(progression);
@@ -36,7 +38,8 @@ export function TalentTree({ progression, onUnlock }: TalentTreeProps) {
     setJustUnlocked(perkId);
     setSelectedPerk(null);
     // Clear highlight after animation
-    setTimeout(() => setJustUnlocked(null), 1500);
+    clearTimeout(justUnlockedTimerRef.current);
+    justUnlockedTimerRef.current = setTimeout(() => setJustUnlocked(null), 1500);
   };
 
   return (
