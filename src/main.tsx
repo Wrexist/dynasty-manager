@@ -91,18 +91,22 @@ document.addEventListener('visibilitychange', () => {
 
 // Splash screen hide is idempotent — calling SplashScreen.hide() twice in
 // the same launch can throw on iOS 15.x (the view's CALayer may already be
-// dealloc'd). This guard ensures both the happy path AND the 5s failsafe
-// reach a single hide call.
-let splashHidden = false;
-async function hideSplashOnce() {
-  if (splashHidden) return;
-  splashHidden = true;
-  try {
-    const { SplashScreen } = await import('@capacitor/splash-screen');
-    await SplashScreen.hide();
-  } catch (err) {
-    Sentry.captureException(err, { tags: { context: 'splash.hide' } });
-  }
+// dealloc'd). Memoize the in-flight / resolved promise so concurrent callers
+// share one hide attempt; reset to null on rejection so the 5s failsafe can
+// retry instead of leaving the user stuck on the splash.
+let hideSplashPromise: Promise<void> | null = null;
+function hideSplashOnce(): Promise<void> {
+  if (hideSplashPromise) return hideSplashPromise;
+  hideSplashPromise = (async () => {
+    try {
+      const { SplashScreen } = await import('@capacitor/splash-screen');
+      await SplashScreen.hide();
+    } catch (err) {
+      Sentry.captureException(err, { tags: { context: 'splash.hide' } });
+      hideSplashPromise = null;
+    }
+  })();
+  return hideSplashPromise;
 }
 
 // Initialize Capacitor plugins when running as native app
