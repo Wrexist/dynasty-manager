@@ -42,7 +42,9 @@ export interface PendingRelease {
 }
 
 export const PENDING_NEWS: PendingRelease = {
-  highlights: [],
+  highlights: [
+    'Walkout cinematics now run longer with a stats-tick reveal, ambient particles and a clear Skip pill so the moment really lands.',
+  ],
   new: [
     'Dynasty Pro annual plan added, with localized pricing.',
   ],

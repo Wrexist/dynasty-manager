@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import type { Player } from '@/types/game';
 import { PlayerCard } from '@/components/game/PlayerCard';
@@ -8,6 +8,7 @@ import { PackConfetti } from './PackConfetti';
 import { WalkoutStadium } from './WalkoutStadium';
 import { useTypewriter } from './useTypewriter';
 import { hapticHeavy, hapticLight, hapticMedium } from '@/utils/haptics';
+import { cn } from '@/lib/utils';
 
 interface WalkoutRevealProps {
   player: Player;
@@ -22,6 +23,137 @@ const WALKOUT_CARD_W = 244;
 const PLAYER_CARD_XL_W = 220;
 const CARD_SCALE = WALKOUT_CARD_W / PLAYER_CARD_XL_W;
 
+/** Soft drift of tier-coloured particles behind the hero card. Slow, blurred,
+ *  near-transparent — meant to read as ambient atmosphere, not confetti.
+ *  Deterministic per-mount so motion stays consistent between re-renders. */
+function ParticleDrift({ accent, count = 14 }: { accent: string; count?: number }) {
+  const particles = useMemo(() => {
+    const seed = Math.random() * 10_000;
+    return Array.from({ length: count }, (_, i) => {
+      const r = (seed + i * 31) % 1;
+      const r2 = (seed * 1.7 + i * 17) % 1;
+      const r3 = (seed * 2.3 + i * 7) % 1;
+      const r4 = (seed * 3.1 + i * 5) % 1;
+      return {
+        i,
+        x: 10 + r * 80, // %
+        size: 3 + r2 * 5, // px
+        duration: 6 + r3 * 6, // s
+        delay: r4 * 5, // s
+        opacity: 0.15 + r2 * 0.25,
+      };
+    });
+  }, [count]);
+
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden>
+      {particles.map(p => (
+        <motion.span
+          key={`particle-${p.i}`}
+          className="absolute rounded-full"
+          style={{
+            left: `${p.x}%`,
+            bottom: -8,
+            width: p.size,
+            height: p.size,
+            background: accent,
+            boxShadow: `0 0 ${p.size * 2}px ${accent}`,
+            filter: 'blur(0.5px)',
+            opacity: p.opacity,
+            willChange: 'transform, opacity',
+          }}
+          initial={{ y: 0, opacity: 0 }}
+          animate={{ y: '-110vh', opacity: [0, p.opacity, p.opacity, 0] }}
+          transition={{
+            duration: p.duration,
+            delay: p.delay,
+            repeat: Infinity,
+            ease: 'easeOut',
+            times: [0, 0.12, 0.78, 1],
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// Order + labels match the on-card row in PlayerCard so the stat reveal
+// visually echoes the card the user is about to see flip face-up. DRI is
+// the canonical FC-style label for the `mental` attribute.
+const ATTRIBUTE_ROW: Array<{ key: keyof Player['attributes']; label: string }> = [
+  { key: 'pace', label: 'PAC' },
+  { key: 'shooting', label: 'SHO' },
+  { key: 'passing', label: 'PAS' },
+  { key: 'mental', label: 'DRI' },
+  { key: 'defending', label: 'DEF' },
+  { key: 'physical', label: 'PHY' },
+];
+
+/** Single attribute pill that ticks from 0 to its final value over ~360ms,
+ *  delayed by its index in the row so the stats reveal in sequence. */
+function AttributePill({
+  label,
+  value,
+  accent,
+  delay,
+  prefersReducedMotion,
+}: {
+  label: string;
+  value: number;
+  accent: string;
+  delay: number;
+  prefersReducedMotion: boolean;
+}) {
+  const [display, setDisplay] = useState(prefersReducedMotion ? value : 0);
+
+  useEffect(() => {
+    if (prefersReducedMotion) {
+      setDisplay(value);
+      return;
+    }
+    const startTimer = window.setTimeout(() => {
+      hapticLight();
+      const start = performance.now();
+      const dur = 360;
+      let raf = 0;
+      const tick = (now: number) => {
+        const t = Math.min(1, (now - start) / dur);
+        const eased = 1 - Math.pow(1 - t, 3);
+        setDisplay(Math.round(value * eased));
+        if (t < 1) raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+      return () => cancelAnimationFrame(raf);
+    }, delay);
+    return () => window.clearTimeout(startTimer);
+  }, [value, delay, prefersReducedMotion]);
+
+  return (
+    <motion.div
+      className="flex flex-col items-center gap-0.5 rounded-xl px-2 py-1.5 backdrop-blur-md"
+      style={{
+        background: 'rgba(255,255,255,0.06)',
+        border: `1px solid ${accent}40`,
+        boxShadow: `inset 0 1px 0 rgba(255,255,255,0.15), 0 4px 12px ${accent}1a`,
+        minWidth: 44,
+      }}
+      initial={{ opacity: 0, y: 12, scale: 0.9 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.35, delay: delay / 1000, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <span className="text-[8px] uppercase tracking-[0.2em] font-semibold" style={{ color: `${accent}cc` }}>
+        {label}
+      </span>
+      <span
+        className="text-base font-display font-black tabular-nums leading-none"
+        style={{ color: '#fff', textShadow: `0 0 12px ${accent}66` }}
+      >
+        {display}
+      </span>
+    </motion.div>
+  );
+}
+
 /**
  * 84+ hero reveal. The walkout card IS the real {@link PlayerCard} under a
  * cinematic frame — no bespoke card visual, so the walkout matches every
@@ -31,38 +163,46 @@ const CARD_SCALE = WALKOUT_CARD_W / PLAYER_CARD_XL_W;
  *   enter → card scales in face-down (tier back, holo ring, halo)
  *   name  → typewriter name + tier label under the card
  *   flip  → 3D Y-flip reveals the real PlayerCard; flash + shockwave
- *   hold  → potential bar + subtle bob; hold ~2.2s
+ *   stats → 6 attribute pills tick from 0 to value in sequence (~1.5s)
+ *   hold  → potential bar + position/nation plate + subtle bob; hold ~2.4s
  *   done  → onComplete()
+ *
+ * Total ≈ 6s. Tap anywhere to skip; a thin progress arc on the skip pill
+ * shows how long is left.
  */
 export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
   const tier = tierForOvr(player.overall);
   const isLegendary = player.overall >= LEGENDARY_OVR_THRESHOLD;
   const prefersReducedMotion = useReducedMotion();
 
-  const [phase, setPhase] = useState<'enter' | 'name' | 'flip' | 'hold' | 'done'>('enter');
+  const [phase, setPhase] = useState<'enter' | 'name' | 'flip' | 'stats' | 'hold' | 'done'>('enter');
 
   const name = `${player.firstName} ${player.lastName}`.toUpperCase();
   const typed = useTypewriter(
     name,
     PACK_ANIM.walkout.typewriterPerCharMs,
-    phase === 'name' || phase === 'flip' || phase === 'hold',
+    phase === 'name' || phase === 'flip' || phase === 'stats' || phase === 'hold',
     !!prefersReducedMotion,
   );
 
+  // Total cinematic length — used by the skip-progress arc.
+  const enterMs = PACK_ANIM.walkout.enterMs;
+  const nameMs = Math.max(560, name.length * PACK_ANIM.walkout.typewriterPerCharMs + 140);
+  const flipMs = PACK_ANIM.walkout.flipMs;
+  const statsMs = PACK_ANIM.walkout.statsMs;
+  const holdMs = PACK_ANIM.walkout.holdMs;
+  const totalMs = enterMs + nameMs + flipMs + statsMs + holdMs;
+
   useEffect(() => {
     hapticLight();
-    const enterMs = 520;
-    const nameMs = Math.max(520, name.length * PACK_ANIM.walkout.typewriterPerCharMs + 120);
-    const flipMs = 720;
-
     const t1 = window.setTimeout(() => { setPhase('name'); hapticMedium(); }, enterMs);
     const t2 = window.setTimeout(() => { setPhase('flip'); hapticHeavy(); }, enterMs + nameMs);
-    const t3 = window.setTimeout(() => { setPhase('hold'); }, enterMs + nameMs + flipMs);
-    const t4 = window.setTimeout(() => { setPhase('done'); onComplete(); },
-      enterMs + nameMs + flipMs + PACK_ANIM.walkout.holdMs);
+    const t3 = window.setTimeout(() => { setPhase('stats'); }, enterMs + nameMs + flipMs);
+    const t4 = window.setTimeout(() => { setPhase('hold'); hapticMedium(); }, enterMs + nameMs + flipMs + statsMs);
+    const t5 = window.setTimeout(() => { setPhase('done'); onComplete(); }, totalMs);
 
-    return () => { [t1, t2, t3, t4].forEach(window.clearTimeout); };
-  }, [name.length, onComplete]);
+    return () => { [t1, t2, t3, t4, t5].forEach(window.clearTimeout); };
+  }, [enterMs, nameMs, flipMs, statsMs, holdMs, totalMs, onComplete]);
 
   const skip = () => {
     if (phase === 'done') return;
@@ -70,7 +210,8 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
     onComplete();
   };
 
-  const revealed = phase === 'flip' || phase === 'hold';
+  const revealed = phase === 'flip' || phase === 'stats' || phase === 'hold';
+  const statsActive = phase === 'stats' || phase === 'hold';
   const tierGradient = `linear-gradient(135deg, ${tier.gradientFrom} 0%, ${tier.gradientVia} 45%, ${tier.gradientTo} 100%)`;
 
   return (
@@ -91,6 +232,11 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
           background: `radial-gradient(circle at 50% 46%, ${tier.gradientFrom}26 0%, rgba(0,0,0,0.82) 52%, #000 85%)`,
         }}
       />
+
+      {/* Soft tier-coloured particle drift — ambient atmosphere that runs
+          the whole cinematic. Reads as fairy dust rising through the
+          frame; never competes with the hero card for attention. */}
+      {!prefersReducedMotion && <ParticleDrift accent={tier.gradientVia} count={isLegendary ? 20 : 14} />}
 
       {/* Legendary stadium dressing — spotlight, igniting floodlights, fog,
           a hero silhouette behind the card, and a crowd flecked with
@@ -348,7 +494,55 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
           )}
         </h1>
 
-        {/* Potential bar — slides in at hold. */}
+        {/* Attribute row — six FIFA-style pills tick from 0 → final value in
+            sequence during the `stats` phase, with a sub-haptic on each.
+            This is the new beat that extends the cinematic and pays off
+            the dramatic flip with a clear "look what you pulled" reveal. */}
+        <AnimatePresence>
+          {statsActive && (
+            <motion.div
+              key="stats-row"
+              className="mt-4 flex justify-center gap-1.5"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+            >
+              {ATTRIBUTE_ROW.map((attr, i) => (
+                <AttributePill
+                  key={attr.key}
+                  label={attr.label}
+                  value={player.attributes[attr.key]}
+                  accent={tier.gradientVia}
+                  delay={i * PACK_ANIM.walkout.statsStaggerMs}
+                  prefersReducedMotion={!!prefersReducedMotion}
+                />
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Position · Nationality plate — slides in during hold for a final
+            "scouting report" beat. Reuses tier colours so the chrome stays
+            coherent end-to-end. */}
+        <motion.div
+          className="mt-3 inline-flex items-center justify-center gap-2.5 px-3 py-1 rounded-full text-[10px] uppercase tracking-[0.28em] font-semibold"
+          style={{
+            background: 'rgba(255,255,255,0.05)',
+            border: `1px solid ${tier.gradientVia}55`,
+            color: '#fff',
+            boxShadow: `inset 0 1px 0 rgba(255,255,255,0.18), 0 6px 18px ${tier.gradientVia}1f`,
+          }}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: phase === 'hold' ? 1 : 0, y: phase === 'hold' ? 0 : 8 }}
+          transition={{ duration: 0.4, delay: phase === 'hold' ? 0.05 : 0 }}
+        >
+          <span>{player.position}</span>
+          <span className="w-px h-3" style={{ background: `${tier.gradientVia}66` }} aria-hidden />
+          <span className="opacity-90">{player.nationality}</span>
+        </motion.div>
+
+        {/* Potential bar — slides in during hold, slightly after the plate. */}
         <motion.div
           className="mt-3 mx-auto max-w-[240px]"
           initial={{ opacity: 0, y: 10 }}
@@ -374,10 +568,49 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
         </motion.div>
       </div>
 
-      {/* Skip hint */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[10px] uppercase tracking-widest text-white/40 pointer-events-none">
-        Tap to skip
-      </div>
+      {/* Skip pill — a real button (clearer than the previous static text)
+          with a thin progress ring that drains over the cinematic length so
+          the user can see how long is left. Appears after 0.8s to avoid
+          fighting with the entrance beat. */}
+      <motion.button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); skip(); }}
+        className={cn(
+          'absolute bottom-[max(env(safe-area-inset-bottom),18px)] left-1/2 -translate-x-1/2',
+          'flex items-center gap-2 pl-2.5 pr-3.5 py-1.5 rounded-full',
+          'text-[10px] uppercase tracking-[0.28em] font-semibold text-white/85',
+          'bg-white/[0.07] border border-white/20 backdrop-blur-md',
+          'shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_8px_24px_-12px_rgba(0,0,0,0.55)]',
+          'active:scale-[0.96] transition-[transform,background-color] duration-150',
+          'hover:bg-white/[0.12]',
+        )}
+        aria-label="Skip cinematic"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: phase === 'done' ? 0 : 1, y: 0 }}
+        transition={{ duration: 0.45, delay: 0.8, ease: 'easeOut' }}
+      >
+        <svg viewBox="0 0 24 24" className="w-4 h-4" aria-hidden>
+          {/* Track */}
+          <circle cx="12" cy="12" r="9" fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="2" />
+          {/* Progress arc — animates from full to empty over the cinematic
+              duration via the SVG dasharray trick. */}
+          <motion.circle
+            cx="12"
+            cy="12"
+            r="9"
+            fill="none"
+            stroke={tier.gradientVia}
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeDasharray={2 * Math.PI * 9}
+            transform="rotate(-90 12 12)"
+            initial={{ strokeDashoffset: 0 }}
+            animate={{ strokeDashoffset: 2 * Math.PI * 9 }}
+            transition={{ duration: totalMs / 1000, ease: 'linear' }}
+          />
+        </svg>
+        <span>Skip</span>
+      </motion.button>
 
       {/* SR announcement at reveal. */}
       {revealed && (
