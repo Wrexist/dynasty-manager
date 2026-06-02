@@ -146,7 +146,11 @@ const CinematicCapturePage = () => {
 
   const handlePackClose = useCallback(() => {
     // Tiny pause between beats so post-edit boundaries land cleanly.
-    window.setTimeout(advance, 400);
+    // Tracked via the shared timerRef so the existing unmount cleanup
+    // cancels it — otherwise a fast exit during this window would fire
+    // setBeatIndex on an unmounted component.
+    if (timerRef.current) window.clearTimeout(timerRef.current);
+    timerRef.current = window.setTimeout(advance, 400);
   }, [advance]);
 
   const noop = useCallback(() => { /* cinematic loop — no state mutation */ }, []);

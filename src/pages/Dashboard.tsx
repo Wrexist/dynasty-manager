@@ -185,6 +185,15 @@ const Dashboard = () => {
 
   const [isAdvancing, setIsAdvancing] = useState(false);
   const [advanceDone, setAdvanceDone] = useState(false);
+  // Refs for the two nested setTimeouts in the Advance Week handler so a
+  // fast navigation during the 50ms / ADVANCE_DONE_MS window doesn't fire
+  // setState on an unmounted Dashboard.
+  const advanceKickoffTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const advanceDoneTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (advanceKickoffTimerRef.current) clearTimeout(advanceKickoffTimerRef.current);
+    if (advanceDoneTimerRef.current) clearTimeout(advanceDoneTimerRef.current);
+  }, []);
   const [boardWarningDismissed, setBoardWarningDismissed] = useState(false);
   const [midSeasonShown, setMidSeasonShown] = useState(() => getFlag(`dynasty-midseason-s${season}`));
   const showMidSeason = week === MID_SEASON_WEEK && !midSeasonShown;
@@ -636,12 +645,23 @@ const Dashboard = () => {
   // don't re-dot it here (the 'club' tile was removed and that entry would be
   // dead code anyway).
   const lineupIncomplete = (club.lineup || []).filter(Boolean).length < 11;
-  const packPityPrimed = packPityCounter >= PACK_PITY_THRESHOLD - 2;
-  const quickLinkDots: Record<string, string> = {
-    ...(lineupIncomplete ? { squad: 'bg-destructive' } : {}),
-    ...(transferWindowOpen ? { transfers: 'bg-emerald-500' } : {}),
-    ...(training.tacticalFamiliarity < 40 ? { training: 'bg-amber-500' } : {}),
-    ...(packPityPrimed ? { packs: 'bg-yellow-400' } : {}),
+  const packPityRemaining = Math.max(0, PACK_PITY_THRESHOLD - packPityCounter);
+  const packPityPrimed = packPityRemaining <= 2;
+  // Quick-link badges. Most links carry a simple coloured dot when there's
+  // something to attend to; the packs link gets a premium count badge so
+  // the user can see "1 pack to guarantee" or "✦ ready" at a glance from
+  // any screen without opening the packs shop first.
+  const quickLinkBadges: Record<string, { color: string; label?: string; labelColor?: string }> = {
+    ...(lineupIncomplete ? { squad: { color: 'bg-destructive' } } : {}),
+    ...(transferWindowOpen ? { transfers: { color: 'bg-emerald-500' } } : {}),
+    ...(training.tacticalFamiliarity < 40 ? { training: { color: 'bg-amber-500' } } : {}),
+    ...(packPityPrimed
+      ? {
+          packs: packPityRemaining === 0
+            ? { color: 'bg-gradient-to-br from-amber-200 to-amber-500', label: '✦', labelColor: 'text-amber-950' }
+            : { color: 'bg-gradient-to-br from-amber-300 to-amber-500', label: String(packPityRemaining), labelColor: 'text-amber-950' },
+        }
+      : {}),
   };
 
   return (
@@ -1017,7 +1037,8 @@ const Dashboard = () => {
           )} disabled={isAdvancing} onClick={() => {
             hapticMedium();
             setIsAdvancing(true);
-            setTimeout(() => {
+            if (advanceKickoffTimerRef.current) clearTimeout(advanceKickoffTimerRef.current);
+            advanceKickoffTimerRef.current = setTimeout(() => {
               guardAsync(
                 advanceWeek(),
                 'Dashboard.advanceWeek',
@@ -1026,7 +1047,8 @@ const Dashboard = () => {
               setIsAdvancing(false);
               setAdvanceDone(true);
               hapticHeavy();
-              setTimeout(() => setAdvanceDone(false), ADVANCE_DONE_MS);
+              if (advanceDoneTimerRef.current) clearTimeout(advanceDoneTimerRef.current);
+              advanceDoneTimerRef.current = setTimeout(() => setAdvanceDone(false), ADVANCE_DONE_MS);
             }, 50);
           }}>
             {isAdvancing ? <><Loader2 className="w-4 h-4 animate-spin" /> Advancing...</> : <><ChevronRight className="w-4 h-4" /> Advance to Week {week + 1}</>}
@@ -1162,7 +1184,7 @@ const Dashboard = () => {
       <div className="grid grid-cols-4 gap-2.5">
         {QUICK_LINKS.map((link, i) => {
           const Icon = link.icon;
-          const dot = quickLinkDots[link.screen];
+          const badge = quickLinkBadges[link.screen];
           return (
             <motion.div
               key={link.label}
@@ -1181,7 +1203,24 @@ const Dashboard = () => {
                   <Icon className={cn('w-5 h-5', link.color)} />
                 </div>
                 <span className="relative text-xs font-semibold tracking-wide text-foreground whitespace-nowrap">{link.label}</span>
-                {dot && <span className={cn('absolute top-1.5 right-1.5 w-2 h-2 rounded-full ring-2 ring-card', dot)} />}
+                {badge && (
+                  badge.label ? (
+                    <span
+                      className={cn(
+                        'absolute top-1 right-1 min-w-[16px] h-[16px] px-1 rounded-full ring-2 ring-card',
+                        'flex items-center justify-center font-display font-black tabular-nums leading-none text-[10px]',
+                        'shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_4px_10px_-4px_rgba(251,191,36,0.55)]',
+                        badge.color,
+                        badge.labelColor ?? 'text-foreground',
+                      )}
+                      aria-label={link.screen === 'packs' ? (badge.label === '✦' ? 'Guarantee ready' : `${badge.label} packs to guarantee`) : undefined}
+                    >
+                      {badge.label}
+                    </span>
+                  ) : (
+                    <span className={cn('absolute top-1.5 right-1.5 w-2 h-2 rounded-full ring-2 ring-card', badge.color)} />
+                  )
+                )}
               </GlassPanel>
             </motion.div>
           );

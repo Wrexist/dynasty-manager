@@ -73,6 +73,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Pack results now scroll cleanly with the Sell All / Keep All buttons always reachable.',
     'Guarantee Tracker now glows gold when your next pack pulls 80+ — clearer reward moment, premium polish.',
     'Pack opening loading state now glows in tier colour and shows the pack name immediately — premium first second instead of a plain spinner.',
+    'Dashboard packs tile now shows a live count badge — see exactly how close you are to a guaranteed gold pull from any screen.',
   ],
   fixed: [
     'Fixed rare launch crashes related to ads.',
