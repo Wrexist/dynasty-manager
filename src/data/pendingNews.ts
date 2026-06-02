@@ -66,6 +66,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Pack-opening remake — Phase 1: cinematic stadium + loading open.',
     'Harden error handling and lifecycle safety across iOS/native.',
     'Enable iPad support by adding device family 2.',
+    'Guarantee Tracker now glows gold when your next pack pulls 80+ — clearer reward moment, premium polish.',
   ],
   fixed: [
     'Fixed rare launch crashes related to ads.',

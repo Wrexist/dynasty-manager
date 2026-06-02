@@ -919,16 +919,34 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
         )}
       </AnimatePresence>
 
-      {/* Pity hit banner */}
+      {/* Pity hit banner — a small premium glass chip that announces the
+          guarantee paid off. Uses gold rather than the generic primary
+          accent so it visually echoes the PacksPage Guarantee Tracker
+          and feels like the same "reward unlocked" moment landing. */}
       <AnimatePresence>
         {pityTriggered && (phase === 'reveal' || phase === 'summary') && (
           <motion.div
-            className="absolute top-4 left-1/2 -translate-x-1/2 text-[10px] uppercase tracking-widest px-3 py-1 rounded-full bg-primary/20 text-primary border border-primary/40 backdrop-blur"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
+            className="absolute left-1/2 -translate-x-1/2 top-[max(env(safe-area-inset-top),16px)] flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] uppercase tracking-[0.22em] font-display font-bold text-amber-100 backdrop-blur-md"
+            style={{
+              background: 'linear-gradient(180deg, rgba(251,191,36,0.22), rgba(251,191,36,0.10))',
+              border: '1px solid rgba(251,191,36,0.45)',
+              boxShadow:
+                'inset 0 1px 0 rgba(255,255,255,0.28), 0 8px 22px -10px rgba(251,191,36,0.55)',
+            }}
+            initial={{ opacity: 0, y: -10, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 22 }}
           >
-            Pity Bonus Applied
+            <motion.span
+              aria-hidden
+              className="text-amber-200"
+              animate={{ opacity: [0.6, 1, 0.6] }}
+              transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              ✦
+            </motion.span>
+            <span>Guarantee Unlocked</span>
           </motion.div>
         )}
       </AnimatePresence>
