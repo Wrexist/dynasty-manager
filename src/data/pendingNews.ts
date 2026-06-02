@@ -42,7 +42,9 @@ export interface PendingRelease {
 }
 
 export const PENDING_NEWS: PendingRelease = {
-  highlights: [],
+  highlights: [
+    'Pack summary now badges each pull with +X OVR vs your current best at the position — instantly see which pulls are real squad upgrades.',
+  ],
   new: [
     'Dynasty Pro annual plan added, with localized pricing.',
   ],

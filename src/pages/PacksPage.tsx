@@ -54,6 +54,35 @@ function formatCountdown(ms: number): string {
   return `${s}s`;
 }
 
+/** For each pulled player, compute how many OVR better they are than the
+ *  user's current best in the same position (excluding the just-pulled
+ *  cards themselves, since openPack already wrote them into the squad).
+ *  Returns a sparse map — only positive deltas are included, so consumers
+ *  can render an "upgrade" badge purely on key presence. */
+function computeSquadImprovement(
+  pulled: Player[],
+  squadPlayerIds: string[],
+  allPlayers: Record<string, Player>,
+): Record<string, { delta: number; currentBestOvr: number }> {
+  const pulledIds = new Set(pulled.map(p => p.id));
+  const bestByPosition = new Map<string, number>();
+  for (const id of squadPlayerIds) {
+    if (pulledIds.has(id)) continue;
+    const sp = allPlayers[id];
+    if (!sp) continue;
+    const prev = bestByPosition.get(sp.position) ?? 0;
+    if (sp.overall > prev) bestByPosition.set(sp.position, sp.overall);
+  }
+  const result: Record<string, { delta: number; currentBestOvr: number }> = {};
+  for (const p of pulled) {
+    const currentBest = bestByPosition.get(p.position) ?? 0;
+    if (currentBest === 0) continue; // no existing player at position → no badge
+    const delta = p.overall - currentBest;
+    if (delta > 0) result[p.id] = { delta, currentBestOvr: currentBest };
+  }
+  return result;
+}
+
 const PacksPage = () => {
   const { club, players, openedPacks, packPityCounter, season, week, dailyPackOpens } = useGameStore(useShallow((s) => ({
     club: s.clubs[s.playerClubId],
@@ -146,6 +175,14 @@ const PacksPage = () => {
 
   const pityRemaining = Math.max(0, PACK_PITY_THRESHOLD - packPityCounter);
   const pityProgressPct = Math.min(100, (packPityCounter / PACK_PITY_THRESHOLD) * 100);
+
+  /** Pre-computed "+X OVR vs current best" map for the currently-open pack.
+   *  Drives the upgrade badge on each summary card in the overlay. Memoized
+   *  on the open payload so we only walk the squad once per pack open. */
+  const openingImprovement = useMemo(() => {
+    if (!opening || !club) return undefined;
+    return computeSquadImprovement(opening.players, club.playerIds, players);
+  }, [opening, club, players]);
 
   // Per-tier daily-bucket reads. Resets when the device's local date
   // rolls over by virtue of the date key not matching any longer.
@@ -503,6 +540,7 @@ const PacksPage = () => {
             tier={opening.tier}
             players={opening.players}
             pityTriggered={opening.pityTriggered}
+            improvement={openingImprovement}
             onClose={() => {
               const { tier } = opening;
               setOpening(null);
