@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import type { Player } from '@/types/game';
 import { PlayerCard } from '@/components/game/PlayerCard';
@@ -77,19 +77,12 @@ function ParticleDrift({ accent, count = 14 }: { accent: string; count?: number 
   );
 }
 
-// Order + labels match the on-card row in PlayerCard so the stat reveal
-// visually echoes the card the user is about to see flip face-up. DRI is
-// the canonical FC-style label for the `mental` attribute.
 /** Big tickered OVR overlay that floods the frame at the flip moment.
  *  This is the single highest-impact number in the cinematic — the
  *  rating dictates everything downstream — so it gets the biggest
  *  visual treatment: scale-in, fast tick from 0, golden glow, then a
  *  graceful fade as the stats start landing. */
-function OvrOverlay({
-  value,
-  accent,
-  durationMs,
-}: {
+function OvrOverlay({ value, accent, durationMs }: {
   value: number;
   accent: string;
   durationMs: number;
@@ -140,6 +133,9 @@ function OvrOverlay({
   );
 }
 
+// Order + labels match the on-card row in PlayerCard so the stat reveal
+// visually echoes the card the user is about to see flip face-up. DRI is
+// the canonical FC-style label for the `mental` attribute.
 const ATTRIBUTE_ROW: Array<{ key: keyof Player['attributes']; label: string }> = [
   { key: 'pace', label: 'PAC' },
   { key: 'shooting', label: 'SHO' },
@@ -209,7 +205,7 @@ function AttributePill({
 
   return (
     <motion.div
-      className="flex flex-col items-center gap-0.5 rounded-xl px-2 py-1.5 backdrop-blur-md"
+      className="flex flex-col items-center gap-0.5 rounded-xl px-2 py-1 backdrop-blur-md"
       style={{
         background: 'rgba(255,255,255,0.06)',
         border: `1px solid ${accent}40`,
@@ -246,16 +242,22 @@ function AttributePill({
  * cinematic frame — no bespoke card visual, so the walkout matches every
  * other card surface in the app pixel for pixel.
  *
- * Beats:
- *   enter → card scales in face-down (tier back, holo ring, halo)
- *   name  → typewriter name + tier label under the card
- *   flip  → 3D Y-flip reveals the real PlayerCard; flash + shockwave
- *   stats → 6 attribute pills tick from 0 to value in sequence (~1.5s)
- *   hold  → potential bar + position/nation plate + subtle bob; hold ~2.4s
- *   done  → onComplete()
+ * Beats (all durations in PACK_ANIM.walkout):
+ *   enter  → card scales in face-down (tier back, holo ring, halo)
+ *   name   → typewriter name + tier label under the card
+ *   breath → held-breath stillness; particles dim, no haptic
+ *   flip   → 3D Y-flip reveals the real PlayerCard; flash, shockwave,
+ *            and a massive OVR ticker floods the frame
+ *   stats  → 6 attribute pills tick 0 → value and pop on landing; the
+ *            final pill triggers the crescendo (halo bloom + confetti +
+ *            heavy haptic)
+ *   hold   → potential bar slides in; gentle card bob
+ *   done   → onComplete()
  *
- * Total ≈ 6s. Tap anywhere to skip; a thin progress arc on the skip pill
- * shows how long is left.
+ * Total ≈ 6.3s. Tap anywhere on the scene (or the explicit Skip pill at
+ * the bottom) to skip — a thin progress arc on the pill shows how long
+ * is left. Tier-coloured particles drift the whole cinematic for ambient
+ * atmosphere; legendary tier adds the stadium dressing.
  */
 export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
   const tier = tierForOvr(player.overall);
@@ -266,13 +268,27 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
   // Crescendo flash — pulses on top of the halo when the LAST stat pill
   // lands. The visual payoff that closes the stats sequence.
   const [crescendoPulse, setCrescendoPulse] = useState(false);
+  // Held in a ref so unmount can cancel the deferred reset and we never
+  // setState on an unmounted component (would warn + leak).
+  const crescendoResetTimerRef = useRef<number | null>(null);
 
   const triggerCrescendo = useCallback(() => {
     hapticHeavy();
     setCrescendoPulse(true);
-    // Reset so a re-mount could replay; the flash itself is a one-shot
-    // animation driven by AnimatePresence on the element.
-    window.setTimeout(() => setCrescendoPulse(false), 900);
+    if (crescendoResetTimerRef.current !== null) {
+      window.clearTimeout(crescendoResetTimerRef.current);
+    }
+    crescendoResetTimerRef.current = window.setTimeout(() => {
+      crescendoResetTimerRef.current = null;
+      setCrescendoPulse(false);
+    }, 900);
+  }, []);
+
+  useEffect(() => () => {
+    if (crescendoResetTimerRef.current !== null) {
+      window.clearTimeout(crescendoResetTimerRef.current);
+      crescendoResetTimerRef.current = null;
+    }
   }, []);
 
   const name = `${player.firstName} ${player.lastName}`.toUpperCase();
@@ -497,7 +513,11 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
       {/* Hero card — 3D flip wrapper around the face-down back and a real
           PlayerCard on the face. Scales the xl PlayerCard (220px) up to
           244px so the walkout reads larger than any other card surface
-          without introducing a bespoke visual. */}
+          without introducing a bespoke visual.
+          The card rises ~36px during the stats/hold beats so the stats
+          row + potential bar below have breathing room on small phones
+          (iPhone SE class). The upward shift feels intentional — the
+          card lifting to make space for its own info to come in. */}
       <motion.div
         className="relative"
         style={{
@@ -510,12 +530,16 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
         animate={{
           opacity: 1,
           scale: phase === 'hold' && !prefersReducedMotion ? [1, 1.015, 1] : 1,
-          y: phase === 'hold' && !prefersReducedMotion ? [0, -4, 0] : 0,
+          y: phase === 'stats' || phase === 'hold'
+            ? (phase === 'hold' && !prefersReducedMotion ? [-50, -54, -50] : -50)
+            : 0,
         }}
         transition={
           phase === 'hold' && !prefersReducedMotion
             ? { duration: 3.6, repeat: Infinity, ease: 'easeInOut' }
-            : { type: 'spring', stiffness: 220, damping: 22 }
+            : phase === 'stats'
+              ? { y: { duration: 0.5, ease: [0.22, 1, 0.36, 1] }, default: { type: 'spring', stiffness: 220, damping: 22 } }
+              : { type: 'spring', stiffness: 220, damping: 22 }
         }
       >
         {/* Holographic rotating ring just outside the card edge */}
@@ -622,8 +646,12 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
         </motion.div>
       </motion.div>
 
-      {/* Nameplate + potential below the card */}
-      <div className="absolute left-1/2 -translate-x-1/2 bottom-[10%] text-center max-w-[90vw] px-4 pointer-events-none">
+      {/* Nameplate + potential below the card. Anchored to the safe area
+          (with a small buffer) instead of a viewport percentage so the
+          content stays within reach of the bottom on small phones and
+          doesn't overlap the card on iPhone SE / 8 / mini class devices.
+          Skip pill sits beneath this with its own safe-area inset. */}
+      <div className="absolute left-1/2 -translate-x-1/2 bottom-[max(env(safe-area-inset-bottom),16px)] mb-12 text-center max-w-[90vw] px-4 pointer-events-none">
         <motion.p
           className="text-[10px] uppercase tracking-[0.4em] font-semibold mb-1.5"
           style={{ color: tier.gradientVia, textShadow: '0 2px 6px rgba(0,0,0,0.6)' }}
@@ -659,14 +687,16 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
         </h1>
 
         {/* Attribute row — six FIFA-style pills tick from 0 → final value in
-            sequence during the `stats` phase, with a sub-haptic on each.
-            This is the new beat that extends the cinematic and pays off
-            the dramatic flip with a clear "look what you pulled" reveal. */}
+            sequence during the `stats` phase, with a sub-haptic on each
+            and a scale-pop on land. The last pill triggers the crescendo
+            (halo bloom + confetti + heavy haptic) — the moment that pays
+            off the cinematic. Position and nationality are already on the
+            card itself, so we don't double up on a "scouting" pill here. */}
         <AnimatePresence>
           {statsActive && (
             <motion.div
               key="stats-row"
-              className="mt-4 flex justify-center gap-1.5"
+              className="mt-3 flex justify-center gap-1.5"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -688,32 +718,12 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
           )}
         </AnimatePresence>
 
-        {/* Position · Nationality plate — slides in during hold for a final
-            "scouting report" beat. Reuses tier colours so the chrome stays
-            coherent end-to-end. */}
-        <motion.div
-          className="mt-3 inline-flex items-center justify-center gap-2.5 px-3 py-1 rounded-full text-[10px] uppercase tracking-[0.28em] font-semibold"
-          style={{
-            background: 'rgba(255,255,255,0.05)',
-            border: `1px solid ${tier.gradientVia}55`,
-            color: '#fff',
-            boxShadow: `inset 0 1px 0 rgba(255,255,255,0.18), 0 6px 18px ${tier.gradientVia}1f`,
-          }}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: phase === 'hold' ? 1 : 0, y: phase === 'hold' ? 0 : 8 }}
-          transition={{ duration: 0.4, delay: phase === 'hold' ? 0.05 : 0 }}
-        >
-          <span>{player.position}</span>
-          <span className="w-px h-3" style={{ background: `${tier.gradientVia}66` }} aria-hidden />
-          <span className="opacity-90">{player.nationality}</span>
-        </motion.div>
-
-        {/* Potential bar — slides in during hold, slightly after the plate. */}
+        {/* Potential bar — slides in during hold. */}
         <motion.div
           className="mt-3 mx-auto max-w-[240px]"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: phase === 'hold' ? 1 : 0, y: phase === 'hold' ? 0 : 10 }}
-          transition={{ duration: 0.4, delay: phase === 'hold' ? 0.2 : 0 }}
+          transition={{ duration: 0.4, delay: phase === 'hold' ? 0.15 : 0 }}
         >
           <div
             className="flex items-center justify-between text-[10px] uppercase tracking-widest mb-1"
