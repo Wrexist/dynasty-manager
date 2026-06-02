@@ -66,6 +66,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Pack-opening remake — Phase 1: cinematic stadium + loading open.',
     'Harden error handling and lifecycle safety across iOS/native.',
     'Enable iPad support by adding device family 2.',
+    'Dashboard packs tile now shows a live count badge — see exactly how close you are to a guaranteed gold pull from any screen.',
   ],
   fixed: [
     'Fixed rare launch crashes related to ads.',
