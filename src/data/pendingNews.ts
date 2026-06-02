@@ -70,6 +70,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Harden error handling and lifecycle safety across iOS/native.',
     'Enable iPad support by adding device family 2.',
     'Pack results now scroll cleanly with the Sell All / Keep All buttons always reachable.',
+    'Guarantee Tracker now glows gold when your next pack pulls 80+ — clearer reward moment, premium polish.',
   ],
   fixed: [
     'Fixed rare launch crashes related to ads.',

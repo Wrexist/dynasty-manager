@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react';
 import { useEffect, useMemo, useState } from 'react';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
 import { Package, Coins, Flame, Clock, Loader2 } from 'lucide-react';
 import { useGameStore } from '@/store/gameStore';
@@ -383,21 +383,105 @@ const PacksPage = () => {
           </div>
         </div>
 
-        {/* Pity meter */}
-        <GlassPanel className="p-3">
-          <div className="flex items-center justify-between text-xs mb-2">
-            <span className="font-semibold text-foreground">Guarantee Tracker</span>
-            <span className="text-muted-foreground">
-              {pityRemaining === 0 ? 'Next gold guaranteed!' : `${pityRemaining} dry pack${pityRemaining === 1 ? '' : 's'} to guaranteed gold`}
-            </span>
-          </div>
-          <div className="h-2 rounded-full bg-muted/40 overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-primary/60 to-primary rounded-full transition-all duration-500"
-              style={{ width: `${pityProgressPct}%` }}
-            />
-          </div>
-        </GlassPanel>
+        {/* Guarantee Tracker — premium "what's coming next" reward meter.
+            Three visual states keyed off pityRemaining:
+              ready   (0): glowing gold panel, "Guaranteed 80+ Next Pack"
+              close (1–2): amber-tinted, "Almost there"
+              normal (3+): muted gold accent, just the progress
+            All three share the same panel chrome so the transition
+            between states reads as the same object evolving. */}
+        {(() => {
+          const ready = pityRemaining === 0;
+          const close = pityRemaining > 0 && pityRemaining <= 2;
+          return (
+            <GlassPanel
+              className={cn(
+                'p-3 relative overflow-hidden transition-[box-shadow] duration-500',
+                ready && 'shadow-[0_0_28px_-4px_rgba(251,191,36,0.55),inset_0_1px_0_rgba(255,255,255,0.18)] ring-1 ring-amber-300/40',
+                close && !ready && 'ring-1 ring-amber-300/15',
+              )}
+            >
+              {/* Soft gold radial backlight on the ready state — pulses
+                  gently to telegraph "this is unlocked, go open one". */}
+              {ready && (
+                <motion.div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0"
+                  style={{
+                    background:
+                      'radial-gradient(120% 100% at 50% -20%, rgba(251,191,36,0.25) 0%, rgba(251,191,36,0.06) 35%, transparent 70%)',
+                  }}
+                  animate={{ opacity: [0.7, 1, 0.7] }}
+                  transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+                />
+              )}
+              <div className="relative flex items-center justify-between text-xs mb-2">
+                <div className="flex items-center gap-1.5">
+                  <span
+                    className={cn(
+                      'font-display font-bold uppercase tracking-[0.16em] text-[10px]',
+                      ready ? 'text-amber-200' : 'text-foreground/90',
+                    )}
+                  >
+                    Guarantee Tracker
+                  </span>
+                  {ready && (
+                    <motion.span
+                      className="text-amber-200"
+                      animate={{ opacity: [0.5, 1, 0.5] }}
+                      transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+                      aria-hidden
+                    >
+                      ✦
+                    </motion.span>
+                  )}
+                </div>
+                <span
+                  className={cn(
+                    'tabular-nums',
+                    ready ? 'text-amber-200 font-display font-bold uppercase tracking-[0.12em]' : 'text-muted-foreground',
+                    close && !ready && 'text-amber-100/90 font-semibold',
+                  )}
+                >
+                  {ready
+                    ? 'Guaranteed 80+ Next Pack'
+                    : pityRemaining === 1
+                      ? '1 pack to guaranteed gold'
+                      : `${pityRemaining} packs to guaranteed gold`}
+                </span>
+              </div>
+              <div className="relative h-2 rounded-full bg-muted/40 overflow-hidden">
+                <motion.div
+                  className={cn(
+                    'h-full rounded-full',
+                    ready
+                      ? 'bg-gradient-to-r from-amber-200 via-amber-300 to-amber-400'
+                      : close
+                        ? 'bg-gradient-to-r from-amber-300/70 to-amber-300'
+                        : 'bg-gradient-to-r from-primary/60 to-primary',
+                  )}
+                  initial={false}
+                  animate={{ width: `${pityProgressPct}%` }}
+                  transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                />
+                {ready && (
+                  <motion.div
+                    aria-hidden
+                    className="pointer-events-none absolute inset-y-0 w-1/3"
+                    style={{
+                      background:
+                        'linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent)',
+                      mixBlendMode: 'overlay',
+                    }}
+                    initial={{ x: '-100%' }}
+                    animate={{ x: '350%' }}
+                    transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut', repeatDelay: 0.3 }}
+                  />
+                )}
+              </div>
+            </GlassPanel>
+          );
+        })()}
 
         {/* Recent pulls — liquid glass cards highlighting the best player from each pack. */}
         {recentPacks.length > 0 && (
