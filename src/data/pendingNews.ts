@@ -112,6 +112,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Corrupt-save detection: if a save slot, session snapshot, or hall-of-managers record fails to parse, the event is now reported to our triage pipeline (anonymised) so we can find and fix the cause instead of guessing.',
     'Modal popups (welcome tour, post-match summary, mid-season report, session recap, weekly digest, gem reveal, talent-tree perk details) now properly trap keyboard focus and dismiss on Escape, instead of letting Tab drift to buttons hidden behind the backdrop.',
     'Icon walkouts no longer flash twice — the card stays sealed until the cinematic plays.',
+    'Negotiation sliders no longer flash NaN markers when an offer\'s asking price or demanded wage is zero.',
   ],
   headline: null,
   summary: null,

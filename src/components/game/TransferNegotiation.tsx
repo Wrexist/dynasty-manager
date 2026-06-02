@@ -72,8 +72,14 @@ export function TransferNegotiation({ listing, onClose }: Props) {
   const maxFee = Math.round(listing.askingPrice * NEGOTIATION_SLIDER_MAX_RATIO);
   const step = Math.max(100_000, Math.round(listing.askingPrice * 0.01));
 
-  // Position helpers for markers on the slider track
-  const trackPercent = (value: number) => Math.min(100, Math.max(0, ((value - minFee) / (maxFee - minFee)) * 100));
+  // Position helpers for markers on the slider track. Guard against a
+  // zero-width range (asking price of 0 from a corrupted listing) — the
+  // raw expression would divide by zero and emit `NaN%` widths on every
+  // marker, leaving stranded white pixels on the slider.
+  const trackPercent = (value: number) =>
+    maxFee > minFee
+      ? Math.min(100, Math.max(0, ((value - minFee) / (maxFee - minFee)) * 100))
+      : 0;
   const askingPercent = trackPercent(listing.askingPrice);
   const zone80Percent = trackPercent(listing.askingPrice * 0.8);
   const counterMarkerPercent = lastCounterFee ? trackPercent(lastCounterFee) : null;

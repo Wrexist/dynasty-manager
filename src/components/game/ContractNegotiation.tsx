@@ -312,6 +312,17 @@ export function ContractNegotiation() {
                   const sliderMin = Math.floor((activeNegotiation.demandedWage * 0.5) / dynamicStep) * dynamicStep;
                   const sliderMax = Math.ceil((activeNegotiation.demandedWage * 1.5) / dynamicStep) * dynamicStep;
                   const sliderRange = sliderMax - sliderMin;
+                  // Guard against a demandedWage of 0 (corrupted save / malformed
+                  // offer) so percentage math doesn't divide by zero and render
+                  // `width: NaN%` markers. The slider degrades to a flat zero
+                  // state — no negative values, no crash.
+                  if (sliderRange <= 0) {
+                    return (
+                      <div className="text-center text-[11px] text-muted-foreground py-2">
+                        Slider unavailable for this offer.
+                      </div>
+                    );
+                  }
                   const pct80 = ((activeNegotiation.demandedWage * 0.8 - sliderMin) / sliderRange) * 100;
                   const pctDemand = ((activeNegotiation.demandedWage - sliderMin) / sliderRange) * 100;
                   return (
