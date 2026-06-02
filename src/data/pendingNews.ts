@@ -72,6 +72,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Enable iPad support by adding device family 2.',
     'Pack results now scroll cleanly with the Sell All / Keep All buttons always reachable.',
     'Guarantee Tracker now glows gold when your next pack pulls 80+ — clearer reward moment, premium polish.',
+    'Pack opening loading state now glows in tier colour and shows the pack name immediately — premium first second instead of a plain spinner.',
   ],
   fixed: [
     'Fixed rare launch crashes related to ads.',
