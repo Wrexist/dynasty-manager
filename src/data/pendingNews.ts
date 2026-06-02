@@ -42,7 +42,11 @@ export interface PendingRelease {
 }
 
 export const PENDING_NEWS: PendingRelease = {
-  highlights: [],
+  highlights: [
+    'Walkout cinematics now run longer with a stats-tick reveal, ambient particles and a clear Skip pill so the moment really lands.',
+    'Walkout reveals now build like a real moment — held-breath pause, giant OVR ticker, popping stats, and a confetti crescendo when the last stat lands.',
+    'Pack summary now badges each pull with +X OVR vs your current best at the position — instantly see which pulls are real squad upgrades.',
+  ],
   new: [
     'Dynasty Pro annual plan added, with localized pricing.',
   ],
@@ -66,6 +70,10 @@ export const PENDING_NEWS: PendingRelease = {
     'Pack-opening remake — Phase 1: cinematic stadium + loading open.',
     'Harden error handling and lifecycle safety across iOS/native.',
     'Enable iPad support by adding device family 2.',
+    'Pack results now scroll cleanly with the Sell All / Keep All buttons always reachable.',
+    'Guarantee Tracker now glows gold when your next pack pulls 80+ — clearer reward moment, premium polish.',
+    'Pack opening loading state now glows in tier colour and shows the pack name immediately — premium first second instead of a plain spinner.',
+    'Dashboard packs tile now shows a live count badge — see exactly how close you are to a guaranteed gold pull from any screen.',
   ],
   fixed: [
     'Fixed rare launch crashes related to ads.',
@@ -103,6 +111,8 @@ export const PENDING_NEWS: PendingRelease = {
     'First app launch is meaningfully faster on cellular: the 2.5MB real-player roster bundle (~400KB gzipped) no longer downloads up-front — it now streams in the background while you read the title screen, and is fully cached by the time you tap "New Game".',
     'Corrupt-save detection: if a save slot, session snapshot, or hall-of-managers record fails to parse, the event is now reported to our triage pipeline (anonymised) so we can find and fix the cause instead of guessing.',
     'Modal popups (welcome tour, post-match summary, mid-season report, session recap, weekly digest, gem reveal, talent-tree perk details) now properly trap keyboard focus and dismiss on Escape, instead of letting Tab drift to buttons hidden behind the backdrop.',
+    'Icon walkouts no longer flash twice — the card stays sealed until the cinematic plays.',
+    'Negotiation sliders no longer flash NaN markers when an offer\'s asking price or demanded wage is zero.',
   ],
   headline: null,
   summary: null,

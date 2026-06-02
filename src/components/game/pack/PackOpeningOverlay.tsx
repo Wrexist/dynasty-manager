@@ -33,6 +33,11 @@ interface PackOpeningOverlayProps {
   onSellAll?: () => void;
   /** Per-player placement map from openPack so the reveal modal can badge pulls. */
   placement?: Record<string, PackPlayerPlacement>;
+  /** Optional "+X OVR vs current best at this position" map. Only entries
+   *  with a positive delta are present; consumers render an upgrade badge
+   *  on key presence alone. Computed by the parent (which has the squad in
+   *  state) and passed in. */
+  improvement?: Record<string, { delta: number; currentBestOvr: number }>;
 }
 
 type Phase = 'loading' | 'portal' | 'arrival' | 'charge' | 'explode' | 'reveal' | 'walkout' | 'summary';
@@ -48,7 +53,7 @@ type Phase = 'loading' | 'portal' | 'arrival' | 'charge' | 'explode' | 'reveal' 
  *
  * Mounts a portal so the overlay sits above bottom nav and other UI.
  */
-export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKeep, onQuickSell, onKeepAll, onSellAll }: PackOpeningOverlayProps) {
+export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKeep, onQuickSell, onKeepAll, onSellAll, improvement }: PackOpeningOverlayProps) {
   const tierDef = PACK_TIER_MAP[tier];
   const prefersReducedMotion = useReducedMotion();
   const [phase, setPhase] = useState<Phase>('loading');
@@ -222,20 +227,33 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
     return () => window.clearTimeout(t);
   }, [phase]);
 
-  // When all cards are revealed, drain walkout queue then advance to summary
-  useEffect(() => {
-    if (phase !== 'reveal') return;
-    const allRevealed = players.every(p => revealedSet.has(p.id));
-    if (!allRevealed) return;
-    // Cap the walkout queue to the most-impactful pull(s). Rare Gold packs
-    // can yield 3+ cards above the walkout threshold; playing all of them
-    // back-to-back becomes ~25s of cinematic the user can't really skip.
-    // Sort by OVR desc, take the top N (default 1) — every other 84+ pull
-    // still gets a "Rare" badge on its standard flip.
-    const pendingWalkouts = players
+  // Players destined for a walkout cinematic stay face-down through the
+  // reveal phase — tapping them in the grid would spoil the cinematic. We
+  // compute the walkout set once per render based on the same priority
+  // rule used when queueing (top-N by OVR above threshold).
+  const walkoutPlayerIds = useMemo(() => {
+    const ids = new Set<string>();
+    players
       .filter(p => p.overall >= WALKOUT_OVR_THRESHOLD)
       .sort((a, b) => b.overall - a.overall)
-      .slice(0, MAX_WALKOUTS_PER_PACK);
+      .slice(0, MAX_WALKOUTS_PER_PACK)
+      .forEach(p => ids.add(p.id));
+    return ids;
+  }, [players]);
+
+  // When all non-walkout cards are revealed, drain walkout queue then
+  // advance to summary. The walkout-tier cards stay face-down here and
+  // are revealed exclusively via the cinematic, then displayed face-up
+  // in summary via the `phase === 'summary'` fallback on PackCard.
+  useEffect(() => {
+    if (phase !== 'reveal') return;
+    const tappableRevealed = players
+      .filter(p => !walkoutPlayerIds.has(p.id))
+      .every(p => revealedSet.has(p.id));
+    if (!tappableRevealed) return;
+    const pendingWalkouts = players
+      .filter(p => walkoutPlayerIds.has(p.id))
+      .sort((a, b) => b.overall - a.overall);
     if (pendingWalkouts.length > 0) {
       setWalkoutQueue(pendingWalkouts);
       setCurrentWalkout(pendingWalkouts[0]);
@@ -243,7 +261,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
     } else {
       setPhase('summary');
     }
-  }, [phase, revealedSet, players]);
+  }, [phase, revealedSet, players, walkoutPlayerIds]);
 
   // Drain walkouts one at a time
   useEffect(() => {
@@ -286,10 +304,12 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
     });
   }, []);
 
-  // Allow tap-to-reveal-all during reveal phase
+  // Allow tap-to-reveal-all during reveal phase. Walkout-tier cards are
+  // excluded so the cinematic still plays for them — the parent effect
+  // detects "all tappable revealed" and transitions to walkout.
   const revealAll = useCallback(() => {
-    setRevealedSet(new Set(players.map(p => p.id)));
-  }, [players]);
+    setRevealedSet(new Set(players.filter(p => !walkoutPlayerIds.has(p.id)).map(p => p.id)));
+  }, [players, walkoutPlayerIds]);
 
   // Keyboard: Escape does phase-appropriate things so users never get stuck.
   //   reveal  → fast-reveal every card (same as "Tap all to reveal")
@@ -371,21 +391,84 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
           >
-            <motion.div
-              className="w-14 h-14 rounded-full"
-              style={{
-                border: '2px solid rgba(255,255,255,0.08)',
-                borderTopColor: tierDef.accent,
-                boxShadow: `0 0 18px color-mix(in srgb, ${tierDef.accent} 45%, transparent)`,
-              }}
-              animate={prefersReducedMotion ? undefined : { rotate: 360 }}
-              transition={prefersReducedMotion ? undefined : { duration: 0.9, repeat: Infinity, ease: 'linear' }}
-            />
+            {/* Soft tier-coloured ambient glow that gently pulses while we
+                load. Sets the tier identity before the pack art appears so
+                the user sees "this is going to be a Rare Gold opening" the
+                moment the overlay mounts, not 1s later. */}
+            {!prefersReducedMotion && (
+              <motion.div
+                aria-hidden
+                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none"
+                style={{
+                  width: 320,
+                  height: 320,
+                  background: `radial-gradient(circle, color-mix(in srgb, ${tierDef.accent} 35%, transparent) 0%, transparent 65%)`,
+                  filter: 'blur(40px)',
+                  willChange: 'transform, opacity',
+                }}
+                animate={{ opacity: [0.45, 0.85, 0.45], scale: [0.95, 1.08, 0.95] }}
+                transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+              />
+            )}
+            {/* Concentric ring stack — a slow outer ring + the existing fast
+                inner spinner. Two speeds give the loading state a bit of
+                cinematic depth instead of one flat rotation. */}
+            <div className="relative w-24 h-24 flex items-center justify-center">
+              {!prefersReducedMotion && (
+                <motion.div
+                  className="absolute inset-0 rounded-full"
+                  style={{
+                    border: `1px solid color-mix(in srgb, ${tierDef.accent} 30%, transparent)`,
+                    boxShadow: `0 0 24px color-mix(in srgb, ${tierDef.accent} 25%, transparent)`,
+                    willChange: 'transform',
+                  }}
+                  animate={{ rotate: -360 }}
+                  transition={{ duration: 4.5, repeat: Infinity, ease: 'linear' }}
+                >
+                  {/* Single bright dot on the outer ring — gives the slow
+                      rotation an anchor the eye can track. */}
+                  <span
+                    aria-hidden
+                    className="absolute left-1/2 -translate-x-1/2 -top-[3px] w-1.5 h-1.5 rounded-full"
+                    style={{
+                      background: tierDef.accent,
+                      boxShadow: `0 0 8px ${tierDef.accent}`,
+                    }}
+                  />
+                </motion.div>
+              )}
+              <motion.div
+                className="w-14 h-14 rounded-full"
+                style={{
+                  border: '2px solid rgba(255,255,255,0.08)',
+                  borderTopColor: tierDef.accent,
+                  boxShadow: `0 0 18px color-mix(in srgb, ${tierDef.accent} 45%, transparent)`,
+                }}
+                animate={prefersReducedMotion ? undefined : { rotate: 360 }}
+                transition={prefersReducedMotion ? undefined : { duration: 0.9, repeat: Infinity, ease: 'linear' }}
+              />
+            </div>
             <span
-              className="mt-4 text-[10px] uppercase tracking-[0.4em] text-white/55"
+              className="relative mt-5 text-[10px] uppercase tracking-[0.4em] text-white/55"
               style={{ textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}
             >
               Opening
+            </span>
+            {/* Pack tier name — sets identity immediately and primes the
+                reveal. Gradient-clipped from the tier's own colour pair so
+                the type carries its tier signature without competing with
+                the spinning ring's accent. */}
+            <span
+              className="relative mt-1 text-base font-display font-black uppercase tracking-[0.16em] leading-none"
+              style={{
+                backgroundImage: `linear-gradient(90deg, ${tierDef.gradientFrom}, ${tierDef.gradientTo})`,
+                WebkitBackgroundClip: 'text',
+                backgroundClip: 'text',
+                color: 'transparent',
+                filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.6))',
+              }}
+            >
+              {tierDef.label}
             </span>
           </motion.div>
         )}
@@ -919,26 +1002,53 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
         )}
       </AnimatePresence>
 
-      {/* Pity hit banner */}
+      {/* Pity hit banner — a small premium glass chip that announces the
+          guarantee paid off. Uses gold rather than the generic primary
+          accent so it visually echoes the PacksPage Guarantee Tracker
+          and feels like the same "reward unlocked" moment landing. */}
       <AnimatePresence>
         {pityTriggered && (phase === 'reveal' || phase === 'summary') && (
           <motion.div
-            className="absolute top-4 left-1/2 -translate-x-1/2 text-[10px] uppercase tracking-widest px-3 py-1 rounded-full bg-primary/20 text-primary border border-primary/40 backdrop-blur"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
+            className="absolute left-1/2 -translate-x-1/2 top-[max(env(safe-area-inset-top),16px)] flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] uppercase tracking-[0.22em] font-display font-bold text-amber-100 backdrop-blur-md"
+            style={{
+              background: 'linear-gradient(180deg, rgba(251,191,36,0.22), rgba(251,191,36,0.10))',
+              border: '1px solid rgba(251,191,36,0.45)',
+              boxShadow:
+                'inset 0 1px 0 rgba(255,255,255,0.28), 0 8px 22px -10px rgba(251,191,36,0.55)',
+            }}
+            initial={{ opacity: 0, y: -10, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 22 }}
           >
-            Pity Bonus Applied
+            <motion.span
+              aria-hidden
+              className="text-amber-200"
+              animate={{ opacity: [0.6, 1, 0.6] }}
+              transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              ✦
+            </motion.span>
+            <span>Guarantee Unlocked</span>
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Reveal grid. Heavily dimmed + blurred during the walkout so the
           hero card carries the frame unopposed; snaps back in full for
-          summary so the player can inspect every pull. */}
+          summary so the player can inspect every pull.
+          In summary phase the container takes the full viewport so the
+          card grid scrolls between a pinned header and pinned action bar
+          — guarantees Keep All / Sell All stay reachable regardless of
+          how many cards the pack pulled. */}
       {(phase === 'reveal' || phase === 'walkout' || phase === 'summary') && (
         <motion.div
-          className="relative w-full max-w-[min(92vw,480px)] px-4 flex flex-col items-center gap-4"
+          className={cn(
+            'relative w-full px-4 flex flex-col items-center',
+            phase === 'summary'
+              ? 'absolute inset-0 max-w-none gap-0'
+              : 'max-w-[min(92vw,480px)] gap-4',
+          )}
           animate={{
             opacity: phase === 'walkout' ? 0.12 : 1,
             filter: phase === 'walkout' ? 'blur(8px) saturate(0.6)' : 'blur(0px) saturate(1)',
@@ -951,7 +1061,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
               summary a clear "results screen" identity. */}
           {phase === 'summary' && (
             <motion.div
-              className="text-center"
+              className="shrink-0 text-center w-full pt-[max(env(safe-area-inset-top),14px)] pb-3 relative"
               initial={{ opacity: 0, y: -16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ type: 'spring', stiffness: 240, damping: 22 }}
@@ -960,22 +1070,77 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
               <p className="mt-1 text-lg font-display font-black text-white leading-none">
                 {players.length} {players.length === 1 ? 'Player' : 'Players'}
               </p>
-              <p className="mt-1 text-[11px] text-white/55 tabular-nums">
-                Combined value {formatMoney(players.reduce((s, p) => s + (p.value || 0), 0))}
+              <p className="mt-1.5 text-[12px] tabular-nums">
+                <span className="text-white/45">Combined value </span>
+                <span className="font-display font-bold text-amber-200/95">
+                  {formatMoney(players.reduce((s, p) => s + (p.value || 0), 0))}
+                </span>
               </p>
+              {/* Soft gradient rule — visually separates the header from the
+                  scrolling grid below. Fades to transparent at the edges so
+                  it doesn't feel like a hard divider on the dark backdrop. */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-x-6 bottom-0 h-px"
+                style={{
+                  background:
+                    'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.12) 50%, transparent 100%)',
+                }}
+              />
             </motion.div>
           )}
-          <div className="flex flex-wrap justify-center gap-x-3 gap-y-4">
+          <div
+            className={cn(
+              'flex flex-wrap justify-center gap-x-3 gap-y-4',
+              // In summary, the cards grid scrolls within the viewport so
+              // every card (and its Keep/Sell row) stays reachable no matter
+              // how many the pack pulled. `min-h-0` is required for the flex
+              // child to actually shrink — without it `overflow-y-auto` is a
+              // no-op inside a flex column.
+              phase === 'summary'
+                ? 'flex-1 min-h-0 overflow-y-auto w-full max-w-[480px] px-1 py-3 content-start [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden'
+                : '',
+            )}
+          >
             {players.map((p, i) => {
               const quickSellAmount = Math.max(0, Math.round((p.value || 0) * QUICK_SELL_RATE));
+              const upgrade = improvement?.[p.id];
               return (
                 <div key={p.id} className="flex flex-col items-center gap-2">
-                  <PackCard
-                    player={p}
-                    revealed={revealedSet.has(p.id) || phase === 'summary'}
-                    onReveal={phase === 'reveal' ? () => revealOne(p.id) : undefined}
-                    entranceDelay={prefersReducedMotion ? 0 : i * (PACK_ANIM.revealStaggerMs / 1000)}
-                  />
+                  <div className="relative" style={{ width: PLAYER_CARD_SIZE_PX.lg }}>
+                    <PackCard
+                      player={p}
+                      revealed={revealedSet.has(p.id) || phase === 'summary'}
+                      onReveal={
+                        phase === 'reveal' && !walkoutPlayerIds.has(p.id)
+                          ? () => revealOne(p.id)
+                          : undefined
+                      }
+                      entranceDelay={prefersReducedMotion ? 0 : i * (PACK_ANIM.revealStaggerMs / 1000)}
+                    />
+                    {/* Upgrade badge — gold pill that springs in slightly
+                        after the card when the pulled player out-rates the
+                        user's current best at the same position. */}
+                    {phase === 'summary' && upgrade && (
+                      <motion.div
+                        className="absolute -top-1 -right-1 z-10 flex items-center gap-0.5 px-1.5 py-[3px] rounded-md text-[9px] font-display font-black uppercase tracking-[0.06em] tabular-nums leading-none"
+                        style={{
+                          color: '#3a2400',
+                          background: 'linear-gradient(180deg, #fde68a, #f59e0b)',
+                          border: '1px solid rgba(255,255,255,0.55)',
+                          boxShadow:
+                            'inset 0 1px 0 rgba(255,255,255,0.7), inset 0 -1px 0 rgba(120,60,0,0.4), 0 4px 14px -4px rgba(251,191,36,0.55)',
+                        }}
+                        initial={{ opacity: 0, y: -6, scale: 0.7 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 320, damping: 18, delay: 0.35 + i * 0.06 }}
+                        aria-label={`Upgrade — ${upgrade.delta} OVR better than your current ${p.position}`}
+                      >
+                        <span aria-hidden>↑</span>
+                        <span>+{upgrade.delta}</span>
+                      </motion.div>
+                    )}
+                  </div>
                   {phase === 'summary' && (onKeep || onQuickSell) && (
                     <motion.div
                       className="flex gap-1.5"
@@ -1031,7 +1196,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
             );
             return (
               <motion.div
-                className="flex items-center gap-2.5 mt-1"
+                className="shrink-0 flex items-center gap-2.5 pt-2 pb-[max(env(safe-area-inset-bottom),16px)]"
                 initial={{ opacity: 0, y: 90 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ type: 'spring', stiffness: 220, damping: 26, delay: 0.1 + players.length * 0.04 }}
@@ -1118,11 +1283,12 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
               type="button"
               onClick={onClose}
               className={cn(
-                'py-2.5 px-8 rounded-2xl font-display font-bold text-xs uppercase tracking-[0.2em]',
+                'shrink-0 py-2.5 px-8 rounded-2xl font-display font-bold text-xs uppercase tracking-[0.2em]',
                 'text-white bg-white/10 border border-white/25',
                 'backdrop-blur-2xl backdrop-saturate-150',
                 'shadow-[inset_0_1px_0_rgba(255,255,255,0.45),inset_0_-1px_0_rgba(0,0,0,0.30),0_10px_30px_-10px_rgba(0,0,0,0.55)]',
                 'active:scale-[0.98] active:bg-white/15 transition-[transform,background-color] duration-150',
+                'mb-[max(env(safe-area-inset-bottom),16px)]',
               )}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
