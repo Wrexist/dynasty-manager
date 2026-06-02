@@ -371,21 +371,84 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
           >
-            <motion.div
-              className="w-14 h-14 rounded-full"
-              style={{
-                border: '2px solid rgba(255,255,255,0.08)',
-                borderTopColor: tierDef.accent,
-                boxShadow: `0 0 18px color-mix(in srgb, ${tierDef.accent} 45%, transparent)`,
-              }}
-              animate={prefersReducedMotion ? undefined : { rotate: 360 }}
-              transition={prefersReducedMotion ? undefined : { duration: 0.9, repeat: Infinity, ease: 'linear' }}
-            />
+            {/* Soft tier-coloured ambient glow that gently pulses while we
+                load. Sets the tier identity before the pack art appears so
+                the user sees "this is going to be a Rare Gold opening" the
+                moment the overlay mounts, not 1s later. */}
+            {!prefersReducedMotion && (
+              <motion.div
+                aria-hidden
+                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none"
+                style={{
+                  width: 320,
+                  height: 320,
+                  background: `radial-gradient(circle, color-mix(in srgb, ${tierDef.accent} 35%, transparent) 0%, transparent 65%)`,
+                  filter: 'blur(40px)',
+                  willChange: 'transform, opacity',
+                }}
+                animate={{ opacity: [0.45, 0.85, 0.45], scale: [0.95, 1.08, 0.95] }}
+                transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+              />
+            )}
+            {/* Concentric ring stack — a slow outer ring + the existing fast
+                inner spinner. Two speeds give the loading state a bit of
+                cinematic depth instead of one flat rotation. */}
+            <div className="relative w-24 h-24 flex items-center justify-center">
+              {!prefersReducedMotion && (
+                <motion.div
+                  className="absolute inset-0 rounded-full"
+                  style={{
+                    border: `1px solid color-mix(in srgb, ${tierDef.accent} 30%, transparent)`,
+                    boxShadow: `0 0 24px color-mix(in srgb, ${tierDef.accent} 25%, transparent)`,
+                    willChange: 'transform',
+                  }}
+                  animate={{ rotate: -360 }}
+                  transition={{ duration: 4.5, repeat: Infinity, ease: 'linear' }}
+                >
+                  {/* Single bright dot on the outer ring — gives the slow
+                      rotation an anchor the eye can track. */}
+                  <span
+                    aria-hidden
+                    className="absolute left-1/2 -translate-x-1/2 -top-[3px] w-1.5 h-1.5 rounded-full"
+                    style={{
+                      background: tierDef.accent,
+                      boxShadow: `0 0 8px ${tierDef.accent}`,
+                    }}
+                  />
+                </motion.div>
+              )}
+              <motion.div
+                className="w-14 h-14 rounded-full"
+                style={{
+                  border: '2px solid rgba(255,255,255,0.08)',
+                  borderTopColor: tierDef.accent,
+                  boxShadow: `0 0 18px color-mix(in srgb, ${tierDef.accent} 45%, transparent)`,
+                }}
+                animate={prefersReducedMotion ? undefined : { rotate: 360 }}
+                transition={prefersReducedMotion ? undefined : { duration: 0.9, repeat: Infinity, ease: 'linear' }}
+              />
+            </div>
             <span
-              className="mt-4 text-[10px] uppercase tracking-[0.4em] text-white/55"
+              className="relative mt-5 text-[10px] uppercase tracking-[0.4em] text-white/55"
               style={{ textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}
             >
               Opening
+            </span>
+            {/* Pack tier name — sets identity immediately and primes the
+                reveal. Gradient-clipped from the tier's own colour pair so
+                the type carries its tier signature without competing with
+                the spinning ring's accent. */}
+            <span
+              className="relative mt-1 text-base font-display font-black uppercase tracking-[0.16em] leading-none"
+              style={{
+                backgroundImage: `linear-gradient(90deg, ${tierDef.gradientFrom}, ${tierDef.gradientTo})`,
+                WebkitBackgroundClip: 'text',
+                backgroundClip: 'text',
+                color: 'transparent',
+                filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.6))',
+              }}
+            >
+              {tierDef.label}
             </span>
           </motion.div>
         )}

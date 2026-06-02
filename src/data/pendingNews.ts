@@ -66,6 +66,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Pack-opening remake — Phase 1: cinematic stadium + loading open.',
     'Harden error handling and lifecycle safety across iOS/native.',
     'Enable iPad support by adding device family 2.',
+    'Pack opening loading state now glows in tier colour and shows the pack name immediately — premium first second instead of a plain spinner.',
   ],
   fixed: [
     'Fixed rare launch crashes related to ads.',
