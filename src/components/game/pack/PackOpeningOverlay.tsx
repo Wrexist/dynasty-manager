@@ -33,6 +33,11 @@ interface PackOpeningOverlayProps {
   onSellAll?: () => void;
   /** Per-player placement map from openPack so the reveal modal can badge pulls. */
   placement?: Record<string, PackPlayerPlacement>;
+  /** Optional "+X OVR vs current best at this position" map. Only entries
+   *  with a positive delta are present; consumers render an upgrade badge
+   *  on key presence alone. Computed by the parent (which has the squad in
+   *  state) and passed in. */
+  improvement?: Record<string, { delta: number; currentBestOvr: number }>;
 }
 
 type Phase = 'loading' | 'portal' | 'arrival' | 'charge' | 'explode' | 'reveal' | 'walkout' | 'summary';
@@ -48,7 +53,7 @@ type Phase = 'loading' | 'portal' | 'arrival' | 'charge' | 'explode' | 'reveal' 
  *
  * Mounts a portal so the overlay sits above bottom nav and other UI.
  */
-export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKeep, onQuickSell, onKeepAll, onSellAll }: PackOpeningOverlayProps) {
+export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKeep, onQuickSell, onKeepAll, onSellAll, improvement }: PackOpeningOverlayProps) {
   const tierDef = PACK_TIER_MAP[tier];
   const prefersReducedMotion = useReducedMotion();
   const [phase, setPhase] = useState<Phase>('loading');
@@ -1036,18 +1041,43 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
           >
             {players.map((p, i) => {
               const quickSellAmount = Math.max(0, Math.round((p.value || 0) * QUICK_SELL_RATE));
+              const upgrade = improvement?.[p.id];
               return (
                 <div key={p.id} className="flex flex-col items-center gap-2">
-                  <PackCard
-                    player={p}
-                    revealed={revealedSet.has(p.id) || phase === 'summary'}
-                    onReveal={
-                      phase === 'reveal' && !walkoutPlayerIds.has(p.id)
-                        ? () => revealOne(p.id)
-                        : undefined
-                    }
-                    entranceDelay={prefersReducedMotion ? 0 : i * (PACK_ANIM.revealStaggerMs / 1000)}
-                  />
+                  <div className="relative" style={{ width: PLAYER_CARD_SIZE_PX.lg }}>
+                    <PackCard
+                      player={p}
+                      revealed={revealedSet.has(p.id) || phase === 'summary'}
+                      onReveal={
+                        phase === 'reveal' && !walkoutPlayerIds.has(p.id)
+                          ? () => revealOne(p.id)
+                          : undefined
+                      }
+                      entranceDelay={prefersReducedMotion ? 0 : i * (PACK_ANIM.revealStaggerMs / 1000)}
+                    />
+                    {/* Upgrade badge — gold pill that springs in slightly
+                        after the card when the pulled player out-rates the
+                        user's current best at the same position. */}
+                    {phase === 'summary' && upgrade && (
+                      <motion.div
+                        className="absolute -top-1 -right-1 z-10 flex items-center gap-0.5 px-1.5 py-[3px] rounded-md text-[9px] font-display font-black uppercase tracking-[0.06em] tabular-nums leading-none"
+                        style={{
+                          color: '#3a2400',
+                          background: 'linear-gradient(180deg, #fde68a, #f59e0b)',
+                          border: '1px solid rgba(255,255,255,0.55)',
+                          boxShadow:
+                            'inset 0 1px 0 rgba(255,255,255,0.7), inset 0 -1px 0 rgba(120,60,0,0.4), 0 4px 14px -4px rgba(251,191,36,0.55)',
+                        }}
+                        initial={{ opacity: 0, y: -6, scale: 0.7 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 320, damping: 18, delay: 0.35 + i * 0.06 }}
+                        aria-label={`Upgrade — ${upgrade.delta} OVR better than your current ${p.position}`}
+                      >
+                        <span aria-hidden>↑</span>
+                        <span>+{upgrade.delta}</span>
+                      </motion.div>
+                    )}
+                  </div>
                   {phase === 'summary' && (onKeep || onQuickSell) && (
                     <motion.div
                       className="flex gap-1.5"

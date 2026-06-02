@@ -45,6 +45,7 @@ export const PENDING_NEWS: PendingRelease = {
   highlights: [
     'Walkout cinematics now run longer with a stats-tick reveal, ambient particles and a clear Skip pill so the moment really lands.',
     'Walkout reveals now build like a real moment — held-breath pause, giant OVR ticker, popping stats, and a confetti crescendo when the last stat lands.',
+    'Pack summary now badges each pull with +X OVR vs your current best at the position — instantly see which pulls are real squad upgrades.',
   ],
   new: [
     'Dynasty Pro annual plan added, with localized pricing.',
