@@ -75,6 +75,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Pack opening loading state now glows in tier colour and shows the pack name immediately — premium first second instead of a plain spinner.',
     'Dashboard packs tile now shows a live count badge — see exactly how close you are to a guaranteed gold pull from any screen.',
     'Icon double-reveal + scrollable summary with safe-area pins.',
+    'Make walkout cards tappable to start the walkout on demand.',
   ],
   fixed: [
     'Fixed rare launch crashes related to ads.',
