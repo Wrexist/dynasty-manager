@@ -4,7 +4,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { LiquidButton } from '@/components/game/LiquidButton';
 import { SaveStatusIndicator } from '@/components/game/SaveStatusIndicator';
-import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users, Bug, ChartBar, Sparkles, Film } from 'lucide-react';
+import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users, Bug, ChartBar, Sparkles } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { useState, useRef, useEffect } from 'react';
@@ -485,19 +485,6 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
                     className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 ring-2 ring-background/90 animate-pulse"
                   />
                 )}
-              </span>
-            </span>
-          </LiquidButton>
-          {/* Cinematic Capture — loops a Rare-Gold pack walkout with synthetic
-              data so the dev can screen-record clean 9:16 footage for ads.
-              Hidden in plain sight: tap-discoverable but unmarked, never
-              touches the real save. */}
-          <LiquidButton onClick={() => navigate('/cinematic-capture')}>
-            <span className="flex items-center justify-start gap-3 px-3 w-full">
-              <Film className="w-4 h-4" />
-              <span className="flex-1 text-left">Cinematic Capture</span>
-              <span className="text-[10px] text-muted-foreground font-medium tracking-widest uppercase">
-                for ads
               </span>
             </span>
           </LiquidButton>
