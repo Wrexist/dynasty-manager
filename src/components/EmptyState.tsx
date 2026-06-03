@@ -1,3 +1,4 @@
+import { motion, useReducedMotion } from 'framer-motion';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -46,30 +47,63 @@ export function EmptyState({
   variant = 'panel',
   className,
 }: EmptyStateProps) {
+  const reduce = useReducedMotion();
   const body = (
     <div className={cn('text-center', variant === 'panel' ? 'p-6' : 'py-6', className)}>
       {Icon && (
-        <Icon
-          className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3"
-          aria-hidden="true"
-        />
+        <motion.div
+          className="relative w-12 h-12 mx-auto mb-3 flex items-center justify-center"
+          initial={reduce ? false : { opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={reduce ? { duration: 0 } : { type: 'spring', stiffness: 260, damping: 20 }}
+        >
+          {/* Soft glow behind the icon so the empty state reads as an
+              intentional, designed moment rather than a bare dead-end. */}
+          <span
+            aria-hidden
+            className="absolute inset-0 rounded-full"
+            style={{
+              background: 'radial-gradient(circle, hsl(var(--primary) / 0.12) 0%, transparent 68%)',
+              filter: 'blur(6px)',
+            }}
+          />
+          <Icon className="relative w-10 h-10 text-muted-foreground/40" aria-hidden="true" />
+        </motion.div>
       )}
-      <p className="text-sm text-muted-foreground">{title}</p>
+      <motion.p
+        className="text-sm text-muted-foreground"
+        initial={reduce ? false : { opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={reduce ? { duration: 0 } : { duration: 0.3, delay: 0.08 }}
+      >
+        {title}
+      </motion.p>
       {description && (
-        <p className="text-xs text-muted-foreground/60 mt-1 max-w-xs mx-auto">
+        <motion.p
+          className="text-xs text-muted-foreground/60 mt-1 max-w-xs mx-auto"
+          initial={reduce ? false : { opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={reduce ? { duration: 0 } : { duration: 0.3, delay: 0.14 }}
+        >
           {description}
-        </p>
+        </motion.p>
       )}
       {action && (
-        <Button
-          type="button"
-          variant={action.variant ?? 'secondary'}
-          size="sm"
-          className="mt-4 h-11"
-          onClick={action.onClick}
+        <motion.div
+          initial={reduce ? false : { opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={reduce ? { duration: 0 } : { duration: 0.3, delay: 0.2 }}
         >
-          {action.label}
-        </Button>
+          <Button
+            type="button"
+            variant={action.variant ?? 'secondary'}
+            size="sm"
+            className="mt-4 h-11"
+            onClick={action.onClick}
+          >
+            {action.label}
+          </Button>
+        </motion.div>
       )}
     </div>
   );
