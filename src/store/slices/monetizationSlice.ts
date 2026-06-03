@@ -182,7 +182,10 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
      *  this when an active subscription already exists is a no-op. */
     startFreeTrial: () => {
       const state = _get();
-      if (state.monetization.subscription && state.monetization.subscription.tier !== 'trial') return;
+      // Any existing subscription record (trial OR paid, even lapsed) makes this a no-op.
+      // The old `tier !== 'trial'` check let an active trial restart its own clock,
+      // granting unlimited free trials on re-entry to the onboarding screen.
+      if (state.monetization.subscription) return;
       const expiresAt = new Date(Date.now() + FREE_TRIAL_MS).toISOString();
       const trialInfo: SubscriptionInfo = {
         tier: 'trial',

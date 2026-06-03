@@ -211,8 +211,11 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
       for (const pid of nt.squad) {
         if (newPlayers[pid]) {
           const recovered = Math.min(100, newPlayers[pid].fitness + 3);
-          newPlayers[pid] = { ...newPlayers[pid], fitness: Math.max(40, recovered - INTERNATIONAL_FITNESS_COST) };
-          newPlayers[pid].internationalCaps = (newPlayers[pid].internationalCaps || 0) + 1;
+          newPlayers[pid] = {
+            ...newPlayers[pid],
+            fitness: Math.max(40, recovered - INTERNATIONAL_FITNESS_COST),
+            internationalCaps: (newPlayers[pid].internationalCaps || 0) + 1,
+          };
           updatedCaps[pid] = (updatedCaps[pid] || 0) + 1;
         }
       }
@@ -338,8 +341,11 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
       for (const pid of nt.squad) {
         if (newPlayers[pid]) {
           const recovered = Math.min(100, newPlayers[pid].fitness + 3);
-          newPlayers[pid] = { ...newPlayers[pid], fitness: Math.max(40, recovered - INTERNATIONAL_FITNESS_COST) };
-          newPlayers[pid].internationalCaps = (newPlayers[pid].internationalCaps || 0) + 1;
+          newPlayers[pid] = {
+            ...newPlayers[pid],
+            fitness: Math.max(40, recovered - INTERNATIONAL_FITNESS_COST),
+            internationalCaps: (newPlayers[pid].internationalCaps || 0) + 1,
+          };
           updatedCapsKO[pid] = (updatedCapsKO[pid] || 0) + 1;
         }
       }
@@ -644,6 +650,16 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
 
     const simDivTables = buildAllDivisionTables(simDivFixtures, state.divisionClubs);
 
+    // Keep the AI world alive during unemployment: process transfers, loans, wages,
+    // contracts and free agents. Without this the simulated world froze — AI budgets
+    // inflated (no wages paid) and squads never changed, distorting the market on rehire.
+    const unempWindowOpen = newWeek <= SUMMER_WINDOW_END || (newWeek >= WINTER_WINDOW_START && newWeek <= WINTER_WINDOW_END);
+    const unempAI = processAIWeekly(
+      simClubs, simPlayers, msgs, state.transferMarket, state.freeAgents,
+      state.activeLoans, state.transferNews || [], simDivTables, newWeek, state.season,
+      state.playerClubId, unempWindowOpen,
+    );
+
     // Re-enrich vacancies with updated league data
     vacancies = vacancies.map(v => {
       const table = simDivTables[v.divisionId];
@@ -655,14 +671,19 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
 
     set({
       week: newWeek, careerManager: cm, jobVacancies: vacancies, jobOffers: offers,
-      messages: msgs, currentScreen: 'job-market',
-      players: simPlayers, clubs: simClubs,
+      messages: unempAI.messages, currentScreen: 'job-market',
+      players: unempAI.players, clubs: unempAI.clubs,
       fixtures: mainFixtures, divisionFixtures: simDivFixtures,
       divisionTables: simDivTables, clubPowerRankings: eloRankings,
+      transferMarket: unempAI.transferMarket, freeAgents: unempAI.freeAgents,
+      activeLoans: unempAI.activeLoans, transferNews: unempAI.transferNews,
     });
 
-    // Season end check — after merging simulated state so AI results persist
-    if (newWeek > TOTAL_WEEKS) {
+    // Season end check — after merging simulated state so AI results persist.
+    // Use the player division's actual season length (e.g. the 38-week Premier
+    // League) rather than the global 46-week constant, so the season ends the
+    // week after the final fixture instead of dragging through empty weeks.
+    if (newWeek > (state.totalWeeks || TOTAL_WEEKS)) {
       endSeasonImpl(set, get);
       return;
     }
@@ -1100,13 +1121,17 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
             if (Math.random() > homeGKQuality * CUP_PENALTY_GK_QUALITY_FACTOR + (1 - PENALTY_CONVERSION_RATE)) penAway++;
           }
           penaltyShootout = { home: penHome, away: penAway };
-          if (penHome > penAway) hGoals++;
-          else aGoals++;
+          // Penalties decide the winner but must NOT change the drawn scoreline —
+          // the old hGoals++/aGoals++ corrupted cup history and disagreed with the
+          // interactive path. The winner is recorded via winnerId below.
           cupEvents.push({ minute: 120, type: 'penalty_shootout', clubId: penHome > penAway ? tie.homeClubId : tie.awayClubId, description: `${penHome > penAway ? hClub.shortName : aClub.shortName} win on penalties (${penHome}-${penAway})!` });
         }
       }
 
-      newCup.ties[tieIdx] = { ...tie, played: true, homeGoals: hGoals, awayGoals: aGoals, penaltyShootout };
+      const cupWinnerId = penaltyShootout
+        ? (penaltyShootout.home > penaltyShootout.away ? tie.homeClubId : tie.awayClubId)
+        : (hGoals > aGoals ? tie.homeClubId : tie.awayClubId);
+      newCup.ties[tieIdx] = { ...tie, played: true, homeGoals: hGoals, awayGoals: aGoals, penaltyShootout, winnerId: cupWinnerId };
 
       applyAIMatchEvents(cupResult.events, newPlayers, clubs, week, hPlayers, aPlayers, cupResult.homeGoals, cupResult.awayGoals, eloRankings, tie.homeClubId, tie.awayClubId);
       updateEloRatings(eloRankings, tie.homeClubId, tie.awayClubId, cupResult.homeGoals, cupResult.awayGoals, 'cup');
@@ -1114,7 +1139,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
       // Cup match result message for player
       if (isPlayerMatch) {
         const isHome = tie.homeClubId === playerClubId;
-        const won = isHome ? hGoals > aGoals : aGoals > hGoals;
+        const won = cupWinnerId === playerClubId;
         const oppName = clubs[isHome ? tie.awayClubId : tie.homeClubId]?.name || 'Unknown';
         const roundName = getRoundName(tie.round);
         if (won) {
@@ -1133,7 +1158,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
       if (newCup.currentRound === 'F') {
         // Final played — determine winner
         const finalTie = roundTies[0];
-        const winnerId = finalTie.homeGoals > finalTie.awayGoals ? finalTie.homeClubId : finalTie.awayClubId;
+        const winnerId = finalTie.winnerId || (finalTie.homeGoals > finalTie.awayGoals ? finalTie.homeClubId : finalTie.awayClubId);
         newCup.winner = winnerId;
         newCup.currentRound = null;
         if (winnerId === playerClubId) {
@@ -1177,8 +1202,8 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
       );
 
       // League Cup: straight to penalties if drawn (no extra time in early rounds)
-      let hGoals = lcResult.homeGoals;
-      let aGoals = lcResult.awayGoals;
+      const hGoals = lcResult.homeGoals;
+      const aGoals = lcResult.awayGoals;
       let penaltyShootout: { home: number; away: number } | undefined;
       if (hGoals === aGoals) {
         const homeGK = hPlayers.find(p => p.position === 'GK');
@@ -1195,17 +1220,20 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
           if (Math.random() > homeGKQ * CUP_PENALTY_GK_QUALITY_FACTOR + (1 - PENALTY_CONVERSION_RATE)) penAway++;
         }
         penaltyShootout = { home: penHome, away: penAway };
-        if (penHome > penAway) hGoals++; else aGoals++;
+        // Penalties decide the winner without changing the drawn scoreline.
       }
 
-      newLeagueCup.ties[tieIdx] = { ...tie, played: true, homeGoals: hGoals, awayGoals: aGoals, penaltyShootout };
+      const lcWinnerId = penaltyShootout
+        ? (penaltyShootout.home > penaltyShootout.away ? tie.homeClubId : tie.awayClubId)
+        : (hGoals > aGoals ? tie.homeClubId : tie.awayClubId);
+      newLeagueCup.ties[tieIdx] = { ...tie, played: true, homeGoals: hGoals, awayGoals: aGoals, penaltyShootout, winnerId: lcWinnerId };
       applyAIMatchEvents(lcResult.events, newPlayers, clubs, week, hPlayers, aPlayers, lcResult.homeGoals, lcResult.awayGoals, eloRankings, tie.homeClubId, tie.awayClubId);
       updateEloRatings(eloRankings, tie.homeClubId, tie.awayClubId, lcResult.homeGoals, lcResult.awayGoals, 'cup');
 
       // League Cup match result message for player (orphaned past-week matches)
       if (isPlayerMatch) {
         const isHome = tie.homeClubId === playerClubId;
-        const won = isHome ? hGoals > aGoals : aGoals > hGoals;
+        const won = lcWinnerId === playerClubId;
         const oppName = clubs[isHome ? tie.awayClubId : tie.homeClubId]?.name || 'Unknown';
         const roundName = getRoundName(tie.round);
         if (won) {
@@ -1223,7 +1251,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     if (lcAllPlayed) {
       if (newLeagueCup.currentRound === 'F') {
         const finalTie = lcRoundTies[0];
-        const winnerId = finalTie.homeGoals > finalTie.awayGoals ? finalTie.homeClubId : finalTie.awayClubId;
+        const winnerId = finalTie.winnerId || (finalTie.homeGoals > finalTie.awayGoals ? finalTie.homeClubId : finalTie.awayClubId);
         newLeagueCup.winner = winnerId;
         newLeagueCup.currentRound = null;
         if (winnerId === playerClubId) {
@@ -1961,9 +1989,10 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
           const before = yp.attributes[attr] ?? 0;
           if (before < yp.potential) {
             const newAttrs = { ...yp.attributes, [attr]: Math.min(yp.potential, before + 1) };
-            const newOverall = Math.round(
-              (newAttrs.pace + newAttrs.shooting + newAttrs.passing + newAttrs.defending + newAttrs.physical + newAttrs.mental) / 6,
-            );
+            // Use the position-weighted overall (not a flat 6-attribute mean) so a
+            // prospect's displayed OVR matches what calculateOverall yields on promotion —
+            // otherwise GKs were inflated ~7 points and appeared to "drop" once promoted.
+            const newOverall = calculateOverall(newAttrs, yp.position);
             newPlayers[prospect.playerId] = { ...yp, attributes: newAttrs, overall: Math.max(yp.overall, newOverall) };
           }
         }
@@ -2332,8 +2361,8 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     // not just league fixtures. Was a real bug ("Goal Fest 0/3"
     // after a 5-goal friendly because the friendly was invisible).
     friendlies: state.friendlies,
-    cupTies: state.cup?.ties,
-    leagueCupTies: state.leagueCup?.ties,
+    cupTies: newCup?.ties,
+    leagueCupTies: newLeagueCup?.ties,
     championsCup: state.championsCup,
     shieldCup: state.shieldCup,
     conferenceCup: state.conferenceCup,
@@ -2747,8 +2776,9 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
         cm.attributes.motivation = Math.min(STAT_MAX, cm.attributes.motivation + GROWTH_MOTIVATION_PER_MORALE_EVENT);
       }
 
-      // Scouting: grows when scout reports were generated this week
-      const scoutReports = careerState.scouting.reports.filter(r => r.week === week);
+      // Scouting: grows when scout reports were generated this tick. Reports are stamped
+      // with newWeek by completeAssignment, so filter on newWeek (was `week`, always 0 → no growth).
+      const scoutReports = careerState.scouting.reports.filter(r => r.week === newWeek);
       if (scoutReports.length > 0) {
         cm.attributes.scoutingEye = Math.min(STAT_MAX, cm.attributes.scoutingEye + GROWTH_SCOUTING_PER_ASSIGNMENT * scoutReports.length);
       }

@@ -9,8 +9,8 @@ import { useShallow } from 'zustand/react/shallow';
 import { MORALE_BASELINE } from '@/config/matchEngine';
 import type { Club, Match, CupState, LeagueCupState, ContinentalTournamentState, SuperCupMatch } from '@/types/game';
 
-/** Get the player's club object. */
-export function usePlayerClub(): Club {
+/** Get the player's club object. Undefined when unemployed / pre-init — callers must guard. */
+export function usePlayerClub(): Club | undefined {
   return useGameStore(s => s.clubs[s.playerClubId]);
 }
 

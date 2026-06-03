@@ -1,7 +1,7 @@
 import type { GameState } from '../storeTypes';
 import { addMsg, safeRandomUUID } from '@/utils/helpers';
 import type { LoanDeal, OutgoingLoanRequest } from '@/types/game';
-import { TOTAL_WEEKS, LOAN_MIN_WEEKS_BEFORE_RECALL, MAX_SQUAD_SIZE } from '@/config/gameBalance';
+import { TOTAL_WEEKS, LOAN_MIN_WEEKS_BEFORE_RECALL, MAX_SQUAD_SIZE, MIN_SQUAD_SIZE } from '@/config/gameBalance';
 import {
   LOAN_REQUEST_BASE_ACCEPT, LOAN_REQUEST_LINEUP_PENALTY,
   LOAN_REQUEST_WAGE_BONUS, LOAN_REQUEST_AGE_BONUS,
@@ -45,6 +45,10 @@ export const createLoanSlice = (set: Set, get: Get) => ({
     const fromClub = state.clubs[state.playerClubId];
     const toClub = state.clubs[toClubId];
     if (!fromClub || !toClub) return { success: false, message: 'Invalid club.' };
+    // Don't loan out below a fieldable squad. recallLoan/terminateLoan guard MAX_SQUAD_SIZE
+    // on the receiving side, but loaning out had no MIN guard, so a squad already at the
+    // floor could drop below MIN_SQUAD_SIZE and be unable to field a lineup.
+    if (fromClub.playerIds.length <= MIN_SQUAD_SIZE) return { success: false, message: 'Your squad is too small to loan out a player.' };
 
     // Clamp wageSplit to valid range
     wageSplit = Math.max(0, Math.min(100, wageSplit));
@@ -399,7 +403,7 @@ export const createLoanSlice = (set: Set, get: Get) => ({
     // Remove from seller's roster (already at buyer from loan)
     sellerClub.playerIds = sellerClub.playerIds.filter(id => id !== loan.playerId);
 
-    const updatedPlayer = { ...player, onLoan: false, loanFromClubId: undefined, loanToClubId: undefined, clubId: state.playerClubId };
+    const updatedPlayer = { ...player, onLoan: false, loanFromClubId: undefined, loanToClubId: undefined, clubId: state.playerClubId, listedForSale: false };
 
     const newMessages = addMsg(state.messages, {
       week: state.week, season: state.season, type: 'transfer',
@@ -419,6 +423,9 @@ export const createLoanSlice = (set: Set, get: Get) => ({
       messages: newMessages,
       shortlist: state.shortlist.filter(id => id !== loan.playerId),
       scoutWatchList: state.scoutWatchList.filter(id => id !== loan.playerId),
+      // Clear any stale market listing for the now-permanently-owned player so AI
+      // clubs can't keep bidding against an outdated listing.
+      transferMarket: state.transferMarket.filter(l => l.playerId !== loan.playerId),
     });
 
     return { success: true, message: `${player.firstName} ${player.lastName} signed permanently for £${(fee / 1e6).toFixed(1)}M!` };

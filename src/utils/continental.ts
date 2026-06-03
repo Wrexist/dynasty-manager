@@ -176,26 +176,23 @@ export function generateKnockoutFromGroups(
     }
   }
 
-  // Match winners vs runners-up, avoiding same-group matchups
-  const shuffledRunners = shuffle([...runnersUp]);
+  // Pair group winners with runners-up, guaranteeing no same-group tie. Each group
+  // contributes exactly one winner and one runner-up at the same index, so pairing
+  // winner[order[i]] with runnerUp[order[i+1]] — a cyclic shift over a shuffled group
+  // order — is always a valid derangement. The old greedy matched the *first* different-
+  // group runner and could strand the last winner with only its own group's runner left,
+  // falling back to a same-group tie even when a clean pairing existed.
+  const order = shuffle(winners.map((_, i) => i));
   const ties: ContinentalKnockoutTie[] = [];
 
-  for (let i = 0; i < winners.length; i++) {
-    const winner = winners[i];
-    // Find a runner-up not from the same group
-    let matchedIdx = shuffledRunners.findIndex(ru => {
-      const winnerGroup = tournament.groups.find(g => g.clubIds.includes(winner));
-      const ruGroup = tournament.groups.find(g => g.clubIds.includes(ru));
-      return winnerGroup?.id !== ruGroup?.id;
-    });
-    if (matchedIdx === -1) matchedIdx = 0; // fallback
-
-    const runnerUp = shuffledRunners.splice(matchedIdx, 1)[0];
+  for (let i = 0; i < order.length; i++) {
+    const winnerIdx = order[i];
+    const runnerIdx = order[(i + 1) % order.length];
     ties.push({
       id: safeRandomUUID(),
       round: 'R16',
-      homeClubId: winner,
-      awayClubId: runnerUp,
+      homeClubId: winners[winnerIdx],
+      awayClubId: runnersUp[runnerIdx],
       leg1Played: false, leg1HomeGoals: 0, leg1AwayGoals: 0,
       leg2Played: false, leg2HomeGoals: 0, leg2AwayGoals: 0,
       week1: CONTINENTAL_R16_WEEKS[0],
@@ -231,7 +228,10 @@ export function simulateKnockoutLeg(
     const isPlayerTie = tie.homeClubId === playerClubId || tie.awayClubId === playerClubId;
     if (isPlayerTie) return tie; // Player plays interactively
 
-    if (leg === 1 && !tie.leg1Played) {
+    // Finals are single-leg — exclude them here so the final-specific branch below
+    // (which actually sets winnerId) is reachable. Without this guard the final's
+    // leg 1 was played but its winner was never resolved, stalling the tournament.
+    if (round !== 'F' && leg === 1 && !tie.leg1Played) {
       const homeRep = virtualClubs[tie.homeClubId]?.reputation || 3;
       const awayRep = virtualClubs[tie.awayClubId]?.reputation || 3;
       const { homeGoals, awayGoals } = simulateContinentalMatch(homeRep, awayRep);

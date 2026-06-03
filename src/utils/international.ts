@@ -227,20 +227,29 @@ export function generateTournament(
     // Generate round-robin fixtures (each team plays every other once)
     const fixtures: InternationalFixture[] = [];
     const weekOffset = 47; // international weeks start at 47
-    for (let i = 0; i < teams.length; i++) {
-      for (let j = i + 1; j < teams.length; j++) {
-        // Spread across weeks 47-49 (3 group stage matchdays)
-        const matchday = fixtures.length % 3;
+    // Round-robin via the circle method so each team plays exactly once per matchday.
+    // The old `fixtures.length % 3` put two of a team's matches on the same matchday/week,
+    // so one of them was silently never played (it stayed unscheduled forever).
+    const n = teams.length;
+    const rotation = teams.map((_, i) => i).slice(1); // indices of all but the fixed team 0
+    const rounds = Math.max(1, n - 1);
+    for (let r = 0; r < rounds; r++) {
+      const matchday = r % 3; // 3 group matchdays → weeks 47-49
+      const dayOrder = [0, ...rotation];
+      for (let k = 0; k < Math.floor(n / 2); k++) {
+        const a = dayOrder[k];
+        const b = dayOrder[n - 1 - k];
         fixtures.push({
           id: nextFixtureId(),
-          homeNation: teams[i],
-          awayNation: teams[j],
+          homeNation: teams[a],
+          awayNation: teams[b],
           played: false,
           homeGoals: 0,
           awayGoals: 0,
           week: weekOffset + matchday,
         });
       }
+      rotation.unshift(rotation.pop()!); // rotate for the next matchday
     }
 
     const table: InternationalGroupEntry[] = teams.map(t => ({

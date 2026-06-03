@@ -8,8 +8,13 @@ export function calculateSeasonAwards(
 ): SeasonAward[] {
   const awards: SeasonAward[] = [];
 
+  // Awards are for the player's own division — scope to the clubs in this league table so a
+  // lower-division striker can't win the top-flight Golden Boot on the Season Summary screen.
+  const divisionClubIds = new Set(leagueTable.map(e => e.clubId));
+  const divisionPlayers = divisionClubIds.size > 0 ? allPlayers.filter(p => divisionClubIds.has(p.clubId)) : allPlayers;
+
   // Golden Boot (top scorer)
-  const topScorer = allPlayers.filter(p => p.goals > 0).sort((a, b) => b.goals - a.goals)[0];
+  const topScorer = divisionPlayers.filter(p => p.goals > 0).sort((a, b) => b.goals - a.goals)[0];
   if (topScorer) {
     awards.push({ name: 'Golden Boot', recipientName: `${topScorer.firstName} ${topScorer.lastName}`, recipientClub: clubs[topScorer.clubId]?.shortName || '', stat: topScorer.goals });
   }
@@ -28,13 +33,14 @@ export function calculateSeasonAwards(
   }
 
   // Playmaker of the Season (top assists)
-  const topAssister = allPlayers.filter(p => p.assists > 0).sort((a, b) => b.assists - a.assists)[0];
+  const topAssister = divisionPlayers.filter(p => p.assists > 0).sort((a, b) => b.assists - a.assists)[0];
   if (topAssister) {
     awards.push({ name: 'Playmaker of the Season', recipientName: `${topAssister.firstName} ${topAssister.lastName}`, recipientClub: clubs[topAssister.clubId]?.shortName || '', stat: topAssister.assists });
   }
 
-  // Young Player of the Season (U23, highest overall)
-  const youngStar = allPlayers.filter(p => p.age <= 23).sort((a, b) => b.overall - a.overall)[0];
+  // Young Player of the Season (U23, highest overall) — must have actually played, else a
+  // 0-appearance youth-academy prospect with a high ceiling could win it.
+  const youngStar = divisionPlayers.filter(p => p.age <= 23 && (p.appearances || 0) > 0).sort((a, b) => b.overall - a.overall)[0];
   if (youngStar) {
     awards.push({ name: 'Young Player of the Season', recipientName: `${youngStar.firstName} ${youngStar.lastName}`, recipientClub: clubs[youngStar.clubId]?.shortName || '', stat: youngStar.overall });
   }
@@ -62,7 +68,7 @@ export function calculateSeasonAwards(
     { positions: ['LW', 'RW', 'ST'], count: 3 },
   ];
   for (const group of posGroups) {
-    const candidates = allPlayers
+    const candidates = divisionPlayers
       .filter(p => group.positions.includes(p.position))
       .sort((a, b) => (b.overall + b.goals * 2 + b.assists) - (a.overall + a.goals * 2 + a.assists));
     for (let i = 0; i < Math.min(group.count, candidates.length); i++) {

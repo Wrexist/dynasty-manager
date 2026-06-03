@@ -59,6 +59,29 @@ describe('cup', () => {
       expect(advanced.ties.filter(t => t.round === 'R4')).toHaveLength(8);
     });
 
+    it('records a winnerId on every resolved tie (decisive and on penalties)', () => {
+      const cup = generateCupDraw(makeClubIds(16)); // power of two → straight R4 pairings, no byes
+      cup.ties.forEach((t, i) => {
+        t.played = true;
+        if (i === 0) { t.homeGoals = 2; t.awayGoals = 1; } // decisive
+        else { t.homeGoals = 1; t.awayGoals = 1; }          // drawn → resolves on penalties
+      });
+      const advanced = advanceCupRound(cup);
+      const resolved = advanced.ties.filter(t => t.round === 'R4');
+      // Every resolved tie now carries a winnerId that is one of its two clubs.
+      for (const t of resolved) {
+        expect(t.winnerId).toBeDefined();
+        expect([t.homeClubId, t.awayClubId]).toContain(t.winnerId);
+      }
+      // Decisive tie → higher scorer wins.
+      expect(resolved[0].winnerId).toBe(resolved[0].homeClubId);
+      // Drawn ties carry a penaltyShootout score and winnerId matches it.
+      const drawnResolved = resolved.find(t => t.penaltyShootout);
+      expect(drawnResolved).toBeDefined();
+      const ps = drawnResolved!.penaltyShootout!;
+      expect(drawnResolved!.winnerId).toBe(ps.home > ps.away ? drawnResolved!.homeClubId : drawnResolved!.awayClubId);
+    });
+
     it('should not advance past final', () => {
       const cup = { ties: [], currentRound: 'F' as const, eliminated: false, winner: null };
       const result = advanceCupRound(cup);

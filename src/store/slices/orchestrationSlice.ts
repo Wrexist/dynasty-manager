@@ -294,23 +294,33 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
     communityPackEnabled: state.communityPackEnabled || false,
     cpPool: state.cpPool || { shuffleSeed: 0, cursor: 0, usedFcIds: [], marketListings: [], lastMarketRefreshWeek: 0, lastSeedSeason: 0 },
   };
-  let json = JSON.stringify(saveData);
-
-  // Fallback safety net: if our pre-flight underestimated and we still exceed
-  // the quota threshold, apply aggressive trim and re-stringify. Rare because
-  // the pre-flight above usually catches it.
-  if (json.length > AGGRESSIVE_TRIM_THRESHOLD) {
-    if (saveData.divisionFixtures) {
-      const aggressiveTrim: Record<string, unknown[]> = {};
-      for (const [div, fx] of Object.entries(saveData.divisionFixtures as Record<string, unknown[]>)) {
-        aggressiveTrim[div] = stripAllEvents(fx);
-      }
-      saveData.divisionFixtures = aggressiveTrim;
-    }
-    if (saveData.fixtures) {
-      saveData.fixtures = stripAllEvents(saveData.fixtures as unknown[]);
-    }
+  let json: string;
+  try {
     json = JSON.stringify(saveData);
+
+    // Fallback safety net: if our pre-flight underestimated and we still exceed
+    // the quota threshold, apply aggressive trim and re-stringify. Rare because
+    // the pre-flight above usually catches it.
+    if (json.length > AGGRESSIVE_TRIM_THRESHOLD) {
+      if (saveData.divisionFixtures) {
+        const aggressiveTrim: Record<string, unknown[]> = {};
+        for (const [div, fx] of Object.entries(saveData.divisionFixtures as Record<string, unknown[]>)) {
+          aggressiveTrim[div] = stripAllEvents(fx);
+        }
+        saveData.divisionFixtures = aggressiveTrim;
+      }
+      if (saveData.fixtures) {
+        saveData.fixtures = stripAllEvents(saveData.fixtures as unknown[]);
+      }
+      json = JSON.stringify(saveData);
+    }
+  } catch (err) {
+    // A serialization failure (circular ref / non-serializable value injected into
+    // state) must NOT propagate uncaught out of the idle/lifecycle callback that calls
+    // performSave — surface it like a write failure instead of silently losing the save.
+    Sentry.captureException(err, { tags: { context: 'saveGame.stringify' } });
+    set({ saveStatus: 'failed', saveFailureMessage: 'Save could not be serialized' });
+    return;
   }
 
   // Change detection: if the payload is byte-identical to our last successful
@@ -334,7 +344,7 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
     saveResult = writeSaveSlot(s, json);
     lastSavedHash = payloadHash;
   } catch (err) {
-    // Memory cache write or stringify itself threw — true OOM scenario.
+    // Memory cache write threw — true OOM scenario. (Stringify failures are caught above.)
     const errTime = Date.now();
     if (errTime - lastSaveErrorLogAt > 10000) {
       Sentry.captureException(err, { tags: { context: 'saveGame.throw' } });

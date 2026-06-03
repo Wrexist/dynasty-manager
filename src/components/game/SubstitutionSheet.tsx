@@ -368,26 +368,17 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
                   return;
                 }
 
-                // Re-run autoFillTeam and only apply the top N swaps
-                autoFillTeam();
-                const freshState2 = useGameStore.getState();
-                const freshClub2 = freshState2.clubs[freshState2.playerClubId];
-                if (!freshClub2) { updateLineup(oldLineupIds, oldSubs); setAutoFilling(false); return; }
-
-                // Score each swap by OVR gain (prioritize highest impact swaps)
+                // Pick the highest-impact swaps: bring on the best benched players in place of
+                // the weakest demoted starters. The old code re-ran the optimizer and matched
+                // every incoming player to the *first* outgoing starter (`starterToBench.find`),
+                // producing duplicate outIds so all but one makeMatchSub silently no-op'd — the
+                // applied subs weren't the top-N by gain. Positions are re-optimized below, so
+                // the in↔out pairing only needs distinct valid IDs.
+                const promoted = benchToStarter.map(id => players[id]).filter(Boolean).sort((a, b) => b.overall - a.overall);
+                const demoted = starterToBench.map(id => players[id]).filter(Boolean).sort((a, b) => a.overall - b.overall);
                 const swapPairs: { outId: string; inId: string; gain: number }[] = [];
-                for (const inId of benchToStarter) {
-                  // Find which starter they replaced
-                  const outId = starterToBench.find(sId => {
-                    // Check if this outId's slot is now occupied by inId
-                    const oldIdx = oldLineupIds.indexOf(sId);
-                    return oldIdx >= 0 && freshClub2.lineup.includes(inId);
-                  });
-                  if (outId) {
-                    const inP = players[inId];
-                    const outP = players[outId];
-                    swapPairs.push({ outId, inId, gain: (inP?.overall || 0) - (outP?.overall || 0) });
-                  }
+                for (let i = 0; i < Math.min(promoted.length, demoted.length); i++) {
+                  swapPairs.push({ outId: demoted[i].id, inId: promoted[i].id, gain: promoted[i].overall - demoted[i].overall });
                 }
                 swapPairs.sort((a, b) => b.gain - a.gain);
                 const appliedSwaps = swapPairs.slice(0, allowedSwaps);

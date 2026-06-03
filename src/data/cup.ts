@@ -106,27 +106,39 @@ export function advanceCupRound(
   // Resolve drawn ties with penalty shootout simulation
   const updatedTies = [...cup.ties];
   const winners = currentTies.map(t => {
-    if (t.awayClubId === CUP_BYE_MARKER) return t.homeClubId;
-    if (t.homeGoals > t.awayGoals) return t.homeClubId;
-    if (t.awayGoals > t.homeGoals) return t.awayClubId;
-    // Penalty shootout for drawn matches — routes through the shared helper
-    // so AI cup ties use the same GK-quality-weighted formula and early-
-    // termination logic as user-facing shootouts. Empty clubs/players maps
-    // fall back to neutral 0.5 GK quality, which preserves the legacy
-    // behaviour for callers that haven't yet wired the context through.
-    const homeClub = clubs[t.homeClubId];
-    const awayClub = clubs[t.awayClubId];
-    const so = simulatePenaltyShootout({
-      homeName: homeClub?.shortName || t.homeClubId,
-      awayName: awayClub?.shortName || t.awayClubId,
-      homeGKQuality: getClubGKQuality(homeClub, players),
-      awayGKQuality: getClubGKQuality(awayClub, players),
-    });
+    let winnerId: string;
+    let penaltyShootout: { home: number; away: number } | undefined;
+    if (t.awayClubId === CUP_BYE_MARKER) {
+      winnerId = t.homeClubId;
+    } else if (t.homeGoals > t.awayGoals) {
+      winnerId = t.homeClubId;
+    } else if (t.awayGoals > t.homeGoals) {
+      winnerId = t.awayClubId;
+    } else {
+      // Penalty shootout for drawn matches — routes through the shared helper
+      // so AI cup ties use the same GK-quality-weighted formula and early-
+      // termination logic as user-facing shootouts. Empty clubs/players maps
+      // fall back to neutral 0.5 GK quality, which preserves the legacy
+      // behaviour for callers that haven't yet wired the context through.
+      const homeClub = clubs[t.homeClubId];
+      const awayClub = clubs[t.awayClubId];
+      const so = simulatePenaltyShootout({
+        homeName: homeClub?.shortName || t.homeClubId,
+        awayName: awayClub?.shortName || t.awayClubId,
+        homeGKQuality: getClubGKQuality(homeClub, players),
+        awayGKQuality: getClubGKQuality(awayClub, players),
+      });
+      penaltyShootout = { home: so.homeScore, away: so.awayScore };
+      winnerId = so.winner === 'home' ? t.homeClubId : t.awayClubId;
+    }
+    // Stamp the resolved winner on the tie so the bracket/cup UI highlights the
+    // correct team. Previously winnerId was never set and CupPage fell back to
+    // "homeGoals > awayGoals", which named the away team for every drawn tie.
     const tieIdx = updatedTies.findIndex(ut => ut.id === t.id);
     if (tieIdx >= 0) {
-      updatedTies[tieIdx] = { ...updatedTies[tieIdx], penaltyShootout: { home: so.homeScore, away: so.awayScore } };
+      updatedTies[tieIdx] = { ...updatedTies[tieIdx], winnerId, ...(penaltyShootout ? { penaltyShootout } : {}) };
     }
-    return so.winner === 'home' ? t.homeClubId : t.awayClubId;
+    return winnerId;
   });
 
   const shuffled = shuffle([...winners]);

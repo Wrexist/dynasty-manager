@@ -97,7 +97,10 @@ export function endSeasonImpl(set: Set, get: Get) {
   track('season_completed', { season, finalPosition: pos, division: playerDiv });
 
   const allPlayersList = Object.values(players);
-  const topScorer = allPlayersList.filter(p => p.goals > 0).sort((a, b) => b.goals - a.goals)[0];
+  // Scope the season's recorded top scorer to the player's own division (the league table),
+  // otherwise a lower-division striker can show as a top-flight season's top scorer.
+  const divisionClubIdSet = new Set(leagueTable.map(e => e.clubId));
+  const topScorer = allPlayersList.filter(p => p.goals > 0 && divisionClubIdSet.has(p.clubId)).sort((a, b) => b.goals - a.goals)[0];
   const seasonAwards = calculateSeasonAwards(allPlayersList, clubs, leagueTable, playerClubId);
 
   // Ballon d'Or ranking — top 25 players of the season. `injectGlobalElites`
@@ -1139,13 +1142,33 @@ function finalizeSeason(
   const sponsorSeasonEnd = processSponsorSeasonEnd(state);
   if (sponsorSeasonEnd.clubs) {
     for (const [id, sponsorClub] of Object.entries(sponsorSeasonEnd.clubs)) {
-      // Only merge budget changes from sponsors — don't overwrite the entire club (which would revert gap-fill)
+      // Apply only the sponsor *delta* (the bonus) rather than the absolute budget.
+      // processSponsorSeasonEnd computes budget from the pre-endSeason state snapshot, so
+      // writing it directly clobbered budget changes already made to newClubs this
+      // endSeason (objective cash awards, war_chest perk).
       if (newClubs[id]) {
-        newClubs[id] = { ...newClubs[id], budget: sponsorClub.budget };
+        const sponsorDelta = sponsorClub.budget - (state.clubs[id]?.budget ?? sponsorClub.budget);
+        newClubs[id] = { ...newClubs[id], budget: newClubs[id].budget + sponsorDelta };
       }
     }
   }
   if (sponsorSeasonEnd.messages) newMessages = sponsorSeasonEnd.messages;
+
+  // Drop last season's youth prospects that were never promoted to a senior squad.
+  // The academy is reassigned to the fresh intake below, so their Player records would
+  // otherwise linger in state.players forever (save bloat that grows every season).
+  // Promoted prospects already left youthAcademy.prospects and live on a club, so the
+  // onAnyClub guard spares them.
+  {
+    const newProspectIds = new Set(newYouthProspects.map(p => p.playerId));
+    const onAnyClub = new Set(Object.values(newClubs).flatMap(c => c.playerIds));
+    for (const oldProspect of state.youthAcademy.prospects) {
+      const pid = oldProspect.playerId;
+      if (pid && newPlayers[pid] && !newProspectIds.has(pid) && !onAnyClub.has(pid)) {
+        delete newPlayers[pid];
+      }
+    }
+  }
 
   // Final cleanup: ensure all club playerIds, lineups, and subs reference existing players
   for (const club of Object.values(newClubs)) {
@@ -1481,14 +1504,20 @@ function finalizeSeason(
         const leagueInfo = LEAGUES.find(l => l.id === cs.playerDivision);
         if (leagueInfo) {
           const teamCount = leagueInfo.teamCount;
-          const replacedSlots = leagueInfo.replacedSlots;
-          // Promotion: finished in top auto-promotion slots (position <= teamCount - replacedSlots is safe, but top 2-3 = promoted)
-          if (replacedSlots > 0 && latestHistory.position <= Math.min(3, replacedSlots)) {
+          // Promotion: finished in an auto-promotion slot. Keyed on promotionSpots
+          // (not replacedSlots, which is 0 for every tier except the bottom one) so
+          // winning the Championship/League One actually counts as a promotion.
+          // Top-flight leagues have promotionSpots = 0, so this never fires there.
+          const promotionSpots = leagueInfo.promotionSpots;
+          if (promotionSpots > 0 && latestHistory.position <= promotionSpots) {
             cm.promotionsWon += 1;
             cm.reputationScore = Math.min(REP_MAX, cm.reputationScore + REP_PROMOTION);
           }
-          // Relegation: finished in bottom replacedSlots
-          if (replacedSlots > 0 && latestHistory.position > teamCount - replacedSlots) {
+          // Relegation: finished in the bottom zone. Upper tiers relegate to a real
+          // lower division (relegationSpots); the bottom tier replaces its worst clubs
+          // with freshly generated ones (replacedSlots). Either counts as relegation.
+          const relegationCount = leagueInfo.relegationSpots > 0 ? leagueInfo.relegationSpots : leagueInfo.replacedSlots;
+          if (relegationCount > 0 && latestHistory.position > teamCount - relegationCount) {
             cm.reputationScore = Math.max(REP_MIN, cm.reputationScore + REP_RELEGATION);
           }
         }

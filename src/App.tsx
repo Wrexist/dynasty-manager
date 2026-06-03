@@ -21,7 +21,10 @@ const ModeSelect = lazy(() => import("./pages/ModeSelect"));
 const ManagerCreation = lazy(() => import("./pages/ManagerCreation"));
 const WhatsNewPage = lazy(() => import("./pages/WhatsNewPage"));
 const SubscribeOnboarding = lazy(() => import("./pages/SubscribeOnboarding"));
-const CinematicCapturePage = lazy(() => import("./pages/CinematicCapturePage"));
+// Cinematic Capture — hidden marketing/dev capture tool. Disabled for now so users can't
+// reach it (the Settings entry is removed and the route below is commented out). Kept for
+// future use: re-enable this import + the /cinematic-capture route to bring it back.
+// const CinematicCapturePage = lazy(() => import("./pages/CinematicCapturePage"));
 
 // Loading fallback
 const LoadingFallback = () => (
@@ -90,10 +93,12 @@ const App = () => {
                 path="/game"
                 element={<ErrorBoundary scope="game-shell"><GameShell /></ErrorBoundary>}
               />
+              {/* Cinematic Capture route disabled for now — users can't access it; the URL
+                  falls through to NotFound below. Re-enable with the lazy import above when needed.
               <Route
                 path="/cinematic-capture"
                 element={<ErrorBoundary scope="cinematic-capture"><CinematicCapturePage /></ErrorBoundary>}
-              />
+              /> */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
