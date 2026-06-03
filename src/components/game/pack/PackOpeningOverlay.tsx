@@ -228,9 +228,11 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
   }, [phase]);
 
   // Players destined for a walkout cinematic stay face-down through the
-  // reveal phase — tapping them in the grid would spoil the cinematic. We
-  // compute the walkout set once per render based on the same priority
-  // rule used when queueing (top-N by OVR above threshold).
+  // reveal phase — a quiet flip would waste their payoff. Tapping one instead
+  // launches its walkout immediately (see `triggerWalkout`); otherwise the
+  // walkout auto-fires once every other card is revealed. We compute the
+  // walkout set once per render based on the same priority rule used when
+  // queueing (top-N by OVR above threshold).
   const walkoutPlayerIds = useMemo(() => {
     const ids = new Set<string>();
     players
@@ -303,6 +305,28 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
       return next;
     });
   }, []);
+
+  // Tap-to-walkout: a walkout-tier card stays face-down in the reveal grid
+  // because its payoff is the cinematic, not a quiet flip. Previously that
+  // made the card a dead tap — it read "Tap to reveal" but tapping did
+  // nothing until every other card was flipped and the walkout auto-fired.
+  // Now tapping the card starts the walkout immediately: seed the queue with
+  // the tapped player first, then any other pending walkouts (top-OVR first),
+  // and jump straight to the walkout phase. Remaining face-down cards are
+  // surfaced face-up in the summary that follows.
+  const triggerWalkout = useCallback((id: string) => {
+    if (phase !== 'reveal') return;
+    if (!walkoutPlayerIds.has(id)) return;
+    const tapped = players.find(p => p.id === id);
+    if (!tapped) return;
+    const rest = players
+      .filter(p => walkoutPlayerIds.has(p.id) && p.id !== id)
+      .sort((a, b) => b.overall - a.overall);
+    hapticHeavy();
+    setWalkoutQueue([tapped, ...rest]);
+    setCurrentWalkout(tapped);
+    setPhase('walkout');
+  }, [phase, players, walkoutPlayerIds]);
 
   // Allow tap-to-reveal-all during reveal phase. Walkout-tier cards are
   // excluded so the cinematic still plays for them — the parent effect
@@ -1112,8 +1136,10 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                       player={p}
                       revealed={revealedSet.has(p.id) || phase === 'summary'}
                       onReveal={
-                        phase === 'reveal' && !walkoutPlayerIds.has(p.id)
-                          ? () => revealOne(p.id)
+                        phase === 'reveal'
+                          ? walkoutPlayerIds.has(p.id)
+                            ? () => triggerWalkout(p.id)
+                            : () => revealOne(p.id)
                           : undefined
                       }
                       entranceDelay={prefersReducedMotion ? 0 : i * (PACK_ANIM.revealStaggerMs / 1000)}
