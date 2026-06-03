@@ -4,7 +4,7 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { DollarSign, Users, Building2, GraduationCap, TrendingUp, TrendingDown, Star, HeartPulse, Smile, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getConfidenceColor, getFanConfidenceColor } from '@/utils/uiHelpers';
-import { getWeeklyIncome, getNetWeeklyIncome } from '@/utils/financeHelpers';
+import { useFinanceBreakdown } from '@/hooks/useFinanceBreakdown';
 import { FAN_MOOD_HIGH_THRESHOLD, FAN_MOOD_MID_THRESHOLD } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
 import { PremiumCheck } from '@/components/game/icons/PremiumCheck';
@@ -24,11 +24,14 @@ const ClubPage = () => {
   // Hooks) — returns neutral values when the club is missing so the early
   // return below still applies to render.
   const { size, avgAge, avgOvr, avgMorale, injured } = useSquadSummary();
+  const { breakdown } = useFinanceBreakdown();
   const club = clubs[playerClubId];
   if (!club) return null;
 
-  const weeklyIncome = getWeeklyIncome(club);
-  const netWeekly = getNetWeeklyIncome(club);
+  // Full breakdown (matches the Finance page + breakdown sheet) rather than the
+  // simplified matchday+commercial estimate, so figures are consistent across screens.
+  const weeklyIncome = breakdown?.totalIncome ?? 0;
+  const netWeekly = breakdown?.net ?? 0;
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">

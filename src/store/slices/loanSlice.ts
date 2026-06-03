@@ -403,7 +403,7 @@ export const createLoanSlice = (set: Set, get: Get) => ({
     // Remove from seller's roster (already at buyer from loan)
     sellerClub.playerIds = sellerClub.playerIds.filter(id => id !== loan.playerId);
 
-    const updatedPlayer = { ...player, onLoan: false, loanFromClubId: undefined, loanToClubId: undefined, clubId: state.playerClubId };
+    const updatedPlayer = { ...player, onLoan: false, loanFromClubId: undefined, loanToClubId: undefined, clubId: state.playerClubId, listedForSale: false };
 
     const newMessages = addMsg(state.messages, {
       week: state.week, season: state.season, type: 'transfer',
@@ -423,6 +423,9 @@ export const createLoanSlice = (set: Set, get: Get) => ({
       messages: newMessages,
       shortlist: state.shortlist.filter(id => id !== loan.playerId),
       scoutWatchList: state.scoutWatchList.filter(id => id !== loan.playerId),
+      // Clear any stale market listing for the now-permanently-owned player so AI
+      // clubs can't keep bidding against an outdated listing.
+      transferMarket: state.transferMarket.filter(l => l.playerId !== loan.playerId),
     });
 
     return { success: true, message: `${player.firstName} ${player.lastName} signed permanently for £${(fee / 1e6).toFixed(1)}M!` };

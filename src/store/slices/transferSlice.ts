@@ -6,7 +6,7 @@ import { LEAGUES } from '@/data/league';
 import { GROWTH_NEGOTIATION_PER_TRANSFER as CAREER_NEGOTIATION_GROWTH, STAT_MAX as CAREER_STAT_MAX } from '@/config/managerCareer';
 import {
   ACCEPT_CHANCE_AT_ASKING, ACCEPT_CHANCE_AT_80_PERCENT, ACCEPT_CHANCE_BELOW, ACCEPT_80_PERCENT_THRESHOLD,
-  LIST_PRICE_MULTIPLIER,
+  LIST_PRICE_MULTIPLIER, UNLISTED_PLAYER_PREMIUM,
   SIGNING_BONUS_WEEKS_PER_YEAR, RENEWAL_MORALE_BOOST,
   COUNTER_OFFER_MIN_THRESHOLD, COUNTER_OFFER_MAX_THRESHOLD, COUNTER_OFFER_CHANCE,
   TRANSFER_SHARK_DISCOUNT,
@@ -40,6 +40,26 @@ const checkChallengeBlock = (state: GameState, playerAge?: number): string | nul
   if (scenario.noTransfers) return 'Transfers are disabled in this challenge.';
   if (scenario.youthOnly && playerAge != null && playerAge > 23) return 'Challenge restricts signings to players aged 23 or under.';
   return null;
+};
+
+/** Resolve a transfer-market listing for a player, synthesizing one for an *unlisted*
+ *  player at another club (the "Approach Player" flow) so evaluate/offer/execute all
+ *  work the same as for a listed player. Asking price mirrors TransferApproach so the
+ *  slider, evaluation and acceptance logic agree. Returns null when there's no valid
+ *  other-club target. */
+const resolveListing = (state: GameState, playerId: string) => {
+  const existing = state.transferMarket.find(l => l.playerId === playerId);
+  if (existing) return existing;
+  const target = state.players[playerId];
+  if (!target || !target.clubId || target.clubId === state.playerClubId || !state.clubs[target.clubId]) return null;
+  return {
+    playerId,
+    askingPrice: Math.round(target.value * UNLISTED_PLAYER_PREMIUM),
+    sellerClubId: target.clubId,
+    listedWeek: state.week,
+    listedSeason: state.season,
+    divisionId: state.clubs[target.clubId]?.divisionId,
+  };
 };
 
 /** Interpolate acceptance chance for incoming offer negotiation based on counter/offer ratio. */
@@ -206,7 +226,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
 
   evaluateOffer: (playerId: string, fee: number) => {
     const state = get();
-    const listing = state.transferMarket.find(l => l.playerId === playerId);
+    const listing = resolveListing(state, playerId);
     if (!listing) return null;
     const player = state.players[playerId];
     if (!player) return null;
@@ -227,7 +247,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const state = get();
     const challengeBlock = checkChallengeBlock(state, state.players[playerId]?.age);
     if (challengeBlock) return { outcome: 'rejected', message: challengeBlock };
-    const listing = state.transferMarket.find(l => l.playerId === playerId);
+    const listing = resolveListing(state, playerId);
     if (!state.transferWindowOpen && !listing?.scoutedPlayer) return { outcome: 'rejected', message: 'Transfer window is closed.' };
     if (!listing) return { outcome: 'rejected', message: 'Player not available.' };
     const club = state.clubs[state.playerClubId];
@@ -271,7 +291,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const state = get();
     const challengeBlock = checkChallengeBlock(state, state.players[playerId]?.age);
     if (challengeBlock) return { success: false, message: challengeBlock };
-    const listing = state.transferMarket.find(l => l.playerId === playerId);
+    const listing = resolveListing(state, playerId);
     if (!state.transferWindowOpen && !listing?.scoutedPlayer) return { success: false, message: 'Transfer window is closed.' };
     if (!listing) return { success: false, message: 'Player not available.' };
     const club = state.clubs[state.playerClubId];
@@ -391,7 +411,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const state = get();
     const challengeBlock = checkChallengeBlock(state, state.players[playerId]?.age);
     if (challengeBlock) return { success: false, message: challengeBlock };
-    const listing = state.transferMarket.find(l => l.playerId === playerId);
+    const listing = resolveListing(state, playerId);
     if (!state.transferWindowOpen && !listing?.scoutedPlayer) return { success: false, message: 'Transfer window is closed.' };
     if (!listing) return { success: false, message: 'Player not available.' };
     const club = state.clubs[state.playerClubId];

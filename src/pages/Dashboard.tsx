@@ -22,7 +22,7 @@ import { LEAGUES } from '@/data/league';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { FloatingXP } from '@/components/game/FloatingXP';
 import { cn } from '@/lib/utils';
-import { getNetWeeklyIncome } from '@/utils/financeHelpers';
+import { useFinanceBreakdown } from '@/hooks/useFinanceBreakdown';
 import { getContractUrgency } from '@/utils/contracts';
 import { checkCelebrations, getWinStreak, getUnbeatenRun, getCleanSheetStreak, getDramaCelebration } from '@/utils/celebrations';
 import { STREAK_MORALE_THRESHOLD, OBJECTIVE_STREAK_THRESHOLD, OBJECTIVE_CYCLE_WEEKS, OBJECTIVE_STREAK_MULTIPLIER, RARE_OBJECTIVE_XP_MULTIPLIER, LEGENDARY_OBJECTIVE_XP_MULTIPLIER, COACH_ALL_TASKS_BONUS_XP, ACHIEVEMENT_XP_BRONZE, ACHIEVEMENT_XP_SILVER, ACHIEVEMENT_XP_GOLD } from '@/config/gameBalance';
@@ -332,8 +332,10 @@ const Dashboard = () => {
     .filter(Boolean)
     .filter(p => getContractUrgency(p.contractEnd, season) !== null && !p.injured), [club, players, season]);
 
-  // Net weekly income
-  const netWeeklyIncome = useMemo(() => club ? getNetWeeklyIncome(club) : 0, [club]);
+  // Net weekly income — full breakdown so it matches the Finance page (was the
+  // simplified matchday+commercial-minus-wages estimate, which disagreed across screens).
+  const { breakdown: financeBreakdown } = useFinanceBreakdown();
+  const netWeeklyIncome = financeBreakdown?.net ?? 0;
 
   // Streak stats
   const winStreak = useMemo(() => getWinStreak(playerClubId, fixtures), [playerClubId, fixtures]);

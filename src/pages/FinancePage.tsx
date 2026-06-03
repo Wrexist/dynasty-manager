@@ -6,8 +6,7 @@ import { DollarSign, TrendingUp, TrendingDown, Users, ArrowUpRight, ArrowDownRig
 import { cn } from '@/lib/utils';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS } from '@/config/ui';
-import { getWeeklyIncome, getNetWeeklyIncome } from '@/utils/financeHelpers';
-import { MATCHDAY_INCOME_PER_FAN, COMMERCIAL_INCOME_PER_REP, COMMERCIAL_INCOME_BASE } from '@/config/gameBalance';
+import { useFinanceBreakdown } from '@/hooks/useFinanceBreakdown';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { FinanceBreakdownSheet, FinanceSheetMode } from '@/components/game/FinanceBreakdownSheet';
 import { SponsorshipPanel } from '@/components/game/SponsorshipPanel';
@@ -26,6 +25,7 @@ const FinancePage = () => {
   const [financeSheetOpen, setFinanceSheetOpen] = useState(false);
   const [financeSheetMode, setFinanceSheetMode] = useState<FinanceSheetMode>('all');
   const budgetFlash = useFlash(club?.budget || 0);
+  const { breakdown } = useFinanceBreakdown();
 
   // Top wage earners (must be before early return to satisfy hook rules)
   const { squadPlayers, topEarners, maxWage, squadValue } = useMemo(() => {
@@ -53,14 +53,16 @@ const FinancePage = () => {
 
   if (!club) return null;
 
-  const weeklyIncome = getWeeklyIncome(club);
-  const netPerWeek = getNetWeeklyIncome(club);
+  // Use the full finance breakdown (same source as the breakdown sheet) so the headline
+  // figures match what the sheet shows — was a simplified matchday+commercial estimate.
+  const weeklyIncome = breakdown?.totalIncome ?? 0;
+  const netPerWeek = breakdown?.net ?? 0;
   const isPositive = netPerWeek >= 0;
 
   // Squad cost breakdown
   const totalWages = club.wageBill;
   const managerSalary = careerManager?.contract?.salary ?? 0;
-  const displayExpenses = totalWages + managerSalary;
+  const displayExpenses = breakdown?.totalExpenses ?? (totalWages + managerSalary);
 
   return (
     <>
@@ -151,11 +153,11 @@ const FinancePage = () => {
           <div className="mt-2 space-y-1">
             <div className="flex justify-between text-[10px]">
               <span className="text-muted-foreground">Matchday</span>
-              <span className="text-foreground">£{(club.fanBase * MATCHDAY_INCOME_PER_FAN / 1000).toFixed(0)}K</span>
+              <span className="text-foreground">£{((breakdown?.income.find(i => i.label === 'Matchday')?.amount ?? 0) / 1000).toFixed(0)}K</span>
             </div>
             <div className="flex justify-between text-[10px]">
               <span className="text-muted-foreground">Commercial</span>
-              <span className="text-foreground">£{((COMMERCIAL_INCOME_BASE + club.reputation * COMMERCIAL_INCOME_PER_REP) / 1000).toFixed(0)}K</span>
+              <span className="text-foreground">£{((breakdown?.income.find(i => i.label === 'Commercial')?.amount ?? 0) / 1000).toFixed(0)}K</span>
             </div>
           </div>
         </GlassPanel>
