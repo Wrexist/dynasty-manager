@@ -343,7 +343,11 @@ export function processSponsorSeasonEnd(state: GameState): Partial<GameState> {
   const replacedSlots = currentLeague?.replacedSlots || 3;
   const relegationZone = totalTeams - replacedSlots;
   const avoided = position <= relegationZone;
-  const promoted = false; // No cross-league promotion in single-league mode
+  // Promotion = finishing in an auto-promotion slot. Previously hardcoded false, so
+  // promotion-conditioned sponsor bonuses (and the satisfaction boost) could never fire —
+  // hurting exactly the lower-division clubs those sponsors target.
+  const promotionSpots = currentLeague?.promotionSpots || 0;
+  const promoted = promotionSpots > 0 && position <= promotionSpots;
 
   // Cup state
   const cupWon = cup.winner === playerClubId;

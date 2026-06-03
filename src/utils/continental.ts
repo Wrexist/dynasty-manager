@@ -231,7 +231,10 @@ export function simulateKnockoutLeg(
     const isPlayerTie = tie.homeClubId === playerClubId || tie.awayClubId === playerClubId;
     if (isPlayerTie) return tie; // Player plays interactively
 
-    if (leg === 1 && !tie.leg1Played) {
+    // Finals are single-leg — exclude them here so the final-specific branch below
+    // (which actually sets winnerId) is reachable. Without this guard the final's
+    // leg 1 was played but its winner was never resolved, stalling the tournament.
+    if (round !== 'F' && leg === 1 && !tie.leg1Played) {
       const homeRep = virtualClubs[tie.homeClubId]?.reputation || 3;
       const awayRep = virtualClubs[tie.awayClubId]?.reputation || 3;
       const { homeGoals, awayGoals } = simulateContinentalMatch(homeRep, awayRep);

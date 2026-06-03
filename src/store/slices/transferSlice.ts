@@ -676,7 +676,9 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     if (club.budget < signingBonus) return { success: false, message: `Insufficient funds for signing bonus (£${(signingBonus / 1e6).toFixed(1)}M).` };
 
     club.budget -= signingBonus;
-    club.wageBill = club.wageBill - player.wage + newWage;
+    // Floor at 0 — a corrupted player.wage from an old save could otherwise drive the
+    // wage bill negative, which silently passes every budget check (free signings).
+    club.wageBill = Math.max(0, club.wageBill - player.wage + newWage);
 
     const updatedPlayer = {
       ...player,

@@ -250,8 +250,9 @@ export const STORAGE_KEYS = {
   communityPackSlotPref: (slot: number) => `dynasty-cp-slot-${slot}`,
   /** localStorage: in-session snapshot for crash recovery. */
   SESSION_SNAPSHOT: 'dynasty-session-snapshot',
-  /** localStorage: persistent Hall of Managers data. */
-  HALL_OF_MANAGERS: 'dynasty-hall',
+  /** localStorage: persistent Hall of Managers data. Must match the key the hall
+   *  read/write helpers actually use ('dynasty-hall-of-managers'). */
+  HALL_OF_MANAGERS: 'dynasty-hall-of-managers',
   /** localStorage: save slot (1..3). */
   saveSlot: (slot: number) => `dynasty-save-${slot}`,
   /** localStorage: backup shadow of a save slot. */

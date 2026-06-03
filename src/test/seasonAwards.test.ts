@@ -50,7 +50,7 @@ function buildAwardsScenario() {
     buildPlayer({ id: 'cm-maestro', clubId: 'mid', position: 'CAM', overall: 86, goals: 8, assists: 22, age: 28, firstName: 'Mae', lastName: 'Stro' }),
     buildPlayer({ id: 'cm-other', clubId: 'top', position: 'CM', overall: 82, goals: 4, assists: 9, age: 25 }),
     // Young Player of the Season candidate
-    buildPlayer({ id: 'wonderkid', clubId: 'low', position: 'CAM', overall: 83, goals: 12, assists: 6, age: 19, firstName: 'Wonder', lastName: 'Kid' }),
+    buildPlayer({ id: 'wonderkid', clubId: 'low', position: 'CAM', overall: 83, goals: 12, assists: 6, age: 19, appearances: 34, firstName: 'Wonder', lastName: 'Kid' }),
     buildPlayer({ id: 'youth-fade', clubId: 'bot', position: 'CB', overall: 65, goals: 0, assists: 0, age: 22 }),
     // Defenders for Team of Season
     buildPlayer({ id: 'cb-rock', clubId: 'top', position: 'CB', overall: 85, goals: 2, assists: 1, age: 28 }),
@@ -153,8 +153,8 @@ describe('calculateSeasonAwards — Young Player', () => {
 
   it('boundary: age 23 is eligible', () => {
     const players = [
-      buildPlayer({ id: '23-yo', clubId: 'top', position: 'ST', overall: 80, age: 23 }),
-      buildPlayer({ id: '24-yo', clubId: 'top', position: 'ST', overall: 90, age: 24 }),
+      buildPlayer({ id: '23-yo', clubId: 'top', position: 'ST', overall: 80, age: 23, appearances: 30 }),
+      buildPlayer({ id: '24-yo', clubId: 'top', position: 'ST', overall: 90, age: 24, appearances: 30 }),
     ];
     const clubs = clubsMap([buildClub({ id: 'top', shortName: 'TOP', divisionId: 'eng' })]);
     const table = buildOrderedTable(['top']);
@@ -251,5 +251,46 @@ describe('calculateSeasonAwards — defensive cases', () => {
     const gb = awards.find(a => a.name === 'Golden Boot');
     expect(gb).toBeDefined();
     expect(gb!.recipientClub).toBe('');
+  });
+});
+
+// ── Regression: division scoping (audit fix) ──────────────────────────
+
+describe('calculateSeasonAwards — division scoping (audit fix)', () => {
+  it('ignores players from other divisions not in the league table', () => {
+    const clubs = clubsMap([
+      buildClub({ id: 'top', shortName: 'TOP', divisionId: 'eng' }),
+      buildClub({ id: 'lower', shortName: 'LOW', divisionId: 'eng2' }),
+    ]);
+    // League table contains only the player's own division (TOP).
+    const table = buildOrderedTable(['top']);
+    const players = [
+      buildPlayer({ id: 'div-striker', clubId: 'top', position: 'ST', goals: 20, appearances: 30, firstName: 'Div', lastName: 'Striker' }),
+      // A more prolific scorer in a *different* division — must NOT win this division's Golden Boot.
+      buildPlayer({ id: 'lower-striker', clubId: 'lower', position: 'ST', goals: 40, appearances: 30, firstName: 'Lower', lastName: 'Striker' }),
+    ];
+    const awards = calculateSeasonAwards(players, clubs, table, 'top');
+    const gb = awards.find(a => a.name === 'Golden Boot');
+    expect(gb!.recipientName).toBe('Div Striker');
+    expect(gb!.stat).toBe(20);
+  });
+});
+
+// ── Regression: Young Player requires appearances (audit fix) ─────────
+
+describe('calculateSeasonAwards — Young Player requires appearances (audit fix)', () => {
+  it('does not award a 0-appearance youth-academy prospect', () => {
+    const clubs = clubsMap([buildClub({ id: 'top', shortName: 'TOP', divisionId: 'eng' })]);
+    const table = buildOrderedTable(['top']);
+    const players = [
+      // High-ceiling prospect who never played a minute this season.
+      buildPlayer({ id: 'bench-gem', clubId: 'top', position: 'ST', overall: 85, age: 18, appearances: 0 }),
+      // A 21-year-old who actually featured.
+      buildPlayer({ id: 'regular', clubId: 'top', position: 'CM', overall: 78, age: 21, appearances: 25, firstName: 'Reg', lastName: 'Ular' }),
+    ];
+    const awards = calculateSeasonAwards(players, clubs, table, 'top');
+    const yp = awards.find(a => a.name === 'Young Player of the Season');
+    expect(yp).toBeDefined();
+    expect(yp!.recipientName).toBe('Reg Ular');
   });
 });

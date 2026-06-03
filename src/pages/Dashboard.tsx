@@ -1039,16 +1039,22 @@ const Dashboard = () => {
             setIsAdvancing(true);
             if (advanceKickoffTimerRef.current) clearTimeout(advanceKickoffTimerRef.current);
             advanceKickoffTimerRef.current = setTimeout(() => {
+              const advancePromise = advanceWeek();
               guardAsync(
-                advanceWeek(),
+                advancePromise,
                 'Dashboard.advanceWeek',
                 { title: 'Could not advance week', body: 'Please try again.' },
               );
-              setIsAdvancing(false);
-              setAdvanceDone(true);
-              hapticHeavy();
-              if (advanceDoneTimerRef.current) clearTimeout(advanceDoneTimerRef.current);
-              advanceDoneTimerRef.current = setTimeout(() => setAdvanceDone(false), ADVANCE_DONE_MS);
+              // Re-enable only after the (async) advance settles — otherwise a fast
+              // second tap fires a concurrent advanceWeek() and double-processes the
+              // week (double income/stats/fixtures). Promise.resolve handles the sync path.
+              Promise.resolve(advancePromise).finally(() => {
+                setIsAdvancing(false);
+                setAdvanceDone(true);
+                hapticHeavy();
+                if (advanceDoneTimerRef.current) clearTimeout(advanceDoneTimerRef.current);
+                advanceDoneTimerRef.current = setTimeout(() => setAdvanceDone(false), ADVANCE_DONE_MS);
+              });
             }, 50);
           }}>
             {isAdvancing ? <><Loader2 className="w-4 h-4 animate-spin" /> Advancing...</> : <><ChevronRight className="w-4 h-4" /> Advance to Week {week + 1}</>}

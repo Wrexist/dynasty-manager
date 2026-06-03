@@ -53,16 +53,23 @@ export function completeAssignment(
       noise = Math.floor(Math.random() * HIGH_KNOWLEDGE_NOISE_RANGE) - 1; // -1 to +1
     } else if (knowledge >= MEDIUM_KNOWLEDGE_THRESHOLD) {
       const isBust = Math.random() < MEDIUM_KNOWLEDGE_BUST_CHANCE; // 10% bust chance at medium knowledge
-      noise = isBust ? MEDIUM_KNOWLEDGE_BUST_RANGE + Math.floor(Math.random() * MEDIUM_KNOWLEDGE_BUST_RANGE) : Math.floor(Math.random() * MEDIUM_KNOWLEDGE_NOISE_RANGE) - 3;
+      // A bust can mislead in *either* direction — overhype a dud or under-rate a gem.
+      const bustSign = Math.random() < 0.5 ? 1 : -1;
+      noise = isBust ? bustSign * (MEDIUM_KNOWLEDGE_BUST_RANGE + Math.floor(Math.random() * MEDIUM_KNOWLEDGE_BUST_RANGE)) : Math.floor(Math.random() * MEDIUM_KNOWLEDGE_NOISE_RANGE) - 3;
     } else {
       const isBust = Math.random() < LOW_KNOWLEDGE_BUST_CHANCE; // 20% bust chance at low knowledge
-      noise = isBust ? LOW_KNOWLEDGE_BUST_RANGE + Math.floor(Math.random() * LOW_KNOWLEDGE_BUST_RANGE) : Math.floor(Math.random() * LOW_KNOWLEDGE_NOISE_RANGE) - 6;
+      // A bust can mislead in *either* direction — overhype a dud or under-rate a gem.
+      const bustSign = Math.random() < 0.5 ? 1 : -1;
+      noise = isBust ? bustSign * (LOW_KNOWLEDGE_BUST_RANGE + Math.floor(Math.random() * LOW_KNOWLEDGE_BUST_RANGE)) : Math.floor(Math.random() * LOW_KNOWLEDGE_NOISE_RANGE) - 6;
     }
     const estimatedOverall = Math.max(30, Math.min(99, player.overall + noise));
+    // Apply the same fog to potential so the recommendation can't see ground truth.
+    const estimatedPotential = Math.max(30, Math.min(99, player.potential + noise));
 
-    // Recommendation
-    const rec = player.potential >= SIGN_POTENTIAL_THRESHOLD || player.overall >= SIGN_OVERALL_THRESHOLD ? 'sign'
-      : player.potential >= MONITOR_POTENTIAL_THRESHOLD ? 'monitor'
+    // Recommendation — must use the *estimated* (fogged) figures, otherwise a
+    // low-knowledge scout would still perfectly flag every hidden gem.
+    const rec = estimatedPotential >= SIGN_POTENTIAL_THRESHOLD || estimatedOverall >= SIGN_OVERALL_THRESHOLD ? 'sign'
+      : estimatedPotential >= MONITOR_POTENTIAL_THRESHOLD ? 'monitor'
       : 'avoid';
 
     reports.push({

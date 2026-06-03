@@ -98,8 +98,10 @@ export function LoanNegotiation({ playerId, onClose }: Props) {
     setCounterDuration(null);
     timersRef.current.push(setTimeout(() => {
       const result = requestLoan(playerId, cDur, cWage, recallClause, buyOption ? buyFee : undefined);
-      setOutcome(result.outcome === 'counter' ? 'accepted' : result.outcome);
-      setResultMessage(result.outcome === 'counter' ? `${ownerClub?.name} have agreed to the revised terms!` : result.message);
+      // Only show success when the loan was actually agreed. A repeated 'counter' previously
+      // displayed "Loan Agreed!" even though no activeLoan was created.
+      setOutcome(result.outcome === 'accepted' ? 'accepted' : 'rejected');
+      setResultMessage(result.outcome === 'accepted' ? `${ownerClub?.name} have agreed to the revised terms!` : result.message);
       setPhase('result');
     }, 1000));
   }, [counterWageSplit, counterDuration, wageSplit, duration, playerId, requestLoan, recallClause, buyOption, buyFee, ownerClub]);

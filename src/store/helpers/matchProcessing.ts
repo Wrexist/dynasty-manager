@@ -82,8 +82,17 @@ export function processMatchResult(
     }
   });
 
+  // Players who took part = current lineup + anyone subbed off during the match.
+  // makeMatchSub moves the out-player from lineup → subs, so iterating lineup alone
+  // would deny a subbed-off starter their appearance, morale boost and fitness drain.
+  // Subbed-off players are recoverable from the 'substitution' events (assistPlayerId = out).
+  const subbedOffIds = result.events
+    .filter(ev => ev.type === 'substitution' && ev.assistPlayerId)
+    .map(ev => ev.assistPlayerId as string);
+  const participantIds = [...new Set([...hc.lineup, ...ac.lineup, ...subbedOffIds])];
+
   // Track appearances and boost morale for playing
-  [...hc.lineup, ...ac.lineup].forEach(pid => {
+  participantIds.forEach(pid => {
     if (newPlayers[pid]) {
       const p = { ...newPlayers[pid], appearances: newPlayers[pid].appearances + 1 };
       p.morale = Math.min(100, p.morale + MORALE_APPEARANCE_BOOST);
@@ -109,7 +118,7 @@ export function processMatchResult(
   const lost = isHome ? result.homeGoals < result.awayGoals : result.awayGoals < result.homeGoals;
   const pc = clubs[playerClubId];
   if (!pc) return { newPlayers, updatedFixtures: state.fixtures.map(f => f.id === match.id ? result : f), leagueTable: [], confidence: state.boardConfidence || 50, newMessages: messages, managerStats: state.managerStats, playerRatings, won, lost, newMilestones: [] as CareerMilestone[], managerProgression: state.managerProgression, pairFamiliarity: newPairFamiliarity };
-  const matchParticipants = new Set([...hc.lineup, ...ac.lineup]);
+  const matchParticipants = new Set(participantIds);
   // Compute aggregate narrative bonuses from lineup players (Veteran Leaders reduce morale loss, etc.)
   let narrativeMoraleLossReduction = 0;
   let narrativeTeamMoraleBoost = 0;

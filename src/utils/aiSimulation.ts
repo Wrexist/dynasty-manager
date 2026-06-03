@@ -84,7 +84,12 @@ function estimateWeeklyIncome(club: Club, divisionTable: LeagueTableEntry[]): nu
   const commercial = Math.round((COMMERCIAL_INCOME_BASE + club.reputation * COMMERCIAL_INCOME_PER_REP) * AI_INCOME_MULTIPLIER);
   const stadium = Math.round(club.facilities * STADIUM_INCOME_PER_LEVEL * AI_INCOME_MULTIPLIER);
   const tableIdx = divisionTable.findIndex(e => e.clubId === club.id);
-  const tablePos = tableIdx >= 0 ? tableIdx + 1 : divisionTable.length;
+  // When the standings aren't passed (empty array) or the club isn't found, fall back to a
+  // bottom-of-table position. Using divisionTable.length on an empty array gives tablePos=0,
+  // which awards *more* than 1st-place prize and makes every AI club think it's flush.
+  const tablePos = tableIdx >= 0
+    ? tableIdx + 1
+    : (divisionTable.length > 0 ? divisionTable.length : POSITION_PRIZE_MAX_RANK);
   const prize = Math.max(0, POSITION_PRIZE_MAX_RANK - tablePos) * POSITION_PRIZE_PER_RANK;
   return matchday + commercial + stadium + prize;
 }

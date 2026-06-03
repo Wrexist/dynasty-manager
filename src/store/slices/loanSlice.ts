@@ -1,7 +1,7 @@
 import type { GameState } from '../storeTypes';
 import { addMsg, safeRandomUUID } from '@/utils/helpers';
 import type { LoanDeal, OutgoingLoanRequest } from '@/types/game';
-import { TOTAL_WEEKS, LOAN_MIN_WEEKS_BEFORE_RECALL, MAX_SQUAD_SIZE } from '@/config/gameBalance';
+import { TOTAL_WEEKS, LOAN_MIN_WEEKS_BEFORE_RECALL, MAX_SQUAD_SIZE, MIN_SQUAD_SIZE } from '@/config/gameBalance';
 import {
   LOAN_REQUEST_BASE_ACCEPT, LOAN_REQUEST_LINEUP_PENALTY,
   LOAN_REQUEST_WAGE_BONUS, LOAN_REQUEST_AGE_BONUS,
@@ -45,6 +45,10 @@ export const createLoanSlice = (set: Set, get: Get) => ({
     const fromClub = state.clubs[state.playerClubId];
     const toClub = state.clubs[toClubId];
     if (!fromClub || !toClub) return { success: false, message: 'Invalid club.' };
+    // Don't loan out below a fieldable squad. recallLoan/terminateLoan guard MAX_SQUAD_SIZE
+    // on the receiving side, but loaning out had no MIN guard, so a squad already at the
+    // floor could drop below MIN_SQUAD_SIZE and be unable to field a lineup.
+    if (fromClub.playerIds.length <= MIN_SQUAD_SIZE) return { success: false, message: 'Your squad is too small to loan out a player.' };
 
     // Clamp wageSplit to valid range
     wageSplit = Math.max(0, Math.min(100, wageSplit));
