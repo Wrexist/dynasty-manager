@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { simulateContinentalMatch, isMatchdayComplete, isGroupStageComplete, getContinentalResultForClub, getKnockoutRoundName } from '@/utils/continental';
+import { simulateContinentalMatch, isMatchdayComplete, isGroupStageComplete, getContinentalResultForClub, getKnockoutRoundName, generateKnockoutFromGroups } from '@/utils/continental';
 import type { ContinentalTournamentState, ContinentalGroup, ContinentalGroupMatch, ContinentalGroupStanding } from '@/types/game';
 
 function makeGroup(id: string, clubIds: string[], allPlayed = false): ContinentalGroup {
@@ -134,6 +134,33 @@ describe('continental', () => {
       expect(getKnockoutRoundName('QF')).toBe('Quarter-Finals');
       expect(getKnockoutRoundName('SF')).toBe('Semi-Finals');
       expect(getKnockoutRoundName('F')).toBe('Final');
+    });
+  });
+
+  describe('generateKnockoutFromGroups', () => {
+    it('never pairs two clubs from the same group (R16 derangement)', () => {
+      const tournament = makeTournament({
+        groups: [
+          makeGroup('A', ['a1', 'a2', 'a3', 'a4'], true),
+          makeGroup('B', ['b1', 'b2', 'b3', 'b4'], true),
+          makeGroup('C', ['c1', 'c2', 'c3', 'c4'], true),
+          makeGroup('D', ['d1', 'd2', 'd3', 'd4'], true),
+        ],
+      });
+      const clubGroup = new Map<string, string>();
+      for (const g of tournament.groups) for (const cid of g.clubIds) clubGroup.set(cid, g.id);
+
+      // Pairing is randomised, so run many times — a same-group regression would surface.
+      for (let run = 0; run < 50; run++) {
+        const result = generateKnockoutFromGroups(tournament, 'a1');
+        expect(result.knockoutTies).toHaveLength(4);
+        for (const tie of result.knockoutTies) {
+          expect(clubGroup.get(tie.homeClubId)).not.toBe(clubGroup.get(tie.awayClubId));
+        }
+        // Each group's winner + runner-up appears exactly once across the bracket.
+        const clubs = result.knockoutTies.flatMap(t => [t.homeClubId, t.awayClubId]);
+        expect(new Set(clubs).size).toBe(8);
+      }
     });
   });
 });
