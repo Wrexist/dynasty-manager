@@ -18,6 +18,36 @@ import { cn } from '@/lib/utils';
 /** Quick-sell refund rate — matches packsSlice.quickSellPackedPlayer. */
 const QUICK_SELL_RATE = 0.65;
 
+/**
+ * Counts a money value up from 0 over ~900ms for the summary header. A small
+ * premium reward beat so the combined value reads as "tallied" rather than
+ * just printed. Honours reduced-motion by jumping straight to the final value.
+ */
+function CountUpMoney({ value, durationMs = 900 }: { value: number; durationMs?: number }) {
+  const prefersReducedMotion = useReducedMotion();
+  const [display, setDisplay] = useState(prefersReducedMotion ? value : 0);
+
+  useEffect(() => {
+    if (prefersReducedMotion) {
+      setDisplay(value);
+      return;
+    }
+    const start = performance.now();
+    let raf = 0;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / durationMs);
+      // easeOutCubic — fast tally that settles gently on the final figure.
+      const eased = 1 - Math.pow(1 - t, 3);
+      setDisplay(Math.round(value * eased));
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [value, durationMs, prefersReducedMotion]);
+
+  return <>{formatMoney(display)}</>;
+}
+
 interface PackOpeningOverlayProps {
   tier: PackTierKey;
   players: Player[];
@@ -1097,9 +1127,28 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
               <p className="mt-1.5 text-[12px] tabular-nums">
                 <span className="text-white/45">Combined value </span>
                 <span className="font-display font-bold text-amber-200/95">
-                  {formatMoney(players.reduce((s, p) => s + (p.value || 0), 0))}
+                  <CountUpMoney value={players.reduce((s, p) => s + (p.value || 0), 0)} />
                 </span>
               </p>
+              {/* Best-pull rarity chip — tints the results header with the
+                  top card's tier so the headline rarity of the pack reads at
+                  a glance, echoing the same tier palette the cards' auras use. */}
+              {topOvr > 0 && (
+                <motion.div
+                  className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-display font-bold uppercase tracking-[0.22em] text-white"
+                  style={{
+                    background: `linear-gradient(135deg, ${topTier.gradientFrom}33, ${topTier.gradientTo}1f)`,
+                    border: `1px solid ${topTier.gradientVia}66`,
+                    boxShadow: `inset 0 1px 0 rgba(255,255,255,0.18), 0 6px 18px -10px ${topTier.gradientVia}99`,
+                  }}
+                  initial={{ opacity: 0, scale: 0.9, y: -4 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.14 }}
+                >
+                  <span aria-hidden style={{ color: topTier.gradientVia, textShadow: `0 0 8px ${topTier.gradientVia}` }}>★</span>
+                  <span>Best pull · {topTier.label}</span>
+                </motion.div>
+              )}
               {/* Soft gradient rule — visually separates the header from the
                   scrolling grid below. Fades to transparent at the edges so
                   it doesn't feel like a hard divider on the dark backdrop. */}
@@ -1291,9 +1340,15 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
             <motion.button
               type="button"
               onClick={revealAll}
-              className="text-[11px] uppercase tracking-widest text-white/60 hover:text-white transition-colors"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              className={cn(
+                'mt-1 px-6 py-2.5 rounded-full',
+                'text-[11px] font-display font-bold uppercase tracking-[0.22em] text-white',
+                'bg-white/[0.08] border border-white/20 backdrop-blur-xl backdrop-saturate-150',
+                'shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_8px_22px_-12px_rgba(0,0,0,0.6)]',
+                'active:scale-[0.97] active:bg-white/[0.14] transition-[transform,background-color] duration-150',
+              )}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.8 }}
             >
               Tap all to reveal
