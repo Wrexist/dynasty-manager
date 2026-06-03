@@ -1,3 +1,4 @@
+import { motion, useReducedMotion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 type Tone = 'red' | 'emerald' | 'primary' | 'sky';
@@ -36,11 +37,18 @@ export function CountBadge({
   ringColor = 'hsl(222 30% 7%)',
   className,
 }: CountBadgeProps) {
+  // Pop in with a snappy spring whenever the badge mounts (i.e. the count
+  // crosses from 0 → N) so a freshly-arrived notification catches the eye.
+  // Only the transform scales — opacity is left to the optional CSS pulse so
+  // the two effects never fight over the same property. Hook runs before the
+  // early return below to satisfy the rules-of-hooks.
+  const reduce = useReducedMotion();
+
   if (count <= 0) return null;
   const display = count > cap ? `${cap}+` : String(count);
 
   return (
-    <span
+    <motion.span
       className={cn(
         'inline-flex items-center justify-center font-bold tabular-nums leading-none text-white',
         'min-w-[16px] h-4 px-1 rounded-full',
@@ -48,6 +56,9 @@ export function CountBadge({
         pulse && 'animate-pulse',
         className,
       )}
+      initial={reduce ? false : { scale: 0 }}
+      animate={{ scale: 1 }}
+      transition={reduce ? { duration: 0 } : { type: 'spring', stiffness: 600, damping: 20 }}
       style={{
         background: FILL[tone],
         boxShadow: `inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -1px 0 rgba(0,0,0,0.25), 0 0 0 1.5px ${ringColor}, ${GLOW[tone]}`,
@@ -55,6 +66,6 @@ export function CountBadge({
       }}
     >
       {display}
-    </span>
+    </motion.span>
   );
 }

@@ -255,9 +255,9 @@ const TrainingPage = () => {
                 key={preset.id}
                 onClick={() => handlePreset(preset)}
                 className={cn(
-                  'px-3 py-1.5 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all shrink-0',
+                  'px-3 py-1.5 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all shrink-0 active:scale-[0.96]',
                   isActive
-                    ? 'bg-primary/20 text-primary border border-primary/30'
+                    ? 'bg-primary/20 text-primary border border-primary/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_5px_16px_-6px_hsl(var(--primary)/0.55)]'
                     : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
                 )}
               >
@@ -354,11 +354,14 @@ const TrainingPage = () => {
                 key={level}
                 onClick={() => handleIntensity(level)}
                 className={cn(
-                  'flex-1 py-2.5 rounded-lg text-xs font-semibold capitalize transition-all',
+                  'flex-1 py-2.5 rounded-lg text-xs font-semibold capitalize transition-all active:scale-[0.97]',
+                  // Selected intensity lifts off the row with an inset top
+                  // highlight + a soft tone-matched glow, so the active choice
+                  // reads as a premium pressed state rather than a flat fill.
                   intensity === level
-                    ? level === 'heavy' ? 'bg-destructive/20 text-destructive border border-destructive/30'
-                    : level === 'light' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                    : 'bg-primary/20 text-primary border border-primary/30'
+                    ? level === 'heavy' ? 'bg-destructive/20 text-destructive border border-destructive/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_6px_18px_-6px_rgba(239,68,68,0.55)]'
+                    : level === 'light' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_6px_18px_-6px_rgba(16,185,129,0.55)]'
+                    : 'bg-primary/20 text-primary border border-primary/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_6px_18px_-6px_hsl(var(--primary)/0.55)]'
                     : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
                 )}
               >
