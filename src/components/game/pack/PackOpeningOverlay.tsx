@@ -396,6 +396,20 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
     return null;
   }, [revealedSet, players]);
 
+  // Render order for the card grid. During reveal the cards keep their
+  // original (shuffled) order so the user can't tell which face-down card is
+  // the walkout — preserving the surprise. Once we leave reveal we rank them
+  // best-first so the summary reads like a results podium (top pull top-left).
+  // The reorder happens at the reveal→walkout boundary, where the grid is
+  // blurred to 12% behind the cinematic, so the shuffle is invisible; for
+  // walkout-less packs the `layout` prop on each card animates the reflow.
+  const displayPlayers = useMemo(() => {
+    if (phase === 'walkout' || phase === 'summary') {
+      return [...players].sort((a, b) => b.overall - a.overall);
+    }
+    return players;
+  }, [players, phase]);
+
   const overlay = (
     <motion.div
       ref={containerRef}
@@ -1175,11 +1189,11 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                 : '',
             )}
           >
-            {players.map((p, i) => {
+            {displayPlayers.map((p, i) => {
               const quickSellAmount = Math.max(0, Math.round((p.value || 0) * QUICK_SELL_RATE));
               const upgrade = improvement?.[p.id];
               return (
-                <div key={p.id} className="flex flex-col items-center gap-2">
+                <motion.div key={p.id} layout="position" className="flex flex-col items-center gap-2">
                   <div className="relative" style={{ width: PLAYER_CARD_SIZE_PX.lg }}>
                     <PackCard
                       player={p}
@@ -1259,7 +1273,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                       </button>
                     </motion.div>
                   )}
-                </div>
+                </motion.div>
               );
             })}
           </div>

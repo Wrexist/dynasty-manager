@@ -652,15 +652,25 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
           doesn't overlap the card on iPhone SE / 8 / mini class devices.
           Skip pill sits beneath this with its own safe-area inset. */}
       <div className="absolute left-1/2 -translate-x-1/2 bottom-[max(env(safe-area-inset-bottom),16px)] mb-12 text-center max-w-[90vw] px-4 pointer-events-none">
-        <motion.p
-          className="text-[10px] uppercase tracking-[0.4em] font-semibold mb-1.5"
-          style={{ color: tier.gradientVia, textShadow: '0 2px 6px rgba(0,0,0,0.6)' }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: phase === 'enter' ? 0 : 1 }}
-          transition={{ duration: 0.3 }}
+        {/* Rarity chip — a tier-tinted pill rather than flat caption text, so
+            the headline rarity reads as a premium badge and matches the
+            best-pull chip on the results screen. Star reinforces it's a
+            top-tier (Gold / Legendary) walkout-grade pull. */}
+        <motion.div
+          className="inline-flex items-center gap-1.5 mb-2 px-2.5 py-1 rounded-full text-[9px] font-display font-bold uppercase tracking-[0.28em] text-white"
+          style={{
+            background: `linear-gradient(135deg, ${tier.gradientFrom}40, ${tier.gradientTo}26)`,
+            border: `1px solid ${tier.gradientVia}80`,
+            boxShadow: `inset 0 1px 0 rgba(255,255,255,0.22), 0 6px 20px -10px ${tier.gradientVia}`,
+            textShadow: '0 1px 4px rgba(0,0,0,0.6)',
+          }}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: phase === 'enter' ? 0 : 1, y: phase === 'enter' ? 6 : 0 }}
+          transition={{ duration: 0.35 }}
         >
-          {tier.label}
-        </motion.p>
+          <span aria-hidden style={{ color: tier.gradientVia, textShadow: `0 0 8px ${tier.gradientVia}` }}>★</span>
+          <span>{tier.label}</span>
+        </motion.div>
 
         <h1
           className="font-display font-black leading-none tracking-tight drop-shadow-[0_4px_24px_rgba(0,0,0,0.85)]"
