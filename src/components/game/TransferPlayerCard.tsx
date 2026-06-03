@@ -84,9 +84,18 @@ export function TransferPlayerCard({
   if (animationIndex != null) {
     return (
       <motion.div
+        // `layout="position"` lets surviving rows glide to their new spot when
+        // the list is filtered or re-sorted, instead of snapping. Combined with
+        // the keyed map in the parent, changing the search / position filter
+        // now reflows smoothly rather than hard-cutting.
+        layout="position"
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: Math.min(animationIndex * 0.04, 0.4), duration: 0.2 }}
+        transition={{
+          delay: Math.min(animationIndex * 0.04, 0.4),
+          duration: 0.2,
+          layout: { type: 'spring', stiffness: 380, damping: 32 },
+        }}
       >
         {card}
       </motion.div>
