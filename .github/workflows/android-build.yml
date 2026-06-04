@@ -3,14 +3,13 @@ on:
   workflow_dispatch:
     inputs:
       version_code:
-        description: 'Version code (integer, must increment each release)'
-        required: true
+        description: 'Version code (integer, must increment each release). Leave blank to use the GitHub run number.'
+        required: false
         type: number
       version_name:
-        description: 'Version name (e.g. 1.0.0, 1.1.0)'
-        required: true
+        description: 'Version name (e.g. 1.0.0). Leave blank to use package.json version.'
+        required: false
         type: string
-        default: '1.0.0'
 
 jobs:
   build:
@@ -31,6 +30,32 @@ jobs:
       - run: npm run lint
       - run: npm run test
       - run: npm run build
+
+      # Resolve the effective versionCode / versionName BEFORE the build so a
+      # blank input never silently ships a stale value (the iOS build-142 saga:
+      # blank input + stale version → wrong store track). versionCode defaults
+      # to the monotonically-increasing run number (Google Play rejects a code
+      # that is not strictly greater than the last upload); versionName defaults
+      # to package.json. Both are echoed as a ::notice:: so you can sanity-check
+      # the run summary before the upload step.
+      - name: Resolve version
+        id: ver
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          VERSION_CODE="${{ inputs.version_code }}"
+          VERSION_NAME="${{ inputs.version_name }}"
+          if [ -z "$VERSION_CODE" ]; then VERSION_CODE="${{ github.run_number }}"; fi
+          if [ -z "$VERSION_NAME" ]; then VERSION_NAME="$PKG_VERSION"; fi
+          if ! [[ "$VERSION_CODE" =~ ^[0-9]+$ ]]; then
+            echo "::error::version_code must be a positive integer, got '$VERSION_CODE'"
+            exit 1
+          fi
+          echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+          echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+          echo "::notice title=Android build version::versionName=$VERSION_NAME versionCode=$VERSION_CODE (package.json=$PKG_VERSION)"
+
+      # Sync package.json version into the native projects, then override the
+      # versionName explicitly via VERSION_NAME below if one was provided.
       - run: npm run version:sync
       - run: npx cap sync android
 
@@ -43,8 +68,8 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-          VERSION_CODE: ${{ inputs.version_code }}
-          VERSION_NAME: ${{ inputs.version_name }}
+          VERSION_CODE: ${{ steps.ver.outputs.version_code }}
+          VERSION_NAME: ${{ steps.ver.outputs.version_name }}
         run: |
           cd android
           chmod +x gradlew
@@ -53,5 +78,5 @@ jobs:
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
         with:
-          name: dynasty-manager-release
+          name: dynasty-manager-release-${{ steps.ver.outputs.version_name }}-${{ steps.ver.outputs.version_code }}
           path: android/app/build/outputs/bundle/release/*.aab

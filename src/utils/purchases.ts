@@ -16,9 +16,28 @@ import type { ProductId, SubscriptionInfo } from '@/types/game';
 import { PRODUCTS } from '@/config/monetization';
 import { Capacitor } from '@capacitor/core';
 
-// RevenueCat API key — set via environment variable for production
-// Production: use 'appl_xxx' for iOS, 'goog_xxx' for Android
-const REVENUECAT_API_KEY = import.meta.env.VITE_REVENUECAT_API_KEY || 'test_CBbgpDnLxWJvQXQQLWVvIEXjoYF';
+// RevenueCat API keys — RevenueCat issues a *separate* public SDK key per
+// store, so the Android (Google Play) build must use the `goog_` key and the
+// iOS (App Store) build the `appl_` key. Shipping the wrong store's key makes
+// `Purchases.configure` fail and silently disables the whole paywall on that
+// platform. Set these via env for production builds:
+//   VITE_REVENUECAT_IOS_API_KEY      = appl_xxx
+//   VITE_REVENUECAT_ANDROID_API_KEY  = goog_xxx
+// VITE_REVENUECAT_API_KEY is kept as a single-key fallback (and for the legacy
+// shared test key) so existing iOS builds keep working unchanged.
+const REVENUECAT_FALLBACK_KEY =
+  import.meta.env.VITE_REVENUECAT_API_KEY || 'test_CBbgpDnLxWJvQXQQLWVvIEXjoYF';
+
+function getRevenueCatApiKey(): string {
+  const platform = Capacitor.getPlatform();
+  if (platform === 'android') {
+    return import.meta.env.VITE_REVENUECAT_ANDROID_API_KEY || REVENUECAT_FALLBACK_KEY;
+  }
+  if (platform === 'ios') {
+    return import.meta.env.VITE_REVENUECAT_IOS_API_KEY || REVENUECAT_FALLBACK_KEY;
+  }
+  return REVENUECAT_FALLBACK_KEY;
+}
 
 /** Set to true once production RevenueCat keys are configured and native plugins restored. */
 const NATIVE_MONETIZATION_READY = true;
@@ -53,7 +72,7 @@ export async function initPurchases(): Promise<boolean> {
         timerId = setTimeout(() => reject(new Error('RevenueCat init timeout')), 5000);
       });
       await Promise.race([
-        Purchases.configure({ apiKey: REVENUECAT_API_KEY }),
+        Purchases.configure({ apiKey: getRevenueCatApiKey() }),
         timeout,
       ]);
       return true;

@@ -12,6 +12,19 @@ const config: CapacitorConfig = {
     preferredContentMode: 'mobile',
     webContentsDebuggingEnabled: false,
   },
+  android: {
+    // Match the iOS posture: never ship a debuggable WebView in release.
+    webContentsDebuggingEnabled: false,
+    // The app is fully offline/local — never allow http content to load over
+    // an https context, which would be a downgrade attack surface.
+    allowMixedContent: false,
+    // Hardware keyboards (tablets / Chromebooks) type into focused inputs
+    // rather than triggering app-level key handlers.
+    captureInput: true,
+    // Paint the dark theme background behind the splash while the WebView
+    // boots, avoiding a white flash on first frame (parity with iOS splash).
+    backgroundColor: '#0f1524',
+  },
   plugins: {
     SplashScreen: {
       launchAutoHide: false,
