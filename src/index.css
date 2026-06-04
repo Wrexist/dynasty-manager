@@ -102,6 +102,21 @@
   --ring: 160 84% 39%;
 }
 
+/* Performance mode (Settings → Display → "Performance mode"). The single
+   smoothness escape hatch for low-end devices: strip the expensive
+   backdrop-filter passes from glass surfaces (the biggest mobile-WebKit cost)
+   and drop the decorative specular overlay. Reduced motion is handled
+   separately in App.tsx via MotionConfig. */
+.perf-mode .glass-surface {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  background-image: none !important;
+  background-color: hsl(222 30% 12%) !important;
+}
+.perf-mode .glass-specular {
+  display: none !important;
+}
+
 @layer base {
   * {
     @apply border-border;

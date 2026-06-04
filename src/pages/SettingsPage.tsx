@@ -4,7 +4,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { LiquidButton } from '@/components/game/LiquidButton';
 import { SaveStatusIndicator } from '@/components/game/SaveStatusIndicator';
-import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users, Bug, ChartBar, Sparkles } from 'lucide-react';
+import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users, Bug, ChartBar, Sparkles, Gauge } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { useState, useRef, useEffect } from 'react';
@@ -355,6 +355,16 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
             description="Minimize animations throughout the app"
             value={settings.reducedMotion}
             onChange={() => updateSettings({ reducedMotion: !settings.reducedMotion })}
+          />
+
+          <div className="border-t border-white/10" />
+
+          <ToggleRow
+            icon={Gauge}
+            label="Performance mode"
+            description="Smoother on older devices — uses solid panels instead of frosted glass and minimizes animations"
+            value={!!settings.performanceMode}
+            onChange={() => updateSettings({ performanceMode: !settings.performanceMode })}
           />
 
           <div className="border-t border-white/10" />

@@ -12,7 +12,7 @@ import { hapticLight } from '@/utils/haptics';
  * here ripple everywhere the constant is imported.
  */
 export const LIQUID_GLASS_SURFACE =
-  'relative overflow-hidden rounded-2xl transform-gpu ' +
+  'glass-surface relative overflow-hidden rounded-2xl transform-gpu ' +
   'bg-gradient-to-br from-[hsl(222_35%_14%/0.72)] via-[hsl(222_28%_10%/0.78)] to-[hsl(222_40%_7%/0.84)] ' +
   // Blur kept light (md, not 2xl) and saturate dropped: backdrop-filter is the
   // single most expensive thing on mobile WebKit, and with ~50 panels per page
@@ -84,7 +84,7 @@ export function GlassPanel({
         // `transform-gpu` forces a compositing layer so the rounded clip +
         // backdrop-blur render cleanly (without it, iOS Safari / Chromium
         // can leave jagged subpixel fringing at the rounded corners).
-        'relative overflow-hidden rounded-2xl transform-gpu',
+        'glass-surface relative overflow-hidden rounded-2xl transform-gpu',
         'bg-gradient-to-br from-[hsl(222_35%_14%/0.72)] via-[hsl(222_28%_10%/0.78)] to-[hsl(222_40%_7%/0.84)]',
         // Light blur (md) + no saturate — see LIQUID_GLASS_SURFACE note. Heavy
         // backdrop-filter on every panel was the biggest scroll-jank source.
@@ -103,7 +103,7 @@ export function GlassPanel({
           tonal gradient underneath. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-1/2"
+        className="glass-specular pointer-events-none absolute inset-x-0 top-0 h-1/2"
         style={{
           background:
             'radial-gradient(120% 90% at 50% -30%, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.03) 32%, rgba(255,255,255,0) 62%)',

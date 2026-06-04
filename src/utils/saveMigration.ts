@@ -11,7 +11,7 @@ import type { Club, Player, FormationType } from '@/types/game';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 69;
+const CURRENT_VERSION = 70;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -1146,6 +1146,17 @@ const migrations: Record<number, MigrationFn> = {
   // negotiation (undefined) — the field is optional, so there is nothing
   // to backfill; this is a clean version bump.
   68: (data) => ({ ...data, version: 69 }),
+
+  // v69 → v70: GameSettings gained `performanceMode` (smoothness escape hatch
+  // for low-end devices). Default off so existing saves are unchanged.
+  69: (data) => {
+    const settings = (data.settings ?? {}) as Record<string, unknown>;
+    return {
+      ...data,
+      version: 70,
+      settings: { ...settings, performanceMode: settings.performanceMode ?? false },
+    };
+  },
 
   // v64 → v65: National team `fifaRanking` was hardcoded to 25 on init —
   // recompute from the canonical per-nation `baseRanking` so France no

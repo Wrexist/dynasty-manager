@@ -2,8 +2,16 @@ import { describe, it, expect } from 'vitest';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 
 describe('saveMigration', () => {
-  it('should have current version set to 69', () => {
-    expect(CURRENT_VERSION).toBe(69);
+  it('should have current version set to 70', () => {
+    expect(CURRENT_VERSION).toBe(70);
+  });
+
+  it('v69 → v70 backfills settings.performanceMode (default off)', () => {
+    const v69: Record<string, unknown> = { version: 69, settings: { reducedMotion: true } };
+    const migrated = migrateSaveData(v69) as { version: number; settings: Record<string, unknown> };
+    expect(migrated.version).toBe(70);
+    expect(migrated.settings.performanceMode).toBe(false);
+    expect(migrated.settings.reducedMotion).toBe(true);
   });
 
   it('v68 → v69 is a clean version bump (negotiation field is optional)', () => {

@@ -759,6 +759,9 @@ export interface GameSettings {
   hideOnboarding: boolean;
   confirmAllOffers: boolean;
   reducedMotion: boolean;
+  /** Maximises smoothness on lower-end devices: disables backdrop-blur (solid
+   *  surfaces), drops decorative specular overlays, and forces reduced motion. */
+  performanceMode: boolean;
 }
 
 // ── Team Talk ──
