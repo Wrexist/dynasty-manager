@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Lightbulb, X } from 'lucide-react';
 import { getFlag, setFlag } from '@/store/helpers/persistence';
@@ -14,6 +14,13 @@ export function PageHint({ screen, title, body }: PageHintProps) {
   const hidePageHints = useGameStore(s => s.settings.hidePageHints);
   const storageKey = `dynasty-hint-${screen}-shown`;
   const [visible, setVisible] = useState(() => !getFlag(storageKey));
+
+  // Mark the hint as seen on first view, so it appears exactly once per screen.
+  // Previously the flag was only written on an explicit X-dismiss, which meant
+  // leaving the page without closing it made the hint reappear every visit.
+  useEffect(() => {
+    if (visible && !hidePageHints) setFlag(storageKey);
+  }, [visible, hidePageHints, storageKey]);
 
   if (hidePageHints) return null;
 
