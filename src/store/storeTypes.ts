@@ -347,6 +347,8 @@ export interface GameState {
 
   // Actions — Coach Checklist
   markCoachTaskComplete: (taskId: string) => void;
+  // Claim the XP for a completed weekly/monthly objective.
+  claimObjective: (objectiveId: string) => void;
 
   // Actions — Press Conferences & Storylines
   respondToPress: (tone: import('@/types/game').PressResponseTone) => void;

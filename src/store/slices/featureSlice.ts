@@ -3,6 +3,7 @@ import { MOD_MEDIA_PRESS, MOD_MOTIVATION_MORALE, GROWTH_MEDIA_PER_CONFERENCE, ST
 import { TRANSFER_TALK_EMPATHIZE_MORALE_BOOST, TRANSFER_TALK_CONVINCE_SUCCESS_MORALE, TRANSFER_TALK_CONVINCE_FAIL_MORALE, COACH_TASK_XP, COACH_ALL_TASKS_BONUS_XP, TOTAL_WEEKS } from '@/config/gameBalance';
 import { TRANSFER_DEMAND_COOLDOWN_WEEKS, TRANSFER_TALK_RETRY_WEEKS } from '@/config/personality';
 import { grantXP, hasPerk, dynastyMult } from '@/utils/managerPerks';
+import { objectiveClaimXP } from '@/utils/weeklyObjectives';
 import type { GameState } from '../storeTypes';
 import { addMsg, clamp, safeRandomUUID } from '@/utils/helpers';
 import { createContractOffer, negotiateRound, formatWage } from '@/utils/contracts';
@@ -152,6 +153,21 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
     }
 
     set({ completedCoachTaskIds: newIds, managerProgression: updatedProgression });
+  },
+
+  claimObjective: (objectiveId: string) => {
+    const objectives = get().weeklyObjectives;
+    const target = objectives.find(o => o.objectiveId === objectiveId);
+    // Only completed-but-unclaimed objectives pay out.
+    if (!target || !target.completed || target.claimed) return;
+    const xp = objectiveClaimXP(target);
+    const updated = objectives.map(o =>
+      o.objectiveId === objectiveId ? { ...o, claimed: true } : o
+    );
+    set({
+      weeklyObjectives: updated,
+      managerProgression: xp > 0 ? grantXP(get().managerProgression, xp) : get().managerProgression,
+    });
   },
 
   dismissPress: () => {

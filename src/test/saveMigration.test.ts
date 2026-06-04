@@ -2,16 +2,30 @@ import { describe, it, expect } from 'vitest';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 
 describe('saveMigration', () => {
-  it('should have current version set to 70', () => {
-    expect(CURRENT_VERSION).toBe(70);
+  it('should have current version set to 71', () => {
+    expect(CURRENT_VERSION).toBe(71);
   });
 
   it('v69 → v70 backfills settings.performanceMode (default off)', () => {
     const v69: Record<string, unknown> = { version: 69, settings: { reducedMotion: true } };
     const migrated = migrateSaveData(v69) as { version: number; settings: Record<string, unknown> };
-    expect(migrated.version).toBe(70);
+    expect(migrated.version).toBe(71);
     expect(migrated.settings.performanceMode).toBe(false);
     expect(migrated.settings.reducedMotion).toBe(true);
+  });
+
+  it('v70 → v71 marks already-completed objectives as claimed (no double-pay)', () => {
+    const v70: Record<string, unknown> = {
+      version: 70,
+      weeklyObjectives: [
+        { objectiveId: 'a', completed: true },
+        { objectiveId: 'b', completed: false },
+      ],
+    };
+    const migrated = migrateSaveData(v70) as { version: number; weeklyObjectives: Array<Record<string, unknown>> };
+    expect(migrated.version).toBe(71);
+    expect(migrated.weeklyObjectives[0].claimed).toBe(true);
+    expect(migrated.weeklyObjectives[1].claimed).toBe(false);
   });
 
   it('v68 → v69 is a clean version bump (negotiation field is optional)', () => {
