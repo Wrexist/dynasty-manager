@@ -30,7 +30,7 @@ export function SubNav({ items, layoutId = 'subnav-pill' }: SubNavProps) {
         aria-label="Sub navigation"
         role="tablist"
         className={cn(
-          'flex gap-1 overflow-x-auto scrollbar-hide bg-card/70 backdrop-blur-md border border-border/50 rounded-full p-1 shadow-[inset_0_1px_0_hsl(var(--foreground)/0.06)]',
+          'flex gap-1 overflow-x-auto scrollbar-hide bg-card/95 border border-border/50 rounded-full p-1 shadow-[inset_0_1px_0_hsl(var(--foreground)/0.06)]',
           matchLocked && 'opacity-60',
         )}
       >

@@ -57,7 +57,7 @@ export function TopBar() {
   }, [xpProgress.percentage]);
 
   if (!club && !isUnemployed) return (
-    <header role="banner" className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/30 safe-area-top transform-gpu">
+    <header role="banner" className="fixed top-0 left-0 right-0 z-50 bg-background/95 border-b border-border/30 safe-area-top transform-gpu">
       <div className="flex items-center justify-center h-14 px-4 max-w-lg mx-auto">
         <span className="text-xs text-muted-foreground">Loading...</span>
       </div>
@@ -92,7 +92,7 @@ export function TopBar() {
     // containing block and breaks viewport scroll-tracking, which made the
     // TopBar (but never the contain-free BottomNav) float into the middle
     // of the page after scrolling the Free Agents / Market list.
-    <header role="banner" className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/30 safe-area-top transform-gpu">
+    <header role="banner" className="fixed top-0 left-0 right-0 z-50 bg-background/95 border-b border-border/30 safe-area-top transform-gpu">
       {/* XP Progress Bar — positioned at top edge to avoid looking like a tab indicator */}
       <div className="max-w-lg mx-auto px-4 pt-0.5">
         <div className="h-[3px] bg-muted/30 rounded-full overflow-hidden">

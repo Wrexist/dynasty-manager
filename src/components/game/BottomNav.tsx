@@ -46,7 +46,7 @@ export function BottomNav() {
         role="navigation"
         aria-label="Main navigation"
         className={cn(
-          'pointer-events-auto max-w-lg mx-auto flex items-center gap-1 bg-card/70 backdrop-blur-md border border-border/50 rounded-full p-1 shadow-[inset_0_1px_0_hsl(var(--foreground)/0.06)]',
+          'pointer-events-auto max-w-lg mx-auto flex items-center gap-1 bg-card/95 border border-border/50 rounded-full p-1 shadow-[inset_0_1px_0_hsl(var(--foreground)/0.06)]',
           matchLocked && 'opacity-60',
         )}
       >
