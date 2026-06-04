@@ -10,6 +10,13 @@ import { TRANSFER_TALK_RETRY_WEEKS } from '@/config/personality';
 import { STORYLINE_CHAINS } from '@/data/storylineChains';
 import { PageHint } from '@/components/game/PageHint';
 import { hapticLight, hapticMedium } from '@/utils/haptics';
+import { readSessionJson, writeSessionJson, STORAGE_KEYS } from '@/store/helpers/persistence';
+
+/** Shape of the persisted Inbox filter preference (see STORAGE_KEYS.INBOX_FILTER). */
+interface PersistedInboxFilter {
+  filters: string[];
+  unreadOnly: boolean;
+}
 
 const typeIcon: Record<Message['type'], React.ElementType> = {
   match_preview: Trophy,
@@ -119,8 +126,13 @@ const InboxPage = () => {
   const loadMatchForReview = useGameStore((s) => s.loadMatchForReview);
   const openTransferTalk = useGameStore((s) => s.openTransferTalk);
   const selectPlayer = useGameStore((s) => s.selectPlayer);
-  const [activeFilters, setActiveFilters] = useState<Set<string>>(new Set());
-  const [unreadOnly, setUnreadOnly] = useState(false);
+  // Restore the last-used filter selection so it survives leaving and
+  // re-entering the Inbox within a session (the page unmounts on navigation).
+  const persistedFilter = useMemo(() => readSessionJson<PersistedInboxFilter>(STORAGE_KEYS.INBOX_FILTER), []);
+  const [activeFilters, setActiveFilters] = useState<Set<string>>(
+    () => new Set(persistedFilter?.filters ?? [])
+  );
+  const [unreadOnly, setUnreadOnly] = useState(() => persistedFilter?.unreadOnly ?? false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [expandedStoryline, setExpandedStoryline] = useState<string | null>(null);
@@ -135,6 +147,14 @@ const InboxPage = () => {
     if (filterOpen) document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [filterOpen]);
+
+  // Persist filter selection so it sticks across navigation until changed.
+  useEffect(() => {
+    writeSessionJson(STORAGE_KEYS.INBOX_FILTER, {
+      filters: [...activeFilters],
+      unreadOnly,
+    });
+  }, [activeFilters, unreadOnly]);
 
   const toggleFilter = (label: string) => {
     hapticLight();

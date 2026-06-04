@@ -615,43 +615,94 @@ const MatchReview = () => {
         </GlassPanel>
       )}
 
-      {/* Player Ratings */}
+      {/* Top Performers — the three best-rated players from your side, shown as
+          premium player cards (tap to open the player). */}
       {matchPlayerRatings.length > 0 && (() => {
-        const clubRatings = matchPlayerRatings
+        const topThree = matchPlayerRatings
           .filter(r => players[r.playerId]?.clubId === playerClubId)
-          .sort((a, b) => b.rating - a.rating);
-        const motmId = clubRatings[0]?.playerId;
+          .sort((a, b) => b.rating - a.rating)
+          .slice(0, 3);
+        if (topThree.length === 0) return null;
         return (
           <GlassPanel className="p-4">
-            <h3 className="text-sm font-semibold text-foreground mb-2">Player Ratings</h3>
-            <div className="space-y-1.5">
-              {clubRatings.map(r => {
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-foreground">Top Performers</h3>
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Tap to view</span>
+            </div>
+            <div className="space-y-2.5">
+              {topThree.map((r, idx) => {
                 const player = players[r.playerId];
                 if (!player) return null;
-                const isMotm = r.playerId === motmId;
+                const isMotm = idx === 0;
                 return (
                   <div
                     key={r.playerId}
-                    className={cn('flex items-center gap-2 border-l-2 pl-2', isMotm && 'bg-primary/10 rounded-lg py-1')}
-                    style={{ borderLeftColor: getRatingHex(player.overall) }}
+                    className={cn(
+                      'relative flex items-center gap-3 rounded-xl p-2.5 transition-colors',
+                      isMotm
+                        ? 'bg-primary/10 border border-primary/30 shadow-[0_0_18px_hsl(var(--primary)/0.12)]'
+                        : 'bg-muted/20 border border-border/40'
+                    )}
                   >
-                    <span className={cn(
-                      'w-6 text-center text-xs font-bold',
-                      getMatchRatingColor(r.rating)
+                    {/* Rank badge */}
+                    <div className={cn(
+                      'absolute -top-2 -left-2 z-20 w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold font-display shadow-md',
+                      isMotm ? 'bg-primary text-primary-foreground' : 'bg-card text-foreground border border-border'
                     )}>
-                      {r.rating.toFixed(1)}
-                    </span>
-                    <FlagIcon nationality={player.nationality} size={12} className="shrink-0" />
-                    <span className="text-xs text-foreground flex-1 truncate">{player.lastName}</span>
-                    <span
-                      className="text-[10px] font-bold tabular-nums shrink-0"
-                      style={{ color: getRatingHex(player.overall) }}
+                      {idx + 1}
+                    </div>
+
+                    <div className="shrink-0">
+                      <PlayerCard
+                        player={player}
+                        size="lg"
+                        interactive="detail"
+                        showConditionView={false}
+                        onDetailClick={(p) => selectPlayer(p.id)}
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => selectPlayer(player.id)}
+                      className="flex-1 min-w-0 text-left self-stretch flex flex-col justify-center gap-1.5"
+                      aria-label={`Open ${player.firstName} ${player.lastName}`}
                     >
-                      {player.overall}
-                    </span>
-                    {isMotm && <Star className="w-3.5 h-3.5 text-primary shrink-0" />}
-                    {r.goals > 0 && <span className="text-[10px] text-emerald-400">{r.goals}G</span>}
-                    {r.assists > 0 && <span className="text-[10px] text-primary">{r.assists}A</span>}
+                      {isMotm && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-primary">
+                          <Star className="w-3 h-3 fill-primary" /> Man of the Match
+                        </span>
+                      )}
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <FlagIcon nationality={player.nationality} size={14} className="shrink-0" />
+                        <span className="text-sm font-bold text-foreground truncate">
+                          {player.firstName} {player.lastName}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        {player.position} · OVR{' '}
+                        <span className="font-bold tabular-nums" style={{ color: getRatingHex(player.overall) }}>
+                          {player.overall}
+                        </span>
+                      </p>
+                      <div className="flex items-center gap-3 mt-0.5">
+                        <span className={cn('text-2xl font-bold font-display tabular-nums leading-none', getMatchRatingColor(r.rating))}>
+                          {r.rating.toFixed(1)}
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          {r.goals > 0 && (
+                            <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-400/10 rounded px-1.5 py-0.5">
+                              {r.goals}G
+                            </span>
+                          )}
+                          {r.assists > 0 && (
+                            <span className="text-[11px] font-semibold text-primary bg-primary/10 rounded px-1.5 py-0.5">
+                              {r.assists}A
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    </button>
                   </div>
                 );
               })}
