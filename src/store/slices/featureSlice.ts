@@ -164,9 +164,18 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
     const updated = objectives.map(o =>
       o.objectiveId === objectiveId ? { ...o, claimed: true } : o
     );
+    if (xp <= 0) {
+      set({ weeklyObjectives: updated });
+      return;
+    }
+    const sessionStats = get().sessionStats;
     set({
       weeklyObjectives: updated,
-      managerProgression: xp > 0 ? grantXP(get().managerProgression, xp) : get().managerProgression,
+      managerProgression: grantXP(get().managerProgression, xp),
+      // Keep the Dashboard's session XP total in sync. Objective base XP used
+      // to be added here in advanceWeek; now it's paid on claim, so account
+      // for it on claim too (the month-end safety net handles unclaimed ones).
+      sessionStats: { ...sessionStats, xpEarned: sessionStats.xpEarned + xp },
     });
   },
 

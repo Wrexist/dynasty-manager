@@ -34,10 +34,13 @@ describe('claimObjective', () => {
   it('grants XP and marks a completed objective claimed', () => {
     useGameStore.setState({ weeklyObjectives: [makeObj({ completed: true, claimed: false })] });
     const before = { ...useGameStore.getState().managerProgression };
+    const beforeXp = useGameStore.getState().sessionStats.xpEarned;
     useGameStore.getState().claimObjective('win-match');
     const s = useGameStore.getState();
     expect(s.weeklyObjectives[0].claimed).toBe(true);
     expect(xpGained(before, s.managerProgression)).toBe(true);
+    // Claimed XP is also reflected in the Dashboard session total.
+    expect(s.sessionStats.xpEarned).toBe(beforeXp + objectiveClaimXP(makeObj({ completed: true })));
   });
 
   it('is a no-op when the objective is not completed', () => {
