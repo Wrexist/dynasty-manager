@@ -25,5 +25,16 @@
   "coreJsTargetBytes": 8126464,
   "coreJsHardLimitBytes": 9437184,
   "communityPackHardLimitBytes": 4194304,
-  "mainChunkHardLimitBytes": 1228800
+  "mainChunkHardLimitBytes": 1228800,
+  "_eagerDoc": [
+    "eagerGzHardLimitBytes: gzipped size of the FIRST-LOAD payload — the entry",
+    "chunk plus every <link rel=modulepreload> JS chunk in dist/index.html.",
+    "Checked by scripts/check-eager-bundle.mjs. This protects boot/first-paint",
+    "UX: the on-disk core-JS budget above counts lazy chunks the same whether or",
+    "not they load at startup, so it cannot catch a lazy chunk accidentally",
+    "entering the boot graph (e.g. squad-data merged into an eagerly-imported",
+    "chunk). Baseline ~485 KB gz; 560 KB hard limit leaves headroom for normal",
+    "growth while tripping on a multi-hundred-KB regression."
+  ],
+  "eagerGzHardLimitBytes": 573440
 }
