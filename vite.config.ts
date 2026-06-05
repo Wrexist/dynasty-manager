@@ -120,7 +120,13 @@ export default defineConfig(() => ({
             return 'squad-data';
           }
           if (id.includes('src/data/communityPack/cpLeagueSquads')) return 'cpLeagueSquads';
-          if (id.includes('src/data/playerTemplates')) return 'squad-data';
+          // Route the squad-data module into its own chunk — but NOT the lazy
+          // ACCESSOR (`playerTemplatesAccess.ts`). The accessor is statically
+          // imported by eager code (initGame/playerGen) and only dynamic-imports
+          // the data; bundling it into `squad-data` merged the eager accessor
+          // with the 2.1MB data and dragged the whole chunk into the boot
+          // modulepreload graph (~386KB gz at startup), defeating the lazy load.
+          if (id.includes('src/data/playerTemplates') && !id.includes('playerTemplatesAccess')) return 'squad-data';
           // NOTE: src/data/nationalPlayerPool intentionally has no manualChunks
           // rule. It's loaded exclusively via dynamic import() from
           // nationalPlayerPoolAccess.ts; letting Rollup auto-split it keeps the
