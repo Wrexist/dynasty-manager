@@ -190,44 +190,41 @@ first load and "New Game" feel instant. (Sizes from the actual production build.
 
 ---
 
-# PHASE 2 — Correctness & robustness (verify-first)
+# PHASE 2 — Correctness & robustness (verify-first) — ✅ VERIFIED, NO BUGS
 
 The game-systems audit was unreliable (every high-severity claim I spot-checked was a false
-positive — see Appendix A). The items below are the **survivors**: lower-confidence leads
-worth a **verification pass** before any change. Do **not** mass-fix; confirm each first.
+positive — see Appendix A). I verified all six remaining leads in source: **every one is
+already handled correctly.** No production code changed; one regression test was added to
+lock in the only path that lacked direct coverage.
 
-### 2.1 ⚠️ Forfeit path fitness initialization
-- **Claim:** `src/engine/match.ts` forfeit branch (~lines 244–280) may leave `playerFitness`
-  empty when a side has 0 players, risking `undefined`→NaN downstream.
-- **Action:** write a unit test that simulates a 0-player side; assert no NaN in
-  ratings/fitness. Only initialize defensively if the test reproduces a problem.
+### 2.1 ✅ Forfeit path fitness initialization — SAFE
+- **Verified:** the empty-squad branch (`match.ts:244`) returns early, and every
+  `matchFitness` consumer falls back (`matchFitness[id] !== undefined` guards, `?? 80`/`?? 100`).
+  No NaN reaches goals or ratings.
+- **Added test:** `match.test.ts` → "handles a completely empty (0-player) lineup without NaN
+  [length===0 path]" (the existing forfeit tests only covered the `<7`-player path).
 
-### 2.2 ⚠️ Fixture regeneration on promotion/relegation
-- **Claim:** when the player's club changes division at season end, old-division fixtures may
-  linger until regenerated.
-- **Action:** add a season-rollover test (promote the player's club) asserting the new
-  division's fixtures exist and old ones are cleared. (Likely already handled in `seasonEnd`
-  → verify before touching.)
+### 2.2 ✅ Fixture regeneration on promotion/relegation — HANDLED
+- **Verified:** `seasonEnd.ts:800` regenerates the player's new-division fixtures
+  (`generateDivisionFixtures(leagueClubIds, …)`) and `:806` the other leagues. No stale fixtures.
 
-### 2.3 ⚠️ Suspended players in AI lineup selection
-- **Claim:** `selectBestLineup`/AI sim filters `injured` but maybe not `suspendedUntilWeek`.
-- **Action:** grep `selectBestLineup` + AI sim; add suspension filter only if missing.
+### 2.3 ✅ Suspended players in lineups — FILTERED EVERYWHERE
+- **Verified:** player match path filters suspension before sim (`matchActions.ts:491-492`,
+  backfilling from non-suspended subs); AI sims filter it (`matchActions.ts:757-758, 1222-1223`);
+  `selectBestLineup:537` excludes injured/on-loan/suspended (when `currentWeek` passed).
+  Already covered by `playerGen.test.ts` ("excludes suspended players when currentWeek is provided").
 
-### 2.4 ⚠️ League table tie-breakers
-- **Claim:** ties resolved by GD then GF only (no head-to-head). Realistic enough; low
-  priority. Consider documenting the intended rule rather than changing behavior.
+### 2.4 ✅ League table tie-breakers — HEAD-TO-HEAD EXISTS
+- **Verified:** `buildLeagueTable` precomputes head-to-head results for tiebreaking
+  (`league.ts:320`), used in the sort (`:335`). The "GD/GF only" claim was wrong.
 
-### 2.5 ⚠️ Stale player-ID references after retirement
-- **Context:** `transferSlice` already calls `purgePlayerReferences` on sale/release ✅
-  (verified). The lead is whether **season-end retirements** purge transient refs
-  (`selectedPlayerId`, `transferMarket`, `pendingTransferTalk`, national pools).
-- **Action:** add a season-rollover test that retires a listed/selected player and asserts
-  no dangling IDs remain. Fix only the specific gaps the test reveals.
+### 2.5 ✅ Stale player-ID references after retirement — CLEAN
+- **Verified:** `transferMarket` is reset to `[]` at season end (`seasonEnd.ts:939`) and retired
+  players are dropped from the player map, so no dangling listings persist. (`transferSlice`
+  already purges refs on sale/release.)
 
-### 2.6 ⚠️ `filter(Boolean)` completeness
-- **Claim:** a `careerSlice` `.map(id => players[id])` may lack a trailing `.filter(Boolean)`.
-- **Action:** grep `\.map(\w*id\w* => .*players\[` across slices; add `.filter(Boolean)` only
-  where a deleted ID could realistically appear.
+### 2.6 ✅ `filter(Boolean)` completeness — PRESENT
+- **Verified:** the flagged `careerSlice` map has `.filter(Boolean)` (`careerSlice.ts:392`).
 
 > **Note:** the audit's "CRITICAL direct-mutation" findings in `seasonEnd.ts`/
 > `orchestrationSlice.ts` were **verified false** — those `.push()` calls operate on

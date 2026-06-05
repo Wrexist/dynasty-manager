@@ -746,4 +746,33 @@ describe('Match Engine — Squad-validity forfeit path', () => {
     expect(result.events[0].type).toBe('full_time');
     expect(result.events[0].description.toLowerCase()).toContain('forfeit');
   });
+
+  it('handles a completely empty (0-player) lineup without NaN [length===0 path]', () => {
+    // Exercises the early-return forfeit guard (match.ts ~244) that the audit
+    // flagged as a possible NaN source: with an empty lineup, playerFitness is
+    // {} — every consumer must fall back, so goals/ratings stay finite.
+    const awayPlayers = [
+      makePlayer('a-gk', 'away', 'GK', 70), makePlayer('a-lb', 'away', 'LB', 70),
+      makePlayer('a-cb1', 'away', 'CB', 70), makePlayer('a-cb2', 'away', 'CB', 70),
+      makePlayer('a-rb', 'away', 'RB', 70), makePlayer('a-cm', 'away', 'CM', 70),
+      makePlayer('a-st', 'away', 'ST', 70),
+    ];
+    const homeClub: Club = {
+      id: 'home', name: 'Home FC', shortName: 'HOM', color: '#fff', secondaryColor: '#000',
+      budget: 0, wageBill: 0, reputation: 70, facilities: 5, youthRating: 5, fanBase: 5, boardPatience: 60,
+      playerIds: [], formation: '4-3-3', lineup: [], subs: [], divisionId: 'eng',
+    };
+    const awayClub: Club = { ...homeClub, id: 'away', name: 'Away FC', shortName: 'AWA',
+      playerIds: awayPlayers.map(p => p.id), lineup: awayPlayers.map(p => p.id) };
+
+    const { result, playerRatings } = simulateMatch(
+      makeMatch('empty-home'), homeClub, awayClub, [], awayPlayers,
+    );
+
+    expect(result.played).toBe(true);
+    expect(Number.isFinite(result.homeGoals)).toBe(true);
+    expect(Number.isFinite(result.awayGoals)).toBe(true);
+    expect(result.awayGoals).toBeGreaterThan(result.homeGoals);
+    playerRatings.forEach(r => expect(Number.isFinite(r.rating)).toBe(true));
+  });
 });
