@@ -10,6 +10,7 @@ import { AnimatedNumber } from '@/components/game/AnimatedNumber';
 import { PAGE_HINTS, PLAYER_TIER_THRESHOLDS } from '@/config/ui';
 import { MAX_SQUAD_SIZE } from '@/config/gameBalance';
 import { PACK_TIERS, PACK_TIER_MAP, PACK_PITY_THRESHOLD, RECENT_PULLS_LIMIT, getFeaturedPackTier } from '@/config/packs';
+import { hapticLight } from '@/utils/haptics';
 import type { PackPlayerPlacement, PackTierKey, PackTierDefinition, PackUnlockMethod } from '@/types/game';
 import { PackShopCard } from '@/components/game/pack/PackShopCard';
 import { PackOpeningOverlay } from '@/components/game/pack/PackOpeningOverlay';
@@ -535,7 +536,7 @@ const PacksPage = () => {
                   <button
                     key={rec.id}
                     type="button"
-                    onClick={() => setReplay({ tier: rec.tier, players: pulled })}
+                    onClick={() => { hapticLight(); setReplay({ tier: rec.tier, players: pulled }); }}
                     className={cn(
                       LIQUID_GLASS_SURFACE,
                       'group shrink-0 w-48 text-left p-3 transition-transform',

@@ -96,7 +96,7 @@ const ScoutingPage = () => {
                       <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
                     </div>
                     <button
-                      onClick={() => { cancelAssignment(a.id); infoToast('Assignment Cancelled'); }}
+                      onClick={() => { hapticLight(); cancelAssignment(a.id); infoToast('Assignment Cancelled'); }}
                       className="text-[10px] text-destructive hover:text-destructive/80 font-semibold shrink-0"
                     >
                       Cancel
@@ -305,7 +305,7 @@ const ScoutingPage = () => {
                         </div>
                       </div>
                       <button
-                        onClick={() => { removeFromWatchList(pid); infoToast('Removed from Watch List'); }}
+                        onClick={() => { hapticLight(); removeFromWatchList(pid); infoToast('Removed from Watch List'); }}
                         className="p-1.5 rounded-md hover:bg-destructive/20 transition-colors"
                         title="Remove from watch list"
                       >

@@ -10,6 +10,7 @@ import { FlagIcon } from '@/components/game/FlagIcon';
 import { PageHint } from '@/components/game/PageHint';
 import { getQualificationZones } from '@/utils/leagueRanking';
 import { getClubDisplayName } from '@/utils/uiHelpers';
+import { hapticLight } from '@/utils/haptics';
 
 const TIER_LABELS: Record<number, string> = {
   1: 'Top Leagues',
@@ -41,6 +42,7 @@ const LeagueTable = () => {
     totalWeeks: s.totalWeeks,
   })));
   const selectClub = useGameStore((s) => s.selectClub);
+  const handleSelectClub = useCallback((id: string) => { hapticLight(); selectClub(id); }, [selectClub]);
   const selectPlayer = useGameStore((s) => s.selectPlayer);
   const initializeLeague = useGameStore((s) => s.initializeLeague);
   const [tab, setTab] = useState<'table' | 'fixtures' | 'stats'>('table');
@@ -420,8 +422,8 @@ const LeagueTable = () => {
                       role="button"
                       tabIndex={0}
                       aria-label={`View ${club?.shortName || club?.name || 'club'}`}
-                      onClick={() => selectClub(entry.clubId)}
-                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectClub(entry.clubId); } }}
+                      onClick={() => handleSelectClub(entry.clubId)}
+                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSelectClub(entry.clubId); } }}
                       className={cn(
                         'border-b border-border/10 cursor-pointer active:bg-muted/30 transition-colors focus-visible:outline-none focus-visible:bg-muted/40',
                         zoneBgClass(zone),
@@ -562,9 +564,9 @@ const LeagueTable = () => {
                         role="button"
                         tabIndex={0}
                         aria-label={`View ${getClubDisplayName(homeClub?.name || 'club')}`}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectClub(match.homeClubId); } }}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSelectClub(match.homeClubId); } }}
                         className="flex-1 flex items-center gap-2 justify-end cursor-pointer active:opacity-70 focus-visible:outline-none focus-visible:opacity-70"
-                        onClick={() => selectClub(match.homeClubId)}
+                        onClick={() => handleSelectClub(match.homeClubId)}
                       >
                         <span className={cn(
                           'text-xs font-medium truncate text-right',
@@ -587,9 +589,9 @@ const LeagueTable = () => {
                         role="button"
                         tabIndex={0}
                         aria-label={`View ${getClubDisplayName(awayClub?.name || 'club')}`}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectClub(match.awayClubId); } }}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSelectClub(match.awayClubId); } }}
                         className="flex-1 flex items-center gap-2 cursor-pointer active:opacity-70 focus-visible:outline-none focus-visible:opacity-70"
-                        onClick={() => selectClub(match.awayClubId)}
+                        onClick={() => handleSelectClub(match.awayClubId)}
                       >
                         <div className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: awayClub?.color }} />
                         <span className={cn(
