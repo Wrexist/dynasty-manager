@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useIncrementalReveal } from '@/hooks/useIncrementalReveal';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -173,6 +174,12 @@ const TransferPage = () => {
     return result;
    
   }, [freeAgents, players, posFilter, searchQuery, faSortBy, club?.reputation, playerDivision]);
+
+  // Render the (potentially hundreds-long) market + free-agent lists in growing
+  // chunks so we never mount every image-backed card at once. Resets to the top
+  // whenever the filtered list changes.
+  const marketReveal = useIncrementalReveal(listings);
+  const freeAgentReveal = useIncrementalReveal(freeAgentPlayers);
 
   // News tab computations (memoized)
   const newsSummary = useMemo(() => {
@@ -523,7 +530,7 @@ const TransferPage = () => {
               </GlassPanel>
             );
           })()}
-          {listings.map((listing, i) => {
+          {marketReveal.visible.map((listing, i) => {
             const p = players[listing.playerId];
             if (!p) return null;
             const seller = clubs[listing.sellerClubId];
@@ -595,6 +602,9 @@ const TransferPage = () => {
               />
             );
           })}
+          {marketReveal.hasMore && (
+            <div ref={marketReveal.sentinelRef} aria-hidden className="h-8" />
+          )}
         </div>
       )}
 
@@ -922,7 +932,7 @@ const TransferPage = () => {
       {/* Free Agents */}
       {tab === 'freeAgents' && (
         <div className="space-y-2">
-          {freeAgentPlayers.map((p, i) => (
+          {freeAgentReveal.visible.map((p, i) => (
             <TransferPlayerCard
               key={p.id}
               player={p}
@@ -946,6 +956,9 @@ const TransferPage = () => {
               }
             />
           ))}
+          {freeAgentReveal.hasMore && (
+            <div ref={freeAgentReveal.sentinelRef} aria-hidden className="h-8" />
+          )}
           {freeAgentPlayers.length === 0 && (
             <GlassPanel className="p-8 text-center">
               <Users className="w-8 h-8 text-muted-foreground/50 mx-auto mb-2" />

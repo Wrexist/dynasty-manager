@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { getSuffix, resolveClub } from '@/utils/helpers';
@@ -161,6 +161,7 @@ const Dashboard = () => {
   const endSeason = useGameStore(s => s.endSeason);
   const selectPlayer = useGameStore(s => s.selectPlayer);
   const markCoachTaskComplete = useGameStore(s => s.markCoachTaskComplete);
+  const claimObjective = useGameStore(s => s.claimObjective);
   const club = usePlayerClub();
   const { match: nextMatch, isHome, opponent, competition } = useCurrentMatch();
   const hasCupMatchToo = useMemo(() => {
@@ -431,21 +432,19 @@ const Dashboard = () => {
       completedTaskIds: completedCoachTaskIds,
     });
   }, [club, fixtures, playerClubId, unread, weeklyObjectives, players, transferWindowOpen, scouting.assignments, scouting.reports.length, shortlist.length, week, season, completedCoachTaskIds]);
-  const completedCoachTasks = coachTasks.filter(task => task.completed).length;
+  // A coach task is "claimed" once its id is in completedCoachTaskIds (claiming
+  // is what grants the XP). A task can be completed-but-unclaimed (ready to
+  // claim). Counts + the "all done" state track CLAIMED, and the panel hides
+  // entirely once everything is claimed so it stops taking up space.
+  const isCoachClaimed = useCallback((id: string) => completedCoachTaskIds.includes(id), [completedCoachTaskIds]);
+  const completedCoachTasks = coachTasks.filter(task => isCoachClaimed(task.id)).length;
   const allCoachTasksDone = coachTasks.length > 0 && completedCoachTasks === coachTasks.length;
   const [coachCollapsed, setCoachCollapsed] = useState(false);
 
-  // Auto-collapse when all tasks complete
-  useEffect(() => {
-    if (allCoachTasksDone) setCoachCollapsed(true);
-  }, [allCoachTasksDone]);
-
-  // ── Objectives collapse ──
-  const allObjectivesDone = weeklyObjectives.length > 0 && weeklyObjectives.every(o => o.completed);
+  // ── Objectives ── claimed-based; panel hides once every objective is claimed.
+  const claimedObjectives = weeklyObjectives.filter(o => o.claimed).length;
+  const allObjectivesDone = weeklyObjectives.length > 0 && weeklyObjectives.every(o => o.completed && o.claimed);
   const [objectivesCollapsed, setObjectivesCollapsed] = useState(false);
-  useEffect(() => {
-    if (allObjectivesDone) setObjectivesCollapsed(true);
-  }, [allObjectivesDone]);
 
   // ── Active Sagas ──
   const [sagaCollapsed, setSagaCollapsed] = useState(false);
@@ -499,14 +498,8 @@ const Dashboard = () => {
     return computeObjectiveProgress(weeklyObjectives, ctx);
   }, [weeklyObjectives, club, players, playerClubId, fixtures, leagueTable, week, season]);
 
-  // Persist newly completed coach tasks
-  useEffect(() => {
-    for (const task of coachTasks) {
-      if (task.completed && !completedCoachTaskIds.includes(task.id)) {
-        markCoachTaskComplete(task.id);
-      }
-    }
-  }, [coachTasks, completedCoachTaskIds, markCoachTaskComplete]);
+  // Coach-task XP is no longer auto-granted on completion — the player claims
+  // each completed task (markCoachTaskComplete grants the XP on the claim tap).
 
   // Track "just completed" for reward animations
   const prevCompletedCoachRef = useRef<Set<string> | null>(null);
@@ -523,16 +516,9 @@ const Dashboard = () => {
       if (task.completed && !prev.has(task.id)) newlyDone.add(task.id);
     }
     prevCompletedCoachRef.current = new Set(coachTasks.filter(t => t.completed).map(t => t.id));
-    if (newlyDone.size > 0) {
-      hapticLight();
-      setJustCompletedCoach(newlyDone);
-      // Celebrate all-tasks-complete bonus
-      if (coachTasks.length > 0 && coachTasks.every(t => t.completed)) {
-        celebrationToast('Checklist Complete!', `+${COACH_ALL_TASKS_BONUS_XP} XP bonus earned`);
-      }
-      const id = setTimeout(() => setJustCompletedCoach(new Set()), 1000);
-      return () => clearTimeout(id);
-    }
+    // Light tap when a task becomes ready to claim. XP + the reward animation
+    // now fire on the claim tap (handleClaimCoach), not here.
+    if (newlyDone.size > 0) hapticLight();
   }, [coachTasks]);
 
   const effectiveObjXp = (obj: { xpReward: number; rarity?: string }) => {
@@ -557,20 +543,37 @@ const Dashboard = () => {
     prevCompletedObjRef.current = new Set(weeklyObjectives.filter(o => o.completed).map(o => o.objectiveId));
     if (newlyDone.size > 0) {
       hapticLight();
-      setJustCompletedObj(newlyDone);
       const allNowDone = weeklyObjectives.every(o => o.completed);
       if (allNowDone) {
-        celebrationToast('Perfect Month!', 'All objectives complete — bonus XP incoming!');
+        celebrationToast('Perfect Month!', 'All objectives complete — claim your rewards!');
       } else {
         const newlyDoneObjs = weeklyObjectives.filter(o => newlyDone.has(o.objectiveId));
         for (const obj of newlyDoneObjs) {
-          celebrationToast(`Objective Complete`, `${obj.title} — +${effectiveObjXp(obj)} XP`);
+          celebrationToast('Objective Complete', `${obj.title} — tap Claim for +${effectiveObjXp(obj)} XP`);
         }
       }
-      const id = setTimeout(() => setJustCompletedObj(new Set()), 1000);
-      return () => clearTimeout(id);
     }
   }, [weeklyObjectives]);
+
+  // ── Claim handlers ── XP is granted on the claim tap, with a FloatingXP burst.
+  const handleClaimObjective = useCallback((objectiveId: string) => {
+    const obj = weeklyObjectives.find(o => o.objectiveId === objectiveId);
+    if (!obj || !obj.completed || obj.claimed) return;
+    claimObjective(objectiveId);
+    hapticMedium();
+    setJustCompletedObj(new Set([objectiveId]));
+    setTimeout(() => setJustCompletedObj(new Set()), 1000);
+  }, [weeklyObjectives, claimObjective]);
+
+  const handleClaimCoachTask = useCallback((taskId: string) => {
+    if (completedCoachTaskIds.includes(taskId)) return;
+    const wasLast = coachTasks.length > 0 && coachTasks.filter(t => completedCoachTaskIds.includes(t.id)).length + 1 === coachTasks.length;
+    markCoachTaskComplete(taskId);
+    hapticMedium();
+    setJustCompletedCoach(new Set([taskId]));
+    setTimeout(() => setJustCompletedCoach(new Set()), 1000);
+    if (wasLast) celebrationToast('Checklist Complete!', `+${COACH_ALL_TASKS_BONUS_XP} XP bonus earned`);
+  }, [completedCoachTaskIds, coachTasks, markCoachTaskComplete]);
 
   // Last played match
   const lastMatchInfo = useMemo(() => {
@@ -1082,7 +1085,7 @@ const Dashboard = () => {
       )}
 
       {/* Guided checklist for new careers */}
-      {!seasonOver && season <= 2 && coachTasks.length > 0 && (
+      {!seasonOver && season <= 2 && coachTasks.length > 0 && !allCoachTasksDone && (
         <GlassPanel className="p-4 border-primary/20">
           <button
             type="button"
@@ -1119,41 +1122,59 @@ const Dashboard = () => {
                 style={{ willChange: 'height' }}
               >
                 <div className="space-y-2 mt-3">
-                  {coachTasks.map((task) => (
+                  {coachTasks.map((task) => {
+                    const claimed = isCoachClaimed(task.id);
+                    const claimable = task.completed && !claimed;
+                    return (
                     <div key={task.id} className="relative">
-                      <button
-                        type="button"
-                        disabled={!task.screen}
-                        onClick={() => task.screen && setScreen(task.screen)}
+                      <div
                         className={cn(
-                          'w-full text-left rounded-lg px-3 py-2 border transition-colors',
-                          task.completed
-                            ? 'bg-emerald-500/10 border-emerald-500/30'
-                            : 'bg-muted/20 border-border/40 hover:bg-primary/5'
+                          'w-full rounded-lg px-3 py-2 border transition-colors flex items-start justify-between gap-2',
+                          claimed ? 'bg-emerald-500/10 border-emerald-500/30'
+                            : claimable ? 'bg-primary/10 border-primary/40'
+                            : 'bg-muted/20 border-border/40'
                         )}
                       >
-                        <div className="flex items-center justify-between gap-2">
-                          <p className={cn('text-xs font-semibold', task.completed ? 'text-emerald-400' : 'text-foreground')}>{task.title}</p>
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <span className={cn(
-                              'inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded',
-                              task.completed ? 'text-emerald-400/70 bg-emerald-500/10' : 'text-primary/70 bg-primary/10'
-                            )}>
-                              {task.completed ? <PremiumCheck className="w-2.5 h-2.5" /> : '+'}{task.xpReward} XP
+                        <button
+                          type="button"
+                          disabled={!task.screen}
+                          onClick={() => task.screen && setScreen(task.screen)}
+                          className="text-left flex-1 min-w-0"
+                        >
+                          <p className={cn('text-xs font-semibold', claimed ? 'text-emerald-400' : 'text-foreground')}>{task.title}</p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">{task.description}</p>
+                        </button>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {claimable ? (
+                            <button
+                              type="button"
+                              onClick={() => handleClaimCoachTask(task.id)}
+                              aria-label={`Claim ${task.xpReward} XP for ${task.title}`}
+                              className="inline-flex items-center gap-0.5 text-[10px] font-bold px-2.5 py-1 rounded-full bg-primary text-primary-foreground shadow-[0_0_10px_hsl(var(--primary)/0.4)] active:scale-95 transition-transform"
+                            >
+                              Claim +{task.xpReward}
+                            </button>
+                          ) : claimed ? (
+                            <span className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded text-emerald-400/70 bg-emerald-500/10">
+                              <PremiumCheck className="w-2.5 h-2.5" />{task.xpReward} XP
                             </span>
-                            <span className={cn(
-                              'text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded',
-                              task.priority === 'high' ? 'bg-destructive/15 text-destructive' : task.priority === 'medium' ? 'bg-amber-500/15 text-amber-400' : 'bg-muted text-muted-foreground'
-                            )}>
-                              {task.priority}
-                            </span>
-                          </div>
+                          ) : (
+                            <>
+                              <span className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded text-primary/70 bg-primary/10">+{task.xpReward} XP</span>
+                              <span className={cn(
+                                'text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded',
+                                task.priority === 'high' ? 'bg-destructive/15 text-destructive' : task.priority === 'medium' ? 'bg-amber-500/15 text-amber-400' : 'bg-muted text-muted-foreground'
+                              )}>
+                                {task.priority}
+                              </span>
+                            </>
+                          )}
                         </div>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">{task.description}</p>
-                      </button>
+                      </div>
                       <FloatingXP amount={task.xpReward} show={justCompletedCoach.has(task.id)} />
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </motion.div>
             )}
@@ -1402,7 +1423,7 @@ const Dashboard = () => {
       )}
 
       {/* Monthly Objectives */}
-      {!seasonOver && weeklyObjectives.length > 0 && (
+      {!seasonOver && weeklyObjectives.length > 0 && !allObjectivesDone && (
         <GlassPanel className="p-4 border-amber-500/20">
           <button
             type="button"
@@ -1425,7 +1446,7 @@ const Dashboard = () => {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] text-amber-400 font-semibold">
-                {weeklyObjectives.filter(o => o.completed).length}/{weeklyObjectives.length}
+                {claimedObjectives}/{weeklyObjectives.length}
               </span>
               {objectiveStreak > 0 && (
                 <span className="text-[10px] text-amber-400 font-bold">
@@ -1451,13 +1472,15 @@ const Dashboard = () => {
                       key={obj.objectiveId}
                       className={cn(
                         'relative flex items-center gap-2 rounded-lg px-3 py-2 transition-colors',
-                        obj.completed ? 'bg-emerald-500/10 border border-emerald-500/30' : 'bg-muted/30 border border-border/30'
+                        obj.claimed ? 'bg-emerald-500/10 border border-emerald-500/30'
+                          : obj.completed ? 'bg-primary/10 border border-primary/40'
+                          : 'bg-muted/30 border border-border/30'
                       )}
                     >
                       <DynamicIcon name={obj.icon} className="w-4 h-4 text-primary shrink-0" />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <p className={cn('text-xs font-semibold truncate', obj.completed ? 'text-emerald-400 line-through' : 'text-foreground')}>{obj.title}</p>
+                          <p className={cn('text-xs font-semibold truncate', obj.claimed ? 'text-emerald-400 line-through' : 'text-foreground')}>{obj.title}</p>
                           {obj.rarity === 'rare' && (
                             <span className="text-[8px] font-bold text-blue-400 bg-blue-500/15 px-1 py-0.5 rounded shrink-0">RARE</span>
                           )}
@@ -1480,9 +1503,20 @@ const Dashboard = () => {
                           </div>
                         )}
                       </div>
-                      <span className={cn('inline-flex items-center text-[10px] font-bold shrink-0', obj.completed ? 'text-emerald-400' : 'text-sky-400')}>
-                        {obj.completed ? <PremiumCheck className="w-3 h-3" /> : `+${effectiveObjXp(obj)} XP`}
-                      </span>
+                      {obj.completed && !obj.claimed ? (
+                        <button
+                          type="button"
+                          onClick={() => handleClaimObjective(obj.objectiveId)}
+                          aria-label={`Claim ${effectiveObjXp(obj)} XP for ${obj.title}`}
+                          className="inline-flex items-center gap-0.5 text-[10px] font-bold px-2.5 py-1 rounded-full bg-primary text-primary-foreground shadow-[0_0_10px_hsl(var(--primary)/0.4)] active:scale-95 transition-transform shrink-0"
+                        >
+                          Claim +{effectiveObjXp(obj)}
+                        </button>
+                      ) : (
+                        <span className={cn('inline-flex items-center text-[10px] font-bold shrink-0', obj.claimed ? 'text-emerald-400' : 'text-sky-400')}>
+                          {obj.claimed ? <PremiumCheck className="w-3 h-3" /> : `+${effectiveObjXp(obj)} XP`}
+                        </span>
+                      )}
                       <FloatingXP amount={effectiveObjXp(obj)} show={justCompletedObj.has(obj.objectiveId)} />
                     </div>
                   ))}

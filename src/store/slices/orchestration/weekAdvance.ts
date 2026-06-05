@@ -79,7 +79,7 @@ import { processListingExpiry, replenishMarket, replenishMarketPreSeason, spawnF
 import { getContractLengthFactor, getPerformanceMultiplier } from '@/utils/transferOffers';
 import { buildTransferTalk } from '@/utils/transferTalk';
 import { generateCliffhangers } from '@/utils/weekPreview';
-import { ObjectiveContext, calculateCompletedXP, evaluateObjectives } from '@/utils/weeklyObjectives';
+import { ObjectiveContext, calculateCompletedXP, evaluateObjectives, objectiveClaimXP } from '@/utils/weeklyObjectives';
 import { generateProactiveOffer, getReputationTierLabel } from '@/utils/managerCareer';
 import type { PlayerTemplate } from '@/data/playerTemplates';
 import { getActivePool, drawForMarket, drawForFaPoolSeed } from '@/utils/communityPackPool';
@@ -2373,21 +2373,23 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   const objStartWeek = state.objectivesStartWeek || 1;
   const monthComplete = (newWeek - objStartWeek) >= OBJECTIVE_CYCLE_WEEKS;
 
-  // Evaluate objectives — base XP for newly-completed ones is awarded immediately
-  const { updated: evalObjectives, xpEarned: weeklyObjXP } = evaluateObjectives(state.weeklyObjectives, objCtx, currentStreak);
+  // Evaluate objectives — completion is detected here, but base XP is now
+  // CLAIMED by the player on the dashboard (claimObjective), not auto-granted.
+  // A newly-completed objective is left { completed: true, claimed: false }.
+  const { updated: evalObjectives } = evaluateObjectives(state.weeklyObjectives, objCtx, currentStreak);
 
   let updatedProgression = state.managerProgression;
   if (achievementXPTotal > 0) {
     updatedProgression = grantXP(updatedProgression, achievementXPTotal);
-  }
-  if (weeklyObjXP > 0) {
-    updatedProgression = grantXP(updatedProgression, weeklyObjXP);
   }
 
   let newObjectives = evalObjectives;
   let newObjectivesStartWeek = objStartWeek;
   let finalStreak = currentStreak;
   let monthBonusXP = 0;
+  // XP paid out by the month-reset safety net for objectives the player
+  // completed but never claimed (tracked for session-stats accounting).
+  let objectiveSafetyNetXP = 0;
 
   if (monthComplete) {
     // Month is over — award bonus XP (all-complete + streak extra; base was already paid weekly)
@@ -2405,7 +2407,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
         objMsg = `PERFECT MONTH — all ${evalObjectives.length} objectives complete! +${bonusXP} bonus XP earned.`;
         if (newStreak >= 3) objMsg += ` Streak x${newStreak} — bonus multiplier active next month!`;
       } else {
-        objMsg = `${completedCount}/${evalObjectives.length} objectives completed. XP was awarded as each completed.`;
+        objMsg = `${completedCount}/${evalObjectives.length} objectives completed. Any unclaimed rewards were paid out automatically.`;
         if (streakBroken) objMsg += ` Your ${currentStreak}-month streak has ended — complete all objectives next month to start a new one.`;
       }
       newMessages = addMsg(newMessages, {
@@ -2415,6 +2417,14 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
       });
     }
     finalStreak = newStreak;
+    // Safety net: pay out any completed objectives the player never claimed
+    // before the month resets, so a deferred reward is never silently lost.
+    objectiveSafetyNetXP = evalObjectives.reduce(
+      (sum, o) => sum + (o.completed && !o.claimed ? objectiveClaimXP(o) : 0), 0,
+    );
+    if (objectiveSafetyNetXP > 0) {
+      updatedProgression = grantXP(updatedProgression, objectiveSafetyNetXP);
+    }
     const nextWeekHasMatch = updatedFixtures.some(m => !m.played && m.week === newWeek && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
     newObjectives = generateMonthlyObjectives(nextWeekHasMatch);
     newObjectivesStartWeek = newWeek;
@@ -2435,7 +2445,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   const sessionStats = {
     ...prevSession,
     weeksPlayed: prevSession.weeksPlayed + 1,
-    xpEarned: prevSession.xpEarned + weeklyObjXP + monthBonusXP,
+    xpEarned: prevSession.xpEarned + objectiveSafetyNetXP + monthBonusXP,
     objectivesCompleted: prevSession.objectivesCompleted + Math.max(0, newlyCompleted),
   };
 

@@ -57,7 +57,7 @@ export function TopBar() {
   }, [xpProgress.percentage]);
 
   if (!club && !isUnemployed) return (
-    <header role="banner" className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/30 safe-area-top transform-gpu" style={{ contain: 'layout' }}>
+    <header role="banner" className="fixed top-0 left-0 right-0 z-50 bg-background/95 border-b border-border/30 safe-area-top transform-gpu">
       <div className="flex items-center justify-center h-14 px-4 max-w-lg mx-auto">
         <span className="text-xs text-muted-foreground">Loading...</span>
       </div>
@@ -82,14 +82,17 @@ export function TopBar() {
     : rawBack;
 
   return (
-    // `transform-gpu` + `contain: layout` defends against an iOS WebView
-    // bug where `position: fixed` on the TopBar appeared mid-page after
-    // certain state mutations (audit: "I kicked accept loan and scrolled
-    // down"). Forcing GPU compositing pins the bar to its own layer that
-    // tracks the viewport instead of inheriting a containing block from
-    // an ancestor's transient transform. BottomNav already uses the same
-    // pattern — see /home/user/dynasty-manager/src/components/game/BottomNav.tsx.
-    <header role="banner" className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/30 safe-area-top transform-gpu" style={{ contain: 'layout' }}>
+    // `transform-gpu` (translateZ(0)) pins the bar to its own compositor
+    // layer that tracks the viewport — this is the same pattern BottomNav
+    // uses and is what keeps a `position: fixed` bar from drifting mid-page
+    // on iOS WebKit during long scrolls (e.g. the Transfer market list).
+    //
+    // NOTE: we deliberately do NOT add `contain: layout` here. On iOS
+    // WebKit, `contain` on a fixed element makes it establish its own
+    // containing block and breaks viewport scroll-tracking, which made the
+    // TopBar (but never the contain-free BottomNav) float into the middle
+    // of the page after scrolling the Free Agents / Market list.
+    <header role="banner" className="fixed top-0 left-0 right-0 z-50 bg-background/95 border-b border-border/30 safe-area-top transform-gpu">
       {/* XP Progress Bar — positioned at top edge to avoid looking like a tab indicator */}
       <div className="max-w-lg mx-auto px-4 pt-0.5">
         <div className="h-[3px] bg-muted/30 rounded-full overflow-hidden">

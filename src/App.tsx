@@ -40,6 +40,15 @@ const LoadingFallback = () => (
 
 const App = () => {
   const reducedMotion = useGameStore(s => s.settings.reducedMotion);
+  const performanceMode = useGameStore(s => s.settings.performanceMode);
+  // Performance mode is the single "make it smooth on old devices" switch:
+  // a root class drives CSS that strips backdrop-blur + decorative overlays,
+  // and it also forces reduced motion below.
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle('perf-mode', !!performanceMode);
+    return () => root.classList.remove('perf-mode');
+  }, [performanceMode]);
   // First-launch analytics consent: read once on mount, gate the rest of the
   // app until the user answers. `refreshAnalyticsConsent` seeds the in-memory
   // cache so early `track()` calls (e.g. from splash) see 'granted' only if
@@ -52,7 +61,7 @@ const App = () => {
 
   return (
   <ErrorBoundary scope="app">
-    <MotionConfig reducedMotion={reducedMotion ? "always" : "user"}>
+    <MotionConfig reducedMotion={(reducedMotion || performanceMode) ? "always" : "user"}>
       <TooltipProvider>
         <Toaster />
         <Sonner />

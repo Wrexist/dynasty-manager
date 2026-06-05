@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/react';
-import { useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
+import { useEffect, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -268,10 +268,26 @@ const GameShell = () => {
   }
   const Screen = screens[currentScreen] || Dashboard;
 
-  // Use 'instant' so we don't wait for a smooth-scroll animation on tab change;
-  // the user expects the new screen to be at the top *immediately*.
+  // Scroll-position memory per screen. Returning to a long list (Market, Squad,
+  // Inbox) should land you back where you were, not dumped at the top — which
+  // reads as a jarring reset. We remember each screen's scroll offset and
+  // restore it on re-entry; genuinely-new screens default to 0.
+  const scrollPositions = useRef<Record<string, number>>({});
+
+  // Continuously record the active screen's scroll offset (passive, writes only
+  // to a ref — no re-render). Captured per-screen via the effect's closure.
   useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+    const screenAtSetup = currentScreen;
+    const onScroll = () => { scrollPositions.current[screenAtSetup] = window.scrollY; };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [currentScreen]);
+
+  // On screen change, restore the remembered offset (or top for first visits).
+  // 'instant' so there's no smooth-scroll animation on tab change.
+  useEffect(() => {
+    const saved = scrollPositions.current[currentScreen] ?? 0;
+    window.scrollTo({ top: saved, left: 0, behavior: 'instant' as ScrollBehavior });
   }, [currentScreen]);
 
   return (

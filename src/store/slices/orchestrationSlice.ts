@@ -759,7 +759,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         // Backfill settings with defaults for fields added after save was created
         settings: {
           matchSpeed: 600, showOverallOnPitch: true, autoSave: true, hapticsEnabled: true,
-          hidePageHints: false, hideOnboarding: false, confirmAllOffers: false, reducedMotion: false,
+          hidePageHints: false, hideOnboarding: false, confirmAllOffers: false, reducedMotion: false, performanceMode: false,
           ...(data.settings || {}),
         },
         currentScreen:

@@ -11,7 +11,7 @@ import type { Club, Player, FormationType } from '@/types/game';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 69;
+const CURRENT_VERSION = 71;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -1146,6 +1146,33 @@ const migrations: Record<number, MigrationFn> = {
   // negotiation (undefined) — the field is optional, so there is nothing
   // to backfill; this is a clean version bump.
   68: (data) => ({ ...data, version: 69 }),
+
+  // v69 → v70: GameSettings gained `performanceMode` (smoothness escape hatch
+  // for low-end devices). Default off so existing saves are unchanged.
+  69: (data) => {
+    const settings = (data.settings ?? {}) as Record<string, unknown>;
+    return {
+      ...data,
+      version: 70,
+      settings: { ...settings, performanceMode: settings.performanceMode ?? false },
+    };
+  },
+
+  // v70 → v71: weekly objectives gained a `claimed` flag — base XP is now
+  // claimed on the dashboard instead of auto-granted on completion. Existing
+  // saves were paid under the old auto-grant rules, so mark any already-
+  // completed objective as claimed (don't let it become re-claimable).
+  70: (data) => {
+    const objectives = Array.isArray(data.weeklyObjectives) ? data.weeklyObjectives : [];
+    return {
+      ...data,
+      version: 71,
+      weeklyObjectives: objectives.map((o) => {
+        const obj = (o ?? {}) as Record<string, unknown>;
+        return { ...obj, claimed: obj.claimed ?? obj.completed ?? false };
+      }),
+    };
+  },
 
   // v64 → v65: National team `fifaRanking` was hardcoded to 25 on init —
   // recompute from the canonical per-nation `baseRanking` so France no

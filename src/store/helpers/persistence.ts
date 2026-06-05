@@ -274,6 +274,11 @@ export const STORAGE_KEYS = {
    *  `SKStoreReviewController.requestReview` on top of Apple's 3/365-day
    *  hard cap so we only spend prompts on genuine high-emotion moments. */
   APP_REVIEW_STATE: 'dynasty-review-state',
+  /** sessionStorage: remembers the Inbox filter selection (category filters +
+   *  unread-only toggle) so it survives navigating away from and back to the
+   *  Inbox within a session. JSON-encoded `{ filters: string[]; unreadOnly: boolean }`.
+   *  Tab-scoped — a UI preference, not save data. */
+  INBOX_FILTER: 'dynasty-inbox-filter',
   /** localStorage: tracks whether the user has seen the subscription
    *  onboarding paywall. Set once the user either starts the free trial or
    *  taps "Maybe later" on the new-game flow. Prevents the paywall from

@@ -10,6 +10,7 @@ import { FlagIcon } from '@/components/game/FlagIcon';
 import { PageHint } from '@/components/game/PageHint';
 import { getQualificationZones } from '@/utils/leagueRanking';
 import { getClubDisplayName } from '@/utils/uiHelpers';
+import { hapticLight } from '@/utils/haptics';
 
 const TIER_LABELS: Record<number, string> = {
   1: 'Top Leagues',
@@ -41,6 +42,7 @@ const LeagueTable = () => {
     totalWeeks: s.totalWeeks,
   })));
   const selectClub = useGameStore((s) => s.selectClub);
+  const handleSelectClub = useCallback((id: string) => { hapticLight(); selectClub(id); }, [selectClub]);
   const selectPlayer = useGameStore((s) => s.selectPlayer);
   const initializeLeague = useGameStore((s) => s.initializeLeague);
   const [tab, setTab] = useState<'table' | 'fixtures' | 'stats'>('table');
@@ -48,6 +50,7 @@ const LeagueTable = () => {
   const [selectedDiv, setSelectedDiv] = useState(playerDivision || 'eng');
   const [pickerOpen, setPickerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [clubSearch, setClubSearch] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
 
@@ -61,11 +64,24 @@ const LeagueTable = () => {
       scrolledRef.current = true;
     }
   }, []);
-  useEffect(() => { scrolledRef.current = false; }, [selectedDiv]);
+  useEffect(() => { scrolledRef.current = false; setClubSearch(''); }, [selectedDiv]);
   useEffect(() => { if (tab === 'table') scrollToPlayer(); }, [tab, scrollToPlayer]);
 
-  const currentTable = divisionTables[selectedDiv] || [];
+  const currentTable = useMemo(() => divisionTables[selectedDiv] || [], [divisionTables, selectedDiv]);
   const currentLeague = LEAGUES.find(l => l.id === selectedDiv);
+
+  // Club search filters the table rows while keeping each club's true league
+  // position (so you can jump to one club in a 24-team table without losing
+  // where it actually sits).
+  const visibleRows = useMemo(() => {
+    const rows = currentTable.map((entry, i) => ({ entry, pos: i + 1 }));
+    const q = clubSearch.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter(({ entry }) => {
+      const c = clubs[entry.clubId];
+      return (c?.name || '').toLowerCase().includes(q) || (c?.shortName || '').toLowerCase().includes(q);
+    });
+  }, [currentTable, clubSearch, clubs]);
 
   // Fixtures for the browsed week
   const weekFixtures = useMemo(() => {
@@ -387,6 +403,29 @@ const LeagueTable = () => {
 
       {/* Table Tab */}
       {tab === 'table' && (
+        <>
+        <div className="relative mb-2">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          <input
+            type="text"
+            inputMode="search"
+            value={clubSearch}
+            onChange={e => setClubSearch(e.target.value)}
+            placeholder="Search clubs in this table…"
+            aria-label="Search clubs in this table"
+            className="w-full bg-muted/40 border border-border/50 rounded-full pl-9 pr-9 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+          />
+          {clubSearch && (
+            <button
+              type="button"
+              onClick={() => { hapticLight(); setClubSearch(''); }}
+              aria-label="Clear club search"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-muted-foreground hover:text-foreground"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
         <GlassPanel className="overflow-hidden">
           <div className="overflow-x-auto">
             {/* table-fixed so the Club column truncates cleanly instead of
@@ -404,10 +443,9 @@ const LeagueTable = () => {
                 </tr>
               </thead>
               <tbody>
-                {currentTable.map((entry, i) => {
+                {visibleRows.map(({ entry, pos }, i) => {
                   const club = clubs[entry.clubId];
                   const isPlayer = entry.clubId === playerClubId;
-                  const pos = i + 1;
                   const zone = getZone(pos);
 
                   return (
@@ -420,8 +458,8 @@ const LeagueTable = () => {
                       role="button"
                       tabIndex={0}
                       aria-label={`View ${club?.shortName || club?.name || 'club'}`}
-                      onClick={() => selectClub(entry.clubId)}
-                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectClub(entry.clubId); } }}
+                      onClick={() => handleSelectClub(entry.clubId)}
+                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSelectClub(entry.clubId); } }}
                       className={cn(
                         'border-b border-border/10 cursor-pointer active:bg-muted/30 transition-colors focus-visible:outline-none focus-visible:bg-muted/40',
                         zoneBgClass(zone),
@@ -467,6 +505,12 @@ const LeagueTable = () => {
               </tbody>
             </table>
           </div>
+
+          {visibleRows.length === 0 && (
+            <div className="px-4 py-8 text-center">
+              <p className="text-sm text-muted-foreground">No clubs match “{clubSearch}”.</p>
+            </div>
+          )}
 
           {/* Zone Legend */}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 border-t border-border/20">
@@ -514,6 +558,7 @@ const LeagueTable = () => {
             )}
           </div>
         </GlassPanel>
+        </>
       )}
 
       {/* Fixtures Tab */}
@@ -562,9 +607,9 @@ const LeagueTable = () => {
                         role="button"
                         tabIndex={0}
                         aria-label={`View ${getClubDisplayName(homeClub?.name || 'club')}`}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectClub(match.homeClubId); } }}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSelectClub(match.homeClubId); } }}
                         className="flex-1 flex items-center gap-2 justify-end cursor-pointer active:opacity-70 focus-visible:outline-none focus-visible:opacity-70"
-                        onClick={() => selectClub(match.homeClubId)}
+                        onClick={() => handleSelectClub(match.homeClubId)}
                       >
                         <span className={cn(
                           'text-xs font-medium truncate text-right',
@@ -587,9 +632,9 @@ const LeagueTable = () => {
                         role="button"
                         tabIndex={0}
                         aria-label={`View ${getClubDisplayName(awayClub?.name || 'club')}`}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectClub(match.awayClubId); } }}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSelectClub(match.awayClubId); } }}
                         className="flex-1 flex items-center gap-2 cursor-pointer active:opacity-70 focus-visible:outline-none focus-visible:opacity-70"
-                        onClick={() => selectClub(match.awayClubId)}
+                        onClick={() => handleSelectClub(match.awayClubId)}
                       >
                         <div className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: awayClub?.color }} />
                         <span className={cn(

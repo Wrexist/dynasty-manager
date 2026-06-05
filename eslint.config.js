@@ -84,6 +84,18 @@ export default tseslint.config(
               ],
               message: "Community-pack data must be dynamic-imported via `await import('@/data/communityPack/...')` from inside initGame so it stays out of the eager bundle. See docs/bundle-report.md.",
             },
+            {
+              // The ~2.5MB national player pool must only ever be reached
+              // through the lazy accessor (which dynamic-imports it). A static
+              // import would drag the whole pool into the eager boot bundle.
+              // Dynamic `import()` (as used inside nationalPlayerPoolAccess.ts)
+              // is NOT matched by this rule, so the accessor keeps working.
+              group: [
+                "@/data/nationalPlayerPool",
+                "**/data/nationalPlayerPool",
+              ],
+              message: "The 2.5MB national player pool must be loaded lazily via `@/data/nationalPlayerPoolAccess` (loadNationalPool / getNationalPoolSync), never statically imported — a static import lands it in the eager boot bundle. See docs/AUDIT.md Phase 1.",
+            },
           ],
         },
       ],

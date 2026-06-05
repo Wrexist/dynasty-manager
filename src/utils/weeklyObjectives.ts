@@ -26,6 +26,10 @@ export interface ObjectiveInstance {
   icon: string;
   xpReward: number;
   completed: boolean;
+  /** True once the player has tapped "Claim" to collect the XP. Base XP is
+   *  granted on claim (not on completion), so completing an objective leaves
+   *  it `completed: true, claimed: false` until the reward is collected. */
+  claimed?: boolean;
   rarity?: ObjectiveRarity;
   progress?: { current: number; target: number };
 }
@@ -532,8 +536,17 @@ export function generateMonthlyObjectives(hasMatch: boolean): ObjectiveInstance[
     icon: obj.icon,
     xpReward: obj.xpReward,
     completed: false,
+    claimed: false,
     rarity: obj.rarity,
   }));
+}
+
+/** Base XP for a single completed objective, including its rarity multiplier.
+ *  Used when the player claims an objective's reward. */
+export function objectiveClaimXP(inst: ObjectiveInstance): number {
+  const rarityMult = inst.rarity === 'legendary' ? LEGENDARY_OBJECTIVE_XP_MULTIPLIER
+    : inst.rarity === 'rare' ? RARE_OBJECTIVE_XP_MULTIPLIER : 1;
+  return Math.round(inst.xpReward * rarityMult);
 }
 
 /** Check which objectives are completed and return updated list + base XP for newly-completed ones.

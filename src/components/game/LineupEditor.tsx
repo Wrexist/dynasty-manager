@@ -6,7 +6,7 @@ import { MAX_SUBS } from '@/config/playerGeneration';
 import { PITCH_COLORS } from '@/config/ui';
 import { cn } from '@/lib/utils';
 import { calculateChemistryLinks, getChemistryBonus, getChemistryLabel } from '@/utils/chemistry';
-import { getChemistryLines, buildChemistryStrengthMap, getChemistryLineColor } from '@/utils/formationLines';
+import { getChemistryLines, buildChemistryStrengthMap, getChemistryLineColor, getFormationStructureLines } from '@/utils/formationLines';
 import { getSquadInsights } from '@/utils/squadInsights';
 import { LineupPlayerTile } from './LineupPlayerTile';
 import { BenchStrip } from './BenchStrip';
@@ -75,6 +75,15 @@ export function LineupEditor() {
     const lineupPlayers = club.lineup.map(id => players[id]).filter(Boolean);
     return calculateChemistryLinks(lineupPlayers, club.formation, season);
   }, [club, players, season]);
+
+  // Structural formation lines — the faint "skeleton" connecting nearby
+  // positions (defence → midfield → attack) so the pitch always shows the
+  // formation shape, even before any chemistry has been built between pairs.
+  const structureFormation = club?.formation;
+  const structureLines = useMemo(
+    () => getFormationStructureLines(structureFormation ? FORMATION_POSITIONS[structureFormation] || [] : []),
+    [structureFormation],
+  );
 
   // Chemistry connection lines for SVG rendering
   const chemLineData = useMemo(() => {
@@ -271,6 +280,30 @@ export function LineupEditor() {
           <rect x="24.85" y="97.5" width="18.3" height="5.5" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />
           <rect x="29" y="103" width="10" height="2" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />
           <path d="M 26.85 86.5 A 9.15 9.15 0 0 1 41.15 86.5" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />
+
+          {/* Structural formation lines (faint skeleton, drawn under chemistry) */}
+          {structureLines.map(([a, b]) => {
+            const slotA = slots[a];
+            const slotB = slots[b];
+            if (!slotA || !slotB) return null;
+            // Only connect slots that actually have a player in them, so the
+            // pitch reads as your fielded XI rather than an abstract diagram.
+            if (!lineup[a] || !lineup[b]) return null;
+            const x1 = 2 + (slotA.x / 100) * 64;
+            const y1 = SLOT_Y_BOTTOM - (slotA.y / 100) * SLOT_Y_RANGE;
+            const x2 = 2 + (slotB.x / 100) * 64;
+            const y2 = SLOT_Y_BOTTOM - (slotB.y / 100) * SLOT_Y_RANGE;
+            return (
+              <line
+                key={`struct-${a}-${b}`}
+                x1={x1} y1={y1} x2={x2} y2={y2}
+                stroke="rgba(255,255,255,0.9)"
+                strokeWidth={0.25}
+                strokeOpacity={0.14}
+                strokeLinecap="round"
+              />
+            );
+          })}
 
           {/* Chemistry connection lines */}
           {chemLineData.map(({ a, b, color, strength }) => {
