@@ -77,6 +77,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Icon double-reveal + scrollable summary with safe-area pins.',
     'Make walkout cards tappable to start the walkout on demand.',
     'Audit fixes: season-end, cup/continental, finance, transfers, youth, and more.',
+    'Phase 0 perf: instant navigation, smooth scrolling, claim-based rewards.',
   ],
   fixed: [
     'Fixed rare launch crashes related to ads.',
