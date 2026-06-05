@@ -78,6 +78,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Make walkout cards tappable to start the walkout on demand.',
     'Audit fixes: season-end, cup/continental, finance, transfers, youth, and more.',
     'Phase 0 perf: instant navigation, smooth scrolling, claim-based rewards.',
+    'Count claimed objective XP in session stats.',
   ],
   fixed: [
     'Fixed rare launch crashes related to ads.',
