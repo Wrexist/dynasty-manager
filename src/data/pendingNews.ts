@@ -79,6 +79,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Audit fixes: season-end, cup/continental, finance, transfers, youth, and more.',
     'Phase 0 perf: instant navigation, smooth scrolling, claim-based rewards.',
     'Count claimed objective XP in session stats.',
+    'Phase 4 + 5: quick-sell undo, eager-bundle budget, render-hygiene guards (+ boot-perf fix).',
   ],
   fixed: [
     'Fixed rare launch crashes related to ads.',
