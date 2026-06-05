@@ -97,6 +97,7 @@ const PacksPage = () => {
   const openPack = useGameStore(s => s.openPack);
   const canOpenPack = useGameStore(s => s.canOpenPack);
   const quickSellPackedPlayer = useGameStore(s => s.quickSellPackedPlayer);
+  const undoLastQuickSell = useGameStore(s => s.undoLastQuickSell);
 
   const [opening, setOpening] = useState<{ tier: PackTierKey; players: Player[]; pityTriggered?: boolean; placement?: Record<string, PackPlayerPlacement> } | null>(null);
   const [replay, setReplay] = useState<{ tier: PackTierKey; players: Player[] } | null>(null);
@@ -123,15 +124,33 @@ const PacksPage = () => {
   };
 
   const handleQuickSell = (playerId: string) => {
+    // Capture the card up front so Undo can drop it back into the reveal.
+    const soldPlayer = opening?.players.find(p => p.id === playerId);
     const result = quickSellPackedPlayer(playerId);
     if (!result.success) {
       errorToast('Cannot quick-sell', result.message);
       return;
     }
-    if (typeof result.amount === 'number') {
-      successToast('Quick-sold', `+${formatMoney(result.amount)} to budget.`);
-    }
     setOpening(prev => prev ? { ...prev, players: prev.players.filter(p => p.id !== playerId) } : prev);
+    if (typeof result.amount === 'number') {
+      successToast('Quick-sold', `+${formatMoney(result.amount)} to budget.`, {
+        duration: 6000,
+        action: {
+          label: 'Undo',
+          onClick: () => {
+            if (undoLastQuickSell()) {
+              hapticLight();
+              if (soldPlayer) {
+                setOpening(prev => prev ? { ...prev, players: [soldPlayer, ...prev.players] } : prev);
+              }
+              infoToast('Sale reversed', soldPlayer ? `${soldPlayer.firstName} ${soldPlayer.lastName} is back in your squad.` : 'Player returned to your squad.');
+            } else {
+              errorToast('Too late to undo', 'That sale can no longer be reversed.');
+            }
+          },
+        },
+      });
+    }
   };
 
   const handleKeepAll = () => {

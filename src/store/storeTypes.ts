@@ -476,6 +476,8 @@ export interface GameState {
   ) => { ok: true } | { ok: false; message: string };
   releasePackedPlayer: (playerId: string) => ReleasePackedPlayerResult;
   quickSellPackedPlayer: (playerId: string) => QuickSellPackedPlayerResult;
+  /** Revert the most recent quick-sell (only valid immediately after). */
+  undoLastQuickSell: () => boolean;
 
   // Community Pack
   communityPackEnabled: boolean;

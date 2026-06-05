@@ -38,8 +38,17 @@ export function celebrationToast(title: string, description?: string) {
  *  "Added to shortlist" where buzzing the device every time would be noisy.
  *  Callers that want a confirmation buzz should call hapticLight/hapticSuccess
  *  themselves. */
-export function successToast(title: string, description?: string) {
-  toast(title, { description, duration: 3000, style: SUCCESS_STYLE });
+export function successToast(
+  title: string,
+  description?: string,
+  options?: { action?: { label: string; onClick: () => void }; duration?: number },
+) {
+  toast(title, {
+    description,
+    duration: options?.duration ?? 3000,
+    style: SUCCESS_STYLE,
+    action: options?.action,
+  });
 }
 
 /** Red error toast matching the game's dark theme.

@@ -266,3 +266,51 @@ describe('packsSlice — paid-IAP rejection surfaces refund signal', () => {
     expect(result.paidButRejected).toBeUndefined();
   });
 });
+
+describe('packsSlice — undoLastQuickSell', () => {
+  function openAndGetTarget() {
+    const state = useGameStore.getState();
+    useGameStore.setState({
+      clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 50_000_000 } },
+    });
+    const open = useGameStore.getState().openPack('bronze');
+    expect(open.success).toBe(true);
+    return open.players![0];
+  }
+
+  it('reverts the most recent quick-sell exactly', () => {
+    const target = openAndGetTarget();
+    const clubId = useGameStore.getState().playerClubId;
+    const before = useGameStore.getState();
+    const budgetBefore = before.clubs[clubId].budget;
+    const squadBefore = before.clubs[clubId].playerIds.length;
+    const incomeBefore = before.seasonTotalIncome || 0;
+
+    expect(useGameStore.getState().quickSellPackedPlayer(target.id).success).toBe(true);
+    expect(useGameStore.getState().clubs[clubId].playerIds).not.toContain(target.id);
+
+    expect(useGameStore.getState().undoLastQuickSell()).toBe(true);
+
+    const after = useGameStore.getState();
+    expect(after.clubs[clubId].budget).toBe(budgetBefore);
+    expect(after.clubs[clubId].playerIds).toContain(target.id);
+    expect(after.clubs[clubId].playerIds.length).toBe(squadBefore);
+    expect(after.players[target.id].clubId).toBe(clubId);
+    expect(after.freeAgents).not.toContain(target.id);
+    expect(after.seasonTotalIncome || 0).toBe(incomeBefore);
+  });
+
+  it('is a no-op the second time (snapshot consumed)', () => {
+    const target = openAndGetTarget();
+    useGameStore.getState().quickSellPackedPlayer(target.id);
+    expect(useGameStore.getState().undoLastQuickSell()).toBe(true);
+    expect(useGameStore.getState().undoLastQuickSell()).toBe(false);
+  });
+
+  it('refuses to undo once a new pack is opened', () => {
+    const target = openAndGetTarget();
+    useGameStore.getState().quickSellPackedPlayer(target.id);
+    useGameStore.getState().openPack('bronze'); // invalidates the snapshot
+    expect(useGameStore.getState().undoLastQuickSell()).toBe(false);
+  });
+});
