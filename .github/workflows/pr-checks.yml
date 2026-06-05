@@ -122,6 +122,13 @@ jobs:
             echo "Main chunk OK (${MAIN_KB} KB, hard limit: ${MAIN_HARD_KB} KB)"
           fi
 
+      # First-load (eager) payload budget — complements the on-disk core-JS
+      # guard above. Measures the gzipped entry + modulepreload chunks, which
+      # is what first-paint UX depends on, and catches a lazy chunk slipping
+      # into the boot graph (which the on-disk total cannot see).
+      - name: Check eager first-load bundle size
+        run: node scripts/check-eager-bundle.mjs
+
   code-review:
     runs-on: ubuntu-latest
     permissions:

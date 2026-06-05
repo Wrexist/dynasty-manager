@@ -196,3 +196,55 @@ describe.skipIf(!RUN)('Render hygiene (PERF_AUDIT=1)', () => {
     },
   );
 });
+
+/**
+ * Always-on render-hygiene guards (run in normal CI, unlike the gated audit
+ * above). These lock in the two cheap invariants that keep hot pages from
+ * re-rendering on unrelated state churn.
+ */
+describe('Render hygiene — always-on guards', () => {
+  // Pages/components that re-render most often and matter most for scroll/tap
+  // smoothness. A bare `useGameStore()` or identity selector here would
+  // subscribe the component to the ENTIRE store and re-render on every
+  // mutation (match minute ticks, AI sims, etc.).
+  const HOT_FILES = [
+    'src/pages/Dashboard.tsx',
+    'src/pages/SquadPage.tsx',
+    'src/pages/TransferPage.tsx',
+    'src/pages/LeagueTable.tsx',
+    'src/components/game/BottomNav.tsx',
+    'src/components/game/TopBar.tsx',
+    'src/components/game/SubNav.tsx',
+  ];
+
+  it('hot pages never subscribe to the whole store', () => {
+    const offenders: string[] = [];
+    for (const file of HOT_FILES) {
+      const src = fs.readFileSync(path.resolve(file), 'utf8');
+      // `useGameStore()` with no selector → whole-store subscription.
+      if (/useGameStore\(\s*\)/.test(src)) offenders.push(`${file}: useGameStore() with no selector`);
+      // Identity selector `useGameStore(s => s)` / `useGameStore((s) => s)` →
+      // same trap. (Field selectors like `s => s.week` are fine.)
+      if (/useGameStore\(\s*\(?\s*\w+\s*\)?\s*=>\s*\w+\s*\)/.test(src)) {
+        offenders.push(`${file}: identity selector useGameStore(s => s)`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it('SquadPage / LeagueTable selectors ignore unrelated state changes', async () => {
+    await useGameStore.getState().initGame(CLUB_ID);
+    const squadBefore = squadPageSelector(useGameStore.getState());
+    const leagueBefore = leagueTableSelector(useGameStore.getState());
+    const dashBefore = dashboardSelector(useGameStore.getState());
+
+    // fanMood is watched by Dashboard but NOT by Squad/League. Mutating it
+    // should re-render Dashboard only.
+    useGameStore.setState({ fanMood: (useGameStore.getState().fanMood + 7) % 100 });
+    const s = useGameStore.getState();
+
+    expect(shallow(squadPageSelector(s), squadBefore)).toBe(true);
+    expect(shallow(leagueTableSelector(s), leagueBefore)).toBe(true);
+    expect(shallow(dashboardSelector(s), dashBefore)).toBe(false);
+  });
+});

@@ -17,6 +17,16 @@ import {
 } from '@/utils/autoFillContext';
 import { purgePlayerReferences } from '../helpers/rosterOps';
 
+/**
+ * Transient (non-persisted) snapshot of the state slices a quick-sell touches,
+ * captured just before the sale so it can be reverted by `undoLastQuickSell`.
+ * Lives in module scope (not the save) because undo is only meaningful for a
+ * few seconds while the "Undo" toast is on screen. Cleared on undo, on the next
+ * pack open, or when the guard detects the world has moved on.
+ */
+type QuickSellSnapshot = { playerId: string; week: number; season: number; patch: Partial<GameState> };
+let lastQuickSellSnapshot: QuickSellSnapshot | null = null;
+
 /** Match transferSlice's challenge gate. Packs count as signings — respect
  *  noTransfers and youthOnly scenario flags. Returns a blocking message or
  *  null when allowed. */
@@ -167,6 +177,9 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     tierKey: PackTierKey,
     opts?: { method?: PackUnlockMethod; skipPayment?: boolean },
   ): OpenPackResult => {
+    // Opening a new pack invalidates any pending quick-sell undo — the
+    // snapshot would otherwise revert this fresh pack if restored.
+    lastQuickSellSnapshot = null;
     const state = get();
     const tier = PACK_TIER_MAP[tierKey];
     if (!tier) return { success: false, message: 'Unknown pack tier.' };
@@ -678,6 +691,35 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       body: `${player.firstName} ${player.lastName} was quick-sold for £${amount.toLocaleString()} (65% of market value).`,
     });
 
+    // Snapshot every slice this sale mutates so the "Undo" toast can revert it
+    // exactly (rather than recomputing a fragile inverse). References are safe
+    // to keep: the store updates immutably, so these point at the pre-sale data.
+    lastQuickSellSnapshot = {
+      playerId,
+      week: state.week,
+      season: state.season,
+      patch: {
+        players: state.players,
+        clubs: state.clubs,
+        freeAgents: state.freeAgents,
+        openedPacks: state.openedPacks,
+        messages: state.messages,
+        seasonTotalIncome: state.seasonTotalIncome,
+        transferMarket: state.transferMarket,
+        incomingOffers: state.incomingOffers,
+        incomingLoanOffers: state.incomingLoanOffers,
+        outgoingLoanRequests: state.outgoingLoanRequests,
+        activeLoans: state.activeLoans,
+        shortlist: state.shortlist,
+        scoutWatchList: state.scoutWatchList,
+        negotiationStrikes: state.negotiationStrikes,
+        contractStrikes: state.contractStrikes,
+        pendingFarewell: state.pendingFarewell,
+        pendingTransferTalk: state.pendingTransferTalk,
+        merchandise: state.merchandise,
+      },
+    };
+
     set({
       players: { ...state.players, [playerId]: soldPlayer },
       clubs: { ...state.clubs, [state.playerClubId]: updatedClub },
@@ -699,6 +741,25 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       message: `${player.firstName} ${player.lastName} sold for £${amount.toLocaleString()}.`,
       amount,
     };
+  },
+
+  /** Revert the most recent quick-sell. Only valid immediately (before the week
+   *  advances or the player is re-claimed); returns false if it's too late. */
+  undoLastQuickSell: (): boolean => {
+    const snap = lastQuickSellSnapshot;
+    if (!snap) return false;
+    const state = get();
+    if (
+      state.week !== snap.week
+      || state.season !== snap.season
+      || state.players[snap.playerId]?.clubId !== ''
+    ) {
+      lastQuickSellSnapshot = null;
+      return false;
+    }
+    set({ ...snap.patch });
+    lastQuickSellSnapshot = null;
+    return true;
   },
 });
 
