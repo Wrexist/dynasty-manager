@@ -100,14 +100,16 @@
   ~139K LOC of hand-written code — keep them lazily imported;
   `npm run size:check` enforces the eager-bundle budget.
 
-## Open Compliance Flag (raised 2026-06-09 — unresolved)
-- App Store docs (`docs/apple-review-response.md`, `docs/app-store-submission.md`,
-  `APP_STORE_LISTING.md`) tell Apple the app has **"no real clubs, leagues,
-  players, or tournaments."** The current build ships real club + league names
-  and FC26-derived player data. This is a stale-doc-vs-reality conflict with
-  potential trademark/IP and App-Store-review exposure. **Do not "fix" those
-  compliance docs by editing the numbers** — the underlying real-vs-fictional
-  decision is a licensing/legal question for the owner, not an editorial one.
+## Real clubs vs. Apple docs (owner-acknowledged 2026-06-09)
+- The App Store docs (`docs/apple-review-response.md`,
+  `docs/app-store-submission.md`, `APP_STORE_LISTING.md`) describe the OLD
+  fictional-club version — they say the app has "no real clubs, leagues, or
+  players." The current build intentionally ships real club + league names and
+  FC26-derived player data. **The owner has confirmed this is known/intentional**
+  — do NOT re-raise it as a surprise, and do NOT edit those compliance docs to
+  "match reality" (re-asserting real-mark usage to Apple is more likely to
+  trigger a rejection than to fix anything). Those docs are stale artifacts;
+  leave them. The real-clubs data is deliberate.
 
 ## Engine / UI notes (verify before trusting magic numbers)
 - `src/engine/match.ts` (1,828 LOC) — event-based, minute-by-minute, with late
