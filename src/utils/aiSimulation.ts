@@ -90,7 +90,10 @@ function estimateWeeklyIncome(club: Club, divisionTable: LeagueTableEntry[]): nu
   const tablePos = tableIdx >= 0
     ? tableIdx + 1
     : (divisionTable.length > 0 ? divisionTable.length : POSITION_PRIZE_MAX_RANK);
-  const prize = Math.max(0, POSITION_PRIZE_MAX_RANK - tablePos) * POSITION_PRIZE_PER_RANK;
+  // Derive max prize rank from the actual division size (teamCount + 1), matching
+  // getFinanceBreakdown — a flat 21 zeroes out positions 21-24 in 24-team divisions.
+  const maxPrizeRank = divisionTable.length > 0 ? divisionTable.length + 1 : POSITION_PRIZE_MAX_RANK;
+  const prize = Math.max(0, maxPrizeRank - tablePos) * POSITION_PRIZE_PER_RANK;
   return matchday + commercial + stadium + prize;
 }
 
