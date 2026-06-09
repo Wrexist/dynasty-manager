@@ -248,9 +248,18 @@ describe('createMilestone', () => {
 // ── checkMatchMilestones ──────────────────────────────────────────────
 
 describe('checkMatchMilestones', () => {
-  it('returns null when totalMatches is not a threshold', () => {
-    expect(checkMatchMilestones(75, [], 1, 5)).toBeNull();
+  const recorded = (t: number): CareerMilestone => ({
+    id: `old-${t}`, type: 'milestone_matches', title: `${t} Matches`,
+    description: `Reached ${t} career matches as manager.`, season: 1, week: 1,
+  });
+
+  it('returns null below the first threshold', () => {
+    expect(checkMatchMilestones(49, [], 1, 5)).toBeNull();
     expect(checkMatchMilestones(0, [], 1, 5)).toBeNull();
+  });
+
+  it('returns null between thresholds once the lower one is recorded', () => {
+    expect(checkMatchMilestones(75, [recorded(50)], 1, 5)).toBeNull();
   });
 
   it('triggers at exactly 50 matches', () => {
@@ -263,21 +272,19 @@ describe('checkMatchMilestones', () => {
   });
 
   it('triggers at 100, 200, 500 thresholds', () => {
-    expect(checkMatchMilestones(100, [], 3, 1)?.title).toBe('100 Matches');
-    expect(checkMatchMilestones(200, [], 5, 1)?.title).toBe('200 Matches');
-    expect(checkMatchMilestones(500, [], 11, 1)?.title).toBe('500 Matches');
+    expect(checkMatchMilestones(100, [recorded(50)], 3, 1)?.title).toBe('100 Matches');
+    expect(checkMatchMilestones(200, [recorded(50), recorded(100)], 5, 1)?.title).toBe('200 Matches');
+    expect(checkMatchMilestones(500, [recorded(50), recorded(100), recorded(200)], 11, 1)?.title).toBe('500 Matches');
   });
 
   it('does not re-trigger if the milestone is already recorded', () => {
-    const existing: CareerMilestone[] = [{
-      id: 'old', type: 'milestone_matches', title: '50 Matches',
-      description: 'Reached 50 career matches as manager.', season: 1, week: 1,
-    }];
-    expect(checkMatchMilestones(50, existing, 2, 1)).toBeNull();
+    expect(checkMatchMilestones(50, [recorded(50)], 2, 1)).toBeNull();
   });
 
-  it('only checks the current totalMatches value (not 51, not 49)', () => {
+  it('still fires when a double-match week jumps past the threshold', () => {
+    // League + cup in the same week: counter goes 49 → 51 without ever
+    // equalling 50. The milestone must fire on the next check, not be lost.
     expect(checkMatchMilestones(49, [], 1, 1)).toBeNull();
-    expect(checkMatchMilestones(51, [], 1, 1)).toBeNull();
+    expect(checkMatchMilestones(51, [], 1, 1)?.title).toBe('50 Matches');
   });
 });

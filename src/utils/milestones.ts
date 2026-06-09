@@ -22,7 +22,10 @@ export function checkMatchMilestones(
 ): CareerMilestone | null {
   const thresholds = [50, 100, 200, 500];
   for (const t of thresholds) {
-    if (totalMatches === t && !existing.some(m => m.type === 'milestone_matches' && m.description.includes(`${t}`))) {
+    // `>=` (not `===`): a league+cup double week can jump the counter past the
+    // threshold (e.g. 49 → 51) — an exact match would skip the milestone forever.
+    // The `existing` dedupe guarantees each threshold still fires only once.
+    if (totalMatches >= t && !existing.some(m => m.type === 'milestone_matches' && m.description.includes(`${t}`))) {
       return createMilestone('milestone_matches', `${t} Matches`, `Reached ${t} career matches as manager.`, season, week, 'bar-chart');
     }
   }
