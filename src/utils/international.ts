@@ -16,7 +16,8 @@ import type {
   Position,
 } from '@/types/game';
 import { NATIONS, getNation, CONTINENTAL_TOURNAMENT_NAMES } from '@/data/nations';
-import { TOTAL_WEEKS } from '@/config/gameBalance';
+import { TOTAL_WEEKS, INTL_PENALTY_GK_BASE, INTL_PENALTY_GK_SCALE } from '@/config/gameBalance';
+import { simulatePenaltyShootout } from '@/utils/penaltyShootout';
 import {
   WORLD_CUP_GROUPS,
   WORLD_CUP_TEAMS_PER_GROUP,
@@ -281,16 +282,25 @@ export function generateTournament(
 }
 
 /** Simulate a single international match between two nations (AI vs AI or with player nation) */
+/** Nation strength 0–1 from inverse FIFA-style ranking (rank 1 = strongest, max 65). */
+function nationStrength(nationName: string): number {
+  const nation = getNation(nationName);
+  return nation ? Math.max(0, (66 - nation.baseRanking) / 65) : 0.5;
+}
+
+/** GK quality (0–1) for a nation, on the same scale getClubGKQuality uses for
+ *  clubs, so AI international shootouts run through the canonical
+ *  simulatePenaltyShootout instead of a coin flip. */
+function nationPenaltyGKQuality(nationName: string): number {
+  return INTL_PENALTY_GK_BASE + nationStrength(nationName) * INTL_PENALTY_GK_SCALE;
+}
+
 function simulateInternationalMatch(
   homeNation: string,
   awayNation: string,
 ): { homeGoals: number; awayGoals: number } {
-  const home = getNation(homeNation);
-  const away = getNation(awayNation);
-
-  // Strength based on inverse ranking (rank 1 = strongest). Max rank is 65.
-  const homeStrength = home ? Math.max(0, (66 - home.baseRanking) / 65) : 0.5;
-  const awayStrength = away ? Math.max(0, (66 - away.baseRanking) / 65) : 0.5;
+  const homeStrength = nationStrength(homeNation);
+  const awayStrength = nationStrength(awayNation);
 
   // Home advantage
   const homeAdv = 0.08;
@@ -501,13 +511,19 @@ export function processKnockoutRound(
     const result = simulateInternationalMatch(tie.homeNation, tie.awayNation);
     let updated = { ...tie, played: true, homeGoals: result.homeGoals, awayGoals: result.awayGoals };
 
-    // If draw, penalty shootout
+    // If draw, penalty shootout — canonical GK-quality-aware sim, not a coin
+    // flip with a fabricated 5-3 scoreline.
     if (result.homeGoals === result.awayGoals) {
-      const homeWins = Math.random() > 0.5;
+      const shootout = simulatePenaltyShootout({
+        homeName: tie.homeNation,
+        awayName: tie.awayNation,
+        homeGKQuality: nationPenaltyGKQuality(tie.homeNation),
+        awayGKQuality: nationPenaltyGKQuality(tie.awayNation),
+      });
       updated = {
         ...updated,
-        penaltyShootout: { home: homeWins ? 5 : 3, away: homeWins ? 3 : 5 },
-        winnerId: homeWins ? tie.homeNation : tie.awayNation,
+        penaltyShootout: { home: shootout.homeScore, away: shootout.awayScore },
+        winnerId: shootout.winner === 'home' ? tie.homeNation : tie.awayNation,
       };
     } else {
       updated.winnerId = result.homeGoals > result.awayGoals ? tie.homeNation : tie.awayNation;

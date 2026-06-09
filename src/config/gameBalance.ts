@@ -181,6 +181,9 @@ export const COMMERCIAL_INCOME_PER_REP = 200000;
 export const COMMERCIAL_INCOME_BASE = 100000;
 export const STADIUM_INCOME_PER_LEVEL = 20000;
 export const POSITION_PRIZE_PER_RANK = 15000;
+/** Fallback max prize rank (20-team baseline) used only when no league table
+ *  is available. Live code derives the max rank from the actual table size
+ *  (teamCount + 1) so 18- and 24-team divisions pay correctly. */
 export const POSITION_PRIZE_MAX_RANK = 21;
 export const SCOUTING_COST_PER_ASSIGNMENT = 25000;
 export const FAN_MOOD_BASE = 0.8;
@@ -262,6 +265,13 @@ export const CUP_EXTRA_TIME_REPUTATION_DIVISOR = 5;
 export const CUP_PENALTY_WIN_CHANCE = 0.5;
 export const CUP_PENALTY_GK_QUALITY_FACTOR = 0.15;
 export const CUP_PENALTY_KICKS = 5;
+/** Maps a nation's 0–1 ranking strength onto the 0–1 GK-quality scale that
+ *  simulatePenaltyShootout expects, so international shootouts run through the
+ *  same canonical sim as club cups. Club GKs land ~0.5–0.85 via
+ *  getClubGKQuality; this keeps nations on the same band (rank 65 → 0.5,
+ *  rank 1 → 0.85). */
+export const INTL_PENALTY_GK_BASE = 0.5;
+export const INTL_PENALTY_GK_SCALE = 0.35;
 /** Walkover score awarded when one side has no available players.
  *  Used by league, cup, and continuation fixture forfeits alike. */
 export const FORFEIT_SCORE = 3;
