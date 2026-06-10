@@ -1,8 +1,55 @@
 # Dynasty Manager — Full Codebase Audit
 
 > Generated 2026-06-10 against app v1.0.13 / save schema v71.
-> Method: 14 parallel section audits covering all hand-written source (~139K LOC).
-> Severity: **CRITICAL** = crash / save corruption / revenue loss · **HIGH** = broken feature / wrong sim results · **MEDIUM** = edge-case bug / UX defect · **LOW** = quality / improvement.
+> Method: 14 section audits covering all hand-written source (~139K LOC), each verified against surrounding code; one CRITICAL was empirically reproduced against the real store.
+> Severity: **CRITICAL** = crash / save corruption / revenue loss / core content unreachable · **HIGH** = broken feature / wrong sim results · **MEDIUM** = edge-case bug / UX defect · **LOW** = quality / improvement.
+> Totals: **~295 findings — 4 CRITICAL · 44 HIGH · 92 MEDIUM · ~155 LOW.**
+
+---
+
+# Executive Summary
+
+## The four CRITICALs
+
+1. **The competition calendar is hardcoded to a 46-week season; 40 of 45 leagues are shorter — cup finals and continental knockouts silently never happen.** (Section 14) `CUP_WEEKS` (R1=4 … F=43, `data/cup.ts:15-23`) and continental weeks (`config/continental.ts:62-78`) are fixed, while `state.totalWeeks` is per-league (18–58). The Dashboard force-ends the season at `week > totalWeeks` and `endSeasonImpl` never resolves pending ties. Premier League (38 wks): cup SF plays, the final never; continental runs strand at the QF (leg 2 = week 39) and the tournament hangs with `winnerId: null`. In 18-week leagues not a single cup match is ever played and the winter transfer window never opens. Downstream: both Super Cups never created, cup-winner qualification paths never fire, Ballon d'Or cup bonuses dead, 2 challenges unwinnable outside 5 leagues. **Fix:** scale competition weeks to `totalWeeks` at draw time, or keep ticking weeks past the last fixture until live competitions resolve.
+
+2. **Completing an international tournament ends the brand-new season instantly — empirically reproduced.** (Section 2) `finalizeSeason` rolls the season, then runs the tournament; on completion `advanceInternationalWeekImpl` calls `endSeasonImpl` *again* on the fresh season. Reproduced: season 1 + World Cup → `season=3`, phantom history entry with 0 played, double aging, double contract decrement, promotion/relegation decided off an all-zero table. Affects every save where the manager holds a national-team job.
+
+3. **Loans that outlive the season silently become free permanent transfers.** (Section 3) Season end wipes `activeLoans` without returning unexpired loans; the borrower keeps the player. Your star loaned out in the winter window is permanently lost for £0 — or exploit it: borrow a 90-OVR on a long loan and own him free at season end. Compounded by Section 2-H2 (the season-end messages that might have surfaced it are also being deleted).
+
+4. **Paid consumable pack purchases are not crash-durable.** (Sections 11 + 8) No persisted pending-credit record exists between the StoreKit charge and the in-memory grant, and packs never appear in RevenueCat entitlements — app death in that window (or before the next autosave, which only fires on `advanceWeek`) loses real money with no recovery or reconciliation path.
+
+## Highest-impact HIGHs (fix-first shortlist)
+
+- **Revenue/IAP:** Android CI builds shipped a hardcoded RevenueCat *test* key (✅ **fixed on this branch** — per-platform keys, loud failure; you still must add the `goog_` key as the `VITE_REVENUECAT_API_KEY_ANDROID` secret). Cancel-vs-charged ambiguity in `purchaseProduct` tells charged subscribers "No charge was made" (S8-H1). The `NATIVE_MONETIZATION_READY` kill-switch would turn purchases into free permanent grants if ever flipped (S8-H3). Consumable + subscription SKUs leak into persisted `entitlements` via restore (S4-H1) — not yet exploitable, one refactor away. Trial copy shown to trial-ineligible users with a false "Trial Started!" toast — Apple 3.1.2(c) exposure (S11-H1).
+- **Match engine correctness:** penalties awarded to the fouling team (S5-H5); red-card strength penalty resets at half-time/ET (S5-H1); non-foul injuries mathematically impossible in derbies/bad weather (S5-H2); AI subbed-off players resurrect in extra time (S5-H4); assists credited to sent-off players (S5-H3).
+- **Season end:** all season-end inbox messages wiped every season (S2-H2); chemistry pair-familiarity wiped every season by a UUID-parsing bug (S2-H3); League Cup bracket degenerates into byes — final never played, prize money skipped (S2-H4); season prize money distributed against the wrong tables — promoted champions get ~2% instead of 30% (S2-H5).
+- **Tournament hangs (besides the calendar):** interactive continental group/leg-1 draws incorrectly go to ET, and a group shootout strands the match → tournament freezes (S2-H1); "Skip to Next Match" ignores continental fixtures and can skip-and-hang the group stage (S1-H3); plus no in-flight guard → double `advanceWeek` processing (S9-H3).
+- **Match UX lying to the player:** stoppage-time events (e.g. a 90+2' winner) never render and the on-screen score can be wrong (S9-H1); cup finals won on penalties display as "DRAW" with "board expects improvement" copy (S9-H4); half-time upsell tap silently abandons the half played so far (S9-H2).
+- **Dead paid/progression features:** Deadline Dealer perk + career negotiation discount apply only in a function with zero live callers (S3-H3); the 3 perk-unlocked formations have no engine identity (S5-M10); AI reactive tactics dead on every path (S5-M2); in-match Optimize Lineup silently no-ops for free users with a false "already optimal" toast (S12-H2).
+- **Unobtainable content:** Fortress, Invincible Run, World Beater achievements (S6-H1/H2); 'fortress', 'goal-machine', 'promotion-express' challenges never receive the data they check (S14-H2); 'Great Escape' is broken in both directions (S14-M1).
+- **Stability:** FlagIcon's imperative DOM fallback arms a `removeChild` crash on every flag when offline (S13-H1); odd-team leagues (aus/tur) lose their last two rounds beyond `totalWeeks` (S14-H1); loan buy/list/counter flows have dead ends and a fee-paid-player-confiscated path (S3-H1/H2, S12-H1).
+- **Economy drift:** finance breakdown UI disagrees with actually-paid prize money by up to ~20× in lower tiers and double-counts merch costs (S7-H1/H2); training has no potential ceiling — +12 OVR/season forever (S7-H3 + S4-M2); continental coefficients never decay for non-participants (S6-H3).
+
+## Cross-cutting themes
+
+1. **Fixed-week constants vs per-league `totalWeeks`** — the calendar CRITICAL plus windows, board reviews, international breaks, vacancy expiry, storyline triggers (S14-M4, S6-L8). One conversion layer (`scaleWeek(totalWeeks)`) fixes a dozen findings.
+2. **Instant-sim vs interactive match paths diverge** — ET exemptions, shootout classification, prize hooks (S2-H1/M3, S9-H4). Unify result processing through one function that takes `penaltyShootout` into account.
+3. **Index-aligned APIs broken by `filter(Boolean)`** — chemistry links and squad insights mis-attribute every player after a stale ID (S7-M2/M3); `autoFillLineup` already documents the workaround.
+4. **UI re-implementing store math** — acceptance odds, loan buy fees, prize lines, staff cooldowns, training previews all drift from the authoritative calculation (S12-M2, S10-M6, S7-H1/M5, S9-L7). Export the store/util function and render its output.
+5. **Entitlement hygiene** — `isPro()` discipline holds everywhere today, but consumable/sub SKUs leaking into `entitlements` and the kill-switch mock are one change away from revenue bugs. Make the slice filter what it persists (defense-in-depth).
+6. **State leakage across lifecycles** — new game/reset/prestige/same-league job moves carry NT state, perk flags, sponsors, facilities, finance history (S2-M2, S1-H4, S4-H3).
+7. **Hardcoded balance values** in slices/engine/utils despite the config rule (~20 findings) — sweep them into `src/config/`.
+8. **Silent no-op handlers** — actions that fail without feedback (sub confirm, renewals, scout assign, job accept at retirement age) erode trust; make slice actions return results and toast failures.
+
+## Suggested fix order
+
+- **Wave 1 (data integrity + revenue):** C1 calendar scaling · C2 double season-end · C3 loan returns · C4 pending-credit persistence + the purchases.ts trio (H1/H3/M1/M3) · S2-H2 message wipe · S2-H5 prize tables · S1-H3/S9-H3 skip guards.
+- **Wave 2 (sim correctness):** S5 engine fixes (penalty side, red-card strengths, injury band, ET resurrection, assists) · S2-H3 chemistry wipe · S2-H4 League Cup bracket · S6-H3 coefficients · training/development potential cap.
+- **Wave 3 (player-facing truth):** S9-H1/H4/H2 MatchDay/Review fixes · shootout classification (S2-M3) · S13-H1 FlagIcon · unobtainable achievements/challenges · dead perks/formations/reactive AI.
+- **Wave 4:** the MEDIUM/LOW backlog — UI drift, dead code deletion, a11y, perf nits, config sweeps.
+
+A regression-test note: the calendar bug survived because `seasonCupProgression.test.ts` checks bracket shape only, and the longevity tests run a 46-week league. Add one short-league (18/22-week) longevity test and one NT-job season-rollover test — those two alone would have caught both CRITICALs 1 and 2.
 
 ---
 
@@ -465,4 +512,77 @@ Pack grant safety (commit-before-cinematic — skip/Escape/crash/force-quit cann
 `matchSubsUsed` reset every tick; player's own match never simmed except the documented orphan case; cup/continental week constants agree with `cup.ts`; no direct localStorage; zero Zustand mutation violations; `unlockPerk` XP spend correct (implicit via spent-perks subtraction); no player-club double-payment in `processAIWeekly`.
 
 ---
+
+## Section 2: Season end, match actions, game init (seasonEnd.ts, matchActions.ts, initGame.ts, tournaments.ts)
+
+**Overall:** Largely well-defended (consistent `filter(Boolean)`, spread-before-write, ephemeral-club hygiene), but hides one empirically-confirmed catastrophic flow bug and a cluster of season-end regressions that silently destroy player-visible state every season. The interactive match path diverges from instant-sim in two places that corrupt continental tournaments.
+
+### CRITICAL
+- **C1. Completing an international tournament ends the brand-new season instantly — phantom seasons, double aging, promotion/relegation off a 0-0 table.** `seasonEnd.ts:1361-1414` + `weekAdvance.ts:522, 109`. `finalizeSeason` commits the rollover (season=N+1, week=1) *first*, then starts the tournament and returns; when the tournament finishes, `advanceInternationalWeekImpl` calls `endSeasonImpl` again on the freshly-reset season. **Empirically reproduced:** end of season 1 with an NT job → World Cup → one week later `season=3`, a phantom `SeasonHistory {season: 2, pts: 0, played: 0}`, season-2 continental chained. Players age twice, contracts decrement twice, freshly promoted clubs are instantly relegated off the all-zero table, possible spurious sacking. The early return also skips the career end-of-season block and the autosave. **Fix:** remove the `endSeasonImpl` calls at `weekAdvance.ts:522/109`; make tournament completion resume the already-rolled season (running the skipped career tail + autosave) — or intercept before `finalizeSeason` commits.
+
+### HIGH
+- **H1. Interactive continental group/leg-1 draws go to extra time; group shootouts strand the match → tournament hang.** `matchActions.ts:1143` — drawn cup-flagged matches go to ET unless `isAggregateDecided`, which returns false for group matches and leg 1 (legitimate draws). Instant-sim exempts these (`matchActions.ts:548-563`); the interactive path doesn't. ET winners corrupt group standings/aggregates; group penalties hit a handler that only processes knockouts (`:319`) → match never marked played → group stage hangs (weekAdvance never AI-sims the player's continental match). Leg-1 pens set `tie.winnerId` prematurely, cancelling leg 2. **Fix:** replicate the instant path's exemptions at line 1143.
+- **H2. Every season end silently deletes all season-end inbox messages.** `seasonEnd.ts:1157` — `processSponsorSeasonEnd` returns a list built from pre-endSeason messages and the assignment *replaces* the locally accumulated `newMessages`: Promoted!/Relegated, Ballon d'Or, "Season N Begins", continental qualification, NT retirements, staff walk-aways, youth intake — all discarded; only sponsor messages survive. **Fix:** return/append only the new sponsor messages.
+- **H3. Pair-familiarity (chemistry) wiped to empty every season — prune can't parse UUID keys.** `seasonEnd.ts:1286-1294` — keys are `${uuidA}-${uuidB}`; `key.split('-')` yields fragments of the first UUID, never matching surviving ids → every entry pruned, all chemistry resets each season, contradicting the comment's intent. **Fix:** `key.slice(0, 36)`/`key.slice(37)` (with fallback for `u_…` ids) or a safe separator.
+- **H4. League Cup bracket degenerates into cascading byes — the final is never played and the winner's prize money is skipped.** `tournaments.ts:24-59, 101-147` — inverted start-round heuristic (20 clubs → 'R1', 7 rounds when 5 suffice), no power-of-two normalization: the de-facto final is the QF at week 24; the week-40 "Final" is a pre-played bye that weekAdvance crowns, and since prize money is only paid when the player plays the F round (`matchActions.ts:296-298`), a bye-final "winner" gets the trophy message with no money. The main cup was explicitly rewritten to fix exactly this (`cup.ts:36-39`). **Fix:** port `generateCupDraw`'s prelim-round approach.
+- **H5. Season prize money/reputation distributed against the wrong tables — promoted champions get the bottom share.** `seasonEnd.ts:768-792` — reward loop iterates post-turnover memberships but builds tables from completed-season fixtures; a promoted club ranks last with 0 games (~2% of the *new* league's pool) instead of taking the 30% winner's share of the league it actually won. Hits ~4-6 clubs per country every season + reputation drift. **Fix:** distribute using `finalDivisionTables` (already built at `:248-256`).
+
+### MEDIUM
+- **M1. NT pool players deleted by the free-agent purge, leaving dangling `poolPlayerIds`.** `seasonEnd.ts:934-939` — purge of `clubId === ''` players has no NT exemption (the earlier orphan prune does); pool silently empties between tournament years. **Fix:** extend the condition with `!ntPoolIds.has(pid)`.
+- **M2. `initGame` never resets NT or once-per-season perk fields (and `resetGame` doesn't either) — cross-save leakage.** `initGame.ts:466-586` — `nationalTeam`, `internationalTournament`, `managerNationality`, `nationalTeamOffer`, `showNationalTeamOffer`, `galacticoUsedThisSeason`, `invincibleUsedThisSeason`, `activeInterview` set by neither; new saves inherit an old NT job (feeding C1) and disabled Invincible/Galactico for season 1; prestige path inherits everything. **Fix:** add to initGame's `set()` (canonical new-world writer).
+- **M3. Penalty-shootout results classified inconsistently between instant and interactive paths.** `matchActions.ts:583-595` vs `:1550-1560` — instant adds a phantom +1 goal (tie score no longer matches player stats); interactive passes the real draw so a cup final won on pens yields draw-level board confidence/morale/W-D-L. **Fix:** pass shootout `winnerId` into `processMatchResult`; drop the +1 hack.
+- **M4. `avoid_relegation` contract bonus always pays in upper tiers — even when actually relegated.** `seasonEnd.ts:1545` uses `replacedSlots` (0 except bottom tier) → condition always true. Line 1521 already computes the correct count; reuse it.
+- **M5. Conference Cup match messages labeled "Shield Cup".** `matchActions.ts:641` — same two-way ternary as the weekAdvance instance. Add the third arm.
+
+### LOW
+- **L1.** Extra time grants a full fresh substitution allowance (`matchActions.ts:1148` resets `matchSubsUsed: 0`) instead of the conventional +1.
+- **L2.** Onboarding message says "default 4-4-2" but every club initializes to 4-3-3 (`initGame.ts:388` vs `:223, 243`).
+- **L3.** Division-by-zero → NaN budget if a division ever has exactly 1 club (`seasonEnd.ts:781`).
+- **L4.** Fallback path pushes onto a possibly store-shared division array in place (`seasonEnd.ts:386-388`) — copy before push.
+- **L5.** Instant-sim crash path strands ephemeral continental clubs in state (`matchActions.ts:499-501` commits before the try; `cleanupAbandonedMatch` early-returns in the instant-sim state). Make cleanup unconditional in the error path.
+- **L6.** `playSecondHalfImpl`/`playExtraTimeImpl` soft-lock on `return null` for <7 players (`matchActions.ts:1103, 1295`) — no resume path; route through `cleanupAbandonedMatch`. NEEDS VERIFICATION whether the HT lineup editor can drop below 7.
+
+### Interactions with already-filed items
+C1 also overrides `currentScreen: 'season-summary'` → in tournament seasons the SeasonSummary dead-banner issue is superseded (summary skipped entirely). H2 compounds the loan-permanence CRITICAL by deleting the messages that would have surfaced it. Performance: no material O(n²) — loaded world is one country.
+
+---
+
+## Section 14: Data + config (league/cup/continental data, nations, challenges, types/game.ts, all 25 config files, generated-data import discipline)
+
+**Overall:** Static data layer in very good shape — counts verified exactly (45 leagues / 37 countries / 756 clubs, zero duplicate IDs), referential integrity holds, bracket math sound, generated-data import discipline clean. One severe structural problem: the fixed competition calendar vs per-league season lengths.
+
+### CRITICAL
+- **C1. Fixed competition calendar vs per-league `totalWeeks` kills cup finals, League Cup finals, and continental knockouts in most leagues.** `data/cup.ts:15-23` (CUP_WEEKS R1=4 … F=43), `config/continental.ts:62-78` (LC final 40, continental QF2=39/SF=41-42/F=44), vs `initGame.ts:467` (`totalWeeks = league.totalWeeks || 46`) and `Dashboard.tsx:605-611, 910-921` (season force-ends at `week > totalWeeks`; `endSeasonImpl` never resolves pending ties). Verified `totalWeeks` distribution: 18×2, 22×9, 24×1, 26×5, 30×8, 34×8, 36×1, 38×5, 42×1, 46×3, 58×2. Consequences: **Cup Final unreachable in 40/45 leagues** (PL plays the SF at week 36, final never; `cupResult` records "Semi-Finals" even for the SF winner); LC Final unreachable in 39/45 (in 22-week leagues the LC dies after one round); **continental runs strand at the QF even in 38-week top-5 leagues** — tournament hangs with `winnerId: null`. In 18-week leagues (cro, irl) not a single cup match is ever played and the winter window (weeks 20–24) never opens. Downstream: both Super Cups never created (`seasonEnd.ts:891, 907-908`), cup-winner → Conference Cup qualification never fires (`:861-869`), final prize/coefficient/reputation rewards never pay, Ballon d'Or cup bonuses dead, 'cup-specialist'/'double-winner' challenges unwinnable outside 5 leagues. No test covers calendar-vs-totalWeeks (cup tests check bracket shape only). **Fix:** scale competition weeks to the league calendar at draw time (preserving collision-avoidance ordering), or keep ticking weeks past the last fixture until live competitions resolve; update the cup.ts choreography comment with the chosen invariant.
+
+### HIGH
+- **H1. Odd-team-count leagues lose their last two rounds.** `data/league.ts:150-197, 205` — bye-round circle schedule spans `2n` weeks but `matchWeeks = 2*(n-1)` (wrong for odd n) and no rescale triggers: aus (13 teams, totalWeeks 24 → fixtures at weeks 25–26) and tur (19, 36 → weeks 37–38) lock the dashboard with 1–2 rounds unplayed; standings computed from an incomplete fixture set. **Fix:** span = `hasBye ? 2*n : 2*(n-1)`; bump those leagues' totalWeeks.
+- **H2. Three of ten challenges are mathematically unwinnable.** `data/challenges.ts:137-159` — 'fortress'/'goal-machine'/'promotion-express' require `extraData` (homeUnbeaten/leagueGoals/divisionId) that the only call site never passes (`seasonEnd.ts:1129`; `checkChallengeFailed` likewise, `weekAdvance.ts:2255`) — always false, auto-fail at 0 seasons remaining, including a player who actually got promoted. **Fix:** thread the three values from state (all derivable).
+
+### MEDIUM
+- **M1. 'The Great Escape' broken in both directions.** `challenges.ts:141` — `position <= 17` trivially true in 10–18-team leagues (auto-win); the advertised "start week 23 with 15 points" constraint is not implemented anywhere (`featureSlice.ts:660-698` applies only budgetModifier). **Fix:** scale target to league size; implement or delete the mid-season text.
+- **M2. Cosmetic relegation in single-tier leagues.** arg (2 spots), bra (4), kor (1), sau (3) — no tier 2, `replacedSlots: 0` → `applyPromotionRelegation` does nothing; the table shows a relegation zone and board/press treat bottom-3 as a battle, but finishing last has zero consequence. **Fix:** zero `relegationSpots` or set `replacedSlots`.
+- **M3. Conference Cup winner announced as "Shield Cup Winners!"** (`weekAdvance.ts:1399` — same finding as S1-M1; masked by C1 in short leagues, live in 46/58-week saves).
+- **M4. Fixed-week features silently dead in short leagues** (same root as C1): winter window (18-week leagues: never opens; 22-week: 3 weeks with deadline day at season end), `INTERNATIONAL_BREAK_WEEKS [10,24,38]`, `BOARD_REVIEW_WEEKS [15,30]`, `STAFF_MARKET_REFRESH_WEEK 23`, `CAMPAIGN_END_OF_SEASON_MIN_WEEK 38`, contract warnings to week 35, 'captain-retirement' storyline (`week >= 25`). **Fix:** derive from `totalWeeks`.
+
+### LOW
+- **L1.** `data/leagueConstants.ts` entirely dead (zero imports; duplicates the live `LEAGUE_REGIONS` in `leagues/index.ts:89-95` — drift trap). Delete.
+- **L2.** Dead legacy continental exports (`continental.ts:53-58, 9-10`) — stale "kept for references" comment. Delete.
+- **L3.** `BALLON_DOR_ELITE_CLUB_BONUS` doc block says 60/45/30/18; values are 90/65/45/28 (`gameBalance.ts:765-805`). Update comment.
+- **L4.** `buildVirtualClubsForLeague` sorts `CLUBS_BY_LEAGUE[leagueId]` in place (`continentalDraw.ts:25-26`) — permanently reorders shared module data after the first draw; tolerated today, latent footgun. Copy first.
+- **L5.** UI copy hardcodes 20-team assumptions (`HELP_TEXTS.transferWindow`, 'invincibles' "38-match season", `challenges.ts:24`); `ui.ts:14` ≥70 tier is `sky` while CLAUDE.md says "primary" (doc drift).
+
+### Verified clean (with evidence)
+- **Generated-data import discipline CLEAN — the Vite build warning is benign:** both access wrappers lazy-load internally via dynamic `import()` (`playerTemplatesAccess.ts:39`, `nationalPlayerPoolAccess.ts:61`) with only type-level top-level deps; zero non-type static imports of the heavy modules anywhere; communityPack loads only via `await import(...)`. Eager bundle unaffected.
+- Counts: 45/45 leagues, 37 unique countries, 756/756 unique club IDs; tier structure matches docs; all 60 derby club references resolve; tier links satisfy `relegationSpots == promotionSpots + 1 playoff winner` everywhere; prize money strictly descending across tiers.
+- continentalDraw: 32-team integrity, 4 pots × 8, one club per pot per group, dup prevention verified; valid double round-robin template.
+- cup.ts bracket math: non-power-of-2 via single prelim round, final always on 'F', byes pre-marked.
+- types/game.ts: 45/45 unique GameScreens; 10/10 formations × 11 slots; navigation DETAIL_SCREENS ↔ BACK_TARGET 1:1; press contexts and storyline chain IDs fully matched; 51 nations confirmed.
+- Config barrel: no duplicate exported names across 15 star-exported modules.
+
+### NEEDS VERIFICATION (cross-scope)
+Whether `BALLON_DOR_DIVISION_BONUS` tier keys use a custom quality-tier mapping in `utils/ballonDor.ts` vs `LeagueInfo.tier`; whether MatchReview's post-match `advanceWeek()` can tick exactly one week past `totalWeeks` (would let the week-39 AI continental QF2 sim once, never the player's own tie).
+
+---
+
+*End of report — 14 of 14 sections complete.*
 
