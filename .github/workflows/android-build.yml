@@ -30,7 +30,11 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run test
-      - run: npm run build
+
+      - name: Build web bundle with production keys
+        env:
+          VITE_REVENUECAT_API_KEY_ANDROID: ${{ secrets.VITE_REVENUECAT_API_KEY_ANDROID }}
+        run: npm run build
       - run: npm run version:sync
       - run: npx cap sync android
 

@@ -7,7 +7,8 @@
  * 1. Create a RevenueCat account at https://app.revenuecat.com
  * 2. Set up your app in RevenueCat dashboard for iOS and Android
  * 3. Create products matching the IDs in src/config/monetization.ts
- * 4. For production: replace the test API key below with per-platform keys
+ * 4. For production: set VITE_REVENUECAT_API_KEY_IOS ('appl_…') and
+ *    VITE_REVENUECAT_API_KEY_ANDROID ('goog_…') in the build environment
  */
 
 import * as Sentry from '@sentry/react';
@@ -16,15 +17,28 @@ import type { ProductId, SubscriptionInfo } from '@/types/game';
 import { PRODUCTS } from '@/config/monetization';
 import { Capacitor } from '@capacitor/core';
 
-// RevenueCat API key — set via environment variable for production
-// Production: use 'appl_xxx' for iOS, 'goog_xxx' for Android
-const REVENUECAT_API_KEY = import.meta.env.VITE_REVENUECAT_API_KEY || 'test_CBbgpDnLxWJvQXQQLWVvIEXjoYF';
+// RevenueCat requires a separate API key per platform ('appl_…' for iOS,
+// 'goog_…' for Android). VITE_REVENUECAT_API_KEY is the legacy single-key
+// fallback (the iOS key). The test key is only ever used in dev builds —
+// a production build with no key for the running platform must fail
+// initialization loudly rather than silently ship against the test
+// project, which would make every real purchase dead on arrival.
+function resolveApiKey(): string | null {
+  const platform = Capacitor.getPlatform();
+  const key =
+    (platform === 'ios' && import.meta.env.VITE_REVENUECAT_API_KEY_IOS) ||
+    (platform === 'android' && import.meta.env.VITE_REVENUECAT_API_KEY_ANDROID) ||
+    import.meta.env.VITE_REVENUECAT_API_KEY;
+  if (key) return key;
+  return import.meta.env.DEV ? 'test_CBbgpDnLxWJvQXQQLWVvIEXjoYF' : null;
+}
 
 /** Set to true once production RevenueCat keys are configured and native plugins restored. */
 const NATIVE_MONETIZATION_READY = true;
 
 let initPromise: Promise<boolean> | null = null;
 let listenerRemover: (() => void) | null = null;
+let missingKeyReported = false;
 
 /**
  * Initialize RevenueCat SDK. Safe to call multiple times — the in-flight
@@ -40,6 +54,20 @@ export async function initPurchases(): Promise<boolean> {
   }
   if (initPromise) return initPromise;
 
+  const apiKey = resolveApiKey();
+  if (!apiKey) {
+    // Misconfigured production build — no key for this platform. Never
+    // configure with the test key on device; surface it and stay dark.
+    if (!missingKeyReported) {
+      missingKeyReported = true;
+      Sentry.captureMessage(
+        `RevenueCat API key missing for platform "${Capacitor.getPlatform()}"`,
+        { level: 'error', tags: { context: 'purchases.init' } },
+      );
+    }
+    return false;
+  }
+
   initPromise = (async () => {
     let timerId: ReturnType<typeof setTimeout> | null = null;
     try {
@@ -53,7 +81,7 @@ export async function initPurchases(): Promise<boolean> {
         timerId = setTimeout(() => reject(new Error('RevenueCat init timeout')), 5000);
       });
       await Promise.race([
-        Purchases.configure({ apiKey: REVENUECAT_API_KEY }),
+        Purchases.configure({ apiKey }),
         timeout,
       ]);
       return true;

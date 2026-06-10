@@ -85,6 +85,7 @@ jobs:
       - name: Build web bundle with production keys
         env:
           VITE_REVENUECAT_API_KEY: ${{ secrets.VITE_REVENUECAT_API_KEY }}
+          VITE_REVENUECAT_API_KEY_IOS: ${{ secrets.VITE_REVENUECAT_API_KEY_IOS }}
         run: npm run build
 
       - name: Sync marketing version from package.json into iOS project
