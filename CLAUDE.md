@@ -1,5 +1,8 @@
 # CLAUDE.md — Dynasty Manager
 
+> Last verified against the codebase 2026-06-09 (app v1.0.13, save schema v71).
+> If the numbers below disagree with the code, trust the code — and update this file.
+
 ## TestFlight Release Notes ("What's New")
 
 **Players see in-app release notes that accumulate automatically as PRs merge.**
@@ -147,7 +150,6 @@ and you can re-run safely:
 ### Where players see it:
 
 - **Main menu (TitleScreen)** — "What's New" tile with a green "NEW" dot until opened.
-- **Main menu (TitleScreen) → Settings sheet → Help** — secondary entry.
 - **In-game Settings → Help → "What's New"** — persistent entry point.
 - Latest entry is badged `Latest` and `NEW`; older entries stay with full build + date.
 
@@ -175,7 +177,7 @@ and you can re-run safely:
 **These are NON-NEGOTIABLE rules. Every Claude session MUST follow them.**
 
 ### When the user asks you to commit, push, ship, or create a PR:
-1. Run `npm run preflight` — validates lint + test + build. Fix any failures before proceeding.
+1. Run `npm run preflight` — validates lint + test + build + eager-bundle size budget. Fix any failures before proceeding.
 2. Stage specific changed files with `git add <files>` (NEVER blind `git add -A`).
 3. Commit with a clear message: `git commit -m "descriptive message"`.
 4. Push: `git push -u origin <branch-name>` — retry up to 4x with exponential backoff on network failure.
@@ -203,10 +205,11 @@ This fetches latest `origin/main` and creates a clean branch. NEVER branch from 
 ### Available workflow commands:
 | Command | What it does |
 |---------|-------------|
-| `npm run preflight` | Lint + test + build (local CI mirror) |
+| `npm run preflight` | Lint + test + build + size:check (local CI mirror) |
 | `npm run ship -- "msg"` | Preflight + stage + commit + push with retry |
 | `npm run branch -- name` | Create feature branch from latest origin/main |
 | `npm run typecheck` | Standalone TypeScript check |
+| `npm run size:check` | Eager-bundle budget check (`scripts/check-eager-bundle.mjs`) |
 
 ### ⚠️ Merging ≠ Shipping to TestFlight
 
@@ -228,101 +231,236 @@ This fetches latest `origin/main` and creates a clean branch. NEVER branch from 
 ---
 
 ## Project Overview
-Dynasty Manager is a mobile-first football management simulation with native iOS/Android builds via Capacitor. Players pick a club from 92 teams across 4 divisions, manage squads, set tactics, handle transfers/loans, simulate matches, and progress through seasons with promotion/relegation and cup competitions. Dark premium UI with glass-morphism and gold accents.
 
-**Origin:** MVP scaffolded in Lovable.dev → now in Cursor + Claude Code for deeper development.
+Dynasty Manager: Football is a mobile-first football management simulation,
+live on the iOS App Store (id 6760918006), built as a React web app wrapped
+with Capacitor for native iOS/Android. Players manage real clubs across
+**45 leagues in 37 countries (756 clubs)**, run squads/tactics/transfers,
+play minute-by-minute matches, chase continental trophies, take national-team
+jobs, open player packs, and build a multi-season managerial career. Dark
+premium UI with glass-morphism and gold accents. Monetised via the
+**Dynasty Pro** subscription/one-time IAP family plus cosmetic packs and
+consumable player-pack IAPs (RevenueCat).
+
+**Origin:** MVP scaffolded in Lovable.dev → now developed in Cursor + Claude Code.
+
+### Game modes (`/mode-select`)
+- **Sandbox** — pick any club, manage forever.
+- **Manager Career** — create a manager, interview for jobs via board pitches,
+  earn contracts/bonuses, get sacked, climb the job market, retire.
+- **Online** — `comingSoon: true`, not implemented.
+- **Challenges** (`/challenge`) — scenario starts from `src/data/challenges.ts`.
 
 ## Tech Stack
-- **React 18.3.1** + **TypeScript 5.8.3** (non-strict) via **Vite 7.3.1** (SWC plugin `@vitejs/plugin-react-swc 3.11.0`)
-- **Tailwind CSS 3.4.17** + `tailwindcss-animate` + HSL CSS variables (dark-only theme)
-- **shadcn/ui** (Radix + CVA + clsx + tailwind-merge) — 9 UI component files
-- **Zustand 5.0.11** — modular store: `gameStore.ts` (25-line entry) + 9 slices + 3 helpers (~3,400 LOC total)
-- **React Router DOM 6.30.1** — routes: `/`, `/select-club`, `/game`, `*`
-- **Framer Motion 12.35.1** — page transitions, match animations
-- **Recharts 2.15.4** — stats charts
-- **Sonner 1.7.4** — toast notifications
-- **Capacitor 8.2.0** — native iOS/Android builds (haptics, splash screen, status bar, keyboard plugins)
-- **Vitest 3.2.4 + jsdom + Testing Library** — test infra
+- **React 18.3.1** + **TypeScript 5.9.3** (non-strict) via **Vite 7.3.2** (SWC plugin)
+- **Tailwind CSS 3.4.19** + `tailwindcss-animate` + HSL CSS variables (dark-only theme)
+- **shadcn/ui** (Radix + CVA + clsx + tailwind-merge) — 8 files in `src/components/ui/`
+- **Zustand 5.0.12** — modular store: `gameStore.ts` composition + **15 slices** + 5 helpers
+- **React Router DOM 6.30.3** — **HashRouter** (`#/` URLs). Routes: `/`, `/mode-select`,
+  `/select-club`, `/create-manager`, `/challenge`, `/whats-new`, `/subscribe`, `/game`, `*`.
+  In-game navigation is a separate system: 45 `GameScreen` ids rendered inside
+  `GameShell` (`src/config/navigation.ts`).
+- **Framer Motion 12.38** — transitions, match + pack animations (`MotionConfig` honours reduced-motion/perf mode)
+- **Recharts 2.15.4** — stats charts · **Sonner 1.7.4** — toasts
+- **Capacitor 8.3.1** — iOS/Android (app, browser, haptics, keyboard, splash-screen,
+  status-bar, `@capacitor-community/in-app-review`)
+- **RevenueCat** `@revenuecat/purchases-capacitor` 12.3.2 (+ `-ui`) — all IAP/subscriptions
+- **Sentry** `@sentry/react` 10.49 — crash reporting + game breadcrumbs (`src/utils/sentry.ts`)
+- **Vitest 3.2.4 + jsdom + Testing Library** — 99 test files in `src/test/`
 - **Husky 9.1.7 + lint-staged 16.4.0** — pre-commit hooks
+- **Fonts:** Oswald (headings) + DM Sans (body), self-hosted via `@fontsource/*`
 - **Package manager:** npm
-- **Fonts:** Oswald (headings) + DM Sans (body) via Google Fonts
 
-## Architecture (~21,000 LOC across 142 TS/TSX files)
+## Architecture (~139K LOC hand-written across ~490 files, plus ~410K LOC generated data)
+
 ```
 .claude/
-├── commands/           → 7 slash commands: balance, feature, match-engine,
-│                         test, review, refactor, season
-├── settings.json       → Project-level Claude Code settings (deny rules)
+├── commands/            → 12 slash commands (see "Claude Code Slash Commands")
+├── settings.json        → permission allow/deny rails (see "Project Settings")
 src/
+├── App.tsx              → HashRouter, lazy routes, ErrorBoundary scopes,
+│                          analytics-consent gate, SaveRecoveryDialog
 ├── components/
-│   ├── game/           → Components: TopBar, BottomNav, SubNav, GlassPanel,
-│   │                     PlayerAvatar, LineupEditor, SubstitutionSheet, StatBar,
-│   │                     CelebrationModal, StorylineModal, ContractNegotiation,
-│   │                     PressConference, PostMatchPopup, BoardWarning, DynamicIcon, etc.
-│   ├── ui/             → 9 shadcn/ui files (DO NOT modify unless asked)
-├── config/             → 14 config files (~1,100 LOC): gameBalance, playerGeneration,
-│                         matchEngine, transfers, contracts, training, staff,
-│                         scouting, youth, tactics, chemistry, ui, playoffs
-├── data/               → league.ts (92 clubs, 4 divisions), cup.ts, challenges.ts,
-│                         pressConferences.ts, storylineChains.ts
-├── engine/match.ts     → Match sim (653 LOC, event-based, minute-by-minute)
-├── hooks/              → use-toast, useGameSelectors, useSwipeGesture, useFlash
-├── lib/utils.ts        → cn() utility
-├── pages/              → 34 pages (~7,700 LOC): Dashboard, Squad, Tactics, MatchDay,
-│                         Transfer, Training, Staff, Scouting, YouthAcademy,
-│                         Facilities, Finance, MatchPrep, MatchReview, Cup,
-│                         Board, Perks, Prestige, TrophyCabinet, HallOfManagers,
-│                         SeasonSummary, PlayerDetail, ManagerProfile, Settings,
-│                         Inbox, CalendarView, ChallengePicker, LeagueTable,
-│                         CinematicCapturePage (hidden marketing-only route at
-│                         `/cinematic-capture`, reached via Settings → Cinematic
-│                         Capture; loops the Rare-Gold pack walkout with
-│                         synthetic data for 9:16 ad screen-recording).
+│   ├── game/            → 86 components: TopBar, BottomNav, SubNav, GlassPanel,
+│   │                      LineupEditor, SubstitutionSheet, PenaltyShootout,
+│   │                      KnockoutBracket, GroupTable, ContractNegotiation,
+│   │                      TransferNegotiation, LoanNegotiation, PressConference,
+│   │                      PostMatchPopup, ProUpsell, PurchaseModal, TalentTree,
+│   │                      StadiumView, WeeklyDigest, OnboardingChecklist, …
+│   │   ├── pack/        → 12 files: pack-opening overlay, walkout reveal, confetti
+│   │   └── icons/       → 3 premium icon components
+│   ├── ui/              → 8 shadcn/ui files (DO NOT modify unless asked)
+│   ├── ErrorBoundary, SaveRecoveryDialog, AnalyticsConsentModal
+├── config/              → 33 files: gameBalance, matchEngine, matchSpeed, tactics,
+│                          transfers, contracts, training, staff, scouting, youth,
+│                          chemistry, personality, playoffs, continental, packs,
+│                          monetization, legal, sponsorship, merchandise, managerCareer,
+│                          aiManager, aiSimulation, lineupOptimization, navigation,
+│                          namePool, playerGeneration, playerAppearance,
+│                          managerAppearance, halftimeAnalysis, keyMoments, teamTalk, ui
+├── data/                → 16 files + 2 generated dirs:
+│   ├── leagues/         → 45 league files, 37 countries, 756 clubs (real clubs)
+│   ├── communityPack/   → GENERATED real-player data (~395K LOC): freeAgents,
+│   │                      byClub, newLeagues — never hand-edit, loaded lazily
+│   ├── nationalPlayerPool.ts → GENERATED FC26-derived national rosters (11K LOC)
+│   ├── league.ts        → fixture generation, table builder, derbies, country helpers
+│   ├── cup.ts           → domestic cup draw/sim (round weeks choreographed, see Gotchas)
+│   ├── continentalDraw.ts, nations.ts (51 national teams), challenges.ts,
+│   │   pressConferences.ts, storylineChains.ts, boardPitches.ts,
+│   │   clubTemplateAliases.ts, whatsNew.ts, pendingNews.ts
+├── engine/
+│   ├── match.ts         → match sim (1,828 LOC, event-based, minute-by-minute)
+│   └── match/helpers.ts
+├── hooks/               → 11 hooks: useGameSelectors, useLineupOptimizer,
+│                          useSwipeGesture, useKeyboardInset, useFocusTrap, …
+├── pages/               → 52 pages: Dashboard (2,192 LOC), MatchDay, GameShell,
+│                          SquadPage, TacticsPage, TransferPage, TrainingPage,
+│                          StaffPage, ScoutingPage, YouthAcademy, FacilitiesPage,
+│                          FinancePage, MerchandisePage, BoardPage, CupPage,
+│                          LeagueCupPage, ContinentalPage, SuperCupPage,
+│                          NationalTeamPage, NationalSquadPicker, InternationalTournament,
+│                          BallonDor, JobMarket, CareerOverview, ManagerCreation,
+│                          ModeSelect, PacksPage, ShopPage, SubscribeOnboarding,
+│                          WhatsNewPage, SettingsPage, HelpPage, ClubSelection, …
 ├── store/
-│   ├── gameStore.ts    → 25-line Zustand composition layer
-│   ├── storeTypes.ts   → GameState interface (162 LOC)
-│   ├── slices/         → 9 slices:
-│   │   ├── orchestrationSlice.ts  (1,970 LOC — game loop, largest file)
-│   │   ├── loanSlice.ts           (292 LOC)
-│   │   ├── featureSlice.ts        (242 LOC)
-│   │   ├── transferSlice.ts       (202 LOC)
-│   │   ├── systemsSlice.ts        (157 LOC — tactics, training, staff)
-│   │   ├── clubSlice.ts           (42 LOC)
-│   │   ├── coreSlice.ts           (39 LOC)
-│   │   ├── matchSlice.ts          (25 LOC)
-│   │   └── cupSlice.ts            (21 LOC)
-│   └── helpers/        → development.ts, matchProcessing.ts, persistence.ts
-├── types/game.ts       → All types (674 LOC): Player, Club, Match, Formation,
-│                         Position, DivisionInfo, PlayoffState, PlayerPersonality, etc.
-├── utils/              → 27 utility files (~2,900 LOC): playerGen, training,
-│                         scouting, youth, staff, contracts, chemistry, personality,
-│                         promotionRelegation, playoffs, achievements, milestones,
-│                         managerPerks, celebrations, seasonAwards, records,
-│                         storylines, playerNarratives, financeHelpers, hallOfManagers,
-│                         weekPreview, weeklyObjectives, saveMigration (v7), etc.
-├── test/               → 14 test files: match, playerDev, helpers, cup,
-│                         celebrations, saveMigration, contracts, chemistry,
-│                         personality, promotionRelegation, youth, finance, league, training
-├── index.css           → Tailwind + CSS vars + custom utilities
-└── main.tsx            → Entry
+│   ├── gameStore.ts     → Zustand composition of 15 slices
+│   ├── storeTypes.ts    → GameState interface (492 LOC)
+│   ├── slices/          → core, club, transfer, match, systems, orchestration,
+│   │                      loan, cup, feature, sponsor, merchandise, monetization,
+│   │                      nationalTeam, career, packs
+│   │   ├── orchestrationSlice.ts (1,201 LOC — façade) delegating to:
+│   │   └── orchestration/ → weekAdvance.ts (3,094 LOC — THE game loop),
+│   │                        seasonEnd.ts (1,651), matchActions.ts (1,611),
+│   │                        initGame.ts (587), tournaments.ts, helpers.ts
+│   └── helpers/         → persistence.ts, idbStorage.ts, matchProcessing.ts,
+│                          development.ts, rosterOps.ts
+├── types/game.ts        → ALL types (2,083 LOC): Player, Club, Match, LeagueInfo,
+│                          10 formations, 45 GameScreens, MonetizationState,
+│                          CareerManager, NationalTeamState, PackTierDefinition, …
+├── utils/               → 74 files: playerGen, saveMigration (v71, 1,276 LOC),
+│                          purchases (RevenueCat wrapper), monetization, ads (stub),
+│                          packGeneration, communityPackPool, international,
+│                          managerCareer, continental, continentalCoefficients,
+│                          ballonDor, penaltyShootout, substitutionLogic, analytics,
+│                          sentry, appReview, haptics, promotionRelegation, …
+├── test/                → 99 test files incl. longevity/stress suites, adversarial
+│                          season tests, release-readiness, render hygiene,
+│                          launch-crash guardrails, balance reports, perf
+├── index.css            → Tailwind + CSS vars (incl. pack tier palettes, perf-mode)
+└── main.tsx             → entry: Sentry init, storage hydration, Capacitor setup
 ```
 
 ## Critical Files (read these first)
-1. **`src/store/slices/orchestrationSlice.ts`** — Game loop brain. `advanceWeek()`, `endSeason()`, `initGame()`. Largest file at ~1,970 LOC.
-2. **`src/store/storeTypes.ts`** — Complete `GameState` interface. Understand state shape here.
-3. **`src/types/game.ts`** — All types (674 LOC). 7 formations, 12 positions, 23 game screens, season phases, player personality system.
-4. **`src/config/gameBalance.ts`** — 100+ balancing constants. Check here before hardcoding values.
-5. **`src/engine/match.ts`** — Match simulation (653 LOC). Event-based, minute-by-minute.
-6. **`src/data/league.ts`** — 92 clubs across 4 divisions, fixture generation, league table builder.
-7. **`src/utils/playerGen.ts`** — Player generation, overall calculation, squad building.
+1. **`src/store/slices/orchestration/weekAdvance.ts`** — THE game loop (3,094 LOC). `advanceWeek()`: training, development, AI sims, injuries, finances, offers, cups, continental, international windows, objectives.
+2. **`src/store/storeTypes.ts`** — complete `GameState` interface (492 LOC).
+3. **`src/types/game.ts`** — all types (2,083 LOC). Single source of truth.
+4. **`src/config/gameBalance.ts`** — central balancing constants. Check here before hardcoding values.
+5. **`src/engine/match.ts`** — match simulation (1,828 LOC).
+6. **`src/data/leagues/index.ts`** — aggregates 45 leagues / 756 clubs; `src/data/league.ts` for fixtures/tables/derbies.
+7. **`src/utils/playerGen.ts`** — player generation, overall calc, squad building.
+8. **`src/utils/saveMigration.ts`** — save schema `CURRENT_VERSION = 71` + migration chain. Every state-shape change bumps it.
+9. **`src/config/monetization.ts` + `src/utils/purchases.ts` + `src/utils/monetization.ts`** — product catalog, RevenueCat wrapper, entitlement checks (see Monetization).
+10. **`src/store/slices/orchestration/seasonEnd.ts`** — end-of-season: aging, contracts, promotion/relegation cascade, awards, fixtures.
 
-## League Structure
-| Division | Name | Clubs | Weeks | Promotion |
-|----------|------|-------|-------|-----------|
-| div-1 | Monarch Premier League | 20 | 46 | N/A (top flight) |
-| div-2 | Dynasty Championship | 24 | 46 | 2 auto + 4 playoff |
-| div-3 | Sovereign First Division | 24 | 46 | 2 auto + 4 playoff |
-| div-4 | Foundation League | 24 | 46 | 3 auto + 4 playoff |
+## League & Competition Structure
+
+**Real-world football.** `src/data/leagues/` defines 45 leagues across 37
+countries with 756 real clubs (Arsenal, Barcelona, Bayern…), each with its own
+`LeagueInfo`: `tier`, `teamCount`, `totalWeeks` (e.g. Premier League = 20 teams /
+38 weeks), `promotionSpots` / `relegationSpots` / `playoffSpots`, prize money,
+average wage, difficulty. Multi-tier pyramids with promotion/relegation +
+playoffs: **England (4 tiers), Germany (3), Spain/Italy/France (2)**; the other
+32 countries are single-tier. `leagueConstants.ts` groups the 30 European
+leagues into selection regions; the rest (Argentina, Brazil, MLS, Saudi
+Arabia, South Korea, Australia, India) ship as additional league data. Real
+derbies carry match intensity (`DERBIES` in `league.ts`).
+
+**Domestic cups:** main knockout Cup (R1 week 4 → Final week 43) + League Cup
+(final week 40) per `src/data/cup.ts`.
+
+**Continental:** Champions Cup, Shield Cup, Conference Cup (32 teams each;
+Champions Cup = 8 groups of 4 then knockout) + Super Cup. Qualification spots
+are allocated by league rank (1–30) from coefficients
+(`src/config/continental.ts`, `src/utils/continentalCoefficients.ts`).
+
+**International:** 51 national teams (`src/data/nations.ts`) across 5
+confederations with FC26-derived player pools. The manager can receive
+national-team job offers and run 23-man squads through international
+tournaments alongside the club job (`nationalTeamSlice`, `utils/international.ts`).
+
+**Individual awards:** Ballon d'Or ceremony each season (`utils/ballonDor.ts`).
+
+## Monetization (Dynasty Pro + packs) — READ BEFORE TOUCHING PAYWALL CODE
+
+All IAP goes through RevenueCat (`src/utils/purchases.ts`). Product catalog
+and Pro feature list live in `src/config/monetization.ts`; entitlement checks
+in `src/utils/monetization.ts`; state in `monetizationSlice`.
+
+- **Dynasty Pro SKUs:** one-time `com.dynastymanager.pro`, subscriptions
+  `.pro.monthly` / `.pro.annual`, one-time `.pro.lifetime`, and the
+  `bundle.all` "Dynasty Edition" (Pro + all cosmetic packs). USD prices in
+  config are fallbacks — real prices come localized from the store.
+- **Pro features:** `ad_free`, `advanced_analytics`, `custom_tactics`,
+  `expanded_press`, `historical_records`, `instant_sim` (see
+  `config/matchSpeed.ts`), `optimize_lineup`, `pro_badge`.
+- **Cosmetic packs:** manager identity / stadium atmosphere / legends —
+  permanent entitlements with an in-game cosmetics catalog.
+- **Consumable player-pack IAPs:** gold / premium_gold / rare_gold / icon —
+  consumed per open, NEVER stored as entitlements, NEVER restorable.
+- **Free trial:** 3-day intro trial → monthly plan (`startFreeTrial` is a
+  no-op if ANY subscription record exists — prevents trial-restart abuse).
+  **Starter Kit** is a 7-day-from-first-launch offer.
+
+### Entitlement invariants (violating these = revenue bugs)
+1. `isPro()` in `utils/monetization.ts` is the ONLY source of truth for Pro.
+2. Only `PRO_ONE_TIME_PRODUCT_IDS` may be checked against
+   `monetization.entitlements`. Subscription status lives EXCLUSIVELY in
+   `subscription.expiresAt` — RevenueCat keeps expired subs in
+   `allPurchasedProductIdentifiers` forever, so checking sub SKUs against
+   entitlements grants permanent Pro to lapsed subscribers.
+3. The RevenueCat **hosted paywall is banned** — removed after App Store
+   rejection (Guideline 3.1.2(c)). All Pro purchase flows go through the
+   in-app `SubscribeOnboarding` page, which renders Apple's required
+   disclosures. Do not reintroduce `presentPaywall`.
+4. Monetization must NEVER modify match outcomes, training rates, transfer
+   values, or any sim parameter (header contract in config + utils).
+5. Off-device (web/dev), purchases are mocked to succeed
+   (`purchaseProduct` → `[productId]`, `purchaseConsumable` → `true`).
+   Real purchase paths only run on device.
+
+### Ads: disabled in V1
+`@capacitor-community/admob` is fully removed (it crashed TestFlight builds —
+see the saga above). `src/utils/ads.ts` is a stub with
+`NATIVE_ADS_READY = false`; `AdRewardButton` and pack ad-slots gate off it.
+The ad-reward config (budget boosts, double XP, limits per season) is retained
+in `config/monetization.ts` for a future re-enable — re-enable steps are
+documented in `ads.ts`.
+
+## Pack Opening (live feature)
+
+FUT-style pack system: `config/packs.ts` defines `PACK_TIERS` (bronze/silver
+free — 1/day + ad-gated extras while ads are off — up through paid consumable
+tiers) with rarity weights, guaranteed-OVR floors, and walkout reveals
+(`components/game/pack/`, `utils/packGeneration.ts`, `packsSlice`). Player
+identities draw from the **community pack** real-player dataset
+(`src/data/communityPack/` — generated, lazily imported) with
+`utils/communityPackPool.ts` + `npm run validate-cp` for integrity.
+
+## Persistence & Saves
+
+- **3 save slots + per-slot backups.** Two-layer storage: module memory cache
+  for sync reads + **IndexedDB as the authoritative store** (localStorage is a
+  best-effort mirror and the migration source for old installs — WKWebView
+  caps localStorage at ~5MB, which full saves exceed).
+  `hydrateSaveStorage()` runs at app start. Legacy `'dynasty-save'` key is
+  migrated then removed.
+- ALL storage access goes through `src/store/helpers/persistence.ts`
+  (`readSaveSlot`, `getFlag`/`setFlag`, `readSessionJson`, …). New keys
+  register in `STORAGE_KEYS`. Direct `localStorage` use is ESLint-banned.
+- **Save schema version `71`** in `utils/saveMigration.ts`. Any change to
+  persisted state shape bumps `CURRENT_VERSION` and adds a migration step.
+  `SaveRecoveryDialog` + backup slots handle corrupted saves; parse failures
+  breadcrumb to Sentry.
 
 ## Code Conventions
 - **TS non-strict** (`strict: false`, `noImplicitAny: false`, `strictNullChecks: false`). Use `interface` > `type` for objects.
@@ -332,33 +470,41 @@ src/
 - **Config:** Game balance constants go in `src/config/`, not hardcoded in logic files.
 - **Imports:** `@/` alias. Order: external → `@/components/ui` → `@/components/game` → local.
 - **Naming:** camelCase vars, PascalCase components/types, UPPER_SNAKE constants.
+- **Heavy data stays behind dynamic `import()`** — `npm run size:check` enforces an eager-bundle budget; community-pack data must never be imported eagerly.
 
 ## Design Language
-- Dark theme only, HSL CSS vars (see `src/index.css`)
+- Dark theme only, HSL CSS vars (see `src/index.css`) — includes pack-tier palettes (`--pack-<tier>-*`)
 - Primary/Gold: `43 96% 46%` | Background: `222 30% 7%` | Accent: `215 60% 50%`
 - Mobile-first: `max-w-lg mx-auto`, bottom nav, safe-area padding
 - Rating colors: >=80 emerald, >=70 primary, >=60 amber, <60 muted
 - Club colors are the only place where inline `style={{ backgroundColor }}` is acceptable
+- **Performance mode** (`settings.performanceMode`) toggles a root `perf-mode`
+  class that strips backdrop-blur/decorative layers and forces reduced motion
 
 ## Key Patterns
-- **Game loop:** `advanceWeek()` — training, development, AI sims, injuries, income, messages, offers, weekly objectives
-- **Match sim:** `simulateMatch()` → Match with events. MatchDay renders live. Late drama after min 85.
-- **Player dev:** Young (<24) grow toward potential, vets (>=31) decline. Per-attribute probability via `helpers/development.ts`.
-- **Transfers:** Buy `makeOffer()`, sell `listPlayerForSale()`, respond `respondToOffer()`. Window: weeks 1-8 and 20-24.
-- **Loans:** Separate loan system via `loanSlice.ts` — incoming/outgoing loan offers and deals.
-- **Season end:** `endSeason()` — age, contracts, replacements, new fixtures, reset stats, promotion/relegation.
-- **Promotion/Relegation:** Handled by `utils/promotionRelegation.ts` and `utils/playoffs.ts`. Playoff system for lower divisions.
-- **Persistence:** `saveGame()`/`loadGame()` via localStorage key `'dynasty-save'`. Current save version lives in `utils/saveMigration.ts` (see `CURRENT_VERSION` const); every schema change bumps it and adds a migration step.
-- **Progression:** Manager perks, prestige system, achievements, milestones, Hall of Managers.
-- **Narratives:** Storyline chains (`data/storylineChains.ts`), press conferences, player narratives.
+- **Game loop:** `advanceWeek()` in `orchestration/weekAdvance.ts` — training, development, AI sims, injuries, income, messages, offers, weekly objectives, cup/continental/international scheduling.
+- **Match sim:** `simulateMatch()` → Match with events; MatchDay renders live with interactive subs, team talks, set pieces, penalty shootouts. Match speed tiers in `config/matchSpeed.ts` (instant sim = Pro).
+- **Player dev:** young (<24) grow toward potential, vets (>=31) decline. Per-attribute probability via `store/helpers/development.ts`.
+- **Transfers:** buy `makeOffer()`, sell `listPlayerForSale()`, respond `respondToOffer()`. Windows: **weeks 1–8 and 20–24** (`config/transfers.ts`).
+- **Loans:** separate system via `loanSlice.ts` — incoming/outgoing offers and deals.
+- **Season end:** `orchestration/seasonEnd.ts` — aging, contracts, replacements, new fixtures, stat reset, promotion/relegation cascade across all 45 leagues, awards, Ballon d'Or.
+- **Career mode:** `careerSlice` + `utils/managerCareer.ts` — vacancies, board-pitch interviews (`data/boardPitches.ts`), contract negotiation, bonuses, sackings, retirement.
+- **Progression:** manager perks (TalentTree), prestige, achievements, milestones, records, Hall of Managers.
+- **Narratives:** storyline chains, press conferences, player narratives, random events, weekly digest.
+- **Observability:** Sentry with game breadcrumbs (`utils/sentry.ts`); analytics are consent-gated (first-launch `AnalyticsConsentModal`, `utils/analytics.ts`).
 
 ## Key Gotchas
 - `club.lineup` and `club.subs` are **string arrays of player IDs**, not Player objects.
 - Always `filter(Boolean)` after mapping playerIds to players — some IDs may reference deleted players.
 - When selling a player, must update: seller (playerIds/lineup/subs/wageBill/budget), buyer (same), player's clubId, AND remove from transferMarket.
 - Match results must update BOTH the fixtures array AND individual player stats (goals, assists, etc.).
-- `advanceWeek()` resets `matchSubsUsed` to 0 at the end. Player match is handled via `playCurrentMatch()`, not inside `advanceWeek()`.
+- `advanceWeek()` resets `matchSubsUsed`; the player's own match runs via `playCurrentMatch()`, not inside `advanceWeek()`.
 - Store uses `set()` with spread — always spread nested objects before modifying or you'll mutate state.
+- **Cup-week choreography is load-bearing:** domestic Cup Final sits at week 43 specifically to dodge the continental SF legs (41–42), continental Final (44), and League Cup Final (40). The player's continental knockout ties are NOT auto-simulated by `weekAdvance`, and a same-week collision can strand a tie unresolved and hang the tournament. Read the comment block in `src/data/cup.ts` before moving any round week.
+- **Never check subscription SKUs against `monetization.entitlements`** — see Entitlement invariants above.
+- **Generated data is not source code:** `src/data/communityPack/*`, `src/data/nationalPlayerPool.ts` are tool-generated. Never hand-edit; regenerate via the fc26/scrape scripts.
+- HashRouter: deep links are `#/route`; route changes don't hit the server.
+- `package.json.version` (1.0.13) must never regress below the top `whatsNew.ts` entry — CI guard will fail the TestFlight build.
 
 ## Commands
 ```bash
@@ -367,32 +513,35 @@ npm run dev          # Dev server (port 8080)
 npm run build        # Production build
 npm run build:dev    # Development build
 npm run preview      # Preview production build
-npm run test         # Vitest
+npm run test         # Vitest (99 test files)
 npm run test:watch   # Vitest in watch mode
 npm run lint         # ESLint
 npm run typecheck    # TypeScript type-check (standalone)
-npm run preflight    # Run lint + test + build (local CI check)
+npm run size:check   # Eager-bundle budget check
+npm run preflight    # lint + test + build + size:check (local CI mirror)
+npm run analyze      # Build with bundle visualizer
 
 # Git workflow
 npm run ship -- "commit message"   # Preflight + commit + push (one command)
 npm run branch -- feature-name     # Create branch from latest origin/main
+
+# Versioning / release notes
+npm run version:check              # Marketing-version regression guard (local)
+npm run version:sync               # Sync version across native projects
+npm run whats-new -- <cmd> "..."   # Append release-note bullets (see top of file)
+npm run whats-new:plan|seal|check
 
 # Mobile (Capacitor)
 npm run cap:sync     # Build + sync to native projects
 npm run cap:ios      # Open Xcode project
 npm run cap:android  # Open Android Studio project
 
-# Data scraping (planned for future pack-opening system) — uses Playwright
-# headless Chromium because Cloudflare blocks vanilla HTTP from cloud IPs.
+# Player-data pipelines (community pack / icons)
+npm run validate-cp                  # Validate community-pack data integrity
+npm run analyze-fc26                 # Analyze FC26 source dataset
+npm run process-fc26                 # Regenerate community-pack data files
 npm run scrape:icons:setup           # one-time: download Chromium (~150MB)
-npm run scrape:icons                 # full SoFIFA Icons scrape (~10-15 min, ~150 rows)
-npm run scrape:icons -- --limit 5    # smoke test (5 icons, ~30s)
-npm run scrape:icons -- --resume     # continue from cache
-npm run scrape:icons -- --retry-failed --debug
-# Outputs: fc25_icons.csv (58-col schema) + fc25_icons_meta.json (image URLs)
-# Or trigger from GitHub Actions: Actions tab → "Scrape SoFIFA Icons" →
-# "Run workflow" → outputs come back as a downloadable artifact (Chromium
-# is cached in CI after the first run).
+npm run scrape:icons                 # SoFIFA Icons scrape (Playwright; also a GitHub Action)
 ```
 
 ## Git Workflow for Claude Sessions
@@ -402,134 +551,73 @@ npm run scrape:icons -- --retry-failed --debug
 Quick reference:
 - `npm run ship -- "msg"` = preflight + commit + push (preferred one-liner)
 - `npm run branch -- name` = new branch from origin/main
-- `npm run preflight` = lint + test + build
+- `npm run preflight` = lint + test + build + size:check
 - After push → always give the user: `https://github.com/Wrexist/dynasty-manager/pull/new/<branch>`
-- `gh pr create` is FORBIDDEN — no GitHub API auth available
+- `gh pr create` is FORBIDDEN — no GitHub API auth available. GitHub MCP tools (`mcp__github__*`) use separate auth and ARE available where configured.
 
 ## Claude Code Slash Commands
 
-Custom project commands available via `/project:<name>` in Claude Code sessions. These encode dynasty-manager-specific knowledge, patterns, and context so every session starts with deep project understanding.
+Project commands live in `.claude/commands/` (one markdown file each, available
+as `/<filename>`; include `$ARGUMENTS` for user input):
 
-| Command | Purpose | When to use |
-|---------|---------|-------------|
-| `/project:balance` | Game balance tuning | Adjusting config constants, analyzing cascading effects across 27 config files |
-| `/project:feature` | Feature scaffolding | Adding new game features (walks through types → config → slice → page → tests) |
-| `/project:match-engine` | Match engine dev | Modifying the 653-LOC match sim, event system, stats propagation |
-| `/project:test` | Test generation | Writing new tests or finding coverage gaps (follows existing Vitest patterns) |
-| `/project:review` | Code review | Reviewing changes against 20+ project-specific gotchas and conventions |
-| `/project:refactor` | Safe refactoring | Extracting logic from large files (especially orchestrationSlice at ~1,970 LOC) |
-| `/project:season` | Season & league logic | Working on promotion/relegation, playoffs, cup competitions, end-of-season |
-| `/project:ad-meta` | Meta / Instagram / Reels ad brief | Generating a 9:16 hook-first UA creative brief — UGC-aesthetic, Dynasty-Manager-aware |
-| `/project:ad-tiktok` | TikTok ad brief | Generating a Spark Ad / in-feed brief for football-niche creators |
-| `/project:marketing-playbook` | UA strategy reference | Budget / CPI / retention decisions, test plans, SKAN config — anchored to dynasty-manager's stage |
+| Command | Purpose |
+|---------|---------|
+| `/balance` | Game balance tuning across the 33 config files |
+| `/feature` | Feature scaffolding (types → config → slice → page → tests) |
+| `/match-engine` | Match engine development (engine/match.ts + helpers) |
+| `/test` | Test generation following existing Vitest patterns |
+| `/review` | Code review against project gotchas and conventions |
+| `/refactor` | Safe extraction from large files (weekAdvance, Dashboard, …) |
+| `/season` | Promotion/relegation, playoffs, cups, season-end logic |
+| `/brainstorm` | Feature exploration for Dynasty Manager |
+| `/batch` | Iterative autonomous work loop |
+| `/ad-meta` | Meta/Instagram/Reels ad brief (reads `marketing/`) |
+| `/ad-tiktok` | TikTok ad brief (reads `marketing/`) |
+| `/marketing-playbook` | UA strategy reference (budgets, CPI, SKAN) |
 
-**How they work:** Each command is a markdown file in `.claude/commands/` that preloads context files, project rules, and domain knowledge. When invoked, Claude reads the relevant source files and applies project-specific patterns automatically.
+## Claude Code Project Settings
 
-**Adding new commands:** Create a new `.md` file in `.claude/commands/`. It becomes available as `/project:<filename>`. Include `$ARGUMENTS` placeholder for user input.
-
-## Plugin Integration (Opus 4.6)
-
-11 plugins are active. They enhance every Claude session automatically or via commands.
-
-### Automatic Plugins (no commands needed)
-| Plugin | What it does | Dynasty Manager benefit |
-|--------|-------------|------------------------|
-| **security-guidance** | Scans Write/Edit for vulnerabilities (XSS, eval, injection) | Catches unsafe patterns in match engine, store slices, player input |
-| **frontend-design** | Applies production-grade design judgment to UI work | Ensures new pages match dark glass-morphism aesthetic |
-| **context7** | Fetches real-time library docs via MCP (`.mcp.json`) | Prevents deprecated API usage — append "use context7" to any prompt |
-
-### Command Plugins
-| Plugin | Command | When to use |
-|--------|---------|-------------|
-| **code-review** | `/code-review` | Multi-perspective PR review with confidence scoring — use AFTER `/project:review` |
-| **commit-commands** | `/commit` | AI-powered commit messages — alternative to `npm run ship` for message generation |
-| **feature-dev** | *(7-phase workflow)* | Complex multi-file features with agent-driven architecture — complements `/project:feature` |
-| **superpowers** | `/brainstorming`, `/execute-plan` | TDD enforcement with red-green-refactor — use for test-first development |
-| **ralph-wiggum** | `/ralph-loop "prompt" --max-iterations N` | Autonomous batch loops for refactors, test coverage, documentation |
-| **hookify** | `/hookify`, `/hookify:list` | Create behavioral guardrails on the fly |
-| **plugin-dev** | `/plugin-dev:create-plugin` | Build new Claude Code plugins for this project |
-| **github** | *(MCP tools)* | Read PRs, issues, CI status via `mcp__github__*` — replaces `gh` CLI |
-
-### Plugin Workflow Patterns
-
-**New feature (large, multi-file):**
-1. `/brainstorming` (superpowers) — explore design space
-2. `/project:feature` — scaffold with dynasty-manager conventions
-3. Append "use context7" when unsure about library APIs
-4. `/project:review` → `/code-review` — dual-layer review
-5. `npm run ship -- "msg"` — ship it
-
-**Code review (enhanced):**
-1. `/project:review` — dynasty-manager-specific (Zustand patterns, player ID safety, mobile layout)
-2. `/code-review` — 5 independent reviewers with confidence score (threshold: 80)
-
-**Batch mechanical work:**
-- `/ralph-loop "Add tests for untested utils" --max-iterations 10`
-- `/ralph-loop "Extract helpers from orchestrationSlice" --max-iterations 5`
-- Always set `--max-iterations` to a reasonable limit
-
-**TDD workflow:**
-- `/brainstorming` → `/execute-plan` (enforces red-green-refactor cycles)
-
-### Plugin + Slash Command Synergy
-| Existing Command | Enhanced By | How |
-|-----------------|------------|-----|
-| `/project:review` | code-review | Adds generic multi-perspective analysis after project-specific review |
-| `/project:feature` | feature-dev, superpowers | Adds agent-driven architecture + TDD execution |
-| `/project:refactor` | ralph-wiggum | Automates repetitive extraction steps |
-| `/project:test` | ralph-wiggum, superpowers | Batch test generation + TDD enforcement |
-| `/project:balance` | context7 | Real-time docs for config patterns |
-
-### Plugin Conflict Notes
-- **commit-commands vs `npm run ship`:** `npm run ship` remains the preferred workflow (includes preflight). Use `/commit` only for smart message generation.
-- **feature-dev vs `/project:feature`:** `/project:feature` has dynasty-manager-specific scaffolding knowledge. feature-dev adds architectural analysis. Use both for complex features.
-- **GitHub MCP vs `gh` CLI:** `gh pr create` remains FORBIDDEN (no CLI auth). The GitHub MCP tools (`mcp__github__*`) use separate auth and ARE available for PR/issue operations.
+- `.claude/settings.json` — permission rails, version-controlled:
+  - **Allowed:** the npm workflow scripts, read-only git, `git add <paths>`,
+    `git commit`, `git push -u origin*`, read-only GitHub MCP operations.
+  - **Denied:** `gh pr create`, `git add -A`, `git add .`, `git push --force`,
+    `git reset --hard`, `git clean -f`, `rm -rf`, `npm publish`.
+- `.mcp.json` — context7 MCP server for real-time library docs.
+- `.claude/CLAUDE.md` — the user's standing session rules (do not edit).
 
 ## Marketing Kit
 
-User-acquisition creative lives in `marketing/` and is referenced by the
-`/project:ad-meta`, `/project:ad-tiktok`, and `/project:marketing-playbook`
-commands.
+User-acquisition creative lives in `marketing/` and is the canonical context
+for the `/ad-meta`, `/ad-tiktok`, and `/marketing-playbook` commands:
 
 ```
 marketing/
 ├── README.md              ← kit overview + ASO leak checklist
-├── scripts/               ← 10 frame-precise ad scripts (5 Meta + 5 TikTok)
-├── posters/               ← 5 static HTML poster ads at 1080×1920 + render-all.sh
-├── postproduction/
-│   ├── build-ad.sh        ← ffmpeg pipeline: raw → captioned 9:16 mp4
-│   └── captions.template.srt
+├── scripts/               ← frame-precise ad scripts (Meta + TikTok)
+├── posters/               ← static HTML poster ads at 1080×1920 + render-all.sh
+├── postproduction/        ← build-ad.sh ffmpeg pipeline + captions template
 └── ai-prompts.md          ← Runway / Veo / Sora prompts for AI bookend footage
 ```
 
-Capture in-app footage via `Settings → Cinematic Capture` (route:
-`/cinematic-capture`). It loops a Rare-Gold pack walkout with synthetic
-players so the dev can screen-record clean 9:16 ad footage without
-leaking real save data.
+`CinematicCapturePage` (Rare-Gold walkout loop with synthetic players for 9:16
+ad capture) still exists in `src/pages/`, but its route and Settings entry are
+**currently disabled** — re-enable via the commented-out import + route in
+`src/App.tsx` when footage is needed.
 
-When asked for marketing/ad output, use the `/project:ad-*` commands
-which read this kit as their canonical context. New scripts go into
-`marketing/scripts/` following the existing template.
-
-## Claude Code Project Settings
-
-`.claude/settings.json` enforces safety rails at the project level:
-- **Denied operations:** `git add -A`, `git push --force`, `git reset --hard`, `gh pr create` — blocked to prevent destructive actions
-- **Auto-allowed MCP:** Read-only GitHub operations (PR reads, issue reads, code search, commit history)
-- **MCP servers:** context7 configured in `.mcp.json` for real-time documentation lookup
-- Settings are version-controlled and apply to all Claude Code sessions on this repo
-
-## CI/CD
-- **`ios-testflight.yml`** — Automated iOS TestFlight deployment
-- **`android-build.yml`** — Android APK/AAB building
-- **`pr-checks.yml`** — Pull request validation (lint + build + test)
+## CI/CD (`.github/workflows/`)
+- **`pr-checks.yml`** — PR validation (lint + build + test)
+- **`ios-testflight.yml`** — manual-dispatch iOS TestFlight deploy (seal + version guard + fastlane)
+- **`android-build.yml`** — Android APK/AAB build
+- **`append-pending-news.yml`** — auto-appends release-note bullets on PR merge
+- **`release.yml`** — version bump on `v*` tag push
+- **`scrape-icons.yml`** — SoFIFA icon scrape as a manual Action
 
 ## Known Tech Debt
-- `orchestrationSlice.ts` is ~1,970 lines — could be further split (use `/project:refactor` for guided extraction)
-- TS strict mode OFF (`strict: false`, `strictNullChecks: false`)
-- `getSuffix()`, `pick()`, `clamp()` are centralized in `src/utils/helpers.ts` (previously duplicated, now resolved)
-- framer-motion v12 is heavy (~30kb gzipped)
-- Vite config has manual chunk splitting for framer-motion, recharts, radix
+- `orchestration/weekAdvance.ts` (3,094 LOC) and `pages/Dashboard.tsx` (2,192 LOC) are the new oversized files — use `/refactor` for guided extraction.
+- TS strict mode OFF (`strict: false`, `strictNullChecks: false`).
+- Generated data dwarfs the code (~410K vs ~139K LOC) — keep it lazily imported; `size:check` is the guard.
+- framer-motion v12 is heavy; Vite manual chunk-splitting for framer-motion, recharts, radix, and the big data files lives in `vite.config.ts` — respect its comments when adding imports.
+- Ads are stubbed out (see Monetization) — re-enabling AdMob is a documented, multi-step job in `utils/ads.ts`.
 
 ## Hard Rules
 - NEVER modify `src/components/ui/*` unless asked
@@ -538,11 +626,16 @@ which read this kit as their canonical context. New scripts go into
 - NEVER put game logic in components — store slices or utils only
 - NEVER hardcode balance values — use `src/config/` constants
 - NEVER use `localStorage` or `sessionStorage` directly — go through the helpers in `src/store/helpers/persistence.ts` (`readSessionJson` / `writeSessionJson` / `removeSessionKey` / `getFlag` / `setFlag` / `readSaveSlot` / etc.). New storage keys register in `STORAGE_KEYS`. Enforced by ESLint `no-restricted-globals`
+- NEVER check subscription SKUs against `monetization.entitlements`, persist consumable packs as entitlements, or reintroduce the RevenueCat hosted paywall (Apple 3.1.2(c))
+- NEVER let monetization code touch sim parameters (match outcomes, training, transfer values)
+- NEVER hand-edit generated data (`src/data/communityPack/*`, `nationalPlayerPool.ts`) — regenerate via scripts
+- NEVER import heavy data eagerly — `size:check` enforces the eager-bundle budget
 - NEVER break mobile-first layout — test at 375px
 - NEVER create type files outside `src/types/game.ts` — single source of truth
 - NEVER use `gh pr create` — GitHub API auth is not available. Give the user the PR URL from git push output instead
 - NEVER push without running `npm run preflight` first (or `npm run ship` which includes it)
 - NEVER branch from `master` or detached HEAD — always branch from `origin/main`
+- NEVER change persisted state shape without bumping `CURRENT_VERSION` in `utils/saveMigration.ts` + adding a migration step
 - ALWAYS run `npm run build` before marking done
 - ALWAYS spread nested objects when using Zustand `set()` — no direct mutation
 - ALWAYS `filter(Boolean)` when mapping player IDs to Player objects

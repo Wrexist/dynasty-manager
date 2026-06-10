@@ -4,7 +4,7 @@
 
 ---
 
-You are running an exhaustive longevity & stress test of Dynasty Manager — a TypeScript/Zustand mobile football management sim with 92 clubs across 4 divisions, 15 Zustand slices, save schema **v67**, a 1,816-LOC match engine, and a 6-file orchestration submodule (~7,977 LOC) covering week advance, season end, match actions, init, tournaments, and helpers. The test goal: **20+ in-game seasons (1,000+ weeks)** without state corruption, content drought, save-size blowup, or perf regression.
+You are running an exhaustive longevity & stress test of Dynasty Manager — a TypeScript/Zustand mobile football management sim with 756 real clubs across 45 leagues in 37 countries, 15 Zustand slices, save schema **v71**, a ~1,828-LOC match engine, and a 6-file orchestration submodule (~7,300 LOC) covering week advance, season end, match actions, init, tournaments, and helpers. The test goal: **20+ in-game seasons (1,000+ weeks)** without state corruption, content drought, save-size blowup, or perf regression.
 
 The test infrastructure is mature — 93 test files including `longevity.test.ts`, `longevityStress.test.ts`, `stateValidator.ts` (the canonical invariant checker), `seasonAdversarial.test.ts`, `seasonEdgeCases.test.ts`, `seasonRolloverState.test.ts`, `releaseReadiness.test.ts`, `perf.test.ts`. **Extend, don't recreate.**
 

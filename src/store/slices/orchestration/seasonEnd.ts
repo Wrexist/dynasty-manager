@@ -141,7 +141,9 @@ export function endSeasonImpl(set: Set, get: Get) {
     const updatedPlayer: Player = {
       ...p,
       attributes: { ...p.attributes },
-      ballonDOrPlacements: [...existing, placement],
+      // Replace (not append past) any placement already recorded for this
+      // season — a crash + reload re-running endSeason must not duplicate it.
+      ballonDOrPlacements: [...existing.filter(pl => pl.season !== season), placement],
     };
     // Top-10 finishers earn the Ballon d'Or card + stats boost. The boost
     // path internally calls recomputeDerivedEconomics, which factors in the

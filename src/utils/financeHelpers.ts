@@ -70,7 +70,11 @@ export function getFinanceBreakdown(opts: {
 
   const playerTableIdx = leagueTable.findIndex(e => e.clubId === club.id);
   const playerTablePos = playerTableIdx >= 0 ? playerTableIdx + 1 : leagueTable.length;
-  const positionPrize = Math.max(0, (POSITION_PRIZE_MAX_RANK - playerTablePos)) * POSITION_PRIZE_PER_RANK;
+  // Max prize rank derives from the actual division size (teamCount + 1) so
+  // every position earns ≥1 rank of prize in 18- and 24-team divisions too.
+  // POSITION_PRIZE_MAX_RANK (20-team baseline) is only the no-table fallback.
+  const maxPrizeRank = leagueTable.length > 0 ? leagueTable.length + 1 : POSITION_PRIZE_MAX_RANK;
+  const positionPrize = Math.max(0, (maxPrizeRank - playerTablePos)) * POSITION_PRIZE_PER_RANK;
 
   const sponsorIncome = sponsorDeals ? sponsorDeals.reduce((sum, d) => sum + d.weeklyPayment, 0) : 0;
   const filledSlots = sponsorDeals ? sponsorDeals.length : 0;

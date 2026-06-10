@@ -22,7 +22,7 @@ $ARGUMENTS
 If any file doesn't exist at the stated path, say so rather than proceeding.
 
 1. **`src/store/storeTypes.ts`** — Full `GameState` shape. Understand existing surface area before adding fields.
-2. **`src/store/gameStore.ts`** — How slices compose (25 lines). Understand the pattern before adding a new slice.
+2. **`src/store/gameStore.ts`** — How slices compose (~37-line composition layer). Understand the pattern before adding a new slice.
 3. **`src/types/game.ts`** — All type definitions. Check `GameScreen` union before adding a new screen.
 4. **`src/utils/saveMigration.ts`** — Read `CURRENT_VERSION` (the live value — do NOT hardcode it). New state fields require bumping this.
 5. **An existing slice similar to what you're building** — check `src/store/slices/`. The project has 15 slices; pick the closest match as a structural reference.
