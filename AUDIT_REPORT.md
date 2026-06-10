@@ -242,3 +242,75 @@ Double-submit guards in ContractNegotiation/BoardPitch/PressConference/TalentTre
 
 ---
 
+## Section 3: Core slices (gameStore, storeTypes, core/club/transfer/loan/match/cup slices)
+
+**Overall:** Transfer/sale money math solid; Zustand spread discipline excellent (no mutation bugs). The systemic weakness is the **loan system's interaction with everything else**, plus a fully dead buy action stranding a purchasable perk.
+
+### CRITICAL
+- **C1. Loans that outlive the season silently become free permanent transfers.** `loanSlice.ts:271-278` (`processLoanReturns`) only returns loans where `elapsed >= durationWeeks`; season-end caller (`seasonEnd.ts:500`) then wipes `activeLoans: []` (`seasonEnd.ts:1301`) and the aging loop resets `onLoan: false` while keeping `clubId` = borrower (`seasonEnd.ts:583`). `LOAN_REQUEST_MAX_DURATION = 46` (`config/transfers.ts:134`) means any loan started after week 1 can cross season end. Both directions: your player loaned out in the winter window is **permanently lost for zero fee with zero notification**; conversely borrow any 90-OVR star on a cheap long loan and own them free at season end — exploitable asset dupe. **Fix:** `processLoanReturns(forceAll)` called by season end before clearing `activeLoans`.
+
+### HIGH
+- **H1. Loan counter-offer acceptance always fails** (store side of Section 12 H1). `loanSlice.ts:548-549` dedupe guard blocks the re-request that `LoanNegotiation.tsx:99` makes to accept; no `acceptLoanCounter` action exists and accepted path never clears the counter record. Counter branch functionally dead. **Fix:** treat a matching/better re-request as deterministic acceptance and clear the record.
+- **H2. Buying a player who is on loan: fee paid, player later confiscated.** `transferSlice.ts:290-408` — no buy path checks `player.onLoan`, and `updatedPlayer` doesn't clear loan fields or purge `activeLoans`. Reachable: AI lists X → user requests loan (no `listedForSale` gate) → accepted path doesn't remove the market listing → user buys X at full price → X arrives `onLoan: true`, wageBill double-counts, and when the stale LoanDeal expires X is handed back to `loan.fromClubId` — **fee paid, player lost**. **Fix:** reject `executeTransfer` when `onLoan` (mirror `executeSale`'s guard at `transferSlice.ts:81`); accepted loan path filters `transferMarket`.
+- **H3. Deadline Dealer perk + career negotiation buy-discount are dead code.** `transferSlice.ts:410-427` — `makeOffer` is the only place applying `careerFeeDiscount` and `deadlineDealerMult`, but it has zero callers outside tests; live UI uses `makeOfferWithNegotiation` (applies only `transfer_shark`). Players pay 400 XP for a tier-3 perk with no effect. **Fix:** move both terms into `makeOfferWithNegotiation`'s effective asking price; delete `makeOffer`.
+
+### MEDIUM
+- **M1. `rewindMatch` restores only a partial snapshot.** `matchSlice.ts:46-64` — restores fixtures/tables/players/boardConfidence but not `managerStats`, `managerProgression`, `careerTimeline`, `rivalries`, `pairFamiliarity`, `clubPowerRankings`, `sessionStats`, `messages`, `pendingPressConference` (all written by `playCurrentMatch`, `matchActions.ts:789-807`); stale `matchShouts` carry into the replay; mid-match subs persist (clubs not snapshotted). Replay double-counts everything. **Fix:** extend the snapshot + reset match-scoped fields.
+- **M2. `recallLoan`/`terminateLoan`/`buyLoanedPlayer` crash on loans referencing deleted clubs.** `loanSlice.ts:138-139, 393, 447-448` — `{...state.clubs[id]}` with no existence check → `{}.playerIds.length` throws. Clubs are deleted (`seasonEnd.ts:310`, `promotionRelegation.ts:230/299`); `processLoanReturns` guards this exact case. **Fix:** bail + drop the loan when either club id is missing.
+- **M3. Loan-in paths bypass challenge restrictions and squad caps.** `loanSlice.ts:527-610, 183-262` — `requestLoan` has no `checkChallengeBlock` (defeats `noTransfers`/`youthOnly` challenges) and no `MAX_SQUAD_SIZE` check; `respondToLoanOffer` accept path lacks the `MIN_SQUAD_SIZE` guard `loanOut` has. **Fix:** add all three guards.
+- **M4. `executeSale` merch-dip update resurrects a purged signature drop.** `transferSlice.ts:143-146, 155-164` — `merchDipUpdate.merchandise` built from original state and spread after `...purged`, overwriting the null; selling your signature-drop star leaves an active drop referencing a departed player. **Fix:** build from `purged.merchandise ?? state.merchandise`.
+- **M5. `processLoanReturns` orphans players instead of free-agenting them.** `loanSlice.ts:298-300, 339-341` — missing-club branch sets `clubId: ''` but never appends to `freeAgents`; player becomes invisible/unsignable forever. Inner re-check at `:337-342` is dead code. **Fix:** collect orphans into `freeAgents`; delete dead lines.
+- **M6. `selectPlayer`/`selectClub` never update `previousScreen`, breaking back navigation.** `coreSlice.ts:90-101` — `TopBar.tsx:76`/`PlayerDetail.tsx:159` special-case `previousScreen === 'team-detail'`, a value that can never occur. League → club → player → Back lands on Squad. **Fix:** record `previousScreen` in both actions.
+- **M7. `listPlayerForSale` allows duplicate listings and listing loaned-in players.** `transferSlice.ts:429-468` — no already-listed guard (doubles AI offer generation); loaned-in players pass the ownership check, producing dead-end offers bounced by `executeSale`. **Fix:** early-return on `listedForSale || already-in-market || onLoan`.
+
+### LOW
+- **L1.** Dead state `trainingFocus`/`setTrainingFocus` (`clubSlice.ts:16,91`, `storeTypes.ts:40,259`) — no callers; yet `Dashboard.tsx:1266` renders it (permanently 'fitness'), lying whenever the real schedule differs. Remove; derive from `training.schedule`.
+- **L2.** Hardcoded balance values: `transferSlice.ts:421-422` (career discount 0.005, deadline 0.8, window weeks 8/24), `loanSlice.ts:389` (1.2 vs config), `loanSlice.ts:514-520` (evaluateLoanRequest thresholds), `coreSlice.ts:31` (46), `matchSlice.ts:213` (45).
+- **L3.** `evaluateOffer` UI preview ignores `transfer_shark` discount and the `isExternalPlayer` sell-on exclusion (`transferSlice.ts:227-244` vs `:266, :341`) — preview disagrees with the real roll.
+- **L4.** Substituted players can re-enter the match (`matchSlice.ts:200` appends `outId` back to subs; nothing tracks subbed-off) — illegal sub possible. Track `subbedOffIds`.
+- **L5.** Cross-season loan elapsed math uses global `TOTAL_WEEKS` (`loanSlice.ts:132,272`) — moot until C1 is fixed by carryover; then off-by-up-to-8-weeks.
+- **L6.** `updateLineup` accepts arbitrary IDs without validation (`clubSlice.ts:36-43`); also `autoFillTeam`'s `state.week !== undefined` always true (dead condition, `clubSlice.ts:77`).
+
+### Verified clean
+`gameStore.ts` composition (no duplicate keys); `cupSlice.ts` state-only as documented; `storeTypes.ts` — every declared field initialized in exactly one slice; only dead declarations are the ones flagged above.
+
+---
+
+## Section 9: Core gameplay pages (Dashboard, MatchDay, MatchPrep, MatchReview, GameShell, SquadPage, TacticsPage, PlayerDetail, ComparisonPage, TrainingPage, StaffPage)
+
+**Overall:** Good shape for a 9.5K-LOC UI layer — selector discipline, timer cleanup, `filter(Boolean)` hygiene consistently applied; match ticker carefully optimized. Serious problems concentrate in cross-cutting flows.
+
+### HIGH
+- **H1. Stoppage-time events never render in MatchDay; on-screen final score can be wrong.** `MatchDay.tsx:421-439` — ticker caps at `maxMin` 45/90/120 and transitions phase without flushing remaining events, but the engine records minutes past nominal end (`engine/match.ts:936, 1242, 1655`). A 90+2' winner never appears; `liveStats`/ScoreHeader under-count; at phase `'post'` the header contradicts PostMatchPopup. Same for HT recap and ET. **Fix:** flush all remaining events on the final tick (or clamp engine event minutes).
+- **H2. Locked-speed upsell tap at half-time abandons the match in progress.** `MatchDay.tsx:1070-1075, 1197-1202` — `onLockedSelect={() => setScreen('shop')}` unmounts MatchDay; cleanup wipes `halfTimeState` (`orchestrationSlice.ts:961-1011`) — the entire played half is discarded. Defeats the navigation lock everything else honors. **Fix:** inline ProUpsell at HT/ET instead of navigation.
+- **H3. "Skip to Next Match" has no in-flight guard — concurrent `advanceWeek` double-processing.** `Dashboard.tsx:1068-1082` — handler never sets `isAdvancing`; `advanceToNextMatch` is an async loop of up to 5 awaited `advanceWeek()` calls with no re-entrancy guard. Double-tap or tapping main Advance during the loop = the exact stale-`get()` race the code comment warns about (double income/training). **Fix:** set/clear `isAdvancing` like the main button + store-level in-flight flag.
+- **H4. Penalty-shootout wins display as "DRAW" in MatchReview.** `MatchReview.tsx:168-170, 233, 840-849` — won/drew/lost computed purely from goals; `match.penaltyShootout` (stored at `matchActions.ts:1561,1599`) never read. A cup final won on pens shows amber "DRAW" + "board expects improvement" copy; `'penalty_shootout'` also missing from `HIGHLIGHT_TYPES`. **Fix:** derive result from shootout score when present.
+
+### MEDIUM
+- **M1. Persisted Pro match speed not clamped for non-Pro users.** `MatchDay.tsx:146` — lapsed subscriber with saved Turbo/Instant gets Pro-speed playback until touching the control. **Fix:** clamp initial state via `isPro`.
+- **M2. Virtual-club opponents render degraded/false data in MatchPrep.** `MatchPrep.tsx:72-77, 123-124, 136-139, 173` — "0 OVR vs 0 OVR / Even Match", empty Key Threats, blank formation, foreign opponent shown bottom of your league table. **Fix:** detect virtual opponents and hide/replace widgets.
+- **M3. "Negotiate Renewal" silently does nothing when negotiations locked.** `PlayerDetail.tsx:966-977` — result discarded; SquadPage handles the same action with an error toast (`SquadPage.tsx:187-194`). **Fix:** reuse that pattern.
+- **M4. One `showAllDev` state drives two unrelated collapsibles.** `TrainingPage.tsx:65, 189, 196, 651, 693`. **Fix:** split the state.
+
+### LOW
+- **L1.** `MatchDay.tsx:474-477` eslint-disable verified SAFE (with the caveat nothing else may write `settings.matchSpeed` mid-match).
+- **L2.** `resumeExtraTime`/`handlePenalties` lack the `resumingRef` double-tap guard `resumeSecondHalf` has (`MatchDay.tsx:276-290`) — double-fire re-simulates ET / re-rolls shootout.
+- **L3.** `FormationPicker` declared inside component body (`MatchDay.tsx:708-726`) — remount trap.
+- **L4.** `Dashboard.tsx:1047-1062` — `.finally()` chain rejects unhandled → duplicate Sentry noise on failed advance.
+- **L5.** `Dashboard.tsx:652` — `lineupIncomplete` counts dangling IDs while MatchDay's gate counts resolvable players; attention dot can claim a complete XI MatchDay rejects. Use `filter(id => !!players[id])`.
+- **L6.** `Dashboard.tsx:462-471` — achievement progress reads `getState()` during render, stale until next advance (deliberate per comment; noting).
+- **L7.** `StaffPage.tsx:179` — hardcoded `6` duplicates `STAFF_MARKET_REFRESH_COOLDOWN` (slice uses the constant); desync hazard.
+- **L8.** `TrainingPage.tsx:571-572` — `squadPlayers.sort(...)` mutates the memoized array during render.
+- **L9.** `ComparisonPage.tsx:16-17` — stale selected-player IDs after a sale → chart vanishes with no explanation.
+- **L10.** `GameShell.tsx:288-291` — scroll restoration clamped by Suspense fallback on cold chunk load; re-apply after resolve.
+- **L11.** `MatchReview.tsx:866` — non-reactive `getState().preMatchLeaguePosition` read during render.
+- **L12.** `PlayerDetail.tsx:921` — injury return week clamped to `totalWeeks`; show "next season" instead.
+
+### Extraction candidates
+Dashboard (2,192 LOC): celebrations/achievement queue → `useDashboardCelebrations`; Coach Checklist, Monthly Objectives, Achievements-in-progress, competition status → components; unify duplicate fixture scans; drop one of the two redundant "Last Result" cards. MatchDay: extract `TeamTalkPanel` (~60 lines duplicated at HT/ET). MatchReview: Key Highlights IIFE (~220 lines) → component.
+
+### Verified safe
+Match ticker lifecycle/timer cleanup; double-submit of match results (multiple guards); navigation lock (except H2); substitution gating consistent with store; all pages use `useShallow`/primitive selectors.
+
+---
+
