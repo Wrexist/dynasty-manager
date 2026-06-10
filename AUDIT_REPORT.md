@@ -432,3 +432,37 @@ Pack grant safety (commit-before-cinematic — skip/Escape/crash/force-quit cann
 
 ---
 
+## Section 1: Game loop (weekAdvance.ts, orchestration/helpers.ts, orchestrationSlice.ts)
+
+**Overall:** Disciplined copy-on-write (zero mutation violations found); cup-week choreography constants verified against `cup.ts`; `matchSubsUsed` reset correct; no player-club wage double-payment. Real issues: two dead/broken Community-Pack mechanisms, a week-skip path that can hang a continental tournament, and state bleed in `resetGame`.
+
+### HIGH
+- **H1. Community-Pack S2/S3 free-agent seeding is unreachable — never fires.** `weekAdvance.ts:3034-3040` requires `cpSeedState.week === 1`, but the block runs after `set({ week: newWeek })` so `week` is always ≥ 2 (season-end paths return before reaching it). 35 of the 85 planned marquee FA seeds (`config/aiSimulation.ts:106-110`) silently never happen — the CP free-agent pool starves. **Fix:** drop the `week === 1` check (the `lastSeedSeason < season` gate is already idempotent).
+- **H2. CP market rotation can resurrect already-signed real players (duplicates).** `weekAdvance.ts:2963, 3019-3021` — rotation unconditionally frees the first 20 listings' fcIds from `usedFcIds`, but `marketListings` is never pruned on purchase (verified: no writes in transferSlice) and the orphan-deletion loop only removes players still listed. A signed player keeps existing while his fcId is freed → a later draw issues a second copy of the same real player. **Fix:** only free fcIds whose player record was actually deleted; prune `marketListings` on purchase.
+- **H3. `advanceToNextMatch` ignores continental matches and can permanently hang a tournament.** `orchestrationSlice.ts:521-548` — `hasMatchThisWeek` checks friendlies/league/cup/league-cup/super-cups but not champions/shield/conference group matchdays or KO legs (Dashboard's `useCurrentMatch` does). In fixture-gap weeks the skip loop advances through a continental week; `groupWeeks[md-1] === week` never matches again and the whole group stage freezes for the season with no orphan recovery — the documented `cup.ts` failure, reachable from a UI button. **Fix:** include all three tournaments via `findTournamentMatch`.
+- **H4. `resetGame` leaks national-team state into a brand-new game.** `orchestrationSlice.ts:1027-1080` omits `nationalTeam`, `internationalTournament`, `managerNationality`, `nationalTeamOffer`, `showNationalTeamOffer`, `activeInterview` (initGame doesn't write them either). New game inherits an old NT job with dead player IDs; season end schedules a tournament for the stale nationality. Soft-breaks (`?.`-guarded). **Fix:** add the six fields to `resetGame` (and initGame as belt-and-braces).
+
+### MEDIUM
+- **M1. Conference Cup victory labeled "Shield Cup".** `weekAdvance.ts:1399` two-way ternary over a three-value union — wrong trophy name in message + permanent career milestone. **Fix:** three-way map.
+- **M2. International group-stage opponent strength inverted.** `weekAdvance.ts:142-144` — `0.7 - points * 0.02` makes opponents weaker the more group points they have (9-point leader sims at 0.52, 0-point minnow at 0.7). **Fix:** scale up with points or use a real seeding value.
+- **M3. Loan playing-time condition appears inverted.** `weekAdvance.ts:2273` — player *better* than the loan club gets the LOW play chance; over-qualified loanees should be guaranteed starters. NEEDS VERIFICATION on design intent. **Fix:** flip the comparison.
+- **M4. Deadline-day bargains and scouted listings never expire and can duplicate live listings.** `weekAdvance.ts:1832-1833, 1878-1883` — no `listedWeek`/`listedSeason` stamps (`processListingExpiry` keeps unstamped listings forever); bargains accumulate ~6/season with frozen prices and survive the player's later release; dedupe only against own batch. **Fix:** stamp both + check live market.
+- **M5. Save hash recorded even when both disk writes fail** — "Save Now" can later report success without persisting. `orchestrationSlice.ts:344-345` sets `lastSavedHash` regardless of `lsOk`/idb result; identical payload then short-circuits to `'saved'`. Partially self-healing via the failure inbox message, but its weekly de-dupe leaves a window. **Fix:** commit the hash only on success; clear it in the idb-failure handler.
+- **M6. `loadGame` builds the league table from every loaded club in the world.** `orchestrationSlice.ts:747-748` — multi-league saves get hundreds of zero-point foreign clubs in `leagueTable` until the next advance; Dashboard position and session snapshot wrong, egregiously early-season. **Fix:** pass `divisionClubs[playerDivision]` like weekAdvance does.
+- **M7. Prestige silently disables Community Pack.** `orchestrationSlice.ts:1181` — `initGame(newClubId)` passes no options; CP defaults false. Prestiging a CP save reverts the world to fictional players. **Fix:** pass `{ communityPackEnabled: get().communityPackEnabled }` (mind the synchronous prestige-bonus guard at `:1140-1191`).
+
+### LOW
+- **L1.** Dead unemployed-manager branch (`weekAdvance.ts:2827-2844`) — unreachable duplicate desperation-vacancy generator that also omits fields the live version includes. Delete.
+- **L2.** Hardcoded balance values: knockout NT strength formula (`weekAdvance.ts:303-308` — group-stage twin was config-ified), home bonus 0.08 (`:149`), desperation salary 1500 (`:567`).
+- **L3.** Weekly filler message always fires once inbox hits the 200 cap (`weekAdvance.ts:2461-2462` length-diff check) — count appends explicitly.
+- **L4.** `sessionStats.xpEarned` omits achievement XP (`weekAdvance.ts:2448` vs `:2382-2384`) — session recap under-reports.
+- **L5.** All 23 NT squad members earn caps + fitness cost per match (`weekAdvance.ts:211-221, 341-351` iterate squad, not lineup).
+- **L6.** `initializeLeague` catch-up sims record no player stats (`orchestrationSlice.ts:487-502`) — mid-season-initialized leagues show 0 appearances/goals for the init season, skewing the cross-league BdO pipeline.
+- **L7.** AI bench scorers get goals but never appearances (`helpers.ts:104-160` — appearance tracking iterates first 11 only).
+- **L8.** Player's super cup never resolved if its exact week passes unplayed (`weekAdvance.ts:1269, 1296` — no `t.week <= week` orphan recovery like cup/league-cup have).
+
+### Verified clean
+`matchSubsUsed` reset every tick; player's own match never simmed except the documented orphan case; cup/continental week constants agree with `cup.ts`; no direct localStorage; zero Zustand mutation violations; `unlockPerk` XP spend correct (implicit via spent-perks subtraction); no player-club double-payment in `processAIWeekly`.
+
+---
+
