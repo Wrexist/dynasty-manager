@@ -76,6 +76,7 @@ export function getCommentaryStyle(event: MatchEvent): { textClass: string; pref
       return { textClass: 'text-muted-foreground/60 italic', prefix: '' };
     case 'kickoff':
     case 'half_time':
+    case 'added_time':
     case 'full_time':
       return { textClass: 'text-primary font-semibold', prefix: '' };
     default:
@@ -85,6 +86,10 @@ export function getCommentaryStyle(event: MatchEvent): { textClass: string; pref
 
 export function enrichDescription(event: MatchEvent, ctx: CommentaryContext): string {
   if (!(GOAL_DISPLAY_TYPES as readonly string[]).includes(event.type)) return event.description;
+  // VAR rows must not get goal-context suffixes: var_disallowed means the
+  // goal did NOT stand ("They take the lead!" would be a lie), and var_check
+  // narration is already self-contained.
+  if (event.type === 'var_disallowed' || event.type === 'var_check') return event.description;
   const scoringClubIsHome = event.clubId === ctx.homeClubId;
   const extra = getScoreContext(ctx, scoringClubIsHome);
   return extra ? `${event.description} ${extra}` : event.description;

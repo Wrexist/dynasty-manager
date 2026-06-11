@@ -484,7 +484,7 @@ const MatchReview = () => {
                     const content = (
                       <div className={cn('flex flex-col gap-1 min-w-0', isHomeTeamEvent ? 'items-end text-right' : 'items-start text-left')}>
                         <div className={cn('flex items-center gap-2', isHomeTeamEvent && 'flex-row-reverse')}>
-                          <span className="text-[10px] font-mono text-primary tabular-nums">{ev.minute}'</span>
+                          <span className="text-[10px] font-mono text-primary tabular-nums">{ev.displayMinute ?? ev.minute}'</span>
                           <span className={cn('text-[10px] font-bold uppercase tracking-wider', toneClass.text)}>{label}</span>
                           {evClub && (
                             <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: evClub.color }} />
@@ -531,7 +531,7 @@ const MatchReview = () => {
               const assister = g.assistPlayerId ? players[g.assistPlayerId] : null;
               return (
                 <div key={`goal-${g.minute}-${g.playerId || i}`} className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground tabular-nums w-6 shrink-0">{g.minute}'</span>
+                  <span className="text-xs text-muted-foreground tabular-nums w-6 shrink-0">{g.displayMinute ?? g.minute}'</span>
                   {scorer ? (
                     <FlagIcon nationality={scorer.nationality} size={12} className="shrink-0" />
                   ) : null}
@@ -738,7 +738,7 @@ const MatchReview = () => {
                     {p?.lastName || 'Unknown'} — {injLabel}
                     {injWeeks ? <span className="text-muted-foreground"> ({injWeeks} wk{injWeeks !== 1 ? 's' : ''})</span> : null}
                   </span>
-                  <span className="text-muted-foreground ml-auto tabular-nums">{e.minute}'</span>
+                  <span className="text-muted-foreground ml-auto tabular-nums">{e.displayMinute ?? e.minute}'</span>
                 </div>
               );
             })}
@@ -762,7 +762,7 @@ const MatchReview = () => {
                     {p?.lastName || 'Unknown'}
                     {banWeeks != null && banWeeks > 0 && <span className="text-muted-foreground"> — {banWeeks} match ban</span>}
                   </span>
-                  <span className="text-muted-foreground ml-auto tabular-nums">{e.minute}'</span>
+                  <span className="text-muted-foreground ml-auto tabular-nums">{e.displayMinute ?? e.minute}'</span>
                 </div>
               );
             })}

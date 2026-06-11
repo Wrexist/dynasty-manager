@@ -1065,7 +1065,7 @@ const MatchDayInner = () => {
               <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">First Half</p>
               <div className="space-y-1.5">
                 {visibleEvents
-                  .filter(e => !['kickoff', 'half_time', 'commentary'].includes(e.type))
+                  .filter(e => !['kickoff', 'half_time', 'added_time', 'commentary'].includes(e.type))
                   .map((ev, i) => (
                     <CommentaryRow
                       key={i}

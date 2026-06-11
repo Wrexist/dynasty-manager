@@ -27,6 +27,9 @@ export const EVENT_LABELS: Partial<Record<MatchEvent['type'], string>> = {
   ai_tactical_change: 'TACTICAL',
   kickoff: 'KICKOFF',
   half_time: 'HALF TIME',
+  // '+X minutes added time' announcements. Legacy saves carry these typed
+  // 'half_time' — that mapping above stays so old events still render.
+  added_time: 'ADDED TIME',
   full_time: 'FULL TIME',
   penalty_shootout: 'SHOOTOUT',
 };
@@ -84,9 +87,9 @@ export function getEventLabel(type: MatchEvent['type']): string {
 
 /** Event types that should render as structured rows (player chip + label)
  *  rather than as verbose prose. Ambient `commentary`/`kickoff`/`half_time`/
- *  `full_time` and `ai_tactical_change` keep their prose style. */
+ *  `added_time`/`full_time` and `ai_tactical_change` keep their prose style. */
 export function isStructuredEvent(type: MatchEvent['type']): boolean {
   if (type === 'commentary' || type === 'ai_tactical_change') return false;
-  if (type === 'kickoff' || type === 'half_time' || type === 'full_time') return false;
+  if (type === 'kickoff' || type === 'half_time' || type === 'added_time' || type === 'full_time') return false;
   return !!EVENT_LABELS[type];
 }

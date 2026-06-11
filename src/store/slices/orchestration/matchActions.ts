@@ -1183,7 +1183,9 @@ export function playSecondHalfImpl(set: Set, get: Get): Match | null {
 
   const spCoachBonus2H = hasPerk(state.managerProgression, 'set_piece_coach') ? 0.009 * dynastyMult(state.managerProgression) : 0;
   const fullState = simulateHalf(hc, ac, hp, ap, 46, 90, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, secondHalfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities, season, secondHalfCareerMod, undefined, undefined, combinedMods, currentMatchWeather ?? undefined, spCoachBonus2H);
-  const { result, playerRatings } = finalizeMatch(match, hc, ac, hp, ap, fullState);
+  // `players` lookup lets finalizeMatch rate half-time-subbed-out starters
+  // (they're missing from hp/ap — the lineup was edited at the break)
+  const { result, playerRatings } = finalizeMatch(match, hc, ac, hp, ap, fullState, players);
   // Attach weather to the match result
   if (currentMatchWeather) result.weather = currentMatchWeather;
 
@@ -1386,7 +1388,8 @@ export function playExtraTimeImpl(set: Set, get: Get): Match | null {
 
   if (etState.homeGoals !== etState.awayGoals || isAggregateDecided(state, etState.homeGoals, etState.awayGoals)) {
     // Extra time decided the match (or aggregate decided for 2-leg ties) — finalize
-    const { result, playerRatings } = finalizeMatch(etResult, hc, ac, hp, ap, etState);
+    // (players lookup rates participants subbed out before ET — see playSecondHalfImpl)
+    const { result, playerRatings } = finalizeMatch(etResult, hc, ac, hp, ap, etState, players);
     if (etWeather) result.weather = etWeather;
     const processed = processMatchResult(state, etResult, result, playerRatings, () => get().week, etState.matchInjuries);
     const etDrama = detectMatchDrama(result, playerClubId, clubs);
@@ -1600,7 +1603,8 @@ export function skipPenaltyShootoutImpl(set: Set, get: Get): void {
     });
     return;
   }
-  const { result, playerRatings } = finalizeMatch(finalResult, hc, ac, hp, ap, halfTimeState);
+  // players lookup rates participants subbed out earlier in the tie — see playSecondHalfImpl
+  const { result, playerRatings } = finalizeMatch(finalResult, hc, ac, hp, ap, halfTimeState, players);
 
   const processed = processMatchResult(state, finalResult, result, playerRatings, () => get().week, halfTimeState?.matchInjuries || {}, winnerId);
   const penDrama = detectMatchDrama(result, playerClubId, clubs);
