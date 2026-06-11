@@ -2,14 +2,14 @@ import { describe, it, expect } from 'vitest';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 
 describe('saveMigration', () => {
-  it('should have current version set to 71', () => {
-    expect(CURRENT_VERSION).toBe(71);
+  it('should have current version set to 72', () => {
+    expect(CURRENT_VERSION).toBe(72);
   });
 
   it('v69 → v70 backfills settings.performanceMode (default off)', () => {
     const v69: Record<string, unknown> = { version: 69, settings: { reducedMotion: true } };
     const migrated = migrateSaveData(v69) as { version: number; settings: Record<string, unknown> };
-    expect(migrated.version).toBe(71);
+    expect(migrated.version).toBe(72);
     expect(migrated.settings.performanceMode).toBe(false);
     expect(migrated.settings.reducedMotion).toBe(true);
   });
@@ -23,7 +23,7 @@ describe('saveMigration', () => {
       ],
     };
     const migrated = migrateSaveData(v70) as { version: number; weeklyObjectives: Array<Record<string, unknown>> };
-    expect(migrated.version).toBe(71);
+    expect(migrated.version).toBe(72);
     expect(migrated.weeklyObjectives[0].claimed).toBe(true);
     expect(migrated.weeklyObjectives[1].claimed).toBe(false);
   });

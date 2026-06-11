@@ -11,7 +11,7 @@ import type { Club, Player, FormationType } from '@/types/game';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 71;
+const CURRENT_VERSION = 72;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -1155,6 +1155,21 @@ const migrations: Record<number, MigrationFn> = {
       ...data,
       version: 70,
       settings: { ...settings, performanceMode: settings.performanceMode ?? false },
+    };
+  },
+
+  // v71 → v72: HalfState gained `subbedOut` (players substituted off in an
+  // earlier half — rebuilt into the engine's `unavailable` set so AI subs
+  // can't "resurrect" in extra time). Mid-match saves carry halfTimeState;
+  // default the field to [] so the engine's `?? []` fallback is explicit in
+  // the persisted shape.
+  71: (data) => {
+    const hts = data.halfTimeState as { subbedOut?: unknown } | null | undefined;
+    if (!hts || typeof hts !== 'object') return { ...data, version: 72 };
+    return {
+      ...data,
+      version: 72,
+      halfTimeState: { ...hts, subbedOut: Array.isArray(hts.subbedOut) ? hts.subbedOut : [] },
     };
   },
 

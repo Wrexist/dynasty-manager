@@ -86,6 +86,12 @@ export interface HalfState {
   awayCorners: number;
   sentOff: string[];
   injured: string[];
+  /** Players substituted OFF in earlier halves — they can never return, so
+   *  they must be rebuilt into `unavailable` when a later half/extra time
+   *  resumes. Without this, AI tactically-subbed-out players "resurrected"
+   *  in extra time (the store lineup still contains them) and the AI played
+   *  ET with 11+N active players. Optional for pre-v72 mid-match saves. */
+  subbedOut?: string[];
   playerEvents: Record<string, { goals: number; assists: number; yellows: number; redCard: boolean; saves: number; cleanSheet: boolean; goalsAtEntry?: number }>;
   momentum: number;
   homeXG: number;
@@ -308,6 +314,11 @@ export function simulateHalf(
     }
     teamTalkFoulMod = foulMod;
   }
+  // Where the foul band ends on the event roll. The injury band sits
+  // RELATIVE to this: with an absolute INJURY_EVENT_THRESHOLD, any derby /
+  // weather / team-talk foul modifier pushed the foul band past it and
+  // non-foul injuries became impossible in exactly those matches.
+  const injuryBandWidth = INJURY_EVENT_THRESHOLD - FOUL_THRESHOLD;
 
   // Generate tactical insights for the player's team
   const tacticalInsights: string[] = prevState?.tacticalInsights ? [...prevState.tacticalInsights] : [];
@@ -407,7 +418,8 @@ export function simulateHalf(
   // return site where we call `Array.from(...)` back into the array shape.
   const sentOffSet = new Set<string>(prevState?.sentOff ?? []);
   const injuredSet = new Set<string>(prevState?.injured ?? []);
-  const unavailable = new Set<string>([...sentOffSet, ...injuredSet]);
+  const subbedOutSet = new Set<string>(prevState?.subbedOut ?? []);
+  const unavailable = new Set<string>([...sentOffSet, ...injuredSet, ...subbedOutSet]);
 
   // Match injuries: track generated InjuryDetails per player
   const matchInjuries: Record<string, InjuryDetails> = prevState?.matchInjuries ? { ...prevState.matchInjuries } : {};
@@ -458,6 +470,23 @@ export function simulateHalf(
   // Helper: get available players for a side (starters + subs - unavailable)
   const homeAvail = () => [...homePlayers, ...homeSubbedIn].filter(p => !unavailable.has(p.id));
   const awayAvail = () => [...awayPlayers, ...awaySubbedIn].filter(p => !unavailable.has(p.id));
+
+  // Carry numerical disadvantage across half/extra-time boundaries. The
+  // initial strength computation above used the full passed lineups — the
+  // store lineup is never edited on a send-off, so a team reduced to 10 in
+  // the first half silently regained full strength here. Recompute from the
+  // available pools and re-apply the team-talk multipliers (already folded
+  // into homeStr/awayStr above).
+  if (prevState && unavailable.size > 0) {
+    const rebal = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId, currentSeason);
+    homeStr = rebal.homeStr;
+    awayStr = rebal.awayStr;
+    if (teamTalkModifiers && playerClubId) {
+      const { attackMod, defenseMod } = teamTalkModifiers;
+      if (playerClubId === homeClub.id) homeStr = homeStr * (1 + attackMod) * (1 + defenseMod);
+      else if (playerClubId === awayClub.id) awayStr = awayStr * (1 + attackMod) * (1 + defenseMod);
+    }
+  }
 
   // Description variants for event variety
   const goalDescs = [
@@ -1144,7 +1173,7 @@ export function simulateHalf(
         const preGoalAwayGoals = awayGoals;
         if (isHome) homeGoals++; else awayGoals++;
         if (isHome) { homeShots++; homeSoT++; } else { awayShots++; awaySoT++; }
-        let assist = pickAssist(squad, scorer.id);
+        let assist = pickAssist(squad.filter(p => !unavailable.has(p.id)), scorer.id);
         if (playerEvents[scorer.id]) playerEvents[scorer.id].goals++;
         if (assist && playerEvents[assist.id]) playerEvents[assist.id].assists++;
         oppSquad.forEach(p => { if (p.position === 'GK' && playerEvents[p.id]) playerEvents[p.id].cleanSheet = false; });
@@ -1321,7 +1350,7 @@ export function simulateHalf(
                 if (isHome) homeGoals++; else awayGoals++;
                 if (isHome) { homeShots++; homeSoT++; } else { awayShots++; awaySoT++; }
                 if (playerEvents[header.id]) playerEvents[header.id].goals++;
-                const cornerAssist = pickAssist(squad, header.id);
+                const cornerAssist = pickAssist(squad.filter(p => !unavailable.has(p.id)), header.id);
                 if (cornerAssist && playerEvents[cornerAssist.id]) playerEvents[cornerAssist.id].assists++;
                 oppSquad.forEach(p => { if (p.position === 'GK' && playerEvents[p.id]) playerEvents[p.id].cleanSheet = false; });
                 momentum = isHome
@@ -1338,7 +1367,7 @@ export function simulateHalf(
         // Goalkeeper error — fumble leads to a goal (not a shot — GK dropped it).
         // Chance scaled by GK quality + weather, pre-computed once per match.
         if (isHome) homeGoals++; else awayGoals++;
-        const gkErrorAssist = pickAssist(squad, scorer.id);
+        const gkErrorAssist = pickAssist(squad.filter(p => !unavailable.has(p.id)), scorer.id);
         if (playerEvents[scorer.id]) playerEvents[scorer.id].goals++;
         if (gkErrorAssist && playerEvents[gkErrorAssist.id]) playerEvents[gkErrorAssist.id].assists++;
         const oppGK = oppSquad.find(p => p.position === 'GK');
@@ -1492,32 +1521,38 @@ export function simulateHalf(
         }
       }
 
-      // Penalty: defending team fouls attacker in the box
+      // Penalty: the foul was in the box — awarded AGAINST the fouling side.
+      // The taker comes from the OPPOSING squad and the goal credits the
+      // opposing team. (Previously both were drawn from the fouling team's
+      // squad, so committing fouls and winning penalties were positively
+      // correlated for the same side.)
       if (Math.random() < PENALTY_FROM_FOUL_CHANCE) {
-        const atkEligibleAll = squad.filter(p => !unavailable.has(p.id));
+        const attackingIsHome = !isHome;
+        const attackingClub = attackingIsHome ? homeClub : awayClub;
+        const atkEligibleAll = oppSquad.filter(p => !unavailable.has(p.id));
         const atkEligible = atkEligibleAll.filter(p => p.position !== 'GK').length > 0
           ? atkEligibleAll.filter(p => p.position !== 'GK')
           : atkEligibleAll;
         if (atkEligible.length > 0) {
           // Prefer designated penalty taker if on the pitch
-          const designatedTaker = club.penaltyTakerId ? atkEligible.find(p => p.id === club.penaltyTakerId) : null;
+          const designatedTaker = attackingClub.penaltyTakerId ? atkEligible.find(p => p.id === attackingClub.penaltyTakerId) : null;
           const penaltyTaker = designatedTaker || pickPenaltyTaker(atkEligible);
           const penaltyBonus = designatedTaker ? PENALTY_TAKER_BONUS : 0;
           // xG for penalty attempt (standard ~0.76) — added regardless of outcome
-          if (isHome) homeXG += PENALTY_CONVERSION_RATE; else awayXG += PENALTY_CONVERSION_RATE;
+          if (attackingIsHome) homeXG += PENALTY_CONVERSION_RATE; else awayXG += PENALTY_CONVERSION_RATE;
           if (Math.random() < PENALTY_CONVERSION_RATE + penaltyBonus) {
-            if (isHome) homeGoals++; else awayGoals++;
-            if (isHome) { homeShots++; homeSoT++; } else { awayShots++; awaySoT++; }
+            if (attackingIsHome) homeGoals++; else awayGoals++;
+            if (attackingIsHome) { homeShots++; homeSoT++; } else { awayShots++; awaySoT++; }
             if (playerEvents[penaltyTaker.id]) playerEvents[penaltyTaker.id].goals++;
-            oppSquad.forEach(p => { if (p.position === 'GK' && playerEvents[p.id]) playerEvents[p.id].cleanSheet = false; });
-            // Momentum swings toward penalty-scoring team (the attacking team)
-            momentum = isHome
+            squad.forEach(p => { if (p.position === 'GK' && playerEvents[p.id]) playerEvents[p.id].cleanSheet = false; });
+            // Momentum swings toward the penalty-scoring (attacking) team
+            momentum = attackingIsHome
               ? Math.min(100, momentum + MOMENTUM_PENALTY_SWING)
               : Math.max(-100, momentum - MOMENTUM_PENALTY_SWING);
-            events.push({ minute: min, type: 'penalty_scored', playerId: penaltyTaker.id, clubId: club.id, description: withContextSuffix(pick(penaltyGoalDescs)(penaltyTaker.lastName, club.shortName)), momentum, homeXG, awayXG });
+            events.push({ minute: min, type: 'penalty_scored', playerId: penaltyTaker.id, clubId: attackingClub.id, description: withContextSuffix(pick(penaltyGoalDescs)(penaltyTaker.lastName, attackingClub.shortName)), momentum, homeXG, awayXG });
           } else {
-            if (isHome) homeShots++; else awayShots++;
-            events.push({ minute: min, type: 'penalty_missed', playerId: penaltyTaker.id, clubId: club.id, description: withContextSuffix(pick(penaltyMissDescs)(penaltyTaker.lastName)), momentum, homeXG, awayXG });
+            if (attackingIsHome) homeShots++; else awayShots++;
+            events.push({ minute: min, type: 'penalty_missed', playerId: penaltyTaker.id, clubId: attackingClub.id, description: withContextSuffix(pick(penaltyMissDescs)(penaltyTaker.lastName)), momentum, homeXG, awayXG });
           }
         }
       }
@@ -1537,7 +1572,7 @@ export function simulateHalf(
       }
     }
     // === INJURY (non-foul) ===
-    else if (roll < INJURY_EVENT_THRESHOLD) {
+    else if (roll < FOUL_THRESHOLD + derbyFoulMod + teamTalkFoulMod + weatherFoulMod + injuryBandWidth) {
       const eligibleForInjury = squad.filter(p => !unavailable.has(p.id));
       if (eligibleForInjury.length === 0) continue;
       // Injury chance scales with physical fragility, age, and in-match fitness
@@ -1603,6 +1638,7 @@ export function simulateHalf(
           homeSubsUsed++; homeActive.add(aiSub.inPlayer.id);
           homeSubbedIn.push(aiSub.inPlayer);
           unavailable.add(aiSub.outPlayer.id); // Subbed-out player can't return to the pitch
+          subbedOutSet.add(aiSub.outPlayer.id); // …including in later halves / extra time
           const bIdx = homeBenchPool.findIndex(p => p.id === aiSub.inPlayer.id);
           if (bIdx >= 0) homeBenchPool.splice(bIdx, 1);
           if (!playerEvents[aiSub.inPlayer.id]) playerEvents[aiSub.inPlayer.id] = { goals: 0, assists: 0, yellows: 0, redCard: false, saves: 0, cleanSheet: true, goalsAtEntry: awayGoals };
@@ -1622,6 +1658,7 @@ export function simulateHalf(
           awaySubsUsed++; awayActive.add(aiSub.inPlayer.id);
           awaySubbedIn.push(aiSub.inPlayer);
           unavailable.add(aiSub.outPlayer.id); // Subbed-out player can't return to the pitch
+          subbedOutSet.add(aiSub.outPlayer.id); // …including in later halves / extra time
           const bIdx = awayBenchPool.findIndex(p => p.id === aiSub.inPlayer.id);
           if (bIdx >= 0) awayBenchPool.splice(bIdx, 1);
           if (!playerEvents[aiSub.inPlayer.id]) playerEvents[aiSub.inPlayer.id] = { goals: 0, assists: 0, yellows: 0, redCard: false, saves: 0, cleanSheet: true, goalsAtEntry: homeGoals };
@@ -1667,7 +1704,7 @@ export function simulateHalf(
 
   return {
     events, homeGoals, awayGoals, homeShots, awayShots, homeSoT, awaySoT,
-    homeFouls, awayFouls, homeCorners, awayCorners, sentOff: Array.from(sentOffSet), injured: Array.from(injuredSet), playerEvents,
+    homeFouls, awayFouls, homeCorners, awayCorners, sentOff: Array.from(sentOffSet), injured: Array.from(injuredSet), subbedOut: Array.from(subbedOutSet), playerEvents,
     momentum, homeXG, awayXG, matchInjuries,
     homeSubsUsed, awaySubsUsed,
     homeBench: homeBenchPool, awayBench: awayBenchPool,
