@@ -991,10 +991,12 @@ export function simulateHalf(
       }
     }
 
-    // AI mid-match tactical reactivity at key minutes (60, 75)
+    // AI mid-match tactical reactivity at key minutes (60, 75). Gated on
+    // "not the player's club": every call site passes initial tactics for
+    // both sides (AI counter-tactics included), so the old `!homeTactics`
+    // gate could never fire and reactive AI was dead on every path.
     if (AI_REACTIVITY_MINUTES.includes(min as 60 | 75)) {
-      // Home AI reacts if no player tactics provided
-      if (!homeTactics && homeClub.aiManagerProfile) {
+      if (homeClub.id !== playerClubId && homeClub.aiManagerProfile) {
         const oldMentality = homeClub.aiManagerProfile.defaultTactics.mentality;
         const newHomeTactics = getAIReactiveTactics(homeClub.aiManagerProfile, true, homeGoals, awayGoals, min);
         if (newHomeTactics.mentality !== oldMentality) {
@@ -1003,8 +1005,7 @@ export function simulateHalf(
         const recomp = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), newHomeTactics, awayTactics ?? awayClub.aiManagerProfile?.defaultTactics ?? AI_DEFAULT_TACTICS, tacticalFamiliarity, playerClubId);
         homeStr = recomp.homeStr; awayStr = recomp.awayStr;
       }
-      // Away AI reacts if no player tactics provided
-      if (!awayTactics && awayClub.aiManagerProfile) {
+      if (awayClub.id !== playerClubId && awayClub.aiManagerProfile) {
         const oldMentality = awayClub.aiManagerProfile.defaultTactics.mentality;
         const newAwayTactics = getAIReactiveTactics(awayClub.aiManagerProfile, false, homeGoals, awayGoals, min);
         if (newAwayTactics.mentality !== oldMentality) {
@@ -1848,10 +1849,12 @@ export function simulateMatch(
   let secondHalfHomeTactics = effectiveHomeTactics;
   let secondHalfAwayTactics = effectiveAwayTactics;
 
-  if (!homeTactics && homeClub.aiManagerProfile) {
+  // Gated on "not the player's club" — see the in-half reactivity note in
+  // simulateHalf: callers always pass tactics, so `!homeTactics` never fired.
+  if (homeClub.id !== playerClubId && homeClub.aiManagerProfile) {
     secondHalfHomeTactics = getAIReactiveTactics(homeClub.aiManagerProfile, true, firstHalf.homeGoals, firstHalf.awayGoals, 45);
   }
-  if (!awayTactics && awayClub.aiManagerProfile) {
+  if (awayClub.id !== playerClubId && awayClub.aiManagerProfile) {
     secondHalfAwayTactics = getAIReactiveTactics(awayClub.aiManagerProfile, false, firstHalf.homeGoals, firstHalf.awayGoals, 45);
   }
 

@@ -19,6 +19,7 @@ import {
   INCOMING_NEGOTIATE_ACCEPT_AT_OFFER, INCOMING_NEGOTIATE_ACCEPT_AT_120, INCOMING_NEGOTIATE_ACCEPT_AT_MAX,
   INCOMING_NEGOTIATE_COUNTER_CHANCE, INCOMING_NEGOTIATE_COUNTER_BASE, INCOMING_NEGOTIATE_COUNTER_RANGE,
   NEGOTIATION_MAX_STRIKES, NEGOTIATION_COOLDOWN_WEEKS, NEGOTIATION_STRIKE_PENALTY,
+  getTransferWindows,
 } from '@/config/transfers';
 import { NegotiationStrike } from '@/types/game';
 import { CONTRACT_MIN_YEARS, CONTRACT_MAX_YEARS } from '@/config/contracts';
@@ -262,8 +263,16 @@ export const createTransferSlice = (set: Set, get: Get) => ({
       return { outcome: result.success ? 'accepted' : 'rejected', message: result.success ? `Release clause triggered — ${player.firstName} ${player.lastName} joins for £${(fee / 1e6).toFixed(1)}M!` : result.message };
     }
 
-    // Transfer Shark perk: treat asking price as 15% lower for acceptance calculation
-    const effectiveAskingPrice = hasPerk(state.managerProgression, 'transfer_shark') ? listing.askingPrice * (1 - TRANSFER_SHARK_DISCOUNT * dynastyMult(state.managerProgression)) : listing.askingPrice;
+    // Transfer Shark perk: treat asking price as 15% lower for acceptance calculation.
+    // Career negotiation skill and the Deadline Dealer perk (deadline-day
+    // discount) apply here too — they previously lived only in the legacy
+    // makeOffer action, which had no live callers, so a tier-3 perk and the
+    // career negotiation stat had zero effect on real offers.
+    const tw = getTransferWindows(state.totalWeeks);
+    const careerFeeDiscount = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.negotiation * 0.005 : 0;
+    const deadlineDealerMult = (hasPerk(state.managerProgression, 'deadline_dealer') && (state.week === tw.summerEnd || state.week === tw.winterEnd)) ? 0.8 : 1;
+    const sharkPrice = hasPerk(state.managerProgression, 'transfer_shark') ? listing.askingPrice * (1 - TRANSFER_SHARK_DISCOUNT * dynastyMult(state.managerProgression)) : listing.askingPrice;
+    const effectiveAskingPrice = sharkPrice * (1 - careerFeeDiscount) * deadlineDealerMult;
     const ratio = fee / effectiveAskingPrice;
     const baseChance = fee >= effectiveAskingPrice ? ACCEPT_CHANCE_AT_ASKING : fee >= effectiveAskingPrice * ACCEPT_80_PERCENT_THRESHOLD ? ACCEPT_CHANCE_AT_80_PERCENT : ACCEPT_CHANCE_BELOW;
     // Apply strike penalty: each previous rejection makes the seller less receptive
@@ -405,25 +414,6 @@ export const createTransferSlice = (set: Set, get: Get) => ({
       set({ careerManager: cm });
     }
     return { success: true, message: `${updatedPlayer.firstName} ${updatedPlayer.lastName} signed!${sellOnNote}` };
-  },
-
-  makeOffer: (playerId: string, fee: number) => {
-    const state = get();
-    const challengeBlock = checkChallengeBlock(state, state.players[playerId]?.age);
-    if (challengeBlock) return { success: false, message: challengeBlock };
-    const listing = resolveListing(state, playerId);
-    if (!state.transferWindowOpen && !listing?.scoutedPlayer) return { success: false, message: 'Transfer window is closed.' };
-    if (!listing) return { success: false, message: 'Player not available.' };
-    const club = state.clubs[state.playerClubId];
-    const galacticoAvail = hasPerk(state.managerProgression, 'galactico') && !state.galacticoUsedThisSeason;
-    const budgetLimit = galacticoAvail ? Math.floor(club.budget * 1.2) : club.budget;
-    if (fee > budgetLimit) return { success: false, message: 'Insufficient funds.' };
-    const careerFeeDiscount = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.negotiation * 0.005 : 0;
-    const deadlineDealerMult = (hasPerk(state.managerProgression, 'deadline_dealer') && (state.week === 8 || state.week === 24)) ? 0.8 : 1;
-    const effAsk = (hasPerk(state.managerProgression, 'transfer_shark') ? listing.askingPrice * (1 - TRANSFER_SHARK_DISCOUNT * dynastyMult(state.managerProgression)) : listing.askingPrice) * (1 - careerFeeDiscount) * deadlineDealerMult;
-    const acceptChance = fee >= effAsk ? ACCEPT_CHANCE_AT_ASKING : fee >= effAsk * ACCEPT_80_PERCENT_THRESHOLD ? ACCEPT_CHANCE_AT_80_PERCENT : ACCEPT_CHANCE_BELOW;
-    if (Math.random() > acceptChance) return { success: false, message: 'Offer rejected. Try a higher fee.' };
-    return get().executeTransfer(playerId, fee);
   },
 
   listPlayerForSale: (playerId: string, customAskingPrice?: number) => {

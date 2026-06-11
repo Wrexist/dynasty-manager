@@ -262,7 +262,6 @@ export interface GameState {
 
   // Actions — Transfer
   executeTransfer: (playerId: string, fee: number) => { success: boolean; message: string };
-  makeOffer: (playerId: string, fee: number) => { success: boolean; message: string };
   evaluateOffer: (playerId: string, fee: number) => { acceptChance: number; wouldTriggerSellOn: boolean; sellOnPct: number; budgetAfter: number; wageImpact: number; ratio: number; positionCount: number; totalSquadSize: number } | null;
   makeOfferWithNegotiation: (playerId: string, fee: number) => { outcome: 'accepted' | 'rejected' | 'counter'; counterFee?: number; message: string };
   addToShortlist: (id: string) => void;

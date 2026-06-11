@@ -325,6 +325,16 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
               // Run full lineup optimizer (computes best XI + bench from entire squad)
               const result = autoFillTeam();
 
+              // autoFillTeam is Pro-gated in the store and returns
+              // { changes: 0, proRequired: true } for free users — falling
+              // through to the generic branches toasted a factually false
+              // "Lineup already optimal" with no upsell.
+              if (result.proRequired) {
+                toast.info('Optimize Lineup is a Dynasty Pro feature — upgrade from the Shop after the match.');
+                setAutoFilling(false);
+                return;
+              }
+
               if (result.undersized) {
                 toast.warning(result.undersizedDetail);
                 setAutoFilling(false);
