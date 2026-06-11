@@ -20,6 +20,7 @@ const HIGHLIGHT_TYPES: readonly MatchEvent['type'][] = [
   'goal', 'own_goal', 'penalty_scored', 'penalty_missed', 'red_card', 'injury',
   'free_kick_goal', 'long_range_goal', 'counter_attack_goal', 'header_goal',
   'solo_goal', 'goalkeeper_error', 'var_check', 'var_disallowed', 'substitution',
+  'penalty_shootout',
 ];
 const HIGHLIGHT_TONE: Partial<Record<MatchEvent['type'], MatchHighlightTone>> = {
   goal: 'goal', penalty_scored: 'goal', free_kick_goal: 'goal', long_range_goal: 'goal',
@@ -165,8 +166,16 @@ const MatchReview = () => {
   const isHome = match.homeClubId === playerClubId;
   const homeBarColor = homeClub.color;
   const awayBarColor = areColorsSimilar(homeClub.color, awayClub.color) ? '#FFFFFF' : awayClub.color;
-  const won = isHome ? match.homeGoals > match.awayGoals : match.awayGoals > match.homeGoals;
-  const drew = match.homeGoals === match.awayGoals;
+  // A drawn scoreline decided on penalties is a win/loss, not a draw — the
+  // store classifies it that way (processMatchResult), and showing amber
+  // "DRAW" + "board expects improvement" for a cup final won on pens
+  // contradicted the popup the user just saw.
+  const shootout = match.penaltyShootout;
+  const shootoutWon = shootout && match.homeGoals === match.awayGoals
+    ? (isHome ? shootout.home > shootout.away : shootout.away > shootout.home)
+    : null;
+  const won = shootoutWon ?? (isHome ? match.homeGoals > match.awayGoals : match.awayGoals > match.homeGoals);
+  const drew = shootoutWon === null && match.homeGoals === match.awayGoals;
   const lost = !won && !drew;
   const xpDoubleClaimContext = `match_w${week}_${match.homeClubId}_${match.awayClubId}_${match.homeGoals}-${match.awayGoals}_${lastMatchCompetition || 'league'}`;
 
@@ -230,7 +239,7 @@ const MatchReview = () => {
               won ? 'text-emerald-400' : lost ? 'text-destructive' : 'text-amber-400'
             )}
           >
-            {won ? 'VICTORY' : lost ? 'DEFEAT' : 'DRAW'}
+            {won ? (shootoutWon != null ? 'VICTORY ON PENALTIES' : 'VICTORY') : lost ? (shootoutWon != null ? 'DEFEAT ON PENALTIES' : 'DEFEAT') : 'DRAW'}
           </motion.p>
           {lastMatchCompetition && (() => {
             const compInfo = getCompetitionInfo(lastMatchCompetition);
