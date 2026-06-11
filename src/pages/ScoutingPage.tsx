@@ -13,7 +13,7 @@ import { PageHint } from '@/components/game/PageHint';
 import { TransferNegotiation } from '@/components/game/TransferNegotiation';
 import { formatMoney } from '@/utils/helpers';
 import { SCOUTING_COST_PER_ASSIGNMENT } from '@/config/gameBalance';
-import { infoToast } from '@/utils/gameToast';
+import { infoToast, errorToast } from '@/utils/gameToast';
 import { hapticLight } from '@/utils/haptics';
 
 const REGION_INFO: { region: ScoutRegion; label: string; weeks: number; description: string }[] = [
@@ -244,7 +244,17 @@ const ScoutingPage = () => {
               <GlassPanel
                 key={region}
                 className="p-3 cursor-pointer hover:border-primary/30 transition-colors"
-                onClick={() => { assignScout(region); hapticLight(); infoToast('Scout Assigned', `Scouting ${label} region`); }}
+                onClick={() => {
+                  // Only toast success when the assignment actually happened —
+                  // at max assignments the action no-ops and returns failure.
+                  const result = assignScout(region);
+                  if (!result.success) {
+                    errorToast(result.message || 'Unable to assign scout.');
+                    return;
+                  }
+                  hapticLight();
+                  infoToast('Scout Assigned', `Scouting ${label} region`);
+                }}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">

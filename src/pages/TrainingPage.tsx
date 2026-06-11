@@ -62,6 +62,10 @@ const TrainingPage = () => {
   const setScreen = useGameStore(s => s.setScreen);
   const { schedule, intensity, tacticalFamiliarity } = training;
   const club = clubs[playerClubId];
+  // Two unrelated collapsibles — the weekly report's player breakdown and the
+  // "Recent Development" list — each get their own toggle so expanding one no
+  // longer expands the other.
+  const [showReportBreakdown, setShowReportBreakdown] = useState(false);
   const [showAllDev, setShowAllDev] = useState(false);
   const [activeDay, setActiveDay] = useState<typeof DAYS[number]>('mon');
   const [showIndividualTraining, setShowIndividualTraining] = useState(false);
@@ -186,14 +190,14 @@ const TrainingPage = () => {
                   <div className="mt-3 pt-3 border-t border-border/30">
                     <button
                       type="button"
-                      onClick={() => setShowAllDev(!showAllDev)}
+                      onClick={() => setShowReportBreakdown(!showReportBreakdown)}
                       className="flex items-center gap-1.5 text-[10px] text-muted-foreground uppercase tracking-wider mb-2 w-full"
                     >
                       <TrendingUp className="w-3 h-3" />
                       <span>Player Development ({report.playerBreakdown.length})</span>
-                      {showAllDev ? <ChevronUp className="w-3 h-3 ml-auto" /> : <ChevronDown className="w-3 h-3 ml-auto" />}
+                      {showReportBreakdown ? <ChevronUp className="w-3 h-3 ml-auto" /> : <ChevronDown className="w-3 h-3 ml-auto" />}
                     </button>
-                    {showAllDev && (
+                    {showReportBreakdown && (
                       <div className="space-y-1">
                         {report.playerBreakdown.map(entry => (
                           <div key={entry.playerId} className="flex items-center justify-between text-xs">
@@ -568,7 +572,7 @@ const TrainingPage = () => {
                   +50% gains on focus attributes. Extra sessions for skills not in team schedule. {Math.abs(INDIVIDUAL_FITNESS_COST)} fitness/wk cost per player.
                 </p>
                 <div className="space-y-1 max-h-72 overflow-y-auto">
-                  {squadPlayers
+                  {[...squadPlayers]
                     .sort((a, b) => b.overall - a.overall)
                     .map(p => {
                       const plan = (training.individualPlans || []).find(ip => ip.playerId === p.id);

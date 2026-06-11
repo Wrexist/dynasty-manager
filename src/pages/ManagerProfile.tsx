@@ -1,6 +1,7 @@
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { getSuffix } from '@/utils/helpers';
+import { LEAGUES } from '@/data/league';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Trophy, Star, TrendingUp, Shield, ScrollText, Clock, BarChart3, Crown, User, Shirt, Glasses, UserCircle, Briefcase, Sparkles, Globe, Eye, Flame, GraduationCap, Compass, Award } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
@@ -56,7 +57,7 @@ const CareerOverviewSkeleton = () => (
 );
 
 const ManagerProfile = () => {
-  const { season, seasonHistory, unlockedAchievements, managerStats, clubs, playerClubId, clubRecords, careerTimeline, monetization, gameMode, careerManager } = useGameStore(useShallow((s) => ({
+  const { season, seasonHistory, unlockedAchievements, managerStats, clubs, playerClubId, clubRecords, careerTimeline, monetization, gameMode } = useGameStore(useShallow((s) => ({
     season: s.season,
     seasonHistory: s.seasonHistory,
     unlockedAchievements: s.unlockedAchievements,
@@ -67,20 +68,20 @@ const ManagerProfile = () => {
     careerTimeline: s.careerTimeline,
     monetization: s.monetization,
     gameMode: s.gameMode,
-    careerManager: s.careerManager,
   })));
 
   // In career mode, show the career overview page instead. A bare `null`
   // fallback left the user on a blank page while the chunk downloaded —
   // replaced with a structural skeleton that matches the overview layout.
+  // CareerOverview itself renders the "Career mode is not active" panel when
+  // careerManager is missing, so it's rendered unconditionally here — the old
+  // `: null` branch blank-screened that edge case.
   if (gameMode === 'career') {
-    return careerManager
-      ? (
-        <Suspense fallback={<CareerOverviewSkeleton />}>
-          <CareerOverviewLazy />
-        </Suspense>
-      )
-      : null;
+    return (
+      <Suspense fallback={<CareerOverviewSkeleton />}>
+        <CareerOverviewLazy />
+      </Suspense>
+    );
   }
   const club = clubs[playerClubId];
   const avatarId = getActiveCosmetic(monetization, 'avatar');
@@ -91,6 +92,13 @@ const ManagerProfile = () => {
   const winRate = totalMatches > 0 ? Math.round((managerStats.totalWins / totalMatches) * 100) : 0;
   const titles = seasonHistory.filter(h => h.position === 1).length;
   const topFinishes = seasonHistory.filter(h => h.position <= 3).length;
+  // Position-chart Y range from the actual league sizes managed across the
+  // history — the hardcoded [1, 20] plotted positions 21-24 off-scale in
+  // bigger leagues (e.g. 24-team second tiers).
+  const chartMaxPosition = seasonHistory.reduce((max, h) => {
+    const teamCount = LEAGUES.find(l => l.id === (h.divisionId || club?.divisionId))?.teamCount ?? 20;
+    return Math.max(max, teamCount);
+  }, 20);
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
@@ -202,7 +210,7 @@ const ManagerProfile = () => {
               <XAxis dataKey="season" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
               <YAxis
                 reversed
-                domain={[1, 20]}
+                domain={[1, chartMaxPosition]}
                 tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
                 axisLine={false}
                 tickLine={false}

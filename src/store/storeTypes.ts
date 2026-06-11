@@ -358,7 +358,7 @@ export interface GameState {
   criticizeStaff: (staffId: string) => { success: boolean; message: string };
   renewStaffContract: (staffId: string) => { success: boolean; message: string };
   refreshStaffMarket: () => { success: boolean; message: string };
-  assignScout: (region: ScoutRegion) => void;
+  assignScout: (region: ScoutRegion) => { success: boolean; message?: string };
   cancelAssignment: (assignmentId: string) => void;
   boostScoutReports: () => void;
   dismissScoutReport: (reportId: string) => void;
@@ -451,7 +451,7 @@ export interface GameState {
   // Actions — Career Mode
   initCareerGame: (manager: CareerManager, clubId: string, options?: { communityPackEnabled?: boolean }) => Promise<void> | void;
   applyForJob: (vacancyId: string) => { success: boolean; message: string };
-  respondToJobOffer: (offerId: string, accept: boolean) => void;
+  respondToJobOffer: (offerId: string, accept: boolean) => { success: boolean; message?: string };
   resignFromClub: () => void;
   moveToNewClub: (clubId: string, offer: JobOffer) => void;
   retireManager: () => void;

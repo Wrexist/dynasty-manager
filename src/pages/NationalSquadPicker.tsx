@@ -70,15 +70,6 @@ const NationalSquadPicker = () => {
     })),
   );
 
-  // Eligible pool (real players matching the manager's nationality, available to pick).
-  const eligible = useMemo<Player[]>(() => {
-    if (!managerNationality) return [];
-    return Object.values(players)
-      .filter(p => p.nationality === managerNationality && !p.injured && p.age >= 17)
-      .sort((a, b) => b.overall - a.overall)
-      .slice(0, POOL_DISPLAY_LIMIT);
-  }, [players, managerNationality]);
-
   // Local picker state — initialised from the auto-selected default.
   const [pickedIds, setPickedIds] = useState<Set<string>>(() => {
     return new Set(nationalTeam?.squad ?? []);
@@ -88,6 +79,28 @@ const NationalSquadPicker = () => {
   useEffect(() => {
     setPickedIds(new Set(nationalTeam?.squad ?? []));
   }, [nationalTeam?.squad]);
+
+  // Eligible pool (real players matching the manager's nationality, available
+  // to pick), PLUS any currently-picked player who falls outside the top 50 or
+  // got injured since selection — mirrors NationalTeamPage's `extras` append.
+  // Without it a picked-but-hidden player is counted ("23/23" with 22 visible
+  // checks) and can never be deselected, deadlocking the confirm flow.
+  const eligible = useMemo<Player[]>(() => {
+    if (!managerNationality) return [];
+    const top = Object.values(players)
+      .filter(p => p.nationality === managerNationality && !p.injured && p.age >= 17)
+      .sort((a, b) => b.overall - a.overall)
+      .slice(0, POOL_DISPLAY_LIMIT);
+    const seen = new Set(top.map(p => p.id));
+    const extras: Player[] = [];
+    for (const id of pickedIds) {
+      if (!seen.has(id)) {
+        const p = players[id];
+        if (p) extras.push(p);
+      }
+    }
+    return extras.length ? [...top, ...extras].sort((a, b) => b.overall - a.overall) : top;
+  }, [players, managerNationality, pickedIds]);
 
   const pickedPlayers = useMemo<Player[]>(() => {
     return Array.from(pickedIds)
@@ -111,20 +124,25 @@ const NationalSquadPicker = () => {
         const next = new Set(prev);
         if (next.has(id)) {
           next.delete(id);
-        } else if (next.size < NATIONAL_SQUAD_SIZE) {
-          next.add(id);
+        } else {
+          // Gate on resolvable players, not raw ids — a dangling id (deleted
+          // player) in the persisted squad must not block the 23rd real pick.
+          const resolved = Array.from(next).filter(pid => players[pid]).length;
+          if (resolved < NATIONAL_SQUAD_SIZE) next.add(id);
         }
         return next;
       });
     },
-    [],
+    [players],
   );
 
   const handleAutoFill = useCallback(() => {
     hapticMedium();
     const next = new Set<string>();
     // Walk the position quotas first to ensure coverage, then top up by overall.
-    const remaining = [...eligible];
+    // `eligible` can carry injured already-picked extras (so they stay
+    // deselectable) — auto-fill must not select those.
+    const remaining = eligible.filter(p => !p.injured);
     const order: ('GK' | 'DEF' | 'MID' | 'FWD')[] = ['GK', 'DEF', 'MID', 'FWD'];
     for (const bucket of order) {
       const quota = POSITION_QUOTAS[bucket].recommended;
@@ -325,7 +343,8 @@ const NationalSquadPicker = () => {
                 <AnimatePresence initial={false}>
                   {groupPlayers.map((player, i) => {
                     const isPicked = pickedIds.has(player.id);
-                    const isFull = pickedIds.size >= NATIONAL_SQUAD_SIZE;
+                    // Resolved players, not raw ids — see handleToggle.
+                    const isFull = pickedPlayers.length >= NATIONAL_SQUAD_SIZE;
                     const club = player.clubId ? clubs[player.clubId] : null;
                     return (
                       <motion.button

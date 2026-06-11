@@ -120,7 +120,9 @@ function TournamentView({ tournament, competition }: { tournament: ContinentalTo
             transition={{ duration: 0.25 }}
             className="space-y-3"
           >
-            {tournament.groups
+            {/* Copy before sorting — .sort() in place would mutate (and persist)
+                the live store array during render. */}
+            {[...tournament.groups]
               .sort((a, b) => {
                 if (a.id === tournament.playerGroupId) return -1;
                 if (b.id === tournament.playerGroupId) return 1;

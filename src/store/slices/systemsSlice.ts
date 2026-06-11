@@ -286,11 +286,16 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
 
   assignScout: (region: ScoutRegion) => {
     const state = get();
-    if (state.scouting.assignments.length >= state.scouting.maxAssignments) return;
+    if (state.scouting.assignments.length >= state.scouting.maxAssignments) {
+      // Surfaced to the caller — silently no-oping here let the UI toast a
+      // false "Scout Assigned" success at max assignments.
+      return { success: false, message: 'All scouts are already on assignment.' };
+    }
     const assignment = createAssignment(region);
     set({
       scouting: { ...state.scouting, assignments: [...state.scouting.assignments, assignment] },
     });
+    return { success: true };
   },
 
   cancelAssignment: (assignmentId: string) => {

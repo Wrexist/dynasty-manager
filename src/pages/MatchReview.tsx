@@ -79,6 +79,9 @@ const MatchReview = () => {
     monetization: s.monetization, lastMatchCompetition: s.lastMatchCompetition,
     virtualClubs: s.virtualClubs,
   })));
+  // Selected reactively — a getState() read during render showed a stale
+  // position and never re-rendered when the store updated.
+  const preMatchLeaguePosition = useGameStore(s => s.preMatchLeaguePosition);
   const advanceWeek = useGameStore(s => s.advanceWeek);
   const setScreen = useGameStore(s => s.setScreen);
   const selectPlayer = useGameStore(s => s.selectPlayer);
@@ -872,7 +875,6 @@ const MatchReview = () => {
       {!lastMatchCompetition && (() => {
         const table = divisionTables[playerDivision] || [];
         const newPos = table.findIndex(e => e.clubId === playerClubId) + 1;
-        const { preMatchLeaguePosition } = useGameStore.getState();
         const oldPos = preMatchLeaguePosition || newPos;
         const delta = oldPos - newPos; // positive = moved up
         if (newPos <= 0) return null;

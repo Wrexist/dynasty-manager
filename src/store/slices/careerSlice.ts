@@ -283,21 +283,25 @@ export const createCareerSlice = (set: Set, get: Get) => ({
   respondToJobOffer: (offerId: string, accept: boolean) => {
     const state = get();
     const manager = state.careerManager;
-    if (!manager) return;
+    if (!manager) return { success: false, message: 'No active career.' };
 
     const offer = state.jobOffers.find(o => o.id === offerId);
-    if (!offer) return;
+    if (!offer) return { success: false, message: 'This offer is no longer available.' };
 
     if (!accept) {
       set({ jobOffers: state.jobOffers.filter(o => o.id !== offerId) });
-      return;
+      return { success: true };
     }
 
-    // Block retired managers from accepting
-    if (manager.age >= getRetirementAge(manager)) return;
+    // Block retired managers from accepting — returned (not silent) so the
+    // UI can explain why the enabled Accept button did nothing.
+    if (manager.age >= getRetirementAge(manager)) {
+      return { success: false, message: 'You have reached retirement age and can no longer take a new job.' };
+    }
 
     // Accept — move to new club
     state.moveToNewClub(offer.clubId, offer);
+    return { success: true };
   },
 
   resignFromClub: () => {

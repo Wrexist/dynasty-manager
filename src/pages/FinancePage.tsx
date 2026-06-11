@@ -6,6 +6,7 @@ import { DollarSign, TrendingUp, TrendingDown, Users, ArrowUpRight, ArrowDownRig
 import { cn } from '@/lib/utils';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS } from '@/config/ui';
+import { formatMoney } from '@/utils/helpers';
 import { useFinanceBreakdown } from '@/hooks/useFinanceBreakdown';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { FinanceBreakdownSheet, FinanceSheetMode } from '@/components/game/FinanceBreakdownSheet';
@@ -86,7 +87,7 @@ const FinancePage = () => {
         </div>
         <AnimatedNumber
           value={club.budget}
-          formatFn={(n) => '£' + (n / 1e6).toFixed(1) + 'M'}
+          formatFn={formatMoney}
           className={cn('text-3xl font-black text-foreground font-display tabular-nums', budgetFlash)}
         />
         <div className="flex items-center gap-1 mt-1">
@@ -96,7 +97,7 @@ const FinancePage = () => {
             <TrendingDown className="w-3.5 h-3.5 text-destructive" />
           )}
           <span className={cn('text-xs font-semibold', isPositive ? 'text-emerald-400' : 'text-destructive')}>
-            {isPositive ? '+' : ''}£{(netPerWeek / 1000).toFixed(0)}K/week
+            {isPositive ? '+' : ''}{formatMoney(netPerWeek)}/week
           </span>
         </div>
       </GlassPanel>
@@ -131,7 +132,7 @@ const FinancePage = () => {
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">Budget Forecast (10 weeks)</span>
             <span className={cn('text-xs font-bold tabular-nums', (club.budget + netPerWeek * 10) < 0 ? 'text-destructive' : 'text-foreground')}>
-              £{((club.budget + netPerWeek * 10) / 1e6).toFixed(1)}M
+              {formatMoney(club.budget + netPerWeek * 10)}
             </span>
           </div>
           {netPerWeek < 0 && club.budget > 0 && (
@@ -149,15 +150,15 @@ const FinancePage = () => {
             <ArrowUpRight className="w-3.5 h-3.5 text-emerald-400" />
             <span className="text-xs text-muted-foreground">Weekly Income</span>
           </div>
-          <p className="text-lg font-bold text-emerald-400 tabular-nums">£{(weeklyIncome / 1000).toFixed(0)}K</p>
+          <p className="text-lg font-bold text-emerald-400 tabular-nums">{formatMoney(weeklyIncome)}</p>
           <div className="mt-2 space-y-1">
             <div className="flex justify-between text-[10px]">
               <span className="text-muted-foreground">Matchday</span>
-              <span className="text-foreground">£{((breakdown?.income.find(i => i.label === 'Matchday')?.amount ?? 0) / 1000).toFixed(0)}K</span>
+              <span className="text-foreground">{formatMoney(breakdown?.income.find(i => i.label === 'Matchday')?.amount ?? 0)}</span>
             </div>
             <div className="flex justify-between text-[10px]">
               <span className="text-muted-foreground">Commercial</span>
-              <span className="text-foreground">£{((breakdown?.income.find(i => i.label === 'Commercial')?.amount ?? 0) / 1000).toFixed(0)}K</span>
+              <span className="text-foreground">{formatMoney(breakdown?.income.find(i => i.label === 'Commercial')?.amount ?? 0)}</span>
             </div>
           </div>
         </GlassPanel>
@@ -166,16 +167,16 @@ const FinancePage = () => {
             <ArrowDownRight className="w-3.5 h-3.5 text-destructive" />
             <span className="text-xs text-muted-foreground">Weekly Expenses</span>
           </div>
-          <p className="text-lg font-bold text-destructive tabular-nums">£{(displayExpenses / 1000).toFixed(0)}K</p>
+          <p className="text-lg font-bold text-destructive tabular-nums">{formatMoney(displayExpenses)}</p>
           <div className="mt-2 space-y-1">
             <div className="flex justify-between text-[10px]">
               <span className="text-muted-foreground">Player Wages</span>
-              <span className="text-foreground">£{(totalWages / 1000).toFixed(0)}K</span>
+              <span className="text-foreground">{formatMoney(totalWages)}</span>
             </div>
             {managerSalary > 0 && (
               <div className="flex justify-between text-[10px]">
                 <span className="text-muted-foreground">Manager Salary</span>
-                <span className="text-foreground">£{(managerSalary / 1000).toFixed(1)}K</span>
+                <span className="text-foreground">{formatMoney(managerSalary)}</span>
               </div>
             )}
           </div>
@@ -239,9 +240,9 @@ const FinancePage = () => {
             <Users className="w-4 h-4 text-primary" />
             <span className="text-sm font-semibold text-foreground">Squad Value</span>
           </div>
-          <span className="text-lg font-bold text-primary tabular-nums">£{(squadValue / 1e6).toFixed(1)}M</span>
+          <span className="text-lg font-bold text-primary tabular-nums">{formatMoney(squadValue)}</span>
         </div>
-        <p className="text-xs text-muted-foreground mt-1">{squadPlayers.length} players · Avg £{squadPlayers.length > 0 ? (squadValue / squadPlayers.length / 1e6).toFixed(1) : '0.0'}M</p>
+        <p className="text-xs text-muted-foreground mt-1">{squadPlayers.length} players · Avg {squadPlayers.length > 0 ? formatMoney(squadValue / squadPlayers.length) : '£0'}</p>
       </GlassPanel>
 
       {/* Top Earners */}
@@ -254,7 +255,7 @@ const FinancePage = () => {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs font-semibold text-foreground truncate">{player.lastName}</span>
-                  <span className="text-xs text-muted-foreground tabular-nums shrink-0">£{(player.wage / 1000).toFixed(0)}K/w</span>
+                  <span className="text-xs text-muted-foreground tabular-nums shrink-0">{formatMoney(player.wage)}/w</span>
                 </div>
                 <div className="w-full h-1.5 bg-muted/30 rounded-full overflow-hidden">
                   <div

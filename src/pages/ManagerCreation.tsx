@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/react';
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
@@ -47,6 +47,13 @@ const ManagerCreation = () => {
   const setManagerNationality = useGameStore(s => s.setManagerNationality);
   const saveGame = useGameStore(s => s.saveGame);
   const navState = (location.state as { slot?: number; communityPackEnabled?: boolean }) || {};
+  // A deep link / refresh arrives without navigation state. Defaulting to
+  // slot 1 here used to let onboarding silently overwrite save slot 1 —
+  // send the user back to the title screen to pick a slot instead.
+  const missingSlot = navState.slot == null;
+  useEffect(() => {
+    if (missingSlot) navigate('/', { replace: true });
+  }, [missingSlot, navigate]);
   const slot = navState.slot || 1;
   const communityPackEnabled = navState.communityPackEnabled === true;
 
@@ -184,6 +191,10 @@ const ManagerCreation = () => {
     }
     return groups;
   }, [filteredNations]);
+
+  // Redirecting to the title screen (no slot in nav state) — render nothing.
+  // Placed after all hooks to satisfy the Rules of Hooks.
+  if (missingSlot) return null;
 
   // Inline continue / begin career button
   const actionButton = step === 'offers' ? (

@@ -26,8 +26,11 @@ const ComparisonPage = () => {
     );
   }
 
-  const playerA = players[playerAId];
-  const playerB = players[playerBId];
+  // Resolve selections against the *current* squad — a selected player who was
+  // sold/released since selection must not silently blank the chart.
+  const playerA = squadPlayers.find(p => p.id === playerAId);
+  const playerB = squadPlayers.find(p => p.id === playerBId);
+  const staleSelection = (!playerA && !!playerAId) || (!playerB && !!playerBId);
 
   const radarData = playerA && playerB ? [
     { attr: 'PAC', a: playerA.attributes.pace, b: playerB.attributes.pace },
@@ -70,6 +73,15 @@ const ComparisonPage = () => {
           </select>
         </GlassPanel>
       </div>
+
+      {/* Stale selection — explain why the chart is gone instead of vanishing silently */}
+      {staleSelection && (
+        <GlassPanel className="p-6 text-center">
+          <p className="text-xs text-muted-foreground">
+            A selected player is no longer at the club. Pick another player to compare.
+          </p>
+        </GlassPanel>
+      )}
 
       {/* Radar Chart */}
       {playerA && playerB && (

@@ -3,7 +3,8 @@ import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Button } from '@/components/ui/button';
-import { Trophy, Star, ArrowRight, Crown, AlertTriangle, Award, Diamond, Flame, Shield } from 'lucide-react';
+import { ConfirmDialog } from '@/components/game/ConfirmDialog';
+import { Trophy, Star, ArrowRight, Crown, Award, Diamond, Flame, Shield } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { motion } from 'framer-motion';
 import { PRESTIGE_OPTIONS, calculatePrestigeStats } from '@/utils/prestige';
@@ -131,28 +132,18 @@ const PrestigePage = () => {
           Not Yet — Continue Current Career
         </Button>
 
-        {/* Prestige Confirmation Dialog */}
-        {confirmOption && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-            <GlassPanel className="p-5 max-w-sm w-full space-y-3">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5 text-amber-400" />
-                <h3 className="text-sm font-bold text-foreground">Confirm Prestige</h3>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Are you sure you want to prestige with <span className="text-foreground font-semibold">{confirmOption.label}</span>? This will reset your current save and start a new career.
-              </p>
-              <div className="flex gap-2 pt-1">
-                <Button size="sm" variant="destructive" className="flex-1" onClick={() => { startPrestige(confirmOption.id); setConfirmOption(null); }}>
-                  Prestige Now
-                </Button>
-                <Button size="sm" variant="ghost" className="flex-1" onClick={() => setConfirmOption(null)}>
-                  Cancel
-                </Button>
-              </div>
-            </GlassPanel>
-          </div>
-        )}
+        {/* Prestige Confirmation Dialog — ConfirmDialog brings Escape/backdrop
+            dismissal and focus trapping the raw overlay lacked, for the most
+            destructive action in the game. */}
+        <ConfirmDialog
+          open={!!confirmOption}
+          onOpenChange={(open) => { if (!open) setConfirmOption(null); }}
+          title="Confirm Prestige"
+          description={`Are you sure you want to prestige with ${confirmOption?.label ?? ''}? This will reset your current save and start a new career.`}
+          confirmLabel="Prestige Now"
+          variant="destructive"
+          onConfirm={() => { if (confirmOption) startPrestige(confirmOption.id); }}
+        />
       </motion.div>
     </div>
   );

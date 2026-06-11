@@ -41,18 +41,34 @@ const ChallengePicker = () => {
   }, [pickingClub]);
 
   const handleSelectChallenge = (scenario: ChallengeScenario) => {
+    if (loading) return;
     setSelected(scenario);
-    if (scenario.startingClubId) {
-      startChallenge(scenario.id, scenario.startingClubId);
-      navigate('/game');
-    } else if (scenario.id === 'giant-killer') {
+
+    // Resolve the fixed club (preset start or giant-killer's lowest-rep club);
+    // null means the user picks one.
+    let fixedClubId: string | null = scenario.startingClubId || null;
+    if (!fixedClubId && scenario.id === 'giant-killer') {
       const lowestRep = [...CLUBS_DATA].sort((a, b) => a.reputation - b.reputation)[0];
       if (!lowestRep) return;
-      startChallenge(scenario.id, lowestRep.id);
-      navigate('/game');
-    } else {
-      setPickingClub(true);
+      fixedClubId = lowestRep.id;
     }
+    if (!fixedClubId) {
+      setPickingClub(true);
+      return;
+    }
+
+    // Mirror handleSelectClub — a throw from startChallenge used to escape to
+    // the route ErrorBoundary instead of being captured.
+    setLoading(true);
+    requestAnimationFrame(() => {
+      try {
+        startChallenge(scenario.id, fixedClubId);
+        queueMicrotask(() => navigate('/game'));
+      } catch (err) {
+        Sentry.captureException(err, { tags: { context: 'startChallenge' } });
+        setLoading(false);
+      }
+    });
   };
 
   const handleSelectClub = useCallback((clubId: string) => {

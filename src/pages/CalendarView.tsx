@@ -1,4 +1,4 @@
-import { useRef, useEffect, useMemo } from 'react';
+import { useRef, useEffect, useMemo, useCallback } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -42,6 +42,12 @@ const CalendarView = () => {
   })));
   const setScreen = useGameStore((s) => s.setScreen);
   const currentWeekRef = useRef<HTMLDivElement>(null);
+  // Several entries can share the current week (league + cup + international).
+  // Only the FIRST mounted row claims the ref, so the mount auto-scroll
+  // centres the top of the current week instead of its last row.
+  const setCurrentWeekRef = useCallback((el: HTMLDivElement | null) => {
+    if (el && !currentWeekRef.current) currentWeekRef.current = el;
+  }, []);
   const phaseRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const weekCount = totalWeeks || TOTAL_WEEKS;
@@ -488,7 +494,7 @@ const CalendarView = () => {
                   return (
                     <div
                       key={`bye-${entry.week}`}
-                      ref={isCurrentWeek ? currentWeekRef : undefined}
+                      ref={isCurrentWeek ? setCurrentWeekRef : undefined}
                       className={cn(
                         'flex items-center gap-3 px-3 py-2 rounded-lg',
                         isCurrentWeek ? 'bg-primary/10 border border-primary/30' : 'bg-card/20'
@@ -513,7 +519,7 @@ const CalendarView = () => {
                   return (
                     <div
                       key={`intl-${entry.week}-${entry.intlLabel}`}
-                      ref={isCurrentWeek ? currentWeekRef : undefined}
+                      ref={isCurrentWeek ? setCurrentWeekRef : undefined}
                       className={cn(
                         'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors border-l-2 border-l-blue-400/50',
                         isCurrentWeek ? 'bg-blue-500/10 border border-blue-400/30' : 'bg-card/40',
@@ -597,7 +603,7 @@ const CalendarView = () => {
     return (
       <div
         key={match.id}
-        ref={isCurrentWeek ? currentWeekRef : undefined}
+        ref={isCurrentWeek ? setCurrentWeekRef : undefined}
         onClick={handleClick}
         className={cn(
           'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
@@ -698,7 +704,7 @@ const CalendarView = () => {
     return (
       <div
         key={tie.id}
-        ref={isCurrentWeek ? currentWeekRef : undefined}
+        ref={isCurrentWeek ? setCurrentWeekRef : undefined}
         className={cn(
           'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors border-l-2 border-l-primary/50',
           isCurrent && 'bg-primary/10 border border-primary/30 shadow-sm shadow-primary/10',

@@ -281,19 +281,36 @@ const MatchDayInner = () => {
   };
 
   const resumeExtraTime = () => {
-    const result = playExtraTime();
-    if (!result) return;
-    setAllEvents(result.events);
-    currentMinRef.current = 90;
-    setCurrentMin(90);
-    setPhase('extra_time');
-    setPaused(false);
+    // Guard against double-tap (same pattern as resumeSecondHalf) — a
+    // double-fire would re-simulate extra time.
+    if (resumingRef.current) return;
+    resumingRef.current = true;
+    try {
+      const result = playExtraTime();
+      if (!result) { resumingRef.current = false; return; }
+      setAllEvents(result.events);
+      currentMinRef.current = 90;
+      setCurrentMin(90);
+      setPhase('extra_time');
+      setPaused(false);
+      resumingRef.current = false;
+    } catch (err) {
+      Sentry.captureException(err, { tags: { context: 'resumeExtraTime' } });
+      resumingRef.current = false;
+    }
   };
 
   const handlePenalties = () => {
     // playPenalties() now only pre-computes kicks and stores them for kick-by-kick reveal.
     // The phase stays 'penalties' until the shootout is finalized via revealNextPenaltyKick / skipPenaltyShootout.
-    playPenalties();
+    // Double-tap guard — a double-fire would re-roll the pre-computed shootout.
+    if (resumingRef.current) return;
+    resumingRef.current = true;
+    try {
+      playPenalties();
+    } finally {
+      resumingRef.current = false;
+    }
   };
 
   // Detect key moments that should pause the match for player decisions

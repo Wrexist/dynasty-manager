@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Gamepad2, Briefcase, Users, Sparkles } from 'lucide-react';
@@ -62,8 +63,16 @@ const ModeSelect = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const navState = (location.state as { slot?: number; communityPackEnabled?: boolean }) || {};
+  // A deep link / refresh arrives without navigation state. Defaulting to
+  // slot 1 here used to let onboarding silently overwrite save slot 1 —
+  // send the user back to the title screen to pick a slot instead.
+  const missingSlot = navState.slot == null;
+  useEffect(() => {
+    if (missingSlot) navigate('/', { replace: true });
+  }, [missingSlot, navigate]);
   const slot = navState.slot || 1;
   const communityPackEnabled = navState.communityPackEnabled === true;
+  if (missingSlot) return null;
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center p-6 safe-area-top safe-area-bottom">

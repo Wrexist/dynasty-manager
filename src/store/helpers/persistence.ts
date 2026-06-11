@@ -296,6 +296,13 @@ export const STORAGE_KEYS = {
    *  showing on every subsequent New Game tap. Returning Pro users skip
    *  the check entirely. */
   SUBSCRIBE_ONBOARDING_SEEN: 'dynasty-subscribe-onboarding-seen',
+  /** localStorage flag: the first-week welcome tutorial has been shown
+   *  (Dashboard). Removed by Settings → Replay Tutorial. */
+  WELCOME_SHOWN: 'dynasty-welcome-shown',
+  /** localStorage flag prefix: per-screen page hints
+   *  (`dynasty-hint-<screen>-shown`, see PageHint.tsx). Cleared as a prefix
+   *  by Settings → Replay Tutorial. */
+  HINT_PREFIX: 'dynasty-hint-',
 } as const;
 
 /** Read the latest "What's New" version the user has acknowledged. */

@@ -14,8 +14,12 @@ function TieCard({ tie, playerClubId, clubs }: { tie: CupTie; playerClubId: stri
   const home = clubs[tie.homeClubId];
   const away = clubs[tie.awayClubId];
   const isPlayerMatch = tie.homeClubId === playerClubId || tie.awayClubId === playerClubId;
+  // Legacy fallback for played ties without winnerId: only highlight a winner
+  // when the score actually decides one — a level score used to (wrongly)
+  // name the away team the winner.
   const winnerId = tie.played
-    ? (tie.winnerId || (tie.homeGoals > tie.awayGoals ? tie.homeClubId : tie.awayClubId))
+    ? (tie.winnerId || (tie.homeGoals > tie.awayGoals ? tie.homeClubId
+        : tie.awayGoals > tie.homeGoals ? tie.awayClubId : null))
     : null;
 
   return (

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
-import { getSuffix, resolveClub } from '@/utils/helpers';
+import { getSuffix, resolveClub, formatMoney } from '@/utils/helpers';
 import { getConfidenceColor, getFanConfidenceColor, getFanConfidence } from '@/utils/uiHelpers';
 import { usePlayerClub, useLeaguePosition, useCurrentMatch, useUnreadCount, findTournamentMatch, useSquadAverageMorale } from '@/hooks/useGameSelectors';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -59,7 +59,7 @@ import { HELP_TEXTS, MID_SEASON_WEEK, CONFIDENCE_CRITICAL_THRESHOLD, CONFIDENCE_
 import { CONFIDENCE_CHANGE_DISMISS_THRESHOLD } from '@/config/gameBalance';
 import { getManagerTips, type TipType } from '@/utils/managerTips';
 import { getActiveRecordChases } from '@/utils/records';
-import { getFlag, setFlag } from '@/store/helpers/persistence';
+import { getFlag, setFlag, STORAGE_KEYS } from '@/store/helpers/persistence';
 import { MidSeasonReport } from '@/components/game/MidSeasonReport';
 import { buildCoachTasks } from '@/utils/gameCoach';
 import { STORYLINE_CHAINS } from '@/data/storylineChains';
@@ -68,7 +68,7 @@ import { getRecentForm } from '@/utils/formGuide';
 import { computeObjectiveProgress } from '@/utils/weeklyObjectives';
 import { getCompetitionInfo } from '@/utils/competitionBadge';
 
-const WELCOME_KEY = 'dynasty-welcome-shown';
+const WELCOME_KEY = STORAGE_KEYS.WELCOME_SHOWN;
 // Collapse panels animate `height: auto`, which triggers a layout pass on
 // every frame. Spring physics + auto-height re-measures the content each
 // frame and stutters under load (especially with nested motion children
@@ -650,7 +650,9 @@ const Dashboard = () => {
   // Board-critical confidence is already surfaced via <BoardWarning />, so we
   // don't re-dot it here (the 'club' tile was removed and that entry would be
   // dead code anyway).
-  const lineupIncomplete = (club.lineup || []).filter(Boolean).length < 11;
+  // Count resolvable players, not raw IDs — a dangling ID (sold/deleted player)
+  // would otherwise satisfy the count here while MatchDay's gate rejects it.
+  const lineupIncomplete = (club.lineup || []).filter(id => !!players[id]).length < 11;
   const packPityRemaining = Math.max(0, PACK_PITY_THRESHOLD - packPityCounter);
   const packPityPrimed = packPityRemaining <= 2;
   // Quick-link badges. Most links carry a simple coloured dot when there's
@@ -1880,10 +1882,10 @@ const Dashboard = () => {
             <InfoTip text={HELP_TEXTS.budget} />
           </div>
           <p className={cn("text-2xl font-black text-foreground tabular-nums", budgetFlash)}>
-            £<AnimatedNumber value={club.budget / 1e6} formatFn={(n) => n.toFixed(1)} /><span className="text-sm">M</span>
+            <AnimatedNumber value={club.budget} formatFn={formatMoney} />
           </p>
           <p className="text-xs text-muted-foreground tabular-nums">
-            Wage: £{(club.wageBill / 1e3).toFixed(0)}K/w
+            Wage: {formatMoney(club.wageBill)}/w
           </p>
         </GlassPanel>
 
@@ -1945,7 +1947,7 @@ const Dashboard = () => {
             'text-xl font-black tabular-nums',
             netWeeklyIncome >= 0 ? 'text-emerald-400' : 'text-destructive'
           )}>
-            {netWeeklyIncome >= 0 ? '+' : ''}£{(Math.abs(netWeeklyIncome) / 1e3).toFixed(0)}K
+            {netWeeklyIncome >= 0 ? '+' : ''}{formatMoney(netWeeklyIncome)}
           </p>
           <p className="text-[10px] text-muted-foreground">per week</p>
         </GlassPanel>

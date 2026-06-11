@@ -918,7 +918,12 @@ const PlayerDetail = () => {
               <div>
                 <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
                   <span>Recovery Progress</span>
-                  <span>Est. return: Week {Math.min(week + player.injuryWeeks, totalWeeks)}</span>
+                  <span>
+                    {/* A return week past the season's end used to clamp to
+                        totalWeeks, promising a comeback this season that
+                        can't happen. */}
+                    Est. return: {week + player.injuryWeeks > totalWeeks ? 'next season' : `Week ${week + player.injuryWeeks}`}
+                  </span>
                 </div>
                 <div className="w-full h-2 rounded-full bg-muted/40 overflow-hidden">
                   <div
@@ -967,7 +972,16 @@ const PlayerDetail = () => {
         <Button
           variant="outline"
           className="w-full gap-2 border-primary/30 text-primary hover:bg-primary/10 hover:text-primary"
-          onClick={() => startNegotiation(player.id, true)}
+          onClick={() => {
+            // Mirror SquadPage.handleRenew — a silent no-op when negotiations
+            // are locked left the button looking broken.
+            const result = startNegotiation(player.id, true);
+            if (result && !result.success) {
+              errorToast(result.lockedWeeks
+                ? `Negotiations locked for ${result.lockedWeeks} more week${result.lockedWeeks !== 1 ? 's' : ''}`
+                : 'Unable to start negotiations');
+            }
+          }}
         >
           <FileText className="w-4 h-4" /> Negotiate Renewal
           <span className="text-[10px] text-muted-foreground ml-auto">
