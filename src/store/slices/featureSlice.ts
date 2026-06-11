@@ -147,8 +147,9 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
     const xp = COACH_TASK_XP[taskId] ?? 5;
     let updatedProgression = grantXP(get().managerProgression, xp);
 
-    // Bonus XP for completing all 7 tasks (fires exactly once)
-    if (newIds.length === 7) {
+    // Bonus XP for completing ALL tasks (fires exactly once) — derive the
+    // count from the config so adding/removing a task can't desync this.
+    if (newIds.length === Object.keys(COACH_TASK_XP).length) {
       updatedProgression = grantXP(updatedProgression, COACH_ALL_TASKS_BONUS_XP);
     }
 
@@ -464,10 +465,20 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
     return { success: true };
   },
 
-  submitWageOffer: (wage: number, years?: number) => {
+  submitWageOffer: (wage: number, years?: number): { success: false; message: string } | void => {
     const state = get();
     const offer = state.activeNegotiation;
     if (!offer || offer.status !== 'in_progress') return;
+
+    // Affordability pre-check: agent fee + loyalty bonus are fixed at offer
+    // creation and charged in full on acceptance with no budget guard, so an
+    // accepted round would silently drive the budget negative. Siblings
+    // (renewStaffContract, terminateSponsorDeal) refuse when unaffordable.
+    const negotiatingClub = state.clubs[state.playerClubId];
+    const upfrontCost = (offer.agentFee || 0) + (offer.loyaltyBonus || 0);
+    if (negotiatingClub && negotiatingClub.budget < upfrontCost) {
+      return { success: false, message: `Cannot afford the £${(upfrontCost / 1000).toFixed(0)}K agent fee${offer.loyaltyBonus > 0 ? ' and loyalty bonus' : ''}.` };
+    }
 
     const updated = { ...offer, offeredWage: wage };
     if (years !== undefined) updated.contractYears = years;

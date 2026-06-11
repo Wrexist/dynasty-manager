@@ -554,9 +554,29 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   const apIdSet = new Set(ap.map(p => p.id));
   const hBenchCM = (hc.subs || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !hpIdSet.has(p.id) && !p.injured && !isSuspended(p));
   const aBenchCM = (ac.subs || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !apIdSet.has(p.id) && !p.injured && !isSuspended(p));
-  // Capture pre-match snapshot for Invincible perk (match rewind on loss)
+  // Capture pre-match snapshot for Invincible perk (match rewind on loss).
+  // Must include EVERYTHING the post-match processing writes — a partial
+  // snapshot lets the replay double-count manager stats, XP, rivalries,
+  // chemistry, ELO, session stats and keep stale messages/press conferences.
   if (hasPerk(state.managerProgression, 'invincible') && !state.invincibleUsedThisSeason && !isFriendly) {
-    set({ preMatchSnapshot: { fixtures: [...state.fixtures], divisionFixtures: { ...state.divisionFixtures }, players: { ...state.players }, boardConfidence: state.boardConfidence, leagueTable: [...state.leagueTable], divisionTables: { ...state.divisionTables } } });
+    set({ preMatchSnapshot: {
+      fixtures: [...state.fixtures],
+      divisionFixtures: { ...state.divisionFixtures },
+      players: { ...state.players },
+      boardConfidence: state.boardConfidence,
+      leagueTable: [...state.leagueTable],
+      divisionTables: { ...state.divisionTables },
+      clubs: { ...state.clubs },
+      managerStats: { ...state.managerStats },
+      managerProgression: state.managerProgression,
+      careerTimeline: [...state.careerTimeline],
+      rivalries: { ...(state.rivalries || {}) },
+      pairFamiliarity: { ...(state.pairFamiliarity || {}) },
+      clubPowerRankings: { ...(state.clubPowerRankings || {}) },
+      sessionStats: { ...state.sessionStats },
+      messages: [...state.messages],
+      pendingPressConference: state.pendingPressConference,
+    } });
   }
 
   const spCoachInstant = hasPerk(state.managerProgression, 'set_piece_coach') ? 0.009 * dynastyMult(state.managerProgression) : 0;
@@ -1021,7 +1041,7 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
     : superCup ? (superCup.type === 'domestic' ? 'Super Cup' : 'Continental Super Cup')
     : null;
   set({
-    halfTimeState: halfState, currentMatchWeather: matchWeather, matchPhase: 'half_time', matchSubsUsed: 0, preMatchLeaguePosition: preMatchPos,
+    halfTimeState: halfState, currentMatchWeather: matchWeather, matchPhase: 'half_time', matchSubsUsed: 0, matchSubbedOffIds: [], preMatchLeaguePosition: preMatchPos,
     currentCupTieId: cupTie ? cupTie.id : isCupMatch ? '__tournament__' : null,
     currentLeagueCupTieId: leagueCupTie ? leagueCupTie.id : null,
     currentContinentalMatchId: continentalMatch ? match.id : null,

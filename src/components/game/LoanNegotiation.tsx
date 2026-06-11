@@ -31,6 +31,7 @@ export function LoanNegotiation({ playerId, onClose }: Props) {
   })));
   const evaluateLoanRequest = useGameStore(s => s.evaluateLoanRequest);
   const requestLoan = useGameStore(s => s.requestLoan);
+  const acceptLoanCounter = useGameStore(s => s.acceptLoanCounter);
 
   const player = players[playerId];
   const ownerClub = player ? clubs[player.clubId] : null;
@@ -97,14 +98,19 @@ export function LoanNegotiation({ playerId, onClose }: Props) {
     setCounterWageSplit(null);
     setCounterDuration(null);
     timersRef.current.push(setTimeout(() => {
-      const result = requestLoan(playerId, cDur, cWage, recallClause, buyOption ? buyFee : undefined);
-      // Only show success when the loan was actually agreed. A repeated 'counter' previously
-      // displayed "Loan Agreed!" even though no activeLoan was created.
-      setOutcome(result.outcome === 'accepted' ? 'accepted' : 'rejected');
-      setResultMessage(result.outcome === 'accepted' ? `${ownerClub?.name} have agreed to the revised terms!` : result.message);
+      // Accept via the dedicated store action — re-calling requestLoan here
+      // used to trip the slice's counter dedupe guard, so accepting a
+      // counter-offer deterministically failed with "Request Rejected".
+      const counterReq = useGameStore.getState().outgoingLoanRequests
+        .find(r => r.playerId === playerId && r.status === 'counter');
+      const result = counterReq
+        ? acceptLoanCounter(counterReq.id)
+        : { success: false, message: 'Counter-offer is no longer available.' };
+      setOutcome(result.success ? 'accepted' : 'rejected');
+      setResultMessage(result.success ? `${ownerClub?.name} have agreed to the revised terms!` : result.message);
       setPhase('result');
     }, 1000));
-  }, [counterWageSplit, counterDuration, wageSplit, duration, playerId, requestLoan, recallClause, buyOption, buyFee, ownerClub]);
+  }, [counterWageSplit, counterDuration, wageSplit, duration, playerId, acceptLoanCounter, ownerClub]);
 
   const handleRevise = useCallback(() => {
     setPhase('negotiate');

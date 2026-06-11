@@ -52,7 +52,28 @@ export interface GameState {
   transferMarket: TransferListing[];
   galacticoUsedThisSeason: boolean;
   invincibleUsedThisSeason: boolean;
-  preMatchSnapshot: { fixtures: Match[]; divisionFixtures: Record<string, Match[]>; divisionTables: Record<string, LeagueTableEntry[]>; players: Record<string, Player>; boardConfidence: number; leagueTable: LeagueTableEntry[] } | null;
+  preMatchSnapshot: {
+    fixtures: Match[];
+    divisionFixtures: Record<string, Match[]>;
+    divisionTables: Record<string, LeagueTableEntry[]>;
+    players: Record<string, Player>;
+    boardConfidence: number;
+    leagueTable: LeagueTableEntry[];
+    // Optional fields (added post-v71): everything else playCurrentMatch
+    // writes, so rewindMatch doesn't leave double-counted stats/messages/
+    // rivalries or mid-match sub changes behind. Older snapshots lack them —
+    // rewindMatch restores them only when present (no migration needed).
+    clubs?: Record<string, Club>;
+    managerStats?: GameState['managerStats'];
+    managerProgression?: ManagerProgression;
+    careerTimeline?: CareerMilestone[];
+    rivalries?: Record<string, HeadToHeadRecord>;
+    pairFamiliarity?: Record<string, number>;
+    clubPowerRankings?: Record<string, number>;
+    sessionStats?: SessionStats;
+    messages?: Message[];
+    pendingPressConference?: PressConference | null;
+  } | null;
   shortlist: string[];
   scoutWatchList: string[];
   incomingOffers: IncomingOffer[];
@@ -69,6 +90,11 @@ export interface GameState {
   // Match
   currentMatchResult: Match | null;
   matchSubsUsed: number;
+  /** Player ids substituted OFF during the current match (transient — NOT
+   *  persisted; reset each match alongside matchSubsUsed). makeMatchSub
+   *  rejects bringing one of these back on — a substituted player cannot
+   *  re-enter the match. */
+  matchSubbedOffIds: string[];
   matchPlayerRatings: PlayerMatchRating[];
   halfTimeState: HalfState | null;
   currentMatchWeather: MatchWeather | null;
@@ -295,6 +321,9 @@ export interface GameState {
   terminateLoan: (loanId: string) => { success: boolean; message: string };
   requestLoan: (playerId: string, duration: number, wageSplit: number, recallClause: boolean, obligatoryBuyFee?: number) => { outcome: 'accepted' | 'rejected' | 'counter'; counterWageSplit?: number; counterDuration?: number; message: string };
   evaluateLoanRequest: (playerId: string, duration: number, wageSplit: number) => { acceptChance: number; ownerClubName: string } | null;
+  /** Accept a pending counter-offer (status 'counter') — executes the loan
+   *  at the counter terms and clears the request record. */
+  acceptLoanCounter: (requestId: string) => { success: boolean; message: string };
   cancelLoanRequest: (requestId: string) => void;
   renewContract: (playerId: string, years: number, newWage: number) => { success: boolean; message: string };
 
@@ -362,7 +391,10 @@ export interface GameState {
 
   // Actions — Contract Negotiation
   startNegotiation: (playerId: string, isRenewal: boolean) => { success: boolean; lockedWeeks?: number } | void;
-  submitWageOffer: (wage: number, years?: number) => void;
+  /** Returns a failure object when the deal is blocked up-front (e.g. the
+   *  club can't afford the agent fee + loyalty bonus); void otherwise —
+   *  round results flow through `activeNegotiation.status`. */
+  submitWageOffer: (wage: number, years?: number) => { success: false; message: string } | void;
   cancelNegotiation: () => void;
 
   // Actions — Challenge Mode

@@ -1165,7 +1165,12 @@ const migrations: Record<number, MigrationFn> = {
   // the persisted shape. v72 also adds the OPTIONAL `won` flag on
   // NationalTeamResult knockout records (shootout wins are drawn on goals);
   // legacy records need no transformation — readers fall back to a goals
-  // comparison.
+  // comparison. v72 also widens `preMatchSnapshot` (Invincible-perk rewind)
+  // with OPTIONAL fields (clubs, managerStats, managerProgression,
+  // careerTimeline, rivalries, pairFamiliarity, clubPowerRankings,
+  // sessionStats, messages, pendingPressConference) — no transformation
+  // needed: snapshots lacking them simply leave the current values in
+  // place on rewind.
   71: (data) => {
     const hts = data.halfTimeState as { subbedOut?: unknown } | null | undefined;
     if (!hts || typeof hts !== 'object') return { ...data, version: 72 };

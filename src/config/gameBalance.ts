@@ -146,6 +146,11 @@ export const FITNESS_DRAIN_PER_MATCH = -10;
 export const FITNESS_MIN_POST_MATCH = 50;
 export const MORALE_WIN_CHANGE = 8;
 export const MORALE_LOSS_CHANGE = -10;
+// Cap on the summed narrative morale-loss reduction (Veteran Leader +2,
+// One-Club Man +1, per tagged lineup player). Uncapped, 5-6 tagged players
+// made defeats morale-neutral or positive; the win-side narrative boost is
+// already capped at +5, so the loss side must be bounded too.
+export const NARRATIVE_MORALE_LOSS_REDUCTION_CAP = 6;
 export const FORM_WIN_CHANGE = 5;
 export const FORM_LOSS_CHANGE = -8;
 export const FORM_DRAW_CHANGE = -2;

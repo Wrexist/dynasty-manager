@@ -24,7 +24,15 @@ function isPersistableEntitlement(productId: ProductId): boolean {
 
 export function createMonetizationSlice(_set: Set, _get: Get) {
   return {
-    monetization: { ...DEFAULT_MONETIZATION_STATE },
+    // Deep-copy the nested arrays/objects — a shallow spread would alias
+    // them to the module-level default, so one in-place mutation anywhere
+    // would corrupt DEFAULT_MONETIZATION_STATE for every later consumer.
+    monetization: {
+      ...DEFAULT_MONETIZATION_STATE,
+      entitlements: [...DEFAULT_MONETIZATION_STATE.entitlements],
+      activeCosmetics: { ...DEFAULT_MONETIZATION_STATE.activeCosmetics },
+      adRewardsClaimed: { ...DEFAULT_MONETIZATION_STATE.adRewardsClaimed },
+    },
 
     /** Grant an entitlement after successful purchase. Handles bundle expansion.
      *  Subscription and consumable SKUs are silently dropped — see

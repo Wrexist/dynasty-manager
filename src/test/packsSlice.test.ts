@@ -37,7 +37,7 @@ describe('packsSlice — quickSellPackedPlayer', () => {
     expect(budgetAfter - budgetBefore).toBe(expectedAmount);
   });
 
-  it('removes the player from the squad and adds them to free agents', () => {
+  it('removes the player from the squad without free-agenting them (sold abroad)', () => {
     const state = useGameStore.getState();
     useGameStore.setState({
       clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 50_000_000 } },
@@ -50,7 +50,10 @@ describe('packsSlice — quickSellPackedPlayer', () => {
     expect(after.clubs[state.playerClubId].playerIds).not.toContain(target.id);
     expect(after.clubs[state.playerClubId].lineup).not.toContain(target.id);
     expect(after.clubs[state.playerClubId].subs).not.toContain(target.id);
-    expect(after.freeAgents).toContain(target.id);
+    // Audit S4-M6: quick-sold players must NOT enter free agency — selling
+    // for 65% of value and re-signing for only a signing bonus was a value
+    // loop. The sale is treated as a transfer abroad.
+    expect(after.freeAgents).not.toContain(target.id);
     expect(after.players[target.id].clubId).toBe('');
   });
 

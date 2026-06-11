@@ -2598,7 +2598,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     leagueTable, transferWindowOpen, currentMatchResult: null,
     matchPhase: 'none' as const, pendingPressConference: null,
     messages: newMessages, incomingOffers: newOffers, clubs: newClubs,
-    matchSubsUsed: 0, boardConfidence: newBoardConfidence, boardObjectives: updatedObjectives,
+    matchSubsUsed: 0, matchSubbedOffIds: [], boardConfidence: newBoardConfidence, boardObjectives: updatedObjectives,
     training: { ...training, tacticalFamiliarity: newTacticalFamiliarity, streaks: newStreaks, lastReport: trainingReport },
     staff: newStaff, scouting: newScouting, facilities: newFacilities, youthAcademy: newYouthAcademy,
     pendingGemReveal: gemReveals.length > 0 ? gemReveals[0] : null,

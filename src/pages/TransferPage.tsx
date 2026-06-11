@@ -16,10 +16,10 @@ import { POSITION_FILTERS, PAGE_HINTS, SIGNIFICANT_OFFER_OVERALL, SIGNIFICANT_OF
 import { TransferNegotiation } from '@/components/game/TransferNegotiation';
 import { IncomingOfferNegotiation } from '@/components/game/IncomingOfferNegotiation';
 import { PageHint } from '@/components/game/PageHint';
-import { getTransferWindows, OFFER_EXPIRY_WEEKS, FREE_AGENT_DEFAULT_CONTRACT_YEARS, LOAN_BUY_FEE_MULTIPLIER, PRE_SEASON_END } from '@/config/transfers';
+import { getTransferWindows, OFFER_EXPIRY_WEEKS, FREE_AGENT_DEFAULT_CONTRACT_YEARS, PRE_SEASON_END } from '@/config/transfers';
 import { MAX_SQUAD_SIZE, LOAN_MIN_WEEKS_BEFORE_RECALL } from '@/config/gameBalance';
 import { formatMoney } from '@/utils/helpers';
-import { getPerformanceMultiplier, getMaxFreeAgentOverall } from '@/utils/transferOffers';
+import { getPerformanceMultiplier, getMaxFreeAgentOverall, getLoanBuyFee } from '@/utils/transferOffers';
 import { TransferPlayerCard } from '@/components/game/TransferPlayerCard';
 import { LEAGUES } from '@/data/league';
 import { NewsTab } from '@/components/transfer/NewsTab';
@@ -775,10 +775,10 @@ const TransferPage = () => {
                 const p = players[req.playerId];
                 if (!p) return null;
                 const ownerClub = clubs[req.toClubId];
-                // Counter offers block fresh requests for the same player via
-                // the slice's dedupe guard. Surfacing a Cancel action here is
-                // the only way for the user to clear a counter they don't want
-                // to accept — otherwise the dedupe creates a permanent dead-end.
+                // A fresh request for the same player supersedes a pending
+                // counter (the slice consumes it), and counters are accepted
+                // via acceptLoanCounter. The Cancel action here remains the
+                // quickest way to clear a counter without re-negotiating.
                 return (
                   <TransferPlayerCard
                     key={req.id}
@@ -900,7 +900,7 @@ const TransferPage = () => {
                               size="sm" variant="outline" className="w-full h-8 text-xs"
                               onClick={() => {
                                 hapticMedium();
-                                const fee = loan.obligatoryBuyFee || Math.round(p.value * LOAN_BUY_FEE_MULTIPLIER);
+                                const fee = getLoanBuyFee(loan, p);
                                 if (fee > (club?.budget || 0)) {
                                   errorToast(`Insufficient funds — need ${formatMoney(fee)}.`);
                                   return;
@@ -908,7 +908,7 @@ const TransferPage = () => {
                                 setConfirmLoanBuy({ loanId: loan.id, playerName: `${p.firstName} ${p.lastName}`, fee });
                               }}
                             >
-                              Buy Permanently — {formatMoney(loan.obligatoryBuyFee || Math.round(p.value * LOAN_BUY_FEE_MULTIPLIER))}
+                              Buy Permanently — {formatMoney(getLoanBuyFee(loan, p))}
                             </Button>
                           ) : undefined}
                         />

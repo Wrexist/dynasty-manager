@@ -33,8 +33,9 @@ import { detachPlayerFromAllClubs, purgePlayerReferences } from '../helpers/rost
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
 
-/** Check if an active challenge blocks this transfer. Returns error message or null if allowed. */
-const checkChallengeBlock = (state: GameState, playerAge?: number): string | null => {
+/** Check if an active challenge blocks this transfer. Returns error message or null if allowed.
+ *  Exported for loanSlice — loan-ins count as signings (noTransfers / youthOnly apply). */
+export const checkChallengeBlock = (state: GameState, playerAge?: number): string | null => {
   if (!state.activeChallenge || state.activeChallenge.completed || state.activeChallenge.failed) return null;
   const scenario = CHALLENGES.find(c => c.id === state.activeChallenge!.scenarioId);
   if (!scenario) return null;
@@ -137,20 +138,26 @@ const executeSale = (state: GameState, offer: { id: string; playerId: string; bu
     ? { playerId: offer.playerId, playerName: `${player.firstName} ${player.lastName}`, seasonsServed: farewell.seasonsServed, stats: farewell.stats }
     : null;
 
-  // Check if the sold player was a top marketable player — trigger/extend merch dip
-  const starPlayers = getStarPlayerMerch(sellerClub, state.players);
-  const wasStar = starPlayers.some(sp => sp.playerId === offer.playerId);
-  const merchDipUpdate: Partial<GameState> = {};
-  if (wasStar) {
-    const currentDip = state.merchandise?.starPlayerDip || 0;
-    merchDipUpdate.merchandise = { ...state.merchandise, starPlayerDip: Math.max(currentDip, STAR_PLAYER_SALE_DIP_WEEKS) };
-  }
   // Unified reference purge — was missing outgoingLoanRequests,
   // negotiationStrikes, contractStrikes, pendingTransferTalk before.
   // We also override `transferMarket` after the helper because executeSale
   // computed a richer `newMarket` (which might add new listings, not just
   // remove the sold player's row).
   const purged = purgePlayerReferences(state, offer.playerId);
+
+  // Check if the sold player was a top marketable player — trigger/extend
+  // merch dip. Build on top of the PURGED merch state: purgePlayerReferences
+  // may have just cancelled a signature drop pinned to this player, and
+  // spreading a state.merchandise-based update after `...purged` would
+  // resurrect it.
+  const starPlayers = getStarPlayerMerch(sellerClub, state.players);
+  const wasStar = starPlayers.some(sp => sp.playerId === offer.playerId);
+  const merchDipUpdate: Partial<GameState> = {};
+  if (wasStar) {
+    const merchBase = purged.merchandise ?? state.merchandise;
+    const currentDip = merchBase?.starPlayerDip || 0;
+    merchDipUpdate.merchandise = { ...merchBase, starPlayerDip: Math.max(currentDip, STAR_PLAYER_SALE_DIP_WEEKS) };
+  }
 
   const currentSold = state.seasonTransfersSold || [];
   set({
@@ -300,6 +307,11 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const state = get();
     const challengeBlock = checkChallengeBlock(state, state.players[playerId]?.age);
     if (challengeBlock) return { success: false, message: challengeBlock };
+    // Mirror executeSale's guard: buying a player who is mid-loan would pay
+    // the fee but leave the loan record alive — when the stale LoanDeal
+    // expires the player is handed back to loan.fromClubId (fee paid,
+    // player confiscated).
+    if (state.players[playerId]?.onLoan) return { success: false, message: 'Player is currently on loan and cannot be signed permanently.' };
     const listing = resolveListing(state, playerId);
     if (!state.transferWindowOpen && !listing?.scoutedPlayer) return { success: false, message: 'Transfer window is closed.' };
     if (!listing) return { success: false, message: 'Player not available.' };

@@ -73,26 +73,30 @@ async function hydrateOneSlot(slot: number): Promise<void> {
   const mainKey = STORAGE_KEYS.saveSlot(slot);
   const backupKey = STORAGE_KEYS.saveSlotBackup(slot);
   const [idbMain, idbBackup] = await Promise.all([idbGet(mainKey), idbGet(backupKey)]);
+  // Never clobber a save written in-session while this async hydrate was in
+  // flight — the memory cache is newer than whatever IDB held at app start,
+  // and overwriting it would also rotate the stale data into the backup slot
+  // on the next write (burning both recovery layers).
   if (idbMain) {
-    memSlots[slot] = idbMain;
+    if (memSlots[slot] === null) memSlots[slot] = idbMain;
   } else {
     // Fallback: migrate localStorage → IDB so this user's existing save
     // survives the 5 MB quota going forward.
     try {
       const ls = localStorage.getItem(mainKey);
       if (ls) {
-        memSlots[slot] = ls;
+        if (memSlots[slot] === null) memSlots[slot] = ls;
         void idbPut(mainKey, ls);
       }
     } catch { /* storage unavailable */ }
   }
   if (idbBackup) {
-    memSlotBackups[slot] = idbBackup;
+    if (memSlotBackups[slot] === null) memSlotBackups[slot] = idbBackup;
   } else {
     try {
       const ls = localStorage.getItem(backupKey);
       if (ls) {
-        memSlotBackups[slot] = ls;
+        if (memSlotBackups[slot] === null) memSlotBackups[slot] = ls;
         void idbPut(backupKey, ls);
       }
     } catch { /* storage unavailable */ }

@@ -11,6 +11,7 @@ import { useEscapeClose } from '@/hooks/useEscapeClose';
 import { useFlash } from '@/hooks/useFlash';
 import { motion } from 'framer-motion';
 import { hapticMedium, hapticHeavy, hapticLight } from '@/utils/haptics';
+import { errorToast } from '@/utils/gameToast';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { CONTRACT_MIN_YEARS, CONTRACT_MAX_YEARS, CONTRACT_MAX_STRIKES } from '@/config/contracts';
 
@@ -72,7 +73,15 @@ export function ContractNegotiation() {
   const handleSubmit = () => {
     if (submittingRef.current) return;
     submittingRef.current = true;
-    submitWageOffer(customWage ?? activeNegotiation.offeredWage, customYears ?? activeNegotiation.contractYears);
+    const result = submitWageOffer(customWage ?? activeNegotiation.offeredWage, customYears ?? activeNegotiation.contractYears);
+    if (result && !result.success) {
+      // Blocked up-front (e.g. can't afford the agent fee) — negotiation
+      // state didn't change, so the round/status effect won't reset the
+      // guard. Surface the reason and re-enable the button.
+      errorToast(result.message);
+      submittingRef.current = false;
+      return;
+    }
     setCustomWage(null);
     setCustomYears(null);
   };

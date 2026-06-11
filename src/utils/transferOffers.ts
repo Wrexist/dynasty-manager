@@ -3,7 +3,7 @@
  * Performance multipliers, contract factors, and bid calculations for AI offer generation.
  */
 
-import { Player, Position } from '@/types/game';
+import { LoanDeal, Player, Position } from '@/types/game';
 import { LEAGUES } from '@/data/league';
 import {
   PERFORMANCE_GOAL_PREMIUM, PERFORMANCE_ASSIST_PREMIUM, PERFORMANCE_FORM_PREMIUM,
@@ -12,8 +12,22 @@ import {
   PERFORMANCE_EXPECTED_SEASON_APPEARANCES,
   CONTRACT_1YR_BID_FACTOR, CONTRACT_2YR_BID_FACTOR,
   FREE_AGENT_REP_BASE, FREE_AGENT_REP_SCALE, FREE_AGENT_DIV_BONUS,
-  SIGNING_BONUS_WEEKS_PER_YEAR,
+  SIGNING_BONUS_WEEKS_PER_YEAR, LOAN_BUY_FEE_MULTIPLIER,
 } from '@/config/transfers';
+
+/**
+ * Fee to convert a loan into a permanent transfer: the agreed obligatory buy
+ * clause when present, otherwise LOAN_BUY_FEE_MULTIPLIER × current market
+ * value. Single source of truth — loanSlice.buyLoanedPlayer charges it and
+ * TransferPage quotes it, so the confirm dialog can never drift from the
+ * amount actually debited.
+ */
+export function getLoanBuyFee(
+  loan: Pick<LoanDeal, 'obligatoryBuyFee'>,
+  player: Pick<Player, 'value'>,
+): number {
+  return loan.obligatoryBuyFee || Math.round(player.value * LOAN_BUY_FEE_MULTIPLIER);
+}
 
 const FWD_POSITIONS: Position[] = ['ST', 'LW', 'RW'];
 const MID_POSITIONS: Position[] = ['CM', 'CDM', 'CAM', 'LM', 'RM'];

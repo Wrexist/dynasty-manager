@@ -74,7 +74,7 @@ describe('requestLoan — outgoing-request persistence', () => {
     }
   });
 
-  it('blocks a second request while a counter-offer is still pending', () => {
+  it('a fresh request supersedes a pending counter-offer (no dead-end)', () => {
     const { rivalPlayerId } = initAndPickRivalPlayer();
     // First roll: counter
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
@@ -83,11 +83,39 @@ describe('requestLoan — outgoing-request persistence', () => {
       // Test only meaningful in the counter path; skip otherwise.
       return;
     }
-    // Second request for the same player should be rejected pre-emptively
-    // because of the dedupe guard, regardless of the next random roll.
+    // Audit S12-H1: re-requesting used to trip the dedupe guard and
+    // deterministically reject (Revise → Submit was a permanent dead-end).
+    // A fresh request now consumes the pending counter and re-evaluates;
+    // there can never be more than one counter record per player.
     const second = useGameStore.getState().requestLoan(rivalPlayerId, 16, 50, false);
-    expect(second.outcome).toBe('rejected');
-    expect(second.message).toMatch(/counter-offer/i);
+    expect(second.message).not.toMatch(/already have a pending counter-offer/i);
+    const counters = useGameStore.getState().outgoingLoanRequests.filter(
+      r => r.playerId === rivalPlayerId && r.status === 'counter',
+    );
+    expect(counters.length).toBeLessThanOrEqual(1);
+  });
+
+  it('acceptLoanCounter executes the loan at the counter terms and clears the record', () => {
+    const { rivalPlayerId } = initAndPickRivalPlayer();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5); // counter band
+    const first = useGameStore.getState().requestLoan(rivalPlayerId, 16, 50, false);
+    if (first.outcome !== 'counter') return;
+    vi.restoreAllMocks();
+
+    const req = useGameStore.getState().outgoingLoanRequests.find(
+      r => r.playerId === rivalPlayerId && r.status === 'counter',
+    )!;
+    const result = useGameStore.getState().acceptLoanCounter(req.id);
+    expect(result.success).toBe(true);
+
+    const after = useGameStore.getState();
+    expect(after.outgoingLoanRequests.find(r => r.id === req.id)).toBeUndefined();
+    const loan = after.activeLoans.find(l => l.playerId === rivalPlayerId);
+    expect(loan).toBeDefined();
+    expect(loan!.wageSplit).toBe(req.counterWageSplit ?? req.wageSplit);
+    expect(loan!.durationWeeks).toBe(req.counterDuration ?? req.durationWeeks);
+    expect(after.players[rivalPlayerId].onLoan).toBe(true);
+    expect(after.players[rivalPlayerId].clubId).toBe(after.playerClubId);
   });
 
   it('allows a second request after a rejected response (no cooldown)', () => {

@@ -5,7 +5,7 @@ import { GOAL_EVENT_TYPES } from '@/config/matchEngine';
 import { getPlayerNarratives, getNarrativeBonus } from '@/utils/playerNarratives';
 import {
   FITNESS_DRAIN_PER_MATCH, FITNESS_MIN_POST_MATCH,
-  MORALE_WIN_CHANGE, MORALE_LOSS_CHANGE,
+  MORALE_WIN_CHANGE, MORALE_LOSS_CHANGE, NARRATIVE_MORALE_LOSS_REDUCTION_CAP,
   FORM_WIN_CHANGE, FORM_LOSS_CHANGE, FORM_DRAW_CHANGE,
   MATCH_INJURY_WEEKS_MIN, MATCH_INJURY_WEEKS_RANGE,
   RED_CARD_SUSPENSION_MIN, RED_CARD_SUSPENSION_RANGE,
@@ -140,6 +140,9 @@ export function processMatchResult(
     narrativeMoraleLossReduction += bonus.moraleLossReduction;
     narrativeTeamMoraleBoost += bonus.teamMoraleBoost;
   });
+  // Cap the loss-side reduction — mirrors the +5 cap on the win-side boost
+  // below; otherwise enough tagged veterans invert the defeat penalty.
+  narrativeMoraleLossReduction = Math.min(NARRATIVE_MORALE_LOSS_REDUCTION_CAP, narrativeMoraleLossReduction);
 
   pc.playerIds.forEach(pid => {
     if (newPlayers[pid]) {

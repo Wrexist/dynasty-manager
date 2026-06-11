@@ -808,6 +808,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         currentMatchResult: null, selectedPlayerId: null,
         transferWindowOpen: isTransferWindowOpen(data.week, data.totalWeeks),
         matchSubsUsed: 0,
+        matchSubbedOffIds: [],
         matchPlayerRatings: [],
         currentCupTieId: null,
         unlockedAchievements: data.unlockedAchievements || [],
@@ -1032,6 +1033,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       currentCupTieId: null, currentLeagueCupTieId: null,
       currentContinentalMatchId: null, currentContinentalCompetition: null,
       matchSubsUsed: 0,
+      matchSubbedOffIds: [],
       // Audit finding: previously these match-scoped state fields persisted
       // across an abandoned match, so e.g. an abandoned penalty shootout
       // left `penaltyShootoutKicks` populated for the next match. Reset
@@ -1068,7 +1070,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       clubs: {}, players: {}, fixtures: [], leagueTable: [],
       messages: [], seasonHistory: [], incomingOffers: [],
       matchPlayerRatings: [], halfTimeState: null, currentMatchWeather: null, matchPhase: 'none' as const,
-      currentMatchResult: null, matchSubsUsed: 0, currentCupTieId: null,
+      currentMatchResult: null, matchSubsUsed: 0, matchSubbedOffIds: [], currentCupTieId: null,
       // Match-scoped state that previously persisted across resets — audit
       // finding O2 (stale shootout kicks, leftover team talk, etc.).
       matchTeamTalk: 'none' as const, matchShouts: [],

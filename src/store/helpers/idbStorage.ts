@@ -38,11 +38,22 @@ function openDB(): Promise<IDBDatabase | null> {
       req.onsuccess = () => {
         const db = req.result;
         // Gracefully handle forced closure (e.g. another tab upgraded).
-        db.onversionchange = () => { try { db.close(); } catch { /* ignore */ } };
+        // Reset the cached promise so the NEXT operation re-opens a fresh
+        // handle — otherwise every IDB op silently no-ops on the closed
+        // connection for the rest of the session.
+        db.onversionchange = () => {
+          try { db.close(); } catch { /* ignore */ }
+          dbPromise = null;
+        };
         resolve(db);
       };
       req.onerror = () => resolve(null);
-      req.onblocked = () => resolve(null);
+      req.onblocked = () => {
+        // Blocked is transient (another tab holds an old connection). Don't
+        // cache the failed attempt — let the next op retry.
+        dbPromise = null;
+        resolve(null);
+      };
     } catch {
       resolve(null);
     }
