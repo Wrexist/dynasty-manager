@@ -1,7 +1,7 @@
 {
   "name": "dynasty-manager",
   "private": true,
-  "version": "1.0.13",
+  "version": "1.1.1",
   "type": "module",
   "engines": {
     "node": ">=18.0.0",
