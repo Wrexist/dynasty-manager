@@ -1916,7 +1916,7 @@ const Dashboard = () => {
             'text-2xl font-black tabular-nums',
             getConfidenceColor(boardConfidence).textClass
           )}>
-            {boardConfidence}%
+            {Math.round(boardConfidence)}%
           </p>
           <PremiumProgress
             className="mt-1.5"

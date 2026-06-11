@@ -117,6 +117,25 @@ const MatchReview = () => {
     goals: allHighlights.filter(e => (GOAL_SCORING_TYPES as readonly string[]).includes(e.type) || e.type === 'goalkeeper_error').length,
   }), [allHighlights, playerClubId]);
 
+  // Is ANOTHER unplayed match for the player's club scheduled THIS week
+  // (pre-season friendlies share weeks 1-3 with league fixtures; cup ties can
+  // share weeks too)? Drives the Continue button label — the overloaded
+  // "Continue" made players think the game was stuck when it bounced them to
+  // a second same-week match. Must run before the null-match early returns
+  // (rules of hooks); getState() is safe here because scheduling can't
+  // change while the review is open.
+  const hasAnotherMatchThisWeek = useMemo(() => {
+    if (!currentMatchResult) return false;
+    const s2 = useGameStore.getState();
+    if (currentMatchResult.week !== s2.week) return false; // historical review
+    const pid = s2.playerClubId;
+    const mine = (m: { week: number; played: boolean; homeClubId: string; awayClubId: string; id: string }) =>
+      m.week === s2.week && !m.played && (m.homeClubId === pid || m.awayClubId === pid) && m.id !== currentMatchResult.id;
+    if (s2.friendlies?.some(mine)) return true;
+    if (s2.fixtures.some(mine)) return true;
+    return !!findTournamentMatch(s2);
+  }, [currentMatchResult]);
+
   // Single-pass partition over match.events, memoized on the events array.
   // Replaces three sequential .filter() calls that re-walked events on every
   // render — match.events can hold 60+ items for a full-time review. Must be
@@ -298,7 +317,7 @@ const MatchReview = () => {
       {/* Continue — sticky at top so player doesn't have to scroll */}
       <div className="sticky top-0 z-10 -mx-4 px-4 pt-1 pb-2 bg-gradient-to-b from-background via-background to-transparent">
         <Button size="lg" className="w-full h-12 text-base font-bold gap-2" disabled={isAdvancing} onClick={handleContinue}>
-          {isAdvancing ? 'Advancing...' : isHistoricalReview ? 'Back to Dashboard' : 'Continue'} {!isAdvancing && <ChevronRight className="w-5 h-5" />}
+          {isAdvancing ? 'Advancing...' : isHistoricalReview ? 'Back to Dashboard' : hasAnotherMatchThisWeek ? 'Next Match This Week' : 'Continue'} {!isAdvancing && <ChevronRight className="w-5 h-5" />}
         </Button>
       </div>
 

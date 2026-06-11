@@ -193,8 +193,10 @@ export function getFeaturedPackTier(season: number, week: number): PackTierKey {
 
 /** All animation timings in ms. Tune here, not in components. */
 export const PACK_ANIM = {
-  /** Cinematic "opening…" beat — dim + loading ring before the pack scene. */
-  loadingMs: 1000,
+  /** Cinematic "opening…" beat — dim + loading ring before the pack scene.
+   *  Kept short: at 1000ms the first visible motion arrived ~1.5s after the
+   *  tap and read as a hang (live UX run-through P2 finding). */
+  loadingMs: 400,
   portalOpenMs: 400,
   arrivalMs: 600,
   chargeBaseMs: 1200,

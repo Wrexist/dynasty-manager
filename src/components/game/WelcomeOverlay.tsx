@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { useScrollLock } from '@/hooks/useScrollLock';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Target, ChevronRight, Trophy, LayoutDashboard, Users, Swords, ShoppingBag } from 'lucide-react';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
@@ -14,7 +15,7 @@ const STEPS = [
   {
     icon: Target,
     title: 'The Weekly Rhythm',
-    description: 'Check your squad, adjust tactics, then hit "Advance Week" to progress. Matches happen when scheduled — make substitutions and tactical changes live.',
+    description: 'Check your squad, adjust tactics, then play your scheduled matches from the Dashboard. Once the week\'s matches are done, time moves on — make substitutions and tactical changes live.',
     hint: 'The board sets objectives each season. Meet them to keep your job — below 25% confidence, you risk the sack!',
   },
   {
@@ -39,7 +40,7 @@ const STEPS = [
     icon: LayoutDashboard,
     title: 'Start From Your Dashboard',
     description: 'Your dashboard is your weekly hub. Some weeks have matches, and others are focused on planning, scouting, and development.',
-    hint: 'Use "Advance Week" to move forward. A match will appear automatically when one is scheduled.',
+    hint: 'Play the match card on your Dashboard when one is scheduled; advance the week once your matches are done.',
   },
 ];
 
@@ -48,6 +49,8 @@ interface WelcomeOverlayProps {
 }
 
 export function WelcomeOverlay({ onComplete }: WelcomeOverlayProps) {
+  // Full-screen tour — the dashboard must not scroll behind it.
+  useScrollLock(true);
   const [step, setStep] = useState(0);
   // Clamp into range so rapid double-taps that queue multiple `setStep`
   // calls (each using the previous queued state) can't advance past the

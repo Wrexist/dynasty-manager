@@ -335,6 +335,12 @@ export function buildPlayerFromTemplate(
     } else {
       const expansionSeed = t.fcId ?? `${t.fn}|${t.ln}|${nationality}|${t.pos}`;
       player.firstName = expandAbbreviatedFirstName(t.fn, nationality, expansionSeed);
+      // Mononym templates ship fn === ln ("Isco"/"Isco") and rendered as
+      // "Isco Isco" everywhere. Keep the mononym in lastName only — HTML
+      // whitespace collapsing makes `${firstName} ${lastName}` render clean.
+      if (player.firstName.trim().toLowerCase() === t.ln.trim().toLowerCase()) {
+        player.firstName = '';
+      }
     }
     player.lastName = t.ln;
   } else {

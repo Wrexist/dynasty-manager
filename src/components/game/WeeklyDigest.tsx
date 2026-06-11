@@ -11,7 +11,7 @@ import {
   ChevronDown, Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getStatBarColor } from '@/utils/uiHelpers';
+import { } from '@/utils/uiHelpers';
 import { AnimatedNumber } from '@/components/game/AnimatedNumber';
 
 // ── Animation helpers ──
@@ -38,7 +38,10 @@ function itemAnim(base: number, index: number) {
 
 function DevBar({ attribute, newValue, delay }: { attribute: string; newValue: number; delay: number }) {
   const pct = Math.min(100, (newValue / 99) * 100);
-  const barColor = getStatBarColor(pct);
+  // This list only ever shows GAINS — a rating-colored bar painted low
+  // attributes red ("SHO 35 +1" looked like a regression). The +N badge
+  // carries the gain; the bar stays in the positive palette.
+  const barColor = 'bg-emerald-500/70';
   const abbr = attribute.slice(0, 3).toUpperCase();
 
   return (

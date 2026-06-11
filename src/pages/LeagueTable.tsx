@@ -488,7 +488,7 @@ const LeagueTable = () => {
                         <div className="flex items-center gap-1 min-w-0">
                           <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: club?.color }} />
                           <span className={cn('text-xs font-medium truncate', isPlayer ? 'text-primary font-bold' : 'text-foreground')}>
-                            {getClubDisplayName(club?.name || '?')}
+                            {club?.name || '?'}{/* full name — the CSS `truncate` above ellipsizes cleanly; getClubDisplayName's 7-char hard slice produced "Bournem" */}
                           </span>
                         </div>
                       </td>

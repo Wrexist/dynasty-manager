@@ -271,7 +271,7 @@ const ShopPage = () => {
             onClick={() => handlePurchase('com.dynastymanager.pack.manager')}
             className="mt-3 w-full py-2 rounded-lg bg-[hsl(var(--gold))] text-[hsl(30,20%,10%)] font-bold text-sm active:scale-[0.98] transition-transform"
           >
-            Claim — {priceFor('com.dynastymanager.pack.manager')}
+            Get — {priceFor('com.dynastymanager.pack.manager')}
           </button>
         </GlassPanel>
       )}

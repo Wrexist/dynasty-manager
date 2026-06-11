@@ -181,18 +181,18 @@ export function OnboardingChecklist() {
 
   items.push({
     id: 'advance',
-    label: 'Advance to your first match week',
-    description: 'When you\'re set up, advance the week to start the season.',
+    label: 'Then: play your first match',
+    description: 'When you\'re set up, play your Week 1 matches to start the season.',
     icon: Calendar,
     done: false,
     screen: 'dashboard',
     whyItMatters: 'Time only moves when you advance it. The game pauses indefinitely between weeks so you can set tactics, manage transfers, and review scout reports. Once you advance, week 2 begins and friendlies + training fire.',
     steps: [
       { text: 'Make sure you\'ve looked at Squad (bottom nav) — your starting XI is already set, but glance at it.' },
-      { text: 'Optionally peek at Tactics (bottom nav) — your default formation is 4-4-2.' },
+      { text: 'Optionally peek at Tactics (bottom nav) — your default formation is 4-3-3.' },
       { text: 'Come back to the Dashboard (Home button in the bottom nav).' },
-      { text: 'Scroll to the bottom — you\'ll see a big "Advance Week" button.' },
-      { text: 'Tap it. The week ticks over and your first pre-season friendly fires.' },
+      { text: 'Your next match card is right at the top — tap "Match Prep".' },
+      { text: 'Play your Week 1 matches (a friendly may share the week with a league fixture). Once they\'re done, the week ticks over.' },
     ],
     successCue: 'Once advanced, this whole checklist disappears — you\'re inside the weekly loop now.',
   });
@@ -284,7 +284,13 @@ export function OnboardingChecklist() {
                     'shadow-[inset_0_1px_0_rgba(255,255,255,0.15),inset_0_-1px_0_rgba(0,0,0,0.25)]',
                     item.done
                       ? 'bg-emerald-500/25 text-emerald-300'
-                      : 'bg-primary/25 text-primary',
+                      // The 'advance' row is the closing step, not a tickable
+                      // task (it's excluded from the X/N counter — the card
+                      // disappears once the week moves). Mute it so the
+                      // counter and the visible checkboxes agree.
+                      : item.id === 'advance'
+                        ? 'bg-white/10 text-foreground/60'
+                        : 'bg-primary/25 text-primary',
                   )}>
                     {item.done ? <Check className="w-3.5 h-3.5" /> : <Icon className="w-3.5 h-3.5" />}
                   </div>
