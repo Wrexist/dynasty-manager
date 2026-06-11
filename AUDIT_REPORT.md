@@ -9,6 +9,20 @@
 
 # Executive Summary
 
+> **Status update (Wave 1 complete on this branch):** All four CRITICALs are
+> fixed — C1 competition-calendar scaling (`getCompetitionCalendar` +
+> continental catch-up recovery + odd-team fixture span + scaled transfer
+> windows), C2 double season-end (`runPostSeasonTail`), C3 loan returns
+> forced at season end, C4 crash-durable pack credits. Also fixed: the
+> purchases.ts trio (cancel-vs-charged, kill-switch grants, test API key +
+> Android workflow), entitlement filtering (S4-H1/S8-M1/M3), season-end
+> message wipe (S2-H2), prize-table misallocation (S2-H5), skip-to-next-match
+> continental hang + week-advance re-entrancy (S1-H3/S9-H3), Conference Cup
+> mislabel in weekAdvance (S1-M1). New regression suites:
+> `competitionCalendar.test.ts` (33 tests) + awaited simulation loops.
+> Everything else below remains open; Wave 2 starts with the match-engine
+> fixes (S5) and the interactive-vs-instant divergences (S2-H1/M3, S2-H4).
+
 ## The four CRITICALs
 
 1. **The competition calendar is hardcoded to a 46-week season; 40 of 45 leagues are shorter — cup finals and continental knockouts silently never happen.** (Section 14) `CUP_WEEKS` (R1=4 … F=43, `data/cup.ts:15-23`) and continental weeks (`config/continental.ts:62-78`) are fixed, while `state.totalWeeks` is per-league (18–58). The Dashboard force-ends the season at `week > totalWeeks` and `endSeasonImpl` never resolves pending ties. Premier League (38 wks): cup SF plays, the final never; continental runs strand at the QF (leg 2 = week 39) and the tournament hangs with `winnerId: null`. In 18-week leagues not a single cup match is ever played and the winter transfer window never opens. Downstream: both Super Cups never created, cup-winner qualification paths never fire, Ballon d'Or cup bonuses dead, 2 challenges unwinnable outside 5 leagues. **Fix:** scale competition weeks to `totalWeeks` at draw time, or keep ticking weeks past the last fixture until live competitions resolve.
