@@ -21,7 +21,7 @@ const tick = () => new Promise<void>(resolve => setTimeout(resolve, 0));
 async function advanceFullSeason() {
   const store = useGameStore;
   for (let w = 0; w < TOTAL_WEEKS; w++) {
-    store.getState().advanceWeek();
+    await store.getState().advanceWeek();
     store.getState().playCurrentMatch();
     if (w % 10 === 9) await tick();
   }
@@ -262,7 +262,7 @@ describe('Phase 2 — injuries + transfer window execution', () => {
     useGameStore.getState().initGame(CLUB_ID);
   });
 
-  it('2B: many injured + suspended players — advanceWeek does not throw', { timeout: 45_000 }, () => {
+  it('2B: many injured + suspended players — advanceWeek does not throw', { timeout: 45_000 }, async () => {
     const state = useGameStore.getState();
     const club = state.clubs[CLUB_ID];
     const players = { ...state.players };
@@ -294,10 +294,10 @@ describe('Phase 2 — injuries + transfer window execution', () => {
     }
     useGameStore.setState({ players });
 
-    expect(() => {
-      useGameStore.getState().advanceWeek();
-      useGameStore.getState().playCurrentMatch();
-    }).not.toThrow();
+    // A rejection from advanceWeek or a throw from playCurrentMatch fails
+    // the test directly — same contract as the old expect().not.toThrow().
+    await useGameStore.getState().advanceWeek();
+    useGameStore.getState().playCurrentMatch();
 
     const post = useGameStore.getState();
     for (const pid of ids.slice(0, 5)) {
@@ -308,7 +308,7 @@ describe('Phase 2 — injuries + transfer window execution', () => {
     }
   });
 
-  it('2C: executeTransfer succeeds in window week 8, fails when closed week 9 and 25', { timeout: 60_000 }, () => {
+  it('2C: executeTransfer succeeds in window week 8, fails when closed week 9 and 25', { timeout: 60_000 }, async () => {
     // Pick an affordable listing so the assertion targets the window gate
     // rather than the budget gate. Player-value rebalances upstream can
     // shift listing prices into ranges that exceed the starting budget,
@@ -327,7 +327,7 @@ describe('Phase 2 — injuries + transfer window execution', () => {
     };
 
     for (let w = 0; w < 7; w++) {
-      useGameStore.getState().advanceWeek();
+      await useGameStore.getState().advanceWeek();
       useGameStore.getState().playCurrentMatch();
     }
     expect(useGameStore.getState().week).toBe(8);
@@ -339,7 +339,7 @@ describe('Phase 2 — injuries + transfer window execution', () => {
       expect(r.success, r.message).toBe(true);
     }
 
-    useGameStore.getState().advanceWeek();
+    await useGameStore.getState().advanceWeek();
     useGameStore.getState().playCurrentMatch();
     expect(useGameStore.getState().week).toBe(9);
     expect(useGameStore.getState().transferWindowOpen).toBe(false);
@@ -352,7 +352,7 @@ describe('Phase 2 — injuries + transfer window execution', () => {
     }
 
     while (useGameStore.getState().week < 24) {
-      useGameStore.getState().advanceWeek();
+      await useGameStore.getState().advanceWeek();
       useGameStore.getState().playCurrentMatch();
     }
     expect(useGameStore.getState().week).toBe(24);
@@ -364,7 +364,7 @@ describe('Phase 2 — injuries + transfer window execution', () => {
       expect(r24.success, r24.message).toBe(true);
     }
 
-    useGameStore.getState().advanceWeek();
+    await useGameStore.getState().advanceWeek();
     useGameStore.getState().playCurrentMatch();
     expect(useGameStore.getState().week).toBe(25);
     expect(useGameStore.getState().transferWindowOpen).toBe(false);
@@ -415,11 +415,11 @@ describe('Phase 5 — advanceWeek timing sample', () => {
     useGameStore.getState().initGame(CLUB_ID);
   });
 
-  it('5A: 100 consecutive advanceWeek calls average under 200ms', { timeout: 120_000 }, () => {
+  it('5A: 100 consecutive advanceWeek calls average under 200ms', { timeout: 120_000 }, async () => {
     const times: number[] = [];
     for (let i = 0; i < 100; i++) {
       const t0 = performance.now();
-      useGameStore.getState().advanceWeek();
+      await useGameStore.getState().advanceWeek();
       useGameStore.getState().playCurrentMatch();
       times.push(performance.now() - t0);
     }
@@ -439,7 +439,7 @@ describe('Phase 2G — continental state after season rollover', () => {
 
   it('continental tournaments null or well-formed after one endSeason', { timeout: 45_000 }, async () => {
     for (let w = 0; w < TOTAL_WEEKS; w++) {
-      useGameStore.getState().advanceWeek();
+      await useGameStore.getState().advanceWeek();
       useGameStore.getState().playCurrentMatch();
     }
     useGameStore.getState().endSeason();

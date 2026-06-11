@@ -27,7 +27,7 @@ const tick = () => new Promise<void>(resolve => setTimeout(resolve, 0));
 async function advanceFullSeason() {
   const store = useGameStore;
   for (let w = 0; w < TOTAL_WEEKS; w++) {
-    store.getState().advanceWeek();
+    await store.getState().advanceWeek();
     store.getState().playCurrentMatch();
     if (w % 10 === 9) await tick();
   }

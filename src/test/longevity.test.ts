@@ -25,7 +25,7 @@ async function advanceFullSeason() {
   const store = useGameStore;
 
   for (let w = 0; w < TOTAL_WEEKS; w++) {
-    store.getState().advanceWeek();
+    await store.getState().advanceWeek();
     // Play the player's match if one exists this week
     store.getState().playCurrentMatch();
     // Yield every 10 weeks to let the worker process RPC messages
