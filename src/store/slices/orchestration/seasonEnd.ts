@@ -1307,8 +1307,16 @@ function finalizeSeason(
       const surviving = new Set(state.clubs[playerClubId]?.playerIds || []);
       const pruned: Record<string, number> = {};
       for (const [key, fam] of Object.entries(state.pairFamiliarity || {})) {
-        const [a, b] = key.split('-');
-        if (surviving.has(a) && surviving.has(b)) pruned[key] = fam;
+        // Keys are `${idA}-${idB}` where the ids THEMSELVES contain hyphens
+        // (crypto.randomUUID). A naive split('-') yielded fragments of the
+        // first UUID that never matched a real id, so every entry was pruned
+        // and all built-up chemistry silently reset each season. Try each
+        // hyphen as the separator instead.
+        let keep = false;
+        for (let i = key.indexOf('-'); i !== -1; i = key.indexOf('-', i + 1)) {
+          if (surviving.has(key.slice(0, i)) && surviving.has(key.slice(i + 1))) { keep = true; break; }
+        }
+        if (keep) pruned[key] = fam;
       }
       return pruned;
     })(),
