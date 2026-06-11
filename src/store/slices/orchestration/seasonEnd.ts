@@ -497,7 +497,10 @@ function finalizeSeason(
   const newSeason = season + 1;
   resetSeasonGrowth();
 
-  if (state.activeLoans.length > 0) get().processLoanReturns();
+  // Force-return EVERY active loan (not just elapsed ones): the turnover
+  // set() below wipes activeLoans, so an unexpired loan left in place would
+  // silently become a free permanent transfer for the borrowing club.
+  if (state.activeLoans.length > 0) get().processLoanReturns(true);
   // Loan cleanup is folded into the main season turnover set() below to avoid an extra re-render
 
   // Merge loan-return club updates (playerIds, wageBills) into inputClubs

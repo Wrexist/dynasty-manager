@@ -261,16 +261,21 @@ export const createLoanSlice = (set: Set, get: Get) => ({
     return { success: true, message: `${player.firstName} ${player.lastName} loaned to ${fromClub.name}.` };
   },
 
-  processLoanReturns: () => {
+  processLoanReturns: (forceAll?: boolean) => {
     const state = get();
     if (state.activeLoans.length === 0) return;
 
     const returning: LoanDeal[] = [];
     const remaining: LoanDeal[] = [];
 
+    // forceAll: season end terminates every loan regardless of remaining
+    // duration. finalizeSeason wipes activeLoans afterwards, so any loan
+    // left in `remaining` there would silently become a free permanent
+    // transfer — the borrower keeps the player and the parent club never
+    // gets them back.
     for (const loan of state.activeLoans) {
       const elapsed = (state.season - loan.startSeason) * TOTAL_WEEKS + (state.week - loan.startWeek);
-      if (elapsed >= loan.durationWeeks) {
+      if (forceAll || elapsed >= loan.durationWeeks) {
         returning.push(loan);
       } else {
         remaining.push(loan);

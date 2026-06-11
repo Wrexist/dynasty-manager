@@ -291,7 +291,7 @@ export interface GameState {
   loanOut: (playerId: string, toClubId: string, duration: number, wageSplit: number, recallClause: boolean, obligatoryBuyFee?: number) => { success: boolean; message: string };
   recallLoan: (loanId: string) => { success: boolean; message: string };
   respondToLoanOffer: (offerId: string, accept: boolean) => { success: boolean; message: string };
-  processLoanReturns: () => void;
+  processLoanReturns: (forceAll?: boolean) => void;
   buyLoanedPlayer: (loanId: string) => { success: boolean; message: string };
   terminateLoan: (loanId: string) => { success: boolean; message: string };
   requestLoan: (playerId: string, duration: number, wageSplit: number, recallClause: boolean, obligatoryBuyFee?: number) => { outcome: 'accepted' | 'rejected' | 'counter'; counterWageSplit?: number; counterDuration?: number; message: string };
