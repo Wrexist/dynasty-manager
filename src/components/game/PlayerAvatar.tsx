@@ -280,6 +280,10 @@ interface CardIconProps {
 
 /** Professional yellow card SVG — referee-style portrait card */
 export function YellowCardIcon({ size = 14, className }: CardIconProps) {
+  // Per-instance gradient id — multiple cards render at once (pitch +
+  // bench badges) and duplicate SVG ids are invalid (same pattern as the
+  // avatar's useId above / PremiumSparkle).
+  const gradId = `yc-grad-${useId().replace(/:/g, '')}`;
   return (
     <svg
       width={size}
@@ -289,7 +293,7 @@ export function YellowCardIcon({ size = 14, className }: CardIconProps) {
       aria-label="Yellow card"
     >
       <defs>
-        <linearGradient id="yc-grad" x1="0" y1="0" x2="0.3" y2="1">
+        <linearGradient id={gradId} x1="0" y1="0" x2="0.3" y2="1">
           <stop offset="0%" stopColor="#FFD700" />
           <stop offset="50%" stopColor="#FFCC00" />
           <stop offset="100%" stopColor="#E6A800" />
@@ -298,7 +302,7 @@ export function YellowCardIcon({ size = 14, className }: CardIconProps) {
       {/* Card shadow */}
       <rect x="0.8" y="0.8" width="8.5" height="12" rx="0.8" fill="rgba(0,0,0,0.25)" />
       {/* Card body */}
-      <rect x="0.3" y="0.3" width="8.5" height="12" rx="0.8" fill="url(#yc-grad)" stroke="#CC9900" strokeWidth="0.3" />
+      <rect x="0.3" y="0.3" width="8.5" height="12" rx="0.8" fill={`url(#${gradId})`} stroke="#CC9900" strokeWidth="0.3" />
       {/* Shine highlight */}
       <rect x="1" y="0.8" width="3" height="5" rx="0.5" fill="white" opacity="0.15" />
     </svg>
@@ -307,6 +311,7 @@ export function YellowCardIcon({ size = 14, className }: CardIconProps) {
 
 /** Professional red card SVG — referee-style portrait card */
 export function RedCardIcon({ size = 14, className }: CardIconProps) {
+  const gradId = `rc-grad-${useId().replace(/:/g, '')}`;
   return (
     <svg
       width={size}
@@ -316,7 +321,7 @@ export function RedCardIcon({ size = 14, className }: CardIconProps) {
       aria-label="Red card"
     >
       <defs>
-        <linearGradient id="rc-grad" x1="0" y1="0" x2="0.3" y2="1">
+        <linearGradient id={gradId} x1="0" y1="0" x2="0.3" y2="1">
           <stop offset="0%" stopColor="#FF3333" />
           <stop offset="50%" stopColor="#EE0000" />
           <stop offset="100%" stopColor="#CC0000" />
@@ -325,7 +330,7 @@ export function RedCardIcon({ size = 14, className }: CardIconProps) {
       {/* Card shadow */}
       <rect x="0.8" y="0.8" width="8.5" height="12" rx="0.8" fill="rgba(0,0,0,0.25)" />
       {/* Card body */}
-      <rect x="0.3" y="0.3" width="8.5" height="12" rx="0.8" fill="url(#rc-grad)" stroke="#990000" strokeWidth="0.3" />
+      <rect x="0.3" y="0.3" width="8.5" height="12" rx="0.8" fill={`url(#${gradId})`} stroke="#990000" strokeWidth="0.3" />
       {/* Shine highlight */}
       <rect x="1" y="0.8" width="3" height="5" rx="0.5" fill="white" opacity="0.12" />
     </svg>

@@ -180,6 +180,9 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
     });
   },
 
+  // ── Weekly Digest ──
+  dismissWeeklyDigest: () => set({ weeklyDigest: null }),
+
   dismissPress: () => {
     // Dismissing has a small negative effect — media reports "manager refused to comment"
     const state = get();

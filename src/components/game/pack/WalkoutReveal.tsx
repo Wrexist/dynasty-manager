@@ -179,11 +179,16 @@ function AttributePill({
       if (isCrescendo) onCrescendo?.();
       return;
     }
+    // RAF id lives in the effect scope (not inside the setTimeout callback)
+    // so the cleanup can actually cancel it — a function returned from a
+    // setTimeout callback is discarded, so the old `return () =>
+    // cancelAnimationFrame(raf)` inside the timer was dead code and the
+    // count-up kept ticking after unmount.
+    let raf = 0;
     const startTimer = window.setTimeout(() => {
       hapticLight();
       const start = performance.now();
       const dur = 360;
-      let raf = 0;
       const tick = (now: number) => {
         const t = Math.min(1, (now - start) / dur);
         const eased = 1 - Math.pow(1 - t, 3);
@@ -198,9 +203,11 @@ function AttributePill({
         }
       };
       raf = requestAnimationFrame(tick);
-      return () => cancelAnimationFrame(raf);
     }, delay);
-    return () => window.clearTimeout(startTimer);
+    return () => {
+      window.clearTimeout(startTimer);
+      cancelAnimationFrame(raf);
+    };
   }, [value, delay, isCrescendo, onCrescendo, prefersReducedMotion]);
 
   return (

@@ -48,7 +48,8 @@ export class ErrorBoundary extends Component<Props, State> {
             <p className="text-sm text-muted-foreground">
               An unexpected error occurred. You can return to the dashboard and continue playing.
             </p>
-            {this.state.error && (
+            {/* Raw error internals are dev-only — mirrors the root ErrorBoundary. */}
+            {import.meta.env.DEV && this.state.error && (
               <p className="text-xs text-destructive bg-destructive/10 rounded-lg p-3 font-mono break-all">
                 {this.state.error.message}
               </p>

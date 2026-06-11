@@ -7,7 +7,9 @@ import { TrendingUp, TrendingDown, ArrowRight, Clock, Heart, AlertTriangle } fro
 import { cn } from '@/lib/utils';
 import { usePlayerClub, useLeaguePosition } from '@/hooks/useGameSelectors';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useScrollLock } from '@/hooks/useScrollLock';
 import { useEscapeClose } from '@/hooks/useEscapeClose';
+import { getSuffix } from '@/utils/helpers';
 
 export function SessionRecap() {
   const [show, setShow] = useState(false);
@@ -43,6 +45,7 @@ export function SessionRecap() {
 
   const dismiss = () => setShow(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  useScrollLock(show);
   useFocusTrap(containerRef, show);
   useEscapeClose(dismiss, show);
 
@@ -56,9 +59,9 @@ export function SessionRecap() {
   const changes: { icon: typeof TrendingUp; text: string; color: string }[] = [];
 
   if (posChange > 0) {
-    changes.push({ icon: TrendingUp, text: `Climbed ${posChange} place${posChange !== 1 ? 's' : ''} to ${pos}${pos === 1 ? 'st' : pos === 2 ? 'nd' : pos === 3 ? 'rd' : 'th'}`, color: 'text-emerald-400' });
+    changes.push({ icon: TrendingUp, text: `Climbed ${posChange} place${posChange !== 1 ? 's' : ''} to ${pos}${getSuffix(pos)}`, color: 'text-emerald-400' });
   } else if (posChange < 0) {
-    changes.push({ icon: TrendingDown, text: `Dropped ${Math.abs(posChange)} place${Math.abs(posChange) !== 1 ? 's' : ''} to ${pos}${pos === 1 ? 'st' : pos === 2 ? 'nd' : pos === 3 ? 'rd' : 'th'}`, color: 'text-destructive' });
+    changes.push({ icon: TrendingDown, text: `Dropped ${Math.abs(posChange)} place${Math.abs(posChange) !== 1 ? 's' : ''} to ${pos}${getSuffix(pos)}`, color: 'text-destructive' });
   }
 
   if (confChange >= 5) {

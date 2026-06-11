@@ -72,6 +72,13 @@ interface PackOpeningOverlayProps {
 
 type Phase = 'loading' | 'portal' | 'arrival' | 'charge' | 'explode' | 'reveal' | 'walkout' | 'summary';
 
+/** Player-facing copy for the auto-placement chip on summary cards. */
+const PLACEMENT_LABEL: Record<PackPlayerPlacement, string> = {
+  starter: 'Straight into your XI',
+  bench: 'Bench',
+  squad: 'Squad',
+};
+
 /**
  * Full-screen pack-opening sequence. Orchestrates six beats:
  *   1. Portal open (backdrop + vignette)
@@ -83,11 +90,15 @@ type Phase = 'loading' | 'portal' | 'arrival' | 'charge' | 'explode' | 'reveal' 
  *
  * Mounts a portal so the overlay sits above bottom nav and other UI.
  */
-export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKeep, onQuickSell, onKeepAll, onSellAll, improvement }: PackOpeningOverlayProps) {
+export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKeep, onQuickSell, onKeepAll, onSellAll, placement, improvement }: PackOpeningOverlayProps) {
   const tierDef = PACK_TIER_MAP[tier];
   const prefersReducedMotion = useReducedMotion();
   const [phase, setPhase] = useState<Phase>('loading');
   const [revealedSet, setRevealedSet] = useState<Set<string>>(new Set());
+  // Most recently flipped card for the screen-reader announcer. Tracked
+  // explicitly — deriving it from revealedSet picked the highest-index
+  // revealed card, so out-of-order reveals were never announced.
+  const [lastRevealedId, setLastRevealedId] = useState<string | null>(null);
   const [walkoutQueue, setWalkoutQueue] = useState<Player[]>([]);
   const [currentWalkout, setCurrentWalkout] = useState<Player | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -189,6 +200,31 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
       };
     });
   }, [phase, prefersReducedMotion]);
+
+  // Charge-seam sparks + arrival/charge ambient motes — same rule as
+  // foilShreds: roll the random specs once. Inlined randoms re-rolled on
+  // every re-render (typewriter ticks, card-reveal taps), teleporting
+  // in-flight infinite Framer animations.
+  const seamSparks = useMemo(() =>
+    Array.from({ length: 8 }).map((_, i) => ({
+      i,
+      left: 10 + Math.random() * 80,
+      up: Math.random() > 0.5,
+      dist: 16 + Math.random() * 24,
+      dur: 0.5 + Math.random() * 0.45,
+      delay: Math.random() * 0.8,
+    })),
+  []);
+  const ambientMotes = useMemo(() =>
+    Array.from({ length: 8 }).map((_, i) => ({
+      i,
+      x: 30 + Math.random() * 40,
+      rise: 180 + Math.random() * 260,
+      duration: 2.5 + Math.random() * 2,
+      delay: Math.random() * 1.2,
+      size: 2 + Math.random() * 3,
+    })),
+  []);
 
   // Beat orchestration
   // Cinematic "opening…" beat — the dimmed stadium + a luxury loading ring
@@ -334,6 +370,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
       next.add(id);
       return next;
     });
+    setLastRevealedId(id);
   }, []);
 
   // Tap-to-walkout: a walkout-tier card stays face-down in the reveal grid
@@ -385,16 +422,12 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
   // each card flips so screen-reader users hear the same reveal sighted
   // users see. Without this, the dramatic flip animation was a silent
   // event and the user had to navigate the card grid manually to learn
-  // what they pulled.
-  const lastRevealedPlayer = useMemo(() => {
-    if (revealedSet.size === 0) return null;
-    // Find the most recently revealed player by iterating the original
-    // order and picking the highest-index one that's in revealedSet.
-    for (let i = players.length - 1; i >= 0; i--) {
-      if (revealedSet.has(players[i].id)) return players[i];
-    }
-    return null;
-  }, [revealedSet, players]);
+  // what they pulled. Keyed on the explicitly-tracked last flip, not the
+  // highest revealed index.
+  const lastRevealedPlayer = useMemo(
+    () => (lastRevealedId ? players.find(p => p.id === lastRevealedId) ?? null : null),
+    [lastRevealedId, players],
+  );
 
   // Render order for the card grid. During reveal the cards keep their
   // original (shuffled) order so the user can't tell which face-down card is
@@ -888,30 +921,23 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                       transition={prefersReducedMotion ? undefined : { duration: 1, repeat: Infinity, ease: 'easeInOut' }}
                     />
                     {/* Spark particles flicking off the seam */}
-                    {!prefersReducedMotion && Array.from({ length: 8 }).map((_, i) => {
-                      const left = 10 + Math.random() * 80;
-                      const up = Math.random() > 0.5;
-                      const dist = 16 + Math.random() * 24;
-                      const dur = 0.5 + Math.random() * 0.45;
-                      const delay = Math.random() * 0.8;
-                      return (
-                        <motion.span
-                          key={`spark-${i}`}
-                          className="absolute rounded-full"
-                          style={{
-                            left: `${left}%`,
-                            top: '50%',
-                            width: 3,
-                            height: 3,
-                            background: '#fff',
-                            boxShadow: `0 0 6px ${tierDef.accent}`,
-                          }}
-                          initial={{ opacity: 0, y: 0 }}
-                          animate={{ opacity: [0, 1, 0], y: up ? -dist : dist }}
-                          transition={{ duration: dur, delay, repeat: Infinity, repeatDelay: 0.5, ease: 'easeOut' }}
-                        />
-                      );
-                    })}
+                    {!prefersReducedMotion && seamSparks.map(s => (
+                      <motion.span
+                        key={`spark-${s.i}`}
+                        className="absolute rounded-full"
+                        style={{
+                          left: `${s.left}%`,
+                          top: '50%',
+                          width: 3,
+                          height: 3,
+                          background: '#fff',
+                          boxShadow: `0 0 6px ${tierDef.accent}`,
+                        }}
+                        initial={{ opacity: 0, y: 0 }}
+                        animate={{ opacity: [0, 1, 0], y: s.up ? -s.dist : s.dist }}
+                        transition={{ duration: s.dur, delay: s.delay, repeat: Infinity, repeatDelay: 0.5, ease: 'easeOut' }}
+                      />
+                    ))}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -965,28 +991,21 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
           so each particle stays on the compositor fast path. */}
       {(phase === 'arrival' || phase === 'charge') && !prefersReducedMotion && (
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          {Array.from({ length: 8 }).map((_, i) => {
-            const x = 30 + Math.random() * 40;
-            const rise = 180 + Math.random() * 260;
-            const duration = 2.5 + Math.random() * 2;
-            const delay = Math.random() * 1.2;
-            const size = 2 + Math.random() * 3;
-            return (
-              <motion.span
-                key={i}
-                className="absolute rounded-full"
-                style={{
-                  width: size, height: size, left: `${x}%`, bottom: '20%',
-                  background: tierDef.accent,
-                  transform: 'translateZ(0)',
-                  willChange: 'transform, opacity',
-                }}
-                initial={{ opacity: 0, y: 0 }}
-                animate={{ opacity: [0, 0.9, 0], y: -rise }}
-                transition={{ duration, delay, repeat: Infinity, ease: 'easeOut' }}
-              />
-            );
-          })}
+          {ambientMotes.map(m => (
+            <motion.span
+              key={m.i}
+              className="absolute rounded-full"
+              style={{
+                width: m.size, height: m.size, left: `${m.x}%`, bottom: '20%',
+                background: tierDef.accent,
+                transform: 'translateZ(0)',
+                willChange: 'transform, opacity',
+              }}
+              initial={{ opacity: 0, y: 0 }}
+              animate={{ opacity: [0, 0.9, 0], y: -m.rise }}
+              transition={{ duration: m.duration, delay: m.delay, repeat: Infinity, ease: 'easeOut' }}
+            />
+          ))}
         </div>
       )}
 
@@ -1192,6 +1211,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
             {displayPlayers.map((p, i) => {
               const quickSellAmount = Math.max(0, Math.round((p.value || 0) * QUICK_SELL_RATE));
               const upgrade = improvement?.[p.id];
+              const placementLabel = placement?.[p.id] ? PLACEMENT_LABEL[placement[p.id]] : null;
               return (
                 <motion.div key={p.id} layout="position" className="flex flex-col items-center gap-2">
                   <div className="relative" style={{ width: PLAYER_CARD_SIZE_PX.lg }}>
@@ -1227,6 +1247,19 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                       >
                         <span aria-hidden>↑</span>
                         <span>+{upgrade.delta}</span>
+                      </motion.div>
+                    )}
+                    {/* Placement chip — where openPack auto-slotted the pull
+                        (straight into the XI / bench / squad depth). Subtle
+                        glass pill, mirrors the upgrade badge's entrance. */}
+                    {phase === 'summary' && placementLabel && (
+                      <motion.div
+                        className="absolute -bottom-1.5 left-1/2 z-10 max-w-full whitespace-nowrap px-1.5 py-[3px] rounded-md text-[8px] font-display font-bold uppercase tracking-[0.06em] leading-none text-white/90 bg-white/10 border border-white/25 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_4px_10px_-6px_rgba(0,0,0,0.6)]"
+                        initial={{ opacity: 0, y: 6, x: '-50%', scale: 0.8 }}
+                        animate={{ opacity: 1, y: 0, x: '-50%', scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 320, damping: 20, delay: 0.45 + i * 0.06 }}
+                      >
+                        {placementLabel}
                       </motion.div>
                     )}
                   </div>

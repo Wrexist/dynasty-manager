@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { X } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { Button } from '@/components/ui/button';
@@ -18,34 +18,54 @@ interface AchievementUnlockModalProps {
 }
 
 const PARTICLE_COUNT = 24;
+const SPARKLE_HUE = 43; // gold
 
-function Sparkle({ index: _index }: { index: number }) {
-  const x = Math.random() * 100;
-  const delay = Math.random() * 0.4;
-  const duration = 1.2 + Math.random() * 1.2;
-  const size = 3 + Math.random() * 5;
-  const tier = 'gold'; // Default sparkle color
-  const hues = { bronze: 30, silver: 220, gold: 43 };
-  const hue = (hues[tier] || 43) + Math.random() * 20 - 10;
+interface SparkleSpec {
+  x: number;
+  delay: number;
+  duration: number;
+  size: number;
+  color: string;
+  yTarget: number;
+  xTarget: number;
+}
 
+/** Roll sparkle specs once — re-rolling Math.random() per render retargeted
+ *  in-flight animations whenever the modal re-rendered. */
+function makeSparkleSpecs(): SparkleSpec[] {
+  return Array.from({ length: PARTICLE_COUNT }).map(() => {
+    const hue = SPARKLE_HUE + Math.random() * 20 - 10;
+    return {
+      x: Math.random() * 100,
+      delay: Math.random() * 0.4,
+      duration: 1.2 + Math.random() * 1.2,
+      size: 3 + Math.random() * 5,
+      color: `hsl(${hue}, 90%, ${50 + Math.random() * 20}%)`,
+      yTarget: -100 - Math.random() * 160,
+      xTarget: (Math.random() - 0.5) * 120,
+    };
+  });
+}
+
+function Sparkle({ spec }: { spec: SparkleSpec }) {
   return (
     <motion.div
       className="absolute rounded-full pointer-events-none"
       style={{
-        width: size,
-        height: size,
-        left: `${x}%`,
+        width: spec.size,
+        height: spec.size,
+        left: `${spec.x}%`,
         top: '40%',
-        backgroundColor: `hsl(${hue}, 90%, ${50 + Math.random() * 20}%)`,
+        backgroundColor: spec.color,
       }}
       initial={{ opacity: 1, y: 0, scale: 1 }}
       animate={{
         opacity: [1, 1, 0],
-        y: [0, -100 - Math.random() * 160],
-        x: [0, (Math.random() - 0.5) * 120],
+        y: [0, spec.yTarget],
+        x: [0, spec.xTarget],
         scale: [1, 0.3],
       }}
-      transition={{ duration, delay, ease: 'easeOut' }}
+      transition={{ duration: spec.duration, delay: spec.delay, ease: 'easeOut' }}
     />
   );
 }
@@ -63,6 +83,9 @@ export function AchievementUnlockModal({ open, onClose, achievement }: Achieveme
   useEffect(() => {
     if (open && achievement) hapticSuccess();
   }, [open, achievement]);
+
+  // Sparkle layout rolled once and stable across re-renders.
+  const sparkleSpecs = useMemo(() => makeSparkleSpecs(), []);
 
   if (!achievement) return null;
 
@@ -96,15 +119,17 @@ export function AchievementUnlockModal({ open, onClose, achievement }: Achieveme
           >
             {/* Sparkles */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
-              {Array.from({ length: PARTICLE_COUNT }).map((_, i) => (
-                <Sparkle key={i} index={i} />
+              {sparkleSpecs.map((spec, i) => (
+                <Sparkle key={i} spec={spec} />
               ))}
             </div>
 
-            {/* Close button */}
+            {/* Close button — 44px hit target (StorylineModal pattern) */}
             <button
+              type="button"
               onClick={onClose}
-              className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors z-10"
+              aria-label="Close achievement"
+              className="absolute top-0 right-0 z-10 flex items-center justify-center min-w-[44px] min-h-[44px] rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>

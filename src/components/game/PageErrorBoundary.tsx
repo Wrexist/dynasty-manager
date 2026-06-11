@@ -26,10 +26,14 @@ export class PageErrorBoundary extends Component<Props, State> {
 
   handleRetry = () => {
     if (this.state.retryCount >= 2) {
-      // After 2 failed retries, navigate to dashboard to break the crash loop
+      // After 2 failed retries, navigate to dashboard to break the crash
+      // loop — and reset the counter so the NEXT screen that crashes gets
+      // its own retries instead of inheriting an exhausted budget.
       const state = useGameStore.getState();
       state.cleanupAbandonedMatch();
       state.setScreen('dashboard');
+      this.setState({ hasError: false, error: null, retryCount: 0 });
+      return;
     }
     this.setState(prev => ({ hasError: false, error: null, retryCount: prev.retryCount + 1 }));
   };
@@ -41,7 +45,13 @@ export class PageErrorBoundary extends Component<Props, State> {
         this.props.fallback || (
           <div className="flex flex-col items-center justify-center h-64 gap-4 px-6 text-center">
             <p className="text-lg font-semibold text-destructive">Something went wrong</p>
-            <p className="text-sm text-muted-foreground">{this.state.error?.message}</p>
+            <p className="text-sm text-muted-foreground">An unexpected error occurred on this screen.</p>
+            {/* Raw error internals are dev-only — mirrors the root ErrorBoundary. */}
+            {import.meta.env.DEV && this.state.error && (
+              <p className="text-xs text-destructive bg-destructive/10 rounded-lg p-3 font-mono break-all">
+                {this.state.error.message}
+              </p>
+            )}
             <button
               onClick={this.handleRetry}
               className="px-4 py-2 text-sm font-medium rounded-lg bg-primary text-primary-foreground hover:opacity-90"

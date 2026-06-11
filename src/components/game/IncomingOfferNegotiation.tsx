@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useScrollLock } from '@/hooks/useScrollLock';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useEscapeClose } from '@/hooks/useEscapeClose';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
@@ -62,6 +63,8 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
   useEffect(() => () => { timersRef.current.forEach(clearTimeout); }, []);
 
   useScrollLock();
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(containerRef, true);
   useEscapeClose(onClose, phase === 'negotiate');
 
   const evaluation = useMemo(() => evaluateIncomingCounter(offer.id, counterFee), [offer.id, counterFee, evaluateIncomingCounter]);
@@ -165,6 +168,7 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
 
         {/* Modal */}
         <motion.div
+          ref={containerRef}
           className="relative w-full max-w-sm mx-4 bg-card/95 backdrop-blur-xl border border-border/50 rounded-2xl overflow-hidden"
           initial={{ scale: 0.85, opacity: 0, y: 40 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}

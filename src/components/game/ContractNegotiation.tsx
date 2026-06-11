@@ -7,6 +7,7 @@ import { X, ArrowRight, Check, AlertTriangle, Minus, Plus, Calendar } from 'luci
 import { formatWage, getPreferredYears, getYearsAdjustment, getAcceptanceHint } from '@/utils/contracts';
 import { getMoodColor, getMoodLabel, getRatingColor, posBadgeColor } from '@/utils/uiHelpers';
 import { useScrollLock } from '@/hooks/useScrollLock';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useEscapeClose } from '@/hooks/useEscapeClose';
 import { useFlash } from '@/hooks/useFlash';
 import { motion } from 'framer-motion';
@@ -27,6 +28,8 @@ export function ContractNegotiation() {
   const submittingRef = useRef(false);
 
   useScrollLock(!!activeNegotiation);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(containerRef, !!activeNegotiation);
   useEscapeClose(cancelNegotiation, !!activeNegotiation);
 
   useEffect(() => {
@@ -57,7 +60,10 @@ export function ContractNegotiation() {
   const isComplete = activeNegotiation.status === 'accepted' || activeNegotiation.status === 'rejected';
   const currentYears = customYears ?? activeNegotiation.contractYears;
   const currentWage = customWage ?? activeNegotiation.offeredWage;
-  const gap = currentWage / activeNegotiation.demandedWage;
+  // Guard against demandedWage <= 0 (corrupted save / malformed offer) —
+  // same degenerate case the slider block below already handles. Without
+  // this the readout renders "Infinity% of demand".
+  const gap = activeNegotiation.demandedWage > 0 ? currentWage / activeNegotiation.demandedWage : 0;
   const preferredYears = getPreferredYears(activeNegotiation.playerAge);
   const yearsDiff = currentYears - preferredYears;
   const yearsAdj = getYearsAdjustment(activeNegotiation.playerAge, currentYears);
@@ -97,6 +103,7 @@ export function ContractNegotiation() {
       style={{ touchAction: 'none' }}
     >
       <motion.div
+        ref={containerRef}
         initial={{ opacity: 0, y: 40, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ type: 'spring', stiffness: 300, damping: 28 }}

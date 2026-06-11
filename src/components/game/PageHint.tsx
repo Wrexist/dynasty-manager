@@ -29,10 +29,12 @@ export function PageHint({ screen, title, body }: PageHintProps) {
     setFlag(storageKey);
   };
 
-  if (!visible) return null;
-
+  // AnimatePresence stays mounted with the hint conditionally inside it —
+  // returning null above it removed the whole subtree before the exit
+  // animation could play, making `exit` dead code.
   return (
     <AnimatePresence>
+      {visible && (
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -56,6 +58,7 @@ export function PageHint({ screen, title, body }: PageHintProps) {
           </button>
         </div>
       </motion.div>
+      )}
     </AnimatePresence>
   );
 }

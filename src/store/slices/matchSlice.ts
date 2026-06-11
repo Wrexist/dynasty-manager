@@ -208,20 +208,20 @@ export const createMatchSlice = (set: Set, get: Get) => ({
 
   setTeamTalk: (talk: TeamTalkType) => set({ matchTeamTalk: talk }),
 
-  makeMatchSub: (outId: string, inId: string, minute?: number) => {
+  makeMatchSub: (outId: string, inId: string, minute?: number): { success: boolean; message?: string } => {
     const state = get();
-    if (state.matchSubsUsed >= MAX_SUBSTITUTIONS) return;
+    if (state.matchSubsUsed >= MAX_SUBSTITUTIONS) return { success: false, message: 'No substitutions remaining.' };
     const club = { ...state.clubs[state.playerClubId] };
-    if (!club.lineup.includes(outId)) return;
-    if (!club.subs.includes(inId)) return;
+    if (!club.lineup.includes(outId)) return { success: false, message: 'That player is no longer in the lineup.' };
+    if (!club.subs.includes(inId)) return { success: false, message: 'That player is not on the bench.' };
     // A player substituted off earlier in this match cannot re-enter —
     // the out-player goes back to `subs` (so post-match processing still
     // sees them), but they're no longer a legal substitution target.
-    if ((state.matchSubbedOffIds || []).includes(inId)) return;
+    if ((state.matchSubbedOffIds || []).includes(inId)) return { success: false, message: 'A substituted player cannot re-enter the match.' };
     const inPlayer = state.players[inId];
-    if (!inPlayer) return;
-    if (inPlayer.injured) return;
-    if (inPlayer.suspendedUntilWeek != null && inPlayer.suspendedUntilWeek > state.week) return;
+    if (!inPlayer) return { success: false, message: 'That substitute is unavailable.' };
+    if (inPlayer.injured) return { success: false, message: `${inPlayer.lastName} is injured and cannot come on.` };
+    if (inPlayer.suspendedUntilWeek != null && inPlayer.suspendedUntilWeek > state.week) return { success: false, message: `${inPlayer.lastName} is suspended and cannot come on.` };
     club.lineup = [...club.lineup.map(id => id === outId ? inId : id)];
     club.subs = [...club.subs.filter(id => id !== inId), outId];
     const outPlayer = state.players[outId];
@@ -261,5 +261,6 @@ export const createMatchSlice = (set: Set, get: Get) => ({
       };
     }
     set(updates);
+    return { success: true };
   },
 });

@@ -6,25 +6,33 @@ import { cn } from '@/lib/utils';
 import { hapticError, hapticLight, hapticSuccess } from '@/utils/haptics';
 import type { PenaltyKick } from '@/types/game';
 
+/**
+ * Shared gradient defs for every PenaltyMark — rendered once per shootout.
+ * Each mark used to carry its own <defs> with the same hardcoded id, so a
+ * 10-kick shootout emitted 10 duplicate `pk-scored`/`pk-missed` ids
+ * (invalid SVG; renderers silently resolve the first).
+ */
+function PenaltyMarkDefs() {
+  return (
+    <svg width="0" height="0" className="absolute" aria-hidden="true" focusable="false">
+      <defs>
+        <radialGradient id="pk-scored" cx="35%" cy="35%" r="80%">
+          <stop offset="0%" stopColor="#A7F3D0" />
+          <stop offset="55%" stopColor="#10B981" />
+          <stop offset="100%" stopColor="#047857" />
+        </radialGradient>
+        <radialGradient id="pk-missed" cx="35%" cy="35%" r="80%">
+          <stop offset="0%" stopColor="#FCA5A5" stopOpacity="0.25" />
+          <stop offset="100%" stopColor="#7F1D1D" stopOpacity="0.05" />
+        </radialGradient>
+      </defs>
+    </svg>
+  );
+}
+
 function PenaltyMark({ scored }: { scored: boolean }) {
   return (
     <svg viewBox="0 0 16 16" className="w-3.5 h-3.5" aria-hidden="true">
-      <defs>
-        <radialGradient id={scored ? 'pk-scored' : 'pk-missed'} cx="35%" cy="35%" r="80%">
-          {scored ? (
-            <>
-              <stop offset="0%" stopColor="#A7F3D0" />
-              <stop offset="55%" stopColor="#10B981" />
-              <stop offset="100%" stopColor="#047857" />
-            </>
-          ) : (
-            <>
-              <stop offset="0%" stopColor="#FCA5A5" stopOpacity="0.25" />
-              <stop offset="100%" stopColor="#7F1D1D" stopOpacity="0.05" />
-            </>
-          )}
-        </radialGradient>
-      </defs>
       {scored ? (
         <circle cx="8" cy="8" r="5.5" fill={`url(#pk-scored)`} stroke="#34D399" strokeOpacity="0.55" strokeWidth="0.6" />
       ) : (
@@ -77,6 +85,7 @@ export function PenaltyShootout() {
 
   return (
     <GlassPanel className="p-4">
+      <PenaltyMarkDefs />
       <p className="text-sm font-bold text-primary text-center mb-3">Penalty Shootout</p>
 
       {/* Scoreboard */}

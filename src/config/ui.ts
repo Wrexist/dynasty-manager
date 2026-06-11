@@ -137,6 +137,18 @@ export const PITCH_COLORS = {
   AWAY_DEFAULT: '#666',
 } as const;
 
+// ── Pitch Slot Y-Mapping ──
+// Vertical span (in SVG units) used to lay out formation slots inside the
+// half-pitch views (LineupEditor + SubstitutionSheet). Wider span → more
+// vertical room between player tiles → less overlap on formations that
+// stack attackers / midfielders close together. The canonical formation
+// `y` values top out around 82, so `y=100` doesn't need to fit on screen —
+// keep room above the GK row for the highest strikers / wingers without
+// overflowing the pitch. Shared so the same formation renders with the
+// same shape on the tactics screen and in-match.
+export const SLOT_Y_RANGE = 54;
+export const SLOT_Y_BOTTOM = 97;
+
 // ── Chart Colors ──
 export const CHART_COLORS = {
   PRIMARY: 'hsl(160, 84%, 39%)',

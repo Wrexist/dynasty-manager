@@ -1,5 +1,5 @@
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { X } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { Button } from '@/components/ui/button';
@@ -38,31 +38,52 @@ const CONFETTI_STYLES: Record<string, ConfettiConfig> = {
   'confetti-snow': { count: 25, hueBase: 210, hueRange: 30, saturation: 30, lightness: 85, sizeMin: 3, sizeRange: 5, speed: 0.6 },
 };
 
-function Particle({ config }: { config: ConfettiConfig }) {
-  const x = Math.random() * 100;
-  const delay = Math.random() * 0.5;
-  const duration = (1.5 + Math.random() * 1.5) / config.speed;
-  const size = config.sizeMin + Math.random() * config.sizeRange;
-  const hue = config.hueBase + Math.random() * config.hueRange - config.hueRange / 2;
+interface ParticleSpec {
+  x: number;
+  delay: number;
+  duration: number;
+  size: number;
+  color: string;
+  yTarget: number;
+  xTarget: number;
+}
 
+/** Roll particle specs once per config — re-rolling Math.random() in the
+ *  component body retargeted in-flight animations on every re-render. */
+function makeParticleSpecs(config: ConfettiConfig): ParticleSpec[] {
+  return Array.from({ length: config.count }).map(() => {
+    const hue = config.hueBase + Math.random() * config.hueRange - config.hueRange / 2;
+    return {
+      x: Math.random() * 100,
+      delay: Math.random() * 0.5,
+      duration: (1.5 + Math.random() * 1.5) / config.speed,
+      size: config.sizeMin + Math.random() * config.sizeRange,
+      color: `hsl(${hue}, ${config.saturation}%, ${config.lightness + Math.random() * 20}%)`,
+      yTarget: -120 - Math.random() * 180,
+      xTarget: (Math.random() - 0.5) * 100,
+    };
+  });
+}
+
+function Particle({ spec }: { spec: ParticleSpec }) {
   return (
     <motion.div
       className="absolute rounded-full pointer-events-none"
       style={{
-        width: size,
-        height: size,
-        left: `${x}%`,
+        width: spec.size,
+        height: spec.size,
+        left: `${spec.x}%`,
         top: '50%',
-        backgroundColor: `hsl(${hue}, ${config.saturation}%, ${config.lightness + Math.random() * 20}%)`,
+        backgroundColor: spec.color,
       }}
       initial={{ opacity: 1, y: 0, scale: 1 }}
       animate={{
         opacity: [1, 1, 0],
-        y: [0, -120 - Math.random() * 180],
-        x: [0, (Math.random() - 0.5) * 100],
+        y: [0, spec.yTarget],
+        x: [0, spec.xTarget],
         scale: [1, 0.5],
       }}
-      transition={{ duration, delay, ease: 'easeOut' }}
+      transition={{ duration: spec.duration, delay: spec.delay, ease: 'easeOut' }}
     />
   );
 }
@@ -79,6 +100,7 @@ export function CelebrationModal({ open, onClose, title, description, icon, stat
   // spring-in modal + haptic + gold border is celebration enough.
   const prefersReducedMotion = useReducedMotion();
   useScrollLock(open);
+  const particleSpecs = useMemo(() => makeParticleSpecs(confettiConfig), [confettiConfig]);
 
   const panelRef = useRef<HTMLDivElement | null>(null);
   useFocusTrap(panelRef, open);
@@ -119,16 +141,18 @@ export function CelebrationModal({ open, onClose, title, description, icon, stat
             {/* Particles — skipped under reduced motion. */}
             {!prefersReducedMotion && (
               <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                {Array.from({ length: confettiConfig.count }).map((_, i) => (
-                  <Particle key={i} config={confettiConfig} />
+                {particleSpecs.map((spec, i) => (
+                  <Particle key={i} spec={spec} />
                 ))}
               </div>
             )}
 
-            {/* Close button */}
+            {/* Close button — 44px hit target (StorylineModal pattern) */}
             <button
+              type="button"
               onClick={onClose}
-              className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors z-10"
+              aria-label="Close celebration"
+              className="absolute top-0 right-0 z-10 flex items-center justify-center min-w-[44px] min-h-[44px] rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>

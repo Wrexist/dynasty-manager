@@ -269,8 +269,8 @@ export function OnboardingChecklist() {
             {items.map(item => {
               const Icon = item.icon;
               return (
+                <li key={item.id}>
                 <button
-                  key={item.id}
                   type="button"
                   onClick={() => { hapticLight(); setActiveWalkthrough(item); }}
                   className={cn(
@@ -299,6 +299,7 @@ export function OnboardingChecklist() {
                   </div>
                   <ChevronRight className="w-3.5 h-3.5 text-foreground/40 shrink-0" aria-hidden />
                 </button>
+                </li>
               );
             })}
           </ul>

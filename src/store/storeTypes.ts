@@ -339,7 +339,11 @@ export interface GameState {
   rewindMatch: () => void;
   loadMatchForReview: (week: number) => void;
   cleanupAbandonedMatch: () => void;
-  makeMatchSub: (outId: string, inId: string, minute?: number) => void;
+  /** Returns `{ success: false, message }` when the sub is rejected (max
+   *  subs used, stale out-player, suspended/injured in-player, re-entry
+   *  attempt) so the UI can surface the reason instead of toasting a
+   *  false success. */
+  makeMatchSub: (outId: string, inId: string, minute?: number) => { success: boolean; message?: string };
   setTeamTalk: (talk: TeamTalkType) => void;
   useShout: (type: ShoutType, minute: number) => boolean;
   getActiveShout: (minute: number) => MatchShout | null;
@@ -383,6 +387,9 @@ export interface GameState {
   dismissPress: () => void;
   respondToStoryline: (optionIndex: number) => void;
   dismissStoryline: () => void;
+
+  // Actions — Weekly Digest
+  dismissWeeklyDigest: () => void;
 
   // Actions — Transfer Talk
   respondToTransferTalk: (optionIndex: number) => { tone: string; succeeded?: boolean; playerName: string; msgTitle: string; msgBody: string } | null;

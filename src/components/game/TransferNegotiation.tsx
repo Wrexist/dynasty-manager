@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useScrollLock } from '@/hooks/useScrollLock';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useEscapeClose } from '@/hooks/useEscapeClose';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
@@ -88,6 +89,8 @@ export function TransferNegotiation({ listing, onClose }: Props) {
   useEffect(() => () => { timersRef.current.forEach(clearTimeout); }, []);
 
   useScrollLock();
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(containerRef, true);
   // Block Escape during the AI's "thinking" phase to mirror the backdrop
   // click gate — losing the modal mid-decision would desync the offer state.
   useEscapeClose(onClose, phase !== 'thinking');
@@ -190,6 +193,7 @@ export function TransferNegotiation({ listing, onClose }: Props) {
             layout so the sticky CTA at the bottom shares the cap with the
             scrollable content instead of being pushed off-screen. */}
         <motion.div
+          ref={containerRef}
           className="relative w-full max-w-sm max-h-[85vh] bg-card/95 backdrop-blur-xl border border-border/50 rounded-b-2xl sm:rounded-2xl overflow-hidden sm:mx-4 flex flex-col"
           initial={{ y: -100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}

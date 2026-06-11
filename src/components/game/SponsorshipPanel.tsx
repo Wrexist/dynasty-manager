@@ -213,9 +213,15 @@ export function SponsorshipPanel() {
               );
             }
 
-            // Empty slot
+            // Empty slot — when an offer is pending the whole row opens the
+            // review sheet, matching its "tap to review" copy (previously
+            // only the small Review button was tappable).
             return (
-              <GlassPanel key={slot.id} className={cn('p-3', onCooldown ? 'opacity-50' : '')}>
+              <GlassPanel
+                key={slot.id}
+                className={cn('p-3', onCooldown ? 'opacity-50' : '', offer && !onCooldown ? 'cursor-pointer border-amber-500/20 hover:border-amber-500/40 transition-colors' : '')}
+                onClick={offer && !onCooldown ? () => setSelectedOffer(offer) : undefined}
+              >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-4 h-4 rounded-full border border-dashed border-muted-foreground/30" />

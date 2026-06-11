@@ -78,8 +78,11 @@ function Stepper({ tone, icon, label, value, min, max, step, original, format, o
         {icon}
         <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</span>
         {delta !== 0 && (
-          <span className="ml-auto text-[10px] font-bold tabular-nums text-emerald-400">
-            +{format(delta)} vs offer
+          <span className={cn(
+            'ml-auto text-[10px] font-bold tabular-nums',
+            delta > 0 ? 'text-emerald-400' : 'text-destructive',
+          )}>
+            {delta > 0 ? '+' : '-'}{format(Math.abs(delta))} vs offer
           </span>
         )}
       </div>
