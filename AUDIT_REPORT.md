@@ -35,9 +35,24 @@
 > development + training stop at the potential ceiling (S4-M2/S7-H3).
 > New suites: `competitionCalendar.test.ts`, `leagueCupBracket.test.ts`.
 >
-> Remaining open items continue below; Wave 3 starts with the MatchDay/
-> Review player-facing fixes (S9-H1/H2/H4) and unobtainable content
-> (S6-H1/H2, S14-H2).
+> **Wave 3 (player-facing truth + dead content):** stoppage-time events now
+> render and the half-time/ET locked-speed tap no longer abandons the match
+> (S9-H1/H2, plus the persisted-Pro-speed clamp S9-M1); shootout results
+> display as VICTORY/DEFEAT ON PENALTIES in MatchReview (S9-H4); FlagIcon's
+> imperative DOM fallback replaced with declarative state (S13-H1);
+> Fortress/Invincible Run/World Beater achievements are obtainable (S6-H1/H2,
+> `won` flag on NT knockout results under v72) and the fortress/goal-machine/
+> promotion-express challenges finally receive their extraData (S14-H2);
+> the three Formation Master formations have engine identity (S5-M10), AI
+> reactive tactics actually fire (S5-M2), Deadline Dealer + career
+> negotiation discount apply on the live offer path with makeOffer deleted
+> (S3-H3), and in-match Optimize Lineup surfaces its Pro gate instead of a
+> false "already optimal" toast (S12-H2).
+>
+> Remaining open items continue below — largely MEDIUM/LOW: UI drift
+> (finance breakdown S7-H1/H2 is the biggest open HIGH), loan flow dead
+> ends (S3-H1/H2, S12-H1), national-squad picker deadlock (S11-H2), trial
+> messaging (S11-H1), and the wide LOW backlog.
 
 ## The four CRITICALs
 
