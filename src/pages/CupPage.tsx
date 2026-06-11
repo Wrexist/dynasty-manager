@@ -178,11 +178,12 @@ function RoundSection({ round, ties, playerClubId, clubs, isCurrent, allPlayed, 
 }
 
 const CupPage = () => {
-  const { cup, clubs, playerClubId, week } = useGameStore(useShallow(s => ({
+  const { cup, clubs, playerClubId, week, totalWeeks } = useGameStore(useShallow(s => ({
     cup: s.cup,
     clubs: s.clubs,
     playerClubId: s.playerClubId,
     week: s.week,
+    totalWeeks: s.totalWeeks,
   })));
 
   // Progression indicator: count rounds remaining to the final
@@ -234,7 +235,7 @@ const CupPage = () => {
               : playerEliminated
                 ? 'You have been eliminated'
                 : cup.currentRound
-                  ? `Current: ${getRoundName(cup.currentRound)} · Week ${getCupWeek(cup.currentRound)}`
+                  ? `Current: ${getRoundName(cup.currentRound)} · Week ${getCupWeek(cup.currentRound, totalWeeks)}`
                   : 'Complete'}
           </p>
         </div>
@@ -285,7 +286,7 @@ const CupPage = () => {
 
         const allPlayed = ties.every(t => t.played);
         const isCurrent = cup.currentRound === round;
-        const roundWeek = getCupWeek(round as CupRound);
+        const roundWeek = getCupWeek(round as CupRound, totalWeeks);
 
         return (
           <motion.div

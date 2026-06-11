@@ -804,7 +804,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         activeLoans: data.activeLoans || [],
         incomingLoanOffers: data.incomingLoanOffers || [],
         outgoingLoanRequests: data.outgoingLoanRequests || [],
-        cup: data.cup || generateCupDraw(clubIds),
+        cup: data.cup || generateCupDraw(clubIds, data.totalWeeks),
         friendlies: data.friendlies || [],
         galacticoUsedThisSeason: data.galacticoUsedThisSeason || false,
         invincibleUsedThisSeason: data.invincibleUsedThisSeason || false,

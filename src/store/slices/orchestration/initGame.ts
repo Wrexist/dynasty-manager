@@ -400,9 +400,11 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
   const nextIntakePreview = generateIntakePreview(pcInit.youthRating);
   const scoutCount = initialStaff.filter(s => s.role === 'scout').length;
 
-  // Generate cup draws and pre-season friendlies
-  const cup = generateCupDraw(leagueClubIds);
-  const leagueCup = generateLeagueCupDraw(leagueClubIds);
+  // Generate cup draws and pre-season friendlies — scheduled on the player
+  // league's calendar so finals land inside the season (totalWeeks varies 18-58)
+  const playerTotalWeeks = league?.totalWeeks || TOTAL_WEEKS;
+  const cup = generateCupDraw(leagueClubIds, playerTotalWeeks);
+  const leagueCup = generateLeagueCupDraw(leagueClubIds, playerTotalWeeks);
   const friendlies = generateFriendlies(clubId, leagueClubIds);
 
   // Seed the 10 reigning Ballon d'Or top-10 holders. Picks from the

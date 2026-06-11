@@ -13,7 +13,7 @@ import type {
 } from '@/types/game';
 import type { GameState } from '../../storeTypes';
 import { CUP_BYE_MARKER } from '@/data/cup';
-import { LEAGUE_CUP_WEEKS } from '@/config/continental';
+import { getCompetitionCalendar } from '@/config/continental';
 import { shuffle, safeRandomUUID } from '@/utils/helpers';
 import { findPlayerContinentalMatch } from '@/utils/continental';
 
@@ -21,9 +21,10 @@ import { findPlayerContinentalMatch } from '@/utils/continental';
  * Generate a League Cup (secondary domestic cup) draw.
  * Same structure as the main cup but scheduled on different weeks.
  */
-export function generateLeagueCupDraw(clubIds: string[]): LeagueCupState {
+export function generateLeagueCupDraw(clubIds: string[], totalWeeks?: number): LeagueCupState {
   const ties: CupTie[] = [];
   const shuffled = shuffle([...clubIds]);
+  const leagueCupWeeks = getCompetitionCalendar(totalWeeks).leagueCupWeeks;
 
   let startRound: CupRound = 'R1';
   if (shuffled.length <= 8) startRound = 'R3';
@@ -38,7 +39,7 @@ export function generateLeagueCupDraw(clubIds: string[]): LeagueCupState {
       played: false,
       homeGoals: 0,
       awayGoals: 0,
-      week: LEAGUE_CUP_WEEKS[startRound],
+      week: leagueCupWeeks[startRound],
     });
   }
 
@@ -51,7 +52,7 @@ export function generateLeagueCupDraw(clubIds: string[]): LeagueCupState {
       played: true,
       homeGoals: 1,
       awayGoals: 0,
-      week: LEAGUE_CUP_WEEKS[startRound],
+      week: leagueCupWeeks[startRound],
     });
   }
 
@@ -96,10 +97,11 @@ export function isAggregateDecided(state: GameState, leg2HomeGoals: number, leg2
 }
 
 /**
- * Advance the League Cup to the next round (mirrors advanceCupRound but uses LEAGUE_CUP_WEEKS).
+ * Advance the League Cup to the next round (mirrors advanceCupRound but on the League Cup week slots).
  */
-export function advanceLeagueCupRound(cup: LeagueCupState): LeagueCupState {
+export function advanceLeagueCupRound(cup: LeagueCupState, totalWeeks?: number): LeagueCupState {
   const ROUND_ORDER: CupRound[] = ['R1', 'R2', 'R3', 'R4', 'QF', 'SF', 'F'];
+  const leagueCupWeeks = getCompetitionCalendar(totalWeeks).leagueCupWeeks;
   const currentRound = cup.currentRound;
   if (!currentRound || currentRound === 'F') return cup;
 
@@ -127,7 +129,7 @@ export function advanceLeagueCupRound(cup: LeagueCupState): LeagueCupState {
       played: false,
       homeGoals: 0,
       awayGoals: 0,
-      week: LEAGUE_CUP_WEEKS[nextRound],
+      week: leagueCupWeeks[nextRound],
     });
   }
   if (shuffled.length % 2 === 1) {
@@ -139,7 +141,7 @@ export function advanceLeagueCupRound(cup: LeagueCupState): LeagueCupState {
       played: true,
       homeGoals: 1,
       awayGoals: 0,
-      week: LEAGUE_CUP_WEEKS[nextRound],
+      week: leagueCupWeeks[nextRound],
     });
   }
 

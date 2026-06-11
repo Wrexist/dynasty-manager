@@ -98,7 +98,7 @@ function processTournamentResult(
           newCup.winner = cupWinnerId; newCup.currentRound = null;
           awardPrizeMoney(cupWinnerId === playerClubId ? CONTINENTAL_PRIZE_MONEY.dynasty_cup_winner : CONTINENTAL_PRIZE_MONEY.dynasty_cup_runner_up);
         }
-      } else { Object.assign(newCup, advanceCupRound(newCup, state.clubs, state.players)); }
+      } else { Object.assign(newCup, advanceCupRound(newCup, state.clubs, state.players, state.totalWeeks)); }
     }
     const isHome = result.homeClubId === playerClubId;
     const playerWon = isHome ? result.homeGoals > result.awayGoals : result.awayGoals > result.homeGoals;
@@ -129,7 +129,7 @@ function processTournamentResult(
           if (winnerId === playerClubId) awardPrizeMoney(CONTINENTAL_PRIZE_MONEY.league_cup_winner);
           else awardPrizeMoney(CONTINENTAL_PRIZE_MONEY.league_cup_runner_up);
         } else {
-          Object.assign(newLC, advanceLeagueCupRound(newLC));
+          Object.assign(newLC, advanceLeagueCupRound(newLC, state.totalWeeks));
         }
       }
     }
@@ -177,7 +177,7 @@ function processTournamentResult(
 
           // Check if all groups complete → generate knockout
           if (isGroupStageComplete(newTourney)) {
-            const advanced = generateKnockoutFromGroups(newTourney, playerClubId);
+            const advanced = generateKnockoutFromGroups(newTourney, playerClubId, state.totalWeeks);
             Object.assign(newTourney, advanced);
           }
         } else {
@@ -217,7 +217,7 @@ function processTournamentResult(
               if (round === 'F') {
                 newTourney.winnerId = tie.winnerId; newTourney.currentPhase = 'complete';
               } else {
-                const advanced = advanceKnockoutRound(newTourney, playerClubId);
+                const advanced = advanceKnockoutRound(newTourney, playerClubId, state.totalWeeks);
                 Object.assign(newTourney, advanced);
               }
             }
@@ -296,7 +296,7 @@ function processTournamentResultWithWinner(
         if (newLC.currentRound === 'F') {
           newLC.winner = winnerId; newLC.currentRound = null;
           awardPrizeMoney(winnerId === playerClubId ? CONTINENTAL_PRIZE_MONEY.league_cup_winner : CONTINENTAL_PRIZE_MONEY.league_cup_runner_up);
-        } else { Object.assign(newLC, advanceLeagueCupRound(newLC)); }
+        } else { Object.assign(newLC, advanceLeagueCupRound(newLC, state.totalWeeks)); }
       }
     }
     updates.leagueCup = newLC;
@@ -341,7 +341,7 @@ function processTournamentResultWithWinner(
         }
         if (isKnockoutRoundComplete(newTourney, round)) {
           if (round === 'F') { newTourney.winnerId = winnerId; newTourney.currentPhase = 'complete'; }
-          else { Object.assign(newTourney, advanceKnockoutRound(newTourney, playerClubId)); }
+          else { Object.assign(newTourney, advanceKnockoutRound(newTourney, playerClubId, state.totalWeeks)); }
         }
         updates[compKey] = newTourney;
       }
@@ -1390,7 +1390,7 @@ export function playExtraTimeImpl(set: Set, get: Get): Match | null {
               set({ clubs: { ...clubs, [playerClubId]: { ...club, budget: club.budget + prize } } });
             }
           }
-        } else { Object.assign(newCup, advanceCupRound(newCup, state.clubs, state.players)); }
+        } else { Object.assign(newCup, advanceCupRound(newCup, state.clubs, state.players, state.totalWeeks)); }
       }
       set({
         currentMatchResult: result, halfTimeState: null, matchPhase: 'full_time',
@@ -1593,7 +1593,7 @@ export function skipPenaltyShootoutImpl(set: Set, get: Get): void {
         const prize = winnerId === playerClubId ? CONTINENTAL_PRIZE_MONEY.dynasty_cup_winner : CONTINENTAL_PRIZE_MONEY.dynasty_cup_runner_up;
         const club = clubs[playerClubId];
         if (club) set({ clubs: { ...clubs, [playerClubId]: { ...club, budget: club.budget + prize } } });
-      } else { Object.assign(newCup, advanceCupRound(newCup, state.clubs, state.players)); }
+      } else { Object.assign(newCup, advanceCupRound(newCup, state.clubs, state.players, state.totalWeeks)); }
     }
     set({
       currentMatchResult: { ...result, penaltyShootout }, halfTimeState: null, matchPhase: 'full_time',

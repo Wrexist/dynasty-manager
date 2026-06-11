@@ -58,6 +58,14 @@ export const SHIELD_CUP_TIER3_MAX = 10;
 export const SHIELD_CUP_TIER4_MAX = 7;
 
 // ── Week Schedule ──
+// ALL week constants below describe the REFERENCE 46-week calendar. Most
+// leagues run shorter seasons (state.totalWeeks, 18–58): consumers must go
+// through getCompetitionCalendar(totalWeeks), which compresses the schedule
+// while preserving the load-bearing run-in ordering (see below). Using the
+// raw constants in a 38-week league put the Cup Final (week 43) and the
+// continental knockouts (weeks 38-44) AFTER the season had already ended —
+// they silently never happened in 40 of 45 leagues.
+
 // Continental group stage matchdays (6 matchdays) — shared by all 3 competitions
 export const CONTINENTAL_GROUP_WEEKS = [6, 10, 16, 22, 26, 30] as const;
 // Continental knockout rounds (2-leg ties, except final which is single leg)
@@ -80,6 +88,107 @@ export const LEAGUE_CUP_WEEKS: Record<CupRound, number> = {
 // ── Super Cups ──
 export const DOMESTIC_SUPER_CUP_WEEK = 1;
 export const CONTINENTAL_SUPER_CUP_WEEK = 2;
+
+// ── Calendar Scaling ──
+// Reference Dynasty Cup round weeks (the canonical copy — src/data/cup.ts
+// imports this so config never depends on data/).
+export const REF_CUP_WEEKS: Record<CupRound, number> = {
+  R1: 4,
+  R2: 8,
+  R3: 14,
+  R4: 20,
+  QF: 28,
+  SF: 36,
+  F: 43,
+};
+
+/** Length of the reference calendar all week constants are authored against. */
+export const REF_TOTAL_WEEKS = 46;
+/** First week of the choreographed run-in (continental QF leg 1). Everything
+ *  from here on keeps its OFFSET FROM SEASON END when the calendar is
+ *  compressed, so the load-bearing ordering — continental QF legs → League
+ *  Cup Final → continental SF legs → Cup Final → continental Final — stays
+ *  intact and collision-free at every season length (min totalWeeks is 18;
+ *  the run-in needs the last 9 weeks). */
+const REF_TAIL_START = 38;
+
+/** Map a reference-calendar week onto a `totalWeeks`-week season.
+ *  - 46+ week seasons use the reference calendar unchanged.
+ *  - Run-in weeks (>= REF_TAIL_START) keep their offset from season end.
+ *  - Earlier weeks compress proportionally into the body, capped one week
+ *    short of the run-in. */
+export function scaleCompetitionWeek(refWeek: number, totalWeeks: number): number {
+  if (!totalWeeks || totalWeeks >= REF_TOTAL_WEEKS) return refWeek;
+  if (refWeek >= REF_TAIL_START) {
+    return Math.max(2, totalWeeks - (REF_TOTAL_WEEKS - refWeek));
+  }
+  const bodyEnd = Math.max(2, totalWeeks - (REF_TOTAL_WEEKS - REF_TAIL_START) - 1);
+  return Math.min(bodyEnd, Math.max(1, Math.round((refWeek * bodyEnd) / (REF_TAIL_START - 1))));
+}
+
+export interface CompetitionCalendar {
+  cupWeeks: Record<CupRound, number>;
+  leagueCupWeeks: Record<CupRound, number>;
+  groupWeeks: readonly number[];
+  r16Weeks: readonly [number, number];
+  qfWeeks: readonly [number, number];
+  sfWeeks: readonly [number, number];
+  finalWeek: number;
+}
+
+/** Scale a sequence of reference weeks, enforcing strictly-increasing weeks
+ *  (consecutive rounds can never share a week — round N's result feeds round
+ *  N+1's draw). */
+function scaleSequence(refWeeks: readonly number[], totalWeeks: number): number[] {
+  let prev = 0;
+  return refWeeks.map(ref => {
+    const scaled = Math.max(scaleCompetitionWeek(ref, totalWeeks), prev + 1);
+    prev = scaled;
+    return scaled;
+  });
+}
+
+const calendarCache = new Map<number, CompetitionCalendar>();
+
+/**
+ * The full competition calendar for a season of `totalWeeks` weeks.
+ * Memoized per length. Invariants (covered by competitionCalendar.test.ts):
+ * every week is within [1, totalWeeks]; rounds within a competition are
+ * strictly increasing; the run-in keeps LC Final < continental SF legs <
+ * Cup Final < continental Final distinct. In ultra-short calendars (18-22
+ * weeks) body-week collisions ACROSS competitions are tolerated — the
+ * weekAdvance catch-up recovery auto-sims any player match left behind by
+ * a same-week collision, so a collision can no longer hang a tournament.
+ */
+export function getCompetitionCalendar(totalWeeks?: number): CompetitionCalendar {
+  const w = totalWeeks && totalWeeks > 0 ? Math.round(totalWeeks) : REF_TOTAL_WEEKS;
+  const cached = calendarCache.get(w);
+  if (cached) return cached;
+
+  const rounds: CupRound[] = ['R1', 'R2', 'R3', 'R4', 'QF', 'SF', 'F'];
+  const buildCupRecord = (ref: Record<CupRound, number>): Record<CupRound, number> => {
+    // Body rounds (R1..SF) scale proportionally + monotonic; the Final is
+    // run-in-anchored by scaleCompetitionWeek itself.
+    const body = scaleSequence(rounds.slice(0, 6).map(r => ref[r]), w);
+    const rec = {} as Record<CupRound, number>;
+    rounds.slice(0, 6).forEach((r, i) => { rec[r] = body[i]; });
+    rec.F = scaleCompetitionWeek(ref.F, w);
+    return rec;
+  };
+
+  const groupAndR16 = scaleSequence([...CONTINENTAL_GROUP_WEEKS, ...CONTINENTAL_R16_WEEKS], w);
+  const calendar: CompetitionCalendar = {
+    cupWeeks: buildCupRecord(REF_CUP_WEEKS),
+    leagueCupWeeks: buildCupRecord(LEAGUE_CUP_WEEKS),
+    groupWeeks: groupAndR16.slice(0, 6),
+    r16Weeks: [groupAndR16[6], groupAndR16[7]],
+    qfWeeks: [scaleCompetitionWeek(CONTINENTAL_QF_WEEKS[0], w), scaleCompetitionWeek(CONTINENTAL_QF_WEEKS[1], w)],
+    sfWeeks: [scaleCompetitionWeek(CONTINENTAL_SF_WEEKS[0], w), scaleCompetitionWeek(CONTINENTAL_SF_WEEKS[1], w)],
+    finalWeek: scaleCompetitionWeek(CONTINENTAL_FINAL_WEEK, w),
+  };
+  calendarCache.set(w, calendar);
+  return calendar;
+}
 
 // ── Match Simulation ──
 export const CONTINENTAL_EXTRA_TIME_GOAL_CHANCE = 0.30;

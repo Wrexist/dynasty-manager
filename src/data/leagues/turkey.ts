@@ -7,7 +7,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   country: 'Turkey',
   countryCode: 'TR',
   teamCount: 19,
-  totalWeeks: 36,
+  totalWeeks: 38, // 19 teams (odd) — bye-round double round-robin spans 2*19 = 38 weeks
   replacedSlots: 0,
   description: 'Turkey\'s passionate top flight with fervent atmospheres and ambitious clubs competing for European places.',
   difficulty: 'Medium',

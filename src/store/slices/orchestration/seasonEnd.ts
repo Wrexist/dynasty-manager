@@ -827,8 +827,8 @@ function finalizeSeason(
   const newDivisionTables: Record<string, LeagueTableEntry[]> = buildAllDivisionTables(newDivisionFixtures, newDivisionClubs);
   const newFixtures = newDivisionFixtures[newPlayerDivision];
   const newLeagueTable = newDivisionTables[newPlayerDivision];
-  const newCup = generateCupDraw(leagueClubIds);
-  const newLeagueCup = generateLeagueCupDraw(leagueClubIds);
+  const newCup = generateCupDraw(leagueClubIds, leagueTotalWeeks);
+  const newLeagueCup = generateLeagueCupDraw(leagueClubIds, leagueTotalWeeks);
   const newFriendlies = generateFriendlies(state.playerClubId, leagueClubIds);
 
   // Generate continental tournaments based on the top-tier league table
@@ -883,13 +883,13 @@ function finalizeSeason(
   let newConferenceCup: import('@/types/game').ContinentalTournamentState | null = null;
 
   if (champQ.qualifiers.length >= 8) {
-    newChampionsCup = generateContinentalDraw('champions_cup', newSeason, champQ.qualifiers, allVirtualClubs, playerClubId, updatedCoefficients);
+    newChampionsCup = generateContinentalDraw('champions_cup', newSeason, champQ.qualifiers, allVirtualClubs, playerClubId, updatedCoefficients, leagueTotalWeeks);
   }
   if (shieldQ.qualifiers.length >= 8) {
-    newShieldCup = generateContinentalDraw('shield_cup', newSeason, shieldQ.qualifiers, allVirtualClubs, playerClubId, updatedCoefficients);
+    newShieldCup = generateContinentalDraw('shield_cup', newSeason, shieldQ.qualifiers, allVirtualClubs, playerClubId, updatedCoefficients, leagueTotalWeeks);
   }
   if (confQ.qualifiers.length >= 8) {
-    newConferenceCup = generateContinentalDraw('conference_cup', newSeason, confQ.qualifiers, allVirtualClubs, playerClubId, updatedCoefficients);
+    newConferenceCup = generateContinentalDraw('conference_cup', newSeason, confQ.qualifiers, allVirtualClubs, playerClubId, updatedCoefficients, leagueTotalWeeks);
   }
 
   // Domestic Super Cup: last season's league winner vs cup winner

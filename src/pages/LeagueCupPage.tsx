@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { getRoundName, ROUND_ORDER, CUP_BYE_MARKER } from '@/data/cup';
-import { LEAGUE_CUP_WEEKS } from '@/config/continental';
+import { getCompetitionCalendar } from '@/config/continental';
 import { TournamentHeader } from '@/components/game/TournamentHeader';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { cn } from '@/lib/utils';
@@ -142,12 +142,14 @@ function RoundSection({ round, ties, playerClubId, clubs, isCurrent, allPlayed, 
 }
 
 const LeagueCupPage = () => {
-  const { leagueCup, clubs, playerClubId, week } = useGameStore(useShallow(s => ({
+  const { leagueCup, clubs, playerClubId, week, totalWeeks } = useGameStore(useShallow(s => ({
     leagueCup: s.leagueCup,
     clubs: s.clubs,
     playerClubId: s.playerClubId,
     week: s.week,
+    totalWeeks: s.totalWeeks,
   })));
+  const leagueCupWeeks = getCompetitionCalendar(totalWeeks).leagueCupWeeks;
 
   const progressionText = useMemo(() => {
     if (!leagueCup || leagueCup.eliminated || leagueCup.winner) return null;
@@ -189,7 +191,7 @@ const LeagueCupPage = () => {
       >
         <TournamentHeader
           competition="league_cup"
-          subtitle={leagueCup.currentRound ? `Current: ${getRoundName(leagueCup.currentRound)} · Week ${LEAGUE_CUP_WEEKS[leagueCup.currentRound]}` : 'Complete'}
+          subtitle={leagueCup.currentRound ? `Current: ${getRoundName(leagueCup.currentRound)} · Week ${leagueCupWeeks[leagueCup.currentRound]}` : 'Complete'}
           winnerId={leagueCup.winner}
           winnerName={winnerClub?.name}
           playerEliminated={leagueCup.eliminated}
@@ -238,7 +240,7 @@ const LeagueCupPage = () => {
         if (ties.length === 0) return null;
         const allPlayed = ties.every(t => t.played);
         const isCurrent = leagueCup.currentRound === round;
-        const roundWeek = LEAGUE_CUP_WEEKS[round as CupRound];
+        const roundWeek = leagueCupWeeks[round as CupRound];
 
         return (
           <motion.div
