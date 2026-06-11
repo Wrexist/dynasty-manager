@@ -50,3 +50,54 @@
 10. **Sell-the-dream empty states + hydration shimmer** (S) — TrophyCabinet, YouthAcademy, TitleScreen.
 
 **Single highest-leverage item: #1** — it's the moment players hit every week, and it currently fires haptics for an invisible modal while toasts rain on top.
+
+---
+
+# Part 2 — Hands-On Visual Run-Through (live app, 390×844 mobile, 142 screenshots)
+
+Driven with Playwright through the full new-player journey twice (community-pack Arsenal + generated Liverpool saves), 3 full matches, packs, shop. Zero app exceptions across ~20 sessions. Flag/Sentry network errors are sandbox artifacts.
+
+## P1 — Looks broken / is broken
+
+1. **Weeks 1-3 are double-booked: friendlies AND league fixtures both start week 1.** `generateFixtures` (data/league.ts:150) starts rounds at week 1; `generateFriendlies` also uses weeks 1-3; the intro inbox message claims "league fixtures begin in Week 4" — false. Player experience: play the friendly → "Continue" → back on dashboard, still Week 1, ANOTHER Match Prep card, no explanation. Looks stuck/broken; the week only advances after playing both. Verified in the save data.
+2. **Dashboard "Season Race" + "League Pos" rank against all 92 English clubs, not the division.** Accrington Stanley & AFC Wimbledon "ahead of" Arsenal at 0 pts; "3 /92" position; post-match popup "5th — Up 43". League Table page itself is correct — dashboard data-source bug.
+3. **Mononym players render doubled: "Isco Isco", "Gabriel Gabriel (pen)".** Generated data has fn=ln for mononyms (freeAgents.ts) — needs a process-fc26 pipeline fix or display guard. Highly visible on market/scorers/review.
+4. **Match results aren't persisted until the week advances.** Played friendly + reload = result gone (verified via IndexedDB twice). With finding #1, a crash can silently discard 10+ minutes of play.
+5. **League-table names truncate without ellipsis:** "Bournemo", "Liverpo", "Newcastl", "Nott For".
+6. **"Getting Started" checklist says 0/2 while listing 3 items and never progresses** (still 0/2 after matches + a week advance).
+
+## P2 — Looks cheap / janky
+
+7. **Identical flat-circle fallback badges** — Arsenal vs Brentford = two identical red discs on every surface.
+8. **Money formatting: "£4266K/w", "£5925K", "£1259.3M"** on dashboard/finance/digest — should be £4.3M/w, £5.9M, £1.26B.
+9. **Day-one negativity stack:** board "Under pressure (could mean the sack)" + FFP warning + red low-familiarity warning + 7 amber expiring contracts, all on minute one. Reads "already failing" before kickoff. Board "50.5%" decimal feels robotic.
+10. **Welcome tour doesn't lock background scroll**; tour copy references an "Advance Week" button that doesn't exist in the pre-season flow.
+11. **Key Moments hard-pause the match with no "paused" indicator**; speed variance Normal ~2min vs Fast ~19s per half.
+12. **Pack opening starts with ~1-1.5s of near-black screen** before the ring fades in — reads as a hang. (Rest of the cinematic is genuinely good.)
+13. **Weekly digest "gains" use red bars for low attributes** ("SHO 35 +1" renders red = reads as regression); "Morale 0 pts" dead stat.
+14. **Match Review "Continue" is overloaded** — sometimes advances week, sometimes bounces to a second same-week match with no signal. Needs contextual label.
+15. **Player-detail radar chart is tiny and washed out** — centerpiece analytics visual looks placeholder.
+
+## P3 — Polish
+- What's New tops out at 1.0.10 while the app is 1.0.13 (3-version gap players can see); entries read as dev changelog, not player voice.
+- Starter Kit CTA "Claim — $2.99" ("Claim" implies free).
+- Pack summary "Combined value £5.2M" vs "Sell All £3.4M" with no discount explanation.
+- Match Prep "Recent Form" renders two empty rows week 1 (needs the Finance-style empty state); unlabeled green "31" depth tile.
+- Loading overlay font looks like system fallback, verify portal font inheritance.
+- MOTM went to the keeper who made the "GK ERROR" in a 1-1.
+- Radix a11y: 10× DialogContent missing description; deprecated apple-mobile-web-app-capable meta.
+
+## Already great (calibration)
+Title screen brand moment; community-pack disclosure popup; the liquid-glass onboarding with FUT-card nation previews (genuinely premium); init loading; Quick Access drawer + feature search; the Shop/paywall (clear, Apple-compliant, trustworthy); Rare Gold pack art; live event feed chips + mentality bar; halftime team-talk sheet; Weekly Digest layout; match stat bars.
+
+## Top-10 (visual)
+1. Fix week 1-3 double-booking (real pre-season: league starts week 4 as the copy promises).
+2. Save after every played match, not only on week advance.
+3. Contextual Match Review CTA ("Next match this week" vs "Advance to Week N").
+4. Scope dashboard Season Race/League Pos to the division.
+5. Fix "Isco Isco" mononyms + ellipsize table names.
+6. Distinct two-tone fallback badges.
+7. Money formatter everywhere (£4.3M/w, £1.26B).
+8. Soften the day-one warning stack.
+9. Cut pack-opening dead black to <400ms; lock scroll under the welcome tour.
+10. Bigger, brighter radar chart; green gain bars in digest.
