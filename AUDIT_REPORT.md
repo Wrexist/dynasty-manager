@@ -9,7 +9,7 @@
 
 # Executive Summary
 
-> **Status update (Wave 1 complete on this branch):** All four CRITICALs are
+> **Status update (Waves 1 + 2 complete on this branch):** All four CRITICALs are
 > fixed — C1 competition-calendar scaling (`getCompetitionCalendar` +
 > continental catch-up recovery + odd-team fixture span + scaled transfer
 > windows), C2 double season-end (`runPostSeasonTail`), C3 loan returns
@@ -18,10 +18,26 @@
 > Android workflow), entitlement filtering (S4-H1/S8-M1/M3), season-end
 > message wipe (S2-H2), prize-table misallocation (S2-H5), skip-to-next-match
 > continental hang + week-advance re-entrancy (S1-H3/S9-H3), Conference Cup
-> mislabel in weekAdvance (S1-M1). New regression suites:
-> `competitionCalendar.test.ts` (33 tests) + awaited simulation loops.
-> Everything else below remains open; Wave 2 starts with the match-engine
-> fixes (S5) and the interactive-vs-instant divergences (S2-H1/M3, S2-H4).
+> mislabel in weekAdvance (S1-M1).
+>
+> **Wave 2 (match correctness):** all five S5 engine HIGHs — penalty awarded
+> against the fouling side (S5-H5), red-card/injury disadvantage carried
+> across half-time/ET (S5-H1), relative injury band (S5-H2), `subbedOut`
+> persisted on HalfState so AI subs can't resurrect in ET (S5-H4, save
+> schema → v72), assists filtered to available players (S5-H3) — plus the
+> inverted season-1 defense boost (S5-M1). Shootout results now classify as
+> wins/losses with real drawn scorelines (S2-M3 — including a previously
+> unknown bug: instant-sim cup ties decided on penalties were never recorded
+> at all), interactive continental group/leg-1 draws no longer go to ET
+> (S2-H1), chemistry survives season end (S2-H3 UUID key parsing), the
+> League Cup runs a real power-of-two bracket with a contested final
+> (S2-H4), continental coefficients decay for non-participants (S6-H3), and
+> development + training stop at the potential ceiling (S4-M2/S7-H3).
+> New suites: `competitionCalendar.test.ts`, `leagueCupBracket.test.ts`.
+>
+> Remaining open items continue below; Wave 3 starts with the MatchDay/
+> Review player-facing fixes (S9-H1/H2/H4) and unobtainable content
+> (S6-H1/H2, S14-H2).
 
 ## The four CRITICALs
 
