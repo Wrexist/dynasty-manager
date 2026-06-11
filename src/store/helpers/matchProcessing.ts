@@ -33,6 +33,11 @@ export function processMatchResult(
   playerRatings: PlayerMatchRating[],
   getWeek: () => number,
   matchInjuries?: Record<string, InjuryDetails>,
+  /** Winner of a penalty shootout the player's club was part of. Cup results
+   *  keep their REAL drawn scoreline (no phantom +1 goal), so won/lost —
+   *  morale, board confidence, manager W/D/L, press context — must be
+   *  classified from the shootout outcome instead of the goals. */
+  shootoutWinnerId?: string | null,
 ) {
   const { clubs, players, playerClubId, messages, season } = state;
   const week = state.week;
@@ -114,8 +119,13 @@ export function processMatchResult(
 
   // Player club fitness/morale/form
   const isHome = match.homeClubId === playerClubId;
-  const won = isHome ? result.homeGoals > result.awayGoals : result.awayGoals > result.homeGoals;
-  const lost = isHome ? result.homeGoals < result.awayGoals : result.awayGoals < result.homeGoals;
+  const drawnOnGoals = result.homeGoals === result.awayGoals;
+  const won = shootoutWinnerId && drawnOnGoals
+    ? shootoutWinnerId === playerClubId
+    : (isHome ? result.homeGoals > result.awayGoals : result.awayGoals > result.homeGoals);
+  const lost = shootoutWinnerId && drawnOnGoals
+    ? shootoutWinnerId !== playerClubId
+    : (isHome ? result.homeGoals < result.awayGoals : result.awayGoals < result.homeGoals);
   const pc = clubs[playerClubId];
   if (!pc) return { newPlayers, updatedFixtures: state.fixtures.map(f => f.id === match.id ? result : f), leagueTable: [], confidence: state.boardConfidence || 50, newMessages: messages, managerStats: state.managerStats, playerRatings, won, lost, newMilestones: [] as CareerMilestone[], managerProgression: state.managerProgression, pairFamiliarity: newPairFamiliarity };
   const matchParticipants = new Set(participantIds);

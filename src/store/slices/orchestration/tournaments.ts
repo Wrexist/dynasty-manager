@@ -97,6 +97,23 @@ export function isAggregateDecided(state: GameState, leg2HomeGoals: number, leg2
 }
 
 /**
+ * A drawn cup-flagged match where the draw STANDS (no extra time):
+ * continental group matches, and knockout leg 1 of a two-leg tie (the
+ * aggregate is decided after leg 2). Mirrors the instant-sim exemptions in
+ * playCurrentMatchImpl for the interactive match path.
+ */
+export function isContinentalDrawValid(state: GameState): boolean {
+  if (!state.currentContinentalMatchId || !state.currentContinentalCompetition) return false;
+  const tourney = state.currentContinentalCompetition === 'champions_cup' ? state.championsCup : state.currentContinentalCompetition === 'shield_cup' ? state.shieldCup : state.conferenceCup;
+  if (!tourney) return false;
+  const matchInfo = findPlayerContinentalMatch(tourney, state.week, state.playerClubId);
+  if (!matchInfo) return false;
+  if (matchInfo.type === 'group') return true;
+  if (matchInfo.leg === 1 && tourney.knockoutTies[matchInfo.tieIdx]?.round !== 'F') return true;
+  return false;
+}
+
+/**
  * Advance the League Cup to the next round (mirrors advanceCupRound but on the League Cup week slots).
  */
 export function advanceLeagueCupRound(cup: LeagueCupState, totalWeeks?: number): LeagueCupState {

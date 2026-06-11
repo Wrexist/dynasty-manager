@@ -23,7 +23,7 @@ import { generatePressConference } from '@/data/pressConferences';
 import { HalfState, finalizeMatch, generateMatchWeather, simulateHalf, simulateMatch } from '@/engine/match';
 import { processMatchResult } from '@/store/helpers/matchProcessing';
 import { applyAIMatchEvents } from '@/store/slices/orchestration/helpers';
-import { advanceLeagueCupRound, getContinentalMatchLabel, isAggregateDecided } from '@/store/slices/orchestration/tournaments';
+import { advanceLeagueCupRound, getContinentalMatchLabel, isAggregateDecided, isContinentalDrawValid } from '@/store/slices/orchestration/tournaments';
 import type { MatchEvent } from '@/types/game';
 import { simulatePenaltyShootout } from '@/utils/penaltyShootout';
 import { detectMatchDrama } from '@/utils/celebrations';
@@ -94,7 +94,7 @@ function processTournamentResult(
       if (newCup.currentRound === 'F') {
         const finalTie = newCup.ties.find(t => t.round === 'F' && t.played);
         if (finalTie) {
-          const cupWinnerId = finalTie.homeGoals > finalTie.awayGoals ? finalTie.homeClubId : finalTie.awayClubId;
+          const cupWinnerId = finalTie.winnerId || (finalTie.homeGoals > finalTie.awayGoals ? finalTie.homeClubId : finalTie.awayClubId);
           newCup.winner = cupWinnerId; newCup.currentRound = null;
           awardPrizeMoney(cupWinnerId === playerClubId ? CONTINENTAL_PRIZE_MONEY.dynasty_cup_winner : CONTINENTAL_PRIZE_MONEY.dynasty_cup_runner_up);
         }
@@ -283,6 +283,31 @@ function processTournamentResultWithWinner(
     }
   };
   updates.clubs = realClubs;
+
+  // Domestic Dynasty Cup decided on penalties. This branch was MISSING: an
+  // instant-sim cup tie that went to a shootout was never recorded (the tie
+  // stayed unplayed and weekAdvance's orphan recovery re-simulated it with a
+  // different result, silently discarding the shootout the player saw).
+  if (state.currentCupTieId && state.currentCupTieId !== '__tournament__') {
+    const newCup = { ...state.cup, ties: state.cup.ties.map(t =>
+      t.id === state.currentCupTieId ? { ...t, played: true, homeGoals: result.homeGoals, awayGoals: result.awayGoals, winnerId, penaltyShootout } : t
+    )};
+    const playerWon = winnerId === playerClubId;
+    if (playerWon && state.cup.currentRound && state.cup.currentRound !== 'F') {
+      const cupRoundPrize: Record<string, number> = { R1: CONTINENTAL_PRIZE_MONEY.dynasty_cup_r1, R2: CONTINENTAL_PRIZE_MONEY.dynasty_cup_r2, R3: CONTINENTAL_PRIZE_MONEY.dynasty_cup_r3, R4: CONTINENTAL_PRIZE_MONEY.dynasty_cup_r4, QF: CONTINENTAL_PRIZE_MONEY.dynasty_cup_qf, SF: CONTINENTAL_PRIZE_MONEY.dynasty_cup_sf };
+      awardPrizeMoney(cupRoundPrize[state.cup.currentRound] || 0);
+    }
+    if (!playerWon) newCup.eliminated = true;
+    const allPlayed = newCup.ties.filter(t => t.round === newCup.currentRound).every(t => t.played);
+    if (allPlayed) {
+      if (newCup.currentRound === 'F') {
+        newCup.winner = winnerId; newCup.currentRound = null;
+        awardPrizeMoney(playerWon ? CONTINENTAL_PRIZE_MONEY.dynasty_cup_winner : CONTINENTAL_PRIZE_MONEY.dynasty_cup_runner_up);
+      } else { Object.assign(newCup, advanceCupRound(newCup, state.clubs, state.players, state.totalWeeks)); }
+    }
+    updates.cup = newCup;
+    return { stateUpdates: updates, cleanedPlayers };
+  }
 
   // League Cup
   if (state.currentLeagueCupTieId && state.leagueCup) {
@@ -587,18 +612,21 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
           const awayGKQ = awayGK ? (awayGK.attributes.defending + awayGK.attributes.mental) / 200 : 0.5;
           const so = simulatePenaltyShootout({ homeName: hc.shortName, awayName: ac.shortName, homeGKQuality: homeGKQ, awayGKQuality: awayGKQ });
           penaltyShootout = { home: so.homeScore, away: so.awayScore };
-          if (so.winner === 'home') hGoals++; else aGoals++;
+          // The shootout decides the WINNER, not the score — keep the real
+          // drawn scoreline (the old +1 phantom goal had no scorer, so team
+          // goal totals stopped matching player stats).
+          cupWinnerId = so.winner === 'home' ? match.homeClubId : match.awayClubId;
           cupEvents.push({ minute: 120, type: 'penalty_shootout', clubId: so.winner === 'home' ? match.homeClubId : match.awayClubId, description: `${so.winner === 'home' ? hc.shortName : ac.shortName} win on penalties (${so.homeScore}-${so.awayScore})!` });
         }
 
         finalResult = { ...result, homeGoals: hGoals, awayGoals: aGoals, events: cupEvents, penaltyShootout };
-        cupWinnerId = hGoals > aGoals ? match.homeClubId : match.awayClubId;
+        if (!cupWinnerId) cupWinnerId = hGoals > aGoals ? match.homeClubId : match.awayClubId;
       }
     }
 
     // Use effective clubs/players for processMatchResult (ephemeral clubs for continental/super cup opponents)
     const effectiveState = ephemeralClub ? { ...state, clubs: effectiveClubs, players: effectivePlayers } : state;
-    const processed = processMatchResult(effectiveState, match, finalResult, playerRatings, () => get().week, matchInjuries);
+    const processed = processMatchResult(effectiveState, match, finalResult, playerRatings, () => get().week, matchInjuries, penaltyShootout ? cupWinnerId : undefined);
 
     // Build temporary state with tournament tracking fields for processTournamentResult
     const tempCupTieId = cupTie ? cupTie.id : (leagueCupTie || continentalMatch || superCup) ? '__tournament__' : null;
@@ -1140,7 +1168,12 @@ export function playSecondHalfImpl(set: Set, get: Get): Match | null {
   if (currentMatchWeather) result.weather = currentMatchWeather;
 
   // Cup match ended in draw — need extra time (unless aggregate is already decided for 2-leg ties)
-  if (state.currentCupTieId && result.homeGoals === result.awayGoals && !isAggregateDecided(state, result.homeGoals, result.awayGoals)) {
+  // Continental group matches and knockout leg 1 are LEGITIMATE draws — the
+  // instant-sim path has always exempted them (see the isCupMatch block in
+  // playCurrentMatchImpl); without the same exemption here, an interactive
+  // group draw went to extra time (corrupting standings/aggregates) and a
+  // group shootout landed in a knockout-only handler, stranding the match.
+  if (state.currentCupTieId && result.homeGoals === result.awayGoals && !isContinentalDrawValid(state) && !isAggregateDecided(state, result.homeGoals, result.awayGoals)) {
     set({
       currentMatchResult: result,
       halfTimeState: fullState, // carry forward for extra time continuation
@@ -1382,7 +1415,7 @@ export function playExtraTimeImpl(set: Set, get: Get): Match | null {
         if (newCup.currentRound === 'F') {
           const finalTie = newCup.ties.find(t => t.round === 'F' && t.played);
           if (finalTie) {
-            const cupWinnerId = finalTie.homeGoals > finalTie.awayGoals ? finalTie.homeClubId : finalTie.awayClubId;
+            const cupWinnerId = finalTie.winnerId || (finalTie.homeGoals > finalTie.awayGoals ? finalTie.homeClubId : finalTie.awayClubId);
             newCup.winner = cupWinnerId; newCup.currentRound = null;
             const prize = cupWinnerId === playerClubId ? CONTINENTAL_PRIZE_MONEY.dynasty_cup_winner : CONTINENTAL_PRIZE_MONEY.dynasty_cup_runner_up;
             const club = clubs[playerClubId];
@@ -1549,7 +1582,7 @@ export function skipPenaltyShootoutImpl(set: Set, get: Get): void {
   }
   const { result, playerRatings } = finalizeMatch(finalResult, hc, ac, hp, ap, halfTimeState);
 
-  const processed = processMatchResult(state, finalResult, result, playerRatings, () => get().week, halfTimeState?.matchInjuries || {});
+  const processed = processMatchResult(state, finalResult, result, playerRatings, () => get().week, halfTimeState?.matchInjuries || {}, winnerId);
   const penDrama = detectMatchDrama(result, playerClubId, clubs);
   const press = winnerId === playerClubId ? 'post_win' : 'post_loss';
 
@@ -1574,7 +1607,7 @@ export function skipPenaltyShootoutImpl(set: Set, get: Get): void {
   } else {
     // Domestic Dynasty Cup
     const newCup = { ...state.cup, ties: state.cup.ties.map(t =>
-      t.id === currentCupTieId ? { ...t, played: true, homeGoals: result.homeGoals, awayGoals: result.awayGoals, penaltyShootout } : t
+      t.id === currentCupTieId ? { ...t, played: true, homeGoals: result.homeGoals, awayGoals: result.awayGoals, winnerId, penaltyShootout } : t
     )};
     if (winnerId !== playerClubId) newCup.eliminated = true;
     // Award round prize money on pen win

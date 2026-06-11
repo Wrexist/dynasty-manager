@@ -116,6 +116,10 @@ export function advanceCupRound(
     let penaltyShootout: { home: number; away: number } | undefined;
     if (t.awayClubId === CUP_BYE_MARKER) {
       winnerId = t.homeClubId;
+    } else if (t.winnerId) {
+      // Tie already decided (player's interactive/instant shootout stamped
+      // the winner on a REAL drawn scoreline) — never re-roll it here.
+      winnerId = t.winnerId;
     } else if (t.homeGoals > t.awayGoals) {
       winnerId = t.homeClubId;
     } else if (t.awayGoals > t.homeGoals) {
