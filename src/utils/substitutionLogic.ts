@@ -11,6 +11,12 @@ interface SmartSubParams {
   playerGoals?: number;
   opponentGoals?: number;
   injuredPlayerIds?: string[];
+  /** Live in-match fitness snapshot (from HalfState.playerFitness).
+   *  Preferred over the stale pre-match `Player.fitness` when present. */
+  matchFitness?: Record<string, number>;
+  /** Players sent off this match (from HalfState.sentOff) — they can't be
+   *  replaced via substitution and can't come on. */
+  sentOffIds?: string[];
 }
 
 interface SmartSubResult {
@@ -28,8 +34,8 @@ function posCompat(player: { position: Position; alternatePositions?: Position[]
   return 0.4;
 }
 
-function effectiveStrength(p: Player, compat: number): number {
-  return p.overall * compat + p.fitness * 0.15 + p.form * 0.1;
+function effectiveStrength(p: Player, compat: number, fitness: number): number {
+  return p.overall * compat + fitness * 0.15 + p.form * 0.1;
 }
 
 function isAvailableSub(p: Player, week: number): boolean {
@@ -37,17 +43,20 @@ function isAvailableSub(p: Player, week: number): boolean {
 }
 
 export function computeSmartSub(params: SmartSubParams): SmartSubResult | null {
-  const { lineup, subs, slots, players, week, matchMinute, playerGoals, opponentGoals, injuredPlayerIds } = params;
+  const { lineup, subs, slots, players, week, matchMinute, playerGoals, opponentGoals, injuredPlayerIds, matchFitness, sentOffIds } = params;
 
   const injuredSet = new Set(injuredPlayerIds || []);
+  const sentOffSet = new Set(sentOffIds || []);
   const isLosing = (playerGoals ?? 0) < (opponentGoals ?? 0);
   const isWinning = (playerGoals ?? 0) > (opponentGoals ?? 0);
   const minute = matchMinute ?? 0;
+  // Live in-match fitness when available; pre-match value otherwise.
+  const liveFitness = (p: Player): number => matchFitness?.[p.id] ?? p.fitness;
 
-  // Get available bench players
+  // Get available bench players (sent-off players can never come on)
   const availableSubs = subs.filter(id => {
     const p = players[id];
-    return isAvailableSub(p, week);
+    return isAvailableSub(p, week) && !sentOffSet.has(id);
   });
 
   if (availableSubs.length === 0) return null;
@@ -59,20 +68,23 @@ export function computeSmartSub(params: SmartSubParams): SmartSubResult | null {
     const outId = lineup[i];
     const outP = outId ? players[outId] : null;
     if (!outP) continue;
+    // A red-carded player has left the pitch — they cannot be "replaced".
+    if (sentOffSet.has(outId)) continue;
     const slotPos = slots[i]?.pos as Position;
 
     const isInjured = injuredSet.has(outId);
+    const outFitness = liveFitness(outP);
 
     // Before min 45, only suggest subs for injured or very tired (< 50%) players
-    if (!isInjured && minute < SMART_SUB_MIN_MINUTE && outP.fitness >= 50) continue;
+    if (!isInjured && minute < SMART_SUB_MIN_MINUTE && outFitness >= 50) continue;
 
     for (const inId of availableSubs) {
       const inP = players[inId];
       if (!inP) continue;
 
       const compat = posCompat(inP, slotPos);
-      const effIn = effectiveStrength(inP, compat);
-      const effOut = effectiveStrength(outP, 1.0); // current starter plays at natural compat in their slot
+      const effIn = effectiveStrength(inP, compat, liveFitness(inP));
+      const effOut = effectiveStrength(outP, 1.0, outFitness); // current starter plays at natural compat in their slot
 
       // 1. Injured starters — highest priority, always recommend
       if (isInjured) {
@@ -89,7 +101,7 @@ export function computeSmartSub(params: SmartSubParams): SmartSubResult | null {
       if (effIn <= effOut) continue;
 
       // 3. Compute need score based on fitness/form
-      const fitnessNeed = Math.max(0, 80 - outP.fitness) * 1.5;
+      const fitnessNeed = Math.max(0, 80 - outFitness) * 1.5;
       const formNeed = Math.max(0, 55 - outP.form) * 0.5;
       const needScore = fitnessNeed + formNeed;
 
@@ -116,8 +128,8 @@ export function computeSmartSub(params: SmartSubParams): SmartSubResult | null {
 
         // Determine reason
         let reason: string;
-        if (outP.fitness < 60) {
-          reason = `${outP.lastName} tired (${Math.round(outP.fitness)}%) → ${inP.lastName}`;
+        if (outFitness < 60) {
+          reason = `${outP.lastName} tired (${Math.round(outFitness)}%) → ${inP.lastName}`;
         } else if (outP.form < 55) {
           reason = `${outP.lastName} poor form → ${inP.lastName}`;
         } else if (contextBonus >= 10 && isLosing) {

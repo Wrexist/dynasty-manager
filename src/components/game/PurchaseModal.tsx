@@ -54,7 +54,9 @@ export function PurchaseModal({ productId, onConfirm, onCancel, loading, storePr
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-        onClick={handleCancel}
+        // `loading` blocks every dismissal path (backdrop, X, Escape, Cancel)
+        // so the modal can't vanish mid-StoreKit-transaction.
+        onClick={loading ? undefined : handleCancel}
       >
         <motion.div
           key="purchase-card"
@@ -78,8 +80,9 @@ export function PurchaseModal({ productId, onConfirm, onCancel, loading, storePr
             <button
               type="button"
               onClick={handleCancel}
+              disabled={loading}
               aria-label={isSubscription ? 'Close subscription dialog' : 'Close purchase dialog'}
-              className="flex items-center justify-center min-w-[44px] min-h-[44px] -m-2.5 text-muted-foreground hover:text-foreground"
+              className="flex items-center justify-center min-w-[44px] min-h-[44px] -m-2.5 text-muted-foreground hover:text-foreground disabled:opacity-50"
             >
               <X className="w-5 h-5" />
             </button>

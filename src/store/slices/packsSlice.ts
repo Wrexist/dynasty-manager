@@ -510,6 +510,10 @@ export const createPacksSlice = (set: Set, get: Get) => ({
    *  roster AND only during the same in-game season/week the pack was
    *  opened, so it can't be abused to dump veterans cheaply after the fact. */
   releasePackedPlayer: (playerId: string): ReleasePackedPlayerResult => {
+    // Any roster-mutating pack action invalidates a pending quick-sell undo
+    // (mirrors openPack) — restoring the snapshot would silently revert this
+    // release while keeping its severance charge.
+    lastQuickSellSnapshot = null;
     const state = get();
     const last = (state.openedPacks || [])[0];
     if (
@@ -723,7 +727,11 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     set({
       players: { ...state.players, [playerId]: soldPlayer },
       clubs: { ...state.clubs, [state.playerClubId]: updatedClub },
-      freeAgents: [...state.freeAgents, playerId],
+      // NOT added to freeAgents: the player is SOLD (treated as transferred
+      // abroad, like the storyline saga sale). Free-agenting him enabled a
+      // value loop — quick-sell for 65% of value, then re-sign from free
+      // agency for only a signing bonus. The orphan record (clubId '') is
+      // purged at season end.
       openedPacks: newOpenedPacks,
       messages: newMessages,
       // Mirror `releasePackedPlayer`'s tracking of severance into expenses:

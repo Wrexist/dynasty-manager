@@ -53,10 +53,13 @@ export function NationalTeamOfferModal() {
             {/* Gradient overlay */}
             <div className="absolute inset-0 bg-gradient-to-br from-teal-500/10 via-transparent to-primary/5 pointer-events-none" />
 
-            {/* Close button */}
+            {/* Close button — 44px hit target (declines the offer, same as
+                the Decline button / Escape) */}
             <button
+              type="button"
               onClick={declineNationalTeamOffer}
-              className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors z-10"
+              aria-label="Decline national team offer"
+              className="absolute top-0 right-0 z-10 flex items-center justify-center min-w-11 min-h-11 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>

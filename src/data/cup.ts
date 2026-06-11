@@ -1,26 +1,29 @@
 import { CupTie, CupRound, CupState, Club, Player } from '@/types/game';
 import { shuffle, safeRandomUUID } from '@/utils/helpers';
 import { getClubGKQuality, simulatePenaltyShootout } from '@/utils/penaltyShootout';
+import { REF_CUP_WEEKS, getCompetitionCalendar } from '@/config/continental';
 
 export const CUP_BYE_MARKER = '__BYE__';
 
-// Cup round weeks. The Final sits at week 43 specifically to dodge the
+// Cup round weeks — REFERENCE 46-week calendar (canonical copy lives in
+// config/continental.ts; re-exported here for tests/back-compat). In the
+// reference calendar the Final sits at week 43 specifically to dodge the
 // continental SF second leg (weeks 41-42) and the continental Final
 // (week 44): the player's continental knockout ties are NOT auto-simulated
-// by weekAdvance (simulateKnockoutLeg skips the player's own tie, expecting
-// interactive play), and `playCurrentMatchImpl` resolves a cup tie BEFORE a
-// continental match on the same week — so a cup-final/continental-SF week
-// collision would strand the continental tie unresolved and hang the
-// tournament. Week 43 is also clear of the League Cup Final (week 40).
-const CUP_WEEKS: Record<CupRound, number> = {
-  R1: 4,
-  R2: 8,
-  R3: 14,
-  R4: 20,
-  QF: 28,
-  SF: 36,
-  F: 43,
-};
+// at their scheduled week (simulateKnockoutLeg skips the player's own tie,
+// expecting interactive play), and `playCurrentMatchImpl` resolves a cup tie
+// BEFORE a continental match on the same week.
+//
+// Most leagues run SHORTER seasons (state.totalWeeks, 18–58). Draw/advance
+// functions therefore take totalWeeks and stamp weeks from
+// getCompetitionCalendar(totalWeeks), which compresses the schedule while
+// keeping the run-in ordering (LC Final → continental SF legs → Cup Final →
+// continental Final) anchored to season end and collision-free. Any body
+// week collision a compressed calendar can't avoid is degraded gracefully:
+// weekAdvance's catch-up recovery auto-sims a player match whose week has
+// passed unplayed, so collisions can delay a tie but no longer hang a
+// tournament.
+const CUP_WEEKS: Record<CupRound, number> = REF_CUP_WEEKS;
 
 const ROUND_ORDER: CupRound[] = ['R1', 'R2', 'R3', 'R4', 'QF', 'SF', 'F'];
 
@@ -38,9 +41,10 @@ const ROUND_ORDER: CupRound[] = ['R1', 'R2', 'R3', 'R4', 'QF', 'SF', 'F'];
  * bracket — that could leave the Final itself an unplayed walkover bye and
  * hand a club the trophy without a final being contested.
  */
-export function generateCupDraw(clubIds: string[]): CupState {
+export function generateCupDraw(clubIds: string[], totalWeeks?: number): CupState {
   const shuffled = shuffle([...clubIds]);
   const n = shuffled.length;
+  const cupWeeks = getCompetitionCalendar(totalWeeks).cupWeeks;
 
   const mkTie = (round: CupRound, home: string, away: string, isBye: boolean): CupTie => ({
     id: safeRandomUUID(),
@@ -50,7 +54,7 @@ export function generateCupDraw(clubIds: string[]): CupState {
     played: isBye,
     homeGoals: isBye ? 1 : 0,
     awayGoals: 0,
-    week: CUP_WEEKS[round],
+    week: cupWeeks[round],
   });
 
   // Degenerate field — nothing to contest.
@@ -93,7 +97,9 @@ export function advanceCupRound(
   cup: CupState,
   clubs: Record<string, Club> = {},
   players: Record<string, Player> = {},
+  totalWeeks?: number,
 ): CupState {
+  const cupWeeks = getCompetitionCalendar(totalWeeks).cupWeeks;
   const currentRound = cup.currentRound;
   if (!currentRound || currentRound === 'F') return cup;
 
@@ -110,6 +116,10 @@ export function advanceCupRound(
     let penaltyShootout: { home: number; away: number } | undefined;
     if (t.awayClubId === CUP_BYE_MARKER) {
       winnerId = t.homeClubId;
+    } else if (t.winnerId) {
+      // Tie already decided (player's interactive/instant shootout stamped
+      // the winner on a REAL drawn scoreline) — never re-roll it here.
+      winnerId = t.winnerId;
     } else if (t.homeGoals > t.awayGoals) {
       winnerId = t.homeClubId;
     } else if (t.awayGoals > t.homeGoals) {
@@ -153,7 +163,7 @@ export function advanceCupRound(
       played: false,
       homeGoals: 0,
       awayGoals: 0,
-      week: CUP_WEEKS[nextRound],
+      week: cupWeeks[nextRound],
     });
   }
   if (shuffled.length % 2 === 1) {
@@ -165,7 +175,7 @@ export function advanceCupRound(
       played: true,
       homeGoals: 1,
       awayGoals: 0,
-      week: CUP_WEEKS[nextRound],
+      week: cupWeeks[nextRound],
     });
   }
 
@@ -176,8 +186,8 @@ export function advanceCupRound(
   };
 }
 
-export function getCupWeek(round: CupRound): number {
-  return CUP_WEEKS[round];
+export function getCupWeek(round: CupRound, totalWeeks?: number): number {
+  return getCompetitionCalendar(totalWeeks).cupWeeks[round];
 }
 
 export function getRoundName(round: CupRound): string {

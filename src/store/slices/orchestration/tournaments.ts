@@ -13,46 +13,60 @@ import type {
 } from '@/types/game';
 import type { GameState } from '../../storeTypes';
 import { CUP_BYE_MARKER } from '@/data/cup';
-import { LEAGUE_CUP_WEEKS } from '@/config/continental';
+import { getCompetitionCalendar } from '@/config/continental';
 import { shuffle, safeRandomUUID } from '@/utils/helpers';
 import { findPlayerContinentalMatch } from '@/utils/continental';
 
 /**
  * Generate a League Cup (secondary domestic cup) draw.
- * Same structure as the main cup but scheduled on different weeks.
+ * Same power-of-two prelim-round bracket as generateCupDraw (data/cup.ts),
+ * scheduled on the League Cup week slots. The old algorithm paired the full
+ * field at a heuristic start round and let byes cascade: a 20-club league
+ * produced QF→SF→F as walkover byes, so the "Final" was a pre-played bye —
+ * the trophy was handed out without a final being contested and the
+ * winner's prize money (paid only when the player PLAYS the F round) was
+ * silently skipped.
  */
-export function generateLeagueCupDraw(clubIds: string[]): LeagueCupState {
-  const ties: CupTie[] = [];
+export function generateLeagueCupDraw(clubIds: string[], totalWeeks?: number): LeagueCupState {
   const shuffled = shuffle([...clubIds]);
+  const n = shuffled.length;
+  const leagueCupWeeks = getCompetitionCalendar(totalWeeks).leagueCupWeeks;
+  const roundOrder: CupRound[] = ['R1', 'R2', 'R3', 'R4', 'QF', 'SF', 'F'];
 
-  let startRound: CupRound = 'R1';
-  if (shuffled.length <= 8) startRound = 'R3';
-  else if (shuffled.length <= 16) startRound = 'R2';
+  const mkTie = (round: CupRound, home: string, away: string, isBye: boolean): CupTie => ({
+    id: safeRandomUUID(),
+    round,
+    homeClubId: home,
+    awayClubId: away,
+    played: isBye,
+    homeGoals: isBye ? 1 : 0,
+    awayGoals: 0,
+    week: leagueCupWeeks[round],
+  });
 
-  for (let i = 0; i + 1 < shuffled.length; i += 2) {
-    ties.push({
-      id: safeRandomUUID(),
-      round: startRound,
-      homeClubId: shuffled[i],
-      awayClubId: shuffled[i + 1],
-      played: false,
-      homeGoals: 0,
-      awayGoals: 0,
-      week: LEAGUE_CUP_WEEKS[startRound],
-    });
-  }
+  if (n < 2) return { ties: [], currentRound: null, eliminated: false, winner: null };
 
-  if (shuffled.length % 2 === 1) {
-    ties.push({
-      id: safeRandomUUID(),
-      round: startRound,
-      homeClubId: shuffled[shuffled.length - 1],
-      awayClubId: CUP_BYE_MARKER,
-      played: true,
-      homeGoals: 1,
-      awayGoals: 0,
-      week: LEAGUE_CUP_WEEKS[startRound],
-    });
+  // Largest power of two <= n; one preliminary round reduces the field to it.
+  let target = 1;
+  while (target * 2 <= n) target *= 2;
+  const needsPrelim = n > target;
+  const cleanRounds = Math.max(1, Math.round(Math.log2(target)));
+  const totalRounds = cleanRounds + (needsPrelim ? 1 : 0);
+  const startRound = roundOrder[Math.max(0, roundOrder.length - totalRounds)];
+
+  const ties: CupTie[] = [];
+  if (needsPrelim) {
+    const tieCount = n - target;
+    for (let i = 0; i < tieCount; i++) {
+      ties.push(mkTie(startRound, shuffled[i * 2], shuffled[i * 2 + 1], false));
+    }
+    for (let i = tieCount * 2; i < n; i++) {
+      ties.push(mkTie(startRound, shuffled[i], CUP_BYE_MARKER, true));
+    }
+  } else {
+    for (let i = 0; i + 1 < n; i += 2) {
+      ties.push(mkTie(startRound, shuffled[i], shuffled[i + 1], false));
+    }
   }
 
   return { ties, currentRound: startRound, eliminated: false, winner: null };
@@ -96,10 +110,28 @@ export function isAggregateDecided(state: GameState, leg2HomeGoals: number, leg2
 }
 
 /**
- * Advance the League Cup to the next round (mirrors advanceCupRound but uses LEAGUE_CUP_WEEKS).
+ * A drawn cup-flagged match where the draw STANDS (no extra time):
+ * continental group matches, and knockout leg 1 of a two-leg tie (the
+ * aggregate is decided after leg 2). Mirrors the instant-sim exemptions in
+ * playCurrentMatchImpl for the interactive match path.
  */
-export function advanceLeagueCupRound(cup: LeagueCupState): LeagueCupState {
+export function isContinentalDrawValid(state: GameState): boolean {
+  if (!state.currentContinentalMatchId || !state.currentContinentalCompetition) return false;
+  const tourney = state.currentContinentalCompetition === 'champions_cup' ? state.championsCup : state.currentContinentalCompetition === 'shield_cup' ? state.shieldCup : state.conferenceCup;
+  if (!tourney) return false;
+  const matchInfo = findPlayerContinentalMatch(tourney, state.week, state.playerClubId);
+  if (!matchInfo) return false;
+  if (matchInfo.type === 'group') return true;
+  if (matchInfo.leg === 1 && tourney.knockoutTies[matchInfo.tieIdx]?.round !== 'F') return true;
+  return false;
+}
+
+/**
+ * Advance the League Cup to the next round (mirrors advanceCupRound but on the League Cup week slots).
+ */
+export function advanceLeagueCupRound(cup: LeagueCupState, totalWeeks?: number): LeagueCupState {
   const ROUND_ORDER: CupRound[] = ['R1', 'R2', 'R3', 'R4', 'QF', 'SF', 'F'];
+  const leagueCupWeeks = getCompetitionCalendar(totalWeeks).leagueCupWeeks;
   const currentRound = cup.currentRound;
   if (!currentRound || currentRound === 'F') return cup;
 
@@ -108,12 +140,18 @@ export function advanceLeagueCupRound(cup: LeagueCupState): LeagueCupState {
   if (!nextRound) return cup;
 
   const currentTies = cup.ties.filter(t => t.round === currentRound && t.played);
+  const updatedTies = [...cup.ties];
   const winners = currentTies.map(t => {
     if (t.awayClubId === CUP_BYE_MARKER) return t.homeClubId;
     if (t.winnerId) return t.winnerId;
-    return t.homeGoals > t.awayGoals ? t.homeClubId :
+    const winnerId = t.homeGoals > t.awayGoals ? t.homeClubId :
       t.awayGoals > t.homeGoals ? t.awayClubId :
       Math.random() < 0.5 ? t.homeClubId : t.awayClubId;
+    // Stamp the resolved winner so the bracket UI highlights the right team
+    // (mirrors advanceCupRound).
+    const idx = updatedTies.findIndex(ut => ut.id === t.id);
+    if (idx >= 0) updatedTies[idx] = { ...updatedTies[idx], winnerId };
+    return winnerId;
   });
 
   const shuffled = shuffle([...winners]);
@@ -127,7 +165,7 @@ export function advanceLeagueCupRound(cup: LeagueCupState): LeagueCupState {
       played: false,
       homeGoals: 0,
       awayGoals: 0,
-      week: LEAGUE_CUP_WEEKS[nextRound],
+      week: leagueCupWeeks[nextRound],
     });
   }
   if (shuffled.length % 2 === 1) {
@@ -139,9 +177,9 @@ export function advanceLeagueCupRound(cup: LeagueCupState): LeagueCupState {
       played: true,
       homeGoals: 1,
       awayGoals: 0,
-      week: LEAGUE_CUP_WEEKS[nextRound],
+      week: leagueCupWeeks[nextRound],
     });
   }
 
-  return { ...cup, ties: [...cup.ties, ...newTies], currentRound: nextRound };
+  return { ...cup, ties: [...updatedTies, ...newTies], currentRound: nextRound };
 }

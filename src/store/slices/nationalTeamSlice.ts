@@ -231,6 +231,10 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
   replaceInjuredInternationalPlayer: (outId: string, inId: string) => {
     const state = _get();
     if (!state.nationalTeam) return;
+    // Validate the replacement: must be a real player and not already in the
+    // squad — a duplicate id would occupy two squad/lineup slots at once.
+    if (!state.players[inId]) return;
+    if (state.nationalTeam.squad.includes(inId)) return;
     const nt = { ...state.nationalTeam };
     // Swap in squad
     nt.squad = nt.squad.map(id => id === outId ? inId : id);

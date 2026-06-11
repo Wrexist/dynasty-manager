@@ -28,7 +28,12 @@ export function applyPlayerDevelopment(p: Player, trainingFocus: string, mentorB
   if (p.age < GROWTH_AGE_THRESHOLD) {
     // Check season growth cap
     const priorGrowth = seasonGrowthTracker[p.id] || 0;
-    if (priorGrowth < MAX_SEASON_GROWTH) {
+    // Hard ceiling: a player at (or above) their scouted potential stops
+    // developing. The gap factor alone never zeroed the chance (base 0.05 +
+    // playing-time bonus stayed positive at gap <= 0), so high-minutes
+    // youngsters overshot potential by up to MAX_SEASON_GROWTH every season
+    // and `potential` stopped meaning anything.
+    if (priorGrowth < MAX_SEASON_GROWTH && p.overall < p.potential) {
       const potentialGap = p.potential - p.overall;
       // Playing time scales growth: 0% at 0 apps, up to +8% at 20+ apps
       const playingTimeBonus = Math.min(PLAYING_TIME_BONUS_MAX, p.appearances * PLAYING_TIME_BONUS_PER_APP);

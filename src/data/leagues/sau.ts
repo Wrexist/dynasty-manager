@@ -8,7 +8,10 @@ export const LEAGUE_INFO: LeagueInfo = {
   countryCode: 'SA',
   teamCount: 18,
   totalWeeks: 34,
-  replacedSlots: 0,
+  // Single-tier league: relegated clubs are replaced by procedurally
+  // generated newcomers (replacedSlots = relegationSpots) so the relegation
+  // zone shown in the table has a real consequence.
+  replacedSlots: 3,
   description: "Saudi Arabia's top division, transformed by huge investment and the arrival of global superstars.",
   difficulty: 'Hard',
   colorClass: 'text-emerald-400',

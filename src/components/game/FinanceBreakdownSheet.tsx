@@ -14,6 +14,22 @@ interface Props {
 }
 
 export function FinanceBreakdownSheet({ open, onOpenChange, mode }: Props) {
+  // The store subscription + getFinanceBreakdown call live in the body
+  // component below. Radix only mounts SheetContent children while the
+  // sheet is open (or animating closed), so the full breakdown is no
+  // longer recomputed on every Dashboard render while the sheet is shut —
+  // and both the open and close animations keep working.
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="bottom" className="bg-background/95 backdrop-blur-xl border-t border-border/50 rounded-t-2xl max-h-[85vh] overflow-y-auto pb-8">
+        <SheetTitle className="sr-only">Finance Breakdown</SheetTitle>
+        <FinanceBreakdownBody mode={mode} />
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function FinanceBreakdownBody({ mode }: { mode: FinanceSheetMode }) {
   const { clubs, playerClubId, facilities, staff, scouting, fanMood, leagueTable, managerProgression, sponsorDeals, merchandise, players, playerDivision, careerManager, totalWeeks } = useGameStore(
     useShallow(s => ({
       clubs: s.clubs,
@@ -54,9 +70,7 @@ export function FinanceBreakdownSheet({ open, onOpenChange, mode }: Props) {
   const maxExpense = Math.max(...breakdown.expenses.map(e => e.amount), 1);
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="bg-background/95 backdrop-blur-xl border-t border-border/50 rounded-t-2xl max-h-[85vh] overflow-y-auto pb-8">
-        <SheetTitle className="sr-only">Finance Breakdown</SheetTitle>
+    <>
 
         {/* Budget header when in budget mode */}
         {mode === 'budget' && (
@@ -160,7 +174,6 @@ export function FinanceBreakdownSheet({ open, onOpenChange, mode }: Props) {
             </p>
           )}
         </div>
-      </SheetContent>
-    </Sheet>
+    </>
   );
 }

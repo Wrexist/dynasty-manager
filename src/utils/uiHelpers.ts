@@ -379,6 +379,7 @@ export function getClubDisplayName(fullName: string, maxLen = 7): string {
     if (best) return best;
   }
 
-  // Single long word: truncate
-  return name.slice(0, maxLen);
+  // Single long word: truncate with a visible ellipsis so it reads as
+  // intentional ("Bournem…") instead of looking like clipped rendering.
+  return name.slice(0, Math.max(1, maxLen - 1)) + '…';
 }

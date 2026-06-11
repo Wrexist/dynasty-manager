@@ -137,6 +137,18 @@ export const PITCH_COLORS = {
   AWAY_DEFAULT: '#666',
 } as const;
 
+// ── Pitch Slot Y-Mapping ──
+// Vertical span (in SVG units) used to lay out formation slots inside the
+// half-pitch views (LineupEditor + SubstitutionSheet). Wider span → more
+// vertical room between player tiles → less overlap on formations that
+// stack attackers / midfielders close together. The canonical formation
+// `y` values top out around 82, so `y=100` doesn't need to fit on screen —
+// keep room above the GK row for the highest strikers / wingers without
+// overflowing the pitch. Shared so the same formation renders with the
+// same shape on the tactics screen and in-match.
+export const SLOT_Y_RANGE = 54;
+export const SLOT_Y_BOTTOM = 97;
+
 // ── Chart Colors ──
 export const CHART_COLORS = {
   PRIMARY: 'hsl(160, 84%, 39%)',
@@ -196,7 +208,7 @@ export const HELP_TEXTS = {
   trainingIntensity: 'Training intensity affects development speed and injury risk. Heavy training develops players faster but increases injury risk. Light training recovers fitness but progress is slower. Medium balances both.',
   tacticalFamiliarity: 'How well your team knows the current formation. Higher familiarity improves match performance. Train "Tactical" to boost it.',
   transferBudget: 'Your available funds for buying players. Wage costs reduce your weekly income, so watch the wage bill too.',
-  transferWindow: 'You can only buy/sell players during transfer windows: Weeks 1-8 (summer) and Weeks 20-24 (winter).',
+  transferWindow: 'You can only buy/sell players during the summer window (season start) and the winter window (mid-season). Exact weeks scale with your league\'s season length — check the Transfers page header.',
   chemistry: 'Chemistry reflects how well players work together. Players from the same nationality, with compatible positions, or who have played together longer build stronger links.',
   form: 'A player\'s recent match performance. Good form boosts morale and match ratings. Poor form can lower confidence.',
   playerRating: 'Player ratings run 1–99. Tiers: Legendary 90+ (red-gold), Gold 80–89 (amber), Silver 70–79, Bronze 60–69, Common below 60. Inline rating text uses green for world-class, sky for solid, amber for average, grey for weak.',

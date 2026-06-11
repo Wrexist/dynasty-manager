@@ -496,6 +496,20 @@ function processAIBuying(
       updClubs[sellerClubId] = updSeller;
     }
 
+    // Wage-bill hygiene: detachPlayerFromAllClubs strips roster references
+    // but never touches wageBill, so a mis-declared "external" seller whose
+    // roster actually held the player would keep paying a phantom wage
+    // forever. Decrement wageBill on every club that really holds the player
+    // (the declared seller was already adjusted in the non-external branch
+    // above; the buyer's wage is re-added below, so decrementing a
+    // pre-existing duplicate ownership there stays balanced).
+    for (const [cid, c] of Object.entries(updClubs)) {
+      if (!isExternalPlayer && cid === sellerClubId) continue;
+      if (c.playerIds?.includes(target.id)) {
+        updClubs[cid] = { ...c, wageBill: Math.max(0, c.wageBill - target.wage) };
+      }
+    }
+
     // Defensively detach the target from every club so a stale listing,
     // mis-declared seller, or pre-existing duplicate ownership cannot leave
     // the player in two clubs' playerIds arrays.

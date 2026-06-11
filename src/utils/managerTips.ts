@@ -1,5 +1,5 @@
 import type { GameScreen, Player, Club, Match } from '@/types/game';
-import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END } from '@/config/transfers';
+import { getTransferWindows } from '@/config/transfers';
 import { LINEUP_SIZE, LOW_FITNESS_THRESHOLD } from '@/config/gameBalance';
 
 export type TipType = 'warning' | 'tactical' | 'transfer' | 'squad' | 'info';
@@ -14,6 +14,7 @@ export interface ManagerTip {
 
 interface TipContext {
   week: number;
+  totalWeeks?: number;
   season: number;
   club: Club;
   players: Record<string, Player>;
@@ -27,6 +28,7 @@ interface TipContext {
 export function getManagerTips(ctx: TipContext): ManagerTip[] {
   const tips: ManagerTip[] = [];
   const { week, season, club, players, transferWindowOpen, boardConfidence, incomingOffers, tacticalFamiliarity } = ctx;
+  const tw = getTransferWindows(ctx.totalWeeks);
 
   const squadPlayers = club.playerIds.map(id => players[id]).filter(Boolean);
   const lineupPlayers = club.lineup.map(id => players[id]).filter(Boolean);
@@ -67,10 +69,10 @@ export function getManagerTips(ctx: TipContext): ManagerTip[] {
 
   // Transfer window closing soon
   if (transferWindowOpen) {
-    const weeksLeft = week <= SUMMER_WINDOW_END
-      ? SUMMER_WINDOW_END - week
-      : week >= WINTER_WINDOW_START && week <= WINTER_WINDOW_END
-        ? WINTER_WINDOW_END - week
+    const weeksLeft = week <= tw.summerEnd
+      ? tw.summerEnd - week
+      : week >= tw.winterStart && week <= tw.winterEnd
+        ? tw.winterEnd - week
         : 0;
 
     if (weeksLeft > 0 && weeksLeft <= 3) {
@@ -85,10 +87,10 @@ export function getManagerTips(ctx: TipContext): ManagerTip[] {
   }
 
   // Window about to open
-  if (!transferWindowOpen && week >= WINTER_WINDOW_START - 2 && week < WINTER_WINDOW_START) {
+  if (!transferWindowOpen && week >= tw.winterStart - 2 && week < tw.winterStart) {
     tips.push({
       icon: 'shopping-cart',
-      text: `Winter transfer window opens in ${WINTER_WINDOW_START - week} week${WINTER_WINDOW_START - week > 1 ? 's' : ''}.`,
+      text: `Winter transfer window opens in ${tw.winterStart - week} week${tw.winterStart - week > 1 ? 's' : ''}.`,
       action: 'transfers',
       priority: 3,
       type: 'transfer',

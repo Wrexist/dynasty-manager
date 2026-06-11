@@ -1,4 +1,4 @@
-import { useRef, useEffect, useMemo } from 'react';
+import { useRef, useEffect, useMemo, useCallback } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -6,7 +6,7 @@ import { Calendar, Trophy, Flame, AlertTriangle, Globe, Briefcase } from 'lucide
 import { cn } from '@/lib/utils';
 import { getRoundName, CUP_BYE_MARKER } from '@/data/cup';
 import { getDerbyIntensity } from '@/data/league';
-import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END } from '@/config/transfers';
+import { getTransferWindows } from '@/config/transfers';
 import { SPRING_PHASE_END_WEEK } from '@/config/gameBalance';
 import { PageHint } from '@/components/game/PageHint';
 import { TOTAL_WEEKS, BOARD_REVIEW_WEEKS } from '@/config/gameBalance';
@@ -42,9 +42,16 @@ const CalendarView = () => {
   })));
   const setScreen = useGameStore((s) => s.setScreen);
   const currentWeekRef = useRef<HTMLDivElement>(null);
+  // Several entries can share the current week (league + cup + international).
+  // Only the FIRST mounted row claims the ref, so the mount auto-scroll
+  // centres the top of the current week instead of its last row.
+  const setCurrentWeekRef = useCallback((el: HTMLDivElement | null) => {
+    if (el && !currentWeekRef.current) currentWeekRef.current = el;
+  }, []);
   const phaseRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const weekCount = totalWeeks || TOTAL_WEEKS;
+  const tw = getTransferWindows(totalWeeks);
 
   // Build unified calendar: league + cup + international merged by week
   const { entries, stats } = useMemo(() => {
@@ -272,12 +279,13 @@ const CalendarView = () => {
       });
     };
 
-    addPhase('early', 'Early Season', 1, SUMMER_WINDOW_END);
-    addPhase('autumn', 'Autumn', SUMMER_WINDOW_END + 1, WINTER_WINDOW_START - 1);
-    addPhase('winter', 'Winter', WINTER_WINDOW_START, WINTER_WINDOW_END);
-    addPhase('spring', 'Spring', WINTER_WINDOW_END + 1, SPRING_PHASE_END_WEEK);
-    if (weekCount > SPRING_PHASE_END_WEEK) {
-      addPhase('runin', 'Season Run-In', SPRING_PHASE_END_WEEK + 1, weekCount);
+    const springEnd = Math.min(SPRING_PHASE_END_WEEK, weekCount);
+    addPhase('early', 'Early Season', 1, tw.summerEnd);
+    addPhase('autumn', 'Autumn', tw.summerEnd + 1, tw.winterStart - 1);
+    addPhase('winter', 'Winter', tw.winterStart, tw.winterEnd);
+    addPhase('spring', 'Spring', tw.winterEnd + 1, springEnd);
+    if (weekCount > springEnd) {
+      addPhase('runin', 'Season Run-In', springEnd + 1, weekCount);
     }
     // International break
     if (internationalTournament) {
@@ -397,10 +405,10 @@ const CalendarView = () => {
               {transferWindowOpen ? 'Open' : 'Closed'}
             </span>
             {transferWindowOpen && (
-              <p className="text-[9px] text-emerald-400/70 mt-1">Closes week {week <= SUMMER_WINDOW_END ? SUMMER_WINDOW_END : WINTER_WINDOW_END}</p>
+              <p className="text-[9px] text-emerald-400/70 mt-1">Closes week {week <= tw.summerEnd ? tw.summerEnd : tw.winterEnd}</p>
             )}
-            {!transferWindowOpen && week < WINTER_WINDOW_START && week > SUMMER_WINDOW_END && (
-              <p className="text-[9px] text-muted-foreground mt-1">Opens week {WINTER_WINDOW_START}</p>
+            {!transferWindowOpen && week < tw.winterStart && week > tw.summerEnd && (
+              <p className="text-[9px] text-muted-foreground mt-1">Opens week {tw.winterStart}</p>
             )}
           </div>
         </GlassPanel>
@@ -486,7 +494,7 @@ const CalendarView = () => {
                   return (
                     <div
                       key={`bye-${entry.week}`}
-                      ref={isCurrentWeek ? currentWeekRef : undefined}
+                      ref={isCurrentWeek ? setCurrentWeekRef : undefined}
                       className={cn(
                         'flex items-center gap-3 px-3 py-2 rounded-lg',
                         isCurrentWeek ? 'bg-primary/10 border border-primary/30' : 'bg-card/20'
@@ -511,7 +519,7 @@ const CalendarView = () => {
                   return (
                     <div
                       key={`intl-${entry.week}-${entry.intlLabel}`}
-                      ref={isCurrentWeek ? currentWeekRef : undefined}
+                      ref={isCurrentWeek ? setCurrentWeekRef : undefined}
                       className={cn(
                         'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors border-l-2 border-l-blue-400/50',
                         isCurrentWeek ? 'bg-blue-500/10 border border-blue-400/30' : 'bg-card/40',
@@ -595,7 +603,7 @@ const CalendarView = () => {
     return (
       <div
         key={match.id}
-        ref={isCurrentWeek ? currentWeekRef : undefined}
+        ref={isCurrentWeek ? setCurrentWeekRef : undefined}
         onClick={handleClick}
         className={cn(
           'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
@@ -696,7 +704,7 @@ const CalendarView = () => {
     return (
       <div
         key={tie.id}
-        ref={isCurrentWeek ? currentWeekRef : undefined}
+        ref={isCurrentWeek ? setCurrentWeekRef : undefined}
         className={cn(
           'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors border-l-2 border-l-primary/50',
           isCurrent && 'bg-primary/10 border border-primary/30 shadow-sm shadow-primary/10',

@@ -61,8 +61,11 @@ const MerchandisePage = () => {
     return idx >= 0 ? idx + 1 : leagueTable.length;
   })();
 
+  // Surface store-action failures like the signature-drop flow does —
+  // discarding the result left silent no-ops (e.g. a stale unlock state).
   const handleToggleLine = (line: MerchProductLine) => {
-    toggleProductLine(line);
+    const r = toggleProductLine(line);
+    if (r && !r.success) errorToast(r.message || 'Unable to update product line.');
   };
 
   const handleSetPricing = (tier: MerchPricingTier) => {
@@ -70,7 +73,8 @@ const MerchandisePage = () => {
   };
 
   const handleLaunchCampaign = (type: MerchCampaignType) => {
-    launchCampaign(type);
+    const r = launchCampaign(type);
+    if (r && !r.success) errorToast(r.message || 'Cannot launch campaign.');
   };
 
   const seasonChange = merchandise.lastSeasonRevenue > 0
@@ -129,7 +133,9 @@ const MerchandisePage = () => {
               <div className="flex items-center gap-2">
                 <Zap className="w-4 h-4 text-primary" />
                 <span className="text-xs font-semibold text-primary">
-                  {MERCH_CAMPAIGNS[merchandise.activeCampaign.type].label}
+                  {/* Guarded — a persisted campaign whose type was removed from
+                      config would otherwise crash the whole page. */}
+                  {MERCH_CAMPAIGNS[merchandise.activeCampaign.type]?.label ?? 'Marketing Campaign'}
                 </span>
               </div>
               <button
@@ -447,7 +453,9 @@ function getUnlockText(line: MerchProductLine): string {
   const parts: string[] = [];
   if (req.minReputation) parts.push(`Rep ${req.minReputation}+`);
   if (req.minStadiumLevel) parts.push(`Stadium Lv${req.minStadiumLevel}+`);
-  return parts.length > 0 ? `Requires: ${parts.join(' or ')}` : 'Locked';
+  // The unlock check (utils/merchandise.ts) requires ALL conditions, so the
+  // joiner must read as AND — ' or ' promised an easier unlock than reality.
+  return parts.length > 0 ? `Requires: ${parts.join(' + ')}` : 'Locked';
 }
 
 export default MerchandisePage;

@@ -14,7 +14,7 @@ import { PageHint } from '@/components/game/PageHint';
 import { PremiumProgress } from '@/components/game/PremiumProgress';
 import {
   STAFF_HIRING_FEE_WEEKS, STAFF_INTERACTION_COOLDOWN, STAFF_MARKET_REFRESH_FEE,
-  STAFF_RENEWAL_FEE_WEEKS, STAFF_RENEWAL_COOLDOWN,
+  STAFF_MARKET_REFRESH_COOLDOWN, STAFF_RENEWAL_FEE_WEEKS, STAFF_RENEWAL_COOLDOWN,
 } from '@/config/staff';
 import { getEffectiveQuality, getMoraleMultiplier, getTraitLabel, getTraitDescription, absWeek } from '@/utils/staff';
 import { successToast, infoToast, errorToast } from '@/utils/gameToast';
@@ -176,7 +176,7 @@ const StaffPage = () => {
 
   const refreshSameSeason = staff.lastMarketRefreshSeason === season;
   const weeksSinceRefresh = refreshSameSeason ? week - (staff.lastMarketRefreshWeek ?? -99) : 99;
-  const refreshCooldown = Math.max(0, 6 - weeksSinceRefresh);
+  const refreshCooldown = Math.max(0, STAFF_MARKET_REFRESH_COOLDOWN - weeksSinceRefresh);
   const refreshAvailable = refreshCooldown <= 0 && (club?.budget ?? 0) >= STAFF_MARKET_REFRESH_FEE;
 
   const handleHire = (upgrade: StaffMember, current: StaffMember | undefined) => {

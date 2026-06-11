@@ -221,6 +221,29 @@ export function getGKSaveChance(squad: Player[]): number {
 }
 
 /**
+ * Slot-align a compacted player pool to the club's saved lineup for the
+ * chemistry calculation. Engine callers pass compacted arrays (unavailable
+ * players filtered out), which would otherwise shift players onto the wrong
+ * formation slots inside calculateChemistryLinks. When every pool player is
+ * found in the saved lineup we rebuild a (Player | null)[] in lineup order
+ * (sent-off/injured players become null holes); otherwise (ad-hoc AI lineups
+ * built from squad availability) slot identity is meaningless, so we fall
+ * back to natural-position adjacency by omitting the formation.
+ */
+function getAlignedChemistryBonus(club: Club, pool: Player[], currentSeason?: number): number {
+  const lineup = club.lineup || [];
+  if (lineup.length > 0 && pool.length > 0) {
+    const byId = new Map(pool.map(p => [p.id, p]));
+    const aligned = lineup.map(id => byId.get(id) ?? null);
+    const matched = aligned.reduce((n, p) => n + (p ? 1 : 0), 0);
+    if (matched === pool.length) {
+      return getChemistryBonus(aligned, club.formation, currentSeason);
+    }
+  }
+  return getChemistryBonus(pool, undefined, currentSeason);
+}
+
+/**
  * Compute attack/defense strength for both sides factoring in:
  * player attributes, tactical modifiers, formation fit, familiarity,
  * home advantage, and rock-paper-scissors tactical matchups.
@@ -242,9 +265,10 @@ export function computeStrengths(
   const awayDefFitBonus = awayClub.defensiveFormation ? getFormationFitBonus(awayPlayers, awayClub.defensiveFormation) * 0.5 : 0;
   const homeMatchup = getTacticalMatchupBonus(homeTactics, awayTactics);
   const awayMatchup = getTacticalMatchupBonus(awayTactics, homeTactics);
-  // Chemistry bonus (0-8%) based on squad composition
-  const homeChemistry = getChemistryBonus(homePlayers, homeClub.formation, currentSeason);
-  const awayChemistry = getChemistryBonus(awayPlayers, awayClub.formation, currentSeason);
+  // Chemistry bonus (0-8%) based on squad composition (slot-aligned to the
+  // saved lineup so compacted pools don't shift players onto wrong slots)
+  const homeChemistry = getAlignedChemistryBonus(homeClub, homePlayers, currentSeason);
+  const awayChemistry = getAlignedChemistryBonus(awayClub, awayPlayers, currentSeason);
   // Formation-specific attack/defense profiles (e.g. 3-4-3 = +10% attack, -8% defense)
   // Use defensiveFormation for defense bonus when set, otherwise fall back to main formation
   const homeFormAtk = FORMATION_ATTACK_BONUS[homeClub.formation] || 0;
@@ -261,7 +285,10 @@ export function computeStrengths(
   const awayUnhappyCount = awayPlayers.filter(p => p.wantsToLeave).length;
   const homeUnhappyMod = 1 - (homeUnhappyCount / Math.max(homePlayers.length, 1)) * UNHAPPY_PERFORMANCE_PENALTY;
   const awayUnhappyMod = 1 - (awayUnhappyCount / Math.max(awayPlayers.length, 1)) * UNHAPPY_PERFORMANCE_PENALTY;
-  // First-season confidence boost for the player's team (subtle help during season 1)
+  // First-season confidence boost for the player's team (subtle help during
+  // season 1). The defense boost is ADDED to the player's own defense-damping
+  // term below — it was previously subtracted, which INCREASED the opponent's
+  // attack instead of helping.
   const homeFirstMatchBoost = (currentSeason === 1 && playerClubId === homeClub.id) ? FIRST_MATCH_ATTACK_BOOST : 0;
   const awayFirstMatchBoost = (currentSeason === 1 && playerClubId === awayClub.id) ? FIRST_MATCH_ATTACK_BOOST : 0;
   const homeFirstDefBoost = (currentSeason === 1 && playerClubId === homeClub.id) ? FIRST_MATCH_DEFENSE_BOOST : 0;
@@ -273,8 +300,8 @@ export function computeStrengths(
   const awayNumericalMod = 1 - awayMissing * RED_CARD_STRENGTH_PENALTY_PER_PLAYER;
   // Strength = base * (attack modifiers) reduced by opponent's defensive modifiers
   // Clamped to a minimum of 0.01 to prevent negative/zero strength from extreme modifier combinations
-  const homeStr = Math.max(0.01, getTeamStrength(homePlayers) * homeUnhappyMod * homeNumericalMod * (HOME_ADVANTAGE + homeMods.attackMod + homeMods.widthMod + homeFamBonus + homeFormBonus + homeMatchup + homeChemistry + homeFormAtk + homeFormMatchup + homeFirstMatchBoost) * (1 - (awayMods.defenseMod + awayFormDef + awayDefFitBonus - awayFirstDefBoost) * DEFENSE_MODIFIER_SCALE));
-  const awayStr = Math.max(0.01, getTeamStrength(awayPlayers) * awayUnhappyMod * awayNumericalMod * (1 + awayMods.attackMod + awayMods.widthMod + awayFamBonus + awayFormBonus + awayMatchup + awayChemistry + awayFormAtk + awayFormMatchup + awayFirstMatchBoost) * (1 - (homeMods.defenseMod + homeFormDef + homeDefFitBonus - homeFirstDefBoost) * DEFENSE_MODIFIER_SCALE));
+  const homeStr = Math.max(0.01, getTeamStrength(homePlayers) * homeUnhappyMod * homeNumericalMod * (HOME_ADVANTAGE + homeMods.attackMod + homeMods.widthMod + homeFamBonus + homeFormBonus + homeMatchup + homeChemistry + homeFormAtk + homeFormMatchup + homeFirstMatchBoost) * (1 - (awayMods.defenseMod + awayFormDef + awayDefFitBonus + awayFirstDefBoost) * DEFENSE_MODIFIER_SCALE));
+  const awayStr = Math.max(0.01, getTeamStrength(awayPlayers) * awayUnhappyMod * awayNumericalMod * (1 + awayMods.attackMod + awayMods.widthMod + awayFamBonus + awayFormBonus + awayMatchup + awayChemistry + awayFormAtk + awayFormMatchup + awayFirstMatchBoost) * (1 - (homeMods.defenseMod + homeFormDef + homeDefFitBonus + homeFirstDefBoost) * DEFENSE_MODIFIER_SCALE));
   return { homeStr, awayStr, homeMods, awayMods };
 }
 

@@ -9,15 +9,16 @@ import type { ContinentalCompetition, ContinentalTournamentState } from '@/types
 import { cn } from '@/lib/utils';
 import { Globe, Trophy } from 'lucide-react';
 import { getCurrentMatchday } from '@/utils/continental';
-import { CONTINENTAL_GROUP_WEEKS } from '@/config/continental';
+import { getCompetitionCalendar } from '@/config/continental';
 import { PageHint } from '@/components/game/PageHint';
 
 function TournamentView({ tournament, competition }: { tournament: ContinentalTournamentState; competition: ContinentalCompetition }) {
-  const { playerClubId, clubs, virtualClubs, week } = useGameStore(useShallow(s => ({
+  const { playerClubId, clubs, virtualClubs, week, totalWeeks } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId,
     clubs: s.clubs,
     virtualClubs: s.virtualClubs,
     week: s.week,
+    totalWeeks: s.totalWeeks,
   })));
   const [tab, setTab] = useState<'groups' | 'knockout'>(tournament.currentPhase === 'knockout' || tournament.currentPhase === 'complete' ? 'knockout' : 'groups');
 
@@ -32,7 +33,7 @@ function TournamentView({ tournament, competition }: { tournament: ContinentalTo
   const subtitleParts: string[] = [];
   if (tournament.currentPhase === 'group') {
     subtitleParts.push(`Group Stage · Matchday ${currentMd}`);
-    const mdWeek = CONTINENTAL_GROUP_WEEKS[currentMd - 1];
+    const mdWeek = getCompetitionCalendar(totalWeeks).groupWeeks[currentMd - 1];
     if (mdWeek > week) subtitleParts.push(`Week ${mdWeek}`);
   } else if (tournament.currentPhase === 'knockout' && tournament.currentRound) {
     const roundNames: Record<string, string> = { R16: 'Round of 16', QF: 'Quarter-Finals', SF: 'Semi-Finals', F: 'Final' };
@@ -119,7 +120,9 @@ function TournamentView({ tournament, competition }: { tournament: ContinentalTo
             transition={{ duration: 0.25 }}
             className="space-y-3"
           >
-            {tournament.groups
+            {/* Copy before sorting — .sort() in place would mutate (and persist)
+                the live store array during render. */}
+            {[...tournament.groups]
               .sort((a, b) => {
                 if (a.id === tournament.playerGroupId) return -1;
                 if (b.id === tournament.playerGroupId) return 1;

@@ -89,13 +89,23 @@ export function updateCoefficients(
     updated[clubId] = { clubId, points: Math.round(weightedTotal * 10) / 10, seasonPoints: newSeasonPoints };
   }
 
-  // Prune old season data beyond the window (immutable — create new objects)
+  // Prune old season data beyond the window AND recompute the weighted total
+  // for EVERY club (immutable — create new objects). Previously `points` was
+  // only recomputed for this tournament's participants, so a club that
+  // stopped qualifying kept its last high total frozen at its old weighting
+  // forever — permanently inflating its league's coefficient ranking and
+  // continental spot allocation.
   for (const [clubId, coeff] of Object.entries(updated)) {
     const pruned: Record<number, number> = {};
     for (const [s, pts] of Object.entries(coeff.seasonPoints)) {
       if (Number(s) > season - COEFF_SEASON_WINDOW) pruned[Number(s)] = pts;
     }
-    updated[clubId] = { ...coeff, seasonPoints: pruned };
+    const weightedTotal = Object.entries(pruned).reduce((sum, [s, pts]) => {
+      const age = season - Number(s);
+      const weight = COEFF_SEASON_WEIGHTS[age] ?? 0;
+      return sum + (pts as number) * weight;
+    }, 0);
+    updated[clubId] = { ...coeff, points: Math.round(weightedTotal * 10) / 10, seasonPoints: pruned };
   }
 
   return updated;

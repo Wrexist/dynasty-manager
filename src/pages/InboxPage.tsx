@@ -187,9 +187,11 @@ const InboxPage = () => {
     ? messages.filter(m => allowedTypes.includes(m.type))
     : messages;
 
-  // Apply unread-only filter
+  // Apply unread-only filter. The currently-expanded message is exempt:
+  // opening a message marks it read, and without the exemption the filter
+  // recomputes and unmounts it mid-read. It drops out once collapsed.
   if (unreadOnly) {
-    filtered = filtered.filter(m => !m.read);
+    filtered = filtered.filter(m => !m.read || m.id === expandedId);
   }
 
   const filteredUnread = filtered.filter(m => !m.read).length;

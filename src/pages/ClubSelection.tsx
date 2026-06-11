@@ -102,6 +102,13 @@ const ClubSelection = () => {
   // answer (e.g. deep link or refresh).
   const communityPackEnabled =
     (location.state as { communityPackEnabled?: boolean } | null)?.communityPackEnabled === true;
+  // A deep link / refresh arrives without navigation state. Defaulting to
+  // slot 1 at start time used to let onboarding silently overwrite save
+  // slot 1 — send the user back to the title screen to pick a slot instead.
+  const missingSlot = (location.state as { slot?: number } | null)?.slot == null;
+  useEffect(() => {
+    if (missingSlot) navigate('/', { replace: true });
+  }, [missingSlot, navigate]);
   const [selected, setSelected] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [nationSearch, setNationSearch] = useState('');
@@ -254,6 +261,10 @@ const ClubSelection = () => {
       return { conf, label, nations };
     }).filter(g => g.nations.length > 0);
   }, [nationSearch]);
+
+  // Redirecting to the title screen (no slot in nav state) — render nothing.
+  // Placed after all hooks to satisfy the Rules of Hooks.
+  if (missingSlot) return null;
 
   const stepIndex = step === 'nationality' ? 0 : step === 'league' ? 1 : 2;
 

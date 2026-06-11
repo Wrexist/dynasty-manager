@@ -212,6 +212,7 @@ export function applyPromotionRelegation(
 
   // Handle bottom-tier replacement (clubs relegated from the bottom tier with no lower tier)
   const bottomLeague = tiers[tiers.length - 1];
+  let bottomTierReplacedCount = 0;
   if (bottomLeague.replacedSlots > 0) {
     const bottomTable = divisionTables[bottomLeague.id] || [];
     if (bottomTable.length > 0) {
@@ -224,6 +225,7 @@ export function applyPromotionRelegation(
 
       // Don't replace the player's club
       const actuallyReplaced = replacedIds.filter(id => id !== playerClubId);
+      bottomTierReplacedCount = actuallyReplaced.length;
 
       for (const cid of actuallyReplaced) {
         workingDivisionClubs[bottomLeague.id] = workingDivisionClubs[bottomLeague.id].filter(id => id !== cid);
@@ -244,7 +246,10 @@ export function applyPromotionRelegation(
   for (const tier of tiers) {
     const isBottom = tier.id === bottomTierId;
     const expectedAfterReplacements = tier.teamCount;
-    const pendingReplacements = isBottom ? (tier.replacedSlots || 0) : 0;
+    // Use the number of clubs ACTUALLY removed (the player's club is spared
+    // replacement), not the configured replacedSlots — otherwise sparing the
+    // player fires a false "league size drift" warning every season.
+    const pendingReplacements = isBottom ? bottomTierReplacedCount : 0;
     const expectedNow = expectedAfterReplacements - pendingReplacements;
     const actual = workingDivisionClubs[tier.id]?.length || 0;
     if (actual !== expectedNow) {
@@ -338,15 +343,32 @@ const DEFAULT_REPLACEMENTS = [
   { name: 'Promoted FC A', shortName: 'PFA', color: '#4A90D9', secondaryColor: '#FFFFFF' },
   { name: 'Promoted FC B', shortName: 'PFB', color: '#D94A4A', secondaryColor: '#FFFFFF' },
   { name: 'Promoted FC C', shortName: 'PFC', color: '#4AD94A', secondaryColor: '#FFFFFF' },
+  // Pool must exceed the largest replacedSlots (bra = 4) so a single
+  // season's replacements never duplicate names within the division.
+  { name: 'Promoted FC D', shortName: 'PFD', color: '#D9A84A', secondaryColor: '#FFFFFF' },
+  { name: 'Promoted FC E', shortName: 'PFE', color: '#9A4AD9', secondaryColor: '#FFFFFF' },
 ];
 
 const replacementCounters: Record<string, number> = {};
 
-export function generateReplacementClub(season: number, leagueId: LeagueId): { clubData: ClubData; clubId: string } {
+export function generateReplacementClub(
+  season: number,
+  leagueId: LeagueId,
+  existingClubNames?: Iterable<string>,
+): { clubData: ClubData; clubId: string } {
   // For bottom-tier leagues, use the countryId to find the pool
   const league = LEAGUES.find(l => l.id === leagueId);
   const poolKey = league?.countryId || leagueId;
-  const pool = REPLACEMENT_POOLS[poolKey] || DEFAULT_REPLACEMENTS;
+  const fullPool = REPLACEMENT_POOLS[poolKey] || DEFAULT_REPLACEMENTS;
+  // Skip names already used by a live club — the small pools cycle via a
+  // module-level counter (which also resets on app restart), so without this
+  // filter a season-1 replacement still in the division gets duplicated
+  // within a couple of seasons. Falls back to the full pool if every name is
+  // somehow taken.
+  const taken = new Set<string>();
+  for (const name of existingClubNames || []) taken.add(name.toLowerCase());
+  const availablePool = fullPool.filter(t => !taken.has(t.name.toLowerCase()));
+  const pool = availablePool.length > 0 ? availablePool : fullPool;
   if (!replacementCounters[leagueId]) replacementCounters[leagueId] = 0;
   const idx = replacementCounters[leagueId] % pool.length;
   replacementCounters[leagueId]++;

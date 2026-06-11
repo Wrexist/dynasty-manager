@@ -513,8 +513,14 @@ describe('Match Engine — Injury Strength Rebalance', () => {
     const { club: homeClub, players: homePlayers } = makeLineup('home', '4-3-3', 70);
     const { club: awayClub, players: awayPlayers } = makeLineup('away', '4-3-3', 70);
 
-    // Run matches where away starts with 10 players (simulating pre-match injury)
-    const reducedAway = awayPlayers.slice(0, 10);
+    // Run matches where away starts with 9 players (simulating pre-match
+    // injuries). With only ONE player missing the true scoring margin over
+    // 500 matches is ~+20 goals with a standard deviation of ~30 — the
+    // assertion below failed ~25% of runs on pure variance (measured at
+    // N=3000 on both the current and previous engine). Two missing players
+    // push the expected margin to ~+85 (≈3 sd), making the test sound while
+    // still exercising the same numerical-disadvantage rebalance path.
+    const reducedAway = awayPlayers.slice(0, 9);
     awayClub.lineup = reducedAway.map(p => p.id);
 
     let homeGoals = 0;

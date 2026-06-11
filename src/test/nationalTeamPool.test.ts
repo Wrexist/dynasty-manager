@@ -151,8 +151,12 @@ describe('National Team Real-Player Pool', () => {
       // templates with that name.
       for (const [nameKey, fcIds] of homonyms) {
         const [fn, ln] = nameKey.split('|');
+        // Mononym templates (fn === ln) are normalised to firstName: '' at
+        // ingestion so they render as "Isco" instead of "Isco Isco" — match
+        // either form for those.
         const matches = Object.values(pool).filter(
-          p => p.firstName.toLowerCase() === fn && p.lastName.toLowerCase() === ln,
+          p => p.lastName.toLowerCase() === ln
+            && (p.firstName.toLowerCase() === fn || (fn === ln && p.firstName === '')),
         );
         expect(matches.length).toBeGreaterThanOrEqual(fcIds.length);
         tested++;

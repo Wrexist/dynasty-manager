@@ -100,6 +100,13 @@ const SubscribeOnboarding = () => {
   const startFreeTrial = useGameStore(s => s.startFreeTrial);
   const restoreEntitlementsAction = useGameStore(s => s.restoreEntitlements);
   const updateSubscription = useGameStore(s => s.updateSubscription);
+  const monetization = useGameStore(s => s.monetization);
+  // Trial framing is only shown to users with NO subscription record at all.
+  // Apple grants the introductory offer once per Apple ID — a lapsed/existing
+  // record means the user would be charged full price immediately, so showing
+  // "free trial" copy (caption, CTA, success toast) to them would be a lie
+  // and a 3.1.2(c) exposure. Mirrors startFreeTrial()'s own guard.
+  const trialEligible = monetization.subscription == null;
 
   const navState = (location.state as { slot?: number; communityPackEnabled?: boolean; returnTo?: string }) || {};
   const slot = navState.slot ?? 1;
@@ -141,15 +148,18 @@ const SubscribeOnboarding = () => {
     setPurchasing(true);
     track('purchase_initiated', { productId: selected });
     try {
-      const granted = await purchaseProduct(selected);
-      if (granted.length === 0) {
-        // User cancelled the StoreKit dialog.
+      const result = await purchaseProduct(selected);
+      if (result.cancelled) {
+        // User cancelled the StoreKit dialog. (Only `cancelled` means no
+        // charge — a completed subscription purchase legitimately returns
+        // an empty `granted` list, since sub status flows through
+        // subscription.expiresAt, not entitlements.)
         track('purchase_cancelled', { productId: selected });
         infoToast('Purchase Cancelled', 'No charge was made.');
         return;
       }
 
-      granted.forEach(id => grantEntitlement(id));
+      result.granted.forEach(id => grantEntitlement(id));
 
       // If the user picked the monthly plan, the App Store Connect
       // introductory offer grants the free trial automatically — mirror it
@@ -160,7 +170,7 @@ const SubscribeOnboarding = () => {
       track('purchase_completed', { productId: selected });
 
       const product = PRODUCTS[selected];
-      const isTrial = selected === TRIAL_TARGET_PRODUCT_ID;
+      const isTrial = trialEligible && selected === TRIAL_TARGET_PRODUCT_ID;
       successToast(
         isTrial ? `${FREE_TRIAL_DAYS}-Day Trial Started!` : 'Welcome to Dynasty Pro!',
         isTrial
@@ -217,7 +227,7 @@ const SubscribeOnboarding = () => {
   };
 
   const selectedProduct = PRODUCTS[selected];
-  const isTrialPlan = selected === TRIAL_TARGET_PRODUCT_ID;
+  const isTrialPlan = trialEligible && selected === TRIAL_TARGET_PRODUCT_ID;
   const billingSummary = useMemo(() => {
     if (isTrialPlan) {
       return `Free for ${FREE_TRIAL_DAYS} days, then ${priceFor(selected)} per month. Auto-renews until cancelled.`;
@@ -353,7 +363,7 @@ const SubscribeOnboarding = () => {
                   <p className="text-[11px] text-muted-foreground leading-snug">
                     {row.lengthLabel}
                   </p>
-                  {row.trialCaption && (
+                  {row.trialCaption && trialEligible && (
                     <p className="text-[10px] text-muted-foreground/80 leading-snug mt-0.5">
                       {row.trialCaption}
                     </p>

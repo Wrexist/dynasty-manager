@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
-import { getSuffix, resolveClub } from '@/utils/helpers';
+import { getSuffix, resolveClub, formatMoney } from '@/utils/helpers';
 import { getConfidenceColor, getFanConfidenceColor, getFanConfidence } from '@/utils/uiHelpers';
 import { usePlayerClub, useLeaguePosition, useCurrentMatch, useUnreadCount, findTournamentMatch, useSquadAverageMorale } from '@/hooks/useGameSelectors';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -28,7 +28,7 @@ import { checkCelebrations, getWinStreak, getUnbeatenRun, getCleanSheetStreak, g
 import { STREAK_MORALE_THRESHOLD, OBJECTIVE_STREAK_THRESHOLD, OBJECTIVE_CYCLE_WEEKS, OBJECTIVE_STREAK_MULTIPLIER, RARE_OBJECTIVE_XP_MULTIPLIER, LEGENDARY_OBJECTIVE_XP_MULTIPLIER, COACH_ALL_TASKS_BONUS_XP, ACHIEVEMENT_XP_BRONZE, ACHIEVEMENT_XP_SILVER, ACHIEVEMENT_XP_GOLD } from '@/config/gameBalance';
 import { getXPProgress, MANAGER_PERKS, canUnlockPerk, getTotalXP } from '@/utils/managerPerks';
 import { getReputationTierLabel } from '@/utils/managerCareer';
-import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END } from '@/config/transfers';
+import { getTransferWindows } from '@/config/transfers';
 import { SPRING_PHASE_END_WEEK } from '@/config/gameBalance';
 import { PACK_PITY_THRESHOLD } from '@/config/packs';
 import type { Celebration } from '@/utils/celebrations';
@@ -59,7 +59,7 @@ import { HELP_TEXTS, MID_SEASON_WEEK, CONFIDENCE_CRITICAL_THRESHOLD, CONFIDENCE_
 import { CONFIDENCE_CHANGE_DISMISS_THRESHOLD } from '@/config/gameBalance';
 import { getManagerTips, type TipType } from '@/utils/managerTips';
 import { getActiveRecordChases } from '@/utils/records';
-import { getFlag, setFlag } from '@/store/helpers/persistence';
+import { getFlag, setFlag, STORAGE_KEYS } from '@/store/helpers/persistence';
 import { MidSeasonReport } from '@/components/game/MidSeasonReport';
 import { buildCoachTasks } from '@/utils/gameCoach';
 import { STORYLINE_CHAINS } from '@/data/storylineChains';
@@ -68,7 +68,7 @@ import { getRecentForm } from '@/utils/formGuide';
 import { computeObjectiveProgress } from '@/utils/weeklyObjectives';
 import { getCompetitionInfo } from '@/utils/competitionBadge';
 
-const WELCOME_KEY = 'dynasty-welcome-shown';
+const WELCOME_KEY = STORAGE_KEYS.WELCOME_SHOWN;
 // Collapse panels animate `height: auto`, which triggers a layout pass on
 // every frame. Spring physics + auto-height re-measures the content each
 // frame and stutters under load (especially with nested motion children
@@ -153,6 +153,7 @@ const Dashboard = () => {
     unlockedAchievements: s.unlockedAchievements,
     packPityCounter: s.packPityCounter || 0,
   })));
+  const tw = getTransferWindows(totalWeeks);
   // Actions — stable references, individual selectors
   const setScreen = useGameStore(s => s.setScreen);
   const loadMatchForReview = useGameStore(s => s.loadMatchForReview);
@@ -408,11 +409,11 @@ const Dashboard = () => {
 
   // Manager tips
   const managerTips = useMemo(() => club ? getManagerTips({
-    week, season, club, players, fixtures,
+    week, season, totalWeeks, club, players, fixtures,
     transferWindowOpen: transferWindowOpen,
     boardConfidence, incomingOffers: incomingOffers.length,
     tacticalFamiliarity: training.tacticalFamiliarity,
-  }) : [], [week, season, club, players, fixtures, transferWindowOpen, boardConfidence, incomingOffers.length, training.tacticalFamiliarity]);
+  }) : [], [week, season, totalWeeks, club, players, fixtures, transferWindowOpen, boardConfidence, incomingOffers.length, training.tacticalFamiliarity]);
 
   const coachTasks = useMemo(() => {
     if (!club) return [];
@@ -649,7 +650,9 @@ const Dashboard = () => {
   // Board-critical confidence is already surfaced via <BoardWarning />, so we
   // don't re-dot it here (the 'club' tile was removed and that entry would be
   // dead code anyway).
-  const lineupIncomplete = (club.lineup || []).filter(Boolean).length < 11;
+  // Count resolvable players, not raw IDs — a dangling ID (sold/deleted player)
+  // would otherwise satisfy the count here while MatchDay's gate rejects it.
+  const lineupIncomplete = (club.lineup || []).filter(id => !!players[id]).length < 11;
   const packPityRemaining = Math.max(0, PACK_PITY_THRESHOLD - packPityCounter);
   const packPityPrimed = packPityRemaining <= 2;
   // Quick-link badges. Most links carry a simple coloured dot when there's
@@ -699,7 +702,7 @@ const Dashboard = () => {
             <div>
               <p className="text-lg font-bold font-display text-foreground">{season === 1 && week === 1 ? `Welcome to ${club.name}` : club.name}</p>
               <p className="text-[10px] text-muted-foreground">
-                Season {season} · {week <= SUMMER_WINDOW_END ? 'Pre-Season' : week < WINTER_WINDOW_START ? 'Autumn' : week <= WINTER_WINDOW_END ? 'Winter' : week <= SPRING_PHASE_END_WEEK ? 'Spring' : 'Run-In'}
+                Season {season} · {week <= tw.summerEnd ? 'Pre-Season' : week < tw.winterStart ? 'Autumn' : week <= tw.winterEnd ? 'Winter' : week <= SPRING_PHASE_END_WEEK ? 'Spring' : 'Run-In'}
               </p>
             </div>
           </div>
@@ -854,7 +857,7 @@ const Dashboard = () => {
       )}
 
       {/* Transfer Window Countdown / Deadline Day */}
-      {(week === SUMMER_WINDOW_END || week === WINTER_WINDOW_END) ? (
+      {(week === tw.summerEnd || week === tw.winterEnd) ? (
         <button type="button" onClick={() => setScreen('transfers')} className="w-full bg-destructive/10 border border-destructive/30 rounded-xl px-3 py-2.5 text-left animate-pulse">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -868,9 +871,9 @@ const Dashboard = () => {
           )}
         </button>
       ) : transferWindowOpen && (() => {
-        const windowEnd = week <= SUMMER_WINDOW_END ? SUMMER_WINDOW_END : WINTER_WINDOW_END;
+        const windowEnd = week <= tw.summerEnd ? tw.summerEnd : tw.winterEnd;
         const weeksLeft = windowEnd - week;
-        const windowName = week <= SUMMER_WINDOW_END ? 'Summer' : 'Winter';
+        const windowName = week <= tw.summerEnd ? 'Summer' : 'Winter';
         const isUrgent = weeksLeft <= 2;
         // Only show full-width banner when <=4 weeks left; otherwise users find transfers via quick links
         if (weeksLeft > 4) return null;
@@ -1280,7 +1283,7 @@ const Dashboard = () => {
               </button>
             )}
             <span className="text-[10px] text-muted-foreground">
-              Wk {week} / S{season} · {week <= SUMMER_WINDOW_END ? 'Pre-Season' : week < WINTER_WINDOW_START ? 'Autumn' : week <= WINTER_WINDOW_END ? 'Winter' : week <= SPRING_PHASE_END_WEEK ? 'Spring' : 'Run-In'}
+              Wk {week} / S{season} · {week <= tw.summerEnd ? 'Pre-Season' : week < tw.winterStart ? 'Autumn' : week <= tw.winterEnd ? 'Winter' : week <= SPRING_PHASE_END_WEEK ? 'Spring' : 'Run-In'}
             </span>
           </div>
 
@@ -1879,10 +1882,10 @@ const Dashboard = () => {
             <InfoTip text={HELP_TEXTS.budget} />
           </div>
           <p className={cn("text-2xl font-black text-foreground tabular-nums", budgetFlash)}>
-            £<AnimatedNumber value={club.budget / 1e6} formatFn={(n) => n.toFixed(1)} /><span className="text-sm">M</span>
+            <AnimatedNumber value={club.budget} formatFn={formatMoney} />
           </p>
           <p className="text-xs text-muted-foreground tabular-nums">
-            Wage: £{(club.wageBill / 1e3).toFixed(0)}K/w
+            Wage: {formatMoney(club.wageBill)}/w
           </p>
         </GlassPanel>
 
@@ -1913,7 +1916,7 @@ const Dashboard = () => {
             'text-2xl font-black tabular-nums',
             getConfidenceColor(boardConfidence).textClass
           )}>
-            {boardConfidence}%
+            {Math.round(boardConfidence)}%
           </p>
           <PremiumProgress
             className="mt-1.5"
@@ -1944,7 +1947,7 @@ const Dashboard = () => {
             'text-xl font-black tabular-nums',
             netWeeklyIncome >= 0 ? 'text-emerald-400' : 'text-destructive'
           )}>
-            {netWeeklyIncome >= 0 ? '+' : ''}£{(Math.abs(netWeeklyIncome) / 1e3).toFixed(0)}K
+            {netWeeklyIncome >= 0 ? '+' : ''}{formatMoney(netWeeklyIncome)}
           </p>
           <p className="text-[10px] text-muted-foreground">per week</p>
         </GlassPanel>

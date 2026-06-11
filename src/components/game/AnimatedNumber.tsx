@@ -9,13 +9,15 @@ interface AnimatedNumberProps {
 
 export function AnimatedNumber({ value, duration = 400, formatFn, className }: AnimatedNumberProps) {
   const [display, setDisplay] = useState(value);
-  const prevRef = useRef(value);
+  // Live displayed value — new tweens seed from here so a rapid value
+  // change continues smoothly from wherever the number currently sits,
+  // instead of snapping to the previous (possibly unreached) target.
+  const displayRef = useRef(value);
   const rafRef = useRef<number>(0);
 
   useEffect(() => {
-    const from = prevRef.current;
+    const from = displayRef.current;
     const to = value;
-    prevRef.current = value;
 
     if (from === to) return;
 
@@ -25,7 +27,9 @@ export function AnimatedNumber({ value, duration = 400, formatFn, className }: A
       const t = Math.min(elapsed / duration, 1);
       // ease-out cubic
       const eased = 1 - Math.pow(1 - t, 3);
-      setDisplay(from + (to - from) * eased);
+      const next = from + (to - from) * eased;
+      displayRef.current = next;
+      setDisplay(next);
       if (t < 1) rafRef.current = requestAnimationFrame(tick);
     };
     rafRef.current = requestAnimationFrame(tick);

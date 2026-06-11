@@ -8,7 +8,10 @@ export const LEAGUE_INFO: LeagueInfo = {
   countryCode: 'BR',
   teamCount: 14,
   totalWeeks: 26,
-  replacedSlots: 0,
+  // Single-tier league: relegated clubs are replaced by procedurally
+  // generated newcomers (replacedSlots = relegationSpots) so the relegation
+  // zone shown in the table has a real consequence.
+  replacedSlots: 4,
   description: "Brazil's top tier, an intense and skillful league that produces some of the world's finest footballers.",
   difficulty: 'Very Hard',
   colorClass: 'text-yellow-400',

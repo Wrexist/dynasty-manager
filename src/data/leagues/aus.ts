@@ -7,7 +7,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   country: "Australia",
   countryCode: 'AU',
   teamCount: 13,
-  totalWeeks: 24,
+  totalWeeks: 26, // 13 teams (odd) — bye-round double round-robin spans 2*13 = 26 weeks
   replacedSlots: 0,
   description: "Australia's top professional football competition, also featuring clubs from New Zealand.",
   difficulty: 'Medium',

@@ -3,7 +3,7 @@ import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { FORMATION_POSITIONS, canPlayPosition, type Position } from '@/types/game';
 import { MAX_SUBS } from '@/config/playerGeneration';
-import { PITCH_COLORS } from '@/config/ui';
+import { PITCH_COLORS, SLOT_Y_RANGE, SLOT_Y_BOTTOM } from '@/config/ui';
 import { cn } from '@/lib/utils';
 import { calculateChemistryLinks, getChemistryBonus, getChemistryLabel } from '@/utils/chemistry';
 import { getChemistryLines, buildChemistryStrengthMap, getChemistryLineColor, getFormationStructureLines } from '@/utils/formationLines';
@@ -17,20 +17,16 @@ import { getRatingColor, getPlayerTier } from '@/utils/uiHelpers';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { hapticLight, hapticMedium } from '@/utils/haptics';
+import { infoToast } from '@/utils/gameToast';
 
 // Half-pitch viewBox constants (bottom half only — your team)
 const VP_Y = 46;
 const VP_H = 59;
 const VP_W = 68;
 
-// Vertical span (in SVG units) used to lay out slots inside the half-pitch.
-// Wider span → more vertical room between player tiles → less overlap on
-// formations that stack attackers / midfielders close together. The
-// canonical formation `y` values top out around 82, so `y=100` doesn't
-// need to fit on screen — keep room above the GK row for the highest
-// strikers / wingers without overflowing the pitch.
-const SLOT_Y_RANGE = 54;
-const SLOT_Y_BOTTOM = 97;
+// Slot Y-mapping constants (SLOT_Y_RANGE / SLOT_Y_BOTTOM) are shared with
+// SubstitutionSheet via `@/config/ui` so the same formation renders with
+// the same shape on the tactics screen and in-match.
 
 function getCompatibility(player: { position: Position; alternatePositions?: Position[] }, slotPos: Position): 'natural' | 'compatible' | 'wrong' {
   if (player.position === slotPos) return 'natural';
@@ -69,10 +65,11 @@ export function LineupEditor() {
     prevLineupKey.current = currentLineupKey;
   }, [club?.formation, club?.lineup]);
 
-  // Chemistry links (memoized)
+  // Chemistry links (memoized). Holes (deleted-player IDs) are kept as null —
+  // compacting with filter(Boolean) would shift players onto wrong slots.
   const chemLinks = useMemo(() => {
     if (!club) return [];
-    const lineupPlayers = club.lineup.map(id => players[id]).filter(Boolean);
+    const lineupPlayers = club.lineup.map(id => players[id] ?? null);
     return calculateChemistryLinks(lineupPlayers, club.formation, season);
   }, [club, players, season]);
 
@@ -100,10 +97,10 @@ export function LineupEditor() {
     });
   }, [club, chemLinks, pairFamiliarity]);
 
-  // Chemistry bonus and label
+  // Chemistry bonus and label (null holes kept for slot alignment)
   const { chemBonus, chemLabel } = useMemo(() => {
     if (!club) return { chemBonus: 0, chemLabel: getChemistryLabel(0) };
-    const lp = club.lineup.map(id => players[id]).filter(Boolean);
+    const lp = club.lineup.map(id => players[id] ?? null);
     const chemBonus = getChemistryBonus(lp, club.formation, season);
     const chemLabel = getChemistryLabel(chemBonus);
     return { chemBonus, chemLabel };
@@ -169,10 +166,10 @@ export function LineupEditor() {
     return bestScore > 0 ? bestId : null;
   }, [subAndBench, lineup, players]);
 
-  // Insights
+  // Insights (null holes kept so warnings/unit averages stay slot-aligned)
   const insights = useMemo(() => {
     if (!club) return [];
-    const lineupPlayers = club.lineup.map(id => players[id]).filter(Boolean);
+    const lineupPlayers = club.lineup.map(id => players[id] ?? null);
     const slots = FORMATION_POSITIONS[club.formation] || [];
     return getSquadInsights(lineupPlayers, club.formation, slots, chemLinks, chemBonus);
   }, [club, players, chemLinks, chemBonus]);
@@ -205,6 +202,13 @@ export function LineupEditor() {
     if (activeInLineupIdx >= 0 && overInLineupIdx >= 0) {
       newLineup[activeInLineupIdx] = targetId;
       newLineup[overInLineupIdx] = activeId;
+    } else if (activeInLineupIdx >= 0 && overSlotIdx >= 0) {
+      // Starter → empty formation slot: move them into the hole, vacating
+      // their old slot. Previously this case fell through every branch —
+      // haptics fired but nothing changed, so a hole couldn't be filled
+      // with a starter.
+      newLineup[overSlotIdx] = activeId;
+      newLineup[activeInLineupIdx] = '';
     } else if (activeOnBench && overSlotIdx >= 0) {
       const displaced = newLineup[overSlotIdx];
       newLineup[overSlotIdx] = activeId;
@@ -232,9 +236,46 @@ export function LineupEditor() {
       }
     }
 
+    // M6 — warn (don't block) when an injured/suspended player lands in the
+    // XI: the `subs` array isn't availability-filtered, so it can hold
+    // players the match engine will refuse to field.
+    const enteredXI = newLineup.filter(id => id && !lineup.includes(id));
+    for (const id of enteredXI) {
+      const p = players[id];
+      if (!p) continue;
+      if (p.injured) {
+        infoToast(`${p.lastName} is injured`, 'They cannot play until recovered.');
+      } else if (p.suspendedUntilWeek && p.suspendedUntilWeek > week) {
+        infoToast(`${p.lastName} is suspended`, 'They cannot play this week.');
+      }
+    }
+
+    // M6 — warn when the swap leaves no goalkeeper in goal.
+    const formationSlots = FORMATION_POSITIONS[club?.formation] || [];
+    const gkIdx = formationSlots.findIndex(s => s.pos === 'GK');
+    if (gkIdx >= 0) {
+      const gk = newLineup[gkIdx] ? players[newLineup[gkIdx]] : null;
+      const hadGk = lineup[gkIdx] ? players[lineup[gkIdx]] : null;
+      const isGkCapable = (p: typeof gk) => !!p && (p.position === 'GK' || p.alternatePositions?.includes('GK'));
+      if (!isGkCapable(gk) && isGkCapable(hadGk)) {
+        infoToast('No goalkeeper in goal', 'Your lineup has no keeper between the posts.');
+      }
+    }
+
+    // M1 — a full bench silently dropped the displaced starter to reserves
+    // (slice truncation). Keep the truncation (MAX_SUBS is a hard cap) but
+    // tell the player who got bumped.
+    const trimmedSubs = newSubs.slice(0, MAX_SUBS);
+    if (newSubs.length > MAX_SUBS) {
+      const bumped = newSubs.slice(MAX_SUBS).map(id => players[id]).filter(Boolean);
+      if (bumped.length > 0) {
+        infoToast('Bench full', `${bumped.map(p => p.lastName).join(', ')} moved to reserves.`);
+      }
+    }
+
     hapticMedium();
-    updateLineup(newLineup, newSubs.slice(0, MAX_SUBS));
-  }, [lineup, subs, subAndBench, updateLineup]);
+    updateLineup(newLineup, trimmedSubs);
+  }, [lineup, subs, subAndBench, updateLineup, players, week, club?.formation]);
 
   const handleTap = useCallback((tappedId: string) => {
     const isEmptySlot = tappedId.startsWith('slot-');

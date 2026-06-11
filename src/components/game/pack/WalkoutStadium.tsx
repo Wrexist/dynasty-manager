@@ -1,3 +1,4 @@
+import { memo, useMemo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 
 /**
@@ -9,9 +10,25 @@ import { motion, useReducedMotion } from 'framer-motion';
  *
  * Rendered behind the walkout's hero card. Pure decoration —
  * `pointer-events-none`; all motion self-disables under reduced motion.
+ *
+ * Memoized: the parent re-renders every ~45ms during the name typewriter,
+ * and re-rolling the camera-flash randoms on each pass restarted all 16
+ * infinite flash animations dozens of times per second mid-cinematic.
  */
-export function WalkoutStadium({ accent, revealed }: { accent: string; revealed: boolean }) {
+export const WalkoutStadium = memo(function WalkoutStadium({ accent, revealed }: { accent: string; revealed: boolean }) {
   const reduce = useReducedMotion();
+
+  // Camera-flash specs — rolled once per mount, not per render.
+  const flashes = useMemo(() =>
+    Array.from({ length: 16 }).map((_, i) => ({
+      i,
+      left: 4 + Math.random() * 92,
+      bottom: 2 + Math.random() * 14,
+      dur: 0.35 + Math.random() * 0.5,
+      delay: Math.random() * 4,
+      repeatDelay: 1.5 + Math.random() * 3,
+    })),
+  []);
 
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
@@ -102,29 +119,23 @@ export function WalkoutStadium({ accent, revealed }: { accent: string; revealed:
         className="absolute inset-x-0 bottom-0 h-[20%]"
         style={{ background: 'linear-gradient(180deg, transparent, rgba(0,0,0,0.92))' }}
       />
-      {!reduce && Array.from({ length: 16 }).map((_, i) => {
-        const left = 4 + Math.random() * 92;
-        const bottom = 2 + Math.random() * 14;
-        const dur = 0.35 + Math.random() * 0.5;
-        const delay = Math.random() * 4;
-        return (
-          <motion.span
-            key={`flash-${i}`}
-            className="absolute rounded-full"
-            style={{
-              left: `${left}%`,
-              bottom: `${bottom}%`,
-              width: 3,
-              height: 3,
-              background: '#fff',
-              boxShadow: '0 0 7px 2px rgba(255,255,255,0.9)',
-            }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: [0, 1, 0] }}
-            transition={{ duration: dur, delay, repeat: Infinity, repeatDelay: 1.5 + Math.random() * 3, ease: 'easeOut' }}
-          />
-        );
-      })}
+      {!reduce && flashes.map(f => (
+        <motion.span
+          key={`flash-${f.i}`}
+          className="absolute rounded-full"
+          style={{
+            left: `${f.left}%`,
+            bottom: `${f.bottom}%`,
+            width: 3,
+            height: 3,
+            background: '#fff',
+            boxShadow: '0 0 7px 2px rgba(255,255,255,0.9)',
+          }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: [0, 1, 0] }}
+          transition={{ duration: f.dur, delay: f.delay, repeat: Infinity, repeatDelay: f.repeatDelay, ease: 'easeOut' }}
+        />
+      ))}
     </div>
   );
-}
+});

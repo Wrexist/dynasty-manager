@@ -81,10 +81,16 @@ export const ALL_OUT_VS_DEFENSIVE_BONUS = 0.12;
 export const FORMATION_ATTACK_BONUS: Record<string, number> = {
   '4-4-2': 0, '4-3-3': 0.06, '3-5-2': 0.04, '4-2-3-1': 0.03,
   '4-1-4-1': -0.02, '3-4-3': 0.10, '5-3-2': -0.06,
+  // Perk-unlocked formations (Formation Master). These previously had no
+  // profile at all and fell through `|| 0` everywhere — a paid-progression
+  // unlock with zero tactical identity.
+  '4-5-1': -0.04, '4-1-2-1-2': 0.04, '3-4-1-2': 0.07,
 } as const;
 export const FORMATION_DEFENSE_BONUS: Record<string, number> = {
   '4-4-2': 0, '4-3-3': -0.04, '3-5-2': 0.02, '4-2-3-1': 0.02,
   '4-1-4-1': 0.06, '3-4-3': -0.08, '5-3-2': 0.10,
+  // Perk-unlocked formations — see FORMATION_ATTACK_BONUS.
+  '4-5-1': 0.08, '4-1-2-1-2': 0, '3-4-1-2': -0.05,
 } as const;
 
 // ── Pressing / Foul Modifier ──
@@ -251,11 +257,17 @@ export const FOULER_ATTACKER_WEIGHT = 1.0;
 export const FORMATION_MATCHUP: Record<string, Record<string, number>> = {
   '3-4-3': { '4-3-3': -0.06, '4-4-2': -0.04, '5-3-2': 0.06 },
   '3-5-2': { '4-3-3': -0.04, '3-4-3': 0.04 },
-  '4-3-3': { '3-4-3': 0.06, '3-5-2': 0.04, '5-3-2': -0.04 },
+  '4-3-3': { '3-4-3': 0.06, '3-5-2': 0.04, '5-3-2': -0.04, '4-1-2-1-2': 0.04 },
   '4-4-2': { '3-4-3': 0.04, '4-2-3-1': -0.03 },
   '4-2-3-1': { '4-4-2': 0.03, '5-3-2': -0.04 },
   '4-1-4-1': { '4-3-3': 0.04, '3-4-3': 0.06 },
   '5-3-2': { '4-3-3': 0.04, '3-4-3': -0.06, '4-2-3-1': 0.04 },
+  // Perk-unlocked formations: the congested 4-5-1 midfield blunts attacking
+  // trios; the narrow diamond wins central duels but concedes the flanks;
+  // 3-4-1-2's wing-backs overload back-threes but get exposed by wide trios.
+  '4-5-1': { '4-3-3': 0.03, '3-4-3': 0.05 },
+  '4-1-2-1-2': { '4-4-2': 0.03, '5-3-2': 0.03 },
+  '3-4-1-2': { '5-3-2': 0.05, '4-3-3': -0.05 },
 };
 
 // ── Defense Modifier Scaling ──

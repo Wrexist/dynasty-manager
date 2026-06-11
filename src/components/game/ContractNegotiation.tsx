@@ -7,10 +7,12 @@ import { X, ArrowRight, Check, AlertTriangle, Minus, Plus, Calendar } from 'luci
 import { formatWage, getPreferredYears, getYearsAdjustment, getAcceptanceHint } from '@/utils/contracts';
 import { getMoodColor, getMoodLabel, getRatingColor, posBadgeColor } from '@/utils/uiHelpers';
 import { useScrollLock } from '@/hooks/useScrollLock';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useEscapeClose } from '@/hooks/useEscapeClose';
 import { useFlash } from '@/hooks/useFlash';
 import { motion } from 'framer-motion';
 import { hapticMedium, hapticHeavy, hapticLight } from '@/utils/haptics';
+import { errorToast } from '@/utils/gameToast';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { CONTRACT_MIN_YEARS, CONTRACT_MAX_YEARS, CONTRACT_MAX_STRIKES } from '@/config/contracts';
 
@@ -26,6 +28,8 @@ export function ContractNegotiation() {
   const submittingRef = useRef(false);
 
   useScrollLock(!!activeNegotiation);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(containerRef, !!activeNegotiation);
   useEscapeClose(cancelNegotiation, !!activeNegotiation);
 
   useEffect(() => {
@@ -56,7 +60,10 @@ export function ContractNegotiation() {
   const isComplete = activeNegotiation.status === 'accepted' || activeNegotiation.status === 'rejected';
   const currentYears = customYears ?? activeNegotiation.contractYears;
   const currentWage = customWage ?? activeNegotiation.offeredWage;
-  const gap = currentWage / activeNegotiation.demandedWage;
+  // Guard against demandedWage <= 0 (corrupted save / malformed offer) —
+  // same degenerate case the slider block below already handles. Without
+  // this the readout renders "Infinity% of demand".
+  const gap = activeNegotiation.demandedWage > 0 ? currentWage / activeNegotiation.demandedWage : 0;
   const preferredYears = getPreferredYears(activeNegotiation.playerAge);
   const yearsDiff = currentYears - preferredYears;
   const yearsAdj = getYearsAdjustment(activeNegotiation.playerAge, currentYears);
@@ -72,7 +79,15 @@ export function ContractNegotiation() {
   const handleSubmit = () => {
     if (submittingRef.current) return;
     submittingRef.current = true;
-    submitWageOffer(customWage ?? activeNegotiation.offeredWage, customYears ?? activeNegotiation.contractYears);
+    const result = submitWageOffer(customWage ?? activeNegotiation.offeredWage, customYears ?? activeNegotiation.contractYears);
+    if (result && !result.success) {
+      // Blocked up-front (e.g. can't afford the agent fee) — negotiation
+      // state didn't change, so the round/status effect won't reset the
+      // guard. Surface the reason and re-enable the button.
+      errorToast(result.message);
+      submittingRef.current = false;
+      return;
+    }
     setCustomWage(null);
     setCustomYears(null);
   };
@@ -88,6 +103,7 @@ export function ContractNegotiation() {
       style={{ touchAction: 'none' }}
     >
       <motion.div
+        ref={containerRef}
         initial={{ opacity: 0, y: 40, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ type: 'spring', stiffness: 300, damping: 28 }}

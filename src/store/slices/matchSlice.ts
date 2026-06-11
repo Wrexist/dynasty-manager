@@ -12,6 +12,7 @@ export const createMatchSlice = (set: Set, get: Get) => ({
   preMatchSnapshot: null as GameState['preMatchSnapshot'],
   currentMatchResult: null as GameState['currentMatchResult'],
   matchSubsUsed: 0,
+  matchSubbedOffIds: [] as string[],
   matchPlayerRatings: [] as GameState['matchPlayerRatings'],
   halfTimeState: null as GameState['halfTimeState'],
   currentMatchWeather: null as GameState['currentMatchWeather'],
@@ -34,6 +35,7 @@ export const createMatchSlice = (set: Set, get: Get) => ({
     penaltyShootoutKicks: [],
     penaltyShootoutRevealIndex: 0,
     matchShouts: [],
+    matchSubbedOffIds: [],
     // Clear ancillary post-match UI state so the next popup/review can't
     // render leftover data before the new match writes its own values.
     lastMatchCompetition: null,
@@ -46,17 +48,37 @@ export const createMatchSlice = (set: Set, get: Get) => ({
   rewindMatch: () => {
     const state = get();
     if (!state.preMatchSnapshot || state.invincibleUsedThisSeason) return;
+    const snap = state.preMatchSnapshot;
     set({
-      fixtures: state.preMatchSnapshot.fixtures,
-      divisionFixtures: state.preMatchSnapshot.divisionFixtures,
-      divisionTables: state.preMatchSnapshot.divisionTables,
-      players: state.preMatchSnapshot.players,
-      boardConfidence: state.preMatchSnapshot.boardConfidence,
-      leagueTable: state.preMatchSnapshot.leagueTable,
+      fixtures: snap.fixtures,
+      divisionFixtures: snap.divisionFixtures,
+      divisionTables: snap.divisionTables,
+      players: snap.players,
+      boardConfidence: snap.boardConfidence,
+      leagueTable: snap.leagueTable,
+      // Extended snapshot fields (optional — older snapshots lack them).
+      // Without these the replay double-counts manager W/D/L, XP, rivalry
+      // records, chemistry, ELO and session stats, keeps the post-match
+      // inbox message/press conference, and preserves mid-match subs.
+      ...(snap.clubs ? { clubs: snap.clubs } : {}),
+      ...(snap.managerStats ? { managerStats: snap.managerStats } : {}),
+      ...(snap.managerProgression ? { managerProgression: snap.managerProgression } : {}),
+      ...(snap.careerTimeline ? { careerTimeline: snap.careerTimeline } : {}),
+      ...(snap.rivalries ? { rivalries: snap.rivalries } : {}),
+      ...(snap.pairFamiliarity ? { pairFamiliarity: snap.pairFamiliarity } : {}),
+      ...(snap.clubPowerRankings ? { clubPowerRankings: snap.clubPowerRankings } : {}),
+      ...(snap.sessionStats ? { sessionStats: snap.sessionStats } : {}),
+      ...(snap.messages ? { messages: snap.messages } : {}),
+      ...(snap.pendingPressConference !== undefined ? { pendingPressConference: snap.pendingPressConference } : {}),
       currentMatchResult: null,
       halfTimeState: null,
       currentMatchWeather: null,
       matchPhase: 'none',
+      // Match-scoped transients must not leak into the replay.
+      matchShouts: [],
+      matchTeamTalk: 'none',
+      matchSubsUsed: 0,
+      matchSubbedOffIds: [],
       preMatchSnapshot: null,
       invincibleUsedThisSeason: true,
       currentScreen: 'dashboard',
@@ -186,16 +208,20 @@ export const createMatchSlice = (set: Set, get: Get) => ({
 
   setTeamTalk: (talk: TeamTalkType) => set({ matchTeamTalk: talk }),
 
-  makeMatchSub: (outId: string, inId: string, minute?: number) => {
+  makeMatchSub: (outId: string, inId: string, minute?: number): { success: boolean; message?: string } => {
     const state = get();
-    if (state.matchSubsUsed >= MAX_SUBSTITUTIONS) return;
+    if (state.matchSubsUsed >= MAX_SUBSTITUTIONS) return { success: false, message: 'No substitutions remaining.' };
     const club = { ...state.clubs[state.playerClubId] };
-    if (!club.lineup.includes(outId)) return;
-    if (!club.subs.includes(inId)) return;
+    if (!club.lineup.includes(outId)) return { success: false, message: 'That player is no longer in the lineup.' };
+    if (!club.subs.includes(inId)) return { success: false, message: 'That player is not on the bench.' };
+    // A player substituted off earlier in this match cannot re-enter —
+    // the out-player goes back to `subs` (so post-match processing still
+    // sees them), but they're no longer a legal substitution target.
+    if ((state.matchSubbedOffIds || []).includes(inId)) return { success: false, message: 'A substituted player cannot re-enter the match.' };
     const inPlayer = state.players[inId];
-    if (!inPlayer) return;
-    if (inPlayer.injured) return;
-    if (inPlayer.suspendedUntilWeek != null && inPlayer.suspendedUntilWeek > state.week) return;
+    if (!inPlayer) return { success: false, message: 'That substitute is unavailable.' };
+    if (inPlayer.injured) return { success: false, message: `${inPlayer.lastName} is injured and cannot come on.` };
+    if (inPlayer.suspendedUntilWeek != null && inPlayer.suspendedUntilWeek > state.week) return { success: false, message: `${inPlayer.lastName} is suspended and cannot come on.` };
     club.lineup = [...club.lineup.map(id => id === outId ? inId : id)];
     club.subs = [...club.subs.filter(id => id !== inId), outId];
     const outPlayer = state.players[outId];
@@ -217,7 +243,11 @@ export const createMatchSlice = (set: Set, get: Get) => ({
       clubId: state.playerClubId,
       description: playerSubTemplates[Math.floor(Math.random() * playerSubTemplates.length)],
     };
-    const updates: Partial<GameState> = { clubs: { ...state.clubs, [club.id]: club }, matchSubsUsed: state.matchSubsUsed + 1 };
+    const updates: Partial<GameState> = {
+      clubs: { ...state.clubs, [club.id]: club },
+      matchSubsUsed: state.matchSubsUsed + 1,
+      matchSubbedOffIds: [...(state.matchSubbedOffIds || []), outId],
+    };
     if (state.currentMatchResult) {
       updates.currentMatchResult = {
         ...state.currentMatchResult,
@@ -231,5 +261,6 @@ export const createMatchSlice = (set: Set, get: Get) => ({
       };
     }
     set(updates);
+    return { success: true };
   },
 });

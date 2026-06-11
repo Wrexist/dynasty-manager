@@ -143,7 +143,14 @@ const MatchDayInner = () => {
   const [currentMin, setCurrentMin] = useState(0);
   const currentMinRef = useRef(0);
   const [visibleEvents, setVisibleEvents] = useState<MatchEvent[]>([]);
-  const [speed, setSpeed] = useState(settings.matchSpeed || DEFAULT_MATCH_SPEED);
+  const [speed, setSpeed] = useState(() => {
+    // Clamp a persisted Pro-tier speed for non-Pro users (lapsed trial/sub):
+    // the saved setting would otherwise grant Pro playback until they touch
+    // the control.
+    const saved = settings.matchSpeed || DEFAULT_MATCH_SPEED;
+    const tier = MATCH_SPEEDS.find(t => t.value === saved);
+    return tier?.pro && !isPro(useGameStore.getState().monetization) ? DEFAULT_MATCH_SPEED : saved;
+  });
   const [paused, setPaused] = useState(false);
   const [subSheetOpen, setSubSheetOpen] = useState(false);
   // showTacticUI removed — tactical controls now embedded directly in key moment and half-time UIs
@@ -274,19 +281,36 @@ const MatchDayInner = () => {
   };
 
   const resumeExtraTime = () => {
-    const result = playExtraTime();
-    if (!result) return;
-    setAllEvents(result.events);
-    currentMinRef.current = 90;
-    setCurrentMin(90);
-    setPhase('extra_time');
-    setPaused(false);
+    // Guard against double-tap (same pattern as resumeSecondHalf) — a
+    // double-fire would re-simulate extra time.
+    if (resumingRef.current) return;
+    resumingRef.current = true;
+    try {
+      const result = playExtraTime();
+      if (!result) { resumingRef.current = false; return; }
+      setAllEvents(result.events);
+      currentMinRef.current = 90;
+      setCurrentMin(90);
+      setPhase('extra_time');
+      setPaused(false);
+      resumingRef.current = false;
+    } catch (err) {
+      Sentry.captureException(err, { tags: { context: 'resumeExtraTime' } });
+      resumingRef.current = false;
+    }
   };
 
   const handlePenalties = () => {
     // playPenalties() now only pre-computes kicks and stores them for kick-by-kick reveal.
     // The phase stays 'penalties' until the shootout is finalized via revealNextPenaltyKick / skipPenaltyShootout.
-    playPenalties();
+    // Double-tap guard — a double-fire would re-roll the pre-computed shootout.
+    if (resumingRef.current) return;
+    resumingRef.current = true;
+    try {
+      playPenalties();
+    } finally {
+      resumingRef.current = false;
+    }
   };
 
   // Detect key moments that should pause the match for player decisions
@@ -422,6 +446,14 @@ const MatchDayInner = () => {
 
       if (next > maxMin) {
         clearInterval(intervalRef.current!);
+        // Flush stoppage-time events before the phase transition: the engine
+        // records minutes past the nominal end (45+X / 90+X / 120+X), so a
+        // 90+2' winner never rendered and the on-screen score could
+        // contradict the final result.
+        if (eventCursorRef.current < allEvents.length) {
+          eventCursorRef.current = allEvents.length;
+          setVisibleEvents(allEvents);
+        }
         if (phase === 'first_half') {
           setPhase('half_time');
         } else if (phase === 'second_half') {
@@ -1050,7 +1082,7 @@ const MatchDayInner = () => {
               <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">First Half</p>
               <div className="space-y-1.5">
                 {visibleEvents
-                  .filter(e => !['kickoff', 'half_time', 'commentary'].includes(e.type))
+                  .filter(e => !['kickoff', 'half_time', 'added_time', 'commentary'].includes(e.type))
                   .map((ev, i) => (
                     <CommentaryRow
                       key={i}
@@ -1065,13 +1097,15 @@ const MatchDayInner = () => {
             </GlassPanel>
           )}
 
-          {/* Match Speed at half-time */}
+          {/* Match Speed at half-time. Locked tiers must NOT navigate to the
+              shop here: unmounting MatchDay mid-match wipes halfTimeState and
+              silently discards the half already played. */}
           <GlassPanel className="p-3">
             <MatchSpeedPicker
               speed={speed}
               userIsPro={userIsPro}
               onSelect={setSpeed}
-              onLockedSelect={() => setScreen('shop')}
+              onLockedSelect={() => infoToast('Dynasty Pro speed', 'Faster simulation unlocks with Dynasty Pro — visit the Shop after the match.')}
             />
           </GlassPanel>
 
@@ -1192,13 +1226,14 @@ const MatchDayInner = () => {
             )}
           </GlassPanel>
 
-          {/* Match Speed before extra time */}
+          {/* Match Speed before extra time — same rule as half-time: never
+              navigate away mid-match. */}
           <GlassPanel className="p-3">
             <MatchSpeedPicker
               speed={speed}
               userIsPro={userIsPro}
               onSelect={setSpeed}
-              onLockedSelect={() => setScreen('shop')}
+              onLockedSelect={() => infoToast('Dynasty Pro speed', 'Faster simulation unlocks with Dynasty Pro — visit the Shop after the match.')}
             />
           </GlassPanel>
 

@@ -1,7 +1,9 @@
 import { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
+import type { GameState } from '@/store/storeTypes';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useScrollLock } from '@/hooks/useScrollLock';
 import { Button } from '@/components/ui/button';
 import {
   DollarSign, Heart, AlertTriangle, Activity, Mail,
@@ -9,7 +11,7 @@ import {
   ChevronDown, Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getStatBarColor } from '@/utils/uiHelpers';
+import { } from '@/utils/uiHelpers';
 import { AnimatedNumber } from '@/components/game/AnimatedNumber';
 
 // ── Animation helpers ──
@@ -36,7 +38,10 @@ function itemAnim(base: number, index: number) {
 
 function DevBar({ attribute, newValue, delay }: { attribute: string; newValue: number; delay: number }) {
   const pct = Math.min(100, (newValue / 99) * 100);
-  const barColor = getStatBarColor(pct);
+  // This list only ever shows GAINS — a rating-colored bar painted low
+  // attributes red ("SHO 35 +1" looked like a regression). The +N badge
+  // carries the gain; the bar stays in the positive palette.
+  const barColor = 'bg-emerald-500/70';
   const abbr = attribute.slice(0, 3).toUpperCase();
 
   return (
@@ -79,15 +84,27 @@ function SectionLabel({ children, delay }: { children: React.ReactNode; delay: n
 export function WeeklyDigest() {
   const digest = useGameStore(s => s.weeklyDigest);
   const week = useGameStore(s => s.week);
+  const dismissWeeklyDigest = useGameStore(s => s.dismissWeeklyDigest);
+  useScrollLock(!!digest);
+
+  // AnimatePresence stays mounted here while the card child unmounts, so
+  // the exit animation actually plays — previously the component returned
+  // null the moment the digest cleared, making the exit dead code.
+  return (
+    <AnimatePresence mode="wait">
+      {digest && <WeeklyDigestCard digest={digest} week={week} dismiss={dismissWeeklyDigest} />}
+    </AnimatePresence>
+  );
+}
+
+function WeeklyDigestCard({ digest, week, dismiss }: {
+  digest: NonNullable<GameState['weeklyDigest']>;
+  week: number;
+  dismiss: () => void;
+}) {
   const [devExpanded, setDevExpanded] = useState(false);
-
-  const dismiss = () => {
-    useGameStore.setState({ weeklyDigest: null });
-  };
   const containerRef = useRef<HTMLDivElement | null>(null);
-  useFocusTrap(containerRef, !!digest);
-
-  if (!digest) return null;
+  useFocusTrap(containerRef, true);
 
   const netIncome = digest.incomeEarned - digest.expensesPaid;
   const hasEvents = digest.injuriesThisWeek.length > 0 || digest.recoveriesThisWeek.length > 0 || digest.offersReceived > 0;
@@ -135,7 +152,6 @@ export function WeeklyDigest() {
   const nextDelay = (step = 0.1) => { d += step; return d; };
 
   return (
-    <AnimatePresence mode="wait">
       <motion.div
         ref={containerRef}
         initial={{ opacity: 0 }}
@@ -437,6 +453,5 @@ export function WeeklyDigest() {
           </motion.div>
         </motion.div>
       </motion.div>
-    </AnimatePresence>
   );
 }

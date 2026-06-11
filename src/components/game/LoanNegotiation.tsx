@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useScrollLock } from '@/hooks/useScrollLock';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useEscapeClose } from '@/hooks/useEscapeClose';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
@@ -31,6 +32,7 @@ export function LoanNegotiation({ playerId, onClose }: Props) {
   })));
   const evaluateLoanRequest = useGameStore(s => s.evaluateLoanRequest);
   const requestLoan = useGameStore(s => s.requestLoan);
+  const acceptLoanCounter = useGameStore(s => s.acceptLoanCounter);
 
   const player = players[playerId];
   const ownerClub = player ? clubs[player.clubId] : null;
@@ -54,6 +56,8 @@ export function LoanNegotiation({ playerId, onClose }: Props) {
   useEffect(() => () => { timersRef.current.forEach(clearTimeout); }, []);
 
   useScrollLock();
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(containerRef, true);
   useEscapeClose(onClose, phase === 'negotiate');
 
   const evaluation = useMemo(() => evaluateLoanRequest(playerId, duration, wageSplit), [playerId, duration, wageSplit, evaluateLoanRequest]);
@@ -97,14 +101,19 @@ export function LoanNegotiation({ playerId, onClose }: Props) {
     setCounterWageSplit(null);
     setCounterDuration(null);
     timersRef.current.push(setTimeout(() => {
-      const result = requestLoan(playerId, cDur, cWage, recallClause, buyOption ? buyFee : undefined);
-      // Only show success when the loan was actually agreed. A repeated 'counter' previously
-      // displayed "Loan Agreed!" even though no activeLoan was created.
-      setOutcome(result.outcome === 'accepted' ? 'accepted' : 'rejected');
-      setResultMessage(result.outcome === 'accepted' ? `${ownerClub?.name} have agreed to the revised terms!` : result.message);
+      // Accept via the dedicated store action — re-calling requestLoan here
+      // used to trip the slice's counter dedupe guard, so accepting a
+      // counter-offer deterministically failed with "Request Rejected".
+      const counterReq = useGameStore.getState().outgoingLoanRequests
+        .find(r => r.playerId === playerId && r.status === 'counter');
+      const result = counterReq
+        ? acceptLoanCounter(counterReq.id)
+        : { success: false, message: 'Counter-offer is no longer available.' };
+      setOutcome(result.success ? 'accepted' : 'rejected');
+      setResultMessage(result.success ? `${ownerClub?.name} have agreed to the revised terms!` : result.message);
       setPhase('result');
     }, 1000));
-  }, [counterWageSplit, counterDuration, wageSplit, duration, playerId, requestLoan, recallClause, buyOption, buyFee, ownerClub]);
+  }, [counterWageSplit, counterDuration, wageSplit, duration, playerId, acceptLoanCounter, ownerClub]);
 
   const handleRevise = useCallback(() => {
     setPhase('negotiate');
@@ -134,6 +143,7 @@ export function LoanNegotiation({ playerId, onClose }: Props) {
 
         {/* Modal */}
         <motion.div
+          ref={containerRef}
           className="relative w-full max-w-sm mx-4 bg-card/95 backdrop-blur-xl border border-border/50 rounded-2xl overflow-hidden"
           initial={{ scale: 0.85, opacity: 0, y: 40 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -308,8 +318,10 @@ export function LoanNegotiation({ playerId, onClose }: Props) {
                       className="w-full flex items-center justify-between bg-muted/20 rounded-xl p-3"
                     >
                       <div>
-                        <p className="text-xs font-medium text-foreground text-left">Option to Buy</p>
-                        <p className="text-[10px] text-muted-foreground text-left">Obligatory purchase at loan end</p>
+                        {/* The underlying field is `obligatoryBuyFee` — a
+                            committed purchase, not an option. Label honestly. */}
+                        <p className="text-xs font-medium text-foreground text-left">Obligation to Buy</p>
+                        <p className="text-[10px] text-muted-foreground text-left">You commit to buying the player when the loan ends</p>
                       </div>
                       {buyOption
                         ? <ToggleRight className="w-7 h-7 text-primary shrink-0" />
@@ -492,7 +504,7 @@ export function LoanNegotiation({ playerId, onClose }: Props) {
                   )}
                   {buyOption && (
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Buy Option</span>
+                      <span className="text-xs text-muted-foreground">Obligation to Buy</span>
                       <span className="text-xs font-bold text-primary">{'\u00A3'}{(buyFee / 1e6).toFixed(1)}M</span>
                     </div>
                   )}

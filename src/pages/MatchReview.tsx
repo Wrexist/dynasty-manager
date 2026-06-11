@@ -20,6 +20,7 @@ const HIGHLIGHT_TYPES: readonly MatchEvent['type'][] = [
   'goal', 'own_goal', 'penalty_scored', 'penalty_missed', 'red_card', 'injury',
   'free_kick_goal', 'long_range_goal', 'counter_attack_goal', 'header_goal',
   'solo_goal', 'goalkeeper_error', 'var_check', 'var_disallowed', 'substitution',
+  'penalty_shootout',
 ];
 const HIGHLIGHT_TONE: Partial<Record<MatchEvent['type'], MatchHighlightTone>> = {
   goal: 'goal', penalty_scored: 'goal', free_kick_goal: 'goal', long_range_goal: 'goal',
@@ -78,6 +79,9 @@ const MatchReview = () => {
     monetization: s.monetization, lastMatchCompetition: s.lastMatchCompetition,
     virtualClubs: s.virtualClubs,
   })));
+  // Selected reactively — a getState() read during render showed a stale
+  // position and never re-rendered when the store updated.
+  const preMatchLeaguePosition = useGameStore(s => s.preMatchLeaguePosition);
   const advanceWeek = useGameStore(s => s.advanceWeek);
   const setScreen = useGameStore(s => s.setScreen);
   const selectPlayer = useGameStore(s => s.selectPlayer);
@@ -112,6 +116,25 @@ const MatchReview = () => {
     us: allHighlights.filter(e => e.clubId === playerClubId).length,
     goals: allHighlights.filter(e => (GOAL_SCORING_TYPES as readonly string[]).includes(e.type) || e.type === 'goalkeeper_error').length,
   }), [allHighlights, playerClubId]);
+
+  // Is ANOTHER unplayed match for the player's club scheduled THIS week
+  // (pre-season friendlies share weeks 1-3 with league fixtures; cup ties can
+  // share weeks too)? Drives the Continue button label — the overloaded
+  // "Continue" made players think the game was stuck when it bounced them to
+  // a second same-week match. Must run before the null-match early returns
+  // (rules of hooks); getState() is safe here because scheduling can't
+  // change while the review is open.
+  const hasAnotherMatchThisWeek = useMemo(() => {
+    if (!currentMatchResult) return false;
+    const s2 = useGameStore.getState();
+    if (currentMatchResult.week !== s2.week) return false; // historical review
+    const pid = s2.playerClubId;
+    const mine = (m: { week: number; played: boolean; homeClubId: string; awayClubId: string; id: string }) =>
+      m.week === s2.week && !m.played && (m.homeClubId === pid || m.awayClubId === pid) && m.id !== currentMatchResult.id;
+    if (s2.friendlies?.some(mine)) return true;
+    if (s2.fixtures.some(mine)) return true;
+    return !!findTournamentMatch(s2);
+  }, [currentMatchResult]);
 
   // Single-pass partition over match.events, memoized on the events array.
   // Replaces three sequential .filter() calls that re-walked events on every
@@ -165,8 +188,16 @@ const MatchReview = () => {
   const isHome = match.homeClubId === playerClubId;
   const homeBarColor = homeClub.color;
   const awayBarColor = areColorsSimilar(homeClub.color, awayClub.color) ? '#FFFFFF' : awayClub.color;
-  const won = isHome ? match.homeGoals > match.awayGoals : match.awayGoals > match.homeGoals;
-  const drew = match.homeGoals === match.awayGoals;
+  // A drawn scoreline decided on penalties is a win/loss, not a draw — the
+  // store classifies it that way (processMatchResult), and showing amber
+  // "DRAW" + "board expects improvement" for a cup final won on pens
+  // contradicted the popup the user just saw.
+  const shootout = match.penaltyShootout;
+  const shootoutWon = shootout && match.homeGoals === match.awayGoals
+    ? (isHome ? shootout.home > shootout.away : shootout.away > shootout.home)
+    : null;
+  const won = shootoutWon ?? (isHome ? match.homeGoals > match.awayGoals : match.awayGoals > match.homeGoals);
+  const drew = shootoutWon === null && match.homeGoals === match.awayGoals;
   const lost = !won && !drew;
   const xpDoubleClaimContext = `match_w${week}_${match.homeClubId}_${match.awayClubId}_${match.homeGoals}-${match.awayGoals}_${lastMatchCompetition || 'league'}`;
 
@@ -230,7 +261,7 @@ const MatchReview = () => {
               won ? 'text-emerald-400' : lost ? 'text-destructive' : 'text-amber-400'
             )}
           >
-            {won ? 'VICTORY' : lost ? 'DEFEAT' : 'DRAW'}
+            {won ? (shootoutWon != null ? 'VICTORY ON PENALTIES' : 'VICTORY') : lost ? (shootoutWon != null ? 'DEFEAT ON PENALTIES' : 'DEFEAT') : 'DRAW'}
           </motion.p>
           {lastMatchCompetition && (() => {
             const compInfo = getCompetitionInfo(lastMatchCompetition);
@@ -286,7 +317,7 @@ const MatchReview = () => {
       {/* Continue — sticky at top so player doesn't have to scroll */}
       <div className="sticky top-0 z-10 -mx-4 px-4 pt-1 pb-2 bg-gradient-to-b from-background via-background to-transparent">
         <Button size="lg" className="w-full h-12 text-base font-bold gap-2" disabled={isAdvancing} onClick={handleContinue}>
-          {isAdvancing ? 'Advancing...' : isHistoricalReview ? 'Back to Dashboard' : 'Continue'} {!isAdvancing && <ChevronRight className="w-5 h-5" />}
+          {isAdvancing ? 'Advancing...' : isHistoricalReview ? 'Back to Dashboard' : hasAnotherMatchThisWeek ? 'Next Match This Week' : 'Continue'} {!isAdvancing && <ChevronRight className="w-5 h-5" />}
         </Button>
       </div>
 
@@ -475,7 +506,7 @@ const MatchReview = () => {
                     const content = (
                       <div className={cn('flex flex-col gap-1 min-w-0', isHomeTeamEvent ? 'items-end text-right' : 'items-start text-left')}>
                         <div className={cn('flex items-center gap-2', isHomeTeamEvent && 'flex-row-reverse')}>
-                          <span className="text-[10px] font-mono text-primary tabular-nums">{ev.minute}'</span>
+                          <span className="text-[10px] font-mono text-primary tabular-nums">{ev.displayMinute ?? ev.minute}'</span>
                           <span className={cn('text-[10px] font-bold uppercase tracking-wider', toneClass.text)}>{label}</span>
                           {evClub && (
                             <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: evClub.color }} />
@@ -522,7 +553,7 @@ const MatchReview = () => {
               const assister = g.assistPlayerId ? players[g.assistPlayerId] : null;
               return (
                 <div key={`goal-${g.minute}-${g.playerId || i}`} className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground tabular-nums w-6 shrink-0">{g.minute}'</span>
+                  <span className="text-xs text-muted-foreground tabular-nums w-6 shrink-0">{g.displayMinute ?? g.minute}'</span>
                   {scorer ? (
                     <FlagIcon nationality={scorer.nationality} size={12} className="shrink-0" />
                   ) : null}
@@ -729,7 +760,7 @@ const MatchReview = () => {
                     {p?.lastName || 'Unknown'} — {injLabel}
                     {injWeeks ? <span className="text-muted-foreground"> ({injWeeks} wk{injWeeks !== 1 ? 's' : ''})</span> : null}
                   </span>
-                  <span className="text-muted-foreground ml-auto tabular-nums">{e.minute}'</span>
+                  <span className="text-muted-foreground ml-auto tabular-nums">{e.displayMinute ?? e.minute}'</span>
                 </div>
               );
             })}
@@ -753,7 +784,7 @@ const MatchReview = () => {
                     {p?.lastName || 'Unknown'}
                     {banWeeks != null && banWeeks > 0 && <span className="text-muted-foreground"> — {banWeeks} match ban</span>}
                   </span>
-                  <span className="text-muted-foreground ml-auto tabular-nums">{e.minute}'</span>
+                  <span className="text-muted-foreground ml-auto tabular-nums">{e.displayMinute ?? e.minute}'</span>
                 </div>
               );
             })}
@@ -863,7 +894,6 @@ const MatchReview = () => {
       {!lastMatchCompetition && (() => {
         const table = divisionTables[playerDivision] || [];
         const newPos = table.findIndex(e => e.clubId === playerClubId) + 1;
-        const { preMatchLeaguePosition } = useGameStore.getState();
         const oldPos = preMatchLeaguePosition || newPos;
         const delta = oldPos - newPos; // positive = moved up
         if (newPos <= 0) return null;

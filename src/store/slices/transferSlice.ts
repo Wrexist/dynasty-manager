@@ -2,7 +2,7 @@ import type { GameState } from '../storeTypes';
 import { addMsg, safeRandomUUID } from '@/utils/helpers';
 import { getFarewellSummary } from '@/utils/playerNarratives';
 import { absWeek } from '@/utils/staff';
-import { LEAGUES } from '@/data/league';
+import { getMaxFreeAgentOverall, calculateSigningBonus } from '@/utils/transferOffers';
 import { GROWTH_NEGOTIATION_PER_TRANSFER as CAREER_NEGOTIATION_GROWTH, STAT_MAX as CAREER_STAT_MAX } from '@/config/managerCareer';
 import {
   ACCEPT_CHANCE_AT_ASKING, ACCEPT_CHANCE_AT_80_PERCENT, ACCEPT_CHANCE_BELOW, ACCEPT_80_PERCENT_THRESHOLD,
@@ -15,10 +15,11 @@ import {
   SELL_ON_EVAL_HIGH_PCT, SELL_ON_EVAL_LOW_PCT,
   COUNTER_OFFER_BASE_RATIO, COUNTER_OFFER_RANDOM_RANGE,
   RECORD_SIGNING_SPEND_RATIO, RECORD_SIGNING_MIN_FEE,
-  LISTING_PRICE_FLOOR, FREE_AGENT_REP_BASE, FREE_AGENT_REP_SCALE, FREE_AGENT_DIV_BONUS,
+  LISTING_PRICE_FLOOR,
   INCOMING_NEGOTIATE_ACCEPT_AT_OFFER, INCOMING_NEGOTIATE_ACCEPT_AT_120, INCOMING_NEGOTIATE_ACCEPT_AT_MAX,
   INCOMING_NEGOTIATE_COUNTER_CHANCE, INCOMING_NEGOTIATE_COUNTER_BASE, INCOMING_NEGOTIATE_COUNTER_RANGE,
   NEGOTIATION_MAX_STRIKES, NEGOTIATION_COOLDOWN_WEEKS, NEGOTIATION_STRIKE_PENALTY,
+  getTransferWindows,
 } from '@/config/transfers';
 import { NegotiationStrike } from '@/types/game';
 import { CONTRACT_MIN_YEARS, CONTRACT_MAX_YEARS } from '@/config/contracts';
@@ -32,8 +33,9 @@ import { detachPlayerFromAllClubs, purgePlayerReferences } from '../helpers/rost
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
 
-/** Check if an active challenge blocks this transfer. Returns error message or null if allowed. */
-const checkChallengeBlock = (state: GameState, playerAge?: number): string | null => {
+/** Check if an active challenge blocks this transfer. Returns error message or null if allowed.
+ *  Exported for loanSlice — loan-ins count as signings (noTransfers / youthOnly apply). */
+export const checkChallengeBlock = (state: GameState, playerAge?: number): string | null => {
   if (!state.activeChallenge || state.activeChallenge.completed || state.activeChallenge.failed) return null;
   const scenario = CHALLENGES.find(c => c.id === state.activeChallenge!.scenarioId);
   if (!scenario) return null;
@@ -136,20 +138,26 @@ const executeSale = (state: GameState, offer: { id: string; playerId: string; bu
     ? { playerId: offer.playerId, playerName: `${player.firstName} ${player.lastName}`, seasonsServed: farewell.seasonsServed, stats: farewell.stats }
     : null;
 
-  // Check if the sold player was a top marketable player — trigger/extend merch dip
-  const starPlayers = getStarPlayerMerch(sellerClub, state.players);
-  const wasStar = starPlayers.some(sp => sp.playerId === offer.playerId);
-  const merchDipUpdate: Partial<GameState> = {};
-  if (wasStar) {
-    const currentDip = state.merchandise?.starPlayerDip || 0;
-    merchDipUpdate.merchandise = { ...state.merchandise, starPlayerDip: Math.max(currentDip, STAR_PLAYER_SALE_DIP_WEEKS) };
-  }
   // Unified reference purge — was missing outgoingLoanRequests,
   // negotiationStrikes, contractStrikes, pendingTransferTalk before.
   // We also override `transferMarket` after the helper because executeSale
   // computed a richer `newMarket` (which might add new listings, not just
   // remove the sold player's row).
   const purged = purgePlayerReferences(state, offer.playerId);
+
+  // Check if the sold player was a top marketable player — trigger/extend
+  // merch dip. Build on top of the PURGED merch state: purgePlayerReferences
+  // may have just cancelled a signature drop pinned to this player, and
+  // spreading a state.merchandise-based update after `...purged` would
+  // resurrect it.
+  const starPlayers = getStarPlayerMerch(sellerClub, state.players);
+  const wasStar = starPlayers.some(sp => sp.playerId === offer.playerId);
+  const merchDipUpdate: Partial<GameState> = {};
+  if (wasStar) {
+    const merchBase = purged.merchandise ?? state.merchandise;
+    const currentDip = merchBase?.starPlayerDip || 0;
+    merchDipUpdate.merchandise = { ...merchBase, starPlayerDip: Math.max(currentDip, STAR_PLAYER_SALE_DIP_WEEKS) };
+  }
 
   const currentSold = state.seasonTransfersSold || [];
   set({
@@ -262,8 +270,16 @@ export const createTransferSlice = (set: Set, get: Get) => ({
       return { outcome: result.success ? 'accepted' : 'rejected', message: result.success ? `Release clause triggered — ${player.firstName} ${player.lastName} joins for £${(fee / 1e6).toFixed(1)}M!` : result.message };
     }
 
-    // Transfer Shark perk: treat asking price as 15% lower for acceptance calculation
-    const effectiveAskingPrice = hasPerk(state.managerProgression, 'transfer_shark') ? listing.askingPrice * (1 - TRANSFER_SHARK_DISCOUNT * dynastyMult(state.managerProgression)) : listing.askingPrice;
+    // Transfer Shark perk: treat asking price as 15% lower for acceptance calculation.
+    // Career negotiation skill and the Deadline Dealer perk (deadline-day
+    // discount) apply here too — they previously lived only in the legacy
+    // makeOffer action, which had no live callers, so a tier-3 perk and the
+    // career negotiation stat had zero effect on real offers.
+    const tw = getTransferWindows(state.totalWeeks);
+    const careerFeeDiscount = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.negotiation * 0.005 : 0;
+    const deadlineDealerMult = (hasPerk(state.managerProgression, 'deadline_dealer') && (state.week === tw.summerEnd || state.week === tw.winterEnd)) ? 0.8 : 1;
+    const sharkPrice = hasPerk(state.managerProgression, 'transfer_shark') ? listing.askingPrice * (1 - TRANSFER_SHARK_DISCOUNT * dynastyMult(state.managerProgression)) : listing.askingPrice;
+    const effectiveAskingPrice = sharkPrice * (1 - careerFeeDiscount) * deadlineDealerMult;
     const ratio = fee / effectiveAskingPrice;
     const baseChance = fee >= effectiveAskingPrice ? ACCEPT_CHANCE_AT_ASKING : fee >= effectiveAskingPrice * ACCEPT_80_PERCENT_THRESHOLD ? ACCEPT_CHANCE_AT_80_PERCENT : ACCEPT_CHANCE_BELOW;
     // Apply strike penalty: each previous rejection makes the seller less receptive
@@ -291,6 +307,11 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const state = get();
     const challengeBlock = checkChallengeBlock(state, state.players[playerId]?.age);
     if (challengeBlock) return { success: false, message: challengeBlock };
+    // Mirror executeSale's guard: buying a player who is mid-loan would pay
+    // the fee but leave the loan record alive — when the stale LoanDeal
+    // expires the player is handed back to loan.fromClubId (fee paid,
+    // player confiscated).
+    if (state.players[playerId]?.onLoan) return { success: false, message: 'Player is currently on loan and cannot be signed permanently.' };
     const listing = resolveListing(state, playerId);
     if (!state.transferWindowOpen && !listing?.scoutedPlayer) return { success: false, message: 'Transfer window is closed.' };
     if (!listing) return { success: false, message: 'Player not available.' };
@@ -405,25 +426,6 @@ export const createTransferSlice = (set: Set, get: Get) => ({
       set({ careerManager: cm });
     }
     return { success: true, message: `${updatedPlayer.firstName} ${updatedPlayer.lastName} signed!${sellOnNote}` };
-  },
-
-  makeOffer: (playerId: string, fee: number) => {
-    const state = get();
-    const challengeBlock = checkChallengeBlock(state, state.players[playerId]?.age);
-    if (challengeBlock) return { success: false, message: challengeBlock };
-    const listing = resolveListing(state, playerId);
-    if (!state.transferWindowOpen && !listing?.scoutedPlayer) return { success: false, message: 'Transfer window is closed.' };
-    if (!listing) return { success: false, message: 'Player not available.' };
-    const club = state.clubs[state.playerClubId];
-    const galacticoAvail = hasPerk(state.managerProgression, 'galactico') && !state.galacticoUsedThisSeason;
-    const budgetLimit = galacticoAvail ? Math.floor(club.budget * 1.2) : club.budget;
-    if (fee > budgetLimit) return { success: false, message: 'Insufficient funds.' };
-    const careerFeeDiscount = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.negotiation * 0.005 : 0;
-    const deadlineDealerMult = (hasPerk(state.managerProgression, 'deadline_dealer') && (state.week === 8 || state.week === 24)) ? 0.8 : 1;
-    const effAsk = (hasPerk(state.managerProgression, 'transfer_shark') ? listing.askingPrice * (1 - TRANSFER_SHARK_DISCOUNT * dynastyMult(state.managerProgression)) : listing.askingPrice) * (1 - careerFeeDiscount) * deadlineDealerMult;
-    const acceptChance = fee >= effAsk ? ACCEPT_CHANCE_AT_ASKING : fee >= effAsk * ACCEPT_80_PERCENT_THRESHOLD ? ACCEPT_CHANCE_AT_80_PERCENT : ACCEPT_CHANCE_BELOW;
-    if (Math.random() > acceptChance) return { success: false, message: 'Offer rejected. Try a higher fee.' };
-    return get().executeTransfer(playerId, fee);
   },
 
   listPlayerForSale: (playerId: string, customAskingPrice?: number) => {
@@ -602,12 +604,10 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const player = state.players[playerId];
     if (!player) return { success: false, message: 'Player not found.' };
     const club = { ...state.clubs[state.playerClubId] };
-    const signingBonus = Math.round(wage * years * SIGNING_BONUS_WEEKS_PER_YEAR);
+    const signingBonus = calculateSigningBonus(wage, years);
     if (club.budget < signingBonus) return { success: false, message: `Insufficient funds for signing bonus (£${(signingBonus / 1e6).toFixed(1)}M).` };
     if (club.playerIds.length >= MAX_SQUAD_SIZE) return { success: false, message: `Squad is full (${MAX_SQUAD_SIZE} players). Release or sell a player first.` };
-    const playerTier = LEAGUES.find(l => l.id === state.playerDivision)?.tier || 3;
-    const divBonus = FREE_AGENT_DIV_BONUS[playerTier] || 0;
-    const maxFreeAgentOvr = FREE_AGENT_REP_BASE + club.reputation * FREE_AGENT_REP_SCALE + divBonus;
+    const maxFreeAgentOvr = getMaxFreeAgentOverall(club.reputation, state.playerDivision);
     if (player.overall > maxFreeAgentOvr) return { success: false, message: `Player quality (${player.overall}) exceeds your club's reputation limit (${maxFreeAgentOvr}).` };
 
     club.budget -= signingBonus;

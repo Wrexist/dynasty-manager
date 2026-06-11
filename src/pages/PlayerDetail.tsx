@@ -93,12 +93,12 @@ const PlayerDetail = () => {
     const personalityMult = getTrainingMultiplier(player.personality);
     const multColor = personalityMult >= 1.15 ? 'text-emerald-400' : personalityMult <= 0.85 ? 'text-destructive' : 'text-muted-foreground';
     const staffBonus = getTrainingStaffBonus(staff.members);
-    const preview = getTrainingEffectivenessPreview(training, staffBonus, [player]);
+    const preview = getTrainingEffectivenessPreview(training, staffBonus, [player], facilities.recoveryLevel);
     const dominantModule = training.streaks ? Object.entries(training.streaks).sort((a, b) => (b[1] || 0) - (a[1] || 0))[0] : null;
     const streakCount = dominantModule ? (dominantModule[1] || 0) : 0;
     const streakTier = getStreakTier(streakCount);
     return { currentFocus, personalityMult, multColor, preview, streakTier };
-  }, [player, playerClubId, training, staff]);
+  }, [player, playerClubId, training, staff, facilities.recoveryLevel]);
 
   // Narrative tags (must be before early return to satisfy hook rules)
   const narratives = useMemo(() => player ? getPlayerNarratives(player, season, player.joinedSeason, player.isFromYouthAcademy) : [], [player, season]);
@@ -918,7 +918,12 @@ const PlayerDetail = () => {
               <div>
                 <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
                   <span>Recovery Progress</span>
-                  <span>Est. return: Week {Math.min(week + player.injuryWeeks, totalWeeks)}</span>
+                  <span>
+                    {/* A return week past the season's end used to clamp to
+                        totalWeeks, promising a comeback this season that
+                        can't happen. */}
+                    Est. return: {week + player.injuryWeeks > totalWeeks ? 'next season' : `Week ${week + player.injuryWeeks}`}
+                  </span>
                 </div>
                 <div className="w-full h-2 rounded-full bg-muted/40 overflow-hidden">
                   <div
@@ -967,7 +972,16 @@ const PlayerDetail = () => {
         <Button
           variant="outline"
           className="w-full gap-2 border-primary/30 text-primary hover:bg-primary/10 hover:text-primary"
-          onClick={() => startNegotiation(player.id, true)}
+          onClick={() => {
+            // Mirror SquadPage.handleRenew — a silent no-op when negotiations
+            // are locked left the button looking broken.
+            const result = startNegotiation(player.id, true);
+            if (result && !result.success) {
+              errorToast(result.lockedWeeks
+                ? `Negotiations locked for ${result.lockedWeeks} more week${result.lockedWeeks !== 1 ? 's' : ''}`
+                : 'Unable to start negotiations');
+            }
+          }}
         >
           <FileText className="w-4 h-4" /> Negotiate Renewal
           <span className="text-[10px] text-muted-foreground ml-auto">

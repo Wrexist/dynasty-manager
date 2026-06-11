@@ -135,9 +135,13 @@ const YouthAcademy = () => {
         {/* Academy Quality */}
         <GlassPanel className="p-4">
           <div className="space-y-3">
+            {/* Text and bars both read the facilities slice (like the
+                "Facility Lv." line below) — the static club.youthRating never
+                reflects upgrades, and its two fallbacks disagreed (text 0/10
+                while 5 bars lit). */}
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-foreground">Academy Quality</h3>
-              <span className="text-sm font-bold text-primary tabular-nums">{club?.youthRating || 0}/10</span>
+              <span className="text-sm font-bold text-primary tabular-nums">{youthLevel}/10</span>
             </div>
             <div className="flex items-center gap-1">
               {Array.from({ length: 10 }, (_, i) => (
@@ -145,7 +149,7 @@ const YouthAcademy = () => {
                   key={i}
                   className={cn(
                     'flex-1 h-2 rounded-sm transition-colors',
-                    i < (club?.youthRating || 5) ? 'bg-primary' : 'bg-muted/30'
+                    i < youthLevel ? 'bg-primary' : 'bg-muted/30'
                   )}
                 />
               ))}

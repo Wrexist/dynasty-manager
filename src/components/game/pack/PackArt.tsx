@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 interface PackArtProps {
@@ -25,6 +25,9 @@ interface PackArtProps {
  */
 export function PackArt({ src, alt = '', fallback, className, loading = 'lazy' }: PackArtProps) {
   const [errored, setErrored] = useState(false);
+  // A failed load must not poison a different asset — reset when src changes
+  // (e.g. the same slot re-used for another pack tier).
+  useEffect(() => { setErrored(false); }, [src]);
   if (!src || errored) return <>{fallback}</>;
   return (
     <img

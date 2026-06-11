@@ -52,7 +52,28 @@ export interface GameState {
   transferMarket: TransferListing[];
   galacticoUsedThisSeason: boolean;
   invincibleUsedThisSeason: boolean;
-  preMatchSnapshot: { fixtures: Match[]; divisionFixtures: Record<string, Match[]>; divisionTables: Record<string, LeagueTableEntry[]>; players: Record<string, Player>; boardConfidence: number; leagueTable: LeagueTableEntry[] } | null;
+  preMatchSnapshot: {
+    fixtures: Match[];
+    divisionFixtures: Record<string, Match[]>;
+    divisionTables: Record<string, LeagueTableEntry[]>;
+    players: Record<string, Player>;
+    boardConfidence: number;
+    leagueTable: LeagueTableEntry[];
+    // Optional fields (added post-v71): everything else playCurrentMatch
+    // writes, so rewindMatch doesn't leave double-counted stats/messages/
+    // rivalries or mid-match sub changes behind. Older snapshots lack them —
+    // rewindMatch restores them only when present (no migration needed).
+    clubs?: Record<string, Club>;
+    managerStats?: GameState['managerStats'];
+    managerProgression?: ManagerProgression;
+    careerTimeline?: CareerMilestone[];
+    rivalries?: Record<string, HeadToHeadRecord>;
+    pairFamiliarity?: Record<string, number>;
+    clubPowerRankings?: Record<string, number>;
+    sessionStats?: SessionStats;
+    messages?: Message[];
+    pendingPressConference?: PressConference | null;
+  } | null;
   shortlist: string[];
   scoutWatchList: string[];
   incomingOffers: IncomingOffer[];
@@ -69,6 +90,11 @@ export interface GameState {
   // Match
   currentMatchResult: Match | null;
   matchSubsUsed: number;
+  /** Player ids substituted OFF during the current match (transient — NOT
+   *  persisted; reset each match alongside matchSubsUsed). makeMatchSub
+   *  rejects bringing one of these back on — a substituted player cannot
+   *  re-enter the match. */
+  matchSubbedOffIds: string[];
   matchPlayerRatings: PlayerMatchRating[];
   halfTimeState: HalfState | null;
   currentMatchWeather: MatchWeather | null;
@@ -262,7 +288,6 @@ export interface GameState {
 
   // Actions — Transfer
   executeTransfer: (playerId: string, fee: number) => { success: boolean; message: string };
-  makeOffer: (playerId: string, fee: number) => { success: boolean; message: string };
   evaluateOffer: (playerId: string, fee: number) => { acceptChance: number; wouldTriggerSellOn: boolean; sellOnPct: number; budgetAfter: number; wageImpact: number; ratio: number; positionCount: number; totalSquadSize: number } | null;
   makeOfferWithNegotiation: (playerId: string, fee: number) => { outcome: 'accepted' | 'rejected' | 'counter'; counterFee?: number; message: string };
   addToShortlist: (id: string) => void;
@@ -291,11 +316,14 @@ export interface GameState {
   loanOut: (playerId: string, toClubId: string, duration: number, wageSplit: number, recallClause: boolean, obligatoryBuyFee?: number) => { success: boolean; message: string };
   recallLoan: (loanId: string) => { success: boolean; message: string };
   respondToLoanOffer: (offerId: string, accept: boolean) => { success: boolean; message: string };
-  processLoanReturns: () => void;
+  processLoanReturns: (forceAll?: boolean) => void;
   buyLoanedPlayer: (loanId: string) => { success: boolean; message: string };
   terminateLoan: (loanId: string) => { success: boolean; message: string };
   requestLoan: (playerId: string, duration: number, wageSplit: number, recallClause: boolean, obligatoryBuyFee?: number) => { outcome: 'accepted' | 'rejected' | 'counter'; counterWageSplit?: number; counterDuration?: number; message: string };
   evaluateLoanRequest: (playerId: string, duration: number, wageSplit: number) => { acceptChance: number; ownerClubName: string } | null;
+  /** Accept a pending counter-offer (status 'counter') — executes the loan
+   *  at the counter terms and clears the request record. */
+  acceptLoanCounter: (requestId: string) => { success: boolean; message: string };
   cancelLoanRequest: (requestId: string) => void;
   renewContract: (playerId: string, years: number, newWage: number) => { success: boolean; message: string };
 
@@ -311,7 +339,11 @@ export interface GameState {
   rewindMatch: () => void;
   loadMatchForReview: (week: number) => void;
   cleanupAbandonedMatch: () => void;
-  makeMatchSub: (outId: string, inId: string, minute?: number) => void;
+  /** Returns `{ success: false, message }` when the sub is rejected (max
+   *  subs used, stale out-player, suspended/injured in-player, re-entry
+   *  attempt) so the UI can surface the reason instead of toasting a
+   *  false success. */
+  makeMatchSub: (outId: string, inId: string, minute?: number) => { success: boolean; message?: string };
   setTeamTalk: (talk: TeamTalkType) => void;
   useShout: (type: ShoutType, minute: number) => boolean;
   getActiveShout: (minute: number) => MatchShout | null;
@@ -330,7 +362,7 @@ export interface GameState {
   criticizeStaff: (staffId: string) => { success: boolean; message: string };
   renewStaffContract: (staffId: string) => { success: boolean; message: string };
   refreshStaffMarket: () => { success: boolean; message: string };
-  assignScout: (region: ScoutRegion) => void;
+  assignScout: (region: ScoutRegion) => { success: boolean; message?: string };
   cancelAssignment: (assignmentId: string) => void;
   boostScoutReports: () => void;
   dismissScoutReport: (reportId: string) => void;
@@ -356,6 +388,9 @@ export interface GameState {
   respondToStoryline: (optionIndex: number) => void;
   dismissStoryline: () => void;
 
+  // Actions — Weekly Digest
+  dismissWeeklyDigest: () => void;
+
   // Actions — Transfer Talk
   respondToTransferTalk: (optionIndex: number) => { tone: string; succeeded?: boolean; playerName: string; msgTitle: string; msgBody: string } | null;
   dismissTransferTalk: () => { playerName: string; msgTitle: string; msgBody: string } | null;
@@ -363,7 +398,10 @@ export interface GameState {
 
   // Actions — Contract Negotiation
   startNegotiation: (playerId: string, isRenewal: boolean) => { success: boolean; lockedWeeks?: number } | void;
-  submitWageOffer: (wage: number, years?: number) => void;
+  /** Returns a failure object when the deal is blocked up-front (e.g. the
+   *  club can't afford the agent fee + loyalty bonus); void otherwise —
+   *  round results flow through `activeNegotiation.status`. */
+  submitWageOffer: (wage: number, years?: number) => { success: false; message: string } | void;
   cancelNegotiation: () => void;
 
   // Actions — Challenge Mode
@@ -420,7 +458,7 @@ export interface GameState {
   // Actions — Career Mode
   initCareerGame: (manager: CareerManager, clubId: string, options?: { communityPackEnabled?: boolean }) => Promise<void> | void;
   applyForJob: (vacancyId: string) => { success: boolean; message: string };
-  respondToJobOffer: (offerId: string, accept: boolean) => void;
+  respondToJobOffer: (offerId: string, accept: boolean) => { success: boolean; message?: string };
   resignFromClub: () => void;
   moveToNewClub: (clubId: string, offer: JobOffer) => void;
   retireManager: () => void;

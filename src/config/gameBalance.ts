@@ -146,6 +146,11 @@ export const FITNESS_DRAIN_PER_MATCH = -10;
 export const FITNESS_MIN_POST_MATCH = 50;
 export const MORALE_WIN_CHANGE = 8;
 export const MORALE_LOSS_CHANGE = -10;
+// Cap on the summed narrative morale-loss reduction (Veteran Leader +2,
+// One-Club Man +1, per tagged lineup player). Uncapped, 5-6 tagged players
+// made defeats morale-neutral or positive; the win-side narrative boost is
+// already capped at +5, so the loss side must be bounded too.
+export const NARRATIVE_MORALE_LOSS_REDUCTION_CAP = 6;
 export const FORM_WIN_CHANGE = 5;
 export const FORM_LOSS_CHANGE = -8;
 export const FORM_DRAW_CHANGE = -2;
@@ -182,9 +187,14 @@ export const COMMERCIAL_INCOME_BASE = 100000;
 export const STADIUM_INCOME_PER_LEVEL = 20000;
 export const POSITION_PRIZE_PER_RANK = 15000;
 /** Fallback max prize rank (20-team baseline) used only when no league table
- *  is available. Live code derives the max rank from the actual table size
- *  (teamCount + 1) so 18- and 24-team divisions pay correctly. */
+ *  is available. Live code (getLeaguePositionPrize in utils/financeHelpers.ts —
+ *  shared by weekAdvance income and the finance breakdown) derives the max
+ *  rank from the actual table size (teamCount + 1) so 18- and 24-team
+ *  divisions pay correctly. */
 export const POSITION_PRIZE_MAX_RANK = 21;
+/** League-position prize scaling by league tier (tier 1 = full prize).
+ *  Lower divisions pay proportionally less; unknown tiers use the tier-4 scale. */
+export const POSITION_PRIZE_TIER_SCALE: Record<number, number> = { 1: 1.0, 2: 0.35, 3: 0.12, 4: 0.05 };
 export const SCOUTING_COST_PER_ASSIGNMENT = 25000;
 export const FAN_MOOD_BASE = 0.8;
 export const FAN_MOOD_SCALE = 0.4;
@@ -762,11 +772,11 @@ export const BALLON_DOR_INTL_TOURNAMENT_BONUS = {
  * mid-table side, mirroring real voting bias.
  *
  * Tier breakdown:
- * - 60: UCL-trophy aristocracy (Real Madrid, Man City, Bayern, PSG, Barcelona, Liverpool)
- * - 45: Permanent UCL contenders (Arsenal, Atlético, Inter, Juventus, Chelsea)
- * - 30: Recent UCL/UEL trophy winners or perennial top-4 (Dortmund, Leverkusen,
+ * - 90: UCL-trophy aristocracy (Real Madrid, Man City, Bayern, PSG, Barcelona, Liverpool)
+ * - 65: Permanent UCL contenders (Arsenal, Atlético, Inter, Juventus, Chelsea)
+ * - 45: Recent UCL/UEL trophy winners or perennial top-4 (Dortmund, Leverkusen,
  *       Napoli, AC Milan, Atalanta, Tottenham)
- * - 18: Elite-adjacent (Man United — pedigree without recent silverware,
+ * - 28: Elite-adjacent (Man United — pedigree without recent silverware,
  *       RB Leipzig, Marseille, Roma, Lazio)
  */
 export const BALLON_DOR_ELITE_CLUB_BONUS: Record<string, number> = {

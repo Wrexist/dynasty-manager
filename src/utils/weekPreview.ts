@@ -3,9 +3,9 @@ import { getSuffix } from '@/utils/helpers';
 import {
   MAX_CLIFFHANGERS, CLIFFHANGER_TITLE_RACE_GAP, CLIFFHANGER_BIG_MATCH_REP_GAP,
   CLIFFHANGER_BOARD_PRESSURE_THRESHOLD, CLIFFHANGER_YOUTH_POTENTIAL_GAP,
-  CLIFFHANGER_DEADLINE_WEEKS,
+  CLIFFHANGER_DEADLINE_WEEKS, TOTAL_WEEKS,
 } from '@/config/gameBalance';
-import { SUMMER_WINDOW_END, WINTER_WINDOW_END } from '@/config/transfers';
+import { getTransferWindows } from '@/config/transfers';
 
 interface PreviewItem {
   icon: string;
@@ -162,7 +162,7 @@ export function getFallbackPreview(ctx: PreviewContext): PreviewItem[] {
   }
 
   // Weeks remaining in season
-  const weeksLeft = (ctx.totalWeeks || 46) - ctx.week;
+  const weeksLeft = (ctx.totalWeeks || TOTAL_WEEKS) - ctx.week;
   if (weeksLeft > 0 && weeksLeft <= 10) {
     items.push({ icon: 'calendar', text: `${weeksLeft} weeks left this season — every match counts now.`, type: 'neutral' });
   }
@@ -318,7 +318,8 @@ export function generateCliffhangers(ctx: CliffhangerContext): CliffhangerItem[]
 
   // Transfer deadline approaching
   if (ctx.transferWindowOpen) {
-    const summerDeadlineWeek = ctx.week <= SUMMER_WINDOW_END ? SUMMER_WINDOW_END : WINTER_WINDOW_END;
+    const tw = getTransferWindows(ctx.totalWeeks);
+    const summerDeadlineWeek = ctx.week <= tw.summerEnd ? tw.summerEnd : tw.winterEnd;
     const weeksLeft = summerDeadlineWeek - ctx.week;
     if (weeksLeft > 0 && weeksLeft <= CLIFFHANGER_DEADLINE_WEEKS) {
       items.push({

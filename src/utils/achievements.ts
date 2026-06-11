@@ -1,5 +1,6 @@
 import type { GameState } from '@/store/storeTypes';
 import { ACHIEVEMENT_XP_BRONZE, ACHIEVEMENT_XP_SILVER, ACHIEVEMENT_XP_GOLD } from '@/config/gameBalance';
+import { LEAGUES } from '@/data/league';
 
 type AchievementTier = 'bronze' | 'silver' | 'gold';
 
@@ -19,6 +20,25 @@ export interface Achievement {
   check: (state: GameState) => boolean;
   /** Optional progress tracker for incomplete achievements */
   progress?: (state: GameState) => AchievementProgress | null;
+}
+
+
+/** Current unbeaten run (W/D) across the player's played league fixtures
+ *  this season, newest backwards. The table builder caps `entry.form` at 5
+ *  entries, so the old `form.length >= 10/20` checks could literally never
+ *  pass — Fortress and Invincible Run were unobtainable. */
+function currentUnbeatenRun(s: GameState): number {
+  const played = s.fixtures
+    .filter(m => m.played && (m.homeClubId === s.playerClubId || m.awayClubId === s.playerClubId))
+    .sort((a, b) => a.week - b.week);
+  let run = 0;
+  for (let i = played.length - 1; i >= 0; i--) {
+    const m = played[i];
+    const lost = m.homeClubId === s.playerClubId ? m.homeGoals < m.awayGoals : m.awayGoals < m.homeGoals;
+    if (lost) break;
+    run++;
+  }
+  return run;
 }
 
 export const ACHIEVEMENTS: Achievement[] = [
@@ -45,23 +65,11 @@ export const ACHIEVEMENTS: Achievement[] = [
 
   // ── Streaks ──
   { id: 'unbeaten-5', title: 'Unbeaten Streak', description: 'Go 5 matches without a loss', icon: 'flame', tier: 'bronze',
-    check: (s) => {
-      const entry = s.leagueTable.find(e => e.clubId === s.playerClubId);
-      if (!entry || entry.form.length < 5) return false;
-      return entry.form.slice(-5).every(r => r === 'W' || r === 'D');
-    } },
+    check: (s) => currentUnbeatenRun(s) >= 5 },
   { id: 'unbeaten-10', title: 'Fortress', description: 'Go 10 matches without a loss', icon: 'shield', tier: 'silver',
-    check: (s) => {
-      const entry = s.leagueTable.find(e => e.clubId === s.playerClubId);
-      if (!entry || entry.form.length < 10) return false;
-      return entry.form.slice(-10).every(r => r === 'W' || r === 'D');
-    } },
+    check: (s) => currentUnbeatenRun(s) >= 10 },
   { id: 'unbeaten-20', title: 'Invincible Run', description: 'Go 20 matches without a loss', icon: 'shield', tier: 'gold', hidden: true,
-    check: (s) => {
-      const entry = s.leagueTable.find(e => e.clubId === s.playerClubId);
-      if (!entry || entry.form.length < 20) return false;
-      return entry.form.slice(-20).every(r => r === 'W' || r === 'D');
-    } },
+    check: (s) => currentUnbeatenRun(s) >= 20 },
 
   // ── Goals ──
   { id: 'goal-machine-10', title: 'Sharpshooter', description: 'Have a player score 10+ goals in a season', icon: 'circle', tier: 'bronze',
@@ -165,7 +173,15 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'dynasty-10', title: 'Legend', description: 'Manage for 10+ seasons', icon: 'crown', tier: 'gold', hidden: true,
     check: (s) => s.season >= 11 },
   { id: 'survive-sacking', title: 'Great Escape', description: 'Finish above relegation after a poor season', icon: 'rocket', tier: 'silver',
-    check: (s) => s.seasonHistory.some(h => h.position <= 17 && h.boardVerdict === 'poor') },
+    check: (s) => s.seasonHistory.some(h => {
+      // Safe line derives from the league actually played that season —
+      // the old hardcoded `<= 17` was wrong for 18- and 24-team leagues.
+      const league = LEAGUES.find(l => l.id === (h.divisionId ?? s.playerDivision));
+      if (!league) return false;
+      const dropSpots = league.relegationSpots || league.replacedSlots || 0;
+      if (dropSpots <= 0) return false; // league has no relegation zone to escape
+      return h.position <= league.teamCount - dropSpots && h.boardVerdict === 'poor';
+    }) },
   { id: 'promotion', title: 'Going Up!', description: 'Get promoted to a higher division', icon: 'rocket', tier: 'silver',
     check: (s) => s.seasonHistory.some(h => h.promoted) },
 
@@ -199,7 +215,11 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'intl-tournament-win', title: 'World Beater', description: 'Win an international tournament as manager', icon: 'trophy', tier: 'gold', hidden: true,
     check: (s) => {
       if (!s.nationalTeam) return false;
-      return s.nationalTeam.results.some(r => r.round === 'Final' && r.goalsFor > r.goalsAgainst);
+      // Knockout rounds are recorded as 'R16'|'QF'|'SF'|'F' (never 'Final'),
+      // and a final won on penalties has goalsFor === goalsAgainst — both
+      // made this unobtainable. `won` is stamped on knockout results.
+      return s.nationalTeam.results.some(r =>
+        (r.round === 'F' || r.round === 'Final') && (r.won ?? r.goalsFor > r.goalsAgainst));
     } },
 
   // ── Hidden ──

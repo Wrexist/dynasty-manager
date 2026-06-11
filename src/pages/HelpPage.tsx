@@ -7,7 +7,7 @@ import type { HelpSection } from '@/types/game';
 const HELP_SECTIONS: HelpSection[] = [
   {
     title: 'Getting Started',
-    content: 'Pick a club from 30 European leagues. Each club has different budgets, reputations, and facilities. Lower-tier leagues are harder but more rewarding. Your goal: build a dynasty through smart management, transfers, and tactical mastery.',
+    content: 'Pick a club from 45 leagues across 37 countries. Each club has different budgets, reputations, and facilities. Lower-tier leagues are harder but more rewarding. Your goal: build a dynasty through smart management, transfers, and tactical mastery.',
   },
   {
     title: 'Weekly Game Loop',
@@ -19,7 +19,7 @@ const HELP_SECTIONS: HelpSection[] = [
   },
   {
     title: 'Tactics & Formations',
-    content: '7 formations available (4-4-2, 4-3-3, 3-5-2, etc.). Tactical familiarity builds over time — switching formations resets it. Set mentality (defensive/balanced/attacking), defensive shape, and assign set-piece and penalty takers on the Tactics page.',
+    content: '10 formations available (4-4-2, 4-3-3, 3-5-2, etc.). Tactical familiarity builds over time — switching formations resets it. Set mentality (defensive/balanced/attacking), defensive shape, and assign set-piece and penalty takers on the Tactics page.',
   },
   {
     title: 'Transfers & Loans',

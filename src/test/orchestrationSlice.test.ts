@@ -364,15 +364,16 @@ describe('orchestrationSlice — startPrestige', () => {
   it('restart-perks keeps the same club id', async () => {
     const beforeClubId = useGameStore.getState().playerClubId;
     useGameStore.getState().startPrestige('restart-perks');
-    // initGame is async when CP is enabled; allow microtask flush
-    await Promise.resolve();
+    // Prestige bonuses apply once the init promise settles — flush the
+    // task queue (a single microtask isn't enough for the await chain).
+    await new Promise<void>(r => setTimeout(r, 0));
     expect(useGameStore.getState().playerClubId).toBe(beforeClubId);
   });
 
   it('increments prestigeLevel for any option', async () => {
     const before = useGameStore.getState().managerProgression.prestigeLevel || 0;
     useGameStore.getState().startPrestige('rival');
-    await Promise.resolve();
+    await new Promise<void>(r => setTimeout(r, 0));
     expect(useGameStore.getState().managerProgression.prestigeLevel).toBe(before + 1);
   });
 });

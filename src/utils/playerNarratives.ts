@@ -18,8 +18,10 @@ export function getPlayerNarratives(
   const tags: PlayerNarrative[] = [];
   const seasonsAtClub = joinedSeason ? season - joinedSeason : 0;
 
-  // Club Legend: 5+ seasons, 50+ appearances
-  if (seasonsAtClub >= 5 && player.appearances >= 50) {
+  // Club Legend: 5+ seasons, 50+ career appearances. `appearances` is
+  // season-scoped (reset every season end) — career totals live in
+  // careerAppearances, so the sum is the player's true tally.
+  if (seasonsAtClub >= 5 && (player.careerAppearances || 0) + player.appearances >= 50) {
     tags.push({ tag: 'Club Legend', description: `${seasonsAtClub} seasons of loyal service`, color: 'text-primary' });
   }
   // One-Club Man: been here since start (season 1) with 3+ seasons
@@ -108,16 +110,21 @@ export function getFarewellSummary(
   joinedSeason?: number,
 ): { shouldShow: boolean; seasonsServed: number; stats: { label: string; value: string }[] } {
   const seasonsServed = joinedSeason ? season - joinedSeason : 0;
-  const shouldShow = seasonsServed >= 2 || player.appearances >= 20;
+  // Season stats reset every season end — a long-serving player's farewell
+  // must show CAREER totals (career* accumulators + the in-progress season).
+  const totalAppearances = (player.careerAppearances || 0) + player.appearances;
+  const totalGoals = (player.careerGoals || 0) + player.goals;
+  const totalAssists = (player.careerAssists || 0) + player.assists;
+  const shouldShow = seasonsServed >= 2 || totalAppearances >= 20;
 
   return {
     shouldShow,
     seasonsServed,
     stats: [
       { label: 'Seasons', value: `${seasonsServed}` },
-      { label: 'Appearances', value: `${player.appearances}` },
-      { label: 'Goals', value: `${player.goals}` },
-      { label: 'Assists', value: `${player.assists}` },
+      { label: 'Appearances', value: `${totalAppearances}` },
+      { label: 'Goals', value: `${totalGoals}` },
+      { label: 'Assists', value: `${totalAssists}` },
     ],
   };
 }

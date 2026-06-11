@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { getFlagUrl, getFlag } from '@/utils/nationality';
 import { cn } from '@/lib/utils';
 
@@ -14,14 +15,26 @@ interface FlagIconProps {
  * Renders a real flag image from flagcdn.com.
  * Falls back to emoji flag if the image fails to load.
  * Aspect ratio is 3:2 (standard flag proportions) unless `fill` is set.
+ *
+ * The fallback is DECLARATIVE state, never imperative DOM. The previous
+ * onError handler did `e.target.replaceWith(<hand-made node>)` — React's
+ * fiber still owned the <img>, so the next unmount called removeChild on a
+ * node that was no longer a child and threw NotFoundError. FlagIcon renders
+ * on every PlayerCard and loads from a CDN: one offline session armed
+ * hundreds of these, and the next navigation tripped an error boundary.
  */
 export function FlagIcon({ nationality, size = 20, fill, className }: FlagIconProps) {
+  const [errored, setErrored] = useState(false);
+  // Reset the error state if the component is reused for a different
+  // nationality (list rows recycle by index).
+  useEffect(() => { setErrored(false); }, [nationality]);
+
   // Request 2x resolution for retina displays
   const cdnWidth = fill ? 160 : size <= 20 ? 40 : size <= 40 ? 80 : 160;
   const url = getFlagUrl(nationality, cdnWidth);
 
-  if (!url) {
-    // No ISO code found — fall back to emoji
+  if (!url || errored) {
+    // No ISO code found, or the CDN image failed to load — emoji fallback
     if (fill) {
       return (
         <div title={nationality} className={cn('w-full h-full flex items-center justify-center text-4xl', className)}>
@@ -41,13 +54,7 @@ export function FlagIcon({ nationality, size = 20, fill, className }: FlagIconPr
         loading="lazy"
         decoding="async"
         className={cn('w-full h-full object-cover', className)}
-        onError={(e) => {
-          const div = document.createElement('div');
-          div.textContent = getFlag(nationality);
-          div.className = 'w-full h-full flex items-center justify-center text-4xl';
-          div.title = nationality;
-          (e.target as HTMLElement).replaceWith(div);
-        }}
+        onError={() => setErrored(true)}
       />
     );
   }
@@ -64,14 +71,7 @@ export function FlagIcon({ nationality, size = 20, fill, className }: FlagIconPr
       decoding="async"
       className={cn('inline-block object-cover rounded-[2px] shrink-0', className)}
       style={{ width: size, height }}
-      onError={(e) => {
-        // On load failure, replace with emoji flag
-        const span = document.createElement('span');
-        span.textContent = getFlag(nationality);
-        span.className = className || '';
-        span.title = nationality;
-        (e.target as HTMLElement).replaceWith(span);
-      }}
+      onError={() => setErrored(true)}
     />
   );
 }

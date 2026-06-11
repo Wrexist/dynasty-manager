@@ -23,7 +23,7 @@ import { generatePressConference } from '@/data/pressConferences';
 import { HalfState, finalizeMatch, generateMatchWeather, simulateHalf, simulateMatch } from '@/engine/match';
 import { processMatchResult } from '@/store/helpers/matchProcessing';
 import { applyAIMatchEvents } from '@/store/slices/orchestration/helpers';
-import { advanceLeagueCupRound, getContinentalMatchLabel, isAggregateDecided } from '@/store/slices/orchestration/tournaments';
+import { advanceLeagueCupRound, getContinentalMatchLabel, isAggregateDecided, isContinentalDrawValid } from '@/store/slices/orchestration/tournaments';
 import type { MatchEvent } from '@/types/game';
 import { simulatePenaltyShootout } from '@/utils/penaltyShootout';
 import { detectMatchDrama } from '@/utils/celebrations';
@@ -94,11 +94,11 @@ function processTournamentResult(
       if (newCup.currentRound === 'F') {
         const finalTie = newCup.ties.find(t => t.round === 'F' && t.played);
         if (finalTie) {
-          const cupWinnerId = finalTie.homeGoals > finalTie.awayGoals ? finalTie.homeClubId : finalTie.awayClubId;
+          const cupWinnerId = finalTie.winnerId || (finalTie.homeGoals > finalTie.awayGoals ? finalTie.homeClubId : finalTie.awayClubId);
           newCup.winner = cupWinnerId; newCup.currentRound = null;
           awardPrizeMoney(cupWinnerId === playerClubId ? CONTINENTAL_PRIZE_MONEY.dynasty_cup_winner : CONTINENTAL_PRIZE_MONEY.dynasty_cup_runner_up);
         }
-      } else { Object.assign(newCup, advanceCupRound(newCup, state.clubs, state.players)); }
+      } else { Object.assign(newCup, advanceCupRound(newCup, state.clubs, state.players, state.totalWeeks)); }
     }
     const isHome = result.homeClubId === playerClubId;
     const playerWon = isHome ? result.homeGoals > result.awayGoals : result.awayGoals > result.homeGoals;
@@ -129,7 +129,7 @@ function processTournamentResult(
           if (winnerId === playerClubId) awardPrizeMoney(CONTINENTAL_PRIZE_MONEY.league_cup_winner);
           else awardPrizeMoney(CONTINENTAL_PRIZE_MONEY.league_cup_runner_up);
         } else {
-          Object.assign(newLC, advanceLeagueCupRound(newLC));
+          Object.assign(newLC, advanceLeagueCupRound(newLC, state.totalWeeks));
         }
       }
     }
@@ -177,7 +177,7 @@ function processTournamentResult(
 
           // Check if all groups complete → generate knockout
           if (isGroupStageComplete(newTourney)) {
-            const advanced = generateKnockoutFromGroups(newTourney, playerClubId);
+            const advanced = generateKnockoutFromGroups(newTourney, playerClubId, state.totalWeeks);
             Object.assign(newTourney, advanced);
           }
         } else {
@@ -217,7 +217,7 @@ function processTournamentResult(
               if (round === 'F') {
                 newTourney.winnerId = tie.winnerId; newTourney.currentPhase = 'complete';
               } else {
-                const advanced = advanceKnockoutRound(newTourney, playerClubId);
+                const advanced = advanceKnockoutRound(newTourney, playerClubId, state.totalWeeks);
                 Object.assign(newTourney, advanced);
               }
             }
@@ -284,6 +284,31 @@ function processTournamentResultWithWinner(
   };
   updates.clubs = realClubs;
 
+  // Domestic Dynasty Cup decided on penalties. This branch was MISSING: an
+  // instant-sim cup tie that went to a shootout was never recorded (the tie
+  // stayed unplayed and weekAdvance's orphan recovery re-simulated it with a
+  // different result, silently discarding the shootout the player saw).
+  if (state.currentCupTieId && state.currentCupTieId !== '__tournament__') {
+    const newCup = { ...state.cup, ties: state.cup.ties.map(t =>
+      t.id === state.currentCupTieId ? { ...t, played: true, homeGoals: result.homeGoals, awayGoals: result.awayGoals, winnerId, penaltyShootout } : t
+    )};
+    const playerWon = winnerId === playerClubId;
+    if (playerWon && state.cup.currentRound && state.cup.currentRound !== 'F') {
+      const cupRoundPrize: Record<string, number> = { R1: CONTINENTAL_PRIZE_MONEY.dynasty_cup_r1, R2: CONTINENTAL_PRIZE_MONEY.dynasty_cup_r2, R3: CONTINENTAL_PRIZE_MONEY.dynasty_cup_r3, R4: CONTINENTAL_PRIZE_MONEY.dynasty_cup_r4, QF: CONTINENTAL_PRIZE_MONEY.dynasty_cup_qf, SF: CONTINENTAL_PRIZE_MONEY.dynasty_cup_sf };
+      awardPrizeMoney(cupRoundPrize[state.cup.currentRound] || 0);
+    }
+    if (!playerWon) newCup.eliminated = true;
+    const allPlayed = newCup.ties.filter(t => t.round === newCup.currentRound).every(t => t.played);
+    if (allPlayed) {
+      if (newCup.currentRound === 'F') {
+        newCup.winner = winnerId; newCup.currentRound = null;
+        awardPrizeMoney(playerWon ? CONTINENTAL_PRIZE_MONEY.dynasty_cup_winner : CONTINENTAL_PRIZE_MONEY.dynasty_cup_runner_up);
+      } else { Object.assign(newCup, advanceCupRound(newCup, state.clubs, state.players, state.totalWeeks)); }
+    }
+    updates.cup = newCup;
+    return { stateUpdates: updates, cleanedPlayers };
+  }
+
   // League Cup
   if (state.currentLeagueCupTieId && state.leagueCup) {
     const newLC = { ...state.leagueCup, ties: [...state.leagueCup.ties] };
@@ -296,7 +321,7 @@ function processTournamentResultWithWinner(
         if (newLC.currentRound === 'F') {
           newLC.winner = winnerId; newLC.currentRound = null;
           awardPrizeMoney(winnerId === playerClubId ? CONTINENTAL_PRIZE_MONEY.league_cup_winner : CONTINENTAL_PRIZE_MONEY.league_cup_runner_up);
-        } else { Object.assign(newLC, advanceLeagueCupRound(newLC)); }
+        } else { Object.assign(newLC, advanceLeagueCupRound(newLC, state.totalWeeks)); }
       }
     }
     updates.leagueCup = newLC;
@@ -341,7 +366,7 @@ function processTournamentResultWithWinner(
         }
         if (isKnockoutRoundComplete(newTourney, round)) {
           if (round === 'F') { newTourney.winnerId = winnerId; newTourney.currentPhase = 'complete'; }
-          else { Object.assign(newTourney, advanceKnockoutRound(newTourney, playerClubId)); }
+          else { Object.assign(newTourney, advanceKnockoutRound(newTourney, playerClubId, state.totalWeeks)); }
         }
         updates[compKey] = newTourney;
       }
@@ -529,9 +554,29 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   const apIdSet = new Set(ap.map(p => p.id));
   const hBenchCM = (hc.subs || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !hpIdSet.has(p.id) && !p.injured && !isSuspended(p));
   const aBenchCM = (ac.subs || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !apIdSet.has(p.id) && !p.injured && !isSuspended(p));
-  // Capture pre-match snapshot for Invincible perk (match rewind on loss)
+  // Capture pre-match snapshot for Invincible perk (match rewind on loss).
+  // Must include EVERYTHING the post-match processing writes — a partial
+  // snapshot lets the replay double-count manager stats, XP, rivalries,
+  // chemistry, ELO, session stats and keep stale messages/press conferences.
   if (hasPerk(state.managerProgression, 'invincible') && !state.invincibleUsedThisSeason && !isFriendly) {
-    set({ preMatchSnapshot: { fixtures: [...state.fixtures], divisionFixtures: { ...state.divisionFixtures }, players: { ...state.players }, boardConfidence: state.boardConfidence, leagueTable: [...state.leagueTable], divisionTables: { ...state.divisionTables } } });
+    set({ preMatchSnapshot: {
+      fixtures: [...state.fixtures],
+      divisionFixtures: { ...state.divisionFixtures },
+      players: { ...state.players },
+      boardConfidence: state.boardConfidence,
+      leagueTable: [...state.leagueTable],
+      divisionTables: { ...state.divisionTables },
+      clubs: { ...state.clubs },
+      managerStats: { ...state.managerStats },
+      managerProgression: state.managerProgression,
+      careerTimeline: [...state.careerTimeline],
+      rivalries: { ...(state.rivalries || {}) },
+      pairFamiliarity: { ...(state.pairFamiliarity || {}) },
+      clubPowerRankings: { ...(state.clubPowerRankings || {}) },
+      sessionStats: { ...state.sessionStats },
+      messages: [...state.messages],
+      pendingPressConference: state.pendingPressConference,
+    } });
   }
 
   const spCoachInstant = hasPerk(state.managerProgression, 'set_piece_coach') ? 0.009 * dynastyMult(state.managerProgression) : 0;
@@ -587,18 +632,21 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
           const awayGKQ = awayGK ? (awayGK.attributes.defending + awayGK.attributes.mental) / 200 : 0.5;
           const so = simulatePenaltyShootout({ homeName: hc.shortName, awayName: ac.shortName, homeGKQuality: homeGKQ, awayGKQuality: awayGKQ });
           penaltyShootout = { home: so.homeScore, away: so.awayScore };
-          if (so.winner === 'home') hGoals++; else aGoals++;
+          // The shootout decides the WINNER, not the score — keep the real
+          // drawn scoreline (the old +1 phantom goal had no scorer, so team
+          // goal totals stopped matching player stats).
+          cupWinnerId = so.winner === 'home' ? match.homeClubId : match.awayClubId;
           cupEvents.push({ minute: 120, type: 'penalty_shootout', clubId: so.winner === 'home' ? match.homeClubId : match.awayClubId, description: `${so.winner === 'home' ? hc.shortName : ac.shortName} win on penalties (${so.homeScore}-${so.awayScore})!` });
         }
 
         finalResult = { ...result, homeGoals: hGoals, awayGoals: aGoals, events: cupEvents, penaltyShootout };
-        cupWinnerId = hGoals > aGoals ? match.homeClubId : match.awayClubId;
+        if (!cupWinnerId) cupWinnerId = hGoals > aGoals ? match.homeClubId : match.awayClubId;
       }
     }
 
     // Use effective clubs/players for processMatchResult (ephemeral clubs for continental/super cup opponents)
     const effectiveState = ephemeralClub ? { ...state, clubs: effectiveClubs, players: effectivePlayers } : state;
-    const processed = processMatchResult(effectiveState, match, finalResult, playerRatings, () => get().week, matchInjuries);
+    const processed = processMatchResult(effectiveState, match, finalResult, playerRatings, () => get().week, matchInjuries, penaltyShootout ? cupWinnerId : undefined);
 
     // Build temporary state with tournament tracking fields for processTournamentResult
     const tempCupTieId = cupTie ? cupTie.id : (leagueCupTie || continentalMatch || superCup) ? '__tournament__' : null;
@@ -993,7 +1041,7 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
     : superCup ? (superCup.type === 'domestic' ? 'Super Cup' : 'Continental Super Cup')
     : null;
   set({
-    halfTimeState: halfState, currentMatchWeather: matchWeather, matchPhase: 'half_time', matchSubsUsed: 0, preMatchLeaguePosition: preMatchPos,
+    halfTimeState: halfState, currentMatchWeather: matchWeather, matchPhase: 'half_time', matchSubsUsed: 0, matchSubbedOffIds: [], preMatchLeaguePosition: preMatchPos,
     currentCupTieId: cupTie ? cupTie.id : isCupMatch ? '__tournament__' : null,
     currentLeagueCupTieId: leagueCupTie ? leagueCupTie.id : null,
     currentContinentalMatchId: continentalMatch ? match.id : null,
@@ -1135,12 +1183,19 @@ export function playSecondHalfImpl(set: Set, get: Get): Match | null {
 
   const spCoachBonus2H = hasPerk(state.managerProgression, 'set_piece_coach') ? 0.009 * dynastyMult(state.managerProgression) : 0;
   const fullState = simulateHalf(hc, ac, hp, ap, 46, 90, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, secondHalfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities, season, secondHalfCareerMod, undefined, undefined, combinedMods, currentMatchWeather ?? undefined, spCoachBonus2H);
-  const { result, playerRatings } = finalizeMatch(match, hc, ac, hp, ap, fullState);
+  // `players` lookup lets finalizeMatch rate half-time-subbed-out starters
+  // (they're missing from hp/ap — the lineup was edited at the break)
+  const { result, playerRatings } = finalizeMatch(match, hc, ac, hp, ap, fullState, players);
   // Attach weather to the match result
   if (currentMatchWeather) result.weather = currentMatchWeather;
 
   // Cup match ended in draw — need extra time (unless aggregate is already decided for 2-leg ties)
-  if (state.currentCupTieId && result.homeGoals === result.awayGoals && !isAggregateDecided(state, result.homeGoals, result.awayGoals)) {
+  // Continental group matches and knockout leg 1 are LEGITIMATE draws — the
+  // instant-sim path has always exempted them (see the isCupMatch block in
+  // playCurrentMatchImpl); without the same exemption here, an interactive
+  // group draw went to extra time (corrupting standings/aggregates) and a
+  // group shootout landed in a knockout-only handler, stranding the match.
+  if (state.currentCupTieId && result.homeGoals === result.awayGoals && !isContinentalDrawValid(state) && !isAggregateDecided(state, result.homeGoals, result.awayGoals)) {
     set({
       currentMatchResult: result,
       halfTimeState: fullState, // carry forward for extra time continuation
@@ -1175,6 +1230,11 @@ export function playSecondHalfImpl(set: Set, get: Get): Match | null {
       lastMatchDrama: drama,
       pairFamiliarity: processed.pairFamiliarity,
     });
+    // Persist the played match immediately — autosave otherwise only fires
+    // on advanceWeek, so a crash/app-kill after an interactively played
+    // match silently discarded the result (the instant-sim paths above
+    // already do this).
+    if (get().settings.autoSave) get().saveGame();
     return result;
   }
 
@@ -1200,6 +1260,11 @@ export function playSecondHalfImpl(set: Set, get: Get): Match | null {
       pairFamiliarity: processed.pairFamiliarity,
       ...tournamentUpdates.stateUpdates,
     });
+    // Persist the played match immediately — autosave otherwise only fires
+    // on advanceWeek, so a crash/app-kill after an interactively played
+    // match silently discarded the result (the instant-sim paths above
+    // already do this).
+    if (get().settings.autoSave) get().saveGame();
     return result;
   }
 
@@ -1259,6 +1324,11 @@ export function playSecondHalfImpl(set: Set, get: Get): Match | null {
     pairFamiliarity: processed.pairFamiliarity,
     clubPowerRankings: eloRankings2,
   });
+  // Persist the played match immediately — autosave otherwise only fires
+  // on advanceWeek, so a crash/app-kill after an interactively played
+  // match silently discarded the result (the instant-sim paths above
+  // already do this).
+  if (get().settings.autoSave) get().saveGame();
   return result;
   } catch (err) {
     Sentry.captureException(err, { tags: { context: 'playSecondHalf' } });
@@ -1333,7 +1403,8 @@ export function playExtraTimeImpl(set: Set, get: Get): Match | null {
 
   if (etState.homeGoals !== etState.awayGoals || isAggregateDecided(state, etState.homeGoals, etState.awayGoals)) {
     // Extra time decided the match (or aggregate decided for 2-leg ties) — finalize
-    const { result, playerRatings } = finalizeMatch(etResult, hc, ac, hp, ap, etState);
+    // (players lookup rates participants subbed out before ET — see playSecondHalfImpl)
+    const { result, playerRatings } = finalizeMatch(etResult, hc, ac, hp, ap, etState, players);
     if (etWeather) result.weather = etWeather;
     const processed = processMatchResult(state, etResult, result, playerRatings, () => get().week, etState.matchInjuries);
     const etDrama = detectMatchDrama(result, playerClubId, clubs);
@@ -1358,6 +1429,11 @@ export function playExtraTimeImpl(set: Set, get: Get): Match | null {
         pairFamiliarity: processed.pairFamiliarity,
         ...tournamentUpdates.stateUpdates,
       });
+      // Persist the played match immediately — autosave otherwise only fires
+      // on advanceWeek, so a crash/app-kill after an interactively played
+      // match silently discarded the result (the instant-sim paths above
+      // already do this).
+      if (get().settings.autoSave) get().saveGame();
     } else {
       // Domestic Dynasty Cup
       const newCup = { ...state.cup, ties: state.cup.ties.map(t =>
@@ -1382,7 +1458,7 @@ export function playExtraTimeImpl(set: Set, get: Get): Match | null {
         if (newCup.currentRound === 'F') {
           const finalTie = newCup.ties.find(t => t.round === 'F' && t.played);
           if (finalTie) {
-            const cupWinnerId = finalTie.homeGoals > finalTie.awayGoals ? finalTie.homeClubId : finalTie.awayClubId;
+            const cupWinnerId = finalTie.winnerId || (finalTie.homeGoals > finalTie.awayGoals ? finalTie.homeClubId : finalTie.awayClubId);
             newCup.winner = cupWinnerId; newCup.currentRound = null;
             const prize = cupWinnerId === playerClubId ? CONTINENTAL_PRIZE_MONEY.dynasty_cup_winner : CONTINENTAL_PRIZE_MONEY.dynasty_cup_runner_up;
             const club = clubs[playerClubId];
@@ -1390,7 +1466,7 @@ export function playExtraTimeImpl(set: Set, get: Get): Match | null {
               set({ clubs: { ...clubs, [playerClubId]: { ...club, budget: club.budget + prize } } });
             }
           }
-        } else { Object.assign(newCup, advanceCupRound(newCup, state.clubs, state.players)); }
+        } else { Object.assign(newCup, advanceCupRound(newCup, state.clubs, state.players, state.totalWeeks)); }
       }
       set({
         currentMatchResult: result, halfTimeState: null, matchPhase: 'full_time',
@@ -1402,6 +1478,11 @@ export function playExtraTimeImpl(set: Set, get: Get): Match | null {
         pendingPressConference: generatePressConference(press, isPro(get().monetization)),
         lastMatchDrama: etDrama, rivalries: processed.updatedRivalries, pairFamiliarity: processed.pairFamiliarity,
       });
+      // Persist the played match immediately — autosave otherwise only fires
+      // on advanceWeek, so a crash/app-kill after an interactively played
+      // match silently discarded the result (the instant-sim paths above
+      // already do this).
+      if (get().settings.autoSave) get().saveGame();
     }
     return result;
   }
@@ -1547,9 +1628,10 @@ export function skipPenaltyShootoutImpl(set: Set, get: Get): void {
     });
     return;
   }
-  const { result, playerRatings } = finalizeMatch(finalResult, hc, ac, hp, ap, halfTimeState);
+  // players lookup rates participants subbed out earlier in the tie — see playSecondHalfImpl
+  const { result, playerRatings } = finalizeMatch(finalResult, hc, ac, hp, ap, halfTimeState, players);
 
-  const processed = processMatchResult(state, finalResult, result, playerRatings, () => get().week, halfTimeState?.matchInjuries || {});
+  const processed = processMatchResult(state, finalResult, result, playerRatings, () => get().week, halfTimeState?.matchInjuries || {}, winnerId);
   const penDrama = detectMatchDrama(result, playerClubId, clubs);
   const press = winnerId === playerClubId ? 'post_win' : 'post_loss';
 
@@ -1571,10 +1653,15 @@ export function skipPenaltyShootoutImpl(set: Set, get: Get): void {
       penaltyShootoutKicks: [], penaltyShootoutRevealIndex: 0,
       ...tournamentUpdates.stateUpdates,
     });
+    // Persist the played match immediately — autosave otherwise only fires
+    // on advanceWeek, so a crash/app-kill after an interactively played
+    // match silently discarded the result (the instant-sim paths above
+    // already do this).
+    if (get().settings.autoSave) get().saveGame();
   } else {
     // Domestic Dynasty Cup
     const newCup = { ...state.cup, ties: state.cup.ties.map(t =>
-      t.id === currentCupTieId ? { ...t, played: true, homeGoals: result.homeGoals, awayGoals: result.awayGoals, penaltyShootout } : t
+      t.id === currentCupTieId ? { ...t, played: true, homeGoals: result.homeGoals, awayGoals: result.awayGoals, winnerId, penaltyShootout } : t
     )};
     if (winnerId !== playerClubId) newCup.eliminated = true;
     // Award round prize money on pen win
@@ -1593,7 +1680,7 @@ export function skipPenaltyShootoutImpl(set: Set, get: Get): void {
         const prize = winnerId === playerClubId ? CONTINENTAL_PRIZE_MONEY.dynasty_cup_winner : CONTINENTAL_PRIZE_MONEY.dynasty_cup_runner_up;
         const club = clubs[playerClubId];
         if (club) set({ clubs: { ...clubs, [playerClubId]: { ...club, budget: club.budget + prize } } });
-      } else { Object.assign(newCup, advanceCupRound(newCup, state.clubs, state.players)); }
+      } else { Object.assign(newCup, advanceCupRound(newCup, state.clubs, state.players, state.totalWeeks)); }
     }
     set({
       currentMatchResult: { ...result, penaltyShootout }, halfTimeState: null, matchPhase: 'full_time',
@@ -1606,6 +1693,11 @@ export function skipPenaltyShootoutImpl(set: Set, get: Get): void {
       lastMatchDrama: penDrama, rivalries: processed.updatedRivalries, pairFamiliarity: processed.pairFamiliarity,
       penaltyShootoutKicks: [], penaltyShootoutRevealIndex: 0,
     });
+    // Persist the played match immediately — autosave otherwise only fires
+    // on advanceWeek, so a crash/app-kill after an interactively played
+    // match silently discarded the result (the instant-sim paths above
+    // already do this).
+    if (get().settings.autoSave) get().saveGame();
   }
 }
 

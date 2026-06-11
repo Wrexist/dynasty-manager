@@ -2,11 +2,14 @@ import type { GameState } from '../storeTypes';
 import type { CareerManager, JobVacancy, JobOffer, GameMode, ActiveInterview, PitchTone, ManagerBonus, LeagueTableEntry } from '@/types/game';
 import { generateJobVacancies, getRetirementAge, generateDefaultBonuses, estimateSquadValue, calculateExpectedPosition, generateCompetitors, selectPitchQuestions, calculateInterviewResult, negotiateContract, generateUnemployedOffer } from '@/utils/managerCareer';
 import { LEAGUES, CLUBS_DATA } from '@/data/league';
-import { STARTING_BOARD_CONFIDENCE, STARTING_TACTICAL_FAMILIARITY } from '@/config/gameBalance';
+import { STARTING_BOARD_CONFIDENCE, STARTING_TACTICAL_FAMILIARITY, FACILITY_MAX_LEVEL, MEDICAL_LEVEL_FACTOR, RECOVERY_LEVEL_FACTOR, STADIUM_LEVEL_DIVISOR } from '@/config/gameBalance';
 import { PITCH_SCORE_BASE, BOARD_TOLERANCE_START, UNEMPLOYED_INITIAL_OFFERS } from '@/config/managerCareer';
 import { generateAIManagerProfile } from '@/config/aiManager';
-import { generateInitialStaff, generateStaffMarket } from '@/utils/staff';
+import { generateInitialStaff, generateStaffMarket, getStaffBonus } from '@/utils/staff';
 import { selectBestLineup } from '@/utils/playerGen';
+import { generateStarterDeals, generateStarterOffers } from '@/store/slices/sponsorSlice';
+import { getDefaultMerchState } from '@/utils/merchandise';
+import { generateYouthProspects, generateIntakePreview } from '@/utils/youth';
 import { guardAsync } from '@/utils/asyncGuard';
 
 /** Inject live league position/form data into vacancies from divisionTables. */
@@ -280,21 +283,25 @@ export const createCareerSlice = (set: Set, get: Get) => ({
   respondToJobOffer: (offerId: string, accept: boolean) => {
     const state = get();
     const manager = state.careerManager;
-    if (!manager) return;
+    if (!manager) return { success: false, message: 'No active career.' };
 
     const offer = state.jobOffers.find(o => o.id === offerId);
-    if (!offer) return;
+    if (!offer) return { success: false, message: 'This offer is no longer available.' };
 
     if (!accept) {
       set({ jobOffers: state.jobOffers.filter(o => o.id !== offerId) });
-      return;
+      return { success: true };
     }
 
-    // Block retired managers from accepting
-    if (manager.age >= getRetirementAge(manager)) return;
+    // Block retired managers from accepting — returned (not silent) so the
+    // UI can explain why the enabled Accept button did nothing.
+    if (manager.age >= getRetirementAge(manager)) {
+      return { success: false, message: 'You have reached retirement age and can no longer take a new job.' };
+    }
 
     // Accept — move to new club
     state.moveToNewClub(offer.clubId, offer);
+    return { success: true };
   },
 
   resignFromClub: () => {
@@ -420,6 +427,25 @@ export const createCareerSlice = (set: Set, get: Get) => ({
       const newInitialStaff = generateInitialStaff(targetClub.reputation);
       const newScoutCount = newInitialStaff.filter(s => s.role === 'scout').length;
 
+      // Same-league moves must not carry the OLD club's sponsors, facilities,
+      // academy, merch, finance history or tactical presets — the
+      // different-league branch gets all of this for free from initGame.
+      // Rebuild each from the NEW club's data, mirroring initGame.
+      const newSponsorDeals = generateStarterDeals(targetClub.reputation, state.season);
+      const newSponsorOffers = generateStarterOffers(targetClub.reputation, state.season, newSponsorDeals);
+      const stadiumLvl = Math.min(FACILITY_MAX_LEVEL, Math.round(targetClub.fanBase / STADIUM_LEVEL_DIVISOR));
+      // Fresh academy intake for the new club; drop the old club's unpromoted
+      // prospects from the players map (initGame does this implicitly by
+      // rebuilding `players` — without it they'd remain promotable orphans).
+      const playersAfterMove = { ...state.players };
+      for (const pr of state.youthAcademy.prospects) delete playersAfterMove[pr.playerId];
+      const { prospects: newProspects, players: newYouthPlayers } = generateYouthProspects(
+        clubId, targetClub.youthRating, getStaffBonus(newInitialStaff, 'youth-coach'),
+        state.season, 3 + Math.floor(Math.random() * 2),
+        CLUBS_DATA.find(c => c.id === clubId)?.squadQuality,
+      );
+      newYouthPlayers.forEach(p => { playersAfterMove[p.id] = p; });
+
       set({
         playerClubId: clubId,
         clubs: newClubs,
@@ -457,12 +483,32 @@ export const createCareerSlice = (set: Set, get: Get) => ({
           members: newInitialStaff,
           availableHires: generateStaffMarket(),
         },
+        players: playersAfterMove,
+        sponsorDeals: newSponsorDeals,
+        sponsorOffers: newSponsorOffers,
+        sponsorSlotCooldowns: {},
+        merchandise: getDefaultMerchState(),
+        facilities: {
+          trainingLevel: targetClub.facilities,
+          youthLevel: targetClub.youthRating,
+          stadiumStands: { north: stadiumLvl, south: stadiumLvl, east: stadiumLvl, west: stadiumLvl },
+          medicalLevel: Math.min(FACILITY_MAX_LEVEL, Math.round(targetClub.facilities * MEDICAL_LEVEL_FACTOR)),
+          recoveryLevel: Math.min(FACILITY_MAX_LEVEL, Math.round(targetClub.facilities * RECOVERY_LEVEL_FACTOR)),
+          upgradeInProgress: null,
+        },
+        youthAcademy: { prospects: newProspects, nextIntakePreview: generateIntakePreview(targetClub.youthRating), youthPreviewEnhanced: false },
+        financeHistory: [],
+        tacticalPresets: [],
       });
     } else {
-      // Different league: must reinitialize game for the new league
-      // Preserve the season number for career continuity
+      // Different league: must reinitialize game for the new league.
+      // Preserve the season number for career continuity. Seasons keep
+      // advancing during unemployment, so clamp to the CURRENT season
+      // (captured before initGame resets it to 1) — `endSeason + 1` alone
+      // would move the game clock backwards for a manager who sat out a
+      // season or more, corrupting history ordering and contract endSeasons.
       const lastEntry = updatedHistory[updatedHistory.length - 1];
-      const continuedSeason = (lastEntry?.endSeason || 0) + 1;
+      const continuedSeason = Math.max((lastEntry?.endSeason || 0) + 1, state.season);
 
       // Career league change re-inits the game. initGame is only async when
       // Community Pack is enabled, which isn't threaded through this path;

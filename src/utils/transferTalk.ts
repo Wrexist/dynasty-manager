@@ -7,13 +7,14 @@ import {
   TRANSFER_TALK_EMPATHIZE_MORALE_BOOST,
   TRANSFER_TALK_PROMISE_MORALE_BOOST,
 } from '@/config/gameBalance';
+import { PERSONALITY_TRAIT_MAX } from '@/config/personality';
 
 export function buildTransferTalk(
   player: { id: string; firstName: string; lastName: string; personality?: { loyalty: number; ambition: number } },
   reason: 'low_morale' | 'ambition',
 ): TransferTalk {
   const loyalty = player.personality?.loyalty ?? 10;
-  const convinceChance = Math.min(0.85, TRANSFER_TALK_CONVINCE_BASE_CHANCE + (loyalty / 20) * TRANSFER_TALK_CONVINCE_LOYALTY_BONUS);
+  const convinceChance = Math.min(0.85, TRANSFER_TALK_CONVINCE_BASE_CHANCE + (loyalty / PERSONALITY_TRAIT_MAX) * TRANSFER_TALK_CONVINCE_LOYALTY_BONUS);
   const convincePct = Math.round(convinceChance * 100);
 
   const body = reason === 'low_morale'

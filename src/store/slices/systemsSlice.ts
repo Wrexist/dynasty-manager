@@ -13,6 +13,7 @@ import {
 } from '@/config/staff';
 import { generateStaffMarket, ensureStaffFields, absWeek } from '@/utils/staff';
 import { STAND_INFO } from '@/utils/facilities';
+import { selectBestLineup } from '@/utils/playerGen';
 import { placePlayerInClub } from '../helpers/rosterOps';
 
 const SPOTLIGHT_DEV_BOOST = 22;
@@ -57,9 +58,18 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
     if (!preset) return;
     const club = state.clubs[state.playerClubId];
     if (!club) return;
+    let updatedClub = { ...club, formation: preset.formation };
+    // Formation change must rebuild the lineup for the new shape (mirrors
+    // clubSlice.setFormation) — otherwise the same 11 ids map onto the new
+    // formation's slots and play out of position.
+    if (preset.formation !== club.formation) {
+      const squad = club.playerIds.map(id => state.players[id]).filter(Boolean);
+      const { lineup, subs } = selectBestLineup(squad, preset.formation, state.week);
+      updatedClub = { ...updatedClub, lineup: lineup.map(p => p.id), subs: subs.map(p => p.id) };
+    }
     set({
       tactics: { ...preset.tactics },
-      clubs: { ...state.clubs, [state.playerClubId]: { ...club, formation: preset.formation } },
+      clubs: { ...state.clubs, [state.playerClubId]: updatedClub },
     });
   },
 
@@ -276,11 +286,16 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
 
   assignScout: (region: ScoutRegion) => {
     const state = get();
-    if (state.scouting.assignments.length >= state.scouting.maxAssignments) return;
+    if (state.scouting.assignments.length >= state.scouting.maxAssignments) {
+      // Surfaced to the caller — silently no-oping here let the UI toast a
+      // false "Scout Assigned" success at max assignments.
+      return { success: false, message: 'All scouts are already on assignment.' };
+    }
     const assignment = createAssignment(region);
     set({
       scouting: { ...state.scouting, assignments: [...state.scouting.assignments, assignment] },
     });
+    return { success: true };
   },
 
   cancelAssignment: (assignmentId: string) => {
@@ -324,6 +339,7 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
     if (!prospect) return { success: false, message: 'Prospect not found.' };
     const player = state.players[playerId];
     if (!player) return { success: false, message: 'Player not found.' };
+    if (!state.clubs[state.playerClubId]) return { success: false, message: 'Club not found.' };
     const club = { ...state.clubs[state.playerClubId] };
     if (club.playerIds.length >= MAX_SQUAD_SIZE) return { success: false, message: `Squad is full (${MAX_SQUAD_SIZE} players). Release or sell a player first.` };
     const updatedPlayer = { ...player, isFromYouthAcademy: true, joinedSeason: player.joinedSeason ?? state.season };

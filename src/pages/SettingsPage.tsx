@@ -19,6 +19,7 @@ import {
   writeCommunityPackSlotPref,
   readAnalyticsConsent,
   writeAnalyticsConsent,
+  STORAGE_KEYS,
 } from '@/store/helpers/persistence';
 import { restorePurchases, openSubscriptionManagement, getCustomerInfo, extractSubscriptionInfo } from '@/utils/purchases';
 import { triggerTestError } from '@/utils/sentry';
@@ -408,7 +409,15 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
                 {saved ? 'Game Saved!' : 'Save Game'}
               </span>
             </LiquidButton>
-            <LiquidButton onClick={() => loadGame()}>
+            <LiquidButton
+              onClick={() => {
+                // loadGame() returns false on a missing/corrupt slot — a
+                // silent failure here looked like the button did nothing.
+                if (!loadGame()) {
+                  errorToast('Load Failed', 'No save found in this slot, or the save could not be read.');
+                }
+              }}
+            >
               <span className="flex items-center justify-start gap-3 px-3">
                 <Download className="w-4 h-4" />
                 Load Game
@@ -465,8 +474,8 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
         <div className="space-y-2">
           <LiquidButton
             onClick={() => {
-              removeFlag('dynasty-welcome-shown');
-              clearFlagsByPrefix('dynasty-hint-');
+              removeFlag(STORAGE_KEYS.WELCOME_SHOWN);
+              clearFlagsByPrefix(STORAGE_KEYS.HINT_PREFIX);
               infoToast('Tutorial Reset', 'The welcome tutorial and page hints will show again.');
             }}
           >

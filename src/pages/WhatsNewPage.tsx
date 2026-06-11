@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { useGameStore } from '@/store/gameStore';
 import { ArrowLeft } from 'lucide-react';
 import { PremiumSparkle } from '@/components/game/icons/PremiumSparkle';
 import { cn } from '@/lib/utils';
@@ -77,8 +76,6 @@ interface WhatsNewPageProps {
 
 const WhatsNewPage = ({ standalone = false }: WhatsNewPageProps) => {
   const navigate = useNavigate();
-  const setScreen = useGameStore(s => s.setScreen);
-  const gameStarted = useGameStore(s => s.gameStarted);
 
   useEffect(() => {
     writeWhatsNewSeenVersion(LATEST_RELEASE.version);
@@ -86,11 +83,9 @@ const WhatsNewPage = ({ standalone = false }: WhatsNewPageProps) => {
 
   const notes = RELEASE_NOTES;
 
+  // Only the standalone variant renders the back button, so this handler
+  // never runs in-game (GameShell owns navigation there).
   const handleBack = () => {
-    if (!standalone && gameStarted) {
-      setScreen('settings');
-      return;
-    }
     if (window.history.length > 1) {
       navigate(-1);
     } else {

@@ -161,10 +161,7 @@ export function advanceCursor(
   return { cursor: cpPool.cursor + advanceBy };
 }
 
-export function needsRefill(
-  cpPool: CpPoolState,
-  activePoolLength: number,
-): boolean {
+export function needsRefill(activePoolLength: number): boolean {
   return activePoolLength < 200;
 }
 

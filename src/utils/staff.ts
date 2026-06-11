@@ -137,7 +137,9 @@ export function getEffectiveQuality(member: StaffMember): number {
 }
 
 export function getStaffBonus(staff: StaffMember[], role: StaffRole): number {
-  const member = staff.filter(s => s.role === role).sort((a, b) => b.quality - a.quality)[0];
+  // Pick by EFFECTIVE quality (base + traits + morale), not raw quality —
+  // a motivated q7 with a matching trait can outperform a demoralized q8.
+  const member = staff.filter(s => s.role === role).sort((a, b) => getEffectiveQuality(b) - getEffectiveQuality(a))[0];
   return member ? getEffectiveQuality(member) : 0;
 }
 

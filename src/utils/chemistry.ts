@@ -29,8 +29,13 @@ function areAdjacent(posA: string, posB: string): boolean {
  * - nationality: Players sharing nationality build stronger understanding
  * - mentor: Experienced player (28+) paired with young talent (<=22) at adjacent position
  * - partnership: Two players who play adjacent positions and have high combined form
+ *
+ * Accepts null holes (e.g. a lineup slot whose player ID resolves to a
+ * deleted player). Holes are SKIPPED, never compacted — compacting would
+ * shift every later player onto the wrong formation slot and produce wrong
+ * adjacency links. Callers must map ids → players WITHOUT filter(Boolean).
  */
-export function calculateChemistryLinks(players: Player[], formation?: FormationType, currentSeason?: number): ChemistryLink[] {
+export function calculateChemistryLinks(players: (Player | null)[], formation?: FormationType, currentSeason?: number): ChemistryLink[] {
   const links: ChemistryLink[] = [];
   const slots = formation ? FORMATION_POSITIONS[formation] : null;
 
@@ -38,6 +43,7 @@ export function calculateChemistryLinks(players: Player[], formation?: Formation
     for (let j = i + 1; j < players.length; j++) {
       const a = players[i];
       const b = players[j];
+      if (!a || !b) continue;
 
       // Use formation slot position when available, otherwise player's natural position
       const posA = slots && slots[i] ? slots[i].pos : a.position;
@@ -82,8 +88,9 @@ export function calculateChemistryLinks(players: Player[], formation?: Formation
 /**
  * Calculate a team-wide chemistry bonus for match simulation.
  * Returns a modifier between 0.00 and 0.12 (0-12% bonus).
+ * Accepts null holes (kept, not compacted) — see calculateChemistryLinks.
  */
-export function getChemistryBonus(lineupPlayers: Player[], formation?: FormationType, currentSeason?: number): number {
+export function getChemistryBonus(lineupPlayers: (Player | null)[], formation?: FormationType, currentSeason?: number): number {
   const links = calculateChemistryLinks(lineupPlayers, formation, currentSeason);
   if (links.length === 0) return 0;
 

@@ -9,13 +9,14 @@ import { useGameStore } from '@/store/gameStore';
 import { assertValidGameState } from './stateValidator';
 import { determineZones } from '@/utils/promotionRelegation';
 import { LEAGUES } from '@/data/league';
+import { getTransferWindows } from '@/config/transfers';
 const CLUB_ID = 'manchester-city';
 const TOTAL_WEEKS = 46;
 
 /** Advance one full season. */
-function advanceFullSeason() {
+async function advanceFullSeason() {
   for (let w = 0; w < TOTAL_WEEKS; w++) {
-    useGameStore.getState().advanceWeek();
+    await useGameStore.getState().advanceWeek();
     useGameStore.getState().playCurrentMatch();
   }
   useGameStore.getState().endSeason();
@@ -26,7 +27,7 @@ describe('2A: Mass Contract Expiry', () => {
     useGameStore.getState().initGame(CLUB_ID);
   });
 
-  it('handles 8+ players expiring in the same season without crashing', { timeout: 30_000 }, () => {
+  it('handles 8+ players expiring in the same season without crashing', { timeout: 30_000 }, async () => {
     const state = useGameStore.getState();
     const playerClub = state.clubs[CLUB_ID];
     const players = { ...state.players };
@@ -41,7 +42,7 @@ describe('2A: Mass Contract Expiry', () => {
     useGameStore.setState({ players });
 
     // Advance the full season
-    advanceFullSeason();
+    await advanceFullSeason();
 
     const postState = useGameStore.getState();
 
@@ -71,58 +72,48 @@ describe('2B: Transfer Window Boundaries', () => {
     useGameStore.getState().initGame(CLUB_ID);
   });
 
-  it('enforces transfer window open/close at correct weeks', () => {
+  it('enforces transfer window open/close at correct weeks', async () => {
     const state = useGameStore.getState();
+    // Windows scale with the league's season length (PL = 38 weeks).
+    const tw = getTransferWindows(state.totalWeeks);
 
     // Week 1: window should be open
     expect(state.transferWindowOpen, 'Week 1 should be open').toBe(true);
 
-    // Advance to week 8 (last summer window week)
-    for (let w = 0; w < 7; w++) {
-      useGameStore.getState().advanceWeek();
-      useGameStore.getState().playCurrentMatch();
-    }
-    const stateW8 = useGameStore.getState();
-    expect(stateW8.week).toBe(8);
-    expect(stateW8.transferWindowOpen, `Week ${stateW8.week}: window should be open`).toBe(true);
+    const advanceTo = async (target: number) => {
+      while (useGameStore.getState().week < target) {
+        await useGameStore.getState().advanceWeek();
+        useGameStore.getState().playCurrentMatch();
+      }
+    };
 
-    // Advance to week 9 (window closed)
-    useGameStore.getState().advanceWeek();
-    useGameStore.getState().playCurrentMatch();
-    const stateW9 = useGameStore.getState();
-    expect(stateW9.week).toBe(9);
-    expect(stateW9.transferWindowOpen, `Week ${stateW9.week}: window should be closed`).toBe(false);
+    // Last summer window week — open
+    await advanceTo(tw.summerEnd);
+    expect(useGameStore.getState().week).toBe(tw.summerEnd);
+    expect(useGameStore.getState().transferWindowOpen, `Week ${tw.summerEnd}: window should be open`).toBe(true);
 
-    // Advance to week 20 (winter window opens)
-    while (useGameStore.getState().week < 20) {
-      useGameStore.getState().advanceWeek();
-      useGameStore.getState().playCurrentMatch();
-    }
-    const stateW20 = useGameStore.getState();
-    expect(stateW20.week).toBe(20);
-    expect(stateW20.transferWindowOpen, `Week ${stateW20.week}: winter window should be open`).toBe(true);
+    // One past the summer window — closed
+    await advanceTo(tw.summerEnd + 1);
+    expect(useGameStore.getState().transferWindowOpen, `Week ${tw.summerEnd + 1}: window should be closed`).toBe(false);
 
-    // Advance to week 24 (last winter week)
-    while (useGameStore.getState().week < 24) {
-      useGameStore.getState().advanceWeek();
-      useGameStore.getState().playCurrentMatch();
-    }
-    const stateW24 = useGameStore.getState();
-    expect(stateW24.week).toBe(24);
-    expect(stateW24.transferWindowOpen, `Week ${stateW24.week}: winter window should be open`).toBe(true);
+    // Winter window opens
+    await advanceTo(tw.winterStart);
+    expect(useGameStore.getState().transferWindowOpen, `Week ${tw.winterStart}: winter window should be open`).toBe(true);
 
-    // Advance to week 25 (window closed again)
-    useGameStore.getState().advanceWeek();
-    useGameStore.getState().playCurrentMatch();
-    const stateW25 = useGameStore.getState();
-    expect(stateW25.week).toBe(25);
-    expect(stateW25.transferWindowOpen, `Week ${stateW25.week}: window should be closed`).toBe(false);
+    // Last winter week — open
+    await advanceTo(tw.winterEnd);
+    expect(useGameStore.getState().transferWindowOpen, `Week ${tw.winterEnd}: winter window should be open`).toBe(true);
+
+    // One past the winter window — closed
+    await advanceTo(tw.winterEnd + 1);
+    expect(useGameStore.getState().transferWindowOpen, `Week ${tw.winterEnd + 1}: window should be closed`).toBe(false);
   });
 
-  it('rejects transfers when window is closed', () => {
-    // Advance to week 9 (window closed)
-    for (let w = 0; w < 8; w++) {
-      useGameStore.getState().advanceWeek();
+  it('rejects transfers when window is closed', async () => {
+    // Advance one past the (scaled) summer window — closed
+    const tw = getTransferWindows(useGameStore.getState().totalWeeks);
+    while (useGameStore.getState().week < tw.summerEnd + 1) {
+      await useGameStore.getState().advanceWeek();
       useGameStore.getState().playCurrentMatch();
     }
 
@@ -144,7 +135,7 @@ describe('2C: Loan Edge Cases', () => {
     useGameStore.getState().initGame(CLUB_ID);
   });
 
-  it('rejects loan recall before 4 weeks', () => {
+  it('rejects loan recall before 4 weeks', async () => {
     const state = useGameStore.getState();
     const playerClub = state.clubs[CLUB_ID];
     const benchedPlayer = playerClub.playerIds.find(
@@ -169,7 +160,7 @@ describe('2C: Loan Edge Cases', () => {
     expect(recallResult.message).toContain('4 weeks');
   });
 
-  it('allows loan recall after 4 weeks with recall clause', () => {
+  it('allows loan recall after 4 weeks with recall clause', async () => {
     const state = useGameStore.getState();
     const playerClub = state.clubs[CLUB_ID];
     const benchedPlayer = playerClub.playerIds.find(
@@ -185,7 +176,7 @@ describe('2C: Loan Edge Cases', () => {
 
     // Advance 5 weeks
     for (let w = 0; w < 5; w++) {
-      useGameStore.getState().advanceWeek();
+      await useGameStore.getState().advanceWeek();
       useGameStore.getState().playCurrentMatch();
     }
 
@@ -204,7 +195,7 @@ describe('2C: Loan Edge Cases', () => {
     expect(postState.clubs[CLUB_ID].playerIds).toContain(benchedPlayer);
   });
 
-  it('processes obligatory buy fee at loan end', () => {
+  it('processes obligatory buy fee at loan end', async () => {
     const state = useGameStore.getState();
     const playerClub = state.clubs[CLUB_ID];
     const benchedPlayer = playerClub.playerIds.find(
@@ -222,7 +213,7 @@ describe('2C: Loan Edge Cases', () => {
 
     // Advance 5 weeks so the loan expires (duration = 4 weeks)
     for (let w = 0; w < 5; w++) {
-      useGameStore.getState().advanceWeek();
+      await useGameStore.getState().advanceWeek();
       useGameStore.getState().playCurrentMatch();
     }
 
@@ -251,7 +242,7 @@ describe('2C: Loan Edge Cases', () => {
     }
   });
 
-  it('tracks multiple simultaneous loans independently', () => {
+  it('tracks multiple simultaneous loans independently', async () => {
     // Re-init to avoid loan state from prior tests
     useGameStore.getState().initGame(CLUB_ID);
     const state = useGameStore.getState();
@@ -287,7 +278,7 @@ describe('2C: Loan Edge Cases', () => {
 });
 
 describe('2D: Season Turnover Integrity', () => {
-  it('determines correct zones from league table', () => {
+  it('determines correct zones from league table', async () => {
     const eng = LEAGUES.find(l => l.id === 'eng')!;
 
     // Create a mock table with the correct number of entries
@@ -312,12 +303,12 @@ describe('2D: Season Turnover Integrity', () => {
     expect(zones.replaced).toHaveLength(eng.relegationSpots);
   });
 
-  it('maintains league integrity through season turnover cycle', { timeout: 60_000 }, () => {
+  it('maintains league integrity through season turnover cycle', { timeout: 60_000 }, async () => {
     useGameStore.getState().initGame(CLUB_ID);
 
     // Run 3 seasons and verify after each
     for (let s = 0; s < 3; s++) {
-      advanceFullSeason();
+      await advanceFullSeason();
 
       const state = useGameStore.getState();
       const playerLeague = state.playerDivision;

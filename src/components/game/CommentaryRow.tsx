@@ -94,7 +94,7 @@ export function CommentaryRow({
         )}
       >
         <span className={cn('font-mono shrink-0 text-primary/80 tabular-nums', compact ? 'w-6' : 'w-8')}>
-          {ev.minute}'
+          {ev.displayMinute ?? ev.minute}'
         </span>
         {isTactical && <Layers className="w-3 h-3 text-blue-400 mt-0.5 shrink-0" />}
         <span className="flex-1">{description ?? ev.description}</span>
@@ -121,7 +121,7 @@ export function CommentaryRow({
       )}
     >
       <span className={cn('font-mono shrink-0 text-primary tabular-nums', compact ? 'w-6 text-[10px]' : 'w-8 text-xs')}>
-        {ev.minute}'
+        {ev.displayMinute ?? ev.minute}'
       </span>
 
       {/* Label pill with optional card icon */}

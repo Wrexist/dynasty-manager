@@ -14,12 +14,12 @@ import { Button } from '@/components/ui/button';
 import { PageHint } from '@/components/game/PageHint';
 import { LIQUID_GLASS_SURFACE } from '@/components/game/GlassPanel';
 import { PAGE_HINTS } from '@/config/ui';
-import { NT_JOB_MIN_REPUTATION, NATIONAL_SQUAD_SIZE } from '@/config/gameBalance';
+import { NT_JOB_MIN_REPUTATION, NATIONAL_SQUAD_SIZE, LINEUP_SIZE } from '@/config/gameBalance';
 import { FORMATIONS } from '@/config/tactics';
 import { FORMATION_POSITIONS, type FormationType, type Player } from '@/types/game';
 import { selectBestLineup } from '@/utils/playerGen';
 import { hapticLight, hapticMedium } from '@/utils/haptics';
-import { successToast } from '@/utils/gameToast';
+import { successToast, errorToast } from '@/utils/gameToast';
 
 // Position groups & quotas — mirrors NationalSquadPicker so the National
 // Team page and the pre-tournament picker speak the same language.
@@ -491,7 +491,20 @@ const NationalTeamPage = () => {
             </p>
           </div>
           <button
-            onClick={() => { hapticLight(); setEditingSquad(!editingSquad); }}
+            onClick={() => {
+              hapticLight();
+              // Block "Done" below a starting XI — the international sim has
+              // no roster to field otherwise. Clear remains available while
+              // editing, but you can't leave the editor short-handed.
+              if (editingSquad && squadPlayers.length < LINEUP_SIZE) {
+                errorToast(
+                  'Squad too small',
+                  `Call up at least ${LINEUP_SIZE} players before finishing (currently ${squadPlayers.length}).`,
+                );
+                return;
+              }
+              setEditingSquad(!editingSquad);
+            }}
             className={cn(
               'text-xs px-3 py-1.5 rounded-full transition-colors font-semibold active:scale-[0.97]',
               editingSquad

@@ -7,7 +7,8 @@
  * 1. Create a RevenueCat account at https://app.revenuecat.com
  * 2. Set up your app in RevenueCat dashboard for iOS and Android
  * 3. Create products matching the IDs in src/config/monetization.ts
- * 4. For production: replace the test API key below with per-platform keys
+ * 4. For production: set VITE_REVENUECAT_API_KEY_IOS ('appl_…') and
+ *    VITE_REVENUECAT_API_KEY_ANDROID ('goog_…') in the build environment
  */
 
 import * as Sentry from '@sentry/react';
@@ -16,15 +17,28 @@ import type { ProductId, SubscriptionInfo } from '@/types/game';
 import { PRODUCTS } from '@/config/monetization';
 import { Capacitor } from '@capacitor/core';
 
-// RevenueCat API key — set via environment variable for production
-// Production: use 'appl_xxx' for iOS, 'goog_xxx' for Android
-const REVENUECAT_API_KEY = import.meta.env.VITE_REVENUECAT_API_KEY || 'test_CBbgpDnLxWJvQXQQLWVvIEXjoYF';
+// RevenueCat requires a separate API key per platform ('appl_…' for iOS,
+// 'goog_…' for Android). VITE_REVENUECAT_API_KEY is the legacy single-key
+// fallback (the iOS key). The test key is only ever used in dev builds —
+// a production build with no key for the running platform must fail
+// initialization loudly rather than silently ship against the test
+// project, which would make every real purchase dead on arrival.
+function resolveApiKey(): string | null {
+  const platform = Capacitor.getPlatform();
+  const key =
+    (platform === 'ios' && import.meta.env.VITE_REVENUECAT_API_KEY_IOS) ||
+    (platform === 'android' && import.meta.env.VITE_REVENUECAT_API_KEY_ANDROID) ||
+    import.meta.env.VITE_REVENUECAT_API_KEY;
+  if (key) return key;
+  return import.meta.env.DEV ? 'test_CBbgpDnLxWJvQXQQLWVvIEXjoYF' : null;
+}
 
 /** Set to true once production RevenueCat keys are configured and native plugins restored. */
 const NATIVE_MONETIZATION_READY = true;
 
 let initPromise: Promise<boolean> | null = null;
 let listenerRemover: (() => void) | null = null;
+let missingKeyReported = false;
 
 /**
  * Initialize RevenueCat SDK. Safe to call multiple times — the in-flight
@@ -40,6 +54,20 @@ export async function initPurchases(): Promise<boolean> {
   }
   if (initPromise) return initPromise;
 
+  const apiKey = resolveApiKey();
+  if (!apiKey) {
+    // Misconfigured production build — no key for this platform. Never
+    // configure with the test key on device; surface it and stay dark.
+    if (!missingKeyReported) {
+      missingKeyReported = true;
+      Sentry.captureMessage(
+        `RevenueCat API key missing for platform "${Capacitor.getPlatform()}"`,
+        { level: 'error', tags: { context: 'purchases.init' } },
+      );
+    }
+    return false;
+  }
+
   initPromise = (async () => {
     let timerId: ReturnType<typeof setTimeout> | null = null;
     try {
@@ -53,7 +81,7 @@ export async function initPurchases(): Promise<boolean> {
         timerId = setTimeout(() => reject(new Error('RevenueCat init timeout')), 5000);
       });
       await Promise.race([
-        Purchases.configure({ apiKey: REVENUECAT_API_KEY }),
+        Purchases.configure({ apiKey }),
         timeout,
       ]);
       return true;
@@ -86,10 +114,16 @@ async function ensureConfigured(): Promise<void> {
  * so the rest of the flow can be tested without a real store.
  */
 export async function purchaseConsumable(productId: ProductId): Promise<boolean> {
-  if (!Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) {
+  if (!Capacitor.isNativePlatform()) {
     // No native store available — treat as a successful test purchase so
     // the pack flow can be exercised end-to-end in dev.
     return true;
+  }
+  if (!NATIVE_MONETIZATION_READY) {
+    // Kill-switch flipped ON DEVICE: monetization is disabled, but this must
+    // never fall into the mock-success path — that would hand out the
+    // consumable reward for free to every user. Behave like a cancel.
+    return false;
   }
 
   try {
@@ -120,10 +154,28 @@ export async function purchaseConsumable(productId: ProductId): Promise<boolean>
   }
 }
 
-/** Purchase a product. Returns the list of granted entitlement product IDs. */
-export async function purchaseProduct(productId: ProductId): Promise<ProductId[]> {
-  if (!Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) {
-    return [productId];
+/** Outcome of a purchaseProduct call. `cancelled` and "completed with no
+ *  mappable entitlements" used to share one shape (`[]`), so callers told
+ *  CHARGED subscribers "no charge was made" — subscriptions intentionally
+ *  yield an empty `granted` list (their status flows exclusively through
+ *  `subscription.expiresAt`, never `entitlements`). */
+export interface PurchaseOutcome {
+  cancelled: boolean;
+  granted: ProductId[];
+}
+
+/** Purchase a product. Distinguishes user-cancel from a completed
+ *  transaction; `granted` lists the persistable entitlement product IDs
+ *  (empty for subscriptions — see PurchaseOutcome). */
+export async function purchaseProduct(productId: ProductId): Promise<PurchaseOutcome> {
+  if (!Capacitor.isNativePlatform()) {
+    // Web/dev mock — pretend the purchase succeeded so flows are testable.
+    return { cancelled: false, granted: [productId] };
+  }
+  if (!NATIVE_MONETIZATION_READY) {
+    // Kill-switch ON DEVICE: never mock-grant (that would hand out permanent
+    // free entitlements). Surface as a cancel — no charge, no grant.
+    return { cancelled: true, granted: [] };
   }
 
   try {
@@ -149,12 +201,12 @@ export async function purchaseProduct(productId: ProductId): Promise<ProductId[]
     // pkg is narrowed from the loose offerings shape above; the runtime object
     // satisfies PurchasesPackage but structural typing misses the extra fields.
     const { customerInfo } = await Purchases.purchasePackage({ aPackage: pkg as Parameters<typeof Purchases.purchasePackage>[0]['aPackage'] });
-    return mapEntitlements(customerInfo);
+    return { cancelled: false, granted: mapEntitlements(customerInfo) };
   } catch (err: unknown) {
     const error = (err && typeof err === 'object' ? err : {}) as { code?: string; userCancelled?: boolean };
     if (error.userCancelled || error.code === 'PURCHASE_CANCELLED') {
       // User cancelled — not an error
-      return [];
+      return { cancelled: true, granted: [] };
     }
     if (import.meta.env.DEV) console.error('[Purchases] Purchase failed:', err);
     Sentry.captureException(err, { tags: { context: 'purchases.purchaseProduct' }, extra: { productId } });
@@ -256,12 +308,15 @@ export async function getCustomerInfo(): Promise<CustomerInfo | null> {
 /** Map RevenueCat CustomerInfo to our ProductId array.
  *  Consumable pack IAPs (premium_gold, icon) are intentionally NOT listed
  *  here — they grant a single pack open at purchase time and must not be
- *  restored as permanent entitlements. */
+ *  restored as permanent entitlements.
+ *  Subscription SKUs (.pro.monthly/.pro.annual) are intentionally excluded
+ *  too: callers persist this list into `monetization.entitlements`, and a
+ *  sub SKU there outlives the subscription (RevenueCat keeps lapsed subs in
+ *  allPurchasedProductIdentifiers forever). Subscription status flows
+ *  EXCLUSIVELY through extractSubscriptionInfo → subscription.expiresAt. */
 function mapEntitlements(customerInfo: CustomerInfo | null | undefined): ProductId[] {
   const validIds: ProductId[] = [
     'com.dynastymanager.pro',
-    'com.dynastymanager.pro.monthly',
-    'com.dynastymanager.pro.annual',
     'com.dynastymanager.pro.lifetime',
     'com.dynastymanager.pack.manager',
     'com.dynastymanager.pack.stadium',

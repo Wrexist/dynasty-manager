@@ -309,7 +309,9 @@ export function endSeasonImpl(set: Set, get: Get) {
           }
           delete workingClubs[replacedId];
 
-          const { clubData, clubId } = generateReplacementClub(season, cl.id);
+          const { clubData, clubId } = generateReplacementClub(
+            season, cl.id, Object.values(workingClubs).map(c => c.name),
+          );
           const newClub: Club = {
             id: clubId, name: clubData.name, shortName: clubData.shortName,
             color: clubData.color, secondaryColor: clubData.secondaryColor,
@@ -354,7 +356,9 @@ export function endSeasonImpl(set: Set, get: Get) {
     const newLeagueClubs = [...singleResult.updatedLeagueClubs];
     if (!newLeagueClubs.includes(playerClubId)) newLeagueClubs.push(playerClubId);
     for (let i = 0; i < turnover.relegatedClubs.length; i++) {
-      const { clubData, clubId } = generateReplacementClub(season, playerDiv);
+      const { clubData, clubId } = generateReplacementClub(
+        season, playerDiv, Object.values(workingClubs).map(c => c.name),
+      );
       const newClub: Club = {
         id: clubId, name: clubData.name, shortName: clubData.shortName,
         color: clubData.color, secondaryColor: clubData.secondaryColor,
@@ -384,8 +388,10 @@ export function endSeasonImpl(set: Set, get: Get) {
   if (hasMultipleTiers && !newDivisionClubs[newPlayerDiv]?.includes(playerClubId)) {
     // Safety: force player club into their division if promo/relegation logic failed
     Sentry.captureMessage(`Post-promotion validation: ${playerClubId} not found in ${newPlayerDiv}, adding manually`);
-    if (!newDivisionClubs[newPlayerDiv]) newDivisionClubs[newPlayerDiv] = [];
-    newDivisionClubs[newPlayerDiv].push(playerClubId);
+    // Copy before appending — newDivisionClubs is a shallow spread of
+    // state.divisionClubs, so this division's array may still be the
+    // store's own array; pushing in place would mutate live state.
+    newDivisionClubs[newPlayerDiv] = [...(newDivisionClubs[newPlayerDiv] || []), playerClubId];
   }
 
   // Track promotion/relegation in season history
@@ -497,7 +503,10 @@ function finalizeSeason(
   const newSeason = season + 1;
   resetSeasonGrowth();
 
-  if (state.activeLoans.length > 0) get().processLoanReturns();
+  // Force-return EVERY active loan (not just elapsed ones): the turnover
+  // set() below wipes activeLoans, so an unexpired loan left in place would
+  // silently become a free permanent transfer for the borrowing club.
+  if (state.activeLoans.length > 0) get().processLoanReturns(true);
   // Loan cleanup is folded into the main season turnover set() below to avoid an extra re-render
 
   // Merge loan-return club updates (playerIds, wageBills) into inputClubs
@@ -766,8 +775,13 @@ function finalizeSeason(
   }
 
   // ── Position-based season rewards: budget bonuses scaled by league prize money ──
-  // Higher league position → bigger share of prize pool → more transfer budget next season
-  for (const [leagueId, clubIds] of Object.entries(newDivisionClubs)) {
+  // Higher league position → bigger share of prize pool → more transfer budget next season.
+  // Iterate the COMPLETED season's memberships (state.divisionClubs), not the
+  // post-turnover newDivisionClubs: building the table from last season's
+  // fixtures with next season's memberships ranked every promoted club last
+  // (zero rows) — a champion got ~2% of the league above's pool instead of
+  // 30% of the pool for the league it actually won.
+  for (const [leagueId, clubIds] of Object.entries(state.divisionClubs)) {
     const lg = LEAGUES.find(l => l.id === leagueId);
     if (!lg || !lg.prizeMoney) continue;
     const table = buildLeagueTable(state.divisionFixtures[leagueId] || [], clubIds);
@@ -777,8 +791,9 @@ function finalizeSeason(
       const clubId = table[i].clubId;
       const club = newClubs[clubId];
       if (!club) continue;
-      // Winner gets ~30% of prize pool, last place gets ~2%
-      const positionRatio = 1 - (i / (totalClubs - 1));
+      // Winner gets ~30% of prize pool, last place gets ~2%.
+      // Math.max guards a single-club division (0/0 → NaN budget).
+      const positionRatio = 1 - (i / Math.max(1, totalClubs - 1));
       const share = 0.02 + positionRatio * 0.28; // 2% to 30%
       const bonus = Math.round(lg.prizeMoney * share);
       // Also add a small reputation boost for top half, decline for bottom
@@ -819,8 +834,8 @@ function finalizeSeason(
   const newDivisionTables: Record<string, LeagueTableEntry[]> = buildAllDivisionTables(newDivisionFixtures, newDivisionClubs);
   const newFixtures = newDivisionFixtures[newPlayerDivision];
   const newLeagueTable = newDivisionTables[newPlayerDivision];
-  const newCup = generateCupDraw(leagueClubIds);
-  const newLeagueCup = generateLeagueCupDraw(leagueClubIds);
+  const newCup = generateCupDraw(leagueClubIds, leagueTotalWeeks);
+  const newLeagueCup = generateLeagueCupDraw(leagueClubIds, leagueTotalWeeks);
   const newFriendlies = generateFriendlies(state.playerClubId, leagueClubIds);
 
   // Generate continental tournaments based on the top-tier league table
@@ -875,13 +890,13 @@ function finalizeSeason(
   let newConferenceCup: import('@/types/game').ContinentalTournamentState | null = null;
 
   if (champQ.qualifiers.length >= 8) {
-    newChampionsCup = generateContinentalDraw('champions_cup', newSeason, champQ.qualifiers, allVirtualClubs, playerClubId, updatedCoefficients);
+    newChampionsCup = generateContinentalDraw('champions_cup', newSeason, champQ.qualifiers, allVirtualClubs, playerClubId, updatedCoefficients, leagueTotalWeeks);
   }
   if (shieldQ.qualifiers.length >= 8) {
-    newShieldCup = generateContinentalDraw('shield_cup', newSeason, shieldQ.qualifiers, allVirtualClubs, playerClubId, updatedCoefficients);
+    newShieldCup = generateContinentalDraw('shield_cup', newSeason, shieldQ.qualifiers, allVirtualClubs, playerClubId, updatedCoefficients, leagueTotalWeeks);
   }
   if (confQ.qualifiers.length >= 8) {
-    newConferenceCup = generateContinentalDraw('conference_cup', newSeason, confQ.qualifiers, allVirtualClubs, playerClubId, updatedCoefficients);
+    newConferenceCup = generateContinentalDraw('conference_cup', newSeason, confQ.qualifiers, allVirtualClubs, playerClubId, updatedCoefficients, leagueTotalWeeks);
   }
 
   // Domestic Super Cup: last season's league winner vs cup winner
@@ -931,9 +946,12 @@ function finalizeSeason(
   // block is to purge external transfer-market players whose listings rotated
   // out, which the new set still catches (those players are never in
   // freeAgentIds).
+  // National-team pool/squad members are exempt — they are often clubless
+  // (clubId === '') but must survive between tournament years, otherwise
+  // poolPlayerIds dangles and the pool silently empties.
   const newFreeAgentSet = new Set(freeAgentIds);
   for (const [pid, p] of Object.entries(newPlayers)) {
-    if (p.clubId === '' && !newFreeAgentSet.has(pid)) {
+    if (p.clubId === '' && !newFreeAgentSet.has(pid) && !ntPoolIds.has(pid)) {
       delete newPlayers[pid];
     }
   }
@@ -1126,7 +1144,20 @@ function finalizeSeason(
     const cupWon = state.cup.winner === playerClubId;
     const myEntry = state.leagueTable.find(e => e.clubId === playerClubId);
     const hasLost = myEntry ? myEntry.lost > 0 : false;
-    if (checkChallengeComplete(endChallenge.scenarioId, history.position, cupWon, [...state.seasonHistory, history], hasLost)) {
+    // extraData drives 'fortress' (unbeaten at home all season), 'goal-machine'
+    // (100+ league goals) and 'promotion-express' (reached tier 1 — judged on
+    // the POST-turnover division). These checks always returned false before
+    // because no call site passed the data they require.
+    const challengeExtra = {
+      homeUnbeaten: !state.fixtures.some(m => m.played && m.homeClubId === playerClubId && m.homeGoals < m.awayGoals),
+      leagueGoals: myEntry?.goalsFor || 0,
+      divisionId: newPlayerDivision,
+      // 'great-escape' judges the relegation zone of the division the season
+      // was PLAYED in (pre-turnover) — newPlayerDivision can be a different
+      // league with a different team count after relegation/promotion.
+      seasonDivisionId: playerDiv,
+    };
+    if (checkChallengeComplete(endChallenge.scenarioId, history.position, cupWon, [...state.seasonHistory, history], hasLost, challengeExtra)) {
       endChallenge = { ...endChallenge, completed: true };
       const scenario = CHALLENGES.find(c => c.id === endChallenge!.scenarioId);
       newMessages = addMsg(newMessages, { week: 1, season: newSeason, type: 'board', title: 'Challenge Complete!', body: `Congratulations! You completed the "${scenario?.name}" challenge! ${scenario?.icon || ''}` });
@@ -1154,7 +1185,19 @@ function finalizeSeason(
       }
     }
   }
-  if (sponsorSeasonEnd.messages) newMessages = sponsorSeasonEnd.messages;
+  if (sponsorSeasonEnd.messages) {
+    // processSponsorSeasonEnd builds its list from the pre-endSeason message
+    // snapshot. Assigning it wholesale discarded every message queued earlier
+    // this endSeason (promotion/relegation, Ballon d'Or, qualification, youth
+    // intake, NT retirements…) — players only ever saw the sponsor messages.
+    // Merge just the NEW sponsor messages instead, mirroring the budget-delta
+    // merge above. addMsg prepends, so iterate in reverse to keep their order.
+    const priorIds = new Set(state.messages.map(m => m.id));
+    const sponsorNew = sponsorSeasonEnd.messages.filter(m => !priorIds.has(m.id));
+    for (let i = sponsorNew.length - 1; i >= 0; i--) {
+      newMessages = addMsg(newMessages, sponsorNew[i]);
+    }
+  }
 
   // Drop last season's youth prospects that were never promoted to a senior squad.
   // The academy is reassigned to the fresh intake below, so their Player records would
@@ -1287,8 +1330,16 @@ function finalizeSeason(
       const surviving = new Set(state.clubs[playerClubId]?.playerIds || []);
       const pruned: Record<string, number> = {};
       for (const [key, fam] of Object.entries(state.pairFamiliarity || {})) {
-        const [a, b] = key.split('-');
-        if (surviving.has(a) && surviving.has(b)) pruned[key] = fam;
+        // Keys are `${idA}-${idB}` where the ids THEMSELVES contain hyphens
+        // (crypto.randomUUID). A naive split('-') yielded fragments of the
+        // first UUID that never matched a real id, so every entry was pruned
+        // and all built-up chemistry silently reset each season. Try each
+        // hyphen as the separator instead.
+        let keep = false;
+        for (let i = key.indexOf('-'); i !== -1; i = key.indexOf('-', i + 1)) {
+          if (surviving.has(key.slice(0, i)) && surviving.has(key.slice(i + 1))) { keep = true; break; }
+        }
+        if (keep) pruned[key] = fam;
       }
       return pruned;
     })(),
@@ -1410,9 +1461,29 @@ function finalizeSeason(
       messages: tournamentMsg,
       currentScreen: showPicker ? 'national-squad-picker' : 'international-tournament',
     });
+    // The post-season tail (career processing + autosave) is DEFERRED until
+    // the tournament completes — advanceInternationalWeekImpl calls
+    // runPostSeasonTail then. It must NOT re-run endSeasonImpl: the season
+    // rollover above has already been committed.
     return;
   }
 
+  runPostSeasonTail(set, get, season);
+}
+
+/**
+ * Post-season tail: career-mode end-of-season processing (manager aging,
+ * sacking, contract expiry, reputation) plus the closing autosave.
+ *
+ * Runs inline at the end of `finalizeSeason` in a normal season. When an
+ * international tournament intercepts the season end, `finalizeSeason`
+ * returns early (the rollover is already committed by then) and
+ * `advanceInternationalWeekImpl` calls this once the tournament completes.
+ * Calling `endSeasonImpl` again at that point would end the brand-new
+ * season a second time — double aging, double contract decrement, and
+ * promotion/relegation decided off an all-zero table.
+ */
+export function runPostSeasonTail(set: Set, get: Get, completedSeason: number) {
   // Career mode: end-of-season processing (aging, sacking, contract, reputation)
   {
     const cs = get();
@@ -1504,6 +1575,13 @@ function finalizeSeason(
 
         // Promotion/relegation reputation
         const leagueInfo = LEAGUES.find(l => l.id === cs.playerDivision);
+        // Relegation zone size: upper tiers relegate to a real lower division
+        // (relegationSpots); the bottom tier replaces its worst clubs with
+        // freshly generated ones (replacedSlots). Either counts as relegation.
+        // Also used by the avoid_relegation contract bonus below.
+        const relegationCount = leagueInfo
+          ? (leagueInfo.relegationSpots > 0 ? leagueInfo.relegationSpots : leagueInfo.replacedSlots)
+          : 0;
         if (leagueInfo) {
           const teamCount = leagueInfo.teamCount;
           // Promotion: finished in an auto-promotion slot. Keyed on promotionSpots
@@ -1515,10 +1593,6 @@ function finalizeSeason(
             cm.promotionsWon += 1;
             cm.reputationScore = Math.min(REP_MAX, cm.reputationScore + REP_PROMOTION);
           }
-          // Relegation: finished in the bottom zone. Upper tiers relegate to a real
-          // lower division (relegationSpots); the bottom tier replaces its worst clubs
-          // with freshly generated ones (replacedSlots). Either counts as relegation.
-          const relegationCount = leagueInfo.relegationSpots > 0 ? leagueInfo.relegationSpots : leagueInfo.replacedSlots;
           if (relegationCount > 0 && latestHistory.position > teamCount - relegationCount) {
             cm.reputationScore = Math.max(REP_MIN, cm.reputationScore + REP_RELEGATION);
           }
@@ -1542,7 +1616,10 @@ function finalizeSeason(
             if (b.condition === 'top_half' && leagueInfo && latestHistory.position <= leagueInfo.teamCount / 2) met = true;
             if (b.condition === 'promotion' && cm.promotionsWon > (cs.careerManager?.promotionsWon || 0)) met = true;
             if (b.condition === 'cup_win' && cs.cup.winner === cs.playerClubId) met = true;
-            if (b.condition === 'avoid_relegation' && leagueInfo && latestHistory.position <= leagueInfo.teamCount - leagueInfo.replacedSlots) met = true;
+            // Uses relegationCount (relegationSpots with replacedSlots fallback) —
+            // replacedSlots alone is 0 in upper tiers, which paid the bonus even
+            // when the club was actually relegated.
+            if (b.condition === 'avoid_relegation' && leagueInfo && latestHistory.position <= leagueInfo.teamCount - relegationCount) met = true;
             if (met) bonusPayout += b.amount;
             return met ? { ...b, met: true } : b;
           })};
@@ -1551,7 +1628,7 @@ function finalizeSeason(
             const bonusState = get();
             const bonusClub = bonusState.clubs[bonusState.playerClubId];
             const bonusMsg = addMsg(bonusState.messages, {
-              week: TOTAL_WEEKS, season, type: 'general',
+              week: TOTAL_WEEKS, season: completedSeason, type: 'general',
               title: 'Contract Bonuses Paid',
               body: `The club paid £${(bonusPayout / 1000).toFixed(0)}k in manager performance bonuses this season. Your personal wealth is now £${((cm.personalWealth) / 1000).toFixed(0)}k.`,
             });
@@ -1567,7 +1644,7 @@ function finalizeSeason(
 
         // Manager of the Season (overachievement ≥ 3 positions)
         if (expectedPos - latestHistory.position >= 3) {
-          cm.awardsWon = [...cm.awardsWon, { type: 'manager_of_season', season, divisionId: cs.playerDivision }];
+          cm.awardsWon = [...cm.awardsWon, { type: 'manager_of_season', season: completedSeason, divisionId: cs.playerDivision }];
           cm.reputationScore = Math.min(REP_MAX, cm.reputationScore + 15);
         }
       }

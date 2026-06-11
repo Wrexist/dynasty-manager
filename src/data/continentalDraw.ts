@@ -10,7 +10,7 @@ import { ALL_LEAGUES, CLUBS_BY_LEAGUE, ALL_CLUBS_DATA } from './leagues';
 import {
   CONTINENTAL_GROUPS, CONTINENTAL_TEAMS_PER_GROUP,
   CONTINENTAL_TOTAL_TEAMS,
-  CONTINENTAL_GROUP_WEEKS, GROUP_FIXTURE_TEMPLATE,
+  getCompetitionCalendar, GROUP_FIXTURE_TEMPLATE,
 } from '@/config/continental';
 import { shuffle, safeRandomUUID } from '@/utils/helpers';
 import { getSeedingScore } from '@/utils/continentalCoefficients';
@@ -22,7 +22,9 @@ import { getLeagueRankings, type RankedLeague } from '@/utils/leagueRanking';
 function buildVirtualClubsForLeague(leagueId: string): VirtualClub[] {
   const clubs = CLUBS_BY_LEAGUE[leagueId] || [];
   const league = ALL_LEAGUES.find(l => l.id === leagueId);
-  return clubs
+  // Copy before sorting — sorting CLUBS_BY_LEAGUE in place permanently
+  // reorders shared module data for every later consumer.
+  return [...clubs]
     .sort((a, b) => b.reputation - a.reputation)
     .map(c => ({
       id: c.id,
@@ -239,7 +241,9 @@ export function generateContinentalDraw(
   virtualClubs: Record<string, VirtualClub>,
   playerClubId: string,
   coefficients?: Record<string, ContinentalCoefficient>,
+  totalWeeks?: number,
 ): ContinentalTournamentState {
+  const groupWeeks = getCompetitionCalendar(totalWeeks).groupWeeks;
   // Sort by coefficient-blended seeding score (falls back to reputation if no coefficients)
   const coeffs = coefficients || {};
   const sorted = [...qualifierIds].sort((a, b) => {
@@ -292,7 +296,7 @@ export function generateContinentalDraw(
         matches.push({
           id: safeRandomUUID(),
           matchday: md + 1,
-          week: CONTINENTAL_GROUP_WEEKS[md],
+          week: groupWeeks[md],
           homeClubId: clubIds[hi],
           awayClubId: clubIds[ai],
           played: false,

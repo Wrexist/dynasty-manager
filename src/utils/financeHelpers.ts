@@ -10,6 +10,7 @@ import {
   STADIUM_INCOME_PER_LEVEL,
   POSITION_PRIZE_PER_RANK,
   POSITION_PRIZE_MAX_RANK,
+  POSITION_PRIZE_TIER_SCALE,
   SCOUTING_COST_PER_ASSIGNMENT,
   FAN_MOOD_BASE,
   FAN_MOOD_SCALE,
@@ -18,6 +19,7 @@ import { hasPerk } from '@/utils/managerPerks';
 import { SPONSOR_SLOTS } from '@/config/sponsorship';
 import { calculateWeeklyMerchRevenue, getMerchOperatingCost } from '@/utils/merchandise';
 import { getEffectiveStadiumLevel } from '@/utils/facilities';
+import { LEAGUES } from '@/data/league';
 
 import type { Club, LeagueTableEntry, FacilitiesState, ManagerProgression, SponsorDeal, MerchState, LeagueId, Player, StaffMember } from '@/types/game';
 
@@ -32,6 +34,23 @@ export interface FinanceBreakdown {
   totalIncome: number;
   totalExpenses: number;
   net: number;
+}
+
+/**
+ * League-position prize money — single source of truth, used by BOTH the
+ * weekAdvance income application (the money actually paid) and the finance
+ * breakdown display, so the two can never drift apart again.
+ *
+ * Max prize rank derives from the actual division size (tableSize + 1) so
+ * every position earns ≥1 rank of prize in 18- and 24-team divisions too;
+ * POSITION_PRIZE_MAX_RANK (20-team baseline) is only the no-table fallback.
+ * The result is scaled by league tier so lower divisions pay proportionally
+ * less (unknown tiers use the tier-4 scale).
+ */
+export function getLeaguePositionPrize(tablePos: number, tableSize: number, tier?: number): number {
+  const maxPrizeRank = tableSize > 0 ? tableSize + 1 : POSITION_PRIZE_MAX_RANK;
+  const tierScale = POSITION_PRIZE_TIER_SCALE[tier ?? -1] ?? POSITION_PRIZE_TIER_SCALE[4];
+  return Math.round(Math.max(0, maxPrizeRank - tablePos) * POSITION_PRIZE_PER_RANK * tierScale);
 }
 
 /** Simple weekly income estimate (matchday + commercial) */
@@ -70,21 +89,24 @@ export function getFinanceBreakdown(opts: {
 
   const playerTableIdx = leagueTable.findIndex(e => e.clubId === club.id);
   const playerTablePos = playerTableIdx >= 0 ? playerTableIdx + 1 : leagueTable.length;
-  // Max prize rank derives from the actual division size (teamCount + 1) so
-  // every position earns ≥1 rank of prize in 18- and 24-team divisions too.
-  // POSITION_PRIZE_MAX_RANK (20-team baseline) is only the no-table fallback.
-  const maxPrizeRank = leagueTable.length > 0 ? leagueTable.length + 1 : POSITION_PRIZE_MAX_RANK;
-  const positionPrize = Math.max(0, (maxPrizeRank - playerTablePos)) * POSITION_PRIZE_PER_RANK;
+  const leagueTier = LEAGUES.find(l => l.id === (division ?? club.divisionId))?.tier;
+  const positionPrize = getLeaguePositionPrize(playerTablePos, leagueTable.length, leagueTier);
 
   const sponsorIncome = sponsorDeals ? sponsorDeals.reduce((sum, d) => sum + d.weeklyPayment, 0) : 0;
   const filledSlots = sponsorDeals ? sponsorDeals.length : 0;
   const totalSlots = SPONSOR_SLOTS.length;
 
-  // Merchandise: use strategic system if available, otherwise fallback
-  const merchandiseIncome = merchandise && players && division
+  // Merchandise: use strategic system if available, otherwise fallback.
+  // calculateWeeklyMerchRevenue returns NET of operating costs (that net is
+  // what weekAdvance actually credits), so the breakdown shows gross income
+  // (net + ops) on the income side and the ops cost as an expense line —
+  // the displayed net stays identical to the money actually applied.
+  const merchandiseNet = merchandise && players && division
     ? calculateWeeklyMerchRevenue(merchandise, club, players, division, managerProgression)
     : 0;
-  const merchOperatingCost = merchandise ? getMerchOperatingCost(merchandise.activeProductLines) : 0;
+  const merchOperatingCost = merchandise && players && division
+    ? getMerchOperatingCost(merchandise.activeProductLines) : 0;
+  const merchandiseGross = merchandiseNet + merchOperatingCost;
 
   const income: FinanceLineItem[] = [
     { label: 'Matchday', amount: matchdayIncome },
@@ -92,7 +114,7 @@ export function getFinanceBreakdown(opts: {
     { label: 'Stadium', amount: stadiumIncome },
     { label: 'League Position', amount: positionPrize },
     { label: `Sponsorship (${filledSlots}/${totalSlots})`, amount: sponsorIncome },
-    { label: 'Merchandise', amount: merchandiseIncome },
+    { label: 'Merchandise', amount: merchandiseGross },
   ];
 
   const staffWages = staffMembers.reduce((sum, s) => sum + s.wage, 0);

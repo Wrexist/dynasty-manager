@@ -54,7 +54,7 @@ describe.skipIf(!RUN)('FA pool diagnostic: CP fcId lifecycle', () => {
       const seasonNumber = store.getState().season;
 
       for (let w = 0; w < TOTAL_WEEKS; w++) {
-        store.getState().advanceWeek();
+        await store.getState().advanceWeek();
         store.getState().playCurrentMatch();
         if (w % 10 === 9) await tick();
       }

@@ -245,16 +245,25 @@ describe('training', () => {
       expect(result.attacking).toBe(4);
     });
 
-    it('preserves non-dominant streaks when dominant changes', () => {
+    it('decays non-dominant streaks instead of wiping or preserving them', () => {
       // Previously a single off-week tipped the dominant module and silently
-      // wiped a 5-week attacking streak. The new behaviour preserves all
-      // existing streaks so an accidental swap doesn't undo weeks of work —
-      // the user must explicitly retrain a different module sustainably to
-      // overwrite the old streak.
+      // wiped a 5-week attacking streak; an interim fix preserved them
+      // forever (ratcheting every module to max). The current behaviour
+      // decays non-dominant streaks by STREAK_DECAY_PER_WEEK: an accidental
+      // one-week swap costs a point, sustained focus elsewhere drains it.
       const schedule = { mon: 'defending' as const, tue: 'defending' as const, wed: 'defending' as const, thu: 'fitness' as const, fri: 'fitness' as const };
       const result = updateStreaks({ attacking: 5 }, schedule);
       expect(result.defending).toBe(1);
-      expect(result.attacking).toBe(5);
+      expect(result.attacking).toBe(4);
+    });
+
+    it('drains a non-dominant streak to zero (and drops it) under sustained focus elsewhere', () => {
+      const schedule = { mon: 'defending' as const, tue: 'defending' as const, wed: 'defending' as const, thu: 'fitness' as const, fri: 'fitness' as const };
+      let streaks = updateStreaks({ attacking: 2 }, schedule); // attacking 2 → 1
+      expect(streaks.attacking).toBe(1);
+      streaks = updateStreaks(streaks, schedule); // attacking 1 → 0, dropped
+      expect(streaks.attacking).toBeUndefined();
+      expect(streaks.defending).toBe(2);
     });
 
     it('starts at 1 for new dominant module', () => {

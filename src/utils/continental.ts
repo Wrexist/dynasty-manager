@@ -3,7 +3,7 @@
  */
 import type { ContinentalTournamentState, ContinentalKnockoutTie, VirtualClub, Club, Player, FormationType } from '@/types/game';
 import {
-  CONTINENTAL_R16_WEEKS, CONTINENTAL_QF_WEEKS, CONTINENTAL_SF_WEEKS, CONTINENTAL_FINAL_WEEK,
+  getCompetitionCalendar,
   CONTINENTAL_EXTRA_TIME_GOAL_CHANCE,
   CONTINENTAL_PENALTY_KICKS, CONTINENTAL_PENALTY_CONVERSION,
 } from '@/config/continental';
@@ -165,7 +165,9 @@ export function getCurrentMatchday(tournament: ContinentalTournamentState): numb
 export function generateKnockoutFromGroups(
   tournament: ContinentalTournamentState,
   playerClubId: string,
+  totalWeeks?: number,
 ): ContinentalTournamentState {
+  const calendar = getCompetitionCalendar(totalWeeks);
   const winners: string[] = [];
   const runnersUp: string[] = [];
 
@@ -195,8 +197,8 @@ export function generateKnockoutFromGroups(
       awayClubId: runnersUp[runnerIdx],
       leg1Played: false, leg1HomeGoals: 0, leg1AwayGoals: 0,
       leg2Played: false, leg2HomeGoals: 0, leg2AwayGoals: 0,
-      week1: CONTINENTAL_R16_WEEKS[0],
-      week2: CONTINENTAL_R16_WEEKS[1],
+      week1: calendar.r16Weeks[0],
+      week2: calendar.r16Weeks[1],
       winnerId: null,
     });
   }
@@ -382,7 +384,9 @@ export function isKnockoutRoundComplete(tournament: ContinentalTournamentState, 
 export function advanceKnockoutRound(
   tournament: ContinentalTournamentState,
   playerClubId: string,
+  totalWeeks?: number,
 ): ContinentalTournamentState {
+  const calendar = getCompetitionCalendar(totalWeeks);
   const currentRound = tournament.currentRound as 'R16' | 'QF' | 'SF' | 'F';
   const currentTies = tournament.knockoutTies.filter(t => t.round === currentRound);
   const winners = currentTies.map(t => t.winnerId!).filter(Boolean);
@@ -400,9 +404,9 @@ export function advanceKnockoutRound(
   const nextRoundMap: Record<string, 'QF' | 'SF' | 'F'> = { R16: 'QF', QF: 'SF', SF: 'F' };
   const nextRound = nextRoundMap[currentRound];
   const weekMap: Record<string, readonly [number, number] | number> = {
-    QF: CONTINENTAL_QF_WEEKS,
-    SF: CONTINENTAL_SF_WEEKS,
-    F: CONTINENTAL_FINAL_WEEK,
+    QF: calendar.qfWeeks,
+    SF: calendar.sfWeeks,
+    F: calendar.finalWeek,
   };
   const weeks = weekMap[nextRound];
 

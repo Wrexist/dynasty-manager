@@ -13,7 +13,7 @@ import { FlagIcon } from '@/components/game/FlagIcon';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, ArrowRightLeft, Check, AlertCircle, Zap, ArrowRight, Wand2, ArrowUp } from 'lucide-react';
 import { MAX_SUBSTITUTIONS } from '@/config/matchEngine';
-import { PITCH_COLORS } from '@/config/ui';
+import { PITCH_COLORS, SLOT_Y_RANGE, SLOT_Y_BOTTOM } from '@/config/ui';
 import { LineupPlayerTile } from './LineupPlayerTile';
 import { BenchStrip } from './BenchStrip';
 import { YellowCardIcon, RedCardIcon } from './PlayerAvatar';
@@ -75,10 +75,11 @@ const VP_H = 59;
 const VP_W = 68;
 
 export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, homeGoals, awayGoals, homeShortName, awayShortName, isPlayerHome, preSelectedOutId, forceMode, onDismissWithoutSub, injuredPlayerIds, playerGoals, opponentGoals, playerCardStatus, playerMatchStats, subbedOnPlayerIds }: SubstitutionSheetProps) {
-  const { players, matchSubsUsed, week } = useGameStore(useShallow(s => ({
+  const { players, matchSubsUsed, week, halfTimeState } = useGameStore(useShallow(s => ({
     players: s.players,
     matchSubsUsed: s.matchSubsUsed,
     week: s.week,
+    halfTimeState: s.halfTimeState,
   })));
   const makeMatchSub = useGameStore(s => s.makeMatchSub);
   const updateLineup = useGameStore(s => s.updateLineup);
@@ -136,7 +137,9 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
     });
   }, [playerClub, selectedOutId, selectedSlotPos, players]);
 
-  // Smart Sub recommendation — delegated to utility
+  // Smart Sub recommendation — delegated to utility. Live in-match fitness
+  // and send-offs come from the carried HalfState so recommendations don't
+  // run on stale pre-match fitness or suggest replacing a red-carded player.
   const smartSub = useMemo(() => {
     if (!playerClub) return null;
     return computeSmartSub({
@@ -149,8 +152,10 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
       playerGoals,
       opponentGoals,
       injuredPlayerIds,
+      matchFitness: halfTimeState?.playerFitness,
+      sentOffIds: halfTimeState?.sentOff,
     });
-  }, [playerClub, lineup, slots, players, week, matchMinute, playerGoals, opponentGoals, injuredPlayerIds]);
+  }, [playerClub, lineup, slots, players, week, matchMinute, playerGoals, opponentGoals, injuredPlayerIds, halfTimeState]);
 
   if (!playerClub) return null;
 
@@ -181,12 +186,19 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
 
   const handleConfirm = () => {
     if (!selectedOutId || !selectedInId) return;
-    makeMatchSub(selectedOutId, selectedInId, matchMinute);
+    // Read names before the sub mutates lineup/subs state.
+    const outP = players[selectedOutId];
+    const inP = players[selectedInId];
+    const result = makeMatchSub(selectedOutId, selectedInId, matchMinute);
+    if (!result.success) {
+      // The store rejected the sub (max subs / stale out-player / suspended
+      // or re-entering in-player) — surface why instead of a false success.
+      toast.error(result.message || 'Substitution could not be made.');
+      return;
+    }
     hapticMedium();
     // Confirm the sub landed — manual subs were previously the only sub
     // path with no feedback toast (Smart Sub / Optimize both toast).
-    const outP = players[selectedOutId];
-    const inP = players[selectedInId];
     if (outP && inP) successToast(`Sub made: ${inP.lastName} on for ${outP.lastName}.`);
     setSelectedOutId(null);
     setSelectedInId(null);
@@ -227,7 +239,9 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
           const player = playerId ? players[playerId] : null;
           if (!player) return null;
           const cxSvg = 2 + (slot.x / 100) * 64;
-          const cySvg = 95 - (slot.y / 100) * 39;
+          // Shared Y-mapping with LineupEditor (config/ui) so the formation
+          // shape in-match matches the tactics screen exactly.
+          const cySvg = SLOT_Y_BOTTOM - (slot.y / 100) * SLOT_Y_RANGE;
           const left = (cxSvg / VP_W) * 100;
           const top = ((cySvg - VP_Y) / VP_H) * 100;
 
@@ -324,6 +338,16 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
 
               // Run full lineup optimizer (computes best XI + bench from entire squad)
               const result = autoFillTeam();
+
+              // autoFillTeam is Pro-gated in the store and returns
+              // { changes: 0, proRequired: true } for free users — falling
+              // through to the generic branches toasted a factually false
+              // "Lineup already optimal" with no upsell.
+              if (result.proRequired) {
+                toast.info('Optimize Lineup is a Dynasty Pro feature — upgrade from the Shop after the match.');
+                setAutoFilling(false);
+                return;
+              }
 
               if (result.undersized) {
                 toast.warning(result.undersizedDetail);
@@ -711,8 +735,8 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
                 <Button variant="outline" className="flex-1" onClick={handleCancel}>
                   <ArrowLeft className="w-3.5 h-3.5 mr-1.5" /> Back
                 </Button>
-                <Button className="flex-1 gap-1.5" onClick={handleConfirm}>
-                  <Check className="w-3.5 h-3.5" /> Confirm Sub
+                <Button className="flex-1 gap-1.5" onClick={handleConfirm} disabled={subsRemaining <= 0}>
+                  <Check className="w-3.5 h-3.5" /> {subsRemaining <= 0 ? 'No Subs Left' : 'Confirm Sub'}
                 </Button>
               </div>
             </motion.div>

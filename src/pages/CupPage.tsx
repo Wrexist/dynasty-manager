@@ -14,8 +14,12 @@ function TieCard({ tie, playerClubId, clubs }: { tie: CupTie; playerClubId: stri
   const home = clubs[tie.homeClubId];
   const away = clubs[tie.awayClubId];
   const isPlayerMatch = tie.homeClubId === playerClubId || tie.awayClubId === playerClubId;
+  // Legacy fallback for played ties without winnerId: only highlight a winner
+  // when the score actually decides one — a level score used to (wrongly)
+  // name the away team the winner.
   const winnerId = tie.played
-    ? (tie.winnerId || (tie.homeGoals > tie.awayGoals ? tie.homeClubId : tie.awayClubId))
+    ? (tie.winnerId || (tie.homeGoals > tie.awayGoals ? tie.homeClubId
+        : tie.awayGoals > tie.homeGoals ? tie.awayClubId : null))
     : null;
 
   return (
@@ -178,11 +182,12 @@ function RoundSection({ round, ties, playerClubId, clubs, isCurrent, allPlayed, 
 }
 
 const CupPage = () => {
-  const { cup, clubs, playerClubId, week } = useGameStore(useShallow(s => ({
+  const { cup, clubs, playerClubId, week, totalWeeks } = useGameStore(useShallow(s => ({
     cup: s.cup,
     clubs: s.clubs,
     playerClubId: s.playerClubId,
     week: s.week,
+    totalWeeks: s.totalWeeks,
   })));
 
   // Progression indicator: count rounds remaining to the final
@@ -234,7 +239,7 @@ const CupPage = () => {
               : playerEliminated
                 ? 'You have been eliminated'
                 : cup.currentRound
-                  ? `Current: ${getRoundName(cup.currentRound)} · Week ${getCupWeek(cup.currentRound)}`
+                  ? `Current: ${getRoundName(cup.currentRound)} · Week ${getCupWeek(cup.currentRound, totalWeeks)}`
                   : 'Complete'}
           </p>
         </div>
@@ -285,7 +290,7 @@ const CupPage = () => {
 
         const allPlayed = ties.every(t => t.played);
         const isCurrent = cup.currentRound === round;
-        const roundWeek = getCupWeek(round as CupRound);
+        const roundWeek = getCupWeek(round as CupRound, totalWeeks);
 
         return (
           <motion.div

@@ -73,26 +73,30 @@ async function hydrateOneSlot(slot: number): Promise<void> {
   const mainKey = STORAGE_KEYS.saveSlot(slot);
   const backupKey = STORAGE_KEYS.saveSlotBackup(slot);
   const [idbMain, idbBackup] = await Promise.all([idbGet(mainKey), idbGet(backupKey)]);
+  // Never clobber a save written in-session while this async hydrate was in
+  // flight — the memory cache is newer than whatever IDB held at app start,
+  // and overwriting it would also rotate the stale data into the backup slot
+  // on the next write (burning both recovery layers).
   if (idbMain) {
-    memSlots[slot] = idbMain;
+    if (memSlots[slot] === null) memSlots[slot] = idbMain;
   } else {
     // Fallback: migrate localStorage → IDB so this user's existing save
     // survives the 5 MB quota going forward.
     try {
       const ls = localStorage.getItem(mainKey);
       if (ls) {
-        memSlots[slot] = ls;
+        if (memSlots[slot] === null) memSlots[slot] = ls;
         void idbPut(mainKey, ls);
       }
     } catch { /* storage unavailable */ }
   }
   if (idbBackup) {
-    memSlotBackups[slot] = idbBackup;
+    if (memSlotBackups[slot] === null) memSlotBackups[slot] = idbBackup;
   } else {
     try {
       const ls = localStorage.getItem(backupKey);
       if (ls) {
-        memSlotBackups[slot] = ls;
+        if (memSlotBackups[slot] === null) memSlotBackups[slot] = ls;
         void idbPut(backupKey, ls);
       }
     } catch { /* storage unavailable */ }
@@ -265,6 +269,13 @@ export const STORAGE_KEYS = {
    *  save so the user only answers once. Values: 'granted' | 'denied'. Missing
    *  key = never asked → show the consent screen. */
   ANALYTICS_CONSENT: 'dynasty-analytics-consent',
+  /** localStorage: crash-durable record of a paid consumable pack purchase
+   *  that has not yet been granted in-game. Written BEFORE the StoreKit
+   *  charge, cleared after the pack is opened and the save flushed.
+   *  Consumables never appear in RevenueCat entitlements, so if the app
+   *  dies between charge and grant this marker is the ONLY evidence that
+   *  money changed hands — PacksPage reconciles it on mount. */
+  PENDING_PACK_CREDIT: 'dynasty-pending-pack-credit',
   /** localStorage: latest "What's New" release the user has opened. Stored as
    *  a plain version string (e.g. "1.0.1"). Used to gate the "NEW" badge on
    *  the main-menu + Settings tiles so it clears once they tap through. */
@@ -285,6 +296,13 @@ export const STORAGE_KEYS = {
    *  showing on every subsequent New Game tap. Returning Pro users skip
    *  the check entirely. */
   SUBSCRIBE_ONBOARDING_SEEN: 'dynasty-subscribe-onboarding-seen',
+  /** localStorage flag: the first-week welcome tutorial has been shown
+   *  (Dashboard). Removed by Settings → Replay Tutorial. */
+  WELCOME_SHOWN: 'dynasty-welcome-shown',
+  /** localStorage flag prefix: per-screen page hints
+   *  (`dynasty-hint-<screen>-shown`, see PageHint.tsx). Cleared as a prefix
+   *  by Settings → Replay Tutorial. */
+  HINT_PREFIX: 'dynasty-hint-',
 } as const;
 
 /** Read the latest "What's New" version the user has acknowledged. */
@@ -329,6 +347,47 @@ export function readAppReviewState(): AppReviewState {
 export function writeAppReviewState(state: AppReviewState): void {
   try { localStorage.setItem(STORAGE_KEYS.APP_REVIEW_STATE, JSON.stringify(state)); }
   catch { /* storage unavailable — non-fatal */ }
+}
+
+/** Crash-durable marker for a paid-but-not-yet-granted consumable pack.
+ *  See STORAGE_KEYS.PENDING_PACK_CREDIT for the lifecycle. */
+export interface PendingPackCredit {
+  productId: string;
+  tierKey: string;
+  timestamp: number;
+  /** Save slot that initiated the purchase — the credit is only reconciled
+   *  into the same save, so a crash + loading a different slot can't grant
+   *  the pack to the wrong career. */
+  slot: number;
+}
+
+export function readPendingPackCredit(): PendingPackCredit | null {
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem(STORAGE_KEYS.PENDING_PACK_CREDIT);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (typeof parsed?.productId !== 'string' || typeof parsed?.tierKey !== 'string') return null;
+    return {
+      productId: parsed.productId,
+      tierKey: parsed.tierKey,
+      timestamp: typeof parsed.timestamp === 'number' ? parsed.timestamp : 0,
+      slot: typeof parsed.slot === 'number' ? parsed.slot : 0,
+    };
+  } catch (err) {
+    if (raw !== null) breadcrumbCorruption('readPendingPackCredit', raw, err);
+    return null;
+  }
+}
+
+export function writePendingPackCredit(credit: PendingPackCredit): void {
+  try { localStorage.setItem(STORAGE_KEYS.PENDING_PACK_CREDIT, JSON.stringify(credit)); }
+  catch { /* storage unavailable — the purchase still proceeds, just without crash durability */ }
+}
+
+export function clearPendingPackCredit(): void {
+  try { localStorage.removeItem(STORAGE_KEYS.PENDING_PACK_CREDIT); }
+  catch { /* storage unavailable */ }
 }
 
 /** Analytics consent state. `'unknown'` surfaces the first-launch prompt. */

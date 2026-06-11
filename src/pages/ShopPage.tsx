@@ -116,15 +116,17 @@ const ShopPage = () => {
     setPurchasing(true);
     setPurchaseError(null);
     try {
-      const granted = await purchaseViaSDK(productId);
-      // granted=[] means the user cancelled the native StoreKit dialog.
-      if (granted.length === 0) {
+      const result = await purchaseViaSDK(productId);
+      // Only an explicit cancel means no charge. A completed purchase with an
+      // empty granted list (entitlement-mapping lag) still proceeds to the
+      // sync below, which re-reads entitlements from RevenueCat.
+      if (result.cancelled) {
         track('purchase_cancelled', { productId });
         infoToast('Purchase Cancelled', 'No charge was made.');
         setPurchaseProduct(null);
         return;
       }
-      restoreEntitlements(granted);
+      restoreEntitlements(result.granted);
       await syncAfterPurchase();
       hapticMedium();
       track('purchase_completed', { productId });
@@ -269,7 +271,7 @@ const ShopPage = () => {
             onClick={() => handlePurchase('com.dynastymanager.pack.manager')}
             className="mt-3 w-full py-2 rounded-lg bg-[hsl(var(--gold))] text-[hsl(30,20%,10%)] font-bold text-sm active:scale-[0.98] transition-transform"
           >
-            Claim — {priceFor('com.dynastymanager.pack.manager')}
+            Get — {priceFor('com.dynastymanager.pack.manager')}
           </button>
         </GlassPanel>
       )}

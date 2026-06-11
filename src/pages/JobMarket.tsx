@@ -47,7 +47,12 @@ const JobMarket = () => {
   };
 
   const handleAcceptOffer = (offerId: string) => {
-    respondToJobOffer(offerId, true);
+    // Accepting at/after retirement age no-ops in the store — surface it
+    // instead of leaving a button that appears to do nothing.
+    const result = respondToJobOffer(offerId, true);
+    if (result && !result.success) {
+      errorToast('Cannot Accept', result.message || 'This offer can no longer be accepted.');
+    }
   };
 
   const handleDeclineOffer = (offerId: string) => {
@@ -392,11 +397,16 @@ function OfferCard({
   const tableEntry = leagueTable?.find(e => e.clubId === offer.clubId);
   const leaguePosition = tableEntry ? leagueTable!.indexOf(tableEntry) + 1 : null;
 
+  // Slider ceiling — derived from the offer alone so the resync below can
+  // clamp against it (a board counter >= ~1.22x initial used to push the
+  // resynced value past the slider max, submitting an over-cap counter).
+  const maxSalary = Math.round((offer.initialSalary || offer.salary) * 1.4);
+
   // Re-sync local state only when the offer identity or negotiation round changes;
   // intentionally excluding salary/length/bonuses so the user's in-flight counter
   // isn't clobbered by every parent re-render.
   useEffect(() => {
-    setCounterSalary(Math.round(offer.salary * 1.15));
+    setCounterSalary(Math.min(Math.round(offer.salary * 1.15), maxSalary));
     setCounterLength(offer.contractLength);
     setCounterBonuses(offer.bonuses.map(b => ({ ...b })));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -431,7 +441,6 @@ function OfferCard({
     ));
   };
 
-  const maxSalary = Math.round((offer.initialSalary || offer.salary) * 1.4);
   const minSalary = offer.salary;
   const sliderProgress = maxSalary > minSalary ? ((counterSalary - minSalary) / (maxSalary - minSalary)) * 100 : 0;
 

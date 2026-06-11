@@ -1,12 +1,14 @@
 import type { GameState } from '../storeTypes';
 import { addMsg, safeRandomUUID } from '@/utils/helpers';
-import type { LoanDeal, OutgoingLoanRequest } from '@/types/game';
+import type { Club, LoanDeal, OutgoingLoanRequest, Player } from '@/types/game';
 import { TOTAL_WEEKS, LOAN_MIN_WEEKS_BEFORE_RECALL, MAX_SQUAD_SIZE, MIN_SQUAD_SIZE } from '@/config/gameBalance';
 import {
   LOAN_REQUEST_BASE_ACCEPT, LOAN_REQUEST_LINEUP_PENALTY,
   LOAN_REQUEST_WAGE_BONUS, LOAN_REQUEST_AGE_BONUS,
   LOAN_REQUEST_COUNTER_CHANCE, LOAN_TERMINATION_MORALE_PENALTY,
 } from '@/config/transfers';
+import { getLoanBuyFee } from '@/utils/transferOffers';
+import { checkChallengeBlock } from './transferSlice';
 import { placePlayerInClub } from '../helpers/rosterOps';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
@@ -25,6 +27,105 @@ const safeWageInverse = (wage: number | undefined, splitPct: number | undefined)
   const w = Number.isFinite(wage as number) ? (wage as number) : 0;
   const s = Number.isFinite(splitPct as number) ? (splitPct as number) : 50;
   return Math.round((w * (100 - s)) / 100);
+};
+
+/** A loan referencing a club that no longer exists (deleted during promotion/
+ *  relegation turnover) cannot be executed — `{...state.clubs[id]}` on a
+ *  missing club would crash on `.playerIds`. Mirror processLoanReturns'
+ *  missing-club handling: drop the dead loan record, clean the surviving
+ *  club's roster, and release the player to free agency. */
+const dropBrokenLoan = (
+  state: GameState,
+  loan: LoanDeal,
+  player: Player,
+  set: Set,
+): { success: false; message: string } => {
+  const newClubs = { ...state.clubs };
+  for (const cid of [loan.fromClubId, loan.toClubId]) {
+    const c = newClubs[cid];
+    if (!c) continue;
+    newClubs[cid] = {
+      ...c,
+      playerIds: c.playerIds.filter(id => id !== loan.playerId),
+      lineup: c.lineup.filter(id => id !== loan.playerId),
+      subs: c.subs.filter(id => id !== loan.playerId),
+    };
+  }
+  set({
+    clubs: newClubs,
+    activeLoans: state.activeLoans.filter(l => l.id !== loan.id),
+    players: { ...state.players, [loan.playerId]: { ...player, onLoan: false, loanFromClubId: undefined, loanToClubId: undefined, clubId: '' } },
+    freeAgents: state.freeAgents.includes(loan.playerId) ? state.freeAgents : [...state.freeAgents, loan.playerId],
+  });
+  return { success: false, message: 'The partner club no longer exists — the loan has been voided and the player released.' };
+};
+
+/** Execute an inbound loan (owner club → user club). Shared by requestLoan's
+ *  accepted branch and acceptLoanCounter so the two paths can't drift.
+ *  `outgoingLoanRequests` is the post-consumption request list to persist. */
+const executeLoanIn = (
+  state: GameState,
+  set: Set,
+  player: Player,
+  ownerClub: Club,
+  userClub: Club,
+  terms: { duration: number; wageSplit: number; recallClause: boolean; obligatoryBuyFee?: number },
+  outgoingLoanRequests: OutgoingLoanRequest[],
+): void => {
+  const loan: LoanDeal = {
+    id: safeRandomUUID(),
+    playerId: player.id,
+    fromClubId: player.clubId,
+    toClubId: state.playerClubId,
+    startWeek: state.week,
+    startSeason: state.season,
+    durationWeeks: terms.duration,
+    wageSplit: terms.wageSplit,
+    recallClause: terms.recallClause,
+    obligatoryBuyFee: terms.obligatoryBuyFee,
+  };
+
+  const updatedPlayer = {
+    ...player,
+    onLoan: true,
+    loanFromClubId: player.clubId,
+    loanToClubId: state.playerClubId,
+    clubId: state.playerClubId,
+  };
+
+  const updatedOwner = { ...ownerClub };
+  updatedOwner.playerIds = updatedOwner.playerIds.filter(id => id !== player.id);
+  updatedOwner.lineup = updatedOwner.lineup.filter(id => id !== player.id);
+  updatedOwner.subs = updatedOwner.subs.filter(id => id !== player.id);
+  updatedOwner.wageBill = Math.max(0, updatedOwner.wageBill - safeWageShare(player.wage, terms.wageSplit));
+
+  const updatedUser = { ...userClub };
+  updatedUser.playerIds = [...updatedUser.playerIds, player.id];
+  updatedUser.wageBill += safeWageShare(player.wage, terms.wageSplit);
+
+  const newMessages = addMsg(state.messages, {
+    week: state.week, season: state.season, type: 'transfer',
+    title: `${player.lastName} Loan Agreed`,
+    body: `${player.firstName} ${player.lastName} has joined on loan from ${ownerClub.name} for ${terms.duration} weeks. Wage split: ${terms.wageSplit}%.${terms.recallClause ? ' Recall clause included.' : ''}`,
+    playerId: player.id,
+  });
+
+  const incomingLoanClubs = placePlayerInClub(
+    { ...state.clubs, [updatedOwner.id]: updatedOwner, [updatedUser.id]: updatedUser },
+    updatedUser.id,
+    player.id,
+  );
+  set({
+    players: { ...state.players, [player.id]: updatedPlayer },
+    clubs: incomingLoanClubs,
+    activeLoans: [...state.activeLoans, loan],
+    messages: newMessages,
+    outgoingLoanRequests,
+    // Drop any live market listing — leaving it would let the user buy a
+    // player who is mid-loan at full price (fee paid, player later handed
+    // back to the lender when the stale LoanDeal expires).
+    transferMarket: state.transferMarket.filter(l => l.playerId !== player.id),
+  });
 };
 
 export const createLoanSlice = (set: Set, get: Get) => ({
@@ -134,6 +235,7 @@ export const createLoanSlice = (set: Set, get: Get) => ({
 
     const player = state.players[loan.playerId];
     if (!player) return { success: false, message: 'Player not found.' };
+    if (!state.clubs[loan.fromClubId] || !state.clubs[loan.toClubId]) return dropBrokenLoan(state, loan, player, set);
 
     const fromClub = { ...state.clubs[loan.fromClubId] };
     const toClub = { ...state.clubs[loan.toClubId] };
@@ -202,6 +304,12 @@ export const createLoanSlice = (set: Set, get: Get) => ({
       return { success: true, message: 'Loan offer rejected.' };
     }
 
+    // Mirror loanOut's guard: don't let the squad drop below a fieldable size.
+    const userClubData = state.clubs[state.playerClubId];
+    if (!userClubData || userClubData.playerIds.length <= MIN_SQUAD_SIZE) {
+      return { success: false, message: `Cannot loan out — squad would drop below minimum size (${MIN_SQUAD_SIZE}).` };
+    }
+
     // Accept loan — player goes to the offering club
     const loan: LoanDeal = {
       id: safeRandomUUID(),
@@ -261,16 +369,21 @@ export const createLoanSlice = (set: Set, get: Get) => ({
     return { success: true, message: `${player.firstName} ${player.lastName} loaned to ${fromClub.name}.` };
   },
 
-  processLoanReturns: () => {
+  processLoanReturns: (forceAll?: boolean) => {
     const state = get();
     if (state.activeLoans.length === 0) return;
 
     const returning: LoanDeal[] = [];
     const remaining: LoanDeal[] = [];
 
+    // forceAll: season end terminates every loan regardless of remaining
+    // duration. finalizeSeason wipes activeLoans afterwards, so any loan
+    // left in `remaining` there would silently become a free permanent
+    // transfer — the borrower keeps the player and the parent club never
+    // gets them back.
     for (const loan of state.activeLoans) {
       const elapsed = (state.season - loan.startSeason) * TOTAL_WEEKS + (state.week - loan.startWeek);
-      if (elapsed >= loan.durationWeeks) {
+      if (forceAll || elapsed >= loan.durationWeeks) {
         returning.push(loan);
       } else {
         remaining.push(loan);
@@ -282,6 +395,7 @@ export const createLoanSlice = (set: Set, get: Get) => ({
     const newPlayers = { ...state.players };
     const newClubs = { ...state.clubs };
     let newMessages = state.messages;
+    let newFreeAgents = state.freeAgents;
 
     for (const loan of returning) {
       const player = newPlayers[loan.playerId];
@@ -296,7 +410,10 @@ export const createLoanSlice = (set: Set, get: Get) => ({
           newClubs[toClub.id] = toClub;
         }
         if (player) {
+          // Release to free agency — clubId '' alone leaves the player
+          // invisible and unsignable forever (orphan).
           newPlayers[loan.playerId] = { ...player, onLoan: false, loanFromClubId: undefined, loanToClubId: undefined, clubId: '' };
+          if (!newFreeAgents.includes(loan.playerId)) newFreeAgents = [...newFreeAgents, loan.playerId];
         }
         continue;
       }
@@ -333,13 +450,8 @@ export const createLoanSlice = (set: Set, get: Get) => ({
           body: `${player.firstName} ${player.lastName}'s loan at ${toClub.name} has been made permanent for £${(loan.obligatoryBuyFee / 1e6).toFixed(1)}M.`,
         });
       } else {
-        // Return player to parent club
-        if (!newClubs[loan.fromClubId] || !newClubs[loan.toClubId]) {
-          // Club was removed during promotion/relegation — release player as free agent
-          const freeP = { ...player, onLoan: false, loanFromClubId: undefined, loanToClubId: undefined, clubId: '' };
-          newPlayers[loan.playerId] = freeP;
-          continue;
-        }
+        // Return player to parent club. (Both clubs are guaranteed present
+        // here — the loop-top guard already handled the missing-club case.)
         const fromClub = { ...newClubs[loan.fromClubId] };
         const toClub = { ...newClubs[loan.toClubId] };
 
@@ -373,7 +485,7 @@ export const createLoanSlice = (set: Set, get: Get) => ({
       }
     }
 
-    set({ players: newPlayers, clubs: newClubs, activeLoans: remaining, messages: newMessages });
+    set({ players: newPlayers, clubs: newClubs, activeLoans: remaining, messages: newMessages, freeAgents: newFreeAgents });
   },
 
   buyLoanedPlayer: (loanId: string) => {
@@ -384,9 +496,11 @@ export const createLoanSlice = (set: Set, get: Get) => ({
 
     const player = state.players[loan.playerId];
     if (!player) return { success: false, message: 'Player not found.' };
+    if (!state.clubs[loan.fromClubId] || !state.clubs[loan.toClubId]) return dropBrokenLoan(state, loan, player, set);
 
-    // Fee: obligatory buy fee if set, otherwise 1.2x player value
-    const fee = loan.obligatoryBuyFee || Math.round(player.value * 1.2);
+    // Fee: obligatory buy fee if set, otherwise LOAN_BUY_FEE_MULTIPLIER × value
+    // (shared util — TransferPage quotes the same number).
+    const fee = getLoanBuyFee(loan, player);
     const buyerClub = { ...state.clubs[state.playerClubId] };
     if (fee > buyerClub.budget) return { success: false, message: `Insufficient funds — need £${(fee / 1e6).toFixed(1)}M.` };
 
@@ -443,6 +557,7 @@ export const createLoanSlice = (set: Set, get: Get) => ({
 
     const player = state.players[loan.playerId];
     if (!player) return { success: false, message: 'Player not found.' };
+    if (!state.clubs[loan.fromClubId] || !state.clubs[loan.toClubId]) return dropBrokenLoan(state, loan, player, set);
 
     const fromClub = { ...state.clubs[loan.fromClubId] };
     const toClub = { ...state.clubs[loan.toClubId] };
@@ -540,13 +655,16 @@ export const createLoanSlice = (set: Set, get: Get) => ({
     const userClub = state.clubs[state.playerClubId];
     if (!ownerClub || !userClub) return { outcome: 'rejected' as const, message: 'Invalid club.' };
 
-    // Dedupe: block a fresh request when a counter is still pending (the
-    // user must accept or cancel it first). Previously the slice checked
-    // for status='pending' but NEVER wrote any entries to
-    // `outgoingLoanRequests`, so this guard never fired and users could
-    // spam the same loan request repeatedly.
-    const existing = state.outgoingLoanRequests.find(r => r.playerId === playerId && r.status === 'counter');
-    if (existing) return { outcome: 'rejected' as const, message: 'You already have a pending counter-offer for this player — accept or cancel it first.' };
+    // Loan-ins count as signings — challenge restrictions (noTransfers /
+    // youthOnly) and the squad cap apply just like executeTransfer.
+    const challengeBlock = checkChallengeBlock(state, player.age);
+    if (challengeBlock) return { outcome: 'rejected' as const, message: challengeBlock };
+    if (userClub.playerIds.length >= MAX_SQUAD_SIZE) return { outcome: 'rejected' as const, message: `Squad is full (${MAX_SQUAD_SIZE} players). Release or sell a player first.` };
+
+    // A fresh request supersedes any pending counter for the same player
+    // (Revise → Submit flow) — consume it instead of dead-ending. Accepting
+    // a counter as-is goes through acceptLoanCounter.
+    const requestsBase = state.outgoingLoanRequests.filter(r => !(r.playerId === playerId && r.status === 'counter'));
 
     // Evaluate acceptance
     const eval_ = get().evaluateLoanRequest(playerId, duration, wageSplit);
@@ -556,56 +674,7 @@ export const createLoanSlice = (set: Set, get: Get) => ({
 
     if (roll < eval_.acceptChance) {
       // Accepted — execute the loan
-      const loan: LoanDeal = {
-        id: safeRandomUUID(),
-        playerId,
-        fromClubId: player.clubId,
-        toClubId: state.playerClubId,
-        startWeek: state.week,
-        startSeason: state.season,
-        durationWeeks: duration,
-        wageSplit,
-        recallClause,
-        obligatoryBuyFee,
-      };
-
-      const updatedPlayer = {
-        ...player,
-        onLoan: true,
-        loanFromClubId: player.clubId,
-        loanToClubId: state.playerClubId,
-        clubId: state.playerClubId,
-      };
-
-      const updatedOwner = { ...ownerClub };
-      updatedOwner.playerIds = updatedOwner.playerIds.filter(id => id !== playerId);
-      updatedOwner.lineup = updatedOwner.lineup.filter(id => id !== playerId);
-      updatedOwner.subs = updatedOwner.subs.filter(id => id !== playerId);
-      updatedOwner.wageBill = Math.max(0, updatedOwner.wageBill - safeWageShare(player.wage, wageSplit));
-
-      const updatedUser = { ...userClub };
-      updatedUser.playerIds = [...updatedUser.playerIds, playerId];
-      updatedUser.wageBill += safeWageShare(player.wage, wageSplit);
-
-      const newMessages = addMsg(state.messages, {
-        week: state.week, season: state.season, type: 'transfer',
-        title: `${player.lastName} Loan Agreed`,
-        body: `${player.firstName} ${player.lastName} has joined on loan from ${ownerClub.name} for ${duration} weeks. Wage split: ${wageSplit}%.${recallClause ? ' Recall clause included.' : ''}`,
-        playerId,
-      });
-
-      const incomingLoanClubs = placePlayerInClub(
-        { ...state.clubs, [updatedOwner.id]: updatedOwner, [updatedUser.id]: updatedUser },
-        updatedUser.id,
-        playerId,
-      );
-      set({
-        players: { ...state.players, [playerId]: updatedPlayer },
-        clubs: incomingLoanClubs,
-        activeLoans: [...state.activeLoans, loan],
-        messages: newMessages,
-      });
-
+      executeLoanIn(state, set, player, ownerClub, userClub, { duration, wageSplit, recallClause, obligatoryBuyFee }, requestsBase);
       return { outcome: 'accepted' as const, message: `${ownerClub.name} have agreed to loan ${player.firstName} ${player.lastName} to your club!` };
     }
 
@@ -631,7 +700,7 @@ export const createLoanSlice = (set: Set, get: Get) => ({
         counterWageSplit,
         counterDuration,
       };
-      set({ outgoingLoanRequests: [...state.outgoingLoanRequests, counterRequest] });
+      set({ outgoingLoanRequests: [...requestsBase, counterRequest] });
 
       return {
         outcome: 'counter' as const,
@@ -659,11 +728,44 @@ export const createLoanSlice = (set: Set, get: Get) => ({
       season: state.season,
       status: 'rejected',
     };
-    const prunedRequests = state.outgoingLoanRequests.filter(r =>
+    const prunedRequests = requestsBase.filter(r =>
       !(r.playerId === playerId && r.status === 'rejected'),
     );
     set({ outgoingLoanRequests: [...prunedRequests, rejectedRequest] });
     return { outcome: 'rejected' as const, message: `${ownerClub.name} have rejected your loan request for ${player.lastName}. The club considers the player too important.` };
+  },
+
+  /** Accept a pending counter-offer at the club's counter terms. Executes the
+   *  loan deterministically (the owner proposed these terms) and clears the
+   *  counter record. Re-calling requestLoan here used to trip the dedupe
+   *  guard, making counter acceptance always fail. */
+  acceptLoanCounter: (requestId: string) => {
+    const state = get();
+    const req = state.outgoingLoanRequests.find(r => r.id === requestId);
+    if (!req || req.status !== 'counter') return { success: false, message: 'Counter-offer not found.' };
+    if (!state.transferWindowOpen) return { success: false, message: 'The transfer window is closed.' };
+
+    const player = state.players[req.playerId];
+    if (!player) return { success: false, message: 'Player not found.' };
+    if (player.onLoan || player.clubId === state.playerClubId) return { success: false, message: 'Player is no longer available for loan.' };
+
+    const ownerClub = state.clubs[player.clubId];
+    const userClub = state.clubs[state.playerClubId];
+    if (!ownerClub || !userClub) return { success: false, message: 'Invalid club.' };
+
+    const challengeBlock = checkChallengeBlock(state, player.age);
+    if (challengeBlock) return { success: false, message: challengeBlock };
+    if (userClub.playerIds.length >= MAX_SQUAD_SIZE) return { success: false, message: `Squad is full (${MAX_SQUAD_SIZE} players). Release or sell a player first.` };
+
+    const duration = req.counterDuration ?? req.durationWeeks;
+    const wageSplit = Math.max(0, Math.min(100, req.counterWageSplit ?? req.wageSplit));
+
+    executeLoanIn(
+      state, set, player, ownerClub, userClub,
+      { duration, wageSplit, recallClause: req.recallClause, obligatoryBuyFee: req.obligatoryBuyFee },
+      state.outgoingLoanRequests.filter(r => r.id !== requestId),
+    );
+    return { success: true, message: `${ownerClub.name} have agreed to loan ${player.firstName} ${player.lastName} to your club!` };
   },
 
   cancelLoanRequest: (requestId: string) => {

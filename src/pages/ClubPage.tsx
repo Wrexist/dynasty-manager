@@ -11,13 +11,14 @@ import { PremiumCheck } from '@/components/game/icons/PremiumCheck';
 import { useSquadSummary } from '@/hooks/useGameSelectors';
 
 const ClubPage = () => {
-  const { playerClubId, clubs, season, boardConfidence, boardObjectives, fanMood } = useGameStore(useShallow(s => ({
+  const { playerClubId, clubs, season, boardConfidence, boardObjectives, fanMood, facilities } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId,
     clubs: s.clubs,
     season: s.season,
     boardConfidence: s.boardConfidence,
     boardObjectives: s.boardObjectives,
     fanMood: s.fanMood,
+    facilities: s.facilities,
   })));
   const setScreen = useGameStore(s => s.setScreen);
   // One-pass selector for all 5 squad stats. Runs unconditionally (Rules of
@@ -166,9 +167,12 @@ const ClubPage = () => {
           <ChevronRight className="w-4 h-4 text-muted-foreground" />
         </div>
         <div className="space-y-2">
+          {/* Read the facilities slice, not the static club fields — upgrades
+              write only to the slice, so club.facilities/youthRating freeze at
+              their day-one values. */}
           {[
-            { label: 'Training Ground', value: club.facilities },
-            { label: 'Youth Academy', value: club.youthRating },
+            { label: 'Training Ground', value: facilities.trainingLevel },
+            { label: 'Youth Academy', value: facilities.youthLevel },
           ].map(f => (
             <div key={f.label} className="flex items-center gap-3">
               <span className="text-sm text-foreground flex-1">{f.label}</span>

@@ -202,7 +202,12 @@ export function generateFixtures(clubIds: string[]): Match[] {
 export function generateDivisionFixtures(clubIds: string[], totalWeeks: number): Match[] {
   const fixtures = generateFixtures(clubIds);
   const n = clubIds.length;
-  const matchWeeks = 2 * (n - 1);
+  // Odd team counts use a bye placeholder: the circle method then runs n
+  // rounds per half (one team idle each round), so the calendar spans 2n
+  // weeks, not 2(n-1). Computing 2(n-1) here made 13-team aus / 19-team tur
+  // schedule their last two rounds beyond totalWeeks — the season force-
+  // ended with one full round of fixtures unplayed and unplayable.
+  const matchWeeks = n % 2 !== 0 ? 2 * n : 2 * (n - 1);
 
   if (matchWeeks >= totalWeeks) return fixtures;
 

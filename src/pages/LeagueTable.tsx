@@ -58,6 +58,10 @@ const LeagueTable = () => {
 
   const playerRowRef = useRef<HTMLTableRowElement>(null);
   const scrolledRef = useRef(false);
+  // Deferred league init — keep the timeout id so unmount cancels the heavy
+  // initializeLeague call instead of letting it run against a dead component.
+  const initTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => () => clearTimeout(initTimerRef.current), []);
   const scrollToPlayer = useCallback(() => {
     if (playerRowRef.current && !scrolledRef.current) {
       playerRowRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -147,6 +151,9 @@ const LeagueTable = () => {
   }, [searchQuery]);
 
   const handleLeagueSelect = (leagueId: string) => {
+    // In-flight guard — selecting twice while an init is pending would queue
+    // duplicate heavy initializeLeague calls.
+    if (isLoading) return;
     setPickerOpen(false);
     setSearchQuery('');
     scrolledRef.current = false;
@@ -155,7 +162,7 @@ const LeagueTable = () => {
     if (!divisionClubs[leagueId]?.length && leagueId !== playerDivision) {
       setIsLoading(true);
       // Use setTimeout to let the UI update before the heavy computation
-      setTimeout(() => {
+      initTimerRef.current = setTimeout(() => {
         initializeLeague(leagueId);
         setSelectedDiv(leagueId);
         setIsLoading(false);
@@ -481,7 +488,7 @@ const LeagueTable = () => {
                         <div className="flex items-center gap-1 min-w-0">
                           <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: club?.color }} />
                           <span className={cn('text-xs font-medium truncate', isPlayer ? 'text-primary font-bold' : 'text-foreground')}>
-                            {getClubDisplayName(club?.name || '?')}
+                            {club?.name || '?'}{/* full name — the CSS `truncate` above ellipsizes cleanly; getClubDisplayName's 7-char hard slice produced "Bournem" */}
                           </span>
                         </div>
                       </td>

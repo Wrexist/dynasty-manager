@@ -60,6 +60,12 @@ const MatchPrep = () => {
 
   const { match, isHome, opponent: oppClub, competition } = useCurrentMatch();
   const oppClubId = match ? (isHome ? match.awayClubId : match.homeClubId) : '';
+  // Continental opponents from foreign leagues are "virtual" — they exist only
+  // as name/colour records (state.virtualClubs) with no players, lineup, or
+  // league-table entry. Comparison widgets would render false data for them
+  // (0 OVR, empty threats, bottom of *your* league table), so we swap those
+  // panels for an honest "limited intel" presentation instead.
+  const isVirtualOpp = !!match && !!oppClubId && !clubs[oppClubId];
   const oppPos = useLeaguePosition(oppClubId);
   const myPos = useLeaguePosition();
   const inPlayoffs = (seasonPhase as string) === 'playoffs';
@@ -170,12 +176,32 @@ const MatchPrep = () => {
           <div className="text-center flex-1">
             <div className="w-10 h-10 rounded-full mx-auto mb-1" style={{ backgroundColor: oppClub.color }} />
             <p className="text-xs font-bold text-foreground">{oppClub.shortName}</p>
-            <p className="text-[10px] text-muted-foreground">{oppPos}{typeof oppPos === 'number' ? getSuffix(oppPos) : ''}</p>
+            {/* A virtual opponent has no entry in the player's league table —
+                showing a position would place them bottom of the wrong league. */}
+            <p className="text-[10px] text-muted-foreground">
+              {isVirtualOpp ? 'Foreign league' : `${oppPos}${typeof oppPos === 'number' ? getSuffix(oppPos) : ''}`}
+            </p>
           </div>
         </div>
       </GlassPanel>
 
+      {/* Continental opponent — no squad data to compare against */}
+      {isVirtualOpp && (
+        <GlassPanel className="p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <Info className="w-4 h-4 text-primary" />
+            <h3 className="text-sm font-semibold text-foreground">Continental Opponent</h3>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Limited intel — {oppClub.name} play in a foreign league, so detailed
+            squad ratings, form, and key threats aren't available. Expect a
+            competitive side and prepare your strongest XI.
+          </p>
+        </GlassPanel>
+      )}
+
       {/* Team Rating Comparison */}
+      {!isVirtualOpp && (
       <GlassPanel className="p-4">
         <div className="flex items-center justify-between mb-3">
           {/* My team OVR */}
@@ -269,6 +295,7 @@ const MatchPrep = () => {
           })}
         </div>
       </GlassPanel>
+      )}
 
       {/* Derby Banner */}
       {derbyIntensity > 0 && derbyName && (
@@ -290,6 +317,7 @@ const MatchPrep = () => {
       )}
 
       {/* Form Comparison */}
+      {!isVirtualOpp && (
       <GlassPanel className="p-4">
         <h3 className="text-sm font-semibold text-foreground mb-2">Recent Form</h3>
         <div className="space-y-2">
@@ -317,6 +345,7 @@ const MatchPrep = () => {
           </div>
         </div>
       </GlassPanel>
+      )}
 
       {/* Head-to-Head Record */}
       {(() => {
@@ -367,12 +396,14 @@ const MatchPrep = () => {
             <p className="text-xs font-bold text-foreground">{myFormation}</p>
             <p className="text-[10px] text-muted-foreground mt-0.5">{myHint}</p>
           </div>
+          {!isVirtualOpp && (
           <div className="bg-muted/30 rounded-lg p-2.5">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Opponent Formation</p>
             <p className="text-xs font-bold text-foreground">{oppFormation}</p>
             <p className="text-[10px] text-muted-foreground mt-0.5">{oppHint}</p>
           </div>
-          {myFormation !== oppFormation && (
+          )}
+          {!isVirtualOpp && myFormation !== oppFormation && (
             <div className="flex items-start gap-1.5 pt-1">
               <Info className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
               <p className="text-[10px] text-primary/80">
@@ -437,6 +468,7 @@ const MatchPrep = () => {
       )}
 
       {/* Opponent Key Players */}
+      {!isVirtualOpp && (
       <GlassPanel className="p-4">
         <h3 className="text-sm font-semibold text-foreground mb-2">Key Threats</h3>
         <div className="space-y-2">
@@ -456,6 +488,7 @@ const MatchPrep = () => {
           ))}
         </div>
       </GlassPanel>
+      )}
 
       {/* Fitness Warnings */}
       {fitnessWarnings.length > 0 && (
@@ -480,6 +513,7 @@ const MatchPrep = () => {
       )}
 
       {/* Squad Comparison */}
+      {!isVirtualOpp && (
       <GlassPanel className="p-4">
         <div className="flex items-center gap-2 mb-3">
           <Swords className="w-4 h-4 text-primary" />
@@ -509,6 +543,7 @@ const MatchPrep = () => {
           );
         })()}
       </GlassPanel>
+      )}
 
       {/* Lineup & Bench */}
       <GlassPanel className="p-4">

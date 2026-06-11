@@ -1,3 +1,4 @@
+import { memo, useMemo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 
 /**
@@ -10,9 +11,25 @@ import { motion, useReducedMotion } from 'framer-motion';
  *
  * All motion self-disables under the OS reduced-motion setting; the static
  * lighting still reads as a stadium so the scene never looks broken.
+ *
+ * Memoized: the overlay re-renders on every reveal tap / phase change, and
+ * re-rolling the mote randoms each pass teleported the infinite drift
+ * animations mid-flight.
  */
-export function PackStadium() {
+export const PackStadium = memo(function PackStadium() {
   const reduce = useReducedMotion();
+
+  // Ambient mote specs — rolled once per mount, not per render.
+  const motes = useMemo(() =>
+    Array.from({ length: 14 }).map((_, i) => ({
+      i,
+      left: 8 + Math.random() * 84,
+      size: 1.5 + Math.random() * 2.5,
+      dur: 9 + Math.random() * 9,
+      delay: Math.random() * 10,
+      rise: 50 + Math.random() * 40,
+    })),
+  []);
 
   // Distant floodlight banks — mirrored top-left / top-right.
   const banks = [
@@ -112,22 +129,15 @@ export function PackStadium() {
       ))}
 
       {/* Ambient floodlit motes drifting up through the light. */}
-      {!reduce && Array.from({ length: 14 }).map((_, i) => {
-        const left = 8 + Math.random() * 84;
-        const size = 1.5 + Math.random() * 2.5;
-        const dur = 9 + Math.random() * 9;
-        const delay = Math.random() * 10;
-        const rise = 50 + Math.random() * 40;
-        return (
-          <motion.span
-            key={`mote-${i}`}
-            className="absolute rounded-full"
-            style={{ left: `${left}%`, bottom: '8%', width: size, height: size, background: 'rgba(255,247,224,0.7)' }}
-            animate={{ y: ['0vh', `-${rise}vh`], opacity: [0, 0.8, 0] }}
-            transition={{ duration: dur, repeat: Infinity, ease: 'easeOut', delay }}
-          />
-        );
-      })}
+      {!reduce && motes.map(m => (
+        <motion.span
+          key={`mote-${m.i}`}
+          className="absolute rounded-full"
+          style={{ left: `${m.left}%`, bottom: '8%', width: m.size, height: m.size, background: 'rgba(255,247,224,0.7)' }}
+          animate={{ y: ['0vh', `-${m.rise}vh`], opacity: [0, 0.8, 0] }}
+          transition={{ duration: m.dur, repeat: Infinity, ease: 'easeOut', delay: m.delay }}
+        />
+      ))}
 
       {/* Edge vignette — keeps the eye on the centre of the frame. */}
       <div
@@ -136,4 +146,4 @@ export function PackStadium() {
       />
     </div>
   );
-}
+});

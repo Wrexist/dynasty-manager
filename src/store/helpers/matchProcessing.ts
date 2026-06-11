@@ -5,7 +5,7 @@ import { GOAL_EVENT_TYPES } from '@/config/matchEngine';
 import { getPlayerNarratives, getNarrativeBonus } from '@/utils/playerNarratives';
 import {
   FITNESS_DRAIN_PER_MATCH, FITNESS_MIN_POST_MATCH,
-  MORALE_WIN_CHANGE, MORALE_LOSS_CHANGE,
+  MORALE_WIN_CHANGE, MORALE_LOSS_CHANGE, NARRATIVE_MORALE_LOSS_REDUCTION_CAP,
   FORM_WIN_CHANGE, FORM_LOSS_CHANGE, FORM_DRAW_CHANGE,
   MATCH_INJURY_WEEKS_MIN, MATCH_INJURY_WEEKS_RANGE,
   RED_CARD_SUSPENSION_MIN, RED_CARD_SUSPENSION_RANGE,
@@ -33,6 +33,11 @@ export function processMatchResult(
   playerRatings: PlayerMatchRating[],
   getWeek: () => number,
   matchInjuries?: Record<string, InjuryDetails>,
+  /** Winner of a penalty shootout the player's club was part of. Cup results
+   *  keep their REAL drawn scoreline (no phantom +1 goal), so won/lost —
+   *  morale, board confidence, manager W/D/L, press context — must be
+   *  classified from the shootout outcome instead of the goals. */
+  shootoutWinnerId?: string | null,
 ) {
   const { clubs, players, playerClubId, messages, season } = state;
   const week = state.week;
@@ -114,8 +119,13 @@ export function processMatchResult(
 
   // Player club fitness/morale/form
   const isHome = match.homeClubId === playerClubId;
-  const won = isHome ? result.homeGoals > result.awayGoals : result.awayGoals > result.homeGoals;
-  const lost = isHome ? result.homeGoals < result.awayGoals : result.awayGoals < result.homeGoals;
+  const drawnOnGoals = result.homeGoals === result.awayGoals;
+  const won = shootoutWinnerId && drawnOnGoals
+    ? shootoutWinnerId === playerClubId
+    : (isHome ? result.homeGoals > result.awayGoals : result.awayGoals > result.homeGoals);
+  const lost = shootoutWinnerId && drawnOnGoals
+    ? shootoutWinnerId !== playerClubId
+    : (isHome ? result.homeGoals < result.awayGoals : result.awayGoals < result.homeGoals);
   const pc = clubs[playerClubId];
   if (!pc) return { newPlayers, updatedFixtures: state.fixtures.map(f => f.id === match.id ? result : f), leagueTable: [], confidence: state.boardConfidence || 50, newMessages: messages, managerStats: state.managerStats, playerRatings, won, lost, newMilestones: [] as CareerMilestone[], managerProgression: state.managerProgression, pairFamiliarity: newPairFamiliarity };
   const matchParticipants = new Set(participantIds);
@@ -130,6 +140,9 @@ export function processMatchResult(
     narrativeMoraleLossReduction += bonus.moraleLossReduction;
     narrativeTeamMoraleBoost += bonus.teamMoraleBoost;
   });
+  // Cap the loss-side reduction — mirrors the +5 cap on the win-side boost
+  // below; otherwise enough tagged veterans invert the defeat penalty.
+  narrativeMoraleLossReduction = Math.min(NARRATIVE_MORALE_LOSS_REDUCTION_CAP, narrativeMoraleLossReduction);
 
   pc.playerIds.forEach(pid => {
     if (newPlayers[pid]) {

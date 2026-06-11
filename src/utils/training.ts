@@ -14,7 +14,7 @@ import {
   TRAINING_INJURY_AGE_THRESHOLD, TRAINING_INJURY_AGE_FACTOR, TRAINING_INJURY_MORALE_THRESHOLD, TRAINING_INJURY_MORALE_FACTOR,
   TACTICAL_FAMILIARITY_GAIN_PER_DAY, TACTICAL_FAMILIARITY_DECAY, TACTICAL_FAMILIARITY_MAX, TACTICAL_FAMILIARITY_MIN,
   TRAINING_DRILLS,
-  STREAK_THRESHOLDS, STREAK_MULTIPLIERS, STREAK_MAX,
+  STREAK_THRESHOLDS, STREAK_MULTIPLIERS, STREAK_MAX, STREAK_DECAY_PER_WEEK,
   FITNESS_ZONE_GREEN, FITNESS_ZONE_YELLOW,
 } from '@/config/training';
 import { recomputePlayerValueOnly } from '@/utils/playerEconomics';
@@ -82,7 +82,11 @@ export function applyWeeklyTraining(
   // Apply attribute gains using weighted day contributions (respecting season growth cap)
   const gains: Partial<Record<keyof PlayerAttributes, number>> = {};
   const priorGrowth = seasonGrowthTracker[player.id] || 0;
-  if (priorGrowth < MAX_SEASON_GROWTH) {
+  // Training respects the same potential ceiling as natural development —
+  // without it a 30-year-old at 80/80 kept climbing +MAX_SEASON_GROWTH OVR
+  // every season, inflating values and making `potential` meaningless.
+  const atPotential = player.overall >= player.potential;
+  if (priorGrowth < MAX_SEASON_GROWTH && !atPotential) {
     for (const [attr, weightedDays] of Object.entries(attrDayWeights) as [keyof PlayerAttributes, number][]) {
       if (!weightedDays || weightedDays <= 0) continue;
 
@@ -108,7 +112,7 @@ export function applyWeeklyTraining(
   }
 
   // Independent individual training pass: gain chance for focus attributes NOT in team schedule
-  if (playerPlan && (seasonGrowthTracker[player.id] || 0) < MAX_SEASON_GROWTH) {
+  if (playerPlan && (seasonGrowthTracker[player.id] || 0) < MAX_SEASON_GROWTH && !atPotential) {
     const individualAttrs = MODULE_ATTR_MAP[playerPlan.focus] || [];
     const personalityMult = getTrainingMultiplier(player.personality);
     for (const attr of individualAttrs) {
@@ -231,21 +235,29 @@ export function getStreakMultiplier(streaks: TrainingStreaks | undefined, module
 }
 
 /** Update streak counters after a week: increment the dominant module's
- *  streak, preserve all other module streaks at their current count.
+ *  streak; every other module's streak decays by STREAK_DECAY_PER_WEEK
+ *  (floored at 0, and dropped from the map once drained).
  *
  *  Previously this returned `{ [dominant]: count+1 }` (a brand-new object
  *  with only the dominant module set), which silently zeroed every other
  *  streak the user had built up. A 6-week attacking streak vanished as
  *  soon as the user spent one mid-week day on defending and tipped the
  *  dominant module — even though the user never intended to abandon
- *  attacking. Preserving non-dominant streaks means an accidental swap
- *  no longer wipes meaningful progress; the dominant counter only resets
- *  when explicitly drained by sustained focus elsewhere. */
+ *  attacking. Gradual decay means an accidental one-week swap costs a
+ *  single point instead of the whole streak, while sustained focus
+ *  elsewhere genuinely drains it (so streaks can't ratchet to max on
+ *  every module simultaneously). */
 export function updateStreaks(currentStreaks: TrainingStreaks | undefined, schedule: TrainingState['schedule']): TrainingStreaks {
   const dominant = getDominantTrainingFocus(schedule);
   const previous = currentStreaks || {};
-  const currentCount = previous[dominant] || 0;
-  return { ...previous, [dominant]: Math.min(currentCount + 1, STREAK_MAX) };
+  const next: TrainingStreaks = {};
+  for (const [mod, count] of Object.entries(previous) as [TrainingModule, number][]) {
+    if (mod === dominant) continue;
+    const decayed = Math.max(0, (count || 0) - STREAK_DECAY_PER_WEEK);
+    if (decayed > 0) next[mod] = decayed;
+  }
+  next[dominant] = Math.min((previous[dominant] || 0) + 1, STREAK_MAX);
+  return next;
 }
 
 /** Get the current streak tier label */
@@ -342,11 +354,19 @@ interface TrainingPreview {
   streakBonus: number;
 }
 
-/** Preview expected training outcomes for the current week settings */
+/** Preview expected training outcomes for the current week settings.
+ *
+ * Mirrors the real gain formula in applyWeeklyTraining: per-attribute
+ * day-weight split (a module's days are shared across its attributes),
+ * squad-average diminishing returns, and squad-average personality
+ * multiplier. The previous version omitted all three and overstated the
+ * gain chance ~1.5-3x. `expectedGainPct` is the average per-attribute gain
+ * chance for the module's attributes. */
 export function getTrainingEffectivenessPreview(
   training: TrainingState,
   staffBonus: number,
   squadPlayers: Player[],
+  recoveryLevel: number = 0,
 ): TrainingPreview {
   const days = DAYS.map(d => training.schedule[d]);
   const moduleCounts: Partial<Record<TrainingModule, number>> = {};
@@ -356,9 +376,43 @@ export function getTrainingEffectivenessPreview(
   const staffMult = 1 + staffBonus * STAFF_BONUS_MULTIPLIER;
   const streakMult = getStreakMultiplier(training.streaks, getDominantTrainingFocus(training.schedule));
 
+  // Squad-average personality multiplier (applyWeeklyTraining uses each
+  // player's own; the squad mean is the honest preview equivalent).
+  const personalityMult = squadPlayers.length > 0
+    ? squadPlayers.reduce((s, p) => s + getTrainingMultiplier(p.personality), 0) / squadPlayers.length
+    : 1;
+
+  // Squad-average attribute value → diminishing-returns factor per attribute
+  const avgAttr = (attr: keyof PlayerAttributes): number => squadPlayers.length > 0
+    ? squadPlayers.reduce((s, p) => s + (p.attributes[attr] || 0), 0) / squadPlayers.length
+    : 70;
+  const diminishing = (attr: keyof PlayerAttributes): number =>
+    Math.max(0.05, (DIMINISHING_RETURNS_CEILING - avgAttr(attr)) / DIMINISHING_RETURNS_DIVISOR);
+
+  // Module-local per-attribute day weights (respecting drill selection),
+  // matching the aggregation in applyWeeklyTraining.
+  const moduleAttrWeights: Partial<Record<TrainingModule, Partial<Record<keyof PlayerAttributes, number>>>> = {};
+  for (const day of DAYS) {
+    const mod = training.schedule[day];
+    const weights = getDayAttrWeights(mod, training.drillSchedule?.[day]);
+    const acc = moduleAttrWeights[mod] || {};
+    for (const [attr, w] of Object.entries(weights)) {
+      acc[attr as keyof PlayerAttributes] = (acc[attr as keyof PlayerAttributes] || 0) + (w || 0);
+    }
+    moduleAttrWeights[mod] = acc;
+  }
+
   const moduleGainRates: TrainingPreview['moduleGainRates'] = [];
   for (const [mod, count] of Object.entries(moduleCounts) as [TrainingModule, number][]) {
-    const expectedGainPct = Math.min(100, BASE_GAIN_CHANCE * count * mult * staffMult * streakMult * 100);
+    const attrWeights = moduleAttrWeights[mod] || {};
+    const attrEntries = Object.entries(attrWeights) as [keyof PlayerAttributes, number][];
+    const perAttrChances = attrEntries
+      .filter(([, w]) => w > 0)
+      .map(([attr, w]) => BASE_GAIN_CHANCE * w * mult * staffMult * personalityMult * streakMult * diminishing(attr));
+    const avgChance = perAttrChances.length > 0
+      ? perAttrChances.reduce((s, c) => s + c, 0) / perAttrChances.length
+      : 0;
+    const expectedGainPct = Math.min(100, avgChance * 100);
     moduleGainRates.push({ module: mod, daysScheduled: count, expectedGainPct: Math.round(expectedGainPct * 10) / 10 });
   }
   moduleGainRates.sort((a, b) => b.daysScheduled - a.daysScheduled);
@@ -368,7 +422,8 @@ export function getTrainingEffectivenessPreview(
   const injuryRiskPct = Math.round(getInjuryRisk(training, avgAge) * 1000) / 10;
 
   const fitnessDays = moduleCounts['fitness'] || 0;
-  const fitnessImpact = fitnessDays * FITNESS_RECOVERY_PER_DAY + FITNESS_RECOVERY_BASE + INTENSITY_FITNESS_COST[training.intensity];
+  const recoveryBonus = recoveryLevel * RECOVERY_FITNESS_BONUS_PER_LEVEL;
+  const fitnessImpact = fitnessDays * FITNESS_RECOVERY_PER_DAY + FITNESS_RECOVERY_BASE + recoveryBonus + INTENSITY_FITNESS_COST[training.intensity];
 
   return {
     moduleGainRates,

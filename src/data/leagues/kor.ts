@@ -8,7 +8,10 @@ export const LEAGUE_INFO: LeagueInfo = {
   countryCode: 'KR',
   teamCount: 12,
   totalWeeks: 22,
-  replacedSlots: 0,
+  // Single-tier league: relegated clubs are replaced by procedurally
+  // generated newcomers (replacedSlots = relegationSpots) so the relegation
+  // zone shown in the table has a real consequence.
+  replacedSlots: 1,
   description: "South Korea's top professional football league, known for tactical discipline and a strong AFC pedigree.",
   difficulty: 'Medium',
   colorClass: 'text-red-400',

@@ -91,13 +91,26 @@ export const createCoreSlice = (set: Set, get: Get) => ({
     const next = id ? 'player-detail' as GameScreen : get().currentScreen;
     if (isMatchLocked(get(), next)) return;
     const redirect = getUnemployedRedirect(get(), next);
-    set({ selectedPlayerId: id, currentScreen: redirect ?? next });
+    const target = redirect ?? next;
+    // Record previousScreen like setScreen does (only when actually
+    // navigating) — back-navigation special-cases like
+    // `previousScreen === 'team-detail'` depend on it.
+    set(s => ({
+      selectedPlayerId: id,
+      currentScreen: target,
+      ...(target !== s.currentScreen ? { previousScreen: s.currentScreen } : {}),
+    }));
   },
   selectClub: (id: string | null) => {
     const next = id ? 'team-detail' as GameScreen : get().currentScreen;
     if (isMatchLocked(get(), next)) return;
     const redirect = getUnemployedRedirect(get(), next);
-    set({ selectedClubId: id, currentScreen: redirect ?? next });
+    const target = redirect ?? next;
+    set(s => ({
+      selectedClubId: id,
+      currentScreen: target,
+      ...(target !== s.currentScreen ? { previousScreen: s.currentScreen } : {}),
+    }));
   },
   markMessageRead: (id: string) => set(s => ({ messages: s.messages.map(m => m.id === id ? { ...m, read: true } : m) })),
   markAllRead: () => set(s => ({ messages: s.messages.map(m => ({ ...m, read: true })) })),

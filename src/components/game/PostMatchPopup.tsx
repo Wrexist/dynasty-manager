@@ -74,10 +74,9 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
     ? clubRatingsAll.reduce((sum, r) => sum + r.rating, 0) / clubRatingsAll.length
     : 0;
 
-  // MOTM: highest rated player from player's club
-  const clubRatings = matchPlayerRatings
-    .filter(r => players[r.playerId]?.clubId === playerClubId)
-    .sort((a, b) => b.rating - a.rating);
+  // MOTM: highest rated player from player's club (copy before sort — the
+  // unsorted array is reused for the team average above)
+  const clubRatings = [...clubRatingsAll].sort((a, b) => b.rating - a.rating);
   const motm = clubRatings[0];
   const motmPlayer = motm ? players[motm.playerId] : null;
 

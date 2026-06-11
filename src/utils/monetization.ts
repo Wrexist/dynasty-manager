@@ -11,8 +11,14 @@ import { COSMETIC_ITEMS, AD_REWARD_LIMITS, STARTER_KIT_WINDOW_MS, PRO_ONE_TIME_P
 
 /** Check if a subscription has expired */
 function isSubscriptionExpired(sub: SubscriptionInfo): boolean {
-  if (!sub.expiresAt) return false; // lifetime never expires
-  return new Date(sub.expiresAt) < new Date();
+  // Only an EXPLICIT null/undefined expiry means lifetime. An empty string
+  // or unparseable date must read as expired: `new Date('garbage') < new
+  // Date()` is false (NaN comparison), so without this guard a malformed
+  // expiry silently granted permanent Pro.
+  if (sub.expiresAt == null) return false; // lifetime never expires
+  const expiresMs = new Date(sub.expiresAt).getTime();
+  if (!Number.isFinite(expiresMs)) return true;
+  return expiresMs < Date.now();
 }
 
 /** Check if the player has an active subscription */

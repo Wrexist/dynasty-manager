@@ -34,8 +34,8 @@ import type { JobVacancy } from '@/types/game';
 import { JOB_MARKET_REFRESH_WEEKS, PROACTIVE_OFFER_CHECK_INTERVAL, PROACTIVE_OFFER_MAX_PENDING, MOTM_CHECK_INTERVAL, MOTM_MIN_MATCHES } from '@/config/managerCareer';
 import { getAICounterTactics } from '@/config/aiManager';
 import { AI_LOAN_DURATIONS, AI_LOAN_OBLIGATORY_BUY_CHANCE, AI_LOAN_OBLIGATORY_BUY_MULTIPLIER, AI_LOAN_WAGE_SPLITS } from '@/config/aiSimulation';
-import { CONTINENTAL_FINAL_WEEK, CONTINENTAL_GROUP_WEEKS, CONTINENTAL_QF_WEEKS, CONTINENTAL_R16_WEEKS, CONTINENTAL_SF_WEEKS } from '@/config/continental';
-import { AI_LOAN_OFFER_CHANCE, AI_LOAN_RECALL_CLAUSE_CHANCE, ASSISTANT_MANAGER_FAMILIARITY_BOOST, BENCH_REST_BONUS, BOARD_REVIEW_ADJUST_POSITIONS, BOARD_REVIEW_RAISE_THRESHOLD, BOARD_REVIEW_RELAX_THRESHOLD, BOARD_REVIEW_WEEKS, CALLUP_SNUB_MORALE_PENALTY, COMMERCIAL_INCOME_BASE, COMMERCIAL_INCOME_PER_REP, CONGESTED_FIXTURE_INJURY_MULTIPLIER, CONTRACT_MORALE_HIT_AMOUNT, CONTRACT_MORALE_HIT_OVERALL_THRESHOLD, CONTRACT_MORALE_HIT_WEEK_THRESHOLD, CONTRACT_MORALE_MIN, CONTRACT_WARNING_OVERALL_THRESHOLD, CONTRACT_WARNING_WEEKS, CONTRACT_WARNING_YOUTH_AGE_MAX, CONTRACT_WARNING_YOUTH_POTENTIAL_MIN, CUP_EXTRA_TIME_GOAL_CHANCE, CUP_EXTRA_TIME_REPUTATION_DIVISOR, CUP_PENALTY_GK_QUALITY_FACTOR, CUP_PENALTY_KICKS, FACILITY_MAX_LEVEL, FAN_MOOD_BASE, FAN_MOOD_SCALE, FFP_CONFIDENCE_PENALTY, FFP_CRITICAL_CONFIDENCE_PENALTY, FFP_WAGE_RATIO_CRITICAL, FFP_WAGE_RATIO_WARNING, FORFEIT_SCORE, INJURY_TYPES, INTERNATIONAL_BREAK_FITNESS_COST, INTERNATIONAL_BREAK_WEEKS, INTERNATIONAL_CALLUP_MIN_OVR, INTERNATIONAL_FITNESS_COST, INTERNATIONAL_SNUB_MIN_OVR, LEGENDARY_OBJECTIVE_XP_MULTIPLIER, LINEUP_SIZE, LOAN_DEV_BASE_CHANCE, LOAN_DEV_REP_FACTOR, LOAN_FITNESS_DRAIN, LOAN_PLAY_CHANCE_HIGH, LOAN_PLAY_CHANCE_LOW, LOAN_QUALITY_FORMULA_BASE, LOAN_QUALITY_FORMULA_REP_MULT, LOAN_YOUNG_AGE_THRESHOLD, MANAGER_SALARY_CONFIDENCE_PENALTY, MANAGER_SALARY_RATIO_CRITICAL, MANAGER_SALARY_RATIO_WARNING, MATCHDAY_INCOME_PER_FAN, MAX_CAREER_TIMELINE, MAX_FINANCE_HISTORY, MORALE_BENCH_MIN, MORALE_BENCH_WEEKLY_LOSS, NT_SACK_GROUP_EXIT_THRESHOLD, OBJECTIVE_CYCLE_WEEKS, PHYSIO_INJURY_REDUCTION_PER_QUALITY, PHYSIO_RECOVERY_BOOST_THRESHOLD, PHYSIO_RECOVERY_CHANCE, POSITION_PRIZE_MAX_RANK, POSITION_PRIZE_PER_RANK, POST_TOURNAMENT_FITNESS_COST_HIGH, POST_TOURNAMENT_FITNESS_COST_LOW, RARE_OBJECTIVE_XP_MULTIPLIER, REP_INTL_FINAL, REP_INTL_GROUP_EXIT, REP_INTL_KNOCKOUT, REP_INTL_SEMI, REP_INTL_TOURNAMENT_WIN, SCOUTING_COST_PER_ASSIGNMENT, SIM_PENALTY_BASE_WIN_CHANCE, SIM_PENALTY_MENTAL_SCALE, STADIUM_INCOME_PER_LEVEL, STREAK_FORM_BONUS, STREAK_FORM_THRESHOLD, STREAK_INCOME_MULTIPLIER, STREAK_INCOME_THRESHOLD, STREAK_MORALE_BONUS, STREAK_MORALE_THRESHOLD, TRAINING_GROUND_BOOST, UNHAPPY_CONTAGION_MORALE_HIT, UNHAPPY_CONTAGION_WEEKS, UNHAPPY_THRESHOLD, UNHAPPY_WEEKS_TO_REQUEST, YOUTH_DEVELOPER_BOOST } from '@/config/gameBalance';
+import { getCompetitionCalendar } from '@/config/continental';
+import { AI_LOAN_OFFER_CHANCE, AI_LOAN_RECALL_CLAUSE_CHANCE, ASSISTANT_MANAGER_FAMILIARITY_BOOST, BENCH_REST_BONUS, BOARD_REVIEW_ADJUST_POSITIONS, BOARD_REVIEW_RAISE_THRESHOLD, BOARD_REVIEW_RELAX_THRESHOLD, BOARD_REVIEW_WEEKS, CALLUP_SNUB_MORALE_PENALTY, COMMERCIAL_INCOME_BASE, COMMERCIAL_INCOME_PER_REP, CONGESTED_FIXTURE_INJURY_MULTIPLIER, CONTRACT_MORALE_HIT_AMOUNT, CONTRACT_MORALE_HIT_OVERALL_THRESHOLD, CONTRACT_MORALE_HIT_WEEK_THRESHOLD, CONTRACT_MORALE_MIN, CONTRACT_WARNING_OVERALL_THRESHOLD, CONTRACT_WARNING_WEEKS, CONTRACT_WARNING_YOUTH_AGE_MAX, CONTRACT_WARNING_YOUTH_POTENTIAL_MIN, CUP_EXTRA_TIME_GOAL_CHANCE, CUP_EXTRA_TIME_REPUTATION_DIVISOR, CUP_PENALTY_GK_QUALITY_FACTOR, CUP_PENALTY_KICKS, FACILITY_MAX_LEVEL, FAN_MOOD_BASE, FAN_MOOD_SCALE, FFP_CONFIDENCE_PENALTY, FFP_CRITICAL_CONFIDENCE_PENALTY, FFP_WAGE_RATIO_CRITICAL, FFP_WAGE_RATIO_WARNING, FORFEIT_SCORE, INJURY_TYPES, INTERNATIONAL_BREAK_FITNESS_COST, INTERNATIONAL_BREAK_WEEKS, INTERNATIONAL_CALLUP_MIN_OVR, INTERNATIONAL_FITNESS_COST, INTERNATIONAL_SNUB_MIN_OVR, LEGENDARY_OBJECTIVE_XP_MULTIPLIER, LINEUP_SIZE, LOAN_DEV_BASE_CHANCE, LOAN_DEV_REP_FACTOR, LOAN_FITNESS_DRAIN, LOAN_PLAY_CHANCE_HIGH, LOAN_PLAY_CHANCE_LOW, LOAN_QUALITY_FORMULA_BASE, LOAN_QUALITY_FORMULA_REP_MULT, LOAN_YOUNG_AGE_THRESHOLD, MANAGER_SALARY_CONFIDENCE_PENALTY, MANAGER_SALARY_RATIO_CRITICAL, MANAGER_SALARY_RATIO_WARNING, MATCHDAY_INCOME_PER_FAN, MAX_CAREER_TIMELINE, MAX_FINANCE_HISTORY, MORALE_BENCH_MIN, MORALE_BENCH_WEEKLY_LOSS, NT_SACK_GROUP_EXIT_THRESHOLD, OBJECTIVE_CYCLE_WEEKS, PHYSIO_INJURY_REDUCTION_PER_QUALITY, PHYSIO_RECOVERY_BOOST_THRESHOLD, PHYSIO_RECOVERY_CHANCE, POST_TOURNAMENT_FITNESS_COST_HIGH, POST_TOURNAMENT_FITNESS_COST_LOW, RARE_OBJECTIVE_XP_MULTIPLIER, REP_INTL_FINAL, REP_INTL_GROUP_EXIT, REP_INTL_KNOCKOUT, REP_INTL_SEMI, REP_INTL_TOURNAMENT_WIN, SCOUTING_COST_PER_ASSIGNMENT, SIM_PENALTY_BASE_WIN_CHANCE, SIM_PENALTY_MENTAL_SCALE, STADIUM_INCOME_PER_LEVEL, STREAK_FORM_BONUS, STREAK_FORM_THRESHOLD, STREAK_INCOME_MULTIPLIER, STREAK_INCOME_THRESHOLD, STREAK_MORALE_BONUS, STREAK_MORALE_THRESHOLD, TRAINING_GROUND_BOOST, UNHAPPY_CONTAGION_MORALE_HIT, UNHAPPY_CONTAGION_WEEKS, UNHAPPY_THRESHOLD, UNHAPPY_WEEKS_TO_REQUEST, YOUTH_DEVELOPER_BOOST } from '@/config/gameBalance';
 import { FORCED_RETIREMENT_UNEMPLOYED_WEEKS, GROWTH_DISCIPLINE_PER_CLEAN_MATCH, GROWTH_MOTIVATION_PER_MORALE_EVENT, GROWTH_SCOUTING_PER_ASSIGNMENT, GROWTH_TACTICAL_PER_MATCH, MOD_SCOUTING_SPEED, MOD_TACTICAL_FAMILIARITY, MOD_YOUTH_GROWTH, STAT_MAX, UNEMPLOYED_OFFER_CHECK_INTERVAL, UNEMPLOYED_OFFER_MAX_PENDING } from '@/config/managerCareer';
 import { NATIONAL_OVR_STR_FLOOR, NATIONAL_OVR_STR_MAX, NATIONAL_OVR_STR_MIN, NATIONAL_OVR_STR_RANGE, PENALTY_CONVERSION_RATE } from '@/config/matchEngine';
 import { MERCH_CAMPAIGN_COOLDOWN_WEEKS, MERCH_PRICING_TIERS, SIGNATURE_DROP_COOLDOWN_WEEKS } from '@/config/merchandise';
@@ -43,7 +43,7 @@ import { STORYLINE_CHAIN_MIN_WEEK, STORYLINE_CHAIN_TRIGGER_CHANCE } from '@/conf
 import { MAX_SCOUT_REPORTS } from '@/config/scouting';
 import { GK_COACH_DEV_BONUS_PER_QUALITY, STAFF_MARKET_REFRESH_WEEK } from '@/config/staff';
 import { INDIVIDUAL_INJURY_RISK_MODIFIER } from '@/config/training';
-import { AI_OFFER_CHANCE, AI_OFFER_MIN_BUDGET_RATIO, AI_OFFER_POSITION_THRESHOLD, ASKING_PRICE_BID_ANCHOR, CLUB_LISTING_EXPIRY_WEEKS, COMPETING_BID_PREMIUM, DEADLINE_BARGAIN_DISCOUNT, DEADLINE_DAY_BID_PREMIUM, DEADLINE_DAY_OFFER_MULTIPLIER, DEADLINE_MULTI_BID_CHANCE, DEADLINE_PANIC_BID_PREMIUM, DEADLINE_PANIC_OFFER_COUNT, FREE_AGENT_SPAWN_CHANCE, INJURY_BID_DISCOUNT, LISTING_EXPIRY_WEEKS, LISTING_RELIST_CHANCE, LISTING_RELIST_DISCOUNT, LONG_INJURY_BID_DISCOUNT, LONG_INJURY_WEEKS_THRESHOLD, MARKET_REPLENISH_THRESHOLD, OFFER_EXPIRY_WEEKS, OFFER_FEE_BASE, OFFER_FEE_RANDOM_RANGE, OFFER_MAX_BUDGET_RATIO, PRE_SEASON_END, PRE_SEASON_OFFER_MULTIPLIER, PRE_SEASON_RUMOR_MULTIPLIER, PRE_SEASON_UNSOLICITED_MULTIPLIER, RUMOR_CHANCE, SUMMER_WINDOW_END, UNSOLICITED_FEE_BASE, UNSOLICITED_FEE_RANGE, UNSOLICITED_OFFER_CHANCE, URGENCY_NONE, URGENCY_ONE, URGENCY_TWO_PLUS, WINTER_WINDOW_END, WINTER_WINDOW_START } from '@/config/transfers';
+import { AI_OFFER_CHANCE, AI_OFFER_MIN_BUDGET_RATIO, AI_OFFER_POSITION_THRESHOLD, ASKING_PRICE_BID_ANCHOR, CLUB_LISTING_EXPIRY_WEEKS, COMPETING_BID_PREMIUM, DEADLINE_BARGAIN_DISCOUNT, DEADLINE_DAY_BID_PREMIUM, DEADLINE_DAY_OFFER_MULTIPLIER, DEADLINE_MULTI_BID_CHANCE, DEADLINE_PANIC_BID_PREMIUM, DEADLINE_PANIC_OFFER_COUNT, FREE_AGENT_SPAWN_CHANCE, INJURY_BID_DISCOUNT, LISTING_EXPIRY_WEEKS, LISTING_RELIST_CHANCE, LISTING_RELIST_DISCOUNT, LONG_INJURY_BID_DISCOUNT, LONG_INJURY_WEEKS_THRESHOLD, MARKET_REPLENISH_THRESHOLD, OFFER_EXPIRY_WEEKS, OFFER_FEE_BASE, OFFER_FEE_RANDOM_RANGE, OFFER_MAX_BUDGET_RATIO, PRE_SEASON_END, PRE_SEASON_OFFER_MULTIPLIER, PRE_SEASON_RUMOR_MULTIPLIER, PRE_SEASON_UNSOLICITED_MULTIPLIER, RUMOR_CHANCE, getTransferWindows, isTransferWindowOpen, UNSOLICITED_FEE_BASE, UNSOLICITED_FEE_RANGE, UNSOLICITED_OFFER_CHANCE, URGENCY_NONE, URGENCY_ONE, URGENCY_TWO_PLUS, } from '@/config/transfers';
 import { checkChallengeFailed } from '@/data/challenges';
 import { advanceCupRound, getRoundName } from '@/data/cup';
 import { ALL_CLUBS, getDerbyIntensity, getDerbyName } from '@/data/league';
@@ -51,7 +51,7 @@ import { STORYLINE_CHAINS, shouldTriggerChain } from '@/data/storylineChains';
 import { simulateMatch } from '@/engine/match';
 import { applyPlayerDevelopment, seasonGrowthTracker } from '@/store/helpers/development';
 import { applyAIMatchEvents, generateAIInjuryDetails } from '@/store/slices/orchestration/helpers';
-import { endSeasonImpl } from '@/store/slices/orchestration/seasonEnd';
+import { endSeasonImpl, runPostSeasonTail } from '@/store/slices/orchestration/seasonEnd';
 import { advanceLeagueCupRound } from '@/store/slices/orchestration/tournaments';
 import { processSponsorWeek } from '@/store/slices/sponsorSlice';
 import type { ActiveStorylineChain, CareerMilestone, FacilitiesState, IncomingLoanOffer, IncomingOffer, PlayerAttributes, StorylineEvent } from '@/types/game';
@@ -61,6 +61,7 @@ import { getWinStreak } from '@/utils/celebrations';
 import { getMentorBonus } from '@/utils/chemistry';
 import { advanceKnockoutRound, generateKnockoutFromGroups, getCurrentMatchday, isGroupStageComplete, isKnockoutRoundComplete, simulateGroupMatchday, simulateKnockoutLeg } from '@/utils/continental';
 import { getEffectiveStadiumLevel } from '@/utils/facilities';
+import { getLeaguePositionPrize } from '@/utils/financeHelpers';
 import { formatMoney, getSuffix } from '@/utils/helpers';
 import { generateKnockoutBracket, processGroupWeek, processKnockoutRound } from '@/utils/international';
 import { generateUnemployedOffer } from '@/utils/managerCareer';
@@ -105,8 +106,14 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
   const state = get();
   const tournament = state.internationalTournament;
   if (!tournament || !state.nationalTeam || !state.managerNationality) {
-    // No tournament active — finalize season
-    endSeasonImpl(set, get);
+    // No runnable tournament (e.g. sandbox manager with a nationality but no
+    // national-team squad, or a save stuck in the international phase). The
+    // season rollover was already committed when the tournament was
+    // scheduled — close the international phase and run the deferred
+    // post-season tail. Calling endSeasonImpl here would end the brand-new
+    // season a second time (double aging, P/R off an all-zero table).
+    set({ seasonPhase: 'regular', internationalTournament: null });
+    runPostSeasonTail(set, get, state.season - 1);
     return;
   }
 
@@ -138,10 +145,13 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
         const playerAvgOVR = playerSquadIds.length > 0
           ? playerSquadIds.reduce((sum, id) => sum + (state.players[id]?.overall || 60), 0) / playerSquadIds.length
           : 65;
-        // Opponent strength from FIFA ranking (lower = better)
+        // Opponent strength scales UP with their group points (a 9-point
+        // group leader sims stronger than a 0-point minnow), clamped to
+        // the 0.3..0.7 band. Was inverted (0.7 - points * 0.02), which
+        // made tournament leaders the weakest opponents.
         const opponentNation = isHome ? playerMatchThisWeek.awayNation : playerMatchThisWeek.homeNation;
         const opponentRanking = tournament.groups.flatMap(g => g.table).find(t => t.nationality === opponentNation);
-        const opponentStr = opponentRanking ? Math.max(0.3, 0.7 - (opponentRanking.points || 0) * 0.02) : 0.5;
+        const opponentStr = opponentRanking ? Math.min(0.7, 0.45 + (opponentRanking.points || 0) * 0.02) : 0.5;
         const playerStr = Math.min(
           NATIONAL_OVR_STR_MAX,
           (playerAvgOVR - NATIONAL_OVR_STR_FLOOR) / NATIONAL_OVR_STR_RANGE + NATIONAL_OVR_STR_MIN,
@@ -331,6 +341,9 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
         goalsAgainst: isHome ? ag : hg,
         tournament: tournament.name,
         round: tournament.currentRound,
+        // Shootout wins are drawn on goals — stamp the real outcome so
+        // achievements/UI can classify the result.
+        won: updatedPlayerTie.winnerId === nationality,
       }];
 
       // Apply fitness recovery between matches (+3), then fitness cost
@@ -516,10 +529,15 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
       players: postTourneyPlayers,
       seasonPhase: 'regular',
       internationalTournament: null,
+      currentScreen: 'season-summary',
       ...(updatedCareerManager && { careerManager: updatedCareerManager }),
       ...(clearNationalTeam && { nationalTeam: null }),
     });
-    endSeasonImpl(set, get);
+    // The season rollover was committed before the tournament began
+    // (finalizeSeason returns early after scheduling it). Run the deferred
+    // post-season tail — career processing + autosave — rather than
+    // endSeasonImpl, which would end the new season we're already in.
+    runPostSeasonTail(set, get, state.season - 1);
   }
 }
 
@@ -653,7 +671,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     // Keep the AI world alive during unemployment: process transfers, loans, wages,
     // contracts and free agents. Without this the simulated world froze — AI budgets
     // inflated (no wages paid) and squads never changed, distorting the market on rehire.
-    const unempWindowOpen = newWeek <= SUMMER_WINDOW_END || (newWeek >= WINTER_WINDOW_START && newWeek <= WINTER_WINDOW_END);
+    const unempWindowOpen = isTransferWindowOpen(newWeek, state.totalWeeks);
     const unempAI = processAIWeekly(
       simClubs, simPlayers, msgs, state.transferMarket, state.freeAgents,
       state.activeLoans, state.transferNews || [], simDivTables, newWeek, state.season,
@@ -1169,7 +1187,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
         // Pass the post-training/development player map so GK quality
         // computation sees the freshest attributes rather than the
         // top-of-week snapshot.
-        newCup = advanceCupRound(newCup, state.clubs, newPlayers);
+        newCup = advanceCupRound(newCup, state.clubs, newPlayers, state.totalWeeks);
       }
     }
   }
@@ -1259,7 +1277,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
           newTimeline.push(createMilestone('cup_win', 'League Cup Winners!', `Won the League Cup in Season ${season}!`, season, week, 'medal'));
         }
       } else {
-        newLeagueCup = advanceLeagueCupRound(newLeagueCup);
+        newLeagueCup = advanceLeagueCupRound(newLeagueCup, state.totalWeeks);
       }
     }
   }
@@ -1326,93 +1344,107 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   let newShieldCup = state.shieldCup;
   let newConferenceCup = state.conferenceCup;
   const virtualClubs = state.virtualClubs || {};
+  const continentalCalendar = getCompetitionCalendar(state.totalWeeks);
+  const groupWeeks = continentalCalendar.groupWeeks;
 
-  // Continental group stage matchdays
-  const groupWeeks = CONTINENTAL_GROUP_WEEKS as readonly number[];
-  if (groupWeeks.includes(week)) {
-    if (newChampionsCup && newChampionsCup.currentPhase === 'group') {
-      const md = getCurrentMatchday(newChampionsCup);
-      if (groupWeeks[md - 1] === week) {
-        newChampionsCup = simulateGroupMatchday(newChampionsCup, md, virtualClubs, playerClubId);
-        // Check if group stage complete
-        if (isGroupStageComplete(newChampionsCup)) {
-          newChampionsCup = generateKnockoutFromGroups(newChampionsCup, playerClubId);
-          if (!newChampionsCup.playerEliminated) {
-            newMessages = addMsg(newMessages, { week, season, type: 'board', title: 'Champions Cup Knockout!', body: 'You have qualified for the Champions Cup knockout rounds!' });
-          } else {
-            newMessages = addMsg(newMessages, { week, season, type: 'match_result', title: 'Champions Cup Eliminated', body: 'You have been eliminated from the Champions Cup group stage.' });
-          }
+  const continentalName = (comp: string): string =>
+    comp === 'champions_cup' ? 'Champions Cup' : comp === 'shield_cup' ? 'Shield Cup' : 'Conference Cup';
+
+  type ContinentalState = typeof newChampionsCup;
+
+  // Group stage: process every matchday whose scheduled week has arrived.
+  // PAST-DUE matchdays (scheduled week already behind us — a skipped week or
+  // a same-week fixture collision where the domestic cup took priority) are
+  // force-simmed INCLUDING the player's own match: leaving it unplayed
+  // freezes getCurrentMatchday and hangs the tournament for the season.
+  // The current week's matchday leaves the player's match for interactive play.
+  const processContinentalGroupStage = (input: ContinentalState): ContinentalState => {
+    if (!input || input.currentPhase !== 'group') return input;
+    let t = input;
+    let guard = 0;
+    while (t && t.currentPhase === 'group' && guard++ < 10) {
+      const md = getCurrentMatchday(t);
+      const mdWeek = groupWeeks[md - 1];
+      if (mdWeek === undefined || mdWeek > week) break;
+      const isCurrentWeek = mdWeek === week;
+      // '' = no club is exempt → the player's overdue match is auto-simmed.
+      t = simulateGroupMatchday(t, md, virtualClubs, isCurrentWeek ? playerClubId : '');
+      if (isGroupStageComplete(t)) {
+        t = generateKnockoutFromGroups(t, playerClubId, state.totalWeeks);
+        const compName = continentalName(t.competition);
+        if (!t.playerEliminated) {
+          newMessages = addMsg(newMessages, { week, season, type: 'board', title: `${compName} Knockout!`, body: `You have qualified for the ${compName} knockout rounds!` });
+        } else {
+          newMessages = addMsg(newMessages, { week, season, type: 'match_result', title: `${compName} Eliminated`, body: `You have been eliminated from the ${compName} group stage.` });
         }
       }
+      if (isCurrentWeek) break; // player's match (if any) stays pending for interactive play
     }
-    if (newShieldCup && newShieldCup.currentPhase === 'group') {
-      const md = getCurrentMatchday(newShieldCup);
-      if (groupWeeks[md - 1] === week) {
-        newShieldCup = simulateGroupMatchday(newShieldCup, md, virtualClubs, playerClubId);
-        if (isGroupStageComplete(newShieldCup)) {
-          newShieldCup = generateKnockoutFromGroups(newShieldCup, playerClubId);
-          if (!newShieldCup.playerEliminated) {
-            newMessages = addMsg(newMessages, { week, season, type: 'board', title: 'Shield Cup Knockout!', body: 'You have qualified for the Shield Cup knockout rounds!' });
-          } else {
-            newMessages = addMsg(newMessages, { week, season, type: 'match_result', title: 'Shield Cup Eliminated', body: 'You have been eliminated from the Shield Cup group stage.' });
-          }
-        }
+    return t;
+  };
+
+  newChampionsCup = processContinentalGroupStage(newChampionsCup);
+  newShieldCup = processContinentalGroupStage(newShieldCup);
+  newConferenceCup = processContinentalGroupStage(newConferenceCup);
+
+  // Knockout rounds — same catch-up principle: any leg whose scheduled week
+  // has passed unplayed is force-simmed (player's tie included) so a missed
+  // or collided week can delay a tie but never strand it.
+  const processContinentalKnockout = (input: ContinentalState): ContinentalState => {
+    if (!input || input.currentPhase !== 'knockout') return input;
+    let t = input;
+    let guard = 0;
+    while (t.currentPhase === 'knockout' && t.currentRound && t.currentRound !== 'group' && guard++ < 12) {
+      const round = t.currentRound as 'R16' | 'QF' | 'SF' | 'F';
+
+      // Self-heal: a fully decided round that was never advanced (stale save).
+      if (isKnockoutRoundComplete(t, round)) {
+        t = advanceKnockoutRound(t, playerClubId, state.totalWeeks);
+        continue;
       }
-    }
-    if (newConferenceCup && newConferenceCup.currentPhase === 'group') {
-      const md = getCurrentMatchday(newConferenceCup);
-      if (groupWeeks[md - 1] === week) {
-        newConferenceCup = simulateGroupMatchday(newConferenceCup, md, virtualClubs, playerClubId);
-        if (isGroupStageComplete(newConferenceCup)) {
-          newConferenceCup = generateKnockoutFromGroups(newConferenceCup, playerClubId);
-          if (!newConferenceCup.playerEliminated) {
-            newMessages = addMsg(newMessages, { week, season, type: 'board', title: 'Conference Cup Knockout!', body: 'You have qualified for the Conference Cup knockout rounds!' });
-          } else {
-            newMessages = addMsg(newMessages, { week, season, type: 'match_result', title: 'Conference Cup Eliminated', body: 'You have been eliminated from the Conference Cup group stage.' });
-          }
-        }
-      }
-    }
-  }
 
-  // Continental knockout rounds
-  const allKnockoutWeeks = [...CONTINENTAL_R16_WEEKS, ...CONTINENTAL_QF_WEEKS, ...CONTINENTAL_SF_WEEKS, CONTINENTAL_FINAL_WEEK];
-  if (allKnockoutWeeks.includes(week)) {
-    for (const [tourney, setTourney] of [[newChampionsCup, (t: typeof newChampionsCup) => { newChampionsCup = t; }], [newShieldCup, (t: typeof newShieldCup) => { newShieldCup = t; }], [newConferenceCup, (t: typeof newConferenceCup) => { newConferenceCup = t; }]] as const) {
-      if (!tourney || tourney.currentPhase !== 'knockout' || !tourney.currentRound || tourney.currentRound === 'group') continue;
-      const round = tourney.currentRound as 'R16' | 'QF' | 'SF' | 'F';
+      const roundWeeks: readonly number[] =
+        round === 'R16' ? continentalCalendar.r16Weeks
+        : round === 'QF' ? continentalCalendar.qfWeeks
+        : round === 'SF' ? continentalCalendar.sfWeeks
+        : [continentalCalendar.finalWeek];
+      const roundTies = t.knockoutTies.filter(kt => kt.round === round);
+      if (roundTies.length === 0) break;
+      const leg: 1 | 2 = round !== 'F' && roundTies.every(kt => kt.leg1Played) ? 2 : 1;
+      const legWeek = roundWeeks[leg - 1] ?? roundWeeks[0];
+      if (legWeek > week) break;
 
-      // Determine which leg this week corresponds to
-      const weekArrays: Record<string, readonly number[]> = {
-        R16: CONTINENTAL_R16_WEEKS, QF: CONTINENTAL_QF_WEEKS, SF: CONTINENTAL_SF_WEEKS, F: [CONTINENTAL_FINAL_WEEK],
-      };
-      const roundWeeks = weekArrays[round];
-      if (!roundWeeks || !roundWeeks.includes(week)) continue;
+      const isCurrentWeek = legWeek === week;
+      t = simulateKnockoutLeg(t, round, leg, virtualClubs, isCurrentWeek ? playerClubId : '');
 
-      const leg = round === 'F' ? 1 : (week === roundWeeks[0] ? 1 : 2) as 1 | 2;
-      const updated = simulateKnockoutLeg(tourney, round, leg, virtualClubs, playerClubId);
-
-      // Check if round is complete
-      if (isKnockoutRoundComplete(updated, round)) {
-        const advanced = advanceKnockoutRound(updated, playerClubId);
+      if (isKnockoutRoundComplete(t, round)) {
+        const advanced = advanceKnockoutRound(t, playerClubId, state.totalWeeks);
         if (advanced.currentPhase === 'complete' && advanced.winnerId) {
-          const compName = tourney.competition === 'champions_cup' ? 'Champions Cup' : 'Shield Cup';
+          const compName = continentalName(t.competition);
           if (advanced.winnerId === playerClubId) {
             newMessages = addMsg(newMessages, { week, season, type: 'board', title: `${compName} Winners!`, body: `Incredible! You have won the ${compName}!` });
             newTimeline.push(createMilestone('cup_win', `${compName} Winners!`, `Won the ${compName} in Season ${season}!`, season, week, 'trophy'));
           }
         }
-        setTourney(advanced);
-      } else {
-        setTourney(updated);
+        t = advanced;
+        if (t.currentPhase === 'complete') break;
+      } else if (isCurrentWeek) {
+        break; // player's tie pending interactive play this week
       }
+      // Past-due leg forced: loop again — the next leg/round may also be due.
     }
-  }
+    return t;
+  };
+
+  newChampionsCup = processContinentalKnockout(newChampionsCup);
+  newShieldCup = processContinentalKnockout(newShieldCup);
+  newConferenceCup = processContinentalKnockout(newConferenceCup);
 
   const newWeek = week + 1;
   const clubIds = Object.keys(clubs);
   const leagueTable = buildLeagueTable(updatedFixtures, state.divisionClubs[playerDiv] || clubIds);
-  const transferWindowOpen = newWeek <= SUMMER_WINDOW_END || (newWeek >= WINTER_WINDOW_START && newWeek <= WINTER_WINDOW_END);
+  const transferWindows = getTransferWindows(state.totalWeeks);
+  const transferWindowOpen = newWeek <= transferWindows.summerEnd || (newWeek >= transferWindows.winterStart && newWeek <= transferWindows.winterEnd);
 
   // Sync player's division fixtures back into divisionFixtures
   updatedDivisionFixtures[playerDiv] = updatedFixtures;
@@ -1497,7 +1529,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
 
   // Incoming offers — AI clubs only bid during transfer windows for positions they need
   if (transferWindowOpen) {
-    const isDeadlineDay = newWeek === SUMMER_WINDOW_END || newWeek === WINTER_WINDOW_END;
+    const isDeadlineDay = newWeek === transferWindows.summerEnd || newWeek === transferWindows.winterEnd;
 
     // Helper: attempt to generate an offer for a target player
     // valueOverride allows using asking price as base instead of raw player value
@@ -1775,15 +1807,15 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   }
 
   // Transfer window messages
-  if (newWeek === SUMMER_WINDOW_END - 1) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'transfer', title: 'Transfer Deadline Approaching', body: 'The summer transfer window closes next week. Finalise any deals now!' });
-  if (newWeek === WINTER_WINDOW_START) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: 'January Window Opens', body: 'The winter transfer window is now open until Week 24.' });
-  if (newWeek === WINTER_WINDOW_END - 1) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'transfer', title: 'Winter Deadline Approaching', body: 'The winter transfer window closes next week. Last chance for January deals!' });
+  if (newWeek === transferWindows.summerEnd - 1) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'transfer', title: 'Transfer Deadline Approaching', body: 'The summer transfer window closes next week. Finalise any deals now!' });
+  if (newWeek === transferWindows.winterStart) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: 'January Window Opens', body: `The winter transfer window is now open until Week ${transferWindows.winterEnd}.` });
+  if (newWeek === transferWindows.winterEnd - 1) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'transfer', title: 'Winter Deadline Approaching', body: 'The winter transfer window closes next week. Last chance for January deals!' });
 
   // ── Deadline Day Drama ──
-  const deadlineBargains: { playerId: string; askingPrice: number; sellerClubId: string }[] = [];
-  const isDeadlineDay = newWeek === SUMMER_WINDOW_END || newWeek === WINTER_WINDOW_END;
+  const deadlineBargains: TransferListing[] = [];
+  const isDeadlineDay = newWeek === transferWindows.summerEnd || newWeek === transferWindows.winterEnd;
   if (isDeadlineDay) {
-    const windowName = newWeek === SUMMER_WINDOW_END ? 'summer' : 'winter';
+    const windowName = newWeek === transferWindows.summerEnd ? 'summer' : 'winter';
 
     // Generate panic incoming offers for player's club
     const playerClub = clubs[playerClubId];
@@ -1827,15 +1859,20 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
       const surplus = sellerClub.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => p.overall >= 60 && p.overall <= 75 && p.age >= 27);
       const toSell = surplus[Math.floor(Math.random() * surplus.length)];
       if (!toSell) continue;
-      const alreadyListed = deadlineBargains.some(l => l.playerId === toSell.id);
+      // Dedupe against this batch AND the live market — re-listing an
+      // already-listed player would create a duplicate listing.
+      const alreadyListed = deadlineBargains.some(l => l.playerId === toSell.id)
+        || state.transferMarket.some(l => l.playerId === toSell.id);
       if (alreadyListed) continue;
       const bargainPrice = Math.round(toSell.value * (1 - DEADLINE_BARGAIN_DISCOUNT));
-      deadlineBargains.push({ playerId: toSell.id, askingPrice: Math.max(100000, bargainPrice), sellerClubId: sellerId });
+      // listedWeek/listedSeason stamps let processListingExpiry retire the
+      // listing — unstamped listings live forever with frozen prices.
+      deadlineBargains.push({ playerId: toSell.id, askingPrice: Math.max(100000, bargainPrice), sellerClubId: sellerId, listedWeek: newWeek, listedSeason: season });
     }
   }
 
   // Post-deadline summary (week after window closes)
-  if (newWeek === SUMMER_WINDOW_END + 1 || newWeek === WINTER_WINDOW_END + 1) {
+  if (newWeek === transferWindows.summerEnd + 1 || newWeek === transferWindows.winterEnd + 1) {
     const completedDeals = (state.transferNews || []).filter(n => n.week === newWeek - 1 && n.season === season).length;
     const expiredOffers = newOffers.filter(o => o.week <= newWeek - 1).length;
     newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: 'Transfer Window Closed', body: `The window is shut. ${completedDeals} deals were completed league-wide${expiredOffers > 0 ? ` and ${expiredOffers} offer${expiredOffers > 1 ? 's' : ''} expired` : ''}. No more transfers until the ${newWeek <= 10 ? 'January' : 'summer'} window.` });
@@ -1874,12 +1911,15 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
         p.clubId = sellerClubId;
         newPlayers[p.id] = p;
         newScouting.discoveredPlayers.push(p.id);
-        // Add scouted player to transfer market so user can sign via standard flow
+        // Add scouted player to transfer market so user can sign via standard flow.
+        // Stamped so processListingExpiry can retire the listing eventually.
         scoutedListings.push({
           playerId: p.id,
           askingPrice: Math.round(p.value * (LISTING_PRICE_MIN_MULTIPLIER + Math.random() * LISTING_PRICE_RANDOM_RANGE)),
           sellerClubId,
           scoutedPlayer: true,
+          listedWeek: newWeek,
+          listedSeason: season,
         });
         // Detect hidden gem: potential 80+ player
         if (p.potential >= 80 && !gemReveal) {
@@ -2055,8 +2095,9 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   const playerTableIdx = leagueTable.findIndex(e => e.clubId === playerClubId);
   const playerTablePos = playerTableIdx >= 0 ? playerTableIdx + 1 : leagueTable.length;
   const playerLeagueInfo = LEAGUES.find(l => l.id === playerDiv);
-  const tierPrizeScale = playerLeagueInfo?.tier === 1 ? 1.0 : playerLeagueInfo?.tier === 2 ? 0.35 : playerLeagueInfo?.tier === 3 ? 0.12 : 0.05;
-  const positionPrize = Math.round(Math.max(0, (POSITION_PRIZE_MAX_RANK - playerTablePos)) * POSITION_PRIZE_PER_RANK * tierPrizeScale);
+  // Single shared prize function (also used by the finance breakdown) so the
+  // displayed "League Position" line always matches the money paid here.
+  const positionPrize = getLeaguePositionPrize(playerTablePos, leagueTable.length, playerLeagueInfo?.tier);
   // Sponsorship: sum of active sponsor deals
   const sponsorIncome = state.sponsorDeals.reduce((sum, d) => sum + d.weeklyPayment, 0);
   // Merchandise: strategic system with product lines, pricing, campaigns, star players
@@ -2252,7 +2293,8 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   if (updatedChallenge && !updatedChallenge.completed && !updatedChallenge.failed) {
     const myEntry = leagueTable.find(e => e.clubId === playerClubId);
     const hasLost = myEntry ? myEntry.lost > 0 : false;
-    if (checkChallengeFailed(updatedChallenge.scenarioId, updatedChallenge.seasonsRemaining, playerPos, hasLost)) {
+    const homeLost = updatedFixtures.some(m => m.played && m.homeClubId === playerClubId && m.homeGoals < m.awayGoals);
+    if (checkChallengeFailed(updatedChallenge.scenarioId, updatedChallenge.seasonsRemaining, playerPos, hasLost, { homeLost })) {
       updatedChallenge = { ...updatedChallenge, failed: true };
       const scenario = CHALLENGES.find(c => c.id === updatedChallenge!.scenarioId);
       newMessages = addMsg(newMessages, {
@@ -2269,8 +2311,11 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     if (!loanedPlayer || !loanedPlayer.onLoan) continue;
     const loanClub = clubs[loan.toClubId];
     if (!loanClub) continue;
-    // 60% chance of playing each week (based on loan club quality vs player quality)
-    const playChance = loanedPlayer.overall <= (loanClub.reputation * LOAN_QUALITY_FORMULA_REP_MULT + LOAN_QUALITY_FORMULA_BASE) ? LOAN_PLAY_CHANCE_HIGH : LOAN_PLAY_CHANCE_LOW;
+    // Weekly playing chance scales with player quality vs loan club level:
+    // a player at or above the loan club's level is a guaranteed starter
+    // (HIGH chance); one below it fights for minutes (LOW). The comparison
+    // was inverted, giving over-qualified loanees the LOW chance.
+    const playChance = loanedPlayer.overall >= (loanClub.reputation * LOAN_QUALITY_FORMULA_REP_MULT + LOAN_QUALITY_FORMULA_BASE) ? LOAN_PLAY_CHANCE_HIGH : LOAN_PLAY_CHANCE_LOW;
     if (Math.random() < playChance) {
       const lp = { ...loanedPlayer };
       lp.appearances += 1;
@@ -2392,7 +2437,8 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   let objectiveSafetyNetXP = 0;
 
   if (monthComplete) {
-    // Month is over — award bonus XP (all-complete + streak extra; base was already paid weekly)
+    // Month is over — award bonus XP (all-complete + streak extra). Base XP
+    // is paid when the player claims each objective, or by the safety net below.
     const { xpEarned: bonusXP, allCompleted: objAllCompleted, newStreak } = calculateCompletedXP(evalObjectives, currentStreak);
     monthBonusXP = bonusXP;
     if (bonusXP > 0) {
@@ -2445,7 +2491,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   const sessionStats = {
     ...prevSession,
     weeksPlayed: prevSession.weeksPlayed + 1,
-    xpEarned: prevSession.xpEarned + objectiveSafetyNetXP + monthBonusXP,
+    xpEarned: prevSession.xpEarned + objectiveSafetyNetXP + monthBonusXP + achievementXPTotal,
     objectivesCompleted: prevSession.objectivesCompleted + Math.max(0, newlyCompleted),
   };
 
@@ -2457,8 +2503,15 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   })();
   const digestOffersReceived = newOffers.length - state.incomingOffers.length;
 
-  // Guarantee at least one narrative message per week
-  const newMessageCount = newMessages.length - messages.length;
+  // Guarantee at least one narrative message per week. Count appends by
+  // locating the pre-tick head message: addMsg prepends and evicts from the
+  // tail at the 200 cap, so a length diff reads 0 once the inbox is full
+  // (which made the filler fire every week for capped inboxes).
+  const prevHeadId = messages[0]?.id;
+  const prevHeadIdx = prevHeadId ? newMessages.findIndex(m => m.id === prevHeadId) : -1;
+  const newMessageCount = prevHeadId
+    ? (prevHeadIdx === -1 ? newMessages.length : prevHeadIdx)
+    : newMessages.length;
   if (newMessageCount <= 1) {
     const myEntry = leagueTable.find(e => e.clubId === playerClubId);
     const myPos = myEntry ? leagueTable.indexOf(myEntry) + 1 : 0;
@@ -2547,7 +2600,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     leagueTable, transferWindowOpen, currentMatchResult: null,
     matchPhase: 'none' as const, pendingPressConference: null,
     messages: newMessages, incomingOffers: newOffers, clubs: newClubs,
-    matchSubsUsed: 0, boardConfidence: newBoardConfidence, boardObjectives: updatedObjectives,
+    matchSubsUsed: 0, matchSubbedOffIds: [], boardConfidence: newBoardConfidence, boardObjectives: updatedObjectives,
     training: { ...training, tacticalFamiliarity: newTacticalFamiliarity, streaks: newStreaks, lastReport: trainingReport },
     staff: newStaff, scouting: newScouting, facilities: newFacilities, youthAcademy: newYouthAcademy,
     pendingGemReveal: gemReveals.length > 0 ? gemReveals[0] : null,
@@ -2823,25 +2876,10 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
         updatedVacancies = activeVacancies;
       }
 
-      // --- Unemployed tracking ---
-      if (!cm.contract) {
-        cm.unemployedWeeks = (cm.unemployedWeeks || 0) + 1;
-
-        // Desperation vacancies after 12 unemployed weeks
-        const finalVacancies = updatedVacancies ?? careerState.jobVacancies;
-        if (cm.unemployedWeeks >= 12 && finalVacancies.length === 0) {
-          const allClubs = Object.values(careerState.clubs);
-          const desperate = allClubs.filter(c => c.id !== careerState.playerClubId).slice(0, 2);
-          updatedVacancies = desperate.map(club => ({
-            id: `desperation-${club.id}-${season}-${newWeek}`,
-            clubId: club.id, clubName: club.name, divisionId: club.divisionId || '',
-            minReputation: 0, salary: 1500, contractLength: 1,
-            boardExpectations: 'Survive and stabilize the club',
-            expiresWeek: newWeek + 8, expiresSeason: season, applied: false,
-            competitors: generateCompetitors(0, 4).slice(0, 1),
-          }));
-        }
-      }
+      // NOTE: no unemployed handling here — unemployed career managers
+      // (cm.contract == null) take the dedicated early-return path at the
+      // top of advanceWeekImpl and never reach this block, and nothing in
+      // the main flow nulls the contract mid-tick.
 
       if (updatedVacancies) {
         set({ jobVacancies: updatedVacancies });
@@ -2993,15 +3031,31 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
       }
 
       // Drop listings whose external player was rotated out, and prune
-      // those orphaned player records from state.
+      // those orphaned player records from state. Track which fcIds were
+      // actually deleted: a rotated-out player who was SIGNED by a club is
+      // no longer on the transferMarket, so he survives this loop — and
+      // freeing his fcId from usedFcIds would let a later draw issue a
+      // second copy of the same real player.
       const keptMarket: TransferListing[] = [];
+      const deletedFcIds = new Set<string>();
       for (const l of cpState.transferMarket) {
         const p = updatedPlayers[l.playerId];
         if (p?.fcId && rotateOutSet.has(p.fcId)) {
+          deletedFcIds.add(p.fcId);
           delete updatedPlayers[l.playerId];
           continue;
         }
         keptMarket.push(l);
+      }
+
+      // fcIds that still have an active transferMarket listing after the
+      // prune. Kept marketListings entries whose player was signed
+      // mid-cycle are dropped (their fcIds stay in usedFcIds — the player
+      // still exists in the world).
+      const liveListedFcIds = new Set<string>();
+      for (const l of keptMarket) {
+        const fcId = updatedPlayers[l.playerId]?.fcId;
+        if (fcId) liveListedFcIds.add(fcId);
       }
 
       set({
@@ -3015,9 +3069,9 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
           // effective pool starves silently. Aligns runtime behaviour with
           // the existing advanceCursor unit tests.
           cursor: cpState.cpPool.cursor + newDraws.length,
-          marketListings: [...keep, ...newIds],
+          marketListings: [...keep.filter(id => liveListedFcIds.has(id)), ...newIds],
           usedFcIds: [
-            ...cpState.cpPool.usedFcIds.filter(id => !rotateOutSet.has(id)),
+            ...cpState.cpPool.usedFcIds.filter(id => !deletedFcIds.has(id)),
             ...newIds,
           ],
           lastMarketRefreshWeek: cpState.week,
@@ -3026,15 +3080,19 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     }
   }
 
-  // Phase E.7 — CP FA pool season-start seed. Fires on week 1 of S2/S3,
-  // gated by cpPool.lastSeedSeason so reloads don't re-inject. Tapers per
-  // CP_FA_SEED_COUNT_BY_SEASON — S1 is handled inline at initGame.
+  // Phase E.7 — CP FA pool season-start seed. Fires on the first regular
+  // tick of S2/S3, gated by cpPool.lastSeedSeason so reloads don't
+  // re-inject. Tapers per CP_FA_SEED_COUNT_BY_SEASON — S1 is handled
+  // inline at initGame. No week check: this block runs after the week was
+  // already advanced (week is >= 2 by the time we get here, and season-end
+  // paths return before reaching it), so a `week === 1` guard would make
+  // the seed unreachable. The lastSeedSeason gate alone is the
+  // once-per-season idempotency guard.
   {
     const cpSeedState = get();
     const seedCount = CP_FA_SEED_COUNT_BY_SEASON[cpSeedState.season] ?? 0;
     if (
       cpSeedState.communityPackEnabled &&
-      cpSeedState.week === 1 &&
       seedCount > 0 &&
       cpSeedState.cpPool.lastSeedSeason < cpSeedState.season
     ) {

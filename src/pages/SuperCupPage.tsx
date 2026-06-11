@@ -16,6 +16,14 @@ function SuperCupMatchCard({ match, clubs, playerClubId, index }: {
   const home = clubs[match.homeClubId];
   const away = clubs[match.awayClubId];
   const isPlayer = match.homeClubId === playerClubId || match.awayClubId === playerClubId;
+  // Participant labels are derived from the cup type (seasonEnd.ts seeds home/
+  // away in this order). The continental Super Cup is Champions-winner vs
+  // Shield-winner — the old hardcoded "League Champion"/"Cup Winner" labels
+  // were flat wrong for it. Note: in the rare domestic double-winner case the
+  // away side is actually last season's league runner-up, but the match record
+  // doesn't persist who won the cup, so "Cup Winner" remains the best label.
+  const homeLabel = match.type === 'domestic' ? 'League Champion' : 'Champions Cup Winner';
+  const awayLabel = match.type === 'domestic' ? 'Cup Winner' : 'Shield Cup Winner';
 
   return (
     <motion.div
@@ -38,7 +46,7 @@ function SuperCupMatchCard({ match, clubs, playerClubId, index }: {
             <p className={cn('text-sm font-medium truncate', match.homeClubId === playerClubId && 'text-primary')}>
               {home?.shortName || '???'}
             </p>
-            <p className="text-[10px] text-muted-foreground">League Champion</p>
+            <p className="text-[10px] text-muted-foreground">{homeLabel}</p>
           </div>
 
           {/* Score */}
@@ -76,7 +84,7 @@ function SuperCupMatchCard({ match, clubs, playerClubId, index }: {
             <p className={cn('text-sm font-medium truncate', match.awayClubId === playerClubId && 'text-primary')}>
               {away?.shortName || '???'}
             </p>
-            <p className="text-[10px] text-muted-foreground">Cup Winner</p>
+            <p className="text-[10px] text-muted-foreground">{awayLabel}</p>
           </div>
         </div>
 
