@@ -16,6 +16,10 @@ import type {
   InjuryType,
   InjurySeverity,
   InjuryDetails,
+  CupState,
+  LeagueCupState,
+  ContinentalTournamentState,
+  SuperCupMatch,
 } from '@/types/game';
 import { LEAGUES } from '@/data/league';
 import {
@@ -53,6 +57,47 @@ export function rebuildRealPlayerClaims(players: Record<string, Player>): void {
     if (!p.fcId) continue;
     claimRealPlayer({ fcId: p.fcId, fn: p.firstName, ln: p.lastName });
   }
+}
+
+/**
+ * Find any tournament match for the player this week (cup, league cup,
+ * continental group + knockout, super cups). Pure — lives here so both the
+ * UI selectors (useGameSelectors) and store actions (advanceToNextMatch)
+ * share ONE definition of "the player has a tournament match this week".
+ * advanceToNextMatch previously re-implemented a subset that omitted the
+ * three continental tournaments, letting "Skip to Next Match" advance
+ * through a continental week and permanently hang the tournament.
+ */
+export function findTournamentMatch(s: { week: number; playerClubId: string; cup: CupState; leagueCup: LeagueCupState | null; championsCup: ContinentalTournamentState | null; shieldCup: ContinentalTournamentState | null; conferenceCup?: ContinentalTournamentState | null; domesticSuperCup: SuperCupMatch | null; continentalSuperCup: SuperCupMatch | null }): { homeClubId: string; awayClubId: string; competition: string } | null {
+  const w = s.week;
+  const pid = s.playerClubId;
+  // Dynasty Cup
+  const cupTie = s.cup?.ties?.find(t => t.week === w && !t.played && (t.homeClubId === pid || t.awayClubId === pid));
+  if (cupTie) return { homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, competition: 'Dynasty Cup' };
+  // League Cup
+  const lcTie = s.leagueCup?.ties?.find(t => t.week === w && !t.played && (t.homeClubId === pid || t.awayClubId === pid));
+  if (lcTie) return { homeClubId: lcTie.homeClubId, awayClubId: lcTie.awayClubId, competition: 'League Cup' };
+  // Continental group + knockout
+  for (const [tourney, name] of [[s.championsCup, 'Champions Cup'], [s.shieldCup, 'Shield Cup'], [s.conferenceCup || null, 'Conference Cup']] as const) {
+    if (!tourney) continue;
+    for (const group of tourney.groups || []) {
+      for (const m of group.matches || []) {
+        if (m.played || m.week !== w) continue;
+        if (m.homeClubId === pid || m.awayClubId === pid) return { homeClubId: m.homeClubId, awayClubId: m.awayClubId, competition: name as string };
+      }
+    }
+    for (const tie of tourney.knockoutTies || []) {
+      if (tie.homeClubId !== pid && tie.awayClubId !== pid) continue;
+      if (!tie.leg1Played && tie.week1 === w) return { homeClubId: tie.homeClubId, awayClubId: tie.awayClubId, competition: name as string };
+      if (tie.leg1Played && !tie.leg2Played && tie.week2 === w && tie.round !== 'F') return { homeClubId: tie.awayClubId, awayClubId: tie.homeClubId, competition: name as string };
+    }
+  }
+  // Super cups
+  const dsc = s.domesticSuperCup;
+  if (dsc && !dsc.played && dsc.week === w && (dsc.homeClubId === pid || dsc.awayClubId === pid)) return { homeClubId: dsc.homeClubId, awayClubId: dsc.awayClubId, competition: 'Super Cup' };
+  const csc = s.continentalSuperCup;
+  if (csc && !csc.played && csc.week === w && (csc.homeClubId === pid || csc.awayClubId === pid)) return { homeClubId: csc.homeClubId, awayClubId: csc.awayClubId, competition: 'Continental Super Cup' };
+  return null;
 }
 
 /** Weighted random pick from a record of weights */

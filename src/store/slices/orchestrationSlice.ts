@@ -31,6 +31,7 @@ import {
 } from '@/config/transfers';
 
 import { resetSeasonGrowth, hydrateSeasonGrowth } from '@/store/helpers/development';
+import { findTournamentMatch } from '@/store/slices/orchestration/helpers';
 
 import { generateAIManagerProfile } from '@/config/aiManager';
 
@@ -428,6 +429,11 @@ export { getSlotSummaries } from '@/store/helpers/persistence';
 
 // `advanceLeagueCupRound` is exported from `./orchestration/tournaments.ts`.
 
+// Module-level (not GameState) so it never persists into saves and needs no
+// migration: a transient "a week tick is currently running" latch shared by
+// advanceWeek and advanceToNextMatch.
+let weekAdvanceInFlight = false;
+
 export const createOrchestrationSlice = (set: Set, get: Get) => ({
   initGame: async (clubId: string, options?: { communityPackEnabled?: boolean }) => {
     await initGameImpl(set, get, clubId, options);
@@ -515,35 +521,55 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
   },
 
   advanceWeek: async () => {
-    await advanceWeekImpl(set, get);
+    // Re-entrancy guard: a double-tap on the advance button (or any two
+    // callers racing) must not run two overlapping week ticks — each would
+    // read stale state via get() and double-process finances/fixtures.
+    if (weekAdvanceInFlight) return;
+    weekAdvanceInFlight = true;
+    try {
+      await advanceWeekImpl(set, get);
+    } finally {
+      weekAdvanceInFlight = false;
+    }
   },
 
   advanceToNextMatch: async () => {
     const hasMatchThisWeek = (s: GameState): boolean => {
-      const { week: w, fixtures, friendlies, playerClubId: pcId, cup, leagueCup, domesticSuperCup, continentalSuperCup } = s;
+      const { week: w, fixtures, friendlies, playerClubId: pcId } = s;
       if (friendlies?.some(m => m.week === w && !m.played && (m.homeClubId === pcId || m.awayClubId === pcId))) return true;
       if (fixtures.some(m => m.week === w && !m.played && (m.homeClubId === pcId || m.awayClubId === pcId))) return true;
-      if (cup?.ties?.some(t => t.week === w && !t.played && (t.homeClubId === pcId || t.awayClubId === pcId))) return true;
-      if (leagueCup?.ties?.some(t => t.week === w && !t.played && (t.homeClubId === pcId || t.awayClubId === pcId))) return true;
-      if (domesticSuperCup && !domesticSuperCup.played && domesticSuperCup.week === w) return true;
-      if (continentalSuperCup && !continentalSuperCup.played && continentalSuperCup.week === w) return true;
+      // Cup, league cup, continental (group + knockout) and super cups all
+      // come from the shared selector. The previous inline checks omitted
+      // the three continental tournaments, so "Skip to Next Match" could
+      // advance through a continental week — the player's group match then
+      // never gets played (weekAdvance deliberately never AI-sims it) and
+      // the whole tournament hangs for the season.
+      if (findTournamentMatch(s)) return true;
       return false;
     };
 
-    const MAX_SKIPS = 5;
-    for (let i = 0; i < MAX_SKIPS; i++) {
-      const s = get();
-      if (s.seasonPhase !== 'regular') break;
-      if (s.week >= s.totalWeeks) break;
-      if (hasMatchThisWeek(s)) break;
-      // `advanceWeek` is async when Community Pack is enabled (it
-      // dynamic-imports the free-agents dataset on the 4-weekly market
-      // refresh). Without `await` the loop would fire overlapping advances,
-      // each reading stale state via get() — a real race on CP saves.
-      await s.advanceWeek();
-      // Suppress the weekly digest for intermediate advances so the modal
-      // only shows for the final week (the one with the upcoming match).
-      set({ weeklyDigest: null });
+    if (weekAdvanceInFlight) return;
+    weekAdvanceInFlight = true;
+    try {
+      const MAX_SKIPS = 5;
+      for (let i = 0; i < MAX_SKIPS; i++) {
+        const s = get();
+        if (s.seasonPhase !== 'regular') break;
+        if (s.week >= s.totalWeeks) break;
+        if (hasMatchThisWeek(s)) break;
+        // `advanceWeekImpl` is async when Community Pack is enabled (it
+        // dynamic-imports the free-agents dataset on the 4-weekly market
+        // refresh). Without `await` the loop would fire overlapping advances,
+        // each reading stale state via get() — a real race on CP saves.
+        // Called directly (not via s.advanceWeek()) because the slice action
+        // would no-op behind the same in-flight guard this loop holds.
+        await advanceWeekImpl(set, get);
+        // Suppress the weekly digest for intermediate advances so the modal
+        // only shows for the final week (the one with the upcoming match).
+        set({ weeklyDigest: null });
+      }
+    } finally {
+      weekAdvanceInFlight = false;
     }
   },
 
