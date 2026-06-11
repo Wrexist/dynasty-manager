@@ -341,7 +341,12 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
   let saveResult: ReturnType<typeof writeSaveSlot>;
   try {
     saveResult = writeSaveSlot(s, json);
-    lastSavedHash = payloadHash;
+    // Only record the change-detection hash once a disk path confirms the
+    // write. Recording it unconditionally meant a save where BOTH disk
+    // paths failed would short-circuit the next identical "Save Now" to
+    // 'saved' without ever persisting. localStorage success is known
+    // synchronously; the IDB-only case commits in the .then() below.
+    if (saveResult.lsOk) lastSavedHash = payloadHash;
   } catch (err) {
     // Memory cache write threw — true OOM scenario. (Stringify failures are caught above.)
     const errTime = Date.now();
@@ -371,7 +376,12 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
   // spam during a long burning-quota episode.
   if (!saveResult.lsOk) {
     void saveResult.idbPromise.then(idbOk => {
-      if (idbOk) return; // IDB succeeded — save is persistent, no warning needed
+      if (idbOk) {
+        // IDB succeeded — save is persistent; commit the change-detection
+        // hash (deferred from the sync path because localStorage failed).
+        lastSavedHash = payloadHash;
+        return;
+      }
       const errTime = Date.now();
       if (errTime - lastSaveErrorLogAt > 10000) {
         Sentry.captureMessage('[saveGame] Both localStorage and IDB rejected the write', 'error');
@@ -769,10 +779,14 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     try {
       const clubIds = Object.keys(data.clubs || {});
-      const leagueTable = buildLeagueTable(data.fixtures || [], clubIds);
 
       // Ensure division data exists (backward compat for old saves)
       const playerDivision: LeagueId = data.playerDivision || 'eng';
+      // Build the table from the player's division only — multi-league saves
+      // contain hundreds of foreign clubs that would otherwise pollute the
+      // table with zero-point rows until the next advanceWeek rebuilds it.
+      const playerLeagueClubIds: string[] = data.divisionClubs?.[playerDivision] || clubIds;
+      const leagueTable = buildLeagueTable(data.fixtures || [], playerLeagueClubIds);
       const divisionClubs: Record<string, string[]> = data.divisionClubs || { [playerDivision]: clubIds };
       const divisionFixtures: Record<string, Match[]> = data.divisionFixtures || { [playerDivision]: data.fixtures || [] };
       const divisionTables = buildAllDivisionTables(divisionFixtures, divisionClubs);
@@ -1073,6 +1087,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       sessionStats: { startWeek: 1, startSeason: 1, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 },
       weeklyDigest: null, careerTimeline: [],
       gameMode: 'sandbox', careerManager: null, jobVacancies: [], jobOffers: [],
+      // National-team + interview state — omitting these leaked an old NT
+      // job (with dead player IDs) into a brand-new game.
+      nationalTeam: null, internationalTournament: null, managerNationality: null,
+      nationalTeamOffer: null, showNationalTeamOffer: false, activeInterview: null,
       sponsorDeals: [], sponsorOffers: [], sponsorSlotCooldowns: {}, negotiationStrikes: {}, contractStrikes: {},
       merchandise: getDefaultMerchState(),
       continentalCoefficients: {},
@@ -1151,17 +1169,15 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       preserveProgression = false;
     }
 
-    // Reinitialize game with new club. `initGame` is declared async but its
-    // body runs fully synchronously (including its `set()`) when Community
-    // Pack is disabled — and the prestige-reset flow never threads CP
-    // through — so the post-init `get()` below reliably sees the
-    // initialised state. `applyPrestigeBonuses` is therefore called
-    // synchronously after init AND chained onto the promise: if a future
-    // change ever makes this path async, the `.then()` re-applies the
-    // bonuses against the now-settled state. Re-application is idempotent
-    // (prestigeLevel set to a fixed value, budget multiplier applied to
-    // the post-init club budget) so the double-call is safe.
-    let bonusesApplied = false;
+    // Reinitialize game with new club, threading the Community Pack flag
+    // through — without it a CP save silently reverted to fictional players
+    // on prestige. Threading CP makes `initGame` genuinely async (it
+    // dynamic-imports the CP datasets), so the bonuses are applied ONLY
+    // once the init promise settles: by then initGame's own `set()` has
+    // written the fresh world and nothing here gets clobbered. (The old
+    // synchronous call relied on the non-CP body running with no awaits;
+    // applying bonuses before an async init's `set()` would have lost the
+    // budget multiplier and timeline carry-over to the init write.)
     const applyPrestigeBonuses = () => {
       const freshState = get();
       const updatedProg = preserveProgression
@@ -1173,9 +1189,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         currentScreen: 'dashboard' as const,
       };
 
-      // Apply budget multiplier — guarded by `bonusesApplied` so the
-      // sync call + the promise `.then()` don't compound the multiplier.
-      if (budgetMultiplier !== 1 && !bonusesApplied) {
+      // Apply budget multiplier to the post-init club budget
+      if (budgetMultiplier !== 1) {
         const newClubs = { ...freshState.clubs };
         const club = { ...newClubs[newClubId] };
         club.budget = Math.round(club.budget * budgetMultiplier);
@@ -1184,7 +1199,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       }
 
       // Carry over career timeline and achievements for all prestige modes
-      if (preserveProgression && !bonusesApplied) {
+      if (preserveProgression) {
         updates.careerTimeline = [...state.careerTimeline, {
           id: safeRandomUUID(),
           type: 'prestige',
@@ -1198,21 +1213,15 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         updates.seasonHistory = state.seasonHistory;
       }
 
-      bonusesApplied = true;
       set(updates);
     };
 
-    const initResult = get().initGame(newClubId);
-    applyPrestigeBonuses();
-    // If init turned out to be async, re-apply once it settles so the
-    // prestige level survives the init's own state write.
-    if (initResult && typeof (initResult as Promise<void>).then === 'function') {
-      guardAsync(
-        (initResult as Promise<void>).then(applyPrestigeBonuses),
-        'resetAfterPrestige.initGame',
-        { title: 'Reset failed', body: 'Could not restart for prestige bonus.' },
-      );
-    }
+    const initResult = get().initGame(newClubId, { communityPackEnabled: get().communityPackEnabled });
+    guardAsync(
+      Promise.resolve(initResult).then(applyPrestigeBonuses),
+      'resetAfterPrestige.initGame',
+      { title: 'Reset failed', body: 'Could not restart for prestige bonus.' },
+    );
   },
 
   // ── Farewell ──

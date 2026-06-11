@@ -144,10 +144,13 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
         const playerAvgOVR = playerSquadIds.length > 0
           ? playerSquadIds.reduce((sum, id) => sum + (state.players[id]?.overall || 60), 0) / playerSquadIds.length
           : 65;
-        // Opponent strength from FIFA ranking (lower = better)
+        // Opponent strength scales UP with their group points (a 9-point
+        // group leader sims stronger than a 0-point minnow), clamped to
+        // the 0.3..0.7 band. Was inverted (0.7 - points * 0.02), which
+        // made tournament leaders the weakest opponents.
         const opponentNation = isHome ? playerMatchThisWeek.awayNation : playerMatchThisWeek.homeNation;
         const opponentRanking = tournament.groups.flatMap(g => g.table).find(t => t.nationality === opponentNation);
-        const opponentStr = opponentRanking ? Math.max(0.3, 0.7 - (opponentRanking.points || 0) * 0.02) : 0.5;
+        const opponentStr = opponentRanking ? Math.min(0.7, 0.45 + (opponentRanking.points || 0) * 0.02) : 0.5;
         const playerStr = Math.min(
           NATIONAL_OVR_STR_MAX,
           (playerAvgOVR - NATIONAL_OVR_STR_FLOOR) / NATIONAL_OVR_STR_RANGE + NATIONAL_OVR_STR_MIN,
@@ -1808,7 +1811,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   if (newWeek === transferWindows.winterEnd - 1) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'transfer', title: 'Winter Deadline Approaching', body: 'The winter transfer window closes next week. Last chance for January deals!' });
 
   // ── Deadline Day Drama ──
-  const deadlineBargains: { playerId: string; askingPrice: number; sellerClubId: string }[] = [];
+  const deadlineBargains: TransferListing[] = [];
   const isDeadlineDay = newWeek === transferWindows.summerEnd || newWeek === transferWindows.winterEnd;
   if (isDeadlineDay) {
     const windowName = newWeek === transferWindows.summerEnd ? 'summer' : 'winter';
@@ -1855,10 +1858,15 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
       const surplus = sellerClub.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => p.overall >= 60 && p.overall <= 75 && p.age >= 27);
       const toSell = surplus[Math.floor(Math.random() * surplus.length)];
       if (!toSell) continue;
-      const alreadyListed = deadlineBargains.some(l => l.playerId === toSell.id);
+      // Dedupe against this batch AND the live market — re-listing an
+      // already-listed player would create a duplicate listing.
+      const alreadyListed = deadlineBargains.some(l => l.playerId === toSell.id)
+        || state.transferMarket.some(l => l.playerId === toSell.id);
       if (alreadyListed) continue;
       const bargainPrice = Math.round(toSell.value * (1 - DEADLINE_BARGAIN_DISCOUNT));
-      deadlineBargains.push({ playerId: toSell.id, askingPrice: Math.max(100000, bargainPrice), sellerClubId: sellerId });
+      // listedWeek/listedSeason stamps let processListingExpiry retire the
+      // listing — unstamped listings live forever with frozen prices.
+      deadlineBargains.push({ playerId: toSell.id, askingPrice: Math.max(100000, bargainPrice), sellerClubId: sellerId, listedWeek: newWeek, listedSeason: season });
     }
   }
 
@@ -1902,12 +1910,15 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
         p.clubId = sellerClubId;
         newPlayers[p.id] = p;
         newScouting.discoveredPlayers.push(p.id);
-        // Add scouted player to transfer market so user can sign via standard flow
+        // Add scouted player to transfer market so user can sign via standard flow.
+        // Stamped so processListingExpiry can retire the listing eventually.
         scoutedListings.push({
           playerId: p.id,
           askingPrice: Math.round(p.value * (LISTING_PRICE_MIN_MULTIPLIER + Math.random() * LISTING_PRICE_RANDOM_RANGE)),
           sellerClubId,
           scoutedPlayer: true,
+          listedWeek: newWeek,
+          listedSeason: season,
         });
         // Detect hidden gem: potential 80+ player
         if (p.potential >= 80 && !gemReveal) {
@@ -2298,8 +2309,11 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     if (!loanedPlayer || !loanedPlayer.onLoan) continue;
     const loanClub = clubs[loan.toClubId];
     if (!loanClub) continue;
-    // 60% chance of playing each week (based on loan club quality vs player quality)
-    const playChance = loanedPlayer.overall <= (loanClub.reputation * LOAN_QUALITY_FORMULA_REP_MULT + LOAN_QUALITY_FORMULA_BASE) ? LOAN_PLAY_CHANCE_HIGH : LOAN_PLAY_CHANCE_LOW;
+    // Weekly playing chance scales with player quality vs loan club level:
+    // a player at or above the loan club's level is a guaranteed starter
+    // (HIGH chance); one below it fights for minutes (LOW). The comparison
+    // was inverted, giving over-qualified loanees the LOW chance.
+    const playChance = loanedPlayer.overall >= (loanClub.reputation * LOAN_QUALITY_FORMULA_REP_MULT + LOAN_QUALITY_FORMULA_BASE) ? LOAN_PLAY_CHANCE_HIGH : LOAN_PLAY_CHANCE_LOW;
     if (Math.random() < playChance) {
       const lp = { ...loanedPlayer };
       lp.appearances += 1;
@@ -2421,7 +2435,8 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   let objectiveSafetyNetXP = 0;
 
   if (monthComplete) {
-    // Month is over — award bonus XP (all-complete + streak extra; base was already paid weekly)
+    // Month is over — award bonus XP (all-complete + streak extra). Base XP
+    // is paid when the player claims each objective, or by the safety net below.
     const { xpEarned: bonusXP, allCompleted: objAllCompleted, newStreak } = calculateCompletedXP(evalObjectives, currentStreak);
     monthBonusXP = bonusXP;
     if (bonusXP > 0) {
@@ -2474,7 +2489,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   const sessionStats = {
     ...prevSession,
     weeksPlayed: prevSession.weeksPlayed + 1,
-    xpEarned: prevSession.xpEarned + objectiveSafetyNetXP + monthBonusXP,
+    xpEarned: prevSession.xpEarned + objectiveSafetyNetXP + monthBonusXP + achievementXPTotal,
     objectivesCompleted: prevSession.objectivesCompleted + Math.max(0, newlyCompleted),
   };
 
@@ -2486,8 +2501,15 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   })();
   const digestOffersReceived = newOffers.length - state.incomingOffers.length;
 
-  // Guarantee at least one narrative message per week
-  const newMessageCount = newMessages.length - messages.length;
+  // Guarantee at least one narrative message per week. Count appends by
+  // locating the pre-tick head message: addMsg prepends and evicts from the
+  // tail at the 200 cap, so a length diff reads 0 once the inbox is full
+  // (which made the filler fire every week for capped inboxes).
+  const prevHeadId = messages[0]?.id;
+  const prevHeadIdx = prevHeadId ? newMessages.findIndex(m => m.id === prevHeadId) : -1;
+  const newMessageCount = prevHeadId
+    ? (prevHeadIdx === -1 ? newMessages.length : prevHeadIdx)
+    : newMessages.length;
   if (newMessageCount <= 1) {
     const myEntry = leagueTable.find(e => e.clubId === playerClubId);
     const myPos = myEntry ? leagueTable.indexOf(myEntry) + 1 : 0;
@@ -2852,25 +2874,10 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
         updatedVacancies = activeVacancies;
       }
 
-      // --- Unemployed tracking ---
-      if (!cm.contract) {
-        cm.unemployedWeeks = (cm.unemployedWeeks || 0) + 1;
-
-        // Desperation vacancies after 12 unemployed weeks
-        const finalVacancies = updatedVacancies ?? careerState.jobVacancies;
-        if (cm.unemployedWeeks >= 12 && finalVacancies.length === 0) {
-          const allClubs = Object.values(careerState.clubs);
-          const desperate = allClubs.filter(c => c.id !== careerState.playerClubId).slice(0, 2);
-          updatedVacancies = desperate.map(club => ({
-            id: `desperation-${club.id}-${season}-${newWeek}`,
-            clubId: club.id, clubName: club.name, divisionId: club.divisionId || '',
-            minReputation: 0, salary: 1500, contractLength: 1,
-            boardExpectations: 'Survive and stabilize the club',
-            expiresWeek: newWeek + 8, expiresSeason: season, applied: false,
-            competitors: generateCompetitors(0, 4).slice(0, 1),
-          }));
-        }
-      }
+      // NOTE: no unemployed handling here — unemployed career managers
+      // (cm.contract == null) take the dedicated early-return path at the
+      // top of advanceWeekImpl and never reach this block, and nothing in
+      // the main flow nulls the contract mid-tick.
 
       if (updatedVacancies) {
         set({ jobVacancies: updatedVacancies });
@@ -3022,15 +3029,31 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
       }
 
       // Drop listings whose external player was rotated out, and prune
-      // those orphaned player records from state.
+      // those orphaned player records from state. Track which fcIds were
+      // actually deleted: a rotated-out player who was SIGNED by a club is
+      // no longer on the transferMarket, so he survives this loop — and
+      // freeing his fcId from usedFcIds would let a later draw issue a
+      // second copy of the same real player.
       const keptMarket: TransferListing[] = [];
+      const deletedFcIds = new Set<string>();
       for (const l of cpState.transferMarket) {
         const p = updatedPlayers[l.playerId];
         if (p?.fcId && rotateOutSet.has(p.fcId)) {
+          deletedFcIds.add(p.fcId);
           delete updatedPlayers[l.playerId];
           continue;
         }
         keptMarket.push(l);
+      }
+
+      // fcIds that still have an active transferMarket listing after the
+      // prune. Kept marketListings entries whose player was signed
+      // mid-cycle are dropped (their fcIds stay in usedFcIds — the player
+      // still exists in the world).
+      const liveListedFcIds = new Set<string>();
+      for (const l of keptMarket) {
+        const fcId = updatedPlayers[l.playerId]?.fcId;
+        if (fcId) liveListedFcIds.add(fcId);
       }
 
       set({
@@ -3044,9 +3067,9 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
           // effective pool starves silently. Aligns runtime behaviour with
           // the existing advanceCursor unit tests.
           cursor: cpState.cpPool.cursor + newDraws.length,
-          marketListings: [...keep, ...newIds],
+          marketListings: [...keep.filter(id => liveListedFcIds.has(id)), ...newIds],
           usedFcIds: [
-            ...cpState.cpPool.usedFcIds.filter(id => !rotateOutSet.has(id)),
+            ...cpState.cpPool.usedFcIds.filter(id => !deletedFcIds.has(id)),
             ...newIds,
           ],
           lastMarketRefreshWeek: cpState.week,
@@ -3055,15 +3078,19 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     }
   }
 
-  // Phase E.7 — CP FA pool season-start seed. Fires on week 1 of S2/S3,
-  // gated by cpPool.lastSeedSeason so reloads don't re-inject. Tapers per
-  // CP_FA_SEED_COUNT_BY_SEASON — S1 is handled inline at initGame.
+  // Phase E.7 — CP FA pool season-start seed. Fires on the first regular
+  // tick of S2/S3, gated by cpPool.lastSeedSeason so reloads don't
+  // re-inject. Tapers per CP_FA_SEED_COUNT_BY_SEASON — S1 is handled
+  // inline at initGame. No week check: this block runs after the week was
+  // already advanced (week is >= 2 by the time we get here, and season-end
+  // paths return before reaching it), so a `week === 1` guard would make
+  // the seed unreachable. The lastSeedSeason gate alone is the
+  // once-per-season idempotency guard.
   {
     const cpSeedState = get();
     const seedCount = CP_FA_SEED_COUNT_BY_SEASON[cpSeedState.season] ?? 0;
     if (
       cpSeedState.communityPackEnabled &&
-      cpSeedState.week === 1 &&
       seedCount > 0 &&
       cpSeedState.cpPool.lastSeedSeason < cpSeedState.season
     ) {

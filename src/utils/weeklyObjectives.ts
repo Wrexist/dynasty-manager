@@ -190,7 +190,10 @@ const OBJECTIVE_TEMPLATES: WeeklyObjective[] = [
     rarity: 'common',
     check: (ctx) => {
       const match = getThisWeekMatch(ctx);
-      if (!match || !match.events) return false;
+      // Require a non-empty events source: synthetic cup/continental
+      // matches are rebuilt with `events: []`, and an empty array would
+      // auto-complete this objective for free (empty .some() → false).
+      if (!match || !match.events || match.events.length === 0) return false;
       return !match.events.some(
         e => (e.type === 'yellow_card' || e.type === 'red_card') && e.clubId === ctx.playerClubId
       );
@@ -549,32 +552,28 @@ export function objectiveClaimXP(inst: ObjectiveInstance): number {
   return Math.round(inst.xpReward * rarityMult);
 }
 
-/** Check which objectives are completed and return updated list + base XP for newly-completed ones.
- *  All-complete bonus and streak multiplier are handled separately at month-end via calculateCompletedXP. */
+/** Detect newly-completed objectives. NO XP is granted or returned here:
+ *  a newly-completed objective is left { completed: true, claimed: false }
+ *  and its base XP is paid when the player claims it on the dashboard
+ *  (featureSlice.claimObjective) — or by weekAdvance's month-end safety
+ *  net for completed-but-unclaimed objectives. Month-end bonus XP
+ *  (all-complete + streak extra) is computed by calculateCompletedXP. */
 export function evaluateObjectives(
   objectives: ObjectiveInstance[],
   ctx: ObjectiveContext,
   streakCount: number = 0,
-): { updated: ObjectiveInstance[]; xpEarned: number; allCompleted: boolean; newStreak: number } {
-  let xpEarned = 0;
+): { updated: ObjectiveInstance[]; allCompleted: boolean; newStreak: number } {
   const updated = objectives.map(inst => {
     if (inst.completed) return inst;
     const template = OBJECTIVE_TEMPLATES.find(t => t.id === inst.objectiveId);
     if (!template) return inst;
-    const done = template.check(ctx);
-    if (done) {
-      const rarityMult = inst.rarity === 'legendary' ? LEGENDARY_OBJECTIVE_XP_MULTIPLIER
-        : inst.rarity === 'rare' ? RARE_OBJECTIVE_XP_MULTIPLIER : 1;
-      xpEarned += inst.xpReward * rarityMult;
-      return { ...inst, completed: true };
-    }
-    return inst;
+    return template.check(ctx) ? { ...inst, completed: true } : inst;
   });
 
   const allCompleted = updated.every(o => o.completed);
   const newStreak = allCompleted ? streakCount + 1 : 0;
 
-  return { updated, xpEarned, allCompleted, newStreak };
+  return { updated, allCompleted, newStreak };
 }
 
 /** Compute progress for all uncompleted objectives */
@@ -591,8 +590,10 @@ export function computeObjectiveProgress(
   });
 }
 
-/** Calculate month-end BONUS XP only — base objective XP was already awarded immediately on completion.
- *  Returns the all-complete bonus and the streak multiplier extra (to avoid double-counting base). */
+/** Calculate month-end BONUS XP only — base objective XP is paid separately
+ *  on claim (featureSlice.claimObjective) or by the month-end safety net.
+ *  Returns the all-complete bonus and the streak multiplier extra (the base
+ *  is recomputed below purely to size the streak extra without double-pay). */
 export function calculateCompletedXP(
   objectives: ObjectiveInstance[],
   streakCount: number = 0,
@@ -602,7 +603,8 @@ export function calculateCompletedXP(
 
   if (!allCompleted) return { xpEarned: 0, allCompleted, newStreak };
 
-  // Recompute base XP (already awarded weekly) to calculate the streak extra correctly
+  // Recompute base XP (paid separately via claims / safety net) so the
+  // streak extra can be sized without double-counting it
   let baseXP = 0;
   for (const inst of objectives) {
     if (!inst.completed) continue;

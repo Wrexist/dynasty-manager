@@ -384,8 +384,10 @@ export function endSeasonImpl(set: Set, get: Get) {
   if (hasMultipleTiers && !newDivisionClubs[newPlayerDiv]?.includes(playerClubId)) {
     // Safety: force player club into their division if promo/relegation logic failed
     Sentry.captureMessage(`Post-promotion validation: ${playerClubId} not found in ${newPlayerDiv}, adding manually`);
-    if (!newDivisionClubs[newPlayerDiv]) newDivisionClubs[newPlayerDiv] = [];
-    newDivisionClubs[newPlayerDiv].push(playerClubId);
+    // Copy before appending — newDivisionClubs is a shallow spread of
+    // state.divisionClubs, so this division's array may still be the
+    // store's own array; pushing in place would mutate live state.
+    newDivisionClubs[newPlayerDiv] = [...(newDivisionClubs[newPlayerDiv] || []), playerClubId];
   }
 
   // Track promotion/relegation in season history
@@ -785,8 +787,9 @@ function finalizeSeason(
       const clubId = table[i].clubId;
       const club = newClubs[clubId];
       if (!club) continue;
-      // Winner gets ~30% of prize pool, last place gets ~2%
-      const positionRatio = 1 - (i / (totalClubs - 1));
+      // Winner gets ~30% of prize pool, last place gets ~2%.
+      // Math.max guards a single-club division (0/0 → NaN budget).
+      const positionRatio = 1 - (i / Math.max(1, totalClubs - 1));
       const share = 0.02 + positionRatio * 0.28; // 2% to 30%
       const bonus = Math.round(lg.prizeMoney * share);
       // Also add a small reputation boost for top half, decline for bottom
@@ -939,9 +942,12 @@ function finalizeSeason(
   // block is to purge external transfer-market players whose listings rotated
   // out, which the new set still catches (those players are never in
   // freeAgentIds).
+  // National-team pool/squad members are exempt — they are often clubless
+  // (clubId === '') but must survive between tournament years, otherwise
+  // poolPlayerIds dangles and the pool silently empties.
   const newFreeAgentSet = new Set(freeAgentIds);
   for (const [pid, p] of Object.entries(newPlayers)) {
-    if (p.clubId === '' && !newFreeAgentSet.has(pid)) {
+    if (p.clubId === '' && !newFreeAgentSet.has(pid) && !ntPoolIds.has(pid)) {
       delete newPlayers[pid];
     }
   }
@@ -1561,6 +1567,13 @@ export function runPostSeasonTail(set: Set, get: Get, completedSeason: number) {
 
         // Promotion/relegation reputation
         const leagueInfo = LEAGUES.find(l => l.id === cs.playerDivision);
+        // Relegation zone size: upper tiers relegate to a real lower division
+        // (relegationSpots); the bottom tier replaces its worst clubs with
+        // freshly generated ones (replacedSlots). Either counts as relegation.
+        // Also used by the avoid_relegation contract bonus below.
+        const relegationCount = leagueInfo
+          ? (leagueInfo.relegationSpots > 0 ? leagueInfo.relegationSpots : leagueInfo.replacedSlots)
+          : 0;
         if (leagueInfo) {
           const teamCount = leagueInfo.teamCount;
           // Promotion: finished in an auto-promotion slot. Keyed on promotionSpots
@@ -1572,10 +1585,6 @@ export function runPostSeasonTail(set: Set, get: Get, completedSeason: number) {
             cm.promotionsWon += 1;
             cm.reputationScore = Math.min(REP_MAX, cm.reputationScore + REP_PROMOTION);
           }
-          // Relegation: finished in the bottom zone. Upper tiers relegate to a real
-          // lower division (relegationSpots); the bottom tier replaces its worst clubs
-          // with freshly generated ones (replacedSlots). Either counts as relegation.
-          const relegationCount = leagueInfo.relegationSpots > 0 ? leagueInfo.relegationSpots : leagueInfo.replacedSlots;
           if (relegationCount > 0 && latestHistory.position > teamCount - relegationCount) {
             cm.reputationScore = Math.max(REP_MIN, cm.reputationScore + REP_RELEGATION);
           }
@@ -1599,7 +1608,10 @@ export function runPostSeasonTail(set: Set, get: Get, completedSeason: number) {
             if (b.condition === 'top_half' && leagueInfo && latestHistory.position <= leagueInfo.teamCount / 2) met = true;
             if (b.condition === 'promotion' && cm.promotionsWon > (cs.careerManager?.promotionsWon || 0)) met = true;
             if (b.condition === 'cup_win' && cs.cup.winner === cs.playerClubId) met = true;
-            if (b.condition === 'avoid_relegation' && leagueInfo && latestHistory.position <= leagueInfo.teamCount - leagueInfo.replacedSlots) met = true;
+            // Uses relegationCount (relegationSpots with replacedSlots fallback) —
+            // replacedSlots alone is 0 in upper tiers, which paid the bonus even
+            // when the club was actually relegated.
+            if (b.condition === 'avoid_relegation' && leagueInfo && latestHistory.position <= leagueInfo.teamCount - relegationCount) met = true;
             if (met) bonusPayout += b.amount;
             return met ? { ...b, met: true } : b;
           })};
