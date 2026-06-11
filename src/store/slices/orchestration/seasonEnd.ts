@@ -769,8 +769,13 @@ function finalizeSeason(
   }
 
   // ── Position-based season rewards: budget bonuses scaled by league prize money ──
-  // Higher league position → bigger share of prize pool → more transfer budget next season
-  for (const [leagueId, clubIds] of Object.entries(newDivisionClubs)) {
+  // Higher league position → bigger share of prize pool → more transfer budget next season.
+  // Iterate the COMPLETED season's memberships (state.divisionClubs), not the
+  // post-turnover newDivisionClubs: building the table from last season's
+  // fixtures with next season's memberships ranked every promoted club last
+  // (zero rows) — a champion got ~2% of the league above's pool instead of
+  // 30% of the pool for the league it actually won.
+  for (const [leagueId, clubIds] of Object.entries(state.divisionClubs)) {
     const lg = LEAGUES.find(l => l.id === leagueId);
     if (!lg || !lg.prizeMoney) continue;
     const table = buildLeagueTable(state.divisionFixtures[leagueId] || [], clubIds);
@@ -1157,7 +1162,19 @@ function finalizeSeason(
       }
     }
   }
-  if (sponsorSeasonEnd.messages) newMessages = sponsorSeasonEnd.messages;
+  if (sponsorSeasonEnd.messages) {
+    // processSponsorSeasonEnd builds its list from the pre-endSeason message
+    // snapshot. Assigning it wholesale discarded every message queued earlier
+    // this endSeason (promotion/relegation, Ballon d'Or, qualification, youth
+    // intake, NT retirements…) — players only ever saw the sponsor messages.
+    // Merge just the NEW sponsor messages instead, mirroring the budget-delta
+    // merge above. addMsg prepends, so iterate in reverse to keep their order.
+    const priorIds = new Set(state.messages.map(m => m.id));
+    const sponsorNew = sponsorSeasonEnd.messages.filter(m => !priorIds.has(m.id));
+    for (let i = sponsorNew.length - 1; i >= 0; i--) {
+      newMessages = addMsg(newMessages, sponsorNew[i]);
+    }
+  }
 
   // Drop last season's youth prospects that were never promoted to a senior squad.
   // The academy is reassigned to the fresh intake below, so their Player records would
