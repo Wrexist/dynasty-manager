@@ -6,7 +6,7 @@ import { Calendar, Trophy, Flame, AlertTriangle, Globe, Briefcase } from 'lucide
 import { cn } from '@/lib/utils';
 import { getRoundName, CUP_BYE_MARKER } from '@/data/cup';
 import { getDerbyIntensity } from '@/data/league';
-import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END } from '@/config/transfers';
+import { getTransferWindows } from '@/config/transfers';
 import { SPRING_PHASE_END_WEEK } from '@/config/gameBalance';
 import { PageHint } from '@/components/game/PageHint';
 import { TOTAL_WEEKS, BOARD_REVIEW_WEEKS } from '@/config/gameBalance';
@@ -45,6 +45,7 @@ const CalendarView = () => {
   const phaseRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const weekCount = totalWeeks || TOTAL_WEEKS;
+  const tw = getTransferWindows(totalWeeks);
 
   // Build unified calendar: league + cup + international merged by week
   const { entries, stats } = useMemo(() => {
@@ -272,12 +273,13 @@ const CalendarView = () => {
       });
     };
 
-    addPhase('early', 'Early Season', 1, SUMMER_WINDOW_END);
-    addPhase('autumn', 'Autumn', SUMMER_WINDOW_END + 1, WINTER_WINDOW_START - 1);
-    addPhase('winter', 'Winter', WINTER_WINDOW_START, WINTER_WINDOW_END);
-    addPhase('spring', 'Spring', WINTER_WINDOW_END + 1, SPRING_PHASE_END_WEEK);
-    if (weekCount > SPRING_PHASE_END_WEEK) {
-      addPhase('runin', 'Season Run-In', SPRING_PHASE_END_WEEK + 1, weekCount);
+    const springEnd = Math.min(SPRING_PHASE_END_WEEK, weekCount);
+    addPhase('early', 'Early Season', 1, tw.summerEnd);
+    addPhase('autumn', 'Autumn', tw.summerEnd + 1, tw.winterStart - 1);
+    addPhase('winter', 'Winter', tw.winterStart, tw.winterEnd);
+    addPhase('spring', 'Spring', tw.winterEnd + 1, springEnd);
+    if (weekCount > springEnd) {
+      addPhase('runin', 'Season Run-In', springEnd + 1, weekCount);
     }
     // International break
     if (internationalTournament) {
@@ -397,10 +399,10 @@ const CalendarView = () => {
               {transferWindowOpen ? 'Open' : 'Closed'}
             </span>
             {transferWindowOpen && (
-              <p className="text-[9px] text-emerald-400/70 mt-1">Closes week {week <= SUMMER_WINDOW_END ? SUMMER_WINDOW_END : WINTER_WINDOW_END}</p>
+              <p className="text-[9px] text-emerald-400/70 mt-1">Closes week {week <= tw.summerEnd ? tw.summerEnd : tw.winterEnd}</p>
             )}
-            {!transferWindowOpen && week < WINTER_WINDOW_START && week > SUMMER_WINDOW_END && (
-              <p className="text-[9px] text-muted-foreground mt-1">Opens week {WINTER_WINDOW_START}</p>
+            {!transferWindowOpen && week < tw.winterStart && week > tw.summerEnd && (
+              <p className="text-[9px] text-muted-foreground mt-1">Opens week {tw.winterStart}</p>
             )}
           </div>
         </GlassPanel>

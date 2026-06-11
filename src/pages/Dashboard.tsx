@@ -28,7 +28,7 @@ import { checkCelebrations, getWinStreak, getUnbeatenRun, getCleanSheetStreak, g
 import { STREAK_MORALE_THRESHOLD, OBJECTIVE_STREAK_THRESHOLD, OBJECTIVE_CYCLE_WEEKS, OBJECTIVE_STREAK_MULTIPLIER, RARE_OBJECTIVE_XP_MULTIPLIER, LEGENDARY_OBJECTIVE_XP_MULTIPLIER, COACH_ALL_TASKS_BONUS_XP, ACHIEVEMENT_XP_BRONZE, ACHIEVEMENT_XP_SILVER, ACHIEVEMENT_XP_GOLD } from '@/config/gameBalance';
 import { getXPProgress, MANAGER_PERKS, canUnlockPerk, getTotalXP } from '@/utils/managerPerks';
 import { getReputationTierLabel } from '@/utils/managerCareer';
-import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END } from '@/config/transfers';
+import { getTransferWindows } from '@/config/transfers';
 import { SPRING_PHASE_END_WEEK } from '@/config/gameBalance';
 import { PACK_PITY_THRESHOLD } from '@/config/packs';
 import type { Celebration } from '@/utils/celebrations';
@@ -153,6 +153,7 @@ const Dashboard = () => {
     unlockedAchievements: s.unlockedAchievements,
     packPityCounter: s.packPityCounter || 0,
   })));
+  const tw = getTransferWindows(totalWeeks);
   // Actions — stable references, individual selectors
   const setScreen = useGameStore(s => s.setScreen);
   const loadMatchForReview = useGameStore(s => s.loadMatchForReview);
@@ -408,11 +409,11 @@ const Dashboard = () => {
 
   // Manager tips
   const managerTips = useMemo(() => club ? getManagerTips({
-    week, season, club, players, fixtures,
+    week, season, totalWeeks, club, players, fixtures,
     transferWindowOpen: transferWindowOpen,
     boardConfidence, incomingOffers: incomingOffers.length,
     tacticalFamiliarity: training.tacticalFamiliarity,
-  }) : [], [week, season, club, players, fixtures, transferWindowOpen, boardConfidence, incomingOffers.length, training.tacticalFamiliarity]);
+  }) : [], [week, season, totalWeeks, club, players, fixtures, transferWindowOpen, boardConfidence, incomingOffers.length, training.tacticalFamiliarity]);
 
   const coachTasks = useMemo(() => {
     if (!club) return [];
@@ -699,7 +700,7 @@ const Dashboard = () => {
             <div>
               <p className="text-lg font-bold font-display text-foreground">{season === 1 && week === 1 ? `Welcome to ${club.name}` : club.name}</p>
               <p className="text-[10px] text-muted-foreground">
-                Season {season} · {week <= SUMMER_WINDOW_END ? 'Pre-Season' : week < WINTER_WINDOW_START ? 'Autumn' : week <= WINTER_WINDOW_END ? 'Winter' : week <= SPRING_PHASE_END_WEEK ? 'Spring' : 'Run-In'}
+                Season {season} · {week <= tw.summerEnd ? 'Pre-Season' : week < tw.winterStart ? 'Autumn' : week <= tw.winterEnd ? 'Winter' : week <= SPRING_PHASE_END_WEEK ? 'Spring' : 'Run-In'}
               </p>
             </div>
           </div>
@@ -854,7 +855,7 @@ const Dashboard = () => {
       )}
 
       {/* Transfer Window Countdown / Deadline Day */}
-      {(week === SUMMER_WINDOW_END || week === WINTER_WINDOW_END) ? (
+      {(week === tw.summerEnd || week === tw.winterEnd) ? (
         <button type="button" onClick={() => setScreen('transfers')} className="w-full bg-destructive/10 border border-destructive/30 rounded-xl px-3 py-2.5 text-left animate-pulse">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -868,9 +869,9 @@ const Dashboard = () => {
           )}
         </button>
       ) : transferWindowOpen && (() => {
-        const windowEnd = week <= SUMMER_WINDOW_END ? SUMMER_WINDOW_END : WINTER_WINDOW_END;
+        const windowEnd = week <= tw.summerEnd ? tw.summerEnd : tw.winterEnd;
         const weeksLeft = windowEnd - week;
-        const windowName = week <= SUMMER_WINDOW_END ? 'Summer' : 'Winter';
+        const windowName = week <= tw.summerEnd ? 'Summer' : 'Winter';
         const isUrgent = weeksLeft <= 2;
         // Only show full-width banner when <=4 weeks left; otherwise users find transfers via quick links
         if (weeksLeft > 4) return null;
@@ -1280,7 +1281,7 @@ const Dashboard = () => {
               </button>
             )}
             <span className="text-[10px] text-muted-foreground">
-              Wk {week} / S{season} · {week <= SUMMER_WINDOW_END ? 'Pre-Season' : week < WINTER_WINDOW_START ? 'Autumn' : week <= WINTER_WINDOW_END ? 'Winter' : week <= SPRING_PHASE_END_WEEK ? 'Spring' : 'Run-In'}
+              Wk {week} / S{season} · {week <= tw.summerEnd ? 'Pre-Season' : week < tw.winterStart ? 'Autumn' : week <= tw.winterEnd ? 'Winter' : week <= SPRING_PHASE_END_WEEK ? 'Spring' : 'Run-In'}
             </span>
           </div>
 

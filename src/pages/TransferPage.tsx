@@ -16,7 +16,7 @@ import { POSITION_FILTERS, PAGE_HINTS, SIGNIFICANT_OFFER_OVERALL, SIGNIFICANT_OF
 import { TransferNegotiation } from '@/components/game/TransferNegotiation';
 import { IncomingOfferNegotiation } from '@/components/game/IncomingOfferNegotiation';
 import { PageHint } from '@/components/game/PageHint';
-import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END, OFFER_EXPIRY_WEEKS, FREE_AGENT_DEFAULT_CONTRACT_YEARS, LOAN_BUY_FEE_MULTIPLIER, PRE_SEASON_END } from '@/config/transfers';
+import { getTransferWindows, OFFER_EXPIRY_WEEKS, FREE_AGENT_DEFAULT_CONTRACT_YEARS, LOAN_BUY_FEE_MULTIPLIER, PRE_SEASON_END } from '@/config/transfers';
 import { MAX_SQUAD_SIZE, LOAN_MIN_WEEKS_BEFORE_RECALL } from '@/config/gameBalance';
 import { formatMoney } from '@/utils/helpers';
 import { getPerformanceMultiplier, getMaxFreeAgentOverall } from '@/utils/transferOffers';
@@ -51,6 +51,7 @@ const TransferPage = () => {
     playerDivision: s.playerDivision,
     transferFilters: s.transferFilters,
   })));
+  const tw = getTransferWindows(totalWeeks);
 
   const addToShortlist = useGameStore(s => s.addToShortlist);
   const removeFromShortlist = useGameStore(s => s.removeFromShortlist);
@@ -262,7 +263,7 @@ const TransferPage = () => {
 
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-foreground font-display">Transfers</h2>
-        {(week === SUMMER_WINDOW_END || week === WINTER_WINDOW_END) ? (
+        {(week === tw.summerEnd || week === tw.winterEnd) ? (
           <span className="flex items-center gap-1 text-xs bg-destructive/15 text-destructive px-2.5 py-1 rounded-md font-bold uppercase tracking-wide animate-pulse">
             <Clock className="w-3 h-3" /> Deadline Day
           </span>
@@ -273,13 +274,13 @@ const TransferPage = () => {
         ) : transferWindowOpen ? (
           <span className="flex items-center gap-1 text-xs bg-emerald-500/15 text-emerald-400 px-2 py-1 rounded-md">
             <Clock className="w-3 h-3" />
-            {week <= SUMMER_WINDOW_END
-              ? `${SUMMER_WINDOW_END - week} wk${SUMMER_WINDOW_END - week !== 1 ? 's' : ''} left`
-              : `${WINTER_WINDOW_END - week} wk${WINTER_WINDOW_END - week !== 1 ? 's' : ''} left`}
+            {week <= tw.summerEnd
+              ? `${tw.summerEnd - week} wk${tw.summerEnd - week !== 1 ? 's' : ''} left`
+              : `${tw.winterEnd - week} wk${tw.winterEnd - week !== 1 ? 's' : ''} left`}
           </span>
         ) : (
           <span className="text-xs bg-muted/50 text-muted-foreground px-2 py-1 rounded-md">
-            Closed — opens {week < WINTER_WINDOW_START ? `Wk ${WINTER_WINDOW_START}` : 'next season'}
+            Closed — opens {week < tw.winterStart ? `Wk ${tw.winterStart}` : 'next season'}
           </span>
         )}
       </div>
@@ -313,8 +314,8 @@ const TransferPage = () => {
           <div className="flex items-center gap-2">
             <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
             <span className="text-xs text-muted-foreground">
-              {week < WINTER_WINDOW_START
-                ? `${WINTER_WINDOW_START - week} weeks until the winter window`
+              {week < tw.winterStart
+                ? `${tw.winterStart - week} weeks until the winter window`
                 : `Transfer window reopens next season`}
             </span>
           </div>

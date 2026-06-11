@@ -6,6 +6,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
+import { getTransferWindows } from '@/config/transfers';
 import { assertValidGameState, validateGameState } from './stateValidator';
 import { LEAGUES } from '@/data/league';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
@@ -308,7 +309,7 @@ describe('Phase 2 — injuries + transfer window execution', () => {
     }
   });
 
-  it('2C: executeTransfer succeeds in window week 8, fails when closed week 9 and 25', { timeout: 60_000 }, async () => {
+  it('2C: executeTransfer succeeds inside the scaled window, fails once it closes', { timeout: 60_000 }, async () => {
     // Pick an affordable listing so the assertion targets the window gate
     // rather than the budget gate. Player-value rebalances upstream can
     // shift listing prices into ranges that exceed the starting budget,
@@ -326,11 +327,15 @@ describe('Phase 2 — injuries + transfer window execution', () => {
       return listing;
     };
 
-    for (let w = 0; w < 7; w++) {
-      await useGameStore.getState().advanceWeek();
-      useGameStore.getState().playCurrentMatch();
-    }
-    expect(useGameStore.getState().week).toBe(8);
+    const tw = getTransferWindows(useGameStore.getState().totalWeeks);
+    const advanceTo = async (target: number) => {
+      while (useGameStore.getState().week < target) {
+        await useGameStore.getState().advanceWeek();
+        useGameStore.getState().playCurrentMatch();
+      }
+    };
+    await advanceTo(tw.summerEnd);
+    expect(useGameStore.getState().week).toBe(tw.summerEnd);
     expect(useGameStore.getState().transferWindowOpen).toBe(true);
 
     const listing8 = findListing();
@@ -339,9 +344,7 @@ describe('Phase 2 — injuries + transfer window execution', () => {
       expect(r.success, r.message).toBe(true);
     }
 
-    await useGameStore.getState().advanceWeek();
-    useGameStore.getState().playCurrentMatch();
-    expect(useGameStore.getState().week).toBe(9);
+    await advanceTo(tw.summerEnd + 1);
     expect(useGameStore.getState().transferWindowOpen).toBe(false);
 
     const listing9 = findListing();
@@ -351,11 +354,8 @@ describe('Phase 2 — injuries + transfer window execution', () => {
       expect(r9.message).toMatch(/closed/i);
     }
 
-    while (useGameStore.getState().week < 24) {
-      await useGameStore.getState().advanceWeek();
-      useGameStore.getState().playCurrentMatch();
-    }
-    expect(useGameStore.getState().week).toBe(24);
+    await advanceTo(tw.winterEnd);
+    expect(useGameStore.getState().week).toBe(tw.winterEnd);
     expect(useGameStore.getState().transferWindowOpen).toBe(true);
 
     const listing24 = findListing();
@@ -364,9 +364,7 @@ describe('Phase 2 — injuries + transfer window execution', () => {
       expect(r24.success, r24.message).toBe(true);
     }
 
-    await useGameStore.getState().advanceWeek();
-    useGameStore.getState().playCurrentMatch();
-    expect(useGameStore.getState().week).toBe(25);
+    await advanceTo(tw.winterEnd + 1);
     expect(useGameStore.getState().transferWindowOpen).toBe(false);
 
     const listing25 = findListing();

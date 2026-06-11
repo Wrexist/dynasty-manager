@@ -26,9 +26,7 @@ import { DEFAULT_MONETIZATION_STATE } from '@/config/monetization';
 import {
   FORFEIT_SCORE, LINEUP_SIZE,
 } from '@/config/gameBalance';
-import {
-  SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END,
-} from '@/config/transfers';
+import { isTransferWindowOpen } from '@/config/transfers';
 
 import { resetSeasonGrowth, hydrateSeasonGrowth } from '@/store/helpers/development';
 import { findTournamentMatch } from '@/store/slices/orchestration/helpers';
@@ -794,7 +792,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
             : 'dashboard',
         previousScreen: null,
         currentMatchResult: null, selectedPlayerId: null,
-        transferWindowOpen: data.week <= SUMMER_WINDOW_END || (data.week >= WINTER_WINDOW_START && data.week <= WINTER_WINDOW_END),
+        transferWindowOpen: isTransferWindowOpen(data.week, data.totalWeeks),
         matchSubsUsed: 0,
         matchPlayerRatings: [],
         currentCupTieId: null,

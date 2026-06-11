@@ -9,6 +9,7 @@ import { useGameStore } from '@/store/gameStore';
 import { assertValidGameState } from './stateValidator';
 import { determineZones } from '@/utils/promotionRelegation';
 import { LEAGUES } from '@/data/league';
+import { getTransferWindows } from '@/config/transfers';
 const CLUB_ID = 'manchester-city';
 const TOTAL_WEEKS = 46;
 
@@ -73,55 +74,45 @@ describe('2B: Transfer Window Boundaries', () => {
 
   it('enforces transfer window open/close at correct weeks', async () => {
     const state = useGameStore.getState();
+    // Windows scale with the league's season length (PL = 38 weeks).
+    const tw = getTransferWindows(state.totalWeeks);
 
     // Week 1: window should be open
     expect(state.transferWindowOpen, 'Week 1 should be open').toBe(true);
 
-    // Advance to week 8 (last summer window week)
-    for (let w = 0; w < 7; w++) {
-      await useGameStore.getState().advanceWeek();
-      useGameStore.getState().playCurrentMatch();
-    }
-    const stateW8 = useGameStore.getState();
-    expect(stateW8.week).toBe(8);
-    expect(stateW8.transferWindowOpen, `Week ${stateW8.week}: window should be open`).toBe(true);
+    const advanceTo = async (target: number) => {
+      while (useGameStore.getState().week < target) {
+        await useGameStore.getState().advanceWeek();
+        useGameStore.getState().playCurrentMatch();
+      }
+    };
 
-    // Advance to week 9 (window closed)
-    await useGameStore.getState().advanceWeek();
-    useGameStore.getState().playCurrentMatch();
-    const stateW9 = useGameStore.getState();
-    expect(stateW9.week).toBe(9);
-    expect(stateW9.transferWindowOpen, `Week ${stateW9.week}: window should be closed`).toBe(false);
+    // Last summer window week — open
+    await advanceTo(tw.summerEnd);
+    expect(useGameStore.getState().week).toBe(tw.summerEnd);
+    expect(useGameStore.getState().transferWindowOpen, `Week ${tw.summerEnd}: window should be open`).toBe(true);
 
-    // Advance to week 20 (winter window opens)
-    while (useGameStore.getState().week < 20) {
-      await useGameStore.getState().advanceWeek();
-      useGameStore.getState().playCurrentMatch();
-    }
-    const stateW20 = useGameStore.getState();
-    expect(stateW20.week).toBe(20);
-    expect(stateW20.transferWindowOpen, `Week ${stateW20.week}: winter window should be open`).toBe(true);
+    // One past the summer window — closed
+    await advanceTo(tw.summerEnd + 1);
+    expect(useGameStore.getState().transferWindowOpen, `Week ${tw.summerEnd + 1}: window should be closed`).toBe(false);
 
-    // Advance to week 24 (last winter week)
-    while (useGameStore.getState().week < 24) {
-      await useGameStore.getState().advanceWeek();
-      useGameStore.getState().playCurrentMatch();
-    }
-    const stateW24 = useGameStore.getState();
-    expect(stateW24.week).toBe(24);
-    expect(stateW24.transferWindowOpen, `Week ${stateW24.week}: winter window should be open`).toBe(true);
+    // Winter window opens
+    await advanceTo(tw.winterStart);
+    expect(useGameStore.getState().transferWindowOpen, `Week ${tw.winterStart}: winter window should be open`).toBe(true);
 
-    // Advance to week 25 (window closed again)
-    await useGameStore.getState().advanceWeek();
-    useGameStore.getState().playCurrentMatch();
-    const stateW25 = useGameStore.getState();
-    expect(stateW25.week).toBe(25);
-    expect(stateW25.transferWindowOpen, `Week ${stateW25.week}: window should be closed`).toBe(false);
+    // Last winter week — open
+    await advanceTo(tw.winterEnd);
+    expect(useGameStore.getState().transferWindowOpen, `Week ${tw.winterEnd}: winter window should be open`).toBe(true);
+
+    // One past the winter window — closed
+    await advanceTo(tw.winterEnd + 1);
+    expect(useGameStore.getState().transferWindowOpen, `Week ${tw.winterEnd + 1}: window should be closed`).toBe(false);
   });
 
   it('rejects transfers when window is closed', async () => {
-    // Advance to week 9 (window closed)
-    for (let w = 0; w < 8; w++) {
+    // Advance one past the (scaled) summer window — closed
+    const tw = getTransferWindows(useGameStore.getState().totalWeeks);
+    while (useGameStore.getState().week < tw.summerEnd + 1) {
       await useGameStore.getState().advanceWeek();
       useGameStore.getState().playCurrentMatch();
     }

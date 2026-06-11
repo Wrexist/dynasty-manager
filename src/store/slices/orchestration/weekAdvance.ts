@@ -43,7 +43,7 @@ import { STORYLINE_CHAIN_MIN_WEEK, STORYLINE_CHAIN_TRIGGER_CHANCE } from '@/conf
 import { MAX_SCOUT_REPORTS } from '@/config/scouting';
 import { GK_COACH_DEV_BONUS_PER_QUALITY, STAFF_MARKET_REFRESH_WEEK } from '@/config/staff';
 import { INDIVIDUAL_INJURY_RISK_MODIFIER } from '@/config/training';
-import { AI_OFFER_CHANCE, AI_OFFER_MIN_BUDGET_RATIO, AI_OFFER_POSITION_THRESHOLD, ASKING_PRICE_BID_ANCHOR, CLUB_LISTING_EXPIRY_WEEKS, COMPETING_BID_PREMIUM, DEADLINE_BARGAIN_DISCOUNT, DEADLINE_DAY_BID_PREMIUM, DEADLINE_DAY_OFFER_MULTIPLIER, DEADLINE_MULTI_BID_CHANCE, DEADLINE_PANIC_BID_PREMIUM, DEADLINE_PANIC_OFFER_COUNT, FREE_AGENT_SPAWN_CHANCE, INJURY_BID_DISCOUNT, LISTING_EXPIRY_WEEKS, LISTING_RELIST_CHANCE, LISTING_RELIST_DISCOUNT, LONG_INJURY_BID_DISCOUNT, LONG_INJURY_WEEKS_THRESHOLD, MARKET_REPLENISH_THRESHOLD, OFFER_EXPIRY_WEEKS, OFFER_FEE_BASE, OFFER_FEE_RANDOM_RANGE, OFFER_MAX_BUDGET_RATIO, PRE_SEASON_END, PRE_SEASON_OFFER_MULTIPLIER, PRE_SEASON_RUMOR_MULTIPLIER, PRE_SEASON_UNSOLICITED_MULTIPLIER, RUMOR_CHANCE, SUMMER_WINDOW_END, UNSOLICITED_FEE_BASE, UNSOLICITED_FEE_RANGE, UNSOLICITED_OFFER_CHANCE, URGENCY_NONE, URGENCY_ONE, URGENCY_TWO_PLUS, WINTER_WINDOW_END, WINTER_WINDOW_START } from '@/config/transfers';
+import { AI_OFFER_CHANCE, AI_OFFER_MIN_BUDGET_RATIO, AI_OFFER_POSITION_THRESHOLD, ASKING_PRICE_BID_ANCHOR, CLUB_LISTING_EXPIRY_WEEKS, COMPETING_BID_PREMIUM, DEADLINE_BARGAIN_DISCOUNT, DEADLINE_DAY_BID_PREMIUM, DEADLINE_DAY_OFFER_MULTIPLIER, DEADLINE_MULTI_BID_CHANCE, DEADLINE_PANIC_BID_PREMIUM, DEADLINE_PANIC_OFFER_COUNT, FREE_AGENT_SPAWN_CHANCE, INJURY_BID_DISCOUNT, LISTING_EXPIRY_WEEKS, LISTING_RELIST_CHANCE, LISTING_RELIST_DISCOUNT, LONG_INJURY_BID_DISCOUNT, LONG_INJURY_WEEKS_THRESHOLD, MARKET_REPLENISH_THRESHOLD, OFFER_EXPIRY_WEEKS, OFFER_FEE_BASE, OFFER_FEE_RANDOM_RANGE, OFFER_MAX_BUDGET_RATIO, PRE_SEASON_END, PRE_SEASON_OFFER_MULTIPLIER, PRE_SEASON_RUMOR_MULTIPLIER, PRE_SEASON_UNSOLICITED_MULTIPLIER, RUMOR_CHANCE, getTransferWindows, isTransferWindowOpen, UNSOLICITED_FEE_BASE, UNSOLICITED_FEE_RANGE, UNSOLICITED_OFFER_CHANCE, URGENCY_NONE, URGENCY_ONE, URGENCY_TWO_PLUS, } from '@/config/transfers';
 import { checkChallengeFailed } from '@/data/challenges';
 import { advanceCupRound, getRoundName } from '@/data/cup';
 import { ALL_CLUBS, getDerbyIntensity, getDerbyName } from '@/data/league';
@@ -664,7 +664,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     // Keep the AI world alive during unemployment: process transfers, loans, wages,
     // contracts and free agents. Without this the simulated world froze — AI budgets
     // inflated (no wages paid) and squads never changed, distorting the market on rehire.
-    const unempWindowOpen = newWeek <= SUMMER_WINDOW_END || (newWeek >= WINTER_WINDOW_START && newWeek <= WINTER_WINDOW_END);
+    const unempWindowOpen = isTransferWindowOpen(newWeek, state.totalWeeks);
     const unempAI = processAIWeekly(
       simClubs, simPlayers, msgs, state.transferMarket, state.freeAgents,
       state.activeLoans, state.transferNews || [], simDivTables, newWeek, state.season,
@@ -1436,7 +1436,8 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   const newWeek = week + 1;
   const clubIds = Object.keys(clubs);
   const leagueTable = buildLeagueTable(updatedFixtures, state.divisionClubs[playerDiv] || clubIds);
-  const transferWindowOpen = newWeek <= SUMMER_WINDOW_END || (newWeek >= WINTER_WINDOW_START && newWeek <= WINTER_WINDOW_END);
+  const transferWindows = getTransferWindows(state.totalWeeks);
+  const transferWindowOpen = newWeek <= transferWindows.summerEnd || (newWeek >= transferWindows.winterStart && newWeek <= transferWindows.winterEnd);
 
   // Sync player's division fixtures back into divisionFixtures
   updatedDivisionFixtures[playerDiv] = updatedFixtures;
@@ -1521,7 +1522,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
 
   // Incoming offers — AI clubs only bid during transfer windows for positions they need
   if (transferWindowOpen) {
-    const isDeadlineDay = newWeek === SUMMER_WINDOW_END || newWeek === WINTER_WINDOW_END;
+    const isDeadlineDay = newWeek === transferWindows.summerEnd || newWeek === transferWindows.winterEnd;
 
     // Helper: attempt to generate an offer for a target player
     // valueOverride allows using asking price as base instead of raw player value
@@ -1799,15 +1800,15 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   }
 
   // Transfer window messages
-  if (newWeek === SUMMER_WINDOW_END - 1) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'transfer', title: 'Transfer Deadline Approaching', body: 'The summer transfer window closes next week. Finalise any deals now!' });
-  if (newWeek === WINTER_WINDOW_START) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: 'January Window Opens', body: 'The winter transfer window is now open until Week 24.' });
-  if (newWeek === WINTER_WINDOW_END - 1) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'transfer', title: 'Winter Deadline Approaching', body: 'The winter transfer window closes next week. Last chance for January deals!' });
+  if (newWeek === transferWindows.summerEnd - 1) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'transfer', title: 'Transfer Deadline Approaching', body: 'The summer transfer window closes next week. Finalise any deals now!' });
+  if (newWeek === transferWindows.winterStart) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: 'January Window Opens', body: `The winter transfer window is now open until Week ${transferWindows.winterEnd}.` });
+  if (newWeek === transferWindows.winterEnd - 1) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'transfer', title: 'Winter Deadline Approaching', body: 'The winter transfer window closes next week. Last chance for January deals!' });
 
   // ── Deadline Day Drama ──
   const deadlineBargains: { playerId: string; askingPrice: number; sellerClubId: string }[] = [];
-  const isDeadlineDay = newWeek === SUMMER_WINDOW_END || newWeek === WINTER_WINDOW_END;
+  const isDeadlineDay = newWeek === transferWindows.summerEnd || newWeek === transferWindows.winterEnd;
   if (isDeadlineDay) {
-    const windowName = newWeek === SUMMER_WINDOW_END ? 'summer' : 'winter';
+    const windowName = newWeek === transferWindows.summerEnd ? 'summer' : 'winter';
 
     // Generate panic incoming offers for player's club
     const playerClub = clubs[playerClubId];
@@ -1859,7 +1860,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   }
 
   // Post-deadline summary (week after window closes)
-  if (newWeek === SUMMER_WINDOW_END + 1 || newWeek === WINTER_WINDOW_END + 1) {
+  if (newWeek === transferWindows.summerEnd + 1 || newWeek === transferWindows.winterEnd + 1) {
     const completedDeals = (state.transferNews || []).filter(n => n.week === newWeek - 1 && n.season === season).length;
     const expiredOffers = newOffers.filter(o => o.week <= newWeek - 1).length;
     newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: 'Transfer Window Closed', body: `The window is shut. ${completedDeals} deals were completed league-wide${expiredOffers > 0 ? ` and ${expiredOffers} offer${expiredOffers > 1 ? 's' : ''} expired` : ''}. No more transfers until the ${newWeek <= 10 ? 'January' : 'summer'} window.` });

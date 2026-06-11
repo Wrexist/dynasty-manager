@@ -4,9 +4,42 @@
  */
 
 // ── Transfer Windows ──
+// REFERENCE 46-week calendar values. Most leagues run shorter seasons
+// (state.totalWeeks, 18-58) — consumers must use getTransferWindows /
+// isTransferWindowOpen, which scale the windows proportionally. With the
+// raw constants an 18-week league's winter window (weeks 20-24) never
+// opened at all, and 22-week leagues got 3 winter weeks with deadline day
+// colliding with season end.
 export const SUMMER_WINDOW_END = 8;
 export const WINTER_WINDOW_START = 20;
 export const WINTER_WINDOW_END = 24;
+
+const WINDOW_REF_TOTAL_WEEKS = 46;
+
+export interface TransferWindows {
+  summerEnd: number;
+  winterStart: number;
+  winterEnd: number;
+}
+
+/** Transfer window weeks scaled to the league's season length. 46+ week
+ *  seasons use the reference values unchanged. */
+export function getTransferWindows(totalWeeks?: number): TransferWindows {
+  if (!totalWeeks || totalWeeks >= WINDOW_REF_TOTAL_WEEKS) {
+    return { summerEnd: SUMMER_WINDOW_END, winterStart: WINTER_WINDOW_START, winterEnd: WINTER_WINDOW_END };
+  }
+  const scale = totalWeeks / WINDOW_REF_TOTAL_WEEKS;
+  const summerEnd = Math.max(2, Math.round(SUMMER_WINDOW_END * scale));
+  const winterStart = Math.max(summerEnd + 2, Math.round(WINTER_WINDOW_START * scale));
+  const winterEnd = Math.min(totalWeeks - 1, Math.max(winterStart + 1, Math.round(WINTER_WINDOW_END * scale)));
+  return { summerEnd, winterStart, winterEnd };
+}
+
+/** Single source of truth for "is the transfer window open in week X". */
+export function isTransferWindowOpen(week: number, totalWeeks?: number): boolean {
+  const w = getTransferWindows(totalWeeks);
+  return week <= w.summerEnd || (week >= w.winterStart && week <= w.winterEnd);
+}
 
 // ── AI Incoming Offers ──
 export const AI_OFFER_CHANCE = 0.50;
