@@ -80,6 +80,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Phase 0 perf: instant navigation, smooth scrolling, claim-based rewards.',
     'Count claimed objective XP in session stats.',
     'Phase 4 + 5: quick-sell undo, eager-bundle budget, render-hygiene guards (+ boot-perf fix).',
+    'Add codebase audit report (in progress — 6 of 14 sections compiled).',
   ],
   fixed: [
     'Fixed rare launch crashes related to ads.',
