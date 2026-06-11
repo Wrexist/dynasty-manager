@@ -1410,9 +1410,29 @@ function finalizeSeason(
       messages: tournamentMsg,
       currentScreen: showPicker ? 'national-squad-picker' : 'international-tournament',
     });
+    // The post-season tail (career processing + autosave) is DEFERRED until
+    // the tournament completes — advanceInternationalWeekImpl calls
+    // runPostSeasonTail then. It must NOT re-run endSeasonImpl: the season
+    // rollover above has already been committed.
     return;
   }
 
+  runPostSeasonTail(set, get, season);
+}
+
+/**
+ * Post-season tail: career-mode end-of-season processing (manager aging,
+ * sacking, contract expiry, reputation) plus the closing autosave.
+ *
+ * Runs inline at the end of `finalizeSeason` in a normal season. When an
+ * international tournament intercepts the season end, `finalizeSeason`
+ * returns early (the rollover is already committed by then) and
+ * `advanceInternationalWeekImpl` calls this once the tournament completes.
+ * Calling `endSeasonImpl` again at that point would end the brand-new
+ * season a second time — double aging, double contract decrement, and
+ * promotion/relegation decided off an all-zero table.
+ */
+export function runPostSeasonTail(set: Set, get: Get, completedSeason: number) {
   // Career mode: end-of-season processing (aging, sacking, contract, reputation)
   {
     const cs = get();
@@ -1551,7 +1571,7 @@ function finalizeSeason(
             const bonusState = get();
             const bonusClub = bonusState.clubs[bonusState.playerClubId];
             const bonusMsg = addMsg(bonusState.messages, {
-              week: TOTAL_WEEKS, season, type: 'general',
+              week: TOTAL_WEEKS, season: completedSeason, type: 'general',
               title: 'Contract Bonuses Paid',
               body: `The club paid £${(bonusPayout / 1000).toFixed(0)}k in manager performance bonuses this season. Your personal wealth is now £${((cm.personalWealth) / 1000).toFixed(0)}k.`,
             });
@@ -1567,7 +1587,7 @@ function finalizeSeason(
 
         // Manager of the Season (overachievement ≥ 3 positions)
         if (expectedPos - latestHistory.position >= 3) {
-          cm.awardsWon = [...cm.awardsWon, { type: 'manager_of_season', season, divisionId: cs.playerDivision }];
+          cm.awardsWon = [...cm.awardsWon, { type: 'manager_of_season', season: completedSeason, divisionId: cs.playerDivision }];
           cm.reputationScore = Math.min(REP_MAX, cm.reputationScore + 15);
         }
       }

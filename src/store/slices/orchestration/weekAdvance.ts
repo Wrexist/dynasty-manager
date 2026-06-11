@@ -51,7 +51,7 @@ import { STORYLINE_CHAINS, shouldTriggerChain } from '@/data/storylineChains';
 import { simulateMatch } from '@/engine/match';
 import { applyPlayerDevelopment, seasonGrowthTracker } from '@/store/helpers/development';
 import { applyAIMatchEvents, generateAIInjuryDetails } from '@/store/slices/orchestration/helpers';
-import { endSeasonImpl } from '@/store/slices/orchestration/seasonEnd';
+import { endSeasonImpl, runPostSeasonTail } from '@/store/slices/orchestration/seasonEnd';
 import { advanceLeagueCupRound } from '@/store/slices/orchestration/tournaments';
 import { processSponsorWeek } from '@/store/slices/sponsorSlice';
 import type { ActiveStorylineChain, CareerMilestone, FacilitiesState, IncomingLoanOffer, IncomingOffer, PlayerAttributes, StorylineEvent } from '@/types/game';
@@ -105,8 +105,14 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
   const state = get();
   const tournament = state.internationalTournament;
   if (!tournament || !state.nationalTeam || !state.managerNationality) {
-    // No tournament active — finalize season
-    endSeasonImpl(set, get);
+    // No runnable tournament (e.g. sandbox manager with a nationality but no
+    // national-team squad, or a save stuck in the international phase). The
+    // season rollover was already committed when the tournament was
+    // scheduled — close the international phase and run the deferred
+    // post-season tail. Calling endSeasonImpl here would end the brand-new
+    // season a second time (double aging, P/R off an all-zero table).
+    set({ seasonPhase: 'regular', internationalTournament: null });
+    runPostSeasonTail(set, get, state.season - 1);
     return;
   }
 
@@ -516,10 +522,15 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
       players: postTourneyPlayers,
       seasonPhase: 'regular',
       internationalTournament: null,
+      currentScreen: 'season-summary',
       ...(updatedCareerManager && { careerManager: updatedCareerManager }),
       ...(clearNationalTeam && { nationalTeam: null }),
     });
-    endSeasonImpl(set, get);
+    // The season rollover was committed before the tournament began
+    // (finalizeSeason returns early after scheduling it). Run the deferred
+    // post-season tail — career processing + autosave — rather than
+    // endSeasonImpl, which would end the new season we're already in.
+    runPostSeasonTail(set, get, state.season - 1);
   }
 }
 
