@@ -82,7 +82,11 @@ export function applyWeeklyTraining(
   // Apply attribute gains using weighted day contributions (respecting season growth cap)
   const gains: Partial<Record<keyof PlayerAttributes, number>> = {};
   const priorGrowth = seasonGrowthTracker[player.id] || 0;
-  if (priorGrowth < MAX_SEASON_GROWTH) {
+  // Training respects the same potential ceiling as natural development —
+  // without it a 30-year-old at 80/80 kept climbing +MAX_SEASON_GROWTH OVR
+  // every season, inflating values and making `potential` meaningless.
+  const atPotential = player.overall >= player.potential;
+  if (priorGrowth < MAX_SEASON_GROWTH && !atPotential) {
     for (const [attr, weightedDays] of Object.entries(attrDayWeights) as [keyof PlayerAttributes, number][]) {
       if (!weightedDays || weightedDays <= 0) continue;
 
@@ -108,7 +112,7 @@ export function applyWeeklyTraining(
   }
 
   // Independent individual training pass: gain chance for focus attributes NOT in team schedule
-  if (playerPlan && (seasonGrowthTracker[player.id] || 0) < MAX_SEASON_GROWTH) {
+  if (playerPlan && (seasonGrowthTracker[player.id] || 0) < MAX_SEASON_GROWTH && !atPotential) {
     const individualAttrs = MODULE_ATTR_MAP[playerPlan.focus] || [];
     const personalityMult = getTrainingMultiplier(player.personality);
     for (const attr of individualAttrs) {
