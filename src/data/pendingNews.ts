@@ -44,7 +44,9 @@ export interface PendingRelease {
 export const PENDING_NEWS: PendingRelease = {
   highlights: [],
   new: [],
-  improved: [],
+  improved: [
+    'Bump to 1.1.1 and seal What\'s New.',
+  ],
   fixed: [],
   headline: null,
   summary: null,
