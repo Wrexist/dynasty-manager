@@ -337,6 +337,9 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
         goalsAgainst: isHome ? ag : hg,
         tournament: tournament.name,
         round: tournament.currentRound,
+        // Shootout wins are drawn on goals — stamp the real outcome so
+        // achievements/UI can classify the result.
+        won: updatedPlayerTie.winnerId === nationality,
       }];
 
       // Apply fitness recovery between matches (+3), then fitness cost
@@ -2277,7 +2280,8 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   if (updatedChallenge && !updatedChallenge.completed && !updatedChallenge.failed) {
     const myEntry = leagueTable.find(e => e.clubId === playerClubId);
     const hasLost = myEntry ? myEntry.lost > 0 : false;
-    if (checkChallengeFailed(updatedChallenge.scenarioId, updatedChallenge.seasonsRemaining, playerPos, hasLost)) {
+    const homeLost = updatedFixtures.some(m => m.played && m.homeClubId === playerClubId && m.homeGoals < m.awayGoals);
+    if (checkChallengeFailed(updatedChallenge.scenarioId, updatedChallenge.seasonsRemaining, playerPos, hasLost, { homeLost })) {
       updatedChallenge = { ...updatedChallenge, failed: true };
       const scenario = CHALLENGES.find(c => c.id === updatedChallenge!.scenarioId);
       newMessages = addMsg(newMessages, {

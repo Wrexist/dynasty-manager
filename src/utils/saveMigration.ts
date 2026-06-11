@@ -1162,7 +1162,10 @@ const migrations: Record<number, MigrationFn> = {
   // earlier half — rebuilt into the engine's `unavailable` set so AI subs
   // can't "resurrect" in extra time). Mid-match saves carry halfTimeState;
   // default the field to [] so the engine's `?? []` fallback is explicit in
-  // the persisted shape.
+  // the persisted shape. v72 also adds the OPTIONAL `won` flag on
+  // NationalTeamResult knockout records (shootout wins are drawn on goals);
+  // legacy records need no transformation — readers fall back to a goals
+  // comparison.
   71: (data) => {
     const hts = data.halfTimeState as { subbedOut?: unknown } | null | undefined;
     if (!hts || typeof hts !== 'object') return { ...data, version: 72 };

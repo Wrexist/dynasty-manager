@@ -1578,6 +1578,11 @@ export interface NationalTeamResult {
   goalsAgainst: number;
   tournament: string;                     // "World Cup Group A", "Friendly", etc.
   round: string;
+  /** Did the manager's nation win this match? Stamped on knockout results so
+   *  penalty-shootout wins (goalsFor === goalsAgainst) are classifiable.
+   *  Optional: legacy records fall back to a goals comparison. Added in save
+   *  schema v72. */
+  won?: boolean;
 }
 
 // ── International Tournament ──

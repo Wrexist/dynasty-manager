@@ -1134,7 +1134,16 @@ function finalizeSeason(
     const cupWon = state.cup.winner === playerClubId;
     const myEntry = state.leagueTable.find(e => e.clubId === playerClubId);
     const hasLost = myEntry ? myEntry.lost > 0 : false;
-    if (checkChallengeComplete(endChallenge.scenarioId, history.position, cupWon, [...state.seasonHistory, history], hasLost)) {
+    // extraData drives 'fortress' (unbeaten at home all season), 'goal-machine'
+    // (100+ league goals) and 'promotion-express' (reached tier 1 — judged on
+    // the POST-turnover division). These checks always returned false before
+    // because no call site passed the data they require.
+    const challengeExtra = {
+      homeUnbeaten: !state.fixtures.some(m => m.played && m.homeClubId === playerClubId && m.homeGoals < m.awayGoals),
+      leagueGoals: myEntry?.goalsFor || 0,
+      divisionId: newPlayerDivision,
+    };
+    if (checkChallengeComplete(endChallenge.scenarioId, history.position, cupWon, [...state.seasonHistory, history], hasLost, challengeExtra)) {
       endChallenge = { ...endChallenge, completed: true };
       const scenario = CHALLENGES.find(c => c.id === endChallenge!.scenarioId);
       newMessages = addMsg(newMessages, { week: 1, season: newSeason, type: 'board', title: 'Challenge Complete!', body: `Congratulations! You completed the "${scenario?.name}" challenge! ${scenario?.icon || ''}` });
