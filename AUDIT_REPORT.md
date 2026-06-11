@@ -9,6 +9,23 @@
 
 # Executive Summary
 
+> **Status update (Waves 1-4 complete on this branch):** Wave 4 closed out
+> the remaining backlog in seven batches (~150 further fixes): orchestration
+> (CP seeding/duplicates, reset/init state leaks, listing expiry, save-hash),
+> store slices (loan dead-ends + acceptLoanCounter, rewind snapshot, career-
+> move resets, quick-sell loop, hydration race), utils (finance-breakdown
+> drift S7-H1/H2, chemistry slot alignment, training honesty, BdO ghosts,
+> migration guards), engine mediums (GK availability, team-talk defense,
+> added_time events, corner xG, abandon consistency), pages (trial gating
+> S11-H1, squad-picker deadlock S11-H2, virtual-opponent prep, money
+> formatting), components (sub-confirm truth S12-H3, lineup-editor gaps,
+> purchase-modal contract, pack animation hygiene, focus traps), and the
+> live-UX P1 batch (post-match autosave, honest onboarding copy, mononym
+> names, table ellipsis, pack intro timing). See UX_POLISH_REPORT.md for
+> the full hands-on review + remaining premium-pass recommendations.
+>
+> *(Original Wave 1+2 note follows.)*
+>
 > **Status update (Waves 1 + 2 complete on this branch):** All four CRITICALs are
 > fixed — C1 competition-calendar scaling (`getCompetitionCalendar` +
 > continental catch-up recovery + odd-team fixture span + scaled transfer
