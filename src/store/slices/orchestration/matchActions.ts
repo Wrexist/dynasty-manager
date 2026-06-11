@@ -1230,6 +1230,11 @@ export function playSecondHalfImpl(set: Set, get: Get): Match | null {
       lastMatchDrama: drama,
       pairFamiliarity: processed.pairFamiliarity,
     });
+    // Persist the played match immediately — autosave otherwise only fires
+    // on advanceWeek, so a crash/app-kill after an interactively played
+    // match silently discarded the result (the instant-sim paths above
+    // already do this).
+    if (get().settings.autoSave) get().saveGame();
     return result;
   }
 
@@ -1255,6 +1260,11 @@ export function playSecondHalfImpl(set: Set, get: Get): Match | null {
       pairFamiliarity: processed.pairFamiliarity,
       ...tournamentUpdates.stateUpdates,
     });
+    // Persist the played match immediately — autosave otherwise only fires
+    // on advanceWeek, so a crash/app-kill after an interactively played
+    // match silently discarded the result (the instant-sim paths above
+    // already do this).
+    if (get().settings.autoSave) get().saveGame();
     return result;
   }
 
@@ -1314,6 +1324,11 @@ export function playSecondHalfImpl(set: Set, get: Get): Match | null {
     pairFamiliarity: processed.pairFamiliarity,
     clubPowerRankings: eloRankings2,
   });
+  // Persist the played match immediately — autosave otherwise only fires
+  // on advanceWeek, so a crash/app-kill after an interactively played
+  // match silently discarded the result (the instant-sim paths above
+  // already do this).
+  if (get().settings.autoSave) get().saveGame();
   return result;
   } catch (err) {
     Sentry.captureException(err, { tags: { context: 'playSecondHalf' } });
@@ -1414,6 +1429,11 @@ export function playExtraTimeImpl(set: Set, get: Get): Match | null {
         pairFamiliarity: processed.pairFamiliarity,
         ...tournamentUpdates.stateUpdates,
       });
+      // Persist the played match immediately — autosave otherwise only fires
+      // on advanceWeek, so a crash/app-kill after an interactively played
+      // match silently discarded the result (the instant-sim paths above
+      // already do this).
+      if (get().settings.autoSave) get().saveGame();
     } else {
       // Domestic Dynasty Cup
       const newCup = { ...state.cup, ties: state.cup.ties.map(t =>
@@ -1458,6 +1478,11 @@ export function playExtraTimeImpl(set: Set, get: Get): Match | null {
         pendingPressConference: generatePressConference(press, isPro(get().monetization)),
         lastMatchDrama: etDrama, rivalries: processed.updatedRivalries, pairFamiliarity: processed.pairFamiliarity,
       });
+      // Persist the played match immediately — autosave otherwise only fires
+      // on advanceWeek, so a crash/app-kill after an interactively played
+      // match silently discarded the result (the instant-sim paths above
+      // already do this).
+      if (get().settings.autoSave) get().saveGame();
     }
     return result;
   }
@@ -1628,6 +1653,11 @@ export function skipPenaltyShootoutImpl(set: Set, get: Get): void {
       penaltyShootoutKicks: [], penaltyShootoutRevealIndex: 0,
       ...tournamentUpdates.stateUpdates,
     });
+    // Persist the played match immediately — autosave otherwise only fires
+    // on advanceWeek, so a crash/app-kill after an interactively played
+    // match silently discarded the result (the instant-sim paths above
+    // already do this).
+    if (get().settings.autoSave) get().saveGame();
   } else {
     // Domestic Dynasty Cup
     const newCup = { ...state.cup, ties: state.cup.ties.map(t =>
@@ -1663,6 +1693,11 @@ export function skipPenaltyShootoutImpl(set: Set, get: Get): void {
       lastMatchDrama: penDrama, rivalries: processed.updatedRivalries, pairFamiliarity: processed.pairFamiliarity,
       penaltyShootoutKicks: [], penaltyShootoutRevealIndex: 0,
     });
+    // Persist the played match immediately — autosave otherwise only fires
+    // on advanceWeek, so a crash/app-kill after an interactively played
+    // match silently discarded the result (the instant-sim paths above
+    // already do this).
+    if (get().settings.autoSave) get().saveGame();
   }
 }
 
