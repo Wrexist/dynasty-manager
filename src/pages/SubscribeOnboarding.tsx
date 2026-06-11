@@ -141,15 +141,18 @@ const SubscribeOnboarding = () => {
     setPurchasing(true);
     track('purchase_initiated', { productId: selected });
     try {
-      const granted = await purchaseProduct(selected);
-      if (granted.length === 0) {
-        // User cancelled the StoreKit dialog.
+      const result = await purchaseProduct(selected);
+      if (result.cancelled) {
+        // User cancelled the StoreKit dialog. (Only `cancelled` means no
+        // charge — a completed subscription purchase legitimately returns
+        // an empty `granted` list, since sub status flows through
+        // subscription.expiresAt, not entitlements.)
         track('purchase_cancelled', { productId: selected });
         infoToast('Purchase Cancelled', 'No charge was made.');
         return;
       }
 
-      granted.forEach(id => grantEntitlement(id));
+      result.granted.forEach(id => grantEntitlement(id));
 
       // If the user picked the monthly plan, the App Store Connect
       // introductory offer grants the free trial automatically — mirror it

@@ -21,6 +21,7 @@ import { errorToast, infoToast, successToast } from '@/utils/gameToast';
 import type { Player } from '@/types/game';
 import { NATIVE_ADS_READY, showRewardedAd } from '@/utils/ads';
 import { purchaseConsumable } from '@/utils/purchases';
+import { readPendingPackCredit, writePendingPackCredit, clearPendingPackCredit } from '@/store/helpers/persistence';
 import { isReviewWorthyPackTier, maybeRequestReview } from '@/utils/appReview';
 
 function playerTier(ovr: number) {
@@ -84,6 +85,12 @@ function computeSquadImprovement(
   return result;
 }
 
+/** Module-level (survives PacksPage unmount within the same JS session):
+ *  true while a consumable IAP is awaiting StoreKit. The mount reconciler
+ *  must not re-grant a pending credit whose purchase is still in flight —
+ *  navigating away and back mid-purchase would otherwise double-grant. */
+let iapInFlight = false;
+
 const PacksPage = () => {
   const { club, players, openedPacks, packPityCounter, season, week, dailyPackOpens } = useGameStore(useShallow((s) => ({
     club: s.clubs[s.playerClubId],
@@ -98,6 +105,8 @@ const PacksPage = () => {
   const canOpenPack = useGameStore(s => s.canOpenPack);
   const quickSellPackedPlayer = useGameStore(s => s.quickSellPackedPlayer);
   const undoLastQuickSell = useGameStore(s => s.undoLastQuickSell);
+  const saveGame = useGameStore(s => s.saveGame);
+  const activeSlot = useGameStore(s => s.activeSlot);
 
   const [opening, setOpening] = useState<{ tier: PackTierKey; players: Player[]; pityTriggered?: boolean; placement?: Record<string, PackPlayerPlacement> } | null>(null);
   const [replay, setReplay] = useState<{ tier: PackTierKey; players: Player[] } | null>(null);
@@ -116,6 +125,28 @@ const PacksPage = () => {
     return () => clearInterval(id);
   }, []);
   const msToReset = msUntilNextMidnight();
+
+  // Reconcile a crash-stranded paid pack: a pending-credit marker with no
+  // in-flight purchase means a previous session charged the user but died
+  // before granting (or before the save flushed). Re-grant into the same
+  // save slot that paid. Runs once per mount; if the grant is still blocked
+  // (e.g. a challenge restricts signings) the marker is kept for next time.
+  useEffect(() => {
+    if (iapInFlight || !club) return;
+    const pending = readPendingPackCredit();
+    if (!pending) return;
+    if (pending.slot !== activeSlot) return; // credit belongs to another save
+    const tier = PACK_TIER_MAP[pending.tierKey as PackTierKey];
+    if (!tier) { clearPendingPackCredit(); return; } // tier removed — nothing we can grant
+    const result = openPack(pending.tierKey as PackTierKey, { method: 'iap', skipPayment: true });
+    if (result.success && result.players) {
+      clearPendingPackCredit();
+      saveGame();
+      successToast('Purchase restored', `Your paid ${tier.label} from the previous session has been credited.`);
+      setOpening({ tier: pending.tierKey as PackTierKey, players: result.players, pityTriggered: result.pityTriggered, placement: result.placement });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only reconciliation; deps would re-fire on every store change
+  }, []);
 
   // Keep just drops the card from the overlay view — the player stays on
   // the squad (openPack already wrote them in). No store action needed.
@@ -321,24 +352,40 @@ const PacksPage = () => {
       return;
     }
     setBusy(true);
+    iapInFlight = true;
     try {
+      // Crash durability: persist a pending-credit marker BEFORE the StoreKit
+      // charge. Consumables never appear in RevenueCat entitlements, so if
+      // the app dies between the charge completing and the pack being
+      // granted + saved, this marker is the only record that money changed
+      // hands — the mount-time reconciler below re-grants it. Cleared on
+      // cancel and after a successful grant.
+      writePendingPackCredit({ productId: tier.productId, tierKey, timestamp: Date.now(), slot: activeSlot });
       const purchased = await purchaseConsumable(tier.productId);
       if (!purchased) {
-        // User cancelled or store unavailable — silent on cancel.
+        // User cancelled or store unavailable — no charge, drop the marker.
+        clearPendingPackCredit();
         return;
       }
       const result = openPack(tierKey, { method, skipPayment: true });
       if (!result.success || !result.players) {
         if (result.paidButRejected) {
+          // Money was taken but the grant was blocked — KEEP the pending
+          // marker so the reconciler retries once the blocker clears.
           errorToast(
             'Purchase succeeded but pack was blocked',
             `${result.message} Your payment will be investigated — contact support if the pack isn't credited within 24 hours.`,
           );
         } else {
+          clearPendingPackCredit();
           errorToast('Could not open pack', result.message);
         }
         return;
       }
+      clearPendingPackCredit();
+      // Autosave only fires on advanceWeek — flush now so a crash after the
+      // reveal can't lose paid players while the consumable stays consumed.
+      saveGame();
       successToast('Purchase complete', `${tier.label} unlocked.`);
       setOpening({ tier: tierKey, players: result.players, pityTriggered: result.pityTriggered, placement: result.placement });
     } catch (err) {
@@ -346,9 +393,13 @@ const PacksPage = () => {
       // impossible to triage real IAP failures (receipt validation throws,
       // RevenueCat SDK errors mid-purchase, etc.). The user toast stays
       // generic to avoid leaking implementation details.
+      // NOTE: the pending-credit marker is deliberately NOT cleared here —
+      // RevenueCat can throw after the charge (receipt validation), and a
+      // rare unearned re-grant beats losing a real payment.
       Sentry.captureException(err, { tags: { context: 'PacksPage.iap' }, extra: { tierKey } });
       errorToast('Purchase failed', 'Please try again.');
     } finally {
+      iapInFlight = false;
       setBusy(false);
     }
   };

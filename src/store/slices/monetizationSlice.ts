@@ -1,30 +1,48 @@
 import type { GameState } from '../storeTypes';
 import type { ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo } from '@/types/game';
-import { PRODUCTS, COSMETIC_ITEMS, AD_REWARD_LIMITS, AD_REWARD_VALUES, DEFAULT_MONETIZATION_STATE, FREE_TRIAL_MS, TRIAL_TARGET_PRODUCT_ID } from '@/config/monetization';
+import { PRODUCTS, COSMETIC_ITEMS, AD_REWARD_LIMITS, AD_REWARD_VALUES, DEFAULT_MONETIZATION_STATE, FREE_TRIAL_MS, TRIAL_TARGET_PRODUCT_ID, CONSUMABLE_PRODUCT_IDS } from '@/config/monetization';
 import { grantXP } from '@/utils/managerPerks';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
 
+/** Defense-in-depth boundary for what may live in `monetization.entitlements`:
+ *  - Subscription SKUs are banned — RevenueCat keeps lapsed subs in
+ *    allPurchasedProductIdentifiers forever, so a persisted sub SKU outlives
+ *    the subscription. Sub status flows ONLY through subscription.expiresAt.
+ *  - Consumable pack SKUs are banned — they grant a single pack open at
+ *    purchase time and must never be restorable.
+ *  Enforced here (not just in the purchases wrapper) so no future caller of
+ *  grantEntitlement/restoreEntitlements can reintroduce either bug. */
+function isPersistableEntitlement(productId: ProductId): boolean {
+  const product = PRODUCTS[productId];
+  if (!product) return false;
+  if (product.type === 'subscription') return false;
+  if (CONSUMABLE_PRODUCT_IDS.includes(productId)) return false;
+  return true;
+}
+
 export function createMonetizationSlice(_set: Set, _get: Get) {
   return {
     monetization: { ...DEFAULT_MONETIZATION_STATE },
 
-    /** Grant an entitlement after successful purchase. Handles bundle expansion. */
+    /** Grant an entitlement after successful purchase. Handles bundle expansion.
+     *  Subscription and consumable SKUs are silently dropped — see
+     *  isPersistableEntitlement. */
     grantEntitlement: (productId: ProductId) => {
       _set((s) => {
         const product = PRODUCTS[productId];
         const newEntitlements = [...s.monetization.entitlements];
 
         // Add the product itself
-        if (!newEntitlements.includes(productId)) {
+        if (isPersistableEntitlement(productId) && !newEntitlements.includes(productId)) {
           newEntitlements.push(productId);
         }
 
         // Expand bundle includes
         if (product?.includes) {
           for (const included of product.includes) {
-            if (!newEntitlements.includes(included)) {
+            if (isPersistableEntitlement(included) && !newEntitlements.includes(included)) {
               newEntitlements.push(included);
             }
           }
@@ -39,19 +57,21 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
       });
     },
 
-    /** Restore all entitlements (e.g. from RevenueCat restore flow) */
+    /** Restore all entitlements (e.g. from RevenueCat restore flow).
+     *  Subscription and consumable SKUs are silently dropped — see
+     *  isPersistableEntitlement. */
     restoreEntitlements: (productIds: ProductId[]) => {
       _set((s) => {
         const newEntitlements = [...s.monetization.entitlements];
         for (const id of productIds) {
-          if (!newEntitlements.includes(id)) {
+          if (isPersistableEntitlement(id) && !newEntitlements.includes(id)) {
             newEntitlements.push(id);
           }
           // Expand bundles
           const product = PRODUCTS[id];
           if (product?.includes) {
             for (const included of product.includes) {
-              if (!newEntitlements.includes(included)) {
+              if (isPersistableEntitlement(included) && !newEntitlements.includes(included)) {
                 newEntitlements.push(included);
               }
             }

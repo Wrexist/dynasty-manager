@@ -265,6 +265,13 @@ export const STORAGE_KEYS = {
    *  save so the user only answers once. Values: 'granted' | 'denied'. Missing
    *  key = never asked → show the consent screen. */
   ANALYTICS_CONSENT: 'dynasty-analytics-consent',
+  /** localStorage: crash-durable record of a paid consumable pack purchase
+   *  that has not yet been granted in-game. Written BEFORE the StoreKit
+   *  charge, cleared after the pack is opened and the save flushed.
+   *  Consumables never appear in RevenueCat entitlements, so if the app
+   *  dies between charge and grant this marker is the ONLY evidence that
+   *  money changed hands — PacksPage reconciles it on mount. */
+  PENDING_PACK_CREDIT: 'dynasty-pending-pack-credit',
   /** localStorage: latest "What's New" release the user has opened. Stored as
    *  a plain version string (e.g. "1.0.1"). Used to gate the "NEW" badge on
    *  the main-menu + Settings tiles so it clears once they tap through. */
@@ -329,6 +336,47 @@ export function readAppReviewState(): AppReviewState {
 export function writeAppReviewState(state: AppReviewState): void {
   try { localStorage.setItem(STORAGE_KEYS.APP_REVIEW_STATE, JSON.stringify(state)); }
   catch { /* storage unavailable — non-fatal */ }
+}
+
+/** Crash-durable marker for a paid-but-not-yet-granted consumable pack.
+ *  See STORAGE_KEYS.PENDING_PACK_CREDIT for the lifecycle. */
+export interface PendingPackCredit {
+  productId: string;
+  tierKey: string;
+  timestamp: number;
+  /** Save slot that initiated the purchase — the credit is only reconciled
+   *  into the same save, so a crash + loading a different slot can't grant
+   *  the pack to the wrong career. */
+  slot: number;
+}
+
+export function readPendingPackCredit(): PendingPackCredit | null {
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem(STORAGE_KEYS.PENDING_PACK_CREDIT);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (typeof parsed?.productId !== 'string' || typeof parsed?.tierKey !== 'string') return null;
+    return {
+      productId: parsed.productId,
+      tierKey: parsed.tierKey,
+      timestamp: typeof parsed.timestamp === 'number' ? parsed.timestamp : 0,
+      slot: typeof parsed.slot === 'number' ? parsed.slot : 0,
+    };
+  } catch (err) {
+    if (raw !== null) breadcrumbCorruption('readPendingPackCredit', raw, err);
+    return null;
+  }
+}
+
+export function writePendingPackCredit(credit: PendingPackCredit): void {
+  try { localStorage.setItem(STORAGE_KEYS.PENDING_PACK_CREDIT, JSON.stringify(credit)); }
+  catch { /* storage unavailable — the purchase still proceeds, just without crash durability */ }
+}
+
+export function clearPendingPackCredit(): void {
+  try { localStorage.removeItem(STORAGE_KEYS.PENDING_PACK_CREDIT); }
+  catch { /* storage unavailable */ }
 }
 
 /** Analytics consent state. `'unknown'` surfaces the first-launch prompt. */
