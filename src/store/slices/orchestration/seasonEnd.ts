@@ -309,7 +309,9 @@ export function endSeasonImpl(set: Set, get: Get) {
           }
           delete workingClubs[replacedId];
 
-          const { clubData, clubId } = generateReplacementClub(season, cl.id);
+          const { clubData, clubId } = generateReplacementClub(
+            season, cl.id, Object.values(workingClubs).map(c => c.name),
+          );
           const newClub: Club = {
             id: clubId, name: clubData.name, shortName: clubData.shortName,
             color: clubData.color, secondaryColor: clubData.secondaryColor,
@@ -354,7 +356,9 @@ export function endSeasonImpl(set: Set, get: Get) {
     const newLeagueClubs = [...singleResult.updatedLeagueClubs];
     if (!newLeagueClubs.includes(playerClubId)) newLeagueClubs.push(playerClubId);
     for (let i = 0; i < turnover.relegatedClubs.length; i++) {
-      const { clubData, clubId } = generateReplacementClub(season, playerDiv);
+      const { clubData, clubId } = generateReplacementClub(
+        season, playerDiv, Object.values(workingClubs).map(c => c.name),
+      );
       const newClub: Club = {
         id: clubId, name: clubData.name, shortName: clubData.shortName,
         color: clubData.color, secondaryColor: clubData.secondaryColor,
@@ -1148,6 +1152,10 @@ function finalizeSeason(
       homeUnbeaten: !state.fixtures.some(m => m.played && m.homeClubId === playerClubId && m.homeGoals < m.awayGoals),
       leagueGoals: myEntry?.goalsFor || 0,
       divisionId: newPlayerDivision,
+      // 'great-escape' judges the relegation zone of the division the season
+      // was PLAYED in (pre-turnover) — newPlayerDivision can be a different
+      // league with a different team count after relegation/promotion.
+      seasonDivisionId: playerDiv,
     };
     if (checkChallengeComplete(endChallenge.scenarioId, history.position, cupWon, [...state.seasonHistory, history], hasLost, challengeExtra)) {
       endChallenge = { ...endChallenge, completed: true };

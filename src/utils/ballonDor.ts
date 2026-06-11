@@ -123,7 +123,7 @@ function getIntlTournamentBonusForNation(
  *  serialised history entry. */
 type ScoredEntry = BallonDOrEntry & { _divisionId: string };
 
-function getGlobalEliteEntries(loadedClubIds: Set<string>): ScoredEntry[] {
+function getGlobalEliteEntries(loadedClubIds: Set<string>, allPlayers: Player[]): ScoredEntry[] {
   const w = BALLON_DOR_WEIGHTS;
   const entries: ScoredEntry[] = [];
   const clubMetaById: Record<string, { shortName: string; color: string; divisionId: string }> = {};
@@ -132,13 +132,29 @@ function getGlobalEliteEntries(loadedClubIds: Set<string>): ScoredEntry[] {
   }
   const clubColorById = clubMetaById; // alias kept for the existing ghost block readability
 
+  // Real players already in the loaded world (signed via the Community Pack
+  // market / FA seeds) must not also appear as synthetic ghosts — sign Mbappé
+  // into your league and the old code showed him twice (real + PSG ghost
+  // with fabricated stats). Match by fcId first, then by name as a fallback
+  // for players drawn before fcId tracking existed.
+  const inGameFcIds = new Set<string>();
+  const inGameNameKeys = new Set<string>();
+  for (const p of allPlayers) {
+    if (p.fcId) inGameFcIds.add(p.fcId);
+    inGameNameKeys.add(`${p.firstName}|${p.lastName}`.toLowerCase());
+  }
+
   for (const clubId of Object.keys(BALLON_DOR_ELITE_CLUB_BONUS)) {
     if (loadedClubIds.has(clubId)) continue;
     const templates = getClubTemplatesSync()[clubId] || [];
     if (templates.length === 0) continue;
 
-    // Take the top 4 by ovr — mirrors how real BdO clusters the same club
-    const topStars = [...templates].sort((a, b) => b.ovr - a.ovr).slice(0, 4);
+    // Take the top 4 by ovr — mirrors how real BdO clusters the same club.
+    // Templates duplicating an in-game player are filtered first so the
+    // ghost club fields its next-best star instead.
+    const topStars = [...templates]
+      .filter(t => !(t.fcId && inGameFcIds.has(t.fcId)) && !inGameNameKeys.has(`${t.fn}|${t.ln}`.toLowerCase()))
+      .sort((a, b) => b.ovr - a.ovr).slice(0, 4);
     const eliteBonus = BALLON_DOR_ELITE_CLUB_BONUS[clubId] ?? 0;
     const meta = clubColorById[clubId] || { shortName: clubId.slice(0, 3).toUpperCase(), color: '#888', divisionId: '' };
 
@@ -427,7 +443,7 @@ export function calculateBallonDOr(
   // (e.g. Real Madrid / Bayern / PSG when you're managing in England). See
   // getGlobalEliteEntries for the rationale.
   const loadedClubIds = new Set(Object.keys(clubs));
-  const ghostEntries = injectGlobalElites ? getGlobalEliteEntries(loadedClubIds) : [];
+  const ghostEntries = injectGlobalElites ? getGlobalEliteEntries(loadedClubIds, allPlayers) : [];
 
   // Score every eligible player
   const realScored: ScoredEntry[] = allPlayers

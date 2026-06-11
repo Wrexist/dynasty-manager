@@ -6,7 +6,7 @@ import {
   ALL_OBJECTIVES_BONUS_XP,
   RARE_OBJECTIVE_XP_MULTIPLIER, LEGENDARY_OBJECTIVE_XP_MULTIPLIER,
 } from '@/config/gameBalance';
-import { GOAL_SCORING_TYPES } from '@/config/matchEngine';
+import { GOAL_SCORING_TYPES, GOAL_SHOT_TYPES } from '@/config/matchEngine';
 
 export interface WeeklyObjective {
   id: string;
@@ -380,8 +380,11 @@ const OBJECTIVE_TEMPLATES: WeeklyObjective[] = [
     check: (ctx) => {
       const match = getThisWeekMatch(ctx);
       if (!match || !match.events) return false;
+      // GOAL_SHOT_TYPES covers penalties/headers/free kicks etc. but excludes
+      // own goals — an own-goal event carries the OPPONENT defender's
+      // playerId, which would wrongly satisfy the objective.
       return match.events.some(e => {
-        if (e.type !== 'goal' || e.clubId !== ctx.playerClubId || !e.playerId) return false;
+        if (!(GOAL_SHOT_TYPES as readonly string[]).includes(e.type) || e.clubId !== ctx.playerClubId || !e.playerId) return false;
         const p = ctx.players[e.playerId];
         return p && p.age <= 21;
       });

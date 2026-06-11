@@ -60,9 +60,14 @@ export function generateScoutReport(
   if (avgAttr('pace') < 55) weaknesses.push('Slow in transition');
   if (avgAttr('mental') < 55) weaknesses.push('Poor under pressure');
 
+  // Assess the GK who actually plays: prefer the one in the saved lineup,
+  // else the highest-overall keeper (squad order is arbitrary playerIds order).
   const gks = squad.filter(p => p.position === 'GK');
-  if (gks.length > 0 && gks[0].overall < 60) weaknesses.push('Keeper prone to errors');
-  if (gks.length > 0 && gks[0].overall >= 75) strengths.push('Excellent goalkeeper');
+  const lineupIds = new Set(opponentClub.lineup || []);
+  const keeper = gks.find(p => lineupIds.has(p.id))
+    ?? (gks.length > 0 ? gks.reduce((best, p) => (p.overall > best.overall ? p : best), gks[0]) : null);
+  if (keeper && keeper.overall < 60) weaknesses.push('Keeper prone to errors');
+  if (keeper && keeper.overall >= 75) strengths.push('Excellent goalkeeper');
 
   const youngTalent = squad.filter(p => p.age <= 22 && p.potential >= 75);
   if (youngTalent.length >= 3 && squad.length > 0 && youngTalent.length / squad.length >= 0.15) strengths.push('Strong youth contingent');

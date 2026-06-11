@@ -70,7 +70,7 @@ export function updateRecords(
   // Hall of Fame: top scorer each season with 10+ goals
   if (topScorer && topScorer.goals >= 10) {
     updated.hallOfFame = [
-      ...updated.hallOfFame,
+      ...(updated.hallOfFame || []),
       { name: topScorer.name, value: topScorer.goals, season, detail: 'Golden Boot' },
     ].slice(-20); // Keep last 20 entries
   }
@@ -110,8 +110,8 @@ export interface RecordChase {
 export function getActiveRecordChases(
   records: ClubRecords,
   squad: Player[],
-  fixtures: Match[],
-  clubId: string,
+  _fixtures: Match[],
+  _clubId: string,
 ): RecordChase[] {
   const chases: RecordChase[] = [];
 
@@ -129,18 +129,10 @@ export function getActiveRecordChases(
     }
   }
 
-  // Clean sheet chase
-  const playedFixtures = fixtures.filter(m => m.played && (m.homeClubId === clubId || m.awayClubId === clubId));
-  const cleanSheets = playedFixtures.filter(m => (m.homeClubId === clubId ? m.awayGoals : m.homeGoals) === 0).length;
-  if (records.fewestGoalsAgainst && cleanSheets >= 10) {
-    // Not a direct comparison, but interesting to surface
-    chases.push({
-      playerName: 'Your defense',
-      current: cleanSheets,
-      record: cleanSheets + 3, // just show progress
-      label: 'clean sheets this season',
-    });
-  }
+  // NOTE: a previous "clean sheet chase" was removed here — ClubRecords has
+  // no clean-sheet record to chase, and the old code fabricated a receding
+  // target (`cleanSheets + 3`) that could never be caught. Only real records
+  // are surfaced as chases.
 
   return chases.slice(0, 1); // Only show the most interesting one
 }

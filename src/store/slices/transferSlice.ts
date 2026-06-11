@@ -2,7 +2,7 @@ import type { GameState } from '../storeTypes';
 import { addMsg, safeRandomUUID } from '@/utils/helpers';
 import { getFarewellSummary } from '@/utils/playerNarratives';
 import { absWeek } from '@/utils/staff';
-import { LEAGUES } from '@/data/league';
+import { getMaxFreeAgentOverall, calculateSigningBonus } from '@/utils/transferOffers';
 import { GROWTH_NEGOTIATION_PER_TRANSFER as CAREER_NEGOTIATION_GROWTH, STAT_MAX as CAREER_STAT_MAX } from '@/config/managerCareer';
 import {
   ACCEPT_CHANCE_AT_ASKING, ACCEPT_CHANCE_AT_80_PERCENT, ACCEPT_CHANCE_BELOW, ACCEPT_80_PERCENT_THRESHOLD,
@@ -15,7 +15,7 @@ import {
   SELL_ON_EVAL_HIGH_PCT, SELL_ON_EVAL_LOW_PCT,
   COUNTER_OFFER_BASE_RATIO, COUNTER_OFFER_RANDOM_RANGE,
   RECORD_SIGNING_SPEND_RATIO, RECORD_SIGNING_MIN_FEE,
-  LISTING_PRICE_FLOOR, FREE_AGENT_REP_BASE, FREE_AGENT_REP_SCALE, FREE_AGENT_DIV_BONUS,
+  LISTING_PRICE_FLOOR,
   INCOMING_NEGOTIATE_ACCEPT_AT_OFFER, INCOMING_NEGOTIATE_ACCEPT_AT_120, INCOMING_NEGOTIATE_ACCEPT_AT_MAX,
   INCOMING_NEGOTIATE_COUNTER_CHANCE, INCOMING_NEGOTIATE_COUNTER_BASE, INCOMING_NEGOTIATE_COUNTER_RANGE,
   NEGOTIATION_MAX_STRIKES, NEGOTIATION_COOLDOWN_WEEKS, NEGOTIATION_STRIKE_PENALTY,
@@ -604,12 +604,10 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const player = state.players[playerId];
     if (!player) return { success: false, message: 'Player not found.' };
     const club = { ...state.clubs[state.playerClubId] };
-    const signingBonus = Math.round(wage * years * SIGNING_BONUS_WEEKS_PER_YEAR);
+    const signingBonus = calculateSigningBonus(wage, years);
     if (club.budget < signingBonus) return { success: false, message: `Insufficient funds for signing bonus (£${(signingBonus / 1e6).toFixed(1)}M).` };
     if (club.playerIds.length >= MAX_SQUAD_SIZE) return { success: false, message: `Squad is full (${MAX_SQUAD_SIZE} players). Release or sell a player first.` };
-    const playerTier = LEAGUES.find(l => l.id === state.playerDivision)?.tier || 3;
-    const divBonus = FREE_AGENT_DIV_BONUS[playerTier] || 0;
-    const maxFreeAgentOvr = FREE_AGENT_REP_BASE + club.reputation * FREE_AGENT_REP_SCALE + divBonus;
+    const maxFreeAgentOvr = getMaxFreeAgentOverall(club.reputation, state.playerDivision);
     if (player.overall > maxFreeAgentOvr) return { success: false, message: `Player quality (${player.overall}) exceeds your club's reputation limit (${maxFreeAgentOvr}).` };
 
     club.budget -= signingBonus;

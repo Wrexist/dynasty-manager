@@ -69,6 +69,14 @@ const TacticsPage = () => {
     return club.lineup.map(id => players[id]).filter(Boolean);
   }, [club, players]);
 
+  // Slot-aligned lineup for chemistry: holes (deleted-player IDs) are kept as
+  // null — compacting would shift players onto wrong formation slots and
+  // produce wrong adjacency links.
+  const slotAlignedLineup = useMemo(() => {
+    if (!club) return [];
+    return club.lineup.map(id => players[id] ?? null);
+  }, [club, players]);
+
   // Team rating breakdown by unit (DEF / MID / ATT)
   const teamRating = useMemo(() => {
     if (lineupPlayers.length === 0) return null;
@@ -109,21 +117,21 @@ const TacticsPage = () => {
   // Matchday readiness: chemistry + availability flags for the starting XI
   const readiness = useMemo(() => {
     if (!club || lineupPlayers.length === 0) return null;
-    const bonus = getChemistryBonus(lineupPlayers, club.formation, season);
+    const bonus = getChemistryBonus(slotAlignedLineup, club.formation, season);
     const injured = lineupPlayers.filter(p => p.injured);
     const suspended = lineupPlayers.filter(p => p.suspendedUntilWeek !== undefined && p.suspendedUntilWeek > week);
     return { bonus, label: getChemistryLabel(bonus), injured, suspended };
-  }, [club, lineupPlayers, season, week]);
+  }, [club, lineupPlayers, slotAlignedLineup, season, week]);
 
   // Full chemistry link breakdown (only computed when lineup is set)
   const chemistry = useMemo(() => {
     if (!club || lineupPlayers.length === 0) return null;
-    const links = calculateChemistryLinks(lineupPlayers, club.formation, season);
+    const links = calculateChemistryLinks(slotAlignedLineup, club.formation, season);
     if (links.length === 0) return { links, sortedDesc: [] as ChemistryLink[], bonus: 0 };
     const sortedDesc = [...links].sort((a, b) => b.strength - a.strength);
-    const bonus = getChemistryBonus(lineupPlayers, club.formation, season);
+    const bonus = getChemistryBonus(slotAlignedLineup, club.formation, season);
     return { links, sortedDesc, bonus };
-  }, [club, lineupPlayers, season]);
+  }, [club, lineupPlayers, slotAlignedLineup, season]);
 
   if (!club) return null;
 

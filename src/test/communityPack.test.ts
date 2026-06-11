@@ -252,13 +252,13 @@ describe('communityPack: advanceCursor', () => {
 
 describe('communityPack: needsRefill', () => {
   it('is true below the 200-template refill threshold', () => {
-    expect(needsRefill(emptyPool(), 150)).toBe(true);
-    expect(needsRefill(emptyPool(), 199)).toBe(true);
+    expect(needsRefill(150)).toBe(true);
+    expect(needsRefill(199)).toBe(true);
   });
 
   it('is false at or above the threshold', () => {
-    expect(needsRefill(emptyPool(), 200)).toBe(false);
-    expect(needsRefill(emptyPool(), 800)).toBe(false);
+    expect(needsRefill(200)).toBe(false);
+    expect(needsRefill(800)).toBe(false);
   });
 });
 

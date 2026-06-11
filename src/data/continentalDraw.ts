@@ -22,7 +22,9 @@ import { getLeagueRankings, type RankedLeague } from '@/utils/leagueRanking';
 function buildVirtualClubsForLeague(leagueId: string): VirtualClub[] {
   const clubs = CLUBS_BY_LEAGUE[leagueId] || [];
   const league = ALL_LEAGUES.find(l => l.id === leagueId);
-  return clubs
+  // Copy before sorting — sorting CLUBS_BY_LEAGUE in place permanently
+  // reorders shared module data for every later consumer.
+  return [...clubs]
     .sort((a, b) => b.reputation - a.reputation)
     .map(c => ({
       id: c.id,

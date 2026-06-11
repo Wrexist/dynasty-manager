@@ -109,6 +109,9 @@ export const DRILLS_BY_MODULE: Record<TrainingModule, TrainingDrill[]> = {
 export const STREAK_THRESHOLDS = [2, 4, 7] as const;
 export const STREAK_MULTIPLIERS = [1.0, 1.15, 1.25, 1.4] as const;
 export const STREAK_MAX = 10;
+/** Weekly decay applied to every NON-dominant module streak, so a streak is
+ *  drained by sustained focus elsewhere instead of ratcheting forever. */
+export const STREAK_DECAY_PER_WEEK = 1;
 
 // ── Fitness Zones ──
 export const FITNESS_ZONE_GREEN = 70;

@@ -8,7 +8,10 @@ export const LEAGUE_INFO: LeagueInfo = {
   countryCode: 'AR',
   teamCount: 30,
   totalWeeks: 58,
-  replacedSlots: 0,
+  // Single-tier league: relegated clubs are replaced by procedurally
+  // generated newcomers (replacedSlots = relegationSpots) so the relegation
+  // zone shown in the table has a real consequence.
+  replacedSlots: 2,
   description: 'Argentina\'s top flight, a passionate league rich in history and a global supplier of football talent.',
   difficulty: 'Hard',
   colorClass: 'text-sky-400',

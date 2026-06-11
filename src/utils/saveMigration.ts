@@ -136,6 +136,7 @@ const migrations: Record<number, MigrationFn> = {
     if (clubs) {
       const styles = ['attacking', 'defensive', 'possession', 'counter-attack', 'balanced', 'direct'];
       Object.values(clubs).forEach((club, i) => {
+        if (!club || typeof club !== 'object') return;
         if (!club.aiManagerProfile) {
           const style = styles[i % styles.length];
           club.aiManagerProfile = {
@@ -309,6 +310,7 @@ const migrations: Record<number, MigrationFn> = {
     const players = (data.players && typeof data.players === 'object' && !Array.isArray(data.players)) ? Object.values(data.players as Record<string, Record<string, unknown>>) : [];
     const clubs = (data.clubs && typeof data.clubs === 'object' && !Array.isArray(data.clubs)) ? Object.values(data.clubs as Record<string, Record<string, unknown>>) : [];
     for (const p of players) {
+      if (!p || typeof p !== 'object') continue;
       const ovr = (p.overall || 50) as number;
       const age = (p.age || 25) as number;
       const baseValue = Math.round(VALUE_EXP_BASE * Math.exp(VALUE_EXP_RATE * ovr) * (1 + Math.random() * 0.15));
@@ -316,8 +318,9 @@ const migrations: Record<number, MigrationFn> = {
       p.wage = Math.max(WAGE_FLOOR, Math.round(WAGE_EXP_BASE * Math.exp(WAGE_EXP_RATE * ovr) * (1 + Math.random() * 0.10)));
     }
     for (const c of clubs) {
+      if (!c || typeof c !== 'object') continue;
       const clubId = c.id as string;
-      const clubPlayers = players.filter((p) => p.clubId === clubId);
+      const clubPlayers = players.filter((p) => p && typeof p === 'object' && p.clubId === clubId);
       c.wageBill = clubPlayers.reduce((sum: number, p) => sum + ((p.wage || 0) as number), 0);
     }
     return { ...data, version: 22 };
@@ -454,6 +457,7 @@ const migrations: Record<number, MigrationFn> = {
       };
       for (const pid of Object.keys(players)) {
         const p = players[pid];
+        if (!p || typeof p !== 'object') continue;
         if (!p.appearance) {
           const h = hash(pid);
           p.appearance = {
@@ -1116,30 +1120,49 @@ const migrations: Record<number, MigrationFn> = {
   // long as the tab stayed open. New saves carry these forward; this
   // migration seeds defaults for in-progress saves so the loader's
   // fallback path doesn't run on every load forever.
-  67: (data) => ({
-    ...data,
-    version: 68,
-    contractStrikes: data.contractStrikes || {},
-    tacticalPresets: data.tacticalPresets || [],
-    transferFilters: data.transferFilters || {
-      tab: 'market', posFilter: 0, searchQuery: '',
-      sortBy: 'overall', faSortBy: 'overall', divFilter: 'all',
-      newsTypeFilter: 'all', hideUnaffordable: false, showShortlistOnly: false,
-    },
-    pendingGemReveal: data.pendingGemReveal ?? null,
-    pendingTransferTalk: data.pendingTransferTalk ?? null,
-    seasonStartAvgOVR: data.seasonStartAvgOVR ?? 0,
-    seasonTransfersBought: data.seasonTransfersBought || [],
-    seasonTransfersSold: data.seasonTransfersSold || [],
-    seasonTotalIncome: data.seasonTotalIncome ?? 0,
-    seasonTotalExpenses: data.seasonTotalExpenses ?? 0,
-    clubPowerRankings: data.clubPowerRankings || {},
-    communityPackEnabled: data.communityPackEnabled ?? false,
-    cpPool: data.cpPool || {
-      shuffleSeed: 0, cursor: 0, usedFcIds: [], marketListings: [],
-      lastMarketRefreshWeek: 0, lastSeedSeason: 0,
-    },
-  }),
+  67: (data) => {
+    // Rebuilt cpPool fallback: lastSeedSeason 99 mirrors the deliberate
+    // v60→v61 default — a save without a pool must never pass the
+    // season-seed gate and retro-inject FC26 free agents that may already
+    // exist in the world (duplicate real players). For the same reason,
+    // reconstruct usedFcIds from players that already carry an fcId so
+    // future market draws can't issue a second copy of them.
+    let fallbackPool: Record<string, unknown> | undefined;
+    if (!data.cpPool) {
+      const usedFcIds: string[] = [];
+      const players = data.players;
+      if (players && typeof players === 'object' && !Array.isArray(players)) {
+        for (const p of Object.values(players as Record<string, Record<string, unknown>>)) {
+          if (p && typeof p === 'object' && typeof p.fcId === 'string' && p.fcId) usedFcIds.push(p.fcId);
+        }
+      }
+      fallbackPool = {
+        shuffleSeed: 0, cursor: 0, usedFcIds, marketListings: [],
+        lastMarketRefreshWeek: 0, lastSeedSeason: 99,
+      };
+    }
+    return {
+      ...data,
+      version: 68,
+      contractStrikes: data.contractStrikes || {},
+      tacticalPresets: data.tacticalPresets || [],
+      transferFilters: data.transferFilters || {
+        tab: 'market', posFilter: 0, searchQuery: '',
+        sortBy: 'overall', faSortBy: 'overall', divFilter: 'all',
+        newsTypeFilter: 'all', hideUnaffordable: false, showShortlistOnly: false,
+      },
+      pendingGemReveal: data.pendingGemReveal ?? null,
+      pendingTransferTalk: data.pendingTransferTalk ?? null,
+      seasonStartAvgOVR: data.seasonStartAvgOVR ?? 0,
+      seasonTransfersBought: data.seasonTransfersBought || [],
+      seasonTransfersSold: data.seasonTransfersSold || [],
+      seasonTotalIncome: data.seasonTotalIncome ?? 0,
+      seasonTotalExpenses: data.seasonTotalExpenses ?? 0,
+      clubPowerRankings: data.clubPowerRankings || {},
+      communityPackEnabled: data.communityPackEnabled ?? false,
+      cpPool: data.cpPool || fallbackPool,
+    };
+  },
 
   // v68 → v69: SponsorOffer gained an optional `negotiation` field for the
   // multi-round haggling flow. Existing pending offers simply carry no

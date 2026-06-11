@@ -221,6 +221,29 @@ export function getGKSaveChance(squad: Player[]): number {
 }
 
 /**
+ * Slot-align a compacted player pool to the club's saved lineup for the
+ * chemistry calculation. Engine callers pass compacted arrays (unavailable
+ * players filtered out), which would otherwise shift players onto the wrong
+ * formation slots inside calculateChemistryLinks. When every pool player is
+ * found in the saved lineup we rebuild a (Player | null)[] in lineup order
+ * (sent-off/injured players become null holes); otherwise (ad-hoc AI lineups
+ * built from squad availability) slot identity is meaningless, so we fall
+ * back to natural-position adjacency by omitting the formation.
+ */
+function getAlignedChemistryBonus(club: Club, pool: Player[], currentSeason?: number): number {
+  const lineup = club.lineup || [];
+  if (lineup.length > 0 && pool.length > 0) {
+    const byId = new Map(pool.map(p => [p.id, p]));
+    const aligned = lineup.map(id => byId.get(id) ?? null);
+    const matched = aligned.reduce((n, p) => n + (p ? 1 : 0), 0);
+    if (matched === pool.length) {
+      return getChemistryBonus(aligned, club.formation, currentSeason);
+    }
+  }
+  return getChemistryBonus(pool, undefined, currentSeason);
+}
+
+/**
  * Compute attack/defense strength for both sides factoring in:
  * player attributes, tactical modifiers, formation fit, familiarity,
  * home advantage, and rock-paper-scissors tactical matchups.
@@ -242,9 +265,10 @@ export function computeStrengths(
   const awayDefFitBonus = awayClub.defensiveFormation ? getFormationFitBonus(awayPlayers, awayClub.defensiveFormation) * 0.5 : 0;
   const homeMatchup = getTacticalMatchupBonus(homeTactics, awayTactics);
   const awayMatchup = getTacticalMatchupBonus(awayTactics, homeTactics);
-  // Chemistry bonus (0-8%) based on squad composition
-  const homeChemistry = getChemistryBonus(homePlayers, homeClub.formation, currentSeason);
-  const awayChemistry = getChemistryBonus(awayPlayers, awayClub.formation, currentSeason);
+  // Chemistry bonus (0-8%) based on squad composition (slot-aligned to the
+  // saved lineup so compacted pools don't shift players onto wrong slots)
+  const homeChemistry = getAlignedChemistryBonus(homeClub, homePlayers, currentSeason);
+  const awayChemistry = getAlignedChemistryBonus(awayClub, awayPlayers, currentSeason);
   // Formation-specific attack/defense profiles (e.g. 3-4-3 = +10% attack, -8% defense)
   // Use defensiveFormation for defense bonus when set, otherwise fall back to main formation
   const homeFormAtk = FORMATION_ATTACK_BONUS[homeClub.formation] || 0;

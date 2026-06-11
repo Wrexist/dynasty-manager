@@ -1,5 +1,6 @@
 import type { GameState } from '@/store/storeTypes';
 import { ACHIEVEMENT_XP_BRONZE, ACHIEVEMENT_XP_SILVER, ACHIEVEMENT_XP_GOLD } from '@/config/gameBalance';
+import { LEAGUES } from '@/data/league';
 
 type AchievementTier = 'bronze' | 'silver' | 'gold';
 
@@ -172,7 +173,15 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'dynasty-10', title: 'Legend', description: 'Manage for 10+ seasons', icon: 'crown', tier: 'gold', hidden: true,
     check: (s) => s.season >= 11 },
   { id: 'survive-sacking', title: 'Great Escape', description: 'Finish above relegation after a poor season', icon: 'rocket', tier: 'silver',
-    check: (s) => s.seasonHistory.some(h => h.position <= 17 && h.boardVerdict === 'poor') },
+    check: (s) => s.seasonHistory.some(h => {
+      // Safe line derives from the league actually played that season —
+      // the old hardcoded `<= 17` was wrong for 18- and 24-team leagues.
+      const league = LEAGUES.find(l => l.id === (h.divisionId ?? s.playerDivision));
+      if (!league) return false;
+      const dropSpots = league.relegationSpots || league.replacedSlots || 0;
+      if (dropSpots <= 0) return false; // league has no relegation zone to escape
+      return h.position <= league.teamCount - dropSpots && h.boardVerdict === 'poor';
+    }) },
   { id: 'promotion', title: 'Going Up!', description: 'Get promoted to a higher division', icon: 'rocket', tier: 'silver',
     check: (s) => s.seasonHistory.some(h => h.promoted) },
 

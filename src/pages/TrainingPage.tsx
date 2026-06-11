@@ -111,7 +111,7 @@ const TrainingPage = () => {
   const dominantInfo = MODULE_INFO.find(m => m.module === dominantModule);
   const streakCount = training.streaks?.[dominantModule] || 0;
   const streakTier = getStreakTier(streakCount);
-  const preview = getTrainingEffectivenessPreview(training, staffBonus, squadPlayers);
+  const preview = getTrainingEffectivenessPreview(training, staffBonus, squadPlayers, facilities.recoveryLevel);
   const fitnessDistribution = getSquadFitnessDistribution(squadPlayers);
 
   // Radar chart data

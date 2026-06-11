@@ -93,12 +93,12 @@ const PlayerDetail = () => {
     const personalityMult = getTrainingMultiplier(player.personality);
     const multColor = personalityMult >= 1.15 ? 'text-emerald-400' : personalityMult <= 0.85 ? 'text-destructive' : 'text-muted-foreground';
     const staffBonus = getTrainingStaffBonus(staff.members);
-    const preview = getTrainingEffectivenessPreview(training, staffBonus, [player]);
+    const preview = getTrainingEffectivenessPreview(training, staffBonus, [player], facilities.recoveryLevel);
     const dominantModule = training.streaks ? Object.entries(training.streaks).sort((a, b) => (b[1] || 0) - (a[1] || 0))[0] : null;
     const streakCount = dominantModule ? (dominantModule[1] || 0) : 0;
     const streakTier = getStreakTier(streakCount);
     return { currentFocus, personalityMult, multColor, preview, streakTier };
-  }, [player, playerClubId, training, staff]);
+  }, [player, playerClubId, training, staff, facilities.recoveryLevel]);
 
   // Narrative tags (must be before early return to satisfy hook rules)
   const narratives = useMemo(() => player ? getPlayerNarratives(player, season, player.joinedSeason, player.isFromYouthAcademy) : [], [player, season]);

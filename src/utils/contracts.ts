@@ -211,7 +211,7 @@ export function negotiateRound(offer: ContractOffer, iconStatusBonus = 0): Contr
   return {
     ...offer,
     demandedWage: newDemand,
-    playerMood: Math.max(CONTRACT_MOOD_FLOOR, offer.playerMood + moodChange),
+    playerMood: Math.min(100, Math.max(CONTRACT_MOOD_FLOOR, offer.playerMood + moodChange)),
     round: offer.round + 1,
     status: 'in_progress',
   };

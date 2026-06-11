@@ -69,10 +69,11 @@ export function LineupEditor() {
     prevLineupKey.current = currentLineupKey;
   }, [club?.formation, club?.lineup]);
 
-  // Chemistry links (memoized)
+  // Chemistry links (memoized). Holes (deleted-player IDs) are kept as null —
+  // compacting with filter(Boolean) would shift players onto wrong slots.
   const chemLinks = useMemo(() => {
     if (!club) return [];
-    const lineupPlayers = club.lineup.map(id => players[id]).filter(Boolean);
+    const lineupPlayers = club.lineup.map(id => players[id] ?? null);
     return calculateChemistryLinks(lineupPlayers, club.formation, season);
   }, [club, players, season]);
 
@@ -100,10 +101,10 @@ export function LineupEditor() {
     });
   }, [club, chemLinks, pairFamiliarity]);
 
-  // Chemistry bonus and label
+  // Chemistry bonus and label (null holes kept for slot alignment)
   const { chemBonus, chemLabel } = useMemo(() => {
     if (!club) return { chemBonus: 0, chemLabel: getChemistryLabel(0) };
-    const lp = club.lineup.map(id => players[id]).filter(Boolean);
+    const lp = club.lineup.map(id => players[id] ?? null);
     const chemBonus = getChemistryBonus(lp, club.formation, season);
     const chemLabel = getChemistryLabel(chemBonus);
     return { chemBonus, chemLabel };
@@ -169,10 +170,10 @@ export function LineupEditor() {
     return bestScore > 0 ? bestId : null;
   }, [subAndBench, lineup, players]);
 
-  // Insights
+  // Insights (null holes kept so warnings/unit averages stay slot-aligned)
   const insights = useMemo(() => {
     if (!club) return [];
-    const lineupPlayers = club.lineup.map(id => players[id]).filter(Boolean);
+    const lineupPlayers = club.lineup.map(id => players[id] ?? null);
     const slots = FORMATION_POSITIONS[club.formation] || [];
     return getSquadInsights(lineupPlayers, club.formation, slots, chemLinks, chemBonus);
   }, [club, players, chemLinks, chemBonus]);

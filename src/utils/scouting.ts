@@ -55,12 +55,12 @@ export function completeAssignment(
       const isBust = Math.random() < MEDIUM_KNOWLEDGE_BUST_CHANCE; // 10% bust chance at medium knowledge
       // A bust can mislead in *either* direction — overhype a dud or under-rate a gem.
       const bustSign = Math.random() < 0.5 ? 1 : -1;
-      noise = isBust ? bustSign * (MEDIUM_KNOWLEDGE_BUST_RANGE + Math.floor(Math.random() * MEDIUM_KNOWLEDGE_BUST_RANGE)) : Math.floor(Math.random() * MEDIUM_KNOWLEDGE_NOISE_RANGE) - 3;
+      noise = isBust ? bustSign * (MEDIUM_KNOWLEDGE_BUST_RANGE + Math.floor(Math.random() * MEDIUM_KNOWLEDGE_BUST_RANGE)) : Math.floor(Math.random() * (MEDIUM_KNOWLEDGE_NOISE_RANGE + 1)) - 3; // symmetric -3..+3
     } else {
       const isBust = Math.random() < LOW_KNOWLEDGE_BUST_CHANCE; // 20% bust chance at low knowledge
       // A bust can mislead in *either* direction — overhype a dud or under-rate a gem.
       const bustSign = Math.random() < 0.5 ? 1 : -1;
-      noise = isBust ? bustSign * (LOW_KNOWLEDGE_BUST_RANGE + Math.floor(Math.random() * LOW_KNOWLEDGE_BUST_RANGE)) : Math.floor(Math.random() * LOW_KNOWLEDGE_NOISE_RANGE) - 6;
+      noise = isBust ? bustSign * (LOW_KNOWLEDGE_BUST_RANGE + Math.floor(Math.random() * LOW_KNOWLEDGE_BUST_RANGE)) : Math.floor(Math.random() * (LOW_KNOWLEDGE_NOISE_RANGE + 1)) - 6; // symmetric -6..+6
     }
     const estimatedOverall = Math.max(30, Math.min(99, player.overall + noise));
     // Apply the same fog to potential so the recommendation can't see ground truth.

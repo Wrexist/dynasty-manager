@@ -70,7 +70,8 @@ import {
 } from '@/config/managerCareer';
 import { LEAGUES, CLUBS_DATA } from '@/data/league';
 import { VALUE_EXP_BASE, VALUE_EXP_RATE } from '@/config/playerGeneration';
-import { shuffle } from '@/utils/helpers';
+import { TOTAL_WEEKS } from '@/config/gameBalance';
+import { shuffle, getSuffix } from '@/utils/helpers';
 import { AI_MANAGER_FIRST_NAMES, AI_MANAGER_LAST_NAMES } from '@/config/aiManager';
 import { PITCH_QUESTIONS } from '@/data/boardPitches';
 import type { PitchQuestionDef } from '@/data/boardPitches';
@@ -249,12 +250,14 @@ export function generateJobVacancies(
   return selected.map(club => {
     const league = LEAGUES.find(l => l.id === club.divisionId);
     const minRep = getMinReputationForLeague(league?.qualityTier || 4);
-    const totalWeeks = league?.totalWeeks || 46;
 
+    // Expiry wraps on the GLOBAL season clock — wrapping on the vacancy
+    // club's league.totalWeeks let offers survive far longer than configured
+    // when that league's calendar differed from the player's season.
     let expiresWeek = week + VACANCY_DURATION_WEEKS;
     let expiresSeason = season;
-    if (expiresWeek > totalWeeks) {
-      expiresWeek = expiresWeek - totalWeeks;
+    if (expiresWeek > TOTAL_WEEKS) {
+      expiresWeek = expiresWeek - TOTAL_WEEKS;
       expiresSeason = season + 1;
     }
 
@@ -313,7 +316,7 @@ export function calculateExpectedPosition(clubId: string, leagueId: string): str
   const total = sorted.length;
 
   if (rank <= 2) return '1st - 2nd';
-  if (rank <= Math.ceil(total * 0.25)) return `${rank - 1}th - ${rank + 1}th`;
+  if (rank <= Math.ceil(total * 0.25)) return `${rank - 1}${getSuffix(rank - 1)} - ${rank + 1}${getSuffix(rank + 1)}`;
   if (rank <= Math.ceil(total * 0.5)) return 'Top half';
   if (rank <= Math.ceil(total * 0.75)) return 'Lower half';
   return 'Bottom quarter';
@@ -535,11 +538,11 @@ export function generateProactiveOffer(
   const qualityTier = league?.qualityTier || 4;
   const salary = generateManagerSalary(qualityTier, cd.reputation);
 
+  // Expiry wraps on the GLOBAL season clock, not the offering club's league calendar.
   let expiresWeek = week + PROACTIVE_OFFER_DURATION_WEEKS;
   let expiresSeason = season;
-  const totalWeeks = league?.totalWeeks || 46;
-  if (expiresWeek > totalWeeks) {
-    expiresWeek = expiresWeek - totalWeeks;
+  if (expiresWeek > TOTAL_WEEKS) {
+    expiresWeek = expiresWeek - TOTAL_WEEKS;
     expiresSeason = season + 1;
   }
 
@@ -629,11 +632,11 @@ export function generateUnemployedOffer(
   const qualityTier = (league?.qualityTier || 4) as 1 | 2 | 3 | 4;
   const salary = generateManagerSalary(qualityTier, cd.reputation);
 
+  // Expiry wraps on the GLOBAL season clock, not the offering club's league calendar.
   let expiresWeek = week + PROACTIVE_OFFER_DURATION_WEEKS;
   let expiresSeason = season;
-  const totalWeeks = league?.totalWeeks || 46;
-  if (expiresWeek > totalWeeks) {
-    expiresWeek = expiresWeek - totalWeeks;
+  if (expiresWeek > TOTAL_WEEKS) {
+    expiresWeek = expiresWeek - TOTAL_WEEKS;
     expiresSeason = season + 1;
   }
 

@@ -5,13 +5,16 @@ export const CHALLENGES: ChallengeScenario[] = [
   {
     id: 'great-escape',
     name: 'The Great Escape',
-    description: 'Take over a struggling club 10 points from safety with 15 weeks left. Avoid relegation.',
+    // NOTE: an earlier version advertised a mid-season start ("week 23 with
+    // 15 points") that was never implemented — the copy below describes what
+    // the challenge actually is: a full season at a weak club on half budget.
+    description: 'Take over a struggling club with a slashed budget. Avoid relegation.',
     icon: 'rocket',
     difficulty: 'medium',
     startingClubId: undefined, // Will be assigned to lowest-rep club
     seasonLimit: 1,
-    winCondition: 'Finish in the top 17 at the end of the season',
-    constraints: ['Start at week 23 with 15 points', 'Budget reduced by 50%'],
+    winCondition: 'Finish above the relegation zone at the end of the season',
+    constraints: ['Lowest-reputation club in the league', 'Budget reduced by 50%'],
     budgetModifier: 0.5,
   },
   {
@@ -134,11 +137,20 @@ export function checkChallengeComplete(
   cupWinner: boolean,
   seasonHistory: { position: number }[],
   hasLost: boolean,
-  extraData?: { homeUnbeaten?: boolean; leagueGoals?: number; divisionId?: string },
+  extraData?: { homeUnbeaten?: boolean; leagueGoals?: number; divisionId?: string; seasonDivisionId?: string },
 ): boolean {
   switch (challengeId) {
-    case 'great-escape':
-      return leaguePosition <= 17;
+    case 'great-escape': {
+      // Finish above the relegation zone of the division the season was
+      // PLAYED in (seasonDivisionId; `divisionId` is the post-turnover
+      // division used by 'promotion-express'). The old hardcoded `<= 17`
+      // was an auto-win in 10-18-team leagues and wrong in 24-team ones.
+      const league = LEAGUES.find(l => l.id === (extraData?.seasonDivisionId ?? extraData?.divisionId));
+      if (!league) return false;
+      const dropSpots = league.relegationSpots || league.replacedSlots || 0;
+      const safeLine = league.teamCount - dropSpots;
+      return leaguePosition > 0 && leaguePosition <= safeLine;
+    }
     case 'invincibles':
       return !hasLost && leaguePosition > 0;
     case 'youth-revolution':

@@ -1,5 +1,6 @@
 import { YouthProspect, Position } from '@/types/game';
 import { generatePlayer } from './playerGen';
+import { recomputePlayerValueOnly } from './playerEconomics';
 import { pick } from './helpers';
 import {
   YOUTH_BASE_QUALITY, YOUTH_RATING_MULTIPLIER, YOUTH_COACH_MULTIPLIER, YOUTH_QUALITY_RANDOM_RANGE,
@@ -40,6 +41,10 @@ export function generateYouthProspects(
     player.isFromYouthAcademy = true;
     // Ensure decent potential
     player.potential = Math.min(YOUTH_POTENTIAL_MAX, player.overall + YOUTH_POTENTIAL_BASE_BONUS + youthRating + Math.floor(Math.random() * YOUTH_QUALITY_RANDOM_RANGE));
+    // generatePlayer priced the rolled age (17-33); re-price for the forced
+    // youth age so prospects don't carry an inflated peak-age market value
+    // (mirrors the same recompute in transferMarketGen after age overrides).
+    recomputePlayerValueOnly(player);
 
     const prospect: YouthProspect = {
       playerId: player.id,
