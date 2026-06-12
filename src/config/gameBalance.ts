@@ -578,6 +578,15 @@ export const COACH_TASK_XP: Record<string, number> = {
 /** Bonus XP for completing ALL coach checklist tasks */
 export const COACH_ALL_TASKS_BONUS_XP = 15;
 
+/**
+ * One-off XP payoff for finishing the first-session "Getting Started"
+ * checklist (sign a sponsor + send/hire a scout). Turns the tutorial from a
+ * card that silently vanishes into a small reward. XP-only by design — it
+ * stays off the budget/economy path so it can never affect club finances.
+ * Granted once per device, guarded by a persisted flag.
+ */
+export const ONBOARDING_COMPLETION_XP = 25;
+
 // ── Achievement XP Rewards ──
 export const ACHIEVEMENT_XP_BRONZE = 15;
 export const ACHIEVEMENT_XP_SILVER = 30;

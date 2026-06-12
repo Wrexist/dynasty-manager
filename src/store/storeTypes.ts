@@ -379,6 +379,9 @@ export interface GameState {
 
   // Actions — Coach Checklist
   markCoachTaskComplete: (taskId: string) => void;
+  // Grant the one-off XP reward for finishing the first-session onboarding
+  // checklist. Idempotent (persisted flag); returns true only when it paid out.
+  completeOnboardingChecklist: () => boolean;
   // Claim the XP for a completed weekly/monthly objective.
   claimObjective: (objectiveId: string) => void;
 
