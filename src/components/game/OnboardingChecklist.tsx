@@ -103,9 +103,14 @@ export function OnboardingChecklist() {
   useEffect(() => {
     if (!eligibleToShow || dismissed) return;
     if (!allTasksDone) { sawIncompleteRef.current = true; return; }
-    if (!sawIncompleteRef.current) return;
+    // Both starter tasks are done — the checklist has served its purpose, so
+    // auto-dismiss it. If the player watched it tick to 2/2 live, fade quickly.
+    // If the career started already at 2/2 (no sponsor offer generated + a
+    // pre-assigned scout, so it was never seen incomplete), give a longer
+    // readable beat instead of leaving the card stranded on-screen forever.
     writeSessionJson(DISMISS_KEY, true);
-    const t = window.setTimeout(() => setDismissed(true), 1400);
+    const delay = sawIncompleteRef.current ? 1400 : 5000;
+    const t = window.setTimeout(() => setDismissed(true), delay);
     return () => window.clearTimeout(t);
   }, [eligibleToShow, dismissed, allTasksDone]);
 
