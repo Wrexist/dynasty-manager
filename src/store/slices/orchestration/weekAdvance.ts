@@ -2480,6 +2480,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   const cliffhangers = generateCliffhangers({
     playerClubId, players: newPlayers, clubs: newClubs,
     fixtures: updatedFixtures, leagueTable, week: newWeek, season,
+    totalWeeks: state.totalWeeks,
     boardConfidence: newBoardConfidence,
     transferWindowOpen,
     rivalries: state.rivalries,
