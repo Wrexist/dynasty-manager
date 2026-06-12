@@ -1155,7 +1155,9 @@ function finalizeSeason(
       // 'great-escape' judges the relegation zone of the division the season
       // was PLAYED in (pre-turnover) — newPlayerDivision can be a different
       // league with a different team count after relegation/promotion.
-      seasonDivisionId: playerDiv,
+      // `turnover.leagueId` is that pre-turnover division (set from the player's
+      // playerDivision before pro/rel was applied).
+      seasonDivisionId: turnover.leagueId,
     };
     if (checkChallengeComplete(endChallenge.scenarioId, history.position, cupWon, [...state.seasonHistory, history], hasLost, challengeExtra)) {
       endChallenge = { ...endChallenge, completed: true };
