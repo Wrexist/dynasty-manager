@@ -182,7 +182,7 @@ const LeagueTable = () => {
 
       {/* League Selector */}
       <button
-        onClick={() => setPickerOpen(!pickerOpen)}
+        onClick={() => { hapticLight(); setPickerOpen(!pickerOpen); }}
         className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-card/60 backdrop-blur-xl border border-border/50 active:bg-muted/40 transition-colors"
       >
         <FlagIcon nationality={currentLeague?.country || 'England'} size={24} className="rounded-[2px]" />
@@ -300,7 +300,7 @@ const LeagueTable = () => {
         {(['table', 'fixtures', 'stats'] as const).map(t => (
           <button
             key={t}
-            onClick={() => setTab(t)}
+            onClick={() => { hapticLight(); setTab(t); }}
             className={cn(
               'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors relative',
               tab === t ? 'text-primary-foreground' : 'bg-muted/50 text-muted-foreground hover:bg-muted'
@@ -317,7 +317,7 @@ const LeagueTable = () => {
           </button>
         ))}
         <button
-          onClick={() => setInfoOpen(!infoOpen)}
+          onClick={() => { hapticLight(); setInfoOpen(!infoOpen); }}
           className={cn(
             'ml-auto p-1.5 rounded-lg transition-colors shrink-0',
             infoOpen ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
@@ -573,7 +573,7 @@ const LeagueTable = () => {
         <>
           <GlassPanel className="p-3 flex items-center justify-between">
             <button
-              onClick={() => setBrowseWeek(w => Math.max(1, w - 1))}
+              onClick={() => { hapticLight(); setBrowseWeek(w => Math.max(1, w - 1)); }}
               disabled={browseWeek <= 1}
               aria-label="Previous week"
               className={cn(
@@ -588,7 +588,7 @@ const LeagueTable = () => {
               {browseWeek === week && <p className="text-[10px] text-primary">Current Week</p>}
             </div>
             <button
-              onClick={() => setBrowseWeek(w => Math.min(totalWeeks, w + 1))}
+              onClick={() => { hapticLight(); setBrowseWeek(w => Math.min(totalWeeks, w + 1)); }}
               disabled={browseWeek >= totalWeeks}
               aria-label="Next week"
               className={cn(

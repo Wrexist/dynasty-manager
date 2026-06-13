@@ -225,6 +225,7 @@ const InboxPage = () => {
   });
 
   const toggleExpand = (id: string) => {
+    hapticLight();
     setExpandedId(prev => prev === id ? null : id);
     markMessageRead(id);
   };
@@ -440,9 +441,9 @@ const InboxPage = () => {
                 <div key={chain.chainId} className="mb-1 last:mb-0">
                   {/* Collapsed header — always visible */}
                   <button
-                    onClick={() => setExpandedStoryline(prev =>
+                    onClick={() => { hapticLight(); setExpandedStoryline(prev =>
                       prev === chain.chainId ? null : chain.chainId
-                    )}
+                    ); }}
                     className={cn(
                       'w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors',
                       isExpanded ? 'bg-primary/10' : 'bg-muted/30 hover:bg-muted/50'
