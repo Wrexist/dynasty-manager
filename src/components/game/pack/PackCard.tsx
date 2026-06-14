@@ -155,7 +155,7 @@ export const PackCard = memo(function PackCard({ player, revealed, onReveal, ent
           {!revealed && !prefersReducedMotion && (
             <motion.div
               className="absolute inset-0 pointer-events-none"
-              style={{ background: 'linear-gradient(115deg, transparent 32%, rgba(255,255,255,0.28) 50%, transparent 68%)', mixBlendMode: 'overlay' }}
+              style={{ background: 'linear-gradient(115deg, transparent 38%, rgba(255,255,255,0.16) 50%, transparent 62%)' }}
               initial={{ x: '-100%' }}
               animate={{ x: '120%' }}
               transition={{ repeat: Infinity, repeatDelay: 4, duration: 1.4, ease: 'easeInOut' }}

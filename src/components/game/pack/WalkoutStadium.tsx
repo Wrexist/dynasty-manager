@@ -20,7 +20,7 @@ export const WalkoutStadium = memo(function WalkoutStadium({ accent, revealed }:
 
   // Camera-flash specs — rolled once per mount, not per render.
   const flashes = useMemo(() =>
-    Array.from({ length: 16 }).map((_, i) => ({
+    Array.from({ length: 12 }).map((_, i) => ({
       i,
       left: 4 + Math.random() * 92,
       bottom: 2 + Math.random() * 14,
@@ -70,8 +70,9 @@ export const WalkoutStadium = memo(function WalkoutStadium({ accent, revealed }:
         />
       ))}
 
-      {/* Drifting fog banks at the foot of the frame. */}
-      {!reduce && [0, 1, 2].map(i => (
+      {/* Drifting fog banks at the foot of the frame (two banks — each drives
+          a large blur across the width, the priciest layer here on mobile). */}
+      {!reduce && [0, 1].map(i => (
         <motion.div
           key={`fog-${i}`}
           className="absolute rounded-full"

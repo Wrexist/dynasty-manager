@@ -21,7 +21,7 @@ export const PackStadium = memo(function PackStadium() {
 
   // Ambient mote specs — rolled once per mount, not per render.
   const motes = useMemo(() =>
-    Array.from({ length: 14 }).map((_, i) => ({
+    Array.from({ length: 10 }).map((_, i) => ({
       i,
       left: 8 + Math.random() * 84,
       size: 1.5 + Math.random() * 2.5,
@@ -110,8 +110,10 @@ export const PackStadium = memo(function PackStadium() {
         transition={reduce ? undefined : { duration: 6.5, repeat: Infinity, ease: 'easeInOut' }}
       />
 
-      {/* Low drifting fog — soft blurred banks near the foot of the frame. */}
-      {!reduce && [0, 1, 2].map(i => (
+      {/* Low drifting fog — soft blurred banks near the foot of the frame.
+          Kept to two banks: each animates a 28px blur across the full width,
+          which is the priciest layer in the scene on mobile WebKit. */}
+      {!reduce && [0, 1].map(i => (
         <motion.div
           key={`fog-${i}`}
           className="absolute rounded-full"
