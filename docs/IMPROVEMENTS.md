@@ -131,10 +131,12 @@ All `[candidate]` items below come from an automated pass that over-reports —
   also `match.ts` (~2004), `seasonEnd.ts` (~1732), `MatchDay.tsx` (~1724),
   `matchActions.ts` (~1703), `orchestrationSlice.ts` (~1236),
   `PackOpeningOverlay.tsx` (~1443), `saveMigration.ts` (~1322).
-- **Test coverage gaps** — no test file for several large/critical units:
-  `weekAdvance.ts` (the game loop!), `loanSlice.ts`, `featureSlice.ts`,
-  `careerSlice.ts`, `international.ts`; and page-level behavior for `MatchDay`,
-  `TransferPage`, `Dashboard`.
+- **Test coverage gaps** — added this session: `loanSlice`, `featureSlice`,
+  `careerSlice`, `matchSlice`, `systemsSlice`, `merchandiseSlice`,
+  `continentalCoefficients`, `internationalSchedule`, `squadStrength`, plus the
+  monetization revenue invariants. **Still open:** `weekAdvance.ts` (the game
+  loop — needs heavy fixtures), `nationalTeamSlice`, `clubSlice`, and
+  page-level behavior for `MatchDay`/`TransferPage`/`Dashboard`.
 - **Dead data file:** `src/data/communityPack/newLeagues.ts` (~2.0 MB source) has
   zero importers — wire it up or delete (`Triage P2-4`).
 - **ESLint import guard:** extend the `no-restricted-imports` ban on giant data
