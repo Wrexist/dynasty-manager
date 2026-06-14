@@ -14,6 +14,9 @@ interface WalkoutRevealProps {
   player: Player;
   /** Called when the walkout finishes and the card should fall back into the grid. */
   onComplete: () => void;
+  /** Called when the user taps to hurry an already-finished hero — advance now
+   *  instead of waiting out the inter-hero linger. */
+  onAdvance?: () => void;
 }
 
 // Walkout hero card width. xl PlayerCard is 220px natural — we scale to
@@ -266,7 +269,7 @@ function AttributePill({
  * is left. Tier-coloured particles drift the whole cinematic for ambient
  * atmosphere; legendary tier adds the stadium dressing.
  */
-export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
+export function WalkoutReveal({ player, onComplete, onAdvance }: WalkoutRevealProps) {
   const tier = tierForOvr(player.overall);
   const isLegendary = player.overall >= LEGENDARY_OVR_THRESHOLD;
   const prefersReducedMotion = useReducedMotion();
@@ -331,7 +334,9 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
   }, [enterMs, nameMs, breathMs, flipMs, statsMs, holdMs, totalMs, onComplete]);
 
   const skip = () => {
-    if (phase === 'done') return;
+    // Already finished and holding on the final frame — a tap means "hurry up",
+    // so advance to the next hero/summary immediately instead of doing nothing.
+    if (phase === 'done') { onAdvance?.(); return; }
     setPhase('done');
     onComplete();
   };
@@ -623,8 +628,7 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
               <motion.div
                 className="absolute inset-0 pointer-events-none overflow-hidden"
                 style={{
-                  background: 'linear-gradient(115deg, transparent 32%, rgba(255,255,255,0.32) 50%, transparent 68%)',
-                  mixBlendMode: 'overlay',
+                  background: 'linear-gradient(115deg, transparent 38%, rgba(255,255,255,0.18) 50%, transparent 62%)',
                 }}
                 initial={{ x: '-100%' }}
                 animate={{ x: '120%' }}
