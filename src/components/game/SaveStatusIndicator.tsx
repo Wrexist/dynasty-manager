@@ -35,13 +35,22 @@ export function SaveStatusIndicator() {
     })),
   );
 
-  // Only tick the clock while we're showing a timestamp. No interval for
-  // idle/saving/failed, and cleanup is automatic when deps change.
+  // Only tick the clock while we're showing a timestamp, AND only while the
+  // tab is visible — no point re-rendering the "saved Xs ago" label when the
+  // app is backgrounded. Resumes (and refreshes immediately) on focus.
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (saveStatus !== 'saved' || !lastSavedAt) return;
-    const id = setInterval(() => setNow(Date.now()), REFRESH_INTERVAL_MS);
-    return () => clearInterval(id);
+    let id: number | undefined;
+    const stop = () => { if (id !== undefined) { window.clearInterval(id); id = undefined; } };
+    const start = () => {
+      setNow(Date.now());
+      id = window.setInterval(() => setNow(Date.now()), REFRESH_INTERVAL_MS);
+    };
+    const onVisibility = () => { stop(); if (!document.hidden) start(); };
+    if (!document.hidden) start();
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => { stop(); document.removeEventListener('visibilitychange', onVisibility); };
   }, [saveStatus, lastSavedAt]);
 
   const handleTap = () => {

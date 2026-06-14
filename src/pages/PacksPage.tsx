@@ -121,8 +121,15 @@ const PacksPage = () => {
   // enough that the user never sees a stale value.
   const [, forceTick] = useState(0);
   useEffect(() => {
-    const id = setInterval(() => forceTick(t => t + 1), 30_000);
-    return () => clearInterval(id);
+    // Pause the countdown re-render while the tab is hidden; tick once on
+    // resume so the displayed time is fresh.
+    let id: number | undefined;
+    const stop = () => { if (id !== undefined) { window.clearInterval(id); id = undefined; } };
+    const start = () => { id = window.setInterval(() => forceTick(t => t + 1), 30_000); };
+    const onVisibility = () => { stop(); if (!document.hidden) { forceTick(t => t + 1); start(); } };
+    if (!document.hidden) start();
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => { stop(); document.removeEventListener('visibilitychange', onVisibility); };
   }, []);
   const msToReset = msUntilNextMidnight();
 
