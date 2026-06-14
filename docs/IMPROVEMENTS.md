@@ -15,6 +15,20 @@
 > justified prod casts, 105 test files. No P0/P1 shipblockers. This list is
 > polish, features, and extraction — not a debt fire.
 
+## Resolved in follow-up round (2026-06-14, round 2)
+- **A11y:** added `aria-label` to 4 icon-only X buttons (Staff release, Board
+  warning dismiss, Lineup-editor close, Contract-negotiation cancel).
+- **Loan wage-split `[candidate]` — fixed:** `safeWageShare`/`safeWageInverse`
+  now clamp split to [0,100].
+- **Verified safe (no change):** continental knockout pairing already
+  `filter(Boolean)`-guards null winners; community-pack refresh-across-`await`
+  runs inside the user-blocking `advanceWeek` (theoretical race only); StaffPage
+  fire + TitleScreen delete already have confirms (the "missing confirm" UX
+  leads were false positives).
+- **Blocked — needs a call:** Save export/import requires file I/O; on iOS that
+  means adding `@capacitor/filesystem` + `@capacitor/share` (full saves exceed
+  ~5 MB, so clipboard/textarea isn't viable). Awaiting a deps/native decision.
+
 ## Already done (this session — do not re-raise)
 Onboarding card auto-dismiss + XP reward · flaky 11v10 test · season-end
 `playerDiv` crash · transfer-deadline `totalWeeks` bug · `typecheck` in
