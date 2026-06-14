@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { cn } from '@/lib/utils';
+import { formatMoney } from '@/utils/helpers';
 import { getRatingColor, getTop3Attributes, getChanceColor, getChanceBarColor, getChanceLabel } from '@/utils/uiHelpers';
 import { formatWage } from '@/utils/contracts';
 import { FlagIcon } from '@/components/game/FlagIcon';
@@ -212,7 +213,7 @@ export function LoanNegotiation({ playerId, onClose }: Props) {
                   >
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">Market Value</span>
-                      <span className="text-foreground font-semibold">{'\u00A3'}{(player.value / 1e6).toFixed(1)}M</span>
+                      <span className="text-foreground font-semibold">{formatMoney(player.value)}</span>
                     </div>
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">Wage</span>
@@ -335,7 +336,7 @@ export function LoanNegotiation({ playerId, onClose }: Props) {
                         <div className="flex items-center justify-between">
                           <label className="text-xs text-muted-foreground font-medium">Buy Fee</label>
                           <span className="text-sm font-black text-primary font-display tabular-nums">
-                            {'\u00A3'}{(buyFee / 1e6).toFixed(1)}M
+                            {formatMoney(buyFee)}
                           </span>
                         </div>
                         <input
@@ -505,7 +506,7 @@ export function LoanNegotiation({ playerId, onClose }: Props) {
                   {buyOption && (
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-muted-foreground">Obligation to Buy</span>
-                      <span className="text-xs font-bold text-primary">{'\u00A3'}{(buyFee / 1e6).toFixed(1)}M</span>
+                      <span className="text-xs font-bold text-primary">{formatMoney(buyFee)}</span>
                     </div>
                   )}
                 </motion.div>

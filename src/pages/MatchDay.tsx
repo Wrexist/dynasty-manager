@@ -1562,8 +1562,9 @@ const MatchDayInner = () => {
             </div>
           )}
 
-          {/* Event Log */}
-          <GlassPanel className="p-4 max-h-[30vh] overflow-y-auto">
+          {/* Event Log — cap by viewport but never collapse below ~2 events on
+              short landscape screens (30vh ≈ 112px there). */}
+          <GlassPanel className="p-4 max-h-[min(40vh,300px)] overflow-y-auto">
             <div className="space-y-2" aria-live="polite" aria-label="Match events">
               {visibleEvents.filter(e => e.type !== 'kickoff').map((ev, i) => {
                 // Structured events (goals, cards, shots, subs...) render as
