@@ -17,16 +17,20 @@ type Get = () => GameState;
 // Loans created before the wageSplit field existed (or with malformed
 // wage data after migration) propagate NaN into club.wageBill, which then
 // crashes finance dashboards and league-table rendering. Default to a
-// 50/50 split and zero wage so the arithmetic stays finite.
+// 50/50 split and zero wage so the arithmetic stays finite, and clamp the
+// split into [0,100] so a malformed/persisted out-of-range percentage can't
+// charge a club more than 100% of a wage.
+const clampSplit = (splitPct: number | undefined): number => {
+  const s = Number.isFinite(splitPct as number) ? (splitPct as number) : 50;
+  return Math.max(0, Math.min(100, s));
+};
 const safeWageShare = (wage: number | undefined, splitPct: number | undefined): number => {
   const w = Number.isFinite(wage as number) ? (wage as number) : 0;
-  const s = Number.isFinite(splitPct as number) ? (splitPct as number) : 50;
-  return Math.round((w * s) / 100);
+  return Math.round((w * clampSplit(splitPct)) / 100);
 };
 const safeWageInverse = (wage: number | undefined, splitPct: number | undefined): number => {
   const w = Number.isFinite(wage as number) ? (wage as number) : 0;
-  const s = Number.isFinite(splitPct as number) ? (splitPct as number) : 50;
-  return Math.round((w * (100 - s)) / 100);
+  return Math.round((w * (100 - clampSplit(splitPct))) / 100);
 };
 
 /** A loan referencing a club that no longer exists (deleted during promotion/
