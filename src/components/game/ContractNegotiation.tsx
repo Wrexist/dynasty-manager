@@ -145,7 +145,7 @@ export function ContractNegotiation() {
             </div>
           </div>
           {!isComplete && (
-            <button type="button" onClick={cancelNegotiation} className="p-1.5 rounded-lg hover:bg-muted/50">
+            <button type="button" onClick={cancelNegotiation} aria-label="Cancel negotiation" className="p-1.5 rounded-lg hover:bg-muted/50">
               <X className="w-4 h-4 text-muted-foreground" />
             </button>
           )}

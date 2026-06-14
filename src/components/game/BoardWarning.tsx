@@ -98,7 +98,7 @@ export function BoardWarning({ confidence, onDismiss }: BoardWarningProps) {
             <p className={cn('text-xs font-black uppercase tracking-wider', styles.title)}>
               {warning.title}
             </p>
-            <button type="button" onClick={() => { hapticLight(); onDismiss(); }} className="p-2 -mr-1 hover:bg-muted/30 rounded transition-colors">
+            <button type="button" onClick={() => { hapticLight(); onDismiss(); }} aria-label="Dismiss warning" className="p-2 -mr-1 hover:bg-muted/30 rounded transition-colors">
               <X className="w-3.5 h-3.5 text-muted-foreground" />
             </button>
           </div>
