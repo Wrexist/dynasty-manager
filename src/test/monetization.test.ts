@@ -87,6 +87,43 @@ describe('monetization utils', () => {
         },
       }))).toBe(true);
     });
+
+    // ── Revenue invariants (CLAUDE.md: violating these = revenue bugs) ──
+
+    it('does NOT grant Pro from a subscription SKU sitting in entitlements', () => {
+      // RevenueCat keeps expired subs in allPurchasedProductIdentifiers forever;
+      // monthly/annual are not one-time Pro IDs, so their presence in
+      // `entitlements` must not, on its own, grant Pro.
+      expect(isPro(makeState({ entitlements: ['com.dynastymanager.pro.monthly'] }))).toBe(false);
+      expect(isPro(makeState({ entitlements: ['com.dynastymanager.pro.annual'] }))).toBe(false);
+    });
+
+    it('does NOT grant Pro to a lapsed subscriber even with the sub SKU in entitlements', () => {
+      expect(isPro(makeState({
+        entitlements: ['com.dynastymanager.pro.monthly'],
+        subscription: {
+          tier: 'monthly',
+          productId: 'com.dynastymanager.pro.monthly',
+          expiresAt: new Date(Date.now() - 86400000).toISOString(),
+          isInGracePeriod: false,
+          willRenew: false,
+        },
+      }))).toBe(false);
+    });
+
+    it('reads a malformed/empty expiry as expired (no silent permanent Pro)', () => {
+      for (const bad of ['', 'garbage']) {
+        expect(isPro(makeState({
+          subscription: {
+            tier: 'monthly',
+            productId: 'com.dynastymanager.pro.monthly',
+            expiresAt: bad,
+            isInGracePeriod: false,
+            willRenew: false,
+          },
+        }))).toBe(false);
+      }
+    });
   });
 
   describe('free trial', () => {
