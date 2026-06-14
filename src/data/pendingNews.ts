@@ -46,6 +46,7 @@ export const PENDING_NEWS: PendingRelease = {
   new: [],
   improved: [
     'Bump to 1.1.1 and seal What\'s New.',
+    'Auto-dismiss Getting Started card when it starts already at 2/2.',
   ],
   fixed: [],
   headline: null,
