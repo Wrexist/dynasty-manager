@@ -1,6 +1,7 @@
 import type { PressConference, ContractOffer, ActiveChallenge, StorylineEvent, ActiveStorylineChain, ManagerProgression, CliffhangerItem, MatchDramaType, SessionStats, TransferTalk } from '@/types/game';
 import { MOD_MEDIA_PRESS, MOD_MOTIVATION_MORALE, GROWTH_MEDIA_PER_CONFERENCE, STAT_MAX } from '@/config/managerCareer';
-import { TRANSFER_TALK_EMPATHIZE_MORALE_BOOST, TRANSFER_TALK_CONVINCE_SUCCESS_MORALE, TRANSFER_TALK_CONVINCE_FAIL_MORALE, COACH_TASK_XP, COACH_ALL_TASKS_BONUS_XP, TOTAL_WEEKS } from '@/config/gameBalance';
+import { TRANSFER_TALK_EMPATHIZE_MORALE_BOOST, TRANSFER_TALK_CONVINCE_SUCCESS_MORALE, TRANSFER_TALK_CONVINCE_FAIL_MORALE, COACH_TASK_XP, COACH_ALL_TASKS_BONUS_XP, ONBOARDING_COMPLETION_XP, TOTAL_WEEKS } from '@/config/gameBalance';
+import { getFlag, setFlag, STORAGE_KEYS } from '@/store/helpers/persistence';
 import { TRANSFER_DEMAND_COOLDOWN_WEEKS, TRANSFER_TALK_RETRY_WEEKS } from '@/config/personality';
 import { grantXP, hasPerk, dynastyMult } from '@/utils/managerPerks';
 import { objectiveClaimXP } from '@/utils/weeklyObjectives';
@@ -154,6 +155,21 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
     }
 
     set({ completedCoachTaskIds: newIds, managerProgression: updatedProgression });
+  },
+
+  completeOnboardingChecklist: () => {
+    // One-off XP payoff when the first-session "Getting Started" checklist is
+    // finished. Idempotent: a persisted device-global flag means re-runs (the
+    // component effect can fire more than once) never double-pay. Returns
+    // whether XP was actually granted so the UI can decide to toast.
+    if (getFlag(STORAGE_KEYS.ONBOARDING_REWARD_CLAIMED)) return false;
+    setFlag(STORAGE_KEYS.ONBOARDING_REWARD_CLAIMED);
+    const sessionStats = get().sessionStats;
+    set({
+      managerProgression: grantXP(get().managerProgression, ONBOARDING_COMPLETION_XP),
+      sessionStats: { ...sessionStats, xpEarned: sessionStats.xpEarned + ONBOARDING_COMPLETION_XP },
+    });
+    return true;
   },
 
   claimObjective: (objectiveId: string) => {

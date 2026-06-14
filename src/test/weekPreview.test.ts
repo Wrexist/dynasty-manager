@@ -155,6 +155,7 @@ function cliffCtx(overrides: Partial<Parameters<typeof generateCliffhangers>[0]>
     leagueTable: [] as LeagueTableEntry[],
     week: 12,
     season: 1,
+    totalWeeks: 46,
     boardConfidence: 50,
     transferWindowOpen: false,
     ...overrides,

@@ -17,6 +17,7 @@ import { FlagIcon } from '@/components/game/FlagIcon';
 import { getContractUrgency } from '@/utils/contracts';
 import { StatusPill } from '@/components/game/StatusPill';
 import { PlayerStatusBadges } from '@/components/game/PlayerStatusBadges';
+import { compareSquadToLeague } from '@/utils/squadStrength';
 
 const SORT_OPTIONS: SquadSortKey[] = ['overall', 'potential', 'age', 'value', 'fitness', 'morale', 'wage', 'form'];
 
@@ -65,9 +66,9 @@ function ContractAlertChip({ p, variant, onSelect, onRenew }: {
 }
 
 const SquadPage = () => {
-  const { playerClubId, clubs, players, season, week } = useGameStore(useShallow(s => ({
+  const { playerClubId, clubs, players, season, week, leagueTable } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId, clubs: s.clubs, players: s.players,
-    season: s.season, week: s.week,
+    season: s.season, week: s.week, leagueTable: s.leagueTable,
   })));
   const selectPlayer = useGameStore(s => s.selectPlayer);
   const setScreen = useGameStore(s => s.setScreen);
@@ -109,6 +110,17 @@ const SquadPage = () => {
     const nearExpiry = fullSquad.filter(p => getContractUrgency(p.contractEnd, season) === 'near').sort(byRating);
     return { expiring, nearExpiry, total: expiring.length + nearExpiry.length };
   }, [fullSquad, season]);
+
+  // "Squad vs League" — your per-group average overall against the rest of the
+  // clubs in your division. Drives transfer focus (a red ATT row = go buy a
+  // striker). Compares against the league *excluding your own club* so the
+  // benchmark isn't diluted by your own squad. Only meaningful once there are
+  // other clubs in the table.
+  const squadVsLeague = useMemo(() => {
+    const otherClubIds = leagueTable.map(e => e.clubId).filter(id => id !== playerClubId);
+    if (otherClubIds.length === 0) return null;
+    return compareSquadToLeague(fullSquad, otherClubIds, clubs, players);
+  }, [fullSquad, leagueTable, clubs, players, playerClubId]);
 
   const depthColors: Record<string, string> = {
     GK: 'bg-amber-500',
@@ -228,6 +240,36 @@ const SquadPage = () => {
             ))}
           </div>
         </GlassPanel>
+
+        {/* Squad vs League — per-position-group strength benchmark to guide transfers */}
+        {squadVsLeague && (
+          <GlassPanel className="p-3">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Squad vs League</p>
+            <div className="space-y-1.5">
+              {squadVsLeague.map(row => {
+                const hasPlayers = row.count > 0;
+                const deltaTone = !hasPlayers
+                  ? 'text-destructive'
+                  : row.delta > 1 ? 'text-emerald-400'
+                    : row.delta < -1 ? 'text-red-400'
+                      : 'text-muted-foreground';
+                return (
+                  <div key={row.group} className="flex items-center gap-3">
+                    <span className="text-[10px] font-semibold text-muted-foreground w-8 shrink-0">{row.group}</span>
+                    <span className={cn('text-sm font-bold tabular-nums w-7 text-right', hasPlayers ? getRatingColor(row.mine) : 'text-muted-foreground/40')}>
+                      {hasPlayers ? row.mine : '—'}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">vs lg {row.league}</span>
+                    <span className={cn('ml-auto text-[11px] font-bold tabular-nums', deltaTone)}>
+                      {!hasPlayers ? 'No players' : row.delta > 0 ? `+${row.delta}` : row.delta}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-[9px] text-muted-foreground/60 mt-2">Average overall by position vs the rest of your league.</p>
+          </GlassPanel>
+        )}
 
         {/* Contract Expiry Alerts */}
         {contractAlerts.total > 0 && (

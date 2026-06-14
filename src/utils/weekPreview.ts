@@ -212,6 +212,10 @@ interface CliffhangerContext {
   leagueTable: LeagueTableEntry[];
   week: number;
   season: number;
+  /** Player league's season length — drives the transfer-deadline cliffhanger.
+   *  Required so non-46-week leagues (e.g. the 38-week Premier League) don't
+   *  silently fall back to the 46-week default windows. */
+  totalWeeks: number;
   boardConfidence: number;
   transferWindowOpen: boolean;
   rivalries?: Record<string, { wins: number; draws: number; losses: number; lastResult: string | null; grudgeLevel: number }>;

@@ -30,7 +30,9 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
 import { useGameStore } from '@/store/gameStore';
+import { ONBOARDING_COMPLETION_XP } from '@/config/gameBalance';
 import { useShallow } from 'zustand/react/shallow';
 import { Banknote, Search, Calendar, UserPlus, Check, X, ChevronRight, ArrowRight } from 'lucide-react';
 import type { GameScreen } from '@/types/game';
@@ -71,6 +73,7 @@ export function OnboardingChecklist() {
     })),
   );
   const setScreen = useGameStore(s => s.setScreen);
+  const completeOnboardingChecklist = useGameStore(s => s.completeOnboardingChecklist);
 
   const [dismissed, setDismissed] = useState(() => readSessionJson<boolean>(DISMISS_KEY) === true);
   const [activeWalkthrough, setActiveWalkthrough] = useState<ChecklistItem | null>(null);
@@ -103,11 +106,22 @@ export function OnboardingChecklist() {
   useEffect(() => {
     if (!eligibleToShow || dismissed) return;
     if (!allTasksDone) { sawIncompleteRef.current = true; return; }
-    if (!sawIncompleteRef.current) return;
+    // Both starter tasks are done — the checklist has served its purpose, so
+    // auto-dismiss it. If the player watched it tick to 2/2 live, fade quickly.
+    // If the career started already at 2/2 (no sponsor offer generated + a
+    // pre-assigned scout, so it was never seen incomplete), give a longer
+    // readable beat instead of leaving the card stranded on-screen forever.
+    // Pay the one-off completion reward (idempotent in the store) and toast it.
+    if (completeOnboardingChecklist()) {
+      toast.success('Getting Started complete!', {
+        description: `+${ONBOARDING_COMPLETION_XP} XP — you've got the basics down.`,
+      });
+    }
     writeSessionJson(DISMISS_KEY, true);
-    const t = window.setTimeout(() => setDismissed(true), 1400);
+    const delay = sawIncompleteRef.current ? 1400 : 5000;
+    const t = window.setTimeout(() => setDismissed(true), delay);
     return () => window.clearTimeout(t);
-  }, [eligibleToShow, dismissed, allTasksDone]);
+  }, [eligibleToShow, dismissed, allTasksDone, completeOnboardingChecklist]);
 
   // Hard gates: hide entirely if not a brand-new career, if the user has
   // dismissed it this session, or if they've globally opted out via Settings.

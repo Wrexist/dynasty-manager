@@ -243,6 +243,11 @@ export const STORAGE_KEYS = {
    *  career is still in week 1. Not save-scoped — same checklist applies
    *  to every new career, dismiss state is intentionally not persisted. */
   ONBOARDING_CHECKLIST_DISMISSED: 'dynasty-onboarding-checklist-dismissed',
+  /** localStorage flag (getFlag/setFlag): the one-off XP reward for finishing
+   *  the first-session checklist has been paid. Device-global so a player who
+   *  already learned the ropes on a prior career doesn't farm it on each new
+   *  save — the reward is a first-timer nudge, not a per-career bonus. */
+  ONBOARDING_REWARD_CLAIMED: 'dynasty-onboarding-reward-claimed',
   /** sessionStorage: in-flight community pack opt-in for new-game onboarding.
    *  Set by the community pack popup before the user reaches club selection;
    *  null until the popup is answered. Tab-scoped, cleared once the career

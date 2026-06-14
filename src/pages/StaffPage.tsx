@@ -504,6 +504,7 @@ const StaffPage = () => {
                           onClick={() => setConfirmFireId(current.id)}
                           className="p-1.5 rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20 active:scale-[0.94] transition-all min-h-[32px] min-w-[32px]"
                           title="Release"
+                          aria-label={`Release ${current.firstName} ${current.lastName}`}
                         >
                           <X className="w-3 h-3" />
                         </button>

@@ -459,7 +459,7 @@ export function LineupEditor() {
                     </p>
                   </div>
                 </div>
-                <button type="button" onClick={() => setSelectedId(null)} className="p-2 -mr-1 rounded hover:bg-muted/30 transition-colors">
+                <button type="button" onClick={() => setSelectedId(null)} aria-label="Close player details" className="p-2 -mr-1 rounded hover:bg-muted/30 transition-colors">
                   <X className="w-3.5 h-3.5 text-muted-foreground" />
                 </button>
               </div>
