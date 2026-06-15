@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { cn } from '@/lib/utils';
+import { formatMoney } from '@/utils/helpers';
 import { IncomingOffer } from '@/types/game';
 import { getRatingColor, getTop3Attributes, getChanceColor, getChanceBarColor, getChanceLabel } from '@/utils/uiHelpers';
 import { formatWage } from '@/utils/contracts';
@@ -269,11 +270,11 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
                   >
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">Market Value</span>
-                      <span className="text-foreground font-semibold">£{(player.value / 1e6).toFixed(1)}M</span>
+                      <span className="text-foreground font-semibold">{formatMoney(player.value)}</span>
                     </div>
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">Their Offer</span>
-                      <span className="text-primary font-bold">£{(offer.fee / 1e6).toFixed(1)}M</span>
+                      <span className="text-primary font-bold">{formatMoney(offer.fee)}</span>
                     </div>
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">vs Value</span>
@@ -305,7 +306,7 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
                     <div className="flex items-center justify-between">
                       <label className="text-xs text-muted-foreground font-medium">Your Counter-Offer</label>
                       <span className="text-lg font-black text-primary font-display tabular-nums">
-                        £{(counterFee / 1e6).toFixed(1)}M
+                        {formatMoney(counterFee)}
                       </span>
                     </div>
                     <input
@@ -318,13 +319,13 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
                       className="w-full h-1.5 bg-muted rounded-full accent-primary cursor-pointer"
                     />
                     <div className="flex justify-between text-[10px] text-muted-foreground tabular-nums">
-                      <span>£{(minFee / 1e6).toFixed(1)}M</span>
+                      <span>{formatMoney(minFee)}</span>
                       <span className={cn('font-semibold',
                         feeRatio <= 1.1 ? 'text-emerald-400' : feeRatio <= 1.3 ? 'text-amber-400' : 'text-red-400'
                       )}>
                         {Math.round(feeRatio * 100)}% of bid
                       </span>
-                      <span>£{(maxFee / 1e6).toFixed(1)}M</span>
+                      <span>{formatMoney(maxFee)}</span>
                     </div>
                   </motion.div>
 
@@ -365,7 +366,7 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
                         <div>
                           <p className="text-[10px] text-muted-foreground">Budget After</p>
                           <p className="text-xs font-bold text-emerald-400 tabular-nums">
-                            £{(evaluation.budgetAfter / 1e6).toFixed(1)}M
+                            {formatMoney(evaluation.budgetAfter)}
                           </p>
                         </div>
                       </div>
@@ -493,13 +494,13 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
                   <div className="h-px bg-emerald-500/20" />
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">Transfer Fee</span>
-                    <span className="text-xl font-black text-primary tabular-nums">£{(finalFee / 1e6).toFixed(1)}M</span>
+                    <span className="text-xl font-black text-primary tabular-nums">{formatMoney(finalFee)}</span>
                   </div>
                   {finalFee > offer.fee && (
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-muted-foreground">Extra Earned</span>
                       <span className="text-sm font-bold text-emerald-400 tabular-nums">
-                        +£{((finalFee - offer.fee) / 1e6).toFixed(1)}M
+                        +{formatMoney((finalFee - offer.fee))}
                       </span>
                     </div>
                   )}
@@ -640,18 +641,18 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
                   <div className="grid grid-cols-2 gap-2">
                     <div className="bg-muted/20 rounded-lg p-3 text-center">
                       <p className="text-[10px] text-muted-foreground mb-1">You Asked</p>
-                      <p className="text-sm font-bold text-muted-foreground line-through tabular-nums">£{(counterFee / 1e6).toFixed(1)}M</p>
+                      <p className="text-sm font-bold text-muted-foreground line-through tabular-nums">{formatMoney(counterFee)}</p>
                     </div>
                     <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-center">
                       <p className="text-[10px] text-amber-400 mb-1">They Offer</p>
-                      <p className="text-sm font-black text-amber-400 tabular-nums">£{buyerCounterFee ? (buyerCounterFee / 1e6).toFixed(1) : '?'}M</p>
+                      <p className="text-sm font-black text-amber-400 tabular-nums">{buyerCounterFee ? formatMoney(buyerCounterFee) : '£?'}</p>
                     </div>
                   </div>
                   {buyerCounterFee && (
                     <div className="flex items-center justify-between text-[10px] text-muted-foreground px-1">
-                      <span>Budget after: £{((sellerClub.budget + buyerCounterFee) / 1e6).toFixed(1)}M</span>
+                      <span>Budget after: {formatMoney((sellerClub.budget + buyerCounterFee))}</span>
                       <span className="text-emerald-400 font-semibold">
-                        +£{((buyerCounterFee - offer.fee) / 1e6).toFixed(1)}M vs original
+                        +{formatMoney((buyerCounterFee - offer.fee))} vs original
                       </span>
                     </div>
                   )}

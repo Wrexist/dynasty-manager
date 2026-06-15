@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { formatMoney } from '@/utils/helpers';
 import { ArrowUp, Clock, Check } from 'lucide-react';
 import { FACILITY_MAX_LEVEL, FACILITY_MILESTONES } from '@/config/gameBalance';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -137,7 +138,7 @@ export function FacilityCard({
           )}
         >
           <ArrowUp className="w-3.5 h-3.5" />
-          Level {level + 1} — £{(upgradeCost / 1e6).toFixed(1)}M
+          Level {level + 1} — {formatMoney(upgradeCost)}
           <span className="text-muted-foreground font-normal">({upgradeWeeks}w)</span>
         </button>
       )}
