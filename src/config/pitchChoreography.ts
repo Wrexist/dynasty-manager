@@ -44,3 +44,19 @@ export const PITCH_CHOREO = {
     restart: 2,
   } satisfies Record<PitchMotionKind, number>,
 } as const;
+
+/** Renderer-only feel constants (PitchCanvas). Separate from choreography so the
+ *  pure synthesis layer stays free of draw concerns. */
+export const PITCH_RENDER = {
+  /** Camera follow/zoom easing time constant (ms). Smaller = snappier. */
+  CAM_TAU: 220,
+  /** Player/ball position easing time constant (ms). */
+  MOTION_TAU: 130,
+  /** Clamp on broadcast zoom so we never crop too tight. */
+  ZOOM_MIN: 1,
+  ZOOM_MAX: 1.55,
+  /** Number of recent ball samples kept for the motion trail. */
+  TRAIL_LEN: 14,
+  /** Peak ball lift (as a fraction of field height per unit of beat ballArc). */
+  ARC_LIFT_SCALE: 0.7,
+} as const;
