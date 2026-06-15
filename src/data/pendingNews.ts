@@ -50,6 +50,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Make pack opening buttery smooth and unbreakable.',
     'Polish(ux): readable MatchDay log on landscape + money via formatMoney.',
     'Extract CP FA-pool seed + cover it with a test.',
+    'Refreshed the improvement backlog to reflect the current state of `main`.',
   ],
   fixed: [],
   headline: null,
