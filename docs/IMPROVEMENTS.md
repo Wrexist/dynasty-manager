@@ -1,172 +1,84 @@
-# Dynasty Manager — Improvement Backlog
+# Dynasty Manager — Improvement Backlog (refreshed 2026-06-14)
 
-> Consolidated, de-duplicated list of everything worth improving/changing,
-> built from a four-way audit (correctness, UX, tech-debt, existing audit docs)
-> on 2026-06-14, cross-checked against current source. Supersedes the scattered
-> "open items" in `docs/AUDIT.md` / `docs/release-triage.md` for planning.
+> Rebuilt from two fresh parallel audits (UX/mobile/a11y + correctness/debt/perf),
+> every load-bearing claim re-verified in source. Supersedes the earlier revision.
 >
-> **Confidence tags:** `[verified]` confirmed in source · `[likely]` high
-> confidence, quick to confirm · `[candidate]` flagged by automated audit,
-> **must be re-verified before fixing** (the automated correctness pass
-> over-reports — its top "economy double-charge" finding was a false positive).
->
-> **Health context:** the codebase is in good shape — 0 TODO/FIXME/HACK, 0
-> `@ts-ignore`, 11 justified `eslint-disable`s, ~14 prod non-null assertions, 5
-> justified prod casts, 105 test files. No P0/P1 shipblockers. This list is
-> polish, features, and extraction — not a debt fire.
+> **Bottom line: the codebase is in excellent shape.** 0 TODO/FIXME/HACK, 0
+> `@ts-ignore`, 117 test files, 21 justified `eslint-disable`s, healthy deps, no
+> shipblockers. Mobile a11y/safe-area/overflow/empty-states/confirms are handled
+> systematically. What remains is a couple of small polish items and the larger
+> (optional) refactor/feature work. This is NOT a debt list — it's a polish +
+> roadmap list.
 
-## Resolved in follow-up round (2026-06-14, round 2)
-- **A11y:** added `aria-label` to 4 icon-only X buttons (Staff release, Board
-  warning dismiss, Lineup-editor close, Contract-negotiation cancel).
-- **Loan wage-split `[candidate]` — fixed:** `safeWageShare`/`safeWageInverse`
-  now clamp split to [0,100].
-- **Verified safe (no change):** continental knockout pairing already
-  `filter(Boolean)`-guards null winners; community-pack refresh-across-`await`
-  runs inside the user-blocking `advanceWeek` (theoretical race only); StaffPage
-  fire + TitleScreen delete already have confirms (the "missing confirm" UX
-  leads were false positives).
-- **Blocked — needs a call:** Save export/import requires file I/O; on iOS that
-  means adding `@capacitor/filesystem` + `@capacitor/share` (full saves exceed
-  ~5 MB, so clipboard/textarea isn't viable). Awaiting a deps/native decision.
+## Resolved since last revision (do NOT re-raise)
+Pack-opening lag/stuck/jank fix (PR #561) · idle-polling pause · dead
+`newLeagues.ts` deleted · a11y aria-labels · loan wage-split clamp · typecheck in
+CI · `weekAdvance` CP-market-refresh extraction · flaky 11v10 test made
+deterministic · ~160 new tests (loan/feature/career/match/systems/merchandise/
+club/nationalTeam slices + continental/international/squadStrength utils +
+monetization revenue invariants + weekAdvance contract + CP runtime) · onboarding
+auto-dismiss + XP reward · Squad-vs-League panel · League/Inbox haptics.
 
-## Already done (this session — do not re-raise)
-Onboarding card auto-dismiss + XP reward · flaky 11v10 test · season-end
-`playerDiv` crash · transfer-deadline `totalWeeks` bug · `typecheck` in
-preflight + CI · League/Inbox haptics sweep · "Squad vs League" insight panel ·
-Online-mode plan (`docs/online-mode-plan.md`). Phase-0 perf (blur/jank/perf-mode),
-Squad sort/filter/depth, Packs replay haptics+aria, Scouting cancel haptics,
-Scouting/Inbox empty states were already complete before this session.
+## Verified FALSE POSITIVES from the automated pass (do NOT chase)
+- **Save-migration "v66–72 gap"** — NOT real. The ladder has all 71 entries
+  (v1→v72); keys are just out of source order (`saveMigration.ts`). Complete.
+- **`ballonDor.ts` / `international.ts` "untested"** — both are covered across
+  multiple existing test files; no real gap.
+- (Earlier) transferSlice "double-charge", continental null-winner, StaffPage/
+  TitleScreen "missing confirm" — all previously verified safe.
 
 ---
 
-## 1. Correctness / robustness
+## 1. UX / polish (small, genuinely open)
+- `[MED]` **MatchDay commentary height on landscape** — `MatchDay.tsx:1566` uses
+  `max-h-[30vh]`; on a 375-tall landscape view that's ~112px (≈2 events). Use
+  `max-h-[min(40vh,300px)]` (or `max-h-40 sm:max-h-[30vh]`) so a few events stay
+  visible in any orientation.
+- `[LOW]` **Money formatting bypasses `formatMoney`** in the detailed negotiation
+  modals — `IncomingOfferNegotiation.tsx` (multiple), `LoanNegotiation.tsx:215/338/
+  508`, `FacilityCard.tsx:140` use raw `£`+`.toFixed()`. Route through
+  `formatMoney` (`utils/helpers.ts`) for a single source of truth. Pure hygiene.
 
-All `[candidate]` items below come from an automated pass that over-reports —
-**verify in source before touching.** Listed so nothing is silently dropped.
+## 2. Performance (minor)
+- `[LOW]` **ScoutingPage watch list not virtualized** — renders all items via
+  `.map()`. Fine under ~100 entries; apply the existing `useIncrementalReveal()`
+  (already used by `TransferPage`) if it can grow large.
+- `[note]` `pressConferences.ts` / `storylineChains.ts` are statically imported but
+  only reachable via the lazy `/game` route chunk, so they're not in the eager
+  boot graph — acceptable as-is (audit confirmed). Bundle strategy is deliberate
+  and eslint-enforced for the giant data files.
 
-- `[candidate]` **Community-pack state captured across an `await import()`** in
-  `weekAdvance.ts` (~L2993–3142): `cpState` is read from `get()`, then used after
-  the dynamic import + `set()`. Confirm no intervening mutation is lost; if real,
-  re-`get()` after the await. Likely benign (single-threaded, no concurrent
-  dispatch mid-advance) but worth confirming.
-- `[candidate]` **Loan wage accounting asymmetry / inflation** in `loanSlice.ts`
-  (~L100, L180–193): `Math.max(0, …)` caps can desync owner/borrower wage bills if
-  `wageSplit` is malformed; `safeWageShare` guards exist but don't cover
-  out-of-range percentages. Harden `safeWageShare`/`safeWageInverse` to clamp
-  split to [0,100]. Low impact.
-- `[candidate]` **Continental knockout pairing trusts `winnerId!`**
-  (`weekAdvance.ts` ~L397): relies on `filter(Boolean)` to catch an unresolved
-  tie rather than asserting resolution upstream. Add an explicit guard so a null
-  winner can't enter the next round.
-- `[candidate]` **Cup week validity vs compressed schedules** (`cup.ts`): for
-  leagues with `totalWeeks < 46`, confirm no round is stamped past the season
-  length. The cup-week choreography is load-bearing — verify, don't casually move.
-- `[verified, FALSE POSITIVE]` transferSlice "budget double-charge" — checked,
-  the sell/buy paths are balanced. No action.
-- **Guardrail:** no automated check that a new `GameState` field has a
-  `saveMigration` step. Add a review-checklist item or a test that diffs the
-  state shape against the migration ladder (`AUDIT 5.2`).
-
-## 2. UX / Accessibility
-
-- `[likely]` **Icon-only buttons missing `aria-label`** (screen-reader gaps):
-  `StaffPage.tsx:505` (release staff), `BoardWarning.tsx:101` (dismiss),
-  `LineupEditor.tsx:462` (close), `ContractNegotiation.tsx:148` (cancel). Quick wins.
-- `[likely]` **Destructive actions without a confirm step:** delete save slot
-  (`TitleScreen` `handleDelete` → `resetGame()` on single tap); fire staff
-  (`StaffPage` ~L480, no pre-action warning). Add a ConfirmDialog.
-- `[likely]` **Mobile 375px stress** (`AUDIT 3.6`): bound MatchDay commentary
-  container (max-height/`overflow-y`), LeagueTable column widths
-  (`overflow-x-auto`), confirm Celebration/Storyline modals respect
-  `safe-area-bottom` above the bottom nav.
-- **Empty state:** Comparison page with <2 players (`AUDIT 3.3`) — exists but minimal.
-- **Money-formatting consistency** (`AUDIT 3.1`): a few raw numerics bypass
-  `formatMoney` (flagged: ScoutingPage tooltips, ManagerCreation offer display).
-- **Rating-color threshold consistency** (`AUDIT 3.2`): some surfaces use 70+,
-  others 80+ — standardize on the shared `uiHelpers` thresholds.
-- **Settings nits** (`AUDIT 3.8`): title-screen variant may miss `max-w-lg mx-auto`;
-  normalize the `hapticsEnabled !== false` double-negative; add focus
-  management/`autoFocus` to the feedback sheet.
-- **Scroll-position restoration on tab switch** (`AUDIT 0.7`): keep
-  `Record<screen, scrollY>` and restore on enter instead of always scrolling to top.
-- **ModeSelect "Online — Coming Soon"** (`AUDIT 3.7`): currently a toast dead-end.
-  Either hide until ready or route to a roadmap card. (See `online-mode-plan.md`.)
-- **Quieter pack quick-sell** (`AUDIT 4.4`): replace the immediate/blocking
-  confirm with an undo-toast snackbar.
-
-## 3. Performance (Phase-0 lever already done; these are secondary)
-
-- **Virtualize long lists** (`AUDIT 0.2`, effort M): TransferPage
-  (`TransferPage.tsx:526,925`), Scouting watch lists, top-scorer lists — windowed
-  pagination or `@tanstack/react-virtual`; gate motion entrance behind list-size + reduced-motion.
-- **Idle polling re-renders** (`AUDIT 0.4`): `setInterval(15s)` "saved X ago"
-  (`SaveStatusIndicator.tsx:43`), `setInterval(30s)` pack countdown
-  (`PacksPage.tsx:113`) — pause when off-screen/backgrounded.
-- **Split heavy memo** (`AUDIT 0.5`): `topScorers`/`topAssisters` re-filter all
-  division players on any player change (`LeagueTable.tsx:77`).
-- **GlassPanel specular opt-in** (`AUDIT 0.8`): make the decorative overlay
-  `showSpecular` (default off in perf mode).
-- **Bundle: move eager data off the boot graph** — dynamic-import
-  `pressConferences.ts` (15.5KB gz), `storylineChains.ts` (10.6KB gz); lazy-load
-  `nationalPlayerPool` until international screens; longer-term, dynamic
-  `generateSquad`/`squad-data` (~360KB gz). Stage `loadNationalPool()`/
-  `loadClubTemplates()` to ClubSelection mount with a "Generating squads…" screen (`AUDIT 1.1`).
-- **framer-motion lazier** (`AUDIT 1.3`, measure first): `LazyMotion` +
-  `domAnimation`, or CSS transitions on hot paths.
+## 3. Tech debt / testing (larger, each its own effort)
+- **Oversized files** (current LOC): `weekAdvance.ts` **3063** (top extraction
+  candidate — split match-scheduling / mentor / storyline phases), `Dashboard.tsx`
+  2195, `match.ts` 2004, `seasonEnd.ts` 1732, `MatchDay.tsx` 1724, `matchActions.ts`
+  1703, `PackOpeningOverlay.tsx` 1485, `saveMigration.ts` 1322, `orchestrationSlice.ts`
+  1236, `TransferPage.tsx` 1082. Use the safe-extraction pattern (build the running
+  safety net first, then extract verbatim, verify full suite).
+- **Test coverage — real remaining gap:** page-component behavior
+  (`Dashboard`/`MatchDay`/`TransferPage`) has no RTL tests (heavy scaffolding).
+  `utils/purchases.ts` (RevenueCat native wrapper) is untested but low-testability
+  (native, mocked off-device) — low value.
+- `[verify-LOW]` `FacilitiesPage.tsx:64` exhaustive-deps disable — check whether all
+  5 deps are needed or a narrower selector is cleaner.
 
 ## 4. Features (net-new value)
+- **Mobile 375px landscape pass** — beyond the MatchDay item above, a deliberate
+  pass at 375×667 and small-landscape would catch any remaining squeeze.
+- **List search** on more surfaces (Scouting watch list search+sort).
+- **Online mode** — `docs/online-mode-plan.md` (multi-slice Supabase; engine's
+  unseeded `Math.random` forces server-authoritative sim). Big.
+- **Declined:** Save export/import (needs `@capacitor/filesystem`+`share`).
 
-- **Save export/import** (`AUDIT 4.2`, M): "Export Save" → JSON, "Import Save" →
-  restore, routed through persistence helpers + migration on restore.
-  *Recommended next feature — high value, lower risk than Online.*
-- **Search on big lists** (`AUDIT 4.1`, M): club search on League Table; search +
-  sort on Scouting watch list. (Squad sort already done.)
-- **Online mode** — see `docs/online-mode-plan.md` (3 slices on Supabase; the
-  engine's unseeded `Math.random` forces server-authoritative sim).
-
-## 5. Tech debt / testing / guardrails
-
-- **Oversized files needing extraction** (use `/refactor`): `weekAdvance.ts`
-  (~3153 LOC, split by phase) and `Dashboard.tsx` (~2195) are the priorities;
-  also `match.ts` (~2004), `seasonEnd.ts` (~1732), `MatchDay.tsx` (~1724),
-  `matchActions.ts` (~1703), `orchestrationSlice.ts` (~1236),
-  `PackOpeningOverlay.tsx` (~1443), `saveMigration.ts` (~1322).
-- **Test coverage gaps** — added this session: `loanSlice`, `featureSlice`,
-  `careerSlice`, `matchSlice`, `systemsSlice`, `merchandiseSlice`,
-  `continentalCoefficients`, `internationalSchedule`, `squadStrength`, plus the
-  monetization revenue invariants. **Still open:** `weekAdvance.ts` (the game
-  loop — needs heavy fixtures), `nationalTeamSlice`, `clubSlice`, and
-  page-level behavior for `MatchDay`/`TransferPage`/`Dashboard`.
-- **Dead data file:** `src/data/communityPack/newLeagues.ts` (~2.0 MB source) has
-  zero importers — wire it up or delete (`Triage P2-4`).
-- **ESLint import guard:** extend the `no-restricted-imports` ban on giant data
-  files to `nationalPlayerPool.ts` / `squads/*` accessors (`AUDIT 1.4/5.2`).
-- **CI eager-bundle budget**: already have `size:check`; run `npm run analyze`
-  periodically to catch eager imports leaking into `index` (`AUDIT 5.1`).
-- **Dependencies:** ~10 safe patch/minor bumps to batch (radix, framer-motion
-  12.35→12.38, postcss, zustand, typescript-eslint…) (`Triage P2-7`); and a
-  staged major-migration plan (React 19, RR7, Tailwind 4, Vite 8, Vitest 4, TS 6,
-  RevenueCat 13) post-release (`Triage P2-6`).
-- **`any` cleanups:** 5 in native adapters (`haptics.ts`, `purchases.ts`) — narrow
-  Capacitor/RevenueCat interfaces; 12 in `sponsorship.test.ts` (`Triage P2-2/2-3`).
-- **Incremental TS strictness:** enable `noUnusedLocals`/`noUnusedParameters`,
-  then `strictNullChecks` file-by-file (long game).
-- **Generated CP data TS→JSON + typed loader** (~395K LOC) (`Triage P3-3`).
-
-## 6. Balance (report-only — explicitly "don't tune yet")
-
-- Market-churn metric: re-derive the 2.0x threshold or switch to a weekly-delta
-  metric (`balanceReport.test.ts:354`).
-- L2 goals-per-match downward trend (2.50→1.90) — needs a 15-season seeded sim to
-  confirm drift vs noise.
-- Loan-news threshold (kept at 70 by design) — revisit only on user reports;
-  preferred fix is an aggregated weekly summary.
+## 5. Dependencies (healthy — no action needed now)
+All majors current and stable (React 18.3, Vite 7, TS 5.9, Zustand 5, Vitest 3,
+Capacitor 8, Sentry 10). Future, non-urgent major migrations to plan post-release:
+**React 19, Capacitor 9, recharts 3**. Routine patch/minor bumps anytime.
 
 ---
 
 ### Suggested order of attack
-1. **Save export/import** (feature, high value, M) — recommended next.
-2. **A11y aria-labels + destructive-action confirms** (S, user-trust, quick).
-3. **Verify & close the `[candidate]` correctness items** (de-risk).
-4. **Extract `weekAdvance.ts`** + add its first test (biggest debt lever).
-5. **Bundle: dynamic-import pressConferences/storylineChains** (cheap load-time win).
+1. **MatchDay landscape height** + **money-formatting hygiene** (S, quick polish).
+2. **Continue `weekAdvance.ts` extraction** (next block, guarded by a safety-net test first).
+3. **A deliberate 375px mobile pass** (needs a render-capable session).
+4. **Page-component tests** or **Online mode** — the two big directions.
