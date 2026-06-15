@@ -388,6 +388,20 @@ Raises the ceiling on capable devices; choreographer unchanged (same
 
 ---
 
+## Build status
+
+- ✅ **Phase 1 — `MatchChoreographer`** (`src/engine/match/choreography.ts`,
+  `src/config/pitchChoreography.ts`, types in `game.ts`). Pure, deterministic,
+  id-seeded; 8 tests.
+- ✅ **Phase 2 — Canvas pitch view**. Pure frame core
+  (`src/engine/match/pitchFrame.ts`, 10 tests) + `PitchCanvas`/`PitchView`
+  (`src/components/game/pitch/`) wired into `MatchDay` behind a persisted
+  `Pitch | Split | Log` toggle. Lazy-loaded, ErrorBoundary-wrapped, honours
+  reduced-motion/perf. Eager bundle unchanged (494.7 kB gz).
+- ⏭️ **Next — Phase 3 (feel & moments):** ball arcs/trail, goal celebration
+  choreography, camera zoom, set-piece staging, weather overlay, haptics,
+  audio, pre-match/half-time/full-time beats, adaptive quality tiers.
+
 ## Decisions made (locked 2026-06-15)
 
 1. **Ambition tier — 2.5D, Canvas ("Great/High") → optional Pixi/WebGL
