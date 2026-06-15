@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { frameForMinute, lerpFrames, type RenderFrame } from '@/engine/match/pitchFrame';
-import type { MatchTimeline, MatchBeat, ChoreoPlayer } from '@/types/game';
+import { frameForMinute, lerpFrames, latestGoalAt, type RenderFrame } from '@/engine/match/pitchFrame';
+import type { MatchTimeline, MatchBeat, ChoreoPlayer, MatchEvent } from '@/types/game';
 
 const player = (over: Partial<ChoreoPlayer> = {}): ChoreoPlayer => ({
   id: 'p1',
@@ -109,5 +109,32 @@ describe('lerpFrames', () => {
     const f = lerpFrames(from, toExtra, 0.5);
     const p2 = f.players.find((p) => p.id === 'p2');
     expect(p2!.point).toEqual({ x: 99, y: 99 });
+  });
+});
+
+describe('latestGoalAt', () => {
+  const mk = (minute: number, type: MatchEvent['type'], extra: Partial<MatchEvent> = {}): MatchEvent =>
+    ({ minute, type, clubId: 'home', description: `${type}@${minute}`, ...extra });
+  const events: MatchEvent[] = [
+    mk(0, 'kickoff'),
+    mk(12, 'goal', { playerId: 'a' }),
+    mk(20, 'shot_missed'),
+    mk(34, 'penalty_missed'),
+    mk(55, 'header_goal', { playerId: 'b' }),
+  ];
+
+  it('returns the most recent goal at or before the minute', () => {
+    expect(latestGoalAt(events, 11)).toBeNull();
+    expect(latestGoalAt(events, 12)!.playerId).toBe('a');
+    expect(latestGoalAt(events, 54)!.playerId).toBe('a');
+    expect(latestGoalAt(events, 90)!.playerId).toBe('b');
+  });
+
+  it('ignores misses and non-goal events', () => {
+    expect(latestGoalAt([mk(10, 'shot_missed'), mk(20, 'penalty_missed')], 90)).toBeNull();
+  });
+
+  it('counts own goals as goals', () => {
+    expect(latestGoalAt([mk(30, 'own_goal')], 90)!.type).toBe('own_goal');
   });
 });

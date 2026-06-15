@@ -1,12 +1,16 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import type { Club, Match, MatchEvent } from '@/types/game';
 import { buildMatchTimeline } from '@/engine/match/choreography';
+import { latestGoalAt } from '@/engine/match/pitchFrame';
+import { hapticSuccess } from '@/utils/haptics';
 import { PitchCanvas } from './PitchCanvas';
+import { GoalCelebration } from './GoalCelebration';
+import { WeatherOverlay } from './WeatherOverlay';
 
 // Live 2.5D pitch panel. Builds a deterministic MatchTimeline from the events
-// revealed so far and renders it via PitchCanvas, with a broadcast-style caption
-// for the most recent on-pitch event. Lazy-loaded by MatchDay so it never weighs
-// on the eager bundle.
+// revealed so far and renders it via PitchCanvas, with a broadcast caption,
+// goal celebrations + haptics, and weather ambience. Lazy-loaded by MatchDay.
 
 interface PitchViewProps {
   match: Match;
@@ -26,6 +30,8 @@ const CAPTIONED_TYPES = new Set<MatchEvent['type']>([
   'shot_saved', 'shot_missed', 'hit_woodwork', 'goal_line_clearance', 'goalkeeper_error',
   'yellow_card', 'red_card', 'foul', 'injury', 'substitution', 'var_check', 'var_disallowed',
 ]);
+
+interface Celebration { key: string; color: string; text: string; minute: string }
 
 export default function PitchView({
   match, homeClub, awayClub, events, minute, playerIsHome, reducedMotion,
@@ -48,6 +54,28 @@ export default function PitchView({
     return null;
   }, [events, minute]);
 
+  // Fire a celebration + haptic the moment a *new* goal becomes visible. The
+  // first pass only records the baseline so pre-existing goals don't replay
+  // (e.g. when entering the second half).
+  const [celebration, setCelebration] = useState<Celebration | null>(null);
+  const initRef = useRef(false);
+  const lastGoalKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    const g = latestGoalAt(events, minute);
+    const key = g ? `${g.minute}-${g.type}-${g.playerId ?? ''}` : null;
+    if (!initRef.current) {
+      initRef.current = true;
+      lastGoalKeyRef.current = key;
+      return;
+    }
+    if (g && key && key !== lastGoalKeyRef.current) {
+      lastGoalKeyRef.current = key;
+      const color = g.clubId === homeClub.id ? homeClub.color : awayClub.color;
+      setCelebration({ key, color: color || '#f5b915', text: g.description, minute: g.displayMinute || `${g.minute}'` });
+      hapticSuccess();
+    }
+  }, [events, minute, homeClub, awayClub]);
+
   return (
     <div className="relative w-full overflow-hidden rounded-xl border border-border/50 bg-black/20" style={{ aspectRatio: '68 / 104' }}>
       <PitchCanvas
@@ -57,7 +85,23 @@ export default function PitchView({
         reducedMotion={reducedMotion}
         className="absolute inset-0 h-full w-full"
       />
-      {caption && (
+
+      <WeatherOverlay weather={match.weather?.weather} reducedMotion={reducedMotion} />
+
+      <AnimatePresence>
+        {celebration && (
+          <GoalCelebration
+            key={celebration.key}
+            color={celebration.color}
+            text={celebration.text}
+            minute={celebration.minute}
+            reducedMotion={reducedMotion}
+            onDone={() => setCelebration(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      {caption && !celebration && (
         <div className="absolute inset-x-0 bottom-0 p-2">
           <div className="mx-auto max-w-[92%] rounded-lg bg-card/70 px-3 py-1.5 backdrop-blur-md border border-border/40">
             <p className="text-[11px] leading-snug text-foreground">

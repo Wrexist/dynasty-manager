@@ -6,11 +6,27 @@
 // and DOM-free so they can be unit-tested and reused by any renderer (Canvas
 // today, Pixi later).
 
-import type { MatchTimeline, MatchBeat, ChoreoPlayer, PitchPoint } from '@/types/game';
+import type { MatchTimeline, MatchBeat, ChoreoPlayer, PitchPoint, MatchEvent } from '@/types/game';
 
 export interface RenderFrame {
   ball: PitchPoint;
   players: ChoreoPlayer[];
+}
+
+/** Event types that put the ball in the net (own goals included; misses not). */
+const GOAL_TYPES = new Set<MatchEvent['type']>([
+  'goal', 'own_goal', 'penalty_scored', 'header_goal', 'solo_goal',
+  'long_range_goal', 'counter_attack_goal', 'free_kick_goal', 'extra_time_goal',
+]);
+
+/** Most recent goal at or before `minute`, used to trigger the celebration
+ *  overlay + haptics. Pure: scans the revealed event prefix backwards. */
+export function latestGoalAt(events: MatchEvent[], minute: number): MatchEvent | null {
+  for (let i = events.length - 1; i >= 0; i--) {
+    const e = events[i];
+    if (e.minute <= minute && GOAL_TYPES.has(e.type)) return e;
+  }
+  return null;
 }
 
 /** Stable identity for a chip: real player id, else a team+number placeholder. */
