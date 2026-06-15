@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import type { MatchTimeline } from '@/types/game';
+import type { MatchTimeline, PitchQuality } from '@/types/game';
 import { frameForMinute, lerpFrames, type RenderFrame } from '@/engine/match/pitchFrame';
 import { PITCH_RENDER } from '@/config/pitchChoreography';
 
@@ -11,6 +11,10 @@ import { PITCH_RENDER } from '@/config/pitchChoreography';
 interface PitchCanvasProps {
   timeline: MatchTimeline;
   minute: number;
+  quality: PitchQuality;
+  /** Effective team colours (kit-clash-adjusted by the caller). */
+  homeColor: string;
+  awayColor: string;
   /** Render the player's own team attacking upward (defending the bottom goal). */
   flip?: boolean;
   /** Snap + hold a static wide view (reduced-motion / performance mode). */
@@ -28,7 +32,7 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
 
 interface View { zoom: number; cx: number; cy: number }
 
-export function PitchCanvas({ timeline, minute, flip = false, reducedMotion = false, className }: PitchCanvasProps) {
+export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, flip = false, reducedMotion = false, className }: PitchCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const minuteRef = useRef(minute);
   const frameRef = useRef<RenderFrame | null>(null);
@@ -49,7 +53,7 @@ export function PitchCanvas({ timeline, minute, flip = false, reducedMotion = fa
 
     let w = 0;
     let h = 0;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = Math.min(window.devicePixelRatio || 1, quality.dprCap);
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
@@ -81,12 +85,14 @@ export function PitchCanvas({ timeline, minute, flip = false, reducedMotion = fa
         ctx.fillStyle = i % 2 === 0 ? TURF_LIGHT : TURF_DARK;
         ctx.fillRect(fx, fy + (i / stripes) * fh, fw, fh / stripes + 1);
       }
-      const lg = ctx.createLinearGradient(0, fy, 0, fy + fh);
-      lg.addColorStop(0, 'rgba(0,0,0,0.26)');
-      lg.addColorStop(0.55, 'rgba(0,0,0,0)');
-      lg.addColorStop(1, 'rgba(255,255,255,0.06)');
-      ctx.fillStyle = lg;
-      ctx.fillRect(fx, fy, fw, fh);
+      if (quality.gradient) {
+        const lg = ctx.createLinearGradient(0, fy, 0, fy + fh);
+        lg.addColorStop(0, 'rgba(0,0,0,0.26)');
+        lg.addColorStop(0.55, 'rgba(0,0,0,0)');
+        lg.addColorStop(1, 'rgba(255,255,255,0.06)');
+        ctx.fillStyle = lg;
+        ctx.fillRect(fx, fy, fw, fh);
+      }
 
       ctx.lineWidth = Math.max(1, fw * 0.006);
       ctx.strokeStyle = LINE;
@@ -147,7 +153,7 @@ export function PitchCanvas({ timeline, minute, flip = false, reducedMotion = fa
       for (const p of frame.players) {
         const cx = mapX(p.point.x);
         const cy = mapY(p.point.y);
-        const color = p.team === 'home' ? timeline.homeColor : timeline.awayColor;
+        const color = p.team === 'home' ? homeColor : awayColor;
         ctx.fillStyle = 'rgba(0,0,0,0.35)';
         ctx.beginPath();
         ctx.ellipse(cx, cy + chipR * 0.55, chipR * 0.9, chipR * 0.4, 0, 0, Math.PI * 2);
@@ -217,9 +223,9 @@ export function PitchCanvas({ timeline, minute, flip = false, reducedMotion = fa
       if (arc.t < 1) arc.t = Math.min(1, arc.t + dt / arc.dur);
 
       // Trail (most-recent-last).
-      if (!reducedMotion) {
+      if (quality.trailLen > 0) {
         trailRef.current.push({ x: frame.ball.x, y: frame.ball.y });
-        if (trailRef.current.length > PITCH_RENDER.TRAIL_LEN) trailRef.current.shift();
+        if (trailRef.current.length > quality.trailLen) trailRef.current.shift();
       } else {
         trailRef.current.length = 0;
       }
@@ -255,17 +261,19 @@ export function PitchCanvas({ timeline, minute, flip = false, reducedMotion = fa
       ctx.translate(-fsx, -fsy);
 
       drawField();
-      drawTrail(beat.possession === 'home' ? timeline.homeColor : timeline.awayColor);
+      if (quality.trailLen > 0) drawTrail(beat.possession === 'home' ? homeColor : awayColor);
       const liftPx = arc.arc > 0 ? arc.arc * (fh / 100) * PITCH_RENDER.ARC_LIFT_SCALE * Math.sin(Math.PI * arc.t) : 0;
       drawFrame(frame, liftPx);
 
       ctx.restore();
       // Vignette in screen space (outside the camera transform).
-      const vg = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.32, w / 2, h / 2, Math.max(w, h) * 0.72);
-      vg.addColorStop(0, 'rgba(0,0,0,0)');
-      vg.addColorStop(1, 'rgba(0,0,0,0.4)');
-      ctx.fillStyle = vg;
-      ctx.fillRect(0, 0, w, h);
+      if (quality.vignette) {
+        const vg = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.32, w / 2, h / 2, Math.max(w, h) * 0.72);
+        vg.addColorStop(0, 'rgba(0,0,0,0)');
+        vg.addColorStop(1, 'rgba(0,0,0,0.4)');
+        ctx.fillStyle = vg;
+        ctx.fillRect(0, 0, w, h);
+      }
 
       rafRef.current = requestAnimationFrame(tick);
     };
@@ -278,7 +286,7 @@ export function PitchCanvas({ timeline, minute, flip = false, reducedMotion = fa
       viewRef.current = null;
       trailRef.current = [];
     };
-  }, [timeline, flip, reducedMotion]);
+  }, [timeline, quality, homeColor, awayColor, flip, reducedMotion]);
 
   return <canvas ref={canvasRef} className={className} aria-hidden="true" />;
 }

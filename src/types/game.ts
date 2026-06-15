@@ -435,6 +435,21 @@ export interface MatchBeat {
 /** Which match-day view the user has selected. UI preference only. */
 export type MatchViewMode = 'pitch' | 'commentary' | 'split';
 
+/** Resolved render budget for the pitch view, chosen per device capability. */
+export interface PitchQuality {
+  tier: 'high' | 'balanced' | 'battery';
+  /** devicePixelRatio cap. */
+  dprCap: number;
+  /** Ball-trail sample count (0 = no trail). */
+  trailLen: number;
+  /** Goal confetti piece count (0 = none). */
+  confetti: number;
+  /** Weather particle density multiplier (0..1). */
+  weatherScale: number;
+  vignette: boolean;
+  gradient: boolean;
+}
+
 export interface MatchTimeline {
   matchId: string;
   homeClubId: string;

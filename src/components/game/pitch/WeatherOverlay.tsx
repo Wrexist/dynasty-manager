@@ -8,19 +8,23 @@ import type { WeatherCondition } from '@/types/game';
 
 interface WeatherOverlayProps {
   weather?: WeatherCondition;
+  /** Particle density multiplier from the quality tier (0..1). */
+  density?: number;
   reducedMotion?: boolean;
 }
 
-export function WeatherOverlay({ weather, reducedMotion }: WeatherOverlayProps) {
+export function WeatherOverlay({ weather, density = 1, reducedMotion }: WeatherOverlayProps) {
   const drops = useMemo(() => {
     if (weather !== 'rain' && weather !== 'snow') return [];
-    return Array.from({ length: weather === 'snow' ? 26 : 38 }, () => ({
+    const base = weather === 'snow' ? 26 : 38;
+    const count = Math.round(base * Math.max(0, Math.min(1, density)));
+    return Array.from({ length: count }, () => ({
       left: Math.random() * 100,
       delay: Math.random() * 2,
       dur: weather === 'snow' ? 3.2 + Math.random() * 1.8 : 0.7 + Math.random() * 0.5,
       size: weather === 'snow' ? 2 + Math.random() * 2 : 1,
     }));
-  }, [weather]);
+  }, [weather, density]);
 
   if (weather !== 'rain' && weather !== 'snow') return null;
 

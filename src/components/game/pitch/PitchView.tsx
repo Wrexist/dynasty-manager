@@ -4,6 +4,8 @@ import type { Club, Match, MatchEvent } from '@/types/game';
 import { buildMatchTimeline } from '@/engine/match/choreography';
 import { latestGoalAt } from '@/engine/match/pitchFrame';
 import { hapticSuccess } from '@/utils/haptics';
+import { detectPitchQuality } from '@/utils/pitchQuality';
+import { areColorsSimilar } from '@/utils/uiHelpers';
 import { PitchCanvas } from './PitchCanvas';
 import { GoalCelebration } from './GoalCelebration';
 import { WeatherOverlay } from './WeatherOverlay';
@@ -36,6 +38,16 @@ interface Celebration { key: string; color: string; text: string; minute: string
 export default function PitchView({
   match, homeClub, awayClub, events, minute, playerIsHome, reducedMotion,
 }: PitchViewProps) {
+  const quality = useMemo(() => detectPitchQuality(!!reducedMotion), [reducedMotion]);
+
+  // Kit-clash legibility: if the two kits are too close, force the away side to
+  // a light neutral so chips stay distinguishable (mirrors the momentum bar).
+  const homeColor = homeClub.color;
+  const awayColor = useMemo(
+    () => (areColorsSimilar(homeClub.color, awayClub.color) ? '#e2e8f0' : awayClub.color),
+    [homeClub.color, awayClub.color],
+  );
+
   // Rebuild as more events reveal; seed is id-stable so shown beats don't jump.
   const timeline = useMemo(
     () => buildMatchTimeline({ ...match, events }, homeClub, awayClub),
@@ -70,23 +82,26 @@ export default function PitchView({
     }
     if (g && key && key !== lastGoalKeyRef.current) {
       lastGoalKeyRef.current = key;
-      const color = g.clubId === homeClub.id ? homeClub.color : awayClub.color;
+      const color = g.clubId === homeClub.id ? homeColor : awayColor;
       setCelebration({ key, color: color || '#f5b915', text: g.description, minute: g.displayMinute || `${g.minute}'` });
       hapticSuccess();
     }
-  }, [events, minute, homeClub, awayClub]);
+  }, [events, minute, homeClub.id, homeColor, awayColor]);
 
   return (
     <div className="relative w-full overflow-hidden rounded-xl border border-border/50 bg-black/20" style={{ aspectRatio: '68 / 104' }}>
       <PitchCanvas
         timeline={timeline}
         minute={minute}
+        quality={quality}
+        homeColor={homeColor}
+        awayColor={awayColor}
         flip={!playerIsHome}
         reducedMotion={reducedMotion}
         className="absolute inset-0 h-full w-full"
       />
 
-      <WeatherOverlay weather={match.weather?.weather} reducedMotion={reducedMotion} />
+      <WeatherOverlay weather={match.weather?.weather} density={quality.weatherScale} reducedMotion={reducedMotion} />
 
       <AnimatePresence>
         {celebration && (
@@ -95,6 +110,7 @@ export default function PitchView({
             color={celebration.color}
             text={celebration.text}
             minute={celebration.minute}
+            confettiCount={quality.confetti}
             reducedMotion={reducedMotion}
             onDone={() => setCelebration(null)}
           />

@@ -9,6 +9,8 @@ interface GoalCelebrationProps {
   color: string;
   text: string;
   minute: string;
+  /** Confetti piece count (from the resolved quality tier). 0 = none. */
+  confettiCount?: number;
   reducedMotion?: boolean;
   onDone: () => void;
 }
@@ -16,20 +18,20 @@ interface GoalCelebrationProps {
 const DURATION_MS = 2600;
 const REDUCED_MS = 1400;
 
-export function GoalCelebration({ color, text, minute, reducedMotion, onDone }: GoalCelebrationProps) {
+export function GoalCelebration({ color, text, minute, confettiCount = 16, reducedMotion, onDone }: GoalCelebrationProps) {
   useEffect(() => {
     const id = setTimeout(onDone, reducedMotion ? REDUCED_MS : DURATION_MS);
     return () => clearTimeout(id);
   }, [onDone, reducedMotion]);
 
   const confetti = useMemo(
-    () => (reducedMotion ? [] : Array.from({ length: 16 }, (_, i) => ({
+    () => (reducedMotion ? [] : Array.from({ length: Math.max(0, confettiCount) }, (_, i) => ({
       left: Math.random() * 100,
       delay: Math.random() * 0.25,
       hue: i % 3,
       rotate: Math.random() * 360,
     }))),
-    [reducedMotion],
+    [reducedMotion, confettiCount],
   );
 
   return (
