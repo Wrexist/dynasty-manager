@@ -38,17 +38,14 @@ function makeRng(seed: number): () => number {
   };
 }
 
-function hashEvents(events: MatchEvent[]): number {
+function hashString(str: string): number {
   let h = 2166136261;
-  for (const e of events) {
-    const s = `${e.minute}|${e.type}|${e.clubId}|${e.playerId || ''}`;
-    for (let i = 0; i < s.length; i++) {
-      h ^= s.charCodeAt(i);
-      h = Math.imul(h, 16777619);
-    }
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
   }
-  // Non-empty seed even for an empty event list.
-  return (h ^ (events.length + 0x9e3779b9)) >>> 0;
+  // Avoid a zero seed (mulberry32 still works at 0, but a non-zero start is tidier).
+  return (h ^ 0x9e3779b9) >>> 0;
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
@@ -174,7 +171,11 @@ function placeBeatPlayers(
  */
 export function buildMatchTimeline(match: Match, homeClub: Club, awayClub: Club): MatchTimeline {
   const events = match.events || [];
-  const seed = hashEvents(events);
+  // Seed from the stable match id, NOT the event list. During live play events
+  // reveal incrementally; seeding off the growing list would re-randomize the
+  // already-shown beats every tick. Seeding off the id keeps the prefix stable
+  // as new events arrive, while staying fully deterministic for replays.
+  const seed = hashString(match.id || '');
   const rng = makeRng(seed);
   const baseHome = baseTeam(homeClub, 'home');
   const baseAway = baseTeam(awayClub, 'away');
