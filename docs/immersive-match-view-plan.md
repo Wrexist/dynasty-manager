@@ -398,9 +398,15 @@ Raises the ceiling on capable devices; choreographer unchanged (same
   (`src/components/game/pitch/`) wired into `MatchDay` behind a persisted
   `Pitch | Split | Log` toggle. Lazy-loaded, ErrorBoundary-wrapped, honours
   reduced-motion/perf. Eager bundle unchanged (494.7 kB gz).
-- ⏭️ **Next — Phase 3 (feel & moments):** ball arcs/trail, goal celebration
-  choreography, camera zoom, set-piece staging, weather overlay, haptics,
-  audio, pre-match/half-time/full-time beats, adaptive quality tiers.
+- ✅ **Phase 3 (feel & moments) — core delivered.** Broadcast follow-cam with
+  eased zoom, parabolic ball arcs + planted shadow, possession-coloured ball
+  trail (3a); goal celebration (flash + confetti + GOAL! lower-third) with
+  success haptics, and rain/snow weather ambience (3b). All collapse under
+  reduced-motion/perf. `latestGoalAt` covered by tests.
+- ⏭️ **Remaining Phase 3 polish:** crowd audio (opt-in, new sound setting),
+  adaptive quality auto-tiering, set-piece staging detail, pre-match walkout /
+  half-time tactical board / full-time beat.
+- ⏭️ **Phase 4:** PixiJS "Stunning" tier (bloom, lighting, GPU particles).
 
 ## Decisions made (locked 2026-06-15)
 
