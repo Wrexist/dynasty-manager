@@ -51,6 +51,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Polish(ux): readable MatchDay log on landscape + money via formatMoney.',
     'Extract CP FA-pool seed + cover it with a test.',
     'Refreshed the improvement backlog to reflect the current state of `main`.',
+    'Plan for 2.5D immersive match view (pitch visualization).',
   ],
   fixed: [],
   headline: null,
