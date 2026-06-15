@@ -432,6 +432,9 @@ export interface MatchBeat {
   durationMs: number;
 }
 
+/** Which match-day view the user has selected. UI preference only. */
+export type MatchViewMode = 'pitch' | 'commentary' | 'split';
+
 export interface MatchTimeline {
   matchId: string;
   homeClubId: string;

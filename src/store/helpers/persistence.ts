@@ -1,4 +1,4 @@
-import type { SlotSummary } from '@/types/game';
+import type { SlotSummary, MatchViewMode } from '@/types/game';
 import { idbGet, idbPut, idbDel, idbKeys, requestPersistentStorage } from './idbStorage';
 import { addGameBreadcrumb } from '@/utils/sentry';
 
@@ -308,7 +308,25 @@ export const STORAGE_KEYS = {
    *  (`dynasty-hint-<screen>-shown`, see PageHint.tsx). Cleared as a prefix
    *  by Settings → Replay Tutorial. */
   HINT_PREFIX: 'dynasty-hint-',
+  /** localStorage: the user's preferred MatchDay view (`pitch`/`commentary`/
+   *  `split`). A pure UI preference kept device-global so it survives app
+   *  restarts; not part of any save slot. */
+  MATCH_VIEW_MODE: 'dynasty-match-view-mode',
 } as const;
+
+/** Read the user's preferred MatchDay view, or null if never set. */
+export function readMatchViewMode(): MatchViewMode | null {
+  try {
+    const v = localStorage.getItem(STORAGE_KEYS.MATCH_VIEW_MODE);
+    return v === 'pitch' || v === 'commentary' || v === 'split' ? v : null;
+  } catch { return null; }
+}
+
+/** Persist the user's preferred MatchDay view. Swallows availability errors. */
+export function writeMatchViewMode(mode: MatchViewMode): void {
+  try { localStorage.setItem(STORAGE_KEYS.MATCH_VIEW_MODE, mode); }
+  catch { /* storage unavailable — non-fatal, defaults to commentary */ }
+}
 
 /** Read the latest "What's New" version the user has acknowledged. */
 export function readWhatsNewSeenVersion(): string | null {
