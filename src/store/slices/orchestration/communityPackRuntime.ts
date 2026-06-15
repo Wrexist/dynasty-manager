@@ -1,8 +1,13 @@
 import type { TransferListing } from '@/types/game';
 import type { GameState } from '../../storeTypes';
 import type { PlayerTemplate } from '@/data/playerTemplates';
-import { getActivePool, drawForMarket } from '@/utils/communityPackPool';
+import { getActivePool, drawForMarket, drawForFaPoolSeed } from '@/utils/communityPackPool';
 import { buildPlayerFromTemplate } from '@/utils/playerGen';
+import {
+  CP_FA_SEED_COUNT_BY_SEASON, CP_FA_SEED_MIN_AGE, CP_FA_SEED_MAX_AGE,
+  CP_FA_SEED_ELITE_MIN_OVR, CP_FA_SEED_TOP_MIN_OVR, CP_FA_SEED_MID_MIN_OVR,
+  CP_FA_SEED_ELITE_COUNT, CP_FA_SEED_TOP_COUNT,
+} from '@/config/aiSimulation';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -102,4 +107,75 @@ export async function refreshCommunityPackMarket(set: Set, get: Get): Promise<vo
       lastMarketRefreshWeek: cpState.week,
     },
   });
+}
+
+/**
+ * Phase E.7 — CP FA-pool season-start seed. Fires on the first regular tick of
+ * season 2+ (CP_FA_SEED_COUNT_BY_SEASON tapers the count), gated by
+ * cpPool.lastSeedSeason so reloads don't re-inject. Season 1 is seeded inline at
+ * initGame. No week check: this runs after the week was already advanced (week
+ * is >= 2 here, and season-end paths return before reaching it), so a
+ * `week === 1` guard would make the seed unreachable; the lastSeedSeason gate
+ * alone is the once-per-season idempotency guard.
+ *
+ * Extracted verbatim from advanceWeekImpl to keep the game loop readable.
+ * Behaviour-guarded by communityPackFaSeed.test.ts.
+ */
+export async function seedCommunityPackFreeAgents(set: Set, get: Get): Promise<void> {
+  const cpSeedState = get();
+  const seedCount = CP_FA_SEED_COUNT_BY_SEASON[cpSeedState.season] ?? 0;
+  if (!(
+    cpSeedState.communityPackEnabled &&
+    seedCount > 0 &&
+    cpSeedState.cpPool.lastSeedSeason < cpSeedState.season
+  )) return;
+
+  const freeAgentsMod = await import('@/data/communityPack/freeAgents');
+  const cpFreeAgents = freeAgentsMod.freeAgents as PlayerTemplate[];
+  const activePool = getActivePool(cpFreeAgents, cpSeedState.cpPool);
+  const seeds = drawForFaPoolSeed(
+    activePool,
+    seedCount,
+    cpSeedState.cpPool.usedFcIds,
+    cpSeedState.cpPool.shuffleSeed ^ (0x5A5A5A5A + cpSeedState.season),
+    {
+      minAge: CP_FA_SEED_MIN_AGE,
+      maxAge: CP_FA_SEED_MAX_AGE,
+      eliteMinOvr: CP_FA_SEED_ELITE_MIN_OVR,
+      topMinOvr: CP_FA_SEED_TOP_MIN_OVR,
+      midMinOvr: CP_FA_SEED_MID_MIN_OVR,
+      eliteCount: CP_FA_SEED_ELITE_COUNT,
+      topCount: CP_FA_SEED_TOP_COUNT,
+    },
+  );
+  if (seeds.length > 0) {
+    const updatedPlayers = { ...cpSeedState.players };
+    const updatedFreeAgents = [...cpSeedState.freeAgents];
+    const newFcIds: string[] = [];
+    for (const t of seeds) {
+      const p = buildPlayerFromTemplate(t, '', cpSeedState.season);
+      if (t.fcId) p.fcId = t.fcId;
+      p.clubId = '';
+      p.wage = Math.round(p.wage * 0.8);
+      updatedPlayers[p.id] = p;
+      updatedFreeAgents.push(p.id);
+      if (t.fcId) newFcIds.push(t.fcId);
+    }
+    set({
+      players: updatedPlayers,
+      freeAgents: updatedFreeAgents,
+      cpPool: {
+        ...cpSeedState.cpPool,
+        cursor: cpSeedState.cpPool.cursor + seeds.length,
+        usedFcIds: [...cpSeedState.cpPool.usedFcIds, ...newFcIds],
+        lastSeedSeason: cpSeedState.season,
+      },
+    });
+  } else {
+    // No eligible templates (pool exhausted or all used) — still bump the
+    // marker so we don't retry every tick.
+    set({
+      cpPool: { ...cpSeedState.cpPool, lastSeedSeason: cpSeedState.season },
+    });
+  }
 }
