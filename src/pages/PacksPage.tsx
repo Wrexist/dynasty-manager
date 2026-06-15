@@ -108,7 +108,7 @@ const PacksPage = () => {
   const saveGame = useGameStore(s => s.saveGame);
   const activeSlot = useGameStore(s => s.activeSlot);
 
-  const [opening, setOpening] = useState<{ tier: PackTierKey; players: Player[]; pityTriggered?: boolean; placement?: Record<string, PackPlayerPlacement> } | null>(null);
+  const [opening, setOpening] = useState<{ tier: PackTierKey; players: Player[]; pityTriggered?: boolean } | null>(null);
   const [replay, setReplay] = useState<{ tier: PackTierKey; players: Player[] } | null>(null);
   /** True while a rewarded ad or IAP flow is in flight — prevents
    *  double-clicks producing duplicate spend or back-to-back ad requests. */
@@ -121,8 +121,15 @@ const PacksPage = () => {
   // enough that the user never sees a stale value.
   const [, forceTick] = useState(0);
   useEffect(() => {
-    const id = setInterval(() => forceTick(t => t + 1), 30_000);
-    return () => clearInterval(id);
+    // Pause the countdown re-render while the tab is hidden; tick once on
+    // resume so the displayed time is fresh.
+    let id: number | undefined;
+    const stop = () => { if (id !== undefined) { window.clearInterval(id); id = undefined; } };
+    const start = () => { id = window.setInterval(() => forceTick(t => t + 1), 30_000); };
+    const onVisibility = () => { stop(); if (!document.hidden) { forceTick(t => t + 1); start(); } };
+    if (!document.hidden) start();
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => { stop(); document.removeEventListener('visibilitychange', onVisibility); };
   }, []);
   const msToReset = msUntilNextMidnight();
 
@@ -143,7 +150,7 @@ const PacksPage = () => {
       clearPendingPackCredit();
       saveGame();
       successToast('Purchase restored', `Your paid ${tier.label} from the previous session has been credited.`);
-      setOpening({ tier: pending.tierKey as PackTierKey, players: result.players, pityTriggered: result.pityTriggered, placement: result.placement });
+      setOpening({ tier: pending.tierKey as PackTierKey, players: result.players, pityTriggered: result.pityTriggered });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only reconciliation; deps would re-fire on every store change
   }, []);
@@ -235,6 +242,21 @@ const PacksPage = () => {
     return computeSquadImprovement(opening.players, club.playerIds, players);
   }, [opening, club, players]);
 
+  /** Per-pull placement badge (XI / bench / squad), derived reactively from the
+   *  club's LIVE lineup/subs. openPack now defers the lineup re-optimization, so
+   *  this updates automatically once that lands — well before the summary phase
+   *  where the badge is shown. */
+  const openingPlacement = useMemo<Record<string, PackPlayerPlacement> | undefined>(() => {
+    if (!opening || !club) return undefined;
+    const starters = new Set(club.lineup || []);
+    const bench = new Set(club.subs || []);
+    const map: Record<string, PackPlayerPlacement> = {};
+    for (const p of opening.players) {
+      map[p.id] = starters.has(p.id) ? 'starter' : bench.has(p.id) ? 'bench' : 'squad';
+    }
+    return map;
+  }, [opening, club]);
+
   // Per-tier daily-bucket reads. Resets when the device's local date
   // rolls over by virtue of the date key not matching any longer.
   const today = todayDateKey();
@@ -322,7 +344,7 @@ const PacksPage = () => {
         errorToast('Could not open pack', result.message);
         return;
       }
-      setOpening({ tier: tierKey, players: result.players, pityTriggered: result.pityTriggered, placement: result.placement });
+      setOpening({ tier: tierKey, players: result.players, pityTriggered: result.pityTriggered });
       return;
     }
 
@@ -339,7 +361,7 @@ const PacksPage = () => {
           errorToast('Could not open pack', result.message);
           return;
         }
-        setOpening({ tier: tierKey, players: result.players, pityTriggered: result.pityTriggered, placement: result.placement });
+        setOpening({ tier: tierKey, players: result.players, pityTriggered: result.pityTriggered });
       } finally {
         setBusy(false);
       }
@@ -387,7 +409,7 @@ const PacksPage = () => {
       // reveal can't lose paid players while the consumable stays consumed.
       saveGame();
       successToast('Purchase complete', `${tier.label} unlocked.`);
-      setOpening({ tier: tierKey, players: result.players, pityTriggered: result.pityTriggered, placement: result.placement });
+      setOpening({ tier: tierKey, players: result.players, pityTriggered: result.pityTriggered });
     } catch (err) {
       // Capture the actual error to Sentry — silent catch was making it
       // impossible to triage real IAP failures (receipt validation throws,
@@ -710,7 +732,7 @@ const PacksPage = () => {
             onQuickSell={handleQuickSell}
             onKeepAll={handleKeepAll}
             onSellAll={handleSellAll}
-            placement={opening.placement}
+            placement={openingPlacement}
           />
         )}
       </AnimatePresence>

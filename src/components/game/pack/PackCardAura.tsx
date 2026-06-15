@@ -40,13 +40,15 @@ export function PackCardAura({ tierKey }: { tierKey: string }) {
 
   return (
     <div className="absolute inset-0 pointer-events-none" aria-hidden>
-      {/* Radial halo behind the card. */}
+      {/* Radial halo behind the card. The soft gradient falloff stands in for
+          a blur, so we can breathe the scale/opacity freely without forcing the
+          browser to re-rasterize a `filter: blur()` on every animation frame
+          (that was the single biggest pack-opening GPU cost on iOS WebKit). */}
       <motion.div
         className="absolute"
         style={{
-          inset: '-18%',
-          background: `radial-gradient(closest-side, ${spec.glow}, transparent 76%)`,
-          filter: 'blur(16px)',
+          inset: '-24%',
+          background: `radial-gradient(closest-side, ${spec.glow} 0%, transparent 68%)`,
         }}
         initial={{ opacity: 0, scale: 0.82 }}
         animate={breathe

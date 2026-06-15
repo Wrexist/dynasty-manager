@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
 import { generateAiCounterSignings, generatePackContents, shouldPityTrigger, updatedPityCounter } from '@/utils/packGeneration';
 import { AI_BACKFILL_OVR_GAP, AI_BACKFILL_PER_TIER, PACK_TIER_MAP, PACK_PITY_THRESHOLD, WALKOUT_OVR_THRESHOLD } from '@/config/packs';
@@ -31,6 +31,12 @@ function initAndGetState() {
   useGameStore.getState().initGame(CLUB_ID);
   return useGameStore.getState();
 }
+
+// openPack() now schedules its AI-backfill + lineup re-optimization on a
+// deferred macrotask (setTimeout(0) in jsdom). Flush any pending deferred work
+// after every test so it can't fire into — and pollute the state of — the next
+// test (e.g. inflating an exact player-count assertion).
+afterEach(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
 
 describe('Pack opening — generation', () => {
   it('returns exactly `cards` players per pack tier', () => {
@@ -310,7 +316,7 @@ describe('Pack opening — openPack action', () => {
     expect(clubAfter.lineup.length).toBeLessThanOrEqual(11);
   });
 
-  it('returns placement metadata classifying each pull as starter / bench / squad', () => {
+  it('defers AI backfill + lineup optimization off the synchronous open path', async () => {
     const state = useGameStore.getState();
     const club = state.clubs[state.playerClubId];
     useGameStore.setState({
@@ -319,13 +325,25 @@ describe('Pack opening — openPack action', () => {
         [state.playerClubId]: { ...club, budget: 200_000_000 },
       },
     });
+    const lineupBefore = [...useGameStore.getState().clubs[state.playerClubId].lineup];
+
     const result = useGameStore.getState().openPack('rare', { method: 'iap', skipPayment: true });
     expect(result.success).toBe(true);
-    expect(result.placement).toBeDefined();
-    const top = result.players![0];
-    expect(['starter', 'bench', 'squad']).toContain(result.placement![top.id]);
-    // At least one rare pull (84+ guaranteed) should change the lineup.
-    expect(result.lineupChanges).toBeGreaterThan(0);
+
+    // Synchronously: the pulled players are already in the squad (paid-pack
+    // safety), but the lineup re-optimization has NOT run yet — it's deferred
+    // off the reveal path so the open never blocks on the Hungarian solve.
+    const sync = useGameStore.getState().clubs[state.playerClubId];
+    for (const p of result.players!) expect(sync.playerIds).toContain(p.id);
+    expect(sync.lineup).toEqual(lineupBefore);
+
+    // Once the deferred post-process lands, a rare (84+) pull reaches the
+    // matchday squad (starting XI or bench).
+    await vi.waitFor(() => {
+      const c = useGameStore.getState().clubs[state.playerClubId];
+      const matchday = new Set([...c.lineup, ...c.subs]);
+      expect(result.players!.some(p => matchday.has(p.id))).toBe(true);
+    });
   });
 
   it('bronze pulls into a strong squad still register in lineup + subs or stay in squad-only', () => {
@@ -344,11 +362,10 @@ describe('Pack opening — openPack action', () => {
     expect(result.success).toBe(true);
 
     const after = useGameStore.getState().clubs[state.playerClubId];
-    // Every pulled player is tracked in playerIds
+    // Every pulled player is tracked in playerIds (placement badging is now
+    // derived reactively in the UI from the live lineup, not returned here).
     for (const p of result.players!) {
       expect(after.playerIds).toContain(p.id);
-      // Placement must be defined for every pull
-      expect(['starter', 'bench', 'squad']).toContain(result.placement![p.id]);
     }
   });
 
@@ -569,7 +586,7 @@ describe('Pack opening — challenge guard', () => {
 describe('Pack opening — AI counter-signings (league balance)', () => {
   beforeEach(() => { initAndGetState(); });
 
-  it('AI signings stay strictly below the user\'s tier guarantee', () => {
+  it('AI signings stay strictly below the user\'s tier guarantee', async () => {
     // Open a Gold pack (78+ user guarantee). AI signings must be ≤ 73 OVR
     // (78 − AI_BACKFILL_OVR_GAP). User's pack contains 5 cards; AI gets 2.
     const state = useGameStore.getState();
@@ -579,19 +596,18 @@ describe('Pack opening — AI counter-signings (league balance)', () => {
     const beforeIds = new Set(Object.keys(useGameStore.getState().players));
     const result = useGameStore.getState().openPack('gold');
     expect(result.success).toBe(true);
-
-    const after = useGameStore.getState();
     const userPackIds = new Set(result.players!.map(p => p.id));
-    // Strictly the players added by this open MINUS the user's pack contents.
-    const aiNewPlayers = Object.values(after.players).filter(p =>
+
+    // AI counter-signings are deferred off the open path — wait for them.
+    const aiNewPlayersNow = () => Object.values(useGameStore.getState().players).filter(p =>
       !beforeIds.has(p.id)
       && !userPackIds.has(p.id)
       && p.clubId !== state.playerClubId,
     );
-    // AI got at least 1 backfill across the league for a Gold pack.
-    expect(aiNewPlayers.length).toBeGreaterThan(0);
+    await vi.waitFor(() => expect(aiNewPlayersNow().length).toBeGreaterThan(0));
+
     const ceiling = PACK_TIER_MAP.gold.guaranteedMinOvr - AI_BACKFILL_OVR_GAP;
-    for (const p of aiNewPlayers) {
+    for (const p of aiNewPlayersNow()) {
       expect(p.overall).toBeLessThanOrEqual(ceiling);
     }
   });

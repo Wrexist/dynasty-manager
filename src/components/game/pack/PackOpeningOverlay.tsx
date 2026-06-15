@@ -114,11 +114,21 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
 
   useScrollLock(true);
 
-  // Unmount cleanup for the linger timer.
+  // Unmount cleanup for every pending timer/interval, so a phase jump
+  // (e.g. an immediate walkout skip) can never leave a timer firing
+  // setState after the overlay has gone.
   useEffect(() => () => {
     if (walkoutLingerTimerRef.current !== null) {
       window.clearTimeout(walkoutLingerTimerRef.current);
       walkoutLingerTimerRef.current = null;
+    }
+    if (chargeTimerRef.current !== null) {
+      window.clearTimeout(chargeTimerRef.current);
+      chargeTimerRef.current = null;
+    }
+    if (chargeRumbleRef.current !== null) {
+      window.clearInterval(chargeRumbleRef.current);
+      chargeRumbleRef.current = null;
     }
   }, []);
 
@@ -339,29 +349,59 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
     }
   }, [phase, currentWalkout, walkoutQueue.length]);
 
-  const onWalkoutComplete = useCallback(() => {
-    // Guard: both the child walkout AND the Escape handler can call this.
-    // Without this flag, two rapid calls would slice the queue twice and
-    // skip a walkout entirely.
+  // Advance to the next walkout (or summary) IMMEDIATELY, cancelling any
+  // pending linger. Used for explicit skips so a tap/Escape is never eaten
+  // by the inter-hero hold. Guarded by `walkoutAdvancingRef` so two rapid
+  // triggers can't slice the queue twice; the guard is released by the
+  // render effect below once the next hero/summary commits — never by a
+  // timer, which was the old deadlock.
+  const advanceWalkout = useCallback(() => {
     if (walkoutAdvancingRef.current) return;
     walkoutAdvancingRef.current = true;
-
-    setCurrentWalkout(null);
+    if (walkoutLingerTimerRef.current !== null) {
+      window.clearTimeout(walkoutLingerTimerRef.current);
+      walkoutLingerTimerRef.current = null;
+    }
     setWalkoutQueue(prev => {
       const next = prev.slice(1);
-      // Clear any stale scheduled advance before booking the new one.
-      if (walkoutLingerTimerRef.current !== null) {
-        window.clearTimeout(walkoutLingerTimerRef.current);
-      }
-      walkoutLingerTimerRef.current = window.setTimeout(() => {
-        walkoutLingerTimerRef.current = null;
-        walkoutAdvancingRef.current = false;
-        if (next.length > 0) setCurrentWalkout(next[0]);
-        else setPhase('summary');
-      }, PACK_ANIM.walkout.lingerMs);
+      if (next.length > 0) setCurrentWalkout(next[0]);
+      else { setCurrentWalkout(null); setPhase('summary'); }
       return next;
     });
   }, []);
+
+  // Release the advance lock once the next hero (or summary) has committed.
+  // Tying release to render — not to a timer — means a skip during the hold
+  // can always go through, so the reveal can never dead-lock.
+  useEffect(() => { walkoutAdvancingRef.current = false; }, [currentWalkout, phase]);
+
+  // A hero finished its cinematic: hold its final frame for a short linger,
+  // then advance. The child stays mounted during the linger, so a tap on it
+  // routes through `onAdvance` (→ advanceWalkout) and skips the rest of the
+  // hold instead of being swallowed.
+  const onWalkoutComplete = useCallback(() => {
+    if (walkoutLingerTimerRef.current !== null) return; // already lingering
+    walkoutLingerTimerRef.current = window.setTimeout(() => {
+      walkoutLingerTimerRef.current = null;
+      advanceWalkout();
+    }, PACK_ANIM.walkout.lingerMs);
+  }, [advanceWalkout]);
+
+  // Resilience: if the hero currently on screen was removed from the pack
+  // mid-reveal (a quick-sell race), advance past it so the cinematic never
+  // strands on a player that no longer exists.
+  useEffect(() => {
+    if (phase !== 'walkout' || !currentWalkout) return;
+    if (!players.some(p => p.id === currentWalkout.id)) advanceWalkout();
+  }, [phase, currentWalkout, players, advanceWalkout]);
+
+  // Keep the walkout queue pruned to players still in the pack.
+  useEffect(() => {
+    setWalkoutQueue(q => {
+      const pruned = q.filter(p => players.some(cur => cur.id === p.id));
+      return pruned.length === q.length ? q : pruned;
+    });
+  }, [players]);
 
   const revealOne = useCallback((id: string) => {
     setRevealedSet(prev => {
@@ -411,12 +451,12 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
       if (phase === 'reveal') { revealAll(); return; }
-      if (phase === 'walkout') { onWalkoutComplete(); return; }
+      if (phase === 'walkout') { advanceWalkout(); return; }
       if (phase === 'summary') { onClose(); return; }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [phase, onClose, revealAll, onWalkoutComplete]);
+  }, [phase, onClose, revealAll, advanceWalkout]);
 
   // Visually-hidden live announcer — reads out the most recent pull as
   // each card flips so screen-reader users hear the same reveal sighted
@@ -947,8 +987,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                 <motion.div
                   className="absolute inset-0 pointer-events-none overflow-hidden"
                   style={{
-                    background: 'linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.35) 50%, transparent 70%)',
-                    mixBlendMode: 'overlay',
+                    background: 'linear-gradient(115deg, transparent 38%, rgba(255,255,255,0.18) 50%, transparent 62%)',
                   }}
                   initial={{ x: '-100%' }}
                   animate={{ x: '120%' }}
@@ -1137,12 +1176,15 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
               : 'max-w-[min(92vw,480px)] gap-4',
           )}
           animate={{
+            // Dim + push the grid back during a walkout with opacity + scale
+            // only. The old animated `filter: blur()+saturate()` re-rastered the
+            // whole card subtree every frame; at 0.12 opacity it's barely
+            // visible anyway, so the cheap transform/opacity dim reads the same.
             opacity: phase === 'walkout' ? 0.12 : 1,
-            filter: phase === 'walkout' ? 'blur(8px) saturate(0.6)' : 'blur(0px) saturate(1)',
             scale: phase === 'walkout' ? 0.92 : 1,
           }}
           transition={{ duration: 0.35, ease: 'easeOut' }}
-          style={{ willChange: phase === 'walkout' ? 'filter, opacity, transform' : 'auto' }}
+          style={{ willChange: phase === 'walkout' ? 'opacity, transform' : 'auto' }}
         >
           {/* Results header — springs in once the pack settles, giving the
               summary a clear "results screen" identity. */}
@@ -1431,7 +1473,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
       {/* Walkout overlay */}
       <AnimatePresence mode="wait">
         {phase === 'walkout' && currentWalkout && (
-          <WalkoutReveal key={currentWalkout.id} player={currentWalkout} onComplete={onWalkoutComplete} />
+          <WalkoutReveal key={currentWalkout.id} player={currentWalkout} onComplete={onWalkoutComplete} onAdvance={advanceWalkout} />
         )}
       </AnimatePresence>
     </motion.div>

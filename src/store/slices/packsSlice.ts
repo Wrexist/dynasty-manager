@@ -318,39 +318,13 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     // season summaries reflect the spend.
     const newOpenedPacks = [record, ...(state.openedPacks || [])].slice(0, 200);
 
-    // ── AI counter-signings ──
-    // Each user pack triggers a small set of AI signings at strictly
-    // lower OVR so the league quality keeps pace without out-pacing
-    // the user. See AI_BACKFILL_* in config/packs.ts for the calibration.
-    const allClubsAfterPlayer = { ...state.clubs, [club.id]: updatedClub };
-    const aiBackfill = generateAiCounterSignings(
-      tierKey,
-      allClubsAfterPlayer,
-      state.playerClubId,
-      state.playerDivision,
-      state.season,
-    );
-    let clubsWithAi = allClubsAfterPlayer;
-    const playersWithAi = newPlayers;
-    for (const [aiClubId, aiPlayers] of Object.entries(aiBackfill.perClub)) {
-      const aiClub = clubsWithAi[aiClubId];
-      if (!aiClub) continue;
-      const aiNewIds: string[] = [];
-      let aiAddedWages = 0;
-      for (const p of aiPlayers) {
-        playersWithAi[p.id] = p;
-        aiNewIds.push(p.id);
-        aiAddedWages += p.wage;
-      }
-      clubsWithAi = {
-        ...clubsWithAi,
-        [aiClubId]: {
-          ...aiClub,
-          playerIds: [...aiClub.playerIds, ...aiNewIds],
-          wageBill: aiClub.wageBill + aiAddedWages,
-        },
-      };
-    }
+    // AI counter-signings + lineup re-optimization are NOT needed for the
+    // reveal and are the heavy part of opening a pack (player generation +
+    // an O(n³) Hungarian solve per affected club). They run in
+    // `runPostProcess` below, scheduled AFTER the reveal overlay mounts, so
+    // the tap → animation never blocks on them. The pulled players ARE
+    // written synchronously in the first set() (paid-pack safety + the
+    // quick-sell/undo handlers depend on them existing immediately).
 
     // ── Manager XP for rare pulls ──
     // Walkout-tier pulls grant career XP, scaling with OVR. Standard pulls
@@ -380,74 +354,6 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     // Audio cue (no-op until assets are wired).
     playPackSfx(topPlayer.overall >= WALKOUT_OVR_THRESHOLD ? 'rare-pull' : 'standard-pull');
 
-    // ── Auto-place pack players into lineup/subs ──
-    // Pack players are in playerIds but club.lineup / subs still point at
-    // the pre-pack 11/7. Run the same optimizer Optimize Lineup uses so
-    // new pulls appear in the XI or bench immediately. Use the full
-    // match-aware context so designated takers stay in place and
-    // opponent-aware scoring applies if a fixture is this week.
-    let clubsWithLineup = clubsWithAi;
-    const playerClub = clubsWithAi[state.playerClubId];
-    const packPlayerIds = finalizedPlayers.map(p => p.id);
-
-    // Fast-path: if pack pulls clearly can't reach bench (all OVR below
-    // the weakest current squad member), skip the rebuild. Saves Hungarian
-    // work on depth-tier bronze pulls into a strong squad.
-    const shouldRePlace = playerClub
-      && candidatesCanCrackSquad(playerClub, playersWithAi, packPlayerIds);
-
-    if (shouldRePlace && playerClub) {
-      const context = buildAutoFillContext(state, state.playerClubId, {
-        clubs: clubsWithAi,
-        players: playersWithAi,
-      });
-      const optimized = autoPlaceClubLineup(
-        playerClub,
-        playersWithAi,
-        state.week,
-        state.season,
-        context,
-      );
-      if (optimized !== playerClub) {
-        clubsWithLineup = { ...clubsWithAi, [state.playerClubId]: optimized };
-      }
-    }
-
-    // ── Re-optimize AI clubs that received counter-signings ──
-    // Without this, AI lineups silently drift until match day (when
-    // orchestration rebuilds via selectBestLineup). Optimizing now
-    // keeps squad views consistent between weeks. Bounded: at most
-    // AI_BACKFILL_PER_TIER[tier] clubs (0-3) per pack open.
-    for (const aiClubId of Object.keys(aiBackfill.perClub)) {
-      if (aiClubId === state.playerClubId) continue;
-      const aiClub = clubsWithLineup[aiClubId];
-      if (!aiClub) continue;
-      const optimized = autoPlaceClubLineup(
-        aiClub,
-        playersWithAi,
-        state.week,
-        state.season,
-      );
-      if (optimized !== aiClub) {
-        clubsWithLineup = { ...clubsWithLineup, [aiClubId]: optimized };
-      }
-    }
-
-    // Count lineup changes for user feedback. Only compares the 11
-    // starters — bench churn is expected and low-signal for the user.
-    const postLineup = clubsWithLineup[state.playerClubId]?.lineup || [];
-    const lineupChanges = postLineup.filter((id, i) => id !== (club.lineup || [])[i]).length;
-
-    if (lineupChanges > 0) {
-      newMessages = addMsg(newMessages, {
-        week: state.week,
-        season: state.season,
-        type: 'transfer',
-        title: 'Lineup Updated',
-        body: `Auto-placed pack players: ${lineupChanges} lineup change${lineupChanges > 1 ? 's' : ''} applied.`,
-      });
-    }
-
     // Bump the matching per-day bucket so daily caps survive save reloads.
     // The date rolls over the moment a new ISO-day starts; existing
     // buckets fall away with it.
@@ -466,9 +372,13 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       };
     }
 
+    // ── Phase 1: synchronous core write ──
+    // Writes the pulled players into the squad immediately so the reveal,
+    // paid-pack saveGame(), and quick-sell/undo handlers are all correct.
+    // AI backfill + lineup re-optimization are NOT here — they run deferred.
     set({
-      players: playersWithAi,
-      clubs: clubsWithLineup,
+      players: newPlayers,
+      clubs: { ...state.clubs, [club.id]: updatedClub },
       openedPacks: newOpenedPacks,
       packPityCounter: newPity,
       lastPackWeek: state.week,
@@ -481,16 +391,75 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       lastMatchXPGain: xpEarned > 0 ? xpEarned : state.lastMatchXPGain,
     });
 
-    // Classify each pulled player so the reveal modal can badge them.
-    const placement: Record<string, 'starter' | 'bench' | 'squad'> = {};
-    const finalClub = clubsWithLineup[state.playerClubId];
-    const starterSet = new Set(finalClub?.lineup || []);
-    const benchSet = new Set(finalClub?.subs || []);
-    for (const p of finalizedPlayers) {
-      if (starterSet.has(p.id)) placement[p.id] = 'starter';
-      else if (benchSet.has(p.id)) placement[p.id] = 'bench';
-      else placement[p.id] = 'squad';
-    }
+    // ── Phase 2: deferred post-processing ──
+    // The heavy, reveal-irrelevant work: AI counter-signings and the
+    // Hungarian lineup re-optimization (user + affected AI clubs). Reads
+    // FRESH state via get() and merges functionally so it can never clobber
+    // an interleaving quick-sell. The placement badges shown at the summary
+    // (seconds away) read the live, re-optimized lineup via a reactive memo
+    // in PacksPage, so they stay correct without blocking the reveal.
+    const packPlayerIds = finalizedPlayers.map(p => p.id);
+    const runPostProcess = () => {
+      const s = get();
+      const pid = s.playerClubId;
+      const userClub = s.clubs[pid];
+      if (!userClub) return;
+
+      // AI counter-signings at strictly lower OVR (league keeps pace).
+      const aiBackfill = generateAiCounterSignings(tierKey, s.clubs, pid, s.playerDivision, s.season);
+      let clubsAcc = s.clubs;
+      const playersAcc = { ...s.players };
+      for (const [aiClubId, aiPlayers] of Object.entries(aiBackfill.perClub)) {
+        const aiClub = clubsAcc[aiClubId];
+        if (!aiClub) continue;
+        const aiNewIds: string[] = [];
+        let aiAddedWages = 0;
+        for (const p of aiPlayers) { playersAcc[p.id] = p; aiNewIds.push(p.id); aiAddedWages += p.wage; }
+        clubsAcc = {
+          ...clubsAcc,
+          [aiClubId]: { ...aiClub, playerIds: [...aiClub.playerIds, ...aiNewIds], wageBill: aiClub.wageBill + aiAddedWages },
+        };
+      }
+
+      // Auto-place the user's pulls into lineup/subs (fast-path skip when
+      // they clearly can't crack the squad).
+      let clubsFinal = clubsAcc;
+      const playerClub = clubsAcc[pid];
+      if (playerClub && candidatesCanCrackSquad(playerClub, playersAcc, packPlayerIds)) {
+        const context = buildAutoFillContext(s, pid, { clubs: clubsAcc, players: playersAcc });
+        const optimized = autoPlaceClubLineup(playerClub, playersAcc, s.week, s.season, context);
+        if (optimized !== playerClub) clubsFinal = { ...clubsAcc, [pid]: optimized };
+      }
+
+      // Re-optimize AI clubs that received counter-signings.
+      for (const aiClubId of Object.keys(aiBackfill.perClub)) {
+        if (aiClubId === pid) continue;
+        const aiClub = clubsFinal[aiClubId];
+        if (!aiClub) continue;
+        const optimized = autoPlaceClubLineup(aiClub, playersAcc, s.week, s.season);
+        if (optimized !== aiClub) clubsFinal = { ...clubsFinal, [aiClubId]: optimized };
+      }
+
+      const postLineup = clubsFinal[pid]?.lineup || [];
+      const lineupChanges = postLineup.filter((id, i) => id !== (userClub.lineup || [])[i]).length;
+
+      set({
+        players: playersAcc,
+        clubs: clubsFinal,
+        ...(lineupChanges > 0 ? {
+          messages: addMsg(s.messages, {
+            week: s.week, season: s.season, type: 'transfer',
+            title: 'Lineup Updated',
+            body: `Auto-placed pack players: ${lineupChanges} lineup change${lineupChanges > 1 ? 's' : ''} applied.`,
+          }),
+        } : {}),
+      });
+    };
+    // Schedule after the overlay paints. iOS WKWebView has no
+    // requestIdleCallback, so the setTimeout fallback is the device path.
+    const ric = (globalThis as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback;
+    if (typeof ric === 'function') ric(runPostProcess, { timeout: 600 });
+    else setTimeout(runPostProcess, 0);
 
     return {
       success: true,
@@ -498,8 +467,6 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       players: finalizedPlayers,
       record,
       pityTriggered,
-      placement,
-      lineupChanges,
       method,
     };
   },

@@ -116,6 +116,23 @@
 .perf-mode .glass-specular {
   display: none !important;
 }
+/* Pack-opening decorative filters are GPU-heavy on mobile WebKit. In
+   performance mode, strip the expensive blur/conic/blend layers (the
+   prefers-reduced-motion blocks below only stop the animation, not the
+   per-frame filter cost). */
+.perf-mode .holo-ring,
+.perf-mode .pack-rays {
+  filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  mix-blend-mode: normal !important;
+  animation: none !important;
+}
+.perf-mode .pack-starfield-far,
+.perf-mode .pack-starfield-mid,
+.perf-mode .pack-starfield-near {
+  animation: none !important;
+}
 
 @layer base {
   * {

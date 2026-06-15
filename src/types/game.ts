@@ -1958,10 +1958,6 @@ export interface OpenPackResult {
   players?: Player[];
   record?: OpenedPackRecord;
   pityTriggered?: boolean;
-  /** Per-player placement map keyed by player id. */
-  placement?: Record<string, PackPlayerPlacement>;
-  /** Number of starter-slot changes the auto-place applied. */
-  lineupChanges?: number;
   /** Which unlock method was used for this open. */
   method?: PackUnlockMethod;
   /** Set when an IAP pack was charged in the App Store but the slice
