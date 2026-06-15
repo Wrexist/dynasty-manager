@@ -398,15 +398,27 @@ Raises the ceiling on capable devices; choreographer unchanged (same
   (`src/components/game/pitch/`) wired into `MatchDay` behind a persisted
   `Pitch | Split | Log` toggle. Lazy-loaded, ErrorBoundary-wrapped, honours
   reduced-motion/perf. Eager bundle unchanged (494.7 kB gz).
-- ✅ **Phase 3 (feel & moments) — core delivered.** Broadcast follow-cam with
-  eased zoom, parabolic ball arcs + planted shadow, possession-coloured ball
-  trail (3a); goal celebration (flash + confetti + GOAL! lower-third) with
-  success haptics, and rain/snow weather ambience (3b). All collapse under
-  reduced-motion/perf. `latestGoalAt` covered by tests.
-- ⏭️ **Remaining Phase 3 polish:** crowd audio (opt-in, new sound setting),
-  adaptive quality auto-tiering, set-piece staging detail, pre-match walkout /
-  half-time tactical board / full-time beat.
-- ⏭️ **Phase 4:** PixiJS "Stunning" tier (bloom, lighting, GPU particles).
+- ✅ **Phase 3 (feel & moments).** Broadcast follow-cam with eased zoom,
+  parabolic ball arcs + planted shadow, possession-coloured ball trail (3a);
+  goal celebration (flash + confetti + GOAL! lower-third) with success haptics,
+  and rain/snow weather ambience (3b); adaptive quality tiers
+  (high/balanced/battery, auto-detected) + kit-clash legibility (3c). All
+  collapse under reduced-motion/perf. `latestGoalAt` + `resolvePitchQuality`
+  covered by tests.
+- ⛔ **Phase 4 (Pixi "Stunning" tier) — BLOCKED on a decision.** Adding PixiJS
+  is a new npm dependency (~its own lazy chunk); per project rules deps must be
+  discussed before adding. Needs explicit go-ahead + a bundle-budget check.
+- ⛔ **Audio — BLOCKED.** Needs a new sound setting (settings-shape change →
+  decide flags-storage vs `CURRENT_VERSION` bump) and compressed crowd/whistle
+  assets we don't yet have.
+- ⏭️ **Optional remaining polish (no deps):** pre-match walkout / half-time
+  tactical board / full-time beat (needs MatchDay phase wiring + a visual pass);
+  continuous beat-sequencer playback so intra-minute set-piece sub-beats surface
+  (changes timing semantics — best validated visually).
+
+> **Recommendation:** the free Canvas pitch (Phases 1–3) is shippable and is the
+> right point to get real eyes on it before investing in Pixi or audio. Run
+> `npm run dev`, watch a match on the Pitch tab, and feed visual notes back.
 
 ## Decisions made (locked 2026-06-15)
 
