@@ -26,6 +26,17 @@ export function resolvePitchQuality(inp: PitchQualityInputs): PitchQuality {
   return lowMem || lowCpu ? BALANCED : HIGH;
 }
 
+/** Whether a WebGL context is obtainable (gates the Pixi "Stunning" tier). */
+export function webglSupported(): boolean {
+  if (typeof document === 'undefined') return false;
+  try {
+    const c = document.createElement('canvas');
+    return !!(c.getContext('webgl2') || c.getContext('webgl'));
+  } catch {
+    return false;
+  }
+}
+
 /** Runtime wrapper: probes navigator (guarded for SSR/jsdom) and resolves. */
 export function detectPitchQuality(reducedMotion: boolean): PitchQuality {
   const nav = typeof navigator !== 'undefined'

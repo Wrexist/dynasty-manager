@@ -112,6 +112,10 @@ export default defineConfig(() => ({
           if (id.includes('node_modules/zustand')) return 'zustand';
           if (id.includes('node_modules/react-router')) return 'router';
           if (id.includes('node_modules/@capacitor')) return 'capacitor';
+          // PixiJS powers the optional "Stunning" pitch tier. Isolated into its
+          // own chunk and only imported by the lazy PixiPitch renderer, so it
+          // never lands in the eager modulepreload list (size:check guards this).
+          if (id.includes('node_modules/pixi.js') || id.includes('node_modules/@pixi')) return 'pixi';
           // The 7 community-pack-only league squads live in src/data/squads/
           // but must not ship in the eager `squad-data` chunk — they are
           // dynamic-imported via src/data/communityPack/cpLeagueSquads.ts.

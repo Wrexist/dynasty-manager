@@ -1,14 +1,18 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import type { Club, Match, MatchEvent } from '@/types/game';
 import { buildMatchTimeline } from '@/engine/match/choreography';
 import { latestGoalAt } from '@/engine/match/pitchFrame';
 import { hapticSuccess } from '@/utils/haptics';
-import { detectPitchQuality } from '@/utils/pitchQuality';
+import { detectPitchQuality, webglSupported } from '@/utils/pitchQuality';
 import { areColorsSimilar } from '@/utils/uiHelpers';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { PitchCanvas } from './PitchCanvas';
 import { GoalCelebration } from './GoalCelebration';
 import { WeatherOverlay } from './WeatherOverlay';
+
+// WebGL tier is lazy: its pixi chunk only loads on capable devices.
+const PixiPitch = lazy(() => import('./PixiPitch'));
 
 // Live 2.5D pitch panel. Builds a deterministic MatchTimeline from the events
 // revealed so far and renders it via PitchCanvas, with a broadcast caption,
@@ -39,6 +43,12 @@ export default function PitchView({
   match, homeClub, awayClub, events, minute, playerIsHome, reducedMotion,
 }: PitchViewProps) {
   const quality = useMemo(() => detectPitchQuality(!!reducedMotion), [reducedMotion]);
+
+  // Use the WebGL "Stunning" tier only on capable hardware; auto-fall back to
+  // Canvas if Pixi fails to init or throws at runtime.
+  const [pixiFailed, setPixiFailed] = useState(false);
+  const canUseWebgl = useMemo(() => quality.tier === 'high' && webglSupported(), [quality.tier]);
+  const useWebgl = canUseWebgl && !pixiFailed;
 
   // Kit-clash legibility: if the two kits are too close, force the away side to
   // a light neutral so chips stay distinguishable (mirrors the momentum bar).
@@ -90,16 +100,38 @@ export default function PitchView({
 
   return (
     <div className="relative w-full overflow-hidden rounded-xl border border-border/50 bg-black/20" style={{ aspectRatio: '68 / 104' }}>
-      <PitchCanvas
-        timeline={timeline}
-        minute={minute}
-        quality={quality}
-        homeColor={homeColor}
-        awayColor={awayColor}
-        flip={!playerIsHome}
-        reducedMotion={reducedMotion}
-        className="absolute inset-0 h-full w-full"
-      />
+      {useWebgl ? (
+        <ErrorBoundary fallback={() => (
+          <PitchCanvas timeline={timeline} minute={minute} quality={quality} homeColor={homeColor} awayColor={awayColor} flip={!playerIsHome} reducedMotion={reducedMotion} className="absolute inset-0 h-full w-full" />
+        )}>
+          <Suspense fallback={
+            <PitchCanvas timeline={timeline} minute={minute} quality={quality} homeColor={homeColor} awayColor={awayColor} flip={!playerIsHome} reducedMotion={reducedMotion} className="absolute inset-0 h-full w-full" />
+          }>
+            <PixiPitch
+              timeline={timeline}
+              minute={minute}
+              quality={quality}
+              homeColor={homeColor}
+              awayColor={awayColor}
+              flip={!playerIsHome}
+              reducedMotion={reducedMotion}
+              onError={() => setPixiFailed(true)}
+              className="absolute inset-0 h-full w-full"
+            />
+          </Suspense>
+        </ErrorBoundary>
+      ) : (
+        <PitchCanvas
+          timeline={timeline}
+          minute={minute}
+          quality={quality}
+          homeColor={homeColor}
+          awayColor={awayColor}
+          flip={!playerIsHome}
+          reducedMotion={reducedMotion}
+          className="absolute inset-0 h-full w-full"
+        />
+      )}
 
       <WeatherOverlay weather={match.weather?.weather} density={quality.weatherScale} reducedMotion={reducedMotion} />
 
