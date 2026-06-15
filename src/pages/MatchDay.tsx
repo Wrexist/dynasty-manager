@@ -1,7 +1,12 @@
 import * as Sentry from '@sentry/react';
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useGameStore } from '@/store/gameStore';
+import { readMatchViewMode, writeMatchViewMode } from '@/store/helpers/persistence';
+import type { MatchViewMode } from '@/types/game';
+
+// Lazy so the pitch renderer + choreographer never touch the eager bundle.
+const PitchView = lazy(() => import('@/components/game/pitch/PitchView'));
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubstitutionSheet } from '@/components/game/SubstitutionSheet';
@@ -143,6 +148,11 @@ const MatchDayInner = () => {
   const [currentMin, setCurrentMin] = useState(0);
   const currentMinRef = useRef(0);
   const [visibleEvents, setVisibleEvents] = useState<MatchEvent[]>([]);
+  const [matchView, setMatchView] = useState<MatchViewMode>(() => readMatchViewMode() ?? 'commentary');
+  const changeMatchView = useCallback((mode: MatchViewMode) => {
+    setMatchView(mode);
+    writeMatchViewMode(mode);
+  }, []);
   const [speed, setSpeed] = useState(() => {
     // Clamp a persisted Pro-tier speed for non-Pro users (lapsed trial/sub):
     // the saved setting would otherwise grant Pro playback until they touch
@@ -1562,8 +1572,47 @@ const MatchDayInner = () => {
             </div>
           )}
 
+          {/* Match-view toggle: pitch / split / commentary. Always a toggle,
+              never forced — persists the user's choice across sessions. */}
+          <div className="flex gap-1 rounded-lg bg-muted/30 p-1">
+            {([
+              { k: 'pitch', label: 'Pitch' },
+              { k: 'split', label: 'Split' },
+              { k: 'commentary', label: 'Log' },
+            ] as { k: MatchViewMode; label: string }[]).map(({ k, label }) => (
+              <button
+                key={k}
+                onClick={() => changeMatchView(k)}
+                aria-pressed={matchView === k}
+                className={cn(
+                  'flex-1 rounded-md py-1.5 text-[11px] font-semibold transition-all active:scale-[0.98]',
+                  matchView === k ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {matchView !== 'commentary' && (
+            <ErrorBoundary fallback={() => null}>
+              <Suspense fallback={<div className="w-full rounded-xl bg-black/20 border border-border/40" style={{ aspectRatio: '68 / 104' }} />}>
+                <PitchView
+                  match={match}
+                  homeClub={homeClub}
+                  awayClub={awayClub}
+                  events={visibleEvents}
+                  minute={currentMin}
+                  playerIsHome={playerClubId === match.homeClubId}
+                  reducedMotion={settings.reducedMotion || settings.performanceMode}
+                />
+              </Suspense>
+            </ErrorBoundary>
+          )}
+
           {/* Event Log — cap by viewport but never collapse below ~2 events on
               short landscape screens (30vh ≈ 112px there). */}
+          {matchView !== 'pitch' && (
           <GlassPanel className="p-4 max-h-[min(40vh,300px)] overflow-y-auto">
             <div className="space-y-2" aria-live="polite" aria-label="Match events">
               {visibleEvents.filter(e => e.type !== 'kickoff').map((ev, i) => {
@@ -1588,6 +1637,7 @@ const MatchDayInner = () => {
               <div ref={eventsEndRef} />
             </div>
           </GlassPanel>
+          )}
         </>
       )}
 
