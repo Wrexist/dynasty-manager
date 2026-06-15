@@ -381,6 +381,68 @@ export interface Match {
   weather?: MatchWeather;
 }
 
+// ── Match Choreography (2.5D pitch visualization) ──
+// Derived at view time from a finished Match by src/engine/match/choreography.ts.
+// RUNTIME-ONLY: never written to persisted game state, so it carries no
+// save-migration cost. Coordinates are normalized 0-100 with the HOME goal at
+// y=0 and the AWAY goal at y=100; home attacks toward +y, away toward 0.
+export interface PitchPoint {
+  x: number;
+  y: number;
+}
+
+export type PitchMotionKind =
+  | 'idle' | 'pass' | 'dribble' | 'shot' | 'cross' | 'clearance' | 'longball' | 'restart';
+
+export interface ChoreoPlayer {
+  /** Source player id, or null for a synthetic placeholder when the lineup is short. */
+  id: string | null;
+  team: 'home' | 'away';
+  pos: Position;
+  /** Display shirt-number fallback (slot order, 1 = GK). */
+  number: number;
+  point: PitchPoint;
+  /** True when this player is the focus of the current beat (scorer, keeper, …). */
+  highlighted: boolean;
+}
+
+export interface CameraHint {
+  focus: PitchPoint;
+  /** 1 = wide broadcast, >1 = tighter. */
+  zoom: number;
+}
+
+export interface MatchBeat {
+  seq: number;
+  minute: number;
+  /** Driving event type, or null for a possession (keep-ball) filler beat. */
+  eventType: MatchEvent['type'] | null;
+  possession: 'home' | 'away';
+  ball: PitchPoint;
+  ballMotion: PitchMotionKind;
+  /** Vertical arc height of the ball's travel into this beat (0 = ground). */
+  ballArc: number;
+  camera: CameraHint;
+  players: ChoreoPlayer[];
+  /** Player ids spotlighted this beat. */
+  highlightIds: string[];
+  /** Broadcast caption (event description) when this beat has an event. */
+  caption?: string;
+  /** Relative duration hint (ms) the renderer scales by match speed. */
+  durationMs: number;
+}
+
+export interface MatchTimeline {
+  matchId: string;
+  homeClubId: string;
+  awayClubId: string;
+  homeColor: string;
+  awayColor: string;
+  /** Deterministic seed derived from the event list (same match → same motion). */
+  seed: number;
+  beats: MatchBeat[];
+}
+
 export interface LeagueTableEntry {
   clubId: string;
   played: number;
