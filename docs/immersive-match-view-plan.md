@@ -405,9 +405,11 @@ Raises the ceiling on capable devices; choreographer unchanged (same
   (high/balanced/battery, auto-detected) + kit-clash legibility (3c). All
   collapse under reduced-motion/perf. `latestGoalAt` + `resolvePitchQuality`
   covered by tests.
-- ⛔ **Phase 4 (Pixi "Stunning" tier) — BLOCKED on a decision.** Adding PixiJS
-  is a new npm dependency (~its own lazy chunk); per project rules deps must be
-  discussed before adding. Needs explicit go-ahead + a bundle-budget check.
+- ✅ **Phase 4 (Pixi "Stunning" tier).** WebGL renderer (`PixiPitch`) sharing the
+  MatchTimeline: additive bloom on the ball-carrier ring + ball, world-container
+  camera. Activates only on the high tier with WebGL; Suspense + ErrorBoundary +
+  self-reported `onError` all fall back to Canvas. PixiJS (146 kB gz) isolated to
+  its own lazy chunk — eager bundle unchanged (494.7 kB). Full preflight green.
 - ⛔ **Audio — BLOCKED.** Needs a new sound setting (settings-shape change →
   decide flags-storage vs `CURRENT_VERSION` bump) and compressed crowd/whistle
   assets we don't yet have.
