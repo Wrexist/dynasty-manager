@@ -49,6 +49,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Auto-dismiss Getting Started card when it starts already at 2/2.',
     'Make pack opening buttery smooth and unbreakable.',
     'Polish(ux): readable MatchDay log on landscape + money via formatMoney.',
+    'Extract CP FA-pool seed + cover it with a test.',
   ],
   fixed: [],
   headline: null,
