@@ -166,14 +166,35 @@ describe('buildMatchTimeline', () => {
     expect(after.players.filter((p) => p.team === 'home')).toHaveLength(11); // still 11
   });
 
-  it('drives filler possession from momentum sign', () => {
-    const timeline = buildMatchTimeline(
-      makeMatch([ev(10, 'foul', 'away', { momentum: -40 })]),
-      home,
-      away,
-    );
-    const filler = timeline.beats.find((b) => b.minute === 30 && b.eventType === null);
-    expect(filler!.possession).toBe('away');
+  it('biases filler possession toward the team with momentum', () => {
+    const timeline = buildMatchTimeline(makeMatch([ev(5, 'foul', 'away', { momentum: -60 })]), home, away);
+    const fillers = timeline.beats.filter((b) => b.eventType === null && b.minute > 10);
+    const homeP = fillers.filter((b) => b.possession === 'home').length;
+    const awayP = fillers.filter((b) => b.possession === 'away').length;
+    expect(awayP).toBeGreaterThan(homeP);
+  });
+
+  it('alternates possession (ebb and flow), not one team for the whole match', () => {
+    const timeline = buildMatchTimeline(makeMatch([]), home, away); // neutral momentum
+    const perMinute = new Map<number, 'home' | 'away'>();
+    for (const b of timeline.beats) {
+      if (b.eventType === null && !perMinute.has(b.minute)) perMinute.set(b.minute, b.possession);
+    }
+    const seq = [...perMinute.values()];
+    let changes = 0;
+    for (let i = 1; i < seq.length; i++) if (seq[i] !== seq[i - 1]) changes++;
+    expect(changes).toBeGreaterThan(8); // the ball changes hands many times
+    const homeShare = seq.filter((p) => p === 'home').length / seq.length;
+    expect(homeShare).toBeGreaterThan(0.25);
+    expect(homeShare).toBeLessThan(0.75);
+  });
+
+  it('restarts from the centre with the conceding team after a goal', () => {
+    const timeline = buildMatchTimeline(makeMatch([ev(30, 'goal', 'home', { playerId: 'home-p9' })]), home, away);
+    const goalIdx = timeline.beats.findIndex((b) => b.eventType === 'goal');
+    const restart = timeline.beats[goalIdx + 1];
+    expect(restart.possession).toBe('away'); // conceding side kicks off
+    expect(restart.ball).toEqual({ x: 50, y: 50 });
   });
 
   it('handles a goalless, event-light match without NaN', () => {

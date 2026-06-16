@@ -941,6 +941,27 @@ const MatchDayInner = () => {
             </p>
           </GlassPanel>
 
+          {/* Tactical board: the pitch stays on screen at half-time (not in Log mode). */}
+          {matchView !== 'commentary' && (
+            <ErrorBoundary fallback={() => null}>
+              <Suspense fallback={null}>
+                <PitchView
+                  match={match}
+                  homeClub={homeClub}
+                  awayClub={awayClub}
+                  events={visibleEvents}
+                  minute={currentMin}
+                  playerIsHome={playerClubId === match.homeClubId}
+                  homeTactics={match.homeClubId === playerClubId ? tactics : (homeClub.aiManagerProfile?.defaultTactics ?? DEFAULT_PITCH_TACTICS)}
+                  awayTactics={match.awayClubId === playerClubId ? tactics : (awayClub.aiManagerProfile?.defaultTactics ?? DEFAULT_PITCH_TACTICS)}
+                  players={players}
+                  orientation={matchView === 'split' ? 'landscape' : 'portrait'}
+                  reducedMotion={settings.reducedMotion || settings.performanceMode}
+                />
+              </Suspense>
+            </ErrorBoundary>
+          )}
+
           {/* Halftime Tactics — compact merged panel */}
           {firstHalfState && match && (() => {
             const analysis = analyzeHalftime(firstHalfState, playerClubId, match.homeClubId);

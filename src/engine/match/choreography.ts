@@ -318,6 +318,7 @@ export function buildMatchTimeline(match: Match, homeClub: Club, awayClub: Club,
   const beats: MatchBeat[] = [];
   let seq = 0;
   let momentum = 0;
+  let prevPossession: 'home' | 'away' | null = null;
 
   const byMinute = new Map<number, MatchEvent[]>();
   let lastMinute = 0;
@@ -375,6 +376,27 @@ export function buildMatchTimeline(match: Match, homeClub: Club, awayClub: Club,
     return chain[chain.length - 1]?.id ?? null;
   };
 
+  // A turnover: a central player of the team that just won the ball steps onto
+  // it in their own middle third, before they build. Sells the change of hands.
+  const emitTurnover = (minute: number, possession: 'home' | 'away') => {
+    const squad = (possession === 'home' ? baseHome : baseAway)
+      .filter(p => p.pos !== 'GK' && p.id && !removed.has(p.id));
+    if (!squad.length) return;
+    let winner = squad[0];
+    let bestScore = Infinity;
+    for (const p of squad) {
+      const score = Math.abs(advancement(possession, p.base.y) - 32) + Math.abs(p.base.x - 50) * 0.5;
+      if (score < bestScore) { bestScore = score; winner = p; }
+    }
+    const depth = clamp(advancement(possession, winner.base.y), 16, 42);
+    const ball = { x: clamp(lerp(winner.base.x, 50, 0.3), 8, 92), y: depthToY(possession, depth) };
+    const hl = highlightFor(winner.id);
+    const players = placeBeatPlayers(baseHome, baseAway, possession, homeTactics, awayTactics, ball, removed, hl, { phaseTime: seq, lookup });
+    const self = players.find(p => p.id === winner.id);
+    if (self) self.point = { ...ball };
+    pushBeat(minute, null, possession, { ...ball }, winner.id, 'idle', PITCH_CHOREO.ZOOM_WIDE, players, hl, undefined);
+  };
+
   // Always open on the team's actual formation shape (resting, both halves).
   pushBeat(0, null, 'home', { x: 50, y: 50 }, null, 'restart', PITCH_CHOREO.ZOOM_WIDE,
     placeBeatPlayers(baseHome, baseAway, 'home', homeTactics, awayTactics, { x: 50, y: 50 }, removed, new Set(), { phaseTime: 0, lookup, kickoff: true }),
@@ -406,14 +428,28 @@ export function buildMatchTimeline(match: Match, homeClub: Club, awayClub: Club,
           if (ev.goalkeeperId) hl.add(ev.goalkeeperId);
           const shotPlayers = placeBeatPlayers(baseHome, baseAway, possession, homeTactics, awayTactics, goalPoint, removed, hl, { phaseTime: seq, lookup, extraPush: PITCH_CHOREO.POSSESSION_ADVANCE_MAX });
           pushBeat(minute, ev.type, possession, goalPoint, null, 'shot', PITCH_CHOREO.ZOOM_GOAL, shotPlayers, hl, ev.description);
+          if (GOAL_EVENTS.has(ev.type)) {
+            // Centre restart by the conceding team after a goal.
+            const conceding: 'home' | 'away' = possession === 'home' ? 'away' : 'home';
+            const restartPlayers = placeBeatPlayers(baseHome, baseAway, conceding, homeTactics, awayTactics, { x: 50, y: 50 }, removed, new Set(), { phaseTime: seq, lookup, kickoff: true });
+            pushBeat(minute, null, conceding, { x: 50, y: 50 }, null, 'restart', PITCH_CHOREO.ZOOM_WIDE, restartPlayers, new Set(), undefined);
+            prevPossession = conceding;
+          } else {
+            // After a shot the other team restarts (keeper / goal kick).
+            prevPossession = isHome ? 'away' : 'home';
+          }
         } else if (DUEL_EVENTS.has(ev.type)) {
+          // A foul/card free kick goes to the OTHER (non-offending) team.
+          const offence = ev.type === 'foul' || ev.type === 'yellow_card' || ev.type === 'red_card';
+          const beatPossession: 'home' | 'away' = offence ? (isHome ? 'away' : 'home') : possession;
           const hl = new Set<string>();
           if (ev.playerId) hl.add(ev.playerId);
           const ball = { x: clamp(50 + (rng() * 2 - 1) * 18, 10, 90), y: 50 };
-          const players = placeBeatPlayers(baseHome, baseAway, possession, homeTactics, awayTactics, ball, removed, hl, { phaseTime: seq, lookup });
+          const players = placeBeatPlayers(baseHome, baseAway, beatPossession, homeTactics, awayTactics, ball, removed, hl, { phaseTime: seq, lookup });
           const self = ev.playerId ? players.find(p => p.id === ev.playerId) : null;
           const ballAt = self ? { ...self.point } : ball;
-          pushBeat(minute, ev.type, possession, ballAt, ev.playerId ?? null, 'idle', PITCH_CHOREO.ZOOM_WIDE, players, hl, ev.description);
+          pushBeat(minute, ev.type, beatPossession, ballAt, ev.playerId ?? null, 'idle', PITCH_CHOREO.ZOOM_WIDE, players, hl, ev.description);
+          prevPossession = beatPossession;
         } else if (SIDELINE_EVENTS.has(ev.type)) {
           const hl = new Set<string>();
           if (ev.playerId) hl.add(ev.playerId);
@@ -430,13 +466,19 @@ export function buildMatchTimeline(match: Match, homeClub: Club, awayClub: Club,
           const isReset = ev.type === 'kickoff' || ev.type === 'half_time';
           const players = placeBeatPlayers(baseHome, baseAway, possession, homeTactics, awayTactics, { x: 50, y: 50 }, removed, new Set(), { phaseTime: seq, lookup, kickoff: isReset });
           pushBeat(minute, ev.type, possession, { x: 50, y: 50 }, null, 'restart', PITCH_CHOREO.ZOOM_WIDE, players, new Set(), ev.description);
+          prevPossession = possession;
         }
 
         if (ev.type === 'red_card' && ev.playerId) removed.add(ev.playerId);
       }
     } else {
-      const possession: 'home' | 'away' = momentum >= 0 ? 'home' : 'away';
+      // Possession ebbs and flows, biased by momentum (50/50 at neutral), with a
+      // turnover beat whenever the ball changes hands — so an even game looks even.
+      const pHome = clamp(0.5 + momentum / 200, 0.1, 0.9);
+      const possession: 'home' | 'away' = rng() < pHome ? 'home' : 'away';
+      if (prevPossession && possession !== prevPossession) emitTurnover(minute, possession);
       emitPossession(minute, possession, null);
+      prevPossession = possession;
     }
   }
 
