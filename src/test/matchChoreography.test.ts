@@ -266,6 +266,53 @@ describe('buildMatchTimeline', () => {
       .toBeGreaterThan(homeMetric(tactics({ mentality: 'defensive' }), meanY));
   });
 
+  describe('set pieces & live tactics', () => {
+    it('stages a corner after a defended shot', () => {
+      const tl = buildMatchTimeline(makeMatch([ev(30, 'shot_saved', 'home', { playerId: 'home-p9' })]), home, away);
+      const idx = tl.beats.findIndex((b) => b.eventType === 'shot_saved');
+      const corner = tl.beats.slice(idx + 1, idx + 3).find((b) => b.ball.x <= 8 || b.ball.x >= 92);
+      expect(corner).toBeDefined();
+      expect(Math.max(corner!.ball.y, 100 - corner!.ball.y)).toBeGreaterThan(90); // up by the byline
+    });
+
+    it('lays out a penalty — taker on the spot, keeper on the line, box clear', () => {
+      const tl = buildMatchTimeline(
+        makeMatch([ev(40, 'penalty_scored', 'home', { playerId: 'home-p9', goalkeeperId: 'away-p1' })]),
+        home,
+        away,
+      );
+      const setup = tl.beats.find((b) => b.eventType === null && b.ballCarrierId === 'home-p9' && Math.abs(b.ball.x - 50) < 2 && b.ball.y > 80);
+      expect(setup).toBeDefined();
+      expect(setup!.players.find((p) => p.id === 'home-p9')!.point.y).toBeGreaterThan(78);
+      expect(setup!.players.find((p) => p.id === 'away-p1')!.point.y).toBeGreaterThan(94);
+      expect(setup!.players.filter((p) => p.point.y > 86).length).toBeLessThanOrEqual(2); // not a box scramble
+    });
+
+    it('plays a counter-attack as a fast vertical break', () => {
+      const tl = buildMatchTimeline(makeMatch([ev(50, 'counter_attack_goal', 'home', { playerId: 'home-p9' })]), home, away);
+      expect(tl.beats.filter((b) => b.minute === 50 && b.ballMotion === 'longball').length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('reshapes a team when its AI mentality changes mid-match', () => {
+      const tl = buildMatchTimeline(
+        makeMatch([ev(20, 'ai_tactical_change', 'home', { description: 'Home switch to attacking mentality' })]),
+        home,
+        away,
+        { tactics: { home: tactics({ mentality: 'defensive' }), away: tactics() } },
+      );
+      const meanY = (b: { players: { team: string; point: { y: number } }[] }) => {
+        const ps = b.players.filter((p) => p.team === 'home');
+        return ps.reduce((a, p) => a + p.point.y, 0) / ps.length;
+      };
+      const before = tl.beats.filter((b) => b.minute < 20 && b.possession === 'home' && b.ballCarrierId);
+      const after = tl.beats.filter((b) => b.minute > 20 && b.possession === 'home' && b.ballCarrierId);
+      const avg = (arr: typeof before) => arr.reduce((a, b) => a + meanY(b), 0) / arr.length;
+      expect(before.length).toBeGreaterThan(0);
+      expect(after.length).toBeGreaterThan(0);
+      expect(avg(after)).toBeGreaterThan(avg(before));
+    });
+  });
+
   describe('defensive shape', () => {
     // First in-possession beat: home attacks, away defends.
     const tl = buildMatchTimeline(makeMatch([]), home, away);
