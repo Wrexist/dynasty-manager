@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { MatchTimeline, PitchQuality } from '@/types/game';
-import { createPlayback, advancePlayback, samplePlayback, type PlaybackState, type RenderFrame } from '@/engine/match/pitchFrame';
+import { createPlayback, seekPlayback, advancePlayback, samplePlayback, type PlaybackState, type RenderFrame } from '@/engine/match/pitchFrame';
 import { PITCH_RENDER } from '@/config/pitchChoreography';
 
 // Art-directed pitch renderer with a broadcast follow-cam, parabolic ball arcs
@@ -15,6 +15,8 @@ interface PitchCanvasProps {
   quality: PitchQuality;
   homeColor: string;
   awayColor: string;
+  /** Seed the playhead at this minute instead of kickoff (used by goal replays). */
+  startMinute?: number;
   /** 'portrait' = goals top/bottom; 'landscape' = goals left/right (sideways). */
   orientation?: 'portrait' | 'landscape';
   /** Render the player's own team attacking toward the far goal (up / right). */
@@ -35,7 +37,7 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
 interface View { zoom: number; cx: number; cy: number }
 interface Pt { sx: number; sy: number }
 
-export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, orientation = 'portrait', flip = false, reducedMotion = false, className }: PitchCanvasProps) {
+export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, startMinute, orientation = 'portrait', flip = false, reducedMotion = false, className }: PitchCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const minuteRef = useRef(minute);
   const playbackRef = useRef<PlaybackState>(createPlayback());
@@ -56,6 +58,8 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, o
     let h = 0;
     const dpr = Math.min(window.devicePixelRatio || 1, quality.dprCap);
     const land = orientation === 'landscape';
+    // Replays seed the playhead mid-timeline; live view starts at kickoff.
+    playbackRef.current = startMinute != null ? seekPlayback(timeline.beats, startMinute) : createPlayback();
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
@@ -348,7 +352,7 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, o
       trailRef.current = [];
       playbackRef.current = createPlayback();
     };
-  }, [timeline, quality, homeColor, awayColor, orientation, flip, reducedMotion]);
+  }, [timeline, quality, homeColor, awayColor, startMinute, orientation, flip, reducedMotion]);
 
   return <canvas ref={canvasRef} className={className} aria-hidden="true" />;
 }

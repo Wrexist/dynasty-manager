@@ -85,6 +85,14 @@ export interface PlaybackSample {
 
 export const createPlayback = (): PlaybackState => ({ index: 0, t: 0 });
 
+/** Seed a playhead at the first beat on/after `minute` (used by goal replays to
+ *  start mid-timeline instead of from kickoff). */
+export function seekPlayback(beats: MatchBeat[], minute: number): PlaybackState {
+  if (!beats.length) return createPlayback();
+  const i = beats.findIndex((b) => b.minute >= minute);
+  return { index: i < 0 ? beats.length - 1 : i, t: 0 };
+}
+
 const smoothstep = (t: number) => t * t * (3 - 2 * t);
 
 /**
