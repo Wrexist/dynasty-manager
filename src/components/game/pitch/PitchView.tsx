@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import type { Club, Match, MatchEvent } from '@/types/game';
+import type { Club, Match, MatchEvent, Player, TacticalInstructions } from '@/types/game';
 import { buildMatchTimeline } from '@/engine/match/choreography';
 import { latestGoalAt } from '@/engine/match/pitchFrame';
 import { hapticSuccess } from '@/utils/haptics';
@@ -27,6 +27,11 @@ interface PitchViewProps {
   minute: number;
   /** True when the human manager's club is the home side. */
   playerIsHome: boolean;
+  /** Resolved per-side tactics (player club = live tactics, opponent = AI default). */
+  homeTactics?: TacticalInstructions;
+  awayTactics?: TacticalInstructions;
+  /** Player lookup so shooting/passing attributes shape the choreography. */
+  players?: Record<string, Player>;
   reducedMotion?: boolean;
 }
 
@@ -40,7 +45,7 @@ const CAPTIONED_TYPES = new Set<MatchEvent['type']>([
 interface Celebration { key: string; color: string; text: string; minute: string }
 
 export default function PitchView({
-  match, homeClub, awayClub, events, minute, playerIsHome, reducedMotion,
+  match, homeClub, awayClub, events, minute, playerIsHome, homeTactics, awayTactics, players, reducedMotion,
 }: PitchViewProps) {
   const quality = useMemo(() => detectPitchQuality(!!reducedMotion), [reducedMotion]);
 
@@ -60,9 +65,12 @@ export default function PitchView({
 
   // Rebuild as more events reveal; seed is id-stable so shown beats don't jump.
   const timeline = useMemo(
-    () => buildMatchTimeline({ ...match, events }, homeClub, awayClub),
+    () => buildMatchTimeline({ ...match, events }, homeClub, awayClub, {
+      tactics: homeTactics && awayTactics ? { home: homeTactics, away: awayTactics } : undefined,
+      players,
+    }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [match.id, events.length, homeClub.id, awayClub.id, homeClub.formation, awayClub.formation],
+    [match.id, events.length, homeClub.id, awayClub.id, homeClub.formation, awayClub.formation, homeTactics, awayTactics],
   );
 
   // Most recent captionable event at or before the current minute.

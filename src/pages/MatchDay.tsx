@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } fro
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useGameStore } from '@/store/gameStore';
 import { readMatchViewMode, writeMatchViewMode } from '@/store/helpers/persistence';
+import { DEFAULT_PITCH_TACTICS } from '@/config/pitchChoreography';
 import type { MatchViewMode } from '@/types/game';
 
 // Lazy so the pitch renderer + choreographer never touch the eager bundle.
@@ -1604,6 +1605,9 @@ const MatchDayInner = () => {
                   events={visibleEvents}
                   minute={currentMin}
                   playerIsHome={playerClubId === match.homeClubId}
+                  homeTactics={match.homeClubId === playerClubId ? tactics : (homeClub.aiManagerProfile?.defaultTactics ?? DEFAULT_PITCH_TACTICS)}
+                  awayTactics={match.awayClubId === playerClubId ? tactics : (awayClub.aiManagerProfile?.defaultTactics ?? DEFAULT_PITCH_TACTICS)}
+                  players={players}
                   reducedMotion={settings.reducedMotion || settings.performanceMode}
                 />
               </Suspense>

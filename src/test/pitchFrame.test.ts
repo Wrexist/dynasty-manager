@@ -20,6 +20,7 @@ const beat = (minute: number, seq: number, over: Partial<MatchBeat> = {}): Match
   minute,
   eventType: null,
   possession: 'home',
+  ballCarrierId: null,
   ball: { x: minute, y: minute },
   ballMotion: 'pass',
   ballArc: 0,

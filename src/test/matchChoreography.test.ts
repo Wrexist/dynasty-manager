@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { buildMatchTimeline } from '@/engine/match/choreography';
-import type { Match, Club, MatchEvent } from '@/types/game';
+import type { Match, Club, MatchEvent, TacticalInstructions } from '@/types/game';
+
+const tactics = (over: Partial<TacticalInstructions> = {}): TacticalInstructions =>
+  ({ mentality: 'balanced', width: 'normal', tempo: 'normal', defensiveLine: 'normal', pressingIntensity: 50, ...over });
 
 function makeClub(id: string, over: Partial<Club> = {}): Club {
   return {
@@ -172,5 +175,34 @@ describe('buildMatchTimeline', () => {
     expect(timeline.awayColor).toBe('#1d4ed8');
     expect(timeline.homeClubId).toBe('home');
     expect(timeline.awayClubId).toBe('away');
+  });
+
+  it('keeps the ball at the ball-carrier’s feet during possession', () => {
+    const timeline = buildMatchTimeline(makeMatch([]), home, away);
+    const beat = timeline.beats.find((b) => b.ballCarrierId);
+    expect(beat).toBeDefined();
+    const carrier = beat!.players.find((p) => p.id === beat!.ballCarrierId);
+    expect(carrier).toBeDefined();
+    expect(beat!.ball.x).toBeCloseTo(carrier!.point.x, 5);
+    expect(beat!.ball.y).toBeCloseTo(carrier!.point.y, 5);
+  });
+
+  const homeMetric = (t: TacticalInstructions, fn: (xs: number[], ys: number[]) => number) => {
+    const tl = buildMatchTimeline(makeMatch([]), home, away, { tactics: { home: t, away: tactics() } });
+    const ps = tl.beats[0].players.filter((p) => p.team === 'home');
+    return fn(ps.map((p) => p.point.x), ps.map((p) => p.point.y));
+  };
+
+  it('spreads wide players wider under a wide width than a narrow one', () => {
+    const spread = (xs: number[]) => Math.max(...xs) - Math.min(...xs);
+    expect(homeMetric(tactics({ width: 'wide' }), (xs) => spread(xs)))
+      .toBeGreaterThan(homeMetric(tactics({ width: 'narrow' }), (xs) => spread(xs)));
+  });
+
+  it('pushes the possessing team further forward under an attacking mentality', () => {
+    const meanY = (_xs: number[], ys: number[]) => ys.reduce((a, b) => a + b, 0) / ys.length;
+    // Home attacks +y, so a higher mean y = more advanced.
+    expect(homeMetric(tactics({ mentality: 'attacking' }), meanY))
+      .toBeGreaterThan(homeMetric(tactics({ mentality: 'defensive' }), meanY));
   });
 });
