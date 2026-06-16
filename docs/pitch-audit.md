@@ -153,12 +153,16 @@ Ordered by value-per-effort and risk. Each phase is independently shippable.
    `frameForMinute` kept as a tested utility (#14).
 5. ✅ Tests for possession bias, alternation, and the post-goal restart.
 
-### Phase B — Set pieces & live tactics (realism core)
-1. **Corners** (crowd the box) and **free-kick** staging (wall + taker).
-2. **Penalty** staging; then **penalty shootout on the pitch** (#2).
-3. **Live tactics** re-resolved on `ai_tactical_change` (#6).
-4. **Counter-attack** fast-break staging.
-5. Tests for each staging branch.
+### Phase B — Set pieces & live tactics (realism core) — ✅ DONE (shootout deferred)
+1. ✅ **Corners** after defended shots (attackers crowd the box, defenders pack
+   the goal) and **free-kick** setup + curl.
+2. ✅ **Penalty tableau** (taker on the spot, keeper on the line, box clear).
+   ⏭️ **Penalty shootout on the pitch** still deferred (interactive phase — needs a
+   visual pass).
+3. ✅ **Live tactics** re-resolved from `ai_tactical_change` (mentality reshapes
+   the block).
+4. ✅ **Counter-attacks** staged as fast vertical long-ball breaks.
+5. ✅ Tests for corner, penalty, counter, and the live-tactics reshape.
 
 ### Phase C — Graphics polish
 1. **Net ripple** on goals + sync celebration to the on-pitch finish (#10).
