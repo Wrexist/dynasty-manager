@@ -32,6 +32,8 @@ interface PitchViewProps {
   awayTactics?: TacticalInstructions;
   /** Player lookup so shooting/passing attributes shape the choreography. */
   players?: Record<string, Player>;
+  /** 'landscape' renders a short, wide sideways pitch (used in split view). */
+  orientation?: 'portrait' | 'landscape';
   reducedMotion?: boolean;
 }
 
@@ -45,15 +47,17 @@ const CAPTIONED_TYPES = new Set<MatchEvent['type']>([
 interface Celebration { key: string; color: string; text: string; minute: string }
 
 export default function PitchView({
-  match, homeClub, awayClub, events, minute, playerIsHome, homeTactics, awayTactics, players, reducedMotion,
+  match, homeClub, awayClub, events, minute, playerIsHome, homeTactics, awayTactics, players, orientation = 'portrait', reducedMotion,
 }: PitchViewProps) {
+  const landscape = orientation === 'landscape';
   const quality = useMemo(() => detectPitchQuality(!!reducedMotion), [reducedMotion]);
 
   // Use the WebGL "Stunning" tier only on capable hardware; auto-fall back to
   // Canvas if Pixi fails to init or throws at runtime.
   const [pixiFailed, setPixiFailed] = useState(false);
+  // Landscape (split view) uses the Canvas renderer — Pixi is portrait-only.
   const canUseWebgl = useMemo(() => quality.tier === 'high' && webglSupported(), [quality.tier]);
-  const useWebgl = canUseWebgl && !pixiFailed;
+  const useWebgl = canUseWebgl && !pixiFailed && !landscape;
 
   // Kit-clash legibility: if the two kits are too close, force the away side to
   // a light neutral so chips stay distinguishable (mirrors the momentum bar).
@@ -107,13 +111,13 @@ export default function PitchView({
   }, [events, minute, homeClub.id, homeColor, awayColor]);
 
   return (
-    <div className="relative w-full overflow-hidden rounded-xl border border-border/50 bg-black/20" style={{ aspectRatio: '68 / 104' }}>
+    <div className="relative w-full overflow-hidden rounded-xl border border-border/50 bg-black/20" style={{ aspectRatio: landscape ? '104 / 64' : '68 / 104' }}>
       {useWebgl ? (
         <ErrorBoundary fallback={() => (
-          <PitchCanvas timeline={timeline} minute={minute} quality={quality} homeColor={homeColor} awayColor={awayColor} flip={!playerIsHome} reducedMotion={reducedMotion} className="absolute inset-0 h-full w-full" />
+          <PitchCanvas timeline={timeline} minute={minute} quality={quality} homeColor={homeColor} awayColor={awayColor} orientation={orientation} flip={!playerIsHome} reducedMotion={reducedMotion} className="absolute inset-0 h-full w-full" />
         )}>
           <Suspense fallback={
-            <PitchCanvas timeline={timeline} minute={minute} quality={quality} homeColor={homeColor} awayColor={awayColor} flip={!playerIsHome} reducedMotion={reducedMotion} className="absolute inset-0 h-full w-full" />
+            <PitchCanvas timeline={timeline} minute={minute} quality={quality} homeColor={homeColor} awayColor={awayColor} orientation={orientation} flip={!playerIsHome} reducedMotion={reducedMotion} className="absolute inset-0 h-full w-full" />
           }>
             <PixiPitch
               timeline={timeline}
@@ -135,6 +139,7 @@ export default function PitchView({
           quality={quality}
           homeColor={homeColor}
           awayColor={awayColor}
+          orientation={orientation}
           flip={!playerIsHome}
           reducedMotion={reducedMotion}
           className="absolute inset-0 h-full w-full"

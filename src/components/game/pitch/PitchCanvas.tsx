@@ -3,19 +3,21 @@ import type { MatchTimeline, PitchQuality } from '@/types/game';
 import { createPlayback, advancePlayback, samplePlayback, type PlaybackState, type RenderFrame } from '@/engine/match/pitchFrame';
 import { PITCH_RENDER } from '@/config/pitchChoreography';
 
-// Art-directed top-down pitch renderer with a broadcast follow-cam, parabolic
-// ball arcs and a motion trail. Consumes a MatchTimeline + current minute; eases
-// the displayed frame and camera toward the active beat each animation frame.
-// DOM/Canvas only — positional logic lives in the pure choreographer + helpers.
+// Art-directed pitch renderer with a broadcast follow-cam, parabolic ball arcs
+// and a motion trail. Consumes a MatchTimeline + current minute; eases the
+// displayed frame and camera toward the active beat each animation frame.
+// Supports portrait (goals top/bottom) and landscape (goals left/right) via a
+// coordinate-transpose so the split view can show a short, wide pitch.
 
 interface PitchCanvasProps {
   timeline: MatchTimeline;
   minute: number;
   quality: PitchQuality;
-  /** Effective team colours (kit-clash-adjusted by the caller). */
   homeColor: string;
   awayColor: string;
-  /** Render the player's own team attacking upward (defending the bottom goal). */
+  /** 'portrait' = goals top/bottom; 'landscape' = goals left/right (sideways). */
+  orientation?: 'portrait' | 'landscape';
+  /** Render the player's own team attacking toward the far goal (up / right). */
   flip?: boolean;
   /** Snap + hold a static wide view (reduced-motion / performance mode). */
   reducedMotion?: boolean;
@@ -31,8 +33,9 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
 interface View { zoom: number; cx: number; cy: number }
+interface Pt { sx: number; sy: number }
 
-export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, flip = false, reducedMotion = false, className }: PitchCanvasProps) {
+export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, orientation = 'portrait', flip = false, reducedMotion = false, className }: PitchCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const minuteRef = useRef(minute);
   const playbackRef = useRef<PlaybackState>(createPlayback());
@@ -52,6 +55,7 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, f
     let w = 0;
     let h = 0;
     const dpr = Math.min(window.devicePixelRatio || 1, quality.dprCap);
+    const land = orientation === 'landscape';
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
@@ -64,61 +68,85 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, f
     const ro = new ResizeObserver(resize);
     ro.observe(canvas);
 
-    // Base geometry (zoom = 1). The camera transform scales around the focus.
+    // Project a pitch point (px = width 0-100, py = length 0-100) to screen.
+    // Portrait: width→x, length→y (home goal at bottom unless flipped).
+    // Landscape: length→x, width→y (home goal at left unless flipped).
     const geom = () => {
       const pad = Math.min(w, h) * 0.06;
-      const fw = w - pad * 2;
-      const fh = h - pad * 2;
-      const mapX = (px: number) => pad + (px / 100) * fw;
-      const mapY = (py: number) => (flip ? pad + (py / 100) * fh : pad + (1 - py / 100) * fh);
-      return { fx: pad, fy: pad, fw, fh, mapX, mapY };
+      const innerW = w - pad * 2;
+      const innerH = h - pad * 2;
+      const project = (px: number, py: number): Pt => {
+        if (land) {
+          const lx = flip ? 1 - py / 100 : py / 100;
+          return { sx: pad + lx * innerW, sy: pad + (px / 100) * innerH };
+        }
+        const ly = flip ? py / 100 : 1 - py / 100;
+        return { sx: pad + (px / 100) * innerW, sy: pad + ly * innerH };
+      };
+      // Line widths / radii scale with the short axis so they look consistent
+      // in either orientation.
+      const unit = Math.min(innerW, innerH);
+      return { pad, innerW, innerH, project, unit };
     };
 
     const drawField = () => {
-      const { fx, fy, fw, fh, mapX, mapY } = geom();
+      const { pad, innerW, innerH, project, unit } = geom();
+      const rect = (ax: number, ay: number, bx: number, by: number) => {
+        const a = project(ax, ay);
+        const b = project(bx, by);
+        return { x: Math.min(a.sx, b.sx), y: Math.min(a.sy, b.sy), w: Math.abs(b.sx - a.sx), h: Math.abs(b.sy - a.sy) };
+      };
       ctx.fillStyle = TURF_DARK;
-      ctx.fillRect(fx, fy, fw, fh);
+      ctx.fillRect(pad, pad, innerW, innerH);
+      // Mowing stripes run across the pitch length.
       const stripes = 9;
       for (let i = 0; i < stripes; i++) {
+        const band = rect(0, (i / stripes) * 100, 100, ((i + 1) / stripes) * 100);
         ctx.fillStyle = i % 2 === 0 ? TURF_LIGHT : TURF_DARK;
-        ctx.fillRect(fx, fy + (i / stripes) * fh, fw, fh / stripes + 1);
+        ctx.fillRect(band.x, band.y, band.w + 1, band.h + 1);
       }
       if (quality.gradient) {
-        const lg = ctx.createLinearGradient(0, fy, 0, fy + fh);
+        const lg = ctx.createLinearGradient(0, pad, 0, pad + innerH);
         lg.addColorStop(0, 'rgba(0,0,0,0.26)');
         lg.addColorStop(0.55, 'rgba(0,0,0,0)');
         lg.addColorStop(1, 'rgba(255,255,255,0.06)');
         ctx.fillStyle = lg;
-        ctx.fillRect(fx, fy, fw, fh);
+        ctx.fillRect(pad, pad, innerW, innerH);
       }
 
-      ctx.lineWidth = Math.max(1, fw * 0.006);
+      ctx.lineWidth = Math.max(1, unit * 0.006);
       ctx.strokeStyle = LINE;
-      ctx.strokeRect(fx, fy, fw, fh);
+      ctx.strokeRect(pad, pad, innerW, innerH);
+      const seg = (ax: number, ay: number, bx: number, by: number) => {
+        const a = project(ax, ay);
+        const b = project(bx, by);
+        ctx.beginPath();
+        ctx.moveTo(a.sx, a.sy);
+        ctx.lineTo(b.sx, b.sy);
+        ctx.stroke();
+      };
+      seg(0, 50, 100, 50); // halfway
+      const c = project(50, 50);
       ctx.beginPath();
-      ctx.moveTo(mapX(0), mapY(50));
-      ctx.lineTo(mapX(100), mapY(50));
-      ctx.stroke();
-      const r = (9 / 100) * fw;
-      ctx.beginPath();
-      ctx.arc(mapX(50), mapY(50), r, 0, Math.PI * 2);
+      ctx.arc(c.sx, c.sy, (9 / 100) * unit, 0, Math.PI * 2);
       ctx.stroke();
       ctx.fillStyle = LINE;
       ctx.beginPath();
-      ctx.arc(mapX(50), mapY(50), Math.max(1.5, fw * 0.008), 0, Math.PI * 2);
+      ctx.arc(c.sx, c.sy, Math.max(1.5, unit * 0.008), 0, Math.PI * 2);
       ctx.fill();
 
       const box = (goalY: number, dir: 1 | -1) => {
-        const pY = goalY + dir * 16;
-        const sY = goalY + dir * 6;
-        ctx.strokeRect(mapX(21), Math.min(mapY(goalY), mapY(pY)), mapX(79) - mapX(21), Math.abs(mapY(pY) - mapY(goalY)));
-        ctx.strokeRect(mapX(37), Math.min(mapY(goalY), mapY(sY)), mapX(63) - mapX(37), Math.abs(mapY(sY) - mapY(goalY)));
+        const pa = rect(21, goalY, 79, goalY + dir * 16);
+        ctx.strokeRect(pa.x, pa.y, pa.w, pa.h);
+        const sa = rect(37, goalY, 63, goalY + dir * 6);
+        ctx.strokeRect(sa.x, sa.y, sa.w, sa.h);
+        const spot = project(50, goalY + dir * 11);
         ctx.fillStyle = LINE;
         ctx.beginPath();
-        ctx.arc(mapX(50), mapY(goalY + dir * 11), Math.max(1.2, fw * 0.006), 0, Math.PI * 2);
+        ctx.arc(spot.sx, spot.sy, Math.max(1.2, unit * 0.006), 0, Math.PI * 2);
         ctx.fill();
         ctx.beginPath();
-        ctx.arc(mapX(50), mapY(goalY + dir * 11), (7 / 100) * fw, 0, Math.PI * 2);
+        ctx.arc(spot.sx, spot.sy, (7 / 100) * unit, 0, Math.PI * 2);
         ctx.stroke();
       };
       box(0, 1);
@@ -126,31 +154,32 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, f
     };
 
     const drawTrail = (color: string) => {
-      const { fw, mapX, mapY } = geom();
+      const { project, unit } = geom();
       const pts = trailRef.current;
       if (pts.length < 2) return;
-      const baseWidth = Math.max(1, fw * 0.01);
+      const baseWidth = Math.max(1, unit * 0.01);
       for (let i = 1; i < pts.length; i++) {
         const a = i / pts.length;
+        const p0 = project(pts[i - 1].x, pts[i - 1].y);
+        const p1 = project(pts[i].x, pts[i].y);
         ctx.strokeStyle = color;
         ctx.globalAlpha = a * 0.4;
         ctx.lineWidth = baseWidth * a;
         ctx.beginPath();
-        ctx.moveTo(mapX(pts[i - 1].x), mapY(pts[i - 1].y));
-        ctx.lineTo(mapX(pts[i].x), mapY(pts[i].y));
+        ctx.moveTo(p0.sx, p0.sy);
+        ctx.lineTo(p1.sx, p1.sy);
         ctx.stroke();
       }
       ctx.globalAlpha = 1;
     };
 
     const drawFrame = (frame: RenderFrame, liftPx: number) => {
-      const { fw, fh, mapX, mapY } = geom();
-      const chipR = Math.max(5, fw * 0.028);
-      const ballR = Math.max(3, fw * 0.016);
+      const { innerH, project, unit } = geom();
+      const chipR = Math.max(5, unit * 0.028);
+      const ballR = Math.max(3, unit * 0.016);
 
       for (const p of frame.players) {
-        const cx = mapX(p.point.x);
-        const cy = mapY(p.point.y);
+        const { sx: cx, sy: cy } = project(p.point.x, p.point.y);
         const color = p.team === 'home' ? homeColor : awayColor;
         ctx.fillStyle = 'rgba(0,0,0,0.35)';
         ctx.beginPath();
@@ -175,7 +204,6 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, f
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(String(p.number), cx, cy + 0.5);
-        // Surname above the chip (outlined for legibility on the turf).
         if (p.name) {
           ctx.font = `600 ${Math.round(chipR * 0.78)}px 'DM Sans', system-ui, sans-serif`;
           ctx.textBaseline = 'bottom';
@@ -188,11 +216,10 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, f
       }
 
       // Ball: ground shadow stays planted, ball lifts by the arc offset.
-      const bx = mapX(frame.ball.x);
-      const by = mapY(frame.ball.y);
+      const { sx: bx, sy: by } = project(frame.ball.x, frame.ball.y);
       ctx.fillStyle = 'rgba(0,0,0,0.4)';
       ctx.beginPath();
-      ctx.ellipse(bx, by + ballR * 0.7, ballR * (0.9 + liftPx / (fh || 1)), ballR * 0.4, 0, 0, Math.PI * 2);
+      ctx.ellipse(bx, by + ballR * 0.7, ballR * (0.9 + liftPx / (innerH || 1)), ballR * 0.4, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
@@ -223,11 +250,9 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, f
       }
       const frame = sample.frame;
       const beat = sample.beat;
-      // Ball arc is a function of the in-flight transition toward `next`.
       const liftArc = sample.next ? sample.next.ballArc : 0;
       const liftT = sample.t;
 
-      // Trail (most-recent-last).
       if (quality.trailLen > 0) {
         trailRef.current.push({ x: frame.ball.x, y: frame.ball.y });
         if (trailRef.current.length > quality.trailLen) trailRef.current.shift();
@@ -248,14 +273,13 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, f
       }
       const view = viewRef.current;
 
-      // Compose camera transform: scale around the focus, clamped so the field
-      // always fills the viewport.
-      const { fx, fy, fw, fh, mapX, mapY } = geom();
+      const { pad, innerW, innerH, project } = geom();
+      const focus = project(view.cx, view.cy);
       const z = view.zoom;
       const halfW = (w / 2) / z;
       const halfH = (h / 2) / z;
-      const fsx = fw >= 2 * halfW ? clamp(mapX(view.cx), fx + halfW, fx + fw - halfW) : fx + fw / 2;
-      const fsy = fh >= 2 * halfH ? clamp(mapY(view.cy), fy + halfH, fy + fh - halfH) : fy + fh / 2;
+      const fsx = innerW >= 2 * halfW ? clamp(focus.sx, pad + halfW, pad + innerW - halfW) : pad + innerW / 2;
+      const fsy = innerH >= 2 * halfH ? clamp(focus.sy, pad + halfH, pad + innerH - halfH) : pad + innerH / 2;
 
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.fillStyle = TURF_DARK;
@@ -267,11 +291,10 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, f
 
       drawField();
       if (quality.trailLen > 0) drawTrail(beat.possession === 'home' ? homeColor : awayColor);
-      const liftPx = liftArc > 0 && !reducedMotion ? liftArc * (fh / 100) * PITCH_RENDER.ARC_LIFT_SCALE * Math.sin(Math.PI * liftT) : 0;
+      const liftPx = liftArc > 0 && !reducedMotion ? liftArc * (innerH / 100) * PITCH_RENDER.ARC_LIFT_SCALE * Math.sin(Math.PI * liftT) : 0;
       drawFrame(frame, liftPx);
 
       ctx.restore();
-      // Vignette in screen space (outside the camera transform).
       if (quality.vignette) {
         const vg = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.32, w / 2, h / 2, Math.max(w, h) * 0.72);
         vg.addColorStop(0, 'rgba(0,0,0,0)');
@@ -292,7 +315,7 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, f
       trailRef.current = [];
       playbackRef.current = createPlayback();
     };
-  }, [timeline, quality, homeColor, awayColor, flip, reducedMotion]);
+  }, [timeline, quality, homeColor, awayColor, orientation, flip, reducedMotion]);
 
   return <canvas ref={canvasRef} className={className} aria-hidden="true" />;
 }

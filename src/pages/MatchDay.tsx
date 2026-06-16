@@ -1608,6 +1608,7 @@ const MatchDayInner = () => {
                   homeTactics={match.homeClubId === playerClubId ? tactics : (homeClub.aiManagerProfile?.defaultTactics ?? DEFAULT_PITCH_TACTICS)}
                   awayTactics={match.awayClubId === playerClubId ? tactics : (awayClub.aiManagerProfile?.defaultTactics ?? DEFAULT_PITCH_TACTICS)}
                   players={players}
+                  orientation={matchView === 'split' ? 'landscape' : 'portrait'}
                   reducedMotion={settings.reducedMotion || settings.performanceMode}
                 />
               </Suspense>
