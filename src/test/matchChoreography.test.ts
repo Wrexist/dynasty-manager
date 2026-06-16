@@ -244,4 +244,26 @@ describe('buildMatchTimeline', () => {
     expect(homeMetric(tactics({ mentality: 'attacking' }), meanY))
       .toBeGreaterThan(homeMetric(tactics({ mentality: 'defensive' }), meanY));
   });
+
+  describe('defensive shape', () => {
+    // First in-possession beat: home attacks, away defends.
+    const tl = buildMatchTimeline(makeMatch([]), home, away);
+    const beat = tl.beats.find((b) => b.ballCarrierId && b.possession === 'home')!;
+    const awayPlayers = beat.players.filter((p) => p.team === 'away');
+    const dist = (p: { point: { x: number; y: number } }) => Math.hypot(p.point.x - beat.ball.x, p.point.y - beat.ball.y);
+
+    it('holds a line and never collapses onto the keeper', () => {
+      // At most the GK should be jammed on the goal line (y > 94 for away).
+      expect(awayPlayers.filter((p) => p.point.y > 94).length).toBeLessThanOrEqual(2);
+    });
+
+    it('does not send the whole defence at the ball', () => {
+      // Plenty of defenders hold their shape well away from the ball…
+      expect(awayPlayers.filter((p) => dist(p) > 25).length).toBeGreaterThanOrEqual(4);
+      // …but at least one player presses it.
+      expect(awayPlayers.filter((p) => dist(p) < 18).length).toBeGreaterThanOrEqual(1);
+      // …and not the entire team.
+      expect(awayPlayers.filter((p) => dist(p) < 18).length).toBeLessThanOrEqual(4);
+    });
+  });
 });
