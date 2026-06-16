@@ -53,6 +53,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Refreshed the improvement backlog to reflect the current state of `main`.',
     'Plan for 2.5D immersive match view (pitch visualization).',
     'Highlight: Watch your matches play out live on a beautiful 2.5D pitch — flowing passes, tactical shape, goal celebrations and more.',
+    'Improved: Cleaner, more realistic 2.5D match view — goal nets, smart name labels, teams that push upfield, and instant goal replays.',
   ],
   fixed: [],
   headline: null,
