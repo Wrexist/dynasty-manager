@@ -10,15 +10,18 @@ export interface MatchSpeedOption {
   pro: boolean;       // Requires Dynasty Pro to unlock
 }
 
+// Calibrated so a normal 90-minute match at 1x runs ~5 minutes of real time
+// (~90 minute-ticks × 3300ms ≈ 4.95 min). The faster tiers stay proportional to
+// their labels.
 export const MATCH_SPEEDS: MatchSpeedOption[] = [
-  { value: 1200, label: 'Slow',    shortLabel: '0.5x', pro: false },
-  { value: 600,  label: 'Normal',  shortLabel: '1x',   pro: false },
-  { value: 200,  label: 'Fast',    shortLabel: '2x',   pro: false },
-  { value: 80,   label: 'Turbo',   shortLabel: '4x',   pro: true  },
-  { value: 20,   label: 'Instant', shortLabel: '10x',  pro: true  },
+  { value: 6600, label: 'Slow',    shortLabel: '0.5x', pro: false },
+  { value: 3300, label: 'Normal',  shortLabel: '1x',   pro: false },
+  { value: 1650, label: 'Fast',    shortLabel: '2x',   pro: false },
+  { value: 825,  label: 'Turbo',   shortLabel: '4x',   pro: true  },
+  { value: 330,  label: 'Instant', shortLabel: '10x',  pro: true  },
 ];
 
-export const DEFAULT_MATCH_SPEED = 600;
+export const DEFAULT_MATCH_SPEED = 3300;
 
 /**
  * Minimum ms-per-minute when the 2.5D pitch view is on screen. The pitch plays

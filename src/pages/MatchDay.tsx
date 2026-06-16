@@ -160,7 +160,10 @@ const MatchDayInner = () => {
     // the control.
     const saved = settings.matchSpeed || DEFAULT_MATCH_SPEED;
     const tier = MATCH_SPEEDS.find(t => t.value === saved);
-    return tier?.pro && !isPro(useGameStore.getState().monetization) ? DEFAULT_MATCH_SPEED : saved;
+    // A persisted value from an older speed ladder won't match any tier — snap
+    // it to the current default so the calibrated pace applies.
+    if (!tier) return DEFAULT_MATCH_SPEED;
+    return tier.pro && !isPro(useGameStore.getState().monetization) ? DEFAULT_MATCH_SPEED : saved;
   });
   const [paused, setPaused] = useState(false);
   const [subSheetOpen, setSubSheetOpen] = useState(false);
