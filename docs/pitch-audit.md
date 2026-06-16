@@ -142,14 +142,16 @@ src/types/game.ts                  ← MatchTimeline/MatchBeat/ChoreoPlayer/Pitc
 
 Ordered by value-per-effort and risk. Each phase is independently shippable.
 
-### Phase A — Correctness & continuity (fixes the jarring gaps)
-1. Render the pitch during **half-time** (static tactical board) and **pre/post**
-   states; keep commentary fallback.
-2. **Possession realism**: alternate possession using `momentum` magnitude +
-   `homePossession`; add **turnover beats** on team change (kills #3, #4).
-3. **Post-goal centre restart** beat (#9).
-4. Fix **foul possession side** (#15); tidy `frameForMinute` (#14).
-5. Tests for possession alternation + turnovers.
+### Phase A — Correctness & continuity (fixes the jarring gaps) — ✅ DONE
+1. ✅ Pitch stays on screen at **half-time** as a tactical board (Pitch/Split).
+   *(pre/post states still text — minor follow-up.)*
+2. ✅ **Possession realism**: momentum-biased ebb and flow (50/50 at neutral) +
+   **turnover beats** on every change of hands (fixes #3, #4).
+3. ✅ **Post-goal centre restart** by the conceding side (#9); shots hand the ball
+   to the other team.
+4. ✅ Fixed **foul/card possession side** (free kick to the non-offending team, #15).
+   `frameForMinute` kept as a tested utility (#14).
+5. ✅ Tests for possession bias, alternation, and the post-goal restart.
 
 ### Phase B — Set pieces & live tactics (realism core)
 1. **Corners** (crowd the box) and **free-kick** staging (wall + taker).
