@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import type { Club, Match, MatchEvent, Player, TacticalInstructions } from '@/types/game';
 import { buildMatchTimeline } from '@/engine/match/choreography';
 import { latestGoalAt } from '@/engine/match/pitchFrame';
@@ -93,6 +93,14 @@ export default function PitchView({
   const [celebration, setCelebration] = useState<Celebration | null>(null);
   const initRef = useRef(false);
   const lastGoalKeyRef = useRef<string | null>(null);
+
+  // Brief "you attack this way" cue at kickoff.
+  const [showDir, setShowDir] = useState(true);
+  useEffect(() => {
+    const id = setTimeout(() => setShowDir(false), 4200);
+    return () => clearTimeout(id);
+  }, []);
+  const playerClub = playerIsHome ? homeClub : awayClub;
   useEffect(() => {
     const g = latestGoalAt(events, minute);
     const key = g ? `${g.minute}-${g.type}-${g.playerId ?? ''}` : null;
@@ -147,6 +155,22 @@ export default function PitchView({
       )}
 
       <WeatherOverlay weather={match.weather?.weather} density={quality.weatherScale} reducedMotion={reducedMotion} />
+
+      <AnimatePresence>
+        {showDir && (
+          <motion.div
+            className="pointer-events-none absolute left-1/2 top-2 -translate-x-1/2"
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+          >
+            <div className="flex items-center gap-1 rounded-full bg-card/75 px-2.5 py-1 backdrop-blur-md border border-border/40">
+              <span className="text-[10px] font-semibold text-foreground">{playerClub.shortName} attack</span>
+              <span className="text-primary text-xs leading-none">{landscape ? '→' : '↑'}</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {celebration && (

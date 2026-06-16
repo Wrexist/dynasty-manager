@@ -104,6 +104,8 @@ interface PlaceOpts {
   lookup?: Record<string, Player>;
   /** Kickoff/restart posture: both teams in resting formation, no block shift. */
   kickoff?: boolean;
+  /** Extra forward push for the possessing team (team advances as it keeps the ball). */
+  extraPush?: number;
 }
 
 /** Position all 22 players for a beat: tactical rest pose + attack/defend block
@@ -119,7 +121,7 @@ function placeBeatPlayers(
   const out: ChoreoPlayer[] = [];
   const place = (squad: BasePlayer[], team: 'home' | 'away', tactics: TacticalInstructions) => {
     const attacking = team === possession;
-    const push = attacking ? PITCH_CHOREO.ATTACK_SHIFT * MENTALITY_PUSH[tactics.mentality] : PITCH_CHOREO.DEFEND_SHIFT;
+    const push = attacking ? PITCH_CHOREO.ATTACK_SHIFT * MENTALITY_PUSH[tactics.mentality] + (o.extraPush ?? 0) : PITCH_CHOREO.DEFEND_SHIFT;
     const shift = o.kickoff ? 0 : attackDir * push;
     for (const p of squad) {
       if (p.id && removed.has(p.id)) continue;
@@ -252,7 +254,8 @@ export function buildMatchTimeline(match: Match, homeClub: Club, awayClub: Club,
       possession, endId, passes, rng, lookup,
     );
     chain.forEach((carrier, idx) => {
-      const players = placeBeatPlayers(baseHome, baseAway, possession, homeTactics, awayTactics, removed, highlightFor(carrier.id), { phaseTime: seq, lookup });
+      const extraPush = Math.min(idx * PITCH_CHOREO.POSSESSION_ADVANCE, PITCH_CHOREO.POSSESSION_ADVANCE_MAX);
+      const players = placeBeatPlayers(baseHome, baseAway, possession, homeTactics, awayTactics, removed, highlightFor(carrier.id), { phaseTime: seq, lookup, extraPush });
       const self = players.find(p => p.id === carrier.id) ?? carrier;
       const motion: PitchMotionKind = idx === 0 ? 'dribble' : 'pass';
       pushBeat(minute, null, possession, { ...self.point }, carrier.id, motion, zoomFor(possession, self.point),
