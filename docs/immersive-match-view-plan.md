@@ -418,6 +418,18 @@ Raises the ceiling on capable devices; choreographer unchanged (same
   continuous beat-sequencer playback so intra-minute set-piece sub-beats surface
   (changes timing semantics — best validated visually).
 
+- ✅ **Phase 5 (realism pass, from first visual feedback).** The pitch was
+  smooth-but-fake: ball floated free, no passing, too fast. Fixed by: (a) a
+  **continuous beat sequencer** that plays *through* every beat over wall-clock
+  time so passes/runs animate (was snapping one beat per minute); (b) flooring
+  the match tick to 1500 ms/min while the pitch is shown; (c) **ball-carrier
+  pass chains** — the ball lives at a player's feet and travels teammate→
+  teammate; (d) **tactics-driven shape** — width, mentality, defensive line and
+  tempo move the block and trigger wide runs; (e) **player stats** — shooters
+  and set-piece/penalty takers are staged on the ball with accuracy scaled by
+  shooting. New `ballCarrierId` on each beat. Tests cover the sequencer, ball-on-
+  carrier, width spread and mentality push.
+
 > **Recommendation:** the free Canvas pitch (Phases 1–3) is shippable and is the
 > right point to get real eyes on it before investing in Pixi or audio. Run
 > `npm run dev`, watch a match on the Pitch tab, and feed visual notes back.

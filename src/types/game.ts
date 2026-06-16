@@ -401,6 +401,8 @@ export interface ChoreoPlayer {
   pos: Position;
   /** Display shirt-number fallback (slot order, 1 = GK). */
   number: number;
+  /** Short display name (last name) shown above the chip, when known. */
+  name?: string;
   point: PitchPoint;
   /** True when this player is the focus of the current beat (scorer, keeper, …). */
   highlighted: boolean;
@@ -418,6 +420,8 @@ export interface MatchBeat {
   /** Driving event type, or null for a possession (keep-ball) filler beat. */
   eventType: MatchEvent['type'] | null;
   possession: 'home' | 'away';
+  /** Player whose feet the ball is at this beat (null while the ball is in flight). */
+  ballCarrierId: string | null;
   ball: PitchPoint;
   ballMotion: PitchMotionKind;
   /** Vertical arc height of the ball's travel into this beat (0 = ground). */

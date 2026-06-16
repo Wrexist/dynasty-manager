@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } fro
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useGameStore } from '@/store/gameStore';
 import { readMatchViewMode, writeMatchViewMode } from '@/store/helpers/persistence';
+import { DEFAULT_PITCH_TACTICS } from '@/config/pitchChoreography';
 import type { MatchViewMode } from '@/types/game';
 
 // Lazy so the pitch renderer + choreographer never touch the eager bundle.
@@ -28,7 +29,7 @@ import { TacticalPanel } from '@/components/game/TacticalPanel';
 import { enrichDescription } from '@/utils/matchCommentary';
 import { CommentaryRow } from '@/components/game/CommentaryRow';
 import { isStructuredEvent } from '@/utils/matchEventDisplay';
-import { MATCH_SPEEDS, DEFAULT_MATCH_SPEED } from '@/config/matchSpeed';
+import { MATCH_SPEEDS, DEFAULT_MATCH_SPEED, PITCH_VIEW_MIN_SPEED } from '@/config/matchSpeed';
 import { analyzeHalftime } from '@/config/halftimeAnalysis';
 import { TEAM_TALK_OPTIONS } from '@/config/ui';
 import { MENTALITIES, getAvailableFormations } from '@/config/tactics';
@@ -505,9 +506,9 @@ const MatchDayInner = () => {
         clearInterval(intervalRef.current!);
         setKeyMoment(moment);
       }
-    }, speed);
+    }, matchView === 'commentary' ? speed : Math.max(speed, PITCH_VIEW_MIN_SPEED));
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [phase, allEvents, speed, keyMoment, paused]);
+  }, [phase, allEvents, speed, keyMoment, paused, matchView]);
 
   // Persist speed preference to settings so it carries across matches.
   // Intentionally depends only on `speed`: `settings.matchSpeed` would cause
@@ -1604,6 +1605,10 @@ const MatchDayInner = () => {
                   events={visibleEvents}
                   minute={currentMin}
                   playerIsHome={playerClubId === match.homeClubId}
+                  homeTactics={match.homeClubId === playerClubId ? tactics : (homeClub.aiManagerProfile?.defaultTactics ?? DEFAULT_PITCH_TACTICS)}
+                  awayTactics={match.awayClubId === playerClubId ? tactics : (awayClub.aiManagerProfile?.defaultTactics ?? DEFAULT_PITCH_TACTICS)}
+                  players={players}
+                  orientation={matchView === 'split' ? 'landscape' : 'portrait'}
                   reducedMotion={settings.reducedMotion || settings.performanceMode}
                 />
               </Suspense>

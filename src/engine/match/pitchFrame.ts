@@ -56,6 +56,81 @@ export function frameForMinute(timeline: MatchTimeline, minute: number): MatchBe
   return ans >= 0 ? beats[ans] : beats[0];
 }
 
+// ── Continuous beat sequencer ─────────────────────────────────────────────
+// The renderer plays *through* every beat over wall-clock time (so passes/runs
+// are visible) rather than snapping to the last beat of the current minute. The
+// playhead is bounded by the revealed match minute and catches up if it lags.
+
+export interface PlaybackState {
+  index: number;
+  /** Progress 0..1 toward the next beat. */
+  t: number;
+}
+
+export interface PlaybackOpts {
+  beatMs: number;
+  catchupLagMinutes: number;
+  catchupScale: number;
+}
+
+export interface PlaybackSample {
+  frame: RenderFrame;
+  /** The beat currently being eased *from* (drives possession/caption/camera). */
+  beat: MatchBeat;
+  /** The beat being eased *toward*, or null when holding at the live edge/end. */
+  next: MatchBeat | null;
+  /** Raw linear progress toward `next` (for ball-arc timing). */
+  t: number;
+}
+
+export const createPlayback = (): PlaybackState => ({ index: 0, t: 0 });
+
+const smoothstep = (t: number) => t * t * (3 - 2 * t);
+
+/**
+ * Advance the playhead by `dtMs`. Moves to the next beat once the transition
+ * completes, but never past a beat whose minute exceeds `maxMinute` (can't show
+ * unrevealed play) — it holds at the live edge instead. Speeds up when lagging.
+ */
+export function advancePlayback(
+  beats: MatchBeat[],
+  state: PlaybackState,
+  dtMs: number,
+  maxMinute: number,
+  opts: PlaybackOpts,
+): { state: PlaybackState; justAdvanced: boolean } {
+  if (!beats.length) return { state, justAdvanced: false };
+  let index = Math.min(Math.max(0, state.index), beats.length - 1);
+  let t = state.t;
+  const scale = beats[index].minute < maxMinute - opts.catchupLagMinutes ? opts.catchupScale : 1;
+  t += (dtMs * scale) / Math.max(1, opts.beatMs);
+  let justAdvanced = false;
+  while (t >= 1) {
+    const nxt = index + 1;
+    if (nxt < beats.length && beats[nxt].minute <= maxMinute) {
+      index = nxt;
+      t -= 1;
+      justAdvanced = true;
+    } else {
+      t = 1;
+      break;
+    }
+  }
+  return { state: { index, t }, justAdvanced };
+}
+
+/** Sample the interpolated frame for the current playhead. */
+export function samplePlayback(beats: MatchBeat[], state: PlaybackState, maxMinute: number): PlaybackSample | null {
+  if (!beats.length) return null;
+  const index = Math.min(Math.max(0, state.index), beats.length - 1);
+  const from = beats[index];
+  const nextIdx = index + 1;
+  const hasNext = nextIdx < beats.length && beats[nextIdx].minute <= maxMinute;
+  const to = hasNext ? beats[nextIdx] : null;
+  const frame = to ? lerpFrames(from, to, smoothstep(state.t)) : { ball: from.ball, players: from.players };
+  return { frame, beat: from, next: to, t: state.t };
+}
+
 /**
  * Interpolate between two frames. Players are matched by stable key, so:
  *  - shared players ease from→to,

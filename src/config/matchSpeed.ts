@@ -19,3 +19,13 @@ export const MATCH_SPEEDS: MatchSpeedOption[] = [
 ];
 
 export const DEFAULT_MATCH_SPEED = 600;
+
+/**
+ * Minimum ms-per-minute when the 2.5D pitch view is on screen. The pitch plays
+ * a chain of passes/runs per minute, so it needs real time to breathe — we floor
+ * the tick well above the fastest commentary speeds so the action stays legible
+ * and lifelike instead of strobing. Commentary-only keeps the user's chosen
+ * speed (including Turbo/Instant).
+ */
+export const PITCH_VIEW_MIN_SPEED = 1500;
+
