@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { MatchTimeline, PitchQuality } from '@/types/game';
-import { frameForMinute, lerpFrames, type RenderFrame } from '@/engine/match/pitchFrame';
+import { createPlayback, advancePlayback, samplePlayback, type PlaybackState, type RenderFrame } from '@/engine/match/pitchFrame';
 import { PITCH_RENDER } from '@/config/pitchChoreography';
 
 // Art-directed top-down pitch renderer with a broadcast follow-cam, parabolic
@@ -35,11 +35,9 @@ interface View { zoom: number; cx: number; cy: number }
 export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, flip = false, reducedMotion = false, className }: PitchCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const minuteRef = useRef(minute);
-  const frameRef = useRef<RenderFrame | null>(null);
+  const playbackRef = useRef<PlaybackState>(createPlayback());
   const viewRef = useRef<View | null>(null);
   const trailRef = useRef<{ x: number; y: number }[]>([]);
-  const arcRef = useRef<{ t: number; arc: number; dur: number }>({ t: 1, arc: 0, dur: 600 });
-  const lastSeqRef = useRef<number>(-1);
   const rafRef = useRef<number>(0);
   const lastTsRef = useRef<number>(0);
 
@@ -199,28 +197,25 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, f
       const dt = lastTsRef.current ? Math.min(ts - lastTsRef.current, 64) : 16;
       lastTsRef.current = ts;
 
-      const beat = frameForMinute(timeline, minuteRef.current);
-      if (!beat) {
+      // Play *through* the beats (so passes/runs animate), bounded by the
+      // revealed minute. Reduced motion snaps near-instantly.
+      const playMs = reducedMotion ? 60 : PITCH_RENDER.BEAT_PLAY_MS;
+      const adv = advancePlayback(timeline.beats, playbackRef.current, dt, minuteRef.current, {
+        beatMs: playMs,
+        catchupLagMinutes: PITCH_RENDER.CATCHUP_LAG_MIN,
+        catchupScale: PITCH_RENDER.CATCHUP_SCALE,
+      });
+      playbackRef.current = adv.state;
+      const sample = samplePlayback(timeline.beats, playbackRef.current, minuteRef.current);
+      if (!sample) {
         rafRef.current = requestAnimationFrame(tick);
         return;
       }
-
-      // Ease the displayed frame toward the active beat.
-      const target: RenderFrame = { ball: beat.ball, players: beat.players };
-      if (!frameRef.current) frameRef.current = target;
-      else {
-        const a = reducedMotion ? 1 : 1 - Math.exp(-dt / PITCH_RENDER.MOTION_TAU);
-        frameRef.current = lerpFrames(frameRef.current, target, a);
-      }
-      const frame = frameRef.current;
-
-      // Kick off a ball arc when entering a new lofted beat.
-      if (beat.seq !== lastSeqRef.current) {
-        lastSeqRef.current = beat.seq;
-        if (!reducedMotion && beat.ballArc > 0) arcRef.current = { t: 0, arc: beat.ballArc, dur: Math.max(200, beat.durationMs) };
-      }
-      const arc = arcRef.current;
-      if (arc.t < 1) arc.t = Math.min(1, arc.t + dt / arc.dur);
+      const frame = sample.frame;
+      const beat = sample.beat;
+      // Ball arc is a function of the in-flight transition toward `next`.
+      const liftArc = sample.next ? sample.next.ballArc : 0;
+      const liftT = sample.t;
 
       // Trail (most-recent-last).
       if (quality.trailLen > 0) {
@@ -262,7 +257,7 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, f
 
       drawField();
       if (quality.trailLen > 0) drawTrail(beat.possession === 'home' ? homeColor : awayColor);
-      const liftPx = arc.arc > 0 ? arc.arc * (fh / 100) * PITCH_RENDER.ARC_LIFT_SCALE * Math.sin(Math.PI * arc.t) : 0;
+      const liftPx = liftArc > 0 && !reducedMotion ? liftArc * (fh / 100) * PITCH_RENDER.ARC_LIFT_SCALE * Math.sin(Math.PI * liftT) : 0;
       drawFrame(frame, liftPx);
 
       ctx.restore();
@@ -285,6 +280,7 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, f
       lastTsRef.current = 0;
       viewRef.current = null;
       trailRef.current = [];
+      playbackRef.current = createPlayback();
     };
   }, [timeline, quality, homeColor, awayColor, flip, reducedMotion]);
 

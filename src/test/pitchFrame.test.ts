@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { frameForMinute, lerpFrames, latestGoalAt, type RenderFrame } from '@/engine/match/pitchFrame';
+import {
+  frameForMinute, lerpFrames, latestGoalAt, createPlayback, advancePlayback, samplePlayback,
+  type RenderFrame, type PlaybackOpts, type PlaybackState,
+} from '@/engine/match/pitchFrame';
 import type { MatchTimeline, MatchBeat, ChoreoPlayer, MatchEvent } from '@/types/game';
 
 const player = (over: Partial<ChoreoPlayer> = {}): ChoreoPlayer => ({
@@ -136,5 +139,50 @@ describe('latestGoalAt', () => {
 
   it('counts own goals as goals', () => {
     expect(latestGoalAt([mk(30, 'own_goal')], 90)!.type).toBe('own_goal');
+  });
+});
+
+describe('beat sequencer', () => {
+  const opts: PlaybackOpts = { beatMs: 500, catchupLagMinutes: 2, catchupScale: 3 };
+  const beats = [beat(0, 0), beat(0, 1), beat(1, 2), beat(2, 3), beat(40, 4)];
+
+  it('advances to the next beat once a transition completes', () => {
+    const s = createPlayback();
+    // maxMinute 2: index 0 (minute 0) is within catch-up lag, so play at 1x.
+    const r = advancePlayback(beats, s, 500, 2, opts); // one full beat
+    expect(r.justAdvanced).toBe(true);
+    expect(r.state.index).toBe(1);
+    expect(r.state.t).toBeCloseTo(0, 5);
+  });
+
+  it('holds at the live edge — never plays beats past the revealed minute', () => {
+    // maxMinute = 0 → only the two minute-0 beats are playable.
+    let s = createPlayback();
+    for (let i = 0; i < 10; i++) s = advancePlayback(beats, s, 500, 0, opts).state;
+    expect(beats[s.index].minute).toBe(0);
+    expect(s.index).toBe(1); // reached the last minute-0 beat and held
+    expect(s.t).toBe(1);
+  });
+
+  it('speeds up (catch-up) when lagging far behind the revealed minute', () => {
+    // index 0 (minute 0) vs maxMinute 40 → lag triggers catchupScale.
+    const normal = advancePlayback(beats, createPlayback(), 100, 0, opts).state.t;
+    const caught = advancePlayback(beats, createPlayback(), 100, 40, opts).state.t;
+    expect(caught).toBeGreaterThan(normal);
+  });
+
+  it('samples an interpolated frame between the current and next beat', () => {
+    const s: PlaybackState = { index: 0, t: 0.5 };
+    const sample = samplePlayback(beats, s, 90)!;
+    expect(sample.beat.seq).toBe(0);
+    expect(sample.next!.seq).toBe(1);
+    expect(sample.t).toBe(0.5);
+  });
+
+  it('holds (no next) at the live edge when the following beat is unrevealed', () => {
+    const s: PlaybackState = { index: 1, t: 1 };
+    const sample = samplePlayback(beats, s, 0)!; // minute-1 beat not revealed
+    expect(sample.next).toBeNull();
+    expect(sample.frame.ball).toEqual(beats[1].ball);
   });
 });

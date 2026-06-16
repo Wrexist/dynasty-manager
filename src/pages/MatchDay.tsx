@@ -28,7 +28,7 @@ import { TacticalPanel } from '@/components/game/TacticalPanel';
 import { enrichDescription } from '@/utils/matchCommentary';
 import { CommentaryRow } from '@/components/game/CommentaryRow';
 import { isStructuredEvent } from '@/utils/matchEventDisplay';
-import { MATCH_SPEEDS, DEFAULT_MATCH_SPEED } from '@/config/matchSpeed';
+import { MATCH_SPEEDS, DEFAULT_MATCH_SPEED, PITCH_VIEW_MIN_SPEED } from '@/config/matchSpeed';
 import { analyzeHalftime } from '@/config/halftimeAnalysis';
 import { TEAM_TALK_OPTIONS } from '@/config/ui';
 import { MENTALITIES, getAvailableFormations } from '@/config/tactics';
@@ -505,9 +505,9 @@ const MatchDayInner = () => {
         clearInterval(intervalRef.current!);
         setKeyMoment(moment);
       }
-    }, speed);
+    }, matchView === 'commentary' ? speed : Math.max(speed, PITCH_VIEW_MIN_SPEED));
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [phase, allEvents, speed, keyMoment, paused]);
+  }, [phase, allEvents, speed, keyMoment, paused, matchView]);
 
   // Persist speed preference to settings so it carries across matches.
   // Intentionally depends only on `speed`: `settings.matchSpeed` would cause

@@ -59,4 +59,11 @@ export const PITCH_RENDER = {
   TRAIL_LEN: 14,
   /** Peak ball lift (as a fraction of field height per unit of beat ballArc). */
   ARC_LIFT_SCALE: 0.7,
+  /** Wall-clock time the renderer spends easing through one beat (ms). Tuned so
+   *  a minute's worth of pass/run beats fits the pitch-view tick. */
+  BEAT_PLAY_MS: 520,
+  /** If the played beat lags the revealed minute by more than this, speed up. */
+  CATCHUP_LAG_MIN: 2,
+  /** dt multiplier applied while catching up. */
+  CATCHUP_SCALE: 3,
 } as const;
