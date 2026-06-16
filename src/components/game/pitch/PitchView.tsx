@@ -3,7 +3,6 @@ import { AnimatePresence } from 'framer-motion';
 import type { Club, Match, MatchEvent, Player, TacticalInstructions } from '@/types/game';
 import { buildMatchTimeline } from '@/engine/match/choreography';
 import { latestGoalAt } from '@/engine/match/pitchFrame';
-import { hapticSuccess } from '@/utils/haptics';
 import { detectPitchQuality, webglSupported } from '@/utils/pitchQuality';
 import { areColorsSimilar } from '@/utils/uiHelpers';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -104,9 +103,10 @@ export default function PitchView({
     }
     if (g && key && key !== lastGoalKeyRef.current) {
       lastGoalKeyRef.current = key;
+      // Haptics are owned by MatchDay (success if you scored, heavy if conceded);
+      // firing here too would double-buzz and ignore the success/heavy split.
       const color = g.clubId === homeClub.id ? homeColor : awayColor;
       setCelebration({ key, color: color || '#f5b915', text: g.description, minute: g.displayMinute || `${g.minute}'` });
-      hapticSuccess();
     }
   }, [events, minute, homeClub.id, homeColor, awayColor]);
 

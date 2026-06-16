@@ -304,6 +304,13 @@ export function buildMatchTimeline(match: Match, homeClub: Club, awayClub: Club,
           if (ev.playerId) hl.add(ev.playerId);
           const players = placeBeatPlayers(baseHome, baseAway, possession, homeTactics, awayTactics, removed, hl, { phaseTime: seq, lookup });
           pushBeat(minute, ev.type, possession, { x: rng() < 0.5 ? 6 : 94, y: PITCH_CHOREO.MIDFIELD_Y }, null, 'idle', PITCH_CHOREO.ZOOM_WIDE, players, hl, ev.description);
+          // Reflect the swap: the incoming player (playerId) takes the slot of the
+          // outgoing player (assistPlayerId), so subsequent beats show them on.
+          if (ev.type === 'substitution' && ev.playerId && ev.assistPlayerId) {
+            const squad = isHome ? baseHome : baseAway;
+            const slot = squad.find(p => p.id === ev.assistPlayerId);
+            if (slot) slot.id = ev.playerId;
+          }
         } else {
           // Ambient: kickoff/half-time reset to the formation shape (no block
           // shift); other ambient lines keep the possessing team on the ball.
