@@ -133,6 +133,26 @@ export default function PixiPitch({
           };
           box(0, 1);
           box(100, -1);
+          // Goal frame + net behind each byline.
+          const goal = (lineY: number, dir: 1 | -1) => {
+            const depth = 4 * dir;
+            const x0 = mapX(43);
+            const x1 = mapX(57);
+            const y0 = mapY(lineY);
+            const y1 = mapY(lineY + depth);
+            fieldG.rect(Math.min(x0, x1), Math.min(y0, y1), Math.abs(x1 - x0), Math.abs(y1 - y0)).fill({ color: 0xffffff, alpha: 0.06 }).stroke({ width: Math.max(1.5, fw * 0.008), color: LINE, alpha: 0.85 });
+            const mesh = { width: Math.max(0.5, fw * 0.003), color: LINE, alpha: 0.22 };
+            for (let i = 1; i < 4; i++) {
+              const gx = mapX(43 + ((57 - 43) * i) / 4);
+              fieldG.moveTo(gx, y0).lineTo(gx, y1).stroke(mesh);
+            }
+            for (let j = 1; j < 3; j++) {
+              const gy = mapY(lineY + (depth * j) / 3);
+              fieldG.moveTo(x0, gy).lineTo(x1, gy).stroke(mesh);
+            }
+          };
+          goal(0, -1);
+          goal(100, 1);
         };
 
         app.ticker.add((ticker) => {
@@ -198,7 +218,9 @@ export default function PixiPitch({
               }
             }
 
-            // Chips + glow + numbers.
+            // Chips + glow + numbers. Names: carrier/highlighted always, the
+            // rest only when zoomed in (declutter).
+            const showAllNames = z >= PITCH_RENDER.NAME_ZOOM;
             const chipR = Math.max(5, fw * 0.028);
             chipsG.clear();
             glowG.clear();
@@ -223,7 +245,7 @@ export default function PixiPitch({
               }
               const nm = nameLabels[li];
               if (nm) {
-                if (p.name) {
+                if (p.name && (showAllNames || p.highlighted)) {
                   nm.visible = true;
                   nm.text = p.name;
                   nm.style.fontSize = Math.round(chipR * 0.8);

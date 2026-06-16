@@ -88,4 +88,7 @@ export const PITCH_RENDER = {
   CATCHUP_LAG_MIN: 2,
   /** dt multiplier applied while catching up. */
   CATCHUP_SCALE: 3,
+  /** Camera zoom at/above which *all* player names show; below it only the
+   *  ball-carrier + highlighted players are labelled (declutters at 375px). */
+  NAME_ZOOM: 1.3,
 } as const;

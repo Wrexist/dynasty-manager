@@ -151,6 +151,39 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, o
       };
       box(0, 1);
       box(100, -1);
+
+      // Goal frame + net mesh sticking out behind each byline.
+      const goal = (lineY: number, dir: 1 | -1) => {
+        const depth = 4 * dir;
+        const m = rect(43, lineY, 57, lineY + depth);
+        ctx.fillStyle = 'rgba(255,255,255,0.06)';
+        ctx.fillRect(m.x, m.y, m.w, m.h);
+        ctx.lineWidth = Math.max(1.5, unit * 0.008);
+        ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+        ctx.strokeRect(m.x, m.y, m.w, m.h);
+        ctx.lineWidth = Math.max(0.5, unit * 0.003);
+        ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+        for (let i = 1; i < 4; i++) {
+          const gx = 43 + ((57 - 43) * i) / 4;
+          const a = project(gx, lineY);
+          const b = project(gx, lineY + depth);
+          ctx.beginPath();
+          ctx.moveTo(a.sx, a.sy);
+          ctx.lineTo(b.sx, b.sy);
+          ctx.stroke();
+        }
+        for (let j = 1; j < 3; j++) {
+          const gy = lineY + (depth * j) / 3;
+          const a = project(43, gy);
+          const b = project(57, gy);
+          ctx.beginPath();
+          ctx.moveTo(a.sx, a.sy);
+          ctx.lineTo(b.sx, b.sy);
+          ctx.stroke();
+        }
+      };
+      goal(0, -1);
+      goal(100, 1);
     };
 
     const drawTrail = (color: string) => {
@@ -173,7 +206,7 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, o
       ctx.globalAlpha = 1;
     };
 
-    const drawFrame = (frame: RenderFrame, liftPx: number) => {
+    const drawFrame = (frame: RenderFrame, liftPx: number, showAllNames: boolean) => {
       const { innerH, project, unit } = geom();
       const chipR = Math.max(5, unit * 0.028);
       const ballR = Math.max(3, unit * 0.016);
@@ -204,7 +237,7 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, o
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(String(p.number), cx, cy + 0.5);
-        if (p.name) {
+        if (p.name && (showAllNames || p.highlighted)) {
           ctx.font = `600 ${Math.round(chipR * 0.78)}px 'DM Sans', system-ui, sans-serif`;
           ctx.textBaseline = 'bottom';
           ctx.lineWidth = Math.max(2, chipR * 0.3);
@@ -292,7 +325,7 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, o
       drawField();
       if (quality.trailLen > 0) drawTrail(beat.possession === 'home' ? homeColor : awayColor);
       const liftPx = liftArc > 0 && !reducedMotion ? liftArc * (innerH / 100) * PITCH_RENDER.ARC_LIFT_SCALE * Math.sin(Math.PI * liftT) : 0;
-      drawFrame(frame, liftPx);
+      drawFrame(frame, liftPx, view.zoom >= PITCH_RENDER.NAME_ZOOM);
 
       ctx.restore();
       if (quality.vignette) {
