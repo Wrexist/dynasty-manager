@@ -1,15 +1,16 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import type { Club, Match, MatchEvent, Player, TacticalInstructions } from '@/types/game';
 import { buildMatchTimeline } from '@/engine/match/choreography';
 import { latestGoalAt } from '@/engine/match/pitchFrame';
-import { hapticSuccess } from '@/utils/haptics';
 import { detectPitchQuality, webglSupported } from '@/utils/pitchQuality';
 import { areColorsSimilar } from '@/utils/uiHelpers';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { RotateCcw } from 'lucide-react';
 import { PitchCanvas } from './PitchCanvas';
 import { GoalCelebration } from './GoalCelebration';
 import { WeatherOverlay } from './WeatherOverlay';
+import { ReplayOverlay } from './ReplayOverlay';
 
 // WebGL tier is lazy: its pixi chunk only loads on capable devices.
 const PixiPitch = lazy(() => import('./PixiPitch'));
@@ -94,6 +95,18 @@ export default function PitchView({
   const [celebration, setCelebration] = useState<Celebration | null>(null);
   const initRef = useRef(false);
   const lastGoalKeyRef = useRef<string | null>(null);
+
+  // Goal replay: re-run the most recent goal's beats in an overlay.
+  const [replay, setReplay] = useState<{ from: number; to: number } | null>(null);
+  const lastGoal = useMemo(() => latestGoalAt(events, minute), [events, minute]);
+
+  // Brief "you attack this way" cue at kickoff.
+  const [showDir, setShowDir] = useState(true);
+  useEffect(() => {
+    const id = setTimeout(() => setShowDir(false), 4200);
+    return () => clearTimeout(id);
+  }, []);
+  const playerClub = playerIsHome ? homeClub : awayClub;
   useEffect(() => {
     const g = latestGoalAt(events, minute);
     const key = g ? `${g.minute}-${g.type}-${g.playerId ?? ''}` : null;
@@ -104,9 +117,10 @@ export default function PitchView({
     }
     if (g && key && key !== lastGoalKeyRef.current) {
       lastGoalKeyRef.current = key;
+      // Haptics are owned by MatchDay (success if you scored, heavy if conceded);
+      // firing here too would double-buzz and ignore the success/heavy split.
       const color = g.clubId === homeClub.id ? homeColor : awayColor;
       setCelebration({ key, color: color || '#f5b915', text: g.description, minute: g.displayMinute || `${g.minute}'` });
-      hapticSuccess();
     }
   }, [events, minute, homeClub.id, homeColor, awayColor]);
 
@@ -147,6 +161,51 @@ export default function PitchView({
       )}
 
       <WeatherOverlay weather={match.weather?.weather} density={quality.weatherScale} reducedMotion={reducedMotion} />
+
+      <AnimatePresence>
+        {showDir && (
+          <motion.div
+            className="pointer-events-none absolute left-1/2 top-2 -translate-x-1/2"
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+          >
+            <div className="flex items-center gap-1 rounded-full bg-card/75 px-2.5 py-1 backdrop-blur-md border border-border/40">
+              <span className="text-[10px] font-semibold text-foreground">{playerClub.shortName} attack</span>
+              <span className="text-primary text-xs leading-none">{landscape ? '→' : '↑'}</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Replay last goal — hidden during a celebration or an active replay. */}
+      {lastGoal && !celebration && !replay && (
+        <button
+          onClick={() => setReplay({ from: Math.max(0, lastGoal.minute - 3), to: lastGoal.minute + 1 })}
+          className="absolute right-2 top-2 z-10 flex items-center gap-1 rounded-full bg-card/75 px-2.5 py-1 backdrop-blur-md border border-border/40 active:scale-95"
+          aria-label="Replay last goal"
+        >
+          <RotateCcw className="h-3 w-3 text-primary" />
+          <span className="text-[10px] font-semibold text-foreground">Replay</span>
+        </button>
+      )}
+
+      <AnimatePresence>
+        {replay && (
+          <ReplayOverlay
+            timeline={timeline}
+            quality={quality}
+            homeColor={homeColor}
+            awayColor={awayColor}
+            from={replay.from}
+            to={replay.to}
+            flip={!playerIsHome}
+            orientation={orientation}
+            reducedMotion={reducedMotion}
+            onDone={() => setReplay(null)}
+          />
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {celebration && (

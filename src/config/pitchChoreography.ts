@@ -33,6 +33,11 @@ export const PITCH_CHOREO = {
   LINE_DEEP: 5,
   /** Passes per possession by tempo (sets beats-per-minute, paced by the sequencer). */
   PASSES_BY_TEMPO: { slow: 1, normal: 2, fast: 3 },
+  /** Extra forward push added to the attacking block per pass, so the team
+   *  visibly advances up the pitch as it keeps the ball. */
+  POSSESSION_ADVANCE: 5,
+  /** Cap on the cumulative possession advance. */
+  POSSESSION_ADVANCE_MAX: 16,
   /** Amplitude of the smooth deterministic idle sway (replaces random jitter,
    *  so players glide instead of vibrate). */
   SWAY_AMP: 1.5,
@@ -88,4 +93,7 @@ export const PITCH_RENDER = {
   CATCHUP_LAG_MIN: 2,
   /** dt multiplier applied while catching up. */
   CATCHUP_SCALE: 3,
+  /** Camera zoom at/above which *all* player names show; below it only the
+   *  ball-carrier + highlighted players are labelled (declutters at 375px). */
+  NAME_ZOOM: 1.3,
 } as const;

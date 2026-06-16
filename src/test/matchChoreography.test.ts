@@ -153,6 +153,19 @@ describe('buildMatchTimeline', () => {
     expect(after!.players.filter((p) => p.team === 'home').length).toBe(10);
   });
 
+  it('swaps a substituted-on player onto the pitch after the substitution', () => {
+    const timeline = buildMatchTimeline(
+      makeMatch([ev(60, 'substitution', 'home', { playerId: 'home-sub1', assistPlayerId: 'home-p7' })]),
+      home,
+      away,
+    );
+    const after = timeline.beats.find((b) => b.minute === 75)!;
+    const ids = after.players.map((p) => p.id);
+    expect(ids).not.toContain('home-p7'); // came off
+    expect(ids).toContain('home-sub1'); // came on
+    expect(after.players.filter((p) => p.team === 'home')).toHaveLength(11); // still 11
+  });
+
   it('drives filler possession from momentum sign', () => {
     const timeline = buildMatchTimeline(
       makeMatch([ev(10, 'foul', 'away', { momentum: -40 })]),

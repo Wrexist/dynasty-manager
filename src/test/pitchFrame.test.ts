@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  frameForMinute, lerpFrames, latestGoalAt, createPlayback, advancePlayback, samplePlayback,
+  frameForMinute, lerpFrames, latestGoalAt, createPlayback, advancePlayback, samplePlayback, seekPlayback,
   type RenderFrame, type PlaybackOpts, type PlaybackState,
 } from '@/engine/match/pitchFrame';
 import type { MatchTimeline, MatchBeat, ChoreoPlayer, MatchEvent } from '@/types/game';
@@ -185,5 +185,13 @@ describe('beat sequencer', () => {
     const sample = samplePlayback(beats, s, 0)!; // minute-1 beat not revealed
     expect(sample.next).toBeNull();
     expect(sample.frame.ball).toEqual(beats[1].ball);
+  });
+
+  it('seeks the playhead to the first beat on/after a minute', () => {
+    expect(seekPlayback(beats, 0).index).toBe(0);
+    expect(seekPlayback(beats, 1).index).toBe(2); // first beat at minute 1
+    expect(seekPlayback(beats, 2).index).toBe(3);
+    expect(seekPlayback(beats, 999).index).toBe(beats.length - 1); // clamp to last
+    expect(seekPlayback([], 5)).toEqual({ index: 0, t: 0 });
   });
 });
