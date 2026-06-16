@@ -175,6 +175,16 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, f
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(String(p.number), cx, cy + 0.5);
+        // Surname above the chip (outlined for legibility on the turf).
+        if (p.name) {
+          ctx.font = `600 ${Math.round(chipR * 0.78)}px 'DM Sans', system-ui, sans-serif`;
+          ctx.textBaseline = 'bottom';
+          ctx.lineWidth = Math.max(2, chipR * 0.3);
+          ctx.strokeStyle = 'rgba(0,0,0,0.75)';
+          ctx.strokeText(p.name, cx, cy - chipR * 1.15);
+          ctx.fillStyle = 'rgba(255,255,255,0.95)';
+          ctx.fillText(p.name, cx, cy - chipR * 1.15);
+        }
       }
 
       // Ball: ground shadow stays planted, ball lifts by the arc offset.

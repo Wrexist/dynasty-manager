@@ -82,14 +82,20 @@ export default function PixiPitch({
         world.addChild(fieldG, glowG, trailG, chipsG, numbers, ballG);
         app.stage.addChild(world);
 
-        // Pool of 22 jersey-number labels, updated in place each frame.
+        // Pools of 22 jersey-number labels + 22 surname labels, updated in place.
         const labels: Text[] = [];
+        const nameLabels: Text[] = [];
         for (let i = 0; i < 22; i++) {
           const t = new Text({ text: '', style: { fontFamily: 'Oswald, sans-serif', fontSize: 16, fill: '#ffffff', fontWeight: '700' } });
           t.anchor.set(0.5);
           t.visible = false;
           numbers.addChild(t);
           labels.push(t);
+          const n = new Text({ text: '', style: { fontFamily: 'DM Sans, sans-serif', fontSize: 12, fill: '#ffffff', fontWeight: '600', stroke: { color: '#000000', width: 3 } } });
+          n.anchor.set(0.5, 1);
+          n.visible = false;
+          numbers.addChild(n);
+          nameLabels.push(n);
         }
 
         const geom = () => {
@@ -208,15 +214,27 @@ export default function PixiPitch({
                 glowG.circle(cx, cy, chipR + chipR * 0.35).fill({ color: GOLD, alpha: 0.22 });
               }
               chipsG.circle(cx, cy, chipR).fill(color || '#888888').stroke({ width: Math.max(1, chipR * 0.14), color: 0x000000, alpha: 0.55 });
-              const t = labels[li++];
+              const t = labels[li];
               if (t) {
                 t.visible = true;
                 t.text = String(p.number);
                 t.style.fontSize = Math.round(chipR * 1.1);
                 t.position.set(cx, cy);
               }
+              const nm = nameLabels[li];
+              if (nm) {
+                if (p.name) {
+                  nm.visible = true;
+                  nm.text = p.name;
+                  nm.style.fontSize = Math.round(chipR * 0.8);
+                  nm.position.set(cx, cy - chipR * 1.15);
+                } else {
+                  nm.visible = false;
+                }
+              }
+              li++;
             }
-            for (; li < labels.length; li++) labels[li].visible = false;
+            for (; li < labels.length; li++) { labels[li].visible = false; nameLabels[li].visible = false; }
 
             // Ball with additive glow + arc lift.
             const liftPx = liftArc > 0 && !reducedMotion ? liftArc * (fh / 100) * PITCH_RENDER.ARC_LIFT_SCALE * Math.sin(Math.PI * liftT) : 0;

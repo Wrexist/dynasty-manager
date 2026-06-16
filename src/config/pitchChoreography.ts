@@ -33,10 +33,13 @@ export const PITCH_CHOREO = {
   LINE_DEEP: 5,
   /** Passes per possession by tempo (sets beats-per-minute, paced by the sequencer). */
   PASSES_BY_TEMPO: { slow: 1, normal: 2, fast: 3 },
-  /** Max off-ball positional jitter for "breathing" (outfield players). */
-  JITTER: 2.2,
-  /** Keeper jitter (kept small so the GK reads as anchored). */
-  GK_JITTER: 0.4,
+  /** Amplitude of the smooth deterministic idle sway (replaces random jitter,
+   *  so players glide instead of vibrate). */
+  SWAY_AMP: 1.5,
+  /** How fast the idle sway evolves per beat. */
+  SWAY_FREQ: 0.55,
+  /** Keeper sway is a fraction of the outfield amplitude (reads as anchored). */
+  GK_SWAY_FACTOR: 0.3,
   /** How strongly a highlighted player is pulled toward the ball (0-1). */
   HIGHLIGHT_PULL_X: 0.6,
   HIGHLIGHT_PULL_Y: 0.55,

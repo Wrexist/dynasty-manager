@@ -401,6 +401,8 @@ export interface ChoreoPlayer {
   pos: Position;
   /** Display shirt-number fallback (slot order, 1 = GK). */
   number: number;
+  /** Short display name (last name) shown above the chip, when known. */
+  name?: string;
   point: PitchPoint;
   /** True when this player is the focus of the current beat (scorer, keeper, …). */
   highlighted: boolean;

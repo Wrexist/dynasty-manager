@@ -177,6 +177,30 @@ describe('buildMatchTimeline', () => {
     expect(timeline.awayClubId).toBe('away');
   });
 
+  it('opens on the resting formation shape with the ball at centre', () => {
+    const timeline = buildMatchTimeline(makeMatch([ev(0, 'kickoff', 'home')]), home, away);
+    const first = timeline.beats[0];
+    expect(first.ball).toEqual({ x: 50, y: 50 });
+    expect(first.ballCarrierId).toBeNull();
+    expect(first.players.filter((p) => p.team === 'home')).toHaveLength(11);
+    expect(first.players.filter((p) => p.team === 'away')).toHaveLength(11);
+    // Resting: home in its own half (y < 50), away in theirs (y > 50).
+    const homeMeanY = first.players.filter((p) => p.team === 'home').reduce((a, p) => a + p.point.y, 0) / 11;
+    const awayMeanY = first.players.filter((p) => p.team === 'away').reduce((a, p) => a + p.point.y, 0) / 11;
+    expect(homeMeanY).toBeLessThan(50);
+    expect(awayMeanY).toBeGreaterThan(50);
+  });
+
+  it('labels chips with player surnames when a lookup is supplied', () => {
+    const players = {
+      'home-p9': { lastName: 'Striker', attributes: { passing: 70, shooting: 88 } },
+      'away-p1': { lastName: 'Keeper', attributes: { passing: 50, shooting: 30 } },
+    } as unknown as Record<string, import('@/types/game').Player>;
+    const timeline = buildMatchTimeline(makeMatch([]), home, away, { players });
+    const named = timeline.beats[0].players.find((p) => p.id === 'home-p9');
+    expect(named!.name).toBe('Striker');
+  });
+
   it('keeps the ball at the ball-carrier’s feet during possession', () => {
     const timeline = buildMatchTimeline(makeMatch([]), home, away);
     const beat = timeline.beats.find((b) => b.ballCarrierId);
@@ -189,7 +213,9 @@ describe('buildMatchTimeline', () => {
 
   const homeMetric = (t: TacticalInstructions, fn: (xs: number[], ys: number[]) => number) => {
     const tl = buildMatchTimeline(makeMatch([]), home, away, { tactics: { home: t, away: tactics() } });
-    const ps = tl.beats[0].players.filter((p) => p.team === 'home');
+    // First in-possession beat (home on the ball) — block shift + width applied.
+    const b = tl.beats.find((bt) => bt.ballCarrierId && bt.possession === 'home')!;
+    const ps = b.players.filter((p) => p.team === 'home');
     return fn(ps.map((p) => p.point.x), ps.map((p) => p.point.y));
   };
 

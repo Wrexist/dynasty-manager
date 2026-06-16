@@ -98,37 +98,49 @@ function baseTeam(club: Club, team: 'home' | 'away', tactics: TacticalInstructio
   });
 }
 
+interface PlaceOpts {
+  /** Continuous time (beat seq) driving the smooth idle sway. */
+  phaseTime: number;
+  lookup?: Record<string, Player>;
+  /** Kickoff/restart posture: both teams in resting formation, no block shift. */
+  kickoff?: boolean;
+}
+
 /** Position all 22 players for a beat: tactical rest pose + attack/defend block
- *  shift + forward runs for wide attackers + breathing jitter. */
+ *  shift + forward runs for wide attackers + a *smooth deterministic* idle sway
+ *  (so players glide rather than vibrate). */
 function placeBeatPlayers(
   baseHome: BasePlayer[], baseAway: BasePlayer[],
   possession: 'home' | 'away',
   homeTactics: TacticalInstructions, awayTactics: TacticalInstructions,
-  removed: Set<string>, highlight: Set<string>, rng: () => number,
+  removed: Set<string>, highlight: Set<string>, o: PlaceOpts,
 ): ChoreoPlayer[] {
   const attackDir = possession === 'home' ? 1 : -1;
   const out: ChoreoPlayer[] = [];
   const place = (squad: BasePlayer[], team: 'home' | 'away', tactics: TacticalInstructions) => {
     const attacking = team === possession;
     const push = attacking ? PITCH_CHOREO.ATTACK_SHIFT * MENTALITY_PUSH[tactics.mentality] : PITCH_CHOREO.DEFEND_SHIFT;
-    const shift = attackDir * push;
+    const shift = o.kickoff ? 0 : attackDir * push;
     for (const p of squad) {
       if (p.id && removed.has(p.id)) continue;
       const isGK = p.pos === 'GK';
-      const j = isGK ? PITCH_CHOREO.GK_JITTER : PITCH_CHOREO.JITTER;
+      // Smooth, deterministic sway — per-player phase, evolves with beat time.
+      const seedp = (team === 'home' ? 1 : 101) + p.number * 7;
+      const amp = (isGK ? PITCH_CHOREO.SWAY_AMP * PITCH_CHOREO.GK_SWAY_FACTOR : PITCH_CHOREO.SWAY_AMP);
+      const swayX = amp * Math.sin(seedp * 0.7 + o.phaseTime * PITCH_CHOREO.SWAY_FREQ);
+      const swayY = amp * Math.cos(seedp * 1.3 + o.phaseTime * PITCH_CHOREO.SWAY_FREQ);
       let runPush = 0;
-      if (attacking && !isGK && (WIDE_POS.has(p.pos) || FORWARD_POS.has(p.pos))) {
+      if (!o.kickoff && attacking && !isGK && (WIDE_POS.has(p.pos) || FORWARD_POS.has(p.pos))) {
         runPush = attackDir * PITCH_CHOREO.RUN_PUSH * (tactics.width === 'wide' && WIDE_POS.has(p.pos) ? 1.2 : 0.8);
       }
       const appliedShift = isGK ? shift * PITCH_CHOREO.GK_SHIFT_FACTOR : shift + runPush;
-      const x = p.base.x + (rng() * 2 - 1) * j;
-      const y = p.base.y + appliedShift + (rng() * 2 - 1) * j;
       out.push({
         id: p.id,
         team,
         pos: p.pos,
         number: p.number,
-        point: { x: clamp(x, 2, 98), y: clamp(y, 2, 98) },
+        name: p.id ? o.lookup?.[p.id]?.lastName : undefined,
+        point: { x: clamp(p.base.x + swayX, 2, 98), y: clamp(p.base.y + appliedShift + swayY, 2, 98) },
         highlighted: p.id != null && highlight.has(p.id),
       });
     }
@@ -236,11 +248,11 @@ export function buildMatchTimeline(match: Match, homeClub: Club, awayClub: Club,
     const passes = PITCH_CHOREO.PASSES_BY_TEMPO[(possession === 'home' ? homeTactics : awayTactics).tempo] ?? 2;
     // Positions for this possession (recomputed per beat for subtle motion).
     const chain = pickChain(
-      placeBeatPlayers(baseHome, baseAway, possession, homeTactics, awayTactics, removed, new Set(), rng),
+      placeBeatPlayers(baseHome, baseAway, possession, homeTactics, awayTactics, removed, new Set(), { phaseTime: seq, lookup }),
       possession, endId, passes, rng, lookup,
     );
     chain.forEach((carrier, idx) => {
-      const players = placeBeatPlayers(baseHome, baseAway, possession, homeTactics, awayTactics, removed, highlightFor(carrier.id), rng);
+      const players = placeBeatPlayers(baseHome, baseAway, possession, homeTactics, awayTactics, removed, highlightFor(carrier.id), { phaseTime: seq, lookup });
       const self = players.find(p => p.id === carrier.id) ?? carrier;
       const motion: PitchMotionKind = idx === 0 ? 'dribble' : 'pass';
       pushBeat(minute, null, possession, { ...self.point }, carrier.id, motion, zoomFor(possession, self.point),
@@ -248,6 +260,11 @@ export function buildMatchTimeline(match: Match, homeClub: Club, awayClub: Club,
     });
     return chain[chain.length - 1] ?? null;
   };
+
+  // Always open on the team's actual formation shape (resting, both halves).
+  pushBeat(0, null, 'home', { x: 50, y: 50 }, null, 'restart', PITCH_CHOREO.ZOOM_WIDE,
+    placeBeatPlayers(baseHome, baseAway, 'home', homeTactics, awayTactics, removed, new Set(), { phaseTime: 0, lookup, kickoff: true }),
+    new Set(), undefined);
 
   for (let minute = 0; minute <= maxMin; minute++) {
     const evs = byMinute.get(minute);
@@ -265,7 +282,7 @@ export function buildMatchTimeline(match: Match, homeClub: Club, awayClub: Club,
             : ev.playerId || null;
           emitPossession(minute, possession, shooterId ?? null);
           // Strike beat: ball flies from the shooter to the goal mouth.
-          const shotPlayers = placeBeatPlayers(baseHome, baseAway, possession, homeTactics, awayTactics, removed, new Set(shooterId ? [shooterId] : []), rng);
+          const shotPlayers = placeBeatPlayers(baseHome, baseAway, possession, homeTactics, awayTactics, removed, new Set(shooterId ? [shooterId] : []), { phaseTime: seq, lookup });
           const acc = lookup && shooterId ? (lookup[shooterId]?.attributes.shooting ?? 65) : 65;
           const spread = (1 - acc / 100) * 24;
           const gx = clamp(50 + (rng() * 2 - 1) * spread, 8, 92);
@@ -278,18 +295,20 @@ export function buildMatchTimeline(match: Match, homeClub: Club, awayClub: Club,
         } else if (DUEL_EVENTS.has(ev.type)) {
           const hl = new Set<string>();
           if (ev.playerId) hl.add(ev.playerId);
-          const players = placeBeatPlayers(baseHome, baseAway, possession, homeTactics, awayTactics, removed, hl, rng);
+          const players = placeBeatPlayers(baseHome, baseAway, possession, homeTactics, awayTactics, removed, hl, { phaseTime: seq, lookup });
           const self = ev.playerId ? players.find(p => p.id === ev.playerId) : null;
           const ball = self ? { ...self.point } : { x: clamp(50 + (rng() * 2 - 1) * 16, 10, 90), y: 50 };
           pushBeat(minute, ev.type, possession, ball, ev.playerId ?? null, 'idle', PITCH_CHOREO.ZOOM_WIDE, players, hl, ev.description);
         } else if (SIDELINE_EVENTS.has(ev.type)) {
           const hl = new Set<string>();
           if (ev.playerId) hl.add(ev.playerId);
-          const players = placeBeatPlayers(baseHome, baseAway, possession, homeTactics, awayTactics, removed, hl, rng);
+          const players = placeBeatPlayers(baseHome, baseAway, possession, homeTactics, awayTactics, removed, hl, { phaseTime: seq, lookup });
           pushBeat(minute, ev.type, possession, { x: rng() < 0.5 ? 6 : 94, y: PITCH_CHOREO.MIDFIELD_Y }, null, 'idle', PITCH_CHOREO.ZOOM_WIDE, players, hl, ev.description);
         } else {
-          // Ambient (kickoff, full_time, commentary, …): centre, possessing team on the ball.
-          const players = placeBeatPlayers(baseHome, baseAway, possession, homeTactics, awayTactics, removed, new Set(), rng);
+          // Ambient: kickoff/half-time reset to the formation shape (no block
+          // shift); other ambient lines keep the possessing team on the ball.
+          const isReset = ev.type === 'kickoff' || ev.type === 'half_time';
+          const players = placeBeatPlayers(baseHome, baseAway, possession, homeTactics, awayTactics, removed, new Set(), { phaseTime: seq, lookup, kickoff: isReset });
           pushBeat(minute, ev.type, possession, { x: 50, y: 50 }, null, 'restart', PITCH_CHOREO.ZOOM_WIDE, players, new Set(), ev.description);
         }
 
