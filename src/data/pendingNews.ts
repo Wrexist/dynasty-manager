@@ -52,6 +52,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Extract CP FA-pool seed + cover it with a test.',
     'Refreshed the improvement backlog to reflect the current state of `main`.',
     'Plan for 2.5D immersive match view (pitch visualization).',
+    'Highlight: Watch your matches play out live on a beautiful 2.5D pitch — flowing passes, tactical shape, goal celebrations and more.',
   ],
   fixed: [],
   headline: null,
