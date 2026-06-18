@@ -29,7 +29,7 @@ import { TacticalPanel } from '@/components/game/TacticalPanel';
 import { enrichDescription } from '@/utils/matchCommentary';
 import { CommentaryRow } from '@/components/game/CommentaryRow';
 import { isStructuredEvent } from '@/utils/matchEventDisplay';
-import { MATCH_SPEEDS, DEFAULT_MATCH_SPEED, PITCH_VIEW_MIN_SPEED } from '@/config/matchSpeed';
+import { MATCH_SPEEDS, DEFAULT_MATCH_SPEED, PITCH_VIEW_MIN_SPEED, GOAL_PAUSE_MS } from '@/config/matchSpeed';
 import { analyzeHalftime } from '@/config/halftimeAnalysis';
 import { TEAM_TALK_OPTIONS } from '@/config/ui';
 import { MENTALITIES, getAvailableFormations } from '@/config/tactics';
@@ -166,6 +166,10 @@ const MatchDayInner = () => {
     return tier.pro && !isPro(useGameStore.getState().monetization) ? DEFAULT_MATCH_SPEED : saved;
   });
   const [paused, setPaused] = useState(false);
+  // Brief auto-pause so the player's own goals land before play resumes.
+  const [goalPause, setGoalPause] = useState(false);
+  const goalPauseTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => () => clearTimeout(goalPauseTimerRef.current), []);
   const [subSheetOpen, setSubSheetOpen] = useState(false);
   // showTacticUI removed — tactical controls now embedded directly in key moment and half-time UIs
   const [keyMoment, setKeyMoment] = useState<{ type: string; description: string; playerId?: string } | null>(null);
@@ -452,7 +456,7 @@ const MatchDayInner = () => {
   useEffect(() => {
     if (phase !== 'first_half' && phase !== 'second_half' && phase !== 'extra_time') return;
     if (allEvents.length === 0) return;
-    if (keyMoment || paused) return; // Paused for key moment or manual pause
+    if (keyMoment || paused || goalPause) return; // Paused for key moment, manual pause, or goal celebration
 
     intervalRef.current = setInterval(() => {
       const next = currentMinRef.current + 1;
@@ -511,7 +515,7 @@ const MatchDayInner = () => {
       }
     }, matchView === 'commentary' ? speed : Math.max(speed, PITCH_VIEW_MIN_SPEED));
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [phase, allEvents, speed, keyMoment, paused, matchView]);
+  }, [phase, allEvents, speed, keyMoment, paused, goalPause, matchView]);
 
   // Persist speed preference to settings so it carries across matches.
   // Intentionally depends only on `speed`: `settings.matchSpeed` would cause
@@ -545,6 +549,12 @@ const MatchDayInner = () => {
       setGoalFlash(true);
       clearTimeout(goalFlashTimerRef.current);
       goalFlashTimerRef.current = setTimeout(() => setGoalFlash(false), GOAL_FLASH_MS);
+      // Briefly hold the clock on the player's own goals so they land.
+      if (userScored) {
+        setGoalPause(true);
+        clearTimeout(goalPauseTimerRef.current);
+        goalPauseTimerRef.current = setTimeout(() => setGoalPause(false), GOAL_PAUSE_MS);
+      }
     }
     prevGoalCountRef.current = currentGoalCount;
   }, [currentGoalCount, scoreChangingEvents, playerClubId]);

@@ -32,3 +32,7 @@ export const DEFAULT_MATCH_SPEED = 3300;
  */
 export const PITCH_VIEW_MIN_SPEED = 1500;
 
+/** How long the match clock holds when the player's own team scores, so the goal
+ *  lands before play resumes (roughly the length of the goal celebration). */
+export const GOAL_PAUSE_MS = 2200;
+
