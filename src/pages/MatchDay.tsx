@@ -811,7 +811,7 @@ const MatchDayInner = () => {
       {isLive && (
         <div className="px-1 space-y-1.5">
           <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
-            <span>Possession</span>
+            <span>Momentum</span>
             <span className="tabular-nums">{homeMomPct}% - {100 - homeMomPct}%</span>
           </div>
           <div className="flex h-2 rounded-full overflow-hidden gap-0.5">
