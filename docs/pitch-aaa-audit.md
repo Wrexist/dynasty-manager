@@ -156,10 +156,18 @@ anticipation.
 Each phase is independently shippable, renderer-shared (Canvas+Pixi), lazy, and
 `size:check`-gated. New feel constants go in `pitchChoreography.ts`.
 
-### Phase 1 — Motion & physics (the biggest jump) ⭐
-M3 (per-player spring + velocity → scale/lean/bob), M1 (ball easing per kind),
-M2 (camera lead), M4 (goal slow-mo + zoom-punch + shake), M5/#2 (honor
-`durationMs`), #3 (kill/wire `MOTION_TAU`). All renderer/sequencer.
+### Phase 1 — Motion & physics (the biggest jump) ⭐ — ✅ DONE
+- ✅ M3 — per-player spring (`stepDisplay`) with inertia + velocity → swell/lean/bob.
+- ✅ M1 — `ballEase()` weights the ball per motion kind (shot/pass/cross/…).
+- ✅ M2 — camera leads the ball in its direction of travel.
+- ✅ M4 — goal slow-mo + zoom-punch + screen-shake (decaying).
+- ✅ M5/#2 — `advancePlayback` honors per-beat `durationMs` (rhythm).
+- ✅ #3 — `MOTION_TAU` wired as the player spring (`PLAYER_TAU`).
+- ✅ Planted contact shadows; all feel constants in config; reduced-motion safe.
+- ⏭️ #1 penalty-arc geometry — deferred (radius is in width-units so it never
+  reaches outside the box; needs a distance-correct, orientation-aware arc).
+- ⏭️ M6/M7 (wall-clock idle sway, continuous zoom), M8 (ball shadow detach) —
+  follow-ups, lower priority than the on-device tuning pass.
 
 ### Phase 2 — Materials & turf
 V1 (chip gradient + specular + contact shadow), #5/V-GK (distinct keeper kit),
