@@ -116,4 +116,30 @@ export const PITCH_RENDER = {
   /** Camera zoom at/above which *all* player names show; below it only the
    *  ball-carrier + highlighted players are labelled (declutters at 375px). */
   NAME_ZOOM: 1.3,
+
+  // ── Phase 1: motion physics ──
+  /** Player spring inertia (ms) — how long a chip takes to settle on its target. */
+  PLAYER_TAU: 130,
+  /** Velocity (pitch units/sec) treated as a "full sprint" for visual effects. */
+  SPEED_REF: 60,
+  /** Max chip swell at full sprint (fraction). */
+  SPRINT_SCALE_MAX: 0.1,
+  /** Max chip elongation along the travel axis at full sprint (fraction). */
+  LEAN_MAX: 0.28,
+  /** Max vertical bob for a sprinting chip, as a fraction of chip radius. */
+  BOB_MAX: 0.35,
+  /** Bob oscillation frequency (rad/ms of wall-clock). */
+  BOB_FREQ: 0.018,
+  /** Camera looks this many seconds ahead along the ball's velocity. */
+  CAM_LEAD_S: 0.2,
+  /** Clamp on the camera lead (pitch units) so it never runs off the pitch. */
+  CAM_LEAD_MAX: 16,
+  /** Goal impact (slow-mo + zoom punch + shake) duration (ms). */
+  GOAL_IMPACT_MS: 750,
+  /** dt multiplier at the peak of the goal slow-mo. */
+  GOAL_SLOWMO: 0.4,
+  /** Extra zoom added at the peak of the goal punch. */
+  GOAL_ZOOM_PUNCH: 0.28,
+  /** Screen-shake amplitude (px) at goal impact. */
+  GOAL_SHAKE_PX: 6,
 } as const;
