@@ -197,6 +197,14 @@ describe('buildMatchTimeline', () => {
     expect(restart.ball).toEqual({ x: 50, y: 50 });
   });
 
+  it('treats a keeper-error goal as a goal (centre restart, not a missed shot)', () => {
+    const timeline = buildMatchTimeline(makeMatch([ev(30, 'goalkeeper_error', 'home', { playerId: 'home-p9' })]), home, away);
+    const idx = timeline.beats.findIndex((b) => b.eventType === 'goalkeeper_error');
+    const restart = timeline.beats[idx + 1];
+    expect(restart.possession).toBe('away');
+    expect(restart.ball).toEqual({ x: 50, y: 50 });
+  });
+
   it('handles a goalless, event-light match without NaN', () => {
     const timeline = buildMatchTimeline(makeMatch([]), home, away);
     expect(timeline.beats.length).toBeGreaterThan(0);

@@ -141,6 +141,10 @@ describe('latestGoalAt', () => {
   it('counts own goals as goals', () => {
     expect(latestGoalAt([mk(30, 'own_goal')], 90)!.type).toBe('own_goal');
   });
+
+  it('counts keeper-error goals as goals', () => {
+    expect(latestGoalAt([mk(30, 'goalkeeper_error')], 90)!.type).toBe('goalkeeper_error');
+  });
 });
 
 describe('beat sequencer', () => {

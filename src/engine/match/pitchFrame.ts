@@ -13,10 +13,12 @@ export interface RenderFrame {
   players: ChoreoPlayer[];
 }
 
-/** Event types that put the ball in the net (own goals included; misses not). */
+/** Event types that put the ball in the net (own goals + keeper errors included;
+ *  misses not) — mirrors the engine's scoring set so the celebration fires. */
 const GOAL_TYPES = new Set<MatchEvent['type']>([
   'goal', 'own_goal', 'penalty_scored', 'header_goal', 'solo_goal',
   'long_range_goal', 'counter_attack_goal', 'free_kick_goal', 'extra_time_goal',
+  'goalkeeper_error',
 ]);
 
 /** Most recent goal at or before `minute`, used to trigger the celebration

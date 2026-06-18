@@ -65,10 +65,12 @@ const depthToY = (team: 'home' | 'away', depth: number) => (team === 'home' ? de
 const GOAL_EVENTS = new Set<MatchEvent['type']>([
   'goal', 'own_goal', 'penalty_scored', 'header_goal', 'solo_goal',
   'long_range_goal', 'counter_attack_goal', 'free_kick_goal', 'extra_time_goal',
+  // A keeper error is a scoring event in the engine (GOAL_EVENT_TYPES) — it must
+  // get the goal staging + centre restart, not the missed-shot branch.
+  'goalkeeper_error',
 ]);
 const SHOT_EVENTS = new Set<MatchEvent['type']>([
-  'shot_saved', 'shot_missed', 'hit_woodwork', 'goal_line_clearance',
-  'goalkeeper_error', 'penalty_missed',
+  'shot_saved', 'shot_missed', 'hit_woodwork', 'goal_line_clearance', 'penalty_missed',
 ]);
 const SETPIECE_EVENTS = new Set<MatchEvent['type']>(['free_kick_goal', 'penalty_scored', 'penalty_missed']);
 const DUEL_EVENTS = new Set<MatchEvent['type']>(['foul', 'yellow_card', 'red_card', 'var_check', 'var_disallowed']);
