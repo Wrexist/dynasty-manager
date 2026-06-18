@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { MatchTimeline, PitchQuality } from '@/types/game';
-import { createPlayback, seekPlayback, advancePlayback, samplePlayback, type PlaybackState, type RenderFrame } from '@/engine/match/pitchFrame';
+import { createPlayback, seekPlayback, advancePlayback, samplePlayback, createDisplay, stepDisplay, type PlaybackState, type DisplayState } from '@/engine/match/pitchFrame';
 import { PITCH_RENDER } from '@/config/pitchChoreography';
 
 // Art-directed pitch renderer with a broadcast follow-cam, parabolic ball arcs
@@ -53,6 +53,8 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
   const rafRef = useRef<number>(0);
   const lastTsRef = useRef<number>(0);
   const goalRippleRef = useRef<{ seq: number; t: number; end: number }>({ seq: -1, t: 1, end: 100 });
+  const goalImpactRef = useRef<{ seq: number; t: number }>({ seq: -1, t: 1e9 });
+  const displayRef = useRef<DisplayState>(createDisplay());
 
   minuteRef.current = minute;
   // Live values read inside the rAF loop via refs, so the effect does NOT re-run
@@ -245,28 +247,40 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
       ctx.restore();
     };
 
-    const drawFrame = (frame: RenderFrame, liftPx: number, showAllNames: boolean) => {
+    const drawFrame = (display: DisplayState, liftPx: number, showAllNames: boolean, ts: number) => {
       const { innerH, project, unit } = geom();
       const chipR = Math.max(5, unit * 0.028);
       const ballR = Math.max(3, unit * 0.016);
 
-      for (const p of frame.players) {
-        const { sx: cx, sy: cy } = project(p.point.x, p.point.y);
+      for (const p of display.players.values()) {
+        const { sx: cx, sy: groundY } = project(p.x, p.y);
+        // Velocity → run feel: swell + lean along travel + a little bob.
+        const speed = Math.hypot(p.vx, p.vy);
+        const sp = Math.min(1, speed / PITCH_RENDER.SPEED_REF);
+        const r = chipR * (1 + sp * PITCH_RENDER.SPRINT_SCALE_MAX);
+        const ax = Math.abs(p.vx);
+        const ay = Math.abs(p.vy);
+        const dirH = ax + ay > 0.01 ? ax / (ax + ay) : 0.5;
+        const e = sp * PITCH_RENDER.LEAN_MAX * (2 * dirH - 1);
+        const rx = r * (1 + e);
+        const ry = r * (1 - e);
+        const cy = groundY - sp * chipR * PITCH_RENDER.BOB_MAX * Math.sin(ts * PITCH_RENDER.BOB_FREQ + p.number);
         const color = p.team === 'home' ? homeColorRef.current : awayColorRef.current;
-        ctx.fillStyle = 'rgba(0,0,0,0.35)';
+        // Planted contact shadow (doesn't bob).
+        ctx.fillStyle = 'rgba(0,0,0,0.4)';
         ctx.beginPath();
-        ctx.ellipse(cx, cy + chipR * 0.55, chipR * 0.9, chipR * 0.4, 0, 0, Math.PI * 2);
+        ctx.ellipse(cx, groundY + chipR * 0.5, chipR * 0.82, chipR * 0.36, 0, 0, Math.PI * 2);
         ctx.fill();
         if (p.highlighted) {
           ctx.strokeStyle = GOLD;
           ctx.lineWidth = Math.max(2, chipR * 0.28);
           ctx.beginPath();
-          ctx.arc(cx, cy, chipR + chipR * 0.35, 0, Math.PI * 2);
+          ctx.arc(cx, cy, r + chipR * 0.35, 0, Math.PI * 2);
           ctx.stroke();
         }
         ctx.fillStyle = color || '#888';
         ctx.beginPath();
-        ctx.arc(cx, cy, chipR, 0, Math.PI * 2);
+        ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
         ctx.fill();
         ctx.lineWidth = Math.max(1, chipR * 0.14);
         ctx.strokeStyle = 'rgba(0,0,0,0.55)';
@@ -306,7 +320,7 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
       }
 
       // Ball: ground shadow stays planted, ball lifts by the arc offset.
-      const { sx: bx, sy: by } = project(frame.ball.x, frame.ball.y);
+      const { sx: bx, sy: by } = project(display.ballX, display.ballY);
       ctx.fillStyle = 'rgba(0,0,0,0.4)';
       ctx.beginPath();
       ctx.ellipse(bx, by + ballR * 0.7, ballR * (0.9 + liftPx / (innerH || 1)), ballR * 0.4, 0, 0, Math.PI * 2);
@@ -324,10 +338,22 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
       const dt = lastTsRef.current ? Math.min(ts - lastTsRef.current, 64) : 16;
       lastTsRef.current = ts;
 
+      // Goal impact: slow-mo + zoom punch + screen shake, decaying.
+      const gi = goalImpactRef.current;
+      let slowmo = 1;
+      let punch = 0;
+      let shake = 0;
+      if (!reducedMotion && gi.t < PITCH_RENDER.GOAL_IMPACT_MS) {
+        gi.t += dt;
+        const u = Math.min(1, gi.t / PITCH_RENDER.GOAL_IMPACT_MS);
+        slowmo = lerp(PITCH_RENDER.GOAL_SLOWMO, 1, u);
+        punch = PITCH_RENDER.GOAL_ZOOM_PUNCH * (1 - u);
+        shake = PITCH_RENDER.GOAL_SHAKE_PX * (1 - u);
+      }
       // Play *through* the beats (so passes/runs animate), bounded by the
       // revealed minute. Reduced motion snaps near-instantly.
       const playMs = reducedMotion ? 60 : PITCH_RENDER.BEAT_PLAY_MS;
-      const adv = advancePlayback(timelineRef.current.beats, playbackRef.current, dt, minuteRef.current, {
+      const adv = advancePlayback(timelineRef.current.beats, playbackRef.current, dt * slowmo, minuteRef.current, {
         beatMs: playMs,
         catchupLagMinutes: PITCH_RENDER.CATCHUP_LAG_MIN,
         catchupScale: PITCH_RENDER.CATCHUP_SCALE,
@@ -338,30 +364,36 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
         rafRef.current = requestAnimationFrame(tick);
         return;
       }
-      const frame = sample.frame;
       const beat = sample.beat;
       const liftArc = sample.next ? sample.next.ballArc : 0;
       const liftT = sample.t;
 
-      // Trigger the net ripple when a goal beat first becomes active.
+      // Trigger the net ripple + goal impact when a goal beat first becomes active.
       if (beat.eventType && GOAL_RENDER_EVENTS.has(beat.eventType) && beat.seq !== goalRippleRef.current.seq) {
         goalRippleRef.current = { seq: beat.seq, t: 0, end: beat.possession === 'home' ? 100 : 0 };
+        if (!reducedMotion) goalImpactRef.current = { seq: beat.seq, t: 0 };
       }
       const rip = goalRippleRef.current;
       if (rip.t < 1) rip.t = Math.min(1, rip.t + dt / 700);
       const ripple = !reducedMotion && rip.t < 1 ? { end: rip.end, bulge: (1 - rip.t) * Math.sin(rip.t * 28) * 0.6 } : null;
 
+      // Spring the display toward the sampled target (inertia + velocity).
+      stepDisplay(displayRef.current, sample.frame, dt, reducedMotion ? 1 : PITCH_RENDER.PLAYER_TAU);
+      const display = displayRef.current;
+
       if (quality.trailLen > 0) {
-        trailRef.current.push({ x: frame.ball.x, y: frame.ball.y });
+        trailRef.current.push({ x: display.ballX, y: display.ballY });
         if (trailRef.current.length > quality.trailLen) trailRef.current.shift();
       } else {
         trailRef.current.length = 0;
       }
 
-      // Camera follow + zoom.
-      const targetZoom = reducedMotion ? 1 : clamp(beat.camera.zoom, PITCH_RENDER.ZOOM_MIN, PITCH_RENDER.ZOOM_MAX);
-      const targetCx = reducedMotion ? 50 : frame.ball.x;
-      const targetCy = reducedMotion ? 50 : frame.ball.y;
+      // Camera follow + zoom, with a lead in the ball's direction of travel.
+      const leadX = clamp(display.ballVX * PITCH_RENDER.CAM_LEAD_S, -PITCH_RENDER.CAM_LEAD_MAX, PITCH_RENDER.CAM_LEAD_MAX);
+      const leadY = clamp(display.ballVY * PITCH_RENDER.CAM_LEAD_S, -PITCH_RENDER.CAM_LEAD_MAX, PITCH_RENDER.CAM_LEAD_MAX);
+      const targetZoom = reducedMotion ? 1 : clamp(beat.camera.zoom + punch, PITCH_RENDER.ZOOM_MIN, PITCH_RENDER.ZOOM_MAX + PITCH_RENDER.GOAL_ZOOM_PUNCH);
+      const targetCx = reducedMotion ? 50 : clamp(display.ballX + leadX, 2, 98);
+      const targetCy = reducedMotion ? 50 : clamp(display.ballY + leadY, 2, 98);
       if (!viewRef.current) viewRef.current = { zoom: targetZoom, cx: targetCx, cy: targetCy };
       else {
         const ca = reducedMotion ? 1 : 1 - Math.exp(-dt / PITCH_RENDER.CAM_TAU);
@@ -378,12 +410,14 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
       const halfH = (h / 2) / z;
       const fsx = innerW >= 2 * halfW ? clamp(focus.sx, pad + halfW, pad + innerW - halfW) : pad + innerW / 2;
       const fsy = innerH >= 2 * halfH ? clamp(focus.sy, pad + halfH, pad + innerH - halfH) : pad + innerH / 2;
+      const shakeX = shake ? Math.sin(ts * 0.08) * shake : 0;
+      const shakeY = shake ? Math.cos(ts * 0.07) * shake : 0;
 
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.fillStyle = TURF_DARK;
       ctx.fillRect(0, 0, w, h);
       ctx.save();
-      ctx.translate(w / 2, h / 2);
+      ctx.translate(w / 2 + shakeX, h / 2 + shakeY);
       ctx.scale(z, z);
       ctx.translate(-fsx, -fsy);
 
@@ -391,7 +425,7 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
       if (!reducedMotion) drawTint(beat.possession);
       if (quality.trailLen > 0) drawTrail(beat.possession === 'home' ? homeColorRef.current : awayColorRef.current);
       const liftPx = liftArc > 0 && !reducedMotion ? liftArc * (innerH / 100) * PITCH_RENDER.ARC_LIFT_SCALE * Math.sin(Math.PI * liftT) : 0;
-      drawFrame(frame, liftPx, view.zoom >= PITCH_RENDER.NAME_ZOOM);
+      drawFrame(display, liftPx, view.zoom >= PITCH_RENDER.NAME_ZOOM, ts);
 
       ctx.restore();
       if (quality.vignette) {
@@ -413,6 +447,8 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
       viewRef.current = null;
       trailRef.current = [];
       playbackRef.current = createPlayback();
+      displayRef.current = createDisplay();
+      goalImpactRef.current = { seq: -1, t: 1e9 };
     };
   }, [quality, startMinute, orientation, flip, reducedMotion]);
 

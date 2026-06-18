@@ -6,7 +6,7 @@
 // and DOM-free so they can be unit-tested and reused by any renderer (Canvas
 // today, Pixi later).
 
-import type { MatchTimeline, MatchBeat, ChoreoPlayer, PitchPoint, MatchEvent } from '@/types/game';
+import type { MatchTimeline, MatchBeat, ChoreoPlayer, PitchPoint, MatchEvent, PitchMotionKind } from '@/types/game';
 
 export interface RenderFrame {
   ball: PitchPoint;
@@ -96,6 +96,36 @@ export function seekPlayback(beats: MatchBeat[], minute: number): PlaybackState 
 }
 
 const smoothstep = (t: number) => t * t * (3 - 2 * t);
+const clamp01 = (t: number) => (t <= 0 ? 0 : t >= 1 ? 1 : t);
+
+/** Reference beat duration the renderer's BEAT_PLAY_MS is calibrated against. */
+const REF_BEAT_MS = 600;
+
+// Ball travels with weight: a pass leaves the foot fast and rolls to a stop, a
+// shot is fast and near-linear, a lofted cross/long ball settles with a touch of
+// follow-through. (Players keep the symmetric smoothstep.)
+const easeOutQuad = (t: number) => 1 - (1 - t) * (1 - t);
+const easeOutBack = (t: number) => {
+  const c = 1.45;
+  const u = t - 1;
+  return 1 + (c + 1) * u * u * u + c * u * u;
+};
+export function ballEase(kind: PitchMotionKind, t: number): number {
+  const c = clamp01(t);
+  switch (kind) {
+    case 'shot':
+      return Math.pow(c, 0.7); // leaves fast
+    case 'cross':
+    case 'longball':
+      return easeOutBack(c); // settles with slight overshoot
+    case 'pass':
+    case 'dribble':
+    case 'clearance':
+      return easeOutQuad(c); // friction roll
+    default:
+      return smoothstep(c); // idle / restart
+  }
+}
 
 /**
  * Advance the playhead by `dtMs`. Moves to the next beat once the transition
@@ -113,7 +143,10 @@ export function advancePlayback(
   let index = Math.min(Math.max(0, state.index), beats.length - 1);
   let t = state.t;
   const scale = beats[index].minute < maxMinute - opts.catchupLagMinutes ? opts.catchupScale : 1;
-  t += (dtMs * scale) / Math.max(1, opts.beatMs);
+  // Honor each beat's own duration so the match has rhythm: build-up beats play
+  // at the reference pace, goal/strike beats dwell longer.
+  const beatMs = ((beats[index].durationMs || REF_BEAT_MS) / REF_BEAT_MS) * opts.beatMs;
+  t += (dtMs * scale) / Math.max(1, beatMs);
   let justAdvanced = false;
   while (t >= 1) {
     const nxt = index + 1;
@@ -138,6 +171,12 @@ export function samplePlayback(beats: MatchBeat[], state: PlaybackState, maxMinu
   const hasNext = nextIdx < beats.length && beats[nextIdx].minute <= maxMinute;
   const to = hasNext ? beats[nextIdx] : null;
   const frame = to ? lerpFrames(from, to, smoothstep(state.t)) : { ball: from.ball, players: from.players };
+  // The ball gets its own weighted easing per motion kind (independent of the
+  // players' smoothstep) so passes roll, shots fizz, crosses settle.
+  if (to) {
+    const bt = ballEase(to.ballMotion, state.t);
+    frame.ball = { x: lerp(from.ball.x, to.ball.x, bt), y: lerp(from.ball.y, to.ball.y, bt) };
+  }
   return { frame, beat: from, next: to, t: state.t };
 }
 
@@ -164,4 +203,74 @@ export function lerpFrames(from: RenderFrame, to: RenderFrame, t: number): Rende
     ball: { x: lerp(from.ball.x, to.ball.x, k), y: lerp(from.ball.y, to.ball.y, k) },
     players,
   };
+}
+
+// ── Display layer: springs + velocity ─────────────────────────────────────
+// The sampled frame is the *target*. The renderer keeps a persistent display
+// state that springs toward it with inertia, so players accelerate, decelerate
+// and settle (rather than rigidly tracking the interpolated target), and exposes
+// per-player velocity so the renderer can lean/scale/bob fast movers and lead the
+// camera. Pure (mutates the passed state, no DOM) so both renderers + tests share it.
+
+export interface DisplayPlayer {
+  id: string | null;
+  team: 'home' | 'away';
+  pos: ChoreoPlayer['pos'];
+  number: number;
+  name?: string;
+  overall?: number;
+  highlighted: boolean;
+  x: number;
+  y: number;
+  /** Velocity in pitch units per second. */
+  vx: number;
+  vy: number;
+}
+
+export interface DisplayState {
+  players: Map<string, DisplayPlayer>;
+  ballX: number;
+  ballY: number;
+  ballVX: number;
+  ballVY: number;
+  init: boolean;
+}
+
+export const createDisplay = (): DisplayState => ({ players: new Map(), ballX: 50, ballY: 50, ballVX: 0, ballVY: 0, init: false });
+
+/** Advance the display toward the sampled frame by `dtMs`, easing players with
+ *  inertia (`tauMs`) and tracking velocity. The ball follows the (already
+ *  weighted-eased) target exactly but its velocity is tracked for camera lead. */
+export function stepDisplay(display: DisplayState, frame: RenderFrame, dtMs: number, tauMs: number): void {
+  const dt = Math.max(1, Math.min(dtMs, 64));
+  const k = 1 - Math.exp(-dt / Math.max(1, tauMs));
+  const invDt = 1000 / dt;
+
+  const seen = new Set<string>();
+  for (const tp of frame.players) {
+    const key = tp.id ?? `${tp.team}#${tp.number}`;
+    seen.add(key);
+    let d = display.players.get(key);
+    if (!d) {
+      d = { id: tp.id, team: tp.team, pos: tp.pos, number: tp.number, name: tp.name, overall: tp.overall, highlighted: tp.highlighted, x: tp.point.x, y: tp.point.y, vx: 0, vy: 0 };
+      display.players.set(key, d);
+      continue;
+    }
+    d.id = tp.id; d.team = tp.team; d.pos = tp.pos; d.number = tp.number;
+    d.name = tp.name; d.overall = tp.overall; d.highlighted = tp.highlighted;
+    const nx = d.x + (tp.point.x - d.x) * k;
+    const ny = d.y + (tp.point.y - d.y) * k;
+    d.vx = (nx - d.x) * invDt;
+    d.vy = (ny - d.y) * invDt;
+    d.x = nx; d.y = ny;
+  }
+  for (const key of display.players.keys()) if (!seen.has(key)) display.players.delete(key);
+
+  if (!display.init) {
+    display.ballX = frame.ball.x; display.ballY = frame.ball.y; display.init = true;
+  } else {
+    display.ballVX = (frame.ball.x - display.ballX) * invDt;
+    display.ballVY = (frame.ball.y - display.ballY) * invDt;
+    display.ballX = frame.ball.x; display.ballY = frame.ball.y;
+  }
 }
