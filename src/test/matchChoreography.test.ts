@@ -235,6 +235,15 @@ describe('buildMatchTimeline', () => {
     expect(named!.name).toBe('Striker');
   });
 
+  it('carries player name and overall onto chips when a lookup is provided', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const lookup = { 'home-p9': { lastName: 'Striker', overall: 88, attributes: { passing: 70, shooting: 90 } } } as any;
+    const timeline = buildMatchTimeline(makeMatch([]), home, away, { players: lookup });
+    const chip = timeline.beats.flatMap((b) => b.players).find((p) => p.id === 'home-p9');
+    expect(chip?.name).toBe('Striker');
+    expect(chip?.overall).toBe(88);
+  });
+
   it('keeps the ball at the ball-carrier’s feet during possession', () => {
     const timeline = buildMatchTimeline(makeMatch([]), home, away);
     const beat = timeline.beats.find((b) => b.ballCarrierId);

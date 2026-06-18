@@ -15,6 +15,8 @@ interface PitchCanvasProps {
   quality: PitchQuality;
   homeColor: string;
   awayColor: string;
+  /** Show player overall on the chip instead of the shirt number. */
+  showOverall?: boolean;
   /** Seed the playhead at this minute instead of kickoff (used by goal replays). */
   startMinute?: number;
   /** 'portrait' = goals top/bottom; 'landscape' = goals left/right (sideways). */
@@ -37,7 +39,7 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
 interface View { zoom: number; cx: number; cy: number }
 interface Pt { sx: number; sy: number }
 
-export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, startMinute, orientation = 'portrait', flip = false, reducedMotion = false, className }: PitchCanvasProps) {
+export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, showOverall = false, startMinute, orientation = 'portrait', flip = false, reducedMotion = false, className }: PitchCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const minuteRef = useRef(minute);
   const playbackRef = useRef<PlaybackState>(createPlayback());
@@ -47,6 +49,16 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
   const lastTsRef = useRef<number>(0);
 
   minuteRef.current = minute;
+  // Live values read inside the rAF loop via refs, so the effect does NOT re-run
+  // (and the playhead does NOT reset) when the timeline grows as events reveal.
+  const timelineRef = useRef(timeline);
+  const homeColorRef = useRef(homeColor);
+  const awayColorRef = useRef(awayColor);
+  const showOverallRef = useRef(showOverall);
+  timelineRef.current = timeline;
+  homeColorRef.current = homeColor;
+  awayColorRef.current = awayColor;
+  showOverallRef.current = showOverall;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -59,7 +71,7 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
     const dpr = Math.min(window.devicePixelRatio || 1, quality.dprCap);
     const land = orientation === 'landscape';
     // Replays seed the playhead mid-timeline; live view starts at kickoff.
-    playbackRef.current = startMinute != null ? seekPlayback(timeline.beats, startMinute) : createPlayback();
+    playbackRef.current = startMinute != null ? seekPlayback(timelineRef.current.beats, startMinute) : createPlayback();
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
@@ -210,6 +222,21 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
       ctx.globalAlpha = 1;
     };
 
+    // Faint tint over the attacking third of the team in possession — shows the
+    // pressure direction at a glance.
+    const drawTint = (possession: 'home' | 'away') => {
+      const { project } = geom();
+      const yLo = possession === 'home' ? 72 : 0;
+      const yHi = possession === 'home' ? 100 : 28;
+      const a = project(0, yLo);
+      const b = project(100, yHi);
+      ctx.save();
+      ctx.globalAlpha = 0.12;
+      ctx.fillStyle = possession === 'home' ? homeColorRef.current : awayColorRef.current;
+      ctx.fillRect(Math.min(a.sx, b.sx), Math.min(a.sy, b.sy), Math.abs(b.sx - a.sx), Math.abs(b.sy - a.sy));
+      ctx.restore();
+    };
+
     const drawFrame = (frame: RenderFrame, liftPx: number, showAllNames: boolean) => {
       const { innerH, project, unit } = geom();
       const chipR = Math.max(5, unit * 0.028);
@@ -217,7 +244,7 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
 
       for (const p of frame.players) {
         const { sx: cx, sy: cy } = project(p.point.x, p.point.y);
-        const color = p.team === 'home' ? homeColor : awayColor;
+        const color = p.team === 'home' ? homeColorRef.current : awayColorRef.current;
         ctx.fillStyle = 'rgba(0,0,0,0.35)';
         ctx.beginPath();
         ctx.ellipse(cx, cy + chipR * 0.55, chipR * 0.9, chipR * 0.4, 0, 0, Math.PI * 2);
@@ -236,19 +263,37 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
         ctx.lineWidth = Math.max(1, chipR * 0.14);
         ctx.strokeStyle = 'rgba(0,0,0,0.55)';
         ctx.stroke();
+        // Chip glyph: overall (when enabled) or shirt number.
         ctx.fillStyle = '#fff';
-        ctx.font = `700 ${Math.round(chipR * 1.05)}px Oswald, system-ui, sans-serif`;
+        ctx.font = `700 ${Math.round(chipR * 1.02)}px Oswald, system-ui, sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(String(p.number), cx, cy + 0.5);
+        ctx.fillText(showOverallRef.current && p.overall ? String(p.overall) : String(p.number), cx, cy + 0.5);
+        // Name plate: dark rounded pill + bold white text for legibility on turf.
         if (p.name && (showAllNames || p.highlighted)) {
-          ctx.font = `600 ${Math.round(chipR * 0.78)}px 'DM Sans', system-ui, sans-serif`;
-          ctx.textBaseline = 'bottom';
-          ctx.lineWidth = Math.max(2, chipR * 0.3);
-          ctx.strokeStyle = 'rgba(0,0,0,0.75)';
-          ctx.strokeText(p.name, cx, cy - chipR * 1.15);
-          ctx.fillStyle = 'rgba(255,255,255,0.95)';
-          ctx.fillText(p.name, cx, cy - chipR * 1.15);
+          const label = p.name.length > 11 ? `${p.name.slice(0, 10)}…` : p.name;
+          const fs = Math.max(8, chipR * 0.82);
+          ctx.font = `700 ${Math.round(fs)}px 'DM Sans', system-ui, sans-serif`;
+          ctx.textBaseline = 'middle';
+          const tw = ctx.measureText(label).width;
+          const padX = fs * 0.42;
+          const ph = fs * 1.5;
+          const py = cy - chipR - ph * 0.62;
+          const bx = cx - tw / 2 - padX;
+          const bw = tw + padX * 2;
+          ctx.fillStyle = 'rgba(8,12,20,0.84)';
+          if (typeof ctx.roundRect === 'function') {
+            ctx.beginPath();
+            ctx.roundRect(bx, py - ph / 2, bw, ph, ph * 0.42);
+            ctx.fill();
+            ctx.lineWidth = Math.max(1, fs * 0.08);
+            ctx.strokeStyle = p.highlighted ? GOLD : 'rgba(255,255,255,0.18)';
+            ctx.stroke();
+          } else {
+            ctx.fillRect(bx, py - ph / 2, bw, ph);
+          }
+          ctx.fillStyle = '#ffffff';
+          ctx.fillText(label, cx, py);
         }
       }
 
@@ -274,13 +319,13 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
       // Play *through* the beats (so passes/runs animate), bounded by the
       // revealed minute. Reduced motion snaps near-instantly.
       const playMs = reducedMotion ? 60 : PITCH_RENDER.BEAT_PLAY_MS;
-      const adv = advancePlayback(timeline.beats, playbackRef.current, dt, minuteRef.current, {
+      const adv = advancePlayback(timelineRef.current.beats, playbackRef.current, dt, minuteRef.current, {
         beatMs: playMs,
         catchupLagMinutes: PITCH_RENDER.CATCHUP_LAG_MIN,
         catchupScale: PITCH_RENDER.CATCHUP_SCALE,
       });
       playbackRef.current = adv.state;
-      const sample = samplePlayback(timeline.beats, playbackRef.current, minuteRef.current);
+      const sample = samplePlayback(timelineRef.current.beats, playbackRef.current, minuteRef.current);
       if (!sample) {
         rafRef.current = requestAnimationFrame(tick);
         return;
@@ -327,7 +372,8 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
       ctx.translate(-fsx, -fsy);
 
       drawField();
-      if (quality.trailLen > 0) drawTrail(beat.possession === 'home' ? homeColor : awayColor);
+      if (!reducedMotion) drawTint(beat.possession);
+      if (quality.trailLen > 0) drawTrail(beat.possession === 'home' ? homeColorRef.current : awayColorRef.current);
       const liftPx = liftArc > 0 && !reducedMotion ? liftArc * (innerH / 100) * PITCH_RENDER.ARC_LIFT_SCALE * Math.sin(Math.PI * liftT) : 0;
       drawFrame(frame, liftPx, view.zoom >= PITCH_RENDER.NAME_ZOOM);
 
@@ -352,7 +398,7 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
       trailRef.current = [];
       playbackRef.current = createPlayback();
     };
-  }, [timeline, quality, homeColor, awayColor, startMinute, orientation, flip, reducedMotion]);
+  }, [quality, startMinute, orientation, flip, reducedMotion]);
 
   return <canvas ref={canvasRef} className={className} aria-hidden="true" />;
 }

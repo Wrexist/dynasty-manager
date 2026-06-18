@@ -403,6 +403,8 @@ export interface ChoreoPlayer {
   number: number;
   /** Short display name (last name) shown above the chip, when known. */
   name?: string;
+  /** Player overall, shown on the chip when the "show overall on pitch" setting is on. */
+  overall?: number;
   point: PitchPoint;
   /** True when this player is the focus of the current beat (scorer, keeper, …). */
   highlighted: boolean;

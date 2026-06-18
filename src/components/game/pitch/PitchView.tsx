@@ -35,6 +35,8 @@ interface PitchViewProps {
   players?: Record<string, Player>;
   /** 'landscape' renders a short, wide sideways pitch (used in split view). */
   orientation?: 'portrait' | 'landscape';
+  /** Show player overall on the chip instead of the shirt number. */
+  showOverall?: boolean;
   reducedMotion?: boolean;
 }
 
@@ -48,7 +50,7 @@ const CAPTIONED_TYPES = new Set<MatchEvent['type']>([
 interface Celebration { key: string; color: string; text: string; minute: string }
 
 export default function PitchView({
-  match, homeClub, awayClub, events, minute, playerIsHome, homeTactics, awayTactics, players, orientation = 'portrait', reducedMotion,
+  match, homeClub, awayClub, events, minute, playerIsHome, homeTactics, awayTactics, players, orientation = 'portrait', showOverall, reducedMotion,
 }: PitchViewProps) {
   const landscape = orientation === 'landscape';
   const quality = useMemo(() => detectPitchQuality(!!reducedMotion), [reducedMotion]);
@@ -128,10 +130,10 @@ export default function PitchView({
     <div className="relative w-full overflow-hidden rounded-xl border border-border/50 bg-black/20" style={{ aspectRatio: landscape ? '104 / 64' : '68 / 104' }}>
       {useWebgl ? (
         <ErrorBoundary fallback={() => (
-          <PitchCanvas timeline={timeline} minute={minute} quality={quality} homeColor={homeColor} awayColor={awayColor} orientation={orientation} flip={!playerIsHome} reducedMotion={reducedMotion} className="absolute inset-0 h-full w-full" />
+          <PitchCanvas timeline={timeline} minute={minute} quality={quality} homeColor={homeColor} awayColor={awayColor} showOverall={showOverall} orientation={orientation} flip={!playerIsHome} reducedMotion={reducedMotion} className="absolute inset-0 h-full w-full" />
         )}>
           <Suspense fallback={
-            <PitchCanvas timeline={timeline} minute={minute} quality={quality} homeColor={homeColor} awayColor={awayColor} orientation={orientation} flip={!playerIsHome} reducedMotion={reducedMotion} className="absolute inset-0 h-full w-full" />
+            <PitchCanvas timeline={timeline} minute={minute} quality={quality} homeColor={homeColor} awayColor={awayColor} showOverall={showOverall} orientation={orientation} flip={!playerIsHome} reducedMotion={reducedMotion} className="absolute inset-0 h-full w-full" />
           }>
             <PixiPitch
               timeline={timeline}
@@ -139,6 +141,7 @@ export default function PitchView({
               quality={quality}
               homeColor={homeColor}
               awayColor={awayColor}
+              showOverall={showOverall}
               flip={!playerIsHome}
               reducedMotion={reducedMotion}
               onError={() => setPixiFailed(true)}
@@ -153,6 +156,7 @@ export default function PitchView({
           quality={quality}
           homeColor={homeColor}
           awayColor={awayColor}
+          showOverall={showOverall}
           orientation={orientation}
           flip={!playerIsHome}
           reducedMotion={reducedMotion}
@@ -197,6 +201,7 @@ export default function PitchView({
             quality={quality}
             homeColor={homeColor}
             awayColor={awayColor}
+            showOverall={showOverall}
             from={replay.from}
             to={replay.to}
             flip={!playerIsHome}

@@ -956,6 +956,7 @@ const MatchDayInner = () => {
                   awayTactics={match.awayClubId === playerClubId ? tactics : (awayClub.aiManagerProfile?.defaultTactics ?? DEFAULT_PITCH_TACTICS)}
                   players={players}
                   orientation={matchView === 'split' ? 'landscape' : 'portrait'}
+                  showOverall={settings.showOverallOnPitch}
                   reducedMotion={settings.reducedMotion || settings.performanceMode}
                 />
               </Suspense>
@@ -1633,6 +1634,7 @@ const MatchDayInner = () => {
                   awayTactics={match.awayClubId === playerClubId ? tactics : (awayClub.aiManagerProfile?.defaultTactics ?? DEFAULT_PITCH_TACTICS)}
                   players={players}
                   orientation={matchView === 'split' ? 'landscape' : 'portrait'}
+                  showOverall={settings.showOverallOnPitch}
                   reducedMotion={settings.reducedMotion || settings.performanceMode}
                 />
               </Suspense>

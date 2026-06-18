@@ -176,6 +176,7 @@ function placeBeatPlayers(
       pos: p.pos,
       number: p.number,
       name: p.id ? o.lookup?.[p.id]?.lastName : undefined,
+      overall: p.id ? o.lookup?.[p.id]?.overall : undefined,
       point: { x: clamp(x + swayX, 2, 98), y: clamp(y + swayY, 2, 98) },
       highlighted: p.id != null && highlight.has(p.id),
     });
@@ -472,6 +473,7 @@ export function buildMatchTimeline(match: Match, homeClub: Club, awayClub: Club,
         players.push({
           id: p.id, team, pos: p.pos, number: p.number,
           name: p.id ? lookup?.[p.id]?.lastName : undefined,
+          overall: p.id ? lookup?.[p.id]?.overall : undefined,
           point: { x: clamp(x, 2, 98), y: clamp(depthToY(team, depth), 2, 98) },
           highlighted: p.id != null && (p.id === takerId || p.id === keeperId),
         });
