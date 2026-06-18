@@ -173,10 +173,19 @@ Ordered by value-per-effort and risk. Each phase is independently shippable.
 1. ✅ **Clearer names** — dark rounded name-plate + bold text + truncation (#11).
 2. ✅ **OVR on chip** honoring `showOverallOnPitch` (#8).
 3. ✅ **Attacking-third tint** for the team in possession.
-4. ⏭️ **Net ripple** on goals + celebration↔finish sync (#10) — deferred.
-5. ⏭️ **Weather/pitch-condition** turf visuals; wind — deferred.
-6. ⏭️ **Keeper actions**, chip facing/lean, ball spin — deferred (need velocity +
+4. ✅ **Net ripple** on goals (both renderers; bulge + decay on the scoring net).
+5. ✅ **Weather/pitch-condition** turf wash (muddy / waterlogged sheen).
+6. ✅ **Keeper reacts to shots** (dives across toward a close ball).
+   ⏭️ Outfield chip facing/lean + ball spin still deferred (need velocity +
    on-device tuning).
+
+### Remaining (deferred — need device validation / assets / profiling)
+- **Pixi landscape** for split view — needs the coordinate-transpose rewritten in
+  the WebGL path; Canvas already serves split well, so deferred (high risk/low gain blind).
+- **Penalty shootout on the pitch** — interactive phase, needs a visual pass.
+- **Audio** (crowd/whistle) — needs a sound setting + assets.
+- **Tap-a-player to inspect** — interactive hit-testing through the camera transform.
+- **Perf**: incremental/throttled timeline build — needs on-device profiling to justify.
 
 ### Phase D — Premium tier & interactivity
 1. **Pixi landscape** for split view.
