@@ -33,6 +33,11 @@ const TURF_LIGHT = '#1c4327';
 const LINE = 'rgba(255,255,255,0.55)';
 const GOLD = '#f5b915';
 
+const GOAL_RENDER_EVENTS = new Set<string>([
+  'goal', 'own_goal', 'penalty_scored', 'header_goal', 'solo_goal', 'long_range_goal',
+  'counter_attack_goal', 'free_kick_goal', 'extra_time_goal', 'goalkeeper_error',
+]);
+
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
@@ -47,6 +52,7 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
   const trailRef = useRef<{ x: number; y: number }[]>([]);
   const rafRef = useRef<number>(0);
   const lastTsRef = useRef<number>(0);
+  const goalRippleRef = useRef<{ seq: number; t: number; end: number }>({ seq: -1, t: 1, end: 100 });
 
   minuteRef.current = minute;
   // Live values read inside the rAF loop via refs, so the effect does NOT re-run
@@ -105,7 +111,7 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
       return { pad, innerW, innerH, project, unit };
     };
 
-    const drawField = () => {
+    const drawField = (ripple: { end: number; bulge: number } | null) => {
       const { pad, innerW, innerH, project, unit } = geom();
       const rect = (ax: number, ay: number, bx: number, by: number) => {
         const a = project(ax, ay);
@@ -170,7 +176,9 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
 
       // Goal frame + net mesh sticking out behind each byline.
       const goal = (lineY: number, dir: 1 | -1) => {
-        const depth = 4 * dir;
+        // Net ripples (bulges) briefly when a goal goes in at this end.
+        const bulge = ripple && ripple.end === lineY ? ripple.bulge : 0;
+        const depth = 4 * dir * (1 + bulge);
         const m = rect(43, lineY, 57, lineY + depth);
         ctx.fillStyle = 'rgba(255,255,255,0.06)';
         ctx.fillRect(m.x, m.y, m.w, m.h);
@@ -335,6 +343,14 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
       const liftArc = sample.next ? sample.next.ballArc : 0;
       const liftT = sample.t;
 
+      // Trigger the net ripple when a goal beat first becomes active.
+      if (beat.eventType && GOAL_RENDER_EVENTS.has(beat.eventType) && beat.seq !== goalRippleRef.current.seq) {
+        goalRippleRef.current = { seq: beat.seq, t: 0, end: beat.possession === 'home' ? 100 : 0 };
+      }
+      const rip = goalRippleRef.current;
+      if (rip.t < 1) rip.t = Math.min(1, rip.t + dt / 700);
+      const ripple = !reducedMotion && rip.t < 1 ? { end: rip.end, bulge: (1 - rip.t) * Math.sin(rip.t * 28) * 0.6 } : null;
+
       if (quality.trailLen > 0) {
         trailRef.current.push({ x: frame.ball.x, y: frame.ball.y });
         if (trailRef.current.length > quality.trailLen) trailRef.current.shift();
@@ -371,7 +387,7 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
       ctx.scale(z, z);
       ctx.translate(-fsx, -fsy);
 
-      drawField();
+      drawField(ripple);
       if (!reducedMotion) drawTint(beat.possession);
       if (quality.trailLen > 0) drawTrail(beat.possession === 'home' ? homeColorRef.current : awayColorRef.current);
       const liftPx = liftArc > 0 && !reducedMotion ? liftArc * (innerH / 100) * PITCH_RENDER.ARC_LIFT_SCALE * Math.sin(Math.PI * liftT) : 0;
