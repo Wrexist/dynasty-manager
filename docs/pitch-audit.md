@@ -164,12 +164,19 @@ Ordered by value-per-effort and risk. Each phase is independently shippable.
 4. ✅ **Counter-attacks** staged as fast vertical long-ball breaks.
 5. ✅ Tests for corner, penalty, counter, and the live-tactics reshape.
 
-### Phase C — Graphics polish
-1. **Net ripple** on goals + sync celebration to the on-pitch finish (#10).
-2. **Weather/pitch-condition** turf visuals; wind.
-3. **OVR badges** (honor `showOverallOnPitch`) + name truncation (#8, #11).
-4. **Momentum tint** on the attacking third.
-5. **Keeper actions**, chip facing/lean, ball spin.
+### Phase C — Graphics polish — ✅ PARTIAL
+0. ✅ 🔴 **CRITICAL FIX**: the renderers had `timeline` (and Pixi's `onError`) in
+   their effect deps, so every revealed event reset the playhead to minute 0 and
+   catch-up raced forward at 3× — the "very fast" chaotic playback that also
+   stomped goals. Present since the first pitch PR (so in the live build). Fixed
+   by reading timeline/colours/showOverall/onError via refs (renderer built once).
+1. ✅ **Clearer names** — dark rounded name-plate + bold text + truncation (#11).
+2. ✅ **OVR on chip** honoring `showOverallOnPitch` (#8).
+3. ✅ **Attacking-third tint** for the team in possession.
+4. ⏭️ **Net ripple** on goals + celebration↔finish sync (#10) — deferred.
+5. ⏭️ **Weather/pitch-condition** turf visuals; wind — deferred.
+6. ⏭️ **Keeper actions**, chip facing/lean, ball spin — deferred (need velocity +
+   on-device tuning).
 
 ### Phase D — Premium tier & interactivity
 1. **Pixi landscape** for split view.
