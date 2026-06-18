@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import type { MatchTimeline, PitchQuality } from '@/types/game';
 import { createPlayback, seekPlayback, advancePlayback, samplePlayback, createDisplay, stepDisplay, type PlaybackState, type DisplayState } from '@/engine/match/pitchFrame';
 import { PITCH_RENDER } from '@/config/pitchChoreography';
+import { shade, keeperKit } from './pitchColors';
 
 // Art-directed pitch renderer with a broadcast follow-cam, parabolic ball arcs
 // and a motion trail. Consumes a MatchTimeline + current minute; eases the
@@ -137,6 +138,16 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
         ctx.fillStyle = lg;
         ctx.fillRect(pad, pad, innerW, innerH);
       }
+      if (quality.gradient) {
+        // Floodlight pool: a warm lit centre falling off to the darker corners.
+        const fc = project(50, 50);
+        const pool = ctx.createRadialGradient(fc.sx, fc.sy, 0, fc.sx, fc.sy, Math.max(innerW, innerH) * 0.62);
+        pool.addColorStop(0, 'rgba(255,250,235,0.1)');
+        pool.addColorStop(0.6, 'rgba(255,250,235,0.03)');
+        pool.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = pool;
+        ctx.fillRect(pad, pad, innerW, innerH);
+      }
 
       ctx.lineWidth = Math.max(1, unit * 0.006);
       ctx.strokeStyle = LINE;
@@ -265,11 +276,12 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
         const rx = r * (1 + e);
         const ry = r * (1 - e);
         const cy = groundY - sp * chipR * PITCH_RENDER.BOB_MAX * Math.sin(ts * PITCH_RENDER.BOB_FREQ + p.number);
-        const color = p.team === 'home' ? homeColorRef.current : awayColorRef.current;
+        const teamColor = p.team === 'home' ? homeColorRef.current : awayColorRef.current;
+        const color = p.pos === 'GK' ? keeperKit(teamColor) : (teamColor || '#888');
         // Planted contact shadow (doesn't bob).
-        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+        ctx.fillStyle = 'rgba(0,0,0,0.42)';
         ctx.beginPath();
-        ctx.ellipse(cx, groundY + chipR * 0.5, chipR * 0.82, chipR * 0.36, 0, 0, Math.PI * 2);
+        ctx.ellipse(cx, groundY + chipR * 0.48, chipR * 0.78, chipR * 0.34, 0, 0, Math.PI * 2);
         ctx.fill();
         if (p.highlighted) {
           ctx.strokeStyle = GOLD;
@@ -278,13 +290,23 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
           ctx.arc(cx, cy, r + chipR * 0.35, 0, Math.PI * 2);
           ctx.stroke();
         }
-        ctx.fillStyle = color || '#888';
+        // Lit kit: radial gradient (top-left light → base → dark rim) + specular.
+        const maxR = Math.max(rx, ry);
+        const grad = ctx.createRadialGradient(cx - rx * 0.4, cy - ry * 0.4, Math.max(0.5, maxR * 0.12), cx, cy, maxR);
+        grad.addColorStop(0, shade(color, 0.42));
+        grad.addColorStop(0.55, color);
+        grad.addColorStop(1, shade(color, -0.3));
+        ctx.fillStyle = grad;
         ctx.beginPath();
         ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
         ctx.fill();
-        ctx.lineWidth = Math.max(1, chipR * 0.14);
-        ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+        ctx.lineWidth = Math.max(1, chipR * 0.12);
+        ctx.strokeStyle = 'rgba(0,0,0,0.5)';
         ctx.stroke();
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.beginPath();
+        ctx.ellipse(cx - rx * 0.32, cy - ry * 0.34, rx * 0.2, ry * 0.2, 0, 0, Math.PI * 2);
+        ctx.fill();
         // Chip glyph: overall (when enabled) or shirt number.
         ctx.fillStyle = '#fff';
         ctx.font = `700 ${Math.round(chipR * 1.02)}px Oswald, system-ui, sans-serif`;
@@ -325,11 +347,16 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
       ctx.beginPath();
       ctx.ellipse(bx, by + ballR * 0.7, ballR * (0.9 + liftPx / (innerH || 1)), ballR * 0.4, 0, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = '#ffffff';
+      // Ball as a lit sphere: white hotspot top-left → soft grey.
+      const byy = by - liftPx;
+      const bg = ctx.createRadialGradient(bx - ballR * 0.35, byy - ballR * 0.35, ballR * 0.1, bx, byy, ballR);
+      bg.addColorStop(0, '#ffffff');
+      bg.addColorStop(1, '#c6ccd6');
+      ctx.fillStyle = bg;
       ctx.beginPath();
-      ctx.arc(bx, by - liftPx, ballR, 0, Math.PI * 2);
+      ctx.arc(bx, byy, ballR, 0, Math.PI * 2);
       ctx.fill();
-      ctx.lineWidth = Math.max(1, ballR * 0.25);
+      ctx.lineWidth = Math.max(1, ballR * 0.22);
       ctx.strokeStyle = 'rgba(0,0,0,0.5)';
       ctx.stroke();
     };

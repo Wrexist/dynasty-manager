@@ -3,6 +3,7 @@ import { Application, Container, Graphics, Text } from 'pixi.js';
 import type { MatchTimeline, PitchQuality } from '@/types/game';
 import { createPlayback, advancePlayback, samplePlayback, createDisplay, stepDisplay, type PlaybackState } from '@/engine/match/pitchFrame';
 import { PITCH_RENDER } from '@/config/pitchChoreography';
+import { shade, keeperKit } from './pitchColors';
 
 // The "Stunning" WebGL pitch tier. Consumes the exact same MatchTimeline as the
 // Canvas renderer, so the pure choreography is shared. WebGL buys crisp scaling,
@@ -297,14 +298,19 @@ export default function PixiPitch({
               const rx = r * (1 + e);
               const ry = r * (1 - e);
               const cy = groundY - sp * chipR * PITCH_RENDER.BOB_MAX * Math.sin(performance.now() * PITCH_RENDER.BOB_FREQ + p.number);
-              const color = p.team === 'home' ? homeColorRef.current : awayColorRef.current;
-              chipsG.ellipse(cx, groundY + chipR * 0.5, chipR * 0.82, chipR * 0.36).fill({ color: 0x000000, alpha: 0.4 });
+              const teamColor = p.team === 'home' ? homeColorRef.current : awayColorRef.current;
+              const color = p.pos === 'GK' ? keeperKit(teamColor) : (teamColor || '#888888');
+              chipsG.ellipse(cx, groundY + chipR * 0.48, chipR * 0.78, chipR * 0.34).fill({ color: 0x000000, alpha: 0.42 });
               if (p.highlighted) {
                 // Additive bloom ring.
                 glowG.circle(cx, cy, r + chipR * 0.7).fill({ color: GOLD, alpha: 0.18 });
                 glowG.circle(cx, cy, r + chipR * 0.35).fill({ color: GOLD, alpha: 0.22 });
               }
-              chipsG.ellipse(cx, cy, rx, ry).fill(color || '#888888').stroke({ width: Math.max(1, chipR * 0.14), color: 0x000000, alpha: 0.55 });
+              // Lit kit faked with layers (Pixi Graphics has no gradient fill):
+              // dark base + lighter top-left body + a small specular highlight.
+              chipsG.ellipse(cx, cy, rx, ry).fill(shade(color, -0.28)).stroke({ width: Math.max(1, chipR * 0.12), color: 0x000000, alpha: 0.5 });
+              chipsG.ellipse(cx - rx * 0.16, cy - ry * 0.18, rx * 0.8, ry * 0.8).fill(shade(color, 0.18));
+              chipsG.ellipse(cx - rx * 0.32, cy - ry * 0.34, rx * 0.2, ry * 0.2).fill({ color: 0xffffff, alpha: 0.42 });
               const t = labels[li];
               if (t) {
                 t.visible = true;
@@ -342,7 +348,9 @@ export default function PixiPitch({
             ballG.clear();
             ballG.ellipse(bx, by + ballR * 0.7, ballR * (0.9 + liftPx / (fh || 1)), ballR * 0.4).fill({ color: 0x000000, alpha: 0.4 });
             glowG.circle(bx, by - liftPx, ballR * 2).fill({ color: 0xffffff, alpha: 0.1 });
-            ballG.circle(bx, by - liftPx, ballR).fill(0xffffff).stroke({ width: Math.max(1, ballR * 0.25), color: 0x000000, alpha: 0.5 });
+            // Lit sphere: soft grey base + white hotspot top-left.
+            ballG.circle(bx, by - liftPx, ballR).fill('#dfe3ea').stroke({ width: Math.max(1, ballR * 0.22), color: 0x000000, alpha: 0.5 });
+            ballG.circle(bx - ballR * 0.3, by - liftPx - ballR * 0.3, ballR * 0.5).fill({ color: 0xffffff, alpha: 0.9 });
           } catch (err) {
             fail(err);
             app?.ticker.stop();
