@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   frameForMinute, lerpFrames, latestGoalAt, createPlayback, advancePlayback, samplePlayback, seekPlayback,
+  ballEase, createDisplay, stepDisplay,
   type RenderFrame, type PlaybackOpts, type PlaybackState,
 } from '@/engine/match/pitchFrame';
 import type { MatchTimeline, MatchBeat, ChoreoPlayer, MatchEvent } from '@/types/game';
@@ -144,6 +145,77 @@ describe('latestGoalAt', () => {
 
   it('counts keeper-error goals as goals', () => {
     expect(latestGoalAt([mk(30, 'goalkeeper_error')], 90)!.type).toBe('goalkeeper_error');
+  });
+});
+
+describe('ballEase', () => {
+  const kinds = ['shot', 'pass', 'cross', 'longball', 'dribble', 'clearance', 'idle', 'restart'] as const;
+  it('maps the endpoints exactly for every kind', () => {
+    for (const k of kinds) {
+      expect(ballEase(k, 0)).toBeCloseTo(0, 5);
+      expect(ballEase(k, 1)).toBeCloseTo(1, 5);
+    }
+  });
+  it('a shot leaves the foot fast (ahead of linear early)', () => {
+    expect(ballEase('shot', 0.3)).toBeGreaterThan(0.3);
+  });
+  it('a pass rolls (decelerates — ahead of linear early)', () => {
+    expect(ballEase('pass', 0.5)).toBeGreaterThan(0.5);
+  });
+  it('idle/restart stay symmetric (smoothstep)', () => {
+    expect(ballEase('idle', 0.5)).toBeCloseTo(0.5, 5);
+  });
+});
+
+describe('advancePlayback honors per-beat duration', () => {
+  const opts: PlaybackOpts = { beatMs: 500, catchupLagMinutes: 2, catchupScale: 1 };
+  it('a longer-duration beat advances more slowly for the same dt', () => {
+    const normal = [beat(0, 0, { durationMs: 600 }), beat(0, 1, { durationMs: 600 })];
+    const slow = [beat(0, 0, { durationMs: 1200 }), beat(0, 1, { durationMs: 1200 })];
+    const tN = advancePlayback(normal, createPlayback(), 250, 2, opts).state.t;
+    const tS = advancePlayback(slow, createPlayback(), 250, 2, opts).state.t;
+    expect(tS).toBeLessThan(tN);
+  });
+});
+
+describe('stepDisplay (springs + velocity)', () => {
+  const cp = (id: string, x: number, y: number): ChoreoPlayer =>
+    ({ id, team: 'home', pos: 'ST', number: 9, point: { x, y }, highlighted: false });
+  const frame = (players: ChoreoPlayer[], ball = { x: 50, y: 50 }): RenderFrame => ({ ball, players });
+
+  it('initializes a new player at the target', () => {
+    const d = createDisplay();
+    stepDisplay(d, frame([cp('a', 10, 12)]), 16, 130);
+    expect(d.players.get('a')!.x).toBe(10);
+    expect(d.players.get('a')!.y).toBe(12);
+  });
+
+  it('eases toward a moved target with inertia and tracks velocity', () => {
+    const d = createDisplay();
+    stepDisplay(d, frame([cp('a', 10, 10)]), 16, 130);
+    stepDisplay(d, frame([cp('a', 20, 10)]), 16, 130);
+    const a = d.players.get('a')!;
+    expect(a.x).toBeGreaterThan(10);
+    expect(a.x).toBeLessThan(20); // hasn't snapped — inertia
+    expect(a.vx).toBeGreaterThan(0); // moving toward +x
+  });
+
+  it('drops players absent from the frame and adds new ones', () => {
+    const d = createDisplay();
+    stepDisplay(d, frame([cp('a', 10, 10)]), 16, 130);
+    stepDisplay(d, frame([cp('b', 5, 5)]), 16, 130);
+    expect(d.players.has('a')).toBe(false);
+    expect(d.players.has('b')).toBe(true);
+  });
+
+  it('tracks the ball exactly (precise) while recording velocity', () => {
+    const d = createDisplay();
+    stepDisplay(d, frame([], { x: 50, y: 50 }), 16, 130);
+    stepDisplay(d, frame([], { x: 60, y: 40 }), 16, 130);
+    expect(d.ballX).toBe(60);
+    expect(d.ballY).toBe(40);
+    expect(d.ballVX).toBeGreaterThan(0);
+    expect(d.ballVY).toBeLessThan(0);
   });
 });
 
