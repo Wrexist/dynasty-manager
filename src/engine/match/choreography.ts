@@ -252,7 +252,10 @@ function placeBeatPlayers(
       if (p.id && removed.has(p.id)) continue;
       const baseDepth = advancement(team, p.base.y);
       if (p.pos === 'GK') {
-        emit(p, team, 50 + (ball.x - 50) * 0.12, depthToY(team, 4));
+        // The keeper dives across toward a close ball (a shot), otherwise just
+        // shuffles along the line with play.
+        const follow = ballDepthDef < 22 ? 0.55 : 0.12;
+        emit(p, team, 50 + (ball.x - 50) * follow, depthToY(team, 4));
       } else if (pressers.has(p)) {
         const x = lerp(p.base.x, ball.x, PITCH_CHOREO.PRESS_PULL);
         const depth = lerp(baseDepth + lineShift, ballDepthDef, PITCH_CHOREO.PRESS_PULL);
