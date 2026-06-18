@@ -202,9 +202,16 @@ kit shape). Pixi-focused; Canvas keeps the Phase-2 look.
 - ✅ #4 — Possession→Momentum label fix (shipped separately on `pitch-hud-fixes`).
 - ⏭️ True pinch-zoom / free pan — intentionally not built (see U4 rationale).
 
-### Phase 6 — Onboarding, buildup, accessibility, perf
-U3 (coach-marks), Mo4 (pre-match buildup / full-time beat), U5 (aria text, flash
-luminance cap), perf pass (timeline rebuild throttle, Pixi sprite reuse, thermals).
+### Phase 6 — Onboarding, buildup, accessibility, perf — 🚧 IN PROGRESS
+- ✅ U5 — **accessibility pass**: (a) the goal flash is luminance-capped
+  (`FLASH_PEAK`/`WASH_PEAK`) as a photosensitivity guard (WCAG 2.3); (b) the
+  `aria-hidden` pitch now has a text path — a polite `role="status"` live region
+  announces each new commentary line, and the container carries an accessible
+  name. Momentum already conveys text via the U2 inspect card + score bug.
+- ⏭️ U5(c) momentum-bar text label lives in MatchDay — belongs with the
+  `pitch-hud-fixes` lineage (#573), not this branch.
+- ⏭️ U3 (first-match coach-marks), Mo4 (pre-match buildup / full-time beat),
+  perf pass (timeline rebuild throttle, Pixi sprite reuse, thermals) — remaining.
 
 ---
 

@@ -210,7 +210,18 @@ export default function PitchView({
   };
 
   return (
-    <div ref={containerRef} onPointerDown={handlePitchPointer} className="relative w-full overflow-hidden rounded-xl border border-border/50 bg-black/20" style={{ aspectRatio: landscape ? '104 / 64' : '68 / 104' }}>
+    <div
+      ref={containerRef}
+      onPointerDown={handlePitchPointer}
+      role="group"
+      aria-label={`Live match pitch, ${homeClub.shortName} versus ${awayClub.shortName}`}
+      className="relative w-full overflow-hidden rounded-xl border border-border/50 bg-black/20"
+      style={{ aspectRatio: landscape ? '104 / 64' : '68 / 104' }}
+    >
+      {/* Text path for the aria-hidden canvas: announce each new commentary line. */}
+      <div className="sr-only" role="status" aria-live="polite">
+        {caption ? `${caption.minute} ${caption.text}` : `${teamCode(homeClub.shortName)} ${score.hg}, ${teamCode(awayClub.shortName)} ${score.ag}`}
+      </div>
       {useWebgl ? (
         <ErrorBoundary fallback={() => (
           <PitchCanvas timeline={timeline} minute={minute} quality={quality} homeColor={homeColor} awayColor={awayColor} showOverall={showOverall} orientation={orientation} flip={!playerIsHome} reducedMotion={reducedMotion} hitTargetsRef={hitTargetsRef} tacticalWideRef={tacticalWideRef} className="absolute inset-0 h-full w-full" />
