@@ -169,10 +169,14 @@ Each phase is independently shippable, renderer-shared (Canvas+Pixi), lazy, and
 - ⏭️ M6/M7 (wall-clock idle sway, continuous zoom), M8 (ball shadow detach) —
   follow-ups, lower priority than the on-device tuning pass.
 
-### Phase 2 — Materials & turf
-V1 (chip gradient + specular + contact shadow), #5/V-GK (distinct keeper kit),
-V3 (floodlight pool + turf noise + tone variation + line AO), V5 (ball highlight +
-smear), #1 (penalty-arc correctness).
+### Phase 2 — Materials & turf — ✅ DONE (mostly)
+- ✅ V1 — lit chip material (radial gradient Canvas / layered Pixi) + specular +
+  tighter contact shadow.
+- ✅ #5/V-GK — distinct darkened keeper kit (`keeperKit`).
+- ✅ V3 — floodlight pool (Canvas). ⏭️ turf noise + line AO deferred (lower ROI;
+  Pixi pool skipped — no gradient fill, bloom compensates).
+- ✅ V5 — ball shaded as a sphere (hotspot → grey).
+- ⏭️ #1 penalty-arc geometry still deferred (distance-correct radius needed).
 
 ### Phase 3 — The goal moment — ✅ DONE
 - ✅ Mo1 — broadcast lower-third: new scoreline (scoring side highlighted) +
@@ -181,9 +185,20 @@ smear), #1 (penalty-arc correctness).
   Phase-1 goal slow-mo fires inside the replay automatically.
 - ⏭️ Mo3 (kickoff arrow) — minor, deferred.
 
-### Phase 4 — WebGL "Stunning" tier earns its name
-V4 (real bloom filter + crowd/stands backdrop + optional DoF), V2 (directional
-kit shape). Pixi-focused; Canvas keeps the Phase-2 look.
+### Phase 4 — WebGL "Stunning" tier earns its name — ✅ DONE
+- ✅ V4 — **real Gaussian bloom** (`BlurFilter` on the additive `glowG` layer, no
+  new dep — ships with pixi.js v8) so the carrier ring + ball read as soft light.
+- ✅ V4 — **crowd/stands backdrop**: a dark stadium bowl + seeded (`mulberry32`)
+  speckle in the margins, denser behind the two goal-ends. Drawn once, kit-
+  independent, camera-transformed with the world so it pans/zooms as a stadium.
+- ✅ V2 — directional kit shape already landed in Phase 1/2 (velocity-driven lean
+  ellipse on the chips); no further work needed here.
+- ⏭️ DoF (depth-of-field blur on players far from the carrier) — deferred:
+  per-sprite blur on a Graphics chips layer needs RenderTextures and isn't worth
+  the perf/complexity for the marginal gain. Bloom + crowd carry the tier.
+- New feel constants in `pitchChoreography.ts`: `BLOOM_STRENGTH`, `BLOOM_QUALITY`,
+  `STANDS_DEPTH`, `STANDS_SPECKLE`. Pixi-only; Canvas keeps the Phase-2 look.
+  Bloom is skipped under reduced-motion; the stands are always cheap.
 
 ### Phase 5 — Broadcast HUD & interactivity — ✅ DONE
 - ✅ U1 — **broadcast score bug**: a compact corner overlay (clock + running
