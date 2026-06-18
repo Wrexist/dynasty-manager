@@ -58,6 +58,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Improved: Pitch polish — goal nets ripple when you score, keepers dive at shots, and a wet/muddy pitch now looks the part.',
     'Highlight: Match-view glow-up — players now run with real weight, the ball has physics, the camera leads play, and goals hit with slow-mo + shake.',
     'Improved: Premium pitch look — players read as lit jerseys, keepers stand out, the pitch is floodlit, and the ball looks like a real ball.',
+    'Fixed the live match HUD bar being mislabelled "Possession" when it actually shows momentum.',
   ],
   fixed: [],
   headline: null,
