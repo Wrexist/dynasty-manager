@@ -59,6 +59,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Highlight: Match-view glow-up — players now run with real weight, the ball has physics, the camera leads play, and goals hit with slow-mo + shake.',
     'Improved: Premium pitch look — players read as lit jerseys, keepers stand out, the pitch is floodlit, and the ball looks like a real ball.',
     'Fixed the live match HUD bar being mislabelled "Possession" when it actually shows momentum.',
+    'Highlight: Goals now feel like a moment — a broadcast scoreline + scorer card, a stadium flash, and an instant slow-mo replay.',
   ],
   fixed: [],
   headline: null,
