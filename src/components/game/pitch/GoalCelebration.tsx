@@ -25,6 +25,12 @@ interface GoalCelebrationProps {
 
 const DURATION_MS = 2600;
 const REDUCED_MS = 1400;
+// Photosensitivity guard: cap the peak opacity of the full-screen white flash
+// (a single smooth fade, never a repeated flicker) and the club-colour wash so
+// the brightest frame stays well below a hazardous full-luminance flash. Lower
+// than the old 0.7/0.55 to keep the punch without the epilepsy risk (WCAG 2.3).
+const FLASH_PEAK = 0.42;
+const WASH_PEAK = 0.32;
 
 export function GoalCelebration({
   color, text, minute, scorer, homeShort, awayShort, homeGoals, awayGoals, scoredByHome,
@@ -52,11 +58,11 @@ export function GoalCelebration({
     <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
       {!reducedMotion && (
         <>
-          {/* Stadium flash bloom. */}
+          {/* Stadium flash bloom (luminance-capped — photosensitivity guard). */}
           <motion.div
             className="absolute inset-0"
             style={{ background: 'radial-gradient(circle at 50% 45%, rgba(255,255,255,0.85), rgba(255,255,255,0) 60%)' }}
-            initial={{ opacity: 0.7 }}
+            initial={{ opacity: FLASH_PEAK }}
             animate={{ opacity: 0 }}
             transition={{ duration: 0.5, ease: 'easeOut' }}
           />
@@ -64,7 +70,7 @@ export function GoalCelebration({
           <motion.div
             className="absolute inset-0"
             style={{ backgroundColor: color }}
-            initial={{ opacity: 0.4 }}
+            initial={{ opacity: WASH_PEAK }}
             animate={{ opacity: 0 }}
             transition={{ duration: 0.8, ease: 'easeOut' }}
           />
