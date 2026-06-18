@@ -23,6 +23,8 @@ interface PixiPitchProps {
   reducedMotion?: boolean;
   /** Renderer writes the current frame's tappable chips here (for tap-to-inspect). */
   hitTargetsRef?: React.MutableRefObject<PitchHitTarget[] | null>;
+  /** When the ref reads true, hold a wide tactical view (pause the follow-cam). */
+  tacticalWideRef?: React.MutableRefObject<boolean>;
   className?: string;
   onError?: () => void;
 }
@@ -43,7 +45,7 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
 interface View { zoom: number; cx: number; cy: number }
 
 export default function PixiPitch({
-  timeline, minute, quality, homeColor, awayColor, showOverall = false, flip = false, reducedMotion = false, hitTargetsRef, className, onError,
+  timeline, minute, quality, homeColor, awayColor, showOverall = false, flip = false, reducedMotion = false, hitTargetsRef, tacticalWideRef, className, onError,
 }: PixiPitchProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const minuteRef = useRef(minute);
@@ -56,12 +58,14 @@ export default function PixiPitch({
   const showOverallRef = useRef(showOverall);
   const onErrorRef = useRef(onError);
   const hitTargetsRefRef = useRef(hitTargetsRef);
+  const tacticalWideRefRef = useRef(tacticalWideRef);
   timelineRef.current = timeline;
   homeColorRef.current = homeColor;
   awayColorRef.current = awayColor;
   showOverallRef.current = showOverall;
   onErrorRef.current = onError;
   hitTargetsRefRef.current = hitTargetsRef;
+  tacticalWideRefRef.current = tacticalWideRef;
 
   useEffect(() => {
     const host = hostRef.current;
@@ -233,9 +237,10 @@ export default function PixiPitch({
             // Camera (world container transform) with a lead in the ball's direction.
             const leadX = clamp(display.ballVX * PITCH_RENDER.CAM_LEAD_S, -PITCH_RENDER.CAM_LEAD_MAX, PITCH_RENDER.CAM_LEAD_MAX);
             const leadY = clamp(display.ballVY * PITCH_RENDER.CAM_LEAD_S, -PITCH_RENDER.CAM_LEAD_MAX, PITCH_RENDER.CAM_LEAD_MAX);
-            const targetZoom = reducedMotion ? 1 : clamp(beat.camera.zoom + punch, PITCH_RENDER.ZOOM_MIN, PITCH_RENDER.ZOOM_MAX + PITCH_RENDER.GOAL_ZOOM_PUNCH);
-            const targetCx = reducedMotion ? 50 : clamp(display.ballX + leadX, 2, 98);
-            const targetCy = reducedMotion ? 50 : clamp(display.ballY + leadY, 2, 98);
+            const wide = tacticalWideRefRef.current?.current && !reducedMotion;
+            const targetZoom = reducedMotion || wide ? PITCH_RENDER.ZOOM_MIN : clamp(beat.camera.zoom + punch, PITCH_RENDER.ZOOM_MIN, PITCH_RENDER.ZOOM_MAX + PITCH_RENDER.GOAL_ZOOM_PUNCH);
+            const targetCx = reducedMotion || wide ? 50 : clamp(display.ballX + leadX, 2, 98);
+            const targetCy = reducedMotion || wide ? 50 : clamp(display.ballY + leadY, 2, 98);
             if (!viewRef.current) viewRef.current = { zoom: targetZoom, cx: targetCx, cy: targetCy };
             else {
               const ca = reducedMotion ? 1 : 1 - Math.exp(-dt / PITCH_RENDER.CAM_TAU);

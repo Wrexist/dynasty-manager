@@ -185,14 +185,22 @@ smear), #1 (penalty-arc correctness).
 V4 (real bloom filter + crowd/stands backdrop + optional DoF), V2 (directional
 kit shape). Pixi-focused; Canvas keeps the Phase-2 look.
 
-### Phase 5 — Broadcast HUD & interactivity — 🚧 IN PROGRESS
+### Phase 5 — Broadcast HUD & interactivity — ✅ DONE
 - ✅ U1 — **broadcast score bug**: a compact corner overlay (clock + running
   scoreline + two-tone glossy crest discs + 3-letter team codes) on the live
-  pitch. The big score panel stays for pre/HT/FT in MatchDay.
+  pitch. The big score panel stays for pre/HT/FT in MatchDay. (PR #575)
+- ✅ U2 — **tap-to-inspect mini-card**: tap a chip → name / position / age /
+  nationality / overall / fitness. Renderers publish per-frame chip screen
+  positions (CSS px, post-camera) into a shared ref; PitchView hit-tests the
+  tap and looks the player up. Works on Canvas + Pixi. Also the pitch's only
+  text path (canvas is `aria-hidden`), so it's `aria-live`-announced.
+- ✅ U4 — **tactical-wide camera toggle**: a Wide/Follow button pulls the camera
+  back to the whole pitch and pauses the broadcast follow-cam. *Deliberately
+  chose this over raw pinch-pan*: manual pan/zoom fights the deterministic
+  auto-director and a double-tap gesture would collide with U2's tap-to-inspect.
+  The toggle delivers pinch's intent (see the shape vs. follow play) robustly.
 - ✅ #4 — Possession→Momentum label fix (shipped separately on `pitch-hud-fixes`).
-- ⏭️ U2 (tap-to-inspect mini-card) + U4 (pinch / double-tap focus) — these change
-  the canvas interaction model (currently `aria-hidden`, non-interactive), so
-  they ship as a separate follow-up after the score bug.
+- ⏭️ True pinch-zoom / free pan — intentionally not built (see U4 rationale).
 
 ### Phase 6 — Onboarding, buildup, accessibility, perf
 U3 (coach-marks), Mo4 (pre-match buildup / full-time beat), U5 (aria text, flash

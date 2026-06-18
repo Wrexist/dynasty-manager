@@ -7,7 +7,7 @@ import { GOAL_SCORING_TYPES } from '@/config/matchEngine';
 import { detectPitchQuality, webglSupported } from '@/utils/pitchQuality';
 import { areColorsSimilar } from '@/utils/uiHelpers';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw, Maximize2, Minimize2 } from 'lucide-react';
 import { PitchCanvas, type PitchHitTarget } from './PitchCanvas';
 import { GoalCelebration } from './GoalCelebration';
 import { WeatherOverlay } from './WeatherOverlay';
@@ -134,6 +134,12 @@ export default function PitchView({
   const inspectPlayer = inspectId ? players?.[inspectId] : undefined;
   const inspectIsHome = !!(inspectId && homeClub.playerIds?.includes(inspectId));
 
+  // Tactical-wide toggle: pull the camera back to the whole pitch (pauses the
+  // broadcast follow-cam). Mirrored into a ref the renderer reads each frame.
+  const [tacticalWide, setTacticalWide] = useState(false);
+  const tacticalWideRef = useRef(false);
+  tacticalWideRef.current = tacticalWide;
+
   // Fire a celebration + haptic the moment a *new* goal becomes visible. The
   // first pass only records the baseline so pre-existing goals don't replay
   // (e.g. when entering the second half).
@@ -207,7 +213,7 @@ export default function PitchView({
     <div ref={containerRef} onPointerDown={handlePitchPointer} className="relative w-full overflow-hidden rounded-xl border border-border/50 bg-black/20" style={{ aspectRatio: landscape ? '104 / 64' : '68 / 104' }}>
       {useWebgl ? (
         <ErrorBoundary fallback={() => (
-          <PitchCanvas timeline={timeline} minute={minute} quality={quality} homeColor={homeColor} awayColor={awayColor} showOverall={showOverall} orientation={orientation} flip={!playerIsHome} reducedMotion={reducedMotion} hitTargetsRef={hitTargetsRef} className="absolute inset-0 h-full w-full" />
+          <PitchCanvas timeline={timeline} minute={minute} quality={quality} homeColor={homeColor} awayColor={awayColor} showOverall={showOverall} orientation={orientation} flip={!playerIsHome} reducedMotion={reducedMotion} hitTargetsRef={hitTargetsRef} tacticalWideRef={tacticalWideRef} className="absolute inset-0 h-full w-full" />
         )}>
           <Suspense fallback={
             <PitchCanvas timeline={timeline} minute={minute} quality={quality} homeColor={homeColor} awayColor={awayColor} showOverall={showOverall} orientation={orientation} flip={!playerIsHome} reducedMotion={reducedMotion} className="absolute inset-0 h-full w-full" />
@@ -222,6 +228,7 @@ export default function PitchView({
               flip={!playerIsHome}
               reducedMotion={reducedMotion}
               hitTargetsRef={hitTargetsRef}
+              tacticalWideRef={tacticalWideRef}
               onError={() => setPixiFailed(true)}
               className="absolute inset-0 h-full w-full"
             />
@@ -239,6 +246,7 @@ export default function PitchView({
           flip={!playerIsHome}
           reducedMotion={reducedMotion}
           hitTargetsRef={hitTargetsRef}
+          tacticalWideRef={tacticalWideRef}
           className="absolute inset-0 h-full w-full"
         />
       )}
@@ -257,6 +265,20 @@ export default function PitchView({
         <ScoreCrest color={awayColor} />
         <span className="ml-0.5 rounded bg-primary/15 px-1 py-0.5 text-[10px] font-semibold leading-none tabular-nums text-primary">{minute}'</span>
       </div>
+
+      {/* Tactical-wide / broadcast-follow camera toggle. */}
+      {!reducedMotion && !celebration && !replay && (
+        <button
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={() => setTacticalWide((v) => !v)}
+          className="absolute left-2 top-11 z-[6] flex items-center gap-1 rounded-full border border-border/40 bg-card/80 px-2 py-1 backdrop-blur-md active:scale-95"
+          aria-label={tacticalWide ? 'Switch to broadcast camera' : 'Switch to tactical wide view'}
+          aria-pressed={tacticalWide}
+        >
+          {tacticalWide ? <Minimize2 className="h-3 w-3 text-primary" /> : <Maximize2 className="h-3 w-3 text-primary" />}
+          <span className="text-[10px] font-semibold text-foreground">{tacticalWide ? 'Follow' : 'Wide'}</span>
+        </button>
+      )}
 
       <AnimatePresence>
         {showDir && (
