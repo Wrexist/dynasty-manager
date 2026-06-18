@@ -182,9 +182,20 @@ Each phase is independently shippable, renderer-shared (Canvas+Pixi), lazy, and
 Mo1 (scorer/scoreline broadcast card + stadium flash + club-colour burst),
 Mo2 (auto-replay + slow-mo + letterbox), Mo3 (kickoff arrow).
 
-### Phase 4 — WebGL "Stunning" tier earns its name
-V4 (real bloom filter + crowd/stands backdrop + optional DoF), V2 (directional
-kit shape). Pixi-focused; Canvas keeps the Phase-2 look.
+### Phase 4 — WebGL "Stunning" tier earns its name — ✅ DONE
+- ✅ V4 — **real Gaussian bloom** (`BlurFilter` on the additive `glowG` layer, no
+  new dep — ships with pixi.js v8) so the carrier ring + ball read as soft light.
+- ✅ V4 — **crowd/stands backdrop**: a dark stadium bowl + seeded (`mulberry32`)
+  speckle in the margins, denser behind the two goal-ends. Drawn once, kit-
+  independent, camera-transformed with the world so it pans/zooms as a stadium.
+- ✅ V2 — directional kit shape already landed in Phase 1/2 (velocity-driven lean
+  ellipse on the chips); no further work needed here.
+- ⏭️ DoF (depth-of-field blur on players far from the carrier) — deferred:
+  per-sprite blur on a Graphics chips layer needs RenderTextures and isn't worth
+  the perf/complexity for the marginal gain. Bloom + crowd carry the tier.
+- New feel constants in `pitchChoreography.ts`: `BLOOM_STRENGTH`, `BLOOM_QUALITY`,
+  `STANDS_DEPTH`, `STANDS_SPECKLE`. Pixi-only; Canvas keeps the Phase-2 look.
+  Bloom is skipped under reduced-motion; the stands are always cheap.
 
 ### Phase 5 — Broadcast HUD & interactivity
 U1 (corner score bug + real crests), U2 (tap-to-inspect mini-card), #4 (fix the

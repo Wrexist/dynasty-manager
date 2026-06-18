@@ -142,4 +142,16 @@ export const PITCH_RENDER = {
   GOAL_ZOOM_PUNCH: 0.28,
   /** Screen-shake amplitude (px) at goal impact. */
   GOAL_SHAKE_PX: 6,
+
+  // ── Phase 4: WebGL "Stunning" tier (Pixi only) ──
+  /** Gaussian blur strength applied to the additive glow layer (ball + carrier
+   *  ring) for a real bloom. Higher = softer, broader halo. */
+  BLOOM_STRENGTH: 7,
+  /** Bloom blur quality (passes). Kept low — Pixi only runs on the high tier,
+   *  and the glow layer re-renders every frame. */
+  BLOOM_QUALITY: 2,
+  /** Crowd/stands depth behind each byline, as a fraction of the field height. */
+  STANDS_DEPTH: 0.16,
+  /** Speckle dots per stand band (the packed-crowd texture). Seeded, drawn once. */
+  STANDS_SPECKLE: 130,
 } as const;
