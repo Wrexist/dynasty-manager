@@ -10,6 +10,10 @@ import { shade, keeperKit } from './pitchColors';
 // Supports portrait (goals top/bottom) and landscape (goals left/right) via a
 // coordinate-transpose so the split view can show a short, wide pitch.
 
+/** A tappable player, published each frame in CSS px relative to the canvas so
+ *  the React layer (PitchView) can hit-test taps without knowing the camera. */
+export interface PitchHitTarget { id: string; x: number; y: number; r: number }
+
 interface PitchCanvasProps {
   timeline: MatchTimeline;
   minute: number;
@@ -26,6 +30,10 @@ interface PitchCanvasProps {
   flip?: boolean;
   /** Snap + hold a static wide view (reduced-motion / performance mode). */
   reducedMotion?: boolean;
+  /** Renderer writes the current frame's tappable chips here (for tap-to-inspect). */
+  hitTargetsRef?: React.MutableRefObject<PitchHitTarget[] | null>;
+  /** When the ref reads true, hold a wide tactical view (pause the follow-cam). */
+  tacticalWideRef?: React.MutableRefObject<boolean>;
   className?: string;
 }
 
@@ -45,7 +53,7 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
 interface View { zoom: number; cx: number; cy: number }
 interface Pt { sx: number; sy: number }
 
-export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, showOverall = false, startMinute, orientation = 'portrait', flip = false, reducedMotion = false, className }: PitchCanvasProps) {
+export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, showOverall = false, startMinute, orientation = 'portrait', flip = false, reducedMotion = false, hitTargetsRef, tacticalWideRef, className }: PitchCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const minuteRef = useRef(minute);
   const playbackRef = useRef<PlaybackState>(createPlayback());
@@ -418,9 +426,11 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
       // Camera follow + zoom, with a lead in the ball's direction of travel.
       const leadX = clamp(display.ballVX * PITCH_RENDER.CAM_LEAD_S, -PITCH_RENDER.CAM_LEAD_MAX, PITCH_RENDER.CAM_LEAD_MAX);
       const leadY = clamp(display.ballVY * PITCH_RENDER.CAM_LEAD_S, -PITCH_RENDER.CAM_LEAD_MAX, PITCH_RENDER.CAM_LEAD_MAX);
-      const targetZoom = reducedMotion ? 1 : clamp(beat.camera.zoom + punch, PITCH_RENDER.ZOOM_MIN, PITCH_RENDER.ZOOM_MAX + PITCH_RENDER.GOAL_ZOOM_PUNCH);
-      const targetCx = reducedMotion ? 50 : clamp(display.ballX + leadX, 2, 98);
-      const targetCy = reducedMotion ? 50 : clamp(display.ballY + leadY, 2, 98);
+      // Tactical-wide lock pulls back to the whole pitch and pauses the follow.
+      const wide = tacticalWideRef?.current && !reducedMotion;
+      const targetZoom = reducedMotion || wide ? PITCH_RENDER.ZOOM_MIN : clamp(beat.camera.zoom + punch, PITCH_RENDER.ZOOM_MIN, PITCH_RENDER.ZOOM_MAX + PITCH_RENDER.GOAL_ZOOM_PUNCH);
+      const targetCx = reducedMotion || wide ? 50 : clamp(display.ballX + leadX, 2, 98);
+      const targetCy = reducedMotion || wide ? 50 : clamp(display.ballY + leadY, 2, 98);
       if (!viewRef.current) viewRef.current = { zoom: targetZoom, cx: targetCx, cy: targetCy };
       else {
         const ca = reducedMotion ? 1 : 1 - Math.exp(-dt / PITCH_RENDER.CAM_TAU);
@@ -454,6 +464,19 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
       const liftPx = liftArc > 0 && !reducedMotion ? liftArc * (innerH / 100) * PITCH_RENDER.ARC_LIFT_SCALE * Math.sin(Math.PI * liftT) : 0;
       drawFrame(display, liftPx, view.zoom >= PITCH_RENDER.NAME_ZOOM, ts);
 
+      // Publish tappable chips in CSS px (same camera transform the draw uses),
+      // so PitchView can hit-test a tap back to a player without the transform.
+      if (hitTargetsRef) {
+        const chipR = Math.max(5, Math.min(innerW, innerH) * 0.028);
+        const targets: PitchHitTarget[] = [];
+        for (const p of display.players.values()) {
+          if (!p.id) continue;
+          const { sx, sy } = project(p.x, p.y);
+          targets.push({ id: p.id, x: (sx - fsx) * z + w / 2, y: (sy - fsy) * z + h / 2, r: chipR * z * 1.4 });
+        }
+        hitTargetsRef.current = targets;
+      }
+
       ctx.restore();
       if (quality.vignette) {
         const vg = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.32, w / 2, h / 2, Math.max(w, h) * 0.72);
@@ -476,7 +499,11 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
       playbackRef.current = createPlayback();
       displayRef.current = createDisplay();
       goalImpactRef.current = { seq: -1, t: 1e9 };
+      if (hitTargetsRef) hitTargetsRef.current = null;
     };
+    // hitTargetsRef is a stable ref object; omitted from deps so the playhead
+    // doesn't reset when the parent re-renders.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quality, startMinute, orientation, flip, reducedMotion]);
 
   return <canvas ref={canvasRef} className={className} aria-hidden="true" />;
