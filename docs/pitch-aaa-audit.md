@@ -185,9 +185,14 @@ smear), #1 (penalty-arc correctness).
 V4 (real bloom filter + crowd/stands backdrop + optional DoF), V2 (directional
 kit shape). Pixi-focused; Canvas keeps the Phase-2 look.
 
-### Phase 5 — Broadcast HUD & interactivity
-U1 (corner score bug + real crests), U2 (tap-to-inspect mini-card), #4 (fix the
-Possession label / compute real possession), U4 (pinch/focus).
+### Phase 5 — Broadcast HUD & interactivity — 🚧 IN PROGRESS
+- ✅ U1 — **broadcast score bug**: a compact corner overlay (clock + running
+  scoreline + two-tone glossy crest discs + 3-letter team codes) on the live
+  pitch. The big score panel stays for pre/HT/FT in MatchDay.
+- ✅ #4 — Possession→Momentum label fix (shipped separately on `pitch-hud-fixes`).
+- ⏭️ U2 (tap-to-inspect mini-card) + U4 (pinch / double-tap focus) — these change
+  the canvas interaction model (currently `aria-hidden`, non-interactive), so
+  they ship as a separate follow-up after the score bug.
 
 ### Phase 6 — Onboarding, buildup, accessibility, perf
 U3 (coach-marks), Mo4 (pre-match buildup / full-time beat), U5 (aria text, flash

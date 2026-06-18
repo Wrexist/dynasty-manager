@@ -55,6 +55,23 @@ interface Celebration {
 
 const SCORING_TYPES = new Set<MatchEvent['type']>(GOAL_SCORING_TYPES as unknown as MatchEvent['type'][]);
 
+// A 3-letter broadcast code from a club's short name (e.g. "Arsenal" → "ARS").
+const teamCode = (s: string) => (s || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 3).toUpperCase() || '—';
+
+// Two-tone glossy crest disc for the score bug — a club-coloured disc with a
+// light top-left sheen and a dark lower-right, so it reads as a crest rather
+// than a flat dot. Pure CSS, no colour maths.
+function ScoreCrest({ color }: { color: string }) {
+  return (
+    <span className="relative h-3 w-3 shrink-0 rounded-full ring-1 ring-black/40" style={{ backgroundColor: color || '#888888' }}>
+      <span
+        className="absolute inset-0 rounded-full"
+        style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 46%, rgba(0,0,0,0.38) 100%)' }}
+      />
+    </span>
+  );
+}
+
 export default function PitchView({
   match, homeClub, awayClub, events, minute, playerIsHome, homeTactics, awayTactics, players, orientation = 'portrait', showOverall, reducedMotion,
 }: PitchViewProps) {
@@ -96,6 +113,18 @@ export default function PitchView({
     }
     return null;
   }, [events, minute]);
+
+  // Running scoreline at the revealed minute, for the broadcast score bug.
+  const score = useMemo(() => {
+    let hg = 0;
+    let ag = 0;
+    for (const e of events) {
+      if (e.minute <= minute && SCORING_TYPES.has(e.type)) {
+        if (e.clubId === homeClub.id) hg++; else ag++;
+      }
+    }
+    return { hg, ag };
+  }, [events, minute, homeClub.id]);
 
   // Fire a celebration + haptic the moment a *new* goal becomes visible. The
   // first pass only records the baseline so pre-existing goals don't replay
@@ -185,6 +214,19 @@ export default function PitchView({
       )}
 
       <WeatherOverlay weather={match.weather?.weather} pitch={match.weather?.pitch} density={quality.weatherScale} reducedMotion={reducedMotion} />
+
+      {/* Broadcast score bug — clock + crests + running scoreline, overlaid on
+          the live pitch (the big panel stays for pre/HT/FT in MatchDay). */}
+      <div className="pointer-events-none absolute left-2 top-2 z-[6] flex items-center gap-1.5 rounded-md border border-border/40 bg-card/85 px-1.5 py-1 shadow-lg backdrop-blur-md">
+        <ScoreCrest color={homeColor} />
+        <span className="text-[11px] font-bold tracking-tight text-foreground">{teamCode(homeClub.shortName)}</span>
+        <span className="px-0.5 text-sm font-extrabold leading-none tabular-nums text-foreground">{score.hg}</span>
+        <span className="text-[10px] leading-none text-muted-foreground">–</span>
+        <span className="px-0.5 text-sm font-extrabold leading-none tabular-nums text-foreground">{score.ag}</span>
+        <span className="text-[11px] font-bold tracking-tight text-foreground">{teamCode(awayClub.shortName)}</span>
+        <ScoreCrest color={awayColor} />
+        <span className="ml-0.5 rounded bg-primary/15 px-1 py-0.5 text-[10px] font-semibold leading-none tabular-nums text-primary">{minute}'</span>
+      </div>
 
       <AnimatePresence>
         {showDir && (
