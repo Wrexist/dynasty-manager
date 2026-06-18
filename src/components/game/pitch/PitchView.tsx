@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import type { Club, Match, MatchEvent, Player, TacticalInstructions } from '@/types/game';
 import { buildMatchTimeline } from '@/engine/match/choreography';
 import { latestGoalAt } from '@/engine/match/pitchFrame';
+import { GOAL_SCORING_TYPES } from '@/config/matchEngine';
 import { detectPitchQuality, webglSupported } from '@/utils/pitchQuality';
 import { areColorsSimilar } from '@/utils/uiHelpers';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -47,7 +48,12 @@ const CAPTIONED_TYPES = new Set<MatchEvent['type']>([
   'yellow_card', 'red_card', 'foul', 'injury', 'substitution', 'var_check', 'var_disallowed',
 ]);
 
-interface Celebration { key: string; color: string; text: string; minute: string }
+interface Celebration {
+  key: string; color: string; text: string; minute: string;
+  scorer?: string; homeShort: string; awayShort: string; homeGoals: number; awayGoals: number; scoredByHome: boolean;
+}
+
+const SCORING_TYPES = new Set<MatchEvent['type']>(GOAL_SCORING_TYPES as unknown as MatchEvent['type'][]);
 
 export default function PitchView({
   match, homeClub, awayClub, events, minute, playerIsHome, homeTactics, awayTactics, players, orientation = 'portrait', showOverall, reducedMotion,
@@ -100,6 +106,7 @@ export default function PitchView({
 
   // Goal replay: re-run the most recent goal's beats in an overlay.
   const [replay, setReplay] = useState<{ from: number; to: number } | null>(null);
+  const autoReplayedRef = useRef<string | null>(null);
   const lastGoal = useMemo(() => latestGoalAt(events, minute), [events, minute]);
 
   // Brief "you attack this way" cue at kickoff.
@@ -121,10 +128,23 @@ export default function PitchView({
       lastGoalKeyRef.current = key;
       // Haptics are owned by MatchDay (success if you scored, heavy if conceded);
       // firing here too would double-buzz and ignore the success/heavy split.
-      const color = g.clubId === homeClub.id ? homeColor : awayColor;
-      setCelebration({ key, color: color || '#f5b915', text: g.description, minute: g.displayMinute || `${g.minute}'` });
+      const scoredByHome = g.clubId === homeClub.id;
+      const color = scoredByHome ? homeColor : awayColor;
+      // Running scoreline at this goal (own goals/keeper errors credited to clubId).
+      const gi = events.indexOf(g);
+      let hg = 0;
+      let ag = 0;
+      for (let i = 0; i <= gi; i++) {
+        const e = events[i];
+        if (SCORING_TYPES.has(e.type)) { if (e.clubId === homeClub.id) hg++; else ag++; }
+      }
+      setCelebration({
+        key, color: color || '#f5b915', text: g.description, minute: g.displayMinute || `${g.minute}'`,
+        scorer: g.playerId ? players?.[g.playerId]?.lastName : undefined,
+        homeShort: homeClub.shortName, awayShort: awayClub.shortName, homeGoals: hg, awayGoals: ag, scoredByHome,
+      });
     }
-  }, [events, minute, homeClub.id, homeColor, awayColor]);
+  }, [events, minute, homeClub.id, homeClub.shortName, awayClub.shortName, homeColor, awayColor, players]);
 
   return (
     <div className="relative w-full overflow-hidden rounded-xl border border-border/50 bg-black/20" style={{ aspectRatio: landscape ? '104 / 64' : '68 / 104' }}>
@@ -219,9 +239,23 @@ export default function PitchView({
             color={celebration.color}
             text={celebration.text}
             minute={celebration.minute}
+            scorer={celebration.scorer}
+            homeShort={celebration.homeShort}
+            awayShort={celebration.awayShort}
+            homeGoals={celebration.homeGoals}
+            awayGoals={celebration.awayGoals}
+            scoredByHome={celebration.scoredByHome}
             confettiCount={quality.confetti}
             reducedMotion={reducedMotion}
-            onDone={() => setCelebration(null)}
+            onDone={() => {
+              const done = celebration;
+              setCelebration(null);
+              // Auto-replay the goal once (broadcast rhythm), unless reduced motion.
+              if (done && !reducedMotion && lastGoal && autoReplayedRef.current !== done.key) {
+                autoReplayedRef.current = done.key;
+                setReplay({ from: Math.max(0, lastGoal.minute - 3), to: lastGoal.minute + 1 });
+              }
+            }}
           />
         )}
       </AnimatePresence>
