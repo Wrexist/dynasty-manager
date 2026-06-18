@@ -185,13 +185,33 @@ smear), #1 (penalty-arc correctness).
 V4 (real bloom filter + crowd/stands backdrop + optional DoF), V2 (directional
 kit shape). Pixi-focused; Canvas keeps the Phase-2 look.
 
-### Phase 5 — Broadcast HUD & interactivity
-U1 (corner score bug + real crests), U2 (tap-to-inspect mini-card), #4 (fix the
-Possession label / compute real possession), U4 (pinch/focus).
+### Phase 5 — Broadcast HUD & interactivity — ✅ DONE
+- ✅ U1 — **broadcast score bug**: a compact corner overlay (clock + running
+  scoreline + two-tone glossy crest discs + 3-letter team codes) on the live
+  pitch. The big score panel stays for pre/HT/FT in MatchDay. (PR #575)
+- ✅ U2 — **tap-to-inspect mini-card**: tap a chip → name / position / age /
+  nationality / overall / fitness. Renderers publish per-frame chip screen
+  positions (CSS px, post-camera) into a shared ref; PitchView hit-tests the
+  tap and looks the player up. Works on Canvas + Pixi. Also the pitch's only
+  text path (canvas is `aria-hidden`), so it's `aria-live`-announced.
+- ✅ U4 — **tactical-wide camera toggle**: a Wide/Follow button pulls the camera
+  back to the whole pitch and pauses the broadcast follow-cam. *Deliberately
+  chose this over raw pinch-pan*: manual pan/zoom fights the deterministic
+  auto-director and a double-tap gesture would collide with U2's tap-to-inspect.
+  The toggle delivers pinch's intent (see the shape vs. follow play) robustly.
+- ✅ #4 — Possession→Momentum label fix (shipped separately on `pitch-hud-fixes`).
+- ⏭️ True pinch-zoom / free pan — intentionally not built (see U4 rationale).
 
-### Phase 6 — Onboarding, buildup, accessibility, perf
-U3 (coach-marks), Mo4 (pre-match buildup / full-time beat), U5 (aria text, flash
-luminance cap), perf pass (timeline rebuild throttle, Pixi sprite reuse, thermals).
+### Phase 6 — Onboarding, buildup, accessibility, perf — 🚧 IN PROGRESS
+- ✅ U5 — **accessibility pass**: (a) the goal flash is luminance-capped
+  (`FLASH_PEAK`/`WASH_PEAK`) as a photosensitivity guard (WCAG 2.3); (b) the
+  `aria-hidden` pitch now has a text path — a polite `role="status"` live region
+  announces each new commentary line, and the container carries an accessible
+  name. Momentum already conveys text via the U2 inspect card + score bug.
+- ⏭️ U5(c) momentum-bar text label lives in MatchDay — belongs with the
+  `pitch-hud-fixes` lineage (#573), not this branch.
+- ⏭️ U3 (first-match coach-marks), Mo4 (pre-match buildup / full-time beat),
+  perf pass (timeline rebuild throttle, Pixi sprite reuse, thermals) — remaining.
 
 ---
 
