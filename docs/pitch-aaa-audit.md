@@ -169,10 +169,14 @@ Each phase is independently shippable, renderer-shared (Canvas+Pixi), lazy, and
 - ⏭️ M6/M7 (wall-clock idle sway, continuous zoom), M8 (ball shadow detach) —
   follow-ups, lower priority than the on-device tuning pass.
 
-### Phase 2 — Materials & turf
-V1 (chip gradient + specular + contact shadow), #5/V-GK (distinct keeper kit),
-V3 (floodlight pool + turf noise + tone variation + line AO), V5 (ball highlight +
-smear), #1 (penalty-arc correctness).
+### Phase 2 — Materials & turf — ✅ DONE (mostly)
+- ✅ V1 — lit chip material (radial gradient Canvas / layered Pixi) + specular +
+  tighter contact shadow.
+- ✅ #5/V-GK — distinct darkened keeper kit (`keeperKit`).
+- ✅ V3 — floodlight pool (Canvas). ⏭️ turf noise + line AO deferred (lower ROI;
+  Pixi pool skipped — no gradient fill, bloom compensates).
+- ✅ V5 — ball shaded as a sphere (hotspot → grey).
+- ⏭️ #1 penalty-arc geometry still deferred (distance-correct radius needed).
 
 ### Phase 3 — The goal moment
 Mo1 (scorer/scoreline broadcast card + stadium flash + club-colour burst),
