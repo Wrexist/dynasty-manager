@@ -166,14 +166,43 @@ describe('buildMatchTimeline', () => {
     expect(after.players.filter((p) => p.team === 'home')).toHaveLength(11); // still 11
   });
 
-  it('drives filler possession from momentum sign', () => {
-    const timeline = buildMatchTimeline(
-      makeMatch([ev(10, 'foul', 'away', { momentum: -40 })]),
-      home,
-      away,
-    );
-    const filler = timeline.beats.find((b) => b.minute === 30 && b.eventType === null);
-    expect(filler!.possession).toBe('away');
+  it('biases filler possession toward the team with momentum', () => {
+    const timeline = buildMatchTimeline(makeMatch([ev(5, 'foul', 'away', { momentum: -60 })]), home, away);
+    const fillers = timeline.beats.filter((b) => b.eventType === null && b.minute > 10);
+    const homeP = fillers.filter((b) => b.possession === 'home').length;
+    const awayP = fillers.filter((b) => b.possession === 'away').length;
+    expect(awayP).toBeGreaterThan(homeP);
+  });
+
+  it('alternates possession (ebb and flow), not one team for the whole match', () => {
+    const timeline = buildMatchTimeline(makeMatch([]), home, away); // neutral momentum
+    const perMinute = new Map<number, 'home' | 'away'>();
+    for (const b of timeline.beats) {
+      if (b.eventType === null && !perMinute.has(b.minute)) perMinute.set(b.minute, b.possession);
+    }
+    const seq = [...perMinute.values()];
+    let changes = 0;
+    for (let i = 1; i < seq.length; i++) if (seq[i] !== seq[i - 1]) changes++;
+    expect(changes).toBeGreaterThan(8); // the ball changes hands many times
+    const homeShare = seq.filter((p) => p === 'home').length / seq.length;
+    expect(homeShare).toBeGreaterThan(0.25);
+    expect(homeShare).toBeLessThan(0.75);
+  });
+
+  it('restarts from the centre with the conceding team after a goal', () => {
+    const timeline = buildMatchTimeline(makeMatch([ev(30, 'goal', 'home', { playerId: 'home-p9' })]), home, away);
+    const goalIdx = timeline.beats.findIndex((b) => b.eventType === 'goal');
+    const restart = timeline.beats[goalIdx + 1];
+    expect(restart.possession).toBe('away'); // conceding side kicks off
+    expect(restart.ball).toEqual({ x: 50, y: 50 });
+  });
+
+  it('treats a keeper-error goal as a goal (centre restart, not a missed shot)', () => {
+    const timeline = buildMatchTimeline(makeMatch([ev(30, 'goalkeeper_error', 'home', { playerId: 'home-p9' })]), home, away);
+    const idx = timeline.beats.findIndex((b) => b.eventType === 'goalkeeper_error');
+    const restart = timeline.beats[idx + 1];
+    expect(restart.possession).toBe('away');
+    expect(restart.ball).toEqual({ x: 50, y: 50 });
   });
 
   it('handles a goalless, event-light match without NaN', () => {
@@ -214,6 +243,15 @@ describe('buildMatchTimeline', () => {
     expect(named!.name).toBe('Striker');
   });
 
+  it('carries player name and overall onto chips when a lookup is provided', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const lookup = { 'home-p9': { lastName: 'Striker', overall: 88, attributes: { passing: 70, shooting: 90 } } } as any;
+    const timeline = buildMatchTimeline(makeMatch([]), home, away, { players: lookup });
+    const chip = timeline.beats.flatMap((b) => b.players).find((p) => p.id === 'home-p9');
+    expect(chip?.name).toBe('Striker');
+    expect(chip?.overall).toBe(88);
+  });
+
   it('keeps the ball at the ball-carrier’s feet during possession', () => {
     const timeline = buildMatchTimeline(makeMatch([]), home, away);
     const beat = timeline.beats.find((b) => b.ballCarrierId);
@@ -243,5 +281,74 @@ describe('buildMatchTimeline', () => {
     // Home attacks +y, so a higher mean y = more advanced.
     expect(homeMetric(tactics({ mentality: 'attacking' }), meanY))
       .toBeGreaterThan(homeMetric(tactics({ mentality: 'defensive' }), meanY));
+  });
+
+  describe('set pieces & live tactics', () => {
+    it('stages a corner after a defended shot', () => {
+      const tl = buildMatchTimeline(makeMatch([ev(30, 'shot_saved', 'home', { playerId: 'home-p9' })]), home, away);
+      const idx = tl.beats.findIndex((b) => b.eventType === 'shot_saved');
+      const corner = tl.beats.slice(idx + 1, idx + 3).find((b) => b.ball.x <= 8 || b.ball.x >= 92);
+      expect(corner).toBeDefined();
+      expect(Math.max(corner!.ball.y, 100 - corner!.ball.y)).toBeGreaterThan(90); // up by the byline
+    });
+
+    it('lays out a penalty — taker on the spot, keeper on the line, box clear', () => {
+      const tl = buildMatchTimeline(
+        makeMatch([ev(40, 'penalty_scored', 'home', { playerId: 'home-p9', goalkeeperId: 'away-p1' })]),
+        home,
+        away,
+      );
+      const setup = tl.beats.find((b) => b.eventType === null && b.ballCarrierId === 'home-p9' && Math.abs(b.ball.x - 50) < 2 && b.ball.y > 80);
+      expect(setup).toBeDefined();
+      expect(setup!.players.find((p) => p.id === 'home-p9')!.point.y).toBeGreaterThan(78);
+      expect(setup!.players.find((p) => p.id === 'away-p1')!.point.y).toBeGreaterThan(94);
+      expect(setup!.players.filter((p) => p.point.y > 86).length).toBeLessThanOrEqual(2); // not a box scramble
+    });
+
+    it('plays a counter-attack as a fast vertical break', () => {
+      const tl = buildMatchTimeline(makeMatch([ev(50, 'counter_attack_goal', 'home', { playerId: 'home-p9' })]), home, away);
+      expect(tl.beats.filter((b) => b.minute === 50 && b.ballMotion === 'longball').length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('reshapes a team when its AI mentality changes mid-match', () => {
+      const tl = buildMatchTimeline(
+        makeMatch([ev(20, 'ai_tactical_change', 'home', { description: 'Home switch to attacking mentality' })]),
+        home,
+        away,
+        { tactics: { home: tactics({ mentality: 'defensive' }), away: tactics() } },
+      );
+      const meanY = (b: { players: { team: string; point: { y: number } }[] }) => {
+        const ps = b.players.filter((p) => p.team === 'home');
+        return ps.reduce((a, p) => a + p.point.y, 0) / ps.length;
+      };
+      const before = tl.beats.filter((b) => b.minute < 20 && b.possession === 'home' && b.ballCarrierId);
+      const after = tl.beats.filter((b) => b.minute > 20 && b.possession === 'home' && b.ballCarrierId);
+      const avg = (arr: typeof before) => arr.reduce((a, b) => a + meanY(b), 0) / arr.length;
+      expect(before.length).toBeGreaterThan(0);
+      expect(after.length).toBeGreaterThan(0);
+      expect(avg(after)).toBeGreaterThan(avg(before));
+    });
+  });
+
+  describe('defensive shape', () => {
+    // First in-possession beat: home attacks, away defends.
+    const tl = buildMatchTimeline(makeMatch([]), home, away);
+    const beat = tl.beats.find((b) => b.ballCarrierId && b.possession === 'home')!;
+    const awayPlayers = beat.players.filter((p) => p.team === 'away');
+    const dist = (p: { point: { x: number; y: number } }) => Math.hypot(p.point.x - beat.ball.x, p.point.y - beat.ball.y);
+
+    it('holds a line and never collapses onto the keeper', () => {
+      // At most the GK should be jammed on the goal line (y > 94 for away).
+      expect(awayPlayers.filter((p) => p.point.y > 94).length).toBeLessThanOrEqual(2);
+    });
+
+    it('does not send the whole defence at the ball', () => {
+      // Plenty of defenders hold their shape well away from the ball…
+      expect(awayPlayers.filter((p) => dist(p) > 25).length).toBeGreaterThanOrEqual(4);
+      // …but at least one player presses it.
+      expect(awayPlayers.filter((p) => dist(p) < 18).length).toBeGreaterThanOrEqual(1);
+      // …and not the entire team.
+      expect(awayPlayers.filter((p) => dist(p) < 18).length).toBeLessThanOrEqual(4);
+    });
   });
 });

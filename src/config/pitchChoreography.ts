@@ -38,6 +38,26 @@ export const PITCH_CHOREO = {
   POSSESSION_ADVANCE: 5,
   /** Cap on the cumulative possession advance. */
   POSSESSION_ADVANCE_MAX: 16,
+
+  // ── Positional play (team simulation) ──
+  /** How far forward the ball-carrier drives from their resting depth. */
+  CARRIER_PUSH: 14,
+  /** How hard a pressing defender closes on the ball (0-1). */
+  PRESS_PULL: 0.6,
+  /** Lateral compactness: how far off-ball defenders slide toward the ball's lane (0-1). */
+  COMPACT_X: 0.28,
+  /** Pull applied to the nearest support player toward the ball (passing option). */
+  SUPPORT_PULL: 0.32,
+  /** The defensive line sits this far in front of the ball's depth… */
+  LINE_BALL_OFFSET: 8,
+  /** …but never closer than this to its own goal (so it never stacks on the keeper)… */
+  LINE_MIN_DEPTH: 14,
+  /** …nor higher up than this. */
+  LINE_MAX_DEPTH: 52,
+  /** Resting depth of the back line, used to anchor the line shift. */
+  BACKLINE_BASE: 10,
+  /** Below this ball depth (ball near their own goal) a 2nd defender presses. */
+  PRESS_NEAR_THRESHOLD: 38,
   /** Amplitude of the smooth deterministic idle sway (replaces random jitter,
    *  so players glide instead of vibrate). */
   SWAY_AMP: 1.5,

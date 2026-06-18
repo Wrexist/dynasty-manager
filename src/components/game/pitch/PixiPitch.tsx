@@ -17,6 +17,7 @@ interface PixiPitchProps {
   quality: PitchQuality;
   homeColor: string;
   awayColor: string;
+  showOverall?: boolean;
   flip?: boolean;
   reducedMotion?: boolean;
   className?: string;
@@ -34,11 +35,23 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
 interface View { zoom: number; cx: number; cy: number }
 
 export default function PixiPitch({
-  timeline, minute, quality, homeColor, awayColor, flip = false, reducedMotion = false, className, onError,
+  timeline, minute, quality, homeColor, awayColor, showOverall = false, flip = false, reducedMotion = false, className, onError,
 }: PixiPitchProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const minuteRef = useRef(minute);
   minuteRef.current = minute;
+  // Refs so the Pixi app is built ONCE and never torn down + reset when the
+  // timeline grows (or onError's identity changes) as events reveal.
+  const timelineRef = useRef(timeline);
+  const homeColorRef = useRef(homeColor);
+  const awayColorRef = useRef(awayColor);
+  const showOverallRef = useRef(showOverall);
+  const onErrorRef = useRef(onError);
+  timelineRef.current = timeline;
+  homeColorRef.current = homeColor;
+  awayColorRef.current = awayColor;
+  showOverallRef.current = showOverall;
+  onErrorRef.current = onError;
 
   useEffect(() => {
     const host = hostRef.current;
@@ -51,7 +64,7 @@ export default function PixiPitch({
       if (failed) return;
       failed = true;
       console.warn('PixiPitch failed, falling back to Canvas:', err);
-      onError?.();
+      onErrorRef.current?.();
     };
 
     let playback: PlaybackState = createPlayback();
@@ -75,11 +88,13 @@ export default function PixiPitch({
         const fieldG = new Graphics();
         const glowG = new Graphics();
         glowG.blendMode = 'add';
+        const tintG = new Graphics();
         const trailG = new Graphics();
         const chipsG = new Graphics();
+        const platesG = new Graphics();
         const numbers = new Container();
         const ballG = new Graphics();
-        world.addChild(fieldG, glowG, trailG, chipsG, numbers, ballG);
+        world.addChild(fieldG, tintG, glowG, trailG, chipsG, platesG, numbers, ballG);
         app.stage.addChild(world);
 
         // Pools of 22 jersey-number labels + 22 surname labels, updated in place.
@@ -91,8 +106,8 @@ export default function PixiPitch({
           t.visible = false;
           numbers.addChild(t);
           labels.push(t);
-          const n = new Text({ text: '', style: { fontFamily: 'DM Sans, sans-serif', fontSize: 12, fill: '#ffffff', fontWeight: '600', stroke: { color: '#000000', width: 3 } } });
-          n.anchor.set(0.5, 1);
+          const n = new Text({ text: '', style: { fontFamily: 'DM Sans, sans-serif', fontSize: 13, fill: '#ffffff', fontWeight: '700' } });
+          n.anchor.set(0.5, 0.5);
           n.visible = false;
           numbers.addChild(n);
           nameLabels.push(n);
@@ -160,13 +175,13 @@ export default function PixiPitch({
             if (!app) return;
             const dt = Math.min(ticker.deltaMS, 64);
             const playMs = reducedMotion ? 60 : PITCH_RENDER.BEAT_PLAY_MS;
-            const adv = advancePlayback(timeline.beats, playback, dt, minuteRef.current, {
+            const adv = advancePlayback(timelineRef.current.beats, playback, dt, minuteRef.current, {
               beatMs: playMs,
               catchupLagMinutes: PITCH_RENDER.CATCHUP_LAG_MIN,
               catchupScale: PITCH_RENDER.CATCHUP_SCALE,
             });
             playback = adv.state;
-            const sample = samplePlayback(timeline.beats, playback, minuteRef.current);
+            const sample = samplePlayback(timelineRef.current.beats, playback, minuteRef.current);
             if (!sample) return;
             const frame = sample.frame;
             const beat = sample.beat;
@@ -205,10 +220,20 @@ export default function PixiPitch({
 
             drawField();
 
+            // Faint attacking-third tint for the team in possession.
+            tintG.clear();
+            if (!reducedMotion) {
+              const yLo = beat.possession === 'home' ? 72 : 0;
+              const yHi = beat.possession === 'home' ? 100 : 28;
+              const ty = Math.min(mapY(yLo), mapY(yHi));
+              tintG.rect(mapX(0), ty, mapX(100) - mapX(0), Math.abs(mapY(yHi) - mapY(yLo)))
+                .fill({ color: beat.possession === 'home' ? homeColorRef.current : awayColorRef.current, alpha: 0.12 });
+            }
+
             // Trail.
             trailG.clear();
             if (quality.trailLen > 0 && trail.length > 1) {
-              const col = beat.possession === 'home' ? homeColor : awayColor;
+              const col = beat.possession === 'home' ? homeColorRef.current : awayColorRef.current;
               const base = Math.max(1, fw * 0.01);
               for (let i = 1; i < trail.length; i++) {
                 const a = i / trail.length;
@@ -224,11 +249,12 @@ export default function PixiPitch({
             const chipR = Math.max(5, fw * 0.028);
             chipsG.clear();
             glowG.clear();
+            platesG.clear();
             let li = 0;
             for (const p of frame.players) {
               const cx = mapX(p.point.x);
               const cy = mapY(p.point.y);
-              const color = p.team === 'home' ? homeColor : awayColor;
+              const color = p.team === 'home' ? homeColorRef.current : awayColorRef.current;
               chipsG.ellipse(cx, cy + chipR * 0.55, chipR * 0.9, chipR * 0.4).fill({ color: 0x000000, alpha: 0.35 });
               if (p.highlighted) {
                 // Additive bloom ring.
@@ -239,17 +265,24 @@ export default function PixiPitch({
               const t = labels[li];
               if (t) {
                 t.visible = true;
-                t.text = String(p.number);
-                t.style.fontSize = Math.round(chipR * 1.1);
+                t.text = showOverallRef.current && p.overall ? String(p.overall) : String(p.number);
+                t.style.fontSize = Math.round(chipR * 1.05);
                 t.position.set(cx, cy);
               }
               const nm = nameLabels[li];
               if (nm) {
                 if (p.name && (showAllNames || p.highlighted)) {
                   nm.visible = true;
-                  nm.text = p.name;
-                  nm.style.fontSize = Math.round(chipR * 0.8);
-                  nm.position.set(cx, cy - chipR * 1.15);
+                  nm.text = p.name.length > 11 ? `${p.name.slice(0, 10)}…` : p.name;
+                  nm.style.fontSize = Math.round(Math.max(8, chipR * 0.82));
+                  const ny = cy - chipR * 1.55;
+                  nm.position.set(cx, ny);
+                  // Dark name plate for legibility.
+                  const pw = nm.width + chipR * 0.7;
+                  const ph = nm.height + chipR * 0.25;
+                  platesG.roundRect(cx - pw / 2, ny - ph / 2, pw, ph, ph * 0.42)
+                    .fill({ color: 0x080c14, alpha: 0.84 })
+                    .stroke({ width: Math.max(1, chipR * 0.06), color: p.highlighted ? GOLD : 0xffffff, alpha: p.highlighted ? 0.7 : 0.18 });
                 } else {
                   nm.visible = false;
                 }
@@ -282,7 +315,7 @@ export default function PixiPitch({
       try { app?.destroy(true, { children: true }); } catch { /* already gone */ }
       app = null;
     };
-  }, [timeline, quality, homeColor, awayColor, flip, reducedMotion, onError]);
+  }, [quality, flip, reducedMotion]);
 
   return <div ref={hostRef} className={className} aria-hidden="true" />;
 }

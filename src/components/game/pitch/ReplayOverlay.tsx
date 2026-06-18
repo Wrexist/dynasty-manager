@@ -17,13 +17,14 @@ interface ReplayOverlayProps {
   to: number;
   flip?: boolean;
   orientation?: 'portrait' | 'landscape';
+  showOverall?: boolean;
   reducedMotion?: boolean;
   onDone: () => void;
 }
 
 const STEP_MS = 650;
 
-export function ReplayOverlay({ timeline, quality, homeColor, awayColor, from, to, flip, orientation, reducedMotion, onDone }: ReplayOverlayProps) {
+export function ReplayOverlay({ timeline, quality, homeColor, awayColor, from, to, flip, orientation, showOverall, reducedMotion, onDone }: ReplayOverlayProps) {
   const [minute, setMinute] = useState(from);
 
   useEffect(() => {
@@ -54,6 +55,7 @@ export function ReplayOverlay({ timeline, quality, homeColor, awayColor, from, t
         quality={quality}
         homeColor={homeColor}
         awayColor={awayColor}
+        showOverall={showOverall}
         orientation={orientation}
         flip={flip}
         reducedMotion={reducedMotion}
