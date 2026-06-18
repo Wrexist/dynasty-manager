@@ -174,9 +174,12 @@ V1 (chip gradient + specular + contact shadow), #5/V-GK (distinct keeper kit),
 V3 (floodlight pool + turf noise + tone variation + line AO), V5 (ball highlight +
 smear), #1 (penalty-arc correctness).
 
-### Phase 3 — The goal moment
-Mo1 (scorer/scoreline broadcast card + stadium flash + club-colour burst),
-Mo2 (auto-replay + slow-mo + letterbox), Mo3 (kickoff arrow).
+### Phase 3 — The goal moment — ✅ DONE
+- ✅ Mo1 — broadcast lower-third: new scoreline (scoring side highlighted) +
+  scorer + minute, stadium-flash bloom, centre-burst club-colour confetti.
+- ✅ Mo2 — auto-replay once after the celebration, with letterbox bars; the
+  Phase-1 goal slow-mo fires inside the replay automatically.
+- ⏭️ Mo3 (kickoff arrow) — minor, deferred.
 
 ### Phase 4 — WebGL "Stunning" tier earns its name
 V4 (real bloom filter + crowd/stands backdrop + optional DoF), V2 (directional
