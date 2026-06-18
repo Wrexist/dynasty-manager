@@ -164,7 +164,7 @@ export default function PitchView({
         />
       )}
 
-      <WeatherOverlay weather={match.weather?.weather} density={quality.weatherScale} reducedMotion={reducedMotion} />
+      <WeatherOverlay weather={match.weather?.weather} pitch={match.weather?.pitch} density={quality.weatherScale} reducedMotion={reducedMotion} />
 
       <AnimatePresence>
         {showDir && (

@@ -29,6 +29,11 @@ const TURF_LIGHT = 0x1c4327;
 const LINE = 0xffffff;
 const GOLD = '#f5b915';
 
+const GOAL_RENDER_EVENTS = new Set<string>([
+  'goal', 'own_goal', 'penalty_scored', 'header_goal', 'solo_goal', 'long_range_goal',
+  'counter_attack_goal', 'free_kick_goal', 'extra_time_goal', 'goalkeeper_error',
+]);
+
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
@@ -124,7 +129,8 @@ export default function PixiPitch({
           return { w, h, fx: pad, fy: pad, fw, fh, mapX, mapY };
         };
 
-        const drawField = () => {
+        let goalRipple = { seq: -1, t: 1, end: 100 };
+        const drawField = (ripple: { end: number; bulge: number } | null) => {
           const { fx, fy, fw, fh, mapX, mapY } = geom();
           fieldG.clear();
           fieldG.rect(fx, fy, fw, fh).fill(TURF_DARK);
@@ -150,7 +156,8 @@ export default function PixiPitch({
           box(100, -1);
           // Goal frame + net behind each byline.
           const goal = (lineY: number, dir: 1 | -1) => {
-            const depth = 4 * dir;
+            const bulge = ripple && ripple.end === lineY ? ripple.bulge : 0;
+            const depth = 4 * dir * (1 + bulge);
             const x0 = mapX(43);
             const x1 = mapX(57);
             const y0 = mapY(lineY);
@@ -185,6 +192,11 @@ export default function PixiPitch({
             if (!sample) return;
             const frame = sample.frame;
             const beat = sample.beat;
+            if (beat.eventType && GOAL_RENDER_EVENTS.has(beat.eventType) && beat.seq !== goalRipple.seq) {
+              goalRipple = { seq: beat.seq, t: 0, end: beat.possession === 'home' ? 100 : 0 };
+            }
+            if (goalRipple.t < 1) goalRipple.t = Math.min(1, goalRipple.t + dt / 700);
+            const ripple = !reducedMotion && goalRipple.t < 1 ? { end: goalRipple.end, bulge: (1 - goalRipple.t) * Math.sin(goalRipple.t * 28) * 0.6 } : null;
             const liftArc = sample.next ? sample.next.ballArc : 0;
             const liftT = sample.t;
 
@@ -218,7 +230,7 @@ export default function PixiPitch({
             world.pivot.set(fsx, fsy);
             world.position.set(w / 2, h / 2);
 
-            drawField();
+            drawField(ripple);
 
             // Faint attacking-third tint for the team in possession.
             tintG.clear();
