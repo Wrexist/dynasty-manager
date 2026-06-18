@@ -1,21 +1,25 @@
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import type { WeatherCondition } from '@/types/game';
+import type { WeatherCondition, PitchCondition } from '@/types/game';
 
-// Subtle weather ambience drawn over the pitch. Rain = drifting diagonal
-// streaks; snow = slow falling flecks. Purely decorative + pointer-events-none;
-// rendered statically (no animation) under reduced-motion / performance mode.
+// Subtle weather ambience + pitch-condition wash over the pitch. Rain = drifting
+// diagonal streaks; snow = slow falling flecks; a poor/waterlogged surface adds a
+// muddy / wet sheen (shown even in clear weather). Purely decorative +
+// pointer-events-none; particles are skipped under reduced-motion.
 
 interface WeatherOverlayProps {
   weather?: WeatherCondition;
+  pitch?: PitchCondition;
   /** Particle density multiplier from the quality tier (0..1). */
   density?: number;
   reducedMotion?: boolean;
 }
 
-export function WeatherOverlay({ weather, density = 1, reducedMotion }: WeatherOverlayProps) {
+export function WeatherOverlay({ weather, pitch, density = 1, reducedMotion }: WeatherOverlayProps) {
+  const precip = weather === 'rain' || weather === 'snow';
+
   const drops = useMemo(() => {
-    if (weather !== 'rain' && weather !== 'snow') return [];
+    if (!precip) return [];
     const base = weather === 'snow' ? 26 : 38;
     const count = Math.round(base * Math.max(0, Math.min(1, density)));
     return Array.from({ length: count }, () => ({
@@ -24,15 +28,26 @@ export function WeatherOverlay({ weather, density = 1, reducedMotion }: WeatherO
       dur: weather === 'snow' ? 3.2 + Math.random() * 1.8 : 0.7 + Math.random() * 0.5,
       size: weather === 'snow' ? 2 + Math.random() * 2 : 1,
     }));
-  }, [weather, density]);
+  }, [precip, weather, density]);
 
-  if (weather !== 'rain' && weather !== 'snow') return null;
+  const weatherTint = weather === 'snow' ? 'rgba(220,235,255,0.05)' : weather === 'rain' ? 'rgba(120,150,190,0.07)' : null;
+  const pitchTint = pitch === 'waterlogged' ? 'rgba(18,40,55,0.20)' : pitch === 'poor' ? 'rgba(35,28,12,0.12)' : null;
 
-  const tint = weather === 'snow' ? 'rgba(220,235,255,0.05)' : 'rgba(120,150,190,0.07)';
+  if (!precip && !weatherTint && !pitchTint) return null;
 
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      <div className="absolute inset-0" style={{ backgroundColor: tint }} />
+      {pitchTint && <div className="absolute inset-0" style={{ backgroundColor: pitchTint }} />}
+      {weatherTint && <div className="absolute inset-0" style={{ backgroundColor: weatherTint }} />}
+      {pitch === 'waterlogged' && !reducedMotion && (
+        <motion.div
+          className="absolute inset-0"
+          style={{ background: 'linear-gradient(105deg, transparent 40%, rgba(180,210,235,0.10) 50%, transparent 60%)' }}
+          initial={{ x: '-30%' }}
+          animate={{ x: '30%' }}
+          transition={{ duration: 6, repeat: Infinity, repeatType: 'reverse', ease: 'easeInOut' }}
+        />
+      )}
       {!reducedMotion && drops.map((d, i) => (
         <motion.div
           key={i}
