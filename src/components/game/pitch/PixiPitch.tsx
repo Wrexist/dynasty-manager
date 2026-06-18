@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Application, Container, Graphics, Text } from 'pixi.js';
+import { Application, BlurFilter, Container, Graphics, Text } from 'pixi.js';
 import type { MatchTimeline, PitchQuality } from '@/types/game';
 import { createPlayback, advancePlayback, samplePlayback, createDisplay, stepDisplay, type PlaybackState } from '@/engine/match/pitchFrame';
 import { PITCH_RENDER } from '@/config/pitchChoreography';
@@ -7,10 +7,25 @@ import { shade, keeperKit } from './pitchColors';
 
 // The "Stunning" WebGL pitch tier. Consumes the exact same MatchTimeline as the
 // Canvas renderer, so the pure choreography is shared. WebGL buys crisp scaling,
-// additive bloom on the ball-carrier ring + ball, and a GPU-cheap camera (we
-// just transform a world Container). Any init/runtime failure calls onError so
-// PitchView can drop back to the Canvas tier — Pixi ticker throws happen outside
-// React's render path, so this callback is the real safety net.
+// a real Gaussian bloom on the ball-carrier ring + ball, a packed crowd/stands
+// backdrop, and a GPU-cheap camera (we just transform a world Container). Any
+// init/runtime failure calls onError so PitchView can drop back to the Canvas
+// tier — Pixi ticker throws happen outside React's render path, so this callback
+// is the real safety net.
+
+// Tiny seeded PRNG (mulberry32) so the crowd speckle is deterministic — the
+// stands draw identically every mount, never shimmer, and cost nothing at runtime.
+const mulberry32 = (a: number) => () => {
+  a |= 0; a = (a + 0x6d2b79f5) | 0;
+  let t = Math.imul(a ^ (a >>> 15), 1 | a);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+};
+
+// Muted crowd palette — neutral greys with a couple of warm/cool flecks. Kept
+// kit-independent so the stands never need a redraw when the away kit is
+// recoloured for legibility.
+const CROWD_TONES = [0x2a3340, 0x353f4e, 0x1f2733, 0x434b59, 0x2f3a30, 0x3a3340];
 
 interface PixiPitchProps {
   timeline: MatchTimeline;
@@ -91,16 +106,23 @@ export default function PixiPitch({
         host.appendChild(app.canvas);
 
         const world = new Container();
+        const standsG = new Graphics();
         const fieldG = new Graphics();
         const glowG = new Graphics();
         glowG.blendMode = 'add';
+        // Real Gaussian bloom: the additive glow layer is blurred before it's
+        // composited, so the carrier ring + ball read as soft light rather than
+        // flat discs. Cheap because glowG only ever covers a small region.
+        if (!reducedMotion) {
+          glowG.filters = [new BlurFilter({ strength: PITCH_RENDER.BLOOM_STRENGTH, quality: PITCH_RENDER.BLOOM_QUALITY })];
+        }
         const tintG = new Graphics();
         const trailG = new Graphics();
         const chipsG = new Graphics();
         const platesG = new Graphics();
         const numbers = new Container();
         const ballG = new Graphics();
-        world.addChild(fieldG, tintG, glowG, trailG, chipsG, platesG, numbers, ballG);
+        world.addChild(standsG, fieldG, tintG, glowG, trailG, chipsG, platesG, numbers, ballG);
         app.stage.addChild(world);
 
         // Pools of 22 jersey-number labels + 22 surname labels, updated in place.
@@ -133,6 +155,44 @@ export default function PixiPitch({
         let goalRipple = { seq: -1, t: 1, end: 100 };
         let goalImpact = { seq: -1, t: 1e9 };
         const display = createDisplay();
+
+        // Crowd/stands backdrop — a dark stadium bowl + seeded speckle in the
+        // margins around the pitch, denser behind the two goal-ends. Static, so
+        // it's drawn once and only redrawn when the canvas size changes.
+        let standsKey = '';
+        const drawStands = () => {
+          const { fx, fy, fw, fh, w, h } = geom();
+          const key = `${Math.round(w)}x${Math.round(h)}`;
+          if (key === standsKey) return;
+          standsKey = key;
+          standsG.clear();
+          const depth = Math.max(fx, fh * PITCH_RENDER.STANDS_DEPTH);
+          const ox = fx - depth;
+          const oy = fy - depth;
+          const ow = fw + depth * 2;
+          const oh = fh + depth * 2;
+          // Bowl: a deep base (extended well past the speckle so a zoomed-in
+          // camera pan never reveals the panel background) with a slightly
+          // lighter inner lip toward the pitch.
+          standsG.rect(ox - depth * 2, oy - depth * 2, ow + depth * 4, oh + depth * 4).fill(0x0a0e15);
+          standsG.rect(fx - depth * 0.5, fy - depth * 0.5, fw + depth, fh + depth).fill(0x121826);
+          // Speckle: ends (top/bottom in portrait) get the bulk; sides get the rest.
+          const rng = mulberry32(0x5eed ^ Math.round(w) * 73856093 ^ Math.round(h) * 19349663);
+          const ends = depth;
+          const speck = (x: number, y: number) => {
+            const r = 0.6 + rng() * 1.4;
+            const tone = CROWD_TONES[(rng() * CROWD_TONES.length) | 0];
+            standsG.circle(x, y, r).fill({ color: tone, alpha: 0.55 + rng() * 0.4 });
+          };
+          const total = PITCH_RENDER.STANDS_SPECKLE;
+          for (let i = 0; i < total; i++) {
+            const band = rng();
+            if (band < 0.36) speck(fx + rng() * fw, fy - rng() * ends);              // top end
+            else if (band < 0.72) speck(fx + rng() * fw, fy + fh + rng() * ends);    // bottom end
+            else if (band < 0.86) speck(fx - rng() * ends, fy + rng() * fh);         // left side
+            else speck(fx + fw + rng() * ends, fy + rng() * fh);                     // right side
+          }
+        };
         const drawField = (ripple: { end: number; bulge: number } | null) => {
           const { fx, fy, fw, fh, mapX, mapY } = geom();
           fieldG.clear();
@@ -251,6 +311,7 @@ export default function PixiPitch({
             world.pivot.set(fsx, fsy);
             world.position.set(w / 2 + shakeX, h / 2 + shakeY);
 
+            drawStands();
             drawField(ripple);
 
             // Faint attacking-third tint for the team in possession.
