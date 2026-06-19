@@ -388,6 +388,14 @@ export interface GameState {
   // device-global (persisted outside the save); returns the resulting status,
   // or null if today has already been claimed.
   claimDailyStreakReward: () => import('@/utils/dailyStreak').DailyStreakStatus | null;
+  // Take the active live event's daily Festival check-in (device-global points).
+  // Returns the updated progress, or null if no event is live / already checked
+  // in today.
+  festivalCheckIn: () => import('@/utils/liveEvents').LiveEventProgress | null;
+  // Claim a Festival reward tier (grants manager XP into the active save).
+  // Returns the updated progress + XP granted, or null if the tier is locked,
+  // unknown, already claimed, or no event is live.
+  claimFestivalTier: (tierId: string) => { progress: import('@/utils/liveEvents').LiveEventProgress; xp: number } | null;
 
   // Actions — Press Conferences & Storylines
   respondToPress: (tone: import('@/types/game').PressResponseTone) => void;

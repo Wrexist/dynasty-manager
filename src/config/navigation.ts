@@ -5,7 +5,7 @@ export const DETAIL_SCREENS: GameScreen[] = [
   'settings', 'season-summary', 'calendar', 'match-prep',
   'league-table', 'comparison', 'manager-profile', 'cup', 'league-cup', 'champions-cup', 'shield-cup', 'super-cup', 'perks', 'trophy-cabinet', 'prestige', 'hall-of-managers', 'club', 'team-detail', 'shop', 'help', 'whats-new',
   'national-team', 'national-squad-picker', 'international-tournament', 'conference-cup',
-  'job-market', 'career-overview', 'ballon-dor',
+  'job-market', 'career-overview', 'ballon-dor', 'festival',
 ];
 
 export const BACK_TARGET: Partial<Record<GameScreen, GameScreen>> = {
@@ -43,6 +43,7 @@ export const BACK_TARGET: Partial<Record<GameScreen, GameScreen>> = {
   'job-market': 'dashboard',
   'career-overview': 'dashboard',
   'ballon-dor': 'trophy-cabinet',
+  'festival': 'dashboard',
 };
 
 export const SCREEN_TITLES: Partial<Record<GameScreen, string>> = {
@@ -90,6 +91,7 @@ export const SCREEN_TITLES: Partial<Record<GameScreen, string>> = {
   'job-market': 'Job Market',
   'career-overview': 'Career Overview',
   'ballon-dor': "Ballon d'Or",
+  'festival': 'World Cup Festival',
 };
 
 export const MAIN_TABS: GameScreen[] = ['dashboard', 'squad', 'tactics', 'transfers'];

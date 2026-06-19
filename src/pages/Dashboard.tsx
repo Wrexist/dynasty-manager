@@ -42,6 +42,7 @@ import { AchievementUnlockModal } from '@/components/game/AchievementUnlockModal
 import { PageHint } from '@/components/game/PageHint';
 import { OnboardingChecklist } from '@/components/game/OnboardingChecklist';
 import { DailyRewardModal } from '@/components/game/DailyRewardModal';
+import { FestivalBanner } from '@/components/game/FestivalBanner';
 import { ACHIEVEMENTS } from '@/utils/achievements';
 import type { Achievement } from '@/utils/achievements';
 import { FarewellModal } from '@/components/game/FarewellModal';
@@ -687,6 +688,10 @@ const Dashboard = () => {
         title="Your Dashboard"
         body="This is your weekly hub. Check upcoming matches, review finances, track objectives, and advance to the next week. Visit Squad to manage players, Tactics to set formations, and Transfers to buy or sell."
       />
+
+      {/* Live-event banner (e.g. World Cup Festival) — only while an event is
+          live. Links to the Festival hub. */}
+      <FestivalBanner />
 
       {/* Week-1 onboarding checklist for brand-new careers. Self-hides after
           the user advances week or dismisses it. */}

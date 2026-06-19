@@ -61,6 +61,7 @@ const InternationalTournament = lazy(() => import('./InternationalTournament'));
 const JobMarket = lazy(() => import('./JobMarket'));
 const CareerOverview = lazy(() => import('./CareerOverview'));
 const BallonDor = lazy(() => import('./BallonDor'));
+const FestivalHub = lazy(() => import('./FestivalHub'));
 
 const screens: Record<string, React.ComponentType> = {
   dashboard: Dashboard,
@@ -108,6 +109,7 @@ const screens: Record<string, React.ComponentType> = {
   'job-market': JobMarket,
   'career-overview': CareerOverview,
   'ballon-dor': BallonDor,
+  'festival': FestivalHub,
 };
 
 // Route-level Suspense fallback while a lazy page chunk downloads. Renders

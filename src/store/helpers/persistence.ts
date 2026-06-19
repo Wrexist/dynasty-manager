@@ -317,6 +317,11 @@ export const STORAGE_KEYS = {
    *  of which career/slot is loaded — deliberately NOT save-scoped, so the
    *  streak survives starting a new career. */
   DAILY_STREAK: 'dynasty-daily-streak',
+  /** localStorage: device-global progress for the active date-boxed live event
+   *  (JSON LiveEventProgress). Namespaced by event id inside the record so a
+   *  new event starts fresh. Not save-scoped — Festival Points are a
+   *  device-level engagement reward, not part of any career. */
+  LIVE_EVENT_PROGRESS: 'dynasty-live-event-progress',
 } as const;
 
 /** Read the user's preferred MatchDay view, or null if never set. */
@@ -365,6 +370,42 @@ export function readDailyStreak(): DailyStreakRecord | null {
 export function writeDailyStreak(record: DailyStreakRecord): void {
   try { localStorage.setItem(STORAGE_KEYS.DAILY_STREAK, JSON.stringify(record)); }
   catch { /* storage unavailable — non-fatal, the streak just won't persist */ }
+}
+
+// ── Live Event Progress ──
+
+/** Device-global progress for a date-boxed live event. `eventId` namespaces it
+ *  so progress from a previous event is treated as stale (a fresh record is
+ *  returned for the current event). `lastCheckInDate` is a local YYYY-MM-DD key. */
+export interface LiveEventProgress {
+  eventId: string;
+  points: number;
+  lastCheckInDate: string;
+  claimedTierIds: string[];
+}
+
+export function readLiveEventProgress(): LiveEventProgress | null {
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem(STORAGE_KEYS.LIVE_EVENT_PROGRESS);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (typeof parsed?.eventId !== 'string') return null;
+    return {
+      eventId: parsed.eventId,
+      points: typeof parsed.points === 'number' ? parsed.points : 0,
+      lastCheckInDate: typeof parsed.lastCheckInDate === 'string' ? parsed.lastCheckInDate : '',
+      claimedTierIds: Array.isArray(parsed.claimedTierIds) ? parsed.claimedTierIds.filter((t: unknown) => typeof t === 'string') : [],
+    };
+  } catch (err) {
+    if (raw !== null) breadcrumbCorruption('readLiveEventProgress', raw, err);
+    return null;
+  }
+}
+
+export function writeLiveEventProgress(record: LiveEventProgress): void {
+  try { localStorage.setItem(STORAGE_KEYS.LIVE_EVENT_PROGRESS, JSON.stringify(record)); }
+  catch { /* storage unavailable — non-fatal */ }
 }
 
 /** Read the latest "What's New" version the user has acknowledged. */
