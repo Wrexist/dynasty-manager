@@ -80,7 +80,7 @@ export type FormationType = '4-4-2' | '4-3-3' | '3-5-2' | '4-2-3-1' | '4-1-4-1' 
 
 export type SeasonPhase = 'regular' | 'offseason' | 'international';
 
-export type GameScreen = 'dashboard' | 'squad' | 'tactics' | 'transfers' | 'club' | 'match' | 'player-detail' | 'league-table' | 'inbox' | 'season-summary' | 'calendar' | 'training' | 'scouting' | 'packs' | 'staff' | 'youth-academy' | 'facilities' | 'finance' | 'merchandise' | 'match-prep' | 'match-review' | 'board' | 'settings' | 'comparison' | 'manager-profile' | 'cup' | 'league-cup' | 'champions-cup' | 'shield-cup' | 'conference-cup' | 'super-cup' | 'perks' | 'trophy-cabinet' | 'prestige' | 'hall-of-managers' | 'team-detail' | 'shop' | 'help' | 'whats-new' | 'national-team' | 'national-squad-picker' | 'international-tournament' | 'job-market' | 'career-overview' | 'ballon-dor' | 'festival';
+export type GameScreen = 'dashboard' | 'squad' | 'tactics' | 'transfers' | 'club' | 'match' | 'player-detail' | 'league-table' | 'inbox' | 'season-summary' | 'calendar' | 'training' | 'scouting' | 'packs' | 'staff' | 'youth-academy' | 'facilities' | 'finance' | 'merchandise' | 'match-prep' | 'match-review' | 'board' | 'settings' | 'comparison' | 'manager-profile' | 'cup' | 'league-cup' | 'champions-cup' | 'shield-cup' | 'conference-cup' | 'super-cup' | 'perks' | 'trophy-cabinet' | 'prestige' | 'hall-of-managers' | 'team-detail' | 'shop' | 'help' | 'whats-new' | 'national-team' | 'national-squad-picker' | 'international-tournament' | 'job-market' | 'career-overview' | 'ballon-dor' | 'festival' | 'dynasty-legacy';
 
 export interface PlayerAttributes {
   pace: number;
@@ -741,6 +741,35 @@ export interface SeasonHistory {
   transferActivity?: { bought: { playerName: string; fee: number }[]; sold: { playerName: string; fee: number }[] };
   squadStrengthDelta?: { startAvgOVR: number; endAvgOVR: number; delta: number };
   ballonDOrRanking?: BallonDOrEntry[];
+}
+
+/** Lifetime achievement tier, derived from total trophies across all dynasties. */
+export type LegacyTier = 'Rookie' | 'Journeyman' | 'Established' | 'Elite' | 'Legendary' | 'Immortal';
+
+/** Cross-save lifetime manager record — aggregated from every dynasty in the
+ *  Hall of Managers. Computed on demand (not persisted on its own); see
+ *  `utils/managerLegacy.ts`. */
+export interface ManagerLegacy {
+  /** Number of recorded careers (Hall of Managers entries). */
+  dynasties: number;
+  /** Distinct club names managed across all dynasties. */
+  clubsManaged: string[];
+  totalSeasons: number;
+  totalTitles: number;
+  totalCupWins: number;
+  totalLeagueCupWins: number;
+  totalContinentalWins: number;
+  /** Sum of every trophy type above. */
+  totalTrophies: number;
+  totalWins: number;
+  totalMatches: number;
+  /** 0–100, across all dynasties. */
+  winRate: number;
+  /** Best league finish ever (1 = champions); 0 when no career recorded. */
+  bestPosition: number;
+  bestPoints: number;
+  highestPrestige: number;
+  tier: LegacyTier;
 }
 
 export interface FormationSlot {
