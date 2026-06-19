@@ -1,7 +1,8 @@
 import type { PressConference, ContractOffer, ActiveChallenge, StorylineEvent, ActiveStorylineChain, ManagerProgression, CliffhangerItem, MatchDramaType, SessionStats, TransferTalk } from '@/types/game';
 import { MOD_MEDIA_PRESS, MOD_MOTIVATION_MORALE, GROWTH_MEDIA_PER_CONFERENCE, STAT_MAX } from '@/config/managerCareer';
 import { TRANSFER_TALK_EMPATHIZE_MORALE_BOOST, TRANSFER_TALK_CONVINCE_SUCCESS_MORALE, TRANSFER_TALK_CONVINCE_FAIL_MORALE, COACH_TASK_XP, COACH_ALL_TASKS_BONUS_XP, ONBOARDING_COMPLETION_XP, TOTAL_WEEKS } from '@/config/gameBalance';
-import { getFlag, setFlag, STORAGE_KEYS } from '@/store/helpers/persistence';
+import { getFlag, setFlag, STORAGE_KEYS, readDailyStreak, writeDailyStreak } from '@/store/helpers/persistence';
+import { applyDailyClaim } from '@/utils/dailyStreak';
 import { TRANSFER_DEMAND_COOLDOWN_WEEKS, TRANSFER_TALK_RETRY_WEEKS } from '@/config/personality';
 import { grantXP, hasPerk, dynastyMult } from '@/utils/managerPerks';
 import { objectiveClaimXP } from '@/utils/weeklyObjectives';
@@ -194,6 +195,22 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
       // for it on claim too (the month-end safety net handles unclaimed ones).
       sessionStats: { ...sessionStats, xpEarned: sessionStats.xpEarned + xp },
     });
+  },
+
+  // ── Daily Login Streak ──
+  claimDailyStreakReward: () => {
+    // The streak record is device-global (localStorage), not save-scoped, so a
+    // new career keeps yesterday's streak alive. Only the XP payout lands on
+    // the active save's manager progression — a sim-neutral reward.
+    const { record, status } = applyDailyClaim(readDailyStreak());
+    if (!status.canClaim) return null;
+    writeDailyStreak(record);
+    const sessionStats = get().sessionStats;
+    set({
+      managerProgression: grantXP(get().managerProgression, status.rewardXP),
+      sessionStats: { ...sessionStats, xpEarned: sessionStats.xpEarned + status.rewardXP },
+    });
+    return status;
   },
 
   // ── Weekly Digest ──

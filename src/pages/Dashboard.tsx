@@ -41,6 +41,7 @@ import { PlayerTransferTalk } from '@/components/game/PlayerTransferTalk';
 import { AchievementUnlockModal } from '@/components/game/AchievementUnlockModal';
 import { PageHint } from '@/components/game/PageHint';
 import { OnboardingChecklist } from '@/components/game/OnboardingChecklist';
+import { DailyRewardModal } from '@/components/game/DailyRewardModal';
 import { ACHIEVEMENTS } from '@/utils/achievements';
 import type { Achievement } from '@/utils/achievements';
 import { FarewellModal } from '@/components/game/FarewellModal';
@@ -677,6 +678,9 @@ const Dashboard = () => {
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
       {/* Welcome overlay for first-time players */}
       {showWelcome && <WelcomeOverlay onComplete={dismissWelcome} />}
+
+      {/* Daily login-streak reward — auto-presents once per day when claimable. */}
+      <DailyRewardModal />
 
       <PageHint
         screen="dashboard"

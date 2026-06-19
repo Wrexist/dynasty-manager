@@ -384,6 +384,10 @@ export interface GameState {
   completeOnboardingChecklist: () => boolean;
   // Claim the XP for a completed weekly/monthly objective.
   claimObjective: (objectiveId: string) => void;
+  // Claim today's daily login-streak reward (manager XP). The streak itself is
+  // device-global (persisted outside the save); returns the resulting status,
+  // or null if today has already been claimed.
+  claimDailyStreakReward: () => import('@/utils/dailyStreak').DailyStreakStatus | null;
 
   // Actions — Press Conferences & Storylines
   respondToPress: (tone: import('@/types/game').PressResponseTone) => void;

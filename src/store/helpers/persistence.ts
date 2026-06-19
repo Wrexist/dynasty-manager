@@ -312,6 +312,11 @@ export const STORAGE_KEYS = {
    *  `split`). A pure UI preference kept device-global so it survives app
    *  restarts; not part of any save slot. */
   MATCH_VIEW_MODE: 'dynasty-match-view-mode',
+  /** localStorage: device-global daily login streak (JSON DailyStreakRecord).
+   *  Tracks real-world consecutive days the player opened the app, independent
+   *  of which career/slot is loaded — deliberately NOT save-scoped, so the
+   *  streak survives starting a new career. */
+  DAILY_STREAK: 'dynasty-daily-streak',
 } as const;
 
 /** Read the user's preferred MatchDay view, or null if never set. */
@@ -326,6 +331,40 @@ export function readMatchViewMode(): MatchViewMode | null {
 export function writeMatchViewMode(mode: MatchViewMode): void {
   try { localStorage.setItem(STORAGE_KEYS.MATCH_VIEW_MODE, mode); }
   catch { /* storage unavailable — non-fatal, defaults to commentary */ }
+}
+
+// ── Daily Login Streak ──
+
+/** Device-global daily login streak. Persisted in localStorage outside any
+ *  save slot. `lastClaimDate` is a local calendar-day key (YYYY-MM-DD);
+ *  `current` is the live consecutive-day run; `longest` is the best run ever. */
+export interface DailyStreakRecord {
+  lastClaimDate: string;
+  current: number;
+  longest: number;
+}
+
+export function readDailyStreak(): DailyStreakRecord | null {
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem(STORAGE_KEYS.DAILY_STREAK);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (typeof parsed?.lastClaimDate !== 'string') return null;
+    return {
+      lastClaimDate: parsed.lastClaimDate,
+      current: typeof parsed.current === 'number' ? parsed.current : 0,
+      longest: typeof parsed.longest === 'number' ? parsed.longest : 0,
+    };
+  } catch (err) {
+    if (raw !== null) breadcrumbCorruption('readDailyStreak', raw, err);
+    return null;
+  }
+}
+
+export function writeDailyStreak(record: DailyStreakRecord): void {
+  try { localStorage.setItem(STORAGE_KEYS.DAILY_STREAK, JSON.stringify(record)); }
+  catch { /* storage unavailable — non-fatal, the streak just won't persist */ }
 }
 
 /** Read the latest "What's New" version the user has acknowledged. */
