@@ -6,7 +6,7 @@
  * a lifetime tier badge. Read-only and derived on mount — no persistence of its
  * own. The per-dynasty breakdown lives in the Hall of Fame (linked below).
  */
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Crown, Trophy, Medal, Award, Star, Shield, Globe2, Target, Flame, ChevronRight } from 'lucide-react';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -14,6 +14,7 @@ import { PageHint } from '@/components/game/PageHint';
 import { useGameStore } from '@/store/gameStore';
 import { loadHall } from '@/utils/hallOfManagers';
 import { computeManagerLegacy, tierProgress } from '@/utils/managerLegacy';
+import { track } from '@/utils/analytics';
 import type { LegacyTier } from '@/types/game';
 import { cn } from '@/lib/utils';
 
@@ -37,6 +38,10 @@ function DynastyLegacy() {
   const legacy = useMemo(() => computeManagerLegacy(loadHall()), []);
   const TierIcon = TIER_META[legacy.tier].icon;
   const nextTier = tierProgress(legacy.totalTrophies);
+
+  useEffect(() => {
+    track('legacy_viewed', { tier: legacy.tier, trophies: legacy.totalTrophies });
+  }, [legacy.tier, legacy.totalTrophies]);
 
   const stats: { label: string; value: string | number; icon: React.ElementType }[] = [
     { label: 'League Titles', value: legacy.totalTitles, icon: Trophy },

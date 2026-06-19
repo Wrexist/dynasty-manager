@@ -4,6 +4,7 @@ import { TRANSFER_TALK_EMPATHIZE_MORALE_BOOST, TRANSFER_TALK_CONVINCE_SUCCESS_MO
 import { getFlag, setFlag, STORAGE_KEYS, readDailyStreak, writeDailyStreak, writeLiveEventProgress } from '@/store/helpers/persistence';
 import { applyDailyClaim } from '@/utils/dailyStreak';
 import { getActiveLiveEvent, readActiveFestivalProgress, canCheckInToday, applyCheckIn, applyTierClaim } from '@/utils/liveEvents';
+import { track } from '@/utils/analytics';
 import { TRANSFER_DEMAND_COOLDOWN_WEEKS, TRANSFER_TALK_RETRY_WEEKS } from '@/config/personality';
 import { grantXP, hasPerk, dynastyMult } from '@/utils/managerPerks';
 import { objectiveClaimXP } from '@/utils/weeklyObjectives';
@@ -211,6 +212,7 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
       managerProgression: grantXP(get().managerProgression, status.rewardXP),
       sessionStats: { ...sessionStats, xpEarned: sessionStats.xpEarned + status.rewardXP },
     });
+    track('daily_streak_claim', { streak: status.current, xp: status.rewardXP });
     return status;
   },
 
@@ -224,6 +226,7 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
     if (!canCheckInToday(progress)) return null;
     const next = applyCheckIn(progress, event);
     writeLiveEventProgress(next);
+    track('festival_checkin', { eventId: event.id, points: next.points });
     return next;
   },
 
@@ -243,6 +246,7 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
       managerProgression: grantXP(get().managerProgression, tier.xp),
       sessionStats: { ...sessionStats, xpEarned: sessionStats.xpEarned + tier.xp },
     });
+    track('festival_tier_claim', { eventId: event.id, tierId, xp: tier.xp });
     return { progress: next, xp: tier.xp };
   },
 

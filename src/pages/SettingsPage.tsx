@@ -144,6 +144,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
       writeNotificationsEnabled(false);
       setNotificationsOn(false);
       await cancelAllEngagementReminders();
+      track('reminders_disabled', {});
       return;
     }
     const granted = await requestNotificationPermission();
@@ -156,6 +157,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
     writeNotificationsEnabled(true);
     setNotificationsOn(true);
     await scheduleEngagementReminders();
+    track('reminders_enabled', {});
     successToast('Reminders on', 'We\'ll nudge you about your streak and live events.');
   };
 

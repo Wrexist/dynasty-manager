@@ -26,7 +26,14 @@ export type AnalyticsEvent =
   | { name: 'purchase_failed'; data: { productId: string } }
   | { name: 'restore_clicked'; data: Record<string, never> }
   | { name: 'restore_completed'; data: { restoredCount: number } }
-  | { name: 'crash'; data: { category: string } };
+  | { name: 'crash'; data: { category: string } }
+  // ── Retention loop ──
+  | { name: 'daily_streak_claim'; data: { streak: number; xp: number } }
+  | { name: 'festival_checkin'; data: { eventId: string; points: number } }
+  | { name: 'festival_tier_claim'; data: { eventId: string; tierId: string; xp: number } }
+  | { name: 'legacy_viewed'; data: { tier: string; trophies: number } }
+  | { name: 'reminders_enabled'; data: Record<string, never> }
+  | { name: 'reminders_disabled'; data: Record<string, never> };
 
 export type AnalyticsEventName = AnalyticsEvent['name'];
 

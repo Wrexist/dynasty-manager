@@ -43,6 +43,7 @@ import { PageHint } from '@/components/game/PageHint';
 import { OnboardingChecklist } from '@/components/game/OnboardingChecklist';
 import { DailyRewardModal } from '@/components/game/DailyRewardModal';
 import { FestivalBanner } from '@/components/game/FestivalBanner';
+import { DynastyStatusChip } from '@/components/game/DynastyStatusChip';
 import { ACHIEVEMENTS } from '@/utils/achievements';
 import type { Achievement } from '@/utils/achievements';
 import { FarewellModal } from '@/components/game/FarewellModal';
@@ -692,6 +693,9 @@ const Dashboard = () => {
       {/* Live-event banner (e.g. World Cup Festival) — only while an event is
           live. Links to the Festival hub. */}
       <FestivalBanner />
+
+      {/* Persistent legacy/streak visibility — self-hides for fresh installs. */}
+      <DynastyStatusChip />
 
       {/* Week-1 onboarding checklist for brand-new careers. Self-hides after
           the user advances week or dismisses it. */}
