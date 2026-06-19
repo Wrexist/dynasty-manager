@@ -23,7 +23,7 @@ import {
   writeNotificationsEnabled,
   STORAGE_KEYS,
 } from '@/store/helpers/persistence';
-import { requestNotificationPermission, scheduleEngagementReminders, cancelAllEngagementReminders } from '@/utils/notifications';
+import { getNotificationPermission, requestNotificationPermission, scheduleEngagementReminders, cancelAllEngagementReminders } from '@/utils/notifications';
 import { restorePurchases, openSubscriptionManagement, getCustomerInfo, extractSubscriptionInfo } from '@/utils/purchases';
 import { triggerTestError } from '@/utils/sentry';
 import { refreshAnalyticsConsent, track } from '@/utils/analytics';
@@ -158,6 +158,22 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
     await scheduleEngagementReminders();
     successToast('Reminders on', 'We\'ll nudge you about your streak and live events.');
   };
+
+  // Reconcile our opt-in with the OS permission on mount: if the user enabled
+  // reminders but later revoked permission in the device settings, flip the
+  // toggle back off so it reflects reality. 'unsupported' (web/dev) is left
+  // untouched — only a real OS denial reconciles.
+  useEffect(() => {
+    if (readNotificationsEnabled() !== true) return;
+    let cancelled = false;
+    void getNotificationPermission().then(perm => {
+      if (!cancelled && (perm === 'denied' || perm === 'prompt')) {
+        writeNotificationsEnabled(false);
+        setNotificationsOn(false);
+      }
+    });
+    return () => { cancelled = true; };
+  }, []);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackCategory, setFeedbackCategory] = useState<'bug' | 'feature' | 'general'>('general');
   const [feedbackMessage, setFeedbackMessage] = useState('');

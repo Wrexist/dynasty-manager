@@ -542,37 +542,37 @@ export function generateSquad(clubId: string, quality: number, season: number, d
 export function selectBestLineup(players: Player[], formation: FormationType, currentWeek?: number): { lineup: Player[]; subs: Player[] } {
   const isAvailable = (p: Player) => !p.injured && !p.onLoan && !(p.suspendedUntilWeek && currentWeek !== undefined && p.suspendedUntilWeek > currentWeek);
   const slots = FORMATION_POSITIONS[formation];
-  const selected: Player[] = [];
   const used = new Set<string>();
 
   // Effective rating: overall weighted with form and fitness for smarter selection
   const effectiveRating = (p: Player) => p.overall * EFFECTIVE_RATING_OVERALL_WEIGHT + (p.form / 100) * EFFECTIVE_RATING_FORM_WEIGHT + (p.fitness / 100) * EFFECTIVE_RATING_FITNESS_WEIGHT;
 
-  for (const slot of slots) {
+  // Pass 1: best natural fit per slot, kept in slot order — lineup[i] must map
+  // to formation slot i (chemistry links + formation rendering align players to
+  // slots by index, so the array order is load-bearing, not just a set).
+  const slotted: (Player | null)[] = slots.map(slot => {
     const best = players
       .filter(p => !used.has(p.id) && canPlayPosition(p, slot.pos) && isAvailable(p))
       .sort((a, b) => effectiveRating(b) - effectiveRating(a))[0];
-    if (best) {
-      selected.push(best);
-      used.add(best.id);
-    }
+    if (best) used.add(best.id);
+    return best ?? null;
+  });
+
+  // Pass 2: backfill any slot with no natural fit (e.g. a 5-3-2 with only four
+  // defenders) using the best remaining available player, IN PLACE so slot
+  // alignment is preserved. Without this a club could kick off with 10.
+  const fillers = players
+    .filter(p => !used.has(p.id) && isAvailable(p))
+    .sort((a, b) => effectiveRating(b) - effectiveRating(a));
+  let fillerIdx = 0;
+  for (let i = 0; i < slotted.length && fillerIdx < fillers.length; i++) {
+    if (slotted[i]) continue;
+    const filler = fillers[fillerIdx++];
+    slotted[i] = filler;
+    used.add(filler.id);
   }
 
-  // Backfill: if the position-specific picks left the XI short (the squad had
-  // no natural fit for a slot — e.g. a 5-3-2 with only four defenders), fill
-  // the remaining slots with the best available players regardless of
-  // position. A manager always fields a full XI when enough players are
-  // available; without this a club could kick off a match with 10.
-  if (selected.length < slots.length) {
-    const fillers = players
-      .filter(p => !used.has(p.id) && isAvailable(p))
-      .sort((a, b) => effectiveRating(b) - effectiveRating(a));
-    for (const filler of fillers) {
-      if (selected.length >= slots.length) break;
-      selected.push(filler);
-      used.add(filler.id);
-    }
-  }
+  const selected = slotted.filter(Boolean) as Player[];
 
   const subs = players
     .filter(p => !used.has(p.id) && isAvailable(p))

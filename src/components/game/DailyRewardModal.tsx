@@ -43,9 +43,15 @@ export function DailyRewardModal() {
   const [status, setStatus] = useState<DailyStreakStatus>(initialStatus);
 
   const cardRef = useRef<HTMLDivElement | null>(null);
+  const closeTimerRef = useRef<number | null>(null);
   const close = () => setOpen(false);
   useFocusTrap(cardRef, open);
   useEscapeClose(close, open);
+
+  // Clear the post-claim auto-close timer if the modal unmounts first (e.g. the
+  // player navigates away within the 1.5s window), avoiding a setState on an
+  // unmounted component.
+  useEffect(() => () => { if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current); }, []);
 
   // Decide whether to auto-open: claimable, past the first-launch tutorial,
   // and not already auto-shown for today in this tab.
@@ -69,7 +75,7 @@ export function DailyRewardModal() {
     toast.success(`Day ${result.current} streak!`, {
       description: `+${result.rewardXP} XP collected. Come back tomorrow to keep it going.`,
     });
-    window.setTimeout(() => setOpen(false), 1500);
+    closeTimerRef.current = window.setTimeout(() => setOpen(false), 1500);
   };
 
   if (!initialStatus.canClaim) return null;
