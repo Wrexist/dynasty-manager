@@ -558,6 +558,22 @@ export function selectBestLineup(players: Player[], formation: FormationType, cu
     }
   }
 
+  // Backfill: if the position-specific picks left the XI short (the squad had
+  // no natural fit for a slot — e.g. a 5-3-2 with only four defenders), fill
+  // the remaining slots with the best available players regardless of
+  // position. A manager always fields a full XI when enough players are
+  // available; without this a club could kick off a match with 10.
+  if (selected.length < slots.length) {
+    const fillers = players
+      .filter(p => !used.has(p.id) && isAvailable(p))
+      .sort((a, b) => effectiveRating(b) - effectiveRating(a));
+    for (const filler of fillers) {
+      if (selected.length >= slots.length) break;
+      selected.push(filler);
+      used.add(filler.id);
+    }
+  }
+
   const subs = players
     .filter(p => !used.has(p.id) && isAvailable(p))
     .sort((a, b) => effectiveRating(b) - effectiveRating(a))
