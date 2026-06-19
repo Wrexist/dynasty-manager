@@ -459,6 +459,9 @@ export interface GameState {
 
   // Actions — National Team
   initNationalTeam: (nationality: string) => void;
+  // Boot a standalone World Cup game (gameMode 'world-cup') with the chosen
+  // nation — no club/league. Generates squad + tournament, lands on the picker.
+  startWorldCup: (nationality: string) => void;
   setManagerNationality: (nationality: string) => void;
   acceptNationalTeamOffer: () => void;
   declineNationalTeamOffer: () => void;

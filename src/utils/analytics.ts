@@ -14,7 +14,7 @@ function getAppVersion(): string {
  *  matching `EventData` entry — the narrow shape is the whole privacy story.
  *  Anything not listed here can't be sent. */
 export type AnalyticsEvent =
-  | { name: 'game_started'; data: { communityPackEnabled: boolean; gameMode: 'sandbox' | 'career'; division: string } }
+  | { name: 'game_started'; data: { communityPackEnabled: boolean; gameMode: 'sandbox' | 'career' | 'world-cup'; division: string } }
   | { name: 'season_completed'; data: { season: number; finalPosition: number; division: string } }
   | { name: 'save_created'; data: { slot: number; bytes: number } }
   | { name: 'save_loaded'; data: { slot: number } }

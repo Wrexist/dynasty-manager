@@ -1777,7 +1777,7 @@ export interface InternationalKnockoutTie {
 
 // ── Game Modes ──
 
-export type GameMode = 'sandbox' | 'career';
+export type GameMode = 'sandbox' | 'career' | 'world-cup';
 
 // ── Manager Career Mode ──
 
