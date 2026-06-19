@@ -322,6 +322,10 @@ export const STORAGE_KEYS = {
    *  new event starts fresh. Not save-scoped — Festival Points are a
    *  device-level engagement reward, not part of any career. */
   LIVE_EVENT_PROGRESS: 'dynasty-live-event-progress',
+  /** localStorage: device-global opt-in for local notification reminders.
+   *  '1' = on, '0' = off, missing = never asked. Device-level (not save-scoped)
+   *  and paired with the OS permission, which is the ultimate gate. */
+  NOTIFICATIONS_ENABLED: 'dynasty-notifications-enabled',
 } as const;
 
 /** Read the user's preferred MatchDay view, or null if never set. */
@@ -405,6 +409,24 @@ export function readLiveEventProgress(): LiveEventProgress | null {
 
 export function writeLiveEventProgress(record: LiveEventProgress): void {
   try { localStorage.setItem(STORAGE_KEYS.LIVE_EVENT_PROGRESS, JSON.stringify(record)); }
+  catch { /* storage unavailable — non-fatal */ }
+}
+
+// ── Notification opt-in ──
+
+/** Device-global notification opt-in. null = never asked (so the Settings
+ *  toggle reads OFF until the user explicitly enables it). */
+export function readNotificationsEnabled(): boolean | null {
+  try {
+    const v = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS_ENABLED);
+    if (v === '1') return true;
+    if (v === '0') return false;
+    return null;
+  } catch { return null; }
+}
+
+export function writeNotificationsEnabled(enabled: boolean): void {
+  try { localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS_ENABLED, enabled ? '1' : '0'); }
   catch { /* storage unavailable — non-fatal */ }
 }
 

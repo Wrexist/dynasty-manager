@@ -4,7 +4,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { LiquidButton } from '@/components/game/LiquidButton';
 import { SaveStatusIndicator } from '@/components/game/SaveStatusIndicator';
-import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users, Bug, ChartBar, Sparkles, Gauge } from 'lucide-react';
+import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users, Bug, ChartBar, Sparkles, Gauge, Bell } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { useState, useRef, useEffect } from 'react';
@@ -19,8 +19,11 @@ import {
   writeCommunityPackSlotPref,
   readAnalyticsConsent,
   writeAnalyticsConsent,
+  readNotificationsEnabled,
+  writeNotificationsEnabled,
   STORAGE_KEYS,
 } from '@/store/helpers/persistence';
+import { requestNotificationPermission, scheduleEngagementReminders, cancelAllEngagementReminders } from '@/utils/notifications';
 import { restorePurchases, openSubscriptionManagement, getCustomerInfo, extractSubscriptionInfo } from '@/utils/purchases';
 import { triggerTestError } from '@/utils/sentry';
 import { refreshAnalyticsConsent, track } from '@/utils/analytics';
@@ -132,6 +135,29 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
     const stored = readCommunityPackSlotPref(activeSlot);
     return stored === null ? currentCommunityPack === true : stored;
   });
+
+  // Device-global notification opt-in (not save-scoped). Toggling on requests
+  // OS permission; if the user denies it, the toggle snaps back off.
+  const [notificationsOn, setNotificationsOn] = useState<boolean>(() => readNotificationsEnabled() === true);
+  const handleToggleNotifications = async () => {
+    if (notificationsOn) {
+      writeNotificationsEnabled(false);
+      setNotificationsOn(false);
+      await cancelAllEngagementReminders();
+      return;
+    }
+    const granted = await requestNotificationPermission();
+    if (!granted) {
+      writeNotificationsEnabled(false);
+      setNotificationsOn(false);
+      errorToast('Notifications off', 'Enable notifications for Dynasty Manager in your device Settings to get reminders.');
+      return;
+    }
+    writeNotificationsEnabled(true);
+    setNotificationsOn(true);
+    await scheduleEngagementReminders();
+    successToast('Reminders on', 'We\'ll nudge you about your streak and live events.');
+  };
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackCategory, setFeedbackCategory] = useState<'bug' | 'feature' | 'general'>('general');
   const [feedbackMessage, setFeedbackMessage] = useState('');
@@ -376,6 +402,16 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
             description="Vibrate on key actions (mobile only)"
             value={settings.hapticsEnabled !== false}
             onChange={() => updateSettings({ hapticsEnabled: !settings.hapticsEnabled })}
+          />
+
+          <div className="border-t border-white/10" />
+
+          <ToggleRow
+            icon={Bell}
+            label="Reminders"
+            description="Notify me about my daily streak and live events (mobile only)"
+            value={notificationsOn}
+            onChange={() => { void handleToggleNotifications(); }}
           />
         </div>
       </SettingsSection>
