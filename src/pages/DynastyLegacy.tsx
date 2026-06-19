@@ -13,7 +13,7 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { PageHint } from '@/components/game/PageHint';
 import { useGameStore } from '@/store/gameStore';
 import { loadHall } from '@/utils/hallOfManagers';
-import { computeManagerLegacy } from '@/utils/managerLegacy';
+import { computeManagerLegacy, tierProgress } from '@/utils/managerLegacy';
 import type { LegacyTier } from '@/types/game';
 import { cn } from '@/lib/utils';
 
@@ -36,6 +36,7 @@ function DynastyLegacy() {
   const setScreen = useGameStore(s => s.setScreen);
   const legacy = useMemo(() => computeManagerLegacy(loadHall()), []);
   const TierIcon = TIER_META[legacy.tier].icon;
+  const nextTier = tierProgress(legacy.totalTrophies);
 
   const stats: { label: string; value: string | number; icon: React.ElementType }[] = [
     { label: 'League Titles', value: legacy.totalTitles, icon: Trophy },
@@ -77,6 +78,11 @@ function DynastyLegacy() {
               <span className="text-lg font-black text-primary tabular-nums">{legacy.totalTrophies}</span>
               <span className="text-xs text-foreground/70">career trophies</span>
             </div>
+            <p className="text-[10px] text-foreground/55 mt-2">
+              {nextTier
+                ? `${nextTier.remaining} more ${nextTier.remaining === 1 ? 'trophy' : 'trophies'} to ${nextTier.next}`
+                : 'Maximum tier reached — a true Immortal.'}
+            </p>
           </div>
         </GlassPanel>
       </motion.div>

@@ -247,6 +247,11 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
   const handleDeleteAllData = () => {
     hapticMedium();
     deleteAllDynastyData();
+    // deleteAllDynastyData wipes the 'dynasty-' localStorage keys (incl. the
+    // notification opt-in), but scheduled OS reminders live outside the web
+    // storage — cancel them too so a "claim your streak" notification can't
+    // fire after the player has erased everything.
+    void cancelAllEngagementReminders();
     setShowDeleteDataConfirm(false);
     navigate('/');
     setTimeout(() => {

@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, ArrowRight, X, CalendarClock } from 'lucide-react';
 import { useGameStore } from '@/store/gameStore';
 import { getActiveLiveEvent, getEventDaysRemaining } from '@/utils/liveEvents';
-import { readSessionJson, writeSessionJson } from '@/store/helpers/persistence';
+import { readSessionJson, writeSessionJson, getFlag, STORAGE_KEYS } from '@/store/helpers/persistence';
 import { hapticLight } from '@/utils/haptics';
 import { cn } from '@/lib/utils';
 
@@ -24,7 +24,9 @@ export function FestivalBanner() {
     () => !!event && readSessionJson<string>(DISMISS_KEY) === event.id,
   );
 
-  if (!event || dismissed) return null;
+  // Hold the banner back until the first-launch welcome tutorial is done, so a
+  // brand-new player isn't greeted with a live-event promo before onboarding.
+  if (!event || dismissed || !getFlag(STORAGE_KEYS.WELCOME_SHOWN)) return null;
 
   const daysLeft = getEventDaysRemaining(event);
 

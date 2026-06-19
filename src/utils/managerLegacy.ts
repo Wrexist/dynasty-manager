@@ -9,14 +9,29 @@
 import type { ManagerLegacy, LegacyTier } from '@/types/game';
 import type { HallEntry } from '@/utils/hallOfManagers';
 
+/** Trophy thresholds for each tier above Rookie, ascending. Single source of
+ *  truth for both the current tier and the next-tier progress hint. */
+const TIER_THRESHOLDS: { tier: LegacyTier; at: number }[] = [
+  { tier: 'Journeyman', at: 1 },
+  { tier: 'Established', at: 3 },
+  { tier: 'Elite', at: 7 },
+  { tier: 'Legendary', at: 15 },
+  { tier: 'Immortal', at: 30 },
+];
+
 /** Lifetime tier from total trophies — the headline identity badge. */
 export function legacyTier(totalTrophies: number): LegacyTier {
-  if (totalTrophies >= 30) return 'Immortal';
-  if (totalTrophies >= 15) return 'Legendary';
-  if (totalTrophies >= 7) return 'Elite';
-  if (totalTrophies >= 3) return 'Established';
-  if (totalTrophies >= 1) return 'Journeyman';
-  return 'Rookie';
+  let tier: LegacyTier = 'Rookie';
+  for (const t of TIER_THRESHOLDS) {
+    if (totalTrophies >= t.at) tier = t.tier;
+  }
+  return tier;
+}
+
+/** Next tier and trophies remaining to reach it, or null once Immortal. */
+export function tierProgress(totalTrophies: number): { next: LegacyTier; remaining: number } | null {
+  const next = TIER_THRESHOLDS.find(t => totalTrophies < t.at);
+  return next ? { next: next.tier, remaining: next.at - totalTrophies } : null;
 }
 
 const sum = (entries: HallEntry[], pick: (e: HallEntry) => number | undefined): number =>

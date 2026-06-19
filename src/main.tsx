@@ -172,6 +172,9 @@ async function initNative() {
       CapApp.addListener('resume', () => {
         void cancelAllEngagementReminders();
       });
+      // Same on a cold launch (no 'resume' fires) — the player is active now,
+      // so drop any reminders left over from the last session's pause.
+      void cancelAllEngagementReminders();
     } catch (err) {
       if (import.meta.env.DEV) console.warn('[initNative] App lifecycle init failed:', err);
       Sentry.captureException(err, { tags: { context: 'initNative.AppLifecycle' } });
