@@ -21,6 +21,17 @@ const CONFED_LABEL: Record<string, string> = {
   UEFA: 'Europe', CONMEBOL: 'South America', CAF: 'Africa', AFC: 'Asia', CONCACAF: 'N. America',
 };
 
+// Region filter chips — same "browse by region" affordance as club selection,
+// so 50+ nations aren't one flat scroll.
+const CONFED_FILTERS: { key: string; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'UEFA', label: 'Europe' },
+  { key: 'CONMEBOL', label: 'S. America' },
+  { key: 'CAF', label: 'Africa' },
+  { key: 'AFC', label: 'Asia' },
+  { key: 'CONCACAF', label: 'N. America' },
+];
+
 const WorldCupSetup = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -34,7 +45,12 @@ const WorldCupSetup = () => {
   }, [missingSlot, navigate]);
 
   const [selected, setSelected] = useState<string | null>(null);
-  const nations = useMemo(() => [...NATIONS].sort((a, b) => a.baseRanking - b.baseRanking), []);
+  const [confed, setConfed] = useState('all');
+  const sorted = useMemo(() => [...NATIONS].sort((a, b) => a.baseRanking - b.baseRanking), []);
+  const nations = useMemo(
+    () => confed === 'all' ? sorted : sorted.filter(n => n.confederation === confed),
+    [sorted, confed],
+  );
 
   if (missingSlot) return null;
 
@@ -63,6 +79,25 @@ const WorldCupSetup = () => {
           <h1 className="text-2xl font-black text-foreground font-display">Choose Your Nation</h1>
           <p className="text-xs text-muted-foreground mt-1">Lead them through the World Cup — group stage to the final.</p>
         </motion.div>
+
+        {/* Region filter */}
+        <div className="flex gap-1.5 overflow-x-auto scrollbar-hide mb-3 -mx-1 px-1">
+          {CONFED_FILTERS.map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => { hapticLight(); setConfed(key); }}
+              className={cn(
+                'px-3 py-1.5 rounded-full text-[11px] font-semibold whitespace-nowrap shrink-0 border transition-colors',
+                confed === key
+                  ? 'bg-amber-500/20 border-amber-500/50 text-amber-300'
+                  : 'bg-white/[0.03] border-white/[0.06] text-muted-foreground hover:text-foreground',
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
 
         <div className="grid grid-cols-2 gap-2.5">
           {nations.map((n, i) => {
