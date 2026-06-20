@@ -61,4 +61,25 @@ describe('startWorldCup', () => {
     expect(s.cup.ties).toHaveLength(0);
     expect(s.transferMarket).toHaveLength(0);
   });
+
+  it('runs a full tournament to completion with a champion (works like a real World Cup)', async () => {
+    useGameStore.getState().startWorldCup(NAT);
+    const nt = useGameStore.getState().nationalTeam!;
+    // Confirm the auto-selected squad → unlocks week advancement.
+    useGameStore.getState().confirmNationalSquad(nt.squad, nt.lineup, nt.subs);
+
+    // Advance through group stage → knockout → final.
+    for (let i = 0; i < 12; i++) {
+      await useGameStore.getState().advanceWeek();
+      if (useGameStore.getState().internationalTournament?.phase === 'complete') break;
+    }
+
+    const t = useGameStore.getState().internationalTournament!;
+    expect(t.phase).toBe('complete');
+    expect(t.winner).toBeTruthy();
+    // The final was played and decided a single champion.
+    const finalTie = t.knockoutTies.find(k => k.round === 'F');
+    expect(finalTie?.played).toBe(true);
+    expect(finalTie?.winnerId).toBe(t.winner);
+  });
 });
