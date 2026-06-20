@@ -3,42 +3,45 @@
     <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0c1018"/><stop offset="100%" stop-color="#080b12"/></linearGradient>
     <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FCD56E"/><stop offset="100%" stop-color="#E8A302"/></linearGradient>
     <linearGradient id="heroBar" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#009b3a"/><stop offset="100%" stop-color="#009b3a" stop-opacity="0"/></linearGradient>
-    <radialGradient id="glowBlue" cx="50%" cy="20%" r="60%"><stop offset="0%" stop-color="#3b82f6" stop-opacity="0.32"/><stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/></radialGradient>
-    <radialGradient id="glowSky" cx="50%" cy="20%" r="60%"><stop offset="0%" stop-color="#0ea5e9" stop-opacity="0.32"/><stop offset="100%" stop-color="#0ea5e9" stop-opacity="0"/></radialGradient>
-    <radialGradient id="glowEm" cx="50%" cy="20%" r="60%"><stop offset="0%" stop-color="#10b981" stop-opacity="0.32"/><stop offset="100%" stop-color="#10b981" stop-opacity="0"/></radialGradient>
-    <radialGradient id="glowAmb" cx="50%" cy="20%" r="60%"><stop offset="0%" stop-color="#f59e0b" stop-opacity="0.32"/><stop offset="100%" stop-color="#f59e0b" stop-opacity="0"/></radialGradient>
-    <radialGradient id="glowCyan" cx="50%" cy="20%" r="60%"><stop offset="0%" stop-color="#06b6d4" stop-opacity="0.32"/><stop offset="100%" stop-color="#06b6d4" stop-opacity="0"/></radialGradient>
+    <linearGradient id="cardTop" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffffff" stop-opacity="0.06"/><stop offset="100%" stop-color="#ffffff" stop-opacity="0"/></linearGradient>
+    <radialGradient id="gSky" cx="50%" cy="18%" r="65%"><stop offset="0%" stop-color="#0ea5e9" stop-opacity="0.30"/><stop offset="100%" stop-color="#0ea5e9" stop-opacity="0"/></radialGradient>
+    <radialGradient id="gBlue" cx="50%" cy="18%" r="65%"><stop offset="0%" stop-color="#3b82f6" stop-opacity="0.30"/><stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/></radialGradient>
+    <radialGradient id="gAmb" cx="50%" cy="18%" r="65%"><stop offset="0%" stop-color="#f59e0b" stop-opacity="0.30"/><stop offset="100%" stop-color="#f59e0b" stop-opacity="0"/></radialGradient>
+    <radialGradient id="gCyan" cx="50%" cy="18%" r="65%"><stop offset="0%" stop-color="#06b6d4" stop-opacity="0.30"/><stop offset="100%" stop-color="#06b6d4" stop-opacity="0"/></radialGradient>
+    <!-- Brazil round crest, drawn centered on (0,0) -->
+    <g id="brC">
+      <circle r="23" fill="#009b3a" stroke="#ffffff" stroke-opacity="0.14" stroke-width="2"/>
+      <path d="M0 -15 L18 0 L0 15 L-18 0 Z" fill="#ffdf00"/>
+      <circle r="7.5" fill="#002776"/>
+    </g>
+    <!-- small flags centered on (0,0): 18 x 12 -->
+    <g id="brF"><rect x="-9" y="-6" width="18" height="12" rx="1.5" fill="#009b3a"/><path d="M0 -4.5 L7 0 L0 4.5 L-7 0 Z" fill="#ffdf00"/><circle r="2.6" fill="#002776"/></g>
+    <g id="chF"><rect x="-9" y="-6" width="18" height="12" rx="1.5" fill="#D52B1E"/><rect x="-1.5" y="-6" width="3" height="12" fill="#fff"/><rect x="-5" y="-1.5" width="10" height="3" fill="#fff"/></g>
+    <g id="rsF"><rect x="-9" y="-6" width="18" height="12" rx="1.5" fill="#C6363C"/><rect x="-9" y="-2" width="18" height="4" fill="#0C4076"/><rect x="-9" y="2" width="18" height="4" fill="#fff"/></g>
+    <g id="cmF"><rect x="-9" y="-6" width="6" height="12" fill="#007a3d"/><rect x="-3" y="-6" width="6" height="12" fill="#ce1126"/><rect x="3" y="-6" width="6" height="12" fill="#fcd116"/></g>
+    <clipPath id="rsClip"><circle r="23"/></clipPath>
   </defs>
   <rect width="390" height="844" fill="url(#bg)"/>
 
-  <!-- Brazil flag glyph reusable -->
-  <defs>
-    <g id="br"><rect width="40" height="40" rx="6" fill="#009b3a"/><path d="M20 4 L36 20 L20 36 L4 20 Z" fill="#ffdf00"/><circle cx="20" cy="20" r="8" fill="#002776"/></g>
-    <g id="brS"><rect width="16" height="11" rx="1.5" fill="#009b3a"/><path d="M8 1.5 L14 5.5 L8 9.5 L2 5.5 Z" fill="#ffdf00"/><circle cx="8" cy="5.5" r="2.4" fill="#002776"/></g>
-  </defs>
-
-  <!-- ===== TopBar (WC tab) ===== -->
-  <rect x="0" y="0" width="390" height="56" fill="#0c1018" opacity="0.96"/>
+  <!-- ===== TopBar ===== -->
+  <rect width="390" height="56" fill="#0c1018" opacity="0.96"/>
   <line x1="0" y1="56" x2="390" y2="56" stroke="#ffffff" stroke-opacity="0.08"/>
-  <g transform="translate(16 17) scale(0.65)"><use href="#brS"/></g>
-  <text x="46" y="27" fill="#EEF1F7" font-size="14" font-weight="700">Brazil</text>
-  <text x="46" y="42" fill="#FBBF24" font-size="10" font-weight="600">World Cup · Group Stage</text>
-  <!-- inbox + settings -->
-  <g transform="translate(322 19)" fill="none" stroke="#8A93A6" stroke-width="1.8"><rect x="0" y="2" width="17" height="13" rx="2"/><path d="M0 4 L8.5 11 L17 4"/></g>
-  <circle cx="338" cy="20" r="4" fill="#E11D48"/>
-  <g transform="translate(352 11)" fill="none" stroke="#8A93A6" stroke-width="1.8"><circle cx="9" cy="9" r="3"/><path d="M9 1 v3 M9 14 v3 M1 9 h3 M14 9 h3 M3.5 3.5 l2 2 M12.5 12.5 l2 2 M14.5 3.5 l-2 2 M5.5 12.5 l-2 2"/></g>
+  <g transform="translate(25 28)"><use href="#brF"/></g>
+  <text x="44" y="26" fill="#EEF1F7" font-size="14" font-weight="700">Brazil</text>
+  <text x="44" y="41" fill="#FBBF24" font-size="10" font-weight="600">World Cup · Group Stage</text>
+  <g transform="translate(326 28)" fill="none" stroke="#8A93A6" stroke-width="1.7"><rect x="-9" y="-6" width="18" height="13" rx="2"/><path d="M-9 -4 L0 3 L9 -4"/></g>
+  <circle cx="334" cy="22" r="3.5" fill="#E11D48"/>
+  <g transform="translate(360 28)" fill="none" stroke="#8A93A6" stroke-width="1.7"><circle r="3.4"/><path d="M0 -8 v3 M0 8 v-3 M-8 0 h3 M8 0 h-3 M-5.6 -5.6 l2 2 M5.6 5.6 l-2 -2 M5.6 -5.6 l-2 2 M-5.6 5.6 l2 -2"/></g>
 
-  <!-- ===== Nation identity hero ===== -->
-  <g transform="translate(16 70)">
-    <rect width="358" height="4" rx="2" fill="url(#heroBar)"/>
-    <g transform="translate(0 14)">
-      <g transform="translate(0 2) scale(0.75)"><use href="#brS"/></g>
-      <text x="34" y="9" fill="#F4F6FB" font-size="18" font-weight="800" font-family="'Oswald',Arial">Brazil</text>
-      <text x="34" y="24" fill="#8A93A6" font-size="10">World Cup · Group Stage</text>
-      <text x="358" y="6" text-anchor="end" fill="#8A93A6" font-size="9" letter-spacing="1">SQUAD</text>
-      <text x="358" y="24" text-anchor="end" fill="#34D399" font-size="20" font-weight="800" font-family="'Oswald',Arial">84</text>
-    </g>
-    <!-- phase ladder Groups → Final -->
+  <!-- ===== Nation hero ===== -->
+  <g transform="translate(16 72)">
+    <rect width="358" height="3" rx="1.5" fill="url(#heroBar)"/>
+    <g transform="translate(11 26)"><use href="#brF"/></g>
+    <text x="30" y="22" fill="#F4F6FB" font-size="18" font-weight="800" font-family="'Oswald',Arial">Brazil</text>
+    <text x="30" y="37" fill="#8A93A6" font-size="10">World Cup · Group Stage</text>
+    <text x="358" y="18" text-anchor="end" fill="#8A93A6" font-size="9" letter-spacing="1">SQUAD</text>
+    <text x="358" y="38" text-anchor="end" fill="#34D399" font-size="22" font-weight="800" font-family="'Oswald',Arial">84</text>
+    <!-- phase ladder -->
     <g transform="translate(0 52)">
       <rect x="0"   width="64" height="6" rx="3" fill="#EAB308"/>
       <rect x="73"  width="64" height="6" rx="3" fill="#2b3445"/>
@@ -55,121 +58,122 @@
     </g>
   </g>
 
-  <!-- ===== Next Match card ===== -->
-  <g transform="translate(16 168)">
-    <rect width="358" height="186" rx="18" fill="#141b27" fill-opacity="0.82" stroke="#EAB30855"/>
-    <rect width="358" height="93" rx="18" fill="#ffffff" fill-opacity="0.03"/>
-    <!-- badge pill -->
-    <g transform="translate(118 20)">
-      <rect width="92" height="22" rx="11" fill="#EAB308" fill-opacity="0.12" stroke="#EAB30855"/>
-      <path d="M12 6 h8 v3 q0 6 -4 7 q-4 -1 -4 -7 Z" fill="#F5C518"/>
-      <text x="52" y="15" text-anchor="middle" fill="#F5C518" font-size="10" font-weight="700" letter-spacing="1">WORLD CUP</text>
+  <!-- ===== Next Match card (h=220, button fully contained) ===== -->
+  <g transform="translate(16 160)">
+    <rect width="358" height="220" rx="18" fill="#131a26" fill-opacity="0.85" stroke="#EAB30855"/>
+    <rect width="358" height="110" rx="18" fill="url(#cardTop)"/>
+    <!-- badge pill centered -->
+    <g transform="translate(131 18)">
+      <rect width="96" height="22" rx="11" fill="#EAB308" fill-opacity="0.12" stroke="#EAB30855"/>
+      <path d="M13 6 h8 v3 q0 6 -4 7 q-4 -1 -4 -7 Z" fill="#F5C518"/>
+      <text x="56" y="15" text-anchor="middle" fill="#F5C518" font-size="10" font-weight="700" letter-spacing="1">WORLD CUP</text>
     </g>
-    <text x="225" y="35" fill="#8A93A6" font-size="10">Group Stage · Group G</text>
+    <text x="179" y="56" text-anchor="middle" fill="#8A93A6" font-size="10">Group Stage · Group G</text>
 
-    <!-- crests -->
-    <g transform="translate(56 56)">
-      <circle cx="20" cy="20" r="22" fill="#009b3a" stroke="#ffffff" stroke-opacity="0.12" stroke-width="2"/>
-      <g transform="translate(4 4) scale(0.8)"><use href="#br"/></g>
-      <text x="20" y="60" text-anchor="middle" fill="#F4F6FB" font-size="13" font-weight="700">Brazil</text>
-      <text x="20" y="74" text-anchor="middle" fill="#8A93A6" font-size="9" letter-spacing="1">HOME</text>
+    <!-- crests row, centered cells -->
+    <g transform="translate(86 96)"><use href="#brC"/>
+      <text x="0" y="42" text-anchor="middle" fill="#F4F6FB" font-size="13" font-weight="700">Brazil</text>
+      <text x="0" y="58" text-anchor="middle" fill="#8A93A6" font-size="9" letter-spacing="1.5">HOME</text>
     </g>
-    <text x="179" y="84" text-anchor="middle" fill="#5b6678" font-size="26" font-weight="900" font-family="'Oswald',Arial">VS</text>
-    <g transform="translate(246 56)">
-      <circle cx="20" cy="20" r="22" fill="#C6363C" stroke="#ffffff" stroke-opacity="0.12" stroke-width="2"/>
-      <clipPath id="cc"><circle cx="20" cy="20" r="20"/></clipPath>
-      <g clip-path="url(#cc)"><rect y="0" width="40" height="13" x="0" fill="#C6363C"/><rect y="13" width="40" height="14" x="0" fill="#0C4076"/><rect y="27" width="40" height="13" x="0" fill="#ffffff"/></g>
-      <text x="20" y="60" text-anchor="middle" fill="#F4F6FB" font-size="13" font-weight="700">Serbia</text>
-      <text x="20" y="74" text-anchor="middle" fill="#8A93A6" font-size="9" letter-spacing="1">AWAY</text>
+    <text x="179" y="103" text-anchor="middle" fill="#5b6678" font-size="26" font-weight="900" font-family="'Oswald',Arial">VS</text>
+    <g transform="translate(272 96)">
+      <circle r="23" fill="#C6363C" stroke="#ffffff" stroke-opacity="0.14" stroke-width="2"/>
+      <g clip-path="url(#rsClip)"><rect x="-23" y="-23" width="46" height="15" fill="#C6363C"/><rect x="-23" y="-8" width="46" height="16" fill="#0C4076"/><rect x="-23" y="8" width="46" height="15" fill="#ffffff"/></g>
+      <text x="0" y="42" text-anchor="middle" fill="#F4F6FB" font-size="13" font-weight="700">Serbia</text>
+      <text x="0" y="58" text-anchor="middle" fill="#8A93A6" font-size="9" letter-spacing="1.5">AWAY</text>
     </g>
 
-    <!-- Play button -->
-    <g transform="translate(16 152)">
-      <rect width="326" height="46" rx="12" fill="url(#gold)"/>
-      <path d="M150 14 l12 9 l-12 9 Z" fill="#3a2a05"/>
-      <text x="172" y="29" fill="#3a2a05" font-size="15" font-weight="800">Play Match</text>
+    <!-- Play button: x=20, width=318 → 20px inset both sides, bottom at 200 < 220 -->
+    <g transform="translate(20 174)">
+      <rect width="318" height="46" rx="12" fill="url(#gold)"/>
+      <g transform="translate(135 23)"><path d="M-6 -7 L8 0 L-6 7 Z" fill="#3a2a05"/></g>
+      <text x="156" y="28" text-anchor="middle" fill="#3a2a05" font-size="15" font-weight="800">Play Match</text>
     </g>
   </g>
 
-  <!-- ===== Quick links (4-up) ===== -->
-  <g transform="translate(16 372)">
-    <!-- Squad (Users, sky) -->
+  <!-- ===== Quick links (4-up, icons centered in chips) ===== -->
+  <g transform="translate(16 394)">
+    <!-- Squad / Users / sky -->
     <g transform="translate(0 0)">
       <rect width="80" height="74" rx="14" fill="#141b27" fill-opacity="0.7" stroke="#ffffff" stroke-opacity="0.08"/>
-      <rect width="80" height="40" rx="14" fill="url(#glowSky)"/>
+      <rect width="80" height="40" rx="14" fill="url(#gSky)"/>
       <rect x="24" y="14" width="32" height="24" rx="8" fill="#0ea5e9" fill-opacity="0.12" stroke="#0ea5e955"/>
-      <g transform="translate(33 22)" stroke="#38BDF8" stroke-width="2" fill="none"><circle cx="4" cy="3" r="2.6"/><circle cx="11" cy="3" r="2.6"/></g>
+      <g transform="translate(40 26)" stroke="#38BDF8" stroke-width="2" fill="none"><circle cx="-3.5" cy="-1.5" r="2.6"/><circle cx="3.5" cy="-1.5" r="2.6"/><path d="M-8 5 q4.5 -4 9 0 M-1 5 q4.5 -4 9 0" stroke-opacity="0.0"/></g>
       <text x="40" y="58" text-anchor="middle" fill="#E7EAF0" font-size="11" font-weight="600">Squad</text>
     </g>
-    <!-- Tactics (Shield, blue) -->
-    <g transform="translate(92 0)">
+    <!-- Tactics / Shield / blue -->
+    <g transform="translate(92.7 0)">
       <rect width="80" height="74" rx="14" fill="#141b27" fill-opacity="0.7" stroke="#ffffff" stroke-opacity="0.08"/>
-      <rect width="80" height="40" rx="14" fill="url(#glowBlue)"/>
+      <rect width="80" height="40" rx="14" fill="url(#gBlue)"/>
       <rect x="24" y="14" width="32" height="24" rx="8" fill="#3b82f6" fill-opacity="0.12" stroke="#3b82f655"/>
-      <path d="M40 14 l7 2.5 v5 q0 6 -7 9 q-7 -3 -7 -9 v-5 Z" fill="none" stroke="#60A5FA" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M40 16 l7 2.4 v4.5 q0 5.5 -7 8.6 q-7 -3.1 -7 -8.6 v-4.5 Z" fill="none" stroke="#60A5FA" stroke-width="2" stroke-linejoin="round"/>
       <text x="40" y="58" text-anchor="middle" fill="#E7EAF0" font-size="11" font-weight="600">Tactics</text>
     </g>
-    <!-- Bracket -->
-    <g transform="translate(184 0)">
+    <!-- Bracket / Trophy / amber -->
+    <g transform="translate(185.3 0)">
       <rect width="80" height="74" rx="14" fill="#141b27" fill-opacity="0.7" stroke="#ffffff" stroke-opacity="0.08"/>
-      <rect width="80" height="40" rx="14" fill="url(#glowAmb)"/>
+      <rect width="80" height="40" rx="14" fill="url(#gAmb)"/>
       <rect x="24" y="14" width="32" height="24" rx="8" fill="#f59e0b" fill-opacity="0.12" stroke="#f59e0b55"/>
-      <path d="M34 20 h8 v3 q0 6 -4 7 q-4 -1 -4 -7 Z" fill="#FBBF24"/>
+      <g transform="translate(40 26)"><path d="M-7 -8 h14 v3 q0 6.5 -7 8.5 q-7 -2 -7 -8.5 Z M-7 -6 q-3 0 -3 3 q0 3 3 4 M7 -6 q3 0 3 3 q0 3 -3 4 M-2 3 h4 v3 h-4 Z M-5 6 h10 v2 h-10 Z" fill="none" stroke="#FBBF24" stroke-width="1.6" stroke-linejoin="round"/></g>
       <text x="40" y="58" text-anchor="middle" fill="#E7EAF0" font-size="11" font-weight="600">Bracket</text>
     </g>
-    <!-- Inbox -->
-    <g transform="translate(276 0)">
+    <!-- Inbox / Mail / cyan -->
+    <g transform="translate(278 0)">
       <rect width="80" height="74" rx="14" fill="#141b27" fill-opacity="0.7" stroke="#ffffff" stroke-opacity="0.08"/>
-      <rect width="80" height="40" rx="14" fill="url(#glowCyan)"/>
+      <rect width="80" height="40" rx="14" fill="url(#gCyan)"/>
       <rect x="24" y="14" width="32" height="24" rx="8" fill="#06b6d4" fill-opacity="0.12" stroke="#06b6d455"/>
-      <g transform="translate(33 21)" fill="none" stroke="#22D3EE" stroke-width="1.8"><rect x="0" y="1" width="14" height="11" rx="2"/><path d="M0 3 L7 8 L14 3"/></g>
-      <circle cx="66" cy="12" r="8" fill="#06b6d4"/><text x="66" y="15.5" text-anchor="middle" fill="#fff" font-size="9" font-weight="800">3</text>
+      <g transform="translate(40 26)" fill="none" stroke="#22D3EE" stroke-width="1.8"><rect x="-7" y="-5" width="14" height="11" rx="2"/><path d="M-7 -3 L0 3 L7 -3"/></g>
+      <circle cx="64" cy="12" r="8" fill="#06b6d4"/><text x="64" y="15.5" text-anchor="middle" fill="#fff" font-size="9" font-weight="800">3</text>
       <text x="40" y="58" text-anchor="middle" fill="#E7EAF0" font-size="11" font-weight="600">Inbox</text>
     </g>
   </g>
 
-  <!-- ===== Group standings ===== -->
-  <g transform="translate(16 464)">
-    <rect width="358" height="190" rx="18" fill="#141b27" fill-opacity="0.7" stroke="#ffffff" stroke-opacity="0.08"/>
-    <text x="16" y="26" fill="#E7EAF0" font-size="11" font-weight="700" letter-spacing="1">⚑ GROUP G</text>
-    <text x="342" y="26" text-anchor="end" fill="#F5C518" font-size="10">Full bracket ›</text>
-    <line x1="0" y1="36" x2="358" y2="36" stroke="#ffffff" stroke-opacity="0.08"/>
-    <g fill="#8A93A6" font-size="10"><text x="40" y="54">Team</text><text x="250" y="54" text-anchor="middle">P</text><text x="280" y="54" text-anchor="middle">W</text><text x="312" y="54" text-anchor="middle">GD</text><text x="342" y="54" text-anchor="middle" font-weight="700">Pts</text></g>
+  <!-- ===== Group standings (rows vertically centered) ===== -->
+  <g transform="translate(16 484)">
+    <rect width="358" height="188" rx="18" fill="#141b27" fill-opacity="0.7" stroke="#ffffff" stroke-opacity="0.08"/>
+    <g transform="translate(16 24)">
+      <path d="M0 -9 h7 v3 q0 5.5 -3.5 7 q-3.5 -1.5 -3.5 -7 Z" fill="#F5C518" transform="translate(0 -2)"/>
+      <text x="14" y="0" fill="#E7EAF0" font-size="11" font-weight="700" letter-spacing="1">GROUP G</text>
+    </g>
+    <text x="342" y="24" text-anchor="end" fill="#F5C518" font-size="10">Full bracket ›</text>
+    <line x1="0" y1="38" x2="358" y2="38" stroke="#ffffff" stroke-opacity="0.08"/>
+    <g fill="#8A93A6" font-size="10"><text x="46" y="56">Team</text><text x="252" y="56" text-anchor="middle">P</text><text x="282" y="56" text-anchor="middle">W</text><text x="312" y="56" text-anchor="middle">GD</text><text x="342" y="56" text-anchor="middle" font-weight="700">Pts</text></g>
 
-    <rect x="8" y="62" width="342" height="26" rx="4" fill="#EAB308" fill-opacity="0.06"/>
-    <rect x="8" y="62" width="2.5" height="26" fill="#34D399"/>
-    <g transform="translate(20 79)"><g transform="scale(0.62)"><use href="#brS"/></g><text x="16" y="0" fill="#FFFFFF" font-size="12" font-weight="700">Brazil</text></g>
-    <g fill="#C7CDDA" font-size="12"><text x="250" y="79" text-anchor="middle">2</text><text x="280" y="79" text-anchor="middle">2</text><text x="312" y="79" text-anchor="middle">+4</text></g><text x="342" y="79" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">6</text>
+    <!-- rows: center Y at 78,108,138,166; flags + text share that center -->
+    <rect x="8" y="66" width="342" height="26" rx="5" fill="#EAB308" fill-opacity="0.07"/>
+    <rect x="8" y="66" width="3" height="26" rx="1.5" fill="#34D399"/>
+    <g transform="translate(28 79)"><use href="#brF"/></g><text x="44" y="83" fill="#FFFFFF" font-size="12" font-weight="700">Brazil</text>
+    <g fill="#C7CDDA" font-size="12"><text x="252" y="83" text-anchor="middle">2</text><text x="282" y="83" text-anchor="middle">2</text><text x="312" y="83" text-anchor="middle">+4</text></g><text x="342" y="83" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">6</text>
 
-    <rect x="8" y="90" width="2.5" height="26" fill="#34D399"/>
-    <g transform="translate(20 107)"><rect width="16" height="11" rx="1.5" y="-9" fill="#D52B1E"/><rect x="6.5" y="-9" width="3" height="11" fill="#fff"/><rect x="4" y="-6" width="8" height="3" fill="#fff"/><text x="22" y="0" fill="#D6DBE6" font-size="12">Switzerland</text></g>
-    <g fill="#C7CDDA" font-size="12"><text x="250" y="107" text-anchor="middle">2</text><text x="280" y="107" text-anchor="middle">1</text><text x="312" y="107" text-anchor="middle">+1</text></g><text x="342" y="107" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">3</text>
+    <rect x="8" y="96" width="3" height="26" rx="1.5" fill="#34D399"/>
+    <g transform="translate(28 109)"><use href="#chF"/></g><text x="44" y="113" fill="#D6DBE6" font-size="12">Switzerland</text>
+    <g fill="#C7CDDA" font-size="12"><text x="252" y="113" text-anchor="middle">2</text><text x="282" y="113" text-anchor="middle">1</text><text x="312" y="113" text-anchor="middle">+1</text></g><text x="342" y="113" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">3</text>
 
-    <g transform="translate(20 135)"><rect width="16" height="11" rx="1.5" y="-9" fill="#C6363C"/><rect y="-5.5" width="16" height="3.5" fill="#0C4076"/><rect y="-2" width="16" height="2" fill="#fff"/><text x="22" y="0" fill="#D6DBE6" font-size="12">Serbia</text></g>
-    <g fill="#C7CDDA" font-size="12"><text x="250" y="135" text-anchor="middle">2</text><text x="280" y="135" text-anchor="middle">1</text><text x="312" y="135" text-anchor="middle">0</text></g><text x="342" y="135" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">3</text>
+    <g transform="translate(28 139)"><use href="#rsF"/></g><text x="44" y="143" fill="#D6DBE6" font-size="12">Serbia</text>
+    <g fill="#C7CDDA" font-size="12"><text x="252" y="143" text-anchor="middle">2</text><text x="282" y="143" text-anchor="middle">1</text><text x="312" y="143" text-anchor="middle">0</text></g><text x="342" y="143" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">3</text>
 
-    <g transform="translate(20 163)"><rect width="16" height="11" rx="1.5" y="-9" fill="#007a3d"/><rect x="5.5" y="-9" width="5" height="11" fill="#ce1126"/><rect x="10.5" y="-9" width="5.5" height="11" fill="#fcd116"/><text x="22" y="0" fill="#D6DBE6" font-size="12">Cameroon</text></g>
-    <g fill="#C7CDDA" font-size="12"><text x="250" y="163" text-anchor="middle">2</text><text x="280" y="163" text-anchor="middle">0</text><text x="312" y="163" text-anchor="middle">−5</text></g><text x="342" y="163" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">0</text>
+    <g transform="translate(28 167)"><use href="#cmF"/></g><text x="44" y="171" fill="#D6DBE6" font-size="12">Cameroon</text>
+    <g fill="#C7CDDA" font-size="12"><text x="252" y="171" text-anchor="middle">2</text><text x="282" y="171" text-anchor="middle">0</text><text x="312" y="171" text-anchor="middle">−5</text></g><text x="342" y="171" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">0</text>
   </g>
 
-  <!-- ===== Bottom nav (WC) ===== -->
+  <!-- ===== Bottom nav ===== -->
   <g transform="translate(20 772)">
     <rect width="350" height="54" rx="27" fill="#11161f" stroke="#ffffff" stroke-opacity="0.10"/>
     <rect x="6" y="6" width="84" height="42" rx="21" fill="#EAB308" fill-opacity="0.92"/>
-    <g transform="translate(48 19)" text-anchor="middle">
+    <g transform="translate(48 20)" text-anchor="middle">
       <path d="M-8 4 L0 -4 L8 4 V11 H-8 Z" fill="none" stroke="#2a2102" stroke-width="2" stroke-linejoin="round"/>
       <text x="0" y="25" fill="#2a2102" font-size="10" font-weight="700">Home</text>
     </g>
-    <g transform="translate(135 19)" text-anchor="middle" fill="#AEB6C4">
-      <circle cx="-4" cy="-1" r="3.2" fill="none" stroke="#AEB6C4" stroke-width="2"/><circle cx="4" cy="-1" r="3.2" fill="none" stroke="#AEB6C4" stroke-width="2"/>
+    <g transform="translate(135 20)" text-anchor="middle" fill="#AEB6C4">
+      <g transform="translate(0 -2)" stroke="#AEB6C4" stroke-width="2" fill="none"><circle cx="-4" cy="0" r="2.8"/><circle cx="4" cy="0" r="2.8"/></g>
       <text x="0" y="25" font-size="10" font-weight="600">Squad</text>
     </g>
-    <g transform="translate(220 19)" text-anchor="middle" fill="#AEB6C4">
-      <circle cx="0" cy="-1" r="6" fill="none" stroke="#AEB6C4" stroke-width="2"/><circle cx="0" cy="-1" r="1.6" fill="#AEB6C4"/>
+    <g transform="translate(220 20)" text-anchor="middle" fill="#AEB6C4">
+      <circle cx="0" cy="-2" r="6" fill="none" stroke="#AEB6C4" stroke-width="2"/><circle cx="0" cy="-2" r="1.6" fill="#AEB6C4"/>
       <text x="0" y="25" font-size="10" font-weight="600">Tactics</text>
     </g>
-    <g transform="translate(305 19)" text-anchor="middle" fill="#AEB6C4">
-      <path d="M-5 -7 h10 v3 q0 6 -5 8 q-5 -2 -5 -8 Z" fill="none" stroke="#AEB6C4" stroke-width="2" stroke-linejoin="round"/><line x1="0" y1="4" x2="0" y2="8" stroke="#AEB6C4" stroke-width="2"/><line x1="-4" y1="9" x2="4" y2="9" stroke="#AEB6C4" stroke-width="2" stroke-linecap="round"/>
+    <g transform="translate(305 20)" text-anchor="middle" fill="#AEB6C4">
+      <path d="M-5 -8 h10 v3 q0 5.5 -5 7.5 q-5 -2 -5 -7.5 Z M0 2.5 v3 M-4 6 h8" fill="none" stroke="#AEB6C4" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
       <text x="0" y="25" font-size="9" font-weight="600">Tournament</text>
     </g>
   </g>
