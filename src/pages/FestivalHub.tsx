@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { Globe, Trophy, Check, Lock, Sparkles, CalendarClock, Gift, Flame } from 'lucide-react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
+import { FlagIcon } from '@/components/game/FlagIcon';
 import {
   getActiveLiveEvent,
   readActiveFestivalProgress,
@@ -100,6 +101,12 @@ function FestivalHub() {
             )}
           </div>
         </div>
+        {/* Nation strip — World Cup flavour. */}
+        <div className="relative flex items-center gap-2 mt-3.5 pt-3 border-t border-white/[0.06] overflow-hidden">
+          {['Brazil', 'Argentina', 'France', 'England', 'Spain', 'Germany', 'Portugal', 'Italy'].map(n => (
+            <FlagIcon key={n} nationality={n} size={22} className="rounded-sm shrink-0 opacity-90" />
+          ))}
+        </div>
       </GlassPanel>
 
       {/* Daily check-in */}
@@ -121,11 +128,12 @@ function FestivalHub() {
             transition={{ type: 'spring', stiffness: 200, damping: 28 }}
           />
         </div>
-        <p className="text-[10px] text-foreground/55 mb-3">
+        <p className="text-[10px] text-foreground/55 mb-1">
           {nextTier
             ? `${nextTier.tier.points - progress.points} pts to ${nextTier.tier.label}`
             : 'All reward tiers unlocked — nice run!'}
         </p>
+        <p className="text-[10px] text-primary/70 mb-3">+{event.matchWinPoints} pts for every match you win during the festival.</p>
 
         <button
           type="button"

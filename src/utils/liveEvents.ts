@@ -6,9 +6,9 @@
  * the local-day helpers from the daily-streak module — both features share the
  * same "is it a new local day?" semantics.
  */
-import { LIVE_EVENTS, type LiveEvent, type LiveEventTier } from '@/config/liveEvents';
+import { LIVE_EVENTS, MATCH_WIN_POINTS_DAILY_CAP, type LiveEvent, type LiveEventTier } from '@/config/liveEvents';
 import { localDateKey, daysBetween } from '@/utils/dailyStreak';
-import { readLiveEventProgress, type LiveEventProgress } from '@/store/helpers/persistence';
+import { readLiveEventProgress, writeLiveEventProgress, type LiveEventProgress } from '@/store/helpers/persistence';
 
 export type { LiveEvent, LiveEventTier, LiveEventProgress };
 
@@ -57,6 +57,38 @@ export function applyCheckIn(
     points: progress.points + event.checkInPoints,
     lastCheckInDate: localDateKey(now),
   };
+}
+
+/** Progress after a won match, honouring the per-day cap. No-op (returns the
+ *  same record) once the day's cap is hit. Pure. */
+export function applyMatchWin(
+  progress: LiveEventProgress,
+  event: LiveEvent,
+  now: Date = new Date(),
+): LiveEventProgress {
+  const today = localDateKey(now);
+  const count = progress.matchWinDate === today ? (progress.matchWinCount ?? 0) : 0;
+  if (count >= MATCH_WIN_POINTS_DAILY_CAP) return progress;
+  return {
+    ...progress,
+    points: progress.points + event.matchWinPoints,
+    matchWinDate: today,
+    matchWinCount: count + 1,
+  };
+}
+
+/** Side-effecting: award Festival Points for a player win, if an event is live.
+ *  Safe to call from the match flow — no-op when no event is running, when the
+ *  match wasn't won, or on any storage error. Never throws. */
+export function awardFestivalMatchWin(won: boolean, now: Date = new Date()): void {
+  if (!won) return;
+  try {
+    const event = getActiveLiveEvent(now);
+    if (!event) return;
+    const progress = readActiveFestivalProgress(event);
+    const next = applyMatchWin(progress, event, now);
+    if (next.points !== progress.points) writeLiveEventProgress(next);
+  } catch { /* festival points are best-effort — never break a match */ }
 }
 
 export interface TierStatus {

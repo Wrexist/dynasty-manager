@@ -34,9 +34,16 @@ export interface LiveEvent {
   end: string;
   /** Festival Points granted per daily check-in. */
   checkInPoints: number;
+  /** Festival Points granted for each won match during the window (capped per
+   *  day — see MATCH_WIN_POINTS_DAILY_CAP) so the festival rewards *playing*. */
+  matchWinPoints: number;
   /** Reward track, ascending by `points`. */
   tiers: LiveEventTier[];
 }
+
+/** Max match-win point awards per local day — keeps the festival a nudge to
+ *  play, not a grind. */
+export const MATCH_WIN_POINTS_DAILY_CAP = 3;
 
 /** The 2026 FIFA World Cup runs June 11 – July 19, 2026 (USA/Canada/Mexico).
  *  The Festival window tracks the real tournament so the in-app event lines up
@@ -48,6 +55,7 @@ const WORLD_CUP_2026: LiveEvent = {
   start: '2026-06-11',
   end: '2026-07-19',
   checkInPoints: 10,
+  matchWinPoints: 5,
   tiers: [
     { id: 'group',  points: 10,  xp: 25,  label: 'Group Stage' },
     { id: 'r16',    points: 30,  xp: 40,  label: 'Round of 16' },

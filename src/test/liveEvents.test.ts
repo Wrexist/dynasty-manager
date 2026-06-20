@@ -7,8 +7,9 @@ import {
   applyCheckIn,
   getTrackStatus,
   applyTierClaim,
+  applyMatchWin,
 } from '@/utils/liveEvents';
-import { LIVE_EVENTS } from '@/config/liveEvents';
+import { LIVE_EVENTS, MATCH_WIN_POINTS_DAILY_CAP } from '@/config/liveEvents';
 
 const at = (y: number, m: number, d: number) => new Date(y, m - 1, d, 9, 0, 0);
 const wc = LIVE_EVENTS.find(e => e.id === 'world-cup-2026')!;
@@ -54,6 +55,32 @@ describe('liveEvents — daily check-in', () => {
     p = applyCheckIn(p, wc, at(2026, 6, 21));
     expect(p.points).toBe(wc.checkInPoints * 3);
     expect(canCheckInToday(p, at(2026, 6, 22))).toBe(true);
+  });
+});
+
+describe('liveEvents — match-win points', () => {
+  const day = (d: number) => at(2026, 6, d);
+
+  it('awards points per win up to the daily cap, then stops', () => {
+    let p = freshProgress(wc);
+    for (let i = 0; i < MATCH_WIN_POINTS_DAILY_CAP; i++) {
+      p = applyMatchWin(p, wc, day(19));
+    }
+    expect(p.points).toBe(wc.matchWinPoints * MATCH_WIN_POINTS_DAILY_CAP);
+    expect(p.matchWinCount).toBe(MATCH_WIN_POINTS_DAILY_CAP);
+
+    // Over the cap — no-op.
+    const capped = applyMatchWin(p, wc, day(19));
+    expect(capped.points).toBe(p.points);
+  });
+
+  it('resets the cap on a new day', () => {
+    let p = freshProgress(wc);
+    for (let i = 0; i < MATCH_WIN_POINTS_DAILY_CAP; i++) p = applyMatchWin(p, wc, day(19));
+    const before = p.points;
+    p = applyMatchWin(p, wc, day(20)); // next day
+    expect(p.points).toBe(before + wc.matchWinPoints);
+    expect(p.matchWinCount).toBe(1);
   });
 });
 
