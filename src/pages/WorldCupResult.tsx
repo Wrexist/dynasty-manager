@@ -20,9 +20,11 @@ const ROUND_NAMES: Record<string, string> = {
 
 const WorldCupResult = () => {
   const navigate = useNavigate();
-  const { tournament, nat } = useGameStore(useShallow(s => ({
+  const { tournament, nat, nationalTeam, players } = useGameStore(useShallow(s => ({
     tournament: s.internationalTournament,
     nat: s.managerNationality,
+    nationalTeam: s.nationalTeam,
+    players: s.players,
   })));
 
   const result = useMemo(() => {
@@ -40,6 +42,30 @@ const WorldCupResult = () => {
     else { headline = 'Group Stage Exit'; tier = 'group'; }
     return { isChampion, headline, tier, champion: tournament.winner };
   }, [tournament, nat]);
+
+  // Tournament run summary — record, goals, top scorer — for parity with the
+  // club season-summary card.
+  const run = useMemo(() => {
+    const results = nationalTeam?.results ?? [];
+    if (results.length === 0) return null;
+    let won = 0, drawn = 0, lost = 0, gf = 0, ga = 0;
+    for (const r of results) {
+      gf += r.goalsFor; ga += r.goalsAgainst;
+      if (r.goalsFor > r.goalsAgainst) won++;
+      else if (r.goalsFor < r.goalsAgainst) lost++;
+      else drawn++;
+    }
+    // Top scorer from this tournament's per-player goals.
+    const goalsBy = nationalTeam?.internationalGoals ?? {};
+    let topId: string | null = null;
+    for (const [id, g] of Object.entries(goalsBy)) {
+      if (!topId || g > (goalsBy[topId] ?? 0)) topId = id;
+    }
+    const topScorer = topId && players[topId] && (goalsBy[topId] ?? 0) > 0
+      ? { name: players[topId].lastName || players[topId].firstName, goals: goalsBy[topId] }
+      : null;
+    return { played: results.length, won, drawn, lost, gf, ga, topScorer };
+  }, [nationalTeam, players]);
 
   if (!result || !nat) {
     return (
@@ -85,6 +111,41 @@ const WorldCupResult = () => {
           </div>
         </GlassPanel>
       </motion.div>
+
+      {/* Run summary — your road through the tournament */}
+      {run && (
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+          <GlassPanel className="p-4">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-[0.18em] font-bold mb-3">Your Road</p>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div>
+                <p className="text-xl font-black font-display text-foreground tabular-nums">{run.played}</p>
+                <p className="text-[10px] text-muted-foreground">Played</p>
+              </div>
+              <div>
+                <p className="text-xl font-black font-display text-foreground tabular-nums">
+                  <span className="text-emerald-400">{run.won}</span>
+                  <span className="text-muted-foreground/50 text-base">·</span>
+                  <span className="text-muted-foreground">{run.drawn}</span>
+                  <span className="text-muted-foreground/50 text-base">·</span>
+                  <span className="text-destructive">{run.lost}</span>
+                </p>
+                <p className="text-[10px] text-muted-foreground">W · D · L</p>
+              </div>
+              <div>
+                <p className="text-xl font-black font-display text-foreground tabular-nums">{run.gf}<span className="text-muted-foreground/50 text-base">:</span>{run.ga}</p>
+                <p className="text-[10px] text-muted-foreground">Goals</p>
+              </div>
+            </div>
+            {run.topScorer && (
+              <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between">
+                <span className="text-[11px] text-muted-foreground">Top scorer</span>
+                <span className="text-xs font-bold text-foreground">{run.topScorer.name} · {run.topScorer.goals} {run.topScorer.goals === 1 ? 'goal' : 'goals'}</span>
+              </div>
+            )}
+          </GlassPanel>
+        </motion.div>
+      )}
 
       <div className="space-y-2.5">
         <button
