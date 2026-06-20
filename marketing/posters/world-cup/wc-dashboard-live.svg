@@ -4,6 +4,7 @@
     <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FCD56E"/><stop offset="100%" stop-color="#E8A302"/></linearGradient>
     <linearGradient id="heroBar" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#009b3a"/><stop offset="100%" stop-color="#009b3a" stop-opacity="0"/></linearGradient>
     <radialGradient id="glowBlue" cx="50%" cy="20%" r="60%"><stop offset="0%" stop-color="#3b82f6" stop-opacity="0.32"/><stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/></radialGradient>
+    <radialGradient id="glowSky" cx="50%" cy="20%" r="60%"><stop offset="0%" stop-color="#0ea5e9" stop-opacity="0.32"/><stop offset="100%" stop-color="#0ea5e9" stop-opacity="0"/></radialGradient>
     <radialGradient id="glowEm" cx="50%" cy="20%" r="60%"><stop offset="0%" stop-color="#10b981" stop-opacity="0.32"/><stop offset="100%" stop-color="#10b981" stop-opacity="0"/></radialGradient>
     <radialGradient id="glowAmb" cx="50%" cy="20%" r="60%"><stop offset="0%" stop-color="#f59e0b" stop-opacity="0.32"/><stop offset="100%" stop-color="#f59e0b" stop-opacity="0"/></radialGradient>
     <radialGradient id="glowCyan" cx="50%" cy="20%" r="60%"><stop offset="0%" stop-color="#06b6d4" stop-opacity="0.32"/><stop offset="100%" stop-color="#06b6d4" stop-opacity="0"/></radialGradient>
@@ -92,20 +93,20 @@
 
   <!-- ===== Quick links (4-up) ===== -->
   <g transform="translate(16 372)">
-    <!-- Squad -->
+    <!-- Squad (Users, sky) -->
     <g transform="translate(0 0)">
+      <rect width="80" height="74" rx="14" fill="#141b27" fill-opacity="0.7" stroke="#ffffff" stroke-opacity="0.08"/>
+      <rect width="80" height="40" rx="14" fill="url(#glowSky)"/>
+      <rect x="24" y="14" width="32" height="24" rx="8" fill="#0ea5e9" fill-opacity="0.12" stroke="#0ea5e955"/>
+      <g transform="translate(33 22)" stroke="#38BDF8" stroke-width="2" fill="none"><circle cx="4" cy="3" r="2.6"/><circle cx="11" cy="3" r="2.6"/></g>
+      <text x="40" y="58" text-anchor="middle" fill="#E7EAF0" font-size="11" font-weight="600">Squad</text>
+    </g>
+    <!-- Tactics (Shield, blue) -->
+    <g transform="translate(92 0)">
       <rect width="80" height="74" rx="14" fill="#141b27" fill-opacity="0.7" stroke="#ffffff" stroke-opacity="0.08"/>
       <rect width="80" height="40" rx="14" fill="url(#glowBlue)"/>
       <rect x="24" y="14" width="32" height="24" rx="8" fill="#3b82f6" fill-opacity="0.12" stroke="#3b82f655"/>
-      <g transform="translate(33 22)" stroke="#60A5FA" stroke-width="2" fill="none"><circle cx="4" cy="3" r="2.6"/><circle cx="11" cy="3" r="2.6"/></g>
-      <text x="40" y="58" text-anchor="middle" fill="#E7EAF0" font-size="11" font-weight="600">Squad</text>
-    </g>
-    <!-- Tactics -->
-    <g transform="translate(92 0)">
-      <rect width="80" height="74" rx="14" fill="#141b27" fill-opacity="0.7" stroke="#ffffff" stroke-opacity="0.08"/>
-      <rect width="80" height="40" rx="14" fill="url(#glowEm)"/>
-      <rect x="24" y="14" width="32" height="24" rx="8" fill="#10b981" fill-opacity="0.12" stroke="#10b98155"/>
-      <g transform="translate(40 26)" stroke="#34D399" stroke-width="2" fill="none"><circle r="6"/><circle r="1.6" fill="#34D399" stroke="none"/></g>
+      <path d="M40 14 l7 2.5 v5 q0 6 -7 9 q-7 -3 -7 -9 v-5 Z" fill="none" stroke="#60A5FA" stroke-width="2" stroke-linejoin="round"/>
       <text x="40" y="58" text-anchor="middle" fill="#E7EAF0" font-size="11" font-weight="600">Tactics</text>
     </g>
     <!-- Bracket -->
@@ -168,8 +169,8 @@
       <text x="0" y="25" font-size="10" font-weight="600">Tactics</text>
     </g>
     <g transform="translate(305 19)" text-anchor="middle" fill="#AEB6C4">
-      <g stroke="#AEB6C4" stroke-width="2" stroke-linecap="round"><line x1="-7" y1="-5" x2="7" y2="-5"/><line x1="-7" y1="0" x2="7" y2="0"/><line x1="-7" y1="5" x2="7" y2="5"/></g>
-      <text x="0" y="25" font-size="10" font-weight="600">Bracket</text>
+      <path d="M-5 -7 h10 v3 q0 6 -5 8 q-5 -2 -5 -8 Z" fill="none" stroke="#AEB6C4" stroke-width="2" stroke-linejoin="round"/><line x1="0" y1="4" x2="0" y2="8" stroke="#AEB6C4" stroke-width="2"/><line x1="-4" y1="9" x2="4" y2="9" stroke="#AEB6C4" stroke-width="2" stroke-linecap="round"/>
+      <text x="0" y="25" font-size="9" font-weight="600">Tournament</text>
     </g>
   </g>
 </svg>

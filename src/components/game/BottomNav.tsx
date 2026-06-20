@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GameScreen } from '@/types/game';
-import { LayoutDashboard, Users, Target, ArrowLeftRight, Briefcase, User, Mail, ListOrdered } from 'lucide-react';
+import { LayoutDashboard, Users, Target, ArrowLeftRight, Briefcase, User, Mail, Trophy } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { MoreDrawer } from './MoreDrawer';
@@ -25,14 +25,14 @@ const unemployedTabs: { screen: GameScreen; label: string; icon: React.ElementTy
   { screen: 'inbox', label: 'Inbox', icon: Mail },
 ];
 
-// World Cup mode plays like the normal game with the national team as your
-// club, but there's no league/market/finance — only Home, Squad, Tactics and
-// the tournament bracket.
+// World Cup mode is the normal game with the national team as your club — same
+// Home/Squad/Tactics tabs and icons; only the Market slot is reformatted to the
+// tournament. No league/market/finance.
 const worldCupTabs: { screen: GameScreen; label: string; icon: React.ElementType; group?: GameScreen[] }[] = [
   { screen: 'dashboard', label: 'Home', icon: LayoutDashboard },
-  { screen: 'squad', label: 'Squad', icon: Users, group: SQUAD_SCREENS },
+  { screen: 'squad', label: 'Squad', icon: Users },
   { screen: 'tactics', label: 'Tactics', icon: Target },
-  { screen: 'international-tournament', label: 'Bracket', icon: ListOrdered },
+  { screen: 'international-tournament', label: 'Tournament', icon: Trophy },
 ];
 
 export function BottomNav() {

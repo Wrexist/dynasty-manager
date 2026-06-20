@@ -12,16 +12,17 @@ import { useMatchLocked } from '@/hooks/useGameSelectors';
 import { getPlayerNextWorldCupMatch } from '@/utils/internationalMatch';
 import { getNation } from '@/data/nations';
 import { GameScreen } from '@/types/game';
-import { Play, Users, Target, Trophy, Mail, ChevronRight, Flag } from 'lucide-react';
+import { Play, Users, Shield, Trophy, Mail, ChevronRight, Flag } from 'lucide-react';
 
-// Mirrors the club Dashboard's QUICK_LINKS grammar (colored icon chip + glow)
-// so the two modes read as the same game. Inbox is the one destination not in
-// the bottom nav, the rest are fast-access duplicates like the club grid.
+// Exact same icons/colors as the club Dashboard's QUICK_LINKS — Squad (Users,
+// sky), Tactics (Shield, blue) — with the League tile reformatted to the
+// tournament Bracket (Trophy, amber). Inbox replaces the club-only tiles
+// (Training/Packs/Transfers/Cup) that don't exist in a one-off World Cup.
 const QUICK_LINKS: { label: string; screen: GameScreen; icon: React.ElementType; color: string; glow: string; chip: string }[] = [
-  { label: 'Squad',   screen: 'squad',                    icon: Users,  color: 'text-blue-400',    glow: 'bg-blue-500',    chip: 'bg-blue-500/10 border-blue-500/30' },
-  { label: 'Tactics', screen: 'tactics',                  icon: Target, color: 'text-emerald-400', glow: 'bg-emerald-500', chip: 'bg-emerald-500/10 border-emerald-500/30' },
-  { label: 'Bracket', screen: 'international-tournament',  icon: Trophy, color: 'text-amber-400',   glow: 'bg-amber-500',   chip: 'bg-amber-500/10 border-amber-500/30' },
-  { label: 'Inbox',   screen: 'inbox',                    icon: Mail,   color: 'text-cyan-400',    glow: 'bg-cyan-500',    chip: 'bg-cyan-500/10 border-cyan-500/30' },
+  { label: 'Squad',   screen: 'squad',                    icon: Users,  color: 'text-sky-400',   glow: 'bg-sky-500',   chip: 'bg-sky-500/10 border-sky-500/30' },
+  { label: 'Tactics', screen: 'tactics',                  icon: Shield, color: 'text-blue-400',  glow: 'bg-blue-500',  chip: 'bg-blue-500/10 border-blue-500/30' },
+  { label: 'Bracket', screen: 'international-tournament',  icon: Trophy, color: 'text-amber-400', glow: 'bg-amber-500', chip: 'bg-amber-500/10 border-amber-500/30' },
+  { label: 'Inbox',   screen: 'inbox',                    icon: Mail,   color: 'text-cyan-400',  glow: 'bg-cyan-500',  chip: 'bg-cyan-500/10 border-cyan-500/30' },
 ];
 
 const PHASE_STEPS = [

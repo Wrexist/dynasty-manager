@@ -154,6 +154,9 @@ const GameShell = () => {
   // SubNav doesn't receive a fresh `items` array on every GameShell render
   // (which would defeat its prop stability and trigger child re-renders).
   const subNavGroup = useMemo(() => {
+    // World Cup mode strips the club sub-screens (Staff/Youth/Training,
+    // Scouting/Packs) — so no Squad/Market sub-nav to show.
+    if (gameMode === 'world-cup') return null;
     const group = SCREEN_GROUPS.find(g => g.includes(currentScreen));
     if (!group) return null;
     if (group[0] === 'squad') {
@@ -168,7 +171,7 @@ const GameShell = () => {
       return { items, layoutId: 'subnav-pill-market' };
     }
     return null;
-  }, [currentScreen, packPityCounter]);
+  }, [currentScreen, packPityCounter, gameMode]);
 
   useEffect(() => {
     if (!gameStarted) navigate('/');
