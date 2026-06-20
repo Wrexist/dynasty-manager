@@ -444,6 +444,24 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
 
   // Tournament complete — transition to endSeason
   if (tournament.phase === 'complete') {
+    // World Cup mode: the tournament IS the whole game. Park on the result
+    // screen instead of rolling into a (non-existent) club season.
+    if (state.gameMode === 'world-cup') {
+      const isWinner = tournament.winner === nationality;
+      set({
+        internationalTournament: tournament,
+        currentScreen: 'world-cup-result',
+        messages: addMsg(state.messages, {
+          week: state.week, season: state.season, type: 'general',
+          title: isWinner ? `${tournament.name} Champions!` : `${tournament.name} Over`,
+          body: isWinner
+            ? `${nationality} are crowned champions of the ${tournament.name}!`
+            : `${tournament.winner} won the ${tournament.name}.`,
+        }),
+      });
+      return;
+    }
+
     // Add tournament result message
     let newMessages = [...state.messages];
     if (tournament.winner) {

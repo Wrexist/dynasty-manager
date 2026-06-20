@@ -8,6 +8,7 @@ import { getSuffix } from '@/utils/helpers';
 import { getRecentForm } from '@/utils/formGuide';
 import { FormGuide } from '@/components/game/FormGuide';
 import { CountBadge } from '@/components/game/CountBadge';
+import { FlagIcon } from '@/components/game/FlagIcon';
 import { LEAGUES } from '@/data/league';
 import { DETAIL_SCREENS, BACK_TARGET, SCREEN_TITLES, UNEMPLOYED_MAIN_TABS } from '@/config/navigation';
 import { hapticMedium } from '@/utils/haptics';
@@ -20,13 +21,13 @@ export function TopBar() {
   const {
     playerClubId, clubs, leagueTable, playerDivision, fixtures,
     currentScreen, previousScreen, managerProgression, gameMode, careerManager,
-    messages,
+    messages, managerNationality, internationalTournament,
   } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId, clubs: s.clubs, leagueTable: s.leagueTable,
     playerDivision: s.playerDivision, fixtures: s.fixtures,
     currentScreen: s.currentScreen, previousScreen: s.previousScreen,
     managerProgression: s.managerProgression, gameMode: s.gameMode, careerManager: s.careerManager,
-    messages: s.messages,
+    messages: s.messages, managerNationality: s.managerNationality, internationalTournament: s.internationalTournament,
   })));
   const setScreen = useGameStore(s => s.setScreen);
   const matchLocked = useMatchLocked();
@@ -55,6 +56,28 @@ export function TopBar() {
     }
     prevXpRef.current = xpProgress.percentage;
   }, [xpProgress.percentage]);
+
+  // World Cup mode has no club — show a nation + tournament-round header
+  // instead of the club/league chrome. Display-only (the squad picker and
+  // tournament pages carry their own controls), keeping navigation linear.
+  if (gameMode === 'world-cup') {
+    const t = internationalTournament;
+    const roundLabel = !t ? 'World Cup'
+      : t.phase === 'group' ? 'Group Stage'
+      : t.phase === 'complete' ? 'Final Result'
+      : ({ R16: 'Round of 16', QF: 'Quarter-Finals', SF: 'Semi-Finals', F: 'Final' }[t.currentRound || ''] || 'Knockout');
+    return (
+      <header role="banner" className="fixed top-0 left-0 right-0 z-50 bg-background/95 border-b border-border/30 safe-area-top transform-gpu">
+        <div className="flex items-center gap-2.5 h-14 px-4 max-w-lg mx-auto">
+          {managerNationality && <FlagIcon nationality={managerNationality} size={26} className="rounded-sm shrink-0" />}
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-foreground truncate">{managerNationality || 'World Cup'}</p>
+            <p className="text-[10px] text-amber-400 truncate font-medium">World Cup · {roundLabel}</p>
+          </div>
+        </div>
+      </header>
+    );
+  }
 
   if (!club && !isUnemployed) return (
     <header role="banner" className="fixed top-0 left-0 right-0 z-50 bg-background/95 border-b border-border/30 safe-area-top transform-gpu">

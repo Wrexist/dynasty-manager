@@ -40,6 +40,10 @@ export function BottomNav() {
   const hasJobOffers = gameMode === 'career' && jobOffers.length > 0;
   const activeTabs = isUnemployed ? unemployedTabs : tabs;
 
+  // World Cup mode is a linear flow (squad picker → tournament → result) with
+  // its own on-page controls; the club bottom nav doesn't apply.
+  if (gameMode === 'world-cup') return null;
+
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 px-3 pt-2 pb-2 safe-area-bottom pointer-events-none transform-gpu">
       <nav
