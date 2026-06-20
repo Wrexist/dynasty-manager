@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   frameForMinute, lerpFrames, latestGoalAt, createPlayback, advancePlayback, samplePlayback, seekPlayback,
-  ballEase, createDisplay, stepDisplay,
+  ballEase, createDisplay, stepDisplay, countBeatsInMinute,
   type RenderFrame, type PlaybackOpts, type PlaybackState,
 } from '@/engine/match/pitchFrame';
 import type { MatchTimeline, MatchBeat, ChoreoPlayer, MatchEvent } from '@/types/game';
@@ -164,6 +164,22 @@ describe('ballEase', () => {
   });
   it('idle/restart stay symmetric (smoothstep)', () => {
     expect(ballEase('idle', 0.5)).toBeCloseTo(0.5, 5);
+  });
+});
+
+describe('countBeatsInMinute (speed-aware pacing)', () => {
+  it('counts contiguous same-minute beats around an index', () => {
+    const beats = [beat(0, 0), beat(1, 1), beat(1, 2), beat(1, 3), beat(2, 4)];
+    expect(countBeatsInMinute(beats, 0)).toBe(1); // minute 0
+    expect(countBeatsInMinute(beats, 1)).toBe(3); // minute 1 has three beats
+    expect(countBeatsInMinute(beats, 2)).toBe(3); // any index within minute 1
+    expect(countBeatsInMinute(beats, 4)).toBe(1); // minute 2
+  });
+  it('is safe at the bounds and on an empty timeline', () => {
+    expect(countBeatsInMinute([], 0)).toBe(1);
+    const beats = [beat(5, 0), beat(5, 1)];
+    expect(countBeatsInMinute(beats, -3)).toBe(2);
+    expect(countBeatsInMinute(beats, 99)).toBe(2);
   });
 });
 

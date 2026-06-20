@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { MatchTimeline, PitchQuality } from '@/types/game';
-import { createPlayback, seekPlayback, advancePlayback, samplePlayback, createDisplay, stepDisplay, type PlaybackState, type DisplayState } from '@/engine/match/pitchFrame';
+import { createPlayback, seekPlayback, advancePlayback, samplePlayback, createDisplay, stepDisplay, countBeatsInMinute, type PlaybackState, type DisplayState } from '@/engine/match/pitchFrame';
 import { PITCH_RENDER } from '@/config/pitchChoreography';
 import { shade, keeperKit } from './pitchColors';
 
@@ -30,6 +30,10 @@ interface PitchCanvasProps {
   flip?: boolean;
   /** Snap + hold a static wide view (reduced-motion / performance mode). */
   reducedMotion?: boolean;
+  /** Wall-clock ms per match minute (the live match speed). Lets the renderer
+   *  pace a minute's beats across the minute so motion is continuous at any
+   *  speed. Omit to fall back to the fixed BEAT_PLAY_MS. */
+  msPerMinute?: number;
   /** Renderer writes the current frame's tappable chips here (for tap-to-inspect). */
   hitTargetsRef?: React.MutableRefObject<PitchHitTarget[] | null>;
   /** When the ref reads true, hold a wide tactical view (pause the follow-cam). */
@@ -53,9 +57,11 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
 interface View { zoom: number; cx: number; cy: number }
 interface Pt { sx: number; sy: number }
 
-export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, showOverall = false, startMinute, orientation = 'portrait', flip = false, reducedMotion = false, hitTargetsRef, tacticalWideRef, className }: PitchCanvasProps) {
+export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, showOverall = false, startMinute, orientation = 'portrait', flip = false, reducedMotion = false, msPerMinute, hitTargetsRef, tacticalWideRef, className }: PitchCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const minuteRef = useRef(minute);
+  const msPerMinuteRef = useRef(msPerMinute);
+  msPerMinuteRef.current = msPerMinute;
   const playbackRef = useRef<PlaybackState>(createPlayback());
   const viewRef = useRef<View | null>(null);
   const trailRef = useRef<{ x: number; y: number }[]>([]);
@@ -386,8 +392,17 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
         shake = PITCH_RENDER.GOAL_SHAKE_PX * (1 - u);
       }
       // Play *through* the beats (so passes/runs animate), bounded by the
-      // revealed minute. Reduced motion snaps near-instantly.
-      const playMs = reducedMotion ? 60 : PITCH_RENDER.BEAT_PLAY_MS;
+      // revealed minute. Reduced motion snaps near-instantly. When the live
+      // match speed is known, pace each beat so the current minute's beats fill
+      // the minute's wall-clock — continuous motion with no freeze/lurch at any
+      // speed. Otherwise fall back to the fixed BEAT_PLAY_MS.
+      let playMs: number = PITCH_RENDER.BEAT_PLAY_MS;
+      if (reducedMotion) {
+        playMs = 60;
+      } else if (msPerMinuteRef.current && msPerMinuteRef.current > 0) {
+        const inMin = countBeatsInMinute(timelineRef.current.beats, playbackRef.current.index);
+        playMs = clamp((msPerMinuteRef.current * PITCH_RENDER.LIVE_LAG) / inMin, PITCH_RENDER.BEAT_MS_MIN, PITCH_RENDER.BEAT_MS_MAX);
+      }
       const adv = advancePlayback(timelineRef.current.beats, playbackRef.current, dt * slowmo, minuteRef.current, {
         beatMs: playMs,
         catchupLagMinutes: PITCH_RENDER.CATCHUP_LAG_MIN,

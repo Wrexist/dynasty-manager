@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Application, BlurFilter, Container, Graphics, Text } from 'pixi.js';
 import type { MatchTimeline, PitchQuality } from '@/types/game';
-import { createPlayback, advancePlayback, samplePlayback, createDisplay, stepDisplay, type PlaybackState } from '@/engine/match/pitchFrame';
+import { createPlayback, advancePlayback, samplePlayback, createDisplay, stepDisplay, countBeatsInMinute, type PlaybackState } from '@/engine/match/pitchFrame';
 import { PITCH_RENDER } from '@/config/pitchChoreography';
 import { shade, keeperKit } from './pitchColors';
 import type { PitchHitTarget } from './PitchCanvas';
@@ -37,6 +37,9 @@ interface PixiPitchProps {
   showOverall?: boolean;
   flip?: boolean;
   reducedMotion?: boolean;
+  /** Wall-clock ms per match minute (live match speed) — paces beats so motion
+   *  stays continuous at any speed. Omit to use the fixed BEAT_PLAY_MS. */
+  msPerMinute?: number;
   /** Renderer writes the current frame's tappable chips here (for tap-to-inspect). */
   hitTargetsRef?: React.MutableRefObject<PitchHitTarget[] | null>;
   /** When the ref reads true, hold a wide tactical view (pause the follow-cam). */
@@ -61,11 +64,13 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
 interface View { zoom: number; cx: number; cy: number }
 
 export default function PixiPitch({
-  timeline, minute, quality, homeColor, awayColor, showOverall = false, flip = false, reducedMotion = false, hitTargetsRef, tacticalWideRef, className, onError,
+  timeline, minute, quality, homeColor, awayColor, showOverall = false, flip = false, reducedMotion = false, msPerMinute, hitTargetsRef, tacticalWideRef, className, onError,
 }: PixiPitchProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const minuteRef = useRef(minute);
   minuteRef.current = minute;
+  const msPerMinuteRef = useRef(msPerMinute);
+  msPerMinuteRef.current = msPerMinute;
   // Refs so the Pixi app is built ONCE and never torn down + reset when the
   // timeline grows (or onError's identity changes) as events reveal.
   const timelineRef = useRef(timeline);
@@ -264,7 +269,15 @@ export default function PixiPitch({
               punch = PITCH_RENDER.GOAL_ZOOM_PUNCH * (1 - u);
               shake = PITCH_RENDER.GOAL_SHAKE_PX * (1 - u);
             }
-            const playMs = reducedMotion ? 60 : PITCH_RENDER.BEAT_PLAY_MS;
+            // Pace beats to the live match speed so a minute's beats fill the
+            // minute — continuous motion at any speed (see PitchCanvas).
+            let playMs: number = PITCH_RENDER.BEAT_PLAY_MS;
+            if (reducedMotion) {
+              playMs = 60;
+            } else if (msPerMinuteRef.current && msPerMinuteRef.current > 0) {
+              const inMin = countBeatsInMinute(timelineRef.current.beats, playback.index);
+              playMs = clamp((msPerMinuteRef.current * PITCH_RENDER.LIVE_LAG) / inMin, PITCH_RENDER.BEAT_MS_MIN, PITCH_RENDER.BEAT_MS_MAX);
+            }
             const adv = advancePlayback(timelineRef.current.beats, playback, dt * slowmo, minuteRef.current, {
               beatMs: playMs,
               catchupLagMinutes: PITCH_RENDER.CATCHUP_LAG_MIN,

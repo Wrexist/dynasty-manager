@@ -106,9 +106,19 @@ export const PITCH_RENDER = {
   TRAIL_LEN: 14,
   /** Peak ball lift (as a fraction of field height per unit of beat ballArc). */
   ARC_LIFT_SCALE: 0.7,
-  /** Wall-clock time the renderer spends easing through one beat (ms). Tuned so
-   *  a minute's worth of pass/run beats fits the pitch-view tick. */
+  /** Fallback wall-clock time the renderer spends easing through one beat (ms),
+   *  used only when the live match speed isn't known. When it IS known, the
+   *  renderer paces each beat dynamically (see BEAT_MS_MIN/MAX + LIVE_LAG) so a
+   *  minute's beats fill the minute's wall-clock at ANY match speed — no
+   *  freeze-then-jump at 1×/2× and no lurch at 4×. */
   BEAT_PLAY_MS: 520,
+  /** Pace beats to ~this fraction over the real minute so the playhead always
+   *  trails the revealed edge slightly (continuous, never starved → never frozen). */
+  LIVE_LAG: 1.12,
+  /** Clamp on the dynamically-paced beat duration (ms). MAX is generous so slow
+   *  speeds (0.5×/1×) still glide rather than freeze; MIN keeps 10× legible. */
+  BEAT_MS_MIN: 90,
+  BEAT_MS_MAX: 2600,
   /** If the played beat lags the revealed minute by more than this, speed up. */
   CATCHUP_LAG_MIN: 2,
   /** dt multiplier applied while catching up. */

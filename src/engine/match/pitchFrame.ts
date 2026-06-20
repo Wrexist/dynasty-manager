@@ -87,6 +87,19 @@ export interface PlaybackSample {
 
 export const createPlayback = (): PlaybackState => ({ index: 0, t: 0 });
 
+/** How many beats share the minute of `beats[index]`. Beats are emitted in
+ *  non-decreasing minute order, so same-minute beats are contiguous — a cheap
+ *  local scan. Used to pace a minute's beats across its wall-clock duration. */
+export function countBeatsInMinute(beats: MatchBeat[], index: number): number {
+  if (!beats.length) return 1;
+  const i = Math.min(Math.max(0, index), beats.length - 1);
+  const m = beats[i].minute;
+  let count = 1;
+  for (let j = i - 1; j >= 0 && beats[j].minute === m; j--) count++;
+  for (let j = i + 1; j < beats.length && beats[j].minute === m; j++) count++;
+  return count;
+}
+
 /** Seed a playhead at the first beat on/after `minute` (used by goal replays to
  *  start mid-timeline instead of from kickoff). */
 export function seekPlayback(beats: MatchBeat[], minute: number): PlaybackState {
