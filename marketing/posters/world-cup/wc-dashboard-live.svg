@@ -1,0 +1,173 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844" font-family="'DM Sans',Arial,sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0c1018"/><stop offset="100%" stop-color="#080b12"/></linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FCD56E"/><stop offset="100%" stop-color="#E8A302"/></linearGradient>
+    <linearGradient id="heroTint" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#22c55e" stop-opacity="0.20"/><stop offset="60%" stop-color="#22c55e" stop-opacity="0"/></linearGradient>
+    <clipPath id="card"><rect width="390" height="844" rx="0"/></clipPath>
+  </defs>
+  <rect width="390" height="844" fill="url(#bg)"/>
+
+  <!-- ===== TopBar (WC branch) ===== -->
+  <rect x="0" y="0" width="390" height="56" fill="#0c1018" opacity="0.96"/>
+  <line x1="0" y1="56" x2="390" y2="56" stroke="#ffffff" stroke-opacity="0.08"/>
+  <!-- Brazil flag chip -->
+  <g transform="translate(16 17)">
+    <rect width="26" height="22" rx="3" fill="#009b3a"/>
+    <path d="M13 2 L24 11 L13 20 L2 11 Z" fill="#ffdf00"/>
+    <circle cx="13" cy="11" r="4.5" fill="#002776"/>
+  </g>
+  <text x="50" y="27" fill="#EEF1F7" font-size="14" font-weight="700">Brazil</text>
+  <text x="50" y="42" fill="#FBBF24" font-size="10" font-weight="600">World Cup · Group Stage</text>
+
+  <!-- ===== Nation hero card ===== -->
+  <g transform="translate(16 72)">
+    <rect width="358" height="92" rx="16" fill="#ffffff" fill-opacity="0.05" stroke="#EAB30866"/>
+    <rect width="358" height="92" rx="16" fill="url(#heroTint)"/>
+    <!-- flag tile -->
+    <g transform="translate(16 18)">
+      <rect width="56" height="56" rx="12" fill="#009b3a"/>
+      <g transform="translate(8 8)">
+        <rect width="40" height="40" rx="6" fill="#009b3a"/>
+        <path d="M20 4 L36 20 L20 36 L4 20 Z" fill="#ffdf00"/>
+        <circle cx="20" cy="20" r="8" fill="#002776"/>
+      </g>
+    </g>
+    <text x="86" y="33" fill="#F5C518" font-size="10" font-weight="700" letter-spacing="2">WORLD CUP</text>
+    <text x="86" y="56" fill="#F4F6FB" font-size="22" font-weight="800" font-family="'Oswald',Arial">Brazil</text>
+    <text x="86" y="74" fill="#FBBF24" font-size="12" font-weight="600">Group Stage</text>
+    <!-- squad OVR -->
+    <text x="342" y="38" text-anchor="end" fill="#8A93A6" font-size="9" letter-spacing="1">SQUAD</text>
+    <text x="344" y="66" text-anchor="end" fill="#34D399" font-size="28" font-weight="800" font-family="'Oswald',Arial">84</text>
+  </g>
+
+  <!-- ===== Next Match card ===== -->
+  <g transform="translate(16 176)">
+    <rect width="358" height="150" rx="16" fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-opacity="0.10"/>
+    <text x="16" y="28" fill="#8A93A6" font-size="10" font-weight="700" letter-spacing="2">⚔ NEXT MATCH</text>
+    <text x="342" y="28" text-anchor="end" fill="#FBBF24" font-size="10" font-weight="600">Group Stage · Group G</text>
+
+    <!-- Brazil -->
+    <g transform="translate(70 44)">
+      <rect width="40" height="40" rx="6" fill="#009b3a"/>
+      <path d="M20 4 L36 20 L20 36 L4 20 Z" fill="#ffdf00"/>
+      <circle cx="20" cy="20" r="8" fill="#002776"/>
+      <text x="20" y="60" text-anchor="middle" fill="#F4F6FB" font-size="12" font-weight="600">Brazil</text>
+    </g>
+    <text x="179" y="70" text-anchor="middle" fill="#8A93A6" font-size="13" font-weight="700">vs</text>
+    <!-- Serbia -->
+    <g transform="translate(248 44)">
+      <rect width="40" height="40" rx="6" fill="#C6363C"/>
+      <rect y="13" width="40" height="13" fill="#0C4076"/>
+      <rect y="26" width="40" height="14" fill="#ffffff"/>
+      <text x="20" y="60" text-anchor="middle" fill="#F4F6FB" font-size="12" font-weight="600">Serbia</text>
+    </g>
+
+    <!-- Play button -->
+    <g transform="translate(16 116)">
+      <rect width="326" height="44" rx="12" fill="url(#gold)"/>
+      <text x="163" y="29" text-anchor="middle" fill="#3a2a05" font-size="15" font-weight="800">▶  Play Match</text>
+    </g>
+  </g>
+
+  <!-- ===== Group standings card ===== -->
+  <g transform="translate(16 338)">
+    <rect width="358" height="168" rx="16" fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-opacity="0.10"/>
+    <!-- header -->
+    <rect width="358" height="34" rx="16" fill="#ffffff" fill-opacity="0.05"/>
+    <rect y="18" width="358" height="16" fill="#ffffff" fill-opacity="0.05"/>
+    <text x="16" y="23" fill="#E7EAF0" font-size="11" font-weight="700" letter-spacing="1">GROUP G</text>
+    <text x="342" y="23" text-anchor="end" fill="#F5C518" font-size="10">Full table ›</text>
+    <line x1="0" y1="34" x2="358" y2="34" stroke="#ffffff" stroke-opacity="0.08"/>
+
+    <!-- column heads -->
+    <g fill="#8A93A6" font-size="10">
+      <text x="40" y="52">Team</text>
+      <text x="250" y="52" text-anchor="middle">P</text>
+      <text x="280" y="52" text-anchor="middle">W</text>
+      <text x="312" y="52" text-anchor="middle">GD</text>
+      <text x="342" y="52" text-anchor="middle" font-weight="700">Pts</text>
+    </g>
+
+    <!-- rows -->
+    <!-- Brazil (player, qualifies) -->
+    <rect x="8" y="60" width="342" height="24" rx="4" fill="#EAB308" fill-opacity="0.06"/>
+    <rect x="8" y="60" width="2.5" height="24" fill="#34D399"/>
+    <g transform="translate(20 72)">
+      <rect width="16" height="11" rx="1" y="-9" fill="#009b3a"/><path d="M8 -8 L14 -3.5 L8 1 L2 -3.5 Z" fill="#ffdf00"/>
+      <text x="22" y="0" fill="#FFFFFF" font-size="12" font-weight="700">Brazil</text>
+    </g>
+    <g fill="#C7CDDA" font-size="12"><text x="250" y="76" text-anchor="middle">2</text><text x="280" y="76" text-anchor="middle">2</text><text x="312" y="76" text-anchor="middle">+4</text></g>
+    <text x="342" y="76" text-anchor="middle" fill="#FFFFFF" font-size="12" font-weight="700">6</text>
+
+    <!-- Switzerland (qualifies) -->
+    <rect x="8" y="86" width="2.5" height="24" fill="#34D399"/>
+    <g transform="translate(20 98)">
+      <rect width="16" height="11" rx="1" y="-9" fill="#D52B1E"/><rect x="6.5" y="-9" width="3" height="11" fill="#fff"/><rect x="4" y="-6" width="8" height="3" fill="#fff"/>
+      <text x="22" y="0" fill="#D6DBE6" font-size="12">Switzerland</text>
+    </g>
+    <g fill="#C7CDDA" font-size="12"><text x="250" y="102" text-anchor="middle">2</text><text x="280" y="102" text-anchor="middle">1</text><text x="312" y="102" text-anchor="middle">+1</text></g>
+    <text x="342" y="102" text-anchor="middle" fill="#FFFFFF" font-size="12" font-weight="700">3</text>
+
+    <!-- Serbia -->
+    <g transform="translate(20 124)">
+      <rect width="16" height="11" rx="1" y="-9" fill="#C6363C"/><rect y="-5.5" width="16" height="3.5" fill="#0C4076"/><rect y="-2" width="16" height="2" fill="#fff"/>
+      <text x="22" y="0" fill="#D6DBE6" font-size="12">Serbia</text>
+    </g>
+    <g fill="#C7CDDA" font-size="12"><text x="250" y="128" text-anchor="middle">2</text><text x="280" y="128" text-anchor="middle">1</text><text x="312" y="128" text-anchor="middle">0</text></g>
+    <text x="342" y="128" text-anchor="middle" fill="#FFFFFF" font-size="12" font-weight="700">3</text>
+
+    <!-- Cameroon -->
+    <g transform="translate(20 150)">
+      <rect width="16" height="11" rx="1" y="-9" fill="#007a3d"/><rect x="5.5" y="-9" width="5" height="11" fill="#ce1126"/><rect width="5.5" height="11" y="-9" fill="#007a3d"/><rect x="10.5" y="-9" width="5.5" height="11" fill="#fcd116"/>
+      <text x="22" y="0" fill="#D6DBE6" font-size="12">Cameroon</text>
+    </g>
+    <g fill="#C7CDDA" font-size="12"><text x="250" y="154" text-anchor="middle">2</text><text x="280" y="154" text-anchor="middle">0</text><text x="312" y="154" text-anchor="middle">−5</text></g>
+    <text x="342" y="154" text-anchor="middle" fill="#FFFFFF" font-size="12" font-weight="700">0</text>
+  </g>
+
+  <!-- ===== Quick links ===== -->
+  <g transform="translate(16 518)">
+    <g>
+      <rect width="112" height="64" rx="14" fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-opacity="0.10"/>
+      <circle cx="56" cy="26" r="11" fill="none" stroke="#F5C518" stroke-width="2"/><circle cx="52" cy="23" r="3" fill="#F5C518"/><circle cx="60" cy="23" r="3" fill="#F5C518"/>
+      <text x="56" y="52" text-anchor="middle" fill="#E7EAF0" font-size="12" font-weight="600">Squad</text>
+    </g>
+    <g transform="translate(123 0)">
+      <rect width="112" height="64" rx="14" fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-opacity="0.10"/>
+      <circle cx="56" cy="26" r="11" fill="none" stroke="#F5C518" stroke-width="2"/><circle cx="56" cy="26" r="4.5" fill="none" stroke="#F5C518" stroke-width="2"/><circle cx="56" cy="26" r="1.5" fill="#F5C518"/>
+      <text x="56" y="52" text-anchor="middle" fill="#E7EAF0" font-size="12" font-weight="600">Tactics</text>
+    </g>
+    <g transform="translate(246 0)">
+      <rect width="112" height="64" rx="14" fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-opacity="0.10"/>
+      <g stroke="#F5C518" stroke-width="2" stroke-linecap="round"><line x1="49" y1="21" x2="64" y2="21"/><line x1="49" y1="27" x2="64" y2="27"/><line x1="49" y1="33" x2="64" y2="33"/></g>
+      <text x="56" y="52" text-anchor="middle" fill="#E7EAF0" font-size="12" font-weight="600">Bracket</text>
+    </g>
+  </g>
+
+  <!-- ===== Bottom nav (WC) ===== -->
+  <g transform="translate(20 770)">
+    <rect width="350" height="56" rx="28" fill="#11161f" stroke="#ffffff" stroke-opacity="0.10"/>
+    <!-- active pill: Home -->
+    <rect x="6" y="6" width="84" height="44" rx="22" fill="#EAB308" fill-opacity="0.90"/>
+    <!-- Home -->
+    <g transform="translate(48 20)" text-anchor="middle">
+      <path d="M-8 4 L0 -4 L8 4 V11 H-8 Z" fill="none" stroke="#2a2102" stroke-width="2" stroke-linejoin="round"/>
+      <text x="0" y="26" fill="#2a2102" font-size="10" font-weight="700">Home</text>
+    </g>
+    <!-- Squad -->
+    <g transform="translate(135 20)" text-anchor="middle" fill="#AEB6C4">
+      <circle cx="-4" cy="-1" r="3.2" fill="none" stroke="#AEB6C4" stroke-width="2"/><circle cx="4" cy="-1" r="3.2" fill="none" stroke="#AEB6C4" stroke-width="2"/>
+      <text x="0" y="26" font-size="10" font-weight="600">Squad</text>
+    </g>
+    <!-- Tactics -->
+    <g transform="translate(220 20)" text-anchor="middle" fill="#AEB6C4">
+      <circle cx="0" cy="-1" r="6" fill="none" stroke="#AEB6C4" stroke-width="2"/><circle cx="0" cy="-1" r="1.6" fill="#AEB6C4"/>
+      <text x="0" y="26" font-size="10" font-weight="600">Tactics</text>
+    </g>
+    <!-- Bracket -->
+    <g transform="translate(305 20)" text-anchor="middle" fill="#AEB6C4">
+      <g stroke="#AEB6C4" stroke-width="2" stroke-linecap="round"><line x1="-7" y1="-5" x2="7" y2="-5"/><line x1="-7" y1="0" x2="7" y2="0"/><line x1="-7" y1="5" x2="7" y2="5"/></g>
+      <text x="0" y="26" font-size="10" font-weight="600">Bracket</text>
+    </g>
+  </g>
+</svg>
