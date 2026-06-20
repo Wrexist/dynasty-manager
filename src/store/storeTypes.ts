@@ -334,6 +334,10 @@ export interface GameState {
   playExtraTime: () => Match | null;
   playPenalties: () => void;
   revealNextPenaltyKick: () => void;
+  // World Cup mode — interactive national-team matches (Phase D).
+  playWorldCupFirstHalf: () => HalfState | null;
+  playWorldCupSecondHalf: () => Match | null;
+  playWorldCupExtraTime: () => Match | null;
   skipPenaltyShootout: () => void;
   clearMatchResult: () => void;
   rewindMatch: () => void;
