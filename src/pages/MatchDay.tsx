@@ -140,6 +140,7 @@ const MatchDayInner = () => {
   const playWorldCupFirstHalf = useGameStore(s => s.playWorldCupFirstHalf);
   const playWorldCupSecondHalf = useGameStore(s => s.playWorldCupSecondHalf);
   const playWorldCupExtraTime = useGameStore(s => s.playWorldCupExtraTime);
+  const playWorldCupPenalties = useGameStore(s => s.playWorldCupPenalties);
   const setScreen = useGameStore(s => s.setScreen);
   const setTactics = useGameStore(s => s.setTactics);
   const setFormation = useGameStore(s => s.setFormation);
@@ -363,7 +364,7 @@ const MatchDayInner = () => {
     if (resumingRef.current) return;
     resumingRef.current = true;
     try {
-      playPenalties();
+      if (isWorldCup) playWorldCupPenalties(); else playPenalties();
     } finally {
       resumingRef.current = false;
     }
@@ -1807,26 +1808,43 @@ const MatchDayInner = () => {
       {phase === 'post' && !isWorldCup && (
         <PostMatchPopup onContinue={handleContinue} />
       )}
-      {phase === 'post' && isWorldCup && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-          <GlassPanel className="p-6 space-y-4 text-center">
-            <p className="text-xs font-bold uppercase tracking-widest text-amber-300/80">Full Time</p>
-            <div className="flex items-center justify-center gap-4">
-              <span className="text-sm font-bold text-foreground truncate max-w-[90px]">{homeClub?.shortName}</span>
-              <span className="text-3xl font-black font-display tabular-nums text-foreground">{homeGoals} - {awayGoals}</span>
-              <span className="text-sm font-bold text-foreground truncate max-w-[90px]">{awayClub?.shortName}</span>
-            </div>
-            {useGameStore.getState().currentMatchResult?.penaltyShootout && (
-              <p className="text-xs text-muted-foreground">
-                Penalties: {useGameStore.getState().currentMatchResult!.penaltyShootout!.home} - {useGameStore.getState().currentMatchResult!.penaltyShootout!.away}
-              </p>
-            )}
-            <Button className="w-full h-12 text-base font-bold gap-2" onClick={() => { hapticMedium(); setScreen('dashboard'); }}>
-              <Play className="w-5 h-5" /> Continue
-            </Button>
-          </GlassPanel>
-        </motion.div>
-      )}
+      {phase === 'post' && isWorldCup && (() => {
+        const wcRes = useGameStore.getState().currentMatchResult;
+        const pen = wcRes?.penaltyShootout;
+        const playerIsHome = match?.homeClubId === playerClubId;
+        const myGoals = playerIsHome ? homeGoals : awayGoals;
+        const oppGoals = playerIsHome ? awayGoals : homeGoals;
+        const myPen = pen ? (playerIsHome ? pen.home : pen.away) : 0;
+        const oppPen = pen ? (playerIsHome ? pen.away : pen.home) : 0;
+        const won = myGoals > oppGoals || (myGoals === oppGoals && myPen > oppPen);
+        const lost = myGoals < oppGoals || (myGoals === oppGoals && pen && myPen < oppPen);
+        const heading = won ? 'Victory' : lost ? 'Defeated' : 'Full Time';
+        const headColor = won ? 'text-emerald-300' : lost ? 'text-destructive' : 'text-amber-300/80';
+        // wcNext is cleared once the fixture is played, so read the round from
+        // the competition label the WC writeback stamped (e.g. "World Cup — SF").
+        const wcRound = useGameStore.getState().lastMatchCompetition?.split(' — ')[1];
+        return (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+            <GlassPanel className="p-6 space-y-4 text-center">
+              <div className="space-y-0.5">
+                <p className={cn('text-xs font-bold uppercase tracking-widest', headColor)}>{heading}</p>
+                {wcRound && <p className="text-[10px] text-muted-foreground uppercase tracking-wider">World Cup · {wcRound}</p>}
+              </div>
+              <div className="flex items-center justify-center gap-4">
+                <span className="text-sm font-bold text-foreground truncate max-w-[90px]">{homeClub?.shortName}</span>
+                <span className="text-3xl font-black font-display tabular-nums text-foreground">{homeGoals} - {awayGoals}</span>
+                <span className="text-sm font-bold text-foreground truncate max-w-[90px]">{awayClub?.shortName}</span>
+              </div>
+              {pen && (
+                <p className="text-xs text-muted-foreground">Penalties: {pen.home} - {pen.away}</p>
+              )}
+              <Button className="w-full h-12 text-base font-bold gap-2" onClick={() => { hapticMedium(); setScreen('dashboard'); }}>
+                <Play className="w-5 h-5" /> Continue
+              </Button>
+            </GlassPanel>
+          </motion.div>
+        );
+      })()}
 
       {/* Substitution Sheet — used from half-time, key moments, injuries, and paused play */}
       <SubstitutionSheet

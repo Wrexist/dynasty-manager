@@ -338,6 +338,8 @@ export interface GameState {
   playWorldCupFirstHalf: () => HalfState | null;
   playWorldCupSecondHalf: () => Match | null;
   playWorldCupExtraTime: () => Match | null;
+  playWorldCupPenalties: () => Match | null;
+  finalizeWorldCupPenalties: () => void;
   skipPenaltyShootout: () => void;
   clearMatchResult: () => void;
   rewindMatch: () => void;

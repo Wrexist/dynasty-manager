@@ -18,7 +18,8 @@ beforeEach(() => {
   useGameStore.getState().startWorldCup(NAT);
 });
 
-/** Play the player's current WC match live to a finish (handles extra time). */
+/** Play the player's current WC match live to a finish (handles extra time and
+ *  the kick-by-kick penalty shootout). */
 function playLiveMatch() {
   const store = useGameStore.getState();
   const half = store.playWorldCupFirstHalf();
@@ -28,6 +29,12 @@ function playLiveMatch() {
   useGameStore.getState().playWorldCupSecondHalf();
   if (useGameStore.getState().matchPhase === 'extra_time') {
     useGameStore.getState().playWorldCupExtraTime();
+  }
+  if (useGameStore.getState().matchPhase === 'penalties') {
+    // Pre-compute kicks, then finalise (the UI reveals them one-by-one).
+    useGameStore.getState().playWorldCupPenalties();
+    expect(useGameStore.getState().penaltyShootoutKicks.length).toBeGreaterThan(0);
+    useGameStore.getState().skipPenaltyShootout();
   }
   expect(useGameStore.getState().matchPhase).toBe('full_time');
 }

@@ -49,6 +49,7 @@ import {
 } from '@/store/slices/orchestration/matchActions';
 import {
   playWorldCupFirstHalfImpl, playWorldCupSecondHalfImpl, playWorldCupExtraTimeImpl,
+  playWorldCupPenaltiesImpl, finalizeWorldCupPenaltiesImpl,
 } from '@/store/slices/orchestration/worldCupMatchActions';
 import { initGameImpl } from '@/store/slices/orchestration/initGame';
 
@@ -603,6 +604,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
   playWorldCupSecondHalf: () => playWorldCupSecondHalfImpl(set, get),
 
   playWorldCupExtraTime: () => playWorldCupExtraTimeImpl(set, get),
+
+  playWorldCupPenalties: () => playWorldCupPenaltiesImpl(set, get),
+
+  finalizeWorldCupPenalties: () => finalizeWorldCupPenaltiesImpl(set, get),
 
   endSeason: () => {
     endSeasonImpl(set, get);

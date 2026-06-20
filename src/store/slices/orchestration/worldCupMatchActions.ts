@@ -30,7 +30,7 @@ import { buildInternationalMatchTeams, getPlayerNextWorldCupMatch, NextWorldCupM
 import { simulateKnockoutToCompletion } from '@/utils/international';
 import { advanceWeekImpl } from '@/store/slices/orchestration/weekAdvance';
 import { simulatePenaltyShootout } from '@/utils/penaltyShootout';
-import { INTERNATIONAL_FITNESS_COST } from '@/config/gameBalance';
+import { CUP_PENALTY_KICKS, INTERNATIONAL_FITNESS_COST } from '@/config/gameBalance';
 import { addMsg } from '@/utils/helpers';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
@@ -231,18 +231,13 @@ export function playWorldCupExtraTimeImpl(set: Set, get: Get): Match | null {
     if (currentMatchWeather) result.weather = currentMatchWeather;
 
     if (result.homeGoals === result.awayGoals) {
-      // Penalties — GK quality from each side's starting keeper.
-      const gkQuality = (ps: Player[]) => {
-        const gk = ps.find(p => p.position === 'GK') || ps[0];
-        return Math.min(1, Math.max(0.4, (gk?.overall ?? 65) / 100));
-      };
-      const shootout = simulatePenaltyShootout({
-        homeName: hc.name, awayName: ac.name,
-        homeGKQuality: gkQuality(hp), awayGKQuality: gkQuality(ap),
+      // Still level — go to a kick-by-kick penalty shootout (same flow club cup
+      // ties use). `playWorldCupPenalties` pre-computes the kicks; the shared
+      // PenaltyShootout UI reveals them; `finalizeWorldCupPenalties` writes back.
+      set({
+        currentMatchResult: result, halfTimeState: etState, matchPhase: 'penalties',
+        matchPlayerRatings: playerRatings, matchSubsUsed: 0,
       });
-      result.penaltyShootout = { home: shootout.homeScore, away: shootout.awayScore };
-      const winnerId = shootout.winner === 'home' ? ctx.homeClubId : ctx.awayClubId;
-      applyWorldCupResult(set, get, result, ctx, playerRatings, winnerId);
       return result;
     }
 
@@ -252,6 +247,78 @@ export function playWorldCupExtraTimeImpl(set: Set, get: Get): Match | null {
     Sentry.captureException(err, { tags: { context: 'playWorldCupExtraTime' } });
     abandon(set, get, 'An error occurred during extra time. The match has been abandoned.');
     return null;
+  }
+}
+
+/** Pre-compute the penalty kicks for kick-by-kick reveal (mirrors
+ *  `playPenaltiesImpl` for the player's national team vs the opponent). */
+export function playWorldCupPenaltiesImpl(set: Set, get: Get): Match | null {
+  const state = get();
+  const { clubs, players, currentMatchResult } = state;
+  if (!currentMatchResult) return null;
+  const hc = clubs[currentMatchResult.homeClubId];
+  const ac = clubs[currentMatchResult.awayClubId];
+  if (!hc || !ac) return null;
+  const hp = (hc.lineup || []).map(id => players[id]).filter(Boolean);
+  const ap = (ac.lineup || []).map(id => players[id]).filter(Boolean);
+  try {
+    const gkQuality = (ps: Player[]) => {
+      const gk = ps.find(p => p.position === 'GK') || ps[0];
+      return gk ? (gk.attributes.defending + gk.attributes.mental) / 200 : 0.5;
+    };
+    const { kicks } = simulatePenaltyShootout({
+      homeName: hc.shortName, awayName: ac.shortName,
+      homeGKQuality: gkQuality(hp), awayGKQuality: gkQuality(ap),
+    });
+    set({ penaltyShootoutKicks: kicks, penaltyShootoutRevealIndex: 0 });
+    return currentMatchResult;
+  } catch (err) {
+    Sentry.captureException(err, { tags: { context: 'playWorldCupPenalties' } });
+    abandon(set, get, 'An error occurred during the penalty shootout. The match has been abandoned.');
+    return null;
+  }
+}
+
+/** Reconstruct the shootout from the pre-computed kicks and write the result
+ *  back into the tournament. Routed to from `skipPenaltyShootout` /
+ *  `revealNextPenaltyKick` when in World Cup mode. */
+export function finalizeWorldCupPenaltiesImpl(set: Set, get: Get): void {
+  const state = get();
+  const { clubs, currentMatchResult, penaltyShootoutKicks, matchPlayerRatings } = state;
+  if (!currentMatchResult || penaltyShootoutKicks.length === 0) return;
+  const hc = clubs[currentMatchResult.homeClubId];
+  const ac = clubs[currentMatchResult.awayClubId];
+  if (!hc || !ac) return;
+  try {
+    const penEvents: MatchEvent[] = penaltyShootoutKicks.map(kick => {
+      const isSuddenDeath = kick.round > CUP_PENALTY_KICKS;
+      const minute = isSuddenDeath ? 130 : 121 + (kick.round - 1);
+      const clubId = kick.isHome ? hc.id : ac.id;
+      const teamName = kick.isHome ? hc.shortName : ac.shortName;
+      const score = `(${kick.homeTotal}-${kick.awayTotal})`;
+      return {
+        minute, type: 'penalty_shootout' as const, clubId,
+        description: kick.scored ? `${teamName} SCORE! ${score}` : `${teamName} miss! ${score}`,
+      };
+    });
+    const lastKick = penaltyShootoutKicks[penaltyShootoutKicks.length - 1];
+    const penHome = lastKick.homeTotal;
+    const penAway = lastKick.awayTotal;
+    const winnerId = penHome > penAway ? hc.id : ac.id;
+    const finalResult: Match = {
+      ...currentMatchResult,
+      events: [...currentMatchResult.events, ...penEvents],
+      penaltyShootout: { home: penHome, away: penAway },
+    };
+
+    // Re-resolve the match context (the fixture is still unplayed at this point).
+    const ctx = resolveWorldCupMatch(set, get);
+    set({ penaltyShootoutKicks: [], penaltyShootoutRevealIndex: 0 });
+    if (!ctx) return;
+    applyWorldCupResult(set, get, finalResult, ctx, matchPlayerRatings || [], winnerId);
+  } catch (err) {
+    Sentry.captureException(err, { tags: { context: 'finalizeWorldCupPenalties' } });
+    abandon(set, get, 'An error occurred finalizing the penalty shootout. The match has been abandoned.');
   }
 }
 
