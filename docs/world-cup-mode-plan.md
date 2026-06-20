@@ -43,9 +43,26 @@
       for the recap.
 - [ ] **Phase 5 — Interactive matches (the chosen vision).** Route the player's
       group/knockout fixture through MatchDay (live pitch, subs, team talks)
-      instead of auto-sim: set `currentMatchResult` + `currentScreen: 'match'`,
-      add an international branch to `MatchDay`/`matchActions`, apply the result
-      back to the tournament + caps/goals, then continue the bracket.
+      instead of auto-sim. Sub-steps:
+  - [x] **5a — Team construction (foundation).** `utils/internationalMatch.ts`
+        `buildInternationalMatchTeams` builds both nations as match-ready Clubs
+        (player nation from the confirmed squad; opponent generated via the
+        national pool), mirroring `createEphemeralClub`. Tested
+        (`internationalMatch.test.ts`, 3 tests). **DONE.**
+  - [ ] **5b — Match setup + MatchDay route.** In `advanceInternationalWeekImpl`,
+        when the player has a fixture this week, stop auto-simming: merge the two
+        clubs + opponent players into state, replicate the `playCurrentMatchImpl`
+        setup (`simulateMatch` → `currentMatchResult` + `matchPhase` +
+        `preMatchSnapshot` + `lastMatchCompetition: 'World Cup'`), route to the
+        `match` screen. Stash the fixture id + opponent + isHome for 5c.
+  - [ ] **5c — Result → tournament.** On MatchDay finish, apply the live score to
+        the tournament fixture (mark played, rebuild group tables / advance the
+        knockout tie), record caps + international goals, AI-sim the rest of the
+        week, then return to the tournament screen. This replaces the auto-sim
+        result path for the player's match only.
+  > 5b/5c are a deep integration through the match orchestration (the most
+  > fragile code) + a new result-application tail. Build with tests at each step;
+  > keep the auto-sim path as the fallback for AI matches.
 - [ ] **Phase 6 — Festival depth.** (a) Match-play points — a guarded hook so
       wins during the event window grant Festival Points (not just check-in).
       (b) Nation theming — `FlagIcon`/nation colours + a World Cup motif in the
