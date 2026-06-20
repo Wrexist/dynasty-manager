@@ -93,9 +93,15 @@ const WorldCupDashboard = () => {
 
   const ovrColor = squadOVR >= 80 ? 'text-emerald-400' : squadOVR >= 70 ? 'text-primary' : squadOVR >= 60 ? 'text-amber-400' : 'text-muted-foreground';
 
-  const play = () => {
+  // Play the next match live through the real engine (MatchDay handles WC mode).
+  const playLive = () => {
     hapticMedium();
-    guardAsync(advanceWeek(), 'WorldCupDashboard.advanceWeek', { title: 'Could not play the match', body: 'Please try again.' });
+    setScreen('match');
+  };
+  // Between rounds (no player tie this round) — fast-forward via the pipeline.
+  const advance = () => {
+    hapticMedium();
+    guardAsync(advanceWeek(), 'WorldCupDashboard.advanceWeek', { title: 'Could not advance', body: 'Please try again.' });
   };
 
   // Flag crest used in the Next Match card — the national-team analogue of the
@@ -181,7 +187,7 @@ const WorldCupDashboard = () => {
               <p className="text-[10px] text-muted-foreground">{nextMatch.isHome ? 'AWAY' : 'HOME'}</p>
             </div>
           </div>
-          <Button className="w-full mt-4 gap-2" disabled={matchLocked} onClick={play}>
+          <Button className="w-full mt-4 gap-2" disabled={matchLocked} onClick={playLive}>
             <Play className="w-4 h-4" /> Play Match
           </Button>
         </GlassPanel>
@@ -189,7 +195,7 @@ const WorldCupDashboard = () => {
         <GlassPanel className="p-5 space-y-3 text-center">
           <p className="text-sm font-semibold text-foreground">Round in progress</p>
           <p className="text-[11px] text-muted-foreground">The other ties are being decided. Advance to continue your run.</p>
-          <Button className="w-full gap-2" disabled={matchLocked} onClick={play}>
+          <Button className="w-full gap-2" disabled={matchLocked} onClick={advance}>
             <Play className="w-4 h-4" /> Advance Tournament
           </Button>
         </GlassPanel>
