@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844" font-family="'DM Sans',Arial,sans-serif">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="6%" r="90%"><stop offset="0%" stop-color="#131c30"/><stop offset="55%" stop-color="#0b1120"/><stop offset="100%" stop-color="#070a12"/></radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FCD56E"/><stop offset="100%" stop-color="#E89A02"/></linearGradient>
+  </defs>
+  <rect width="390" height="844" fill="url(#bg)"/>
+
+  <!-- status bar hint -->
+  <text x="24" y="34" fill="#9AA3B6" font-size="13" font-weight="700">9:41</text>
+
+  <!-- back -->
+  <text x="24" y="76" fill="#9AA3B6" font-size="14">‹ Modes</text>
+
+  <!-- header -->
+  <g text-anchor="middle">
+    <circle cx="195" cy="116" r="20" fill="none"/>
+    <path d="M183 104 h24 v7 q0 18 -12 22 q-12 -4 -12 -22 z M183 107 h-5 q-3 0 -3 6 q0 8 9 9 v-4 q-4 -1 -4 -5 h3 z M207 107 h5 q3 0 3 6 q0 8 -9 9 v-4 q4 -1 4 -5 h-3 z M191 133 h8 v7 h-8z M186 140 h18 v4 h-18z" fill="#FBBF24"/>
+    <text x="195" y="168" fill="#EEF1F7" font-family="'Oswald',Arial" font-size="26" font-weight="800">Choose Your Nation</text>
+    <text x="195" y="190" fill="#8A93A6" font-size="12.5">Lead them through the World Cup — group stage to the final.</text>
+  </g>
+
+  <!-- nation grid (2 cols) -->
+  <g font-size="13">
+    <!-- selected: France -->
+    <g transform="translate(20 214)">
+      <rect width="170" height="56" rx="13" fill="#FBBF2422" stroke="#FBBF2480" stroke-width="1.5"/>
+      <rect x="14" y="16" width="24" height="24" rx="4" fill="#002395"/><rect x="22" y="16" width="8" height="24" fill="#fff"/><rect x="30" y="16" width="8" height="24" fill="#ED2939"/>
+      <text x="50" y="30" fill="#FCD56E" font-weight="700">France</text>
+      <text x="50" y="46" fill="#8A93A6" font-size="10">Europe</text>
+    </g>
+    <g transform="translate(200 214)">
+      <rect width="170" height="56" rx="13" fill="#ffffff0a" stroke="#ffffff14"/>
+      <rect x="14" y="16" width="24" height="24" rx="4" fill="#AA151B"/><rect x="14" y="22" width="24" height="12" fill="#F1BF00"/>
+      <text x="50" y="30" fill="#EEF1F7" font-weight="600">Spain</text><text x="50" y="46" fill="#8A93A6" font-size="10">Europe</text>
+    </g>
+    <g transform="translate(20 280)">
+      <rect width="170" height="56" rx="13" fill="#ffffff0a" stroke="#ffffff14"/>
+      <rect x="14" y="16" width="24" height="24" rx="4" fill="#0d8a3f"/><path d="M26 18 l10 10 l-10 10 l-10 -10z" fill="#F7DD1E"/><circle cx="26" cy="28" r="4" fill="#162a8c"/>
+      <text x="50" y="30" fill="#EEF1F7" font-weight="600">Brazil</text><text x="50" y="46" fill="#8A93A6" font-size="10">South America</text>
+    </g>
+    <g transform="translate(200 280)">
+      <rect width="170" height="56" rx="13" fill="#ffffff0a" stroke="#ffffff14"/>
+      <rect x="14" y="16" width="24" height="24" rx="4" fill="#fff"/><rect x="24" y="16" width="4" height="24" fill="#CF081F"/><rect x="14" y="26" width="24" height="4" fill="#CF081F"/>
+      <text x="50" y="30" fill="#EEF1F7" font-weight="600">England</text><text x="50" y="46" fill="#8A93A6" font-size="10">Europe</text>
+    </g>
+    <g transform="translate(20 346)">
+      <rect width="170" height="56" rx="13" fill="#ffffff0a" stroke="#ffffff14"/>
+      <rect x="14" y="16" width="24" height="8" fill="#000"/><rect x="14" y="24" width="24" height="8" fill="#DD0000"/><rect x="14" y="32" width="24" height="8" fill="#FFCE00"/>
+      <text x="50" y="30" fill="#EEF1F7" font-weight="600">Germany</text><text x="50" y="46" fill="#8A93A6" font-size="10">Europe</text>
+    </g>
+    <g transform="translate(200 346)">
+      <rect width="170" height="56" rx="13" fill="#ffffff0a" stroke="#ffffff14"/>
+      <rect x="14" y="16" width="8" height="24" fill="#009246"/><rect x="22" y="16" width="8" height="24" fill="#fff"/><rect x="30" y="16" width="8" height="24" fill="#CE2B37"/>
+      <text x="50" y="30" fill="#EEF1F7" font-weight="600">Italy</text><text x="50" y="46" fill="#8A93A6" font-size="10">Europe</text>
+    </g>
+    <g transform="translate(20 412)">
+      <rect width="170" height="56" rx="13" fill="#ffffff0a" stroke="#ffffff14"/>
+      <rect x="14" y="16" width="9" height="24" fill="#006600"/><rect x="23" y="16" width="15" height="24" fill="#CE1126"/>
+      <text x="50" y="30" fill="#EEF1F7" font-weight="600">Portugal</text><text x="50" y="46" fill="#8A93A6" font-size="10">Europe</text>
+    </g>
+    <g transform="translate(200 412)">
+      <rect width="170" height="56" rx="13" fill="#ffffff0a" stroke="#ffffff14"/>
+      <rect x="14" y="16" width="24" height="24" rx="4" fill="#75AADB"/><rect x="14" y="24" width="24" height="8" fill="#fff"/>
+      <text x="50" y="30" fill="#EEF1F7" font-weight="600">Argentina</text><text x="50" y="46" fill="#8A93A6" font-size="10">South America</text>
+    </g>
+    <g transform="translate(20 478)">
+      <rect width="170" height="56" rx="13" fill="#ffffff0a" stroke="#ffffff14"/>
+      <rect x="14" y="16" width="24" height="24" rx="4" fill="#FF9933"/><rect x="14" y="24" width="24" height="8" fill="#fff"/><rect x="14" y="32" width="24" height="8" fill="#138808"/>
+      <text x="50" y="30" fill="#EEF1F7" font-weight="600">Netherlands</text><text x="50" y="46" fill="#8A93A6" font-size="10">Europe</text>
+    </g>
+    <g transform="translate(200 478)">
+      <rect width="170" height="56" rx="13" fill="#ffffff0a" stroke="#ffffff14"/>
+      <rect x="14" y="16" width="24" height="24" rx="4" fill="#fff"/><circle cx="26" cy="28" r="7" fill="#bc002d"/>
+      <text x="50" y="30" fill="#EEF1F7" font-weight="600">Japan</text><text x="50" y="46" fill="#8A93A6" font-size="10">Asia</text>
+    </g>
+  </g>
+  <text x="195" y="566" text-anchor="middle" fill="#5b6478" font-size="11">+ 41 more nations…</text>
+
+  <!-- sticky start bar -->
+  <rect x="0" y="760" width="390" height="84" fill="#070a12"/>
+  <g transform="translate(20 776)">
+    <rect width="350" height="52" rx="14" fill="url(#gold)"/>
+    <text x="175" y="33" text-anchor="middle" fill="#3a2a05" font-size="16" font-weight="800">Start as France  →</text>
+  </g>
+</svg>
