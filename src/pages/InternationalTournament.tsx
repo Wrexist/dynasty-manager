@@ -31,9 +31,9 @@ function getPhaseIndex(phase: string, currentRound: string | null): number {
   return roundMap[currentRound || ''] ?? 0;
 }
 
-function getAdvanceLabel(phase: string, currentRound: string | null): string {
+function getAdvanceLabel(phase: string, currentRound: string | null, isWorldCupMode = false): string {
   if (phase === 'group') return 'Play Next Matchday';
-  if (phase === 'complete') return 'Complete Tournament & Start New Season';
+  if (phase === 'complete') return isWorldCupMode ? 'See Final Result' : 'Complete Tournament & Start New Season';
   const roundNames: Record<string, string> = { R16: 'Round of 16', QF: 'Quarter-Finals', SF: 'Semi-Finals', F: 'Final' };
   return `Play ${roundNames[currentRound || ''] || 'Next Round'}`;
 }
@@ -44,8 +44,10 @@ const InternationalTournament = () => {
   const seasonPhase = useGameStore((s) => s.seasonPhase);
   const season = useGameStore((s) => s.season);
   const week = useGameStore((s) => s.week);
+  const gameMode = useGameStore((s) => s.gameMode);
   const advanceWeek = useGameStore((s) => s.advanceWeek);
   const setScreen = useGameStore((s) => s.setScreen);
+  const isWorldCupMode = gameMode === 'world-cup';
 
   if (!internationalTournament) {
     // Pre-tournament preview — list expected qualifiers / format until the
@@ -190,12 +192,17 @@ const InternationalTournament = () => {
             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
               <Trophy className="w-6 h-6 text-primary" />
             </div>
-            <div>
-              <h1 className="text-lg font-bold text-foreground font-display">{tournament.name}</h1>
+            <div className="min-w-0">
+              <h1 className="text-lg font-bold text-foreground font-display truncate">{tournament.name}</h1>
               <p className="text-sm text-muted-foreground">
                 Phase: <span className="capitalize text-foreground">{tournament.phase}</span>
                 {tournament.winner && ` — Winner: ${tournament.winner}`}
               </p>
+              {isWorldCupMode && managerNationality && (
+                <p className="text-xs text-amber-400 flex items-center gap-1.5 mt-0.5 font-medium">
+                  <FlagIcon nationality={managerNationality} size={14} className="rounded-sm" /> Your road to glory as {managerNationality}
+                </p>
+              )}
             </div>
           </div>
 
@@ -233,7 +240,7 @@ const InternationalTournament = () => {
               onClick={() => guardAsync(advanceWeek(), 'InternationalTournament.advanceWeek', { title: 'Could not advance week', body: 'Please try again.' })}
             >
               <Play className="w-4 h-4 mr-2" />
-              {getAdvanceLabel(tournament.phase, tournament.currentRound)}
+              {getAdvanceLabel(tournament.phase, tournament.currentRound, isWorldCupMode)}
             </Button>
           )}
 
@@ -242,7 +249,7 @@ const InternationalTournament = () => {
               className="w-full mt-2"
               onClick={() => guardAsync(advanceWeek(), 'InternationalTournament.advanceWeek', { title: 'Could not advance week', body: 'Please try again.' })}
             >
-              {getAdvanceLabel(tournament.phase, tournament.currentRound)}
+              {getAdvanceLabel(tournament.phase, tournament.currentRound, isWorldCupMode)}
             </Button>
           )}
         </div>
@@ -463,11 +470,14 @@ const InternationalTournament = () => {
         </motion.div>
       )}
 
-      {/* Navigation */}
-      <Button variant="outline" className="w-full" onClick={() => setScreen('national-team')}>
-        <Globe className="w-4 h-4 mr-2" />
-        View National Team Squad
-      </Button>
+      {/* Navigation — hidden in World Cup mode, which has no bottom nav to
+          return from the national-team page (the tournament IS the hub). */}
+      {!isWorldCupMode && (
+        <Button variant="outline" className="w-full" onClick={() => setScreen('national-team')}>
+          <Globe className="w-4 h-4 mr-2" />
+          View National Team Squad
+        </Button>
+      )}
     </div>
   );
 };

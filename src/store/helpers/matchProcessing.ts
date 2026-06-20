@@ -1,6 +1,7 @@
 import type { Match, PlayerMatchRating, CareerMilestone, InjuryDetails, PlayerMatchRecord } from '@/types/game';
 import { buildLeagueTable } from '@/data/league';
 import { addMsg } from '@/utils/helpers';
+import { awardFestivalMatchWin } from '@/utils/liveEvents';
 import { GOAL_EVENT_TYPES } from '@/config/matchEngine';
 import { getPlayerNarratives, getNarrativeBonus } from '@/utils/playerNarratives';
 import {
@@ -234,6 +235,10 @@ export function processMatchResult(
   if (won) ms.totalWins++;
   else if (lost) ms.totalLosses++;
   else ms.totalDraws++;
+
+  // Live-event hook: a win during an active festival window earns Festival
+  // Points (device-global, capped per day). No-op off-window; never throws.
+  awardFestivalMatchWin(won);
 
   // Career milestones
   const newMilestones: CareerMilestone[] = [];

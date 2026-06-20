@@ -24,6 +24,7 @@ import type { HalfState } from '@/engine/match';
 import type { ShoutType, KeyMomentChoice } from '@/types/game';
 import { useCurrentMatch } from '@/hooks/useGameSelectors';
 import { getCompetitionInfo } from '@/utils/competitionBadge';
+import { getPlayerNextWorldCupMatch, nationToClub } from '@/utils/internationalMatch';
 import { PostMatchPopup } from '@/components/game/PostMatchPopup';
 import { TacticalPanel } from '@/components/game/TacticalPanel';
 import { enrichDescription } from '@/utils/matchCommentary';
@@ -108,7 +109,7 @@ function getTacticsSummary(t: { mentality: string; tempo: string; width: string;
 }
 
 const MatchDayInner = () => {
-  const { playerClubId, week, clubs, matchSubsUsed, tactics, cup, leagueCup, championsCup, shieldCup, conferenceCup, virtualClubs, currentCupTieId, domesticSuperCup, continentalSuperCup, monetization, matchPhase, matchTeamTalk, penaltyShootoutKicks } = useGameStore(useShallow(s => ({
+  const { playerClubId, week, clubs, matchSubsUsed, tactics, cup, leagueCup, championsCup, shieldCup, conferenceCup, virtualClubs, currentCupTieId, domesticSuperCup, continentalSuperCup, monetization, matchPhase, matchTeamTalk, penaltyShootoutKicks, gameMode, internationalTournament, managerNationality } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId,
     week: s.week,
     clubs: s.clubs,
@@ -127,11 +128,19 @@ const MatchDayInner = () => {
     matchPhase: s.matchPhase,
     matchTeamTalk: s.matchTeamTalk,
     penaltyShootoutKicks: s.penaltyShootoutKicks,
+    gameMode: s.gameMode,
+    internationalTournament: s.internationalTournament,
+    managerNationality: s.managerNationality,
   })));
+  const isWorldCup = gameMode === 'world-cup';
   const playFirstHalf = useGameStore(s => s.playFirstHalf);
   const playSecondHalf = useGameStore(s => s.playSecondHalf);
   const playExtraTime = useGameStore(s => s.playExtraTime);
   const playPenalties = useGameStore(s => s.playPenalties);
+  const playWorldCupFirstHalf = useGameStore(s => s.playWorldCupFirstHalf);
+  const playWorldCupSecondHalf = useGameStore(s => s.playWorldCupSecondHalf);
+  const playWorldCupExtraTime = useGameStore(s => s.playWorldCupExtraTime);
+  const playWorldCupPenalties = useGameStore(s => s.playWorldCupPenalties);
   const setScreen = useGameStore(s => s.setScreen);
   const setTactics = useGameStore(s => s.setTactics);
   const setFormation = useGameStore(s => s.setFormation);
@@ -223,8 +232,24 @@ const MatchDayInner = () => {
 
   const isCupMatch = !!cupTie || !!leagueCupTie || !!continentalMatch || !!superCupMatch || !!currentCupTieId;
 
+  // ── World Cup mode: source the match from the tournament, not the league/cups.
+  // The player nation already lives in `clubs[playerClubId]`; the opponent is
+  // materialised by the store action at kickoff, so before then we render a
+  // display-only shell from the nation data.
+  const wcNext = isWorldCup ? getPlayerNextWorldCupMatch(internationalTournament, managerNationality || playerClubId) : null;
+  const wcMatch = wcNext ? (() => {
+    const opponent = wcNext.opponent;
+    const homeClubId = wcNext.isHome ? playerClubId : opponent;
+    const awayClubId = wcNext.isHome ? opponent : playerClubId;
+    return { id: `wc-${homeClubId}-${awayClubId}`, week, homeClubId, awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
+  })() : null;
+  const wcOpponentClub = wcNext
+    ? (clubs[wcNext.opponent] ?? nationToClub(wcNext.opponent, [], [], [], '4-3-3'))
+    : null;
+
   // Competition context for display
-  const competitionBadge = liveCompetition === 'Pre-Season Friendly' ? getCompetitionInfo('Pre-Season Friendly')
+  const competitionBadge = isWorldCup ? getCompetitionInfo('World Cup')
+    : liveCompetition === 'Pre-Season Friendly' ? getCompetitionInfo('Pre-Season Friendly')
     : cupTie ? getCompetitionInfo('Dynasty Cup')
     : leagueCupTie ? getCompetitionInfo('League Cup')
     : champMatch ? getCompetitionInfo('Champions Cup')
@@ -232,16 +257,20 @@ const MatchDayInner = () => {
     : confMatch ? getCompetitionInfo('Conference Cup')
     : superCupMatch ? getCompetitionInfo(domesticSuperCup?.week === week ? 'Super Cup' : 'Continental Super Cup')
     : null;
-  const competitionRound = cupTie?.round ?? leagueCupTie?.round ?? champMatch?.roundLabel ?? shieldMatch?.roundLabel ?? confMatch?.roundLabel ?? (superCupMatch ? 'Final' : '');
+  const competitionRound = isWorldCup ? (wcNext?.group ? `Group ${wcNext.group}` : (wcNext?.roundLabel ?? ''))
+    : cupTie?.round ?? leagueCupTie?.round ?? champMatch?.roundLabel ?? shieldMatch?.roundLabel ?? confMatch?.roundLabel ?? (superCupMatch ? 'Final' : '');
   const competitionInfo = competitionBadge ? { ...competitionBadge, round: competitionRound } : null;
 
   // Cache match data when kickoff starts — playSecondHalf() marks the fixture
   // as played which makes useCurrentMatch() return undefined mid-animation.
   const matchCacheRef = useRef<{ match: Match; homeClub: Club; awayClub: Club } | null>(null);
 
-  const match = matchCacheRef.current?.match ?? liveMatch ?? cupMatch ?? leagueCupMatch ?? continentalMatch ?? superCupMatch;
-  const homeClub = matchCacheRef.current?.homeClub ?? (match ? resolveClub(clubs, virtualClubs, match.homeClubId) : null);
-  const awayClub = matchCacheRef.current?.awayClub ?? (match ? resolveClub(clubs, virtualClubs, match.awayClubId) : null);
+  const match = matchCacheRef.current?.match ?? liveMatch ?? cupMatch ?? leagueCupMatch ?? continentalMatch ?? superCupMatch ?? wcMatch;
+  // In WC mode resolve the opponent from the nation shell so the matchup renders
+  // before the squad is materialised at kickoff.
+  const wcResolve = (id: string): Club | null => id === playerClubId ? clubs[playerClubId] : (id === wcNext?.opponent ? wcOpponentClub : null);
+  const homeClub = matchCacheRef.current?.homeClub ?? (match ? (isWorldCup ? wcResolve(match.homeClubId) : resolveClub(clubs, virtualClubs, match.homeClubId)) : null);
+  const awayClub = matchCacheRef.current?.awayClub ?? (match ? (isWorldCup ? wcResolve(match.awayClubId) : resolveClub(clubs, virtualClubs, match.awayClubId)) : null);
   // Clear dismissed moments when match changes (e.g. multi-match sessions)
   useEffect(() => { dismissedMomentsRef.current.clear(); }, [match]);
   // No useEffect needed — PostMatchPopup now navigates directly to Match Review
@@ -260,8 +289,18 @@ const MatchDayInner = () => {
     }
     // Cache match data so it survives the fixture being marked as played
     matchCacheRef.current = { match, homeClub, awayClub };
-    const halfState = playFirstHalf();
+    const halfState = isWorldCup ? playWorldCupFirstHalf() : playFirstHalf();
     if (!halfState) return;
+    // WC: the opponent squad is materialised by the action above — refresh the
+    // cache with the real clubs so lineups render with players, not the shell.
+    if (isWorldCup) {
+      const freshClubs = useGameStore.getState().clubs;
+      matchCacheRef.current = {
+        match,
+        homeClub: freshClubs[match.homeClubId] ?? homeClub,
+        awayClub: freshClubs[match.awayClubId] ?? awayClub,
+      };
+    }
     setFirstHalfState(halfState);
     setAllEvents(halfState.events);
     setPhase('first_half');
@@ -280,7 +319,7 @@ const MatchDayInner = () => {
     resumingRef.current = true;
     try {
       // Simulate second half with potentially updated lineup/tactics
-      const result = playSecondHalf();
+      const result = isWorldCup ? playWorldCupSecondHalf() : playSecondHalf();
       if (!result) { resumingRef.current = false; return; }
       // Pre-populate visibleEvents with first-half events to avoid stale references
       const firstHalfEvents = result.events.filter((e: MatchEvent) => e.minute <= 45);
@@ -304,7 +343,7 @@ const MatchDayInner = () => {
     if (resumingRef.current) return;
     resumingRef.current = true;
     try {
-      const result = playExtraTime();
+      const result = isWorldCup ? playWorldCupExtraTime() : playExtraTime();
       if (!result) { resumingRef.current = false; return; }
       setAllEvents(result.events);
       currentMinRef.current = 90;
@@ -325,7 +364,7 @@ const MatchDayInner = () => {
     if (resumingRef.current) return;
     resumingRef.current = true;
     try {
-      playPenalties();
+      if (isWorldCup) playWorldCupPenalties(); else playPenalties();
     } finally {
       resumingRef.current = false;
     }
@@ -1763,10 +1802,49 @@ const MatchDayInner = () => {
         </motion.div>
       )}
 
-      {/* Post-match popup → navigates directly to Match Review */}
-      {phase === 'post' && (
+      {/* Post-match popup → navigates directly to Match Review.
+          World Cup mode shows a lean full-time card (the club post-match flow is
+          league-coupled and irrelevant to a national-team tournament). */}
+      {phase === 'post' && !isWorldCup && (
         <PostMatchPopup onContinue={handleContinue} />
       )}
+      {phase === 'post' && isWorldCup && (() => {
+        const wcRes = useGameStore.getState().currentMatchResult;
+        const pen = wcRes?.penaltyShootout;
+        const playerIsHome = match?.homeClubId === playerClubId;
+        const myGoals = playerIsHome ? homeGoals : awayGoals;
+        const oppGoals = playerIsHome ? awayGoals : homeGoals;
+        const myPen = pen ? (playerIsHome ? pen.home : pen.away) : 0;
+        const oppPen = pen ? (playerIsHome ? pen.away : pen.home) : 0;
+        const won = myGoals > oppGoals || (myGoals === oppGoals && myPen > oppPen);
+        const lost = myGoals < oppGoals || (myGoals === oppGoals && pen && myPen < oppPen);
+        const heading = won ? 'Victory' : lost ? 'Defeated' : 'Full Time';
+        const headColor = won ? 'text-emerald-300' : lost ? 'text-destructive' : 'text-amber-300/80';
+        // wcNext is cleared once the fixture is played, so read the round from
+        // the competition label the WC writeback stamped (e.g. "World Cup — SF").
+        const wcRound = useGameStore.getState().lastMatchCompetition?.split(' — ')[1];
+        return (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+            <GlassPanel className="p-6 space-y-4 text-center">
+              <div className="space-y-0.5">
+                <p className={cn('text-xs font-bold uppercase tracking-widest', headColor)}>{heading}</p>
+                {wcRound && <p className="text-[10px] text-muted-foreground uppercase tracking-wider">World Cup · {wcRound}</p>}
+              </div>
+              <div className="flex items-center justify-center gap-4">
+                <span className="text-sm font-bold text-foreground truncate max-w-[90px]">{homeClub?.shortName}</span>
+                <span className="text-3xl font-black font-display tabular-nums text-foreground">{homeGoals} - {awayGoals}</span>
+                <span className="text-sm font-bold text-foreground truncate max-w-[90px]">{awayClub?.shortName}</span>
+              </div>
+              {pen && (
+                <p className="text-xs text-muted-foreground">Penalties: {pen.home} - {pen.away}</p>
+              )}
+              <Button className="w-full h-12 text-base font-bold gap-2" onClick={() => { hapticMedium(); setScreen('dashboard'); }}>
+                <Play className="w-5 h-5" /> Continue
+              </Button>
+            </GlassPanel>
+          </motion.div>
+        );
+      })()}
 
       {/* Substitution Sheet — used from half-time, key moments, injuries, and paused play */}
       <SubstitutionSheet

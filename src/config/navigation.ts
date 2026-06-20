@@ -5,7 +5,7 @@ export const DETAIL_SCREENS: GameScreen[] = [
   'settings', 'season-summary', 'calendar', 'match-prep',
   'league-table', 'comparison', 'manager-profile', 'cup', 'league-cup', 'champions-cup', 'shield-cup', 'super-cup', 'perks', 'trophy-cabinet', 'prestige', 'hall-of-managers', 'club', 'team-detail', 'shop', 'help', 'whats-new',
   'national-team', 'national-squad-picker', 'international-tournament', 'conference-cup',
-  'job-market', 'career-overview', 'ballon-dor',
+  'job-market', 'career-overview', 'ballon-dor', 'festival', 'dynasty-legacy', 'world-cup-result',
 ];
 
 export const BACK_TARGET: Partial<Record<GameScreen, GameScreen>> = {
@@ -43,6 +43,8 @@ export const BACK_TARGET: Partial<Record<GameScreen, GameScreen>> = {
   'job-market': 'dashboard',
   'career-overview': 'dashboard',
   'ballon-dor': 'trophy-cabinet',
+  'festival': 'dashboard',
+  'dynasty-legacy': 'hall-of-managers',
 };
 
 export const SCREEN_TITLES: Partial<Record<GameScreen, string>> = {
@@ -90,9 +92,16 @@ export const SCREEN_TITLES: Partial<Record<GameScreen, string>> = {
   'job-market': 'Job Market',
   'career-overview': 'Career Overview',
   'ballon-dor': "Ballon d'Or",
+  'festival': 'World Cup Festival',
+  'dynasty-legacy': 'Manager Legacy',
+  'world-cup-result': 'World Cup',
 };
 
 export const MAIN_TABS: GameScreen[] = ['dashboard', 'squad', 'tactics', 'transfers'];
+
+// World Cup mode's tab set — mirrors the bottom nav (Home/Squad/Tactics +
+// Tournament instead of Market) so swipe navigation matches.
+export const WC_MAIN_TABS: GameScreen[] = ['dashboard', 'squad', 'tactics', 'international-tournament'];
 
 // SubNav group mappings for swipe navigation within grouped screens
 export const SCREEN_GROUPS: GameScreen[][] = [
@@ -118,7 +127,7 @@ export const UNEMPLOYED_ALLOWED_SCREENS = new Set<GameScreen>([
   'job-market', 'career-overview', 'inbox', 'settings', 'manager-profile',
   'trophy-cabinet', 'hall-of-managers', 'perks', 'prestige', 'help', 'whats-new', 'shop',
   'ballon-dor', 'league-table', 'calendar', 'team-detail', 'season-summary',
-  'player-detail',
+  'player-detail', 'dynasty-legacy',
 ]);
 
 // BottomNav tabs shown when unemployed in career mode

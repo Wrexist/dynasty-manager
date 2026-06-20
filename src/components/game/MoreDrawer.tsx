@@ -6,7 +6,7 @@ import { GameScreen } from '@/types/game';
 import { cn } from '@/lib/utils';
 import {
   Mail, Trophy, Target, DollarSign, Building2, Calendar, Home,
-  Settings, MoreHorizontal, ChevronRight, ChevronDown, GitCompare, User, Star, Award, ShoppingBag, Crown, HelpCircle, Globe, Briefcase, Search
+  Settings, MoreHorizontal, ChevronRight, ChevronDown, GitCompare, User, Star, Award, ShoppingBag, Crown, HelpCircle, Globe, Briefcase, Search, Medal
 } from 'lucide-react';
 import { hapticLight } from '@/utils/haptics';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
@@ -77,6 +77,7 @@ const drawerSections: DrawerSection[] = [
       { screen: 'ballon-dor', label: "Ballon d'Or", icon: Award, description: 'Top 25 players each season' },
       { screen: 'perks', label: 'Perks', icon: Star, description: 'Earn XP & unlock bonuses' },
       { screen: 'comparison', label: 'Compare', icon: GitCompare, description: 'Side-by-side player stats' },
+      { screen: 'dynasty-legacy', label: 'Legacy', icon: Medal, description: 'Your lifetime record across all saves' },
       { screen: 'hall-of-managers', label: 'Hall of Fame', icon: Trophy, description: 'Cross-save leaderboard' },
       { screen: 'shop', label: 'Shop', icon: Crown, description: 'Dynasty Pro & cosmetics', gold: true },
       { screen: 'help', label: 'Game Guide', icon: HelpCircle, description: 'How to play & glossary' },

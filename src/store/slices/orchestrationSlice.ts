@@ -47,6 +47,10 @@ import { advanceWeekImpl } from '@/store/slices/orchestration/weekAdvance';
 import {
   playCurrentMatchImpl, playFirstHalfImpl, playSecondHalfImpl, playExtraTimeImpl, playPenaltiesImpl, revealNextPenaltyKickImpl, skipPenaltyShootoutImpl,
 } from '@/store/slices/orchestration/matchActions';
+import {
+  playWorldCupFirstHalfImpl, playWorldCupSecondHalfImpl, playWorldCupExtraTimeImpl,
+  playWorldCupPenaltiesImpl, finalizeWorldCupPenaltiesImpl,
+} from '@/store/slices/orchestration/worldCupMatchActions';
 import { initGameImpl } from '@/store/slices/orchestration/initGame';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
@@ -594,6 +598,16 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
   revealNextPenaltyKick: () => revealNextPenaltyKickImpl(set, get),
 
   skipPenaltyShootout: () => skipPenaltyShootoutImpl(set, get),
+
+  playWorldCupFirstHalf: () => playWorldCupFirstHalfImpl(set, get),
+
+  playWorldCupSecondHalf: () => playWorldCupSecondHalfImpl(set, get),
+
+  playWorldCupExtraTime: () => playWorldCupExtraTimeImpl(set, get),
+
+  playWorldCupPenalties: () => playWorldCupPenaltiesImpl(set, get),
+
+  finalizeWorldCupPenalties: () => finalizeWorldCupPenaltiesImpl(set, get),
 
   endSeason: () => {
     endSeasonImpl(set, get);

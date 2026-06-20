@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Gamepad2, Briefcase, Users, Sparkles } from 'lucide-react';
+import { ArrowLeft, Gamepad2, Briefcase, Users, Sparkles, Trophy } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -44,6 +44,18 @@ const modes: readonly Mode[] = [
     iconColor: 'text-primary',
     iconBg: 'bg-primary/10',
     route: '/create-manager',
+  },
+  {
+    id: 'world-cup',
+    name: 'World Cup',
+    tagline: 'One nation. One tournament.',
+    description: 'Pick a national team and play the entire World Cup — group stage to the final. Lift the trophy, or go home.',
+    icon: Trophy,
+    color: 'from-amber-500/20 to-amber-600/5',
+    borderColor: 'border-amber-500/30 hover:border-amber-500/60',
+    iconColor: 'text-amber-400',
+    iconBg: 'bg-amber-500/10',
+    route: '/world-cup',
   },
   {
     id: 'online',

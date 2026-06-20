@@ -4,7 +4,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { LiquidButton } from '@/components/game/LiquidButton';
 import { SaveStatusIndicator } from '@/components/game/SaveStatusIndicator';
-import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users, Bug, ChartBar, Sparkles, Gauge } from 'lucide-react';
+import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users, Bug, ChartBar, Sparkles, Gauge, Bell } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { useState, useRef, useEffect } from 'react';
@@ -19,8 +19,11 @@ import {
   writeCommunityPackSlotPref,
   readAnalyticsConsent,
   writeAnalyticsConsent,
+  readNotificationsEnabled,
+  writeNotificationsEnabled,
   STORAGE_KEYS,
 } from '@/store/helpers/persistence';
+import { getNotificationPermission, requestNotificationPermission, scheduleEngagementReminders, cancelAllEngagementReminders } from '@/utils/notifications';
 import { restorePurchases, openSubscriptionManagement, getCustomerInfo, extractSubscriptionInfo } from '@/utils/purchases';
 import { triggerTestError } from '@/utils/sentry';
 import { refreshAnalyticsConsent, track } from '@/utils/analytics';
@@ -132,6 +135,47 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
     const stored = readCommunityPackSlotPref(activeSlot);
     return stored === null ? currentCommunityPack === true : stored;
   });
+
+  // Device-global notification opt-in (not save-scoped). Toggling on requests
+  // OS permission; if the user denies it, the toggle snaps back off.
+  const [notificationsOn, setNotificationsOn] = useState<boolean>(() => readNotificationsEnabled() === true);
+  const handleToggleNotifications = async () => {
+    if (notificationsOn) {
+      writeNotificationsEnabled(false);
+      setNotificationsOn(false);
+      await cancelAllEngagementReminders();
+      track('reminders_disabled', {});
+      return;
+    }
+    const granted = await requestNotificationPermission();
+    if (!granted) {
+      writeNotificationsEnabled(false);
+      setNotificationsOn(false);
+      errorToast('Notifications off', 'Enable notifications for Dynasty Manager in your device Settings to get reminders.');
+      return;
+    }
+    writeNotificationsEnabled(true);
+    setNotificationsOn(true);
+    await scheduleEngagementReminders();
+    track('reminders_enabled', {});
+    successToast('Reminders on', 'We\'ll nudge you about your streak and live events.');
+  };
+
+  // Reconcile our opt-in with the OS permission on mount: if the user enabled
+  // reminders but later revoked permission in the device settings, flip the
+  // toggle back off so it reflects reality. 'unsupported' (web/dev) is left
+  // untouched — only a real OS denial reconciles.
+  useEffect(() => {
+    if (readNotificationsEnabled() !== true) return;
+    let cancelled = false;
+    void getNotificationPermission().then(perm => {
+      if (!cancelled && (perm === 'denied' || perm === 'prompt')) {
+        writeNotificationsEnabled(false);
+        setNotificationsOn(false);
+      }
+    });
+    return () => { cancelled = true; };
+  }, []);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackCategory, setFeedbackCategory] = useState<'bug' | 'feature' | 'general'>('general');
   const [feedbackMessage, setFeedbackMessage] = useState('');
@@ -205,6 +249,11 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
   const handleDeleteAllData = () => {
     hapticMedium();
     deleteAllDynastyData();
+    // deleteAllDynastyData wipes the 'dynasty-' localStorage keys (incl. the
+    // notification opt-in), but scheduled OS reminders live outside the web
+    // storage — cancel them too so a "claim your streak" notification can't
+    // fire after the player has erased everything.
+    void cancelAllEngagementReminders();
     setShowDeleteDataConfirm(false);
     navigate('/');
     setTimeout(() => {
@@ -376,6 +425,16 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
             description="Vibrate on key actions (mobile only)"
             value={settings.hapticsEnabled !== false}
             onChange={() => updateSettings({ hapticsEnabled: !settings.hapticsEnabled })}
+          />
+
+          <div className="border-t border-white/10" />
+
+          <ToggleRow
+            icon={Bell}
+            label="Reminders"
+            description="Notify me about my daily streak and live events (mobile only)"
+            value={notificationsOn}
+            onChange={() => { void handleToggleNotifications(); }}
           />
         </div>
       </SettingsSection>

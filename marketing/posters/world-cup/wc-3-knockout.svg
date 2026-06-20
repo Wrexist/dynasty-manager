@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844" font-family="'DM Sans',Arial,sans-serif">
+  <defs>
+    <radialGradient id="bg3" cx="50%" cy="4%" r="90%"><stop offset="0%" stop-color="#131c30"/><stop offset="55%" stop-color="#0b1120"/><stop offset="100%" stop-color="#070a12"/></radialGradient>
+    <linearGradient id="gold3" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FCD56E"/><stop offset="100%" stop-color="#E89A02"/></linearGradient>
+  </defs>
+  <rect width="390" height="844" fill="url(#bg3)"/>
+
+  <!-- top bar -->
+  <rect x="0" y="0" width="390" height="64" fill="#0a0f1bcc"/>
+  <rect x="20" y="20" width="26" height="24" rx="4" fill="#002395"/><rect x="29" y="20" width="8" height="24" fill="#fff"/><rect x="37" y="20" width="9" height="24" fill="#ED2939"/>
+  <text x="56" y="32" fill="#EEF1F7" font-size="14" font-weight="700">France</text>
+  <text x="56" y="48" fill="#FBBF24" font-size="10.5" font-weight="600">World Cup · Semi-Finals</text>
+  <rect x="0" y="63" width="390" height="1" fill="#ffffff14"/>
+
+  <!-- play button card -->
+  <g transform="translate(16 80)">
+    <rect width="358" height="72" rx="16" fill="#ffffff0d" stroke="#ffffff1a"/>
+    <rect x="16" y="16" width="40" height="40" rx="10" fill="#FBBF241a"/>
+    <path d="M28 26 h16 v6 q0 11 -8 14 q-8 -3 -8 -14z" fill="#FBBF24"/>
+    <text x="66" y="32" fill="#EEF1F7" font-family="'Oswald',Arial" font-size="17" font-weight="700">World Cup 2026</text>
+    <text x="66" y="48" fill="#FBBF24" font-size="11" font-weight="600">▸ Your road to glory as France</text>
+    <g transform="translate(220 24)"><rect width="122" height="30" rx="9" fill="url(#gold3)"/><text x="61" y="20" text-anchor="middle" fill="#3a2a05" font-size="12" font-weight="800">▶ Play Semi-Final</text></g>
+  </g>
+
+  <text x="20" y="178" fill="#EEF1F7" font-size="13" font-weight="700">Knockout Stage</text>
+
+  <!-- helper rows -->
+  <!-- Round of 16 -->
+  <g transform="translate(16 190)">
+    <rect width="358" height="86" rx="14" fill="#ffffff0d" stroke="#ffffff1a"/>
+    <rect width="358" height="30" rx="14" fill="#ffffff0d"/>
+    <text x="14" y="20" fill="#C7CDDA" font-size="10.5" font-weight="700" letter-spacing="1">ROUND OF 16</text>
+    <g transform="translate(14 42)" font-size="12.5">
+      <rect x="0" y="0" width="14" height="10" rx="2" fill="#002395"/><text x="20" y="9" fill="#fff" font-weight="700">France</text><text x="172" y="9" text-anchor="middle" fill="#C7CDDA" font-family="monospace" font-size="11">3 - 1</text><text x="316" y="9" text-anchor="end" fill="#6b7488">Mexico</text><rect x="320" y="0" width="14" height="10" rx="2" fill="#006847"/>
+      <g transform="translate(0 22)"><rect x="0" y="0" width="14" height="10" rx="2" fill="#75AADB"/><text x="20" y="9" fill="#fff" font-weight="700">Croatia</text><text x="172" y="9" text-anchor="middle" fill="#C7CDDA" font-family="monospace" font-size="11">1 - 0</text><text x="316" y="9" text-anchor="end" fill="#6b7488">Senegal</text><rect x="320" y="0" width="14" height="10" rx="2" fill="#00853f"/></g>
+    </g>
+  </g>
+
+  <!-- Quarter-Finals -->
+  <g transform="translate(16 290)">
+    <rect width="358" height="64" rx="14" fill="#ffffff0d" stroke="#ffffff1a"/>
+    <rect width="358" height="30" rx="14" fill="#ffffff0d"/>
+    <text x="14" y="20" fill="#C7CDDA" font-size="10.5" font-weight="700" letter-spacing="1">QUARTER-FINALS</text>
+    <g transform="translate(14 42)" font-size="12.5">
+      <rect x="0" y="0" width="14" height="10" rx="2" fill="#002395"/><text x="20" y="9" fill="#fff" font-weight="700">France</text><text x="172" y="9" text-anchor="middle" fill="#C7CDDA" font-family="monospace" font-size="11">2 - 2 <tspan fill="#8A93A6" font-size="9">(4-3 pen)</tspan></text><text x="316" y="9" text-anchor="end" fill="#6b7488">Brazil</text><rect x="320" y="0" width="14" height="10" rx="2" fill="#0d8a3f"/>
+    </g>
+  </g>
+
+  <!-- Semi-Finals (current) -->
+  <g transform="translate(16 368)">
+    <rect width="358" height="64" rx="14" fill="#ffffff0d" stroke="#FBBF2466"/>
+    <rect width="358" height="30" rx="14" fill="#FBBF2412"/>
+    <text x="14" y="20" fill="#FCD56E" font-size="10.5" font-weight="700" letter-spacing="1">SEMI-FINALS</text>
+    <g transform="translate(232 8)"><rect width="56" height="15" rx="7.5" fill="#FBBF2433"/><text x="28" y="11" text-anchor="middle" fill="#FCD56E" font-size="9" font-weight="700">Current</text></g>
+    <g transform="translate(14 44)" font-size="13">
+      <rect x="0" y="0" width="14" height="10" rx="2" fill="#002395"/><text x="20" y="9" fill="#fff" font-weight="700">France</text><text x="172" y="9" text-anchor="middle" fill="#5b6478" font-family="monospace" font-size="11">vs</text><text x="316" y="9" text-anchor="end" fill="#E6E9F0">Spain</text><rect x="320" y="0" width="14" height="10" rx="2" fill="#AA151B"/>
+    </g>
+  </g>
+
+  <!-- Final (locked) -->
+  <g transform="translate(16 446)">
+    <rect width="358" height="56" rx="14" fill="#ffffff08" stroke="#ffffff10"/>
+    <rect width="358" height="30" rx="14" fill="#ffffff08"/>
+    <text x="14" y="20" fill="#6b7488" font-size="10.5" font-weight="700" letter-spacing="1">FINAL</text>
+    <text x="179" y="46" text-anchor="middle" fill="#5b6478" font-size="11">Awaiting semi-final winners…</text>
+  </g>
+</svg>

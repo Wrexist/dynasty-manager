@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920" font-family="'Oswald','DM Sans',Arial,sans-serif">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="8%" r="85%">
+      <stop offset="0%" stop-color="#16203a"/>
+      <stop offset="45%" stop-color="#0c1322"/>
+      <stop offset="100%" stop-color="#070a12"/>
+    </radialGradient>
+    <radialGradient id="goldGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FAB205" stop-opacity="0.55"/>
+      <stop offset="55%" stop-color="#FAB205" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#FAB205" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="goldText" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FCD56E"/>
+      <stop offset="100%" stop-color="#E89A02"/>
+    </linearGradient>
+    <linearGradient id="goldBar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#E89A02"/>
+      <stop offset="100%" stop-color="#FCD56E"/>
+    </linearGradient>
+    <linearGradient id="trophyFill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FCD56E"/>
+      <stop offset="100%" stop-color="#C9820A"/>
+    </linearGradient>
+    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="26"/>
+    </filter>
+    <filter id="grain">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7" result="n"/>
+      <feColorMatrix in="n" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.05 0"/>
+    </filter>
+  </defs>
+
+  <!-- base -->
+  <rect width="1080" height="1920" fill="url(#bg)"/>
+  <ellipse cx="540" cy="430" rx="620" ry="520" fill="url(#goldGlow)" filter="url(#soft)"/>
+
+  <!-- eyebrow -->
+  <text x="540" y="216" text-anchor="middle" fill="#FAB205" font-size="34" font-weight="600" letter-spacing="10">◆  LIMITED-TIME EVENT  ◆</text>
+
+  <!-- trophy emblem -->
+  <g transform="translate(540 430)">
+    <circle r="190" fill="none" stroke="#FAB205" stroke-opacity="0.22" stroke-width="2"/>
+    <g transform="translate(-110 -130) scale(1.0)" fill="url(#trophyFill)" stroke="#7a5202" stroke-width="2">
+      <path d="M40 0 H180 V40 Q180 150 110 175 Q40 150 40 40 Z"/>
+      <path d="M40 18 H8 Q-6 18 -6 40 Q-6 86 44 92 V70 Q24 66 24 44 H40 Z"/>
+      <path d="M180 18 H212 Q226 18 226 40 Q226 86 176 92 V70 Q196 66 196 44 H180 Z"/>
+      <rect x="92" y="172" width="36" height="40"/>
+      <rect x="58" y="210" width="104" height="22" rx="6"/>
+      <rect x="44" y="232" width="132" height="26" rx="7"/>
+    </g>
+    <text x="0" y="40" text-anchor="middle" fill="#3a2a05" font-size="60" font-weight="800">26</text>
+  </g>
+
+  <!-- headline -->
+  <text x="540" y="800" text-anchor="middle" fill="url(#goldText)" font-size="150" font-weight="800" letter-spacing="2">2026</text>
+  <text x="540" y="910" text-anchor="middle" fill="#EEF1F7" font-size="92" font-weight="700" letter-spacing="6">WORLD CUP</text>
+  <text x="540" y="1010" text-anchor="middle" fill="#EEF1F7" font-size="92" font-weight="700" letter-spacing="14">FESTIVAL</text>
+  <text x="540" y="1080" text-anchor="middle" fill="#9AA3B6" font-size="38" font-weight="400" font-family="'DM Sans',Arial,sans-serif">Check in every day. Climb the rewards.</text>
+
+  <!-- reward track -->
+  <g font-family="'DM Sans',Arial,sans-serif">
+    <!-- rows -->
+    <g>
+      <rect x="150" y="1150" width="780" height="86" rx="20" fill="#ffffff" fill-opacity="0.035" stroke="#ffffff" stroke-opacity="0.08"/>
+      <circle cx="206" cy="1193" r="20" fill="#FAB205" fill-opacity="0.22"/><circle cx="206" cy="1193" r="7" fill="#FAB205"/>
+      <text x="252" y="1205" fill="#E6E9F0" font-size="36" font-weight="600">Group Stage</text>
+      <text x="900" y="1205" text-anchor="end" fill="#FAB205" font-size="34" font-weight="700">+25 XP</text>
+    </g>
+    <g>
+      <rect x="150" y="1248" width="780" height="86" rx="20" fill="#ffffff" fill-opacity="0.035" stroke="#ffffff" stroke-opacity="0.08"/>
+      <circle cx="206" cy="1291" r="20" fill="#FAB205" fill-opacity="0.22"/><circle cx="206" cy="1291" r="7" fill="#FAB205"/>
+      <text x="252" y="1303" fill="#E6E9F0" font-size="36" font-weight="600">Round of 16</text>
+      <text x="900" y="1303" text-anchor="end" fill="#FAB205" font-size="34" font-weight="700">+40 XP</text>
+    </g>
+    <g>
+      <rect x="150" y="1346" width="780" height="86" rx="20" fill="#ffffff" fill-opacity="0.035" stroke="#ffffff" stroke-opacity="0.08"/>
+      <circle cx="206" cy="1389" r="20" fill="#FAB205" fill-opacity="0.22"/><circle cx="206" cy="1389" r="7" fill="#FAB205"/>
+      <text x="252" y="1401" fill="#E6E9F0" font-size="36" font-weight="600">Quarter-Final</text>
+      <text x="900" y="1401" text-anchor="end" fill="#FAB205" font-size="34" font-weight="700">+60 XP</text>
+    </g>
+    <g>
+      <rect x="150" y="1444" width="780" height="86" rx="20" fill="#ffffff" fill-opacity="0.035" stroke="#ffffff" stroke-opacity="0.08"/>
+      <circle cx="206" cy="1487" r="20" fill="#FAB205" fill-opacity="0.22"/><circle cx="206" cy="1487" r="7" fill="#FAB205"/>
+      <text x="252" y="1499" fill="#E6E9F0" font-size="36" font-weight="600">Semi-Final</text>
+      <text x="900" y="1499" text-anchor="end" fill="#FAB205" font-size="34" font-weight="700">+90 XP</text>
+    </g>
+    <!-- champions highlighted -->
+    <g>
+      <rect x="150" y="1542" width="780" height="92" rx="20" fill="#FAB205" fill-opacity="0.14" stroke="#FAB205" stroke-opacity="0.5"/>
+      <circle cx="206" cy="1588" r="22" fill="#FAB205" fill-opacity="0.3"/>
+      <path d="M196 1588 l7 7 l13 -14" stroke="#FCD56E" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="252" y="1600" fill="#FCD56E" font-size="38" font-weight="700">Champions</text>
+      <text x="900" y="1600" text-anchor="end" fill="#FCD56E" font-size="38" font-weight="800">+150 XP</text>
+    </g>
+  </g>
+
+  <!-- live + dates -->
+  <g transform="translate(540 1716)" font-family="'DM Sans',Arial,sans-serif" text-anchor="middle">
+    <rect x="-180" y="-34" width="360" height="58" rx="29" fill="#ffffff" fill-opacity="0.04" stroke="#2BD4A0" stroke-opacity="0.4"/>
+    <circle cx="-118" cy="-5" r="8" fill="#2BD4A0"/>
+    <text x="14" y="6" fill="#CFF6E8" font-size="30" font-weight="700" letter-spacing="2">LIVE NOW · ENDS JUL 19</text>
+  </g>
+
+  <!-- footer brand -->
+  <g transform="translate(540 1828)" text-anchor="middle">
+    <text x="0" y="0" fill="#EEF1F7" font-size="46" font-weight="800" letter-spacing="6">DYNASTY MANAGER</text>
+    <text x="0" y="44" fill="#9AA3B6" font-size="28" font-weight="400" font-family="'DM Sans',Arial,sans-serif" letter-spacing="3">FOOTBALL · FREE ON THE APP STORE</text>
+  </g>
+
+  <rect width="1080" height="1920" filter="url(#grain)" opacity="0.5" style="mix-blend-mode:overlay"/>
+</svg>

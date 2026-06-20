@@ -50,7 +50,7 @@ const PlayerDetail = () => {
     selectedPlayerId, players, clubs, playerClubId, previousScreen,
     incomingOffers, season, week, totalWeeks, facilities,
     training, transferWindowOpen, staff,
-    fixtures, managerProgression,
+    fixtures, managerProgression, gameMode,
   } = useGameStore(useShallow(s => ({
     selectedPlayerId: s.selectedPlayerId,
     players: s.players,
@@ -67,7 +67,11 @@ const PlayerDetail = () => {
     staff: s.staff,
     fixtures: s.fixtures,
     managerProgression: s.managerProgression,
+    gameMode: s.gameMode,
   })));
+  // World Cup mode is a national-team tournament — no club economy, so the
+  // transfer/contract/loan UI on this screen is hidden.
+  const isWorldCup = gameMode === 'world-cup';
 
   const setScreen = useGameStore(s => s.setScreen);
   const selectPlayer = useGameStore(s => s.selectPlayer);
@@ -311,7 +315,7 @@ const PlayerDetail = () => {
       )}
 
       {/* Transfer Request Badge */}
-      {player.wantsToLeave && (
+      {!isWorldCup && player.wantsToLeave && (
         <div className="bg-destructive/10 border border-destructive/30 rounded-xl px-3 py-2 flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 text-destructive" />
           <span className="text-xs font-bold text-destructive">Transfer Request Submitted</span>
@@ -831,7 +835,8 @@ const PlayerDetail = () => {
         </GlassPanel>
       )}
 
-      {/* Contract */}
+      {/* Contract — club economy only; hidden for national-team players */}
+      {!isWorldCup && (
       <GlassPanel className="p-4">
         <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">Contract</p>
         <div className="grid grid-cols-2 gap-3">
@@ -868,9 +873,10 @@ const PlayerDetail = () => {
           </div>
         </div>
       </GlassPanel>
+      )}
 
       {/* Transfer Clauses */}
-      {(player.sellOnPercentage || player.releaseClause) && (
+      {!isWorldCup && (player.sellOnPercentage || player.releaseClause) && (
         <GlassPanel className="p-3">
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Clauses</p>
           <div className="space-y-1">
@@ -956,7 +962,7 @@ const PlayerDetail = () => {
       })()}
 
       {/* Sell Button */}
-      {isOwnPlayer && (
+      {!isWorldCup && isOwnPlayer && (
         <Button
           variant={player.listedForSale ? 'outline' : 'secondary'}
           className="w-full gap-2"
@@ -968,7 +974,7 @@ const PlayerDetail = () => {
       )}
 
       {/* Contract Renewal */}
-      {isOwnPlayer && getContractUrgency(player.contractEnd, season) !== null && (
+      {!isWorldCup && isOwnPlayer && getContractUrgency(player.contractEnd, season) !== null && (
         <Button
           variant="outline"
           className="w-full gap-2 border-primary/30 text-primary hover:bg-primary/10 hover:text-primary"
@@ -991,7 +997,7 @@ const PlayerDetail = () => {
       )}
 
       {/* Rival Player Actions */}
-      {!isOwnPlayer && transferWindowOpen && !player.onLoan && (
+      {!isWorldCup && !isOwnPlayer && transferWindowOpen && !player.onLoan && (
         <div className="space-y-2">
           <Button
             variant="secondary"

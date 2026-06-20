@@ -2,7 +2,8 @@ import type { FormationType, NationalTeamState, InternationalTournamentState, Na
 import type { GameState } from '../storeTypes';
 import { addMsg, safeRandomUUID } from '@/utils/helpers';
 import { NT_JOB_OFFER_DURATION_WEEKS } from '@/config/gameBalance';
-import { generateNationalTeamPool, autoSelectNationalSquad } from '@/utils/international';
+import { generateNationalTeamPool, autoSelectNationalSquad, generateTournament } from '@/utils/international';
+import { nationToClub } from '@/utils/internationalMatch';
 import { selectBestLineup } from '@/utils/playerGen';
 import { getNationRanking } from '@/data/nations';
 
@@ -53,6 +54,41 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
         results: [],
         poolPlayerIds,
       },
+    });
+  },
+
+  /** Boot a World Cup game: it plays like the normal game, except your "club"
+   *  IS your national team and your only competition is the World Cup. The
+   *  national team becomes `playerClubId` so the normal Squad, Tactics and match
+   *  flow operate on it; a nation-adapted Dashboard is the hub. The World Cup
+   *  tournament is the season. `gameMode: 'world-cup'` flags existing fields —
+   *  no save migration. */
+  startWorldCup: (nationality: string) => {
+    // Clean slate — clears any prior club/career/transfer/match state.
+    _get().resetGame();
+    _set({
+      gameMode: 'world-cup',
+      gameStarted: true,
+      season: 1,
+      week: 47,
+      seasonPhase: 'international',
+    });
+    // Generate the candidate pool + auto-pick the 23-man squad (sets
+    // nationalTeam + adds the pool into `players`).
+    _get().initNationalTeam(nationality);
+    const nt = _get().nationalTeam!;
+    // The national team IS the player's club (keyed by nation name) so Squad,
+    // Tactics and MatchDay all operate on it. clubs[nation] is the source of
+    // truth for the lineup the player edits.
+    const ntClub = nationToClub(nationality, nt.squad, nt.lineup, nt.subs, nt.formation);
+    // Squad is managed via the normal Squad page — no separate picker gate.
+    const tournament = generateTournament('world-cup', 1, nationality);
+    tournament.squadConfirmed = true;
+    _set({
+      playerClubId: nationality,
+      clubs: { [nationality]: ntClub },
+      internationalTournament: tournament,
+      currentScreen: 'dashboard',
     });
   },
 

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GameScreen } from '@/types/game';
-import { LayoutDashboard, Users, Target, ArrowLeftRight, Briefcase, User, Mail } from 'lucide-react';
+import { LayoutDashboard, Users, Target, ArrowLeftRight, Briefcase, User, Mail, Trophy } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { MoreDrawer } from './MoreDrawer';
@@ -25,6 +25,16 @@ const unemployedTabs: { screen: GameScreen; label: string; icon: React.ElementTy
   { screen: 'inbox', label: 'Inbox', icon: Mail },
 ];
 
+// World Cup mode is the normal game with the national team as your club — same
+// Home/Squad/Tactics tabs and icons; only the Market slot is reformatted to the
+// tournament. No league/market/finance.
+const worldCupTabs: { screen: GameScreen; label: string; icon: React.ElementType; group?: GameScreen[] }[] = [
+  { screen: 'dashboard', label: 'Home', icon: LayoutDashboard },
+  { screen: 'squad', label: 'Squad', icon: Users },
+  { screen: 'tactics', label: 'Tactics', icon: Target },
+  { screen: 'international-tournament', label: 'Tournament', icon: Trophy },
+];
+
 export function BottomNav() {
   const { currentScreen, messages, incomingOffers, jobOffers, gameMode } = useGameStore(useShallow(s => ({
     currentScreen: s.currentScreen, messages: s.messages, incomingOffers: s.incomingOffers,
@@ -38,7 +48,8 @@ export function BottomNav() {
   const unreadCount = useMemo(() => messages.filter(m => !m.read).length, [messages]);
   const pendingOffers = incomingOffers.length;
   const hasJobOffers = gameMode === 'career' && jobOffers.length > 0;
-  const activeTabs = isUnemployed ? unemployedTabs : tabs;
+  const isWorldCup = gameMode === 'world-cup';
+  const activeTabs = isWorldCup ? worldCupTabs : isUnemployed ? unemployedTabs : tabs;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 px-3 pt-2 pb-2 safe-area-bottom pointer-events-none transform-gpu">
@@ -137,7 +148,9 @@ export function BottomNav() {
             </button>
           );
         })}
-        <MoreDrawer disabled={matchLocked} open={drawerOpen} onOpenChange={setDrawerOpen} />
+        {/* No "More" drawer in World Cup mode — there are no club screens
+            (transfers, finance, board, …) to surface. */}
+        {!isWorldCup && <MoreDrawer disabled={matchLocked} open={drawerOpen} onOpenChange={setDrawerOpen} />}
       </nav>
     </div>
   );

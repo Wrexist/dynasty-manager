@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920" font-family="'DM Sans',Arial,sans-serif">
+  <defs>
+    <radialGradient id="sbg" cx="50%" cy="10%" r="90%">
+      <stop offset="0%" stop-color="#141d33"/><stop offset="55%" stop-color="#0b1120"/><stop offset="100%" stop-color="#070a12"/>
+    </radialGradient>
+    <linearGradient id="sgold" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FCD56E"/><stop offset="100%" stop-color="#E89A02"/></linearGradient>
+    <linearGradient id="sgoldbar" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#E89A02"/><stop offset="100%" stop-color="#FCD56E"/></linearGradient>
+    <linearGradient id="strophy" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FCD56E"/><stop offset="100%" stop-color="#C9820A"/></linearGradient>
+    <radialGradient id="sglow" cx="50%" cy="0%" r="80%"><stop offset="0%" stop-color="#FAB205" stop-opacity="0.4"/><stop offset="60%" stop-color="#FAB205" stop-opacity="0.05"/><stop offset="100%" stop-color="#FAB205" stop-opacity="0"/></radialGradient>
+    <filter id="dropg" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="30" stdDeviation="40" flood-color="#000" flood-opacity="0.6"/></filter>
+  </defs>
+
+  <rect width="1080" height="1920" fill="url(#sbg)"/>
+
+  <!-- marketing headline -->
+  <text x="540" y="150" text-anchor="middle" fill="#EEF1F7" font-family="'Oswald',Arial,sans-serif" font-size="64" font-weight="700" letter-spacing="2">A NEW EVENT, EVERY DAY</text>
+  <text x="540" y="208" text-anchor="middle" fill="#FAB205" font-size="34" font-weight="600" letter-spacing="2">The 2026 World Cup Festival is live</text>
+
+  <!-- phone frame -->
+  <g transform="translate(190 270)" filter="url(#dropg)">
+    <rect width="700" height="1420" rx="64" fill="#05070d" stroke="#222a3c" stroke-width="3"/>
+    <rect x="14" y="14" width="672" height="1392" rx="52" fill="#0a0f1b"/>
+    <ellipse cx="350" cy="120" rx="420" ry="260" fill="url(#sglow)"/>
+    <!-- notch -->
+    <rect x="290" y="34" width="120" height="26" rx="13" fill="#05070d"/>
+
+    <!-- hero card -->
+    <g transform="translate(46 96)">
+      <rect width="608" height="250" rx="26" fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-opacity="0.08"/>
+      <g transform="translate(34 40)">
+        <rect width="92" height="92" rx="22" fill="#FAB205" fill-opacity="0.18"/>
+        <g transform="translate(16 14) scale(0.26)" fill="url(#strophy)"><path d="M40 0 H180 V40 Q180 150 110 175 Q40 150 40 40 Z"/><path d="M40 18 H8 Q-6 18 -6 40 Q-6 86 44 92 V70 Q24 66 24 44 H40 Z"/><path d="M180 18 H212 Q226 18 226 40 Q226 86 176 92 V70 Q196 66 196 44 H180 Z"/><rect x="92" y="172" width="36" height="40"/><rect x="58" y="210" width="104" height="22" rx="6"/><rect x="44" y="232" width="132" height="26" rx="7"/></g>
+      </g>
+      <text x="146" y="58" fill="#FAB205" font-size="20" font-weight="700" letter-spacing="3">LIVE EVENT</text>
+      <text x="146" y="98" fill="#EEF1F7" font-family="'Oswald',Arial,sans-serif" font-size="40" font-weight="700">2026 World Cup Festival</text>
+      <text x="146" y="132" fill="#9AA3B6" font-size="22">Check in daily to climb the rewards.</text>
+      <g transform="translate(34 176)">
+        <rect width="220" height="46" rx="23" fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-opacity="0.1"/>
+        <circle cx="32" cy="23" r="6" fill="#FAB205"/>
+        <text x="50" y="31" fill="#C7CDDA" font-size="22" font-weight="600">30 days left</text>
+      </g>
+    </g>
+
+    <!-- check-in card -->
+    <g transform="translate(46 374)">
+      <rect width="608" height="232" rx="26" fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-opacity="0.08"/>
+      <text x="34" y="52" fill="#EEF1F7" font-family="'Oswald',Arial,sans-serif" font-size="30" font-weight="700">Daily Check-In</text>
+      <text x="574" y="52" text-anchor="end" fill="#FAB205" font-size="26" font-weight="700">40 pts</text>
+      <!-- progress -->
+      <rect x="34" y="74" width="540" height="14" rx="7" fill="#ffffff" fill-opacity="0.07"/>
+      <rect x="34" y="74" width="160" height="14" rx="7" fill="url(#sgoldbar)"/>
+      <text x="34" y="120" fill="#8A93A6" font-size="20">20 pts to Quarter-Final</text>
+      <!-- claim button -->
+      <g transform="translate(34 138)">
+        <rect width="540" height="64" rx="18" fill="url(#sgoldbar)"/>
+        <text x="270" y="42" text-anchor="middle" fill="#2a1d02" font-size="28" font-weight="800">Check in for +10 pts</text>
+      </g>
+    </g>
+
+    <!-- reward track -->
+    <g transform="translate(46 634)">
+      <rect width="608" height="552" rx="26" fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-opacity="0.08"/>
+      <text x="34" y="50" fill="#EEF1F7" font-family="'Oswald',Arial,sans-serif" font-size="30" font-weight="700">Reward Track</text>
+      <!-- rows -->
+      <g font-size="24">
+        <g transform="translate(28 74)"><rect width="552" height="68" rx="16" fill="#2BD4A0" fill-opacity="0.10" stroke="#2BD4A0" stroke-opacity="0.25"/><circle cx="44" cy="34" r="20" fill="#2BD4A0" fill-opacity="0.2"/><path d="M34 34 l7 7 l13 -13" stroke="#7df0c9" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/><text x="84" y="42" fill="#C7CDDA" font-weight="600">Group Stage</text><text x="528" y="42" text-anchor="end" fill="#7df0c9" font-weight="700">Claimed</text></g>
+        <g transform="translate(28 152)"><rect width="552" height="68" rx="16" fill="#FAB205" fill-opacity="0.14" stroke="#FAB205" stroke-opacity="0.5"/><circle cx="44" cy="34" r="20" fill="#FAB205" fill-opacity="0.28"/><rect x="36" y="26" width="16" height="16" rx="3" fill="#FCD56E"/><text x="84" y="42" fill="#FCD56E" font-weight="700">Round of 16</text><g transform="translate(452 14)"><rect width="76" height="40" rx="12" fill="url(#sgoldbar)"/><text x="38" y="27" text-anchor="middle" fill="#2a1d02" font-weight="800" font-size="22">Claim</text></g></g>
+        <g transform="translate(28 230)"><rect width="552" height="68" rx="16" fill="#ffffff" fill-opacity="0.03" stroke="#ffffff" stroke-opacity="0.06"/><circle cx="44" cy="34" r="20" fill="#ffffff" fill-opacity="0.08"/><text x="84" y="42" fill="#E6E9F0" font-weight="600">Quarter-Final</text><text x="528" y="42" text-anchor="end" fill="#8A93A6">60 XP</text></g>
+        <g transform="translate(28 308)"><rect width="552" height="68" rx="16" fill="#ffffff" fill-opacity="0.03" stroke="#ffffff" stroke-opacity="0.06"/><circle cx="44" cy="34" r="20" fill="#ffffff" fill-opacity="0.08"/><text x="84" y="42" fill="#E6E9F0" font-weight="600">Semi-Final</text><text x="528" y="42" text-anchor="end" fill="#8A93A6">90 XP</text></g>
+        <g transform="translate(28 386)"><rect width="552" height="68" rx="16" fill="#ffffff" fill-opacity="0.03" stroke="#ffffff" stroke-opacity="0.06"/><circle cx="44" cy="34" r="20" fill="#ffffff" fill-opacity="0.08"/><text x="84" y="42" fill="#E6E9F0" font-weight="600">Champions</text><text x="528" y="42" text-anchor="end" fill="#FCD56E" font-weight="700">150 XP</text></g>
+      </g>
+    </g>
+  </g>
+
+  <!-- footer brand -->
+  <text x="540" y="1788" text-anchor="middle" fill="#EEF1F7" font-family="'Oswald',Arial,sans-serif" font-size="44" font-weight="800" letter-spacing="6">DYNASTY MANAGER</text>
+  <text x="540" y="1832" text-anchor="middle" fill="#9AA3B6" font-size="26" letter-spacing="3">FOOTBALL · FREE ON THE APP STORE</text>
+</svg>

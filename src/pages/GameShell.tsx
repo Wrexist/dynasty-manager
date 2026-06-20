@@ -10,7 +10,7 @@ import { PageErrorBoundary } from '@/components/game/PageErrorBoundary';
 import { ErrorBoundary } from '@/components/game/ErrorBoundary';
 import { ContractNegotiation } from '@/components/game/ContractNegotiation';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
-import { BACK_TARGET, MAIN_TABS, SCREEN_GROUPS, UNEMPLOYED_MAIN_TABS } from '@/config/navigation';
+import { BACK_TARGET, MAIN_TABS, WC_MAIN_TABS, SCREEN_GROUPS, UNEMPLOYED_MAIN_TABS } from '@/config/navigation';
 import { MARKET_SUB_NAV, SQUAD_SUB_NAV } from '@/config/ui';
 import { PACK_PITY_THRESHOLD } from '@/config/packs';
 import { useMatchLocked, useCareerUnemployed } from '@/hooks/useGameSelectors';
@@ -61,6 +61,10 @@ const InternationalTournament = lazy(() => import('./InternationalTournament'));
 const JobMarket = lazy(() => import('./JobMarket'));
 const CareerOverview = lazy(() => import('./CareerOverview'));
 const BallonDor = lazy(() => import('./BallonDor'));
+const FestivalHub = lazy(() => import('./FestivalHub'));
+const DynastyLegacy = lazy(() => import('./DynastyLegacy'));
+const WorldCupResult = lazy(() => import('./WorldCupResult'));
+const WorldCupDashboard = lazy(() => import('./WorldCupDashboard'));
 
 const screens: Record<string, React.ComponentType> = {
   dashboard: Dashboard,
@@ -108,6 +112,9 @@ const screens: Record<string, React.ComponentType> = {
   'job-market': JobMarket,
   'career-overview': CareerOverview,
   'ballon-dor': BallonDor,
+  'festival': FestivalHub,
+  'dynasty-legacy': DynastyLegacy,
+  'world-cup-result': WorldCupResult,
 };
 
 // Route-level Suspense fallback while a lazy page chunk downloads. Renders
@@ -132,20 +139,24 @@ const PageSuspenseFallback = () => (
 
 const GameShell = () => {
   const navigate = useNavigate();
-  const { gameStarted, currentScreen, packPityCounter } = useGameStore(useShallow(s => ({
+  const { gameStarted, currentScreen, packPityCounter, gameMode } = useGameStore(useShallow(s => ({
     gameStarted: s.gameStarted,
     currentScreen: s.currentScreen,
     packPityCounter: s.packPityCounter || 0,
+    gameMode: s.gameMode,
   })));
   const setScreen = useGameStore(s => s.setScreen);
   const matchLocked = useMatchLocked();
   const isUnemployed = useCareerUnemployed();
-  const activeTabs = isUnemployed ? UNEMPLOYED_MAIN_TABS : MAIN_TABS;
+  const activeTabs = gameMode === 'world-cup' ? WC_MAIN_TABS : isUnemployed ? UNEMPLOYED_MAIN_TABS : MAIN_TABS;
 
   // Derive the sub-nav group for the current screen, if any. Memoized so
   // SubNav doesn't receive a fresh `items` array on every GameShell render
   // (which would defeat its prop stability and trigger child re-renders).
   const subNavGroup = useMemo(() => {
+    // World Cup mode strips the club sub-screens (Staff/Youth/Training,
+    // Scouting/Packs) — so no Squad/Market sub-nav to show.
+    if (gameMode === 'world-cup') return null;
     const group = SCREEN_GROUPS.find(g => g.includes(currentScreen));
     if (!group) return null;
     if (group[0] === 'squad') {
@@ -160,7 +171,7 @@ const GameShell = () => {
       return { items, layoutId: 'subnav-pill-market' };
     }
     return null;
-  }, [currentScreen, packPityCounter]);
+  }, [currentScreen, packPityCounter, gameMode]);
 
   useEffect(() => {
     if (!gameStarted) navigate('/');
@@ -214,10 +225,13 @@ const GameShell = () => {
     return () => { cancelled = true; stopEntitlementListener(); };
   }, []);
 
+  // World Cup mode has no Squad/Market sub-groups, so swipe ignores them.
+  const useSubGroups = !isUnemployed && gameMode !== 'world-cup';
+
   const handleSwipeLeft = useCallback(() => {
     if (matchLocked) return;
-    // Check SubNav groups first (skip when unemployed — no sub-groups)
-    if (!isUnemployed) {
+    // Check SubNav groups first (skip when unemployed / World Cup — no sub-groups)
+    if (useSubGroups) {
       for (const group of SCREEN_GROUPS) {
         const gIdx = group.indexOf(currentScreen);
         if (gIdx >= 0 && gIdx < group.length - 1) {
@@ -231,12 +245,12 @@ const GameShell = () => {
     if (idx >= 0 && idx < activeTabs.length - 1) {
       setScreen(activeTabs[idx + 1]);
     }
-  }, [currentScreen, setScreen, matchLocked, isUnemployed, activeTabs]);
+  }, [currentScreen, setScreen, matchLocked, useSubGroups, activeTabs]);
 
   const handleSwipeRight = useCallback(() => {
     if (matchLocked) return;
-    // Check SubNav groups first (skip when unemployed — no sub-groups)
-    if (!isUnemployed) {
+    // Check SubNav groups first (skip when unemployed / World Cup — no sub-groups)
+    if (useSubGroups) {
       for (const group of SCREEN_GROUPS) {
         const gIdx = group.indexOf(currentScreen);
         if (gIdx > 0) {
@@ -256,7 +270,7 @@ const GameShell = () => {
       const backTarget = BACK_TARGET[currentScreen] || (isUnemployed ? 'job-market' : 'dashboard');
       setScreen(backTarget);
     }
-  }, [currentScreen, setScreen, matchLocked, isUnemployed, activeTabs]);
+  }, [currentScreen, setScreen, matchLocked, isUnemployed, useSubGroups, activeTabs]);
 
   const swipeHandlers = useSwipeGesture({
     onSwipeLeft: handleSwipeLeft,
@@ -266,7 +280,12 @@ const GameShell = () => {
   if (import.meta.env.DEV && !screens[currentScreen]) {
     console.warn(`[GameShell] Unrecognized screen: "${currentScreen}", falling back to Dashboard`);
   }
-  const Screen = screens[currentScreen] || Dashboard;
+  // World Cup mode swaps the club Dashboard for a nation-adapted hub. Every
+  // other screen (Squad, Tactics, MatchDay, …) is shared — the national team
+  // is the player's club, so they operate on it natively.
+  const Screen = (gameMode === 'world-cup' && currentScreen === 'dashboard')
+    ? WorldCupDashboard
+    : (screens[currentScreen] || Dashboard);
 
   // Scroll-position memory per screen. Returning to a long list (Market, Squad,
   // Inbox) should land you back where you were, not dumped at the top — which

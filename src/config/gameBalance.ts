@@ -565,6 +565,16 @@ export const OBJECTIVE_STREAK_MULTIPLIER = 2;
 /** Bonus XP for completing all 3 objectives in a month */
 export const ALL_OBJECTIVES_BONUS_XP = 25;
 
+// ── Daily Login Streak Rewards ──
+/** Length of one daily-reward cycle. After this many consecutive days the
+ *  reward track loops back to day 1, while the streak counter keeps climbing. */
+export const DAILY_STREAK_CYCLE = 7;
+/** Manager XP granted on each day of the cycle (index 0 = day 1). Escalates
+ *  across the week with a milestone payout on the final day to reward an
+ *  unbroken streak. Sim-neutral: XP feeds manager progression / perks only,
+ *  never match, training, or transfer maths. */
+export const DAILY_REWARD_XP = [10, 15, 20, 25, 30, 40, 75] as const;
+
 // ── Coach Checklist XP Rewards ──
 export const COACH_TASK_XP: Record<string, number> = {
   'lineup': 5,

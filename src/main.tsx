@@ -8,6 +8,7 @@ import App from "./App.tsx";
 import "./index.css";
 import { initPurchases } from '@/utils/purchases';
 import { initAds } from '@/utils/ads';
+import { scheduleEngagementReminders, cancelAllEngagementReminders } from '@/utils/notifications';
 import { useGameStore } from '@/store/gameStore';
 import { initSentry, addGameBreadcrumb } from '@/utils/sentry';
 import { track } from '@/utils/analytics';
@@ -161,7 +162,19 @@ async function initNative() {
         } catch (err) {
           Sentry.captureException(err, { tags: { context: 'capApp.pause' } });
         }
+        // Schedule re-engagement reminders as the app backgrounds, reflecting
+        // the latest streak/event state. Best-effort + opt-in gated internally.
+        void scheduleEngagementReminders();
       });
+      // Clear pending reminders when the app comes back to the foreground so
+      // they can't fire while the player is already here; the next pause
+      // reschedules them fresh.
+      CapApp.addListener('resume', () => {
+        void cancelAllEngagementReminders();
+      });
+      // Same on a cold launch (no 'resume' fires) — the player is active now,
+      // so drop any reminders left over from the last session's pause.
+      void cancelAllEngagementReminders();
     } catch (err) {
       if (import.meta.env.DEV) console.warn('[initNative] App lifecycle init failed:', err);
       Sentry.captureException(err, { tags: { context: 'initNative.AppLifecycle' } });

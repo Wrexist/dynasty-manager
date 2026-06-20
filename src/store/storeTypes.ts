@@ -334,6 +334,12 @@ export interface GameState {
   playExtraTime: () => Match | null;
   playPenalties: () => void;
   revealNextPenaltyKick: () => void;
+  // World Cup mode — interactive national-team matches (Phase D).
+  playWorldCupFirstHalf: () => HalfState | null;
+  playWorldCupSecondHalf: () => Match | null;
+  playWorldCupExtraTime: () => Match | null;
+  playWorldCupPenalties: () => Match | null;
+  finalizeWorldCupPenalties: () => void;
   skipPenaltyShootout: () => void;
   clearMatchResult: () => void;
   rewindMatch: () => void;
@@ -384,6 +390,18 @@ export interface GameState {
   completeOnboardingChecklist: () => boolean;
   // Claim the XP for a completed weekly/monthly objective.
   claimObjective: (objectiveId: string) => void;
+  // Claim today's daily login-streak reward (manager XP). The streak itself is
+  // device-global (persisted outside the save); returns the resulting status,
+  // or null if today has already been claimed.
+  claimDailyStreakReward: () => import('@/utils/dailyStreak').DailyStreakStatus | null;
+  // Take the active live event's daily Festival check-in (device-global points).
+  // Returns the updated progress, or null if no event is live / already checked
+  // in today.
+  festivalCheckIn: () => import('@/utils/liveEvents').LiveEventProgress | null;
+  // Claim a Festival reward tier (grants manager XP into the active save).
+  // Returns the updated progress + XP granted, or null if the tier is locked,
+  // unknown, already claimed, or no event is live.
+  claimFestivalTier: (tierId: string) => { progress: import('@/utils/liveEvents').LiveEventProgress; xp: number } | null;
 
   // Actions — Press Conferences & Storylines
   respondToPress: (tone: import('@/types/game').PressResponseTone) => void;
@@ -447,6 +465,9 @@ export interface GameState {
 
   // Actions — National Team
   initNationalTeam: (nationality: string) => void;
+  // Boot a standalone World Cup game (gameMode 'world-cup') with the chosen
+  // nation — no club/league. Generates squad + tournament, lands on the picker.
+  startWorldCup: (nationality: string) => void;
   setManagerNationality: (nationality: string) => void;
   acceptNationalTeamOffer: () => void;
   declineNationalTeamOffer: () => void;

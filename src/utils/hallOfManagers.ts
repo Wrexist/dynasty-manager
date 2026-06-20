@@ -15,6 +15,12 @@ export interface HallEntry {
   bestPoints: number;
   prestigeLevel: number;
   recordedAt: number; // timestamp
+  /** League Cup wins. Optional — older persisted entries predate this field
+   *  (treat missing as 0 when aggregating). */
+  leagueCupWins?: number;
+  /** Continental trophies (Champions/Shield/Conference Cup wins). Optional —
+   *  older persisted entries predate this field. */
+  continentalWins?: number;
 }
 
 /** Load hall of managers from localStorage */
@@ -71,6 +77,11 @@ export function buildHallEntry(
     seasons: seasonHistory.length,
     titles: seasonHistory.filter(h => h.position === 1).length,
     cupWins: seasonHistory.filter(h => h.cupResult === 'Winner').length,
+    leagueCupWins: seasonHistory.filter(h => h.leagueCupResult === 'Winner').length,
+    continentalWins: seasonHistory.reduce((n, h) =>
+      n + (h.championsCupResult === 'Winner' ? 1 : 0)
+        + (h.shieldCupResult === 'Winner' ? 1 : 0)
+        + (h.conferenceCupResult === 'Winner' ? 1 : 0), 0),
     bestPosition: seasonHistory.length > 0 ? seasonHistory.reduce((m, h) => h.position < m ? h.position : m, Infinity) : 20,
     winRate: totalMatches > 0 ? Math.round((managerStats.totalWins / totalMatches) * 100) : 0,
     totalWins: managerStats.totalWins,

@@ -312,6 +312,20 @@ export const STORAGE_KEYS = {
    *  `split`). A pure UI preference kept device-global so it survives app
    *  restarts; not part of any save slot. */
   MATCH_VIEW_MODE: 'dynasty-match-view-mode',
+  /** localStorage: device-global daily login streak (JSON DailyStreakRecord).
+   *  Tracks real-world consecutive days the player opened the app, independent
+   *  of which career/slot is loaded — deliberately NOT save-scoped, so the
+   *  streak survives starting a new career. */
+  DAILY_STREAK: 'dynasty-daily-streak',
+  /** localStorage: device-global progress for the active date-boxed live event
+   *  (JSON LiveEventProgress). Namespaced by event id inside the record so a
+   *  new event starts fresh. Not save-scoped — Festival Points are a
+   *  device-level engagement reward, not part of any career. */
+  LIVE_EVENT_PROGRESS: 'dynasty-live-event-progress',
+  /** localStorage: device-global opt-in for local notification reminders.
+   *  '1' = on, '0' = off, missing = never asked. Device-level (not save-scoped)
+   *  and paired with the OS permission, which is the ultimate gate. */
+  NOTIFICATIONS_ENABLED: 'dynasty-notifications-enabled',
 } as const;
 
 /** Read the user's preferred MatchDay view, or null if never set. */
@@ -326,6 +340,100 @@ export function readMatchViewMode(): MatchViewMode | null {
 export function writeMatchViewMode(mode: MatchViewMode): void {
   try { localStorage.setItem(STORAGE_KEYS.MATCH_VIEW_MODE, mode); }
   catch { /* storage unavailable — non-fatal, defaults to commentary */ }
+}
+
+// ── Daily Login Streak ──
+
+/** Device-global daily login streak. Persisted in localStorage outside any
+ *  save slot. `lastClaimDate` is a local calendar-day key (YYYY-MM-DD);
+ *  `current` is the live consecutive-day run; `longest` is the best run ever. */
+export interface DailyStreakRecord {
+  lastClaimDate: string;
+  current: number;
+  longest: number;
+}
+
+export function readDailyStreak(): DailyStreakRecord | null {
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem(STORAGE_KEYS.DAILY_STREAK);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (typeof parsed?.lastClaimDate !== 'string') return null;
+    return {
+      lastClaimDate: parsed.lastClaimDate,
+      current: typeof parsed.current === 'number' ? parsed.current : 0,
+      longest: typeof parsed.longest === 'number' ? parsed.longest : 0,
+    };
+  } catch (err) {
+    if (raw !== null) breadcrumbCorruption('readDailyStreak', raw, err);
+    return null;
+  }
+}
+
+export function writeDailyStreak(record: DailyStreakRecord): void {
+  try { localStorage.setItem(STORAGE_KEYS.DAILY_STREAK, JSON.stringify(record)); }
+  catch { /* storage unavailable — non-fatal, the streak just won't persist */ }
+}
+
+// ── Live Event Progress ──
+
+/** Device-global progress for a date-boxed live event. `eventId` namespaces it
+ *  so progress from a previous event is treated as stale (a fresh record is
+ *  returned for the current event). `lastCheckInDate` is a local YYYY-MM-DD key. */
+export interface LiveEventProgress {
+  eventId: string;
+  points: number;
+  lastCheckInDate: string;
+  claimedTierIds: string[];
+  /** Local day key of the last match-win award (for the daily cap). */
+  matchWinDate?: string;
+  /** Number of match-win awards taken on `matchWinDate`. */
+  matchWinCount?: number;
+}
+
+export function readLiveEventProgress(): LiveEventProgress | null {
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem(STORAGE_KEYS.LIVE_EVENT_PROGRESS);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (typeof parsed?.eventId !== 'string') return null;
+    return {
+      eventId: parsed.eventId,
+      points: typeof parsed.points === 'number' ? parsed.points : 0,
+      lastCheckInDate: typeof parsed.lastCheckInDate === 'string' ? parsed.lastCheckInDate : '',
+      claimedTierIds: Array.isArray(parsed.claimedTierIds) ? parsed.claimedTierIds.filter((t: unknown) => typeof t === 'string') : [],
+      matchWinDate: typeof parsed.matchWinDate === 'string' ? parsed.matchWinDate : undefined,
+      matchWinCount: typeof parsed.matchWinCount === 'number' ? parsed.matchWinCount : undefined,
+    };
+  } catch (err) {
+    if (raw !== null) breadcrumbCorruption('readLiveEventProgress', raw, err);
+    return null;
+  }
+}
+
+export function writeLiveEventProgress(record: LiveEventProgress): void {
+  try { localStorage.setItem(STORAGE_KEYS.LIVE_EVENT_PROGRESS, JSON.stringify(record)); }
+  catch { /* storage unavailable — non-fatal */ }
+}
+
+// ── Notification opt-in ──
+
+/** Device-global notification opt-in. null = never asked (so the Settings
+ *  toggle reads OFF until the user explicitly enables it). */
+export function readNotificationsEnabled(): boolean | null {
+  try {
+    const v = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS_ENABLED);
+    if (v === '1') return true;
+    if (v === '0') return false;
+    return null;
+  } catch { return null; }
+}
+
+export function writeNotificationsEnabled(enabled: boolean): void {
+  try { localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS_ENABLED, enabled ? '1' : '0'); }
+  catch { /* storage unavailable — non-fatal */ }
 }
 
 /** Read the latest "What's New" version the user has acknowledged. */

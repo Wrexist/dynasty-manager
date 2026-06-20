@@ -34,6 +34,9 @@ export function getCompetitionInfo(
   if (base === 'Super Cup' || base === 'Continental Super Cup') {
     return { name: base, color: 'text-rose-400', bg: 'bg-rose-500/10 border-rose-500/30', borderAccent: 'border-rose-500/40' };
   }
+  if (base === 'World Cup') {
+    return { name: 'World Cup', color: 'text-amber-300', bg: 'bg-amber-500/10 border-amber-500/30', borderAccent: 'border-amber-500/40' };
+  }
   // League match
   if (options?.inPlayoffs) {
     return { name: 'Playoff', color: 'text-primary', bg: 'bg-primary/10 border-primary/30', borderAccent: 'border-primary/40' };

@@ -1573,6 +1573,8 @@ export function revealNextPenaltyKickImpl(set: Set, get: Get): void {
 
 export function skipPenaltyShootoutImpl(set: Set, get: Get): void {
   const state = get();
+  // World Cup mode finalises through its own tournament writeback (no cup tie).
+  if (state.gameMode === 'world-cup') { get().finalizeWorldCupPenalties(); return; }
   const { clubs, players, playerClubId, currentMatchResult, halfTimeState, currentCupTieId, penaltyShootoutKicks } = state;
   if (!currentMatchResult || !currentCupTieId || penaltyShootoutKicks.length === 0) return;
 
