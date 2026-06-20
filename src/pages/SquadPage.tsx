@@ -20,6 +20,9 @@ import { PlayerStatusBadges } from '@/components/game/PlayerStatusBadges';
 import { compareSquadToLeague } from '@/utils/squadStrength';
 
 const SORT_OPTIONS: SquadSortKey[] = ['overall', 'potential', 'age', 'value', 'fitness', 'morale', 'wage', 'form'];
+// World Cup mode has no club economy — drop the value/wage sorts (national
+// players carry no transfer value or wage in this context).
+const WC_SORT_OPTIONS: SquadSortKey[] = ['overall', 'potential', 'age', 'fitness', 'morale', 'form'];
 
 function ContractAlertChip({ p, variant, onSelect, onRenew }: {
   p: Player; variant: 'expired' | 'near';
@@ -66,10 +69,11 @@ function ContractAlertChip({ p, variant, onSelect, onRenew }: {
 }
 
 const SquadPage = () => {
-  const { playerClubId, clubs, players, season, week, leagueTable } = useGameStore(useShallow(s => ({
+  const { playerClubId, clubs, players, season, week, leagueTable, gameMode } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId, clubs: s.clubs, players: s.players,
-    season: s.season, week: s.week, leagueTable: s.leagueTable,
+    season: s.season, week: s.week, leagueTable: s.leagueTable, gameMode: s.gameMode,
   })));
+  const isWorldCup = gameMode === 'world-cup';
   const selectPlayer = useGameStore(s => s.selectPlayer);
   const setScreen = useGameStore(s => s.setScreen);
   const startNegotiation = useGameStore(s => s.startNegotiation);
@@ -272,7 +276,7 @@ const SquadPage = () => {
         )}
 
         {/* Contract Expiry Alerts */}
-        {contractAlerts.total > 0 && (
+        {!isWorldCup && contractAlerts.total > 0 && (
           <GlassPanel className="p-3 border-amber-500/20">
             <button
               onClick={() => { hapticLight(); setContractAlertsOpen(prev => !prev); }}
@@ -376,11 +380,15 @@ const SquadPage = () => {
         <div className="flex gap-2 overflow-x-auto scrollbar-hide">
           {([
             { key: 'injured' as SquadStatusFilter, label: 'Injured' },
-            { key: 'listed' as SquadStatusFilter, label: 'Listed' },
-            { key: 'expiring' as SquadStatusFilter, label: 'Expiring' },
+            // Club-economy filters (transfer list / contract / loans) are
+            // meaningless for a national team — hidden in World Cup mode.
+            ...(isWorldCup ? [] : [
+              { key: 'listed' as SquadStatusFilter, label: 'Listed' },
+              { key: 'expiring' as SquadStatusFilter, label: 'Expiring' },
+            ]),
             { key: 'starters' as SquadStatusFilter, label: 'Starters' },
             { key: 'bench' as SquadStatusFilter, label: 'Bench' },
-            { key: 'onLoan' as SquadStatusFilter, label: 'On Loan' },
+            ...(isWorldCup ? [] : [{ key: 'onLoan' as SquadStatusFilter, label: 'On Loan' }]),
             { key: 'youth' as SquadStatusFilter, label: 'Youth' },
             { key: 'unhappy' as SquadStatusFilter, label: 'Unhappy' },
           ]).map(({ key, label }) => (
@@ -401,7 +409,7 @@ const SquadPage = () => {
 
         {/* Sort */}
         <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
-          {SORT_OPTIONS.map(s => (
+          {(isWorldCup ? WC_SORT_OPTIONS : SORT_OPTIONS).map(s => (
             <button
               key={s}
               onClick={() => {

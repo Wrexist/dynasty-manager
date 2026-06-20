@@ -10,7 +10,7 @@ import { PageErrorBoundary } from '@/components/game/PageErrorBoundary';
 import { ErrorBoundary } from '@/components/game/ErrorBoundary';
 import { ContractNegotiation } from '@/components/game/ContractNegotiation';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
-import { BACK_TARGET, MAIN_TABS, SCREEN_GROUPS, UNEMPLOYED_MAIN_TABS } from '@/config/navigation';
+import { BACK_TARGET, MAIN_TABS, WC_MAIN_TABS, SCREEN_GROUPS, UNEMPLOYED_MAIN_TABS } from '@/config/navigation';
 import { MARKET_SUB_NAV, SQUAD_SUB_NAV } from '@/config/ui';
 import { PACK_PITY_THRESHOLD } from '@/config/packs';
 import { useMatchLocked, useCareerUnemployed } from '@/hooks/useGameSelectors';
@@ -148,7 +148,7 @@ const GameShell = () => {
   const setScreen = useGameStore(s => s.setScreen);
   const matchLocked = useMatchLocked();
   const isUnemployed = useCareerUnemployed();
-  const activeTabs = isUnemployed ? UNEMPLOYED_MAIN_TABS : MAIN_TABS;
+  const activeTabs = gameMode === 'world-cup' ? WC_MAIN_TABS : isUnemployed ? UNEMPLOYED_MAIN_TABS : MAIN_TABS;
 
   // Derive the sub-nav group for the current screen, if any. Memoized so
   // SubNav doesn't receive a fresh `items` array on every GameShell render
@@ -225,10 +225,13 @@ const GameShell = () => {
     return () => { cancelled = true; stopEntitlementListener(); };
   }, []);
 
+  // World Cup mode has no Squad/Market sub-groups, so swipe ignores them.
+  const useSubGroups = !isUnemployed && gameMode !== 'world-cup';
+
   const handleSwipeLeft = useCallback(() => {
     if (matchLocked) return;
-    // Check SubNav groups first (skip when unemployed — no sub-groups)
-    if (!isUnemployed) {
+    // Check SubNav groups first (skip when unemployed / World Cup — no sub-groups)
+    if (useSubGroups) {
       for (const group of SCREEN_GROUPS) {
         const gIdx = group.indexOf(currentScreen);
         if (gIdx >= 0 && gIdx < group.length - 1) {
@@ -242,12 +245,12 @@ const GameShell = () => {
     if (idx >= 0 && idx < activeTabs.length - 1) {
       setScreen(activeTabs[idx + 1]);
     }
-  }, [currentScreen, setScreen, matchLocked, isUnemployed, activeTabs]);
+  }, [currentScreen, setScreen, matchLocked, useSubGroups, activeTabs]);
 
   const handleSwipeRight = useCallback(() => {
     if (matchLocked) return;
-    // Check SubNav groups first (skip when unemployed — no sub-groups)
-    if (!isUnemployed) {
+    // Check SubNav groups first (skip when unemployed / World Cup — no sub-groups)
+    if (useSubGroups) {
       for (const group of SCREEN_GROUPS) {
         const gIdx = group.indexOf(currentScreen);
         if (gIdx > 0) {
@@ -267,7 +270,7 @@ const GameShell = () => {
       const backTarget = BACK_TARGET[currentScreen] || (isUnemployed ? 'job-market' : 'dashboard');
       setScreen(backTarget);
     }
-  }, [currentScreen, setScreen, matchLocked, isUnemployed, activeTabs]);
+  }, [currentScreen, setScreen, matchLocked, isUnemployed, useSubGroups, activeTabs]);
 
   const swipeHandlers = useSwipeGesture({
     onSwipeLeft: handleSwipeLeft,

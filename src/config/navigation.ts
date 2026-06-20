@@ -99,6 +99,10 @@ export const SCREEN_TITLES: Partial<Record<GameScreen, string>> = {
 
 export const MAIN_TABS: GameScreen[] = ['dashboard', 'squad', 'tactics', 'transfers'];
 
+// World Cup mode's tab set — mirrors the bottom nav (Home/Squad/Tactics +
+// Tournament instead of Market) so swipe navigation matches.
+export const WC_MAIN_TABS: GameScreen[] = ['dashboard', 'squad', 'tactics', 'international-tournament'];
+
 // SubNav group mappings for swipe navigation within grouped screens
 export const SCREEN_GROUPS: GameScreen[][] = [
   ['squad', 'training', 'staff', 'youth-academy'],
