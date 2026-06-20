@@ -482,6 +482,40 @@ function nextRound(round: InternationalKnockoutRound): InternationalKnockoutRoun
   return idx < order.length - 1 ? order[idx + 1] : null;
 }
 
+/**
+ * Simulate every remaining knockout round AI-only until a champion is crowned.
+ *
+ * Used when the player is already eliminated (group or knockout) and there's
+ * no club season to return to — World Cup mode jumps straight to the final
+ * result rather than making the player tap through games they aren't in, so
+ * the tournament always produces a winner (like the real World Cup, where the
+ * competition plays on without you). Any unplayed player tie in the starting
+ * round is treated as already decided against the player.
+ *
+ * Returns the completed tie list (all rounds appended) and the champion.
+ */
+export function simulateKnockoutToCompletion(
+  ties: InternationalKnockoutTie[],
+  fromRound: InternationalKnockoutRound,
+  playerNationality: string,
+): { knockoutTies: InternationalKnockoutTie[]; winner: string | null } {
+  let allTies = [...ties];
+  let round: InternationalKnockoutRound | null = fromRound;
+  let winner: string | null = null;
+  // The player isn't in any remaining round, so pass a sentinel nationality so
+  // processKnockoutRound never parks on a "player tie" and sims everything.
+  const aiOnly = `__ai__${playerNationality}`;
+  // Cap iterations defensively — there are at most 4 KO rounds (R16→F).
+  for (let guard = 0; guard < 6 && round; guard++) {
+    const res = processKnockoutRound(allTies, round, aiOnly);
+    allTies = [...res.updatedTies, ...res.nextRoundTies];
+    if (res.tournamentComplete) { winner = res.winner; break; }
+    if (!res.roundComplete) break; // malformed bracket — bail rather than spin
+    round = res.nextRoundTies.length > 0 ? res.nextRoundTies[0].round : null;
+  }
+  return { knockoutTies: allTies, winner };
+}
+
 /** Process knockout round: sim AI ties, generate next round ties */
 export function processKnockoutRound(
   ties: InternationalKnockoutTie[],

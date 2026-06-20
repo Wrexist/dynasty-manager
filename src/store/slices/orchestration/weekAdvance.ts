@@ -63,7 +63,7 @@ import { advanceKnockoutRound, generateKnockoutFromGroups, getCurrentMatchday, i
 import { getEffectiveStadiumLevel } from '@/utils/facilities';
 import { getLeaguePositionPrize } from '@/utils/financeHelpers';
 import { formatMoney, getSuffix } from '@/utils/helpers';
-import { generateKnockoutBracket, processGroupWeek, processKnockoutRound } from '@/utils/international';
+import { generateKnockoutBracket, processGroupWeek, processKnockoutRound, simulateKnockoutToCompletion } from '@/utils/international';
 import { generateUnemployedOffer } from '@/utils/managerCareer';
 import { dynastyMult } from '@/utils/managerPerks';
 import { calculateWeeklyMerchRevenue } from '@/utils/merchandise';
@@ -249,6 +249,23 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
         const firstRound = knockoutTies.length > 0 ? knockoutTies[0].round : null;
         const eliminated = !rebuiltGroups.some(g => g.table.slice(0, 2).some(e => e.nationality === nationality));
 
+        // World Cup mode: if you fail to escape the group, the tournament plays
+        // on without you — fast-forward the AI bracket to a champion and land
+        // on the result screen, rather than ending with no winner.
+        if (state.gameMode === 'world-cup' && eliminated) {
+          const { knockoutTies: finishedTies, winner } = simulateKnockoutToCompletion(knockoutTies, firstRound!, nationality);
+          set({
+            internationalTournament: {
+              ...tournament, groups: rebuiltGroups, phase: 'complete',
+              knockoutTies: finishedTies, currentRound: 'F', winner,
+              playerEliminated: true, currentWeek: nextWeek,
+            },
+            nationalTeam: nt, players: newPlayers,
+            currentScreen: 'world-cup-result',
+          });
+          return;
+        }
+
         set({
           internationalTournament: {
             ...tournament,
@@ -276,6 +293,17 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
         const knockoutTies = generateKnockoutBracket(groups);
         const firstRound = knockoutTies.length > 0 ? knockoutTies[0].round : null;
         const eliminated = !groups.some(g => g.table.slice(0, 2).some(e => e.nationality === nationality));
+        if (state.gameMode === 'world-cup' && eliminated) {
+          const { knockoutTies: finishedTies, winner } = simulateKnockoutToCompletion(knockoutTies, firstRound!, nationality);
+          set({
+            internationalTournament: {
+              ...tournament, groups, phase: 'complete', knockoutTies: finishedTies,
+              currentRound: 'F', winner, playerEliminated: true, currentWeek: currentWeek + 1,
+            },
+            currentScreen: 'world-cup-result',
+          });
+          return;
+        }
         set({
           internationalTournament: {
             ...tournament, groups, phase: eliminated ? 'complete' : 'knockout',
@@ -372,12 +400,31 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
 
       const playerEliminated = updatedPlayerTie.winnerId !== nationality;
 
+      // World Cup mode: knocked out in the knockouts → the tournament plays on
+      // without you. Fast-forward the remaining AI rounds to a champion and
+      // land on the result screen instead of tapping through games you're not
+      // in. (Career mode keeps the week-by-week flow — it has a club season to
+      // return to and national-team sacking logic that reads the timeline.)
+      if (state.gameMode === 'world-cup' && playerEliminated) {
+        const { knockoutTies: finishedTies, winner } = simulateKnockoutToCompletion(finalTies, tournament.currentRound, nationality);
+        set({
+          internationalTournament: {
+            ...tournament, knockoutTies: finishedTies, phase: 'complete',
+            currentRound: 'F', winner, playerEliminated: true, currentWeek: currentWeek + 1,
+          },
+          nationalTeam: nt, players: newPlayers,
+          currentScreen: 'world-cup-result',
+        });
+        return;
+      }
+
       // Re-check if round is now complete
       const allRoundPlayed = finalTies.filter(t => t.round === tournament.currentRound).every(t => t.played);
 
       if (allRoundPlayed) {
         if (tournament.currentRound === 'F') {
-          // Final played — tournament over
+          // Final played — tournament over. (Player reached here only by
+          // winning the final; an earlier elimination short-circuits above.)
           const finalMatch = finalTies.find(t => t.round === 'F' && t.played);
           set({
             internationalTournament: {
@@ -386,6 +433,8 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
               currentWeek: currentWeek + 1,
             },
             nationalTeam: nt, players: newPlayers,
+            // World Cup mode: champions go straight to the trophy lift.
+            ...(state.gameMode === 'world-cup' && { currentScreen: 'world-cup-result' }),
           });
         } else {
           // Generate next round
@@ -556,6 +605,16 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
 
 export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   const state = get();
+
+  // World Cup mode is a pure international tournament — there's no club league
+  // season around it, so run the tournament directly and skip ALL the
+  // club/league/finance/season processing below (which would corrupt the
+  // tournament now that the national team is the player's "club"). Career-mode
+  // international breaks still fall through to the normal branch lower down.
+  if (state.gameMode === 'world-cup' && state.seasonPhase === 'international') {
+    advanceInternationalWeekImpl(set, get);
+    return;
+  }
 
   // Career mode: unemployed managers skip gameplay, only process job market
   if (state.gameMode === 'career' && state.careerManager && !state.careerManager.contract) {

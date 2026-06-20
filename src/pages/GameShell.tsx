@@ -64,6 +64,7 @@ const BallonDor = lazy(() => import('./BallonDor'));
 const FestivalHub = lazy(() => import('./FestivalHub'));
 const DynastyLegacy = lazy(() => import('./DynastyLegacy'));
 const WorldCupResult = lazy(() => import('./WorldCupResult'));
+const WorldCupDashboard = lazy(() => import('./WorldCupDashboard'));
 
 const screens: Record<string, React.ComponentType> = {
   dashboard: Dashboard,
@@ -138,10 +139,11 @@ const PageSuspenseFallback = () => (
 
 const GameShell = () => {
   const navigate = useNavigate();
-  const { gameStarted, currentScreen, packPityCounter } = useGameStore(useShallow(s => ({
+  const { gameStarted, currentScreen, packPityCounter, gameMode } = useGameStore(useShallow(s => ({
     gameStarted: s.gameStarted,
     currentScreen: s.currentScreen,
     packPityCounter: s.packPityCounter || 0,
+    gameMode: s.gameMode,
   })));
   const setScreen = useGameStore(s => s.setScreen);
   const matchLocked = useMatchLocked();
@@ -272,7 +274,12 @@ const GameShell = () => {
   if (import.meta.env.DEV && !screens[currentScreen]) {
     console.warn(`[GameShell] Unrecognized screen: "${currentScreen}", falling back to Dashboard`);
   }
-  const Screen = screens[currentScreen] || Dashboard;
+  // World Cup mode swaps the club Dashboard for a nation-adapted hub. Every
+  // other screen (Squad, Tactics, MatchDay, …) is shared — the national team
+  // is the player's club, so they operate on it natively.
+  const Screen = (gameMode === 'world-cup' && currentScreen === 'dashboard')
+    ? WorldCupDashboard
+    : (screens[currentScreen] || Dashboard);
 
   // Scroll-position memory per screen. Returning to a long list (Market, Squad,
   // Inbox) should land you back where you were, not dumped at the top — which

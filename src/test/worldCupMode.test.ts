@@ -15,7 +15,7 @@ beforeEach(() => {
 });
 
 describe('startWorldCup', () => {
-  it('boots a standalone World Cup with no club/league', () => {
+  it('boots with the national team as the player club, no league', () => {
     useGameStore.getState().startWorldCup(NAT);
     const s = useGameStore.getState();
 
@@ -23,9 +23,13 @@ describe('startWorldCup', () => {
     expect(s.gameStarted).toBe(true);
     expect(s.season).toBe(1);
     expect(s.seasonPhase).toBe('international');
-    // No club world remains.
-    expect(s.playerClubId).toBe('');
-    expect(Object.keys(s.clubs)).toHaveLength(0);
+    // The national team is the player's club.
+    expect(s.playerClubId).toBe(NAT);
+    expect(s.clubs[NAT]).toBeTruthy();
+    expect(s.clubs[NAT].playerIds.length).toBeGreaterThanOrEqual(11);
+    expect(s.clubs[NAT].lineup.length).toBe(11);
+    expect(s.currentScreen).toBe('dashboard');
+    // No league world.
     expect(s.fixtures).toHaveLength(0);
     expect(s.leagueTable).toHaveLength(0);
   });
@@ -40,18 +44,17 @@ describe('startWorldCup', () => {
     expect(useGameStore.getState().managerNationality).toBe(NAT);
   });
 
-  it('generates a World Cup draw with groups and lands on the squad picker', () => {
+  it('generates a World Cup draw with the nation in it, squad pre-confirmed', () => {
     useGameStore.getState().startWorldCup(NAT);
     const t = useGameStore.getState().internationalTournament!;
     expect(t).not.toBeNull();
     expect(t.type).toBe('world-cup');
     expect(t.phase).toBe('group');
     expect(t.groups.length).toBeGreaterThan(0);
-    expect(t.squadConfirmed).toBe(false);
-    // The chosen nation is actually in the draw.
+    // No separate picker gate — squad managed via the normal Squad page.
+    expect(t.squadConfirmed).toBe(true);
     const inDraw = t.groups.some(g => g.teams.includes(NAT));
     expect(inDraw).toBe(true);
-    expect(useGameStore.getState().currentScreen).toBe('national-squad-picker');
   });
 
   it('clears prior career state so a club career cannot leak in', () => {
@@ -64,9 +67,7 @@ describe('startWorldCup', () => {
 
   it('runs a full tournament to completion with a champion (works like a real World Cup)', async () => {
     useGameStore.getState().startWorldCup(NAT);
-    const nt = useGameStore.getState().nationalTeam!;
-    // Confirm the auto-selected squad → unlocks week advancement.
-    useGameStore.getState().confirmNationalSquad(nt.squad, nt.lineup, nt.subs);
+    // Squad is pre-confirmed at boot — advance straight through.
 
     // Advance through group stage → knockout → final.
     for (let i = 0; i < 12; i++) {

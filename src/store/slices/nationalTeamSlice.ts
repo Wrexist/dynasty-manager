@@ -3,6 +3,7 @@ import type { GameState } from '../storeTypes';
 import { addMsg, safeRandomUUID } from '@/utils/helpers';
 import { NT_JOB_OFFER_DURATION_WEEKS } from '@/config/gameBalance';
 import { generateNationalTeamPool, autoSelectNationalSquad, generateTournament } from '@/utils/international';
+import { nationToClub } from '@/utils/internationalMatch';
 import { selectBestLineup } from '@/utils/playerGen';
 import { getNationRanking } from '@/data/nations';
 
@@ -56,16 +57,14 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
     });
   },
 
-  /** Boot a standalone World Cup game: the whole game is one World Cup with the
-   *  chosen nation — no club, no league. Reuses `resetGame` for a clean slate,
-   *  then generates the national-team squad pool and the tournament draw and
-   *  drops the manager into the squad picker. The existing international
-   *  game-loop (`advanceInternationalWeekImpl`) then drives group → knockout.
-   *  `gameMode: 'world-cup'` is a flag on existing fields — no save migration. */
+  /** Boot a World Cup game: it plays like the normal game, except your "club"
+   *  IS your national team and your only competition is the World Cup. The
+   *  national team becomes `playerClubId` so the normal Squad, Tactics and match
+   *  flow operate on it; a nation-adapted Dashboard is the hub. The World Cup
+   *  tournament is the season. `gameMode: 'world-cup'` flags existing fields —
+   *  no save migration. */
   startWorldCup: (nationality: string) => {
-    // Clean slate — clears clubs/league/career/transfer/match state so no
-    // shared code dereferences a stale club. resetGame also drops the slot;
-    // the new World Cup game autosaves into it fresh.
+    // Clean slate — clears any prior club/career/transfer/match state.
     _get().resetGame();
     _set({
       gameMode: 'world-cup',
@@ -74,12 +73,22 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
       week: 47,
       seasonPhase: 'international',
     });
-    // Generate the candidate pool + auto-pick the 23-man squad (reads the
-    // season/week just set). Adds the pool into `players` and sets `nationalTeam`.
+    // Generate the candidate pool + auto-pick the 23-man squad (sets
+    // nationalTeam + adds the pool into `players`).
     _get().initNationalTeam(nationality);
+    const nt = _get().nationalTeam!;
+    // The national team IS the player's club (keyed by nation name) so Squad,
+    // Tactics and MatchDay all operate on it. clubs[nation] is the source of
+    // truth for the lineup the player edits.
+    const ntClub = nationToClub(nationality, nt.squad, nt.lineup, nt.subs, nt.formation);
+    // Squad is managed via the normal Squad page — no separate picker gate.
+    const tournament = generateTournament('world-cup', 1, nationality);
+    tournament.squadConfirmed = true;
     _set({
-      internationalTournament: generateTournament('world-cup', 1, nationality),
-      currentScreen: 'national-squad-picker',
+      playerClubId: nationality,
+      clubs: { [nationality]: ntClub },
+      internationalTournament: tournament,
+      currentScreen: 'dashboard',
     });
   },
 

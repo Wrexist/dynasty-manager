@@ -9,10 +9,60 @@
  * otherwise. Pure-ish: synchronous, no store access; returns everything the
  * caller needs to merge into state and call `simulateMatch`.
  */
-import type { Club, Player, FormationType, NationalTeamState } from '@/types/game';
+import type { Club, Player, FormationType, NationalTeamState, InternationalTournamentState } from '@/types/game';
 import { generateNationalTeamPool, autoSelectNationalSquad } from '@/utils/international';
 import { selectBestLineup } from '@/utils/playerGen';
 import { getNationRanking, getNation } from '@/data/nations';
+
+const KNOCKOUT_ROUND_LABEL: Record<string, string> = {
+  R16: 'Round of 16', QF: 'Quarter-Final', SF: 'Semi-Final', F: 'Final',
+};
+
+export interface NextWorldCupMatch {
+  opponent: string;
+  isHome: boolean;
+  roundLabel: string;
+  /** Group letter (e.g. 'A') for a group match, else null. */
+  group: string | null;
+}
+
+/** The player nation's next unplayed World Cup fixture, or null if there is
+ *  none right now (between rounds, eliminated, or tournament over). */
+export function getPlayerNextWorldCupMatch(
+  tournament: InternationalTournamentState | null,
+  nation: string,
+): NextWorldCupMatch | null {
+  if (!tournament || tournament.playerEliminated || tournament.phase === 'complete') return null;
+
+  if (tournament.phase === 'group') {
+    for (const group of tournament.groups) {
+      const fix = group.fixtures.find(f => !f.played && (f.homeNation === nation || f.awayNation === nation));
+      if (fix) {
+        const isHome = fix.homeNation === nation;
+        return {
+          opponent: isHome ? fix.awayNation : fix.homeNation,
+          isHome,
+          roundLabel: 'Group Stage',
+          group: group.name.replace('Group ', ''),
+        };
+      }
+    }
+    return null;
+  }
+
+  // Knockout — the player's unplayed tie in the current round.
+  const tie = tournament.knockoutTies.find(
+    t => !t.played && t.round === tournament.currentRound && (t.homeNation === nation || t.awayNation === nation),
+  );
+  if (!tie) return null;
+  const isHome = tie.homeNation === nation;
+  return {
+    opponent: isHome ? tie.awayNation : tie.homeNation,
+    isHome,
+    roundLabel: KNOCKOUT_ROUND_LABEL[tie.round] ?? 'Knockout',
+    group: null,
+  };
+}
 
 /** Reputation 1–5 from a FIFA-style ranking (lower rank = stronger). */
 function repFromRanking(ranking: number): number {
@@ -23,8 +73,10 @@ function repFromRanking(ranking: number): number {
   return 1;
 }
 
-/** Wrap a set of player IDs into a Club shell keyed by the nation name. */
-function nationToClub(nation: string, playerIds: string[], lineup: string[], subs: string[], formation: FormationType): Club {
+/** Wrap a set of player IDs into a Club shell keyed by the nation name. Used
+ *  for match opponents and (in World Cup mode) for the player's own national
+ *  team as their "club". */
+export function nationToClub(nation: string, playerIds: string[], lineup: string[], subs: string[], formation: FormationType): Club {
   const nd = getNation(nation);
   const ranking = getNationRanking(nation);
   const reputation = repFromRanking(ranking);
