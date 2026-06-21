@@ -26,6 +26,14 @@ export const PITCH_CHOREO = {
   GK_SHIFT_FACTOR: 0.15,
   /** Extra forward push for wide attackers/full-backs making runs when attacking. */
   RUN_PUSH: 12,
+  /** Off-ball runs: advanced players (ST/winger/CAM) make slow, deterministic
+   *  diagonal runs into space so the front line is dynamic instead of holding a
+   *  fixed shape. Forward-biased (they run toward goal, not away). */
+  RUN_CYCLE_FREQ: 0.42,
+  /** Lateral sweep of an off-ball run (pitch units, symmetric → no mean drift). */
+  RUN_LATERAL_AMP: 7,
+  /** Forward surge of an off-ball run (pitch units, ≥0 → biases toward goal). */
+  RUN_FORWARD_AMP: 6,
   /** Touchline push (±x) applied to wide players under a 'wide' width (negated for 'narrow'). */
   WIDTH_PUSH: 7,
   /** Defensive-line base-y shift (own-half units) for 'high' (+) / 'deep' (−). */

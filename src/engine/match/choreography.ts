@@ -226,6 +226,15 @@ function placeBeatPlayers(
         x = lerp(lane, ball.x, 0.18);
         depth = clamp(baseDepth + 10 + ment * 0.6, baseDepth, Math.max(baseDepth, ballDepth - 4));
       }
+      // Off-ball runs for the front line (never the carrier): a slow, deterministic
+      // diagonal run into space — lateral sweep + a forward surge toward goal — so
+      // attackers peel off and check back instead of standing on a fixed mark.
+      const isCarrier = p.id != null && highlight.has(p.id);
+      if (!isCarrier && (WINGER_POS.has(p.pos) || p.pos === 'ST' || p.pos === 'CAM')) {
+        const phase = o.phaseTime * PITCH_CHOREO.RUN_CYCLE_FREQ + p.number * 1.3;
+        x = clamp(x + Math.sin(phase) * PITCH_CHOREO.RUN_LATERAL_AMP, 5, 95);
+        depth = clamp(depth + Math.max(0, Math.cos(phase)) * PITCH_CHOREO.RUN_FORWARD_AMP, 5, 95);
+      }
       placed.push({ p, x, y: depthToY(team, depth) });
     }
     // Nearest non-carrier offers a short passing option.
