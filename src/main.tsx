@@ -36,6 +36,13 @@ export const signalReady = () => {
 
 createRoot(document.getElementById("root")!).render(<App />);
 
+// Dev-only: expose the store to the marketing screenshot harness
+// (scripts/wc-capture.mjs), which drives World Cup state to capture fresh
+// in-game screens. Stripped from production builds by the DEV guard.
+if (import.meta.env.DEV) {
+  (window as unknown as { __dynastyStore?: typeof useGameStore }).__dynastyStore = useGameStore;
+}
+
 // Mark app as ready after render + first paint (avoids fixed splash delay on native)
 requestAnimationFrame(() => {
   requestAnimationFrame(() => {
