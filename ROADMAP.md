@@ -56,8 +56,8 @@ makes WC mode shine or sharpens WC ASO beats almost everything else on timing.
 
 | Release | Theme | Window | Gate |
 |---|---|---|---|
-| **v1.1.2 — Hardening** | Fix revenue/save/UX-blocker bugs | Immediate (days) | P0/P1 list §3 closed |
-| **v1.1.3 — World Cup Live** | WC polish + ASO refresh while tournament is on | ~1–2 weeks | Ship before WC final |
+| **v1.1.2 — Hardening** | Fix revenue/save/UX-blocker bugs | ✅ verified done 2026-06-21 (2 residual checks) | P0/P1 list §3 closed |
+| **v1.1.3 — World Cup Live** | WC polish + ASO refresh while tournament is on | **NOW — top priority** | Ship before WC final |
 | **v1.2 — Dynasty Legacy** | Meta-progression depth, retention v2 | ~3–5 weeks | §5 exit criteria |
 | **v1.3 — Identity & Immersion** | Create-a-Club, Manager RPG, match-view polish | ~6–8 weeks | §6 exit criteria |
 | **v1.4 — Content & Balance** | Storyline/press/objective depth, balance pass | parallel/ongoing | §7 exit criteria |
@@ -70,9 +70,41 @@ Tracks **0 (hardening)**, **4 (content/balance)**, and **online (v2.0)** run
 
 ## 3. TRACK 0 — Hardening (gates all releases) — v1.1.2
 
-These are the practical shipblockers. Order = revenue → data → UX-blocker →
-gameplay integrity. **Verify each at the cited file:line before fixing; some
-may already be patched.**
+> **VERIFIED 2026-06-21 against live code — this track is essentially DONE.**
+> Every P0 and P1 item below was re-checked at the cited file:line and found
+> **already fixed**, each with an in-code comment describing the exact bug. The
+> source audits (`AUDIT_REPORT.md` 2026-06-10 and earlier) are stale; the
+> retention/World-Cup work since carried the hardening in. Evidence:
+> - P0#1 Android key — `purchases.ts:26-34` per-platform `resolveApiKey`, returns
+>   `null` (not test key) in prod, Sentry-reports; `android-build.yml:36` sets the
+>   Android secret. **FIXED.**
+> - P0#2 Consumable durability — `PacksPage.tsx:385` writes pending-credit before
+>   StoreKit; `:136-159` mount reconciler; `:395,418` keeps marker on block. **FIXED.**
+> - P0#3 Loan wipe — `seasonEnd.ts:506-509` force-returns loans before wiping
+>   `activeLoans`. **FIXED.**
+> - P1#4 Squad-picker deadlock — `NationalSquadPicker.tsx:85-103,168,204` extras
+>   logic + `pickedPlayers.length` gate. **FIXED.**
+> - P1#5 Trial eligibility — `SubscribeOnboarding.tsx:109` `trialEligible =
+>   subscription == null` gates caption/CTA/toast. **FIXED.**
+> - P1#6 Double-advance — `Dashboard.tsx:1072` `.finally()` resets `isAdvancing`. **FIXED.**
+> - P1#7 Continental finals — `continental.ts:236,254-264` `round !== 'F'` guard +
+>   final branch sets `winnerId`. **FIXED.**
+> - P1#8 Promotion rep — `seasonEnd.ts:1593-1596` gates on `promotionSpots`. **FIXED.**
+> - P1#9 Loan counter — `loanSlice.ts:746` `acceptLoanCounter`, wired
+>   `LoanNegotiation.tsx:111`. **FIXED.**
+> - P1#10 Sub/optimize false-success — `SubstitutionSheet.tsx:346` handles
+>   `proRequired`; autoFill dedups swaps. **FIXED.**
+> - P1#11 mononyms — `playerGen.ts:339` keeps mononym in `lastName` only. **FIXED.**
+>
+> **Residual checks (not yet confirmed):** (a) weeks 1–3 friendly/league
+> double-booking vs the "league begins week 4" copy — `league.ts:225` only
+> confirms friendlies are weeks 1–3; the conflict needs a play-through check.
+> (b) Dashboard "Season Race / League Pos" division-scoping reads correct
+> (`Dashboard.tsx:322` uses the division `leagueTable`) but worth a 92-club
+> sanity check. Everything else in this section is closed.
+
+The original shipblocker list is retained below for traceability. Order =
+revenue → data → UX-blocker → gameplay integrity.
 
 ### P0 — Revenue loss / data corruption / dead-end
 1. **Android ships a hardcoded RevenueCat test key** — `src/utils/purchases.ts:21`
@@ -223,9 +255,17 @@ AAA on a real device; coach-marks + penalty-arc fixed.
 
 ## 7. TRACK 4 — Content & Balance (parallel, ongoing)
 
+> **VERIFIED 2026-06-21:** the "thin content" audit findings are also stale.
+> Live counts: **15 storyline chains** (`storylineChains.ts`, audit said 4),
+> **27 weekly-objective templates** (`weeklyObjectives.ts:440`, audit said 16),
+> and press-conference content well past the "12 questions" claim. Content is in
+> decent shape — treat the items below as *enrichment*, not gap-filling, and
+> prioritise the finance-math/balance items (which weren't part of the content
+> expansion) over adding still more chains.
+
 Thin content is the long-campaign retention killer. Run continuously.
 
-- **Storyline chains**: 4 → 12+ (media scandals, rivalry, holdouts, injury
+- **Storyline chains**: 15 → 20+ (media scandals, rivalry, holdouts, injury
   crises, takeover, protests, cup momentum, foreign integration, coaching
   conflict, stadium expansion). Fix dead-end on `requiredPrevChoice: 0`.
 - **Press conferences**: 12 → 25–30 context-aware questions.
@@ -320,15 +360,23 @@ that future turn-on. Low priority vs Pro/packs revenue.
 
 ## 12. Sequenced "do this next" list
 
-1. **v1.1.2 hardening** — §3 items 1–11 (verify→fix→test). *Gates everything.*
-2. **v1.1.3 World Cup Live** — ASO refresh + intro/trophy-lift/awards/shareable
-   card. *Time-boxed by the real tournament; do it now.*
+> **Re-sequenced after 2026-06-21 verification.** Track 0 hardening is done, so
+> the World Cup window is now the genuine #1.
+
+1. **v1.1.3 World Cup Live** — ASO refresh + intro/trophy-lift/awards/shareable
+   card. *Time-boxed by the real tournament; the single highest-leverage thing
+   on the board right now.*
+2. **Confirm the two §3 residual checks** (friendly/league week-1 double-booking;
+   division-scoped Season Race) — cheap, and they're the only hardening items
+   not yet confirmed closed.
 3. **v1.2 Dynasty Legacy P1** — streak/tier surfacing + **analytics funnel**
-   (so v1.2+ is measurable).
+   (so v1.2+ is measurable). The funnel is the prerequisite for knowing whether
+   anything after this works.
 4. **Online Slice 1 (cloud save/accounts)** — start in parallel; biggest
-   standalone risk reduction (device-local saves).
-5. **v1.2 P2 (Manager Pass, lifetime Hall, richer legacy)** + content track
-   (storylines/press/objectives) + finance-math unification.
+   standalone risk reduction (device-local saves are the real exposure now that
+   the bug list is clean).
+5. **v1.2 P2 (Manager Pass, lifetime Hall, richer legacy)** + finance-math
+   unification (the genuinely-open balance/trust items).
 6. **v1.3 Identity** (Create-a-Club, Manager RPG, match-view finish).
 7. **Online Slice 2/3**, debt refactors, balance pass — ongoing.
 
