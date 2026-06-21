@@ -6,12 +6,15 @@
 import { useMemo, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Trophy, Medal, Home, RotateCcw, Award, Star } from 'lucide-react';
+import { toast } from 'sonner';
+import { Trophy, Medal, Home, RotateCcw, Award, Star, Share2 } from 'lucide-react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { getFlag } from '@/utils/nationality';
 import { hapticMedium } from '@/utils/haptics';
+import { shareText } from '@/utils/share';
+import { APP_STORE_URL } from '@/config/legal';
 import { cn } from '@/lib/utils';
 
 const ROUND_NAMES: Record<string, string> = {
@@ -115,6 +118,18 @@ const WorldCupResult = () => {
   }
 
   const isGold = result.tier === 'champion';
+
+  const handleShare = async () => {
+    hapticMedium();
+    const flag = getFlag(nat);
+    const recordTail = run ? ` (${run.won}W-${run.drawn}D-${run.lost}L)` : '';
+    const message = result.isChampion
+      ? `🏆 World Champions with ${flag} ${nat}! I won the 2026 World Cup in Dynasty Manager${recordTail}.`
+      : `${flag} ${nat} — ${result.headline} at the 2026 World Cup in Dynasty Manager${recordTail}.`;
+    const outcome = await shareText(message, APP_STORE_URL);
+    if (outcome === 'copied') toast.success('Result copied — paste it anywhere to share');
+    else if (outcome === 'failed') toast.error('Could not share right now');
+  };
 
   return (
     <div className="max-w-lg mx-auto px-4 py-8 space-y-5 min-h-screen flex flex-col justify-center">
@@ -244,6 +259,13 @@ const WorldCupResult = () => {
           )}
         >
           <RotateCcw className="w-4 h-4" /> Play Another World Cup
+        </button>
+        <button
+          type="button"
+          onClick={() => { void handleShare(); }}
+          className="w-full flex items-center justify-center gap-2 h-12 rounded-xl font-bold text-sm text-foreground bg-white/[0.06] border border-white/[0.08] active:scale-[0.98] transition-transform"
+        >
+          <Share2 className="w-4 h-4" /> Share Result
         </button>
         <button
           type="button"

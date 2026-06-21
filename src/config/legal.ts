@@ -15,3 +15,7 @@
 
 export const TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
 export const PRIVACY_URL = 'https://wrexist.github.io/dynasty-manager/privacy.html';
+
+/** Public App Store listing for Dynasty Manager (id 6760918006). Used in
+ *  share messages so recipients can install the app. */
+export const APP_STORE_URL = 'https://apps.apple.com/app/id6760918006';
