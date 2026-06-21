@@ -34,7 +34,7 @@ function confetti(seed) {
 }
 
 const css = `
-@import url('https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@500;600;700&family=DM+Sans:wght@500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@500;600;700&family=DM+Sans:wght@500;700&family=Noto+Color+Emoji&display=swap');
 *{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased}
 .panel{width:${W}px;height:${H}px;position:relative;overflow:hidden;color:#fff;font-family:'Oswald',sans-serif;
   background:radial-gradient(125% 70% at 50% -8%,#1a2c4f 0%,#0c1526 46%,#070b12 100%);}
@@ -79,7 +79,7 @@ const css = `
   box-shadow:inset 0 2px 0 rgba(255,255,255,.28),inset 0 -2px 0 rgba(0,0,0,.3),0 0 50px 6px rgba(245,180,12,.45)}
 .hero .badge svg{width:78px;height:78px}
 .hero .natrow{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:12px}
-.hero .natrow .flag{font-size:46px;line-height:1}
+.hero .natrow .flag{font-family:'Noto Color Emoji',sans-serif;font-size:46px;line-height:1}
 .hero .natrow .name{font-weight:600;font-size:34px;color:rgba(255,255,255,.82)}
 .hero h1{font-family:'Anton';text-transform:uppercase;font-size:72px;line-height:.94;letter-spacing:.005em;
   background:linear-gradient(180deg,#ffe9a8 10%,#fcd34d 60%,#f2b50c 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
@@ -204,7 +204,10 @@ for (let idx = 0; idx < panels.length; idx++) {
   const f = join(OUT, p.id + '.html');
   writeFileSync(f, html(p, idx, panels.length));
   await page.goto('file://' + f, { waitUntil: 'networkidle' });
-  await page.waitForTimeout(1300);
+  // Wait for webfonts (incl. the larger Noto Color Emoji flag font) to finish
+  // loading, otherwise flags fall back to plain code boxes.
+  await page.evaluate(() => document.fonts.ready);
+  await page.waitForTimeout(2000);
   await page.screenshot({ path: join(OUT, p.id + '.png') });
   await page.close();
   console.log('rendered', p.id, `${W}x${H}`);
