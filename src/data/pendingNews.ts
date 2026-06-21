@@ -42,11 +42,19 @@ export interface PendingRelease {
 }
 
 export const PENDING_NEWS: PendingRelease = {
-  // Sealed into the 1.2.0 "World Cup update" entry of whatsNew.ts and reset to
-  // empty, so the next version starts accumulating bullets from scratch.
   highlights: [],
   new: [],
-  improved: [],
+  improved: [
+    'Highlight: Play a full World Cup — from the group-stage draw ceremony through to the final.',
+    'Highlight: Watch your matches play out live on a beautiful 2.5D pitch.',
+    'New: World Cup group-stage draw ceremony at the start of every run.',
+    'New: Tournament awards on the result screen — Golden Boot and Young Star.',
+    'New: Share your World Cup run straight from the result screen.',
+    'New: Redeem codes in Settings for in-game rewards.',
+    'Improved: Champions now get a trophy-lift celebration when they win it all.',
+    'Improved: Real country flags now fly across World Cup match, dashboard, and result screens.',
+    'Fixed: Live match HUD bar was mislabelled "Possession" when it shows momentum.',
+  ],
   fixed: [],
   headline: null,
   summary: null,
