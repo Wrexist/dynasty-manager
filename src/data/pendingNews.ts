@@ -63,6 +63,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Phase D: Interactive World Cup matches + retention features.',
     'Pitch realism: continuous, individual player movement.',
     'Match pitch play now flows continuously — the ball strings moves together upfield instead of resetting to the defenders every minute.',
+    'World Cup v1.1.3: Live tournament polish, ASO refresh, and redeem codes.',
   ],
   fixed: [],
   headline: null,
