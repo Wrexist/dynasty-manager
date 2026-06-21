@@ -216,6 +216,31 @@ describe('stepDisplay (springs + velocity)', () => {
     expect(a.vx).toBeGreaterThan(0); // moving toward +x
   });
 
+  it('a quick player accelerates harder than a slow one (pace-based motion)', () => {
+    const fast = createDisplay();
+    const slow = createDisplay();
+    const fastP: ChoreoPlayer = { id: 'f', team: 'home', pos: 'LW', number: 11, point: { x: 10, y: 10 }, highlighted: false, speed: 1 };
+    const slowP: ChoreoPlayer = { id: 's', team: 'home', pos: 'CB', number: 5, point: { x: 10, y: 10 }, highlighted: false, speed: 0 };
+    stepDisplay(fast, frame([fastP]), 16, 130);
+    stepDisplay(slow, frame([slowP]), 16, 130);
+    // Same moved target; the quicker player should cover more ground per step.
+    stepDisplay(fast, frame([{ ...fastP, point: { x: 30, y: 10 } }]), 16, 130);
+    stepDisplay(slow, frame([{ ...slowP, point: { x: 30, y: 10 } }]), 16, 130);
+    expect(fast.players.get('f')!.x).toBeGreaterThan(slow.players.get('s')!.x);
+  });
+
+  it('an unknown pace behaves exactly like the neutral base tau', () => {
+    const a = createDisplay();
+    const b = createDisplay();
+    const noSpeed: ChoreoPlayer = { id: 'a', team: 'home', pos: 'ST', number: 9, point: { x: 10, y: 10 }, highlighted: false };
+    const neutral: ChoreoPlayer = { ...noSpeed, id: 'b', speed: 0.5 };
+    stepDisplay(a, frame([noSpeed]), 16, 130);
+    stepDisplay(b, frame([neutral]), 16, 130);
+    stepDisplay(a, frame([{ ...noSpeed, point: { x: 30, y: 10 } }]), 16, 130);
+    stepDisplay(b, frame([{ ...neutral, point: { x: 30, y: 10 } }]), 16, 130);
+    expect(a.players.get('a')!.x).toBeCloseTo(b.players.get('b')!.x, 6);
+  });
+
   it('drops players absent from the frame and adds new ones', () => {
     const d = createDisplay();
     stepDisplay(d, frame([cp('a', 10, 10)]), 16, 130);

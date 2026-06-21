@@ -179,6 +179,7 @@ function placeBeatPlayers(
       number: p.number,
       name: p.id ? o.lookup?.[p.id]?.lastName : undefined,
       overall: p.id ? o.lookup?.[p.id]?.overall : undefined,
+      speed: p.id && o.lookup?.[p.id] ? clamp((o.lookup[p.id].attributes?.pace ?? 50) / 100, 0, 1) : undefined,
       point: { x: clamp(x + swayX, 2, 98), y: clamp(y + swayY, 2, 98) },
       highlighted: p.id != null && highlight.has(p.id),
     });
