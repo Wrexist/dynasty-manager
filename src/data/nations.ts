@@ -75,6 +75,24 @@ export const NATIONS: NationData[] = [
   { name: 'Canada', confederation: 'CONCACAF', baseRanking: 30, color: '#FF0000', secondaryColor: '#FFFFFF' },
   { name: 'Costa Rica', confederation: 'CONCACAF', baseRanking: 51, color: '#002B7F', secondaryColor: '#CE1126' },
   { name: 'Jamaica', confederation: 'CONCACAF', baseRanking: 60, color: '#009B3A', secondaryColor: '#FED100' },
+  // Additional 2026 World Cup qualifiers (so the real 48-team draw is complete).
+  // New Zealand is OFC; mapped to AFC here since the model has no OFC bucket.
+  { name: 'Czechia', confederation: 'UEFA', baseRanking: 40, color: '#D7141A', secondaryColor: '#FFFFFF' },
+  { name: 'South Africa', confederation: 'CAF', baseRanking: 58, color: '#007749', secondaryColor: '#FCB131' },
+  { name: 'Bosnia and Herzegovina', confederation: 'UEFA', baseRanking: 74, color: '#002F6C', secondaryColor: '#FFCE00' },
+  { name: 'Qatar', confederation: 'AFC', baseRanking: 53, color: '#8A1538', secondaryColor: '#FFFFFF' },
+  { name: 'Haiti', confederation: 'CONCACAF', baseRanking: 83, color: '#00209F', secondaryColor: '#D21034' },
+  { name: 'Türkiye', confederation: 'UEFA', baseRanking: 26, color: '#E30A17', secondaryColor: '#FFFFFF' },
+  { name: 'Curaçao', confederation: 'CONCACAF', baseRanking: 82, color: '#002B7F', secondaryColor: '#FFFFFF' },
+  { name: 'Tunisia', confederation: 'CAF', baseRanking: 41, color: '#E70013', secondaryColor: '#FFFFFF' },
+  { name: 'New Zealand', confederation: 'AFC', baseRanking: 89, color: '#FFFFFF', secondaryColor: '#000000' },
+  { name: 'Iran', confederation: 'AFC', baseRanking: 20, color: '#239F40', secondaryColor: '#DA0000' },
+  { name: 'Cabo Verde', confederation: 'CAF', baseRanking: 70, color: '#003893', secondaryColor: '#CF2027' },
+  { name: 'Iraq', confederation: 'AFC', baseRanking: 55, color: '#CE1126', secondaryColor: '#FFFFFF' },
+  { name: 'Jordan', confederation: 'AFC', baseRanking: 62, color: '#007A3B', secondaryColor: '#CE1126' },
+  { name: 'DR Congo', confederation: 'CAF', baseRanking: 59, color: '#007FFF', secondaryColor: '#F7D618' },
+  { name: 'Uzbekistan', confederation: 'AFC', baseRanking: 57, color: '#0099B5', secondaryColor: '#1EB53A' },
+  { name: 'Panama', confederation: 'CONCACAF', baseRanking: 39, color: '#DA121A', secondaryColor: '#005293' },
 ];
 
 /**

@@ -639,8 +639,8 @@ export const CONFIDENCE_CHANGE_DISMISS_THRESHOLD = 5;
 export const WORLD_CUP_FREQUENCY = 4;
 /** Continental cup occurs every N seasons (offset by 2 from WC) */
 export const CONTINENTAL_CUP_FREQUENCY = 4;
-/** Number of groups in the World Cup */
-export const WORLD_CUP_GROUPS = 8;
+/** Number of groups in the World Cup (real 2026 format: 12 groups of 4 = 48). */
+export const WORLD_CUP_GROUPS = 12;
 /** Teams per group */
 export const WORLD_CUP_TEAMS_PER_GROUP = 4;
 /** Number of groups in Continental Cup */

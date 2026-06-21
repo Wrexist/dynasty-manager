@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
-import { FlagIcon } from '@/components/game/FlagIcon';
+import { getFlag } from '@/utils/nationality';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -27,6 +27,7 @@ const QUICK_LINKS: { label: string; screen: GameScreen; icon: React.ElementType;
 
 const PHASE_STEPS = [
   { key: 'group', label: 'Groups' },
+  { key: 'R32', label: 'R32' },
   { key: 'R16', label: 'R16' },
   { key: 'QF', label: 'QF' },
   { key: 'SF', label: 'SF' },
@@ -35,8 +36,8 @@ const PHASE_STEPS = [
 
 function phaseIndex(phase: string, round: string | null): number {
   if (phase === 'group') return 0;
-  if (phase === 'complete') return 4;
-  return ({ R16: 1, QF: 2, SF: 3, F: 4 } as Record<string, number>)[round || ''] ?? 0;
+  if (phase === 'complete') return 5;
+  return ({ R32: 1, R16: 2, QF: 3, SF: 4, F: 5 } as Record<string, number>)[round || ''] ?? 0;
 }
 
 /**
@@ -89,7 +90,7 @@ const WorldCupDashboard = () => {
 
   const roundLabel = tournament.phase === 'group' ? 'Group Stage'
     : tournament.phase === 'complete' ? 'Final Result'
-    : ({ R16: 'Round of 16', QF: 'Quarter-Finals', SF: 'Semi-Finals', F: 'Final' }[tournament.currentRound || ''] || 'Knockout');
+    : ({ R32: 'Round of 32', R16: 'Round of 16', QF: 'Quarter-Finals', SF: 'Semi-Finals', F: 'Final' }[tournament.currentRound || ''] || 'Knockout');
 
   const ovrColor = squadOVR >= 80 ? 'text-emerald-400' : squadOVR >= 70 ? 'text-primary' : squadOVR >= 60 ? 'text-amber-400' : 'text-muted-foreground';
 
@@ -104,13 +105,10 @@ const WorldCupDashboard = () => {
     guardAsync(advanceWeek(), 'WorldCupDashboard.advanceWeek', { title: 'Could not advance', body: 'Please try again.' });
   };
 
-  // Flag crest used in the Next Match card — the national-team analogue of the
-  // club colour roundel the league Dashboard shows.
+  // Flag crest used in the Next Match card — the nation's flag (emoji renders
+  // instantly and natively, no CDN dependency).
   const FlagCrest = ({ n }: { n: string }) => (
-    <div className="w-14 h-14 rounded-full mx-auto mb-2 flex items-center justify-center overflow-hidden ring-2 ring-white/10 shadow-inner"
-      style={{ backgroundColor: getNation(n)?.color || '#1f2937' }}>
-      <FlagIcon nationality={n} size={42} className="rounded-md" />
-    </div>
+    <div className="mx-auto mb-2 text-center text-[56px] leading-none drop-shadow-lg">{getFlag(n)}</div>
   );
 
   return (
@@ -120,7 +118,7 @@ const WorldCupDashboard = () => {
         <div className="h-1 rounded-full" style={{ background: `linear-gradient(to right, ${nationColor}, transparent)` }} />
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5 min-w-0">
-            <FlagIcon nationality={nation} size={30} className="rounded-md shrink-0 ring-1 ring-white/10" />
+            <span className="text-[28px] leading-none shrink-0">{getFlag(nation)}</span>
             <div className="min-w-0">
               <p className="text-lg font-bold font-display text-foreground truncate">{nation}</p>
               <p className="text-[10px] text-muted-foreground">World Cup · {roundLabel}</p>
@@ -257,7 +255,7 @@ const WorldCupDashboard = () => {
                     isPlayer && 'bg-primary/5 -mx-1 px-1 rounded',
                     qualifies ? 'border-emerald-500/50' : 'border-transparent')}>
                   <span className="flex items-center gap-1.5 min-w-0">
-                    <FlagIcon nationality={entry.nationality} size={14} />
+                    <span className="text-base leading-none shrink-0">{getFlag(entry.nationality)}</span>
                     <span className={cn('truncate', isPlayer ? 'font-bold text-foreground' : 'text-foreground/80')}>{entry.nationality}</span>
                   </span>
                   <span className="text-center text-muted-foreground">{entry.played}</span>

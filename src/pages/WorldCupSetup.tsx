@@ -13,7 +13,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Trophy, ArrowRight } from 'lucide-react';
 import { useGameStore } from '@/store/gameStore';
 import { NATIONS } from '@/data/nations';
-import { FlagIcon } from '@/components/game/FlagIcon';
+import { getFlag } from '@/utils/nationality';
 import { hapticLight, hapticMedium } from '@/utils/haptics';
 import { cn } from '@/lib/utils';
 
@@ -117,7 +117,7 @@ const WorldCupSetup = () => {
                     : 'bg-white/[0.025] border-white/[0.06] hover:bg-white/[0.05]',
                 )}
               >
-                <FlagIcon nationality={n.name} size={26} className="shrink-0 rounded-sm" />
+                <span className="text-2xl leading-none shrink-0">{getFlag(n.name)}</span>
                 <div className="min-w-0">
                   <p className={cn('text-sm font-semibold truncate', isSel ? 'text-amber-300' : 'text-foreground')}>{n.name}</p>
                   <p className="text-[10px] text-muted-foreground truncate">{CONFED_LABEL[n.confederation] ?? n.confederation}</p>

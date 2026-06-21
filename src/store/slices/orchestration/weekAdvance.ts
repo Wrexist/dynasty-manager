@@ -439,7 +439,7 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
         } else {
           // Generate next round
           const roundWinners = finalTies.filter(t => t.round === tournament.currentRound).map(t => t.winnerId!).filter(Boolean);
-          const roundOrder = ['R16', 'QF', 'SF', 'F'] as const;
+          const roundOrder = ['R32', 'R16', 'QF', 'SF', 'F'] as const;
           const curIdx = roundOrder.indexOf(tournament.currentRound as typeof roundOrder[number]);
           const nextRound = curIdx < roundOrder.length - 1 ? roundOrder[curIdx + 1] : null;
           const newKnockoutTies = [...finalTies];

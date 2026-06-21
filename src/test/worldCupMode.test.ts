@@ -57,6 +57,32 @@ describe('startWorldCup', () => {
     expect(inDraw).toBe(true);
   });
 
+  it('uses the real 2026 World Cup draw — 12 groups of 4 (48 teams)', () => {
+    useGameStore.getState().startWorldCup(NAT);
+    const t = useGameStore.getState().internationalTournament!;
+    expect(t.groups).toHaveLength(12);
+    expect(t.groups.every(g => g.teams.length === 4)).toBe(true);
+    const allTeams = t.groups.flatMap(g => g.teams);
+    expect(new Set(allTeams).size).toBe(48); // 48 distinct nations
+    // Real draw: Group A and the player's group match the official 2026 draw.
+    expect(t.groups[0].teams).toEqual(['Mexico', 'South Korea', 'Czechia', 'South Africa']);
+    expect(t.groups[2].teams).toContain('Brazil'); // Brazil (the player) is in Group C
+  });
+
+  it('builds a Round-of-32 knockout (top 2 + 8 best thirds = 32) to a champion', async () => {
+    useGameStore.getState().startWorldCup(NAT);
+    for (let i = 0; i < 16; i++) {
+      await useGameStore.getState().advanceWeek();
+      if (useGameStore.getState().internationalTournament?.phase === 'complete') break;
+    }
+    const t = useGameStore.getState().internationalTournament!;
+    expect(t.phase).toBe('complete');
+    expect(t.winner).toBeTruthy();
+    // The bracket opened with a Round of 32 (16 ties).
+    const r32 = t.knockoutTies.filter(k => k.round === 'R32');
+    expect(r32.length).toBe(16);
+  });
+
   it('clears prior career state so a club career cannot leak in', () => {
     useGameStore.getState().startWorldCup(NAT);
     const s = useGameStore.getState();

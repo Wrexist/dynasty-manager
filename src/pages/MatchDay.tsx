@@ -24,6 +24,7 @@ import type { HalfState } from '@/engine/match';
 import type { ShoutType, KeyMomentChoice } from '@/types/game';
 import { useCurrentMatch } from '@/hooks/useGameSelectors';
 import { getCompetitionInfo } from '@/utils/competitionBadge';
+import { getFlag } from '@/utils/nationality';
 import { getPlayerNextWorldCupMatch, nationToClub } from '@/utils/internationalMatch';
 import { PostMatchPopup } from '@/components/game/PostMatchPopup';
 import { TacticalPanel } from '@/components/game/TacticalPanel';
@@ -844,6 +845,7 @@ const MatchDayInner = () => {
         liveHomeXG={liveHomeXG}
         liveAwayXG={liveAwayXG}
         goalFlash={goalFlash}
+        worldCup={isWorldCup}
       />
 
       {/* Momentum Meter & Tactical Insights */}
@@ -1832,10 +1834,16 @@ const MatchDayInner = () => {
                 <p className={cn('text-xs font-bold uppercase tracking-widest', headColor)}>{heading}</p>
                 {wcRound && <p className="text-[10px] text-muted-foreground uppercase tracking-wider">World Cup · {wcRound}</p>}
               </div>
-              <div className="flex items-center justify-center gap-4">
-                <span className="text-sm font-bold text-foreground truncate max-w-[90px]">{homeClub?.shortName}</span>
-                <span className="text-3xl font-black font-display tabular-nums text-foreground">{homeGoals} - {awayGoals}</span>
-                <span className="text-sm font-bold text-foreground truncate max-w-[90px]">{awayClub?.shortName}</span>
+              <div className="flex items-center justify-center gap-3">
+                <div className="flex items-center gap-2 min-w-0 justify-end flex-1">
+                  <span className="text-sm font-bold text-foreground truncate">{homeClub?.shortName}</span>
+                  {match && <span className="text-3xl leading-none shrink-0">{getFlag(match.homeClubId)}</span>}
+                </div>
+                <span className="text-3xl font-black font-display tabular-nums text-foreground shrink-0">{homeGoals} - {awayGoals}</span>
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  {match && <span className="text-3xl leading-none shrink-0">{getFlag(match.awayClubId)}</span>}
+                  <span className="text-sm font-bold text-foreground truncate">{awayClub?.shortName}</span>
+                </div>
               </div>
               {pen && (
                 <p className="text-xs text-muted-foreground">Penalties: {pen.home} - {pen.away}</p>
