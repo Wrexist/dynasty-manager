@@ -61,6 +61,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Fixed the live match HUD bar being mislabelled "Possession" when it actually shows momentum.',
     'Highlight: Goals now feel like a moment — a broadcast scoreline + scorer card, a stadium flash, and an instant slow-mo replay.',
     'Phase D: Interactive World Cup matches + retention features.',
+    'Pitch realism: continuous, individual player movement.',
   ],
   fixed: [],
   headline: null,
