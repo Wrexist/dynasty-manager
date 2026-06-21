@@ -15,7 +15,7 @@ import { selectBestLineup } from '@/utils/playerGen';
 import { getNationRanking, getNation } from '@/data/nations';
 
 const KNOCKOUT_ROUND_LABEL: Record<string, string> = {
-  R16: 'Round of 16', QF: 'Quarter-Final', SF: 'Semi-Final', F: 'Final',
+  R32: 'Round of 32', R16: 'Round of 16', QF: 'Quarter-Final', SF: 'Semi-Final', F: 'Final',
 };
 
 export interface NextWorldCupMatch {

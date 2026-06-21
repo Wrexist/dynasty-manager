@@ -19,7 +19,6 @@ import { NATIONS, getNation, CONTINENTAL_TOURNAMENT_NAMES } from '@/data/nations
 import { TOTAL_WEEKS, INTL_PENALTY_GK_BASE, INTL_PENALTY_GK_SCALE } from '@/config/gameBalance';
 import { simulatePenaltyShootout } from '@/utils/penaltyShootout';
 import {
-  WORLD_CUP_GROUPS,
   WORLD_CUP_TEAMS_PER_GROUP,
   CONTINENTAL_CUP_GROUPS,
   NATIONAL_SQUAD_SIZE,
@@ -175,54 +174,78 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 /** Generate a full tournament draw and initial state */
+/**
+ * The real 2026 FIFA World Cup group-stage draw — 12 groups (A–L) of 4 nations,
+ * 48 teams. World Cup mode ALWAYS starts from this exact draw so the tournament
+ * mirrors the real thing. (Names must match `data/nations.ts`.)
+ */
+export const WORLD_CUP_DRAW: string[][] = [
+  ['Mexico', 'South Korea', 'Czechia', 'South Africa'],          // A
+  ['Canada', 'Switzerland', 'Bosnia and Herzegovina', 'Qatar'],  // B
+  ['Brazil', 'Morocco', 'Scotland', 'Haiti'],                    // C
+  ['USA', 'Australia', 'Paraguay', 'Türkiye'],                   // D
+  ['Germany', 'Ivory Coast', 'Ecuador', 'Curaçao'],              // E
+  ['Netherlands', 'Japan', 'Sweden', 'Tunisia'],                 // F
+  ['New Zealand', 'Iran', 'Belgium', 'Egypt'],                   // G
+  ['Uruguay', 'Saudi Arabia', 'Spain', 'Cabo Verde'],            // H
+  ['Norway', 'France', 'Senegal', 'Iraq'],                       // I
+  ['Argentina', 'Austria', 'Jordan', 'Algeria'],                 // J
+  ['Colombia', 'DR Congo', 'Portugal', 'Uzbekistan'],            // K
+  ['England', 'Ghana', 'Panama', 'Croatia'],                     // L
+];
+
 export function generateTournament(
   type: InternationalTournamentType,
   season: number,
   playerNationality: string,
 ): InternationalTournamentState {
-  const numGroups = type === 'world-cup' ? WORLD_CUP_GROUPS : CONTINENTAL_CUP_GROUPS;
   const teamsPerGroup = WORLD_CUP_TEAMS_PER_GROUP;
-  const totalTeams = numGroups * teamsPerGroup;
 
-  // Build the qualifier pool. World Cup pulls the top globally-ranked nations.
-  // Continental tournaments restrict to the player's confederation (and pad
-  // with the next best-ranked global nations if the federation has fewer
-  // than `totalTeams` members).
-  const sorted = [...NATIONS].sort((a, b) => a.baseRanking - b.baseRanking);
-  let qualified: string[];
-  if (type === 'continental') {
+  // Determine each group's teams. World Cup uses the fixed real 2026 draw;
+  // continental tournaments draw from the confederation's ranked pool.
+  let groupTeamsList: string[][];
+  if (type === 'world-cup') {
+    groupTeamsList = WORLD_CUP_DRAW.map(g => [...g]);
+    // The player must be in the draw. If they picked a non-qualifier, swap them
+    // in for the lowest-ranked drawn team so they still get a real World Cup.
+    const inDraw = groupTeamsList.some(g => g.includes(playerNationality));
+    if (playerNationality && !inDraw) {
+      let worst = { gi: 0, ti: 0, rank: -1 };
+      groupTeamsList.forEach((g, gi) => g.forEach((t, ti) => {
+        const r = getNation(t)?.baseRanking ?? 999;
+        if (r > worst.rank) worst = { gi, ti, rank: r };
+      }));
+      groupTeamsList[worst.gi][worst.ti] = playerNationality;
+    }
+  } else {
+    const numGroups = CONTINENTAL_CUP_GROUPS;
+    const totalTeams = numGroups * teamsPerGroup;
+    const sorted = [...NATIONS].sort((a, b) => a.baseRanking - b.baseRanking);
     const playerNation = getNation(playerNationality);
     const confed = playerNation?.confederation ?? null;
     const inConfed = confed
       ? sorted.filter(n => n.confederation === confed).map(n => n.name)
       : sorted.map(n => n.name);
-    qualified = inConfed.slice(0, totalTeams);
+    let qualified = inConfed.slice(0, totalTeams);
     if (qualified.length < totalTeams) {
-      const filler = sorted
-        .filter(n => !qualified.includes(n.name))
-        .map(n => n.name)
-        .slice(0, totalTeams - qualified.length);
+      const filler = sorted.filter(n => !qualified.includes(n.name)).map(n => n.name).slice(0, totalTeams - qualified.length);
       qualified = qualified.concat(filler);
     }
-  } else {
-    qualified = sorted.slice(0, totalTeams).map(n => n.name);
+    if (!qualified.includes(playerNationality)) {
+      qualified[qualified.length - 1] = playerNationality;
+    }
+    const pots: string[][] = [];
+    for (let p = 0; p < teamsPerGroup; p++) {
+      pots.push(shuffle(qualified.slice(p * numGroups, (p + 1) * numGroups)));
+    }
+    groupTeamsList = [];
+    for (let g = 0; g < numGroups; g++) groupTeamsList.push(pots.map(pot => pot[g]));
   }
 
-  // Ensure the player's nation is in
-  if (!qualified.includes(playerNationality)) {
-    qualified[qualified.length - 1] = playerNationality;
-  }
-
-  // Seed pots: split into numGroups pots of teamsPerGroup
-  const pots: string[][] = [];
-  for (let p = 0; p < teamsPerGroup; p++) {
-    pots.push(shuffle(qualified.slice(p * numGroups, (p + 1) * numGroups)));
-  }
-
-  // Draw groups
+  // Build groups (round-robin fixtures + empty table) from the team lists.
   const groups: InternationalGroup[] = [];
-  for (let g = 0; g < numGroups; g++) {
-    const teams = pots.map(pot => pot[g]);
+  for (let g = 0; g < groupTeamsList.length; g++) {
+    const teams = groupTeamsList[g];
     const groupName = `Group ${String.fromCharCode(65 + g)}`;
 
     // Generate round-robin fixtures (each team plays every other once)
@@ -418,9 +441,38 @@ export function generateKnockoutBracket(
     });
   });
 
-  // R16 matchups: 1st of Group A vs 2nd of Group B, etc.
   const ties: InternationalKnockoutTie[] = [];
   const numGroups = groups.length;
+
+  // 2026 World Cup format: 12 groups → Round of 32. The 12 group winners + 12
+  // runners-up + the 8 best third-placed sides (32 teams) seed a bracket.
+  if (numGroups >= 12) {
+    const rankCmp = (a: InternationalGroupEntry, b: InternationalGroupEntry) =>
+      b.points - a.points
+      || (b.goalsFor - b.goalsAgainst) - (a.goalsFor - a.goalsAgainst)
+      || b.goalsFor - a.goalsFor;
+    const winners: InternationalGroupEntry[] = [];
+    const runners: InternationalGroupEntry[] = [];
+    const thirds: InternationalGroupEntry[] = [];
+    groups.forEach(group => {
+      if (group.table[0]) winners.push(group.table[0]);
+      if (group.table[1]) runners.push(group.table[1]);
+      if (group.table[2]) thirds.push(group.table[2]);
+    });
+    const bestThirds = [...thirds].sort(rankCmp).slice(0, 8);
+    // Seed strongest→weakest (winners, then runners, then best thirds) and pair
+    // top vs bottom so group winners get the kinder Round-of-32 ties.
+    const seeds = [
+      ...winners.sort(rankCmp),
+      ...runners.sort(rankCmp),
+      ...bestThirds.sort(rankCmp),
+    ].map(e => e.nationality);
+    const half = Math.floor(seeds.length / 2);
+    for (let i = 0; i < half; i++) {
+      ties.push(createKnockoutTie('R32', seeds[i], seeds[seeds.length - 1 - i], 50));
+    }
+    return ties;
+  }
 
   if (numGroups >= 8) {
     // World Cup style R16
@@ -477,7 +529,7 @@ function createKnockoutTie(
 
 /** Get the next knockout round */
 function nextRound(round: InternationalKnockoutRound): InternationalKnockoutRound | null {
-  const order: InternationalKnockoutRound[] = ['R16', 'QF', 'SF', 'F'];
+  const order: InternationalKnockoutRound[] = ['R32', 'R16', 'QF', 'SF', 'F'];
   const idx = order.indexOf(round);
   return idx < order.length - 1 ? order[idx + 1] : null;
 }

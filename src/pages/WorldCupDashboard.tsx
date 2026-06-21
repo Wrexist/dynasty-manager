@@ -27,6 +27,7 @@ const QUICK_LINKS: { label: string; screen: GameScreen; icon: React.ElementType;
 
 const PHASE_STEPS = [
   { key: 'group', label: 'Groups' },
+  { key: 'R32', label: 'R32' },
   { key: 'R16', label: 'R16' },
   { key: 'QF', label: 'QF' },
   { key: 'SF', label: 'SF' },
@@ -35,8 +36,8 @@ const PHASE_STEPS = [
 
 function phaseIndex(phase: string, round: string | null): number {
   if (phase === 'group') return 0;
-  if (phase === 'complete') return 4;
-  return ({ R16: 1, QF: 2, SF: 3, F: 4 } as Record<string, number>)[round || ''] ?? 0;
+  if (phase === 'complete') return 5;
+  return ({ R32: 1, R16: 2, QF: 3, SF: 4, F: 5 } as Record<string, number>)[round || ''] ?? 0;
 }
 
 /**
@@ -89,7 +90,7 @@ const WorldCupDashboard = () => {
 
   const roundLabel = tournament.phase === 'group' ? 'Group Stage'
     : tournament.phase === 'complete' ? 'Final Result'
-    : ({ R16: 'Round of 16', QF: 'Quarter-Finals', SF: 'Semi-Finals', F: 'Final' }[tournament.currentRound || ''] || 'Knockout');
+    : ({ R32: 'Round of 32', R16: 'Round of 16', QF: 'Quarter-Finals', SF: 'Semi-Finals', F: 'Final' }[tournament.currentRound || ''] || 'Knockout');
 
   const ovrColor = squadOVR >= 80 ? 'text-emerald-400' : squadOVR >= 70 ? 'text-primary' : squadOVR >= 60 ? 'text-amber-400' : 'text-muted-foreground';
 

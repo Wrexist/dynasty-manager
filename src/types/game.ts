@@ -1719,7 +1719,7 @@ export interface NationalTeamResult {
 
 export type InternationalTournamentType = 'world-cup' | 'continental';
 
-export type InternationalKnockoutRound = 'R16' | 'QF' | 'SF' | 'F';
+export type InternationalKnockoutRound = 'R32' | 'R16' | 'QF' | 'SF' | 'F';
 
 export interface InternationalTournamentState {
   type: InternationalTournamentType;

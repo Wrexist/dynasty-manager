@@ -15,7 +15,7 @@ import { hapticMedium } from '@/utils/haptics';
 import { cn } from '@/lib/utils';
 
 const ROUND_NAMES: Record<string, string> = {
-  R16: 'Round of 16', QF: 'Quarter-Finals', SF: 'Semi-Finals', F: 'the Final',
+  R32: 'Round of 32', R16: 'Round of 16', QF: 'Quarter-Finals', SF: 'Semi-Finals', F: 'the Final',
 };
 
 const WorldCupResult = () => {
