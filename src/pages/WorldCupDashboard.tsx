@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
-import { FlagIcon } from '@/components/game/FlagIcon';
+import { getFlag } from '@/utils/nationality';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -105,13 +105,10 @@ const WorldCupDashboard = () => {
     guardAsync(advanceWeek(), 'WorldCupDashboard.advanceWeek', { title: 'Could not advance', body: 'Please try again.' });
   };
 
-  // Flag crest used in the Next Match card — the national-team analogue of the
-  // club colour roundel the league Dashboard shows.
+  // Flag crest used in the Next Match card — the nation's flag (emoji renders
+  // instantly and natively, no CDN dependency).
   const FlagCrest = ({ n }: { n: string }) => (
-    <div className="w-14 h-14 rounded-full mx-auto mb-2 flex items-center justify-center overflow-hidden ring-2 ring-white/10 shadow-inner"
-      style={{ backgroundColor: getNation(n)?.color || '#1f2937' }}>
-      <FlagIcon nationality={n} size={42} className="rounded-md" />
-    </div>
+    <div className="mx-auto mb-2 text-center text-[56px] leading-none drop-shadow-lg">{getFlag(n)}</div>
   );
 
   return (
@@ -121,7 +118,7 @@ const WorldCupDashboard = () => {
         <div className="h-1 rounded-full" style={{ background: `linear-gradient(to right, ${nationColor}, transparent)` }} />
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5 min-w-0">
-            <FlagIcon nationality={nation} size={30} className="rounded-md shrink-0 ring-1 ring-white/10" />
+            <span className="text-[28px] leading-none shrink-0">{getFlag(nation)}</span>
             <div className="min-w-0">
               <p className="text-lg font-bold font-display text-foreground truncate">{nation}</p>
               <p className="text-[10px] text-muted-foreground">World Cup · {roundLabel}</p>
@@ -258,7 +255,7 @@ const WorldCupDashboard = () => {
                     isPlayer && 'bg-primary/5 -mx-1 px-1 rounded',
                     qualifies ? 'border-emerald-500/50' : 'border-transparent')}>
                   <span className="flex items-center gap-1.5 min-w-0">
-                    <FlagIcon nationality={entry.nationality} size={14} />
+                    <span className="text-base leading-none shrink-0">{getFlag(entry.nationality)}</span>
                     <span className={cn('truncate', isPlayer ? 'font-bold text-foreground' : 'text-foreground/80')}>{entry.nationality}</span>
                   </span>
                   <span className="text-center text-muted-foreground">{entry.played}</span>

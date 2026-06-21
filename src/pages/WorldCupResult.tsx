@@ -10,7 +10,7 @@ import { Trophy, Medal, Home, RotateCcw } from 'lucide-react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { FlagIcon } from '@/components/game/FlagIcon';
+import { getFlag } from '@/utils/nationality';
 import { hapticMedium } from '@/utils/haptics';
 import { cn } from '@/lib/utils';
 
@@ -94,7 +94,7 @@ const WorldCupResult = () => {
               {isGold ? <Trophy className="w-10 h-10" /> : <Medal className="w-10 h-10" />}
             </div>
             <div className="flex items-center justify-center gap-2 mb-1">
-              <FlagIcon nationality={nat} size={24} className="rounded-sm" />
+              <span className="text-xl leading-none shrink-0">{getFlag(nat)}</span>
               <span className="text-sm font-semibold text-foreground/80">{nat}</span>
             </div>
             <h1 className={cn('text-3xl font-black font-display leading-tight', isGold ? 'text-amber-300' : 'text-foreground')}>

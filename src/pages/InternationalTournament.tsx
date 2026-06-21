@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
-import { FlagIcon } from '@/components/game/FlagIcon';
+import { getFlag } from '@/utils/nationality';
 import { cn } from '@/lib/utils';
 import { Globe, Trophy, Play, Calendar, Flag, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -155,7 +155,7 @@ const InternationalTournament = () => {
                   className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
                   style={{ backgroundColor: n.color }}
                 >
-                  <FlagIcon nationality={n.name} size={28} />
+                  <span className="text-2xl leading-none shrink-0">{getFlag(n.name)}</span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-foreground truncate">{n.name}</p>
@@ -200,7 +200,7 @@ const InternationalTournament = () => {
               </p>
               {isWorldCupMode && managerNationality && (
                 <p className="text-xs text-amber-400 flex items-center gap-1.5 mt-0.5 font-medium">
-                  <FlagIcon nationality={managerNationality} size={14} className="rounded-sm" /> Your road to glory as {managerNationality}
+                  <span className="text-sm leading-none shrink-0">{getFlag(managerNationality)}</span> Your road to glory as {managerNationality}
                 </p>
               )}
             </div>
@@ -301,7 +301,7 @@ const InternationalTournament = () => {
                       )}
                     >
                       <span className="flex items-center gap-1.5 min-w-0">
-                        <FlagIcon nationality={entry.nationality} size={14} />
+                        <span className="text-sm leading-none shrink-0">{getFlag(entry.nationality)}</span>
                         <span className={cn('truncate', isPlayer ? 'font-bold text-foreground' : 'text-foreground/80')}>
                           {entry.nationality}
                         </span>
@@ -339,7 +339,7 @@ const InternationalTournament = () => {
                       )}
                     >
                       <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                        <FlagIcon nationality={fix.homeNation} size={14} />
+                        <span className="text-sm leading-none shrink-0">{getFlag(fix.homeNation)}</span>
                         <span className="truncate">{fix.homeNation}</span>
                       </div>
                       <span className="font-mono px-2 shrink-0">
@@ -347,7 +347,7 @@ const InternationalTournament = () => {
                       </span>
                       <div className="flex items-center gap-1.5 flex-1 min-w-0 justify-end">
                         <span className="truncate text-right">{fix.awayNation}</span>
-                        <FlagIcon nationality={fix.awayNation} size={14} />
+                        <span className="text-sm leading-none shrink-0">{getFlag(fix.awayNation)}</span>
                       </div>
                     </div>
                   );
@@ -398,7 +398,7 @@ const InternationalTournament = () => {
                         )}
                       >
                         <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <FlagIcon nationality={tie.homeNation} size={16} />
+                          <span className="text-base leading-none shrink-0">{getFlag(tie.homeNation)}</span>
                           <span className={cn(
                             'truncate',
                             isWinner(tie.homeNation) ? 'font-bold text-foreground' :
@@ -427,7 +427,7 @@ const InternationalTournament = () => {
                           )}>
                             {tie.awayNation}
                           </span>
-                          <FlagIcon nationality={tie.awayNation} size={16} />
+                          <span className="text-base leading-none shrink-0">{getFlag(tie.awayNation)}</span>
                         </div>
                       </motion.div>
                     );
@@ -451,7 +451,7 @@ const InternationalTournament = () => {
             <Trophy className="w-10 h-10 text-primary mx-auto mb-2" />
           </motion.div>
           <h2 className="text-lg font-bold text-foreground font-display">
-            <FlagIcon nationality={tournament.winner} size={20} /> {tournament.winner}
+            <span className="text-xl leading-none shrink-0">{getFlag(tournament.winner)}</span> {tournament.winner}
           </h2>
           <p className="text-sm text-primary font-medium">
             {tournament.winner === managerNationality ? 'Your Nation — Champions!' : 'Champions!'}
