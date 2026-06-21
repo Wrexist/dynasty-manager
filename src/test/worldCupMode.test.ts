@@ -28,7 +28,9 @@ describe('startWorldCup', () => {
     expect(s.clubs[NAT]).toBeTruthy();
     expect(s.clubs[NAT].playerIds.length).toBeGreaterThanOrEqual(11);
     expect(s.clubs[NAT].lineup.length).toBe(11);
-    expect(s.currentScreen).toBe('dashboard');
+    // startWorldCup opens on the group-draw ceremony; its Continue button
+    // then drops the player onto the World Cup dashboard.
+    expect(s.currentScreen).toBe('world-cup-draw');
     // No league world.
     expect(s.fixtures).toHaveLength(0);
     expect(s.leagueTable).toHaveLength(0);
