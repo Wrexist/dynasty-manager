@@ -394,6 +394,10 @@ export interface GameState {
   // device-global (persisted outside the save); returns the resulting status,
   // or null if today has already been claimed.
   claimDailyStreakReward: () => import('@/utils/dailyStreak').DailyStreakStatus | null;
+  // Redeem a signed offline code (money / manager XP). Verifies the signature,
+  // blocks reuse (device-global), applies the reward to the current save, and
+  // returns the outcome for the UI to surface.
+  redeemCode: (code: string) => Promise<import('@/types/game').RedeemResult>;
   // Take the active live event's daily Festival check-in (device-global points).
   // Returns the updated progress, or null if no event is live / already checked
   // in today.

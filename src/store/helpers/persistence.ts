@@ -317,6 +317,11 @@ export const STORAGE_KEYS = {
    *  of which career/slot is loaded — deliberately NOT save-scoped, so the
    *  streak survives starting a new career. */
   DAILY_STREAK: 'dynasty-daily-streak',
+  /** localStorage: device-global set of redeem-code ids already applied on this
+   *  device, so a signed code can't be re-applied. JSON array of normalized
+   *  code ids. Device-scoped (not save-scoped) so one code = one use per
+   *  device regardless of which save is active. */
+  REDEEMED_CODES: 'dynasty-redeemed-codes',
   /** localStorage: device-global progress for the active date-boxed live event
    *  (JSON LiveEventProgress). Namespaced by event id inside the record so a
    *  new event starts fresh. Not save-scoped — Festival Points are a
@@ -374,6 +379,31 @@ export function readDailyStreak(): DailyStreakRecord | null {
 export function writeDailyStreak(record: DailyStreakRecord): void {
   try { localStorage.setItem(STORAGE_KEYS.DAILY_STREAK, JSON.stringify(record)); }
   catch { /* storage unavailable — non-fatal, the streak just won't persist */ }
+}
+
+// ── Redeem Codes (device-global) ──
+
+/** Device-global list of redeem-code ids already applied here. */
+export function readRedeemedCodes(): string[] {
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem(STORAGE_KEYS.REDEEMED_CODES);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === 'string') : [];
+  } catch (err) {
+    if (raw !== null) breadcrumbCorruption('readRedeemedCodes', raw, err);
+    return [];
+  }
+}
+
+/** Record a redeem-code id as applied. No-op if already present. */
+export function addRedeemedCode(codeId: string): void {
+  try {
+    const existing = readRedeemedCodes();
+    if (existing.includes(codeId)) return;
+    localStorage.setItem(STORAGE_KEYS.REDEEMED_CODES, JSON.stringify([...existing, codeId]));
+  } catch { /* storage unavailable — non-fatal */ }
 }
 
 // ── Live Event Progress ──

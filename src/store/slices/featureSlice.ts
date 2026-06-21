@@ -1,8 +1,9 @@
 import type { PressConference, ContractOffer, ActiveChallenge, StorylineEvent, ActiveStorylineChain, ManagerProgression, CliffhangerItem, MatchDramaType, SessionStats, TransferTalk } from '@/types/game';
 import { MOD_MEDIA_PRESS, MOD_MOTIVATION_MORALE, GROWTH_MEDIA_PER_CONFERENCE, STAT_MAX } from '@/config/managerCareer';
 import { TRANSFER_TALK_EMPATHIZE_MORALE_BOOST, TRANSFER_TALK_CONVINCE_SUCCESS_MORALE, TRANSFER_TALK_CONVINCE_FAIL_MORALE, COACH_TASK_XP, COACH_ALL_TASKS_BONUS_XP, ONBOARDING_COMPLETION_XP, TOTAL_WEEKS } from '@/config/gameBalance';
-import { getFlag, setFlag, STORAGE_KEYS, readDailyStreak, writeDailyStreak, writeLiveEventProgress } from '@/store/helpers/persistence';
+import { getFlag, setFlag, STORAGE_KEYS, readDailyStreak, writeDailyStreak, writeLiveEventProgress, readRedeemedCodes, addRedeemedCode } from '@/store/helpers/persistence';
 import { applyDailyClaim } from '@/utils/dailyStreak';
+import { verifyRedeemCode, getRedeemSecret } from '@/utils/redeemCodes';
 import { getActiveLiveEvent, readActiveFestivalProgress, canCheckInToday, applyCheckIn, applyTierClaim } from '@/utils/liveEvents';
 import { track } from '@/utils/analytics';
 import { TRANSFER_DEMAND_COOLDOWN_WEEKS, TRANSFER_TALK_RETRY_WEEKS } from '@/config/personality';
@@ -214,6 +215,33 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
     });
     track('daily_streak_claim', { streak: status.current, xp: status.rewardXP });
     return status;
+  },
+
+  // ── Redeem Codes ──
+  redeemCode: async (code: string) => {
+    const parsed = await verifyRedeemCode(code, getRedeemSecret());
+    if (!parsed.valid) return { ok: false, reason: parsed.error };
+    if (readRedeemedCodes().includes(parsed.codeId)) return { ok: false, reason: 'already-used' as const };
+
+    const state = get();
+    if (!state.gameStarted) return { ok: false, reason: 'no-game' as const };
+    const { type, amount } = parsed.reward;
+
+    if (type === 'money') {
+      const club = state.clubs[state.playerClubId];
+      if (!club) return { ok: false, reason: 'no-game' as const };
+      set({ clubs: { ...state.clubs, [state.playerClubId]: { ...club, budget: (club.budget || 0) + amount } } });
+    } else {
+      const sessionStats = state.sessionStats;
+      set({
+        managerProgression: grantXP(state.managerProgression, amount),
+        sessionStats: { ...sessionStats, xpEarned: sessionStats.xpEarned + amount },
+      });
+    }
+
+    addRedeemedCode(parsed.codeId);
+    track('code_redeemed', { reward: type });
+    return { ok: true, rewardType: type, amount };
   },
 
   // ── Live Event (World Cup Festival) ──
