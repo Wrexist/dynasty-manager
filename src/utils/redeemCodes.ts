@@ -31,9 +31,16 @@ export interface RedeemReward {
   amount: number;
 }
 
-export type RedeemParseResult =
-  | { valid: true; codeId: string; reward: RedeemReward }
-  | { valid: false; error: 'format' | 'signature' };
+/** Result of parsing/verifying a code. Flat (not a discriminated union) so it
+ *  reads cleanly under the project's non-strict TS config, where control-flow
+ *  narrowing on a boolean discriminant is unreliable. When `valid` is true,
+ *  `codeId` and `reward` are set; otherwise `error` explains why. */
+export interface RedeemParseResult {
+  valid: boolean;
+  codeId?: string;
+  reward?: RedeemReward;
+  error?: 'format' | 'signature';
+}
 
 const TYPE_TO_CHAR: Record<RedeemRewardType, string> = { money: 'm', xp: 'x' };
 
