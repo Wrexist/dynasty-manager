@@ -140,6 +140,18 @@ export const PITCH_RENDER = {
   BOB_MAX: 0.35,
   /** Bob oscillation frequency (rad/ms of wall-clock). */
   BOB_FREQ: 0.018,
+  /** Continuous idle micro-motion: a near-stationary player keeps shuffling and
+   *  adjusting position so the pitch is never frozen and each chip moves on its
+   *  own phase. Amplitude is a fraction of chip radius and fades to 0 as the
+   *  player sprints (they're already moving). Pure render — never touches the
+   *  positions used for hit-testing or match logic. */
+  IDLE_WANDER: 0.34,
+  /** Idle drift oscillation frequencies (rad/ms) — different X/Y so the path is
+   *  an organic Lissajous loop, not a straight line. */
+  IDLE_FREQ_X: 0.0016,
+  IDLE_FREQ_Y: 0.0012,
+  /** Keepers drift less than outfielders (they read as anchored to their line). */
+  IDLE_GK_FACTOR: 0.45,
   /** Camera looks this many seconds ahead along the ball's velocity. */
   CAM_LEAD_S: 0.2,
   /** Clamp on the camera lead (pitch units) so it never runs off the pitch. */

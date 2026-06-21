@@ -278,10 +278,15 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
       const ballR = Math.max(3, unit * 0.016);
 
       for (const p of display.players.values()) {
-        const { sx: cx, sy: groundY } = project(p.x, p.y);
+        const base = project(p.x, p.y);
         // Velocity → run feel: swell + lean along travel + a little bob.
         const speed = Math.hypot(p.vx, p.vy);
         const sp = Math.min(1, speed / PITCH_RENDER.SPEED_REF);
+        // Continuous idle micro-motion: near-stationary players keep shuffling on
+        // their own phase (fades out as they sprint) so nobody is ever frozen.
+        const idleAmp = reducedMotion ? 0 : (1 - sp) * chipR * PITCH_RENDER.IDLE_WANDER * (p.pos === 'GK' ? PITCH_RENDER.IDLE_GK_FACTOR : 1);
+        const cx = base.sx + Math.sin(ts * PITCH_RENDER.IDLE_FREQ_X + p.number * 1.7) * idleAmp;
+        const groundY = base.sy + Math.cos(ts * PITCH_RENDER.IDLE_FREQ_Y + p.number * 2.3) * idleAmp * 0.7;
         const r = chipR * (1 + sp * PITCH_RENDER.SPRINT_SCALE_MAX);
         const ax = Math.abs(p.vx);
         const ay = Math.abs(p.vy);

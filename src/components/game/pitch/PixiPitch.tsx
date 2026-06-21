@@ -382,11 +382,16 @@ export default function PixiPitch({
             platesG.clear();
             let li = 0;
             for (const p of display.players.values()) {
-              const cx = mapX(p.x);
-              const groundY = mapY(p.y);
               // Velocity → run feel: swell + lean along travel + a little bob.
               const speed = Math.hypot(p.vx, p.vy);
               const sp = Math.min(1, speed / PITCH_RENDER.SPEED_REF);
+              // Continuous idle micro-motion: near-stationary players keep
+              // shuffling on their own phase (fades out as they sprint), so the
+              // pitch is never frozen. Pure render — see PitchCanvas.
+              const nowMs = performance.now();
+              const idleAmp = reducedMotion ? 0 : (1 - sp) * chipR * PITCH_RENDER.IDLE_WANDER * (p.pos === 'GK' ? PITCH_RENDER.IDLE_GK_FACTOR : 1);
+              const cx = mapX(p.x) + Math.sin(nowMs * PITCH_RENDER.IDLE_FREQ_X + p.number * 1.7) * idleAmp;
+              const groundY = mapY(p.y) + Math.cos(nowMs * PITCH_RENDER.IDLE_FREQ_Y + p.number * 2.3) * idleAmp * 0.7;
               const r = chipR * (1 + sp * PITCH_RENDER.SPRINT_SCALE_MAX);
               const aax = Math.abs(p.vx);
               const aay = Math.abs(p.vy);
@@ -394,7 +399,7 @@ export default function PixiPitch({
               const e = sp * PITCH_RENDER.LEAN_MAX * (2 * dirH - 1);
               const rx = r * (1 + e);
               const ry = r * (1 - e);
-              const cy = groundY - sp * chipR * PITCH_RENDER.BOB_MAX * Math.sin(performance.now() * PITCH_RENDER.BOB_FREQ + p.number);
+              const cy = groundY - sp * chipR * PITCH_RENDER.BOB_MAX * Math.sin(nowMs * PITCH_RENDER.BOB_FREQ + p.number);
               const teamColor = p.team === 'home' ? homeColorRef.current : awayColorRef.current;
               const color = p.pos === 'GK' ? keeperKit(teamColor) : (teamColor || '#888888');
               chipsG.ellipse(cx, groundY + chipR * 0.48, chipR * 0.78, chipR * 0.34).fill({ color: 0x000000, alpha: 0.42 });
