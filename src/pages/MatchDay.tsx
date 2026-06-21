@@ -24,7 +24,6 @@ import type { HalfState } from '@/engine/match';
 import type { ShoutType, KeyMomentChoice } from '@/types/game';
 import { useCurrentMatch } from '@/hooks/useGameSelectors';
 import { getCompetitionInfo } from '@/utils/competitionBadge';
-import { getFlag } from '@/utils/nationality';
 import { getPlayerNextWorldCupMatch, nationToClub } from '@/utils/internationalMatch';
 import { PostMatchPopup } from '@/components/game/PostMatchPopup';
 import { TacticalPanel } from '@/components/game/TacticalPanel';
@@ -623,14 +622,9 @@ const MatchDayInner = () => {
     }
   }, [phase]);
 
-  useEffect(() => {
-    // Auto-scroll the live event feed. At Instant match speed the event
-    // count climbs many times per second; stacking smooth-scroll animations
-    // janks low-end Android. `behavior: 'instant'` snaps without queueing
-    // animations — the feed still tracks the latest event, just without the
-    // compounding-animation cost.
-    eventsEndRef.current?.scrollIntoView({ behavior: 'instant' as ScrollBehavior });
-  }, [visibleEvents.length]);
+  // Note: the live event feed deliberately does NOT auto-scroll. Players asked
+  // to read events at their own pace — new events append below and the user
+  // scrolls when ready, rather than the view snapping down on every event.
 
   const handlePause = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
@@ -1834,17 +1828,32 @@ const MatchDayInner = () => {
                 <p className={cn('text-xs font-bold uppercase tracking-widest', headColor)}>{heading}</p>
                 {wcRound && <p className="text-[10px] text-muted-foreground uppercase tracking-wider">World Cup · {wcRound}</p>}
               </div>
-              <div className="flex items-center justify-center gap-3">
-                <div className="flex items-center gap-2 min-w-0 justify-end flex-1">
-                  <span className="text-sm font-bold text-foreground truncate">{homeClub?.shortName}</span>
-                  {match && <span className="text-3xl leading-none shrink-0">{getFlag(match.homeClubId)}</span>}
-                </div>
-                <span className="text-3xl font-black font-display tabular-nums text-foreground shrink-0">{homeGoals} - {awayGoals}</span>
-                <div className="flex items-center gap-2 min-w-0 flex-1">
-                  {match && <span className="text-3xl leading-none shrink-0">{getFlag(match.awayClubId)}</span>}
-                  <span className="text-sm font-bold text-foreground truncate">{awayClub?.shortName}</span>
-                </div>
-              </div>
+              {/* The score is already shown in the persistent scoreboard above —
+                  surface the Player of the Match here instead of repeating it. */}
+              {(() => {
+                const ratings = useGameStore.getState().matchPlayerRatings || [];
+                const allPlayers = useGameStore.getState().players;
+                const myClub = playerIsHome ? homeClub : awayClub;
+                const squadIds = new Set([
+                  ...(myClub?.lineup || []),
+                  ...(myClub?.subs || []),
+                  ...(myClub?.playerIds || []),
+                ]);
+                const myRatings = ratings.filter(r => squadIds.has(r.playerId));
+                const pool = myRatings.length ? myRatings : ratings;
+                const mvp = pool.length ? [...pool].sort((a, b) => b.rating - a.rating)[0] : null;
+                const mvpPlayer = mvp ? allPlayers[mvp.playerId] : null;
+                if (!mvp || !mvpPlayer) return null;
+                return (
+                  <div className="flex items-center justify-center gap-3">
+                    <div className="min-w-0 text-right">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Player of the Match</p>
+                      <p className="text-sm font-bold text-foreground truncate">{mvpPlayer.firstName} {mvpPlayer.lastName}</p>
+                    </div>
+                    <span className="text-2xl font-black font-display tabular-nums text-primary shrink-0">{mvp.rating.toFixed(1)}</span>
+                  </div>
+                );
+              })()}
               {pen && (
                 <p className="text-xs text-muted-foreground">Penalties: {pen.home} - {pen.away}</p>
               )}
