@@ -296,18 +296,37 @@ function placeBeatPlayers(
   return out;
 }
 
-/** Build a forward-progressing chain of carriers for a possession, weighted
- *  toward better passers, ending at `endId` (the event's player) if supplied. */
+/** Build a chain of carriers for a possession, weighted toward better passers,
+ *  ending at `endId` (the event's player) if supplied.
+ *
+ *  Two modes:
+ *   • Default (no `flow`) — the chain spans the whole squad deep→forward, i.e. a
+ *     full-pitch build-up. Used by event build-ups (a goal/shot move).
+ *   • `flow` set — all carriers are drawn from a tight band centred on the
+ *     possession's current *flow line* (`centerFrac`, 0 = deepest, 1 = most
+ *     advanced). The ball short-passes around that line (lateral, same depth);
+ *     forward progress is made BETWEEN minutes by advancing the line. This is
+ *     what makes open play flow continuously instead of resetting to the back
+ *     line every minute. */
 function pickChain(
   squad: BasePlayer[], possession: 'home' | 'away', endId: string | null | undefined,
   count: number, rng: () => number, lookup?: Record<string, Player>,
+  flow?: { centerFrac: number; halfWidth: number },
 ): BasePlayer[] {
   if (!squad.length) return [];
   const sorted = [...squad].sort((a, b) => advancement(possession, a.base.y) - advancement(possession, b.base.y));
   const chain: BasePlayer[] = [];
   for (let k = 0; k < count; k++) {
-    const lo = Math.floor((k / count) * sorted.length);
-    const hi = Math.min(sorted.length - 1, Math.floor(((k + 1) / count) * sorted.length));
+    let f0: number, f1: number;
+    if (flow) {
+      f0 = clamp(flow.centerFrac - flow.halfWidth, 0, 1);
+      f1 = clamp(flow.centerFrac + flow.halfWidth, 0, 1);
+    } else {
+      f0 = k / count;
+      f1 = (k + 1) / count;
+    }
+    const lo = Math.floor(f0 * sorted.length);
+    const hi = Math.min(sorted.length - 1, Math.floor(f1 * sorted.length));
     const band = sorted.slice(lo, hi + 1);
     if (!band.length) continue;
     let pick = band[Math.floor(rng() * band.length)];
@@ -353,6 +372,11 @@ export function buildMatchTimeline(match: Match, homeClub: Club, awayClub: Club,
   let seq = 0;
   let momentum = 0;
   let prevPossession: 'home' | 'away' | null = null;
+  // Continuous-possession flow: how far up the pitch (band fraction) the team in
+  // possession currently is, persisted across minutes so retained possession
+  // flows upfield instead of snapping back to the defenders every minute.
+  let flowFrac: number = PITCH_CHOREO.FLOW_START;
+  let flowTeam: 'home' | 'away' | null = null;
 
   const byMinute = new Map<number, MatchEvent[]>();
   let lastMinute = 0;
@@ -390,15 +414,29 @@ export function buildMatchTimeline(match: Match, homeClub: Club, awayClub: Club,
   };
 
   // Emit a pass chain: ball travels carrier→carrier among the possessing team.
-  const emitPossession = (minute: number, possession: 'home' | 'away', endId: string | null, captionLast?: string) => {
+  // `flow` windows the chain up the pitch for a continuing possession (so the
+  // move flows forward instead of restarting deep); omitted on event build-ups,
+  // which still build from the back for a full-pitch attacking move.
+  const emitPossession = (
+    minute: number, possession: 'home' | 'away', endId: string | null,
+    captionLast?: string, flow?: { centerFrac: number; halfWidth: number },
+  ) => {
     const tactics = possession === 'home' ? homeTactics : awayTactics;
     const baseSquad = (possession === 'home' ? baseHome : baseAway)
       .filter(p => p.pos !== 'GK' && p.id && !removed.has(p.id));
     const passes = PITCH_CHOREO.PASSES_BY_TEMPO[tactics.tempo] ?? 2;
-    const chain = pickChain(baseSquad, possession, endId, passes, rng, lookup);
+    const chain = pickChain(baseSquad, possession, endId, passes, rng, lookup, flow);
     chain.forEach((carrier, idx) => {
       const extraPush = Math.min(idx * PITCH_CHOREO.POSSESSION_ADVANCE, PITCH_CHOREO.POSSESSION_ADVANCE_MAX);
       const ball = carrierSpot(carrier, possession, tactics, extraPush);
+      // In flow mode, anchor the ball's depth to the flow line so a pass to a
+      // deeper team-mate doesn't lurch it half the pitch back (lateral position
+      // is untouched — wingers still drive the touchline).
+      if (flow) {
+        const lineDepth = clamp(flow.centerFrac * PITCH_CHOREO.FLOW_DEPTH_SCALE, 8, 90);
+        const bd = advancement(possession, ball.y);
+        ball.y = depthToY(possession, lerp(bd, lineDepth, PITCH_CHOREO.FLOW_DEPTH_PULL));
+      }
       const hl = highlightFor(carrier.id);
       const players = placeBeatPlayers(baseHome, baseAway, possession, homeTactics, awayTactics, ball, removed, hl, { phaseTime: seq, lookup, extraPush });
       const self = players.find(p => p.id === carrier.id);
@@ -609,13 +647,32 @@ export function buildMatchTimeline(match: Match, homeClub: Club, awayClub: Club,
 
         if (ev.type === 'red_card' && ev.playerId) removed.add(ev.playerId);
       }
+      // An event break (shot, foul, restart…) interrupts the flow — the next
+      // open-play minute (re)builds rather than continuing a stale move.
+      flowTeam = null;
     } else {
-      // Possession ebbs and flows, biased by momentum (50/50 at neutral), with a
-      // turnover beat whenever the ball changes hands — so an even game looks even.
-      const pHome = clamp(0.5 + momentum / 200, 0.1, 0.9);
+      // Possession ebbs and flows, biased by momentum (50/50 at neutral) and by
+      // inertia (the team on the ball tends to keep it), so play strings into
+      // multi-phase moves instead of flipping — and flows upfield, not resetting.
+      const base = clamp(0.5 + momentum / 200, 0.1, 0.9);
+      const keep = PITCH_CHOREO.POSSESSION_KEEP;
+      const pHome = prevPossession === 'home' ? keep + (1 - keep) * base
+        : prevPossession === 'away' ? (1 - keep) * base
+        : base;
       const possession: 'home' | 'away' = rng() < pHome ? 'home' : 'away';
-      if (prevPossession && possession !== prevPossession) emitTurnover(minute, possession);
-      emitPossession(minute, possession, null);
+      const retained = possession === prevPossession;
+      if (prevPossession && !retained) emitTurnover(minute, possession);
+      // Reset the flow line when the ball changes hands (or after an event break);
+      // otherwise keep it where it was so the move continues up the pitch.
+      if (!retained || flowTeam !== possession) {
+        flowFrac = prevPossession && !retained ? PITCH_CHOREO.FLOW_TURNOVER : PITCH_CHOREO.FLOW_START;
+      }
+      // Short passes around the current flow line this minute; advance the line
+      // forward for next minute (monotonic until a turnover) so the ball flows
+      // upfield continuously instead of snapping back to the defenders.
+      emitPossession(minute, possession, null, undefined, { centerFrac: flowFrac, halfWidth: PITCH_CHOREO.FLOW_HALF });
+      flowFrac = Math.min(flowFrac + PITCH_CHOREO.FLOW_ADVANCE, PITCH_CHOREO.FLOW_MAX);
+      flowTeam = possession;
       prevPossession = possession;
     }
   }

@@ -47,13 +47,45 @@ export const PITCH_CHOREO = {
   /** Cap on the cumulative possession advance. */
   POSSESSION_ADVANCE_MAX: 16,
 
+  // ── Continuous possession flow (no-event minutes) ──
+  // Without these, every minute restarts the carrier chain from the back line,
+  // so the ball snaps to the defenders and walks up again — a looping "reset"
+  // instead of one flowing move. `flowFrac` (a band fraction over the squad,
+  // 0 = deepest, 1 = most advanced) persists across minutes: a retained
+  // possession continues upfield from where it was; turnovers/restarts reset it.
+  /** Possession inertia: chance the team on the ball keeps it minute-to-minute,
+   *  blended with momentum. Higher = longer spells = more sustained flow. Kept
+   *  below 1 so the ball still changes hands many times across a match. */
+  POSSESSION_KEEP: 0.68,
+  /** Flow line a fresh possession starts at (build from deep). */
+  FLOW_START: 0.12,
+  /** Flow line after winning the ball in midfield (turnover). */
+  FLOW_TURNOVER: 0.28,
+  /** How far up the pitch the flow line advances per retained minute — steady
+   *  forward progress. Monotonic until a turnover, so the ball never snaps back. */
+  FLOW_ADVANCE: 0.16,
+  /** Cap on the flow line (sustained attack camps in the final third). */
+  FLOW_MAX: 0.8,
+  /** Half-width of the carrier band around the flow line: the ball short-passes
+   *  among players within ±this of the current line (lateral, ~same depth). */
+  FLOW_HALF: 0.18,
+  /** In flow mode the ball's *depth* is pulled toward the flow line (its lateral
+   *  position still comes from the carrier, so wingers hug the touchline). This
+   *  stops the ball lurching half the pitch backward when a pass goes from a
+   *  forward to a deeper team-mate — the move stays anchored to its line. */
+  FLOW_DEPTH_PULL: 0.65,
+  /** Maps the flow line (0..1) to a target advancement depth (0..100). */
+  FLOW_DEPTH_SCALE: 92,
+
   // ── Positional play (team simulation) ──
   /** How far forward the ball-carrier drives from their resting depth. */
   CARRIER_PUSH: 14,
   /** How hard a pressing defender closes on the ball (0-1). */
   PRESS_PULL: 0.6,
-  /** Lateral compactness: how far off-ball defenders slide toward the ball's lane (0-1). */
-  COMPACT_X: 0.28,
+  /** Lateral compactness: how far off-ball defenders slide toward the ball's lane
+   *  (0-1). Kept modest so the back line stays *banked* across the pitch and holds
+   *  its shape rather than collapsing centrally onto a midfield ball. */
+  COMPACT_X: 0.18,
   /** Pull applied to the nearest support player toward the ball (passing option). */
   SUPPORT_PULL: 0.32,
   /** The defensive line sits this far in front of the ball's depth… */

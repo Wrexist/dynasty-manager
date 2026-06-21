@@ -189,6 +189,43 @@ describe('buildMatchTimeline', () => {
     expect(homeShare).toBeLessThan(0.75);
   });
 
+  describe('continuous open-play flow', () => {
+    const adv = (poss: 'home' | 'away', y: number) => (poss === 'home' ? y : 100 - y);
+
+    it('flows the ball forward without snapping back to the defenders each minute', () => {
+      const timeline = buildMatchTimeline(makeMatch([]), home, away);
+      // Across consecutive open-play beats of the SAME possession, the ball never
+      // lurches a long way back toward its own goal (the old per-minute "reset").
+      let prev: (typeof timeline.beats)[number] | null = null;
+      let maxBackward = 0;
+      for (const b of timeline.beats) {
+        if (b.eventType !== null) { prev = null; continue; }
+        if (prev && prev.possession === b.possession) {
+          const back = adv(prev.possession, prev.ball.y) - adv(b.possession, b.ball.y);
+          if (back > maxBackward) maxBackward = back;
+        }
+        prev = b;
+      }
+      // A modest recycle pass is fine; half-pitch resets are not.
+      expect(maxBackward).toBeLessThan(20);
+    });
+
+    it('strings possession into multi-phase spells (inertia), not minute-by-minute flips', () => {
+      const timeline = buildMatchTimeline(makeMatch([]), home, away);
+      let longest = 0;
+      let cur = 0;
+      let prev: 'home' | 'away' | null = null;
+      for (const b of timeline.beats) {
+        if (b.eventType !== null) { prev = null; cur = 0; continue; }
+        if (b.possession === prev) cur++;
+        else { cur = 1; prev = b.possession; }
+        if (cur > longest) longest = cur;
+      }
+      // At least one spell strings several beats together (a sustained move).
+      expect(longest).toBeGreaterThan(6);
+    });
+  });
+
   it('restarts from the centre with the conceding team after a goal', () => {
     const timeline = buildMatchTimeline(makeMatch([ev(30, 'goal', 'home', { playerId: 'home-p9' })]), home, away);
     const goalIdx = timeline.beats.findIndex((b) => b.eventType === 'goal');
