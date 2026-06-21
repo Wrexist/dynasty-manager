@@ -87,6 +87,19 @@ export interface PlaybackSample {
 
 export const createPlayback = (): PlaybackState => ({ index: 0, t: 0 });
 
+/** How many beats share the minute of `beats[index]`. Beats are emitted in
+ *  non-decreasing minute order, so same-minute beats are contiguous — a cheap
+ *  local scan. Used to pace a minute's beats across its wall-clock duration. */
+export function countBeatsInMinute(beats: MatchBeat[], index: number): number {
+  if (!beats.length) return 1;
+  const i = Math.min(Math.max(0, index), beats.length - 1);
+  const m = beats[i].minute;
+  let count = 1;
+  for (let j = i - 1; j >= 0 && beats[j].minute === m; j--) count++;
+  for (let j = i + 1; j < beats.length && beats[j].minute === m; j++) count++;
+  return count;
+}
+
 /** Seed a playhead at the first beat on/after `minute` (used by goal replays to
  *  start mid-timeline instead of from kickoff). */
 export function seekPlayback(beats: MatchBeat[], minute: number): PlaybackState {
@@ -219,12 +232,22 @@ export interface DisplayPlayer {
   number: number;
   name?: string;
   overall?: number;
+  /** Normalized pace 0–1 (drives per-player acceleration). */
+  speed?: number;
   highlighted: boolean;
   x: number;
   y: number;
   /** Velocity in pitch units per second. */
   vx: number;
   vy: number;
+}
+
+/** Per-player spring time-constant from the global base and the player's pace.
+ *  Neutral at pace 0.5 (unchanged), shorter for quick players (snappier accel),
+ *  longer for slow ones (they lumber). Clamped so nobody teleports or crawls. */
+function tauForSpeed(baseTau: number, speed: number | undefined): number {
+  const s = speed == null ? 0.5 : speed;
+  return baseTau * (1 - (s - 0.5) * 0.7);
 }
 
 export interface DisplayState {
@@ -243,7 +266,6 @@ export const createDisplay = (): DisplayState => ({ players: new Map(), ballX: 5
  *  weighted-eased) target exactly but its velocity is tracked for camera lead. */
 export function stepDisplay(display: DisplayState, frame: RenderFrame, dtMs: number, tauMs: number): void {
   const dt = Math.max(1, Math.min(dtMs, 64));
-  const k = 1 - Math.exp(-dt / Math.max(1, tauMs));
   const invDt = 1000 / dt;
 
   const seen = new Set<string>();
@@ -252,12 +274,14 @@ export function stepDisplay(display: DisplayState, frame: RenderFrame, dtMs: num
     seen.add(key);
     let d = display.players.get(key);
     if (!d) {
-      d = { id: tp.id, team: tp.team, pos: tp.pos, number: tp.number, name: tp.name, overall: tp.overall, highlighted: tp.highlighted, x: tp.point.x, y: tp.point.y, vx: 0, vy: 0 };
+      d = { id: tp.id, team: tp.team, pos: tp.pos, number: tp.number, name: tp.name, overall: tp.overall, speed: tp.speed, highlighted: tp.highlighted, x: tp.point.x, y: tp.point.y, vx: 0, vy: 0 };
       display.players.set(key, d);
       continue;
     }
     d.id = tp.id; d.team = tp.team; d.pos = tp.pos; d.number = tp.number;
-    d.name = tp.name; d.overall = tp.overall; d.highlighted = tp.highlighted;
+    d.name = tp.name; d.overall = tp.overall; d.speed = tp.speed; d.highlighted = tp.highlighted;
+    // Quick players accelerate faster than slow ones (neutral at pace 0.5).
+    const k = 1 - Math.exp(-dt / Math.max(1, tauForSpeed(tauMs, tp.speed)));
     const nx = d.x + (tp.point.x - d.x) * k;
     const ny = d.y + (tp.point.y - d.y) * k;
     d.vx = (nx - d.x) * invDt;

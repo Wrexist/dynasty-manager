@@ -405,6 +405,10 @@ export interface ChoreoPlayer {
   name?: string;
   /** Player overall, shown on the chip when the "show overall on pitch" setting is on. */
   overall?: number;
+  /** Normalized pace 0–1 (player's pace attribute / 100). Drives per-player
+   *  acceleration so quick players dart and slow players lumber. Neutral 0.5
+   *  when unknown. */
+  speed?: number;
   point: PitchPoint;
   /** True when this player is the focus of the current beat (scorer, keeper, …). */
   highlighted: boolean;

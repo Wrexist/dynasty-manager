@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   frameForMinute, lerpFrames, latestGoalAt, createPlayback, advancePlayback, samplePlayback, seekPlayback,
-  ballEase, createDisplay, stepDisplay,
+  ballEase, createDisplay, stepDisplay, countBeatsInMinute,
   type RenderFrame, type PlaybackOpts, type PlaybackState,
 } from '@/engine/match/pitchFrame';
 import type { MatchTimeline, MatchBeat, ChoreoPlayer, MatchEvent } from '@/types/game';
@@ -167,6 +167,22 @@ describe('ballEase', () => {
   });
 });
 
+describe('countBeatsInMinute (speed-aware pacing)', () => {
+  it('counts contiguous same-minute beats around an index', () => {
+    const beats = [beat(0, 0), beat(1, 1), beat(1, 2), beat(1, 3), beat(2, 4)];
+    expect(countBeatsInMinute(beats, 0)).toBe(1); // minute 0
+    expect(countBeatsInMinute(beats, 1)).toBe(3); // minute 1 has three beats
+    expect(countBeatsInMinute(beats, 2)).toBe(3); // any index within minute 1
+    expect(countBeatsInMinute(beats, 4)).toBe(1); // minute 2
+  });
+  it('is safe at the bounds and on an empty timeline', () => {
+    expect(countBeatsInMinute([], 0)).toBe(1);
+    const beats = [beat(5, 0), beat(5, 1)];
+    expect(countBeatsInMinute(beats, -3)).toBe(2);
+    expect(countBeatsInMinute(beats, 99)).toBe(2);
+  });
+});
+
 describe('advancePlayback honors per-beat duration', () => {
   const opts: PlaybackOpts = { beatMs: 500, catchupLagMinutes: 2, catchupScale: 1 };
   it('a longer-duration beat advances more slowly for the same dt', () => {
@@ -198,6 +214,31 @@ describe('stepDisplay (springs + velocity)', () => {
     expect(a.x).toBeGreaterThan(10);
     expect(a.x).toBeLessThan(20); // hasn't snapped — inertia
     expect(a.vx).toBeGreaterThan(0); // moving toward +x
+  });
+
+  it('a quick player accelerates harder than a slow one (pace-based motion)', () => {
+    const fast = createDisplay();
+    const slow = createDisplay();
+    const fastP: ChoreoPlayer = { id: 'f', team: 'home', pos: 'LW', number: 11, point: { x: 10, y: 10 }, highlighted: false, speed: 1 };
+    const slowP: ChoreoPlayer = { id: 's', team: 'home', pos: 'CB', number: 5, point: { x: 10, y: 10 }, highlighted: false, speed: 0 };
+    stepDisplay(fast, frame([fastP]), 16, 130);
+    stepDisplay(slow, frame([slowP]), 16, 130);
+    // Same moved target; the quicker player should cover more ground per step.
+    stepDisplay(fast, frame([{ ...fastP, point: { x: 30, y: 10 } }]), 16, 130);
+    stepDisplay(slow, frame([{ ...slowP, point: { x: 30, y: 10 } }]), 16, 130);
+    expect(fast.players.get('f')!.x).toBeGreaterThan(slow.players.get('s')!.x);
+  });
+
+  it('an unknown pace behaves exactly like the neutral base tau', () => {
+    const a = createDisplay();
+    const b = createDisplay();
+    const noSpeed: ChoreoPlayer = { id: 'a', team: 'home', pos: 'ST', number: 9, point: { x: 10, y: 10 }, highlighted: false };
+    const neutral: ChoreoPlayer = { ...noSpeed, id: 'b', speed: 0.5 };
+    stepDisplay(a, frame([noSpeed]), 16, 130);
+    stepDisplay(b, frame([neutral]), 16, 130);
+    stepDisplay(a, frame([{ ...noSpeed, point: { x: 30, y: 10 } }]), 16, 130);
+    stepDisplay(b, frame([{ ...neutral, point: { x: 30, y: 10 } }]), 16, 130);
+    expect(a.players.get('a')!.x).toBeCloseTo(b.players.get('b')!.x, 6);
   });
 
   it('drops players absent from the frame and adds new ones', () => {

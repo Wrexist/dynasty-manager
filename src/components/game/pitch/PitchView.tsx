@@ -39,6 +39,9 @@ interface PitchViewProps {
   /** Show player overall on the chip instead of the shirt number. */
   showOverall?: boolean;
   reducedMotion?: boolean;
+  /** Wall-clock ms per match minute (live match speed) — paces the pitch so
+   *  player motion stays continuous at every speed. */
+  msPerMinute?: number;
 }
 
 const CAPTIONED_TYPES = new Set<MatchEvent['type']>([
@@ -73,7 +76,7 @@ function ScoreCrest({ color }: { color: string }) {
 }
 
 export default function PitchView({
-  match, homeClub, awayClub, events, minute, playerIsHome, homeTactics, awayTactics, players, orientation = 'portrait', showOverall, reducedMotion,
+  match, homeClub, awayClub, events, minute, playerIsHome, homeTactics, awayTactics, players, orientation = 'portrait', showOverall, reducedMotion, msPerMinute,
 }: PitchViewProps) {
   const landscape = orientation === 'landscape';
   const quality = useMemo(() => detectPitchQuality(!!reducedMotion), [reducedMotion]);
@@ -224,10 +227,10 @@ export default function PitchView({
       </div>
       {useWebgl ? (
         <ErrorBoundary fallback={() => (
-          <PitchCanvas timeline={timeline} minute={minute} quality={quality} homeColor={homeColor} awayColor={awayColor} showOverall={showOverall} orientation={orientation} flip={!playerIsHome} reducedMotion={reducedMotion} hitTargetsRef={hitTargetsRef} tacticalWideRef={tacticalWideRef} className="absolute inset-0 h-full w-full" />
+          <PitchCanvas timeline={timeline} minute={minute} quality={quality} homeColor={homeColor} awayColor={awayColor} showOverall={showOverall} orientation={orientation} flip={!playerIsHome} reducedMotion={reducedMotion} msPerMinute={msPerMinute} hitTargetsRef={hitTargetsRef} tacticalWideRef={tacticalWideRef} className="absolute inset-0 h-full w-full" />
         )}>
           <Suspense fallback={
-            <PitchCanvas timeline={timeline} minute={minute} quality={quality} homeColor={homeColor} awayColor={awayColor} showOverall={showOverall} orientation={orientation} flip={!playerIsHome} reducedMotion={reducedMotion} className="absolute inset-0 h-full w-full" />
+            <PitchCanvas timeline={timeline} minute={minute} quality={quality} homeColor={homeColor} awayColor={awayColor} showOverall={showOverall} orientation={orientation} flip={!playerIsHome} reducedMotion={reducedMotion} msPerMinute={msPerMinute} className="absolute inset-0 h-full w-full" />
           }>
             <PixiPitch
               timeline={timeline}
@@ -238,6 +241,7 @@ export default function PitchView({
               showOverall={showOverall}
               flip={!playerIsHome}
               reducedMotion={reducedMotion}
+              msPerMinute={msPerMinute}
               hitTargetsRef={hitTargetsRef}
               tacticalWideRef={tacticalWideRef}
               onError={() => setPixiFailed(true)}
@@ -256,6 +260,7 @@ export default function PitchView({
           orientation={orientation}
           flip={!playerIsHome}
           reducedMotion={reducedMotion}
+          msPerMinute={msPerMinute}
           hitTargetsRef={hitTargetsRef}
           tacticalWideRef={tacticalWideRef}
           className="absolute inset-0 h-full w-full"

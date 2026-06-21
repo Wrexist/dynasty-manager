@@ -1007,6 +1007,7 @@ const MatchDayInner = () => {
                   orientation={matchView === 'split' ? 'landscape' : 'portrait'}
                   showOverall={settings.showOverallOnPitch}
                   reducedMotion={settings.reducedMotion || settings.performanceMode}
+                  msPerMinute={speed}
                 />
               </Suspense>
             </ErrorBoundary>
@@ -1685,6 +1686,7 @@ const MatchDayInner = () => {
                   orientation={matchView === 'split' ? 'landscape' : 'portrait'}
                   showOverall={settings.showOverallOnPitch}
                   reducedMotion={settings.reducedMotion || settings.performanceMode}
+                  msPerMinute={speed}
                 />
               </Suspense>
             </ErrorBoundary>

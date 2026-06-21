@@ -26,6 +26,14 @@ export const PITCH_CHOREO = {
   GK_SHIFT_FACTOR: 0.15,
   /** Extra forward push for wide attackers/full-backs making runs when attacking. */
   RUN_PUSH: 12,
+  /** Off-ball runs: advanced players (ST/winger/CAM) make slow, deterministic
+   *  diagonal runs into space so the front line is dynamic instead of holding a
+   *  fixed shape. Forward-biased (they run toward goal, not away). */
+  RUN_CYCLE_FREQ: 0.42,
+  /** Lateral sweep of an off-ball run (pitch units, symmetric → no mean drift). */
+  RUN_LATERAL_AMP: 7,
+  /** Forward surge of an off-ball run (pitch units, ≥0 → biases toward goal). */
+  RUN_FORWARD_AMP: 6,
   /** Touchline push (±x) applied to wide players under a 'wide' width (negated for 'narrow'). */
   WIDTH_PUSH: 7,
   /** Defensive-line base-y shift (own-half units) for 'high' (+) / 'deep' (−). */
@@ -106,9 +114,19 @@ export const PITCH_RENDER = {
   TRAIL_LEN: 14,
   /** Peak ball lift (as a fraction of field height per unit of beat ballArc). */
   ARC_LIFT_SCALE: 0.7,
-  /** Wall-clock time the renderer spends easing through one beat (ms). Tuned so
-   *  a minute's worth of pass/run beats fits the pitch-view tick. */
+  /** Fallback wall-clock time the renderer spends easing through one beat (ms),
+   *  used only when the live match speed isn't known. When it IS known, the
+   *  renderer paces each beat dynamically (see BEAT_MS_MIN/MAX + LIVE_LAG) so a
+   *  minute's beats fill the minute's wall-clock at ANY match speed — no
+   *  freeze-then-jump at 1×/2× and no lurch at 4×. */
   BEAT_PLAY_MS: 520,
+  /** Pace beats to ~this fraction over the real minute so the playhead always
+   *  trails the revealed edge slightly (continuous, never starved → never frozen). */
+  LIVE_LAG: 1.12,
+  /** Clamp on the dynamically-paced beat duration (ms). MAX is generous so slow
+   *  speeds (0.5×/1×) still glide rather than freeze; MIN keeps 10× legible. */
+  BEAT_MS_MIN: 90,
+  BEAT_MS_MAX: 2600,
   /** If the played beat lags the revealed minute by more than this, speed up. */
   CATCHUP_LAG_MIN: 2,
   /** dt multiplier applied while catching up. */
@@ -130,6 +148,18 @@ export const PITCH_RENDER = {
   BOB_MAX: 0.35,
   /** Bob oscillation frequency (rad/ms of wall-clock). */
   BOB_FREQ: 0.018,
+  /** Continuous idle micro-motion: a near-stationary player keeps shuffling and
+   *  adjusting position so the pitch is never frozen and each chip moves on its
+   *  own phase. Amplitude is a fraction of chip radius and fades to 0 as the
+   *  player sprints (they're already moving). Pure render — never touches the
+   *  positions used for hit-testing or match logic. */
+  IDLE_WANDER: 0.34,
+  /** Idle drift oscillation frequencies (rad/ms) — different X/Y so the path is
+   *  an organic Lissajous loop, not a straight line. */
+  IDLE_FREQ_X: 0.0016,
+  IDLE_FREQ_Y: 0.0012,
+  /** Keepers drift less than outfielders (they read as anchored to their line). */
+  IDLE_GK_FACTOR: 0.45,
   /** Camera looks this many seconds ahead along the ball's velocity. */
   CAM_LEAD_S: 0.2,
   /** Clamp on the camera lead (pitch units) so it never runs off the pitch. */

@@ -252,6 +252,23 @@ describe('buildMatchTimeline', () => {
     expect(chip?.overall).toBe(88);
   });
 
+  it('derives chip speed from pace, scaled down by fatigue', () => {
+    const lookup = {
+      'home-p9': { lastName: 'Sprinter', attributes: { pace: 90 }, fitness: 100 },
+      'home-p8': { lastName: 'Spent', attributes: { pace: 90 }, fitness: 40 },
+      'home-p7': { lastName: 'Plodder', attributes: { pace: 40 }, fitness: 100 },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any;
+    const timeline = buildMatchTimeline(makeMatch([]), home, away, { players: lookup });
+    const speedOf = (id: string) => timeline.beats.flatMap((b) => b.players).find((p) => p.id === id)?.speed;
+    const fresh = speedOf('home-p9')!;
+    const tired = speedOf('home-p8')!;
+    const slow = speedOf('home-p7')!;
+    expect(fresh).toBeGreaterThan(tired);   // fatigue slows the same pace
+    expect(fresh).toBeGreaterThan(slow);    // pace beats a fresh plodder
+    expect(fresh).toBeLessThanOrEqual(1);
+  });
+
   it('keeps the ball at the ball-carrier’s feet during possession', () => {
     const timeline = buildMatchTimeline(makeMatch([]), home, away);
     const beat = timeline.beats.find((b) => b.ballCarrierId);
