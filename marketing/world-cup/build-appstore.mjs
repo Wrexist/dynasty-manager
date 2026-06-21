@@ -66,16 +66,25 @@ const css = `
 const PHONE_W = 760;
 const phoneH = Math.round((PHONE_W - 28) * (844 / 390)) + 28;
 
+// Six-panel App Store story arc, World Cup-led. Order matters: the first
+// 2-3 panels are what most users see in search results, so the hook + the
+// core "manage the matches" promise come first, glory lands last.
 const panels = [
   { id: 'appstore-1-here', seed: 7, tag: 'World Cup 2026', hl: ['THE', 'WORLD CUP', 'IS HERE'],
-    sub: 'Take any nation. Survive the group. Lift the trophy.', shot: '01-dashboard.png', dot: 0 },
+    sub: 'Take any nation. Survive the group. Lift the trophy.', shot: '01-dashboard.png' },
   { id: 'appstore-2-live', seed: 23, tag: 'Live World Cup', hl: ['LIVE', 'WORLD CUP', 'MATCHES'],
-    sub: 'Manage every minute — team talks, subs, penalties.', shot: '07-live-second-half.png', dot: 1 },
-  { id: 'appstore-3-glory', seed: 51, tag: 'World Cup Glory', hl: ['WIN THE', 'WORLD CUP'],
-    sub: 'From the group stage to the World Cup Final.', shot: '08-full-time.png', dot: 2 },
+    sub: 'Manage every minute — shouts, subs, penalties.', shot: '07-live-second-half.png' },
+  { id: 'appstore-3-squad', seed: 88, tag: 'Your Nation', hl: ['NAME', 'YOUR 23'],
+    sub: 'Pick the squad to carry a nation to glory.', shot: '02-squad.png' },
+  { id: 'appstore-4-group', seed: 34, tag: 'The Group Stage', hl: ['SURVIVE', 'THE GROUP'],
+    sub: '48 nations. 12 groups. One dream.', shot: '04-prematch.png' },
+  { id: 'appstore-5-halftime', seed: 65, tag: 'Every Decision', hl: ['EVERY CALL', 'IS YOURS'],
+    sub: 'Team talks that turn the tie at half-time.', shot: '06-half-time.png' },
+  { id: 'appstore-6-glory', seed: 51, tag: 'World Cup Glory', hl: ['WIN THE', 'WORLD CUP'],
+    sub: 'From the group stage to the World Cup Final.', shot: '08-full-time.png' },
 ];
 
-function html(p) {
+function html(p, idx, total) {
   const hlSize = p.hl.length >= 3 ? 158 : 178;
   const hlTop = 260;
   const subTop = hlTop + p.hl.length * (hlSize * 0.92) + 38;
@@ -97,16 +106,17 @@ function html(p) {
        <div class="phone"><div class="notch"></div><div class="scr" style="height:${phoneH - 28}px"><img src="${b64(p.shot)}"></div></div>
      </div>
      <div class="foot"><div class="stars">★★★★★</div><div class="footsub">Dynasty Manager: Football — on the App Store</div></div>
-     <div class="dots">${[0, 1, 2].map(i => `<div class="dot ${i === p.dot ? 'on' : ''}"></div>`).join('')}</div>
+     <div class="dots">${Array.from({ length: total }, (_, i) => `<div class="dot ${i === idx ? 'on' : ''}"></div>`).join('')}</div>
    </div>
   </body></html>`;
 }
 
 const browser = await chromium.launch({ executablePath: existsSync(EXE) ? EXE : undefined, args: ['--no-sandbox'] });
-for (const p of panels) {
+for (let idx = 0; idx < panels.length; idx++) {
+  const p = panels[idx];
   const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
   const f = join(OUT, p.id + '.html');
-  writeFileSync(f, html(p));
+  writeFileSync(f, html(p, idx, panels.length));
   await page.goto('file://' + f, { waitUntil: 'networkidle' });
   await page.waitForTimeout(1300);
   await page.screenshot({ path: join(OUT, p.id + '.png') });
