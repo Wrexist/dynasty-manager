@@ -62,6 +62,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Highlight: Goals now feel like a moment — a broadcast scoreline + scorer card, a stadium flash, and an instant slow-mo replay.',
     'Phase D: Interactive World Cup matches + retention features.',
     'Pitch realism: continuous, individual player movement.',
+    'Match pitch play now flows continuously — the ball strings moves together upfield instead of resetting to the defenders every minute.',
   ],
   fixed: [],
   headline: null,
