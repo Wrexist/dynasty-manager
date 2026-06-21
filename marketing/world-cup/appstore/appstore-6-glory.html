@@ -1,0 +1,119 @@
+<!doctype html><html><head><meta charset="utf8"><style>
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@500;600;700&family=DM+Sans:wght@500;700&family=Noto+Color+Emoji&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased}
+.panel{width:1290px;height:2796px;position:relative;overflow:hidden;color:#fff;font-family:'Oswald',sans-serif;
+  background:radial-gradient(125% 70% at 50% -8%,#1a2c4f 0%,#0c1526 46%,#070b12 100%);}
+.pitchglow{position:absolute;left:50%;bottom:-14%;transform:translateX(-50%);width:170%;height:46%;
+  background:radial-gradient(closest-side,rgba(22,163,74,.34),transparent 72%);filter:blur(10px)}
+.goldglow{position:absolute;left:50%;top:4%;transform:translateX(-50%);width:150%;height:44%;
+  background:radial-gradient(closest-side,rgba(242,181,12,.26),transparent 70%);filter:blur(12px)}
+.wctag{position:absolute;top:188px;left:0;right:0;text-align:center;font-family:'Oswald';font-weight:700;
+  letter-spacing:.42em;text-transform:uppercase;color:#ffd24a;font-size:38px}
+.headline{position:absolute;left:0;right:0;text-align:center;font-family:'Anton';text-transform:uppercase;
+  line-height:.92;letter-spacing:.01em;
+  background:linear-gradient(180deg,#fff 32%,#ffe9a8 72%,#f2b50c 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 8px 30px rgba(0,0,0,.5))}
+.sub{position:absolute;left:120px;right:120px;text-align:center;font-family:'Oswald';font-weight:600;color:#cdd8e6;font-size:46px}
+.stage{position:absolute;left:50%;transform:translateX(-50%);}
+.phone{position:relative;border-radius:66px;padding:14px;background:linear-gradient(160deg,#222c3c,#0e1420);
+  box-shadow:0 60px 120px -40px rgba(0,0,0,.9),0 0 0 2px rgba(255,255,255,.06);}
+.phone .scr{border-radius:52px;overflow:hidden;display:block}
+.phone .scr img{display:block;width:100%;height:100%;object-fit:cover}
+.notch{position:absolute;top:26px;left:50%;transform:translateX(-50%);width:150px;height:30px;background:#0a0f18;border-radius:18px;z-index:3}
+.foot{position:absolute;bottom:96px;left:0;right:0;text-align:center}
+.stars{color:#ffd24a;font-size:40px;letter-spacing:6px}
+.footsub{font-family:'DM Sans';color:#8ea0b6;font-weight:500;font-size:34px;margin-top:6px}
+.dots{position:absolute;bottom:54px;left:50%;transform:translateX(-50%);display:flex;gap:14px}
+.dot{width:16px;height:16px;border-radius:999px;background:rgba(255,255,255,.25)}
+.dot.on{background:#f2b50c;width:42px}
+
+/* Faithful recreation of the in-game World Cup champion result screen
+   (src/pages/WorldCupResult.tsx), rendered as panel 6's device content.
+   Mirrors the app: dark bg, gold radial wash, trophy badge, "World
+   Champions!", the Your Road stat card, and Tournament Awards. */
+.appscreen{position:relative;width:100%;height:100%;background:radial-gradient(125% 60% at 50% -6%,#12203a 0%,#0b111d 52%,#080c14 100%);
+  font-family:'Oswald',sans-serif;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:0 56px;gap:34px;overflow:hidden}
+.appscreen .wash{position:absolute;left:50%;top:0;transform:translateX(-50%);width:150%;height:46%;
+  background:radial-gradient(closest-side,rgba(242,181,12,.30),transparent 70%);filter:blur(10px);pointer-events:none}
+.glass{position:relative;width:100%;background:rgba(18,26,42,.62);border:2px solid rgba(255,255,255,.08);
+  border-radius:40px;box-shadow:inset 0 2px 0 rgba(255,255,255,.06),0 30px 60px -30px rgba(0,0,0,.8)}
+.hero{padding:54px 30px;text-align:center;overflow:hidden}
+.hero .badge{margin:0 auto 30px;width:150px;height:150px;border-radius:42px;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(180deg,rgba(245,180,12,.42),rgba(245,180,12,.14));color:#fcd34d;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.28),inset 0 -2px 0 rgba(0,0,0,.3),0 0 50px 6px rgba(245,180,12,.45)}
+.hero .badge svg{width:78px;height:78px}
+.hero .natrow{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:12px}
+.hero .natrow .flag{font-family:'Noto Color Emoji',sans-serif;font-size:46px;line-height:1}
+.hero .natrow .name{font-weight:600;font-size:34px;color:rgba(255,255,255,.82)}
+.hero h1{font-family:'Anton';text-transform:uppercase;font-size:72px;line-height:.94;letter-spacing:.005em;
+  background:linear-gradient(180deg,#ffe9a8 10%,#fcd34d 60%,#f2b50c 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{margin-top:18px;font-size:30px;color:rgba(252,211,77,.72);font-family:'DM Sans';font-weight:500}
+.card{padding:34px 38px}
+.card .lbl{font-family:'Oswald';font-weight:700;text-transform:uppercase;letter-spacing:.18em;font-size:24px;color:#8ea0b6;margin-bottom:26px}
+.stats{display:flex;justify-content:space-between;text-align:center}
+.stats .col{flex:1}
+.stats .big{font-family:'Anton';font-size:62px;line-height:1}
+.stats .wdl .w{color:#34d399}.stats .wdl .d{color:#9aa7b8}.stats .wdl .l{color:#f87171}.stats .sep{color:rgba(255,255,255,.45);font-size:34px;margin:0 6px;vertical-align:middle}
+.stats .cap{font-size:24px;color:#8ea0b6;margin-top:8px;font-family:'DM Sans'}
+.award{display:flex;align-items:center;gap:24px}
+.award + .award{margin-top:26px}
+.award .ico{width:74px;height:74px;border-radius:26px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.2),inset 0 -2px 0 rgba(0,0,0,.3)}
+.award .ico svg{width:36px;height:36px}
+.award .ico.gold{background:linear-gradient(180deg,rgba(245,180,12,.42),rgba(245,180,12,.14));color:#fcd34d}
+.award .ico.plain{background:rgba(255,255,255,.06);color:rgba(255,255,255,.7)}
+.award .meta{flex:1;min-width:0}
+.award .meta .k{font-family:'Oswald';font-weight:700;text-transform:uppercase;letter-spacing:.16em;font-size:21px;color:#8ea0b6}
+.award .meta .who{font-weight:700;font-size:36px;margin-top:4px}
+.award .val{font-weight:600;font-size:26px;color:#9aa7b8;white-space:nowrap}
+.cta{width:100%;height:96px;border-radius:30px;display:flex;align-items:center;justify-content:center;gap:16px;
+  font-family:'Oswald';font-weight:700;font-size:34px;color:#3a2c05;
+  background:linear-gradient(180deg,#fbbf24,#f59e0b);box-shadow:0 14px 40px -10px rgba(245,178,5,.5)}
+.cta svg{width:34px;height:34px}
+
+   .headline{font-size:178px;top:260px}
+   .sub{top:625.52px}
+   .stage{top:745.52px}
+   .phone{width:760px;height:1612px}
+  </style></head><body>
+   <div class="panel">
+     <div class="goldglow"></div><div class="pitchglow"></div>
+     <div style="position:absolute;left:267.1416569255021px;top:495.4090128817638px;width:9.832688929435186px;height:4.916344464717593px;background:#16a34a;opacity:0.35168915760316377;transform:rotate(30.151333822939236deg);border-radius:6px"></div><div style="position:absolute;left:182.71833934947773px;top:1061.370423047883px;width:16.231307034488445px;height:8.115653517244223px;background:#e11d2a;opacity:0.17565321448987967;transform:rotate(107.2891331218598deg);border-radius:6px"></div><div style="position:absolute;left:391.51430386654766px;top:491.27927055548844px;width:8.115603805573473px;height:4.0578019027867365px;background:#f2b50c;opacity:0.23586935824522254;transform:rotate(202.29836234929897deg);border-radius:6px"></div><div style="position:absolute;left:663.8213247171703px;top:1551.3670311161166px;width:7.660054207621167px;height:7.660054207621167px;background:#16a34a;opacity:0.14707913758562838;transform:rotate(23.501397382235805deg);border-radius:2px"></div><div style="position:absolute;left:1245.4485553342145px;top:197.34189298960467px;width:8.856690244216793px;height:8.856690244216793px;background:#e11d2a;opacity:0.2796912074925803;transform:rotate(278.0436660153995deg);border-radius:2px"></div><div style="position:absolute;left:1138.9005559025802px;top:1613.1805339572863px;width:10.668386938361632px;height:5.334193469180816px;background:#ffffff;opacity:0.1645371604266284;transform:rotate(289.2625953113952deg);border-radius:6px"></div><div style="position:absolute;left:863.1663126420074px;top:737.1226341696097px;width:12.708118918681574px;height:6.354059459340787px;background:#e11d2a;opacity:0.2899263072898268;transform:rotate(137.731089656116deg);border-radius:6px"></div><div style="position:absolute;left:931.8044753241375px;top:1587.3828205463399px;width:13.180569652086389px;height:6.590284826043194px;background:#16a34a;opacity:0.11721523583736981;transform:rotate(215.1571942377636deg);border-radius:6px"></div><div style="position:absolute;left:1256.6130926723654px;top:865.2528967710459px;width:16.05339146128548px;height:8.02669573064274px;background:#ffffff;opacity:0.10418740749554123;transform:rotate(249.4602872102802deg);border-radius:6px"></div><div style="position:absolute;left:310.7964207189141px;top:1151.6223187262299px;width:8.609208585046794px;height:8.609208585046794px;background:#ffd24a;opacity:0.23503361708253326;transform:rotate(169.29919846788943deg);border-radius:2px"></div><div style="position:absolute;left:917.7251104813652px;top:1352.9205153205064px;width:11.32283592471985px;height:5.661417962359925px;background:#e11d2a;opacity:0.1757523036355862;transform:rotate(84.80638507977426deg);border-radius:6px"></div><div style="position:absolute;left:737.3699465847435px;top:1231.6636545071676px;width:11.194448950325349px;height:5.597224475162674px;background:#16a34a;opacity:0.11101451635873621;transform:rotate(341.67287365611315deg);border-radius:6px"></div><div style="position:absolute;left:337.76950673096326px;top:299.4331013401193px;width:7.3725167519284955px;height:7.3725167519284955px;background:#ffffff;opacity:0.23091433531181624;transform:rotate(211.9727898631118deg);border-radius:2px"></div><div style="position:absolute;left:1048.76411009988px;top:674.9105935493999px;width:8.386682511487361px;height:8.386682511487361px;background:#f2b50c;opacity:0.2435739190054936;transform:rotate(335.2448953759134deg);border-radius:2px"></div><div style="position:absolute;left:866.1014775494587px;top:904.5559812581894px;width:15.337740902480549px;height:15.337740902480549px;background:#f2b50c;opacity:0.15320111575219833;transform:rotate(328.4724141696805deg);border-radius:2px"></div><div style="position:absolute;left:497.97649406733757px;top:1394.8311441356464px;width:8.125854493177428px;height:8.125854493177428px;background:#ffd24a;opacity:0.34181644450957727;transform:rotate(263.4212602411496deg);border-radius:2px"></div><div style="position:absolute;left:109.65620045999819px;top:1550.9582732445367px;width:7.886414051934338px;height:3.943207025967169px;background:#e11d2a;opacity:0.3586726332915354;transform:rotate(231.67416225731102deg);border-radius:6px"></div><div style="position:absolute;left:1164.78222692608px;top:691.9397425412851px;width:10.62133741593982px;height:10.62133741593982px;background:#f2b50c;opacity:0.28147481889532644;transform:rotate(132.11475855303684deg);border-radius:2px"></div><div style="position:absolute;left:536.9248118516639px;top:1158.909428027137px;width:9.562684537639228px;height:9.562684537639228px;background:#ffffff;opacity:0.2773783112398248;transform:rotate(77.39992622165006deg);border-radius:2px"></div><div style="position:absolute;left:655.5800631714892px;top:431.4476407268307px;width:6.79078710116017px;height:6.79078710116017px;background:#ffd24a;opacity:0.14263219835359242;transform:rotate(158.19949872707926deg);border-radius:2px"></div><div style="position:absolute;left:899.2344514742655px;top:464.8952996388522px;width:15.905014877163346px;height:15.905014877163346px;background:#e11d2a;opacity:0.2620946551124075;transform:rotate(294.3536855160974deg);border-radius:2px"></div><div style="position:absolute;left:670.3764656327555px;top:1205.7830804356297px;width:10.475020410714215px;height:10.475020410714215px;background:#f2b50c;opacity:0.33922835659199785;transform:rotate(198.29438218767493deg);border-radius:2px"></div><div style="position:absolute;left:1053.146993412239px;top:209.98474325145816px;width:6.961339787096409px;height:3.4806698935482046px;background:#ffd24a;opacity:0.33287254105921493;transform:rotate(305.7603748076411deg);border-radius:6px"></div><div style="position:absolute;left:288.9075652737671px;top:331.3752443780076px;width:12.089383008931478px;height:12.089383008931478px;background:#e11d2a;opacity:0.14054819585780995;transform:rotate(116.1242008749974deg);border-radius:2px"></div><div style="position:absolute;left:984.0290419869261px;top:1502.8273661336061px;width:9.736915113281885px;height:9.736915113281885px;background:#ffffff;opacity:0.258573162629536;transform:rotate(325.71789279846377deg);border-radius:2px"></div><div style="position:absolute;left:793.7263122916811px;top:577.7306208793682px;width:17.960416322555588px;height:17.960416322555588px;background:#16a34a;opacity:0.13720715286080126;transform:rotate(70.22890094212671deg);border-radius:2px"></div><div style="position:absolute;left:982.6593236730711px;top:990.2383039909595px;width:11.01306438679484px;height:11.01306438679484px;background:#16a34a;opacity:0.26591763027287907;transform:rotate(132.56146437142112deg);border-radius:2px"></div><div style="position:absolute;left:1282.556126714943px;top:357.66828855204784px;width:11.05466401812372px;height:5.52733200906186px;background:#f2b50c;opacity:0.33988859962666806;transform:rotate(352.65413777560656deg);border-radius:6px"></div><div style="position:absolute;left:696.5210956225736px;top:496.7423912331194px;width:17.074114685447007px;height:17.074114685447007px;background:#ffffff;opacity:0.25489291675150993;transform:rotate(317.3588849591831deg);border-radius:2px"></div><div style="position:absolute;left:56.30900147199119px;top:795.2892138544886px;width:12.626039031253216px;height:6.313019515626608px;background:#16a34a;opacity:0.1245060753936442;transform:rotate(166.44411571623948deg);border-radius:6px"></div><div style="position:absolute;left:454.1763409106882px;top:1336.191919543311px;width:9.393991471917364px;height:4.696995735958682px;background:#ffd24a;opacity:0.24195628172809086;transform:rotate(267.5045586877989deg);border-radius:6px"></div><div style="position:absolute;left:91.68181930281307px;top:326.4902234640393px;width:10.544336917132297px;height:10.544336917132297px;background:#f2b50c;opacity:0.1346790003938037;transform:rotate(4.100604059221505deg);border-radius:2px"></div><div style="position:absolute;left:1154.6320944440702px;top:1004.9215063598574px;width:13.400530818570653px;height:6.700265409285326px;background:#16a34a;opacity:0.29009327420503517;transform:rotate(107.46731763122013deg);border-radius:6px"></div><div style="position:absolute;left:37.35165865968524px;top:1226.4343528188926px;width:14.006555560979319px;height:7.003277780489659px;background:#ffffff;opacity:0.18472323421608808;transform:rotate(160.97974784717883deg);border-radius:6px"></div><div style="position:absolute;left:215.05519429922813px;top:1294.7661722486682px;width:10.368876459248773px;height:10.368876459248773px;background:#f2b50c;opacity:0.2751351291756775;transform:rotate(301.73100485547025deg);border-radius:2px"></div><div style="position:absolute;left:712.3619380930262px;top:1047.069534633993px;width:13.83394003279225px;height:13.83394003279225px;background:#e11d2a;opacity:0.2434442926121151;transform:rotate(317.29601397984476deg);border-radius:2px"></div><div style="position:absolute;left:891.2074438907241px;top:910.6860202615551px;width:15.15599012801237px;height:7.577995064006185px;background:#f2b50c;opacity:0.18479307238235748;transform:rotate(258.78849518428956deg);border-radius:6px"></div><div style="position:absolute;left:860.0975994300552px;top:1618.8599722886738px;width:9.266944886775196px;height:4.633472443387598px;background:#e11d2a;opacity:0.23175834423478617;transform:rotate(43.57589723708848deg);border-radius:6px"></div><div style="position:absolute;left:472.0656817369469px;top:1414.3748941924307px;width:14.13044643780703px;height:14.13044643780703px;background:#16a34a;opacity:0.16537199500267022;transform:rotate(137.94373518691572deg);border-radius:2px"></div><div style="position:absolute;left:260.9021974824845px;top:814.0281889112798px;width:15.173167709807478px;height:7.586583854903739px;background:#16a34a;opacity:0.11073203325771357;transform:rotate(120.01778131351703deg);border-radius:6px"></div><div style="position:absolute;left:526.8066223556207px;top:317.9078205512408px;width:6.675469279603785px;height:6.675469279603785px;background:#16a34a;opacity:0.17551375511824796;transform:rotate(96.74742941593166deg);border-radius:2px"></div><div style="position:absolute;left:543.2963779118361px;top:906.9611402558915px;width:8.149111748742458px;height:4.074555874371229px;background:#f2b50c;opacity:0.2328820235155905;transform:rotate(265.2488530917321deg);border-radius:6px"></div>
+     <div style="position:absolute;top:0px;left:0;right:0;height:116px;display:flex;
+     align-items:center;justify-content:space-around;padding:0 30px;
+     background:linear-gradient(180deg,rgba(7,11,18,.9),rgba(12,21,38,.62));
+     border-top:3px solid rgba(242,181,12,.7);border-bottom:3px solid rgba(242,181,12,.45);
+     box-shadow:0 10px 30px -12px rgba(0,0,0,.7)"><span style="font-family:'Noto Color Emoji',sans-serif;font-size:60px;line-height:1">🇧🇷</span><span style="font-family:'Noto Color Emoji',sans-serif;font-size:60px;line-height:1">🇦🇷</span><span style="font-family:'Noto Color Emoji',sans-serif;font-size:60px;line-height:1">🇫🇷</span><span style="font-family:'Noto Color Emoji',sans-serif;font-size:60px;line-height:1">🇩🇪</span><span style="font-family:'Noto Color Emoji',sans-serif;font-size:60px;line-height:1">🇪🇸</span><span style="font-family:'Noto Color Emoji',sans-serif;font-size:60px;line-height:1">🏴󠁧󠁢󠁥󠁮󠁧󠁿</span><span style="font-family:'Noto Color Emoji',sans-serif;font-size:60px;line-height:1">🇮🇹</span><span style="font-family:'Noto Color Emoji',sans-serif;font-size:60px;line-height:1">🇵🇹</span><span style="font-family:'Noto Color Emoji',sans-serif;font-size:60px;line-height:1">🇳🇱</span><span style="font-family:'Noto Color Emoji',sans-serif;font-size:60px;line-height:1">🇧🇪</span><span style="font-family:'Noto Color Emoji',sans-serif;font-size:60px;line-height:1">🇭🇷</span><span style="font-family:'Noto Color Emoji',sans-serif;font-size:60px;line-height:1">🇺🇾</span><span style="font-family:'Noto Color Emoji',sans-serif;font-size:60px;line-height:1">🇺🇸</span><span style="font-family:'Noto Color Emoji',sans-serif;font-size:60px;line-height:1">🇲🇽</span><span style="font-family:'Noto Color Emoji',sans-serif;font-size:60px;line-height:1">🇯🇵</span><span style="font-family:'Noto Color Emoji',sans-serif;font-size:60px;line-height:1">🇲🇦</span></div>
+     <div class="wctag">★ World Cup Glory ★</div>
+     <div class="headline">WIN THE<br>WORLD CUP</div>
+     <div class="sub">Lift the trophy. Claim the Golden Boot.</div>
+     <div class="stage">
+       <div class="phone"><div class="notch"></div><div class="scr" style="height:1584px"><div class="appscreen">
+    <div class="wash"></div>
+    <div class="glass hero">
+      <div class="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg></div>
+      <div class="natrow"><span class="flag">🇧🇷</span><span class="name">Brazil</span></div>
+      <h1>World<br>Champions!</h1>
+      <p>You conquered the world.</p>
+    </div>
+    <div class="glass card">
+      <div class="lbl">Your Road</div>
+      <div class="stats">
+        <div class="col"><div class="big">7</div><div class="cap">Played</div></div>
+        <div class="col"><div class="big wdl"><span class="w">6</span><span class="sep">·</span><span class="d">1</span><span class="sep">·</span><span class="l">0</span></div><div class="cap">W · D · L</div></div>
+        <div class="col"><div class="big">14<span class="sep">:</span>4</div><div class="cap">Goals</div></div>
+      </div>
+    </div>
+    <div class="glass card">
+      <div class="lbl">Tournament Awards</div>
+      <div class="award"><div class="ico gold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg></div><div class="meta"><div class="k">Golden Boot</div><div class="who">Silva</div></div><div class="val">6 goals</div></div>
+      <div class="award"><div class="ico plain"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div><div class="meta"><div class="k">Young Star</div><div class="who">Costa</div></div><div class="val">3 goals · age 20</div></div>
+    </div>
+    <div class="cta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg> Play Another World Cup</div>
+  </div></div></div>
+     </div>
+     <div class="foot"><div class="stars">★★★★★</div><div class="footsub">Dynasty Manager: Football — on the App Store</div></div>
+     <div class="dots"><div class="dot "></div><div class="dot "></div><div class="dot "></div><div class="dot "></div><div class="dot "></div><div class="dot on"></div></div>
+   </div>
+  </body></html>

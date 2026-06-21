@@ -26,7 +26,10 @@ export function flag(code) {
  *  edges, dark translucent band, flags evenly spread. */
 export function flagRibbon({ width = 1290, count = 16, size = 60, top = 0, height = 116 } = {}) {
   const flags = NATIONS.slice(0, count).map(([, c]) => flag(c));
-  const items = flags.map((f) => `<span style="font-size:${size}px;line-height:1">${f}</span>`).join('');
+  // Force the color-emoji font: on headless Linux Chromium the default emoji
+  // font renders regional-indicator pairs as plain code boxes ("BR", "AR"),
+  // so the caller must load 'Noto Color Emoji' (Google Fonts) for real flags.
+  const items = flags.map((f) => `<span style="font-family:'Noto Color Emoji',sans-serif;font-size:${size}px;line-height:1">${f}</span>`).join('');
   return `<div style="position:absolute;top:${top}px;left:0;right:0;height:${height}px;display:flex;
      align-items:center;justify-content:space-around;padding:0 30px;
      background:linear-gradient(180deg,rgba(7,11,18,.9),rgba(12,21,38,.62));

@@ -88,7 +88,9 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
       playerClubId: nationality,
       clubs: { [nationality]: ntClub },
       internationalTournament: tournament,
-      currentScreen: 'dashboard',
+      // Open on the group-draw ceremony; its Continue button drops the player
+      // onto the World Cup dashboard.
+      currentScreen: 'world-cup-draw',
     });
   },
 

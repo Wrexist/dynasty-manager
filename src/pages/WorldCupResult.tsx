@@ -3,20 +3,44 @@
  * champion, runners-up, or eliminated in a given round. Shown when the
  * tournament completes (routed from `weekAdvance` in world-cup mode).
  */
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Trophy, Medal, Home, RotateCcw } from 'lucide-react';
+import { toast } from 'sonner';
+import { Trophy, Medal, Home, RotateCcw, Award, Star, Share2 } from 'lucide-react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { getFlag } from '@/utils/nationality';
 import { hapticMedium } from '@/utils/haptics';
+import { shareText } from '@/utils/share';
+import { APP_STORE_URL } from '@/config/legal';
 import { cn } from '@/lib/utils';
 
 const ROUND_NAMES: Record<string, string> = {
   R32: 'Round of 32', R16: 'Round of 16', QF: 'Quarter-Finals', SF: 'Semi-Finals', F: 'the Final',
 };
+
+/** A single tournament-award row: icon badge, label, recipient, and detail. */
+function AwardRow({ icon, label, name, detail, gold }: {
+  icon: ReactNode; label: string; name: string; detail: string; gold?: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className={cn(
+        'w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),inset_0_-1px_0_rgba(0,0,0,0.3)]',
+        gold ? 'bg-gradient-to-b from-amber-400/40 to-amber-500/15 text-amber-300' : 'bg-white/[0.06] text-foreground/70',
+      )}>
+        {icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-[10px] text-muted-foreground uppercase tracking-[0.16em] font-bold leading-none">{label}</p>
+        <p className="text-sm font-bold text-foreground truncate mt-0.5">{name}</p>
+      </div>
+      <span className="text-xs font-semibold text-muted-foreground tabular-nums shrink-0">{detail}</span>
+    </div>
+  );
+}
 
 const WorldCupResult = () => {
   const navigate = useNavigate();
@@ -67,6 +91,23 @@ const WorldCupResult = () => {
     return { played: results.length, won, drawn, lost, gf, ga, topScorer };
   }, [nationalTeam, players]);
 
+  // Tournament awards — derived from this run's per-player goals. We only track
+  // goals per tournament (no assists / per-tournament appearances), so we award
+  // what the data honestly supports: a Golden Boot (top scorer) and a Young Star
+  // (best contributor aged 21 or under, when distinct from the Golden Boot).
+  const awards = useMemo(() => {
+    const goalsBy = nationalTeam?.internationalGoals ?? {};
+    const scorers = Object.entries(goalsBy)
+      .filter(([id, g]) => players[id] && (g as number) > 0)
+      .map(([id, g]) => ({ player: players[id], goals: g as number }))
+      .sort((a, b) => b.goals - a.goals || (b.player.overall ?? 0) - (a.player.overall ?? 0));
+    if (scorers.length === 0) return null;
+    const goldenBoot = scorers[0];
+    const youngCandidate = scorers.find(s => (s.player.age ?? 99) <= 21) ?? null;
+    const youngStar = youngCandidate && youngCandidate.player.id !== goldenBoot.player.id ? youngCandidate : null;
+    return { goldenBoot, youngStar };
+  }, [nationalTeam, players]);
+
   if (!result || !nat) {
     return (
       <div className="max-w-lg mx-auto px-4 py-12 text-center">
@@ -78,6 +119,18 @@ const WorldCupResult = () => {
 
   const isGold = result.tier === 'champion';
 
+  const handleShare = async () => {
+    hapticMedium();
+    const flag = getFlag(nat);
+    const recordTail = run ? ` (${run.won}W-${run.drawn}D-${run.lost}L)` : '';
+    const message = result.isChampion
+      ? `🏆 World Champions with ${flag} ${nat}! I won the 2026 World Cup in Dynasty Manager${recordTail}.`
+      : `${flag} ${nat} — ${result.headline} at the 2026 World Cup in Dynasty Manager${recordTail}.`;
+    const outcome = await shareText(message, APP_STORE_URL);
+    if (outcome === 'copied') toast.success('Result copied — paste it anywhere to share');
+    else if (outcome === 'failed') toast.error('Could not share right now');
+  };
+
   return (
     <div className="max-w-lg mx-auto px-4 py-8 space-y-5 min-h-screen flex flex-col justify-center">
       <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ type: 'spring', stiffness: 200, damping: 22 }}>
@@ -87,12 +140,35 @@ const WorldCupResult = () => {
               style={{ background: 'radial-gradient(120% 90% at 50% 0%, hsl(43 96% 46% / 0.28) 0%, hsl(43 96% 46% / 0.05) 45%, transparent 72%)' }} />
           )}
           <div className="relative">
-            <div className={cn(
-              'mx-auto w-20 h-20 rounded-2xl flex items-center justify-center mb-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.25),inset_0_-1px_0_rgba(0,0,0,0.3)]',
-              isGold ? 'bg-gradient-to-b from-amber-400/40 to-amber-500/15 text-amber-300' : 'bg-white/[0.06] text-foreground/70',
-            )}>
-              {isGold ? <Trophy className="w-10 h-10" /> : <Medal className="w-10 h-10" />}
-            </div>
+            {/* Trophy lift: the champion's trophy rises, settles, then breathes
+                with a soft gold glow. Pulse/float are disabled under reduced
+                motion via the global MotionConfig. */}
+            <motion.div
+              className={cn(
+                'relative mx-auto w-20 h-20 rounded-2xl flex items-center justify-center mb-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.25),inset_0_-1px_0_rgba(0,0,0,0.3)]',
+                isGold ? 'bg-gradient-to-b from-amber-400/40 to-amber-500/15 text-amber-300' : 'bg-white/[0.06] text-foreground/70',
+              )}
+              initial={isGold ? { y: 28, scale: 0.6, rotate: -8, opacity: 0 } : false}
+              animate={isGold ? { y: 0, scale: 1, rotate: 0, opacity: 1 } : undefined}
+              transition={{ type: 'spring', stiffness: 220, damping: 14, delay: 0.1 }}
+            >
+              {isGold && (
+                <motion.span
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 rounded-2xl"
+                  style={{ boxShadow: '0 0 28px 4px hsl(43 96% 55% / 0.55)' }}
+                  animate={{ opacity: [0.35, 0.8, 0.35] }}
+                  transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut', delay: 0.6 }}
+                />
+              )}
+              <motion.span
+                className="relative"
+                animate={isGold ? { y: [0, -3, 0] } : undefined}
+                transition={isGold ? { duration: 3, repeat: Infinity, ease: 'easeInOut', delay: 0.8 } : undefined}
+              >
+                {isGold ? <Trophy className="w-10 h-10" /> : <Medal className="w-10 h-10" />}
+              </motion.span>
+            </motion.div>
             <div className="flex items-center justify-center gap-2 mb-1">
               <span className="text-xl leading-none shrink-0">{getFlag(nat)}</span>
               <span className="text-sm font-semibold text-foreground/80">{nat}</span>
@@ -147,6 +223,32 @@ const WorldCupResult = () => {
         </motion.div>
       )}
 
+      {/* Tournament awards */}
+      {awards && (
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
+          <GlassPanel className="p-4">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-[0.18em] font-bold mb-3">Tournament Awards</p>
+            <div className="space-y-2.5">
+              <AwardRow
+                icon={<Award className="w-4 h-4" />}
+                label="Golden Boot"
+                name={awards.goldenBoot.player.lastName || awards.goldenBoot.player.firstName}
+                detail={`${awards.goldenBoot.goals} ${awards.goldenBoot.goals === 1 ? 'goal' : 'goals'}`}
+                gold
+              />
+              {awards.youngStar && (
+                <AwardRow
+                  icon={<Star className="w-4 h-4" />}
+                  label="Young Star"
+                  name={awards.youngStar.player.lastName || awards.youngStar.player.firstName}
+                  detail={`${awards.youngStar.goals} ${awards.youngStar.goals === 1 ? 'goal' : 'goals'} · age ${awards.youngStar.player.age}`}
+                />
+              )}
+            </div>
+          </GlassPanel>
+        </motion.div>
+      )}
+
       <div className="space-y-2.5">
         <button
           type="button"
@@ -157,6 +259,13 @@ const WorldCupResult = () => {
           )}
         >
           <RotateCcw className="w-4 h-4" /> Play Another World Cup
+        </button>
+        <button
+          type="button"
+          onClick={() => { void handleShare(); }}
+          className="w-full flex items-center justify-center gap-2 h-12 rounded-xl font-bold text-sm text-foreground bg-white/[0.06] border border-white/[0.08] active:scale-[0.98] transition-transform"
+        >
+          <Share2 className="w-4 h-4" /> Share Result
         </button>
         <button
           type="button"

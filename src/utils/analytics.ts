@@ -33,7 +33,8 @@ export type AnalyticsEvent =
   | { name: 'festival_tier_claim'; data: { eventId: string; tierId: string; xp: number } }
   | { name: 'legacy_viewed'; data: { tier: string; trophies: number } }
   | { name: 'reminders_enabled'; data: Record<string, never> }
-  | { name: 'reminders_disabled'; data: Record<string, never> };
+  | { name: 'reminders_disabled'; data: Record<string, never> }
+  | { name: 'code_redeemed'; data: { reward: string } };
 
 export type AnalyticsEventName = AnalyticsEvent['name'];
 

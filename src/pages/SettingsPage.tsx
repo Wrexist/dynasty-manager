@@ -11,6 +11,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 import { infoToast, successToast, errorToast } from '@/utils/gameToast';
 import { hapticMedium } from '@/utils/haptics';
+import { formatMoney } from '@/utils/helpers';
 import {
   removeFlag,
   clearFlagsByPrefix,
@@ -179,6 +180,31 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackCategory, setFeedbackCategory] = useState<'bug' | 'feature' | 'general'>('general');
   const [feedbackMessage, setFeedbackMessage] = useState('');
+  const redeemCode = useGameStore(s => s.redeemCode);
+  const [redeemInput, setRedeemInput] = useState('');
+  const [redeeming, setRedeeming] = useState(false);
+  const handleRedeem = async () => {
+    const code = redeemInput.trim();
+    if (!code || redeeming) return;
+    setRedeeming(true);
+    try {
+      const r = await redeemCode(code);
+      if (r.ok) {
+        hapticMedium();
+        const label = r.rewardType === 'money' ? formatMoney(r.amount ?? 0) : `${r.amount} XP`;
+        successToast('Code Redeemed', `Added ${label} to your game.`);
+        setRedeemInput('');
+      } else if (r.reason === 'already-used') {
+        errorToast('Already Used', 'This code has already been redeemed on this device.');
+      } else if (r.reason === 'no-game') {
+        errorToast('No Active Game', 'Start or load a game before redeeming a code.');
+      } else {
+        errorToast('Invalid Code', 'That code isn\'t valid. Check it and try again.');
+      }
+    } finally {
+      setRedeeming(false);
+    }
+  };
   // iOS keyboard height — used to lift the bottom sheet so the textarea
   // and Send button stay visible above the on-screen keyboard.
   const keyboardInset = useKeyboardInset();
@@ -567,6 +593,29 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
             </span>
           </LiquidButton>
         </div>
+      </SettingsSection>
+
+      <SettingsSection title="Redeem Code">
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={redeemInput}
+            onChange={(e) => setRedeemInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') void handleRedeem(); }}
+            placeholder="Enter a code…"
+            autoCapitalize="characters"
+            autoCorrect="off"
+            spellCheck={false}
+            aria-label="Redeem code"
+            className="flex-1 min-w-0 bg-white/5 border border-white/15 rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground uppercase tracking-wide focus:outline-none focus:ring-2 focus:ring-primary/40 backdrop-blur-md"
+          />
+          <LiquidButton tone="primary" className="shrink-0 w-auto px-5" onClick={() => void handleRedeem()} disabled={redeeming || !redeemInput.trim()}>
+            {redeeming ? 'Redeeming…' : 'Redeem'}
+          </LiquidButton>
+        </div>
+        <p className="text-[11px] text-muted-foreground mt-2 px-1">
+          Got a code? Redeem it for in-game rewards. Each code works once per device.
+        </p>
       </SettingsSection>
 
       {/* ─── Purchases & Subscription ─── */}
