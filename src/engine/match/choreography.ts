@@ -179,7 +179,11 @@ function placeBeatPlayers(
       number: p.number,
       name: p.id ? o.lookup?.[p.id]?.lastName : undefined,
       overall: p.id ? o.lookup?.[p.id]?.overall : undefined,
-      speed: p.id && o.lookup?.[p.id] ? clamp((o.lookup[p.id].attributes?.pace ?? 50) / 100, 0, 1) : undefined,
+      // Per-player burst = pace, scaled down by fatigue so a tired squad visibly
+      // lumbers (fitness 100 → full pace; fitness 0 → ~22% slower).
+      speed: p.id && o.lookup?.[p.id]
+        ? clamp(((o.lookup[p.id].attributes?.pace ?? 50) / 100) * (0.78 + 0.22 * ((o.lookup[p.id].fitness ?? 100) / 100)), 0, 1)
+        : undefined,
       point: { x: clamp(x + swayX, 2, 98), y: clamp(y + swayY, 2, 98) },
       highlighted: p.id != null && highlight.has(p.id),
     });
