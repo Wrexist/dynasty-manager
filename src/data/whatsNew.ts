@@ -65,6 +65,33 @@ export { readWhatsNewSeenVersion, writeWhatsNewSeenVersion };
  */
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.2.0',
+    build: null,
+    date: '2026-06-21',
+    headline: 'The World Cup update — live the draw, lift the trophy.',
+    summary:
+      'Take any nation through a full World Cup. Every run opens with a group-stage draw ceremony, you manage every minute live on a beautiful 2.5D pitch, and winning it all is celebrated with a trophy lift plus Golden Boot and Young Star awards. Share your run from the result screen, see real nation flags across every World Cup screen, and redeem codes in Settings for in-game rewards.',
+    highlights: [
+      'Play a full World Cup — from the group-stage draw ceremony through to the final.',
+      'Watch your matches play out live on a beautiful 2.5D pitch.',
+    ],
+    new: [
+      'World Cup group-stage draw ceremony at the start of every run.',
+      'Tournament awards on the result screen — Golden Boot and Young Star.',
+      'Share your World Cup run straight from the result screen.',
+      'Redeem codes in Settings for in-game rewards.',
+    ],
+    improved: [
+      'Champions now get a trophy-lift celebration when they win it all.',
+      'Real country flags now fly across World Cup match, dashboard, and result screens.',
+      'Goals feel like a moment — a broadcast scoreline and scorer card, a stadium flash, and an instant slow-mo replay.',
+      'Match play flows continuously, with weighty player movement, pressing, set pieces, and momentum that ebbs and flows.',
+    ],
+    fixed: [
+      'Fixed the live match HUD bar being mislabelled "Possession" when it actually shows momentum.',
+    ],
+  },
+  {
     version: '1.1.1',
     build: null,
     date: '2026-06-11',

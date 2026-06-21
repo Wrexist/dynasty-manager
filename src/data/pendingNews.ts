@@ -42,29 +42,11 @@ export interface PendingRelease {
 }
 
 export const PENDING_NEWS: PendingRelease = {
+  // Sealed into the 1.2.0 "World Cup update" entry of whatsNew.ts and reset to
+  // empty, so the next version starts accumulating bullets from scratch.
   highlights: [],
   new: [],
-  improved: [
-    'Bump to 1.1.1 and seal What\'s New.',
-    'Auto-dismiss Getting Started card when it starts already at 2/2.',
-    'Make pack opening buttery smooth and unbreakable.',
-    'Polish(ux): readable MatchDay log on landscape + money via formatMoney.',
-    'Extract CP FA-pool seed + cover it with a test.',
-    'Refreshed the improvement backlog to reflect the current state of `main`.',
-    'Plan for 2.5D immersive match view (pitch visualization).',
-    'Highlight: Watch your matches play out live on a beautiful 2.5D pitch — flowing passes, tactical shape, goal celebrations and more.',
-    'Improved: Cleaner, more realistic 2.5D match view — goal nets, smart name labels, teams that push upfield, and instant goal replays.',
-    'Highlight: Matches now play out like a real game on the pitch — pressing, flank play, set pieces, momentum that ebbs and flows, and a much smoother, slower pace.',
-    'Improved: Pitch polish — goal nets ripple when you score, keepers dive at shots, and a wet/muddy pitch now looks the part.',
-    'Highlight: Match-view glow-up — players now run with real weight, the ball has physics, the camera leads play, and goals hit with slow-mo + shake.',
-    'Improved: Premium pitch look — players read as lit jerseys, keepers stand out, the pitch is floodlit, and the ball looks like a real ball.',
-    'Fixed the live match HUD bar being mislabelled "Possession" when it actually shows momentum.',
-    'Highlight: Goals now feel like a moment — a broadcast scoreline + scorer card, a stadium flash, and an instant slow-mo replay.',
-    'Phase D: Interactive World Cup matches + retention features.',
-    'Pitch realism: continuous, individual player movement.',
-    'Match pitch play now flows continuously — the ball strings moves together upfield instead of resetting to the defenders every minute.',
-    'World Cup v1.1.3: Live tournament polish, ASO refresh, and redeem codes.',
-  ],
+  improved: [],
   fixed: [],
   headline: null,
   summary: null,
