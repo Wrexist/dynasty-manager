@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { YellowCardIcon, RedCardIcon } from '@/components/game/PlayerAvatar';
 import { PremiumProgress } from '@/components/game/PremiumProgress';
+import { getFlag } from '@/utils/nationality';
 import { cn } from '@/lib/utils';
 import type { Club } from '@/types/game';
 
@@ -35,6 +36,9 @@ interface ScoreHeaderProps {
   liveHomeXG: number;
   liveAwayXG: number;
   goalFlash: boolean;
+  /** World Cup mode: the "clubs" are nations — show each nation's flag as the
+   *  crest instead of a flat colour roundel. */
+  worldCup?: boolean;
 }
 
 export function ScoreHeader({
@@ -58,7 +62,38 @@ export function ScoreHeader({
   liveHomeXG,
   liveAwayXG,
   goalFlash,
+  worldCup,
 }: ScoreHeaderProps) {
+  // Team identity crest: in World Cup mode a bare nation flag (no roundel); in
+  // club matches the colour roundel with its short code.
+  const Crest = ({ club }: { club: Club }) =>
+    worldCup ? (
+      <div className="mx-auto mb-1 text-center text-[44px] leading-none drop-shadow">{getFlag(club.id)}</div>
+    ) : (
+      <div className="w-12 h-12 rounded-full mx-auto mb-1 flex items-center justify-center text-xs font-bold" style={{ backgroundColor: club.color, color: club.secondaryColor }}>{club.shortName}</div>
+    );
+  // Card counts (+ "men" when reduced) as a compact column placed on the OUTER
+  // edge of each side, so the crest–score–crest stays perfectly symmetric.
+  const Cards = ({ yellow, red, men }: { yellow: number; red: number; men: number }) => {
+    if (yellow <= 0 && red <= 0) return null;
+    return (
+      <div className="flex flex-col items-center gap-1 text-[9px] font-semibold">
+        {yellow > 0 && (
+          <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-400/15 px-1.5 py-0.5 text-amber-300">
+            <YellowCardIcon size={10} /> {yellow}
+          </span>
+        )}
+        {red > 0 && (
+          <span className="inline-flex items-center gap-1 rounded-full border border-red-400/50 bg-red-500/20 px-1.5 py-0.5 text-red-300 animate-pulse">
+            <RedCardIcon size={10} /> {red}
+          </span>
+        )}
+        {red > 0 && men > 0 && (
+          <span className="text-[8px] font-bold uppercase tracking-wide text-red-300">{men} men</span>
+        )}
+      </div>
+    );
+  };
   const showLiveXG = (isLive || phase === 'half_time' || phase === 'extra_time_break') && (liveHomeXG > 0 || liveAwayXG > 0);
   const showProgressBar = isLive || phase === 'half_time' || phase === 'extra_time_break';
   const headerLabel =
@@ -72,27 +107,14 @@ export function ScoreHeader({
   return (
     <GlassPanel className={cn('p-5 transition-all duration-300', goalFlash && 'border-primary/60 shadow-[0_0_20px_hsl(var(--primary)/0.3)]')}>
       <p className="text-[10px] text-muted-foreground uppercase tracking-wider text-center mb-3">{headerLabel}</p>
-      <div className="flex items-center justify-center gap-6">
+      <div className="flex items-center justify-center gap-4">
+        {/* Home cards — outer-left, equal flex width keeps the centre symmetric */}
+        <div className="flex-1 flex justify-end">
+          <Cards yellow={homeYellowCards} red={homeRedCards} men={homePlayersOnPitch} />
+        </div>
         <div className="text-center">
-          <div className="w-12 h-12 rounded-full mx-auto mb-1 flex items-center justify-center text-xs font-bold" style={{ backgroundColor: homeClub.color, color: homeClub.secondaryColor }}>{homeClub.shortName}</div>
+          <Crest club={homeClub} />
           <p className="text-xs font-bold text-foreground">{homeClub.shortName}</p>
-          {(homeYellowCards > 0 || homeRedCards > 0) && (
-            <div className="mt-1 flex items-center justify-center gap-1 text-[9px] font-semibold">
-              {homeYellowCards > 0 && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-400/15 px-1.5 py-0.5 text-amber-300">
-                  <YellowCardIcon size={10} /> {homeYellowCards}
-                </span>
-              )}
-              {homeRedCards > 0 && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-red-400/50 bg-red-500/20 px-1.5 py-0.5 text-red-300 animate-pulse">
-                  <RedCardIcon size={10} /> {homeRedCards}
-                </span>
-              )}
-            </div>
-          )}
-          {homeRedCards > 0 && (
-            <p className="mt-1 text-[9px] font-bold uppercase tracking-wide text-red-300">{homePlayersOnPitch} men</p>
-          )}
         </div>
         <div className="text-center" aria-live="polite" aria-atomic="true" role="status">
           <p className="text-4xl font-black text-foreground tabular-nums font-display flex items-center justify-center gap-1">
@@ -120,25 +142,12 @@ export function ScoreHeader({
           </p>
         </div>
         <div className="text-center">
-          <div className="w-12 h-12 rounded-full mx-auto mb-1 flex items-center justify-center text-xs font-bold" style={{ backgroundColor: awayClub.color, color: awayClub.secondaryColor }}>{awayClub.shortName}</div>
+          <Crest club={awayClub} />
           <p className="text-xs font-bold text-foreground">{awayClub.shortName}</p>
-          {(awayYellowCards > 0 || awayRedCards > 0) && (
-            <div className="mt-1 flex items-center justify-center gap-1 text-[9px] font-semibold">
-              {awayYellowCards > 0 && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-400/15 px-1.5 py-0.5 text-amber-300">
-                  <YellowCardIcon size={10} /> {awayYellowCards}
-                </span>
-              )}
-              {awayRedCards > 0 && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-red-400/50 bg-red-500/20 px-1.5 py-0.5 text-red-300 animate-pulse">
-                  <RedCardIcon size={10} /> {awayRedCards}
-                </span>
-              )}
-            </div>
-          )}
-          {awayRedCards > 0 && (
-            <p className="mt-1 text-[9px] font-bold uppercase tracking-wide text-red-300">{awayPlayersOnPitch} men</p>
-          )}
+        </div>
+        {/* Away cards — outer-right */}
+        <div className="flex-1 flex justify-start">
+          <Cards yellow={awayYellowCards} red={awayRedCards} men={awayPlayersOnPitch} />
         </div>
       </div>
 
