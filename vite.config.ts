@@ -59,7 +59,10 @@ export default defineConfig(() => ({
     __APP_VERSION__: JSON.stringify(pkgVersion),
   },
   server: {
-    host: "::",
+    // Defaults to all interfaces (IPv6 "::"); override with VITE_DEV_HOST
+    // (e.g. 127.0.0.1) on IPv4-only hosts such as the screenshot-capture
+    // sandbox used by scripts/wc-capture.mjs.
+    host: process.env.VITE_DEV_HOST || "::",
     port: 8080,
     hmr: {
       overlay: false,

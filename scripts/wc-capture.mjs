@@ -11,7 +11,11 @@
  * the exact source assets build-appstore.mjs composites.
  *
  * Run (dev server must be up):
- *   node scripts/wc-capture.mjs
+ *   VITE_DEV_HOST=127.0.0.1 npm run dev          # in one terminal
+ *   WC_BASE=http://127.0.0.1:8080 node scripts/wc-capture.mjs
+ *
+ * (VITE_DEV_HOST forces an IPv4 bind for IPv6-less sandboxes; omit it on a
+ *  normal machine and use the default http://localhost:8080.)
  *
  * Flags render because Noto Color Emoji is installed system-wide (Chromium
  * uses it as the emoji fallback). The script also injects it as an explicit
@@ -90,6 +94,8 @@ try {
 } catch { /* not shown */ }
 
 // ── Static screens ──
+// startWorldCup lands on the group-draw ceremony — capture it first.
+await sleep(1400); await shot('09-draw.png');
 await goScreen('dashboard'); await shot('01-dashboard.png');
 await goScreen('squad');     await shot('02-squad.png');
 await goScreen('tactics');   await shot('03-tactics.png');
