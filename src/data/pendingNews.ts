@@ -56,6 +56,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Fixed: Live match HUD bar was mislabelled "Possession" when it shows momentum.',
     'Fixed: The live match event log no longer auto-scrolls the screen down — read events at your own pace.',
     'Improved: The full-time card now shows the Player of the Match instead of repeating the scoreline.',
+    'Fixed: The Continue button on the World Cup full-time screen now works.',
   ],
   fixed: [],
   headline: null,
