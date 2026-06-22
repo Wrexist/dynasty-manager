@@ -54,6 +54,8 @@ export const PENDING_NEWS: PendingRelease = {
     'Improved: Champions now get a trophy-lift celebration when they win it all.',
     'Improved: Real country flags now fly across World Cup match, dashboard, and result screens.',
     'Fixed: Live match HUD bar was mislabelled "Possession" when it shows momentum.',
+    'Fixed: The live match event log no longer auto-scrolls the screen down — read events at your own pace.',
+    'Improved: The full-time card now shows the Player of the Match instead of repeating the scoreline.',
   ],
   fixed: [],
   headline: null,
