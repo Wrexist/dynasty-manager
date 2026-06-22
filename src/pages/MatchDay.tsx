@@ -1857,7 +1857,17 @@ const MatchDayInner = () => {
               {pen && (
                 <p className="text-xs text-muted-foreground">Penalties: {pen.home} - {pen.away}</p>
               )}
-              <Button className="w-full h-12 text-base font-bold gap-2" onClick={() => { hapticMedium(); setScreen('dashboard'); }}>
+              <Button className="w-full h-12 text-base font-bold gap-2" onClick={() => {
+                hapticMedium();
+                // The match is over and its result is already committed, but the
+                // writeback left matchPhase at 'full_time'. isMatchLocked blocks
+                // navigation away from the match screen while matchPhase !== 'none'
+                // (it only allows 'match'/'match-review'), so without clearing it
+                // here this Continue → 'dashboard' was a silent no-op. Reset the
+                // lock, then navigate.
+                useGameStore.setState({ matchPhase: 'none' });
+                setScreen('dashboard');
+              }}>
                 <Play className="w-5 h-5" /> Continue
               </Button>
             </GlassPanel>
