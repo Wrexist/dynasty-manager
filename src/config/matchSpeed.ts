@@ -13,11 +13,17 @@ export interface MatchSpeedOption {
 // Calibrated so a normal 90-minute match at 1x runs ~5 minutes of real time
 // (~90 minute-ticks × 3300ms ≈ 4.95 min). The faster tiers stay proportional to
 // their labels.
+//
+// Turbo (4x ≈ 1.25 min/match) is FREE: forcing new players to sit through a
+// multi-minute match is the biggest single drag on early-session retention,
+// and gating *speed* throttles the free funnel we need before anyone converts.
+// The Pro headline is the genuine skip — `Instant` (10x + the MatchPrep
+// skip-to-result path, the `instant_sim` Pro feature) — not merely "faster".
 export const MATCH_SPEEDS: MatchSpeedOption[] = [
   { value: 6600, label: 'Slow',    shortLabel: '0.5x', pro: false },
   { value: 3300, label: 'Normal',  shortLabel: '1x',   pro: false },
   { value: 1650, label: 'Fast',    shortLabel: '2x',   pro: false },
-  { value: 825,  label: 'Turbo',   shortLabel: '4x',   pro: true  },
+  { value: 825,  label: 'Turbo',   shortLabel: '4x',   pro: false },
   { value: 330,  label: 'Instant', shortLabel: '10x',  pro: true  },
 ];
 
