@@ -331,6 +331,11 @@ export const STORAGE_KEYS = {
    *  '1' = on, '0' = off, missing = never asked. Device-level (not save-scoped)
    *  and paired with the OS permission, which is the ultimate gate. */
   NOTIFICATIONS_ENABLED: 'dynasty-notifications-enabled',
+  /** localStorage flag (getFlag/setFlag): the device has already fired the
+   *  one-off `first_match_completed` activation analytics event. Device-global
+   *  so the activation milestone is counted once per install, not once per
+   *  career — a returning player starting a new save isn't a fresh activation. */
+  FIRST_MATCH_TRACKED: 'dynasty-first-match-tracked',
 } as const;
 
 /** Read the user's preferred MatchDay view, or null if never set. */

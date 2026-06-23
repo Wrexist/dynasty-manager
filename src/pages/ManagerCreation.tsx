@@ -19,6 +19,7 @@ import { DEFAULT_APPEARANCE } from '@/config/managerAppearance';
 import { createDefaultManager, generateBaseAttributes, applyTraitBonuses, generateStartingOffers, negotiateSalary, getManagerBonusLabel } from '@/utils/managerCareer';
 import { STARTING_AGE_MIN, STARTING_AGE_MAX, TRAITS_TO_PICK, MAX_NEGOTIATION_ROUNDS, SALARY_COUNTER_MAX_INCREASE } from '@/config/managerCareer';
 import { CLUBS_DATA } from '@/data/league';
+import { track } from '@/utils/analytics';
 import { toast } from 'sonner';
 
 const STEPS: ManagerCreationStep[] = ['name', 'nationality', 'age', 'traits', 'offers'];
@@ -70,6 +71,13 @@ const ManagerCreation = () => {
   const [negotiatingOfferId, setNegotiatingOfferId] = useState<string | null>(null);
   const [counterSalary, setCounterSalary] = useState<number>(0);
   const [negotiationMessage, setNegotiationMessage] = useState<string | null>(null);
+
+  // Activation funnel: fire once per creation step reached (Name → Nationality
+  // → Age → Traits → Offers) so onboarding drop-off is measurable alongside the
+  // sandbox flow. No-ops without analytics consent.
+  useEffect(() => {
+    track('onboarding_step', { flow: 'career', step, index: STEPS.indexOf(step) });
+  }, [step]);
 
   // Random base attributes generated once — trait bonuses applied deterministically on top
   const baseAttributes = useRef(generateBaseAttributes());

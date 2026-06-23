@@ -11,7 +11,7 @@ import { AnalyticsConsentModal } from "@/components/AnalyticsConsentModal";
 import TitleScreen from "./pages/TitleScreen";
 import NotFound from "./pages/NotFound";
 import { readAnalyticsConsent } from "@/store/helpers/persistence";
-import { refreshAnalyticsConsent } from "@/utils/analytics";
+import { refreshAnalyticsConsent, track } from "@/utils/analytics";
 
 // Lazy-loaded routes for code splitting
 const ClubSelection = lazy(() => import("./pages/ClubSelection"));
@@ -59,6 +59,10 @@ const App = () => {
     return readAnalyticsConsent();
   });
   useEffect(() => { refreshAnalyticsConsent(); }, []);
+  // Session counter (DAU / sessions proxy). Fires once per app load; no-ops
+  // until the user has granted consent. The session id is ephemeral, so this
+  // counts sessions, not unique returning users.
+  useEffect(() => { track('app_open', {}); }, []);
 
   return (
   <ErrorBoundary scope="app">

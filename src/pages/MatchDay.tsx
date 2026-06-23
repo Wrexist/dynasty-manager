@@ -2,7 +2,8 @@ import * as Sentry from '@sentry/react';
 import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useGameStore } from '@/store/gameStore';
-import { readMatchViewMode, writeMatchViewMode } from '@/store/helpers/persistence';
+import { readMatchViewMode, writeMatchViewMode, getFlag, setFlag, STORAGE_KEYS } from '@/store/helpers/persistence';
+import { track } from '@/utils/analytics';
 import { DEFAULT_PITCH_TACTICS } from '@/config/pitchChoreography';
 import type { MatchViewMode } from '@/types/game';
 
@@ -605,6 +606,24 @@ const MatchDayInner = () => {
   useEffect(() => {
     if (phase === 'post') hapticMedium();
   }, [phase]);
+
+  // Activation funnel: the player finished their FIRST match on this device.
+  // This is the milestone that turns "installed + onboarded" into "actually
+  // playing", and it's the transition the assessment flagged as unmeasured.
+  // Guarded by a device-global flag so it counts once per install, not per
+  // match. Result is derived from scoring events — a penalty-shootout win/loss
+  // reads as a draw here, an acceptable approximation for a funnel metric.
+  // Instant sim is Pro-only and bypasses these phases, so it never reaches a
+  // new free user's first match (exactly the population this measures).
+  useEffect(() => {
+    if (phase !== 'post') return;
+    if (getFlag(STORAGE_KEYS.FIRST_MATCH_TRACKED)) return;
+    const playerGoals = allEvents.filter(e => isScoreChangingEvent(e) && e.clubId === playerClubId).length;
+    const oppGoals = allEvents.filter(e => isScoreChangingEvent(e) && e.clubId !== playerClubId).length;
+    const result = playerGoals > oppGoals ? 'win' : playerGoals < oppGoals ? 'loss' : 'draw';
+    track('first_match_completed', { gameMode, result });
+    setFlag(STORAGE_KEYS.FIRST_MATCH_TRACKED);
+  }, [phase, allEvents, playerClubId, gameMode]);
 
   // When penalty shootout finalization completes (matchPhase becomes 'full_time'),
   // transition the local phase from 'penalties' to 'post'

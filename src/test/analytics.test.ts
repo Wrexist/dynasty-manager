@@ -109,6 +109,9 @@ describe('analytics', () => {
       track('community_pack_enabled', {});
       track('community_pack_disabled', {});
       track('crash', { category: 'error_boundary:app' });
+      track('app_open', {});
+      track('onboarding_step', { flow: 'career', step: 'name', index: 0 });
+      track('first_match_completed', { gameMode: 'sandbox', result: 'win' });
       expect(captured.map(p => p.event)).toEqual([
         'game_started',
         'season_completed',
@@ -117,7 +120,32 @@ describe('analytics', () => {
         'community_pack_enabled',
         'community_pack_disabled',
         'crash',
+        'app_open',
+        'onboarding_step',
+        'first_match_completed',
       ]);
+    });
+  });
+
+  describe('activation funnel events', () => {
+    beforeEach(() => {
+      writeAnalyticsConsent('granted');
+      refreshAnalyticsConsent();
+    });
+
+    it('carries the onboarding_step payload through unchanged', () => {
+      track('onboarding_step', { flow: 'sandbox', step: 'league', index: 1 });
+      expect(captured[0].data).toEqual({ flow: 'sandbox', step: 'league', index: 1 });
+    });
+
+    it('carries the first_match_completed payload through unchanged', () => {
+      track('first_match_completed', { gameMode: 'career', result: 'loss' });
+      expect(captured[0].data).toEqual({ gameMode: 'career', result: 'loss' });
+    });
+
+    it('app_open carries no fields', () => {
+      track('app_open', {});
+      expect(captured[0].data).toEqual({});
     });
   });
 

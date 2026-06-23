@@ -34,7 +34,15 @@ export type AnalyticsEvent =
   | { name: 'legacy_viewed'; data: { tier: string; trophies: number } }
   | { name: 'reminders_enabled'; data: Record<string, never> }
   | { name: 'reminders_disabled'; data: Record<string, never> }
-  | { name: 'code_redeemed'; data: { reward: string } };
+  | { name: 'code_redeemed'; data: { reward: string } }
+  // ── Activation funnel ──
+  // These let us SEE where new players drop off — the onboarding wizard, then
+  // the jump to a first finished match — instead of guessing. Session id is
+  // ephemeral (see below), so these support per-session funnel analysis, not
+  // cross-session retention cohorts.
+  | { name: 'app_open'; data: Record<string, never> }
+  | { name: 'onboarding_step'; data: { flow: 'sandbox' | 'career'; step: string; index: number } }
+  | { name: 'first_match_completed'; data: { gameMode: 'sandbox' | 'career' | 'world-cup'; result: 'win' | 'draw' | 'loss' } };
 
 export type AnalyticsEventName = AnalyticsEvent['name'];
 

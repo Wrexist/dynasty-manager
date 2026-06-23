@@ -16,6 +16,7 @@ import type { LeagueId, OnboardingStep, OnboardingDraft } from '@/types/game';
 import { DIFFICULTY_CONFIG, DIFFICULTY_BARS } from '@/config/ui';
 import { readSessionJson, writeSessionJson, removeSessionKey, STORAGE_KEYS } from '@/store/helpers/persistence';
 import { hapticLight } from '@/utils/haptics';
+import { track } from '@/utils/analytics';
 import { LoadingOverlay } from '@/components/LoadingOverlay';
 import { errorToast } from '@/utils/gameToast';
 
@@ -126,6 +127,15 @@ const ClubSelection = () => {
     const draft: OnboardingDraft = { step, nation: selectedNationality, league: selectedLeague };
     writeSessionJson(ONBOARDING_DRAFT_KEY, draft);
   }, [step, selectedNationality, selectedLeague]);
+
+  // Activation funnel: fire once per onboarding step the user reaches so the
+  // drop-off across Nation → League → Club is measurable. Keyed on `step`, so
+  // it captures every step entered (incl. a draft restored mid-flow). No-ops
+  // without analytics consent.
+  useEffect(() => {
+    const idx = step === 'nationality' ? 0 : step === 'league' ? 1 : 2;
+    track('onboarding_step', { flow: 'sandbox', step, index: idx });
+  }, [step]);
 
   const handleStart = () => {
     if (!selected || !selectedNationality || !selectedLeague || loading) return;
