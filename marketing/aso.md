@@ -67,15 +67,54 @@ Apple only indexes terms NOT already in your name or subtitle — don't repeat w
 - calcio (Italian for football — indexes in IT store if not localized)
 - futbol (Spanish)
 
+### Words already used (DO NOT put these in the keyword field)
+
+Apple indexes the app name + subtitle + keyword field together and auto-combines
+words across all three into search phrases. Repeating a word that's already in
+the name or subtitle wastes characters — it indexes nothing.
+
+| Word | Where it's already used |
+|------|------------------------|
+| `dynasty` | App name |
+| `manager` | App name **and** subtitle |
+| `football` | App name **and** subtitle |
+| `soccer` | Subtitle |
+| `sim` | Subtitle |
+
+So the keyword field must avoid all five. (Apple also ignores `&`, "the", "a",
+and other stop words — don't spend characters on them.)
+
 ### Recommended 100-char keyword string
 
 ```
-career,tactics,squad,sacked,sim,clubs,job,real,leagues,manager,season,transfer,hire,championship
+career,tactics,squad,sacked,clubs,job,real,league,season,transfer,scout,coach,championship,team,cup
 ```
 
-**Character count:** 97 ✓
+**Character count:** 99 ✓ (commas count; no spaces after commas)
 
-**Why these words:** "career" and "tactics" are searched heavily in the football sim space. "sacked" is unique to this game's positioning and has zero competition. "transfer" catches FM players searching for transfer systems. "championship" catches old CM nostalgia searchers. None repeat the name/subtitle.
+### Rationale for every word
+
+| # | Word | Why it's in (and the phrases Apple builds from it) |
+|---|------|----------------------------------------------------|
+| 1 | `career` | Highest-value combo word. Apple builds "football career", "soccer career", "manager career", "career mode" — all using words already in the name/subtitle. Career mode is the game's core differentiator. |
+| 2 | `tactics` | High-intent. Builds "football tactics", "soccer tactics", "tactics game". Tactical depth is what FM-style searchers want. |
+| 3 | `squad` | Builds "squad builder", "build squad", "football squad". Captures the squad-management and team-building search intent. |
+| 4 | `sacked` | Unique positioning word with near-zero competition. Nobody else targets "get sacked", "manager sacked", "sacking" — it's the emotional hook of the career mode and an easy win on ranking. |
+| 5 | `clubs` | Builds "real clubs", "football clubs", "manage clubs". Reinforces the 756-real-clubs selling point. Plural form also matches singular searches. |
+| 6 | `job` | Builds "football job", "manager job", "job simulator". Catches the "be a manager / get a job" framing that's central to career mode. |
+| 7 | `real` | Builds "real clubs", "real football", "real leagues", "real players". "Real" is a strong differentiator vs. fictional-club competitors and a common search qualifier. |
+| 8 | `league` | Builds "football league", "manage league", "league sim". Singular chosen over "leagues" — Apple matches plurals from singulars but the reverse is weaker. |
+| 9 | `season` | Catches season-long / multi-season management searches and "season mode". Reinforces the long-game dynasty framing. |
+| 10 | `transfer` | High-intent FM term. Builds "transfer market", "transfer window", "football transfer". FM players specifically search for transfer depth. |
+| 11 | `scout` | Builds "scout players", "scouting". Targets the scouting/recruitment feature and a known FM-audience search. |
+| 12 | `coach` | Critical synonym capture. "Manager" is locked in the name, but a huge slice of users (especially US + LATAM) search "coach" / "football coach". This is the only way to rank for that synonym. |
+| 13 | `championship` | Nostalgia play — captures old "Championship Manager" searchers, plus "championship" as a competition/title-race term. Long word but high-value dual meaning. |
+| 14 | `team` | Builds "football team", "team manager", "build a team", "national team". Broad, high-volume anchor word not present in name/subtitle. |
+| 15 | `cup` | Builds "football cup", "cup game". Targets the continental/domestic cup and Super Cup features — a search angle competitors ignore. |
+
+**Net result:** 15 indexed words, zero duplication of the name/subtitle, and every
+word either combines into a high-volume phrase or owns a low-competition niche
+(`sacked`, `championship`, `coach`).
 
 ---
 
