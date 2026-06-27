@@ -625,7 +625,16 @@ export function buildMatchTimeline(match: Match, homeClub: Club, awayClub: Club,
           const beatPossession: 'home' | 'away' = offence ? (isHome ? 'away' : 'home') : possession;
           const hl = new Set<string>();
           if (ev.playerId) hl.add(ev.playerId);
-          const ball = { x: clamp(50 + (rng() * 2 - 1) * 18, 10, 90), y: 50 };
+          // Stage the free kick where play was, not always on the halfway line: a
+          // side already on the ball wins it higher up the pitch; otherwise it's a
+          // midfield / own-half restart. The engine carries no foul location, so
+          // we infer a plausible depth from who had possession (deterministic via
+          // the id-seeded rng — same match always stages it the same way).
+          const fkDepth = clamp(
+            46 + (prevPossession === beatPossession ? 14 : 0) + (rng() * 2 - 1) * 14,
+            24, 78,
+          );
+          const ball = { x: clamp(50 + (rng() * 2 - 1) * 18, 10, 90), y: depthToY(beatPossession, fkDepth) };
           const players = placeBeatPlayers(baseHome, baseAway, beatPossession, homeTactics, awayTactics, ball, removed, hl, { phaseTime: seq, lookup });
           const self = ev.playerId ? players.find(p => p.id === ev.playerId) : null;
           const ballAt = self ? { ...self.point } : ball;
