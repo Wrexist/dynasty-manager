@@ -65,6 +65,7 @@
     "@revenuecat/purchases-capacitor": "^12.3.2",
     "@revenuecat/purchases-capacitor-ui": "^12.3.2",
     "@sentry/react": "^10.49.0",
+    "@supabase/supabase-js": "^2.108.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.38.0",
