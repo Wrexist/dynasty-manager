@@ -56,7 +56,7 @@ makes WC mode shine or sharpens WC ASO beats almost everything else on timing.
 
 | Release | Theme | Window | Gate |
 |---|---|---|---|
-| **v1.1.2 — Hardening** | Fix revenue/save/UX-blocker bugs | ✅ verified done 2026-06-21 (2 residual checks) | P0/P1 list §3 closed |
+| **v1.1.2 — Hardening** | Fix revenue/save/UX-blocker bugs | ✅ verified done 2026-06-21; residual checks closed 2026-06-27 | P0/P1 list §3 closed |
 | **v1.1.3 — World Cup Live** | WC polish + ASO refresh while tournament is on | **NOW — top priority** | Ship before WC final |
 | **v1.2 — Dynasty Legacy** | Meta-progression depth, retention v2 | ~3–5 weeks | §5 exit criteria |
 | **v1.3 — Identity & Immersion** | Create-a-Club, Manager RPG, match-view polish | ~6–8 weeks | §6 exit criteria |
@@ -96,12 +96,21 @@ Tracks **0 (hardening)**, **4 (content/balance)**, and **online (v2.0)** run
 >   `proRequired`; autoFill dedups swaps. **FIXED.**
 > - P1#11 mononyms — `playerGen.ts:339` keeps mononym in `lastName` only. **FIXED.**
 >
-> **Residual checks (not yet confirmed):** (a) weeks 1–3 friendly/league
-> double-booking vs the "league begins week 4" copy — `league.ts:225` only
-> confirms friendlies are weeks 1–3; the conflict needs a play-through check.
-> (b) Dashboard "Season Race / League Pos" division-scoping reads correct
-> (`Dashboard.tsx:322` uses the division `leagueTable`) but worth a 92-club
-> sanity check. Everything else in this section is closed.
+> **Residual checks — CLOSED 2026-06-27 (both non-issues, verified at file:line):**
+> - (a) weeks 1–3 friendly/league "double-booking" — **not a bug, intended design.**
+>   League fixtures legitimately start week 1 (`league.ts:216`, gap=1 for a
+>   20-team league) and friendlies are weeks 1–3 (`league.ts:236`); they run
+>   *alongside* by design (the pre-season news at `initGame.ts:387` says so).
+>   The player plays the higher-priority friendly (`matchActions.ts:413` chain),
+>   and `weekAdvance.ts:1069-1149` auto-sims the orphaned league fixture and posts
+>   a "League Fixture Auto-Simulated" inbox notice, so the club never ends the
+>   season a game short. No "league begins week 4" copy exists anywhere. Locked
+>   with a regression test in `orchestrationSlice.test.ts`.
+> - (b) Dashboard "Season Race / League Pos" division-scoping — **correct.**
+>   State `leagueTable` is division-scoped at every assignment
+>   (`initGame.ts:265` = `divisionTables[playerDivision]`, `weekAdvance.ts:1517`
+>   = `divisionClubs[playerDiv]`, `matchProcessing.ts:188` = `divClubIds`), so
+>   the Dashboard ranks within the player's division, not all 92 English clubs.
 
 The original shipblocker list is retained below for traceability. Order =
 revenue → data → UX-blocker → gameplay integrity.
@@ -366,9 +375,9 @@ that future turn-on. Low priority vs Pro/packs revenue.
 1. **v1.1.3 World Cup Live** — ASO refresh + intro/trophy-lift/awards/shareable
    card. *Time-boxed by the real tournament; the single highest-leverage thing
    on the board right now.*
-2. **Confirm the two §3 residual checks** (friendly/league week-1 double-booking;
-   division-scoped Season Race) — cheap, and they're the only hardening items
-   not yet confirmed closed.
+2. ~~Confirm the two §3 residual checks~~ — **done 2026-06-27.** Both were
+   non-issues (intended friendly/league co-existence with auto-sim; division-
+   scoped Season Race); Track 0 is now fully closed. See §3.
 3. **v1.2 Dynasty Legacy P1** — streak/tier surfacing + **analytics funnel**
    (so v1.2+ is measurable). The funnel is the prerequisite for knowing whether
    anything after this works.

@@ -377,3 +377,41 @@ describe('orchestrationSlice — startPrestige', () => {
     expect(useGameStore.getState().managerProgression.prestigeLevel).toBe(before + 1);
   });
 });
+
+// Regression guard for the weeks 1–3 "double-booking" that ROADMAP.md §3
+// flagged as an unconfirmed residual. The design is intentional: pre-season
+// friendlies (weeks 1–3) run alongside the opening league fixtures. The player
+// plays the higher-priority friendly via the playCurrentMatch chain, so their
+// own league fixture would be left unplayed — weekAdvance must auto-sim it, or
+// the club ends the season a game short and the division table is wrong.
+describe('orchestrationSlice — weeks 1–3 friendly / league co-existence', () => {
+  it('starts week 1 with both a friendly and a league fixture for the player', () => {
+    const s = useGameStore.getState();
+    const pc = s.playerClubId;
+    const involves = (h: string, a: string) => h === pc || a === pc;
+    const leagueFix = s.fixtures.find(f => f.week === 1 && involves(f.homeClubId, f.awayClubId));
+    const friendly = s.friendlies?.find(f => f.week === 1 && involves(f.homeClubId, f.awayClubId));
+    expect(leagueFix).toBeTruthy();
+    expect(friendly).toBeTruthy();
+  });
+
+  it('auto-simulates the orphaned league fixture (with an inbox notice) when the friendly is played', async () => {
+    const s0 = useGameStore.getState();
+    const pc = s0.playerClubId;
+    const involves = (h: string, a: string) => h === pc || a === pc;
+    const leagueFix = s0.fixtures.find(f => f.week === 1 && !f.played && involves(f.homeClubId, f.awayClubId))!;
+    const friendly = s0.friendlies.find(f => f.week === 1 && involves(f.homeClubId, f.awayClubId))!;
+
+    // Stand in for the player having played the higher-priority friendly.
+    useGameStore.setState({
+      friendlies: s0.friendlies.map(f => (f.id === friendly.id ? { ...f, played: true, homeGoals: 1, awayGoals: 0 } : f)),
+    });
+
+    await useGameStore.getState().advanceWeek();
+
+    const s1 = useGameStore.getState();
+    const simmed = s1.fixtures.find(f => f.id === leagueFix.id);
+    expect(simmed?.played).toBe(true); // not stranded — the table stays whole
+    expect(s1.messages.some(m => m.title === 'League Fixture Auto-Simulated')).toBe(true);
+  });
+});
