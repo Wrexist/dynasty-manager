@@ -6,16 +6,19 @@ import { getReputationTierLabel, getManagerBonusLabel } from '@/utils/managerCar
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { PlayerCard } from '@/components/game/PlayerCard';
 import { Button } from '@/components/ui/button';
-import { Trophy, Star, Award, Users, ChevronDown, ChevronUp, ChevronRight, ArrowDown, ArrowUp } from 'lucide-react';
+import { Trophy, Star, Award, Users, ChevronDown, ChevronUp, ChevronRight, ArrowDown, ArrowUp, Share2 } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { LEAGUES } from '@/data/league';
 import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { VERDICT_COLORS, VERDICT_LABELS } from '@/config/ui';
-import { hapticHeavy } from '@/utils/haptics';
+import { hapticHeavy, hapticMedium } from '@/utils/haptics';
 import { PageHint } from '@/components/game/PageHint';
 import { isCelebratorySeason, maybeRequestReview, pickSeasonReviewTrigger } from '@/utils/appReview';
+import { shareText } from '@/utils/share';
+import { APP_STORE_URL } from '@/config/legal';
+import { toast } from 'sonner';
 
 const AWARD_ICONS: Record<string, string> = {
   'Golden Boot': 'footprints',
@@ -86,6 +89,32 @@ const SeasonSummary = () => {
   }
 
   const playerClubShort = clubs[playerClubId]?.shortName || '';
+
+  // Shareable season recap — placed at the emotional peak (right under the
+  // headline finish). Names the league + any trophies and carries the App
+  // Store link, so a proud player's share doubles as organic reach.
+  const handleShareSeason = async () => {
+    hapticMedium();
+    const clubName = clubs[playerClubId]?.name || playerClubShort || 'my club';
+    const leagueName = LEAGUES.find(l => l.id === latest.divisionId)?.name;
+    const posText = `${latest.position}${getSuffix(latest.position)}`;
+    const trophies: string[] = [];
+    if (latest.position === 1) trophies.push('League Champions');
+    else if (latest.promoted) trophies.push('Promoted');
+    if (latest.cupResult === 'Winner') trophies.push('Dynasty Cup');
+    if (latest.leagueCupResult === 'Winner') trophies.push('League Cup');
+    if (latest.championsCupResult === 'Winner') trophies.push('Champions Cup');
+    if (latest.shieldCupResult === 'Winner') trophies.push('Shield Cup');
+    if (latest.conferenceCupResult === 'Winner') trophies.push('Conference Cup');
+    const trophyTail = trophies.length ? ` — ${trophies.join(', ')}` : '';
+    const leagueTail = leagueName ? ` in the ${leagueName}` : '';
+    const emoji = latest.position === 1 || trophies.length ? '🏆' : latest.replaced ? '😞' : '⚽';
+    const message = `${emoji} Finished ${posText}${leagueTail} with ${clubName} — Season ${latest.season} of Dynasty Manager${trophyTail}.`;
+    const outcome = await shareText(message, APP_STORE_URL);
+    if (outcome === 'copied') toast.success('Season recap copied — paste it anywhere to share');
+    else if (outcome === 'failed') toast.error('Could not share right now');
+  };
+
   const individualAwards = (latest.awards || []).filter(a => a.name !== 'Team of the Season');
   const bestXI = (latest.awards || []).filter(a => a.name === 'Team of the Season');
   return (
@@ -173,6 +202,16 @@ const SeasonSummary = () => {
           <p className="text-lg font-bold text-foreground mt-1">{latest.points} Points</p>
         </GlassPanel>
         </motion.div>
+
+        {/* Share season recap — cheapest organic-growth lever in the game,
+            surfaced where the player is proudest. */}
+        <button
+          type="button"
+          onClick={() => { void handleShareSeason(); }}
+          className="w-full flex items-center justify-center gap-2 h-11 rounded-xl font-bold text-sm text-foreground bg-white/[0.06] border border-white/[0.08] active:scale-[0.98] transition-transform"
+        >
+          <Share2 className="w-4 h-4" /> Share Season
+        </button>
 
         {/* Near-Miss Banner */}
         {nearMiss && (

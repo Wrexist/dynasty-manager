@@ -6,7 +6,7 @@ import { resolveClub } from '@/utils/helpers';
 import { guardAsync } from '@/utils/asyncGuard';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { EmptyState } from '@/components/EmptyState';
-import { ChevronRight, Flame, Calendar, HeartPulse, Star, TrendingUp, TrendingDown, Minus, MapPin, Shield, ArrowLeft, ArrowRight, Trophy, ArrowUp, ArrowDown } from 'lucide-react';
+import { ChevronRight, Flame, Calendar, HeartPulse, Star, TrendingUp, TrendingDown, Minus, MapPin, Shield, ArrowLeft, ArrowRight, Trophy, ArrowUp, ArrowDown, Share2 } from 'lucide-react';
 import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { cn } from '@/lib/utils';
 
@@ -67,6 +67,10 @@ import { YellowCardIcon, RedCardIcon } from '@/components/game/PlayerAvatar';
 import { getSuffix } from '@/utils/helpers';
 import { PageHint } from '@/components/game/PageHint';
 import { findTournamentMatch } from '@/hooks/useGameSelectors';
+import { shareText } from '@/utils/share';
+import { APP_STORE_URL } from '@/config/legal';
+import { hapticMedium } from '@/utils/haptics';
+import { toast } from 'sonner';
 import { motion, useReducedMotion } from 'framer-motion';
 
 const MatchReview = () => {
@@ -242,6 +246,27 @@ const MatchReview = () => {
     }, 50);
   };
 
+  // Shareable match artifact — fired at the post-match emotional peak. The
+  // scoreline is framed from the player's side, names the competition, and
+  // carries the App Store link so a shared result doubles as organic reach
+  // (the cheapest growth lever in a no-UA-budget reality).
+  const handleShareMatch = async () => {
+    hapticMedium();
+    const myClub = isHome ? homeClub : awayClub;
+    const oppClub = isHome ? awayClub : homeClub;
+    const myGoals = isHome ? match.homeGoals : match.awayGoals;
+    const oppGoals = isHome ? match.awayGoals : match.homeGoals;
+    const penTail = shootoutWon != null ? ' on penalties' : '';
+    const compName = lastMatchCompetition ? getCompetitionInfo(lastMatchCompetition).name : null;
+    const compTail = compName ? ` — ${compName}` : '';
+    const verb = won ? `Beat ${oppClub.name}` : lost ? `Lost to ${oppClub.name}` : `Drew with ${oppClub.name}`;
+    const emoji = won ? '✅' : lost ? '😤' : '🤝';
+    const message = `${emoji} ${verb} ${myGoals}-${oppGoals}${penTail}${compTail} with ${myClub.name} in Dynasty Manager.`;
+    const outcome = await shareText(message, APP_STORE_URL);
+    if (outcome === 'copied') toast.success('Result copied — paste it anywhere to share');
+    else if (outcome === 'failed') toast.error('Could not share right now');
+  };
+
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
       <PageHint
@@ -252,7 +277,15 @@ const MatchReview = () => {
 
       {/* Result Header */}
       <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.4, ease: 'easeOut' }}>
-        <GlassPanel className={cn('p-6 text-center', won ? 'border-emerald-500/30' : lost ? 'border-destructive/30' : 'border-amber-500/30')}>
+        <GlassPanel className={cn('relative p-6 text-center', won ? 'border-emerald-500/30' : lost ? 'border-destructive/30' : 'border-amber-500/30')}>
+          <button
+            type="button"
+            onClick={() => { void handleShareMatch(); }}
+            aria-label="Share result"
+            className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground bg-white/[0.06] border border-white/[0.08] active:scale-[0.95] transition-transform"
+          >
+            <Share2 className="w-4 h-4" />
+          </button>
           <motion.p
             initial={{ y: -10, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
