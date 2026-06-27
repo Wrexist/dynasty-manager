@@ -364,6 +364,42 @@ describe('buildMatchTimeline', () => {
       expect(tl.beats.filter((b) => b.minute === 50 && b.ballMotion === 'longball').length).toBeGreaterThanOrEqual(2);
     });
 
+    it('packs the box on a corner — both sides crowd the goal, keeper on the line', () => {
+      const tl = buildMatchTimeline(makeMatch([ev(30, 'shot_saved', 'home', { playerId: 'home-p9' })]), home, away);
+      const idx = tl.beats.findIndex((b) => b.eventType === 'shot_saved');
+      const corner = tl.beats.slice(idx + 1, idx + 3).find((b) => b.ball.x <= 8 || b.ball.x >= 92);
+      expect(corner).toBeDefined();
+      // Home attacks the away goal (y=100): plenty of bodies up by the byline.
+      expect(corner!.players.filter((p) => p.point.y > 80).length).toBeGreaterThanOrEqual(7);
+      // The defending keeper is jammed on its goal-line.
+      const awayGk = corner!.players.find((p) => p.team === 'away' && p.pos === 'GK');
+      expect(awayGk!.point.y).toBeGreaterThan(94);
+    });
+
+    it('throws up a defensive wall in front of a free kick', () => {
+      const tl = buildMatchTimeline(makeMatch([ev(40, 'free_kick_goal', 'home', { playerId: 'home-p9' })]), home, away);
+      const setup = tl.beats.find(
+        (b) => b.eventType === null && b.ballMotion === 'idle' && b.ballCarrierId === 'home-p9' && b.ball.y > 60 && b.ball.y < 86,
+      );
+      expect(setup).toBeDefined();
+      // A row of defenders sits ~a few units ahead of the ball, banked near its
+      // lane — a wall, not players scattered across the box.
+      const wallY = setup!.ball.y + 11;
+      const wall = setup!.players.filter(
+        (p) => p.team === 'away' && Math.abs(p.point.y - wallY) < 6 && Math.abs(p.point.x - setup!.ball.x) < 14,
+      );
+      expect(wall.length).toBeGreaterThanOrEqual(3);
+    });
+
+    it('plays a goal kick after a shot off target', () => {
+      const tl = buildMatchTimeline(makeMatch([ev(30, 'shot_missed', 'home', { playerId: 'home-p9' })]), home, away);
+      const idx = tl.beats.findIndex((b) => b.eventType === 'shot_missed');
+      // Home missed → the away keeper restarts deep in their own end.
+      const gk = tl.beats.slice(idx + 1, idx + 4).find((b) => b.ballMotion === 'restart' && b.possession === 'away' && b.ballCarrierId != null);
+      expect(gk).toBeDefined();
+      expect(Math.max(gk!.ball.y, 100 - gk!.ball.y)).toBeGreaterThan(88);
+    });
+
     it('reshapes a team when its AI mentality changes mid-match', () => {
       const tl = buildMatchTimeline(
         makeMatch([ev(20, 'ai_tactical_change', 'home', { description: 'Home switch to attacking mentality' })]),

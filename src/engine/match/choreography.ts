@@ -508,16 +508,102 @@ export function buildMatchTimeline(match: Match, homeClub: Club, awayClub: Club,
     stageWithBallAt(minute, possession, spot, target.id, 'longball', zoomFor(possession, spot), highlightFor(target.id));
   };
 
-  // Corner: ball at the flag, attackers crowd the box, defenders pack the goal.
-  const emitCorner = (minute: number, possession: 'home' | 'away', takerId: string | null) => {
-    const cornerBall = { x: seq % 2 === 0 ? 6 : 94, y: depthToY(possession, 96) };
-    stageWithBallAt(minute, possession, cornerBall, takerId, 'cross', PITCH_CHOREO.ZOOM_GOAL, highlightFor(takerId));
+  // A set-piece chip at an explicit spot in the POSSESSING team's attack frame
+  // (0 = possession's own goal, 100 = the goal it attacks). Letting both teams
+  // share one frame keeps the geometry readable regardless of which way the
+  // possessing side kicks — depthToY converts to absolute pitch y.
+  const spChip = (
+    p: BasePlayer, team: 'home' | 'away', possession: 'home' | 'away',
+    x: number, attackDepth: number, takerId: string | null,
+  ): ChoreoPlayer => ({
+    id: p.id, team, pos: p.pos, number: p.number,
+    name: p.id ? lookup?.[p.id]?.lastName : undefined,
+    overall: p.id ? lookup?.[p.id]?.overall : undefined,
+    point: { x: clamp(x, 2, 98), y: clamp(depthToY(possession, attackDepth), 2, 98) },
+    highlighted: p.id != null && p.id === takerId,
+  });
+
+  // Corner: taker at the flag, the attacking side crowds the six-yard box (a
+  // couple held back for the second ball / outlet), the defending side packs the
+  // goal — keeper on the line, two on the posts, the rest man-marking in the box.
+  const buildCornerPlayers = (possession: 'home' | 'away', takerId: string | null, leftFlag: boolean): ChoreoPlayer[] => {
+    const defending: 'home' | 'away' = possession === 'home' ? 'away' : 'home';
+    const out: ChoreoPlayer[] = [];
+    const atk = (possession === 'home' ? baseHome : baseAway).filter(p => !(p.id && removed.has(p.id)));
+    let a = 0;
+    for (const p of atk) {
+      if (p.pos === 'GK') { out.push(spChip(p, possession, possession, 50, 6, takerId)); continue; }
+      if (p.id != null && p.id === takerId) { out.push(spChip(p, possession, possession, leftFlag ? 5 : 95, 98, takerId)); continue; }
+      if (a === 0) out.push(spChip(p, possession, possession, leftFlag ? 16 : 84, 90, takerId)); // short option
+      else if (a === 1) out.push(spChip(p, possession, possession, 50, 70, takerId)); // top of the box (2nd ball)
+      else out.push(spChip(p, possession, possession, 30 + ((p.number * 13) % 41), 82 + ((p.number * 7) % 13), takerId)); // crowd the box
+      a++;
+    }
+    const def = (defending === 'home' ? baseHome : baseAway).filter(p => !(p.id && removed.has(p.id)));
+    let d = 0;
+    for (const p of def) {
+      if (p.pos === 'GK') { out.push(spChip(p, defending, possession, 50, 98, takerId)); continue; } // on the line
+      if (d === 0) out.push(spChip(p, defending, possession, leftFlag ? 42 : 58, 98, takerId)); // near post
+      else if (d === 1) out.push(spChip(p, defending, possession, leftFlag ? 58 : 42, 98, takerId)); // far post
+      else if (d === 2) out.push(spChip(p, defending, possession, 50, 55, takerId)); // one outlet held up
+      else out.push(spChip(p, defending, possession, 26 + ((p.number * 17) % 49), 84 + ((p.number * 5) % 12), takerId)); // mark the box
+      d++;
+    }
+    return out;
   };
 
-  // Free kick: taker stands over the ball at the edge of the final third.
+  const emitCorner = (minute: number, possession: 'home' | 'away', takerId: string | null) => {
+    const leftFlag = seq % 2 === 0;
+    const players = buildCornerPlayers(possession, takerId, leftFlag);
+    const ball = { x: leftFlag ? 5 : 95, y: clamp(depthToY(possession, 98), 2, 98) };
+    const taker = takerId ? players.find(p => p.id === takerId) : null;
+    pushBeat(minute, null, possession, taker ? { ...taker.point } : ball, takerId ?? null, 'cross', PITCH_CHOREO.ZOOM_GOAL, players, highlightFor(takerId), undefined);
+  };
+
+  // Free kick: taker over the ball, the defending side throws up a four-man wall
+  // between the ball and goal with the keeper covering the open side, the rest
+  // marking the box; the attacking side loads the box for the delivery.
+  const buildFreeKickPlayers = (possession: 'home' | 'away', takerId: string | null, ballX: number, ballDepth: number): ChoreoPlayer[] => {
+    const defending: 'home' | 'away' = possession === 'home' ? 'away' : 'home';
+    const out: ChoreoPlayer[] = [];
+    const atk = (possession === 'home' ? baseHome : baseAway).filter(p => !(p.id && removed.has(p.id)));
+    let a = 0;
+    for (const p of atk) {
+      if (p.pos === 'GK') { out.push(spChip(p, possession, possession, 50, 6, takerId)); continue; }
+      if (p.id != null && p.id === takerId) { out.push(spChip(p, possession, possession, ballX - 3, ballDepth - 3, takerId)); continue; } // over the ball
+      if (a === 0) out.push(spChip(p, possession, possession, ballX + 4, ballDepth - 2, takerId)); // second over the ball
+      else out.push(spChip(p, possession, possession, 30 + ((p.number * 13) % 41), 82 + ((p.number * 7) % 12), takerId)); // load the box
+      a++;
+    }
+    const wallDepth = clamp(ballDepth + 11, ballDepth + 8, 92);
+    const def = (defending === 'home' ? baseHome : baseAway).filter(p => !(p.id && removed.has(p.id)));
+    let d = 0;
+    for (const p of def) {
+      if (p.pos === 'GK') { out.push(spChip(p, defending, possession, ballX < 50 ? 58 : 42, 97, takerId)); continue; } // covers the open side
+      if (d < 4) out.push(spChip(p, defending, possession, clamp(ballX - 5 + d * 3.2, 20, 80), wallDepth, takerId)); // four-man wall
+      else out.push(spChip(p, defending, possession, 26 + ((p.number * 17) % 49), 84 + ((p.number * 5) % 11), takerId)); // mark the box
+      d++;
+    }
+    return out;
+  };
+
   const emitFreeKickSetup = (minute: number, possession: 'home' | 'away', takerId: string | null) => {
-    const fkBall = { x: clamp(50 + (rng() * 2 - 1) * 20, 20, 80), y: depthToY(possession, 70) };
-    stageWithBallAt(minute, possession, fkBall, takerId, 'idle', PITCH_CHOREO.ZOOM_ATTACK, highlightFor(takerId));
+    const ballX = clamp(50 + (rng() * 2 - 1) * 20, 20, 80);
+    const ballDepth = 72;
+    const players = buildFreeKickPlayers(possession, takerId, ballX, ballDepth);
+    const ball = { x: ballX, y: clamp(depthToY(possession, ballDepth), 2, 98) };
+    pushBeat(minute, null, possession, ball, takerId ?? null, 'idle', PITCH_CHOREO.ZOOM_ATTACK, players, highlightFor(takerId), undefined);
+  };
+
+  // Goal kick: the restarting team's keeper plays out from the back, the team
+  // pushing up to receive (the standard attack/defend block with the ball deep).
+  const emitGoalKick = (minute: number, possession: 'home' | 'away') => {
+    const gk = (possession === 'home' ? baseHome : baseAway).find(p => p.pos === 'GK' && !(p.id && removed.has(p.id)));
+    const ball = { x: 50, y: clamp(depthToY(possession, 7), 2, 98) };
+    const hl = gk?.id ? highlightFor(gk.id) : new Set<string>();
+    const players = placeBeatPlayers(baseHome, baseAway, possession, homeTactics, awayTactics, ball, removed, hl, { phaseTime: seq, lookup });
+    if (gk?.id) { const self = players.find(p => p.id === gk.id); if (self) self.point = { ...ball }; }
+    pushBeat(minute, null, possession, { ...ball }, gk?.id ?? null, 'restart', PITCH_CHOREO.ZOOM_WIDE, players, hl, undefined);
   };
 
   // Penalty arrangement: ball on the spot, taker behind it, defending keeper on
@@ -616,8 +702,11 @@ export function buildMatchTimeline(match: Match, homeClub: Club, awayClub: Club,
             emitCorner(minute, possession, club.setPieceTakerId ?? null);
             prevPossession = possession;
           } else {
-            // Missed shot → the other team restarts.
-            prevPossession = isHome ? 'away' : 'home';
+            // Missed shot off target → goal kick to the defending team, who
+            // restart by playing out from the back.
+            const restart: 'home' | 'away' = isHome ? 'away' : 'home';
+            emitGoalKick(minute, restart);
+            prevPossession = restart;
           }
         } else if (DUEL_EVENTS.has(ev.type)) {
           // A foul/card free kick goes to the OTHER (non-offending) team.
