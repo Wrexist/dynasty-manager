@@ -21,25 +21,37 @@ then light up the moment the backend exists and the secrets are set.
 | Tests (mocked client) | `src/test/cloudSave.test.ts` |
 | Env var docs | `.env.example` |
 
-## Provisioning steps
+## Provisioning status (2026-06-27)
 
-1. **Create the project.** A free-tier Supabase project named `dynasty-manager`
-   (org "Wrexist's Org"). *Note: the org currently sits at the 2-active-free-project
-   limit — pause an unused project or upgrade before creating this one.*
-2. **Apply the migration.** `supabase db push` against the project, or paste
-   `supabase/migrations/0001_cloud_saves.sql` into the SQL editor. This creates
-   the private `saves` bucket and the owner-only RLS policies.
-3. **Enable anonymous auth.** Dashboard → Authentication → Providers →
-   **Allow anonymous sign-ins = ON**. Without this, `signInAnonymously()` fails
-   and the app reports "Could not reach the cloud".
-4. **Set the secrets.** Copy the project URL and the **anon** (public) key into:
+| Step | State |
+|---|---|
+| Project created — `dynasty-manager`, ref **`ucfqhluvuvakfordrexr`**, region eu-north-1, free tier | ✅ done |
+| Migration applied — private `saves` bucket + 4 owner-only RLS policies (verified via SQL: 1 bucket, 4 policies) | ✅ done |
+| Security advisors | ✅ clean (no lints) |
+| URL | `https://ucfqhluvuvakfordrexr.supabase.co` |
+| **Enable anonymous sign-ins** | ⛔ **manual — do this** (no API/MCP toggle) |
+| **Set `VITE_SUPABASE_*` secrets** (`.env.local` + CI) | ⛔ **manual — do this** |
+| Live round-trip verification | ⏳ on-device only — the CI/sandbox network policy blocks `*.supabase.co`, so it can't be checked from there |
+
+### Remaining manual steps
+
+1. **Enable anonymous auth.** Dashboard → Authentication → Sign In / Providers →
+   **Anonymous sign-ins = ON**. Without this, `signInAnonymously()` fails and the
+   app reports "Could not reach the cloud". (Disabled by default; there is no
+   Management-API/MCP toggle, so it must be done in the dashboard.)
+2. **Set the secrets.** Put the project URL + **anon** (public) key into:
    - local: `.env.local` → `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
    - CI / release builds: the same two as build secrets.
    The anon key is a public client key (safe to ship); it is *not* the service-role key.
-5. **Verify.** Run the app in-game → Settings → **Cloud Backup** → "Back Up to
-   Cloud", then on a second device/profile "Restore from Cloud". Confirm the
-   save round-trips and that a second anonymous user cannot read the first
-   user's objects (RLS).
+3. **Verify on-device.** App → Settings → **Cloud Backup** → "Back Up to Cloud",
+   then on a second device/profile "Restore from Cloud". Confirm the save
+   round-trips and that a second anonymous user cannot read the first user's
+   objects (RLS). The repo's `src/test/cloudSave.test.ts` already covers the
+   client logic against a mocked backend; this step confirms the live wiring.
+
+> Note: storage objects default to a 50 MB per-file limit on the free tier —
+> comfortably above a full save. Raise the bucket's `file_size_limit` if saves
+> ever approach it.
 
 ## Storage layout
 
