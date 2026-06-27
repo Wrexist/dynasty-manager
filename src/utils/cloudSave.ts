@@ -144,6 +144,31 @@ export async function restoreSlot(slot: number): Promise<CloudResult> {
   }
 }
 
+/** Delete every cloud object for the current user (all slots + meta sidecars)
+ *  and sign out. The cloud half of account deletion (Apple 5.1.1(v)); the local
+ *  half is `deleteAllDynastyData()`. Acts only on an EXISTING session — it never
+ *  signs in just to delete, so a player who never used cloud backup is a no-op
+ *  (nothing of theirs is in the cloud). Best-effort: a failure must not block
+ *  the local wipe at the call site. */
+export async function deleteCloudSaves(): Promise<CloudResult> {
+  if (!isSupabaseConfigured()) return { ok: false, reason: 'unconfigured' };
+  const client = await getSupabase();
+  if (!client) return { ok: false, reason: 'unavailable' };
+  try {
+    const { data: { session } } = await client.auth.getSession();
+    if (!session?.user) return { ok: true }; // never backed up — nothing to delete
+    const uid = session.user.id;
+    const paths = [1, 2, 3].flatMap(slot => [slotObject(uid, slot), metaObject(uid, slot)]);
+    const { error } = await client.storage.from(BUCKET).remove(paths);
+    if (error) return { ok: false, reason: 'error' };
+    try { await client.auth.signOut(); } catch { /* best-effort */ }
+    return { ok: true };
+  } catch (err) {
+    Sentry.captureException(err, { tags: { context: 'cloudSave.delete' } });
+    return { ok: false, reason: 'error' };
+  }
+}
+
 /** List the cloud-backed slots (1..3) via their meta sidecars. Slots without a
  *  backup are simply absent from the result. */
 export async function listCloudSlots(): Promise<CloudSlotMeta[]> {

@@ -5,7 +5,7 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { LiquidButton } from '@/components/game/LiquidButton';
 import { SaveStatusIndicator } from '@/components/game/SaveStatusIndicator';
 import { CloudBackupSection } from '@/components/game/CloudBackupSection';
-import { isCloudConfigured } from '@/utils/cloudSave';
+import { isCloudConfigured, deleteCloudSaves } from '@/utils/cloudSave';
 import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users, Bug, ChartBar, Sparkles, Gauge, Bell } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
@@ -274,8 +274,15 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
     setShowResetConfirm(false);
   };
 
-  const handleDeleteAllData = () => {
+  const handleDeleteAllData = async () => {
     hapticMedium();
+    // Erase the cloud copy first, while the session still exists — a failure
+    // here is best-effort and must never block wiping local data (Apple
+    // 5.1.1(v)). No-op on builds without the cloud backend / users who never
+    // backed up.
+    if (isCloudConfigured()) {
+      await deleteCloudSaves();
+    }
     deleteAllDynastyData();
     // deleteAllDynastyData wipes the 'dynasty-' localStorage keys (incl. the
     // notification opt-in), but scheduled OS reminders live outside the web
@@ -758,11 +765,11 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
             <div className="rounded-2xl p-3 bg-destructive/10 border border-destructive/30 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-1px_0_rgba(0,0,0,0.3)]">
               <p className="text-xs text-red-300 font-semibold mb-1">This cannot be undone</p>
               <p className="text-[10px] text-muted-foreground leading-snug">
-                This will permanently delete all save games, career history, Hall of Managers records, and preferences from this device.
+                This will permanently delete all save games, career history, Hall of Managers records, and preferences from this device{isCloudConfigured() ? ', along with any cloud backups' : ''}.
               </p>
             </div>
             <div className="flex gap-2">
-              <LiquidButton tone="destructive" className="flex-1" onClick={handleDeleteAllData}>
+              <LiquidButton tone="destructive" className="flex-1" onClick={() => { void handleDeleteAllData(); }}>
                 Delete Everything
               </LiquidButton>
               <LiquidButton className="flex-1" onClick={() => setShowDeleteDataConfirm(false)}>
