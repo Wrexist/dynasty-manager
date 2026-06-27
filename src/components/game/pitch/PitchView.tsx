@@ -5,6 +5,7 @@ import { buildMatchTimeline } from '@/engine/match/choreography';
 import { latestGoalAt } from '@/engine/match/pitchFrame';
 import { GOAL_SCORING_TYPES } from '@/config/matchEngine';
 import { PITCH_RENDER } from '@/config/pitchChoreography';
+import { openPlayCaptionAt } from '@/utils/openPlayCommentary';
 import { detectPitchQuality, webglSupported } from '@/utils/pitchQuality';
 import { areColorsSimilar } from '@/utils/uiHelpers';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -107,7 +108,9 @@ export default function PitchView({
     [match.id, events.length, homeClub.id, awayClub.id, homeClub.formation, awayClub.formation, homeTactics, awayTactics],
   );
 
-  // Most recent captionable event at or before the current minute.
+  // Caption priority: a recent real event (goal/foul/card/…) wins; otherwise an
+  // open-play line synced to what the pitch is showing this minute, so the feed
+  // never sits silent (the engine emits no events during open play).
   const caption = useMemo(() => {
     for (let i = events.length - 1; i >= 0; i--) {
       const e = events[i];
@@ -117,8 +120,8 @@ export default function PitchView({
         return { minute: e.displayMinute || `${e.minute}'`, text: e.description };
       }
     }
-    return null;
-  }, [events, minute]);
+    return openPlayCaptionAt(timeline, minute, homeClub.shortName, awayClub.shortName, players);
+  }, [events, minute, timeline, homeClub.shortName, awayClub.shortName, players]);
 
   // Running scoreline at the revealed minute, for the broadcast score bug.
   const score = useMemo(() => {
