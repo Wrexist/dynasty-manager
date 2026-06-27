@@ -96,6 +96,21 @@ export const PITCH_CHOREO = {
   LINE_MAX_DEPTH: 52,
   /** Resting depth of the back line, used to anchor the line shift. */
   BACKLINE_BASE: 10,
+  // ── Offside discipline ──
+  // The defending line drops with the ball, and attackers may sit ON but not
+  // BEYOND it. Without this, strikers camped on the opponent goal-line even when
+  // the ball was at the halfway line (a "clear offside" that no real team plays).
+  // The last line is derived from the ball's advancement so the front line
+  // tracks play instead of standing in the keeper's lap.
+  /** How far ahead of the ball the defending team's last line sits. */
+  OFFSIDE_LEAD: 12,
+  /** Attacking mentalities push the line higher up the pitch; cautious drop it. */
+  OFFSIDE_MENT: 8,
+  /** The line never squeezes deeper than this (so a deep build-up still has a
+   *  forward outlet around the halfway line, not pinned in its own half). */
+  OFFSIDE_MIN: 36,
+  /** …nor higher than this — at most a striker on the edge of the six-yard box. */
+  OFFSIDE_MAX: 88,
   /** Below this ball depth (ball near their own goal) a 2nd defender presses. */
   PRESS_NEAR_THRESHOLD: 38,
   /** Amplitude of the smooth deterministic idle sway (replaces random jitter,
@@ -166,6 +181,10 @@ export const PITCH_RENDER = {
   /** Camera zoom at/above which *all* player names show; below it only the
    *  ball-carrier + highlighted players are labelled (declutters at 375px). */
   NAME_ZOOM: 1.3,
+  /** Drop a lingering commentary caption once this many match-minutes pass with
+   *  no newer captionable event, so a stale line (e.g. a 56' foul) doesn't sit
+   *  under live play at 61'. */
+  CAPTION_MAX_AGE_MIN: 3,
 
   // ── Phase 1: motion physics ──
   /** Player spring inertia (ms) — how long a chip takes to settle on its target. */

@@ -199,6 +199,15 @@ function placeBeatPlayers(
   const placeAttack = (squad: BasePlayer[], team: 'home' | 'away', tactics: TacticalInstructions) => {
     const ment = (MENTALITY_PUSH[tactics.mentality] - 1) * 12 + (o.extraPush ?? 0);
     const ballDepth = advancement(team, ball.y);
+    // Offside line: the defending team's last man, derived from the ball's
+    // advancement (defenders drop with the ball). No attacker may stand beyond
+    // it — this is what stops strikers camping on the goal-line during a
+    // midfield phase. Attacking mentalities gamble the line higher.
+    const offside = clamp(
+      ballDepth + PITCH_CHOREO.OFFSIDE_LEAD + (MENTALITY_PUSH[tactics.mentality] - 1) * PITCH_CHOREO.OFFSIDE_MENT,
+      PITCH_CHOREO.OFFSIDE_MIN,
+      PITCH_CHOREO.OFFSIDE_MAX,
+    );
     const placed: { p: BasePlayer; x: number; y: number }[] = [];
     for (const p of squad) {
       if (p.id && removed.has(p.id)) continue;
@@ -235,6 +244,10 @@ function placeBeatPlayers(
         x = clamp(x + Math.sin(phase) * PITCH_CHOREO.RUN_LATERAL_AMP, 5, 95);
         depth = clamp(depth + Math.max(0, Math.cos(phase)) * PITCH_CHOREO.RUN_FORWARD_AMP, 5, 95);
       }
+      // Hold the line: cap every outfielder at the offside line (deep players sit
+      // well below it and are untouched). Applied after off-ball runs so a run
+      // can't surge a forward beyond the last defender.
+      if (p.pos !== 'GK') depth = Math.min(depth, offside);
       placed.push({ p, x, y: depthToY(team, depth) });
     }
     // Nearest non-carrier offers a short passing option.

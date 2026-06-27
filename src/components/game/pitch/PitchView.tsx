@@ -4,6 +4,7 @@ import type { Club, Match, MatchEvent, Player, TacticalInstructions } from '@/ty
 import { buildMatchTimeline } from '@/engine/match/choreography';
 import { latestGoalAt } from '@/engine/match/pitchFrame';
 import { GOAL_SCORING_TYPES } from '@/config/matchEngine';
+import { PITCH_RENDER } from '@/config/pitchChoreography';
 import { detectPitchQuality, webglSupported } from '@/utils/pitchQuality';
 import { areColorsSimilar } from '@/utils/uiHelpers';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -110,7 +111,9 @@ export default function PitchView({
   const caption = useMemo(() => {
     for (let i = events.length - 1; i >= 0; i--) {
       const e = events[i];
-      if (e.minute <= minute && CAPTIONED_TYPES.has(e.type)) {
+      // Only surface a caption that's still recent — a line older than the
+      // freshness window is stale next to the live clock, so it clears.
+      if (e.minute <= minute && minute - e.minute <= PITCH_RENDER.CAPTION_MAX_AGE_MIN && CAPTIONED_TYPES.has(e.type)) {
         return { minute: e.displayMinute || `${e.minute}'`, text: e.description };
       }
     }
