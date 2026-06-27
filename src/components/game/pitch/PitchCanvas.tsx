@@ -194,9 +194,19 @@ export function PitchCanvas({ timeline, minute, quality, homeColor, awayColor, s
         ctx.beginPath();
         ctx.arc(spot.sx, spot.sy, Math.max(1.2, unit * 0.006), 0, Math.PI * 2);
         ctx.fill();
+        // Penalty arc — only the "D" beyond the 18-yard line. The circle is
+        // centred on the spot (inside the box), so clip the penalty area out
+        // (even-odd against the field rect) and the inner half never renders.
+        // Orientation-agnostic: works for either goal in portrait or landscape.
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(pad, pad, innerW, innerH);
+        ctx.rect(pa.x, pa.y, pa.w, pa.h);
+        ctx.clip('evenodd');
         ctx.beginPath();
         ctx.arc(spot.sx, spot.sy, (7 / 100) * unit, 0, Math.PI * 2);
         ctx.stroke();
+        ctx.restore();
       };
       box(0, 1);
       box(100, -1);
