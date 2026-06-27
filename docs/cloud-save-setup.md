@@ -78,11 +78,33 @@ equals their `auth.uid()`. The `.meta` sidecar lets the Settings list show
 - **Lazy SDK.** `supabase-js` is dynamically imported so it never enters the
   eager bundle (`npm run size:check` stays green).
 
-## Phase 1b (not yet built)
+## Phase 1b — built, pending native config
 
-- **Sign in with Apple** upgrade (anonymous → Apple via identity linking).
-  Needs native entitlements + the Apple provider configured in Supabase Auth.
-- **Account deletion** (Apple 5.1.1(v)): delete the user's storage objects + auth
-  user. `deleteAllDynastyData()` already wipes local data; add a server-side
-  delete (Edge Function/RPC) for the cloud copy.
-- **Privacy-label update** — declare the account identifier + game-save data.
+**Code shipped (dark until configured):**
+- **Sign in with Apple** — `src/utils/cloudAuth.ts` + `AccountSection` in Settings.
+  Native plugin `@capacitor-community/apple-sign-in` → `signInWithIdToken`. Nonce
+  flow verified against installed type defs (Apple gets the hashed nonce, Supabase
+  the raw). On sign-in, local saves are re-uploaded under the durable Apple
+  identity. Tests in `src/test/cloudAuth.test.ts`.
+- **Account deletion** — `delete-account` Edge Function (deployed, verify_jwt on)
+  removes the user's Storage folder + deletes the auth user; client `deleteAccount()`
+  is wired into Settings → "Delete All My Data". `deleteAllDynastyData()` handles
+  the local half.
+
+**Native config you must do (can't be done from code / this sandbox):**
+1. **Apple Developer** — enable the "Sign in with Apple" capability on the app id;
+   create a Services ID + key for the web/Supabase callback.
+2. **Supabase** — Authentication → Providers → **Apple**: add the Service ID +
+   key, and list the iOS **bundle id** as an authorized client id.
+3. **Xcode** — add the "Sign in with Apple" capability to the iOS target, then
+   `npm run cap:sync`.
+4. **Env** — set `VITE_APPLE_CLIENT_ID` (normally the bundle id) alongside the
+   `VITE_SUPABASE_*` vars. Blank = Apple sign-in button hidden (guest-only).
+5. **Verify on device** — Settings → Account → "Sign in with Apple" → confirm the
+   session upgrades from guest to Apple and a backup round-trips; then test
+   "Delete All My Data" removes the cloud account.
+
+**Still open:** App Store Connect **privacy-nutrition labels** — declare the
+account identifier + game-save data (linked to identity, NOT used for tracking) —
+and a **privacy-policy** update describing cloud backup. (Outward-facing; draft
+before publishing.)

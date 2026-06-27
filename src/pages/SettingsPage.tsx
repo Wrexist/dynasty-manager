@@ -5,6 +5,7 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { LiquidButton } from '@/components/game/LiquidButton';
 import { SaveStatusIndicator } from '@/components/game/SaveStatusIndicator';
 import { CloudBackupSection } from '@/components/game/CloudBackupSection';
+import { AccountSection } from '@/components/game/AccountSection';
 import { isCloudConfigured, deleteAccount } from '@/utils/cloudSave';
 import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users, Bug, ChartBar, Sparkles, Gauge, Bell } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -563,11 +564,16 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
         </div>
       </SettingsSection>
 
-      {/* ─── Cloud Backup (Online Slice 1) — only when the backend is provisioned ─── */}
+      {/* ─── Account + Cloud Backup (Online Slice 1) — only when provisioned ─── */}
       {variant === 'in-game' && isCloudConfigured() && (
-        <SettingsSection title="Cloud Backup">
-          <CloudBackupSection />
-        </SettingsSection>
+        <>
+          <SettingsSection title="Account">
+            <AccountSection />
+          </SettingsSection>
+          <SettingsSection title="Cloud Backup">
+            <CloudBackupSection />
+          </SettingsSection>
+        </>
       )}
 
       {/* ─── Help ─── */}
