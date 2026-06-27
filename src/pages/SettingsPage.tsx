@@ -5,7 +5,7 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { LiquidButton } from '@/components/game/LiquidButton';
 import { SaveStatusIndicator } from '@/components/game/SaveStatusIndicator';
 import { CloudBackupSection } from '@/components/game/CloudBackupSection';
-import { isCloudConfigured, deleteCloudSaves } from '@/utils/cloudSave';
+import { isCloudConfigured, deleteAccount } from '@/utils/cloudSave';
 import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users, Bug, ChartBar, Sparkles, Gauge, Bell } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
@@ -276,12 +276,12 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
 
   const handleDeleteAllData = async () => {
     hapticMedium();
-    // Erase the cloud copy first, while the session still exists — a failure
-    // here is best-effort and must never block wiping local data (Apple
-    // 5.1.1(v)). No-op on builds without the cloud backend / users who never
-    // backed up.
+    // Delete the cloud account first (Storage objects + auth user, via the
+    // delete-account Edge Function), while the session still exists. Best-effort
+    // — a failure here must never block wiping local data (Apple 5.1.1(v)).
+    // No-op on builds without the cloud backend / users who never signed in.
     if (isCloudConfigured()) {
-      await deleteCloudSaves();
+      await deleteAccount();
     }
     deleteAllDynastyData();
     // deleteAllDynastyData wipes the 'dynasty-' localStorage keys (incl. the

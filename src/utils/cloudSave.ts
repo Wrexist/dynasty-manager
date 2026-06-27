@@ -169,6 +169,29 @@ export async function deleteCloudSaves(): Promise<CloudResult> {
   }
 }
 
+/** Full account deletion (Apple 5.1.1(v)): invoke the `delete-account` Edge
+ *  Function, which removes the user's Storage objects AND deletes the auth user
+ *  itself (the latter needs the service role, so it can't be a client call).
+ *  Then sign out locally. Acts only on an existing session — a no-op for players
+ *  who never signed in. The on-device data wipe (deleteAllDynastyData) is a
+ *  separate, local step at the call site. */
+export async function deleteAccount(): Promise<CloudResult> {
+  if (!isSupabaseConfigured()) return { ok: false, reason: 'unconfigured' };
+  const client = await getSupabase();
+  if (!client) return { ok: false, reason: 'unavailable' };
+  try {
+    const { data: { session } } = await client.auth.getSession();
+    if (!session?.user) return { ok: true }; // no cloud identity — nothing server-side to delete
+    const { error } = await client.functions.invoke('delete-account', { method: 'POST' });
+    if (error) return { ok: false, reason: 'error' };
+    try { await client.auth.signOut(); } catch { /* best-effort */ }
+    return { ok: true };
+  } catch (err) {
+    Sentry.captureException(err, { tags: { context: 'cloudSave.deleteAccount' } });
+    return { ok: false, reason: 'error' };
+  }
+}
+
 /** List the cloud-backed slots (1..3) via their meta sidecars. Slots without a
  *  backup are simply absent from the result. */
 export async function listCloudSlots(): Promise<CloudSlotMeta[]> {

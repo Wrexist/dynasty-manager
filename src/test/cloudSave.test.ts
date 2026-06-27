@@ -10,6 +10,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 // ── Mock the env-gated client so the util thinks the backend is configured. ──
 const uploads: { path: string; body: string }[] = [];
 const removed: string[] = [];
+const invokes: string[] = [];
 const store = new Map<string, string>();
 let signInCalls = 0;
 let currentSession: { user: { id: string } } | null = null;
@@ -25,6 +26,12 @@ vi.mock('@/utils/supabaseClient', () => ({
         return { data: { user: currentSession.user }, error: null };
       },
       signOut: async () => { currentSession = null; return { error: null }; },
+    },
+    functions: {
+      invoke: async (name: string) => {
+        invokes.push(name);
+        return { data: { ok: true }, error: null };
+      },
     },
     storage: {
       from: () => ({
@@ -47,7 +54,7 @@ vi.mock('@/utils/supabaseClient', () => ({
   }),
 }));
 
-import { backupSlot, restoreSlot, deleteCloudSaves, isCloudConfigured } from '@/utils/cloudSave';
+import { backupSlot, restoreSlot, deleteCloudSaves, deleteAccount, isCloudConfigured } from '@/utils/cloudSave';
 import { readSaveSlot, writeSaveSlot, __resetSaveStorageForTests } from '@/store/helpers/persistence';
 
 const SAVE = JSON.stringify({ playerClubId: 'arsenal', season: 3, week: 12, gameMode: 'sandbox', version: 71, clubs: { arsenal: { name: 'Arsenal' } } });
@@ -55,6 +62,7 @@ const SAVE = JSON.stringify({ playerClubId: 'arsenal', season: 3, week: 12, game
 beforeEach(() => {
   uploads.length = 0;
   removed.length = 0;
+  invokes.length = 0;
   store.clear();
   signInCalls = 0;
   currentSession = null;
@@ -134,5 +142,21 @@ describe('cloudSave', () => {
     expect(r.ok).toBe(true);
     expect(signInCalls).toBe(0); // must not mint a throwaway user just to delete
     expect(removed).toHaveLength(0);
+  });
+
+  it('deleteAccount invokes the delete-account function and signs out', async () => {
+    writeSaveSlot(1, SAVE);
+    await backupSlot(1); // establishes a session
+    const r = await deleteAccount();
+    expect(r.ok).toBe(true);
+    expect(invokes).toEqual(['delete-account']);
+    expect(currentSession).toBeNull(); // signed out afterwards
+  });
+
+  it('deleteAccount is a no-op (no function call) when there is no session', async () => {
+    const r = await deleteAccount();
+    expect(r.ok).toBe(true);
+    expect(invokes).toHaveLength(0);
+    expect(signInCalls).toBe(0);
   });
 });
