@@ -183,6 +183,14 @@ html, body {
   border-radius: 999px;
   z-index: 20;
 }
+/* real in-game capture fills the device screen 1:1 (captured at 628×1308@2x) */
+.phone .cap { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top center; }
+/* subtle top fade so the device top bar reads under the notch */
+.phone .screen::after {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 90px;
+  background: linear-gradient(180deg, hsla(222 50% 2% / 0.55), transparent);
+  pointer-events: none; z-index: 15;
+}
 .statusbar {
   flex-shrink: 0;
   display: flex; justify-content: space-between; align-items: center;
