@@ -5,7 +5,7 @@ import { Check, ChevronRight, Hand, SkipForward, X } from 'lucide-react';
 import { useGameStore } from '@/store/gameStore';
 import { Button } from '@/components/ui/button';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { PlayerAvatar } from '@/components/game/PlayerAvatar';
+import { PlayerCard } from '@/components/game/PlayerCard';
 import { PenaltyGoalScene, type SceneShot } from '@/components/game/shootout/PenaltyGoalScene';
 import { PackConfetti } from '@/components/game/pack/PackConfetti';
 import { getPenaltyTakerQuality, getShootoutProgress } from '@/utils/penaltyShootout';
@@ -56,13 +56,11 @@ function KickResultChip({ kick }: { kick: PenaltyKick | undefined }) {
   );
 }
 
-/** Compact taker card for the "who steps up" row. */
-function TakerCard({ player, color, color2, selected, used, onSelect }: {
+/** Shield taker card for the "who steps up" row — the same FUT-style card
+ *  used on the Squad page, with a PEN rating chip riding its bottom edge. */
+function TakerCard({ player, selected, onSelect }: {
   player: Player;
-  color: string;
-  color2?: string;
   selected: boolean;
-  used: boolean;
   onSelect?: () => void;
 }) {
   const pen = Math.round(getPenaltyTakerQuality(player) * 99);
@@ -70,22 +68,24 @@ function TakerCard({ player, color, color2, selected, used, onSelect }: {
     <button
       type="button"
       onClick={onSelect}
-      disabled={used || !onSelect}
+      disabled={!onSelect}
       className={cn(
-        'flex flex-col items-center gap-1 px-2.5 py-2 rounded-xl border min-w-[76px] transition-all',
-        'bg-card/60 backdrop-blur-md',
-        selected
-          ? 'border-primary shadow-[0_0_18px_-4px_hsl(43_96%_46%/0.7)] scale-[1.04]'
-          : 'border-border/50',
-        used && 'opacity-35',
+        'relative shrink-0 rounded-xl pb-2 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
+        selected ? 'scale-[1.05]' : 'opacity-80',
       )}
     >
-      <PlayerAvatar jerseyColor={color} secondaryColor={color2} size={30} overall={player.overall} position={player.position} />
-      <span className="text-[10px] font-semibold text-foreground leading-none max-w-[70px] truncate">
-        {player.lastName || player.firstName}
-      </span>
-      <span className="text-[9px] text-muted-foreground leading-none whitespace-nowrap">
-        {player.position} · <span className="text-primary font-bold">PEN {pen}</span>
+      <div className={cn('rounded-xl', selected && 'ring-2 ring-primary shadow-[0_0_22px_-4px_hsl(43_96%_46%/0.85)]')}>
+        <PlayerCard player={player} size="sm" compact interactive="none" />
+      </div>
+      <span
+        className={cn(
+          'absolute -bottom-0.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-1.5 py-[2px] text-[8px] font-black tracking-wide leading-none border backdrop-blur-sm',
+          selected
+            ? 'bg-primary text-primary-foreground border-primary/60 shadow-[0_0_10px_-2px_hsl(43_96%_46%/0.9)]'
+            : 'bg-black/70 text-primary border-white/15',
+        )}
+      >
+        PEN {pen}
       </span>
     </button>
   );
@@ -302,13 +302,19 @@ export function PenaltyShootout() {
           onShotComplete={advance}
         />
 
-        {/* In-goal keeper tag */}
+        {/* Keeper card beside the goal */}
         {keeper && stage !== 'done' && (
-          <div className="absolute top-2 left-2 flex items-center gap-1.5 rounded-full bg-black/55 backdrop-blur-md border border-white/10 pl-1.5 pr-2.5 py-1">
-            <Hand className="w-3 h-3 text-primary" />
-            <span className="text-[10px] font-semibold text-white leading-none">{keeper.lastName || keeper.firstName}</span>
-            <span className="text-[9px] text-white/60 leading-none">GK {keeper.overall}</span>
-          </div>
+          <motion.div
+            key={`gk-${keeper.id}`}
+            className="absolute top-1.5 left-1.5 flex flex-col items-center gap-1"
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+          >
+            <PlayerCard player={keeper} size="sm" compact interactive="none" />
+            <span className="flex items-center gap-1 rounded-full bg-black/65 backdrop-blur-sm border border-white/15 px-1.5 py-[2px] text-[8px] font-black uppercase tracking-widest text-white leading-none">
+              <Hand className="w-2.5 h-2.5 text-primary" /> In goal
+            </span>
+          </motion.div>
         )}
 
         {/* Shooter banner during a kick */}
@@ -345,10 +351,7 @@ export function PenaltyShootout() {
                   <TakerCard
                     key={p.id}
                     player={p}
-                    color={myClub.color}
-                    color2={myClub.secondaryColor}
                     selected={p.id === selectedTakerId}
-                    used={false}
                     onSelect={() => { hapticLight(); setSelectedTakerId(p.id); }}
                   />
                 ))}
@@ -372,7 +375,7 @@ export function PenaltyShootout() {
           <motion.div key="oppwait" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}>
             <GlassPanel className="p-3">
               <div className="flex items-center gap-3">
-                <TakerCard player={nextOppTaker} color={oppClub.color} color2={oppClub.secondaryColor} selected={false} used={false} />
+                <TakerCard player={nextOppTaker} selected={false} />
                 <div className="min-w-0">
                   <p className="text-xs font-bold text-foreground truncate">
                     {nextOppTaker.lastName || nextOppTaker.firstName} steps up…

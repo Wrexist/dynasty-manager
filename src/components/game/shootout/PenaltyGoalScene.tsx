@@ -66,6 +66,34 @@ function offTargetPos(aimX: number, aimY: number) {
   return { x: GOAL.centerX + side * (GOAL.halfWidth + 0.13), y: GOAL.groundY - aimY * (GOAL.groundY - GOAL.barTop) };
 }
 
+/** Tournament match ball — white with the World Cup ball's red/green/blue
+ *  curved panels and a specular highlight. Reads at 20px. */
+function WorldCupBall() {
+  return (
+    <svg viewBox="0 0 24 24" className="w-full h-full" aria-hidden="true"
+      style={{ filter: 'drop-shadow(0 3px 5px rgba(0,0,0,0.45))' }}>
+      <defs>
+        <radialGradient id="pgs-ballbase" cx="34%" cy="30%" r="85%">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="62%" stopColor="#f2f0ea" />
+          <stop offset="100%" stopColor="#b9bcc4" />
+        </radialGradient>
+        <clipPath id="pgs-ballclip"><circle cx="12" cy="12" r="11" /></clipPath>
+      </defs>
+      <circle cx="12" cy="12" r="11" fill="url(#pgs-ballbase)" />
+      <g clipPath="url(#pgs-ballclip)">
+        <path d="M2 4 Q9 6 11 12 Q7 15 0.5 13 Q0 7 2 4 Z" fill="#c8102e" opacity="0.92" />
+        <path d="M20 2.5 Q23.5 7 23 12.5 Q17 13.5 13.5 10 Q15.5 4.5 20 2.5 Z" fill="#1467b3" opacity="0.92" />
+        <path d="M6 22.5 Q12 23.8 17.5 21.5 Q17 16 12 14.5 Q7.5 16.5 6 22.5 Z" fill="#0a8f4e" opacity="0.92" />
+        {/* gold seams */}
+        <path d="M11 12 Q7 15 0.5 13 M11 12 Q9 6 2 4 M13.5 10 Q15.5 4.5 20 2.5 M13.5 10 Q17 13.5 23 12.5 M12 14.5 Q7.5 16.5 6 22.5 M12 14.5 Q17 16 17.5 21.5"
+          fill="none" stroke="#d4a017" strokeWidth="0.55" opacity="0.8" />
+      </g>
+      <ellipse cx="8.4" cy="7" rx="4" ry="2.6" fill="#ffffff" opacity="0.55" transform="rotate(-25 8.4 7)" />
+    </svg>
+  );
+}
+
 /** Stylized keeper — jersey-colored torso/arms, dark shorts, gloves. Drawn
  *  facing the shooter; the dive animates the whole group. */
 function KeeperFigure({ color, color2 }: { color: string; color2?: string }) {
@@ -137,9 +165,6 @@ function SceneBackdrop() {
           fill="rgba(255,255,255,0.028)"
         />
       ))}
-      {/* six-yard box hint */}
-      <path d="M96 192 L124 154 L276 154 L304 192" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="2" />
-
       {/* net — perspective grid to a vanishing point behind the goal */}
       <g stroke="rgba(255,255,255,0.30)" strokeWidth="0.8">
         {/* back plane */}
@@ -289,13 +314,9 @@ export const PenaltyGoalScene = memo(function PenaltyGoalScene({
           transition: { duration: FLIGHT_S, ease: 'easeOut' },
         } : { x: BALL_START.x * w, y: BALL_START.y * h, scale: 1 }}
       >
-        <div
-          className="w-5 h-5 -translate-x-1/2 -translate-y-1/2 rounded-full"
-          style={{
-            background: 'radial-gradient(circle at 32% 30%, #ffffff 0%, #e8ecf3 45%, #9aa3b2 100%)',
-            boxShadow: '0 3px 8px rgba(0,0,0,0.45), inset -1px -2px 3px rgba(0,0,0,0.25)',
-          }}
-        />
+        <div className="w-5 h-5 -translate-x-1/2 -translate-y-1/2">
+          <WorldCupBall />
+        </div>
       </motion.div>
 
       {/* Impact FX */}
