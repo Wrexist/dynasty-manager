@@ -107,6 +107,7 @@ function stageCapturePenalties(_set: Set, _get: Get, scenario: CaptureScenario) 
     matchSubbedOffIds: [],
     penaltyShootoutKicks: [],
     penaltyShootoutRevealIndex: 0,
+    penaltyShootoutCtx: null,
     halfTimeState: null,
     lastMatchCompetition: 'World Cup — Final',
   });

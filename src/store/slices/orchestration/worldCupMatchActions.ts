@@ -29,7 +29,7 @@ import { HalfState, finalizeMatch, generateMatchWeather, simulateHalf } from '@/
 import { buildInternationalMatchTeams, getPlayerNextWorldCupMatch, NextWorldCupMatch } from '@/utils/internationalMatch';
 import { simulateKnockoutToCompletion } from '@/utils/international';
 import { advanceWeekImpl } from '@/store/slices/orchestration/weekAdvance';
-import { simulatePenaltyShootout } from '@/utils/penaltyShootout';
+import { beginInteractiveShootoutImpl } from '@/store/slices/orchestration/matchActions';
 import { CUP_PENALTY_KICKS, INTERNATIONAL_FITNESS_COST } from '@/config/gameBalance';
 import { addMsg } from '@/utils/helpers';
 
@@ -250,28 +250,18 @@ export function playWorldCupExtraTimeImpl(set: Set, get: Get): Match | null {
   }
 }
 
-/** Pre-compute the penalty kicks for kick-by-kick reveal (mirrors
- *  `playPenaltiesImpl` for the player's national team vs the opponent). */
+/** Open the interactive (tap-to-aim) shootout for the player's national
+ *  team vs the opponent — same shared setup the club cup flow uses. */
 export function playWorldCupPenaltiesImpl(set: Set, get: Get): Match | null {
   const state = get();
-  const { clubs, players, currentMatchResult } = state;
+  const { clubs, currentMatchResult } = state;
   if (!currentMatchResult) return null;
   const hc = clubs[currentMatchResult.homeClubId];
   const ac = clubs[currentMatchResult.awayClubId];
   if (!hc || !ac) return null;
-  const hp = (hc.lineup || []).map(id => players[id]).filter(Boolean);
-  const ap = (ac.lineup || []).map(id => players[id]).filter(Boolean);
   try {
-    const gkQuality = (ps: Player[]) => {
-      const gk = ps.find(p => p.position === 'GK') || ps[0];
-      return gk ? (gk.attributes.defending + gk.attributes.mental) / 200 : 0.5;
-    };
-    const { kicks } = simulatePenaltyShootout({
-      homeName: hc.shortName, awayName: ac.shortName,
-      homeGKQuality: gkQuality(hp), awayGKQuality: gkQuality(ap),
-    });
-    set({ penaltyShootoutKicks: kicks, penaltyShootoutRevealIndex: 0 });
-    return currentMatchResult;
+    // Interactive (tap-to-aim) shootout — same shared setup as club cups.
+    return beginInteractiveShootoutImpl(set, get);
   } catch (err) {
     Sentry.captureException(err, { tags: { context: 'playWorldCupPenalties' } });
     abandon(set, get, 'An error occurred during the penalty shootout. The match has been abandoned.');
@@ -313,7 +303,7 @@ export function finalizeWorldCupPenaltiesImpl(set: Set, get: Get): void {
 
     // Re-resolve the match context (the fixture is still unplayed at this point).
     const ctx = resolveWorldCupMatch(set, get);
-    set({ penaltyShootoutKicks: [], penaltyShootoutRevealIndex: 0 });
+    set({ penaltyShootoutKicks: [], penaltyShootoutRevealIndex: 0, penaltyShootoutCtx: null });
     if (!ctx) return;
     applyWorldCupResult(set, get, finalResult, ctx, matchPlayerRatings || [], winnerId);
   } catch (err) {

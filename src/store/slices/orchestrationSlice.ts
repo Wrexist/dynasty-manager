@@ -45,7 +45,7 @@ import {
 import { endSeasonImpl } from '@/store/slices/orchestration/seasonEnd';
 import { advanceWeekImpl } from '@/store/slices/orchestration/weekAdvance';
 import {
-  playCurrentMatchImpl, playFirstHalfImpl, playSecondHalfImpl, playExtraTimeImpl, playPenaltiesImpl, revealNextPenaltyKickImpl, skipPenaltyShootoutImpl,
+  playCurrentMatchImpl, playFirstHalfImpl, playSecondHalfImpl, playExtraTimeImpl, playPenaltiesImpl, revealNextPenaltyKickImpl, skipPenaltyShootoutImpl, takeAimedPenaltyImpl, revealOpponentPenaltyImpl,
 } from '@/store/slices/orchestration/matchActions';
 import {
   playWorldCupFirstHalfImpl, playWorldCupSecondHalfImpl, playWorldCupExtraTimeImpl,
@@ -469,7 +469,7 @@ function buildFreshSessionState(get: Get): Partial<GameState> {
     // Match-scoped state that previously persisted across resets — audit
     // finding O2 (stale shootout kicks, leftover team talk, etc.).
     matchTeamTalk: 'none' as const, matchShouts: [],
-    penaltyShootoutKicks: [], penaltyShootoutRevealIndex: 0,
+    penaltyShootoutKicks: [], penaltyShootoutRevealIndex: 0, penaltyShootoutCtx: null,
     preMatchSnapshot: null, lastMatchDrama: null, lastMatchCompetition: null,
     transferMarket: [], shortlist: [], scoutWatchList: [], transferNews: [],
     activeLoans: [], incomingLoanOffers: [], outgoingLoanRequests: [],
@@ -669,6 +669,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
   playPenalties: () => playPenaltiesImpl(set, get),
 
   revealNextPenaltyKick: () => revealNextPenaltyKickImpl(set, get),
+  takeAimedPenalty: (takerId: string, aimX: number, aimY: number) => takeAimedPenaltyImpl(set, get, takerId, aimX, aimY),
+  revealOpponentPenalty: () => revealOpponentPenaltyImpl(set, get),
 
   skipPenaltyShootout: () => skipPenaltyShootoutImpl(set, get),
 
@@ -1133,6 +1135,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       matchShouts: [],
       penaltyShootoutKicks: [],
       penaltyShootoutRevealIndex: 0,
+      penaltyShootoutCtx: null,
       preMatchSnapshot: null,
       lastMatchDrama: null,
       lastMatchCompetition: null,

@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/react';
-import { Club, Player, Match } from '@/types/game';
+import { Club, Player, Match, PenaltyKick } from '@/types/game';
 import { calculateReputationTier } from '@/utils/managerCareer';
 import {
   REP_MIN, REP_MAX,
@@ -25,7 +25,7 @@ import { processMatchResult } from '@/store/helpers/matchProcessing';
 import { applyAIMatchEvents } from '@/store/slices/orchestration/helpers';
 import { advanceLeagueCupRound, getContinentalMatchLabel, isAggregateDecided, isContinentalDrawValid } from '@/store/slices/orchestration/tournaments';
 import type { MatchEvent } from '@/types/game';
-import { simulatePenaltyShootout } from '@/utils/penaltyShootout';
+import { completeShootout, getClubGKQuality, getPenaltyTakerQuality, getShootoutProgress, pickAiAim, resolveAimedKick, simulatePenaltyShootout } from '@/utils/penaltyShootout';
 import { detectMatchDrama } from '@/utils/celebrations';
 import { advanceKnockoutRound, createEphemeralClub, findPlayerContinentalMatch, generateKnockoutFromGroups, isGroupStageComplete, isKnockoutRoundComplete } from '@/utils/continental';
 import { dynastyMult } from '@/utils/managerPerks';
@@ -1516,32 +1516,14 @@ export function playExtraTimeImpl(set: Set, get: Get): Match | null {
 
 export function playPenaltiesImpl(set: Set, get: Get): Match | null {
   const state = get();
-  const { clubs, players, currentMatchResult, currentCupTieId } = state;
+  const { currentMatchResult, currentCupTieId } = state;
   if (!currentMatchResult || !currentCupTieId) return null;
 
-  const hc = clubs[currentMatchResult.homeClubId];
-  const ac = clubs[currentMatchResult.awayClubId];
-  if (!hc || !ac) return null;
-  const hp = (hc.lineup || []).map(id => players[id]).filter(Boolean);
-  const ap = (ac.lineup || []).map(id => players[id]).filter(Boolean);
-
   try {
-  // Penalty shootout — pre-compute all kicks for kick-by-kick reveal
-  const homeGK = hp.find(p => p.position === 'GK');
-  const awayGK = ap.find(p => p.position === 'GK');
-  const homeGKQuality = homeGK ? (homeGK.attributes.defending + homeGK.attributes.mental) / 200 : 0.5;
-  const awayGKQuality = awayGK ? (awayGK.attributes.defending + awayGK.attributes.mental) / 200 : 0.5;
-
-  const { kicks } = simulatePenaltyShootout({
-    homeName: hc.shortName,
-    awayName: ac.shortName,
-    homeGKQuality,
-    awayGKQuality,
-  });
-
-  // Store kicks for kick-by-kick reveal — finalization happens in revealNextPenaltyKick / skipPenaltyShootout
-  set({ penaltyShootoutKicks: kicks, penaltyShootoutRevealIndex: 0 });
-  return currentMatchResult;
+  // Interactive shootout: kicks resolve one at a time as the player aims them
+  // (takeAimedPenalty) and the opponent replies (revealOpponentPenalty) —
+  // finalization still happens in skipPenaltyShootout once decided.
+  return beginInteractiveShootoutImpl(set, get);
   } catch (err) {
     Sentry.captureException(err, { tags: { context: 'playPenalties' } });
     try {
@@ -1561,6 +1543,136 @@ export function playPenaltiesImpl(set: Set, get: Get): Match | null {
   }
 }
 
+/** Shared interactive-shootout setup (club cups AND World Cup): resolve both
+ *  keepers, reset the kick list, and open the tap-to-aim context. */
+export function beginInteractiveShootoutImpl(set: Set, get: Get): Match | null {
+  const state = get();
+  const { clubs, players, playerClubId, currentMatchResult } = state;
+  if (!currentMatchResult) return null;
+  const hc = clubs[currentMatchResult.homeClubId];
+  const ac = clubs[currentMatchResult.awayClubId];
+  if (!hc || !ac) return null;
+
+  const findGK = (club: Club): Player | null =>
+    (club.lineup || []).map(id => players[id]).filter(Boolean).find(p => p.position === 'GK') ?? null;
+  const homeGK = findGK(hc);
+  const awayGK = findGK(ac);
+
+  set({
+    penaltyShootoutKicks: [],
+    penaltyShootoutRevealIndex: 0,
+    penaltyShootoutCtx: {
+      playerIsHome: currentMatchResult.homeClubId === playerClubId,
+      homeGKId: homeGK?.id ?? null,
+      awayGKId: awayGK?.id ?? null,
+      homeGKQuality: homeGK ? (homeGK.attributes.defending + homeGK.attributes.mental) / 200 : getClubGKQuality(hc, players),
+      awayGKQuality: awayGK ? (awayGK.attributes.defending + awayGK.attributes.mental) / 200 : getClubGKQuality(ac, players),
+      usedTakerIds: [],
+    },
+  });
+  return currentMatchResult;
+}
+
+/** Resolve the player's aimed kick. Null when it isn't the player's turn or
+ *  the taker id is invalid — callers treat null as "nothing happened". */
+export function takeAimedPenaltyImpl(set: Set, get: Get, takerId: string, aimX: number, aimY: number): PenaltyKick | null {
+  const state = get();
+  const { penaltyShootoutCtx: ctx, penaltyShootoutKicks: kicks, players, clubs, currentMatchResult } = state;
+  if (!ctx || !currentMatchResult) return null;
+  const prog = getShootoutProgress(kicks);
+  if (prog.decided || prog.nextIsHome === null || prog.nextIsHome !== ctx.playerIsHome) return null;
+  const taker = players[takerId];
+  if (!taker) return null;
+
+  const keeperQuality = ctx.playerIsHome ? ctx.awayGKQuality : ctx.homeGKQuality;
+  const res = resolveAimedKick({ aimX, aimY, shooterQuality: getPenaltyTakerQuality(taker), keeperQuality });
+  const kick: PenaltyKick = {
+    round: prog.nextRound,
+    isHome: ctx.playerIsHome,
+    takerName: taker.lastName || taker.firstName,
+    takerId,
+    scored: res.scored,
+    outcome: res.outcome,
+    aimX, aimY, diveX: res.diveX, diveY: res.diveY,
+    homeTotal: prog.homeTotal + (ctx.playerIsHome && res.scored ? 1 : 0),
+    awayTotal: prog.awayTotal + (!ctx.playerIsHome && res.scored ? 1 : 0),
+  };
+  const newKicks = [...kicks, kick];
+  // Real shootout rules: nobody kicks twice until the whole eligible pool has
+  // gone — reset availability once everyone on the pitch has taken one.
+  const playerClub = clubs[ctx.playerIsHome ? currentMatchResult.homeClubId : currentMatchResult.awayClubId];
+  const eligibleCount = (playerClub?.lineup ?? []).filter(id => players[id]).length;
+  const used = [...ctx.usedTakerIds, takerId];
+  set({
+    penaltyShootoutKicks: newKicks,
+    penaltyShootoutRevealIndex: newKicks.length,
+    penaltyShootoutCtx: { ...ctx, usedTakerIds: used.length >= eligibleCount ? [] : used },
+  });
+  return kick;
+}
+
+/** Resolve the opponent's next kick (auto-aimed, best takers first). Null when
+ *  it's the player's turn or the shootout is over. */
+export function revealOpponentPenaltyImpl(set: Set, get: Get): PenaltyKick | null {
+  const state = get();
+  const { penaltyShootoutCtx: ctx, penaltyShootoutKicks: kicks, players, clubs, currentMatchResult } = state;
+  if (!ctx || !currentMatchResult) return null;
+  const prog = getShootoutProgress(kicks);
+  if (prog.decided || prog.nextIsHome === null || prog.nextIsHome === ctx.playerIsHome) return null;
+
+  const oppIsHome = !ctx.playerIsHome;
+  const oppClub = clubs[oppIsHome ? currentMatchResult.homeClubId : currentMatchResult.awayClubId];
+  const oppTakers = (oppClub?.lineup ?? [])
+    .map(id => players[id]).filter(Boolean)
+    .filter(p => p.position !== 'GK')
+    .sort((a, b) => getPenaltyTakerQuality(b) - getPenaltyTakerQuality(a));
+  const oppKicksTaken = kicks.filter(k => k.isHome === oppIsHome).length;
+  const taker = oppTakers.length ? oppTakers[oppKicksTaken % oppTakers.length] : undefined;
+
+  const shooterQuality = getPenaltyTakerQuality(taker);
+  // The keeper facing an opponent kick is the player's own GK.
+  const keeperQuality = oppIsHome ? ctx.awayGKQuality : ctx.homeGKQuality;
+  const aim = pickAiAim(shooterQuality);
+  const res = resolveAimedKick({ ...aim, shooterQuality, keeperQuality });
+  const kick: PenaltyKick = {
+    round: prog.nextRound,
+    isHome: oppIsHome,
+    takerName: taker ? (taker.lastName || taker.firstName) : (oppClub?.shortName ?? 'OPP'),
+    takerId: taker?.id,
+    scored: res.scored,
+    outcome: res.outcome,
+    aimX: aim.aimX, aimY: aim.aimY, diveX: res.diveX, diveY: res.diveY,
+    homeTotal: prog.homeTotal + (oppIsHome && res.scored ? 1 : 0),
+    awayTotal: prog.awayTotal + (!oppIsHome && res.scored ? 1 : 0),
+  };
+  const newKicks = [...kicks, kick];
+  set({ penaltyShootoutKicks: newKicks, penaltyShootoutRevealIndex: newKicks.length });
+  return kick;
+}
+
+/** Auto-complete any remaining kicks (Skip to Result mid-shootout, or a
+ *  legacy call with no kicks yet) so finalization always sees a decided
+ *  shootout. No-op when the kick list is already decided. */
+function ensureShootoutComplete(set: Set, get: Get): void {
+  const state = get();
+  const { penaltyShootoutKicks: kicks, penaltyShootoutCtx: ctx, currentMatchResult, clubs, players } = state;
+  if (!currentMatchResult) return;
+  if (kicks.length > 0 && getShootoutProgress(kicks).decided) {
+    if (state.penaltyShootoutRevealIndex < kicks.length) set({ penaltyShootoutRevealIndex: kicks.length });
+    return;
+  }
+  const hc = clubs[currentMatchResult.homeClubId];
+  const ac = clubs[currentMatchResult.awayClubId];
+  if (!hc || !ac) return;
+  const completed = completeShootout(kicks, {
+    homeName: hc.shortName,
+    awayName: ac.shortName,
+    homeGKQuality: ctx?.homeGKQuality ?? getClubGKQuality(hc, players),
+    awayGKQuality: ctx?.awayGKQuality ?? getClubGKQuality(ac, players),
+  });
+  set({ penaltyShootoutKicks: completed, penaltyShootoutRevealIndex: completed.length });
+}
+
 export function revealNextPenaltyKickImpl(set: Set, get: Get): void {
   const state = get();
   const newIndex = state.penaltyShootoutRevealIndex + 1;
@@ -1572,6 +1684,10 @@ export function revealNextPenaltyKickImpl(set: Set, get: Get): void {
 }
 
 export function skipPenaltyShootoutImpl(set: Set, get: Get): void {
+  // Interactive shootouts arrive here mid-way (Skip to Result) or already
+  // decided (Continue after the winning kick) — auto-complete any remaining
+  // kicks first so finalization always sees a decided shootout.
+  ensureShootoutComplete(set, get);
   const state = get();
   // World Cup mode finalises through its own tournament writeback (no cup tie).
   if (state.gameMode === 'world-cup') { get().finalizeWorldCupPenalties(); return; }
@@ -1619,6 +1735,7 @@ export function skipPenaltyShootoutImpl(set: Set, get: Get): void {
       matchPhase: 'none',
       penaltyShootoutKicks: [],
       penaltyShootoutRevealIndex: 0,
+      penaltyShootoutCtx: null,
       currentMatchResult: null,
       currentCupTieId: null,
       currentLeagueCupTieId: null,
@@ -1652,7 +1769,7 @@ export function skipPenaltyShootoutImpl(set: Set, get: Get): void {
       careerTimeline: [...state.careerTimeline, ...processed.newMilestones].slice(-MAX_CAREER_TIMELINE),
       managerProgression: processed.managerProgression, lastMatchXPGain: processed.xpGain,
       lastMatchDrama: penDrama, rivalries: processed.updatedRivalries, pairFamiliarity: processed.pairFamiliarity,
-      penaltyShootoutKicks: [], penaltyShootoutRevealIndex: 0,
+      penaltyShootoutKicks: [], penaltyShootoutRevealIndex: 0, penaltyShootoutCtx: null,
       ...tournamentUpdates.stateUpdates,
     });
     // Persist the played match immediately — autosave otherwise only fires
@@ -1693,7 +1810,7 @@ export function skipPenaltyShootoutImpl(set: Set, get: Get): void {
       managerProgression: processed.managerProgression, lastMatchXPGain: processed.xpGain,
       pendingPressConference: generatePressConference(press, isPro(get().monetization)),
       lastMatchDrama: penDrama, rivalries: processed.updatedRivalries, pairFamiliarity: processed.pairFamiliarity,
-      penaltyShootoutKicks: [], penaltyShootoutRevealIndex: 0,
+      penaltyShootoutKicks: [], penaltyShootoutRevealIndex: 0, penaltyShootoutCtx: null,
     });
     // Persist the played match immediately — autosave otherwise only fires
     // on advanceWeek, so a crash/app-kill after an interactively played

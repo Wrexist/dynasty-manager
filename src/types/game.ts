@@ -360,6 +360,30 @@ export interface PenaltyKick {
   scored: boolean;
   homeTotal: number;
   awayTotal: number;
+  // ── Interactive shootout extensions (optional — legacy kicks omit them) ──
+  /** Player id of the taker, when a real player took it. */
+  takerId?: string;
+  /** How the kick ended; `scored` stays the boolean source of truth. */
+  outcome?: 'goal' | 'saved' | 'off_target';
+  /** Aim point in goal-mouth space: x −1..1 (left→right), y 0..1 (ground→bar). */
+  aimX?: number;
+  aimY?: number;
+  /** Keeper dive in the same space (where the keeper ended up). */
+  diveX?: number;
+  diveY?: number;
+}
+
+/** Transient state for the interactive (tap-to-aim) penalty shootout. Lives
+ *  only while the shootout UI is up — never persisted. */
+export interface PenaltyShootoutCtx {
+  playerIsHome: boolean;
+  homeGKId: string | null;
+  awayGKId: string | null;
+  homeGKQuality: number;
+  awayGKQuality: number;
+  /** Player-team taker ids already used this shootout (resets when the pool
+   *  is exhausted, matching real rules — everyone kicks before repeats). */
+  usedTakerIds: string[];
 }
 
 export interface MatchStats {

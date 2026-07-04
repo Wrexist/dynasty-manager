@@ -109,7 +109,7 @@ function getTacticsSummary(t: { mentality: string; tempo: string; width: string;
 }
 
 const MatchDayInner = () => {
-  const { playerClubId, week, clubs, matchSubsUsed, tactics, cup, leagueCup, championsCup, shieldCup, conferenceCup, virtualClubs, currentCupTieId, domesticSuperCup, continentalSuperCup, monetization, matchPhase, matchTeamTalk, penaltyShootoutKicks, gameMode, internationalTournament, managerNationality } = useGameStore(useShallow(s => ({
+  const { playerClubId, week, clubs, matchSubsUsed, tactics, cup, leagueCup, championsCup, shieldCup, conferenceCup, virtualClubs, currentCupTieId, domesticSuperCup, continentalSuperCup, monetization, matchPhase, matchTeamTalk, penaltyShootoutKicks, penaltyShootoutCtx, gameMode, internationalTournament, managerNationality } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId,
     week: s.week,
     clubs: s.clubs,
@@ -128,6 +128,7 @@ const MatchDayInner = () => {
     matchPhase: s.matchPhase,
     matchTeamTalk: s.matchTeamTalk,
     penaltyShootoutKicks: s.penaltyShootoutKicks,
+    penaltyShootoutCtx: s.penaltyShootoutCtx,
     gameMode: s.gameMode,
     internationalTournament: s.internationalTournament,
     managerNationality: s.managerNationality,
@@ -1341,7 +1342,7 @@ const MatchDayInner = () => {
       {/* Penalties — cup match still drawn after extra time */}
       {phase === 'penalties' && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-          {penaltyShootoutKicks.length === 0 ? (
+          {penaltyShootoutKicks.length === 0 && !penaltyShootoutCtx ? (
             <GlassPanel className="p-5 space-y-4 text-center mb-20">
               <p className="text-sm font-bold text-primary">Penalty Shootout</p>
               <p className="text-xs text-muted-foreground">Still level after extra time. This match will be decided by penalties.</p>

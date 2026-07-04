@@ -1,4 +1,4 @@
-import { Club, Player, Match, MatchWeather, LeagueTableEntry, FormationType, TransferListing, BoardObjective, GameScreen, Message, SeasonHistory, IncomingOffer, GameSettings, TacticalInstructions, TrainingState, TrainingModule, StaffMember, ScoutingState, ScoutRegion, YouthAcademyState, FacilitiesState, FinanceRecord, PlayerMatchRating, LoanDeal, IncomingLoanOffer, OutgoingLoanRequest, CupState, PressConference, ContractOffer, ActiveChallenge, LeagueId, SeasonTurnover, DerbyRivalry, ClubRecords, SeasonPhase, CareerMilestone, ManagerProgression, PerkId, StorylineEvent, ActiveStorylineChain, SponsorDeal, SponsorOffer, SponsorNegotiationProposal, SponsorSlotId, MerchState, MerchProductLine, MerchPricingTier, MerchCampaignType, CliffhangerItem, MatchDramaType, SessionStats, HeadToHeadRecord, MonetizationState, ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo, TransferNewsEntry, NationalTeamState, NationalTeamOffer, InternationalTournamentState, GameMode, CareerManager, JobVacancy, JobOffer, ActiveInterview, PitchTone, ManagerBonus, LeagueCupState, ContinentalTournamentState, ContinentalCompetition, VirtualClub, SuperCupMatch, TransferTalk, TeamTalkType, PenaltyKick, MatchShout, ShoutType, NegotiationStrike, OpenedPackRecord, OpenPackResult, ReleasePackedPlayerResult, QuickSellPackedPlayerResult, PackTierKey, PackUnlockMethod, LoadError } from '@/types/game';
+import { Club, Player, Match, MatchWeather, LeagueTableEntry, FormationType, TransferListing, BoardObjective, GameScreen, Message, SeasonHistory, IncomingOffer, GameSettings, TacticalInstructions, TrainingState, TrainingModule, StaffMember, ScoutingState, ScoutRegion, YouthAcademyState, FacilitiesState, FinanceRecord, PlayerMatchRating, LoanDeal, IncomingLoanOffer, OutgoingLoanRequest, CupState, PressConference, ContractOffer, ActiveChallenge, LeagueId, SeasonTurnover, DerbyRivalry, ClubRecords, SeasonPhase, CareerMilestone, ManagerProgression, PerkId, StorylineEvent, ActiveStorylineChain, SponsorDeal, SponsorOffer, SponsorNegotiationProposal, SponsorSlotId, MerchState, MerchProductLine, MerchPricingTier, MerchCampaignType, CliffhangerItem, MatchDramaType, SessionStats, HeadToHeadRecord, MonetizationState, ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo, TransferNewsEntry, NationalTeamState, NationalTeamOffer, InternationalTournamentState, GameMode, CareerManager, JobVacancy, JobOffer, ActiveInterview, PitchTone, ManagerBonus, LeagueCupState, ContinentalTournamentState, ContinentalCompetition, VirtualClub, SuperCupMatch, TransferTalk, TeamTalkType, PenaltyKick, PenaltyShootoutCtx, MatchShout, ShoutType, NegotiationStrike, OpenedPackRecord, OpenPackResult, ReleasePackedPlayerResult, QuickSellPackedPlayerResult, PackTierKey, PackUnlockMethod, LoadError } from '@/types/game';
 import type { ObjectiveInstance } from '@/utils/weeklyObjectives';
 import type { HalfState } from '@/engine/match';
 
@@ -107,6 +107,8 @@ export interface GameState {
   matchPhase: 'none' | 'first_half' | 'half_time' | 'second_half' | 'full_time' | 'extra_time' | 'penalties';
   matchTeamTalk: TeamTalkType;
   penaltyShootoutKicks: PenaltyKick[];
+  // Interactive shootout context (tap-to-aim). Transient — never persisted.
+  penaltyShootoutCtx: PenaltyShootoutCtx | null;
   penaltyShootoutRevealIndex: number;
   matchShouts: MatchShout[];
   preMatchLeaguePosition: number;
@@ -340,6 +342,11 @@ export interface GameState {
   playExtraTime: () => Match | null;
   playPenalties: () => void;
   revealNextPenaltyKick: () => void;
+  /** Interactive shootout: resolve the player's aimed kick. Returns the kick
+   *  or null when it isn't the player's turn / taker is invalid. */
+  takeAimedPenalty: (takerId: string, aimX: number, aimY: number) => PenaltyKick | null;
+  /** Interactive shootout: resolve the opponent's next (auto-aimed) kick. */
+  revealOpponentPenalty: () => PenaltyKick | null;
   // World Cup mode — interactive national-team matches (Phase D).
   playWorldCupFirstHalf: () => HalfState | null;
   playWorldCupSecondHalf: () => Match | null;

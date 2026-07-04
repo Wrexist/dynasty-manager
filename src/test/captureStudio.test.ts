@@ -90,11 +90,15 @@ describe('startCaptureScenario — penalties stage', () => {
     }
   });
 
-  it('the shootout can actually be rolled from the staged state', () => {
+  it('the shootout can actually be opened from the staged state', () => {
     useGameStore.getState().startCaptureScenario(PENALTY_SCENARIO);
     const res = useGameStore.getState().playWorldCupPenalties();
     expect(res).not.toBeNull();
-    expect(useGameStore.getState().penaltyShootoutKicks.length).toBeGreaterThan(0);
+    // Interactive shootout: kicks resolve one at a time via the aim context.
+    expect(useGameStore.getState().penaltyShootoutCtx).not.toBeNull();
+    const takerId = useGameStore.getState().clubs['Argentina'].lineup[0];
+    expect(useGameStore.getState().takeAimedPenalty(takerId, 0.5, 0.3)).not.toBeNull();
+    expect(useGameStore.getState().penaltyShootoutKicks.length).toBe(1);
   });
 });
 
