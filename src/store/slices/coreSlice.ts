@@ -43,6 +43,9 @@ export const createCoreSlice = (set: Set, get: Get) => ({
   lastSavedAt: null as number | null,
   saveFailureMessage: null as string | null,
 
+  // Capture Studio flag (transient — blocks all slot writes while active)
+  captureSession: false,
+
   // Set by loadGame() when a slot can't be loaded cleanly. SaveRecoveryDialog
   // reads this to render the appropriate message + actions. Transient.
   loadError: null as GameState['loadError'],

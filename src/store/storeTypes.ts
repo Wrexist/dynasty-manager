@@ -26,6 +26,12 @@ export interface GameState {
   lastSavedAt: number | null;
   saveFailureMessage: string | null;
 
+  // Capture Studio: true while a staged marketing-footage session is active.
+  // performSave refuses to write while set, so a capture session can never
+  // reach a save slot. Session-only — never persisted; cleared by
+  // loadGame/resetGame.
+  captureSession: boolean;
+
   // Corrupted-save / version-mismatch banner state. Populated by loadGame()
   // when a slot can't be loaded cleanly; consumed by SaveRecoveryDialog.
   // Not persisted.
@@ -472,6 +478,12 @@ export interface GameState {
   // Boot a standalone World Cup game (gameMode 'world-cup') with the chosen
   // nation — no club/league. Generates squad + tournament, lands on the picker.
   startWorldCup: (nationality: string) => void;
+  // Capture Studio: boot a throwaway (never-saved) World Cup session staged at
+  // a Final between two star nations. Returns false for an unknown scenario id.
+  startCaptureScenario: (scenarioId: string) => boolean;
+  // Wipe the in-memory session to a fresh state WITHOUT touching the save
+  // slot on disk (resetGame deletes the slot; this doesn't).
+  clearActiveSession: () => void;
   setManagerNationality: (nationality: string) => void;
   acceptNationalTeamOffer: () => void;
   declineNationalTeamOffer: () => void;

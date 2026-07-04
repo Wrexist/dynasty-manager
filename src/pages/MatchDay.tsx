@@ -152,12 +152,20 @@ const MatchDayInner = () => {
   const settings = useGameStore(s => s.settings);
   const updateSettings = useGameStore(s => s.updateSettings);
 
-  const [phase, setPhase] = useState<'pre' | 'first_half' | 'half_time' | 'second_half' | 'extra_time_break' | 'extra_time' | 'penalties' | 'post'>('pre');
+  // World Cup shootout mount: when the store already holds a WC match parked
+  // at the penalties phase (Capture Studio's staged 2-2 Final, or a session
+  // re-entered mid-shootout), open directly into the shootout instead of the
+  // Kick Off screen. Evaluated once at mount, like the initializers it feeds.
+  const [wcPenaltyResume] = useState(() =>
+    isWorldCup && matchPhase === 'penalties' && !!useGameStore.getState().currentMatchResult);
+  const [phase, setPhase] = useState<'pre' | 'first_half' | 'half_time' | 'second_half' | 'extra_time_break' | 'extra_time' | 'penalties' | 'post'>(wcPenaltyResume ? 'penalties' : 'pre');
   const [firstHalfState, setFirstHalfState] = useState<HalfState | null>(null);
-  const [allEvents, setAllEvents] = useState<MatchEvent[]>([]);
-  const [currentMin, setCurrentMin] = useState(0);
-  const currentMinRef = useRef(0);
-  const [visibleEvents, setVisibleEvents] = useState<MatchEvent[]>([]);
+  const [allEvents, setAllEvents] = useState<MatchEvent[]>(() =>
+    wcPenaltyResume ? (useGameStore.getState().currentMatchResult?.events ?? []) : []);
+  const [currentMin, setCurrentMin] = useState(wcPenaltyResume ? 120 : 0);
+  const currentMinRef = useRef(wcPenaltyResume ? 120 : 0);
+  const [visibleEvents, setVisibleEvents] = useState<MatchEvent[]>(() =>
+    wcPenaltyResume ? (useGameStore.getState().currentMatchResult?.events ?? []) : []);
   const [matchView, setMatchView] = useState<MatchViewMode>(() => readMatchViewMode() ?? 'commentary');
   const changeMatchView = useCallback((mode: MatchViewMode) => {
     setMatchView(mode);

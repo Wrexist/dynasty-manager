@@ -158,6 +158,14 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
     return;
   }
 
+  // Capture Studio sessions are throwaway staged state — refusing to write
+  // here is what guarantees a capture teleport can never clobber the real
+  // save sitting in the active slot.
+  if (state.captureSession) {
+    set({ saveStatus: 'idle' });
+    return;
+  }
+
   const s = slot ?? state.activeSlot;
 
   let divFixturesForSave: Record<string, unknown[]> | undefined = state.divisionFixtures
@@ -445,6 +453,71 @@ export { getSlotSummaries } from '@/store/helpers/persistence';
 // migration: a transient "a week tick is currently running" latch shared by
 // advanceWeek and advanceToNextMatch.
 let weekAdvanceInFlight = false;
+
+/** The fresh-session wipe applied by both `resetGame` (which also deletes the
+ *  slot on disk) and `clearActiveSession` (which leaves the slot untouched —
+ *  Capture Studio). Preserves purchases/subscription across wipes. */
+function buildFreshSessionState(get: Get): Partial<GameState> {
+  return {
+    saveStatus: 'idle' as const, lastSavedAt: null, saveFailureMessage: null,
+    captureSession: false,
+    gameStarted: false, playerClubId: '', currentScreen: 'dashboard' as GameState['currentScreen'],
+    clubs: {}, players: {}, fixtures: [], leagueTable: [],
+    messages: [], seasonHistory: [], incomingOffers: [],
+    matchPlayerRatings: [], halfTimeState: null, currentMatchWeather: null, matchPhase: 'none' as const,
+    currentMatchResult: null, matchSubsUsed: 0, matchSubbedOffIds: [], currentCupTieId: null,
+    // Match-scoped state that previously persisted across resets — audit
+    // finding O2 (stale shootout kicks, leftover team talk, etc.).
+    matchTeamTalk: 'none' as const, matchShouts: [],
+    penaltyShootoutKicks: [], penaltyShootoutRevealIndex: 0,
+    preMatchSnapshot: null, lastMatchDrama: null, lastMatchCompetition: null,
+    transferMarket: [], shortlist: [], scoutWatchList: [], transferNews: [],
+    activeLoans: [], incomingLoanOffers: [], outgoingLoanRequests: [],
+    cup: { ties: [], currentRound: null, eliminated: false, winner: null },
+    pendingPressConference: null, activeNegotiation: null,
+    pendingFarewell: [], pendingStoryline: null,
+    openedPacks: [], packPityCounter: 0, lastPackWeek: 0, lastPackSeason: 0,
+    dailyPackOpens: { date: '', free: {}, ad: {} },
+    activeStorylineChains: [], completedStorylineChainIds: [], weeklyObjectives: [],
+    objectiveStreak: 0, objectivesStartWeek: 1, completedCoachTaskIds: [],
+    weekCliffhangers: [], rivalries: {},
+    sessionStats: { startWeek: 1, startSeason: 1, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 },
+    weeklyDigest: null, careerTimeline: [],
+    gameMode: 'sandbox' as const, careerManager: null, jobVacancies: [], jobOffers: [],
+    // National-team + interview state — omitting these leaked an old NT
+    // job (with dead player IDs) into a brand-new game.
+    nationalTeam: null, internationalTournament: null, managerNationality: null,
+    nationalTeamOffer: null, showNationalTeamOffer: false, activeInterview: null,
+    sponsorDeals: [], sponsorOffers: [], sponsorSlotCooldowns: {}, negotiationStrikes: {}, contractStrikes: {},
+    merchandise: getDefaultMerchState(),
+    continentalCoefficients: {},
+    // v68 newly-persisted fields — must reset here too so a New Game after
+    // a Load doesn't inherit stale session aggregates / opt-in flags.
+    tacticalPresets: [],
+    transferFilters: {
+      tab: 'market' as const, posFilter: 0, searchQuery: '',
+      sortBy: 'overall' as const, faSortBy: 'overall' as const, divFilter: 'all',
+      newsTypeFilter: 'all', hideUnaffordable: false, showShortlistOnly: false,
+    },
+    pendingGemReveal: null,
+    pendingTransferTalk: null,
+    seasonStartAvgOVR: 0,
+    seasonTransfersBought: [],
+    seasonTransfersSold: [],
+    seasonTotalIncome: 0,
+    seasonTotalExpenses: 0,
+    clubPowerRankings: {},
+    communityPackEnabled: false,
+    cpPool: { shuffleSeed: 0, cursor: 0, usedFcIds: [], marketListings: [], lastMarketRefreshWeek: 0, lastSeedSeason: 0 },
+    monetization: {
+      ...DEFAULT_MONETIZATION_STATE,
+      // Preserve purchases and subscription across save resets
+      entitlements: get().monetization.entitlements,
+      firstLaunchTimestamp: get().monetization.firstLaunchTimestamp,
+      subscription: get().monetization.subscription,
+    },
+  };
+}
 
 export const createOrchestrationSlice = (set: Set, get: Get) => ({
   initGame: async (clubId: string, options?: { communityPackEnabled?: boolean }) => {
@@ -807,6 +880,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
       set({
         ...data, gameStarted: true, leagueTable,
+        // Loading a real save always exits any Capture Studio session.
+        captureSession: false,
         activeSlot: s,
         // Backfill settings with defaults for fields added after save was created
         settings: {
@@ -1078,64 +1153,19 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     }
     removeSaveSlot(s);
     resetSaveHash();
-    set({
-      saveStatus: 'idle' as const, lastSavedAt: null, saveFailureMessage: null,
-      gameStarted: false, playerClubId: '', currentScreen: 'dashboard',
-      clubs: {}, players: {}, fixtures: [], leagueTable: [],
-      messages: [], seasonHistory: [], incomingOffers: [],
-      matchPlayerRatings: [], halfTimeState: null, currentMatchWeather: null, matchPhase: 'none' as const,
-      currentMatchResult: null, matchSubsUsed: 0, matchSubbedOffIds: [], currentCupTieId: null,
-      // Match-scoped state that previously persisted across resets — audit
-      // finding O2 (stale shootout kicks, leftover team talk, etc.).
-      matchTeamTalk: 'none' as const, matchShouts: [],
-      penaltyShootoutKicks: [], penaltyShootoutRevealIndex: 0,
-      preMatchSnapshot: null, lastMatchDrama: null, lastMatchCompetition: null,
-      transferMarket: [], shortlist: [], scoutWatchList: [], transferNews: [],
-      activeLoans: [], incomingLoanOffers: [], outgoingLoanRequests: [],
-      cup: { ties: [], currentRound: null, eliminated: false, winner: null },
-      pendingPressConference: null, activeNegotiation: null,
-      pendingFarewell: [], pendingStoryline: null,
-      openedPacks: [], packPityCounter: 0, lastPackWeek: 0, lastPackSeason: 0,
-      dailyPackOpens: { date: '', free: {}, ad: {} },
-      activeStorylineChains: [], completedStorylineChainIds: [], weeklyObjectives: [],
-      objectiveStreak: 0, objectivesStartWeek: 1, completedCoachTaskIds: [],
-      weekCliffhangers: [], rivalries: {},
-      sessionStats: { startWeek: 1, startSeason: 1, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 },
-      weeklyDigest: null, careerTimeline: [],
-      gameMode: 'sandbox', careerManager: null, jobVacancies: [], jobOffers: [],
-      // National-team + interview state — omitting these leaked an old NT
-      // job (with dead player IDs) into a brand-new game.
-      nationalTeam: null, internationalTournament: null, managerNationality: null,
-      nationalTeamOffer: null, showNationalTeamOffer: false, activeInterview: null,
-      sponsorDeals: [], sponsorOffers: [], sponsorSlotCooldowns: {}, negotiationStrikes: {}, contractStrikes: {},
-      merchandise: getDefaultMerchState(),
-      continentalCoefficients: {},
-      // v68 newly-persisted fields — must reset here too so a New Game after
-      // a Load doesn't inherit stale session aggregates / opt-in flags.
-      tacticalPresets: [],
-      transferFilters: {
-        tab: 'market', posFilter: 0, searchQuery: '',
-        sortBy: 'overall', faSortBy: 'overall', divFilter: 'all',
-        newsTypeFilter: 'all', hideUnaffordable: false, showShortlistOnly: false,
-      },
-      pendingGemReveal: null,
-      pendingTransferTalk: null,
-      seasonStartAvgOVR: 0,
-      seasonTransfersBought: [],
-      seasonTransfersSold: [],
-      seasonTotalIncome: 0,
-      seasonTotalExpenses: 0,
-      clubPowerRankings: {},
-      communityPackEnabled: false,
-      cpPool: { shuffleSeed: 0, cursor: 0, usedFcIds: [], marketListings: [], lastMarketRefreshWeek: 0, lastSeedSeason: 0 },
-      monetization: {
-        ...DEFAULT_MONETIZATION_STATE,
-        // Preserve purchases and subscription across save resets
-        entitlements: get().monetization.entitlements,
-        firstLaunchTimestamp: get().monetization.firstLaunchTimestamp,
-        subscription: get().monetization.subscription,
-      },
-    });
+    set(buildFreshSessionState(get));
+  },
+
+  clearActiveSession: () => {
+    // Capture Studio: identical in-memory wipe to resetGame, but WITHOUT
+    // removeSaveSlot — the save on disk stays exactly as it was. Used to
+    // stage a throwaway session over whatever is currently loaded.
+    cancelPendingSave();
+    const currentState = get();
+    if (currentState.matchPhase !== 'none' || currentState.halfTimeState) {
+      currentState.cleanupAbandonedMatch();
+    }
+    set(buildFreshSessionState(get));
   },
 
   // ── Prestige ──

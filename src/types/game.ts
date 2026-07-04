@@ -1793,6 +1793,25 @@ export interface InternationalKnockoutTie {
 
 export type GameMode = 'sandbox' | 'career' | 'world-cup';
 
+// ── Capture Studio (staged World Cup moments for marketing footage) ──
+
+export interface CaptureScenario {
+  id: string;
+  title: string;
+  /** One-line subtitle shown under the scenario in Settings. */
+  tagline: string;
+  /** Nation the user manages during the scenario. */
+  playerNation: string;
+  opponentNation: string;
+  /** 'kickoff' lands on the Final's Kick Off screen (film the whole match);
+   *  'penalties' lands mid-shootout after a staged 2-2 (film the shootout). */
+  stage: 'kickoff' | 'penalties';
+  /** Preferred scorer last names for the staged 2-2 goal events — the first
+   *  match found in each starting XI is credited; falls back to the best
+   *  outfield starter when none of the names made the auto-picked lineup. */
+  starScorers?: { player: string[]; opponent: string[] };
+}
+
 // ── Manager Career Mode ──
 
 export interface ManagerAttributes {
