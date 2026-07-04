@@ -263,21 +263,18 @@ describe('orchestrationSlice — penalty shootout flow', () => {
     });
   }
 
-  it('playPenalties pre-computes the kick sequence and resets the reveal index', () => {
+  it('playPenalties opens the interactive tap-to-aim context (no pre-computed kicks)', () => {
     setupPenaltyShootout();
     const result = useGameStore.getState().playPenalties();
     expect(result).not.toBeNull();
     const s = useGameStore.getState();
-    // A shootout stops the moment the result is mathematically decided
-    // (see penaltyShootout.ts:55) — the earliest a best-of-5 can be
-    // settled is 6 kicks (3-0 after round 3), and sudden death extends
-    // it past 10. So the sequence is anywhere from 6 upward; asserting
-    // a fixed 10 was wrong and flaked whenever a shootout ended early.
-    expect(s.penaltyShootoutKicks.length).toBeGreaterThanOrEqual(6);
+    // Interactive flow: kicks resolve one at a time via takeAimedPenalty /
+    // revealOpponentPenalty — nothing is rolled up front.
+    expect(s.penaltyShootoutKicks).toHaveLength(0);
     expect(s.penaltyShootoutRevealIndex).toBe(0);
-    // Final score is a winner — totals must differ on the last kick
-    const last = s.penaltyShootoutKicks[s.penaltyShootoutKicks.length - 1];
-    expect(last.homeTotal).not.toBe(last.awayTotal);
+    expect(s.penaltyShootoutCtx).not.toBeNull();
+    expect(s.penaltyShootoutCtx!.playerIsHome).toBe(true);
+    expect(s.penaltyShootoutCtx!.homeGKQuality).toBeGreaterThan(0);
   });
 
   it('playPenalties returns null when no current cup tie is set', () => {
@@ -286,25 +283,33 @@ describe('orchestrationSlice — penalty shootout flow', () => {
     expect(result).toBeNull();
   });
 
-  it('revealNextPenaltyKick increments the index', () => {
+  it('aimed and opponent kicks alternate and reveal as they land', () => {
     setupPenaltyShootout();
     useGameStore.getState().playPenalties();
-    const before = useGameStore.getState().penaltyShootoutRevealIndex;
-    useGameStore.getState().revealNextPenaltyKick();
-    expect(useGameStore.getState().penaltyShootoutRevealIndex).toBe(before + 1);
+    const takerId = useGameStore.getState().clubs[CLUB_ID].lineup[0];
+    const k1 = useGameStore.getState().takeAimedPenalty(takerId, 0.5, 0.3);
+    expect(k1).not.toBeNull();
+    expect(k1!.isHome).toBe(true);
+    expect(useGameStore.getState().penaltyShootoutRevealIndex).toBe(1);
+    // Not our turn anymore.
+    expect(useGameStore.getState().takeAimedPenalty(takerId, 0.5, 0.3)).toBeNull();
+    const k2 = useGameStore.getState().revealOpponentPenalty();
+    expect(k2).not.toBeNull();
+    expect(k2!.isHome).toBe(false);
+    expect(useGameStore.getState().penaltyShootoutRevealIndex).toBe(2);
   });
 
-  it('revealNextPenaltyKick auto-finalises when the last kick is reached', () => {
+  it('skip mid-shootout auto-completes the remaining kicks and finalises', () => {
     setupPenaltyShootout();
     useGameStore.getState().playPenalties();
-    const totalKicks = useGameStore.getState().penaltyShootoutKicks.length;
-    // Reveal all kicks
-    for (let i = 0; i < totalKicks; i++) {
-      useGameStore.getState().revealNextPenaltyKick();
-    }
-    // After all reveals the shootout is finalised → kicks cleared, phase reset
+    const takerId = useGameStore.getState().clubs[CLUB_ID].lineup[0];
+    useGameStore.getState().takeAimedPenalty(takerId, 0.4, 0.2);
+    useGameStore.getState().skipPenaltyShootout();
     const s = useGameStore.getState();
+    // (Setup has no halfTimeState, so finalization takes the clean-reset
+    // path — the contract is a closed, decided shootout with no leftovers.)
     expect(s.matchPhase).toBe('none');
+    expect(s.penaltyShootoutCtx).toBeNull();
   });
 
   it('skipPenaltyShootout is a no-op when no kicks are pre-computed', () => {
