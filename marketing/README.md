@@ -19,7 +19,9 @@ marketing/
 │   ├── tiktok-02-pack-reaction.md
 │   ├── tiktok-03-bid-reject.md
 │   ├── tiktok-04-promotion-rewind.md
-│   └── tiktok-05-why-is-this-free.md
+│   ├── tiktok-05-why-is-this-free.md
+│   ├── tiktok-06-pov-textwall.md      ← BitLife-style POV text-wall (WC-timely)
+│   └── tiktok-07-flowstate-selfie.md  ← BitLife-style lo-fi selfie meme
 ├── posters/               ← Static HTML poster ads (open in browser, screenshot to PNG at 1080×1920)
 │   ├── poster-01-trophy.html
 │   ├── poster-02-wonderkid.html

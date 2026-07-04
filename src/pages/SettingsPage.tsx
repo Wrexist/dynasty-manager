@@ -4,7 +4,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { LiquidButton } from '@/components/game/LiquidButton';
 import { SaveStatusIndicator } from '@/components/game/SaveStatusIndicator';
-import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users, Bug, ChartBar, Sparkles, Gauge, Bell } from 'lucide-react';
+import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users, Bug, ChartBar, Sparkles, Gauge, Bell, Clapperboard } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { useState, useRef, useEffect } from 'react';
@@ -35,6 +35,7 @@ import { openExternalUrl } from '@/utils/externalUrl';
 import { SAVE_CONFIRMATION_MS } from '@/config/ui';
 import { MATCH_SPEEDS } from '@/config/matchSpeed';
 import { hasUnseenWhatsNew, LATEST_RELEASE } from '@/data/whatsNew';
+import { CAPTURE_SCENARIOS } from '@/config/captureScenarios';
 
 const APP_VERSION = `v${__APP_VERSION__} · Football Edition`;
 
@@ -120,8 +121,11 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
   const setScreen = useGameStore(s => s.setScreen);
   const restoreEntitlements = useGameStore(s => s.restoreEntitlements);
   const updateSubscription = useGameStore(s => s.updateSubscription);
+  const startCaptureScenario = useGameStore(s => s.startCaptureScenario);
+  const gameStarted = useGameStore(s => s.gameStarted);
   const navigate = useNavigate();
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [pendingCaptureId, setPendingCaptureId] = useState<string | null>(null);
   const [showMenuConfirm, setShowMenuConfirm] = useState(false);
   const [saved, setSaved] = useState(false);
   const savedTimerRef = useRef<ReturnType<typeof setTimeout>>();
@@ -765,6 +769,50 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
         <p className="text-[10px] text-muted-foreground mt-2 leading-snug">
           Remove all game data stored on this device. Subscription status is managed by your App Store or Play Store account.
         </p>
+      </SettingsSection>
+
+      {/* ─── Capture Studio (marketing footage) ─── */}
+      <SettingsSection title="Capture Studio">
+        <p className="text-[10px] text-muted-foreground leading-snug mb-3">
+          Staged World Cup finals for screen-recording promo videos. Each scenario
+          runs as a throwaway session — nothing in it is ever saved, and your
+          saved games stay exactly as they are on disk.
+          {gameStarted && ' Your current session will close (auto-save runs first if enabled); reload it from the main menu afterwards.'}
+        </p>
+        <div className="space-y-2">
+          {CAPTURE_SCENARIOS.map(sc => (
+            pendingCaptureId === sc.id ? (
+              <div key={sc.id} className="rounded-2xl p-3 bg-primary/10 border border-primary/30 backdrop-blur-md space-y-2">
+                <p className="text-xs font-semibold text-foreground">{sc.title}</p>
+                <p className="text-[10px] text-muted-foreground leading-snug">{sc.tagline}</p>
+                <div className="flex gap-2">
+                  <LiquidButton className="flex-1" onClick={() => {
+                    const ok = startCaptureScenario(sc.id);
+                    if (!ok) { errorToast('Scenario unavailable'); return; }
+                    hapticMedium();
+                    setPendingCaptureId(null);
+                    if (variant === 'title') navigate('/game');
+                  }}>
+                    Start scenario
+                  </LiquidButton>
+                  <LiquidButton className="flex-1" onClick={() => setPendingCaptureId(null)}>
+                    Cancel
+                  </LiquidButton>
+                </div>
+              </div>
+            ) : (
+              <LiquidButton key={sc.id} onClick={() => setPendingCaptureId(sc.id)}>
+                <span className="flex items-center justify-start gap-3 px-3 py-0.5 text-left">
+                  <Clapperboard className="w-4 h-4 shrink-0" />
+                  <span className="min-w-0">
+                    <span className="block text-sm leading-tight">{sc.title}</span>
+                    <span className="block text-[10px] text-muted-foreground leading-snug font-normal">{sc.tagline}</span>
+                  </span>
+                </span>
+              </LiquidButton>
+            )
+          ))}
+        </div>
       </SettingsSection>
 
       {/* ─── Developer (dev build only) ─── */}
