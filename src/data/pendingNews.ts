@@ -58,6 +58,8 @@ export const PENDING_NEWS: PendingRelease = {
     'Improved: The full-time card now shows the Player of the Match instead of repeating the scoreline.',
     'Fixed: The Continue button on the World Cup full-time screen now works.',
     'Add game design & UX review report (IDEAS.md).',
+    'Interactive penalty shootouts: swipe to aim at five target zones, hold to power up, and pick your takers — with a broadcast scoreboard, curved ball flight, sound, slow-mo decisive kicks and keeper mind games.',
+    'Capture Studio in Settings: teleport into staged World Cup finals (Messi vs Ronaldo, Mbappé rematch, England penalties, Yamal, Haaland) for recording promo footage without touching your save.',
   ],
   fixed: [],
   headline: null,
