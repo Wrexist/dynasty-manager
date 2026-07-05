@@ -306,6 +306,14 @@ export const PEN_AIM = {
    *  effective-quality penalty on the rattled taker when he does. */
   KEEPER_TAUNT_CHANCE: 0.3,
   RATTLE_QUALITY_PENALTY: 0.08,
+  /** Shot power (0–1). NEUTRAL is the calibration point — kicks at that power
+   *  behave exactly like the pre-power model. Above it: harder to save but
+   *  easier to blaze off target; below it: placeable but reachable. */
+  POWER_NEUTRAL: 0.6,
+  /** Off-target chance scales by (1 + POWER_OFF_TARGET_SCALE × (p − neutral)). */
+  POWER_OFF_TARGET_SCALE: 1.1,
+  /** Keeper reach scales by (1 − POWER_SAVE_SCALE × (p − neutral)). */
+  POWER_SAVE_SCALE: 0.8,
 } as const;
 /** Maps a nation's 0–1 ranking strength onto the 0–1 GK-quality scale that
  *  simulatePenaltyShootout expects, so international shootouts run through the

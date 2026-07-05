@@ -222,10 +222,22 @@ describe('store actions — aimed shootout end to end (World Cup final)', () => 
     expect(s.currentMatchResult!.penaltyShootout).toBeTruthy();
   });
 
+  it('high power raises off-target risk and lowers save chance (deterministic)', () => {
+    // Keeper reads the side (rand #1 low) and the reach roll (last rand) sits
+    // where a soft shot is saved but a blasted one beats the dive.
+    const seq = [0.0, 0.5, 0.5, 0.99, 0.42];
+    const run = (power: number) => {
+      let i = 0;
+      return resolveAimedKick({ aimX: 0.5, aimY: 0.3, shooterQuality: 0.6, keeperQuality: 0.6, power, rand: () => seq[i++ % seq.length] });
+    };
+    expect(run(0.15).outcome).toBe('saved');
+    expect(run(0.95).outcome).toBe('goal');
+  });
+
   it('a rattled kick resolves through the same contract', () => {
     const st = useGameStore.getState();
     const takerId = st.clubs['Argentina'].lineup[0];
-    const kick = st.takeAimedPenalty(takerId, 0.6, 0.3, true);
+    const kick = st.takeAimedPenalty(takerId, 0.6, 0.3, { rattled: true, power: 0.85 });
     expect(kick).not.toBeNull();
     expect(['goal', 'saved', 'off_target']).toContain(kick!.outcome);
   });

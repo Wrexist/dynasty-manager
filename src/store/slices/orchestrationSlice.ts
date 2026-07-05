@@ -669,7 +669,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
   playPenalties: () => playPenaltiesImpl(set, get),
 
   revealNextPenaltyKick: () => revealNextPenaltyKickImpl(set, get),
-  takeAimedPenalty: (takerId: string, aimX: number, aimY: number, rattled?: boolean) => takeAimedPenaltyImpl(set, get, takerId, aimX, aimY, rattled),
+  takeAimedPenalty: (takerId: string, aimX: number, aimY: number, opts?: { power?: number; rattled?: boolean }) => takeAimedPenaltyImpl(set, get, takerId, aimX, aimY, opts),
   revealOpponentPenalty: () => revealOpponentPenaltyImpl(set, get),
 
   skipPenaltyShootout: () => skipPenaltyShootoutImpl(set, get),

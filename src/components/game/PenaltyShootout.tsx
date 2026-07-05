@@ -6,6 +6,7 @@ import { useGameStore } from '@/store/gameStore';
 import { Button } from '@/components/ui/button';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { PlayerCard } from '@/components/game/PlayerCard';
+import { FlagIcon } from '@/components/game/FlagIcon';
 import { PenaltyGoalScene, shotTimings, type SceneShot } from '@/components/game/shootout/PenaltyGoalScene';
 import { PackConfetti } from '@/components/game/pack/PackConfetti';
 import { getPenaltyTakerQuality, getShootoutProgress } from '@/utils/penaltyShootout';
@@ -37,6 +38,7 @@ function kickToShot(kick: PenaltyKick, id: number): SceneShot {
     diveX: kick.diveX ?? 0,
     diveY: kick.diveY ?? 0.3,
     outcome: kick.outcome ?? (kick.scored ? 'goal' : 'saved'),
+    power: kick.power,
   };
 }
 
@@ -145,6 +147,7 @@ export function PenaltyShootout() {
   const revealOpponentPenalty = useGameStore(s => s.revealOpponentPenalty);
   const skipAll = useGameStore(s => s.skipPenaltyShootout);
   const reducedMotion = useGameStore(s => s.settings.reducedMotion || s.settings.performanceMode);
+  const isWorldCup = useGameStore(s => s.gameMode === 'world-cup');
 
   const progress = getShootoutProgress(kicks);
   const playerTurn = ctx ? progress.nextIsHome === ctx.playerIsHome : false;
@@ -171,8 +174,8 @@ export function PenaltyShootout() {
   }, [soundOn]);
 
   /** Schedule the strike/arrival haptic+sound cues off the shared shot clock. */
-  const scheduleKickCues = useCallback((goodForPlayer: boolean, outcome: string, slow: boolean) => {
-    const tm = shotTimings(slow);
+  const scheduleKickCues = useCallback((goodForPlayer: boolean, outcome: string, slow: boolean, power = 0.6) => {
+    const tm = shotTimings(slow, power);
     sfxWhistle();
     cueTimersRef.current.push(setTimeout(() => sfxKick(), tm.runupMs));
     cueTimersRef.current.push(setTimeout(() => {
@@ -265,24 +268,63 @@ export function PenaltyShootout() {
       if (!kick) { advance(); return; }
       const isGoodForPlayer = !kick.scored;
       setSlowMo(decisive);
-      scheduleKickCues(isGoodForPlayer, kick.outcome ?? (kick.scored ? 'goal' : 'saved'), decisive);
+      scheduleKickCues(isGoodForPlayer, kick.outcome ?? (kick.scored ? 'goal' : 'saved'), decisive, kick.power ?? 0.6);
       setShot(kickToShot(kick, useGameStore.getState().penaltyShootoutKicks.length));
       setStage('oppShooting');
     }, OPP_STEP_UP_MS);
     return () => clearTimeout(t);
   }, [stage, kicks.length, revealOpponentPenalty, advance, scheduleKickCues]);
 
-  const handleShoot = () => {
-    if (!aim || !selectedTakerId || stage !== 'aim') return;
+  // ── Hold-to-charge power ────────────────────────────────────────────────
+  // Hold Shoot: the meter ping-pongs 0→100→0; release strikes at that power.
+  // A quick tap (<160ms) uses a clean default so nobody is punished for
+  // tapping like the old flow.
+  const [charging, setCharging] = useState(false);
+  const [powerDisplay, setPowerDisplay] = useState(0);
+  const powerRef = useRef(0);
+  const chargeStartRef = useRef(0);
+  const chargeRafRef = useRef<number>();
+  useEffect(() => () => { if (chargeRafRef.current) cancelAnimationFrame(chargeRafRef.current); }, []);
+
+  const fireShot = useCallback((power: number) => {
+    const currentAim = aim;
+    if (!currentAim || !selectedTakerId || stage !== 'aim') return;
     hapticMedium();
     resumeSfx();
     const decisive = getStakes(kicks, ctx?.playerIsHome ?? true, true) !== null;
-    const kick = takeAimedPenalty(selectedTakerId, aim.x, aim.y, keeperTaunt);
+    const kick = takeAimedPenalty(selectedTakerId, currentAim.x, currentAim.y, { power, rattled: keeperTaunt });
     if (!kick) { advance(); return; }
     setSlowMo(decisive);
-    scheduleKickCues(kick.scored, kick.outcome ?? (kick.scored ? 'goal' : 'saved'), decisive);
+    setPowerDisplay(power);
+    scheduleKickCues(kick.scored, kick.outcome ?? (kick.scored ? 'goal' : 'saved'), decisive, power);
     setShot(kickToShot(kick, useGameStore.getState().penaltyShootoutKicks.length));
     setStage('shooting');
+     
+  }, [aim, selectedTakerId, stage, kicks, ctx?.playerIsHome, keeperTaunt, takeAimedPenalty, advance, scheduleKickCues]);
+
+  const startCharge = (e: React.PointerEvent) => {
+    if (!aim || !selectedTakerId || stage !== 'aim' || charging) return;
+    e.preventDefault();
+    hapticLight();
+    resumeSfx();
+    setCharging(true);
+    chargeStartRef.current = performance.now();
+    const loop = (now: number) => {
+      const cycle = ((now - chargeStartRef.current) / 1100) % 2;
+      const p = 1 - Math.abs(1 - cycle); // ping-pong 0→1→0
+      powerRef.current = p;
+      setPowerDisplay(p);
+      chargeRafRef.current = requestAnimationFrame(loop);
+    };
+    chargeRafRef.current = requestAnimationFrame(loop);
+  };
+
+  const releaseCharge = () => {
+    if (!charging) return;
+    if (chargeRafRef.current) cancelAnimationFrame(chargeRafRef.current);
+    setCharging(false);
+    const held = performance.now() - chargeStartRef.current;
+    fireShot(held < 160 ? 0.65 : powerRef.current);
   };
 
   if (!ctx || !currentMatchResult || !myClub || !oppClub) return null;
@@ -314,6 +356,12 @@ export function PenaltyShootout() {
     };
   });
 
+  // Per-round scoreboard dots (regulation rounds 1-5; SD has its own chip).
+  const dotsFor = (isHome: boolean) => Array.from({ length: 5 }, (_, i) => {
+    const k = kicks.find(kk => kk.round === i + 1 && kk.isHome === isHome);
+    return k ? (k.scored ? 'goal' : 'miss') : null;
+  });
+
   const nextOppTaker = (() => {
     if (stage !== 'oppWait') return null;
     const oppOnPitch = (oppClub.lineup ?? []).map(id => players[id]).filter(Boolean)
@@ -333,52 +381,6 @@ export function PenaltyShootout() {
         </div>
       )}
 
-      {/* Scoreboard */}
-      <GlassPanel className="p-3">
-        <div className="flex items-center justify-between mb-1">
-          <p className="text-[10px] uppercase tracking-[0.25em] text-primary font-bold">Penalty Shootout</p>
-          <div className="flex items-center gap-2">
-            {inSuddenDeath && !progress.decided && (
-              <motion.span
-                className="text-[9px] uppercase tracking-widest font-bold text-red-300 bg-red-500/15 border border-red-500/30 rounded-full px-2 py-0.5"
-                animate={{ opacity: [1, 0.55, 1] }}
-                transition={{ duration: 1.4, repeat: Infinity }}
-              >
-                Sudden Death
-              </motion.span>
-            )}
-            {!progress.decided && (
-              <button
-                type="button"
-                onClick={() => { hapticLight(); skipAll(); }}
-                className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <SkipForward className="w-3 h-3" /> Skip
-              </button>
-            )}
-          </div>
-        </div>
-        <div className="flex items-center justify-center gap-5">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: homeClub?.color }} />
-            <span className="text-xs font-bold truncate">{homeClub?.shortName}</span>
-          </div>
-          <div className="flex items-center gap-2 text-3xl font-display font-black tabular-nums">
-            <motion.span key={`h${progress.homeTotal}`} initial={{ scale: 1.6, color: '#fbbf24' }} animate={{ scale: 1, color: '#ffffff' }}>
-              {progress.homeTotal}
-            </motion.span>
-            <span className="text-base text-muted-foreground font-normal">–</span>
-            <motion.span key={`a${progress.awayTotal}`} initial={{ scale: 1.6, color: '#fbbf24' }} animate={{ scale: 1, color: '#ffffff' }}>
-              {progress.awayTotal}
-            </motion.span>
-          </div>
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-xs font-bold truncate">{awayClub?.shortName}</span>
-            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: awayClub?.color }} />
-          </div>
-        </div>
-      </GlassPanel>
-
       {/* The goal */}
       <div className="relative">
         <PenaltyGoalScene
@@ -397,12 +399,150 @@ export function PenaltyShootout() {
           celebrationColor={myClub.color}
         />
 
+        {/* Broadcast scoreboard — teams, per-kick dots, score, skip */}
+        <div className="absolute top-0 inset-x-0 flex items-center justify-between gap-2 px-2.5 py-1.5 bg-black/60 backdrop-blur-md border-b border-white/10 rounded-t-2xl">
+          <div className="flex items-center gap-1.5 min-w-0">
+            {isWorldCup && homeClub ? (
+              <span className="w-5 h-3.5 rounded-[2px] overflow-hidden border border-white/40 shrink-0"><FlagIcon nationality={homeClub.id} fill /></span>
+            ) : (
+              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: homeClub?.color }} />
+            )}
+            <span className="text-[11px] font-black text-white leading-none">{homeClub?.shortName}</span>
+            <span className="flex items-center gap-[3px] ml-0.5">
+              {dotsFor(true).map((d, i) => (
+                <span key={i} className={cn('w-[7px] h-[7px] rounded-full border',
+                  d === 'goal' ? 'bg-emerald-400 border-emerald-300 shadow-[0_0_5px_rgba(52,211,153,0.9)]'
+                    : d === 'miss' ? 'bg-red-500 border-red-400'
+                      : 'bg-transparent border-white/30')} />
+              ))}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0 rounded-lg bg-white/10 border border-white/15 px-2.5 py-0.5">
+            <motion.span key={`h${progress.homeTotal}`} initial={{ scale: 1.5, color: '#fbbf24' }} animate={{ scale: 1, color: '#ffffff' }} className="text-base font-display font-black tabular-nums leading-none">
+              {progress.homeTotal}
+            </motion.span>
+            <span className="text-[10px] text-white/50 leading-none">–</span>
+            <motion.span key={`a${progress.awayTotal}`} initial={{ scale: 1.5, color: '#fbbf24' }} animate={{ scale: 1, color: '#ffffff' }} className="text-base font-display font-black tabular-nums leading-none">
+              {progress.awayTotal}
+            </motion.span>
+          </div>
+          <div className="flex items-center gap-1.5 min-w-0 justify-end">
+            <span className="flex items-center gap-[3px] mr-0.5">
+              {dotsFor(false).map((d, i) => (
+                <span key={i} className={cn('w-[7px] h-[7px] rounded-full border',
+                  d === 'goal' ? 'bg-emerald-400 border-emerald-300 shadow-[0_0_5px_rgba(52,211,153,0.9)]'
+                    : d === 'miss' ? 'bg-red-500 border-red-400'
+                      : 'bg-transparent border-white/30')} />
+              ))}
+            </span>
+            <span className="text-[11px] font-black text-white leading-none">{awayClub?.shortName}</span>
+            {isWorldCup && awayClub ? (
+              <span className="w-5 h-3.5 rounded-[2px] overflow-hidden border border-white/40 shrink-0"><FlagIcon nationality={awayClub.id} fill /></span>
+            ) : (
+              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: awayClub?.color }} />
+            )}
+          </div>
+        </div>
+
+        {/* Sudden death + Skip, riding under the scoreboard */}
+        <div className="absolute top-9 inset-x-0 flex items-center justify-center gap-2 pointer-events-none">
+          {inSuddenDeath && !progress.decided && (
+            <motion.span
+              className="text-[9px] uppercase tracking-widest font-bold text-red-300 bg-red-500/20 border border-red-500/35 rounded-full px-2 py-0.5 backdrop-blur-sm"
+              animate={{ opacity: [1, 0.55, 1] }}
+              transition={{ duration: 1.4, repeat: Infinity }}
+            >
+              Sudden Death
+            </motion.span>
+          )}
+        </div>
+        {!progress.decided && (
+          <button
+            type="button"
+            onClick={() => { hapticLight(); skipAll(); }}
+            className="absolute top-9 right-2 flex items-center gap-1 text-[9px] text-white/60 hover:text-white bg-black/40 backdrop-blur-sm border border-white/10 rounded-full px-2 py-0.5 transition-colors"
+          >
+            <SkipForward className="w-2.5 h-2.5" /> Skip
+          </button>
+        )}
+
+        {/* Current taker's card, riding the scene bottom-left */}
+        {(() => {
+          const cardPlayer = stage === 'aim'
+            ? (selectedTakerId ? players[selectedTakerId] : null)
+            : stage === 'oppWait'
+              ? nextOppTaker
+              : (stage === 'shooting' || stage === 'oppShooting') && lastKick?.takerId
+                ? players[lastKick.takerId]
+                : null;
+          if (!cardPlayer) return null;
+          return (
+            <motion.div
+              key={`scene-taker-${cardPlayer.id}-${stage === 'aim' ? 'aim' : 'kick'}`}
+              className="absolute bottom-2 left-2 pointer-events-none"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <PlayerCard player={cardPlayer} size="sm" interactive="none" showConditionView={false} />
+            </motion.div>
+          );
+        })()}
+
+        {/* Swipe hint */}
+        <AnimatePresence>
+          {stage === 'aim' && !aim && !shot && (
+            <motion.div
+              key="swipehint"
+              className="absolute bottom-3 right-2 pointer-events-none"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <motion.span
+                className="flex items-center gap-1.5 rounded-xl bg-black/60 backdrop-blur-md border border-white/15 px-2.5 py-1.5 text-[10px] font-semibold text-white"
+                animate={{ y: [0, -3, 0] }}
+                transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+              >
+                Swipe anywhere to aim <span aria-hidden>👆</span>
+              </motion.span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Power bar */}
+        <AnimatePresence>
+          {(charging || (stage === 'shooting' && shot)) && (
+            <motion.div
+              key="power"
+              className="absolute bottom-3 right-2 w-36 rounded-xl bg-black/65 backdrop-blur-md border border-white/15 px-2.5 py-1.5 pointer-events-none"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+            >
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[9px] font-black tracking-[0.14em] text-white/80">POWER</span>
+                <span className="text-[10px] font-display font-black tabular-nums text-white">{Math.round(powerDisplay * 100)}%</span>
+              </div>
+              <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+                <div
+                  className="h-full rounded-full"
+                  style={{
+                    width: `${Math.round(powerDisplay * 100)}%`,
+                    background: 'linear-gradient(90deg, #22C55E 0%, #F59E0B 60%, #EF4444 100%)',
+                    boxShadow: '0 0 8px rgba(34,197,94,0.6)',
+                  }}
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Stakes chip — broadcast pressure framing for decisive kicks */}
         <AnimatePresence>
           {stakes && (
             <motion.div
               key={`stakes-${kicks.length}`}
-              className="absolute top-2 right-2"
+              className="absolute top-16 right-2"
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
@@ -427,7 +567,7 @@ export function PenaltyShootout() {
         {keeper && stage !== 'done' && (
           <motion.div
             key={`gk-${keeper.id}`}
-            className="absolute top-1.5 left-1.5 flex flex-col items-center gap-1"
+            className="absolute top-10 left-1.5 flex flex-col items-center gap-1"
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
           >
@@ -465,7 +605,7 @@ export function PenaltyShootout() {
                 <p className="text-xs font-bold text-foreground">
                   Round {progress.nextRound}{inSuddenDeath ? ' · Sudden death' : ''} — who steps up?
                 </p>
-                <p className="text-[10px] text-muted-foreground">{aim ? 'Tap Shoot — or re-aim' : 'Tap the goal to aim'}</p>
+                <p className="text-[10px] text-muted-foreground">{aim ? 'Hold Shoot to power up' : 'Swipe the goal to aim'}</p>
               </div>
               <p className={cn('text-[10px] italic -mt-1', keeperTaunt ? 'text-red-300/90 font-semibold not-italic' : 'text-muted-foreground/80')}>
                 {keeperTaunt ? "The keeper's playing mind games — your taker looks rattled." : commentary}
@@ -482,14 +622,18 @@ export function PenaltyShootout() {
               </div>
               <Button
                 className={cn(
-                  'w-full h-12 text-base font-bold gap-2 transition-shadow',
-                  aim && 'shadow-[0_0_24px_-6px_hsl(43_96%_46%/0.9)] animate-pulse',
+                  'w-full h-12 text-base font-bold gap-2 transition-shadow select-none touch-none',
+                  aim && !charging && 'shadow-[0_0_24px_-6px_hsl(43_96%_46%/0.9)] animate-pulse',
+                  charging && 'shadow-[0_0_30px_-4px_rgba(239,68,68,0.9)]',
                 )}
                 disabled={!aim || !selectedTakerId}
-                onClick={handleShoot}
+                onPointerDown={startCharge}
+                onPointerUp={releaseCharge}
+                onPointerLeave={releaseCharge}
+                onPointerCancel={releaseCharge}
               >
-                {aim ? 'Shoot' : 'Aim first — tap the goal'}
-                {aim && <ChevronRight className="w-5 h-5" />}
+                {charging ? 'Release to shoot!' : aim ? 'Hold to power up' : 'Aim first — swipe the goal'}
+                {aim && !charging && <ChevronRight className="w-5 h-5" />}
               </Button>
             </GlassPanel>
           </motion.div>

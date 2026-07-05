@@ -25,7 +25,7 @@ import { processMatchResult } from '@/store/helpers/matchProcessing';
 import { applyAIMatchEvents } from '@/store/slices/orchestration/helpers';
 import { advanceLeagueCupRound, getContinentalMatchLabel, isAggregateDecided, isContinentalDrawValid } from '@/store/slices/orchestration/tournaments';
 import type { MatchEvent } from '@/types/game';
-import { completeShootout, getClubGKQuality, getPenaltyTakerQuality, getShootoutProgress, pickAiAim, resolveAimedKick, simulatePenaltyShootout } from '@/utils/penaltyShootout';
+import { completeShootout, getClubGKQuality, getPenaltyTakerQuality, getShootoutProgress, pickAiAim, pickAiPower, resolveAimedKick, simulatePenaltyShootout } from '@/utils/penaltyShootout';
 import { detectMatchDrama } from '@/utils/celebrations';
 import { advanceKnockoutRound, createEphemeralClub, findPlayerContinentalMatch, generateKnockoutFromGroups, isGroupStageComplete, isKnockoutRoundComplete } from '@/utils/continental';
 import { dynastyMult } from '@/utils/managerPerks';
@@ -1575,7 +1575,7 @@ export function beginInteractiveShootoutImpl(set: Set, get: Get): Match | null {
 
 /** Resolve the player's aimed kick. Null when it isn't the player's turn or
  *  the taker id is invalid — callers treat null as "nothing happened". */
-export function takeAimedPenaltyImpl(set: Set, get: Get, takerId: string, aimX: number, aimY: number, rattled = false): PenaltyKick | null {
+export function takeAimedPenaltyImpl(set: Set, get: Get, takerId: string, aimX: number, aimY: number, opts?: { power?: number; rattled?: boolean }): PenaltyKick | null {
   const state = get();
   const { penaltyShootoutCtx: ctx, penaltyShootoutKicks: kicks, players, clubs, currentMatchResult } = state;
   if (!ctx || !currentMatchResult) return null;
@@ -1586,8 +1586,9 @@ export function takeAimedPenaltyImpl(set: Set, get: Get, takerId: string, aimX: 
 
   const keeperQuality = ctx.playerIsHome ? ctx.awayGKQuality : ctx.homeGKQuality;
   // Keeper mind games: a rattled taker strikes with slightly less composure.
-  const shooterQuality = Math.max(0, getPenaltyTakerQuality(taker) - (rattled ? PEN_AIM.RATTLE_QUALITY_PENALTY : 0));
-  const res = resolveAimedKick({ aimX, aimY, shooterQuality, keeperQuality });
+  const shooterQuality = Math.max(0, getPenaltyTakerQuality(taker) - (opts?.rattled ? PEN_AIM.RATTLE_QUALITY_PENALTY : 0));
+  const power = opts?.power;
+  const res = resolveAimedKick({ aimX, aimY, shooterQuality, keeperQuality, power });
   const kick: PenaltyKick = {
     round: prog.nextRound,
     isHome: ctx.playerIsHome,
@@ -1596,6 +1597,7 @@ export function takeAimedPenaltyImpl(set: Set, get: Get, takerId: string, aimX: 
     scored: res.scored,
     outcome: res.outcome,
     aimX, aimY, diveX: res.diveX, diveY: res.diveY,
+    power,
     homeTotal: prog.homeTotal + (ctx.playerIsHome && res.scored ? 1 : 0),
     awayTotal: prog.awayTotal + (!ctx.playerIsHome && res.scored ? 1 : 0),
   };
@@ -1635,7 +1637,8 @@ export function revealOpponentPenaltyImpl(set: Set, get: Get): PenaltyKick | nul
   // The keeper facing an opponent kick is the player's own GK.
   const keeperQuality = oppIsHome ? ctx.awayGKQuality : ctx.homeGKQuality;
   const aim = pickAiAim(shooterQuality);
-  const res = resolveAimedKick({ ...aim, shooterQuality, keeperQuality });
+  const power = pickAiPower();
+  const res = resolveAimedKick({ ...aim, shooterQuality, keeperQuality, power });
   const kick: PenaltyKick = {
     round: prog.nextRound,
     isHome: oppIsHome,
@@ -1644,6 +1647,7 @@ export function revealOpponentPenaltyImpl(set: Set, get: Get): PenaltyKick | nul
     scored: res.scored,
     outcome: res.outcome,
     aimX: aim.aimX, aimY: aim.aimY, diveX: res.diveX, diveY: res.diveY,
+    power,
     homeTotal: prog.homeTotal + (oppIsHome && res.scored ? 1 : 0),
     awayTotal: prog.awayTotal + (!oppIsHome && res.scored ? 1 : 0),
   };

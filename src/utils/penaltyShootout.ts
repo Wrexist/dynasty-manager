@@ -140,6 +140,8 @@ export interface AimedKickInput {
   aimY: number;
   shooterQuality: number;   // 0–1 (getPenaltyTakerQuality)
   keeperQuality: number;    // 0–1 (getClubGKQuality scale)
+  /** Shot power 0–1; defaults to PEN_AIM.POWER_NEUTRAL (pre-power behavior). */
+  power?: number;
   /** Injectable RNG for tests. */
   rand?: () => number;
 }
@@ -166,6 +168,10 @@ export function resolveAimedKick(input: AimedKickInput): AimedKickResult {
   const aimY = Math.max(0, Math.min(1, input.aimY));
   const q = Math.max(0, Math.min(1, input.shooterQuality));
   const gk = Math.max(0, Math.min(1, input.keeperQuality));
+  const power = Math.max(0, Math.min(1, input.power ?? PEN_AIM.POWER_NEUTRAL));
+  // Power trades placement for pace, calibrated to be a no-op at NEUTRAL.
+  const powerOffTargetMult = Math.max(0.2, 1 + PEN_AIM.POWER_OFF_TARGET_SCALE * (power - PEN_AIM.POWER_NEUTRAL));
+  const powerSaveMult = Math.max(0.2, 1 - PEN_AIM.POWER_SAVE_SCALE * (power - PEN_AIM.POWER_NEUTRAL));
 
   // Boldness 0 (dead center, mid height) → 1 (extreme corner / under the bar).
   const boldness = Math.max(Math.abs(aimX), Math.abs(aimY * 2 - 1));
@@ -179,7 +185,7 @@ export function resolveAimedKick(input: AimedKickInput): AimedKickResult {
 
   // 1. Off the frame entirely?
   const overSafe = Math.max(0, boldness - PEN_AIM.SAFE_BOLDNESS) / (1 - PEN_AIM.SAFE_BOLDNESS);
-  const offTargetChance = PEN_AIM.OFF_TARGET_BASE + PEN_AIM.OFF_TARGET_EDGE * overSafe * (1 - q * 0.8);
+  const offTargetChance = (PEN_AIM.OFF_TARGET_BASE + PEN_AIM.OFF_TARGET_EDGE * overSafe * (1 - q * 0.8)) * powerOffTargetMult;
   if (rand() < offTargetChance) {
     return { outcome: 'off_target', scored: false, diveX, diveY };
   }
@@ -189,7 +195,8 @@ export function resolveAimedKick(input: AimedKickInput): AimedKickResult {
     const reach =
       (PEN_AIM.SAVE_REACH_BASE + PEN_AIM.SAVE_REACH_GK_SPREAD * (gk - 0.5))
       * (1 - PEN_AIM.SAVE_REACH_BOLDNESS_DECAY * boldness)
-      * (1 - PEN_AIM.SAVE_SHOOTER_DAMPEN * q);
+      * (1 - PEN_AIM.SAVE_SHOOTER_DAMPEN * q)
+      * powerSaveMult;
     if (rand() < Math.max(0.02, reach)) {
       return { outcome: 'saved', scored: false, diveX: shotSide * Math.max(0.4, Math.abs(aimX)), diveY: aimY, };
     }
@@ -205,6 +212,11 @@ export function pickAiAim(shooterQuality: number, rand: () => number = Math.rand
   if (roll < 0.12) return { aimX: side * 0.15 * rand(), aimY: 0.25 + rand() * 0.3 };          // down the middle
   if (roll < 0.75) return { aimX: side * (0.45 + 0.35 * shooterQuality), aimY: 0.15 + rand() * 0.35 }; // low corner
   return { aimX: side * (0.5 + 0.4 * shooterQuality), aimY: 0.6 + rand() * 0.3 };             // high corner
+}
+
+/** AI shot power: professionals mostly strike near the calibration point. */
+export function pickAiPower(rand: () => number = Math.random): number {
+  return Math.max(0.25, Math.min(0.95, PEN_AIM.POWER_NEUTRAL + (rand() - 0.5) * 0.45));
 }
 
 /** Continue a partially-taken shootout to completion with auto-resolved kicks
@@ -223,7 +235,7 @@ export function completeShootout(
     const shooterQ = 0.65;
     const keeperQ = isHome ? opts.awayGKQuality : opts.homeGKQuality;
     const aim = pickAiAim(shooterQ);
-    const res = resolveAimedKick({ ...aim, shooterQuality: shooterQ, keeperQuality: keeperQ });
+    const res = resolveAimedKick({ ...aim, shooterQuality: shooterQ, keeperQuality: keeperQ, power: pickAiPower() });
     out.push({
       round: prog.nextRound,
       isHome,

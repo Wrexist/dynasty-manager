@@ -371,6 +371,8 @@ export interface PenaltyKick {
   /** Keeper dive in the same space (where the keeper ended up). */
   diveX?: number;
   diveY?: number;
+  /** Shot power 0–1 (interactive kicks only). */
+  power?: number;
 }
 
 /** Transient state for the interactive (tap-to-aim) penalty shootout. Lives
