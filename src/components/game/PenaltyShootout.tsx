@@ -39,6 +39,45 @@ function kickToShot(kick: PenaltyKick, id: number): SceneShot {
   };
 }
 
+/** Broadcast-style stakes for the upcoming kick: what happens if it goes in
+ *  or stays out, phrased from the player's perspective. Null when the kick
+ *  carries no decisive weight yet. */
+function getStakes(kicks: PenaltyKick[], playerIsHome: boolean, playerKicking: boolean): string | null {
+  const prog = getShootoutProgress(kicks);
+  if (prog.decided || prog.nextIsHome === null) return null;
+  const hypothetical = (scored: boolean) => getShootoutProgress([...kicks, {
+    round: prog.nextRound, isHome: prog.nextIsHome!, takerName: '', scored,
+    homeTotal: prog.homeTotal + (prog.nextIsHome && scored ? 1 : 0),
+    awayTotal: prog.awayTotal + (!prog.nextIsHome && scored ? 1 : 0),
+  }]);
+  const ifScored = hypothetical(true);
+  const ifMissed = hypothetical(false);
+  const playerWins = (p: ReturnType<typeof getShootoutProgress>) =>
+    p.decided && (playerIsHome ? p.homeTotal > p.awayTotal : p.awayTotal > p.homeTotal);
+  if (playerKicking) {
+    if (playerWins(ifScored)) return 'SCORE TO WIN IT';
+    if (ifMissed.decided && !playerWins(ifMissed)) return 'MISS AND IT\u2019S OVER';
+  } else {
+    if (ifMissed.decided && playerWins(ifMissed)) return 'A SAVE WINS IT';
+    if (ifScored.decided && !playerWins(ifScored)) return 'IF HE SCORES, IT\u2019S OVER';
+  }
+  return null;
+}
+
+const AIM_LINES = [
+  'The stadium holds its breath\u2026',
+  'Eighty thousand people go quiet.',
+  'Just you and the keeper now.',
+  'Pick your corner. Trust it.',
+  'The long walk from the halfway line.',
+];
+const OPP_LINES = [
+  'The away end starts to whistle\u2026',
+  'Your keeper slaps the crossbar.',
+  'He places the ball. Deep breath.',
+  'The referee checks the line.',
+];
+
 function KickResultChip({ kick }: { kick: PenaltyKick | undefined }) {
   if (!kick) return <span className="w-4 h-4 rounded-full border border-white/15 bg-white/5 shrink-0" />;
   if (kick.scored) {
@@ -75,7 +114,7 @@ function TakerCard({ player, selected, onSelect }: {
       )}
     >
       <div className={cn('rounded-xl', selected && 'ring-2 ring-primary shadow-[0_0_22px_-4px_hsl(43_96%_46%/0.85)]')}>
-        <PlayerCard player={player} size="sm" compact interactive="none" />
+        <PlayerCard player={player} size="sm" interactive="none" showConditionView={false} />
       </div>
       <span
         className={cn(
@@ -216,6 +255,12 @@ export function PenaltyShootout() {
   const lastKick = kicks[kicks.length - 1];
   const shootingTakerName = stage === 'shooting' || stage === 'oppShooting' ? lastKick?.takerName : null;
 
+  const stakes = (stage === 'aim' || stage === 'oppWait')
+    ? getStakes(kicks, ctx.playerIsHome, stage === 'aim')
+    : null;
+  // One commentary line per kick, stable across re-renders.
+  const commentary = (stage === 'aim' ? AIM_LINES : OPP_LINES)[kicks.length % (stage === 'aim' ? AIM_LINES.length : OPP_LINES.length)];
+
   const maxRound = Math.max(5, ...kicks.map(k => k.round));
   const rounds = Array.from({ length: maxRound }, (_, i) => {
     const r = i + 1;
@@ -300,7 +345,34 @@ export function PenaltyShootout() {
           onAim={stage === 'aim' ? (x, y) => { hapticLight(); setAim({ x, y }); } : undefined}
           shot={shot}
           onShotComplete={advance}
+          lively={!reducedMotion}
         />
+
+        {/* Stakes chip — broadcast pressure framing for decisive kicks */}
+        <AnimatePresence>
+          {stakes && (
+            <motion.div
+              key={`stakes-${kicks.length}`}
+              className="absolute top-2 right-2"
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+            >
+              <motion.span
+                className={cn(
+                  'block rounded-full px-2.5 py-1 text-[9px] font-black tracking-[0.14em] uppercase border backdrop-blur-md',
+                  stakes.includes('WIN')
+                    ? 'text-primary bg-primary/15 border-primary/40 shadow-[0_0_16px_-4px_hsl(43_96%_46%/0.8)]'
+                    : 'text-red-300 bg-red-500/15 border-red-500/40 shadow-[0_0_16px_-4px_rgba(239,68,68,0.7)]',
+                )}
+                animate={{ opacity: [1, 0.6, 1] }}
+                transition={{ duration: 1.3, repeat: Infinity, ease: 'easeInOut' }}
+              >
+                {stakes}
+              </motion.span>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Keeper card beside the goal */}
         {keeper && stage !== 'done' && (
@@ -310,7 +382,7 @@ export function PenaltyShootout() {
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
           >
-            <PlayerCard player={keeper} size="sm" compact interactive="none" />
+            <PlayerCard player={keeper} size="sm" interactive="none" showConditionView={false} />
             <span className="flex items-center gap-1 rounded-full bg-black/65 backdrop-blur-sm border border-white/15 px-1.5 py-[2px] text-[8px] font-black uppercase tracking-widest text-white leading-none">
               <Hand className="w-2.5 h-2.5 text-primary" /> In goal
             </span>
@@ -346,6 +418,7 @@ export function PenaltyShootout() {
                 </p>
                 <p className="text-[10px] text-muted-foreground">{aim ? 'Tap Shoot — or re-aim' : 'Tap the goal to aim'}</p>
               </div>
+              <p className="text-[10px] italic text-muted-foreground/80 -mt-1">{commentary}</p>
               <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
                 {takerPool.map(p => (
                   <TakerCard
@@ -383,6 +456,7 @@ export function PenaltyShootout() {
                   <p className="text-[10px] text-muted-foreground">
                     {keeper ? `${keeper.lastName || keeper.firstName} guards your goal.` : 'Your keeper sets himself.'}
                   </p>
+                  <p className="text-[10px] italic text-muted-foreground/70 mt-0.5">{commentary}</p>
                 </div>
                 <motion.div
                   className="ml-auto w-2 h-2 rounded-full bg-primary"
@@ -431,6 +505,7 @@ export function PenaltyShootout() {
               <span className={cn(
                 'text-[9px] tabular-nums w-6 text-center self-center rounded-full',
                 r.round > 5 ? 'text-red-300 font-bold' : 'text-muted-foreground',
+                !progress.decided && r.round === progress.nextRound && 'bg-primary/20 text-primary font-bold shadow-[0_0_8px_-2px_hsl(43_96%_46%/0.7)]',
               )}>
                 {r.round > 5 ? 'SD' : r.round}
               </span>

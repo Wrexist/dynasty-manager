@@ -37,6 +37,9 @@ interface PenaltyGoalSceneProps {
   shot: SceneShot | null;
   /** Fired once when the shot animation has fully played out. */
   onShotComplete?: () => void;
+  /** Atmosphere flourishes (camera flashes, ball trail). Pass false under
+   *  reduced-motion / performance mode. */
+  lively?: boolean;
 }
 
 // Scene geometry (fractions of the container box).
@@ -116,6 +119,31 @@ function KeeperFigure({ color, color2 }: { color: string; color2?: string }) {
       <path d="M24 62 L23 76 M36 62 L37 76" stroke="#d9b38c" strokeWidth="5.5" strokeLinecap="round" />
       <path d="M20.5 78 L25.5 78 M34.5 78 L39.5 78" stroke="#141821" strokeWidth="5" strokeLinecap="round" />
     </svg>
+  );
+}
+
+/** Deterministic camera-flash constellation across the crowd bands. */
+const CAMERA_FLASHES = [
+  { x: 8, y: 27, delay: 0.4 }, { x: 22, y: 42, delay: 1.7 }, { x: 37, y: 30, delay: 2.9 },
+  { x: 51, y: 45, delay: 0.9 }, { x: 63, y: 26, delay: 2.2 }, { x: 76, y: 40, delay: 1.3 },
+  { x: 88, y: 29, delay: 3.4 }, { x: 44, y: 55, delay: 4.1 }, { x: 15, y: 55, delay: 3.0 },
+  { x: 82, y: 54, delay: 4.6 },
+];
+
+function CameraFlashes() {
+  return (
+    <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+      {CAMERA_FLASHES.map((f, i) => (
+        <motion.span
+          key={i}
+          className="absolute w-[3px] h-[3px] rounded-full bg-white"
+          style={{ left: `${f.x}%`, top: `${f.y * 0.42}%`, boxShadow: '0 0 6px 2px rgba(255,255,255,0.75)' }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: [0, 0.95, 0] }}
+          transition={{ duration: 0.4, repeat: Infinity, repeatDelay: 3.4 + (i % 5) * 0.9, delay: f.delay }}
+        />
+      ))}
+    </div>
   );
 }
 
@@ -204,7 +232,7 @@ function SceneBackdrop() {
 }
 
 export const PenaltyGoalScene = memo(function PenaltyGoalScene({
-  keeperColor, keeperColor2, aim, onAim, shot, onShotComplete,
+  keeperColor, keeperColor2, aim, onAim, shot, onShotComplete, lively = true,
 }: PenaltyGoalSceneProps) {
   const boxRef = useRef<HTMLDivElement>(null);
   const [stamp, setStamp] = useState<null | 'goal' | 'saved' | 'off_target'>(null);
@@ -261,6 +289,7 @@ export const PenaltyGoalScene = memo(function PenaltyGoalScene({
       aria-label={onAim ? 'Tap inside the goal to place your shot' : 'Penalty view'}
     >
       <SceneBackdrop />
+      {lively && <CameraFlashes />}
 
       {/* Keeper */}
       <motion.div
@@ -298,6 +327,25 @@ export const PenaltyGoalScene = memo(function PenaltyGoalScene({
         )}
       </AnimatePresence>
 
+      {/* Ball trail ghost — follows the flight a beat behind */}
+      {lively && shot && target && (
+        <motion.div
+          key={`trail-${shot.id}`}
+          className="absolute pointer-events-none"
+          style={{ left: 0, top: 0 }}
+          initial={{ x: BALL_START.x * w, y: BALL_START.y * h, scale: 0.9, opacity: 0.3 }}
+          animate={{
+            x: target.x * w,
+            y: [BALL_START.y * h, (target.y - 0.10) * h, target.y * h],
+            scale: 0.5,
+            opacity: 0,
+            transition: { duration: FLIGHT_S + 0.1, ease: 'easeOut', delay: 0.05 },
+          }}
+        >
+          <div className="w-5 h-5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/70 blur-[2px]" />
+        </motion.div>
+      )}
+
       {/* Ball */}
       <motion.div
         key={`ball-${shot?.id ?? 'idle'}`}
@@ -330,6 +378,17 @@ export const PenaltyGoalScene = memo(function PenaltyGoalScene({
             animate={{ opacity: 0, scale: 5.5 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.7, ease: 'easeOut' }}
+          />
+        )}
+        {stamp === 'goal' && (
+          <motion.div
+            key="goalflash"
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: 'radial-gradient(circle at 50% 40%, hsl(43 96% 60% / 0.30), rgba(0,0,0,0) 65%)' }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0, 1, 0] }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8 }}
           />
         )}
         {stamp === 'saved' && savedPos && (
