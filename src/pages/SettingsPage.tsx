@@ -794,7 +794,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
                 <p className="text-[10px] text-muted-foreground leading-snug">{sc.tagline}</p>
                 <div className="flex gap-2">
                   <LiquidButton className="flex-1" onClick={() => {
-                    const ok = startCaptureScenario(sc.id);
+                    const ok = startCaptureScenario(sc);
                     if (!ok) { errorToast('Scenario unavailable'); return; }
                     hapticMedium();
                     setPendingCaptureId(null);

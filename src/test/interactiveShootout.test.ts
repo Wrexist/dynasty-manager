@@ -11,6 +11,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
+import { getCaptureScenario } from '@/config/captureScenarios';
 import {
   getShootoutProgress, resolveAimedKick, completeShootout, getPenaltyTakerQuality, pickAiAim,
 } from '@/utils/penaltyShootout';
@@ -138,7 +139,7 @@ describe('completeShootout', () => {
 describe('store actions — aimed shootout end to end (World Cup final)', () => {
   beforeEach(() => {
     useGameStore.getState().clearActiveSession();
-    const ok = useGameStore.getState().startCaptureScenario('goat-final');
+    const ok = useGameStore.getState().startCaptureScenario(getCaptureScenario('goat-final')!);
     expect(ok).toBe(true);
     const res = useGameStore.getState().playWorldCupPenalties();
     expect(res).not.toBeNull();
