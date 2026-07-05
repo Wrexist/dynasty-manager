@@ -303,7 +303,9 @@ describe('Phase 2 — injuries + transfer window execution', () => {
     const post = useGameStore.getState();
     for (const pid of ids.slice(0, 5)) {
       const pl = post.players[pid];
-      if (pl?.injuryDetails && pl.injured) {
+      // playCurrentMatch can inflict a NEW (possibly longer) injury on a
+      // seeded player — only the seeded 4-week knock is expected to tick down.
+      if (pl?.injuryDetails && pl.injured && pl.injuryDetails.totalWeeks <= 4) {
         expect(pl.injuryDetails.weeksRemaining).toBeLessThanOrEqual(4);
       }
     }
