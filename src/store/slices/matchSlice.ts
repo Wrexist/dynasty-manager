@@ -1,5 +1,5 @@
 import type { GameState } from '../storeTypes';
-import type { TeamTalkType, PenaltyKick, MatchShout, ShoutType, Match } from '@/types/game';
+import type { TeamTalkType, PenaltyKick, PenaltyShootoutCtx, MatchShout, ShoutType, Match } from '@/types/game';
 import { MAX_SUBSTITUTIONS, SHOUT_DURATION, SHOUT_COOLDOWN, MAX_SHOUTS_PER_MATCH } from '@/config/matchEngine';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
@@ -23,6 +23,7 @@ export const createMatchSlice = (set: Set, get: Get) => ({
   currentCupTieId: null as GameState['currentCupTieId'],
   penaltyShootoutKicks: [] as PenaltyKick[],
   penaltyShootoutRevealIndex: 0,
+  penaltyShootoutCtx: null as PenaltyShootoutCtx | null,
   matchShouts: [] as MatchShout[],
 
   clearMatchResult: () => set({
@@ -34,6 +35,7 @@ export const createMatchSlice = (set: Set, get: Get) => ({
     currentCupTieId: null,
     penaltyShootoutKicks: [],
     penaltyShootoutRevealIndex: 0,
+    penaltyShootoutCtx: null,
     matchShouts: [],
     matchSubbedOffIds: [],
     // Clear ancillary post-match UI state so the next popup/review can't

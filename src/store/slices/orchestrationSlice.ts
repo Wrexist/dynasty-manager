@@ -45,7 +45,7 @@ import {
 import { endSeasonImpl } from '@/store/slices/orchestration/seasonEnd';
 import { advanceWeekImpl } from '@/store/slices/orchestration/weekAdvance';
 import {
-  playCurrentMatchImpl, playFirstHalfImpl, playSecondHalfImpl, playExtraTimeImpl, playPenaltiesImpl, revealNextPenaltyKickImpl, skipPenaltyShootoutImpl,
+  playCurrentMatchImpl, playFirstHalfImpl, playSecondHalfImpl, playExtraTimeImpl, playPenaltiesImpl, skipPenaltyShootoutImpl, takeAimedPenaltyImpl, revealOpponentPenaltyImpl, rollKeeperTauntImpl,
 } from '@/store/slices/orchestration/matchActions';
 import {
   playWorldCupFirstHalfImpl, playWorldCupSecondHalfImpl, playWorldCupExtraTimeImpl,
@@ -469,7 +469,7 @@ function buildFreshSessionState(get: Get): Partial<GameState> {
     // Match-scoped state that previously persisted across resets — audit
     // finding O2 (stale shootout kicks, leftover team talk, etc.).
     matchTeamTalk: 'none' as const, matchShouts: [],
-    penaltyShootoutKicks: [], penaltyShootoutRevealIndex: 0,
+    penaltyShootoutKicks: [], penaltyShootoutRevealIndex: 0, penaltyShootoutCtx: null,
     preMatchSnapshot: null, lastMatchDrama: null, lastMatchCompetition: null,
     transferMarket: [], shortlist: [], scoutWatchList: [], transferNews: [],
     activeLoans: [], incomingLoanOffers: [], outgoingLoanRequests: [],
@@ -668,7 +668,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
   playPenalties: () => playPenaltiesImpl(set, get),
 
-  revealNextPenaltyKick: () => revealNextPenaltyKickImpl(set, get),
+  rollKeeperTaunt: () => rollKeeperTauntImpl(set, get),
+  takeAimedPenalty: (takerId: string, aimX: number, aimY: number, opts?: { power?: number; rattled?: boolean }) => takeAimedPenaltyImpl(set, get, takerId, aimX, aimY, opts),
+  revealOpponentPenalty: () => revealOpponentPenaltyImpl(set, get),
 
   skipPenaltyShootout: () => skipPenaltyShootoutImpl(set, get),
 
@@ -885,7 +887,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         activeSlot: s,
         // Backfill settings with defaults for fields added after save was created
         settings: {
-          matchSpeed: 3300, showOverallOnPitch: true, autoSave: true, hapticsEnabled: true,
+          matchSpeed: 3300, showOverallOnPitch: true, autoSave: true, hapticsEnabled: true, soundEnabled: true,
           hidePageHints: false, hideOnboarding: false, confirmAllOffers: false, reducedMotion: false, performanceMode: false,
           ...(data.settings || {}),
         },
@@ -1133,6 +1135,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       matchShouts: [],
       penaltyShootoutKicks: [],
       penaltyShootoutRevealIndex: 0,
+      penaltyShootoutCtx: null,
       preMatchSnapshot: null,
       lastMatchDrama: null,
       lastMatchCompetition: null,

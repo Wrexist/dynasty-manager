@@ -31,10 +31,12 @@ function playLiveMatch() {
     useGameStore.getState().playWorldCupExtraTime();
   }
   if (useGameStore.getState().matchPhase === 'penalties') {
-    // Pre-compute kicks, then finalise (the UI reveals them one-by-one).
+    // Open the interactive shootout, then Skip to Result — skip auto-completes
+    // the remaining kicks and finalises (same path as the UI's Skip button).
     useGameStore.getState().playWorldCupPenalties();
-    expect(useGameStore.getState().penaltyShootoutKicks.length).toBeGreaterThan(0);
+    expect(useGameStore.getState().penaltyShootoutCtx).not.toBeNull();
     useGameStore.getState().skipPenaltyShootout();
+    expect(useGameStore.getState().penaltyShootoutCtx).toBeNull();
   }
   expect(useGameStore.getState().matchPhase).toBe('full_time');
 }

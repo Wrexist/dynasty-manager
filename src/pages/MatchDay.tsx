@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Play, FastForward, Pause, RefreshCw, Zap, Flame, Shield, AlertTriangle, Calendar, MapPin, Trophy, Hand, Clock, type LucideIcon } from 'lucide-react';
 import { hapticHeavy, hapticMedium, hapticLight, hapticSuccess } from '@/utils/haptics';
+import { resumeSfx } from '@/utils/sfx';
 import { KEY_MOMENT_LOSING_MINUTE, KEY_MOMENT_TIGHT_FINISH_MINUTE, MAX_SUBSTITUTIONS, KEY_MOMENT_DOMINANT_POSSESSION_MIN, KEY_MOMENT_POSSESSION_THRESHOLD, KEY_MOMENT_NEAR_MISS_COUNT, SHOUT_DURATION, SHOUT_COOLDOWN, MAX_SHOUTS_PER_MATCH, MATCH_LOW_FITNESS_THRESHOLD, FITNESS_DEGRADE_PER_MINUTE, PRESSING_FITNESS_DRAIN_PER_POINT, PRESSING_FITNESS_DRAIN_BASELINE, TEMPO_FAST_FITNESS_DRAIN_MOD, TEMPO_SLOW_FITNESS_DRAIN_MOD } from '@/config/matchEngine';
 import { MOTIVATE_FITNESS_DRAIN_MULT, CALM_FITNESS_DRAIN_MULT, DEMAND_FITNESS_DRAIN_MULT } from '@/config/teamTalk';
 import type { HalfState } from '@/engine/match';
@@ -109,7 +110,7 @@ function getTacticsSummary(t: { mentality: string; tempo: string; width: string;
 }
 
 const MatchDayInner = () => {
-  const { playerClubId, week, clubs, matchSubsUsed, tactics, cup, leagueCup, championsCup, shieldCup, conferenceCup, virtualClubs, currentCupTieId, domesticSuperCup, continentalSuperCup, monetization, matchPhase, matchTeamTalk, penaltyShootoutKicks, gameMode, internationalTournament, managerNationality } = useGameStore(useShallow(s => ({
+  const { playerClubId, week, clubs, matchSubsUsed, tactics, cup, leagueCup, championsCup, shieldCup, conferenceCup, virtualClubs, currentCupTieId, domesticSuperCup, continentalSuperCup, monetization, matchPhase, matchTeamTalk, penaltyShootoutKicks, penaltyShootoutCtx, gameMode, internationalTournament, managerNationality } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId,
     week: s.week,
     clubs: s.clubs,
@@ -128,6 +129,7 @@ const MatchDayInner = () => {
     matchPhase: s.matchPhase,
     matchTeamTalk: s.matchTeamTalk,
     penaltyShootoutKicks: s.penaltyShootoutKicks,
+    penaltyShootoutCtx: s.penaltyShootoutCtx,
     gameMode: s.gameMode,
     internationalTournament: s.internationalTournament,
     managerNationality: s.managerNationality,
@@ -366,11 +368,15 @@ const MatchDayInner = () => {
   };
 
   const handlePenalties = () => {
-    // playPenalties() now only pre-computes kicks and stores them for kick-by-kick reveal.
-    // The phase stays 'penalties' until the shootout is finalized via revealNextPenaltyKick / skipPenaltyShootout.
-    // Double-tap guard — a double-fire would re-roll the pre-computed shootout.
+    // playPenalties() opens the interactive tap-to-aim shootout context;
+    // kicks then resolve one at a time (takeAimedPenalty / revealOpponentPenalty)
+    // and skipPenaltyShootout finalizes. Double-tap guard against re-opening.
     if (resumingRef.current) return;
     resumingRef.current = true;
+    // This tap is the guaranteed user gesture before the shootout — unlock
+    // WebAudio here so the crowd bed and the opponent's (possibly first)
+    // kick are audible on iOS even when the player never taps the scene.
+    resumeSfx();
     try {
       if (isWorldCup) playWorldCupPenalties(); else playPenalties();
     } finally {
@@ -1341,7 +1347,7 @@ const MatchDayInner = () => {
       {/* Penalties — cup match still drawn after extra time */}
       {phase === 'penalties' && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-          {penaltyShootoutKicks.length === 0 ? (
+          {penaltyShootoutKicks.length === 0 && !penaltyShootoutCtx ? (
             <GlassPanel className="p-5 space-y-4 text-center mb-20">
               <p className="text-sm font-bold text-primary">Penalty Shootout</p>
               <p className="text-xs text-muted-foreground">Still level after extra time. This match will be decided by penalties.</p>

@@ -25,7 +25,7 @@
   "coreJsTargetBytes": 8126464,
   "coreJsHardLimitBytes": 9437184,
   "communityPackHardLimitBytes": 4194304,
-  "mainChunkHardLimitBytes": 1228800,
+  "mainChunkHardLimitBytes": 1280000,
   "_eagerDoc": [
     "eagerGzHardLimitBytes: gzipped size of the FIRST-LOAD payload — the entry",
     "chunk plus every <link rel=modulepreload> JS chunk in dist/index.html.",

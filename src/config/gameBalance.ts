@@ -275,6 +275,53 @@ export const CUP_EXTRA_TIME_REPUTATION_DIVISOR = 5;
 export const CUP_PENALTY_WIN_CHANCE = 0.5;
 export const CUP_PENALTY_GK_QUALITY_FACTOR = 0.15;
 export const CUP_PENALTY_KICKS = 5;
+
+// ── Interactive penalty shootout (tap-to-aim) ──
+// Calibrated so an average taker aiming a sensible mid-corner shot converts
+// ~PENALTY_CONVERSION_RATE (0.76, config/matchEngine.ts) — the aimed flow must
+// not be systematically easier or harder than the old auto-sim, only more
+// skill-expressive at the extremes (safe center vs risky corner).
+export const PEN_AIM = {
+  /** Off-target risk at a dead-center aim (pros basically never miss the frame). */
+  OFF_TARGET_BASE: 0.02,
+  /** Extra off-target risk at the very edge of the frame for a 0-quality
+   *  taker; scaled down by taker quality. Edge aim ≈ base + edge×(1−q·0.8). */
+  OFF_TARGET_EDGE: 0.30,
+  /** Aim boldness (0 center → 1 extreme corner) beyond which off-target risk
+   *  starts accruing. Below this the shot is always on frame. */
+  SAFE_BOLDNESS: 0.55,
+  /** Chance the keeper reads the correct side at gkQuality 0 / added at 1.
+   *  Correct-side odds = SIDE_READ_BASE + SIDE_READ_GK × gkQuality. */
+  SIDE_READ_BASE: 0.34,
+  SIDE_READ_GK: 0.22,
+  /** Save chance when the keeper picked the right side, for a dead-center
+   *  shot at gkQuality 0.5 — decays with aim boldness (corners are hard to
+   *  reach even when read) and grows with gkQuality. */
+  SAVE_REACH_BASE: 0.82,
+  SAVE_REACH_BOLDNESS_DECAY: 0.62,
+  SAVE_REACH_GK_SPREAD: 0.35,
+  /** How much shooter quality dampens the save chance (composure/placement). */
+  SAVE_SHOOTER_DAMPEN: 0.25,
+  /** Chance the keeper plays mind games before a player kick, and the
+   *  effective-quality penalty on the rattled taker when he does. */
+  KEEPER_TAUNT_CHANCE: 0.3,
+  RATTLE_QUALITY_PENALTY: 0.08,
+  /** Shot power (0–1). NEUTRAL is the calibration point — kicks at that power
+   *  behave exactly like the pre-power model. Above it: harder to save but
+   *  easier to blaze off target; below it: placeable but reachable. */
+  POWER_NEUTRAL: 0.6,
+  /** Off-target chance scales by (1 + POWER_OFF_TARGET_SCALE × (p − neutral)). */
+  POWER_OFF_TARGET_SCALE: 1.1,
+  /** Keeper reach scales by (1 − POWER_SAVE_SCALE × (p − neutral)). */
+  POWER_SAVE_SCALE: 0.8,
+  /** Quick-tap (no charge) shot power, the hold-to-charge ping-pong cycle,
+   *  and the press duration below which a press counts as a tap. */
+  POWER_TAP_DEFAULT: 0.65,
+  CHARGE_CYCLE_MS: 1100,
+  TAP_MAX_MS: 160,
+  /** Keepers' penalty-taking discount (they step up last for a reason). */
+  GK_TAKER_MULT: 0.55,
+} as const;
 /** Maps a nation's 0–1 ranking strength onto the 0–1 GK-quality scale that
  *  simulatePenaltyShootout expects, so international shootouts run through the
  *  same canonical sim as club cups. Club GKs land ~0.5–0.85 via

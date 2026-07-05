@@ -4,7 +4,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { LiquidButton } from '@/components/game/LiquidButton';
 import { SaveStatusIndicator } from '@/components/game/SaveStatusIndicator';
-import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users, Bug, ChartBar, Sparkles, Gauge, Bell, Clapperboard } from 'lucide-react';
+import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users, Bug, ChartBar, Sparkles, Gauge, Bell, Clapperboard, Volume2 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { useState, useRef, useEffect } from 'react';
@@ -456,6 +456,13 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
             value={settings.hapticsEnabled !== false}
             onChange={() => updateSettings({ hapticsEnabled: !settings.hapticsEnabled })}
           />
+          <ToggleRow
+            icon={Volume2}
+            label="Sound effects"
+            description="Crowd, whistle and goal sounds during shootouts"
+            value={settings.soundEnabled !== false}
+            onChange={() => updateSettings({ soundEnabled: settings.soundEnabled === false })}
+          />
 
           <div className="border-t border-white/10" />
 
@@ -777,7 +784,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
           Staged World Cup finals for screen-recording promo videos. Each scenario
           runs as a throwaway session — nothing in it is ever saved, and your
           saved games stay exactly as they are on disk.
-          {gameStarted && ' Your current session will close (auto-save runs first if enabled); reload it from the main menu afterwards.'}
+          {gameStarted && ' Your current session will close — with auto-save OFF, anything since your last manual save is lost, so save first if you need it. Reload from the main menu afterwards.'}
         </p>
         <div className="space-y-2">
           {CAPTURE_SCENARIOS.map(sc => (
@@ -787,7 +794,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
                 <p className="text-[10px] text-muted-foreground leading-snug">{sc.tagline}</p>
                 <div className="flex gap-2">
                   <LiquidButton className="flex-1" onClick={() => {
-                    const ok = startCaptureScenario(sc.id);
+                    const ok = startCaptureScenario(sc);
                     if (!ok) { errorToast('Scenario unavailable'); return; }
                     hapticMedium();
                     setPendingCaptureId(null);

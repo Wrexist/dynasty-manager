@@ -15,8 +15,8 @@ import { CAPTURE_SCENARIOS, getCaptureScenario } from '@/config/captureScenarios
 import { getPlayerNextWorldCupMatch } from '@/utils/internationalMatch';
 import { getNation } from '@/data/nations';
 
-const PENALTY_SCENARIO = 'goat-final';   // Argentina vs Portugal, shootout
-const KICKOFF_SCENARIO = 'haaland-first'; // Norway vs Brazil, from kickoff
+const PENALTY_SCENARIO = getCaptureScenario('goat-final')!;   // Argentina vs Portugal, shootout
+const KICKOFF_SCENARIO = getCaptureScenario('haaland-first')!; // Norway vs Brazil, from kickoff
 const SLOT = 1;
 
 beforeEach(async () => {
@@ -35,8 +35,10 @@ describe('capture scenario config', () => {
     }
   });
 
-  it('returns false for an unknown scenario id', () => {
-    expect(useGameStore.getState().startCaptureScenario('nope')).toBe(false);
+  it('unknown ids resolve to no scenario, which the action rejects', () => {
+    const missing = getCaptureScenario('nope');
+    expect(missing).toBeUndefined();
+    expect(useGameStore.getState().startCaptureScenario(missing)).toBe(false);
   });
 });
 
@@ -45,7 +47,7 @@ describe('startCaptureScenario — penalties stage', () => {
     const ok = useGameStore.getState().startCaptureScenario(PENALTY_SCENARIO);
     expect(ok).toBe(true);
     const s = useGameStore.getState();
-    const sc = getCaptureScenario(PENALTY_SCENARIO)!;
+    const sc = PENALTY_SCENARIO;
 
     expect(s.captureSession).toBe(true);
     expect(s.gameMode).toBe('world-cup');
@@ -90,11 +92,15 @@ describe('startCaptureScenario — penalties stage', () => {
     }
   });
 
-  it('the shootout can actually be rolled from the staged state', () => {
+  it('the shootout can actually be opened from the staged state', () => {
     useGameStore.getState().startCaptureScenario(PENALTY_SCENARIO);
     const res = useGameStore.getState().playWorldCupPenalties();
     expect(res).not.toBeNull();
-    expect(useGameStore.getState().penaltyShootoutKicks.length).toBeGreaterThan(0);
+    // Interactive shootout: kicks resolve one at a time via the aim context.
+    expect(useGameStore.getState().penaltyShootoutCtx).not.toBeNull();
+    const takerId = useGameStore.getState().clubs['Argentina'].lineup[0];
+    expect(useGameStore.getState().takeAimedPenalty(takerId, 0.5, 0.3)).not.toBeNull();
+    expect(useGameStore.getState().penaltyShootoutKicks.length).toBe(1);
   });
 });
 
@@ -102,7 +108,7 @@ describe('startCaptureScenario — kickoff stage', () => {
   it('lands on the Final ready to kick off', () => {
     useGameStore.getState().startCaptureScenario(KICKOFF_SCENARIO);
     const s = useGameStore.getState();
-    const sc = getCaptureScenario(KICKOFF_SCENARIO)!;
+    const sc = KICKOFF_SCENARIO;
 
     expect(s.currentScreen).toBe('match');
     expect(s.matchPhase).toBe('none');

@@ -6,7 +6,6 @@ import { generateNationalTeamPool, autoSelectNationalSquad, generateTournament }
 import { nationToClub, buildInternationalMatchTeams } from '@/utils/internationalMatch';
 import { selectBestLineup } from '@/utils/playerGen';
 import { getNationRanking } from '@/data/nations';
-import { getCaptureScenario } from '@/config/captureScenarios';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -107,6 +106,7 @@ function stageCapturePenalties(_set: Set, _get: Get, scenario: CaptureScenario) 
     matchSubbedOffIds: [],
     penaltyShootoutKicks: [],
     penaltyShootoutRevealIndex: 0,
+    penaltyShootoutCtx: null,
     halfTimeState: null,
     lastMatchCompetition: 'World Cup — Final',
   });
@@ -178,8 +178,7 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
    *  written to a slot: the outgoing session is flushed to disk first (when
    *  auto-save is on), then `captureSession` blocks every subsequent write —
    *  the user's saved games are untouched no matter what happens in here. */
-  startCaptureScenario: (scenarioId: string): boolean => {
-    const scenario = getCaptureScenario(scenarioId);
+  startCaptureScenario: (scenario): boolean => {
     if (!scenario) return false;
 
     const state = _get();

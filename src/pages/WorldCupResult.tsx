@@ -7,7 +7,8 @@ import { useMemo, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Trophy, Medal, Home, RotateCcw, Award, Star, Share2 } from 'lucide-react';
+import { Medal, Home, RotateCcw, Award, Star, Share2 } from 'lucide-react';
+import { WorldCupTrophyIcon } from '@/components/game/icons/WorldCupTrophyIcon';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -145,7 +146,7 @@ const WorldCupResult = () => {
                 motion via the global MotionConfig. */}
             <motion.div
               className={cn(
-                'relative mx-auto w-20 h-20 rounded-2xl flex items-center justify-center mb-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.25),inset_0_-1px_0_rgba(0,0,0,0.3)]',
+                'relative mx-auto w-20 h-24 rounded-2xl flex items-center justify-center mb-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.25),inset_0_-1px_0_rgba(0,0,0,0.3)]',
                 isGold ? 'bg-gradient-to-b from-amber-400/40 to-amber-500/15 text-amber-300' : 'bg-white/[0.06] text-foreground/70',
               )}
               initial={isGold ? { y: 28, scale: 0.6, rotate: -8, opacity: 0 } : false}
@@ -166,7 +167,7 @@ const WorldCupResult = () => {
                 animate={isGold ? { y: [0, -3, 0] } : undefined}
                 transition={isGold ? { duration: 3, repeat: Infinity, ease: 'easeInOut', delay: 0.8 } : undefined}
               >
-                {isGold ? <Trophy className="w-10 h-10" /> : <Medal className="w-10 h-10" />}
+                {isGold ? <WorldCupTrophyIcon className="w-12 h-[4.5rem]" /> : <Medal className="w-10 h-10" />}
               </motion.span>
             </motion.div>
             <div className="flex items-center justify-center gap-2 mb-1">

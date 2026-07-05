@@ -467,6 +467,10 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
 
   set({
     gameStarted: true, playerClubId: clubId, season: 1, week: 1, totalWeeks: league?.totalWeeks || TOTAL_WEEKS,
+    // Starting a real game always exits any Capture Studio session — without
+    // this, a new career begun after a capture teleport would inherit the
+    // save-write block and silently never persist.
+    captureSession: false,
     gameMode: get().gameMode || 'sandbox',
     transferWindowOpen: true, clubs, players: allPlayers, fixtures, leagueTable, friendlies,
     divisionFixtures, divisionTables, divisionClubs, playerDivision,
@@ -475,7 +479,7 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
     transferMarket, shortlist: [], scoutWatchList: [], freeAgents: initialFreeAgentIds, transferNews: [], boardObjectives: objectives, boardConfidence: STARTING_BOARD_CONFIDENCE,
     currentScreen: 'dashboard', previousScreen: null, currentMatchResult: null, trainingFocus: 'fitness',
     messages, seasonHistory: [], incomingOffers: [], matchSubsUsed: 0, matchPhase: 'none', matchTeamTalk: 'none', currentCupTieId: null,
-    settings: { matchSpeed: 3300, showOverallOnPitch: true, autoSave: true, hapticsEnabled: true, hidePageHints: false, hideOnboarding: false, confirmAllOffers: false, reducedMotion: false, performanceMode: false },
+    settings: { matchSpeed: 3300, showOverallOnPitch: true, autoSave: true, hapticsEnabled: true, soundEnabled: true, hidePageHints: false, hideOnboarding: false, confirmAllOffers: false, reducedMotion: false, performanceMode: false },
     tactics: { mentality: 'balanced', width: 'normal', tempo: 'normal', defensiveLine: 'normal', pressingIntensity: 50 },
     training: {
       schedule: { mon: 'fitness', tue: 'attacking', wed: 'defending', thu: 'mentality', fri: 'tactical' },
