@@ -919,6 +919,9 @@ export interface GameSettings {
   showOverallOnPitch: boolean;
   autoSave: boolean;
   hapticsEnabled: boolean;
+  /** Procedural sound effects (crowd, whistle, goal roar). Additive optional
+   *  settings field — loadGame backfills older saves, no migration needed. */
+  soundEnabled?: boolean;
   hidePageHints: boolean;
   hideOnboarding: boolean;
   confirmAllOffers: boolean;

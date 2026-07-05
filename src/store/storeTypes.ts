@@ -344,7 +344,7 @@ export interface GameState {
   revealNextPenaltyKick: () => void;
   /** Interactive shootout: resolve the player's aimed kick. Returns the kick
    *  or null when it isn't the player's turn / taker is invalid. */
-  takeAimedPenalty: (takerId: string, aimX: number, aimY: number) => PenaltyKick | null;
+  takeAimedPenalty: (takerId: string, aimX: number, aimY: number, rattled?: boolean) => PenaltyKick | null;
   /** Interactive shootout: resolve the opponent's next (auto-aimed) kick. */
   revealOpponentPenalty: () => PenaltyKick | null;
   // World Cup mode — interactive national-team matches (Phase D).

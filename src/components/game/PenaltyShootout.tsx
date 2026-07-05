@@ -6,10 +6,12 @@ import { useGameStore } from '@/store/gameStore';
 import { Button } from '@/components/ui/button';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { PlayerCard } from '@/components/game/PlayerCard';
-import { PenaltyGoalScene, type SceneShot } from '@/components/game/shootout/PenaltyGoalScene';
+import { PenaltyGoalScene, shotTimings, type SceneShot } from '@/components/game/shootout/PenaltyGoalScene';
 import { PackConfetti } from '@/components/game/pack/PackConfetti';
 import { getPenaltyTakerQuality, getShootoutProgress } from '@/utils/penaltyShootout';
 import { hapticError, hapticHeavy, hapticLight, hapticMedium, hapticSuccess } from '@/utils/haptics';
+import { resumeSfx, setSfxEnabled, sfxGroan, sfxKick, sfxNet, sfxRoar, sfxWhistle, startCrowdBed, stopCrowdBed } from '@/utils/sfx';
+import { PEN_AIM } from '@/config/gameBalance';
 import { cn } from '@/lib/utils';
 import type { PenaltyKick, Player } from '@/types/game';
 
@@ -26,7 +28,6 @@ import type { PenaltyKick, Player } from '@/types/game';
 type Stage = 'aim' | 'shooting' | 'oppWait' | 'oppShooting' | 'done';
 
 const OPP_STEP_UP_MS = 1350;
-const HAPTIC_AT_MS = 440; // roughly when the ball arrives in the scene
 
 function kickToShot(kick: PenaltyKick, id: number): SceneShot {
   return {
@@ -153,9 +154,33 @@ export function PenaltyShootout() {
   const [aim, setAim] = useState<{ x: number; y: number } | null>(null);
   const [selectedTakerId, setSelectedTakerId] = useState<string | null>(null);
   const [shot, setShot] = useState<SceneShot | null>(null);
+  const [slowMo, setSlowMo] = useState(false);
+  // Keeper mind games: rolled once per player kick when it becomes our turn.
+  const [keeperTaunt, setKeeperTaunt] = useState(false);
   const oppFiredForRef = useRef(-1);
-  const hapticTimerRef = useRef<ReturnType<typeof setTimeout>>();
-  useEffect(() => () => clearTimeout(hapticTimerRef.current), []);
+  const cueTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useEffect(() => () => cueTimersRef.current.forEach(clearTimeout), []);
+
+  // Sound: crowd murmur for the whole shootout; every cue respects the
+  // Settings toggle. resumeSfx() in tap handlers unlocks iOS audio.
+  const soundOn = useGameStore(s => s.settings.soundEnabled !== false);
+  useEffect(() => {
+    setSfxEnabled(soundOn);
+    if (soundOn) startCrowdBed();
+    return () => stopCrowdBed();
+  }, [soundOn]);
+
+  /** Schedule the strike/arrival haptic+sound cues off the shared shot clock. */
+  const scheduleKickCues = useCallback((goodForPlayer: boolean, outcome: string, slow: boolean) => {
+    const tm = shotTimings(slow);
+    sfxWhistle();
+    cueTimersRef.current.push(setTimeout(() => sfxKick(), tm.runupMs));
+    cueTimersRef.current.push(setTimeout(() => {
+      if (goodForPlayer) hapticSuccess(); else hapticError();
+      if (outcome === 'goal') { sfxNet(); if (goodForPlayer) sfxRoar(); else sfxGroan(); }
+      else if (goodForPlayer) sfxRoar(); else sfxGroan();
+    }, tm.arriveMs));
+  }, []);
 
   // ── Derived clubs / squads ─────────────────────────────────────────────
   const myClubId = ctx?.playerIsHome ? currentMatchResult?.homeClubId : currentMatchResult?.awayClubId;
@@ -196,6 +221,16 @@ export function PenaltyShootout() {
     }
   }, [stage, takerPool, selectedTakerId]);
 
+  // Mind games — one roll per player kick. Presentation decides the theatre;
+  // the store applies the composure penalty when the kick is struck.
+  const tauntRolledForRef = useRef(-1);
+  useEffect(() => {
+    if (stage !== 'aim') return;
+    if (tauntRolledForRef.current === kicks.length) return;
+    tauntRolledForRef.current = kicks.length;
+    setKeeperTaunt(Math.random() < PEN_AIM.KEEPER_TAUNT_CHANCE);
+  }, [stage, kicks.length]);
+
   // ── Flow control ───────────────────────────────────────────────────────
   const advance = useCallback(() => {
     setShot(null);
@@ -205,6 +240,8 @@ export function PenaltyShootout() {
     const c = st.penaltyShootoutCtx;
     if (prog.decided || !c) {
       hapticHeavy();
+      const playerWonNow = c ? (c.playerIsHome ? prog.homeTotal > prog.awayTotal : prog.awayTotal > prog.homeTotal) : false;
+      if (playerWonNow) sfxRoar(true); else sfxGroan();
       setStage('done');
       return;
     }
@@ -222,22 +259,28 @@ export function PenaltyShootout() {
     if (oppFiredForRef.current === kicks.length) return;
     oppFiredForRef.current = kicks.length;
     const t = setTimeout(() => {
+      const st = useGameStore.getState();
+      const decisive = getStakes(st.penaltyShootoutKicks, st.penaltyShootoutCtx?.playerIsHome ?? true, false) !== null;
       const kick = revealOpponentPenalty();
       if (!kick) { advance(); return; }
       const isGoodForPlayer = !kick.scored;
-      hapticTimerRef.current = setTimeout(() => (isGoodForPlayer ? hapticSuccess() : hapticError()), HAPTIC_AT_MS);
+      setSlowMo(decisive);
+      scheduleKickCues(isGoodForPlayer, kick.outcome ?? (kick.scored ? 'goal' : 'saved'), decisive);
       setShot(kickToShot(kick, useGameStore.getState().penaltyShootoutKicks.length));
       setStage('oppShooting');
     }, OPP_STEP_UP_MS);
     return () => clearTimeout(t);
-  }, [stage, kicks.length, revealOpponentPenalty, advance]);
+  }, [stage, kicks.length, revealOpponentPenalty, advance, scheduleKickCues]);
 
   const handleShoot = () => {
     if (!aim || !selectedTakerId || stage !== 'aim') return;
     hapticMedium();
-    const kick = takeAimedPenalty(selectedTakerId, aim.x, aim.y);
+    resumeSfx();
+    const decisive = getStakes(kicks, ctx?.playerIsHome ?? true, true) !== null;
+    const kick = takeAimedPenalty(selectedTakerId, aim.x, aim.y, keeperTaunt);
     if (!kick) { advance(); return; }
-    hapticTimerRef.current = setTimeout(() => (kick.scored ? hapticSuccess() : hapticError()), HAPTIC_AT_MS);
+    setSlowMo(decisive);
+    scheduleKickCues(kick.scored, kick.outcome ?? (kick.scored ? 'goal' : 'saved'), decisive);
     setShot(kickToShot(kick, useGameStore.getState().penaltyShootoutKicks.length));
     setStage('shooting');
   };
@@ -341,11 +384,17 @@ export function PenaltyShootout() {
         <PenaltyGoalScene
           keeperColor={keeperClub?.color ?? '#888'}
           keeperColor2={keeperClub?.secondaryColor}
+          shooterColor={(shootingAtOppGK ? myClub : oppClub)?.color}
+          shooterColor2={(shootingAtOppGK ? myClub : oppClub)?.secondaryColor}
           aim={stage === 'aim' ? aim : null}
-          onAim={stage === 'aim' ? (x, y) => { hapticLight(); setAim({ x, y }); } : undefined}
+          onAim={stage === 'aim' ? (x, y) => { hapticLight(); resumeSfx(); setAim({ x, y }); } : undefined}
           shot={shot}
           onShotComplete={advance}
           lively={!reducedMotion}
+          slowMo={slowMo}
+          keeperTaunt={stage === 'aim' && keeperTaunt}
+          celebration={stage === 'done' ? (playerWon ? 'win' : 'loss') : null}
+          celebrationColor={myClub.color}
         />
 
         {/* Stakes chip — broadcast pressure framing for decisive kicks */}
@@ -418,7 +467,9 @@ export function PenaltyShootout() {
                 </p>
                 <p className="text-[10px] text-muted-foreground">{aim ? 'Tap Shoot — or re-aim' : 'Tap the goal to aim'}</p>
               </div>
-              <p className="text-[10px] italic text-muted-foreground/80 -mt-1">{commentary}</p>
+              <p className={cn('text-[10px] italic -mt-1', keeperTaunt ? 'text-red-300/90 font-semibold not-italic' : 'text-muted-foreground/80')}>
+                {keeperTaunt ? "The keeper's playing mind games — your taker looks rattled." : commentary}
+              </p>
               <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
                 {takerPool.map(p => (
                   <TakerCard
@@ -473,7 +524,7 @@ export function PenaltyShootout() {
             key="done"
             initial={{ opacity: 0, scale: 0.92 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ type: 'spring', stiffness: 320, damping: 24 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 24, delay: 1.0 }}
           >
             <GlassPanel className={cn('p-4 text-center space-y-2', playerWon ? 'border-primary/60' : 'border-red-500/40')}>
               <p className={cn(

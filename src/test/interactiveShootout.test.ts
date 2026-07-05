@@ -222,6 +222,14 @@ describe('store actions — aimed shootout end to end (World Cup final)', () => 
     expect(s.currentMatchResult!.penaltyShootout).toBeTruthy();
   });
 
+  it('a rattled kick resolves through the same contract', () => {
+    const st = useGameStore.getState();
+    const takerId = st.clubs['Argentina'].lineup[0];
+    const kick = st.takeAimedPenalty(takerId, 0.6, 0.3, true);
+    expect(kick).not.toBeNull();
+    expect(['goal', 'saved', 'off_target']).toContain(kick!.outcome);
+  });
+
   it('penalty taker quality helper is sane', () => {
     const st = useGameStore.getState();
     const anyPlayer = st.players[st.clubs['Argentina'].lineup[0]];

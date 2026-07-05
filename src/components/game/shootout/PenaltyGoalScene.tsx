@@ -40,6 +40,17 @@ interface PenaltyGoalSceneProps {
   /** Atmosphere flourishes (camera flashes, ball trail). Pass false under
    *  reduced-motion / performance mode. */
   lively?: boolean;
+  /** Decisive-kick drama: slower flight + longer hold. */
+  slowMo?: boolean;
+  /** Keeper mind games — exaggerated line-dance while the shooter aims. */
+  keeperTaunt?: boolean;
+  /** End-of-shootout beat: teammates flood in (win) or the lights die (loss). */
+  celebration?: 'win' | 'loss' | null;
+  /** Jersey color for the celebration runners (the winning side). */
+  celebrationColor?: string;
+  /** Shooter jersey colors (the side taking the current kick). */
+  shooterColor?: string;
+  shooterColor2?: string;
 }
 
 // Scene geometry (fractions of the container box).
@@ -51,8 +62,15 @@ const GOAL = {
 };
 const BALL_START = { x: 0.5, y: 0.90 };
 
-const FLIGHT_S = 0.38;
-const RESULT_HOLD_MS = 1450;
+/** One clock for scene, haptics and sound: run-up → strike → arrival → done.
+ *  Exported so the parent schedules its cues off the same numbers. */
+export function shotTimings(slowMo: boolean) {
+  const runupMs = 320;
+  const flightMs = slowMo ? 920 : 380;
+  const arriveMs = runupMs + flightMs + 60;
+  const completeMs = arriveMs + (slowMo ? 1750 : 1400);
+  return { runupMs, flightMs, arriveMs, completeMs };
+}
 
 /** Normalized aim → container-fraction position inside the goal mouth. */
 function aimToPos(aimX: number, aimY: number) {
@@ -118,6 +136,31 @@ function KeeperFigure({ color, color2 }: { color: string; color2?: string }) {
       <path d="M20.5 52 L39.5 52 L38 62 L22 62 Z" fill="#1f2430" />
       <path d="M24 62 L23 76 M36 62 L37 76" stroke="#d9b38c" strokeWidth="5.5" strokeLinecap="round" />
       <path d="M20.5 78 L25.5 78 M34.5 78 L39.5 78" stroke="#141821" strokeWidth="5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** The taker, seen from behind — jersey, shorts, socks. The run-up animates
+ *  the whole group toward the ball. */
+function ShooterFigure({ color, color2 }: { color: string; color2?: string }) {
+  const trim = color2 || '#ffffff';
+  return (
+    <svg viewBox="0 0 44 82" className="w-full h-full" aria-hidden="true">
+      {/* head + hair */}
+      <circle cx="22" cy="12" r="7" fill="#d9b38c" />
+      <path d="M15 10.5 Q22 3.5 29 10.5 Q26 6.5 22 6.5 Q18 6.5 15 10.5 Z" fill="#2b2019" />
+      {/* torso (back) with number-plate hint */}
+      <path d="M12 22 Q22 17 32 22 L30.5 44 Q22 47 13.5 44 Z" fill={color} stroke="rgba(0,0,0,0.3)" strokeWidth="1" />
+      <rect x="17.5" y="26" width="9" height="10" rx="1.5" fill={trim} opacity="0.35" />
+      {/* arms */}
+      <path d="M12.5 24 Q7 31 9 38" stroke={color} strokeWidth="5.5" strokeLinecap="round" fill="none" />
+      <path d="M31.5 24 Q37 31 35 38" stroke={color} strokeWidth="5.5" strokeLinecap="round" fill="none" />
+      {/* shorts + legs + boots */}
+      <path d="M14 44 L30 44 L28.5 54 L15.5 54 Z" fill="#1f2430" />
+      <path d="M18 54 L17 70 M26 54 L27 70" stroke="#d9b38c" strokeWidth="5" strokeLinecap="round" />
+      <path d="M15.5 72.5 L19.5 74.5 M28.5 72.5 L24.5 74.5" stroke="#141821" strokeWidth="4.5" strokeLinecap="round" />
+      {/* socks */}
+      <path d="M17.2 64 L16.6 70 M26.8 64 L27.4 70" stroke={trim} strokeWidth="5" strokeLinecap="round" opacity="0.9" />
     </svg>
   );
 }
@@ -233,20 +276,25 @@ function SceneBackdrop() {
 
 export const PenaltyGoalScene = memo(function PenaltyGoalScene({
   keeperColor, keeperColor2, aim, onAim, shot, onShotComplete, lively = true,
+  slowMo = false, keeperTaunt = false, celebration = null, celebrationColor,
+  shooterColor, shooterColor2,
 }: PenaltyGoalSceneProps) {
   const boxRef = useRef<HTMLDivElement>(null);
   const [stamp, setStamp] = useState<null | 'goal' | 'saved' | 'off_target'>(null);
   const completeTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const stampTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const t = shotTimings(slowMo);
+  const runupS = t.runupMs / 1000;
+  const flightS = t.flightMs / 1000;
 
-  // Play out a shot: flight → stamp → completion callback.
+  // Play out a shot: run-up → flight → stamp → completion callback.
   useEffect(() => {
     if (!shot) { setStamp(null); return; }
     setStamp(null);
-    stampTimerRef.current = setTimeout(() => setStamp(shot.outcome), FLIGHT_S * 1000 + 60);
-    completeTimerRef.current = setTimeout(() => onShotComplete?.(), FLIGHT_S * 1000 + RESULT_HOLD_MS);
+    stampTimerRef.current = setTimeout(() => setStamp(shot.outcome), t.arriveMs);
+    completeTimerRef.current = setTimeout(() => onShotComplete?.(), t.completeMs);
     return () => { clearTimeout(stampTimerRef.current); clearTimeout(completeTimerRef.current); };
-    // onShotComplete is intentionally captured per shot id.
+    // onShotComplete/timings are intentionally captured per shot id.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shot?.id]);
 
@@ -298,8 +346,10 @@ export const PenaltyGoalScene = memo(function PenaltyGoalScene({
         style={{ left: '50%', top: '38%', width: '13%', height: '34%', marginLeft: '-6.5%' }}
         initial={{ x: 0, y: 0, rotate: 0 }}
         animate={shot
-          ? { x: divePx, y: diveLift, rotate: diveRotate, transition: { duration: FLIGHT_S + 0.08, ease: [0.3, 0.7, 0.4, 1] } }
-          : { x: [0, -6, 6, 0], transition: { duration: 2.4, repeat: Infinity, ease: 'easeInOut' } }}
+          ? { x: divePx, y: diveLift, rotate: diveRotate, transition: { duration: flightS + 0.08, ease: [0.3, 0.7, 0.4, 1], delay: runupS } }
+          : keeperTaunt
+            ? { x: [0, -14, 14, 0], y: [0, -6, 0, -6], transition: { duration: 1.1, repeat: Infinity, ease: 'easeInOut' } }
+            : { x: [0, -6, 6, 0], transition: { duration: 2.4, repeat: Infinity, ease: 'easeInOut' } }}
       >
         <KeeperFigure color={keeperColor} color2={keeperColor2} />
       </motion.div>
@@ -327,6 +377,22 @@ export const PenaltyGoalScene = memo(function PenaltyGoalScene({
         )}
       </AnimatePresence>
 
+      {/* Shooter — waits over the ball, then a three-step run-up as the kick
+          begins. Hidden during the celebration beat. */}
+      {shooterColor && !celebration && (
+        <motion.div
+          key={`shooter-${shot?.id ?? 'idle'}`}
+          className="absolute pointer-events-none"
+          style={{ left: '39%', top: '68%', width: '9.5%', height: '26%' }}
+          initial={{ x: 0, y: 0, rotate: 0 }}
+          animate={shot
+            ? { x: w * 0.075, y: h * 0.045, rotate: [0, -7, 9, 3], transition: { duration: runupS, ease: 'easeIn' } }
+            : { y: [0, -2.5, 0], transition: { duration: 1.8, repeat: Infinity, ease: 'easeInOut' } }}
+        >
+          <ShooterFigure color={shooterColor} color2={shooterColor2} />
+        </motion.div>
+      )}
+
       {/* Ball trail ghost — follows the flight a beat behind */}
       {lively && shot && target && (
         <motion.div
@@ -339,7 +405,7 @@ export const PenaltyGoalScene = memo(function PenaltyGoalScene({
             y: [BALL_START.y * h, (target.y - 0.10) * h, target.y * h],
             scale: 0.5,
             opacity: 0,
-            transition: { duration: FLIGHT_S + 0.1, ease: 'easeOut', delay: 0.05 },
+            transition: { duration: flightS + 0.1, ease: 'easeOut', delay: runupS + 0.05 },
           }}
         >
           <div className="w-5 h-5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/70 blur-[2px]" />
@@ -359,7 +425,7 @@ export const PenaltyGoalScene = memo(function PenaltyGoalScene({
           y: [BALL_START.y * h, (target.y - 0.10) * h, target.y * h],
           scale: 0.62,
           rotate: shot.aimX * 220,
-          transition: { duration: FLIGHT_S, ease: 'easeOut' },
+          transition: { duration: flightS, ease: 'easeOut', delay: runupS },
         } : { x: BALL_START.x * w, y: BALL_START.y * h, scale: 1 }}
       >
         <div className="w-5 h-5 -translate-x-1/2 -translate-y-1/2">
@@ -399,6 +465,49 @@ export const PenaltyGoalScene = memo(function PenaltyGoalScene({
             initial={{ opacity: 0 }}
             animate={{ opacity: [0, 1, 0] }}
             transition={{ duration: 0.6 }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* End-of-shootout beat: teammates flood the box, or the lights die. */}
+      <AnimatePresence>
+        {celebration === 'win' && (
+          <motion.div key="celebrate" className="absolute inset-0 pointer-events-none" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            {[0, 1, 2, 3, 4, 5, 6].map(i => (
+              <motion.div
+                key={i}
+                className="absolute w-3.5 h-3.5 rounded-full border border-white/70"
+                style={{
+                  backgroundColor: celebrationColor ?? '#fbbf24',
+                  boxShadow: '0 2px 5px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.4)',
+                  left: `${8 + (i % 2) * 78}%`,
+                  top: '96%',
+                }}
+                initial={{ x: 0, y: 0, opacity: 0 }}
+                animate={{
+                  x: (w * (0.42 + (i % 4) * 0.05)) - (w * (0.08 + (i % 2) * 0.78)),
+                  y: -(h * (0.32 + (i % 3) * 0.07)),
+                  opacity: 1,
+                }}
+                transition={{ duration: 0.9 + i * 0.12, ease: 'easeOut', delay: 0.15 + i * 0.09 }}
+              />
+            ))}
+            <motion.div
+              className="absolute inset-0"
+              style={{ background: 'radial-gradient(circle at 50% 45%, hsl(43 96% 60% / 0.22), rgba(0,0,0,0) 70%)' }}
+              animate={{ opacity: [0, 1, 0.5, 1, 0.6] }}
+              transition={{ duration: 2.4 }}
+            />
+          </motion.div>
+        )}
+        {celebration === 'loss' && (
+          <motion.div
+            key="loss"
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: 'linear-gradient(to bottom, rgba(8,10,16,0.55), rgba(8,10,16,0.75))' }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1.4 }}
           />
         )}
       </AnimatePresence>

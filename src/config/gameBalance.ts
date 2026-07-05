@@ -302,6 +302,10 @@ export const PEN_AIM = {
   SAVE_REACH_GK_SPREAD: 0.35,
   /** How much shooter quality dampens the save chance (composure/placement). */
   SAVE_SHOOTER_DAMPEN: 0.25,
+  /** Chance the keeper plays mind games before a player kick, and the
+   *  effective-quality penalty on the rattled taker when he does. */
+  KEEPER_TAUNT_CHANCE: 0.3,
+  RATTLE_QUALITY_PENALTY: 0.08,
 } as const;
 /** Maps a nation's 0–1 ranking strength onto the 0–1 GK-quality scale that
  *  simulatePenaltyShootout expects, so international shootouts run through the

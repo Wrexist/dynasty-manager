@@ -4,7 +4,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { LiquidButton } from '@/components/game/LiquidButton';
 import { SaveStatusIndicator } from '@/components/game/SaveStatusIndicator';
-import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users, Bug, ChartBar, Sparkles, Gauge, Bell, Clapperboard } from 'lucide-react';
+import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users, Bug, ChartBar, Sparkles, Gauge, Bell, Clapperboard, Volume2 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { useState, useRef, useEffect } from 'react';
@@ -455,6 +455,13 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
             description="Vibrate on key actions (mobile only)"
             value={settings.hapticsEnabled !== false}
             onChange={() => updateSettings({ hapticsEnabled: !settings.hapticsEnabled })}
+          />
+          <ToggleRow
+            icon={Volume2}
+            label="Sound effects"
+            description="Crowd, whistle and goal sounds during shootouts"
+            value={settings.soundEnabled !== false}
+            onChange={() => updateSettings({ soundEnabled: settings.soundEnabled === false })}
           />
 
           <div className="border-t border-white/10" />

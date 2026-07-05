@@ -669,7 +669,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
   playPenalties: () => playPenaltiesImpl(set, get),
 
   revealNextPenaltyKick: () => revealNextPenaltyKickImpl(set, get),
-  takeAimedPenalty: (takerId: string, aimX: number, aimY: number) => takeAimedPenaltyImpl(set, get, takerId, aimX, aimY),
+  takeAimedPenalty: (takerId: string, aimX: number, aimY: number, rattled?: boolean) => takeAimedPenaltyImpl(set, get, takerId, aimX, aimY, rattled),
   revealOpponentPenalty: () => revealOpponentPenaltyImpl(set, get),
 
   skipPenaltyShootout: () => skipPenaltyShootoutImpl(set, get),
@@ -887,7 +887,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         activeSlot: s,
         // Backfill settings with defaults for fields added after save was created
         settings: {
-          matchSpeed: 3300, showOverallOnPitch: true, autoSave: true, hapticsEnabled: true,
+          matchSpeed: 3300, showOverallOnPitch: true, autoSave: true, hapticsEnabled: true, soundEnabled: true,
           hidePageHints: false, hideOnboarding: false, confirmAllOffers: false, reducedMotion: false, performanceMode: false,
           ...(data.settings || {}),
         },

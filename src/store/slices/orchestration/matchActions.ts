@@ -13,7 +13,7 @@ import { hasPerk } from '@/utils/managerPerks';
 
 import { getAICounterTactics } from '@/config/aiManager';
 import { CONTINENTAL_PRIZE_MONEY } from '@/config/continental';
-import { CUP_EXTRA_TIME_GOAL_CHANCE, CUP_EXTRA_TIME_REPUTATION_DIVISOR, CUP_PENALTY_KICKS, FORFEIT_SCORE, FRIENDLY_BOARD_CONFIDENCE_MULT, LINEUP_SIZE, MAX_CAREER_TIMELINE, MOTIVATOR_MORALE_BOOST } from '@/config/gameBalance';
+import { CUP_EXTRA_TIME_GOAL_CHANCE, CUP_EXTRA_TIME_REPUTATION_DIVISOR, CUP_PENALTY_KICKS, FORFEIT_SCORE, FRIENDLY_BOARD_CONFIDENCE_MULT, LINEUP_SIZE, MAX_CAREER_TIMELINE, MOTIVATOR_MORALE_BOOST, PEN_AIM } from '@/config/gameBalance';
 import { MOD_DISCIPLINE_CARDS, REP_DRAW, REP_LOSS, REP_WIN } from '@/config/managerCareer';
 import { SHOUT_CUMULATIVE_SCALE, SHOUT_MODIFIERS } from '@/config/matchEngine';
 import { CALM_DEFENSE_BOOST, CALM_FITNESS_DRAIN_MULT, CALM_FOUL_REDUCTION, DEMAND_ATTACK_BOOST, DEMAND_DEFENSE_PENALTY, DEMAND_FITNESS_DRAIN_MULT, MOTIVATE_ATTACK_BOOST, MOTIVATE_FITNESS_DRAIN_MULT, MOTIVATE_FOUL_BONUS } from '@/config/teamTalk';
@@ -1575,7 +1575,7 @@ export function beginInteractiveShootoutImpl(set: Set, get: Get): Match | null {
 
 /** Resolve the player's aimed kick. Null when it isn't the player's turn or
  *  the taker id is invalid — callers treat null as "nothing happened". */
-export function takeAimedPenaltyImpl(set: Set, get: Get, takerId: string, aimX: number, aimY: number): PenaltyKick | null {
+export function takeAimedPenaltyImpl(set: Set, get: Get, takerId: string, aimX: number, aimY: number, rattled = false): PenaltyKick | null {
   const state = get();
   const { penaltyShootoutCtx: ctx, penaltyShootoutKicks: kicks, players, clubs, currentMatchResult } = state;
   if (!ctx || !currentMatchResult) return null;
@@ -1585,7 +1585,9 @@ export function takeAimedPenaltyImpl(set: Set, get: Get, takerId: string, aimX: 
   if (!taker) return null;
 
   const keeperQuality = ctx.playerIsHome ? ctx.awayGKQuality : ctx.homeGKQuality;
-  const res = resolveAimedKick({ aimX, aimY, shooterQuality: getPenaltyTakerQuality(taker), keeperQuality });
+  // Keeper mind games: a rattled taker strikes with slightly less composure.
+  const shooterQuality = Math.max(0, getPenaltyTakerQuality(taker) - (rattled ? PEN_AIM.RATTLE_QUALITY_PENALTY : 0));
+  const res = resolveAimedKick({ aimX, aimY, shooterQuality, keeperQuality });
   const kick: PenaltyKick = {
     round: prog.nextRound,
     isHome: ctx.playerIsHome,
