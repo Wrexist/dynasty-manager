@@ -6,10 +6,10 @@ import { useGameStore } from '@/store/gameStore';
 import { Button } from '@/components/ui/button';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { PlayerCard } from '@/components/game/PlayerCard';
-import { FlagIcon } from '@/components/game/FlagIcon';
 import { PenaltyGoalScene, shotTimings, type SceneShot } from '@/components/game/shootout/PenaltyGoalScene';
 import { PackConfetti } from '@/components/game/pack/PackConfetti';
-import { getPenaltyTakerQuality, getShootoutProgress } from '@/utils/penaltyShootout';
+import { getKickStakes, getPenaltyTakerQuality, getShootoutProgress } from '@/utils/penaltyShootout';
+import { getFlag } from '@/utils/nationality';
 import { hapticError, hapticHeavy, hapticLight, hapticMedium, hapticSuccess } from '@/utils/haptics';
 import { resumeSfx, setSfxEnabled, sfxGroan, sfxKick, sfxNet, sfxRoar, sfxWhistle, startCrowdBed, stopCrowdBed } from '@/utils/sfx';
 import { PEN_AIM } from '@/config/gameBalance';
@@ -38,34 +38,17 @@ function kickToShot(kick: PenaltyKick, id: number): SceneShot {
     diveX: kick.diveX ?? 0,
     diveY: kick.diveY ?? 0.3,
     outcome: kick.outcome ?? (kick.scored ? 'goal' : 'saved'),
-    power: kick.power,
+    // Pin the default so the scene's clock matches scheduleKickCues exactly.
+    power: kick.power ?? 0.6,
   };
 }
 
-/** Broadcast-style stakes for the upcoming kick: what happens if it goes in
- *  or stays out, phrased from the player's perspective. Null when the kick
- *  carries no decisive weight yet. */
-function getStakes(kicks: PenaltyKick[], playerIsHome: boolean, playerKicking: boolean): string | null {
-  const prog = getShootoutProgress(kicks);
-  if (prog.decided || prog.nextIsHome === null) return null;
-  const hypothetical = (scored: boolean) => getShootoutProgress([...kicks, {
-    round: prog.nextRound, isHome: prog.nextIsHome!, takerName: '', scored,
-    homeTotal: prog.homeTotal + (prog.nextIsHome && scored ? 1 : 0),
-    awayTotal: prog.awayTotal + (!prog.nextIsHome && scored ? 1 : 0),
-  }]);
-  const ifScored = hypothetical(true);
-  const ifMissed = hypothetical(false);
-  const playerWins = (p: ReturnType<typeof getShootoutProgress>) =>
-    p.decided && (playerIsHome ? p.homeTotal > p.awayTotal : p.awayTotal > p.homeTotal);
-  if (playerKicking) {
-    if (playerWins(ifScored)) return 'SCORE TO WIN IT';
-    if (ifMissed.decided && !playerWins(ifMissed)) return 'MISS AND IT\u2019S OVER';
-  } else {
-    if (ifMissed.decided && playerWins(ifMissed)) return 'A SAVE WINS IT';
-    if (ifScored.decided && !playerWins(ifScored)) return 'IF HE SCORES, IT\u2019S OVER';
-  }
-  return null;
-}
+const STAKES_COPY: Record<string, string> = {
+  score_to_win: 'SCORE TO WIN IT',
+  miss_to_lose: 'MISS AND IT\u2019S OVER',
+  save_to_win: 'A SAVE WINS IT',
+  concede_to_lose: 'IF HE SCORES, IT\u2019S OVER',
+};
 
 const AIM_LINES = [
   'The stadium holds its breath\u2026',
@@ -80,6 +63,81 @@ const OPP_LINES = [
   'He places the ball. Deep breath.',
   'The referee checks the line.',
 ];
+
+/** Self-contained power meter: runs its own rAF ping-pong and re-renders only
+ *  itself at ~60fps, writing the live value into `powerRef` for the parent to
+ *  read at release. `frozenAt` displays a fixed value (during the flight). */
+function ChargeMeter({ active, frozenAt, powerRef, cycleMs }: {
+  active: boolean;
+  frozenAt: number | null;
+  powerRef: React.MutableRefObject<number>;
+  cycleMs: number;
+}) {
+  const [display, setDisplay] = useState(0);
+  useEffect(() => {
+    if (!active) return;
+    let raf = 0;
+    const start = performance.now();
+    const loop = (now: number) => {
+      const cycle = ((now - start) / cycleMs) % 2;
+      const p = 1 - Math.abs(1 - cycle); // ping-pong 0→1→0
+      powerRef.current = p;
+      setDisplay(p);
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [active, cycleMs, powerRef]);
+  const value = frozenAt ?? display;
+  return (
+    <div className="w-36 rounded-xl bg-black/75 border border-white/15 px-2.5 py-1.5 pointer-events-none">
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-[9px] font-black tracking-[0.14em] text-white/80">POWER</span>
+        <span className="text-[10px] font-display font-black tabular-nums text-white">{Math.round(value * 100)}%</span>
+      </div>
+      <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+        <div
+          className="h-full rounded-full"
+          style={{
+            width: `${Math.round(value * 100)}%`,
+            background: 'linear-gradient(90deg, #22C55E 0%, #F59E0B 60%, #EF4444 100%)',
+            boxShadow: '0 0 8px rgba(34,197,94,0.6)',
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+/** One team side of the broadcast scoreboard: crest, code, five kick dots. */
+function TeamSide({ club, dots, isNation, align }: {
+  club: { id: string; shortName: string; color: string } | undefined;
+  dots: (string | null)[];
+  isNation: boolean;
+  align: 'left' | 'right';
+}) {
+  if (!club) return <span />;
+  const crest = isNation
+    ? <span className="text-sm leading-none shrink-0">{getFlag(club.id)}</span>
+    : <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: club.color }} />;
+  const dotRow = (
+    <span className="flex items-center gap-[3px]">
+      {dots.map((d, i) => (
+        <span key={i} className={cn('w-[7px] h-[7px] rounded-full border',
+          d === 'goal' ? 'bg-emerald-400 border-emerald-300 shadow-[0_0_5px_rgba(52,211,153,0.9)]'
+            : d === 'miss' ? 'bg-red-500 border-red-400'
+              : 'bg-transparent border-white/30')} />
+      ))}
+    </span>
+  );
+  return (
+    <div className={cn('flex items-center gap-1.5 min-w-0', align === 'right' && 'justify-end')}>
+      {align === 'left' ? crest : dotRow}
+      <span className="text-[11px] font-black text-white leading-none">{club.shortName}</span>
+      {align === 'left' ? dotRow : crest}
+    </div>
+  );
+}
 
 function KickResultChip({ kick }: { kick: PenaltyKick | undefined }) {
   if (!kick) return <span className="w-4 h-4 rounded-full border border-white/15 bg-white/5 shrink-0" />;
@@ -145,11 +203,12 @@ export function PenaltyShootout() {
   })));
   const takeAimedPenalty = useGameStore(s => s.takeAimedPenalty);
   const revealOpponentPenalty = useGameStore(s => s.revealOpponentPenalty);
+  const rollKeeperTaunt = useGameStore(s => s.rollKeeperTaunt);
   const skipAll = useGameStore(s => s.skipPenaltyShootout);
   const reducedMotion = useGameStore(s => s.settings.reducedMotion || s.settings.performanceMode);
   const isWorldCup = useGameStore(s => s.gameMode === 'world-cup');
 
-  const progress = getShootoutProgress(kicks);
+  const progress = useMemo(() => getShootoutProgress(kicks), [kicks]);
   const playerTurn = ctx ? progress.nextIsHome === ctx.playerIsHome : false;
 
   const [stage, setStage] = useState<Stage>(() =>
@@ -158,8 +217,6 @@ export function PenaltyShootout() {
   const [selectedTakerId, setSelectedTakerId] = useState<string | null>(null);
   const [shot, setShot] = useState<SceneShot | null>(null);
   const [slowMo, setSlowMo] = useState(false);
-  // Keeper mind games: rolled once per player kick when it becomes our turn.
-  const [keeperTaunt, setKeeperTaunt] = useState(false);
   const oppFiredForRef = useRef(-1);
   const cueTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   useEffect(() => () => cueTimersRef.current.forEach(clearTimeout), []);
@@ -173,15 +230,18 @@ export function PenaltyShootout() {
     return () => stopCrowdBed();
   }, [soundOn]);
 
-  /** Schedule the strike/arrival haptic+sound cues off the shared shot clock. */
-  const scheduleKickCues = useCallback((goodForPlayer: boolean, outcome: string, slow: boolean, power = 0.6) => {
+  /** Schedule the strike/arrival haptic+sound cues off the shared shot clock.
+   *  `finalKick` upgrades the arrival roar to the full-time eruption so the
+   *  deciding kick plays ONE celebration, not an arrival cue plus a second
+   *  sting at completion. */
+  const scheduleKickCues = useCallback((goodForPlayer: boolean, outcome: string, slow: boolean, power = 0.6, finalKick = false) => {
     const tm = shotTimings(slow, power);
     sfxWhistle();
     cueTimersRef.current.push(setTimeout(() => sfxKick(), tm.runupMs));
     cueTimersRef.current.push(setTimeout(() => {
       if (goodForPlayer) hapticSuccess(); else hapticError();
-      if (outcome === 'goal') { sfxNet(); if (goodForPlayer) sfxRoar(); else sfxGroan(); }
-      else if (goodForPlayer) sfxRoar(); else sfxGroan();
+      if (outcome === 'goal') sfxNet();
+      if (goodForPlayer) sfxRoar(finalKick); else sfxGroan();
     }, tm.arriveMs));
   }, []);
 
@@ -224,15 +284,12 @@ export function PenaltyShootout() {
     }
   }, [stage, takerPool, selectedTakerId]);
 
-  // Mind games — one roll per player kick. Presentation decides the theatre;
-  // the store applies the composure penalty when the kick is struck.
-  const tauntRolledForRef = useRef(-1);
+  // Mind games — the store rolls (idempotently per kick) and applies the
+  // composure penalty when the kick is struck; we only render the theatre.
   useEffect(() => {
-    if (stage !== 'aim') return;
-    if (tauntRolledForRef.current === kicks.length) return;
-    tauntRolledForRef.current = kicks.length;
-    setKeeperTaunt(Math.random() < PEN_AIM.KEEPER_TAUNT_CHANCE);
-  }, [stage, kicks.length]);
+    if (stage === 'aim') rollKeeperTaunt();
+  }, [stage, kicks.length, rollKeeperTaunt]);
+  const keeperTaunt = ctx?.tauntActive === true;
 
   // ── Flow control ───────────────────────────────────────────────────────
   const advance = useCallback(() => {
@@ -242,9 +299,9 @@ export function PenaltyShootout() {
     const prog = getShootoutProgress(st.penaltyShootoutKicks);
     const c = st.penaltyShootoutCtx;
     if (prog.decided || !c) {
+      // The deciding kick's own arrival cue already played the eruption
+      // (scheduleKickCues finalKick) — no second sting here.
       hapticHeavy();
-      const playerWonNow = c ? (c.playerIsHome ? prog.homeTotal > prog.awayTotal : prog.awayTotal > prog.homeTotal) : false;
-      if (playerWonNow) sfxRoar(true); else sfxGroan();
       setStage('done');
       return;
     }
@@ -263,12 +320,13 @@ export function PenaltyShootout() {
     oppFiredForRef.current = kicks.length;
     const t = setTimeout(() => {
       const st = useGameStore.getState();
-      const decisive = getStakes(st.penaltyShootoutKicks, st.penaltyShootoutCtx?.playerIsHome ?? true, false) !== null;
+      const decisive = getKickStakes(st.penaltyShootoutKicks, st.penaltyShootoutCtx?.playerIsHome ?? true, false) !== null;
       const kick = revealOpponentPenalty();
       if (!kick) { advance(); return; }
       const isGoodForPlayer = !kick.scored;
+      const finalKick = getShootoutProgress(useGameStore.getState().penaltyShootoutKicks).decided;
       setSlowMo(decisive);
-      scheduleKickCues(isGoodForPlayer, kick.outcome ?? (kick.scored ? 'goal' : 'saved'), decisive, kick.power ?? 0.6);
+      scheduleKickCues(isGoodForPlayer, kick.outcome ?? (kick.scored ? 'goal' : 'saved'), decisive, kick.power ?? 0.6, finalKick);
       setShot(kickToShot(kick, useGameStore.getState().penaltyShootoutKicks.length));
       setStage('oppShooting');
     }, OPP_STEP_UP_MS);
@@ -276,56 +334,62 @@ export function PenaltyShootout() {
   }, [stage, kicks.length, revealOpponentPenalty, advance, scheduleKickCues]);
 
   // ── Hold-to-charge power ────────────────────────────────────────────────
-  // Hold Shoot: the meter ping-pongs 0→100→0; release strikes at that power.
-  // A quick tap (<160ms) uses a clean default so nobody is punished for
-  // tapping like the old flow.
+  // Hold Shoot: ChargeMeter ping-pongs 0→100→0 in its own subtree (no parent
+  // re-render per frame) and writes the live value into powerRef. Release
+  // strikes at that power; a quick tap uses PEN_AIM.POWER_TAP_DEFAULT.
   const [charging, setCharging] = useState(false);
-  const [powerDisplay, setPowerDisplay] = useState(0);
+  const [firedPower, setFiredPower] = useState<number | null>(null);
   const powerRef = useRef(0);
   const chargeStartRef = useRef(0);
-  const chargeRafRef = useRef<number>();
-  useEffect(() => () => { if (chargeRafRef.current) cancelAnimationFrame(chargeRafRef.current); }, []);
 
   const fireShot = useCallback((power: number) => {
     const currentAim = aim;
     if (!currentAim || !selectedTakerId || stage !== 'aim') return;
     hapticMedium();
     resumeSfx();
-    const decisive = getStakes(kicks, ctx?.playerIsHome ?? true, true) !== null;
-    const kick = takeAimedPenalty(selectedTakerId, currentAim.x, currentAim.y, { power, rattled: keeperTaunt });
+    const decisive = getKickStakes(kicks, ctx?.playerIsHome ?? true, true) !== null;
+    // The store owns the mind-games roll (ctx.tauntActive) and its penalty.
+    const kick = takeAimedPenalty(selectedTakerId, currentAim.x, currentAim.y, { power });
     if (!kick) { advance(); return; }
+    const finalKick = getShootoutProgress(useGameStore.getState().penaltyShootoutKicks).decided;
     setSlowMo(decisive);
-    setPowerDisplay(power);
-    scheduleKickCues(kick.scored, kick.outcome ?? (kick.scored ? 'goal' : 'saved'), decisive, power);
+    setFiredPower(power);
+    scheduleKickCues(kick.scored, kick.outcome ?? (kick.scored ? 'goal' : 'saved'), decisive, power, finalKick);
     setShot(kickToShot(kick, useGameStore.getState().penaltyShootoutKicks.length));
     setStage('shooting');
-     
-  }, [aim, selectedTakerId, stage, kicks, ctx?.playerIsHome, keeperTaunt, takeAimedPenalty, advance, scheduleKickCues]);
+  }, [aim, selectedTakerId, stage, kicks, ctx?.playerIsHome, takeAimedPenalty, advance, scheduleKickCues]);
 
   const startCharge = (e: React.PointerEvent) => {
     if (!aim || !selectedTakerId || stage !== 'aim' || charging) return;
     e.preventDefault();
     hapticLight();
     resumeSfx();
-    setCharging(true);
+    powerRef.current = 0;
     chargeStartRef.current = performance.now();
-    const loop = (now: number) => {
-      const cycle = ((now - chargeStartRef.current) / 1100) % 2;
-      const p = 1 - Math.abs(1 - cycle); // ping-pong 0→1→0
-      powerRef.current = p;
-      setPowerDisplay(p);
-      chargeRafRef.current = requestAnimationFrame(loop);
-    };
-    chargeRafRef.current = requestAnimationFrame(loop);
+    setCharging(true);
   };
 
   const releaseCharge = () => {
     if (!charging) return;
-    if (chargeRafRef.current) cancelAnimationFrame(chargeRafRef.current);
     setCharging(false);
     const held = performance.now() - chargeStartRef.current;
-    fireShot(held < 160 ? 0.65 : powerRef.current);
+    fireShot(held < PEN_AIM.TAP_MAX_MS ? PEN_AIM.POWER_TAP_DEFAULT : powerRef.current);
   };
+
+  // Finger drifted off the button / OS stole the pointer (notification,
+  // edge-swipe): abort the charge without kicking — an involuntary penalty
+  // at random power is worse than having to press again.
+  const cancelCharge = () => {
+    if (!charging) return;
+    setCharging(false);
+    hapticLight();
+  };
+
+  const handleAim = useCallback((x: number, y: number) => {
+    hapticLight();
+    resumeSfx();
+    setAim({ x, y });
+  }, []);
 
   if (!ctx || !currentMatchResult || !myClub || !oppClub) return null;
 
@@ -340,25 +404,32 @@ export function PenaltyShootout() {
   const lastKick = kicks[kicks.length - 1];
   const shootingTakerName = stage === 'shooting' || stage === 'oppShooting' ? lastKick?.takerName : null;
 
+  // No spoilers: while a kick is animating, the scoreboard, dots and tracker
+  // show the state as of BEFORE that kick — the resolved result only appears
+  // once the ball has visibly landed and the stage advances.
+  const inFlight = (stage === 'shooting' || stage === 'oppShooting') && kicks.length > 0;
+  const displayKicks = inFlight ? kicks.slice(0, -1) : kicks;
+  const displayProgress = inFlight ? getShootoutProgress(displayKicks) : progress;
+
   const stakes = (stage === 'aim' || stage === 'oppWait')
-    ? getStakes(kicks, ctx.playerIsHome, stage === 'aim')
+    ? getKickStakes(kicks, ctx.playerIsHome, stage === 'aim')
     : null;
   // One commentary line per kick, stable across re-renders.
   const commentary = (stage === 'aim' ? AIM_LINES : OPP_LINES)[kicks.length % (stage === 'aim' ? AIM_LINES.length : OPP_LINES.length)];
 
-  const maxRound = Math.max(5, ...kicks.map(k => k.round));
+  const maxRound = Math.max(5, ...displayKicks.map(k => k.round));
   const rounds = Array.from({ length: maxRound }, (_, i) => {
     const r = i + 1;
     return {
       round: r,
-      home: kicks.find(k => k.round === r && k.isHome),
-      away: kicks.find(k => k.round === r && !k.isHome),
+      home: displayKicks.find(k => k.round === r && k.isHome),
+      away: displayKicks.find(k => k.round === r && !k.isHome),
     };
   });
 
   // Per-round scoreboard dots (regulation rounds 1-5; SD has its own chip).
   const dotsFor = (isHome: boolean) => Array.from({ length: 5 }, (_, i) => {
-    const k = kicks.find(kk => kk.round === i + 1 && kk.isHome === isHome);
+    const k = displayKicks.find(kk => kk.round === i + 1 && kk.isHome === isHome);
     return k ? (k.scored ? 'goal' : 'miss') : null;
   });
 
@@ -371,6 +442,13 @@ export function PenaltyShootout() {
     const taken = kicks.filter(k => k.isHome !== ctx.playerIsHome).length;
     return oppOnPitch[taken % oppOnPitch.length];
   })();
+
+  // The player whose card rides the scene bottom-left right now.
+  const activeTaker: Player | null =
+    stage === 'aim' ? (selectedTakerId ? players[selectedTakerId] ?? null : null)
+    : stage === 'oppWait' ? nextOppTaker
+    : (stage === 'shooting' || stage === 'oppShooting') && lastKick?.takerId ? players[lastKick.takerId] ?? null
+    : null;
 
   return (
     <div className="space-y-3 relative">
@@ -389,7 +467,7 @@ export function PenaltyShootout() {
           shooterColor={(shootingAtOppGK ? myClub : oppClub)?.color}
           shooterColor2={(shootingAtOppGK ? myClub : oppClub)?.secondaryColor}
           aim={stage === 'aim' ? aim : null}
-          onAim={stage === 'aim' ? (x, y) => { hapticLight(); resumeSfx(); setAim({ x, y }); } : undefined}
+          onAim={stage === 'aim' && !charging ? handleAim : undefined}
           shot={shot}
           onShotComplete={advance}
           lively={!reducedMotion}
@@ -399,57 +477,29 @@ export function PenaltyShootout() {
           celebrationColor={myClub.color}
         />
 
-        {/* Broadcast scoreboard — teams, per-kick dots, score, skip */}
-        <div className="absolute top-0 inset-x-0 flex items-center justify-between gap-2 px-2.5 py-1.5 bg-black/60 backdrop-blur-md border-b border-white/10 rounded-t-2xl">
-          <div className="flex items-center gap-1.5 min-w-0">
-            {isWorldCup && homeClub ? (
-              <span className="w-5 h-3.5 rounded-[2px] overflow-hidden border border-white/40 shrink-0"><FlagIcon nationality={homeClub.id} fill /></span>
-            ) : (
-              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: homeClub?.color }} />
-            )}
-            <span className="text-[11px] font-black text-white leading-none">{homeClub?.shortName}</span>
-            <span className="flex items-center gap-[3px] ml-0.5">
-              {dotsFor(true).map((d, i) => (
-                <span key={i} className={cn('w-[7px] h-[7px] rounded-full border',
-                  d === 'goal' ? 'bg-emerald-400 border-emerald-300 shadow-[0_0_5px_rgba(52,211,153,0.9)]'
-                    : d === 'miss' ? 'bg-red-500 border-red-400'
-                      : 'bg-transparent border-white/30')} />
-              ))}
-            </span>
-          </div>
+        {/* Broadcast scoreboard — teams, per-kick dots, score, skip. Solid
+            fill (not backdrop-blur): it composites over the animating scene
+            every frame, and blur there is the #1 mobile GPU cost. */}
+        <div className="absolute top-0 inset-x-0 flex items-center justify-between gap-2 px-2.5 py-1.5 bg-black/75 border-b border-white/10 rounded-t-2xl">
+          <TeamSide club={homeClub} dots={dotsFor(true)} isNation={isWorldCup} align="left" />
           <div className="flex items-center gap-1.5 shrink-0 rounded-lg bg-white/10 border border-white/15 px-2.5 py-0.5">
-            <motion.span key={`h${progress.homeTotal}`} initial={{ scale: 1.5, color: '#fbbf24' }} animate={{ scale: 1, color: '#ffffff' }} className="text-base font-display font-black tabular-nums leading-none">
-              {progress.homeTotal}
+            <motion.span key={`h${displayProgress.homeTotal}`} initial={{ scale: 1.5, color: '#fbbf24' }} animate={{ scale: 1, color: '#ffffff' }} className="text-base font-display font-black tabular-nums leading-none">
+              {displayProgress.homeTotal}
             </motion.span>
             <span className="text-[10px] text-white/50 leading-none">–</span>
-            <motion.span key={`a${progress.awayTotal}`} initial={{ scale: 1.5, color: '#fbbf24' }} animate={{ scale: 1, color: '#ffffff' }} className="text-base font-display font-black tabular-nums leading-none">
-              {progress.awayTotal}
+            <motion.span key={`a${displayProgress.awayTotal}`} initial={{ scale: 1.5, color: '#fbbf24' }} animate={{ scale: 1, color: '#ffffff' }} className="text-base font-display font-black tabular-nums leading-none">
+              {displayProgress.awayTotal}
             </motion.span>
           </div>
-          <div className="flex items-center gap-1.5 min-w-0 justify-end">
-            <span className="flex items-center gap-[3px] mr-0.5">
-              {dotsFor(false).map((d, i) => (
-                <span key={i} className={cn('w-[7px] h-[7px] rounded-full border',
-                  d === 'goal' ? 'bg-emerald-400 border-emerald-300 shadow-[0_0_5px_rgba(52,211,153,0.9)]'
-                    : d === 'miss' ? 'bg-red-500 border-red-400'
-                      : 'bg-transparent border-white/30')} />
-              ))}
-            </span>
-            <span className="text-[11px] font-black text-white leading-none">{awayClub?.shortName}</span>
-            {isWorldCup && awayClub ? (
-              <span className="w-5 h-3.5 rounded-[2px] overflow-hidden border border-white/40 shrink-0"><FlagIcon nationality={awayClub.id} fill /></span>
-            ) : (
-              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: awayClub?.color }} />
-            )}
-          </div>
+          <TeamSide club={awayClub} dots={dotsFor(false)} isNation={isWorldCup} align="right" />
         </div>
 
         {/* Sudden death + Skip, riding under the scoreboard */}
         <div className="absolute top-9 inset-x-0 flex items-center justify-center gap-2 pointer-events-none">
           {inSuddenDeath && !progress.decided && (
             <motion.span
-              className="text-[9px] uppercase tracking-widest font-bold text-red-300 bg-red-500/20 border border-red-500/35 rounded-full px-2 py-0.5 backdrop-blur-sm"
-              animate={{ opacity: [1, 0.55, 1] }}
+              className="text-[9px] uppercase tracking-widest font-bold text-red-300 bg-red-950/80 border border-red-500/35 rounded-full px-2 py-0.5"
+              animate={reducedMotion ? undefined : { opacity: [1, 0.55, 1] }}
               transition={{ duration: 1.4, repeat: Infinity }}
             >
               Sudden Death
@@ -460,33 +510,23 @@ export function PenaltyShootout() {
           <button
             type="button"
             onClick={() => { hapticLight(); skipAll(); }}
-            className="absolute top-9 right-2 flex items-center gap-1 text-[9px] text-white/60 hover:text-white bg-black/40 backdrop-blur-sm border border-white/10 rounded-full px-2 py-0.5 transition-colors"
+            className="absolute top-9 right-2 flex items-center gap-1 text-[9px] text-white/60 hover:text-white bg-black/60 border border-white/10 rounded-full px-2 py-0.5 transition-colors"
           >
             <SkipForward className="w-2.5 h-2.5" /> Skip
           </button>
         )}
 
         {/* Current taker's card, riding the scene bottom-left */}
-        {(() => {
-          const cardPlayer = stage === 'aim'
-            ? (selectedTakerId ? players[selectedTakerId] : null)
-            : stage === 'oppWait'
-              ? nextOppTaker
-              : (stage === 'shooting' || stage === 'oppShooting') && lastKick?.takerId
-                ? players[lastKick.takerId]
-                : null;
-          if (!cardPlayer) return null;
-          return (
-            <motion.div
-              key={`scene-taker-${cardPlayer.id}-${stage === 'aim' ? 'aim' : 'kick'}`}
-              className="absolute bottom-2 left-2 pointer-events-none"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <PlayerCard player={cardPlayer} size="sm" interactive="none" showConditionView={false} />
-            </motion.div>
-          );
-        })()}
+        {activeTaker && (
+          <motion.div
+            key={`scene-taker-${activeTaker.id}-${stage === 'aim' ? 'aim' : 'kick'}`}
+            className="absolute bottom-2 left-2 pointer-events-none"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <PlayerCard player={activeTaker} size="sm" interactive="none" showConditionView={false} />
+          </motion.div>
+        )}
 
         {/* Swipe hint */}
         <AnimatePresence>
@@ -499,8 +539,8 @@ export function PenaltyShootout() {
               exit={{ opacity: 0 }}
             >
               <motion.span
-                className="flex items-center gap-1.5 rounded-xl bg-black/60 backdrop-blur-md border border-white/15 px-2.5 py-1.5 text-[10px] font-semibold text-white"
-                animate={{ y: [0, -3, 0] }}
+                className="flex items-center gap-1.5 rounded-xl bg-black/75 border border-white/15 px-2.5 py-1.5 text-[10px] font-semibold text-white"
+                animate={reducedMotion ? undefined : { y: [0, -3, 0] }}
                 transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
               >
                 Swipe anywhere to aim <span aria-hidden>👆</span>
@@ -509,30 +549,23 @@ export function PenaltyShootout() {
           )}
         </AnimatePresence>
 
-        {/* Power bar */}
+        {/* Power bar — self-contained meter so charging never re-renders
+            the rest of the shootout tree */}
         <AnimatePresence>
           {(charging || (stage === 'shooting' && shot)) && (
             <motion.div
               key="power"
-              className="absolute bottom-3 right-2 w-36 rounded-xl bg-black/65 backdrop-blur-md border border-white/15 px-2.5 py-1.5 pointer-events-none"
+              className="absolute bottom-3 right-2"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
             >
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[9px] font-black tracking-[0.14em] text-white/80">POWER</span>
-                <span className="text-[10px] font-display font-black tabular-nums text-white">{Math.round(powerDisplay * 100)}%</span>
-              </div>
-              <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
-                <div
-                  className="h-full rounded-full"
-                  style={{
-                    width: `${Math.round(powerDisplay * 100)}%`,
-                    background: 'linear-gradient(90deg, #22C55E 0%, #F59E0B 60%, #EF4444 100%)',
-                    boxShadow: '0 0 8px rgba(34,197,94,0.6)',
-                  }}
-                />
-              </div>
+              <ChargeMeter
+                active={charging}
+                frozenAt={charging ? null : firedPower}
+                powerRef={powerRef}
+                cycleMs={PEN_AIM.CHARGE_CYCLE_MS}
+              />
             </motion.div>
           )}
         </AnimatePresence>
@@ -549,15 +582,15 @@ export function PenaltyShootout() {
             >
               <motion.span
                 className={cn(
-                  'block rounded-full px-2.5 py-1 text-[9px] font-black tracking-[0.14em] uppercase border backdrop-blur-md',
-                  stakes.includes('WIN')
-                    ? 'text-primary bg-primary/15 border-primary/40 shadow-[0_0_16px_-4px_hsl(43_96%_46%/0.8)]'
-                    : 'text-red-300 bg-red-500/15 border-red-500/40 shadow-[0_0_16px_-4px_rgba(239,68,68,0.7)]',
+                  'block rounded-full px-2.5 py-1 text-[9px] font-black tracking-[0.14em] uppercase border',
+                  (stakes === 'score_to_win' || stakes === 'save_to_win')
+                    ? 'text-primary bg-black/75 border-primary/40 shadow-[0_0_16px_-4px_hsl(43_96%_46%/0.8)]'
+                    : 'text-red-300 bg-red-950/80 border-red-500/40 shadow-[0_0_16px_-4px_rgba(239,68,68,0.7)]',
                 )}
-                animate={{ opacity: [1, 0.6, 1] }}
+                animate={reducedMotion ? undefined : { opacity: [1, 0.6, 1] }}
                 transition={{ duration: 1.3, repeat: Infinity, ease: 'easeInOut' }}
               >
-                {stakes}
+                {STAKES_COPY[stakes]}
               </motion.span>
             </motion.div>
           )}
@@ -572,7 +605,7 @@ export function PenaltyShootout() {
             animate={{ opacity: 1, x: 0 }}
           >
             <PlayerCard player={keeper} size="sm" interactive="none" showConditionView={false} />
-            <span className="flex items-center gap-1 rounded-full bg-black/65 backdrop-blur-sm border border-white/15 px-1.5 py-[2px] text-[8px] font-black uppercase tracking-widest text-white leading-none">
+            <span className="flex items-center gap-1 rounded-full bg-black/75 border border-white/15 px-1.5 py-[2px] text-[8px] font-black uppercase tracking-widest text-white leading-none">
               <Hand className="w-2.5 h-2.5 text-primary" /> In goal
             </span>
           </motion.div>
@@ -588,7 +621,7 @@ export function PenaltyShootout() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
             >
-              <span className="text-[11px] font-bold text-white bg-black/55 backdrop-blur-md border border-white/10 rounded-full px-3 py-1">
+              <span className="text-[11px] font-bold text-white bg-black/70 border border-white/10 rounded-full px-3 py-1">
                 {shootingTakerName}
               </span>
             </motion.div>
@@ -629,8 +662,8 @@ export function PenaltyShootout() {
                 disabled={!aim || !selectedTakerId}
                 onPointerDown={startCharge}
                 onPointerUp={releaseCharge}
-                onPointerLeave={releaseCharge}
-                onPointerCancel={releaseCharge}
+                onPointerLeave={cancelCharge}
+                onPointerCancel={cancelCharge}
               >
                 {charging ? 'Release to shoot!' : aim ? 'Hold to power up' : 'Aim first — swipe the goal'}
                 {aim && !charging && <ChevronRight className="w-5 h-5" />}
@@ -655,7 +688,7 @@ export function PenaltyShootout() {
                 </div>
                 <motion.div
                   className="ml-auto w-2 h-2 rounded-full bg-primary"
-                  animate={{ opacity: [1, 0.2, 1] }}
+                  animate={reducedMotion ? undefined : { opacity: [1, 0.2, 1] }}
                   transition={{ duration: 0.9, repeat: Infinity }}
                 />
               </div>
@@ -700,7 +733,7 @@ export function PenaltyShootout() {
               <span className={cn(
                 'text-[9px] tabular-nums w-6 text-center self-center rounded-full',
                 r.round > 5 ? 'text-red-300 font-bold' : 'text-muted-foreground',
-                !progress.decided && r.round === progress.nextRound && 'bg-primary/20 text-primary font-bold shadow-[0_0_8px_-2px_hsl(43_96%_46%/0.7)]',
+                !displayProgress.decided && r.round === displayProgress.nextRound && 'bg-primary/20 text-primary font-bold shadow-[0_0_8px_-2px_hsl(43_96%_46%/0.7)]',
               )}>
                 {r.round > 5 ? 'SD' : r.round}
               </span>

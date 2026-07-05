@@ -1565,12 +1565,25 @@ export function beginInteractiveShootoutImpl(set: Set, get: Get): Match | null {
       playerIsHome: currentMatchResult.homeClubId === playerClubId,
       homeGKId: homeGK?.id ?? null,
       awayGKId: awayGK?.id ?? null,
-      homeGKQuality: homeGK ? (homeGK.attributes.defending + homeGK.attributes.mental) / 200 : getClubGKQuality(hc, players),
-      awayGKQuality: awayGK ? (awayGK.attributes.defending + awayGK.attributes.mental) / 200 : getClubGKQuality(ac, players),
+      homeGKQuality: getClubGKQuality(hc, players),
+      awayGKQuality: getClubGKQuality(ac, players),
       usedTakerIds: [],
     },
   });
   return currentMatchResult;
+}
+
+/** Roll the keeper's mind games for the player's upcoming kick. Owned by the
+ *  store so the sim-affecting draw is reproducible and components only render
+ *  it. Idempotent per kick: re-rolling while already rolled keeps the value. */
+export function rollKeeperTauntImpl(set: Set, get: Get): boolean {
+  const state = get();
+  const ctx = state.penaltyShootoutCtx;
+  if (!ctx) return false;
+  if (ctx.tauntActive !== undefined) return ctx.tauntActive;
+  const taunt = Math.random() < PEN_AIM.KEEPER_TAUNT_CHANCE;
+  set({ penaltyShootoutCtx: { ...ctx, tauntActive: taunt } });
+  return taunt;
 }
 
 /** Resolve the player's aimed kick. Null when it isn't the player's turn or
@@ -1586,7 +1599,10 @@ export function takeAimedPenaltyImpl(set: Set, get: Get, takerId: string, aimX: 
 
   const keeperQuality = ctx.playerIsHome ? ctx.awayGKQuality : ctx.homeGKQuality;
   // Keeper mind games: a rattled taker strikes with slightly less composure.
-  const shooterQuality = Math.max(0, getPenaltyTakerQuality(taker) - (opts?.rattled ? PEN_AIM.RATTLE_QUALITY_PENALTY : 0));
+  // The roll lives in ctx (rollKeeperTaunt); opts.rattled remains as an
+  // explicit override for tests.
+  const rattled = opts?.rattled ?? ctx.tauntActive ?? false;
+  const shooterQuality = Math.max(0, getPenaltyTakerQuality(taker) - (rattled ? PEN_AIM.RATTLE_QUALITY_PENALTY : 0));
   const power = opts?.power;
   const res = resolveAimedKick({ aimX, aimY, shooterQuality, keeperQuality, power });
   const kick: PenaltyKick = {
@@ -1610,7 +1626,7 @@ export function takeAimedPenaltyImpl(set: Set, get: Get, takerId: string, aimX: 
   set({
     penaltyShootoutKicks: newKicks,
     penaltyShootoutRevealIndex: newKicks.length,
-    penaltyShootoutCtx: { ...ctx, usedTakerIds: used.length >= eligibleCount ? [] : used },
+    penaltyShootoutCtx: { ...ctx, usedTakerIds: used.length >= eligibleCount ? [] : used, tauntActive: undefined },
   });
   return kick;
 }
@@ -1677,16 +1693,6 @@ function ensureShootoutComplete(set: Set, get: Get): void {
     awayGKQuality: ctx?.awayGKQuality ?? getClubGKQuality(ac, players),
   });
   set({ penaltyShootoutKicks: completed, penaltyShootoutRevealIndex: completed.length });
-}
-
-export function revealNextPenaltyKickImpl(set: Set, get: Get): void {
-  const state = get();
-  const newIndex = state.penaltyShootoutRevealIndex + 1;
-  set({ penaltyShootoutRevealIndex: newIndex });
-  if (newIndex >= state.penaltyShootoutKicks.length) {
-    // All kicks revealed — finalize the match
-    get().skipPenaltyShootout();
-  }
 }
 
 export function skipPenaltyShootoutImpl(set: Set, get: Get): void {

@@ -269,9 +269,9 @@ export function playWorldCupPenaltiesImpl(set: Set, get: Get): Match | null {
   }
 }
 
-/** Reconstruct the shootout from the pre-computed kicks and write the result
- *  back into the tournament. Routed to from `skipPenaltyShootout` /
- *  `revealNextPenaltyKick` when in World Cup mode. */
+/** Reconstruct the shootout from the taken kicks and write the result back
+ *  into the tournament. Routed to from `skipPenaltyShootout` (which first
+ *  auto-completes any remaining kicks) when in World Cup mode. */
 export function finalizeWorldCupPenaltiesImpl(set: Set, get: Get): void {
   const state = get();
   const { clubs, currentMatchResult, penaltyShootoutKicks, matchPlayerRatings } = state;

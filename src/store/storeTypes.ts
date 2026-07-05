@@ -341,7 +341,9 @@ export interface GameState {
   playSecondHalf: () => Match | null;
   playExtraTime: () => Match | null;
   playPenalties: () => void;
-  revealNextPenaltyKick: () => void;
+  /** Interactive shootout: roll (idempotently, per kick) whether the keeper
+   *  plays mind games before the player's upcoming kick. */
+  rollKeeperTaunt: () => boolean;
   /** Interactive shootout: resolve the player's aimed kick. Returns the kick
    *  or null when it isn't the player's turn / taker is invalid. */
   takeAimedPenalty: (takerId: string, aimX: number, aimY: number, opts?: { power?: number; rattled?: boolean }) => PenaltyKick | null;

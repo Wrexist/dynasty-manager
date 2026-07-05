@@ -314,6 +314,13 @@ export const PEN_AIM = {
   POWER_OFF_TARGET_SCALE: 1.1,
   /** Keeper reach scales by (1 − POWER_SAVE_SCALE × (p − neutral)). */
   POWER_SAVE_SCALE: 0.8,
+  /** Quick-tap (no charge) shot power, the hold-to-charge ping-pong cycle,
+   *  and the press duration below which a press counts as a tap. */
+  POWER_TAP_DEFAULT: 0.65,
+  CHARGE_CYCLE_MS: 1100,
+  TAP_MAX_MS: 160,
+  /** Keepers' penalty-taking discount (they step up last for a reason). */
+  GK_TAKER_MULT: 0.55,
 } as const;
 /** Maps a nation's 0–1 ranking strength onto the 0–1 GK-quality scale that
  *  simulatePenaltyShootout expects, so international shootouts run through the

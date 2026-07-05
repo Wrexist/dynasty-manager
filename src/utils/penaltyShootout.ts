@@ -127,11 +127,42 @@ export function getShootoutProgress(kicks: PenaltyKick[]): ShootoutProgress {
   return { nextIsHome, nextRound, decided, homeTotal, awayTotal };
 }
 
+/** Broadcast stakes for the upcoming kick, from the player's perspective:
+ *  what a goal or a miss would decide right now. Null when the kick carries
+ *  no decisive weight. Pure rules math — copy lives with the UI. */
+export type KickStakes = 'score_to_win' | 'miss_to_lose' | 'save_to_win' | 'concede_to_lose';
+
+export function getKickStakes(kicks: PenaltyKick[], playerIsHome: boolean, playerKicking: boolean): KickStakes | null {
+  const prog = getShootoutProgress(kicks);
+  if (prog.decided || prog.nextIsHome === null) return null;
+  const hypothetical = (scored: boolean) => getShootoutProgress([...kicks, {
+    round: prog.nextRound, isHome: prog.nextIsHome!, takerName: '', scored,
+    homeTotal: prog.homeTotal + (prog.nextIsHome && scored ? 1 : 0),
+    awayTotal: prog.awayTotal + (!prog.nextIsHome && scored ? 1 : 0),
+  }]);
+  const ifScored = hypothetical(true);
+  const ifMissed = hypothetical(false);
+  const playerWins = (p: ShootoutProgress) =>
+    p.decided && (playerIsHome ? p.homeTotal > p.awayTotal : p.awayTotal > p.homeTotal);
+  if (playerKicking) {
+    if (playerWins(ifScored)) return 'score_to_win';
+    if (ifMissed.decided && !playerWins(ifMissed)) return 'miss_to_lose';
+  } else {
+    if (ifMissed.decided && playerWins(ifMissed)) return 'save_to_win';
+    if (ifScored.decided && !playerWins(ifScored)) return 'concede_to_lose';
+  }
+  return null;
+}
+
 /** Penalty-taking quality 0–1: placement (shooting) with a composure (mental)
- *  component. An 80/80 attacker lands 0.8. */
+ *  component. An 80/80 attacker lands 0.8. Keepers take a heavy discount —
+ *  generated GKs carry high mental ratings that would otherwise rank them
+ *  alongside strikers on the spot. */
 export function getPenaltyTakerQuality(p: Player | undefined): number {
   if (!p) return 0.6;
-  return Math.min(1, Math.max(0, (p.attributes.shooting * 0.7 + p.attributes.mental * 0.3) / 100));
+  const raw = (p.attributes.shooting * 0.7 + p.attributes.mental * 0.3) / 100;
+  const positionMult = p.position === 'GK' ? PEN_AIM.GK_TAKER_MULT : 1;
+  return Math.min(1, Math.max(0, raw * positionMult));
 }
 
 export interface AimedKickInput {

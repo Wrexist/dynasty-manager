@@ -386,6 +386,9 @@ export interface PenaltyShootoutCtx {
   /** Player-team taker ids already used this shootout (resets when the pool
    *  is exhausted, matching real rules — everyone kicks before repeats). */
   usedTakerIds: string[];
+  /** Keeper mind games are active for the player's upcoming kick (rolled by
+   *  the store via rollKeeperTaunt; consumed by takeAimedPenalty). */
+  tauntActive?: boolean;
 }
 
 export interface MatchStats {

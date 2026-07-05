@@ -784,7 +784,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
           Staged World Cup finals for screen-recording promo videos. Each scenario
           runs as a throwaway session — nothing in it is ever saved, and your
           saved games stay exactly as they are on disk.
-          {gameStarted && ' Your current session will close (auto-save runs first if enabled); reload it from the main menu afterwards.'}
+          {gameStarted && ' Your current session will close — with auto-save OFF, anything since your last manual save is lost, so save first if you need it. Reload from the main menu afterwards.'}
         </p>
         <div className="space-y-2">
           {CAPTURE_SCENARIOS.map(sc => (

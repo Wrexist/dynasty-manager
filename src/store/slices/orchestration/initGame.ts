@@ -467,6 +467,10 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
 
   set({
     gameStarted: true, playerClubId: clubId, season: 1, week: 1, totalWeeks: league?.totalWeeks || TOTAL_WEEKS,
+    // Starting a real game always exits any Capture Studio session — without
+    // this, a new career begun after a capture teleport would inherit the
+    // save-write block and silently never persist.
+    captureSession: false,
     gameMode: get().gameMode || 'sandbox',
     transferWindowOpen: true, clubs, players: allPlayers, fixtures, leagueTable, friendlies,
     divisionFixtures, divisionTables, divisionClubs, playerDivision,

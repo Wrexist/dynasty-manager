@@ -193,8 +193,9 @@ function CameraFlashes() {
 }
 
 /** Night stadium backdrop: two crowd tiers with a corner curve, floodlight
- *  glows, hoardings, pitch with converging mow stripes, goal frame + net. */
-function SceneBackdrop() {
+ *  glows, hoardings, pitch with converging mow stripes, goal frame + net.
+ *  Memoized — ~150 static SVG nodes that must not re-render per aim/shot. */
+const SceneBackdrop = memo(function SceneBackdrop() {
   return (
     <svg viewBox="0 0 400 300" preserveAspectRatio="none" className="absolute inset-0 w-full h-full" aria-hidden="true">
       <defs>
@@ -306,7 +307,7 @@ function SceneBackdrop() {
       <ellipse cx="200" cy="269" rx="7" ry="2.5" fill="rgba(255,255,255,0.5)" />
     </svg>
   );
-}
+});
 
 export const PenaltyGoalScene = memo(function PenaltyGoalScene({
   keeperColor, keeperColor2, shooterColor, shooterColor2,
@@ -416,11 +417,11 @@ export const PenaltyGoalScene = memo(function PenaltyGoalScene({
                       boxShadow: active ? `0 0 22px -2px ${z.color}` : `0 0 10px -4px ${z.color}`,
                       opacity: active ? 1 : 0.62,
                     }}
-                    animate={active ? { scale: [1, 1.12, 1] } : {}}
-                    transition={{ duration: 0.9, repeat: active ? Infinity : 0 }}
+                    animate={active && lively ? { scale: [1, 1.12, 1] } : {}}
+                    transition={{ duration: 0.9, repeat: active && lively ? Infinity : 0 }}
                   >
                     <span className="absolute left-1/2 top-1/2 w-1.5 h-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full" style={{ backgroundColor: z.color }} />
-                    {active && (
+                    {active && lively && (
                       <motion.span
                         className="absolute -inset-2 rounded-full border"
                         style={{ borderColor: z.color }}
@@ -445,9 +446,11 @@ export const PenaltyGoalScene = memo(function PenaltyGoalScene({
         initial={{ x: 0, y: 0, rotate: 0 }}
         animate={shot
           ? { x: divePx, y: diveLift, rotate: diveRotate, transition: { duration: flightS + 0.08, ease: [0.3, 0.7, 0.4, 1], delay: runupS } }
-          : keeperTaunt
-            ? { x: [0, -14, 14, 0], y: [0, -6, 0, -6], transition: { duration: 1.1, repeat: Infinity, ease: 'easeInOut' } }
-            : { x: [0, -6, 6, 0], transition: { duration: 2.4, repeat: Infinity, ease: 'easeInOut' } }}
+          : !lively
+            ? { x: 0, y: 0 }
+            : keeperTaunt
+              ? { x: [0, -14, 14, 0], y: [0, -6, 0, -6], transition: { duration: 1.1, repeat: Infinity, ease: 'easeInOut' } }
+              : { x: [0, -6, 6, 0], transition: { duration: 2.4, repeat: Infinity, ease: 'easeInOut' } }}
       >
         <KeeperFigure color={keeperColor} color2={keeperColor2} />
       </motion.div>
@@ -466,7 +469,7 @@ export const PenaltyGoalScene = memo(function PenaltyGoalScene({
             <div className="relative -translate-x-1/2 -translate-y-1/2">
               <motion.div
                 className="w-9 h-9 rounded-full border-2 border-primary/90 shadow-[0_0_16px_-2px_hsl(43_96%_46%/0.8)]"
-                animate={{ scale: [1, 1.12, 1] }}
+                animate={lively ? { scale: [1, 1.12, 1] } : undefined}
                 transition={{ duration: 1.1, repeat: Infinity, ease: 'easeInOut' }}
               />
               <div className="absolute left-1/2 top-1/2 w-1.5 h-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary" />
@@ -484,7 +487,9 @@ export const PenaltyGoalScene = memo(function PenaltyGoalScene({
           initial={{ x: 0, y: 0, rotate: 0 }}
           animate={shot
             ? { x: w * 0.07, y: h * 0.04, rotate: [0, -7, 9, 3], transition: { duration: runupS, ease: 'easeIn' } }
-            : { y: [0, -2.5, 0], transition: { duration: 1.8, repeat: Infinity, ease: 'easeInOut' } }}
+            : lively
+              ? { y: [0, -2.5, 0], transition: { duration: 1.8, repeat: Infinity, ease: 'easeInOut' } }
+              : { y: 0 }}
         >
           <ShooterFigure color={shooterColor} color2={shooterColor2} />
         </motion.div>

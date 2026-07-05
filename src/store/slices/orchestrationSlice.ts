@@ -45,7 +45,7 @@ import {
 import { endSeasonImpl } from '@/store/slices/orchestration/seasonEnd';
 import { advanceWeekImpl } from '@/store/slices/orchestration/weekAdvance';
 import {
-  playCurrentMatchImpl, playFirstHalfImpl, playSecondHalfImpl, playExtraTimeImpl, playPenaltiesImpl, revealNextPenaltyKickImpl, skipPenaltyShootoutImpl, takeAimedPenaltyImpl, revealOpponentPenaltyImpl,
+  playCurrentMatchImpl, playFirstHalfImpl, playSecondHalfImpl, playExtraTimeImpl, playPenaltiesImpl, skipPenaltyShootoutImpl, takeAimedPenaltyImpl, revealOpponentPenaltyImpl, rollKeeperTauntImpl,
 } from '@/store/slices/orchestration/matchActions';
 import {
   playWorldCupFirstHalfImpl, playWorldCupSecondHalfImpl, playWorldCupExtraTimeImpl,
@@ -668,7 +668,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
   playPenalties: () => playPenaltiesImpl(set, get),
 
-  revealNextPenaltyKick: () => revealNextPenaltyKickImpl(set, get),
+  rollKeeperTaunt: () => rollKeeperTauntImpl(set, get),
   takeAimedPenalty: (takerId: string, aimX: number, aimY: number, opts?: { power?: number; rattled?: boolean }) => takeAimedPenaltyImpl(set, get, takerId, aimX, aimY, opts),
   revealOpponentPenalty: () => revealOpponentPenaltyImpl(set, get),
 
