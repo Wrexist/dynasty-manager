@@ -229,9 +229,11 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
       } else {
         infoToast('No Purchases Found', 'No previous purchases were found for this account.');
       }
-      // Also sync subscription info
+      // Also sync subscription info — only write a confirmed, non-null sub so a
+      // transient/empty customerInfo can't clear an active subscription.
       const info = await getCustomerInfo();
-      if (info) updateSubscription(extractSubscriptionInfo(info));
+      const sub = extractSubscriptionInfo(info);
+      if (sub) updateSubscription(sub);
     } catch {
       errorToast('Restore Failed', 'Could not restore purchases. Please try again.');
     } finally {

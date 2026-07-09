@@ -298,6 +298,7 @@ export interface GameState {
   executeTransfer: (playerId: string, fee: number) => { success: boolean; message: string };
   evaluateOffer: (playerId: string, fee: number) => { acceptChance: number; wouldTriggerSellOn: boolean; sellOnPct: number; budgetAfter: number; wageImpact: number; ratio: number; positionCount: number; totalSquadSize: number } | null;
   makeOfferWithNegotiation: (playerId: string, fee: number) => { outcome: 'accepted' | 'rejected' | 'counter'; counterFee?: number; message: string };
+  getOfferAcceptChance: (playerId: string, fee: number) => number;
   addToShortlist: (id: string) => void;
   removeFromShortlist: (id: string) => void;
   listPlayerForSale: (playerId: string, customAskingPrice?: number) => { appeased: boolean };
@@ -552,7 +553,7 @@ export interface GameState {
    *  daily caps as defence in depth. */
   openPack: (
     tier: PackTierKey,
-    opts?: { method?: PackUnlockMethod; skipPayment?: boolean },
+    opts?: { method?: PackUnlockMethod; skipPayment?: boolean; suppressPaidRejectSentry?: boolean },
   ) => OpenPackResult;
   /** Eligibility pre-flight. Run this BEFORE charging real money or
    *  starting a rewarded ad so the user can never pay/watch and then be

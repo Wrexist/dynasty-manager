@@ -300,14 +300,22 @@ export const FREE_TRIAL_MS = FREE_TRIAL_DAYS * 24 * 60 * 60 * 1000;
  *  via `purchaseProduct(TRIAL_TARGET_PRODUCT_ID)`. */
 export const TRIAL_TARGET_PRODUCT_ID: ProductId = 'com.dynastymanager.pro.monthly';
 
-// ── Starter Kit (time-limited offer) ──
+// ── Starter Kit (new-manager recommendation) ──
+//
+// Honesty note: this is the Manager Identity Pack at its normal price — NOT a
+// discount or a time-limited SKU. It's surfaced to new managers for their first
+// week purely as a "start here" recommendation. It must NOT be dressed up with
+// a countdown or "limited offer" urgency: the identical product is always
+// available at the identical price in the Cosmetic Packs section, so a ticking
+// clock would be fake scarcity. The window below only scopes WHEN we recommend
+// it (early game), not availability or price.
 
-/** Starter kit is available for this many milliseconds after first launch */
+/** How long after first launch the Starter Kit is recommended to new managers. */
 export const STARTER_KIT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 export const STARTER_KIT = {
   name: 'Starter Kit',
-  description: 'Manager Identity Pack — 12 avatars, 8 title badges & 3 celebration texts. Limited-time offer!',
+  description: 'A great first purchase — the Manager Identity Pack: 12 avatars, 8 title badges & 3 celebration texts to personalise your manager.',
   priceUsd: 2.99,
   includes: ['com.dynastymanager.pack.manager'] as ProductId[],
 };

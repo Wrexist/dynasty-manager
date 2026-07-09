@@ -151,7 +151,10 @@ const SubscribeOnboarding = () => {
     const ids = await getEntitlements();
     if (ids.length > 0) restoreEntitlementsAction(ids);
     const info = await getCustomerInfo();
-    if (info) updateSubscription(extractSubscriptionInfo(info));
+    // Only write a confirmed, non-null sub — a transient/empty customerInfo
+    // must not clear an active subscription (expiry handled via expiresAt).
+    const sub = extractSubscriptionInfo(info);
+    if (sub) updateSubscription(sub);
   };
 
   const handleSubscribe = async () => {

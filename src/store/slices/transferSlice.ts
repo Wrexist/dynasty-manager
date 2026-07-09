@@ -23,6 +23,7 @@ import {
 } from '@/config/transfers';
 import { NegotiationStrike } from '@/types/game';
 import { CONTRACT_MIN_YEARS, CONTRACT_MAX_YEARS } from '@/config/contracts';
+import { getSignedWage, getPreferredYears } from '@/utils/contracts';
 import { MIN_SQUAD_SIZE, MAX_SQUAD_SIZE, TOTAL_WEEKS, APPEASE_BASE_CHANCE, APPEASE_MORALE_BOOST, FFP_WAGE_RATIO_WARNING } from '@/config/gameBalance';
 import { hasPerk, dynastyMult } from '@/utils/managerPerks';
 import { STAR_SIGNING_BUZZ_WEEKS, STAR_PLAYER_SALE_DIP_WEEKS, CAMPAIGN_STAR_SIGNING_MIN_VALUE } from '@/config/merchandise';
@@ -61,6 +62,62 @@ const resolveListing = (state: GameState, playerId: string) => {
     listedWeek: state.week,
     listedSeason: state.season,
     divisionId: state.clubs[target.clubId]?.divisionId,
+  };
+};
+
+/** The effective-price + strike inputs that drive an outgoing-offer accept roll.
+ *  Extracted so the resolver's roll and the UI's displayed odds compute from
+ *  ONE source — previously the modal used a smooth interpolation that ignored
+ *  the Transfer Shark / career / Deadline Dealer discounts and the strike
+ *  penalty, so the bar lied about a wall the resolver was actually enforcing. */
+export interface AcceptChanceInputs {
+  askingPrice: number;
+  releaseClause?: number;
+  hasShark: boolean;
+  sharkDiscountMult: number;
+  careerFeeDiscount: number;
+  deadlineDealerMult: number;
+  existingStrikes: number;
+}
+
+/** Effective asking price after Transfer Shark / career-negotiation / Deadline
+ *  Dealer discounts. */
+export const computeEffectiveAskingPrice = (i: AcceptChanceInputs): number => {
+  const sharkPrice = i.hasShark
+    ? i.askingPrice * (1 - TRANSFER_SHARK_DISCOUNT * i.sharkDiscountMult)
+    : i.askingPrice;
+  return sharkPrice * (1 - i.careerFeeDiscount) * i.deadlineDealerMult;
+};
+
+/** Probability the seller accepts `fee`, applying the effective-price tiers and
+ *  the per-strike penalty. Identical math to the resolver's roll in
+ *  makeOfferWithNegotiation, so displayed odds == rolled odds. */
+export const computeAcceptChance = (i: AcceptChanceInputs, fee: number): number => {
+  if (i.releaseClause && fee >= i.releaseClause) return 1;
+  const eff = computeEffectiveAskingPrice(i);
+  const base = fee >= eff
+    ? ACCEPT_CHANCE_AT_ASKING
+    : fee >= eff * ACCEPT_80_PERCENT_THRESHOLD
+      ? ACCEPT_CHANCE_AT_80_PERCENT
+      : ACCEPT_CHANCE_BELOW;
+  return Math.max(0, base - i.existingStrikes * NEGOTIATION_STRIKE_PENALTY);
+};
+
+/** Build the accept-chance inputs from live state for a given listing/player —
+ *  the single place perk / career / deadline math is read, shared by the roll
+ *  and the display. */
+const buildAcceptChanceInputs = (state: GameState, listing: { askingPrice: number }, playerId: string): AcceptChanceInputs => {
+  const tw = getTransferWindows(state.totalWeeks);
+  const careerFeeDiscount = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.negotiation * 0.005 : 0;
+  const deadlineDealerMult = (hasPerk(state.managerProgression, 'deadline_dealer') && (state.week === tw.summerEnd || state.week === tw.winterEnd)) ? 0.8 : 1;
+  return {
+    askingPrice: listing.askingPrice,
+    releaseClause: state.players[playerId]?.releaseClause,
+    hasShark: hasPerk(state.managerProgression, 'transfer_shark'),
+    sharkDiscountMult: dynastyMult(state.managerProgression),
+    careerFeeDiscount,
+    deadlineDealerMult,
+    existingStrikes: state.negotiationStrikes[playerId]?.strikes || 0,
   };
 };
 
@@ -251,6 +308,18 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     return { acceptChance, wouldTriggerSellOn, sellOnPct, budgetAfter, wageImpact, ratio, positionCount, totalSquadSize };
   },
 
+  /** True acceptance probability for an outgoing offer of `fee` — the SAME
+   *  number makeOfferWithNegotiation rolls against (effective-price tiers +
+   *  strike penalty + release-clause guarantee). The negotiation modal displays
+   *  this so the shown odds can't diverge from the resolver. Returns 0 for an
+   *  unresolvable listing. */
+  getOfferAcceptChance: (playerId: string, fee: number): number => {
+    const state = get();
+    const listing = resolveListing(state, playerId);
+    if (!listing) return 0;
+    return computeAcceptChance(buildAcceptChanceInputs(state, listing, playerId), fee);
+  },
+
   makeOfferWithNegotiation: (playerId: string, fee: number): { outcome: 'accepted' | 'rejected' | 'counter'; counterFee?: number; message: string } => {
     const state = get();
     const challengeBlock = checkChallengeBlock(state, state.players[playerId]?.age);
@@ -275,16 +344,12 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     // discount) apply here too — they previously lived only in the legacy
     // makeOffer action, which had no live callers, so a tier-3 perk and the
     // career negotiation stat had zero effect on real offers.
-    const tw = getTransferWindows(state.totalWeeks);
-    const careerFeeDiscount = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.negotiation * 0.005 : 0;
-    const deadlineDealerMult = (hasPerk(state.managerProgression, 'deadline_dealer') && (state.week === tw.summerEnd || state.week === tw.winterEnd)) ? 0.8 : 1;
-    const sharkPrice = hasPerk(state.managerProgression, 'transfer_shark') ? listing.askingPrice * (1 - TRANSFER_SHARK_DISCOUNT * dynastyMult(state.managerProgression)) : listing.askingPrice;
-    const effectiveAskingPrice = sharkPrice * (1 - careerFeeDiscount) * deadlineDealerMult;
+    // Effective-price + strike math lives in the shared helper so the modal's
+    // displayed odds are computed from the exact same numbers as this roll.
+    const acceptInputs = buildAcceptChanceInputs(state, listing, playerId);
+    const effectiveAskingPrice = computeEffectiveAskingPrice(acceptInputs);
     const ratio = fee / effectiveAskingPrice;
-    const baseChance = fee >= effectiveAskingPrice ? ACCEPT_CHANCE_AT_ASKING : fee >= effectiveAskingPrice * ACCEPT_80_PERCENT_THRESHOLD ? ACCEPT_CHANCE_AT_80_PERCENT : ACCEPT_CHANCE_BELOW;
-    // Apply strike penalty: each previous rejection makes the seller less receptive
-    const existingStrikes = state.negotiationStrikes[playerId]?.strikes || 0;
-    const acceptChance = Math.max(0, baseChance - existingStrikes * NEGOTIATION_STRIKE_PENALTY);
+    const acceptChance = computeAcceptChance(acceptInputs, fee);
     const roll = Math.random();
 
     if (roll <= acceptChance) {
@@ -360,9 +425,19 @@ export const createTransferSlice = (set: Set, get: Get) => ({
 
     // New sell-on clause: the selling club gets 10-20% on expensive transfers (not for external)
     const sellOnPct = !isExternalPlayer && fee >= SELL_ON_HIGH_FEE_THRESHOLD ? SELL_ON_HIGH_BASE_PCT + Math.floor(Math.random() * SELL_ON_HIGH_RANGE_PCT) : !isExternalPlayer && fee >= SELL_ON_LOW_FEE_THRESHOLD ? SELL_ON_LOW_BASE_PCT + Math.floor(Math.random() * SELL_ON_LOW_RANGE_PCT) : 0;
+    // A fee-paid signing joins on FRESH terms — length by age (same brackets
+    // as free-agent / AI conventions) and a renegotiated wage floored at his
+    // current wage (see getSignedWage). Without this a £50M final-year signing
+    // kept his old contractEnd and walked free at season end. wageBill is
+    // reconciled below: seller already dropped the OLD wage (oldClub.wageBill),
+    // buyer takes on the NEW wage.
+    const signedYears = getPreferredYears(player.age);
+    const signedWage = getSignedWage(player, newClub.reputation);
     const updatedPlayer = {
       ...player,
       clubId: state.playerClubId,
+      wage: signedWage,
+      contractEnd: state.season + signedYears,
       joinedSeason: state.season,
       listedForSale: false,
       sellOnPercentage: sellOnPct > 0 ? sellOnPct : undefined,

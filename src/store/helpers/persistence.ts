@@ -520,6 +520,10 @@ export interface PendingPackCredit {
    *  into the same save, so a crash + loading a different slot can't grant
    *  the pack to the wrong career. */
   slot: number;
+  /** Set once the reconciler has failed to re-grant (e.g. squad full) and
+   *  fired its one-time Sentry alert. Throttles the capture to once per marker
+   *  so a persistently-blocked claim doesn't re-report on every mount. */
+  reported?: boolean;
 }
 
 export function readPendingPackCredit(): PendingPackCredit | null {
@@ -534,6 +538,7 @@ export function readPendingPackCredit(): PendingPackCredit | null {
       tierKey: parsed.tierKey,
       timestamp: typeof parsed.timestamp === 'number' ? parsed.timestamp : 0,
       slot: typeof parsed.slot === 'number' ? parsed.slot : 0,
+      ...(parsed.reported === true ? { reported: true } : {}),
     };
   } catch (err) {
     if (raw !== null) breadcrumbCorruption('readPendingPackCredit', raw, err);

@@ -6,7 +6,7 @@ import { PurchaseModal } from '@/components/game/PurchaseModal';
 import { Crown, Check, Sparkles, Package, Shield, Timer, CreditCard, ExternalLink, RefreshCw, ChevronDown, ChevronUp, Star, Zap, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PRODUCTS, PRO_FEATURE_LABELS, PRO_FEATURES, STARTER_KIT, COSMETIC_ITEMS } from '@/config/monetization';
-import { isPro, hasProduct, isStarterKitAvailable, getStarterKitRemainingMs, getOwnedCosmetics, getActiveCosmetic, isSubscriptionActive } from '@/utils/monetization';
+import { isPro, hasProduct, isStarterKitAvailable, getOwnedCosmetics, getActiveCosmetic, isSubscriptionActive } from '@/utils/monetization';
 import type { CosmeticCategory } from '@/types/game';
 import type { ProductId, ProFeature } from '@/types/game';
 import { useNavigate } from 'react-router-dom';
@@ -18,13 +18,6 @@ import { openExternalUrl } from '@/utils/externalUrl';
 import { track } from '@/utils/analytics';
 
 const formatPrice = (usd: number) => `$${usd.toFixed(2)}`;
-
-const formatTimeRemaining = (ms: number) => {
-  const days = Math.floor(ms / (24 * 60 * 60 * 1000));
-  const hours = Math.floor((ms % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
-  if (days > 0) return `${days}d ${hours}h remaining`;
-  return `${hours}h remaining`;
-};
 
 const FEATURE_ICONS: Record<ProFeature, React.ElementType> = {
   ad_free: Shield,
@@ -77,7 +70,6 @@ const ShopPage = () => {
   const hasActiveSub = isSubscriptionActive(monetization);
   const onMonthlyPlan = monetization.subscription?.tier === 'monthly';
   const starterKitAvailable = isStarterKitAvailable(monetization);
-  const starterKitMs = getStarterKitRemainingMs(monetization);
 
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
   const [purchasing, setPurchasing] = useState(false);
@@ -107,7 +99,11 @@ const ShopPage = () => {
     const ids = await getEntitlements();
     if (ids.length > 0) restoreEntitlements(ids);
     const info = await getCustomerInfo();
-    if (info) updateSubscription(extractSubscriptionInfo(info));
+    // Only write a confirmed, non-null subscription — a transient/empty
+    // customerInfo must never clear an active sub (isSubscriptionActive handles
+    // real expiry via expiresAt). See purchases.extractSubscriptionInfo.
+    const sub = extractSubscriptionInfo(info);
+    if (sub) updateSubscription(sub);
   };
 
   const handleConfirmPurchase = async () => {
@@ -250,15 +246,14 @@ const ShopPage = () => {
         </GlassPanel>
       )}
 
-      {/* ─── Starter Kit Time-Limited Offer ─── */}
+      {/* ─── Starter Kit — new-manager recommendation (NOT a limited offer:
+              same product, same price as the Manager Identity Pack below; shown
+              to new managers as a "start here" suggestion, no fake countdown) ─── */}
       {starterKitAvailable && (
         <GlassPanel className="p-4 border-[hsl(var(--gold)/0.3)] bg-[hsl(var(--gold)/0.04)]">
           <div className="flex items-center gap-2 mb-2">
-            <Timer className="w-4 h-4 text-[hsl(var(--gold))] animate-pulse" />
-            <span className="text-sm font-semibold text-[hsl(var(--gold))]">Limited Offer</span>
-            <span className="text-[10px] text-muted-foreground ml-auto">
-              {formatTimeRemaining(starterKitMs)}
-            </span>
+            <Star className="w-4 h-4 text-[hsl(var(--gold))]" />
+            <span className="text-sm font-semibold text-[hsl(var(--gold))]">Recommended for New Managers</span>
           </div>
           <h3 className="text-base font-display font-bold text-foreground">{STARTER_KIT.name}</h3>
           <p className="text-xs text-muted-foreground mt-1">{STARTER_KIT.description}</p>

@@ -145,12 +145,29 @@ const PacksPage = () => {
     if (pending.slot !== activeSlot) return; // credit belongs to another save
     const tier = PACK_TIER_MAP[pending.tierKey as PackTierKey];
     if (!tier) { clearPendingPackCredit(); return; } // tier removed — nothing we can grant
-    const result = openPack(pending.tierKey as PackTierKey, { method: 'iap', skipPayment: true });
+    const result = openPack(pending.tierKey as PackTierKey, {
+      method: 'iap',
+      skipPayment: true,
+      // Suppress the slice's Sentry alert once we've already reported this
+      // stranded marker — otherwise a persistently-blocked claim re-fires on
+      // every mount.
+      suppressPaidRejectSentry: pending.reported === true,
+    });
     if (result.success && result.players) {
       clearPendingPackCredit();
       saveGame();
       successToast('Purchase restored', `Your paid ${tier.label} from the previous session has been credited.`);
       setOpening({ tier: pending.tierKey as PackTierKey, players: result.players, pityTriggered: result.pityTriggered });
+    } else {
+      // Grant is blocked (e.g. squad full). Keep the marker so the claim
+      // survives, but tell the user exactly what's in the way and how to fix
+      // it — a paid pack silently refusing to appear reads as a lost purchase.
+      infoToast(
+        `Your paid ${tier.label} is waiting`,
+        result.message || 'Free up a squad slot, then reopen this screen to claim it.',
+      );
+      // Mark the marker reported so the slice's Sentry alert fires only once.
+      if (!pending.reported) writePendingPackCredit({ ...pending, reported: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only reconciliation; deps would re-fire on every store change
   }, []);
