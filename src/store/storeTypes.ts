@@ -486,7 +486,7 @@ export interface GameState {
   initNationalTeam: (nationality: string) => void;
   // Boot a standalone World Cup game (gameMode 'world-cup') with the chosen
   // nation — no club/league. Generates squad + tournament, lands on the picker.
-  startWorldCup: (nationality: string) => void;
+  startWorldCup: (nationality: string, options?: { communityPackEnabled?: boolean }) => void;
   // Capture Studio: boot a throwaway (never-saved) World Cup session staged at
   // a Final between two star nations (catalog in config/captureScenarios —
   // passed in by the UI so the eager store never bundles it).

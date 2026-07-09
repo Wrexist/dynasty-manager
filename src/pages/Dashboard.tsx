@@ -9,6 +9,7 @@ import { CompetitionStatusCard } from '@/components/dashboard/CompetitionStatusC
 import { BoardObjectivesCard } from '@/components/dashboard/BoardObjectivesCard';
 import { PressConference } from '@/components/game/PressConference';
 import { WelcomeOverlay } from '@/components/game/WelcomeOverlay';
+import { WelcomeCard } from '@/components/game/WelcomeCard';
 import { Button } from '@/components/ui/button';
 import {
   Play, ChevronRight, ChevronDown, TrendingUp, DollarSign, Heart, Trophy, Calendar, Mail, ShoppingBag,
@@ -183,6 +184,10 @@ const Dashboard = () => {
     return false;
   });
 
+  // First run defaults to the single WelcomeCard; "Take the tour" opens the
+  // full 6-panel WelcomeOverlay. Both share the device-global WELCOME_SHOWN
+  // flag — dismissing either surface counts as seen.
+  const [welcomeTour, setWelcomeTour] = useState(false);
   const dismissWelcome = () => {
     setShowWelcome(false);
     setFlag(WELCOME_KEY);
@@ -678,8 +683,11 @@ const Dashboard = () => {
   return (
     <>
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
-      {/* Welcome overlay for first-time players */}
-      {showWelcome && <WelcomeOverlay onComplete={dismissWelcome} />}
+      {/* Welcome for first-time players — single card by default, full tour on request */}
+      {showWelcome && (welcomeTour
+        ? <WelcomeOverlay onComplete={dismissWelcome} />
+        : <WelcomeCard onDismiss={dismissWelcome} onTakeTour={() => setWelcomeTour(true)} />
+      )}
 
       {/* Daily login-streak reward — auto-presents once per day when claimable. */}
       <DailyRewardModal />

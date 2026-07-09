@@ -165,10 +165,13 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
    *  flow operate on it; a nation-adapted Dashboard is the hub. The World Cup
    *  tournament is the season. `gameMode: 'world-cup'` flags existing fields —
    *  no save migration. */
-  startWorldCup: (nationality: string) => {
+  startWorldCup: (nationality: string, options?: { communityPackEnabled?: boolean }) => {
     // Clean slate — clears any prior club/career/transfer/match state AND
     // deletes the active slot on disk (this is the new-game-into-slot flow).
     _get().resetGame();
+    // resetGame restores the default (false); apply the setup-page choice
+    // before boot so opponent teams at kickoff use real names when opted in.
+    _set({ communityPackEnabled: options?.communityPackEnabled ?? false });
     bootWorldCupSession(_set, _get, nationality);
   },
 

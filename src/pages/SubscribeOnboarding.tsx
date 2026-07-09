@@ -32,6 +32,7 @@ import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
 import { openExternalUrl } from '@/utils/externalUrl';
 import type { ProductId } from '@/types/game';
 import { track } from '@/utils/analytics';
+import { subscribeSlotContextMissing } from '@/utils/paywallTiming';
 
 /**
  * Apple-compliant in-app paywall (Guideline 3.1.2(c)).
@@ -109,7 +110,17 @@ const SubscribeOnboarding = () => {
   const trialEligible = monetization.subscription == null;
 
   const navState = (location.state as { slot?: number; communityPackEnabled?: boolean; returnTo?: string }) || {};
-  const slot = navState.slot ?? 1;
+  // A webview reload / deep link on #/subscribe loses nav state. Without a slot
+  // AND without an explicit in-app return context, `slot ?? 1` used to default
+  // to 1 and the onboarding continuation could silently overwrite save slot 1.
+  // Redirect to the title instead, mirroring ModeSelect/ClubSelection's guard.
+  const missingSlot = subscribeSlotContextMissing(navState);
+  useEffect(() => {
+    if (missingSlot) navigate('/', { replace: true });
+  }, [missingSlot, navigate]);
+  // No `?? 1` fallback — in-app upsells (Shop/Settings) intentionally omit the
+  // slot and return to '/game' or '/', which never enter club setup.
+  const slot = navState.slot;
   const communityPackEnabled = navState.communityPackEnabled === true;
   const returnTo = navState.returnTo || '/mode-select';
 
@@ -240,6 +251,10 @@ const SubscribeOnboarding = () => {
     // priceFor is recomputed every render — depending on storePrices captures it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected, storePrices, isTrialPlan, selectedProduct]);
+
+  // Redirecting to the title (no slot / no in-app context) — render nothing.
+  // Placed after all hooks to satisfy the Rules of Hooks.
+  if (missingSlot) return null;
 
   return (
     <div className="h-screen bg-background flex flex-col items-center px-4 sm:px-5 relative overflow-hidden safe-area-top safe-area-bottom">

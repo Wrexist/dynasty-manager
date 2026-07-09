@@ -13,15 +13,9 @@ import { signalReady, saveStorageReady } from '@/main';
 import { errorToast } from '@/utils/gameToast';
 import { hapticMedium, hapticLight } from '@/utils/haptics';
 import {
-  readCommunityPackSlotPref,
-  writeCommunityPackSlotPref,
   clearCommunityPackSlotPref,
   isSaveStorageHydrated,
-  getFlag,
-  STORAGE_KEYS,
 } from '@/store/helpers/persistence';
-import { CommunityPackPopup } from '@/components/CommunityPackPopup';
-import { isPro, isSubscriptionActive } from '@/utils/monetization';
 import { hasUnseenWhatsNew } from '@/data/whatsNew';
 import { SettingsBody } from './SettingsPage';
 import type { TitleFloatingCircle } from '@/types/game';
@@ -29,15 +23,10 @@ import type { TitleFloatingCircle } from '@/types/game';
 
 const TitleScreen = () => {
   const navigate = useNavigate();
-  const monetization = useGameStore(s => s.monetization);
   const loadGame = useGameStore(s => s.loadGame);
   const resetGame = useGameStore(s => s.resetGame);
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
-  // Which slot is currently prompting the community pack popup. null = hidden.
-  const [communityPackSlot, setCommunityPackSlot] = useState<number | null>(null);
-  const userIsPro = isPro(monetization);
-  const hasActiveSub = isSubscriptionActive(monetization);
 
   // Signal to main.tsx that the first screen is mounted (hides splash)
   useEffect(() => { signalReady?.(); }, []);
@@ -99,32 +88,13 @@ const TitleScreen = () => {
   };
 
   const handleNewGame = (slot: number) => {
-    const pref = readCommunityPackSlotPref(slot);
-    if (pref === null) {
-      // First New Game on this slot — ask once, then remember the choice.
-      setCommunityPackSlot(slot);
-      return;
-    }
-    // Returning to a slot that already answered the community pack popup —
-    // still funnel through the subscription paywall on first sight.
-    const shouldShowSubscribe =
-      !userIsPro && !hasActiveSub && !getFlag(STORAGE_KEYS.SUBSCRIBE_ONBOARDING_SEEN);
-    const nextRoute = shouldShowSubscribe ? '/subscribe' : '/mode-select';
-    navigate(nextRoute, { state: { slot, communityPackEnabled: pref, returnTo: '/mode-select' } });
-  };
-
-  const handleCommunityPackChoice = (enabled: boolean) => {
-    const slot = communityPackSlot;
-    if (slot === null) return;
-    writeCommunityPackSlotPref(slot, enabled);
-    setCommunityPackSlot(null);
-    // Show the subscription onboarding once per device, before mode-select.
-    // Skip for users who already have Pro (one-time purchase or active sub)
-    // and for those who already answered the trial paywall on a prior run.
-    const shouldShowSubscribe =
-      !userIsPro && !hasActiveSub && !getFlag(STORAGE_KEYS.SUBSCRIBE_ONBOARDING_SEEN);
-    const nextRoute = shouldShowSubscribe ? '/subscribe' : '/mode-select';
-    navigate(nextRoute, { state: { slot, communityPackEnabled: enabled, returnTo: '/mode-select' } });
+    // Cold open goes straight to mode select — no paywall, no blocking
+    // community-pack popup. The community-pack choice now lives inline in each
+    // mode's setup flow (ClubSelection / ManagerCreation / WorldCupSetup), and
+    // the subscription onboarding is deferred to the first match result
+    // (see GameShell). This is the P0 funnel fix from G1.
+    hapticLight();
+    navigate('/mode-select', { state: { slot, returnTo: '/mode-select' } });
   };
 
   const handleDelete = (slot: number) => {
@@ -440,12 +410,6 @@ const TitleScreen = () => {
       </div>
 
       <p className="absolute bottom-5 text-[10px] text-muted-foreground/50 tracking-[0.4em] font-display">v{__APP_VERSION__}</p>
-
-      <CommunityPackPopup
-        open={communityPackSlot !== null}
-        onChoice={handleCommunityPackChoice}
-        onClose={() => setCommunityPackSlot(null)}
-      />
     </div>
   );
 };

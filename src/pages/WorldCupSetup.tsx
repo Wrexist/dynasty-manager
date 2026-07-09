@@ -15,6 +15,8 @@ import { useGameStore } from '@/store/gameStore';
 import { NATIONS } from '@/data/nations';
 import { getFlag } from '@/utils/nationality';
 import { hapticLight, hapticMedium } from '@/utils/haptics';
+import { readCommunityPackSlotPref, writeCommunityPackSlotPref } from '@/store/helpers/persistence';
+import { CommunityPackToggle } from '@/components/game/CommunityPackToggle';
 import { cn } from '@/lib/utils';
 
 const CONFED_LABEL: Record<string, string> = {
@@ -46,6 +48,10 @@ const WorldCupSetup = () => {
 
   const [selected, setSelected] = useState<string | null>(null);
   const [confed, setConfed] = useState('all');
+  // Community-pack opt-in — seeds from any per-slot pref, else default ON.
+  const [communityPackEnabled, setCommunityPackEnabled] = useState(
+    () => readCommunityPackSlotPref(slot ?? 1) ?? true,
+  );
   const sorted = useMemo(() => [...NATIONS].sort((a, b) => a.baseRanking - b.baseRanking), []);
   const nations = useMemo(
     () => confed === 'all' ? sorted : sorted.filter(n => n.confederation === confed),
@@ -57,9 +63,12 @@ const WorldCupSetup = () => {
   const start = () => {
     if (!selected) return;
     hapticMedium();
+    // Persist the per-slot community-pack choice (was written by the old
+    // TitleScreen popup; now owned by this inline toggle).
+    writeCommunityPackSlotPref(slot, communityPackEnabled);
     // Target the chosen slot first — startWorldCup → resetGame reads activeSlot.
     useGameStore.setState({ activeSlot: slot });
-    startWorldCup(selected);
+    startWorldCup(selected, { communityPackEnabled });
     navigate('/game');
   };
 
@@ -126,6 +135,13 @@ const WorldCupSetup = () => {
             );
           })}
         </div>
+
+        {/* Community-pack opt-in — real-world names & ratings for the nations. */}
+        <CommunityPackToggle
+          className="mt-4"
+          enabled={communityPackEnabled}
+          onChange={setCommunityPackEnabled}
+        />
       </div>
 
       {/* Sticky start bar */}

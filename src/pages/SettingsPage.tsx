@@ -319,7 +319,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
                     onClick={() => {
                       if (locked) {
                         if (variant === 'in-game') setScreen('shop');
-                        else navigate('/subscribe');
+                        else navigate('/subscribe', { state: { returnTo: '/' } });
                         return;
                       }
                       updateSettings({ matchSpeed: s.value });
