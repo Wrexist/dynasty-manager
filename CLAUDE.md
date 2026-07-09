@@ -1,6 +1,6 @@
 # CLAUDE.md — Dynasty Manager
 
-> Last verified against the codebase 2026-06-09 (app v1.0.13, save schema v71).
+> Last verified against the codebase 2026-07-09 (app v1.2.0, save schema v72).
 > If the numbers below disagree with the code, trust the code — and update this file.
 
 ## TestFlight Release Notes ("What's New")
@@ -266,7 +266,7 @@ consumable player-pack IAPs (RevenueCat).
   status-bar, `@capacitor-community/in-app-review`)
 - **RevenueCat** `@revenuecat/purchases-capacitor` 12.3.2 (+ `-ui`) — all IAP/subscriptions
 - **Sentry** `@sentry/react` 10.49 — crash reporting + game breadcrumbs (`src/utils/sentry.ts`)
-- **Vitest 3.2.4 + jsdom + Testing Library** — 99 test files in `src/test/`
+- **Vitest 3.2.4 + jsdom + Testing Library** — 136 test files in `src/test/`
 - **Husky 9.1.7 + lint-staged 16.4.0** — pre-commit hooks
 - **Fonts:** Oswald (headings) + DM Sans (body), self-hosted via `@fontsource/*`
 - **Package manager:** npm
@@ -337,13 +337,13 @@ src/
 ├── types/game.ts        → ALL types (2,083 LOC): Player, Club, Match, LeagueInfo,
 │                          10 formations, 45 GameScreens, MonetizationState,
 │                          CareerManager, NationalTeamState, PackTierDefinition, …
-├── utils/               → 74 files: playerGen, saveMigration (v71, 1,276 LOC),
+├── utils/               → 74+ files: playerGen, saveMigration (v72),
 │                          purchases (RevenueCat wrapper), monetization, ads (stub),
 │                          packGeneration, communityPackPool, international,
 │                          managerCareer, continental, continentalCoefficients,
 │                          ballonDor, penaltyShootout, substitutionLogic, analytics,
 │                          sentry, appReview, haptics, promotionRelegation, …
-├── test/                → 99 test files incl. longevity/stress suites, adversarial
+├── test/                → 136 test files incl. longevity/stress suites, adversarial
 │                          season tests, release-readiness, render hygiene,
 │                          launch-crash guardrails, balance reports, perf
 ├── index.css            → Tailwind + CSS vars (incl. pack tier palettes, perf-mode)
@@ -358,7 +358,7 @@ src/
 5. **`src/engine/match.ts`** — match simulation (1,828 LOC).
 6. **`src/data/leagues/index.ts`** — aggregates 45 leagues / 756 clubs; `src/data/league.ts` for fixtures/tables/derbies.
 7. **`src/utils/playerGen.ts`** — player generation, overall calc, squad building.
-8. **`src/utils/saveMigration.ts`** — save schema `CURRENT_VERSION = 71` + migration chain. Every state-shape change bumps it.
+8. **`src/utils/saveMigration.ts`** — save schema `CURRENT_VERSION = 72` + migration chain. Every state-shape change bumps it.
 9. **`src/config/monetization.ts` + `src/utils/purchases.ts` + `src/utils/monetization.ts`** — product catalog, RevenueCat wrapper, entitlement checks (see Monetization).
 10. **`src/store/slices/orchestration/seasonEnd.ts`** — end-of-season: aging, contracts, promotion/relegation cascade, awards, fixtures.
 
@@ -457,7 +457,7 @@ identities draw from the **community pack** real-player dataset
 - ALL storage access goes through `src/store/helpers/persistence.ts`
   (`readSaveSlot`, `getFlag`/`setFlag`, `readSessionJson`, …). New keys
   register in `STORAGE_KEYS`. Direct `localStorage` use is ESLint-banned.
-- **Save schema version `71`** in `utils/saveMigration.ts`. Any change to
+- **Save schema version `72`** in `utils/saveMigration.ts`. Any change to
   persisted state shape bumps `CURRENT_VERSION` and adds a migration step.
   `SaveRecoveryDialog` + backup slots handle corrupted saves; parse failures
   breadcrumb to Sentry.
@@ -504,7 +504,7 @@ identities draw from the **community pack** real-player dataset
 - **Never check subscription SKUs against `monetization.entitlements`** — see Entitlement invariants above.
 - **Generated data is not source code:** `src/data/communityPack/*`, `src/data/nationalPlayerPool.ts` are tool-generated. Never hand-edit; regenerate via the fc26/scrape scripts.
 - HashRouter: deep links are `#/route`; route changes don't hit the server.
-- `package.json.version` (1.0.13) must never regress below the top `whatsNew.ts` entry — CI guard will fail the TestFlight build.
+- `package.json.version` (1.2.0) must never regress below the top `whatsNew.ts` entry — CI guard will fail the TestFlight build.
 
 ## Commands
 ```bash
@@ -513,7 +513,7 @@ npm run dev          # Dev server (port 8080)
 npm run build        # Production build
 npm run build:dev    # Development build
 npm run preview      # Preview production build
-npm run test         # Vitest (99 test files)
+npm run test         # Vitest (136 test files)
 npm run test:watch   # Vitest in watch mode
 npm run lint         # ESLint
 npm run typecheck    # TypeScript type-check (standalone)
