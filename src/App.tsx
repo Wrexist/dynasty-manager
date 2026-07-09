@@ -1,5 +1,4 @@
 import { lazy, Suspense, useEffect, useState } from "react";
-import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { HashRouter, Routes, Route } from "react-router-dom";
@@ -64,7 +63,6 @@ const App = () => {
   <ErrorBoundary scope="app">
     <MotionConfig reducedMotion={(reducedMotion || performanceMode) ? "always" : "user"}>
       <TooltipProvider>
-        <Toaster />
         <Sonner />
         <AnalyticsConsentModal
           open={consent === 'unknown'}

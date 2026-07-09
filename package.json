@@ -60,7 +60,6 @@
     "@fontsource/oswald": "^5.2.8",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-slot": "^1.2.4",
-    "@radix-ui/react-toast": "^1.2.15",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@revenuecat/purchases-capacitor": "^12.3.2",
     "@revenuecat/purchases-capacitor-ui": "^12.3.2",
