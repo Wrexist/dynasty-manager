@@ -483,7 +483,10 @@ export interface GameState {
   applyYouthPreview: () => void;
   applyDoubleXP: () => void;
   updateSubscription: (info: SubscriptionInfo | null) => void;
-  startFreeTrial: () => void;
+  /** Record the store-granted free trial locally (web/dev mock + instant
+   *  unlock). `productId` is the subscription the trial converts into —
+   *  defaults to the monthly plan for backward compatibility. */
+  startFreeTrial: (productId?: ProductId) => void;
 
   // Actions — National Team
   initNationalTeam: (nationality: string) => void;

@@ -284,16 +284,26 @@ export const COSMETIC_ITEMS: CosmeticItem[] = [
   { id: 'hom-frame-holographic', category: 'hom_frame', name: 'Holographic', description: 'Shimmering holographic border', pack: 'com.dynastymanager.pack.legends' },
 ];
 
-// ── Free Trial (introductory offer for monthly subscription) ──
+// ── Free Trial (introductory offer for subscriptions) ──
 
-/** Free trial duration before the monthly subscription begins billing.
- *  Configured to match the introductory offer set in App Store Connect /
- *  Google Play Console for `com.dynastymanager.pro.monthly`. The native
- *  store handles the actual trial billing — this constant is used to
- *  display the correct copy in the onboarding paywall and to mock the
- *  trial window when running on web/dev (no native plugin available). */
-export const FREE_TRIAL_DAYS = 3;
+/** Free trial duration before a subscription begins billing.
+ *  ⚠ MUST match the introductory offer configured in App Store Connect /
+ *  Google Play Console for every SKU in `SUB_TRIAL_PRODUCT_IDS`. The native
+ *  store handles the actual trial billing — this constant only drives the
+ *  paywall copy ("Start 7-Day Free Trial", "No payment due now") and the
+ *  mocked trial window on web/dev. If the store's intro offer differs, the
+ *  paywall is making a false claim (Apple 3.1.2 exposure) — change BOTH
+ *  together. */
+export const FREE_TRIAL_DAYS = 7;
 export const FREE_TRIAL_MS = FREE_TRIAL_DAYS * 24 * 60 * 60 * 1000;
+
+/** Subscriptions whose store intro offer grants the free trial. Only SKUs
+ *  listed here show trial framing on the paywall ("free trial included",
+ *  trial CTA, no-payment-now note) — and only to trial-eligible users. */
+export const SUB_TRIAL_PRODUCT_IDS: ProductId[] = [
+  'com.dynastymanager.pro.annual',
+  'com.dynastymanager.pro.monthly',
+];
 
 /** The product the free trial converts into when it ends. Players opting
  *  into the trial during onboarding are auto-enrolled in the monthly plan

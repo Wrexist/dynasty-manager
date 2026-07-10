@@ -26,7 +26,7 @@ import {
 import {
   FREE_TRIAL_DAYS,
   PRODUCTS,
-  TRIAL_TARGET_PRODUCT_ID,
+  SUB_TRIAL_PRODUCT_IDS,
 } from '@/config/monetization';
 import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
 import { openExternalUrl } from '@/utils/externalUrl';
@@ -76,18 +76,19 @@ interface PlanRow {
 const PLAN_ROWS: PlanRow[] = [
   {
     productId: 'com.dynastymanager.pro.annual',
-    title: 'Dynasty Pro — Yearly',
+    title: 'Pro Yearly',
     lengthLabel: '12 months · auto-renews yearly',
+    trialCaption: `${FREE_TRIAL_DAYS}-day free trial included`,
     badge: 'BEST VALUE',
   },
   {
     productId: 'com.dynastymanager.pro.lifetime',
-    title: 'Dynasty Pro — Lifetime',
+    title: 'Pro Lifetime',
     lengthLabel: 'One-time purchase · no renewal',
   },
   {
     productId: 'com.dynastymanager.pro.monthly',
-    title: 'Dynasty Pro — Monthly',
+    title: 'Pro Monthly',
     lengthLabel: 'Auto-renews monthly',
     trialCaption: `${FREE_TRIAL_DAYS}-day free trial included`,
   },
@@ -175,20 +176,20 @@ const SubscribeOnboarding = () => {
 
       result.granted.forEach(id => grantEntitlement(id));
 
-      // If the user picked the monthly plan, the App Store Connect
+      // If the user picked a trial-bearing plan, the App Store Connect
       // introductory offer grants the free trial automatically — mirror it
       // locally so gated features unlock immediately.
-      if (selected === TRIAL_TARGET_PRODUCT_ID) startFreeTrial();
+      const isTrial = trialEligible && SUB_TRIAL_PRODUCT_IDS.includes(selected);
+      if (isTrial) startFreeTrial(selected);
 
       await syncAfterPurchase();
       track('purchase_completed', { productId: selected });
 
       const product = PRODUCTS[selected];
-      const isTrial = trialEligible && selected === TRIAL_TARGET_PRODUCT_ID;
       successToast(
-        isTrial ? `${FREE_TRIAL_DAYS}-Day Trial Started!` : 'Welcome to Dynasty Pro!',
+        isTrial ? `${FREE_TRIAL_DAYS}-Day Free Trial Started!` : 'Welcome to Dynasty Pro!',
         isTrial
-          ? `Pro is unlocked. You'll be charged ${priceFor(selected)}/month after the trial unless you cancel.`
+          ? `Pro is unlocked. You'll be charged ${priceFor(selected)}${product.billingPeriod || ''} after the trial unless you cancel.`
           : `${product.name} is now active.`,
       );
       finish();
@@ -241,10 +242,11 @@ const SubscribeOnboarding = () => {
   };
 
   const selectedProduct = PRODUCTS[selected];
-  const isTrialPlan = trialEligible && selected === TRIAL_TARGET_PRODUCT_ID;
+  const isTrialPlan = trialEligible && SUB_TRIAL_PRODUCT_IDS.includes(selected);
   const billingSummary = useMemo(() => {
     if (isTrialPlan) {
-      return `Free for ${FREE_TRIAL_DAYS} days, then ${priceFor(selected)} per month. Auto-renews until cancelled.`;
+      const period = selectedProduct.billingPeriod?.replace('/', '') || 'period';
+      return `Free for ${FREE_TRIAL_DAYS} days, then ${priceFor(selected)} per ${period}. Auto-renews until cancelled.`;
     }
     if (selectedProduct.type === 'subscription') {
       const period = selectedProduct.billingPeriod?.replace('/', '') || 'period';
@@ -447,12 +449,21 @@ const SubscribeOnboarding = () => {
               <>
                 <Sparkles className="w-5 h-5" />
                 {isTrialPlan
-                  ? `Start ${FREE_TRIAL_DAYS}-Day Free Trial`
+                  ? `Try ${FREE_TRIAL_DAYS} Days Free`
                   : `Continue — ${priceFor(selected)}${selectedProduct.billingPeriod || ''}`}
               </>
             )}
           </span>
         </motion.button>
+
+        {/* Trial reassurance — subordinate to the billed amount per 3.1.2(c):
+            small, muted, and the price/renewal terms stay in billingSummary. */}
+        {isTrialPlan && (
+          <p className="mt-2 flex items-center justify-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+            <Check className="w-3 h-3 text-emerald-400" aria-hidden />
+            No payment due now · cancel anytime
+          </p>
+        )}
 
         {/* Footer: Restore + Terms + Privacy — required by Apple 3.1.2(c). */}
         <div className="mt-2.5 flex items-center justify-center gap-4 text-[11px] font-semibold">
