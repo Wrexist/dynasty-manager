@@ -23,7 +23,8 @@ import { updateCoefficients } from '@/utils/continentalCoefficients';
 import { getContinentalResultForClub } from '@/utils/continental';
 import { DOMESTIC_SUPER_CUP_WEEK, CONTINENTAL_SUPER_CUP_WEEK, REP_CHAMPIONS_CUP_WIN, REP_SHIELD_CUP_WIN, REP_CONFERENCE_CUP_WIN, REP_LEAGUE_CUP_WIN, REP_CONTINENTAL_GROUP, REP_CONTINENTAL_KNOCKOUT } from '@/config/continental';
 
-import { checkChallengeComplete, CHALLENGES } from '@/data/challenges';
+import { checkChallengeComplete, CHALLENGES, getFeaturedChallengeId, FEATURED_CHALLENGE_XP_MULTIPLIER } from '@/data/challenges';
+import { addCompletedChallenge } from '@/store/helpers/persistence';
 import { calculateSeasonAwards } from '@/utils/seasonAwards';
 import { calculateBallonDOr } from '@/utils/ballonDor';
 import { getPlayerRarity } from '@/utils/playerRarity';
@@ -1146,6 +1147,10 @@ function finalizeSeason(
   const newStaffMembers = staffAfterSeason;
 
   let endChallenge = state.activeChallenge;
+  // Manager XP earned by completing the active challenge this season. Folded
+  // into the season-end grantXP below so it rides the same progression path
+  // (sim-neutral — never touches match/transfer/training maths).
+  let challengeRewardXp = 0;
   if (endChallenge && !endChallenge.completed && !endChallenge.failed) {
     const cupWon = state.cup.winner === playerClubId;
     const myEntry = state.leagueTable.find(e => e.clubId === playerClubId);
@@ -1168,7 +1173,18 @@ function finalizeSeason(
     if (checkChallengeComplete(endChallenge.scenarioId, history.position, cupWon, [...state.seasonHistory, history], hasLost, challengeExtra)) {
       endChallenge = { ...endChallenge, completed: true };
       const scenario = CHALLENGES.find(c => c.id === endChallenge!.scenarioId);
-      newMessages = addMsg(newMessages, { week: 1, season: newSeason, type: 'board', title: 'Challenge Complete!', body: `Congratulations! You completed the "${scenario?.name}" challenge! ${scenario?.icon || ''}` });
+      // Reward: manager XP scaled by difficulty, with a bonus multiplier when
+      // this scenario is the current weekly Featured Challenge. Persisted as a
+      // device-global completion so the picker can show a check + earned badge.
+      const featured = getFeaturedChallengeId() === endChallenge.scenarioId;
+      const baseXp = scenario?.rewardXp ?? 0;
+      challengeRewardXp = Math.round(baseXp * (featured ? FEATURED_CHALLENGE_XP_MULTIPLIER : 1));
+      addCompletedChallenge(endChallenge.scenarioId);
+      track('challenge_completed', { challengeId: endChallenge.scenarioId, xp: challengeRewardXp, featured });
+      newMessages = addMsg(newMessages, {
+        week: 1, season: newSeason, type: 'board', title: 'Challenge Complete!',
+        body: `Congratulations! You completed the "${scenario?.name}" challenge!${challengeRewardXp > 0 ? ` +${challengeRewardXp} XP${featured ? ' (Featured bonus!)' : ''}` : ''} ${scenario?.icon || ''}`,
+      });
     } else {
       endChallenge = { ...endChallenge, seasonsRemaining: endChallenge.seasonsRemaining - 1 };
       if (endChallenge.seasonsRemaining <= 0) {
@@ -1328,6 +1344,7 @@ function finalizeSeason(
       if (state.conferenceCup?.winnerId === playerClubId) xp += XP_REWARDS.conferenceCupWin;
       else if (state.conferenceCup && !state.conferenceCup.playerEliminated) xp += XP_REWARDS.continentalGroupAdvance;
       xp += objectiveXP;
+      xp += challengeRewardXp;
       return xp;
     })()),
     seasonGrowthTracker: {},

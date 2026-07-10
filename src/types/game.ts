@@ -1525,6 +1525,12 @@ export interface ChallengeScenario {
   youthOnly?: boolean;           // can only use players under 23
   noTransfers?: boolean;         // cannot buy players
   clubFilter?: 'relegation' | 'contender' | 'youth-academy' | 'mid-table' | 'underdog' | 'all';
+  /** Manager XP granted on completion (sim-neutral, paid via the existing
+   *  managerProgression grantXP path). Scaled by difficulty at authoring time. */
+  rewardXp?: number;
+  /** Cosmetic badge identifier shown on the challenge picker once completed.
+   *  A label only — NOT a monetization entitlement. */
+  badgeId?: string;
 }
 
 // ── Storyline Events ──

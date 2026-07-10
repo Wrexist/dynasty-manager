@@ -34,7 +34,10 @@ export type AnalyticsEvent =
   | { name: 'legacy_viewed'; data: { tier: string; trophies: number } }
   | { name: 'reminders_enabled'; data: Record<string, never> }
   | { name: 'reminders_disabled'; data: Record<string, never> }
-  | { name: 'code_redeemed'; data: { reward: string } };
+  | { name: 'code_redeemed'; data: { reward: string } }
+  | { name: 'challenge_completed'; data: { challengeId: string; xp: number; featured: boolean } }
+  | { name: 'resume_card_tap'; data: { screen: string; reason: string } }
+  | { name: 'notif_permission_prompt'; data: { action: 'enable' | 'dismiss'; granted: boolean } };
 
 export type AnalyticsEventName = AnalyticsEvent['name'];
 

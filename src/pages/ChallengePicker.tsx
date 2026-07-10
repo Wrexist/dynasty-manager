@@ -2,12 +2,13 @@ import * as Sentry from '@sentry/react';
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CHALLENGES, getDifficultyColor } from '@/data/challenges';
+import { CHALLENGES, getDifficultyColor, getFeaturedChallengeId } from '@/data/challenges';
 import { CLUBS_DATA, LEAGUES } from '@/data/league';
 import { CLUBS_BY_LEAGUE, LEAGUE_REGIONS } from '@/data/leagues';
 import { useGameStore } from '@/store/gameStore';
+import { readCompletedChallenges } from '@/store/helpers/persistence';
 import { cn } from '@/lib/utils';
-import { ArrowLeft, ChevronRight, ChevronDown, Trophy, Search, X, ChevronsUpDown, Loader2 } from 'lucide-react';
+import { ArrowLeft, ChevronRight, ChevronDown, Trophy, Search, X, ChevronsUpDown, Loader2, Check, Star, Sparkles } from 'lucide-react';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { LIQUID_GLASS_SURFACE } from '@/components/game/GlassPanel';
@@ -34,6 +35,10 @@ const ChallengePicker = () => {
   const [expandedLeagues, setExpandedLeagues] = useState<Set<string>>(new Set());
   const [clubSearch, setClubSearch] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
+  // Device-global completion set + this week's Featured Challenge. Read once on
+  // mount — completions only change at season end, which unmounts this screen.
+  const completedIds = useMemo(() => new Set(readCompletedChallenges()), []);
+  const featuredId = useMemo(() => getFeaturedChallengeId(), []);
 
   // Scroll to top when entering club picker
   useEffect(() => {
@@ -373,7 +378,13 @@ const ChallengePicker = () => {
         style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}
       >
         <div className="space-y-3">
-          {CHALLENGES.map((challenge, i) => (
+          {CHALLENGES.map((challenge, i) => {
+            const isCompleted = completedIds.has(challenge.id);
+            const isFeatured = challenge.id === featuredId;
+            const badgeLabel = challenge.badgeId
+              ? challenge.badgeId.replace(/^badge-/, '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+              : null;
+            return (
             <motion.button
               key={challenge.id}
               initial={{ opacity: 0, y: 12 }}
@@ -382,17 +393,40 @@ const ChallengePicker = () => {
               onClick={() => handleSelectChallenge(challenge)}
               className={cn(
                 LIQUID_GLASS_SURFACE,
-                'w-full text-left p-4 border border-white/10 hover:border-primary/40 active:scale-[0.98] transition-colors',
+                'w-full text-left p-4 border active:scale-[0.98] transition-colors',
+                isFeatured
+                  ? 'border-primary/60 shadow-[0_0_16px_-6px_hsl(43_96%_46%/0.55)]'
+                  : 'border-white/10 hover:border-primary/40',
               )}
             >
+              {/* Featured / Completed ribbon row */}
+              {(isFeatured || isCompleted) && (
+                <div className="flex items-center gap-2 mb-2">
+                  {isFeatured && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30">
+                      <Star className="w-3 h-3" /> Featured · +50% XP
+                    </span>
+                  )}
+                  {isCompleted && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                      <Check className="w-3 h-3" /> Completed{badgeLabel ? ` · ${badgeLabel}` : ''}
+                    </span>
+                  )}
+                </div>
+              )}
               <div className="flex items-start gap-3">
-                <DynamicIcon name={challenge.icon} className="w-7 h-7 text-primary shrink-0" />
+                <DynamicIcon name={challenge.icon} className={cn('w-7 h-7 shrink-0', isCompleted ? 'text-emerald-400' : 'text-primary')} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="text-sm font-bold text-foreground">{challenge.name}</h3>
                     <span className={cn('text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase', getDifficultyColor(challenge.difficulty))}>
                       {challenge.difficulty}
                     </span>
+                    {challenge.rewardXp ? (
+                      <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-primary/80">
+                        <Sparkles className="w-3 h-3" />{challenge.rewardXp} XP
+                      </span>
+                    ) : null}
                   </div>
                   <p className="text-xs text-muted-foreground leading-relaxed mb-2">{challenge.description}</p>
 
@@ -417,7 +451,8 @@ const ChallengePicker = () => {
                 <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0 mt-1" />
               </div>
             </motion.button>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

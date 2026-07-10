@@ -92,7 +92,7 @@ export const SCREEN_TITLES: Partial<Record<GameScreen, string>> = {
   'job-market': 'Job Market',
   'career-overview': 'Career Overview',
   'ballon-dor': "Ballon d'Or",
-  'festival': 'World Cup Festival',
+  'festival': 'Festival',
   'dynasty-legacy': 'Manager Legacy',
   'world-cup-draw': 'The Draw',
   'world-cup-result': 'World Cup',

@@ -290,6 +290,11 @@ export const STORAGE_KEYS = {
    *  `SKStoreReviewController.requestReview` on top of Apple's 3/365-day
    *  hard cap so we only spend prompts on genuine high-emotion moments. */
   APP_REVIEW_STATE: 'dynasty-review-state',
+  /** sessionStorage: per-session flag that the "Continue where you left off"
+   *  resume card has already been shown this app session (JSON `true`). Tab-
+   *  scoped so it re-appears on the next launch but only once per session. Not
+   *  save data — a UI nudge derived entirely from existing state. */
+  RESUME_CARD_SHOWN: 'dynasty-resume-card-shown',
   /** sessionStorage: remembers the Inbox filter selection (category filters +
    *  unread-only toggle) so it survives navigating away from and back to the
    *  Inbox within a session. JSON-encoded `{ filters: string[]; unreadOnly: boolean }`.
@@ -331,6 +336,16 @@ export const STORAGE_KEYS = {
    *  '1' = on, '0' = off, missing = never asked. Device-level (not save-scoped)
    *  and paired with the OS permission, which is the ultimate gate. */
   NOTIFICATIONS_ENABLED: 'dynasty-notifications-enabled',
+  /** localStorage flag (getFlag/setFlag): the one-time first-win notification
+   *  permission prompt has been shown. Device-global so a returning player who
+   *  already answered it on a previous career isn't re-prompted on each new
+   *  save. Independent of NOTIFICATIONS_ENABLED (which records the answer). */
+  NOTIF_FIRST_WIN_PROMPTED: 'dynasty-notif-first-win-prompted',
+  /** localStorage: device-global set of completed challenge-scenario ids (JSON
+   *  array). Challenge completion is a device-level achievement, not part of
+   *  any career save — deliberately NOT save-scoped, so it persists across new
+   *  careers and slot deletion. Badges are cosmetic labels, never entitlements. */
+  COMPLETED_CHALLENGES: 'dynasty-completed-challenges',
 } as const;
 
 /** Read the user's preferred MatchDay view, or null if never set. */
@@ -446,6 +461,33 @@ export function readLiveEventProgress(): LiveEventProgress | null {
 export function writeLiveEventProgress(record: LiveEventProgress): void {
   try { localStorage.setItem(STORAGE_KEYS.LIVE_EVENT_PROGRESS, JSON.stringify(record)); }
   catch { /* storage unavailable — non-fatal */ }
+}
+
+// ── Completed Challenges (device-global) ──
+
+/** Device-global list of completed challenge-scenario ids. */
+export function readCompletedChallenges(): string[] {
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem(STORAGE_KEYS.COMPLETED_CHALLENGES);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === 'string') : [];
+  } catch (err) {
+    if (raw !== null) breadcrumbCorruption('readCompletedChallenges', raw, err);
+    return [];
+  }
+}
+
+/** Record a challenge id as completed. No-op if already present. Returns true
+ *  when it was newly added (so the caller can pay a first-time reward). */
+export function addCompletedChallenge(challengeId: string): boolean {
+  try {
+    const existing = readCompletedChallenges();
+    if (existing.includes(challengeId)) return false;
+    localStorage.setItem(STORAGE_KEYS.COMPLETED_CHALLENGES, JSON.stringify([...existing, challengeId]));
+    return true;
+  } catch { return false; }
 }
 
 // ── Notification opt-in ──

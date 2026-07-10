@@ -45,6 +45,9 @@ import { PageHint } from '@/components/game/PageHint';
 import { OnboardingChecklist } from '@/components/game/OnboardingChecklist';
 import { DailyRewardModal } from '@/components/game/DailyRewardModal';
 import { FestivalBanner } from '@/components/game/FestivalBanner';
+import { ContinueResumeCard } from '@/components/game/ContinueResumeCard';
+import { NotifPermissionModal } from '@/components/game/NotifPermissionModal';
+import { hasUnclaimedFreeDailyPack } from '@/utils/freePacks';
 import { DynastyStatusChip } from '@/components/game/DynastyStatusChip';
 import { ACHIEVEMENTS } from '@/utils/achievements';
 import type { Achievement } from '@/utils/achievements';
@@ -130,7 +133,7 @@ const Dashboard = () => {
     pendingPressConference, pendingStoryline, pendingTransferTalk,
     activeChallenge, youthAcademy, fanMood, sessionStats,
     pendingAchievementIds,
-    activeStorylineChains, unlockedAchievements, packPityCounter,
+    activeStorylineChains, unlockedAchievements, packPityCounter, dailyPackOpens,
   } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId, clubs: s.clubs, players: s.players,
     week: s.week, season: s.season, fixtures: s.fixtures, leagueTable: s.leagueTable,
@@ -157,6 +160,7 @@ const Dashboard = () => {
     activeStorylineChains: s.activeStorylineChains,
     unlockedAchievements: s.unlockedAchievements,
     packPityCounter: s.packPityCounter || 0,
+    dailyPackOpens: s.dailyPackOpens,
   })));
   const tw = getTransferWindows(totalWeeks);
   // Actions — stable references, individual selectors
@@ -695,6 +699,9 @@ const Dashboard = () => {
   const lineupIncomplete = (club.lineup || []).filter(id => !!players[id]).length < 11;
   const packPityRemaining = Math.max(0, PACK_PITY_THRESHOLD - packPityCounter);
   const packPityPrimed = packPityRemaining <= 2;
+  // A free daily pack the player hasn't opened today — surfaced as a simple dot
+  // when the higher-priority pity badge isn't showing.
+  const freePackAvailable = hasUnclaimedFreeDailyPack(dailyPackOpens);
   // Quick-link badges. Most links carry a simple coloured dot when there's
   // something to attend to; the packs link gets a premium count badge so
   // the user can see "1 pack to guarantee" or "✦ ready" at a glance from
@@ -709,7 +716,10 @@ const Dashboard = () => {
             ? { color: 'bg-gradient-to-br from-amber-200 to-amber-500', label: '✦', labelColor: 'text-amber-950' }
             : { color: 'bg-gradient-to-br from-amber-300 to-amber-500', label: String(packPityRemaining), labelColor: 'text-amber-950' },
         }
-      : {}),
+      // No pity badge — surface a free-daily-pack nudge instead (simple dot).
+      : freePackAvailable
+        ? { packs: { color: 'bg-emerald-500' } }
+        : {}),
   };
 
   return (
@@ -724,15 +734,23 @@ const Dashboard = () => {
       {/* Daily login-streak reward — auto-presents once per day when claimable. */}
       <DailyRewardModal />
 
+      {/* First-win notification permission ask — routes through the
+          presentation queue; only appears on native at the first-win peak. */}
+      <NotifPermissionModal />
+
       <PageHint
         screen="dashboard"
         title="Your Dashboard"
         body="This is your weekly hub. Check upcoming matches, review finances, track objectives, and advance to the next week. Visit Squad to manage players, Tactics to set formations, and Transfers to buy or sell."
       />
 
-      {/* Live-event banner (e.g. World Cup Festival) — only while an event is
-          live. Links to the Festival hub. */}
+      {/* Live-event banner (World Cup or the generated monthly festival).
+          Links to the Festival hub. */}
       <FestivalBanner />
+
+      {/* "Continue where you left off" — once per session, deep-links the top
+          pending decision for a returning player. */}
+      <ContinueResumeCard />
 
       {/* Persistent legacy/streak visibility — self-hides for fresh installs. */}
       <DynastyStatusChip />

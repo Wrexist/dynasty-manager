@@ -8,7 +8,7 @@ import App from "./App.tsx";
 import "./index.css";
 import { initPurchases } from '@/utils/purchases';
 import { initAds } from '@/utils/ads';
-import { scheduleEngagementReminders, cancelAllEngagementReminders } from '@/utils/notifications';
+import { scheduleEngagementReminders, cancelAllEngagementReminders, derivePersonalContext } from '@/utils/notifications';
 import { useGameStore } from '@/store/gameStore';
 import { initSentry, addGameBreadcrumb } from '@/utils/sentry';
 import { track } from '@/utils/analytics';
@@ -202,8 +202,16 @@ async function initNative() {
           Sentry.captureException(err, { tags: { context: 'capApp.pause' } });
         }
         // Schedule re-engagement reminders as the app backgrounds, reflecting
-        // the latest streak/event state. Best-effort + opt-in gated internally.
-        void scheduleEngagementReminders();
+        // the latest streak/event state and — when a game is loaded — save-
+        // derived personal copy (top cliffhanger, pending offers, next fixture).
+        // Best-effort + opt-in gated internally.
+        try {
+          const s = useGameStore.getState();
+          const personal = s.gameStarted ? derivePersonalContext(s) : null;
+          void scheduleEngagementReminders(personal);
+        } catch {
+          void scheduleEngagementReminders();
+        }
       });
       // Clear pending reminders when the app comes back to the foreground so
       // they can't fire while the player is already here; the next pause

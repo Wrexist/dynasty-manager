@@ -46,6 +46,7 @@ export type OverlayId =
   | 'transferTalk'
   | 'farewell'
   | 'boardWarning'
+  | 'notifPrompt'
   | 'dailyReward';
 
 export const PRESENTATION_ORDER: OverlayId[] = [
@@ -62,6 +63,10 @@ export const PRESENTATION_ORDER: OverlayId[] = [
   'transferTalk',
   'farewell',
   'boardWarning',
+  // Notification permission ask — after in-fiction beats (incl. the first-win
+  // celebration) so the player sees the win before being asked; before the
+  // meta daily reward.
+  'notifPrompt',
   'dailyReward',
 ];
 
