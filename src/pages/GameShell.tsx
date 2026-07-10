@@ -17,8 +17,6 @@ import { useMatchLocked, useCareerUnemployed } from '@/hooks/useGameSelectors';
 import { InfoTipProvider } from '@/components/game/InfoTip';
 import { PresentationQueueProvider } from '@/hooks/usePresentationQueue';
 import { getEntitlements, getCustomerInfo, extractSubscriptionInfo, startEntitlementListener, stopEntitlementListener } from '@/utils/purchases';
-import { getFlag, setFlag, STORAGE_KEYS } from '@/store/helpers/persistence';
-import { shouldFireFirstMatchPaywall } from '@/utils/paywallTiming';
 
 // Lazy-load all pages for code splitting (Dashboard prefetched from TitleScreen)
 const Dashboard = lazy(() => import('./Dashboard'));
@@ -181,31 +179,6 @@ const GameShell = () => {
   useEffect(() => {
     if (!gameStarted) navigate('/');
   }, [gameStarted, navigate]);
-
-  // Deferred Pro paywall (G1). The cold-open paywall is gone; instead the
-  // subscription onboarding auto-appears exactly once, at the first moment of
-  // demonstrated value — back on the Dashboard after the player's first-ever
-  // match result. Re-runs on every screen change, so the match→match-review→
-  // dashboard transition is the natural trigger; the match and post-match
-  // popup themselves live on other screens and are never interrupted. Firing
-  // sets SUBSCRIBE_ONBOARDING_SEEN so it never auto-fires again.
-  const firstMatchPaywallFired = useRef(false);
-  useEffect(() => {
-    if (firstMatchPaywallFired.current) return;
-    const s = useGameStore.getState();
-    const fire = shouldFireFirstMatchPaywall({
-      currentScreen,
-      monetization: s.monetization,
-      fixtures: s.fixtures,
-      playerClubId: s.playerClubId,
-      currentMatchResult: s.currentMatchResult,
-      onboardingSeen: getFlag(STORAGE_KEYS.SUBSCRIBE_ONBOARDING_SEEN),
-    });
-    if (!fire) return;
-    firstMatchPaywallFired.current = true;
-    setFlag(STORAGE_KEYS.SUBSCRIBE_ONBOARDING_SEEN);
-    navigate('/subscribe', { state: { returnTo: '/game' } });
-  }, [currentScreen, navigate]);
 
   // Prefetch the hot main-tab chunks at idle so the first tap on each is instant.
   useEffect(() => {

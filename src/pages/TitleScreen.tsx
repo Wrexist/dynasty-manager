@@ -15,7 +15,10 @@ import { hapticMedium, hapticLight } from '@/utils/haptics';
 import {
   clearCommunityPackSlotPref,
   isSaveStorageHydrated,
+  getFlag,
+  STORAGE_KEYS,
 } from '@/store/helpers/persistence';
+import { isPro } from '@/utils/monetization';
 import { hasUnseenWhatsNew } from '@/data/whatsNew';
 import { SettingsBody } from './SettingsPage';
 import type { TitleFloatingCircle } from '@/types/game';
@@ -88,13 +91,17 @@ const TitleScreen = () => {
   };
 
   const handleNewGame = (slot: number) => {
-    // Cold open goes straight to mode select — no paywall, no blocking
-    // community-pack popup. The community-pack choice now lives inline in each
-    // mode's setup flow (ClubSelection / ManagerCreation / WorldCupSetup), and
-    // the subscription onboarding is deferred to the first match result
-    // (see GameShell). This is the P0 funnel fix from G1.
+    // The subscription onboarding shows once per device at the start of the
+    // funnel — owner's decision (existing subscribers converted through this
+    // placement, so it stays). The community-pack choice remains inline in
+    // each mode's setup flow (ClubSelection / ManagerCreation / WorldCupSetup),
+    // so New Game is one screen here, not the old three-modal gauntlet.
     hapticLight();
-    navigate('/mode-select', { state: { slot, returnTo: '/mode-select' } });
+    const shouldShowSubscribe =
+      !isPro(useGameStore.getState().monetization) &&
+      !getFlag(STORAGE_KEYS.SUBSCRIBE_ONBOARDING_SEEN);
+    const nextRoute = shouldShowSubscribe ? '/subscribe' : '/mode-select';
+    navigate(nextRoute, { state: { slot, returnTo: '/mode-select' } });
   };
 
   const handleDelete = (slot: number) => {

@@ -25,7 +25,7 @@ and the highest-LTV player has no backup for a multi-season dynasty.
 
 ## G1 — Kill the cold-open paywall, compress the funnel
 
-> ✅ **Shipped 2026-07-10** — paywall deferred to post-first-match (`utils/paywallTiming.ts`), slot guard, inline community-pack toggle, one-card welcome, mode-aware copy.
+> ✅ **Shipped 2026-07-10, paywall placement reverted same day by owner decision** — the cold-open paywall stays (existing subscribers converted through it); shipped and kept: slot-overwrite guard, inline community-pack toggle (popup gone), one-card welcome, mode-aware copy. Net funnel: one paywall screen instead of the old three-modal gauntlet.
 
 **Why.** The worst trust-and-revenue defect in the app (flagged P0 independently by two
 audit passes). A full-screen Pro paywall fires before the player has picked a mode,

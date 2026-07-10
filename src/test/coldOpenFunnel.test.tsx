@@ -19,13 +19,16 @@ vi.mock('react-router-dom', async (importOriginal) => {
 
 import TitleScreen from '@/pages/TitleScreen';
 import SubscribeOnboarding from '@/pages/SubscribeOnboarding';
+import { setFlag, removeFlag, STORAGE_KEYS } from '@/store/helpers/persistence';
 
 beforeEach(() => {
   mockNavigate.mockClear();
+  removeFlag(STORAGE_KEYS.SUBSCRIBE_ONBOARDING_SEEN);
 });
 
-describe('cold open — New Game funnel (G1)', () => {
-  it('routes the first New Game straight to /mode-select with no paywall', async () => {
+describe('cold open — New Game funnel', () => {
+  it('routes a first-time non-Pro New Game through the paywall (owner-chosen placement)', async () => {
+    removeFlag(STORAGE_KEYS.SUBSCRIBE_ONBOARDING_SEEN);
     render(
       <MemoryRouter>
         <TitleScreen />
@@ -39,10 +42,26 @@ describe('cold open — New Game funnel (G1)', () => {
 
     expect(mockNavigate).toHaveBeenCalledTimes(1);
     const [route, opts] = mockNavigate.mock.calls[0];
+    expect(route).toBe('/subscribe');
+    expect(opts?.state?.slot).toBe(1);
+    expect(opts?.state?.returnTo).toBe('/mode-select');
+  });
+
+  it('skips the paywall once the onboarding has been seen', async () => {
+    setFlag(STORAGE_KEYS.SUBSCRIBE_ONBOARDING_SEEN);
+    render(
+      <MemoryRouter>
+        <TitleScreen />
+      </MemoryRouter>,
+    );
+
+    const newGame = await screen.findByLabelText('Start new game in slot 1');
+    fireEvent.click(newGame);
+
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+    const [route, opts] = mockNavigate.mock.calls[0];
     expect(route).toBe('/mode-select');
     expect(opts?.state?.slot).toBe(1);
-    // The paywall must NOT be in the cold-open path anymore.
-    expect(mockNavigate).not.toHaveBeenCalledWith('/subscribe', expect.anything());
   });
 });
 
