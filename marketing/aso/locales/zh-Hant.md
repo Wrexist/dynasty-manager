@@ -5,35 +5,42 @@ Storefronts reached: Taiwan and Hong Kong (and Macau), plus any device set to �
 ## App Name [21/30]
 `Dynasty Manager: 足球經理`
 
-## Subtitle [14/30]
-`決戰世界盃2026 戰術登頂`
+## Subtitle [16/30]
+`決戰世界盃2026 戰術登頂奪冠`
 
 ## Promotional Text [77/170]
 `世界盃2026模式已上線。帶領任何國家隊從小組賽一路殺進十二碼大戰決賽。沒有體力條，沒有體力包，沒有等待。無需訂閱，暢享完整的足球經營深度。7天免費試用。`
 
-## Keywords [82/100]
-`國家隊,十二碼,pk大戰,轉會,陣容,陣型,生涯,聯賽,球會,青訓,模擬經營,戰略,卡包,球員,名門,球探,升降級,洲際賽,養成,冠軍,策略,引援,執教,王朝,訓練`
+## Keywords [99/100]
+`國家隊,十二碼,pk大戰,轉會,陣容,陣型,生涯,聯賽,球會,青訓,模擬經營,戰略,卡包,球員,名門,球探,升降級,洲際賽,養成,冠軍,策略,引援,執教,王朝,訓練,球隊,租借,簽約,比賽,經營遊戲`
 
-## Description [~451/4000]
-世界盃2026模式已上線。從50多支國家隊中挑選你的球隊，從小組賽一路殺進十二碼大戰決賽，衝擊榮耀。這個夏天，把真正的主帥體驗放進口袋。
+## Description [~893/4000]
+世界盃2026模式已上線。從50多支國家隊中挑選你的球隊，從小組賽一路殺過淘汰賽，直到十二碼大戰決賽，衝擊榮耀。這個夏天，把真正的主帥體驗放進口袋。
 
-Dynasty Manager是一款硬派足球經營模擬遊戲。在37個國家、45個聯賽、756家真實球會中選擇你鍾愛的球隊，排兵佈陣，打磨戰術，在轉會市場上博弈，逐分鐘指揮每一場比賽。想玩多久，就玩多久。
+Dynasty Manager是一款硬派的足球經營模擬遊戲。在37個國家、45個聯賽、756家真實球會中選擇你鍾愛的球隊，排兵佈陣，鑽研陣型與戰術，在轉會市場上鬥智鬥勇，逐分鐘指揮每一場比賽。中場喊話、定位球、臨場換人，每一個決定生死的細節都由你掌控。從青訓營到球探網絡，從財務到主場，慢慢打造屬於你的足球王朝，想經營多少個賽季，就經營多少個賽季。
 
 核心玩法:
-• 世界盃2026模式——50多支國家隊從小組賽打到決賽
+• 世界盃2026模式——率領50多支國家隊，從小組賽一路打到決賽
 • 扣人心弦的十二碼大戰——一腳定生死
-• 37個國家、45個聯賽、756家真實球會
-• 主帥生涯模式——參加面試、簽下合約、登上巔峰
+• 37個國家、45個聯賽、756家真實球會任你執教
+• 主帥生涯模式——參加面試、簽下合約、累積戰績、登上巔峰
 • 比賽中即時調整戰術、陣容與換人
-• 轉會與租借的博弈
-• 開球員卡包、抽卡
-• 洲際盃賽與國家隊征程
+• 轉會與租借市場上的博弈
+• 球探網絡與青訓營，挖掘下一代球星
+• 開球員卡包、抽卡的暢快
+• 升降級懸念、洲際盃賽與超級盃之爭
+• 記者會、更衣室講話與球隊士氣管理
+• 董事會目標、贊助、財務與主場經營
+• 逐週推進的真實賽程，隨時儲存、隨時續玩
+• 兼任國家隊主帥，角逐個人榮譽大獎
 
-沒有體力條。沒有體力包。沒有等待。想玩就玩，隨時暢玩。
+經營遠不止比賽日。你要平衡球會財務、贊助收入與球員薪資，傾聽董事會每個賽季的期望，在記者會上巧妙應對媒體，用更衣室裡的講話點燃球隊士氣。真實球員陣容，讓你在轉會市場與球員卡包中組建心儀的夢幻陣容；青訓營裡，下一代天才正等著你去發掘和培養。一個賽季接著一個賽季，見證年輕新星崛起、傳奇老將謝幕，而你的執教履歷，將寫進球會與國家隊的史冊，向教練天賦、成就與名人堂紀錄發起衝擊。
 
-訂閱Dynasty Pro可享無廣告、進階數據分析、比賽即時模擬與自訂戰術——7天免費試用，之後可訂閱或一次性買斷。但完整的經營深度，無需訂閱即可暢玩。
+沒有體力條。沒有體力包。沒有等待。無需苦等體力恢復，想玩就玩，隨時暢玩。無論是通勤路上快速模擬一場，還是週末連打好幾個賽季，節奏始終由你自己決定。
 
-免費下載。今天就開創你的王朝。
+訂閱Dynasty Pro可享無廣告、進階數據分析、比賽即時模擬與自訂戰術——7天免費試用，之後可選擇訂閱或一次性買斷。但完整的經營深度，無需訂閱即可暢玩。
+
+免費下載，今天就開創屬於你的王朝。
 
 ## What's New (next release note blurb)
 世界盃2026模式已上線！帶領50多支國家隊從小組賽一路殺進十二碼大戰決賽。一如既往，沒有體力條、沒有等待，想玩多久就玩多久。在新賽季開創屬於你的王朝。
@@ -51,6 +58,8 @@ Dynasty Manager是一款硬派足球經營模擬遊戲。在37個國家、45個�
 - 國家隊 (national team) plus both 十二碼 (the TW/HK term for a penalty) and pk大戰 (how HK/TW fans commonly write a shootout) carry the World Cup window across both regional idioms; 洲際賽 rides continental-cup intent without naming a real competition.
 - Vocabulary is deliberately localized to Traditional/HK-TW usage: 球會 (club — the TW/HK word, not mainland 俱樂部), 轉會 (transfers), 陣容/陣型, 球探 (scout), 青訓/養成 (youth development), 升降級 (promotion/relegation), 生涯 (career).
 - 模擬經營 and 戰略/策略 target the management/strategy-sim browse cluster; 卡包 ties pack-opening to the card-collecting cluster; 冠軍 and 名門 add trophy/prestige intent.
+- Enrichment pass added five terms to fill the field to 99/100: 球隊 (team/squad — distinct from 球會/club), 租借 (loan — the loan-deal system), 簽約 (sign a contract — career negotiation), 比賽 (match — core sim word) and 經營遊戲 (management game — the genre-browse phrase; 經營 is NOT in the Name, which carries 經理). All use TW/HK forms and none duplicate a Name/Subtitle substring.
+- Subtitle strengthened with 奪冠 (win the title) — a distinct verb indexed nowhere else, reading naturally as "戰術登頂奪冠"; kept out of the keyword field so no character is spent twice.
 - Cross-store note: zh-Hant only resolves on TW/HK/MO — the Simplified forms (俱樂部/点球) belong to zh-Hans and are omitted here so neither localization wastes characters on the other's script or wrong-region vocabulary.
 
 ## Trademark-safe alternate phrasing (per source doc, low-IP variant)
