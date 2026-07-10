@@ -16,7 +16,7 @@ import { CONTINENTAL_PRIZE_MONEY } from '@/config/continental';
 import { CUP_EXTRA_TIME_GOAL_CHANCE, CUP_EXTRA_TIME_REPUTATION_DIVISOR, CUP_PENALTY_KICKS, FORFEIT_SCORE, FRIENDLY_BOARD_CONFIDENCE_MULT, LINEUP_SIZE, MAX_CAREER_TIMELINE, MOTIVATOR_MORALE_BOOST, PEN_AIM } from '@/config/gameBalance';
 import { MOD_DISCIPLINE_CARDS, REP_DRAW, REP_LOSS, REP_WIN } from '@/config/managerCareer';
 import { SHOUT_CUMULATIVE_SCALE, SHOUT_MODIFIERS } from '@/config/matchEngine';
-import { CALM_DEFENSE_BOOST, CALM_FITNESS_DRAIN_MULT, CALM_FOUL_REDUCTION, DEMAND_ATTACK_BOOST, DEMAND_DEFENSE_PENALTY, DEMAND_FITNESS_DRAIN_MULT, MOTIVATE_ATTACK_BOOST, MOTIVATE_FITNESS_DRAIN_MULT, MOTIVATE_FOUL_BONUS } from '@/config/teamTalk';
+import { CALM_DEFENSE_BOOST, CALM_FITNESS_DRAIN_MULT, CALM_FOUL_REDUCTION, DEMAND_ATTACK_BOOST, DEMAND_DEFENSE_PENALTY, DEMAND_FITNESS_DRAIN_MULT, MOTIVATE_ATTACK_BOOST, MOTIVATE_FITNESS_DRAIN_MULT, MOTIVATE_FOUL_BONUS, teamTalkModifiers } from '@/config/teamTalk';
 import { advanceCupRound, getRoundName } from '@/data/cup';
 import { getDerbyIntensity } from '@/data/league';
 import { generatePressConference } from '@/data/pressConferences';
@@ -1028,7 +1028,12 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   const halfCareerMod = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.discipline * MOD_DISCIPLINE_CARDS : 0;
   const spCoachBonus = hasPerk(state.managerProgression, 'set_piece_coach') ? 0.009 * dynastyMult(state.managerProgression) : 0;
   const matchWeather = generateMatchWeather();
-  const halfState = simulateHalf(hc, ac, hp, ap, 1, 45, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, undefined, halfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities, season, halfCareerMod, hBench, aBench, undefined, matchWeather, spCoachBonus);
+  // Pre-kickoff team talk (G3): on high-stakes matches the player can give a
+  // pre-match talk, which sets `matchTeamTalk` before kickoff. Apply it to the
+  // FIRST half here, then clear it below so half-time starts fresh — the
+  // pre-match and half-time talks are independent one-shots.
+  const preMatchTalkMods = teamTalkModifiers(state.matchTeamTalk);
+  const halfState = simulateHalf(hc, ac, hp, ap, 1, 45, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, undefined, halfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities, season, halfCareerMod, hBench, aBench, preMatchTalkMods, matchWeather, spCoachBonus);
 
   // Determine which cup tracking IDs to set
   const isCupMatch = !!cupTie || !!leagueCupTie || !!continentalMatch || !!superCup;
@@ -1042,6 +1047,9 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
     : null;
   set({
     halfTimeState: halfState, currentMatchWeather: matchWeather, matchPhase: 'half_time', matchSubsUsed: 0, matchSubbedOffIds: [], preMatchLeaguePosition: preMatchPos,
+    // Clear the pre-match talk so the half-time team-talk sheet opens fresh at
+    // 'none' — the pre-match talk affected the first half only (G3).
+    matchTeamTalk: 'none',
     currentCupTieId: cupTie ? cupTie.id : isCupMatch ? '__tournament__' : null,
     currentLeagueCupTieId: leagueCupTie ? leagueCupTie.id : null,
     currentContinentalMatchId: continentalMatch ? match.id : null,

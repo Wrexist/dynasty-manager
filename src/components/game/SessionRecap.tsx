@@ -9,6 +9,7 @@ import { usePlayerClub, useLeaguePosition } from '@/hooks/useGameSelectors';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { useEscapeClose } from '@/hooks/useEscapeClose';
+import { usePresentationSlot } from '@/hooks/usePresentationQueue';
 import { getSuffix } from '@/utils/helpers';
 
 export function SessionRecap() {
@@ -43,46 +44,52 @@ export function SessionRecap() {
     clearSessionSnapshot();
   }, [week, season]);
 
+  // Compute the change list defensively (needs a snapshot + club) so the
+  // presentation-queue registration below reflects true visibility — an empty
+  // list must not claim the active slot and strand the queue (G3).
+  const changes = useMemo<{ icon: typeof TrendingUp; text: string; color: string }[]>(() => {
+    if (!show || !snapshot || !club) return [];
+    const out: { icon: typeof TrendingUp; text: string; color: string }[] = [];
+    const posChange = snapshot.leaguePosition - pos; // positive = improved
+    const confChange = boardConfidence - snapshot.boardConfidence;
+    const budgetChange = club.budget - snapshot.budget;
+
+    if (posChange > 0) {
+      out.push({ icon: TrendingUp, text: `Climbed ${posChange} place${posChange !== 1 ? 's' : ''} to ${pos}${getSuffix(pos)}`, color: 'text-emerald-400' });
+    } else if (posChange < 0) {
+      out.push({ icon: TrendingDown, text: `Dropped ${Math.abs(posChange)} place${Math.abs(posChange) !== 1 ? 's' : ''} to ${pos}${getSuffix(pos)}`, color: 'text-destructive' });
+    }
+    if (confChange >= 5) {
+      out.push({ icon: Heart, text: `Board confidence up ${confChange}%`, color: 'text-emerald-400' });
+    } else if (confChange <= -5) {
+      out.push({ icon: AlertTriangle, text: `Board confidence down ${Math.abs(confChange)}%`, color: 'text-destructive' });
+    }
+    if (injuredCount > snapshot.injuredCount) {
+      out.push({ icon: AlertTriangle, text: `${injuredCount - snapshot.injuredCount} new injur${injuredCount - snapshot.injuredCount !== 1 ? 'ies' : 'y'} since last session`, color: 'text-amber-400' });
+    }
+    if (budgetChange >= 1_000_000) {
+      out.push({ icon: TrendingUp, text: `Budget grew by £${(budgetChange / 1e6).toFixed(1)}M`, color: 'text-emerald-400' });
+    }
+    return out;
+  }, [show, snapshot, club, pos, boardConfidence, injuredCount]);
+
+  // Presentation queue (G3): register only when there is something to show.
+  const active = usePresentationSlot('sessionRecap', changes.length > 0);
+  const visible = changes.length > 0 && active;
+
   const dismiss = () => setShow(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  useScrollLock(show);
-  useFocusTrap(containerRef, show);
-  useEscapeClose(dismiss, show);
+  useScrollLock(visible);
+  useFocusTrap(containerRef, visible);
+  useEscapeClose(dismiss, visible);
 
-  if (!show || !snapshot || !club) return null;
+  if (!visible || !snapshot || !club) return null;
 
-  const posChange = snapshot.leaguePosition - pos; // positive = improved
-  const confChange = boardConfidence - snapshot.boardConfidence;
   const weeksElapsed = (season - snapshot.season) * totalWeeks + (week - snapshot.week);
-  const budgetChange = club.budget - snapshot.budget;
-
-  const changes: { icon: typeof TrendingUp; text: string; color: string }[] = [];
-
-  if (posChange > 0) {
-    changes.push({ icon: TrendingUp, text: `Climbed ${posChange} place${posChange !== 1 ? 's' : ''} to ${pos}${getSuffix(pos)}`, color: 'text-emerald-400' });
-  } else if (posChange < 0) {
-    changes.push({ icon: TrendingDown, text: `Dropped ${Math.abs(posChange)} place${Math.abs(posChange) !== 1 ? 's' : ''} to ${pos}${getSuffix(pos)}`, color: 'text-destructive' });
-  }
-
-  if (confChange >= 5) {
-    changes.push({ icon: Heart, text: `Board confidence up ${confChange}%`, color: 'text-emerald-400' });
-  } else if (confChange <= -5) {
-    changes.push({ icon: AlertTriangle, text: `Board confidence down ${Math.abs(confChange)}%`, color: 'text-destructive' });
-  }
-
-  if (injuredCount > snapshot.injuredCount) {
-    changes.push({ icon: AlertTriangle, text: `${injuredCount - snapshot.injuredCount} new injur${injuredCount - snapshot.injuredCount !== 1 ? 'ies' : 'y'} since last session`, color: 'text-amber-400' });
-  }
-
-  if (budgetChange >= 1_000_000) {
-    changes.push({ icon: TrendingUp, text: `Budget grew by £${(budgetChange / 1e6).toFixed(1)}M`, color: 'text-emerald-400' });
-  }
-
-  if (changes.length === 0) return null;
 
   return (
     <AnimatePresence>
-      {show && (
+      {visible && (
         <motion.div
           ref={containerRef}
           initial={{ opacity: 0 }}

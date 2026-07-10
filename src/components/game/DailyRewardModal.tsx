@@ -25,6 +25,7 @@ import { DAILY_REWARD_XP, DAILY_STREAK_CYCLE } from '@/config/gameBalance';
 import { LIQUID_GLASS_SURFACE } from '@/components/game/GlassPanel';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useEscapeClose } from '@/hooks/useEscapeClose';
+import { usePresentationSlot } from '@/hooks/usePresentationQueue';
 import { hapticLight, hapticSuccess } from '@/utils/haptics';
 import { cn } from '@/lib/utils';
 
@@ -45,8 +46,12 @@ export function DailyRewardModal() {
   const cardRef = useRef<HTMLDivElement | null>(null);
   const closeTimerRef = useRef<number | null>(null);
   const close = () => setOpen(false);
-  useFocusTrap(cardRef, open);
-  useEscapeClose(close, open);
+  // Presentation queue (G3): defer to higher-priority overlays (digest,
+  // celebrations, decisions) — the daily reward shows last.
+  const active = usePresentationSlot('dailyReward', open);
+  const visible = open && active;
+  useFocusTrap(cardRef, visible);
+  useEscapeClose(close, visible);
 
   // Clear the post-claim auto-close timer if the modal unmounts first (e.g. the
   // player navigates away within the 1.5s window), avoiding a setState on an
@@ -84,7 +89,7 @@ export function DailyRewardModal() {
 
   return (
     <AnimatePresence>
-      {open && (
+      {visible && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

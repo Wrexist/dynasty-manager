@@ -7,18 +7,22 @@ import { useRef } from 'react';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useEscapeClose } from '@/hooks/useEscapeClose';
+import { usePresentationSlot } from '@/hooks/usePresentationQueue';
 
 export function FarewellModal() {
   const pendingFarewell = useGameStore(s => s.pendingFarewell);
   const dismissFarewell = useGameStore(s => s.dismissFarewell);
   const current = pendingFarewell[0];
 
-  useScrollLock(!!current);
+  // Presentation queue (G3): only show when we're the active overlay.
+  const active = usePresentationSlot('farewell', !!current);
+  const visible = !!current && active;
+  useScrollLock(visible);
   const panelRef = useRef<HTMLDivElement | null>(null);
-  useFocusTrap(panelRef, !!current);
-  useEscapeClose(dismissFarewell, !!current);
+  useFocusTrap(panelRef, visible);
+  useEscapeClose(dismissFarewell, visible);
 
-  if (!current) return null;
+  if (!visible) return null;
 
   const remaining = pendingFarewell.length - 1;
 

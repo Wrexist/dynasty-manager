@@ -252,7 +252,8 @@ const Dashboard = () => {
     if (achievements.length > 0) {
       setPendingAchievementQueue(achievements);
       setCurrentAchievement(achievements[0]);
-      hapticHeavy();
+      // Haptic fires inside AchievementUnlockModal when it actually becomes
+      // visible (presentation queue, G3) — not here at queue time.
     }
     // Clear pending from store immediately so remounting the Dashboard
     // (e.g. navigating away and back) won't re-trigger the same popup.
@@ -306,7 +307,7 @@ const Dashboard = () => {
       const minorOnes = unseen.filter(c => c.severity === 'minor');
       if (majorOnes.length > 0) {
         setMajorCelebration(majorOnes[0]);
-        hapticHeavy();
+        // Haptic fires inside CelebrationModal on visibility (queue, G3).
       }
       if (minorOnes.length > 0) hapticMedium();
       minorOnes.forEach((c, i) => {

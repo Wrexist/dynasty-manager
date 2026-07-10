@@ -4,6 +4,7 @@ import { useGameStore } from '@/store/gameStore';
 import type { GameState } from '@/store/storeTypes';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useScrollLock } from '@/hooks/useScrollLock';
+import { usePresentationSlot } from '@/hooks/usePresentationQueue';
 import { Button } from '@/components/ui/button';
 import {
   DollarSign, Heart, AlertTriangle, Activity, Mail,
@@ -85,14 +86,18 @@ export function WeeklyDigest() {
   const digest = useGameStore(s => s.weeklyDigest);
   const week = useGameStore(s => s.week);
   const dismissWeeklyDigest = useGameStore(s => s.dismissWeeklyDigest);
-  useScrollLock(!!digest);
+  // Presentation queue (G3): a digest may be pending while another overlay is
+  // on screen. Register intent, but only show/lock when we're the active slot.
+  const active = usePresentationSlot('weeklyDigest', !!digest);
+  const visible = !!digest && active;
+  useScrollLock(visible);
 
   // AnimatePresence stays mounted here while the card child unmounts, so
   // the exit animation actually plays — previously the component returned
   // null the moment the digest cleared, making the exit dead code.
   return (
     <AnimatePresence mode="wait">
-      {digest && <WeeklyDigestCard digest={digest} week={week} dismiss={dismissWeeklyDigest} />}
+      {visible && <WeeklyDigestCard digest={digest} week={week} dismiss={dismissWeeklyDigest} />}
     </AnimatePresence>
   );
 }

@@ -8,6 +8,7 @@ import { useEscapeClose } from '@/hooks/useEscapeClose';
 import { useGameStore } from '@/store/gameStore';
 import { getNation } from '@/data/nations';
 import { FlagIcon } from '@/components/game/FlagIcon';
+import { usePresentationSlot } from '@/hooks/usePresentationQueue';
 
 export function NationalTeamOfferModal() {
   const showNationalTeamOffer = useGameStore(s => s.showNationalTeamOffer);
@@ -16,7 +17,10 @@ export function NationalTeamOfferModal() {
   const acceptNationalTeamOffer = useGameStore(s => s.acceptNationalTeamOffer);
   const declineNationalTeamOffer = useGameStore(s => s.declineNationalTeamOffer);
 
-  const open = showNationalTeamOffer && nationalTeamOffer?.status === 'pending' && !!managerNationality;
+  const wants = showNationalTeamOffer && nationalTeamOffer?.status === 'pending' && !!managerNationality;
+  // Presentation queue (G3): gate behind higher-priority overlays.
+  const active = usePresentationSlot('nationalTeamOffer', wants);
+  const open = wants && active;
   useScrollLock(open);
   const panelRef = useRef<HTMLDivElement | null>(null);
   useFocusTrap(panelRef, open);

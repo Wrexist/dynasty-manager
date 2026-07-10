@@ -10,6 +10,7 @@ import { getExpectedPosition } from '@/config/gameBalance';
 import { Trophy, TrendingUp, TrendingDown, Target, Minus } from 'lucide-react';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useEscapeClose } from '@/hooks/useEscapeClose';
+import { usePresentationSlot } from '@/hooks/usePresentationQueue';
 
 interface MidSeasonReportProps {
   onDismiss: () => void;
@@ -21,10 +22,13 @@ export function MidSeasonReport({ onDismiss }: MidSeasonReportProps) {
     leagueTable: s.leagueTable, fixtures: s.fixtures, boardConfidence: s.boardConfidence, season: s.season,
   })));
   const club = clubs[playerClubId];
+  // Presentation queue (G3): only show when we're the active overlay.
+  const active = usePresentationSlot('midSeason', !!club);
+  const visible = !!club && active;
   const containerRef = useRef<HTMLDivElement | null>(null);
-  useFocusTrap(containerRef, !!club);
-  useEscapeClose(onDismiss, !!club);
-  if (!club) return null;
+  useFocusTrap(containerRef, visible);
+  useEscapeClose(onDismiss, visible);
+  if (!visible) return null;
 
   const entry = leagueTable.find(e => e.clubId === playerClubId);
   const pos = entry ? leagueTable.indexOf(entry) + 1 : 99;

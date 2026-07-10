@@ -15,6 +15,7 @@ import { MARKET_SUB_NAV, SQUAD_SUB_NAV } from '@/config/ui';
 import { PACK_PITY_THRESHOLD } from '@/config/packs';
 import { useMatchLocked, useCareerUnemployed } from '@/hooks/useGameSelectors';
 import { InfoTipProvider } from '@/components/game/InfoTip';
+import { PresentationQueueProvider } from '@/hooks/usePresentationQueue';
 import { getEntitlements, getCustomerInfo, extractSubscriptionInfo, startEntitlementListener, stopEntitlementListener } from '@/utils/purchases';
 import { getFlag, setFlag, STORAGE_KEYS } from '@/store/helpers/persistence';
 import { shouldFireFirstMatchPaywall } from '@/utils/paywallTiming';
@@ -374,7 +375,11 @@ const GameShell = () => {
               source of perceived "long loading between tabs". */}
           <PageErrorBoundary>
             <Suspense fallback={<PageSuspenseFallback />}>
-              <Screen />
+              {/* Coordinates the post-advance overlay queue so only one modal
+                  shows at a time (G3). */}
+              <PresentationQueueProvider>
+                <Screen />
+              </PresentationQueueProvider>
             </Suspense>
           </PageErrorBoundary>
         </main>
