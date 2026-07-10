@@ -18,6 +18,8 @@ export type AnalyticsEvent =
   | { name: 'season_completed'; data: { season: number; finalPosition: number; division: string } }
   | { name: 'save_created'; data: { slot: number; bytes: number } }
   | { name: 'save_loaded'; data: { slot: number } }
+  | { name: 'save_exported'; data: { slot: number; method: 'share' | 'download' | 'clipboard' } }
+  | { name: 'save_imported'; data: { slot: number } }
   | { name: 'community_pack_enabled'; data: Record<string, never> }
   | { name: 'community_pack_disabled'; data: Record<string, never> }
   | { name: 'purchase_initiated'; data: { productId: string } }

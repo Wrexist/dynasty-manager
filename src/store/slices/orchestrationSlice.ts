@@ -189,6 +189,23 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
     if (flatFixturesForSave) flatFixturesForSave = stripAllEvents(flatFixturesForSave);
   }
 
+  // Invincible-perk rewind snapshot. It was restored on load and widened by
+  // the v72 migration, but never written here — so the rewind silently died
+  // on any background/reload. It's null outside the play→post-match window,
+  // so the cost is bounded. When present it carries a second copy of the
+  // fixtures, so we trim its AI-vs-AI events exactly like the main payload:
+  // the rewind only reverts to pre-match state and match review reads the
+  // player's own fixtures (kept intact by the trim), so stripping foreign
+  // events is lossless for the replay while keeping the snapshot small.
+  const snap = state.preMatchSnapshot;
+  const preMatchSnapshotForSave = snap
+    ? {
+        ...snap,
+        fixtures: trimFixtureArrayForSave(snap.fixtures, state.playerClubId) as typeof snap.fixtures,
+        divisionFixtures: trimFixturesForSave(snap.divisionFixtures, state.playerClubId) as typeof snap.divisionFixtures,
+      }
+    : null;
+
   const saveData = {
     version: CURRENT_VERSION,
     activeSlot: s,
@@ -209,6 +226,7 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
     friendlies: state.friendlies,
     galacticoUsedThisSeason: state.galacticoUsedThisSeason,
     invincibleUsedThisSeason: state.invincibleUsedThisSeason,
+    preMatchSnapshot: preMatchSnapshotForSave,
     fanMood: state.fanMood,
     activeChallenge: state.activeChallenge,
     divisionFixtures: divFixturesForSave,
@@ -353,7 +371,16 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
   // will not survive an app restart".
   let saveResult: ReturnType<typeof writeSaveSlot>;
   try {
-    saveResult = writeSaveSlot(s, json);
+    saveResult = writeSaveSlot(s, json, {
+      // Never rotate a malformed outgoing main into the backup — two
+      // consecutive bad saves must not burn the last-known-good backup.
+      // The outgoing main was written at CURRENT_VERSION, so validate its
+      // shape directly (no migration needed).
+      validateOutgoing: (raw) => {
+        try { return validateSaveShape(JSON.parse(raw)).ok === true; }
+        catch { return false; }
+      },
+    });
     // Only record the change-detection hash once a disk path confirms the
     // write. Recording it unconditionally meant a save where BOTH disk
     // paths failed would short-circuit the next identical "Save Now" to

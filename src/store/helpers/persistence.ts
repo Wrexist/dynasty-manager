@@ -733,7 +733,21 @@ export interface SaveWriteResult {
   idbPromise: Promise<boolean>;
 }
 
-export function writeSaveSlot(slot: number, json: string): SaveWriteResult {
+export interface WriteSaveSlotOptions {
+  /** Guard for the backup-rotation step. When supplied, the outgoing main
+   *  save is only rotated into the backup slot if this predicate returns
+   *  true for it. A malformed outgoing main is overwritten in place and the
+   *  existing (last-known-good) backup is left UNTOUCHED — this is what
+   *  stops two consecutive bad saves from burning the recovery copy.
+   *  Injected (rather than importing `validateSaveShape` here) because this
+   *  module is low-level and eagerly bundled — pulling in the migration
+   *  module would drag its heavy data imports into the eager-bundle budget
+   *  and risk an import cycle. Omit for raw writes (tests, legacy callers),
+   *  which keeps the always-rotate behaviour. */
+  validateOutgoing?: (raw: string) => boolean;
+}
+
+export function writeSaveSlot(slot: number, json: string, opts?: WriteSaveSlotOptions): SaveWriteResult {
   const mainKey = STORAGE_KEYS.saveSlot(slot);
   const backupKey = STORAGE_KEYS.saveSlotBackup(slot);
   const tmpKey = STORAGE_KEYS.saveSlotTmp(slot);
@@ -743,7 +757,14 @@ export function writeSaveSlot(slot: number, json: string): SaveWriteResult {
   // pre-hydration write still rotates the previous save into the backup
   // slot instead of losing it.
   const oldMain = readSaveSlot(slot);
-  if (oldMain) memSlotBackups[slot] = oldMain;
+  // Only rotate a VALID outgoing main into the backup. If the outgoing main
+  // is malformed (partial write / on-disk corruption) we overwrite it in
+  // place and preserve whatever the backup already holds — otherwise a bad
+  // save landing on top of another bad save would destroy the last valid
+  // backup. Without an injected validator we keep the historical
+  // always-rotate behaviour.
+  const rotate = !!oldMain && (opts?.validateOutgoing ? opts.validateOutgoing(oldMain) : true);
+  if (rotate) memSlotBackups[slot] = oldMain as string;
   memSlots[slot] = json;
 
   // Sweep any legacy tmp key from the old atomic-staging write path so it
@@ -755,22 +776,26 @@ export function writeSaveSlot(slot: number, json: string): SaveWriteResult {
   // the slot survives a reload). The caller can use this to detect the
   // "both disk paths failed" case and surface a Save Failed warning.
   const idbPromise = idbPut(mainKey, json);
-  if (oldMain) void idbPut(backupKey, oldMain);
-  else void idbDel(backupKey);
+  if (rotate) void idbPut(backupKey, oldMain as string);
+  else if (!oldMain) void idbDel(backupKey);
+  // else: outgoing main failed validation — leave the existing backup intact.
 
   // Step 4: best-effort localStorage mirror. On quota exceeded we drop
   // whatever was there so the two stores don't diverge — IDB is truth.
   let lsOk = true;
   try {
     localStorage.setItem(mainKey, json);
-    if (oldMain) lsSetSafe(backupKey, oldMain);
-    else lsRemoveSafe(backupKey);
+    if (rotate) lsSetSafe(backupKey, oldMain as string);
+    else if (!oldMain) lsRemoveSafe(backupKey);
+    // else: preserve the existing backup mirror for the invalid-main case.
   } catch {
-    // Quota exceeded — drop the mirror. The caller now sees `lsOk: false`
-    // and can await `idbPromise` to decide whether to warn the user.
+    // Quota exceeded — drop the main mirror. The caller now sees `lsOk: false`
+    // and can await `idbPromise` to decide whether to warn the user. We only
+    // clear the backup mirror when we just rotated into it; an untouched
+    // last-known-good backup must survive a main-write quota failure.
     lsOk = false;
     lsRemoveSafe(mainKey);
-    lsRemoveSafe(backupKey);
+    if (rotate) lsRemoveSafe(backupKey);
   }
 
   return { lsOk, idbPromise };

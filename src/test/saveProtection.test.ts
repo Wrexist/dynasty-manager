@@ -339,3 +339,57 @@ describe('saveGame/loadGame — previously-unsaved fields (v68 fix)', () => {
     vi.useRealTimers();
   });
 });
+
+describe('saveGame/loadGame — Invincible pre-match snapshot (G6)', () => {
+  beforeEach(() => { clearAllSaveStorage(); });
+
+  it('writes preMatchSnapshot into the payload and restores it on load', () => {
+    vi.useFakeTimers();
+    __resetAutosaveSchedulerForTests();
+    useGameStore.getState().initGame('celtic');
+
+    const pid = useGameStore.getState().playerClubId;
+    const foreignMatch = { id: 'ai', week: 1, homeClubId: 'x', awayClubId: 'y', played: true, homeGoals: 1, awayGoals: 0, events: [{ minute: 10, type: 'goal' }] };
+    const ownMatch = { id: 'me', week: 1, homeClubId: pid, awayClubId: 'z', played: true, homeGoals: 2, awayGoals: 2, events: [{ minute: 5, type: 'goal' }] };
+
+    useGameStore.setState({
+      // Minimal but structurally-complete snapshot — only the fields the save
+      // path reads (fixtures/divisionFixtures) need real data here.
+      preMatchSnapshot: {
+        fixtures: [foreignMatch, ownMatch] as never,
+        divisionFixtures: { eng: [foreignMatch, ownMatch] } as never,
+        divisionTables: {},
+        players: {},
+        boardConfidence: 55,
+        leagueTable: [],
+      },
+    });
+
+    useGameStore.getState().saveGame(SLOT);
+    vi.runAllTimers();
+    useGameStore.getState().flushSave();
+
+    // The persisted payload must include the snapshot...
+    const raw = readSaveSlot(SLOT);
+    expect(raw).toBeTruthy();
+    const parsed = JSON.parse(raw!);
+    expect(parsed.preMatchSnapshot).toBeTruthy();
+    expect(parsed.preMatchSnapshot.boardConfidence).toBe(55);
+
+    // ...with the AI-vs-AI fixture's events stripped (trimmed like the main
+    // payload) but the player's own fixture events kept for review.
+    const savedForeign = parsed.preMatchSnapshot.fixtures.find((m: { id: string }) => m.id === 'ai');
+    const savedOwn = parsed.preMatchSnapshot.fixtures.find((m: { id: string }) => m.id === 'me');
+    expect(savedForeign.events).toBeUndefined();
+    expect(savedOwn.events).toHaveLength(1);
+
+    // Wipe the live snapshot, then confirm load restores it from disk.
+    useGameStore.setState({ preMatchSnapshot: null });
+    useGameStore.getState().loadGame(SLOT);
+    const after = useGameStore.getState();
+    expect(after.preMatchSnapshot).toBeTruthy();
+    expect(after.preMatchSnapshot!.boardConfidence).toBe(55);
+
+    vi.useRealTimers();
+  });
+});
