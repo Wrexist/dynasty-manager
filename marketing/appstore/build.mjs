@@ -72,6 +72,8 @@ const css = `
   background:radial-gradient(140% 80% at 50% 34%,#0e1a1c 0%,#0a1118 40%,#070b11 100%)}
 .glowtop{position:absolute;left:50%;top:-6%;transform:translateX(-50%);width:150%;height:56%;
   background:radial-gradient(closest-side,rgba(16,185,129,.30),transparent 68%);filter:blur(20px)}
+.spotlight{position:absolute;left:50%;top:640px;transform:translateX(-50%);width:1000px;height:1500px;pointer-events:none;
+  background:radial-gradient(50% 42% at 50% 40%,rgba(47,230,164,.18),rgba(16,185,129,.06) 55%,transparent 72%);filter:blur(8px)}
 .glowbot{position:absolute;left:50%;bottom:-18%;transform:translateX(-50%);width:150%;height:48%;
   background:radial-gradient(closest-side,rgba(16,185,129,.16),transparent 70%);filter:blur(22px)}
 .vignette{position:absolute;inset:0;pointer-events:none;
@@ -79,14 +81,21 @@ const css = `
 .grain{position:absolute;inset:0;opacity:.045;pointer-events:none;mix-blend-mode:overlay;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
 
-.kicker{position:absolute;top:150px;left:0;right:0;text-align:center;font-family:'Montserrat',sans-serif;font-weight:700;
+.kicker{position:absolute;top:146px;left:0;right:0;text-align:center;font-family:'Montserrat',sans-serif;font-weight:700;
   letter-spacing:.42em;text-transform:uppercase;color:${GREEN};font-size:32px;text-shadow:0 2px 20px rgba(16,185,129,.5)}
-.head{position:absolute;left:80px;right:80px;top:214px;text-align:center;font-family:'Montserrat',sans-serif;font-weight:900;
-  text-transform:uppercase;line-height:.98;letter-spacing:-.01em}
-.head .w{color:#fff;filter:drop-shadow(0 6px 22px rgba(0,0,0,.5))}
-.head .g{color:${GREEN};filter:drop-shadow(0 6px 30px rgba(47,230,164,.4))}
-.sub{position:absolute;left:120px;right:120px;top:492px;text-align:center;font-family:'DM Sans';font-weight:500;
-  color:#9fb0c0;font-size:42px;letter-spacing:.005em}
+/* 3D captions — the headline block tilts subtly in space; each word is a real
+   extruded 3D solid (stacked darker layers = depth, lit from the top). */
+.head{position:absolute;left:70px;right:70px;top:206px;text-align:center;font-family:'Montserrat',sans-serif;font-weight:900;
+  text-transform:uppercase;line-height:.96;letter-spacing:-.015em;
+  transform:perspective(1400px) rotateX(11deg);transform-origin:50% 0}
+.head .w{color:#f4f8fc;
+  text-shadow:0 2px 0 #cfd8e2,0 4px 0 #aeb9c6,0 6px 0 #8b96a4,0 8px 0 #6d788700,
+    0 3px 1px rgba(0,0,0,.2),0 14px 26px rgba(0,0,0,.55)}
+.head .g{color:${GREEN};
+  text-shadow:0 2px 0 #23b985,0 4px 0 #1c9f72,0 6px 0 #16855f,0 8px 0 #11694b,0 11px 0 #0c4f39,
+    0 3px 1px rgba(0,0,0,.25),0 20px 34px rgba(10,60,44,.6),0 0 46px rgba(47,230,164,.35)}
+.sub{position:absolute;left:110px;right:110px;top:500px;text-align:center;font-family:'DM Sans';font-weight:600;
+  color:#aebccb;font-size:42px;letter-spacing:.005em;filter:drop-shadow(0 3px 10px rgba(0,0,0,.5))}
 
 .stage{position:absolute;left:50%;top:720px;transform:translateX(-50%);perspective:3100px;perspective-origin:50% 38%}
 .floor{position:absolute;left:50%;top:${PHONE_H - 46}px;transform:translateX(-50%);width:${PHONE_W + 150}px;height:160px;
@@ -101,6 +110,14 @@ const css = `
 .glare{position:absolute;inset:16px;border-radius:60px;pointer-events:none;z-index:6;mix-blend-mode:screen;
   background:linear-gradient(122deg,rgba(255,255,255,.20) 0%,rgba(255,255,255,.05) 22%,transparent 42%,transparent 100%)}
 
+/* Conversion strip — rating + the app's real value props (free, no pay-to-win,
+   no energy timers), the objections that most lift installs for this genre. */
+.vp{position:absolute;bottom:104px;left:0;right:0;text-align:center}
+.vp .stars{color:${GREEN};font-size:40px;letter-spacing:8px;filter:drop-shadow(0 2px 12px rgba(47,230,164,.5))}
+.vp .props{margin-top:16px;display:flex;align-items:center;justify-content:center;gap:22px;
+  font-family:'DM Sans';font-weight:600;font-size:30px;color:#8ea0b6}
+.vp .props .p{color:#d6e0ea}
+.vp .props .sep{width:7px;height:7px;border-radius:999px;background:${GREEN};opacity:.8}
 `;
 
 function headSize(white, green) {
@@ -119,7 +136,7 @@ function html(appName, p, idx, total) {
    .phone{transform:${transform}}
   </style></head><body>
    <div class="panel">
-     <div class="glowtop"></div><div class="glowbot"></div>
+     <div class="glowtop"></div><div class="glowbot"></div><div class="spotlight"></div>
      <div class="kicker">— DYNASTY MANAGER —</div>
      <div class="head"><span class="w">${p.white}</span><br><span class="g">${p.green}</span></div>
      <div class="sub">${p.sub}</div>
@@ -127,6 +144,9 @@ function html(appName, p, idx, total) {
        <div class="floor"></div>
        <div class="phone"><div class="rim"></div><div class="glare"></div>
          <div class="scr">${coverImg(p.src)}</div></div>
+     </div>
+     <div class="vp"><div class="stars">★★★★★</div>
+       <div class="props"><span class="p">Free</span><span class="sep"></span><span class="p">No Pay-to-Win</span><span class="sep"></span><span class="p">No Energy Timers</span></div>
      </div>
      <div class="vignette"></div><div class="grain"></div>
    </div>
