@@ -60,6 +60,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Add game design & UX review report (IDEAS.md).',
     'Interactive penalty shootouts: swipe to aim at five target zones, hold to power up, and pick your takers — with a broadcast scoreboard, curved ball flight, sound, slow-mo decisive kicks and keeper mind games.',
     'Capture Studio in Settings: teleport into staged World Cup finals (Messi vs Ronaldo, Mbappé rematch, England penalties, Yamal, Haaland) for recording promo footage without touching your save.',
+    'G1–G7: Cold-open paywall removal, board teeth, audio/visual polish.',
   ],
   fixed: [],
   headline: null,
