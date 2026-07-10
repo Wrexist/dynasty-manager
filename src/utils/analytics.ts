@@ -39,7 +39,8 @@ export type AnalyticsEvent =
   | { name: 'code_redeemed'; data: { reward: string } }
   | { name: 'challenge_completed'; data: { challengeId: string; xp: number; featured: boolean } }
   | { name: 'resume_card_tap'; data: { screen: string; reason: string } }
-  | { name: 'notif_permission_prompt'; data: { action: 'enable' | 'dismiss'; granted: boolean } };
+  | { name: 'notif_permission_prompt'; data: { action: 'enable' | 'dismiss'; granted: boolean } }
+  | { name: 'moment_shared'; data: { type: 'world_cup' | 'shootout' } };
 
 export type AnalyticsEventName = AnalyticsEvent['name'];
 

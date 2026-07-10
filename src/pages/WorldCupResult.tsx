@@ -10,6 +10,8 @@ import { toast } from 'sonner';
 import { Medal, Home, RotateCcw, Award, Star, Share2 } from 'lucide-react';
 import { WorldCupTrophyIcon } from '@/components/game/icons/WorldCupTrophyIcon';
 import { TrophyLift } from '@/components/game/TrophyLift';
+import { ShareMomentButton } from '@/components/game/ShareMomentButton';
+import type { MomentCardData } from '@/utils/shareCard';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -109,6 +111,24 @@ const WorldCupResult = () => {
     const youngStar = youngCandidate && youngCandidate.player.id !== goldenBoot.player.id ? youngCandidate : null;
     return { goldenBoot, youngStar };
   }, [nationalTeam, players]);
+
+  // Branded share-card content for the champion beat (the biggest emotional
+  // moment). Built before the early return so hook order stays stable.
+  const momentData = useMemo<MomentCardData>(() => {
+    const flag = nat ? getFlag(nat) : '';
+    const detail = run
+      ? `${run.won}W · ${run.drawn}D · ${run.lost}L · ${run.gf} goals scored`
+      : '2026 World Cup';
+    return {
+      type: 'world_cup',
+      emoji: '🏆',
+      headline: 'WORLD CHAMPIONS',
+      tagline: 'Champions of the world',
+      subject: `${flag} ${nat ?? ''}`.trim(),
+      detail,
+      shareMessage: `🏆 World Champions with ${nat ?? 'my nation'}! I won the 2026 World Cup in Dynasty Manager.`,
+    };
+  }, [nat, run]);
 
   if (!result || !nat) {
     return (
@@ -241,6 +261,11 @@ const WorldCupResult = () => {
         >
           <RotateCcw className="w-4 h-4" /> Play Another World Cup
         </button>
+        {result.isChampion ? (
+          // The trophy moment gets a branded image card; the text-share below
+          // remains the fallback path when the image can't be produced.
+          <ShareMomentButton data={momentData} label="Share this moment" />
+        ) : null}
         <button
           type="button"
           onClick={() => { void handleShare(); }}

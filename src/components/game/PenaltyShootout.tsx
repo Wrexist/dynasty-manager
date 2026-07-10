@@ -8,6 +8,8 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { PlayerCard } from '@/components/game/PlayerCard';
 import { PenaltyGoalScene, shotTimings, type SceneShot } from '@/components/game/shootout/PenaltyGoalScene';
 import { PackConfetti } from '@/components/game/pack/PackConfetti';
+import { ShareMomentButton } from '@/components/game/ShareMomentButton';
+import type { MomentCardData } from '@/utils/shareCard';
 import { getKickStakes, getPenaltyTakerQuality, getShootoutProgress } from '@/utils/penaltyShootout';
 import { getFlag } from '@/utils/nationality';
 import { hapticError, hapticHeavy, hapticLight, hapticMedium, hapticSuccess } from '@/utils/haptics';
@@ -716,6 +718,23 @@ export function PenaltyShootout() {
               <Button className="w-full h-12 text-base font-bold" onClick={() => { hapticMedium(); skipAll(); }}>
                 Continue
               </Button>
+              {playerWon && (
+                <ShareMomentButton
+                  data={((): MomentCardData => {
+                    const flag = isWorldCup ? `${getFlag(myClub.id)} ` : '';
+                    return {
+                      type: 'shootout',
+                      emoji: '⚽',
+                      headline: 'SHOOTOUT DRAMA',
+                      tagline: 'Won it from the spot',
+                      subject: `${flag}${myClub.name}`.trim(),
+                      detail: `${myClub.shortName} ${myTotal}–${oppTotal} ${oppClub.shortName} on penalties`,
+                      shareMessage: `Held my nerve — ${myClub.shortName} won it ${myTotal}–${oppTotal} on penalties in Dynasty Manager.`,
+                    };
+                  })()}
+                  label="Share this moment"
+                />
+              )}
             </GlassPanel>
           </motion.div>
         )}
