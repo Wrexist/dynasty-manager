@@ -26,12 +26,13 @@ import {
 import {
   FREE_TRIAL_DAYS,
   PRODUCTS,
-  TRIAL_TARGET_PRODUCT_ID,
+  SUB_TRIAL_PRODUCT_IDS,
 } from '@/config/monetization';
 import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
 import { openExternalUrl } from '@/utils/externalUrl';
 import type { ProductId } from '@/types/game';
 import { track } from '@/utils/analytics';
+import { subscribeSlotContextMissing } from '@/utils/paywallTiming';
 
 /**
  * Apple-compliant in-app paywall (Guideline 3.1.2(c)).
@@ -75,18 +76,19 @@ interface PlanRow {
 const PLAN_ROWS: PlanRow[] = [
   {
     productId: 'com.dynastymanager.pro.annual',
-    title: 'Dynasty Pro — Yearly',
+    title: 'Pro Yearly',
     lengthLabel: '12 months · auto-renews yearly',
+    trialCaption: `${FREE_TRIAL_DAYS}-day free trial included`,
     badge: 'BEST VALUE',
   },
   {
     productId: 'com.dynastymanager.pro.lifetime',
-    title: 'Dynasty Pro — Lifetime',
+    title: 'Pro Lifetime',
     lengthLabel: 'One-time purchase · no renewal',
   },
   {
     productId: 'com.dynastymanager.pro.monthly',
-    title: 'Dynasty Pro — Monthly',
+    title: 'Pro Monthly',
     lengthLabel: 'Auto-renews monthly',
     trialCaption: `${FREE_TRIAL_DAYS}-day free trial included`,
   },
@@ -109,7 +111,17 @@ const SubscribeOnboarding = () => {
   const trialEligible = monetization.subscription == null;
 
   const navState = (location.state as { slot?: number; communityPackEnabled?: boolean; returnTo?: string }) || {};
-  const slot = navState.slot ?? 1;
+  // A webview reload / deep link on #/subscribe loses nav state. Without a slot
+  // AND without an explicit in-app return context, `slot ?? 1` used to default
+  // to 1 and the onboarding continuation could silently overwrite save slot 1.
+  // Redirect to the title instead, mirroring ModeSelect/ClubSelection's guard.
+  const missingSlot = subscribeSlotContextMissing(navState);
+  useEffect(() => {
+    if (missingSlot) navigate('/', { replace: true });
+  }, [missingSlot, navigate]);
+  // No `?? 1` fallback — in-app upsells (Shop/Settings) intentionally omit the
+  // slot and return to '/game' or '/', which never enter club setup.
+  const slot = navState.slot;
   const communityPackEnabled = navState.communityPackEnabled === true;
   const returnTo = navState.returnTo || '/mode-select';
 
@@ -140,7 +152,10 @@ const SubscribeOnboarding = () => {
     const ids = await getEntitlements();
     if (ids.length > 0) restoreEntitlementsAction(ids);
     const info = await getCustomerInfo();
-    if (info) updateSubscription(extractSubscriptionInfo(info));
+    // Only write a confirmed, non-null sub — a transient/empty customerInfo
+    // must not clear an active subscription (expiry handled via expiresAt).
+    const sub = extractSubscriptionInfo(info);
+    if (sub) updateSubscription(sub);
   };
 
   const handleSubscribe = async () => {
@@ -161,20 +176,20 @@ const SubscribeOnboarding = () => {
 
       result.granted.forEach(id => grantEntitlement(id));
 
-      // If the user picked the monthly plan, the App Store Connect
+      // If the user picked a trial-bearing plan, the App Store Connect
       // introductory offer grants the free trial automatically — mirror it
       // locally so gated features unlock immediately.
-      if (selected === TRIAL_TARGET_PRODUCT_ID) startFreeTrial();
+      const isTrial = trialEligible && SUB_TRIAL_PRODUCT_IDS.includes(selected);
+      if (isTrial) startFreeTrial(selected);
 
       await syncAfterPurchase();
       track('purchase_completed', { productId: selected });
 
       const product = PRODUCTS[selected];
-      const isTrial = trialEligible && selected === TRIAL_TARGET_PRODUCT_ID;
       successToast(
-        isTrial ? `${FREE_TRIAL_DAYS}-Day Trial Started!` : 'Welcome to Dynasty Pro!',
+        isTrial ? `${FREE_TRIAL_DAYS}-Day Free Trial Started!` : 'Welcome to Dynasty Pro!',
         isTrial
-          ? `Pro is unlocked. You'll be charged ${priceFor(selected)}/month after the trial unless you cancel.`
+          ? `Pro is unlocked. You'll be charged ${priceFor(selected)}${product.billingPeriod || ''} after the trial unless you cancel.`
           : `${product.name} is now active.`,
       );
       finish();
@@ -227,10 +242,11 @@ const SubscribeOnboarding = () => {
   };
 
   const selectedProduct = PRODUCTS[selected];
-  const isTrialPlan = trialEligible && selected === TRIAL_TARGET_PRODUCT_ID;
+  const isTrialPlan = trialEligible && SUB_TRIAL_PRODUCT_IDS.includes(selected);
   const billingSummary = useMemo(() => {
     if (isTrialPlan) {
-      return `Free for ${FREE_TRIAL_DAYS} days, then ${priceFor(selected)} per month. Auto-renews until cancelled.`;
+      const period = selectedProduct.billingPeriod?.replace('/', '') || 'period';
+      return `Free for ${FREE_TRIAL_DAYS} days, then ${priceFor(selected)} per ${period}. Auto-renews until cancelled.`;
     }
     if (selectedProduct.type === 'subscription') {
       const period = selectedProduct.billingPeriod?.replace('/', '') || 'period';
@@ -240,6 +256,10 @@ const SubscribeOnboarding = () => {
     // priceFor is recomputed every render — depending on storePrices captures it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected, storePrices, isTrialPlan, selectedProduct]);
+
+  // Redirecting to the title (no slot / no in-app context) — render nothing.
+  // Placed after all hooks to satisfy the Rules of Hooks.
+  if (missingSlot) return null;
 
   return (
     <div className="h-screen bg-background flex flex-col items-center px-4 sm:px-5 relative overflow-hidden safe-area-top safe-area-bottom">
@@ -429,12 +449,21 @@ const SubscribeOnboarding = () => {
               <>
                 <Sparkles className="w-5 h-5" />
                 {isTrialPlan
-                  ? `Start ${FREE_TRIAL_DAYS}-Day Free Trial`
+                  ? `Try ${FREE_TRIAL_DAYS} Days Free`
                   : `Continue — ${priceFor(selected)}${selectedProduct.billingPeriod || ''}`}
               </>
             )}
           </span>
         </motion.button>
+
+        {/* Trial reassurance — subordinate to the billed amount per 3.1.2(c):
+            small, muted, and the price/renewal terms stay in billingSummary. */}
+        {isTrialPlan && (
+          <p className="mt-2 flex items-center justify-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+            <Check className="w-3 h-3 text-emerald-400" aria-hidden />
+            No payment due now · cancel anytime
+          </p>
+        )}
 
         {/* Footer: Restore + Terms + Privacy — required by Apple 3.1.2(c). */}
         <div className="mt-2.5 flex items-center justify-center gap-4 text-[11px] font-semibold">

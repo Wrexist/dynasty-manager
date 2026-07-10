@@ -10,6 +10,8 @@ import { useGameStore } from '@/store/gameStore';
 import { getActiveCosmetic } from '@/utils/monetization';
 import { COSMETIC_ITEMS } from '@/config/monetization';
 import { hapticSuccess } from '@/utils/haptics';
+import { sfxRoar } from '@/utils/sfx';
+import { usePresentationSlot } from '@/hooks/usePresentationQueue';
 
 interface CelebrationModalProps {
   open: boolean;
@@ -18,6 +20,8 @@ interface CelebrationModalProps {
   description: string;
   icon?: string;
   stats?: { label: string; value: string }[];
+  /** Drives the roar intensity — legendary gets the full eruption. */
+  severity?: 'minor' | 'major' | 'legendary';
 }
 
 interface ConfettiConfig {
@@ -88,8 +92,9 @@ function Particle({ spec }: { spec: ParticleSpec }) {
   );
 }
 
-export function CelebrationModal({ open, onClose, title, description, icon, stats }: CelebrationModalProps) {
+export function CelebrationModal({ open, onClose, title, description, icon, stats, severity }: CelebrationModalProps) {
   const monetization = useGameStore(s => s.monetization);
+  const soundEnabled = useGameStore(s => s.settings.soundEnabled !== false);
   const celebTextId = getActiveCosmetic(monetization, 'celebration_text');
   const celebItem = celebTextId ? COSMETIC_ITEMS.find(c => c.id === celebTextId) : null;
   const displayTitle = celebItem ? celebItem.name : title;
@@ -99,23 +104,31 @@ export function CelebrationModal({ open, onClose, title, description, icon, stat
   // trigger for reduced-motion users. Skip rendering them entirely — the
   // spring-in modal + haptic + gold border is celebration enough.
   const prefersReducedMotion = useReducedMotion();
-  useScrollLock(open);
+  // Presentation queue (G3): stack after the weekly digest — only show, lock
+  // and buzz when we're the active overlay.
+  const slotActive = usePresentationSlot('celebration', open);
+  const visible = open && slotActive;
+  useScrollLock(visible);
   const particleSpecs = useMemo(() => makeParticleSpecs(confettiConfig), [confettiConfig]);
 
   const panelRef = useRef<HTMLDivElement | null>(null);
-  useFocusTrap(panelRef, open);
-  useEscapeClose(onClose, open);
+  useFocusTrap(panelRef, visible);
+  useEscapeClose(onClose, visible);
 
   // Single source of truth for celebration moments — promotions, trophy
   // wins, season triumphs all funnel through this modal, so we fire one
-  // success haptic on open instead of sprinkling them through callers.
+  // success haptic when it actually becomes visible (not while queued).
   useEffect(() => {
-    if (open) hapticSuccess();
-  }, [open]);
+    if (!visible) return;
+    hapticSuccess();
+    // Audio sting scaled by severity (G4) — fired only once it's actually
+    // visible, matching the queue-gated haptic above.
+    if (soundEnabled) sfxRoar(severity === 'legendary');
+  }, [visible, soundEnabled, severity]);
 
   return (
     <AnimatePresence>
-      {open && (
+      {visible && (
         <motion.div
           className="fixed inset-0 z-50 flex items-center justify-center px-4"
           initial={{ opacity: 0 }}

@@ -15,6 +15,7 @@ import { MARKET_SUB_NAV, SQUAD_SUB_NAV } from '@/config/ui';
 import { PACK_PITY_THRESHOLD } from '@/config/packs';
 import { useMatchLocked, useCareerUnemployed } from '@/hooks/useGameSelectors';
 import { InfoTipProvider } from '@/components/game/InfoTip';
+import { PresentationQueueProvider } from '@/hooks/usePresentationQueue';
 import { getEntitlements, getCustomerInfo, extractSubscriptionInfo, startEntitlementListener, stopEntitlementListener } from '@/utils/purchases';
 
 // Lazy-load all pages for code splitting (Dashboard prefetched from TitleScreen)
@@ -213,7 +214,14 @@ const GameShell = () => {
       .then(([ids, info]) => {
         if (cancelled) return;
         if (ids.length > 0) restoreEntitlements(ids);
-        if (info) updateSubscription(extractSubscriptionInfo(info));
+        // Never write a null sub from a sync path: extractSubscriptionInfo
+        // returns null on a transient RC glitch (no active pro entitlement in
+        // this payload), which would clear subscription.expiresAt — the ONLY
+        // source of sub truth — and transiently strip Pro from a paying user.
+        // A genuine lapse is handled by isSubscriptionActive's expiresAt check,
+        // so we only ever write a confirmed, non-null subscription here.
+        const sub = extractSubscriptionInfo(info);
+        if (sub) updateSubscription(sub);
       })
       .catch(err => Sentry.captureException(err, { tags: { context: 'syncEntitlements' } }));
 
@@ -221,7 +229,10 @@ const GameShell = () => {
     startEntitlementListener((ids, customerInfo) => {
       const state = useGameStore.getState();
       state.restoreEntitlements(ids);
-      state.updateSubscription(extractSubscriptionInfo(customerInfo));
+      // Same guard as above — a listener callback with no active pro entitlement
+      // must not clear an active local subscription (see comment above).
+      const sub = extractSubscriptionInfo(customerInfo);
+      if (sub) state.updateSubscription(sub);
     });
 
     return () => { cancelled = true; stopEntitlementListener(); };
@@ -337,7 +348,11 @@ const GameShell = () => {
               source of perceived "long loading between tabs". */}
           <PageErrorBoundary>
             <Suspense fallback={<PageSuspenseFallback />}>
-              <Screen />
+              {/* Coordinates the post-advance overlay queue so only one modal
+                  shows at a time (G3). */}
+              <PresentationQueueProvider>
+                <Screen />
+              </PresentationQueueProvider>
             </Suspense>
           </PageErrorBoundary>
         </main>

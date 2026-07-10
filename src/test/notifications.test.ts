@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildEngagementNotifications, NOTIFICATION_IDS } from '@/utils/notifications';
+import { buildEngagementNotifications, buildPersonalReminderBody, NOTIFICATION_IDS } from '@/utils/notifications';
 
 const now = new Date(2026, 5, 19, 9, 0, 0); // 2026-06-19 09:00 local
 
@@ -67,5 +67,58 @@ describe('buildEngagementNotifications', () => {
     expect(specs.map(s => s.id).sort()).toEqual(
       [NOTIFICATION_IDS.streak, NOTIFICATION_IDS.festival, NOTIFICATION_IDS.inactivity].sort(),
     );
+  });
+
+  it('uses personalised come-back copy when personal context is provided', () => {
+    const specs = buildEngagementNotifications(
+      { streakCount: 0, festival: null, personal: { nextOpponent: 'Arsenal', nextCompetition: 'Cup final', incomingOffers: 0, expiringContracts: 0 } },
+      now,
+    );
+    const nudge = byId(specs, NOTIFICATION_IDS.inactivity)!;
+    expect(nudge.title).toBe('Your season is calling');
+    expect(nudge.body).toContain('Cup final vs Arsenal');
+  });
+
+  it('falls back to generic come-back copy when nothing personal is available', () => {
+    const specs = buildEngagementNotifications(
+      { streakCount: 0, festival: null, personal: { incomingOffers: 0, expiringContracts: 0 } },
+      now,
+    );
+    const nudge = byId(specs, NOTIFICATION_IDS.inactivity)!;
+    expect(nudge.title).toBe('Your squad is waiting');
+    expect(nudge.body).toMatch(/jump back/i);
+  });
+});
+
+describe('buildPersonalReminderBody', () => {
+  it('returns null when there is no personal context', () => {
+    expect(buildPersonalReminderBody(null)).toBeNull();
+    expect(buildPersonalReminderBody(undefined)).toBeNull();
+  });
+
+  it('prioritises the next fixture over everything else', () => {
+    const body = buildPersonalReminderBody({
+      nextOpponent: 'Chelsea',
+      nextCompetition: 'league match',
+      topCliffhanger: 'The title race is ON',
+      incomingOffers: 3,
+      expiringContracts: 2,
+    });
+    expect(body).toContain('vs Chelsea');
+  });
+
+  it('uses the top cliffhanger when there is no next fixture', () => {
+    const body = buildPersonalReminderBody({
+      topCliffhanger: 'The board is watching closely',
+      incomingOffers: 2,
+      expiringContracts: 0,
+    });
+    expect(body).toBe('The board is watching closely');
+  });
+
+  it('falls back to pending offers, then expiring contracts', () => {
+    expect(buildPersonalReminderBody({ incomingOffers: 2, expiringContracts: 0 })).toContain('2 transfer offers');
+    expect(buildPersonalReminderBody({ incomingOffers: 0, expiringContracts: 3 })).toContain('3 of your players');
+    expect(buildPersonalReminderBody({ incomingOffers: 0, expiringContracts: 0 })).toBeNull();
   });
 });

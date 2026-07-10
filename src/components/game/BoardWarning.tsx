@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { AlertTriangle, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { hapticError, hapticLight, hapticWarning } from '@/utils/haptics';
+import { usePresentationSlot } from '@/hooks/usePresentationQueue';
 
 interface BoardWarningProps {
   confidence: number;
@@ -60,17 +61,20 @@ const SEVERITY_STYLES = {
 
 export function BoardWarning({ confidence, onDismiss }: BoardWarningProps) {
   const warning = getWarningLevel(confidence);
+  // Presentation queue (G3): only show/buzz when we're the active overlay.
+  const active = usePresentationSlot('boardWarning', !!warning);
+  const visible = !!warning && active;
   // Critical = error notification (the buzz that says "something is broken").
   // Caution + danger = warning notification (the gentler "watch out" tick).
-  // Re-fires only when severity changes, not on every render.
+  // Re-fires only when it becomes visible / severity changes, not while queued.
   const severity = warning?.severity;
   useEffect(() => {
-    if (!severity) return;
+    if (!visible || !severity) return;
     if (severity === 'critical') hapticError();
     else hapticWarning();
-  }, [severity]);
+  }, [visible, severity]);
 
-  if (!warning) return null;
+  if (!visible) return null;
 
   const styles = SEVERITY_STYLES[warning.severity];
 

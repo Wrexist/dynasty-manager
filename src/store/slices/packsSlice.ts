@@ -175,7 +175,7 @@ export const createPacksSlice = (set: Set, get: Get) => ({
 
   openPack: (
     tierKey: PackTierKey,
-    opts?: { method?: PackUnlockMethod; skipPayment?: boolean },
+    opts?: { method?: PackUnlockMethod; skipPayment?: boolean; suppressPaidRejectSentry?: boolean },
   ): OpenPackResult => {
     // Opening a new pack invalidates any pending quick-sell undo — the
     // snapshot would otherwise revert this fresh pack if restored.
@@ -224,7 +224,11 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     const eligible = evaluateOpenPack(state, tierKey, method);
     if (eligible.ok === false) {
       const paidButRejected = method === 'iap' && skipPayment === true;
-      if (paidButRejected) {
+      // The crash-recovery reconciler retries this every mount while the block
+      // persists (e.g. squad full). It throttles the alert to once per marker
+      // via `suppressPaidRejectSentry`, so we don't re-report an already-known
+      // stranded pack on every visit to the Packs page.
+      if (paidButRejected && !opts?.suppressPaidRejectSentry) {
         Sentry.captureMessage(
           `[openPack] Paid IAP rejected at re-validation — investigate. tier=${tierKey} reason=${eligible.message}`,
           'error',

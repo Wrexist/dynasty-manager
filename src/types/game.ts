@@ -628,6 +628,18 @@ export interface BoardObjective {
   originalTargetMin?: number;
 }
 
+/** A board ultimatum issued at a mid-season review when confidence is
+ *  critically low: recover to `targetPosition` (or lift confidence out of the
+ *  danger zone) by `deadlineWeek`, or face a mid-season sacking (career mode)
+ *  / severe board consequences (sandbox). Persisted — save schema v73. */
+export interface BoardUltimatum {
+  issuedSeason: number;
+  issuedWeek: number;
+  deadlineWeek: number;
+  /** League position (1-based) the board demands by the deadline. */
+  targetPosition: number;
+}
+
 export interface Message {
   id: string;
   week: number;
@@ -1513,6 +1525,12 @@ export interface ChallengeScenario {
   youthOnly?: boolean;           // can only use players under 23
   noTransfers?: boolean;         // cannot buy players
   clubFilter?: 'relegation' | 'contender' | 'youth-academy' | 'mid-table' | 'underdog' | 'all';
+  /** Manager XP granted on completion (sim-neutral, paid via the existing
+   *  managerProgression grantXP path). Scaled by difficulty at authoring time. */
+  rewardXp?: number;
+  /** Cosmetic badge identifier shown on the challenge picker once completed.
+   *  A label only — NOT a monetization entitlement. */
+  badgeId?: string;
 }
 
 // ── Storyline Events ──

@@ -4,7 +4,7 @@ import { calculateReputationTier, generateJobVacancies, getRetirementAge, calcul
 import {
   REP_PROMOTION, REP_RELEGATION, REP_OVERACHIEVE_BONUS, REP_UNDERACHIEVE_PENALTY, REP_TITLE, REP_CUP_WIN, REP_SACKING, REP_MIN, REP_MAX,
 } from '@/config/managerCareer';
-import { buildLeagueTable, generateDivisionFixtures, buildAllDivisionTables, LEAGUES, generateFriendlies, getLeaguesByCountry, clearLeagueTableCache } from '@/data/league';
+import { buildLeagueTable, generateDivisionFixtures, buildAllDivisionTables, LEAGUES, generateFriendlies, collectOccupiedWeeks, getLeaguesByCountry, clearLeagueTableCache } from '@/data/league';
 import { BOARD_OBJ_ALL_COMPLETE_XP, BOARD_OBJ_ALL_COMPLETE_CONFIDENCE } from '@/config/gameBalance';
 import { generateSquad, selectBestLineup, generatePlayer } from '@/utils/playerGen';
 
@@ -23,7 +23,8 @@ import { updateCoefficients } from '@/utils/continentalCoefficients';
 import { getContinentalResultForClub } from '@/utils/continental';
 import { DOMESTIC_SUPER_CUP_WEEK, CONTINENTAL_SUPER_CUP_WEEK, REP_CHAMPIONS_CUP_WIN, REP_SHIELD_CUP_WIN, REP_CONFERENCE_CUP_WIN, REP_LEAGUE_CUP_WIN, REP_CONTINENTAL_GROUP, REP_CONTINENTAL_KNOCKOUT } from '@/config/continental';
 
-import { checkChallengeComplete, CHALLENGES } from '@/data/challenges';
+import { checkChallengeComplete, CHALLENGES, getFeaturedChallengeId, FEATURED_CHALLENGE_XP_MULTIPLIER } from '@/data/challenges';
+import { addCompletedChallenge } from '@/store/helpers/persistence';
 import { calculateSeasonAwards } from '@/utils/seasonAwards';
 import { calculateBallonDOr } from '@/utils/ballonDor';
 import { getPlayerRarity } from '@/utils/playerRarity';
@@ -836,7 +837,13 @@ function finalizeSeason(
   const newLeagueTable = newDivisionTables[newPlayerDivision];
   const newCup = generateCupDraw(leagueClubIds, leagueTotalWeeks);
   const newLeagueCup = generateLeagueCupDraw(leagueClubIds, leagueTotalWeeks);
-  const newFriendlies = generateFriendlies(state.playerClubId, leagueClubIds);
+  // Pre-season friendlies only on the player's fixture-free weeks (never
+  // sharing a week with a new-season league fixture or opening cup tie).
+  const newFriendlies = generateFriendlies(
+    state.playerClubId,
+    leagueClubIds,
+    collectOccupiedWeeks(state.playerClubId, [newFixtures || [], newCup.ties, newLeagueCup?.ties || []]),
+  );
 
   // Generate continental tournaments based on the top-tier league table
   // If the player was promoted/relegated, use the top tier's table (continental qualifies top-tier only)
@@ -1140,6 +1147,10 @@ function finalizeSeason(
   const newStaffMembers = staffAfterSeason;
 
   let endChallenge = state.activeChallenge;
+  // Manager XP earned by completing the active challenge this season. Folded
+  // into the season-end grantXP below so it rides the same progression path
+  // (sim-neutral — never touches match/transfer/training maths).
+  let challengeRewardXp = 0;
   if (endChallenge && !endChallenge.completed && !endChallenge.failed) {
     const cupWon = state.cup.winner === playerClubId;
     const myEntry = state.leagueTable.find(e => e.clubId === playerClubId);
@@ -1162,7 +1173,18 @@ function finalizeSeason(
     if (checkChallengeComplete(endChallenge.scenarioId, history.position, cupWon, [...state.seasonHistory, history], hasLost, challengeExtra)) {
       endChallenge = { ...endChallenge, completed: true };
       const scenario = CHALLENGES.find(c => c.id === endChallenge!.scenarioId);
-      newMessages = addMsg(newMessages, { week: 1, season: newSeason, type: 'board', title: 'Challenge Complete!', body: `Congratulations! You completed the "${scenario?.name}" challenge! ${scenario?.icon || ''}` });
+      // Reward: manager XP scaled by difficulty, with a bonus multiplier when
+      // this scenario is the current weekly Featured Challenge. Persisted as a
+      // device-global completion so the picker can show a check + earned badge.
+      const featured = getFeaturedChallengeId() === endChallenge.scenarioId;
+      const baseXp = scenario?.rewardXp ?? 0;
+      challengeRewardXp = Math.round(baseXp * (featured ? FEATURED_CHALLENGE_XP_MULTIPLIER : 1));
+      addCompletedChallenge(endChallenge.scenarioId);
+      track('challenge_completed', { challengeId: endChallenge.scenarioId, xp: challengeRewardXp, featured });
+      newMessages = addMsg(newMessages, {
+        week: 1, season: newSeason, type: 'board', title: 'Challenge Complete!',
+        body: `Congratulations! You completed the "${scenario?.name}" challenge!${challengeRewardXp > 0 ? ` +${challengeRewardXp} XP${featured ? ' (Featured bonus!)' : ''}` : ''} ${scenario?.icon || ''}`,
+      });
     } else {
       endChallenge = { ...endChallenge, seasonsRemaining: endChallenge.seasonsRemaining - 1 };
       if (endChallenge.seasonsRemaining <= 0) {
@@ -1235,6 +1257,7 @@ function finalizeSeason(
     divisionClubs: newDivisionClubs,
     playerDivision: newPlayerDivision,
     transferMarket, boardObjectives: objectives, boardConfidence: newConfidence,
+    boardUltimatum: null, // a new season wipes any active ultimatum
     seasonHistory: [...state.seasonHistory, history],
     currentMatchResult: null, currentScreen: 'season-summary',
     matchPhase: 'none' as const, matchTeamTalk: 'none', pendingPressConference: null,
@@ -1321,6 +1344,7 @@ function finalizeSeason(
       if (state.conferenceCup?.winnerId === playerClubId) xp += XP_REWARDS.conferenceCupWin;
       else if (state.conferenceCup && !state.conferenceCup.playerEliminated) xp += XP_REWARDS.continentalGroupAdvance;
       xp += objectiveXP;
+      xp += challengeRewardXp;
       return xp;
     })()),
     seasonGrowthTracker: {},

@@ -79,6 +79,19 @@ export function getPreferredYears(age: number): number {
   return bracket ? bracket.preferredYears : CONTRACT_PREFERRED_YEARS_DEFAULT;
 }
 
+/**
+ * Wage a fee-paid signing renegotiates when he joins a new club.
+ * Reuses the same `calculateWageDemand` logic the contract-negotiation UI and
+ * AI offers use (age / quality / form / morale / buyer-club-reputation
+ * factors), and floors at the player's current wage so a transfer never
+ * results in a pay cut. Deterministic — `TransferNegotiation` previews the
+ * exact number `executeTransfer` stamps, so no personal-terms desync.
+ */
+export function getSignedWage(player: Player, buyerClubReputation: number): number {
+  const demand = calculateWageDemand(player, buyerClubReputation || 0);
+  return Math.max(player.wage, demand);
+}
+
 /** Calculate agent fee based on player value and deal complexity. */
 function calculateAgentFee(player: Player): number {
   const feeRate = CONTRACT_AGENT_FEE_BASE + Math.random() * CONTRACT_AGENT_FEE_RANGE;

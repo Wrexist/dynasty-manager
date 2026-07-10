@@ -1,4 +1,4 @@
-import { Club, Player, Match, MatchWeather, LeagueTableEntry, FormationType, TransferListing, BoardObjective, GameScreen, Message, SeasonHistory, IncomingOffer, GameSettings, TacticalInstructions, TrainingState, TrainingModule, StaffMember, ScoutingState, ScoutRegion, YouthAcademyState, FacilitiesState, FinanceRecord, PlayerMatchRating, LoanDeal, IncomingLoanOffer, OutgoingLoanRequest, CupState, PressConference, ContractOffer, ActiveChallenge, LeagueId, SeasonTurnover, DerbyRivalry, ClubRecords, SeasonPhase, CareerMilestone, ManagerProgression, PerkId, StorylineEvent, ActiveStorylineChain, SponsorDeal, SponsorOffer, SponsorNegotiationProposal, SponsorSlotId, MerchState, MerchProductLine, MerchPricingTier, MerchCampaignType, CliffhangerItem, MatchDramaType, SessionStats, HeadToHeadRecord, MonetizationState, ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo, TransferNewsEntry, NationalTeamState, NationalTeamOffer, InternationalTournamentState, GameMode, CareerManager, JobVacancy, JobOffer, ActiveInterview, PitchTone, ManagerBonus, LeagueCupState, ContinentalTournamentState, ContinentalCompetition, VirtualClub, SuperCupMatch, TransferTalk, TeamTalkType, PenaltyKick, PenaltyShootoutCtx, MatchShout, ShoutType, NegotiationStrike, OpenedPackRecord, OpenPackResult, ReleasePackedPlayerResult, QuickSellPackedPlayerResult, PackTierKey, PackUnlockMethod, LoadError, CaptureScenario } from '@/types/game';
+import { Club, Player, Match, MatchWeather, LeagueTableEntry, FormationType, TransferListing, BoardObjective, BoardUltimatum, GameScreen, Message, SeasonHistory, IncomingOffer, GameSettings, TacticalInstructions, TrainingState, TrainingModule, StaffMember, ScoutingState, ScoutRegion, YouthAcademyState, FacilitiesState, FinanceRecord, PlayerMatchRating, LoanDeal, IncomingLoanOffer, OutgoingLoanRequest, CupState, PressConference, ContractOffer, ActiveChallenge, LeagueId, SeasonTurnover, DerbyRivalry, ClubRecords, SeasonPhase, CareerMilestone, ManagerProgression, PerkId, StorylineEvent, ActiveStorylineChain, SponsorDeal, SponsorOffer, SponsorNegotiationProposal, SponsorSlotId, MerchState, MerchProductLine, MerchPricingTier, MerchCampaignType, CliffhangerItem, MatchDramaType, SessionStats, HeadToHeadRecord, MonetizationState, ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo, TransferNewsEntry, NationalTeamState, NationalTeamOffer, InternationalTournamentState, GameMode, CareerManager, JobVacancy, JobOffer, ActiveInterview, PitchTone, ManagerBonus, LeagueCupState, ContinentalTournamentState, ContinentalCompetition, VirtualClub, SuperCupMatch, TransferTalk, TeamTalkType, PenaltyKick, PenaltyShootoutCtx, MatchShout, ShoutType, NegotiationStrike, OpenedPackRecord, OpenPackResult, ReleasePackedPlayerResult, QuickSellPackedPlayerResult, PackTierKey, PackUnlockMethod, LoadError, CaptureScenario } from '@/types/game';
 import type { ObjectiveInstance } from '@/utils/weeklyObjectives';
 import type { HalfState } from '@/engine/match';
 
@@ -17,6 +17,8 @@ export interface GameState {
   messages: Message[];
   boardObjectives: BoardObjective[];
   boardConfidence: number;
+  /** Active mid-season board ultimatum, or null. Persisted (schema v73). */
+  boardUltimatum: BoardUltimatum | null;
   seasonHistory: SeasonHistory[];
   settings: GameSettings;
   activeSlot: number;
@@ -298,6 +300,7 @@ export interface GameState {
   executeTransfer: (playerId: string, fee: number) => { success: boolean; message: string };
   evaluateOffer: (playerId: string, fee: number) => { acceptChance: number; wouldTriggerSellOn: boolean; sellOnPct: number; budgetAfter: number; wageImpact: number; ratio: number; positionCount: number; totalSquadSize: number } | null;
   makeOfferWithNegotiation: (playerId: string, fee: number) => { outcome: 'accepted' | 'rejected' | 'counter'; counterFee?: number; message: string };
+  getOfferAcceptChance: (playerId: string, fee: number) => number;
   addToShortlist: (id: string) => void;
   removeFromShortlist: (id: string) => void;
   listPlayerForSale: (playerId: string, customAskingPrice?: number) => { appeased: boolean };
@@ -480,13 +483,16 @@ export interface GameState {
   applyYouthPreview: () => void;
   applyDoubleXP: () => void;
   updateSubscription: (info: SubscriptionInfo | null) => void;
-  startFreeTrial: () => void;
+  /** Record the store-granted free trial locally (web/dev mock + instant
+   *  unlock). `productId` is the subscription the trial converts into —
+   *  defaults to the monthly plan for backward compatibility. */
+  startFreeTrial: (productId?: ProductId) => void;
 
   // Actions — National Team
   initNationalTeam: (nationality: string) => void;
   // Boot a standalone World Cup game (gameMode 'world-cup') with the chosen
   // nation — no club/league. Generates squad + tournament, lands on the picker.
-  startWorldCup: (nationality: string) => void;
+  startWorldCup: (nationality: string, options?: { communityPackEnabled?: boolean }) => void;
   // Capture Studio: boot a throwaway (never-saved) World Cup session staged at
   // a Final between two star nations (catalog in config/captureScenarios —
   // passed in by the UI so the eager store never bundles it).
@@ -510,6 +516,8 @@ export interface GameState {
   applyForJob: (vacancyId: string) => { success: boolean; message: string };
   respondToJobOffer: (offerId: string, accept: boolean) => { success: boolean; message?: string };
   resignFromClub: () => void;
+  /** Board-initiated mid-season dismissal (failed ultimatum). Career mode only. */
+  sackManagerMidSeason: () => void;
   moveToNewClub: (clubId: string, offer: JobOffer) => void;
   retireManager: () => void;
 
@@ -552,7 +560,7 @@ export interface GameState {
    *  daily caps as defence in depth. */
   openPack: (
     tier: PackTierKey,
-    opts?: { method?: PackUnlockMethod; skipPayment?: boolean },
+    opts?: { method?: PackUnlockMethod; skipPayment?: boolean; suppressPaidRejectSentry?: boolean },
   ) => OpenPackResult;
   /** Eligibility pre-flight. Run this BEFORE charging real money or
    *  starting a rewarded ad so the user can never pay/watch and then be

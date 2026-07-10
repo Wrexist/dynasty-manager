@@ -14,9 +14,10 @@ import { ArrowLeft, Wallet, Users, Loader2, Search, Globe, X, Building2, Sprout 
 import { cn } from '@/lib/utils';
 import type { LeagueId, OnboardingStep, OnboardingDraft } from '@/types/game';
 import { DIFFICULTY_CONFIG, DIFFICULTY_BARS } from '@/config/ui';
-import { readSessionJson, writeSessionJson, removeSessionKey, STORAGE_KEYS } from '@/store/helpers/persistence';
+import { readSessionJson, writeSessionJson, removeSessionKey, readCommunityPackSlotPref, writeCommunityPackSlotPref, STORAGE_KEYS } from '@/store/helpers/persistence';
 import { hapticLight } from '@/utils/haptics';
 import { LoadingOverlay } from '@/components/LoadingOverlay';
+import { CommunityPackToggle } from '@/components/game/CommunityPackToggle';
 import { errorToast } from '@/utils/gameToast';
 
 
@@ -97,11 +98,16 @@ const ClubSelection = () => {
   const [step, setStep] = useState<OnboardingStep>(initialDraft.step);
   const [selectedNationality, setSelectedNationality] = useState<string | null>(initialDraft.nation);
   const [selectedLeague, setSelectedLeague] = useState<LeagueId | null>(initialDraft.league);
-  // Community pack opt-in is threaded in via navigation state from the popup
-  // on TitleScreen. Defaults to false if this page is reached without a prior
-  // answer (e.g. deep link or refresh).
-  const communityPackEnabled =
-    (location.state as { communityPackEnabled?: boolean } | null)?.communityPackEnabled === true;
+  // Community-pack opt-in is now chosen inline on this page (the cold-open
+  // popup is gone). Seed from any per-slot pref the player set before, else
+  // default ON (real players). The choice governs which leagues are visible
+  // and is written back per-slot on start.
+  const initialCommunityPack = useMemo(() => {
+    const s = (location.state as { slot?: number } | null)?.slot;
+    const pref = s != null ? readCommunityPackSlotPref(s) : null;
+    return pref ?? true;
+  }, [location.state]);
+  const [communityPackEnabled, setCommunityPackEnabled] = useState(initialCommunityPack);
   // A deep link / refresh arrives without navigation state. Defaulting to
   // slot 1 at start time used to let onboarding silently overwrite save
   // slot 1 — send the user back to the title screen to pick a slot instead.
@@ -134,6 +140,9 @@ const ClubSelection = () => {
     requestAnimationFrame(async () => {
       try {
         const pendingSlot = (location.state as { slot?: number })?.slot || 1;
+        // Persist the per-slot community-pack choice (was written by the old
+        // TitleScreen popup; now owned by this inline toggle).
+        writeCommunityPackSlotPref(pendingSlot, communityPackEnabled);
         // initGame is async when communityPackEnabled is true (it dynamically
         // imports the pack datasets). Must await so gameStarted is true
         // before saveGame runs — otherwise performSave's seatbelt bails out
@@ -155,8 +164,8 @@ const ClubSelection = () => {
         // stays enabled (setLoading(false)) so the retry is one tap away —
         // the toast tells the user what to do.
         errorToast(
-          'Couldn’t start your career',
-          'Something went wrong loading the squad data. Tap Begin Career again to retry.',
+          'Couldn’t start your game',
+          'Something went wrong loading the squad data. Tap Start Managing again to retry.',
         );
         setLoading(false);
       }
@@ -278,7 +287,7 @@ const ClubSelection = () => {
           button pulse while the page sits frozen. */}
       <LoadingOverlay
         open={loading}
-        message={communityPackEnabled ? 'Loading community pack…' : 'Setting up your career…'}
+        message={communityPackEnabled ? 'Loading community pack…' : 'Setting up your club…'}
         detail={communityPackEnabled ? 'Importing the full player database — this takes a moment.' : undefined}
       />
       {/* Header — frosted liquid-glass rim with specular top crescent.
@@ -312,7 +321,7 @@ const ClubSelection = () => {
                 {step === 'nationality' ? (
                   <>
                     <h1 ref={headingRef} tabIndex={-1} className="text-lg font-bold text-foreground font-display outline-none">Your Nationality</h1>
-                    <p className="text-[10px] text-muted-foreground">You'll manage this national team too</p>
+                    <p className="text-[10px] text-muted-foreground">Sets your national team, which you can manage too</p>
                   </>
                 ) : step === 'league' ? (
                   <>
@@ -482,6 +491,13 @@ const ClubSelection = () => {
                 placeholder="Search leagues or countries..."
                 value={leagueSearch}
                 onChange={setLeagueSearch}
+              />
+
+              {/* Community-pack opt-in — governs whether the seven fan-sourced
+                  leagues appear below and whether squads use real names. */}
+              <CommunityPackToggle
+                enabled={communityPackEnabled}
+                onChange={setCommunityPackEnabled}
               />
 
               {filteredLeagues ? (
@@ -706,7 +722,7 @@ const ClubSelection = () => {
                 onClick={handleStart}
                 disabled={loading}
               >
-                {loading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Setting up...</> : 'Begin Career'}
+                {loading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Setting up...</> : 'Start Managing'}
               </Button>
             </div>
           </motion.div>

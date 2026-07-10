@@ -13,6 +13,8 @@ import { FlagIcon } from '@/components/game/FlagIcon';
 import { LIQUID_GLASS_SURFACE } from '@/components/game/GlassPanel';
 import type { ManagerTraitId, ManagerAppearance, JobOffer, ManagerCreationStep } from '@/types/game';
 import { ManagerTraitPicker } from '@/components/game/ManagerTraitPicker';
+import { CommunityPackToggle } from '@/components/game/CommunityPackToggle';
+import { readCommunityPackSlotPref, writeCommunityPackSlotPref } from '@/store/helpers/persistence';
 import { ManagerStatBar } from '@/components/game/ManagerStatBar';
 import { ManagerAvatar } from '@/components/game/ManagerAvatar';
 import { DEFAULT_APPEARANCE } from '@/config/managerAppearance';
@@ -55,7 +57,12 @@ const ManagerCreation = () => {
     if (missingSlot) navigate('/', { replace: true });
   }, [missingSlot, navigate]);
   const slot = navState.slot || 1;
-  const communityPackEnabled = navState.communityPackEnabled === true;
+  // Community-pack opt-in is chosen inline here now (no cold-open popup). Seed
+  // from any per-slot pref, else default ON (real players). Written back per
+  // slot on start.
+  const [communityPackEnabled, setCommunityPackEnabled] = useState(
+    () => readCommunityPackSlotPref(navState.slot ?? 1) ?? true,
+  );
 
   const [step, setStep] = useState<ManagerCreationStep>('name');
   const [managerName, setManagerName] = useState('');
@@ -148,6 +155,9 @@ const ManagerCreation = () => {
           bonuses: selectedOffer.bonuses,
         };
 
+        // Persist the per-slot community-pack choice (was written by the old
+        // TitleScreen popup; now owned by this inline toggle).
+        writeCommunityPackSlotPref(slot, communityPackEnabled);
         // Must await — initCareerGame internally awaits initGame, which is
         // async when communityPackEnabled is true. Without awaiting, saveGame
         // below runs before gameStarted is set and the performSave seatbelt
@@ -498,6 +508,12 @@ const ManagerCreation = () => {
                     <p className="text-xs text-muted-foreground">Three clubs want you as their new manager</p>
                   </div>
                 </div>
+                {/* Community-pack opt-in — sets whether your new squad and the
+                    wider game use real-world names & ratings. */}
+                <CommunityPackToggle
+                  enabled={communityPackEnabled}
+                  onChange={setCommunityPackEnabled}
+                />
                 {startingOffers.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground text-sm">No offers available</div>
                 ) : (

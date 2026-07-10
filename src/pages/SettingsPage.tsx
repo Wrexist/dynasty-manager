@@ -4,7 +4,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { LiquidButton } from '@/components/game/LiquidButton';
 import { SaveStatusIndicator } from '@/components/game/SaveStatusIndicator';
-import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users, Bug, ChartBar, Sparkles, Gauge, Bell, Clapperboard, Volume2 } from 'lucide-react';
+import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users, Bug, ChartBar, Sparkles, Gauge, Bell, Clapperboard, Volume2, Share2, Upload } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { useState, useRef, useEffect } from 'react';
@@ -28,6 +28,7 @@ import { getNotificationPermission, requestNotificationPermission, scheduleEngag
 import { restorePurchases, openSubscriptionManagement, getCustomerInfo, extractSubscriptionInfo } from '@/utils/purchases';
 import { triggerTestError } from '@/utils/sentry';
 import { refreshAnalyticsConsent, track } from '@/utils/analytics';
+import { exportSlotJson, importJsonToSlot } from '@/utils/saveBackup';
 import { isPro, isSubscriptionActive } from '@/utils/monetization';
 import { PRODUCTS } from '@/config/monetization';
 import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
@@ -229,9 +230,11 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
       } else {
         infoToast('No Purchases Found', 'No previous purchases were found for this account.');
       }
-      // Also sync subscription info
+      // Also sync subscription info — only write a confirmed, non-null sub so a
+      // transient/empty customerInfo can't clear an active subscription.
       const info = await getCustomerInfo();
-      if (info) updateSubscription(extractSubscriptionInfo(info));
+      const sub = extractSubscriptionInfo(info);
+      if (sub) updateSubscription(sub);
     } catch {
       errorToast('Restore Failed', 'Could not restore purchases. Please try again.');
     } finally {
@@ -251,6 +254,71 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
     setSaved(true);
     clearTimeout(savedTimerRef.current);
     savedTimerRef.current = setTimeout(() => setSaved(false), SAVE_CONFIRMATION_MS);
+  };
+
+  // ── Back up & restore ──
+  const importFileRef = useRef<HTMLInputElement>(null);
+  const [exporting, setExporting] = useState(false);
+  // Holds a chosen file's contents awaiting an explicit overwrite confirm.
+  const [pendingImportText, setPendingImportText] = useState<string | null>(null);
+
+  const handleExportSave = async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      // Flush any queued autosave first so the exported bytes are current.
+      flushSave();
+      const res = await exportSlotJson(activeSlot);
+      if (res.ok) {
+        track('save_exported', { slot: activeSlot, method: res.method });
+        hapticMedium();
+        if (res.method === 'clipboard') {
+          successToast('Backup Copied', 'Your save JSON is on the clipboard — paste it into Notes or a file to keep it safe.');
+        } else {
+          successToast('Backup Ready', 'Your save has been exported. Keep the file somewhere safe.');
+        }
+      } else if (res.error === 'no-save') {
+        errorToast('Nothing to Export', 'There is no save in this slot yet.');
+      } else if (res.error === 'cancelled') {
+        // User dismissed the share sheet — no toast.
+      } else {
+        errorToast('Export Failed', 'Could not export your save on this device.');
+      }
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleImportFileChosen = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // Reset the input so choosing the same file again re-fires onChange.
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const text = await file.text();
+      setPendingImportText(text);
+    } catch {
+      errorToast('Import Failed', 'Could not read that file. Try exporting a fresh backup.');
+    }
+  };
+
+  const handleConfirmImport = () => {
+    if (pendingImportText === null) return;
+    const res = importJsonToSlot(activeSlot, pendingImportText);
+    setPendingImportText(null);
+    if (!res.ok) {
+      errorToast('Import Failed', res.message);
+      return;
+    }
+    track('save_imported', { slot: activeSlot });
+    // Reload the slot through the normal load path so the in-memory game
+    // state swaps to the imported save.
+    if (loadGame(activeSlot)) {
+      hapticMedium();
+      successToast('Save Imported', 'Your backup has been restored into this slot.');
+    } else {
+      errorToast('Import Failed', 'The save was written but could not be loaded. Try again.');
+    }
   };
 
   const handleSendFeedback = () => {
@@ -319,7 +387,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
                     onClick={() => {
                       if (locked) {
                         if (variant === 'in-game') setScreen('shop');
-                        else navigate('/subscribe');
+                        else navigate('/subscribe', { state: { returnTo: '/' } });
                         return;
                       }
                       updateSettings({ matchSpeed: s.value });
@@ -459,7 +527,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
           <ToggleRow
             icon={Volume2}
             label="Sound effects"
-            description="Crowd, whistle and goal sounds during shootouts"
+            description="Crowd, whistles, goals, packs and celebrations"
             value={settings.soundEnabled !== false}
             onChange={() => updateSettings({ soundEnabled: settings.soundEnabled === false })}
           />
@@ -564,6 +632,57 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
           )}
         </div>
       </SettingsSection>
+
+      {/* ─── Back up & restore ─── (in-game only — operates on the active slot) */}
+      {variant === 'in-game' && (
+      <SettingsSection title="Back up & restore">
+        <div className="space-y-3">
+          <p className="text-[10px] text-muted-foreground leading-snug">
+            Save a copy of this career to a file you control, or restore one on a
+            new device. Importing overwrites the current slot — export first if
+            you want to keep it.
+          </p>
+          <div className="space-y-2">
+            <LiquidButton onClick={handleExportSave} disabled={exporting}>
+              <span className="flex items-center justify-start gap-3 px-3">
+                <Share2 className="w-4 h-4" />
+                {exporting ? 'Exporting…' : 'Export Save'}
+              </span>
+            </LiquidButton>
+            {pendingImportText === null ? (
+              <LiquidButton onClick={() => importFileRef.current?.click()}>
+                <span className="flex items-center justify-start gap-3 px-3">
+                  <Upload className="w-4 h-4" />
+                  Import Save
+                </span>
+              </LiquidButton>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-[10px] text-amber-400/90 leading-snug flex items-start gap-1.5">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-px" />
+                  This replaces the save in slot {activeSlot}. This can't be undone.
+                </p>
+                <div className="flex gap-2">
+                  <LiquidButton tone="destructive" className="flex-1" onClick={handleConfirmImport}>
+                    Overwrite &amp; Import
+                  </LiquidButton>
+                  <LiquidButton className="flex-1" onClick={() => setPendingImportText(null)}>
+                    Cancel
+                  </LiquidButton>
+                </div>
+              </div>
+            )}
+            <input
+              ref={importFileRef}
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              onChange={handleImportFileChosen}
+            />
+          </div>
+        </div>
+      </SettingsSection>
+      )}
 
       {/* ─── Help ─── */}
       <SettingsSection title="Help">

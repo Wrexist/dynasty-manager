@@ -1,7 +1,7 @@
 import { Club, Player, TransferListing, Match, LeagueTableEntry } from '@/types/game';
 import { safeRandomUUID } from '@/utils/helpers';
 
-import { buildLeagueTable, generateDivisionFixtures, LEAGUES, generateFriendlies, getLeaguesByCountry } from '@/data/league';
+import { buildLeagueTable, generateDivisionFixtures, LEAGUES, generateFriendlies, collectOccupiedWeeks, getLeaguesByCountry } from '@/data/league';
 
 import { generateSquad, selectBestLineup } from '@/utils/playerGen';
 import { loadNationalPool } from '@/data/nationalPlayerPoolAccess';
@@ -384,7 +384,7 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
   const messages: Message[] = [
     { id: safeRandomUUID(), week: 1, season: 1, type: 'board', title: 'Welcome, Manager!', body: `The board of ${initClub.name} welcomes you. We expect great things this season. Check your objectives in the Club tab.`, read: false },
     { id: safeRandomUUID(), week: 1, season: 1, type: 'general', title: 'Transfer Window Open', body: 'The transfer window is now open. Scout the market and strengthen your squad before it closes in Week 8.', read: false },
-    { id: safeRandomUUID(), week: 1, season: 1, type: 'transfer', title: 'Pre-Season Market Surge', body: 'Clubs are aggressively reshaping their squads during pre-season. Expect more transfer activity and higher-quality players on the market during the opening weeks, while friendlies run alongside the first league fixtures.', read: false },
+    { id: safeRandomUUID(), week: 1, season: 1, type: 'transfer', title: 'Pre-Season Market Surge', body: 'Clubs are aggressively reshaping their squads during pre-season. Expect more transfer activity and higher-quality players on the market during the opening weeks. Any pre-season friendlies are scheduled on free weeks, so they never clash with your league fixtures.', read: false },
     { id: safeRandomUUID(), week: 1, season: 1, type: 'general', title: 'Set Your Tactics', body: 'Your assistant has set a default 4-3-3 formation. To change it: tap "Tactics" in the bottom navigation bar. Inside Tactics, the seven formation badges at the top let you pick a new shape (4-4-2 is balanced, 5-3-2 defends more). Tap "Save" when done. Sticking with one shape builds tactical familiarity — a real boost in matches.', read: false },
     { id: safeRandomUUID(), week: 1, season: 1, type: 'general', title: 'Send Out a Scout', body: 'Scouts find players you would never see on the open market. To send one: tap "More" in the bottom navigation bar, then tap "Scouting". Scroll to the "Send Scout" section and tap a region. Domestic returns reports in 2 weeks, Asia and Africa take 4-5 weeks but tend to surface higher-potential youngsters. Reports arrive automatically in your inbox.', read: false },
   ];
@@ -405,7 +405,14 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
   const playerTotalWeeks = league?.totalWeeks || TOTAL_WEEKS;
   const cup = generateCupDraw(leagueClubIds, playerTotalWeeks);
   const leagueCup = generateLeagueCupDraw(leagueClubIds, playerTotalWeeks);
-  const friendlies = generateFriendlies(clubId, leagueClubIds);
+  // Friendlies go only on weeks the player's club is otherwise free — never
+  // sharing a week with a league fixture or an opening-round cup tie (the
+  // weeks-1-3 double-booking bug).
+  const friendlies = generateFriendlies(
+    clubId,
+    leagueClubIds,
+    collectOccupiedWeeks(clubId, [fixtures, cup.ties, leagueCup?.ties || []]),
+  );
 
   // Seed the 10 reigning Ballon d'Or top-10 holders. Picks from the
   // combined real-loaded + global-elite-ghost pool with weighted random

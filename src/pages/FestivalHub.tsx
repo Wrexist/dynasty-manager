@@ -16,6 +16,7 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import {
   getActiveLiveEvent,
+  getUpcomingSpecialEvent,
   readActiveFestivalProgress,
   getTrackStatus,
   getEventDaysRemaining,
@@ -45,6 +46,7 @@ function FestivalHub() {
   }
 
   const daysLeft = getEventDaysRemaining(event);
+  const upcoming = getUpcomingSpecialEvent();
   const track = getTrackStatus(progress, event);
   const checkedInToday = !canCheckInToday(progress);
   const nextTier = track.find(t => !t.unlocked);
@@ -107,6 +109,18 @@ function FestivalHub() {
             <FlagIcon key={n} nationality={n} size={22} className="rounded-sm shrink-0 opacity-90" />
           ))}
         </div>
+
+        {/* Upcoming special-event teaser — advertises the next marquee event
+            while the current (possibly generated monthly) festival runs. */}
+        {upcoming && (
+          <div className="relative mt-3 pt-3 border-t border-white/[0.06] flex items-center gap-2">
+            <CalendarClock className="w-3.5 h-3.5 text-primary/70 shrink-0" />
+            <p className="text-[10px] text-foreground/70 leading-snug">
+              <span className="font-semibold text-foreground/85">{upcoming.event.name}</span>{' '}
+              starts in {upcoming.startsInDays} day{upcoming.startsInDays === 1 ? '' : 's'}.
+            </p>
+          </div>
+        )}
       </GlassPanel>
 
       {/* Daily check-in */}

@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import type { Achievement } from '@/utils/achievements';
 import { getTierColor, getTierBgColor, getAchievementXP } from '@/utils/achievements';
 import { hapticSuccess } from '@/utils/haptics';
+import { usePresentationSlot } from '@/hooks/usePresentationQueue';
 
 interface AchievementUnlockModalProps {
   open: boolean;
@@ -71,18 +72,21 @@ function Sparkle({ spec }: { spec: SparkleSpec }) {
 }
 
 export function AchievementUnlockModal({ open, onClose, achievement }: AchievementUnlockModalProps) {
-  useScrollLock(open);
+  // Presentation queue (G3): stack behind the digest/celebration — only show
+  // and buzz when we're the active overlay.
+  const slotActive = usePresentationSlot('achievement', open && !!achievement);
+  const visible = open && !!achievement && slotActive;
+  useScrollLock(visible);
 
   const panelRef = useRef<HTMLDivElement | null>(null);
-  const active = open && !!achievement;
-  useFocusTrap(panelRef, active);
-  useEscapeClose(onClose, active);
+  useFocusTrap(panelRef, visible);
+  useEscapeClose(onClose, visible);
 
   // Match the CelebrationModal pattern — fire one success notification haptic
-  // exactly when the modal opens, in time with the badge spring-in.
+  // exactly when the modal becomes visible (not while queued behind others).
   useEffect(() => {
-    if (open && achievement) hapticSuccess();
-  }, [open, achievement]);
+    if (visible) hapticSuccess();
+  }, [visible]);
 
   // Sparkle layout rolled once and stable across re-renders.
   const sparkleSpecs = useMemo(() => makeSparkleSpecs(), []);
@@ -94,7 +98,7 @@ export function AchievementUnlockModal({ open, onClose, achievement }: Achieveme
 
   return (
     <AnimatePresence>
-      {open && (
+      {visible && (
         <motion.div
           className="fixed inset-0 z-50 flex items-center justify-center px-4"
           initial={{ opacity: 0 }}

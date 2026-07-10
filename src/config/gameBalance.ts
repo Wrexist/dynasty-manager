@@ -371,6 +371,44 @@ export const BOARD_REVIEW_RELAX_THRESHOLD = -5;
 export const BOARD_REVIEW_RAISE_THRESHOLD = 5;
 export const BOARD_REVIEW_ADJUST_POSITIONS = 2;
 
+// ── Board Mid-Season Ultimatum & Sacking ──
+// At a board review (BOARD_REVIEW_WEEKS) with confidence at or below the
+// critical threshold, the board issues a short-horizon ULTIMATUM: recover to
+// the target league position (or lift confidence out of the danger zone) by
+// the deadline, or be sacked mid-season. This gives board pressure real teeth
+// instead of a message that never lands a consequence.
+/** Confidence at or below this at a review triggers an ultimatum (rock-bottom,
+ *  just under the season-end sack threshold of 20). */
+export const ULTIMATUM_CONFIDENCE_THRESHOLD = 18;
+/** Weeks the manager gets to turn results around before the deadline bites. */
+export const ULTIMATUM_HORIZON_WEEKS = 6;
+/** Confidence at or above this by the deadline counts as surviving even if the
+ *  league position target wasn't met (a genuine recovery reprieve). */
+export const ULTIMATUM_SURVIVE_CONFIDENCE = 25;
+/** Small confidence bump when the manager survives an ultimatum. */
+export const ULTIMATUM_SURVIVE_CONFIDENCE_BONUS = 10;
+/** The demanded league position is the board's expected position plus this
+ *  tolerance (mirrors the review copy's "diff <= 3 is tolerable" band). */
+export const ULTIMATUM_POSITION_TOLERANCE = 3;
+/** Grace window: never issue an ultimatum before this week in SEASON 1, so a
+ *  new player gets a fair chance to settle before the board can sack them. */
+export const ULTIMATUM_SEASON1_GRACE_WEEK = 25;
+/** Sandbox has no job market / sacking, so an ultimatum failure there applies a
+ *  budget cut and a confidence floor instead of ending the save. */
+export const ULTIMATUM_SANDBOX_BUDGET_CUT = 0.25;
+export const ULTIMATUM_SANDBOX_CONFIDENCE_FLOOR = 22;
+
+// ── Pre-Season Friendlies ──
+// Friendlies are scheduled ONLY on weeks the player's club is otherwise free
+// (no league fixture, no known cup tie), so a new manager never sees two
+// matches stacked in the same week — the weeks-1-3 double-booking trust bug.
+// Dense leagues (totalWeeks == matchWeeks fills every week) simply start
+// straight into the league with no pre-season friendlies.
+export const PRESEASON_FRIENDLY_COUNT = 3;
+/** Only place friendlies inside this early pre-season window so they never
+ *  appear as stray mid-season exhibition matches. */
+export const FRIENDLY_PLACEMENT_MAX_WEEK = 10;
+
 // ── Board Objective Rewards ──
 export const BOARD_OBJ_XP_CRITICAL = 40;
 export const BOARD_OBJ_XP_IMPORTANT = 25;

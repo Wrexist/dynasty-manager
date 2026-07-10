@@ -15,6 +15,7 @@ import { PlayerBadge } from '@/components/game/PlayerBadge';
 import { formatMoney } from '@/utils/helpers';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useEscapeClose } from '@/hooks/useEscapeClose';
+import { usePresentationSlot } from '@/hooks/usePresentationQueue';
 
 export function GemRevealModal() {
   const { gem, players, clubs, playerClubId, transferMarket } = useGameStore(useShallow(s => ({
@@ -24,9 +25,14 @@ export function GemRevealModal() {
   const setScreen = useGameStore(s => s.setScreen);
   const [showNegotiation, setShowNegotiation] = useState(false);
 
+  // Presentation queue (G3): gate behind higher-priority overlays. The reveal
+  // haptic fires only when the modal actually becomes visible.
+  const active = usePresentationSlot('gemReveal', !!gem);
+  const visible = !!gem && active;
+
   useEffect(() => {
-    if (gem) hapticHeavy();
-  }, [gem]);
+    if (visible) hapticHeavy();
+  }, [visible]);
 
   // Reset negotiation state when gem changes
   useEffect(() => {
@@ -38,10 +44,10 @@ export function GemRevealModal() {
   // close over a value computed below.
   const containerRef = useRef<HTMLDivElement | null>(null);
   const dismiss = () => { useGameStore.setState({ pendingGemReveal: null }); };
-  useFocusTrap(containerRef, !!gem);
-  useEscapeClose(dismiss, !!gem);
+  useFocusTrap(containerRef, visible);
+  useEscapeClose(dismiss, visible);
 
-  if (!gem) return null;
+  if (!visible) return null;
 
   const player = players[gem.playerId];
   if (!player) return null;

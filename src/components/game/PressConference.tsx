@@ -7,6 +7,7 @@ import type { PressResponseTone } from '@/types/game';
 import { isPro } from '@/utils/monetization';
 import { ProUpsell } from '@/components/game/ProUpsell';
 import { hapticLight, hapticMedium } from '@/utils/haptics';
+import { usePresentationSlot } from '@/hooks/usePresentationQueue';
 
 const TONE_STYLES: Record<PressResponseTone, { label: string; color: string; icon: string }> = {
   confident: { label: 'Bold', color: 'border-primary/50 hover:bg-primary/10', icon: 'dumbbell' },
@@ -23,8 +24,10 @@ export function PressConference() {
   const dismissPress = useGameStore(s => s.dismissPress);
   const monetization = useGameStore(s => s.monetization);
   const userIsPro = isPro(monetization);
+  // Presentation queue (G3): wait our turn behind higher-priority overlays.
+  const active = usePresentationSlot('pressConference', !!pendingPressConference);
 
-  if (!pendingPressConference) return null;
+  if (!pendingPressConference || !active) return null;
 
   return (
     <div className="bg-card/80 backdrop-blur-xl border border-border/50 rounded-xl p-4 space-y-3">

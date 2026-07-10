@@ -1,9 +1,12 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import type { GameState } from '@/store/storeTypes';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useScrollLock } from '@/hooks/useScrollLock';
+import { usePresentationSlot } from '@/hooks/usePresentationQueue';
+import { hapticSuccess } from '@/utils/haptics';
+import { sfxChime } from '@/utils/sfx';
 import { Button } from '@/components/ui/button';
 import {
   DollarSign, Heart, AlertTriangle, Activity, Mail,
@@ -85,14 +88,26 @@ export function WeeklyDigest() {
   const digest = useGameStore(s => s.weeklyDigest);
   const week = useGameStore(s => s.week);
   const dismissWeeklyDigest = useGameStore(s => s.dismissWeeklyDigest);
-  useScrollLock(!!digest);
+  // Presentation queue (G3): a digest may be pending while another overlay is
+  // on screen. Register intent, but only show/lock when we're the active slot.
+  const active = usePresentationSlot('weeklyDigest', !!digest);
+  const visible = !!digest && active;
+  useScrollLock(visible);
+  const soundEnabled = useGameStore(s => s.settings.soundEnabled !== false);
+  // Subtle chime + success haptic when the digest actually surfaces (G4) —
+  // gated by the presentation slot so it fires once, on the visible overlay.
+  useEffect(() => {
+    if (!visible) return;
+    hapticSuccess();
+    if (soundEnabled) sfxChime(false);
+  }, [visible, soundEnabled]);
 
   // AnimatePresence stays mounted here while the card child unmounts, so
   // the exit animation actually plays — previously the component returned
   // null the moment the digest cleared, making the exit dead code.
   return (
     <AnimatePresence mode="wait">
-      {digest && <WeeklyDigestCard digest={digest} week={week} dismiss={dismissWeeklyDigest} />}
+      {visible && <WeeklyDigestCard digest={digest} week={week} dismiss={dismissWeeklyDigest} />}
     </AnimatePresence>
   );
 }

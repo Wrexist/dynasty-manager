@@ -290,6 +290,11 @@ export const STORAGE_KEYS = {
    *  `SKStoreReviewController.requestReview` on top of Apple's 3/365-day
    *  hard cap so we only spend prompts on genuine high-emotion moments. */
   APP_REVIEW_STATE: 'dynasty-review-state',
+  /** sessionStorage: per-session flag that the "Continue where you left off"
+   *  resume card has already been shown this app session (JSON `true`). Tab-
+   *  scoped so it re-appears on the next launch but only once per session. Not
+   *  save data — a UI nudge derived entirely from existing state. */
+  RESUME_CARD_SHOWN: 'dynasty-resume-card-shown',
   /** sessionStorage: remembers the Inbox filter selection (category filters +
    *  unread-only toggle) so it survives navigating away from and back to the
    *  Inbox within a session. JSON-encoded `{ filters: string[]; unreadOnly: boolean }`.
@@ -331,6 +336,16 @@ export const STORAGE_KEYS = {
    *  '1' = on, '0' = off, missing = never asked. Device-level (not save-scoped)
    *  and paired with the OS permission, which is the ultimate gate. */
   NOTIFICATIONS_ENABLED: 'dynasty-notifications-enabled',
+  /** localStorage flag (getFlag/setFlag): the one-time first-win notification
+   *  permission prompt has been shown. Device-global so a returning player who
+   *  already answered it on a previous career isn't re-prompted on each new
+   *  save. Independent of NOTIFICATIONS_ENABLED (which records the answer). */
+  NOTIF_FIRST_WIN_PROMPTED: 'dynasty-notif-first-win-prompted',
+  /** localStorage: device-global set of completed challenge-scenario ids (JSON
+   *  array). Challenge completion is a device-level achievement, not part of
+   *  any career save — deliberately NOT save-scoped, so it persists across new
+   *  careers and slot deletion. Badges are cosmetic labels, never entitlements. */
+  COMPLETED_CHALLENGES: 'dynasty-completed-challenges',
 } as const;
 
 /** Read the user's preferred MatchDay view, or null if never set. */
@@ -448,6 +463,33 @@ export function writeLiveEventProgress(record: LiveEventProgress): void {
   catch { /* storage unavailable — non-fatal */ }
 }
 
+// ── Completed Challenges (device-global) ──
+
+/** Device-global list of completed challenge-scenario ids. */
+export function readCompletedChallenges(): string[] {
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem(STORAGE_KEYS.COMPLETED_CHALLENGES);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === 'string') : [];
+  } catch (err) {
+    if (raw !== null) breadcrumbCorruption('readCompletedChallenges', raw, err);
+    return [];
+  }
+}
+
+/** Record a challenge id as completed. No-op if already present. Returns true
+ *  when it was newly added (so the caller can pay a first-time reward). */
+export function addCompletedChallenge(challengeId: string): boolean {
+  try {
+    const existing = readCompletedChallenges();
+    if (existing.includes(challengeId)) return false;
+    localStorage.setItem(STORAGE_KEYS.COMPLETED_CHALLENGES, JSON.stringify([...existing, challengeId]));
+    return true;
+  } catch { return false; }
+}
+
 // ── Notification opt-in ──
 
 /** Device-global notification opt-in. null = never asked (so the Settings
@@ -520,6 +562,10 @@ export interface PendingPackCredit {
    *  into the same save, so a crash + loading a different slot can't grant
    *  the pack to the wrong career. */
   slot: number;
+  /** Set once the reconciler has failed to re-grant (e.g. squad full) and
+   *  fired its one-time Sentry alert. Throttles the capture to once per marker
+   *  so a persistently-blocked claim doesn't re-report on every mount. */
+  reported?: boolean;
 }
 
 export function readPendingPackCredit(): PendingPackCredit | null {
@@ -534,6 +580,7 @@ export function readPendingPackCredit(): PendingPackCredit | null {
       tierKey: parsed.tierKey,
       timestamp: typeof parsed.timestamp === 'number' ? parsed.timestamp : 0,
       slot: typeof parsed.slot === 'number' ? parsed.slot : 0,
+      ...(parsed.reported === true ? { reported: true } : {}),
     };
   } catch (err) {
     if (raw !== null) breadcrumbCorruption('readPendingPackCredit', raw, err);
@@ -686,7 +733,21 @@ export interface SaveWriteResult {
   idbPromise: Promise<boolean>;
 }
 
-export function writeSaveSlot(slot: number, json: string): SaveWriteResult {
+export interface WriteSaveSlotOptions {
+  /** Guard for the backup-rotation step. When supplied, the outgoing main
+   *  save is only rotated into the backup slot if this predicate returns
+   *  true for it. A malformed outgoing main is overwritten in place and the
+   *  existing (last-known-good) backup is left UNTOUCHED — this is what
+   *  stops two consecutive bad saves from burning the recovery copy.
+   *  Injected (rather than importing `validateSaveShape` here) because this
+   *  module is low-level and eagerly bundled — pulling in the migration
+   *  module would drag its heavy data imports into the eager-bundle budget
+   *  and risk an import cycle. Omit for raw writes (tests, legacy callers),
+   *  which keeps the always-rotate behaviour. */
+  validateOutgoing?: (raw: string) => boolean;
+}
+
+export function writeSaveSlot(slot: number, json: string, opts?: WriteSaveSlotOptions): SaveWriteResult {
   const mainKey = STORAGE_KEYS.saveSlot(slot);
   const backupKey = STORAGE_KEYS.saveSlotBackup(slot);
   const tmpKey = STORAGE_KEYS.saveSlotTmp(slot);
@@ -696,7 +757,14 @@ export function writeSaveSlot(slot: number, json: string): SaveWriteResult {
   // pre-hydration write still rotates the previous save into the backup
   // slot instead of losing it.
   const oldMain = readSaveSlot(slot);
-  if (oldMain) memSlotBackups[slot] = oldMain;
+  // Only rotate a VALID outgoing main into the backup. If the outgoing main
+  // is malformed (partial write / on-disk corruption) we overwrite it in
+  // place and preserve whatever the backup already holds — otherwise a bad
+  // save landing on top of another bad save would destroy the last valid
+  // backup. Without an injected validator we keep the historical
+  // always-rotate behaviour.
+  const rotate = !!oldMain && (opts?.validateOutgoing ? opts.validateOutgoing(oldMain) : true);
+  if (rotate) memSlotBackups[slot] = oldMain as string;
   memSlots[slot] = json;
 
   // Sweep any legacy tmp key from the old atomic-staging write path so it
@@ -708,22 +776,26 @@ export function writeSaveSlot(slot: number, json: string): SaveWriteResult {
   // the slot survives a reload). The caller can use this to detect the
   // "both disk paths failed" case and surface a Save Failed warning.
   const idbPromise = idbPut(mainKey, json);
-  if (oldMain) void idbPut(backupKey, oldMain);
-  else void idbDel(backupKey);
+  if (rotate) void idbPut(backupKey, oldMain as string);
+  else if (!oldMain) void idbDel(backupKey);
+  // else: outgoing main failed validation — leave the existing backup intact.
 
   // Step 4: best-effort localStorage mirror. On quota exceeded we drop
   // whatever was there so the two stores don't diverge — IDB is truth.
   let lsOk = true;
   try {
     localStorage.setItem(mainKey, json);
-    if (oldMain) lsSetSafe(backupKey, oldMain);
-    else lsRemoveSafe(backupKey);
+    if (rotate) lsSetSafe(backupKey, oldMain as string);
+    else if (!oldMain) lsRemoveSafe(backupKey);
+    // else: preserve the existing backup mirror for the invalid-main case.
   } catch {
-    // Quota exceeded — drop the mirror. The caller now sees `lsOk: false`
-    // and can await `idbPromise` to decide whether to warn the user.
+    // Quota exceeded — drop the main mirror. The caller now sees `lsOk: false`
+    // and can await `idbPromise` to decide whether to warn the user. We only
+    // clear the backup mirror when we just rotated into it; an untouched
+    // last-known-good backup must survive a main-write quota failure.
     lsOk = false;
     lsRemoveSafe(mainKey);
-    lsRemoveSafe(backupKey);
+    if (rotate) lsRemoveSafe(backupKey);
   }
 
   return { lsOk, idbPromise };

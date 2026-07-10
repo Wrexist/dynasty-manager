@@ -208,7 +208,7 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
      *  the introductory pricing automatically. On web/dev where there's no
      *  native plugin, this is the only path that grants trial access. Calling
      *  this when an active subscription already exists is a no-op. */
-    startFreeTrial: () => {
+    startFreeTrial: (productId = TRIAL_TARGET_PRODUCT_ID) => {
       const state = _get();
       // Any existing subscription record (trial OR paid, even lapsed) makes this a no-op.
       // The old `tier !== 'trial'` check let an active trial restart its own clock,
@@ -217,7 +217,7 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
       const expiresAt = new Date(Date.now() + FREE_TRIAL_MS).toISOString();
       const trialInfo: SubscriptionInfo = {
         tier: 'trial',
-        productId: TRIAL_TARGET_PRODUCT_ID,
+        productId,
         expiresAt,
         isInGracePeriod: false,
         willRenew: true,

@@ -1,5 +1,6 @@
 import { ClubData, Match, LeagueTableEntry, LeagueId, LeagueInfo, DerbyRivalry, CountryLeagueSystem } from '@/types/game';
 import { shuffle, safeRandomUUID } from '@/utils/helpers';
+import { PRESEASON_FRIENDLY_COUNT, FRIENDLY_PLACEMENT_MAX_WEEK } from '@/config/gameBalance';
 
 // ── Import all leagues ──
 import { ALL_LEAGUES, ALL_CLUBS_DATA } from './leagues';
@@ -222,18 +223,39 @@ export function generateDivisionFixtures(clubIds: string[], totalWeeks: number):
 export const generateLeagueFixtures = generateDivisionFixtures;
 
 /**
- * Generate 3 pre-season friendly matches for weeks 1-3.
- * Opponents are randomly selected from the same division.
+ * Generate up to `PRESEASON_FRIENDLY_COUNT` pre-season friendlies, placed ONLY
+ * on weeks the player's club is otherwise free.
+ *
+ * `occupiedWeeks` lists every week the player's club already has a competitive
+ * match (league fixtures + known cup ties). Friendlies are slotted into the
+ * earliest fixture-free weeks inside the pre-season window
+ * (`FRIENDLY_PLACEMENT_MAX_WEEK`), so a friendly NEVER shares a week with a
+ * league fixture or cup tie — this closes the weeks-1-3 double-booking bug
+ * where a new manager played a friendly and then found another match the same
+ * week. Densely-scheduled leagues (every week has a league fixture) get no
+ * pre-season friendlies and start straight into the league.
+ *
+ * Opponents are randomly selected from the same division. Omitting
+ * `occupiedWeeks` (or passing an empty list) falls back to the earliest weeks
+ * 1..N — the legacy behaviour, preserved for callers/tests that don't thread a
+ * fixture list through.
  */
-export function generateFriendlies(playerClubId: string, divisionClubIds: string[]): Match[] {
+export function generateFriendlies(
+  playerClubId: string,
+  divisionClubIds: string[],
+  occupiedWeeks: number[] = [],
+): Match[] {
   const pool = shuffle(divisionClubIds.filter(id => id !== playerClubId));
-  // If fewer than 3 opponents available, allow rematches to fill 3 slots
-  const opponents: string[] = [];
-  for (let i = 0; i < 3 && pool.length > 0; i++) {
-    opponents.push(pool[i % pool.length]);
+  if (pool.length === 0) return [];
+
+  const busy = new Set(occupiedWeeks);
+  const freeWeeks: number[] = [];
+  for (let w = 1; w <= FRIENDLY_PLACEMENT_MAX_WEEK && freeWeeks.length < PRESEASON_FRIENDLY_COUNT; w++) {
+    if (!busy.has(w)) freeWeeks.push(w);
   }
-  return opponents.map((opponentId, i) => {
-    const week = i + 1;
+
+  return freeWeeks.map((week, i) => {
+    const opponentId = pool[i % pool.length]; // allow rematches if pool < count
     const isHome = i % 2 === 0; // home, away, home
     return {
       id: safeRandomUUID(),
@@ -246,6 +268,23 @@ export function generateFriendlies(playerClubId: string, divisionClubIds: string
       events: [],
     };
   });
+}
+
+/** Collect every week the given club already has a competitive match, from any
+ *  mix of league-fixture arrays and cup-tie arrays. Used to keep pre-season
+ *  friendlies off weeks that already hold a real match. */
+export function collectOccupiedWeeks(
+  clubId: string,
+  matchSources: { homeClubId: string; awayClubId: string; week: number }[][],
+): number[] {
+  const weeks: number[] = [];
+  for (const src of matchSources) {
+    if (!src) continue;
+    for (const m of src) {
+      if (m && (m.homeClubId === clubId || m.awayClubId === clubId)) weeks.push(m.week);
+    }
+  }
+  return weeks;
 }
 
 /**

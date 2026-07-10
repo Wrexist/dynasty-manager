@@ -35,7 +35,7 @@ import { JOB_MARKET_REFRESH_WEEKS, PROACTIVE_OFFER_CHECK_INTERVAL, PROACTIVE_OFF
 import { getAICounterTactics } from '@/config/aiManager';
 import { AI_LOAN_DURATIONS, AI_LOAN_OBLIGATORY_BUY_CHANCE, AI_LOAN_OBLIGATORY_BUY_MULTIPLIER, AI_LOAN_WAGE_SPLITS } from '@/config/aiSimulation';
 import { getCompetitionCalendar } from '@/config/continental';
-import { AI_LOAN_OFFER_CHANCE, AI_LOAN_RECALL_CLAUSE_CHANCE, ASSISTANT_MANAGER_FAMILIARITY_BOOST, BENCH_REST_BONUS, BOARD_REVIEW_ADJUST_POSITIONS, BOARD_REVIEW_RAISE_THRESHOLD, BOARD_REVIEW_RELAX_THRESHOLD, BOARD_REVIEW_WEEKS, CALLUP_SNUB_MORALE_PENALTY, COMMERCIAL_INCOME_BASE, COMMERCIAL_INCOME_PER_REP, CONGESTED_FIXTURE_INJURY_MULTIPLIER, CONTRACT_MORALE_HIT_AMOUNT, CONTRACT_MORALE_HIT_OVERALL_THRESHOLD, CONTRACT_MORALE_HIT_WEEK_THRESHOLD, CONTRACT_MORALE_MIN, CONTRACT_WARNING_OVERALL_THRESHOLD, CONTRACT_WARNING_WEEKS, CONTRACT_WARNING_YOUTH_AGE_MAX, CONTRACT_WARNING_YOUTH_POTENTIAL_MIN, CUP_EXTRA_TIME_GOAL_CHANCE, CUP_EXTRA_TIME_REPUTATION_DIVISOR, CUP_PENALTY_GK_QUALITY_FACTOR, CUP_PENALTY_KICKS, FACILITY_MAX_LEVEL, FAN_MOOD_BASE, FAN_MOOD_SCALE, FFP_CONFIDENCE_PENALTY, FFP_CRITICAL_CONFIDENCE_PENALTY, FFP_WAGE_RATIO_CRITICAL, FFP_WAGE_RATIO_WARNING, FORFEIT_SCORE, INJURY_TYPES, INTERNATIONAL_BREAK_FITNESS_COST, INTERNATIONAL_BREAK_WEEKS, INTERNATIONAL_CALLUP_MIN_OVR, INTERNATIONAL_FITNESS_COST, INTERNATIONAL_SNUB_MIN_OVR, LEGENDARY_OBJECTIVE_XP_MULTIPLIER, LINEUP_SIZE, LOAN_DEV_BASE_CHANCE, LOAN_DEV_REP_FACTOR, LOAN_FITNESS_DRAIN, LOAN_PLAY_CHANCE_HIGH, LOAN_PLAY_CHANCE_LOW, LOAN_QUALITY_FORMULA_BASE, LOAN_QUALITY_FORMULA_REP_MULT, LOAN_YOUNG_AGE_THRESHOLD, MANAGER_SALARY_CONFIDENCE_PENALTY, MANAGER_SALARY_RATIO_CRITICAL, MANAGER_SALARY_RATIO_WARNING, MATCHDAY_INCOME_PER_FAN, MAX_CAREER_TIMELINE, MAX_FINANCE_HISTORY, MORALE_BENCH_MIN, MORALE_BENCH_WEEKLY_LOSS, NT_SACK_GROUP_EXIT_THRESHOLD, OBJECTIVE_CYCLE_WEEKS, PHYSIO_INJURY_REDUCTION_PER_QUALITY, PHYSIO_RECOVERY_BOOST_THRESHOLD, PHYSIO_RECOVERY_CHANCE, POST_TOURNAMENT_FITNESS_COST_HIGH, POST_TOURNAMENT_FITNESS_COST_LOW, RARE_OBJECTIVE_XP_MULTIPLIER, REP_INTL_FINAL, REP_INTL_GROUP_EXIT, REP_INTL_KNOCKOUT, REP_INTL_SEMI, REP_INTL_TOURNAMENT_WIN, SCOUTING_COST_PER_ASSIGNMENT, SIM_PENALTY_BASE_WIN_CHANCE, SIM_PENALTY_MENTAL_SCALE, STADIUM_INCOME_PER_LEVEL, STREAK_FORM_BONUS, STREAK_FORM_THRESHOLD, STREAK_INCOME_MULTIPLIER, STREAK_INCOME_THRESHOLD, STREAK_MORALE_BONUS, STREAK_MORALE_THRESHOLD, TRAINING_GROUND_BOOST, UNHAPPY_CONTAGION_MORALE_HIT, UNHAPPY_CONTAGION_WEEKS, UNHAPPY_THRESHOLD, UNHAPPY_WEEKS_TO_REQUEST, YOUTH_DEVELOPER_BOOST } from '@/config/gameBalance';
+import { AI_LOAN_OFFER_CHANCE, AI_LOAN_RECALL_CLAUSE_CHANCE, ASSISTANT_MANAGER_FAMILIARITY_BOOST, BENCH_REST_BONUS, BOARD_REVIEW_ADJUST_POSITIONS, BOARD_REVIEW_RAISE_THRESHOLD, BOARD_REVIEW_RELAX_THRESHOLD, BOARD_REVIEW_WEEKS, CALLUP_SNUB_MORALE_PENALTY, COMMERCIAL_INCOME_BASE, COMMERCIAL_INCOME_PER_REP, CONGESTED_FIXTURE_INJURY_MULTIPLIER, CONTRACT_MORALE_HIT_AMOUNT, CONTRACT_MORALE_HIT_OVERALL_THRESHOLD, CONTRACT_MORALE_HIT_WEEK_THRESHOLD, CONTRACT_MORALE_MIN, CONTRACT_WARNING_OVERALL_THRESHOLD, CONTRACT_WARNING_WEEKS, CONTRACT_WARNING_YOUTH_AGE_MAX, CONTRACT_WARNING_YOUTH_POTENTIAL_MIN, CUP_EXTRA_TIME_GOAL_CHANCE, CUP_EXTRA_TIME_REPUTATION_DIVISOR, CUP_PENALTY_GK_QUALITY_FACTOR, CUP_PENALTY_KICKS, FACILITY_MAX_LEVEL, FAN_MOOD_BASE, FAN_MOOD_SCALE, FFP_CONFIDENCE_PENALTY, FFP_CRITICAL_CONFIDENCE_PENALTY, FFP_WAGE_RATIO_CRITICAL, FFP_WAGE_RATIO_WARNING, FORFEIT_SCORE, INJURY_TYPES, INTERNATIONAL_BREAK_FITNESS_COST, INTERNATIONAL_BREAK_WEEKS, INTERNATIONAL_CALLUP_MIN_OVR, INTERNATIONAL_FITNESS_COST, INTERNATIONAL_SNUB_MIN_OVR, LEGENDARY_OBJECTIVE_XP_MULTIPLIER, LINEUP_SIZE, LOAN_DEV_BASE_CHANCE, LOAN_DEV_REP_FACTOR, LOAN_FITNESS_DRAIN, LOAN_PLAY_CHANCE_HIGH, LOAN_PLAY_CHANCE_LOW, LOAN_QUALITY_FORMULA_BASE, LOAN_QUALITY_FORMULA_REP_MULT, LOAN_YOUNG_AGE_THRESHOLD, MANAGER_SALARY_CONFIDENCE_PENALTY, MANAGER_SALARY_RATIO_CRITICAL, MANAGER_SALARY_RATIO_WARNING, MATCHDAY_INCOME_PER_FAN, MAX_CAREER_TIMELINE, MAX_FINANCE_HISTORY, MORALE_BENCH_MIN, MORALE_BENCH_WEEKLY_LOSS, NT_SACK_GROUP_EXIT_THRESHOLD, OBJECTIVE_CYCLE_WEEKS, PHYSIO_INJURY_REDUCTION_PER_QUALITY, PHYSIO_RECOVERY_BOOST_THRESHOLD, PHYSIO_RECOVERY_CHANCE, POST_TOURNAMENT_FITNESS_COST_HIGH, POST_TOURNAMENT_FITNESS_COST_LOW, RARE_OBJECTIVE_XP_MULTIPLIER, REP_INTL_FINAL, REP_INTL_GROUP_EXIT, REP_INTL_KNOCKOUT, REP_INTL_SEMI, REP_INTL_TOURNAMENT_WIN, SCOUTING_COST_PER_ASSIGNMENT, SIM_PENALTY_BASE_WIN_CHANCE, SIM_PENALTY_MENTAL_SCALE, STADIUM_INCOME_PER_LEVEL, STREAK_FORM_BONUS, STREAK_FORM_THRESHOLD, STREAK_INCOME_MULTIPLIER, STREAK_INCOME_THRESHOLD, STREAK_MORALE_BONUS, STREAK_MORALE_THRESHOLD, TRAINING_GROUND_BOOST, ULTIMATUM_CONFIDENCE_THRESHOLD, ULTIMATUM_HORIZON_WEEKS, ULTIMATUM_POSITION_TOLERANCE, ULTIMATUM_SANDBOX_BUDGET_CUT, ULTIMATUM_SANDBOX_CONFIDENCE_FLOOR, ULTIMATUM_SEASON1_GRACE_WEEK, ULTIMATUM_SURVIVE_CONFIDENCE, ULTIMATUM_SURVIVE_CONFIDENCE_BONUS, UNHAPPY_CONTAGION_MORALE_HIT, UNHAPPY_CONTAGION_WEEKS, UNHAPPY_THRESHOLD, UNHAPPY_WEEKS_TO_REQUEST, YOUTH_DEVELOPER_BOOST } from '@/config/gameBalance';
 import { FORCED_RETIREMENT_UNEMPLOYED_WEEKS, GROWTH_DISCIPLINE_PER_CLEAN_MATCH, GROWTH_MOTIVATION_PER_MORALE_EVENT, GROWTH_SCOUTING_PER_ASSIGNMENT, GROWTH_TACTICAL_PER_MATCH, MOD_SCOUTING_SPEED, MOD_TACTICAL_FAMILIARITY, MOD_YOUTH_GROWTH, STAT_MAX, UNEMPLOYED_OFFER_CHECK_INTERVAL, UNEMPLOYED_OFFER_MAX_PENDING } from '@/config/managerCareer';
 import { NATIONAL_OVR_STR_FLOOR, NATIONAL_OVR_STR_MAX, NATIONAL_OVR_STR_MIN, NATIONAL_OVR_STR_RANGE, PENALTY_CONVERSION_RATE } from '@/config/matchEngine';
 import { MERCH_CAMPAIGN_COOLDOWN_WEEKS, MERCH_PRICING_TIERS, SIGNATURE_DROP_COOLDOWN_WEEKS } from '@/config/merchandise';
@@ -1103,13 +1103,35 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   // Mutable copy of power rankings — updated after every match this week
   const eloRankings = { ...(state.clubPowerRankings || {}) };
 
+  // When a fixture belongs to the player's club it's only in `aiMatches`
+  // because a higher-priority match forced it to be auto-simmed. In that case
+  // honour the manager's chosen XI: order available players by lineup → subs →
+  // rest-of-roster before slicing, instead of raw roster order (which ignored
+  // the saved lineup entirely). Injured/suspended lineup members are already
+  // filtered out of `avail`, so they fall through to bench/best-available
+  // cover gracefully. AI clubs keep plain roster order.
+  const orderByLineup = (club: typeof clubs[string], avail: typeof newPlayers[string][]) => {
+    if (club.id !== playerClubId) return avail;
+    const availById = new Map(avail.map(p => [p.id, p]));
+    const ordered: typeof avail = [];
+    const seen = new Set<string>();
+    for (const id of [...(club.lineup || []), ...(club.subs || [])]) {
+      const p = availById.get(id);
+      if (p && !seen.has(id)) { ordered.push(p); seen.add(id); }
+    }
+    for (const p of avail) {
+      if (!seen.has(p.id)) { ordered.push(p); seen.add(p.id); }
+    }
+    return ordered;
+  };
+
   for (const m of aiMatches) {
     const idx = updatedFixtures.findIndex(f => f.id === m.id);
     const hc = clubs[m.homeClubId];
     const ac = clubs[m.awayClubId];
     if (!hc || !ac) continue;
-    const hAvail = hc.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week));
-    const aAvail = ac.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week));
+    const hAvail = orderByLineup(hc, hc.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week)));
+    const aAvail = orderByLineup(ac, ac.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week)));
     const hp = hAvail.slice(0, LINEUP_SIZE);
     const ap = aAvail.slice(0, LINEUP_SIZE);
     const hBenchAI = hAvail.slice(11, 18);
@@ -2469,6 +2491,61 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     newMessages = addMsg(newMessages, { week: newWeek, season, type: 'board', title: reviewTitle, body: reviewBody + adjustmentNote });
   }
 
+  // ── Board ultimatum (G3): mid-season pressure with real consequences ──
+  // Issued at a review week when confidence is critically low; evaluated at
+  // the deadline. Failure sacks the manager mid-season in career mode (via
+  // the existing job-market machinery) or strips budget in sandbox. World Cup
+  // mode has no board. Season 1 has a grace window so new players can settle.
+  let newBoardUltimatum = state.boardUltimatum;
+  let ultimatumSackPending = false;
+  if (state.gameMode !== 'world-cup') {
+    // Safety: an ultimatum never crosses seasons (seasonEnd also clears it).
+    if (newBoardUltimatum && newBoardUltimatum.issuedSeason !== season) newBoardUltimatum = null;
+    const ultimatumPos = playerTableIdx >= 0 ? playerTableIdx + 1 : (leagueTable.length || 20);
+
+    if (!newBoardUltimatum
+        && BOARD_REVIEW_WEEKS.includes(newWeek)
+        && newBoardConfidence <= ULTIMATUM_CONFIDENCE_THRESHOLD
+        && !(season === 1 && newWeek < ULTIMATUM_SEASON1_GRACE_WEEK)) {
+      const expected = getExpectedPosition(playerClub.reputation);
+      const target = Math.min(leagueTable.length || 20, expected + ULTIMATUM_POSITION_TOLERANCE);
+      newBoardUltimatum = {
+        issuedSeason: season, issuedWeek: newWeek,
+        deadlineWeek: newWeek + ULTIMATUM_HORIZON_WEEKS, targetPosition: target,
+      };
+      newMessages = addMsg(newMessages, {
+        week: newWeek, season, type: 'board', title: 'Board Ultimatum',
+        body: `The board has lost patience. Reach ${target}${getSuffix(target)} place (or restore their confidence in you) by week ${newBoardUltimatum.deadlineWeek}, or ${state.gameMode === 'career' ? 'you will be dismissed' : 'face severe consequences'}. Currently ${ultimatumPos}${getSuffix(ultimatumPos)}.`,
+      });
+    } else if (newBoardUltimatum && newWeek >= newBoardUltimatum.deadlineWeek) {
+      const survived = ultimatumPos <= newBoardUltimatum.targetPosition
+        || newBoardConfidence >= ULTIMATUM_SURVIVE_CONFIDENCE;
+      if (survived) {
+        newBoardConfidence = Math.min(100, newBoardConfidence + ULTIMATUM_SURVIVE_CONFIDENCE_BONUS);
+        newMessages = addMsg(newMessages, {
+          week: newWeek, season, type: 'board', title: 'Ultimatum: Reprieve',
+          body: `The board acknowledges the turnaround. Sitting ${ultimatumPos}${getSuffix(ultimatumPos)}, you have bought yourself time — do not waste it.`,
+        });
+      } else if (state.gameMode === 'career' && state.careerManager?.contract) {
+        // Executed after the main set() so the sack acts on committed state.
+        ultimatumSackPending = true;
+        newMessages = addMsg(newMessages, {
+          week: newWeek, season, type: 'board', title: 'Sacked',
+          body: `${ultimatumPos}${getSuffix(ultimatumPos)} place was not the recovery the board demanded. Your contract has been terminated with immediate effect.`,
+        });
+      } else {
+        const pc = newClubs[playerClubId];
+        newClubs[playerClubId] = { ...pc, budget: Math.round(pc.budget * (1 - ULTIMATUM_SANDBOX_BUDGET_CUT)) };
+        newBoardConfidence = Math.max(newBoardConfidence, ULTIMATUM_SANDBOX_CONFIDENCE_FLOOR);
+        newMessages = addMsg(newMessages, {
+          week: newWeek, season, type: 'board', title: 'Ultimatum: Consequences',
+          body: `The board's demands were not met. Transfer funds have been slashed by ${Math.round(ULTIMATUM_SANDBOX_BUDGET_CUT * 100)}% and your position remains under review.`,
+        });
+      }
+      newBoardUltimatum = null;
+    }
+  }
+
   // Evaluate monthly objectives — mark completions every week, cycle every OBJECTIVE_CYCLE_WEEKS weeks
   const objCtx: ObjectiveContext = {
     playerClubId, players: newPlayers, playerIds: playerClub.playerIds,
@@ -2673,7 +2750,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     leagueTable, transferWindowOpen, currentMatchResult: null,
     matchPhase: 'none' as const, pendingPressConference: null,
     messages: newMessages, incomingOffers: newOffers, clubs: newClubs,
-    matchSubsUsed: 0, matchSubbedOffIds: [], boardConfidence: newBoardConfidence, boardObjectives: updatedObjectives,
+    matchSubsUsed: 0, matchSubbedOffIds: [], boardConfidence: newBoardConfidence, boardUltimatum: newBoardUltimatum, boardObjectives: updatedObjectives,
     training: { ...training, tacticalFamiliarity: newTacticalFamiliarity, streaks: newStreaks, lastReport: trainingReport },
     staff: newStaff, scouting: newScouting, facilities: newFacilities, youthAcademy: newYouthAcademy,
     pendingGemReveal: gemReveals.length > 0 ? gemReveals[0] : null,
@@ -2729,6 +2806,10 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
 
   // Process loan returns
   get().processLoanReturns();
+
+  // Failed board ultimatum in career mode — dismiss via the job-market
+  // machinery, acting on the committed post-advance state.
+  if (ultimatumSackPending) get().sackManagerMidSeason();
 
   // Generate AI loan offers for fringe players
   const updatedState = get();

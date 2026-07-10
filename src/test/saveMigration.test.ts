@@ -2,14 +2,14 @@ import { describe, it, expect } from 'vitest';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 
 describe('saveMigration', () => {
-  it('should have current version set to 72', () => {
-    expect(CURRENT_VERSION).toBe(72);
+  it('should have current version set to 73', () => {
+    expect(CURRENT_VERSION).toBe(73);
   });
 
   it('v69 → v70 backfills settings.performanceMode (default off)', () => {
     const v69: Record<string, unknown> = { version: 69, settings: { reducedMotion: true } };
     const migrated = migrateSaveData(v69) as { version: number; settings: Record<string, unknown> };
-    expect(migrated.version).toBe(72);
+    expect(migrated.version).toBe(73);
     expect(migrated.settings.performanceMode).toBe(false);
     expect(migrated.settings.reducedMotion).toBe(true);
   });
@@ -23,7 +23,7 @@ describe('saveMigration', () => {
       ],
     };
     const migrated = migrateSaveData(v70) as { version: number; weeklyObjectives: Array<Record<string, unknown>> };
-    expect(migrated.version).toBe(72);
+    expect(migrated.version).toBe(73);
     expect(migrated.weeklyObjectives[0].claimed).toBe(true);
     expect(migrated.weeklyObjectives[1].claimed).toBe(false);
   });
@@ -498,5 +498,21 @@ describe('saveMigration', () => {
     expect(() => migrateSaveData(v66)).not.toThrow();
     const out = migrateSaveData(v66) as Record<string, unknown>;
     expect(out.version).toBe(CURRENT_VERSION);
+  });
+});
+
+describe('v72 → v73 (board ultimatum)', () => {
+  it('defaults boardUltimatum to null on old saves', () => {
+    const v72: Record<string, unknown> = { version: 72 };
+    const out = migrateSaveData(v72) as Record<string, unknown>;
+    expect(out.version).toBe(73);
+    expect(out.boardUltimatum).toBeNull();
+  });
+
+  it('preserves an existing boardUltimatum object if present', () => {
+    const ult = { issuedSeason: 2, issuedWeek: 15, deadlineWeek: 21, targetPosition: 12 };
+    const v72: Record<string, unknown> = { version: 72, boardUltimatum: ult };
+    const out = migrateSaveData(v72) as Record<string, unknown>;
+    expect(out.boardUltimatum).toEqual(ult);
   });
 });

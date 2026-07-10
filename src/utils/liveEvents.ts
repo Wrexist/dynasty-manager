@@ -6,17 +6,48 @@
  * the local-day helpers from the daily-streak module — both features share the
  * same "is it a new local day?" semantics.
  */
-import { LIVE_EVENTS, MATCH_WIN_POINTS_DAILY_CAP, type LiveEvent, type LiveEventTier } from '@/config/liveEvents';
+import { SPECIAL_EVENTS, generateMonthlyEvent, MATCH_WIN_POINTS_DAILY_CAP, type LiveEvent, type LiveEventTier } from '@/config/liveEvents';
 import { localDateKey, daysBetween } from '@/utils/dailyStreak';
 import { readLiveEventProgress, writeLiveEventProgress, type LiveEventProgress } from '@/store/helpers/persistence';
 
 export type { LiveEvent, LiveEventTier, LiveEventProgress };
 
-/** The event whose window contains `now`, or null if none is live. Inclusive
- *  of both start and end days. YYYY-MM-DD strings compare correctly with `<=`. */
-export function getActiveLiveEvent(now: Date = new Date()): LiveEvent | null {
+/**
+ * The live event for `now`. There is ALWAYS one: a hand-authored special
+ * event when its window contains today, otherwise the deterministic monthly
+ * festival for today's calendar month. Hand-authored events take precedence on
+ * any date overlap, so a curated event (e.g. the World Cup) transparently
+ * overrides that month's generated festival while it runs.
+ *
+ * Because it never returns null, festival surfaces (banner, hub, notifications)
+ * can never go empty — the exact retention gap this closes. The `| null` return
+ * is retained purely so legacy call-sites that still guard on null keep working.
+ */
+export function getActiveLiveEvent(now: Date = new Date()): LiveEvent {
   const today = localDateKey(now);
-  return LIVE_EVENTS.find(e => e.start <= today && today <= e.end) ?? null;
+  const special = SPECIAL_EVENTS.find(e => e.start <= today && today <= e.end);
+  return special ?? generateMonthlyEvent(now);
+}
+
+/**
+ * The next hand-authored SPECIAL event that starts in the future, within
+ * `horizonDays` (default 45). Powers a "next event starts in N days" teaser so
+ * surfaces can advertise a marquee event that isn't live yet. Returns null when
+ * no special event is upcoming inside the horizon (the monthly festival always
+ * fills the gap, so this is purely promotional). */
+export function getUpcomingSpecialEvent(
+  now: Date = new Date(),
+  horizonDays = 45,
+): { event: LiveEvent; startsInDays: number } | null {
+  const today = localDateKey(now);
+  let best: { event: LiveEvent; startsInDays: number } | null = null;
+  for (const e of SPECIAL_EVENTS) {
+    if (e.start <= today) continue; // already started or over
+    const startsIn = daysBetween(today, e.start);
+    if (startsIn === null || startsIn <= 0 || startsIn > horizonDays) continue;
+    if (!best || startsIn < best.startsInDays) best = { event: e, startsInDays: startsIn };
+  }
+  return best;
 }
 
 /** Whole days from `now` until (and including) the event's final day. 0 on the

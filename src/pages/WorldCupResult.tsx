@@ -9,6 +9,9 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Medal, Home, RotateCcw, Award, Star, Share2 } from 'lucide-react';
 import { WorldCupTrophyIcon } from '@/components/game/icons/WorldCupTrophyIcon';
+import { TrophyLift } from '@/components/game/TrophyLift';
+import { ShareMomentButton } from '@/components/game/ShareMomentButton';
+import type { MomentCardData } from '@/utils/shareCard';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -109,6 +112,24 @@ const WorldCupResult = () => {
     return { goldenBoot, youngStar };
   }, [nationalTeam, players]);
 
+  // Branded share-card content for the champion beat (the biggest emotional
+  // moment). Built before the early return so hook order stays stable.
+  const momentData = useMemo<MomentCardData>(() => {
+    const flag = nat ? getFlag(nat) : '';
+    const detail = run
+      ? `${run.won}W · ${run.drawn}D · ${run.lost}L · ${run.gf} goals scored`
+      : '2026 World Cup';
+    return {
+      type: 'world_cup',
+      emoji: '🏆',
+      headline: 'WORLD CHAMPIONS',
+      tagline: 'Champions of the world',
+      subject: `${flag} ${nat ?? ''}`.trim(),
+      detail,
+      shareMessage: `🏆 World Champions with ${nat ?? 'my nation'}! I won the 2026 World Cup in Dynasty Manager.`,
+    };
+  }, [nat, run]);
+
   if (!result || !nat) {
     return (
       <div className="max-w-lg mx-auto px-4 py-12 text-center">
@@ -144,32 +165,11 @@ const WorldCupResult = () => {
             {/* Trophy lift: the champion's trophy rises, settles, then breathes
                 with a soft gold glow. Pulse/float are disabled under reduced
                 motion via the global MotionConfig. */}
-            <motion.div
-              className={cn(
-                'relative mx-auto w-20 h-24 rounded-2xl flex items-center justify-center mb-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.25),inset_0_-1px_0_rgba(0,0,0,0.3)]',
-                isGold ? 'bg-gradient-to-b from-amber-400/40 to-amber-500/15 text-amber-300' : 'bg-white/[0.06] text-foreground/70',
-              )}
-              initial={isGold ? { y: 28, scale: 0.6, rotate: -8, opacity: 0 } : false}
-              animate={isGold ? { y: 0, scale: 1, rotate: 0, opacity: 1 } : undefined}
-              transition={{ type: 'spring', stiffness: 220, damping: 14, delay: 0.1 }}
-            >
-              {isGold && (
-                <motion.span
-                  aria-hidden
-                  className="pointer-events-none absolute inset-0 rounded-2xl"
-                  style={{ boxShadow: '0 0 28px 4px hsl(43 96% 55% / 0.55)' }}
-                  animate={{ opacity: [0.35, 0.8, 0.35] }}
-                  transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut', delay: 0.6 }}
-                />
-              )}
-              <motion.span
-                className="relative"
-                animate={isGold ? { y: [0, -3, 0] } : undefined}
-                transition={isGold ? { duration: 3, repeat: Infinity, ease: 'easeInOut', delay: 0.8 } : undefined}
-              >
-                {isGold ? <WorldCupTrophyIcon className="w-12 h-[4.5rem]" /> : <Medal className="w-10 h-10" />}
-              </motion.span>
-            </motion.div>
+            <TrophyLift
+              gold={isGold}
+              className="mb-4"
+              icon={isGold ? <WorldCupTrophyIcon className="w-12 h-[4.5rem]" /> : <Medal className="w-10 h-10" />}
+            />
             <div className="flex items-center justify-center gap-2 mb-1">
               <span className="text-xl leading-none shrink-0">{getFlag(nat)}</span>
               <span className="text-sm font-semibold text-foreground/80">{nat}</span>
@@ -261,6 +261,11 @@ const WorldCupResult = () => {
         >
           <RotateCcw className="w-4 h-4" /> Play Another World Cup
         </button>
+        {result.isChampion ? (
+          // The trophy moment gets a branded image card; the text-share below
+          // remains the fallback path when the image can't be produced.
+          <ShareMomentButton data={momentData} label="Share this moment" />
+        ) : null}
         <button
           type="button"
           onClick={() => { void handleShare(); }}

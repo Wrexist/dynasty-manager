@@ -7,12 +7,16 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { motion } from 'framer-motion';
 import { hapticMedium } from '@/utils/haptics';
 import { STORYLINE_CHAINS } from '@/data/storylineChains';
+import { usePresentationSlot } from '@/hooks/usePresentationQueue';
 
 export function StorylineModal() {
   const pendingStoryline = useGameStore(s => s.pendingStoryline);
   const activeStorylineChains = useGameStore(s => s.activeStorylineChains);
   const respondToStoryline = useGameStore(s => s.respondToStoryline);
   const dismissStoryline = useGameStore(s => s.dismissStoryline);
+  // Presentation queue (G3): show + buzz only when we're the active overlay.
+  const active = usePresentationSlot('storyline', !!pendingStoryline);
+  const visible = !!pendingStoryline && active;
 
   // Derive chain context for multi-step storylines
   const chainContext = useMemo(() => {
@@ -28,10 +32,10 @@ export function StorylineModal() {
   }, [pendingStoryline, activeStorylineChains]);
 
   useEffect(() => {
-    if (pendingStoryline) hapticMedium();
-  }, [pendingStoryline]);
+    if (visible) hapticMedium();
+  }, [visible]);
 
-  if (!pendingStoryline) return null;
+  if (!visible) return null;
 
   return (
     <motion.div

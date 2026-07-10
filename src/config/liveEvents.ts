@@ -65,4 +65,78 @@ const WORLD_CUP_2026: LiveEvent = {
   ],
 };
 
-export const LIVE_EVENTS: LiveEvent[] = [WORLD_CUP_2026];
+/**
+ * Hand-authored "special" events. These are the marquee, calendar-pegged
+ * events (World Cup, future tournaments) that a designer curates. They take
+ * PRECEDENCE over the auto-generated monthly festival on any date overlap
+ * (see `getActiveLiveEvent`). Add future special events here.
+ */
+export const SPECIAL_EVENTS: LiveEvent[] = [WORLD_CUP_2026];
+
+/** Back-compat alias — historically the only event list. Now == special
+ *  (hand-authored) events; the monthly festival is generated, not listed. */
+export const LIVE_EVENTS: LiveEvent[] = SPECIAL_EVENTS;
+
+// ── Auto-generated monthly festival ──
+//
+// Retention can't depend on a designer hand-authoring an event every month, so
+// there is ALWAYS a live event: a deterministic, real-calendar-keyed monthly
+// "Festival" generated from the date alone (no server, no push). It mirrors the
+// free-daily-pack pattern of bucketing by the device-local calendar. Each month
+// gets its own themed name and its own progress namespace (id = `monthly-YYYY-MM`),
+// so a new month starts the player fresh — exactly like a new special event.
+
+/** Reward track shared by every generated monthly event. Point thresholds and
+ *  XP payouts match the World Cup event's scale so the two feel consistent. */
+const MONTHLY_TIERS: LiveEventTier[] = [
+  { id: 'warmup',    points: 10,  xp: 25,  label: 'Warm-Up' },
+  { id: 'rising',    points: 30,  xp: 40,  label: 'Rising' },
+  { id: 'onform',    points: 60,  xp: 60,  label: 'On Form' },
+  { id: 'contender', points: 100, xp: 90,  label: 'In Contention' },
+  { id: 'champion',  points: 150, xp: 150, label: 'Champion' },
+];
+
+/** Themed name per calendar month (1-based index). Football-flavoured but
+ *  season-agnostic so it reads well year-round for a global audience. */
+const MONTHLY_THEMES: { name: string; tagline: string }[] = [
+  { name: 'New Year Kickoff Festival', tagline: 'Start the year strong — check in daily to climb the rewards track.' },
+  { name: 'Winter Cup Festival',       tagline: 'Brave the winter fixtures — daily check-ins earn Festival Points.' },
+  { name: 'Spring Surge Festival',     tagline: 'The run-in begins — check in daily and chase the rewards.' },
+  { name: 'Title Run-In Festival',     tagline: 'Every point counts — check in daily to climb the track.' },
+  { name: 'Season Finale Festival',    tagline: 'The finale is here — daily check-ins earn Festival Points.' },
+  { name: 'Summer Transfer Festival',  tagline: 'Deal season — check in daily to climb the rewards track.' },
+  { name: 'Pre-Season Festival',       tagline: 'Build for the new campaign — daily check-ins earn rewards.' },
+  { name: 'Kickoff Festival',          tagline: 'A new season kicks off — check in daily to climb the track.' },
+  { name: 'Autumn Rivalries Festival', tagline: 'Derby season — daily check-ins earn Festival Points.' },
+  { name: 'Golden Boot Festival',      tagline: 'Chase the goals — check in daily to climb the rewards track.' },
+  { name: 'International Break Festival', tagline: 'Nations collide — daily check-ins earn Festival Points.' },
+  { name: 'Festive Fixtures Festival', tagline: 'Pack the calendar — check in daily to climb the track.' },
+];
+
+/** Two-digit, zero-padded string for a 1-based month. */
+function pad2(n: number): string {
+  return String(n).padStart(2, '0');
+}
+
+/**
+ * Deterministically build the monthly festival for the calendar month that
+ * contains `now`. Pure function of the date — the same (year, month) always
+ * produces the same event, so no persistence or server is needed. The window
+ * spans the whole local month (day 1 → last day inclusive).
+ */
+export function generateMonthlyEvent(now: Date = new Date()): LiveEvent {
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1; // 1-based
+  const lastDay = new Date(year, month, 0).getDate(); // day 0 of next month = last day of this one
+  const theme = MONTHLY_THEMES[month - 1];
+  return {
+    id: `monthly-${year}-${pad2(month)}`,
+    name: theme.name,
+    tagline: theme.tagline,
+    start: `${year}-${pad2(month)}-01`,
+    end: `${year}-${pad2(month)}-${pad2(lastDay)}`,
+    checkInPoints: 10,
+    matchWinPoints: 5,
+    tiers: MONTHLY_TIERS,
+  };
+}

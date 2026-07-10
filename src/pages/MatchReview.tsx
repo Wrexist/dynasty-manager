@@ -6,7 +6,7 @@ import { resolveClub } from '@/utils/helpers';
 import { guardAsync } from '@/utils/asyncGuard';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { EmptyState } from '@/components/EmptyState';
-import { ChevronRight, Flame, Calendar, HeartPulse, Star, TrendingUp, TrendingDown, Minus, MapPin, Shield, ArrowLeft, ArrowRight, Trophy, ArrowUp, ArrowDown } from 'lucide-react';
+import { ChevronRight, Flame, Calendar, HeartPulse, Star, TrendingUp, TrendingDown, Minus, MapPin, Shield, ArrowLeft, ArrowRight, Trophy, ArrowUp, ArrowDown, Lightbulb } from 'lucide-react';
 import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { cn } from '@/lib/utils';
 
@@ -60,6 +60,7 @@ import { getConfidenceColor, getMatchRatingColor, areColorsSimilar, getRatingHex
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { PlayerCard } from '@/components/game/PlayerCard';
 import { generateMatchInsights } from '@/utils/matchInsights';
+import { extractMatchDebrief } from '@/utils/matchDebrief';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { getDerbyName, getDerbyIntensity } from '@/data/league';
 import { getCompetitionInfo } from '@/utils/competitionBadge';
@@ -95,6 +96,12 @@ const MatchReview = () => {
 
   const matchInsights = useMemo(
     () => currentMatchResult ? generateMatchInsights(currentMatchResult, playerClubId) : [],
+    [currentMatchResult, playerClubId]
+  );
+  // Free tactical debrief (G3): the engine's tactical matchup insight + first
+  // opposition reaction + a hint — distinct from the Pro stat insights below.
+  const debrief = useMemo(
+    () => currentMatchResult ? extractMatchDebrief(currentMatchResult.events, playerClubId) : null,
     [currentMatchResult, playerClubId]
   );
 
@@ -620,6 +627,28 @@ const MatchReview = () => {
               );
             })}
           </div>
+        </GlassPanel>
+      )}
+
+      {/* Tactical Debrief — free for all users (G3) */}
+      {debrief && (
+        <GlassPanel className="p-4">
+          <div className="flex items-center gap-1.5 mb-2">
+            <Lightbulb className="w-4 h-4 text-primary shrink-0" />
+            <h3 className="text-sm font-semibold text-foreground">Tactical Debrief</h3>
+          </div>
+          <p className="text-xs text-foreground/90 leading-snug">{debrief.insight}</p>
+          {debrief.aiReaction && (
+            <p className="text-[11px] text-muted-foreground leading-snug mt-1.5">
+              <span className="text-foreground/70 font-medium">Opposition:</span> {debrief.aiReaction}
+            </p>
+          )}
+          {debrief.hint && (
+            <div className="flex items-start gap-1.5 mt-2 pt-2 border-t border-border/40">
+              <TrendingUp className="w-3.5 h-3.5 text-emerald-400 mt-0.5 shrink-0" />
+              <p className="text-[11px] text-emerald-400/90 leading-snug">{debrief.hint}</p>
+            </div>
+          )}
         </GlassPanel>
       )}
 

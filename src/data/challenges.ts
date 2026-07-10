@@ -1,9 +1,23 @@
 import type { ChallengeScenario } from '@/types/game';
 import { LEAGUES } from '@/data/league';
 
+/** Manager XP paid on completion, scaled by difficulty. Consistent with the
+ *  season-end / trophy XP scale in `managerPerks.XP_REWARDS` (title = 100). */
+export const CHALLENGE_XP_BY_DIFFICULTY: Record<ChallengeScenario['difficulty'], number> = {
+  easy: 60,
+  medium: 100,
+  hard: 175,
+  extreme: 300,
+};
+
+/** Extra XP multiplier for completing the weekly Featured Challenge. */
+export const FEATURED_CHALLENGE_XP_MULTIPLIER = 1.5;
+
 export const CHALLENGES: ChallengeScenario[] = [
   {
     id: 'great-escape',
+    rewardXp: CHALLENGE_XP_BY_DIFFICULTY.medium,
+    badgeId: 'badge-survivor',
     name: 'The Great Escape',
     // NOTE: an earlier version advertised a mid-season start ("week 23 with
     // 15 points") that was never implemented — the copy below describes what
@@ -19,6 +33,8 @@ export const CHALLENGES: ChallengeScenario[] = [
   },
   {
     id: 'invincibles',
+    rewardXp: CHALLENGE_XP_BY_DIFFICULTY.extreme,
+    badgeId: 'badge-invincible',
     name: 'The Invincibles',
     description: 'Go an entire season unbeaten. A single defeat ends the challenge.',
     icon: 'shield',
@@ -30,6 +46,8 @@ export const CHALLENGES: ChallengeScenario[] = [
   },
   {
     id: 'youth-revolution',
+    rewardXp: CHALLENGE_XP_BY_DIFFICULTY.hard,
+    badgeId: 'badge-youth-guru',
     name: 'Youth Revolution',
     description: 'Build a squad entirely from players under 23. Finish in the top half.',
     icon: 'sprout',
@@ -42,6 +60,8 @@ export const CHALLENGES: ChallengeScenario[] = [
   },
   {
     id: 'penny-pincher',
+    rewardXp: CHALLENGE_XP_BY_DIFFICULTY.hard,
+    badgeId: 'badge-frugal',
     name: 'Penny Pincher',
     description: 'Win the league without spending a single penny on transfers.',
     icon: 'coins',
@@ -54,6 +74,8 @@ export const CHALLENGES: ChallengeScenario[] = [
   },
   {
     id: 'giant-killer',
+    rewardXp: CHALLENGE_XP_BY_DIFFICULTY.hard,
+    badgeId: 'badge-giant-killer',
     name: 'Giant Killer',
     description: 'Take the lowest-rated club and win the league within 5 seasons.',
     icon: 'swords',
@@ -65,6 +87,8 @@ export const CHALLENGES: ChallengeScenario[] = [
   },
   {
     id: 'cup-specialist',
+    rewardXp: CHALLENGE_XP_BY_DIFFICULTY.medium,
+    badgeId: 'badge-cup-king',
     name: 'Cup Specialist',
     description: 'Win the Dynasty Cup in your first season. League form doesn\'t matter.',
     icon: 'trophy',
@@ -76,6 +100,8 @@ export const CHALLENGES: ChallengeScenario[] = [
   },
   {
     id: 'fortress',
+    rewardXp: CHALLENGE_XP_BY_DIFFICULTY.hard,
+    badgeId: 'badge-fortress',
     name: 'Fortress',
     description: 'Go an entire season without losing a home match. Your ground must be impregnable.',
     icon: 'shield',
@@ -87,6 +113,8 @@ export const CHALLENGES: ChallengeScenario[] = [
   },
   {
     id: 'goal-machine',
+    rewardXp: CHALLENGE_XP_BY_DIFFICULTY.hard,
+    badgeId: 'badge-goal-machine',
     name: 'Goal Machine',
     description: 'Score 100+ league goals in a single season. Attack is the best form of defence.',
     icon: 'flame',
@@ -98,6 +126,8 @@ export const CHALLENGES: ChallengeScenario[] = [
   },
   {
     id: 'double-winner',
+    rewardXp: CHALLENGE_XP_BY_DIFFICULTY.extreme,
+    badgeId: 'badge-double',
     name: 'The Double',
     description: 'Win both the league title and the Dynasty Cup in the same season.',
     icon: 'medal',
@@ -109,6 +139,8 @@ export const CHALLENGES: ChallengeScenario[] = [
   },
   {
     id: 'promotion-express',
+    rewardXp: CHALLENGE_XP_BY_DIFFICULTY.hard,
+    badgeId: 'badge-express',
     name: 'Promotion Express',
     description: 'Get promoted to the top flight within 2 seasons starting from the third tier.',
     icon: 'rocket',
@@ -119,6 +151,30 @@ export const CHALLENGES: ChallengeScenario[] = [
     budgetModifier: 0.7,
   },
 ];
+
+/** ISO-8601 week number (1-53) for a date. Weeks start Monday; the week
+ *  containing the year's first Thursday is week 1. Deterministic and locale-
+ *  independent — the same basis the pack rotation uses to key by real time. */
+export function isoWeek(now: Date = new Date()): number {
+  const d = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+  const dayNum = (d.getUTCDay() + 6) % 7; // Mon=0 … Sun=6
+  d.setUTCDate(d.getUTCDate() - dayNum + 3); // nearest Thursday
+  const firstThursday = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
+  const firstDayNum = (firstThursday.getUTCDay() + 6) % 7;
+  firstThursday.setUTCDate(firstThursday.getUTCDate() - firstDayNum + 3);
+  return 1 + Math.round((d.getTime() - firstThursday.getTime()) / (7 * 86_400_000));
+}
+
+/** The Featured Challenge id for the real ISO week containing `now`.
+ *  Deterministic rotation across all scenarios so every player sees the same
+ *  weekly highlight without any server. Completing the featured one pays a
+ *  small XP bonus (see FEATURED_CHALLENGE_XP_MULTIPLIER). */
+export function getFeaturedChallengeId(now: Date = new Date()): string {
+  // Combine ISO week with the ISO week-year so the index keeps advancing across
+  // the year boundary instead of snapping back to week 1's challenge.
+  const idx = (isoWeek(now) + now.getFullYear()) % CHALLENGES.length;
+  return CHALLENGES[idx].id;
+}
 
 /** Get difficulty color for UI */
 export function getDifficultyColor(difficulty: ChallengeScenario['difficulty']): string {

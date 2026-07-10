@@ -8,7 +8,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { cn } from '@/lib/utils';
 import { TransferListing } from '@/types/game';
 import { getRatingColor, getTop3Attributes, getChanceColor, getChanceBarColor, getChanceLabel } from '@/utils/uiHelpers';
-import { formatWage } from '@/utils/contracts';
+import { formatWage, getSignedWage, getPreferredYears } from '@/utils/contracts';
 import { formatMoney } from '@/utils/helpers';
 import { MAX_SQUAD_SIZE } from '@/config/gameBalance';
 import { NEGOTIATION_SLIDER_MIN_RATIO, NEGOTIATION_SLIDER_MAX_RATIO, NEGOTIATION_MAX_STRIKES } from '@/config/transfers';
@@ -19,13 +19,6 @@ import {
   X, TrendingUp, TrendingDown,
   ArrowRight, RotateCcw, Handshake, XCircle, Star, AlertTriangle, Wallet, Users, Unlock, Lock,
 } from 'lucide-react';
-
-function getInterpolatedChance(ratio: number): number {
-  if (ratio >= 1.0) return 0.85;
-  if (ratio >= 0.8) return 0.40 + (ratio - 0.8) / 0.2 * 0.45;
-  if (ratio >= 0.5) return 0.10 + (ratio - 0.5) / 0.3 * 0.30;
-  return 0.10;
-}
 
 interface Props {
   listing: TransferListing;
@@ -44,6 +37,7 @@ export function TransferNegotiation({ listing, onClose }: Props) {
     shortlist: s.shortlist,
   })));
   const evaluateOffer = useGameStore(s => s.evaluateOffer);
+  const getOfferAcceptChance = useGameStore(s => s.getOfferAcceptChance);
   const makeOfferWithNegotiation = useGameStore(s => s.makeOfferWithNegotiation);
   const executeTransfer = useGameStore(s => s.executeTransfer);
   const removeFromShortlist = useGameStore(s => s.removeFromShortlist);
@@ -99,7 +93,17 @@ export function TransferNegotiation({ listing, onClose }: Props) {
 
   const top3 = useMemo(() => player ? getTop3Attributes(player.attributes) : [], [player]);
 
-  const displayChance = useMemo(() => getInterpolatedChance(offerFee / listing.askingPrice), [offerFee, listing.askingPrice]);
+  // Displayed odds are the resolver's real accept probability (effective price
+  // + strike penalty + release clause), NOT a cosmetic interpolation — so the
+  // bar can't promise a deal the roll will refuse.
+  const displayChance = useMemo(() => getOfferAcceptChance(listing.playerId, offerFee), [listing.playerId, offerFee, getOfferAcceptChance]);
+
+  // Fresh contract the buyer commits to on signing. Deterministic — mirrors
+  // exactly what executeTransfer stamps (getPreferredYears + getSignedWage),
+  // so the pre-commit preview matches the completed deal.
+  const signedYears = useMemo(() => player ? getPreferredYears(player.age) : 0, [player]);
+  const signedWage = useMemo(() => player && buyerClub ? getSignedWage(player, buyerClub.reputation) : 0, [player, buyerClub]);
+  const remainingContractYears = player ? Math.max(0, player.contractEnd - season) : 0;
 
   const particles = useMemo(() =>
     Array.from({ length: 24 }, (_, i) => ({
@@ -415,9 +419,28 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                         <span className="font-bold text-foreground">{evaluation.totalSquadSize + 1}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <span className="text-muted-foreground">Wage:</span>
-                        <span className="font-bold text-foreground tabular-nums">+{formatWage(evaluation.wageImpact)}</span>
+                        <span className="text-muted-foreground">New wage:</span>
+                        <span className="font-bold text-foreground tabular-nums">+{formatWage(signedWage)}</span>
                       </div>
+                    </div>
+
+                    {/* Fresh-contract terms the buyer commits to — a fee-paid
+                        signing re-signs on new terms, so the fee decision is
+                        informed by both his current remaining deal and the new
+                        one he'll join on (no more paying a fee for a player who
+                        walks free at season end). */}
+                    <div className="flex items-center gap-1.5 mt-1.5 text-[10px] text-muted-foreground">
+                      <Handshake className="w-3 h-3 text-primary shrink-0" />
+                      <p>
+                        Current deal{' '}
+                        <span className={cn('font-semibold', remainingContractYears <= 1 ? 'text-amber-400' : 'text-foreground/80')}>
+                          {remainingContractYears <= 0 ? 'expiring' : `${remainingContractYears} yr${remainingContractYears === 1 ? '' : 's'} left`}
+                        </span>
+                        {' '}· signs a fresh{' '}
+                        <span className="font-semibold text-foreground/80">{signedYears}-yr</span>
+                        {' '}deal at{' '}
+                        <span className="font-semibold text-foreground/80">{formatWage(signedWage)}</span>
+                      </p>
                     </div>
 
                     {/* Warnings */}
@@ -430,14 +453,6 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                       <p className="text-[10px] text-red-400 font-medium mt-1.5 text-center">
                         Insufficient budget for this offer
                       </p>
-                    )}
-                    {player.contractEnd - season <= 1 && (
-                      <div className="flex items-center gap-1.5 mt-1.5">
-                        <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0" />
-                        <p className="text-[10px] text-amber-400">
-                          Contract expiring {player.contractEnd - season <= 0 ? 'this season' : 'next season'}
-                        </p>
-                      </div>
                     )}
                     {evaluation.totalSquadSize + 1 > MAX_SQUAD_SIZE && (
                       <div className="flex items-center gap-1.5 mt-1.5">

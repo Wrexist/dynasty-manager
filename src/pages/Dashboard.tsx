@@ -9,6 +9,7 @@ import { CompetitionStatusCard } from '@/components/dashboard/CompetitionStatusC
 import { BoardObjectivesCard } from '@/components/dashboard/BoardObjectivesCard';
 import { PressConference } from '@/components/game/PressConference';
 import { WelcomeOverlay } from '@/components/game/WelcomeOverlay';
+import { WelcomeCard } from '@/components/game/WelcomeCard';
 import { Button } from '@/components/ui/button';
 import {
   Play, ChevronRight, ChevronDown, TrendingUp, DollarSign, Heart, Trophy, Calendar, Mail, ShoppingBag,
@@ -24,18 +25,19 @@ import { FloatingXP } from '@/components/game/FloatingXP';
 import { cn } from '@/lib/utils';
 import { useFinanceBreakdown } from '@/hooks/useFinanceBreakdown';
 import { getContractUrgency } from '@/utils/contracts';
-import { checkCelebrations, getWinStreak, getUnbeatenRun, getCleanSheetStreak, getDramaCelebration } from '@/utils/celebrations';
+import { checkCelebrations, getWinStreak, getUnbeatenRun, getCleanSheetStreak, getDramaCelebration, detectTrophyMoments } from '@/utils/celebrations';
 import { STREAK_MORALE_THRESHOLD, OBJECTIVE_STREAK_THRESHOLD, OBJECTIVE_CYCLE_WEEKS, OBJECTIVE_STREAK_MULTIPLIER, RARE_OBJECTIVE_XP_MULTIPLIER, LEGENDARY_OBJECTIVE_XP_MULTIPLIER, COACH_ALL_TASKS_BONUS_XP, ACHIEVEMENT_XP_BRONZE, ACHIEVEMENT_XP_SILVER, ACHIEVEMENT_XP_GOLD } from '@/config/gameBalance';
 import { getXPProgress, MANAGER_PERKS, canUnlockPerk, getTotalXP } from '@/utils/managerPerks';
 import { getReputationTierLabel } from '@/utils/managerCareer';
 import { getTransferWindows } from '@/config/transfers';
 import { SPRING_PHASE_END_WEEK } from '@/config/gameBalance';
 import { PACK_PITY_THRESHOLD } from '@/config/packs';
-import type { Celebration } from '@/utils/celebrations';
+import type { Celebration, TrophyMoment } from '@/utils/celebrations';
 import { celebrationToast } from '@/utils/gameToast';
 import { guardAsync } from '@/utils/asyncGuard';
 import { CELEBRATION_STAGGER_MS, ADVANCE_DONE_MS } from '@/config/ui';
 import { CelebrationModal } from '@/components/game/CelebrationModal';
+import { TrophyCeremonyModal } from '@/components/game/TrophyCeremonyModal';
 import { StorylineModal } from '@/components/game/StorylineModal';
 import { PlayerTransferTalk } from '@/components/game/PlayerTransferTalk';
 import { AchievementUnlockModal } from '@/components/game/AchievementUnlockModal';
@@ -43,6 +45,9 @@ import { PageHint } from '@/components/game/PageHint';
 import { OnboardingChecklist } from '@/components/game/OnboardingChecklist';
 import { DailyRewardModal } from '@/components/game/DailyRewardModal';
 import { FestivalBanner } from '@/components/game/FestivalBanner';
+import { ContinueResumeCard } from '@/components/game/ContinueResumeCard';
+import { NotifPermissionModal } from '@/components/game/NotifPermissionModal';
+import { hasUnclaimedFreeDailyPack } from '@/utils/freePacks';
 import { DynastyStatusChip } from '@/components/game/DynastyStatusChip';
 import { ACHIEVEMENTS } from '@/utils/achievements';
 import type { Achievement } from '@/utils/achievements';
@@ -128,7 +133,7 @@ const Dashboard = () => {
     pendingPressConference, pendingStoryline, pendingTransferTalk,
     activeChallenge, youthAcademy, fanMood, sessionStats,
     pendingAchievementIds,
-    activeStorylineChains, unlockedAchievements, packPityCounter,
+    activeStorylineChains, unlockedAchievements, packPityCounter, dailyPackOpens,
   } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId, clubs: s.clubs, players: s.players,
     week: s.week, season: s.season, fixtures: s.fixtures, leagueTable: s.leagueTable,
@@ -155,6 +160,7 @@ const Dashboard = () => {
     activeStorylineChains: s.activeStorylineChains,
     unlockedAchievements: s.unlockedAchievements,
     packPityCounter: s.packPityCounter || 0,
+    dailyPackOpens: s.dailyPackOpens,
   })));
   const tw = getTransferWindows(totalWeeks);
   // Actions — stable references, individual selectors
@@ -183,6 +189,10 @@ const Dashboard = () => {
     return false;
   });
 
+  // First run defaults to the single WelcomeCard; "Take the tour" opens the
+  // full 6-panel WelcomeOverlay. Both share the device-global WELCOME_SHOWN
+  // flag — dismissing either surface counts as seen.
+  const [welcomeTour, setWelcomeTour] = useState(false);
   const dismissWelcome = () => {
     setShowWelcome(false);
     setFlag(WELCOME_KEY);
@@ -220,6 +230,10 @@ const Dashboard = () => {
   const shownCelebrationsRef = useRef<Set<string>>(new Set());
   const prevSeasonRef = useRef(season);
   const [majorCelebration, setMajorCelebration] = useState<Celebration | null>(null);
+  // Trophy ceremonies (G4) — a small queue so a league+cup double both play,
+  // sequenced by the presentation queue. Dedupe keys live in shownCelebrationsRef.
+  const [pendingTrophy, setPendingTrophy] = useState<TrophyMoment | null>(null);
+  const trophyQueueRef = useRef<TrophyMoment[]>([]);
   const [pendingAchievementQueue, setPendingAchievementQueue] = useState<Achievement[]>([]);
   const [currentAchievement, setCurrentAchievement] = useState<Achievement | null>(null);
   const prevAchievementRef = useRef<string[]>([]);
@@ -247,7 +261,8 @@ const Dashboard = () => {
     if (achievements.length > 0) {
       setPendingAchievementQueue(achievements);
       setCurrentAchievement(achievements[0]);
-      hapticHeavy();
+      // Haptic fires inside AchievementUnlockModal when it actually becomes
+      // visible (presentation queue, G3) — not here at queue time.
     }
     // Clear pending from store immediately so remounting the Dashboard
     // (e.g. navigating away and back) won't re-trigger the same popup.
@@ -263,6 +278,10 @@ const Dashboard = () => {
     } else {
       setCurrentAchievement(null);
     }
+  };
+
+  const dismissTrophy = () => {
+    setPendingTrophy(trophyQueueRef.current.shift() ?? null);
   };
 
   useEffect(() => {
@@ -301,13 +320,35 @@ const Dashboard = () => {
       const minorOnes = unseen.filter(c => c.severity === 'minor');
       if (majorOnes.length > 0) {
         setMajorCelebration(majorOnes[0]);
-        hapticHeavy();
+        // Haptic fires inside CelebrationModal on visibility (queue, G3).
       }
       if (minorOnes.length > 0) hapticMedium();
       minorOnes.forEach((c, i) => {
         const t = setTimeout(() => celebrationToast(c.title, c.description), i * CELEBRATION_STAGGER_MS);
         celebrationTimersRef.current.push(t);
       });
+
+      // Trophy ceremonies (G4): confirmed league title / domestic cup wins.
+      // Keyed per season so each trophy fires exactly once; queued so a
+      // double (league + cup the same week) plays both, sequenced by the
+      // presentation queue.
+      const trophies = detectTrophyMoments({
+        playerClubId: s.playerClubId,
+        clubName: currentClub.name ?? 'Your club',
+        leagueTable: s.leagueTable,
+        cupWinnerId: s.cup?.winner,
+        leagueCupWinnerId: s.leagueCup?.winner,
+      });
+      const unseenTrophies = trophies.filter(t => {
+        const key = `trophy-${t.id}-${s.season}`;
+        if (shownCelebrationsRef.current.has(key)) return false;
+        shownCelebrationsRef.current.add(key);
+        return true;
+      });
+      if (unseenTrophies.length > 0) {
+        trophyQueueRef.current.push(...unseenTrophies);
+        setPendingTrophy(prev => prev ?? trophyQueueRef.current.shift() ?? null);
+      }
     }
     prevWeekRef.current = week;
   }, [week]); // Only depend on week — read other values from getState() to avoid cascading re-renders
@@ -658,6 +699,9 @@ const Dashboard = () => {
   const lineupIncomplete = (club.lineup || []).filter(id => !!players[id]).length < 11;
   const packPityRemaining = Math.max(0, PACK_PITY_THRESHOLD - packPityCounter);
   const packPityPrimed = packPityRemaining <= 2;
+  // A free daily pack the player hasn't opened today — surfaced as a simple dot
+  // when the higher-priority pity badge isn't showing.
+  const freePackAvailable = hasUnclaimedFreeDailyPack(dailyPackOpens);
   // Quick-link badges. Most links carry a simple coloured dot when there's
   // something to attend to; the packs link gets a premium count badge so
   // the user can see "1 pack to guarantee" or "✦ ready" at a glance from
@@ -672,17 +716,27 @@ const Dashboard = () => {
             ? { color: 'bg-gradient-to-br from-amber-200 to-amber-500', label: '✦', labelColor: 'text-amber-950' }
             : { color: 'bg-gradient-to-br from-amber-300 to-amber-500', label: String(packPityRemaining), labelColor: 'text-amber-950' },
         }
-      : {}),
+      // No pity badge — surface a free-daily-pack nudge instead (simple dot).
+      : freePackAvailable
+        ? { packs: { color: 'bg-emerald-500' } }
+        : {}),
   };
 
   return (
     <>
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
-      {/* Welcome overlay for first-time players */}
-      {showWelcome && <WelcomeOverlay onComplete={dismissWelcome} />}
+      {/* Welcome for first-time players — single card by default, full tour on request */}
+      {showWelcome && (welcomeTour
+        ? <WelcomeOverlay onComplete={dismissWelcome} />
+        : <WelcomeCard onDismiss={dismissWelcome} onTakeTour={() => setWelcomeTour(true)} />
+      )}
 
       {/* Daily login-streak reward — auto-presents once per day when claimable. */}
       <DailyRewardModal />
+
+      {/* First-win notification permission ask — routes through the
+          presentation queue; only appears on native at the first-win peak. */}
+      <NotifPermissionModal />
 
       <PageHint
         screen="dashboard"
@@ -690,9 +744,13 @@ const Dashboard = () => {
         body="This is your weekly hub. Check upcoming matches, review finances, track objectives, and advance to the next week. Visit Squad to manage players, Tactics to set formations, and Transfers to buy or sell."
       />
 
-      {/* Live-event banner (e.g. World Cup Festival) — only while an event is
-          live. Links to the Festival hub. */}
+      {/* Live-event banner (World Cup or the generated monthly festival).
+          Links to the Festival hub. */}
       <FestivalBanner />
+
+      {/* "Continue where you left off" — once per session, deep-links the top
+          pending decision for a returning player. */}
+      <ContinueResumeCard />
 
       {/* Persistent legacy/streak visibility — self-hides for fresh installs. */}
       <DynastyStatusChip />
@@ -811,6 +869,14 @@ const Dashboard = () => {
         <BoardWarning confidence={boardConfidence} onDismiss={() => setBoardWarningDismissed(true)} />
       )}
 
+      {/* Trophy Ceremony (G4) — league title / domestic cup wins */}
+      <TrophyCeremonyModal
+        open={!!pendingTrophy}
+        onClose={dismissTrophy}
+        title={pendingTrophy?.title || ''}
+        subtitle={pendingTrophy?.subtitle || ''}
+      />
+
       {/* Major Celebration Modal */}
       <CelebrationModal
         open={!!majorCelebration}
@@ -818,6 +884,7 @@ const Dashboard = () => {
         title={majorCelebration?.title || ''}
         description={majorCelebration?.description || ''}
         icon={majorCelebration?.icon}
+        severity={majorCelebration?.severity}
       />
 
       {/* Achievement Unlock Modal */}

@@ -7,6 +7,7 @@ import { describe, it, expect } from 'vitest';
 import {
   setSfxEnabled, resumeSfx, startCrowdBed, stopCrowdBed,
   sfxWhistle, sfxKick, sfxRoar, sfxGroan, sfxNet,
+  sfxChime, sfxWhoosh, sfxBurst,
 } from '@/utils/sfx';
 
 describe('sfx — safe in audio-less environments', () => {
@@ -21,9 +22,16 @@ describe('sfx — safe in audio-less environments', () => {
       sfxRoar(true);
       sfxGroan();
       sfxNet();
+      sfxChime();
+      sfxChime(true);
+      sfxWhoosh();
+      sfxWhoosh(false);
+      sfxBurst();
       stopCrowdBed();
       setSfxEnabled(false);
       sfxWhistle(); // disabled path
+      sfxChime();   // disabled path
+      sfxBurst();   // disabled path
     }).not.toThrow();
   });
 });

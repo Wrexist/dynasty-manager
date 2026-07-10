@@ -5,18 +5,22 @@ import { X, ArrowLeftRight, MessageCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { hapticMedium, hapticHeavy } from '@/utils/haptics';
 import { successToast, errorToast, infoToast } from '@/utils/gameToast';
+import { usePresentationSlot } from '@/hooks/usePresentationQueue';
 
 export function PlayerTransferTalk() {
   const pendingTransferTalk = useGameStore(s => s.pendingTransferTalk);
   const respondToTransferTalk = useGameStore(s => s.respondToTransferTalk);
   const dismissTransferTalk = useGameStore(s => s.dismissTransferTalk);
   const players = useGameStore(s => s.players);
+  // Presentation queue (G3): show + buzz only when we're the active overlay.
+  const active = usePresentationSlot('transferTalk', !!pendingTransferTalk);
+  const visible = !!pendingTransferTalk && active;
 
   useEffect(() => {
-    if (pendingTransferTalk) hapticMedium();
-  }, [pendingTransferTalk]);
+    if (visible) hapticMedium();
+  }, [visible]);
 
-  if (!pendingTransferTalk) return null;
+  if (!visible) return null;
 
   const player = players[pendingTransferTalk.playerId];
 

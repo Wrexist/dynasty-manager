@@ -9,12 +9,36 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
 import type { IncomingOffer } from '@/types/game';
+import { computeAcceptChance, computeEffectiveAskingPrice } from '@/store/slices/transferSlice';
+import { getSignedWage, getPreferredYears } from '@/utils/contracts';
+import {
+  ACCEPT_CHANCE_AT_ASKING, ACCEPT_CHANCE_BELOW, NEGOTIATION_STRIKE_PENALTY, TRANSFER_SHARK_DISCOUNT,
+} from '@/config/transfers';
 
 const CLUB_ID = 'manchester-city';
 
 beforeEach(() => {
   useGameStore.getState().initGame(CLUB_ID);
 });
+
+/** List an AI club's player on the transfer market so executeTransfer/offer
+ *  flows can target them. Gives the target a known wage + a season-expiring
+ *  contract to prove the fresh-contract stamp. */
+function setupBuyTarget(playerOverrides: Record<string, unknown> = {}) {
+  const state = useGameStore.getState();
+  const sellerClubId = Object.keys(state.clubs).find(id => id !== CLUB_ID)!;
+  const targetPlayer = state.clubs[sellerClubId].playerIds[0];
+  useGameStore.setState({
+    transferWindowOpen: true,
+    players: {
+      ...state.players,
+      [targetPlayer]: { ...state.players[targetPlayer], wage: 50_000, contractEnd: state.season, releaseClause: undefined, ...playerOverrides },
+    },
+    transferMarket: [{ playerId: targetPlayer, askingPrice: 20_000_000, sellerClubId }],
+    clubs: { ...state.clubs, [CLUB_ID]: { ...state.clubs[CLUB_ID], budget: 500_000_000 } },
+  });
+  return { targetPlayer, sellerClubId, askingPrice: 20_000_000 };
+}
 
 describe('transferSlice — shortlist', () => {
   it('addToShortlist appends a player id', () => {
@@ -309,6 +333,90 @@ describe('transferSlice — renewContract', () => {
     const result = useGameStore.getState().renewContract(target, 5, 200_000);
     expect(result.success).toBe(false);
     expect(result.message).toMatch(/Insufficient/i);
+  });
+});
+
+describe('transferSlice — executeTransfer fresh contract (G2 defect 1)', () => {
+  it('stamps a fresh contract so a bought final-year player does not walk free', () => {
+    const { targetPlayer, sellerClubId, askingPrice } = setupBuyTarget();
+    const before = useGameStore.getState();
+    const prePlayer = before.players[targetPlayer];
+    const buyerRep = before.clubs[CLUB_ID].reputation;
+    const expectedYears = getPreferredYears(prePlayer.age);
+    const expectedWage = getSignedWage(prePlayer, buyerRep);
+
+    const result = useGameStore.getState().executeTransfer(targetPlayer, askingPrice);
+    expect(result.success).toBe(true);
+
+    const after = useGameStore.getState();
+    const bought = after.players[targetPlayer];
+    // Was expiring THIS season (contractEnd === season); now on a multi-year deal.
+    expect(bought.contractEnd).toBe(before.season + expectedYears);
+    expect(bought.contractEnd).toBeGreaterThan(before.season);
+    // Wage renegotiated and never a pay cut.
+    expect(bought.wage).toBe(expectedWage);
+    expect(bought.wage).toBeGreaterThanOrEqual(50_000);
+    expect(bought.clubId).toBe(CLUB_ID);
+    // Sanity: seller no longer owns him.
+    expect(after.clubs[sellerClubId].playerIds).not.toContain(targetPlayer);
+  });
+
+  it('updates BOTH wage bills correctly — seller loses old wage, buyer gains new wage', () => {
+    const { targetPlayer, sellerClubId, askingPrice } = setupBuyTarget();
+    const before = useGameStore.getState();
+    const prePlayer = before.players[targetPlayer];
+    const sellerWageBefore = before.clubs[sellerClubId].wageBill;
+    const buyerWageBefore = before.clubs[CLUB_ID].wageBill;
+    const expectedWage = getSignedWage(prePlayer, before.clubs[CLUB_ID].reputation);
+
+    useGameStore.getState().executeTransfer(targetPlayer, askingPrice);
+
+    const after = useGameStore.getState();
+    // Seller drops the OLD wage (50k).
+    expect(after.clubs[sellerClubId].wageBill).toBe(Math.max(0, sellerWageBefore - 50_000));
+    // Buyer takes on the NEW (renegotiated) wage, not the old one.
+    expect(after.clubs[CLUB_ID].wageBill).toBe(buyerWageBefore + expectedWage);
+  });
+
+  it('season-end no longer strips a just-bought player (contract survives the season)', () => {
+    const { targetPlayer, askingPrice } = setupBuyTarget();
+    const seasonAtBuy = useGameStore.getState().season;
+    useGameStore.getState().executeTransfer(targetPlayer, askingPrice);
+    // A contract ending strictly after the current season won't expire at season end.
+    expect(useGameStore.getState().players[targetPlayer].contractEnd).toBeGreaterThan(seasonAtBuy);
+  });
+});
+
+describe('transferSlice — displayed odds match the roll (G2 defect 3)', () => {
+  it('getOfferAcceptChance returns the resolver-tier chance at asking price', () => {
+    const { targetPlayer, askingPrice } = setupBuyTarget();
+    // No perks, no strikes, no career discounts → base tier.
+    expect(useGameStore.getState().getOfferAcceptChance(targetPlayer, askingPrice)).toBe(ACCEPT_CHANCE_AT_ASKING);
+  });
+
+  it('getOfferAcceptChance applies the strike penalty the resolver rolls against', () => {
+    const { targetPlayer, askingPrice } = setupBuyTarget();
+    useGameStore.getState().recordNegotiationStrike(targetPlayer);
+    useGameStore.getState().recordNegotiationStrike(targetPlayer);
+    const expected = Math.max(0, ACCEPT_CHANCE_AT_ASKING - 2 * NEGOTIATION_STRIKE_PENALTY);
+    expect(useGameStore.getState().getOfferAcceptChance(targetPlayer, askingPrice)).toBe(expected);
+  });
+
+  it('getOfferAcceptChance honours a release clause as guaranteed acceptance', () => {
+    const { targetPlayer } = setupBuyTarget({ releaseClause: 10_000_000 });
+    expect(useGameStore.getState().getOfferAcceptChance(targetPlayer, 10_000_000)).toBe(1);
+  });
+
+  it('computeAcceptChance / computeEffectiveAskingPrice are pure and shark-aware', () => {
+    const base = {
+      askingPrice: 20_000_000, hasShark: false, sharkDiscountMult: 1,
+      careerFeeDiscount: 0, deadlineDealerMult: 1, existingStrikes: 0,
+    };
+    expect(computeAcceptChance(base, 20_000_000)).toBe(ACCEPT_CHANCE_AT_ASKING);
+    expect(computeAcceptChance(base, 1)).toBe(ACCEPT_CHANCE_BELOW);
+    // Shark discount lowers the effective asking price, so the same fee clears it.
+    const shark = { ...base, hasShark: true };
+    expect(computeEffectiveAskingPrice(shark)).toBeCloseTo(20_000_000 * (1 - TRANSFER_SHARK_DISCOUNT));
   });
 });
 

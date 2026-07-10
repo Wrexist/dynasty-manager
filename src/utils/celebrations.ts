@@ -280,6 +280,67 @@ export function getDramaCelebration(drama: MatchDramaType): Celebration | null {
   }
 }
 
+// ── Trophy ceremonies (G4) ──────────────────────────────────────────────
+
+export interface TrophyMoment {
+  /** Stable per-competition id; the caller dedupes as `trophy-${id}-${season}`. */
+  id: 'league' | 'cup' | 'leagueCup';
+  title: string;
+  subtitle: string;
+}
+
+/**
+ * True when the leader can no longer be caught by any other club. Conservative
+ * on purpose — a strict points gap that ignores goal-difference tie-breaks — so
+ * it never fires a premature trophy ceremony (at worst a genuine final-day,
+ * GD-decided title falls through to the season-end milestone message instead).
+ */
+export function isLeagueTitleClinched(
+  playerClubId: string,
+  leagueTable: LeagueTableEntry[],
+): boolean {
+  if (leagueTable.length < 2) return false;
+  const me = leagueTable.find(e => e.clubId === playerClubId);
+  if (!me) return false;
+  const gamesPerTeam = 2 * (leagueTable.length - 1);
+  let maxChaserCeiling = 0;
+  for (const e of leagueTable) {
+    if (e.clubId === playerClubId) continue;
+    const remaining = Math.max(0, gamesPerTeam - e.played);
+    const ceiling = e.points + 3 * remaining;
+    if (ceiling > maxChaserCeiling) maxChaserCeiling = ceiling;
+  }
+  return me.points > maxChaserCeiling;
+}
+
+/**
+ * Confirmed silverware for the player's club, for the trophy-lift ceremony.
+ * Reuses shipped detection rather than inventing new logic: `cup.winner` /
+ * `leagueCup.winner` are stamped the moment the player wins the final
+ * (matchActions), and the league title is reported once mathematically
+ * clinched. Deduping to once-per-season is the caller's job.
+ */
+export function detectTrophyMoments(args: {
+  playerClubId: string;
+  clubName: string;
+  leagueTable: LeagueTableEntry[];
+  cupWinnerId: string | null | undefined;
+  leagueCupWinnerId: string | null | undefined;
+}): TrophyMoment[] {
+  const { playerClubId, clubName, leagueTable, cupWinnerId, leagueCupWinnerId } = args;
+  const moments: TrophyMoment[] = [];
+  if (isLeagueTitleClinched(playerClubId, leagueTable)) {
+    moments.push({ id: 'league', title: 'Champions!', subtitle: `${clubName} have won the league title.` });
+  }
+  if (cupWinnerId && cupWinnerId === playerClubId) {
+    moments.push({ id: 'cup', title: 'Cup Winners!', subtitle: `${clubName} have lifted the Cup.` });
+  }
+  if (leagueCupWinnerId && leagueCupWinnerId === playerClubId) {
+    moments.push({ id: 'leagueCup', title: 'League Cup Winners!', subtitle: `${clubName} have won the League Cup.` });
+  }
+  return moments;
+}
+
 /** Get current win streak count (useful for streak bonus display) */
 export function getWinStreak(playerClubId: string, fixtures: Match[]): number {
   const playedMatches = fixtures

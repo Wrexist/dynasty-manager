@@ -18,9 +18,11 @@ import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Play, FastForward, Pause, RefreshCw, Zap, Flame, Shield, AlertTriangle, Calendar, MapPin, Trophy, Hand, Clock, type LucideIcon } from 'lucide-react';
 import { hapticHeavy, hapticMedium, hapticLight, hapticSuccess } from '@/utils/haptics';
-import { resumeSfx } from '@/utils/sfx';
+import { resumeSfx, sfxWhistle, sfxRoar, sfxNet, sfxGroan, startCrowdBed, stopCrowdBed } from '@/utils/sfx';
 import { KEY_MOMENT_LOSING_MINUTE, KEY_MOMENT_TIGHT_FINISH_MINUTE, MAX_SUBSTITUTIONS, KEY_MOMENT_DOMINANT_POSSESSION_MIN, KEY_MOMENT_POSSESSION_THRESHOLD, KEY_MOMENT_NEAR_MISS_COUNT, SHOUT_DURATION, SHOUT_COOLDOWN, MAX_SHOUTS_PER_MATCH, MATCH_LOW_FITNESS_THRESHOLD, FITNESS_DEGRADE_PER_MINUTE, PRESSING_FITNESS_DRAIN_PER_POINT, PRESSING_FITNESS_DRAIN_BASELINE, TEMPO_FAST_FITNESS_DRAIN_MOD, TEMPO_SLOW_FITNESS_DRAIN_MOD } from '@/config/matchEngine';
 import { MOTIVATE_FITNESS_DRAIN_MULT, CALM_FITNESS_DRAIN_MULT, DEMAND_FITNESS_DRAIN_MULT } from '@/config/teamTalk';
+import { getDerbyIntensity } from '@/data/league';
+import { evaluateHighStakes, highStakesLabel } from '@/utils/highStakesMatch';
 import type { HalfState } from '@/engine/match';
 import type { ShoutType, KeyMomentChoice } from '@/types/game';
 import { useCurrentMatch } from '@/hooks/useGameSelectors';
@@ -110,7 +112,7 @@ function getTacticsSummary(t: { mentality: string; tempo: string; width: string;
 }
 
 const MatchDayInner = () => {
-  const { playerClubId, week, clubs, matchSubsUsed, tactics, cup, leagueCup, championsCup, shieldCup, conferenceCup, virtualClubs, currentCupTieId, domesticSuperCup, continentalSuperCup, monetization, matchPhase, matchTeamTalk, penaltyShootoutKicks, penaltyShootoutCtx, gameMode, internationalTournament, managerNationality } = useGameStore(useShallow(s => ({
+  const { playerClubId, week, clubs, matchSubsUsed, tactics, cup, leagueCup, championsCup, shieldCup, conferenceCup, virtualClubs, currentCupTieId, domesticSuperCup, continentalSuperCup, monetization, matchPhase, matchTeamTalk, penaltyShootoutKicks, penaltyShootoutCtx, gameMode, internationalTournament, managerNationality, leagueTable } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId,
     week: s.week,
     clubs: s.clubs,
@@ -133,6 +135,7 @@ const MatchDayInner = () => {
     gameMode: s.gameMode,
     internationalTournament: s.internationalTournament,
     managerNationality: s.managerNationality,
+    leagueTable: s.leagueTable,
   })));
   const isWorldCup = gameMode === 'world-cup';
   const playFirstHalf = useGameStore(s => s.playFirstHalf);
@@ -153,6 +156,10 @@ const MatchDayInner = () => {
   const players = useGameStore(s => s.players);
   const settings = useGameStore(s => s.settings);
   const updateSettings = useGameStore(s => s.updateSettings);
+  // Live-match audio (G4). sfx primitives self-gate on the global sound flag,
+  // but we also gate the crowd bed here so it never spins up for a sound-off
+  // user and reacts if they toggle mid-match.
+  const soundEnabled = settings.soundEnabled !== false;
 
   // World Cup shootout mount: when the store already holds a WC match parked
   // at the penalties phase (Capture Studio's staged 2-2 Final, or a session
@@ -281,8 +288,34 @@ const MatchDayInner = () => {
   const wcResolve = (id: string): Club | null => id === playerClubId ? clubs[playerClubId] : (id === wcNext?.opponent ? wcOpponentClub : null);
   const homeClub = matchCacheRef.current?.homeClub ?? (match ? (isWorldCup ? wcResolve(match.homeClubId) : resolveClub(clubs, virtualClubs, match.homeClubId)) : null);
   const awayClub = matchCacheRef.current?.awayClub ?? (match ? (isWorldCup ? wcResolve(match.awayClubId) : resolveClub(clubs, virtualClubs, match.awayClubId)) : null);
+  // High-stakes classification (G3): derby / cup-or-continental knockout /
+  // league six-pointer → offer a pre-kickoff team talk. World Cup mode runs a
+  // separate half engine, so it's excluded here.
+  const isKnockoutTie =
+    !!cupTie || !!leagueCupTie || !!superCupMatch ||
+    (!!continentalMatchInfo && !continentalMatchInfo.roundLabel.startsWith('Group'));
+  const highStakes = (!isWorldCup && match)
+    ? evaluateHighStakes({
+        derbyIntensity: getDerbyIntensity(match.homeClubId, match.awayClubId),
+        isKnockout: isKnockoutTie,
+        isLeagueMatch: !!liveMatch,
+        homeClubId: match.homeClubId,
+        awayClubId: match.awayClubId,
+        leagueTable,
+      })
+    : { highStakes: false as const, reason: null };
+
   // Clear dismissed moments when match changes (e.g. multi-match sessions)
   useEffect(() => { dismissedMomentsRef.current.clear(); }, [match]);
+  // Reset any pre-kickoff team talk when the pending match changes while on the
+  // pre screen (G3). Guards against a talk picked on one match's pre screen
+  // (then abandoned without kicking off) leaking into a later match's first
+  // half. Within a single pre screen the id is stable, so the selection sticks.
+  useEffect(() => {
+    if (phaseRef.current === 'pre' && useGameStore.getState().matchTeamTalk !== 'none') {
+      useGameStore.setState({ matchTeamTalk: 'none' });
+    }
+  }, [match?.id]);
   // No useEffect needed — PostMatchPopup now navigates directly to Match Review
 
   // No auto-start — show "Ready to Kick Off?" screen instead
@@ -299,6 +332,10 @@ const MatchDayInner = () => {
     }
     // Cache match data so it survives the fixture being marked as played
     matchCacheRef.current = { match, homeClub, awayClub };
+    // This tap is the guaranteed user gesture — unlock iOS WebAudio and blow
+    // the kickoff whistle. The crowd bed starts via the live-phase effect.
+    resumeSfx();
+    sfxWhistle();
     const halfState = isWorldCup ? playWorldCupFirstHalf() : playFirstHalf();
     if (!halfState) return;
     // WC: the opponent squad is materialised by the action above — refresh the
@@ -599,6 +636,9 @@ const MatchDayInner = () => {
       const latest = scoreChangingEvents[scoreChangingEvents.length - 1];
       const userScored = latest?.clubId === playerClubId;
       if (userScored) hapticSuccess(); else hapticHeavy();
+      // Goal audio (G4): a net swish + crowd roar for the player's own goals,
+      // a deflating groan when they concede. Self-gated on the sound flag.
+      if (userScored) { sfxNet(); sfxRoar(false); } else { sfxGroan(); }
       setGoalFlash(true);
       clearTimeout(goalFlashTimerRef.current);
       goalFlashTimerRef.current = setTimeout(() => setGoalFlash(false), GOAL_FLASH_MS);
@@ -616,8 +656,31 @@ const MatchDayInner = () => {
   // setGoalFlash(false) fires on an unmounted component.
   useEffect(() => () => clearTimeout(goalFlashTimerRef.current), []);
 
+  // Live crowd ambience (G4): a quiet bed under active play only. Starts on the
+  // first live phase, stops on leaving live / unmount / backgrounding (so it
+  // never bleeds into the instant-sim result screen or a hidden tab). Gated on
+  // the sound setting; startCrowdBed is idempotent and self-no-ops without audio.
+  const isLivePhase = phase === 'first_half' || phase === 'second_half' || phase === 'extra_time';
   useEffect(() => {
-    if (phase === 'post') hapticMedium();
+    if (!isLivePhase || !soundEnabled) return;
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') stopCrowdBed(); else startCrowdBed();
+    };
+    startCrowdBed();
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      stopCrowdBed();
+    };
+  }, [isLivePhase, soundEnabled]);
+
+  useEffect(() => {
+    if (phase === 'post') {
+      hapticMedium();
+      // Full-time whistle (G4). The crowd bed is torn down by the live-phase
+      // effect as `phase` leaves the live set.
+      sfxWhistle();
+    }
   }, [phase]);
 
   // When penalty shootout finalization completes (matchPhase becomes 'full_time'),
@@ -981,6 +1044,52 @@ const MatchDayInner = () => {
               onSelect={setSpeed}
               onLockedSelect={() => setScreen('shop')}
             />
+
+            {/* Pre-kickoff team talk — high-stakes matches only (G3). Uses the
+                same matchTeamTalk state as the half-time sheet, applied to the
+                first half then cleared so half-time starts fresh. */}
+            {highStakes.highStakes && (
+              <div className="space-y-2 pt-1">
+                <div className="flex items-center justify-between">
+                  <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-primary">
+                    <Flame className="w-3 h-3" /> {highStakesLabel(highStakes.reason)} — Team Talk
+                  </span>
+                  <span className="text-[9px] text-muted-foreground/70">Sets the first-half mood</span>
+                </div>
+                {TEAM_TALK_OPTIONS.map(talk => {
+                  const TalkIcon = talk.id === 'motivate' ? Flame : talk.id === 'calm' ? Shield : AlertTriangle;
+                  const isSelected = matchTeamTalk === talk.id;
+                  return (
+                    <button
+                      key={talk.id}
+                      onClick={() => {
+                        hapticLight();
+                        setTeamTalk(talk.id as TeamTalkType);
+                        infoToast(`"${talk.description}"`);
+                      }}
+                      aria-pressed={isSelected}
+                      aria-label={`${talk.label} pre-match team talk: ${talk.description}`}
+                      className={cn(
+                        'w-full flex items-center gap-2.5 p-2.5 rounded-xl transition-all text-left',
+                        isSelected
+                          ? 'bg-primary/15 border border-primary/50'
+                          : 'bg-muted/20 border border-transparent hover:bg-muted/40',
+                      )}
+                    >
+                      <div className={cn('p-1.5 rounded-lg shrink-0', isSelected ? 'bg-primary/20' : 'bg-muted/30')}>
+                        <TalkIcon className={cn('w-3.5 h-3.5', isSelected ? 'text-primary' : 'text-muted-foreground')} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className={cn('text-xs font-semibold', isSelected ? 'text-primary' : 'text-foreground')}>{talk.label}</span>
+                        <p className="text-[10px] text-muted-foreground italic truncate">"{talk.description}"</p>
+                      </div>
+                      {isSelected && <span className="text-[9px] text-primary/70 uppercase tracking-wider font-medium shrink-0">Selected</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
             <Button className="w-full h-12 text-base font-bold gap-2" onClick={() => { hapticLight(); kickOff(); }}>
               <Play className="w-5 h-5" /> Kick Off
             </Button>
