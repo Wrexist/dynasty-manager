@@ -49,3 +49,16 @@ describe('featured challenge rotation', () => {
     expect(isoWeek(new Date(2026, 11, 31))).toBeLessThanOrEqual(53);
   });
 });
+
+describe('device-global completion gate (XP farming guard)', () => {
+  it('addCompletedChallenge is true on first insert, false on repeat', async () => {
+    const { addCompletedChallenge, readCompletedChallenges } = await import('@/store/helpers/persistence');
+    const id = 'test-farm-guard';
+    expect(readCompletedChallenges().includes(id)).toBe(false);
+    expect(addCompletedChallenge(id)).toBe(true);
+    expect(readCompletedChallenges().includes(id)).toBe(true);
+    // Replaying the same scenario on this device must not read as a first
+    // completion — seasonEnd gates the XP grant on exactly this.
+    expect(addCompletedChallenge(id)).toBe(false);
+  });
+});

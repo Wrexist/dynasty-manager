@@ -24,7 +24,7 @@ import { getContinentalResultForClub } from '@/utils/continental';
 import { DOMESTIC_SUPER_CUP_WEEK, CONTINENTAL_SUPER_CUP_WEEK, REP_CHAMPIONS_CUP_WIN, REP_SHIELD_CUP_WIN, REP_CONFERENCE_CUP_WIN, REP_LEAGUE_CUP_WIN, REP_CONTINENTAL_GROUP, REP_CONTINENTAL_KNOCKOUT } from '@/config/continental';
 
 import { checkChallengeComplete, CHALLENGES, getFeaturedChallengeId, FEATURED_CHALLENGE_XP_MULTIPLIER } from '@/data/challenges';
-import { addCompletedChallenge } from '@/store/helpers/persistence';
+import { addCompletedChallenge, readCompletedChallenges } from '@/store/helpers/persistence';
 import { calculateSeasonAwards } from '@/utils/seasonAwards';
 import { calculateBallonDOr } from '@/utils/ballonDor';
 import { getPlayerRarity } from '@/utils/playerRarity';
@@ -1176,14 +1176,21 @@ function finalizeSeason(
       // Reward: manager XP scaled by difficulty, with a bonus multiplier when
       // this scenario is the current weekly Featured Challenge. Persisted as a
       // device-global completion so the picker can show a check + earned badge.
+      // XP is FIRST-completion-only (gated on the pre-existing record, not on
+      // addCompletedChallenge's return, so a storage write failure can't deny
+      // a legitimate first reward) — otherwise replaying a finished scenario
+      // in a fresh save farms manager XP forever.
       const featured = getFeaturedChallengeId() === endChallenge.scenarioId;
-      const baseXp = scenario?.rewardXp ?? 0;
-      challengeRewardXp = Math.round(baseXp * (featured ? FEATURED_CHALLENGE_XP_MULTIPLIER : 1));
+      const firstCompletion = !readCompletedChallenges().includes(endChallenge.scenarioId);
       addCompletedChallenge(endChallenge.scenarioId);
-      track('challenge_completed', { challengeId: endChallenge.scenarioId, xp: challengeRewardXp, featured });
+      if (firstCompletion) {
+        const baseXp = scenario?.rewardXp ?? 0;
+        challengeRewardXp = Math.round(baseXp * (featured ? FEATURED_CHALLENGE_XP_MULTIPLIER : 1));
+        track('challenge_completed', { challengeId: endChallenge.scenarioId, xp: challengeRewardXp, featured });
+      }
       newMessages = addMsg(newMessages, {
         week: 1, season: newSeason, type: 'board', title: 'Challenge Complete!',
-        body: `Congratulations! You completed the "${scenario?.name}" challenge!${challengeRewardXp > 0 ? ` +${challengeRewardXp} XP${featured ? ' (Featured bonus!)' : ''}` : ''} ${scenario?.icon || ''}`,
+        body: `Congratulations! You completed the "${scenario?.name}" challenge!${challengeRewardXp > 0 ? ` +${challengeRewardXp} XP${featured ? ' (Featured bonus!)' : ''}` : ' Badge already earned on this device.'} ${scenario?.icon || ''}`,
       });
     } else {
       endChallenge = { ...endChallenge, seasonsRemaining: endChallenge.seasonsRemaining - 1 };

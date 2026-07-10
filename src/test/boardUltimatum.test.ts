@@ -132,3 +132,17 @@ describe('board ultimatum — deadline', () => {
     expect(lastBoardMessage('Sacked')).toBeFalsy();
   });
 });
+
+describe('board ultimatum — short-league deadline clamp', () => {
+  it('does NOT issue when the deadline could not mature before season end', async () => {
+    // Deadline would be REVIEW_WEEK + horizon > totalWeeks — seasonEnd would
+    // wipe the ultimatum before its deadline branch ever ran, so the board
+    // must not make a threat it can never follow through on.
+    useGameStore.setState({
+      season: 2, week: REVIEW_WEEK - 1, boardConfidence: 10,
+      totalWeeks: REVIEW_WEEK + ULTIMATUM_HORIZON_WEEKS - 1,
+    });
+    await useGameStore.getState().advanceWeek();
+    expect(useGameStore.getState().boardUltimatum).toBeNull();
+  });
+});

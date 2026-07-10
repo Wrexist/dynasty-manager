@@ -2506,7 +2506,13 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     if (!newBoardUltimatum
         && BOARD_REVIEW_WEEKS.includes(newWeek)
         && newBoardConfidence <= ULTIMATUM_CONFIDENCE_THRESHOLD
-        && !(season === 1 && newWeek < ULTIMATUM_SEASON1_GRACE_WEEK)) {
+        && !(season === 1 && newWeek < ULTIMATUM_SEASON1_GRACE_WEEK)
+        // Never issue a threat that cannot mature: in short leagues a
+        // review-week ultimatum whose deadline lands past totalWeeks would be
+        // wiped by seasonEnd before the deadline branch ever runs. Late-season
+        // rock-bottom confidence is already handled by the season-end sack
+        // verdict (BOARD_SACKING_THRESHOLD).
+        && newWeek + ULTIMATUM_HORIZON_WEEKS <= (state.totalWeeks || TOTAL_WEEKS)) {
       const expected = getExpectedPosition(playerClub.reputation);
       const target = Math.min(leagueTable.length || 20, expected + ULTIMATUM_POSITION_TOLERANCE);
       newBoardUltimatum = {
