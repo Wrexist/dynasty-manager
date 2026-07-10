@@ -25,6 +25,8 @@ and the highest-LTV player has no backup for a multi-season dynasty.
 
 ## G1 — Kill the cold-open paywall, compress the funnel
 
+> ✅ **Shipped 2026-07-10** — paywall deferred to post-first-match (`utils/paywallTiming.ts`), slot guard, inline community-pack toggle, one-card welcome, mode-aware copy.
+
 **Why.** The worst trust-and-revenue defect in the app (flagged P0 independently by two
 audit passes). A full-screen Pro paywall fires before the player has picked a mode,
 seen a club, or kicked a ball (`TitleScreen.tsx:110-127` → `/subscribe` before
@@ -53,6 +55,8 @@ paywall fire exactly once.
 ---
 
 ## G2 — Fix paid mechanics that silently under-deliver
+
+> ✅ **Shipped 2026-07-10** — fresh contracts on paid signings (`transferSlice` + `getSignedWage`), null-safe subscription sync (4 sites + listener), shared negotiation-odds math, stranded-pack recovery toast, honest Starter Kit.
 
 **Why.** The player pays — money or a core decision — and silently gets less than
 promised. Verified cluster:
@@ -89,6 +93,8 @@ field, bump `CURRENT_VERSION` + migration. Test season-end expiry after a mid-se
 
 ## G3 — Turn the weekly loop from a button-tap into a game you play
 
+> ✅ **Shipped 2026-07-10** — friendlies dodge occupied weeks (all 45 leagues verified), lineup-aware auto-sim, board ultimatums with mid-season sack (schema v73), one-at-a-time presentation queue, pre-kickoff team talks, free tactical debrief.
+
 **Why.** The interaction performed ~46×/season. Today the optimal week is "tap Advance
 until a match appears": MatchPrep has zero verbs, board pressure has no mid-season
 consequence, and one Advance can stack ~10 independent dismiss-tap modals with haptics
@@ -124,6 +130,8 @@ debrief · sustained rock-bottom confidence can end in a mid-season sacking.
 
 ## G4 — Wire the shipped audio engine game-wide; generalize the trophy ceremony
 
+> ✅ **Shipped 2026-07-10** — global sound-setting sync, pack-walkout SFX handler registered, live-match audio (whistles/roar/groan/crowd bed), celebration + digest cues, reusable `TrophyLift` + `TrophyCeremonyModal` for titles and cup wins. *Needs one on-device listening pass.*
+
 **Why.** The highest immersion-per-line change available. A fully built procedural SFX
 engine (`sfx.ts`) shipped with the shootout and is wired to <5% of the game. The
 flagship 90-minute match is **silent**. The monetized pack walkout is silent because
@@ -149,6 +157,8 @@ unlock already handled via `resumeSfx`.
 ---
 
 ## G5 — Keep retention systems alive and make them personal
+
+> ✅ **Shipped 2026-07-10** — deterministic monthly festivals (never-dark) + teaser, challenge XP/badges + weekly featured rotation, save-aware comeback notifications + first-win permission ask, resume card, daily-pack dot.
 
 **Why.** Shipped retention pillars are dead or generic. The **entire festival
 subsystem goes permanently dark on 2026-07-19** — ten days out — with nothing queued
@@ -176,6 +186,8 @@ returning players land on one ranked resume card.
 
 ## G6 — Protect the deep player's dynasty from data loss
 
+> ✅ **Shipped 2026-07-10** — export/import in Settings with full validation chain, `preMatchSnapshot` persisted, validated backup rotation. *Cloud backup remains the deferred larger arc (by design).*
+
 **Why.** The highest-LTV player — ten seasons in, most likely to review — loses
 everything on a lost phone or iOS IndexedDB eviction. No cloud save, no export
 (verified: zero account/sync code). This is the "lost my save" 1-star generator and it
@@ -201,6 +213,8 @@ cloud backup restores a career on a fresh install.
 
 ## G7 — Seize the closing World Cup window; sharpen the market wedge
 
+> ✅ **Shipped 2026-07-10 (engineering + drafts)** — canvas share cards on WC final + shootout wins; `marketing/aso/wc-2026-refresh.md` has paste-ready EN/ES/PT metadata. *Owner action: paste metadata into App Store Connect + capture the 5 screenshots before the WC final.*
+
 **Why.** The real WC 2026 is on air for **only a few more weeks** and this is the only
 major mobile football manager with a native WC-2026 mode. Two zero-engineering wedges
 compound it: the game already *has* the no-energy/no-rest-pack loop Top Eleven players
@@ -222,6 +236,8 @@ doesn't.
 ---
 
 ## Quick wins (each < ~2h, independent of the goals)
+
+> ✅ All six shipped 2026-07-10 (1–5 inside their parent goals; 6 standalone — dead shadcn toast system removed, ~4.9 kB gz saved).
 
 1. Remove the `/subscribe` branch in `TitleScreen.tsx:110-127` (G1's core one-liner).
 2. Register `setPackSfxHandler` in `main.tsx` → the monetized walkout becomes audible
