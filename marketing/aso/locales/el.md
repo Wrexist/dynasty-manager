@@ -1,20 +1,20 @@
 # el — Greek (App Store)
 
-Storefronts reached: Greece and Cyprus (Greek-preferring users). Apple serves el metadata to both. Greek fans call the World Cup "Μουντιάλ" in everyday search (the loanword beats the formal "Παγκόσμιο Κύπελλο"), so the Subtitle leads with it. Keywords are unaccented Greek to match how fans type without tonos.
+Storefronts reached: Greece and Cyprus (Greek-preferring users). Apple serves el metadata to both. Greek fans call the World Cup "Μουντιάλ" in everyday search (the loanword beats the formal "Παγκόσμιο Κύπελλο"), so the Subtitle leads with it — now paired with "μάνατζερ", the head term Top Eleven skips (it uses the generic "Παιχνίδι Μάνατζερ"). App Name "Ποδόσφαιρο" + Subtitle "μάνατζερ" reconstruct the high-intent "ποδοσφαιρικός μάνατζερ" no localized rival owns. Keywords are unaccented Greek to match how fans type without tonos.
 
 ## App Name [27/30]
 `Dynasty Manager: Ποδόσφαιρο`
 
-## Subtitle [25/30]
-`Μουντιάλ 2026: προπονητής`
+## Subtitle [23/30]
+`Μουντιάλ 2026: μάνατζερ`
 
-## Promotional Text [168/170]
-`Το Μουντιάλ 2026 είναι εδώ. Οδήγησε την εθνική σου από τους ομίλους ως τον τελικό στα πέναλτι. Χωρίς μπάρες ενέργειας. Χωρίς αναμονή. Βαθιά προσομοίωση, χωρίς συνδρομή.`
+## Promotional Text [154/170]
+`Το Μουντιάλ 2026 ήρθε. Οδήγησε την εθνική από τους ομίλους ως τον τελικό στα πέναλτι. Χωρίς μπάρες ενέργειας, χωρίς αναμονή. Πλήρες βάθος, χωρίς συνδρομή.`
 
-## Keywords [98/100]
-`μανατζερ,εθνικη,πεναλτι,καριερα,πρωταθλημα,τακτικη,μεταγραφες,ενδεκαδα,ομαδα,κυπελλο,συλλογος,γκολ`
+## Keywords [99/100]
+`εθνικη,πεναλτι,καριερα,πρωταθλημα,τακτικη,μεταγραφες,ενδεκαδα,κυπελλο,συλλογος,προπονητης,παγκοσμιο`
 
-## Description [~1620/4000]
+## Description [1551/4000]
 Το Μουντιάλ 2026 είναι εδώ. Διάλεξε μία από 50+ εθνικές ομάδες και οδήγησέ την από τους ομίλους μέχρι τον τελικό που κρίνεται στα πέναλτι – κάθε απόφαση είναι δική σου.
 
 Το Dynasty Manager είναι ένα βαθύ παιχνίδι διαχείρισης ποδοσφαίρου που παίζεις όπου κι αν είσαι. Χωρίς pay-to-win, χωρίς μπάρες ενέργειας, χωρίς πακέτα ξεκούρασης, χωρίς αναμονή ανάμεσα στις παρτίδες. Παίξε όσο θέλεις – όλο το βάθος της διαχείρισης χωρίς καμία συνδρομή.
@@ -48,8 +48,8 @@ Storefronts reached: Greece and Cyprus (Greek-preferring users). Apple serves el
 5. Διηύθυνε κάθε λεπτό του αγώνα
 
 ## Keyword rationale
-- "μανατζερ" is the transliterated head term Greeks actually type for a manager game (they search the Greek spelling of the loanword, not the Latin "manager"), so it earns a place even though the brand carries "Manager" in Latin.
+- **Biggest change: "μάνατζερ" moved from Keywords into the Subtitle**, replacing the old "προπονητής" (coach). "μάνατζερ" is the transliterated head term Greeks type for a manager game, and Top Eleven underweights it (its GR title uses the generic "Παιχνίδι Μάνατζερ", not the sport-specific "ποδοσφαιρικός μάνατζερ"). A subtitle placement carries more ranking weight than a keyword token, and with App Name "Ποδόσφαιρο" it reconstructs "ποδοσφαιρικός μάνατζερ" — a phrase no localized rival owns.
+- "προπονητης" (coach) drops into Keywords now that the old subtitle no longer holds it; "παγκοσμιο" added = the formal WC name, which with "κυπελλο" reconstructs "Παγκόσμιο Κύπελλο" as a bonus alongside the in-title "Μουντιάλ".
 - "εθνικη", "πεναλτι", "ενδεκαδα", "μεταγραφες", "κυπελλο", "συλλογος" are the natural Greek words for national team, penalty, starting XI, transfers, cup and club — culturally correct over any calque.
-- All Keywords are unaccented (no tonos: "εθνικη" not "εθνική", "καριερα" not "καριέρα") because Greek users routinely omit accents in search; Apple matches the accented form too, so it's free coverage.
-- "Μουντιάλ" and "ποδόσφαιρο" are omitted from Keywords — they sit in the Subtitle/App Name and are indexed separately; "πρωταθλημα" covers the generic league/championship search instead.
-- "τακτικη", "καριερα", "ομαδα" are high-volume management-sim head terms anchoring the field. No plurals of included singulars, no club/league proper nouns.
+- All Keywords are unaccented (no tonos: "εθνικη" not "εθνική") because Greek users routinely omit accents in search; Apple matches the accented form too, so it's free coverage.
+- "Μουντιάλ", "μανατζερ" and "ποδόσφαιρο" are omitted from Keywords — they sit in the Subtitle/App Name and are indexed separately. Dropped the weakest terms ("ομαδα", "γκολ") to fund "προπονητης"/"παγκοσμιο". No plurals of included singulars, no club/league proper nouns.

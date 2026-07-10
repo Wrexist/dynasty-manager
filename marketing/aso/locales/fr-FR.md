@@ -11,8 +11,8 @@ Storefronts reached: France plus the default French localization across most Fre
 ## Promotional Text [163/170]
 `Le mode Coupe du Monde 2026 est là : menez votre équipe des poules à la finale aux tirs au but. Sans jauge d'énergie, sans attente. Simu complète, sans abonnement.`
 
-## Keywords [96/100]
-`coupe du monde,tirs au but,tactique,carriere,mercato,effectif,selection,ligue,transferts,penalty`
+## Keywords [94/100]
+`coupe du monde,tirs au but,sans abonnement,simulation,tactique,mercato,effectif,carriere,ligue`
 
 ## Description [~1490/4000]
 Le mode Coupe du Monde 2026 est là. Choisissez parmi plus de 50 sélections nationales et menez la vôtre de la phase de poules jusqu'à une finale décidée aux tirs au but. Chaque décision compte : la compo, les changements, la tactique à la mi-temps.
@@ -45,8 +45,12 @@ Le mode Coupe du Monde 2026 est disponible : menez plus de 50 sélections de la 
 5. Gérez chaque minute, sans attente
 
 ## Keyword rationale
-- French fans search the WC by both names: the formal "coupe du monde" (highest-volume head term, so it leads the keyword field) and the colloquial "Mondial" (placed in the Subtitle where it's indexed once). Split across the two fields to cover both without wasting characters.
-- Core management vocabulary is the real French football lexicon: "entraîneur" (the manager himself, in Subtitle), "effectif" (squad), "mercato" (the universal FR word for the transfer window — far higher volume than "transferts", though I keep "transferts" too for the literal query), "tactique", "compo/formations", "carrière".
+- **WC-2026 refresh (2026-07):** added the two highest-leverage terms this competitive window exposes and dropped the weakest to make room.
+  - **`sans abonnement`** — the single biggest structural opportunity across every French storefront. The category's #1 search brand is now effectively orphaned on the App Store: the flagship "football manager" listing is subscription-gated (Netflix-exclusive) and its former mobile edition was delisted (Nov 2025). Every high-intent management searcher who hits that paywall is a free-download conversion for us. Winning "sans abonnement" as a search term (paired with the "Simu complète, sans abonnement" close in Subtitle-adjacent Promo/Description) flanks that gate directly — without naming the protected brand.
+  - **`simulation`** — the depth signal the arcade giants (on-pitch play) don't rank for and the thin keyword-stuffed clones don't earn; it qualifies our intent as a management sim, not a match game.
+  - Dropped **`penalty`** (English, redundant against "tirs au but"), **`transferts`** ("mercato" already carries the transfer-window query at far higher volume), and **`selection`** (national-team intent is covered by "Mondial"/"Coupe du Monde" + the WC copy).
+- French fans search the WC by both names: the formal "coupe du monde" (highest-volume head term, leads the field) and the colloquial "Mondial" (in the Subtitle, indexed once). Split across the two fields to cover both without wasting characters.
+- Core management vocabulary is the real French football lexicon: "entraîneur" (the native coach term majors under-index — in Subtitle), "effectif" (squad), "mercato" (the universal FR transfer-window word), "tactique", "carrière", "ligue".
 - "tirs au but" is the France-specific term for a penalty shootout (Québec says "tirs de barrage" — see fr-CA). Kept as a two-word phrase because that's exactly how it's typed.
-- Deliberately excluded real league/club/player names (IP risk) and "foot/football" as keywords since both already sit in the App Name/Subtitle and Apple indexes those separately — repeating them would burn characters.
+- Deliberately excluded real league/club/player names and competitor names (IP risk) and "foot/football" as keywords since both already sit in the App Name/Subtitle and Apple indexes those separately.
 - Safe alternate WC phrasing if you want near-zero IP exposure: swap "Coupe du Monde" for "Championnat du Monde" or the standalone "Mondial", keeping the in-app mode name consistent.

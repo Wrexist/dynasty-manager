@@ -5,14 +5,14 @@ Storefronts reached: mainland China (App Store availability there is limited/sub
 ## App Name [21/30]
 `Dynasty Manager: 足球经理`
 
-## Subtitle [16/30]
-`决战世界杯2026 战术登顶夺冠`
+## Subtitle [21/30]
+`世界杯2026 执掌国家队帅位 无体力限制`
 
-## Promotional Text [76/170]
-`世界杯2026模式已上线。带领任意国家队从小组赛一路杀进点球大战决赛。没有体力条，没有体力包，没有等待。无需订阅，畅享完整的足球经营深度。7天免费试用。`
+## Promotional Text [93/170]
+`世界杯2026模式已上线！执掌任意国家队帅位，从小组赛一路杀进点球大战决赛。45个联赛、756家真实俱乐部任你执教。没有体力条，没有体力包，没有等待。无需订阅畅享完整生涯，7天免费试用。`
 
 ## Keywords [99/100]
-`国家队,点球大战,转会,阵容,阵型,生涯,联赛,俱乐部,青训,模拟经营,战略,卡包,教练,球员,名门,球探,升降级,洲际赛,养成,冠军,策略,引援,执教,王朝,训练,球队,租借,签约,比赛,经营游戏`
+`点球大战,转会,阵容,阵型,生涯,联赛,俱乐部,青训,模拟经营,战略,卡包,教练,球员,名门,球探,升降级,洲际赛,养成,冠军,引援,执教,王朝,训练,球队,租借,签约,比赛,经营游戏,经理人,战术`
 
 ## Description [~897/4000]
 世界杯2026模式已上线。从50多支国家队中挑选你的球队，从小组赛一路杀过淘汰赛，直到点球大战决赛，冲击荣耀。这个夏天，把真正的主帅体验装进口袋。
@@ -53,13 +53,14 @@ Dynasty Manager是一款硬核的足球经营模拟游戏。在37个国家、45�
 5. 逐分钟指挥全场
 
 ## Keyword rationale
-- Name/Subtitle words are not repeated: 足球经理 (Name, covers 足球/经理) and 世界杯·2026·战术·决战·登顶 (Subtitle) are already indexed, so keywords hold only distinct terms.
-- 足球经理 in the Name is the exact category label CN players type for the football-management genre — it is the standard genre keyword, so owning it in the Name anchors category search.
-- 国家队 (national team) and 点球大战 (the standard Mandarin term for a penalty shootout — far more searched than any literal rendering) carry the World Cup window; 洲际赛 rides continental-cup intent without naming a real competition.
-- Management vocabulary mirrors the in-game tabs and CN football-sim search habits: 转会 (transfers), 阵容/阵型 (squad/formation), 球探 (scout), 青训/养成 (youth development), 升降级 (promotion/relegation), 生涯 (career), 教练 (coach — the CN word for a manager alongside 主帅).
-- 模拟经营 and 策略/战略 target the management/strategy-sim browse cluster; 卡包 ties pack-opening to the card-collecting search cluster; 冠军 and 名门 add trophy/prestige intent.
-- Enrichment pass added five terms to fill the field to 99/100: 球队 (team/squad — top-volume, distinct from 俱乐部/club), 租借 (loan — the loan-deal system), 签约 (sign a contract — career negotiation), 比赛 (match — the core sim word) and 经营游戏 (management game — the genre-browse phrase; 经营 is NOT in the Name, which carries 经理). None duplicate a Name/Subtitle substring.
-- Subtitle strengthened with 夺冠 (win the title) — a distinct verb indexed nowhere else, reading naturally as "战术登顶夺冠"; kept out of the keyword field so no character is spent twice.
+- Name/Subtitle words are not repeated: 足球经理 (Name, covers 足球/经理) and 世界杯·2026·执掌·国家队·帅位·无体力·限制 (Subtitle) are already indexed, so keywords hold only distinct terms.
+- 足球经理 in the Name is the exact category label CN players type for the football-management genre — the standard, unbranded genre keyword (the trademarked "Football Manager" is deliberately avoided; generic 足球经理 is what unbranded competitors use), so owning it in the Name anchors category search.
+- 点球大战 (the standard Mandarin term for a penalty shootout — far more searched than any literal rendering) carries the World Cup window; 洲际赛 rides continental-cup intent without naming a real competition.
+- **Subtitle rewritten as the conversion line (competitor-driven):** the deep-management incumbents stay evergreen/club and do not foreground a national-team job, so "执掌国家队帅位" (take the national-team hot seat) opens the WC-2026 national-team wedge, and "无体力限制" (no stamina limits) states the trio no competitor claims — a flank on the hidden energy/token grind of gacha/energy-gated rivals. 国家队 moved out of the keyword field into the Subtitle so it stays indexed for free.
+- Management vocabulary mirrors the in-game tabs and CN football-sim search habits: 转会 (transfers), 阵容/阵型 (squad/formation), 球探 (scout), 青训/养成 (youth development), 升降级 (promotion/relegation), 生涯 (career), 教练 (coach — the CN word for a manager alongside 主帅), and 战术 (tactics — moved into the keyword field now that the Subtitle no longer carries it).
+- 模拟经营 and 战略 target the management/strategy-sim browse cluster; 卡包 ties pack-opening to the card-collecting search cluster; 冠军 and 名门 add trophy/prestige intent.
+- Loop terms: 球队 (team/squad — distinct from 俱乐部/club), 租借 (loan-deal system), 签约 (career negotiation), 比赛 (match — core sim word), 经营游戏 (management-game genre-browse phrase; 经营 is NOT in the Name, which carries 经理).
+- **New this pass (competitor-driven):** added 经理人 — the exact zh-Hans head term Top Eleven owns in its own mainland title ("Top Eleven 2026：成为全世界最优秀的足球经理人"), which the research flags as the zh-Hans-preferred variant (vs zh-Hant's 領隊). It is a distinct lexical unit (the 人-suffixed manager noun) and a generic descriptor, so it captures the 经理人-searcher segment the bare Name misses. Added 战术; dropped the redundant 策略 (duplicates 战略) to stay at 99/100.
 - Cross-store note: because zh-Hant serves TW/HK separately, this field targets mainland + Simplified-Chinese diaspora search only; the Traditional forms (球會/十二碼) live in zh-Hant so neither field wastes characters on the other's script.
 
 ## Trademark-safe alternate phrasing (per source doc, low-IP variant)

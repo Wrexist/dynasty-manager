@@ -5,14 +5,14 @@ Storefronts reached: South Korea. ko is Apple's only Korean localization and ser
 ## App Name [22/30]
 `Dynasty Manager: 축구 감독`
 
-## Subtitle [26/30]
-`월드컵 2026, 전술로 제패하고 왕조를 세워라`
+## Subtitle [27/30]
+`월드컵 2026, 국가대표를 이끌고 왕조를 세워라`
 
-## Promotional Text [115/170]
-`월드컵 2026 모드가 열렸다. 어떤 국가대표든 조별리그부터 승부차기 결승까지 이끌어라. 에너지 타이머 없음, 휴식 팩 없음, 기다림 없음. 구독 없이도 깊이 있는 축구 경영의 모든 것을. 7일 무료 체험.`
+## Promotional Text [131/170]
+`월드컵 2026 모드가 열렸다! 어떤 국가대표든 조별리그부터 승부차기 결승까지 이끌어라. 45개 리그, 756개 실제 클럽을 지휘하라. 에너지 타이머 없음, 휴식 팩 없음, 기다림 없음. 구독 없이 완전한 감독 커리어를, 7일 무료로.`
 
 ## Keywords [98/100]
-`국가대표,승부차기,이적,스쿼드,포메이션,커리어,리그,클럽,유망주,시뮬레이션,명문,전략,선수단,스카우트,승격,대표팀,국제대회,카드팩,경영,전략게임,우승,팀,매니저,임대,계약,훈련`
+`승부차기,이적,스쿼드,포메이션,커리어,리그,클럽,유망주,시뮬레이션,명문,전략,선수단,스카우트,승격,대표팀,국제대회,카드팩,경영,전략게임,팀,풋볼매니저,임대,계약,훈련,전술,구단`
 
 ## Description [~989/4000]
 월드컵 2026 모드가 도착했습니다. 50개가 넘는 국가대표 중 원하는 나라를 골라 조별리그부터 토너먼트, 그리고 승부차기 결승까지 한 경기씩 영광을 향해 달려보세요. 이번 여름, 진짜 감독의 손맛을 주머니 속에 담았습니다.
@@ -48,13 +48,14 @@ Dynasty Pro를 이용하면 광고 제거, 고급 분석, 경기 즉시 시뮬�
 5. 매 분을 지휘하라
 
 ## Keyword rationale
-- Name/Subtitle words are not repeated: 축구·감독 (Name) and 월드컵·2026·전술·제패 (Subtitle) are already indexed, so keywords carry only distinct high-intent terms.
-- 축구 감독 in the Name is the exact genre phrase KR fans search — 축구 (football, the dominant query over 풋볼) plus 감독 (manager/gaffer, the word Korean media uses for a head coach) covers sport and role in one indexed unit.
-- 국가대표 and 대표팀 (national team, both common spellings) plus 승부차기 (the standard Korean term for a penalty shootout) carry the World Cup window; 국제대회 rides international-tournament intent without naming a real competition.
-- Management verbs mirror the in-game tabs and Korean football-sim vocabulary: 이적 (transfers — a top-volume KR football search word), 스쿼드/선수단 (squad), 포메이션, 스카우트, 유망주 (youth prospects), 승격 (promotion), 경영.
-- 명문 (prestigious club), 시뮬레이션, 전략게임 and 우승 (winning the title) round out genre/strategy intent; 카드팩 ties the pack-opening feature to the collectible-card cluster.
-- Enrichment pass added four terms to fill the field to 98/100: 매니저 (manager — the loanword KR players type alongside 감독, and NOT a substring of the Name's 감독), 임대 (loan — the dedicated loan-deal system), 계약 (contract — career negotiation intent) and 훈련 (training). None duplicate a Name/Subtitle substring.
-- Subtitle strengthened to add 왕조 (dynasty) — the brand noun, indexed nowhere before — reading as a natural imperative ("전술로 제패하고 왕조를 세워라"); it is kept out of the keyword field so no character is spent twice.
+- Name/Subtitle words are not repeated: 축구·감독 (Name) and 월드컵·2026·국가대표·왕조 (Subtitle) are already indexed, so keywords carry only distinct high-intent terms.
+- 축구 감독 in the Name is the exact genre phrase KR fans search — 축구 (football, the dominant query over 풋볼) plus 감독 (the native Korean word for a head coach/manager). Competitor evidence: Top Eleven migrated its KR title from "축구 매니저" to "축구 감독 게임," confirming 감독 as the winning, authoritative KR head term — so anchoring it in the Name captures the highest-authority query, and 매니저/풋볼 stay in the keyword field as the secondary loanword lane.
+- 대표팀 (national team, the alternate spelling of the Subtitle's 국가대표) plus 승부차기 (the standard Korean term for a penalty shootout) carry the World Cup window; 국제대회 rides international-tournament intent without naming a real competition.
+- **Subtitle rewritten as the conversion line (competitor-driven):** national-pride/국가대표 감독 framing is an OPEN lane — only a low-quality throwaway offline title currently farms it, while the real management incumbents (Top Eleven, FM26 Mobile) stay evergreen/club. "국가대표를 이끌고 왕조를 세워라" (lead the national team, build a dynasty) opens that WC-2026 national-team wedge and retains 왕조 (brand noun). 국가대표 moved out of the keyword field into the Subtitle so it stays indexed for free; the no-timer/무료 differentiator is carried in Promotional Text + Description, where it flanks Top Eleven's hidden token grind and FM26's Netflix-gated funnel.
+- Management verbs mirror the in-game tabs and Korean football-sim vocabulary: 이적 (transfers — a top-volume KR football search word), 스쿼드/선수단 (squad), 포메이션, 스카우트, 유망주 (youth prospects), 승격 (promotion), 경영, and 전술 (tactics — moved into the keyword field now that the Subtitle no longer carries it).
+- 명문 (prestigious club), 시뮬레이션, 전략게임 round out genre/strategy intent; 카드팩 ties the pack-opening feature to the collectible-card cluster.
+- Loop terms: 임대 (loan-deal system), 계약 (career-negotiation), 훈련 (training).
+- **New this pass (competitor-driven):** replaced standalone 매니저 with 풋볼매니저 — the generic transliteration Top Football Manager uses in its KR title ("Top Football Manager - 풋볼매니저"); it keeps 매니저 as a substring while adding 풋볼 coverage, and is a genre descriptor (not a brand string) in the keyword field. Added 구단 (구단 경영 is a research-flagged KR head phrase; 경영 already present, so the pair now indexes) and 전술. Dropped the weaker 우승 (prestige already covered by 명문/커리어) to stay at 98/100.
 - Excluded 축구게임/감독게임 despite volume — each duplicates a Name substring (축구/감독) that Apple already indexes, which would waste characters.
 
 ## Trademark-safe alternate phrasing (per source doc, low-IP variant)

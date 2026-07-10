@@ -8,13 +8,13 @@ Storefronts reached: Russian-preferring users across many storefronts — Kazakh
 ## Subtitle [28/30]
 `ЧМ 2026: футбольный менеджер`
 
-## Promotional Text [139/170]
-`Режим ЧМ 2026 уже здесь. Проведи сборную от группы до финала по пенальти. Без шкал энергии. Без ожидания. Глубокая симуляция, без подписки.`
+## Promotional Text [155/170]
+`Режим ЧМ 2026 уже здесь. Проведи сборную от группы до финала по пенальти. Без шкал энергии, без пакетов отдыха, без ожидания. Полная глубина, без подписки.`
 
-## Keywords [99/100]
-`мундиаль,сборная,пенальти,тактика,карьера,лига,трансферы,состав,тренер,кубок,клуб,чемпионат,гол,пас`
+## Keywords [98/100]
+`мундиаль,сборная,пенальти,тактика,карьера,лига,трансферы,состав,тренер,кубок,клуб,чемпионат,онлайн`
 
-## Description [~1560/4000]
+## Description [1439/4000]
 Режим ЧМ 2026 уже здесь. Выбери одну из более чем 50 сборных и проведи её от группового этапа до финала, который решится по пенальти – каждое решение за тобой.
 
 Dynasty Manager – это глубокий симулятор футбольного менеджмента, в который играешь где угодно. Без pay-to-win, без шкал энергии, без пакетов отдыха, без ожидания между сессиями. Играй сколько хочешь – вся менеджерская глубина без какой-либо подписки.
@@ -49,7 +49,9 @@ Dynasty Pro открывает расширенную статистику, св
 
 ## Keyword rationale
 - ru is a high-reach locale: it indexes across Kazakhstan, Belarus, Armenia, Georgia, Israel, the Baltics and diaspora storefronts, so the terms target pan-regional Russian search behaviour rather than one country.
+- The Subtitle already owns "футбольный менеджер" — the head phrase rivals ship even on the Ukraine storefront; keeping it in-title (not the keyword field) is the right weighting, so Keywords fund the tail.
+- **New: "онлайн" added** — the pan-regional pattern is "футбольный онлайн менеджер" (OSM's own descriptor), so "онлайн" complements the in-title phrase to reconstruct it in search.
 - "мундиаль" captures the second everyday name for the World Cup (alongside "ЧМ" in the Subtitle), widening tournament coverage; "сборная", "пенальти", "состав", "трансферы", "кубок", "чемпионат" are the natural Russian words for national team, penalty, lineup, transfers, cup and championship.
 - Cyrillic script has no accent-stripping concern, so keyword tokens are spelled exactly as users type them.
-- "Футбол", "футбольный", "менеджер" are omitted from Keywords — they sit in the App Name/Subtitle and are indexed separately.
+- "Футбол", "футбольный", "менеджер" are omitted from Keywords — they sit in the App Name/Subtitle and are indexed separately. Dropped the weakest terms ("гол", "пас") to fund "онлайн".
 - "тактика", "карьера", "лига", "клуб", "тренер" anchor the field as high-volume management-sim head terms. No plurals of included singulars, no club/league proper nouns.

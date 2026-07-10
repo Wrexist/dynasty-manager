@@ -5,16 +5,16 @@ Storefronts reached: Finland. Finnish is not a Scandinavian language — vocabul
 ## App Name [27/30]
 `Dynasty Manager: Jalkapallo`
 
-## Subtitle [23/30]
-`MM 2026: valmentajapeli`
+## Subtitle [28/30]
+`Jalkapallomanageri · MM 2026`
 
 ## Promotional Text [164/170]
 `MM 2026 on täällä: vie maajoukkueesi lohkovaiheesta rangaistuspotkuihin finaalissa. Ei energiamittareita, ei lepopakkauksia, ei odotusta. Täysi syvyys, ei tilausta.`
 
-## Keywords [98/100]
-`jalkapallomanageri,rangaistuspotku,kokoonpano,joukkue,siirrot,sarja,ura,maajoukkue,seura,taktiikka`
+## Keywords [95/100]
+`rangaistuspotku,taktiikka,kokoonpano,valmentaja,joukkue,siirrot,sarja,ura,maajoukkue,seura,peli`
 
-## Description [~1560/4000]
+## Description [~1528/4000]
 MM 2026 -tila on täällä. Valitse mikä tahansa yli 50 maajoukkueesta ja vie se lohkovaiheesta hermoja raastavaan finaaliin rangaistuspotkuilla – teet jokaisen ratkaisun sivurajalta.
 
 Dynasty Manager on aidosti syvällinen jalkapallon valmennussimulaattori mukaan otettavaksi. Ei pay-to-winiä, ei energiamittareita, ei lepopakkauksia, ei odottelua kierrosten välillä. Pelaa niin paljon kuin haluat, milloin haluat – koko syvyys on käytettävissä ilman tilausta.
@@ -23,7 +23,7 @@ Otat haltuun seuran, valitset kokoonpanon, hiot taktiikkaa ja muodostelmaa, hank
 
 Mitä pääset tekemään:
 - MM 2026: vie mikä tahansa yli 50 maajoukkueesta lohkovaiheesta finaaliin
-- 45 sarjaa ja 756 oikeaa seuraa 37 maassa
+- 45 sarjaa ja 756 oikeaa seuraa 37 maassa – Suomen pääsarjasta Etelä-Amerikkaan
 - Uratila: hae töitä, neuvottele sopimuksia, kiipeä ylös – tai saat potkut
 - Hermoja raastavat rangaistuspotkukisat, joissa lyöt jokaisen potkun itse
 - Live-ottelut: kokoonpano, taktiikka, vaihdot ja puheet reaaliajassa
@@ -48,8 +48,9 @@ MM 2026 -tila on täällä – vie mikä tahansa yli 50 maajoukkueesta lohkovaih
 5. Ohjaa jokaista minuuttia
 
 ## Keyword rationale
-- Finnish is unrelated to the Nordic languages, so terms are drawn from the native jalkapallo lexicon, not Scandinavian cognates. The top English head term "manager" is already covered by the English App Name, so the field maximizes native Finnish coverage.
-- "jalkapallomanageri" is the native head compound (jalkapallo + manageri loanword) and leads the field; App Name/Subtitle tokens (Jalkapallo, Manager, MM, 2026, valmentaja/peli) are excluded — Apple indexes them separately.
-- "rangaistuspotku", "kokoonpano", "joukkue", "siirrot", "maajoukkue", "seura" are the exact Finnish words for penalty kick, lineup, team, transfers, national team and club — base (nominative) forms chosen so Apple's imperfect Finnish tokenizer matches them cleanly, rather than inflected variants.
-- "sarja" (league/series), "ura" (career), "taktiikka" (tactics) are high-volume category terms. No plurals of included singulars, no club/league proper nouns.
-- Safe trademark alternate (near-zero IP exposure): "MM 2026" is already the generic Finnish championship term (maailmanmestaruus), not a FIFA mark — use "maailmanmestaruus 2026" for the spelled-out form; exposure is minimal either way.
+- Biggest change: the native head compound "jalkapallomanageri" now leads the **Subtitle** instead of the keyword field — it is the exact term Top Eleven uses as its Finnish title, so we match it in the highest-weighted field. "MM 2026" stays in the subtitle to keep the tournament window visible. Finnish is the lowest-competition localized set in this cluster, so owning the term is cheap and high-return.
+- The English head term "manager" is carried by the English App Name, and "jalkapallomanageri", "Jalkapallo", "MM", "2026" now sit in the Name/Subtitle — so the keyword field is all native Finnish.
+- Dropping the 18-char compound freed space for two high-value terms lifted from the old subtitle: "valmentaja" (coach) and "peli" (game — recombines with the name's "Jalkapallo" to cover "jalkapallopeli", football game).
+- "rangaistuspotku", "kokoonpano", "joukkue", "siirrot", "maajoukkue", "seura" are the exact Finnish words for penalty kick, lineup, team, transfers, national team and club — base (nominative) forms chosen so Apple's imperfect Finnish tokenizer matches them cleanly. "sarja" (league), "ura" (career), "taktiikka" (tactics) are high-volume heads.
+- Description keeps the local-relevance hook but phrases it generically ("Suomen pääsarjasta") instead of naming any real league or club — the home-market pull Soccer Manager 26 and OSM get from real clubs, achieved here trademark-free. No real league or club appears in any store field.
+- Safe trademark alternate (near-zero IP exposure): "MM 2026" is already the generic Finnish championship term (maailmanmestaruus / MM-kisat), not a FIFA mark — use "maailmanmestaruus 2026" for the spelled-out form.

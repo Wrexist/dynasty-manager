@@ -5,14 +5,14 @@ Storefronts reached: Taiwan and Hong Kong (and Macau), plus any device set to �
 ## App Name [21/30]
 `Dynasty Manager: 足球經理`
 
-## Subtitle [16/30]
-`決戰世界盃2026 戰術登頂奪冠`
+## Subtitle [21/30]
+`世界盃2026 執掌國家隊帥位 無體力限制`
 
-## Promotional Text [77/170]
-`世界盃2026模式已上線。帶領任何國家隊從小組賽一路殺進十二碼大戰決賽。沒有體力條，沒有體力包，沒有等待。無需訂閱，暢享完整的足球經營深度。7天免費試用。`
+## Promotional Text [93/170]
+`世界盃2026模式已上線！執掌任何國家隊帥位，從小組賽一路殺進十二碼大戰決賽。45個聯賽、756家真實球會任你執教。沒有體力條，沒有體力包，沒有等待。無需訂閱暢享完整生涯，7天免費試用。`
 
-## Keywords [99/100]
-`國家隊,十二碼,pk大戰,轉會,陣容,陣型,生涯,聯賽,球會,青訓,模擬經營,戰略,卡包,球員,名門,球探,升降級,洲際賽,養成,冠軍,策略,引援,執教,王朝,訓練,球隊,租借,簽約,比賽,經營遊戲`
+## Keywords [98/100]
+`十二碼,pk大戰,轉會,陣容,陣型,生涯,聯賽,球會,青訓,模擬經營,戰略,卡包,球員,名門,球探,升降級,洲際賽,養成,冠軍,執教,王朝,訓練,球隊,租借,簽約,比賽,經營遊戲,領隊,教練,戰術`
 
 ## Description [~893/4000]
 世界盃2026模式已上線。從50多支國家隊中挑選你的球隊，從小組賽一路殺過淘汰賽，直到十二碼大戰決賽，衝擊榮耀。這個夏天，把真正的主帥體驗放進口袋。
@@ -53,13 +53,14 @@ Dynasty Manager是一款硬派的足球經營模擬遊戲。在37個國家、45�
 5. 逐分鐘指揮全場
 
 ## Keyword rationale
-- Name/Subtitle words are not repeated: 足球經理 (Name, covers 足球/經理) and 世界盃·2026·戰術·決戰·登頂 (Subtitle) are already indexed, so keywords carry only distinct terms.
-- 足球經理 in the Name is the exact genre label TW/HK players type for football-management games — owning it in the Name anchors category search.
-- 國家隊 (national team) plus both 十二碼 (the TW/HK term for a penalty) and pk大戰 (how HK/TW fans commonly write a shootout) carry the World Cup window across both regional idioms; 洲際賽 rides continental-cup intent without naming a real competition.
-- Vocabulary is deliberately localized to Traditional/HK-TW usage: 球會 (club — the TW/HK word, not mainland 俱樂部), 轉會 (transfers), 陣容/陣型, 球探 (scout), 青訓/養成 (youth development), 升降級 (promotion/relegation), 生涯 (career).
-- 模擬經營 and 戰略/策略 target the management/strategy-sim browse cluster; 卡包 ties pack-opening to the card-collecting cluster; 冠軍 and 名門 add trophy/prestige intent.
-- Enrichment pass added five terms to fill the field to 99/100: 球隊 (team/squad — distinct from 球會/club), 租借 (loan — the loan-deal system), 簽約 (sign a contract — career negotiation), 比賽 (match — core sim word) and 經營遊戲 (management game — the genre-browse phrase; 經營 is NOT in the Name, which carries 經理). All use TW/HK forms and none duplicate a Name/Subtitle substring.
-- Subtitle strengthened with 奪冠 (win the title) — a distinct verb indexed nowhere else, reading naturally as "戰術登頂奪冠"; kept out of the keyword field so no character is spent twice.
+- Name/Subtitle words are not repeated: 足球經理 (Name, covers 足球/經理) and 世界盃·2026·執掌·國家隊·帥位·無體力·限制 (Subtitle) are already indexed, so keywords carry only distinct terms.
+- 足球經理 in the Name is the exact genre label TW/HK players type for football-management games. Competitor evidence: Top Football Manager's TW title appends "- 足球經理" and the fantasy-manager 2025夢幻足球經理 leads on the same phrase, confirming 足球經理 as the TW/HK head keyword — owning it in the Name anchors category search.
+- 十二碼 (the TW/HK term for a penalty) and pk大戰 (how HK/TW fans commonly write a shootout) carry the World Cup window across both regional idioms; 洲際賽 rides continental-cup intent without naming a real competition.
+- **Subtitle rewritten as the conversion line (competitor-driven):** the deep-management incumbents do not foreground the World Cup or a national-team job, so "執掌國家隊帥位" (take the national-team hot seat) opens the WC-2026 national-team wedge, and "無體力限制" (no stamina limits) states the trio no zh-Hant competitor claims — a direct flank on Top Eleven's silent energy/token grind. 國家隊 moved out of the keyword field into the Subtitle so it stays indexed for free.
+- Vocabulary is deliberately localized to Traditional/HK-TW usage: 球會 (club — the TW/HK word, not mainland 俱樂部), 轉會 (transfers), 陣容/陣型, 球探 (scout), 青訓/養成 (youth development), 升降級 (promotion/relegation), 生涯 (career), and 戰術 (tactics — moved into the keyword field now that the Subtitle no longer carries it).
+- 模擬經營 and 戰略 target the management/strategy-sim browse cluster; 卡包 ties pack-opening to the card-collecting cluster; 冠軍 and 名門 add trophy/prestige intent.
+- Loop terms: 球隊 (team/squad — distinct from 球會/club), 租借 (loan-deal system), 簽約 (career negotiation), 比賽 (match — core sim word), 經營遊戲 (management-game genre-browse phrase; 經營 is NOT in the Name, which carries 經理).
+- **New this pass (competitor-driven):** added 領隊 (the TW manager/team-leader term Top Eleven uses in its own TW title "…成為全球最佳足球領隊") and 教練 (coach — the emotional verb 2025夢幻足球經理 leads with, "像教練管理"); both are generic descriptors, not brand strings. Dropped the redundant 策略 (duplicates 戰略) and 引援 (overlaps 轉會/簽約) to make room while staying at 98/100.
 - Cross-store note: zh-Hant only resolves on TW/HK/MO — the Simplified forms (俱樂部/点球) belong to zh-Hans and are omitted here so neither localization wastes characters on the other's script or wrong-region vocabulary.
 
 ## Trademark-safe alternate phrasing (per source doc, low-IP variant)

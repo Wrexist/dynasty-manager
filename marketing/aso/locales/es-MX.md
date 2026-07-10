@@ -8,11 +8,11 @@ Storefronts reached: México y la mayoría de las tiendas de América Latina (Ar
 ## Subtitle [25/30]
 `Sé el DT del Mundial 2026`
 
-## Promotional Text [169/170]
-`Ya llegó el Mundial 2026. Lleva a tu selección de la fase de grupos a la gran final por penales. Sin barras de energía. Sin esperas. Simulador profundo, sin suscripción.`
+## Promotional Text [170/170]
+`Mundial 2026 en la cancha: dirige a tu selección de los grupos a la final por penales. Sin barras de energía, sin esperas, sin suscripción obligatoria. Juega sin límites.`
 
-## Keywords [99/100]
-`director tecnico,seleccion,penales,tactica,carrera,liga,plantel,fichajes,refuerzos,formacion,equipo`
+## Keywords [100/100]
+`director tecnico,seleccion,penales,tactica,alineacion,plantel,fichajes,liga,carrera,simulador,equipo`
 
 ## Description [~2510/4000]
 Ya llegó el modo Mundial 2026: agarra cualquiera de más de 50 selecciones y pelea por la gloria desde la fase de grupos hasta una gran final por penales. Dynasty Manager es un simulador de futbol con profundidad de verdad, no un juego de estar esperando. Sin barras de energía. Sin paquetes de descanso. Sin cuentas regresivas. Juega todo lo que quieras, a la hora que quieras.
@@ -45,8 +45,9 @@ Descarga gratis y arranca tu dinastía hoy.
 5. Dirige cada minuto
 
 ## Keyword rationale
-- Español latino: el término cabeza es "director tecnico" / "DT". Puse "DT" y "Mundial" en el subtítulo y reservé "director tecnico" completo en keywords para casar ambas búsquedas ("DT", "director tecnico", "tecnico") sin desperdiciar el subtítulo.
-- "penales" (grafía LatAm), no "penaltis" (esa queda para es-ES). "plantel" y "refuerzos" son las palabras que el aficionado mexicano/sudamericano usa para plantilla y altas, distintas de las peninsulares.
+- División de registro confirmada por el líder de la categoría: el mismo app usa "Manager de Fútbol" en España pero cambia a "Gestión de Fútbol" en LatAm, probando que el sustantivo se localiza por región. Aquí el término cabeza es "director tecnico" / "DT". "DT" y "Mundial" van en el subtítulo; "director tecnico" completo queda en keywords para casar "DT", "director tecnico" y "tecnico" sin desperdiciar el subtítulo. El simulador de prestigio también usa registro LatAm ("mánager", "arma un plantel"), no el peninsular.
+- Añadido "alineacion" (máxima intención táctica) y "simulador" (intención de profundidad de gestión): dos palabras que los gigantes del término "fútbol" —títulos de partido/acción y arcade colecciona-y-juega— no rankean, dejando el hueco de "gestión/DT" sin disputar por los grandes. Quitados "refuerzos" y "formacion" (menor volumen frente a alineacion/simulador).
+- "penales" (grafía LatAm), no "penaltis" (reservada a es-ES). "plantel" es la palabra que el aficionado mexicano/sudamericano usa para plantilla, distinta de la peninsular; "equipo" apuntala "dirigir equipo".
 - Cruce con la tienda de EE. UU.: como es-MX indexa en el App Store estadounidense, este campo captura al buscador hispano de EE. UU. con términos 100% en español (seleccion, penales, fichajes), complementando —sin duplicar— el en-US que ya trabaja "soccer, world cup, national team, penalty shootout".
-- Formas sin acento ("tactica", "seleccion", "formacion") porque el usuario teclea sin tildes; la copia visible conserva los acentos.
-- Excluí "futbol", "manager", "dt" y "mundial" del campo de keywords por estar ya en Nombre/Subtítulo. Campo casi lleno a 99/100.
+- Anti-fricción como cuña: el líder de auctions esconde su grind de energía/descanso y el simulador de prestigio exige suscripción externa. Nadie dice "sin esperas, sin suscripción obligatoria" — lo reclamamos en Texto Promocional y Descripción.
+- Formas sin acento ("tactica", "seleccion", "alineacion") porque el usuario teclea sin tildes; la copia visible conserva los acentos. Excluidos "futbol", "manager", "dt" y "mundial" por vivir ya en Nombre/Subtítulo. Campo lleno a 100/100.

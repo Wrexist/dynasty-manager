@@ -1,18 +1,18 @@
 # th — Thai (App Store)
 
-Storefronts reached: Thailand (Apple serves th metadata to Thai-preferring users). Thai fans call the World Cup "ฟุตบอลโลก" and a manager/gaffer "กุนซือ" in everyday talk, while "ผู้จัดการทีม" is the literal search head term — so the Subtitle leads with the colloquial "กุนซือ" and the keyword field reserves "ผู้จัดการทีม". Thai search is typed as continuous strings with no word spacing.
+Storefronts reached: Thailand (Apple serves th metadata to Thai-preferring users). Biggest change this refresh: the App Name pairs the locked brand "Dynasty Manager" with the native sport descriptor "ฟุตบอล" (football), so the highest-weighted field carries both the "manager" head term (via the brand) and the Thai "ฟุตบอล" query. The category leader keeps a Latin brand here, so the descriptor slot is uncontested and we claim it. Thai fans call a gaffer "กุนซือ" colloquially, kept as the lead keyword. Thai search is typed as continuous strings with no word spacing.
 
 ## App Name [23/30]
 `Dynasty Manager: ฟุตบอล`
 
-## Subtitle [22/30]
-`ฟุตบอลโลก 2026: กุนซือ`
+## Subtitle [26/30]
+`ฟุตบอลโลก 2026 เล่นไม่อั้น`
 
-## Promotional Text [147/170]
-`โหมดฟุตบอลโลก 2026 มาแล้ว พาทีมชาติจากรอบแบ่งกลุ่มสู่รอบชิงดวลจุดโทษ ไม่มีหลอดพลังงาน ไม่มีแพ็กพัก ไม่มีการรอ เกมจำลองที่ลึกจริง ไม่ต้องสมัครสมาชิก`
+## Promotional Text [160/170]
+`โหมดฟุตบอลโลก 2026 มาแล้ว พาทีมชาติจากรอบแบ่งกลุ่มสู่รอบชิงดวลจุดโทษ ไม่มีหลอดพลังงาน ไม่มีแพ็กพัก ไม่มีการรอ เกมจำลองที่ลึกจริง ไม่ต้องสมัครสมาชิก ดาวน์โหลดฟรี`
 
-## Keywords [96/100]
-`ผู้จัดการทีม,ทีมชาติ,ดวลจุดโทษ,แทคติก,อาชีพ,ลีก,ย้ายทีม,ตัวจริง,ฟอร์เมชั่น,สโมสร,จำลอง,ผู้จัดการ`
+## Keywords [97/100]
+`กุนซือ,ทีมชาติ,ดวลจุดโทษ,แทคติก,อาชีพ,ลีก,ย้ายทีม,ตัวจริง,ฟอร์เมชั่น,สโมสร,จำลอง,นักเตะ,แชมป์,เกม`
 
 ## Description [~1230/4000]
 โหมดฟุตบอลโลก 2026 มาแล้ว: เลือกทีมชาติจาก 50+ ทีม แล้วไล่ล่าความรุ่งโรจน์ตั้งแต่รอบแบ่งกลุ่มไปจนถึงรอบชิงที่ตัดสินด้วยการดวลจุดโทษ — ทุกการตัดสินใจอยู่ในมือคุณ
@@ -47,8 +47,9 @@ Dynasty Pro ปลดล็อกสถิติขั้นสูง แทค�
 5. คุมเกมทุกนาที
 
 ## Keyword rationale
-- Thai fans type manager-game queries two ways: the colloquial "กุนซือ" (gaffer) and the literal "ผู้จัดการทีม" (team manager). I put "กุนซือ" in the Subtitle and reserved the full "ผู้จัดการทีม" plus the short "ผู้จัดการ" in keywords to catch both spellings.
-- "ทีมชาติ" (national team), "ดวลจุดโทษ" (penalty shootout), "ย้ายทีม" (transfer), "ตัวจริง" (starting XI) are the natural Thai words fans actually search — culturally correct over any calque.
-- "ฟุตบอล" and "ฟุตบอลโลก" sit in the App Name/Subtitle and index separately, so keywords spend slots on "แทคติก", "อาชีพ", "ลีก", "ฟอร์เมชั่น", "สโมสร", "จำลอง" instead.
-- Thai keyword phrases are written as tight strings without internal spaces, matching how Thai users type; commas separate terms with no trailing space per Apple's rule.
-- No US cross-index for Thai; every slot serves Thai search. Excluded club/league proper nouns (IP). Field filled to 96/100.
+- Title-descriptor localization is the top lever and the leader leaves it open in Thailand — it keeps a Latin brand with no Thai descriptor. The App Name keeps the locked brand "Dynasty Manager" and appends the native sport descriptor "ฟุตบอล" (football), so "manager" (brand) + "ฟุตบอล" sit in the highest-weighted field. The colloquial "กุนซือ" (gaffer) in keywords carries the Thai manager/coach query that fans actually type.
+- Subtitle is the conversion line: switched to "ฟุตบอลโลก 2026 เล่นไม่อั้น" (World Cup 2026, play unlimited) — the no-grind wedge against the leader's energy/rest-pack grind (its top review complaint) that no rival states about itself. Keeps the WC window term "ฟุตบอลโลก".
+- Keywords lead with the colloquial "กุนซือ" (gaffer) that fans actually type, plus "เกม" — Apple recombines it with the App Name's "ฟุตบอล" to cover "เกมฟุตบอล" (football game).
+- Culturally-correct Thai search terms carry the field: "ทีมชาติ" (national team), "ดวลจุดโทษ" (penalty shootout), "ย้ายทีม" (transfer), "ตัวจริง" (starting XI), "นักเตะ" (footballer), "แชมป์" (champion) — chosen over any calque.
+- "แทคติก", "อาชีพ", "ลีก", "ฟอร์เมชั่น", "สโมสร", "จำลอง" fill the management-sim slots. Thai phrases written as tight no-space strings, commas with no trailing space per Apple's rule.
+- Excluded "ฟุตบอลโลก" (Subtitle), the App Name token "ฟุตบอล", and club/league proper nouns (IP). Field at 97/100. No US cross-index for Thai.

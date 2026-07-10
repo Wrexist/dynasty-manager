@@ -1,18 +1,18 @@
 # ms — Malay (App Store)
 
-Storefronts reached: Malaysia primarily (Apple serves ms metadata to Malay-preferring users there; Bahasa Malaysia readers in Brunei and Singapore may also see it). Distinct from Indonesian: Malay fans say "bola sepak" (not "sepak bola"), "jurulatih" (coach), "pengurus" (manager), "pasukan kebangsaan" (national team), "kerjaya" (career). Keyword field is tuned to those forms.
+Storefronts reached: Malaysia primarily (Apple serves ms metadata to Malay-preferring users there; Bahasa Malaysia readers in Brunei and Singapore may also see it). Genuinely distinct from Indonesian — Malay word order is REVERSED ("bola sepak" not "sepak bola") and the manager word differs ("pengurus" not "manajer", "jurulatih" not "pelatih"). Biggest change this refresh: the App Name pairs the locked brand "Dynasty Manager" with the native Malay sport descriptor "Bola Sepak" (note the REVERSED word order vs Indonesian), so the highest-weighted field carries the "manager" head term (via the brand) alongside the Malay "bola sepak" query. This copy is authored in Bahasa Malaysia, never machine-derived from the Indonesian file.
 
 ## App Name [27/30]
 `Dynasty Manager: Bola Sepak`
 
 ## Subtitle [27/30]
-`Piala Dunia 2026: Jurulatih`
+`Piala Dunia 2026: Tiada Had`
 
 ## Promotional Text [158/170]
 `Mod Piala Dunia 2026 kini hadir. Bawa pasukan kebangsaan dari kumpulan ke final penalti. Tiada bar tenaga. Tiada menunggu. Simulasi mendalam, tanpa langganan.`
 
-## Keywords [99/100]
-`pengurus,pasukan kebangsaan,penalti,taktik,kerjaya,liga,pemindahan,skuad,formasi,kelab,simulasi,gol`
+## Keywords [97/100]
+`jurulatih,pasukan kebangsaan,penalti,taktik,kerjaya,liga,pemindahan,skuad,formasi,kelab,permainan`
 
 ## Description [~1770/4000]
 Mod Piala Dunia 2026 kini hadir: pilih salah satu daripada 50+ pasukan kebangsaan dan buru kegemilangan dari peringkat kumpulan hingga ke final yang diputuskan menerusi sepakan penalti — setiap keputusan di tangan anda.
@@ -47,8 +47,9 @@ Mod Piala Dunia 2026 kini di padang! Bawa pasukan kebangsaan pilihan anda dari p
 5. Uruskan setiap minit perlawanan
 
 ## Keyword rationale
-- Malay is genuinely distinct from Indonesian: the head terms are "pasukan kebangsaan" (not "timnas"), "jurulatih" (not "pelatih"), "pengurus" (not "manajer"), "kerjaya" (not "karier"), "penalti"/"sepakan penalti" (not "adu penalti"). The whole field is written in Bahasa Malaysia so it does not read as an Indonesian copy.
-- "bola sepak" and "jurulatih" live in the App Name/Subtitle and index separately, so keywords carry "pengurus", "pasukan kebangsaan", "taktik", "skuad", "formasi", "pemindahan" instead — no waste.
-- "kelab", "simulasi", "gol" fill the field as generic high-volume football/management-sim tokens.
-- Excluded "piala dunia" (Subtitle) and any club/league proper nouns (IP). No plurals of included singulars. Field filled to 99/100.
-- No US cross-index for Malay, so every slot is spent on Malaysian search rather than hedging English terms.
+- Title-descriptor localization is the top lever here and the category leader proves it — it localizes its Malaysia title descriptor to the local football phrase (note the REVERSED word order and different manager word vs Indonesian). The App Name keeps the locked brand "Dynasty Manager" and appends the native sport descriptor "Bola Sepak" ("Dynasty Manager: Bola Sepak"), so "manager" (brand) + "bola sepak" sit in the highest-weighted field. The Malay "jurulatih" (coach) in keywords carries the coach/manager query.
+- "permainan" stays in the field so Apple recombines it with the App Name's "Bola Sepak" to cover "permainan bola sepak", the local football-game phrase.
+- Subtitle is the conversion line: switched from the flat role noun "Jurulatih" to the no-grind promise "Tiada Had" (no limits), the honest wedge against the leader's energy/rest-pack grind that no rival admits. "jurulatih" moves into keywords so we keep the coach-intent search (distinct from Indonesian "pelatih").
+- Malay-native head terms carry the field: "pasukan kebangsaan" (not "timnas"), "penalti"/"sepakan penalti", "kerjaya" (not "karier"), "pemindahan", "kelab" (not "klub"). The whole set reads as Bahasa Malaysia, not an Indonesian copy.
+- "taktik", "skuad", "formasi" round out the management-sim quartet; dropped the lower-value generic "simulasi"/"gol" pair to make room for "permainan".
+- Excluded "piala dunia" (Subtitle), the App Name tokens "bola"/"sepak", and any club/league proper nouns (IP). No plurals of included singulars, no duplicates. Field at 97/100. No US cross-index for Malay.

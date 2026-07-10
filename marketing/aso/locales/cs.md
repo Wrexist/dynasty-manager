@@ -8,13 +8,13 @@ Storefronts reached: Czechia. Apple serves cs metadata to Czech-preferring users
 ## Subtitle [26/30]
 `MS 2026: fotbalový manažer`
 
-## Promotional Text [159/170]
-`Režim MS 2026 je tady. Doveď svou reprezentaci od skupiny až po finále na penalty. Žádné ukazatele energie. Žádné čekání. Hloubková simulace, bez předplatného.`
+## Promotional Text [166/170]
+`Režim MS 2026 je tady. Doveď reprezentaci od skupiny po finále na penalty. Žádné ukazatele energie, žádné odpočinkové balíčky, žádné čekání. Hloubka bez předplatného.`
 
-## Keywords [99/100]
-`penalty,reprezentace,kariera,liga,sestava,prestupy,kadr,taktika,trener,pohar,klub,formace,gol,derby`
+## Keywords [95/100]
+`penalty,reprezentace,kariera,liga,sestava,prestupy,taktika,trener,pohar,klub,mistrovstvi,online`
 
-## Description [~1560/4000]
+## Description [1386/4000]
 Režim MS 2026 je tady. Vyber si jednu z více než 50 reprezentací a doveď ji od skupinové fáze až do finále rozhodnutého na penalty – každé rozhodnutí je na tobě.
 
 Dynasty Manager je hloubková fotbalová manažerská simulace, kterou si zahraješ kdekoli. Žádné pay-to-win, žádné ukazatele energie, žádné odpočinkové balíčky, žádné čekání mezi session. Hraj, kolik chceš – plnou manažerskou hloubku máš i bez předplatného.
@@ -48,8 +48,9 @@ Režim MS 2026 je tady – doveď jednu z více než 50 reprezentací od skupiny
 5. Veď každou minutu zápasu
 
 ## Keyword rationale
-- "penalty" is the Czech word fans type for a shootout (borrowed from English, fully naturalised) and heads a WC-window search — kept in Keywords rather than the Subtitle so the Subtitle can carry the head phrase "fotbalový manažer".
-- "reprezentace", "sestava", "prestupy", "kadr", "pohar", "formace" are the natural Czech terms for national team, lineup, transfers, squad, cup and formation — culturally correct over any literal rendering.
-- Unaccented forms ("kariera", "prestupy", "pohar", "trener") match how Czechs type on a phone without háček/čárka; visible copy keeps full diacritics.
-- "MS", "fotbal", "fotbalový", "manažer" are omitted from Keywords — they sit in the App Name/Subtitle and Apple indexes those separately.
-- "liga", "klub", "taktika", "kariera" are the high-volume category head terms shared by every management sim; they anchor the field. No plurals of included singulars, no club/league proper nouns.
+- The Subtitle already owns the exact CZ head phrase "fotbalový manažer" — the contested term local challenger LFM ("Online Fotbalový Manažer") built its whole title around, and one Top Eleven does localize on CZ. Keeping it in-title (not the weaker keyword field) is the right call, so Keywords spend elsewhere.
+- **New: "online" added.** The high-intent CZ pattern is "online fotbalový manažer" (LFM, and OSM's category), so "online" complements the in-title "fotbalový manažer" to reconstruct that phrase in search. "mistrovstvi" added = the formal WC name "Mistrovství světa" alongside the in-title "MS".
+- "penalty" is the Czech word fans type for a shootout (English loanword, fully naturalised) and heads a WC-window search; "reprezentace", "sestava", "prestupy", "pohar" are the natural Czech terms for national team, lineup, transfers and cup.
+- Unaccented forms ("kariera", "prestupy", "pohar", "trener") match how Czechs type without háček/čárka; visible copy keeps full diacritics.
+- "MS", "fotbal", "fotbalový", "manažer" are omitted — they sit in the App Name/Subtitle and Apple indexes those separately. "liga", "klub", "taktika" anchor the field.
+- Dropped the weakest terms ("kadr", "formace", "gol", "derby") to fund "online"/"mistrovstvi". No plurals of included singulars, no club/league proper nouns.

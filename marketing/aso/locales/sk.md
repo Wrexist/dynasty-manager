@@ -1,6 +1,6 @@
 # sk — Slovak (App Store)
 
-Storefronts reached: Slovakia. Apple serves sk metadata to Slovak-preferring users; many Slovak fans also read Czech, but the copy uses natural Slovak. Fans type "MS" (Majstrovstvá sveta) for the World Cup and "futbalový manažér" as the head phrase.
+Storefronts reached: Slovakia. Apple serves sk metadata to Slovak-preferring users; many Slovak fans also read Czech, but the copy uses natural Slovak. Fans type "MS" (Majstrovstvá sveta) for the World Cup and "futbalový manažér" as the head phrase. SK is a localization-soft storefront — Top Eleven and Dream League Soccer both sit untranslated here — so the Subtitle owns the exact native phrase they leave open.
 
 ## App Name [23/30]
 `Dynasty Manager: Futbal`
@@ -8,13 +8,13 @@ Storefronts reached: Slovakia. Apple serves sk metadata to Slovak-preferring use
 ## Subtitle [26/30]
 `MS 2026: futbalový manažér`
 
-## Promotional Text [163/170]
-`Režim MS 2026 je tu. Doveď svoju reprezentáciu od skupiny až po finále na penalty. Žiadne ukazovatele energie. Žiadne čakanie. Hĺbková simulácia, bez predplatného.`
+## Promotional Text [167/170]
+`Režim MS 2026 je tu. Doveď reprezentáciu od skupiny po finále na penalty. Žiadne ukazovatele energie, žiadne oddychové balíčky, žiadne čakanie. Hĺbka bez predplatného.`
 
-## Keywords [98/100]
-`penalty,reprezentacia,kariera,liga,zostava,prestupy,kader,taktika,trener,pohar,klub,formacia,derby`
+## Keywords [97/100]
+`penalty,reprezentacia,kariera,liga,zostava,prestupy,taktika,trener,pohar,klub,majstrovstva,online`
 
-## Description [~1560/4000]
+## Description [1434/4000]
 Režim MS 2026 je tu. Vyber si jednu z viac než 50 reprezentácií a doveď ju od skupinovej fázy až do finále rozhodnutého na penalty – každé rozhodnutie je na tebe.
 
 Dynasty Manager je hĺbková futbalová manažérska simulácia, ktorú si zahráš kdekoľvek. Žiadne pay-to-win, žiadne ukazovatele energie, žiadne oddychové balíčky, žiadne čakanie medzi hraním. Hraj, koľko chceš – plnú manažérsku hĺbku máš aj bez predplatného.
@@ -48,8 +48,9 @@ Režim MS 2026 je tu – doveď jednu z viac než 50 reprezentácií od skupiny 
 5. Veď každú minútu zápasu
 
 ## Keyword rationale
-- "penalty" is the Slovak shootout term fans actually type (English loanword, fully naturalised); it heads the WC window and frees the Subtitle to carry "futbalový manažér".
-- "reprezentacia", "zostava", "prestupy", "kader", "pohar", "formacia" are the natural Slovak words for national team, lineup, transfers, squad, cup and formation — not literal translations.
+- The Subtitle owns "futbalový manažér" — the native head phrase Top Eleven ("Be a Soccer Manager") and DLS both leave in English on the SK storefront. That untranslated gap is our cheapest ranking win, so keeping the phrase in-title (not the weaker keyword field) is deliberate; Keywords fund the long tail around it.
+- **New: "online" and "majstrovstva" added.** "online" harvests the "online futbalový manažér" pattern; "majstrovstva" = the formal WC name "Majstrovstvá sveta" alongside the in-title "MS".
+- "penalty" is the Slovak shootout term fans type (English loanword, naturalised); "reprezentacia", "zostava", "prestupy", "pohar" are the natural Slovak words for national team, lineup, transfers and cup.
 - Unaccented forms ("kariera", "trener", "pohar", "reprezentacia") match phone typing without mäkčeň/dĺžeň; visible copy keeps full Slovak diacritics.
-- "MS", "futbal", "futbalový", "manažér" are omitted from Keywords — they sit in the App Name/Subtitle and are indexed separately.
-- "liga", "klub", "taktika", "kariera" anchor the field as high-volume management-sim head terms. No plurals of included singulars, no club/league proper nouns.
+- "MS", "futbal", "futbalový", "manažér" are omitted — they sit in the App Name/Subtitle and are indexed separately. "liga", "klub", "taktika" anchor the field.
+- Dropped the weakest terms ("kader", "formacia", "derby") to fund "online"/"majstrovstva". No plurals of included singulars, no club/league proper nouns.

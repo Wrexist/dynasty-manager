@@ -1,18 +1,18 @@
 # id — Indonesian (App Store)
 
-Storefronts reached: Indonesia (huge mobile-football market; Apple serves id metadata to Indonesian-preferring users). Indonesian is not a cross-index language for the US store, so the keyword field is optimized purely for local search — the terms Indonesian fans actually type ("timnas", "adu penalti", "pelatih", "manajer").
+Storefronts reached: Indonesia (huge mobile-football market; Apple serves id metadata to Indonesian-preferring users). Indonesian is not a cross-index language for the US store, so the keyword field is optimized purely for local search — the terms Indonesian fans actually type ("timnas", "adu penalti", "pelatih"). Biggest change this refresh: the App Name pairs the locked brand "Dynasty Manager" with the native sport descriptor "Sepak Bola", so the highest-weighted field carries both the "manager" head term (via the brand) and the Indonesian "sepak bola" query. The category leader localizes its own title descriptor to the local football phrase in Indonesia; rivals that leave the descriptor slot fully English cede that high-intent space — we take it while keeping the brand lock-up intact.
 
 ## App Name [27/30]
 `Dynasty Manager: Sepak Bola`
 
-## Subtitle [25/30]
-`Piala Dunia 2026: Pelatih`
+## Subtitle [28/30]
+`Piala Dunia 2026: Main Bebas`
 
-## Promotional Text [147/170]
-`Mode Piala Dunia 2026 hadir. Bawa timnas dari fase grup ke final adu penalti. Tanpa bar energi. Tanpa menunggu. Simulasi mendalam, tanpa langganan.`
+## Promotional Text [163/170]
+`Mode Piala Dunia 2026 hadir. Bawa timnas dari fase grup ke final adu penalti. Tanpa bar energi. Tanpa menunggu. Simulasi mendalam, tanpa langganan. Gratis diunduh.`
 
-## Keywords [96/100]
-`manajer,timnas,adu penalti,taktik,karier,liga,transfer,skuad,formasi,klub,simulasi,sepakbola,gol`
+## Keywords [97/100]
+`timnas,adu penalti,pelatih,taktik,karier,liga,transfer,skuad,formasi,klub,simulasi,sepakbola,game`
 
 ## Description [~1780/4000]
 Mode Piala Dunia 2026 sudah hadir: pilih salah satu dari 50+ timnas dan kejar kejayaan dari fase grup sampai final yang ditentukan lewat adu penalti — semua keputusan ada di tanganmu.
@@ -47,8 +47,9 @@ Mode Piala Dunia 2026 resmi hadir! Bawa timnas pilihanmu dari fase grup sampai f
 5. Kelola tiap menit pertandingan
 
 ## Keyword rationale
-- Head terms Indonesian fans actually type: "timnas" (national team — never the formal "tim nasional" in search), "adu penalti" (penalty shootout), "manajer" (the manager-game head term, distinct from English "Manager" in the brand). These anchor the field.
-- "sepak bola" and "pelatih" sit in the App Name/Subtitle and index separately, so I reserved the keyword slots for "manajer", "sepakbola" (the run-together spelling many type in search), "taktik", "karier", "skuad", "formasi", "transfer" instead — no duplication.
-- Included "klub" and "simulasi" as generic management-sim head terms, and "gol" as a cheap high-volume football token.
-- No cross-index concern: Indonesian does not surface in the US storefront, so the whole field is spent on local Indonesian search rather than hedging English.
-- Excluded any club/league proper nouns (IP), no plurals of included singulars, no "piala dunia" (already in Subtitle). Field filled to 96/100.
+- Title-descriptor localization is the single biggest lever in this market and the category leader already does it — it ships the local football phrase as its Indonesian title descriptor. The App Name keeps the locked brand "Dynasty Manager" and appends the native sport descriptor "Sepak Bola" ("Dynasty Manager: Sepak Bola"), so "manager" (brand) + "sepak bola" both sit in the highest-weighted field without spending a keyword slot. The formal "manajer" is not lost to search — the colloquial coach term "pelatih" carries manager-intent in the keyword field below.
+- "game" stays in the field so Apple recombines it with the App Name's "Sepak Bola" to cover "game sepak bola", a top local phrase, without wasting a full slot.
+- Subtitle is the conversion line: switched from the flat role noun "Pelatih" to the no-grind promise "Main Bebas" (play freely). No competitor says this about itself — the energy/rest-pack grind is the leader's #1 review complaint — so it is a clean, honest wedge. "pelatih" is preserved as a keyword so we keep the coach-intent search.
+- Head terms Indonesian fans actually type stay in keywords: "timnas" (never formal "tim nasional"), "adu penalti", plus "sepakbola" (the run-together spelling users key in, distinct from the spaced form in the App Name).
+- "klub", "simulasi", "taktik", "karier", "skuad", "formasi", "transfer" fill the field as management-sim head terms; "game" doubles as a generic high-volume token.
+- Excluded any club/league proper nouns (IP), "piala dunia" (Subtitle) and the App Name tokens "sepak"/"bola", no duplicates. Field at 97/100. No US cross-index for Indonesian, so every slot serves local search.

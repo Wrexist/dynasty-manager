@@ -5,16 +5,16 @@ Storefronts reached: Norway. Copy is written in Bokmål, the form the overwhelmi
 ## App Name [24/30]
 `Dynasty Manager: Fotball`
 
-## Subtitle [25/30]
-`VM 2026: trener & taktikk`
+## Subtitle [24/30]
+`Fotballmanager · VM 2026`
 
 ## Promotional Text [161/170]
 `VM 2026 er her: før landslaget ditt fra gruppespill til straffespark i finalen. Ingen energimålere, ingen hvilepakker, ingen venting. Full dybde uten abonnement.`
 
-## Keywords [98/100]
-`fotballmanager,straffespark,oppstilling,tropp,overganger,liga,karriere,cup,landslag,klubb,spillere`
+## Keywords [95/100]
+`straffespark,taktikk,oppstilling,tropp,overganger,trener,liga,karriere,cup,landslag,klubb,spill`
 
-## Description [~1530/4000]
+## Description [~1409/4000]
 VM 2026-modusen er her. Velg ett av 50+ landslag og før dem fra gruppespillet til en nervepirrende finale på straffespark – du tar hver avgjørelse fra sidelinjen.
 
 Dynasty Manager er en skikkelig, dyp fotballmanager-simulator for mobilen. Ingen pay-to-win, ingen energimålere, ingen hvilepakker, ingen venting mellom rundene. Spill så mye du vil, når du vil – hele dybden er der uten abonnement.
@@ -23,7 +23,7 @@ Du tar over en klubb, setter laget, finjusterer taktikk og oppstilling, henter s
 
 Dette kan du gjøre:
 - VM 2026: før ett av 50+ landslag fra gruppespill til finale
-- 45 ligaer med 756 ekte klubber i 37 land
+- 45 ligaer med 756 ekte klubber i 37 land – fra Norges øverste divisjon til Sør-Amerika
 - Karrieremodus: søk jobber, forhandle kontrakter, klatre – eller få sparken
 - Nervepirrende straffesparkkonkurranser der du tar hvert spark selv
 - Livekamper: oppstilling, taktikk, bytter og lagprat i sanntid
@@ -48,8 +48,9 @@ VM 2026-modusen er her – før ett av 50+ landslag fra gruppespillet til en fin
 5. Styr hvert minutt
 
 ## Keyword rationale
-- Norwegians search in a mix of Norwegian and English; the top English head term "manager" is already covered by the English App Name ("Dynasty Manager"), so the field maximizes native Norwegian coverage that English-only metadata misses.
-- "fotballmanager" is the native head compound and leads the field; App Name/Subtitle tokens (Fotball, Manager, VM, 2026, trener, taktikk) are excluded — Apple indexes them separately.
-- "straffespark", "oppstilling", "tropp", "overganger", "landslag", "klubb" are the exact Bokmål words for penalties, lineup, squad, transfers, national team and club — how fans actually type, not literal translations.
-- "liga", "karriere", "cup", "spillere" are high-volume category terms shared across management sims. No plurals of included singulars, no club/league proper nouns.
-- Safe trademark alternate (near-zero IP exposure): "VM 2026" is already the generic Norwegian championship term (Verdensmesterskapet), not a FIFA mark — spell it out as "Verdensmesterskapet 2026" if preferred; exposure is minimal either way.
+- Biggest change: the native head compound "fotballmanager" now leads the **Subtitle** instead of the keyword field, claiming the higher-weighted slot. "VM 2026" stays in the subtitle to keep the tournament window visible. Norway has no strong local manager title (only score/results apps), so the localized term is wide open — worth planting in the strongest field.
+- The English head term "manager" is carried by the English App Name, and "fotballmanager", "Fotball", "VM", "2026" now sit in the Name/Subtitle — so the keyword field is all native Bokmål.
+- "trener" is added: Norwegians split the genre between "manager" and "trener", and "trener" recombines with the name's "Fotball" to cover "fotballtrener" — both live search terms. "taktikk" (freed from the old subtitle) and "spill" (recombines to "fotballspill") are also added.
+- "straffespark", "oppstilling", "tropp", "overganger", "landslag", "klubb" are the exact Bokmål words for penalties, lineup, squad, transfers, national team and club; "liga", "karriere", "cup" are high-volume category heads. ("spillere" was dropped to fund trener/taktikk/spill.)
+- Description keeps the local-relevance hook but phrases it generically ("Norges øverste divisjon") instead of naming any real league or club — the home-market pull Soccer Manager 26 and OSM get from real clubs, achieved here trademark-free. No real league or club appears in any store field.
+- Safe trademark alternate (near-zero IP exposure): "VM 2026" is already the generic Norwegian championship term (Verdensmesterskapet), not a FIFA mark — spell it out as "Verdensmesterskapet 2026" if preferred.

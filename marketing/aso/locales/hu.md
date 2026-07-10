@@ -1,20 +1,20 @@
 # hu — Hungarian (App Store)
 
-Storefronts reached: Hungary. Apple serves hu metadata to Hungarian-preferring users. Fans type "VB" (Világbajnokság) for the World Cup, "foci" as the everyday word for football, and "focimenedzser" as the category head compound.
+Storefronts reached: Hungary. Apple serves hu metadata to Hungarian-preferring users. Fans type "VB" (Világbajnokság) for the World Cup, "foci" as the everyday word for football, and "futball menedzser" / "focimenedzser" as the category head phrase — the exact term OSM localizes on HU ("Futball menedzser játék"), which Top Eleven leaves untranslated here.
 
 ## App Name [21/30]
 `Dynasty Manager: Foci`
 
-## Subtitle [22/30]
-`VB 2026: focimenedzser`
+## Subtitle [26/30]
+`VB 2026: futball menedzser`
 
-## Promotional Text [162/170]
-`Itt a VB 2026 mód. Vezesd válogatottad a csoportköröktől a tizenegyesekkel eldőlő döntőig. Nincs energiacsík. Nincs várakozás. Mély szimuláció, előfizetés nélkül.`
+## Promotional Text [166/170]
+`Itt a VB 2026 mód. Vezesd válogatottad a csoportoktól a tizenegyes-döntőig. Nincs energiacsík, nincs pihenőcsomag, nincs várakozás. Teljes mélység, előfizetés nélkül.`
 
-## Keywords [99/100]
-`labdarugas,menedzser,tizenegyes,valogatott,karrier,liga,taktika,atigazolas,keret,felallas,kupa,edzo`
+## Keywords [94/100]
+`labdarugas,focimenedzser,tizenegyes,valogatott,karrier,liga,taktika,atigazolas,keret,kupa,edzo`
 
-## Description [~1560/4000]
+## Description [1438/4000]
 Itt a VB 2026 mód. Válassz több mint 50 válogatott közül, és vezesd őket a csoportköröktől a tizenegyespárbajjal eldőlő döntőig – minden döntés a tiéd.
 
 A Dynasty Manager egy mély futballmenedzser-szimuláció, amivel bárhol játszhatsz. Nincs pay-to-win, nincs energiacsík, nincs pihenőcsomag, nincs várakozás a menetek között. Játssz, amennyit csak akarsz – a teljes menedzseri mélység előfizetés nélkül is a tiéd.
@@ -48,8 +48,8 @@ Itt a VB 2026 mód – vezesd a több mint 50 válogatott egyikét a csoportkör
 5. Irányíts minden percet a pályán
 
 ## Keyword rationale
-- "labdarugas" is the formal Hungarian word for football that fans type in search (the everyday "foci" already sits in the App Name), so both registers are covered without duplication.
-- "focimenedzser" — the category head compound — lives in the Subtitle where tournament and category searches converge; Keywords then spend budget on complementary terms.
-- "tizenegyes", "valogatott", "atigazolas", "keret", "felallas", "kupa", "edzo" are the exact Hungarian words for penalty, national team, transfer, squad, lineup, cup and coach — culturally correct, not literal translations.
+- **Biggest change: the Subtitle now reads "futball menedzser" (two words) instead of the single compound "focimenedzser".** This is OSM's exact HU title phrase ("Futball menedzser játék") and the term Top Eleven leaves in English on HU — a localization gap worth taking in-title. Two tokens also cover more query shapes: "futball menedzser", "menedzser", and (with App Name "foci") "foci menedzser". The compound "focimenedzser" stays in Keywords as a distinct token, so both registers rank.
+- "labdarugas" is the formal Hungarian word for football that fans type in search; the everyday "foci" sits in the App Name, so both registers are covered without duplication.
+- "tizenegyes", "valogatott", "atigazolas", "keret", "kupa", "edzo" are the exact Hungarian words for penalty, national team, transfer, squad, cup and coach — culturally correct, not literal translations.
 - Unaccented forms throughout ("labdarugas", "atigazolas", "valogatott", "edzo") match how Hungarians type without ékezet; visible copy keeps full accents.
-- "menedzser", "liga", "taktika", "karrier" are high-volume management-sim head terms anchoring the field. No plurals of included singulars, no club/league proper nouns.
+- "menedzser", "futball", "liga", "taktika", "karrier" are omitted from Keywords — they sit in the App Name/Subtitle and are indexed separately. Dropped "felallas" (squad-sense already covered by "keret") to fund the two-word subtitle change. No plurals of included singulars, no club/league proper nouns.

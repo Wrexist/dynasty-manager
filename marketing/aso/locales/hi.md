@@ -1,6 +1,6 @@
 # hi — Hindi (App Store)
 
-Storefronts reached: India (Apple serves hi metadata to Hindi-preferring users). Critical market reality: Indian App Store users search overwhelmingly in ENGLISH, even Hindi-first users — they type "football manager game", "world cup", "penalty shootout" in Latin script. So the App Name descriptor stays English ("Football"), the Subtitle is English, and the keyword field is deliberately Hinglish: mostly English head terms with a couple of Devanagari tokens to catch the minority who search in Hindi script. The visible Description is written in natural Hinglish (Devanagari with the English football loanwords Indian fans actually use), which reads native to an Indian football audience.
+Storefronts reached: India (Apple serves hi metadata to Hindi-preferring users). Critical market reality confirmed by competitor research: the majors keep ENGLISH titles here (the category leader ships "Be Football Manager", not a Hindi descriptor) because Indian App Store users search overwhelmingly in English — even Hindi-first users type "football manager", "world cup", "penalty shootout" in Latin script. So — unlike id/ms/th/vi — we deliberately do NOT localize the title descriptor: the App Name keeps "Football", the Subtitle stays English, and the keyword field is Hinglish (English head terms + one Devanagari token). The visible Description is natural Hinglish, which reads native to an Indian football audience.
 
 ## App Name [25/30]
 `Dynasty Manager: Football`
@@ -11,8 +11,8 @@ Storefronts reached: India (Apple serves hi metadata to Hindi-preferring users).
 ## Promotional Text [164/170]
 `World Cup 2026 mode is live. Take a nation from the group stage to a penalty-shootout final. No energy timers. No rest packs. No waiting. Deep sim, no subscription.`
 
-## Keywords [100/100]
-`national team,penalty shootout,tactics,career,league,transfers,squad,formation,strategy,coach,फुटबॉल`
+## Keywords [96/100]
+`national team,penalty shootout,tactics,career,league,transfers,squad,formation,game,coach,फुटबॉल`
 
 ## Description [~1980/4000]
 World Cup 2026 मोड आ चुका है: 50+ में से कोई भी national team चुनो और group stage से लेकर penalty shootout वाले final तक glory का पीछा करो — हर फैसला तुम्हारा।
@@ -47,8 +47,10 @@ World Cup 2026 मोड live है! अपनी चुनी हुई nation
 5. हर मिनट manage करो
 
 ## Keyword rationale
-- Search-behaviour call: Indian users overwhelmingly type football queries in English, so the whole keyword field is English head terms — "national team", "penalty shootout", "tactics", "career", "league", "transfers", "squad", "formation", "strategy", "coach" — the exact strings Indian fans key in.
-- One Devanagari token, "फुटबॉल", is kept to capture the minority who search in Hindi script without wasting the field; "कोच" is covered by the English "coach" so I did not double up in script.
-- "Football", "Manager" (App Name) and "World Cup", "Soccer", "Sim" (Subtitle) are indexed separately and therefore excluded from keywords — that freed slots for "national team", "penalty shootout" and "strategy".
-- The Description is intentionally Hinglish (Devanagari sentence frames with English football nouns) because that is exactly how Indian football audiences read and talk — a pure literary-Hindi description would read as translationese to them.
-- No plurals of included singulars, no club/league proper nouns (IP). Field filled to exactly 100/100.
+- Deliberate NON-localization, validated by competitor research: the majors keep English titles in India (the leader ships "Be Football Manager", and text-manager rivals use "Be the Manager 2026: Soccer") — there is no Hindi-title norm to match. Indian users type football queries in English, so the App Name ("Football" + "Manager" → forms "football manager"), the Subtitle ("Soccer", "2026" → forms "soccer manager", "football manager 2026"), and the keyword field all target English head terms.
+- Only change this refresh: swapped the redundant "strategy" (it merely echoed "tactics") for "game" — with the name/subtitle it forms the listed high-value combos "football game" and "soccer game", exactly the strings Indian fans key in.
+- The rest of the field stays on the exact English strings Indian fans search: "national team", "penalty shootout", "tactics", "career", "league", "transfers", "squad", "formation", "coach".
+- The subtitle carries the WC window and the "sim" hook; the "no subscription" bounce-catch (high-intent searchers hitting the prestige manager brand's paywall convert on a free download) leads the Promotional Text and closes the Description opening — captured there rather than sacrificing scarce subtitle keywords.
+- One Devanagari token, "फुटबॉल", captures the minority who search in Hindi script; "coach" already covers the "कोच" intent, so no script duplication.
+- Description stays Hinglish (Devanagari frames + English football nouns) because that is how Indian football audiences read and talk — pure literary Hindi would read as translationese.
+- No plurals of included singulars, no club/league proper nouns (IP), no duplicates. Field at 96/100.

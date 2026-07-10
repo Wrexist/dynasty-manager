@@ -1,20 +1,20 @@
 # pl — Polish (App Store)
 
-Storefronts reached: Poland. Apple serves pl metadata to Polish-preferring users in the Polish storefront. Polish fans overwhelmingly call the World Cup "Mundial" (not "Mistrzostwa Świata" in casual search), so the subtitle leads with that exact word.
+Storefronts reached: Poland. Apple serves pl metadata to Polish-preferring users in the Polish storefront. The head phrase Polish fans search for the genre is "menedżer piłkarski" (the exact descriptor Top Eleven localizes into its own Polish title), so the Subtitle now binds it verbatim next to "Mundial" — the everyday word for the World Cup that beats the formal "Mistrzostwa Świata" in casual search.
 
 ## App Name [28/30]
 `Dynasty Manager: Piłka nożna`
 
-## Subtitle [30/30]
-`Mundial 2026: trener i taktyka`
+## Subtitle [28/30]
+`Menedżer piłkarski – Mundial`
 
-## Promotional Text [156/170]
-`Tryb Mundial 2026 już jest. Poprowadź reprezentację od fazy grupowej po finał na karne. Bez pasków energii. Bez czekania. Głęboka symulacja, bez abonamentu.`
+## Promotional Text [167/170]
+`Tryb Mundial 2026 już jest. Poprowadź reprezentację od grup po finał na karne. Bez pasków energii, bez pakietów odpoczynku, bez czekania. Pełna głębia, bez abonamentu.`
 
-## Keywords [99/100]
-`menedzer pilkarski,futbol,reprezentacja,karne,kariera,liga,sklad,transfery,formacja,puchar,klub,gol`
+## Keywords [94/100]
+`futbol,reprezentacja,karne,kariera,liga,transfery,taktyka,trener,sklad,puchar,klub,mistrzostwa`
 
-## Description [~1590/4000]
+## Description [1504/4000]
 Tryb Mundial 2026 już jest. Wybierz jedną z ponad 50 reprezentacji i poprowadź ją od fazy grupowej aż po finał rozstrzygnięty w rzutach karnych – każda decyzja należy do ciebie.
 
 Dynasty Manager to głęboki symulator zarządzania piłką nożną, w który zagrasz, gdziekolwiek jesteś. Bez pay-to-win, bez pasków energii, bez pakietów odpoczynku, bez czekania między sesjami. Graj tyle, ile chcesz – pełna głębia menedżerska bez żadnego abonamentu.
@@ -48,9 +48,10 @@ Tryb Mundial 2026 już jest – poprowadź jedną z ponad 50 reprezentacji od fa
 5. Prowadź każdą minutę meczu
 
 ## Keyword rationale
-- "menedzer pilkarski" is THE head phrase Polish fans search for a management game — the two-word noun beats any single token, and it's written unaccented ("menedzer") because that's how it's typed on a phone. It also lets me skip repeating "manager" from the App Name.
-- "Mundial" lives in the Subtitle (where fans actually search the tournament), so it's deliberately kept out of Keywords to avoid wasted duplication; "puchar" covers the generic cup search instead.
-- "karne", "reprezentacja", "sklad", "transfery", "formacja", "kariera" are the exact Polish words for penalties, national team, lineup, transfers, formation and career — culturally correct, not literal translations of the English.
-- Unaccented forms throughout ("sklad" not "skład", "kariera" is already plain) match how Poles type queries without diacritics, while the visible copy keeps full Polish spelling.
-- "futbol" is included alongside the App Name's "piłka nożna" because a meaningful slice of younger fans search the borrowed word "futbol"; Apple treats it as a distinct token.
-- Excluded: plurals of included singulars, any club/league proper nouns, and "trener"/"taktyka" (already in the Subtitle).
+- **Biggest change: the head phrase "menedżer piłkarski" moved out of Keywords and INTO the Subtitle.** It's the exact descriptor Top Eleven localizes into its own Polish title ("Menedżer Piłkarski"); a title/subtitle placement carries more ranking weight than a keyword-field token, so this contests the incumbent head-on instead of settling for the weaker field. "Mundial" rides in the same Subtitle line — no manager competitor claims the World Cup term in-title, so this is uncontested seasonal capture.
+- Because "menedżer", "piłkarski" and "Mundial" now live in the App Name + Subtitle, Keywords drop them and re-spend the freed budget on complementary terms.
+- "mistrzostwa" added = the formal WC name "Mistrzostwa Świata" (the second way Poles search the tournament, alongside "Mundial"); "trener" and "taktyka" moved into Keywords now that the old "trener i taktyka" subtitle is gone.
+- "karne", "reprezentacja", "sklad", "transfery", "kariera" are the exact Polish words for penalties, national team, lineup, transfers and career — culturally correct, not literal translations of the English.
+- Unaccented forms throughout ("sklad" not "skład") match how Poles type queries without diacritics; the visible copy keeps full Polish spelling.
+- "futbol" is kept alongside the App Name's "piłka nożna" because a meaningful slice of younger fans search the borrowed word; Apple treats it as a distinct token.
+- Dropped the weakest terms ("gol", "formacja") to make room. Excluded: plurals of included singulars, any club/league proper nouns, and words already in the App Name/Subtitle.

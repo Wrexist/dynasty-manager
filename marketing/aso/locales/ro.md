@@ -12,7 +12,7 @@ Storefronts reached: Romania and Moldova (Romanian localization). Single Romania
 `Modul Cupa Mondială 2026 e aici: du-ți naționala din grupe până la finala cu penaltiuri. Fără bare de energie, fără așteptare. Simulare completă, fără abonament.`
 
 ## Keywords [97/100]
-`mondial,lot,tactica,transferuri,cariera,penaltiuri,echipa nationala,campionat,formatie,liga,titlu`
+`mondial,simulator,fara abonament,lot,tactica,transferuri,cariera,penaltiuri,echipa nationala,liga`
 
 ## Description [~1470/4000]
 Modul Cupa Mondială 2026 a sosit. Alege dintre peste 50 de naționale și du-o pe a ta din faza grupelor până la o finală decisă la penaltiuri. Fiecare decizie contează: primul unsprezece, schimbările, tactica de la pauză.
@@ -45,8 +45,13 @@ Modul Cupa Mondială 2026 este acum disponibil: du peste 50 de naționale din gr
 5. Trăiește fiecare minut
 
 ## Keyword rationale
-- Romanians search the WC as "Cupa Mondială" (in Subtitle, indexed) and as the accentless head term "mondial" (leads the keyword field) — Romanian users routinely type without diacritics, so keyword forms are unaccented ("tactica", "formatie", "nationala") while visible copy keeps full diacritics.
-- Real football vocabulary: "antrenor" (manager, in Subtitle), "lot" (squad), "transferuri", "penaltiuri" (shootout), "echipa nationala" (national team, the exact two-word query), "campionat" and "titlu" (the league-title race), "formatie" (lineup). "primul unsprezece" (the starting XI) appears in the Description for flavour.
+- **WC-2026 refresh (2026-07):** added **`simulator`** and **`fara abonament`**, dropped **`campionat`**, **`formatie`** and **`titlu`**:
+  - **`simulator`** ("simulator de fotbal" / "joc de management fotbal") is the depth qualifier that separates us from arcade play, and the incumbent to displace in RO (OSM) is beatable on freshness + this sim framing. The native coach term "antrenor" already anchors the Subtitle (majors under-index it), so the field covers the sim-intent side of Romanian search that splits between "manager de fotbal" and "antrenor de fotbal".
+  - **`fara abonament`** flanks the orphaned #1 brand: the flagship "football manager" listing is subscription-gated (Netflix-exclusive) and its former mobile edition was delisted (Nov 2025) — Romanian searchers who hit that wall convert on a free download. Kept unaccented to match how RO users type.
+  - Dropped **`campionat`** and **`titlu`** (league-title-race intent is lower-priority in the WC window; "liga" still carries generic league search) and **`formatie`** ("lot" covers squad intent) to fund the two terms above.
+- Romanians search the WC as "Cupa Mondială" (in Subtitle, indexed) and as the accentless head term "mondial" (leads the field) — RO users routinely type without diacritics, so keyword forms are unaccented ("tactica", "nationala", "cariera") while visible copy keeps full diacritics.
+- Real football vocabulary: "lot" (squad), "transferuri", "penaltiuri" (shootout), "echipa nationala" (national team, the exact two-word query), "liga". "antrenor" (the native coach/manager term) anchors the Subtitle; "primul unsprezece" (the starting XI) appears in the Description for flavour.
 - Head terms targeted: "mondial" and "fotbal" (the latter in the App Name) — the two highest-volume football queries in the market. "liga" captures generic league search without naming the real domestic league (IP).
-- Deliberately excluded real league/club/player names and any trophy name for IP safety; excluded "fotbal/antrenor/cupa/mondială/2026" from keywords since they already live in the Name/Subtitle.
+- Editorial note: Apple RO actively merchandises football-game "stories" — pursue an App Store feature/story pitch alongside this keyword work; organic editorial lift is visible in this storefront.
+- Deliberately excluded real league/club/player names, any trophy name, and competitor names for IP safety; excluded "fotbal/antrenor/cupa/mondială/2026" from keywords since they already live in the Name/Subtitle.
 - Safe alternate WC phrasing for near-zero IP exposure: "Campionatul Mondial" or the standalone "Mondialul" in place of "Cupa Mondială".

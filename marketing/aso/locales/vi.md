@@ -1,18 +1,18 @@
 # vi — Vietnamese (App Store)
 
-Storefronts reached: Vietnam (Apple serves vi metadata to Vietnamese-preferring users). Vietnamese fans say "bóng đá", abbreviate coach/manager as "HLV" (huấn luyện viên), and use "World Cup" directly rather than a translated phrase. Vietnamese input is diacritic-based (Telex/VNI), so users type WITH tone marks — keywords keep full accents.
+Storefronts reached: Vietnam (Apple serves vi metadata to Vietnamese-preferring users). This is the market most punishing to English-first listings and the one with the deepest localization commitment among the majors — the category leader runs a separate, locally-published Vietnamese build. Biggest change this refresh: the App Name pairs the locked brand "Dynasty Manager" with the native sport descriptor "Bóng Đá" (football), so the highest-weighted field carries both the "manager" head term (via the brand) and the Vietnamese "bóng đá" query. The category leader runs a separate, locally-published Vietnamese build with a fully localized title; we keep the brand lock-up and localize the descriptor. Vietnamese is typed WITH tone marks (Telex/VNI), so keywords keep full accents.
 
 ## App Name [24/30]
 `Dynasty Manager: Bóng Đá`
 
-## Subtitle [23/30]
-`HLV đội tuyển World Cup`
+## Subtitle [29/30]
+`World Cup 2026, Không Chờ Đợi`
 
-## Promotional Text [158/170]
-`Chế độ World Cup 2026 đã có. Đưa đội tuyển từ vòng bảng đến chung kết luân lưu. Không thanh năng lượng. Không chờ đợi. Mô phỏng chuyên sâu, không cần đăng ký.`
+## Promotional Text [168/170]
+`Chế độ World Cup 2026 đã có. Đưa đội tuyển từ vòng bảng đến chung kết luân lưu. Không thanh năng lượng. Không chờ đợi. Mô phỏng chuyên sâu, không cần đăng ký. Miễn phí.`
 
-## Keywords [100/100]
-`quản lý,chiến thuật,sự nghiệp,giải đấu,sút luân lưu,chuyển nhượng,đội hình,sơ đồ,câu lạc bộ,mô phỏng`
+## Keywords [96/100]
+`HLV,đội tuyển,chiến thuật,sự nghiệp,giải đấu,sút luân lưu,chuyển nhượng,đội hình,câu lạc bộ,game`
 
 ## Description [~1560/4000]
 Chế độ World Cup 2026 đã có: chọn một trong hơn 50 đội tuyển và săn vinh quang từ vòng bảng đến trận chung kết được định đoạt trên chấm luân lưu — mọi quyết định nằm trong tay bạn.
@@ -47,8 +47,9 @@ Chế độ World Cup 2026 đã lên sân! Đưa đội tuyển bạn chọn t�
 5. Điều hành từng phút trận đấu
 
 ## Keyword rationale
-- "HLV", "đội tuyển" and "World Cup" are in the Subtitle (HLV is the abbreviation every Vietnamese fan uses for a coach/manager, more searched than the full "huấn luyện viên"), so keywords avoid them and spend slots on "quản lý", "chiến thuật", "sự nghiệp", "giải đấu", "sút luân lưu", "chuyển nhượng", "đội hình", "sơ đồ".
-- "bóng đá" sits in the App Name and indexes separately — not repeated in keywords.
-- Keywords keep full diacritics because Vietnamese is typed with tone marks (Telex/VNI); an unaccented form would look wrong and match less reliably for this locale.
-- "câu lạc bộ" (club) and "mô phỏng" (simulation) fill the field as generic high-volume tokens; "sút luân lưu" is the natural phrase for a penalty shootout (over the calque).
-- No US cross-index for Vietnamese. Excluded club/league proper nouns (IP), no plurals of included singulars. Field filled to exactly 100/100.
+- Title-descriptor localization is the top lever and Vietnam rewards it most — the leader even ships a separate locally-published build with a fully Vietnamese title. The App Name keeps the locked brand "Dynasty Manager" and appends the native sport descriptor "Bóng Đá" ("Dynasty Manager: Bóng Đá"), so "manager" (brand) + "bóng đá" sit in the highest-weighted field. The abbreviation "HLV" in keywords carries the Vietnamese coach/manager query.
+- Subtitle is the conversion line: switched from a pure keyword string to "World Cup 2026, Không Chờ Đợi" (World Cup 2026, no waiting) — the no-grind wedge against the leader's energy/token grind, plus the WC window term and year. The manager-intent words it dropped ("HLV", "đội tuyển") move into keywords, so no coverage is lost.
+- "HLV" leads keywords: it is the abbreviation every Vietnamese fan uses for a coach/manager, more searched than the full "huấn luyện viên". "đội tuyển" (national team) rides the WC window.
+- "câu lạc bộ" (club) is kept as a strong standalone head term. Added "game" so Apple recombines it with the App Name's "Bóng Đá" to form "game bóng đá", a top Vietnamese search phrase; dropped the lower-value "mô phỏng" and "sơ đồ" to fund both ("đội hình" already covers the lineup/formation concept).
+- Keywords keep full diacritics because Vietnamese is typed with tone marks; "sút luân lưu" is the natural phrase over the calque.
+- Excluded "bóng đá" (App Name), "World Cup" (Subtitle), and club/league proper nouns (IP). No plurals of included singulars. Field at 96/100. No US cross-index for Vietnamese.
