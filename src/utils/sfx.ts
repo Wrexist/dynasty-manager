@@ -237,3 +237,82 @@ export function sfxNet(): void {
     src.start(t); src.stop(t + 0.25);
   } catch { /* no-op */ }
 }
+
+/** A bright bell ping — positive UI sting. `big` for a fuller three-partial
+ *  chime (walkout / trophy-adjacent beats); default for the subtle digest tap. */
+export function sfxChime(big = false): void {
+  try {
+    const c = getCtx();
+    if (!c || !master) return;
+    resumeSfx();
+    const t = c.currentTime;
+    const base = big ? 784 : 659; // ~G5 / ~E5
+    const partials = big ? [1, 2, 3] : [1, 2.01];
+    partials.forEach((mult, i) => {
+      const osc = c.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = base * mult;
+      const g = c.createGain();
+      const peak = (big ? 0.18 : 0.12) / (i + 1);
+      const tail = big ? 1.1 : 0.7;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(peak, t + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + tail);
+      osc.connect(g).connect(master);
+      osc.start(t); osc.stop(t + tail + 0.1);
+    });
+  } catch { /* no-op */ }
+}
+
+/** Filtered-noise sweep. `rising` for a charge/build-up; falsey for a descend. */
+export function sfxWhoosh(rising = true): void {
+  try {
+    const c = getCtx();
+    if (!c || !master) return;
+    resumeSfx();
+    const t = c.currentTime;
+    const dur = 0.5;
+    const src = noiseSource(c);
+    const bp = c.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.Q.value = 0.8;
+    bp.frequency.setValueAtTime(rising ? 300 : 1800, t);
+    bp.frequency.exponentialRampToValueAtTime(rising ? 2200 : 300, t + dur);
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.22, t + dur * 0.6);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(bp).connect(g).connect(master);
+    src.start(t); src.stop(t + dur + 0.05);
+  } catch { /* no-op */ }
+}
+
+/** Percussive burst — low body + high crack. Pack-explode / reveal impact. */
+export function sfxBurst(): void {
+  try {
+    const c = getCtx();
+    if (!c || !master) return;
+    resumeSfx();
+    const t = c.currentTime;
+    // Low body
+    const osc = c.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(180, t);
+    osc.frequency.exponentialRampToValueAtTime(40, t + 0.25);
+    const og = c.createGain();
+    og.gain.setValueAtTime(0.5, t);
+    og.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+    osc.connect(og).connect(master);
+    osc.start(t); osc.stop(t + 0.32);
+    // High crack
+    const src = noiseSource(c);
+    const hp = c.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 1200;
+    const ng = c.createGain();
+    ng.gain.setValueAtTime(0.35, t);
+    ng.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+    src.connect(hp).connect(ng).connect(master);
+    src.start(t); src.stop(t + 0.22);
+  } catch { /* no-op */ }
+}

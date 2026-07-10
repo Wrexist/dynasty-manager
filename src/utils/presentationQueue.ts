@@ -18,8 +18,10 @@
  *   1. sessionRecap   — "welcome back" context for a returning player.
  *   2. weeklyDigest   — the factual summary of the week that just advanced.
  *   3. midSeason      — the once-per-season mid-season report.
- *   4. celebration    — positive reinforcement, AFTER the digest facts.
- *   5. achievement    — same, stacked behind celebrations.
+ *   4. trophyLift     — a confirmed trophy (league title / domestic cup): the
+ *      biggest positive beat, ahead of the generic celebration modal.
+ *   5. celebration    — positive reinforcement, AFTER the digest facts.
+ *   6. achievement    — same, stacked behind celebrations.
  *   6. gemReveal      — a scouting reveal the player will act on.
  *   7. nationalTeamOffer / pressConference / storyline / transferTalk —
  *      blocking narrative/decision modals; grouped after the reward beats so
@@ -34,6 +36,7 @@ export type OverlayId =
   | 'sessionRecap'
   | 'weeklyDigest'
   | 'midSeason'
+  | 'trophyLift'
   | 'celebration'
   | 'achievement'
   | 'gemReveal'
@@ -49,6 +52,7 @@ export const PRESENTATION_ORDER: OverlayId[] = [
   'sessionRecap',
   'weeklyDigest',
   'midSeason',
+  'trophyLift',
   'celebration',
   'achievement',
   'gemReveal',

@@ -25,18 +25,19 @@ import { FloatingXP } from '@/components/game/FloatingXP';
 import { cn } from '@/lib/utils';
 import { useFinanceBreakdown } from '@/hooks/useFinanceBreakdown';
 import { getContractUrgency } from '@/utils/contracts';
-import { checkCelebrations, getWinStreak, getUnbeatenRun, getCleanSheetStreak, getDramaCelebration } from '@/utils/celebrations';
+import { checkCelebrations, getWinStreak, getUnbeatenRun, getCleanSheetStreak, getDramaCelebration, detectTrophyMoments } from '@/utils/celebrations';
 import { STREAK_MORALE_THRESHOLD, OBJECTIVE_STREAK_THRESHOLD, OBJECTIVE_CYCLE_WEEKS, OBJECTIVE_STREAK_MULTIPLIER, RARE_OBJECTIVE_XP_MULTIPLIER, LEGENDARY_OBJECTIVE_XP_MULTIPLIER, COACH_ALL_TASKS_BONUS_XP, ACHIEVEMENT_XP_BRONZE, ACHIEVEMENT_XP_SILVER, ACHIEVEMENT_XP_GOLD } from '@/config/gameBalance';
 import { getXPProgress, MANAGER_PERKS, canUnlockPerk, getTotalXP } from '@/utils/managerPerks';
 import { getReputationTierLabel } from '@/utils/managerCareer';
 import { getTransferWindows } from '@/config/transfers';
 import { SPRING_PHASE_END_WEEK } from '@/config/gameBalance';
 import { PACK_PITY_THRESHOLD } from '@/config/packs';
-import type { Celebration } from '@/utils/celebrations';
+import type { Celebration, TrophyMoment } from '@/utils/celebrations';
 import { celebrationToast } from '@/utils/gameToast';
 import { guardAsync } from '@/utils/asyncGuard';
 import { CELEBRATION_STAGGER_MS, ADVANCE_DONE_MS } from '@/config/ui';
 import { CelebrationModal } from '@/components/game/CelebrationModal';
+import { TrophyCeremonyModal } from '@/components/game/TrophyCeremonyModal';
 import { StorylineModal } from '@/components/game/StorylineModal';
 import { PlayerTransferTalk } from '@/components/game/PlayerTransferTalk';
 import { AchievementUnlockModal } from '@/components/game/AchievementUnlockModal';
@@ -225,6 +226,10 @@ const Dashboard = () => {
   const shownCelebrationsRef = useRef<Set<string>>(new Set());
   const prevSeasonRef = useRef(season);
   const [majorCelebration, setMajorCelebration] = useState<Celebration | null>(null);
+  // Trophy ceremonies (G4) — a small queue so a league+cup double both play,
+  // sequenced by the presentation queue. Dedupe keys live in shownCelebrationsRef.
+  const [pendingTrophy, setPendingTrophy] = useState<TrophyMoment | null>(null);
+  const trophyQueueRef = useRef<TrophyMoment[]>([]);
   const [pendingAchievementQueue, setPendingAchievementQueue] = useState<Achievement[]>([]);
   const [currentAchievement, setCurrentAchievement] = useState<Achievement | null>(null);
   const prevAchievementRef = useRef<string[]>([]);
@@ -271,6 +276,10 @@ const Dashboard = () => {
     }
   };
 
+  const dismissTrophy = () => {
+    setPendingTrophy(trophyQueueRef.current.shift() ?? null);
+  };
+
   useEffect(() => {
     if (prevSeasonRef.current !== season) {
       shownCelebrationsRef.current.clear();
@@ -314,6 +323,28 @@ const Dashboard = () => {
         const t = setTimeout(() => celebrationToast(c.title, c.description), i * CELEBRATION_STAGGER_MS);
         celebrationTimersRef.current.push(t);
       });
+
+      // Trophy ceremonies (G4): confirmed league title / domestic cup wins.
+      // Keyed per season so each trophy fires exactly once; queued so a
+      // double (league + cup the same week) plays both, sequenced by the
+      // presentation queue.
+      const trophies = detectTrophyMoments({
+        playerClubId: s.playerClubId,
+        clubName: currentClub.name ?? 'Your club',
+        leagueTable: s.leagueTable,
+        cupWinnerId: s.cup?.winner,
+        leagueCupWinnerId: s.leagueCup?.winner,
+      });
+      const unseenTrophies = trophies.filter(t => {
+        const key = `trophy-${t.id}-${s.season}`;
+        if (shownCelebrationsRef.current.has(key)) return false;
+        shownCelebrationsRef.current.add(key);
+        return true;
+      });
+      if (unseenTrophies.length > 0) {
+        trophyQueueRef.current.push(...unseenTrophies);
+        setPendingTrophy(prev => prev ?? trophyQueueRef.current.shift() ?? null);
+      }
     }
     prevWeekRef.current = week;
   }, [week]); // Only depend on week — read other values from getState() to avoid cascading re-renders
@@ -820,6 +851,14 @@ const Dashboard = () => {
         <BoardWarning confidence={boardConfidence} onDismiss={() => setBoardWarningDismissed(true)} />
       )}
 
+      {/* Trophy Ceremony (G4) — league title / domestic cup wins */}
+      <TrophyCeremonyModal
+        open={!!pendingTrophy}
+        onClose={dismissTrophy}
+        title={pendingTrophy?.title || ''}
+        subtitle={pendingTrophy?.subtitle || ''}
+      />
+
       {/* Major Celebration Modal */}
       <CelebrationModal
         open={!!majorCelebration}
@@ -827,6 +866,7 @@ const Dashboard = () => {
         title={majorCelebration?.title || ''}
         description={majorCelebration?.description || ''}
         icon={majorCelebration?.icon}
+        severity={majorCelebration?.severity}
       />
 
       {/* Achievement Unlock Modal */}

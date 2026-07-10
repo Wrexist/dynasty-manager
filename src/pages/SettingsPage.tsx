@@ -461,7 +461,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
           <ToggleRow
             icon={Volume2}
             label="Sound effects"
-            description="Crowd, whistle and goal sounds during shootouts"
+            description="Crowd, whistles, goals, packs and celebrations"
             value={settings.soundEnabled !== false}
             onChange={() => updateSettings({ soundEnabled: settings.soundEnabled === false })}
           />

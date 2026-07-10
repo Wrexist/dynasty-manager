@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Play, FastForward, Pause, RefreshCw, Zap, Flame, Shield, AlertTriangle, Calendar, MapPin, Trophy, Hand, Clock, type LucideIcon } from 'lucide-react';
 import { hapticHeavy, hapticMedium, hapticLight, hapticSuccess } from '@/utils/haptics';
-import { resumeSfx } from '@/utils/sfx';
+import { resumeSfx, sfxWhistle, sfxRoar, sfxNet, sfxGroan, startCrowdBed, stopCrowdBed } from '@/utils/sfx';
 import { KEY_MOMENT_LOSING_MINUTE, KEY_MOMENT_TIGHT_FINISH_MINUTE, MAX_SUBSTITUTIONS, KEY_MOMENT_DOMINANT_POSSESSION_MIN, KEY_MOMENT_POSSESSION_THRESHOLD, KEY_MOMENT_NEAR_MISS_COUNT, SHOUT_DURATION, SHOUT_COOLDOWN, MAX_SHOUTS_PER_MATCH, MATCH_LOW_FITNESS_THRESHOLD, FITNESS_DEGRADE_PER_MINUTE, PRESSING_FITNESS_DRAIN_PER_POINT, PRESSING_FITNESS_DRAIN_BASELINE, TEMPO_FAST_FITNESS_DRAIN_MOD, TEMPO_SLOW_FITNESS_DRAIN_MOD } from '@/config/matchEngine';
 import { MOTIVATE_FITNESS_DRAIN_MULT, CALM_FITNESS_DRAIN_MULT, DEMAND_FITNESS_DRAIN_MULT } from '@/config/teamTalk';
 import { getDerbyIntensity } from '@/data/league';
@@ -156,6 +156,10 @@ const MatchDayInner = () => {
   const players = useGameStore(s => s.players);
   const settings = useGameStore(s => s.settings);
   const updateSettings = useGameStore(s => s.updateSettings);
+  // Live-match audio (G4). sfx primitives self-gate on the global sound flag,
+  // but we also gate the crowd bed here so it never spins up for a sound-off
+  // user and reacts if they toggle mid-match.
+  const soundEnabled = settings.soundEnabled !== false;
 
   // World Cup shootout mount: when the store already holds a WC match parked
   // at the penalties phase (Capture Studio's staged 2-2 Final, or a session
@@ -328,6 +332,10 @@ const MatchDayInner = () => {
     }
     // Cache match data so it survives the fixture being marked as played
     matchCacheRef.current = { match, homeClub, awayClub };
+    // This tap is the guaranteed user gesture — unlock iOS WebAudio and blow
+    // the kickoff whistle. The crowd bed starts via the live-phase effect.
+    resumeSfx();
+    sfxWhistle();
     const halfState = isWorldCup ? playWorldCupFirstHalf() : playFirstHalf();
     if (!halfState) return;
     // WC: the opponent squad is materialised by the action above — refresh the
@@ -628,6 +636,9 @@ const MatchDayInner = () => {
       const latest = scoreChangingEvents[scoreChangingEvents.length - 1];
       const userScored = latest?.clubId === playerClubId;
       if (userScored) hapticSuccess(); else hapticHeavy();
+      // Goal audio (G4): a net swish + crowd roar for the player's own goals,
+      // a deflating groan when they concede. Self-gated on the sound flag.
+      if (userScored) { sfxNet(); sfxRoar(false); } else { sfxGroan(); }
       setGoalFlash(true);
       clearTimeout(goalFlashTimerRef.current);
       goalFlashTimerRef.current = setTimeout(() => setGoalFlash(false), GOAL_FLASH_MS);
@@ -645,8 +656,31 @@ const MatchDayInner = () => {
   // setGoalFlash(false) fires on an unmounted component.
   useEffect(() => () => clearTimeout(goalFlashTimerRef.current), []);
 
+  // Live crowd ambience (G4): a quiet bed under active play only. Starts on the
+  // first live phase, stops on leaving live / unmount / backgrounding (so it
+  // never bleeds into the instant-sim result screen or a hidden tab). Gated on
+  // the sound setting; startCrowdBed is idempotent and self-no-ops without audio.
+  const isLivePhase = phase === 'first_half' || phase === 'second_half' || phase === 'extra_time';
   useEffect(() => {
-    if (phase === 'post') hapticMedium();
+    if (!isLivePhase || !soundEnabled) return;
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') stopCrowdBed(); else startCrowdBed();
+    };
+    startCrowdBed();
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      stopCrowdBed();
+    };
+  }, [isLivePhase, soundEnabled]);
+
+  useEffect(() => {
+    if (phase === 'post') {
+      hapticMedium();
+      // Full-time whistle (G4). The crowd bed is torn down by the live-phase
+      // effect as `phase` leaves the live set.
+      sfxWhistle();
+    }
   }, [phase]);
 
   // When penalty shootout finalization completes (matchPhase becomes 'full_time'),

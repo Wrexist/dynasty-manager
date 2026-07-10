@@ -1,10 +1,12 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import type { GameState } from '@/store/storeTypes';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { usePresentationSlot } from '@/hooks/usePresentationQueue';
+import { hapticSuccess } from '@/utils/haptics';
+import { sfxChime } from '@/utils/sfx';
 import { Button } from '@/components/ui/button';
 import {
   DollarSign, Heart, AlertTriangle, Activity, Mail,
@@ -91,6 +93,14 @@ export function WeeklyDigest() {
   const active = usePresentationSlot('weeklyDigest', !!digest);
   const visible = !!digest && active;
   useScrollLock(visible);
+  const soundEnabled = useGameStore(s => s.settings.soundEnabled !== false);
+  // Subtle chime + success haptic when the digest actually surfaces (G4) —
+  // gated by the presentation slot so it fires once, on the visible overlay.
+  useEffect(() => {
+    if (!visible) return;
+    hapticSuccess();
+    if (soundEnabled) sfxChime(false);
+  }, [visible, soundEnabled]);
 
   // AnimatePresence stays mounted here while the card child unmounts, so
   // the exit animation actually plays — previously the component returned

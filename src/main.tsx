@@ -13,6 +13,8 @@ import { useGameStore } from '@/store/gameStore';
 import { initSentry, addGameBreadcrumb } from '@/utils/sentry';
 import { track } from '@/utils/analytics';
 import { hydrateSaveStorage } from '@/store/helpers/persistence';
+import { setSfxEnabled, sfxRoar, sfxChime, sfxWhoosh, sfxBurst } from '@/utils/sfx';
+import { setPackSfxHandler } from '@/utils/packAudio';
 
 // Configures the SDK iff VITE_SENTRY_DSN is set — release tag, PII scrubbing,
 // and breadcrumb scrubbing live in src/utils/sentry.ts.
@@ -33,6 +35,36 @@ export const signalReady = () => {
   resolveAppReady?.();
   resolveAppReady = null;
 };
+
+// Wire the procedural audio engine game-wide (G4). Two things must happen
+// once, at init, so cues fired from anywhere respect the user:
+//  1. Sync the sfx master-enable from the persisted `soundEnabled` setting and
+//     keep it synced — previously it was only set when entering a shootout, so
+//     a sound-off user still heard pack/match/celebration cues.
+//  2. Register the pack SFX handler (`setPackSfxHandler` was never called), so
+//     the monetized walkout stops firing cues into the void. The sfx
+//     primitives self-gate on the enable flag, so no extra guard is needed.
+function initAudio() {
+  try {
+    const applySound = (on: boolean | undefined) => setSfxEnabled(on !== false);
+    applySound(useGameStore.getState().settings?.soundEnabled);
+    useGameStore.subscribe((state, prev) => {
+      if (state.settings?.soundEnabled !== prev.settings?.soundEnabled) {
+        applySound(state.settings?.soundEnabled);
+      }
+    });
+    setPackSfxHandler((cue) => {
+      switch (cue) {
+        case 'charge': sfxWhoosh(true); break;
+        case 'walkout-rise': sfxWhoosh(true); break;
+        case 'explode': sfxBurst(); break;
+        case 'rare-pull': sfxRoar(false); break;
+        case 'standard-pull': sfxChime(false); break;
+      }
+    });
+  } catch { /* audio wiring must never block startup */ }
+}
+initAudio();
 
 createRoot(document.getElementById("root")!).render(<App />);
 
