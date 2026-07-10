@@ -18,9 +18,11 @@ import {
   generateLeagueFixtures,
   generateAllDivisionFixtures,
   generateFriendlies,
+  collectOccupiedWeeks,
   buildAllDivisionTables,
   buildLeagueTable,
   clearLeagueTableCache,
+  LEAGUES,
 } from '@/data/league';
 
 // ── Helpers ───────────────────────────────────────────────────────────
@@ -251,5 +253,47 @@ describe('clearLeagueTableCache', () => {
     const after = buildLeagueTable(fixtures, ids);
     // Same input → same output even after a clear.
     expect(after.map(e => e.clubId)).toEqual(before.map(e => e.clubId));
+  });
+});
+
+// ── Friendlies never double-book a week (G3 calendar fix) ─────────────
+
+describe('generateFriendlies with occupiedWeeks', () => {
+  it('never places a friendly on a week the club already has a match', () => {
+    const playerId = 'me';
+    const clubs = [playerId, ...makeClubIds(8)];
+    // Club busy on weeks 1 and 3 → friendlies must dodge to 2, 4, 5.
+    const friendlies = generateFriendlies(playerId, clubs, [1, 3]);
+    expect(friendlies.map(f => f.week).sort((a, b) => a - b)).toEqual([2, 4, 5]);
+  });
+
+  it('generates no friendlies when every early week is occupied (dense league)', () => {
+    const playerId = 'me';
+    const clubs = [playerId, ...makeClubIds(8)];
+    const allBusy = Array.from({ length: 12 }, (_, i) => i + 1);
+    expect(generateFriendlies(playerId, clubs, allBusy)).toHaveLength(0);
+  });
+
+  it('collectOccupiedWeeks gathers the club weeks across match sources', () => {
+    const mk = (week: number, home: string, away: string) => ({ homeClubId: home, awayClubId: away, week });
+    const weeks = collectOccupiedWeeks('me', [
+      [mk(1, 'me', 'a'), mk(2, 'a', 'b')],
+      [mk(4, 'b', 'me')],
+    ]);
+    expect(weeks.sort((a, b) => a - b)).toEqual([1, 4]);
+  });
+
+  it('holds the no-double-week invariant for every league in the catalog', () => {
+    for (const league of LEAGUES) {
+      const ids = makeClubIds(league.teamCount);
+      const fixtures = generateDivisionFixtures(ids, league.totalWeeks);
+      const occupied = collectOccupiedWeeks(ids[0], [fixtures]);
+      const friendlies = generateFriendlies(ids[0], ids, occupied);
+      const busy = new Set(occupied);
+      for (const f of friendlies) {
+        expect(busy.has(f.week), `${league.id}: friendly on occupied week ${f.week}`).toBe(false);
+      }
+      expect(friendlies.length).toBeLessThanOrEqual(3);
+    }
   });
 });

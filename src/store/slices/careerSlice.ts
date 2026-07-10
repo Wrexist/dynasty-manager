@@ -3,7 +3,7 @@ import type { CareerManager, JobVacancy, JobOffer, GameMode, ActiveInterview, Pi
 import { generateJobVacancies, getRetirementAge, generateDefaultBonuses, estimateSquadValue, calculateExpectedPosition, generateCompetitors, selectPitchQuestions, calculateInterviewResult, negotiateContract, generateUnemployedOffer } from '@/utils/managerCareer';
 import { LEAGUES, CLUBS_DATA } from '@/data/league';
 import { STARTING_BOARD_CONFIDENCE, STARTING_TACTICAL_FAMILIARITY, FACILITY_MAX_LEVEL, MEDICAL_LEVEL_FACTOR, RECOVERY_LEVEL_FACTOR, STADIUM_LEVEL_DIVISOR } from '@/config/gameBalance';
-import { PITCH_SCORE_BASE, BOARD_TOLERANCE_START, UNEMPLOYED_INITIAL_OFFERS } from '@/config/managerCareer';
+import { PITCH_SCORE_BASE, BOARD_TOLERANCE_START, UNEMPLOYED_INITIAL_OFFERS, REP_SACKING, REP_MIN } from '@/config/managerCareer';
 import { generateAIManagerProfile } from '@/config/aiManager';
 import { generateInitialStaff, generateStaffMarket, getStaffBonus } from '@/utils/staff';
 import { selectBestLineup } from '@/utils/playerGen';
@@ -354,6 +354,63 @@ export const createCareerSlice = (set: Set, get: Get) => ({
       jobVacancies: vacancies,
       jobOffers: initialOffers,
       activeInterview: null,
+      currentScreen: 'job-market',
+    });
+  },
+
+  // Board-initiated mid-season dismissal — fired by weekAdvance when a board
+  // ultimatum's deadline passes unmet (see ULTIMATUM_* in config/gameBalance).
+  // Mirrors resignFromClub's exit plumbing but with sacking consequences:
+  // history reason 'sacked', sackedCount, and the reputation penalty.
+  sackManagerMidSeason: () => {
+    const state = get();
+    const manager = state.careerManager;
+    if (!manager || !manager.contract) return;
+
+    const updatedHistory = manager.careerHistory.map(entry =>
+      entry.endSeason === null
+        ? { ...entry, endSeason: state.season, reason: 'sacked' as const }
+        : entry
+    );
+
+    const updatedManager: CareerManager = {
+      ...manager,
+      contract: null,
+      careerHistory: updatedHistory,
+      sackedCount: manager.sackedCount + 1,
+      reputationScore: Math.max(REP_MIN, manager.reputationScore + REP_SACKING),
+      unemployedWeeks: 0,
+    };
+
+    const vacancies = enrichVacanciesWithLeagueData(
+      generateJobVacancies(
+        state.clubs,
+        updatedManager.reputationScore,
+        state.season,
+        state.week,
+        state.playerClubId
+      ).map(v => {
+        const vLeague = LEAGUES.find(l => l.id === v.divisionId);
+        return { ...v, competitors: generateCompetitors(v.minReputation, (vLeague?.qualityTier || 4) as 1 | 2 | 3 | 4) };
+      }),
+      state.divisionTables,
+    );
+
+    const initialOffers: import('@/types/game').JobOffer[] = [];
+    for (let i = 0; i < UNEMPLOYED_INITIAL_OFFERS; i++) {
+      const offer = generateUnemployedOffer(
+        updatedManager, state.clubs, state.season, state.week,
+        initialOffers.map(o => o.clubId), state.playerClubId
+      );
+      if (offer) initialOffers.push(offer);
+    }
+
+    set({
+      careerManager: updatedManager,
+      jobVacancies: vacancies,
+      jobOffers: initialOffers,
+      activeInterview: null,
+      boardUltimatum: null,
       currentScreen: 'job-market',
     });
   },

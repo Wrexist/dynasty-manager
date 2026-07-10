@@ -1,4 +1,4 @@
-import { Club, Player, Match, MatchWeather, LeagueTableEntry, FormationType, TransferListing, BoardObjective, GameScreen, Message, SeasonHistory, IncomingOffer, GameSettings, TacticalInstructions, TrainingState, TrainingModule, StaffMember, ScoutingState, ScoutRegion, YouthAcademyState, FacilitiesState, FinanceRecord, PlayerMatchRating, LoanDeal, IncomingLoanOffer, OutgoingLoanRequest, CupState, PressConference, ContractOffer, ActiveChallenge, LeagueId, SeasonTurnover, DerbyRivalry, ClubRecords, SeasonPhase, CareerMilestone, ManagerProgression, PerkId, StorylineEvent, ActiveStorylineChain, SponsorDeal, SponsorOffer, SponsorNegotiationProposal, SponsorSlotId, MerchState, MerchProductLine, MerchPricingTier, MerchCampaignType, CliffhangerItem, MatchDramaType, SessionStats, HeadToHeadRecord, MonetizationState, ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo, TransferNewsEntry, NationalTeamState, NationalTeamOffer, InternationalTournamentState, GameMode, CareerManager, JobVacancy, JobOffer, ActiveInterview, PitchTone, ManagerBonus, LeagueCupState, ContinentalTournamentState, ContinentalCompetition, VirtualClub, SuperCupMatch, TransferTalk, TeamTalkType, PenaltyKick, PenaltyShootoutCtx, MatchShout, ShoutType, NegotiationStrike, OpenedPackRecord, OpenPackResult, ReleasePackedPlayerResult, QuickSellPackedPlayerResult, PackTierKey, PackUnlockMethod, LoadError, CaptureScenario } from '@/types/game';
+import { Club, Player, Match, MatchWeather, LeagueTableEntry, FormationType, TransferListing, BoardObjective, BoardUltimatum, GameScreen, Message, SeasonHistory, IncomingOffer, GameSettings, TacticalInstructions, TrainingState, TrainingModule, StaffMember, ScoutingState, ScoutRegion, YouthAcademyState, FacilitiesState, FinanceRecord, PlayerMatchRating, LoanDeal, IncomingLoanOffer, OutgoingLoanRequest, CupState, PressConference, ContractOffer, ActiveChallenge, LeagueId, SeasonTurnover, DerbyRivalry, ClubRecords, SeasonPhase, CareerMilestone, ManagerProgression, PerkId, StorylineEvent, ActiveStorylineChain, SponsorDeal, SponsorOffer, SponsorNegotiationProposal, SponsorSlotId, MerchState, MerchProductLine, MerchPricingTier, MerchCampaignType, CliffhangerItem, MatchDramaType, SessionStats, HeadToHeadRecord, MonetizationState, ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo, TransferNewsEntry, NationalTeamState, NationalTeamOffer, InternationalTournamentState, GameMode, CareerManager, JobVacancy, JobOffer, ActiveInterview, PitchTone, ManagerBonus, LeagueCupState, ContinentalTournamentState, ContinentalCompetition, VirtualClub, SuperCupMatch, TransferTalk, TeamTalkType, PenaltyKick, PenaltyShootoutCtx, MatchShout, ShoutType, NegotiationStrike, OpenedPackRecord, OpenPackResult, ReleasePackedPlayerResult, QuickSellPackedPlayerResult, PackTierKey, PackUnlockMethod, LoadError, CaptureScenario } from '@/types/game';
 import type { ObjectiveInstance } from '@/utils/weeklyObjectives';
 import type { HalfState } from '@/engine/match';
 
@@ -17,6 +17,8 @@ export interface GameState {
   messages: Message[];
   boardObjectives: BoardObjective[];
   boardConfidence: number;
+  /** Active mid-season board ultimatum, or null. Persisted (schema v73). */
+  boardUltimatum: BoardUltimatum | null;
   seasonHistory: SeasonHistory[];
   settings: GameSettings;
   activeSlot: number;
@@ -511,6 +513,8 @@ export interface GameState {
   applyForJob: (vacancyId: string) => { success: boolean; message: string };
   respondToJobOffer: (offerId: string, accept: boolean) => { success: boolean; message?: string };
   resignFromClub: () => void;
+  /** Board-initiated mid-season dismissal (failed ultimatum). Career mode only. */
+  sackManagerMidSeason: () => void;
   moveToNewClub: (clubId: string, offer: JobOffer) => void;
   retireManager: () => void;
 

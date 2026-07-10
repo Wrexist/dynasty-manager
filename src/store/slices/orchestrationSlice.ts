@@ -196,6 +196,7 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
     clubs: state.clubs, players: state.players, fixtures: flatFixturesForSave,
     transferMarket: state.transferMarket, shortlist: state.shortlist, scoutWatchList: state.scoutWatchList,
     boardObjectives: state.boardObjectives, boardConfidence: state.boardConfidence,
+    boardUltimatum: state.boardUltimatum,
     trainingFocus: state.trainingFocus, totalWeeks: state.totalWeeks,
     messages: state.messages, seasonHistory: state.seasonHistory,
     incomingOffers: state.incomingOffers,
@@ -463,7 +464,7 @@ function buildFreshSessionState(get: Get): Partial<GameState> {
     captureSession: false,
     gameStarted: false, playerClubId: '', currentScreen: 'dashboard' as GameState['currentScreen'],
     clubs: {}, players: {}, fixtures: [], leagueTable: [],
-    messages: [], seasonHistory: [], incomingOffers: [],
+    messages: [], seasonHistory: [], incomingOffers: [], boardUltimatum: null,
     matchPlayerRatings: [], halfTimeState: null, currentMatchWeather: null, matchPhase: 'none' as const,
     currentMatchResult: null, matchSubsUsed: 0, matchSubbedOffIds: [], currentCupTieId: null,
     // Match-scoped state that previously persisted across resets — audit

@@ -628,6 +628,18 @@ export interface BoardObjective {
   originalTargetMin?: number;
 }
 
+/** A board ultimatum issued at a mid-season review when confidence is
+ *  critically low: recover to `targetPosition` (or lift confidence out of the
+ *  danger zone) by `deadlineWeek`, or face a mid-season sacking (career mode)
+ *  / severe board consequences (sandbox). Persisted — save schema v73. */
+export interface BoardUltimatum {
+  issuedSeason: number;
+  issuedWeek: number;
+  deadlineWeek: number;
+  /** League position (1-based) the board demands by the deadline. */
+  targetPosition: number;
+}
+
 export interface Message {
   id: string;
   week: number;

@@ -4,7 +4,7 @@ import { calculateReputationTier, generateJobVacancies, getRetirementAge, calcul
 import {
   REP_PROMOTION, REP_RELEGATION, REP_OVERACHIEVE_BONUS, REP_UNDERACHIEVE_PENALTY, REP_TITLE, REP_CUP_WIN, REP_SACKING, REP_MIN, REP_MAX,
 } from '@/config/managerCareer';
-import { buildLeagueTable, generateDivisionFixtures, buildAllDivisionTables, LEAGUES, generateFriendlies, getLeaguesByCountry, clearLeagueTableCache } from '@/data/league';
+import { buildLeagueTable, generateDivisionFixtures, buildAllDivisionTables, LEAGUES, generateFriendlies, collectOccupiedWeeks, getLeaguesByCountry, clearLeagueTableCache } from '@/data/league';
 import { BOARD_OBJ_ALL_COMPLETE_XP, BOARD_OBJ_ALL_COMPLETE_CONFIDENCE } from '@/config/gameBalance';
 import { generateSquad, selectBestLineup, generatePlayer } from '@/utils/playerGen';
 
@@ -836,7 +836,13 @@ function finalizeSeason(
   const newLeagueTable = newDivisionTables[newPlayerDivision];
   const newCup = generateCupDraw(leagueClubIds, leagueTotalWeeks);
   const newLeagueCup = generateLeagueCupDraw(leagueClubIds, leagueTotalWeeks);
-  const newFriendlies = generateFriendlies(state.playerClubId, leagueClubIds);
+  // Pre-season friendlies only on the player's fixture-free weeks (never
+  // sharing a week with a new-season league fixture or opening cup tie).
+  const newFriendlies = generateFriendlies(
+    state.playerClubId,
+    leagueClubIds,
+    collectOccupiedWeeks(state.playerClubId, [newFixtures || [], newCup.ties, newLeagueCup?.ties || []]),
+  );
 
   // Generate continental tournaments based on the top-tier league table
   // If the player was promoted/relegated, use the top tier's table (continental qualifies top-tier only)
@@ -1235,6 +1241,7 @@ function finalizeSeason(
     divisionClubs: newDivisionClubs,
     playerDivision: newPlayerDivision,
     transferMarket, boardObjectives: objectives, boardConfidence: newConfidence,
+    boardUltimatum: null, // a new season wipes any active ultimatum
     seasonHistory: [...state.seasonHistory, history],
     currentMatchResult: null, currentScreen: 'season-summary',
     matchPhase: 'none' as const, matchTeamTalk: 'none', pendingPressConference: null,

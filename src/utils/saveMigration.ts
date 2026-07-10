@@ -11,11 +11,21 @@ import type { Club, Player, FormationType } from '@/types/game';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 72;
+const CURRENT_VERSION = 73;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
 const migrations: Record<number, MigrationFn> = {
+  // v72 → v73: GameState gained `boardUltimatum` (mid-season board ultimatum
+  // issued at review weeks when confidence is critically low — see
+  // config/gameBalance ULTIMATUM_* constants). Existing saves have no active
+  // ultimatum; default to null.
+  72: (data) => ({
+    ...data,
+    version: 73,
+    boardUltimatum: data.boardUltimatum ?? null,
+  }),
+
   // v1 → v2: Added messages, seasonHistory, incomingOffers
   1: (data) => ({
     ...data,
