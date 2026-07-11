@@ -141,9 +141,18 @@ Cosmetic Packs: £1.99 – £3.99 per purchase.
 Payment charged to your Apple ID at purchase confirmation.
 Manage subscriptions: App Store → Settings → Subscriptions.
 
-Privacy Policy: [INSERT URL]
-Terms of Use: [INSERT URL]
+Privacy Policy: https://wrexist.github.io/dynasty-manager/privacy.html
+Terms of Use (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 ```
+
+> **Apple Guideline 3.1.2(a) — Terms of Use (EULA) in metadata.** Auto-renewable
+> subscription apps must expose a functional Terms of Use link in the app's
+> metadata. The two URLs above are the single source of truth (mirrored from
+> `src/config/legal.ts`). Paste them verbatim into the **App Description** field
+> in App Store Connect — the reviewer reads the *live* Description, so the
+> placeholders left there before this update were the rejection cause. We use
+> Apple's standard EULA, so no custom EULA needs uploading to
+> App Store Connect → App Information → License Agreement.
 
 ---
 
