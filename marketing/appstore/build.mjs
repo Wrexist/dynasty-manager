@@ -1,5 +1,5 @@
 /**
- * Dynasty Manager — 3D App Store screenshots (iPhone 6.7", 1290×2796).
+ * Dynasty Manager — 3D App Store screenshots (iPhone 6.7", 1284×2778).
  *
  * Takes the real in-game screens from the current App Store set
  * (`docs/ingame/*.png` — real clubs, real players, evergreen) and re-composites
@@ -14,10 +14,10 @@
  *   node marketing/appstore/build.mjs            # English base set
  *   (localization pass adds per-locale captions later, once the look is signed off)
  *
- * Output: marketing/appstore/out/en/01..05.png
+ * Output: marketing/*.png (final) + marketing/appstore/out/en/ (working copies)
  */
 import { chromium } from 'playwright';
-import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync, copyFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
@@ -25,8 +25,9 @@ const DIR = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(DIR, '..', '..');
 const INGAME = join(ROOT, 'docs', 'ingame');
 const OUT = join(DIR, 'out');
+const MARKETING = join(DIR, '..');
 const EXE = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
-const W = 1290, H = 2796;
+const W = 1284, H = 2778;
 const b64 = (f) => 'data:image/png;base64,' + readFileSync(join(INGAME, f)).toString('base64');
 
 // Device-glass rectangle inside the docs/ingame composited shots (shared
@@ -179,4 +180,13 @@ for (let i = 0; i < PANELS.length; i++) {
   console.log('✓', p.id, `${p.white} ${p.green}`);
 }
 await browser.close();
+
+// Final, ready-to-upload copies land directly in /marketing (English set only
+// for now — App Store Connect wants flat, clearly-named files per locale).
+if (locale === 'en') {
+  for (const p of PANELS) {
+    copyFileSync(join(dir, `${p.id}.png`), join(MARKETING, `appstore-screenshot-${p.id}.png`));
+  }
+  console.log('✓ copied final PNGs →', MARKETING);
+}
 console.log('DONE →', join(OUT, locale));
