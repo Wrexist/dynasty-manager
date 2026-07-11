@@ -6,11 +6,15 @@ real clubs, real players, evergreen) and re-composites their device content
 into an immersive, perspective-tilted **3D device** (depth shadow, screen
 glare, rim light) on the green Dynasty Manager brand system.
 
-- **Canvas:** 1290 × 2796 (iPhone 6.7"). Accepted for 6.5"/6.7"/6.9" slots.
+- **Canvas:** 1284 × 2778 (iPhone 6.7"), matching the source `docs/ingame`
+  assets exactly. Accepted for the 6.5"/6.7" App Store screenshot slot.
 - **Set:** 5 panels, in App Store display order.
 - **On-device pixels are the verbatim real game** — we crop just the device
   glass out of the source shots (`CROP` in `build.mjs`, measured once with
   `detect-glass.mjs`) and re-frame it in 3D. No mockups, no World Cup.
+- **Final files** land directly in `/marketing` as
+  `appstore-screenshot-01.png` … `05.png` — ready to upload to App Store
+  Connect, no digging through `out/`.
 
 ## The 5 panels
 
@@ -27,9 +31,13 @@ glare, rim light) on the green Dynasty Manager brand system.
 ## Render
 
 ```bash
-node marketing/appstore/build.mjs        # English base set → out/en/01..05.png
-node marketing/appstore/build.mjs de     # a locale (once captions are localized)
+node marketing/appstore/build.mjs        # English → /marketing/appstore-screenshot-01..05.png
+node marketing/appstore/build.mjs de     # a locale (once captions are localized) → out/de/
 ```
+
+Only the `en` run copies its output up to `/marketing` (the final, ready-to-upload
+set); other locales stay under `out/<locale>/` until the localization pass is
+signed off.
 
 Requires Playwright + the bundled Chromium at `/opt/pw-browsers/chromium-1194`
 (falls back to the default install). Fonts (Montserrat, DM Sans) load from
