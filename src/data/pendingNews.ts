@@ -62,6 +62,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Capture Studio in Settings: teleport into staged World Cup finals (Messi vs Ronaldo, Mbappé rematch, England penalties, Yamal, Haaland) for recording promo footage without touching your save.',
     'G1–G7: Cold-open paywall removal, board teeth, audio/visual polish.',
     'Add App Store screenshot generator with 3D device rendering.',
+    'Resize App Store screenshots to 1284x2778, output to /marketing.',
   ],
   fixed: [],
   headline: null,
