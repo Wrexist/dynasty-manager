@@ -97,8 +97,10 @@ describe('startWorldCup', () => {
     useGameStore.getState().startWorldCup(NAT);
     // Squad is pre-confirmed at boot — advance straight through.
 
-    // Advance through group stage → knockout → final.
-    for (let i = 0; i < 12; i++) {
+    // Advance through group stage → knockout → final. The 2026 format
+    // (48 teams, 12 groups, R32 → R16 → QF → SF → F) needs more weeks than the
+    // old bracket — match the Round-of-32 sibling test's 16-week budget.
+    for (let i = 0; i < 16; i++) {
       await useGameStore.getState().advanceWeek();
       if (useGameStore.getState().internationalTournament?.phase === 'complete') break;
     }
