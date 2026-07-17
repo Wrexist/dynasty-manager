@@ -57,6 +57,10 @@ const migrations: Record<number, MigrationFn> = {
       ...data,
       version: 73,
       boardUltimatum: data.boardUltimatum ?? null,
+      // Pre-Season Focus: one-shot offseason choice. Existing saves have none
+      // armed (it is set at season end), so default to null — the next season
+      // rollover arms it with the FRIENDLY_CIRCUIT default.
+      preseasonEffect: data.preseasonEffect ?? null,
       // "Cement the Legacy" prestige path: permanent board-expectation
       // tightening (league positions). Existing saves have never cemented, so
       // default to 0 (no tightening).

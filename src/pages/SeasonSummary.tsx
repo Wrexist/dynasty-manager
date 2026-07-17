@@ -6,7 +6,9 @@ import { getReputationTierLabel, getManagerBonusLabel } from '@/utils/managerCar
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { PlayerCard } from '@/components/game/PlayerCard';
 import { Button } from '@/components/ui/button';
-import { Trophy, Star, Award, Users, ChevronDown, ChevronUp, ChevronRight, ArrowDown, ArrowUp } from 'lucide-react';
+import { Trophy, Star, Award, Users, ChevronDown, ChevronUp, ChevronRight, ArrowDown, ArrowUp, Plane, Dumbbell, ShieldCheck } from 'lucide-react';
+import { PRESEASON_FOCUS } from '@/config/gameBalance';
+import type { PreseasonFocusId } from '@/types/game';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { LEAGUES } from '@/data/league';
 import { AdRewardButton } from '@/components/game/AdRewardButton';
@@ -34,8 +36,48 @@ const AWARD_STAT_LABELS: Record<string, string> = {
   'Team of the Season': 'OVR',
 };
 
+const PRESEASON_OPTIONS: {
+  id: PreseasonFocusId;
+  Icon: typeof Plane;
+  title: string;
+  tagline: string;
+  perks: string[];
+}[] = [
+  {
+    id: 'summer_tour',
+    Icon: Plane,
+    title: 'Summer Tour',
+    tagline: 'Cash in on a commercial pre-season.',
+    perks: [
+      `+£${(PRESEASON_FOCUS.summer_tour.budgetBoost / 1e6).toFixed(0)}M transfer budget`,
+      `+${Math.round(PRESEASON_FOCUS.summer_tour.fanBaseBump * 100)}% fanbase`,
+      `-${PRESEASON_FOCUS.summer_tour.fitnessCost} squad fitness`,
+    ],
+  },
+  {
+    id: 'friendly_circuit',
+    Icon: ShieldCheck,
+    title: 'Friendly Circuit',
+    tagline: 'Sharpen cohesion before kick-off.',
+    perks: [
+      `+${PRESEASON_FOCUS.friendly_circuit.tacticalFamiliarityBoost} tactical familiarity`,
+      `+${PRESEASON_FOCUS.friendly_circuit.pairFamiliarityBoost} chemistry per pairing`,
+    ],
+  },
+  {
+    id: 'training_camp',
+    Icon: Dumbbell,
+    title: 'Training Camp',
+    tagline: 'Build fitness and grow the squad.',
+    perks: [
+      `Halved injury risk for ${PRESEASON_FOCUS.training_camp.injuryGuardWeeks} weeks`,
+      'Faster development early on',
+    ],
+  },
+];
+
 const SeasonSummary = () => {
-  const { seasonHistory, season, playerClubId, clubs, players, leagueTable, gameMode, careerManager } = useGameStore(useShallow((s) => ({
+  const { seasonHistory, season, playerClubId, clubs, players, leagueTable, gameMode, careerManager, preseasonEffect } = useGameStore(useShallow((s) => ({
     seasonHistory: s.seasonHistory,
     season: s.season,
     playerClubId: s.playerClubId,
@@ -44,8 +86,11 @@ const SeasonSummary = () => {
     leagueTable: s.leagueTable,
     gameMode: s.gameMode,
     careerManager: s.careerManager,
+    preseasonEffect: s.preseasonEffect,
   })));
   const setScreen = useGameStore((s) => s.setScreen);
+  const setPreseasonFocus = useGameStore((s) => s.setPreseasonFocus);
+  const showPreseasonChooser = !!preseasonEffect && !preseasonEffect.consumed;
   const latest = seasonHistory[seasonHistory.length - 1];
   const [showBestXI, setShowBestXI] = useState(false);
 
@@ -588,6 +633,57 @@ const SeasonSummary = () => {
               </p>
             )}
           </GlassPanel>
+        )}
+
+        {/* Pre-Season Focus chooser — one strategic offseason choice. Defaults
+            to Friendly Circuit (armed at season end) if the player skips. */}
+        {showPreseasonChooser && (
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.4 }}>
+            <GlassPanel className="p-4">
+              <div className="text-center mb-3">
+                <p className="text-xs text-primary uppercase tracking-wider font-bold">Pre-Season Focus</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Choose how to spend the offseason. Applied when the new season kicks off.</p>
+              </div>
+              <div className="space-y-2.5">
+                {PRESEASON_OPTIONS.map(opt => {
+                  const selected = preseasonEffect?.focus === opt.id;
+                  const Icon = opt.Icon;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => { hapticHeavy(); setPreseasonFocus(opt.id); }}
+                      className={cn(
+                        'w-full text-left rounded-xl border p-3 transition-colors flex gap-3 items-start',
+                        selected
+                          ? 'border-primary/60 bg-primary/10'
+                          : 'border-border/50 bg-muted/20 hover:bg-muted/30'
+                      )}
+                    >
+                      <div className={cn(
+                        'w-9 h-9 rounded-lg flex items-center justify-center shrink-0',
+                        selected ? 'bg-primary/20' : 'bg-muted/30'
+                      )}>
+                        <Icon className={cn('w-5 h-5', selected ? 'text-primary' : 'text-muted-foreground')} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className={cn('text-sm font-bold', selected ? 'text-primary' : 'text-foreground')}>{opt.title}</p>
+                          {selected && <span className="text-[9px] font-bold uppercase tracking-wider text-primary bg-primary/15 px-1.5 py-0.5 rounded">Selected</span>}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">{opt.tagline}</p>
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {opt.perks.map((perk, i) => (
+                            <span key={i} className="text-[10px] text-foreground/80 bg-muted/40 px-1.5 py-0.5 rounded">{perk}</span>
+                          ))}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </GlassPanel>
+          </motion.div>
         )}
 
         {/* Spacer for fixed floating button */}

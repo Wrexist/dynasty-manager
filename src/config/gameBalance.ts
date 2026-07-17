@@ -168,6 +168,45 @@ export const PHYSIO_RECOVERY_CHANCE = 0.4;
 export const PHYSIO_INJURY_REDUCTION_PER_QUALITY = 0.05;
 export const ASSISTANT_MANAGER_FAMILIARITY_BOOST = 0.5;
 
+// ── Pre-Season Focus ──
+// One strategic choice each offseason, armed at season end and consumed by the
+// new season's first advanceWeek. Deltas apply via existing mechanisms only —
+// nothing here touches match outcomes directly. See PreseasonEffect in
+// types/game.ts and the consumption block in orchestration/weekAdvance.ts.
+export const PRESEASON_FOCUS = {
+  // Commercial tour: an immediate transfer war-chest + a small fanbase bump
+  // (which feeds matchday/merch income), paid for with a small fitness dip
+  // heading into the opening weeks.
+  summer_tour: {
+    /** One-time cash injected into the club budget at season start (£). */
+    budgetBoost: 8_000_000,
+    /** Fractional fanbase growth from the tour (+3% => more gate/merch income). */
+    fanBaseBump: 0.03,
+    /** Fitness points every squad player loses at season start. */
+    fitnessCost: 8,
+    /** Fitness never taken below this floor by the tour cost. */
+    fitnessFloor: 55,
+  },
+  // Competitive friendlies: a head start on cohesion — tactical familiarity and
+  // pair chemistry for the current lineup.
+  friendly_circuit: {
+    /** Immediate tactical-familiarity points added (capped at 100). */
+    tacticalFamiliarityBoost: 15,
+    /** Pair-familiarity points added to every current lineup pairing. */
+    pairFamiliarityBoost: 4,
+  },
+  // Fitness camp: fewer injuries and faster development through the opening
+  // weeks, but no commercial income.
+  training_camp: {
+    /** Number of opening weeks the injury-reduction + dev window covers. */
+    injuryGuardWeeks: 6,
+    /** Multiplier applied to weekly training injury risk during the window. */
+    injuryRiskMult: 0.5,
+    /** Extra development-chance boost during the window (added to trainingGroundBoost). */
+    devBoost: 0.5,
+  },
+} as const;
+
 // ── Contract Warnings ──
 export const CONTRACT_WARNING_WEEKS = [15, 25, 30, 35] as const;
 export const CONTRACT_WARNING_OVERALL_THRESHOLD = 60;

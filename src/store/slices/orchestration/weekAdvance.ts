@@ -23,7 +23,7 @@ import {
   TOTAL_WEEKS, CONFIDENCE_MIN, LISTING_PRICE_MIN_MULTIPLIER, LISTING_PRICE_RANDOM_RANGE, getExpectedPosition, FREE_AGENT_POOL_MAX,
 } from '@/config/gameBalance';
 
-import { NATIONAL_CALLUP_MORALE_BOOST, CAPTAIN_LEADERSHIP_MULT } from '@/config/gameBalance';
+import { NATIONAL_CALLUP_MORALE_BOOST, CAPTAIN_LEADERSHIP_MULT, PRESEASON_FOCUS } from '@/config/gameBalance';
 
 import { generateMonthlyObjectives } from '@/utils/weeklyObjectives';
 
@@ -818,6 +818,62 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
 
   const playerClub = { ...clubs[playerClubId] };
 
+  // ── Pre-Season Focus (one-shot, consumed on the new season's first week) ──
+  // A single strategic offseason choice. This block computes everything the
+  // effect needs; the injury/dev multipliers are threaded into the per-player
+  // loop below and the budget/tactical-familiarity deltas into their existing
+  // call sites (all clearly tagged "Pre-Season Focus"). The whole effect clears
+  // once its short window has passed (see nextPreseasonEffect at the final set).
+  const preseasonEffect = state.preseasonEffect;
+  const consumePreseason = !!preseasonEffect && !preseasonEffect.consumed;
+  // TRAINING_CAMP shields injuries and speeds development for the opening weeks.
+  // The consumption week is always the first week of that window; later weeks
+  // check the stored guard expiry.
+  const preseasonCampActive = preseasonEffect?.focus === 'training_camp' && (
+    consumePreseason ? true : week <= preseasonEffect.injuryGuardUntilWeek
+  );
+  const preseasonInjuryMult = preseasonCampActive ? PRESEASON_FOCUS.training_camp.injuryRiskMult : 1;
+  const preseasonDevBoost = preseasonCampActive ? PRESEASON_FOCUS.training_camp.devBoost : 0;
+  // Immediate deltas only fire on the consumption week.
+  let preseasonBudgetBoost = 0;
+  let preseasonTactFamBoost = 0;
+  let nextPairFamiliarity = state.pairFamiliarity;
+  if (consumePreseason && preseasonEffect) {
+    if (preseasonEffect.focus === 'summer_tour') {
+      const cfg = PRESEASON_FOCUS.summer_tour;
+      // Transfer war-chest (folded into weeklyIncome below) + a fanbase bump
+      // that lifts gate/merch income, paid for by a squad-wide fitness dip.
+      preseasonBudgetBoost = cfg.budgetBoost;
+      playerClub.fanBase = Math.round(playerClub.fanBase * (1 + cfg.fanBaseBump));
+      for (const pid of playerClub.playerIds) {
+        const p = newPlayers[pid];
+        if (!p) continue;
+        newPlayers[pid] = { ...p, fitness: Math.max(cfg.fitnessFloor, p.fitness - cfg.fitnessCost) };
+      }
+    } else if (preseasonEffect.focus === 'friendly_circuit') {
+      const cfg = PRESEASON_FOCUS.friendly_circuit;
+      // Head start on cohesion: tactical familiarity (added at its call site
+      // below) + pair familiarity for every current lineup pairing.
+      preseasonTactFamBoost = cfg.tacticalFamiliarityBoost;
+      const pairs = { ...state.pairFamiliarity };
+      const lineup = playerClub.lineup.filter(Boolean);
+      for (let i = 0; i < lineup.length; i++) {
+        for (let j = i + 1; j < lineup.length; j++) {
+          const key = lineup[i] < lineup[j] ? `${lineup[i]}-${lineup[j]}` : `${lineup[j]}-${lineup[i]}`;
+          pairs[key] = Math.min(100, (pairs[key] || 0) + cfg.pairFamiliarityBoost);
+        }
+      }
+      nextPairFamiliarity = pairs;
+    }
+    // Inbox summary of what the chosen focus delivered.
+    const focusMsg = preseasonEffect.focus === 'summer_tour'
+      ? { title: 'Pre-Season: Summer Tour', body: `The commercial tour banked £${(PRESEASON_FOCUS.summer_tour.budgetBoost / 1e6).toFixed(0)}M for transfers and grew the fanbase, but the squad starts the season a little short of match fitness.` }
+      : preseasonEffect.focus === 'friendly_circuit'
+        ? { title: 'Pre-Season: Friendly Circuit', body: 'A packed friendly schedule sharpened cohesion — the squad begins the season with a head start on tactical familiarity and chemistry.' }
+        : { title: 'Pre-Season: Training Camp', body: `An intense training camp means reduced injury risk and faster development for the first ${PRESEASON_FOCUS.training_camp.injuryGuardWeeks} weeks.` };
+    newMessages = addMsg(newMessages, { week, season, type: 'general', title: focusMsg.title, body: focusMsg.body });
+  }
+
   // Snapshot pre-training state for report generation
   const preTrainingPlayers: Record<string, Player> = {};
   for (const pid of playerClub.playerIds) {
@@ -882,7 +938,8 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
       const individualTrainingRisk = (training.individualPlans || []).some(
         plan => plan.playerId === p.id
       ) ? INDIVIDUAL_INJURY_RISK_MODIFIER : 1;
-      const injuryRisk = baseInjuryRisk * physioReduction * perkReduction * congestionFactor * individualTrainingRisk;
+      // Pre-Season Focus (TRAINING_CAMP): reduced injury risk for the opening weeks.
+      const injuryRisk = baseInjuryRisk * physioReduction * perkReduction * congestionFactor * individualTrainingRisk * preseasonInjuryMult;
       if (Math.random() < injuryRisk && !p.injured) {
         const injDetails = generateAIInjuryDetails(facilities.medicalLevel);
         p.injured = true;
@@ -898,7 +955,8 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     const trainingPerkBoost = hasPerk(state.managerProgression, 'training_ground') ? TRAINING_GROUND_BOOST * dm : 0;
     const dnaCoachBoost = hasPerk(state.managerProgression, 'dna_coach') && p.age < 24 ? 0.1 : 0;
     const gkBoost = p.position === 'GK' ? gkCoachBonus * GK_COACH_DEV_BONUS_PER_QUALITY : 0;
-    p = applyPlayerDevelopment(p, getDominantTrainingFocus(training.schedule), mentorBonusVal, trainingPerkBoost + dnaCoachBoost + gkBoost);
+    // Pre-Season Focus (TRAINING_CAMP): preseasonDevBoost adds to the training-ground development boost for the opening weeks.
+    p = applyPlayerDevelopment(p, getDominantTrainingFocus(training.schedule), mentorBonusVal, trainingPerkBoost + dnaCoachBoost + gkBoost + preseasonDevBoost);
 
     // Compute combined per-attribute changes from training + development
     const attrChanges: Partial<Record<keyof PlayerAttributes, number>> = {};
@@ -1007,7 +1065,8 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   const amBoost = assistantManagerBonus > 0 ? Math.round(assistantManagerBonus * ASSISTANT_MANAGER_FAMILIARITY_BOOST) : 0;
   const tactGeniusBoost = hasPerk(state.managerProgression, 'tactical_genius') ? Math.round((baseTactFam - training.tacticalFamiliarity) * 0.3) : 0;
   const careerTactBoost = (state.gameMode === 'career' && state.careerManager) ? Math.round((baseTactFam - training.tacticalFamiliarity) * state.careerManager.attributes.tacticalKnowledge * MOD_TACTICAL_FAMILIARITY) : 0;
-  const newTacticalFamiliarity = Math.min(100, baseTactFam + amBoost + tactGeniusBoost + careerTactBoost);
+  // Pre-Season Focus (FRIENDLY_CIRCUIT): one-time tactical-familiarity head start.
+  const newTacticalFamiliarity = Math.min(100, baseTactFam + amBoost + tactGeniusBoost + careerTactBoost + preseasonTactFamBoost);
 
   // International break: call up players, apply fitness cost, send notifications
   if (INTERNATIONAL_BREAK_WEEKS.includes(week)) {
@@ -2195,7 +2254,8 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   const merchandiseIncome = calculateWeeklyMerchRevenue(
     state.merchandise, playerClub, state.players, state.playerDivision, state.managerProgression
   );
-  const weeklyIncome = matchdayIncome + commercialIncome + stadiumIncome + positionPrize + sponsorIncome + merchandiseIncome;
+  // Pre-Season Focus (SUMMER_TOUR): one-time transfer war-chest folded into this week's income.
+  const weeklyIncome = matchdayIncome + commercialIncome + stadiumIncome + positionPrize + sponsorIncome + merchandiseIncome + preseasonBudgetBoost;
   const staffWages = staff.members.reduce((sum, s) => sum + s.wage, 0);
   // Scouting costs: each active assignment costs money per week
   const scoutingCosts = newScouting.assignments.length * SCOUTING_COST_PER_ASSIGNMENT;
@@ -2710,8 +2770,24 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     };
   });
 
+  // Pre-Season Focus: advance/clear the one-shot effect. The consumption week
+  // marks it spent and stamps the injury-guard expiry (TRAINING_CAMP only);
+  // once the guard window has passed (or immediately for non-camp focuses) the
+  // whole effect clears to null.
+  let nextPreseasonEffect = state.preseasonEffect;
+  if (nextPreseasonEffect && !nextPreseasonEffect.consumed) {
+    const guardUntil = nextPreseasonEffect.focus === 'training_camp'
+      ? week + PRESEASON_FOCUS.training_camp.injuryGuardWeeks - 1
+      : week - 1;
+    nextPreseasonEffect = { ...nextPreseasonEffect, consumed: true, injuryGuardUntilWeek: guardUntil };
+  }
+  if (nextPreseasonEffect && nextPreseasonEffect.consumed && newWeek > nextPreseasonEffect.injuryGuardUntilWeek) {
+    nextPreseasonEffect = null;
+  }
+
   set({
     week: newWeek, fixtures: updatedFixtures, players: newPlayers,
+    preseasonEffect: nextPreseasonEffect, pairFamiliarity: nextPairFamiliarity,
     leagueTable, transferWindowOpen, currentMatchResult: null,
     matchPhase: 'none' as const, pendingPressConference: null,
     messages: newMessages, incomingOffers: newOffers, clubs: newClubs,

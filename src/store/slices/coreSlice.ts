@@ -1,4 +1,4 @@
-import { GameScreen, GameSettings, LeagueId, SeasonPhase, TransferNewsEntry } from '@/types/game';
+import { GameScreen, GameSettings, LeagueId, PreseasonFocusId, SeasonPhase, TransferNewsEntry } from '@/types/game';
 import type { GameState } from '../storeTypes';
 import { UNEMPLOYED_ALLOWED_SCREENS } from '@/config/navigation';
 
@@ -79,6 +79,7 @@ export const createCoreSlice = (set: Set, get: Get) => ({
 
   // League system defaults
   seasonPhase: 'regular' as SeasonPhase,
+  preseasonEffect: null as GameState['preseasonEffect'],
   divisionFixtures: {} as GameState['divisionFixtures'],
   divisionTables: {} as GameState['divisionTables'],
   divisionClubs: {} as GameState['divisionClubs'],
@@ -116,6 +117,14 @@ export const createCoreSlice = (set: Set, get: Get) => ({
       currentScreen: target,
       ...(target !== s.currentScreen ? { previousScreen: s.currentScreen } : {}),
     }));
+  },
+  // Pre-Season Focus: swap the armed offseason choice. Only mutates while the
+  // effect is still pending (not yet consumed by the first advanceWeek), so a
+  // stray call mid-season can't re-arm a spent effect.
+  setPreseasonFocus: (focus: PreseasonFocusId) => {
+    const eff = get().preseasonEffect;
+    if (!eff || eff.consumed) return;
+    set({ preseasonEffect: { ...eff, focus } });
   },
   markMessageRead: (id: string) => set(s => ({ messages: s.messages.map(m => m.id === id ? { ...m, read: true } : m) })),
   markAllRead: () => set(s => ({ messages: s.messages.map(m => ({ ...m, read: true })) })),

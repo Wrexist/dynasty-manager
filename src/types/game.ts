@@ -80,6 +80,20 @@ export type FormationType = '4-4-2' | '4-3-3' | '3-5-2' | '4-2-3-1' | '4-1-4-1' 
 
 export type SeasonPhase = 'regular' | 'offseason' | 'international';
 
+/** The three Pre-Season Focus options the manager picks each offseason. */
+export type PreseasonFocusId = 'summer_tour' | 'friendly_circuit' | 'training_camp';
+
+/** One-shot pre-season focus, armed at season end and consumed by the new
+ *  season's first `advanceWeek`. `consumed` flips once the immediate deltas
+ *  (budget/fitness/chemistry/message) have been applied; `injuryGuardUntilWeek`
+ *  keeps the TRAINING_CAMP injury-reduction window alive for a few weeks after
+ *  consumption, after which the whole effect clears to null. */
+export interface PreseasonEffect {
+  focus: PreseasonFocusId;
+  consumed: boolean;
+  injuryGuardUntilWeek: number;
+}
+
 /** Outcome of a redeem-code attempt, surfaced to the Settings UI. */
 export interface RedeemResult {
   ok: boolean;

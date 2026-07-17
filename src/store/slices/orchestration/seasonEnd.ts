@@ -1326,6 +1326,10 @@ function finalizeSeason(
   set({
     season: newSeason, week: 1, totalWeeks: newLeagueTotalWeeks, transferWindowOpen: true,
     seasonPhase: 'regular',
+    // Pre-Season Focus: arm the offseason choice with the FRIENDLY_CIRCUIT
+    // default so a player who skips the SeasonSummary chooser still gets a
+    // sensible effect. The new season's first advanceWeek consumes it.
+    preseasonEffect: { focus: 'friendly_circuit', consumed: false, injuryGuardUntilWeek: 0 },
     clubs: newClubs, players: newPlayers, fixtures: newFixtures, leagueTable: newLeagueTable,
     divisionFixtures: newDivisionFixtures, divisionTables: newDivisionTables,
     divisionClubs: newDivisionClubs,
