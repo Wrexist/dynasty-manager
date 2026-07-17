@@ -164,6 +164,8 @@ export interface Player {
   age: number;
   nationality: string;
   position: Position;
+  /** Persistent shirt number, unique within the player's current club (1–99). */
+  squadNumber?: number;
   attributes: PlayerAttributes;
   overall: number;
   potential: number;
@@ -745,6 +747,8 @@ export interface ClubRecords {
   cupWins: number;
   seasonsManaged: number;
   hallOfFame: RecordEntry[];
+  /** Shirts retired in honour of one-club legends — excluded from future assignment. */
+  retiredNumbers?: { number: number; playerName: string; season: number }[];
 }
 
 export interface BallonDOrPlacement {

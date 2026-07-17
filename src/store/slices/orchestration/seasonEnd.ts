@@ -34,6 +34,8 @@ import { BALLON_DOR_TOP10_RANK, MAX_CAREER_TIMELINE } from '@/config/gameBalance
 
 import { createEmptyRecords, updateRecords, findBiggestWin } from '@/utils/records';
 import { getFarewellSummary } from '@/utils/playerNarratives';
+import { assignSquadNumbersToSquad } from '@/utils/squadNumbers';
+import { RETIRED_SHIRT_MIN_CAREER_APPEARANCES } from '@/config/squadNumbers';
 
 import {
   TOTAL_WEEKS, CONFIDENCE_MIN, SEASON_END_CONFIDENCE, MIN_SQUAD_SIZE, MAX_SQUAD_SIZE, REPLACEMENT_QUALITY_REP_MULTIPLIER, REPLACEMENT_QUALITY_BASE, REPLACEMENT_QUALITY_VARIANCE, GENERIC_FILL_POSITIONS, LISTING_PRICE_MIN_MULTIPLIER, LISTING_PRICE_RANDOM_RANGE, INITIAL_LISTINGS_MIN, INITIAL_LISTINGS_RANGE, SEASON_YOUTH_INTAKE_MIN, SEASON_YOUTH_INTAKE_RANGE, getExpectedPosition, GOLDEN_GEN_MIN_POTENTIAL, FREE_AGENT_POOL_MAX, FORCED_RETIREMENT_AGE,
@@ -562,6 +564,8 @@ function finalizeSeason(
     freeAgentIds.push(agedFa.id);
   }
   const farewells: { playerId: string; playerName: string; seasonsServed: number; stats: { label: string; value: string }[] }[] = [];
+  // Shirts retired this season for one-club legends of the user's club.
+  const retiredShirtEvents: { number: number; playerName: string; careerAppearances: number }[] = [];
 
   // Detach a departing player from their club: drop from playerIds/lineup/
   // subs and reduce wageBill. Used by both the forced-retirement and
@@ -602,9 +606,26 @@ function finalizeSeason(
       // Track farewells for retiring players from user's club, mirroring the
       // contract-expiry branch below.
       if (p.clubId === playerClubId) {
+        const playerName = `${p.firstName} ${p.lastName}`;
         const farewell = getFarewellSummary(p, season, p.joinedSeason);
         if (farewell.shouldShow) {
-          farewells.push({ playerId: p.id, playerName: `${p.firstName} ${p.lastName}`, seasonsServed: farewell.seasonsServed, stats: farewell.stats });
+          farewells.push({ playerId: p.id, playerName, seasonsServed: farewell.seasonsServed, stats: farewell.stats });
+        }
+        // Retire the shirt of a one-club legend: very high service (career
+        // appearances) or an existing hall-of-fame entry. Numbers are recorded
+        // on ClubRecords and excluded from future assignment for this club.
+        const inHallOfFame = (updatedRecords.hallOfFame || []).some(e => e.name === playerName);
+        const alreadyRetired = (updatedRecords.retiredNumbers || []).some(r => r.number === aged.squadNumber);
+        if (
+          typeof aged.squadNumber === 'number' &&
+          !alreadyRetired &&
+          (aged.careerAppearances >= RETIRED_SHIRT_MIN_CAREER_APPEARANCES || inHallOfFame)
+        ) {
+          updatedRecords.retiredNumbers = [
+            ...(updatedRecords.retiredNumbers || []),
+            { number: aged.squadNumber, playerName, season },
+          ];
+          retiredShirtEvents.push({ number: aged.squadNumber, playerName, careerAppearances: aged.careerAppearances });
         }
       }
       // Retired players never enter the FA pool — they're gone.
@@ -695,6 +716,12 @@ function finalizeSeason(
 
   Object.values(newClubs).forEach(club => {
     const squad = club.playerIds.map(id => newPlayers[id]).filter(Boolean);
+    // Give gap-fill signings shirts (existing numbers are preserved). Retired
+    // shirts only apply to the user's own club.
+    const retired = club.id === playerClubId
+      ? (updatedRecords.retiredNumbers || []).map(r => r.number)
+      : undefined;
+    assignSquadNumbersToSquad(squad, retired);
     const { lineup, subs } = selectBestLineup(squad, club.formation);
     const updatedClub = { ...newClubs[club.id] };
     updatedClub.lineup = lineup.map(p => p.id);
@@ -753,6 +780,15 @@ function finalizeSeason(
   }
 
   let newMessages = [...inputMessages];
+
+  // Celebrate any shirts retired for one-club legends this season.
+  for (const ev of retiredShirtEvents) {
+    newMessages = addMsg(newMessages, {
+      week: 1, season: newSeason, type: 'board',
+      title: `No. ${ev.number} Retired`,
+      body: `In honour of ${ev.playerName}'s ${ev.careerAppearances} career appearances, the club has retired the number ${ev.number} shirt. A true legend of the club.`,
+    });
+  }
 
   // Clean up aged-out national team pool players (36+) and update poolPlayerIds
   let updatedNTPoolIds = currentNT?.poolPlayerIds || [];

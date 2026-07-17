@@ -478,6 +478,15 @@ const SquadPage = () => {
                     onDetailClick={(p) => selectPlayer(p.id)}
                   />
 
+                  {/* Squad number — small mono badge, bottom-left corner. */}
+                  {typeof player.squadNumber === 'number' && (
+                    <div className="absolute bottom-1.5 left-1.5 z-10 pointer-events-none">
+                      <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-md bg-black/55 border border-white/20 text-white/90 font-mono font-bold text-[10px] tabular-nums">
+                        {player.squadNumber}
+                      </span>
+                    </div>
+                  )}
+
                   {/* Top-right overlay — at-a-glance pills. Detail screen (tap) shows the rest. */}
                   <div className="absolute top-1.5 right-1.5 z-10 pointer-events-none">
                     <PlayerStatusBadges

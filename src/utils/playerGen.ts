@@ -3,6 +3,7 @@ import { generatePersonality } from '@/utils/personality';
 import { pick, clamp, safeRandomUUID } from '@/utils/helpers';
 import { generatePlayerAppearance } from '@/config/playerAppearance';
 import { recomputeDerivedEconomics, recomputePlayerValueOnly } from '@/utils/playerEconomics';
+import { assignSquadNumbersToSquad } from '@/utils/squadNumbers';
 import {
   PLAYER_MIN_AGE, PLAYER_AGE_RANGE, YOUNG_AGE_THRESHOLD, YOUNG_POTENTIAL_GAP, OLD_POTENTIAL_GAP,
   PROFILE_ATTRIBUTE_VARIANCE, POSITION_WEIGHTS as CONFIG_POSITION_WEIGHTS, DEFAULT_POSITION_WEIGHTS,
@@ -535,6 +536,10 @@ export function generateSquad(clubId: string, quality: number, season: number, d
       if (vet.personality) vet.personality.leadership = Math.max(vet.personality.leadership, 16);
     }
   }
+
+  // Assign persistent shirt numbers across the whole squad (GK/defence claim
+  // their preferred low numbers first).
+  assignSquadNumbersToSquad(squad);
 
   return squad;
 }

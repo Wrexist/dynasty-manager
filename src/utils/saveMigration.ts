@@ -4,6 +4,7 @@ import { generateSquad, selectBestLineup, expandAbbreviatedFirstName } from '@/u
 import { autoFillBestTeam } from '@/utils/autoFillLineup';
 import { NATIONS } from '@/data/nations';
 import { getPlayerRarity, getRarityValueMultiplier, getRarityWageMultiplier } from '@/utils/playerRarity';
+import { assignSquadNumbersToSquad } from '@/utils/squadNumbers';
 import type { Club, Player, FormationType } from '@/types/game';
 /**
  * Save migration system for Dynasty Manager.
@@ -25,6 +26,18 @@ const migrations: Record<number, MigrationFn> = {
   // to an empty map so existing saves start every branch at rank 0.
   72: (data) => {
     const prog = data.managerProgression as Record<string, unknown> | undefined;
+    // Squad Numbers & Retired Shirts: assign a shirt to every player on every
+    // club roster so existing saves get persistent squad identity. Numbers are
+    // unique within each club; GKs/defenders claim their preferred low numbers.
+    const players = data.players as Record<string, Player> | undefined;
+    const clubs = data.clubs as Record<string, { playerIds?: string[] }> | undefined;
+    if (players && clubs) {
+      for (const club of Object.values(clubs)) {
+        const ids = Array.isArray(club.playerIds) ? club.playerIds : [];
+        const squad = ids.map(id => players[id]).filter(Boolean);
+        assignSquadNumbersToSquad(squad);
+      }
+    }
     return {
       ...data,
       version: 73,

@@ -15,6 +15,7 @@ import { generateStaffMarket, ensureStaffFields, absWeek } from '@/utils/staff';
 import { STAND_INFO } from '@/utils/facilities';
 import { selectBestLineup } from '@/utils/playerGen';
 import { placePlayerInClub } from '../helpers/rosterOps';
+import { assignNumberOnJoin } from '@/utils/squadNumbers';
 
 const SPOTLIGHT_DEV_BOOST = 22;
 const SPOTLIGHT_DEFAULT_USES = 2;
@@ -343,6 +344,7 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
     const club = { ...state.clubs[state.playerClubId] };
     if (club.playerIds.length >= MAX_SQUAD_SIZE) return { success: false, message: `Squad is full (${MAX_SQUAD_SIZE} players). Release or sell a player first.` };
     const updatedPlayer = { ...player, isFromYouthAcademy: true, joinedSeason: player.joinedSeason ?? state.season };
+    assignNumberOnJoin(updatedPlayer, [...club.playerIds, playerId], state.players, state.clubRecords?.retiredNumbers);
     club.wageBill += updatedPlayer.wage;
     const promotedClubs = placePlayerInClub({ ...state.clubs, [club.id]: club }, club.id, playerId);
     const newProspects = state.youthAcademy.prospects.filter(p => p.playerId !== playerId);

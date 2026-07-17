@@ -273,6 +273,25 @@ const ManagerProfile = () => {
               </div>
             </div>
           )}
+
+          {clubRecords.retiredNumbers && clubRecords.retiredNumbers.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-border/30">
+              <p className="text-[10px] font-semibold text-primary mb-2">Retired Shirts</p>
+              <div className="space-y-1">
+                {[...clubRecords.retiredNumbers].reverse().map((entry, i) => (
+                  <div key={i} className="flex items-center justify-between text-[11px]">
+                    <span className="flex items-center gap-2">
+                      <span className="inline-flex items-center justify-center min-w-[1.5rem] h-6 px-1 rounded-md bg-primary/15 text-primary font-mono font-bold text-xs tabular-nums">
+                        {entry.number}
+                      </span>
+                      <span className="text-foreground">{entry.playerName}</span>
+                    </span>
+                    <span className="text-muted-foreground">S{entry.season}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </GlassPanel>
       )}
 

@@ -10,6 +10,7 @@ import {
 import { getLoanBuyFee } from '@/utils/transferOffers';
 import { checkChallengeBlock } from './transferSlice';
 import { placePlayerInClub } from '../helpers/rosterOps';
+import { assignNumberOnJoin } from '@/utils/squadNumbers';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -96,6 +97,9 @@ const executeLoanIn = (
     loanToClubId: state.playerClubId,
     clubId: state.playerClubId,
   };
+  // Give the loanee a shirt at the user's club (honouring retired numbers) so
+  // it can't collide with an existing squad number.
+  assignNumberOnJoin(updatedPlayer, [...userClub.playerIds, player.id], state.players, state.clubRecords?.retiredNumbers);
 
   const updatedOwner = { ...ownerClub };
   updatedOwner.playerIds = updatedOwner.playerIds.filter(id => id !== player.id);

@@ -30,6 +30,7 @@ import { STAR_SIGNING_BUZZ_WEEKS, STAR_PLAYER_SALE_DIP_WEEKS, CAMPAIGN_STAR_SIGN
 import { getStarPlayerMerch } from '@/utils/merchandise';
 import { CHALLENGES } from '@/data/challenges';
 import { detachPlayerFromAllClubs, purgePlayerReferences } from '../helpers/rosterOps';
+import { assignNumberOnJoin } from '@/utils/squadNumbers';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -171,7 +172,11 @@ const executeSale = (state: GameState, offer: { id: string; playerId: string; bu
   buyer.budget -= fee;
   buyer.wageBill += player.wage;
 
-  newPlayers[offer.playerId] = { ...player, clubId: offer.buyerClubId, listedForSale: false, sellOnPercentage: undefined, sellOnClubId: undefined };
+  const boughtPlayer = { ...player, clubId: offer.buyerClubId, listedForSale: false, sellOnPercentage: undefined, sellOnClubId: undefined };
+  // Give the player a shirt at his new (AI buyer) club — retired shirts are a
+  // user-club concept, so none are excluded here.
+  assignNumberOnJoin(boughtPlayer, buyer.playerIds, newPlayers);
+  newPlayers[offer.playerId] = boughtPlayer;
 
   const newMarket = state.transferMarket.filter(l => l.playerId !== offer.playerId);
   const sellOnNote = sellOnFee > 0 ? ` (£${(sellOnFee / 1e6).toFixed(1)}M sell-on fee paid to ${(player.sellOnClubId && state.clubs[player.sellOnClubId]?.name) || 'former club'})` : '';
@@ -446,6 +451,8 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     newClub.playerIds = [...newClub.playerIds, playerId];
     newClub.budget = Math.max(0, newClub.budget - fee);
     newClub.wageBill += updatedPlayer.wage;
+    // Shirt at the user's club — honour retired numbers.
+    assignNumberOnJoin(updatedPlayer, newClub.playerIds, state.players, state.clubRecords?.retiredNumbers);
 
     const transferMarket = state.transferMarket.filter(l => l.playerId !== playerId);
     const fromName = isExternalPlayer ? 'the transfer market' : (oldClub?.name || 'Unknown');
@@ -689,6 +696,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     club.wageBill += wage;
 
     const updatedPlayer = { ...player, clubId: state.playerClubId, wage, contractEnd: state.season + years, joinedSeason: state.season, listedForSale: false, sellOnPercentage: undefined, sellOnClubId: undefined };
+    assignNumberOnJoin(updatedPlayer, [...club.playerIds, playerId], state.players, state.clubRecords?.retiredNumbers);
     const newMessages = addMsg(state.messages, {
       week: state.week, season: state.season, type: 'transfer',
       title: `${player.lastName} Signed (Free)`,

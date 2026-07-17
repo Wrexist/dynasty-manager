@@ -120,6 +120,14 @@ export const PlayerHeroCard = memo(function PlayerHeroCard({
           {/* Meta rows — age, nationality, body, skill moves */}
           <div className="mt-2 space-y-0.5 text-[11px] text-muted-foreground">
             <div className="flex items-center gap-1.5">
+              {typeof player.squadNumber === 'number' && (
+                <>
+                  <span className="inline-flex items-center justify-center min-w-[1.25rem] h-4 px-1 rounded bg-muted/40 border border-border/40 font-mono font-bold text-[10px] text-foreground tabular-nums">
+                    {player.squadNumber}
+                  </span>
+                  <span className="text-muted-foreground/40">·</span>
+                </>
+              )}
               <span className="tabular-nums">{player.age}y</span>
               <span className="text-muted-foreground/40">·</span>
               <span className="truncate">{player.nationality}</span>
