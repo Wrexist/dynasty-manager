@@ -5,7 +5,7 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { LineupEditor } from '@/components/game/LineupEditor';
 import { OptimizeLineupButton } from '@/components/game/OptimizeLineupButton';
 import { OptimizeResultModal } from '@/components/game/OptimizeResultModal';
-import { Swords, AlertTriangle, Flame, Info, Shield, Zap, ArrowUp, ArrowDown, Minus, Trophy, Skull } from 'lucide-react';
+import { Swords, AlertTriangle, Flame, Info, Shield, Zap, ArrowUp, ArrowDown, Minus, Trophy, Skull, ClipboardList, Target, Lightbulb } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getRatingBadgeClasses, getRatingColor } from '@/utils/uiHelpers';
 import { useCurrentMatch, useLeaguePosition } from '@/hooks/useGameSelectors';
@@ -20,6 +20,7 @@ import { PAGE_HINTS } from '@/config/ui';
 import { isPro } from '@/utils/monetization';
 import { ProUpsell } from '@/components/game/ProUpsell';
 import { getNemesis, getNemesisBarb } from '@/utils/nemesis';
+import { buildDossier } from '@/utils/oppositionDossier';
 
 const FORMATION_HINTS: Record<FormationType, string> = {
   '4-4-2': 'Balanced and direct. Strong in midfield and up front.',
@@ -35,7 +36,7 @@ const FORMATION_HINTS: Record<FormationType, string> = {
 };
 
 const MatchPrep = () => {
-  const { week, clubs, players, playerClubId, leagueTable, monetization, rivalries, fixtures, playerDivision, seasonPhase } = useGameStore(useShallow((s) => ({
+  const { week, clubs, players, playerClubId, leagueTable, monetization, rivalries, fixtures, playerDivision, seasonPhase, clubPowerRankings, scouting } = useGameStore(useShallow((s) => ({
     week: s.week,
     clubs: s.clubs,
     players: s.players,
@@ -46,6 +47,8 @@ const MatchPrep = () => {
     fixtures: s.fixtures,
     playerDivision: s.playerDivision,
     seasonPhase: s.seasonPhase,
+    clubPowerRankings: s.clubPowerRankings,
+    scouting: s.scouting,
   })));
   const setScreen = useGameStore((s) => s.setScreen);
   const playCurrentMatch = useGameStore((s) => s.playCurrentMatch);
@@ -113,6 +116,23 @@ const MatchPrep = () => {
 
     return { myOvr, oppOvr, diff: myOvr - oppOvr, myUnits, oppUnits };
   }, [myClub, oppClubData, players]);
+
+  // Opposition Dossier — scout-powered pre-match intel (informational only,
+  // never touches sim parameters). Skipped for virtual continental sides,
+  // which have no squad data to scout.
+  const dossier = useMemo(() => {
+    if (!oppClubData || isVirtualOpp) return null;
+    const oppPlayers = (oppClubData.playerIds || []).map(id => players[id]).filter(Boolean);
+    if (!oppPlayers.length) return null;
+    return buildDossier({
+      opponent: oppClubData,
+      opponentPlayers: oppPlayers,
+      fixtures,
+      clubPowerRankings,
+      scouting,
+      myClubId: playerClubId,
+    });
+  }, [oppClubData, isVirtualOpp, players, fixtures, clubPowerRankings, scouting, playerClubId]);
 
   if (!match || !oppClub) {
     return (
@@ -371,6 +391,128 @@ const MatchPrep = () => {
           </div>
         </div>
       </GlassPanel>
+      )}
+
+      {/* Opposition Dossier — scout-powered pre-match intel. Form + danger man
+          are free for everyone; the deeper block (likely XI, strengths/
+          weaknesses, suggested approach) is Pro-gated via advanced_analytics.
+          Strictly informational — never alters the match sim. */}
+      {dossier && (
+        <GlassPanel className="p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <ClipboardList className="w-4 h-4 text-primary" />
+            <h3 className="text-sm font-semibold text-foreground">Opposition Dossier</h3>
+          </div>
+
+          {/* Free: recent form */}
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider w-16 shrink-0">Form</span>
+            {dossier.form.length ? (
+              <div className="flex gap-1">
+                {dossier.form.map((r, i) => (
+                  <span key={i} className={cn(
+                    'w-5 h-5 rounded text-[10px] font-bold flex items-center justify-center',
+                    r === 'W' ? 'bg-emerald-500/20 text-emerald-400' : r === 'D' ? 'bg-amber-500/20 text-amber-400' : 'bg-destructive/20 text-destructive'
+                  )}>{r}</span>
+                ))}
+              </div>
+            ) : (
+              <span className="text-[10px] text-muted-foreground">No matches played yet</span>
+            )}
+          </div>
+
+          {/* Free: danger man */}
+          {dossier.dangerMan && (
+            <div className="flex items-center gap-3 rounded-lg bg-muted/30 p-2.5">
+              <div className={cn(
+                'w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold shrink-0',
+                getRatingBadgeClasses(dossier.dangerMan.overall)
+              )}>
+                {dossier.dangerMan.overall}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <Target className="w-3 h-3 text-destructive shrink-0" />
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-destructive">Danger Man</span>
+                </div>
+                <p className="text-xs font-semibold text-foreground truncate">{dossier.dangerMan.name}</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {dossier.dangerMan.position} · {dossier.dangerMan.goals}G {dossier.dangerMan.assists}A
+                  {dossier.dangerMan.appearances > 0 ? ` · ${dossier.dangerMan.appearances} apps` : ''}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Pro block: likely XI, strengths/weaknesses, suggested approach */}
+          {isPro(monetization) ? (
+            <div className="mt-3 space-y-3">
+              {(dossier.strengths.length > 0 || dossier.weaknesses.length > 0) && (
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="rounded-lg bg-emerald-500/5 border border-emerald-500/20 p-2.5">
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-emerald-400 mb-1.5">Strengths</p>
+                    {dossier.strengths.length ? (
+                      <ul className="space-y-1">
+                        {dossier.strengths.map((s, i) => (
+                          <li key={i} className="text-[10px] text-foreground/80 leading-snug">{s}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-[10px] text-muted-foreground">No standout strengths.</p>
+                    )}
+                  </div>
+                  <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-2.5">
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-destructive mb-1.5">Weaknesses</p>
+                    {dossier.weaknesses.length ? (
+                      <ul className="space-y-1">
+                        {dossier.weaknesses.map((w, i) => (
+                          <li key={i} className="text-[10px] text-foreground/80 leading-snug">{w}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-[10px] text-muted-foreground">No clear weaknesses.</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {dossier.likelyXI.length > 0 && (
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+                    Likely XI · {dossier.formation}
+                  </p>
+                  <div className="grid grid-cols-2 gap-1">
+                    {dossier.likelyXI.map(slot => (
+                      <div key={slot.playerId} className="flex items-center gap-1.5 text-[10px]">
+                        <span className="w-8 text-muted-foreground font-semibold shrink-0">{slot.pos}</span>
+                        <span className="flex-1 min-w-0 truncate text-foreground/80">{slot.name}</span>
+                        <span className={cn('font-bold tabular-nums shrink-0', getRatingColor(slot.overall))}>{slot.overall}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-start gap-1.5 rounded-lg bg-primary/5 border border-primary/20 p-2.5">
+                <Lightbulb className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-primary mb-0.5">Suggested Approach</p>
+                  <p className="text-[11px] text-foreground/90 leading-snug">{dossier.suggestedApproach}</p>
+                </div>
+              </div>
+
+              <p className="text-[9px] text-muted-foreground text-center">
+                {dossier.scoutBulletCount === 1
+                  ? 'Hire scouts to deepen this report.'
+                  : `Your scouting dept unlocked up to ${dossier.scoutBulletCount} intel points per side.`}
+              </p>
+            </div>
+          ) : (
+            <div className="mt-3">
+              <ProUpsell feature="Full Dossier: likely XI, strengths & tactics" />
+            </div>
+          )}
+        </GlassPanel>
       )}
 
       {/* Named Nemesis — dramatized rivalry card (replaces the plain
