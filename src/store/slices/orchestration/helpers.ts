@@ -206,8 +206,11 @@ export function applyAIMatchEvents(
   }
 }
 
-/** Build the season-start board objectives for a given club. */
-export function generateObjectives(club: Club, leagueId?: LeagueId): BoardObjective[] {
+/** Build the season-start board objectives for a given club.
+ *  `expectationOffset` (from the "Cement the Legacy" prestige path) tightens
+ *  every league-position target by that many positions — a permanent, additive
+ *  bar-raise. 0 for every normal career. */
+export function generateObjectives(club: Club, leagueId?: LeagueId, expectationOffset = 0): BoardObjective[] {
   const objectives: BoardObjective[] = [];
   const lid = leagueId || club.divisionId;
   const league = LEAGUES.find(l => l.id === lid);
@@ -264,6 +267,19 @@ export function generateObjectives(club: Club, leagueId?: LeagueId): BoardObject
   objectives.push({ id: '3', description: 'Stay within budget', priority: 'optional', completed: false,
     checkType: 'budget', targetMin: 0,
     xpReward: BOARD_OBJ_XP_OPTIONAL });
+
+  // "Cement the Legacy": tighten every league-position target by the offset,
+  // clamped to 1st (never negative). Only league_position objectives are
+  // affected — cup rounds and budget are left untouched.
+  if (expectationOffset > 0) {
+    for (const obj of objectives) {
+      if (obj.checkType !== 'league_position') continue;
+      obj.targetMin = Math.max(1, obj.targetMin - expectationOffset);
+      if (typeof obj.targetOverachieve === 'number') {
+        obj.targetOverachieve = Math.max(1, obj.targetOverachieve - expectationOffset);
+      }
+    }
+  }
 
   return objectives;
 }

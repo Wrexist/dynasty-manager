@@ -9,6 +9,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
 import { ALL_CLUBS, LEAGUES } from '@/data/league';
 import { MANAGER_PERKS } from '@/utils/managerPerks';
+import { generateObjectives } from '@/store/slices/orchestration/helpers';
+import { CEMENT_LEGACY_EXPECTATION_OFFSET } from '@/config/gameBalance';
 import type { Club, Player } from '@/types/game';
 
 const CLUB_ID = 'manchester-city';
@@ -380,5 +382,74 @@ describe('orchestrationSlice — startPrestige', () => {
     useGameStore.getState().startPrestige('rival');
     await new Promise<void>(r => setTimeout(r, 0));
     expect(useGameStore.getState().managerProgression.prestigeLevel).toBe(before + 1);
+  });
+});
+
+describe('orchestrationSlice — startPrestige cement-legacy (non-destructive)', () => {
+  it('preserves club, squad, records, and career while incrementing prestigeLevel', () => {
+    const s0 = useGameStore.getState();
+    const clubId = s0.playerClubId;
+    const clubName = s0.clubs[clubId].name;
+    const squadIds = [...s0.clubs[clubId].playerIds];
+    const prestigeBefore = s0.managerProgression.prestigeLevel || 0;
+
+    // Seed a bit of career state to prove it survives untouched.
+    useGameStore.setState({
+      seasonHistory: [{ season: 1, position: 1, points: 90, cupResult: 'Winner' }] as never,
+      boardExpectationOffset: 0,
+    });
+
+    useGameStore.getState().startPrestige('cement-legacy');
+
+    const s1 = useGameStore.getState();
+    // Same club — no world reset (initGame never ran).
+    expect(s1.playerClubId).toBe(clubId);
+    expect(s1.clubs[clubId].name).toBe(clubName);
+    expect(s1.clubs[clubId].playerIds).toEqual(squadIds);
+    // Career history preserved.
+    expect(s1.seasonHistory).toHaveLength(1);
+    expect(s1.seasonHistory[0].position).toBe(1);
+    // Prestige level up (unlocks prestige perks + XP multiplier readers).
+    expect(s1.managerProgression.prestigeLevel).toBe(prestigeBefore + 1);
+  });
+
+  it('tightens board expectations by the offset and pushes a ceremonial message', () => {
+    useGameStore.setState({ boardExpectationOffset: 0, messages: [] });
+    const msgsBefore = useGameStore.getState().messages.length;
+
+    useGameStore.getState().startPrestige('cement-legacy');
+
+    const s1 = useGameStore.getState();
+    expect(s1.boardExpectationOffset).toBe(CEMENT_LEGACY_EXPECTATION_OFFSET);
+    expect(s1.messages.length).toBe(msgsBefore + 1);
+    expect(s1.messages[0].title).toMatch(/legacy/i);
+  });
+
+  it('accumulates the expectation offset across repeated cementings', () => {
+    useGameStore.setState({ boardExpectationOffset: 0 });
+    useGameStore.getState().startPrestige('cement-legacy');
+    useGameStore.getState().startPrestige('cement-legacy');
+    expect(useGameStore.getState().boardExpectationOffset).toBe(CEMENT_LEGACY_EXPECTATION_OFFSET * 2);
+  });
+});
+
+describe('generateObjectives — cement-legacy expectation offset', () => {
+  it('tightens league-position targets without dropping below 1st', () => {
+    const club = { ...ALL_CLUBS.find(c => c.id === CLUB_ID)! } as unknown as Club;
+    // High-reputation club so it gets "Win the League" (1) + "Top 3" (3).
+    club.reputation = 5;
+    const base = generateObjectives(club);
+    const tightened = generateObjectives(club, undefined, 1);
+    const top3Base = base.find(o => o.description === 'Finish in Top 3')!;
+    const top3Tight = tightened.find(o => o.description === 'Finish in Top 3')!;
+    expect(top3Tight.targetMin).toBe(top3Base.targetMin - 1);
+    // "Win the League" is already targetMin 1 — must clamp, never go to 0.
+    const winBase = base.find(o => o.description === 'Win the League')!;
+    const winTight = tightened.find(o => o.description === 'Win the League')!;
+    expect(winTight.targetMin).toBe(1);
+    expect(winBase.targetMin).toBe(1);
+    // Non-league objectives are untouched.
+    const budgetTight = tightened.find(o => o.checkType === 'budget')!;
+    expect(budgetTight.targetMin).toBe(0);
   });
 });

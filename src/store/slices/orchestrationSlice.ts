@@ -24,7 +24,7 @@ import { getDefaultMerchState } from '@/utils/merchandise';
 import { DEFAULT_MONETIZATION_STATE } from '@/config/monetization';
 
 import {
-  FORFEIT_SCORE, LINEUP_SIZE,
+  FORFEIT_SCORE, LINEUP_SIZE, CEMENT_LEGACY_EXPECTATION_OFFSET,
 } from '@/config/gameBalance';
 import { isTransferWindowOpen } from '@/config/transfers';
 
@@ -214,6 +214,7 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
     transferMarket: state.transferMarket, shortlist: state.shortlist, scoutWatchList: state.scoutWatchList,
     boardObjectives: state.boardObjectives, boardConfidence: state.boardConfidence,
     boardUltimatum: state.boardUltimatum,
+    boardExpectationOffset: state.boardExpectationOffset,
     trainingFocus: state.trainingFocus, totalWeeks: state.totalWeeks,
     messages: state.messages, seasonHistory: state.seasonHistory,
     incomingOffers: state.incomingOffers,
@@ -492,6 +493,7 @@ function buildFreshSessionState(get: Get): Partial<GameState> {
     gameStarted: false, playerClubId: '', currentScreen: 'dashboard' as GameState['currentScreen'],
     clubs: {}, players: {}, fixtures: [], leagueTable: [],
     messages: [], seasonHistory: [], incomingOffers: [], boardUltimatum: null,
+    boardExpectationOffset: 0,
     matchPlayerRatings: [], halfTimeState: null, currentMatchWeather: null, matchPhase: 'none' as const,
     currentMatchResult: null, matchSubsUsed: 0, matchSubbedOffIds: [], currentCupTieId: null,
     // Match-scoped state that previously persisted across resets — audit
@@ -1215,10 +1217,52 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
   },
 
   // ── Prestige ──
-  startPrestige: (optionId: 'rival' | 'drop-division' | 'restart-perks') => {
+  startPrestige: (optionId: 'rival' | 'drop-division' | 'restart-perks' | 'cement-legacy') => {
     const state = get();
     const currentProg = state.managerProgression;
     const newPrestigeLevel = (currentProg.prestigeLevel || 0) + 1;
+
+    // ── Cement the Legacy — non-destructive prestige ──
+    // Stay at the club: keep the squad, records, and career intact. The only
+    // costs/benefits: prestigeLevel goes up (unlocking prestige-tier perks +
+    // the XP multiplier via grantXP/canUnlockPerk, which read prestigeLevel),
+    // and the board's season expectations tighten permanently. No initGame,
+    // no world reset — a single in-place set().
+    if (optionId === 'cement-legacy') {
+      set({
+        managerProgression: { ...currentProg, prestigeLevel: newPrestigeLevel },
+        boardExpectationOffset: (state.boardExpectationOffset || 0) + CEMENT_LEGACY_EXPECTATION_OFFSET,
+        careerTimeline: [...state.careerTimeline, {
+          id: safeRandomUUID(),
+          type: 'prestige',
+          title: `Legacy Cemented — Prestige ${newPrestigeLevel}`,
+          description: `Chose to stay and raise the bar. The board's expectations are now permanently tougher.`,
+          season: state.season,
+          week: state.week,
+          icon: 'landmark',
+        }],
+        messages: addMsg(state.messages, {
+          week: state.week,
+          season: state.season,
+          type: 'board',
+          title: 'A Legacy Cemented',
+          body: `You've chosen to build your dynasty here rather than start anew. The board is honoured by your loyalty — and, from next season, expects even more. Prestige ${newPrestigeLevel} reached.`,
+        }),
+        currentScreen: 'dashboard' as const,
+      });
+      try {
+        const club = state.clubs[state.playerClubId];
+        const entry = buildHallEntry(
+          `prestige-${Date.now()}`,
+          club?.name || 'Unknown Club',
+          state.seasonHistory,
+          state.managerStats,
+          newPrestigeLevel,
+        );
+        saveToHall(entry);
+      } catch { /* hall of managers save is best-effort */ }
+      return;
+    }
 
     // Save to Hall of Managers before resetting
     try {

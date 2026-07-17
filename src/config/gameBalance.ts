@@ -429,6 +429,16 @@ export const BOARD_OBJ_BUDGET_BOOST = 2_000_000;
 export const BOARD_OBJ_ALL_COMPLETE_XP = 50;
 export const BOARD_OBJ_ALL_COMPLETE_CONFIDENCE = 8;
 
+/**
+ * "Cement the Legacy" prestige path: each time the manager cements their
+ * legacy (stays at the club instead of restarting), the board's season
+ * expectations tighten permanently by this many league positions. Applied
+ * as a simple additive offset to the generated league-position targets —
+ * e.g. "Finish in Top 3" becomes "Finish in Top 2". Cumulative across
+ * repeated cementings; clamped so a target never drops below 1st.
+ */
+export const CEMENT_LEGACY_EXPECTATION_OFFSET = 1;
+
 // ── Prestige Perk Costs ──
 export const PRESTIGE_PERK_TIER_6_COST = 1000;
 export const PRESTIGE_PERK_TIER_7_COST = 1500;

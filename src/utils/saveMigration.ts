@@ -57,6 +57,10 @@ const migrations: Record<number, MigrationFn> = {
       ...data,
       version: 73,
       boardUltimatum: data.boardUltimatum ?? null,
+      // "Cement the Legacy" prestige path: permanent board-expectation
+      // tightening (league positions). Existing saves have never cemented, so
+      // default to 0 (no tightening).
+      boardExpectationOffset: data.boardExpectationOffset ?? 0,
       ...(prog && typeof prog === 'object'
         ? { managerProgression: { ...prog, masteryRanks: prog.masteryRanks ?? {} } }
         : {}),

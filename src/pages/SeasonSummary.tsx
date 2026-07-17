@@ -526,12 +526,17 @@ const SeasonSummary = () => {
           </GlassPanel>
         )}
 
-        {latest.position === 1 && (
+        {(latest.position <= 3
+          || latest.championsCupResult === 'Winner'
+          || latest.shieldCupResult === 'Winner'
+          || latest.conferenceCupResult === 'Winner') && (
           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }}>
             <GlassPanel className="p-4 border-primary/50 bg-primary/5 text-center">
               <Star className="w-6 h-6 text-primary mx-auto mb-1" />
-              <p className="text-sm font-bold text-primary">Champions! Prestige Mode Unlocked</p>
-              <p className="text-xs text-muted-foreground mt-1">Start a new journey with bonuses from your success.</p>
+              <p className="text-sm font-bold text-primary">Prestige Mode Unlocked</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {latest.position === 1 ? 'Champions! ' : ''}Start a new journey — or cement your legacy and stay.
+              </p>
               <Button variant="outline" className="mt-3 border-primary/40 text-primary" onClick={() => setScreen('prestige')}>
                 View Prestige Options
               </Button>

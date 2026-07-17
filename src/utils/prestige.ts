@@ -1,11 +1,15 @@
 import { SeasonHistory } from '@/types/game';
 
+export type PrestigeOptionId = 'rival' | 'drop-division' | 'restart-perks' | 'cement-legacy';
+
 export interface PrestigeOption {
-  id: 'rival' | 'drop-division' | 'restart-perks';
+  id: PrestigeOptionId;
   label: string;
   description: string;
   icon: string;
   bonuses: string[];
+  /** Non-destructive paths keep the current save (club, squad, records). */
+  nonDestructive?: boolean;
 }
 
 export interface PrestigeStats {
@@ -41,6 +45,14 @@ export const PRESTIGE_OPTIONS: PrestigeOption[] = [
     description: 'Restart from scratch with your experience. Unlock prestige cosmetics and bonus perks.',
     icon: 'star',
     bonuses: ['Reset to Season 1', 'Prestige star badge', '2x XP multiplier', '+1 starting perk point'],
+  },
+  {
+    id: 'cement-legacy',
+    label: 'Cement the Legacy',
+    description: 'Stay, and raise the bar. Keep your club, squad, records, and career — but the board now expects even more of you.',
+    icon: 'landmark',
+    bonuses: ['Keep your club & squad', 'Keep records & career', 'Prestige XP multiplier', 'Tougher board expectations'],
+    nonDestructive: true,
   },
 ];
 

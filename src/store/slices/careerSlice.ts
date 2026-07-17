@@ -411,6 +411,7 @@ export const createCareerSlice = (set: Set, get: Get) => ({
       jobOffers: initialOffers,
       activeInterview: null,
       boardUltimatum: null,
+      boardExpectationOffset: 0,
       currentScreen: 'job-market',
     });
   },

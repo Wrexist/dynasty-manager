@@ -1084,7 +1084,7 @@ function finalizeSeason(
   }
 
   const playerClubForObjectives = newClubs[playerClubId];
-  const objectives = playerClubForObjectives ? generateObjectives(playerClubForObjectives, newPlayerDivision) : [];
+  const objectives = playerClubForObjectives ? generateObjectives(playerClubForObjectives, newPlayerDivision, state.boardExpectationOffset || 0) : [];
   const verdict = history.boardVerdict;
   const baseConfidence = SEASON_END_CONFIDENCE[verdict] || CONFIDENCE_MIN;
   const newConfidence = Math.min(100, baseConfidence + objectiveConfidenceBonus);

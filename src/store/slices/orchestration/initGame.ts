@@ -493,7 +493,7 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
     divisionFixtures, divisionTables, divisionClubs, playerDivision,
     lastSeasonTurnover: null, derbies: DERBIES,
     activeLoans: [], incomingLoanOffers: [], outgoingLoanRequests: [],
-    transferMarket, shortlist: [], scoutWatchList: [], freeAgents: initialFreeAgentIds, transferNews: [], boardObjectives: objectives, boardConfidence: STARTING_BOARD_CONFIDENCE,
+    transferMarket, shortlist: [], scoutWatchList: [], freeAgents: initialFreeAgentIds, transferNews: [], boardObjectives: objectives, boardConfidence: STARTING_BOARD_CONFIDENCE, boardExpectationOffset: 0,
     currentScreen: 'dashboard', previousScreen: null, currentMatchResult: null, trainingFocus: 'fitness',
     messages, seasonHistory: [], incomingOffers: [], matchSubsUsed: 0, matchPhase: 'none', matchTeamTalk: 'none', currentCupTieId: null,
     settings: { matchSpeed: 3300, showOverallOnPitch: true, autoSave: true, hapticsEnabled: true, soundEnabled: true, hidePageHints: false, hideOnboarding: false, confirmAllOffers: false, reducedMotion: false, performanceMode: false },

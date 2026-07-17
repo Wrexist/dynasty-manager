@@ -515,4 +515,16 @@ describe('v72 → v73 (board ultimatum)', () => {
     const out = migrateSaveData(v72) as Record<string, unknown>;
     expect(out.boardUltimatum).toEqual(ult);
   });
+
+  it('defaults boardExpectationOffset to 0 on old saves', () => {
+    const v72: Record<string, unknown> = { version: 72 };
+    const out = migrateSaveData(v72) as Record<string, unknown>;
+    expect(out.boardExpectationOffset).toBe(0);
+  });
+
+  it('preserves an existing boardExpectationOffset if present', () => {
+    const v72: Record<string, unknown> = { version: 72, boardExpectationOffset: 2 };
+    const out = migrateSaveData(v72) as Record<string, unknown>;
+    expect(out.boardExpectationOffset).toBe(2);
+  });
 });

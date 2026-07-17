@@ -138,10 +138,12 @@ const PrestigePage = () => {
         <ConfirmDialog
           open={!!confirmOption}
           onOpenChange={(open) => { if (!open) setConfirmOption(null); }}
-          title="Confirm Prestige"
-          description={`Are you sure you want to prestige with ${confirmOption?.label ?? ''}? This will reset your current save and start a new career.`}
-          confirmLabel="Prestige Now"
-          variant="destructive"
+          title={confirmOption?.nonDestructive ? 'Cement the Legacy' : 'Confirm Prestige'}
+          description={confirmOption?.nonDestructive
+            ? `Stay at your club and raise the bar? You keep your squad, records, and career — but the board's season expectations tighten permanently. This does not reset your save.`
+            : `Are you sure you want to prestige with ${confirmOption?.label ?? ''}? This will reset your current save and start a new career.`}
+          confirmLabel={confirmOption?.nonDestructive ? 'Cement It' : 'Prestige Now'}
+          variant={confirmOption?.nonDestructive ? 'default' : 'destructive'}
           onConfirm={() => { if (confirmOption) startPrestige(confirmOption.id); }}
         />
       </motion.div>

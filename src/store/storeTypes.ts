@@ -19,6 +19,12 @@ export interface GameState {
   boardConfidence: number;
   /** Active mid-season board ultimatum, or null. Persisted (schema v73). */
   boardUltimatum: BoardUltimatum | null;
+  /**
+   * Permanent additive tightening of season board expectations, in league
+   * positions. Raised by the "Cement the Legacy" prestige path; 0 for every
+   * other career. Applied when objectives are (re)generated. Persisted (v73).
+   */
+  boardExpectationOffset: number;
   seasonHistory: SeasonHistory[];
   settings: GameSettings;
   activeSlot: number;
@@ -471,7 +477,7 @@ export interface GameState {
   unlockMastery: (branch: TalentBranch) => { success: boolean; message: string };
 
   // Actions — Prestige
-  startPrestige: (optionId: 'rival' | 'drop-division' | 'restart-perks') => void;
+  startPrestige: (optionId: 'rival' | 'drop-division' | 'restart-perks' | 'cement-legacy') => void;
 
   // Actions — Monetization
   grantEntitlement: (productId: ProductId) => void;
