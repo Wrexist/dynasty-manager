@@ -29,6 +29,8 @@ import { generateMonthlyObjectives } from '@/utils/weeklyObjectives';
 
 import { createMilestone } from '@/utils/milestones';
 import { grantXP, hasPerk } from '@/utils/managerPerks';
+import { addSeasonPassPoints } from '@/utils/seasonPass';
+import { SEASON_PASS_POINTS } from '@/config/seasonPass';
 
 import type { JobVacancy } from '@/types/game';
 import { JOB_MARKET_REFRESH_WEEKS, PROACTIVE_OFFER_CHECK_INTERVAL, PROACTIVE_OFFER_MAX_PENDING, MOTM_CHECK_INTERVAL, MOTM_MIN_MATCHES } from '@/config/managerCareer';
@@ -2641,6 +2643,8 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   // XP paid out by the month-reset safety net for objectives the player
   // completed but never claimed (tracked for session-stats accounting).
   let objectiveSafetyNetXP = 0;
+  // Dynasty Pass points earned from this month's completed objectives (+15 each).
+  let seasonPassObjectivePoints = 0;
 
   if (monthComplete) {
     // Month is over — award bonus XP (all-complete + streak extra). Base XP
@@ -2651,6 +2655,8 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
       updatedProgression = grantXP(updatedProgression, bonusXP);
     }
     const completedCount = evalObjectives.filter(o => o.completed).length;
+    // Dynasty Pass credit for each objective completed this month (sim-neutral).
+    seasonPassObjectivePoints = completedCount * SEASON_PASS_POINTS.objectiveCompleted;
     // Only send an inbox message when there's something notable — bonus XP earned, streak info, or streak broken
     const streakBroken = currentStreak >= 2 && newStreak === 0;
     if (bonusXP > 0 || streakBroken) {
@@ -2814,6 +2820,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     weekCliffhangers: cliffhangers,
     sessionStats,
     managerProgression: updatedProgression,
+    seasonPass: addSeasonPassPoints(state.seasonPass, seasonPassObjectivePoints),
     pendingStoryline: pendingStorylineEvent || null,
     activeStorylineChains: updatedChains,
     completedStorylineChainIds: newCompletedChainIds,

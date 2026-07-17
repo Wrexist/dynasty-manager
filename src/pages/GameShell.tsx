@@ -63,6 +63,7 @@ const JobMarket = lazy(() => import('./JobMarket'));
 const CareerOverview = lazy(() => import('./CareerOverview'));
 const BallonDor = lazy(() => import('./BallonDor'));
 const FestivalHub = lazy(() => import('./FestivalHub'));
+const SeasonPassPage = lazy(() => import('./SeasonPassPage'));
 const DynastyLegacy = lazy(() => import('./DynastyLegacy'));
 const WorldCupResult = lazy(() => import('./WorldCupResult'));
 const WorldCupDraw = lazy(() => import('./WorldCupDraw'));
@@ -115,6 +116,7 @@ const screens: Record<string, React.ComponentType> = {
   'career-overview': CareerOverview,
   'ballon-dor': BallonDor,
   'festival': FestivalHub,
+  'season-pass': SeasonPassPage,
   'dynasty-legacy': DynastyLegacy,
   'world-cup-draw': WorldCupDraw,
   'world-cup-result': WorldCupResult,

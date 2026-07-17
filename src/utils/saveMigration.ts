@@ -65,6 +65,9 @@ const migrations: Record<number, MigrationFn> = {
       // tightening (league positions). Existing saves have never cemented, so
       // default to 0 (no tightening).
       boardExpectationOffset: data.boardExpectationOffset ?? 0,
+      // Dynasty Pass: free season-long reward track. Existing saves start the
+      // pass empty (points accrue from here on; it resets each season anyway).
+      seasonPass: data.seasonPass ?? { points: 0, claimedTiers: [] },
       ...(prog && typeof prog === 'object'
         ? { managerProgression: { ...prog, masteryRanks: prog.masteryRanks ?? {} } }
         : {}),

@@ -104,7 +104,7 @@ export interface RedeemResult {
   amount?: number;
 }
 
-export type GameScreen = 'dashboard' | 'squad' | 'tactics' | 'transfers' | 'club' | 'match' | 'player-detail' | 'league-table' | 'inbox' | 'season-summary' | 'calendar' | 'training' | 'scouting' | 'packs' | 'staff' | 'youth-academy' | 'facilities' | 'finance' | 'merchandise' | 'match-prep' | 'match-review' | 'board' | 'settings' | 'comparison' | 'manager-profile' | 'cup' | 'league-cup' | 'champions-cup' | 'shield-cup' | 'conference-cup' | 'super-cup' | 'perks' | 'trophy-cabinet' | 'prestige' | 'hall-of-managers' | 'team-detail' | 'shop' | 'help' | 'whats-new' | 'national-team' | 'national-squad-picker' | 'international-tournament' | 'job-market' | 'career-overview' | 'ballon-dor' | 'festival' | 'dynasty-legacy' | 'world-cup-draw' | 'world-cup-result';
+export type GameScreen = 'dashboard' | 'squad' | 'tactics' | 'transfers' | 'club' | 'match' | 'player-detail' | 'league-table' | 'inbox' | 'season-summary' | 'calendar' | 'training' | 'scouting' | 'packs' | 'staff' | 'youth-academy' | 'facilities' | 'finance' | 'merchandise' | 'match-prep' | 'match-review' | 'board' | 'settings' | 'comparison' | 'manager-profile' | 'cup' | 'league-cup' | 'champions-cup' | 'shield-cup' | 'conference-cup' | 'super-cup' | 'perks' | 'trophy-cabinet' | 'prestige' | 'hall-of-managers' | 'team-detail' | 'shop' | 'help' | 'whats-new' | 'national-team' | 'national-squad-picker' | 'international-tournament' | 'job-market' | 'career-overview' | 'ballon-dor' | 'festival' | 'season-pass' | 'dynasty-legacy' | 'world-cup-draw' | 'world-cup-result';
 
 export interface PlayerAttributes {
   pace: number;
@@ -1745,6 +1745,18 @@ export interface CosmeticItem {
 }
 
 export type AdRewardType = 'scout_potential' | 'transfer_budget' | 'xp_double' | 'youth_preview' | 'season_bonus';
+
+/**
+ * Dynasty Pass progress — a FREE season-long reward track (see
+ * config/seasonPass.ts). Save-scoped and reset each season. Points accrue from
+ * matches/objectives/trophies; claimed tiers pay out manager XP (sim-neutral).
+ */
+export interface SeasonPassState {
+  /** Season Pass Points earned this season. */
+  points: number;
+  /** 1-based tier indices already claimed (idempotency guard). */
+  claimedTiers: number[];
+}
 
 export interface MonetizationState {
   /** Product IDs the player has purchased */

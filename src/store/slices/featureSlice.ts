@@ -9,6 +9,7 @@ import { track } from '@/utils/analytics';
 import { TRANSFER_DEMAND_COOLDOWN_WEEKS, TRANSFER_TALK_RETRY_WEEKS } from '@/config/personality';
 import { grantXP, hasPerk, branchMult } from '@/utils/managerPerks';
 import { objectiveClaimXP } from '@/utils/weeklyObjectives';
+import { claimSeasonPassTier as applySeasonPassClaim } from '@/utils/seasonPass';
 import type { GameState } from '../storeTypes';
 import { addMsg, clamp, safeRandomUUID } from '@/utils/helpers';
 import { createContractOffer, negotiateRound, formatWage } from '@/utils/contracts';
@@ -32,6 +33,7 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
   activeNegotiation: null as ContractOffer | null,
   activeChallenge: null as ActiveChallenge | null,
   weeklyObjectives: [] as import('@/utils/weeklyObjectives').ObjectiveInstance[],
+  seasonPass: { points: 0, claimedTiers: [] as number[] },
   pendingStoryline: null as StorylineEvent | null,
   pendingGemReveal: null as { playerId: string; region: string } | null,
   pendingTransferTalk: null as TransferTalk | null,
@@ -198,6 +200,24 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
       // for it on claim too (the month-end safety net handles unclaimed ones).
       sessionStats: { ...sessionStats, xpEarned: sessionStats.xpEarned + xp },
     });
+  },
+
+  // ── Dynasty Pass ──
+  // Claim a reward tier: grant its manager XP and mark it claimed. Idempotent —
+  // the claimedTiers guard in applySeasonPassClaim makes a re-claim a no-op, so
+  // a double-tap can never double-pay. Sim-neutral (XP only).
+  claimSeasonPassTier: (tier: number) => {
+    const state = get();
+    const result = applySeasonPassClaim(state.seasonPass, tier);
+    if (!result.claimed) return null;
+    const sessionStats = state.sessionStats;
+    set({
+      seasonPass: result.pass,
+      managerProgression: grantXP(state.managerProgression, result.xp),
+      sessionStats: { ...sessionStats, xpEarned: sessionStats.xpEarned + result.xp },
+    });
+    track('season_pass_claim', { tier, xp: result.xp });
+    return { xp: result.xp };
   },
 
   // ── Daily Login Streak ──

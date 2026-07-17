@@ -33,6 +33,7 @@ export type AnalyticsEvent =
   | { name: 'daily_streak_claim'; data: { streak: number; xp: number } }
   | { name: 'festival_checkin'; data: { eventId: string; points: number } }
   | { name: 'festival_tier_claim'; data: { eventId: string; tierId: string; xp: number } }
+  | { name: 'season_pass_claim'; data: { tier: number; xp: number } }
   | { name: 'legacy_viewed'; data: { tier: string; trophies: number } }
   | { name: 'reminders_enabled'; data: Record<string, never> }
   | { name: 'reminders_disabled'; data: Record<string, never> }

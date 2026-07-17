@@ -5,7 +5,7 @@ export const DETAIL_SCREENS: GameScreen[] = [
   'settings', 'season-summary', 'calendar', 'match-prep',
   'league-table', 'comparison', 'manager-profile', 'cup', 'league-cup', 'champions-cup', 'shield-cup', 'super-cup', 'perks', 'trophy-cabinet', 'prestige', 'hall-of-managers', 'club', 'team-detail', 'shop', 'help', 'whats-new',
   'national-team', 'national-squad-picker', 'international-tournament', 'conference-cup',
-  'job-market', 'career-overview', 'ballon-dor', 'festival', 'dynasty-legacy', 'world-cup-draw', 'world-cup-result',
+  'job-market', 'career-overview', 'ballon-dor', 'festival', 'season-pass', 'dynasty-legacy', 'world-cup-draw', 'world-cup-result',
 ];
 
 export const BACK_TARGET: Partial<Record<GameScreen, GameScreen>> = {
@@ -44,6 +44,7 @@ export const BACK_TARGET: Partial<Record<GameScreen, GameScreen>> = {
   'career-overview': 'dashboard',
   'ballon-dor': 'trophy-cabinet',
   'festival': 'dashboard',
+  'season-pass': 'dashboard',
   'dynasty-legacy': 'hall-of-managers',
 };
 
@@ -93,6 +94,7 @@ export const SCREEN_TITLES: Partial<Record<GameScreen, string>> = {
   'career-overview': 'Career Overview',
   'ballon-dor': "Ballon d'Or",
   'festival': 'Festival',
+  'season-pass': 'Dynasty Pass',
   'dynasty-legacy': 'Manager Legacy',
   'world-cup-draw': 'The Draw',
   'world-cup-result': 'World Cup',

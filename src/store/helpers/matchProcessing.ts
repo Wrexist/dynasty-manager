@@ -2,6 +2,7 @@ import type { Match, PlayerMatchRating, CareerMilestone, InjuryDetails, PlayerMa
 import { buildLeagueTable } from '@/data/league';
 import { addMsg } from '@/utils/helpers';
 import { awardFestivalMatchWin } from '@/utils/liveEvents';
+import { addSeasonPassPoints, matchPassPoints } from '@/utils/seasonPass';
 import { signalFirstWinForNotifications } from '@/utils/notifications';
 import { GOAL_EVENT_TYPES } from '@/config/matchEngine';
 import { getPlayerNarratives, getNarrativeBonus } from '@/utils/playerNarratives';
@@ -64,6 +65,7 @@ export function processMatchResult(
       newMilestones: [] as CareerMilestone[],
       managerProgression: state.managerProgression,
       pairFamiliarity: state.pairFamiliarity || {},
+      seasonPass: state.seasonPass,
     };
   }
 
@@ -129,7 +131,7 @@ export function processMatchResult(
     ? shootoutWinnerId !== playerClubId
     : (isHome ? result.homeGoals < result.awayGoals : result.awayGoals < result.homeGoals);
   const pc = clubs[playerClubId];
-  if (!pc) return { newPlayers, updatedFixtures: state.fixtures.map(f => f.id === match.id ? result : f), leagueTable: [], confidence: state.boardConfidence || 50, newMessages: messages, managerStats: state.managerStats, playerRatings, won, lost, newMilestones: [] as CareerMilestone[], managerProgression: state.managerProgression, pairFamiliarity: newPairFamiliarity };
+  if (!pc) return { newPlayers, updatedFixtures: state.fixtures.map(f => f.id === match.id ? result : f), leagueTable: [], confidence: state.boardConfidence || 50, newMessages: messages, managerStats: state.managerStats, playerRatings, won, lost, newMilestones: [] as CareerMilestone[], managerProgression: state.managerProgression, pairFamiliarity: newPairFamiliarity, seasonPass: state.seasonPass };
   const matchParticipants = new Set(participantIds);
   // Compute aggregate narrative bonuses from lineup players (Veteran Leaders reduce morale loss, etc.)
   let narrativeMoraleLossReduction = 0;
@@ -313,5 +315,10 @@ export function processMatchResult(
   }
   const updatedRivalries = { ...(state.rivalries || {}), [oppId]: updatedRivalry };
 
-  return { newPlayers, updatedFixtures, leagueTable, confidence, newMessages, managerStats: ms, playerRatings, won, lost, newMilestones, managerProgression: updatedProgression, xpGain, leaguePosition: pos, updatedRivalries, pairFamiliarity: newPairFamiliarity };
+  // Dynasty Pass: the player's club just played a match — +10 played, +25 more
+  // on a win. Sim-neutral; a no-op when the pass is already at ceiling for this
+  // action. Draws/losses still earn the participation points.
+  const seasonPass = addSeasonPassPoints(state.seasonPass, matchPassPoints(won));
+
+  return { newPlayers, updatedFixtures, leagueTable, confidence, newMessages, managerStats: ms, playerRatings, won, lost, newMilestones, managerProgression: updatedProgression, xpGain, leaguePosition: pos, updatedRivalries, pairFamiliarity: newPairFamiliarity, seasonPass };
 }

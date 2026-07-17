@@ -59,6 +59,7 @@ import { generateAIManagerProfile } from '@/config/aiManager';
 
 import { createMilestone } from '@/utils/milestones';
 import { grantXP, XP_REWARDS, hasPerk } from '@/utils/managerPerks';
+import { SEASON_PASS_POINTS } from '@/config/seasonPass';
 import { buildHallEntry, saveToHall } from '@/utils/hallOfManagers';
 
 import { processSponsorSeasonEnd } from '@/store/slices/sponsorSlice';
@@ -1454,6 +1455,23 @@ function finalizeSeason(
     seasonTotalIncome: 0,
     seasonTotalExpenses: 0,
     activeLoans: [], incomingLoanOffers: [], outgoingLoanRequests: [],
+    // Dynasty Pass: reset for the new season. Trophies won this season seed the
+    // fresh pass with a head-start (+200 per trophy: league title, domestic cup,
+    // league cup, and each continental cup won). Sim-neutral — the seed only
+    // advances the free XP reward track.
+    seasonPass: {
+      points: (() => {
+        let trophies = 0;
+        if (history.position === 1) trophies++;
+        if (state.cup.winner === playerClubId) trophies++;
+        if (state.leagueCup?.winner === playerClubId) trophies++;
+        if (state.championsCup?.winnerId === playerClubId) trophies++;
+        if (state.shieldCup?.winnerId === playerClubId) trophies++;
+        if (state.conferenceCup?.winnerId === playerClubId) trophies++;
+        return trophies * SEASON_PASS_POINTS.trophy;
+      })(),
+      claimedTiers: [],
+    },
     // Reset monthly objectives for new season
     weeklyObjectives: generateMonthlyObjectives(true),
     objectiveStreak: 0,

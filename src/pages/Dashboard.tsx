@@ -49,6 +49,7 @@ import { ContinueResumeCard } from '@/components/game/ContinueResumeCard';
 import { NotifPermissionModal } from '@/components/game/NotifPermissionModal';
 import { hasUnclaimedFreeDailyPack } from '@/utils/freePacks';
 import { DynastyStatusChip } from '@/components/game/DynastyStatusChip';
+import { SeasonPassChip } from '@/components/game/SeasonPassChip';
 import { ACHIEVEMENTS } from '@/utils/achievements';
 import type { Achievement } from '@/utils/achievements';
 import { FarewellModal } from '@/components/game/FarewellModal';
@@ -764,6 +765,9 @@ const Dashboard = () => {
 
       {/* Persistent legacy/streak visibility — self-hides for fresh installs. */}
       <DynastyStatusChip />
+
+      {/* Dynasty Pass progress — self-hides at zero progress with nothing to claim. */}
+      <SeasonPassChip />
 
       {/* Week-1 onboarding checklist for brand-new careers. Self-hides after
           the user advances week or dismisses it. */}
