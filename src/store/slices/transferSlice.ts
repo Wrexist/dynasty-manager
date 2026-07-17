@@ -25,7 +25,7 @@ import { NegotiationStrike } from '@/types/game';
 import { CONTRACT_MIN_YEARS, CONTRACT_MAX_YEARS } from '@/config/contracts';
 import { getSignedWage, getPreferredYears } from '@/utils/contracts';
 import { MIN_SQUAD_SIZE, MAX_SQUAD_SIZE, TOTAL_WEEKS, APPEASE_BASE_CHANCE, APPEASE_MORALE_BOOST, FFP_WAGE_RATIO_WARNING } from '@/config/gameBalance';
-import { hasPerk, dynastyMult } from '@/utils/managerPerks';
+import { hasPerk, branchMult } from '@/utils/managerPerks';
 import { STAR_SIGNING_BUZZ_WEEKS, STAR_PLAYER_SALE_DIP_WEEKS, CAMPAIGN_STAR_SIGNING_MIN_VALUE } from '@/config/merchandise';
 import { getStarPlayerMerch } from '@/utils/merchandise';
 import { CHALLENGES } from '@/data/challenges';
@@ -114,7 +114,7 @@ const buildAcceptChanceInputs = (state: GameState, listing: { askingPrice: numbe
     askingPrice: listing.askingPrice,
     releaseClause: state.players[playerId]?.releaseClause,
     hasShark: hasPerk(state.managerProgression, 'transfer_shark'),
-    sharkDiscountMult: dynastyMult(state.managerProgression),
+    sharkDiscountMult: branchMult(state.managerProgression, 'dealmaker'),
     careerFeeDiscount,
     deadlineDealerMult,
     existingStrikes: state.negotiationStrikes[playerId]?.strikes || 0,

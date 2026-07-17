@@ -41,6 +41,47 @@ function currentUnbeatenRun(s: GameState): number {
   return run;
 }
 
+/** Number of league titles won across the manager's whole recorded history. */
+function leagueTitles(s: GameState): number {
+  return s.seasonHistory.filter(h => h.position === 1).length;
+}
+
+/** Champions Cup wins across recorded history. */
+function championsCupWins(s: GameState): number {
+  return s.seasonHistory.filter(h => h.championsCupResult === 'Winner').length;
+}
+
+/** Every trophy won across recorded history (league + all cup competitions). */
+function lifetimeTrophies(s: GameState): number {
+  let n = 0;
+  for (const h of s.seasonHistory) {
+    if (h.position === 1) n++;
+    if (h.cupResult === 'Winner') n++;
+    if (h.leagueCupResult === 'Winner') n++;
+    if (h.championsCupResult === 'Winner') n++;
+    if (h.shieldCupResult === 'Winner') n++;
+    if (h.conferenceCupResult === 'Winner') n++;
+  }
+  return n;
+}
+
+/** Seasons where league + domestic cup + Champions Cup were ALL won (a treble). */
+function trebleSeasons(s: GameState): number {
+  return s.seasonHistory.filter(h =>
+    h.position === 1 && h.cupResult === 'Winner' && h.championsCupResult === 'Winner').length;
+}
+
+/** Longest run of consecutive league titles. seasonHistory is chronological. */
+function maxConsecutiveTitles(s: GameState): number {
+  let run = 0;
+  let best = 0;
+  for (const h of s.seasonHistory) {
+    if (h.position === 1) { run++; best = Math.max(best, run); }
+    else run = 0;
+  }
+  return best;
+}
+
 export const ACHIEVEMENTS: Achievement[] = [
   // ── Wins ──
   { id: 'first-win', title: 'First Victory', description: 'Win your first match', icon: 'trophy', tier: 'bronze',
@@ -245,6 +286,65 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'pack-collector', title: 'Pack Collector', description: 'Open 25 player packs', icon: 'package', tier: 'silver',
     check: (s) => (s.openedPacks?.length || 0) >= 25,
     progress: (s) => ({ current: Math.min(s.openedPacks?.length || 0, 25), target: 25 }) },
+
+  // ── Endless Progression — high-ceiling, tiered lifetime chases ──
+  // Career wins (managerStats.totalWins accumulates across the whole career).
+  { id: 'wins-100', title: 'Centurion', description: 'Win 100 matches', icon: 'trophy', tier: 'silver',
+    check: (s) => s.managerStats.totalWins >= 100,
+    progress: (s) => ({ current: Math.min(s.managerStats.totalWins, 100), target: 100 }) },
+  { id: 'wins-250', title: 'Double Century', description: 'Win 250 matches', icon: 'trophy', tier: 'gold',
+    check: (s) => s.managerStats.totalWins >= 250,
+    progress: (s) => ({ current: Math.min(s.managerStats.totalWins, 250), target: 250 }) },
+  { id: 'wins-500', title: 'The 500 Club', description: 'Win 500 matches', icon: 'crown', tier: 'gold', hidden: true,
+    check: (s) => s.managerStats.totalWins >= 500,
+    progress: (s) => ({ current: Math.min(s.managerStats.totalWins, 500), target: 500 }) },
+
+  // League titles across the career.
+  { id: 'titles-3', title: 'Serial Winner', description: 'Win 3 league titles', icon: 'medal', tier: 'silver',
+    check: (s) => leagueTitles(s) >= 3,
+    progress: (s) => ({ current: Math.min(leagueTitles(s), 3), target: 3, label: 'titles' }) },
+  { id: 'titles-5', title: 'Dynasty', description: 'Win 5 league titles', icon: 'medal', tier: 'gold',
+    check: (s) => leagueTitles(s) >= 5,
+    progress: (s) => ({ current: Math.min(leagueTitles(s), 5), target: 5, label: 'titles' }) },
+  { id: 'titles-10', title: 'Decade of Dominance', description: 'Win 10 league titles', icon: 'crown', tier: 'gold', hidden: true,
+    check: (s) => leagueTitles(s) >= 10,
+    progress: (s) => ({ current: Math.min(leagueTitles(s), 10), target: 10, label: 'titles' }) },
+
+  // Longevity — total seasons managed (completed season records).
+  { id: 'seasons-25', title: 'Quarter Century', description: 'Manage 25 full seasons', icon: 'crown', tier: 'silver',
+    check: (s) => s.seasonHistory.length >= 25,
+    progress: (s) => ({ current: Math.min(s.seasonHistory.length, 25), target: 25, label: 'seasons' }) },
+  { id: 'seasons-50', title: 'Lifer', description: 'Manage 50 full seasons', icon: 'crown', tier: 'gold', hidden: true,
+    check: (s) => s.seasonHistory.length >= 50,
+    progress: (s) => ({ current: Math.min(s.seasonHistory.length, 50), target: 50, label: 'seasons' }) },
+
+  // Continental pedigree.
+  { id: 'champions-cup-3', title: 'Kings of Europe', description: 'Win the Champions Cup 3 times', icon: 'trophy', tier: 'gold',
+    check: (s) => championsCupWins(s) >= 3,
+    progress: (s) => ({ current: Math.min(championsCupWins(s), 3), target: 3, label: 'wins' }) },
+  { id: 'continental-collector', title: 'Continental Collector', description: 'Win the Champions, Shield, and Conference Cup at least once each', icon: 'globe', tier: 'gold', hidden: true,
+    check: (s) =>
+      s.seasonHistory.some(h => h.championsCupResult === 'Winner') &&
+      s.seasonHistory.some(h => h.shieldCupResult === 'Winner') &&
+      s.seasonHistory.some(h => h.conferenceCupResult === 'Winner') },
+
+  // Elite single-season feats, accumulated over a career.
+  { id: 'domestic-treble', title: 'Domestic Treble', description: 'Win the league, Cup, and League Cup in one season', icon: 'star', tier: 'gold', hidden: true,
+    check: (s) => s.seasonHistory.some(h => h.position === 1 && h.cupResult === 'Winner' && h.leagueCupResult === 'Winner') },
+  { id: 'double-treble', title: 'Double Treble', description: 'Win the continental treble in two different seasons', icon: 'star', tier: 'gold', hidden: true,
+    check: (s) => trebleSeasons(s) >= 2,
+    progress: (s) => ({ current: Math.min(trebleSeasons(s), 2), target: 2, label: 'trebles' }) },
+  { id: 'three-peat', title: 'Three-Peat', description: 'Win the league title three seasons in a row', icon: 'medal', tier: 'gold', hidden: true,
+    check: (s) => maxConsecutiveTitles(s) >= 3,
+    progress: (s) => ({ current: Math.min(maxConsecutiveTitles(s), 3), target: 3, label: 'in a row' }) },
+
+  // Lifetime trophy haul + pack devotion.
+  { id: 'trophy-hoarder', title: 'Trophy Hoarder', description: 'Win 20 trophies across your career', icon: 'award', tier: 'gold',
+    check: (s) => lifetimeTrophies(s) >= 20,
+    progress: (s) => ({ current: Math.min(lifetimeTrophies(s), 20), target: 20, label: 'trophies' }) },
+  { id: 'pack-whale', title: 'Pack Whale', description: 'Open 100 player packs', icon: 'package', tier: 'gold',
+    check: (s) => (s.openedPacks?.length || 0) >= 100,
+    progress: (s) => ({ current: Math.min(s.openedPacks?.length || 0, 100), target: 100 }) },
 ];
 
 export function checkAchievements(state: GameState, unlockedIds: string[]): string[] {

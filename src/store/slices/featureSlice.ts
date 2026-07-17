@@ -7,7 +7,7 @@ import { verifyRedeemCode, getRedeemSecret } from '@/utils/redeemCodes';
 import { getActiveLiveEvent, readActiveFestivalProgress, canCheckInToday, applyCheckIn, applyTierClaim } from '@/utils/liveEvents';
 import { track } from '@/utils/analytics';
 import { TRANSFER_DEMAND_COOLDOWN_WEEKS, TRANSFER_TALK_RETRY_WEEKS } from '@/config/personality';
-import { grantXP, hasPerk, dynastyMult } from '@/utils/managerPerks';
+import { grantXP, hasPerk, branchMult } from '@/utils/managerPerks';
 import { objectiveClaimXP } from '@/utils/weeklyObjectives';
 import type { GameState } from '../storeTypes';
 import { addMsg, clamp, safeRandomUUID } from '@/utils/helpers';
@@ -87,7 +87,7 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
 
     // Media Savvy perk: double press conference effects (dynasty builder boosts further)
     if (hasPerk(state.managerProgression, 'media_savvy')) {
-      const mediaDm = 2 * dynastyMult(state.managerProgression);
+      const mediaDm = 2 * branchMult(state.managerProgression, 'motivator');
       moraleEffect = Math.round(moraleEffect * mediaDm);
       boardEffect = Math.round(boardEffect * mediaDm);
       fanEffect = Math.round(fanEffect * mediaDm);

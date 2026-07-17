@@ -720,6 +720,10 @@ export interface ManagerProgression {
   level: number;
   unlockedPerks: PerkId[];
   prestigeLevel: number;
+  /** Repeatable "Mastery" ranks per fully-unlocked branch (0–MASTERY_MAX_RANKS).
+   *  Each rank stacks a small bonus onto that branch's scalable perk effects.
+   *  Optional for save compatibility — treat a missing branch as 0 ranks. */
+  masteryRanks?: Partial<Record<TalentBranch, number>>;
 }
 
 export interface RecordEntry {
@@ -799,7 +803,7 @@ export interface SeasonHistory {
 }
 
 /** Lifetime achievement tier, derived from total trophies across all dynasties. */
-export type LegacyTier = 'Rookie' | 'Journeyman' | 'Established' | 'Elite' | 'Legendary' | 'Immortal';
+export type LegacyTier = 'Rookie' | 'Journeyman' | 'Established' | 'Elite' | 'Legendary' | 'Immortal' | 'Titan' | 'Godlike';
 
 /** Cross-save lifetime manager record — aggregated from every dynasty in the
  *  Hall of Managers. Computed on demand (not persisted on its own); see

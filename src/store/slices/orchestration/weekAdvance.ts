@@ -65,7 +65,7 @@ import { getLeaguePositionPrize } from '@/utils/financeHelpers';
 import { formatMoney, getSuffix } from '@/utils/helpers';
 import { generateKnockoutBracket, processGroupWeek, processKnockoutRound, simulateKnockoutToCompletion } from '@/utils/international';
 import { generateUnemployedOffer } from '@/utils/managerCareer';
-import { dynastyMult } from '@/utils/managerPerks';
+import { branchMult } from '@/utils/managerPerks';
 import { calculateWeeklyMerchRevenue } from '@/utils/merchandise';
 import { getLeadershipBonus, wantsTransfer } from '@/utils/personality';
 import { calculateOverall } from '@/utils/playerGen';
@@ -894,7 +894,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
 
     const allClubPlayers = playerClub.playerIds.map(id => newPlayers[id]).filter(Boolean);
     const mentorBonusVal = getMentorBonus(p, allClubPlayers);
-    const dm = dynastyMult(state.managerProgression);
+    const dm = branchMult(state.managerProgression, 'developer');
     const trainingPerkBoost = hasPerk(state.managerProgression, 'training_ground') ? TRAINING_GROUND_BOOST * dm : 0;
     const dnaCoachBoost = hasPerk(state.managerProgression, 'dna_coach') && p.age < 24 ? 0.1 : 0;
     const gkBoost = p.position === 'GK' ? gkCoachBonus * GK_COACH_DEV_BONUS_PER_QUALITY : 0;
@@ -2094,7 +2094,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
       } else {
         const baseDevGain = 1 + youthCoachQuality * 0.3 + newFacilities.youthLevel * 0.2;
         const careerYouthMod = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.youthDevelopment * MOD_YOUTH_GROWTH : 0;
-        const ydm = dynastyMult(state.managerProgression);
+        const ydm = branchMult(state.managerProgression, 'developer');
         // Focused prospects get a small dev gain bonus to encourage active management
         const focusBoost = (prospect.trainingFocus && prospect.trainingFocus !== 'balanced') ? 1.1 : 1;
         const devGain = (hasPerk(state.managerProgression, 'youth_developer') ? baseDevGain * (1 + YOUTH_DEVELOPER_BOOST * ydm + careerYouthMod) : baseDevGain * (1 + careerYouthMod)) * focusBoost;
@@ -2142,7 +2142,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
 
   // Weekly income — expanded sources
   const newClubs = { ...clubs };
-  const fanFavMult = hasPerk(state.managerProgression, 'fan_favourite') ? 1 + 0.15 * dynastyMult(state.managerProgression) : 1;
+  const fanFavMult = hasPerk(state.managerProgression, 'fan_favourite') ? 1 + 0.15 * branchMult(state.managerProgression, 'motivator') : 1;
   const stadiumIncome = Math.round(getEffectiveStadiumLevel(newFacilities) * STADIUM_INCOME_PER_LEVEL * fanFavMult);
   const fanMoodMult = FAN_MOOD_BASE + (state.fanMood / 100) * FAN_MOOD_SCALE;
   // Derby income bonus: check if this week's played match was a derby

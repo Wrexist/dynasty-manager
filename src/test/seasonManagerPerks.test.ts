@@ -30,11 +30,20 @@ import {
   xpForLevel,
   createDefaultProgression,
   XP_REWARDS,
+  branchFullyUnlocked,
+  getMasteryRank,
+  masteryMult,
+  branchMult,
+  masteryRankCost,
+  nextMasteryCost,
+  canUnlockMastery,
 } from '@/utils/managerPerks';
 import {
   MANAGER_XP_BASE,
   MANAGER_XP_PER_LEVEL,
   CAPSTONE_MIN_BRANCHES,
+  MASTERY_MAX_RANKS,
+  MASTERY_BASE_COST,
 } from '@/config/gameBalance';
 import type { ManagerProgression, PerkId } from '@/types/game';
 
@@ -49,7 +58,7 @@ function progAt(level: number, xp: number, unlocked: PerkId[] = [], prestige = 0
 describe('createDefaultProgression', () => {
   it('starts at level 1 with no XP and no perks', () => {
     expect(createDefaultProgression()).toEqual({
-      xp: 0, level: 1, unlockedPerks: [], prestigeLevel: 0,
+      xp: 0, level: 1, unlockedPerks: [], prestigeLevel: 0, masteryRanks: {},
     });
   });
 });
@@ -364,5 +373,84 @@ describe('XP_REWARDS shape', () => {
     expect(XP_REWARDS.championsCupWin).toBeGreaterThan(XP_REWARDS.shieldCupWin);
     expect(XP_REWARDS.shieldCupWin).toBeGreaterThan(XP_REWARDS.conferenceCupWin);
     expect(XP_REWARDS.conferenceCupWin).toBeGreaterThan(XP_REWARDS.leagueCupWin);
+  });
+});
+
+// ── Mastery Ranks (endless per-branch progression) ─────────────────────
+
+const TACTICIAN_CORE: PerkId[] = ['set_piece_coach', 'tactical_genius', 'disciplinarian', 'formation_master', 'iron_will'];
+
+describe('branchFullyUnlocked', () => {
+  it('is false until all 5 core perks are unlocked', () => {
+    expect(branchFullyUnlocked(progAt(50, 0, TACTICIAN_CORE.slice(0, 4)), 'tactician')).toBe(false);
+  });
+
+  it('is true once all 5 core perks are unlocked', () => {
+    expect(branchFullyUnlocked(progAt(50, 0, TACTICIAN_CORE), 'tactician')).toBe(true);
+  });
+
+  it('ignores prestige-tier perks (rows 5-6) for eligibility', () => {
+    // A branch with only the 5 core perks counts as fully unlocked even
+    // though prestige perks in the same branch remain locked.
+    const prog = progAt(50, 0, TACTICIAN_CORE);
+    expect(prog.unlockedPerks).not.toContain('counter_master');
+    expect(branchFullyUnlocked(prog, 'tactician')).toBe(true);
+  });
+});
+
+describe('masteryRankCost & getMasteryRank & masteryMult', () => {
+  it('escalates geometrically from the base cost', () => {
+    expect(masteryRankCost(1)).toBe(MASTERY_BASE_COST);
+    expect(masteryRankCost(2)).toBe(Math.round(MASTERY_BASE_COST * 1.5));
+    expect(masteryRankCost(3)).toBe(Math.round(MASTERY_BASE_COST * 1.5 * 1.5));
+  });
+
+  it('getMasteryRank defaults to 0 for a missing branch', () => {
+    expect(getMasteryRank(progAt(1, 0), 'tactician')).toBe(0);
+    expect(getMasteryRank({ ...progAt(1, 0), masteryRanks: { tactician: 3 } }, 'tactician')).toBe(3);
+  });
+
+  it('masteryMult adds 2% per rank and is 1.0x when unranked', () => {
+    expect(masteryMult(progAt(1, 0), 'tactician')).toBe(1);
+    expect(masteryMult({ ...progAt(1, 0), masteryRanks: { tactician: 3 } }, 'tactician')).toBeCloseTo(1.06, 5);
+  });
+
+  it('branchMult combines the Dynasty Builder capstone bonus with mastery', () => {
+    const prog = { ...progAt(50, 0, ['dynasty_builder']), masteryRanks: { tactician: 5 } };
+    // 1.1 (dynasty builder) * 1.10 (5 mastery ranks) = 1.21
+    expect(branchMult(prog, 'tactician')).toBeCloseTo(1.21, 5);
+    // A different branch with no mastery only gets the capstone bonus.
+    expect(branchMult(prog, 'motivator')).toBeCloseTo(1.1, 5);
+  });
+});
+
+describe('canUnlockMastery & nextMasteryCost', () => {
+  it('blocks mastery until the branch is fully unlocked', () => {
+    const prog = progAt(80, 0, TACTICIAN_CORE.slice(0, 3));
+    expect(canUnlockMastery(prog, 'tactician').canUnlock).toBe(false);
+  });
+
+  it('allows the first rank when the branch is unlocked and XP suffices', () => {
+    // A high level yields a large spendable XP pool; the 5 core perks cost
+    // 2080 total, leaving plenty for a 1500 mastery rank.
+    const prog = progAt(120, 0, TACTICIAN_CORE);
+    const check = canUnlockMastery(prog, 'tactician');
+    expect(check.canUnlock).toBe(true);
+    expect(check.cost).toBe(MASTERY_BASE_COST);
+  });
+
+  it('caps at MASTERY_MAX_RANKS', () => {
+    const prog = { ...progAt(200, 0, TACTICIAN_CORE), masteryRanks: { tactician: MASTERY_MAX_RANKS } };
+    expect(nextMasteryCost(prog, 'tactician')).toBeNull();
+    expect(canUnlockMastery(prog, 'tactician').canUnlock).toBe(false);
+    expect(canUnlockMastery(prog, 'tactician').reason).toBe('Mastery maxed');
+  });
+
+  it('reports remaining XP when unaffordable', () => {
+    // Level 5 → small XP pool, cannot afford a 1500-XP mastery rank.
+    const prog = progAt(5, 0, TACTICIAN_CORE);
+    const check = canUnlockMastery(prog, 'tactician');
+    expect(check.canUnlock).toBe(false);
+    expect(check.reason).toMatch(/more XP/);
   });
 });

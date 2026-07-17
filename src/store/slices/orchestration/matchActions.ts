@@ -28,7 +28,7 @@ import type { MatchEvent } from '@/types/game';
 import { completeShootout, getClubGKQuality, getPenaltyTakerQuality, getShootoutProgress, pickAiAim, pickAiPower, resolveAimedKick, simulatePenaltyShootout } from '@/utils/penaltyShootout';
 import { detectMatchDrama } from '@/utils/celebrations';
 import { advanceKnockoutRound, createEphemeralClub, findPlayerContinentalMatch, generateKnockoutFromGroups, isGroupStageComplete, isKnockoutRoundComplete } from '@/utils/continental';
-import { dynastyMult } from '@/utils/managerPerks';
+import { branchMult } from '@/utils/managerPerks';
 import { isPro } from '@/utils/monetization';
 import { updateEloRatings } from '@/utils/teamRankings';
 /**
@@ -528,7 +528,7 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   // Motivator perk: boost player team morale before match
   if (hasPerk(state.managerProgression, 'motivator')) {
     const boostPlayers = (ps: typeof hp, clubId: string) =>
-      clubId === playerClubId ? ps.map(p => ({ ...p, morale: Math.min(100, p.morale + Math.round(MOTIVATOR_MORALE_BOOST * dynastyMult(state.managerProgression))) })) : ps;
+      clubId === playerClubId ? ps.map(p => ({ ...p, morale: Math.min(100, p.morale + Math.round(MOTIVATOR_MORALE_BOOST * branchMult(state.managerProgression, 'motivator'))) })) : ps;
     hp = boostPlayers(hp, match.homeClubId);
     ap = boostPlayers(ap, match.awayClubId);
   }
@@ -579,7 +579,7 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
     } });
   }
 
-  const spCoachInstant = hasPerk(state.managerProgression, 'set_piece_coach') ? 0.009 * dynastyMult(state.managerProgression) : 0;
+  const spCoachInstant = hasPerk(state.managerProgression, 'set_piece_coach') ? 0.009 * branchMult(state.managerProgression, 'tactician') : 0;
   const { result, playerRatings, matchInjuries } = simulateMatch(match, hc, ac, hp, ap, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, matchDerbyIntensity, hasDisciplinarian, season, careerDisciplineMod, hBenchCM, aBenchCM, undefined, spCoachInstant);
 
   // ── Cup/Tournament match path ──
@@ -1002,7 +1002,7 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   // Motivator perk: boost player team morale before match
   if (hasPerk(state.managerProgression, 'motivator')) {
     const boostPlayers = (ps: typeof hp, clubId: string) =>
-      clubId === playerClubId ? ps.map(p => ({ ...p, morale: Math.min(100, p.morale + Math.round(MOTIVATOR_MORALE_BOOST * dynastyMult(state.managerProgression))) })) : ps;
+      clubId === playerClubId ? ps.map(p => ({ ...p, morale: Math.min(100, p.morale + Math.round(MOTIVATOR_MORALE_BOOST * branchMult(state.managerProgression, 'motivator'))) })) : ps;
     hp = boostPlayers(hp, match.homeClubId);
     ap = boostPlayers(ap, match.awayClubId);
   }
@@ -1028,7 +1028,7 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   const halfDerbyIntensity = getDerbyIntensity(match.homeClubId, match.awayClubId);
   const hasDisciplinarian = hasPerk(state.managerProgression, 'disciplinarian');
   const halfCareerMod = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.discipline * MOD_DISCIPLINE_CARDS : 0;
-  const spCoachBonus = hasPerk(state.managerProgression, 'set_piece_coach') ? 0.009 * dynastyMult(state.managerProgression) : 0;
+  const spCoachBonus = hasPerk(state.managerProgression, 'set_piece_coach') ? 0.009 * branchMult(state.managerProgression, 'tactician') : 0;
   const matchWeather = generateMatchWeather();
   // Pre-kickoff team talk (G3): on high-stakes matches the player can give a
   // pre-match talk, which sets `matchTeamTalk` before kickoff. Apply it to the
@@ -1191,7 +1191,7 @@ export function playSecondHalfImpl(set: Set, get: Get): Match | null {
     ? { attackMod: teamTalkMods.attackMod + shoutMods.attackMod, defenseMod: teamTalkMods.defenseMod + shoutMods.defenseMod, foulMod: teamTalkMods.foulMod + shoutMods.foulMod, fitnessDrainMult: teamTalkMods.fitnessDrainMult }
     : (shoutMods.attackMod || shoutMods.defenseMod || shoutMods.foulMod) ? { ...shoutMods, fitnessDrainMult: 1 as number } : undefined;
 
-  const spCoachBonus2H = hasPerk(state.managerProgression, 'set_piece_coach') ? 0.009 * dynastyMult(state.managerProgression) : 0;
+  const spCoachBonus2H = hasPerk(state.managerProgression, 'set_piece_coach') ? 0.009 * branchMult(state.managerProgression, 'tactician') : 0;
   const fullState = simulateHalf(hc, ac, hp, ap, 46, 90, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, secondHalfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities, season, secondHalfCareerMod, undefined, undefined, combinedMods, currentMatchWeather ?? undefined, spCoachBonus2H);
   // `players` lookup lets finalizeMatch rate half-time-subbed-out starters
   // (they're missing from hp/ap — the lineup was edited at the break)
@@ -1402,7 +1402,7 @@ export function playExtraTimeImpl(set: Set, get: Get): Match | null {
   const etMods = etTeamTalkMods
     ? { attackMod: etTeamTalkMods.attackMod + etShoutMods.attackMod, defenseMod: etTeamTalkMods.defenseMod + etShoutMods.defenseMod, foulMod: etTeamTalkMods.foulMod + etShoutMods.foulMod, fitnessDrainMult: etTeamTalkMods.fitnessDrainMult }
     : (etShoutMods.attackMod || etShoutMods.defenseMod || etShoutMods.foulMod) ? { ...etShoutMods, fitnessDrainMult: 1 as number } : undefined;
-  const spCoachBonusET = hasPerk(state.managerProgression, 'set_piece_coach') ? 0.009 * dynastyMult(state.managerProgression) : 0;
+  const spCoachBonusET = hasPerk(state.managerProgression, 'set_piece_coach') ? 0.009 * branchMult(state.managerProgression, 'tactician') : 0;
   const etWeather = state.currentMatchWeather;
   const etState = simulateHalf(hc, ac, hp, ap, 91, 120, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, derbyInt, hasDisciplinarian, hc.facilities, ac.facilities, season, etCareerMod, undefined, undefined, etMods, etWeather ?? undefined, spCoachBonusET);
 

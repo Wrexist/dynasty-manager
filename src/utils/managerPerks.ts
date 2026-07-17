@@ -1,6 +1,6 @@
 import { ManagerPerk, PerkId, ManagerProgression, TalentBranch } from '@/types/game';
 import { getPrestigeXPMultiplier } from '@/utils/prestige';
-import { MANAGER_XP_BASE, MANAGER_XP_PER_LEVEL, CAPSTONE_MIN_BRANCHES, PRESTIGE_PERK_TIER_6_COST, PRESTIGE_PERK_TIER_7_COST } from '@/config/gameBalance';
+import { MANAGER_XP_BASE, MANAGER_XP_PER_LEVEL, CAPSTONE_MIN_BRANCHES, PRESTIGE_PERK_TIER_6_COST, PRESTIGE_PERK_TIER_7_COST, MASTERY_MAX_RANKS, MASTERY_BASE_COST, MASTERY_COST_GROWTH, MASTERY_BONUS_PER_RANK } from '@/config/gameBalance';
 
 export const MANAGER_PERKS: ManagerPerk[] = [
   // ── Tactician Branch (match day & formations) ──
@@ -96,7 +96,7 @@ export function getSpecializationTitle(prog: ManagerProgression): string {
 }
 
 export function createDefaultProgression(): ManagerProgression {
-  return { xp: 0, level: 1, unlockedPerks: [], prestigeLevel: 0 };
+  return { xp: 0, level: 1, unlockedPerks: [], prestigeLevel: 0, masteryRanks: {} };
 }
 
 /** XP needed for next level */
@@ -170,7 +170,17 @@ export function getTotalXP(prog: ManagerProgression): number {
     const perk = MANAGER_PERKS.find(p => p.id === id);
     return sum + (perk?.cost || 0);
   }, 0);
-  return total - spent;
+  // Subtract cost of every mastery rank bought across all branches. Ranks are
+  // cumulative (rank 3 means ranks 1+2+3 were all paid for).
+  let masterySpent = 0;
+  const ranks = prog.masteryRanks;
+  if (ranks) {
+    for (const branch of Object.keys(ranks) as TalentBranch[]) {
+      const r = ranks[branch] || 0;
+      for (let i = 1; i <= r; i++) masterySpent += masteryRankCost(i);
+    }
+  }
+  return total - spent - masterySpent;
 }
 
 /** Check if a specific perk is active */
@@ -181,6 +191,66 @@ export function hasPerk(prog: ManagerProgression, perkId: PerkId): boolean {
 /** Get the dynasty builder multiplier (1.1x if Dynasty Builder perk is active, 1.0x otherwise) */
 export function dynastyMult(prog: ManagerProgression): number {
   return prog.unlockedPerks.includes('dynasty_builder') ? 1.1 : 1;
+}
+
+// ── Mastery Ranks (endless per-branch progression) ──
+
+/** Current mastery rank for a branch (0 when none / field missing). */
+export function getMasteryRank(prog: ManagerProgression, branch: TalentBranch): number {
+  return prog.masteryRanks?.[branch] ?? 0;
+}
+
+/** Multiplicative bonus a branch's mastery ranks apply to its scaled perk
+ *  effects: 1 + MASTERY_BONUS_PER_RANK per rank (1.0x when unranked). */
+export function masteryMult(prog: ManagerProgression, branch: TalentBranch): number {
+  return 1 + MASTERY_BONUS_PER_RANK * getMasteryRank(prog, branch);
+}
+
+/** Combined multiplier for a branch's scalable perk effects: the global
+ *  Dynasty Builder capstone bonus times this branch's mastery bonus. Drop-in
+ *  replacement for `dynastyMult` at any branch-specific application site. */
+export function branchMult(prog: ManagerProgression, branch: TalentBranch): number {
+  return dynastyMult(prog) * masteryMult(prog, branch);
+}
+
+/** The 5 core (non-prestige) perks of a branch — rows 0–4. */
+export function getCoreBranchPerks(branch: TalentBranch): ManagerPerk[] {
+  return MANAGER_PERKS.filter(p => p.branch === branch && p.row <= 4).sort((a, b) => a.row - b.row);
+}
+
+/** A branch is "mastered-eligible" once all 5 of its core perks are unlocked. */
+export function branchFullyUnlocked(prog: ManagerProgression, branch: TalentBranch): boolean {
+  return getCoreBranchPerks(branch).every(p => prog.unlockedPerks.includes(p.id));
+}
+
+/** XP cost to buy the given mastery rank (1-indexed: rank 1 is the first).
+ *  Geometric escalation from MASTERY_BASE_COST by MASTERY_COST_GROWTH. */
+export function masteryRankCost(rank: number): number {
+  return Math.round(MASTERY_BASE_COST * Math.pow(MASTERY_COST_GROWTH, rank - 1));
+}
+
+/** Cost to buy the NEXT mastery rank for a branch, or null if capped. */
+export function nextMasteryCost(prog: ManagerProgression, branch: TalentBranch): number | null {
+  const rank = getMasteryRank(prog, branch);
+  if (rank >= MASTERY_MAX_RANKS) return null;
+  return masteryRankCost(rank + 1);
+}
+
+/** Can the manager buy the next mastery rank for a branch right now? */
+export function canUnlockMastery(prog: ManagerProgression, branch: TalentBranch): { canUnlock: boolean; reason?: string; cost?: number } {
+  if (!branchFullyUnlocked(prog, branch)) {
+    return { canUnlock: false, reason: 'Unlock all 5 branch perks first' };
+  }
+  const rank = getMasteryRank(prog, branch);
+  if (rank >= MASTERY_MAX_RANKS) {
+    return { canUnlock: false, reason: 'Mastery maxed' };
+  }
+  const cost = masteryRankCost(rank + 1);
+  const available = getTotalXP(prog);
+  if (available < cost) {
+    return { canUnlock: false, reason: `Need ${cost - available} more XP`, cost };
+  }
+  return { canUnlock: true, cost };
 }
 
 /** Get the full prerequisite chain for a perk (bottom to top, excluding the perk itself) */

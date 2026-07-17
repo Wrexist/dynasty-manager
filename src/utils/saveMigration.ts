@@ -20,11 +20,20 @@ const migrations: Record<number, MigrationFn> = {
   // issued at review weeks when confidence is critically low — see
   // config/gameBalance ULTIMATUM_* constants). Existing saves have no active
   // ultimatum; default to null.
-  72: (data) => ({
-    ...data,
-    version: 73,
-    boardUltimatum: data.boardUltimatum ?? null,
-  }),
+  // Also: ManagerProgression gained `masteryRanks` (repeatable per-branch
+  // Mastery ranks unlocked once a branch's 5 perks are all bought). Default
+  // to an empty map so existing saves start every branch at rank 0.
+  72: (data) => {
+    const prog = data.managerProgression as Record<string, unknown> | undefined;
+    return {
+      ...data,
+      version: 73,
+      boardUltimatum: data.boardUltimatum ?? null,
+      ...(prog && typeof prog === 'object'
+        ? { managerProgression: { ...prog, masteryRanks: prog.masteryRanks ?? {} } }
+        : {}),
+    };
+  },
 
   // v1 → v2: Added messages, seasonHistory, incomingOffers
   1: (data) => ({

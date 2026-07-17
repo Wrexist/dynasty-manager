@@ -2,16 +2,18 @@ import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { TalentTree } from '@/components/game/TalentTree';
 import { cn } from '@/lib/utils';
-import { xpForLevel, getTotalXP, XP_REWARDS, TALENT_BRANCHES, getBranchPerks, getSpecializationTitle } from '@/utils/managerPerks';
+import { xpForLevel, getTotalXP, XP_REWARDS, TALENT_BRANCHES, getBranchPerks, getSpecializationTitle, branchFullyUnlocked, getMasteryRank, canUnlockMastery, masteryMult } from '@/utils/managerPerks';
+import { MASTERY_MAX_RANKS } from '@/config/gameBalance';
 import { toast } from 'sonner';
 import { hapticMedium } from '@/utils/haptics';
-import type { PerkId } from '@/types/game';
+import type { PerkId, TalentBranch } from '@/types/game';
 import { PAGE_HINTS } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
 
 const PerksPage = () => {
   const managerProgression = useGameStore(s => s.managerProgression);
   const unlockPerk = useGameStore(s => s.unlockPerk);
+  const unlockMastery = useGameStore(s => s.unlockMastery);
 
   const availableXP = getTotalXP(managerProgression);
   const xpNeeded = xpForLevel(managerProgression.level);
@@ -27,6 +29,18 @@ const PerksPage = () => {
       toast.error(result.message);
     }
   };
+
+  const handleMastery = (branch: TalentBranch) => {
+    const result = unlockMastery(branch);
+    if (result.success) {
+      hapticMedium();
+      toast.success(result.message);
+    } else {
+      toast.error(result.message);
+    }
+  };
+
+  const masteredBranches = TALENT_BRANCHES.filter(b => branchFullyUnlocked(managerProgression, b.id));
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
@@ -81,6 +95,62 @@ const PerksPage = () => {
           );
         })}
       </div>
+
+      {/* Mastery Ranks — endless progression once a branch is fully unlocked */}
+      {masteredBranches.length > 0 && (
+        <GlassPanel className="p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-display font-bold text-foreground">Branch Mastery</h3>
+            <span className="text-[9px] text-muted-foreground">+2% branch effects per rank</span>
+          </div>
+          {masteredBranches.map(branch => {
+            const rank = getMasteryRank(managerProgression, branch.id);
+            const check = canUnlockMastery(managerProgression, branch.id);
+            const maxed = rank >= MASTERY_MAX_RANKS;
+            const bonusPct = Math.round((masteryMult(managerProgression, branch.id) - 1) * 100);
+            return (
+              <div key={branch.id} className="flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className={cn('text-xs font-bold', branch.color)}>{branch.name}</span>
+                    {bonusPct > 0 && (
+                      <span className="text-[9px] text-emerald-400 font-semibold">+{bonusPct}%</span>
+                    )}
+                  </div>
+                  {/* Rank pips */}
+                  <div className="flex items-center gap-1 mt-1">
+                    {Array.from({ length: MASTERY_MAX_RANKS }).map((_, i) => (
+                      <span
+                        key={i}
+                        className={cn(
+                          'w-4 h-1.5 rounded-full transition-colors',
+                          i < rank ? 'bg-primary' : 'bg-muted/30',
+                        )}
+                      />
+                    ))}
+                  </div>
+                </div>
+                {maxed ? (
+                  <span className="text-[10px] font-bold text-primary shrink-0">MAX</span>
+                ) : (
+                  <button
+                    onClick={() => handleMastery(branch.id)}
+                    disabled={!check.canUnlock}
+                    className={cn(
+                      'shrink-0 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-colors',
+                      check.canUnlock
+                        ? 'bg-primary/20 border border-primary/40 text-primary hover:bg-primary/30'
+                        : 'bg-muted/20 border border-border/40 text-muted-foreground/60',
+                    )}
+                  >
+                    Rank {rank + 1} · {check.cost} XP
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </GlassPanel>
+      )}
 
       {/* Talent Tree */}
       <TalentTree

@@ -17,6 +17,8 @@ const TIER_THRESHOLDS: { tier: LegacyTier; at: number }[] = [
   { tier: 'Elite', at: 7 },
   { tier: 'Legendary', at: 15 },
   { tier: 'Immortal', at: 30 },
+  { tier: 'Titan', at: 50 },
+  { tier: 'Godlike', at: 100 },
 ];
 
 /** Lifetime tier from total trophies — the headline identity badge. */
@@ -28,7 +30,7 @@ export function legacyTier(totalTrophies: number): LegacyTier {
   return tier;
 }
 
-/** Next tier and trophies remaining to reach it, or null once Immortal. */
+/** Next tier and trophies remaining to reach it, or null once the top tier. */
 export function tierProgress(totalTrophies: number): { next: LegacyTier; remaining: number } | null {
   const next = TIER_THRESHOLDS.find(t => totalTrophies < t.at);
   return next ? { next: next.tier, remaining: next.at - totalTrophies } : null;

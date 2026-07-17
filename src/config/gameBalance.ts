@@ -718,6 +718,17 @@ export const CAPSTONE_MIN_BRANCHES = 2;
 export const TRAINING_GROUND_BOOST = 0.2;
 export const GOLDEN_GEN_MIN_POTENTIAL = 75;
 
+// ── Mastery Ranks (endless branch progression) ──
+// Once all 5 core perks of a branch are unlocked, that branch can be pushed
+// into repeatable "Mastery" ranks. Each rank stacks a small multiplicative
+// bonus onto that branch's scalable perk effects, hard-capped so it never
+// runs away. Cost escalates geometrically so late ranks are a long-run chase.
+export const MASTERY_MAX_RANKS = 5;
+export const MASTERY_BASE_COST = 1500;
+export const MASTERY_COST_GROWTH = 1.5;
+/** Stacking bonus to a branch's scaled perk effects, per mastery rank. */
+export const MASTERY_BONUS_PER_RANK = 0.02;
+
 // ── Dashboard UI ──
 export const CONFIDENCE_CHANGE_DISMISS_THRESHOLD = 5;
 

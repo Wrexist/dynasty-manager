@@ -33,10 +33,10 @@ import { findTournamentMatch } from '@/store/slices/orchestration/helpers';
 
 import { generateAIManagerProfile } from '@/config/aiManager';
 
-import { createDefaultProgression, MANAGER_PERKS, canUnlockPerk } from '@/utils/managerPerks';
+import { createDefaultProgression, MANAGER_PERKS, canUnlockPerk, canUnlockMastery, getMasteryRank } from '@/utils/managerPerks';
 import { buildHallEntry, saveToHall } from '@/utils/hallOfManagers';
 
-import type { PerkId, ManagerProgression } from '@/types/game';
+import type { PerkId, ManagerProgression, TalentBranch } from '@/types/game';
 
 import {
   rebuildRealPlayerClaims,
@@ -729,6 +729,21 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     };
     set({ managerProgression: newProg });
     return { success: true, message: `${perk.name} unlocked!` };
+  },
+
+  unlockMastery: (branch: TalentBranch) => {
+    const state = get();
+    const check = canUnlockMastery(state.managerProgression, branch);
+    if (!check.canUnlock) return { success: false, message: check.reason || 'Cannot unlock' };
+    const nextRank = getMasteryRank(state.managerProgression, branch) + 1;
+    // Spread the nested masteryRanks map before writing (Zustand set contract).
+    const newProg: ManagerProgression = {
+      ...state.managerProgression,
+      masteryRanks: { ...(state.managerProgression.masteryRanks || {}), [branch]: nextRank },
+    };
+    set({ managerProgression: newProg });
+    const branchName = branch.charAt(0).toUpperCase() + branch.slice(1);
+    return { success: true, message: `${branchName} Mastery Rank ${nextRank} unlocked!` };
   },
 
   saveGame: (slot?: number) => {

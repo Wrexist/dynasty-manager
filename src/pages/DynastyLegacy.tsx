@@ -25,6 +25,8 @@ const TIER_META: Record<LegacyTier, { icon: React.ElementType; blurb: string }> 
   Elite: { icon: Award, blurb: 'Among the modern greats.' },
   Legendary: { icon: Trophy, blurb: 'A name written into history.' },
   Immortal: { icon: Crown, blurb: 'A dynasty that will never be forgotten.' },
+  Titan: { icon: Flame, blurb: 'A colossus that towers over the game.' },
+  Godlike: { icon: Crown, blurb: 'Beyond legend — the game itself bends to your will.' },
 };
 
 function ordinal(pos: number): string {
@@ -86,7 +88,7 @@ function DynastyLegacy() {
             <p className="text-[10px] text-foreground/55 mt-2">
               {nextTier
                 ? `${nextTier.remaining} more ${nextTier.remaining === 1 ? 'trophy' : 'trophies'} to ${nextTier.next}`
-                : 'Maximum tier reached — a true Immortal.'}
+                : `Maximum tier reached — a true ${legacy.tier}.`}
             </p>
           </div>
         </GlassPanel>

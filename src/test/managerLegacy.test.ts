@@ -29,7 +29,11 @@ describe('legacyTier', () => {
     expect(legacyTier(7)).toBe('Elite');
     expect(legacyTier(15)).toBe('Legendary');
     expect(legacyTier(30)).toBe('Immortal');
-    expect(legacyTier(999)).toBe('Immortal');
+    expect(legacyTier(49)).toBe('Immortal');
+    expect(legacyTier(50)).toBe('Titan');
+    expect(legacyTier(99)).toBe('Titan');
+    expect(legacyTier(100)).toBe('Godlike');
+    expect(legacyTier(999)).toBe('Godlike');
   });
 });
 
@@ -40,18 +44,21 @@ describe('tierProgress', () => {
     expect(tierProgress(6)).toEqual({ next: 'Elite', remaining: 1 });
     expect(tierProgress(14)).toEqual({ next: 'Legendary', remaining: 1 });
     expect(tierProgress(29)).toEqual({ next: 'Immortal', remaining: 1 });
+    expect(tierProgress(30)).toEqual({ next: 'Titan', remaining: 20 });
+    expect(tierProgress(49)).toEqual({ next: 'Titan', remaining: 1 });
+    expect(tierProgress(50)).toEqual({ next: 'Godlike', remaining: 50 });
   });
 
-  it('returns null once Immortal is reached', () => {
-    expect(tierProgress(30)).toBeNull();
+  it('returns null once the top tier is reached', () => {
     expect(tierProgress(100)).toBeNull();
+    expect(tierProgress(500)).toBeNull();
   });
 
   it('stays consistent with legacyTier at every threshold', () => {
-    for (let t = 0; t <= 35; t++) {
+    for (let t = 0; t <= 120; t++) {
       const prog = tierProgress(t);
       if (prog) expect(legacyTier(t)).not.toBe(prog.next); // haven't reached next yet
-      else expect(legacyTier(t)).toBe('Immortal');
+      else expect(legacyTier(t)).toBe('Godlike');
     }
   });
 });
