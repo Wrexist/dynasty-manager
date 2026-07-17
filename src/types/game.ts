@@ -273,6 +273,10 @@ export interface Club {
   setPieceTakerId?: string;
   /** Player ID assigned as penalty taker */
   penaltyTakerId?: string;
+  /** Player ID wearing the captain's armband */
+  captainId?: string;
+  /** Player ID deputising as vice-captain (inherits armband if captain departs) */
+  viceCaptainId?: string;
   stadiumName?: string;
   stadiumCapacity?: number;
 }

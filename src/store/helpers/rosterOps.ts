@@ -10,6 +10,7 @@
 
 import type { Club } from '@/types/game';
 import type { GameState } from '../storeTypes';
+import { reassignCaptaincyOnDeparture } from '@/utils/captaincy';
 
 /**
  * Remove a player id from every club's roster-tracking arrays
@@ -28,7 +29,9 @@ export function detachPlayerFromAllClubs(
   for (const [cid, c] of Object.entries(out)) {
     const inRoster = c.playerIds.includes(playerId);
     const isTaker = c.setPieceTakerId === playerId || c.penaltyTakerId === playerId;
-    if (!inRoster && !isTaker) continue;
+    const isArmband = c.captainId === playerId || c.viceCaptainId === playerId;
+    if (!inRoster && !isTaker && !isArmband) continue;
+    const { captainId, viceCaptainId } = reassignCaptaincyOnDeparture(c, playerId);
     out[cid] = {
       ...c,
       playerIds: inRoster ? c.playerIds.filter(id => id !== playerId) : c.playerIds,
@@ -36,6 +39,8 @@ export function detachPlayerFromAllClubs(
       subs: inRoster ? c.subs.filter(id => id !== playerId) : c.subs,
       setPieceTakerId: c.setPieceTakerId === playerId ? undefined : c.setPieceTakerId,
       penaltyTakerId: c.penaltyTakerId === playerId ? undefined : c.penaltyTakerId,
+      captainId,
+      viceCaptainId,
     };
   }
   return out;

@@ -5,6 +5,7 @@ import { autoFillBestTeam } from '@/utils/autoFillLineup';
 import { NATIONS } from '@/data/nations';
 import { getPlayerRarity, getRarityValueMultiplier, getRarityWageMultiplier } from '@/utils/playerRarity';
 import { assignSquadNumbersToSquad } from '@/utils/squadNumbers';
+import { pickDefaultCaptaincy } from '@/utils/captaincy';
 import type { Club, Player, FormationType } from '@/types/game';
 /**
  * Save migration system for Dynasty Manager.
@@ -30,12 +31,26 @@ const migrations: Record<number, MigrationFn> = {
     // club roster so existing saves get persistent squad identity. Numbers are
     // unique within each club; GKs/defenders claim their preferred low numbers.
     const players = data.players as Record<string, Player> | undefined;
-    const clubs = data.clubs as Record<string, { playerIds?: string[] }> | undefined;
+    const clubs = data.clubs as Record<string, { playerIds?: string[]; captainId?: string; viceCaptainId?: string }> | undefined;
     if (players && clubs) {
       for (const club of Object.values(clubs)) {
         const ids = Array.isArray(club.playerIds) ? club.playerIds : [];
         const squad = ids.map(id => players[id]).filter(Boolean);
         assignSquadNumbersToSquad(squad);
+      }
+    }
+    // Captaincy & the Armband: give the player's club a default captain + vice
+    // (highest-leadership senior outfield players) so existing saves start with
+    // an armband already assigned. Other clubs are left blank — AI clubs don't
+    // surface captaincy, and the departure/season-end paths keep them clean.
+    if (players && clubs) {
+      const pcId = data.playerClubId as string | undefined;
+      const pc = pcId ? clubs[pcId] : undefined;
+      if (pc && !pc.captainId) {
+        const squad = (Array.isArray(pc.playerIds) ? pc.playerIds : []).map(id => players[id]).filter(Boolean);
+        const { captainId, viceCaptainId } = pickDefaultCaptaincy(squad);
+        pc.captainId = captainId;
+        pc.viceCaptainId = viceCaptainId;
       }
     }
     return {

@@ -7,6 +7,7 @@ import {
 import { buildLeagueTable, generateDivisionFixtures, buildAllDivisionTables, LEAGUES, generateFriendlies, collectOccupiedWeeks, getLeaguesByCountry, clearLeagueTableCache } from '@/data/league';
 import { BOARD_OBJ_ALL_COMPLETE_XP, BOARD_OBJ_ALL_COMPLETE_CONFIDENCE } from '@/config/gameBalance';
 import { generateSquad, selectBestLineup, generatePlayer } from '@/utils/playerGen';
+import { pickDefaultCaptaincy } from '@/utils/captaincy';
 
 import { generateStaffMarket, getStaffBonus, ensureStaffFields } from '@/utils/staff';
 
@@ -673,6 +674,10 @@ function finalizeSeason(
     newPlayers[aged.id] = aged;
   });
 
+  // Tracks whether the user's club lost its captain to retirement / contract
+  // expiry this off-season, so we can message them once below.
+  let userCaptainLost = false;
+
   // Fill squad gaps
   const TARGET_TEMPLATE: Record<string, number> = {
     'GK': 2, 'CB': 5, 'LB': 2, 'RB': 2, 'CDM': 1, 'CM': 5, 'CAM': 1, 'LW': 2, 'RW': 2, 'ST': 3,
@@ -683,6 +688,18 @@ function finalizeSeason(
     updatedClub.playerIds = updatedClub.playerIds.filter(id => newPlayers[id]);
     updatedClub.lineup = updatedClub.lineup.filter(id => newPlayers[id] && updatedClub.playerIds.includes(id));
     updatedClub.subs = updatedClub.subs.filter(id => newPlayers[id] && updatedClub.playerIds.includes(id));
+    // Captaincy integrity: a retired / departed captain leaves a dangling id.
+    // Promote the vice; clear any armband id that no longer points at a squad
+    // member. For the user's club, flag the loss so we can message them below.
+    if (updatedClub.captainId && !updatedClub.playerIds.includes(updatedClub.captainId)) {
+      const viceValid = updatedClub.viceCaptainId && updatedClub.playerIds.includes(updatedClub.viceCaptainId);
+      updatedClub.captainId = viceValid ? updatedClub.viceCaptainId : undefined;
+      updatedClub.viceCaptainId = undefined;
+      if (club.id === playerClubId) userCaptainLost = true;
+    }
+    if (updatedClub.viceCaptainId && !updatedClub.playerIds.includes(updatedClub.viceCaptainId)) {
+      updatedClub.viceCaptainId = undefined;
+    }
     newClubs[club.id] = updatedClub;
 
     const currentSquadIds = updatedClub.playerIds;
@@ -726,6 +743,14 @@ function finalizeSeason(
     const updatedClub = { ...newClubs[club.id] };
     updatedClub.lineup = lineup.map(p => p.id);
     updatedClub.subs = subs.map(p => p.id);
+    // Keep the user's armband filled: if the captain was lost above, pick a
+    // fresh default from the rebuilt squad so the club never starts a season
+    // captainless.
+    if (club.id === playerClubId && !updatedClub.captainId) {
+      const { captainId, viceCaptainId } = pickDefaultCaptaincy(squad);
+      updatedClub.captainId = captainId;
+      updatedClub.viceCaptainId = updatedClub.viceCaptainId || viceCaptainId;
+    }
     newClubs[club.id] = updatedClub;
   });
 
@@ -787,6 +812,19 @@ function finalizeSeason(
       week: 1, season: newSeason, type: 'board',
       title: `No. ${ev.number} Retired`,
       body: `In honour of ${ev.playerName}'s ${ev.careerAppearances} career appearances, the club has retired the number ${ev.number} shirt. A true legend of the club.`,
+    });
+  }
+
+  // The captain retired or left as a free agent — tell the manager who now
+  // wears the armband (a fresh default was assigned above).
+  if (userCaptainLost) {
+    const finalCap = newClubs[playerClubId]?.captainId ? newPlayers[newClubs[playerClubId].captainId] : undefined;
+    newMessages = addMsg(newMessages, {
+      week: 1, season: newSeason, type: 'general',
+      title: 'New Club Captain',
+      body: finalCap
+        ? `With your previous captain gone, ${finalCap.firstName} ${finalCap.lastName} has been handed the armband. Change it any time on the Squad screen.`
+        : 'Your club captain has moved on. Assign a new captain on the Squad screen.',
     });
   }
 

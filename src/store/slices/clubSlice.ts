@@ -101,4 +101,27 @@ export const createClubSlice = (set: Set, get: Get) => ({
     const club = { ...state.clubs[state.playerClubId], penaltyTakerId: playerId };
     set({ clubs: { ...state.clubs, [club.id]: club } });
   },
+
+  setCaptain: (playerId: string | undefined) => {
+    const state = get();
+    const base = state.clubs[state.playerClubId];
+    if (!base) return;
+    // Only squad members can wear the armband. undefined clears it.
+    if (playerId && !base.playerIds.includes(playerId)) return;
+    const club = { ...base, captainId: playerId };
+    // A player can't hold both roles — vacate the vice slot if it's the same id.
+    if (playerId && club.viceCaptainId === playerId) club.viceCaptainId = undefined;
+    set({ clubs: { ...state.clubs, [club.id]: club } });
+  },
+
+  setViceCaptain: (playerId: string | undefined) => {
+    const state = get();
+    const base = state.clubs[state.playerClubId];
+    if (!base) return;
+    if (playerId && !base.playerIds.includes(playerId)) return;
+    const club = { ...base, viceCaptainId: playerId };
+    // Vice can't be the same player as captain.
+    if (playerId && club.captainId === playerId) club.captainId = undefined;
+    set({ clubs: { ...state.clubs, [club.id]: club } });
+  },
 });

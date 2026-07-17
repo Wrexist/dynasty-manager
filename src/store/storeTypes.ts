@@ -295,6 +295,8 @@ export interface GameState {
   setTrainingFocus: (f: 'fitness' | 'attacking' | 'defending' | 'mentality') => void;
   setSetPieceTaker: (playerId: string | undefined) => void;
   setPenaltyTaker: (playerId: string | undefined) => void;
+  setCaptain: (playerId: string | undefined) => void;
+  setViceCaptain: (playerId: string | undefined) => void;
 
   // Actions — Transfer
   executeTransfer: (playerId: string, fee: number) => { success: boolean; message: string };

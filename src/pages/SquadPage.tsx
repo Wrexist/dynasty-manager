@@ -461,6 +461,8 @@ const SquadPage = () => {
             {squad.map((player, i) => {
               const isStarter = lineupSet.has(player.id);
               const isSub = subsSet.has(player.id);
+              const isCaptain = club.captainId === player.id;
+              const isVice = club.viceCaptainId === player.id;
 
               return (
                 <motion.div
@@ -477,6 +479,24 @@ const SquadPage = () => {
                     showConditionView={false}
                     onDetailClick={(p) => selectPlayer(p.id)}
                   />
+
+                  {/* Captain / vice-captain armband — gold "C"/"VC" badge, top-left. */}
+                  {(isCaptain || isVice) && (
+                    <div className="absolute top-1.5 left-1.5 z-10 pointer-events-none">
+                      <span
+                        title={isCaptain ? 'Club Captain' : 'Vice-Captain'}
+                        aria-label={isCaptain ? 'Club Captain' : 'Vice-Captain'}
+                        className={cn(
+                          'inline-flex items-center justify-center h-5 min-w-[1.25rem] px-1 rounded-md font-black text-[10px] tracking-wide border shadow-[0_1px_3px_rgba(0,0,0,0.5)] leading-none',
+                          isCaptain
+                            ? 'bg-primary text-primary-foreground border-primary/40'
+                            : 'bg-primary/20 text-primary border-primary/40 backdrop-blur-sm'
+                        )}
+                      >
+                        {isCaptain ? 'C' : 'VC'}
+                      </span>
+                    </div>
+                  )}
 
                   {/* Squad number — small mono badge, bottom-left corner. */}
                   {typeof player.squadNumber === 'number' && (

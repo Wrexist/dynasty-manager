@@ -79,6 +79,8 @@ const PlayerDetail = () => {
   const respondToOffer = useGameStore(s => s.respondToOffer);
   const startNegotiation = useGameStore(s => s.startNegotiation);
   const setIndividualTraining = useGameStore(s => s.setIndividualTraining);
+  const setCaptain = useGameStore(s => s.setCaptain);
+  const setViceCaptain = useGameStore(s => s.setViceCaptain);
 
   const [showApproach, setShowApproach] = useState(false);
   const [showLoanRequest, setShowLoanRequest] = useState(false);
@@ -680,6 +682,54 @@ const PlayerDetail = () => {
           </div>
         </GlassPanel>
       )}
+
+      {/* Captaincy — assign the armband. Club economy only (not World Cup). */}
+      {isOwnPlayer && !isWorldCup && (() => {
+        const isCaptain = club?.captainId === player.id;
+        const isVice = club?.viceCaptainId === player.id;
+        return (
+          <GlassPanel className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Shield className="w-4 h-4 text-primary" />
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Captaincy</p>
+              {(isCaptain || isVice) && (
+                <span className="ml-auto text-[10px] font-black tracking-wide text-primary bg-primary/15 border border-primary/30 rounded px-1.5 py-0.5">
+                  {isCaptain ? 'CAPTAIN' : 'VICE-CAPTAIN'}
+                </span>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => { hapticLight(); setCaptain(isCaptain ? undefined : player.id); }}
+                className={cn(
+                  'flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border transition-colors',
+                  isCaptain
+                    ? 'bg-primary text-primary-foreground border-primary/40'
+                    : 'bg-muted/30 text-muted-foreground border-transparent hover:bg-muted/50'
+                )}
+              >
+                <Award className="w-3.5 h-3.5" />
+                {isCaptain ? 'Remove Captain' : 'Make Captain'}
+              </button>
+              <button
+                onClick={() => { hapticLight(); setViceCaptain(isVice ? undefined : player.id); }}
+                className={cn(
+                  'flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border transition-colors',
+                  isVice
+                    ? 'bg-primary/20 text-primary border-primary/40'
+                    : 'bg-muted/30 text-muted-foreground border-transparent hover:bg-muted/50'
+                )}
+              >
+                <Award className="w-3.5 h-3.5" />
+                {isVice ? 'Remove Vice' : 'Make Vice-Captain'}
+              </button>
+            </div>
+            <p className="text-[10px] text-muted-foreground/70 mt-2">
+              A strong captain lifts weekly squad morale. Selling or releasing the captain unsettles the dressing room.
+            </p>
+          </GlassPanel>
+        );
+      })()}
 
       {/* Season Stats */}
       <GlassPanel className="p-4">

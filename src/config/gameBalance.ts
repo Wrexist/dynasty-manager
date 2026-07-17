@@ -360,6 +360,17 @@ export const STREAK_INCOME_MULTIPLIER = 0.05; // +5% matchday income
 export const STREAK_FORM_THRESHOLD = 8;
 export const STREAK_FORM_BONUS = 3;
 
+// ── Captaincy & the Armband ──
+/** Minimum age to be auto-assigned the armband — a "senior" player. Younger
+ *  players can still be made captain manually. */
+export const CAPTAIN_MIN_AGE = 21;
+/** The captain's personal leadership contribution to the weekly squad-morale
+ *  leadership pool counts this many times. Kept small (well under
+ *  match-deciding) — it only nudges the morale drip, never sim parameters. */
+export const CAPTAIN_LEADERSHIP_MULT = 2;
+/** Squad-wide morale dip applied once when the captain is sold or released. */
+export const CAPTAIN_DEPARTURE_SQUAD_MORALE_HIT = 4;
+
 // ── Morale: Benched Players ──
 export const MORALE_BENCH_WEEKLY_LOSS = 2;
 export const MORALE_BENCH_MIN = 20;

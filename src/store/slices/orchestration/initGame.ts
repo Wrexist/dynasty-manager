@@ -4,6 +4,7 @@ import { safeRandomUUID } from '@/utils/helpers';
 import { buildLeagueTable, generateDivisionFixtures, LEAGUES, generateFriendlies, collectOccupiedWeeks, getLeaguesByCountry } from '@/data/league';
 
 import { generateSquad, selectBestLineup } from '@/utils/playerGen';
+import { pickDefaultCaptaincy } from '@/utils/captaincy';
 import { loadNationalPool } from '@/data/nationalPlayerPoolAccess';
 
 import { generateStaffMarket, getStaffBonus } from '@/utils/staff';
@@ -374,6 +375,15 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
   const startAvgOVR = startingPlayers.length > 0
     ? Math.round(startingPlayers.reduce((s, p) => s + p.overall, 0) / startingPlayers.length)
     : 0;
+
+  // Captaincy & the Armband: assign a default captain + vice for the new
+  // manager's club (highest-leadership senior outfield players). The player
+  // can reassign from the Squad screen at any time.
+  {
+    const { captainId, viceCaptainId } = pickDefaultCaptaincy(startingPlayers);
+    initClub.captainId = captainId;
+    initClub.viceCaptainId = viceCaptainId;
+  }
 
   // Starter inbox messages. The first three are the long-standing welcome
   // set; the latter two were added as part of the onboarding plan (Phase 3)

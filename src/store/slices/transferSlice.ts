@@ -24,7 +24,8 @@ import {
 import { NegotiationStrike } from '@/types/game';
 import { CONTRACT_MIN_YEARS, CONTRACT_MAX_YEARS } from '@/config/contracts';
 import { getSignedWage, getPreferredYears } from '@/utils/contracts';
-import { MIN_SQUAD_SIZE, MAX_SQUAD_SIZE, TOTAL_WEEKS, APPEASE_BASE_CHANCE, APPEASE_MORALE_BOOST, FFP_WAGE_RATIO_WARNING } from '@/config/gameBalance';
+import { MIN_SQUAD_SIZE, MAX_SQUAD_SIZE, TOTAL_WEEKS, APPEASE_BASE_CHANCE, APPEASE_MORALE_BOOST, FFP_WAGE_RATIO_WARNING, CAPTAIN_DEPARTURE_SQUAD_MORALE_HIT } from '@/config/gameBalance';
+import { reassignCaptaincyOnDeparture } from '@/utils/captaincy';
 import { hasPerk, branchMult } from '@/utils/managerPerks';
 import { STAR_SIGNING_BUZZ_WEEKS, STAR_PLAYER_SALE_DIP_WEEKS, CAMPAIGN_STAR_SIGNING_MIN_VALUE } from '@/config/merchandise';
 import { getStarPlayerMerch } from '@/utils/merchandise';
@@ -181,7 +182,12 @@ const executeSale = (state: GameState, offer: { id: string; playerId: string; bu
   const newMarket = state.transferMarket.filter(l => l.playerId !== offer.playerId);
   const sellOnNote = sellOnFee > 0 ? ` (£${(sellOnFee / 1e6).toFixed(1)}M sell-on fee paid to ${(player.sellOnClubId && state.clubs[player.sellOnClubId]?.name) || 'former club'})` : '';
   const lineupNote = wasInLineup ? ' Check your lineup — you now have a gap in your starting XI.' : '';
-  const msg = addMsg(state.messages, { week: state.week, season: state.season, type: 'transfer', title: `${player.lastName} Sold!`, body: `${player.firstName} ${player.lastName} has been sold to ${buyerClub.name} for £${(fee / 1e6).toFixed(1)}M.${sellOnNote}${lineupNote}`, playerId: offer.playerId });
+  let msg = addMsg(state.messages, { week: state.week, season: state.season, type: 'transfer', title: `${player.lastName} Sold!`, body: `${player.firstName} ${player.lastName} has been sold to ${buyerClub.name} for £${(fee / 1e6).toFixed(1)}M.${sellOnNote}${lineupNote}`, playerId: offer.playerId });
+
+  // Captain sold: the dressing room takes it hard. detachPlayerFromAllClubs
+  // (below) promotes the vice, but capture the fact here so we can apply the
+  // one-off squad morale dip and inbox message.
+  const wasUserCaptain = sellerClub.captainId === offer.playerId;
 
   updatedClubs[sellerClub.id] = sellerClub;
   updatedClubs[buyer.id] = buyer;
@@ -192,6 +198,24 @@ const executeSale = (state: GameState, offer: { id: string; playerId: string; bu
     ...updatedClubs[buyer.id],
     playerIds: [...updatedClubs[buyer.id].playerIds, offer.playerId],
   };
+
+  if (wasUserCaptain) {
+    const remaining = updatedClubs[sellerClub.id].playerIds;
+    for (const pid of remaining) {
+      const rp = newPlayers[pid];
+      if (rp) newPlayers[pid] = { ...rp, morale: Math.max(0, rp.morale - CAPTAIN_DEPARTURE_SQUAD_MORALE_HIT) };
+    }
+    const newCap = updatedClubs[sellerClub.id].captainId ? newPlayers[updatedClubs[sellerClub.id].captainId] : undefined;
+    const capNote = newCap
+      ? ` ${newCap.firstName} ${newCap.lastName} takes over the armband.`
+      : ' Assign a new captain on the Squad screen.';
+    msg = addMsg(msg, {
+      week: state.week, season: state.season, type: 'general',
+      title: 'Captain Sold',
+      body: `Selling ${player.firstName} ${player.lastName}, your club captain, has unsettled the dressing room — squad morale has taken a knock.${capNote}`,
+    });
+  }
+
   const ms = { ...state.managerStats, totalEarned: state.managerStats.totalEarned + netFee };
 
   // Check for farewell
@@ -741,21 +765,44 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const severance = Math.round(player.wage * remainingWeeks);
     if (club.budget < severance) return { success: false, message: `Insufficient funds for severance pay (£${(severance / 1e6).toFixed(1)}M).` };
 
+    const wasCaptain = club.captainId === playerId;
+
     club.budget -= severance;
     club.playerIds = club.playerIds.filter(id => id !== playerId);
     club.lineup = club.lineup.filter(id => id !== playerId);
     club.subs = club.subs.filter(id => id !== playerId);
     club.wageBill = Math.max(0, club.wageBill - player.wage);
+    // Never leave a dangling armband — promote the vice / clear the slot.
+    const { captainId, viceCaptainId } = reassignCaptaincyOnDeparture(club, playerId);
+    club.captainId = captainId;
+    club.viceCaptainId = viceCaptainId;
 
     const releasedPlayer = { ...player, clubId: '', contractEnd: state.season, listedForSale: false, sellOnPercentage: undefined, sellOnClubId: undefined };
-    const newMessages = addMsg(state.messages, {
+    const updatedPlayers = { ...state.players, [playerId]: releasedPlayer };
+    let newMessages = addMsg(state.messages, {
       week: state.week, season: state.season, type: 'transfer',
       title: `${player.lastName} Released`,
       body: `${player.firstName} ${player.lastName} has been released. Severance: £${(severance / 1e6).toFixed(1)}M.`,
     });
 
+    if (wasCaptain) {
+      for (const pid of club.playerIds) {
+        const rp = updatedPlayers[pid];
+        if (rp) updatedPlayers[pid] = { ...rp, morale: Math.max(0, rp.morale - CAPTAIN_DEPARTURE_SQUAD_MORALE_HIT) };
+      }
+      const newCap = club.captainId ? updatedPlayers[club.captainId] : undefined;
+      const capNote = newCap
+        ? ` ${newCap.firstName} ${newCap.lastName} takes over the armband.`
+        : ' Assign a new captain on the Squad screen.';
+      newMessages = addMsg(newMessages, {
+        week: state.week, season: state.season, type: 'general',
+        title: 'Captain Released',
+        body: `Releasing your club captain ${player.firstName} ${player.lastName} has unsettled the dressing room — squad morale has taken a knock.${capNote}`,
+      });
+    }
+
     set({
-      players: { ...state.players, [playerId]: releasedPlayer },
+      players: updatedPlayers,
       clubs: { ...state.clubs, [club.id]: club },
       freeAgents: [...state.freeAgents, playerId],
       messages: newMessages,

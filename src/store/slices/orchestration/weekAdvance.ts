@@ -23,7 +23,7 @@ import {
   TOTAL_WEEKS, CONFIDENCE_MIN, LISTING_PRICE_MIN_MULTIPLIER, LISTING_PRICE_RANDOM_RANGE, getExpectedPosition, FREE_AGENT_POOL_MAX,
 } from '@/config/gameBalance';
 
-import { NATIONAL_CALLUP_MORALE_BOOST } from '@/config/gameBalance';
+import { NATIONAL_CALLUP_MORALE_BOOST, CAPTAIN_LEADERSHIP_MULT } from '@/config/gameBalance';
 
 import { generateMonthlyObjectives } from '@/utils/weeklyObjectives';
 
@@ -970,9 +970,16 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   const newStreaks = updateStreaks(training.streaks, training.schedule);
   const trainingReport = generateTrainingReport(preTrainingPlayers, newPlayers, playerClub.playerIds, digestInjuries, newStreaks, week, season);
 
-  // Leadership bonus: players with high leadership boost entire squad morale
+  // Leadership bonus: players with high leadership boost entire squad morale.
+  // The captain's own leadership contribution is amplified — a strong armband
+  // choice nudges the squad over the threshold more easily. Kept small (a
+  // morale drip only), never touching any sim/match parameter.
   const squadForLeadership = playerClub.playerIds.map(id => newPlayers[id]).filter(Boolean);
-  const totalLeadershipBonus = squadForLeadership.reduce((sum, p) => sum + getLeadershipBonus(p.personality), 0);
+  const captain = playerClub.captainId ? newPlayers[playerClub.captainId] : undefined;
+  const captainLeadershipExtra = captain
+    ? getLeadershipBonus(captain.personality) * (CAPTAIN_LEADERSHIP_MULT - 1)
+    : 0;
+  const totalLeadershipBonus = squadForLeadership.reduce((sum, p) => sum + getLeadershipBonus(p.personality), 0) + captainLeadershipExtra;
   if (totalLeadershipBonus >= 0.15) {
     playerClub.playerIds.forEach(pid => {
       const p = newPlayers[pid];
