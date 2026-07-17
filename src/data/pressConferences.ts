@@ -1,6 +1,6 @@
 import type { PressConference, PressOption, PressResponseTone } from '@/types/game';
 import { pick, safeRandomUUID } from '@/utils/helpers';
-import { PRESS_TRANSFER_RUMOUR_CHANCE, PRESS_POOR_FORM_LOSSES, PRESS_GOOD_FORM_WINS, PRESS_BIG_MATCH_REP_GAP, PRESS_PROMOTION_RACE_TOP_N, PRESS_RELEGATION_BATTLE_BOTTOM_N, PRESS_INJURY_CRISIS_MIN, PRESS_DERBY_PREVIEW_CHANCE } from '@/config/gameBalance';
+import { PRESS_TRANSFER_RUMOUR_CHANCE, PRESS_POOR_FORM_LOSSES, PRESS_GOOD_FORM_WINS, PRESS_BIG_MATCH_REP_GAP, PRESS_PROMOTION_RACE_TOP_N, PRESS_RELEGATION_BATTLE_BOTTOM_N, PRESS_INJURY_CRISIS_MIN, PRESS_DERBY_PREVIEW_CHANCE, PRESS_NOTABLE_MARGIN, PRESS_ROUTINE_CHANCE } from '@/config/gameBalance';
 
 interface QuestionDef {
   question: string;
@@ -855,6 +855,33 @@ export function generatePressConference(context: PressConference['context'], pro
     options: baseOptions,
     hasProOption: Boolean(chosen.proOption),
   };
+}
+
+/** Signals that make a just-played match press-worthy */
+export interface PostMatchNotability {
+  /** Absolute goal margin of the final score */
+  margin: number;
+  /** Derby fixture (any non-zero derby intensity) */
+  isDerby?: boolean;
+  /** detectMatchDrama returned a drama beat (late winner, comeback, upset, …) */
+  hasDrama?: boolean;
+  /** Cup / continental / tournament tie — always notable (rare + high stakes) */
+  isCup?: boolean;
+}
+
+/**
+ * Post-match press conference, gated to notable matches only.
+ * Routine league results skip the modal most of the time (PRESS_ROUTINE_CHANCE)
+ * so the press room stays a dramatic beat instead of a per-match toll.
+ */
+export function generatePostMatchPress(
+  context: PressConference['context'],
+  proUser: boolean,
+  notability: PostMatchNotability,
+): PressConference | null {
+  const notable = notability.isCup || notability.isDerby || notability.hasDrama || notability.margin >= PRESS_NOTABLE_MARGIN;
+  if (!notable && Math.random() >= PRESS_ROUTINE_CHANCE) return null;
+  return generatePressConference(context, proUser);
 }
 
 /** Extra context data for richer press conference selection */

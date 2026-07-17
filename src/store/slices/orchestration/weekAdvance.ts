@@ -817,8 +817,6 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   const gkCoachBonus = getStaffBonus(staff.members, 'goalkeeping-coach');
 
   const playerClub = { ...clubs[playerClubId] };
-  const improvedPlayers: { name: string; overall: number }[] = [];
-  const declinedPlayers: { name: string; overall: number }[] = [];
 
   // Snapshot pre-training state for report generation
   const preTrainingPlayers: Record<string, Player> = {};
@@ -852,9 +850,8 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
           // Keep reinjury risk active for a period after return
           p.injuryDetails = { ...p.injuryDetails, weeksRemaining: 0 };
         }
+        // Recovery is reported via the WeeklyDigest (recoveriesThisWeek) — no inbox duplicate
         digestRecoveries.push(p.lastName);
-        const injLabel = p.injuryDetails ? INJURY_TYPES[p.injuryDetails.type].label : 'injury';
-        newMessages = addMsg(newMessages, { week, season, type: 'injury', title: `${p.lastName} Returns`, body: `${p.firstName} ${p.lastName} has recovered from ${injLabel} and is available for selection.${p.injuryDetails && p.injuryDetails.reinjuryRisk > 0.1 ? ' Caution: elevated re-injury risk.' : ''}` });
       }
     }
     // Decrement re-injury risk window for recovered players
@@ -902,11 +899,6 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     const dnaCoachBoost = hasPerk(state.managerProgression, 'dna_coach') && p.age < 24 ? 0.1 : 0;
     const gkBoost = p.position === 'GK' ? gkCoachBonus * GK_COACH_DEV_BONUS_PER_QUALITY : 0;
     p = applyPlayerDevelopment(p, getDominantTrainingFocus(training.schedule), mentorBonusVal, trainingPerkBoost + dnaCoachBoost + gkBoost);
-    if (p.growthDelta && p.growthDelta > 0) {
-      improvedPlayers.push({ name: p.lastName, overall: p.overall });
-    } else if (p.growthDelta && p.growthDelta < 0) {
-      declinedPlayers.push({ name: p.lastName, overall: p.overall });
-    }
 
     // Compute combined per-attribute changes from training + development
     const attrChanges: Partial<Record<keyof PlayerAttributes, number>> = {};
@@ -970,19 +962,9 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     newPlayers[pid] = p;
   });
 
-  // Batched development messages
-  if (improvedPlayers.length > 0) {
-    const names = improvedPlayers.map(p => `${p.name} (${p.overall})`).join(', ');
-    newMessages = addMsg(newMessages, { week, season, type: 'development', title: `${improvedPlayers.length} Player${improvedPlayers.length > 1 ? 's' : ''} Improved`, body: `Development progress: ${names}.` });
-  }
-  if (declinedPlayers.length > 0) {
-    const names = declinedPlayers.map(p => `${p.name} (${p.overall})`).join(', ');
-    newMessages = addMsg(newMessages, { week, season, type: 'development', title: `${declinedPlayers.length} Player${declinedPlayers.length > 1 ? 's' : ''} Declining`, body: `Age catching up: ${names}.` });
-  }
-  // Batched training injury message
-  if (digestInjuries.length > 0) {
-    newMessages = addMsg(newMessages, { week, season, type: 'injury', title: `Training Injuries (${digestInjuries.length})`, body: `Injured in training: ${digestInjuries.join(', ')}.` });
-  }
+  // Development gains, declines, and training injuries are reported via the
+  // WeeklyDigest (playerDevelopment / injuriesThisWeek) — no inbox duplicates.
+  // Declines also stay visible on the squad screen's rating trends.
 
   // Update training streaks and generate training report
   const newStreaks = updateStreaks(training.streaks, training.schedule);
@@ -1886,13 +1868,21 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     }
   }
 
-  // Contract expiry warnings — escalating urgency + morale impact for unhappy players
+  // Contract expiry warnings — one batched message per warning week (a
+  // per-player burst re-sent on all four warning weeks was pure badge spam)
   if ((CONTRACT_WARNING_WEEKS as readonly number[]).includes(newWeek)) {
     const expiring = Object.values(newPlayers).filter(ep => ep.clubId === playerClubId && ep.contractEnd <= season && (ep.overall > CONTRACT_WARNING_OVERALL_THRESHOLD || (ep.age <= CONTRACT_WARNING_YOUTH_AGE_MAX && ep.potential >= CONTRACT_WARNING_YOUTH_POTENTIAL_MIN)));
-    const urgency = newWeek >= 35 ? 'URGENT: ' : newWeek >= 30 ? '' : 'Reminder: ';
+    if (expiring.length > 0) {
+      const urgency = newWeek >= 35 ? 'URGENT: ' : newWeek >= 30 ? '' : 'Reminder: ';
+      const names = expiring.map(ep => `${ep.firstName} ${ep.lastName} (${ep.overall})`).join(', ');
+      const plural = expiring.length > 1;
+      newMessages = addMsg(newMessages, {
+        week: newWeek, season, type: 'contract',
+        title: `${urgency}${expiring.length} Contract${plural ? 's' : ''} Expiring`,
+        body: `Expiring at the end of this season: ${names}. ${newWeek >= 35 ? `${plural ? 'These players' : 'This player'} will leave for free!` : 'Consider renewing or selling.'}`,
+      });
+    }
     for (const ep of expiring) {
-      const youthNote = ep.overall <= CONTRACT_WARNING_OVERALL_THRESHOLD ? ' This prospect has high potential!' : '';
-      newMessages = addMsg(newMessages, { week: newWeek, season, type: 'contract', title: `${urgency}${ep.lastName}'s Contract`, body: `${ep.firstName} ${ep.lastName}'s contract expires at the end of this season. ${newWeek >= 35 ? 'This player will leave for free!' : 'Consider renewing or selling.'}${youthNote}` });
       // Players with expiring contracts lose morale after week 25 — they want clarity
       if (newWeek >= CONTRACT_MORALE_HIT_WEEK_THRESHOLD && ep.overall >= CONTRACT_MORALE_HIT_OVERALL_THRESHOLD) {
         newPlayers[ep.id] = { ...newPlayers[ep.id], morale: Math.max(CONTRACT_MORALE_MIN, newPlayers[ep.id].morale + CONTRACT_MORALE_HIT_AMOUNT) };
@@ -2653,41 +2643,9 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   })();
   const digestOffersReceived = newOffers.length - state.incomingOffers.length;
 
-  // Guarantee at least one narrative message per week. Count appends by
-  // locating the pre-tick head message: addMsg prepends and evicts from the
-  // tail at the 200 cap, so a length diff reads 0 once the inbox is full
-  // (which made the filler fire every week for capped inboxes).
-  const prevHeadId = messages[0]?.id;
-  const prevHeadIdx = prevHeadId ? newMessages.findIndex(m => m.id === prevHeadId) : -1;
-  const newMessageCount = prevHeadId
-    ? (prevHeadIdx === -1 ? newMessages.length : prevHeadIdx)
-    : newMessages.length;
-  if (newMessageCount <= 1) {
-    const myEntry = leagueTable.find(e => e.clubId === playerClubId);
-    const myPos = myEntry ? leagueTable.indexOf(myEntry) + 1 : 0;
-    const totalTeams = leagueTable.length;
-    const posLabel = myPos > 0 ? `${myPos}${getSuffix(myPos)}` : '';
-    const narrativePool: { title: string; body: string }[] = [];
-
-    // Morale-based
-    if (newAvgMorale >= 75) narrativePool.push({ title: 'Training Ground Buzz', body: 'The mood around the training ground is excellent. Players are focused and spirits are high.' });
-    else if (newAvgMorale <= 40) narrativePool.push({ title: 'Low Spirits', body: 'The atmosphere at training feels flat. The squad could use a morale boost — a good result would help.' });
-    else narrativePool.push({ title: 'Steady Week', body: 'A solid week of training. The squad is ticking over nicely and working hard on the training pitch.' });
-
-    // Position-based
-    if (myPos > 0 && myPos <= 3) narrativePool.push({ title: 'Title Contenders', body: `Sitting in ${posLabel} — the local press are starting to take notice of your title credentials.` });
-    else if (myPos > 0 && myPos > totalTeams - 3) narrativePool.push({ title: 'Relegation Watch', body: `Currently ${posLabel} — pundits are questioning whether you can pull clear of the drop zone.` });
-    else if (myPos > 0) narrativePool.push({ title: 'Mid-Table Report', body: `The club sits ${posLabel} in the table. Fans are looking for a push toward the upper half.` });
-
-    // Board confidence
-    if (newBoardConfidence >= 80) narrativePool.push({ title: 'Board Pleased', body: 'The board are impressed with your work. Keep delivering results and the future looks bright.' });
-    else if (newBoardConfidence <= 30) narrativePool.push({ title: 'Board Concerns', body: 'Whispers in the boardroom suggest patience is running thin. Results need to improve soon.' });
-
-    if (narrativePool.length > 0) {
-      const chosen = pick(narrativePool);
-      newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: chosen.title, body: chosen.body });
-    }
-  }
+  // No manufactured filler on quiet weeks: the WeeklyDigest already gives a
+  // weekly summary, and an invented "Steady Week" unread badge trains players
+  // to ignore the inbox. A quiet week should feel quiet.
 
   // Random mid-season events for immersion
   if (newClubs[playerClubId]) {

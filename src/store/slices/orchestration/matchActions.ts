@@ -19,7 +19,7 @@ import { SHOUT_CUMULATIVE_SCALE, SHOUT_MODIFIERS } from '@/config/matchEngine';
 import { CALM_DEFENSE_BOOST, CALM_FITNESS_DRAIN_MULT, CALM_FOUL_REDUCTION, DEMAND_ATTACK_BOOST, DEMAND_DEFENSE_PENALTY, DEMAND_FITNESS_DRAIN_MULT, MOTIVATE_ATTACK_BOOST, MOTIVATE_FITNESS_DRAIN_MULT, MOTIVATE_FOUL_BONUS, teamTalkModifiers } from '@/config/teamTalk';
 import { advanceCupRound, getRoundName } from '@/data/cup';
 import { getDerbyIntensity } from '@/data/league';
-import { generatePressConference } from '@/data/pressConferences';
+import { generatePostMatchPress } from '@/data/pressConferences';
 import { HalfState, finalizeMatch, generateMatchWeather, simulateHalf, simulateMatch } from '@/engine/match';
 import { processMatchResult } from '@/store/helpers/matchProcessing';
 import { applyAIMatchEvents } from '@/store/slices/orchestration/helpers';
@@ -716,7 +716,7 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
       currentContinentalMatchId: null,
       currentContinentalCompetition: null,
       lastMatchCompetition: matchCompetition,
-      pendingPressConference: generatePressConference(pressContext, isPro(get().monetization)),
+      pendingPressConference: generatePostMatchPress(pressContext, isPro(get().monetization), { margin: Math.abs(finalResult.homeGoals - finalResult.awayGoals), hasDrama: !!cupDrama, isCup: true }),
       careerTimeline: [...state.careerTimeline, ...processed.newMilestones].slice(-MAX_CAREER_TIMELINE),
       managerProgression: processed.managerProgression,
       preMatchLeaguePosition: prePos,
@@ -751,8 +751,6 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
     const confDelta = (processed.confidence - (state.boardConfidence || 50)) * FRIENDLY_BOARD_CONFIDENCE_MULT;
     const friendlyConfidence = Math.max(0, Math.min(100, (state.boardConfidence || 50) + confDelta));
 
-    const pressContext = processed.won ? 'post_win' : processed.lost ? 'post_loss' : 'post_draw';
-    const press = generatePressConference(pressContext, isPro(get().monetization));
     const drama = detectMatchDrama(result, playerClubId, clubs);
     const prevSession = state.sessionStats || { startWeek: week, startSeason: season, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 };
 
@@ -767,7 +765,7 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
       managerStats: processed.managerStats,
       matchPhase: 'full_time' as const,
       lastMatchCompetition: 'Pre-Season Friendly',
-      pendingPressConference: press,
+      pendingPressConference: null,
       careerTimeline: [...state.careerTimeline, ...processed.newMilestones].slice(-MAX_CAREER_TIMELINE),
       managerProgression: processed.managerProgression,
       preMatchLeaguePosition: prePos,
@@ -821,9 +819,13 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   // Detect match drama for emotional amplification
   const drama = detectMatchDrama(result, playerClubId, clubs);
 
-  // Generate post-match press conference
+  // Generate post-match press conference (only when the match was notable)
   const pressContext = processed.won ? 'post_win' : processed.lost ? 'post_loss' : 'post_draw';
-  const press = generatePressConference(pressContext, isPro(get().monetization));
+  const press = generatePostMatchPress(pressContext, isPro(get().monetization), {
+    margin: Math.abs(result.homeGoals - result.awayGoals),
+    isDerby: getDerbyIntensity(match.homeClubId, match.awayClubId) > 0,
+    hasDrama: !!drama,
+  });
 
   // Update session stats for wins/losses
   const prevSession = state.sessionStats || { startWeek: week, startSeason: season, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 };
@@ -1219,7 +1221,6 @@ export function playSecondHalfImpl(set: Set, get: Get): Match | null {
     const processed = processMatchResult(state, match, result, playerRatings, () => get().week, fullState.matchInjuries);
     const confDelta = (processed.confidence - (state.boardConfidence || 50)) * FRIENDLY_BOARD_CONFIDENCE_MULT;
     const friendlyConfidence = Math.max(0, Math.min(100, (state.boardConfidence || 50) + confDelta));
-    const pressContext = processed.won ? 'post_win' : processed.lost ? 'post_loss' : 'post_draw';
     const drama = detectMatchDrama(result, playerClubId, clubs);
 
     set({
@@ -1231,7 +1232,7 @@ export function playSecondHalfImpl(set: Set, get: Get): Match | null {
       matchSubsUsed: 0, matchPlayerRatings: processed.playerRatings, managerStats: processed.managerStats,
       halfTimeState: null, matchPhase: 'full_time',
       lastMatchCompetition: 'Pre-Season Friendly',
-      pendingPressConference: generatePressConference(pressContext, isPro(get().monetization)),
+      pendingPressConference: null,
       careerTimeline: [...state.careerTimeline, ...processed.newMilestones].slice(-MAX_CAREER_TIMELINE),
       managerProgression: processed.managerProgression,
       lastMatchXPGain: Math.round((processed.xpGain || 0) * 0.5),
@@ -1259,7 +1260,7 @@ export function playSecondHalfImpl(set: Set, get: Get): Match | null {
       matchSubsUsed: 0, matchPlayerRatings: processed.playerRatings, managerStats: processed.managerStats,
       halfTimeState: null, matchPhase: 'full_time', currentCupTieId: null,
       currentLeagueCupTieId: null, currentContinentalMatchId: null, currentContinentalCompetition: null,
-      pendingPressConference: generatePressConference(pressContext, isPro(get().monetization)),
+      pendingPressConference: generatePostMatchPress(pressContext, isPro(get().monetization), { margin: Math.abs(result.homeGoals - result.awayGoals), hasDrama: !!cupDrama, isCup: true }),
       careerTimeline: [...state.careerTimeline, ...processed.newMilestones].slice(-MAX_CAREER_TIMELINE),
       managerProgression: processed.managerProgression,
       lastMatchXPGain: processed.xpGain,
@@ -1310,9 +1311,13 @@ export function playSecondHalfImpl(set: Set, get: Get): Match | null {
 
   const leagueDrama = detectMatchDrama(result, playerClubId, clubs);
 
-  // Generate post-match press conference
+  // Generate post-match press conference (only when the match was notable)
   const pressContext2 = processed.won ? 'post_win' : processed.lost ? 'post_loss' : 'post_draw';
-  const press2 = generatePressConference(pressContext2, isPro(get().monetization));
+  const press2 = generatePostMatchPress(pressContext2, isPro(get().monetization), {
+    margin: Math.abs(result.homeGoals - result.awayGoals),
+    isDerby: getDerbyIntensity(match.homeClubId, match.awayClubId) > 0,
+    hasDrama: !!leagueDrama,
+  });
 
   const syncedDivFixtures2 = { ...state.divisionFixtures, [state.playerDivision]: fullFixtures2 };
   set({
@@ -1428,7 +1433,7 @@ export function playExtraTimeImpl(set: Set, get: Get): Match | null {
         matchSubsUsed: 0, matchPlayerRatings: processed.playerRatings, managerStats: processed.managerStats,
         halfTimeState: null, matchPhase: 'full_time', currentCupTieId: null,
         currentLeagueCupTieId: null, currentContinentalMatchId: null, currentContinentalCompetition: null,
-        pendingPressConference: generatePressConference(press, isPro(get().monetization)),
+        pendingPressConference: generatePostMatchPress(press, isPro(get().monetization), { margin: Math.abs(result.homeGoals - result.awayGoals), hasDrama: !!etDrama, isCup: true }),
         careerTimeline: [...state.careerTimeline, ...processed.newMilestones].slice(-MAX_CAREER_TIMELINE),
         managerProgression: processed.managerProgression,
         lastMatchXPGain: processed.xpGain,
@@ -1483,7 +1488,7 @@ export function playExtraTimeImpl(set: Set, get: Get): Match | null {
         boardConfidence: processed.confidence, managerStats: processed.managerStats,
         careerTimeline: [...state.careerTimeline, ...processed.newMilestones].slice(-MAX_CAREER_TIMELINE),
         managerProgression: processed.managerProgression, lastMatchXPGain: processed.xpGain,
-        pendingPressConference: generatePressConference(press, isPro(get().monetization)),
+        pendingPressConference: generatePostMatchPress(press, isPro(get().monetization), { margin: Math.abs(result.homeGoals - result.awayGoals), hasDrama: !!etDrama, isCup: true }),
         lastMatchDrama: etDrama, rivalries: processed.updatedRivalries, pairFamiliarity: processed.pairFamiliarity,
       });
       // Persist the played match immediately — autosave otherwise only fires
@@ -1785,7 +1790,7 @@ export function skipPenaltyShootoutImpl(set: Set, get: Get): void {
       matchSubsUsed: 0, matchPlayerRatings: processed.playerRatings, managerStats: processed.managerStats,
       halfTimeState: null, matchPhase: 'full_time', currentCupTieId: null,
       currentLeagueCupTieId: null, currentContinentalMatchId: null, currentContinentalCompetition: null,
-      pendingPressConference: generatePressConference(press, isPro(get().monetization)),
+      pendingPressConference: generatePostMatchPress(press, isPro(get().monetization), { margin: Math.abs(result.homeGoals - result.awayGoals), hasDrama: !!penDrama, isCup: true }),
       careerTimeline: [...state.careerTimeline, ...processed.newMilestones].slice(-MAX_CAREER_TIMELINE),
       managerProgression: processed.managerProgression, lastMatchXPGain: processed.xpGain,
       lastMatchDrama: penDrama, rivalries: processed.updatedRivalries, pairFamiliarity: processed.pairFamiliarity,
@@ -1828,7 +1833,7 @@ export function skipPenaltyShootoutImpl(set: Set, get: Get): void {
       boardConfidence: processed.confidence, managerStats: processed.managerStats,
       careerTimeline: [...state.careerTimeline, ...processed.newMilestones].slice(-MAX_CAREER_TIMELINE),
       managerProgression: processed.managerProgression, lastMatchXPGain: processed.xpGain,
-      pendingPressConference: generatePressConference(press, isPro(get().monetization)),
+      pendingPressConference: generatePostMatchPress(press, isPro(get().monetization), { margin: Math.abs(result.homeGoals - result.awayGoals), hasDrama: !!penDrama, isCup: true }),
       lastMatchDrama: penDrama, rivalries: processed.updatedRivalries, pairFamiliarity: processed.pairFamiliarity,
       penaltyShootoutKicks: [], penaltyShootoutRevealIndex: 0, penaltyShootoutCtx: null,
     });

@@ -439,6 +439,8 @@ export const PRESS_PROMOTION_RACE_TOP_N = 3;       // top N positions to trigger
 export const PRESS_RELEGATION_BATTLE_BOTTOM_N = 3;  // bottom N positions to trigger relegation_battle
 export const PRESS_INJURY_CRISIS_MIN = 3;            // minimum injured players to trigger injury_crisis
 export const PRESS_DERBY_PREVIEW_CHANCE = 0.6;       // chance of derby_preview context before derby
+export const PRESS_NOTABLE_MARGIN = 3;               // goal margin that makes a routine league match press-worthy
+export const PRESS_ROUTINE_CHANCE = 0.15;            // chance of a press conference after a non-notable league match
 
 // ── Injury Types & Severity ──
 import type { InjuryType, InjurySeverity } from '@/types/game';
