@@ -39,7 +39,7 @@ const HELP_SECTIONS: HelpSection[] = [
   },
   {
     title: 'Board Confidence & Objectives',
-    content: 'The board sets seasonal objectives (critical/important/optional). Confidence changes based on match results, league position, and financial health. If confidence drops below 25, you get a warning. Below 10 = sacked. Win streaks boost confidence.',
+    content: 'The board sets seasonal objectives (critical/important/optional). Confidence changes based on match results, league position, and financial health. Below 35 you are in the danger zone; if confidence is still below 20 at the end of the season you are sacked, and hitting rock bottom at a mid-season board review triggers an ultimatum — fail it and you go early. Win streaks boost confidence.',
   },
   {
     title: 'Promotion & Relegation',

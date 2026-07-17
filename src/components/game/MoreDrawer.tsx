@@ -100,8 +100,10 @@ const PINNED_SET = new Set(PINNED_DRAWER_SCREENS);
 // Sections that collapse by default for new players. The "Career" section
 // stays expanded — in career mode it holds the only entry points to Career
 // Overview and Job Market (where the resign button lives), and burying them
-// behind a collapsed section made the resign flow undiscoverable.
-const NEW_PLAYER_COLLAPSED_SECTIONS = new Set(['Management']);
+// behind a collapsed section made the resign flow undiscoverable. "Management"
+// must also stay expanded: it holds the Board screen (objectives + sacking
+// risk), which is exactly what a new manager needs to find.
+const NEW_PLAYER_COLLAPSED_SECTIONS = new Set<string>([]);
 
 interface MoreDrawerProps {
   disabled?: boolean;

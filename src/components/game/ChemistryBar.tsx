@@ -1,6 +1,8 @@
 import { cn } from '@/lib/utils';
 import { Users } from 'lucide-react';
 import { CHEMISTRY_BONUS_MAX, CHEMISTRY_EXCELLENT_THRESHOLD, CHEMISTRY_GOOD_THRESHOLD, CHEMISTRY_AVERAGE_THRESHOLD } from '@/config/chemistry';
+import { HELP_TEXTS } from '@/config/ui';
+import { InfoTip } from '@/components/game/InfoTip';
 
 interface ChemistryBarProps {
   bonus: number;
@@ -15,6 +17,8 @@ export function ChemistryBar({ bonus, label, labelColor }: ChemistryBarProps) {
     <div className="flex items-center gap-2 px-1">
       <Users className="w-3 h-3 text-muted-foreground shrink-0" />
       <span className="text-[9px] text-muted-foreground shrink-0">Chemistry</span>
+      <InfoTip text={HELP_TEXTS.chemistry} />
+
       <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
         <div
           className={cn(

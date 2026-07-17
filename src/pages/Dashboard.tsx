@@ -64,6 +64,7 @@ import { FinanceBreakdownSheet, FinanceSheetMode } from '@/components/game/Finan
 import { AnimatedNumber } from '@/components/game/AnimatedNumber';
 import { useFlash } from '@/hooks/useFlash';
 import { HELP_TEXTS, MID_SEASON_WEEK, CONFIDENCE_CRITICAL_THRESHOLD, CONFIDENCE_LOW_THRESHOLD, FAN_MOOD_HIGH_THRESHOLD, FAN_MOOD_MID_THRESHOLD, HOT_STREAK_MIN_WINS } from '@/config/ui';
+import { BOARD_SACKING_THRESHOLD } from '@/config/playoffs';
 import { CONFIDENCE_CHANGE_DISMISS_THRESHOLD } from '@/config/gameBalance';
 import { getManagerTips, type TipType } from '@/utils/managerTips';
 import { getActiveRecordChases } from '@/utils/records';
@@ -1162,13 +1163,16 @@ const Dashboard = () => {
               }}
             >
               <FastForward className="w-3.5 h-3.5 inline mr-1 align-[-2px]" /> Skip to Next Match
+              <span className="block text-[9px] text-muted-foreground/70 mt-0.5">Advances several weeks at once — training and finances run for each</span>
             </button>
           )}
         </GlassPanel>
       )}
 
-      {/* Guided checklist for new careers */}
-      {!seasonOver && season <= 2 && coachTasks.length > 0 && !allCoachTasksDone && (
+      {/* Guided checklist for new careers. Hidden on S1W1 while the
+          OnboardingChecklist is the single guidance surface — two competing
+          task lists with separate counters was the top new-player confusion. */}
+      {!seasonOver && season <= 2 && !(season === 1 && week === 1) && coachTasks.length > 0 && !allCoachTasksDone && (
         <GlassPanel className="p-4 border-primary/20">
           <button
             type="button"
@@ -1265,8 +1269,8 @@ const Dashboard = () => {
         </GlassPanel>
       )}
 
-      {/* Manager Tips */}
-      {!seasonOver && managerTips.length > 0 && (
+      {/* Manager Tips. Hidden on S1W1 — the OnboardingChecklist owns first-week guidance. */}
+      {!seasonOver && !(season === 1 && week === 1) && managerTips.length > 0 && (
         <GlassPanel className="p-4 border-primary/20">
           <p className="text-[10px] text-primary uppercase tracking-wider font-semibold mb-2">Manager Tips</p>
           <div className="space-y-2">
@@ -1349,7 +1353,8 @@ const Dashboard = () => {
                 Training: {trainingLabels[trainingFocus] || trainingFocus}
               </span>
               <span className="text-[10px] text-primary/60">|</span>
-              <span className="text-[10px] font-medium text-primary/70">Fam {training.tacticalFamiliarity}%</span>
+              <span className="text-[10px] font-medium text-primary/70">Familiarity {training.tacticalFamiliarity}%</span>
+              <InfoTip text={HELP_TEXTS.tacticalFamiliarity} />
             </div>
             {transferWindowOpen && (
               <button
@@ -2005,11 +2010,11 @@ const Dashboard = () => {
             value={boardConfidence}
           />
           <p className="text-[10px] text-muted-foreground mt-1">
-            {boardConfidence > 70 ? 'Secure' : boardConfidence > 40 ? 'Under pressure' : 'Sacking risk!'}
+            {boardConfidence > 70 ? 'Secure' : boardConfidence > CONFIDENCE_CRITICAL_THRESHOLD ? 'Under pressure' : 'Sacking risk!'}
           </p>
-          {boardConfidence <= CONFIDENCE_LOW_THRESHOLD && boardConfidence > 25 && (
+          {boardConfidence <= CONFIDENCE_LOW_THRESHOLD && boardConfidence > BOARD_SACKING_THRESHOLD && (
             <p className="text-[9px] text-destructive/80 mt-0.5">
-              ~{Math.max(1, Math.ceil((boardConfidence - 25) / 4))} more loss{Math.ceil((boardConfidence - 25) / 4) !== 1 ? 'es' : ''} could mean the sack
+              ~{Math.max(1, Math.ceil((boardConfidence - BOARD_SACKING_THRESHOLD) / 4))} more loss{Math.ceil((boardConfidence - BOARD_SACKING_THRESHOLD) / 4) !== 1 ? 'es' : ''} could mean the sack
             </p>
           )}
         </GlassPanel>

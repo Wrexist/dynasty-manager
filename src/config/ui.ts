@@ -201,7 +201,7 @@ export const DIFFICULTY_BARS: Record<string, number> = { Easy: 1, 'Medium-Low': 
 
 // ── Help Texts (used by InfoTip component) ──
 export const HELP_TEXTS = {
-  boardConfidence: 'Board confidence reflects how happy the board is with your results. Winning boosts it, losing drops it. Below 25% you risk being sacked.',
+  boardConfidence: 'Board confidence reflects how happy the board is with your results. Winning boosts it, losing drops it. Below 20% at season end — or failing a mid-season board ultimatum — means the sack.',
   morale: 'Average squad morale. Winning boosts morale, losing lowers it. Low morale hurts match performance.',
   budget: 'Your transfer budget. Income comes from matchday, commercial, and stadium revenue minus your weekly wage bill.',
   fanMood: 'Fan mood affects stadium atmosphere and income. Good results and winning streaks keep fans happy.',
