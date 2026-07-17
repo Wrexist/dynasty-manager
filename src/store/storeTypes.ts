@@ -160,6 +160,9 @@ export interface GameState {
   pendingPressConference: PressConference | null;
   pendingStoryline: StorylineEvent | null;
   pendingGemReveal: { playerId: string; region: string } | null;
+  // Youth Intake Day: freshly generated prospects awaiting the reveal modal.
+  // Set at season-end intake generation; cleared when the modal is dismissed.
+  pendingYouthIntake: { players: string[]; season: number } | null;
   fanMood: number; // 0-100, affects stadium income
   activeNegotiation: ContractOffer | null;
   pendingTransferTalk: TransferTalk | null;

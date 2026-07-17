@@ -1173,6 +1173,12 @@ export interface YouthAcademyState {
   youthPreviewEnhanced: boolean;
   /** Spotlight sessions remaining this season. Refilled at season end. */
   spotlightUsesRemaining?: number;
+  /** Intake Day progression arc: academy level 1-5, lifts intake quality. */
+  academyLevel?: number;
+  /** Graduate milestones banked toward the next academy level. */
+  academyProgress?: number;
+  /** Ids of youth graduates already counted toward academy progress. */
+  creditedGraduateIds?: string[];
 }
 
 // ── Facilities ──

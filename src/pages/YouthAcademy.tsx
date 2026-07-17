@@ -13,6 +13,7 @@ import { getPotentialInfo, posBadgeColor, getRatingColor } from '@/utils/uiHelpe
 import { getStaffBonus } from '@/utils/staff';
 import { hapticLight } from '@/utils/haptics';
 import { PAGE_HINTS } from '@/config/ui';
+import { ACADEMY_LEVEL_MAX, ACADEMY_PROGRESS_PER_LEVEL } from '@/config/youth';
 import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { successToast, infoToast, errorToast } from '@/utils/gameToast';
 import { PageHint } from '@/components/game/PageHint';
@@ -53,6 +54,9 @@ const YouthAcademy = () => {
   const youthPreviewEnhanced = youthAcademy.youthPreviewEnhanced;
   const club = clubs[playerClubId];
   const spotlightUsesRemaining = youthAcademy.spotlightUsesRemaining ?? 2;
+  const academyLevel = youthAcademy.academyLevel ?? 1;
+  const academyProgress = youthAcademy.academyProgress ?? 0;
+  const academyAtMax = academyLevel >= ACADEMY_LEVEL_MAX;
 
   const youthCoachQuality = useMemo(() => getStaffBonus(staff.members, 'youth-coach'), [staff.members]);
   const youthLevel = facilities.youthLevel;
@@ -109,6 +113,35 @@ const YouthAcademy = () => {
       <PageHint screen="youthAcademy" title={PAGE_HINTS.youthAcademy.title} body={PAGE_HINTS.youthAcademy.body} />
       <div className="px-4 pb-4 space-y-3">
         <h2 className="text-lg font-display font-bold text-foreground">Youth Academy</h2>
+
+        {/* Academy Level (Intake Day progression) */}
+        <GlassPanel className="p-4">
+          <div className="flex items-center justify-between mb-2.5">
+            <div className="flex items-center gap-2">
+              <GraduationCap className="w-4 h-4 text-primary" />
+              <h3 className="text-sm font-semibold text-foreground">Academy Level</h3>
+            </div>
+            <span className="text-sm font-bold text-primary tabular-nums">{academyLevel}/{ACADEMY_LEVEL_MAX}</span>
+          </div>
+          <div className="flex items-center gap-1 mb-2">
+            {Array.from({ length: ACADEMY_LEVEL_MAX }, (_, i) => (
+              <Star
+                key={i}
+                className={cn('w-5 h-5', i < academyLevel ? 'text-primary fill-current' : 'text-muted-foreground/30')}
+              />
+            ))}
+          </div>
+          {academyAtMax ? (
+            <p className="text-[10px] text-primary/80 font-medium">Elite academy — intake quality maxed out.</p>
+          ) : (
+            <>
+              <PremiumProgress size="sm" animate={false} tone="primary" value={(academyProgress / ACADEMY_PROGRESS_PER_LEVEL) * 100} />
+              <p className="text-[10px] text-muted-foreground mt-1.5">
+                {academyProgress}/{ACADEMY_PROGRESS_PER_LEVEL} graduates proven toward Level {academyLevel + 1}
+              </p>
+            </>
+          )}
+        </GlassPanel>
 
         {/* Academy Stats Summary */}
         <GlassPanel className="p-3">

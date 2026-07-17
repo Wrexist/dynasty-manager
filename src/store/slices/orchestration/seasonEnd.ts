@@ -11,7 +11,7 @@ import { pickDefaultCaptaincy } from '@/utils/captaincy';
 
 import { generateStaffMarket, getStaffBonus, ensureStaffFields } from '@/utils/staff';
 
-import { generateYouthProspects, generateIntakePreview } from '@/utils/youth';
+import { generateYouthProspects, generateIntakePreview, computeAcademyProgress } from '@/utils/youth';
 import type { GameState } from '../../storeTypes';
 import { addMsg, pick, shuffle, safeRandomUUID } from '@/utils/helpers';
 
@@ -1145,8 +1145,27 @@ function finalizeSeason(
   const youthSquad = (pcForYouth?.playerIds || []).map(id => newPlayers[id]).filter(Boolean);
   const youthSquadQuality = youthSquad.length > 0 ? youthSquad.reduce((s, p) => s + p.overall, 0) / youthSquad.length : undefined;
   const youthRatingForIntake = pcForYouth?.youthRating ?? 50;
+
+  // Academy Level progression (Intake Day arc): graduates that proved
+  // themselves this campaign (80 OVR or 50 career appearances) lift the academy
+  // level, which in turn boosts the quality/potential of the NEW intake below.
+  // Runs on the post-aging squad so careerAppearances is fully accumulated.
+  const academyResult = computeAcademyProgress(
+    state.youthAcademy.academyLevel ?? 1,
+    state.youthAcademy.academyProgress ?? 0,
+    state.youthAcademy.creditedGraduateIds ?? [],
+    youthSquad.map(p => ({ id: p.id, overall: p.overall, careerAppearances: p.careerAppearances || 0, isFromYouthAcademy: p.isFromYouthAcademy })),
+  );
+  if (academyResult.levelsGained > 0) {
+    newMessages = addMsg(newMessages, {
+      week: 1, season: newSeason, type: 'board',
+      title: 'Academy Upgraded',
+      body: `Your graduates have proven the academy — it is now Level ${academyResult.level}. Expect stronger future intakes.`,
+    });
+  }
+
   const { prospects: newYouthProspects, players: youthPlayers } = generateYouthProspects(
-    playerClubId, youthRatingForIntake, youthCoachQ, newSeason, SEASON_YOUTH_INTAKE_MIN + Math.floor(Math.random() * SEASON_YOUTH_INTAKE_RANGE), youthSquadQuality
+    playerClubId, youthRatingForIntake, youthCoachQ, newSeason, SEASON_YOUTH_INTAKE_MIN + Math.floor(Math.random() * SEASON_YOUTH_INTAKE_RANGE), youthSquadQuality, academyResult.level
   );
   // Wonder Coach perk: +5 potential on all youth intake
   if (hasPerk(state.managerProgression, 'wonder_coach') && youthPlayers.length > 0) {
@@ -1166,7 +1185,7 @@ function finalizeSeason(
   // Prodigy Factory prestige perk: 2 extra youth prospects
   if (hasPerk(state.managerProgression, 'prodigy_factory')) {
     const { prospects: bonusProspects, players: bonusPlayers } = generateYouthProspects(
-      playerClubId, youthRatingForIntake, youthCoachQ, newSeason, 2, youthSquadQuality
+      playerClubId, youthRatingForIntake, youthCoachQ, newSeason, 2, youthSquadQuality, academyResult.level
     );
     newYouthProspects.push(...bonusProspects);
     youthPlayers.push(...bonusPlayers);
@@ -1176,8 +1195,8 @@ function finalizeSeason(
 
   newMessages = addMsg(newMessages, {
     week: 1, season: newSeason, type: 'general',
-    title: 'Youth Intake',
-    body: `${newYouthProspects.length} new youth prospects have joined your academy. Check the Youth Academy tab.`,
+    title: 'Intake Day',
+    body: `Intake Day: ${newYouthProspects.length} prospects arrived — the class of S${newSeason}. Check the Youth Academy tab.`,
   });
 
   const newAvailableHires = generateStaffMarket();
@@ -1359,7 +1378,9 @@ function finalizeSeason(
       derbyBuzzWeeks: 0,
       // winStreak survives across seasons (player progresses through final fixtures)
     },
-    youthAcademy: { prospects: newYouthProspects, nextIntakePreview: newIntakePreview, youthPreviewEnhanced: false, spotlightUsesRemaining: 2 },
+    youthAcademy: { prospects: newYouthProspects, nextIntakePreview: newIntakePreview, youthPreviewEnhanced: false, spotlightUsesRemaining: 2, academyLevel: academyResult.level, academyProgress: academyResult.progress, creditedGraduateIds: academyResult.credited },
+    // Arm the Intake Day reveal with this season's fresh class.
+    pendingYouthIntake: { players: newYouthProspects.map(p => p.playerId), season: newSeason },
     staff: { ...state.staff, members: newStaffMembers, availableHires: newAvailableHires, lastMarketRefreshWeek: undefined, lastMarketRefreshSeason: undefined },
     scouting: { ...state.scouting, assignments: [], reports: [], discoveredPlayers: [] },
     cup: newCup,

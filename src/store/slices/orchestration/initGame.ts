@@ -504,7 +504,7 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
     },
     staff: { members: initialStaff, availableHires },
     scouting: { maxAssignments: scoutCount, assignments: [], reports: [], discoveredPlayers: [] },
-    youthAcademy: { prospects: youthProspects, nextIntakePreview, youthPreviewEnhanced: false },
+    youthAcademy: { prospects: youthProspects, nextIntakePreview, youthPreviewEnhanced: false, academyLevel: 1, academyProgress: 0, creditedGraduateIds: [] },
     facilities: {
       trainingLevel: pcInit.facilities, youthLevel: pcInit.youthRating,
       stadiumStands: (() => { const lvl = Math.min(FACILITY_MAX_LEVEL, Math.round(pcInit.fanBase / STADIUM_LEVEL_DIVISOR)); return { north: lvl, south: lvl, east: lvl, west: lvl }; })(),
@@ -581,6 +581,7 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
     activeNegotiation: null,
     pendingTransferTalk: null,
     pendingGemReveal: null,
+    pendingYouthIntake: null,
     activeChallenge: null,
     selectedPlayerId: null,
     lastMatchXPGain: 0,

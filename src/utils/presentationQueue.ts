@@ -40,6 +40,7 @@ export type OverlayId =
   | 'celebration'
   | 'achievement'
   | 'gemReveal'
+  | 'intakeDay'
   | 'nationalTeamOffer'
   | 'pressConference'
   | 'storyline'
@@ -57,6 +58,9 @@ export const PRESENTATION_ORDER: OverlayId[] = [
   'celebration',
   'achievement',
   'gemReveal',
+  // Youth Intake Day reveal — a positive season-open beat, after scouting gems
+  // and before blocking narrative/decision modals.
+  'intakeDay',
   'nationalTeamOffer',
   'pressConference',
   'storyline',

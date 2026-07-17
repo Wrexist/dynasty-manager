@@ -54,6 +54,7 @@ import { ACHIEVEMENTS } from '@/utils/achievements';
 import type { Achievement } from '@/utils/achievements';
 import { FarewellModal } from '@/components/game/FarewellModal';
 import { GemRevealModal } from '@/components/game/GemRevealModal';
+import { IntakeDayModal } from '@/components/game/IntakeDayModal';
 import { SessionRecap } from '@/components/game/SessionRecap';
 import { BoardWarning } from '@/components/game/BoardWarning';
 import { NationalTeamOfferModal } from '@/components/game/NationalTeamOfferModal';
@@ -874,6 +875,9 @@ const Dashboard = () => {
 
       {/* Hidden Gem Scouting Reveal */}
       <GemRevealModal />
+
+      {/* Youth Intake Day Reveal */}
+      <IntakeDayModal />
 
       {/* Session Start Recap — "Welcome back" overlay */}
       <SessionRecap />

@@ -36,6 +36,7 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
   seasonPass: { points: 0, claimedTiers: [] as number[] },
   pendingStoryline: null as StorylineEvent | null,
   pendingGemReveal: null as { playerId: string; region: string } | null,
+  pendingYouthIntake: null as { players: string[]; season: number } | null,
   pendingTransferTalk: null as TransferTalk | null,
   activeStorylineChains: [] as ActiveStorylineChain[],
   completedStorylineChainIds: [] as string[],

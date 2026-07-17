@@ -53,9 +53,24 @@ const migrations: Record<number, MigrationFn> = {
         pc.viceCaptainId = viceCaptainId;
       }
     }
+    // Youth Intake Day: the annual intake is now a revealed event with an
+    // academy-level progression arc. Existing saves start at level 1 with no
+    // banked progress, no credited graduates, and no pending reveal.
+    const youthForIntake = data.youthAcademy as Record<string, unknown> | undefined;
     return {
       ...data,
       version: 73,
+      pendingYouthIntake: data.pendingYouthIntake ?? null,
+      ...(youthForIntake && typeof youthForIntake === 'object'
+        ? {
+            youthAcademy: {
+              ...youthForIntake,
+              academyLevel: youthForIntake.academyLevel ?? 1,
+              academyProgress: youthForIntake.academyProgress ?? 0,
+              creditedGraduateIds: youthForIntake.creditedGraduateIds ?? [],
+            },
+          }
+        : {}),
       boardUltimatum: data.boardUltimatum ?? null,
       // Pre-Season Focus: one-shot offseason choice. Existing saves have none
       // armed (it is set at season end), so default to null — the next season
