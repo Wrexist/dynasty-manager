@@ -326,6 +326,7 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
     clubPowerRankings: state.clubPowerRankings || {},
     communityPackEnabled: state.communityPackEnabled || false,
     cpPool: state.cpPool || { shuffleSeed: 0, cursor: 0, usedFcIds: [], marketListings: [], lastMarketRefreshWeek: 0, lastSeedSeason: 0 },
+    promises: state.promises || [],
   };
   let json: string;
   try {
@@ -521,6 +522,7 @@ function buildFreshSessionState(get: Get): Partial<GameState> {
     nationalTeam: null, internationalTournament: null, managerNationality: null,
     nationalTeamOffer: null, showNationalTeamOffer: false, activeInterview: null,
     sponsorDeals: [], sponsorOffers: [], sponsorSlotCooldowns: {}, negotiationStrikes: {}, contractStrikes: {},
+    promises: [],
     merchandise: getDefaultMerchState(),
     continentalCoefficients: {},
     // v68 newly-persisted fields — must reset here too so a New Game after
@@ -1041,6 +1043,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         pendingGemReveal: data.pendingGemReveal || null,
         pendingYouthIntake: data.pendingYouthIntake || null,
         pendingTransferTalk: data.pendingTransferTalk || null,
+        promises: data.promises || [],
         seasonStartAvgOVR: data.seasonStartAvgOVR ?? 0,
         seasonTransfersBought: data.seasonTransfersBought || [],
         seasonTransfersSold: data.seasonTransfersSold || [],

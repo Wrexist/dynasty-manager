@@ -1,4 +1,6 @@
-import type { PressConference, ContractOffer, ActiveChallenge, StorylineEvent, ActiveStorylineChain, ManagerProgression, CliffhangerItem, MatchDramaType, SessionStats, TransferTalk } from '@/types/game';
+import type { PressConference, ContractOffer, ActiveChallenge, StorylineEvent, ActiveStorylineChain, ManagerProgression, CliffhangerItem, MatchDramaType, SessionStats, TransferTalk, PlayerPromise, PlayerPromiseType } from '@/types/game';
+import { makePlayerPromise } from '@/utils/playerPromises';
+import { PROMISE_WAGE_REDUCTION } from '@/config/gameBalance';
 import { MOD_MEDIA_PRESS, MOD_MOTIVATION_MORALE, GROWTH_MEDIA_PER_CONFERENCE, STAT_MAX } from '@/config/managerCareer';
 import { TRANSFER_TALK_EMPATHIZE_MORALE_BOOST, TRANSFER_TALK_CONVINCE_SUCCESS_MORALE, TRANSFER_TALK_CONVINCE_FAIL_MORALE, COACH_TASK_XP, COACH_ALL_TASKS_BONUS_XP, ONBOARDING_COMPLETION_XP, TOTAL_WEEKS } from '@/config/gameBalance';
 import { getFlag, setFlag, STORAGE_KEYS, readDailyStreak, writeDailyStreak, writeLiveEventProgress, readRedeemedCodes, addRedeemedCode } from '@/store/helpers/persistence';
@@ -31,6 +33,7 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
   pendingPressConference: null as PressConference | null,
   fanMood: 50,
   activeNegotiation: null as ContractOffer | null,
+  promises: [] as PlayerPromise[],
   activeChallenge: null as ActiveChallenge | null,
   weeklyObjectives: [] as import('@/utils/weeklyObjectives').ObjectiveInstance[],
   seasonPass: { points: 0, claimedTiers: [] as number[] },
@@ -637,12 +640,23 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
       const clearedStrikes = { ...state.contractStrikes };
       delete clearedStrikes[offer.playerId];
 
+      // Record an attached promise (renewals only). One active promise per
+      // player — replace any prior unresolved promise for this player.
+      let newPromises = state.promises;
+      if (offer.promise) {
+        newPromises = [
+          ...(state.promises || []).filter(pr => !(pr.playerId === offer.playerId && pr.status === 'active')),
+          makePlayerPromise(offer.playerId, offer.promise, state.season, state.week),
+        ];
+      }
+
       set({
         activeNegotiation: { ...result },
         players: newPlayers,
         clubs: newClubs,
         messages: newMessages,
         contractStrikes: clearedStrikes,
+        promises: newPromises,
       });
     } else {
       // Atomic: record strike on rejection + update negotiation in one set()
@@ -666,6 +680,22 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
         set({ activeNegotiation: result });
       }
     }
+  },
+
+  setNegotiationPromise: (type: PlayerPromiseType | null) => {
+    const offer = get().activeNegotiation;
+    if (!offer || offer.status !== 'in_progress') return;
+    const current = offer.promise ?? null;
+    const next = current === type ? null : type; // tapping the active chip clears it
+    if (current === next) return;
+
+    // Recompute the demand: undo any existing discount, apply the new one.
+    let demand = offer.demandedWage;
+    if (current) demand = demand / (1 - PROMISE_WAGE_REDUCTION);
+    if (next) demand = demand * (1 - PROMISE_WAGE_REDUCTION);
+    demand = Math.round(demand / 1000) * 1000 || Math.round(demand);
+
+    set({ activeNegotiation: { ...offer, promise: next, demandedWage: demand } });
   },
 
   cancelNegotiation: () => {

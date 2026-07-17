@@ -1092,6 +1092,28 @@ export const ELO_REPUTATION_MULTIPLIER = 120;
 // the grudge crosses this threshold. Heat tiers escalate from here up to 5.
 export const NEMESIS_GRUDGE_THRESHOLD = 3;
 
+// ── Player Promises ──
+// Commitments attached to a contract renewal (playing time / ambition /
+// marquee signing). Evaluated at season end — kept promises reward the player,
+// broken ones cost you. The wage discount is a negotiation lever, NOT a sim
+// parameter (it only changes what wage the player accepts).
+/** Wage-demand discount applied while a promise is attached to the offer. */
+export const PROMISE_WAGE_REDUCTION = 0.08;
+/** Appearances a player must make this season to keep a playing-time promise. */
+export const PROMISE_STARTS_THRESHOLD = 20;
+/** League finish (or better) that satisfies an ambition promise, alongside
+ *  winning any trophy. */
+export const PROMISE_AMBITION_TOP_FINISH = 4;
+/** A signing counts toward a squad-strengthening promise when its overall is
+ *  at least this many points above the end-of-season squad average. */
+export const PROMISE_SIGNING_OVR_MARGIN = 2;
+/** Morale gained when a promise is kept. */
+export const PROMISE_KEPT_MORALE_BOOST = 12;
+/** Loyalty (1-20) gained when a promise is kept. */
+export const PROMISE_KEPT_LOYALTY_BUMP = 1;
+/** Morale lost when a promise is broken (also triggers a transfer request). */
+export const PROMISE_BROKEN_MORALE_HIT = 25;
+
 // ── Ballon d'Or Continental Bonus ──
 export const BALLON_DOR_CONTINENTAL_BONUS = {
   champions_cup: { group: 5, R16: 10, QF: 18, SF: 25, F: 30, winner: 40 },

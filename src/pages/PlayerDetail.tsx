@@ -12,6 +12,7 @@ import { LoanNegotiation } from '@/components/game/LoanNegotiation';
 import { ListForSaleModal } from '@/components/game/ListForSaleModal';
 import { motion } from 'framer-motion';
 import { getPlayerNarratives } from '@/utils/playerNarratives';
+import { PROMISE_LABEL } from '@/utils/playerPromises';
 import { cn } from '@/lib/utils';
 import { getRatingColor, getMoodColor, getMoodLabel } from '@/utils/uiHelpers';
 import { FlagIcon } from '@/components/game/FlagIcon';
@@ -50,7 +51,7 @@ const PlayerDetail = () => {
     selectedPlayerId, players, clubs, playerClubId, previousScreen,
     incomingOffers, season, week, totalWeeks, facilities,
     training, transferWindowOpen, staff,
-    fixtures, managerProgression, gameMode,
+    fixtures, managerProgression, gameMode, promises,
   } = useGameStore(useShallow(s => ({
     selectedPlayerId: s.selectedPlayerId,
     players: s.players,
@@ -61,6 +62,7 @@ const PlayerDetail = () => {
     season: s.season,
     week: s.week,
     totalWeeks: s.totalWeeks,
+    promises: s.promises,
     facilities: s.facilities,
     training: s.training,
     transferWindowOpen: s.transferWindowOpen,
@@ -252,6 +254,30 @@ const PlayerDetail = () => {
           ))}
         </div>
       )}
+
+      {/* Active Promises */}
+      {(() => {
+        const activePromises = (promises || []).filter(pr => pr.playerId === player.id && pr.status === 'active');
+        if (activePromises.length === 0) return null;
+        return (
+          <GlassPanel className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Target className="w-4 h-4 text-primary" />
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Promises</p>
+            </div>
+            <div className="space-y-1.5">
+              {activePromises.map(pr => (
+                <div key={pr.id} className="flex items-center justify-between gap-2 text-xs">
+                  <span className="text-foreground font-medium">Promised: {PROMISE_LABEL[pr.type]}</span>
+                  <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                    season ends W{totalWeeks}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </GlassPanel>
+        );
+      })()}
 
       {/* Ballon d'Or Medals */}
       {player.ballonDOrPlacements && player.ballonDOrPlacements.length > 0 && (

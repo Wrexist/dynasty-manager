@@ -7,7 +7,7 @@ import { PlayerCard } from '@/components/game/PlayerCard';
 import { cn } from '@/lib/utils';
 import { Player } from '@/types/game';
 import type { SquadSortKey, SquadStatusFilter } from '@/types/game';
-import { ShoppingCart, UserSearch, AlertTriangle, FileText, Users, ChevronDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { ShoppingCart, UserSearch, AlertTriangle, FileText, Users, ChevronDown, ArrowUp, ArrowDown, Target } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getRatingColor, posBadgeColor } from '@/utils/uiHelpers';
 import { hapticLight } from '@/utils/haptics';
@@ -69,10 +69,18 @@ function ContractAlertChip({ p, variant, onSelect, onRenew }: {
 }
 
 const SquadPage = () => {
-  const { playerClubId, clubs, players, season, week, leagueTable, gameMode } = useGameStore(useShallow(s => ({
+  const { playerClubId, clubs, players, season, week, leagueTable, gameMode, promises } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId, clubs: s.clubs, players: s.players,
-    season: s.season, week: s.week, leagueTable: s.leagueTable, gameMode: s.gameMode,
+    season: s.season, week: s.week, leagueTable: s.leagueTable, gameMode: s.gameMode, promises: s.promises,
   })));
+  // Count of active promises per player, for the squad-card chip.
+  const activePromiseCount = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const pr of promises || []) {
+      if (pr.status === 'active') counts[pr.playerId] = (counts[pr.playerId] || 0) + 1;
+    }
+    return counts;
+  }, [promises]);
   const isWorldCup = gameMode === 'world-cup';
   const selectPlayer = useGameStore(s => s.selectPlayer);
   const setScreen = useGameStore(s => s.setScreen);
@@ -503,6 +511,20 @@ const SquadPage = () => {
                     <div className="absolute bottom-1.5 left-1.5 z-10 pointer-events-none">
                       <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-md bg-black/55 border border-white/20 text-white/90 font-mono font-bold text-[10px] tabular-nums">
                         {player.squadNumber}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Active-promise chip — bottom-right corner. */}
+                  {activePromiseCount[player.id] > 0 && (
+                    <div className="absolute bottom-1.5 right-1.5 z-10 pointer-events-none">
+                      <span
+                        title={`${activePromiseCount[player.id]} active promise${activePromiseCount[player.id] > 1 ? 's' : ''}`}
+                        aria-label={`${activePromiseCount[player.id]} active promise${activePromiseCount[player.id] > 1 ? 's' : ''}`}
+                        className="inline-flex items-center gap-0.5 h-5 px-1 rounded-md bg-primary/20 border border-primary/40 text-primary font-bold text-[10px] tabular-nums backdrop-blur-sm"
+                      >
+                        <Target className="w-2.5 h-2.5" />
+                        {activePromiseCount[player.id]}
                       </span>
                     </div>
                   )}

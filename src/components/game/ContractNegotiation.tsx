@@ -15,12 +15,16 @@ import { hapticMedium, hapticHeavy, hapticLight } from '@/utils/haptics';
 import { errorToast } from '@/utils/gameToast';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { CONTRACT_MIN_YEARS, CONTRACT_MAX_YEARS, CONTRACT_MAX_STRIKES } from '@/config/contracts';
+import { PROMISE_CHIP_LABEL } from '@/utils/playerPromises';
+import { PROMISE_WAGE_REDUCTION } from '@/config/gameBalance';
+import type { PlayerPromiseType } from '@/types/game';
 
 export function ContractNegotiation() {
   const { activeNegotiation, players, clubs, playerClubId } = useGameStore(useShallow(s => ({
     activeNegotiation: s.activeNegotiation, players: s.players, clubs: s.clubs, playerClubId: s.playerClubId,
   })));
   const submitWageOffer = useGameStore(s => s.submitWageOffer);
+  const setNegotiationPromise = useGameStore(s => s.setNegotiationPromise);
   const cancelNegotiation = useGameStore(s => s.cancelNegotiation);
   const getContractStrikes = useGameStore(s => s.getContractStrikes);
   const [customWage, setCustomWage] = useState<number | null>(null);
@@ -222,6 +226,50 @@ export function ContractNegotiation() {
                   ({activeNegotiation.playerMood}%)
                 </span>
               </div>
+
+              {/* Attach a promise — renewals only. Lowers the wage demand in
+                  exchange for a commitment evaluated at season end. */}
+              {activeNegotiation.type === 'renewal' && (() => {
+                const isRegularStarter = !!clubs[playerClubId]?.lineup?.includes(player.id);
+                const promiseTypes: PlayerPromiseType[] = isRegularStarter
+                  ? ['ambition', 'strengthen_squad']
+                  : ['playing_time', 'ambition', 'strengthen_squad'];
+                const selected = activeNegotiation.promise ?? null;
+                return (
+                  <div className="rounded-xl p-3 space-y-2 border border-border/40 bg-card/40">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                      Attach a Promise <span className="text-primary/70">−{Math.round(PROMISE_WAGE_REDUCTION * 100)}% wage demand</span>
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {promiseTypes.map(type => {
+                        const isActive = selected === type;
+                        return (
+                          <button
+                            key={type}
+                            type="button"
+                            onClick={() => { hapticLight(); setNegotiationPromise(type); }}
+                            aria-pressed={isActive}
+                            className={cn(
+                              'flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors',
+                              isActive
+                                ? 'bg-primary text-primary-foreground border-primary/40'
+                                : 'bg-muted/40 text-muted-foreground border-border/40 hover:bg-muted/60',
+                            )}
+                          >
+                            {isActive && <Check className="w-3 h-3" />}
+                            {PROMISE_CHIP_LABEL[type]}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {selected && (
+                      <p className="text-[10px] text-amber-400/90 leading-snug">
+                        Break this at season end and the player loses morale and demands a transfer.
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Contract Length Selector */}
               <div className={cn(

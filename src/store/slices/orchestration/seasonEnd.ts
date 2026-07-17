@@ -13,7 +13,9 @@ import { generateStaffMarket, getStaffBonus, ensureStaffFields } from '@/utils/s
 
 import { generateYouthProspects, generateIntakePreview, computeAcademyProgress } from '@/utils/youth';
 import type { GameState } from '../../storeTypes';
-import { addMsg, pick, shuffle, safeRandomUUID } from '@/utils/helpers';
+import { addMsg, pick, shuffle, safeRandomUUID, clamp, clamp100 } from '@/utils/helpers';
+import { evaluatePromises, type PromiseEvalResult } from '@/utils/playerPromises';
+import { PROMISE_SIGNING_OVR_MARGIN } from '@/config/gameBalance';
 
 import { addGameBreadcrumb } from '@/utils/sentry';
 import { track } from '@/utils/analytics';
@@ -234,6 +236,20 @@ export function endSeasonImpl(set: Set, get: Get) {
     (state.championsCup?.winnerId === playerClubId ? 1 : 0) +
     (state.shieldCup?.winnerId === playerClubId ? 1 : 0) +
     (state.conferenceCup?.winnerId === playerClubId ? 1 : 0);
+
+  // ── Player Promises: evaluate this season's due commitments ──
+  // Read from `state.players` — appearances are still intact here (they get
+  // reset during aging in finalizeSeason). Outcomes (morale/loyalty/transfer
+  // request) are applied AFTER finalizeSeason so aging can't clobber them.
+  const qualifyingSigning = endPlayers.some(
+    p => p.joinedSeason === season && p.overall >= endAvgOVR + PROMISE_SIGNING_OVR_MARGIN,
+  );
+  const promiseEval: PromiseEvalResult = evaluatePromises(state.promises || [], state.players, {
+    season,
+    leaguePosition: pos,
+    wonTrophy: cupsWonThisSeason > 0,
+    qualifyingSigning,
+  });
   const updatedRecords = updateRecords(
     state.clubRecords || createEmptyRecords(),
     season, pos, playerEntry?.points || 0,
@@ -413,6 +429,12 @@ export function endSeasonImpl(set: Set, get: Get) {
 
   let newMessages = [...messages];
 
+  // Player-promise inbox messages (kept / broken) — surfaced in the same
+  // season-end digest as everything else.
+  for (const pm of promiseEval.messages) {
+    newMessages = addMsg(newMessages, { week: state.week, season, type: 'contract', title: pm.title, body: pm.body });
+  }
+
   // Generate promotion/relegation messages
   if (hasMultipleTiers) {
     if (newPlayerDiv !== playerDiv) {
@@ -489,6 +511,30 @@ export function endSeasonImpl(set: Set, get: Get) {
   }
 
   finalizeSeason(set, get, history, updatedRecords, workingClubs, workingPlayers, turnover, newDivisionClubs, newPlayerDiv, newMessages);
+
+  // Apply promise outcomes AFTER the turnover set() — aging resets
+  // wantsToLeave/lowMoraleWeeks, so a broken-promise transfer request must
+  // land on the post-aging player. Morale/loyalty survive aging (spread), but
+  // applying them here keeps the whole effect atomic. Also persist the
+  // updated/pruned promise list.
+  if (promiseEval.outcomes.length > 0 || (state.promises?.length ?? 0) > 0) {
+    set(s => {
+      const np = { ...s.players };
+      for (const o of promiseEval.outcomes) {
+        const p = np[o.playerId];
+        if (!p) continue;
+        np[o.playerId] = {
+          ...p,
+          morale: clamp100(p.morale + o.moraleDelta),
+          wantsToLeave: o.wantsToLeave ? true : p.wantsToLeave,
+          ...(o.loyaltyDelta && p.personality
+            ? { personality: { ...p.personality, loyalty: clamp(p.personality.loyalty + o.loyaltyDelta, 1, 20) } }
+            : {}),
+        };
+      }
+      return { players: np, promises: promiseEval.nextPromises };
+    });
+  }
 }
 
 /** Standard season-end processing: aging, contracts, squad regen, fixtures, etc. */

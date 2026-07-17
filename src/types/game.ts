@@ -1540,6 +1540,25 @@ export interface ContractOffer {
   round: number;       // negotiation round (1-3)
   status: NegotiationStatus;
   playerMood: number;  // 0-100, willingness to accept
+  /** Optional promise attached during a renewal — lowers the wage demand in
+   *  exchange for a commitment evaluated at season end (see PlayerPromise). */
+  promise?: PlayerPromiseType | null;
+}
+
+// ── Player Promises ──
+/** A commitment made to a player during a contract renewal, evaluated at the
+ *  end of the season it was made. Kept promises boost morale/loyalty; broken
+ *  ones tank morale and trigger a transfer request. */
+export type PlayerPromiseType = 'playing_time' | 'ambition' | 'strengthen_squad';
+
+export interface PlayerPromise {
+  id: string;
+  playerId: string;
+  type: PlayerPromiseType;
+  madeSeason: number;
+  madeWeek: number;
+  deadlineSeason: number;
+  status: 'active' | 'kept' | 'broken';
 }
 
 // ── Challenge Mode ──

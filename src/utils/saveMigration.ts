@@ -72,6 +72,9 @@ const migrations: Record<number, MigrationFn> = {
           }
         : {}),
       boardUltimatum: data.boardUltimatum ?? null,
+      // Player Promises: tracked contract-renewal commitments evaluated at
+      // season end. Existing saves have none — default to an empty list.
+      promises: data.promises ?? [],
       // Pre-Season Focus: one-shot offseason choice. Existing saves have none
       // armed (it is set at season end), so default to null — the next season
       // rollover arms it with the FRIENDLY_CIRCUIT default.

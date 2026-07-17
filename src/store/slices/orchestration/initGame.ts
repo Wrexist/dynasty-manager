@@ -579,6 +579,7 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
     seasonPhase: 'regular',
     clubPowerRankings: initializeClubPowerRankings(clubs, LEAGUES),
     activeNegotiation: null,
+    promises: [],
     pendingTransferTalk: null,
     pendingGemReveal: null,
     pendingYouthIntake: null,
