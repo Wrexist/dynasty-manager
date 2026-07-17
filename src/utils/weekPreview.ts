@@ -1,5 +1,6 @@
-import { Player, Match, Club, FacilitiesState, ScoutingState, LeagueTableEntry, CliffhangerItem, BoardObjective, LeagueId } from '@/types/game';
+import { Player, Match, Club, FacilitiesState, ScoutingState, LeagueTableEntry, CliffhangerItem, BoardObjective, LeagueId, HeadToHeadRecord } from '@/types/game';
 import { getSuffix } from '@/utils/helpers';
+import { getNemesis } from '@/utils/nemesis';
 import {
   MAX_CLIFFHANGERS, CLIFFHANGER_TITLE_RACE_GAP, CLIFFHANGER_BIG_MATCH_REP_GAP,
   CLIFFHANGER_BOARD_PRESSURE_THRESHOLD, CLIFFHANGER_YOUTH_POTENTIAL_GAP,
@@ -27,6 +28,7 @@ interface PreviewContext {
   boardObjectives?: BoardObjective[];
   divisionTables?: Record<LeagueId, LeagueTableEntry[]>;
   playerDivision?: LeagueId;
+  rivalries?: Record<string, HeadToHeadRecord>;
 }
 
 /** Generate "Next Week Preview" teaser items from current state */
@@ -83,11 +85,21 @@ export function getWeekPreview(ctx: PreviewContext): PreviewItem[] {
     const oppId = isHome ? nextMatch.awayClubId : nextMatch.homeClubId;
     const opp = ctx.clubs[oppId];
     if (opp) {
-      items.push({
-        icon: isHome ? 'home' : 'plane',
-        text: `${isHome ? 'Home' : 'Away'} vs ${opp.shortName} next week`,
-        type: 'neutral',
-      });
+      // Nemesis fixture takes precedence — unshift so it leads the preview.
+      const nemesis = getNemesis(ctx.rivalries, ctx.clubs);
+      if (nemesis && nemesis.clubId === oppId) {
+        items.unshift({
+          icon: 'flame',
+          text: `Next week you face your nemesis, ${opp.shortName} — ${nemesis.heat.toLowerCase()}.`,
+          type: 'warning',
+        });
+      } else {
+        items.push({
+          icon: isHome ? 'home' : 'plane',
+          text: `${isHome ? 'Home' : 'Away'} vs ${opp.shortName} next week`,
+          type: 'neutral',
+        });
+      }
     }
   }
 

@@ -1037,6 +1037,12 @@ export const ELO_K_FACTORS: Record<string, number> = { league: 20, cup: 15, cont
 export const ELO_INITIAL_TIER_BONUS: Record<number, number> = { 1: 400, 2: 250, 3: 100, 4: 0 };
 export const ELO_REPUTATION_MULTIPLIER = 120;
 
+// ── Named Nemesis Rival ──
+// grudgeLevel (0-5) is written in store/helpers/matchProcessing.ts: +1 per loss
+// to a club, -1 per win. An opponent only becomes your dramatized "nemesis" once
+// the grudge crosses this threshold. Heat tiers escalate from here up to 5.
+export const NEMESIS_GRUDGE_THRESHOLD = 3;
+
 // ── Ballon d'Or Continental Bonus ──
 export const BALLON_DOR_CONTINENTAL_BONUS = {
   champions_cup: { group: 5, R16: 10, QF: 18, SF: 25, F: 30, winner: 40 },

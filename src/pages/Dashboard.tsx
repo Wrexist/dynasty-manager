@@ -13,7 +13,7 @@ import { WelcomeCard } from '@/components/game/WelcomeCard';
 import { Button } from '@/components/ui/button';
 import {
   Play, ChevronRight, ChevronDown, TrendingUp, DollarSign, Heart, Trophy, Calendar, Mail, ShoppingBag,
-  Dumbbell, AlertTriangle, Banknote, Users, Shield, BarChart3, UserPlus, Award, Flame, Zap, Loader2, FastForward, Package,
+  Dumbbell, AlertTriangle, Banknote, Users, Shield, BarChart3, UserPlus, Award, Flame, Zap, Loader2, FastForward, Package, Swords,
 } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { PremiumCheck } from '@/components/game/icons/PremiumCheck';
@@ -76,6 +76,7 @@ import { FormGuide } from '@/components/game/FormGuide';
 import { getRecentForm } from '@/utils/formGuide';
 import { computeObjectiveProgress } from '@/utils/weeklyObjectives';
 import { getCompetitionInfo } from '@/utils/competitionBadge';
+import { getNemesis } from '@/utils/nemesis';
 
 const WELCOME_KEY = STORAGE_KEYS.WELCOME_SHOWN;
 // Collapse panels animate `height: auto`, which triggers a layout pass on
@@ -135,6 +136,7 @@ const Dashboard = () => {
     activeChallenge, youthAcademy, fanMood, sessionStats,
     pendingAchievementIds,
     activeStorylineChains, unlockedAchievements, packPityCounter, dailyPackOpens,
+    rivalries,
   } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId, clubs: s.clubs, players: s.players,
     week: s.week, season: s.season, fixtures: s.fixtures, leagueTable: s.leagueTable,
@@ -162,6 +164,7 @@ const Dashboard = () => {
     unlockedAchievements: s.unlockedAchievements,
     packPityCounter: s.packPityCounter || 0,
     dailyPackOpens: s.dailyPackOpens,
+    rivalries: s.rivalries,
   })));
   const tw = getTransferWindows(totalWeeks);
   // Actions — stable references, individual selectors
@@ -175,6 +178,12 @@ const Dashboard = () => {
   const claimObjective = useGameStore(s => s.claimObjective);
   const club = usePlayerClub();
   const { match: nextMatch, isHome, opponent, competition } = useCurrentMatch();
+  // Is next week's opponent your named nemesis? Drives the flame chip below.
+  const nextIsNemesis = useMemo(() => {
+    if (!opponent) return false;
+    const n = getNemesis(rivalries, clubs);
+    return !!n && n.clubId === opponent.id;
+  }, [opponent, rivalries, clubs]);
   const hasCupMatchToo = useMemo(() => {
     if (competition) return false;
     return !!findTournamentMatch({
@@ -392,11 +401,11 @@ const Dashboard = () => {
   // Week preview teasers (with fallback so there's always something forward-looking)
   const weekPreviews = useMemo(() => {
     if (!club) return [];
-    const ctx = { playerClubId, players, clubs, fixtures, facilities: facilities, scouting: scouting, week, season, totalWeeks, boardObjectives, divisionTables: divisionTables, playerDivision: playerDivision };
+    const ctx = { playerClubId, players, clubs, fixtures, facilities: facilities, scouting: scouting, week, season, totalWeeks, boardObjectives, divisionTables: divisionTables, playerDivision: playerDivision, rivalries };
     const items = getWeekPreview(ctx);
     if (items.length > 0) return items;
     return getFallbackPreview(ctx);
-  }, [playerClubId, players, clubs, fixtures, facilities, scouting, week, season, totalWeeks, club, boardObjectives, divisionTables, playerDivision]);
+  }, [playerClubId, players, clubs, fixtures, facilities, scouting, week, season, totalWeeks, club, boardObjectives, divisionTables, playerDivision, rivalries]);
 
   // XP progress to next level
   const xpProgress = useMemo(() => getXPProgress(managerProgression), [managerProgression]);
@@ -1050,6 +1059,13 @@ const Dashboard = () => {
             </span>
             <span className="text-[10px] text-muted-foreground">Week {week}</span>
           </div>
+          {nextIsNemesis && (
+            <div className="flex justify-center mb-3">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border border-destructive/50 bg-destructive/15 text-destructive">
+                <Swords className="w-3 h-3" /> Nemesis <Flame className="w-3 h-3" />
+              </span>
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <div className="text-center flex-1">
               <div

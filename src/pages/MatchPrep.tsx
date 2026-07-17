@@ -5,7 +5,7 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { LineupEditor } from '@/components/game/LineupEditor';
 import { OptimizeLineupButton } from '@/components/game/OptimizeLineupButton';
 import { OptimizeResultModal } from '@/components/game/OptimizeResultModal';
-import { Swords, AlertTriangle, Flame, Info, Shield, Zap, ArrowUp, ArrowDown, Minus, Trophy } from 'lucide-react';
+import { Swords, AlertTriangle, Flame, Info, Shield, Zap, ArrowUp, ArrowDown, Minus, Trophy, Skull } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getRatingBadgeClasses, getRatingColor } from '@/utils/uiHelpers';
 import { useCurrentMatch, useLeaguePosition } from '@/hooks/useGameSelectors';
@@ -19,6 +19,7 @@ import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS } from '@/config/ui';
 import { isPro } from '@/utils/monetization';
 import { ProUpsell } from '@/components/game/ProUpsell';
+import { getNemesis, getNemesisBarb } from '@/utils/nemesis';
 
 const FORMATION_HINTS: Record<FormationType, string> = {
   '4-4-2': 'Balanced and direct. Strong in midfield and up front.',
@@ -34,7 +35,7 @@ const FORMATION_HINTS: Record<FormationType, string> = {
 };
 
 const MatchPrep = () => {
-  const { week, clubs, players, playerClubId, leagueTable, monetization, rivalries, playerDivision, seasonPhase } = useGameStore(useShallow((s) => ({
+  const { week, clubs, players, playerClubId, leagueTable, monetization, rivalries, fixtures, playerDivision, seasonPhase } = useGameStore(useShallow((s) => ({
     week: s.week,
     clubs: s.clubs,
     players: s.players,
@@ -42,6 +43,7 @@ const MatchPrep = () => {
     leagueTable: s.leagueTable,
     monetization: s.monetization,
     rivalries: s.rivalries,
+    fixtures: s.fixtures,
     playerDivision: s.playerDivision,
     seasonPhase: s.seasonPhase,
   })));
@@ -124,6 +126,30 @@ const MatchPrep = () => {
 
   const myEntry = leagueTable.find(e => e.clubId === playerClubId);
   const oppEntry = leagueTable.find(e => e.clubId === oppClubId);
+
+  // Named nemesis — the club you hold the deepest grudge against. When THIS
+  // opponent is that club, we swap the plain head-to-head card for a
+  // dramatized rivalry card. Virtual continental sides are skipped by
+  // getNemesis (no club record), so this never fires for them.
+  const nemesis = getNemesis(rivalries, clubs);
+  const isNemesis = !!nemesis && nemesis.clubId === oppClubId && !isVirtualOpp;
+  // Most recent played meeting this season (fixtures reset each season, so this
+  // is best-effort — the accumulated W-D-L record carries the full history).
+  const lastMeeting = isNemesis
+    ? fixtures
+        .filter(m => m.played &&
+          ((m.homeClubId === playerClubId && m.awayClubId === oppClubId) ||
+           (m.homeClubId === oppClubId && m.awayClubId === playerClubId)))
+        .sort((a, b) => b.week - a.week)[0]
+    : undefined;
+  const lastMeetingScore = lastMeeting
+    ? (() => {
+        const meHome = lastMeeting.homeClubId === playerClubId;
+        const myGoals = meHome ? lastMeeting.homeGoals : lastMeeting.awayGoals;
+        const theirGoals = meHome ? lastMeeting.awayGoals : lastMeeting.homeGoals;
+        return { myGoals, theirGoals };
+      })()
+    : undefined;
 
   // Opponent key players
   const oppPlayers = (oppClub.playerIds || []).map(id => players[id]).filter(Boolean).sort((a, b) => b.overall - a.overall);
@@ -347,8 +373,66 @@ const MatchPrep = () => {
       </GlassPanel>
       )}
 
+      {/* Named Nemesis — dramatized rivalry card (replaces the plain
+          head-to-head below when this opponent is your deepest grudge). */}
+      {isNemesis && nemesis && (() => {
+        const rec = nemesis.record;
+        const total = rec.wins + rec.draws + rec.losses;
+        return (
+          <GlassPanel className="p-4 border border-destructive/50 bg-destructive/10">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <Skull className="w-4 h-4 text-destructive" />
+              <span className="text-sm font-black uppercase tracking-wider text-destructive">{nemesis.heat}</span>
+              <Skull className="w-4 h-4 text-destructive" />
+            </div>
+            <p className="text-[11px] text-center text-muted-foreground mb-3">
+              {oppClub.shortName} are your nemesis — the grudge runs deep.
+            </p>
+            <div className="flex items-center gap-3">
+              <div className="flex-1 text-center">
+                <p className="text-lg font-black text-emerald-400 tabular-nums">{rec.wins}</p>
+                <p className="text-[10px] text-muted-foreground">Wins</p>
+              </div>
+              <div className="flex-1 text-center">
+                <p className="text-lg font-black text-amber-400 tabular-nums">{rec.draws}</p>
+                <p className="text-[10px] text-muted-foreground">Draws</p>
+              </div>
+              <div className="flex-1 text-center">
+                <p className="text-lg font-black text-destructive tabular-nums">{rec.losses}</p>
+                <p className="text-[10px] text-muted-foreground">Losses</p>
+              </div>
+            </div>
+            {total > 0 && (
+              <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden flex">
+                {rec.wins > 0 && <div className="bg-emerald-500 h-full" style={{ width: `${(rec.wins / total) * 100}%` }} />}
+                {rec.draws > 0 && <div className="bg-amber-500 h-full" style={{ width: `${(rec.draws / total) * 100}%` }} />}
+                {rec.losses > 0 && <div className="bg-destructive h-full" style={{ width: `${(rec.losses / total) * 100}%` }} />}
+              </div>
+            )}
+            {lastMeetingScore && (
+              <p className="text-[11px] text-center text-muted-foreground mt-2.5">
+                Last meeting:{' '}
+                <span className={cn(
+                  'font-bold tabular-nums',
+                  lastMeetingScore.myGoals > lastMeetingScore.theirGoals ? 'text-emerald-400' :
+                  lastMeetingScore.myGoals < lastMeetingScore.theirGoals ? 'text-destructive' :
+                  'text-amber-400'
+                )}>
+                  {lastMeetingScore.myGoals}–{lastMeetingScore.theirGoals}
+                </span>
+              </p>
+            )}
+            <div className="mt-3 flex items-start gap-1.5 rounded-lg bg-destructive/10 border border-destructive/30 p-2.5">
+              <Flame className="w-3.5 h-3.5 text-destructive shrink-0 mt-0.5" />
+              <p className="text-[11px] font-medium text-destructive/90">{getNemesisBarb(rec, oppClub.shortName)}</p>
+            </div>
+          </GlassPanel>
+        );
+      })()}
+
       {/* Head-to-Head Record */}
       {(() => {
+        if (isNemesis) return null; // shown by the nemesis card above
         const h2h = rivalries?.[oppClubId];
         if (!h2h || (h2h.wins === 0 && h2h.draws === 0 && h2h.losses === 0)) return null;
         const total = h2h.wins + h2h.draws + h2h.losses;
