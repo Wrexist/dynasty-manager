@@ -68,6 +68,7 @@ const WorldCupResult = lazy(() => import('./WorldCupResult'));
 const WorldCupDraw = lazy(() => import('./WorldCupDraw'));
 const WorldCupDashboard = lazy(() => import('./WorldCupDashboard'));
 const RivalriesPage = lazy(() => import('./RivalriesPage'));
+const CompetitionsPage = lazy(() => import('./CompetitionsPage'));
 
 const screens: Record<string, React.ComponentType> = {
   dashboard: Dashboard,
@@ -120,6 +121,7 @@ const screens: Record<string, React.ComponentType> = {
   'world-cup-draw': WorldCupDraw,
   'world-cup-result': WorldCupResult,
   'rivalries': RivalriesPage,
+  'competitions': CompetitionsPage,
 };
 
 // Route-level Suspense fallback while a lazy page chunk downloads. Renders

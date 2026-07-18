@@ -187,14 +187,19 @@ function TournamentView({ tournament, competition }: { tournament: ContinentalTo
   );
 }
 
-const ContinentalPage = () => {
+const ContinentalPage = ({ embedded = false }: { embedded?: boolean } = {}) => {
   const championsCup = useGameStore(s => s.championsCup);
   const shieldCup = useGameStore(s => s.shieldCup);
   const conferenceCup = useGameStore(s => s.conferenceCup);
   const currentScreen = useGameStore(s => s.currentScreen);
 
-  const isChampions = currentScreen === 'champions-cup';
-  const isShield = currentScreen === 'shield-cup';
+  // When embedded in the Competitions hub, currentScreen is 'competitions', so
+  // we can't derive the competition from it. The player is only ever in one
+  // continental tournament per season, so pick whichever is present (highest
+  // tier first). Standalone routing still keys off currentScreen so deep links
+  // to a specific continental screen render that one.
+  const isChampions = embedded ? !!championsCup : currentScreen === 'champions-cup';
+  const isShield = embedded ? (!championsCup && !!shieldCup) : currentScreen === 'shield-cup';
   const tournament = isChampions ? championsCup : isShield ? shieldCup : conferenceCup;
   const competition: ContinentalCompetition = isChampions ? 'champions_cup' : isShield ? 'shield_cup' : 'conference_cup';
 

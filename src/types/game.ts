@@ -119,7 +119,7 @@ export interface RedeemResult {
   amount?: number;
 }
 
-export type GameScreen = 'dashboard' | 'squad' | 'tactics' | 'transfers' | 'club' | 'match' | 'player-detail' | 'league-table' | 'inbox' | 'season-summary' | 'calendar' | 'training' | 'scouting' | 'packs' | 'staff' | 'youth-academy' | 'facilities' | 'finance' | 'merchandise' | 'match-prep' | 'match-review' | 'board' | 'settings' | 'comparison' | 'manager-profile' | 'cup' | 'league-cup' | 'champions-cup' | 'shield-cup' | 'conference-cup' | 'super-cup' | 'perks' | 'trophy-cabinet' | 'prestige' | 'hall-of-managers' | 'team-detail' | 'shop' | 'help' | 'whats-new' | 'national-team' | 'national-squad-picker' | 'international-tournament' | 'job-market' | 'career-overview' | 'ballon-dor' | 'festival' | 'dynasty-legacy' | 'world-cup-draw' | 'world-cup-result' | 'rivalries';
+export type GameScreen = 'dashboard' | 'squad' | 'tactics' | 'transfers' | 'club' | 'match' | 'player-detail' | 'league-table' | 'inbox' | 'season-summary' | 'calendar' | 'training' | 'scouting' | 'packs' | 'staff' | 'youth-academy' | 'facilities' | 'finance' | 'merchandise' | 'match-prep' | 'match-review' | 'board' | 'settings' | 'comparison' | 'manager-profile' | 'cup' | 'league-cup' | 'champions-cup' | 'shield-cup' | 'conference-cup' | 'super-cup' | 'perks' | 'trophy-cabinet' | 'prestige' | 'hall-of-managers' | 'team-detail' | 'shop' | 'help' | 'whats-new' | 'national-team' | 'national-squad-picker' | 'international-tournament' | 'job-market' | 'career-overview' | 'ballon-dor' | 'festival' | 'dynasty-legacy' | 'world-cup-draw' | 'world-cup-result' | 'rivalries' | 'competitions';
 
 export interface PlayerAttributes {
   pace: number;
@@ -1493,6 +1493,24 @@ export interface SuperCupMatch {
   week: number;
   winnerId: string | null;
   penaltyShootout?: { home: number; away: number };
+}
+
+// ── Competitions Hub ──
+/** Which tab of the Competitions hub an entry belongs to. Continental collapses
+ *  Champions/Shield/Conference into one tab (the player is only ever in one). */
+export type CompetitionKey = 'cup' | 'league-cup' | 'continental' | 'super-cup';
+
+/** One active competition for the player this season, as surfaced on the
+ *  Dashboard summary card and used to decide Competitions-hub tab visibility.
+ *  Derived by `getActiveCompetitions` in utils/competitionStatus.ts. */
+export interface CompetitionStatusEntry {
+  key: CompetitionKey;
+  /** Deep-link target for the standalone screen (e.g. 'champions-cup'). */
+  screen: GameScreen;
+  title: string;
+  /** Human-readable round/status string (e.g. 'Quarter-Final', 'Eliminated'). */
+  status: string;
+  outcome: 'active' | 'eliminated' | 'won';
 }
 
 // ── Press Conferences ──

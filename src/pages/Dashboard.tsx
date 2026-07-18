@@ -5,7 +5,8 @@ import { getSuffix, formatMoney } from '@/utils/helpers';
 import { getConfidenceColor, getFanConfidenceColor, getFanConfidence } from '@/utils/uiHelpers';
 import { usePlayerClub, useLeaguePosition, useCurrentMatch, useUnreadCount, findTournamentMatch, useSquadAverageMorale } from '@/hooks/useGameSelectors';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { CompetitionStatusCard } from '@/components/dashboard/CompetitionStatusCard';
+import { getActiveCompetitions } from '@/utils/competitionStatus';
+import type { CompetitionStatusEntry } from '@/types/game';
 import { BoardObjectivesCard } from '@/components/dashboard/BoardObjectivesCard';
 import { PressConference } from '@/components/game/PressConference';
 import { WelcomeOverlay } from '@/components/game/WelcomeOverlay';
@@ -19,7 +20,6 @@ import {
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { PremiumCheck } from '@/components/game/icons/PremiumCheck';
 import { PremiumProgress } from '@/components/game/PremiumProgress';
-import { getRoundName } from '@/data/cup';
 import { LEAGUES, getDerbyIntensity, getDerbyName } from '@/data/league';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { FloatingXP } from '@/components/game/FloatingXP';
@@ -120,6 +120,15 @@ const TIP_ICON: Record<TipType, string> = {
 };
 const VISIBLE_ACHIEVEMENT_COUNT = ACHIEVEMENTS.filter(a => !a.hidden).length;
 
+// Icon per competition row on the consolidated Competitions card. Continental
+// keeps the old per-tournament icon cue (Shield for the Shield Cup, Trophy
+// otherwise); Super Cup is Trophy; domestic/league cups use Award.
+function competitionRowIcon(entry: CompetitionStatusEntry) {
+  if (entry.key === 'continental') return entry.screen === 'shield-cup' ? Shield : Trophy;
+  if (entry.key === 'super-cup') return Trophy;
+  return Award;
+}
+
 const Dashboard = () => {
   const reduceMotion = useReducedMotion();
   // Use useShallow to only re-render when specific properties change (prevents React #185)
@@ -184,6 +193,12 @@ const Dashboard = () => {
       week, playerClubId, cup, leagueCup, championsCup, shieldCup, conferenceCup, domesticSuperCup, continentalSuperCup,
     });
   }, [competition, week, playerClubId, cup, leagueCup, championsCup, shieldCup, conferenceCup, domesticSuperCup, continentalSuperCup]);
+  // Player's active competitions this season — drives the single consolidated
+  // Competitions card (replaces the six stacked CompetitionStatusCards).
+  const activeCompetitions = useMemo(() => getActiveCompetitions({
+    cup, leagueCup, championsCup, shieldCup, conferenceCup,
+    domesticSuperCup, continentalSuperCup, playerClubId, clubs, virtualClubs,
+  }), [cup, leagueCup, championsCup, shieldCup, conferenceCup, domesticSuperCup, continentalSuperCup, playerClubId, clubs, virtualClubs]);
   const pos = useLeaguePosition();
   const unread = useUnreadCount();
   const budgetFlash = useFlash(club?.budget || 0);
@@ -2037,93 +2052,36 @@ const Dashboard = () => {
       {/* Recent form lives in the League tile's FormGuide; upcoming fixtures
           live on the Schedule screen — neither is duplicated here. */}
 
-      {/* Cup Status */}
-      {cup.currentRound && (
-        <CompetitionStatusCard
-          title="Domestic Cup"
-          icon={Award}
-          iconClassName={cn(cup.winner === playerClubId ? 'text-primary' : cup.eliminated ? 'text-destructive' : 'text-muted-foreground')}
-          status={cup.winner ? `Winner: ${clubs[cup.winner]?.shortName}` : cup.eliminated ? 'Eliminated' : getRoundName(cup.currentRound)}
-          onClick={() => setScreen('cup')}
-        />
-      )}
-
-      {/* League Cup Status */}
-      {leagueCup && leagueCup.currentRound && (
-        <CompetitionStatusCard
-          title="League Cup"
-          icon={Award}
-          iconClassName={cn(leagueCup.winner === playerClubId ? 'text-emerald-400' : leagueCup.eliminated ? 'text-destructive' : 'text-muted-foreground')}
-          status={leagueCup.winner ? `Winner: ${clubs[leagueCup.winner]?.shortName}` : leagueCup.eliminated ? 'Eliminated' : getRoundName(leagueCup.currentRound)}
-          onClick={() => setScreen('league-cup')}
-        />
-      )}
-
-      {/* Champions Cup Status */}
-      {championsCup && (
-        <CompetitionStatusCard
-          title="Champions Cup"
-          icon={Trophy}
-          iconClassName={cn(championsCup.winnerId === playerClubId ? 'text-blue-400' : championsCup.playerEliminated ? 'text-destructive' : 'text-blue-400/70')}
-          status={
-            championsCup.winnerId
-              ? `Winner: ${(clubs[championsCup.winnerId] || virtualClubs[championsCup.winnerId])?.shortName || '?'}`
-              : championsCup.playerEliminated ? 'Eliminated'
-              : championsCup.currentPhase === 'group' ? 'Group Stage'
-              : championsCup.currentRound || 'Knockout'
-          }
-          onClick={() => setScreen('champions-cup')}
-        />
-      )}
-
-      {/* Shield Cup Status */}
-      {shieldCup && (
-        <CompetitionStatusCard
-          title="Shield Cup"
-          icon={Shield}
-          iconClassName={cn(shieldCup.winnerId === playerClubId ? 'text-orange-400' : shieldCup.playerEliminated ? 'text-destructive' : 'text-orange-400/70')}
-          status={
-            shieldCup.winnerId
-              ? `Winner: ${(clubs[shieldCup.winnerId] || virtualClubs[shieldCup.winnerId])?.shortName || '?'}`
-              : shieldCup.playerEliminated ? 'Eliminated'
-              : shieldCup.currentPhase === 'group' ? 'Group Stage'
-              : shieldCup.currentRound || 'Knockout'
-          }
-          onClick={() => setScreen('shield-cup')}
-        />
-      )}
-
-      {/* Conference Cup Status */}
-      {conferenceCup && (
-        <CompetitionStatusCard
-          title="Conference Cup"
-          icon={Award}
-          iconClassName={cn(conferenceCup.winnerId === playerClubId ? 'text-emerald-400' : conferenceCup.playerEliminated ? 'text-destructive' : 'text-emerald-400/70')}
-          status={
-            conferenceCup.winnerId
-              ? `Winner: ${(clubs[conferenceCup.winnerId] || virtualClubs[conferenceCup.winnerId])?.shortName || '?'}`
-              : conferenceCup.playerEliminated ? 'Eliminated'
-              : conferenceCup.currentPhase === 'group' ? 'Group Stage'
-              : conferenceCup.currentRound || 'Knockout'
-          }
-          onClick={() => setScreen('conference-cup')}
-        />
-      )}
-
-      {/* Super Cup Status */}
-      {(domesticSuperCup || continentalSuperCup) && (
-        <CompetitionStatusCard
-          title="Super Cup"
-          icon={Trophy}
-          iconClassName={cn((domesticSuperCup?.winnerId === playerClubId || continentalSuperCup?.winnerId === playerClubId) ? 'text-amber-400' : 'text-muted-foreground')}
-          status={
-            domesticSuperCup?.winnerId
-              ? `Winner: ${clubs[domesticSuperCup.winnerId]?.shortName || '?'}`
-              : domesticSuperCup?.played === false ? `Week ${domesticSuperCup.week}`
-              : 'View matches'
-          }
-          onClick={() => setScreen('super-cup')}
-        />
+      {/* Competitions — one consolidated card listing every active competition
+          (replaces the six stacked CompetitionStatusCards). Taps through to the
+          Competitions hub. */}
+      {activeCompetitions.length > 0 && (
+        <GlassPanel className="p-4" onClick={() => setScreen('competitions')}>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Trophy className="w-4 h-4 text-primary" />
+              <p className="text-sm font-semibold text-foreground">Competitions</p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          </div>
+          <div className="space-y-2.5">
+            {activeCompetitions.map(entry => {
+              const Icon = competitionRowIcon(entry);
+              return (
+                <div key={entry.screen} className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Icon className={cn(
+                      'w-4 h-4 shrink-0',
+                      entry.outcome === 'won' ? 'text-primary' : entry.outcome === 'eliminated' ? 'text-destructive' : 'text-muted-foreground',
+                    )} />
+                    <span className="text-sm text-foreground truncate">{entry.title}</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground shrink-0">{entry.status}</span>
+                </div>
+              );
+            })}
+          </div>
+        </GlassPanel>
       )}
 
       {/* Board Objectives */}
