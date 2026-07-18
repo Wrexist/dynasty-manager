@@ -213,12 +213,18 @@ export function processMatchResult(
       : `A hard-fought draw against ${oppName}. Onwards.`,
   });
 
-  // First-season encouragement: soften early losses for new players
+  // Board reaction messages fire only when confidence CROSSES a threshold,
+  // not on every match spent parked below/above it — a struggling club used
+  // to get an identical "Board Warning" after every single match.
+  const prevConfidence = state.boardConfidence || 50;
   if (season === 1 && lost && week <= 10) {
-    newMessages = addMsg(newMessages, { week, season, type: 'board', title: 'The Board Believes in You', body: 'It\'s early days. The board sees your potential and is giving you time to build. Keep pushing — better results will come.' });
-  } else if (confidence < CONFIDENCE_WARNING_THRESHOLD) {
+    // First-season encouragement: soften the first early loss, once.
+    if (!messages.some(m => m.title === 'The Board Believes in You')) {
+      newMessages = addMsg(newMessages, { week, season, type: 'board', title: 'The Board Believes in You', body: 'It\'s early days. The board sees your potential and is giving you time to build. Keep pushing — better results will come.' });
+    }
+  } else if (confidence < CONFIDENCE_WARNING_THRESHOLD && prevConfidence >= CONFIDENCE_WARNING_THRESHOLD) {
     newMessages = addMsg(newMessages, { week, season, type: 'board', title: 'Board Warning', body: 'The board is growing concerned with recent performances. Results must improve soon or your position may be at risk.' });
-  } else if (confidence > CONFIDENCE_PLEASED_THRESHOLD && won) {
+  } else if (confidence > CONFIDENCE_PLEASED_THRESHOLD && won && prevConfidence <= CONFIDENCE_PLEASED_THRESHOLD) {
     newMessages = addMsg(newMessages, { week, season, type: 'board', title: 'Board Pleased', body: 'The board commends your excellent work. Keep this up!' });
   }
 
