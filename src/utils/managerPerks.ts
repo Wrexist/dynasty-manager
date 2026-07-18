@@ -1,6 +1,6 @@
 import { ManagerPerk, PerkId, ManagerProgression, TalentBranch } from '@/types/game';
 import { getPrestigeXPMultiplier } from '@/utils/prestige';
-import { MANAGER_XP_BASE, MANAGER_XP_PER_LEVEL, CAPSTONE_MIN_BRANCHES, PRESTIGE_PERK_TIER_6_COST, PRESTIGE_PERK_TIER_7_COST } from '@/config/gameBalance';
+import { MANAGER_XP_BASE, MANAGER_XP_PER_LEVEL, CAPSTONE_MIN_BRANCHES, PRESTIGE_PERK_TIER_6_COST, PRESTIGE_PERK_TIER_7_COST, MASTERY_XP_PER_RANK, MASTERY_BONUS_PER_RANK, MASTERY_BONUS_CAP } from '@/config/gameBalance';
 
 export const MANAGER_PERKS: ManagerPerk[] = [
   // ── Tactician Branch (match day & formations) ──
@@ -178,9 +178,48 @@ export function hasPerk(prog: ManagerProgression, perkId: PerkId): boolean {
   return prog.unlockedPerks.includes(perkId);
 }
 
-/** Get the dynasty builder multiplier (1.1x if Dynasty Builder perk is active, 1.0x otherwise) */
+/** Perks purchasable without prestige — the "base tree" whose completion unlocks Mastery. */
+const BASE_TREE_PERKS = MANAGER_PERKS.filter(p => !p.prestigeRequired);
+const BASE_TREE_TOTAL_COST = BASE_TREE_PERKS.reduce((sum, p) => sum + p.cost, 0);
+
+/** Lifetime XP ever earned (levels completed + current pool), ignoring perk spend. */
+export function getLifetimeXP(prog: ManagerProgression): number {
+  let total = prog.xp;
+  for (let i = 1; i < prog.level; i++) total += xpForLevel(i);
+  return total;
+}
+
+/** True once every base-tree (non-prestige) perk is owned — the point where XP used to go dead. */
+export function isBaseTreeComplete(prog: ManagerProgression): boolean {
+  return BASE_TREE_PERKS.every(p => prog.unlockedPerks.includes(p.id));
+}
+
+/** Mastery rank: every MASTERY_XP_PER_RANK of lifetime XP earned beyond the
+ *  base tree's total cost, once the tree is complete. Derived — never stored,
+ *  never decreases (buying prestige perks doesn't take ranks away). */
+export function getMasteryRank(prog: ManagerProgression): number {
+  if (!isBaseTreeComplete(prog)) return 0;
+  const surplus = getLifetimeXP(prog) - BASE_TREE_TOTAL_COST;
+  return Math.max(0, Math.floor(surplus / MASTERY_XP_PER_RANK));
+}
+
+/** Stacking perk-effect bonus from mastery ranks, capped. */
+export function getMasteryBonus(prog: ManagerProgression): number {
+  return Math.min(MASTERY_BONUS_CAP, getMasteryRank(prog) * MASTERY_BONUS_PER_RANK);
+}
+
+/** Progress toward the next mastery rank (for UI). Null while the tree is incomplete. */
+export function getMasteryProgress(prog: ManagerProgression): { rank: number; current: number; needed: number; capped: boolean } | null {
+  if (!isBaseTreeComplete(prog)) return null;
+  const rank = getMasteryRank(prog);
+  const surplus = Math.max(0, getLifetimeXP(prog) - BASE_TREE_TOTAL_COST);
+  const capped = rank * MASTERY_BONUS_PER_RANK >= MASTERY_BONUS_CAP;
+  return { rank, current: surplus - rank * MASTERY_XP_PER_RANK, needed: MASTERY_XP_PER_RANK, capped };
+}
+
+/** Perk-effect multiplier: Dynasty Builder capstone (+10%) plus mastery ranks. */
 export function dynastyMult(prog: ManagerProgression): number {
-  return prog.unlockedPerks.includes('dynasty_builder') ? 1.1 : 1;
+  return (prog.unlockedPerks.includes('dynasty_builder') ? 1.1 : 1) + getMasteryBonus(prog);
 }
 
 /** Get the full prerequisite chain for a perk (bottom to top, excluding the perk itself) */

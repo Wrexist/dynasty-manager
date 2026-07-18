@@ -6,7 +6,7 @@ import { GameScreen } from '@/types/game';
 import { cn } from '@/lib/utils';
 import {
   Mail, Trophy, Target, DollarSign, Building2, Calendar, Home,
-  Settings, MoreHorizontal, ChevronRight, ChevronDown, GitCompare, User, Star, Award, ShoppingBag, Crown, HelpCircle, Globe, Briefcase, Search, Medal
+  Settings, MoreHorizontal, ChevronRight, ChevronDown, GitCompare, User, Star, Award, ShoppingBag, Crown, HelpCircle, Globe, Briefcase, Search, Medal, Swords
 } from 'lucide-react';
 import { hapticLight } from '@/utils/haptics';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
@@ -49,12 +49,8 @@ const drawerSections: DrawerSection[] = [
     items: [
       { screen: 'inbox', label: 'Inbox', icon: Mail, description: 'Messages & news' },
       { screen: 'league-table', label: 'League', icon: Trophy, description: 'Standings & results' },
-      { screen: 'cup', label: 'Cup', icon: Award, description: 'Knockout tournament' },
-      { screen: 'league-cup', label: 'League Cup', icon: Award, description: 'Secondary cup competition' },
-      { screen: 'champions-cup', label: 'Champions Cup', icon: Trophy, description: 'Elite continental tournament' },
-      { screen: 'shield-cup', label: 'Shield Cup', icon: Trophy, description: 'Secondary continental cup' },
-      { screen: 'conference-cup', label: 'Conference Cup', icon: Award, description: 'Third-tier continental cup' },
-      { screen: 'super-cup', label: 'Super Cup', icon: Award, description: 'Season-opening showcase' },
+      { screen: 'rivalries', label: 'Rivalries', icon: Swords, description: 'Derbies & grudge matches' },
+      { screen: 'competitions', label: 'Competitions', icon: Award, description: 'League, cups & continental' },
       { screen: 'national-team', label: 'National Team', icon: Globe, description: 'International management' },
       { screen: 'calendar', label: 'Calendar', icon: Calendar, description: 'Season schedule' },
     ],
@@ -97,11 +93,11 @@ const ALL_ITEMS: DrawerItem[] = drawerSections.flatMap(s => s.items);
 const PINNED_ITEMS = PINNED_DRAWER_SCREENS.map(screen => ALL_ITEMS.find(i => i.screen === screen)).filter(Boolean) as DrawerItem[];
 const PINNED_SET = new Set(PINNED_DRAWER_SCREENS);
 
-// Sections that collapse by default for new players. The "Career" section
-// stays expanded — in career mode it holds the only entry points to Career
-// Overview and Job Market (where the resign button lives), and burying them
-// behind a collapsed section made the resign flow undiscoverable.
-const NEW_PLAYER_COLLAPSED_SECTIONS = new Set(['Management']);
+// Sections that collapse by default for new players. "Career" stays expanded
+// (it holds the only entry points to Career Overview and Job Market), and
+// "Management" stays expanded too — the drawer is the only home for
+// Facilities/Finance/Merchandise, and collapsing it made them undiscoverable.
+const NEW_PLAYER_COLLAPSED_SECTIONS = new Set<string>([]);
 
 interface MoreDrawerProps {
   disabled?: boolean;
@@ -120,14 +116,11 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
   const reduceMotion = useReducedMotion();
   const {
     messages, currentScreen, cup, leagueCup, gameMode, nationalTeamOffer,
-    championsCup, shieldCup, conferenceCup, domesticSuperCup, continentalSuperCup,
     internationalTournament, nationalTeam, season, week,
     fixtures, playerClubId, leagueTable,
   } = useGameStore(useShallow(s => ({
     messages: s.messages, currentScreen: s.currentScreen, cup: s.cup, leagueCup: s.leagueCup,
     gameMode: s.gameMode, nationalTeamOffer: s.nationalTeamOffer,
-    championsCup: s.championsCup, shieldCup: s.shieldCup, conferenceCup: s.conferenceCup,
-    domesticSuperCup: s.domesticSuperCup, continentalSuperCup: s.continentalSuperCup,
     internationalTournament: s.internationalTournament, nationalTeam: s.nationalTeam,
     season: s.season, week: s.week,
     fixtures: s.fixtures, playerClubId: s.playerClubId, leagueTable: s.leagueTable,
@@ -169,16 +162,14 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
     return isNewPlayer && NEW_PLAYER_COLLAPSED_SECTIONS.has(title);
   }, [collapsed, isNewPlayer]);
 
-  // Hide competition screens when the player isn't participating
+  // Hide screens when the player isn't participating. Individual continental /
+  // super-cup rows were consolidated into the single 'Competitions' hub (always
+  // shown — League is always live), so only National Team needs hiding here.
   const hiddenScreens = useMemo(() => {
     const hidden = new Set<GameScreen>();
-    if (!championsCup) hidden.add('champions-cup');
-    if (!shieldCup) hidden.add('shield-cup');
-    if (!conferenceCup) hidden.add('conference-cup');
-    if (!domesticSuperCup && !continentalSuperCup) hidden.add('super-cup');
     if (!internationalTournament && !nationalTeam) hidden.add('national-team');
     return hidden;
-  }, [championsCup, shieldCup, conferenceCup, domesticSuperCup, continentalSuperCup, internationalTournament, nationalTeam]);
+  }, [internationalTournament, nationalTeam]);
 
   const handleNav = useCallback((screen: GameScreen) => {
     hapticLight();
@@ -481,20 +472,7 @@ function DrawerListItem({ item, currentScreen, onNav, unread, hasPendingCupMatch
         <div className="flex items-center gap-2">
           <p className="text-sm font-semibold text-foreground">{label}</p>
           {screen === 'inbox' && <CountBadge count={unread} pulse cap={99} />}
-          {screen === 'cup' && hasPendingCupMatch && (
-            <span
-              className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full text-white animate-pulse"
-              style={{
-                background: 'linear-gradient(180deg, #FB7185 0%, #E11D48 60%, #9F1239 100%)',
-                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -1px 0 rgba(0,0,0,0.25), 0 0 8px rgba(239,68,68,0.55)',
-                textShadow: '0 1px 1px rgba(0,0,0,0.4)',
-              }}
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_4px_rgba(255,255,255,0.85)]" />
-              LIVE
-            </span>
-          )}
-          {screen === 'league-cup' && hasPendingLeagueCupMatch && (
+          {screen === 'competitions' && (hasPendingCupMatch || hasPendingLeagueCupMatch) && (
             <span
               className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full text-white animate-pulse"
               style={{

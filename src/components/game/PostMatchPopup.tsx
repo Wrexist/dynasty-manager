@@ -17,15 +17,17 @@ import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useEscapeClose } from '@/hooks/useEscapeClose';
 import { hapticHeavy, hapticLight } from '@/utils/haptics';
 import { extractMatchDebrief } from '@/utils/matchDebrief';
+import { gamePlanDebriefLine } from '@/config/gamePlan';
 
 interface PostMatchPopupProps {
   onContinue: () => void;
 }
 
 export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
-  const { currentMatchResult, clubs, playerClubId, preMatchLeaguePosition, lastMatchXPGain, leagueTable, managerProgression, matchPlayerRatings, players, virtualClubs, invincibleUsedThisSeason, preMatchSnapshot, lastMatchCompetition } = useGameStore(
+  const { currentMatchResult, clubs, playerClubId, preMatchLeaguePosition, lastMatchXPGain, leagueTable, managerProgression, matchPlayerRatings, players, virtualClubs, invincibleUsedThisSeason, preMatchSnapshot, lastMatchCompetition, matchGamePlan } = useGameStore(
     useShallow(s => ({
       currentMatchResult: s.currentMatchResult,
+      matchGamePlan: s.matchGamePlan,
       clubs: s.clubs,
       playerClubId: s.playerClubId,
       preMatchLeaguePosition: s.preMatchLeaguePosition,
@@ -68,6 +70,12 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
 
   // Clean sheet
   const cleanSheet = goalsAgainst === 0;
+
+  // Opposition Game Plan feedback: one line so the player can tell the
+  // pre-match plan mattered. Only shown when a plan was actually set.
+  const gamePlanLine = matchGamePlan !== 'none'
+    ? gamePlanDebriefLine(matchGamePlan, goalsFor, goalsAgainst)
+    : undefined;
 
   // Team average match rating (shown in place of league position for non-league games)
   const clubRatingsAll = matchPlayerRatings.filter(r => players[r.playerId]?.clubId === playerClubId);
@@ -235,6 +243,14 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
                 <p className="text-xs font-semibold text-foreground truncate">{motmPlayer.firstName} {motmPlayer.lastName}</p>
               </div>
               <span className="text-sm font-bold text-primary tabular-nums">{motm.rating.toFixed(1)}</span>
+            </div>
+          )}
+
+          {/* Opposition Game Plan feedback */}
+          {gamePlanLine && (
+            <div className="flex items-center gap-2 bg-muted/20 rounded-lg px-3 py-2">
+              <Shield className="w-4 h-4 text-primary shrink-0" />
+              <p className="text-xs text-foreground/90 leading-snug">{gamePlanLine}</p>
             </div>
           )}
 

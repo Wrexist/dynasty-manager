@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
-import { getSuffix, resolveClub, formatMoney } from '@/utils/helpers';
+import { getSuffix, formatMoney } from '@/utils/helpers';
 import { getConfidenceColor, getFanConfidenceColor, getFanConfidence } from '@/utils/uiHelpers';
 import { usePlayerClub, useLeaguePosition, useCurrentMatch, useUnreadCount, findTournamentMatch, useSquadAverageMorale } from '@/hooks/useGameSelectors';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { CompetitionStatusCard } from '@/components/dashboard/CompetitionStatusCard';
+import { getActiveCompetitions } from '@/utils/competitionStatus';
+import type { CompetitionStatusEntry } from '@/types/game';
 import { BoardObjectivesCard } from '@/components/dashboard/BoardObjectivesCard';
 import { PressConference } from '@/components/game/PressConference';
 import { WelcomeOverlay } from '@/components/game/WelcomeOverlay';
@@ -14,12 +15,12 @@ import { Button } from '@/components/ui/button';
 import {
   Play, ChevronRight, ChevronDown, TrendingUp, DollarSign, Heart, Trophy, Calendar, Mail, ShoppingBag,
   Dumbbell, AlertTriangle, Banknote, Users, Shield, BarChart3, UserPlus, Award, Flame, Zap, Loader2, FastForward, Package,
+  Building2, Search, GraduationCap, Swords,
 } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { PremiumCheck } from '@/components/game/icons/PremiumCheck';
 import { PremiumProgress } from '@/components/game/PremiumProgress';
-import { getRoundName } from '@/data/cup';
-import { LEAGUES } from '@/data/league';
+import { LEAGUES, getDerbyIntensity, getDerbyName } from '@/data/league';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { FloatingXP } from '@/components/game/FloatingXP';
 import { cn } from '@/lib/utils';
@@ -63,7 +64,7 @@ import { WeeklyDigest } from '@/components/game/WeeklyDigest';
 import { FinanceBreakdownSheet, FinanceSheetMode } from '@/components/game/FinanceBreakdownSheet';
 import { AnimatedNumber } from '@/components/game/AnimatedNumber';
 import { useFlash } from '@/hooks/useFlash';
-import { HELP_TEXTS, MID_SEASON_WEEK, CONFIDENCE_CRITICAL_THRESHOLD, CONFIDENCE_LOW_THRESHOLD, FAN_MOOD_HIGH_THRESHOLD, FAN_MOOD_MID_THRESHOLD, HOT_STREAK_MIN_WINS } from '@/config/ui';
+import { HELP_TEXTS, MID_SEASON_WEEK, CONFIDENCE_CRITICAL_THRESHOLD, CONFIDENCE_LOW_THRESHOLD, FAN_MOOD_HIGH_THRESHOLD, FAN_MOOD_MID_THRESHOLD } from '@/config/ui';
 import { CONFIDENCE_CHANGE_DISMISS_THRESHOLD } from '@/config/gameBalance';
 import { getManagerTips, type TipType } from '@/utils/managerTips';
 import { getActiveRecordChases } from '@/utils/records';
@@ -90,15 +91,18 @@ const CHEVRON_SPRING = { type: 'spring' as const, stiffness: 320, damping: 26 };
 // a radial `glow` behind the tile, and a translucent `chip` background
 // for the icon badge. Keeping adjacent tiles visually distinct is the
 // goal — no two tiles share a hue.
+// Quick Links complement the bottom nav instead of duplicating it: Squad,
+// Tactics, Training and Transfers are already one tap away in the bottom bar,
+// so these tiles surface the buried club-management screens instead.
 const QUICK_LINKS = [
-  { label: 'Schedule',  screen: 'calendar'     as const, icon: Calendar,  color: 'text-cyan-400',    glow: 'bg-cyan-500',    chip: 'bg-cyan-500/10 border-cyan-500/30' },
-  { label: 'League',    screen: 'league-table' as const, icon: Trophy,    color: 'text-amber-400',   glow: 'bg-amber-500',   chip: 'bg-amber-500/10 border-amber-500/30' },
-  { label: 'Squad',     screen: 'squad'        as const, icon: Users,     color: 'text-sky-400',     glow: 'bg-sky-500',     chip: 'bg-sky-500/10 border-sky-500/30' },
-  { label: 'Tactics',   screen: 'tactics'      as const, icon: Shield,    color: 'text-blue-400',    glow: 'bg-blue-500',    chip: 'bg-blue-500/10 border-blue-500/30' },
-  { label: 'Training',  screen: 'training'     as const, icon: Dumbbell,  color: 'text-emerald-400', glow: 'bg-emerald-500', chip: 'bg-emerald-500/10 border-emerald-500/30' },
-  { label: 'Packs',     screen: 'packs'        as const, icon: Package,   color: 'text-yellow-300',  glow: 'bg-yellow-400',  chip: 'bg-yellow-400/10 border-yellow-400/30' },
-  { label: 'Transfers', screen: 'transfers'    as const, icon: UserPlus,  color: 'text-rose-400',    glow: 'bg-rose-500',    chip: 'bg-rose-500/10 border-rose-500/30' },
-  { label: 'Cup',       screen: 'cup'          as const, icon: BarChart3, color: 'text-orange-400',  glow: 'bg-orange-500',  chip: 'bg-orange-500/10 border-orange-500/30' },
+  { label: 'Schedule',   screen: 'calendar'      as const, icon: Calendar,      color: 'text-cyan-400',    glow: 'bg-cyan-500',    chip: 'bg-cyan-500/10 border-cyan-500/30' },
+  { label: 'League',     screen: 'league-table'  as const, icon: Trophy,        color: 'text-amber-400',   glow: 'bg-amber-500',   chip: 'bg-amber-500/10 border-amber-500/30' },
+  { label: 'Finance',    screen: 'finance'       as const, icon: Banknote,      color: 'text-emerald-400', glow: 'bg-emerald-500', chip: 'bg-emerald-500/10 border-emerald-500/30' },
+  { label: 'Facilities', screen: 'facilities'    as const, icon: Building2,     color: 'text-sky-400',     glow: 'bg-sky-500',     chip: 'bg-sky-500/10 border-sky-500/30' },
+  { label: 'Scouting',   screen: 'scouting'      as const, icon: Search,        color: 'text-blue-400',    glow: 'bg-blue-500',    chip: 'bg-blue-500/10 border-blue-500/30' },
+  { label: 'Packs',      screen: 'packs'         as const, icon: Package,       color: 'text-yellow-300',  glow: 'bg-yellow-400',  chip: 'bg-yellow-400/10 border-yellow-400/30' },
+  { label: 'Youth',      screen: 'youth-academy' as const, icon: GraduationCap, color: 'text-rose-400',    glow: 'bg-rose-500',    chip: 'bg-rose-500/10 border-rose-500/30' },
+  { label: 'Cup',        screen: 'cup'           as const, icon: BarChart3,     color: 'text-orange-400',  glow: 'bg-orange-500',  chip: 'bg-orange-500/10 border-orange-500/30' },
 ];
 const TIP_BG: Record<TipType, string> = {
   warning: 'bg-destructive/10',
@@ -116,13 +120,22 @@ const TIP_ICON: Record<TipType, string> = {
 };
 const VISIBLE_ACHIEVEMENT_COUNT = ACHIEVEMENTS.filter(a => !a.hidden).length;
 
+// Icon per competition row on the consolidated Competitions card. Continental
+// keeps the old per-tournament icon cue (Shield for the Shield Cup, Trophy
+// otherwise); Super Cup is Trophy; domestic/league cups use Award.
+function competitionRowIcon(entry: CompetitionStatusEntry) {
+  if (entry.key === 'continental') return entry.screen === 'shield-cup' ? Shield : Trophy;
+  if (entry.key === 'super-cup') return Trophy;
+  return Award;
+}
+
 const Dashboard = () => {
   const reduceMotion = useReducedMotion();
   // Use useShallow to only re-render when specific properties change (prevents React #185)
   const {
     playerClubId, clubs, players, week, season, fixtures, leagueTable,
     boardConfidence, boardObjectives,
-    currentMatchResult, incomingOffers, trainingFocus, cup,
+    incomingOffers, trainingFocus, cup,
     leagueCup, championsCup, shieldCup, conferenceCup, virtualClubs, domesticSuperCup, continentalSuperCup,
     weekCliffhangers, objectiveStreak,
     facilities, scouting, divisionTables, playerDivision,
@@ -138,7 +151,7 @@ const Dashboard = () => {
     playerClubId: s.playerClubId, clubs: s.clubs, players: s.players,
     week: s.week, season: s.season, fixtures: s.fixtures, leagueTable: s.leagueTable,
     boardConfidence: s.boardConfidence, boardObjectives: s.boardObjectives,
-    currentMatchResult: s.currentMatchResult, incomingOffers: s.incomingOffers,
+    incomingOffers: s.incomingOffers,
     trainingFocus: s.trainingFocus, cup: s.cup,
     leagueCup: s.leagueCup, championsCup: s.championsCup,
     shieldCup: s.shieldCup, conferenceCup: s.conferenceCup, virtualClubs: s.virtualClubs,
@@ -180,6 +193,12 @@ const Dashboard = () => {
       week, playerClubId, cup, leagueCup, championsCup, shieldCup, conferenceCup, domesticSuperCup, continentalSuperCup,
     });
   }, [competition, week, playerClubId, cup, leagueCup, championsCup, shieldCup, conferenceCup, domesticSuperCup, continentalSuperCup]);
+  // Player's active competitions this season — drives the single consolidated
+  // Competitions card (replaces the six stacked CompetitionStatusCards).
+  const activeCompetitions = useMemo(() => getActiveCompetitions({
+    cup, leagueCup, championsCup, shieldCup, conferenceCup,
+    domesticSuperCup, continentalSuperCup, playerClubId, clubs, virtualClubs,
+  }), [cup, leagueCup, championsCup, shieldCup, conferenceCup, domesticSuperCup, continentalSuperCup, playerClubId, clubs, virtualClubs]);
   const pos = useLeaguePosition();
   const unread = useUnreadCount();
   const budgetFlash = useFlash(club?.budget || 0);
@@ -213,6 +232,14 @@ const Dashboard = () => {
   const [midSeasonShown, setMidSeasonShown] = useState(() => getFlag(`dynasty-midseason-s${season}`));
   const showMidSeason = week === MID_SEASON_WEEK && !midSeasonShown;
   const dismissMidSeason = () => { setMidSeasonShown(true); setFlag(`dynasty-midseason-s${season}`); };
+  // Week-23 double-modal guard: the Mid-Season Report is the richer summary
+  // beat, so the weekly digest is dropped (not deferred) on that one week —
+  // previously the player dismissed two consecutive summary overlays.
+  const pendingDigest = useGameStore(s => s.weeklyDigest);
+  const dismissWeeklyDigest = useGameStore(s => s.dismissWeeklyDigest);
+  useEffect(() => {
+    if (showMidSeason && pendingDigest) dismissWeeklyDigest();
+  }, [showMidSeason, pendingDigest, dismissWeeklyDigest]);
   const [financeSheetOpen, setFinanceSheetOpen] = useState(false);
   const [financeSheetMode, setFinanceSheetMode] = useState<FinanceSheetMode>('all');
   const [showMoreDetails, setShowMoreDetails] = useState(false);
@@ -259,8 +286,17 @@ const Dashboard = () => {
       .map(id => ACHIEVEMENTS.find(a => a.id === id))
       .filter(Boolean) as Achievement[];
     if (achievements.length > 0) {
-      setPendingAchievementQueue(achievements);
-      setCurrentAchievement(achievements[0]);
+      // Interruption budget: one modal per advance. The highest-tier unlock
+      // gets the full celebration; the rest surface as staggered toasts
+      // instead of a chain of sequential dismiss-tap modals.
+      const tierRank = { gold: 0, silver: 1, bronze: 2 } as const;
+      const sorted = [...achievements].sort((a, b) => tierRank[a.tier] - tierRank[b.tier]);
+      setPendingAchievementQueue([sorted[0]]);
+      setCurrentAchievement(sorted[0]);
+      sorted.slice(1).forEach((a, i) => {
+        const t = setTimeout(() => celebrationToast(`Achievement: ${a.title}`, a.description), (i + 1) * CELEBRATION_STAGGER_MS);
+        celebrationTimersRef.current.push(t);
+      });
       // Haptic fires inside AchievementUnlockModal when it actually becomes
       // visible (presentation queue, G3) — not here at queue time.
     }
@@ -354,11 +390,6 @@ const Dashboard = () => {
   }, [week]); // Only depend on week — read other values from getState() to avoid cascading re-renders
 
   // ── Derived data (memoized) — must be above early return to avoid conditional hooks ──
-
-  const lastResults = useMemo(() => fixtures
-    .filter(m => m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId))
-    .sort((a, b) => b.week - a.week)
-    .slice(0, 5), [fixtures, playerClubId]);
 
   const entry = useMemo(() => leagueTable.find(e => e.clubId === playerClubId), [leagueTable, playerClubId]);
 
@@ -635,12 +666,6 @@ const Dashboard = () => {
     return { oppName: oppClub?.shortName || '?', score: `${lastMatch.homeGoals}-${lastMatch.awayGoals}`, result, week: lastMatch.week };
   }, [fixtures, playerClubId, clubs]);
 
-  // Next 3 unplayed fixtures for player club
-  const upcomingFixtures = useMemo(() => fixtures
-    .filter(m => !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId) && m.week > week)
-    .sort((a, b) => a.week - b.week)
-    .slice(0, 3), [fixtures, playerClubId, week]);
-
   const inPlayoffs = (seasonPhase as string) === 'playoffs';
   const competitionInfo = getCompetitionInfo(competition, {
     inPlayoffs,
@@ -694,22 +719,15 @@ const Dashboard = () => {
   // Board-critical confidence is already surfaced via <BoardWarning />, so we
   // don't re-dot it here (the 'club' tile was removed and that entry would be
   // dead code anyway).
-  // Count resolvable players, not raw IDs — a dangling ID (sold/deleted player)
-  // would otherwise satisfy the count here while MatchDay's gate rejects it.
-  const lineupIncomplete = (club.lineup || []).filter(id => !!players[id]).length < 11;
   const packPityRemaining = Math.max(0, PACK_PITY_THRESHOLD - packPityCounter);
   const packPityPrimed = packPityRemaining <= 2;
   // A free daily pack the player hasn't opened today — surfaced as a simple dot
   // when the higher-priority pity badge isn't showing.
   const freePackAvailable = hasUnclaimedFreeDailyPack(dailyPackOpens);
-  // Quick-link badges. Most links carry a simple coloured dot when there's
-  // something to attend to; the packs link gets a premium count badge so
-  // the user can see "1 pack to guarantee" or "✦ ready" at a glance from
-  // any screen without opening the packs shop first.
+  // Quick-link badges. Squad/Tactics/Training/Transfers moved out of the grid
+  // (they live in the bottom nav), so only the packs badge remains here; the
+  // lineup/window/familiarity nudges surface via Manager Tips instead.
   const quickLinkBadges: Record<string, { color: string; label?: string; labelColor?: string }> = {
-    ...(lineupIncomplete ? { squad: { color: 'bg-destructive' } } : {}),
-    ...(transferWindowOpen ? { transfers: { color: 'bg-emerald-500' } } : {}),
-    ...(training.tacticalFamiliarity < 40 ? { training: { color: 'bg-amber-500' } } : {}),
     ...(packPityPrimed
       ? {
           packs: packPityRemaining === 0
@@ -1034,6 +1052,18 @@ const Dashboard = () => {
           <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
         </GlassPanel>
         </motion.div>
+      )}
+
+      {/* Rivalry Week banner — only when the next match is a derby */}
+      {!seasonOver && nextMatch && opponent && getDerbyIntensity(playerClubId, opponent.id) > 0 && (
+        <GlassPanel className="p-3 flex items-center gap-2" onClick={() => setScreen('rivalries')} aria-label="View rivalries">
+          <Swords className="w-4 h-4 text-orange-400 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-orange-400">Rivalry Week</p>
+            <p className="text-xs font-semibold text-foreground truncate">{getDerbyName(playerClubId, opponent.id) || `vs ${opponent.shortName}`}</p>
+          </div>
+          <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+        </GlassPanel>
       )}
 
       {/* Next Match */}
@@ -1800,19 +1830,7 @@ const Dashboard = () => {
         </motion.div>
       )}
 
-      {/* Objective streak XP multiplier notification */}
-      {objectiveStreak >= 2 && (
-        <GlassPanel className={cn('p-3', objectiveStreak >= OBJECTIVE_STREAK_THRESHOLD ? 'border-amber-500/30 bg-amber-500/5' : 'border-primary/20 bg-primary/5')}>
-          <div className="flex items-center gap-2 text-xs">
-            <Flame className={cn('w-4 h-4', objectiveStreak >= OBJECTIVE_STREAK_THRESHOLD ? 'text-amber-400' : 'text-primary')} />
-            <span className={cn('font-bold', objectiveStreak >= OBJECTIVE_STREAK_THRESHOLD ? 'text-amber-400' : 'text-primary')}>
-              {objectiveStreak >= OBJECTIVE_STREAK_THRESHOLD
-                ? `Streak x${objectiveStreak} — 2x XP Multiplier Active!`
-                : `${objectiveStreak}-month objective streak! ${OBJECTIVE_STREAK_THRESHOLD - objectiveStreak} more for 2x XP.`}
-            </span>
-          </div>
-        </GlassPanel>
-      )}
+      {/* Objective streak multiplier lives in the objectives header — no standalone card. */}
 
       {/* Record Chase — player approaching a club record */}
       {recordChases.length > 0 && (
@@ -1829,24 +1847,8 @@ const Dashboard = () => {
         </GlassPanel>
       )}
 
-      {/* Last match result */}
-      {currentMatchResult && (() => {
-        const isHome = currentMatchResult.homeClubId === playerClubId;
-        const pG = isHome ? currentMatchResult.homeGoals : currentMatchResult.awayGoals;
-        const oG = isHome ? currentMatchResult.awayGoals : currentMatchResult.homeGoals;
-        const resultBorder = pG > oG ? 'border-emerald-500/30' : pG < oG ? 'border-destructive/30' : 'border-amber-500/30';
-        const resultText = pG > oG ? 'text-emerald-400' : pG < oG ? 'text-destructive' : 'text-amber-400';
-        return (
-        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
-          <GlassPanel className={cn("p-4", resultBorder)} onClick={() => setScreen('match-review')}>
-            <p className={cn("text-[10px] uppercase tracking-wider mb-1", resultText)}>Last Result</p>
-            <p className="text-lg font-black text-foreground tabular-nums">
-              {resolveClub(clubs, virtualClubs, currentMatchResult.homeClubId)?.shortName} {currentMatchResult.homeGoals} - {currentMatchResult.awayGoals} {resolveClub(clubs, virtualClubs, currentMatchResult.awayClubId)?.shortName}
-            </p>
-          </GlassPanel>
-        </motion.div>
-        );
-      })()}
+      {/* The just-played result renders via the Last Match Result card near the
+          top of the page — no second "Last Result" card here. */}
 
       {/* Alerts Row */}
       {(unread > 0 || pendingOffers > 0) && (
@@ -1923,21 +1925,7 @@ const Dashboard = () => {
         </GlassPanel>
       )}
 
-      {/* Transfer Alerts Card */}
-      {pendingOffers > 0 && (
-        <GlassPanel className="p-4 border-primary/20" onClick={() => setScreen('transfers')}>
-          <div className="flex items-center gap-2">
-            <Banknote className="w-4 h-4 text-primary" />
-            <span className="text-xs text-muted-foreground uppercase tracking-wider">Incoming Offers</span>
-          </div>
-          <p className="text-2xl font-black text-foreground mt-1 tabular-nums">
-            {pendingOffers}
-            <span className="text-sm text-muted-foreground font-normal ml-1">
-              pending offer{pendingOffers !== 1 ? 's' : ''}
-            </span>
-          </p>
-        </GlassPanel>
-      )}
+      {/* Incoming offers are covered by the Alerts Row above — no second card. */}
 
       {/* Stats Grid */}
       <div className="space-y-3">
@@ -2061,192 +2049,39 @@ const Dashboard = () => {
       </button>
 
       {showMoreDetails && <>
-      {/* Recent Form with Momentum */}
-      {lastResults.length > 0 && (() => {
-        const recent = lastResults.slice(0, 5).map(m => {
-          const isH = m.homeClubId === playerClubId;
-          return (isH ? m.homeGoals > m.awayGoals : m.awayGoals > m.homeGoals) ? 'W' : (isH ? m.homeGoals < m.awayGoals : m.awayGoals < m.homeGoals) ? 'L' : 'D';
-        });
-        const recentWins = recent.filter(r => r === 'W').length;
-        const recentLosses = recent.filter(r => r === 'L').length;
-        const momentum = recentWins >= 3 ? 'hot' : recentLosses >= 3 ? 'cold' : 'stable';
-        // Form guide narrative — compute best win streak this season for context
-        const allForm = entry?.form || [];
-        let bestStreak = 0;
-        let currentStreak = 0;
-        for (const r of allForm) {
-          if (r === 'W') { currentStreak++; bestStreak = Math.max(bestStreak, currentStreak); } else { currentStreak = 0; }
-        }
-        const formNarrative = winStreak >= 5 && winStreak >= bestStreak
-          ? `Your best run this season — ${winStreak} wins in a row!`
-          : winStreak >= 3 && bestStreak > winStreak
-          ? `${winStreak} wins in a row (season best: ${bestStreak})`
-          : unbeatenRun >= 8
-          ? `${unbeatenRun} matches unbeaten — an incredible run`
-          : recentLosses >= 4
-          ? 'Time to turn things around — fans are worried'
-          : allForm.length >= 10 && recentWins >= HOT_STREAK_MIN_WINS
-          ? `Strong form — ${recentWins} wins in last 5`
-          : null;
-        return (
-          <GlassPanel className={cn('p-4', momentum === 'hot' ? 'border-emerald-500/20' : momentum === 'cold' ? 'border-destructive/20' : '')} onClick={() => setScreen('league-table')}>
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Recent Form</p>
-              {momentum !== 'stable' && (
-                <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full', momentum === 'hot' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-destructive/15 text-destructive')}>
-                  {momentum === 'hot' ? 'HOT STREAK' : 'POOR RUN'}
-                </span>
-              )}
-            </div>
-            <div className="flex gap-2">
-              {lastResults.map((m) => {
-                const isH = m.homeClubId === playerClubId;
-                const won = isH ? m.homeGoals > m.awayGoals : m.awayGoals > m.homeGoals;
-                const lost = isH ? m.homeGoals < m.awayGoals : m.awayGoals < m.homeGoals;
-                return (
-                  <div key={m.id} className={cn(
-                    'w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold',
-                    won ? 'bg-emerald-500/20 text-emerald-400' : lost ? 'bg-destructive/20 text-destructive' : 'bg-muted text-muted-foreground'
-                  )}>
-                    {won ? 'W' : lost ? 'L' : 'D'}
-                  </div>
-                );
-              })}
-            </div>
-            {formNarrative && (
-              <p className={cn(
-                'text-[10px] mt-2 font-medium',
-                momentum === 'hot' ? 'text-emerald-400' : momentum === 'cold' ? 'text-destructive' : 'text-muted-foreground'
-              )}>
-                {formNarrative}
-              </p>
-            )}
-          </GlassPanel>
-        );
-      })()}
+      {/* Recent form lives in the League tile's FormGuide; upcoming fixtures
+          live on the Schedule screen — neither is duplicated here. */}
 
-      {/* Next 3 Fixtures */}
-      {upcomingFixtures.length > 0 && (
-        <GlassPanel className="p-4" onClick={() => setScreen('calendar')}>
-          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Upcoming League Fixtures</p>
-          <div className="space-y-2">
-            {upcomingFixtures.map((fix) => {
-              const fixIsHome = fix.homeClubId === playerClubId;
-              const oppClub = clubs[fixIsHome ? fix.awayClubId : fix.homeClubId];
+      {/* Competitions — one consolidated card listing every active competition
+          (replaces the six stacked CompetitionStatusCards). Taps through to the
+          Competitions hub. */}
+      {activeCompetitions.length > 0 && (
+        <GlassPanel className="p-4" onClick={() => setScreen('competitions')}>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Trophy className="w-4 h-4 text-primary" />
+              <p className="text-sm font-semibold text-foreground">Competitions</p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          </div>
+          <div className="space-y-2.5">
+            {activeCompetitions.map(entry => {
+              const Icon = competitionRowIcon(entry);
               return (
-                <div key={fix.id} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold shrink-0"
-                      style={{ backgroundColor: oppClub?.color, color: oppClub?.secondaryColor }}
-                    >
-                      {oppClub?.shortName?.slice(0, 2)}
-                    </div>
-                    <span className="text-sm text-foreground font-medium">{oppClub?.shortName}</span>
+                <div key={entry.screen} className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Icon className={cn(
+                      'w-4 h-4 shrink-0',
+                      entry.outcome === 'won' ? 'text-primary' : entry.outcome === 'eliminated' ? 'text-destructive' : 'text-muted-foreground',
+                    )} />
+                    <span className="text-sm text-foreground truncate">{entry.title}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className={cn(
-                      'text-[10px] font-semibold px-1.5 py-0.5 rounded',
-                      fixIsHome ? 'bg-emerald-500/15 text-emerald-400' : 'bg-muted text-muted-foreground'
-                    )}>
-                      {fixIsHome ? 'H' : 'A'}
-                    </span>
-                    <span className="text-xs text-muted-foreground tabular-nums">Wk {fix.week}</span>
-                  </div>
+                  <span className="text-xs text-muted-foreground shrink-0">{entry.status}</span>
                 </div>
               );
             })}
           </div>
         </GlassPanel>
-      )}
-
-      {/* Cup Status */}
-      {cup.currentRound && (
-        <CompetitionStatusCard
-          title="Domestic Cup"
-          icon={Award}
-          iconClassName={cn(cup.winner === playerClubId ? 'text-primary' : cup.eliminated ? 'text-destructive' : 'text-muted-foreground')}
-          status={cup.winner ? `Winner: ${clubs[cup.winner]?.shortName}` : cup.eliminated ? 'Eliminated' : getRoundName(cup.currentRound)}
-          onClick={() => setScreen('cup')}
-        />
-      )}
-
-      {/* League Cup Status */}
-      {leagueCup && leagueCup.currentRound && (
-        <CompetitionStatusCard
-          title="League Cup"
-          icon={Award}
-          iconClassName={cn(leagueCup.winner === playerClubId ? 'text-emerald-400' : leagueCup.eliminated ? 'text-destructive' : 'text-muted-foreground')}
-          status={leagueCup.winner ? `Winner: ${clubs[leagueCup.winner]?.shortName}` : leagueCup.eliminated ? 'Eliminated' : getRoundName(leagueCup.currentRound)}
-          onClick={() => setScreen('league-cup')}
-        />
-      )}
-
-      {/* Champions Cup Status */}
-      {championsCup && (
-        <CompetitionStatusCard
-          title="Champions Cup"
-          icon={Trophy}
-          iconClassName={cn(championsCup.winnerId === playerClubId ? 'text-blue-400' : championsCup.playerEliminated ? 'text-destructive' : 'text-blue-400/70')}
-          status={
-            championsCup.winnerId
-              ? `Winner: ${(clubs[championsCup.winnerId] || virtualClubs[championsCup.winnerId])?.shortName || '?'}`
-              : championsCup.playerEliminated ? 'Eliminated'
-              : championsCup.currentPhase === 'group' ? 'Group Stage'
-              : championsCup.currentRound || 'Knockout'
-          }
-          onClick={() => setScreen('champions-cup')}
-        />
-      )}
-
-      {/* Shield Cup Status */}
-      {shieldCup && (
-        <CompetitionStatusCard
-          title="Shield Cup"
-          icon={Shield}
-          iconClassName={cn(shieldCup.winnerId === playerClubId ? 'text-orange-400' : shieldCup.playerEliminated ? 'text-destructive' : 'text-orange-400/70')}
-          status={
-            shieldCup.winnerId
-              ? `Winner: ${(clubs[shieldCup.winnerId] || virtualClubs[shieldCup.winnerId])?.shortName || '?'}`
-              : shieldCup.playerEliminated ? 'Eliminated'
-              : shieldCup.currentPhase === 'group' ? 'Group Stage'
-              : shieldCup.currentRound || 'Knockout'
-          }
-          onClick={() => setScreen('shield-cup')}
-        />
-      )}
-
-      {/* Conference Cup Status */}
-      {conferenceCup && (
-        <CompetitionStatusCard
-          title="Conference Cup"
-          icon={Award}
-          iconClassName={cn(conferenceCup.winnerId === playerClubId ? 'text-emerald-400' : conferenceCup.playerEliminated ? 'text-destructive' : 'text-emerald-400/70')}
-          status={
-            conferenceCup.winnerId
-              ? `Winner: ${(clubs[conferenceCup.winnerId] || virtualClubs[conferenceCup.winnerId])?.shortName || '?'}`
-              : conferenceCup.playerEliminated ? 'Eliminated'
-              : conferenceCup.currentPhase === 'group' ? 'Group Stage'
-              : conferenceCup.currentRound || 'Knockout'
-          }
-          onClick={() => setScreen('conference-cup')}
-        />
-      )}
-
-      {/* Super Cup Status */}
-      {(domesticSuperCup || continentalSuperCup) && (
-        <CompetitionStatusCard
-          title="Super Cup"
-          icon={Trophy}
-          iconClassName={cn((domesticSuperCup?.winnerId === playerClubId || continentalSuperCup?.winnerId === playerClubId) ? 'text-amber-400' : 'text-muted-foreground')}
-          status={
-            domesticSuperCup?.winnerId
-              ? `Winner: ${clubs[domesticSuperCup.winnerId]?.shortName || '?'}`
-              : domesticSuperCup?.played === false ? `Week ${domesticSuperCup.week}`
-              : 'View matches'
-          }
-          onClick={() => setScreen('super-cup')}
-        />
       )}
 
       {/* Board Objectives */}
