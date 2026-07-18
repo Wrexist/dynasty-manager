@@ -27,8 +27,7 @@
  *      blocking narrative/decision modals; grouped after the reward beats so
  *      the player sees what happened before being asked to decide.
  *   8. farewell       — departures; informational, low urgency.
- *   9. boardWarning   — persistent pressure indicator, not time-critical.
- *  10. dailyReward    — the meta daily-login reward, last so it never
+ *   9. dailyReward    — the meta daily-login reward, last so it never
  *      preempts in-fiction beats.
  */
 
@@ -45,7 +44,6 @@ export type OverlayId =
   | 'storyline'
   | 'transferTalk'
   | 'farewell'
-  | 'boardWarning'
   | 'notifPrompt'
   | 'dailyReward';
 
@@ -62,7 +60,8 @@ export const PRESENTATION_ORDER: OverlayId[] = [
   'storyline',
   'transferTalk',
   'farewell',
-  'boardWarning',
+  // boardWarning is intentionally absent: it's an inline banner, and queueing
+  // it starved lower-ranked overlays for entire low-confidence spells.
   // Notification permission ask — after in-fiction beats (incl. the first-win
   // celebration) so the player sees the win before being asked; before the
   // meta daily reward.

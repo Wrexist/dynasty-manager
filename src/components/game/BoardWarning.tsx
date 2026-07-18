@@ -3,7 +3,6 @@ import { useEffect } from 'react';
 import { AlertTriangle, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { hapticError, hapticLight, hapticWarning } from '@/utils/haptics';
-import { usePresentationSlot } from '@/hooks/usePresentationQueue';
 
 interface BoardWarningProps {
   confidence: number;
@@ -61,12 +60,13 @@ const SEVERITY_STYLES = {
 
 export function BoardWarning({ confidence, onDismiss }: BoardWarningProps) {
   const warning = getWarningLevel(confidence);
-  // Presentation queue (G3): only show/buzz when we're the active overlay.
-  const active = usePresentationSlot('boardWarning', !!warning);
-  const visible = !!warning && active;
+  // This is an INLINE banner, not a blocking modal — it deliberately does NOT
+  // register with the presentation queue. When it did, a low-confidence spell
+  // held the active slot until manually dismissed, starving every overlay
+  // ranked below it (notification prompt, daily reward) for weeks at a time.
+  const visible = !!warning;
   // Critical = error notification (the buzz that says "something is broken").
   // Caution + danger = warning notification (the gentler "watch out" tick).
-  // Re-fires only when it becomes visible / severity changes, not while queued.
   const severity = warning?.severity;
   useEffect(() => {
     if (!visible || !severity) return;

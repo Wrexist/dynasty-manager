@@ -271,8 +271,17 @@ const Dashboard = () => {
       .map(id => ACHIEVEMENTS.find(a => a.id === id))
       .filter(Boolean) as Achievement[];
     if (achievements.length > 0) {
-      setPendingAchievementQueue(achievements);
-      setCurrentAchievement(achievements[0]);
+      // Interruption budget: one modal per advance. The highest-tier unlock
+      // gets the full celebration; the rest surface as staggered toasts
+      // instead of a chain of sequential dismiss-tap modals.
+      const tierRank = { gold: 0, silver: 1, bronze: 2 } as const;
+      const sorted = [...achievements].sort((a, b) => tierRank[a.tier] - tierRank[b.tier]);
+      setPendingAchievementQueue([sorted[0]]);
+      setCurrentAchievement(sorted[0]);
+      sorted.slice(1).forEach((a, i) => {
+        const t = setTimeout(() => celebrationToast(`Achievement: ${a.title}`, a.description), (i + 1) * CELEBRATION_STAGGER_MS);
+        celebrationTimersRef.current.push(t);
+      });
       // Haptic fires inside AchievementUnlockModal when it actually becomes
       // visible (presentation queue, G3) — not here at queue time.
     }
