@@ -13,7 +13,9 @@ import { useLineupOptimizer } from '@/hooks/useLineupOptimizer';
 import { Button } from '@/components/ui/button';
 import { getDerbyIntensity, getDerbyName, LEAGUES } from '@/data/league';
 import { getCompetitionInfo } from '@/utils/competitionBadge';
-import { FORMATION_POSITIONS, FormationType, type Position } from '@/types/game';
+import { FORMATION_POSITIONS, FormationType, type Position, type GamePlanId } from '@/types/game';
+import { GAME_PLANS } from '@/config/gamePlan';
+import { Target } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS } from '@/config/ui';
@@ -34,7 +36,7 @@ const FORMATION_HINTS: Record<FormationType, string> = {
 };
 
 const MatchPrep = () => {
-  const { week, clubs, players, playerClubId, leagueTable, monetization, rivalries, playerDivision, seasonPhase } = useGameStore(useShallow((s) => ({
+  const { week, clubs, players, playerClubId, leagueTable, monetization, rivalries, playerDivision, seasonPhase, matchGamePlan } = useGameStore(useShallow((s) => ({
     week: s.week,
     clubs: s.clubs,
     players: s.players,
@@ -44,8 +46,10 @@ const MatchPrep = () => {
     rivalries: s.rivalries,
     playerDivision: s.playerDivision,
     seasonPhase: s.seasonPhase,
+    matchGamePlan: s.matchGamePlan,
   })));
   const setScreen = useGameStore((s) => s.setScreen);
+  const setGamePlan = useGameStore((s) => s.setGamePlan);
   const playCurrentMatch = useGameStore((s) => s.playCurrentMatch);
   const { potentialGain, autoFilling, optimizeLineup, result: optimizeResult, dismissResult: dismissOptimizeResult } = useLineupOptimizer();
   // Instant Sim skips all live tactical control — confirm before committing.
@@ -544,6 +548,47 @@ const MatchPrep = () => {
         })()}
       </GlassPanel>
       )}
+
+      {/* Opposition Game Plan — a pre-match lever to act on the intel above.
+          Applies for the whole match through the same modifier path team talks
+          use (config/gamePlan.ts). */}
+      <GlassPanel className="p-4">
+        <div className="flex items-center gap-2 mb-1">
+          <Target className="w-4 h-4 text-primary" />
+          <h3 className="text-sm font-semibold text-foreground">Game Plan</h3>
+        </div>
+        <p className="text-[10px] text-muted-foreground mb-3">
+          Answer their intel with a plan for the whole match. Each is a tradeoff.
+        </p>
+        <div className="space-y-2">
+          {([{ id: 'none' as GamePlanId, label: 'No Special Plan', tradeoff: 'Play it straight — no tactical tweaks.' }, ...GAME_PLANS]).map(plan => {
+            const isSelected = matchGamePlan === plan.id;
+            const dangerMan = oppKeyPlayers[0];
+            const label = plan.id === 'man_mark' && dangerMan
+              ? `Shackle ${dangerMan.lastName}`
+              : plan.label;
+            return (
+              <button
+                key={plan.id}
+                onClick={() => setGamePlan(isSelected && plan.id !== 'none' ? 'none' : (plan.id as GamePlanId))}
+                aria-pressed={isSelected}
+                className={cn(
+                  'w-full text-left rounded-lg border p-2.5 transition-all',
+                  isSelected ? 'border-primary bg-primary/10' : 'border-border/50 bg-muted/20 hover:bg-muted/30'
+                )}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className={cn('text-xs font-semibold', isSelected ? 'text-primary' : 'text-foreground')}>{label}</span>
+                  {isSelected && plan.id !== 'none' && (
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-primary shrink-0">Selected</span>
+                  )}
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{plan.tradeoff}</p>
+              </button>
+            );
+          })}
+        </div>
+      </GlassPanel>
 
       {/* Lineup & Bench */}
       <GlassPanel className="p-4">

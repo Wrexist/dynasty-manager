@@ -17,6 +17,7 @@ import { CUP_EXTRA_TIME_GOAL_CHANCE, CUP_EXTRA_TIME_REPUTATION_DIVISOR, CUP_PENA
 import { MOD_DISCIPLINE_CARDS, REP_DRAW, REP_LOSS, REP_WIN } from '@/config/managerCareer';
 import { SHOUT_CUMULATIVE_SCALE, SHOUT_MODIFIERS } from '@/config/matchEngine';
 import { CALM_DEFENSE_BOOST, CALM_FITNESS_DRAIN_MULT, CALM_FOUL_REDUCTION, DEMAND_ATTACK_BOOST, DEMAND_DEFENSE_PENALTY, DEMAND_FITNESS_DRAIN_MULT, MOTIVATE_ATTACK_BOOST, MOTIVATE_FITNESS_DRAIN_MULT, MOTIVATE_FOUL_BONUS, teamTalkModifiers } from '@/config/teamTalk';
+import { mergeGamePlanMods } from '@/config/gamePlan';
 import { advanceCupRound, getRoundName } from '@/data/cup';
 import { getDerbyIntensity } from '@/data/league';
 import { generatePressConference } from '@/data/pressConferences';
@@ -1032,7 +1033,12 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   // pre-match talk, which sets `matchTeamTalk` before kickoff. Apply it to the
   // FIRST half here, then clear it below so half-time starts fresh — the
   // pre-match and half-time talks are independent one-shots.
-  const preMatchTalkMods = teamTalkModifiers(state.matchTeamTalk);
+  // Fold the pre-match game plan (Opposition Game Plans) into the first-half
+  // mods. Unlike the pre-match team talk (cleared at half-time below), the game
+  // plan is a whole-match decision — it also applies to the second half and
+  // extra time via the same merge, and is only cleared when the result screen
+  // is dismissed (clearMatchResult).
+  const preMatchTalkMods = mergeGamePlanMods(teamTalkModifiers(state.matchTeamTalk), state.matchGamePlan);
   const halfState = simulateHalf(hc, ac, hp, ap, 1, 45, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, undefined, halfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities, season, halfCareerMod, hBench, aBench, preMatchTalkMods, matchWeather, spCoachBonus);
 
   // Determine which cup tracking IDs to set
@@ -1184,10 +1190,12 @@ export function playSecondHalfImpl(set: Set, get: Get): Match | null {
   // Aggregate first-half shout effects as second-half modifiers
   const shoutMods = computeShoutMods(state.matchShouts);
 
-  // Merge team talk + shout modifiers
-  const combinedMods = teamTalkMods
+  // Merge team talk + shout modifiers, then fold in the pre-match game plan
+  // (Opposition Game Plans) so it keeps applying through the second half.
+  const talkAndShoutMods = teamTalkMods
     ? { attackMod: teamTalkMods.attackMod + shoutMods.attackMod, defenseMod: teamTalkMods.defenseMod + shoutMods.defenseMod, foulMod: teamTalkMods.foulMod + shoutMods.foulMod, fitnessDrainMult: teamTalkMods.fitnessDrainMult }
     : (shoutMods.attackMod || shoutMods.defenseMod || shoutMods.foulMod) ? { ...shoutMods, fitnessDrainMult: 1 as number } : undefined;
+  const combinedMods = mergeGamePlanMods(talkAndShoutMods, state.matchGamePlan);
 
   const spCoachBonus2H = hasPerk(state.managerProgression, 'set_piece_coach') ? 0.009 * dynastyMult(state.managerProgression) : 0;
   const fullState = simulateHalf(hc, ac, hp, ap, 46, 90, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, secondHalfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities, season, secondHalfCareerMod, undefined, undefined, combinedMods, currentMatchWeather ?? undefined, spCoachBonus2H);
@@ -1394,9 +1402,11 @@ export function playExtraTimeImpl(set: Set, get: Get): Match | null {
     return { attackMod: DEMAND_ATTACK_BOOST, defenseMod: -DEMAND_DEFENSE_PENALTY, foulMod: 0, fitnessDrainMult: DEMAND_FITNESS_DRAIN_MULT };
   })();
   const etShoutMods = computeShoutMods(state.matchShouts);
-  const etMods = etTeamTalkMods
+  const etTalkAndShoutMods = etTeamTalkMods
     ? { attackMod: etTeamTalkMods.attackMod + etShoutMods.attackMod, defenseMod: etTeamTalkMods.defenseMod + etShoutMods.defenseMod, foulMod: etTeamTalkMods.foulMod + etShoutMods.foulMod, fitnessDrainMult: etTeamTalkMods.fitnessDrainMult }
     : (etShoutMods.attackMod || etShoutMods.defenseMod || etShoutMods.foulMod) ? { ...etShoutMods, fitnessDrainMult: 1 as number } : undefined;
+  // Game plan (Opposition Game Plans) persists into extra time too.
+  const etMods = mergeGamePlanMods(etTalkAndShoutMods, state.matchGamePlan);
   const spCoachBonusET = hasPerk(state.managerProgression, 'set_piece_coach') ? 0.009 * dynastyMult(state.managerProgression) : 0;
   const etWeather = state.currentMatchWeather;
   const etState = simulateHalf(hc, ac, hp, ap, 91, 120, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, derbyInt, hasDisciplinarian, hc.facilities, ac.facilities, season, etCareerMod, undefined, undefined, etMods, etWeather ?? undefined, spCoachBonusET);

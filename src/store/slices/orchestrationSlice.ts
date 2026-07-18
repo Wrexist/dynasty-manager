@@ -496,7 +496,7 @@ function buildFreshSessionState(get: Get): Partial<GameState> {
     currentMatchResult: null, matchSubsUsed: 0, matchSubbedOffIds: [], currentCupTieId: null,
     // Match-scoped state that previously persisted across resets — audit
     // finding O2 (stale shootout kicks, leftover team talk, etc.).
-    matchTeamTalk: 'none' as const, matchShouts: [],
+    matchTeamTalk: 'none' as const, matchGamePlan: 'none' as const, matchShouts: [],
     penaltyShootoutKicks: [], penaltyShootoutRevealIndex: 0, penaltyShootoutCtx: null,
     preMatchSnapshot: null, lastMatchDrama: null, lastMatchCompetition: null,
     transferMarket: [], shortlist: [], scoutWatchList: [], transferNews: [],
@@ -1027,9 +1027,11 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         clubPowerRankings: data.clubPowerRankings || {},
         communityPackEnabled: data.communityPackEnabled || false,
         cpPool: data.cpPool || { shuffleSeed: 0, cursor: 0, usedFcIds: [], marketListings: [], lastMarketRefreshWeek: 0, lastSeedSeason: 0 },
-        // Transient match-scoped field — reset on load so a team talk from
-        // a previously-loaded slot can't leak into the freshly loaded game.
+        // Transient match-scoped fields — reset on load so a team talk / game
+        // plan from a previously-loaded slot can't leak into the freshly
+        // loaded game.
         matchTeamTalk: 'none' as const,
+        matchGamePlan: 'none' as const,
         // Loaded data IS the current on-disk state → reflect that in the
         // indicator so it doesn't sit blank until the first autosave fires.
         saveStatus: 'saved' as const,
@@ -1160,6 +1162,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       currentMatchResult: null,
       matchPlayerRatings: [],
       matchTeamTalk: 'none' as const,
+      matchGamePlan: 'none' as const,
       matchShouts: [],
       penaltyShootoutKicks: [],
       penaltyShootoutRevealIndex: 0,

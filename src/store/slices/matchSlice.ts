@@ -1,5 +1,5 @@
 import type { GameState } from '../storeTypes';
-import type { TeamTalkType, PenaltyKick, PenaltyShootoutCtx, MatchShout, ShoutType, Match } from '@/types/game';
+import type { TeamTalkType, GamePlanId, PenaltyKick, PenaltyShootoutCtx, MatchShout, ShoutType, Match } from '@/types/game';
 import { MAX_SUBSTITUTIONS, SHOUT_DURATION, SHOUT_COOLDOWN, MAX_SHOUTS_PER_MATCH } from '@/config/matchEngine';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
@@ -18,6 +18,7 @@ export const createMatchSlice = (set: Set, get: Get) => ({
   currentMatchWeather: null as GameState['currentMatchWeather'],
   matchPhase: 'none' as GameState['matchPhase'],
   matchTeamTalk: 'none' as TeamTalkType,
+  matchGamePlan: 'none' as GamePlanId,
   preMatchLeaguePosition: 10,
   lastMatchXPGain: 0,
   currentCupTieId: null as GameState['currentCupTieId'],
@@ -32,6 +33,7 @@ export const createMatchSlice = (set: Set, get: Get) => ({
     currentMatchWeather: null,
     matchPhase: 'none',
     matchTeamTalk: 'none',
+    matchGamePlan: 'none',
     currentCupTieId: null,
     penaltyShootoutKicks: [],
     penaltyShootoutRevealIndex: 0,
@@ -79,6 +81,7 @@ export const createMatchSlice = (set: Set, get: Get) => ({
       // Match-scoped transients must not leak into the replay.
       matchShouts: [],
       matchTeamTalk: 'none',
+      matchGamePlan: 'none',
       matchSubsUsed: 0,
       matchSubbedOffIds: [],
       preMatchSnapshot: null,
@@ -209,6 +212,8 @@ export const createMatchSlice = (set: Set, get: Get) => ({
   },
 
   setTeamTalk: (talk: TeamTalkType) => set({ matchTeamTalk: talk }),
+
+  setGamePlan: (plan: GamePlanId) => set({ matchGamePlan: plan }),
 
   makeMatchSub: (outId: string, inId: string, minute?: number): { success: boolean; message?: string } => {
     const state = get();

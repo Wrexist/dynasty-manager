@@ -1260,7 +1260,7 @@ function finalizeSeason(
     boardUltimatum: null, // a new season wipes any active ultimatum
     seasonHistory: [...state.seasonHistory, history],
     currentMatchResult: null, currentScreen: 'season-summary',
-    matchPhase: 'none' as const, matchTeamTalk: 'none', pendingPressConference: null,
+    matchPhase: 'none' as const, matchTeamTalk: 'none', matchGamePlan: 'none', pendingPressConference: null,
     messages: newMessages, incomingOffers: [], matchSubsUsed: 0, galacticoUsedThisSeason: false, invincibleUsedThisSeason: false, preMatchSnapshot: null, shortlist: [], scoutWatchList: [],
     sponsorDeals: sponsorSeasonEnd.sponsorDeals || state.sponsorDeals,
     sponsorOffers: [],
