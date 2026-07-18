@@ -97,11 +97,11 @@ const ALL_ITEMS: DrawerItem[] = drawerSections.flatMap(s => s.items);
 const PINNED_ITEMS = PINNED_DRAWER_SCREENS.map(screen => ALL_ITEMS.find(i => i.screen === screen)).filter(Boolean) as DrawerItem[];
 const PINNED_SET = new Set(PINNED_DRAWER_SCREENS);
 
-// Sections that collapse by default for new players. The "Career" section
-// stays expanded — in career mode it holds the only entry points to Career
-// Overview and Job Market (where the resign button lives), and burying them
-// behind a collapsed section made the resign flow undiscoverable.
-const NEW_PLAYER_COLLAPSED_SECTIONS = new Set(['Management']);
+// Sections that collapse by default for new players. "Career" stays expanded
+// (it holds the only entry points to Career Overview and Job Market), and
+// "Management" stays expanded too — the drawer is the only home for
+// Facilities/Finance/Merchandise, and collapsing it made them undiscoverable.
+const NEW_PLAYER_COLLAPSED_SECTIONS = new Set<string>([]);
 
 interface MoreDrawerProps {
   disabled?: boolean;

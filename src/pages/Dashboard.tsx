@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
-import { getSuffix, resolveClub, formatMoney } from '@/utils/helpers';
+import { getSuffix, formatMoney } from '@/utils/helpers';
 import { getConfidenceColor, getFanConfidenceColor, getFanConfidence } from '@/utils/uiHelpers';
 import { usePlayerClub, useLeaguePosition, useCurrentMatch, useUnreadCount, findTournamentMatch, useSquadAverageMorale } from '@/hooks/useGameSelectors';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import {
   Play, ChevronRight, ChevronDown, TrendingUp, DollarSign, Heart, Trophy, Calendar, Mail, ShoppingBag,
   Dumbbell, AlertTriangle, Banknote, Users, Shield, BarChart3, UserPlus, Award, Flame, Zap, Loader2, FastForward, Package,
+  Building2, Search, GraduationCap,
 } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { PremiumCheck } from '@/components/game/icons/PremiumCheck';
@@ -63,7 +64,7 @@ import { WeeklyDigest } from '@/components/game/WeeklyDigest';
 import { FinanceBreakdownSheet, FinanceSheetMode } from '@/components/game/FinanceBreakdownSheet';
 import { AnimatedNumber } from '@/components/game/AnimatedNumber';
 import { useFlash } from '@/hooks/useFlash';
-import { HELP_TEXTS, MID_SEASON_WEEK, CONFIDENCE_CRITICAL_THRESHOLD, CONFIDENCE_LOW_THRESHOLD, FAN_MOOD_HIGH_THRESHOLD, FAN_MOOD_MID_THRESHOLD, HOT_STREAK_MIN_WINS } from '@/config/ui';
+import { HELP_TEXTS, MID_SEASON_WEEK, CONFIDENCE_CRITICAL_THRESHOLD, CONFIDENCE_LOW_THRESHOLD, FAN_MOOD_HIGH_THRESHOLD, FAN_MOOD_MID_THRESHOLD } from '@/config/ui';
 import { CONFIDENCE_CHANGE_DISMISS_THRESHOLD } from '@/config/gameBalance';
 import { getManagerTips, type TipType } from '@/utils/managerTips';
 import { getActiveRecordChases } from '@/utils/records';
@@ -90,15 +91,18 @@ const CHEVRON_SPRING = { type: 'spring' as const, stiffness: 320, damping: 26 };
 // a radial `glow` behind the tile, and a translucent `chip` background
 // for the icon badge. Keeping adjacent tiles visually distinct is the
 // goal — no two tiles share a hue.
+// Quick Links complement the bottom nav instead of duplicating it: Squad,
+// Tactics, Training and Transfers are already one tap away in the bottom bar,
+// so these tiles surface the buried club-management screens instead.
 const QUICK_LINKS = [
-  { label: 'Schedule',  screen: 'calendar'     as const, icon: Calendar,  color: 'text-cyan-400',    glow: 'bg-cyan-500',    chip: 'bg-cyan-500/10 border-cyan-500/30' },
-  { label: 'League',    screen: 'league-table' as const, icon: Trophy,    color: 'text-amber-400',   glow: 'bg-amber-500',   chip: 'bg-amber-500/10 border-amber-500/30' },
-  { label: 'Squad',     screen: 'squad'        as const, icon: Users,     color: 'text-sky-400',     glow: 'bg-sky-500',     chip: 'bg-sky-500/10 border-sky-500/30' },
-  { label: 'Tactics',   screen: 'tactics'      as const, icon: Shield,    color: 'text-blue-400',    glow: 'bg-blue-500',    chip: 'bg-blue-500/10 border-blue-500/30' },
-  { label: 'Training',  screen: 'training'     as const, icon: Dumbbell,  color: 'text-emerald-400', glow: 'bg-emerald-500', chip: 'bg-emerald-500/10 border-emerald-500/30' },
-  { label: 'Packs',     screen: 'packs'        as const, icon: Package,   color: 'text-yellow-300',  glow: 'bg-yellow-400',  chip: 'bg-yellow-400/10 border-yellow-400/30' },
-  { label: 'Transfers', screen: 'transfers'    as const, icon: UserPlus,  color: 'text-rose-400',    glow: 'bg-rose-500',    chip: 'bg-rose-500/10 border-rose-500/30' },
-  { label: 'Cup',       screen: 'cup'          as const, icon: BarChart3, color: 'text-orange-400',  glow: 'bg-orange-500',  chip: 'bg-orange-500/10 border-orange-500/30' },
+  { label: 'Schedule',   screen: 'calendar'      as const, icon: Calendar,      color: 'text-cyan-400',    glow: 'bg-cyan-500',    chip: 'bg-cyan-500/10 border-cyan-500/30' },
+  { label: 'League',     screen: 'league-table'  as const, icon: Trophy,        color: 'text-amber-400',   glow: 'bg-amber-500',   chip: 'bg-amber-500/10 border-amber-500/30' },
+  { label: 'Finance',    screen: 'finance'       as const, icon: Banknote,      color: 'text-emerald-400', glow: 'bg-emerald-500', chip: 'bg-emerald-500/10 border-emerald-500/30' },
+  { label: 'Facilities', screen: 'facilities'    as const, icon: Building2,     color: 'text-sky-400',     glow: 'bg-sky-500',     chip: 'bg-sky-500/10 border-sky-500/30' },
+  { label: 'Scouting',   screen: 'scouting'      as const, icon: Search,        color: 'text-blue-400',    glow: 'bg-blue-500',    chip: 'bg-blue-500/10 border-blue-500/30' },
+  { label: 'Packs',      screen: 'packs'         as const, icon: Package,       color: 'text-yellow-300',  glow: 'bg-yellow-400',  chip: 'bg-yellow-400/10 border-yellow-400/30' },
+  { label: 'Youth',      screen: 'youth-academy' as const, icon: GraduationCap, color: 'text-rose-400',    glow: 'bg-rose-500',    chip: 'bg-rose-500/10 border-rose-500/30' },
+  { label: 'Cup',        screen: 'cup'           as const, icon: BarChart3,     color: 'text-orange-400',  glow: 'bg-orange-500',  chip: 'bg-orange-500/10 border-orange-500/30' },
 ];
 const TIP_BG: Record<TipType, string> = {
   warning: 'bg-destructive/10',
@@ -122,7 +126,7 @@ const Dashboard = () => {
   const {
     playerClubId, clubs, players, week, season, fixtures, leagueTable,
     boardConfidence, boardObjectives,
-    currentMatchResult, incomingOffers, trainingFocus, cup,
+    incomingOffers, trainingFocus, cup,
     leagueCup, championsCup, shieldCup, conferenceCup, virtualClubs, domesticSuperCup, continentalSuperCup,
     weekCliffhangers, objectiveStreak,
     facilities, scouting, divisionTables, playerDivision,
@@ -138,7 +142,7 @@ const Dashboard = () => {
     playerClubId: s.playerClubId, clubs: s.clubs, players: s.players,
     week: s.week, season: s.season, fixtures: s.fixtures, leagueTable: s.leagueTable,
     boardConfidence: s.boardConfidence, boardObjectives: s.boardObjectives,
-    currentMatchResult: s.currentMatchResult, incomingOffers: s.incomingOffers,
+    incomingOffers: s.incomingOffers,
     trainingFocus: s.trainingFocus, cup: s.cup,
     leagueCup: s.leagueCup, championsCup: s.championsCup,
     shieldCup: s.shieldCup, conferenceCup: s.conferenceCup, virtualClubs: s.virtualClubs,
@@ -354,11 +358,6 @@ const Dashboard = () => {
   }, [week]); // Only depend on week — read other values from getState() to avoid cascading re-renders
 
   // ── Derived data (memoized) — must be above early return to avoid conditional hooks ──
-
-  const lastResults = useMemo(() => fixtures
-    .filter(m => m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId))
-    .sort((a, b) => b.week - a.week)
-    .slice(0, 5), [fixtures, playerClubId]);
 
   const entry = useMemo(() => leagueTable.find(e => e.clubId === playerClubId), [leagueTable, playerClubId]);
 
@@ -635,12 +634,6 @@ const Dashboard = () => {
     return { oppName: oppClub?.shortName || '?', score: `${lastMatch.homeGoals}-${lastMatch.awayGoals}`, result, week: lastMatch.week };
   }, [fixtures, playerClubId, clubs]);
 
-  // Next 3 unplayed fixtures for player club
-  const upcomingFixtures = useMemo(() => fixtures
-    .filter(m => !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId) && m.week > week)
-    .sort((a, b) => a.week - b.week)
-    .slice(0, 3), [fixtures, playerClubId, week]);
-
   const inPlayoffs = (seasonPhase as string) === 'playoffs';
   const competitionInfo = getCompetitionInfo(competition, {
     inPlayoffs,
@@ -694,22 +687,15 @@ const Dashboard = () => {
   // Board-critical confidence is already surfaced via <BoardWarning />, so we
   // don't re-dot it here (the 'club' tile was removed and that entry would be
   // dead code anyway).
-  // Count resolvable players, not raw IDs — a dangling ID (sold/deleted player)
-  // would otherwise satisfy the count here while MatchDay's gate rejects it.
-  const lineupIncomplete = (club.lineup || []).filter(id => !!players[id]).length < 11;
   const packPityRemaining = Math.max(0, PACK_PITY_THRESHOLD - packPityCounter);
   const packPityPrimed = packPityRemaining <= 2;
   // A free daily pack the player hasn't opened today — surfaced as a simple dot
   // when the higher-priority pity badge isn't showing.
   const freePackAvailable = hasUnclaimedFreeDailyPack(dailyPackOpens);
-  // Quick-link badges. Most links carry a simple coloured dot when there's
-  // something to attend to; the packs link gets a premium count badge so
-  // the user can see "1 pack to guarantee" or "✦ ready" at a glance from
-  // any screen without opening the packs shop first.
+  // Quick-link badges. Squad/Tactics/Training/Transfers moved out of the grid
+  // (they live in the bottom nav), so only the packs badge remains here; the
+  // lineup/window/familiarity nudges surface via Manager Tips instead.
   const quickLinkBadges: Record<string, { color: string; label?: string; labelColor?: string }> = {
-    ...(lineupIncomplete ? { squad: { color: 'bg-destructive' } } : {}),
-    ...(transferWindowOpen ? { transfers: { color: 'bg-emerald-500' } } : {}),
-    ...(training.tacticalFamiliarity < 40 ? { training: { color: 'bg-amber-500' } } : {}),
     ...(packPityPrimed
       ? {
           packs: packPityRemaining === 0
@@ -1800,19 +1786,7 @@ const Dashboard = () => {
         </motion.div>
       )}
 
-      {/* Objective streak XP multiplier notification */}
-      {objectiveStreak >= 2 && (
-        <GlassPanel className={cn('p-3', objectiveStreak >= OBJECTIVE_STREAK_THRESHOLD ? 'border-amber-500/30 bg-amber-500/5' : 'border-primary/20 bg-primary/5')}>
-          <div className="flex items-center gap-2 text-xs">
-            <Flame className={cn('w-4 h-4', objectiveStreak >= OBJECTIVE_STREAK_THRESHOLD ? 'text-amber-400' : 'text-primary')} />
-            <span className={cn('font-bold', objectiveStreak >= OBJECTIVE_STREAK_THRESHOLD ? 'text-amber-400' : 'text-primary')}>
-              {objectiveStreak >= OBJECTIVE_STREAK_THRESHOLD
-                ? `Streak x${objectiveStreak} — 2x XP Multiplier Active!`
-                : `${objectiveStreak}-month objective streak! ${OBJECTIVE_STREAK_THRESHOLD - objectiveStreak} more for 2x XP.`}
-            </span>
-          </div>
-        </GlassPanel>
-      )}
+      {/* Objective streak multiplier lives in the objectives header — no standalone card. */}
 
       {/* Record Chase — player approaching a club record */}
       {recordChases.length > 0 && (
@@ -1829,24 +1803,8 @@ const Dashboard = () => {
         </GlassPanel>
       )}
 
-      {/* Last match result */}
-      {currentMatchResult && (() => {
-        const isHome = currentMatchResult.homeClubId === playerClubId;
-        const pG = isHome ? currentMatchResult.homeGoals : currentMatchResult.awayGoals;
-        const oG = isHome ? currentMatchResult.awayGoals : currentMatchResult.homeGoals;
-        const resultBorder = pG > oG ? 'border-emerald-500/30' : pG < oG ? 'border-destructive/30' : 'border-amber-500/30';
-        const resultText = pG > oG ? 'text-emerald-400' : pG < oG ? 'text-destructive' : 'text-amber-400';
-        return (
-        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
-          <GlassPanel className={cn("p-4", resultBorder)} onClick={() => setScreen('match-review')}>
-            <p className={cn("text-[10px] uppercase tracking-wider mb-1", resultText)}>Last Result</p>
-            <p className="text-lg font-black text-foreground tabular-nums">
-              {resolveClub(clubs, virtualClubs, currentMatchResult.homeClubId)?.shortName} {currentMatchResult.homeGoals} - {currentMatchResult.awayGoals} {resolveClub(clubs, virtualClubs, currentMatchResult.awayClubId)?.shortName}
-            </p>
-          </GlassPanel>
-        </motion.div>
-        );
-      })()}
+      {/* The just-played result renders via the Last Match Result card near the
+          top of the page — no second "Last Result" card here. */}
 
       {/* Alerts Row */}
       {(unread > 0 || pendingOffers > 0) && (
@@ -1923,21 +1881,7 @@ const Dashboard = () => {
         </GlassPanel>
       )}
 
-      {/* Transfer Alerts Card */}
-      {pendingOffers > 0 && (
-        <GlassPanel className="p-4 border-primary/20" onClick={() => setScreen('transfers')}>
-          <div className="flex items-center gap-2">
-            <Banknote className="w-4 h-4 text-primary" />
-            <span className="text-xs text-muted-foreground uppercase tracking-wider">Incoming Offers</span>
-          </div>
-          <p className="text-2xl font-black text-foreground mt-1 tabular-nums">
-            {pendingOffers}
-            <span className="text-sm text-muted-foreground font-normal ml-1">
-              pending offer{pendingOffers !== 1 ? 's' : ''}
-            </span>
-          </p>
-        </GlassPanel>
-      )}
+      {/* Incoming offers are covered by the Alerts Row above — no second card. */}
 
       {/* Stats Grid */}
       <div className="space-y-3">
@@ -2061,104 +2005,8 @@ const Dashboard = () => {
       </button>
 
       {showMoreDetails && <>
-      {/* Recent Form with Momentum */}
-      {lastResults.length > 0 && (() => {
-        const recent = lastResults.slice(0, 5).map(m => {
-          const isH = m.homeClubId === playerClubId;
-          return (isH ? m.homeGoals > m.awayGoals : m.awayGoals > m.homeGoals) ? 'W' : (isH ? m.homeGoals < m.awayGoals : m.awayGoals < m.homeGoals) ? 'L' : 'D';
-        });
-        const recentWins = recent.filter(r => r === 'W').length;
-        const recentLosses = recent.filter(r => r === 'L').length;
-        const momentum = recentWins >= 3 ? 'hot' : recentLosses >= 3 ? 'cold' : 'stable';
-        // Form guide narrative — compute best win streak this season for context
-        const allForm = entry?.form || [];
-        let bestStreak = 0;
-        let currentStreak = 0;
-        for (const r of allForm) {
-          if (r === 'W') { currentStreak++; bestStreak = Math.max(bestStreak, currentStreak); } else { currentStreak = 0; }
-        }
-        const formNarrative = winStreak >= 5 && winStreak >= bestStreak
-          ? `Your best run this season — ${winStreak} wins in a row!`
-          : winStreak >= 3 && bestStreak > winStreak
-          ? `${winStreak} wins in a row (season best: ${bestStreak})`
-          : unbeatenRun >= 8
-          ? `${unbeatenRun} matches unbeaten — an incredible run`
-          : recentLosses >= 4
-          ? 'Time to turn things around — fans are worried'
-          : allForm.length >= 10 && recentWins >= HOT_STREAK_MIN_WINS
-          ? `Strong form — ${recentWins} wins in last 5`
-          : null;
-        return (
-          <GlassPanel className={cn('p-4', momentum === 'hot' ? 'border-emerald-500/20' : momentum === 'cold' ? 'border-destructive/20' : '')} onClick={() => setScreen('league-table')}>
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Recent Form</p>
-              {momentum !== 'stable' && (
-                <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full', momentum === 'hot' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-destructive/15 text-destructive')}>
-                  {momentum === 'hot' ? 'HOT STREAK' : 'POOR RUN'}
-                </span>
-              )}
-            </div>
-            <div className="flex gap-2">
-              {lastResults.map((m) => {
-                const isH = m.homeClubId === playerClubId;
-                const won = isH ? m.homeGoals > m.awayGoals : m.awayGoals > m.homeGoals;
-                const lost = isH ? m.homeGoals < m.awayGoals : m.awayGoals < m.homeGoals;
-                return (
-                  <div key={m.id} className={cn(
-                    'w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold',
-                    won ? 'bg-emerald-500/20 text-emerald-400' : lost ? 'bg-destructive/20 text-destructive' : 'bg-muted text-muted-foreground'
-                  )}>
-                    {won ? 'W' : lost ? 'L' : 'D'}
-                  </div>
-                );
-              })}
-            </div>
-            {formNarrative && (
-              <p className={cn(
-                'text-[10px] mt-2 font-medium',
-                momentum === 'hot' ? 'text-emerald-400' : momentum === 'cold' ? 'text-destructive' : 'text-muted-foreground'
-              )}>
-                {formNarrative}
-              </p>
-            )}
-          </GlassPanel>
-        );
-      })()}
-
-      {/* Next 3 Fixtures */}
-      {upcomingFixtures.length > 0 && (
-        <GlassPanel className="p-4" onClick={() => setScreen('calendar')}>
-          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Upcoming League Fixtures</p>
-          <div className="space-y-2">
-            {upcomingFixtures.map((fix) => {
-              const fixIsHome = fix.homeClubId === playerClubId;
-              const oppClub = clubs[fixIsHome ? fix.awayClubId : fix.homeClubId];
-              return (
-                <div key={fix.id} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold shrink-0"
-                      style={{ backgroundColor: oppClub?.color, color: oppClub?.secondaryColor }}
-                    >
-                      {oppClub?.shortName?.slice(0, 2)}
-                    </div>
-                    <span className="text-sm text-foreground font-medium">{oppClub?.shortName}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={cn(
-                      'text-[10px] font-semibold px-1.5 py-0.5 rounded',
-                      fixIsHome ? 'bg-emerald-500/15 text-emerald-400' : 'bg-muted text-muted-foreground'
-                    )}>
-                      {fixIsHome ? 'H' : 'A'}
-                    </span>
-                    <span className="text-xs text-muted-foreground tabular-nums">Wk {fix.week}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </GlassPanel>
-      )}
+      {/* Recent form lives in the League tile's FormGuide; upcoming fixtures
+          live on the Schedule screen — neither is duplicated here. */}
 
       {/* Cup Status */}
       {cup.currentRound && (

@@ -16,7 +16,6 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { toast } from 'sonner';
 import { Flame, Check, X, Sparkles, Gift } from 'lucide-react';
 import { useGameStore } from '@/store/gameStore';
 import { evaluateDailyStreak, localDateKey, type DailyStreakStatus } from '@/utils/dailyStreak';
@@ -77,9 +76,7 @@ export function DailyRewardModal() {
     hapticSuccess();
     setStatus(result);
     setClaimed(true);
-    toast.success(`Day ${result.current} streak!`, {
-      description: `+${result.rewardXP} XP collected. Come back tomorrow to keep it going.`,
-    });
+    // The modal itself shows the claimed reward — no toast on top of it.
     closeTimerRef.current = window.setTimeout(() => setOpen(false), 1500);
   };
 
