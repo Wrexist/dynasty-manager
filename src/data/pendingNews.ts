@@ -64,6 +64,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Add App Store screenshot generator with 3D device rendering.',
     'Resize App Store screenshots to 1284x2778, output to /marketing.',
     'Add Terms of Use (EULA) link to App Description metadata.',
+    'Consolidate competitions & add Rivalries Hub, Game Plans, Mastery Ranks.',
   ],
   fixed: [],
   headline: null,
