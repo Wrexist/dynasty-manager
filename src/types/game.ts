@@ -74,6 +74,35 @@ export interface HeadToHeadRecord {
   grudgeLevel: number; // 0-5, increases on losses, decreases on wins
 }
 
+/**
+ * Derived (runtime-only) view-model for the Rivalries Hub. Built by
+ * `src/utils/rivalries.ts` from persisted `rivalries` head-to-head records +
+ * the hardcoded DERBIES table + current-season fixtures. NEVER persisted — no
+ * save-migration cost.
+ */
+export interface RivalSummary {
+  clubId: string;
+  name: string;
+  shortName: string;
+  color: string;
+  secondaryColor: string;
+  /** Derby name if these two clubs are a hardcoded rivalry, else null. */
+  derbyName: string | null;
+  /** Derby intensity 1-3, or 0 if not a hardcoded derby. */
+  derbyIntensity: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  meetings: number;
+  grudgeLevel: number; // 0-5
+  /** Current run of identical results vs this rival (from played fixtures), or null. */
+  streak: { type: 'W' | 'D' | 'L'; count: number } | null;
+  /** Week of the next scheduled meeting this season, or null if none upcoming. */
+  nextMeetingWeek: number | null;
+  /** Wins as a share of decisive meetings (0-1); 0.5 when never met decisively. */
+  dominance: number;
+}
+
 export type Position = 'GK' | 'CB' | 'LB' | 'RB' | 'CDM' | 'CM' | 'CAM' | 'LM' | 'RM' | 'LW' | 'RW' | 'ST';
 
 export type FormationType = '4-4-2' | '4-3-3' | '3-5-2' | '4-2-3-1' | '4-1-4-1' | '3-4-3' | '5-3-2' | '4-5-1' | '4-1-2-1-2' | '3-4-1-2';
@@ -90,7 +119,7 @@ export interface RedeemResult {
   amount?: number;
 }
 
-export type GameScreen = 'dashboard' | 'squad' | 'tactics' | 'transfers' | 'club' | 'match' | 'player-detail' | 'league-table' | 'inbox' | 'season-summary' | 'calendar' | 'training' | 'scouting' | 'packs' | 'staff' | 'youth-academy' | 'facilities' | 'finance' | 'merchandise' | 'match-prep' | 'match-review' | 'board' | 'settings' | 'comparison' | 'manager-profile' | 'cup' | 'league-cup' | 'champions-cup' | 'shield-cup' | 'conference-cup' | 'super-cup' | 'perks' | 'trophy-cabinet' | 'prestige' | 'hall-of-managers' | 'team-detail' | 'shop' | 'help' | 'whats-new' | 'national-team' | 'national-squad-picker' | 'international-tournament' | 'job-market' | 'career-overview' | 'ballon-dor' | 'festival' | 'dynasty-legacy' | 'world-cup-draw' | 'world-cup-result';
+export type GameScreen = 'dashboard' | 'squad' | 'tactics' | 'transfers' | 'club' | 'match' | 'player-detail' | 'league-table' | 'inbox' | 'season-summary' | 'calendar' | 'training' | 'scouting' | 'packs' | 'staff' | 'youth-academy' | 'facilities' | 'finance' | 'merchandise' | 'match-prep' | 'match-review' | 'board' | 'settings' | 'comparison' | 'manager-profile' | 'cup' | 'league-cup' | 'champions-cup' | 'shield-cup' | 'conference-cup' | 'super-cup' | 'perks' | 'trophy-cabinet' | 'prestige' | 'hall-of-managers' | 'team-detail' | 'shop' | 'help' | 'whats-new' | 'national-team' | 'national-squad-picker' | 'international-tournament' | 'job-market' | 'career-overview' | 'ballon-dor' | 'festival' | 'dynasty-legacy' | 'world-cup-draw' | 'world-cup-result' | 'rivalries';
 
 export interface PlayerAttributes {
   pace: number;
@@ -950,6 +979,11 @@ export interface GameSettings {
 
 // ── Team Talk ──
 export type TeamTalkType = 'motivate' | 'calm' | 'demand' | 'none';
+
+// ── Opposition Game Plan ──
+// A pre-match tactical response to the opponent intel shown in Match Prep.
+// Transient (never persisted) — mirrors TeamTalkType handling.
+export type GamePlanId = 'man_mark' | 'target_flank' | 'sit_deep' | 'none';
 
 // ── Tactics ──
 export type Mentality = 'defensive' | 'cautious' | 'balanced' | 'attacking' | 'all-out-attack';

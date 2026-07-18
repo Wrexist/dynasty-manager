@@ -6,7 +6,7 @@ import { GameScreen } from '@/types/game';
 import { cn } from '@/lib/utils';
 import {
   Mail, Trophy, Target, DollarSign, Building2, Calendar, Home,
-  Settings, MoreHorizontal, ChevronRight, ChevronDown, GitCompare, User, Star, Award, ShoppingBag, Crown, HelpCircle, Globe, Briefcase, Search, Medal
+  Settings, MoreHorizontal, ChevronRight, ChevronDown, GitCompare, User, Star, Award, ShoppingBag, Crown, HelpCircle, Globe, Briefcase, Search, Medal, Swords
 } from 'lucide-react';
 import { hapticLight } from '@/utils/haptics';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
@@ -49,6 +49,7 @@ const drawerSections: DrawerSection[] = [
     items: [
       { screen: 'inbox', label: 'Inbox', icon: Mail, description: 'Messages & news' },
       { screen: 'league-table', label: 'League', icon: Trophy, description: 'Standings & results' },
+      { screen: 'rivalries', label: 'Rivalries', icon: Swords, description: 'Derbies & grudge matches' },
       { screen: 'cup', label: 'Cup', icon: Award, description: 'Knockout tournament' },
       { screen: 'league-cup', label: 'League Cup', icon: Award, description: 'Secondary cup competition' },
       { screen: 'champions-cup', label: 'Champions Cup', icon: Trophy, description: 'Elite continental tournament' },

@@ -333,6 +333,14 @@ export const FAN_MOOD_HIGH_THRESHOLD = 70;
 export const FAN_MOOD_MID_THRESHOLD = 40;
 export const HOT_STREAK_MIN_WINS = 4;
 
+// ── Rivalries Hub Thresholds ──
+// A repeat opponent qualifies as a "rival" for the Rivalries Hub when either
+// the grudge level has climbed at least this high, or the two clubs have met
+// at least this many times (head-to-head record). Hardcoded derbies always
+// qualify regardless of these.
+export const RIVAL_MIN_GRUDGE = 1;
+export const RIVAL_MIN_MEETINGS = 4;
+
 // ── Tactics Thresholds ──
 export const PRESSING_LOW_THRESHOLD = 30;
 export const PRESSING_MED_THRESHOLD = 60;

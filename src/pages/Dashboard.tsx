@@ -14,13 +14,13 @@ import { Button } from '@/components/ui/button';
 import {
   Play, ChevronRight, ChevronDown, TrendingUp, DollarSign, Heart, Trophy, Calendar, Mail, ShoppingBag,
   Dumbbell, AlertTriangle, Banknote, Users, Shield, BarChart3, UserPlus, Award, Flame, Zap, Loader2, FastForward, Package,
-  Building2, Search, GraduationCap,
+  Building2, Search, GraduationCap, Swords,
 } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { PremiumCheck } from '@/components/game/icons/PremiumCheck';
 import { PremiumProgress } from '@/components/game/PremiumProgress';
 import { getRoundName } from '@/data/cup';
-import { LEAGUES } from '@/data/league';
+import { LEAGUES, getDerbyIntensity, getDerbyName } from '@/data/league';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { FloatingXP } from '@/components/game/FloatingXP';
 import { cn } from '@/lib/utils';
@@ -1020,6 +1020,18 @@ const Dashboard = () => {
           <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
         </GlassPanel>
         </motion.div>
+      )}
+
+      {/* Rivalry Week banner — only when the next match is a derby */}
+      {!seasonOver && nextMatch && opponent && getDerbyIntensity(playerClubId, opponent.id) > 0 && (
+        <GlassPanel className="p-3 flex items-center gap-2" onClick={() => setScreen('rivalries')} aria-label="View rivalries">
+          <Swords className="w-4 h-4 text-orange-400 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-orange-400">Rivalry Week</p>
+            <p className="text-xs font-semibold text-foreground truncate">{getDerbyName(playerClubId, opponent.id) || `vs ${opponent.shortName}`}</p>
+          </div>
+          <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+        </GlassPanel>
       )}
 
       {/* Next Match */}
