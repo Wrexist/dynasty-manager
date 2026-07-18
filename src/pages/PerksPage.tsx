@@ -2,7 +2,7 @@ import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { TalentTree } from '@/components/game/TalentTree';
 import { cn } from '@/lib/utils';
-import { xpForLevel, getTotalXP, XP_REWARDS, TALENT_BRANCHES, getBranchPerks, getSpecializationTitle } from '@/utils/managerPerks';
+import { xpForLevel, getTotalXP, XP_REWARDS, TALENT_BRANCHES, getBranchPerks, getSpecializationTitle, getMasteryProgress, getMasteryBonus } from '@/utils/managerPerks';
 import { toast } from 'sonner';
 import { hapticMedium } from '@/utils/haptics';
 import type { PerkId } from '@/types/game';
@@ -17,6 +17,7 @@ const PerksPage = () => {
   const xpNeeded = xpForLevel(managerProgression.level);
   const xpProgress = Math.round((managerProgression.xp / xpNeeded) * 100);
   const specTitle = getSpecializationTitle(managerProgression);
+  const mastery = getMasteryProgress(managerProgression);
 
   const handleUnlock = (perkId: PerkId) => {
     const result = unlockPerk(perkId);
@@ -64,6 +65,32 @@ const PerksPage = () => {
           </div>
         )}
       </GlassPanel>
+
+      {/* Mastery — post-tree XP sink. Only appears once every base perk is owned. */}
+      {mastery && (
+        <GlassPanel className="p-4 border-primary/20">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <p className="text-sm font-semibold text-foreground">Mastery Rank {mastery.rank}</p>
+              <p className="text-[10px] text-muted-foreground">
+                All perk effects +{Math.round(getMasteryBonus(managerProgression) * 100)}%
+                {mastery.capped ? ' (max)' : ''}
+              </p>
+            </div>
+            {!mastery.capped && (
+              <p className="text-xs text-muted-foreground">{mastery.current}/{mastery.needed} XP to next rank</p>
+            )}
+          </div>
+          {!mastery.capped && (
+            <div className="w-full h-2 bg-muted/30 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-primary rounded-full transition-all"
+                style={{ width: `${Math.min(100, Math.round((mastery.current / mastery.needed) * 100))}%` }}
+              />
+            </div>
+          )}
+        </GlassPanel>
+      )}
 
       {/* Branch Summary */}
       <div className="grid grid-cols-4 gap-1.5">

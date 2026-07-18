@@ -245,7 +245,47 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'pack-collector', title: 'Pack Collector', description: 'Open 25 player packs', icon: 'package', tier: 'silver',
     check: (s) => (s.openedPacks?.length || 0) >= 25,
     progress: (s) => ({ current: Math.min(s.openedPacks?.length || 0, 25), target: 25 }) },
+
+  // ── Career Endgame (long-horizon, scaling milestones) ──
+  { id: 'wins-100', title: 'Century of Wins', description: 'Win 100 matches', icon: 'trophy', tier: 'gold',
+    check: (s) => s.managerStats.totalWins >= 100,
+    progress: (s) => ({ current: Math.min(s.managerStats.totalWins, 100), target: 100 }) },
+  { id: 'wins-250', title: 'Winning Machine', description: 'Win 250 matches', icon: 'trophy', tier: 'gold', hidden: true,
+    check: (s) => s.managerStats.totalWins >= 250,
+    progress: (s) => ({ current: Math.min(s.managerStats.totalWins, 250), target: 250 }) },
+  { id: 'titles-3', title: 'Hat-Trick of Titles', description: 'Win 3 league titles', icon: 'medal', tier: 'gold',
+    check: (s) => countLeagueTitles(s) >= 3,
+    progress: (s) => ({ current: Math.min(countLeagueTitles(s), 3), target: 3, label: 'titles' }) },
+  { id: 'titles-5', title: 'Serial Winner', description: 'Win 5 league titles', icon: 'medal', tier: 'gold', hidden: true,
+    check: (s) => countLeagueTitles(s) >= 5,
+    progress: (s) => ({ current: Math.min(countLeagueTitles(s), 5), target: 5, label: 'titles' }) },
+  { id: 'titles-10', title: 'Era of Dominance', description: 'Win 10 league titles', icon: 'crown', tier: 'gold', hidden: true,
+    check: (s) => countLeagueTitles(s) >= 10,
+    progress: (s) => ({ current: Math.min(countLeagueTitles(s), 10), target: 10, label: 'titles' }) },
+  { id: 'continental-collector', title: 'Continental Collector', description: 'Win all three continental cups across your career', icon: 'globe', tier: 'gold', hidden: true,
+    check: (s) => s.seasonHistory.some(h => h.championsCupResult === 'Winner')
+      && s.seasonHistory.some(h => h.shieldCupResult === 'Winner')
+      && s.seasonHistory.some(h => h.conferenceCupResult === 'Winner'),
+    progress: (s) => {
+      const won = [
+        s.seasonHistory.some(h => h.championsCupResult === 'Winner'),
+        s.seasonHistory.some(h => h.shieldCupResult === 'Winner'),
+        s.seasonHistory.some(h => h.conferenceCupResult === 'Winner'),
+      ].filter(Boolean).length;
+      return { current: won, target: 3, label: 'cups' };
+    } },
+  { id: 'promotions-3', title: 'Ladder Climber', description: 'Earn 3 promotions', icon: 'rocket', tier: 'gold',
+    check: (s) => s.seasonHistory.filter(h => h.promoted).length >= 3,
+    progress: (s) => ({ current: Math.min(s.seasonHistory.filter(h => h.promoted).length, 3), target: 3, label: 'promotions' }) },
+  { id: 'dynasty-20', title: 'The Immortal', description: 'Manage for 20+ seasons', icon: 'crown', tier: 'gold', hidden: true,
+    check: (s) => s.season >= 21,
+    progress: (s) => ({ current: Math.min(s.season - 1, 20), target: 20, label: 'seasons' }) },
 ];
+
+/** League titles across the whole career (season history). */
+function countLeagueTitles(s: GameState): number {
+  return s.seasonHistory.filter(h => h.position === 1).length;
+}
 
 export function checkAchievements(state: GameState, unlockedIds: string[]): string[] {
   const newUnlocks: string[] = [];

@@ -711,6 +711,15 @@ export const LOAN_MIN_WEEKS_BEFORE_RECALL = 4;
 export const MANAGER_XP_BASE = 50;
 export const MANAGER_XP_PER_LEVEL = 30;
 
+// ── Mastery Ranks (post-tree XP sink) ──
+// Once every base-tree perk is owned, XP keeps mattering: each rank costs
+// MASTERY_XP_PER_RANK of lifetime XP earned beyond the base tree's total
+// cost and adds MASTERY_BONUS_PER_RANK to the perk-effect multiplier
+// (dynastyMult), capped so late-game managers don't run away with the sim.
+export const MASTERY_XP_PER_RANK = 500;
+export const MASTERY_BONUS_PER_RANK = 0.005;
+export const MASTERY_BONUS_CAP = 0.25;
+
 // ── Talent Tree ──
 export const CAPSTONE_MIN_BRANCHES = 2;
 export const TRAINING_GROUND_BOOST = 0.2;
