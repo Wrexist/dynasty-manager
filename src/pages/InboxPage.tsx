@@ -100,6 +100,11 @@ function getMessageAction(msg: Message, gameMode: string | undefined): { label: 
   return null;
 }
 
+/** Message types that usually need a decision from the player. Render-time
+ *  triage only — surfaces these above informational messages within each
+ *  week group. Nothing is persisted. */
+const ACTIONABLE_TYPES: Message['type'][] = ['transfer', 'contract', 'board', 'national_team', 'warning'];
+
 const FILTER_OPTIONS: { label: string; types: Message['type'][]; icon: React.ElementType; color: string }[] = [
   { label: 'Match', types: ['match_preview', 'match_result'], icon: Trophy, color: 'text-cyan-400' },
   { label: 'Board', types: ['board'], icon: Megaphone, color: 'text-rose-400' },
@@ -222,6 +227,20 @@ const InboxPage = () => {
     const key = `S${msg.season} W${msg.week}`;
     if (!grouped[key]) grouped[key] = [];
     grouped[key].push(msg);
+  });
+
+  // Within each week: actionable types above informational ones, unread above
+  // read; ties keep insertion order (Array.sort is stable). This keeps a
+  // pending bid from sitting under a match report. The currently-expanded
+  // message counts as unread so opening it (which marks it read) doesn't
+  // re-sort it away mid-read — same exemption the unread filter uses.
+  const unreadRank = (m: Message) => (!m.read || m.id === expandedId) ? 0 : 1;
+  Object.values(grouped).forEach(list => {
+    list.sort((a, b) => {
+      const actionDiff = (ACTIONABLE_TYPES.includes(a.type) ? 0 : 1) - (ACTIONABLE_TYPES.includes(b.type) ? 0 : 1);
+      if (actionDiff !== 0) return actionDiff;
+      return unreadRank(a) - unreadRank(b);
+    });
   });
 
   const toggleExpand = (id: string) => {

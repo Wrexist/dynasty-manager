@@ -217,6 +217,14 @@ const Dashboard = () => {
   const [midSeasonShown, setMidSeasonShown] = useState(() => getFlag(`dynasty-midseason-s${season}`));
   const showMidSeason = week === MID_SEASON_WEEK && !midSeasonShown;
   const dismissMidSeason = () => { setMidSeasonShown(true); setFlag(`dynasty-midseason-s${season}`); };
+  // Week-23 double-modal guard: the Mid-Season Report is the richer summary
+  // beat, so the weekly digest is dropped (not deferred) on that one week —
+  // previously the player dismissed two consecutive summary overlays.
+  const pendingDigest = useGameStore(s => s.weeklyDigest);
+  const dismissWeeklyDigest = useGameStore(s => s.dismissWeeklyDigest);
+  useEffect(() => {
+    if (showMidSeason && pendingDigest) dismissWeeklyDigest();
+  }, [showMidSeason, pendingDigest, dismissWeeklyDigest]);
   const [financeSheetOpen, setFinanceSheetOpen] = useState(false);
   const [financeSheetMode, setFinanceSheetMode] = useState<FinanceSheetMode>('all');
   const [showMoreDetails, setShowMoreDetails] = useState(false);
