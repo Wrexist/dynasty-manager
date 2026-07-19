@@ -16,6 +16,7 @@ import { infoToast, successToast, errorToast } from '@/utils/gameToast';
 import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
 import { openExternalUrl } from '@/utils/externalUrl';
 import { track } from '@/utils/analytics';
+import { addGameBreadcrumb } from '@/utils/sentry';
 
 const formatPrice = (usd: number) => `$${usd.toFixed(2)}`;
 
@@ -111,6 +112,7 @@ const ShopPage = () => {
     const productId = purchaseProduct;
     setPurchasing(true);
     setPurchaseError(null);
+    addGameBreadcrumb('purchase', 'shop purchase initiated', { surface: 'shop', productId });
     try {
       const result = await purchaseViaSDK(productId);
       // Only an explicit cancel means no charge. A completed purchase with an
@@ -135,6 +137,7 @@ const ShopPage = () => {
       // post-failure sync so a successful charge gets picked up on the
       // next entitlement read (RevenueCat re-fetches receipt). Capture
       // the actual error to Sentry so we can triage real-money issues.
+      addGameBreadcrumb('purchase', 'shop purchase threw', { surface: 'shop', productId });
       Sentry.captureException(err, { tags: { context: 'ShopPage.purchase' }, extra: { productId } });
       try { await syncAfterPurchase(); } catch { /* second-stage sync best-effort */ }
       track('purchase_failed', { productId });

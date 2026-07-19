@@ -17,8 +17,16 @@ import { setSfxEnabled, sfxRoar, sfxChime, sfxWhoosh, sfxBurst } from '@/utils/s
 import { setPackSfxHandler } from '@/utils/packAudio';
 
 // Configures the SDK iff VITE_SENTRY_DSN is set — release tag, PII scrubbing,
-// and breadcrumb scrubbing live in src/utils/sentry.ts.
-initSentry();
+// and breadcrumb scrubbing live in src/utils/sentry.ts. Guarded because this
+// runs at module scope BEFORE createRoot().render() below and before the
+// window error handlers are registered — a throw from Sentry.init (malformed
+// DSN, SDK internal) would otherwise abort module evaluation, mount nothing,
+// and leave the user staring at a blank screen once the splash failsafe fires.
+try {
+  initSentry();
+} catch (err) {
+  if (import.meta.env.DEV) console.warn('[main] initSentry failed:', err);
+}
 
 // Kick off save-storage hydration before React renders. The promise is
 // exported for UI code (TitleScreen) to await before showing the slot

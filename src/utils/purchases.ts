@@ -364,7 +364,11 @@ export function extractSubscriptionInfo(customerInfo: CustomerInfo | null | unde
     const activeEntitlements = customerInfo?.entitlements?.active;
     if (!activeEntitlements || typeof activeEntitlements !== 'object') return null;
 
-    // Look for a 'pro' or 'dynasty_pro' entitlement (configure in RevenueCat dashboard)
+    // Look for a 'pro' or 'dynasty_pro' entitlement. NOTE: these identifiers
+    // must match the entitlement name configured in the RevenueCat dashboard.
+    // If the dashboard entitlement is named anything else, EVERY subscription
+    // purchase resolves to null here → the user pays but never gets Pro. Verify
+    // against the live RC dashboard config before shipping any pricing change.
     const proEntitlement = activeEntitlements['pro'] || activeEntitlements['dynasty_pro'];
     if (!proEntitlement) return null;
 

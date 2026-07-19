@@ -28,6 +28,8 @@ import {
   PRODUCTS,
   SUB_TRIAL_PRODUCT_IDS,
 } from '@/config/monetization';
+import { isPro } from '@/utils/monetization';
+import { addGameBreadcrumb } from '@/utils/sentry';
 import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
 import { openExternalUrl } from '@/utils/externalUrl';
 import type { ProductId } from '@/types/game';
@@ -162,6 +164,7 @@ const SubscribeOnboarding = () => {
     hapticMedium();
     setPurchasing(true);
     track('purchase_initiated', { productId: selected });
+    addGameBreadcrumb('purchase', 'subscribe initiated', { surface: 'onboarding', productId: selected });
     try {
       const result = await purchaseProduct(selected);
       if (result.cancelled) {
@@ -195,10 +198,25 @@ const SubscribeOnboarding = () => {
       finish();
     } catch (err) {
       track('purchase_failed', { productId: selected });
+      addGameBreadcrumb('purchase', 'subscribe threw', { surface: 'onboarding', productId: selected });
       Sentry.captureException(err, { tags: { context: 'subscribe-onboarding.subscribe' }, extra: { productId: selected } });
+      // The throw can arrive AFTER the App Store charge — RevenueCat doesn't
+      // distinguish a receipt-validation/network failure from a pre-charge
+      // error, so the user may already be a paying customer. Mirror ShopPage:
+      // attempt a best-effort re-sync that re-reads entitlements + customerInfo,
+      // and if Pro is now active, treat it as the success it actually was
+      // instead of telling a charged user "something went wrong".
+      try { await syncAfterPurchase(); } catch { /* best-effort recovery */ }
+      if (isPro(useGameStore.getState().monetization)) {
+        addGameBreadcrumb('purchase', 'subscribe recovered after throw', { surface: 'onboarding', productId: selected });
+        successToast('Welcome to Dynasty Pro!', 'Your purchase was confirmed.');
+        finish();
+        return;
+      }
+      addGameBreadcrumb('purchase', 'subscribe unrecovered', { surface: 'onboarding', productId: selected });
       errorToast(
         'Purchase Could Not Complete',
-        'Something went wrong with the App Store. You can try again from Settings later.',
+        'If you were charged, tap Restore Purchases below to unlock Pro. Otherwise you can try again from Settings later.',
       );
     } finally {
       setPurchasing(false);
@@ -212,10 +230,21 @@ const SubscribeOnboarding = () => {
     track('restore_clicked', {});
     try {
       const granted = await restorePurchases();
-      if (granted.length > 0) {
-        restoreEntitlementsAction(granted);
-        await syncAfterPurchase();
-        successToast('Purchases Restored', `${granted.length} product${granted.length > 1 ? 's' : ''} restored.`);
+      if (granted.length > 0) restoreEntitlementsAction(granted);
+      // Always re-sync, even when `granted` is empty. A subscription-only
+      // customer's restore returns [] (sub SKUs are deliberately excluded from
+      // mapEntitlements — they'd outlive the sub in entitlements), so their
+      // active subscription is ONLY recoverable through
+      // extractSubscriptionInfo → updateSubscription inside syncAfterPurchase.
+      // Gating this behind `granted.length > 0` made this screen's own Restore
+      // button silently no-op for the default (subscription) plans.
+      await syncAfterPurchase();
+      const proActive = isPro(useGameStore.getState().monetization);
+      if (granted.length > 0 || proActive) {
+        const detail = granted.length > 0
+          ? `${granted.length} product${granted.length > 1 ? 's' : ''} restored.`
+          : 'Your Pro subscription is active.';
+        successToast('Purchases Restored', detail);
         track('restore_completed', { restoredCount: granted.length });
         finish();
       } else {
