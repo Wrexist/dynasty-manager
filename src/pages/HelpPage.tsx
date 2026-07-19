@@ -23,7 +23,7 @@ const HELP_SECTIONS: HelpSection[] = [
   },
   {
     title: 'Transfers & Loans',
-    content: 'Transfer windows: Weeks 1-8 (summer) and 20-24 (winter). Browse the market, make offers with negotiation. You can also list your players for sale to attract bids. Loans let you develop young players at other clubs. Loan deals include wage splits and optional recall/buy clauses.',
+    content: 'Two transfer windows per season: an early-season (summer) and a mid-season (winter) window — exact weeks scale with your league\'s season length, so check the Transfers page header. Browse the market, make offers with negotiation. You can also list your players for sale to attract bids. Loans let you develop young players at other clubs. Loan deals include wage splits and optional recall/buy clauses.',
   },
   {
     title: 'Contracts',
@@ -39,7 +39,7 @@ const HELP_SECTIONS: HelpSection[] = [
   },
   {
     title: 'Board Confidence & Objectives',
-    content: 'The board sets seasonal objectives (critical/important/optional). Confidence changes based on match results, league position, and financial health. If confidence drops below 25, you get a warning. Below 10 = sacked. Win streaks boost confidence.',
+    content: 'The board sets seasonal objectives (critical/important/optional). Confidence changes based on match results, league position, and financial health. If confidence drops below 25, you get a warning. Below 20 puts your job at serious risk — and the board can issue a mid-season ultimatum before that. Win streaks boost confidence.',
   },
   {
     title: 'Promotion & Relegation',
@@ -146,16 +146,22 @@ const HelpPage = () => {
             <GlassPanel
               key={section.title}
               className="transition-all"
-              onClick={() => setExpandedIdx(expanded ? null : originalIdx)}
             >
-              <div className="p-3 flex items-center justify-between cursor-pointer">
+              {/* Real <button> so the accordion works with VoiceOver/Switch
+                  Control and keyboards — a div onClick is invisible to them. */}
+              <button
+                type="button"
+                aria-expanded={expanded}
+                onClick={() => setExpandedIdx(expanded ? null : originalIdx)}
+                className="w-full p-3 flex items-center justify-between text-left"
+              >
                 <p className="text-sm font-semibold text-foreground">{section.title}</p>
                 {expanded ? (
                   <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" />
                 ) : (
                   <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
                 )}
-              </div>
+              </button>
               {expanded && (
                 <div className="px-3 pb-3 -mt-1">
                   <p className="text-xs text-foreground/80 leading-relaxed">{section.content}</p>
