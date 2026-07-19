@@ -201,7 +201,7 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
       }));
     },
 
-    /** Start the introductory 3-day free trial.
+    /** Start the introductory free trial (FREE_TRIAL_DAYS, currently 7).
      *  Marks the player as Pro-via-trial locally so all gated features unlock
      *  immediately. The native paywall flow (`purchaseProduct`) is what actually
      *  enrolls them in the monthly plan on iOS / Android — the store handles

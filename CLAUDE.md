@@ -407,8 +407,9 @@ in `src/utils/monetization.ts`; state in `monetizationSlice`.
   permanent entitlements with an in-game cosmetics catalog.
 - **Consumable player-pack IAPs:** gold / premium_gold / rare_gold / icon —
   consumed per open, NEVER stored as entitlements, NEVER restorable.
-- **Free trial:** 3-day intro trial → monthly plan (`startFreeTrial` is a
-  no-op if ANY subscription record exists — prevents trial-restart abuse).
+- **Free trial:** `FREE_TRIAL_DAYS` intro trial (currently 7) → monthly plan
+  (`startFreeTrial` is a no-op if ANY subscription record exists — prevents
+  trial-restart abuse).
   **Starter Kit** is a 7-day-from-first-launch offer.
 
 ### Entitlement invariants (violating these = revenue bugs)
