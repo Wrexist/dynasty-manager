@@ -23,6 +23,7 @@ import { NATIVE_ADS_READY, showRewardedAd } from '@/utils/ads';
 import { purchaseConsumable } from '@/utils/purchases';
 import { readPendingPackCredit, writePendingPackCredit, clearPendingPackCredit } from '@/store/helpers/persistence';
 import { isReviewWorthyPackTier, maybeRequestReview } from '@/utils/appReview';
+import { addGameBreadcrumb } from '@/utils/sentry';
 
 function playerTier(ovr: number) {
   for (const t of PLAYER_TIER_THRESHOLDS) if (ovr >= t.min) return t;
@@ -392,6 +393,7 @@ const PacksPage = () => {
     }
     setBusy(true);
     iapInFlight = true;
+    addGameBreadcrumb('purchase', 'pack iap initiated', { surface: 'packs', productId: tier.productId, tierKey });
     try {
       // Crash durability: persist a pending-credit marker BEFORE the StoreKit
       // charge. Consumables never appear in RevenueCat entitlements, so if
@@ -411,9 +413,10 @@ const PacksPage = () => {
         if (result.paidButRejected) {
           // Money was taken but the grant was blocked — KEEP the pending
           // marker so the reconciler retries once the blocker clears.
+          addGameBreadcrumb('purchase', 'pack paid but blocked', { surface: 'packs', tierKey });
           errorToast(
-            'Purchase succeeded but pack was blocked',
-            `${result.message} Your payment will be investigated — contact support if the pack isn't credited within 24 hours.`,
+            'Pack will be credited shortly',
+            `${result.message} Your payment went through and we'll credit the pack automatically — reopen the app if it hasn't appeared. Contact support if it's still missing after 24 hours.`,
           );
         } else {
           clearPendingPackCredit();
@@ -435,6 +438,7 @@ const PacksPage = () => {
       // NOTE: the pending-credit marker is deliberately NOT cleared here —
       // RevenueCat can throw after the charge (receipt validation), and a
       // rare unearned re-grant beats losing a real payment.
+      addGameBreadcrumb('purchase', 'pack iap threw', { surface: 'packs', tierKey });
       Sentry.captureException(err, { tags: { context: 'PacksPage.iap' }, extra: { tierKey } });
       errorToast('Purchase failed', 'Please try again.');
     } finally {

@@ -105,7 +105,7 @@ export function isSentryInitialised(): boolean {
 /** The narrow set of game-lifecycle breadcrumbs the observability plan calls
  *  out. Keep this list small — every addition becomes a field in the Sentry
  *  dashboard filter dropdown. */
-export type GameBreadcrumbCategory = 'game_start' | 'season_end' | 'save' | 'crash';
+export type GameBreadcrumbCategory = 'game_start' | 'season_end' | 'save' | 'crash' | 'purchase';
 
 /** Record a game-lifecycle breadcrumb. The allowed `data` shape is narrow on
  *  purpose — numeric/boolean facts only, no names or save contents — so the

@@ -29,6 +29,7 @@ import {
   SUB_TRIAL_PRODUCT_IDS,
 } from '@/config/monetization';
 import { isPro } from '@/utils/monetization';
+import { addGameBreadcrumb } from '@/utils/sentry';
 import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
 import { openExternalUrl } from '@/utils/externalUrl';
 import type { ProductId } from '@/types/game';
@@ -163,6 +164,7 @@ const SubscribeOnboarding = () => {
     hapticMedium();
     setPurchasing(true);
     track('purchase_initiated', { productId: selected });
+    addGameBreadcrumb('purchase', 'subscribe initiated', { surface: 'onboarding', productId: selected });
     try {
       const result = await purchaseProduct(selected);
       if (result.cancelled) {
@@ -196,6 +198,7 @@ const SubscribeOnboarding = () => {
       finish();
     } catch (err) {
       track('purchase_failed', { productId: selected });
+      addGameBreadcrumb('purchase', 'subscribe threw', { surface: 'onboarding', productId: selected });
       Sentry.captureException(err, { tags: { context: 'subscribe-onboarding.subscribe' }, extra: { productId: selected } });
       // The throw can arrive AFTER the App Store charge — RevenueCat doesn't
       // distinguish a receipt-validation/network failure from a pre-charge
@@ -205,10 +208,12 @@ const SubscribeOnboarding = () => {
       // instead of telling a charged user "something went wrong".
       try { await syncAfterPurchase(); } catch { /* best-effort recovery */ }
       if (isPro(useGameStore.getState().monetization)) {
+        addGameBreadcrumb('purchase', 'subscribe recovered after throw', { surface: 'onboarding', productId: selected });
         successToast('Welcome to Dynasty Pro!', 'Your purchase was confirmed.');
         finish();
         return;
       }
+      addGameBreadcrumb('purchase', 'subscribe unrecovered', { surface: 'onboarding', productId: selected });
       errorToast(
         'Purchase Could Not Complete',
         'If you were charged, tap Restore Purchases below to unlock Pro. Otherwise you can try again from Settings later.',
