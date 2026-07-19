@@ -88,6 +88,10 @@ const TransferPage = () => {
   const [negotiatingOffer, setNegotiatingOffer] = useState<IncomingOffer | null>(null);
 
   const club = clubs[playerClubId];
+  // At the cap, offers/signings are rejected by the store anyway — disable the
+  // buttons up front (with a hint) instead of letting the user negotiate a
+  // deal and only then hit a rejection toast.
+  const squadFull = (club?.playerIds.length || 0) >= MAX_SQUAD_SIZE;
 
   // Filter listings based on shortlist toggle
   const listings = useMemo(() => {
@@ -145,10 +149,19 @@ const TransferPage = () => {
     return result;
   }, [showShortlistOnly, transferMarket, shortlist, playerClubId, posFilter, players, searchQuery, sortBy, divFilter, clubs, hideUnaffordable, club?.budget]);
 
-  // Outgoing: own players listed for sale
+  // Outgoing: own players listed for sale. Iterate the club's own roster
+  // (~25 ids) — Object.values(players) scanned the entire player universe
+  // (thousands) on every players-map change to find these few entries.
   const outgoingPlayers = useMemo(() => {
-    return Object.values(players).filter(p => p.clubId === playerClubId && p.listedForSale);
-  }, [players, playerClubId]);
+    return (club?.playerIds || []).map(id => players[id]).filter(p => p && p.listedForSale);
+  }, [players, club?.playerIds]);
+
+  // Counts for the market summary row — folded into a memo so the row doesn't
+  // re-filter the listings array twice on every render.
+  const marketStats = useMemo(() => ({
+    fromClubs: listings.filter(l => !l.externalPlayer).length,
+    unattached: listings.filter(l => l.externalPlayer).length,
+  }), [listings]);
 
   // Free agents
   const freeAgentPlayers = useMemo(() => {
@@ -344,7 +357,7 @@ const TransferPage = () => {
       <div role="tablist" aria-label="Transfer sections" className="flex gap-1.5">
         {([
           { id: 'market' as const, icon: ShoppingCart, label: 'Market', count: 0 },
-          { id: 'deals' as const, icon: ArrowDownLeft, label: 'Deals', count: incomingOffers.length + outgoingPlayers.length + activeLoans.length + incomingLoanOffers.length },
+          { id: 'deals' as const, icon: ArrowDownLeft, label: 'Deals', count: incomingOffers.length + outgoingPlayers.length + activeLoans.length + incomingLoanOffers.length + outgoingLoanRequests.length },
           { id: 'freeAgents' as const, icon: Users, label: 'Free Agents', count: 0 },
           { id: 'news' as const, icon: Newspaper, label: 'News', count: 0 },
         ]).map(({ id, icon: TabIcon, label, count }) => (
@@ -499,11 +512,11 @@ const TransferPage = () => {
 
       {/* Market Stats Summary */}
       {tab === 'market' && (
-        <GlassPanel className="p-2.5 flex items-center gap-3 text-[10px] text-muted-foreground">
+        <GlassPanel className="p-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
           <TrendingUp className="w-3.5 h-3.5 text-primary shrink-0" />
-          <span>{listings.filter(l => !l.externalPlayer).length} from clubs</span>
+          <span>{marketStats.fromClubs} from clubs</span>
           <span className="text-border">|</span>
-          <span>{listings.filter(l => l.externalPlayer).length} unattached</span>
+          <span>{marketStats.unattached} unattached</span>
           <span className="text-border">|</span>
           <span>{freeAgents.length} free agents</span>
           <span className="text-border">|</span>
@@ -586,10 +599,10 @@ const TransferPage = () => {
                   <>
                     <Button
                       size="sm" className="flex-1 h-8 text-xs"
-                      disabled={!transferWindowOpen}
+                      disabled={!transferWindowOpen || squadFull}
                       onClick={() => handleOffer(listing)}
                     >
-                      Make Offer
+                      {squadFull ? 'Squad Full' : 'Make Offer'}
                     </Button>
                     <Button
                       size="sm" variant="ghost" className="h-8 w-8 p-0"
@@ -950,9 +963,10 @@ const TransferPage = () => {
               actions={
                 <Button
                   size="sm" className="w-full h-8 text-xs"
+                  disabled={squadFull}
                   onClick={() => { setSigningPlayer(p.id); setOfferWage(p.wage); setOfferYears(FREE_AGENT_DEFAULT_CONTRACT_YEARS); }}
                 >
-                  Sign Player
+                  {squadFull ? 'Squad Full' : 'Sign Player'}
                 </Button>
               }
             />

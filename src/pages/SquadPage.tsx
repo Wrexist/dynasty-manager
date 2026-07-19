@@ -59,7 +59,9 @@ function ContractAlertChip({ p, variant, onSelect, onRenew }: {
       ) : (
         <button
           onClick={(e) => { e.stopPropagation(); hapticLight(); onRenew(p.id); }}
-          className={cn('text-[8px] font-bold px-1.5 py-0.5 rounded transition-colors', btnText, btnBg)}
+          // Keep the chip visually tiny but give the touch target real size —
+          // the visible pill was ~16px tall, easy to mis-tap next to the name.
+          className={cn('relative text-[8px] font-bold px-1.5 py-0.5 rounded transition-colors after:absolute after:-inset-2 after:content-[""]', btnText, btnBg)}
         >
           Renew
         </button>
