@@ -1,8 +1,9 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { getFlag } from '@/utils/nationality';
 import { cn } from '@/lib/utils';
-import { Globe, Trophy, Play, Calendar, Flag, ArrowRight } from 'lucide-react';
+import { Globe, Trophy, Play, Calendar, Flag, ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { guardAsync } from '@/utils/asyncGuard';
 import { PAGE_HINTS } from '@/config/ui';
@@ -47,6 +48,17 @@ const InternationalTournament = () => {
   const gameMode = useGameStore((s) => s.gameMode);
   const advanceWeek = useGameStore((s) => s.advanceWeek);
   const setScreen = useGameStore((s) => s.setScreen);
+  // Visual in-flight state for the advance buttons. Double-processing is
+  // already blocked at the store level (weekAdvanceInFlight) — this is pure
+  // feedback so a 1-2s matchday sim doesn't look like a frozen button.
+  const [isAdvancing, setIsAdvancing] = useState(false);
+  const handleAdvance = () => {
+    if (isAdvancing) return;
+    setIsAdvancing(true);
+    const advancePromise = advanceWeek();
+    guardAsync(advancePromise, 'InternationalTournament.advanceWeek', { title: 'Could not advance week', body: 'Please try again.' });
+    Promise.resolve(advancePromise).finally(() => setIsAdvancing(false));
+  };
   const isWorldCupMode = gameMode === 'world-cup';
 
   if (!internationalTournament) {
@@ -237,19 +249,24 @@ const InternationalTournament = () => {
           {isInternationalPhase && tournament.phase !== 'complete' && (
             <Button
               className="w-full mt-2"
-              onClick={() => guardAsync(advanceWeek(), 'InternationalTournament.advanceWeek', { title: 'Could not advance week', body: 'Please try again.' })}
+              disabled={isAdvancing}
+              onClick={handleAdvance}
             >
-              <Play className="w-4 h-4 mr-2" />
-              {getAdvanceLabel(tournament.phase, tournament.currentRound, isWorldCupMode)}
+              {isAdvancing
+                ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Advancing...</>
+                : <><Play className="w-4 h-4 mr-2" />{getAdvanceLabel(tournament.phase, tournament.currentRound, isWorldCupMode)}</>}
             </Button>
           )}
 
           {tournament.phase === 'complete' && isInternationalPhase && (
             <Button
               className="w-full mt-2"
-              onClick={() => guardAsync(advanceWeek(), 'InternationalTournament.advanceWeek', { title: 'Could not advance week', body: 'Please try again.' })}
+              disabled={isAdvancing}
+              onClick={handleAdvance}
             >
-              {getAdvanceLabel(tournament.phase, tournament.currentRound, isWorldCupMode)}
+              {isAdvancing
+                ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Advancing...</>
+                : getAdvanceLabel(tournament.phase, tournament.currentRound, isWorldCupMode)}
             </Button>
           )}
         </div>

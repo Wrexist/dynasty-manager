@@ -733,12 +733,12 @@ const NationalTeamPage = () => {
       {nationalTeam.results.length > 0 && (
         <div className="space-y-2">
           <h2 className="text-sm font-bold text-foreground px-1">Recent Results</h2>
-          {nationalTeam.results.slice(-10).reverse().map((result) => {
+          {nationalTeam.results.slice(-10).reverse().map((result, i) => {
             const won = result.goalsFor > result.goalsAgainst;
             const drew = result.goalsFor === result.goalsAgainst;
             return (
               <motion.div
-                key={`${result.season}-${result.opponent}-${result.round}`}
+                key={`${result.season}-${result.opponent}-${result.round}-${i}`}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="flex items-center gap-3 p-3 rounded-xl bg-card/30 border border-border/20"

@@ -231,6 +231,22 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
       }));
     },
 
+    /** Testing-only: wipe local Pro/entitlement state so the paywall funnel
+     *  can be re-exercised on device. Purely a local-state reset — it never
+     *  touches the App Store / RevenueCat, so any store-owned product will
+     *  re-restore on the next launch (GameShell's entitlement sync). Exposed
+     *  in the UI only behind the dev-tools build flag. */
+    resetEntitlementsForTesting: () => {
+      _set((s) => ({
+        monetization: {
+          ...s.monetization,
+          entitlements: [],
+          subscription: null,
+          activeCosmetics: {},
+        },
+      }));
+    },
+
     /** Apply season-end budget bonus from ad reward */
     applySeasonBonus: () => {
       _set((s) => {

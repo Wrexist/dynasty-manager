@@ -8,7 +8,7 @@ import { ReputationBadge } from '@/components/game/ReputationBadge';
 import { ConfirmDialog } from '@/components/game/ConfirmDialog';
 import { BoardPitch } from '@/components/game/BoardPitch';
 import { FormGuide } from '@/components/game/FormGuide';
-import { Briefcase, DollarSign, Clock, Check, X, LogOut, ArrowLeft, Building2, TrendingUp, Handshake, Users, Plus, Minus, ChevronDown, ChevronUp } from 'lucide-react';
+import { Briefcase, DollarSign, Clock, Check, X, LogOut, ArrowLeft, Building2, TrendingUp, Handshake, Users, Plus, Minus, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { errorToast, infoToast, successToast } from '@/utils/gameToast';
 import { getManagerBonusLabel, getReputationTierLabel } from '@/utils/managerCareer';
 import { getSuffix } from '@/utils/helpers';
@@ -20,6 +20,7 @@ import type { JobVacancy, JobOffer, ManagerBonus } from '@/types/game';
 const JobMarket = () => {
   const [showRetireConfirm, setShowRetireConfirm] = useState(false);
   const [showResignConfirm, setShowResignConfirm] = useState(false);
+  const [isAdvancing, setIsAdvancing] = useState(false);
   const [showAllVacancies, setShowAllVacancies] = useState(false);
   const { careerManager, jobVacancies, jobOffers, season, week, activeInterview } = useGameStore(useShallow(s => ({
     careerManager: s.careerManager,
@@ -60,11 +61,18 @@ const JobMarket = () => {
   };
 
   const handleWait = () => {
+    // In-flight guard — advanceWeek is async and this button had no disabled
+    // state, so an impatient double-tap advanced two weeks (mirrors the
+    // Dashboard advance button's isAdvancing pattern).
+    if (isAdvancing) return;
+    setIsAdvancing(true);
+    const advancePromise = advanceWeek();
     guardAsync(
-      advanceWeek(),
+      advancePromise,
       'JobMarket.advanceWeek',
       { title: 'Could not advance week', body: 'Please try again.' },
     );
+    Promise.resolve(advancePromise).finally(() => setIsAdvancing(false));
   };
 
   const availableVacancies = jobVacancies.filter(v =>
@@ -192,9 +200,12 @@ const JobMarket = () => {
             <div className="pt-2 space-y-2">
               <Button
                 className="w-full h-11 gap-2"
+                disabled={isAdvancing}
                 onClick={handleWait}
               >
-                <Clock className="w-4 h-4" /> Wait for Offers (Advance Week)
+                {isAdvancing
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Advancing...</>
+                  : <><Clock className="w-4 h-4" /> Wait for Offers (Advance Week)</>}
               </Button>
               <Button
                 variant="outline"

@@ -6,6 +6,7 @@ import { ReputationBadge } from '@/components/game/ReputationBadge';
 import { ConfirmDialog } from '@/components/game/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Trophy, Briefcase, Calendar, Award, LogOut, TrendingUp, GitBranch } from 'lucide-react';
+import { getSuffix } from '@/utils/helpers';
 import { ManagerAvatar } from '@/components/game/ManagerAvatar';
 import { PremiumCheck } from '@/components/game/icons/PremiumCheck';
 import { cn } from '@/lib/utils';
@@ -212,7 +213,7 @@ const CareerOverview = () => {
                 </div>
                 <div className="text-right">
                   {entry.bestFinish > 0 && (
-                    <p className="text-[10px] text-muted-foreground">Best: {entry.bestFinish}th</p>
+                    <p className="text-[10px] text-muted-foreground">Best: {entry.bestFinish}{getSuffix(entry.bestFinish)}</p>
                   )}
                   {entry.reason !== 'hired' && entry.endSeason && (
                     <span className={cn(
@@ -249,7 +250,7 @@ const CareerOverview = () => {
       {/* Retirement Info */}
       <GlassPanel className="p-4">
         <p className="text-xs text-muted-foreground">
-          Retirement age: {retirementAge} — {seasonsLeft > 0 ? `${seasonsLeft} seasons remaining` : 'Retirement imminent'}
+          Retirement age: {retirementAge} — {seasonsLeft > 0 ? `${seasonsLeft} season${seasonsLeft === 1 ? '' : 's'} remaining` : 'Retirement imminent'}
         </p>
       </GlassPanel>
 

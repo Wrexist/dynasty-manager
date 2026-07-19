@@ -8,6 +8,11 @@ on:
         required: false
         type: string
         default: ''
+      dev_tools:
+        description: 'Include the in-app Developer section (Reset Pro & open paywall, etc.) for internal testing. Leave OFF for real App Store releases.'
+        required: false
+        type: boolean
+        default: false
 
 concurrency:
   group: ios-testflight-${{ github.ref }}
@@ -86,6 +91,10 @@ jobs:
         env:
           VITE_REVENUECAT_API_KEY: ${{ secrets.VITE_REVENUECAT_API_KEY }}
           VITE_REVENUECAT_API_KEY_IOS: ${{ secrets.VITE_REVENUECAT_API_KEY_IOS }}
+          # Opt-in per-run: exposes the in-app Developer section. Only true when
+          # the workflow is dispatched with dev_tools checked — real releases
+          # (blank/false) ship without it.
+          VITE_DEV_TOOLS: ${{ github.event.inputs.dev_tools }}
         run: npm run build
 
       - name: Sync marketing version from package.json into iOS project

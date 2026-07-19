@@ -554,7 +554,7 @@ const ClubSelection = () => {
                   </div>
                   <div className="relative grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-white/[0.08]">
                     <div className="text-center">
-                      <p className="text-sm font-bold text-primary tabular-nums leading-none">{'\u00A3'}{(leagueInfo.prizeMoney / 1_000_000).toFixed(0)}M</p>
+                      <p className="text-sm font-bold text-primary tabular-nums leading-none">{'\u00A3'}{(leagueInfo.prizeMoney / 1_000_000).toFixed(leagueInfo.prizeMoney >= 1_000_000 ? 0 : 1)}M</p>
                       <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60 font-semibold mt-1">Prize</p>
                     </div>
                     <div className="text-center border-l border-white/[0.08]">

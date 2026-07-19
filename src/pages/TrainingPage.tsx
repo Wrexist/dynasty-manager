@@ -115,8 +115,14 @@ const TrainingPage = () => {
   const dominantInfo = MODULE_INFO.find(m => m.module === dominantModule);
   const streakCount = training.streaks?.[dominantModule] || 0;
   const streakTier = getStreakTier(streakCount);
-  const preview = getTrainingEffectivenessPreview(training, staffBonus, squadPlayers, facilities.recoveryLevel);
-  const fitnessDistribution = getSquadFitnessDistribution(squadPlayers);
+  // Memoized — these iterate the full squad and this page re-renders on every
+  // row expand / day-tab switch / chat-picker toggle.
+  const preview = useMemo(
+    () => getTrainingEffectivenessPreview(training, staffBonus, squadPlayers, facilities.recoveryLevel),
+    [training, staffBonus, squadPlayers, facilities.recoveryLevel],
+  );
+  const fitnessDistribution = useMemo(() => getSquadFitnessDistribution(squadPlayers), [squadPlayers]);
+  const recommendation = useMemo(() => getTrainingRecommendation(squadPlayers), [squadPlayers]);
 
   // Radar chart data
   const radarData = useMemo(() => {
@@ -235,7 +241,7 @@ const TrainingPage = () => {
 
         {/* Training Recommendation */}
         {(() => {
-          const rec = getTrainingRecommendation(squadPlayers);
+          const rec = recommendation;
           if (!rec) return null;
           const recInfo = MODULE_INFO.find(m => m.module === rec.module);
           const RecIcon = recInfo?.icon || Dumbbell;

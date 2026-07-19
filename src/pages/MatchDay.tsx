@@ -322,6 +322,11 @@ const MatchDayInner = () => {
 
   const kickOff = () => {
     if (!match || !homeClub || !awayClub) return;
+    // Double-tap guard: a fast second tap before the pre → first_half
+    // re-render commits would re-run playFirstHalf() and overwrite the cached
+    // match/half state (the resume handlers guard the same way with
+    // resumingRef). Per-match latch — reset when the match id changes.
+    if (kickedOffRef.current === match.id) return;
     // Block kickoff with an incomplete XI — otherwise the player only
     // discovers they are a man short once the match is already live.
     const myClub = homeClub.id === playerClubId ? homeClub : awayClub;
@@ -330,6 +335,7 @@ const MatchDayInner = () => {
       errorToast(`Incomplete lineup — only ${validStarters} of 11 starters. Set a full XI in Tactics first.`);
       return;
     }
+    kickedOffRef.current = match.id;
     // Cache match data so it survives the fixture being marked as played
     matchCacheRef.current = { match, homeClub, awayClub };
     // This tap is the guaranteed user gesture — unlock iOS WebAudio and blow
@@ -337,7 +343,7 @@ const MatchDayInner = () => {
     resumeSfx();
     sfxWhistle();
     const halfState = isWorldCup ? playWorldCupFirstHalf() : playFirstHalf();
-    if (!halfState) return;
+    if (!halfState) { kickedOffRef.current = null; return; }
     // WC: the opponent squad is materialised by the action above — refresh the
     // cache with the real clubs so lineups render with players, not the shell.
     if (isWorldCup) {
@@ -358,6 +364,10 @@ const MatchDayInner = () => {
     setSelectedHalftimePreset(null);
     setShowHalftimeCustomTactics(false);
   };
+
+  // Latches the match id once kickOff has simulated the first half — see the
+  // double-tap guard inside kickOff(). A new match id naturally unlatches.
+  const kickedOffRef = useRef<string | null>(null);
 
   const resumingRef = useRef(false);
   const resumeSecondHalf = () => {

@@ -938,7 +938,7 @@ const Dashboard = () => {
             </span>
           </div>
           <span className="text-[10px] text-muted-foreground">
-            {totalWeeks - week} weeks left
+            {totalWeeks - week} week{totalWeeks - week === 1 ? '' : 's'} left
           </span>
         </motion.div>
       )}
@@ -1184,14 +1184,22 @@ const Dashboard = () => {
               disabled={isAdvancing}
               onClick={() => {
                 hapticMedium();
+                // Same double-fire hazard as the Advance button above: without
+                // setting isAdvancing before the call, a fast double-tap runs two
+                // concurrent multi-week advances (double income/stats/fixtures).
+                setIsAdvancing(true);
+                const skipPromise = advanceToNextMatch();
                 guardAsync(
-                  advanceToNextMatch(),
+                  skipPromise,
                   'Dashboard.advanceToNextMatch',
                   { title: 'Could not advance', body: 'Please try again.' },
                 );
+                Promise.resolve(skipPromise).finally(() => setIsAdvancing(false));
               }}
             >
-              <FastForward className="w-3.5 h-3.5 inline mr-1 align-[-2px]" /> Skip to Next Match
+              {isAdvancing
+                ? <><Loader2 className="w-3.5 h-3.5 inline mr-1 align-[-2px] animate-spin" /> Advancing...</>
+                : <><FastForward className="w-3.5 h-3.5 inline mr-1 align-[-2px]" /> Skip to Next Match</>}
             </button>
           )}
         </GlassPanel>

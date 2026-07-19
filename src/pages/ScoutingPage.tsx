@@ -120,7 +120,12 @@ const ScoutingPage = () => {
         )}
         {scouting.reports.length > 0 && (
           <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-foreground">Scout Reports</h3>
+            <h3 className="text-sm font-semibold text-foreground">
+              Scout Reports
+              {scouting.reports.length > 10 && (
+                <span className="ml-1.5 text-[10px] font-normal text-muted-foreground/60">showing 10 of {scouting.reports.length}</span>
+              )}
+            </h3>
             {scouting.reports.slice(0, 10).map(report => {
               const player = players[report.playerId];
               if (!player) return null;
@@ -217,7 +222,7 @@ const ScoutingPage = () => {
                       </button>
                     ) : showOverall ? (
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] text-muted-foreground/60 italic">Signed elsewhere</span>
+                        <span className="text-[10px] text-muted-foreground/60 italic">Not currently listed</span>
                         <button
                           type="button"
                           onClick={() => dismissScoutReport(report.id)}
@@ -350,7 +355,7 @@ const ScoutingPage = () => {
                           {!transferWindowOpen && !listing.scoutedPlayer ? 'Window Closed' : 'Sign'}
                         </button>
                       ) : (
-                        <span className="text-[10px] text-muted-foreground/60 italic">Signed elsewhere</span>
+                        <span className="text-[10px] text-muted-foreground/60 italic">Not currently listed</span>
                       )}
                     </div>
                   </GlassPanel>
