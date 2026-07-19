@@ -40,6 +40,13 @@ import { CAPTURE_SCENARIOS } from '@/config/captureScenarios';
 
 const APP_VERSION = `v${__APP_VERSION__} · Football Edition`;
 
+// Dev-tools gate. `import.meta.env.DEV` is false in TestFlight/App Store
+// (production) builds, so also honour a VITE_DEV_TOOLS build flag — set it in
+// the iOS TestFlight workflow (`dev_tools` input) to ship a testing build with
+// the Developer section, and leave it unset for real releases.
+const DEV_TOOLS_ENABLED =
+  import.meta.env.DEV || import.meta.env.VITE_DEV_TOOLS === 'true';
+
 /** Section wrapper — thin adapter that adds the settings-standard padding +
  *  title around the shared GlassPanel primitive. Every section on this page
  *  uses the same liquid-glass surface via GlassPanel; this helper just keeps
@@ -122,6 +129,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
   const setScreen = useGameStore(s => s.setScreen);
   const restoreEntitlements = useGameStore(s => s.restoreEntitlements);
   const updateSubscription = useGameStore(s => s.updateSubscription);
+  const resetEntitlementsForTesting = useGameStore(s => s.resetEntitlementsForTesting);
   const startCaptureScenario = useGameStore(s => s.startCaptureScenario);
   const gameStarted = useGameStore(s => s.gameStarted);
   const navigate = useNavigate();
@@ -240,6 +248,15 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
     } finally {
       setRestoringPurchases(false);
     }
+  };
+
+  // Dev-tools only: clear local Pro state and jump straight to the paywall so
+  // the subscribe/restore flow can be re-exercised on device. Store-owned
+  // products re-restore on the next launch, so this is non-destructive.
+  const handleResetProForTesting = () => {
+    resetEntitlementsForTesting();
+    successToast('Pro reset (testing)', 'Local entitlements cleared. Owned products re-restore on next app launch.');
+    navigate('/subscribe', { state: { returnTo: variant === 'in-game' ? '/game' : '/' } });
   };
 
   const handleManageSubscription = async () => {
@@ -941,19 +958,31 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
         </div>
       </SettingsSection>
 
-      {/* ─── Developer (dev build only) ─── */}
-      {import.meta.env.DEV && (
+      {/* ─── Developer (dev + dev-tools builds only) ─── */}
+      {DEV_TOOLS_ENABLED && (
         <SettingsSection title="Developer">
-          <LiquidButton tone="amber" onClick={triggerTestError}>
+          <LiquidButton tone="amber" onClick={handleResetProForTesting}>
             <span className="flex items-center justify-start gap-3 px-3">
-              <Bug className="w-4 h-4" />
-              Throw test error (Sentry)
+              <RotateCcw className="w-4 h-4" />
+              Reset Pro &amp; open paywall
             </span>
           </LiquidButton>
           <p className="text-[10px] text-muted-foreground mt-2 leading-snug">
-            Fires an uncaught error to verify the crash-reporting pipeline.
-            Visible only in development builds.
+            Clears local Pro/entitlement state and opens the subscribe screen so
+            the purchase &amp; restore flow can be re-tested. Non-destructive —
+            store-owned products re-restore on the next app launch.
           </p>
+          <div className="mt-3">
+            <LiquidButton tone="amber" onClick={triggerTestError}>
+              <span className="flex items-center justify-start gap-3 px-3">
+                <Bug className="w-4 h-4" />
+                Throw test error (Sentry)
+              </span>
+            </LiquidButton>
+            <p className="text-[10px] text-muted-foreground mt-2 leading-snug">
+              Fires an uncaught error to verify the crash-reporting pipeline.
+            </p>
+          </div>
         </SettingsSection>
       )}
 

@@ -491,6 +491,12 @@ export interface GameState {
    *  unlock). `productId` is the subscription the trial converts into —
    *  defaults to the monthly plan for backward compatibility. */
   startFreeTrial: (productId?: ProductId) => void;
+  /** Testing-only: clear all local Pro/entitlement state (entitlements,
+   *  subscription, active cosmetics) so the paywall funnel can be re-tested
+   *  on device. Store-owned products re-restore on next app launch via the
+   *  GameShell entitlement sync — this does NOT refund or revoke anything at
+   *  the store. Gated behind a dev-tools build flag in the UI. */
+  resetEntitlementsForTesting: () => void;
 
   // Actions — National Team
   initNationalTeam: (nationality: string) => void;
