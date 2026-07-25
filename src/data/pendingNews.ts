@@ -67,6 +67,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Consolidate competitions & add Rivalries Hub, Game Plans, Mastery Ranks.',
     'Improve purchase resilience and error boundary recovery.',
     'The Dynasty Pro screen now centres properly on iPad.',
+    'Stop treating StoreKit cancels as failures; gate paywall on real store availability.',
   ],
   fixed: [
     'Cancelling a purchase no longer shows a purchase-failed error.',
