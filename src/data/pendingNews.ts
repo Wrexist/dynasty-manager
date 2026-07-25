@@ -66,8 +66,12 @@ export const PENDING_NEWS: PendingRelease = {
     'Add Terms of Use (EULA) link to App Description metadata.',
     'Consolidate competitions & add Rivalries Hub, Game Plans, Mastery Ranks.',
     'Improve purchase resilience and error boundary recovery.',
+    'The Dynasty Pro screen now centres properly on iPad.',
   ],
-  fixed: [],
+  fixed: [
+    'Cancelling a purchase no longer shows a purchase-failed error.',
+    'Dynasty Pro plans now load reliably at checkout, with a clear retry if the App Store can\'t be reached.',
+  ],
   headline: null,
   summary: null,
 };

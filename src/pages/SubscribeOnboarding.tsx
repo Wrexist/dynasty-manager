@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
 import {
+  AlertTriangle,
   Crown,
   Check,
   Loader2,
@@ -21,7 +22,7 @@ import {
   getEntitlements,
   getCustomerInfo,
   extractSubscriptionInfo,
-  getStorePrices,
+  getStoreAvailability,
 } from '@/utils/purchases';
 import {
   FREE_TRIAL_DAYS,
@@ -133,14 +134,51 @@ const SubscribeOnboarding = () => {
   // Apple needs to see prominently displayed.
   const [selected, setSelected] = useState<ProductId>('com.dynastymanager.pro.annual');
 
-  // Localised store prices fetched from RevenueCat. Empty on web/dev — falls
-  // back to the USD config price for display.
+  // Store availability probe. Presenting a buy button that can only ever fail
+  // is exactly what got build 174 rejected under Guideline 2.1.0 (App
+  // Completeness) — the reviewer tapped the CTA and got an error banner. We
+  // now ask the store what it will actually sell BEFORE offering to sell it,
+  // and fall back to a retry state when it can't be reached.
+  const [storeStatus, setStoreStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading');
+  // Localised store prices. Empty on web/dev — falls back to the USD config price.
   const [storePrices, setStorePrices] = useState<Partial<Record<ProductId, string>>>({});
+  const [availableIds, setAvailableIds] = useState<ProductId[] | null>(null);
+  const [probeNonce, setProbeNonce] = useState(0);
+
   useEffect(() => {
     let cancelled = false;
-    getStorePrices().then(prices => { if (!cancelled) setStorePrices(prices); });
+    setStoreStatus('loading');
+    getStoreAvailability(PLAN_ROWS.map(r => r.productId))
+      .then(({ supported, available, prices }) => {
+        if (cancelled) return;
+        setStorePrices(prices);
+        // Off-device (web/dev) purchases are mocked — every plan stays live so
+        // the flow remains testable in the browser.
+        if (!supported) {
+          setAvailableIds(null);
+          setStoreStatus('ready');
+          return;
+        }
+        setAvailableIds(available);
+        setStoreStatus(available.length > 0 ? 'ready' : 'unavailable');
+      })
+      .catch(() => { if (!cancelled) setStoreStatus('unavailable'); });
     return () => { cancelled = true; };
-  }, []);
+  }, [probeNonce]);
+
+  // Rows the store confirmed it can sell (all of them off-device).
+  const visibleRows = useMemo(
+    () => (availableIds === null ? PLAN_ROWS : PLAN_ROWS.filter(r => availableIds.includes(r.productId))),
+    [availableIds],
+  );
+
+  // Keep the selection on a row that is actually purchasable — if the default
+  // (Yearly) didn't come back from the store, fall through to the first row
+  // that did rather than leaving a dead CTA selected.
+  useEffect(() => {
+    if (visibleRows.length === 0) return;
+    if (!visibleRows.some(r => r.productId === selected)) setSelected(visibleRows[0].productId);
+  }, [visibleRows, selected]);
 
   const priceFor = (productId: ProductId) =>
     storePrices[productId] || `$${PRODUCTS[productId].priceUsd.toFixed(2)}`;
@@ -161,6 +199,7 @@ const SubscribeOnboarding = () => {
   };
 
   const handleSubscribe = async () => {
+    if (purchasing || storeStatus !== 'ready') return;
     hapticMedium();
     setPurchasing(true);
     track('purchase_initiated', { productId: selected });
@@ -218,6 +257,9 @@ const SubscribeOnboarding = () => {
         'Purchase Could Not Complete',
         'If you were charged, tap Restore Purchases below to unlock Pro. Otherwise you can try again from Settings later.',
       );
+      // Re-probe: if the store itself is unreachable, the screen switches to
+      // its retry state instead of leaving a CTA that keeps failing.
+      setProbeNonce(n => n + 1);
     } finally {
       setPurchasing(false);
     }
@@ -320,8 +362,12 @@ const SubscribeOnboarding = () => {
       </div>
 
       {/* Scrollable region — title + benefits. The purchase controls below
-          are pinned, so the CTA is always visible regardless of screen size. */}
+          are pinned, so the CTA is always visible regardless of screen size.
+          The inner wrapper is `min-h-full` + centered so tall screens (iPad)
+          don't strand the content at the top above a dead gap, while short
+          screens still scroll from the top instead of clipping. */}
       <div className="relative z-10 w-full max-w-md flex-1 min-h-0 overflow-y-auto">
+        <div className="min-h-full flex flex-col justify-center py-2">
         {/* Title block */}
         <motion.div
           initial={{ opacity: 0, y: -8 }}
@@ -354,14 +400,48 @@ const SubscribeOnboarding = () => {
             </li>
           ))}
         </ul>
+        </div>
       </div>
 
       {/* Pinned purchase controls — plans + summary + CTA + legal stay on
           screen so the user never has to scroll to act. */}
       <div className="relative z-10 w-full max-w-md shrink-0 pt-3 pb-2 border-t border-white/[0.07]">
+        {storeStatus === 'unavailable' ? (
+          /* The store returned nothing purchasable (no connection, sandbox
+             hiccup, products still propagating). Offering a buy button here
+             would guarantee an error — show an honest retry instead. Restore,
+             Terms and Privacy below stay available either way. */
+          <div className="rounded-2xl border border-border/60 bg-card/60 backdrop-blur-xl px-4 py-4 mb-3 text-center">
+            <div className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-amber-500/15 border border-amber-400/30 mb-2">
+              <AlertTriangle className="w-4 h-4 text-amber-300" />
+            </div>
+            <p className="text-sm font-bold text-foreground">Store Temporarily Unavailable</p>
+            <p className="text-[11px] text-muted-foreground leading-snug mt-1">
+              We couldn't reach the App Store to load Dynasty Pro pricing. Check your
+              connection and try again — you can keep playing for free in the meantime.
+            </p>
+            <div className="mt-3 flex items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => { hapticLight(); setProbeNonce(n => n + 1); }}
+                className="px-4 py-2 rounded-xl text-[12px] font-bold bg-primary/90 text-primary-foreground border border-primary/40"
+              >
+                Try Again
+              </button>
+              <button
+                type="button"
+                onClick={handleSkip}
+                className="px-4 py-2 rounded-xl text-[12px] font-semibold text-muted-foreground border border-border/60"
+              >
+                Continue Free
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
         {/* Plan rows */}
         <div className="space-y-2 mb-3">
-          {PLAN_ROWS.map(row => {
+          {visibleRows.map(row => {
             const product = PRODUCTS[row.productId];
             const isSelected = selected === row.productId;
             const isAnnualBest = row.badge === 'BEST VALUE';
@@ -444,7 +524,7 @@ const SubscribeOnboarding = () => {
           type="button"
           whileTap={{ scale: purchasing ? 1 : 0.985 }}
           onClick={handleSubscribe}
-          disabled={purchasing || restoring}
+          disabled={purchasing || restoring || storeStatus !== 'ready'}
           className={cn(
             'relative w-full h-13 py-3.5 rounded-2xl font-bold text-base overflow-hidden',
             'bg-gradient-to-b from-primary/95 to-primary/75 text-primary-foreground',
@@ -469,10 +549,10 @@ const SubscribeOnboarding = () => {
             />
           )}
           <span className="relative flex items-center justify-center gap-2">
-            {purchasing ? (
+            {purchasing || storeStatus === 'loading' ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Processing…
+                {purchasing ? 'Processing…' : 'Contacting App Store…'}
               </>
             ) : (
               <>
@@ -492,6 +572,8 @@ const SubscribeOnboarding = () => {
             <Check className="w-3 h-3 text-emerald-400" aria-hidden />
             No payment due now · cancel anytime
           </p>
+        )}
+          </>
         )}
 
         {/* Footer: Restore + Terms + Privacy — required by Apple 3.1.2(c). */}

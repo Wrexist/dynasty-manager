@@ -104,6 +104,190 @@ async function ensureConfigured(): Promise<void> {
   if (!ok) throw new Error('RevenueCat SDK is not configured');
 }
 
+// ── Error classification ──
+//
+// The Capacitor bridge does NOT hand us the SDK's `PurchasesError` object.
+// iOS rejects with `call.reject(message, "\(error.code)", nsError)` and
+// Android with `call.reject(message, code.toString(), info)`, so the JS side
+// receives `{ message, code }` where `code` is the NUMERIC PURCHASES_ERROR_CODE
+// as a string ('1' = PURCHASE_CANCELLED_ERROR). `userCancelled` — the field the
+// SDK docs point at — is only ever present on Android, inside the extra data.
+//
+// This bit us hard: the old check (`error.userCancelled || error.code ===
+// 'PURCHASE_CANCELLED'`) matched NOTHING on iOS, so every user who simply
+// dismissed the StoreKit sheet was treated as a hard failure — Sentry event,
+// thrown error, and a red "Purchase Could Not Complete" banner. App Review hit
+// exactly that and rejected the build under Guideline 2.1.0 (App Completeness).
+// Never narrow this to a single field again.
+const CANCEL_CODES = new Set([
+  '1', // PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR — what iOS actually sends
+  'PURCHASE_CANCELLED',
+  'PURCHASE_CANCELLED_ERROR',
+]);
+
+/** True when a rejected purchase was the user dismissing the store sheet
+ *  (no charge, not an error worth reporting or alarming the user about). */
+export function isUserCancelledError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false;
+  const e = err as {
+    code?: unknown;
+    userCancelled?: unknown;
+    readableErrorCode?: unknown;
+    userInfo?: { readableErrorCode?: unknown };
+    data?: { userCancelled?: unknown; readableErrorCode?: unknown };
+  };
+  const cancelledFlags = [e.userCancelled, e.data?.userCancelled];
+  if (cancelledFlags.some(f => f === true || f === 'true')) return true;
+  const codes = [e.code, e.readableErrorCode, e.userInfo?.readableErrorCode, e.data?.readableErrorCode];
+  return codes.some(c => (typeof c === 'string' || typeof c === 'number') && CANCEL_CODES.has(String(c)));
+}
+
+// ── Product resolution ──
+//
+// RevenueCat's recommended path is Offerings → Package → purchasePackage, and
+// we keep that as the primary path (it preserves offering attribution). But an
+// offering that is missing a package — a dashboard misconfiguration, a product
+// still propagating through App Store Connect, or a transient offerings fetch
+// failure — used to make `purchaseProduct` throw BEFORE StoreKit was ever
+// consulted, which surfaced as the same generic failure banner. StoreKit knows
+// about a product as soon as it's approved, regardless of RevenueCat's offering
+// config, so we fall back to getProducts() → purchaseStoreProduct().
+
+interface StoreProductLike {
+  identifier: string;
+  priceString?: string;
+}
+
+interface PackageLike {
+  product: StoreProductLike;
+}
+
+type PurchasesModule = typeof import('@revenuecat/purchases-capacitor')['Purchases'];
+
+/** Every package RevenueCat exposes across the current + all offerings. */
+async function fetchOfferingPackages(Purchases: PurchasesModule): Promise<PackageLike[]> {
+  try {
+    // SDK types are structurally loosened here — web builds don't ship them.
+    const offerings = await Purchases.getOfferings() as unknown as {
+      current?: { availablePackages?: PackageLike[] };
+      all?: Record<string, { availablePackages?: PackageLike[] }>;
+    };
+    return [
+      ...(offerings.current?.availablePackages || []),
+      ...Object.values(offerings.all || {}).flatMap(o => o.availablePackages || []),
+    ].filter(p => p?.product?.identifier);
+  } catch (err) {
+    // Not fatal — the direct StoreKit lookup below can still resolve products.
+    if (import.meta.env.DEV) console.warn('[Purchases] getOfferings failed:', err);
+    return [];
+  }
+}
+
+/** Ask the store directly for products by ID, bypassing offerings entirely.
+ *  iOS ignores the `type` filter; Android defaults to SUBSCRIPTION only, so
+ *  both categories are queried there and merged. */
+async function fetchStoreProducts(Purchases: PurchasesModule, ids: string[]): Promise<StoreProductLike[]> {
+  if (ids.length === 0) return [];
+  const types: (string | undefined)[] =
+    Capacitor.getPlatform() === 'android' ? ['SUBSCRIPTION', 'NON_SUBSCRIPTION'] : [undefined];
+
+  const batches = await Promise.all(types.map(async type => {
+    try {
+      const options = { productIdentifiers: ids, ...(type ? { type } : {}) };
+      const res = await Purchases.getProducts(
+        options as Parameters<PurchasesModule['getProducts']>[0],
+      ) as unknown as { products?: StoreProductLike[] };
+      return res?.products || [];
+    } catch (err) {
+      // getProducts rejects wholesale when ANY requested ID is unconfigured;
+      // treat it as "nothing from this category" rather than a fatal error.
+      if (import.meta.env.DEV) console.warn('[Purchases] getProducts failed:', err);
+      return [];
+    }
+  }));
+
+  const byId = new Map<string, StoreProductLike>();
+  for (const product of batches.flat()) {
+    if (product?.identifier && !byId.has(product.identifier)) byId.set(product.identifier, product);
+  }
+  return Array.from(byId.values());
+}
+
+/**
+ * Buy a product, preferring its offering package and falling back to a direct
+ * StoreKit / Play Billing product purchase. Rejects with the SDK's error
+ * untouched so callers can classify it via isUserCancelledError.
+ */
+async function buyProduct(Purchases: PurchasesModule, productId: ProductId) {
+  const packages = await fetchOfferingPackages(Purchases);
+  const pkg = packages.find(p => p.product.identifier === productId);
+  if (pkg) {
+    // pkg is narrowed from the loose offerings shape above; the runtime object
+    // satisfies PurchasesPackage but structural typing misses the extra fields.
+    return Purchases.purchasePackage({
+      aPackage: pkg as unknown as Parameters<PurchasesModule['purchasePackage']>[0]['aPackage'],
+    });
+  }
+
+  const [product] = await fetchStoreProducts(Purchases, [productId]);
+  if (!product) {
+    throw new Error(`Product ${productId} is not available from the store`);
+  }
+  return Purchases.purchaseStoreProduct({
+    product: product as unknown as Parameters<PurchasesModule['purchaseStoreProduct']>[0]['product'],
+  });
+}
+
+/** What the store will actually sell right now. */
+export interface StoreAvailability {
+  /** false on web/dev or with monetization disabled — callers must NOT render a
+   *  store-error state in that case, purchases are mocked there. */
+  supported: boolean;
+  /** Product IDs the store confirmed as purchasable. */
+  available: ProductId[];
+  /** Localised price strings, keyed by product ID. */
+  prices: Partial<Record<ProductId, string>>;
+}
+
+/**
+ * Resolve which of the given products the store can actually sell, together
+ * with their localised prices. Used by the paywall to avoid the App Review
+ * 2.1.0 failure mode of presenting a buy button that can only ever error:
+ * if nothing comes back on a real device, the UI shows a retry state instead
+ * of a purchase CTA.
+ */
+export async function getStoreAvailability(
+  productIds: ProductId[] = Object.keys(PRODUCTS) as ProductId[],
+): Promise<StoreAvailability> {
+  if (!Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) {
+    return { supported: false, available: [], prices: {} };
+  }
+
+  try {
+    await ensureConfigured();
+    const { Purchases } = await import('@revenuecat/purchases-capacitor');
+    const [packages, products] = await Promise.all([
+      fetchOfferingPackages(Purchases),
+      fetchStoreProducts(Purchases, productIds),
+    ]);
+
+    const wanted = new Set<string>(productIds);
+    const prices: Partial<Record<ProductId, string>> = {};
+    const available = new Set<ProductId>();
+    for (const entry of [...packages.map(p => p.product), ...products]) {
+      if (!wanted.has(entry.identifier)) continue;
+      const id = entry.identifier as ProductId;
+      available.add(id);
+      if (entry.priceString && !prices[id]) prices[id] = entry.priceString;
+    }
+    return { supported: true, available: Array.from(available), prices };
+  } catch (err) {
+    if (import.meta.env.DEV) console.error('[Purchases] getStoreAvailability failed:', err);
+    Sentry.captureException(err, { tags: { context: 'purchases.getStoreAvailability' } });
+    return { supported: true, available: [], prices: {} };
+  }
+}
+
 /**
  * Purchase a consumable IAP (e.g. a single Premium Gold or Icon pack open).
  * Returns true if the purchase completed successfully. The caller is
@@ -129,23 +313,10 @@ export async function purchaseConsumable(productId: ProductId): Promise<boolean>
   try {
     await ensureConfigured();
     const { Purchases } = await import('@revenuecat/purchases-capacitor');
-    const offerings = await Purchases.getOfferings() as {
-      current?: { availablePackages: { product: { identifier: string } }[] };
-      all?: Record<string, { availablePackages: { product: { identifier: string } }[] }>;
-    };
-    const allPackages = [
-      ...(offerings.current?.availablePackages || []),
-      ...Object.values(offerings.all || {}).flatMap(o => o.availablePackages || []),
-    ];
-    const pkg = allPackages.find(p => p.product.identifier === productId);
-    if (!pkg) {
-      throw new Error(`Consumable ${productId} not found in offerings`);
-    }
-    await Purchases.purchasePackage({ aPackage: pkg as Parameters<typeof Purchases.purchasePackage>[0]['aPackage'] });
+    await buyProduct(Purchases, productId);
     return true;
   } catch (err: unknown) {
-    const error = (err && typeof err === 'object' ? err : {}) as { code?: string; userCancelled?: boolean };
-    if (error.userCancelled || error.code === 'PURCHASE_CANCELLED') {
+    if (isUserCancelledError(err)) {
       return false;
     }
     if (import.meta.env.DEV) console.error('[Purchases] Consumable purchase failed:', err);
@@ -181,31 +352,11 @@ export async function purchaseProduct(productId: ProductId): Promise<PurchaseOut
   try {
     await ensureConfigured();
     const { Purchases } = await import('@revenuecat/purchases-capacitor');
-    // SDK types unavailable in web builds — use structural typing
-    const offerings = await Purchases.getOfferings() as {
-      current?: { availablePackages: { product: { identifier: string } }[] };
-      all?: Record<string, { availablePackages: { product: { identifier: string } }[] }>;
-    };
-
-    // Find the package matching our product ID across all offerings
-    const allPackages = [
-      ...(offerings.current?.availablePackages || []),
-      ...Object.values(offerings.all || {}).flatMap(o => o.availablePackages || []),
-    ];
-    const pkg = allPackages.find(p => p.product.identifier === productId);
-
-    if (!pkg) {
-      throw new Error(`Product ${productId} not found in offerings`);
-    }
-
-    // pkg is narrowed from the loose offerings shape above; the runtime object
-    // satisfies PurchasesPackage but structural typing misses the extra fields.
-    const { customerInfo } = await Purchases.purchasePackage({ aPackage: pkg as Parameters<typeof Purchases.purchasePackage>[0]['aPackage'] });
+    const { customerInfo } = await buyProduct(Purchases, productId);
     return { cancelled: false, granted: mapEntitlements(customerInfo) };
   } catch (err: unknown) {
-    const error = (err && typeof err === 'object' ? err : {}) as { code?: string; userCancelled?: boolean };
-    if (error.userCancelled || error.code === 'PURCHASE_CANCELLED') {
-      // User cancelled — not an error
+    if (isUserCancelledError(err)) {
+      // User dismissed the store sheet — not an error, and no charge.
       return { cancelled: true, granted: [] };
     }
     if (import.meta.env.DEV) console.error('[Purchases] Purchase failed:', err);
@@ -237,37 +388,13 @@ export async function restorePurchases(): Promise<ProductId[]> {
  * Returns the StoreKit-formatted string (e.g. "$14.99", "kr 149,99",
  * "€9,99") so the shop UI can display prices in the user's actual
  * currency instead of the USD fallback baked into config. Returns an
- * empty object on web/dev or if offerings can't be fetched — callers
- * should fall back to the USD config price in that case.
+ * empty object on web/dev or if the store can't be reached — callers
+ * should fall back to the USD config price in that case. Products missing
+ * from RevenueCat's offerings are still priced via a direct store lookup.
  */
 export async function getStorePrices(): Promise<Partial<Record<ProductId, string>>> {
-  if (!Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) {
-    return {};
-  }
-
-  try {
-    await ensureConfigured();
-    const { Purchases } = await import('@revenuecat/purchases-capacitor');
-    const offerings = await Purchases.getOfferings() as {
-      current?: { availablePackages: { product: { identifier: string; priceString?: string } }[] };
-      all?: Record<string, { availablePackages: { product: { identifier: string; priceString?: string } }[] }>;
-    };
-    const allPackages = [
-      ...(offerings.current?.availablePackages || []),
-      ...Object.values(offerings.all || {}).flatMap(o => o.availablePackages || []),
-    ];
-    const prices: Partial<Record<ProductId, string>> = {};
-    for (const pkg of allPackages) {
-      const id = pkg.product.identifier as ProductId;
-      const priceString = pkg.product.priceString;
-      if (priceString && !prices[id]) prices[id] = priceString;
-    }
-    return prices;
-  } catch (err) {
-    if (import.meta.env.DEV) console.error('[Purchases] getStorePrices failed:', err);
-    Sentry.captureException(err, { tags: { context: 'purchases.getStorePrices' } });
-    return {};
-  }
+  const { prices } = await getStoreAvailability();
+  return prices;
 }
 
 /** Get current customer entitlements without making a purchase. */
