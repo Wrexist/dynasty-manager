@@ -39,6 +39,11 @@ function breadcrumbCorruption(site: string, raw: string | null, err: unknown): v
 
 const MAX_SLOTS = 3;
 
+/** Upper bound on total hydration time before the app proceeds without IDB.
+ *  Comfortably above a cold IDB read of three slots, low enough that a wedged
+ *  database can't hold the title screen hostage. */
+const HYDRATE_TIMEOUT_MS = 3000;
+
 const memSlots: (string | null)[] = [null, null, null, null]; // slot 0 unused
 const memSlotBackups: (string | null)[] = [null, null, null, null];
 let hydrated = false;
@@ -61,7 +66,19 @@ export function hydrateSaveStorage(): Promise<void> {
       for (let slot = 1; slot <= MAX_SLOTS; slot++) {
         jobs.push(hydrateOneSlot(slot));
       }
-      await Promise.all(jobs);
+      // Second layer of the "never hang the title screen" guarantee (the first
+      // is the open timeout in idbStorage). Anything that leaves an IDB request
+      // pending forever — a locked database after an iOS WebView crash, a
+      // wedged transaction — would otherwise mean `hydrated` never flips and
+      // TitleScreen renders skeleton slot rows with no Continue and no New Game,
+      // permanently. Falling through on a timeout serves whatever the memory
+      // cache and localStorage mirror already hold; the slot reads themselves
+      // stay resilient, and a late-arriving IDB value still lands in the cache
+      // because `hydrateOneSlot` only fills empty entries.
+      await Promise.race([
+        Promise.all(jobs),
+        new Promise<void>((resolve) => setTimeout(resolve, HYDRATE_TIMEOUT_MS)),
+      ]);
     } finally {
       hydrated = true;
     }
@@ -777,8 +794,14 @@ export function writeSaveSlot(slot: number, json: string, opts?: WriteSaveSlotOp
   // "both disk paths failed" case and surface a Save Failed warning.
   const idbPromise = idbPut(mainKey, json);
   if (rotate) void idbPut(backupKey, oldMain as string);
-  else if (!oldMain) void idbDel(backupKey);
-  // else: outgoing main failed validation — leave the existing backup intact.
+  else if (!oldMain && hydrated) void idbDel(backupKey);
+  // else: either the outgoing main failed validation (leave the existing backup
+  // intact), or we haven't hydrated yet. The `hydrated` guard matters: before
+  // hydration `readSaveSlot` can legitimately return null while IDB still holds
+  // both a main and a backup, so an early write — reachable via
+  // `migrateLegacySave()` or a deep link straight to #/select-club — would read
+  // `oldMain === null` and DELETE the last-known-good IDB backup while
+  // overwriting the main. Never destroy a recovery layer we haven't looked at.
 
   // Step 4: best-effort localStorage mirror. On quota exceeded we drop
   // whatever was there so the two stores don't diverge — IDB is truth.

@@ -5,6 +5,7 @@ import { GROWTH_YOUTH_PER_PROMOTION, STAT_MAX as CAREER_STAT_MAX } from '@/confi
 import { createAssignment } from '@/utils/scouting';
 import { STARTING_TACTICAL_FAMILIARITY, FACILITY_COST_PER_LEVEL, FACILITY_BASE_UPGRADE_WEEKS, FACILITY_MAX_LEVEL, STAND_COST_PER_LEVEL, STAND_BASE_UPGRADE_WEEKS, MAX_SQUAD_SIZE } from '@/config/gameBalance';
 import { MAX_TACTICAL_PRESETS } from '@/config/monetization';
+import { isPro } from '@/utils/monetization';
 import {
   STAFF_HIRING_FEE_WEEKS,
   STAFF_PRAISE_GAIN, STAFF_CRITICIZE_LOSS, STAFF_INTERACTION_COOLDOWN,
@@ -39,6 +40,11 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
 
   saveTacticalPreset: (name: string) => {
     const state = get();
+    // Pro entitlement guard — custom tactical presets are a listed Pro feature
+    // (`custom_tactics`). The UI gates this at TacticsPage, but mirror
+    // `autoFillTeam`'s slice-level re-check so a non-UI caller can't bypass the
+    // paywall. Same defense-in-depth boundary, same reasoning.
+    if (!isPro(state.monetization)) return;
     if (state.tacticalPresets.length >= MAX_TACTICAL_PRESETS) return;
     const club = state.clubs[state.playerClubId];
     if (!club) return;

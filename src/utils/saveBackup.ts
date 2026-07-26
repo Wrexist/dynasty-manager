@@ -155,6 +155,18 @@ export function importJsonToSlot(slot: number, text: string): ImportResult {
     return { ok: false, error: 'invalid', message: "This file isn't a valid Dynasty Manager save." };
   }
 
+  // Never let an imported file carry entitlements. The whole payload is
+  // user-editable between Export and Import, so without this a player could
+  // export a save, add "com.dynastymanager.pro" to monetization.entitlements
+  // (or blank out subscription.expiresAt), re-import, and hold permanent Pro —
+  // `restoreEntitlements` only ever ADDS, so no sync path would take it back.
+  // Purchases live with the store, not in the file: dropping the block entirely
+  // lets `loadGame` fall back to DEFAULT_MONETIZATION_STATE and GameShell's
+  // RevenueCat sync re-grant whatever this device is actually entitled to.
+  // Progression-only monetization state (cosmetics, pack history, ad-reward
+  // ledgers) is not worth preserving at the cost of a free-Pro hole.
+  delete (migrated as Record<string, unknown>).monetization;
+
   // Persist the migrated payload (stamped at CURRENT_VERSION) so the slot is
   // immediately current. Gate the backup rotation on the outgoing main's
   // validity, matching the autosave path.

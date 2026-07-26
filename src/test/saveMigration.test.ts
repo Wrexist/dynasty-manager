@@ -2,14 +2,14 @@ import { describe, it, expect } from 'vitest';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 
 describe('saveMigration', () => {
-  it('should have current version set to 73', () => {
-    expect(CURRENT_VERSION).toBe(73);
+  it('should have current version set to 74', () => {
+    expect(CURRENT_VERSION).toBe(74);
   });
 
   it('v69 → v70 backfills settings.performanceMode (default off)', () => {
     const v69: Record<string, unknown> = { version: 69, settings: { reducedMotion: true } };
     const migrated = migrateSaveData(v69) as { version: number; settings: Record<string, unknown> };
-    expect(migrated.version).toBe(73);
+    expect(migrated.version).toBe(CURRENT_VERSION);
     expect(migrated.settings.performanceMode).toBe(false);
     expect(migrated.settings.reducedMotion).toBe(true);
   });
@@ -23,7 +23,7 @@ describe('saveMigration', () => {
       ],
     };
     const migrated = migrateSaveData(v70) as { version: number; weeklyObjectives: Array<Record<string, unknown>> };
-    expect(migrated.version).toBe(73);
+    expect(migrated.version).toBe(CURRENT_VERSION);
     expect(migrated.weeklyObjectives[0].claimed).toBe(true);
     expect(migrated.weeklyObjectives[1].claimed).toBe(false);
   });
@@ -505,7 +505,7 @@ describe('v72 → v73 (board ultimatum)', () => {
   it('defaults boardUltimatum to null on old saves', () => {
     const v72: Record<string, unknown> = { version: 72 };
     const out = migrateSaveData(v72) as Record<string, unknown>;
-    expect(out.version).toBe(73);
+    expect(out.version).toBe(CURRENT_VERSION);
     expect(out.boardUltimatum).toBeNull();
   });
 
@@ -514,5 +514,55 @@ describe('v72 → v73 (board ultimatum)', () => {
     const v72: Record<string, unknown> = { version: 72, boardUltimatum: ult };
     const out = migrateSaveData(v72) as Record<string, unknown>;
     expect(out.boardUltimatum).toEqual(ult);
+  });
+});
+
+describe('v73 → v74 (subscription anchoring, retirement flag)', () => {
+  it('rejects a save with no numeric version instead of driving it through the v22 clean break', () => {
+    // A save that lost its `version` field used to be treated as v1, which drove
+    // it through migration 22 — a deliberate clean break that discards ALL game
+    // state — and then failed validation. Refuse up front so the caller can
+    // offer recovery on the real data.
+    const out = migrateSaveData({ playerClubId: 'ars', clubs: {} } as Record<string, unknown>) as Record<string, unknown>;
+    expect(out.migrationError).toBe(true);
+    expect(out.playerClubId).toBe('ars');
+  });
+
+  it('defaults careerRetired to false', () => {
+    const out = migrateSaveData({ version: 73 }) as Record<string, unknown>;
+    expect(out.version).toBe(CURRENT_VERSION);
+    expect(out.careerRetired).toBe(false);
+  });
+
+  it('anchors a dated subscription with grantedAt and keeps it', () => {
+    const expiresAt = new Date(Date.now() + 20 * 24 * 3600 * 1000).toISOString();
+    const out = migrateSaveData({
+      version: 73,
+      monetization: { entitlements: [], subscription: { tier: 'monthly', productId: 'com.dynastymanager.pro.monthly', expiresAt } },
+    }) as Record<string, unknown>;
+    const sub = (out.monetization as Record<string, unknown>).subscription as Record<string, unknown>;
+    expect(sub.expiresAt).toBe(expiresAt);
+    expect(typeof sub.grantedAt).toBe('string');
+  });
+
+  it('clears a recurring subscription that has neither expiry nor anchor', () => {
+    // These are exactly the records that used to grant permanent Pro for one
+    // month's payment (expiresAt == null read as "lifetime"). They cannot be
+    // verified locally, so drop them and let the next RevenueCat sync re-grant.
+    const out = migrateSaveData({
+      version: 73,
+      monetization: { entitlements: [], subscription: { tier: 'monthly', productId: 'com.dynastymanager.pro.monthly', expiresAt: null } },
+    }) as Record<string, unknown>;
+    expect((out.monetization as Record<string, unknown>).subscription).toBeNull();
+  });
+
+  it('keeps a lifetime record with no expiry', () => {
+    const out = migrateSaveData({
+      version: 73,
+      monetization: { entitlements: [], subscription: { tier: 'lifetime', productId: 'com.dynastymanager.pro.lifetime', expiresAt: null } },
+    }) as Record<string, unknown>;
+    const sub = (out.monetization as Record<string, unknown>).subscription as Record<string, unknown>;
+    expect(sub).not.toBeNull();
+    expect(sub.tier).toBe('lifetime');
   });
 });

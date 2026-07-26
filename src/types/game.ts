@@ -1738,8 +1738,18 @@ export type SubscriptionTier = 'trial' | 'monthly' | 'annual' | 'lifetime';
 export interface SubscriptionInfo {
   tier: SubscriptionTier;
   productId: ProductId;
-  /** ISO date string of expiration, or null for lifetime */
+  /** ISO date string of expiration. `null` means "the store did not tell us".
+   *  It does NOT mean lifetime — see `isSubscriptionExpired` in
+   *  utils/monetization.ts. Lifetime is identified by `tier`/`productId`,
+   *  never by a missing date, because RevenueCat can omit `expirationDate`
+   *  on an active recurring entitlement (sandbox, grace/billing-issue states,
+   *  promotional entitlements) and treating that as lifetime granted
+   *  permanent Pro for one month's payment. */
   expiresAt: string | null;
+  /** ISO date this record was written from the store. Used as the anchor for a
+   *  bounded fallback window when a recurring tier arrives with no
+   *  `expiresAt`, so such a record can never be permanent. */
+  grantedAt?: string;
   /** Whether the subscription has a billing issue (grace period) */
   isInGracePeriod: boolean;
   /** Whether the subscription will auto-renew */

@@ -11,11 +11,42 @@ import type { Club, Player, FormationType } from '@/types/game';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 73;
+const CURRENT_VERSION = 74;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
 const migrations: Record<number, MigrationFn> = {
+  // v73 → v74: `SubscriptionInfo` gained `grantedAt`, and a null `expiresAt` no
+  // longer means "lifetime" (it means "the store didn't tell us"). Lifetime is
+  // now identified by tier/productId. Backfill the anchor where we have a
+  // usable expiry, and clear any recurring record that has neither an expiry
+  // nor an anchor — those are exactly the records that used to grant permanent
+  // Pro for one month's payment, and they cannot be verified locally. The next
+  // RevenueCat sync restores Pro for anyone genuinely entitled.
+  //
+  // Also adds `careerRetired` so a retired manager has a terminal state instead
+  // of re-entering the unemployed branch forever.
+  73: (data) => {
+    const monetization = data.monetization as Record<string, unknown> | undefined;
+    const sub = monetization?.subscription as Record<string, unknown> | null | undefined;
+    let nextSub = sub ?? null;
+    if (sub && typeof sub === 'object') {
+      const tier = sub.tier;
+      const hasExpiry = typeof sub.expiresAt === 'string' && sub.expiresAt !== '';
+      if (tier === 'lifetime' || hasExpiry) {
+        nextSub = { ...sub, grantedAt: sub.grantedAt ?? new Date().toISOString() };
+      } else {
+        nextSub = null;
+      }
+    }
+    return {
+      ...data,
+      version: 74,
+      careerRetired: data.careerRetired ?? false,
+      ...(monetization ? { monetization: { ...monetization, subscription: nextSub } } : {}),
+    };
+  },
+
   // v72 → v73: GameState gained `boardUltimatum` (mid-season board ultimatum
   // issued at review weeks when confidence is critically low — see
   // config/gameBalance ULTIMATUM_* constants). Existing saves have no active
@@ -487,6 +518,12 @@ const migrations: Record<number, MigrationFn> = {
     const players = data.players as Record<string, Record<string, unknown>> | undefined;
     if (players) {
       for (const p of Object.values(players)) {
+        // Real corrupted saves do contain null entries here — which is why
+        // every neighbouring migration guards. Without this, one null player
+        // threw, `migrateSaveData` flagged migrationError, and the user got
+        // "Save upgrade failed"; the backup then took the same path, so
+        // recovery failed too.
+        if (!p || typeof p !== 'object') continue;
         if (typeof p.suspendedUntilWeek === 'number') {
           p.suspendedUntilWeek = p.suspendedUntilWeek + 1;
         }
@@ -739,8 +776,13 @@ const migrations: Record<number, MigrationFn> = {
 
   // v53 → v54: Backfill board objectives with structured checkType fields
   53: (data) => {
-    const objectives = (data.boardObjectives || []) as Record<string, unknown>[];
+    // `|| []` only covers null/undefined — a corrupted save where
+    // boardObjectives is an object or string would throw on `.map`, failing the
+    // whole migration (and the backup's, since it takes the same path).
+    const rawObjectives = data.boardObjectives;
+    const objectives = (Array.isArray(rawObjectives) ? rawObjectives : []) as Record<string, unknown>[];
     const updated = objectives.map(obj => {
+      if (!obj || typeof obj !== 'object') return obj;
       if (obj.checkType) return obj; // Already has structured fields
       const desc = (obj.description || '') as string;
       if (desc === 'Win the League') return { ...obj, checkType: 'league_position', targetMin: 1, xpReward: 40 };
@@ -1297,7 +1339,20 @@ export function isSaveFromNewerVersion(data: unknown): boolean {
 }
 
 export function migrateSaveData(data: Record<string, unknown>): Record<string, unknown> {
-  let version = (data.version || 1) as number;
+  // A save with no numeric `version` is NOT a v1 save. Treating it as one drove
+  // it through migration 22, which is a deliberate clean break that discards all
+  // game state (monetization included) — so a payload that merely lost its
+  // version field came back as an empty save that then failed validation. Refuse
+  // instead, and let the caller offer recovery. Reachable via the stale-save
+  // salvage path and via `importJsonToSlot`.
+  if (typeof data.version !== 'number' || !Number.isFinite(data.version)) {
+    Sentry.captureException(new Error('saveMigration: save has no usable version field'), {
+      tags: { context: 'saveMigration', fromVersion: 'missing' },
+    });
+    return { ...data, migrationError: true };
+  }
+
+  let version = data.version;
   let migrated = { ...data };
 
   while (version < CURRENT_VERSION) {
@@ -1323,7 +1378,20 @@ export function migrateSaveData(data: Record<string, unknown>): Record<string, u
       migrated = { ...migrated, migrationError: true };
       break;
     }
-    version = migrated.version as number;
+    // Assert monotonic progress. A migration step that forgets to set
+    // `version: N + 1` would otherwise spin this loop forever ON THE MAIN
+    // THREAD — a hard launch hang with no error and no crash report, which is
+    // far worse than a flagged failure.
+    const nextVersion = migrated.version;
+    if (typeof nextVersion !== 'number' || !Number.isFinite(nextVersion) || nextVersion <= version) {
+      Sentry.captureException(
+        new Error(`saveMigration: step ${version} did not advance version (got ${String(nextVersion)})`),
+        { tags: { context: 'saveMigration', fromVersion: String(version) } },
+      );
+      migrated = { ...migrated, migrationError: true };
+      break;
+    }
+    version = nextVersion;
   }
 
   return migrated;

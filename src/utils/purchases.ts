@@ -514,6 +514,10 @@ export function extractSubscriptionInfo(customerInfo: CustomerInfo | null | unde
       tier: isTrial ? 'trial' : product.subscriptionTier!,
       productId,
       expiresAt: proEntitlement.expirationDate || null,
+      // Anchor for the bounded fallback window in `isSubscriptionExpired` when
+      // RevenueCat gives us no `expirationDate` on an active recurring
+      // entitlement. Without an anchor such a record reads as expired.
+      grantedAt: new Date().toISOString(),
       isInGracePeriod: proEntitlement.billingIssueDetectedAt != null,
       willRenew: !proEntitlement.unsubscribeDetectedAt,
       isTrial,
