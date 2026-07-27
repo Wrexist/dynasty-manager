@@ -5,6 +5,16 @@
 
 import type { KeyMomentChoice } from '@/types/game';
 
+// NOTE ON `all-out-attack` / `defensiveLine: 'high'` / high pressing:
+// these used to be the strictly-correct answer to every prompt below —
+// mentality was counted twice (team strength AND per-shot conversion) while its
+// defensive counterweight was counted once and never touched the opponent's
+// conversion, and a high line had literally no upside to trade against its
+// counter-vulnerability. Both are now genuine risk/reward trades in the engine
+// (see `computeStrengths` and DEFENSIVE_LINE_COMPRESSION), so the aggressive
+// options here are high-variance choices rather than free points. Descriptions
+// say so; keep them honest if you edit these packages.
+
 export const KEY_MOMENT_CHOICES: Record<string, KeyMomentChoice[]> = {
   goal_conceded: [
     {
@@ -49,7 +59,7 @@ export const KEY_MOMENT_CHOICES: Record<string, KeyMomentChoice[]> = {
   losing_late: [
     {
       label: 'All-Out Attack',
-      description: 'Throw everything forward — now or never',
+      description: 'Throw everything forward — you will create more, and concede more',
       icon: 'Flame',
       tactics: { mentality: 'all-out-attack', tempo: 'fast', defensiveLine: 'high', pressingIntensity: 75 },
     },

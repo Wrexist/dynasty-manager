@@ -53,17 +53,55 @@ export const MENTALITY_ATTACK_MOD: Record<string, number> = {
   'defensive': -0.35, 'cautious': -0.20, 'balanced': 0, 'attacking': 0.30, 'all-out-attack': 0.50,
 } as const;
 
+// Magnitudes MIRROR MENTALITY_ATTACK_MOD deliberately. Both feed the same
+// conversion channel — your attackMod lifts your own conversion, your
+// defenseMod suppresses the opponent's — so equal magnitudes make every
+// mentality an exactly zero-sum trade of goals-for against goals-against.
+// `attacking` used to be +0.30 attack against only -0.20 defence, i.e. free
+// expected points on top of the double-counting bug.
 export const MENTALITY_DEFENSE_MOD: Record<string, number> = {
-  'defensive': 0.35, 'cautious': 0.20, 'balanced': 0, 'attacking': -0.20, 'all-out-attack': -0.40,
+  'defensive': 0.35, 'cautious': 0.20, 'balanced': 0, 'attacking': -0.30, 'all-out-attack': -0.50,
 } as const;
+
+/** How much the mentality pair shifts the SHOT-VOLUME threshold (own attackMod
+ *  up, opponent's defenceMod down — same symmetric shape as the conversion
+ *  term). Previously a flat ±0.03 keyed only on your own mentality, which was a
+ *  free volume bonus for attacking sides that the opponent never received. */
+export const MENTALITY_SHOT_SHIFT_SCALE = 0.06;
 
 export const TEMPO_SHOT_MOD: Record<string, number> = {
   'slow': -0.15, 'normal': 0, 'fast': 0.18,
 } as const;
 
+/** Tempo's counterweight: a fast, direct side takes MORE shots of LOWER
+ *  quality; a slow, patient side takes fewer, better ones. Without this, moving
+ *  TEMPO_SHOT_MOD from the shared event chance to a per-side shot threshold
+ *  (correctly) turned `fast` into a strictly dominant option — pure extra shots
+ *  for nothing but a little fitness. */
+export const TEMPO_SHOT_QUALITY_MOD: Record<string, number> = {
+  'slow': 0.038, 'normal': 0, 'fast': -0.040,
+} as const;
+
 export const DEFENSIVE_LINE_COUNTER_VULN: Record<string, number> = {
   'deep': -0.18, 'normal': 0, 'high': 0.25,
 } as const;
+
+/** Territorial compression from the defensive line — the UPSIDE that pays for
+ *  DEFENSIVE_LINE_COUNTER_VULN. A high line squeezes the opponent into their own
+ *  half (more possession/territory → more event share), a deep line cedes it.
+ *  Without this, `high` was a pure downside: it only ever fed the opponent's
+ *  conversion, so no rational manager would ever pick it. */
+export const DEFENSIVE_LINE_COMPRESSION: Record<string, number> = {
+  'deep': -0.06, 'normal': 0, 'high': 0.11,
+} as const;
+
+/** Territory gained per pressing point above PRESSING_TURNOVER_BASELINE.
+ *  Pressing wins the ball back higher up the pitch (more event share); it is
+ *  paid for by extra fouls (PRESSING_FOUL_MULTIPLIER) and fitness drain
+ *  (PRESSING_FITNESS_DRAIN_PER_POINT). Previously pressing had cost with no
+ *  benefit, making high pressing a strict trap. */
+export const PRESSING_TURNOVER_PER_POINT = 0.0013;
+export const PRESSING_TURNOVER_BASELINE = 50;
 
 export const WIDTH_POSSESSION_MOD: Record<string, number> = {
   'narrow': -0.10, 'normal': 0, 'wide': 0.12,
@@ -118,19 +156,35 @@ export const TACTICAL_FAMILIARITY_MULTIPLIER = 0.012;
 export const HOME_ADVANTAGE = 1.15;
 
 // ── Event Generation ──
-export const BASE_EVENT_CHANCE = 0.35;
+// Raised 0.35 → 0.50 so the event stream can carry a realistic FOUL count
+// (~19-21/match, real football is 21-22) alongside ~19 shots. At 0.35 the
+// whole stream was only ~34 rolls/match: even a 100%-wide foul band could not
+// have produced more than ~16 fouls. The band widths below were re-split to
+// keep shots, injuries and commentary cadence where they were.
+export const BASE_EVENT_CHANCE = 0.50;
 export const LATE_GAME_EVENT_BONUS = 0.10;
 export const LATE_GAME_THRESHOLD_MINUTE = 85;
 /** Max consecutive minutes without any event before commentary is injected */
 export const COMMENTARY_GAP_MAX = 4;
 /** Chance to generate a commentary event when event roll succeeds but no shot/foul/injury triggers */
 export const COMMENTARY_CHANCE = 0.35;
-/** Fraction of event rolls that become shot attempts */
-export const SHOT_ATTEMPT_THRESHOLD = 0.52;
-/** Fraction of event rolls between shots and fouls */
-export const FOUL_THRESHOLD = 0.78;
-/** Fraction of event rolls between fouls and non-foul injuries */
-export const INJURY_EVENT_THRESHOLD = 0.81;
+/** Fraction of event rolls that become shot attempts (before per-side tempo shift) */
+export const SHOT_ATTEMPT_THRESHOLD = 0.40;
+/** Width of the foul band, measured FROM the (tempo-adjusted) shot threshold.
+ *  Relative rather than absolute so a tempo shift moves the shot/foul boundary
+ *  without silently squeezing the foul band shut. */
+export const FOUL_BAND_WIDTH = 0.42;
+/** Width of the non-foul-injury band, measured from the end of the foul band. */
+export const INJURY_BAND_WIDTH = 0.03;
+/** Hard ceiling on the end of the foul band. The band start (shot threshold) and
+ *  width both take modifiers — derby + snow + max pressing + fast tempo +
+ *  mentality stack to over 1.0 — and anything past 1.0 makes the non-foul-injury
+ *  and own-goal bands unreachable in exactly those matches. */
+export const FOUL_BAND_END_CAP = 0.95;
+/** How much of a side's TEMPO_SHOT_MOD is applied to its own shot threshold.
+ *  Tempo used to be added to the SHARED per-minute event chance, so a fast
+ *  tempo handed the opponent exactly as many extra shots as it gained. */
+export const TEMPO_SHOT_THRESHOLD_SCALE = 0.35;
 
 /** xG below this counts as a "speculative" shot — most don't reach the commentary feed.
  *  Stats (shot count, xG, momentum) still update; only the live commentary line is suppressed. */
@@ -152,13 +206,23 @@ export const FITNESS_FACTOR_BASE = 0.7;
 export const FITNESS_FACTOR_SCALE = 0.3;
 
 // ── Goal Chance Formula ──
-// Bumped from 0.30 → 0.32 in Phase E.6 after the 5-season balance sim
-// reported PL mean 2.58 g/m with two seasons dipping to 2.43/2.11. The
-// ~7% lift centres the PL band more solidly inside the 2.6-2.9 target.
-export const GOAL_CHANCE_ATTACK_MULT = 0.32;
+// Calibrated against the measured 75-OVR-vs-75-OVR cell (both `balanced`) for
+// ~2.7 goals/match, which in turn lands 0-0 at ~7%, draws at ~25% and
+// margin>=4 at ~4-5% (the engine is close to Poisson, so the goal rate carries
+// all three). The multiplier had to rise when the GK save roll was folded INTO
+// the goal roll (see `effectiveGoalChance` in match.ts) — every shot is now
+// damped by (1 - oppGKSave) ≈ 0.62 for a 75-rated keeper.
+export const GOAL_CHANCE_ATTACK_MULT = 0.575;
 export const GOAL_CHANCE_DEFENSE_MULT = 0.20;
-export const GOAL_CHANCE_ATTACK_MOD_SCALE = 0.35;
-export const GOAL_CHANCE_COUNTER_VULN_SCALE = 0.18;
+/** Scale on the MENTALITY conversion channel. Applied SYMMETRICALLY: a side's
+ *  own `attackMod` lifts its conversion and the opponent's `defenseMod`
+ *  suppresses it, so mentality trades goals-for against goals-against instead
+ *  of being a free multiplier. Mentality was removed from `computeStrengths`
+ *  at the same time — it used to be counted twice (strength AND conversion)
+ *  while its defensive counterweight was counted once, damped by
+ *  DEFENSE_MODIFIER_SCALE, and never touched the opponent's conversion. */
+export const GOAL_CHANCE_ATTACK_MOD_SCALE = 0.09;
+export const GOAL_CHANCE_COUNTER_VULN_SCALE = 0.09;
 export const GOAL_CHANCE_MIN = 0.008;
 
 // ── Corner Chances ──
@@ -166,8 +230,17 @@ export const CORNER_FROM_SAVE_CHANCE = 0.35;
 export const CORNER_FROM_MISS_CHANCE = 0.22;
 
 // ── Cards / Fouls ──
-export const CARD_BASE_CHANCE = 0.11;
-export const STRAIGHT_RED_CHANCE = 0.008;
+// Per-FOUL card probability (multiplied by the fouler's personality risk,
+// which averages ~1.4). With ~20 fouls/match this lands yellows at ~3.5-4 and
+// the yellow:red ratio near 30-35:1, matching real football.
+export const CARD_BASE_CHANCE = 0.14;
+export const STRAIGHT_RED_CHANCE = 0.0015;
+/** Card-chance multiplier for a player already carrying a yellow. A second
+ *  yellow is an automatic red, so without modelling the obvious behavioural
+ *  response (the player pulls out of tackles, the manager hides him) a
+ *  realistic 3.5 yellows/match produced 0.32 second-yellow reds/match — nearly
+ *  3x real football's TOTAL red-card rate. */
+export const BOOKED_PLAYER_CARD_MULT = 0.22;
 /** Strength penalty per player below full squad size (11). 10v11 = 0.88x strength */
 export const RED_CARD_STRENGTH_PENALTY_PER_PLAYER = 0.12;
 /** Momentum swing toward the opposing team after a red card (larger than yellow's 15) */
@@ -295,11 +368,14 @@ export const MIN_PLAYERS_TO_CONTINUE = 7;
 
 // ── Own Goals ──
 /** Chance of an own goal per match event cycle (very low) */
-export const OWN_GOAL_CHANCE = 0.003;
+export const OWN_GOAL_CHANCE = 0.0045;
 
 // ── Penalties ──
-/** Chance a foul in a dangerous area becomes a penalty */
-export const PENALTY_FROM_FOUL_CHANCE = 0.08;
+/** Chance a foul in a dangerous area becomes a penalty. With ~20 fouls/match
+ *  this lands penalties at ~0.27/match (real ≈ 0.27) and under 10% of all
+ *  goals. Fouls are charged to the DEFENDING side (see the FOUL branch in
+ *  match.ts), so penalties now flow to the side doing the attacking. */
+export const PENALTY_FROM_FOUL_CHANCE = 0.0135;
 /** Conversion rate for penalties */
 export const PENALTY_CONVERSION_RATE = 0.76;
 
@@ -449,8 +525,11 @@ export const GK_ERROR_MAX_CHANCE = 0.04;
 /** Fraction of base chance removed for an elite GK (norm 1.0). Poor GKs pay full base. */
 export const GK_ERROR_QUALITY_REDUCTION = 0.55;
 export const VAR_CHECK_CHANCE = 0.12;
-/** Chance that a VAR review actually disallows the goal (offside, handball, foul in buildup) */
-export const VAR_DISALLOW_CHANCE = 0.08;
+/** Chance that a VAR review actually disallows the goal (offside, handball, foul
+ *  in buildup). This sits INSIDE VAR_CHECK_CHANCE, so the effective overturn
+ *  rate is the product: 0.12 * 0.25 = 1 goal in ~33 ruled out. At the old 0.08
+ *  it was 1 in ~104, i.e. VAR effectively never overturned anything. */
+export const VAR_DISALLOW_CHANCE = 0.25;
 
 // ── AI Counter-Tactics ──
 /** Chance of generating a tactical counter-insight comment at match start */

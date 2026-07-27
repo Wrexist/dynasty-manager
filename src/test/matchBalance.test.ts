@@ -47,7 +47,7 @@ describe('Match Balance', () => {
   });
   afterEach(() => { Math.random = originalRandom; });
 
-  it('average goals per match is within expected range (1.0-3.5)', () => {
+  it('average goals per match is within expected range (2.2-3.3)', () => {
     const SAMPLE_SIZE = 200;
     let totalGoals = 0;
 
@@ -61,9 +61,12 @@ describe('Match Balance', () => {
     }
 
     const avgGoals = totalGoals / SAMPLE_SIZE;
-    // Game engine produces ~1.5-2.5 goals per match for equal 70-rated teams
-    expect(avgGoals).toBeGreaterThanOrEqual(1.0);
-    expect(avgGoals).toBeLessThanOrEqual(3.5);
+    // Real top-flight football is 2.6-2.9 goals/match; this cell measures 2.68
+    // for equal 70-rated teams. The old 1.0-3.5 band was so wide that the
+    // engine's real output of 1.54 passed green — see matchRealism.test.ts for
+    // the full profile (0-0 rate, draw rate, margin distribution).
+    expect(avgGoals).toBeGreaterThanOrEqual(2.2);
+    expect(avgGoals).toBeLessThanOrEqual(3.3);
   });
 
   it('elite vs weak team produces expected scoreline distribution', () => {
@@ -93,11 +96,15 @@ describe('Match Balance', () => {
     // luck of the fixed RNG stream, so ANY engine change that perturbed
     // random-call ordering re-rolled it. Assert dominance (wins comfortably
     // exceeding losses) plus a sane win floor instead.
-    expect(eliteWins).toBeGreaterThan(weakWins);
-    expect(eliteWins).toBeGreaterThanOrEqual(35);
+    // Measured: 64 elite wins to 14 weak wins over 100 matches. The old
+    // `>= 35 wins` floor was met even when penalties were being awarded
+    // BACKWARDS (fouls followed the event team, so the stronger side conceded
+    // most of the spot-kicks and 64% of the weak side's goals came from them).
+    expect(eliteWins).toBeGreaterThan(weakWins * 2);
+    expect(eliteWins).toBeGreaterThanOrEqual(45);
   });
 
-  it('draws occur at a realistic frequency (15-35%)', () => {
+  it('draws occur at a realistic frequency (18-34%)', () => {
     const SAMPLE_SIZE = 200;
     let draws = 0;
 
@@ -111,12 +118,14 @@ describe('Match Balance', () => {
     }
 
     const drawRate = draws / SAMPLE_SIZE;
-    // Real football draw rate is ~25%; allow wider range for simulation variance
-    expect(drawRate).toBeGreaterThanOrEqual(0.10);
-    expect(drawRate).toBeLessThanOrEqual(0.45);
+    // Real football draw rate is ~25%; this cell measures 23.5%. The old
+    // 10-45% band passed the pre-fix engine's 40% draw rate (a symptom of the
+    // goal rate being far too low), which is the regression this now catches.
+    expect(drawRate).toBeGreaterThanOrEqual(0.18);
+    expect(drawRate).toBeLessThanOrEqual(0.34);
   });
 
-  it('clean sheets occur reasonably (10-40% of matches)', () => {
+  it('clean sheets occur reasonably (38-68% of matches)', () => {
     const SAMPLE_SIZE = 200;
     let cleanSheets = 0;
 
@@ -130,8 +139,10 @@ describe('Match Balance', () => {
     }
 
     const csRate = cleanSheets / SAMPLE_SIZE;
-    expect(csRate).toBeGreaterThanOrEqual(0.05);
-    expect(csRate).toBeLessThanOrEqual(0.75);
+    // At least one side keeps a clean sheet in ~48-50% of real matches; this
+    // cell measures 54%. The old 5-75% band could not fail.
+    expect(csRate).toBeGreaterThanOrEqual(0.38);
+    expect(csRate).toBeLessThanOrEqual(0.68);
   });
 
   it('home advantage produces more home wins over large sample', () => {
@@ -149,7 +160,9 @@ describe('Match Balance', () => {
       else if (result.awayGoals > result.homeGoals) awayWins++;
     }
 
-    // Home team should win at least 90% as often as away team (loose check to avoid flakiness)
-    expect(homeWins).toBeGreaterThanOrEqual(awayWins * 0.9);
+    // Measured 196 home wins to 174 away over 500. HOME_ADVANTAGE only feeds
+    // event share (a ~53.5/46.5 split), so the win-rate edge is modest — kept
+    // as a loose one-sided check rather than a tight band.
+    expect(homeWins).toBeGreaterThanOrEqual(awayWins * 0.95);
   });
 });
