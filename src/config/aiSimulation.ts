@@ -15,6 +15,22 @@ import type { Position } from '@/types/game';
  *  injury crisis produces an under-strength team rather than a fictional 3-0. */
 export const AI_MIN_MATCH_PLAYERS = 7;
 
+/** Calibration of the AI clubs' SYNTHETIC match rating against the real engine's
+ *  distribution. AI-vs-AI matches don't produce per-player ratings, so
+ *  `applyAIMatchEvents` synthesises them — and it was miscalibrated by +1.14:
+ *  synthetic mean 7.43 against a measured engine mean of 6.29 (median 6.2,
+ *  p10 5.4, p90 7.4). That only became load-bearing once match ratings started
+ *  driving development, at which point AI squads sat ABOVE the development
+ *  baseline and the player's own squad sat BELOW it — a systematic growth edge to
+ *  the AI, compounding every season. Bases are the result term; the quality term
+ *  is now relative to a pivot instead of adding a flat ~1.1 for everyone.
+ *  Re-measure both distributions together if the engine's rating spread changes. */
+export const AI_RATING_BASE_WIN = 6.75;
+export const AI_RATING_BASE_DRAW = 6.15;
+export const AI_RATING_BASE_LOSS = 5.55;
+export const AI_RATING_OVERALL_PIVOT = 70;
+export const AI_RATING_OVERALL_SCALE = 1.5;
+
 export const AI_INCOME_MULTIPLIER = 0.85;
 
 /** How many development passes each non-player-club player gets at season end.

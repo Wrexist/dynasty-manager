@@ -497,7 +497,7 @@ function buildFreshSessionState(get: Get): Partial<GameState> {
     gameStarted: false, playerClubId: '', currentScreen: 'dashboard' as GameState['currentScreen'],
     clubs: {}, players: {}, fixtures: [], leagueTable: [],
     messages: [], seasonHistory: [], incomingOffers: [], boardUltimatum: null,
-    matchPlayerRatings: [], halfTimeState: null, currentMatchWeather: null, matchPhase: 'none' as const,
+    matchPlayerRatings: [], halfTimeState: null, currentMatchWeather: null, matchPhase: 'none' as const, secondHalfSimulatedTo: 45,
     currentMatchResult: null, matchSubsUsed: 0, matchSubbedOffIds: [], currentCupTieId: null,
     // Match-scoped state that previously persisted across resets — audit
     // finding O2 (stale shootout kicks, leftover team talk, etc.).
@@ -695,7 +695,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
   playFirstHalf: () => playFirstHalfImpl(set, get),
 
-  playSecondHalf: () => playSecondHalfImpl(set, get),
+  playSecondHalf: (untilMin?: number) => playSecondHalfImpl(set, get, untilMin),
 
   playExtraTime: () => playExtraTimeImpl(set, get),
 
@@ -1006,7 +1006,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         negotiationStrikes: data.negotiationStrikes || {},
         merchandise: data.merchandise || getDefaultMerchState(),
         halfTimeState: null,
-        matchPhase: 'none' as const,
+        matchPhase: 'none' as const, secondHalfSimulatedTo: 45,
         pendingFarewell: Array.isArray(data.pendingFarewell) ? data.pendingFarewell : data.pendingFarewell ? [data.pendingFarewell] : [],
         monetization: data.monetization || DEFAULT_MONETIZATION_STATE,
         nationalTeam: data.nationalTeam || null,
@@ -1166,7 +1166,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     }
     set({
       ...(mutated ? { clubs: newClubs, players: newPlayers } : {}),
-      halfTimeState: null, currentMatchWeather: null, matchPhase: 'none' as const,
+      halfTimeState: null, currentMatchWeather: null, matchPhase: 'none' as const, secondHalfSimulatedTo: 45,
       currentCupTieId: null, currentLeagueCupTieId: null,
       currentContinentalMatchId: null, currentContinentalCompetition: null,
       matchSubsUsed: 0,

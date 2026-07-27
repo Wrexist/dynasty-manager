@@ -1103,6 +1103,8 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
     : null;
   set({
     halfTimeState: halfState, currentMatchWeather: matchWeather, matchPhase: 'half_time', matchSubsUsed: 0, matchSubbedOffIds: [], preMatchLeaguePosition: preMatchPos,
+    // Second half hasn't started; segments resume from the break.
+    secondHalfSimulatedTo: 45,
     // Clear the pre-match talk so the half-time team-talk sheet opens fresh at
     // 'none' — the pre-match talk affected the first half only (G3).
     matchTeamTalk: 'none',
@@ -1132,7 +1134,18 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   }
 }
 
-export function playSecondHalfImpl(set: Set, get: Get): Match | null {
+/**
+ * Simulate the interactive second half up to `untilMin`.
+ *
+ * `untilMin` defaults to 90, which reproduces the original whole-half behaviour
+ * exactly — callers that don't opt into segmentation are unaffected. When it is
+ * below 90 the match is NOT finalised: the updated HalfState is stored, the phase
+ * stays `second_half`, and the caller resumes by calling again with the next
+ * boundary. Resuming re-reads the club's CURRENT lineup, subs and shouts, which is
+ * the entire point — decisions made during playback now affect the minutes that
+ * follow instead of being theatre.
+ */
+export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): Match | null {
   const state = get();
   const { week, fixtures, clubs, players, playerClubId, tactics, training, halfTimeState, currentMatchWeather, season } = state;
   if (!halfTimeState) return null;
@@ -1248,7 +1261,29 @@ export function playSecondHalfImpl(set: Set, get: Get): Match | null {
   const combinedMods = mergeGamePlanMods(talkAndShoutMods, state.matchGamePlan);
 
   const spCoachBonus2H = hasPerk(state.managerProgression, 'set_piece_coach') ? 0.009 * dynastyMult(state.managerProgression) : 0;
-  const fullState = simulateHalf(hc, ac, hp, ap, 46, 90, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, secondHalfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities, season, secondHalfCareerMod, undefined, undefined, combinedMods, currentMatchWeather ?? undefined, spCoachBonus2H);
+  // Resume from wherever the last segment finished (45 at the break).
+  const resumeFrom = Math.max(45, state.secondHalfSimulatedTo || 45) + 1;
+  const segmentEnd = Math.max(resumeFrom, Math.min(90, Math.round(untilMin)));
+  const fullState = simulateHalf(hc, ac, hp, ap, resumeFrom, segmentEnd, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, secondHalfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities, season, secondHalfCareerMod, undefined, undefined, combinedMods, currentMatchWeather ?? undefined, spCoachBonus2H);
+
+  // Partial segment: bank the state and hand control back so the player can act
+  // before the next stretch is simulated. Deliberately does NOT finalise — no
+  // ratings, no tournament processing, no save.
+  if (segmentEnd < 90) {
+    set({
+      halfTimeState: fullState,
+      secondHalfSimulatedTo: segmentEnd,
+      matchPhase: 'second_half',
+    });
+    return {
+      ...match,
+      played: false,
+      homeGoals: fullState.homeGoals,
+      awayGoals: fullState.awayGoals,
+      events: fullState.events,
+    } as Match;
+  }
+
   // `players` lookup lets finalizeMatch rate half-time-subbed-out starters
   // (they're missing from hp/ap — the lineup was edited at the break)
   const { result, playerRatings } = finalizeMatch(match, hc, ac, hp, ap, fullState, players);
@@ -1812,7 +1847,7 @@ export function skipPenaltyShootoutImpl(set: Set, get: Get): void {
   if (!halfTimeState) {
     Sentry.captureMessage('[Penalties] halfTimeState missing — aborting finalization', 'error');
     set({
-      matchPhase: 'none',
+      matchPhase: 'none', secondHalfSimulatedTo: 45,
       penaltyShootoutKicks: [],
       penaltyShootoutRevealIndex: 0,
       penaltyShootoutCtx: null,

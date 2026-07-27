@@ -49,7 +49,7 @@ import { areColorsSimilar } from '@/utils/uiHelpers';
 import { PenaltyShootout } from '@/components/game/PenaltyShootout';
 import { Megaphone, BarChart3, Activity, ChevronDown, ChevronUp, Users, ShieldCheck, Layers } from 'lucide-react';
 
-import { GOAL_EVENT_TYPES, GOAL_SHOT_TYPES } from '@/config/matchEngine';
+import { GOAL_EVENT_TYPES, GOAL_SHOT_TYPES, SECOND_HALF_SEGMENTS } from '@/config/matchEngine';
 const isGoalEvent = (e: MatchEvent) => (GOAL_EVENT_TYPES as readonly string[]).includes(e.type);
 const isScoreChangingEvent = (e: MatchEvent) => isGoalEvent(e) || e.type === 'own_goal';
 
@@ -369,6 +369,15 @@ const MatchDayInner = () => {
   // double-tap guard inside kickOff(). A new match id naturally unlatches.
   const kickedOffRef = useRef<string | null>(null);
 
+  // Highest minute the second half has been simulated to (45 before kickoff of
+  // the half). Mirrors the store's `secondHalfSimulatedTo`; kept as a ref so the
+  // interval callback reads it without re-subscribing.
+  const secondHalfFrontierRef = useRef(45);
+  // Held in refs so the match-clock interval can extend the simulation without
+  // listing these in its dep array — re-creating the interval mid-match would
+  // reset the tick cadence. Same pattern as `matchPhaseRef` / `checkKeyMomentRef`.
+  const extendSecondHalfRef = useRef<((untilMin: number) => Match | null) | null>(null);
+  const isWorldCupRef = useRef(false);
   const resumingRef = useRef(false);
   const resumeSecondHalf = () => {
     // Guard against double-tap
@@ -376,12 +385,20 @@ const MatchDayInner = () => {
     resumingRef.current = true;
     try {
       // Simulate second half with potentially updated lineup/tactics
-      const result = isWorldCup ? playWorldCupSecondHalf() : playSecondHalf();
+      // Simulate only up to the first segment boundary. The rest is simulated
+      // on demand as the clock reaches each frontier, so a substitution, a
+      // touchline shout or a key-moment choice made during playback actually
+      // affects the minutes that follow. Previously 46-90 was computed in one
+      // call and everything after 45' was theatre.
+      const result = isWorldCup
+        ? playWorldCupSecondHalf()
+        : playSecondHalf(SECOND_HALF_SEGMENTS[0]);
       if (!result) { resumingRef.current = false; return; }
       // Pre-populate visibleEvents with first-half events to avoid stale references
       const firstHalfEvents = result.events.filter((e: MatchEvent) => e.minute <= 45);
       setVisibleEvents(firstHalfEvents);
       setAllEvents(result.events);
+      secondHalfFrontierRef.current = SECOND_HALF_SEGMENTS[0];
       setPhase('second_half');
       // Continue from minute 46
       currentMinRef.current = 45;
@@ -545,6 +562,8 @@ const MatchDayInner = () => {
   checkKeyMomentRef.current = checkKeyMoment;
   const matchPhaseRef = useRef(matchPhase);
   matchPhaseRef.current = matchPhase;
+  extendSecondHalfRef.current = playSecondHalf;
+  isWorldCupRef.current = isWorldCup;
 
   // Forward-only pointer into allEvents so each tick advances by O(k) where k
   // is the number of events at the new minute, instead of O(n) where n is the
@@ -586,6 +605,29 @@ const MatchDayInner = () => {
         currentMinRef.current = maxMin;
         setCurrentMin(maxMin);
         return;
+      }
+
+      // Extend the simulation when the clock reaches the frontier. `playSecondHalf`
+      // re-reads the CURRENT lineup/subs/shouts each time, which is what makes an
+      // in-play decision matter. World Cup mode keeps the single-shot path.
+      if (phase === 'second_half' && !isWorldCupRef.current) {
+        const frontier = secondHalfFrontierRef.current;
+        if (frontier < 90 && next >= frontier) {
+          const nextBoundary = SECOND_HALF_SEGMENTS.find(b => b > frontier) ?? 90;
+          try {
+            const extended = extendSecondHalfRef.current?.(nextBoundary) ?? null;
+            if (extended) {
+              secondHalfFrontierRef.current = nextBoundary;
+              setAllEvents(extended.events);
+            } else {
+              // Nothing came back — stop asking so the clock can't stall here.
+              secondHalfFrontierRef.current = 90;
+            }
+          } catch (err) {
+            Sentry.captureException(err, { tags: { context: 'secondHalfSegment' } });
+            secondHalfFrontierRef.current = 90;
+          }
+        }
       }
 
       // Advance the cursor while events are at-or-before the new minute. The

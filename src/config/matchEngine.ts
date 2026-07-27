@@ -146,6 +146,21 @@ export const DEFENSE_QUALITY_FALLBACK = 0.3;
 export const GK_DEFENDING_WEIGHT = 0.4;
 export const GK_MENTAL_WEIGHT = 0.3;
 export const GK_PHYSICAL_WEIGHT = 0.3;
+/** Minute boundaries the interactive second half is simulated up to, in order.
+ *
+ *  The second half used to be simulated 46->90 in ONE call, with MatchDay merely
+ *  revealing a pre-computed event array on a timer. So a substitution made during
+ *  playback changed the lineup and fabricated an event but could not affect a
+ *  single subsequent minute; a touchline shout did nothing at all; and the
+ *  marquee key-moment overlay was cosmetic for everything after minute 45.
+ *
+ *  `simulateHalf` already accepts an arbitrary `startMin`/`endMin` and a
+ *  `prevState` to resume from (extra time has always used it), so the fix is to
+ *  simulate up to the next boundary only, then resume with whatever the player has
+ *  changed. Boundaries sit near the existing key-moment minutes so a decision
+ *  prompted by the overlay lands before the segment it is meant to influence. */
+export const SECOND_HALF_SEGMENTS = [60, 75, 90] as const;
+
 export const GK_SAVE_BASE = 0.18;
 export const GK_SAVE_RANGE = 0.28;
 /** Save-quality multiplier when a side fields NO recognised goalkeeper — an

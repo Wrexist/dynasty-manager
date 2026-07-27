@@ -50,7 +50,11 @@ import { GOAL_EVENT_TYPES } from '@/config/matchEngine';
 import { resetRealPlayerClaims, claimRealPlayer } from '@/utils/realPlayerPicker';
 import { getOpponentQualityBonus } from '@/utils/teamRankings';
 import { selectBestLineup } from '@/utils/playerGen';
-import { AI_MIN_MATCH_PLAYERS } from '@/config/aiSimulation';
+import {
+  AI_MIN_MATCH_PLAYERS,
+  AI_RATING_BASE_WIN, AI_RATING_BASE_DRAW, AI_RATING_BASE_LOSS,
+  AI_RATING_OVERALL_PIVOT, AI_RATING_OVERALL_SCALE,
+} from '@/config/aiSimulation';
 
 /**
  * Reset the module-level real-player claim registry and re-claim every
@@ -319,8 +323,11 @@ export function applyAIMatchEvents(
       for (const p of side.lineup) {
         if (!newPlayers[p.id]) continue;
         // Synthetic match rating: base from result + quality + contribution + opponent quality
-        let rating = side.won ? 7.0 : side.lost ? 5.5 : 6.2;
-        rating += (p.overall / 100) * 1.5;
+        let rating = side.won ? AI_RATING_BASE_WIN : side.lost ? AI_RATING_BASE_LOSS : AI_RATING_BASE_DRAW;
+        // Quality is RELATIVE to a pivot. `(overall / 100) * 1.5` added ~1.1 to
+        // every player regardless of quality, which is most of why the synthetic
+        // mean sat 1.14 above the engine's.
+        rating += ((p.overall - AI_RATING_OVERALL_PIVOT) / 100) * AI_RATING_OVERALL_SCALE;
         rating += (playerGoalCounts[p.id] || 0) * 0.5;
         rating += (playerAssistCounts[p.id] || 0) * 0.3;
         rating += oppBonus;

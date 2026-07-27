@@ -41,10 +41,18 @@ export const MINUTES_PER_APPEARANCE = 90;
 // season-average rating back into the growth roll so a 9.0 develops faster than
 // a 4.0. Deliberately smaller than the playing-time term (max 0.20) — minutes
 // still dominate, performance differentiates.
-/** Season-average rating that produces zero adjustment. Set to the measured
- *  league-wide mean season-average rating so an average performer's growth rate
- *  is unchanged by this term — the point is to differentiate, not to inflate. */
-export const DEV_RATING_BASELINE = 7.15;
+/** Season-average rating that produces zero adjustment, so an average performer's
+ *  growth rate is unchanged by this term — the point is to differentiate, not to
+ *  inflate.
+ *
+ *  Set to the measured MATCH-ENGINE mean (6.29; median 6.2, p10 5.4, p90 7.4 over
+ *  7,099 ratings at league-average quality). It was previously 7.15, which had
+ *  been sampled from a live save where AI clubs' SYNTHETIC ratings outnumber real
+ *  engine ratings ~24:1 and were themselves miscalibrated +1.14 high. The result
+ *  was backwards: the player's own squad sat below baseline and took a development
+ *  PENALTY while every AI squad sat above it and took a bonus. If the engine's
+ *  rating scale is retuned, re-measure this and the AI_RATING_* constants together. */
+export const DEV_RATING_BASELINE = 6.3;
 /** Growth-chance change per point of season-average rating above/below baseline.
  *  Sized against the MEASURED spread of season-average ratings, which is narrow
  *  (p10 6.74 → p90 7.39, i.e. roughly ±0.35 around the mean). At 0.25 that band

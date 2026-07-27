@@ -388,3 +388,38 @@ describe('post-match integration (real store, real engine)', () => {
     expect(defeats).toBeGreaterThanOrEqual(0);
   });
 });
+
+describe('AI synthetic ratings stay calibrated to the engine', () => {
+  // Match ratings now drive development, so the AI's SYNTHETIC rating (used for
+  // AI-vs-AI matches, which have no per-player engine ratings) must sit on the
+  // same scale as the real engine's. It was +1.14 high — synthetic mean 7.43 vs a
+  // measured engine mean of 6.29 — which put every AI squad ABOVE the development
+  // baseline and the player's own squad BELOW it. A systematic growth edge to the
+  // AI, compounding every season. This guards the three constants against drift
+  // without needing a full simulation.
+  it('the synthetic rating centres on the development baseline', async () => {
+    const {
+      AI_RATING_BASE_WIN, AI_RATING_BASE_DRAW, AI_RATING_BASE_LOSS,
+      AI_RATING_OVERALL_PIVOT, AI_RATING_OVERALL_SCALE,
+    } = await import('@/config/aiSimulation');
+    const { DEV_RATING_BASELINE } = await import('@/config/gameBalance');
+
+    // A roughly typical league split, and league-average squad quality.
+    const resultMean = 0.4 * AI_RATING_BASE_WIN + 0.25 * AI_RATING_BASE_DRAW + 0.35 * AI_RATING_BASE_LOSS;
+    const qualityTerm = ((75 - AI_RATING_OVERALL_PIVOT) / 100) * AI_RATING_OVERALL_SCALE;
+    const syntheticMean = resultMean + qualityTerm;
+
+    expect(
+      Math.abs(syntheticMean - DEV_RATING_BASELINE),
+      `synthetic mean ${syntheticMean.toFixed(2)} vs baseline ${DEV_RATING_BASELINE}`,
+    ).toBeLessThan(0.3);
+  });
+
+  it('the quality term is relative, not a flat offset for everyone', async () => {
+    const { AI_RATING_OVERALL_PIVOT } = await import('@/config/aiSimulation');
+    // A pivot near league-average quality is what keeps the term from adding ~1.1
+    // to every player regardless of how good they are.
+    expect(AI_RATING_OVERALL_PIVOT).toBeGreaterThan(50);
+    expect(AI_RATING_OVERALL_PIVOT).toBeLessThan(85);
+  });
+});
