@@ -12,6 +12,44 @@
 > GOALS.md "Corrected record").
 >
 > Work the phases in order. Mark items done as they ship. Do not let this file rot.
+>
+> ## STATUS — all phases shipped (13 commits on `claude/game-audit-parallel-agents-ymzznx`)
+>
+> Phases 1, 1A, 1B, 2, 3, 4, 5, 6 and 7 are complete. The three highest-impact
+> findings were NOT in the original plan — they surfaced while executing it, and
+> each invalidated measurements taken before it:
+>
+> 1. **65% of AI league fixtures were 3-0 forfeits.** Every AI-sim site built its XI
+>    from the first 11 players in raw `playerIds` order, and `isSquadValid` requires a
+>    goalkeeper among the starters — 25% of clubs had none in that slice. League
+>    tables, promotion, prize money and every balance number measured on a live save
+>    were fiction. Fixed to 0% in four measured steps.
+> 2. **Squad quality barely affected results.** A measured 19-point OVR gap produced
+>    only 59% wins, and a squad +5.4 above its league average finished 20th of 20 —
+>    the flattest possible failure for a management game. Now 75% wins at that gap.
+> 3. **AI ratings were miscalibrated +1.14 and the development baseline was sampled
+>    from them**, so once ratings drove development the player's own squad took a
+>    growth PENALTY while every AI squad took a bonus.
+>
+> Also found while measuring Phase 6: `divisionFixtures` held **83.9 MB of AI match
+> events in memory** (1.73 MB persisted) — a regression amplified by fixing the
+> forfeits, since AI fixtures stopped being one-event walkovers. Now 1.7 MB.
+>
+> **Lesson worth keeping:** three separate times a number taken from a live save was
+> wrong because the live save itself was broken (forfeits; a harness that never
+> played the player's match; synthetic ratings outnumbering real ones 24:1). Prefer
+> isolated engine measurements, and pin them with tests.
+>
+> ### Known-open, deliberately
+> - Foreign leagues have no promotion/relegation (v1 scope).
+> - Continental extra time / penalties still use the reputation model — the engine
+>   has no 30-minute mode.
+> - Audit 6.2 (squad-regen equilibrium flattens leagues) is untouched, and now
+>   applies to 4 more leagues.
+> - Manager Career job offers became international as an emergent effect of the
+>   living world. Reputation-gated and the accept path works; ungated by choice.
+> - Existing saves keep their old single-country world; only new dynasties get the
+>   living world.
 
 ---
 
