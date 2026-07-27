@@ -13,7 +13,7 @@
 >
 > Work the phases in order. Mark items done as they ship. Do not let this file rot.
 >
-> ## STATUS — all phases shipped (13 commits on `claude/game-audit-parallel-agents-ymzznx`)
+> ## STATUS — all phases shipped (17 commits on `claude/game-audit-parallel-agents-ymzznx`)
 >
 > Phases 1, 1A, 1B, 2, 3, 4, 5, 6 and 7 are complete. The three highest-impact
 > findings were NOT in the original plan — they surfaced while executing it, and
@@ -35,10 +35,23 @@
 > events in memory** (1.73 MB persisted) — a regression amplified by fixing the
 > forfeits, since AI fixtures stopped being one-event walkovers. Now 1.7 MB.
 >
-> **Lesson worth keeping:** three separate times a number taken from a live save was
+> Fixing the forfeits also completed lower-tier seasons for the first time, which
+> exposed (it did not cause) a latent bug: `SeasonTurnover.promotedClubs` mixed
+> *arrivals* with *departures* for any middle tier, so the season summary told
+> second-tier managers that clubs which had just been promoted away had joined
+> them. Split into `promotedOutClubs`, with playoff winners included in it.
+>
+> **Lesson worth keeping:** four separate times a number taken from a live save was
 > wrong because the live save itself was broken (forfeits; a harness that never
-> played the player's match; synthetic ratings outnumbering real ones 24:1). Prefer
-> isolated engine measurements, and pin them with tests.
+> played the player's match; synthetic ratings outnumbering real ones 24:1; 84 MB
+> of events hiding behind a 1.7 MB save). Prefer isolated engine measurements, and
+> pin them with tests.
+>
+> A second, smaller lesson from the same run: two failing tests turned out to be
+> *encoding the bug as intended behaviour* — a match forfeiting for want of a
+> goalkeeper, and a national squad that could never fill 23 shirts. Both were
+> deleted and rewritten to assert the behaviour the game actually wants, rather
+> than relaxed to fit the code.
 >
 > ### Known-open, deliberately
 > - Foreign leagues have no promotion/relegation (v1 scope).
