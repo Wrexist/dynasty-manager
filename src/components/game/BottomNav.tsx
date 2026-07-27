@@ -3,11 +3,12 @@ import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GameScreen } from '@/types/game';
 import { LayoutDashboard, Users, Target, ArrowLeftRight, Briefcase, User, Mail, Trophy } from 'lucide-react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { MoreDrawer } from './MoreDrawer';
 import { hapticLight } from '@/utils/haptics';
 import { useMatchLocked, useCareerUnemployed } from '@/hooks/useGameSelectors';
+import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 
 const SQUAD_SCREENS: GameScreen[] = ['squad', 'staff', 'youth-academy', 'training'];
 const MARKET_SCREENS: GameScreen[] = ['transfers', 'scouting', 'packs'];
@@ -43,7 +44,7 @@ export function BottomNav() {
   const setScreen = useGameStore(s => s.setScreen);
   const matchLocked = useMatchLocked();
   const isUnemployed = useCareerUnemployed();
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useReducedMotionPref();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const unreadCount = useMemo(() => messages.filter(m => !m.read).length, [messages]);
   const pendingOffers = incomingOffers.length;

@@ -446,7 +446,7 @@ const LeagueTable = () => {
                   <th className="text-center px-1 py-2 text-micro text-muted-foreground uppercase w-[2.6rem]">W-D-L</th>
                   <th className="text-center px-1 py-2 text-micro text-muted-foreground uppercase w-7">GD</th>
                   <th className="text-center px-1 py-2 text-micro text-muted-foreground uppercase w-7">Pts</th>
-                  <th className="text-center px-1 py-2 text-micro text-muted-foreground uppercase w-[4rem]">Form</th>
+                  <th className="text-center px-1 py-2 text-micro text-muted-foreground uppercase w-[5rem]">Form</th>
                 </tr>
               </thead>
               <tbody>
@@ -497,10 +497,10 @@ const LeagueTable = () => {
                       <td className="text-center px-1 py-2 text-xs text-muted-foreground tabular-nums">{entry.goalDifference > 0 ? '+' : ''}{entry.goalDifference}</td>
                       <td className="text-center px-1 py-2 text-xs font-bold text-foreground tabular-nums">{entry.points}</td>
                       <td className="px-1 py-2">
-                        <div className="flex gap-0.5 justify-center">
+                        <div className="flex gap-px justify-center">
                           {entry.form.map((r, j) => (
                             <span key={j} className={cn(
-                              'w-4 h-4 rounded-sm flex items-center justify-center text-micro font-bold shrink-0 leading-none',
+                              'w-3.5 h-3.5 rounded-sm flex items-center justify-center text-micro font-bold shrink-0 leading-none',
                               r === 'W' ? 'bg-emerald-500/20 text-emerald-400' : r === 'L' ? 'bg-destructive/20 text-destructive' : 'bg-muted text-muted-foreground'
                             )}>{r}</span>
                           ))}

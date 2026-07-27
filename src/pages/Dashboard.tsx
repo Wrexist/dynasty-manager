@@ -800,7 +800,7 @@ const Dashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-lg font-bold font-display text-foreground">{season === 1 && week === 1 ? `Welcome to ${club.name}` : club.name}</p>
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-micro text-muted-foreground">
                 Season {season} · {week <= tw.summerEnd ? 'Pre-Season' : week < tw.winterStart ? 'Autumn' : week <= tw.winterEnd ? 'Winter' : week <= SPRING_PHASE_END_WEEK ? 'Spring' : 'Run-In'}
               </p>
             </div>
@@ -832,7 +832,7 @@ const Dashboard = () => {
               </div>
               <div>
                 <p className="text-xs font-bold text-foreground">{careerManager.name}</p>
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-micro text-muted-foreground">
                   Age {careerManager.age} — {careerReputationLabel}
                 </p>
               </div>
@@ -846,18 +846,18 @@ const Dashboard = () => {
               >
                 <Mail className="w-4 h-4 text-primary" />
                 {unread > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-primary text-primary-foreground text-micro font-bold flex items-center justify-center">
                     {unread > 99 ? '99+' : unread}
                   </span>
                 )}
               </button>
               <div className="text-right">
                 {careerManager.contract ? (
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-micro text-muted-foreground">
                     Contract ends S{careerManager.contract.endSeason}
                   </p>
                 ) : (
-                  <span className="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full font-semibold">
+                  <span className="text-micro bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full font-semibold">
                     Unemployed
                   </span>
                 )}
@@ -867,7 +867,7 @@ const Dashboard = () => {
           </div>
           {jobOffers.length > 0 && (
             <div className="mt-2 bg-primary/10 rounded-lg px-3 py-1.5">
-              <p className="text-[10px] text-primary font-semibold">
+              <p className="text-micro text-primary font-semibold">
                 {jobOffers.length} job offer{jobOffers.length > 1 ? 's' : ''} waiting
               </p>
             </div>
@@ -951,7 +951,7 @@ const Dashboard = () => {
               {raceMode === 'title' ? 'Title Race' : 'Relegation Battle'}
             </span>
           </div>
-          <span className="text-[10px] text-muted-foreground">
+          <span className="text-micro text-muted-foreground">
             {totalWeeks - week} week{totalWeeks - week === 1 ? '' : 's'} left
           </span>
         </motion.div>
@@ -964,7 +964,7 @@ const Dashboard = () => {
             <Trophy className="w-4 h-4 text-primary" />
             <span className="text-xs font-semibold text-primary">Challenge Active</span>
           </div>
-          <span className="text-[10px] text-muted-foreground">{activeChallenge.seasonsRemaining} season(s) left</span>
+          <span className="text-micro text-muted-foreground">{activeChallenge.seasonsRemaining} season(s) left</span>
         </div>
       )}
 
@@ -976,10 +976,10 @@ const Dashboard = () => {
               <AlertTriangle className="w-4 h-4 text-destructive" />
               <span className="text-xs font-bold text-destructive uppercase tracking-wide">Deadline Day!</span>
             </div>
-            <span className="text-[10px] text-muted-foreground">Window closes tonight</span>
+            <span className="text-micro text-muted-foreground">Window closes tonight</span>
           </div>
           {pendingOffers > 0 && (
-            <p className="text-[10px] text-destructive/80 mt-1 font-semibold">{pendingOffers} incoming offer{pendingOffers !== 1 ? 's' : ''} — respond before the window shuts!</p>
+            <p className="text-micro text-destructive/80 mt-1 font-semibold">{pendingOffers} incoming offer{pendingOffers !== 1 ? 's' : ''} — respond before the window shuts!</p>
           )}
         </button>
       ) : transferWindowOpen && (() => {
@@ -1004,7 +1004,7 @@ const Dashboard = () => {
                 {windowName} Transfer Window
               </span>
             </div>
-            <span className={cn('text-[10px] font-medium', isUrgent ? 'text-amber-400' : 'text-muted-foreground')}>
+            <span className={cn('text-micro font-medium', isUrgent ? 'text-amber-400' : 'text-muted-foreground')}>
               {weeksLeft} week{weeksLeft !== 1 ? 's' : ''} remaining
             </span>
           </button>
@@ -1043,7 +1043,7 @@ const Dashboard = () => {
               <Trophy className="w-4 h-4 text-amber-400" />
               <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">Promotion Playoffs</span>
             </div>
-            <span className="text-[10px] text-muted-foreground">Week {week} / Season {season}</span>
+            <span className="text-micro text-muted-foreground">Week {week} / Season {season}</span>
           </div>
         </motion.div>
       )}
@@ -1073,7 +1073,7 @@ const Dashboard = () => {
         <GlassPanel className="p-3 flex items-center gap-2" onClick={() => setScreen('rivalries')} aria-label="View rivalries">
           <Swords className="w-4 h-4 text-orange-400 shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-orange-400">Rivalry Week</p>
+            <p className="text-micro font-bold uppercase tracking-wider text-orange-400">Rivalry Week</p>
             <p className="text-xs font-semibold text-foreground truncate">{getDerbyName(playerClubId, opponent.id) || `vs ${opponent.shortName}`}</p>
           </div>
           <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
@@ -1085,13 +1085,13 @@ const Dashboard = () => {
         <GlassPanel className={cn("p-5", competitionInfo.borderAccent)} onClick={() => setScreen('match-prep')}>
           <div className="flex items-center justify-center gap-2 mb-3">
             <span className={cn(
-              'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border',
+              'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-micro font-bold uppercase tracking-wider border',
               competitionInfo.bg
             )}>
               <Trophy className="w-3 h-3" />
               <span className={competitionInfo.color}>{competitionInfo.name}</span>
             </span>
-            <span className="text-[10px] text-muted-foreground">Week {week}</span>
+            <span className="text-micro text-muted-foreground">Week {week}</span>
           </div>
           <div className="flex items-center justify-between">
             <div className="text-center flex-1">
@@ -1102,7 +1102,7 @@ const Dashboard = () => {
                 {club.shortName}
               </div>
               <p className="text-sm font-bold text-foreground">{club.shortName}</p>
-              <p className="text-[10px] text-muted-foreground">{isHome ? 'HOME' : 'AWAY'}</p>
+              <p className="text-micro text-muted-foreground">{isHome ? 'HOME' : 'AWAY'}</p>
             </div>
             <div className="px-4">
               <p className="text-2xl font-black text-muted-foreground">VS</p>
@@ -1115,13 +1115,13 @@ const Dashboard = () => {
                 {opponent.shortName}
               </div>
               <p className="text-sm font-bold text-foreground">{opponent.shortName}</p>
-              <p className="text-[10px] text-muted-foreground">{isHome ? 'AWAY' : 'HOME'}</p>
+              <p className="text-micro text-muted-foreground">{isHome ? 'AWAY' : 'HOME'}</p>
             </div>
           </div>
           {hasCupMatchToo && (
             <div className="flex items-center justify-center gap-1.5 mt-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20">
               <Trophy className="w-3 h-3 text-primary" />
-              <span className="text-[10px] font-medium text-primary">Cup match also this week</span>
+              <span className="text-micro font-medium text-primary">Cup match also this week</span>
             </div>
           )}
           <Button
@@ -1138,7 +1138,7 @@ const Dashboard = () => {
               {season === 1 && week <= 2 && (club.lineup || []).filter(Boolean).length < 11 ? 'Get Your Team Ready' : 'Training Week'}
             </p>
             {season === 1 && week <= 2 && (
-              <p className="text-[10px] text-muted-foreground">Set your lineup and tactics before advancing</p>
+              <p className="text-micro text-muted-foreground">Set your lineup and tactics before advancing</p>
             )}
           </div>
           {/* Activity suggestions */}
@@ -1232,10 +1232,10 @@ const Dashboard = () => {
               <motion.div animate={{ rotate: coachCollapsed ? 0 : 90 }} transition={CHEVRON_SPRING}>
                 <ChevronRight className="w-3 h-3 text-primary" />
               </motion.div>
-              <p className="text-[10px] text-primary uppercase tracking-wider font-semibold">Coach Checklist</p>
-              {allCoachTasksDone && <span className="text-[9px] text-emerald-400 font-bold">&#10003; Complete</span>}
+              <p className="text-micro text-primary uppercase tracking-wider font-semibold">Coach Checklist</p>
+              {allCoachTasksDone && <span className="text-micro text-emerald-400 font-bold">&#10003; Complete</span>}
             </div>
-            <span className="text-[10px] text-muted-foreground">{completedCoachTasks}/{coachTasks.length} done</span>
+            <span className="text-micro text-muted-foreground">{completedCoachTasks}/{coachTasks.length} done</span>
           </button>
           <PremiumProgress
             className="mt-2"
@@ -1277,7 +1277,7 @@ const Dashboard = () => {
                           className="text-left flex-1 min-w-0"
                         >
                           <p className={cn('text-xs font-semibold', claimed ? 'text-emerald-400' : 'text-foreground')}>{task.title}</p>
-                          <p className="text-[10px] text-muted-foreground mt-0.5">{task.description}</p>
+                          <p className="text-micro text-muted-foreground mt-0.5">{task.description}</p>
                         </button>
                         <div className="flex items-center gap-1.5 shrink-0">
                           {claimable ? (
@@ -1285,19 +1285,19 @@ const Dashboard = () => {
                               type="button"
                               onClick={() => handleClaimCoachTask(task.id)}
                               aria-label={`Claim ${task.xpReward} XP for ${task.title}`}
-                              className="inline-flex items-center gap-0.5 text-[10px] font-bold px-2.5 py-1 rounded-full bg-primary text-primary-foreground shadow-[0_0_10px_hsl(var(--primary)/0.4)] active:scale-95 transition-transform"
+                              className="inline-flex items-center gap-0.5 text-micro font-bold px-2.5 py-1 rounded-full bg-primary text-primary-foreground shadow-[0_0_10px_hsl(var(--primary)/0.4)] active:scale-95 transition-transform"
                             >
                               Claim +{task.xpReward}
                             </button>
                           ) : claimed ? (
-                            <span className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded text-emerald-400/70 bg-emerald-500/10">
+                            <span className="inline-flex items-center gap-0.5 text-micro font-bold px-1.5 py-0.5 rounded text-emerald-400/70 bg-emerald-500/10">
                               <PremiumCheck className="w-2.5 h-2.5" />{task.xpReward} XP
                             </span>
                           ) : (
                             <>
-                              <span className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded text-primary/70 bg-primary/10">+{task.xpReward} XP</span>
+                              <span className="inline-flex items-center gap-0.5 text-micro font-bold px-1.5 py-0.5 rounded text-primary/70 bg-primary/10">+{task.xpReward} XP</span>
                               <span className={cn(
-                                'text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded',
+                                'text-micro uppercase tracking-wide px-1.5 py-0.5 rounded',
                                 task.priority === 'high' ? 'bg-destructive/15 text-destructive' : task.priority === 'medium' ? 'bg-amber-500/15 text-amber-400' : 'bg-muted text-muted-foreground'
                               )}>
                                 {task.priority}
@@ -1320,7 +1320,7 @@ const Dashboard = () => {
       {/* Manager Tips */}
       {!seasonOver && managerTips.length > 0 && (
         <GlassPanel className="p-4 border-primary/20">
-          <p className="text-[10px] text-primary uppercase tracking-wider font-semibold mb-2">Manager Tips</p>
+          <p className="text-micro text-primary uppercase tracking-wider font-semibold mb-2">Manager Tips</p>
           <div className="space-y-2">
             {managerTips.map((tip, i) => (
               <motion.div
@@ -1372,7 +1372,7 @@ const Dashboard = () => {
                     <span
                       className={cn(
                         'absolute top-1 right-1 min-w-[16px] h-[16px] px-1 rounded-full ring-2 ring-card',
-                        'flex items-center justify-center font-display font-black tabular-nums leading-none text-[10px]',
+                        'flex items-center justify-center font-display font-black tabular-nums leading-none text-micro',
                         'shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_4px_10px_-4px_rgba(251,191,36,0.55)]',
                         badge.color,
                         badge.labelColor ?? 'text-foreground',
@@ -1400,8 +1400,8 @@ const Dashboard = () => {
               <span className="text-xs font-semibold text-primary">
                 Training: {trainingLabels[trainingFocus] || trainingFocus}
               </span>
-              <span className="text-[10px] text-primary/60">|</span>
-              <span className="text-[10px] font-medium text-primary/70">Fam {training.tacticalFamiliarity}%</span>
+              <span className="text-micro text-primary/60">|</span>
+              <span className="text-micro font-medium text-primary/70">Fam {training.tacticalFamiliarity}%</span>
             </div>
             {transferWindowOpen && (
               <button
@@ -1411,10 +1411,10 @@ const Dashboard = () => {
                 className="inline-flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2.5 py-1 cursor-pointer hover:bg-emerald-500/15 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
               >
                 <ShoppingBag className="w-3 h-3 text-emerald-400" />
-                <span className="text-[10px] font-medium text-emerald-400">Window open</span>
+                <span className="text-micro font-medium text-emerald-400">Window open</span>
               </button>
             )}
-            <span className="text-[10px] text-muted-foreground">
+            <span className="text-micro text-muted-foreground">
               Wk {week} / S{season} · {week <= tw.summerEnd ? 'Pre-Season' : week < tw.winterStart ? 'Autumn' : week <= tw.winterEnd ? 'Winter' : week <= SPRING_PHASE_END_WEEK ? 'Spring' : 'Run-In'}
             </span>
           </div>
@@ -1483,8 +1483,8 @@ const Dashboard = () => {
               <motion.div animate={{ rotate: sagaCollapsed ? 0 : 90 }} transition={CHEVRON_SPRING}>
                 <ChevronRight className="w-3 h-3 text-amber-400" />
               </motion.div>
-              <p className="text-[10px] text-amber-400 uppercase tracking-wider font-semibold">Active Sagas</p>
-              <span className="text-[9px] text-muted-foreground">{activeSagas.length} active</span>
+              <p className="text-micro text-amber-400 uppercase tracking-wider font-semibold">Active Sagas</p>
+              <span className="text-micro text-muted-foreground">{activeSagas.length} active</span>
             </div>
           </button>
           <AnimatePresence initial={false}>
@@ -1520,12 +1520,12 @@ const Dashboard = () => {
                             {currentStepDef && <DynamicIcon name={currentStepDef.icon} className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
                             <p className="text-xs font-semibold text-amber-400 truncate">{def.name}</p>
                           </div>
-                          <span className="text-[9px] text-muted-foreground shrink-0">
+                          <span className="text-micro text-muted-foreground shrink-0">
                             Step {chain.currentStep + 1}/{totalSteps}
                           </span>
                         </div>
                         {targetPlayer && (
-                          <p className="text-[10px] text-muted-foreground mb-1.5">
+                          <p className="text-micro text-muted-foreground mb-1.5">
                             Involving: <span className="text-foreground font-medium">{targetPlayer.firstName} {targetPlayer.lastName}</span>
                           </p>
                         )}
@@ -1542,7 +1542,7 @@ const Dashboard = () => {
                           ))}
                         </div>
                         {currentStepDef && (
-                          <p className="text-[10px] text-muted-foreground">
+                          <p className="text-micro text-muted-foreground">
                             <span className="text-foreground font-medium">{currentStepDef.title}</span>
                             {' — awaiting your decision'}
                           </p>
@@ -1571,20 +1571,20 @@ const Dashboard = () => {
                 <ChevronRight className="w-3 h-3 text-amber-400" />
               </motion.div>
               <p className="text-xs font-bold text-foreground uppercase tracking-wider">Monthly Objectives</p>
-              <span className="text-[9px] text-muted-foreground">Week {Math.max(1, Math.min(week - (objectivesStartWeek || 1) + 1, OBJECTIVE_CYCLE_WEEKS))}/{OBJECTIVE_CYCLE_WEEKS}</span>
+              <span className="text-micro text-muted-foreground">Week {Math.max(1, Math.min(week - (objectivesStartWeek || 1) + 1, OBJECTIVE_CYCLE_WEEKS))}/{OBJECTIVE_CYCLE_WEEKS}</span>
               {objectiveStreak >= OBJECTIVE_STREAK_THRESHOLD && (
-                <span className="text-[9px] font-bold text-amber-400 bg-amber-500/15 px-1.5 py-0.5 rounded-full">
+                <span className="text-micro font-bold text-amber-400 bg-amber-500/15 px-1.5 py-0.5 rounded-full">
                   {OBJECTIVE_STREAK_MULTIPLIER}x Bonus
                 </span>
               )}
-              {allObjectivesDone && <span className="text-[9px] text-emerald-400 font-bold">&#10003; Complete</span>}
+              {allObjectivesDone && <span className="text-micro text-emerald-400 font-bold">&#10003; Complete</span>}
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] text-amber-400 font-semibold">
+              <span className="text-micro text-amber-400 font-semibold">
                 {claimedObjectives}/{weeklyObjectives.length}
               </span>
               {objectiveStreak > 0 && (
-                <span className="text-[10px] text-amber-400 font-bold">
+                <span className="text-micro text-amber-400 font-bold">
                   Streak: {objectiveStreak}
                 </span>
               )}
@@ -1617,13 +1617,13 @@ const Dashboard = () => {
                         <div className="flex items-center gap-1.5">
                           <p className={cn('text-xs font-semibold truncate', obj.claimed ? 'text-emerald-400 line-through' : 'text-foreground')}>{obj.title}</p>
                           {obj.rarity === 'rare' && (
-                            <span className="text-[8px] font-bold text-blue-400 bg-blue-500/15 px-1 py-0.5 rounded shrink-0">RARE</span>
+                            <span className="text-micro font-bold text-blue-400 bg-blue-500/15 px-1 py-0.5 rounded shrink-0">RARE</span>
                           )}
                           {obj.rarity === 'legendary' && (
-                            <span className="text-[8px] font-bold text-primary bg-primary/15 px-1 py-0.5 rounded shrink-0 animate-pulse">LEGENDARY</span>
+                            <span className="text-micro font-bold text-primary bg-primary/15 px-1 py-0.5 rounded shrink-0 animate-pulse">LEGENDARY</span>
                           )}
                         </div>
-                        <p className="text-[10px] text-muted-foreground truncate">{obj.description}</p>
+                        <p className="text-micro text-muted-foreground truncate">{obj.description}</p>
                         {!obj.completed && obj.progress && (
                           <div className="mt-1.5 flex items-center gap-2">
                             <PremiumProgress
@@ -1632,7 +1632,7 @@ const Dashboard = () => {
                               animate={false}
                               value={Math.min(100, (obj.progress.current / obj.progress.target) * 100)}
                             />
-                            <span className="text-[9px] text-muted-foreground tabular-nums">
+                            <span className="text-micro text-muted-foreground tabular-nums">
                               {obj.progress.current}/{obj.progress.target}
                             </span>
                           </div>
@@ -1643,12 +1643,12 @@ const Dashboard = () => {
                           type="button"
                           onClick={() => handleClaimObjective(obj.objectiveId)}
                           aria-label={`Claim ${effectiveObjXp(obj)} XP for ${obj.title}`}
-                          className="inline-flex items-center gap-0.5 text-[10px] font-bold px-2.5 py-1 rounded-full bg-primary text-primary-foreground shadow-[0_0_10px_hsl(var(--primary)/0.4)] active:scale-95 transition-transform shrink-0"
+                          className="inline-flex items-center gap-0.5 text-micro font-bold px-2.5 py-1 rounded-full bg-primary text-primary-foreground shadow-[0_0_10px_hsl(var(--primary)/0.4)] active:scale-95 transition-transform shrink-0"
                         >
                           Claim +{effectiveObjXp(obj)}
                         </button>
                       ) : (
-                        <span className={cn('inline-flex items-center text-[10px] font-bold shrink-0', obj.claimed ? 'text-emerald-400' : 'text-sky-400')}>
+                        <span className={cn('inline-flex items-center text-micro font-bold shrink-0', obj.claimed ? 'text-emerald-400' : 'text-sky-400')}>
                           {obj.claimed ? <PremiumCheck className="w-3 h-3" /> : `+${effectiveObjXp(obj)} XP`}
                         </span>
                       )}
@@ -1675,15 +1675,15 @@ const Dashboard = () => {
               <motion.div animate={{ rotate: achievementsCollapsed ? 0 : 90 }} transition={CHEVRON_SPRING}>
                 <ChevronRight className="w-3 h-3 text-sky-400" />
               </motion.div>
-              <p className="text-[10px] text-sky-400 uppercase tracking-wider font-semibold">Achievements</p>
-              <span className="text-[9px] text-muted-foreground">
+              <p className="text-micro text-sky-400 uppercase tracking-wider font-semibold">Achievements</p>
+              <span className="text-micro text-muted-foreground">
                 {(unlockedAchievements || []).length}/{VISIBLE_ACHIEVEMENT_COUNT}
               </span>
             </button>
             <button
               type="button"
               onClick={() => setScreen('trophy-cabinet')}
-              className="text-[9px] text-sky-400 font-semibold hover:text-sky-300"
+              className="text-micro text-sky-400 font-semibold hover:text-sky-300"
             >
               View All
             </button>
@@ -1710,13 +1710,13 @@ const Dashboard = () => {
                         <div className="flex items-center gap-1.5">
                           <p className="text-xs font-semibold text-foreground truncate">{a.title}</p>
                           <span className={cn(
-                            'text-[8px] font-bold uppercase px-1 py-0.5 rounded shrink-0',
+                            'text-micro font-bold uppercase px-1 py-0.5 rounded shrink-0',
                             a.tier === 'gold' ? 'text-primary bg-primary/15' : a.tier === 'silver' ? 'text-[hsl(var(--silver))] bg-[hsl(var(--silver))]/10' : 'text-[hsl(var(--bronze))] bg-[hsl(var(--bronze))]/10'
                           )}>
                             {a.tier}
                           </span>
                         </div>
-                        <p className="text-[10px] text-muted-foreground truncate">{a.description}</p>
+                        <p className="text-micro text-muted-foreground truncate">{a.description}</p>
                         {a.prog && (
                           <div className="mt-1.5 flex items-center gap-2">
                             <PremiumProgress
@@ -1726,7 +1726,7 @@ const Dashboard = () => {
                               animate={false}
                               value={Math.min(100, (a.prog.current / a.prog.target) * 100)}
                             />
-                            <span className="text-[9px] text-muted-foreground tabular-nums">
+                            <span className="text-micro text-muted-foreground tabular-nums">
                               {a.prog.current}/{a.prog.target} · +{a.tier === 'gold' ? ACHIEVEMENT_XP_GOLD : a.tier === 'silver' ? ACHIEVEMENT_XP_SILVER : ACHIEVEMENT_XP_BRONZE} XP
                             </span>
                           </div>
@@ -1759,14 +1759,14 @@ const Dashboard = () => {
               {managerProgression.level}
             </p>
             <div className="mt-1.5">
-              <div className="flex items-center justify-between text-[9px] mb-0.5">
+              <div className="flex items-center justify-between text-micro mb-0.5">
                 <span className="text-muted-foreground">Next level</span>
                 <span className="text-primary font-semibold tabular-nums">{xpProgress.current}/{xpProgress.needed}</span>
               </div>
               <PremiumProgress size="sm" value={xpProgress.percentage} />
             </div>
             {nextPerk && (
-              <p className="text-[9px] text-muted-foreground mt-1.5 truncate">
+              <p className="text-micro text-muted-foreground mt-1.5 truncate">
                 Next: <span className="text-primary font-semibold">{nextPerk.name}</span>
                 {nextPerk.xpNeeded > 0 && <span> ({nextPerk.xpNeeded} XP)</span>}
                 {nextPerk.xpNeeded === 0 && <span className="text-emerald-400"> Ready!</span>}
@@ -1783,7 +1783,7 @@ const Dashboard = () => {
             <div className="space-y-1">
               {seasonRace.slice(0, 4).map((team) => (
                 <div key={team.clubId} className={cn(
-                  'flex items-center justify-between text-[10px] rounded px-1 py-0.5',
+                  'flex items-center justify-between text-micro rounded px-1 py-0.5',
                   team.isPlayer ? 'bg-primary/10 font-bold text-primary' : 'text-muted-foreground'
                 )}>
                   <div className="flex items-center gap-1.5">
@@ -1806,7 +1806,7 @@ const Dashboard = () => {
       {!seasonOver && weekPreviews.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.2 }}>
         <GlassPanel className="p-4">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-2">Coming Up</p>
+          <p className="text-micro text-muted-foreground uppercase tracking-wider font-semibold mb-2">Coming Up</p>
           <div className="space-y-2">
             {weekPreviews.map((preview, i) => (
               <div
@@ -1831,7 +1831,7 @@ const Dashboard = () => {
       {!seasonOver && weekCliffhangers && weekCliffhangers.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <GlassPanel className="p-4 border-primary/20">
-            <p className="text-[10px] text-primary uppercase tracking-wider font-semibold mb-2">What Happens Next...</p>
+            <p className="text-micro text-primary uppercase tracking-wider font-semibold mb-2">What Happens Next...</p>
             <div className="space-y-2">
               {weekCliffhangers.map((hook, i) => (
                 <div
@@ -1943,7 +1943,7 @@ const Dashboard = () => {
               <p className="text-xs text-muted-foreground">+{expiringPlayers.length - 3} more</p>
             )}
           </div>
-          <p className="text-[10px] text-muted-foreground mt-2">Tap to view squad and renew contracts</p>
+          <p className="text-micro text-muted-foreground mt-2">Tap to view squad and renew contracts</p>
         </GlassPanel>
       )}
 
@@ -1951,7 +1951,7 @@ const Dashboard = () => {
 
       {/* Stats Grid */}
       <div className="space-y-3">
-      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Club Overview</p>
+      <p className="text-micro text-muted-foreground uppercase tracking-wider font-semibold">Club Overview</p>
       <div className="grid grid-cols-2 gap-3">
         <GlassPanel className="p-4" onClick={() => setScreen('league-table')}>
           <div className="flex items-center gap-2 mb-1">
@@ -1961,8 +1961,8 @@ const Dashboard = () => {
           <p className="text-3xl font-black text-foreground tabular-nums">
             {pos}<span className="text-sm text-muted-foreground">/{leagueTable.length}</span>
           </p>
-          <p className="text-[10px] text-muted-foreground truncate">{LEAGUES.find(d => d.id === playerDivision)?.shortName || ''} {'\u2022'} {entry?.points || 0} pts</p>
-          {lastMatchInfo ? <FormGuide form={recentForm} className="mt-2" /> : <p className="text-[10px] text-muted-foreground mt-2">No games yet</p>}
+          <p className="text-micro text-muted-foreground truncate">{LEAGUES.find(d => d.id === playerDivision)?.shortName || ''} {'\u2022'} {entry?.points || 0} pts</p>
+          {lastMatchInfo ? <FormGuide form={recentForm} className="mt-2" /> : <p className="text-micro text-muted-foreground mt-2">No games yet</p>}
         </GlassPanel>
 
         <GlassPanel className="p-4 cursor-pointer" onClick={() => { setFinanceSheetMode('budget'); setFinanceSheetOpen(true); }}>
@@ -1991,7 +1991,7 @@ const Dashboard = () => {
           )}>
             {avgMorale}%
           </p>
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-micro text-muted-foreground">
             {avgMorale > 70 ? 'Excellent' : avgMorale > 40 ? 'Decent' : 'Low — affects performance'}
           </p>
         </GlassPanel>
@@ -2014,11 +2014,11 @@ const Dashboard = () => {
             tone={boardConfidence > 50 ? 'emerald' : boardConfidence > 25 ? 'amber' : 'rose'}
             value={boardConfidence}
           />
-          <p className="text-[10px] text-muted-foreground mt-1">
+          <p className="text-micro text-muted-foreground mt-1">
             {boardConfidence > 70 ? 'Secure' : boardConfidence > 40 ? 'Under pressure' : 'Sacking risk!'}
           </p>
           {boardConfidence <= CONFIDENCE_LOW_THRESHOLD && boardConfidence > 25 && (
-            <p className="text-[9px] text-destructive/80 mt-0.5">
+            <p className="text-micro text-destructive/80 mt-0.5">
               ~{Math.max(1, Math.ceil((boardConfidence - 25) / 4))} more loss{Math.ceil((boardConfidence - 25) / 4) !== 1 ? 'es' : ''} could mean the sack
             </p>
           )}
@@ -2039,7 +2039,7 @@ const Dashboard = () => {
           )}>
             {netWeeklyIncome >= 0 ? '+' : ''}{formatMoney(netWeeklyIncome)}
           </p>
-          <p className="text-[10px] text-muted-foreground">per week</p>
+          <p className="text-micro text-muted-foreground">per week</p>
         </GlassPanel>
 
         <GlassPanel className="p-4" onClick={() => setScreen('club')}>
@@ -2054,7 +2054,7 @@ const Dashboard = () => {
           )}>
             {fanMood}%
           </p>
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-micro text-muted-foreground">
             {fanMood >= FAN_MOOD_HIGH_THRESHOLD ? 'Buzzing' : fanMood >= FAN_MOOD_MID_THRESHOLD ? 'Content' : 'Restless'}
           </p>
         </GlassPanel>

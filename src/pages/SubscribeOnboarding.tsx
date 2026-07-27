@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react';
 import { useEffect, useMemo, useState } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
 import {
@@ -36,6 +36,7 @@ import { openExternalUrl } from '@/utils/externalUrl';
 import type { ProductId } from '@/types/game';
 import { track } from '@/utils/analytics';
 import { subscribeSlotContextMissing } from '@/utils/paywallTiming';
+import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 
 /**
  * Apple-compliant in-app paywall (Guideline 3.1.2(c)).
@@ -100,7 +101,7 @@ const PLAN_ROWS: PlanRow[] = [
 const SubscribeOnboarding = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useReducedMotionPref();
   const grantEntitlement = useGameStore(s => s.grantEntitlement);
   const startFreeTrial = useGameStore(s => s.startFreeTrial);
   const restoreEntitlementsAction = useGameStore(s => s.restoreEntitlements);

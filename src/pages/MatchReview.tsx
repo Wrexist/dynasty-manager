@@ -70,7 +70,8 @@ import { YellowCardIcon, RedCardIcon } from '@/components/game/PlayerAvatar';
 import { getSuffix } from '@/utils/helpers';
 import { PageHint } from '@/components/game/PageHint';
 import { findTournamentMatch } from '@/hooks/useGameSelectors';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 
 const MatchReview = () => {
   const { currentMatchResult, clubs, players, playerClubId, boardConfidence, matchPlayerRatings, week, divisionFixtures, playerDivision, divisionTables, boardObjectives, monetization, lastMatchCompetition, virtualClubs } = useGameStore(useShallow(s => ({
@@ -94,7 +95,7 @@ const MatchReview = () => {
   useEffect(() => () => clearTimeout(advanceTimerRef.current), []);
   const [highlightFilter, setHighlightFilter] = useState<'all' | 'us' | 'goals'>('all');
 
-  const reducedMotion = useReducedMotion();
+  const reducedMotion = useReducedMotionPref();
 
   const matchInsights = useMemo(
     () => currentMatchResult ? generateMatchInsights(currentMatchResult, playerClubId) : [],

@@ -563,6 +563,9 @@ export const createCareerSlice = (set: Set, get: Get) => ({
         // showed up as Coventry's club history.
         clubRecords: createEmptyRecords(),
         rivalries: {},
+        // Season-bucketed on its own, but a MID-season club change would otherwise
+        // carry the old club's seen-keys and suppress one repeat celebration.
+        celebrationDedupe: { season: state.season, keys: [] },
       });
     } else {
       // Different league: must reinitialize game for the new league.

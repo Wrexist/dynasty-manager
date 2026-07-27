@@ -10,12 +10,13 @@ import {
   Dumbbell, UserCog, Sprout, Users, Package, ArrowLeftRight
 } from 'lucide-react';
 import { hapticLight } from '@/utils/haptics';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { PINNED_DRAWER_SCREENS, DRAWER_PROGRESSIVE_SCREENS, UNEMPLOYED_ALLOWED_SCREENS } from '@/config/navigation';
 import { NEW_PLAYER_DRAWER_WEEK_THRESHOLD, SQUAD_SUB_NAV, MARKET_SUB_NAV } from '@/config/ui';
 import { getSuffix } from '@/utils/helpers';
 import { useCareerUnemployed } from '@/hooks/useGameSelectors';
 import { CountBadge } from '@/components/game/CountBadge';
+import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 
 // Liquid-glass tile shared by pinned quick-actions and drawer rows. Mirrors
 // the GlassPanel treatment (gradient + thick-rim inset shadow + specular top
@@ -153,7 +154,7 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
     else setOpenInternal(next);
   }, [onOpenChange]);
   const [search, setSearch] = useState('');
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useReducedMotionPref();
   const {
     messages, currentScreen, cup, leagueCup, gameMode, nationalTeamOffer,
     internationalTournament, nationalTeam, season, week,

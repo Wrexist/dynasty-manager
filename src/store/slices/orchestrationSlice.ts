@@ -252,6 +252,10 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
     preMatchLeaguePosition: state.preMatchLeaguePosition,
     lastMatchXPGain: state.lastMatchXPGain,
     weeklyDigest: state.weeklyDigest,
+    // Persisted so a reload can't re-show a celebration the player already saw.
+    // The dedupe already survives navigation (which was the actual bug — it lived
+    // in a Dashboard useRef and Dashboard unmounts on every screen change).
+    celebrationDedupe: state.celebrationDedupe,
     sponsorDeals: state.sponsorDeals,
     sponsorOffers: state.sponsorOffers,
     sponsorSlotCooldowns: state.sponsorSlotCooldowns,
@@ -986,6 +990,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         lastMatchCompetition: data.lastMatchCompetition || null,
         sessionStats: data.sessionStats || { startWeek: data.week || 1, startSeason: data.season || 1, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 },
         weeklyDigest: data.weeklyDigest || null,
+        celebrationDedupe: data.celebrationDedupe || { season: data.season || 1, keys: [] },
         pendingStoryline: data.pendingStoryline || null,
         activeStorylineChains: data.activeStorylineChains || [],
         completedStorylineChainIds: data.completedStorylineChainIds || [],

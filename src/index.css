@@ -28,6 +28,11 @@
     --primary-foreground: 30 20% 10%;
 
     --gold: 43 96% 46%;
+    /* Lighter/darker siblings for gradients that need gold depth (Ballon d'Or
+       hero text, medal gradients). Without these, callers reached for inline
+       color-mix and drifted apart. */
+    --gold-light: 43 96% 62%;
+    --gold-deep: 38 92% 34%;
 
     /* Medal tier palette — siblings to --gold so silver/bronze chips can
        pick up the same "use a semantic token" pattern. Tuned for the

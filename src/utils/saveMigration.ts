@@ -11,11 +11,22 @@ import type { Club, Player, FormationType } from '@/types/game';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 75;
+const CURRENT_VERSION = 76;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
 const migrations: Record<number, MigrationFn> = {
+  // v75 → v76: GameState gained `celebrationDedupe`. The set of already-shown
+  // celebration keys used to live in a Dashboard `useRef`, and GameShell renders
+  // only the active screen — so Dashboard unmounted on every navigation and the
+  // set was discarded, re-firing "Top of the Table!" 20+ times a season for a side
+  // sitting top. Now persisted and season-bucketed.
+  75: (data) => ({
+    ...data,
+    version: 76,
+    celebrationDedupe: data.celebrationDedupe || { season: (data.season as number) || 1, keys: [] },
+  }),
+
   // v74 → v75: `Player` gained `minutesPlayed` (season minutes, derived from the
   // match event stream). The development playing-time term reads minutes when
   // present and falls back to `appearances` when absent, so a save that skipped

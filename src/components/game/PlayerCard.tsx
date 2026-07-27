@@ -1,5 +1,5 @@
 import { memo, useEffect, useState } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { X, Star } from 'lucide-react';
 import type { Player, PlayerAttributes } from '@/types/game';
 import { FlagIcon } from '@/components/game/FlagIcon';
@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { hapticLight } from '@/utils/haptics';
 import { getPlayerCardArt, getFitnessHexColor } from '@/utils/uiHelpers';
 import { getPersonalityLabel } from '@/utils/personality';
+import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 
 const ATTR_LABELS: Record<keyof PlayerAttributes, string> = {
   pace: 'PAC',
@@ -145,7 +146,7 @@ export const PlayerCard = memo(function PlayerCard({
   const cardArt = getPlayerCardArt(player.overall, {
     ballonDorTop10: typeof player.ballonDOrTop10HoldSeason === 'number',
   });
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionPref();
   const [statView, setStatView] = useState<StatView>(0);
 
   // Compact cards have no cycle target — treat 'cycle' as 'none'.

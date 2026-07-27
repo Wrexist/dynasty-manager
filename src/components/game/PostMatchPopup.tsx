@@ -18,6 +18,7 @@ import { useEscapeClose } from '@/hooks/useEscapeClose';
 import { hapticHeavy, hapticLight } from '@/utils/haptics';
 import { extractMatchDebrief } from '@/utils/matchDebrief';
 import { gamePlanDebriefLine } from '@/config/gamePlan';
+import { ClubCrest } from '@/components/game/ClubCrest';
 
 interface PostMatchPopupProps {
   onContinue: () => void;
@@ -132,40 +133,20 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
             </p>
             <div className="flex items-center justify-center gap-4">
               <div className="text-center">
-                <div
-                  className="w-9 h-9 rounded-full mx-auto mb-0.5 flex items-center justify-center text-[9px] font-bold relative"
-                  style={{
-                    background: `radial-gradient(circle at 32% 28%, color-mix(in srgb, ${homeClub?.color} 75%, white) 0%, ${homeClub?.color} 55%, color-mix(in srgb, ${homeClub?.color} 70%, black) 100%)`,
-                    color: homeClub?.secondaryColor,
-                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -1px 0 rgba(0,0,0,0.35), 0 2px 8px -2px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.08)',
-                    textShadow: '0 1px 0 rgba(0,0,0,0.35)',
-                  }}
-                >
-                  {homeClub?.shortName}
-                </div>
+                <ClubCrest club={homeClub} size="sm" className="mx-auto mb-0.5" />
               </div>
               <div className="text-center">
               <p className="text-2xl font-black text-foreground tabular-nums font-display">
                 {currentMatchResult.homeGoals} - {currentMatchResult.awayGoals}
               </p>
               {currentMatchResult.stats?.homeXG != null && (
-                <p className="text-[10px] text-muted-foreground tabular-nums mt-0.5">
+                <p className="text-micro text-muted-foreground tabular-nums mt-0.5">
                   xG: {currentMatchResult.stats.homeXG.toFixed(1)} - {(currentMatchResult.stats.awayXG ?? 0).toFixed(1)}
                 </p>
               )}
             </div>
               <div className="text-center">
-                <div
-                  className="w-9 h-9 rounded-full mx-auto mb-0.5 flex items-center justify-center text-[9px] font-bold relative"
-                  style={{
-                    background: `radial-gradient(circle at 32% 28%, color-mix(in srgb, ${awayClub?.color} 75%, white) 0%, ${awayClub?.color} 55%, color-mix(in srgb, ${awayClub?.color} 70%, black) 100%)`,
-                    color: awayClub?.secondaryColor,
-                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -1px 0 rgba(0,0,0,0.35), 0 2px 8px -2px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.08)',
-                    textShadow: '0 1px 0 rgba(0,0,0,0.35)',
-                  }}
-                >
-                  {awayClub?.shortName}
-                </div>
+                <ClubCrest club={awayClub} size="sm" className="mx-auto mb-0.5" />
               </div>
             </div>
           </div>
@@ -178,7 +159,7 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
                 <Zap className="w-4 h-4 text-primary" />
               </div>
               <p className="text-sm font-bold text-primary tabular-nums">+{lastMatchXPGain}</p>
-              <p className="text-[9px] text-muted-foreground">XP Gained</p>
+              <p className="text-micro text-muted-foreground">XP Gained</p>
             </div>
 
             {/* League Position (league only) or Team Rating (friendlies/cups) */}
@@ -195,7 +176,7 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
                 )}>
                   {currentPosition}{getSuffix(currentPosition)}
                 </p>
-                <p className="text-[9px] text-muted-foreground">
+                <p className="text-micro text-muted-foreground">
                   {positionChange > 0 ? `Up ${positionChange}` : positionChange < 0 ? `Down ${Math.abs(positionChange)}` : 'No change'}
                 </p>
               </div>
@@ -210,7 +191,7 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
                 )}>
                   {teamAvgRating > 0 ? teamAvgRating.toFixed(1) : '—'}
                 </p>
-                <p className="text-[9px] text-muted-foreground">Team Rating</p>
+                <p className="text-micro text-muted-foreground">Team Rating</p>
               </div>
             )}
 
@@ -222,7 +203,7 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
               <p className="text-sm font-bold text-foreground tabular-nums">
                 {cleanSheet ? 'Yes' : `${goalsFor}`}
               </p>
-              <p className="text-[9px] text-muted-foreground">
+              <p className="text-micro text-muted-foreground">
                 {cleanSheet ? 'Clean Sheet' : goalsFor === 1 ? 'Goal Scored' : 'Goals Scored'}
               </p>
             </div>
@@ -230,7 +211,7 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
 
           {/* XP Progress Bar */}
           <div>
-            <div className="flex items-center justify-between text-[10px] mb-1">
+            <div className="flex items-center justify-between text-micro mb-1">
               <span className="text-muted-foreground">Level {managerProgression.level}</span>
               <span className="text-primary font-semibold">{managerProgression.xp}/{xpNeeded} XP</span>
             </div>
@@ -242,7 +223,7 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
             <div className="flex items-center gap-2 bg-muted/20 rounded-lg px-3 py-2">
               <Star className="w-4 h-4 text-primary shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] text-muted-foreground">Man of the Match</p>
+                <p className="text-micro text-muted-foreground">Man of the Match</p>
                 <p className="text-xs font-semibold text-foreground truncate">{motmPlayer.firstName} {motmPlayer.lastName}</p>
               </div>
               <span className="text-sm font-bold text-primary tabular-nums">{motm.rating.toFixed(1)}</span>
@@ -262,7 +243,7 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
             <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-xl p-3 space-y-1.5">
               <div className="flex items-center gap-1.5">
                 <Lightbulb className="w-3.5 h-3.5 text-primary shrink-0" />
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Tactical Debrief</p>
+                <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">Tactical Debrief</p>
               </div>
               <p className="text-xs text-foreground/90 leading-snug">{debrief.insight}</p>
               {debrief.aiReaction && (

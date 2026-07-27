@@ -51,7 +51,7 @@ function DevBar({ attribute, newValue, delay }: { attribute: string; newValue: n
 
   return (
     <div className="flex items-center gap-2 min-w-0">
-      <span className="text-[10px] text-muted-foreground font-mono w-7 shrink-0">{abbr}</span>
+      <span className="text-micro text-muted-foreground font-mono w-7 shrink-0">{abbr}</span>
       <div className="flex-1 h-1.5 bg-muted/40 rounded-full overflow-hidden">
         <motion.div
           className={cn('h-full rounded-full', barColor)}
@@ -60,9 +60,9 @@ function DevBar({ attribute, newValue, delay }: { attribute: string; newValue: n
           transition={{ delay: delay + 0.3, duration: 0.6, ease: 'easeOut' }}
         />
       </div>
-      <span className="text-[10px] font-mono font-bold text-foreground w-5 text-right">{newValue}</span>
+      <span className="text-micro font-mono font-bold text-foreground w-5 text-right">{newValue}</span>
       <motion.span
-        className="text-[10px] font-bold text-emerald-400 drop-shadow-[0_0_4px_rgba(52,211,153,0.5)]"
+        className="text-micro font-bold text-emerald-400 drop-shadow-[0_0_4px_rgba(52,211,153,0.5)]"
         initial={{ opacity: 0, scale: 0.5 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ type: 'spring', stiffness: 500, damping: 15, delay: delay + 0.7 }}
@@ -79,7 +79,7 @@ function SectionLabel({ children, delay }: { children: React.ReactNode; delay: n
   return (
     <motion.div className="flex items-center gap-2 pt-1" {...sectionAnim(delay)}>
       <div className="w-4 h-px bg-primary/50" />
-      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">{children}</p>
+      <p className="text-micro text-muted-foreground uppercase tracking-wider font-semibold">{children}</p>
     </motion.div>
   );
 }
@@ -155,10 +155,10 @@ export function WeeklyDigestInlineCard() {
         className="w-full flex items-center gap-2 min-w-0 text-left"
       >
         <div className="bg-muted/40 border border-border/40 rounded-lg px-1.5 py-0.5 shrink-0">
-          <span className="text-[10px] font-bold text-muted-foreground font-display">W{week}</span>
+          <span className="text-micro font-bold text-muted-foreground font-display">W{week}</span>
         </div>
         <span className="text-xs font-semibold text-foreground shrink-0">Week Summary</span>
-        <span className="text-[10px] text-muted-foreground truncate flex-1">A quiet week</span>
+        <span className="text-micro text-muted-foreground truncate flex-1">A quiet week</span>
         <span className={cn('text-[11px] font-bold tabular-nums shrink-0', netIncome >= 0 ? 'text-emerald-400' : 'text-destructive')}>
           {netIncome >= 0 ? '+' : '-'}£{Math.round(Math.abs(netIncome) / 1e3)}K
         </span>
@@ -193,7 +193,7 @@ export function WeeklyDigestInlineCard() {
           <button
             type="button"
             onClick={dismiss}
-            className="w-full text-[10px] text-muted-foreground hover:text-foreground transition-colors pt-1"
+            className="w-full text-micro text-muted-foreground hover:text-foreground transition-colors pt-1"
           >
             Dismiss
           </button>
@@ -289,7 +289,7 @@ function WeeklyDigestCard({ digest, week, dismiss }: {
                   </div>
                   <h3 className="text-sm font-bold text-foreground font-display">Summary</h3>
                 </div>
-                <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider">Weekly Digest</span>
+                <span className="text-micro text-muted-foreground/70 uppercase tracking-wider">Weekly Digest</span>
               </motion.div>
 
               {/* ── Headline ── */}
@@ -318,7 +318,7 @@ function WeeklyDigestCard({ digest, week, dismiss }: {
                     >
                       <DollarSign className={cn('w-3.5 h-3.5', netIncome >= 0 ? 'text-emerald-400' : 'text-red-400')} />
                     </motion.div>
-                    <span className="text-[10px] text-muted-foreground">Net Income</span>
+                    <span className="text-micro text-muted-foreground">Net Income</span>
                   </div>
                   <AnimatedNumber
                     value={Math.abs(netIncome) / 1e3}
@@ -346,7 +346,7 @@ function WeeklyDigestCard({ digest, week, dismiss }: {
                         digest.moraleChange > 0 ? 'text-emerald-400' : digest.moraleChange < 0 ? 'text-red-400' : 'text-muted-foreground'
                       )} />
                     </motion.div>
-                    <span className="text-[10px] text-muted-foreground">Morale</span>
+                    <span className="text-micro text-muted-foreground">Morale</span>
                   </div>
                   <AnimatedNumber
                     value={digest.moraleChange}
@@ -421,7 +421,7 @@ function WeeklyDigestCard({ digest, week, dismiss }: {
 
                   {hiddenDevCount > 0 && (
                     <motion.button
-                      className="flex items-center gap-1 text-[10px] text-primary hover:text-primary/80 transition-colors w-full justify-center py-1"
+                      className="flex items-center gap-1 text-micro text-primary hover:text-primary/80 transition-colors w-full justify-center py-1"
                       onClick={() => setDevExpanded(!devExpanded)}
                       {...sectionAnim(d + 0.1)}
                     >
@@ -454,7 +454,7 @@ function WeeklyDigestCard({ digest, week, dismiss }: {
                       </motion.div>
                     ))}
                     {digest.trainingGains.length > 6 && (
-                      <span className="inline-flex items-center text-[10px] text-muted-foreground px-2 py-1">
+                      <span className="inline-flex items-center text-micro text-muted-foreground px-2 py-1">
                         +{digest.trainingGains.length - 6} more
                       </span>
                     )}
@@ -483,7 +483,7 @@ function WeeklyDigestCard({ digest, week, dismiss }: {
                           </motion.div>
                           <span className="text-emerald-400 flex-1">{obj.title}</span>
                           <motion.span
-                            className="text-[10px] font-bold text-primary bg-primary/10 rounded-full px-2 py-0.5 drop-shadow-[0_0_4px_hsl(43_96%_46%/0.4)]"
+                            className="text-micro font-bold text-primary bg-primary/10 rounded-full px-2 py-0.5 drop-shadow-[0_0_4px_hsl(43_96%_46%/0.4)]"
                             initial={{ opacity: 0, x: 8 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: d + i * 0.06 + 0.3 }}

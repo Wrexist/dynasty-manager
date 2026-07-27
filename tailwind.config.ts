@@ -74,7 +74,11 @@ export default {
          * (trophies, Ballon d'Or, gold-tier achievements/sponsors).
          * `text-primary` in-game is GREEN.
          */
-        gold: "hsl(var(--gold))",
+        gold: {
+          DEFAULT: "hsl(var(--gold))",
+          light: "hsl(var(--gold-light))",
+          deep: "hsl(var(--gold-deep))",
+        },
         silver: "hsl(var(--silver))",
         bronze: "hsl(var(--bronze))",
         sidebar: {

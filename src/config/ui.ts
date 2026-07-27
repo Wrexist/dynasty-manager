@@ -182,9 +182,15 @@ export const SCOUTING_KNOWLEDGE_THRESHOLDS = {
 } as const;
 
 // ── Scouting / Youth Potential Color Thresholds ──
+// NOTE: `text-primary` must never appear in a tier ladder that also contains an
+// emerald step. `.game-theme` overrides `--primary` to emerald 160 84% 39%
+// (src/index.css), so in-game the min-65 tier used to render at the same hue as
+// the min-75 tier, 13% lightness apart — "Good" and "High" potential were
+// visually indistinguishable. Sky matches the mid tier of STAT_BAR_THRESHOLDS
+// and getRatingHex's 70-band, so the ladder now reads muted -> sky -> emerald.
 export const POTENTIAL_COLOR_THRESHOLDS = [
   { min: 75, textClass: 'text-emerald-400', fillClass: 'text-emerald-400 fill-emerald-400', bgClass: 'bg-emerald-500/20 text-emerald-400', label: 'High' },
-  { min: 65, textClass: 'text-primary', fillClass: 'text-primary fill-primary', bgClass: 'bg-primary/20 text-primary', label: 'Good' },
+  { min: 65, textClass: 'text-sky-400', fillClass: 'text-sky-400 fill-sky-400', bgClass: 'bg-sky-500/20 text-sky-400', label: 'Good' },
   { min: 0,  textClass: 'text-muted-foreground', fillClass: 'text-muted-foreground', bgClass: 'bg-muted/50 text-muted-foreground', label: 'Average' },
 ] as const;
 

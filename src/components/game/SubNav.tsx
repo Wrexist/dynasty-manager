@@ -1,10 +1,11 @@
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { GameScreen } from '@/types/game';
 import { cn } from '@/lib/utils';
 import { hapticLight } from '@/utils/haptics';
 import { useMatchLocked } from '@/hooks/useGameSelectors';
 import { SPRING_SNAPPY } from '@/config/motion';
+import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 
 export interface SubNavItem {
   screen: GameScreen;
@@ -23,7 +24,7 @@ export function SubNav({ items, layoutId = 'subnav-pill' }: SubNavProps) {
   const currentScreen = useGameStore(s => s.currentScreen);
   const setScreen = useGameStore(s => s.setScreen);
   const matchLocked = useMatchLocked();
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useReducedMotionPref();
 
   return (
     <div className="relative px-4 py-2">

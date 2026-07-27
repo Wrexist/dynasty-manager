@@ -147,7 +147,12 @@ describe('club display names — abbreviations a fan would say', () => {
 describe('gold is gold on every screen', () => {
   it('exposes gold/silver/bronze as Tailwind tokens', () => {
     const cfg = read('tailwind.config.ts');
-    expect(cfg).toContain('gold: "hsl(var(--gold))"');
+    // Assert the VAR is wired, not the exact literal — `gold` carries
+    // light/deep siblings for gradients, so it is a nested token, and a future
+    // shade addition shouldn't break this.
+    expect(cfg).toMatch(/gold:\s*\{[^}]*hsl\(var\(--gold\)\)/s);
+    expect(cfg).toContain('hsl(var(--gold-light))');
+    expect(cfg).toContain('hsl(var(--gold-deep))');
     expect(cfg).toContain('silver: "hsl(var(--silver))"');
     expect(cfg).toContain('bronze: "hsl(var(--bronze))"');
   });

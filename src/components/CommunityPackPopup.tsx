@@ -1,6 +1,6 @@
 import { Users, ShieldAlert } from 'lucide-react';
 import { PremiumSparkle } from '@/components/game/icons/PremiumSparkle';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,7 @@ import {
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { cn } from '@/lib/utils';
 import { hapticLight } from '@/utils/haptics';
+import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 
 interface CommunityPackPopupProps {
   open: boolean;
@@ -29,7 +30,7 @@ interface CommunityPackPopupProps {
  *    football rights holder.
  */
 function CommunityPackPopupInner({ open, onChoice, onClose }: CommunityPackPopupProps) {
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionPref();
 
   const choose = (enabled: boolean) => {
     hapticLight();

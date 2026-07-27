@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react';
 import { useState, useMemo, memo, useRef, useEffect } from 'react';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
 import { CLUBS_DATA, LEAGUES, getLeaguesByCountry } from '@/data/league';
@@ -19,6 +19,7 @@ import { hapticLight } from '@/utils/haptics';
 import { LoadingOverlay } from '@/components/LoadingOverlay';
 import { CommunityPackToggle } from '@/components/game/CommunityPackToggle';
 import { errorToast } from '@/utils/gameToast';
+import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 
 
 
@@ -91,7 +92,7 @@ const ClubSelection = () => {
   const location = useLocation();
   const initGame = useGameStore(s => s.initGame);
   const initNationalTeam = useGameStore(s => s.initNationalTeam);
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useReducedMotionPref();
 
   // Hydrate once from sessionStorage draft (if user refreshed mid-onboarding)
   const initialDraft = useMemo(readOnboardingDraft, []);

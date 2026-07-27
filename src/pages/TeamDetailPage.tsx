@@ -133,19 +133,19 @@ const TeamDetailPage = () => {
         <div className="grid grid-cols-4 gap-2 text-center">
           <div>
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Avg OVR</p>
-            <p className={cn('text-lg font-mono font-black tabular-nums', getRatingColor(avgOverall))}>{avgOverall}</p>
+            <p className={cn('text-lg font-display tabular-nums font-black tabular-nums', getRatingColor(avgOverall))}>{avgOverall}</p>
           </div>
           <div>
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Avg Age</p>
-            <p className="text-lg font-mono font-bold text-foreground tabular-nums">{avgAge}</p>
+            <p className="text-lg font-display tabular-nums font-bold text-foreground tabular-nums">{avgAge}</p>
           </div>
           <div>
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Squad</p>
-            <p className="text-lg font-mono font-bold text-foreground tabular-nums">{squadPlayers.length}</p>
+            <p className="text-lg font-display tabular-nums font-bold text-foreground tabular-nums">{squadPlayers.length}</p>
           </div>
           <div>
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Value</p>
-            <p className="text-lg font-mono font-bold text-foreground tabular-nums">{formatValue(totalValue)}</p>
+            <p className="text-lg font-display tabular-nums font-bold text-foreground tabular-nums">{formatValue(totalValue)}</p>
           </div>
         </div>
       </GlassPanel>
@@ -157,20 +157,20 @@ const TeamDetailPage = () => {
           <div className="grid grid-cols-4 gap-3 text-center mb-3">
             <div>
               <p className="text-[10px] text-muted-foreground mb-0.5">W-D-L</p>
-              <p className="text-sm font-mono font-bold text-foreground tabular-nums">{tableEntry.won}-{tableEntry.drawn}-{tableEntry.lost}</p>
+              <p className="text-sm font-display tabular-nums font-bold text-foreground tabular-nums">{tableEntry.won}-{tableEntry.drawn}-{tableEntry.lost}</p>
             </div>
             <div>
               <p className="text-[10px] text-muted-foreground mb-0.5">Points</p>
-              <p className="text-sm font-mono font-bold text-primary tabular-nums">{tableEntry.points}</p>
+              <p className="text-sm font-display tabular-nums font-bold text-primary tabular-nums">{tableEntry.points}</p>
             </div>
             <div>
               <p className="text-[10px] text-muted-foreground mb-0.5">GF / GA</p>
-              <p className="text-sm font-mono font-bold text-foreground tabular-nums">{tableEntry.goalsFor} / {tableEntry.goalsAgainst}</p>
+              <p className="text-sm font-display tabular-nums font-bold text-foreground tabular-nums">{tableEntry.goalsFor} / {tableEntry.goalsAgainst}</p>
             </div>
             <div>
               <p className="text-[10px] text-muted-foreground mb-0.5">GD</p>
               <p className={cn(
-                'text-sm font-mono font-bold tabular-nums',
+                'text-sm font-display tabular-nums font-bold tabular-nums',
                 tableEntry.goalDifference > 0 ? 'text-emerald-400' : tableEntry.goalDifference < 0 ? 'text-destructive' : 'text-foreground'
               )}>
                 {tableEntry.goalDifference > 0 ? '+' : ''}{tableEntry.goalDifference}
