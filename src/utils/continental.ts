@@ -5,9 +5,10 @@ import type { ContinentalTournamentState, ContinentalKnockoutTie, VirtualClub, C
 import {
   getCompetitionCalendar,
   CONTINENTAL_EXTRA_TIME_GOAL_CHANCE,
+  CONTINENTAL_EXTRA_TIME_STRENGTH_SCALE,
   CONTINENTAL_PENALTY_KICKS, CONTINENTAL_PENALTY_CONVERSION,
 } from '@/config/continental';
-import { generateSquad } from '@/utils/playerGen';
+import { generateSquad, getTeamStrength } from '@/utils/playerGen';
 import { shuffle, safeRandomUUID } from '@/utils/helpers';
 import { simulateMatch } from '@/engine/match';
 import { pickAiMatchSquad } from '@/store/slices/orchestration/helpers';
@@ -304,7 +305,7 @@ export function simulateKnockoutLeg(
     // `advanceWeek` burned its iteration guard every week. Resolving it here lets
     // an affected save recover on the next advance instead of staying dead.
     if (round !== 'F' && tie.leg1Played && tie.leg2Played && !tie.winnerId) {
-      return resolveKnockoutTie(tie, virtualClubs);
+      return resolveKnockoutTie(tie, virtualClubs, world);
     }
 
     // Finals are single-leg — exclude them here so the final-specific branch below
@@ -325,7 +326,7 @@ export function simulateKnockoutLeg(
 
       const newTie = { ...tie, leg2Played: true, leg2HomeGoals: homeGoals, leg2AwayGoals: awayGoals };
       // Resolve the tie
-      return resolveKnockoutTie(newTie, virtualClubs);
+      return resolveKnockoutTie(newTie, virtualClubs, world);
     }
 
     // For finals (single leg)
@@ -339,7 +340,7 @@ export function simulateKnockoutLeg(
         newTie.winnerId = homeGoals > awayGoals ? tie.homeClubId : tie.awayClubId;
       } else {
         // Extra time + penalties for final
-        newTie = resolveDrawnFinal(newTie, virtualClubs);
+        newTie = resolveDrawnFinal(newTie, virtualClubs, world);
       }
       return newTie;
     }
@@ -354,9 +355,55 @@ export function simulateKnockoutLeg(
  * Resolve a 2-leg knockout tie after both legs are played.
  * Uses aggregate score, then extra time simulation, then penalties.
  */
+/**
+ * Per-side extra-time goal-chance multiplier.
+ *
+ * The reputation model (`rep / 5`) was the only thing deciding extra time, even
+ * for two fully instantiated clubs whose 90 minutes had just been played by the
+ * real engine. Reputation spans 1–5 and is a club's *stature*, not its current
+ * squad — so a fallen giant still bossed extra time and a club that had built a
+ * great side did not. Now, when both clubs are instantiated, the multiplier comes
+ * from the same `getTeamStrength` curve the engine uses, and reputation remains
+ * only for genuinely virtual filler — the same split
+ * `resolveContinentalFixture` already applies to the 90 minutes.
+ *
+ * Kept in the reputation model's original [0.2, 1.0] range so the overall rate
+ * of extra-time goals doesn't move; only WHO scores them changes.
+ */
+function extraTimeChanceFactors(
+  homeClubId: string,
+  awayClubId: string,
+  virtualClubs: Record<string, VirtualClub>,
+  world?: ContinentalWorld,
+): { home: number; away: number } {
+  const homeClub = world?.clubs?.[homeClubId];
+  const awayClub = world?.clubs?.[awayClubId];
+  if (world && homeClub && awayClub) {
+    const homeXI = pickAiMatchSquad(homeClub, world.players, world.week).xi;
+    const awayXI = pickAiMatchSquad(awayClub, world.players, world.week).xi;
+    if (homeXI.length > 0 && awayXI.length > 0) {
+      const hs = getTeamStrength(homeXI);
+      const as = getTeamStrength(awayXI);
+      const total = hs + as;
+      if (total > 0) {
+        const clampFactor = (v: number) => Math.max(0.2, Math.min(1, v));
+        return {
+          home: clampFactor((hs / total) * CONTINENTAL_EXTRA_TIME_STRENGTH_SCALE),
+          away: clampFactor((as / total) * CONTINENTAL_EXTRA_TIME_STRENGTH_SCALE),
+        };
+      }
+    }
+  }
+  return {
+    home: (virtualClubs[homeClubId]?.reputation || 3) / 5,
+    away: (virtualClubs[awayClubId]?.reputation || 3) / 5,
+  };
+}
+
 export function resolveKnockoutTie(
   tie: ContinentalKnockoutTie,
   virtualClubs: Record<string, VirtualClub>,
+  world?: ContinentalWorld,
 ): ContinentalKnockoutTie {
   // Aggregate: home team goals = leg1Home + leg2Away, away team goals = leg1Away + leg2Home
   const homeAgg = tie.leg1HomeGoals + tie.leg2AwayGoals;
@@ -372,12 +419,12 @@ export function resolveKnockoutTie(
   // 1-1 aggregate was decided on away goals while an identical player tie went
   // to penalties. Same competition, two rulebooks. Both paths now agree.
 
-  // Extra time simulation (simplified)
-  const homeRep = virtualClubs[tie.awayClubId]?.reputation || 3; // leg 2 is at away team's home
-  const awayRep = virtualClubs[tie.homeClubId]?.reputation || 3;
+  // Extra time. Leg 2 is at the original AWAY team's ground, so `extraHome` is
+  // scored by `tie.awayClubId` and `extraAway` by `tie.homeClubId`.
+  const etFactors = extraTimeChanceFactors(tie.awayClubId, tie.homeClubId, virtualClubs, world);
   let extraHome = 0, extraAway = 0;
-  if (Math.random() < CONTINENTAL_EXTRA_TIME_GOAL_CHANCE * (awayRep / 5)) extraAway++;
-  if (Math.random() < CONTINENTAL_EXTRA_TIME_GOAL_CHANCE * (homeRep / 5)) extraHome++;
+  if (Math.random() < CONTINENTAL_EXTRA_TIME_GOAL_CHANCE * etFactors.away) extraAway++;
+  if (Math.random() < CONTINENTAL_EXTRA_TIME_GOAL_CHANCE * etFactors.home) extraHome++;
 
   if (extraHome !== extraAway) {
     // extraHome = goals by leg2 home team (= original away team)
@@ -410,13 +457,13 @@ export function resolveKnockoutTie(
 function resolveDrawnFinal(
   tie: ContinentalKnockoutTie,
   virtualClubs: Record<string, VirtualClub>,
+  world?: ContinentalWorld,
 ): ContinentalKnockoutTie {
-  const homeRep = virtualClubs[tie.homeClubId]?.reputation || 3;
-  const awayRep = virtualClubs[tie.awayClubId]?.reputation || 3;
+  const etFactors = extraTimeChanceFactors(tie.homeClubId, tie.awayClubId, virtualClubs, world);
 
   let extraHome = 0, extraAway = 0;
-  if (Math.random() < CONTINENTAL_EXTRA_TIME_GOAL_CHANCE * (homeRep / 5)) extraHome++;
-  if (Math.random() < CONTINENTAL_EXTRA_TIME_GOAL_CHANCE * (awayRep / 5)) extraAway++;
+  if (Math.random() < CONTINENTAL_EXTRA_TIME_GOAL_CHANCE * etFactors.home) extraHome++;
+  if (Math.random() < CONTINENTAL_EXTRA_TIME_GOAL_CHANCE * etFactors.away) extraAway++;
 
   if (extraHome !== extraAway) {
     return {

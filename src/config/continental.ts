@@ -274,6 +274,18 @@ export function getCompetitionCalendar(totalWeeks?: number): CompetitionCalendar
 
 // ── Match Simulation ──
 export const CONTINENTAL_EXTRA_TIME_GOAL_CHANCE = 0.30;
+/**
+ * Converts a side's share of combined team strength into its extra-time
+ * goal-chance multiplier, for ties between two instantiated clubs.
+ *
+ * Extra time used to be decided purely by `reputation / 5`, even when the 90
+ * minutes had just been played by the real match engine — so a fallen giant
+ * still bossed extra time on its badge alone. At 1.4, an even tie gives each
+ * side 0.70 and the multiplier is clamped to the reputation model's original
+ * [0.2, 1.0] band, so the overall rate of extra-time goals is unchanged and only
+ * WHO scores them moves. Virtual filler still uses reputation.
+ */
+export const CONTINENTAL_EXTRA_TIME_STRENGTH_SCALE = 1.4;
 export const CONTINENTAL_PENALTY_KICKS = 5;
 export const CONTINENTAL_PENALTY_CONVERSION = 0.75;
 

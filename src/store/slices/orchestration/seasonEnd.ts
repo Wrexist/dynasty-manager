@@ -38,7 +38,7 @@ import { createEmptyRecords, updateRecords, findBiggestWin } from '@/utils/recor
 import { getFarewellSummary } from '@/utils/playerNarratives';
 
 import {
-  TOTAL_WEEKS, CONFIDENCE_MIN, SEASON_END_CONFIDENCE, MIN_SQUAD_SIZE, MAX_SQUAD_SIZE, REPLACEMENT_QUALITY_REP_MULTIPLIER, REPLACEMENT_QUALITY_BASE, REPLACEMENT_QUALITY_VARIANCE, GENERIC_FILL_POSITIONS, LISTING_PRICE_MIN_MULTIPLIER, LISTING_PRICE_RANDOM_RANGE, INITIAL_LISTINGS_MIN, INITIAL_LISTINGS_RANGE, SEASON_YOUTH_INTAKE_MIN, SEASON_YOUTH_INTAKE_RANGE, getExpectedPosition, GOLDEN_GEN_MIN_POTENTIAL, FREE_AGENT_POOL_MAX, FORCED_RETIREMENT_AGE,
+  TOTAL_WEEKS, CONFIDENCE_MIN, SEASON_END_CONFIDENCE, MIN_SQUAD_SIZE, MAX_SQUAD_SIZE, GENERIC_FILL_POSITIONS, LISTING_PRICE_MIN_MULTIPLIER, LISTING_PRICE_RANDOM_RANGE, INITIAL_LISTINGS_MIN, INITIAL_LISTINGS_RANGE, SEASON_YOUTH_INTAKE_MIN, SEASON_YOUTH_INTAKE_RANGE, getExpectedPosition, GOLDEN_GEN_MIN_POTENTIAL, FREE_AGENT_POOL_MAX, FORCED_RETIREMENT_AGE,
 } from '@/config/gameBalance';
 
 import { generateInitialMarket, generatePreSeasonMarket } from '@/utils/transferMarketGen';
@@ -65,6 +65,7 @@ import {
   generateObjectives,
   pickAiMatchSquad,
   resolveCatchUpFixture,
+  regenFillQuality,
 } from '@/store/slices/orchestration/helpers';
 import {
   generateLeagueCupDraw,
@@ -827,10 +828,12 @@ function finalizeSeason(
     for (const { pos: fillPos } of toFill) {
       const currentClub = newClubs[club.id];
       if (currentClub.playerIds.length >= MAX_SQUAD_SIZE) break;
-      const repQuality = (club.reputation * REPLACEMENT_QUALITY_REP_MULTIPLIER) + REPLACEMENT_QUALITY_BASE + Math.floor(Math.random() * REPLACEMENT_QUALITY_VARIANCE);
       const clubSquad = currentClub.playerIds.map(id => newPlayers[id]).filter(Boolean);
-      const avgOvr = clubSquad.length > 0 ? clubSquad.reduce((s, p) => s + p.overall, 0) / clubSquad.length : repQuality;
-      const quality = Math.round(repQuality * 0.4 + avgOvr * 0.6);
+      const avgOvr = clubSquad.length > 0 ? clubSquad.reduce((s, p) => s + p.overall, 0) / clubSquad.length : null;
+      // Anchored on the club's DESIGNED quality, not its reputation — see
+      // `regenFillQuality` and audit 6.2. Reputation could not tell the second
+      // tier from the fourth.
+      const quality = regenFillQuality(club, avgOvr);
       const newP = generatePlayer(fillPos, quality, club.id, newSeason, club.divisionId);
       newPlayers[newP.id] = newP;
       const fillClub = { ...currentClub };
@@ -858,8 +861,10 @@ function finalizeSeason(
       for (let d = 0; d < deficitCount; d++) {
         if (safeClub.playerIds.length >= MAX_SQUAD_SIZE) break;
         const emergencySquad = safeClub.playerIds.map(id => newPlayers[id]).filter(Boolean);
-        const emergencyAvgOvr = emergencySquad.length > 0 ? emergencySquad.reduce((s, p) => s + p.overall, 0) / emergencySquad.length : 50;
-        const emergencyQuality = Math.round(Math.max(35, (club.reputation * 10) + 20) * 0.4 + emergencyAvgOvr * 0.6);
+        const emergencyAvgOvr = emergencySquad.length > 0 ? emergencySquad.reduce((s, p) => s + p.overall, 0) / emergencySquad.length : null;
+        // Same anchor as the normal gap-fill: the emergency net used a hardcoded
+        // copy of the reputation formula, so it drifted from the real one.
+        const emergencyQuality = regenFillQuality(club, emergencyAvgOvr);
         const emergencyPlayer = generatePlayer(pick(GENERIC_FILL_POSITIONS), emergencyQuality, club.id, newSeason, club.divisionId);
         newPlayers[emergencyPlayer.id] = emergencyPlayer;
         safeClub.playerIds.push(emergencyPlayer.id);

@@ -364,6 +364,25 @@ export const REPLACEMENT_QUALITY_BASE = 20;
 export const REPLACEMENT_QUALITY_VARIANCE = 15;
 export const GENERIC_FILL_POSITIONS: Position[] = ['CM', 'CB', 'ST', 'LW', 'RW'];
 
+/**
+ * How much a regenerated player is pulled toward the club's DESIGNED level
+ * (`ClubData.squadQuality`) rather than its current squad average.
+ *
+ * Audit 6.2 — "leagues converge instead of diverging". Regen used to blend a
+ * reputation-derived anchor at 0.4 with the club's own squad average at 0.6.
+ * Reputation spans only 2–5, and across the English pyramid tiers 2, 3 and 4 are
+ * almost entirely rep 2 — so the anchor could not distinguish a Championship
+ * club from a League Two club, and dragged both toward the same ~47 while their
+ * designed levels are 65–71 and 58–62. Meanwhile the 0.6 on the club's own
+ * average made every fill an average player, so squads slowly lost their shape.
+ *
+ * At 0.55 a club rebuilds mostly toward its own stature (a fallen giant
+ * recovers, an over-performing minnow regresses) while its current squad still
+ * matters. Raise it for a more rigid, more predictable world; lower it to let
+ * clubs drift further from what they were designed to be.
+ */
+export const REGEN_DESIGN_WEIGHT = 0.55;
+
 // ── Transfer Market Listing ──
 export const LISTING_PRICE_MIN_MULTIPLIER = 1.1;
 export const LISTING_PRICE_RANDOM_RANGE = 0.4;

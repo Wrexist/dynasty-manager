@@ -421,11 +421,46 @@ describe('Phase 4 — save round-trip + migration', () => {
       const raw = useGameStore.getState() as unknown as Record<string, unknown>;
       const json = JSON.stringify(raw);
       const parsed = JSON.parse(json) as Record<string, unknown>;
-      parsed.version = (parsed.version as number) ?? 1;
-      const migrated = migrateSaveData(parsed);
-      expect(typeof migrated.version).toBe('number');
-      expect(migrated.version as number).toBeGreaterThanOrEqual(1);
-      expect(migrated.version as number).toBeLessThanOrEqual(CURRENT_VERSION);
+      // This test used to stamp `version ?? 1` onto a CURRENT snapshot. The
+      // store state carries no `version` key, so every run started at v1 and
+      // was driven through migration 22 — the clean break that DISCARDS all
+      // game state — and then asserted only that the result's version was a
+      // number in range. It therefore passed no matter what the migration did
+      // to the data, which is the likeliest reason the "13 fields never
+      // persisted" class of bug survived so long (audit Phase 7).
+      //
+      // A current save is by definition at CURRENT_VERSION, so stamp that and
+      // assert the DATA survives the trip.
+      parsed.version = CURRENT_VERSION;
+      const migrated = migrateSaveData(parsed) as unknown as Record<string, unknown>;
+      expect(migrated.version).toBe(CURRENT_VERSION);
+
+      const before = useGameStore.getState();
+      expect(migrated.season, 'season survived').toBe(before.season);
+      expect(migrated.week, 'week survived').toBe(before.week);
+      expect(migrated.playerClubId, 'club identity survived').toBe(before.playerClubId);
+      expect(migrated.playerDivision, 'division survived').toBe(before.playerDivision);
+
+      const mClubs = migrated.clubs as Record<string, unknown>;
+      const mPlayers = migrated.players as Record<string, { overall?: number }>;
+      const mFixtures = migrated.fixtures as unknown[];
+      expect(Object.keys(mClubs), 'every club survived').toHaveLength(Object.keys(before.clubs).length);
+      expect(Object.keys(mPlayers), 'every player survived').toHaveLength(Object.keys(before.players).length);
+      expect(mFixtures, 'fixtures survived').toHaveLength(before.fixtures.length);
+
+      // The player's own club must come back intact, not just present.
+      const myClubBefore = before.clubs[before.playerClubId];
+      const myClubAfter = mClubs[before.playerClubId] as { playerIds?: string[]; budget?: number } | undefined;
+      expect(myClubAfter, 'player club survived').toBeTruthy();
+      expect(myClubAfter!.playerIds, 'squad survived').toHaveLength(myClubBefore.playerIds.length);
+      expect(myClubAfter!.budget, 'budget survived').toBe(myClubBefore.budget);
+
+      // And the players must still be players — a migration that blanked
+      // attributes would otherwise pass every count-based assertion above.
+      const sampleId = myClubBefore.playerIds.find(id => before.players[id]);
+      if (sampleId) {
+        expect(mPlayers[sampleId]?.overall, 'player overall survived').toBe(before.players[sampleId].overall);
+      }
 
       const size = json.length;
       expect(size).toBeGreaterThan(10_000);

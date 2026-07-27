@@ -23,7 +23,7 @@ import type {
   SuperCupMatch,
   Match,
 } from '@/types/game';
-import { LEAGUES } from '@/data/league';
+import { LEAGUES, ALL_CLUBS } from '@/data/league';
 import {
   BOARD_OBJ_XP_CRITICAL,
   BOARD_OBJ_XP_IMPORTANT,
@@ -47,6 +47,10 @@ import {
   RATING_MORALE_BASELINE,
   FORM_PER_RATING_POINT,
   FORM_RATING_ADJ_CAP,
+  REPLACEMENT_QUALITY_REP_MULTIPLIER,
+  REPLACEMENT_QUALITY_BASE,
+  REPLACEMENT_QUALITY_VARIANCE,
+  REGEN_DESIGN_WEIGHT,
 } from '@/config/gameBalance';
 import { GOAL_EVENT_TYPES, HOME_ADVANTAGE } from '@/config/matchEngine';
 import { resetRealPlayerClaims, claimRealPlayer } from '@/utils/realPlayerPicker';
@@ -585,6 +589,75 @@ export function resolveCatchUpFixture(
     awayGoals: poissonSample(combined * (1 - share)),
     events: [],
   };
+}
+
+/**
+ * The quality level a club was DESIGNED at — the same `squadQuality` the world
+ * was built from at init.
+ *
+ * WHY THIS EXISTS (audit 6.2 — "leagues converge instead of diverging"): squad
+ * regeneration anchored replacement players on `club.reputation`, via
+ * `reputation * 10 + 20`. Reputation only spans 2–5, and MEASURED across the
+ * English pyramid it barely spans anything at all: tier 2 is 21×rep2 + 3×rep3,
+ * tier 3 is identical, and tier 4 is 24×rep2. So the anchor could not tell a
+ * Championship club from a League Two club, and every one of them regenerated
+ * toward the same ~47 while their designed levels are 65–71 and 58–62.
+ *
+ * `squadQuality` is the number that actually describes a club (England: tier 1
+ * spans 56–93, tier 2 65–71, tier 3 60–68, tier 4 58–62) and it is already what
+ * `generateSquad` is handed at init and for replacement clubs. Anchoring regen
+ * on it means a club rebuilds toward its own stature instead of sliding toward a
+ * league-wide mean.
+ *
+ * Falls back, in order: the club's designed value → the median designed value of
+ * its current division (covers procedurally `replaced-*` clubs, which never had
+ * a ClubData row) → the old reputation formula, so nothing can return NaN.
+ */
+const designedQualityById = new Map<string, number>();
+const designedQualityByLeague = new Map<string, number>();
+function buildDesignedQualityIndex(): void {
+  if (designedQualityById.size > 0) return;
+  const perLeague = new Map<string, number[]>();
+  for (const cd of ALL_CLUBS) {
+    if (typeof cd.squadQuality !== 'number') continue;
+    designedQualityById.set(cd.id, cd.squadQuality);
+    const list = perLeague.get(cd.divisionId) ?? [];
+    list.push(cd.squadQuality);
+    perLeague.set(cd.divisionId, list);
+  }
+  for (const [leagueId, values] of perLeague) {
+    values.sort((a, b) => a - b);
+    designedQualityByLeague.set(leagueId, values[Math.floor(values.length / 2)]);
+  }
+}
+
+export function designedClubQuality(club: Pick<Club, 'id' | 'divisionId' | 'reputation'>): number {
+  buildDesignedQualityIndex();
+  const own = designedQualityById.get(club.id);
+  if (typeof own === 'number') return own;
+  const leagueMedian = designedQualityByLeague.get(club.divisionId);
+  if (typeof leagueMedian === 'number') return leagueMedian;
+  return Math.max(35, (club.reputation ?? 2) * REPLACEMENT_QUALITY_REP_MULTIPLIER + REPLACEMENT_QUALITY_BASE);
+}
+
+/**
+ * Quality to generate a regeneration/gap-fill player at.
+ *
+ * Blends the club's designed stature with where its squad actually is, so a
+ * collapsing giant still rebuilds like a giant and an over-performing minnow
+ * doesn't permanently inherit a squad it was never meant to have.
+ */
+export function regenFillQuality(
+  club: Pick<Club, 'id' | 'divisionId' | 'reputation'>,
+  currentSquadAvgOvr: number | null,
+): number {
+  const designed = designedClubQuality(club);
+  const avg = currentSquadAvgOvr != null && Number.isFinite(currentSquadAvgOvr)
+    ? currentSquadAvgOvr
+    : designed;
+  const variance = Math.floor(Math.random() * REPLACEMENT_QUALITY_VARIANCE) - Math.floor(REPLACEMENT_QUALITY_VARIANCE / 2);
+  const blended = designed * REGEN_DESIGN_WEIGHT + avg * (1 - REGEN_DESIGN_WEIGHT) + variance;
+  return Math.max(35, Math.min(95, Math.round(blended)));
 }
 
 /** Small-lambda Poisson sampler. Bounded so a pathological lambda can't spin. */

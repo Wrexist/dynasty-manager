@@ -69,6 +69,7 @@ export const PENDING_NEWS: PendingRelease = {
     'The Dynasty Pro screen now centres properly on iPad.',
     'Stop treating StoreKit cancels as failures; gate paywall on real store availability.',
     'Free daily Gold packs are no longer a shortcut to a squad of 80-rated players, and the pity bonus now scales to the pack you opened instead of ignoring its ceiling. Paid pack odds are unchanged.',
+    'Lower leagues no longer rot over long saves: clubs now rebuild toward their own stature, so the pyramid keeps its shape and elite AI sides stay elite across decades.',
   ],
   fixed: [
     'Cancelling a purchase no longer shows a purchase-failed error.',
