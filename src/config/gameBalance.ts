@@ -383,6 +383,19 @@ export const GENERIC_FILL_POSITIONS: Position[] = ['CM', 'CB', 'ST', 'LW', 'RW']
  */
 export const REGEN_DESIGN_WEIGHT = 0.55;
 
+/**
+ * How far BELOW the player club's own level its gap-fill replacements land.
+ *
+ * The player's club is the only one that both regenerates and buys, so the
+ * design anchor above stacked with transfer spending: measured over 12 seasons,
+ * a designed-90 club reached a 91.5 squad average on a £17.5M/week wage bill and
+ * fell to -£2.5B, because it was handed free 90-rated players every season. A
+ * safety net should keep the squad legal, not upgrade it — at 6 the fill is
+ * clearly cover, and squad quality only improves through things the user pays
+ * for. Does not apply to AI clubs, which need regen to keep leagues alive.
+ */
+export const REGEN_PLAYER_CLUB_MARGIN = 6;
+
 // ── Transfer Market Listing ──
 export const LISTING_PRICE_MIN_MULTIPLIER = 1.1;
 export const LISTING_PRICE_RANDOM_RANGE = 0.4;

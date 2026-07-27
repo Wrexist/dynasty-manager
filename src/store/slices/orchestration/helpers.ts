@@ -51,6 +51,7 @@ import {
   REPLACEMENT_QUALITY_BASE,
   REPLACEMENT_QUALITY_VARIANCE,
   REGEN_DESIGN_WEIGHT,
+  REGEN_PLAYER_CLUB_MARGIN,
 } from '@/config/gameBalance';
 import { GOAL_EVENT_TYPES, HOME_ADVANTAGE } from '@/config/matchEngine';
 import { resetRealPlayerClaims, claimRealPlayer } from '@/utils/realPlayerPicker';
@@ -646,18 +647,35 @@ export function designedClubQuality(club: Pick<Club, 'id' | 'divisionId' | 'repu
  * Blends the club's designed stature with where its squad actually is, so a
  * collapsing giant still rebuilds like a giant and an over-performing minnow
  * doesn't permanently inherit a squad it was never meant to have.
+ *
+ * `isPlayerClub` MATTERS, and not for fairness — for solvency. This gap-fill is
+ * a squad-legality safety net, and for the AI it is also the only way a league
+ * regenerates. But the player's club is the one club that ALSO buys players, so
+ * for it the two stack: MEASURED over 12 seasons with the design anchor applied
+ * to everyone, Arsenal (designed 90) reached a squad average of 91.5 on a
+ * £17.5M/week wage bill and went from -£269M at season 7 to -£2.5B by season 13,
+ * blowing `longevityStress` 1D's -£100M floor. Free 90-rated replacements every
+ * season is not a safety net, it is an unearned squad — and the audit finding
+ * (6.2) was about AI leagues rotting, not about topping up the user.
+ *
+ * So the player's club fills at REPLACEMENT level relative to the squad it
+ * already has: cover, never an upgrade. Their squad quality then moves only
+ * through transfers, youth and development — things they pay for and choose.
  */
 export function regenFillQuality(
   club: Pick<Club, 'id' | 'divisionId' | 'reputation'>,
   currentSquadAvgOvr: number | null,
+  isPlayerClub = false,
 ): number {
   const designed = designedClubQuality(club);
   const avg = currentSquadAvgOvr != null && Number.isFinite(currentSquadAvgOvr)
     ? currentSquadAvgOvr
     : designed;
   const variance = Math.floor(Math.random() * REPLACEMENT_QUALITY_VARIANCE) - Math.floor(REPLACEMENT_QUALITY_VARIANCE / 2);
-  const blended = designed * REGEN_DESIGN_WEIGHT + avg * (1 - REGEN_DESIGN_WEIGHT) + variance;
-  return Math.max(35, Math.min(95, Math.round(blended)));
+  const anchor = isPlayerClub
+    ? Math.min(designed, avg) - REGEN_PLAYER_CLUB_MARGIN
+    : designed * REGEN_DESIGN_WEIGHT + avg * (1 - REGEN_DESIGN_WEIGHT);
+  return Math.max(35, Math.min(95, Math.round(anchor + variance)));
 }
 
 /** Small-lambda Poisson sampler. Bounded so a pathological lambda can't spin. */

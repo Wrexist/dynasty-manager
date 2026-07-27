@@ -833,7 +833,7 @@ function finalizeSeason(
       // Anchored on the club's DESIGNED quality, not its reputation — see
       // `regenFillQuality` and audit 6.2. Reputation could not tell the second
       // tier from the fourth.
-      const quality = regenFillQuality(club, avgOvr);
+      const quality = regenFillQuality(club, avgOvr, club.id === playerClubId);
       const newP = generatePlayer(fillPos, quality, club.id, newSeason, club.divisionId);
       newPlayers[newP.id] = newP;
       const fillClub = { ...currentClub };
@@ -864,7 +864,7 @@ function finalizeSeason(
         const emergencyAvgOvr = emergencySquad.length > 0 ? emergencySquad.reduce((s, p) => s + p.overall, 0) / emergencySquad.length : null;
         // Same anchor as the normal gap-fill: the emergency net used a hardcoded
         // copy of the reputation formula, so it drifted from the real one.
-        const emergencyQuality = regenFillQuality(club, emergencyAvgOvr);
+        const emergencyQuality = regenFillQuality(club, emergencyAvgOvr, club.id === playerClubId);
         const emergencyPlayer = generatePlayer(pick(GENERIC_FILL_POSITIONS), emergencyQuality, club.id, newSeason, club.divisionId);
         newPlayers[emergencyPlayer.id] = emergencyPlayer;
         safeClub.playerIds.push(emergencyPlayer.id);
