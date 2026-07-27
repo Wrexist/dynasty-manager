@@ -13,7 +13,17 @@
 >
 > Work the phases in order. Mark items done as they ship. Do not let this file rot.
 >
-> ## STATUS — all phases shipped (17 commits on `claude/game-audit-parallel-agents-ymzznx`)
+> ## STATUS — all phases shipped (21 commits on `claude/game-audit-parallel-agents-ymzznx`)
+>
+> **Verified 2026-07-27 against the committed branch, nothing in flight:**
+> `825 test files · 2,269 tests · 2,265 passed · 0 failed · 4 skipped` (all four
+> skips are the env-gated `PERF_AUDIT=1` / balance-report diagnostics, skipped by
+> design). Lint: 0 errors, 5 warnings — 4 react-refresh, 1 pre-existing hook-deps
+> on `WorldCupDraw` that predates this branch. Build passes; eager first-load
+> bundle 518.5 kB gz against a 560 kB budget (41.5 kB headroom). Typecheck clean.
+>
+> Read the suite result from the JSON summary, not the shell exit code: an
+> earlier run in this session reported exit 0 while five tests were failing.
 >
 > Phases 1, 1A, 1B, 2, 3, 4, 5, 6 and 7 are complete. The three highest-impact
 > findings were NOT in the original plan — they surfaced while executing it, and
