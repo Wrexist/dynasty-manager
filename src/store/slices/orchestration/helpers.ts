@@ -458,14 +458,21 @@ export function pickAiMatchSquad(
     const isAvailable = (p: Player) =>
       !!p && !p.injured && !p.onLoan && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week);
     const used = new Set<string>();
+    const onBooks = new Set(club.playerIds);
     const take = (id: string | undefined) => {
       const p = id ? players[id] : undefined;
-      if (!p || used.has(p.id) || !isAvailable(p)) return undefined;
+      // A saved lineup can name a player who has since been sold or loaned out —
+      // the id lingers in `club.lineup` after the roster moves on. Requiring
+      // current club membership stops a departed player taking the field.
+      if (!p || used.has(p.id) || !onBooks.has(p.id) || p.clubId !== club.id) return undefined;
+      if (!isAvailable(p)) return undefined;
       used.add(p.id);
       return p;
     };
-    // Walk the saved XI slot by slot; cover each hole with the optimizer's pick
-    // for that slot, then anything else it rated highly.
+    // Cover for holes in the saved XI, best-rated first. This is not slot-matched
+    // — `selectBestLineup` has already positioned its own picks, and preserving
+    // the manager's remaining choices matters more here than perfecting the shape
+    // of a match they are not watching.
     const cover = [...lineup, ...subs];
     let coverIdx = 0;
     const nextCover = () => {

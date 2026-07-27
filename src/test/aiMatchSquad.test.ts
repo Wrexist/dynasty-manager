@@ -115,6 +115,23 @@ describe('pickAiMatchSquad', () => {
     }
   });
 
+  it('does not field a saved starter who has since left the club', () => {
+    const { club, players } = mkClubWithBuriedKeeper();
+    const saved = ['p11', 'p3', 'p4', 'p13', 'p0', 'p6', 'p7', 'p17', 'p18', 'p10', 'p15'];
+    // Sold at the window: the id lingers in the saved lineup, the player does not.
+    players.p10 = { ...players.p10, clubId: 'club-elsewhere' };
+    const withLineup = {
+      ...club,
+      lineup: saved,
+      subs: [],
+      playerIds: club.playerIds.filter(id => id !== 'p10'),
+    } as Club;
+
+    const { xi } = pickAiMatchSquad(withLineup, players, 5, true);
+    expect(xi.map(p => p.id)).not.toContain('p10');
+    expect(xi).toHaveLength(11);
+  });
+
   it('falls back to the optimizer when the saved XI is empty', () => {
     const { club, players } = mkClubWithBuriedKeeper();
     const { xi } = pickAiMatchSquad({ ...club, lineup: [] } as Club, players, 5, true);
