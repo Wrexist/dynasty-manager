@@ -63,16 +63,42 @@
 > deleted and rewritten to assert the behaviour the game actually wants, rather
 > than relaxed to fit the code.
 >
+> ### Closed after the fact (2026-07-27)
+> - **6.2 squad-regen equilibrium — FIXED.** Regen anchored on `club.reputation`,
+>   which spans only 2–5 and, measured, is 21×rep2 + 3×rep3 in tier 2, identical in
+>   tier 3 and 24×rep2 in tier 4 — it could not tell a Championship club from a
+>   League Two one. Now anchored on `ClubData.squadQuality`. Measured over 9
+>   seasons, English pyramid mean OVR old → new: tier 1 72.8 → 75.3, tier 2
+>   67.3 → 69.9, tier 3 62.7 → 66.8, tier 4 **53.4 → 59.9**, best AI club in the
+>   top flight 77.6 → 81.0. Pinned by `leagueDivergence.test.ts`, which fails on
+>   the old formula.
+> - **Continental extra time — FIXED.** No 30-minute engine mode was needed: extra
+>   time now uses the same `getTeamStrength` curve the engine uses whenever both
+>   clubs are instantiated, and reputation only for genuinely virtual filler.
+>   Clamped to the old [0.2, 1.0] band, so the rate of extra-time goals is
+>   unchanged and only who scores them moves.
+> - **Phase 7's missing tests — WRITTEN.** The vacuous round-trip test now asserts
+>   the data survives (it previously drove a current snapshot through migration 22
+>   and asserted only that a version number was in range); `challengeTable.test.ts`
+>   asserts all 10 scenarios are both winnable and losable, plus that the table is
+>   complete; `careerContractLength.test.ts` guards 1.12 and was verified to fail
+>   when the off-by-one is reintroduced. The national-squad quota case was already
+>   covered by `loopSoftLocks`.
+>
 > ### Known-open, deliberately
-> - Foreign leagues have no promotion/relegation (v1 scope).
-> - Continental extra time / penalties still use the reputation model — the engine
->   has no 30-minute mode.
-> - Audit 6.2 (squad-regen equilibrium flattens leagues) is untouched, and now
->   applies to 4 more leagues.
+> - 6.1 cross-border transfers, and foreign leagues have no promotion/relegation
+>   (v1 scope).
+> - 6.3 no world narrative, no AI manager turnover.
+> - 6.4 youth prospects still never play a match — no reserve/U21 fixtures.
+> - 6.5 the genre-standard list (per-player roles, qualifiers calendar, staff
+>   delegation, squad registration, attendance in the match model, referee as an
+>   entity, testimonials).
 > - Manager Career job offers became international as an emergent effect of the
 >   living world. Reputation-gated and the accept path works; ungated by choice.
 > - Existing saves keep their old single-country world; only new dynasties get the
 >   living world.
+> - Save size projects to ~24 MB by season 20 (warned by `longevityStress` 4B/C).
+>   IndexedDB is authoritative so it is survivable, but it wants a trim pass.
 
 ---
 
