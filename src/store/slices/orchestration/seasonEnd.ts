@@ -65,6 +65,7 @@ import { processSponsorSeasonEnd } from '@/store/slices/sponsorSlice';
 import {
   generateObjectives,
   pickAiMatchSquad,
+  stripAiMatchDetail,
 } from '@/store/slices/orchestration/helpers';
 import {
   generateLeagueCupDraw,
@@ -262,8 +263,15 @@ export function endSeasonImpl(set: Set, get: Get) {
   // fixture stranded by a mid-season collision, and the final round of an
   // odd-team league where one club is idle.
   const caughtUpDivisionFixtures: Record<string, Match[]> = { ...state.divisionFixtures };
-  for (const cl of countryLeagues) {
-    const divFixtures = caughtUpDivisionFixtures[cl.id];
+  // EVERY loaded division, not just the player's country. The living world
+  // instantiates foreign top tiers whose calendars can be longer than the
+  // player's, and a fixture-less tail leaves those tables short.
+  const catchUpLeagueIds = Array.from(new Set([
+    ...countryLeagues.map(cl => cl.id),
+    ...Object.keys(state.divisionClubs),
+  ]));
+  for (const leagueId of catchUpLeagueIds) {
+    const divFixtures = caughtUpDivisionFixtures[leagueId];
     if (!divFixtures?.length) continue;
     let mutated = false;
     const next = [...divFixtures];
@@ -280,9 +288,10 @@ export function endSeasonImpl(set: Set, get: Get) {
         next[i] = { ...m, played: true, homeGoals: hp.length === 0 ? 0 : FORFEIT_SCORE, awayGoals: ap.length === 0 ? 0 : FORFEIT_SCORE, events: [] };
         continue;
       }
-      next[i] = simulateMatch(m, hc, ac, hp, ap).result;
+      // Catch-up fixtures are AI-vs-AI by definition; keep only the score.
+      next[i] = stripAiMatchDetail(simulateMatch(m, hc, ac, hp, ap).result, playerClubId);
     }
-    if (mutated) caughtUpDivisionFixtures[cl.id] = next;
+    if (mutated) caughtUpDivisionFixtures[leagueId] = next;
   }
 
   // Build final tables for all loaded divisions in this country

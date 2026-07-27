@@ -60,6 +60,8 @@ import { processAIWeekly } from '@/utils/aiSimulation';
 import { getWinStreak } from '@/utils/celebrations';
 import { getMentorBonus } from '@/utils/chemistry';
 import { advanceKnockoutRound, generateKnockoutFromGroups, getCurrentMatchday, isGroupStageComplete, isKnockoutRoundComplete, simulateGroupMatchday, simulateKnockoutLeg } from '@/utils/continental';
+import type { ContinentalWorld } from '@/utils/continental';
+import { stripAiMatchDetail } from '@/store/slices/orchestration/helpers';
 import { getEffectiveStadiumLevel } from '@/utils/facilities';
 import { getLeaguePositionPrize, getMatchdayIncome, getCommercialIncome, assessFfp } from '@/utils/financeHelpers';
 import { formatMoney, getSuffix } from '@/utils/helpers';
@@ -773,7 +775,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
         const hTacticsAI = hProfile && aProfile ? getAICounterTactics(hProfile, aProfile.defaultTactics, ac.formation || '4-4-2') : undefined;
         const aTacticsAI = aProfile && hProfile ? getAICounterTactics(aProfile, hProfile.defaultTactics, hc.formation || '4-4-2') : undefined;
         const { result } = simulateMatch(m, hc, ac, hp, ap, hTacticsAI, aTacticsAI, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, state.season, undefined, hBenchAI, aBenchAI);
-        leagueFixtures[fi] = result;
+        leagueFixtures[fi] = stripAiMatchDetail(result, state.playerClubId);
         applyAIMatchEvents(result.events, simPlayers, simClubs, newWeek, hp, ap, result.homeGoals, result.awayGoals, eloRankings, m.homeClubId, m.awayClubId);
         updateEloRatings(eloRankings, m.homeClubId, m.awayClubId, result.homeGoals, result.awayGoals, 'league');
         changed = true;
@@ -1174,7 +1176,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     const hTacticsAI = hProfile && aProfile ? getAICounterTactics(hProfile, aProfile.defaultTactics, ac.formation || '4-4-2') : undefined;
     const aTacticsAI = aProfile && hProfile ? getAICounterTactics(aProfile, hProfile.defaultTactics, hc.formation || '4-4-2') : undefined;
     const { result } = simulateMatch(m, hc, ac, hp, ap, hTacticsAI, aTacticsAI, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hBenchAI, aBenchAI);
-    updatedFixtures[idx] = result;
+    updatedFixtures[idx] = stripAiMatchDetail(result, playerClubId);
     applyAIMatchEvents(result.events, newPlayers, clubs, week, hp, ap, result.homeGoals, result.awayGoals, eloRankings, m.homeClubId, m.awayClubId);
     updateEloRatings(eloRankings, m.homeClubId, m.awayClubId, result.homeGoals, result.awayGoals, 'league');
   }
@@ -1474,6 +1476,25 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   let newShieldCup = state.shieldCup;
   let newConferenceCup = state.conferenceCup;
   const virtualClubs = state.virtualClubs || {};
+
+  // Real-engine continental football. `simulateGroupMatchday` used to resolve
+  // Real Madrid vs Bayern as a Poisson draw off two integers, while the PLAYER's
+  // own tie in the same competition ran the full match engine — two rulebooks in
+  // one tournament. Now that the strongest foreign leagues are instantiated as
+  // real clubs with real squads (see initGame's living world), club-vs-club ties
+  // go through `simulateMatch`, and the callback feeds the results back so foreign
+  // players accumulate goals, assists and ratings from continental football and
+  // their Elo moves — exactly as the league sim does. Genuinely virtual filler
+  // still falls back to the reputation model.
+  const continentalWorld: ContinentalWorld = {
+    clubs, players: newPlayers, week, season,
+    onEngineMatch: ({ result, homeXI, awayXI }) => {
+      applyAIMatchEvents(result.events, newPlayers, clubs, week, homeXI, awayXI,
+        result.homeGoals, result.awayGoals, eloRankings, result.homeClubId, result.awayClubId);
+      updateEloRatings(eloRankings, result.homeClubId, result.awayClubId,
+        result.homeGoals, result.awayGoals, 'cup');
+    },
+  };
   const continentalCalendar = getCompetitionCalendar(state.totalWeeks);
   const groupWeeks = continentalCalendar.groupWeeks;
 
@@ -1498,7 +1519,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
       if (mdWeek === undefined || mdWeek > week) break;
       const isCurrentWeek = mdWeek === week;
       // '' = no club is exempt → the player's overdue match is auto-simmed.
-      t = simulateGroupMatchday(t, md, virtualClubs, isCurrentWeek ? playerClubId : '');
+      t = simulateGroupMatchday(t, md, virtualClubs, isCurrentWeek ? playerClubId : '', continentalWorld);
       if (isGroupStageComplete(t)) {
         t = generateKnockoutFromGroups(t, playerClubId, state.totalWeeks);
         const compName = continentalName(t.competition);
@@ -1545,7 +1566,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
       if (legWeek > week) break;
 
       const isCurrentWeek = legWeek === week;
-      t = simulateKnockoutLeg(t, round, leg, virtualClubs, isCurrentWeek ? playerClubId : '');
+      t = simulateKnockoutLeg(t, round, leg, virtualClubs, isCurrentWeek ? playerClubId : '', continentalWorld);
 
       if (isKnockoutRoundComplete(t, round)) {
         const advanced = advanceKnockoutRound(t, playerClubId, state.totalWeeks);
@@ -1607,7 +1628,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
         continue;
       }
       const { result } = simulateMatch(m, hc, ac, hp, ap);
-      updatedLeagueFixtures[i] = result;
+      updatedLeagueFixtures[i] = stripAiMatchDetail(result, playerClubId);
       applyAIMatchEvents(result.events, newPlayers, clubs, week, hp, ap, result.homeGoals, result.awayGoals, eloRankings, m.homeClubId, m.awayClubId);
       updateEloRatings(eloRankings, m.homeClubId, m.awayClubId, result.homeGoals, result.awayGoals, 'league');
     }

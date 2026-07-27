@@ -1,5 +1,18 @@
 import type { CupRound } from '@/types/game';
 
+// ── Legacy fabricated qualifiers ──
+/** Id prefix of the fabricated filler clubs the draw used to invent when the
+ *  qualification tables came up short of 32. Nothing creates these any more
+ *  (`generateContinentalDraw` backfills with real clubs), but saves drawn
+ *  before the fix can still carry them, so every consumer that could promote
+ *  one into a playable fixture must screen for the prefix. */
+export const PLACEHOLDER_CLUB_PREFIX = 'placeholder-';
+
+/** True for a fabricated filler club id — no squad, no club data, unplayable. */
+export function isPlaceholderClubId(clubId: string): boolean {
+  return typeof clubId === 'string' && clubId.startsWith(PLACEHOLDER_CLUB_PREFIX);
+}
+
 // ── Continental Tournament Groups ──
 export const CONTINENTAL_GROUPS = 8;
 export const CONTINENTAL_TEAMS_PER_GROUP = 4;
@@ -25,21 +38,34 @@ export const CHAMPIONS_CUP_SPOTS_BY_RANK: Record<number, number> = {
 
 // Shield Cup: 32 teams total
 // Rank 1-4: 2 spots (positions after CL), Rank 5: 2, Rank 6-8: 1,
-// Rank 9-15: 1 (runner-up or cup winner), Rank 16-26: 1 (cup winner)
-// 31 league spots + Conference Cup holder = 32
+// Rank 9-15: 1 (runner-up or cup winner), Rank 16-27: 1 (cup winner)
+//
+// IMPORTANT — the league spots below must sum to CONTINENTAL_TOTAL_TEAMS (32)
+// ON THEIR OWN. The Conference Cup holder's guaranteed spot is a BONUS that
+// only materialises when that club hasn't already qualified via its league,
+// so a table that relies on it to reach 32 is short in the common case, and
+// `generateContinentalDraw` then has to invent filler. Sum: 2*5 + 1*3 + 1*7
+// + 1*12 = 32.
 export const SHIELD_CUP_SPOTS_BY_RANK: Record<number, number> = {
   1: 2, 2: 2, 3: 2, 4: 2,
   5: 2,
   6: 1, 7: 1, 8: 1,
   9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1, 15: 1,
   16: 1, 17: 1, 18: 1, 19: 1, 20: 1, 21: 1, 22: 1,
-  23: 1, 24: 1, 25: 1, 26: 1,
+  23: 1, 24: 1, 25: 1, 26: 1, 27: 1,
 };
 
 // Conference Cup: 32 teams total
 // Rank 1-5: 1 spot (next position after Shield), Rank 6-15: 1 spot,
-// Rank 16-30: 1 spot (champion or cup winner)
-// 30 league spots + domestic cup winner + placeholders fill to 32
+// Rank 16-32: 1 spot (champion or cup winner)
+//
+// Sums to exactly 32 league spots (ranks 1-32 of the 37 ranked top-tier
+// leagues). It previously stopped at rank 30 and leaned on the domestic cup
+// winner to reach 31 — leaving the draw two teams short EVERY season, which
+// `generateContinentalDraw` padded with reputation-1 `placeholder-N` clubs.
+// Those could top a group, win the whole competition, and then be pushed
+// into the next season's Shield Cup as the holder with no `virtualClubs`
+// entry — which made the player's match that week unplayable.
 export const CONFERENCE_CUP_SPOTS_BY_RANK: Record<number, number> = {
   1: 1, 2: 1, 3: 1, 4: 1, 5: 1,
   6: 1, 7: 1, 8: 1, 9: 1, 10: 1,
@@ -47,7 +73,57 @@ export const CONFERENCE_CUP_SPOTS_BY_RANK: Record<number, number> = {
   16: 1, 17: 1, 18: 1, 19: 1, 20: 1,
   21: 1, 22: 1, 23: 1, 24: 1, 25: 1,
   26: 1, 27: 1, 28: 1, 29: 1, 30: 1,
+  31: 1, 32: 1,
 };
+
+// ── Living World (Phase 6) ──
+// `initGame` historically instantiated `Club` + squad objects ONLY for the
+// player's own country, so 92 of 756 clubs were real in an English save and
+// 18 in a Dutch one. Every continental opponent was an ephemeral throwaway
+// (`createEphemeralClub`) — a name plus a squad generated on demand from
+// reputation and discarded after the match. Real Madrid in the Champions Cup
+// was effectively the integer 5.
+//
+// The living world instantiates the top tier of the strongest foreign
+// leagues as REAL, PERSISTED clubs: they play their own domestic season,
+// develop, accumulate goals/assists (so the Ballon d'Or is a global award
+// again), carry Elo + continental coefficients, and can be scouted and
+// bought from.
+//
+// This is the single most expensive knob in the game: each instantiated
+// league costs ~18 clubs / ~380 players (~550 kB of save payload) and a full
+// round of AI match simulation every week. Measured on an English save
+// (Manchester City, 38-week season, node/jsdom — an iPhone is slower):
+//
+//   N   init      save @ wk12    save @ season end   ms / week (full season)
+//   0   210 ms    2.58 MB        3.78 MB             127
+//   3   217 ms    3.86 MB        —                   214 (12-week sample)
+//   4   220 ms    4.26 MB        6.41 MB             238
+//   5   254 ms    4.58 MB        —                   252 (12-week sample)
+//   8   324 ms    5.62 MB        —                   344 (12-week sample)
+//
+// 4 is the chosen point: init is essentially unchanged, the save grows 1.7x
+// (inside the "must not much more than double" budget), the weekly tick stays
+// well under the 500 ms target from docs/perf-baseline.md, and for a top-5
+// country it instantiates exactly the OTHER four of the big five — Real
+// Madrid, Barcelona, Bayern, Dortmund, Inter, Milan, Juventus, PSG all become
+// real. N=8 buys three more mid-tier leagues for a save that no longer fits
+// the ~5 MB WKWebView localStorage mirror (IndexedDB still holds it, but every
+// autosave then writes 5.6 MB+ and re-mirrors on every tick).
+//
+// Note that a single-tier home country pays proportionally more: a Dutch save
+// goes 0.61 MB → 2.34 MB (3.8x) because its own pyramid is only 18 clubs. The
+// absolute number is what matters, and 2.34 MB is still below what an English
+// save has always shipped.
+//
+// Re-measure before changing this.
+export const LIVING_WORLD_LEAGUE_COUNT = 4;
+
+/** Cap on the squad size instantiated for a foreign living-world club.
+ *  Club templates hand out ~28-man squads; foreign clubs are AI-only, so we
+ *  keep the best `N` (stars first — the recognisable names are the entire
+ *  point) plus a guaranteed second keeper. Trims ~30% of the save cost. */
+export const LIVING_WORLD_SQUAD_SIZE = 20;
 
 // ── Legacy tier-based exports (kept for any remaining references) ──
 export const CHAMPIONS_CUP_SPOTS: Record<number, number> = { 1: 4, 2: 2, 3: 1, 4: 0 };

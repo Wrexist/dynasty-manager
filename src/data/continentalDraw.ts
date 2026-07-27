@@ -11,6 +11,7 @@ import {
   CONTINENTAL_GROUPS, CONTINENTAL_TEAMS_PER_GROUP,
   CONTINENTAL_TOTAL_TEAMS,
   getCompetitionCalendar, GROUP_FIXTURE_TEMPLATE,
+  isPlaceholderClubId,
 } from '@/config/continental';
 import { shuffle, safeRandomUUID } from '@/utils/helpers';
 import { getSeedingScore } from '@/utils/continentalCoefficients';
@@ -19,24 +20,59 @@ import { getLeagueRankings, type RankedLeague } from '@/utils/leagueRanking';
 /**
  * Build virtual clubs from a league's club data, sorted by reputation (highest first).
  */
-function buildVirtualClubsForLeague(leagueId: string): VirtualClub[] {
+function buildVirtualClubsForLeague(
+  leagueId: string,
+  /** Live clubs from game state, keyed by id. Living-world foreign leagues are
+   *  instantiated as real clubs whose reputation evolves season to season, so
+   *  when an entry exists we seed the qualifier from it instead of the frozen
+   *  static ClubData — otherwise a foreign giant that collapsed (or a club
+   *  that climbed) would keep qualifying on its launch-day reputation. */
+  liveClubs?: Record<string, { name: string; shortName: string; color: string; reputation: number }>,
+): VirtualClub[] {
   const clubs = CLUBS_BY_LEAGUE[leagueId] || [];
   const league = ALL_LEAGUES.find(l => l.id === leagueId);
   // Copy before sorting — sorting CLUBS_BY_LEAGUE in place permanently
   // reorders shared module data for every later consumer.
   return [...clubs]
-    .sort((a, b) => b.reputation - a.reputation)
-    .map(c => ({
-      id: c.id,
-      name: c.name,
-      shortName: c.shortName,
-      color: c.color,
-      secondaryColor: c.secondaryColor || c.color,
-      leagueId: c.divisionId,
-      reputation: c.reputation,
-      country: league?.country || '',
-      countryCode: league?.countryCode || '',
-    }));
+    .map(c => {
+      const live = liveClubs?.[c.id];
+      return {
+        id: c.id,
+        name: live?.name || c.name,
+        shortName: live?.shortName || c.shortName,
+        color: live?.color || c.color,
+        secondaryColor: c.secondaryColor || c.color,
+        leagueId: c.divisionId,
+        reputation: live?.reputation ?? c.reputation,
+        country: league?.country || '',
+        countryCode: league?.countryCode || '',
+      };
+    })
+    .sort((a, b) => b.reputation - a.reputation);
+}
+
+/**
+ * The foreign top-tier leagues the living world instantiates at game start
+ * (Phase 6). Ranked strongest-first by the same coefficient/reputation
+ * ranking that drives continental qualification, so the leagues we make real
+ * are exactly the ones the player's continental competitions draw most of
+ * their qualifiers from. The player's own country is excluded — `initGame`
+ * loads its full pyramid separately.
+ */
+export function getLivingWorldLeagueIds(
+  playerCountryId: string,
+  count: number,
+  coefficients?: Record<string, ContinentalCoefficient>,
+): string[] {
+  if (count <= 0) return [];
+  const out: string[] = [];
+  for (const ranked of getLeagueRankings(coefficients)) {
+    const league = ALL_LEAGUES.find(l => l.id === ranked.leagueId);
+    if (!league || league.countryId === playerCountryId) continue;
+    out.push(league.id);
+    if (out.length >= count) break;
+  }
+  return out;
 }
 
 /**
@@ -92,8 +128,12 @@ function collectQualifiers(
   const qualifiers: string[] = [];
   const virtualClubs: Record<string, VirtualClub> = {};
 
-  // Add cup winner first (guaranteed spot) if not already in a higher competition
-  if (cupWinnerId && !alreadyQualified.has(cupWinnerId) && !qualifiers.includes(cupWinnerId)) {
+  // Add cup winner first (guaranteed spot) if not already in a higher competition.
+  // `placeholder-*` ids are legacy filler from saves drawn before the spot
+  // tables summed correctly: such a "club" has no squad and no club data, so
+  // promoting it as a cup winner produced a qualifier that could not be
+  // rendered or played against. Refuse it and let the league spots fill the slot.
+  if (cupWinnerId && !isPlaceholderClubId(cupWinnerId) && !alreadyQualified.has(cupWinnerId) && !qualifiers.includes(cupWinnerId)) {
     qualifiers.push(cupWinnerId);
     const c = playerClubs[cupWinnerId];
     if (c) {
@@ -104,7 +144,7 @@ function collectQualifiers(
     } else {
       // Cup winner is from a non-player league — look up in static data
       for (const lg of ALL_LEAGUES) {
-        const staticClub = buildVirtualClubsForLeague(lg.id).find(vc => vc.id === cupWinnerId);
+        const staticClub = buildVirtualClubsForLeague(lg.id, playerClubs).find(vc => vc.id === cupWinnerId);
         if (staticClub) {
           virtualClubs[cupWinnerId] = staticClub;
           break;
@@ -132,8 +172,9 @@ function collectQualifiers(
         if (vc) virtualClubs[entry.clubId] = vc;
       }
     } else {
-      // Use static data — skip positions BEFORE filtering to get correct league positions
-      const vClubs = buildVirtualClubsForLeague(ranking.leagueId);
+      // Use static data (overlaid with live state for instantiated living-world
+      // leagues) — skip positions BEFORE filtering to get correct league positions
+      const vClubs = buildVirtualClubsForLeague(ranking.leagueId, playerClubs);
       const afterSkip = vClubs.slice(skip);
       const available = afterSkip.filter(vc => !alreadyQualified.has(vc.id) && !qualifiers.includes(vc.id));
       for (let i = 0; i < Math.min(spots, available.length); i++) {
@@ -230,6 +271,50 @@ export function getConferenceCupQualifiers(
 }
 
 /**
+ * Top up a short qualifier list to CONTINENTAL_TOTAL_TEAMS using real clubs.
+ *
+ * Walks the league rankings strongest-first and takes the best not-yet-drawn
+ * club from each league in turn (round-robin, one per league per pass) so the
+ * fill spreads across countries instead of handing a single league three
+ * extra entrants. Mutates `sorted` and `virtualClubs` in place, mirroring the
+ * old placeholder loop's contract.
+ *
+ * With the corrected `*_SPOTS_BY_RANK` tables this should be a no-op; it stays
+ * as the safety net so a future table edit can never resurrect fabrication.
+ */
+function backfillQualifiersFromRealClubs(
+  sorted: string[],
+  virtualClubs: Record<string, VirtualClub>,
+  coefficients: Record<string, ContinentalCoefficient>,
+): void {
+  const target = CONTINENTAL_GROUPS * CONTINENTAL_TEAMS_PER_GROUP;
+  if (sorted.length >= target) return;
+
+  const drawn = new Set(sorted);
+  const pools = getLeagueRankings(coefficients)
+    .map(r => buildVirtualClubsForLeague(r.leagueId).filter(vc => !drawn.has(vc.id)));
+
+  let progressed = true;
+  while (sorted.length < target && progressed) {
+    progressed = false;
+    for (const pool of pools) {
+      if (sorted.length >= target) break;
+      const next = pool.shift();
+      if (!next) continue;
+      progressed = true;
+      if (drawn.has(next.id)) continue;
+      drawn.add(next.id);
+      sorted.push(next.id);
+      virtualClubs[next.id] = virtualClubs[next.id] || next;
+    }
+  }
+  // 37 ranked top-tier leagues × ~18 clubs = ~660 candidates, so the pools
+  // cannot run dry before 32. If a future data change ever made them, the
+  // group builder below tolerates a short pot (smaller groups) rather than
+  // fabricating unplayable opponents.
+}
+
+/**
  * Generate a continental tournament draw with seeded groups.
  * Seeding uses a blend of multi-season coefficient and reputation.
  * Pot 1: top 8 by seeding score, Pot 2: next 8, etc.
@@ -252,16 +337,12 @@ export function generateContinentalDraw(
     return getSeedingScore(b, repB, coeffs) - getSeedingScore(a, repA, coeffs);
   });
 
-  // Fill to 32 if needed (shouldn't happen, but safety)
-  while (sorted.length < CONTINENTAL_GROUPS * CONTINENTAL_TEAMS_PER_GROUP) {
-    const placeholderId = `placeholder-${sorted.length}`;
-    sorted.push(placeholderId);
-    virtualClubs[placeholderId] = {
-      id: placeholderId, name: `Qualifier ${sorted.length}`, shortName: `Q${sorted.length}`,
-      color: '#666666', secondaryColor: '#999999', leagueId: 'unknown',
-      reputation: 1, country: 'Unknown', countryCode: 'XX',
-    };
-  }
+  // Fill to 32 with REAL clubs if the qualification tables came up short.
+  // This used to fabricate reputation-1 `placeholder-N` clubs, which was the
+  // worst kind of filler: a nameless entity that could top its group, win the
+  // Conference Cup, and then be handed the holder's Shield Cup spot with no
+  // club data behind it.
+  backfillQualifiersFromRealClubs(sorted, virtualClubs, coeffs);
 
   // Create 4 pots of 8 teams each
   const pots = [
@@ -283,7 +364,10 @@ export function generateContinentalDraw(
 
   for (let g = 0; g < CONTINENTAL_GROUPS; g++) {
     const groupId = String.fromCharCode(65 + g); // A-H
-    const clubIds = [pots[0][g], pots[1][g], pots[2][g], pots[3][g]];
+    // `filter(Boolean)` guards the (unreachable-by-construction) case where
+    // the qualifier pool came up short: a smaller group is playable, a group
+    // containing `undefined` is a crash.
+    const clubIds = [pots[0][g], pots[1][g], pots[2][g], pots[3][g]].filter(Boolean);
 
     if (clubIds.includes(playerClubId)) {
       playerGroupId = groupId;
@@ -293,6 +377,7 @@ export function generateContinentalDraw(
     const matches: ContinentalGroupMatch[] = [];
     for (let md = 0; md < GROUP_FIXTURE_TEMPLATE.length; md++) {
       for (const [hi, ai] of GROUP_FIXTURE_TEMPLATE[md]) {
+        if (!clubIds[hi] || !clubIds[ai]) continue;
         matches.push({
           id: safeRandomUUID(),
           matchday: md + 1,

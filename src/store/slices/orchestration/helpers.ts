@@ -21,6 +21,7 @@ import type {
   LeagueCupState,
   ContinentalTournamentState,
   SuperCupMatch,
+  Match,
 } from '@/types/game';
 import { LEAGUES } from '@/data/league';
 import {
@@ -463,4 +464,27 @@ export function pickAiMatchSquad(
     }
   }
   return { xi, bench: subs.slice(0, 7) };
+}
+
+/**
+ * Drop the event log and stats from an AI-vs-AI match result before it goes into
+ * state.
+ *
+ * Only the SCORE matters for tables, records and history; the events are consumed
+ * immediately by `applyAIMatchEvents` (goals, assists, cards, injuries) and never
+ * read again. The player's own matches keep everything — Match Review renders them.
+ *
+ * WHY: measured at the end of one season with the living world loaded, AI fixtures
+ * carried 175,656 events across 3,082 matches — 83.9 MB of `divisionFixtures` held
+ * in memory, against 1.73 MB once the save path trimmed it. The save was always
+ * fine (`trimFixturesForSave` strips the same fields); the heap was not, and it got
+ * much worse when AI fixtures stopped being one-event forfeits and started being
+ * real simulated matches. On a phone that is the difference between comfortable and
+ * a memory-pressure kill.
+ */
+export function stripAiMatchDetail(result: Match, playerClubId: string): Match {
+  if (result.homeClubId === playerClubId || result.awayClubId === playerClubId) return result;
+  if (!result.events?.length && !result.stats) return result;
+  const { events: _events, stats: _stats, ...rest } = result as Match & Record<string, unknown>;
+  return { ...rest, events: [] } as Match;
 }

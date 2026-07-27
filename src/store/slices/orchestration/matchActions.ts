@@ -20,7 +20,7 @@ import { CALM_DEFENSE_BOOST, CALM_FITNESS_DRAIN_MULT, CALM_FOUL_REDUCTION, DEMAN
 import { mergeGamePlanMods } from '@/config/gamePlan';
 import { advanceCupRound, getRoundName } from '@/data/cup';
 import { getDerbyIntensity } from '@/data/league';
-import { pickAiMatchSquad } from '@/store/slices/orchestration/helpers';
+import { pickAiMatchSquad, stripAiMatchDetail } from '@/store/slices/orchestration/helpers';
 import { getEffectiveMatchIntensity } from '@/utils/rivalries';
 import { generatePressConference } from '@/data/pressConferences';
 import { HalfState, finalizeMatch, generateMatchWeather, simulateHalf, simulateMatch } from '@/engine/match';
@@ -851,7 +851,7 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
       continue;
     }
     const { result: aiResult } = simulateMatch(m, hc2, ac2, hp2, ap2, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hSq2.bench, aSq2.bench);
-    fullFixtures[idx] = aiResult;
+    fullFixtures[idx] = stripAiMatchDetail(aiResult, playerClubId);
     applyAIMatchEvents(aiResult.events, playersWithAI, clubs, week, hp2, ap2, aiResult.homeGoals, aiResult.awayGoals, eloRankings, m.homeClubId, m.awayClubId);
     updateEloRatings(eloRankings, m.homeClubId, m.awayClubId, aiResult.homeGoals, aiResult.awayGoals, 'league');
   }
@@ -1394,7 +1394,7 @@ export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): M
       continue;
     }
     const { result: aiResult } = simulateMatch(m, hc2, ac2, hp2, ap2, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hSq3.bench, aSq3.bench);
-    fullFixtures2[idx] = aiResult;
+    fullFixtures2[idx] = stripAiMatchDetail(aiResult, playerClubId);
     applyAIMatchEvents(aiResult.events, playersWithAI2, clubs, week, hp2, ap2, aiResult.homeGoals, aiResult.awayGoals, eloRankings2, m.homeClubId, m.awayClubId);
     updateEloRatings(eloRankings2, m.homeClubId, m.awayClubId, aiResult.homeGoals, aiResult.awayGoals, 'league');
   }

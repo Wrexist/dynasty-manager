@@ -1,7 +1,7 @@
 /**
  * Continental tournament logic: match simulation, group advancement, knockout resolution.
  */
-import type { ContinentalTournamentState, ContinentalKnockoutTie, VirtualClub, Club, Player, FormationType } from '@/types/game';
+import type { ContinentalTournamentState, ContinentalKnockoutTie, VirtualClub, Club, Player, FormationType, Match } from '@/types/game';
 import {
   getCompetitionCalendar,
   CONTINENTAL_EXTRA_TIME_GOAL_CHANCE,
@@ -9,6 +9,69 @@ import {
 } from '@/config/continental';
 import { generateSquad } from '@/utils/playerGen';
 import { shuffle, safeRandomUUID } from '@/utils/helpers';
+import { simulateMatch } from '@/engine/match';
+import { pickAiMatchSquad } from '@/store/slices/orchestration/helpers';
+
+// ── The living world: real-engine continental football ──
+
+/**
+ * The instantiated world, if the caller has one. When BOTH sides of a
+ * continental fixture are real clubs (living-world foreign leagues + the
+ * player's own pyramid), the tie is resolved by the actual match engine
+ * instead of the reputation coin flip below — same engine, same tactics,
+ * same squad quality that decides every other match in the game.
+ *
+ * Genuinely virtual filler (a qualifier from a league nobody instantiated)
+ * still falls back to the reputation model. That is the ONLY thing the
+ * reputation path is for now.
+ */
+export interface ContinentalWorld {
+  clubs: Record<string, Club>;
+  players: Record<string, Player>;
+  week: number;
+  season?: number;
+  /** Called for every fixture resolved by the real engine, with the XIs that
+   *  played. Callers should feed this to `applyAIMatchEvents` so foreign
+   *  players accumulate goals/assists/ratings from continental football too. */
+  onEngineMatch?: (info: { result: Match; homeXI: Player[]; awayXI: Player[] }) => void;
+}
+
+/**
+ * Resolve one continental fixture. Prefers the real engine when both clubs are
+ * instantiated; otherwise falls back to reputation.
+ */
+function resolveContinentalFixture(
+  homeClubId: string,
+  awayClubId: string,
+  virtualClubs: Record<string, VirtualClub>,
+  world?: ContinentalWorld,
+  matchId?: string,
+): { homeGoals: number; awayGoals: number } {
+  const homeClub = world?.clubs?.[homeClubId];
+  const awayClub = world?.clubs?.[awayClubId];
+  if (world && homeClub && awayClub) {
+    const homeSquad = pickAiMatchSquad(homeClub, world.players, world.week);
+    const awaySquad = pickAiMatchSquad(awayClub, world.players, world.week);
+    if (homeSquad.xi.length > 0 && awaySquad.xi.length > 0) {
+      const match: Match = {
+        id: matchId || safeRandomUUID(),
+        week: world.week,
+        homeClubId, awayClubId,
+        played: false, homeGoals: 0, awayGoals: 0, events: [],
+      };
+      const { result } = simulateMatch(
+        match, homeClub, awayClub, homeSquad.xi, awaySquad.xi,
+        undefined, undefined, undefined, undefined, 0, undefined, world.season,
+        undefined, homeSquad.bench, awaySquad.bench,
+      );
+      world.onEngineMatch?.({ result, homeXI: homeSquad.xi, awayXI: awaySquad.xi });
+      return { homeGoals: result.homeGoals, awayGoals: result.awayGoals };
+    }
+  }
+  const homeRep = virtualClubs[homeClubId]?.reputation || 3;
+  const awayRep = virtualClubs[awayClubId]?.reputation || 3;
+  return simulateContinentalMatch(homeRep, awayRep);
+}
 
 // ── Simplified Match Simulation ──
 
@@ -62,6 +125,9 @@ export function simulateGroupMatchday(
   matchday: number,
   virtualClubs: Record<string, VirtualClub>,
   playerClubId: string,
+  /** Pass the instantiated world to resolve real-club ties with the real match
+   *  engine. Omit it and every tie falls back to the reputation model. */
+  world?: ContinentalWorld,
 ): ContinentalTournamentState {
   const newGroups = tournament.groups.map(group => {
     const newMatches = group.matches.map(m => {
@@ -69,9 +135,9 @@ export function simulateGroupMatchday(
       // Skip player's match — they play interactively
       if (m.homeClubId === playerClubId || m.awayClubId === playerClubId) return m;
 
-      const homeRep = virtualClubs[m.homeClubId]?.reputation || 3;
-      const awayRep = virtualClubs[m.awayClubId]?.reputation || 3;
-      const { homeGoals, awayGoals } = simulateContinentalMatch(homeRep, awayRep);
+      const { homeGoals, awayGoals } = resolveContinentalFixture(
+        m.homeClubId, m.awayClubId, virtualClubs, world, m.id,
+      );
 
       return { ...m, played: true, homeGoals, awayGoals };
     });
@@ -224,6 +290,8 @@ export function simulateKnockoutLeg(
   leg: 1 | 2,
   virtualClubs: Record<string, VirtualClub>,
   playerClubId: string,
+  /** See `simulateGroupMatchday` — enables real-engine resolution. */
+  world?: ContinentalWorld,
 ): ContinentalTournamentState {
   const newTies = tournament.knockoutTies.map(tie => {
     if (tie.round !== round) return tie;
@@ -243,16 +311,17 @@ export function simulateKnockoutLeg(
     // (which actually sets winnerId) is reachable. Without this guard the final's
     // leg 1 was played but its winner was never resolved, stalling the tournament.
     if (round !== 'F' && leg === 1 && !tie.leg1Played) {
-      const homeRep = virtualClubs[tie.homeClubId]?.reputation || 3;
-      const awayRep = virtualClubs[tie.awayClubId]?.reputation || 3;
-      const { homeGoals, awayGoals } = simulateContinentalMatch(homeRep, awayRep);
+      const { homeGoals, awayGoals } = resolveContinentalFixture(
+        tie.homeClubId, tie.awayClubId, virtualClubs, world, `${tie.id}-l1`,
+      );
       return { ...tie, leg1Played: true, leg1HomeGoals: homeGoals, leg1AwayGoals: awayGoals };
     }
 
     if (leg === 2 && tie.leg1Played && !tie.leg2Played) {
-      const homeRep = virtualClubs[tie.awayClubId]?.reputation || 3; // leg 2 reverses home/away
-      const awayRep = virtualClubs[tie.homeClubId]?.reputation || 3;
-      const { homeGoals, awayGoals } = simulateContinentalMatch(homeRep, awayRep);
+      // Leg 2 reverses home/away.
+      const { homeGoals, awayGoals } = resolveContinentalFixture(
+        tie.awayClubId, tie.homeClubId, virtualClubs, world, `${tie.id}-l2`,
+      );
 
       const newTie = { ...tie, leg2Played: true, leg2HomeGoals: homeGoals, leg2AwayGoals: awayGoals };
       // Resolve the tie
@@ -261,9 +330,9 @@ export function simulateKnockoutLeg(
 
     // For finals (single leg)
     if (round === 'F' && leg === 1 && !tie.leg1Played) {
-      const homeRep = virtualClubs[tie.homeClubId]?.reputation || 3;
-      const awayRep = virtualClubs[tie.awayClubId]?.reputation || 3;
-      const { homeGoals, awayGoals } = simulateContinentalMatch(homeRep, awayRep);
+      const { homeGoals, awayGoals } = resolveContinentalFixture(
+        tie.homeClubId, tie.awayClubId, virtualClubs, world, `${tie.id}-f`,
+      );
       let newTie = { ...tie, leg1Played: true, leg1HomeGoals: homeGoals, leg1AwayGoals: awayGoals };
       // Resolve immediately for finals
       if (homeGoals !== awayGoals) {
@@ -491,8 +560,15 @@ export function getKnockoutRoundName(round: string): string {
 // ── Ephemeral Club for Interactive Continental Play ──
 
 /**
- * Create a temporary Club + Player[] from a VirtualClub for interactive match simulation.
- * Quality mapping: rep 5 → quality 80, rep 4 → 72, rep 3 → 64, rep 2 → 56, rep 1 → 48
+ * Create a temporary Club + Player[] from a VirtualClub for interactive match
+ * simulation. Quality mapping: rep 5 → quality 82 … rep 1 → 42.
+ *
+ * Phase 6 narrowed this to GENUINELY virtual opponents. The living world
+ * instantiates the strongest foreign top tiers, and `playCurrentMatchImpl`
+ * only reaches for an ephemeral club when `clubs[oppId]` is absent — so a
+ * Champions Cup tie against Real Madrid now uses Real Madrid's actual,
+ * persisted, developing squad. What is left here is the long tail: a qualifier
+ * from a league this save never instantiated.
  */
 export function createEphemeralClub(
   vc: VirtualClub,

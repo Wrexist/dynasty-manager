@@ -5,17 +5,51 @@ import { autoFillBestTeam } from '@/utils/autoFillLineup';
 import { NATIONS } from '@/data/nations';
 import { getPlayerRarity, getRarityValueMultiplier, getRarityWageMultiplier } from '@/utils/playerRarity';
 import type { Club, Player, FormationType } from '@/types/game';
+import { isPlaceholderClubId } from '@/config/continental';
 /**
  * Save migration system for Dynasty Manager.
  * Each migration transforms save data from one version to the next.
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 76;
+const CURRENT_VERSION = 77;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
 const migrations: Record<number, MigrationFn> = {
+  // v76 → v77: the living world (Phase 6). `initGame` now instantiates the top
+  // tier of the strongest foreign leagues as real clubs, and the continental
+  // draw backfills short qualifier lists with real clubs instead of fabricating
+  // reputation-1 `placeholder-N` entries.
+  //
+  // NO BACKFILL FOR EXISTING SAVES — deliberately. Instantiating ~3 leagues
+  // mid-save would mean generating ~1,000 players inside a synchronous
+  // migration on the launch path (hundreds of ms on an older iPhone, with no
+  // progress UI), and it would drop those clubs into a season whose continental
+  // draw, fixtures and coefficients were already computed without them. An
+  // existing save therefore keeps exactly the world it has: continental
+  // opponents stay ephemeral, and the Ballon d'Or falls back to its
+  // sparse-world path (`isProductionCeremony`) instead of the retired ghost
+  // fabrication. Starting a new dynasty gets the living world.
+  //
+  // What this step DOES do is evict the fabricated placeholder qualifiers that
+  // older saves accumulated in `continentalCoefficients`, where they inflated
+  // no league ranking but did persist forever. `virtualClubs` entries are left
+  // alone: an in-flight tournament may still reference a placeholder in a group
+  // or tie, and removing its display data would render that fixture nameless.
+  76: (data) => {
+    const coeffs = data.continentalCoefficients;
+    if (!coeffs || typeof coeffs !== 'object' || Array.isArray(coeffs)) {
+      return { ...data, version: 77 };
+    }
+    const cleaned: Record<string, unknown> = {};
+    for (const [clubId, coeff] of Object.entries(coeffs as Record<string, unknown>)) {
+      if (isPlaceholderClubId(clubId)) continue;
+      cleaned[clubId] = coeff;
+    }
+    return { ...data, version: 77, continentalCoefficients: cleaned };
+  },
+
   // v75 → v76: GameState gained `celebrationDedupe`. The set of already-shown
   // celebration keys used to live in a Dashboard `useRef`, and GameShell renders
   // only the active screen — so Dashboard unmounted on every navigation and the
