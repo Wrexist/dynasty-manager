@@ -43,8 +43,12 @@ export interface SeasonTurnover {
   leagueId: LeagueId;
   promotedClubs: string[];    // Clubs promoted TO this league from below
   relegatedClubs: string[];   // Clubs relegated FROM this league to below
-  playoffWinners: string[];   // Clubs promoted via playoffs
-  /** Clubs that LEFT this league by being promoted to the tier above.
+  /** Clubs that left this league by winning the promotion playoff — a labelled
+   *  subset of `promotedOutClubs`, kept separate only so the season summary can
+   *  call the playoff route out by name. */
+  playoffWinners: string[];
+  /** Clubs that LEFT this league by being promoted to the tier above, by EITHER
+   *  route (automatic or playoff).
    *  `promotedClubs` used to carry these too, so for any middle tier it mixed
    *  arrivals and departures — and the season-summary message renders it as
    *  "Promoted to the league: ...", i.e. it listed clubs that had just left as

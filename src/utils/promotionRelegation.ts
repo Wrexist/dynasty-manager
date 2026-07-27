@@ -186,9 +186,16 @@ export function applyPromotionRelegation(
     // then announced departing clubs as new arrivals.
     const cappedAutoPromoted = cappedPromoted.filter(id => promotedUp.includes(id));
     const cappedPlayoffWinners = cappedPromoted.filter(id => playoffWinners.includes(id));
+    // BOTH routes out are departures: automatic promotion and the playoff.
+    // `playoffWinners` stays as the labelled subset (the season summary calls
+    // them out separately) but they also belong in `promotedOutClubs`, which is
+    // the complete "left this league by going up" list. Leaving them out of it
+    // was an inconsistency — a playoff winner is no less promoted than an
+    // automatic one, and any consumer asking "who went up?" would have missed them.
     turnovers[lowerLeague.id].promotedOutClubs = [
       ...(turnovers[lowerLeague.id].promotedOutClubs ?? []),
       ...cappedAutoPromoted,
+      ...cappedPlayoffWinners,
     ];
     turnovers[lowerLeague.id].playoffWinners.push(...cappedPlayoffWinners);
 

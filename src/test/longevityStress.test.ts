@@ -145,10 +145,24 @@ describe('Phase 1 — strict multi-season invariants', () => {
           }
         }
       }
+      // Playoff winners are recorded on the league they LEFT, so they must now be
+      // in the tier ABOVE — asserting they're still in their old division had it
+      // backwards. They must also appear in `promotedOutClubs`, the complete
+      // "went up" list.
       if (t && t.playoffWinners.length > 0 && t.leagueId) {
+        const from = LEAGUES.find(l => l.id === t.leagueId);
+        const above = from ? LEAGUES.find(l => l.countryId === from.countryId && l.tier === from.tier - 1) : undefined;
         for (const cid of t.playoffWinners) {
-          expect(state.divisionClubs[t.leagueId] ?? []).toContain(cid);
+          expect(t.promotedOutClubs ?? [], `playoff winner ${cid} in promotedOutClubs`).toContain(cid);
+          if (above) {
+            expect(state.divisionClubs[above.id] ?? [], `playoff winner ${cid} in ${above.id}`).toContain(cid);
+          }
         }
+      }
+
+      // And every departure must genuinely be gone from this league.
+      for (const cid of t?.promotedOutClubs ?? []) {
+        expect(state.divisionClubs[t!.leagueId] ?? [], `${cid} left ${t!.leagueId}`).not.toContain(cid);
       }
 
       for (const clubId of allDivisionClubIds(state)) {
