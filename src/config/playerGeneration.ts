@@ -613,5 +613,21 @@ export const NATIONALITY_DISTRIBUTION: Record<string, { nationality: string; wei
 // ── Team Strength ──
 export const MIN_TEAM_STRENGTH = 30;
 export const TEAM_STRENGTH_BASE = 0.7;
+/** Overall rating that maps to a neutral team strength. */
+export const TEAM_STRENGTH_QUALITY_PIVOT = 70;
+/** Ratings-difference scale for the Elo-style quality curve, in OVR points.
+ *
+ *  Team strength used to be LINEAR in average overall, and it only ever feeds an
+ *  event-share ratio — so equal absolute rating gaps produced barely different
+ *  shares. Measured: a 19-point OVR gap yielded only 59% home wins and 2.04 ppg,
+ *  and a 5.4-point gap (1.63 ppg) was almost indistinguishable from 2.3 (1.49).
+ *  In a live save, a squad +5.4 OVR above its league average finished 20th of 20
+ *  — squad building and transfers barely affected results, which is fatal for a
+ *  management game.
+ *
+ *  Lower = quality matters more. Tuned so a ~19-point gap lands near the real
+ *  ceiling for a mismatch rather than a coin flip, while adjacent-quality sides
+ *  stay competitive. */
+export const TEAM_STRENGTH_QUALITY_SCALE = 20;
 export const TEAM_STRENGTH_FITNESS_SCALE = 0.2;
 export const TEAM_STRENGTH_MORALE_SCALE = 0.1;

@@ -307,3 +307,37 @@ describe('Match Realism', () => {
     expect(optimal - allCentreBacks).toBeGreaterThanOrEqual(0.06);
   });
 });
+
+describe('squad quality determines results', () => {
+  const originalRandom = Math.random;
+  afterEach(() => { Math.random = originalRandom; });
+
+  // Regression guard for the flattest failure mode a management game can have.
+  // Team strength used to be LINEAR in average overall while only ever feeding an
+  // event-share ratio, so quality gaps compressed into near-parity: a measured
+  // 19-point OVR gap produced just 59% wins and 2.04 ppg, and in a live save a
+  // squad +5.4 OVR above its league average finished 20th of 20. Squad building
+  // and transfers — the two things the player spends the whole game doing — barely
+  // moved the table.
+  it('a large quality gap wins decisively, and a small one does not', () => {
+    const bigGap = runCell({ n: 400, seed: 90210, homeQuality: 86, awayQuality: 66 });
+    const smallGap = runCell({ n: 400, seed: 90211, homeQuality: 76, awayQuality: 74 });
+
+    const bigWinRate = bigGap.homeWins / bigGap.n;
+    const smallWinRate = smallGap.homeWins / smallGap.n;
+    const bigPpg = pointsPerGame(bigGap, 'home');
+    const smallPpg = pointsPerGame(smallGap, 'home');
+
+    // A ~20-point gap must read as a mismatch, not a coin flip.
+    expect(bigWinRate, `big-gap home win rate ${(bigWinRate * 100).toFixed(0)}%`).toBeGreaterThan(0.58);
+    expect(bigPpg, `big-gap ppg ${bigPpg.toFixed(2)}`).toBeGreaterThan(1.95);
+    // ...but never a formality: upsets have to stay possible.
+    expect(bigWinRate).toBeLessThan(0.92);
+
+    // Near-equal sides stay competitive.
+    expect(smallWinRate, `small-gap home win rate ${(smallWinRate * 100).toFixed(0)}%`).toBeLessThan(0.6);
+
+    // And the ordering must be decisive, not noise.
+    expect(bigPpg - smallPpg, `ppg spread ${(bigPpg - smallPpg).toFixed(2)}`).toBeGreaterThan(0.35);
+  });
+});
