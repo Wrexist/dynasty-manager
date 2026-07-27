@@ -34,6 +34,25 @@ describe('systemsSlice — setTactics', () => {
 });
 
 describe('systemsSlice — tactical presets', () => {
+  // Custom tactical presets are a Pro feature (`custom_tactics`), and
+  // `saveTacticalPreset` re-checks `isPro` in the slice — mirroring
+  // `autoFillTeam` — so a non-UI caller can't bypass the paywall. These cases
+  // exercise the feature itself, so they grant Pro first; the guard has its own
+  // case at the end of the block.
+  beforeEach(() => {
+    useGameStore.setState(s => ({
+      monetization: { ...s.monetization, entitlements: ['com.dynastymanager.pro'] },
+    }));
+  });
+
+  it('refuses to save a preset without Pro', () => {
+    useGameStore.setState(s => ({
+      monetization: { ...s.monetization, entitlements: [], subscription: null },
+    }));
+    useGameStore.getState().saveTacticalPreset('Free Attempt');
+    expect(useGameStore.getState().tacticalPresets).toHaveLength(0);
+  });
+
   it('saves a preset capturing the current formation and tactics', () => {
     useGameStore.getState().setTactics({ pressingIntensity: 42 });
     const formation = club().formation;

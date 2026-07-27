@@ -2239,7 +2239,30 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   // GBP 500k/wk, more than its wage bill.
   // Both live behind helpers shared with the Finance page so the displayed
   // breakdown can never drift from the money actually paid.
-  const isHomeFixture = !!thisWeekMatch && thisWeekMatch.homeClubId === playerClubId;
+  // Home-gate on the SCHEDULE, not on a played league fixture.
+  //
+  // `thisWeekMatch` requires `m.played` and only scans league fixtures. Keying the
+  // gate on it meant matchday income silently became GBP 0 whenever the player's
+  // fixture wasn't a played league game — which is every cup and continental week,
+  // and every week of an auto-simulated save. Measured over 5 seasons that drove
+  // the player's own club to -GBP 242M with its wage bill collapsing from
+  // GBP 3.9M to GBP 0.4M as the squad emptied. A gate is owed for being at home,
+  // whatever competition you were at home in, and whether or not the fixture has
+  // been resolved yet this tick.
+  const isHomeFixture =
+    updatedFixtures.some(m => m.week === week && m.homeClubId === playerClubId)
+    || (newCup?.ties ?? []).some(t => t.week === week && t.homeClubId === playerClubId)
+    || (newLeagueCup?.ties ?? []).some(t => t.week === week && t.homeClubId === playerClubId)
+    || [newChampionsCup, newShieldCup, newConferenceCup].some(t => {
+      if (!t) return false;
+      const inGroup = (t.groups ?? []).some(g => (g.matches ?? []).some(m => m.week === week && m.homeClubId === playerClubId));
+      if (inGroup) return true;
+      return (t.knockoutTies ?? []).some(tie =>
+        (tie.week1 === week && tie.homeClubId === playerClubId)
+        || (tie.week2 === week && tie.round !== 'F' && tie.awayClubId === playerClubId));
+    })
+    || (newDomesticSuperCup?.week === week && newDomesticSuperCup.homeClubId === playerClubId)
+    || (newContinentalSuperCup?.week === week && newContinentalSuperCup.homeClubId === playerClubId);
   const matchdayIncome = getMatchdayIncome(playerClub, playerDiv, {
     fanMood: fanMoodMult, derby: derbyIncomeBonus, streak: streakIncomeMult, isHomeFixture,
   });
