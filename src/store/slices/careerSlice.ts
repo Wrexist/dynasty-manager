@@ -11,6 +11,7 @@ import { generateStarterDeals, generateStarterOffers } from '@/store/slices/spon
 import { getDefaultMerchState } from '@/utils/merchandise';
 import { generateYouthProspects, generateIntakePreview } from '@/utils/youth';
 import { guardAsync } from '@/utils/asyncGuard';
+import { createEmptyRecords } from '@/utils/records';
 
 /** Inject live league position/form data into vacancies from divisionTables. */
 function enrichVacanciesWithLeagueData(
@@ -556,6 +557,12 @@ export const createCareerSlice = (set: Set, get: Get) => ({
         youthAcademy: { prospects: newProspects, nextIntakePreview: generateIntakePreview(targetClub.youthRating), youthPreviewEnhanced: false },
         financeHistory: [],
         tacticalPresets: [],
+        // Club records belong to the CLUB, not the manager. Omitting these from
+        // the reset meant "all-time club top scorer" and every other club record
+        // followed the manager to their next job, so a record set at Arsenal
+        // showed up as Coventry's club history.
+        clubRecords: createEmptyRecords(),
+        rivalries: {},
       });
     } else {
       // Different league: must reinitialize game for the new league.

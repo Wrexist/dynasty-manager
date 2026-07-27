@@ -20,6 +20,7 @@ import { CALM_DEFENSE_BOOST, CALM_FITNESS_DRAIN_MULT, CALM_FOUL_REDUCTION, DEMAN
 import { mergeGamePlanMods } from '@/config/gamePlan';
 import { advanceCupRound, getRoundName } from '@/data/cup';
 import { getDerbyIntensity } from '@/data/league';
+import { getEffectiveMatchIntensity } from '@/utils/rivalries';
 import { generatePressConference } from '@/data/pressConferences';
 import { HalfState, finalizeMatch, generateMatchWeather, simulateHalf, simulateMatch } from '@/engine/match';
 import { processMatchResult } from '@/store/helpers/matchProcessing';
@@ -558,7 +559,7 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   const prePos = preEntry ? state.leagueTable.indexOf(preEntry) + 1 : 10;
 
   try {
-  const matchDerbyIntensity = getDerbyIntensity(match.homeClubId, match.awayClubId);
+  const matchDerbyIntensity = getEffectiveMatchIntensity(match.homeClubId, match.awayClubId, state.rivalries, playerClubId);
   const hasDisciplinarian = hasPerk(state.managerProgression, 'disciplinarian');
   const careerDisciplineMod = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.discipline * MOD_DISCIPLINE_CARDS : 0;
   // Build bench for both teams
@@ -1072,7 +1073,7 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   const hBench = (hc.subs || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !hpIds.has(p.id) && !p.injured && !isSuspended(p));
   const aBench = (ac.subs || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !apIds.has(p.id) && !p.injured && !isSuspended(p));
 
-  const halfDerbyIntensity = getDerbyIntensity(match.homeClubId, match.awayClubId);
+  const halfDerbyIntensity = getEffectiveMatchIntensity(match.homeClubId, match.awayClubId, state.rivalries, playerClubId);
   const hasDisciplinarian = hasPerk(state.managerProgression, 'disciplinarian');
   const halfCareerMod = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.discipline * MOD_DISCIPLINE_CARDS : 0;
   const spCoachBonus = hasPerk(state.managerProgression, 'set_piece_coach') ? 0.009 * dynastyMult(state.managerProgression) : 0;

@@ -39,7 +39,7 @@ import { AI_LOAN_OFFER_CHANCE, AI_LOAN_RECALL_CLAUSE_CHANCE, ASSISTANT_MANAGER_F
 import { FORCED_RETIREMENT_AGE_GRACE_YEARS, FORCED_RETIREMENT_UNEMPLOYED_WEEKS, GROWTH_DISCIPLINE_PER_CLEAN_MATCH, GROWTH_MOTIVATION_PER_MORALE_EVENT, GROWTH_SCOUTING_PER_ASSIGNMENT, GROWTH_TACTICAL_PER_MATCH, MOD_SCOUTING_SPEED, MOD_TACTICAL_FAMILIARITY, MOD_YOUTH_GROWTH, STAT_MAX, UNEMPLOYED_OFFER_CHECK_INTERVAL, UNEMPLOYED_OFFER_MAX_PENDING } from '@/config/managerCareer';
 import { NATIONAL_OVR_STR_FLOOR, NATIONAL_OVR_STR_MAX, NATIONAL_OVR_STR_MIN, NATIONAL_OVR_STR_RANGE, PENALTY_CONVERSION_RATE } from '@/config/matchEngine';
 import { MERCH_CAMPAIGN_COOLDOWN_WEEKS, MERCH_PRICING_TIERS, SIGNATURE_DROP_COOLDOWN_WEEKS } from '@/config/merchandise';
-import { STORYLINE_CHAIN_MIN_WEEK, STORYLINE_CHAIN_TRIGGER_CHANCE } from '@/config/playoffs';
+import { STORYLINE_CHAIN_MIN_WEEK, STORYLINE_CHAIN_TRIGGER_CHANCE, STORYLINE_CHAIN_COOLDOWN_SEASONS } from '@/config/playoffs';
 import { MAX_SCOUT_REPORTS } from '@/config/scouting';
 import { GK_COACH_DEV_BONUS_PER_QUALITY, STAFF_MARKET_REFRESH_WEEK } from '@/config/staff';
 import { INDIVIDUAL_INJURY_RISK_MODIFIER } from '@/config/training';
@@ -1822,7 +1822,9 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     const nextStepIdx = chain.currentStep + 1;
     if (nextStepIdx >= chainDef.steps.length) {
       // Chain complete — add completion summary and track as completed
-      newCompletedChainIds.push(chain.chainId);
+      // Stamp the season so the cooldown in the trigger block below can expire
+      // this marker. Bare ids (legacy saves) read as "long ago" and expire at once.
+      newCompletedChainIds.push(`${chain.chainId}@${season}`);
       const targetPlayer = chain.targetPlayerId ? newPlayers[chain.targetPlayerId] : null;
       const playerLabel = targetPlayer ? `${targetPlayer.firstName} ${targetPlayer.lastName}` : 'Your star player';
       const lastChoice = chain.choices[chain.choices.length - 1];
@@ -1877,9 +1879,28 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     const squadPlayers = Object.values(newPlayers).filter(p => p.clubId === playerClubId);
     const clubsList = Object.values(clubs);
     const avgBudget = clubsList.length > 0 ? clubsList.reduce((s, c) => s + c.budget, 0) / clubsList.length : 0;
-    const completedChainIds = new Set<string>(newCompletedChainIds);
+    // Completion markers are stored as `chainId@season` so they can expire.
+    // The field stays a string[] (no schema change); a legacy bare `chainId`
+    // has no season and is treated as long past, which lets an existing save
+    // whose storyline system had already gone dark start telling stories again.
+    const chainCooldownUntil = new Map<string, number>();
+    for (const marker of newCompletedChainIds) {
+      const at = marker.lastIndexOf('@');
+      const id = at >= 0 ? marker.slice(0, at) : marker;
+      const doneSeason = at >= 0 ? Number(marker.slice(at + 1)) : Number.NEGATIVE_INFINITY;
+      const until = Number.isFinite(doneSeason) ? doneSeason + STORYLINE_CHAIN_COOLDOWN_SEASONS : Number.NEGATIVE_INFINITY;
+      // Keep the strictest (latest) cooldown if a chain somehow has two markers.
+      chainCooldownUntil.set(id, Math.max(chainCooldownUntil.get(id) ?? Number.NEGATIVE_INFINITY, until));
+    }
+
+    // Collect EVERY eligible chain, then pick at random. The loop used to take
+    // the first match in `STORYLINE_CHAINS` order, and the trigger predicates
+    // overlap heavily (`injury-crisis` needs only `recentLosses >= 1 && week >= 5`,
+    // `dressing-room-power-struggle` `>= 2 && week >= 8`), so early array entries
+    // systematically won and every save told the same stories in the same order.
+    const eligibleChains: typeof STORYLINE_CHAINS[number][] = [];
     for (const chainDef of STORYLINE_CHAINS) {
-      if (completedChainIds.has(chainDef.id)) continue;
+      if (season < (chainCooldownUntil.get(chainDef.id) ?? Number.NEGATIVE_INFINITY)) continue;
       const triggered = shouldTriggerChain(chainDef.id, {
         week: newWeek,
         recentWins: recentResults.won,
@@ -1890,38 +1911,40 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
         budget: playerClub?.budget || 0,
         averageBudget: avgBudget,
       });
-      if (triggered) {
-        // Identify the target player for player-specific chains
-        let targetPlayerId: string | undefined;
-        if (chainDef.id === 'star-player-transfer-saga') {
-          const starPlayer = squadPlayers
-            .filter(p => p.overall >= 75 && !p.injured && !p.onLoan && !p.wantsToLeave && !p.listedForSale)
-            .sort((a, b) => b.overall - a.overall)[0];
-          if (starPlayer) targetPlayerId = starPlayer.id;
-        }
+      if (triggered) eligibleChains.push(chainDef);
+    }
 
-        const newChain: ActiveStorylineChain = {
-          chainId: chainDef.id,
-          startWeek: newWeek,
-          currentStep: 0,
-          choices: [],
-          targetPlayerId,
-        };
-
-        const firstStep = chainDef.steps[0];
-        if (!pendingStorylineEvent) {
-          const rawEvent: StorylineEvent = {
-            id: `chain-${chainDef.id}-step-0`,
-            title: firstStep.title,
-            body: firstStep.body,
-            icon: firstStep.icon,
-            options: firstStep.options,
-          };
-          pendingStorylineEvent = interpolateEvent(rawEvent, newChain);
-        }
-        updatedChains.push(newChain);
-        break;
+    const chainDef = eligibleChains.length > 0 ? pick(eligibleChains) : null;
+    if (chainDef) {
+      // Identify the target player for player-specific chains
+      let targetPlayerId: string | undefined;
+      if (chainDef.id === 'star-player-transfer-saga') {
+        const starPlayer = squadPlayers
+          .filter(p => p.overall >= 75 && !p.injured && !p.onLoan && !p.wantsToLeave && !p.listedForSale)
+          .sort((a, b) => b.overall - a.overall)[0];
+        if (starPlayer) targetPlayerId = starPlayer.id;
       }
+
+      const newChain: ActiveStorylineChain = {
+        chainId: chainDef.id,
+        startWeek: newWeek,
+        currentStep: 0,
+        choices: [],
+        targetPlayerId,
+      };
+
+      const firstStep = chainDef.steps[0];
+      if (!pendingStorylineEvent) {
+        const rawEvent: StorylineEvent = {
+          id: `chain-${chainDef.id}-step-0`,
+          title: firstStep.title,
+          body: firstStep.body,
+          icon: firstStep.icon,
+          options: firstStep.options,
+        };
+        pendingStorylineEvent = interpolateEvent(rawEvent, newChain);
+      }
+      updatedChains.push(newChain);
     }
   }
 

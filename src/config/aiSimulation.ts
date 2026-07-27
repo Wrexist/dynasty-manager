@@ -11,6 +11,23 @@ import type { Position } from '@/types/game';
 // ── AI Weekly Income ──
 // AI clubs earn a fraction of the player's equivalent income to keep player advantage
 export const AI_INCOME_MULTIPLIER = 0.85;
+
+/** How many development passes each non-player-club player gets at season end.
+ *
+ *  `applyPlayerDevelopment` is a per-week roll, and it was only ever called for
+ *  the PLAYER's squad (inside `playerClub.playerIds.forEach`). Every other player
+ *  in the game just had `age + 1` applied, so across 756 clubs `potential` was
+ *  meaningless: AI wonderkids never became stars, AI 36-year-olds never declined,
+ *  and the league drifted DOWNWARD in quality while the player's squad compounded
+ *  upward. Measured over 10 seasons the player's top-11 OVR edge went -4.3 -> +5.2
+ *  while the league lost ~6 OVR — difficulty decayed monotonically.
+ *
+ *  This is deliberately fewer than a season's 46 weeks: the player's squad also
+ *  gets weekly training on top of development, and better facilities and staff
+ *  should still mean faster growth. `MAX_SEASON_GROWTH` caps the total either way,
+ *  so this is a rate, not a ceiling. Batched at season end rather than run weekly
+ *  to keep the cost off the weekly tick. */
+export const AI_SEASON_DEVELOPMENT_PASSES = 12;
 export const AI_STAFF_COST_PER_REP = 15_000;
 
 // ── AI Wage Constraints ──

@@ -10,6 +10,8 @@ import { simulateMatch } from '@/engine/match';
 import { generateSquad, selectBestLineup, generatePlayer } from '@/utils/playerGen';
 
 import { generateStaffMarket, getStaffBonus, ensureStaffFields } from '@/utils/staff';
+import { applyPlayerDevelopment } from '@/store/helpers/development';
+import { AI_SEASON_DEVELOPMENT_PASSES } from '@/config/aiSimulation';
 
 import { generateYouthProspects, generateIntakePreview } from '@/utils/youth';
 import type { GameState } from '../../storeTypes';
@@ -676,10 +678,23 @@ function finalizeSeason(
     newClubs[updatedClub.id] = updatedClub;
   };
 
-  Object.values(mergedPlayers).forEach(p => {
+  Object.values(mergedPlayers).forEach(rawPlayer => {
     // Existing FAs already processed above — skip to avoid double-aging and
     // double-adding them to freeAgentIds.
-    if (existingFaSet.has(p.id)) return;
+    if (existingFaSet.has(rawPlayer.id)) return;
+
+    // Develop and decline the rest of the world. The player's own squad already
+    // ran `applyPlayerDevelopment` weekly inside advanceWeek, so it is excluded
+    // here — everyone else got nothing but `age + 1`, which made `potential`
+    // meaningless for 755 of 756 clubs and let difficulty decay every season.
+    // Runs on the PRE-RESET player so the playing-time term still sees this
+    // season's appearances; `applyPlayerDevelopment` recomputes overall and value.
+    let p = rawPlayer;
+    if (rawPlayer.clubId && rawPlayer.clubId !== playerClubId) {
+      for (let i = 0; i < AI_SEASON_DEVELOPMENT_PASSES; i++) {
+        p = applyPlayerDevelopment(p, 'balanced');
+      }
+    }
 
     const aged = {
       ...p, age: p.age + 1,
