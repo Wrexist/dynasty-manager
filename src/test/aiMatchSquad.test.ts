@@ -151,7 +151,7 @@ describe('stripAiMatchDetail', () => {
   it('drops events and stats from an AI-vs-AI result but keeps the score', () => {
     const out = stripAiMatchDetail(base, 'club-z');
     expect(out.events).toEqual([]);
-    expect((out as Record<string, unknown>).stats).toBeUndefined();
+    expect((out as unknown as Record<string, unknown>).stats).toBeUndefined();
     expect(out.homeGoals).toBe(2);
     expect(out.awayGoals).toBe(1);
     expect(out.played).toBe(true);
