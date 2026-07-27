@@ -677,9 +677,14 @@ describe('Match Engine — Squad-validity forfeit path', () => {
     expect(matchInjuries).toEqual({});
   });
 
-  it('forfeits the match when away has no goalkeeper', () => {
+  it('PLAYS the match when away has no goalkeeper, with a degraded emergency keeper', () => {
     const { club: homeClub, players: homePlayers } = makeLineup('home', '4-3-3', 70);
-    // 11 outfield players with no GK — fails the `players.some(p => p.position === 'GK')` half of isSquadValid.
+    // 11 outfield players and no GK. This used to forfeit 3-0: `isSquadValid`
+    // required a position-'GK' among the starters. Measured mid-season, 9 of 92
+    // clubs had every keeper injured at once, which forfeited ~20% of all AI
+    // fixtures and made league tables, promotion and prize money fiction. Real
+    // football puts an outfielder in goal, so the match is now played with an
+    // emergency keeper (EMERGENCY_KEEPER_SAVE_MULT).
     const awayPlayers: Player[] = [
       makePlayer('a-cb1', 'away', 'CB', 70),
       makePlayer('a-cb2', 'away', 'CB', 70),
@@ -704,10 +709,39 @@ describe('Match Engine — Squad-validity forfeit path', () => {
       makeMatch('forfeit-2'), homeClub, awayClub, homePlayers, awayPlayers,
     );
 
-    expect(pickWinner(result)).toBe('home');
-    expect(result.homeGoals).toBe(3);
-    expect(result.awayGoals).toBe(0);
-    expect(result.events[0].description.toLowerCase()).toContain('forfeit');
+    // A real match, not a walkover: it has events beyond the forfeit stub.
+    expect(result.events.some(e => (e.description ?? '').toLowerCase().includes('forfeit'))).toBe(false);
+    expect(result.played).toBe(true);
+    expect(result.stats).toBeDefined();
+  });
+
+  it('concedes more with an emergency keeper than with a real one', () => {
+    // The penalty has to be measurable, or "no keeper" is a free pass.
+    const build = (clubId: string, withGk: boolean): Player[] => {
+      const outfield = ['CB', 'CB', 'CB', 'LB', 'RB', 'CM', 'CM', 'CM', 'ST', 'ST'].map(
+        (pos, i) => makePlayer(`${clubId}-o${i}`, clubId, pos as Player['position'], 70),
+      );
+      return withGk
+        ? [makePlayer(`${clubId}-gk`, clubId, 'GK', 70), ...outfield]
+        : [...outfield, makePlayer(`${clubId}-o10`, clubId, 'ST', 70)];
+    };
+    const mk = (clubId: string, players: Player[]): Club => ({
+      id: clubId, name: clubId, shortName: clubId.slice(0, 3).toUpperCase(), color: '#fff', secondaryColor: '#000',
+      budget: 0, wageBill: 0, reputation: 70, facilities: 5, youthRating: 5, fanBase: 5, boardPatience: 60,
+      playerIds: players.map(p => p.id), formation: '4-3-3',
+      lineup: players.map(p => p.id), subs: [], divisionId: 'eng',
+    } as Club);
+
+    const { club: homeClub, players: homePlayers } = makeLineup('home', '4-3-3', 70);
+    let withGk = 0, withoutGk = 0;
+    const N = 150;
+    for (let i = 0; i < N; i++) {
+      const gkPlayers = build('awayA', true);
+      const noGkPlayers = build('awayB', false);
+      withGk += simulateMatch(makeMatch(`gk-${i}`), homeClub, mk('awayA', gkPlayers), homePlayers, gkPlayers).result.homeGoals;
+      withoutGk += simulateMatch(makeMatch(`nogk-${i}`), homeClub, mk('awayB', noGkPlayers), homePlayers, noGkPlayers).result.homeGoals;
+    }
+    expect(withoutGk / N).toBeGreaterThan(withGk / N);
   });
 
   it('does NOT forfeit when both sides have exactly 7 players including a GK', () => {

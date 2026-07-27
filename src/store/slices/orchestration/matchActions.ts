@@ -20,6 +20,7 @@ import { CALM_DEFENSE_BOOST, CALM_FITNESS_DRAIN_MULT, CALM_FOUL_REDUCTION, DEMAN
 import { mergeGamePlanMods } from '@/config/gamePlan';
 import { advanceCupRound, getRoundName } from '@/data/cup';
 import { getDerbyIntensity } from '@/data/league';
+import { pickAiMatchSquad } from '@/store/slices/orchestration/helpers';
 import { getEffectiveMatchIntensity } from '@/utils/rivalries';
 import { generatePressConference } from '@/data/pressConferences';
 import { HalfState, finalizeMatch, generateMatchWeather, simulateHalf, simulateMatch } from '@/engine/match';
@@ -841,15 +842,15 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
     const hc2 = clubs[m.homeClubId];
     const ac2 = clubs[m.awayClubId];
     if (!hc2 || !ac2) continue;
-    const hAvail2 = hc2.playerIds.map(id => playersWithAI[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week));
-    const aAvail2 = ac2.playerIds.map(id => playersWithAI[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week));
-    const hp2 = hAvail2.slice(0, LINEUP_SIZE);
-    const ap2 = aAvail2.slice(0, LINEUP_SIZE);
+    const hSq2 = pickAiMatchSquad(hc2, playersWithAI, week);
+    const aSq2 = pickAiMatchSquad(ac2, playersWithAI, week);
+    const hp2 = hSq2.xi;
+    const ap2 = aSq2.xi;
     if (hp2.length === 0 || ap2.length === 0) {
       fullFixtures[idx] = { ...m, played: true, homeGoals: hp2.length === 0 ? 0 : FORFEIT_SCORE, awayGoals: ap2.length === 0 ? 0 : FORFEIT_SCORE, events: [{ minute: 0, type: 'half_time' as const, clubId: '', description: 'Match forfeited — insufficient players' }] };
       continue;
     }
-    const { result: aiResult } = simulateMatch(m, hc2, ac2, hp2, ap2, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hAvail2.slice(11, 18), aAvail2.slice(11, 18));
+    const { result: aiResult } = simulateMatch(m, hc2, ac2, hp2, ap2, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hSq2.bench, aSq2.bench);
     fullFixtures[idx] = aiResult;
     applyAIMatchEvents(aiResult.events, playersWithAI, clubs, week, hp2, ap2, aiResult.homeGoals, aiResult.awayGoals, eloRankings, m.homeClubId, m.awayClubId);
     updateEloRatings(eloRankings, m.homeClubId, m.awayClubId, aiResult.homeGoals, aiResult.awayGoals, 'league');
@@ -1349,15 +1350,15 @@ export function playSecondHalfImpl(set: Set, get: Get): Match | null {
     const hc2 = clubs[m.homeClubId];
     const ac2 = clubs[m.awayClubId];
     if (!hc2 || !ac2) continue;
-    const hAvail3 = hc2.playerIds.map(id => playersWithAI2[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week));
-    const aAvail3 = ac2.playerIds.map(id => playersWithAI2[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week));
-    const hp2 = hAvail3.slice(0, LINEUP_SIZE);
-    const ap2 = aAvail3.slice(0, LINEUP_SIZE);
+    const hSq3 = pickAiMatchSquad(hc2, playersWithAI2, week);
+    const aSq3 = pickAiMatchSquad(ac2, playersWithAI2, week);
+    const hp2 = hSq3.xi;
+    const ap2 = aSq3.xi;
     if (hp2.length === 0 || ap2.length === 0) {
       fullFixtures2[idx] = { ...m, played: true, homeGoals: hp2.length === 0 ? 0 : FORFEIT_SCORE, awayGoals: ap2.length === 0 ? 0 : FORFEIT_SCORE, events: [{ minute: 0, type: 'half_time' as const, clubId: '', description: 'Match forfeited — insufficient players' }] };
       continue;
     }
-    const { result: aiResult } = simulateMatch(m, hc2, ac2, hp2, ap2, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hAvail3.slice(11, 18), aAvail3.slice(11, 18));
+    const { result: aiResult } = simulateMatch(m, hc2, ac2, hp2, ap2, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hSq3.bench, aSq3.bench);
     fullFixtures2[idx] = aiResult;
     applyAIMatchEvents(aiResult.events, playersWithAI2, clubs, week, hp2, ap2, aiResult.homeGoals, aiResult.awayGoals, eloRankings2, m.homeClubId, m.awayClubId);
     updateEloRatings(eloRankings2, m.homeClubId, m.awayClubId, aiResult.homeGoals, aiResult.awayGoals, 'league');

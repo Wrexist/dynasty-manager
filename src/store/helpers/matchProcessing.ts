@@ -116,7 +116,16 @@ export function processMatchResult(
   const subbedOffIds = result.events
     .filter(ev => ev.type === 'substitution' && ev.assistPlayerId)
     .map(ev => ev.assistPlayerId as string);
-  const participantIds = [...new Set([...hc.lineup, ...ac.lineup, ...subbedOffIds])];
+  // The engine's own definition of "took part" is "has a rating" — it rates the
+  // starting XIs, everyone subbed on, and (via `playersById`) starters subbed off
+  // at half-time, who appear in neither the second-half lineup nor `subbedIn`.
+  // Unioning the rated ids in closes a gap where such a player was rated 7.6,
+  // got a match-history record, and was still denied his appearance, morale
+  // boost, minutes and fitness drain.
+  const participantIds = [...new Set([
+    ...hc.lineup, ...ac.lineup, ...subbedOffIds,
+    ...playerRatings.map(r => r.playerId),
+  ])].filter(pid => !!newPlayers[pid]);
 
   // Per-player minutes and end-of-match fitness, both recovered from the event
   // stream the engine already produced. Before this, `minutesPlayed` did not

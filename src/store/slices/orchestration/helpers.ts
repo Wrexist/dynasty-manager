@@ -49,6 +49,8 @@ import {
 import { GOAL_EVENT_TYPES } from '@/config/matchEngine';
 import { resetRealPlayerClaims, claimRealPlayer } from '@/utils/realPlayerPicker';
 import { getOpponentQualityBonus } from '@/utils/teamRankings';
+import { selectBestLineup } from '@/utils/playerGen';
+import { AI_MIN_MATCH_PLAYERS } from '@/config/aiSimulation';
 
 /**
  * Reset the module-level real-player claim registry and re-claim every
@@ -184,7 +186,10 @@ export function computeMinutesPlayed(
   for (const id of participantIds) {
     const start = cameOn[id] ?? 0;
     const end = wentOff[id] ?? fullTime;
-    out[id] = Math.max(0, Math.round(end - start));
+    // Floor at 1: a stoppage-time substitute has his minute clamped to the
+    // half's nominal end (see MatchEvent.displayMinute), which would otherwise
+    // credit a player who demonstrably took the pitch with zero minutes.
+    out[id] = Math.max(1, Math.round(end - start));
   }
   return out;
 }
@@ -400,4 +405,55 @@ export function generateObjectives(club: Club, leagueId?: LeagueId): BoardObject
     xpReward: BOARD_OBJ_XP_OPTIONAL });
 
   return objectives;
+}
+
+/**
+ * Build an AI club's XI and bench for a simulated match.
+ *
+ * WHY THIS EXISTS: every AI-sim site used to do
+ * `club.playerIds.map(...).filter(p => !p.injured).slice(0, LINEUP_SIZE)` —
+ * i.e. the first 11 players in raw `playerIds` insertion order. `isSquadValid`
+ * (engine/match.ts) requires a goalkeeper among the starters and forfeits 3-0
+ * otherwise, and MEASURED AT INIT, 23 of 92 English clubs (25%) had no GK in
+ * that slice. So P(at least one side invalid) was ~44% on day one, and it got
+ * worse as transfers shuffled roster order: a full simulated season produced
+ * 1,119 forfeits out of 1,712 fixtures — 65%.
+ *
+ * Everything downstream was therefore fiction: league tables, promotion and
+ * relegation, position prize money, top scorers, goals/cards per match, and any
+ * balance measurement taken against a live save rather than an isolated engine
+ * harness.
+ *
+ * `selectBestLineup` picks position-aware against the club's actual formation
+ * and already excludes injured, on-loan and suspended players, so it fills the
+ * GK slot whenever the squad contains any goalkeeper at all.
+ */
+export function pickAiMatchSquad(
+  club: Club,
+  players: Record<string, Player>,
+  week: number,
+): { xi: Player[]; bench: Player[] } {
+  const squad = club.playerIds.map(id => players[id]).filter(Boolean);
+  const { lineup, subs } = selectBestLineup(squad, club.formation, week);
+  let xi = lineup;
+
+  // Emergency XI. `isSquadValid` forfeits below 7 players, and an injury crisis
+  // can genuinely take a thin squad under that — measured mid-season, the worst
+  // club had 6 available. A fabricated 3-0 walkover corrupts the table, the prize
+  // money and every balance measurement far more than an under-strength side
+  // losing on merit does, and clubs in that position sign emergency cover rather
+  // than forfeit. Backfill from the unavailable pool, least-injured first, so the
+  // fixture is actually played.
+  if (xi.length < AI_MIN_MATCH_PLAYERS) {
+    const picked = new Set(xi.map(p => p.id));
+    const reserves = squad
+      .filter(p => !picked.has(p.id) && !p.onLoan)
+      .sort((a, b) => (a.injuryDetails?.weeksRemaining ?? 1) - (b.injuryDetails?.weeksRemaining ?? 1) || b.overall - a.overall);
+    for (const p of reserves) {
+      if (xi.length >= AI_MIN_MATCH_PLAYERS) break;
+      xi = [...xi, p];
+      picked.add(p.id);
+    }
+  }
+  return { xi, bench: subs.slice(0, 7) };
 }

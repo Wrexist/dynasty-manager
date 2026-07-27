@@ -44,6 +44,7 @@ import {
   PRESSING_FOUL_MULTIPLIER, PRESSING_FOUL_BASELINE,
   DEFENDER_POSITIONS, DEFENSE_DEFENDING_WEIGHT, DEFENSE_PHYSICAL_WEIGHT, DEFENSE_MENTAL_WEIGHT, DEFENSE_QUALITY_FALLBACK,
   GK_DEFENDING_WEIGHT, GK_MENTAL_WEIGHT, GK_PHYSICAL_WEIGHT, GK_SAVE_BASE, GK_SAVE_RANGE,
+  EMERGENCY_KEEPER_SAVE_MULT,
   TACTICAL_FAMILIARITY_MULTIPLIER, HOME_ADVANTAGE,
   FORMATION_ATTACK_BONUS, FORMATION_DEFENSE_BONUS,
   STOPPAGE_TIME_BASE, STOPPAGE_TIME_MAX_EXTRA, STOPPAGE_TIME_INJURY_ADD, STOPPAGE_TIME_CARD_ADD, STOPPAGE_TIME_GOAL_ADD, STOPPAGE_TIME_MAX,
@@ -267,9 +268,17 @@ export function getDefenseQuality(squad: Player[]): number {
 /** Get the GK's save ability (0.30 to 0.70) */
 export function getGKSaveChance(squad: Player[]): number {
   const gk = squad.find(p => p.position === 'GK');
-  if (!gk) return GK_SAVE_BASE;
-  const quality = (gk.attributes.defending * GK_DEFENDING_WEIGHT + gk.attributes.mental * GK_MENTAL_WEIGHT + gk.attributes.physical * GK_PHYSICAL_WEIGHT) / 100;
-  return GK_SAVE_BASE + quality * GK_SAVE_RANGE;
+  if (gk) {
+    const quality = (gk.attributes.defending * GK_DEFENDING_WEIGHT + gk.attributes.mental * GK_MENTAL_WEIGHT + gk.attributes.physical * GK_PHYSICAL_WEIGHT) / 100;
+    return GK_SAVE_BASE + quality * GK_SAVE_RANGE;
+  }
+  // Emergency keeper: an outfielder in goal. Derive from the best available
+  // outfielder so a strong squad in crisis still isn't identical to a weak one,
+  // then apply a heavy penalty. Previously this case forfeited the match outright.
+  if (squad.length === 0) return GK_SAVE_BASE * EMERGENCY_KEEPER_SAVE_MULT;
+  const best = squad.reduce((a, b) => (b.overall > a.overall ? b : a));
+  const quality = (best.attributes.defending * GK_DEFENDING_WEIGHT + best.attributes.mental * GK_MENTAL_WEIGHT + best.attributes.physical * GK_PHYSICAL_WEIGHT) / 100;
+  return (GK_SAVE_BASE + quality * GK_SAVE_RANGE) * EMERGENCY_KEEPER_SAVE_MULT;
 }
 
 /**
@@ -415,7 +424,13 @@ export function generateInjuryDetails(isFoulRelated: boolean, medicalLevel: numb
 export function isSquadValid(players: Player[], isPlayerTeam = false): boolean {
   const minPlayers = isPlayerTeam ? 11 : 7;
   if (players.length < minPlayers) return false;
-  if (!players.some(p => p.position === 'GK')) return false;
+  // NOTE: deliberately does NOT require a recognised goalkeeper. It used to, and
+  // that turned an injury crisis into a 3-0 walkover: measured mid-season, 9 of
+  // 92 clubs had every keeper injured simultaneously, which forfeited ~20% of all
+  // AI fixtures and made league tables, promotion, prize money and every balance
+  // measurement taken on a live save fiction. A keeperless XI now plays with an
+  // emergency keeper (see `getGKSaveChance` / EMERGENCY_KEEPER_SAVE_MULT), which
+  // is what actually happens in football.
   const ids = new Set<string>();
   for (const p of players) {
     if (ids.has(p.id)) return false;

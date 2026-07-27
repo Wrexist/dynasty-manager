@@ -64,6 +64,7 @@ import { buildHallEntry, saveToHall } from '@/utils/hallOfManagers';
 import { processSponsorSeasonEnd } from '@/store/slices/sponsorSlice';
 import {
   generateObjectives,
+  pickAiMatchSquad,
 } from '@/store/slices/orchestration/helpers';
 import {
   generateLeagueCupDraw,
@@ -272,8 +273,8 @@ export function endSeasonImpl(set: Set, get: Get) {
       const hc = clubs[m.homeClubId];
       const ac = clubs[m.awayClubId];
       if (!hc || !ac) continue;
-      const hp = hc.playerIds.map(id => players[id]).filter(Boolean).filter(pl => !pl.injured).slice(0, LINEUP_SIZE);
-      const ap = ac.playerIds.map(id => players[id]).filter(Boolean).filter(pl => !pl.injured).slice(0, LINEUP_SIZE);
+      const hp = pickAiMatchSquad(hc, players, state.week).xi;
+      const ap = pickAiMatchSquad(ac, players, state.week).xi;
       mutated = true;
       if (hp.length === 0 || ap.length === 0) {
         next[i] = { ...m, played: true, homeGoals: hp.length === 0 ? 0 : FORFEIT_SCORE, awayGoals: ap.length === 0 ? 0 : FORFEIT_SCORE, events: [] };
@@ -653,7 +654,7 @@ function finalizeSeason(
       careerGoals: (fa.careerGoals || 0) + fa.goals,
       careerAssists: (fa.careerAssists || 0) + fa.assists,
       careerAppearances: (fa.careerAppearances || 0) + fa.appearances,
-      goals: 0, assists: 0, appearances: 0, yellowCards: 0, redCards: 0,
+      goals: 0, assists: 0, appearances: 0, minutesPlayed: 0, yellowCards: 0, redCards: 0,
       seasonRatingTotal: 0, seasonRatedMatches: 0, matchHistory: [],
       suspendedUntilWeek: undefined, growthDelta: 0, lastAttributeChanges: undefined, lastTrainingGains: undefined, onLoan: false,
       loanFromClubId: undefined, loanToClubId: undefined, lowMoraleWeeks: 0, wantsToLeave: false, transferCooldownUntilWeek: undefined, lastTransferTalkWeek: undefined,
@@ -702,7 +703,7 @@ function finalizeSeason(
       careerGoals: (p.careerGoals || 0) + p.goals,
       careerAssists: (p.careerAssists || 0) + p.assists,
       careerAppearances: (p.careerAppearances || 0) + p.appearances,
-      goals: 0, assists: 0, appearances: 0, yellowCards: 0, redCards: 0,
+      goals: 0, assists: 0, appearances: 0, minutesPlayed: 0, yellowCards: 0, redCards: 0,
       seasonRatingTotal: 0, seasonRatedMatches: 0, matchHistory: [],
       suspendedUntilWeek: undefined, growthDelta: 0, lastAttributeChanges: undefined, lastTrainingGains: undefined, onLoan: false,
       loanFromClubId: undefined, loanToClubId: undefined, lowMoraleWeeks: 0, wantsToLeave: false, transferCooldownUntilWeek: undefined, lastTransferTalkWeek: undefined,

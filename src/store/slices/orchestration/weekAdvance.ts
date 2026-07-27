@@ -83,6 +83,7 @@ import { generateCliffhangers } from '@/utils/weekPreview';
 import { ObjectiveContext, calculateCompletedXP, evaluateObjectives, objectiveClaimXP } from '@/utils/weeklyObjectives';
 import { generateProactiveOffer, getReputationTierLabel } from '@/utils/managerCareer';
 import { refreshCommunityPackMarket, seedCommunityPackFreeAgents } from './communityPackRuntime';
+import { pickAiMatchSquad } from '@/store/slices/orchestration/helpers';
 
 /**
  * Week-advancement pipeline extracted from orchestrationSlice.ts.
@@ -756,17 +757,17 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
         const hc = simClubs[m.homeClubId];
         const ac = simClubs[m.awayClubId];
         if (!hc || !ac) continue;
-        const hAvail = hc.playerIds.map(id => simPlayers[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > newWeek));
-        const aAvail = ac.playerIds.map(id => simPlayers[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > newWeek));
-        const hp = hAvail.slice(0, LINEUP_SIZE);
-        const ap = aAvail.slice(0, LINEUP_SIZE);
+        const hSquadAI = pickAiMatchSquad(hc, simPlayers, newWeek);
+        const aSquadAI = pickAiMatchSquad(ac, simPlayers, newWeek);
+        const hp = hSquadAI.xi;
+        const ap = aSquadAI.xi;
         if (hp.length === 0 || ap.length === 0) {
           leagueFixtures[fi] = { ...m, played: true, homeGoals: hp.length === 0 ? 0 : FORFEIT_SCORE, awayGoals: ap.length === 0 ? 0 : FORFEIT_SCORE, events: [{ minute: 0, type: 'half_time' as const, clubId: '', description: 'Match forfeited' }] };
           changed = true;
           continue;
         }
-        const hBenchAI = hAvail.slice(11, 18);
-        const aBenchAI = aAvail.slice(11, 18);
+        const hBenchAI = hSquadAI.bench;
+        const aBenchAI = aSquadAI.bench;
         const hProfile = hc.aiManagerProfile;
         const aProfile = ac.aiManagerProfile;
         const hTacticsAI = hProfile && aProfile ? getAICounterTactics(hProfile, aProfile.defaultTactics, ac.formation || '4-4-2') : undefined;
@@ -1155,12 +1156,12 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     const hc = clubs[m.homeClubId];
     const ac = clubs[m.awayClubId];
     if (!hc || !ac) continue;
-    const hAvail = orderByLineup(hc, hc.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week)));
-    const aAvail = orderByLineup(ac, ac.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week)));
-    const hp = hAvail.slice(0, LINEUP_SIZE);
-    const ap = aAvail.slice(0, LINEUP_SIZE);
-    const hBenchAI = hAvail.slice(11, 18);
-    const aBenchAI = aAvail.slice(11, 18);
+    const hSquadColl = pickAiMatchSquad(hc, newPlayers, week);
+    const aSquadColl = pickAiMatchSquad(ac, newPlayers, week);
+    const hp = hSquadColl.xi;
+    const ap = aSquadColl.xi;
+    const hBenchAI = hSquadColl.bench;
+    const aBenchAI = aSquadColl.bench;
     // Forfeit if either team has no available players
     if (hp.length === 0 || ap.length === 0) {
       const forfeit = { ...m, played: true, homeGoals: hp.length === 0 ? 0 : FORFEIT_SCORE, awayGoals: ap.length === 0 ? 0 : FORFEIT_SCORE, events: [{ minute: 0, type: 'half_time' as const, clubId: '', description: 'Match forfeited — insufficient players' }] };
@@ -1206,10 +1207,10 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
       const hClub = clubs[tie.homeClubId];
       const aClub = clubs[tie.awayClubId];
       if (!hClub || !aClub) continue;
-      const hCupAvail = hClub.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week));
-      const aCupAvail = aClub.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week));
-      const hPlayers = hCupAvail.slice(0, LINEUP_SIZE);
-      const aPlayers = aCupAvail.slice(0, LINEUP_SIZE);
+      const hCupSquad = pickAiMatchSquad(hClub, newPlayers, week);
+      const aCupSquad = pickAiMatchSquad(aClub, newPlayers, week);
+      const hPlayers = hCupSquad.xi;
+      const aPlayers = aCupSquad.xi;
 
       const isPlayerMatch = tie.homeClubId === playerClubId || tie.awayClubId === playerClubId;
       if (isPlayerMatch && tie.week === week) continue; // Player's current-week cup match is played interactively
@@ -1221,7 +1222,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
       }
       const { result: cupResult } = simulateMatch(
         { id: tie.id, week: tie.week, homeClubId: tie.homeClubId, awayClubId: tie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] },
-        hClub, aClub, hPlayers, aPlayers, undefined, undefined, undefined, undefined, getDerbyIntensity(tie.homeClubId, tie.awayClubId), undefined, season, undefined, hCupAvail.slice(11, 18), aCupAvail.slice(11, 18)
+        hClub, aClub, hPlayers, aPlayers, undefined, undefined, undefined, undefined, getDerbyIntensity(tie.homeClubId, tie.awayClubId), undefined, season, undefined, hCupSquad.bench, aCupSquad.bench
       );
 
       // Resolve draws via extra time then penalties
@@ -1320,10 +1321,10 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
       const hClub = clubs[tie.homeClubId];
       const aClub = clubs[tie.awayClubId];
       if (!hClub || !aClub) continue;
-      const hLcAvail = hClub.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week));
-      const aLcAvail = aClub.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week));
-      const hPlayers = hLcAvail.slice(0, LINEUP_SIZE);
-      const aPlayers = aLcAvail.slice(0, LINEUP_SIZE);
+      const hLcSquad = pickAiMatchSquad(hClub, newPlayers, week);
+      const aLcSquad = pickAiMatchSquad(aClub, newPlayers, week);
+      const hPlayers = hLcSquad.xi;
+      const aPlayers = aLcSquad.xi;
 
       const isPlayerMatch = tie.homeClubId === playerClubId || tie.awayClubId === playerClubId;
       if (isPlayerMatch && tie.week === week) continue; // Player's current-week league cup match is played interactively
@@ -1335,7 +1336,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
       }
       const { result: lcResult } = simulateMatch(
         { id: tie.id, week: tie.week, homeClubId: tie.homeClubId, awayClubId: tie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] },
-        hClub, aClub, hPlayers, aPlayers, undefined, undefined, undefined, undefined, getDerbyIntensity(tie.homeClubId, tie.awayClubId), undefined, season, undefined, hLcAvail.slice(11, 18), aLcAvail.slice(11, 18)
+        hClub, aClub, hPlayers, aPlayers, undefined, undefined, undefined, undefined, getDerbyIntensity(tie.homeClubId, tie.awayClubId), undefined, season, undefined, hLcSquad.bench, aLcSquad.bench
       );
 
       // League Cup: straight to penalties if drawn (no extra time in early rounds)
@@ -1417,12 +1418,12 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     const isPlayerMatch = newDomesticSuperCup.homeClubId === playerClubId || newDomesticSuperCup.awayClubId === playerClubId;
     if (!isPlayerMatch && hClub && aClub) {
       // AI simulation
-      const hAvailSC = hClub.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured);
-      const hPlayers = hAvailSC.slice(0, LINEUP_SIZE);
-      const hBenchSC = hAvailSC.slice(11, 18);
-      const aAvailSC = aClub.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured);
-      const aPlayers = aAvailSC.slice(0, LINEUP_SIZE);
-      const aBenchSC = aAvailSC.slice(11, 18);
+      const hScSquad = pickAiMatchSquad(hClub, newPlayers, week);
+      const aScSquad = pickAiMatchSquad(aClub, newPlayers, week);
+      const hPlayers = hScSquad.xi;
+      const hBenchSC = hScSquad.bench;
+      const aPlayers = aScSquad.xi;
+      const aBenchSC = aScSquad.bench;
       if (hPlayers.length > 0 && aPlayers.length > 0) {
         const { result: scResult } = simulateMatch(
           { id: 'super-cup', week, homeClubId: newDomesticSuperCup.homeClubId, awayClubId: newDomesticSuperCup.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] },
@@ -1443,12 +1444,14 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     const aClub = clubs[newContinentalSuperCup.awayClubId] || (state.virtualClubs || {})[newContinentalSuperCup.awayClubId];
     const isPlayerMatch = newContinentalSuperCup.homeClubId === playerClubId || newContinentalSuperCup.awayClubId === playerClubId;
     if (!isPlayerMatch && hClub && aClub) {
-      const hAvailCSC = (hClub as Club).playerIds ? (hClub as Club).playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured) : [];
-      const hPlayers = hAvailCSC.slice(0, LINEUP_SIZE);
-      const hBenchCSC = hAvailCSC.slice(11, 18);
-      const aAvailCSC = (aClub as Club).playerIds ? (aClub as Club).playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured) : [];
-      const aPlayers = aAvailCSC.slice(0, LINEUP_SIZE);
-      const aBenchCSC = aAvailCSC.slice(11, 18);
+      // Continental Super Cup opponents can be virtual clubs with no squad, so
+      // guard on `playerIds` before asking the picker for an XI.
+      const hCscSquad = (hClub as Club).playerIds ? pickAiMatchSquad(hClub as Club, newPlayers, week) : { xi: [], bench: [] };
+      const hPlayers = hCscSquad.xi;
+      const hBenchCSC = hCscSquad.bench;
+      const aCscSquad = (aClub as Club).playerIds ? pickAiMatchSquad(aClub as Club, newPlayers, week) : { xi: [], bench: [] };
+      const aPlayers = aCscSquad.xi;
+      const aBenchCSC = aCscSquad.bench;
       if (hPlayers.length > 0 && aPlayers.length > 0) {
         const { result: scResult } = simulateMatch(
           { id: 'continental-super-cup', week, homeClubId: newContinentalSuperCup.homeClubId, awayClubId: newContinentalSuperCup.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] },
@@ -1597,8 +1600,8 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
       const hc = clubs[m.homeClubId];
       const ac = clubs[m.awayClubId];
       if (!hc || !ac) continue;
-      const hp = hc.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured).slice(0, LINEUP_SIZE);
-      const ap = ac.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured).slice(0, LINEUP_SIZE);
+      const hp = pickAiMatchSquad(hc, newPlayers, week).xi;
+      const ap = pickAiMatchSquad(ac, newPlayers, week).xi;
       if (hp.length === 0 || ap.length === 0) {
         updatedLeagueFixtures[i] = { ...m, played: true, homeGoals: hp.length === 0 ? 0 : FORFEIT_SCORE, awayGoals: ap.length === 0 ? 0 : FORFEIT_SCORE, events: [] };
         continue;
@@ -3079,7 +3082,13 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
         const playerTeamCards = (lastMatch.events || []).filter(e =>
           (e.type === 'yellow_card' || e.type === 'red_card') && e.clubId === playerClubId
         );
-        if (playerTeamCards.length === 0) {
+        // Matches the retuned Fair Play objective: no red, at most one booking.
+        // The old zero-cards condition fired ~3x less often after cards rose to
+        // real-football volume, so the manager's discipline stat grew ~3x slower
+        // for no design reason.
+        const reds = playerTeamCards.filter(e => e.type === 'red_card').length;
+        const yellows = playerTeamCards.length - reds;
+        if (reds === 0 && yellows <= 1) {
           cm.attributes.discipline = Math.min(STAT_MAX, cm.attributes.discipline + GROWTH_DISCIPLINE_PER_CLEAN_MATCH);
         }
       }

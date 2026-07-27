@@ -52,6 +52,7 @@ import {
   playWorldCupPenaltiesImpl, finalizeWorldCupPenaltiesImpl,
 } from '@/store/slices/orchestration/worldCupMatchActions';
 import { initGameImpl } from '@/store/slices/orchestration/initGame';
+import { pickAiMatchSquad } from '@/store/slices/orchestration/helpers';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -612,8 +613,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       const hc = newClubs[m.homeClubId];
       const ac = newClubs[m.awayClubId];
       if (!hc || !ac) continue;
-      const hp = hc.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured).slice(0, LINEUP_SIZE);
-      const ap = ac.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured).slice(0, LINEUP_SIZE);
+      const hp = pickAiMatchSquad(hc, newPlayers, currentWeek).xi;
+      const ap = pickAiMatchSquad(ac, newPlayers, currentWeek).xi;
       if (hp.length === 0 || ap.length === 0) {
         m.played = true;
         m.homeGoals = hp.length === 0 ? 0 : FORFEIT_SCORE;

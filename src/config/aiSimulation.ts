@@ -10,6 +10,11 @@ import type { Position } from '@/types/game';
 
 // ── AI Weekly Income ──
 // AI clubs earn a fraction of the player's equivalent income to keep player advantage
+/** Minimum players an AI side must field before `isSquadValid` forfeits the
+ *  match. `pickAiMatchSquad` backfills up to this from the unavailable pool so an
+ *  injury crisis produces an under-strength team rather than a fictional 3-0. */
+export const AI_MIN_MATCH_PLAYERS = 7;
+
 export const AI_INCOME_MULTIPLIER = 0.85;
 
 /** How many development passes each non-player-club player gets at season end.

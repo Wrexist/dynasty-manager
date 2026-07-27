@@ -148,6 +148,13 @@ export const GK_MENTAL_WEIGHT = 0.3;
 export const GK_PHYSICAL_WEIGHT = 0.3;
 export const GK_SAVE_BASE = 0.18;
 export const GK_SAVE_RANGE = 0.28;
+/** Save-quality multiplier when a side fields NO recognised goalkeeper — an
+ *  outfielder goes in goal, as happens in real football when the keepers are all
+ *  injured. This used to be a 3-0 FORFEIT: `isSquadValid` required a
+ *  position-'GK' among the starters, and measured mid-season 9 of 92 clubs had
+ *  every keeper injured at once, so roughly 20% of all AI fixtures were decided
+ *  by walkover rather than played. Real football does not forfeit for this. */
+export const EMERGENCY_KEEPER_SAVE_MULT = 0.55;
 
 // ── Tactical Familiarity ──
 export const TACTICAL_FAMILIARITY_MULTIPLIER = 0.012;
@@ -175,7 +182,7 @@ export const SHOT_ATTEMPT_THRESHOLD = 0.40;
  *  without silently squeezing the foul band shut. */
 export const FOUL_BAND_WIDTH = 0.42;
 /** Width of the non-foul-injury band, measured from the end of the foul band. */
-export const INJURY_BAND_WIDTH = 0.03;
+export const INJURY_BAND_WIDTH = 0.022;
 /** Hard ceiling on the end of the foul band. The band start (shot threshold) and
  *  width both take modifiers — derby + snow + max pressing + fast tempo +
  *  mentality stack to over 1.0 — and anything past 1.0 makes the non-foul-injury
@@ -247,7 +254,7 @@ export const RED_CARD_STRENGTH_PENALTY_PER_PLAYER = 0.12;
 export const MOMENTUM_RED_CARD_SWING = 25;
 
 // ── Match Injuries ──
-export const FOUL_INJURY_CHANCE = 0.03;
+export const FOUL_INJURY_CHANCE = 0.022;
 export const NON_FOUL_INJURY_BASE = 0.02;
 export const PHYSICAL_FRAGILITY_FACTOR = 0.0005;
 export const OLD_PLAYER_INJURY_BONUS = 0.01;

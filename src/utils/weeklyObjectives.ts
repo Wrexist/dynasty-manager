@@ -184,7 +184,12 @@ const OBJECTIVE_TEMPLATES: WeeklyObjective[] = [
   {
     id: 'no-cards',
     title: 'Fair Play',
-    description: 'Finish the match with no cards',
+    // Retuned for the corrected card rate. Cards per match rose ~2.4x when the
+    // foul band was widened to reach real-football volume (yellows ~3.67/match,
+    // was 1.47), which dropped "no cards at all" from roughly 48% achievable to
+    // ~16% — a 'common' objective the player fails five times in six. One booking
+    // is now tolerated; a red never is.
+    description: 'Finish the match with no red card and at most one booking',
     icon: 'handshake',
     xpReward: 10,
     rarity: 'common',
@@ -194,9 +199,9 @@ const OBJECTIVE_TEMPLATES: WeeklyObjective[] = [
       // matches are rebuilt with `events: []`, and an empty array would
       // auto-complete this objective for free (empty .some() → false).
       if (!match || !match.events || match.events.length === 0) return false;
-      return !match.events.some(
-        e => (e.type === 'yellow_card' || e.type === 'red_card') && e.clubId === ctx.playerClubId
-      );
+      const mine = match.events.filter(e => e.clubId === ctx.playerClubId);
+      if (mine.some(e => e.type === 'red_card')) return false;
+      return mine.filter(e => e.type === 'yellow_card').length <= 1;
     },
   },
   {

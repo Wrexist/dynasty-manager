@@ -1582,6 +1582,14 @@ export function simulateHalf(
             pe.redCard = true;
             sentOffSet.add(fouler.id);
             unavailable.add(fouler.id);
+            // Emit the booking itself as well as the dismissal. Only the
+            // `red_card` event used to be pushed, and `Player.yellowCards` is
+            // derived from `yellow_card` events — so a second booking was never
+            // counted. Season yellow totals under-reported and the new
+            // yellow-accumulation bans were reached a match late. A second yellow
+            // genuinely IS a yellow followed by a red, which is how a real match
+            // log reads.
+            events.push({ minute: min, type: 'yellow_card', playerId: fouler.id, clubId: foulingClub.id, description: `${fouler.lastName} is booked for a second time.` });
             // Momentum swings toward the team that was fouled (the event team)
             momentum = isHome
               ? Math.min(100, momentum + MOMENTUM_RED_CARD_SWING)
