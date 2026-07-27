@@ -41,16 +41,17 @@ import {
   INJURY_TYPES,
   NON_FOUL_INJURY_TYPE_WEIGHTS,
   INJURY_SEVERITY_WEIGHTS,
+  CATCH_UP_EXPECTED_GOALS,
   YELLOW_ACCUMULATION_THRESHOLDS,
   YELLOW_ACCUMULATION_BAN_WEEKS,
   RATING_MORALE_BASELINE,
   FORM_PER_RATING_POINT,
   FORM_RATING_ADJ_CAP,
 } from '@/config/gameBalance';
-import { GOAL_EVENT_TYPES } from '@/config/matchEngine';
+import { GOAL_EVENT_TYPES, HOME_ADVANTAGE } from '@/config/matchEngine';
 import { resetRealPlayerClaims, claimRealPlayer } from '@/utils/realPlayerPicker';
 import { getOpponentQualityBonus } from '@/utils/teamRankings';
-import { selectBestLineup } from '@/utils/playerGen';
+import { selectBestLineup, getTeamStrength } from '@/utils/playerGen';
 import {
   AI_MIN_MATCH_PLAYERS,
   AI_RATING_BASE_WIN, AI_RATING_BASE_DRAW, AI_RATING_BASE_LOSS,
@@ -487,4 +488,56 @@ export function stripAiMatchDetail(result: Match, playerClubId: string): Match {
   if (!result.events?.length && !result.stats) return result;
   const { events: _events, stats: _stats, ...rest } = result as Match & Record<string, unknown>;
   return { ...rest, events: [] } as Match;
+}
+
+/**
+ * Cheap scoreline-only resolver for AI-vs-AI catch-up fixtures.
+ *
+ * The season-end catch-up exists to COMPLETE TABLES — it fast-forwards fixtures
+ * that were never played so a division doesn't finish its season short (a Premier
+ * League save used to leave 8 rounds unplayed in each lower English tier). Tables
+ * need scores and nothing else, and `stripAiMatchDetail` discards AI event logs on
+ * the way into state anyway — so running the full event engine here was doing a
+ * large amount of work purely to throw the result away.
+ *
+ * That waste became a real latency hazard: with the living world loaded, a save
+ * where other divisions lag can present thousands of outstanding fixtures at
+ * season end, and `endSeason` blocks the UI. Measured 6.2s against a 5s budget
+ * before this, on a pyramid where only the player's own division had been played.
+ *
+ * Poisson around a strength-derived expectation, with the same home advantage the
+ * engine uses, so promotion and relegation stay plausible.
+ */
+export function resolveCatchUpFixture(
+  match: Match,
+  homePlayers: Player[],
+  awayPlayers: Player[],
+): Match {
+  const hs = getTeamStrength(homePlayers) * HOME_ADVANTAGE;
+  const as = getTeamStrength(awayPlayers);
+  const total = hs + as;
+  const share = total > 0 ? hs / total : 0.5;
+  // Centre on a realistic combined goal total, split by strength share.
+  const combined = CATCH_UP_EXPECTED_GOALS;
+  return {
+    ...match,
+    played: true,
+    homeGoals: poissonSample(combined * share),
+    awayGoals: poissonSample(combined * (1 - share)),
+    events: [],
+  };
+}
+
+/** Small-lambda Poisson sampler. Bounded so a pathological lambda can't spin. */
+function poissonSample(lambda: number): number {
+  if (!Number.isFinite(lambda) || lambda <= 0) return 0;
+  const L = Math.exp(-lambda);
+  let k = 0;
+  let p = 1;
+  do {
+    k++;
+    p *= Math.random();
+    if (k > 12) break;
+  } while (p > L);
+  return k - 1;
 }

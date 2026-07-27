@@ -169,20 +169,27 @@ export function applyPromotionRelegation(
 
     // Record turnovers — each league tracks clubs entering and leaving
     if (!turnovers[upperLeague.id]) {
-      turnovers[upperLeague.id] = { leagueId: upperLeague.id, promotedClubs: [], relegatedClubs: [], playoffWinners: [] };
+      turnovers[upperLeague.id] = { leagueId: upperLeague.id, promotedClubs: [], relegatedClubs: [], playoffWinners: [], promotedOutClubs: [] };
     }
     if (!turnovers[lowerLeague.id]) {
-      turnovers[lowerLeague.id] = { leagueId: lowerLeague.id, promotedClubs: [], relegatedClubs: [], playoffWinners: [] };
+      turnovers[lowerLeague.id] = { leagueId: lowerLeague.id, promotedClubs: [], relegatedClubs: [], playoffWinners: [], promotedOutClubs: [] };
     }
 
     // Upper tier turnover: who arrived (promoted from below), who left (relegated)
     turnovers[upperLeague.id].promotedClubs.push(...cappedPromoted);
     turnovers[upperLeague.id].relegatedClubs.push(...relegatedDown);
 
-    // Lower tier turnover: who left via promotion, playoff winners
+    // Lower tier turnover: who LEFT via promotion, plus playoff winners.
+    // These go in `promotedOutClubs`, NOT `promotedClubs` — the latter means
+    // "arrived here from below" (see the type), and pushing departures into it
+    // made every middle tier's record mix the two directions. The season summary
+    // then announced departing clubs as new arrivals.
     const cappedAutoPromoted = cappedPromoted.filter(id => promotedUp.includes(id));
     const cappedPlayoffWinners = cappedPromoted.filter(id => playoffWinners.includes(id));
-    turnovers[lowerLeague.id].promotedClubs.push(...cappedAutoPromoted);
+    turnovers[lowerLeague.id].promotedOutClubs = [
+      ...(turnovers[lowerLeague.id].promotedOutClubs ?? []),
+      ...cappedAutoPromoted,
+    ];
     turnovers[lowerLeague.id].playoffWinners.push(...cappedPlayoffWinners);
 
     // Adjust budgets and reputation for moved clubs

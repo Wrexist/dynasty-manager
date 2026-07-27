@@ -12,6 +12,9 @@ export const SPRING_PHASE_END_WEEK = 38;
 export const STARTING_BOARD_CONFIDENCE = 50;
 export const FRIENDLY_BOARD_CONFIDENCE_MULT = 0.25;
 export const LINEUP_SIZE = 11;
+/** Combined goals the season-end catch-up resolver centres on. Matches the
+ *  engine's real-football target band; see `resolveCatchUpFixture`. */
+export const CATCH_UP_EXPECTED_GOALS = 2.7;
 export const LOW_FITNESS_THRESHOLD = 65;
 
 // ── First Match Confidence Boost (Season 1 only) ──

@@ -5,8 +5,7 @@ import {
   REP_PROMOTION, REP_RELEGATION, REP_OVERACHIEVE_BONUS, REP_UNDERACHIEVE_PENALTY, REP_TITLE, REP_CUP_WIN, REP_SACKING, REP_MIN, REP_MAX,
 } from '@/config/managerCareer';
 import { buildLeagueTable, generateDivisionFixtures, buildAllDivisionTables, LEAGUES, generateFriendlies, collectOccupiedWeeks, getLeaguesByCountry, clearLeagueTableCache } from '@/data/league';
-import { BOARD_OBJ_ALL_COMPLETE_XP, BOARD_OBJ_ALL_COMPLETE_CONFIDENCE, LINEUP_SIZE, FORFEIT_SCORE } from '@/config/gameBalance';
-import { simulateMatch } from '@/engine/match';
+import { BOARD_OBJ_ALL_COMPLETE_XP, BOARD_OBJ_ALL_COMPLETE_CONFIDENCE, FORFEIT_SCORE } from '@/config/gameBalance';
 import { generateSquad, selectBestLineup, generatePlayer } from '@/utils/playerGen';
 
 import { generateStaffMarket, getStaffBonus, ensureStaffFields } from '@/utils/staff';
@@ -65,7 +64,7 @@ import { processSponsorSeasonEnd } from '@/store/slices/sponsorSlice';
 import {
   generateObjectives,
   pickAiMatchSquad,
-  stripAiMatchDetail,
+  resolveCatchUpFixture,
 } from '@/store/slices/orchestration/helpers';
 import {
   generateLeagueCupDraw,
@@ -288,8 +287,11 @@ export function endSeasonImpl(set: Set, get: Get) {
         next[i] = { ...m, played: true, homeGoals: hp.length === 0 ? 0 : FORFEIT_SCORE, awayGoals: ap.length === 0 ? 0 : FORFEIT_SCORE, events: [] };
         continue;
       }
-      // Catch-up fixtures are AI-vs-AI by definition; keep only the score.
-      next[i] = stripAiMatchDetail(simulateMatch(m, hc, ac, hp, ap).result, playerClubId);
+      // Scoreline-only: the catch-up exists to complete TABLES, and AI event logs
+      // are discarded on the way into state anyway, so running the full event
+      // engine here was expensive work thrown away. The player's own fixtures are
+      // played interactively and never reach this loop.
+      next[i] = resolveCatchUpFixture(m, hp, ap);
     }
     if (mutated) caughtUpDivisionFixtures[leagueId] = next;
   }
@@ -324,7 +326,7 @@ export function endSeasonImpl(set: Set, get: Get) {
   }
   let newDivisionClubs = { ...state.divisionClubs };
   let newPlayerDiv = playerDiv;
-  const turnover: SeasonTurnover = { leagueId: playerDiv, promotedClubs: [], relegatedClubs: [], playoffWinners: [] };
+  const turnover: SeasonTurnover = { leagueId: playerDiv, promotedClubs: [], relegatedClubs: [], playoffWinners: [], promotedOutClubs: [] };
 
   if (hasMultipleTiers) {
     // Real promotion/relegation between tiers
@@ -341,6 +343,7 @@ export function endSeasonImpl(set: Set, get: Get) {
     const playerTurnover = proRelResult.turnovers[playerDiv];
     if (playerTurnover) {
       turnover.promotedClubs = playerTurnover.promotedClubs;
+      turnover.promotedOutClubs = playerTurnover.promotedOutClubs ?? [];
       turnover.relegatedClubs = playerTurnover.relegatedClubs;
       turnover.playoffWinners = playerTurnover.playoffWinners;
     }
@@ -484,6 +487,13 @@ export function endSeasonImpl(set: Set, get: Get) {
     if (playerDivTurnover.relegatedClubs.length > 0) {
       const relNames = playerDivTurnover.relegatedClubs.map(id => clubs[id]?.name || id).join(', ');
       newMessages = addMsg(newMessages, { week: state.week, season, type: 'general', title: 'Relegations', body: `Relegated from the league: ${relNames}.` });
+    }
+    // Clubs that went UP out of this league. Previously these were folded into
+    // `promotedClubs` and announced as arrivals, so a Championship manager was
+    // told the two clubs that had just left had joined.
+    if ((playerDivTurnover.promotedOutClubs?.length ?? 0) > 0) {
+      const upNames = playerDivTurnover.promotedOutClubs!.map(id => clubs[id]?.name || id).join(', ');
+      newMessages = addMsg(newMessages, { week: state.week, season, type: 'general', title: 'Promoted Out', body: `Promoted out of the league: ${upNames}.` });
     }
   } else if (turnover.relegatedClubs.length > 0) {
     const replacedNames = turnover.relegatedClubs.map(id => clubs[id]?.name || id).join(', ');

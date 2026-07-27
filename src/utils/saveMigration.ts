@@ -12,11 +12,27 @@ import { isPlaceholderClubId } from '@/config/continental';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 77;
+const CURRENT_VERSION = 78;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
 const migrations: Record<number, MigrationFn> = {
+  // v77 → v78: `SeasonTurnover` gained `promotedOutClubs`. `promotedClubs` is
+  // documented as "clubs promoted TO this league from below", but the code also
+  // pushed clubs promoted OUT of a middle tier into it — so the season summary
+  // announced departing clubs as new arrivals. Old saves have no such field;
+  // default it so consumers don't have to branch on undefined.
+  77: (data) => {
+    const t = data.lastSeasonTurnover as Record<string, unknown> | null | undefined;
+    return {
+      ...data,
+      version: 78,
+      lastSeasonTurnover: t && typeof t === 'object'
+        ? { ...t, promotedOutClubs: t.promotedOutClubs ?? [] }
+        : (t ?? null),
+    };
+  },
+
   // v76 → v77: the living world (Phase 6). `initGame` now instantiates the top
   // tier of the strongest foreign leagues as real clubs, and the continental
   // draw backfills short qualifier lists with real clubs instead of fabricating

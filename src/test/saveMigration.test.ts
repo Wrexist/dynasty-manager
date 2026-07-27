@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 
 describe('saveMigration', () => {
-  it('should have current version set to 77', () => {
-    expect(CURRENT_VERSION).toBe(77);
+  it('should have current version set to 78', () => {
+    expect(CURRENT_VERSION).toBe(78);
   });
 
   it('v69 → v70 backfills settings.performanceMode (default off)', () => {

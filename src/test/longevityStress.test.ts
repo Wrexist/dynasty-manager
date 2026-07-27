@@ -39,9 +39,20 @@ function assertEnglishPyramidCounts(state: GameState) {
     const ids = state.divisionClubs[league.id];
     expect(ids?.length ?? 0, `${league.id} club count`).toBe(league.teamCount);
   }
-  const unique = new Set(allDivisionClubIds(state));
+  // Scope the uniqueness check to the ENGLISH pyramid, which is what this
+  // assertion is about. It used to take the union of EVERY entry in
+  // `divisionClubs` and compare it to the English total — fine while the game
+  // only ever loaded the player's own country, but it silently doubled as an
+  // assertion that the world IS England-only, so it broke the moment foreign
+  // leagues were instantiated. The real invariant is: correct counts per league,
+  // and no club appearing twice.
+  const engIds = engLeagues.flatMap(l => state.divisionClubs[l.id] ?? []);
+  const uniqueEng = new Set(engIds);
   const sum = engLeagues.reduce((s, l) => s + l.teamCount, 0);
-  expect(unique.size, 'unique clubs across English pyramid').toBe(sum);
+  expect(uniqueEng.size, 'unique clubs across English pyramid').toBe(sum);
+  // And no club may be registered in two divisions anywhere in the world.
+  const allIds = allDivisionClubIds(state);
+  expect(new Set(allIds).size, 'no club registered in two divisions').toBe(allIds.length);
   expect(sum, 'England configured club total').toBe(92);
 }
 
@@ -195,9 +206,17 @@ describe('Phase 1 — strict multi-season invariants', () => {
         expect(p.appearances).toBeGreaterThanOrEqual(0);
       }
 
+      // Bound player population RELATIVE to the number of loaded clubs rather
+      // than against a magic number sized for a single-country world. The point
+      // of this guard is that the population doesn't grow without limit across 20
+      // seasons — that has to keep working whatever size the world is, and a
+      // hardcoded ceiling silently becomes either meaningless or a false alarm as
+      // soon as the world changes size.
       const totalPlayers = Object.keys(state.players).length;
-      expect(totalPlayers).toBeGreaterThanOrEqual(2000);
-      expect(totalPlayers).toBeLessThanOrEqual(4500);
+      const loadedClubs = new Set(allDivisionClubIds(state)).size;
+      expect(loadedClubs).toBeGreaterThan(0);
+      expect(totalPlayers / loadedClubs, 'players per loaded club').toBeGreaterThanOrEqual(12);
+      expect(totalPlayers / loadedClubs, 'players per loaded club').toBeLessThanOrEqual(45);
 
       for (const cid of allDivisionClubIds(state)) {
         const c = state.clubs[cid];
