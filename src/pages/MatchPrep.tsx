@@ -2,6 +2,8 @@ import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { getSuffix } from '@/utils/helpers';
 import { GlassPanel } from '@/components/game/GlassPanel';
+import { ClubCrest } from '@/components/game/ClubCrest';
+import { SectionHeader } from '@/components/game/SectionHeader';
 import { LineupEditor } from '@/components/game/LineupEditor';
 import { OptimizeLineupButton } from '@/components/game/OptimizeLineupButton';
 import { OptimizeResultModal } from '@/components/game/OptimizeResultModal';
@@ -153,14 +155,14 @@ const MatchPrep = () => {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4 pb-bar-safe space-y-3">
-      <h2 className="text-lg font-display font-bold text-foreground">Match Preparation</h2>
+      <SectionHeader title="Match Preparation" />
       <PageHint screen="matchPrep" title={PAGE_HINTS.matchPrep.title} body={PAGE_HINTS.matchPrep.body} />
 
       {/* Match Header */}
       <GlassPanel className={cn("p-4", competitionInfo.borderAccent)}>
         <div className="text-center mb-2">
           <span className={cn(
-            'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border',
+            'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-micro font-bold uppercase tracking-wider border',
             competitionInfo.bg
           )}>
             <Trophy className="w-3 h-3" />
@@ -169,20 +171,20 @@ const MatchPrep = () => {
         </div>
         <div className="flex items-center justify-between">
           <div className="text-center flex-1">
-            <div className="w-10 h-10 rounded-full mx-auto mb-1" style={{ backgroundColor: myClub.color }} />
+            <ClubCrest club={myClub} size="md" className="mx-auto mb-1" />
             <p className="text-xs font-bold text-foreground">{myClub.shortName}</p>
-            <p className="text-[10px] text-muted-foreground">{myPos}{typeof myPos === 'number' ? getSuffix(myPos) : ''}</p>
+            <p className="text-micro text-muted-foreground tabular-nums">{myPos}{typeof myPos === 'number' ? getSuffix(myPos) : ''}</p>
           </div>
           <div className="px-4">
             <p className="text-sm font-bold text-muted-foreground">{isHome ? 'HOME' : 'AWAY'}</p>
             <p className="text-xs text-muted-foreground">Week {week}</p>
           </div>
           <div className="text-center flex-1">
-            <div className="w-10 h-10 rounded-full mx-auto mb-1" style={{ backgroundColor: oppClub.color }} />
+            <ClubCrest club={oppClub} size="md" className="mx-auto mb-1" />
             <p className="text-xs font-bold text-foreground">{oppClub.shortName}</p>
             {/* A virtual opponent has no entry in the player's league table —
                 showing a position would place them bottom of the wrong league. */}
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-micro text-muted-foreground tabular-nums">
               {isVirtualOpp ? 'Foreign league' : `${oppPos}${typeof oppPos === 'number' ? getSuffix(oppPos) : ''}`}
             </p>
           </div>
@@ -215,9 +217,9 @@ const MatchPrep = () => {
               getRatingBadgeClasses(ratingComparison.myOvr)
             )}>
               <span className="text-xl font-black tabular-nums leading-none">{ratingComparison.myOvr}</span>
-              <span className="text-[8px] font-semibold opacity-70 mt-0.5">OVR</span>
+              <span className="text-micro font-semibold opacity-70 leading-none mt-0.5">OVR</span>
             </div>
-            <p className="text-[10px] text-muted-foreground mt-1">{myClub.shortName}</p>
+            <p className="text-micro text-muted-foreground mt-1">{myClub.shortName}</p>
           </div>
 
           {/* Rating difference */}
@@ -234,7 +236,7 @@ const MatchPrep = () => {
               <span className="tabular-nums">{ratingComparison.diff > 0 ? '+' : ''}{ratingComparison.diff}</span>
             </div>
             <p className={cn(
-              'text-[9px] font-semibold mt-1',
+              'text-micro font-semibold mt-1',
               ratingComparison.diff >= 5 ? 'text-emerald-400' :
               ratingComparison.diff >= 1 ? 'text-emerald-400/70' :
               ratingComparison.diff <= -5 ? 'text-destructive' :
@@ -256,9 +258,9 @@ const MatchPrep = () => {
               getRatingBadgeClasses(ratingComparison.oppOvr)
             )}>
               <span className="text-xl font-black tabular-nums leading-none">{ratingComparison.oppOvr}</span>
-              <span className="text-[8px] font-semibold opacity-70 mt-0.5">OVR</span>
+              <span className="text-micro font-semibold opacity-70 leading-none mt-0.5">OVR</span>
             </div>
-            <p className="text-[10px] text-muted-foreground mt-1">{oppClub.shortName}</p>
+            <p className="text-micro text-muted-foreground mt-1">{oppClub.shortName}</p>
           </div>
         </div>
 
@@ -284,7 +286,7 @@ const MatchPrep = () => {
                       style={{ width: `${myW}%` }}
                     />
                   </div>
-                  <span className="text-[9px] text-muted-foreground font-semibold w-7 text-center shrink-0">{u.label}</span>
+                  <span className="text-micro text-muted-foreground font-semibold w-7 text-center shrink-0">{u.label}</span>
                   {/* Opp bar — grows left */}
                   <div className="flex-1 flex justify-start">
                     <div
@@ -314,7 +316,7 @@ const MatchPrep = () => {
             </span>
             <Flame className={cn('w-4 h-4', derbyIntensity >= 3 ? 'text-destructive' : derbyIntensity >= 2 ? 'text-amber-400' : 'text-primary')} />
           </div>
-          <p className="text-[10px] text-muted-foreground text-center mt-1">
+          <p className="text-micro text-muted-foreground text-center mt-1">
             Rivalry match — expect higher intensity, more fouls and cards
           </p>
         </GlassPanel>
@@ -330,7 +332,7 @@ const MatchPrep = () => {
             <div className="flex gap-1">
               {(myEntry?.form || []).slice(-5).map((r, i) => (
                 <span key={i} className={cn(
-                  'w-5 h-5 rounded text-[10px] font-bold flex items-center justify-center',
+                  'w-5 h-5 rounded text-micro font-bold flex items-center justify-center',
                   r === 'W' ? 'bg-emerald-500/20 text-emerald-400' : r === 'D' ? 'bg-amber-500/20 text-amber-400' : 'bg-destructive/20 text-destructive'
                 )}>{r}</span>
               ))}
@@ -341,7 +343,7 @@ const MatchPrep = () => {
             <div className="flex gap-1">
               {(oppEntry?.form || []).slice(-5).map((r, i) => (
                 <span key={i} className={cn(
-                  'w-5 h-5 rounded text-[10px] font-bold flex items-center justify-center',
+                  'w-5 h-5 rounded text-micro font-bold flex items-center justify-center',
                   r === 'W' ? 'bg-emerald-500/20 text-emerald-400' : r === 'D' ? 'bg-amber-500/20 text-amber-400' : 'bg-destructive/20 text-destructive'
                 )}>{r}</span>
               ))}
@@ -362,15 +364,15 @@ const MatchPrep = () => {
             <div className="flex items-center gap-3">
               <div className="flex-1 text-center">
                 <p className="text-lg font-black text-emerald-400 tabular-nums">{h2h.wins}</p>
-                <p className="text-[10px] text-muted-foreground">Wins</p>
+                <p className="text-micro text-muted-foreground">Wins</p>
               </div>
               <div className="flex-1 text-center">
                 <p className="text-lg font-black text-amber-400 tabular-nums">{h2h.draws}</p>
-                <p className="text-[10px] text-muted-foreground">Draws</p>
+                <p className="text-micro text-muted-foreground">Draws</p>
               </div>
               <div className="flex-1 text-center">
                 <p className="text-lg font-black text-destructive tabular-nums">{h2h.losses}</p>
-                <p className="text-[10px] text-muted-foreground">Losses</p>
+                <p className="text-micro text-muted-foreground">Losses</p>
               </div>
             </div>
             {/* Win percentage bar */}
@@ -380,7 +382,7 @@ const MatchPrep = () => {
               {h2h.losses > 0 && <div className="bg-destructive h-full" style={{ width: `${(h2h.losses / total) * 100}%` }} />}
             </div>
             {h2h.grudgeLevel >= 3 && (
-              <p className="text-[10px] text-destructive mt-1.5 flex items-center gap-1">
+              <p className="text-micro text-destructive mt-1.5 flex items-center gap-1">
                 <Flame className="w-3 h-3" /> Bitter rivalry — expect a fiery contest
               </p>
             )}
@@ -396,21 +398,21 @@ const MatchPrep = () => {
         </div>
         <div className="space-y-2">
           <div className="bg-muted/30 rounded-lg p-2.5">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Your Formation</p>
+            <p className="text-micro text-muted-foreground uppercase tracking-wider mb-0.5">Your Formation</p>
             <p className="text-xs font-bold text-foreground">{myFormation}</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">{myHint}</p>
+            <p className="text-micro text-muted-foreground mt-0.5">{myHint}</p>
           </div>
           {!isVirtualOpp && (
           <div className="bg-muted/30 rounded-lg p-2.5">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Opponent Formation</p>
+            <p className="text-micro text-muted-foreground uppercase tracking-wider mb-0.5">Opponent Formation</p>
             <p className="text-xs font-bold text-foreground">{oppFormation}</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">{oppHint}</p>
+            <p className="text-micro text-muted-foreground mt-0.5">{oppHint}</p>
           </div>
           )}
           {!isVirtualOpp && myFormation !== oppFormation && (
             <div className="flex items-start gap-1.5 pt-1">
               <Info className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
-              <p className="text-[10px] text-primary/80">
+              <p className="text-micro text-primary/80">
                 {oppFormation.startsWith('3') || oppFormation.startsWith('5')
                   ? 'Opponent plays with 3 at the back — use wide play to exploit the flanks.'
                   : oppFormation === '4-1-4-1' || oppFormation === '4-2-3-1'
@@ -439,7 +441,7 @@ const MatchPrep = () => {
               <p className="text-xs font-semibold text-foreground truncate">{oppClub.aiManagerProfile.name}</p>
               <div className="flex items-center gap-2 mt-1">
                 <span className={cn(
-                  'text-[10px] font-bold px-2 py-0.5 rounded-full uppercase',
+                  'text-micro font-bold px-2 py-0.5 rounded-full uppercase',
                   oppClub.aiManagerProfile.style === 'attacking' ? 'bg-destructive/20 text-destructive' :
                   oppClub.aiManagerProfile.style === 'defensive' ? 'bg-blue-500/20 text-blue-400' :
                   oppClub.aiManagerProfile.style === 'possession' ? 'bg-emerald-500/20 text-emerald-400' :
@@ -449,7 +451,7 @@ const MatchPrep = () => {
                 )}>
                   {oppClub.aiManagerProfile.style.replace('-', ' ')}
                 </span>
-                <span className="text-[10px] text-muted-foreground">
+                <span className="text-micro text-muted-foreground">
                   Adaptability: {Math.round(oppClub.aiManagerProfile.adaptability * 100)}%
                 </span>
               </div>
@@ -486,7 +488,7 @@ const MatchPrep = () => {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold text-foreground truncate">{p.firstName} {p.lastName}</p>
-                <p className="text-[10px] text-muted-foreground">{p.position} · {p.goals}G {p.assists}A</p>
+                <p className="text-micro text-muted-foreground">{p.position} · {p.goals}G {p.assists}A</p>
               </div>
             </div>
           ))}
@@ -505,7 +507,7 @@ const MatchPrep = () => {
             {fitnessWarnings.map(p => (
               <div key={p.id} className="flex items-center justify-between">
                 <span className="text-xs text-foreground">{p.lastName} ({p.position})</span>
-                <span className={cn('text-[10px] font-semibold',
+                <span className={cn('text-micro font-semibold',
                   p.injured ? 'text-destructive' : 'text-amber-400'
                 )}>
                   {p.injured ? `Injured (${p.injuryWeeks}w)` : `${p.fitness}% fitness`}
@@ -539,7 +541,7 @@ const MatchPrep = () => {
               {rows.map(r => (
                 <div key={r.label} className="flex items-center gap-2 text-xs">
                   <span className={cn('w-8 text-right font-bold tabular-nums', r.my > r.opp ? 'text-emerald-400' : r.my < r.opp ? 'text-muted-foreground' : 'text-foreground')}>{r.my}</span>
-                  <div className="flex-1 text-center text-[10px] text-muted-foreground">{r.label}</div>
+                  <div className="flex-1 text-center text-micro text-muted-foreground">{r.label}</div>
                   <span className={cn('w-8 font-bold tabular-nums', r.opp > r.my ? 'text-emerald-400' : r.opp < r.my ? 'text-muted-foreground' : 'text-foreground')}>{r.opp}</span>
                 </div>
               ))}
@@ -557,7 +559,7 @@ const MatchPrep = () => {
           <Target className="w-4 h-4 text-primary" />
           <h3 className="text-sm font-semibold text-foreground">Game Plan</h3>
         </div>
-        <p className="text-[10px] text-muted-foreground mb-3">
+        <p className="text-micro text-muted-foreground mb-3">
           Answer their intel with a plan for the whole match. Each is a tradeoff.
         </p>
         <div className="space-y-2">
@@ -580,10 +582,10 @@ const MatchPrep = () => {
                 <div className="flex items-center justify-between gap-2">
                   <span className={cn('text-xs font-semibold', isSelected ? 'text-primary' : 'text-foreground')}>{label}</span>
                   {isSelected && plan.id !== 'none' && (
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-primary shrink-0">Selected</span>
+                    <span className="text-micro font-bold uppercase tracking-wider text-primary shrink-0">Selected</span>
                   )}
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-0.5">{plan.tradeoff}</p>
+                <p className="text-micro text-muted-foreground mt-0.5">{plan.tradeoff}</p>
               </button>
             );
           })}

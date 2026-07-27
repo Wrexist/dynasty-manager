@@ -65,13 +65,86 @@ const WORLD_CUP_2026: LiveEvent = {
   ],
 };
 
+/** Shared reward track for the curated marquee events below. Point thresholds
+ *  and XP payouts match the World Cup event's scale so every event feels
+ *  consistent; only the tier LABELS are themed per event. */
+function marqueeTiers(labels: [string, string, string, string, string]): LiveEventTier[] {
+  return [
+    { id: 'tier1', points: 10,  xp: 25,  label: labels[0] },
+    { id: 'tier2', points: 30,  xp: 40,  label: labels[1] },
+    { id: 'tier3', points: 60,  xp: 60,  label: labels[2] },
+    { id: 'tier4', points: 100, xp: 90,  label: labels[3] },
+    { id: 'tier5', points: 150, xp: 150, label: labels[4] },
+  ];
+}
+
 /**
  * Hand-authored "special" events. These are the marquee, calendar-pegged
  * events (World Cup, future tournaments) that a designer curates. They take
  * PRECEDENCE over the auto-generated monthly festival on any date overlap
- * (see `getActiveLiveEvent`). Add future special events here.
+ * (see `getActiveLiveEvent`).
+ *
+ * ⚠ MAINTENANCE: `getUpcomingSpecialEvent` only ever looks FORWARD (and only
+ * 45 days out), so once every entry here is in the past the "next event in N
+ * days" teaser silently becomes dead code — which is exactly what happened
+ * when this list held nothing but the expired 2026 World Cup. Keep at least
+ * one entry with a `start` in the future, and top the list up whenever a
+ * build is cut. The monthly-festival fallback means no surface ever goes
+ * blank, but the marquee teaser is the only thing that says "come back".
  */
-export const SPECIAL_EVENTS: LiveEvent[] = [WORLD_CUP_2026];
+export const SPECIAL_EVENTS: LiveEvent[] = [
+  WORLD_CUP_2026,
+  {
+    id: 'kickoff-cup-2026',
+    name: 'Kickoff Cup',
+    tagline: 'A new campaign begins. Check in daily and win matches to climb the track.',
+    start: '2026-08-15',
+    end: '2026-09-06',
+    checkInPoints: 10,
+    matchWinPoints: 5,
+    tiers: marqueeTiers(['First Whistle', 'Early Pace', 'Front Runner', 'Table Topper', 'Kickoff Champion']),
+  },
+  {
+    id: 'derby-days-2026',
+    name: 'Derby Days',
+    tagline: 'Rivalry season. Every win counts double for the neighbours.',
+    start: '2026-10-17',
+    end: '2026-11-08',
+    checkInPoints: 10,
+    matchWinPoints: 5,
+    tiers: marqueeTiers(['Local Pride', 'Bragging Rights', 'City Rivals', 'Derby Winner', 'King of the City']),
+  },
+  {
+    id: 'festive-fixtures-2026',
+    name: 'Festive Fixtures',
+    tagline: 'The busiest run of the season. Show up every day and cash in.',
+    start: '2026-12-18',
+    end: '2027-01-04',
+    checkInPoints: 10,
+    matchWinPoints: 5,
+    tiers: marqueeTiers(['Boxing Day', 'Congestion', 'Squad Depth', 'Unbeaten Run', 'Festive Champion']),
+  },
+  {
+    id: 'winter-window-2027',
+    name: 'Winter Window',
+    tagline: 'Deadline season. Daily check-ins fund the rebuild.',
+    start: '2027-01-22',
+    end: '2027-02-14',
+    checkInPoints: 10,
+    matchWinPoints: 5,
+    tiers: marqueeTiers(['Scouting', 'First Bid', 'Negotiation', 'Deal Agreed', 'Deadline Hero']),
+  },
+  {
+    id: 'run-in-2027',
+    name: 'The Run-In',
+    tagline: 'Trophies are decided now. Check in daily through the final stretch.',
+    start: '2027-04-16',
+    end: '2027-05-16',
+    checkInPoints: 10,
+    matchWinPoints: 5,
+    tiers: marqueeTiers(['Squeaky Bum Time', 'Six-Pointer', 'Title Race', 'Final Day', 'Champion']),
+  },
+];
 
 /** Back-compat alias — historically the only event list. Now == special
  *  (hand-authored) events; the monthly festival is generated, not listed. */

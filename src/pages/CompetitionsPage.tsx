@@ -25,17 +25,36 @@ interface TabDef {
   render: () => JSX.Element;
 }
 
-// Small centered spinner while a tab's lazy chunk resolves. Honors reduced
-// motion via Tailwind's motion-reduce variant (same as GameShell's fallback).
+/**
+ * Skeleton shown while a tab's lazy chunk resolves.
+ *
+ * WHY IT RESERVES SPACE: this used to be a bare `py-16` spinner — so switching
+ * League → Cup collapsed a full 20-row table down to a ~64px box and then
+ * snapped back out, throwing the page (and the sub-nav above it) around on
+ * every single tab change. `MatchDay`'s PitchView fallback already had the
+ * right answer: hold the incoming content's approximate footprint so the
+ * layout never moves. `min-h-[60vh]` is deliberately viewport-relative — the
+ * five competition screens have wildly different heights, and a fixed px
+ * value would over- or under-shoot on every one of them.
+ *
+ * The glass rim + faint row bars make the hold read as "content arriving"
+ * rather than "empty screen", which is the difference between a load and a
+ * glitch. Honors reduced motion via Tailwind's `motion-reduce` variant.
+ */
 const TabSuspenseFallback = () => (
   <div
     role="status"
     aria-busy="true"
     aria-live="polite"
     aria-label="Loading competition"
-    className="flex items-center justify-center py-16"
+    className="min-h-[60vh] flex flex-col items-center justify-center gap-4 rounded-2xl border border-border/30 bg-card/20"
   >
     <Loader2 className="w-6 h-6 text-muted-foreground animate-spin motion-reduce:animate-none" />
+    <div aria-hidden className="w-full max-w-sm px-4 space-y-2">
+      {[0, 1, 2, 3, 4, 5].map(i => (
+        <div key={i} className="h-7 rounded-lg bg-muted/15" />
+      ))}
+    </div>
   </div>
 );
 

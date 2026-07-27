@@ -9,6 +9,7 @@
  * orchestrationSlice.ts. This file is for the cleanly-pure subset.
  */
 import type {
+  MatchEvent,
   Player,
   Club,
   BoardObjective,
@@ -39,6 +40,11 @@ import {
   INJURY_TYPES,
   NON_FOUL_INJURY_TYPE_WEIGHTS,
   INJURY_SEVERITY_WEIGHTS,
+  YELLOW_ACCUMULATION_THRESHOLDS,
+  YELLOW_ACCUMULATION_BAN_WEEKS,
+  RATING_MORALE_BASELINE,
+  FORM_PER_RATING_POINT,
+  FORM_RATING_ADJ_CAP,
 } from '@/config/gameBalance';
 import { GOAL_EVENT_TYPES } from '@/config/matchEngine';
 import { resetRealPlayerClaims, claimRealPlayer } from '@/utils/realPlayerPicker';
@@ -108,6 +114,104 @@ export function findTournamentMatch(s: { week: number; playerClubId: string; cup
   return null;
 }
 
+/**
+ * Yellow-card accumulation ban.
+ *
+ * Yellows were incremented and then caused NOTHING — only reds suspended
+ * anyone, so `pressingIntensity`, `personality.temperament`, the
+ * `disciplinarian` perk and squad depth were all disconnected from discipline.
+ *
+ * Thresholds are per-season because `seasonEnd.ts` resets `yellowCards` to 0
+ * (and clears `suspendedUntilWeek`) at rollover — no extra persisted field is
+ * needed. A player picking up two yellows in one match (without a second-yellow
+ * red) can cross a threshold from below, so we test for *crossing* rather than
+ * equality.
+ *
+ * Returns the week the player is suspended until, or `null` for no ban.
+ * `suspendedUntilWeek > week` is the "is suspended" test used everywhere, so
+ * `week + 1 + banWeeks` makes him miss exactly `banWeeks` following weeks.
+ */
+export function getYellowAccumulationBanWeek(
+  previousYellows: number,
+  newYellows: number,
+  week: number,
+): number | null {
+  const crossed = YELLOW_ACCUMULATION_THRESHOLDS.some(
+    t => previousYellows < t && newYellows >= t,
+  );
+  if (!crossed) return null;
+  return week + 1 + YELLOW_ACCUMULATION_BAN_WEEKS;
+}
+
+/**
+ * Per-player minutes played, derived from the match event stream.
+ *
+ * The engine models per-minute fatigue and per-minute participation and then
+ * threw both away: every participant took the same flat post-match drain and
+ * `minutesPlayed` did not exist anywhere in the codebase. Deriving minutes from
+ * the events keeps this a pure function of the persisted `Match`, so it works
+ * for the player's match, AI-vs-AI matches, and replays alike.
+ *
+ * A player's shift ends at the earliest of: being substituted off, being sent
+ * off, or going down injured with no replacement. It starts at the minute he
+ * came on (0 for starters).
+ */
+export function computeMinutesPlayed(
+  events: Pick<MatchEvent, 'minute' | 'type' | 'playerId' | 'assistPlayerId'>[],
+  participantIds: string[],
+): Record<string, number> {
+  let fullTime = 90;
+  const cameOn: Record<string, number> = {};
+  const wentOff: Record<string, number> = {};
+  const noteOff = (id: string, minute: number) => {
+    if (wentOff[id] === undefined || minute < wentOff[id]) wentOff[id] = minute;
+  };
+  for (const ev of events) {
+    if (ev.minute > fullTime) fullTime = ev.minute;
+    if (ev.type === 'substitution') {
+      // `playerId` comes on, `assistPlayerId` goes off (see makeMatchSub).
+      if (ev.playerId && cameOn[ev.playerId] === undefined) cameOn[ev.playerId] = ev.minute;
+      if (ev.assistPlayerId) noteOff(ev.assistPlayerId, ev.minute);
+    } else if (ev.type === 'red_card' && ev.playerId) {
+      noteOff(ev.playerId, ev.minute);
+    } else if (ev.type === 'injury' && ev.playerId) {
+      // If he was substituted the substitution event above gives the same or a
+      // later minute; `noteOff` keeps the earlier one either way.
+      noteOff(ev.playerId, ev.minute);
+    }
+  }
+  const out: Record<string, number> = {};
+  for (const id of participantIds) {
+    const start = cameOn[id] ?? 0;
+    const end = wentOff[id] ?? fullTime;
+    out[id] = Math.max(0, Math.round(end - start));
+  }
+  return out;
+}
+
+/**
+ * Last known in-match fitness per player, recovered from the periodic snapshots
+ * the engine stamps onto events (`FITNESS_SNAPSHOT_INTERVAL`). Snapshots skip
+ * players who have become unavailable, so merging forwards and keeping the last
+ * seen value gives a subbed-off / sent-off / injured player the fitness he had
+ * when he left the pitch rather than a full-90 figure.
+ *
+ * Reading it off the `Match` (rather than plumbing `HalfState` through every
+ * call site) keeps this usable from the shared post-match path.
+ */
+export function extractFinalMatchFitness(
+  events: Pick<MatchEvent, 'playerFitness'>[],
+): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const ev of events) {
+    if (!ev.playerFitness) continue;
+    for (const [pid, fit] of Object.entries(ev.playerFitness)) {
+      if (typeof fit === 'number' && Number.isFinite(fit)) out[pid] = fit;
+    }
+  }
+  return out;
+}
+
 /** Weighted random pick from a record of weights */
 export function weightedPickFromRecord<T extends string>(weights: Record<T, number>): T {
   const entries = Object.entries(weights) as [T, number][];
@@ -139,7 +243,10 @@ export function generateAIInjuryDetails(medicalLevel: number = 5): InjuryDetails
 
 /** Apply AI match events to players: goals, assists, injuries, cards, suspensions. */
 export function applyAIMatchEvents(
-  events: { type: string; playerId?: string; assistPlayerId?: string; clubId: string }[],
+  // Widened from a hand-rolled subset to the real event shape: `minute` is
+  // needed to derive minutes played, and every caller already passes
+  // `result.events` (a full MatchEvent[]).
+  events: MatchEvent[],
   newPlayers: Record<string, Player>,
   clubs: Record<string, Club>,
   week: number,
@@ -171,7 +278,17 @@ export function applyAIMatchEvents(
       newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], injured: true, injuryWeeks: injDetails.weeksRemaining, injuryDetails: injDetails };
     }
     if (ev.type === 'yellow_card' && ev.playerId && newPlayers[ev.playerId]) {
-      newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], yellowCards: newPlayers[ev.playerId].yellowCards + 1 };
+      const prevYellows = newPlayers[ev.playerId].yellowCards;
+      const nextYellows = prevYellows + 1;
+      const banUntil = getYellowAccumulationBanWeek(prevYellows, nextYellows, week);
+      newPlayers[ev.playerId] = {
+        ...newPlayers[ev.playerId],
+        yellowCards: nextYellows,
+        // Never shorten an existing (longer) suspension.
+        ...(banUntil != null
+          ? { suspendedUntilWeek: Math.max(newPlayers[ev.playerId].suspendedUntilWeek ?? 0, banUntil) }
+          : {}),
+      };
     }
     if (ev.type === 'red_card' && ev.playerId && newPlayers[ev.playerId]) {
       newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], redCards: newPlayers[ev.playerId].redCards + 1, suspendedUntilWeek: week + 1 + RED_CARD_SUSPENSION_MIN + Math.floor(Math.random() * RED_CARD_SUSPENSION_RANGE) };
@@ -180,6 +297,11 @@ export function applyAIMatchEvents(
 
   // Track appearances and synthetic match ratings for AI lineups
   if (homeLineup && awayLineup && homeGoals !== undefined && awayGoals !== undefined) {
+    // Minutes played: derived from the same event stream the player's club uses,
+    // so `Player.minutesPlayed` means the same thing league-wide (and the
+    // minutes-based playing-time term in development.ts is comparable across
+    // the player's squad and the other 755 clubs).
+    const minutes = computeMinutesPlayed(events, [...homeLineup, ...awayLineup].map(p => p.id));
     const sides: { lineup: Player[]; won: boolean; lost: boolean; clubId: string; oppClubId: string }[] = [
       { lineup: homeLineup, won: homeGoals > awayGoals, lost: homeGoals < awayGoals, clubId: homeClubId || '', oppClubId: awayClubId || '' },
       { lineup: awayLineup, won: awayGoals > homeGoals, lost: awayGoals < homeGoals, clubId: awayClubId || '', oppClubId: homeClubId || '' },
@@ -201,11 +323,15 @@ export function applyAIMatchEvents(
         rating = Math.max(3, Math.min(10, Math.round(rating * 10) / 10));
 
         const prev = newPlayers[p.id];
-        const formChange = side.won ? FORM_WIN_CHANGE : side.lost ? FORM_LOSS_CHANGE : FORM_DRAW_CHANGE;
+        // Team result stays dominant; the rating only softens or sharpens it.
+        const formChange = (side.won ? FORM_WIN_CHANGE : side.lost ? FORM_LOSS_CHANGE : FORM_DRAW_CHANGE)
+          + Math.max(-FORM_RATING_ADJ_CAP, Math.min(FORM_RATING_ADJ_CAP,
+            (rating - RATING_MORALE_BASELINE) * FORM_PER_RATING_POINT));
         newPlayers[p.id] = {
           ...prev,
           appearances: prev.appearances + 1,
-          form: Math.min(100, Math.max(10, prev.form + formChange)),
+          minutesPlayed: (prev.minutesPlayed || 0) + (minutes[p.id] ?? 0),
+          form: Math.min(100, Math.max(10, prev.form + Math.round(formChange))),
           seasonRatingTotal: (prev.seasonRatingTotal || 0) + rating,
           seasonRatedMatches: (prev.seasonRatedMatches || 0) + 1,
         };

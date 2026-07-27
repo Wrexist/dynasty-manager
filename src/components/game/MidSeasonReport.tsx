@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -11,6 +11,8 @@ import { Trophy, TrendingUp, TrendingDown, Target, Minus } from 'lucide-react';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useEscapeClose } from '@/hooks/useEscapeClose';
 import { usePresentationSlot } from '@/hooks/usePresentationQueue';
+import { hapticMedium } from '@/utils/haptics';
+import { sfxChime } from '@/utils/sfx';
 
 interface MidSeasonReportProps {
   onDismiss: () => void;
@@ -28,6 +30,15 @@ export function MidSeasonReport({ onDismiss }: MidSeasonReportProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   useFocusTrap(containerRef, visible);
   useEscapeClose(onDismiss, visible);
+  // Once-a-season summary beat: give it a light haptic + chime on the
+  // queue-gated visibility, matching the other overlays. It was completely
+  // silent while the routine weekly digest chimed every week.
+  const soundEnabled = useGameStore(s => s.settings.soundEnabled !== false);
+  useEffect(() => {
+    if (!visible) return;
+    hapticMedium();
+    if (soundEnabled) sfxChime(true);
+  }, [visible, soundEnabled]);
   if (!visible) return null;
 
   const entry = leagueTable.find(e => e.clubId === playerClubId);

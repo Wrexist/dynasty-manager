@@ -20,6 +20,7 @@ import { FORMATION_POSITIONS, type FormationType, type Player } from '@/types/ga
 import { selectBestLineup } from '@/utils/playerGen';
 import { hapticLight, hapticMedium } from '@/utils/haptics';
 import { successToast, errorToast } from '@/utils/gameToast';
+import { SectionHeader } from '@/components/game/SectionHeader';
 
 // Position groups & quotas — mirrors NationalSquadPicker so the National
 // Team page and the pre-tournament picker speak the same language.
@@ -165,17 +166,17 @@ const NationalTeamPage = () => {
             {/* Offer details */}
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-muted/20 rounded-lg p-3 border border-border/20">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Role</p>
+                <p className="text-micro text-muted-foreground uppercase tracking-wider mb-1">Role</p>
                 <p className="text-sm font-semibold text-foreground">Head Coach</p>
               </div>
               <div className="bg-muted/20 rounded-lg p-3 border border-border/20">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Dual Role</p>
+                <p className="text-micro text-muted-foreground uppercase tracking-wider mb-1">Dual Role</p>
                 <p className="text-sm font-semibold text-foreground">Club + Country</p>
               </div>
             </div>
 
             {/* Expiry notice */}
-            <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+            <p className="text-micro text-muted-foreground flex items-center gap-1">
               <Calendar className="w-3 h-3" />
               Offer expires Season {nationalTeamOffer.expiresSeason} Week {nationalTeamOffer.expiresWeek}
             </p>
@@ -213,7 +214,7 @@ const NationalTeamPage = () => {
     return (
       <div className="max-w-lg mx-auto px-4 py-8 text-center space-y-4">
         <Globe className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
-        <h2 className="text-lg font-bold text-foreground font-display">No National Team</h2>
+        <SectionHeader title="No National Team" className="justify-center" />
         {isCareer && managerNationality ? (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
@@ -232,7 +233,7 @@ const NationalTeamPage = () => {
                   transition={{ duration: 0.8, ease: 'easeOut' }}
                 />
               </div>
-              <p className="text-[10px] text-muted-foreground/70">
+              <p className="text-micro text-muted-foreground/70">
                 {progress >= 100 ? 'You meet the reputation requirement — an offer may come soon!' : `${100 - progress}% more reputation needed`}
               </p>
             </div>
@@ -381,7 +382,7 @@ const NationalTeamPage = () => {
               <Flag className="w-5 h-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] text-primary font-bold uppercase tracking-[0.2em]">
+              <p className="text-micro text-primary font-bold uppercase tracking-[0.2em]">
                 {upcoming.season === season ? 'This Season' : 'Coming Up'}
               </p>
               <p className="text-sm font-bold text-foreground truncate">{upcoming.name}</p>
@@ -409,7 +410,7 @@ const NationalTeamPage = () => {
           {nationalTeam.results.length > 0 && (
             <div className="text-right">
               <p className="text-xs text-muted-foreground">Record</p>
-              <p className="text-sm font-mono font-semibold text-foreground">
+              <p className="text-sm font-display font-semibold text-foreground tabular-nums">
                 {nationalTeam.results.filter(r => r.goalsFor > r.goalsAgainst).length}W {nationalTeam.results.filter(r => r.goalsFor === r.goalsAgainst).length}D {nationalTeam.results.filter(r => r.goalsFor < r.goalsAgainst).length}L
               </p>
             </div>
@@ -420,10 +421,10 @@ const NationalTeamPage = () => {
       {/* Formation Picker */}
       <div className={cn(LIQUID_GLASS_SURFACE, 'border border-white/10 p-4')}>
         <div className="flex items-center justify-between mb-1">
-          <h2 className="text-sm font-bold text-foreground">Formation</h2>
+          <SectionHeader title="Formation" level="section" />
           <button
             onClick={() => setShowFormationPicker(!showFormationPicker)}
-            className="flex items-center gap-1 text-sm text-primary font-mono hover:text-primary/80 transition-colors"
+            className="flex items-center gap-1 text-sm text-primary font-display tabular-nums hover:text-primary/80 transition-colors"
           >
             {nationalTeam.formation}
             <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', showFormationPicker && 'rotate-180')} />
@@ -446,7 +447,7 @@ const NationalTeamPage = () => {
                       key={f}
                       onClick={() => handleFormationChange(f)}
                       className={cn(
-                        'px-2 py-1.5 rounded-lg text-xs font-mono transition-colors',
+                        'px-2 py-1.5 rounded-lg text-xs font-display tabular-nums transition-colors',
                         f === nationalTeam.formation
                           ? 'bg-primary/20 text-primary border border-primary/30'
                           : 'bg-muted/20 text-muted-foreground hover:bg-muted/40 border border-transparent'
@@ -476,8 +477,8 @@ const NationalTeamPage = () => {
         {/* Header row — squad size + edit toggle */}
         <div className="flex items-center justify-between px-1">
           <div>
-            <h2 className="text-sm font-bold text-foreground">Squad</h2>
-            <p className="text-[10px] text-muted-foreground tabular-nums">
+            <SectionHeader title="Squad" level="section" />
+            <p className="text-micro text-muted-foreground tabular-nums">
               <span className={cn(
                 squadPlayers.length === NATIONAL_SQUAD_SIZE && 'text-emerald-400',
                 squadPlayers.length > NATIONAL_SQUAD_SIZE && 'text-destructive',
@@ -522,8 +523,8 @@ const NationalTeamPage = () => {
           <div className="absolute inset-0 bg-gradient-to-br from-primary/8 via-transparent to-transparent pointer-events-none" />
           <div className="relative">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-[0.18em]">Squad Composition</p>
-              <p className="text-[10px] text-muted-foreground/80 font-mono tabular-nums">
+              <p className="text-micro text-muted-foreground uppercase tracking-[0.18em]">Squad Composition</p>
+              <p className="text-micro text-muted-foreground/80 tabular-nums">
                 {squadPlayers.length}/{NATIONAL_SQUAD_SIZE}
               </p>
             </div>
@@ -559,13 +560,13 @@ const NationalTeamPage = () => {
                     className={cn('rounded-xl border py-2 text-center', tone)}
                     title={`Min ${quota.min} · Recommended ${quota.recommended}`}
                   >
-                    <p className="text-[9px] uppercase tracking-[0.2em] opacity-80">{key}</p>
+                    <p className="text-micro uppercase tracking-[0.2em] opacity-80">{key}</p>
                     <p className="font-display font-black tabular-nums leading-none mt-0.5">
                       <span className="text-base">{c}</span>
-                      <span className="text-[10px] opacity-60"> /{quota.recommended}</span>
+                      <span className="text-micro opacity-60"> /{quota.recommended}</span>
                     </p>
                     {!meetsMin && (
-                      <p className="text-[8px] mt-0.5 opacity-90">need {quota.min - c}</p>
+                      <p className="text-micro mt-0.5 opacity-90">need {quota.min - c}</p>
                     )}
                   </div>
                 );
@@ -602,7 +603,7 @@ const NationalTeamPage = () => {
             edit mode shows the top 50 eligible pool grouped the same way. */}
         {editingSquad ? (
           <div className="space-y-4">
-            <p className="text-[10px] text-muted-foreground px-1">
+            <p className="text-micro text-muted-foreground px-1">
               Tap a card to call up or release. Showing top {POOL_DISPLAY_LIMIT} eligible players from {managerNationality}.
             </p>
             {POSITION_GROUPS.map(group => {
@@ -618,7 +619,7 @@ const NationalTeamPage = () => {
                       {group.label}
                     </p>
                     <p className={cn(
-                      'text-[10px] font-mono tabular-nums',
+                      'text-micro tabular-nums',
                       !meetsMin ? 'text-amber-300' : 'text-muted-foreground',
                     )}>
                       {c}/{quota.recommended} picked
@@ -682,7 +683,7 @@ const NationalTeamPage = () => {
                       <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground/80">
                         {group.label}
                       </p>
-                      <p className="text-[10px] text-muted-foreground font-mono tabular-nums">
+                      <p className="text-micro text-muted-foreground tabular-nums">
                         {groupPlayers.length}
                       </p>
                     </div>
@@ -732,7 +733,7 @@ const NationalTeamPage = () => {
       {/* Results history */}
       {nationalTeam.results.length > 0 && (
         <div className="space-y-2">
-          <h2 className="text-sm font-bold text-foreground px-1">Recent Results</h2>
+          <SectionHeader title="Recent Results" level="section" className="px-1" />
           {nationalTeam.results.slice(-10).reverse().map((result, i) => {
             const won = result.goalsFor > result.goalsAgainst;
             const drew = result.goalsFor === result.goalsAgainst;
@@ -753,9 +754,9 @@ const NationalTeamPage = () => {
                 </div>
                 <div className="flex-1">
                   <p className="text-sm text-foreground">vs {result.opponent}</p>
-                  <p className="text-[10px] text-muted-foreground">{result.tournament} &middot; {result.round}</p>
+                  <p className="text-micro text-muted-foreground">{result.tournament} &middot; {result.round}</p>
                 </div>
-                <p className="text-sm font-mono font-bold text-foreground">{result.goalsFor} - {result.goalsAgainst}</p>
+                <p className="text-sm font-display font-bold text-foreground tabular-nums">{result.goalsFor} - {result.goalsAgainst}</p>
               </motion.div>
             );
           })}

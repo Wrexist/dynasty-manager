@@ -68,13 +68,13 @@ function DynastyLegacy() {
           <div
             aria-hidden
             className="pointer-events-none absolute inset-0 opacity-70"
-            style={{ background: 'radial-gradient(130% 90% at 50% -10%, hsl(43 96% 46% / 0.20) 0%, hsl(43 96% 46% / 0.04) 42%, transparent 72%)' }}
+            style={{ background: 'radial-gradient(130% 90% at 50% -10%, hsl(var(--gold) / 0.20) 0%, hsl(var(--gold) / 0.04) 42%, transparent 72%)' }}
           />
           <div className="relative">
             <div className="mx-auto w-16 h-16 rounded-2xl flex items-center justify-center bg-gradient-to-b from-primary/30 to-primary/10 text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.25),inset_0_-1px_0_rgba(0,0,0,0.3)] mb-3">
               <TierIcon className="w-8 h-8" />
             </div>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-primary/80 font-semibold">Lifetime Tier</p>
+            <p className="text-micro uppercase tracking-[0.2em] text-primary/80 font-semibold">Lifetime Tier</p>
             <h1 className="text-2xl font-black text-foreground font-display leading-tight">{legacy.tier}</h1>
             <p className="text-xs text-foreground/65 mt-1">{TIER_META[legacy.tier].blurb}</p>
 
@@ -83,7 +83,7 @@ function DynastyLegacy() {
               <span className="text-lg font-black text-primary tabular-nums">{legacy.totalTrophies}</span>
               <span className="text-xs text-foreground/70">career trophies</span>
             </div>
-            <p className="text-[10px] text-foreground/55 mt-2">
+            <p className="text-micro text-foreground/55 mt-2">
               {nextTier
                 ? `${nextTier.remaining} more ${nextTier.remaining === 1 ? 'trophy' : 'trophies'} to ${nextTier.next}`
                 : 'Maximum tier reached — a true Immortal.'}
@@ -108,7 +108,7 @@ function DynastyLegacy() {
                   <div key={label} className="text-center">
                     <Icon className="w-4 h-4 text-primary/80 mx-auto mb-1" />
                     <p className="text-sm font-black text-foreground tabular-nums leading-none">{value}</p>
-                    <p className="text-[9px] text-muted-foreground mt-1 leading-tight">{label}</p>
+                    <p className="text-micro text-muted-foreground mt-1 leading-tight">{label}</p>
                   </div>
                 ))}
               </div>
@@ -119,7 +119,7 @@ function DynastyLegacy() {
           {legacy.clubsManaged.length > 0 && (
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
               <GlassPanel className="p-4">
-                <p className="text-[10px] uppercase tracking-[0.16em] text-primary/80 font-semibold mb-2">
+                <p className="text-micro uppercase tracking-[0.16em] text-primary/80 font-semibold mb-2">
                   Clubs Managed · {legacy.clubsManaged.length}
                 </p>
                 <div className="flex flex-wrap gap-1.5">
@@ -148,7 +148,7 @@ function DynastyLegacy() {
           <Crown className="w-4 h-4 text-primary" />
           <div>
             <p className="text-sm font-semibold text-foreground">Hall of Fame</p>
-            <p className="text-[10px] text-muted-foreground">Every dynasty, ranked</p>
+            <p className="text-micro text-muted-foreground">Every dynasty, ranked</p>
           </div>
         </div>
         <ChevronRight className="w-4 h-4 text-foreground/40" />

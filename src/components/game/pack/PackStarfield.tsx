@@ -1,5 +1,3 @@
-import { useMemo } from 'react';
-
 /**
  * Cosmic parallax starfield for the pack-opening overlay.
  *
@@ -14,9 +12,13 @@ import { useMemo } from 'react';
  * during the opening sequence can't reshuffle the sky mid-drift.
  *
  * Purely decorative: pointer-events-none + aria-hidden. The CSS drift is
- * disabled under `prefers-reduced-motion`; the stars then sit still, which
- * is the correct degraded state (a static starfield, not a blank void).
+ * disabled under `prefers-reduced-motion` AND under the in-game Reduced Motion
+ * / Performance Mode settings (the media query alone missed those — see
+ * `useReducedMotionPref`). The stars then sit still, which is the correct
+ * degraded state (a static starfield, not a blank void).
  */
+import { useMemo } from 'react';
+import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 
 interface Star {
   /** Percent position within the (oversized) layer. */
@@ -56,6 +58,7 @@ function buildStars(spec: LayerSpec): Star[] {
 }
 
 export function PackStarfield() {
+  const reduce = useReducedMotionPref();
   // Build all three layers once. The overlay re-renders on every phase
   // change; without the memo each drift layer would jump to a new sky.
   const layers = useMemo(() => LAYERS.map(spec => ({ spec, stars: buildStars(spec) })), []);
@@ -66,7 +69,7 @@ export function PackStarfield() {
         <div
           key={spec.className}
           // Oversized so the drift never exposes a layer edge.
-          className={`absolute inset-[-20%] ${spec.className}`}
+          className={`absolute inset-[-20%] ${reduce ? '' : spec.className}`}
         >
           {stars.map((s, i) => (
             <span

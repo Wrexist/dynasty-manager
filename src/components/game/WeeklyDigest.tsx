@@ -16,6 +16,8 @@ import {
 import { cn } from '@/lib/utils';
 import { } from '@/utils/uiHelpers';
 import { AnimatedNumber } from '@/components/game/AnimatedNumber';
+import { GlassPanel } from '@/components/game/GlassPanel';
+import { isWeeklyDigestSignificant } from '@/config/ui';
 
 // ── Animation helpers ──
 
@@ -88,10 +90,19 @@ export function WeeklyDigest() {
   const digest = useGameStore(s => s.weeklyDigest);
   const week = useGameStore(s => s.week);
   const dismissWeeklyDigest = useGameStore(s => s.dismissWeeklyDigest);
-  // Presentation queue (G3): a digest may be pending while another overlay is
-  // on screen. Register intent, but only show/lock when we're the active slot.
-  const active = usePresentationSlot('weeklyDigest', !!digest);
-  const visible = !!digest && active;
+  const onlyWhenSignificant = useGameStore(s => s.settings.digestOnlyWhenSignificant !== false);
+  // Interruption budget: `advanceWeek` builds a digest EVERY week, so showing
+  // it as a scroll-locked modal every week costs ~43 forced dismiss-taps a
+  // season. Quiet weeks (nothing to act on — see `isWeeklyDigestSignificant`)
+  // fall through to the inline Dashboard card below, which shows the same
+  // numbers without stealing the screen. Nothing is lost, only the tap.
+  //
+  // The presentation-slot registration is gated on the SAME predicate on
+  // purpose: registering intent for a digest we never intend to show would
+  // hold the 'weeklyDigest' slot forever and starve every overlay behind it.
+  const wantsModal = !!digest && (!onlyWhenSignificant || isWeeklyDigestSignificant(digest));
+  const active = usePresentationSlot('weeklyDigest', wantsModal);
+  const visible = wantsModal && active;
   useScrollLock(visible);
   const soundEnabled = useGameStore(s => s.settings.soundEnabled !== false);
   // Subtle chime + success haptic when the digest actually surfaces (G4) —
@@ -109,6 +120,86 @@ export function WeeklyDigest() {
     <AnimatePresence mode="wait">
       {visible && <WeeklyDigestCard digest={digest} week={week} dismiss={dismissWeeklyDigest} />}
     </AnimatePresence>
+  );
+}
+
+/**
+ * Inline week-summary card — the non-interrupting half of the digest fix.
+ *
+ * Renders on the Dashboard whenever a digest exists that is NOT being shown as
+ * a modal (a quiet week under the default setting). Same information, zero
+ * mandatory taps, no scroll lock, no chime. Dismissing is optional; the next
+ * `advanceWeek` overwrites `weeklyDigest` anyway.
+ */
+export function WeeklyDigestInlineCard() {
+  const digest = useGameStore(s => s.weeklyDigest);
+  const week = useGameStore(s => s.week);
+  const dismiss = useGameStore(s => s.dismissWeeklyDigest);
+  const onlyWhenSignificant = useGameStore(s => s.settings.digestOnlyWhenSignificant !== false);
+  const [expanded, setExpanded] = useState(false);
+
+  // Only render for weeks the modal deliberately skipped — otherwise the
+  // player would see the summary twice.
+  if (!digest || !onlyWhenSignificant || isWeeklyDigestSignificant(digest)) return null;
+
+  const netIncome = digest.incomeEarned - digest.expensesPaid;
+  const devCount = digest.playerDevelopment.length;
+  const trainingCount = digest.trainingGains.length;
+
+  return (
+    <GlassPanel className="p-3">
+      <button
+        type="button"
+        onClick={() => setExpanded(v => !v)}
+        aria-expanded={expanded}
+        className="w-full flex items-center gap-2 min-w-0 text-left"
+      >
+        <div className="bg-muted/40 border border-border/40 rounded-lg px-1.5 py-0.5 shrink-0">
+          <span className="text-[10px] font-bold text-muted-foreground font-display">W{week}</span>
+        </div>
+        <span className="text-xs font-semibold text-foreground shrink-0">Week Summary</span>
+        <span className="text-[10px] text-muted-foreground truncate flex-1">A quiet week</span>
+        <span className={cn('text-[11px] font-bold tabular-nums shrink-0', netIncome >= 0 ? 'text-emerald-400' : 'text-destructive')}>
+          {netIncome >= 0 ? '+' : '-'}£{Math.round(Math.abs(netIncome) / 1e3)}K
+        </span>
+        <ChevronDown className={cn('w-3.5 h-3.5 text-muted-foreground shrink-0 transition-transform', expanded && 'rotate-180')} />
+      </button>
+
+      {expanded && (
+        <div className="mt-2.5 pt-2.5 border-t border-border/30 space-y-1.5">
+          <div className="flex items-center gap-2 text-[11px]">
+            <Heart className={cn('w-3 h-3 shrink-0', digest.moraleChange > 0 ? 'text-emerald-400' : digest.moraleChange < 0 ? 'text-destructive' : 'text-muted-foreground')} />
+            <span className="text-muted-foreground flex-1">Squad morale</span>
+            <span className="text-foreground font-semibold tabular-nums">
+              {digest.moraleChange > 0 ? '+' : ''}{Math.round(digest.moraleChange)} pts
+            </span>
+          </div>
+          {devCount > 0 && (
+            <div className="flex items-center gap-2 text-[11px]">
+              <TrendingUp className="w-3 h-3 text-emerald-400 shrink-0" />
+              <span className="text-muted-foreground flex-1">Attribute gains</span>
+              <span className="text-foreground font-semibold tabular-nums">{devCount}</span>
+            </div>
+          )}
+          {trainingCount > 0 && (
+            <div className="flex items-center gap-2 text-[11px]">
+              <Dumbbell className="w-3 h-3 text-primary shrink-0" />
+              <span className="text-muted-foreground flex-1">Standout in training</span>
+              <span className="text-foreground font-semibold truncate max-w-[45%] text-right">
+                {digest.trainingGains[0].playerName}{trainingCount > 1 ? ` +${trainingCount - 1}` : ''}
+              </span>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={dismiss}
+            className="w-full text-[10px] text-muted-foreground hover:text-foreground transition-colors pt-1"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+    </GlassPanel>
   );
 }
 

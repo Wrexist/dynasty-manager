@@ -21,7 +21,8 @@ import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { PremiumCheck } from '@/components/game/icons/PremiumCheck';
 import { PremiumProgress } from '@/components/game/PremiumProgress';
 import { LEAGUES, getDerbyIntensity, getDerbyName } from '@/data/league';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 import { FloatingXP } from '@/components/game/FloatingXP';
 import { cn } from '@/lib/utils';
 import { useFinanceBreakdown } from '@/hooks/useFinanceBreakdown';
@@ -60,7 +61,7 @@ import { NationalTeamOfferModal } from '@/components/game/NationalTeamOfferModal
 import { getWeekPreview, getFallbackPreview } from '@/utils/weekPreview';
 import { hapticLight, hapticMedium, hapticHeavy } from '@/utils/haptics';
 import { InfoTip } from '@/components/game/InfoTip';
-import { WeeklyDigest } from '@/components/game/WeeklyDigest';
+import { WeeklyDigest, WeeklyDigestInlineCard } from '@/components/game/WeeklyDigest';
 import { FinanceBreakdownSheet, FinanceSheetMode } from '@/components/game/FinanceBreakdownSheet';
 import { AnimatedNumber } from '@/components/game/AnimatedNumber';
 import { useFlash } from '@/hooks/useFlash';
@@ -130,7 +131,7 @@ function competitionRowIcon(entry: CompetitionStatusEntry) {
 }
 
 const Dashboard = () => {
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useReducedMotionPref();
   // Use useShallow to only re-render when specific properties change (prevents React #185)
   const {
     playerClubId, clubs, players, week, season, fixtures, leagueTable,
@@ -254,11 +255,12 @@ const Dashboard = () => {
 
   // Celebration toasts & modals: fire when week changes (after advanceWeek)
   const prevWeekRef = useRef(week);
-  const shownCelebrationsRef = useRef<Set<string>>(new Set());
-  const prevSeasonRef = useRef(season);
   const [majorCelebration, setMajorCelebration] = useState<Celebration | null>(null);
   // Trophy ceremonies (G4) — a small queue so a league+cup double both play,
-  // sequenced by the presentation queue. Dedupe keys live in shownCelebrationsRef.
+  // sequenced by the presentation queue. Dedupe keys live in the STORE
+  // (`recordCelebrationKeys`), not in a ref: GameShell renders only the active
+  // screen, so this component unmounts on every navigation and a ref-held Set
+  // was thrown away — which is why "Top of the Table!" re-fired ~20x a season.
   const [pendingTrophy, setPendingTrophy] = useState<TrophyMoment | null>(null);
   const trophyQueueRef = useRef<TrophyMoment[]>([]);
   const [pendingAchievementQueue, setPendingAchievementQueue] = useState<Achievement[]>([]);
@@ -320,12 +322,9 @@ const Dashboard = () => {
     setPendingTrophy(trophyQueueRef.current.shift() ?? null);
   };
 
-  useEffect(() => {
-    if (prevSeasonRef.current !== season) {
-      shownCelebrationsRef.current.clear();
-      prevSeasonRef.current = season;
-    }
-  }, [season]);
+  // No season-reset effect: `recordCelebrationKeys` buckets by season and
+  // resets itself when the season changes, so the keys expire correctly even
+  // though this component is not mounted across the rollover.
   useEffect(() => {
     if (prevWeekRef.current !== week && prevWeekRef.current > 0) {
       // Read current values from store to avoid broad object dependencies (React #185 fix)
@@ -343,12 +342,20 @@ const Dashboard = () => {
         if (dramaCeleb) celebrations.push(dramaCeleb);
       }
 
+      // Drama celebrations (type 'record' from getDramaCelebration) are per-week;
+      // milestones/streaks are per-season to avoid re-triggering. The dedupe
+      // bucket is season-scoped in the store, so the season suffix is implicit.
+      const celebrationKey = (c: Celebration) =>
+        c.type === 'record' ? `${c.title}-w${week}` : c.title;
+      const freshKeys = new Set(
+        s.recordCelebrationKeys(s.season, celebrations.map(celebrationKey)),
+      );
+      // Consume on match so two celebrations sharing a key surface once, which
+      // is what the old add-to-Set-while-filtering loop did.
       const unseen = celebrations.filter(c => {
-        // Drama celebrations (type 'record' from getDramaCelebration) are per-week;
-        // milestones/streaks are per-season to avoid re-triggering
-        const key = c.type === 'record' ? `${c.title}-${s.season}-${week}` : `${c.title}-${s.season}`;
-        if (shownCelebrationsRef.current.has(key)) return false;
-        shownCelebrationsRef.current.add(key);
+        const key = celebrationKey(c);
+        if (!freshKeys.has(key)) return false;
+        freshKeys.delete(key);
         return true;
       });
       // Route major/legendary to modal, minor to toast
@@ -364,23 +371,26 @@ const Dashboard = () => {
         celebrationTimersRef.current.push(t);
       });
 
-      // Trophy ceremonies (G4): confirmed league title / domestic cup wins.
-      // Keyed per season so each trophy fires exactly once; queued so a
-      // double (league + cup the same week) plays both, sequenced by the
-      // presentation queue.
+      // Trophy ceremonies (G4): every confirmed trophy — league title, both
+      // domestic cups, all three continental cups and both Super Cups. Keyed
+      // per season so each fires exactly once; queued so a double (or a
+      // treble) plays them all, sequenced by the presentation queue.
       const trophies = detectTrophyMoments({
         playerClubId: s.playerClubId,
         clubName: currentClub.name ?? 'Your club',
         leagueTable: s.leagueTable,
         cupWinnerId: s.cup?.winner,
         leagueCupWinnerId: s.leagueCup?.winner,
+        championsCupWinnerId: s.championsCup?.winnerId,
+        shieldCupWinnerId: s.shieldCup?.winnerId,
+        conferenceCupWinnerId: s.conferenceCup?.winnerId,
+        domesticSuperCupWinnerId: s.domesticSuperCup?.winnerId,
+        continentalSuperCupWinnerId: s.continentalSuperCup?.winnerId,
       });
-      const unseenTrophies = trophies.filter(t => {
-        const key = `trophy-${t.id}-${s.season}`;
-        if (shownCelebrationsRef.current.has(key)) return false;
-        shownCelebrationsRef.current.add(key);
-        return true;
-      });
+      const freshTrophyKeys = new Set(
+        s.recordCelebrationKeys(s.season, trophies.map(t => `trophy-${t.id}`)),
+      );
+      const unseenTrophies = trophies.filter(t => freshTrophyKeys.has(`trophy-${t.id}`));
       if (unseenTrophies.length > 0) {
         trophyQueueRef.current.push(...unseenTrophies);
         setPendingTrophy(prev => prev ?? trophyQueueRef.current.shift() ?? null);
@@ -797,6 +807,10 @@ const Dashboard = () => {
           </div>
         </motion.div>
       )}
+
+      {/* Quiet-week digest: the same summary as the modal, inline and optional.
+          Renders only on weeks WeeklyDigest deliberately did not interrupt for. */}
+      <WeeklyDigestInlineCard />
 
       {/* Career Mode Info Panel */}
       {gameMode === 'career' && careerManager && (

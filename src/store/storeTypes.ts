@@ -234,6 +234,17 @@ export interface GameState {
     objectiveProgress: { title: string; completed: boolean; xpEarned: number }[];
   } | null;
 
+  /**
+   * Per-season dedupe bucket for one-shot presentation beats — celebration
+   * modals, trophy ceremonies, the promotion/relegation sting.
+   *
+   * This has to live in the store rather than a component ref: `GameShell`
+   * renders only the active screen, so `Dashboard` unmounts on every
+   * navigation. A `useRef<Set<string>>` was therefore discarded ~20+ times a
+   * season and "Top of the Table!" re-fired all season long.
+   */
+  celebrationDedupe: { season: number; keys: string[] };
+
   // Challenge Mode
   activeChallenge: ActiveChallenge | null;
 
@@ -300,6 +311,13 @@ export interface GameState {
   markMessageRead: (id: string) => void;
   markAllRead: () => void;
   updateSettings: (partial: Partial<GameSettings>) => void;
+  /**
+   * Claim one-shot presentation keys. Returns only the subset that had NOT
+   * already fired, and records the whole set. Resets the bucket when `season`
+   * differs from the stored one, so keys self-expire at the season rollover
+   * without any caller having to remember to clear them.
+   */
+  recordCelebrationKeys: (season: number, keys: string[]) => string[];
 
   // Actions — Club
   setFormation: (f: FormationType) => void;

@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 
 interface PackConfettiProps {
   count: number;
@@ -28,7 +29,7 @@ export const PackConfetti = memo(function PackConfetti({
   saturation = 92,
   lightness = 55,
 }: PackConfettiProps) {
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionPref();
   // Hard ceiling so a future config bump can't silently regress perf.
   const safeCount = Math.min(Math.max(0, count), 60);
   // Particle layouts are rolled once per mount so a parent re-render

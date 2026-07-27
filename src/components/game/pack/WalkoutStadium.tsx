@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 
 /**
  * Stadium dressing for the legendary walkout.
@@ -16,7 +17,7 @@ import { motion, useReducedMotion } from 'framer-motion';
  * infinite flash animations dozens of times per second mid-cinematic.
  */
 export const WalkoutStadium = memo(function WalkoutStadium({ accent, revealed }: { accent: string; revealed: boolean }) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionPref();
 
   // Camera-flash specs — rolled once per mount, not per render.
   const flashes = useMemo(() =>

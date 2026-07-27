@@ -4,7 +4,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { LiquidButton } from '@/components/game/LiquidButton';
 import { SaveStatusIndicator } from '@/components/game/SaveStatusIndicator';
-import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users, Bug, ChartBar, Sparkles, Gauge, Bell, Clapperboard, Volume2, Share2, Upload } from 'lucide-react';
+import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users, Bug, ChartBar, Sparkles, Gauge, Bell, Clapperboard, Volume2, Share2, Upload, Newspaper } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { useState, useRef, useEffect } from 'react';
@@ -448,6 +448,16 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
             description="Ask before accepting any transfer offer"
             value={settings.confirmAllOffers}
             onChange={() => updateSettings({ confirmAllOffers: !settings.confirmAllOffers })}
+          />
+
+          <div className="border-t border-white/10" />
+
+          <ToggleRow
+            icon={Newspaper}
+            label="Only interrupt for important weeks"
+            description="Show the weekly summary as a full-screen popup only when there's something to act on. Quiet weeks appear as a card on your Dashboard instead."
+            value={settings.digestOnlyWhenSignificant !== false}
+            onChange={() => updateSettings({ digestOnlyWhenSignificant: settings.digestOnlyWhenSignificant === false })}
           />
         </div>
       </SettingsSection>

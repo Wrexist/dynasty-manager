@@ -19,7 +19,15 @@ import {
   MORALE_APPEARANCE_BOOST, INJURY_TYPES,
   getExpectedPosition,
   MAX_PLAYER_MATCH_HISTORY,
+  RATING_MORALE_BASELINE, MORALE_PER_RATING_POINT, MORALE_RATING_ADJ_CAP,
+  FORM_PER_RATING_POINT, FORM_RATING_ADJ_CAP,
+  MATCH_FITNESS_CARRY_ENABLED, MATCH_FITNESS_CARRY_SCALE,
 } from '@/config/gameBalance';
+import {
+  computeMinutesPlayed,
+  extractFinalMatchFitness,
+  getYellowAccumulationBanWeek,
+} from '@/store/slices/orchestration/helpers';
 import { DEMAND_MORALE_WIN_BONUS, DEMAND_MORALE_LOSS_PENALTY, MOTIVATE_FATIGUE_MULTIPLIER, CALM_FATIGUE_MULTIPLIER, DEMAND_FATIGUE_MULTIPLIER } from '@/config/teamTalk';
 import { createMilestone, checkMatchMilestones } from '@/utils/milestones';
 import { grantXP, XP_REWARDS, hasPerk } from '@/utils/managerPerks';
@@ -82,7 +90,19 @@ export function processMatchResult(
       newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], injured: true, injuryWeeks: weeks, injuryDetails: details };
     }
     if (ev.type === 'yellow_card' && ev.playerId && newPlayers[ev.playerId]) {
-      newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], yellowCards: newPlayers[ev.playerId].yellowCards + 1 };
+      const prevYellows = newPlayers[ev.playerId].yellowCards;
+      const nextYellows = prevYellows + 1;
+      // Yellow-card accumulation ban (5/10/15 by default) — yellows used to be
+      // counted and then ignored entirely.
+      const banUntil = getYellowAccumulationBanWeek(prevYellows, nextYellows, getWeek() || 1);
+      newPlayers[ev.playerId] = {
+        ...newPlayers[ev.playerId],
+        yellowCards: nextYellows,
+        // Never shorten a suspension already in force (e.g. a red in the same match).
+        ...(banUntil != null
+          ? { suspendedUntilWeek: Math.max(newPlayers[ev.playerId].suspendedUntilWeek ?? 0, banUntil) }
+          : {}),
+      };
     }
     if (ev.type === 'red_card' && ev.playerId && newPlayers[ev.playerId]) {
       newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], redCards: newPlayers[ev.playerId].redCards + 1, suspendedUntilWeek: (getWeek() || 1) + 1 + RED_CARD_SUSPENSION_MIN + Math.floor(Math.random() * RED_CARD_SUSPENSION_RANGE) };
@@ -98,10 +118,22 @@ export function processMatchResult(
     .map(ev => ev.assistPlayerId as string);
   const participantIds = [...new Set([...hc.lineup, ...ac.lineup, ...subbedOffIds])];
 
-  // Track appearances and boost morale for playing
+  // Per-player minutes and end-of-match fitness, both recovered from the event
+  // stream the engine already produced. Before this, `minutesPlayed` did not
+  // exist anywhere in the codebase and every participant took the same flat
+  // fitness drain, so an 87th-minute cameo cost exactly what a 90-minute shift
+  // at high pressing cost — rotation was not a real decision.
+  const minutesByPlayer = computeMinutesPlayed(result.events, participantIds);
+  const endFitness = extractFinalMatchFitness(result.events);
+
+  // Track appearances, minutes, and boost morale for playing
   participantIds.forEach(pid => {
     if (newPlayers[pid]) {
-      const p = { ...newPlayers[pid], appearances: newPlayers[pid].appearances + 1 };
+      const p = {
+        ...newPlayers[pid],
+        appearances: newPlayers[pid].appearances + 1,
+        minutesPlayed: (newPlayers[pid].minutesPlayed || 0) + (minutesByPlayer[pid] ?? 0),
+      };
       p.morale = Math.min(100, p.morale + MORALE_APPEARANCE_BOOST);
       newPlayers[pid] = p;
     }
@@ -146,26 +178,50 @@ export function processMatchResult(
   // below; otherwise enough tagged veterans invert the defeat penalty.
   narrativeMoraleLossReduction = Math.min(NARRATIVE_MORALE_LOSS_REDUCTION_CAP, narrativeMoraleLossReduction);
 
+  // Per-player ratings, keyed for the morale/form and no-longer-flat fitness work
+  const ratingByPlayer: Record<string, number> = {};
+  for (const r of playerRatings) ratingByPlayer[r.playerId] = r.rating;
+
   pc.playerIds.forEach(pid => {
     if (newPlayers[pid]) {
       const p = { ...newPlayers[pid] };
       // Only drain fitness from players who actually played
       if (matchParticipants.has(pid)) {
-        const fatigueMult = state.matchTeamTalk === 'motivate'
-          ? MOTIVATE_FATIGUE_MULTIPLIER
-          : state.matchTeamTalk === 'demand'
-          ? DEMAND_FATIGUE_MULTIPLIER
-          : state.matchTeamTalk === 'calm'
-          ? CALM_FATIGUE_MULTIPLIER
-          : 1;
-        const fitnessDrain = FITNESS_DRAIN_PER_MATCH * fatigueMult;
-        p.fitness = Math.max(FITNESS_MIN_POST_MATCH, p.fitness + fitnessDrain);
+        // Preferred path: carry through the fitness the engine actually tracked
+        // minute by minute (pressing, tempo and team-talk drains are already
+        // folded in there, so there is no double-count with the flat drain).
+        const carried = endFitness[pid];
+        if (MATCH_FITNESS_CARRY_ENABLED && carried != null) {
+          const measuredDrain = (carried - p.fitness) * MATCH_FITNESS_CARRY_SCALE;
+          p.fitness = Math.max(FITNESS_MIN_POST_MATCH, Math.round(p.fitness + Math.min(0, measuredDrain)));
+        } else {
+          // Fallback for participants the engine reported no fitness for
+          // (forfeits, quick paths, pre-v75 mid-match saves).
+          const fatigueMult = state.matchTeamTalk === 'motivate'
+            ? MOTIVATE_FATIGUE_MULTIPLIER
+            : state.matchTeamTalk === 'demand'
+            ? DEMAND_FATIGUE_MULTIPLIER
+            : state.matchTeamTalk === 'calm'
+            ? CALM_FATIGUE_MULTIPLIER
+            : 1;
+          const fitnessDrain = FITNESS_DRAIN_PER_MATCH * fatigueMult;
+          p.fitness = Math.max(FITNESS_MIN_POST_MATCH, p.fitness + fitnessDrain);
+        }
       }
       let moraleDelta = won ? MORALE_WIN_CHANGE : lost ? MORALE_LOSS_CHANGE + narrativeMoraleLossReduction : 0;
       // Add team morale boost from narrative-tagged players (capped at +5)
       if (won) moraleDelta += Math.min(5, narrativeTeamMoraleBoost);
-      // Iron Will perk: no morale penalty from defeats
-      if (lost && hasPerk(state.managerProgression, 'iron_will')) moraleDelta = 0;
+      // Individual performance layered ON TOP of the team result. Capped below
+      // |MORALE_LOSS_CHANGE| so a man-of-the-match in a defeat still loses
+      // morale — just far less than the man who was sent off.
+      const rating = ratingByPlayer[pid];
+      if (rating != null) {
+        moraleDelta += Math.max(-MORALE_RATING_ADJ_CAP, Math.min(MORALE_RATING_ADJ_CAP,
+          (rating - RATING_MORALE_BASELINE) * MORALE_PER_RATING_POINT));
+      }
+      // Iron Will perk: no morale penalty from defeats. Clamped rather than
+      // zeroed so a good individual game still earns its boost.
+      if (lost && hasPerk(state.managerProgression, 'iron_will')) moraleDelta = Math.max(0, moraleDelta);
       // Fortress Mentality perk: home wins give extra morale
       if (won && isHome && hasPerk(state.managerProgression, 'fortress_mentality')) moraleDelta += 3;
       // Team talk morale effects: "demand" is high risk/reward
@@ -178,7 +234,12 @@ export function processMatchResult(
         : 1;
       const moraleStability = getMoraleStability(p.personality);
       p.morale = Math.min(100, Math.max(10, p.morale + Math.round(moraleDelta * moraleStability * motivationMod)));
-      p.form = Math.min(100, Math.max(10, p.form + (won ? FORM_WIN_CHANGE : lost ? FORM_LOSS_CHANGE : FORM_DRAW_CHANGE)));
+      let formDelta = won ? FORM_WIN_CHANGE : lost ? FORM_LOSS_CHANGE : FORM_DRAW_CHANGE;
+      if (rating != null) {
+        formDelta += Math.max(-FORM_RATING_ADJ_CAP, Math.min(FORM_RATING_ADJ_CAP,
+          (rating - RATING_MORALE_BASELINE) * FORM_PER_RATING_POINT));
+      }
+      p.form = Math.min(100, Math.max(10, p.form + Math.round(formDelta)));
       newPlayers[pid] = p;
     }
   });

@@ -7,6 +7,7 @@ import { MapPin, TrendingUp, Banknote, Briefcase, UserCheck } from 'lucide-react
 import { PremiumSparkle } from '@/components/game/icons/PremiumSparkle';
 import { cn } from '@/lib/utils';
 import { hapticHeavy } from '@/utils/haptics';
+import { sfxWhoosh } from '@/utils/sfx';
 import { calculateWageDemand, formatWage } from '@/utils/contracts';
 import { getPlayerTier } from '@/utils/uiHelpers';
 import { getPersonalityLabel } from '@/utils/personality';
@@ -30,9 +31,14 @@ export function GemRevealModal() {
   const active = usePresentationSlot('gemReveal', !!gem);
   const visible = !!gem && active;
 
+  // Reward beat: haptic AND audio, fired once on the queue-gated visibility.
+  // A hidden-gem reveal was silent while the routine weekly digest chimed.
+  const soundEnabled = useGameStore(s => s.settings.soundEnabled !== false);
   useEffect(() => {
-    if (visible) hapticHeavy();
-  }, [visible]);
+    if (!visible) return;
+    hapticHeavy();
+    if (soundEnabled) sfxWhoosh(true);
+  }, [visible, soundEnabled]);
 
   // Reset negotiation state when gem changes
   useEffect(() => {

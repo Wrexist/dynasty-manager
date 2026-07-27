@@ -11,11 +11,30 @@ import type { Club, Player, FormationType } from '@/types/game';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 74;
+const CURRENT_VERSION = 75;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
 const migrations: Record<number, MigrationFn> = {
+  // v74 → v75: `Player` gained `minutesPlayed` (season minutes, derived from the
+  // match event stream). The development playing-time term reads minutes when
+  // present and falls back to `appearances` when absent, so a save that skipped
+  // the backfill would still work — but seeding 0 here means every player starts
+  // the first post-upgrade season on a consistent basis instead of a mid-season
+  // mix of "no data" and real minutes.
+  74: (data) => {
+    const players = data.players as Record<string, unknown> | undefined;
+    if (!players || typeof players !== 'object') return { ...data, version: 75 };
+    const next: Record<string, unknown> = {};
+    for (const [id, raw] of Object.entries(players)) {
+      // Guard the null player: neighbouring migrations learned this the hard way
+      // (one null in `players` throws and the backup takes the same path).
+      if (!raw || typeof raw !== 'object') { next[id] = raw; continue; }
+      const p = raw as Record<string, unknown>;
+      next[id] = typeof p.minutesPlayed === 'number' ? p : { ...p, minutesPlayed: 0 };
+    }
+    return { ...data, version: 75, players: next };
+  },
   // v73 → v74: `SubscriptionInfo` gained `grantedAt`, and a null `expiresAt` no
   // longer means "lifetime" (it means "the store didn't tell us"). Lifetime is
   // now identified by tier/productId. Backfill the anchor where we have a

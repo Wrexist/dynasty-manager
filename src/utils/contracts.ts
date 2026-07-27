@@ -1,5 +1,5 @@
 import type { Player, ContractOffer } from '@/types/game';
-import { safeRandomUUID } from '@/utils/helpers';
+import { safeRandomUUID, formatMoney } from '@/utils/helpers';
 import {
   CONTRACT_NEAR_EXPIRY_SEASONS,
   CONTRACT_AGE_BRACKETS, CONTRACT_DEFAULT_AGE_FACTOR,
@@ -354,10 +354,11 @@ export function getAcceptanceHint(
 }
 
 /**
- * Format wage for display.
+ * Format wage for display — a thin `/wk` wrapper over the canonical
+ * `formatMoney`. It used to FLOOR to the nearest £1K while `formatMoney`
+ * ROUNDED, so a £42,900 wage read `£42K/wk` on the contract screen and
+ * `£43K` on the squad list. Never re-implement the magnitude logic here.
  */
 export function formatWage(wage: number): string {
-  if (wage >= 1_000_000) return `£${(wage / 1_000_000).toFixed(1)}M/wk`;
-  if (wage >= 1_000) return `£${Math.floor(wage / 1_000)}K/wk`;
-  return `£${wage}/wk`;
+  return formatMoney(wage, { suffix: '/wk' });
 }

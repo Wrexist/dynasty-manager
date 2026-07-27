@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 import type { PackPlayerPlacement, PackTierKey, Player } from '@/types/game';
 import { MAX_WALKOUTS_PER_PACK, PACK_ANIM, PACK_TIER_MAP, WALKOUT_OVR_THRESHOLD } from '@/config/packs';
 import { useScrollLock } from '@/hooks/useScrollLock';
@@ -24,7 +25,7 @@ const QUICK_SELL_RATE = 0.65;
  * just printed. Honours reduced-motion by jumping straight to the final value.
  */
 function CountUpMoney({ value, durationMs = 900 }: { value: number; durationMs?: number }) {
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionPref();
   const [display, setDisplay] = useState(prefersReducedMotion ? value : 0);
 
   useEffect(() => {
@@ -92,7 +93,7 @@ const PLACEMENT_LABEL: Record<PackPlayerPlacement, string> = {
  */
 export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKeep, onQuickSell, onKeepAll, onSellAll, placement, improvement }: PackOpeningOverlayProps) {
   const tierDef = PACK_TIER_MAP[tier];
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionPref();
   const [phase, setPhase] = useState<Phase>('loading');
   const [revealedSet, setRevealedSet] = useState<Set<string>>(new Set());
   // Most recently flipped card for the screen-reader announcer. Tracked

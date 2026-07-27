@@ -28,6 +28,32 @@ export const DEV_DIMINISHING_RETURNS_CEILING = 100;
 export const DEV_DIMINISHING_RETURNS_DIVISOR = 60;
 export const PLAYING_TIME_BONUS_MAX = 0.20;
 export const PLAYING_TIME_BONUS_PER_APP = 0.007;
+/** Minutes that count as one "appearance" for the playing-time growth term.
+ *  Playing time is credited from `Player.minutesPlayed / this`, so an 87th-minute
+ *  cameo is worth ~0.03 appearances instead of a full one. Saves written before
+ *  minutes tracking existed have no `minutesPlayed`, so `appearances` is used
+ *  as the fallback (see `development.ts`). */
+export const MINUTES_PER_APPEARANCE = 90;
+
+// ── Player Development: Match-Rating Performance Term ──
+// The engine computes a per-player match rating (`match.ts` → finalizeMatch)
+// and used to spend it on nothing but the Ballon d'Or. These constants feed the
+// season-average rating back into the growth roll so a 9.0 develops faster than
+// a 4.0. Deliberately smaller than the playing-time term (max 0.20) — minutes
+// still dominate, performance differentiates.
+/** Season-average rating that produces zero adjustment. Set to the measured
+ *  league-wide mean season-average rating so an average performer's growth rate
+ *  is unchanged by this term — the point is to differentiate, not to inflate. */
+export const DEV_RATING_BASELINE = 7.15;
+/** Growth-chance change per point of season-average rating above/below baseline. */
+export const DEV_RATING_BONUS_PER_POINT = 0.10;
+/** Clamp on the performance term. Asymmetric: a great season helps more than a
+ *  poor one hurts, because the growth chance already floors at 0. */
+export const DEV_RATING_BONUS_MAX = 0.08;
+export const DEV_RATING_BONUS_MIN = -0.06;
+/** Rated matches required before the performance term applies at all — a
+ *  one-match sample is noise, not form. */
+export const DEV_RATING_MIN_MATCHES = 5;
 
 // ── Player Development: Decline ──
 export const DECLINE_AGE_THRESHOLD = 31;
@@ -154,6 +180,42 @@ export const NARRATIVE_MORALE_LOSS_REDUCTION_CAP = 6;
 export const FORM_WIN_CHANGE = 5;
 export const FORM_LOSS_CHANGE = -8;
 export const FORM_DRAW_CHANGE = -2;
+
+// ── Match Rating → Morale / Form ──
+// Layered ON TOP of the team result above, never replacing it. The team result
+// must stay dominant: with the caps below, a man-of-the-match in a defeat still
+// loses morale and form (just less), and an anonymous 4.5 in a win still gains
+// (just less). Before this existed, the MOTM and the player sent off took an
+// identical morale hit.
+/** Per-match rating that produces zero adjustment (league-wide mean). */
+export const RATING_MORALE_BASELINE = 7.0;
+export const MORALE_PER_RATING_POINT = 2.5;
+/** Cap must stay below |MORALE_LOSS_CHANGE| (10) or a good game inverts a defeat. */
+export const MORALE_RATING_ADJ_CAP = 5;
+export const FORM_PER_RATING_POINT = 2.0;
+/** Cap must stay below |FORM_LOSS_CHANGE| (8) for the same reason. */
+export const FORM_RATING_ADJ_CAP = 4;
+
+// ── Match Fitness Carry-Over ──
+/** When true, the per-minute fitness the engine already computed is written back
+ *  to the player instead of the flat `FITNESS_DRAIN_PER_MATCH`. A 90-minute shift
+ *  at high pressing then costs far more than an 87th-minute cameo, which is what
+ *  makes rotation a real decision. Falls back to the flat drain for participants
+ *  the engine reported no fitness for (AI quick paths, forfeits, legacy saves). */
+export const MATCH_FITNESS_CARRY_ENABLED = true;
+/** Scales the engine-measured drain on write-back. 1.0 = use it verbatim. Lower
+ *  it to soften the change without touching the in-match model. */
+export const MATCH_FITNESS_CARRY_SCALE = 1.0;
+
+// ── Yellow-Card Accumulation Bans ──
+// Yellows were tracked and caused nothing; only reds suspended anyone. With
+// bans, `pressingIntensity`, `personality.temperament`, the `disciplinarian`
+// perk and squad depth all start to matter.
+/** Season yellow-card totals that each trigger a ban when crossed. Yellow totals
+ *  reset at season end (`seasonEnd.ts`), so these are per-season thresholds. */
+export const YELLOW_ACCUMULATION_THRESHOLDS = [5, 10, 15] as const;
+/** Matches missed per accumulation ban. */
+export const YELLOW_ACCUMULATION_BAN_WEEKS = 1;
 
 // ── Injury ──
 export const MATCH_INJURY_WEEKS_MIN = 1;

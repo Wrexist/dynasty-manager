@@ -6,7 +6,9 @@ import {
   MAX_SEASON_GROWTH, POSITION_DEV_BONUS,
   GROWTH_AGE_THRESHOLD, GROWTH_BASE_CHANCE, GROWTH_POTENTIAL_GAP_FACTOR,
   DEV_DIMINISHING_RETURNS_CEILING, DEV_DIMINISHING_RETURNS_DIVISOR,
-  PLAYING_TIME_BONUS_MAX, PLAYING_TIME_BONUS_PER_APP,
+  PLAYING_TIME_BONUS_MAX, PLAYING_TIME_BONUS_PER_APP, MINUTES_PER_APPEARANCE,
+  DEV_RATING_BASELINE, DEV_RATING_BONUS_PER_POINT,
+  DEV_RATING_BONUS_MAX, DEV_RATING_BONUS_MIN, DEV_RATING_MIN_MATCHES,
   DECLINE_AGE_THRESHOLD, STEEP_DECLINE_AGE_THRESHOLD,
   DECLINE_FACTOR_NORMAL, DECLINE_FACTOR_STEEP, DECLINE_BASE_CHANCE, DECLINE_ATTR_MULTIPLIERS,
 } from '@/config/gameBalance';
@@ -15,6 +17,39 @@ import { recomputePlayerValueOnly } from '@/utils/playerEconomics';
 
 // Per-season growth tracking to cap total growth
 export const seasonGrowthTracker: Record<string, number> = {};
+
+/**
+ * Playing-time term for the growth roll, measured in MINUTES rather than
+ * appearances. `appearances` counted an 87th-minute cameo exactly the same as a
+ * 90-minute shift, so squad players developed like regulars. Saves written
+ * before minutes tracking existed (schema < 75) have no `minutesPlayed`, so
+ * fall back to `appearances` so migrated saves don't suddenly stop developing.
+ */
+export function getPlayingTimeBonus(p: Player): number {
+  // `appearances` is reset at season end, and minutes/90 can never exceed
+  // appearances within a season — so the min() also makes this term immune to a
+  // `minutesPlayed` counter that failed to reset at rollover.
+  const effectiveApps = p.minutesPlayed != null
+    ? Math.min(p.appearances, p.minutesPlayed / MINUTES_PER_APPEARANCE)
+    : p.appearances;
+  return Math.min(PLAYING_TIME_BONUS_MAX, effectiveApps * PLAYING_TIME_BONUS_PER_APP);
+}
+
+/**
+ * Performance term for the growth roll, derived from the per-match ratings the
+ * engine already computes. Before this existed a 4.0 and a 9.0 developed
+ * identically — ratings were spent on the Ballon d'Or and nothing else.
+ *
+ * Returns 0 (not a penalty) until the player has a meaningful sample, and is
+ * clamped so it can never dominate the playing-time term.
+ */
+export function getRatingDevelopmentBonus(p: Player): number {
+  const rated = p.seasonRatedMatches || 0;
+  if (rated < DEV_RATING_MIN_MATCHES) return 0;
+  const avg = (p.seasonRatingTotal || 0) / rated;
+  const raw = (avg - DEV_RATING_BASELINE) * DEV_RATING_BONUS_PER_POINT;
+  return Math.max(DEV_RATING_BONUS_MIN, Math.min(DEV_RATING_BONUS_MAX, raw));
+}
 
 export function applyPlayerDevelopment(p: Player, trainingFocus: string, mentorBonus: number = 0, trainingGroundBoost: number = 0): Player {
   // Preserve any upstream growthDelta (set by applyWeeklyTraining when it ran
@@ -35,10 +70,12 @@ export function applyPlayerDevelopment(p: Player, trainingFocus: string, mentorB
     // and `potential` stopped meaning anything.
     if (priorGrowth < MAX_SEASON_GROWTH && p.overall < p.potential) {
       const potentialGap = p.potential - p.overall;
-      // Playing time scales growth: 0% at 0 apps, up to +8% at 20+ apps
-      const playingTimeBonus = Math.min(PLAYING_TIME_BONUS_MAX, p.appearances * PLAYING_TIME_BONUS_PER_APP);
+      // Playing time scales growth, measured in minutes (see getPlayingTimeBonus)
+      const playingTimeBonus = getPlayingTimeBonus(p);
+      // Performance scales growth: how well he actually played, not just how often
+      const ratingBonus = getRatingDevelopmentBonus(p);
       const devMultiplier = getDevelopmentMultiplier(p.personality);
-      const growthChance = (GROWTH_BASE_CHANCE + potentialGap * GROWTH_POTENTIAL_GAP_FACTOR + playingTimeBonus + mentorBonus) * devMultiplier * (1 + trainingGroundBoost);
+      const growthChance = Math.max(0, GROWTH_BASE_CHANCE + potentialGap * GROWTH_POTENTIAL_GAP_FACTOR + playingTimeBonus + ratingBonus + mentorBonus) * devMultiplier * (1 + trainingGroundBoost);
       const posBonus = POSITION_DEV_BONUS[p.position] || {};
       const trainedAttrs = MODULE_ATTR_MAP[trainingFocus as keyof typeof MODULE_ATTR_MAP] || [];
       const attrs = Object.keys(updated.attributes) as (keyof PlayerAttributes)[];

@@ -212,6 +212,13 @@ export interface Player {
   careerGoals: number;
   careerAssists: number;
   careerAppearances: number;
+  /** Minutes played this season, derived from the match event stream
+   *  (`computeMinutesPlayed`). Distinct from `appearances`, which counts an
+   *  87th-minute cameo the same as a 90-minute shift; the development
+   *  playing-time term and rotation decisions read minutes instead. Reset with
+   *  the other season stats at rollover. Optional so pre-v75 saves and any
+   *  generator that predates it keep working (readers use `?? 0`). */
+  minutesPlayed?: number;
   yellowCards: number;
   redCards: number;
   suspendedUntilWeek?: number;
@@ -971,6 +978,11 @@ export interface GameSettings {
   hidePageHints: boolean;
   hideOnboarding: boolean;
   confirmAllOffers: boolean;
+  /** When true (the default) the Weekly Digest only takes over the screen on
+   *  weeks that actually need a decision — quiet weeks render as an inline
+   *  "Last Week" card on the Dashboard instead of a scroll-locked modal.
+   *  Optional so pre-existing saves read as `undefined` → default. */
+  digestOnlyWhenSignificant?: boolean;
   reducedMotion: boolean;
   /** Maximises smoothness on lower-end devices: disables backdrop-blur (solid
    *  surfaces), drops decorative specular overlays, and forces reduced motion. */

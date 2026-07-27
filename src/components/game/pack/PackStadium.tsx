@@ -1,5 +1,6 @@
 import { memo, useMemo } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 
 /**
  * Cinematic stadium environment behind the pack-opening sequence.
@@ -17,7 +18,7 @@ import { motion, useReducedMotion } from 'framer-motion';
  * animations mid-flight.
  */
 export const PackStadium = memo(function PackStadium() {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionPref();
 
   // Ambient mote specs — rolled once per mount, not per render.
   const motes = useMemo(() =>

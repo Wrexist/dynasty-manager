@@ -367,6 +367,52 @@ export const ATTR_RATING_HIGH = 15;
 export const ATTR_RATING_MID = 10;
 export const ATTR_RATING_LOW = 7;
 
+// ── Weekly Digest significance ──
+//
+// `advanceWeek` builds a digest every single week. Surfacing it as a
+// scroll-locked, haptic + chime modal every week is ~43 forced dismiss-taps a
+// season and ~430 across a ten-season dynasty — the highest-frequency
+// interruption in the game, and most of those weeks contain nothing the player
+// can act on.
+//
+// The rule below is deliberately about ACTION, not information: a week is
+// "significant" when the digest is telling the player something they may want
+// to respond to (a lineup change, an offer, a renewal, a report to read, XP to
+// claim, a morale problem). Passive readouts — finances, per-attribute growth,
+// training star performers — are *not* significant on their own: they happen
+// almost every week and they are fully visible on the inline Dashboard card,
+// so they never justify stealing the screen.
+
+/** Morale swing (absolute points) that makes a quiet week worth interrupting.
+ *  Matches the threshold the digest headline already uses. */
+export const DIGEST_SIGNIFICANT_MORALE_SWING = 8;
+
+/** Structural shape of `GameState['weeklyDigest']`, declared locally so this
+ *  config module stays free of store imports. */
+export interface WeeklyDigestSummary {
+  injuriesThisWeek: string[];
+  recoveriesThisWeek: string[];
+  offersReceived: number;
+  moraleChange: number;
+  scoutReportsCompleted: number;
+  contractWarnings: string[];
+  objectiveProgress: { completed: boolean }[];
+}
+
+/** True when the weekly digest earns a full-screen, scroll-locking modal. */
+export function isWeeklyDigestSignificant(digest: WeeklyDigestSummary | null | undefined): boolean {
+  if (!digest) return false;
+  return (
+    digest.injuriesThisWeek.length > 0 ||
+    digest.recoveriesThisWeek.length > 0 ||
+    digest.offersReceived > 0 ||
+    digest.contractWarnings.length > 0 ||
+    digest.scoutReportsCompleted > 0 ||
+    digest.objectiveProgress.some(o => o.completed) ||
+    Math.abs(digest.moraleChange) >= DIGEST_SIGNIFICANT_MORALE_SWING
+  );
+}
+
 // ── Animation & Timer Durations (ms) ──
 export const SAVE_CONFIRMATION_MS = 2000;
 export const GOAL_FLASH_MS = 600;

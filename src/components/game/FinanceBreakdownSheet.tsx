@@ -2,6 +2,7 @@ import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { getFinanceBreakdown } from '@/utils/financeHelpers';
+import { formatMoney } from '@/utils/helpers';
 import { cn } from '@/lib/utils';
 import { ArrowUpRight, ArrowDownRight, DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
 
@@ -80,7 +81,7 @@ function FinanceBreakdownBody({ mode }: { mode: FinanceSheetMode }) {
               <span className="text-sm font-semibold text-foreground">Transfer Budget</span>
             </div>
             <p className="text-3xl font-black text-foreground font-display tabular-nums">
-              £{(club.budget / 1e6).toFixed(1)}M
+              {formatMoney(club.budget)}
             </p>
             <div className="flex items-center gap-1 mt-1">
               {breakdown.net >= 0 ? (
@@ -89,7 +90,7 @@ function FinanceBreakdownBody({ mode }: { mode: FinanceSheetMode }) {
                 <TrendingDown className="w-3.5 h-3.5 text-destructive" />
               )}
               <span className={cn('text-xs font-semibold', breakdown.net >= 0 ? 'text-emerald-400' : 'text-destructive')}>
-                {breakdown.net >= 0 ? '+' : ''}£{(breakdown.net / 1000).toFixed(0)}K/week net
+                {formatMoney(breakdown.net, { signed: true, suffix: '/week net' })}
               </span>
             </div>
           </div>
@@ -102,7 +103,7 @@ function FinanceBreakdownBody({ mode }: { mode: FinanceSheetMode }) {
               <ArrowUpRight className="w-4 h-4 text-emerald-400" />
               <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Weekly Income</span>
               <span className="ml-auto text-sm font-bold text-emerald-400 tabular-nums">
-                £{(breakdown.totalIncome / 1000).toFixed(0)}K
+                {formatMoney(breakdown.totalIncome)}
               </span>
             </div>
             <div className="space-y-2">
@@ -111,7 +112,7 @@ function FinanceBreakdownBody({ mode }: { mode: FinanceSheetMode }) {
                   <div className="flex items-center justify-between mb-0.5">
                     <span className="text-xs text-muted-foreground">{item.label}</span>
                     <span className="text-xs font-semibold text-foreground tabular-nums">
-                      £{(item.amount / 1000).toFixed(0)}K
+                      {formatMoney(item.amount)}
                     </span>
                   </div>
                   <div className="w-full h-1.5 bg-muted/20 rounded-full overflow-hidden">
@@ -133,7 +134,7 @@ function FinanceBreakdownBody({ mode }: { mode: FinanceSheetMode }) {
               <ArrowDownRight className="w-4 h-4 text-destructive" />
               <span className="text-xs font-semibold text-destructive uppercase tracking-wider">Weekly Expenses</span>
               <span className="ml-auto text-sm font-bold text-destructive tabular-nums">
-                £{(breakdown.totalExpenses / 1000).toFixed(0)}K
+                {formatMoney(breakdown.totalExpenses)}
               </span>
             </div>
             <div className="space-y-2">
@@ -142,7 +143,7 @@ function FinanceBreakdownBody({ mode }: { mode: FinanceSheetMode }) {
                   <div className="flex items-center justify-between mb-0.5">
                     <span className="text-xs text-muted-foreground">{item.label}</span>
                     <span className="text-xs font-semibold text-foreground tabular-nums">
-                      £{(item.amount / 1000).toFixed(0)}K
+                      {formatMoney(item.amount)}
                     </span>
                   </div>
                   <div className="w-full h-1.5 bg-muted/20 rounded-full overflow-hidden">
@@ -165,12 +166,12 @@ function FinanceBreakdownBody({ mode }: { mode: FinanceSheetMode }) {
               'text-lg font-black tabular-nums',
               breakdown.net >= 0 ? 'text-emerald-400' : 'text-destructive'
             )}>
-              {breakdown.net >= 0 ? '+' : ''}£{(breakdown.net / 1000).toFixed(0)}K
+              {formatMoney(breakdown.net, { signed: true })}
             </span>
           </div>
           {mode === 'budget' && (
-            <p className="text-[10px] text-muted-foreground mt-1">
-              At this rate, budget changes by £{(Math.abs(breakdown.net) * totalWeeks / 1e6).toFixed(1)}M over a full season
+            <p className="text-micro text-muted-foreground mt-1">
+              At this rate, budget changes by {formatMoney(Math.abs(breakdown.net) * totalWeeks)} over a full season
             </p>
           )}
         </div>

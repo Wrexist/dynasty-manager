@@ -1,5 +1,6 @@
 import { memo } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 import { Lock, ShieldCheck, Play, ShoppingBag, Gift } from 'lucide-react';
 import { PremiumSparkle } from '@/components/game/icons/PremiumSparkle';
 import type { PackTierDefinition, PackUnlockMethod } from '@/types/game';
@@ -39,7 +40,7 @@ interface PackShopCardProps {
 export const PackShopCard = memo(function PackShopCard({ tier, affordable, squadOk, onSelect, featured, method, freeRemaining, adRemaining, resetCountdown }: PackShopCardProps) {
   const noMethod = method === null;
   const disabled = !squadOk || noMethod || !affordable;
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionPref();
 
   // CTA chip text + icon vary by active unlock method. Price is folded
   // into the label for paid methods so the card carries no second text

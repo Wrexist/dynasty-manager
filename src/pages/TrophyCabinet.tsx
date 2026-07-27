@@ -12,6 +12,7 @@ import { ACHIEVEMENTS, getTierColor } from '@/utils/achievements';
 import { motion } from 'framer-motion';
 import { getActiveCosmetic } from '@/utils/monetization';
 import { PageHint } from '@/components/game/PageHint';
+import { SectionHeader } from '@/components/game/SectionHeader';
 
 const TrophyCabinet = () => {
   const setScreen = useGameStore(s => s.setScreen);
@@ -54,7 +55,7 @@ const TrophyCabinet = () => {
         body="All your honours and achievements displayed here. Trophies are earned by winning competitions. Achievements unlock by reaching specific milestones — check the progress tracker to see what's next."
       />
 
-      <h2 className="text-lg font-display font-bold text-foreground">Trophy Cabinet</h2>
+      <SectionHeader title="Trophy Cabinet" />
 
       {/* Trophy Count Header */}
       <GlassPanel className="p-5 text-center border-primary/30">
@@ -80,14 +81,14 @@ const TrophyCabinet = () => {
               </div>
               <span
                 className="text-sm font-black tabular-nums bg-clip-text text-transparent"
-                style={{ backgroundImage: 'linear-gradient(135deg, hsl(43 96% 70%), hsl(43 96% 46%) 60%, hsl(35 80% 38%))' }}
+                style={{ backgroundImage: 'linear-gradient(135deg, color-mix(in srgb, hsl(var(--gold)) 52%, white), hsl(var(--gold)) 60%, color-mix(in srgb, hsl(var(--gold)) 70%, black))' }}
               >
                 {pct}%
               </span>
             </div>
             <PremiumProgress value={pct} className="mb-2" glow />
 
-            <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+            <div className="flex items-center justify-between text-micro text-muted-foreground">
               <span>{unlocked}/{totalVisible} unlocked</span>
               <div className="flex items-center gap-3">
                 <span className="text-[hsl(var(--gold))]">{goldDone} gold</span>
@@ -119,7 +120,7 @@ const TrophyCabinet = () => {
             >
               <Trophy className="w-6 h-6 text-primary/40" />
             </div>
-            <p className="text-[10px] text-muted-foreground">Win the league to earn your first title</p>
+            <p className="text-micro text-muted-foreground">Win the league to earn your first title</p>
           </div>
         ) : (
           <div className="grid grid-cols-4 gap-2">
@@ -132,8 +133,8 @@ const TrophyCabinet = () => {
                 className="bg-primary/10 border border-primary/30 rounded-lg p-2 text-center"
               >
                 <Trophy className="w-5 h-5 text-primary mx-auto mb-1" />
-                <p className="text-[10px] font-bold text-primary">S{h.season}</p>
-                <p className="text-[9px] text-muted-foreground">{h.points}pts</p>
+                <p className="text-micro font-bold text-primary">S{h.season}</p>
+                <p className="text-micro text-muted-foreground">{h.points}pts</p>
               </motion.div>
             ))}
           </div>
@@ -160,7 +161,7 @@ const TrophyCabinet = () => {
             >
               <Award className="w-6 h-6 text-amber-400/45" />
             </div>
-            <p className="text-[10px] text-muted-foreground">Win the Dynasty Cup to fill this shelf</p>
+            <p className="text-micro text-muted-foreground">Win the Dynasty Cup to fill this shelf</p>
           </div>
         ) : (
           <div className="grid grid-cols-4 gap-2">
@@ -173,7 +174,7 @@ const TrophyCabinet = () => {
                 className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-2 text-center"
               >
                 <Award className="w-5 h-5 text-amber-400 mx-auto mb-1" />
-                <p className="text-[10px] font-bold text-amber-400">Cup</p>
+                <p className="text-micro font-bold text-amber-400">Cup</p>
               </motion.div>
             ))}
           </div>
@@ -192,7 +193,7 @@ const TrophyCabinet = () => {
             {seasonHistory.filter(h => h.leagueCupResult === 'Winner').map((h, i) => (
               <motion.div key={i} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: i * 0.05 }} className="bg-cyan-500/10 border border-cyan-500/30 rounded-lg p-2 text-center">
                 <Award className="w-5 h-5 text-cyan-400 mx-auto mb-1" />
-                <p className="text-[10px] font-bold text-cyan-400">S{h.season}</p>
+                <p className="text-micro font-bold text-cyan-400">S{h.season}</p>
               </motion.div>
             ))}
           </div>
@@ -211,7 +212,7 @@ const TrophyCabinet = () => {
             {seasonHistory.filter(h => h.championsCupResult === 'Winner').map((h, i) => (
               <motion.div key={i} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: i * 0.05 }} className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-2 text-center">
                 <Trophy className="w-5 h-5 text-blue-400 mx-auto mb-1" />
-                <p className="text-[10px] font-bold text-blue-400">S{h.season}</p>
+                <p className="text-micro font-bold text-blue-400">S{h.season}</p>
               </motion.div>
             ))}
           </div>
@@ -230,7 +231,7 @@ const TrophyCabinet = () => {
             {seasonHistory.filter(h => h.shieldCupResult === 'Winner').map((h, i) => (
               <motion.div key={i} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: i * 0.05 }} className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-2 text-center">
                 <Award className="w-5 h-5 text-orange-400 mx-auto mb-1" />
-                <p className="text-[10px] font-bold text-orange-400">S{h.season}</p>
+                <p className="text-micro font-bold text-orange-400">S{h.season}</p>
               </motion.div>
             ))}
           </div>
@@ -249,7 +250,7 @@ const TrophyCabinet = () => {
             {seasonHistory.filter(h => h.conferenceCupResult === 'Winner').map((h, i) => (
               <motion.div key={i} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: i * 0.05 }} className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-2 text-center">
                 <Award className="w-5 h-5 text-emerald-400 mx-auto mb-1" />
-                <p className="text-[10px] font-bold text-emerald-400">S{h.season}</p>
+                <p className="text-micro font-bold text-emerald-400">S{h.season}</p>
               </motion.div>
             ))}
           </div>
@@ -284,14 +285,14 @@ const TrophyCabinet = () => {
         return (
           <GlassPanel className="p-4">
             <div className="flex items-center gap-2 mb-3">
-              <Trophy className="w-4 h-4 text-[hsl(43,96%,56%)]" />
+              <Trophy className="w-4 h-4 text-gold" />
               <h3 className="text-sm font-semibold text-foreground">Ballon d'Or</h3>
-              <span className="text-xs text-[hsl(43,96%,56%)] font-bold ml-auto">{allWinners.length} season{allWinners.length !== 1 ? 's' : ''}</span>
+              <span className="text-xs text-gold font-bold ml-auto">{allWinners.length} season{allWinners.length !== 1 ? 's' : ''}</span>
             </div>
             <div className="space-y-1.5">
               {allWinners.map(({ season, winner }) => (
-                <div key={season} className="flex items-center justify-between text-xs bg-[hsl(43,96%,46%)]/5 rounded-lg px-3 py-2">
-                  <span className="text-[hsl(43,96%,56%)] font-semibold">Season {season}</span>
+                <div key={season} className="flex items-center justify-between text-xs bg-gold/5 rounded-lg px-3 py-2">
+                  <span className="text-gold font-semibold">Season {season}</span>
                   <div className="flex items-center gap-1.5">
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: winner.clubColor }} />
                     <span className="text-foreground font-medium">{winner.playerName}</span>
@@ -303,7 +304,7 @@ const TrophyCabinet = () => {
             <button
               type="button"
               onClick={() => setScreen('ballon-dor')}
-              className="mt-2 w-full text-center font-bold text-[10px] text-primary hover:underline inline-flex items-center justify-center gap-1"
+              className="mt-2 w-full text-center font-bold text-micro text-primary hover:underline inline-flex items-center justify-center gap-1"
             >
               View Full Rankings
               <ChevronRight className="w-3 h-3" />
@@ -326,7 +327,7 @@ const TrophyCabinet = () => {
         {(['gold', 'silver', 'bronze'] as const).map(tier => (
           <div key={tier} className="mb-3 last:mb-0">
             <p className={cn(
-              'text-[10px] font-bold uppercase tracking-wider mb-2',
+              'text-micro font-bold uppercase tracking-wider mb-2',
               tier === 'gold' ? 'text-[hsl(var(--gold))]' : tier === 'silver' ? 'text-[hsl(var(--silver))]' : 'text-[hsl(var(--bronze))]'
             )}>
               {tier} ({achievementsByTier[tier].filter(a => unlockedAchievements.includes(a.id)).length}/{achievementsByTier[tier].filter(a => !a.hidden || unlockedAchievements.includes(a.id)).length})
@@ -349,7 +350,7 @@ const TrophyCabinet = () => {
                         <p className={cn('text-xs font-semibold truncate', unlocked ? 'text-foreground' : 'text-muted-foreground')}>
                           {a.hidden && !unlocked ? '???' : a.title}
                         </p>
-                        <p className="text-[10px] text-muted-foreground truncate">
+                        <p className="text-micro text-muted-foreground truncate">
                           {a.hidden && !unlocked ? 'Hidden achievement' : a.description}
                         </p>
                       </div>
@@ -364,7 +365,7 @@ const TrophyCabinet = () => {
                             <div className="w-12 h-1.5 bg-muted/50 rounded-full overflow-hidden">
                               <div className="h-full bg-primary/60 rounded-full" style={{ width: `${pct}%` }} />
                             </div>
-                            <span className="text-[9px] text-muted-foreground tabular-nums">{prog.current}/{prog.target}</span>
+                            <span className="text-micro text-muted-foreground tabular-nums">{prog.current}/{prog.target}</span>
                           </div>
                         );
                       })() : null}

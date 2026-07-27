@@ -6,6 +6,7 @@ import { getRoundName, ROUND_ORDER, CUP_BYE_MARKER } from '@/data/cup';
 import { getCompetitionCalendar } from '@/config/continental';
 import { TournamentHeader } from '@/components/game/TournamentHeader';
 import { GlassPanel } from '@/components/game/GlassPanel';
+import { ClubCrest } from '@/components/game/ClubCrest';
 import { cn } from '@/lib/utils';
 import { Shield, ChevronRight, ChevronDown, Calendar, Award, Target } from 'lucide-react';
 import type { CupRound, CupTie } from '@/types/game';
@@ -27,9 +28,9 @@ function TieCard({ tie, playerClubId, clubs }: { tie: CupTie; playerClubId: stri
     <GlassPanel className={cn('p-3', isPlayerMatch && 'ring-1 ring-cyan-400/40')}>
       <div className="flex items-center gap-2">
         <div className={cn('flex-1 flex items-center gap-2', winnerId === tie.homeClubId && 'font-bold')}>
-          <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: home?.color || '#888' }}>
-            <Shield className="w-3 h-3 text-white" />
-          </div>
+          <ClubCrest club={home} size="xs">
+            <Shield className="w-3 h-3" />
+          </ClubCrest>
           <span className={cn(
             'text-sm truncate',
             tie.homeClubId === playerClubId ? 'text-primary' :
@@ -41,7 +42,7 @@ function TieCard({ tie, playerClubId, clubs }: { tie: CupTie; playerClubId: stri
         <div className="flex items-center gap-1 px-2">
           {tie.played ? (
             <span className={cn(
-              'text-sm font-mono font-bold',
+              'text-sm font-display font-bold tabular-nums',
               winnerId === tie.homeClubId ? 'text-cyan-400' : winnerId === tie.awayClubId ? 'text-foreground' : 'text-foreground'
             )}>
               {tie.homeGoals}
@@ -62,13 +63,13 @@ function TieCard({ tie, playerClubId, clubs }: { tie: CupTie; playerClubId: stri
           )}>
             {away?.shortName || '???'}
           </span>
-          <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: away?.color || '#888' }}>
-            <Shield className="w-3 h-3 text-white" />
-          </div>
+          <ClubCrest club={away} size="xs">
+            <Shield className="w-3 h-3" />
+          </ClubCrest>
         </div>
       </div>
       {tie.penaltyShootout && (
-        <div className="text-[10px] text-center text-muted-foreground mt-1">
+        <div className="text-micro text-center text-muted-foreground mt-1 tabular-nums">
           Pens: {tie.penaltyShootout.home}-{tie.penaltyShootout.away}
         </div>
       )}
@@ -100,10 +101,10 @@ function RoundSection({ round, ties, playerClubId, clubs, isCurrent, allPlayed, 
         <h2 className={cn('text-sm font-display font-bold', isCurrent ? 'text-cyan-400' : allPlayed ? 'text-muted-foreground' : 'text-foreground')}>
           {getRoundName(round)}
         </h2>
-        <span className="text-[10px] text-muted-foreground">{ties.length} {ties.length === 1 ? 'tie' : 'ties'}</span>
-        {isCurrent && <span className="text-[10px] bg-cyan-400/20 text-cyan-400 px-2 py-0.5 rounded-full font-medium">Current</span>}
+        <span className="text-micro text-muted-foreground">{ties.length} {ties.length === 1 ? 'tie' : 'ties'}</span>
+        {isCurrent && <span className="text-micro bg-cyan-400/20 text-cyan-400 px-2 py-0.5 rounded-full font-medium">Current</span>}
         {!allPlayed && (
-          <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground ml-auto shrink-0">
+          <span className="flex items-center gap-0.5 text-micro text-muted-foreground ml-auto shrink-0">
             <Calendar className="w-2.5 h-2.5" />
             Week {roundWeek}
             {weeksAway > 0 && ` · in ${weeksAway}w`}
