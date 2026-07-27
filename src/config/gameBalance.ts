@@ -45,12 +45,17 @@ export const MINUTES_PER_APPEARANCE = 90;
  *  league-wide mean season-average rating so an average performer's growth rate
  *  is unchanged by this term — the point is to differentiate, not to inflate. */
 export const DEV_RATING_BASELINE = 7.15;
-/** Growth-chance change per point of season-average rating above/below baseline. */
-export const DEV_RATING_BONUS_PER_POINT = 0.10;
+/** Growth-chance change per point of season-average rating above/below baseline.
+ *  Sized against the MEASURED spread of season-average ratings, which is narrow
+ *  (p10 6.74 → p90 7.39, i.e. roughly ±0.35 around the mean). At 0.25 that band
+ *  maps to about ±0.09 of growth chance against a typical base of ~0.29 — a
+ *  ~30% swing, meaningful without overtaking the playing-time term (0 → 0.20).
+ *  If the engine's rating formula is ever widened, lower this to compensate. */
+export const DEV_RATING_BONUS_PER_POINT = 0.25;
 /** Clamp on the performance term. Asymmetric: a great season helps more than a
  *  poor one hurts, because the growth chance already floors at 0. */
-export const DEV_RATING_BONUS_MAX = 0.08;
-export const DEV_RATING_BONUS_MIN = -0.06;
+export const DEV_RATING_BONUS_MAX = 0.12;
+export const DEV_RATING_BONUS_MIN = -0.09;
 /** Rated matches required before the performance term applies at all — a
  *  one-match sample is noise, not form. */
 export const DEV_RATING_MIN_MATCHES = 5;
