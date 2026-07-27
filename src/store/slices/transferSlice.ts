@@ -15,7 +15,7 @@ import {
   SELL_ON_EVAL_HIGH_PCT, SELL_ON_EVAL_LOW_PCT,
   COUNTER_OFFER_BASE_RATIO, COUNTER_OFFER_RANDOM_RANGE,
   RECORD_SIGNING_SPEND_RATIO, RECORD_SIGNING_MIN_FEE,
-  LISTING_PRICE_FLOOR,
+  LISTING_PRICE_FLOOR, LISTING_PRICE_MAX_RATIO,
   INCOMING_NEGOTIATE_ACCEPT_AT_OFFER, INCOMING_NEGOTIATE_ACCEPT_AT_120, INCOMING_NEGOTIATE_ACCEPT_AT_MAX,
   INCOMING_NEGOTIATE_COUNTER_CHANCE, INCOMING_NEGOTIATE_COUNTER_BASE, INCOMING_NEGOTIATE_COUNTER_RANGE,
   NEGOTIATION_MAX_STRIKES, NEGOTIATION_COOLDOWN_WEEKS, NEGOTIATION_STRIKE_PENALTY,
@@ -25,6 +25,7 @@ import { NegotiationStrike } from '@/types/game';
 import { CONTRACT_MIN_YEARS, CONTRACT_MAX_YEARS } from '@/config/contracts';
 import { getSignedWage, getPreferredYears } from '@/utils/contracts';
 import { MIN_SQUAD_SIZE, MAX_SQUAD_SIZE, TOTAL_WEEKS, APPEASE_BASE_CHANCE, APPEASE_MORALE_BOOST, FFP_WAGE_RATIO_WARNING } from '@/config/gameBalance';
+import { getFreeAgentAcceptChance } from '@/utils/contracts';
 import { hasPerk, dynastyMult } from '@/utils/managerPerks';
 import { STAR_SIGNING_BUZZ_WEEKS, STAR_PLAYER_SALE_DIP_WEEKS, CAMPAIGN_STAR_SIGNING_MIN_VALUE } from '@/config/merchandise';
 import { getStarPlayerMerch } from '@/utils/merchandise';
@@ -43,6 +44,89 @@ export const checkChallengeBlock = (state: GameState, playerAge?: number): strin
   if (scenario.noTransfers) return 'Transfers are disabled in this challenge.';
   if (scenario.youthOnly && playerAge != null && playerAge > 23) return 'Challenge restricts signings to players aged 23 or under.';
   return null;
+};
+
+/**
+ * Fraction of a player's market value above which a purchase attracts a sell-on
+ * clause. `SELL_ON_LOW_FEE_THRESHOLD` (£5M) is an absolute floor, so every
+ * cheaper purchase flipped completely clean: AI clubs list at 1.10-1.55x value
+ * and accept the asking price 85% of the time, so buy at £4.9M, relist at the
+ * UI's 2.0x cap, sell for £7M+, and repeat across every spare squad slot every
+ * window. Making the trigger proportional means a bargain buy is still a
+ * bargain, but the selling club keeps an interest in the upside.
+ *
+ * TODO(config): belongs in `src/config/transfers.ts` alongside the other
+ * SELL_ON_* constants — kept local here only because this change could not
+ * touch that file concurrently.
+ */
+const SELL_ON_VALUE_TRIGGER_RATIO = 0.4;
+
+/**
+ * Overall-rating headroom a fee-paying signing gets over the free-agent
+ * reputation cap. Fee transfers had NO cap at all, so a League Two club with a
+ * £1.3M budget could buy 85-OVR players in its first window — and scouted
+ * listings dodge the transfer window on top of that, so "keep a scout assigned"
+ * was a licence to sign 85 OVR in week 30.
+ *
+ * TODO(config): both constants belong in `src/config/transfers.ts` next to
+ * FREE_AGENT_REP_BASE / FREE_AGENT_DIV_BONUS.
+ */
+const FEE_SIGNING_OVERALL_BONUS = 12;
+
+/**
+ * Headroom over the club's OWN best player.
+ *
+ * The free-agent gate is deliberately far below squad standard (rep 2 in tier 4
+ * → 46 OVR, against a real League Two squad averaging 63), because free agents
+ * are meant to be a scrap-heap bonus. Reusing it as the fee-transfer ceiling
+ * would leave a club unable to sign anyone as good as the players it already
+ * has, which reads as a bug rather than a constraint. Taking the looser of the
+ * two makes the cap self-calibrating: every club can always buy an incremental
+ * upgrade, no club can jump ten rating points in one window.
+ */
+const FEE_SIGNING_SQUAD_HEADROOM = 4;
+
+/** Max overall a club may sign for a fee: the looser of its reputation ceiling
+ *  and a small step above its current best player. */
+export const getMaxFeeSigningOverall = (reputation: number, divisionId: string, squadBestOverall = 0): number =>
+  Math.max(
+    getMaxFreeAgentOverall(reputation, divisionId) + FEE_SIGNING_OVERALL_BONUS,
+    squadBestOverall + FEE_SIGNING_SQUAD_HEADROOM,
+  );
+
+/** Sell-on percentage a purchase at `fee` attaches, given the player's value.
+ *  ONE definition, shared by `evaluateOffer`'s preview and `executeTransfer`'s
+ *  application, so the previewed clause is the clause you get. */
+const resolveSellOnPct = (fee: number, playerValue: number, random: () => number = Math.random): number => {
+  if (fee >= SELL_ON_HIGH_FEE_THRESHOLD) return SELL_ON_HIGH_BASE_PCT + Math.floor(random() * SELL_ON_HIGH_RANGE_PCT);
+  const lowTrigger = Math.min(
+    SELL_ON_LOW_FEE_THRESHOLD,
+    Math.max(LISTING_PRICE_FLOOR, (playerValue || 0) * SELL_ON_VALUE_TRIGGER_RATIO),
+  );
+  if (fee >= lowTrigger) return SELL_ON_LOW_BASE_PCT + Math.floor(random() * SELL_ON_LOW_RANGE_PCT);
+  return 0;
+};
+
+/**
+ * Reject a fee signing whose overall exceeds what the club's reputation and
+ * division can attract. Returns an error message, or null when allowed.
+ *
+ * Free agents already had this gate (`getMaxFreeAgentOverall`); fee transfers
+ * had none, and scouted listings additionally bypass the transfer window — so
+ * "keep a scout assigned" was a licence to sign 85-OVR players in week 30 with
+ * a fourth-tier club. Applying the cap to every fee signing closes both.
+ */
+const checkSigningReputationCap = (state: GameState, playerId: string): string | null => {
+  const player = state.players[playerId];
+  const club = state.clubs[state.playerClubId];
+  if (!player || !club) return null;
+  const squadBest = club.playerIds.reduce((best, id) => {
+    const p = state.players[id];
+    return p && p.overall > best ? p.overall : best;
+  }, 0);
+  const maxOvr = getMaxFeeSigningOverall(club.reputation, state.playerDivision, squadBest);
+  if (player.overall <= maxOvr) return null;
+  return `${player.lastName} (${player.overall} OVR) won't drop to your level — your club can attract up to ${maxOvr} OVR. Build the club's reputation first.`;
 };
 
 /** Resolve a transfer-market listing for a player, synthesizing one for an *unlisted*
@@ -138,6 +222,12 @@ const executeSale = (state: GameState, offer: { id: string; playerId: string; bu
   // contract-expired) — otherwise the buyer's fee gets credited for a free agent.
   if (player.clubId !== state.playerClubId) return { success: false, message: 'Player is no longer at your club.' };
   if (player.onLoan) return { success: false, message: 'Player is currently on loan and cannot be sold.' };
+  // Sales were never window-checked — only purchases were. Incoming offers live
+  // 4 weeks past the deadline, so the documented weeks-1-8 / 20-24 constraint
+  // was optional in the direction that matters most for the economy (cashing
+  // out). This is the single choke point for every sale path (respondToOffer,
+  // negotiateIncomingOffer, acceptIncomingOfferAtFee).
+  if (!state.transferWindowOpen) return { success: false, message: 'Transfer window is closed — you cannot complete a sale now.' };
 
   const newPlayers = { ...state.players };
   const sellerClub = { ...state.clubs[state.playerClubId] };
@@ -299,8 +389,10 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     if (!club) return null;
     const ratio = fee / listing.askingPrice;
     const acceptChance = fee >= listing.askingPrice ? ACCEPT_CHANCE_AT_ASKING : fee >= listing.askingPrice * ACCEPT_80_PERCENT_THRESHOLD ? ACCEPT_CHANCE_AT_80_PERCENT : ACCEPT_CHANCE_BELOW;
-    const wouldTriggerSellOn = fee >= SELL_ON_LOW_FEE_THRESHOLD;
-    const sellOnPct = fee >= SELL_ON_HIGH_FEE_THRESHOLD ? SELL_ON_EVAL_HIGH_PCT : fee >= SELL_ON_LOW_FEE_THRESHOLD ? SELL_ON_EVAL_LOW_PCT : 0;
+    // Preview must use the same trigger executeTransfer applies (value-relative,
+    // not a flat £5M floor) or the UI promises clause-free bargain flips.
+    const wouldTriggerSellOn = resolveSellOnPct(fee, player.value, () => 0) > 0;
+    const sellOnPct = fee >= SELL_ON_HIGH_FEE_THRESHOLD ? SELL_ON_EVAL_HIGH_PCT : wouldTriggerSellOn ? SELL_ON_EVAL_LOW_PCT : 0;
     const budgetAfter = club.budget - fee;
     const wageImpact = player.wage;
     const positionCount = club.playerIds.filter(id => state.players[id]?.position === player.position).length;
@@ -327,6 +419,8 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const listing = resolveListing(state, playerId);
     if (!state.transferWindowOpen && !listing?.scoutedPlayer) return { outcome: 'rejected', message: 'Transfer window is closed.' };
     if (!listing) return { outcome: 'rejected', message: 'Player not available.' };
+    const capBlock = checkSigningReputationCap(state, playerId);
+    if (capBlock) return { outcome: 'rejected', message: capBlock };
     const club = state.clubs[state.playerClubId];
     const galacticoAllowed = hasPerk(state.managerProgression, 'galactico') && !state.galacticoUsedThisSeason;
     const maxBudget = galacticoAllowed ? Math.floor(club.budget * 1.2) : club.budget;
@@ -380,6 +474,8 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const listing = resolveListing(state, playerId);
     if (!state.transferWindowOpen && !listing?.scoutedPlayer) return { success: false, message: 'Transfer window is closed.' };
     if (!listing) return { success: false, message: 'Player not available.' };
+    const capBlock = checkSigningReputationCap(state, playerId);
+    if (capBlock) return { success: false, message: capBlock };
     const club = state.clubs[state.playerClubId];
     const galacticoOk = hasPerk(state.managerProgression, 'galactico') && !state.galacticoUsedThisSeason;
     const budgetCap = galacticoOk ? Math.floor(club.budget * 1.2) : club.budget;
@@ -423,8 +519,11 @@ export const createTransferSlice = (set: Set, get: Get) => ({
       oldClub.budget += fee - sellOnFee;
     }
 
-    // New sell-on clause: the selling club gets 10-20% on expensive transfers (not for external)
-    const sellOnPct = !isExternalPlayer && fee >= SELL_ON_HIGH_FEE_THRESHOLD ? SELL_ON_HIGH_BASE_PCT + Math.floor(Math.random() * SELL_ON_HIGH_RANGE_PCT) : !isExternalPlayer && fee >= SELL_ON_LOW_FEE_THRESHOLD ? SELL_ON_LOW_BASE_PCT + Math.floor(Math.random() * SELL_ON_LOW_RANGE_PCT) : 0;
+    // New sell-on clause: the selling club keeps an interest in the upside.
+    // Trigger is value-relative (see resolveSellOnPct) so sub-£5M purchases are
+    // no longer clause-free flip fodder. Not applied to external listings —
+    // there is no real selling club to owe.
+    const sellOnPct = isExternalPlayer ? 0 : resolveSellOnPct(fee, player.value);
     // A fee-paid signing joins on FRESH terms — length by age (same brackets
     // as free-agent / AI conventions) and a renegotiated wage floored at his
     // current wage (see getSignedWage). Without this a £50M final-year signing
@@ -444,7 +543,12 @@ export const createTransferSlice = (set: Set, get: Get) => ({
       sellOnClubId: sellOnPct > 0 ? listing.sellerClubId : undefined,
     };
     newClub.playerIds = [...newClub.playerIds, playerId];
-    newClub.budget = Math.max(0, newClub.budget - fee);
+    // NOT floored at 0. `galactico` deliberately raises the spend cap to 120% of
+    // budget — the point of the perk is that it puts you in debt. Flooring the
+    // result forgave the overspend, turning a risky one-off into a free 20% of
+    // your transfer budget once a season. Every non-galactico path already
+    // rejected `fee > budget` above, so this can only go negative via the perk.
+    newClub.budget = newClub.budget - fee;
     newClub.wageBill += updatedPlayer.wage;
 
     const transferMarket = state.transferMarket.filter(l => l.playerId !== playerId);
@@ -524,10 +628,36 @@ export const createTransferSlice = (set: Set, get: Get) => ({
 
     const newPlayers = { ...state.players, [playerId]: updatedPlayer };
     const kingmakerMult = hasPerk(state.managerProgression, 'kingmaker') ? 1.2 : 1;
-    const askingPrice = customAskingPrice != null
-      ? Math.max(LISTING_PRICE_FLOOR, Math.round(customAskingPrice * kingmakerMult))
-      : Math.max(LISTING_PRICE_FLOOR, Math.round(player.value * LIST_PRICE_MULTIPLIER * kingmakerMult));
-    const newMarket = [...state.transferMarket, { playerId, askingPrice, sellerClubId: state.playerClubId }];
+    const rawAskingPrice = customAskingPrice != null
+      ? customAskingPrice * kingmakerMult
+      : player.value * LIST_PRICE_MULTIPLIER * kingmakerMult;
+    // Clamp to the same ceiling the UI slider enforces. `customAskingPrice`
+    // arrived pre-clamped at 2.0x value, then `kingmakerMult` multiplied ON TOP
+    // of it — so the perk quietly raised the real ceiling to 2.4x value.
+    const askingPrice = Math.max(
+      LISTING_PRICE_FLOOR,
+      Math.round(Math.min(rawAskingPrice, Math.max(LISTING_PRICE_FLOOR, player.value * LISTING_PRICE_MAX_RATIO))),
+    );
+    // Stamp the listing week/season so `processListingExpiry` can retire it.
+    // Unstamped listings are deliberately kept forever by that function, and AI
+    // bids anchor at 85% of the asking price — so a week-1 listing at 2x value
+    // still drew ~8x-of-value bids three seasons later, after ageing had cut the
+    // player's real worth to ~20%. A frozen asking price is a money printer.
+    const listing = {
+      playerId,
+      askingPrice,
+      sellerClubId: state.playerClubId,
+      listedWeek: state.week,
+      listedSeason: state.season,
+      divisionId: state.clubs[state.playerClubId]?.divisionId,
+    };
+    // Dedupe: re-listing updated nothing and pushed a SECOND row for the same
+    // player, so repeated calls stacked duplicate listings (and duplicate AI
+    // interest) for one player. Update the existing row in place instead.
+    const existingIdx = state.transferMarket.findIndex(l => l.playerId === playerId);
+    const newMarket = existingIdx >= 0
+      ? state.transferMarket.map((l, i) => (i === existingIdx ? { ...l, ...listing } : l))
+      : [...state.transferMarket, listing];
     let newMessages = addMsg(state.messages, {
       week: state.week, season: state.season, type: 'transfer',
       title: `${player.lastName} Listed`,
@@ -684,6 +814,22 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     if (club.playerIds.length >= MAX_SQUAD_SIZE) return { success: false, message: `Squad is full (${MAX_SQUAD_SIZE} players). Release or sell a player first.` };
     const maxFreeAgentOvr = getMaxFreeAgentOverall(club.reputation, state.playerDivision);
     if (player.overall > maxFreeAgentOvr) return { success: false, message: `Player quality (${player.overall}) exceeds your club's reputation limit (${maxFreeAgentOvr}).` };
+
+    // Acceptance roll. There was none, so the UI's 0.7x wage floor was a
+    // guaranteed 30% discount on every free agent in the game. Meeting his
+    // expected wage still signs him outright; lowballing is now a gamble.
+    const acceptChance = getFreeAgentAcceptChance(player, wage, club.reputation, state.season);
+    if (Math.random() > acceptChance) {
+      const shortfall = Math.round((1 - wage / Math.max(1, player.wage || 1)) * 100);
+      const rejectMsg = addMsg(state.messages, {
+        week: state.week, season: state.season, type: 'transfer',
+        title: `${player.lastName} Turns You Down`,
+        body: `${player.firstName} ${player.lastName} has rejected your terms${shortfall > 0 ? ` — £${(wage / 1000).toFixed(0)}K/week is around ${shortfall}% below what he expects` : ''}. Improve the offer or move on.`,
+        playerId,
+      });
+      set({ messages: rejectMsg });
+      return { success: false, message: `${player.firstName} ${player.lastName} rejected your contract offer.` };
+    }
 
     club.budget -= signingBonus;
     club.wageBill += wage;

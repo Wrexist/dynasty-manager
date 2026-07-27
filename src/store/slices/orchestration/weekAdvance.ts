@@ -35,7 +35,7 @@ import { JOB_MARKET_REFRESH_WEEKS, PROACTIVE_OFFER_CHECK_INTERVAL, PROACTIVE_OFF
 import { getAICounterTactics } from '@/config/aiManager';
 import { AI_LOAN_DURATIONS, AI_LOAN_OBLIGATORY_BUY_CHANCE, AI_LOAN_OBLIGATORY_BUY_MULTIPLIER, AI_LOAN_WAGE_SPLITS } from '@/config/aiSimulation';
 import { getCompetitionCalendar } from '@/config/continental';
-import { AI_LOAN_OFFER_CHANCE, AI_LOAN_RECALL_CLAUSE_CHANCE, ASSISTANT_MANAGER_FAMILIARITY_BOOST, BENCH_REST_BONUS, BOARD_REVIEW_ADJUST_POSITIONS, BOARD_REVIEW_RAISE_THRESHOLD, BOARD_REVIEW_RELAX_THRESHOLD, BOARD_REVIEW_WEEKS, CALLUP_SNUB_MORALE_PENALTY, COMMERCIAL_INCOME_BASE, COMMERCIAL_INCOME_PER_REP, CONGESTED_FIXTURE_INJURY_MULTIPLIER, CONTRACT_MORALE_HIT_AMOUNT, CONTRACT_MORALE_HIT_OVERALL_THRESHOLD, CONTRACT_MORALE_HIT_WEEK_THRESHOLD, CONTRACT_MORALE_MIN, CONTRACT_WARNING_OVERALL_THRESHOLD, CONTRACT_WARNING_WEEKS, CONTRACT_WARNING_YOUTH_AGE_MAX, CONTRACT_WARNING_YOUTH_POTENTIAL_MIN, CUP_EXTRA_TIME_GOAL_CHANCE, CUP_EXTRA_TIME_REPUTATION_DIVISOR, CUP_PENALTY_GK_QUALITY_FACTOR, CUP_PENALTY_KICKS, FACILITY_MAX_LEVEL, FAN_MOOD_BASE, FAN_MOOD_SCALE, FFP_CONFIDENCE_PENALTY, FFP_CRITICAL_CONFIDENCE_PENALTY, FFP_WAGE_RATIO_CRITICAL, FFP_WAGE_RATIO_WARNING, FORFEIT_SCORE, INJURY_TYPES, INTERNATIONAL_BREAK_FITNESS_COST, INTERNATIONAL_BREAK_WEEKS, INTERNATIONAL_CALLUP_MIN_OVR, INTERNATIONAL_FITNESS_COST, INTERNATIONAL_SNUB_MIN_OVR, LEGENDARY_OBJECTIVE_XP_MULTIPLIER, LINEUP_SIZE, LOAN_DEV_BASE_CHANCE, LOAN_DEV_REP_FACTOR, LOAN_FITNESS_DRAIN, LOAN_PLAY_CHANCE_HIGH, LOAN_PLAY_CHANCE_LOW, LOAN_QUALITY_FORMULA_BASE, LOAN_QUALITY_FORMULA_REP_MULT, LOAN_YOUNG_AGE_THRESHOLD, MANAGER_SALARY_CONFIDENCE_PENALTY, MANAGER_SALARY_RATIO_CRITICAL, MANAGER_SALARY_RATIO_WARNING, MATCHDAY_INCOME_PER_FAN, MAX_CAREER_TIMELINE, MAX_FINANCE_HISTORY, MORALE_BENCH_MIN, MORALE_BENCH_WEEKLY_LOSS, NT_SACK_GROUP_EXIT_THRESHOLD, OBJECTIVE_CYCLE_WEEKS, PHYSIO_INJURY_REDUCTION_PER_QUALITY, PHYSIO_RECOVERY_BOOST_THRESHOLD, PHYSIO_RECOVERY_CHANCE, POST_TOURNAMENT_FITNESS_COST_HIGH, POST_TOURNAMENT_FITNESS_COST_LOW, RARE_OBJECTIVE_XP_MULTIPLIER, REP_INTL_FINAL, REP_INTL_GROUP_EXIT, REP_INTL_KNOCKOUT, REP_INTL_SEMI, REP_INTL_TOURNAMENT_WIN, SCOUTING_COST_PER_ASSIGNMENT, SIM_PENALTY_BASE_WIN_CHANCE, SIM_PENALTY_MENTAL_SCALE, STADIUM_INCOME_PER_LEVEL, STREAK_FORM_BONUS, STREAK_FORM_THRESHOLD, STREAK_INCOME_MULTIPLIER, STREAK_INCOME_THRESHOLD, STREAK_MORALE_BONUS, STREAK_MORALE_THRESHOLD, TRAINING_GROUND_BOOST, ULTIMATUM_CONFIDENCE_THRESHOLD, ULTIMATUM_HORIZON_WEEKS, ULTIMATUM_POSITION_TOLERANCE, ULTIMATUM_SANDBOX_BUDGET_CUT, ULTIMATUM_SANDBOX_CONFIDENCE_FLOOR, ULTIMATUM_SEASON1_GRACE_WEEK, ULTIMATUM_SURVIVE_CONFIDENCE, ULTIMATUM_SURVIVE_CONFIDENCE_BONUS, UNHAPPY_CONTAGION_MORALE_HIT, UNHAPPY_CONTAGION_WEEKS, UNHAPPY_THRESHOLD, UNHAPPY_WEEKS_TO_REQUEST, YOUTH_DEVELOPER_BOOST } from '@/config/gameBalance';
+import { AI_LOAN_OFFER_CHANCE, AI_LOAN_RECALL_CLAUSE_CHANCE, ASSISTANT_MANAGER_FAMILIARITY_BOOST, BENCH_REST_BONUS, BOARD_REVIEW_ADJUST_POSITIONS, BOARD_REVIEW_RAISE_THRESHOLD, BOARD_REVIEW_RELAX_THRESHOLD, BOARD_REVIEW_WEEKS, CALLUP_SNUB_MORALE_PENALTY, CONGESTED_FIXTURE_INJURY_MULTIPLIER, CONTRACT_MORALE_HIT_AMOUNT, CONTRACT_MORALE_HIT_OVERALL_THRESHOLD, CONTRACT_MORALE_HIT_WEEK_THRESHOLD, CONTRACT_MORALE_MIN, CONTRACT_WARNING_OVERALL_THRESHOLD, CONTRACT_WARNING_WEEKS, CONTRACT_WARNING_YOUTH_AGE_MAX, CONTRACT_WARNING_YOUTH_POTENTIAL_MIN, CUP_EXTRA_TIME_GOAL_CHANCE, CUP_EXTRA_TIME_REPUTATION_DIVISOR, CUP_PENALTY_GK_QUALITY_FACTOR, CUP_PENALTY_KICKS, FACILITY_MAX_LEVEL, FAN_MOOD_BASE, FAN_MOOD_SCALE, FFP_CONFIDENCE_PENALTY, FFP_CRITICAL_CONFIDENCE_PENALTY, FFP_WAGE_RATIO_CRITICAL, FFP_WAGE_RATIO_WARNING, FORFEIT_SCORE, INJURY_TYPES, INTERNATIONAL_BREAK_FITNESS_COST, INTERNATIONAL_BREAK_WEEKS, INTERNATIONAL_CALLUP_MIN_OVR, INTERNATIONAL_FITNESS_COST, INTERNATIONAL_SNUB_MIN_OVR, LEGENDARY_OBJECTIVE_XP_MULTIPLIER, LINEUP_SIZE, LOAN_DEV_BASE_CHANCE, LOAN_DEV_REP_FACTOR, LOAN_FITNESS_DRAIN, LOAN_PLAY_CHANCE_HIGH, LOAN_PLAY_CHANCE_LOW, LOAN_QUALITY_FORMULA_BASE, LOAN_QUALITY_FORMULA_REP_MULT, LOAN_YOUNG_AGE_THRESHOLD, MANAGER_SALARY_CONFIDENCE_PENALTY, MANAGER_SALARY_RATIO_CRITICAL, MANAGER_SALARY_RATIO_WARNING, MAX_CAREER_TIMELINE, MAX_FINANCE_HISTORY, MORALE_BENCH_MIN, MORALE_BENCH_WEEKLY_LOSS, NT_SACK_GROUP_EXIT_THRESHOLD, OBJECTIVE_CYCLE_WEEKS, PHYSIO_INJURY_REDUCTION_PER_QUALITY, PHYSIO_RECOVERY_BOOST_THRESHOLD, PHYSIO_RECOVERY_CHANCE, POST_TOURNAMENT_FITNESS_COST_HIGH, POST_TOURNAMENT_FITNESS_COST_LOW, RARE_OBJECTIVE_XP_MULTIPLIER, REP_INTL_FINAL, REP_INTL_GROUP_EXIT, REP_INTL_KNOCKOUT, REP_INTL_SEMI, REP_INTL_TOURNAMENT_WIN, SCOUTING_COST_PER_ASSIGNMENT, SIM_PENALTY_BASE_WIN_CHANCE, SIM_PENALTY_MENTAL_SCALE, STADIUM_INCOME_PER_LEVEL, STREAK_FORM_BONUS, STREAK_FORM_THRESHOLD, STREAK_INCOME_MULTIPLIER, STREAK_INCOME_THRESHOLD, STREAK_MORALE_BONUS, STREAK_MORALE_THRESHOLD, TRAINING_GROUND_BOOST, ULTIMATUM_CONFIDENCE_THRESHOLD, ULTIMATUM_HORIZON_WEEKS, ULTIMATUM_POSITION_TOLERANCE, ULTIMATUM_SANDBOX_BUDGET_CUT, ULTIMATUM_SANDBOX_CONFIDENCE_FLOOR, ULTIMATUM_SEASON1_GRACE_WEEK, ULTIMATUM_SURVIVE_CONFIDENCE, ULTIMATUM_SURVIVE_CONFIDENCE_BONUS, UNHAPPY_CONTAGION_MORALE_HIT, UNHAPPY_CONTAGION_WEEKS, UNHAPPY_THRESHOLD, UNHAPPY_WEEKS_TO_REQUEST, YOUTH_DEVELOPER_BOOST } from '@/config/gameBalance';
 import { FORCED_RETIREMENT_AGE_GRACE_YEARS, FORCED_RETIREMENT_UNEMPLOYED_WEEKS, GROWTH_DISCIPLINE_PER_CLEAN_MATCH, GROWTH_MOTIVATION_PER_MORALE_EVENT, GROWTH_SCOUTING_PER_ASSIGNMENT, GROWTH_TACTICAL_PER_MATCH, MOD_SCOUTING_SPEED, MOD_TACTICAL_FAMILIARITY, MOD_YOUTH_GROWTH, STAT_MAX, UNEMPLOYED_OFFER_CHECK_INTERVAL, UNEMPLOYED_OFFER_MAX_PENDING } from '@/config/managerCareer';
 import { NATIONAL_OVR_STR_FLOOR, NATIONAL_OVR_STR_MAX, NATIONAL_OVR_STR_MIN, NATIONAL_OVR_STR_RANGE, PENALTY_CONVERSION_RATE } from '@/config/matchEngine';
 import { MERCH_CAMPAIGN_COOLDOWN_WEEKS, MERCH_PRICING_TIERS, SIGNATURE_DROP_COOLDOWN_WEEKS } from '@/config/merchandise';
@@ -61,7 +61,7 @@ import { getWinStreak } from '@/utils/celebrations';
 import { getMentorBonus } from '@/utils/chemistry';
 import { advanceKnockoutRound, generateKnockoutFromGroups, getCurrentMatchday, isGroupStageComplete, isKnockoutRoundComplete, simulateGroupMatchday, simulateKnockoutLeg } from '@/utils/continental';
 import { getEffectiveStadiumLevel } from '@/utils/facilities';
-import { getLeaguePositionPrize } from '@/utils/financeHelpers';
+import { getLeaguePositionPrize, getMatchdayIncome, getCommercialIncome, assessFfp } from '@/utils/financeHelpers';
 import { formatMoney, getSuffix } from '@/utils/helpers';
 import { generateKnockoutBracket, processGroupWeek, processKnockoutRound, simulateKnockoutToCompletion, autoSelectNationalSquad } from '@/utils/international';
 import { generateUnemployedOffer } from '@/utils/managerCareer';
@@ -1724,7 +1724,15 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
         : AI_OFFER_CHANCE * preSeasonOfferMult;
       if (Math.random() < effectiveOfferChance) {
         const listing = currentMarket.find(l => l.playerId === lp.id);
-        const askingFloor = listing ? listing.askingPrice * ASKING_PRICE_BID_ANCHOR : 0;
+        // A player listed within the last few weeks cannot anchor AI bids above
+        // what he is actually worth. Without this, buying at just under the
+        // sell-on threshold and relisting at the UI's 2x cap was a repeatable
+        // profit machine across every spare squad slot, every window — and an
+        // ancient listing kept its original asking price forever, so AI clubs
+        // bid ~8x a declining player's real value for seasons on end.
+        const listedRecently = !!listing && listing.listedSeason === season
+          && (newWeek - (listing.listedWeek ?? 0)) <= 4;
+        const askingFloor = listing && !listedRecently ? listing.askingPrice * ASKING_PRICE_BID_ANCHOR : 0;
         const effectiveValue = Math.max(lp.value, askingFloor);
         tryGenerateOffer(lp, OFFER_FEE_BASE, OFFER_FEE_RANDOM_RANGE, effectiveValue);
       }
@@ -2061,6 +2069,12 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
       });
     }
   }
+  // Count assignments BEFORE dropping the completed ones — they were active this
+  // week and must be billed. Filtering first made the final week of every
+  // assignment free, and with the `scout_network` perk a 2-week domestic
+  // assignment dropped 2 -> 0 on its first tick and completed before it was ever
+  // billed: GBP 0, repeatable weekly, per scout, forever.
+  const billableAssignmentCount = newScouting.assignments.length;
   newScouting.assignments = newScouting.assignments.filter(a => !completedAssignments.includes(a.id));
   // Cap scout reports to prevent unbounded growth
   if (newScouting.reports.length > MAX_SCOUT_REPORTS) {
@@ -2214,8 +2228,22 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   });
   newStaff = { ...newStaff, members: moraleTickedMembers };
   const streakIncomeMult = currentWinStreak >= STREAK_INCOME_THRESHOLD ? 1 + STREAK_INCOME_MULTIPLIER : 1;
-  const matchdayIncome = Math.round(playerClub.fanBase * MATCHDAY_INCOME_PER_FAN * fanMoodMult * derbyIncomeBonus * streakIncomeMult);
-  const commercialIncome = Math.round(COMMERCIAL_INCOME_BASE + playerClub.reputation * COMMERCIAL_INCOME_PER_REP);
+  // Matchday is GATE money: paid at 2x on home weeks and nothing otherwise, so
+  // the season total is unchanged (every league plays exactly half its fixtures
+  // at home) while the money becomes something real. It used to pay every week
+  // including away games, byes and post-season. Both figures are also
+  // league-tier scaled now — `fanBase` is a 0-100 popularity index, not a
+  // headcount, and it only spans 41-54 across the English pyramid while wages
+  // span 20x, so a League Two club was clearing more profit per week than
+  // Arsenal. Commercial had the same problem: unscaled, it paid a tier-4 club
+  // GBP 500k/wk, more than its wage bill.
+  // Both live behind helpers shared with the Finance page so the displayed
+  // breakdown can never drift from the money actually paid.
+  const isHomeFixture = !!thisWeekMatch && thisWeekMatch.homeClubId === playerClubId;
+  const matchdayIncome = getMatchdayIncome(playerClub, playerDiv, {
+    fanMood: fanMoodMult, derby: derbyIncomeBonus, streak: streakIncomeMult, isHomeFixture,
+  });
+  const commercialIncome = getCommercialIncome(playerClub, playerDiv);
   // League position prize money: higher position = more income, scaled by tier
   const playerTableIdx = leagueTable.findIndex(e => e.clubId === playerClubId);
   const playerTablePos = playerTableIdx >= 0 ? playerTableIdx + 1 : leagueTable.length;
@@ -2232,7 +2260,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   const weeklyIncome = matchdayIncome + commercialIncome + stadiumIncome + positionPrize + sponsorIncome + merchandiseIncome;
   const staffWages = staff.members.reduce((sum, s) => sum + s.wage, 0);
   // Scouting costs: each active assignment costs money per week
-  const scoutingCosts = newScouting.assignments.length * SCOUTING_COST_PER_ASSIGNMENT;
+  const scoutingCosts = billableAssignmentCount * SCOUTING_COST_PER_ASSIGNMENT;
   // Manager salary: deducted weekly from club budget and accumulated as personal wealth
   const managerSalary = state.careerManager?.contract?.salary ?? 0;
   const totalExpenses = playerClub.wageBill + staffWages + scoutingCosts + managerSalary;
@@ -2245,16 +2273,20 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
 
   // Financial Fair Play check: warn/penalise when wages are too high relative to income
   let newBoardConfidence = boardConfidence;
-  const wageToRevenueRatio = weeklyIncome > 0 ? totalExpenses / weeklyIncome : 1;
+  // One shared definition with the Finance page. They used to disagree: the
+  // engine measured TOTAL expenses with merch net, the page measured the player
+  // wage bill alone with merch gross against hardcoded thresholds — so a player
+  // could read "62% - Healthy" while the board docked confidence every week.
+  const wageToRevenueRatio = assessFfp(totalExpenses, weeklyIncome).ratio;
   if (wageToRevenueRatio >= FFP_WAGE_RATIO_CRITICAL) {
     newBoardConfidence = Math.max(CONFIDENCE_MIN, newBoardConfidence - FFP_CRITICAL_CONFIDENCE_PENALTY);
     if (newWeek % 4 === 0) {
-      newMessages = addMsg(newMessages, { week: newWeek, season, type: 'board', title: 'FFP: Critical Warning!', body: `Your wage bill is ${Math.round(wageToRevenueRatio * 100)}% of revenue. The board demands immediate action to reduce spending or face severe consequences.` });
+      newMessages = addMsg(newMessages, { week: newWeek, season, type: 'board', title: 'FFP: Critical Warning!', body: `Your total weekly costs are ${Math.round(wageToRevenueRatio * 100)}% of revenue. The board demands immediate action to reduce spending or face severe consequences.` });
     }
   } else if (wageToRevenueRatio >= FFP_WAGE_RATIO_WARNING) {
     newBoardConfidence = Math.max(CONFIDENCE_MIN, newBoardConfidence - FFP_CONFIDENCE_PENALTY);
     if (newWeek % 8 === 0) {
-      newMessages = addMsg(newMessages, { week: newWeek, season, type: 'board', title: 'FFP: Spending Warning', body: `Your wage bill is ${Math.round(wageToRevenueRatio * 100)}% of revenue. The board urges you to manage finances more carefully.` });
+      newMessages = addMsg(newMessages, { week: newWeek, season, type: 'board', title: 'FFP: Spending Warning', body: `Your total weekly costs are ${Math.round(wageToRevenueRatio * 100)}% of revenue. The board urges you to manage finances more carefully.` });
     }
   }
 

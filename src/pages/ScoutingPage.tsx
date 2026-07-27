@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Search, Globe, MapPin, Eye, Clock, Star, StarOff, Banknote, UserCheck, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ScoutRegion, TransferListing } from '@/types/game';
+import { ScoutRegion, ScoutReport, TransferListing } from '@/types/game';
 import { getPotentialInfo } from '@/utils/uiHelpers';
+import { getEstimatedPotential } from '@/utils/scouting';
+import { SCOUT_REPORTS_COLLAPSED_COUNT } from '@/config/scouting';
 import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { TierBorderFrame } from '@/components/game/TierBorderFrame';
 import { SCOUTING_KNOWLEDGE_THRESHOLDS, PAGE_HINTS } from '@/config/ui';
@@ -26,6 +28,13 @@ const REGION_INFO: { region: ScoutRegion; label: string; weeks: number; descript
 
 const SCOUTING_TABS = ['Overview', 'Watch List'] as const;
 
+const REPORT_SORTS = [
+  { id: 'recent', label: 'Newest' },
+  { id: 'rating', label: 'Rating' },
+  { id: 'potential', label: 'Potential' },
+] as const;
+type ReportSort = typeof REPORT_SORTS[number]['id'];
+
 const ScoutingPage = () => {
   const { scouting, players, scoutWatchList, transferMarket, transferWindowOpen } = useGameStore(useShallow((s) => ({
     scouting: s.scouting,
@@ -41,8 +50,34 @@ const ScoutingPage = () => {
   const dismissScoutReport = useGameStore((s) => s.dismissScoutReport);
   const [activeTab, setActiveTab] = useState<typeof SCOUTING_TABS[number]>('Overview');
   const [negotiatingListing, setNegotiatingListing] = useState<TransferListing | null>(null);
+  const [showAllReports, setShowAllReports] = useState(false);
+  const [reportSort, setReportSort] = useState<ReportSort>('recent');
+  const [signOnly, setSignOnly] = useState(false);
 
   const findListing = (playerId: string) => transferMarket.find(l => l.playerId === playerId) || null;
+  /** Latest report for a player, or null. Drives the fog on BOTH the report list
+   *  and the Watch List — a watch-listed player must not be more legible than
+   *  the report that surfaced him. */
+  const findReport = (playerId: string): ScoutReport | null =>
+    scouting.reports.filter(r => r.playerId === playerId).slice(-1)[0] || null;
+
+  const sortedReports = useMemo(() => {
+    const est = (r: ScoutReport) => {
+      const p = players[r.playerId];
+      return p ? getEstimatedPotential(p, r) : 0;
+    };
+    let list = scouting.reports.filter(r => players[r.playerId]);
+    if (signOnly) list = list.filter(r => r.recommendation === 'sign');
+    if (reportSort === 'rating') list = [...list].sort((a, b) => b.estimatedOverall - a.estimatedOverall);
+    else if (reportSort === 'potential') list = [...list].sort((a, b) => est(b) - est(a));
+    // 'recent': reports are appended, so the tail is newest. The old list used
+    // `slice(0, 10)`, which showed the TEN OLDEST and made every newer report
+    // permanently unreachable.
+    else list = [...list].reverse();
+    return list;
+  }, [scouting.reports, players, signOnly, reportSort]);
+
+  const shownReports = showAllReports ? sortedReports : sortedReports.slice(0, SCOUT_REPORTS_COLLAPSED_COUNT);
 
   return (
     <div className="max-w-lg mx-auto">
@@ -122,16 +157,53 @@ const ScoutingPage = () => {
           <div className="space-y-2">
             <h3 className="text-sm font-semibold text-foreground">
               Scout Reports
-              {scouting.reports.length > 10 && (
-                <span className="ml-1.5 text-[10px] font-normal text-muted-foreground/60">showing 10 of {scouting.reports.length}</span>
-              )}
+              <span className="ml-1.5 text-[10px] font-normal text-muted-foreground/60">
+                showing {shownReports.length} of {sortedReports.length}
+              </span>
             </h3>
-            {scouting.reports.slice(0, 10).map(report => {
+
+            {/* Sort + filter controls */}
+            <div className="flex items-center gap-1.5">
+              <div className="flex gap-1 bg-muted/30 rounded-lg p-0.5 flex-1">
+                {REPORT_SORTS.map(s => (
+                  <button
+                    key={s.id}
+                    onClick={() => { hapticLight(); setReportSort(s.id); }}
+                    className={cn(
+                      'flex-1 text-[10px] font-semibold py-1 rounded-md transition-colors',
+                      reportSort === s.id ? 'bg-primary/80 text-primary-foreground' : 'text-muted-foreground'
+                    )}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => { hapticLight(); setSignOnly(v => !v); }}
+                className={cn(
+                  'text-[10px] font-semibold px-2 py-1.5 rounded-md border transition-colors shrink-0',
+                  signOnly
+                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                    : 'text-muted-foreground border-border/50'
+                )}
+                aria-pressed={signOnly}
+              >
+                SIGN only
+              </button>
+            </div>
+
+            {shownReports.length === 0 && (
+              <GlassPanel className="p-4 text-center">
+                <p className="text-xs text-muted-foreground">No reports match this filter.</p>
+              </GlassPanel>
+            )}
+            {shownReports.map(report => {
               const player = players[report.playerId];
               if (!player) return null;
               const listing = findListing(report.playerId);
               const showIdentity = report.knowledgeLevel >= SCOUTING_KNOWLEDGE_THRESHOLDS.REVEAL_IDENTITY;
               const showOverall = report.knowledgeLevel >= SCOUTING_KNOWLEDGE_THRESHOLDS.REVEAL_OVERALL;
+              const estPotential = getEstimatedPotential(player, report);
               return (
                 <GlassPanel key={report.id} className="p-3 space-y-2">
                   <div className="flex items-center justify-between">
@@ -162,6 +234,9 @@ const ScoutingPage = () => {
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {player.position} · Age {player.age}
+                          {/* Estimated (fogged) potential, never the true value —
+                              scouting.ts already computes this estimate. */}
+                          {showOverall && ` · Pot. ~${estPotential}`}
                           {!showOverall && ' · Partially scouted'}
                         </p>
                       </div>
@@ -238,6 +313,16 @@ const ScoutingPage = () => {
                 </GlassPanel>
               );
             })}
+            {sortedReports.length > SCOUT_REPORTS_COLLAPSED_COUNT && (
+              <button
+                onClick={() => { hapticLight(); setShowAllReports(v => !v); }}
+                className="w-full text-[11px] font-semibold py-2 rounded-lg border border-border/50 text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors"
+              >
+                {showAllReports
+                  ? 'Show fewer'
+                  : `Show all ${sortedReports.length} reports`}
+              </button>
+            )}
           </div>
         )}
 
@@ -304,19 +389,41 @@ const ScoutingPage = () => {
                 const player = players[pid];
                 if (!player) return null;
                 const listing = findListing(pid);
+                // Apply the SAME fog as the report that surfaced this player.
+                // This list rendered `player.overall` and `player.potential` RAW,
+                // so starring an "Unknown Player" card and switching tabs
+                // revealed the ground truth the scouting system had just spent
+                // weeks obscuring — two taps defeated the whole subsystem.
+                // No report (added from the open market) = nothing to hide.
+                const report = findReport(pid);
+                const showIdentity = !report || report.knowledgeLevel >= SCOUTING_KNOWLEDGE_THRESHOLDS.REVEAL_IDENTITY;
+                const showOverall = !report || report.knowledgeLevel >= SCOUTING_KNOWLEDGE_THRESHOLDS.REVEAL_OVERALL;
+                const displayOverall = report ? report.estimatedOverall : player.overall;
+                const displayPotential = report ? getEstimatedPotential(player, report) : player.potential;
                 return (
                   <GlassPanel key={pid} className="p-3 space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className={cn(
-                          'w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold',
-                          getPotentialInfo(player.overall).bgClass
-                        )}>
-                          {player.overall}
-                        </div>
+                        {showOverall ? (
+                          <div className={cn(
+                            'w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold',
+                            getPotentialInfo(displayOverall).bgClass
+                          )}>
+                            {displayOverall}
+                          </div>
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold bg-muted/40 border border-border/40 text-muted-foreground shrink-0">
+                            ??
+                          </div>
+                        )}
                         <div>
-                          <p className="text-sm font-semibold text-foreground">{player.firstName} {player.lastName}</p>
-                          <p className="text-xs text-muted-foreground">{player.position} · Age {player.age} · Pot. {player.potential}</p>
+                          <p className="text-sm font-semibold text-foreground">
+                            {showIdentity ? `${player.firstName} ${player.lastName}` : 'Unknown Player'}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {player.position} · Age {player.age}
+                            {showOverall ? ` · Pot. ${report ? '~' : ''}${displayPotential}` : ' · Partially scouted'}
+                          </p>
                         </div>
                       </div>
                       <button
@@ -331,11 +438,14 @@ const ScoutingPage = () => {
                     {/* Value & Sign button row */}
                     <div className="flex items-center justify-between pt-1 border-t border-border/20">
                       <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-1">
-                          <Banknote className="w-3 h-3 text-muted-foreground" />
-                          <span className="text-[10px] text-muted-foreground">{formatMoney(player.value)}</span>
-                        </div>
-                        {listing && (
+                        {/* Value leaks the rating — gate it on the same threshold. */}
+                        {showOverall && (
+                          <div className="flex items-center gap-1">
+                            <Banknote className="w-3 h-3 text-muted-foreground" />
+                            <span className="text-[10px] text-muted-foreground">{formatMoney(player.value)}</span>
+                          </div>
+                        )}
+                        {listing && showOverall && (
                           <span className="text-[10px] text-primary font-medium">Ask: {formatMoney(listing.askingPrice)}</span>
                         )}
                       </div>

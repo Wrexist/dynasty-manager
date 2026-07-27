@@ -180,10 +180,62 @@ export const CONTRACT_MORALE_HIT_AMOUNT = -5;
 export const CONTRACT_MORALE_MIN = 20;
 
 // ── Income ──
+/**
+ * Matchday revenue per point of `club.fanBase`.
+ *
+ * ⚠️ `club.fanBase` is a 0-100 POPULARITY INDEX, not a headcount. It spans
+ * roughly 85 (Arsenal) down to 40 (AFC Wimbledon) — a ~2x range — while
+ * `LeagueInfo.averageWage` spans £120k → £6k (20x). Multiplying the index by a
+ * flat per-fan rate therefore produced an almost flat matchday line across the
+ * pyramid, and a League Two side out-earned the Premier League net-of-wages.
+ * ALWAYS scale this by `LEAGUE_TIER_REVENUE_SCALE` — use
+ * `getMatchdayIncome()` in `utils/financeHelpers.ts` rather than multiplying
+ * this constant directly.
+ */
 export const MATCHDAY_INCOME_PER_FAN = 50000;
+/**
+ * Multiplier applied to the weekly-average matchday figure on a HOME match
+ * week. Matchday was paid every week — away games, byes and the post-season
+ * included — so it behaved as a weekly stipend rather than gate receipts.
+ *
+ * Every league plays exactly half its fixtures at home (38 fixtures / 19 home,
+ * 46 / 23), so paying 2x on home weeks and nothing otherwise leaves the season
+ * total unchanged while tying the money to actually hosting a match. The season
+ * total is deliberately preserved: measured against real wage bills, halving
+ * top-flight matchday takes a tier-1 club straight past the FFP critical
+ * threshold into insolvency.
+ */
+export const MATCHDAY_HOME_FIXTURE_MULTIPLIER = 2.0;
+/** Commercial income per point of club reputation (1-5). Tier-scaled — see
+ *  `getCommercialIncome()` in `utils/financeHelpers.ts`. */
 export const COMMERCIAL_INCOME_PER_REP = 200000;
-/** Base weekly income floor so lower-league clubs can still compete */
-export const COMMERCIAL_INCOME_BASE = 100000;
+/** Flat weekly income floor (NOT tier-scaled) so a tiny club always has some
+ *  revenue to work with. Deliberately small: it used to be £100k, which made
+ *  commercial revenue the dominant income line for a fourth-tier club. */
+export const COMMERCIAL_INCOME_BASE = 25000;
+/**
+ * Weekly club-revenue scale by **`LeagueInfo.qualityTier`** (1 = elite,
+ * 4 = developing). Applied to matchday and the reputation-driven commercial
+ * component so the league pyramid has a real financial gradient.
+ *
+ * Keyed on `qualityTier`, NOT `tier`: `tier` is pyramid depth, and 33 of the
+ * 45 leagues are single-tier top divisions (Cyprus is `tier: 1`), so keying on
+ * `tier` would pay Cyprus Premier League money. `qualityTier` captures actual
+ * league prestige — England 1 / Championship 2 / League One 3 / League Two 4,
+ * Scotland 3, Cyprus 4 — and is the same key `MERCH_QUALITY_TIER_SCALE` uses.
+ *
+ * Unknown tiers fall back to the tier-4 scale (see
+ * `getLeagueRevenueScale()`), so a missing league definition can never mint
+ * top-flight revenue.
+ *
+ * Calibrated against measured AI wage bills, not against real-world revenue
+ * ratios (which are far steeper). The binding constraint is cost-to-revenue:
+ * these values land every tier in a 65-90% band, which is tight-but-playable
+ * everywhere. A steeper curve (tier 3 at 0.18) made Celtic — `tier: 1`,
+ * `qualityTier: 3`, and the default club in two test suites — insolvent from
+ * week one of season one with no mistake by the player.
+ */
+export const LEAGUE_TIER_REVENUE_SCALE: Record<number, number> = { 1: 1.0, 2: 0.38, 3: 0.26, 4: 0.14 };
 export const STADIUM_INCOME_PER_LEVEL = 20000;
 export const POSITION_PRIZE_PER_RANK = 15000;
 /** Fallback max prize rank (20-team baseline) used only when no league table

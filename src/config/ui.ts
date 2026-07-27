@@ -204,7 +204,7 @@ export const HELP_TEXTS = {
   boardConfidence: 'Board confidence reflects how happy the board is with your results. Winning boosts it, losing drops it. Below 25% you risk being sacked.',
   morale: 'Average squad morale. Winning boosts morale, losing lowers it. Low morale hurts match performance.',
   budget: 'Your transfer budget. Income comes from matchday, commercial, and stadium revenue minus your weekly wage bill.',
-  fanMood: 'Fan mood affects stadium atmosphere and income. Good results and winning streaks keep fans happy.',
+  fanMood: 'Fan mood scales your matchday income up or down. Good results and winning streaks keep fans happy. Note that the size of that matchday income depends on your league — top-flight gates are worth many times a lower-division gate, so promotion is the biggest revenue jump available to you.',
   trainingIntensity: 'Training intensity affects development speed and injury risk. Heavy training develops players faster but increases injury risk. Light training recovers fitness but progress is slower. Medium balances both.',
   tacticalFamiliarity: 'How well your team knows the current formation. Higher familiarity improves match performance. Train "Tactical" to boost it.',
   transferBudget: 'Your available funds for buying players. Wage costs reduce your weekly income, so watch the wage bill too.',

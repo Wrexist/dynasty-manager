@@ -15,6 +15,28 @@ import {
 const REGION_WEEKS = CONFIG_REGION_WEEKS;
 const REGION_QUALITY_RANGE = CONFIG_REGION_QUALITY_RANGE;
 
+/**
+ * Reconstruct the fogged potential estimate for a scout report.
+ *
+ * `completeAssignment` computes `estimatedPotential = clamp(potential + noise)`
+ * with the SAME noise it applies to `estimatedOverall`, then throws it away —
+ * only `estimatedOverall` is persisted on `ScoutReport`. The noise is therefore
+ * recoverable as `estimatedOverall - player.overall`, which lets the UI show a
+ * fogged potential without the report needing a new persisted field (and hence
+ * without a save-schema bump).
+ *
+ * Prefer persisting `estimatedPotential` on `ScoutReport` when the save version
+ * is next bumped; until then this is the single place the reconstruction lives,
+ * so no UI surface is tempted to render `player.potential` raw.
+ */
+export function getEstimatedPotential(
+  player: { overall: number; potential: number },
+  report: { estimatedOverall: number },
+): number {
+  const noise = report.estimatedOverall - player.overall;
+  return Math.max(30, Math.min(99, player.potential + noise));
+}
+
 export function createAssignment(region: ScoutRegion): ScoutAssignment {
   return {
     id: safeRandomUUID(),

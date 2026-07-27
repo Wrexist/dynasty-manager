@@ -46,6 +46,10 @@ export const LOW_KNOWLEDGE_NOISE_RANGE = 12; // -6 to +6
 
 // ── Report Limits ──
 export const MAX_SCOUT_REPORTS = 20;
+/** How many reports the Scouting page shows before the "Show all" toggle.
+ *  The list was hard-capped at this number with no way to expand, which made
+ *  every report beyond it permanently unreachable. */
+export const SCOUT_REPORTS_COLLAPSED_COUNT = 10;
 
 // ── Recommendation Thresholds ──
 export const SIGN_POTENTIAL_THRESHOLD = 75;

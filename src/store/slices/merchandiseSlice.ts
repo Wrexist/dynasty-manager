@@ -6,7 +6,10 @@
 import type { GameState } from '../storeTypes';
 import type { MerchProductLine, MerchPricingTier, MerchCampaignType, MerchSignatureDrop } from '@/types/game';
 import { addMsg } from '@/utils/helpers';
-import { isProductLineUnlocked, canLaunchCampaign, getDefaultMerchState, getSignatureDropBonus, getPlayerMarketability } from '@/utils/merchandise';
+import {
+  isProductLineUnlocked, canLaunchCampaign, getDefaultMerchState, getSignatureDropBonus,
+  getSignatureDropRevenueDelta, getPlayerMarketability,
+} from '@/utils/merchandise';
 import {
   MERCH_PRODUCT_LINES, MERCH_CAMPAIGNS, MERCH_CAMPAIGN_COOLDOWN_WEEKS,
   SIGNATURE_DROP_COST, SIGNATURE_DROP_WEEKS, SIGNATURE_DROP_COOLDOWN_WEEKS,
@@ -74,6 +77,9 @@ export const createMerchandiseSlice = (set: Set, get: Get) => ({
       cupCurrentRound: state.cup.currentRound,
       hasRecentBigSigning: state.merchandise.starSigningBuzz > 0,
       kitLaunchUsedThisSeason: state.merchandise.kitLaunchUsedThisSeason ?? false,
+      // Season length drives the End of Season Sale window — without it the
+      // campaign is unreachable in every league shorter than 38 weeks.
+      totalWeeks: state.totalWeeks,
     });
 
     if (!check.eligible) return { success: false, message: check.reason || 'Cannot launch campaign.' };
@@ -145,6 +151,13 @@ export const createMerchandiseSlice = (set: Set, get: Get) => ({
       return { success: false, message: `Need £${Math.round(SIGNATURE_DROP_COST / 1000)}K to launch.` };
     }
     const weeklyBonus = getSignatureDropBonus(player);
+    // The stored `weeklyBonus` is a revenue-BASE addend — it still flows through
+    // the league tier scale, active product lines, pricing and campaigns. Quote
+    // the real delta so the message can't promise money the drop won't produce
+    // (with only one product line active a drop can be a net loss).
+    const effectiveWeekly = getSignatureDropRevenueDelta(
+      merch, club, state.players, state.playerDivision, state.managerProgression, player,
+    );
     const drop: MerchSignatureDrop = {
       playerId,
       playerName: `${player.firstName} ${player.lastName}`,
@@ -156,7 +169,7 @@ export const createMerchandiseSlice = (set: Set, get: Get) => ({
     const newMessages = addMsg(state.messages, {
       week: state.week, season: state.season, type: 'general',
       title: `Signature Drop: ${player.firstName} ${player.lastName}`,
-      body: `Limited-edition kit and merch line dropped. Expect ~£${Math.round(weeklyBonus / 1000)}K extra revenue per week for ${SIGNATURE_DROP_WEEKS} weeks.`,
+      body: `Limited-edition kit and merch line dropped. Expect ~£${Math.round(effectiveWeekly / 1000)}K extra revenue per week for ${SIGNATURE_DROP_WEEKS} weeks. Activate more product lines to sell more of it.`,
     });
     set({
       merchandise: {

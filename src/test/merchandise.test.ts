@@ -6,6 +6,7 @@ import {
   isProductLineUnlocked,
   getMerchOperatingCost,
   getDefaultMerchState,
+  getSignatureDropBonus,
 } from '@/utils/merchandise';
 import { MERCH_PRODUCT_LINES } from '@/config/merchandise';
 import type { Club, Player, MerchState, FacilitiesState, ManagerProgression } from '@/types/game';
@@ -178,6 +179,34 @@ describe('merchandise', () => {
       const rev1 = calculateWeeklyMerchRevenue(merch1, club, {}, 'eng', defaultProgression);
       const rev3 = calculateWeeklyMerchRevenue(merch3, club, {}, 'eng', defaultProgression);
       expect(rev3).toBeGreaterThan(rev1);
+    });
+  });
+
+  describe('getSignatureDropBonus', () => {
+    it('returns 0 for an unmarketable player', () => {
+      expect(getSignatureDropBonus(makePlayer({ appearances: 1 }))).toBe(0);
+    });
+
+    it('scales with marketability', () => {
+      const star = makePlayer({ overall: 90, goals: 25, assists: 10, appearances: 35, age: 23 });
+      const squadFiller = makePlayer({ overall: 62, goals: 0, assists: 1, appearances: 5, age: 30 });
+      expect(getSignatureDropBonus(star)).toBeGreaterThan(getSignatureDropBonus(squadFiller));
+    });
+
+    it('is a revenue-base addend, so pricing strategy changes what it earns', () => {
+      // The signature bonus used to be added after every multiplier, which made
+      // it immune to pricing, campaigns, product lines and the league tier.
+      const player = makePlayer({ overall: 85, goals: 20, appearances: 30 });
+      const club = makeClub({ fanBase: 60, playerIds: [] });
+      const drop = {
+        playerId: player.id, playerName: 'John Doe',
+        weeksRemaining: 3, totalWeeks: 3,
+        weeklyBonus: getSignatureDropBonus(player),
+      };
+      const standard: MerchState = { ...getDefaultMerchState(), signatureDrop: drop };
+      const premium: MerchState = { ...standard, pricingTier: 'premium' as const };
+      expect(calculateWeeklyMerchRevenue(premium, club, {}, 'eng', defaultProgression))
+        .toBeGreaterThan(calculateWeeklyMerchRevenue(standard, club, {}, 'eng', defaultProgression));
     });
   });
 
