@@ -436,15 +436,66 @@ export function generateObjectives(club: Club, leagueId?: LeagueId): BoardObject
  * `selectBestLineup` picks position-aware against the club's actual formation
  * and already excludes injured, on-loan and suspended players, so it fills the
  * GK slot whenever the squad contains any goalkeeper at all.
+ *
+ * `honourSavedLineup` is for the one club that has a human opinion: when the
+ * player's own league fixture gets auto-simmed because a higher-priority match
+ * took the week, their saved XI is what should take the field, not the
+ * optimizer's. Slot order is preserved (chemistry links and formation rendering
+ * align by index), and only unavailable or missing entries are replaced.
  */
 export function pickAiMatchSquad(
   club: Club,
   players: Record<string, Player>,
   week: number,
+  honourSavedLineup = false,
 ): { xi: Player[]; bench: Player[] } {
   const squad = club.playerIds.map(id => players[id]).filter(Boolean);
   const { lineup, subs } = selectBestLineup(squad, club.formation, week);
   let xi = lineup;
+  let bench = subs;
+
+  if (honourSavedLineup && club.lineup?.length) {
+    const isAvailable = (p: Player) =>
+      !!p && !p.injured && !p.onLoan && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week);
+    const used = new Set<string>();
+    const take = (id: string | undefined) => {
+      const p = id ? players[id] : undefined;
+      if (!p || used.has(p.id) || !isAvailable(p)) return undefined;
+      used.add(p.id);
+      return p;
+    };
+    // Walk the saved XI slot by slot; cover each hole with the optimizer's pick
+    // for that slot, then anything else it rated highly.
+    const cover = [...lineup, ...subs];
+    let coverIdx = 0;
+    const nextCover = () => {
+      while (coverIdx < cover.length) {
+        const p = cover[coverIdx++];
+        if (p && !used.has(p.id)) { used.add(p.id); return p; }
+      }
+      return undefined;
+    };
+    const savedXi: Player[] = [];
+    for (const id of club.lineup) {
+      const p = take(id) ?? nextCover();
+      if (p) savedXi.push(p);
+    }
+    while (savedXi.length < lineup.length) {
+      const p = nextCover();
+      if (!p) break;
+      savedXi.push(p);
+    }
+    if (savedXi.length > 0) {
+      xi = savedXi;
+      const savedBench = (club.subs ?? []).map(id => take(id)).filter(Boolean) as Player[];
+      bench = savedBench;
+      while (bench.length < 7) {
+        const p = nextCover();
+        if (!p) break;
+        bench = [...bench, p];
+      }
+    }
+  }
 
   // Emergency XI. `isSquadValid` forfeits below 7 players, and an injury crisis
   // can genuinely take a thin squad under that — measured mid-season, the worst
@@ -464,7 +515,8 @@ export function pickAiMatchSquad(
       picked.add(p.id);
     }
   }
-  return { xi, bench: subs.slice(0, 7) };
+  const inXi = new Set(xi.map(p => p.id));
+  return { xi, bench: bench.filter(p => !inXi.has(p.id)).slice(0, 7) };
 }
 
 /**

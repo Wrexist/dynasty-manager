@@ -24,7 +24,7 @@ import { getDefaultMerchState } from '@/utils/merchandise';
 import { DEFAULT_MONETIZATION_STATE } from '@/config/monetization';
 
 import {
-  FORFEIT_SCORE, LINEUP_SIZE,
+  FORFEIT_SCORE,
 } from '@/config/gameBalance';
 import { isTransferWindowOpen } from '@/config/transfers';
 

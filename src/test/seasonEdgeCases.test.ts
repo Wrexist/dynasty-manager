@@ -26,7 +26,7 @@ import {
   generateReplacementClub,
 } from '@/utils/promotionRelegation';
 import { LEAGUES } from '@/data/league';
-import type { LeagueInfo, LeagueTableEntry } from '@/types/game';
+import type { LeagueInfo } from '@/types/game';
 
 import {
   setupCountryPyramid,

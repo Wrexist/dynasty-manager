@@ -51,7 +51,10 @@ const CalendarView = () => {
   const phaseRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const weekCount = totalWeeks || TOTAL_WEEKS;
-  const tw = getTransferWindows(totalWeeks);
+  // Memoised so the phase-grouping useMemo below can depend on it by identity.
+  // Recomputing it every render made it un-listable as a dependency, which left
+  // the phase boundaries reading window weeks from whichever render first ran.
+  const tw = useMemo(() => getTransferWindows(totalWeeks), [totalWeeks]);
 
   // Build unified calendar: league + cup + international merged by week
   const { entries, stats } = useMemo(() => {
@@ -293,7 +296,7 @@ const CalendarView = () => {
     }
 
     return groups;
-  }, [entries, weekCount, playerClubId, internationalTournament]);
+  }, [entries, weekCount, playerClubId, internationalTournament, tw]);
 
   // Active phase for quick-jump
   const activePhaseId = useMemo(() => {
