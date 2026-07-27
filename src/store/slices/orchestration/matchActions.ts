@@ -428,9 +428,15 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   const continentalTourney = champMatch ? state.championsCup : shieldMatch ? state.shieldCup : confMatch ? state.conferenceCup : null;
   const cupTie = !friendlyMatch && !continentalMatch ? state.cup.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
   const leagueCupTie = !friendlyMatch && !continentalMatch && !cupTie ? state.leagueCup?.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
+  // `week >= sc.week`, not `===`. Super Cup is last in this priority chain, and
+  // both Super Cup weeks are raw constants (1 and 2) that the compressed cup /
+  // League Cup / continental calendars land on in short seasons. With a strict
+  // equality the player could never play a Super Cup that was outranked on its
+  // own week — and weekAdvance's AI sim deliberately skips player matches, so
+  // the fixture sat unplayed all season: no trophy, no prize money.
   const superCup = !friendlyMatch && !continentalMatch && !cupTie && !leagueCupTie
-    ? (state.domesticSuperCup && !state.domesticSuperCup.played && state.domesticSuperCup.week === week && (state.domesticSuperCup.homeClubId === playerClubId || state.domesticSuperCup.awayClubId === playerClubId) ? state.domesticSuperCup : null)
-      || (state.continentalSuperCup && !state.continentalSuperCup.played && state.continentalSuperCup.week === week && (state.continentalSuperCup.homeClubId === playerClubId || state.continentalSuperCup.awayClubId === playerClubId) ? state.continentalSuperCup : null)
+    ? (state.domesticSuperCup && !state.domesticSuperCup.played && week >= state.domesticSuperCup.week && (state.domesticSuperCup.homeClubId === playerClubId || state.domesticSuperCup.awayClubId === playerClubId) ? state.domesticSuperCup : null)
+      || (state.continentalSuperCup && !state.continentalSuperCup.played && week >= state.continentalSuperCup.week && (state.continentalSuperCup.homeClubId === playerClubId || state.continentalSuperCup.awayClubId === playerClubId) ? state.continentalSuperCup : null)
     : null;
   const leagueMatch = !friendlyMatch && !continentalMatch && !cupTie && !leagueCupTie && !superCup
     ? fixtures.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId))
@@ -515,8 +521,13 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
     }
     return lineup;
   };
-  let hp = backfillFromSubs((hc.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p)), hc);
-  let ap = backfillFromSubs((ac.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p)), ac);
+  // Injured players cannot start. This filter omitted `!p.injured`, while bench
+  // construction and EVERY AI-sim path filter it — so an injured player left in
+  // the saved XI played at full strength for the player's club only, and the
+  // LineupEditor toast ("They cannot play until recovered") was simply untrue.
+  // `backfillFromSubs` tops the XI back up and already excludes injured players.
+  let hp = backfillFromSubs((hc.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured), hc);
+  let ap = backfillFromSubs((ac.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured), ac);
 
   // Need minimum players to simulate a match
   if (hp.length < 7 || ap.length < 7) return null;
@@ -590,23 +601,49 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
     let penaltyShootout: { home: number; away: number } | undefined;
     let cupWinnerId: string | undefined;
 
-    if (result.homeGoals === result.awayGoals) {
-      const isContinentalGroup = continentalMatch?.type === 'group';
-      // Continental knockout leg 1 (non-final): draws are valid, aggregate decided after leg 2
-      const isContinentalLeg1 = continentalMatch?.type === 'knockout' && continentalMatch.leg === 1
-        && continentalTourney?.knockoutTies[continentalMatch.tieIdx]?.round !== 'F';
-      // Check aggregate for continental knockout leg 2
-      let isAggDecided = false;
-      if (continentalMatch && continentalMatch.type === 'knockout' && continentalTourney) {
-        const tie = continentalTourney.knockoutTies[continentalMatch.tieIdx];
-        if (continentalMatch.leg === 2 && tie.round !== 'F') {
-          const homeAgg = tie.leg1HomeGoals + result.awayGoals;
-          const awayAgg = tie.leg1AwayGoals + result.homeGoals;
-          isAggDecided = homeAgg !== awayAgg;
-        }
-      }
+    // Does this result leave the tie UNDECIDED, and therefore need extra time /
+    // penalties?
+    //
+    // The old gate asked "was this leg drawn?" and then bailed out early if the
+    // aggregate happened to be decided. That misses the most common two-leg
+    // pattern in football: 1-0 then 1-0 leaves the aggregate level on a leg that
+    // was NOT a draw, so no shootout ran and `processTournamentResult` left
+    // `winnerId` null. The result was unrecoverable — `simulateKnockoutLeg`
+    // requires `!leg2Played`, `isKnockoutRoundComplete` requires a winner, and
+    // `findPlayerContinentalMatch` requires an unplayed leg, so the tie could be
+    // neither resolved nor replayed. The tournament then burned its 12-iteration
+    // guard every week for the rest of the season with no advance message, no
+    // knockout prize money and no coefficient points. 2-1/2-1 and 2-0/2-0 hit it
+    // too.
+    //
+    // Ask the right question instead: for a two-legged tie, resolution is driven
+    // by the AGGREGATE; for anything single-legged, by the scoreline.
+    const isContinentalGroup = continentalMatch?.type === 'group';
+    const continentalTie = (continentalMatch?.type === 'knockout' && continentalTourney)
+      ? continentalTourney.knockoutTies[continentalMatch.tieIdx]
+      : undefined;
+    // Continental knockout leg 1 (non-final): a draw is a valid result, the tie
+    // is decided after leg 2.
+    const continentalLeg = continentalMatch?.type === 'knockout' ? continentalMatch.leg : undefined;
+    const isContinentalLeg1 = !!continentalTie && continentalLeg === 1 && continentalTie.round !== 'F';
+    const isContinentalLeg2 = !!continentalTie && continentalLeg === 2 && continentalTie.round !== 'F';
 
-      if (!isContinentalGroup && !isContinentalLeg1 && !isAggDecided) {
+    let needsTieBreak: boolean;
+    if (isContinentalGroup || isContinentalLeg1) {
+      needsTieBreak = false;
+    } else if (isContinentalLeg2 && continentalTie) {
+      const homeAgg = continentalTie.leg1HomeGoals + result.awayGoals;
+      const awayAgg = continentalTie.leg1AwayGoals + result.homeGoals;
+      // No away-goals rule — abolished in real competition in 2021, and
+      // `resolveKnockoutTie` no longer applies it to AI ties either, so the
+      // player's tie and an AI tie now resolve the same way.
+      needsTieBreak = homeAgg === awayAgg;
+    } else {
+      needsTieBreak = result.homeGoals === result.awayGoals;
+    }
+
+    if (needsTieBreak) {
+      {
         let hGoals = result.homeGoals;
         let aGoals = result.awayGoals;
         const cupEvents = [...result.events];
@@ -913,9 +950,15 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   const continentalTourney = champMatch ? state.championsCup : shieldMatch ? state.shieldCup : confMatch ? state.conferenceCup : null;
   const cupTie = !friendlyMatch && !continentalMatch ? state.cup.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
   const leagueCupTie = !friendlyMatch && !continentalMatch && !cupTie ? state.leagueCup?.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
+  // `week >= sc.week`, not `===`. Super Cup is last in this priority chain, and
+  // both Super Cup weeks are raw constants (1 and 2) that the compressed cup /
+  // League Cup / continental calendars land on in short seasons. With a strict
+  // equality the player could never play a Super Cup that was outranked on its
+  // own week — and weekAdvance's AI sim deliberately skips player matches, so
+  // the fixture sat unplayed all season: no trophy, no prize money.
   const superCup = !friendlyMatch && !continentalMatch && !cupTie && !leagueCupTie
-    ? (state.domesticSuperCup && !state.domesticSuperCup.played && state.domesticSuperCup.week === week && (state.domesticSuperCup.homeClubId === playerClubId || state.domesticSuperCup.awayClubId === playerClubId) ? state.domesticSuperCup : null)
-      || (state.continentalSuperCup && !state.continentalSuperCup.played && state.continentalSuperCup.week === week && (state.continentalSuperCup.homeClubId === playerClubId || state.continentalSuperCup.awayClubId === playerClubId) ? state.continentalSuperCup : null)
+    ? (state.domesticSuperCup && !state.domesticSuperCup.played && week >= state.domesticSuperCup.week && (state.domesticSuperCup.homeClubId === playerClubId || state.domesticSuperCup.awayClubId === playerClubId) ? state.domesticSuperCup : null)
+      || (state.continentalSuperCup && !state.continentalSuperCup.played && week >= state.continentalSuperCup.week && (state.continentalSuperCup.homeClubId === playerClubId || state.continentalSuperCup.awayClubId === playerClubId) ? state.continentalSuperCup : null)
     : null;
   const leagueMatch = !friendlyMatch && !continentalMatch && !cupTie && !leagueCupTie && !superCup
     ? fixtures.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId))
@@ -986,8 +1029,13 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
     }
     return lineup;
   };
-  let hp = backfillFromSubs((hc.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p)), hc);
-  let ap = backfillFromSubs((ac.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p)), ac);
+  // Injured players cannot start. This filter omitted `!p.injured`, while bench
+  // construction and EVERY AI-sim path filter it — so an injured player left in
+  // the saved XI played at full strength for the player's club only, and the
+  // LineupEditor toast ("They cannot play until recovered") was simply untrue.
+  // `backfillFromSubs` tops the XI back up and already excludes injured players.
+  let hp = backfillFromSubs((hc.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured), hc);
+  let ap = backfillFromSubs((ac.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured), ac);
 
   // Need minimum players to simulate a match
   if (hp.length < 7 || ap.length < 7) return null;

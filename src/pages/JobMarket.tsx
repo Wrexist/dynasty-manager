@@ -22,6 +22,10 @@ const JobMarket = () => {
   const [showResignConfirm, setShowResignConfirm] = useState(false);
   const [isAdvancing, setIsAdvancing] = useState(false);
   const [showAllVacancies, setShowAllVacancies] = useState(false);
+  // Accepting a job ENDS your tenure at the current club — strictly more
+  // consequential than resigning, which already had a confirm. Declining is
+  // irreversible too (the offer is consumed), so both route through a confirm.
+  const [pendingOffer, setPendingOffer] = useState<{ offer: JobOffer; accept: boolean } | null>(null);
   const { careerManager, jobVacancies, jobOffers, season, week, activeInterview } = useGameStore(useShallow(s => ({
     careerManager: s.careerManager,
     jobVacancies: s.jobVacancies,
@@ -47,17 +51,30 @@ const JobMarket = () => {
     }
   };
 
-  const handleAcceptOffer = (offerId: string) => {
+  const executeOfferResponse = (offer: JobOffer, accept: boolean) => {
     // Accepting at/after retirement age no-ops in the store — surface it
     // instead of leaving a button that appears to do nothing.
-    const result = respondToJobOffer(offerId, true);
+    const result = respondToJobOffer(offer.id, accept);
     if (result && !result.success) {
-      errorToast('Cannot Accept', result.message || 'This offer can no longer be accepted.');
+      errorToast(
+        accept ? 'Cannot Accept' : 'Cannot Decline',
+        result.message || 'This offer can no longer be actioned.',
+      );
+      return;
     }
+    if (accept) successToast('Contract signed', `You are the new manager of ${offer.clubName}.`);
+    // Declining used to give no feedback at all — the card simply vanished.
+    else infoToast('Offer declined', `${offer.clubName} will look elsewhere.`);
+  };
+
+  const handleAcceptOffer = (offerId: string) => {
+    const offer = jobOffers.find(o => o.id === offerId);
+    if (offer) setPendingOffer({ offer, accept: true });
   };
 
   const handleDeclineOffer = (offerId: string) => {
-    respondToJobOffer(offerId, false);
+    const offer = jobOffers.find(o => o.id === offerId);
+    if (offer) setPendingOffer({ offer, accept: false });
   };
 
   const handleWait = () => {
@@ -233,6 +250,20 @@ const JobMarket = () => {
             description="Are you sure you want to resign? You will enter the job market."
             confirmLabel="Resign"
             onConfirm={resignFromClub}
+          />
+
+          <ConfirmDialog
+            open={pendingOffer !== null}
+            onOpenChange={(open) => { if (!open) setPendingOffer(null); }}
+            title={pendingOffer?.accept
+              ? `Take the ${pendingOffer.offer.clubName} job?`
+              : `Decline ${pendingOffer?.offer.clubName ?? 'this offer'}?`}
+            description={pendingOffer?.accept
+              ? `Signing for ${pendingOffer.offer.clubName} ends your current tenure immediately and cannot be undone.`
+              : `${pendingOffer?.offer.clubName ?? 'The club'} will withdraw the offer and look elsewhere. This cannot be undone.`}
+            confirmLabel={pendingOffer?.accept ? 'Sign contract' : 'Decline'}
+            variant={pendingOffer?.accept ? 'default' : 'destructive'}
+            onConfirm={() => { if (pendingOffer) executeOfferResponse(pendingOffer.offer, pendingOffer.accept); }}
           />
 
           {/* Career Summary */}

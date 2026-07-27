@@ -713,6 +713,16 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
   finalizeWorldCupPenalties: () => finalizeWorldCupPenaltiesImpl(set, get),
 
   endSeason: () => {
+    const state = get();
+    // Idempotence guard. This was a bare call, and its only trigger is an
+    // un-disabled Dashboard button — so a double-tap ran the whole rollover
+    // twice. The second run computed promotion/relegation from the freshly
+    // regenerated ALL-ZERO table, and `buildLeagueTable` breaks ties on
+    // `clubId.localeCompare`, so the three alphabetically-last clubs were
+    // relegated. Every player also aged twice and every contract decremented
+    // twice. `seasonHistory` gets this season's entry appended by the rollover,
+    // so its presence is the marker that the season is already done.
+    if (state.seasonHistory.some(h => h.season === state.season)) return;
     endSeasonImpl(set, get);
   },
 

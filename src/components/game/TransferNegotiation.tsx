@@ -332,9 +332,9 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                   </div>
 
                   {/* Enhanced Slider with zone colors and markers */}
-                  <div className="relative pt-5 pb-5" style={{ touchAction: 'auto' }}>
+                  <div className="relative pt-4 pb-4" style={{ touchAction: 'auto' }}>
                     {/* Zone-colored track background */}
-                    <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-1.5 rounded-full overflow-hidden flex pointer-events-none">
+                    <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-2 rounded-full overflow-hidden flex pointer-events-none">
                       <div className="bg-red-500/20 h-full" style={{ width: `${zone80Percent}%` }} />
                       <div className="bg-amber-500/20 h-full" style={{ width: `${askingPercent - zone80Percent}%` }} />
                       <div className="bg-emerald-500/20 h-full" style={{ width: `${100 - askingPercent}%` }} />
@@ -367,7 +367,11 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                       value={offerFee}
                       onChange={(e) => setOfferFee(Number(e.target.value))}
                       style={{ touchAction: 'auto' }}
-                      className="relative z-10 w-full h-1.5 bg-transparent rounded-full accent-primary cursor-pointer appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-background [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-background [&::-moz-range-thumb]:cursor-pointer [&::-webkit-slider-runnable-track]:bg-transparent [&::-moz-range-track]:bg-transparent"
+                      aria-label="Your transfer offer"
+                      // 44pt-tall transparent input — the zone-coloured rail
+                      // above is the visual. The old h-1.5 box meant a 6px
+                      // hit area no matter how big the thumb was painted.
+                      className="range-touch relative z-10"
                     />
                   </div>
                   <div className="flex justify-between text-[10px] text-muted-foreground tabular-nums -mt-2">

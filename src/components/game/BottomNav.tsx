@@ -66,12 +66,26 @@ export function BottomNav() {
             ? group.includes(currentScreen)
             : currentScreen === screen;
           const active = screenActive && !drawerOpen;
+          // The badges below are unlabelled 8px dots — invisible to assistive
+          // tech and countless to everyone. Fold the count into the tab's
+          // accessible name (TopBar already does this for its inbox button).
+          const showJobBadge = (screen === 'job-market' || screen === 'dashboard') && hasJobOffers;
+          const showUnreadBadge =
+            (screen === 'inbox' || (screen === 'dashboard' && !hasJobOffers)) && unreadCount > 0;
+          const showOffersBadge = screen === 'transfers' && pendingOffers > 0;
+          const badgeSuffix = showJobBadge
+            ? ` — ${jobOffers.length} job offer${jobOffers.length === 1 ? '' : 's'}`
+            : showUnreadBadge
+              ? ` — ${unreadCount} unread`
+              : showOffersBadge
+                ? ` — ${pendingOffers} transfer offer${pendingOffers === 1 ? '' : 's'}`
+                : '';
           return (
             <button
               key={screen}
               type="button"
               onClick={() => { if (matchLocked) return; hapticLight(); setScreen(screen); }}
-              aria-label={label}
+              aria-label={`${label}${badgeSuffix}`}
               aria-current={screenActive ? 'page' : undefined}
               aria-disabled={matchLocked || undefined}
               className={cn(
@@ -94,8 +108,9 @@ export function BottomNav() {
               <span className="relative inline-flex flex-col items-center gap-0.5">
                 <span className="relative">
                   <Icon className="w-5 h-5" />
-                  {(screen === 'job-market' || screen === 'dashboard') && hasJobOffers && (
+                  {showJobBadge && (
                     <motion.div
+                      aria-hidden
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                       transition={{ type: 'spring', stiffness: 500, damping: 25 }}
@@ -106,32 +121,9 @@ export function BottomNav() {
                       }}
                     />
                   )}
-                  {screen === 'dashboard' && !hasJobOffers && unreadCount > 0 && (
+                  {(showUnreadBadge || showOffersBadge) && (
                     <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-                      className="absolute -top-1 -right-1.5 w-2 h-2 rounded-full animate-pulse"
-                      style={{
-                        background: 'radial-gradient(circle at 35% 30%, #FCA5A5 0%, #E11D48 60%, #9F1239 100%)',
-                        boxShadow: '0 0 6px rgba(239,68,68,0.85), inset 0 0 0 1px rgba(255,255,255,0.25)',
-                      }}
-                    />
-                  )}
-                  {screen === 'inbox' && unreadCount > 0 && (
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-                      className="absolute -top-1 -right-1.5 w-2 h-2 rounded-full animate-pulse"
-                      style={{
-                        background: 'radial-gradient(circle at 35% 30%, #FCA5A5 0%, #E11D48 60%, #9F1239 100%)',
-                        boxShadow: '0 0 6px rgba(239,68,68,0.85), inset 0 0 0 1px rgba(255,255,255,0.25)',
-                      }}
-                    />
-                  )}
-                  {screen === 'transfers' && pendingOffers > 0 && (
-                    <motion.div
+                      aria-hidden
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                       transition={{ type: 'spring', stiffness: 500, damping: 25 }}

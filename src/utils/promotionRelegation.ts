@@ -274,11 +274,24 @@ export function applyPromotionRelegation(
 
 // ── Legacy: apply season turnover for a single league (backward compat) ──
 
+/** Single-league turnover for countries with no second tier (Brazil, Argentina,
+ *  Saudi Arabia, South Korea, ...): the bottom clubs are replaced rather than
+ *  relegated into a division that doesn't exist.
+ *
+ *  `playerClubId` is EXCLUDED from the relegation zone, mirroring
+ *  `applyPromotionRelegation`. Without it, a player finishing in the drop zone of
+ *  a single-tier league was put in `relegatedClubs` and then had every one of
+ *  their players deleted by the caller's cleanup loop — you started the next
+ *  season with a procedurally generated squad, no youth graduates and no
+ *  chemistry. The league also drifted a club larger every time, because the
+ *  caller generated one replacement per entry in `relegatedClubs` while only the
+ *  other clubs had actually left. */
 export function applySeasonTurnover(
   leagueId: LeagueId,
   leagueClubs: string[],
   leagueTable: LeagueTableEntry[],
   clubs: Record<string, Club>,
+  playerClubId?: string,
 ): { turnover: SeasonTurnover; updatedClubs: Record<string, Club>; updatedLeagueClubs: string[] } {
   const league = LEAGUES.find(l => l.id === leagueId);
   if (!league) {
@@ -290,17 +303,21 @@ export function applySeasonTurnover(
   }
 
   const zones = determineProRelZones(leagueTable, league);
+  // Spare the player's club before the zone is used for ANYTHING — the turnover
+  // record, the club deletion, and the caller's player-deletion and
+  // replacement-generation loops all key off this list.
+  const relegated = playerClubId ? zones.relegated.filter(id => id !== playerClubId) : zones.relegated;
   const turnover: SeasonTurnover = {
     leagueId,
     promotedClubs: [],
-    relegatedClubs: zones.relegated,
+    relegatedClubs: relegated,
     playoffWinners: [],
   };
 
   const newClubs = { ...clubs };
-  const updatedLeagueClubs = leagueClubs.filter(id => !zones.relegated.includes(id));
+  const updatedLeagueClubs = leagueClubs.filter(id => !relegated.includes(id));
 
-  for (const cid of zones.relegated) {
+  for (const cid of relegated) {
     delete newClubs[cid];
   }
 

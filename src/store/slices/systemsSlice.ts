@@ -114,14 +114,22 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
     return { training: { ...s.training, individualPlans: plans } };
   }),
 
+  // Returns a {success, message} result so the caller can toast honestly. This
+  // used to return void and silently no-op on an unaffordable fee while
+  // StaffPage fired an unconditional "Staff Hired" toast.
   hireStaff: (staffId: string) => {
     const state = get();
     const hire = state.staff.availableHires.find(s => s.id === staffId);
-    if (!hire) return;
+    if (!hire) return { success: false, message: 'That candidate is no longer available.' };
     const club = state.clubs[state.playerClubId];
-    if (!club) return;
+    if (!club) return { success: false, message: 'No club found.' };
     const hiringFee = hire.wage * STAFF_HIRING_FEE_WEEKS;
-    if (club.budget < hiringFee) return;
+    if (club.budget < hiringFee) {
+      return {
+        success: false,
+        message: `Insufficient budget — the signing fee is £${Math.round(hiringFee / 1000)}K and you have £${Math.round(club.budget / 1000)}K.`,
+      };
+    }
     // One staff per role — auto-release existing holder
     const existing = state.staff.members.find(s => s.role === hire.role);
     const membersAfterRelease = existing
@@ -150,6 +158,10 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
       scouting: { ...state.scouting, maxAssignments: scoutCount },
       messages: newMessages,
     });
+    return {
+      success: true,
+      message: `${hire.firstName} ${hire.lastName} has joined the club as ${hire.role.replace(/-/g, ' ')}.`,
+    };
   },
 
   fireStaff: (staffId: string) => {

@@ -22,6 +22,7 @@ import { getRatingBadge } from '@/utils/uiHelpers';
 import { PAGE_HINTS } from '@/config/ui';
 import { NATIONAL_SQUAD_SIZE } from '@/config/gameBalance';
 import { selectBestLineup } from '@/utils/playerGen';
+import { resolveNationalityAliases } from '@/utils/international';
 import { hapticLight, hapticMedium } from '@/utils/haptics';
 import { successToast } from '@/utils/gameToast';
 import type { Player } from '@/types/game';
@@ -87,11 +88,38 @@ const NationalSquadPicker = () => {
   // checks) and can never be deselected, deadlocking the confirm flow.
   const eligible = useMemo<Player[]>(() => {
     if (!managerNationality) return [];
-    const top = Object.values(players)
-      .filter(p => p.nationality === managerNationality && !p.injured && p.age >= 17)
-      .sort((a, b) => b.overall - a.overall)
-      .slice(0, POOL_DISPLAY_LIMIT);
+    // Alias-resolve the nationality, exactly as `autoSelectNationalSquad` does.
+    // An exact `===` match here diverged from the auto-selector's pool, so the
+    // two disagreed about who was even callable.
+    const nats = new Set(resolveNationalityAliases(managerNationality));
+    const all = Object.values(players)
+      .filter(p => nats.has(p.nationality) && !p.injured && p.age >= 17)
+      .sort((a, b) => b.overall - a.overall);
+    const top = all.slice(0, POOL_DISPLAY_LIMIT);
     const seen = new Set(top.map(p => p.id));
+
+    // GUARANTEE quota coverage regardless of the top-50 cut. This is the
+    // save-killer this file used to enable: goalkeepers rarely crack a top-50
+    // list by overall, so the visible pool could contain fewer than the 2 GKs
+    // Confirm requires. Confirm was then permanently disabled, `seasonPhase`
+    // stayed 'international', and every Advance Week snapped straight back here
+    // — an unrecoverable save with no skip and no escape. Top up each bucket
+    // from the full pool so the quotas are always satisfiable.
+    for (const group of POSITION_GROUPS) {
+      const quota = POSITION_QUOTAS[group.key];
+      if (!quota) continue;
+      let have = top.filter(p => group.positions.includes(p.position)).length;
+      if (have >= quota.min) continue;
+      for (const p of all) {
+        if (have >= quota.min) break;
+        if (seen.has(p.id)) continue;
+        if (!group.positions.includes(p.position)) continue;
+        top.push(p);
+        seen.add(p.id);
+        have++;
+      }
+    }
+
     const extras: Player[] = [];
     for (const id of pickedIds) {
       if (!seen.has(id)) {
@@ -99,7 +127,7 @@ const NationalSquadPicker = () => {
         if (p) extras.push(p);
       }
     }
-    return extras.length ? [...top, ...extras].sort((a, b) => b.overall - a.overall) : top;
+    return [...top, ...extras].sort((a, b) => b.overall - a.overall);
   }, [players, managerNationality, pickedIds]);
 
   const pickedPlayers = useMemo<Player[]>(() => {

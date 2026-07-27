@@ -230,6 +230,15 @@ export function simulateKnockoutLeg(
     const isPlayerTie = tie.homeClubId === playerClubId || tie.awayClubId === playerClubId;
     if (isPlayerTie) return tie; // Player plays interactively
 
+    // Repair pass for saves stranded by the old resolution bug: both legs played
+    // but no winner recorded. Such a tie could previously never be resolved OR
+    // replayed, so the tournament stalled for the rest of the season and
+    // `advanceWeek` burned its iteration guard every week. Resolving it here lets
+    // an affected save recover on the next advance instead of staying dead.
+    if (round !== 'F' && tie.leg1Played && tie.leg2Played && !tie.winnerId) {
+      return resolveKnockoutTie(tie, virtualClubs);
+    }
+
     // Finals are single-leg — exclude them here so the final-specific branch below
     // (which actually sets winnerId) is reachable. Without this guard the final's
     // leg 1 was played but its winner was never resolved, stalling the tournament.
@@ -276,7 +285,7 @@ export function simulateKnockoutLeg(
  * Resolve a 2-leg knockout tie after both legs are played.
  * Uses aggregate score, then extra time simulation, then penalties.
  */
-function resolveKnockoutTie(
+export function resolveKnockoutTie(
   tie: ContinentalKnockoutTie,
   virtualClubs: Record<string, VirtualClub>,
 ): ContinentalKnockoutTie {
@@ -288,12 +297,11 @@ function resolveKnockoutTie(
     return { ...tie, winnerId: homeAgg > awayAgg ? tie.homeClubId : tie.awayClubId };
   }
 
-  // Away goals rule (traditional)
-  const homeAwayGoals = tie.leg2AwayGoals; // home team scored these away
-  const awayAwayGoals = tie.leg1AwayGoals; // away team scored these away
-  if (homeAwayGoals !== awayAwayGoals) {
-    return { ...tie, winnerId: homeAwayGoals > awayAwayGoals ? tie.homeClubId : tie.awayClubId };
-  }
+  // No away-goals rule. It was abolished in real competition in 2021, and — more
+  // importantly here — the player's own tie never applied it
+  // (`matchActions.ts` goes level-aggregate → extra time → penalties), so an AI
+  // 1-1 aggregate was decided on away goals while an identical player tie went
+  // to penalties. Same competition, two rulebooks. Both paths now agree.
 
   // Extra time simulation (simplified)
   const homeRep = virtualClubs[tie.awayClubId]?.reputation || 3; // leg 2 is at away team's home
@@ -306,7 +314,16 @@ function resolveKnockoutTie(
     // extraHome = goals by leg2 home team (= original away team)
     // extraAway = goals by leg2 away team (= original home team)
     const winnerId = extraAway > extraHome ? tie.homeClubId : tie.awayClubId;
-    return { ...tie, winnerId };
+    // Fold extra-time goals back into the stored leg-2 score, the way
+    // `resolveDrawnFinal` already does. Without this, KnockoutBracket renders a
+    // level aggregate with a winner highlighted and no shootout badge — visually
+    // indistinguishable from an unresolved (corrupt) tie.
+    return {
+      ...tie,
+      leg2HomeGoals: tie.leg2HomeGoals + extraHome,
+      leg2AwayGoals: tie.leg2AwayGoals + extraAway,
+      winnerId,
+    };
   }
 
   // Penalties

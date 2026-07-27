@@ -565,7 +565,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
       <Sheet open={open} onOpenChange={() => { /* blocked */ }}>
         <SheetContent
           side="bottom"
-          className="max-h-[92vh] overflow-y-auto bg-background/95 backdrop-blur-xl border-t border-border/50 px-4 pb-8"
+          className="max-h-[92vh] overflow-y-auto bg-background/95 backdrop-blur-xl border-t border-border/50 px-4"
           onInteractOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => e.preventDefault()}
         >
@@ -590,7 +590,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
     <Sheet open={open} onOpenChange={forceMode ? () => { /* blocked in force mode */ } : onOpenChange}>
       <SheetContent
         side="bottom"
-        className="max-h-[92vh] overflow-y-auto bg-background/95 backdrop-blur-xl border-t border-border/50 px-4 pb-8"
+        className="max-h-[92vh] overflow-y-auto bg-background/95 backdrop-blur-xl border-t border-border/50 px-4"
         {...(forceMode ? {
           onInteractOutside: (e: Event) => e.preventDefault(),
           onEscapeKeyDown: (e: Event) => e.preventDefault(),

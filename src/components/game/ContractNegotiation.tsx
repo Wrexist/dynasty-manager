@@ -342,9 +342,9 @@ export function ContractNegotiation() {
                   const pct80 = ((activeNegotiation.demandedWage * 0.8 - sliderMin) / sliderRange) * 100;
                   const pctDemand = ((activeNegotiation.demandedWage - sliderMin) / sliderRange) * 100;
                   return (
-                    <div className="relative pt-5 pb-5" style={{ touchAction: 'auto' }}>
+                    <div className="relative pt-4 pb-4" style={{ touchAction: 'auto' }}>
                       {/* Zone-colored track */}
-                      <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-1.5 rounded-full overflow-hidden flex pointer-events-none">
+                      <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-2 rounded-full overflow-hidden flex pointer-events-none">
                         <div className="bg-red-500/20 h-full" style={{ width: `${pct80}%` }} />
                         <div className="bg-amber-500/20 h-full" style={{ width: `${pctDemand - pct80}%` }} />
                         <div className="bg-emerald-500/20 h-full" style={{ width: `${100 - pctDemand}%` }} />
@@ -366,7 +366,10 @@ export function ContractNegotiation() {
                         value={customWage ?? activeNegotiation.offeredWage}
                         onChange={(e) => setCustomWage(Number(e.target.value))}
                         style={{ touchAction: 'auto' }}
-                        className="relative z-10 w-full h-1.5 bg-transparent rounded-full accent-primary cursor-pointer appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-background [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-background [&::-moz-range-thumb]:cursor-pointer [&::-webkit-slider-runnable-track]:bg-transparent [&::-moz-range-track]:bg-transparent"
+                        aria-label="Offered weekly wage"
+                        // 44pt-tall transparent input; the zone-coloured rail
+                        // above is the visual (see index.css .range-touch).
+                        className="range-touch relative z-10"
                       />
                     </div>
                   );

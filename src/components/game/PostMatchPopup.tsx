@@ -103,17 +103,20 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
       ref={containerRef}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
-      style={{ touchAction: 'none' }}
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 py-6"
       role="dialog"
       aria-modal="true"
       aria-label="Post-match summary"
     >
+      {/* Backdrop swallows page scroll; the panel itself must stay scrollable
+          or "Continue" can sit off-screen after a goal-heavy match on a short
+          device — an unrecoverable post-match soft-lock. */}
+      <div aria-hidden className="absolute inset-0" style={{ touchAction: 'none' }} />
       <motion.div
         initial={{ scale: 0.9, y: 20 }}
         animate={{ scale: 1, y: 0 }}
         transition={{ type: 'spring', duration: 0.5 }}
-        className="w-full max-w-sm"
+        className="relative w-full max-w-sm max-h-[85vh] overflow-y-auto overscroll-contain"
       >
         <GlassPanel className="p-5 space-y-4 border-primary/30">
           {/* Result Banner */}

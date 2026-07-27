@@ -33,13 +33,23 @@ const SIZE_CLASSES = {
   default: 'w-5 h-5 text-[9px]',
 } as const;
 
+const RESULT_WORD: Record<'W' | 'D' | 'L', string> = { W: 'Win', D: 'Draw', L: 'Loss' };
+
 export function FormGuide({ form, size = 'default', className }: FormGuideProps) {
   if (form.length === 0) return null;
+  // Without a role + name this read as an unlabelled letter salad ("W D L L W")
+  // with no indication of what it was. `role="img"` names the whole strip and
+  // suppresses the individual pips.
   return (
-    <div className={cn('flex items-center', size === 'sm' ? 'gap-0.5' : 'gap-1', className)}>
+    <div
+      role="img"
+      aria-label={`Recent form: ${form.map(r => RESULT_WORD[r]).join(', ')}`}
+      className={cn('flex items-center', size === 'sm' ? 'gap-0.5' : 'gap-1', className)}
+    >
       {form.map((r, i) => (
         <span
           key={i}
+          aria-hidden
           className={cn(
             'rounded-full inline-flex items-center justify-center font-bold text-white leading-none',
             SIZE_CLASSES[size],

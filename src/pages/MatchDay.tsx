@@ -885,16 +885,19 @@ const MatchDayInner = () => {
   const FormationPicker = () => (
     <div>
       <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-1.5">Formation</p>
-      <div className="flex gap-1 flex-wrap">
+      {/* 3-up grid instead of wrapping 21px chips — these are tapped mid-match
+          with the clock running, so every cell clears 44pt. */}
+      <div className="grid grid-cols-3 gap-1.5">
         {getAvailableFormations(hasPerk(managerProgression, 'formation_master')).map(f => (
           <button
             key={f}
             onClick={() => { hapticLight(); setFormation(f); infoToast(`Switched to ${f}`); }}
+            aria-pressed={clubs[playerClubId]?.formation === f}
             className={cn(
-              'px-2 py-1 rounded text-[9px] font-semibold transition-all',
+              'py-3 min-h-[44px] rounded-lg text-[11px] font-semibold tabular-nums transition-all active:scale-[0.97]',
               clubs[playerClubId]?.formation === f
                 ? 'bg-primary/20 text-primary border border-primary/30'
-                : 'bg-muted/30 text-muted-foreground hover:bg-muted/40'
+                : 'bg-muted/30 text-muted-foreground hover:bg-muted/40 border border-transparent'
             )}
           >{f}</button>
         ))}
@@ -1687,7 +1690,9 @@ const MatchDayInner = () => {
                     onClick={() => { hapticLight(); setTactics({ mentality: m.value }); }}
                     aria-label={`Set mentality to ${m.label}`}
                     className={cn(
-                      'relative z-10 flex-1 py-1.5 text-[9px] font-semibold capitalize transition-all',
+                      // 44pt minimum — this is set mid-match with the clock
+                      // running; the old py-1.5 gave a ~25px target.
+                      'relative z-10 flex-1 min-h-[44px] px-0.5 text-[9px] font-semibold capitalize transition-all',
                       idx === 0 && 'rounded-l-md',
                       idx === MENTALITIES.length - 1 && 'rounded-r-md',
                       tactics.mentality === m.value
@@ -1708,52 +1713,19 @@ const MatchDayInner = () => {
                 <Flame className="w-3 h-3 text-muted-foreground/30 mr-1.5 shrink-0" />
               </div>
 
-              {/* Unified control row: Pause, Shouts, Speed */}
-              <div className="flex items-center gap-1.5">
-                {/* Pause */}
+              {/* Pause + Speed. Split off the shouts onto their own row below:
+                  cramming five controls into one 343px row forced 26px targets
+                  at the highest-pressure moment in the app. */}
+              <div className="flex items-center gap-2">
                 <button
                   onClick={handlePause}
                   aria-label="Pause match"
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold bg-muted/30 text-foreground hover:bg-muted/50 active:scale-[0.97] border border-border/30 transition-all"
+                  className="flex items-center justify-center gap-1.5 px-3 min-h-[44px] min-w-[44px] rounded-lg text-[11px] font-semibold bg-muted/30 text-foreground hover:bg-muted/50 active:scale-[0.97] border border-border/30 transition-all"
                 >
-                  <Pause className="w-3 h-3" /> Pause
+                  <Pause className="w-3.5 h-3.5" /> Pause
                 </button>
 
-                {/* Touchline Shouts — compact icon buttons */}
-                <div className="flex-1 flex items-center justify-center gap-1">
-                  {shoutsRemaining > 0 && !shoutOnCooldown ? ([
-                    { type: 'push_forward' as ShoutType, label: 'Push', Icon: Flame },
-                    { type: 'hold_the_line' as ShoutType, label: 'Hold', Icon: Shield },
-                    { type: 'calm_down' as ShoutType, label: 'Calm', Icon: Hand },
-                    ...(currentMin >= 80 ? [{ type: 'time_waste' as ShoutType, label: 'Waste', Icon: Clock }] : []),
-                  ] as { type: ShoutType; label: string; Icon: LucideIcon }[]).map(s => (
-                    <button
-                      key={s.type}
-                      onClick={() => {
-                        hapticMedium();
-                        const success = activateShout(s.type, currentMin);
-                        if (success) infoToast(`${s.label} — Effect active for ${SHOUT_DURATION} minutes`);
-                      }}
-                      className={cn(
-                        "p-1.5 rounded-lg active:scale-[0.93] transition-all border",
-                        activeShout?.type === s.type
-                          ? 'bg-amber-500/25 border-amber-500/40 text-amber-300'
-                          : 'bg-amber-500/10 border-amber-500/15 text-amber-400 hover:bg-amber-500/15'
-                      )}
-                      title={s.label}
-                      aria-label={`Shout: ${s.label}`}
-                    >
-                      <s.Icon className="w-3.5 h-3.5" />
-                    </button>
-                  )) : (
-                    <span className="text-[9px] text-muted-foreground/40">
-                      {shoutsRemaining === 0 ? 'No shouts left' : `Cooldown (${SHOUT_COOLDOWN - (currentMin - (lastShout?.startMinute ?? 0))}')`}
-                    </span>
-                  )}
-                  {shoutsRemaining > 0 && !shoutOnCooldown && (
-                    <span className="text-[8px] text-muted-foreground/40 ml-0.5">{shoutsRemaining}</span>
-                  )}
-                </div>
+                <div className="flex-1" />
 
                 {/* Speed */}
                 <button
@@ -1765,14 +1737,52 @@ const MatchDayInner = () => {
                   }}
                   aria-label={`Match speed: ${MATCH_SPEEDS.find(s => s.value === speed)?.label ?? 'Normal'}. Tap to change.`}
                   className={cn(
-                    "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold active:scale-[0.97] border transition-all",
+                    "flex items-center justify-center gap-1.5 px-3 min-h-[44px] min-w-[44px] rounded-lg text-[11px] font-semibold active:scale-[0.97] border transition-all",
                     speed < DEFAULT_MATCH_SPEED
                       ? 'bg-primary/15 text-primary border-primary/30 hover:bg-primary/20'
                       : 'bg-muted/30 text-foreground border-border/30 hover:bg-muted/50'
                   )}
                 >
-                  <FastForward className="w-3 h-3" /> {MATCH_SPEEDS.find(s => s.value === speed)?.shortLabel ?? '1x'}
+                  <FastForward className="w-3.5 h-3.5" /> {MATCH_SPEEDS.find(s => s.value === speed)?.shortLabel ?? '1x'}
                 </button>
+              </div>
+
+              {/* Touchline Shouts — full-width row, 44pt targets, names visible
+                  (a `title=` tooltip does nothing on a touch screen). */}
+              <div className="flex items-center gap-2">
+                {shoutsRemaining > 0 && !shoutOnCooldown ? ([
+                  { type: 'push_forward' as ShoutType, label: 'Push', Icon: Flame },
+                  { type: 'hold_the_line' as ShoutType, label: 'Hold', Icon: Shield },
+                  { type: 'calm_down' as ShoutType, label: 'Calm', Icon: Hand },
+                  ...(currentMin >= 80 ? [{ type: 'time_waste' as ShoutType, label: 'Waste', Icon: Clock }] : []),
+                ] as { type: ShoutType; label: string; Icon: LucideIcon }[]).map(s => (
+                  <button
+                    key={s.type}
+                    onClick={() => {
+                      hapticMedium();
+                      const success = activateShout(s.type, currentMin);
+                      if (success) infoToast(`${s.label} — Effect active for ${SHOUT_DURATION} minutes`);
+                    }}
+                    className={cn(
+                      "flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] min-w-[44px] rounded-lg active:scale-[0.93] transition-all border",
+                      activeShout?.type === s.type
+                        ? 'bg-amber-500/25 border-amber-500/40 text-amber-300'
+                        : 'bg-amber-500/10 border-amber-500/15 text-amber-400 hover:bg-amber-500/15'
+                    )}
+                    aria-label={`Shout: ${s.label}`}
+                    aria-pressed={activeShout?.type === s.type}
+                  >
+                    <s.Icon className="w-3.5 h-3.5" aria-hidden />
+                    <span className="text-[9px] font-semibold leading-none">{s.label}</span>
+                  </button>
+                )) : (
+                  <span className="text-[9px] text-muted-foreground/40">
+                    {shoutsRemaining === 0 ? 'No shouts left' : `Cooldown (${SHOUT_COOLDOWN - (currentMin - (lastShout?.startMinute ?? 0))}')`}
+                  </span>
+                )}
+                {shoutsRemaining > 0 && !shoutOnCooldown && (
+                  <span className="text-[9px] text-muted-foreground/50 tabular-nums shrink-0 w-4 text-right">{shoutsRemaining}</span>
+                )}
               </div>
             </div>
           )}

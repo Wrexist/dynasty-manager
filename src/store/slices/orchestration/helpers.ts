@@ -71,12 +71,14 @@ export function rebuildRealPlayerClaims(players: Record<string, Player>): void {
 export function findTournamentMatch(s: { week: number; playerClubId: string; cup: CupState; leagueCup: LeagueCupState | null; championsCup: ContinentalTournamentState | null; shieldCup: ContinentalTournamentState | null; conferenceCup?: ContinentalTournamentState | null; domesticSuperCup: SuperCupMatch | null; continentalSuperCup: SuperCupMatch | null }): { homeClubId: string; awayClubId: string; competition: string } | null {
   const w = s.week;
   const pid = s.playerClubId;
-  // Dynasty Cup
-  const cupTie = s.cup?.ties?.find(t => t.week === w && !t.played && (t.homeClubId === pid || t.awayClubId === pid));
-  if (cupTie) return { homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, competition: 'Dynasty Cup' };
-  // League Cup
-  const lcTie = s.leagueCup?.ties?.find(t => t.week === w && !t.played && (t.homeClubId === pid || t.awayClubId === pid));
-  if (lcTie) return { homeClubId: lcTie.homeClubId, awayClubId: lcTie.awayClubId, competition: 'League Cup' };
+  // ORDER IS LOAD-BEARING and must match `playCurrentMatchImpl`'s detection
+  // chain exactly: continental → cup → leagueCup → superCup. It used to run
+  // cup → leagueCup → continental here, so on a week holding both a cup tie and
+  // a continental fixture the UI announced the cup tie while the engine played
+  // the continental one — different opponent, possibly flipped home/away, wrong
+  // competition badge, wrong lineup prepared. If you change the priority in one
+  // place, change it in the other.
+
   // Continental group + knockout
   for (const [tourney, name] of [[s.championsCup, 'Champions Cup'], [s.shieldCup, 'Shield Cup'], [s.conferenceCup || null, 'Conference Cup']] as const) {
     if (!tourney) continue;
@@ -92,11 +94,17 @@ export function findTournamentMatch(s: { week: number; playerClubId: string; cup
       if (tie.leg1Played && !tie.leg2Played && tie.week2 === w && tie.round !== 'F') return { homeClubId: tie.awayClubId, awayClubId: tie.homeClubId, competition: name as string };
     }
   }
+  // Dynasty Cup
+  const cupTie = s.cup?.ties?.find(t => t.week === w && !t.played && (t.homeClubId === pid || t.awayClubId === pid));
+  if (cupTie) return { homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, competition: 'Dynasty Cup' };
+  // League Cup
+  const lcTie = s.leagueCup?.ties?.find(t => t.week === w && !t.played && (t.homeClubId === pid || t.awayClubId === pid));
+  if (lcTie) return { homeClubId: lcTie.homeClubId, awayClubId: lcTie.awayClubId, competition: 'League Cup' };
   // Super cups
   const dsc = s.domesticSuperCup;
-  if (dsc && !dsc.played && dsc.week === w && (dsc.homeClubId === pid || dsc.awayClubId === pid)) return { homeClubId: dsc.homeClubId, awayClubId: dsc.awayClubId, competition: 'Super Cup' };
+  if (dsc && !dsc.played && w >= dsc.week && (dsc.homeClubId === pid || dsc.awayClubId === pid)) return { homeClubId: dsc.homeClubId, awayClubId: dsc.awayClubId, competition: 'Super Cup' };
   const csc = s.continentalSuperCup;
-  if (csc && !csc.played && csc.week === w && (csc.homeClubId === pid || csc.awayClubId === pid)) return { homeClubId: csc.homeClubId, awayClubId: csc.awayClubId, competition: 'Continental Super Cup' };
+  if (csc && !csc.played && w >= csc.week && (csc.homeClubId === pid || csc.awayClubId === pid)) return { homeClubId: csc.homeClubId, awayClubId: csc.awayClubId, competition: 'Continental Super Cup' };
   return null;
 }
 

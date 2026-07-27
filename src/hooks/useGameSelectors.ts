@@ -58,16 +58,16 @@ export function useCurrentMatch(): { match: Match | undefined; isHome: boolean; 
       return { match: friendlyMatch, isHome, opponent, competition: 'Pre-Season Friendly' };
     }
 
-    const leagueMatch = fixtures.find(
-      m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId)
-    );
-
-    if (leagueMatch) {
-      const isHome = leagueMatch.homeClubId === playerClubId;
-      const opponent = clubs[isHome ? leagueMatch.awayClubId : leagueMatch.homeClubId];
-      return { match: leagueMatch, isHome, opponent };
-    }
-
+    // Tournaments are checked BEFORE the league fixture, matching
+    // `playCurrentMatchImpl`'s priority (friendly → continental → cup →
+    // leagueCup → superCup → league). Every shipped league has a fixture in
+    // every week of its season, so a cup or continental week ALWAYS also holds a
+    // league fixture — collisions are the norm, not the edge case. Returning the
+    // league fixture first meant Dashboard and MatchPrep showed one opponent
+    // while the engine kicked off against another, with home/away possibly
+    // flipped, no competition badge, no high-stakes team talk, and the debrief
+    // reporting a league match. The colliding league fixture is AI-simulated by
+    // advanceWeek's division-fixture loop, which is why the engine ranks it last.
     const tourneyMatch = findTournamentMatch({
       week,
       playerClubId,
@@ -106,6 +106,16 @@ export function useCurrentMatch(): { match: Match | undefined; isHome: boolean; 
       return { match: syntheticMatch, isHome, opponent, competition: tourneyMatch.competition };
     }
 
+    const leagueMatch = fixtures.find(
+      m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId)
+    );
+
+    if (leagueMatch) {
+      const isHome = leagueMatch.homeClubId === playerClubId;
+      const opponent = clubs[isHome ? leagueMatch.awayClubId : leagueMatch.homeClubId];
+      return { match: leagueMatch, isHome, opponent };
+    }
+
     return { match: undefined, isHome: false, opponent: undefined };
   }, [friendlies, fixtures, week, playerClubId, clubs, cup, leagueCup, championsCup, shieldCup, conferenceCup, domesticSuperCup, continentalSuperCup, virtualClubs]);
 }
@@ -119,8 +129,17 @@ export function useMatchLocked(): boolean {
 export function useCareerUnemployed(): boolean {
   return useGameStore(s =>
     s.gameMode === 'career' && !!s.careerManager && !s.careerManager.contract &&
+    !s.careerRetired &&
     !s.careerManager.careerHistory?.some(e => e.reason === 'retired')
   );
+}
+
+/** True once a career manager has retired. The career is over: no club tabs, no
+ *  job market, no week advance — only the retrospective and a new career.
+ *  `useCareerUnemployed` deliberately returns false for a retired manager, which
+ *  used to hand them the full club tab set for a club they no longer managed. */
+export function useCareerRetired(): boolean {
+  return useGameStore(s => s.gameMode === 'career' && s.careerRetired === true);
 }
 
 /** Get count of unread messages. */

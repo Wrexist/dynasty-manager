@@ -139,7 +139,10 @@ export function SetPiecePicker({ role, players, selectedId, onChange }: SetPiece
             {!selectedId && <Check className="w-4 h-4 text-primary shrink-0" />}
           </button>
 
-          <div className="flex-1 overflow-y-auto overscroll-contain px-3 py-3 pb-safe">
+          {/* `pb-safe` is not a class this project defines (it silently did
+              nothing and the last row was clipped by the home indicator).
+              `safe-area-bottom` is the real utility — see index.css. */}
+          <div className="flex-1 overflow-y-auto overscroll-contain px-3 py-3 safe-area-bottom">
             {sorted.length === 0 ? (
               <p className="text-center text-sm text-muted-foreground py-10">
                 No outfield players in your starting XI.

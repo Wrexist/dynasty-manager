@@ -714,6 +714,35 @@ export function autoSelectNationalSquad(
     squad.push(p);
   }
 
+  // Pad to a full squad by relaxing the soft filters, hardest constraint last.
+  // This function used to return fewer than 23 ids without comment, which meant
+  // it could not rescue a player stuck on the squad picker — and the picker's
+  // Confirm requires exactly 23. End of season is exactly when fitness is at its
+  // lowest, so the `fitness < LOW_FITNESS_THRESHOLD` filter alone could empty the
+  // pool. A tired or suspended 23rd man is always better than a dead save.
+  if (squad.length < NATIONAL_SQUAD_SIZE) {
+    const picked = new Set(squad.map(p => p.id));
+    const relaxedPasses: ((p: Player) => boolean)[] = [
+      // Pass 1: allow low fitness.
+      p => nats.has(p.nationality) && !p.injured && p.age >= 17,
+      // Pass 2: allow suspended too.
+      p => nats.has(p.nationality) && p.age >= 17,
+      // Pass 3: anyone of the nationality at all.
+      p => nats.has(p.nationality),
+    ];
+    for (const accept of relaxedPasses) {
+      if (squad.length >= NATIONAL_SQUAD_SIZE) break;
+      const extra = Object.values(allPlayers)
+        .filter(p => !picked.has(p.id) && accept(p))
+        .sort((a, b) => b.overall - a.overall);
+      for (const p of extra) {
+        if (squad.length >= NATIONAL_SQUAD_SIZE) break;
+        squad.push(p);
+        picked.add(p.id);
+      }
+    }
+  }
+
   return squad.map(p => p.id);
 }
 

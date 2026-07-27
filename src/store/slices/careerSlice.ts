@@ -629,7 +629,11 @@ export const createCareerSlice = (set: Set, get: Get) => ({
     set({
       careerManager: { ...manager, contract: null, careerHistory: updatedHistory },
       activeInterview: null,
-      currentScreen: 'hall-of-managers',
+      // Terminal. Without `careerRetired`, `advanceWeek` fell back into the
+      // unemployed branch on the very next tick and the career never actually
+      // ended — see the guard at the top of advanceWeekImpl.
+      careerRetired: true,
+      currentScreen: 'career-retired',
     });
   },
 });

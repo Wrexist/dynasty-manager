@@ -50,6 +50,11 @@ export function ListForSaleModal({ player, onClose, onListed }: Props) {
   const top3 = useMemo(() => getTop3Attributes(player.attributes), [player]);
 
   const priceRatio = safeValue > 0 ? ((askingPrice - safeValue) / safeValue) * 100 : 0;
+  // Slider fill percentage — the visible rail is painted separately from the
+  // (transparent, 44pt-tall) input, so the filled portion is computed here.
+  const pricePercent = maxPrice > minPrice
+    ? ((askingPrice - minPrice) / (maxPrice - minPrice)) * 100
+    : 0;
 
   const contractYears = Math.max(0, player.contractEnd - season);
 
@@ -164,15 +169,26 @@ export function ListForSaleModal({ player, onClose, onListed }: Props) {
               </span>
             </div>
 
-            <input
-              type="range"
-              min={minPrice}
-              max={maxPrice}
-              step={step}
-              value={askingPrice}
-              onChange={(e) => setAskingPrice(Number(e.target.value))}
-              className="w-full h-1.5 bg-muted rounded-full accent-primary cursor-pointer"
-            />
+            {/* 44pt-tall grab area with the rail painted as an absolute
+                sibling — the input's own box IS its hit box. */}
+            <div className="relative h-11">
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 h-2 rounded-full bg-muted overflow-hidden"
+              >
+                <div className="h-full rounded-full bg-primary" style={{ width: `${pricePercent}%` }} />
+              </div>
+              <input
+                type="range"
+                min={minPrice}
+                max={maxPrice}
+                step={step}
+                value={askingPrice}
+                onChange={(e) => setAskingPrice(Number(e.target.value))}
+                aria-label="Asking price"
+                className="range-touch relative z-10"
+              />
+            </div>
             <div className="flex justify-between text-[10px] text-muted-foreground tabular-nums mt-0.5">
               <span>{formatMoney(minPrice)}</span>
               <div className="flex items-center gap-1">

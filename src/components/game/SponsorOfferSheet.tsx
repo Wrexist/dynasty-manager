@@ -388,7 +388,7 @@ export function SponsorOfferSheet({ offer, onClose }: Props) {
 // ── Shared styling ──
 
 const SHEET_CLASS = cn(
-  'border-t border-white/10 rounded-t-2xl max-h-[90vh] overflow-y-auto px-4 pt-5 pb-8',
+  'border-t border-white/10 rounded-t-2xl max-h-[90vh] overflow-y-auto px-4 pt-5',
   'bg-gradient-to-b from-[hsl(222_32%_13%)] via-[hsl(222_30%_10%)] to-[hsl(222_36%_8%)]',
   'backdrop-blur-2xl backdrop-saturate-150',
 );

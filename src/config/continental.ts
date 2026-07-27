@@ -123,6 +123,12 @@ export function scaleCompetitionWeek(refWeek: number, totalWeeks: number): numbe
     return Math.max(2, totalWeeks - (REF_TOTAL_WEEKS - refWeek));
   }
   const bodyEnd = Math.max(2, totalWeeks - (REF_TOTAL_WEEKS - REF_TAIL_START) - 1);
+  // NOTE: the body deliberately starts at week 1 and can therefore land on the
+  // Super Cup weeks (raw constants 1 and 2). Raising the floor to clear them
+  // squeezes the 18-week body hard enough to make continental milestones collide
+  // with each other, which is worse. The Super Cups are protected instead by the
+  // `week >= scheduledWeek` catch-up in `weekAdvance` and `playCurrentMatchImpl`,
+  // so a collision can delay them by a week but never strand them.
   return Math.min(bodyEnd, Math.max(1, Math.round((refWeek * bodyEnd) / (REF_TAIL_START - 1))));
 }
 

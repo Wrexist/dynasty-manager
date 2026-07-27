@@ -154,6 +154,9 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
 
   const feeRatio = counterFee / offer.fee;
   const valueDiff = player.value > 0 ? ((offer.fee - player.value) / player.value) * 100 : 0;
+  // Fill percentage for the painted rail (the input itself is transparent and
+  // 44pt tall so it can actually be grabbed on a phone).
+  const counterFeePercent = maxFee > minFee ? ((counterFee - minFee) / (maxFee - minFee)) * 100 : 0;
 
   return (
     <AnimatePresence>
@@ -309,15 +312,25 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
                         {formatMoney(counterFee)}
                       </span>
                     </div>
-                    <input
-                      type="range"
-                      min={minFee}
-                      max={maxFee}
-                      step={step}
-                      value={counterFee}
-                      onChange={(e) => setCounterFee(Number(e.target.value))}
-                      className="w-full h-1.5 bg-muted rounded-full accent-primary cursor-pointer"
-                    />
+                    {/* 44pt grab area; rail painted as an absolute sibling. */}
+                    <div className="relative h-11">
+                      <div
+                        aria-hidden
+                        className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 h-2 rounded-full bg-muted overflow-hidden"
+                      >
+                        <div className="h-full rounded-full bg-primary" style={{ width: `${counterFeePercent}%` }} />
+                      </div>
+                      <input
+                        type="range"
+                        min={minFee}
+                        max={maxFee}
+                        step={step}
+                        value={counterFee}
+                        onChange={(e) => setCounterFee(Number(e.target.value))}
+                        aria-label="Your counter-offer fee"
+                        className="range-touch relative z-10"
+                      />
+                    </div>
                     <div className="flex justify-between text-[10px] text-muted-foreground tabular-nums">
                       <span>{formatMoney(minFee)}</span>
                       <span className={cn('font-semibold',

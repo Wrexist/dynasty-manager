@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react';
 import { Club, Player, TransferListing, Match } from '@/types/game';
-import { calculateReputationTier, generateJobVacancies, generateCompetitors } from '@/utils/managerCareer';
+import { calculateReputationTier, generateJobVacancies, generateCompetitors, getRetirementAge } from '@/utils/managerCareer';
 import {
   REP_MIN, REP_MAX,
 } from '@/config/managerCareer';
@@ -23,7 +23,7 @@ import {
   TOTAL_WEEKS, CONFIDENCE_MIN, LISTING_PRICE_MIN_MULTIPLIER, LISTING_PRICE_RANDOM_RANGE, getExpectedPosition, FREE_AGENT_POOL_MAX,
 } from '@/config/gameBalance';
 
-import { NATIONAL_CALLUP_MORALE_BOOST } from '@/config/gameBalance';
+import { NATIONAL_CALLUP_MORALE_BOOST, NATIONAL_SQUAD_SIZE } from '@/config/gameBalance';
 
 import { generateMonthlyObjectives } from '@/utils/weeklyObjectives';
 
@@ -36,7 +36,7 @@ import { getAICounterTactics } from '@/config/aiManager';
 import { AI_LOAN_DURATIONS, AI_LOAN_OBLIGATORY_BUY_CHANCE, AI_LOAN_OBLIGATORY_BUY_MULTIPLIER, AI_LOAN_WAGE_SPLITS } from '@/config/aiSimulation';
 import { getCompetitionCalendar } from '@/config/continental';
 import { AI_LOAN_OFFER_CHANCE, AI_LOAN_RECALL_CLAUSE_CHANCE, ASSISTANT_MANAGER_FAMILIARITY_BOOST, BENCH_REST_BONUS, BOARD_REVIEW_ADJUST_POSITIONS, BOARD_REVIEW_RAISE_THRESHOLD, BOARD_REVIEW_RELAX_THRESHOLD, BOARD_REVIEW_WEEKS, CALLUP_SNUB_MORALE_PENALTY, COMMERCIAL_INCOME_BASE, COMMERCIAL_INCOME_PER_REP, CONGESTED_FIXTURE_INJURY_MULTIPLIER, CONTRACT_MORALE_HIT_AMOUNT, CONTRACT_MORALE_HIT_OVERALL_THRESHOLD, CONTRACT_MORALE_HIT_WEEK_THRESHOLD, CONTRACT_MORALE_MIN, CONTRACT_WARNING_OVERALL_THRESHOLD, CONTRACT_WARNING_WEEKS, CONTRACT_WARNING_YOUTH_AGE_MAX, CONTRACT_WARNING_YOUTH_POTENTIAL_MIN, CUP_EXTRA_TIME_GOAL_CHANCE, CUP_EXTRA_TIME_REPUTATION_DIVISOR, CUP_PENALTY_GK_QUALITY_FACTOR, CUP_PENALTY_KICKS, FACILITY_MAX_LEVEL, FAN_MOOD_BASE, FAN_MOOD_SCALE, FFP_CONFIDENCE_PENALTY, FFP_CRITICAL_CONFIDENCE_PENALTY, FFP_WAGE_RATIO_CRITICAL, FFP_WAGE_RATIO_WARNING, FORFEIT_SCORE, INJURY_TYPES, INTERNATIONAL_BREAK_FITNESS_COST, INTERNATIONAL_BREAK_WEEKS, INTERNATIONAL_CALLUP_MIN_OVR, INTERNATIONAL_FITNESS_COST, INTERNATIONAL_SNUB_MIN_OVR, LEGENDARY_OBJECTIVE_XP_MULTIPLIER, LINEUP_SIZE, LOAN_DEV_BASE_CHANCE, LOAN_DEV_REP_FACTOR, LOAN_FITNESS_DRAIN, LOAN_PLAY_CHANCE_HIGH, LOAN_PLAY_CHANCE_LOW, LOAN_QUALITY_FORMULA_BASE, LOAN_QUALITY_FORMULA_REP_MULT, LOAN_YOUNG_AGE_THRESHOLD, MANAGER_SALARY_CONFIDENCE_PENALTY, MANAGER_SALARY_RATIO_CRITICAL, MANAGER_SALARY_RATIO_WARNING, MATCHDAY_INCOME_PER_FAN, MAX_CAREER_TIMELINE, MAX_FINANCE_HISTORY, MORALE_BENCH_MIN, MORALE_BENCH_WEEKLY_LOSS, NT_SACK_GROUP_EXIT_THRESHOLD, OBJECTIVE_CYCLE_WEEKS, PHYSIO_INJURY_REDUCTION_PER_QUALITY, PHYSIO_RECOVERY_BOOST_THRESHOLD, PHYSIO_RECOVERY_CHANCE, POST_TOURNAMENT_FITNESS_COST_HIGH, POST_TOURNAMENT_FITNESS_COST_LOW, RARE_OBJECTIVE_XP_MULTIPLIER, REP_INTL_FINAL, REP_INTL_GROUP_EXIT, REP_INTL_KNOCKOUT, REP_INTL_SEMI, REP_INTL_TOURNAMENT_WIN, SCOUTING_COST_PER_ASSIGNMENT, SIM_PENALTY_BASE_WIN_CHANCE, SIM_PENALTY_MENTAL_SCALE, STADIUM_INCOME_PER_LEVEL, STREAK_FORM_BONUS, STREAK_FORM_THRESHOLD, STREAK_INCOME_MULTIPLIER, STREAK_INCOME_THRESHOLD, STREAK_MORALE_BONUS, STREAK_MORALE_THRESHOLD, TRAINING_GROUND_BOOST, ULTIMATUM_CONFIDENCE_THRESHOLD, ULTIMATUM_HORIZON_WEEKS, ULTIMATUM_POSITION_TOLERANCE, ULTIMATUM_SANDBOX_BUDGET_CUT, ULTIMATUM_SANDBOX_CONFIDENCE_FLOOR, ULTIMATUM_SEASON1_GRACE_WEEK, ULTIMATUM_SURVIVE_CONFIDENCE, ULTIMATUM_SURVIVE_CONFIDENCE_BONUS, UNHAPPY_CONTAGION_MORALE_HIT, UNHAPPY_CONTAGION_WEEKS, UNHAPPY_THRESHOLD, UNHAPPY_WEEKS_TO_REQUEST, YOUTH_DEVELOPER_BOOST } from '@/config/gameBalance';
-import { FORCED_RETIREMENT_UNEMPLOYED_WEEKS, GROWTH_DISCIPLINE_PER_CLEAN_MATCH, GROWTH_MOTIVATION_PER_MORALE_EVENT, GROWTH_SCOUTING_PER_ASSIGNMENT, GROWTH_TACTICAL_PER_MATCH, MOD_SCOUTING_SPEED, MOD_TACTICAL_FAMILIARITY, MOD_YOUTH_GROWTH, STAT_MAX, UNEMPLOYED_OFFER_CHECK_INTERVAL, UNEMPLOYED_OFFER_MAX_PENDING } from '@/config/managerCareer';
+import { FORCED_RETIREMENT_AGE_GRACE_YEARS, FORCED_RETIREMENT_UNEMPLOYED_WEEKS, GROWTH_DISCIPLINE_PER_CLEAN_MATCH, GROWTH_MOTIVATION_PER_MORALE_EVENT, GROWTH_SCOUTING_PER_ASSIGNMENT, GROWTH_TACTICAL_PER_MATCH, MOD_SCOUTING_SPEED, MOD_TACTICAL_FAMILIARITY, MOD_YOUTH_GROWTH, STAT_MAX, UNEMPLOYED_OFFER_CHECK_INTERVAL, UNEMPLOYED_OFFER_MAX_PENDING } from '@/config/managerCareer';
 import { NATIONAL_OVR_STR_FLOOR, NATIONAL_OVR_STR_MAX, NATIONAL_OVR_STR_MIN, NATIONAL_OVR_STR_RANGE, PENALTY_CONVERSION_RATE } from '@/config/matchEngine';
 import { MERCH_CAMPAIGN_COOLDOWN_WEEKS, MERCH_PRICING_TIERS, SIGNATURE_DROP_COOLDOWN_WEEKS } from '@/config/merchandise';
 import { STORYLINE_CHAIN_MIN_WEEK, STORYLINE_CHAIN_TRIGGER_CHANCE } from '@/config/playoffs';
@@ -63,12 +63,12 @@ import { advanceKnockoutRound, generateKnockoutFromGroups, getCurrentMatchday, i
 import { getEffectiveStadiumLevel } from '@/utils/facilities';
 import { getLeaguePositionPrize } from '@/utils/financeHelpers';
 import { formatMoney, getSuffix } from '@/utils/helpers';
-import { generateKnockoutBracket, processGroupWeek, processKnockoutRound, simulateKnockoutToCompletion } from '@/utils/international';
+import { generateKnockoutBracket, processGroupWeek, processKnockoutRound, simulateKnockoutToCompletion, autoSelectNationalSquad } from '@/utils/international';
 import { generateUnemployedOffer } from '@/utils/managerCareer';
 import { dynastyMult } from '@/utils/managerPerks';
 import { calculateWeeklyMerchRevenue } from '@/utils/merchandise';
 import { getLeadershipBonus, wantsTransfer } from '@/utils/personality';
-import { calculateOverall } from '@/utils/playerGen';
+import { calculateOverall, selectBestLineup } from '@/utils/playerGen';
 import { recomputePlayerValueOnly } from '@/utils/playerEconomics';
 import { generateRandomEvents } from '@/utils/randomEvents';
 import { completeAssignment } from '@/utils/scouting';
@@ -119,10 +119,31 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
   // we must not progress the week — the picker is the canonical "first
   // week before the first national game" gate.
   if (!tournament.squadConfirmed) {
+    // HARD ESCAPE. Blocking the week on a UI gate is only safe if that gate can
+    // always be satisfied, and it could not: the picker's Confirm requires
+    // exactly 23 players meeting position quotas, and at end of season — which is
+    // when tournaments are scheduled — the eligible pool can come up short
+    // (notably on goalkeepers). The result was an unrecoverable save: every
+    // Advance Week snapped back to the picker, `seasonPhase` stayed
+    // 'international', and there was no skip.
+    //
+    // The picker and `autoSelectNationalSquad` are both hardened now, so this
+    // should never fire — but the game loop must not be one UI regression away
+    // from a dead save. If a full squad can be assembled automatically, confirm
+    // it and carry on rather than blocking forever.
     if (state.currentScreen !== 'national-squad-picker') {
-      set({ currentScreen: 'national-squad-picker' });
+      const auto = autoSelectNationalSquad(nationality, state.players, tournament.currentWeek);
+      if (auto.length >= NATIONAL_SQUAD_SIZE && state.nationalTeam) {
+        const squadPlayers = auto.map(id => state.players[id]).filter(Boolean);
+        const { lineup, subs } = selectBestLineup(squadPlayers, state.nationalTeam.formation, state.week);
+        get().confirmNationalSquad(auto, lineup.map(p => p.id), subs.map(p => p.id));
+      } else {
+        set({ currentScreen: 'national-squad-picker' });
+        return;
+      }
+    } else {
+      return;
     }
-    return;
   }
 
   if (tournament.phase === 'group') {
@@ -616,19 +637,37 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     return;
   }
 
+  // A retired manager is DONE. Without this guard the retirement path fell
+  // straight back into the unemployed branch below: weekly "Between Jobs" spam,
+  // every job offer auto-rejected by respondToJobOffer's retirement-age check,
+  // and after another 24 weeks the forced-retirement branch fired again and
+  // bounced the player to Hall of Managers on every single tick. The career is
+  // over — the retirement screen offers a new career instead.
+  if (state.gameMode === 'career' && state.careerRetired) {
+    set({ currentScreen: 'career-retired' });
+    return;
+  }
+
   // Career mode: unemployed managers skip gameplay, only process job market
   if (state.gameMode === 'career' && state.careerManager && !state.careerManager.contract) {
     const cm = { ...state.careerManager, attributes: { ...state.careerManager.attributes } };
     cm.unemployedWeeks = (cm.unemployedWeeks || 0) + 1;
     const newWeek = state.week + 1;
 
-    // Forced retirement after extended unemployment
-    if (cm.unemployedWeeks >= FORCED_RETIREMENT_UNEMPLOYED_WEEKS) {
+    // Forced retirement after extended unemployment — but only for a manager
+    // who is actually near the end of a career. This used to fire on age alone
+    // being irrelevant: a 40-year-old who had one bad run was "retired" against
+    // his will, and because the branch returned before regenerating vacancies,
+    // nothing was ever generated again and the save was unrecoverable in-game.
+    // A younger manager out of work this long gets a guaranteed low-tier offer
+    // instead (the desperation-vacancy path below).
+    const nearEndOfCareer = cm.age >= getRetirementAge(cm) - FORCED_RETIREMENT_AGE_GRACE_YEARS;
+    if (cm.unemployedWeeks >= FORCED_RETIREMENT_UNEMPLOYED_WEEKS && nearEndOfCareer) {
       cm.careerHistory = cm.careerHistory.map(e =>
         e.endSeason === null ? { ...e, endSeason: state.season, reason: 'retired' as const } : e
       );
       cm.contract = null;
-      set({ week: newWeek, careerManager: cm, activeInterview: null, currentScreen: 'hall-of-managers' });
+      set({ week: newWeek, careerManager: cm, activeInterview: null, careerRetired: true, currentScreen: 'career-retired' });
       if (state.settings.autoSave) get().saveGame();
       return;
     }
@@ -646,7 +685,13 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
 
     // Desperation vacancies (weak or no competitors)
     if (cm.unemployedWeeks >= 12 && vacancies.length === 0) {
-      const desperate = Object.values(state.clubs).filter(c => c.id !== state.playerClubId).slice(0, 2);
+      // Weakest clubs first. `.slice(0, 2)` on insertion order handed out the
+      // first two clubs in the record, which can be a top-flight giant — offered
+      // at a GBP 1,500 salary with "Survive and stabilize the club" expectations.
+      const desperate = Object.values(state.clubs)
+        .filter(c => c.id !== state.playerClubId)
+        .sort((a, b) => (a.reputation || 0) - (b.reputation || 0))
+        .slice(0, 2);
       vacancies = desperate.map(club => {
         const league = LEAGUES.find(l => l.id === club.divisionId);
         const clubData = ALL_CLUBS.find(c => c.id === club.id);
@@ -1358,7 +1403,15 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
 
   // ── Domestic Super Cup Simulation ──
   let newDomesticSuperCup = state.domesticSuperCup;
-  if (newDomesticSuperCup && !newDomesticSuperCup.played && week === DOMESTIC_SUPER_CUP_WEEK) {
+  // `>=`, not `===`. Both Super Cup weeks are raw, unscaled constants (1 and 2)
+  // while the cup / League Cup / continental calendars compress into the same
+  // weeks in short seasons — and Super Cup is LAST in playCurrentMatchImpl's
+  // priority. So in every league with totalWeeks <= 38 a colliding League Cup R1
+  // outranked the Continental Super Cup, week 2 passed, `week === 2` was false
+  // forever, and the fixture sat unplayed in state for the whole season: no
+  // match, no trophy, no prize money. Cup, League Cup and continental all have
+  // this catch-up already; the Super Cups were the only competitions without it.
+  if (newDomesticSuperCup && !newDomesticSuperCup.played && week >= DOMESTIC_SUPER_CUP_WEEK) {
     const hClub = clubs[newDomesticSuperCup.homeClubId];
     const aClub = clubs[newDomesticSuperCup.awayClubId];
     const isPlayerMatch = newDomesticSuperCup.homeClubId === playerClubId || newDomesticSuperCup.awayClubId === playerClubId;
@@ -1385,7 +1438,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
 
   // ── Continental Super Cup Simulation ──
   let newContinentalSuperCup = state.continentalSuperCup;
-  if (newContinentalSuperCup && !newContinentalSuperCup.played && week === CONTINENTAL_SUPER_CUP_WEEK) {
+  if (newContinentalSuperCup && !newContinentalSuperCup.played && week >= CONTINENTAL_SUPER_CUP_WEEK) {
     const hClub = clubs[newContinentalSuperCup.homeClubId] || (state.virtualClubs || {})[newContinentalSuperCup.homeClubId];
     const aClub = clubs[newContinentalSuperCup.awayClubId] || (state.virtualClubs || {})[newContinentalSuperCup.awayClubId];
     const isPlayerMatch = newContinentalSuperCup.homeClubId === playerClubId || newContinentalSuperCup.awayClubId === playerClubId;
@@ -1536,7 +1589,11 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     const updatedLeagueFixtures = [...leagueFixtures];
     for (let i = 0; i < updatedLeagueFixtures.length; i++) {
       const m = updatedLeagueFixtures[i];
-      if (m.week !== week || m.played) continue;
+      // `<= week`, not `=== week`: an AI fixture whose week slipped past
+      // unplayed (mid-season collision, a save resumed mid-week) used to be
+      // stranded forever, leaving that division's table permanently short.
+      // `endSeasonImpl` now also fast-forwards anything still outstanding.
+      if (m.week > week || m.played) continue;
       const hc = clubs[m.homeClubId];
       const ac = clubs[m.awayClubId];
       if (!hc || !ac) continue;

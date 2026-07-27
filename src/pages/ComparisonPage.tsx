@@ -1,35 +1,102 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer } from 'recharts';
 import { cn } from '@/lib/utils';
 import { CHART_COLORS, PAGE_HINTS } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
+import { ShoppingCart, UserSearch } from 'lucide-react';
+import type { Player } from '@/types/game';
+
+const byOverall = (a: Player, b: Player) => b.overall - a.overall;
 
 const ComparisonPage = () => {
-  const clubs = useGameStore(s => s.clubs);
-  const players = useGameStore(s => s.players);
-  const playerClubId = useGameStore(s => s.playerClubId);
+  const { clubs, players, playerClubId, shortlist, transferMarket, scoutWatchList, selectedPlayerId } =
+    useGameStore(useShallow(s => ({
+      clubs: s.clubs,
+      players: s.players,
+      playerClubId: s.playerClubId,
+      shortlist: s.shortlist,
+      transferMarket: s.transferMarket,
+      scoutWatchList: s.scoutWatchList,
+      selectedPlayerId: s.selectedPlayerId,
+    })));
+  const setScreen = useGameStore(s => s.setScreen);
   const club = clubs[playerClubId];
-  const squadPlayers = club?.playerIds.map(id => players[id]).filter(Boolean).sort((a, b) => b.overall - a.overall) || [];
 
-  const [playerAId, setPlayerAId] = useState<string>(squadPlayers[0]?.id || '');
-  const [playerBId, setPlayerBId] = useState<string>(squadPlayers[1]?.id || '');
+  const squadPlayers = useMemo(
+    () => (club?.playerIds || []).map(id => players[id]).filter(Boolean).sort(byOverall),
+    [club?.playerIds, players],
+  );
 
-  if (squadPlayers.length < 2) {
+  // Transfer targets you can compare against your own players — the primary use
+  // of this screen. Drawn from the market listings, your shortlist, the scout
+  // watch list, and whichever player you arrived here from. Resolved against the
+  // full `players` map so any id works, not just your squad.
+  const targetPlayers = useMemo(() => {
+    const squadIds = new Set(club?.playerIds || []);
+    const ids = new Set<string>();
+    for (const id of shortlist) ids.add(id);
+    for (const id of scoutWatchList) ids.add(id);
+    for (const listing of transferMarket) ids.add(listing.playerId);
+    if (selectedPlayerId) ids.add(selectedPlayerId);
+    return [...ids]
+      .filter(id => !squadIds.has(id))
+      .map(id => players[id])
+      .filter(Boolean)
+      .sort(byOverall);
+  }, [club?.playerIds, shortlist, scoutWatchList, transferMarket, selectedPlayerId, players]);
+
+  const allOptions = useMemo(() => [...squadPlayers, ...targetPlayers], [squadPlayers, targetPlayers]);
+
+  // Arriving from a player's profile pre-loads him on the right-hand side so the
+  // comparison is one tap away.
+  const arrivedFrom = selectedPlayerId && players[selectedPlayerId] ? selectedPlayerId : '';
+  const [playerAId, setPlayerAId] = useState<string>(() => {
+    const first = squadPlayers.find(p => p.id !== arrivedFrom) || squadPlayers[0];
+    return first?.id || '';
+  });
+  const [playerBId, setPlayerBId] = useState<string>(
+    () => arrivedFrom || squadPlayers[1]?.id || '',
+  );
+
+  if (allOptions.length < 2) {
     return (
       <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
-        <GlassPanel className="p-6 text-center">
-          <p className="text-muted-foreground">Need at least 2 players to compare.</p>
+        <PageHint screen="comparison" title={PAGE_HINTS.comparison.title} body={PAGE_HINTS.comparison.body} />
+        <h2 className="text-lg font-display font-bold text-foreground">Player Comparison</h2>
+        <GlassPanel className="p-8 text-center space-y-3">
+          <p className="text-sm text-muted-foreground">Nothing to compare yet</p>
+          <p className="text-[10px] text-muted-foreground/60">
+            You need at least two players. Shortlist a transfer target or scout a region,
+            then come back to weigh him against your current starter.
+          </p>
+          <div className="flex gap-2 justify-center pt-1">
+            <button
+              type="button"
+              onClick={() => setScreen('transfers')}
+              className="flex items-center gap-1.5 px-3 py-2 min-h-[44px] rounded-lg text-xs font-semibold bg-primary/20 text-primary hover:bg-primary/30 transition-colors"
+            >
+              <ShoppingCart className="w-3 h-3" /> Transfer Market
+            </button>
+            <button
+              type="button"
+              onClick={() => setScreen('scouting')}
+              className="flex items-center gap-1.5 px-3 py-2 min-h-[44px] rounded-lg text-xs font-semibold bg-muted/50 text-muted-foreground hover:bg-muted transition-colors"
+            >
+              <UserSearch className="w-3 h-3" /> Scout Players
+            </button>
+          </div>
         </GlassPanel>
       </div>
     );
   }
 
-  // Resolve selections against the *current* squad — a selected player who was
-  // sold/released since selection must not silently blank the chart.
-  const playerA = squadPlayers.find(p => p.id === playerAId);
-  const playerB = squadPlayers.find(p => p.id === playerBId);
+  // Resolve selections against the *current* option pool — a selected player who
+  // was sold/released since selection must not silently blank the chart.
+  const playerA = allOptions.find(p => p.id === playerAId);
+  const playerB = allOptions.find(p => p.id === playerBId);
   const staleSelection = (!playerA && !!playerAId) || (!playerB && !!playerBId);
 
   const radarData = playerA && playerB ? [
@@ -41,6 +108,25 @@ const ComparisonPage = () => {
     { attr: 'MEN', a: playerA.attributes.mental, b: playerB.attributes.mental },
   ] : [];
 
+  const renderOptions = () => (
+    <>
+      {squadPlayers.length > 0 && (
+        <optgroup label="Your squad">
+          {squadPlayers.map(p => (
+            <option key={p.id} value={p.id}>{p.lastName} ({p.position} · {p.overall})</option>
+          ))}
+        </optgroup>
+      )}
+      {targetPlayers.length > 0 && (
+        <optgroup label="Transfer targets">
+          {targetPlayers.map(p => (
+            <option key={p.id} value={p.id}>{p.lastName} ({p.position} · {p.overall})</option>
+          ))}
+        </optgroup>
+      )}
+    </>
+  );
+
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
       <PageHint screen="comparison" title={PAGE_HINTS.comparison.title} body={PAGE_HINTS.comparison.body} />
@@ -49,27 +135,25 @@ const ComparisonPage = () => {
       {/* Player Selectors */}
       <div className="grid grid-cols-2 gap-3">
         <GlassPanel className="p-3">
-          <label className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1 block">Player A</label>
+          <label htmlFor="compare-a" className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1 block">Player A</label>
           <select
+            id="compare-a"
             value={playerAId}
             onChange={e => setPlayerAId(e.target.value)}
-            className="w-full bg-muted/30 text-foreground text-xs rounded-lg p-2 border border-border/50 focus:outline-none focus:ring-1 focus:ring-primary"
+            className="w-full min-h-[44px] bg-muted/30 text-foreground text-xs rounded-lg px-2 border border-border/50 focus:outline-none focus:ring-1 focus:ring-primary"
           >
-            {squadPlayers.map(p => (
-              <option key={p.id} value={p.id}>{p.lastName} ({p.position} · {p.overall})</option>
-            ))}
+            {renderOptions()}
           </select>
         </GlassPanel>
         <GlassPanel className="p-3">
-          <label className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1 block">Player B</label>
+          <label htmlFor="compare-b" className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1 block">Player B</label>
           <select
+            id="compare-b"
             value={playerBId}
             onChange={e => setPlayerBId(e.target.value)}
-            className="w-full bg-muted/30 text-foreground text-xs rounded-lg p-2 border border-border/50 focus:outline-none focus:ring-1 focus:ring-primary"
+            className="w-full min-h-[44px] bg-muted/30 text-foreground text-xs rounded-lg px-2 border border-border/50 focus:outline-none focus:ring-1 focus:ring-primary"
           >
-            {squadPlayers.map(p => (
-              <option key={p.id} value={p.id}>{p.lastName} ({p.position} · {p.overall})</option>
-            ))}
+            {renderOptions()}
           </select>
         </GlassPanel>
       </div>
@@ -78,7 +162,7 @@ const ComparisonPage = () => {
       {staleSelection && (
         <GlassPanel className="p-6 text-center">
           <p className="text-xs text-muted-foreground">
-            A selected player is no longer at the club. Pick another player to compare.
+            A selected player is no longer available. Pick another player to compare.
           </p>
         </GlassPanel>
       )}
@@ -88,13 +172,13 @@ const ComparisonPage = () => {
         <>
           <GlassPanel className="p-4">
             <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-primary" />
-                <span className="text-xs font-semibold text-foreground">{playerA.lastName}</span>
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-3 h-3 rounded-full bg-primary shrink-0" />
+                <span className="text-xs font-semibold text-foreground truncate">{playerA.lastName}</span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-foreground">{playerB.lastName}</span>
-                <div className="w-3 h-3 rounded-full bg-emerald-400" />
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-xs font-semibold text-foreground truncate">{playerB.lastName}</span>
+                <div className="w-3 h-3 rounded-full bg-emerald-400 shrink-0" />
               </div>
             </div>
             <ResponsiveContainer width="100%" height={220}>

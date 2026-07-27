@@ -1,5 +1,6 @@
 import { Club, Player, Match, MatchWeather, LeagueTableEntry, FormationType, TransferListing, BoardObjective, BoardUltimatum, GameScreen, Message, SeasonHistory, IncomingOffer, GameSettings, TacticalInstructions, TrainingState, TrainingModule, StaffMember, ScoutingState, ScoutRegion, YouthAcademyState, FacilitiesState, FinanceRecord, PlayerMatchRating, LoanDeal, IncomingLoanOffer, OutgoingLoanRequest, CupState, PressConference, ContractOffer, ActiveChallenge, LeagueId, SeasonTurnover, DerbyRivalry, ClubRecords, SeasonPhase, CareerMilestone, ManagerProgression, PerkId, StorylineEvent, ActiveStorylineChain, SponsorDeal, SponsorOffer, SponsorNegotiationProposal, SponsorSlotId, MerchState, MerchProductLine, MerchPricingTier, MerchCampaignType, CliffhangerItem, MatchDramaType, SessionStats, HeadToHeadRecord, MonetizationState, ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo, TransferNewsEntry, NationalTeamState, NationalTeamOffer, InternationalTournamentState, GameMode, CareerManager, JobVacancy, JobOffer, ActiveInterview, PitchTone, ManagerBonus, LeagueCupState, ContinentalTournamentState, ContinentalCompetition, VirtualClub, SuperCupMatch, TransferTalk, TeamTalkType, GamePlanId, PenaltyKick, PenaltyShootoutCtx, MatchShout, ShoutType, NegotiationStrike, OpenedPackRecord, OpenPackResult, ReleasePackedPlayerResult, QuickSellPackedPlayerResult, PackTierKey, PackUnlockMethod, LoadError, CaptureScenario } from '@/types/game';
 import type { ObjectiveInstance } from '@/utils/weeklyObjectives';
+import type { PostSeasonSnapshot } from '@/store/slices/orchestration/seasonEnd';
 import type { HalfState } from '@/engine/match';
 
 export interface GameState {
@@ -19,6 +20,16 @@ export interface GameState {
   boardConfidence: number;
   /** Active mid-season board ultimatum, or null. Persisted (schema v73). */
   boardUltimatum: BoardUltimatum | null;
+  /** Pre-rollover facts the career post-season tail judges the completed season
+   *  against. Set when the season rolls over, cleared once the tail has run.
+   *  Persisted (schema v74) because the international-tournament path DEFERS the
+   *  tail until the tournament finishes, which can span a save/reload. */
+  pendingPostSeason: PostSeasonSnapshot | null;
+  /** Terminal flag for a retired career manager. Persisted (schema v74).
+   *  Without it, a retired manager kept re-entering the unemployed branch of
+   *  `advanceWeek` — weekly "Between Jobs" spam, every job offer auto-rejected,
+   *  and a forced re-retirement bounce to Hall of Managers on every tick. */
+  careerRetired: boolean;
   seasonHistory: SeasonHistory[];
   settings: GameSettings;
   activeSlot: number;
@@ -384,7 +395,7 @@ export interface GameState {
   updateTraining: (schedule: Partial<TrainingState['schedule']>, intensity?: TrainingState['intensity']) => void;
   updateDrillSchedule: (drills: Partial<TrainingState['drillSchedule']>) => void;
   setIndividualTraining: (playerId: string, focus: TrainingModule | null) => void;
-  hireStaff: (staffId: string) => void;
+  hireStaff: (staffId: string) => { success: boolean; message: string };
   fireStaff: (staffId: string) => void;
   praiseStaff: (staffId: string) => { success: boolean; message: string };
   criticizeStaff: (staffId: string) => { success: boolean; message: string };

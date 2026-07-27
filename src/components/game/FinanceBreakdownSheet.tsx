@@ -21,7 +21,7 @@ export function FinanceBreakdownSheet({ open, onOpenChange, mode }: Props) {
   // and both the open and close animations keep working.
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="bg-background/95 backdrop-blur-xl border-t border-border/50 rounded-t-2xl max-h-[85vh] overflow-y-auto pb-8">
+      <SheetContent side="bottom" className="bg-background/95 backdrop-blur-xl border-t border-border/50 rounded-t-2xl max-h-[85vh] overflow-y-auto">
         <SheetTitle className="sr-only">Finance Breakdown</SheetTitle>
         <FinanceBreakdownBody mode={mode} />
       </SheetContent>

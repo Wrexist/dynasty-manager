@@ -116,6 +116,12 @@ export const CONTRACT_LENGTH_ACCEPTANCE_MODIFIER = 0.05;
 export const DEFAULT_RETIREMENT_AGE = 65;
 export const LEGENDARY_RETIREMENT_EXTENSION = 10;
 export const FORCED_RETIREMENT_UNEMPLOYED_WEEKS = 24;
+/** How close to their retirement age a manager must be before extended
+ *  unemployment can force them into retirement. Without this the check was
+ *  age-blind and "retired" a 40-year-old after one bad run — and since the
+ *  retirement branch returns before regenerating vacancies, that ended the save.
+ *  A younger manager gets a desperation offer instead. */
+export const FORCED_RETIREMENT_AGE_GRACE_YEARS = 5;
 
 // ── Legacy Score Weights ──
 export const LEGACY_TITLE_WEIGHT = 100;
