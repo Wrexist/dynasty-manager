@@ -1,4 +1,4 @@
-import type { Club, Player, PlayerAttributes, Position, PackTierKey, PackRarityWeights } from '@/types/game';
+import type { Club, Player, PlayerAttributes, Position, PackTierDefinition, PackTierKey, PackRarityWeights } from '@/types/game';
 import { generatePlayer, calculateOverall } from '@/utils/playerGen';
 import { pick, clamp } from '@/utils/helpers';
 import { MAX_SQUAD_SIZE } from '@/config/gameBalance';
@@ -7,7 +7,11 @@ import {
   PACK_TIER_MAP,
   PACK_POSITION_POOL,
   PACK_PITY_THRESHOLD,
+  PACK_PITY_MIN_OVR,
+  PACK_PITY_MAX_OVERSHOOT,
+  PACK_PITY_MIN_BAND,
   PACK_RARITY_BANDS,
+  resolvePackTier,
   AI_BACKFILL_PER_TIER,
   AI_BACKFILL_OVR_GAP,
   AI_BACKFILL_OVR_SPREAD,
@@ -39,10 +43,10 @@ function scaleAttributes(attrs: PlayerAttributes, ratio: number): PlayerAttribut
 }
 
 /** Generate a single player inside the pack's OVR band at a given rarity rung.
- *  When `respectTierCeiling` is true (default), the player's OVR is capped by
- *  `tier.ovrMax` — a bronze pack never hands out a gold card even if the
- *  rarity bucket rolls "silver". When false (pity-triggered guaranteed slot),
- *  we allow the roll to push above the tier ceiling.
+ *  `ceiling` caps the roll and defaults to the tier's own `ovrMax` — a bronze
+ *  pack never hands out a gold card even if the rarity bucket rolls "silver".
+ *  The pity path raises it slightly (see `PACK_PITY_MAX_OVERSHOOT`); it used to
+ *  lift it to 99, which let a free Bronze pack out-pull a paid Rare Gold.
  *
  *  Flow:
  *    1. Roll a player at a target quality inside [lo, hi].
@@ -55,14 +59,12 @@ function scaleAttributes(attrs: PlayerAttributes, ratio: number): PlayerAttribut
  *    4. Recompute wage and value against the final overall. */
 function rollPackPlayer(
   position: Position,
-  tierKey: PackTierKey,
+  tier: PackTierDefinition,
   season: number,
   minOvr: number,
   maxOvr: number,
-  respectTierCeiling = true,
+  ceiling: number = tier.ovrMax,
 ): Player {
-  const tier = PACK_TIER_MAP[tierKey];
-  const ceiling = respectTierCeiling ? tier.ovrMax : 99;
   let lo = Math.max(tier.ovrMin, Math.min(minOvr, ceiling));
   let hi = Math.max(lo, Math.min(Math.max(maxOvr, minOvr), ceiling));
   if (hi < lo) { const tmp = lo; lo = hi; hi = tmp; }
@@ -104,8 +106,14 @@ function rollPackPlayer(
 }
 
 export interface PackContentsOptions {
-  /** When true, the guaranteed slot is promoted to min 80 OVR (pity hit). */
+  /** When true, the guaranteed slot is promoted toward 80 OVR (pity hit),
+   *  bounded by the tier's own ceiling plus `PACK_PITY_MAX_OVERSHOOT`. */
   pityTriggered?: boolean;
+  /** True when this open cost the user nothing (free daily or rewarded ad),
+   *  which selects the tier's weaker `freeOpenOverride` odds where it has
+   *  them. Defaults to false so a caller that forgets it gets the PAID odds
+   *  rather than silently under-rewarding a purchase. */
+  freeOpen?: boolean;
 }
 
 /** Generate the full set of players contained in a pack. The first card is
@@ -117,28 +125,33 @@ export function generatePackContents(
   season: number,
   opts: PackContentsOptions = {},
 ): Player[] {
-  const tier = PACK_TIER_MAP[tierKey];
+  // A free/ad open resolves to the tier's weaker odds where it defines them.
+  const tier = resolvePackTier(PACK_TIER_MAP[tierKey], !!opts.freeOpen);
   const players: Player[] = [];
 
   // ── Guaranteed slot ──
-  // Pity lifts the floor to at least 80 AND lets the roll exceed the tier's
-  // normal ceiling — that's the whole point of the pity bonus.
+  // Pity aims the floor at PACK_PITY_MIN_OVR, but the roll stays tied to what
+  // the pack is worth: at most PACK_PITY_MAX_OVERSHOOT above its own ceiling.
   const pityOn = !!opts.pityTriggered;
+  const pityCeiling = tier.ovrMax + PACK_PITY_MAX_OVERSHOOT;
   const guaranteedMin = pityOn
-    ? Math.max(tier.guaranteedMinOvr, 80)
+    ? Math.max(tier.guaranteedMinOvr, Math.min(PACK_PITY_MIN_OVR, pityCeiling - PACK_PITY_MIN_BAND))
     : tier.guaranteedMinOvr;
   const guaranteedMax = pityOn
-    ? Math.max(guaranteedMin + 8, 89)
+    ? Math.min(Math.max(guaranteedMin + 8, 89), pityCeiling)
     : Math.max(guaranteedMin, tier.ovrMax);
   const guaranteedPosition = pick(PACK_POSITION_POOL);
-  players.push(rollPackPlayer(guaranteedPosition, tierKey, season, guaranteedMin, guaranteedMax, !pityOn));
+  players.push(rollPackPlayer(
+    guaranteedPosition, tier, season, guaranteedMin, guaranteedMax,
+    pityOn ? pityCeiling : tier.ovrMax,
+  ));
 
   // ── Remaining cards: weighted rarity roll ──
   for (let i = 1; i < tier.cards; i++) {
     const rarity = pickRarity(tier.rarity);
     const [rMin, rMax] = PACK_RARITY_BANDS[rarity];
     const position = pick(PACK_POSITION_POOL);
-    players.push(rollPackPlayer(position, tierKey, season, rMin, rMax));
+    players.push(rollPackPlayer(position, tier, season, rMin, rMax));
   }
 
   // Shuffle so the guaranteed card isn't always first in the reveal order
@@ -174,8 +187,9 @@ export function generateAiCounterSignings(
   playerClubId: string,
   playerDivision: string,
   season: number,
+  freeOpen = false,
 ): AiBackfillResult {
-  const tier = PACK_TIER_MAP[tierKey];
+  const tier = resolvePackTier(PACK_TIER_MAP[tierKey], freeOpen);
   const slots = AI_BACKFILL_PER_TIER[tierKey] || 0;
   if (slots === 0) return { perClub: {} };
 

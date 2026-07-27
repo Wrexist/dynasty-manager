@@ -2217,6 +2217,13 @@ export interface PackTierDefinition {
   /** Display-only price string for the IAP path (e.g. `'$4.99'`). Real
    *  price comes from the store at runtime — this is the planned tier. */
   iapPriceDisplay?: string;
+  /** Weaker odds applied when the pack is obtained WITHOUT paying (free
+   *  daily or rewarded ad). Only meaningful for a tier that has both a free
+   *  allowance and a `productId` — currently Gold, whose free daily open was
+   *  handing out a guaranteed 78+ every day. Resolve with `resolvePackTier`;
+   *  never read these fields directly, or the shop badge and the generator
+   *  will drift apart. */
+  freeOpenOverride?: Partial<Pick<PackTierDefinition, 'guaranteedMinOvr' | 'ovrMin' | 'ovrMax' | 'rarity'>>;
 }
 
 export interface OpenedPackRecord {
