@@ -14,7 +14,7 @@ Storefronts reached: Finland. Finnish is not a Scandinavian language — vocabul
 ## Keywords [95/100]
 `rangaistuspotku,taktiikka,kokoonpano,valmentaja,joukkue,siirrot,sarja,ura,maajoukkue,seura,peli`
 
-## Description [~1528/4000]
+## Description [1528/4000]
 MM 2026 -tila on täällä. Valitse mikä tahansa yli 50 maajoukkueesta ja vie se lohkovaiheesta hermoja raastavaan finaaliin rangaistuspotkuilla – teet jokaisen ratkaisun sivurajalta.
 
 Dynasty Manager on aidosti syvällinen jalkapallon valmennussimulaattori mukaan otettavaksi. Ei pay-to-winiä, ei energiamittareita, ei lepopakkauksia, ei odottelua kierrosten välillä. Pelaa niin paljon kuin haluat, milloin haluat – koko syvyys on käytettävissä ilman tilausta.

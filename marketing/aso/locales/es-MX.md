@@ -5,22 +5,23 @@ Storefronts reached: México y la mayoría de las tiendas de América Latina (Ar
 ## App Name [23/30]
 `Dynasty Manager: Fútbol`
 
-## Subtitle [25/30]
-`Sé el DT del Mundial 2026`
+## Subtitle [27/30]
+`Táctica, Fichajes y Carrera`
 
-## Promotional Text [170/170]
-`Mundial 2026 en la cancha: dirige a tu selección de los grupos a la final por penales. Sin barras de energía, sin esperas, sin suscripción obligatoria. Juega sin límites.`
+## Promotional Text [169/170]
+`Empieza la temporada 2026-27. Lleva a uno de los 756 clubes reales de la pretemporada al título: cada fichaje, cada táctica, cada minuto. Sin barra de energía ni espera.`
 
-## Keywords [100/100]
-`director tecnico,seleccion,penales,tactica,alineacion,plantel,fichajes,liga,carrera,simulador,equipo`
+## Keywords [91/100]
+`director tecnico,liga,alineacion,plantel,simulador,equipo,cantera,penales,ascenso,seleccion`
 
-## Description [~2510/4000]
-Ya llegó el modo Mundial 2026: agarra cualquiera de más de 50 selecciones y pelea por la gloria desde la fase de grupos hasta una gran final por penales. Dynasty Manager es un simulador de futbol con profundidad de verdad, no un juego de estar esperando. Sin barras de energía. Sin paquetes de descanso. Sin cuentas regresivas. Juega todo lo que quieras, a la hora que quieras.
+## Description [1472/4000]
+
+Arranca la temporada 2026-27. Agarra tu club, arma tu once y dirige cada minuto de cada partido.
 
 Tú eres el DT. Armas el plantel, cierras los fichajes, ajustas la táctica partido a partido y llevas a tu equipo desde abajo hasta lo más alto a lo largo de muchas temporadas.
 
 Lo que vas a dirigir:
-- Modo Mundial 2026: mete a tu selección al torneo y sácala campeona, de los grupos a la final.
+- Temporada completa: pretemporada, mercado de pases, la recta final y el título.
 - 45 ligas en 37 países con 756 clubes reales, con ascensos, descensos y liguillas.
 - Modo carrera: crea tu director técnico, gánate los contratos en las entrevistas con la directiva, cobra tus bonos, aguanta los ceses y llega a la leyenda.
 - Penales interactivos: tú pateas y tú atajas, con toda la tensión de una final en cada disparo.
@@ -35,14 +36,16 @@ Dynasty Pro desbloquea estadísticas avanzadas, tácticas personalizadas, simula
 Descarga gratis y arranca tu dinastía hoy.
 
 ## What's New (next release note blurb)
-¡El modo Mundial 2026 ya está en la cancha! Agarra tu selección y pelea por la gloria de la fase de grupos hasta una final por penales. También mejoramos las negociaciones de fichajes y pulimos varios detalles para que cada temporada corra suave.
+
+Nueva temporada, nueva dinastía. Renovamos la ficha en la App Store, afinamos la IA del banquillo y corregimos varios detalles de día de partido. Sin barras de energía, sin esperas.
 
 ## Screenshot Captions (5)
-1. De los grupos a la final del Mundial
-2. Levanta el Mundial 2026
-3. Penales de infarto
-4. Tu plantel, tu táctica
-5. Dirige cada minuto
+
+1. 45 ligas y 756 clubes reales
+2. Cada partido, minuto a minuto
+3. Plantel, once y formación
+4. El mercado de pases está abierto
+5. Selección nacional y torneos
 
 ## Keyword rationale
 - División de registro confirmada por el líder de la categoría: el mismo app usa "Manager de Fútbol" en España pero cambia a "Gestión de Fútbol" en LatAm, probando que el sustantivo se localiza por región. Aquí el término cabeza es "director tecnico" / "DT". "DT" y "Mundial" van en el subtítulo; "director tecnico" completo queda en keywords para casar "DT", "director tecnico" y "tecnico" sin desperdiciar el subtítulo. El simulador de prestigio también usa registro LatAm ("mánager", "arma un plantel"), no el peninsular.

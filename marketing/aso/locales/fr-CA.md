@@ -5,22 +5,22 @@ Storefronts reached: Canada (French-Canadian localization). In the Canadian App 
 ## App Name [23/30]
 `Dynasty Manager: Soccer`
 
-## Subtitle [24/30]
-`Entraîneur, Mondial 2026`
+## Subtitle [29/30]
+`Entraîneur, Effectif, Mercato`
 
-## Promotional Text [167/170]
-`Le mode Coupe du Monde 2026 est là : menez votre équipe des poules à la finale aux tirs de barrage. Sans jauge d'énergie, sans attente. Simu complète, sans abonnement.`
+## Promotional Text [166/170]
+`Nouvelle saison, nouvelle dynastie. Menez un des 756 clubs réels de la préparation au titre : chaque transfert, chaque tactique, chaque minute. Sans jauge ni attente.`
 
-## Keywords [100/100]
-`coupe du monde,football,tirs de barrage,sans abonnement,tactique,carriere,alignement,formation,ligue`
+## Keywords [91/100]
+`tactique,carriere,alignement,formation,ligue,club,jeune,penalty,simulation,saison,selection`
 
-## Description [~1520/4000]
-Le mode Coupe du Monde 2026 est arrivé. Choisissez parmi plus de 50 sélections nationales et menez la vôtre de la phase de poules jusqu'à une finale décidée aux tirs de barrage. Chaque décision compte : l'alignement, les changements, la tactique à la demie.
+## Description [1460/4000]
+Le mode tournoi mondial 2026 est arrivé. Choisissez parmi plus de 50 sélections nationales et menez la vôtre de la phase de poules jusqu'à une finale décidée aux tirs de barrage. Chaque décision compte : l'alignement, les changements, la tactique à la demie.
 
 Dynasty Manager est un simulateur de soccer complet. Prenez les commandes d'un club parmi 45 ligues et 756 clubs réels, bâtissez votre effectif, gérez les transactions, ajustez votre tactique et vivez chaque match minute par minute. Enchaînez les saisons, remportez des trophées continentaux, dirigez une équipe nationale et bâtissez une carrière d'entraîneur inoubliable.
 
 Au menu :
-- Coupe du Monde 2026 : plus de 50 nations, des poules à la finale
+- tournoi mondial 2026 : plus de 50 nations, des poules à la finale
 - 45 ligues, 37 pays, 756 clubs réels
 - Mode Carrière : entrevues, contrats, promotions et risque de congédiement
 - Tirs de barrage interactifs : gardez votre sang-froid dans les moments chauds
@@ -39,7 +39,7 @@ Le mode Coupe du Monde 2026 est disponible : menez plus de 50 sélections des po
 
 ## Screenshot Captions (5)
 1. Plus de 50 sélections nationales
-2. Soulevez la Coupe du Monde 2026
+2. Soulevez la tournoi mondial 2026
 3. Tirs de barrage à haute tension
 4. Votre alignement, votre tactique
 5. Gérez chaque minute, sans attente

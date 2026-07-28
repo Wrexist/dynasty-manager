@@ -5,24 +5,24 @@ Storefronts reached: India (Apple serves hi metadata to Hindi-preferring users).
 ## App Name [25/30]
 `Dynasty Manager: Football`
 
-## Subtitle [25/30]
-`World Cup 2026 Soccer Sim`
+## Subtitle [26/30]
+`Soccer Career Sim: Tactics`
 
-## Promotional Text [164/170]
-`World Cup 2026 mode is live. Take a nation from the group stage to a penalty-shootout final. No energy timers. No rest packs. No waiting. Deep sim, no subscription.`
+## Promotional Text [168/170]
+`New season, new dynasty. Take any of 756 real clubs from pre-season to the title — every transfer, every tactic, every minute. No energy timers. No waiting. No paywall.`
 
-## Keywords [96/100]
-`national team,penalty shootout,tactics,career,league,transfers,squad,formation,game,coach,फुटबॉल`
+## Keywords [95/100]
+`national team,penalty shootout,league,transfers,squad,formation,coach,youth,academy,फुटबॉल,क्लब`
 
-## Description [~1980/4000]
-World Cup 2026 मोड आ चुका है: 50+ में से कोई भी national team चुनो और group stage से लेकर penalty shootout वाले final तक glory का पीछा करो — हर फैसला तुम्हारा।
+## Description [1677/4000]
+world tournament 2026 मोड आ चुका है: 50+ में से कोई भी national team चुनो और group stage से लेकर penalty shootout वाले final तक glory का पीछा करो — हर फैसला तुम्हारा।
 
 Dynasty Manager एक सच में गहरा football management sim है, कोई wait-and-watch गेम नहीं। कोई energy बार नहीं। कोई rest pack नहीं। कोई countdown नहीं। जब चाहो, जितना चाहो खेलो। पूरी management depth, वो भी बिना किसी subscription के।
 
 तुम ही coach हो। Squad बनाओ, transfers पक्के करो, हर मैच पर tactics बदलो, और अपने club को कई seasons में नीचे से top तक ले जाओ।
 
 तुम क्या manage करोगे:
-- World Cup 2026 मोड: अपनी national team को group stage से world champion तक ले जाओ।
+- world tournament 2026 मोड: अपनी national team को group stage से world champion तक ले जाओ।
 - 37 देशों की 45 leagues में 756 असली clubs — promotion, relegation और playoffs के साथ।
 - Career मोड: अपना manager बनाओ, board के साथ interview जीतकर contract हासिल करो, bonus कमाओ, sacking से बचो और legend बनो।
 - Interactive penalty shootout: kick भी तुम मारो और save भी तुम करो — हर shot पर असली final जैसी tension।
@@ -40,8 +40,8 @@ Download free. आज ही अपनी dynasty शुरू करो।
 World Cup 2026 मोड live है! अपनी चुनी हुई national team को group stage से penalty-shootout final तक ले जाओ। हमने sideline की AI को और smart किया है और match-day के कई bugs fix किए हैं। अब भी कोई energy बार नहीं, कोई waiting नहीं — बस football।
 
 ## Screenshot Captions (5)
-1. Group stage से World Cup final तक
-2. World Cup 2026 उठाओ
+1. Group stage से world tournament final तक
+2. world tournament 2026 उठाओ
 3. दिल थाम लेने वाले penalty shootouts
 4. तुम्हारी squad, तुम्हारी tactics
 5. हर मिनट manage करो

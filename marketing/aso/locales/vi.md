@@ -5,24 +5,24 @@ Storefronts reached: Vietnam (Apple serves vi metadata to Vietnamese-preferring 
 ## App Name [24/30]
 `Dynasty Manager: Bóng Đá`
 
-## Subtitle [29/30]
-`World Cup 2026, Không Chờ Đợi`
+## Subtitle [27/30]
+`Chiến Thuật & Chuyển Nhượng`
 
-## Promotional Text [168/170]
-`Chế độ World Cup 2026 đã có. Đưa đội tuyển từ vòng bảng đến chung kết luân lưu. Không thanh năng lượng. Không chờ đợi. Mô phỏng chuyên sâu, không cần đăng ký. Miễn phí.`
+## Promotional Text [162/170]
+`Mùa giải mới, triều đại mới. Dẫn dắt một trong 756 câu lạc bộ thật từ tiền mùa giải đến chức vô địch: từng bản hợp đồng, từng chiến thuật. Không thanh năng lượng.`
 
-## Keywords [96/100]
-`HLV,đội tuyển,chiến thuật,sự nghiệp,giải đấu,sút luân lưu,chuyển nhượng,đội hình,câu lạc bộ,game`
+## Keywords [92/100]
+`HLV,đội tuyển,sự nghiệp,giải đấu,sút luân lưu,đội hình,câu lạc bộ,học viện,mùa giải,mô phỏng`
 
-## Description [~1560/4000]
-Chế độ World Cup 2026 đã có: chọn một trong hơn 50 đội tuyển và săn vinh quang từ vòng bảng đến trận chung kết được định đoạt trên chấm luân lưu — mọi quyết định nằm trong tay bạn.
+## Description [1803/4000]
+Chế độ giải đấu thế giới 2026 đã có: chọn một trong hơn 50 đội tuyển và săn vinh quang từ vòng bảng đến trận chung kết được định đoạt trên chấm luân lưu — mọi quyết định nằm trong tay bạn.
 
 Dynasty Manager là game mô phỏng quản lý bóng đá thực sự chuyên sâu, không phải game ngồi chờ. Không thanh năng lượng. Không gói nghỉ. Không đếm ngược. Chơi bao nhiêu tùy thích, bất cứ lúc nào. Toàn bộ chiều sâu quản lý mà không cần đăng ký thuê bao.
 
 Bạn là HLV. Xếp đội hình, chốt chuyển nhượng, chỉnh chiến thuật từng trận và đưa câu lạc bộ của bạn từ đáy lên đỉnh qua nhiều mùa giải.
 
 Những gì bạn điều hành:
-- Chế độ World Cup 2026: đưa đội tuyển từ vòng bảng đến chức vô địch thế giới.
+- Chế độ giải đấu thế giới 2026: đưa đội tuyển từ vòng bảng đến chức vô địch thế giới.
 - 45 giải đấu ở 37 quốc gia với 756 câu lạc bộ thật, đầy đủ thăng hạng, xuống hạng và play-off.
 - Chế độ sự nghiệp: tạo HLV của riêng bạn, giành hợp đồng qua các buổi phỏng vấn với ban lãnh đạo, nhận thưởng, trụ lại trước nguy cơ sa thải và trở thành huyền thoại.
 - Sút luân lưu tương tác: bạn tự sút và tự bắt — căng như một trận chung kết thật ở mỗi cú đá.
@@ -40,8 +40,8 @@ Tải miễn phí. Bắt đầu triều đại của bạn hôm nay.
 Chế độ World Cup 2026 đã lên sân! Đưa đội tuyển bạn chọn từ vòng bảng đến trận chung kết luân lưu. Chúng tôi cũng làm AI bên đường biên thông minh hơn và sửa vài lỗi ngày thi đấu. Vẫn không thanh năng lượng, không chờ đợi — chỉ có bóng đá.
 
 ## Screenshot Captions (5)
-1. Từ vòng bảng đến chung kết World Cup
-2. Nâng cúp World Cup 2026
+1. Từ vòng bảng đến chung kết giải đấu thế giới
+2. Nâng cúp giải đấu thế giới 2026
 3. Loạt luân lưu nghẹt thở
 4. Đội hình và chiến thuật của bạn
 5. Điều hành từng phút trận đấu

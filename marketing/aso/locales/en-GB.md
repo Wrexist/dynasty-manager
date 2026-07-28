@@ -5,22 +5,23 @@ Storefronts reached: United Kingdom and Ireland primarily. Apple falls other Eng
 ## App Name [25/30]
 `Dynasty Manager: Football`
 
-## Subtitle [26/30]
-`World Cup 2026 · No Timers`
+## Subtitle [29/30]
+`Tactics, Transfers & Trophies`
 
-## Promotional Text [169/170]
-`World Cup 2026 mode is live — take any nation from the group stage to a penalty-shootout final. No energy timers, no rest packs, no waiting. Full depth, no subscription.`
+## Promotional Text [168/170]
+`New season, new dynasty. Take any of 756 real clubs from pre-season to the title — every transfer, every tactic, every minute. No energy timers. No waiting. No paywall.`
 
-## Keywords [99/100]
-`national team,tactics,career,league,fixtures,squad,formation,transfers,promotion,relegation,academy`
+## Keywords [92/100]
+`club,league,squad,formation,fixtures,promotion,relegation,academy,scout,youth,sim,season,cup`
 
-## Description [~1508/4000]
-World Cup 2026 mode is here. Pick any of 50+ nations and take them from the group stage to a nerve-shredding penalty-shootout final — you make every call from the touchline.
+## Description [1441/4000]
+
+The 2026-27 season is under way. Pick a club, pick your XI, and manage every single minute of it.
 
 This is a proper, deep football management sim — a real manager's career, not a card-collecting grind. Take charge across 45 leagues, 37 countries and 756 real clubs, or land the top job with your country. Pick the XI, set the tactics, work the transfer window, and manage every single minute of the match. No energy timers, no rest packs, no waiting between sessions — play as much as you want, whenever you want.
 
 What you can do:
-- World Cup 2026 mode — steer any of 50+ nations from the groups to the final
+- Season-long career — pre-season, the transfer window, the run-in and the trophy lift
 - Career mode — start as a gaffer, earn contracts, win silverware, climb the job ladder or get sacked
 - Interactive penalty shootouts — take every spot-kick when it goes the distance
 - 45 leagues, 756 real clubs — promotion, relegation and playoff drama across the pyramid
@@ -34,14 +35,16 @@ No grind, no gimmicks — and no subscription wall. Everything above is in the f
 Free to download. Manage your dynasty.
 
 ## What's New (next release note blurb)
-World Cup 2026 mode is live — take any of 50+ nations from the group stage to a penalty-shootout final. We've sharpened the AI on the touchline and squashed a handful of match-day bugs. Still no energy timers, no waiting — just football.
+
+New season, new dynasty. A fresh App Store look, sharper touchline AI and a handful of match-day fixes. Still no energy timers, no rest packs, no waiting — just football.
 
 ## Screenshot Captions (5)
-1. Every World Cup 2026 tie mapped out
-2. Lift the World Cup 2026 trophy
-3. Nerve-shredding penalty shootouts
-4. Pick the XI, set the tactics
-5. Manage every single minute
+
+1. 45 leagues, 756 real clubs
+2. Match day, minute by minute
+3. Squad, lineup and formation
+4. The transfer window is open
+5. National team and tournaments
 
 ## Keyword rationale
 - **Subtitle now carries the wedge, not a role tag.** Swapped "The Gaffer" for the anti-grind pillar — "No Timers" — because the fresh competitor scan confirms this is our single most defensible differentiator: the category leader (a real-time 3D sim) never markets its rest-pack/player-condition energy grind, and its own forums complain about it. The conversion line is where that wedge earns most. "World Cup 2026" stays in the Subtitle so we still hold the seasonal token every ranking rival stamps into its title/subtitle.

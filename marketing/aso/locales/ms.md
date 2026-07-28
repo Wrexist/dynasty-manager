@@ -5,24 +5,24 @@ Storefronts reached: Malaysia primarily (Apple serves ms metadata to Malay-prefe
 ## App Name [27/30]
 `Dynasty Manager: Bola Sepak`
 
-## Subtitle [27/30]
-`Piala Dunia 2026: Tiada Had`
+## Subtitle [28/30]
+`Taktik, Pemindahan & Kerjaya`
 
-## Promotional Text [158/170]
-`Mod Piala Dunia 2026 kini hadir. Bawa pasukan kebangsaan dari kumpulan ke final penalti. Tiada bar tenaga. Tiada menunggu. Simulasi mendalam, tanpa langganan.`
+## Promotional Text [164/170]
+`Musim baharu, dinasti baharu. Bawa satu daripada 756 kelab sebenar dari pramusim ke gelaran juara: setiap pemindahan, setiap taktik, setiap minit. Tiada bar tenaga.`
 
-## Keywords [97/100]
-`jurulatih,pasukan kebangsaan,penalti,taktik,kerjaya,liga,pemindahan,skuad,formasi,kelab,permainan`
+## Keywords [94/100]
+`jurulatih,pasukan kebangsaan,penalti,liga,skuad,formasi,kelab,permainan,akademi,musim,simulasi`
 
-## Description [~1770/4000]
-Mod Piala Dunia 2026 kini hadir: pilih salah satu daripada 50+ pasukan kebangsaan dan buru kegemilangan dari peringkat kumpulan hingga ke final yang diputuskan menerusi sepakan penalti — setiap keputusan di tangan anda.
+## Description [1923/4000]
+Mod kejohanan dunia 2026 kini hadir: pilih salah satu daripada 50+ pasukan kebangsaan dan buru kegemilangan dari peringkat kumpulan hingga ke final yang diputuskan menerusi sepakan penalti — setiap keputusan di tangan anda.
 
 Dynasty Manager ialah simulasi pengurusan bola sepak yang benar-benar mendalam, bukan permainan tunggu-menunggu. Tiada bar tenaga. Tiada pakej rehat. Tiada kira detik. Main sepuas hati, bila-bila masa. Kedalaman pengurusan penuh tanpa perlu langganan.
 
 Anda jurulatihnya. Bina skuad, muktamadkan pemindahan, ubah suai taktik setiap perlawanan, dan bawa kelab anda dari bawah ke puncak sepanjang banyak musim.
 
 Apa yang anda uruskan:
-- Mod Piala Dunia 2026: bawa pasukan kebangsaan dari peringkat kumpulan sehingga menjadi juara dunia.
+- Mod kejohanan dunia 2026: bawa pasukan kebangsaan dari peringkat kumpulan sehingga menjadi juara dunia.
 - 45 liga di 37 negara dengan 756 kelab sebenar, lengkap dengan kenaikan, penurunan dan playoff.
 - Mod kerjaya: cipta pengurus anda, rebut kontrak menerusi temu duga dengan pihak pengurusan, kumpul bonus, tahan daripada dipecat, dan jadi lagenda.
 - Sepakan penalti interaktif: anda yang menyepak, anda yang menjaga gol — setegang final sebenar pada setiap sepakan.
@@ -40,8 +40,8 @@ Percuma dimuat turun. Mulakan dinasti anda hari ini.
 Mod Piala Dunia 2026 kini di padang! Bawa pasukan kebangsaan pilihan anda dari peringkat kumpulan hingga final sepakan penalti. Kami juga menajamkan AI di tepi padang dan membaiki beberapa pepijat hari perlawanan. Masih tiada bar tenaga, tiada menunggu — hanya bola sepak.
 
 ## Screenshot Captions (5)
-1. Dari kumpulan ke final Piala Dunia
-2. Angkat trofi Piala Dunia 2026
+1. Dari kumpulan ke final kejohanan dunia
+2. Angkat trofi kejohanan dunia 2026
 3. Sepakan penalti mendebarkan
 4. Skuad dan taktik anda
 5. Uruskan setiap minit perlawanan

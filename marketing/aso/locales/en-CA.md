@@ -5,22 +5,23 @@ Storefronts reached: Canada (English). The Canadian store carries en-CA alongsid
 ## App Name [23/30]
 `Dynasty Manager: Soccer`
 
-## Subtitle [27/30]
-`World Cup 2026 · No Waiting`
+## Subtitle [29/30]
+`Soccer Career: Tactics & Cups`
 
-## Promotional Text [167/170]
-`World Cup 2026 mode is live — take any nation from the group stage to a penalty-shootout final. No energy timers, no rest packs, no waiting. Deep sim, no subscription.`
+## Promotional Text [168/170]
+`New season, new dynasty. Take any of 756 real clubs from pre-season to the title — every transfer, every tactic, every minute. No energy timers. No waiting. No paywall.`
 
-## Keywords [97/100]
-`football,national team,penalties,tactics,career,league,roster,formation,signings,knockout,academy`
+## Keywords [88/100]
+`football,club,league,squad,formation,transfer,scout,youth,academy,season,promotion,coach`
 
-## Description [~1628/4000]
-World Cup 2026 mode is here — and with the tournament coming to North America, there's never been a better time to take charge. Pick any of 50+ nations and drive them from the group stage to a penalty-shootout final. Every call is yours.
+## Description [1497/4000]
+
+The 2026-27 season is under way. Pick a club, pick your XI, and manage every single minute of it.
 
 This is a deep soccer management sim — a real manager's career, not a tap-and-wait timer game or a card-collecting grind. Run 45 leagues across 37 countries and 756 real clubs — from North American sides to Europe's giants — or take the top job with your national team. Set your starting XI, dial in your tactics, work the transfer window, and manage every minute of the match. No energy timers, no rest packs, no waiting between sessions — play as much as you want, whenever you want.
 
 What you can do:
-- World Cup 2026 mode — guide any of 50+ nations from the groups to the final
+- Season-long career — pre-season, the transfer window, the run-in and the trophy lift
 - Career mode — start as a manager, earn contracts, win trophies, climb the job market or get sacked
 - Interactive penalty shootouts — take every kick when it goes to the wire
 - 45 leagues, 756 real clubs — promotion, relegation and playoff drama across the pyramid
@@ -34,14 +35,16 @@ No grind, no gimmicks — and no subscription wall. Everything above is in the f
 Free to download. Build your dynasty.
 
 ## What's New (next release note blurb)
-World Cup 2026 mode is live — take any of 50+ nations from the group stage to a penalty-shootout final. We've sharpened the touchline AI and fixed a handful of match-day bugs. Still no energy timers, no waiting — just soccer.
+
+New season, new dynasty. A fresh App Store look, sharper touchline AI and a handful of match-day fixes. Still no energy timers, no rest packs, no waiting — just football.
 
 ## Screenshot Captions (5)
-1. Every World Cup 2026 tie mapped out
-2. Lift the World Cup 2026 trophy
-3. Penalty shootouts down to the wire
-4. Set your XI, dial in your tactics
-5. Manage every single minute
+
+1. 45 leagues, 756 real clubs
+2. Match day, minute by minute
+3. Squad, lineup and formation
+4. The transfer window is open
+5. National team and tournaments
 
 ## Keyword rationale
 - **Subtitle now carries the anti-grind wedge** ("No Waiting") in place of "Lead Your Club" — the conversion line is the highest-leverage place for our most defensible differentiator, which the category leader (a rest-pack energy sim its own forums complain about) structurally can't claim. "World Cup 2026" stays to hold the seasonal token every ranking rival stamps into its title/subtitle; the Description still opens on the tournament arriving on the continent, so the Canada-host angle is not lost.

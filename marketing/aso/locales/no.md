@@ -14,7 +14,7 @@ Storefronts reached: Norway. Copy is written in Bokmål, the form the overwhelmi
 ## Keywords [95/100]
 `straffespark,taktikk,oppstilling,tropp,overganger,trener,liga,karriere,cup,landslag,klubb,spill`
 
-## Description [~1409/4000]
+## Description [1409/4000]
 VM 2026-modusen er her. Velg ett av 50+ landslag og før dem fra gruppespillet til en nervepirrende finale på straffespark – du tar hver avgjørelse fra sidelinjen.
 
 Dynasty Manager er en skikkelig, dyp fotballmanager-simulator for mobilen. Ingen pay-to-win, ingen energimålere, ingen hvilepakker, ingen venting mellom rundene. Spill så mye du vil, når du vil – hele dybden er der uten abonnement.

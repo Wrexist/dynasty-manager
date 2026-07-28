@@ -5,22 +5,23 @@ Storefronts reached: Italy, San Marino, Vatican City, and the Italian localizati
 ## App Name [23/30]
 `Dynasty Manager: Calcio`
 
-## Subtitle [25/30]
-`Allenatore: Mondiale 2026`
+## Subtitle [27/30]
+`Tattica, Mercato e Carriera`
 
-## Promotional Text [158/170]
-`Mondiale 2026 è qui: porta la tua nazionale dai gironi alla finale ai rigori. Niente barre di energia, niente attese. Simulazione completa, senza abbonamento.`
+## Promotional Text [170/170]
+`Nuova stagione, nuova dinastia. Guida uno dei 756 club reali dal ritiro allo scudetto: ogni acquisto, ogni tattica, ogni minuto. Nessuna barra di energia. Nessuna attesa.`
 
-## Keywords [97/100]
-`coppa del mondo,gestionale,simulatore,calciomercato,mister,tattica,rosa,rigori,carriera,nazionale`
+## Keywords [86/100]
+`squadra,campionato,formazione,rosa,allenatore,simulatore,giovani,vivaio,coppa,stagione`
 
-## Description [~1500/4000]
-La modalità Mondiale 2026 è arrivata. Scegli tra oltre 50 nazionali e porta la tua dai gironi fino a una finale decisa ai rigori. Ogni scelta conta: la formazione, i cambi, la tattica all'intervallo.
+## Description [1255/4000]
+
+La stagione 2026-27 è iniziata. Scegli il club, scegli l’undici e vivi ogni singolo minuto.
 
 Dynasty Manager è un simulatore di calcio completo. Prendi in mano un club tra 45 campionati e 756 squadre reali, costruisci la tua rosa, gestisci il calciomercato, metti a punto la tattica e vivi ogni partita minuto per minuto. Colleziona stagioni, alza trofei continentali, accetta la panchina di una nazionale e costruisci una carriera da allenatore leggendaria.
 
 Cosa ti aspetta:
-- Mondiale 2026: oltre 50 nazionali, dai gironi alla finale
+- torneo mondiale 2026: oltre 50 nazionali, dai gironi alla finale
 - 45 campionati, 37 paesi, 756 squadre reali
 - Modalità Carriera: colloqui, contratti, promozioni e rischio esonero
 - Rigori interattivi: sangue freddo quando conta davvero
@@ -35,14 +36,16 @@ Dynasty Pro sblocca analisi avanzate, simulazione istantanea, tattiche personali
 Download gratuito. Ora tocca a te, mister.
 
 ## What's New (next release note blurb)
-La modalità Mondiale 2026 è disponibile: porta oltre 50 nazionali dai gironi alla finale ai rigori. Sempre senza barre di energia né attese — gioca quanto vuoi. Grazie per giocare a Dynasty Manager!
+
+Nuova stagione, nuova dinastia. Vetrina App Store rinnovata, IA in panchina più affilata e correzioni al giorno della partita. Sempre senza barre di energia e senza attese.
 
 ## Screenshot Captions (5)
-1. Oltre 50 nazionali
-2. Alza la Coppa del Mondo 2026
-3. Rigori da batticuore
-4. La tua rosa, la tua tattica
-5. Vivi ogni minuto, senza attese
+
+1. 45 campionati, 756 club reali
+2. Ogni partita, minuto per minuto
+3. Rosa, undici e formazione
+4. Il mercato è aperto
+5. Nazionale e tornei
 
 ## Keyword rationale
 - **WC-2026 refresh (2026-07):** added **`gestionale`** and **`simulatore`**, dropped **`formazione`** and **`campionato`**. This is the highest-value edit in the set:

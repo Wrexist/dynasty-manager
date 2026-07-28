@@ -6,23 +6,23 @@ Storefronts reached: Poland. Apple serves pl metadata to Polish-preferring users
 `Dynasty Manager: Piłka nożna`
 
 ## Subtitle [28/30]
-`Menedżer piłkarski – Mundial`
+`Taktyka, Transfery i Kariera`
 
-## Promotional Text [167/170]
-`Tryb Mundial 2026 już jest. Poprowadź reprezentację od grup po finał na karne. Bez pasków energii, bez pakietów odpoczynku, bez czekania. Pełna głębia, bez abonamentu.`
+## Promotional Text [169/170]
+`Nowy sezon, nowa dynastia. Poprowadź jeden z 756 prawdziwych klubów od okresu przygotowawczego po tytuł: każdy transfer, każda taktyka, każda minuta. Bez pasków energii.`
 
-## Keywords [94/100]
-`futbol,reprezentacja,karne,kariera,liga,transfery,taktyka,trener,sklad,puchar,klub,mistrzostwa`
+## Keywords [90/100]
+`futbol,reprezentacja,karne,liga,trener,sklad,puchar,klub,mlodziez,akademia,symulator,awans`
 
-## Description [1504/4000]
-Tryb Mundial 2026 już jest. Wybierz jedną z ponad 50 reprezentacji i poprowadź ją od fazy grupowej aż po finał rozstrzygnięty w rzutach karnych – każda decyzja należy do ciebie.
+## Description [1531/4000]
+Tryb Turniej Światowy 2026 już jest. Wybierz jedną z ponad 50 reprezentacji i poprowadź ją od fazy grupowej aż po finał rozstrzygnięty w rzutach karnych – każda decyzja należy do ciebie.
 
 Dynasty Manager to głęboki symulator zarządzania piłką nożną, w który zagrasz, gdziekolwiek jesteś. Bez pay-to-win, bez pasków energii, bez pakietów odpoczynku, bez czekania między sesjami. Graj tyle, ile chcesz – pełna głębia menedżerska bez żadnego abonamentu.
 
 Przejmujesz klub, ustawiasz skład, dopracowujesz taktykę i formację, ściągasz zawodników z rynku transferowego i prowadzisz zespół minuta po minucie przez każdy mecz.
 
 Co na ciebie czeka:
-- Mundial 2026: ponad 50 reprezentacji od fazy grupowej po finał
+- Turniej Światowy 2026: ponad 50 reprezentacji od fazy grupowej po finał
 - 45 lig i 756 prawdziwych klubów w 37 krajach
 - Tryb kariery: aplikuj o posady, negocjuj kontrakty, awansuj – albo wyleć z pracy
 - Emocjonujące konkursy rzutów karnych sterowane strzał po strzale
@@ -35,14 +35,14 @@ Bez pasków energii. Bez czekania. Tylko piłka, kiedy tylko chcesz.
 
 Dynasty Pro odblokowuje zaawansowane statystyki, własne taktyki, natychmiastową symulację i więcej – z 7 dniami za darmo na start. Pełna ścieżka kariery pozostaje w pełni grywalna także bez abonamentu.
 
-Pobierz za darmo. Zostań trenerem i zdobądź Mundial 2026.
+Pobierz za darmo. Zostań trenerem i zdobądź Turniej Światowy 2026.
 
 ## What's New (next release note blurb)
 Tryb Mundial 2026 już jest – poprowadź jedną z ponad 50 reprezentacji od fazy grupowej po finał na karne. AI na ławce jest sprytniejsze, a kilka błędów w dniu meczu zostało naprawionych. Wciąż bez pasków energii i bez czekania – tylko piłka.
 
 ## Screenshot Captions (5)
-1. Ponad 50 reprezentacji na Mundialu 2026
-2. Zdobądź Mundial 2026
+1. Ponad 50 reprezentacji na Turniej Światowyu 2026
+2. Zdobądź Turniej Światowy 2026
 3. Karne, od których zamiera serce
 4. Skład, taktyka, formacja
 5. Prowadź każdą minutę meczu

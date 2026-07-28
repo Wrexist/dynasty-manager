@@ -14,7 +14,7 @@ Storefronts reached: Netherlands and Belgium (Flemish/Dutch-preferring users). A
 ## Keywords [99/100]
 `elftal,opstelling,tactiek,strafschoppen,transfers,competitie,carriere,coach,selectie,spel,nationaal`
 
-## Description [~1555/4000]
+## Description [1555/4000]
 De WK 2026-modus is er. Kies een van de 50+ landen en loods ze van de groepsfase naar een zenuwslopende finale met strafschoppen – jij neemt elke beslissing langs de lijn.
 
 Dynasty Manager is een echte, diepe voetbalmanager-simulatie voor onderweg. Geen pay-to-win, geen energiebalk, geen rustpacks, geen wachttijd tussen sessies. Speel zoveel je wilt, wanneer je wilt – de volledige diepgang krijg je zonder abonnement.
