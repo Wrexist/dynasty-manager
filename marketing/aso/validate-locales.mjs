@@ -26,8 +26,38 @@ const EXPIRED_CAMPAIGNS = [
     until: '2026-07-19',
     // Matches the seasonal token in every locale we ship, not the evergreen
     // in-game mode name used in Description/Captions prose.
-    pattern:
-      /(world cup|mundial|copa do mundo|coupe du monde|coppa del mondo|weltmeisterschaft|wm)\s*2026|2026\s*(dünya kupası|piala dunia)|dünya kupası\s*2026|piala dunia\s*2026/i,
+    //
+    // The original pattern only covered Latin-script Western European
+    // spellings, which are exactly the locales that had already been migrated
+    // off tournament copy — so it matched 0 of the 20 locales still carrying
+    // the token and reported clean. Native spellings and local abbreviations
+    // are the whole point of the guard: most storefronts abbreviate
+    // ("VM", "MS", "ЧМ", "WK"), so a word-list of full names never fires.
+    // Bare abbreviations are required to sit adjacent to "2026" to keep them
+    // from matching ordinary words.
+    pattern: new RegExp(
+      [
+        // full names, any script, either side of the year
+        String.raw`(world cup|mundial|mondiale|copa do mundo|coupe du monde|coppa del mondo|weltmeisterschaft`,
+        String.raw`|dünya kupası|piala dunia|cupa mondială|μουντιάλ|παγκόσμιο κύπελλο|كأس العالم|מונדיאל`,
+        String.raw`|ワールドカップ|월드컵|世界杯|世界盃|ฟุตบอลโลก|чемпіонат світу|чемпионат мира`,
+        String.raw`|svjetsko prvenstvo|mistrovství světa|majstrovstvá sveta|világbajnokság)`,
+        String.raw`\s*2026`,
+        // ...or the year first (CJK/Thai/RTL orderings)
+        String.raw`|2026\s*(world cup|mundial|dünya kupası|piala dunia|ワールドカップ|월드컵|世界杯|世界盃)`,
+        // ...or a local abbreviation immediately adjacent to the year.
+        // Latin abbreviations can use \b; Cyrillic ones cannot — JS \b is
+        // defined over [A-Za-z0-9_], so "ЧМ" has no boundary before it and a
+        // \b-anchored alternative silently never fires (this is what let ru
+        // and uk through the first version of this fix). Match those against
+        // start-of-string or an explicit separator instead.
+        String.raw`|\b(wm|vm|mm|ms|wk|sp|vb)\b\s*[-·:]?\s*2026`,
+        String.raw`|2026\s*[-·:]?\s*\b(wm|vm|mm|ms|wk|sp|vb)\b`,
+        String.raw`|(^|[\s:·,.\-—])(чм|чс)\s*[-·:]?\s*2026`,
+        String.raw`|2026\s*[-·:]?\s*(чм|чс)([\s:·,.\-—]|$)`,
+      ].join(''),
+      'i'
+    ),
     // Indexed/consumer-visible fields only — the Description and rationale may
     // legitimately mention the in-game World Cup mode.
     fields: ['App Name', 'Subtitle', 'Promotional Text', 'Keywords'],
