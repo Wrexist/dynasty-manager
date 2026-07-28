@@ -52,9 +52,71 @@ Store Connect takes one folder per storefront, filenames `01→05` in order.
 `captions.mjs` parses the authored ASO copy in `../aso/locales/*.md` (App Name +
 metadata) for reuse.
 
+---
+
+# Hero-cluster set (`build-hero.mjs`) — all three display sizes
+
+The second, more immersive screenshot system: a bold two-line headline with a
+gradient accent word, a centre hero device flanked by two cropped
+perspective-tilted devices, floating gold/glass callout pills, and emoji
+stickers orbiting the cluster — the layered poster style the top-grossing
+life/management sims use. Same rule as above: **on-device pixels are the
+verbatim real game**, cropped out of `docs/ingame/*.png` with the same `CROP`
+rect.
+
+Unlike `build.mjs` (one canvas), this one renders every size the App Store
+listing needs:
+
+| Target | Canvas | Slot |
+|---|---|---|
+| `iphone-6.9` | 1290 × 2796 | iPhone 6.9" |
+| `iphone-6.5` | 1242 × 2688 | iPhone 6.5" |
+| `ipad-13` | 2064 × 2752 | iPad 13" |
+
+Layout is expressed as **fractions of the canvas** (`PROPS.phone` /
+`PROPS.tablet`), so the composition holds across the ≈1:2.17 phone and ≈1:1.33
+tablet aspect ratios instead of being letterboxed.
+
+## The 5 panels
+
+| # | Headline | Hero screen | Gold pill |
+|---|----------|-------------|-----------|
+| 01 | Manage any **club.** | Dashboard | 756 REAL CLUBS |
+| 02 | Feel every **minute.** | Live match | 83' — 4-0 UP |
+| 03 | Collect gold **legends.** | Squad — player cards | 91 OVR WALKOUT |
+| 04 | Own the **market.** | Transfer market | £81.8M BID |
+| 05 | Lead your **nation.** | National team | WORLD CUP CALL-UP |
+
+## Render
+
+```bash
+node marketing/appstore/build-hero.mjs             # all three targets
+node marketing/appstore/build-hero.mjs ipad-13     # one target
+```
+
+Output: `marketing/appstore/hero/<target>/01..05.png` — upload order is the
+filename order. A full run takes ~4 min (the iPad canvas is the slow one).
+
+Montserrat comes from Google Fonts at render time; **DM Sans is inlined from
+the project's own `@fontsource` copy**, because a network miss on the Google
+stylesheet silently drops the body font to a serif — invisible in the console,
+obvious in the PNG. Emoji stickers need `Noto Color Emoji` installed on the
+render host (it is, in CI and in the dev container).
+
+## Editing
+
+- **Copy** — `PANELS` (kicker / white line / accent line / sub / pill text).
+- **Which screens appear** — `hero`, `left`, `right` per panel, keyed off `SRC`.
+- **Composition** — `PROPS`; every value is a fraction of width (`px`) or
+  height (`py`), so nudging one number moves that element on all three sizes.
+- **Stickers** — `[emoji, x%, y%, size-multiplier, rotation]`.
+
 ## Files
 
-- `build.mjs` — the generator (3D device, brand system, panel/caption defs).
+- `build.mjs` — the single-device 3D generator (brand system, panel defs).
+- `build-hero.mjs` — the hero-cluster generator, all three display sizes.
 - `detect-glass.mjs` — one-off util that measured the device-glass crop rect.
 - `captions.mjs` — parses `../aso/locales/*.md` (App Name + ASO metadata).
-- `out/` — rendered PNGs (git-ignored; regenerate or grab the delivered zip).
+- `out/` — rendered PNGs from `build.mjs` (git-ignored).
+- `hero/` — rendered PNGs from `build-hero.mjs` (committed — these are the
+  ready-to-upload set).
