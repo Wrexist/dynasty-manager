@@ -14,7 +14,7 @@ Storefronts reached: Romania and Moldova (Romanian localization). Single Romania
 ## Keywords [97/100]
 `mondial,simulator,fara abonament,lot,tactica,transferuri,cariera,penaltiuri,echipa nationala,liga`
 
-## Description [~1470/4000]
+## Description [1366/4000]
 Modul Cupa Mondială 2026 a sosit. Alege dintre peste 50 de naționale și du-o pe a ta din faza grupelor până la o finală decisă la penaltiuri. Fiecare decizie contează: primul unsprezece, schimbările, tactica de la pauză.
 
 Dynasty Manager este un simulator de fotbal complet. Preia un club dintre 45 de ligi și 756 de cluburi reale, construiește-ți lotul, gestionează transferurile, reglează tactica și trăiește fiecare meci minut cu minut. Adună sezoane, câștigă trofee continentale, preia banca unei echipe naționale și clădește o carieră de antrenor de legendă.

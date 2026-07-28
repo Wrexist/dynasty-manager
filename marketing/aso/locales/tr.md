@@ -5,24 +5,25 @@ Storefronts reached: Türkiye (tr storefront). Turkish is single-storefront but 
 ## App Name [23/30]
 `Dynasty Manager: Futbol`
 
-## Subtitle [26/30]
-`Dünya Kupası 2026 Menajeri`
+## Subtitle [27/30]
+`Taktik, Transfer ve Kariyer`
 
-## Promotional Text [170/170]
-`Dünya Kupası 2026 modu yayında. Milli takımını gruplardan penaltı finaline taşı. Enerji sayacı yok, dinlenme paketi yok, bekleme yok. Derin menajerlik, abonelik gerekmez.`
+## Promotional Text [162/170]
+`Yeni sezon, yeni hanedan. 756 gerçek kulüpten birini hazırlık maçlarından şampiyonluğa taşı: her transfer, her taktik, her dakika. Enerji sayacı yok. Bekleme yok.`
 
-## Keywords [96/100]
-`teknik direktor,kadro,transfer,taktik,kariyer,lig,kupa,penalti,milli takim,menajerlik,simulasyon`
+## Keywords [81/100]
+`kulup,lig,kadro,dizilis,teknik direktor,simulasyon,altyapi,kupa,sezon,milli takim`
 
-## Description [1162/4000]
-Dünya Kupası 2026 modu yayında. 50'den fazla milli takımı seç ve grup aşamasından penaltılarla belirlenen finale kadar zafere koş.
+## Description [1120/4000]
+
+2026-27 sezonu başlıyor. Kulübünü seç, on birini kur ve her maçın her dakikasını yönet.
 
 Enerji sayacı yok. Dinlenme paketi yok. Bekleme yok. Tüm menajerlik derinliği için aboneliğe gerek yok — istediğin kadar oyna.
 
 Dynasty Manager derin bir futbol menajerlik simülasyonu. 37 ülkede 45 lig ve 756 gerçek kulüp arasından takımını seç; kadronu kur, taktiğini belirle, transfer pazarında pazarlık yap ve maçları dakika dakika yönet.
 
 Öne çıkanlar:
-• Dünya Kupası 2026 modu — 50'den fazla milli takımla gruptan finale
+- Tam sezon: hazırlık dönemi, transfer sezonu, averaj yarışı ve kupa.
 • Nefes kesen penaltı atışları — her vuruşta kader değişir
 • 37 ülkede 45 lig ve 756 gerçek kulüp
 • Menajer kariyeri — mülakata gir, sözleşme imzala, zirveye tırman
@@ -36,14 +37,16 @@ Dynasty Pro ile reklamsız deneyim, gelişmiş analizler, anlık maç simülasyo
 İndirmesi ücretsiz. Kariyerine bugün başla.
 
 ## What's New (next release note blurb)
-Dünya Kupası 2026 modu yayında! 50'den fazla milli takımı gruplardan penaltı finaline taşı. Her zamanki gibi: enerji sayacı yok, bekleme yok, istediğin kadar oyna. Yeni sezona sen damga vur.
+
+Yeni sezon, yeni hanedan. App Store görselleri yenilendi, kenar yönetimi yapay zekâsı keskinleşti ve maç günü hataları giderildi. Hâlâ enerji sayacı ve bekleme yok.
 
 ## Screenshot Captions (5)
-1. 50'den fazla milli takım
-2. Dünya Kupası 2026'yı kazan
-3. Nefes kesen penaltılar
-4. Kadronu ve taktiğini kur
-5. Her dakikayı sen yönet
+
+1. 45 lig, 756 gerçek kulüp
+2. Her maç, dakika dakika
+3. Kadro, on bir ve dizilis
+4. Transfer sezonu açıldı
+5. Milli takım ve turnuvalar
 
 ## Keyword rationale
 - "teknik direktor" stays first: it's the dominant Turkish football-management head term (the DT role) and is almost UNCONTESTED by the foreign giants — Top Eleven/Soccer Manager fight over "menajer", so claiming the head-coach term is a low-competition win. Kept unaccented ("direktor") because Turkish iOS users routinely type without diacritics.

@@ -1,5 +1,13 @@
 # App Store localization kit — 37 locales
 
+> **2026-07-28 — season refresh.** The World Cup 2026 window closed on
+> 19 July 2026. Every locale has been pivoted off the tournament token and onto
+> the 2026-27 club season; tournament marks have been replaced with generic
+> descriptors everywhere in listing copy (`APP_STORE_LISTING.md` risk #4). The
+> validator now fails on trademarks and reports expired-campaign tokens, so
+> this cannot rot silently again. Strategy and sources:
+> `../RESEARCH-2026.md`. en-US paste-ready set: `../season-2026-refresh.md`.
+
 > Paste-ready App Store Connect metadata for every football-relevant storefront,
 > transcreated (not translated) from `../wc-2026-refresh.md` by native-market
 > passes and machine-validated against Apple's limits (name/subtitle ≤30,

@@ -14,7 +14,7 @@ Storefronts reached: Sweden primarily; also the default for Swedish-preferring u
 ## Keywords [93/100]
 `straffar,taktik,laguppställning,trupp,övergångar,tränare,liga,karriär,landslag,klubb,cup,spel`
 
-## Description [~1431/4000]
+## Description [1431/4000]
 VM 2026-läget är här. Välj vilket som helst av 50+ landslag och ta dem från gruppspelet till en nagelbitande final på straffar – du fattar varje beslut vid sidlinjen.
 
 Dynasty Manager är en på riktigt djup fotbollsmanager-simulator för mobilen. Inget pay-to-win, inga energimätare, inga vilopaket, ingen väntan mellan omgångarna. Spela så mycket du vill, när du vill – hela djupet finns utan prenumeration.

@@ -5,24 +5,25 @@ Storefronts reached: Germany, Austria, and Switzerland (German-preferring users)
 ## App Name [24/30]
 `Dynasty Manager: Fußball`
 
-## Subtitle [24/30]
-`Fußballmanager · WM 2026`
+## Subtitle [28/30]
+`Taktik, Transfers & Karriere`
 
-## Promotional Text [167/170]
-`Der WM-2026-Modus ist da: Führe jede Nation von der Gruppenphase bis ins Elfmeterfinale. Keine Energie-Timer, keine Rest-Packs, keine Wartezeit. Volle Tiefe, ohne Abo.`
+## Promotional Text [170/170]
+`Neue Saison, neue Dynastie. Führe einen von 756 echten Vereinen von der Vorbereitung zum Titel: jeder Transfer, jede Taktik, jede Minute. Ohne Energieleiste, ohne Warten.`
 
-## Keywords [100/100]
-`fussball,taktik,elfmeter,aufstellung,kader,verein,transfers,karriere,liga,trainer,nationalmannschaft`
+## Keywords [86/100]
+`verein,liga,aufstellung,kader,trainer,simulation,jugend,akademie,pokal,saison,aufstieg`
 
-## Description [~1578/4000]
-Der WM-2026-Modus ist da. Wähl eine von über 50 Nationen und führe sie von der Gruppenphase bis ins Elfmeterfinale – jede Entscheidung liegt bei dir.
+## Description [1539/4000]
+
+Die Saison 2026-27 beginnt. Wähle deinen Verein, stelle deine Elf auf und leite jede einzelne Minute.
 
 Dynasty Manager ist eine tiefe Fußball-Management-Simulation für unterwegs. Kein Pay-to-win, keine Energie-Timer, keine Rest-Packs, keine Wartezeit zwischen den Sessions. Spiel so viel du willst, wann du willst – die volle Management-Tiefe gibt es ganz ohne Abo.
 
 Du übernimmst einen Verein, stellst deine Elf auf, tüftelst an Taktik und Formation, holst Spieler über den Transfermarkt und führst dein Team Minute für Minute durch jedes Spiel.
 
 Das erwartet dich:
-- WM 2026: über 50 Nationen von der Gruppenphase bis ins Finale
+- Ganze Saison: Vorbereitung, Transferfenster, Endspurt und Titelgewinn.
 - 45 Ligen mit 756 echten Vereinen in 37 Ländern – von Deutschlands höchster Spielklasse bis nach Südamerika
 - Karrieremodus: bewirb dich um Jobs, verhandle Verträge, steig auf – oder werde gefeuert
 - Nervenaufreibende Elfmeterschießen mit Live-Steuerung Schuss für Schuss
@@ -38,14 +39,16 @@ Dynasty Pro schaltet erweiterte Analysen, individuelle Taktiken, Instant-Sim und
 Kostenloser Download. Jetzt Trainer werden und die WM 2026 holen.
 
 ## What's New (next release note blurb)
-Der WM-2026-Modus ist da – führe jede von über 50 Nationen von der Gruppenphase bis ins Elfmeterfinale. Die KI an der Seitenlinie ist schärfer, und einige Spieltag-Bugs sind behoben. Weiterhin keine Energie-Timer, keine Wartezeit – nur Fußball.
+
+Neue Saison, neue Dynastie. Frischer Auftritt im App Store, schärfere Trainer-KI und einige Fixes am Spieltag. Weiterhin ohne Energieleisten und ohne Wartezeiten.
 
 ## Screenshot Captions (5)
-1. Über 50 Nationen bei der WM 2026
-2. Gewinne die WM 2026
-3. Elfmeterschießen mit Nervenkitzel
-4. Kader, Taktik, Aufstellung
-5. Führe jedes Spiel – Minute für Minute
+
+1. 45 Ligen, 756 echte Vereine
+2. Jedes Spiel, Minute für Minute
+3. Kader, Elf und Aufstellung
+4. Das Transferfenster ist offen
+5. Nationalelf und Turniere
 
 ## Keyword rationale
 - Biggest change: the head compound "Fußballmanager" now leads the **Subtitle** instead of sitting in the keyword field. It is the single highest-intent term in this market — the exact word Top Eleven localizes its own descriptor to — and the subtitle is weighted far higher than keywords by Apple's ranking, so the descriptor claims the more valuable slot. "WM 2026" stays in the subtitle too, keeping the tournament window in a visible field.

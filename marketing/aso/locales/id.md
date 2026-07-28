@@ -5,24 +5,25 @@ Storefronts reached: Indonesia (huge mobile-football market; Apple serves id met
 ## App Name [27/30]
 `Dynasty Manager: Sepak Bola`
 
-## Subtitle [28/30]
-`Piala Dunia 2026: Main Bebas`
+## Subtitle [25/30]
+`Taktik, Transfer & Karier`
 
-## Promotional Text [163/170]
-`Mode Piala Dunia 2026 hadir. Bawa timnas dari fase grup ke final adu penalti. Tanpa bar energi. Tanpa menunggu. Simulasi mendalam, tanpa langganan. Gratis diunduh.`
+## Promotional Text [159/170]
+`Musim baru, dinasti baru. Bawa satu dari 756 klub nyata dari pramusim ke gelar juara: tiap transfer, tiap taktik, tiap menit. Tanpa bar energi. Tanpa menunggu.`
 
-## Keywords [97/100]
-`timnas,adu penalti,pelatih,taktik,karier,liga,transfer,skuad,formasi,klub,simulasi,sepakbola,game`
+## Keywords [85/100]
+`klub,liga,skuad,formasi,pelatih,simulasi,akademi,piala,musim,promosi,timnas,manajemen`
 
-## Description [~1780/4000]
-Mode Piala Dunia 2026 sudah hadir: pilih salah satu dari 50+ timnas dan kejar kejayaan dari fase grup sampai final yang ditentukan lewat adu penalti — semua keputusan ada di tanganmu.
+## Description [1699/4000]
+
+Musim 2026-27 dimulai. Pilih klubmu, susun sebelas pemain, dan kelola setiap menit pertandingan.
 
 Dynasty Manager adalah simulasi manajer sepak bola yang benar-benar mendalam, bukan game tunggu-tungguan. Tanpa bar energi. Tanpa paket istirahat. Tanpa hitung mundur. Main sepuasnya, kapan pun kamu mau. Kedalaman manajemen penuh tanpa perlu langganan.
 
 Kamu jadi pelatihnya. Susun skuad, kunci transfer, atur taktik tiap pertandingan, dan bawa klubmu dari bawah sampai puncak selama banyak musim.
 
 Yang kamu kelola:
-- Mode Piala Dunia 2026: bawa timnas dari fase grup sampai jadi juara dunia.
+- Satu musim penuh: pramusim, bursa transfer, lomba poin, dan gelar juara.
 - 45 liga di 37 negara dengan 756 klub asli, lengkap dengan promosi, degradasi, dan playoff.
 - Mode karier: ciptakan managermu, rebut kontrak lewat wawancara dengan manajemen, kumpulkan bonus, tahan dari pemecatan, dan jadi legenda.
 - Adu penalti interaktif: kamu yang menendang, kamu yang jadi kiper — tegang seperti final sungguhan di tiap tembakan.
@@ -37,14 +38,16 @@ Dynasty Pro membuka statistik lanjutan, taktik kustom, simulasi instan, rekor le
 Gratis diunduh. Mulai dinastimu hari ini.
 
 ## What's New (next release note blurb)
-Mode Piala Dunia 2026 resmi hadir! Bawa timnas pilihanmu dari fase grup sampai final adu penalti. Kami juga mempertajam AI di pinggir lapangan dan memperbaiki beberapa bug hari pertandingan. Tetap tanpa bar energi, tanpa menunggu — cuma sepak bola.
+
+Musim baru, dinasti baru. Tampilan App Store baru, AI pinggir lapangan lebih tajam, dan sejumlah perbaikan hari pertandingan. Tetap tanpa bar energi dan tanpa menunggu.
 
 ## Screenshot Captions (5)
-1. Dari fase grup ke final Piala Dunia
-2. Angkat trofi Piala Dunia 2026
-3. Adu penalti bikin deg-degan
-4. Skuad dan taktikmu
-5. Kelola tiap menit pertandingan
+
+1. 45 liga, 756 klub nyata
+2. Tiap laga, menit demi menit
+3. Skuad, sebelas pemain, formasi
+4. Bursa transfer dibuka
+5. Timnas dan turnamen
 
 ## Keyword rationale
 - Title-descriptor localization is the single biggest lever in this market and the category leader already does it — it ships the local football phrase as its Indonesian title descriptor. The App Name keeps the locked brand "Dynasty Manager" and appends the native sport descriptor "Sepak Bola" ("Dynasty Manager: Sepak Bola"), so "manager" (brand) + "sepak bola" both sit in the highest-weighted field without spending a keyword slot. The formal "manajer" is not lost to search — the colloquial coach term "pelatih" carries manager-intent in the keyword field below.

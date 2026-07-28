@@ -14,7 +14,7 @@ Storefronts reached: Denmark (and Danish-preferring users in Greenland/Faroe Isl
 ## Keywords [92/100]
 `straffespark,taktik,opstilling,trup,træner,transfers,liga,karriere,pokal,landshold,klub,spil`
 
-## Description [~1435/4000]
+## Description [1435/4000]
 VM 2026-tilstanden er her. Vælg et af 50+ landshold og før dem fra gruppespillet til en nervepirrende finale på straffespark – du træffer hver beslutning fra sidelinjen.
 
 Dynasty Manager er en rigtig, dyb fodboldmanager-simulator til farten. Ingen pay-to-win, ingen energimålere, ingen hvilepakker, ingen ventetid mellem runderne. Spil så meget du vil, når du vil – den fulde dybde er der uden abonnement.

@@ -5,22 +5,23 @@ Storefronts reached: France plus the default French localization across most Fre
 ## App Name [25/30]
 `Dynasty Manager: Football`
 
-## Subtitle [29/30]
-`Entraîneur foot, Mondial 2026`
+## Subtitle [30/30]
+`Tactique, Transferts, Carrière`
 
-## Promotional Text [163/170]
-`Le mode Coupe du Monde 2026 est là : menez votre équipe des poules à la finale aux tirs au but. Sans jauge d'énergie, sans attente. Simu complète, sans abonnement.`
+## Promotional Text [166/170]
+`Nouvelle saison, nouvelle dynastie. Menez un des 756 clubs réels de la préparation au titre : chaque transfert, chaque tactique, chaque minute. Sans jauge ni attente.`
 
-## Keywords [94/100]
-`coupe du monde,tirs au but,sans abonnement,simulation,tactique,mercato,effectif,carriere,ligue`
+## Keywords [86/100]
+`club,ligue,composition,effectif,entraineur,simulation,jeune,centre,coupe,saison,montee`
 
-## Description [~1490/4000]
-Le mode Coupe du Monde 2026 est là. Choisissez parmi plus de 50 sélections nationales et menez la vôtre de la phase de poules jusqu'à une finale décidée aux tirs au but. Chaque décision compte : la compo, les changements, la tactique à la mi-temps.
+## Description [1352/4000]
+
+La saison 2026-27 démarre. Choisissez votre club, composez votre onze et dirigez chaque minute de chaque match.
 
 Dynasty Manager est un simulateur de football complet. Prenez les rênes d'un club parmi 45 championnats et 756 clubs réels, bâtissez votre effectif, gérez le mercato, réglez votre tactique et vivez chaque match minute par minute. Enchaînez les saisons, décrochez des trophées continentaux, acceptez un poste en sélection nationale et construisez une carrière d'entraîneur de légende.
 
 Au programme :
-- Coupe du Monde 2026 : plus de 50 nations, de la phase de poules à la finale
+- Une saison complète : préparation, mercato, sprint final et titre.
 - 45 championnats, 37 pays, 756 clubs réels
 - Mode Carrière : passez les entretiens, signez des contrats, gravissez les échelons, évitez le licenciement
 - Tirs au but interactifs : gardez votre sang-froid quand tout se joue
@@ -35,14 +36,16 @@ Dynasty Pro débloque l'analyse avancée, la simulation instantanée, les tactiq
 Téléchargement gratuit. À vous de jouer, entraîneur.
 
 ## What's New (next release note blurb)
-Le mode Coupe du Monde 2026 est disponible : menez plus de 50 sélections de la phase de poules à la finale aux tirs au but. Toujours sans jauge d'énergie ni attente — jouez autant que vous voulez. Merci de jouer à Dynasty Manager !
+
+Nouvelle saison, nouvelle dynastie. Nouvelle vitrine App Store, IA de banc plus affûtée et plusieurs correctifs de jour de match. Toujours sans jauge d’énergie ni attente.
 
 ## Screenshot Captions (5)
-1. Plus de 50 sélections nationales
-2. Soulevez la Coupe du Monde 2026
-3. Tirs au but à couper le souffle
-4. Votre effectif, votre tactique
-5. Gérez chaque minute, sans attente
+
+1. 45 ligues, 756 clubs réels
+2. Chaque match, minute par minute
+3. Effectif, onze et composition
+4. Le mercato est ouvert
+5. Sélection nationale et tournois
 
 ## Keyword rationale
 - **WC-2026 refresh (2026-07):** added the two highest-leverage terms this competitive window exposes and dropped the weakest to make room.
