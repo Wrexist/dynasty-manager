@@ -1,0 +1,32 @@
+campaign,ad_group,keyword,match,bid_usd,note
+LONGTAIL-US,ag_career,soccer career mode,Exact,0.60,core career intent
+LONGTAIL-US,ag_career,football career mode,Exact,0.60,core career intent
+LONGTAIL-US,ag_career,be a soccer manager,Exact,0.55,role fantasy
+LONGTAIL-US,ag_career,be a football manager,Exact,0.55,role fantasy
+LONGTAIL-US,ag_career,soccer manager career,Exact,0.55,
+LONGTAIL-US,ag_career,football management career sim,Exact,0.45,
+LONGTAIL-US,ag_career,soccer club manager game,Exact,0.55,
+LONGTAIL-US,ag_career,manage a soccer team,Exact,0.50,
+LONGTAIL-US,ag_career,soccer dynasty game,Exact,0.40,semi-brand adjacent
+LONGTAIL-US,ag_career,promotion relegation game,Exact,0.40,feature we own; rivals rarely mention
+LONGTAIL-US,ag_transfers,transfer window game,Exact,0.55,in screenshot captions - organic + paid compound
+LONGTAIL-US,ag_transfers,soccer transfer game,Exact,0.55,
+LONGTAIL-US,ag_transfers,football transfer simulator,Exact,0.45,
+LONGTAIL-US,ag_transfers,soccer scouting game,Exact,0.45,
+LONGTAIL-US,ag_transfers,wonderkid soccer game,Exact,0.35,caption term; low volume high intent
+LONGTAIL-US,ag_transfers,youth academy soccer game,Exact,0.40,feature we own
+LONGTAIL-US,ag_transfers,soccer squad builder,Exact,0.50,
+LONGTAIL-US,ag_tactics_matchday,soccer tactics game,Exact,0.60,
+LONGTAIL-US,ag_tactics_matchday,football formation game,Exact,0.50,
+LONGTAIL-US,ag_tactics_matchday,soccer match simulator,Exact,0.55,
+LONGTAIL-US,ag_tactics_matchday,penalty shootout game,Exact,0.40,caption term; deliberately absent from the 100-char field
+LONGTAIL-US,ag_tactics_matchday,soccer coach game,Exact,0.50,
+LONGTAIL-US,ag_tactics_matchday,soccer season simulator,Exact,0.45,
+LONGTAIL-US,ag_nation,national team manager game,Exact,0.45,
+LONGTAIL-US,ag_nation,international soccer manager,Exact,0.40,
+LONGTAIL-US,ag_nation,soccer tournament manager,Exact,0.40,
+LONGTAIL-US,ag_offline,offline soccer manager,Exact,0.55,differentiator; no rival in the scan owns it
+LONGTAIL-US,ag_offline,offline football manager,Exact,0.55,
+LONGTAIL-US,ag_offline,soccer game no wifi,Exact,0.45,
+LONGTAIL-US,ag_offline,offline sports manager game,Exact,0.40,
+LONGTAIL-US,ag_offline,soccer manager no ads,Exact,0.35,maps to the Pro value prop

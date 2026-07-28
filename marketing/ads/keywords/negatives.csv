@@ -1,0 +1,34 @@
+scope,keyword,match,reason
+# Apply account-wide. Campaign 4 (DISCOVERY-US) is broad + Search Match, so
+# without these it will buy adjacent-sport and console-hardware traffic that
+# taps, installs and churns by D1 - which costs organic rank, not just budget.
+account,fantasy football,Exact,US fantasy-league intent; different product entirely
+account,fantasy soccer,Exact,same
+account,fantasy football draft,Exact,same
+account,madden,Exact,American football; wrong sport
+account,nfl,Exact,wrong sport
+account,football game nfl,Exact,wrong sport
+account,american football,Exact,wrong sport
+account,basketball manager,Exact,wrong sport
+account,baseball manager,Exact,wrong sport
+account,cricket manager,Exact,wrong sport
+account,f1 manager,Exact,wrong sport
+account,live soccer scores,Exact,live-score utility intent; installs and churns D1
+account,soccer live stream,Exact,streaming intent
+account,watch soccer free,Exact,streaming intent
+account,soccer news,Exact,media intent
+account,soccer highlights,Exact,media intent
+account,soccer betting,Exact,gambling intent; also a store-policy adjacency we do not want
+account,soccer predictions,Exact,gambling intent
+account,fifa,Exact,trademark + console-title intent; arcade not management
+account,efootball,Exact,arcade console title
+account,soccer video game ps5,Exact,console hardware intent
+account,soccer game xbox,Exact,console hardware intent
+account,soccer game pc,Exact,wrong platform
+account,soccer drills,Exact,real-world coaching intent
+account,soccer training kids,Exact,real-world coaching intent
+account,soccer coaching app,Exact,real-world coaching tool; high churn
+account,soccer team roster app,Exact,amateur team-admin utility
+account,how to play soccer,Exact,informational intent
+account,soccer rules,Exact,informational intent
+account,free soccer game,Exact,price-led intent; poor D7 and we cannot say completely free

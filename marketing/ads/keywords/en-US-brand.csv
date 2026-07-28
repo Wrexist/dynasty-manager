@@ -1,0 +1,11 @@
+campaign,ad_group,keyword,match,bid_usd,note
+BRAND-DEFENCE-US,ag_brand_exact,dynasty manager,Exact,0.50,core brand
+BRAND-DEFENCE-US,ag_brand_exact,dynasty manager football,Exact,0.50,brand + category
+BRAND-DEFENCE-US,ag_brand_exact,dynasty manager soccer,Exact,0.50,brand + category (US wording)
+BRAND-DEFENCE-US,ag_brand_exact,dynasty manager game,Exact,0.40,brand + generic
+BRAND-DEFENCE-US,ag_brand_exact,dynasty manager app,Exact,0.35,brand + generic
+BRAND-DEFENCE-US,ag_brand_exact,dynastymanager,Exact,0.35,no-space typo variant
+BRAND-DEFENCE-US,ag_brand_exact,dynasty football manager,Exact,0.50,word-order variant; overlaps a rival head term - watch CPA separately
+BRAND-DEFENCE-US,ag_brand_exact,dynasty soccer manager,Exact,0.45,word-order variant
+BRAND-DEFENCE-US,ag_brand_exact,dynasty football,Exact,0.35,partial brand
+BRAND-DEFENCE-US,ag_brand_exact,dynasty soccer,Exact,0.35,partial brand

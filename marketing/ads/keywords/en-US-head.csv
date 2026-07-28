@@ -1,0 +1,18 @@
+campaign,ad_group,keyword,match,bid_usd,note
+# STAGED - CAMPAIGN 5 IS PAUSED AT $0/DAY.
+# Do not fund this file until all three phase-2 gates in
+# apple-ads-2026-27.md section 6 clear. At the modelled ARPI these terms run
+# 3-9x over the affordable bid. The bids below are market-rate placeholders,
+# NOT approved ceilings - re-derive them from unit-economics.mjs with
+# MEASURED funnel rates before spending a dollar here.
+HEAD-TERMS-US,ag_head_manager,soccer manager,Exact,1.20,highest volume highest CPT
+HEAD-TERMS-US,ag_head_manager,football manager,Exact,1.20,
+HEAD-TERMS-US,ag_head_manager,soccer manager game,Exact,1.10,
+HEAD-TERMS-US,ag_head_manager,football management game,Exact,1.10,
+HEAD-TERMS-US,ag_head_manager,soccer management game,Exact,1.00,
+HEAD-TERMS-US,ag_head_manager,manager game,Exact,0.90,broad intent; expect poor D7
+HEAD-TERMS-US,ag_head_career_mode,soccer simulator,Exact,1.00,
+HEAD-TERMS-US,ag_head_career_mode,football simulator,Exact,1.00,
+HEAD-TERMS-US,ag_head_career_mode,soccer strategy game,Exact,0.90,
+HEAD-TERMS-US,ag_head_career_mode,soccer team manager,Exact,1.00,
+HEAD-TERMS-US,ag_head_career_mode,football club manager,Exact,1.00,
