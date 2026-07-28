@@ -1,8 +1,10 @@
 import { memo } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 import { Lock, ShieldCheck, Play, ShoppingBag, Gift } from 'lucide-react';
 import { PremiumSparkle } from '@/components/game/icons/PremiumSparkle';
 import type { PackTierDefinition, PackUnlockMethod } from '@/types/game';
+import { resolvePackTier, isFreeOpenMethod } from '@/config/packs';
 import { formatMoney } from '@/utils/helpers';
 import { cn } from '@/lib/utils';
 import { hapticLight } from '@/utils/haptics';
@@ -36,10 +38,14 @@ interface PackShopCardProps {
  * target. Price for paid packs is inlined into the CTA so there's no
  * duplicate text container.
  */
-export const PackShopCard = memo(function PackShopCard({ tier, affordable, squadOk, onSelect, featured, method, freeRemaining, adRemaining, resetCountdown }: PackShopCardProps) {
+export const PackShopCard = memo(function PackShopCard({ tier: rawTier, affordable, squadOk, onSelect, featured, method, freeRemaining, adRemaining, resetCountdown }: PackShopCardProps) {
+  // The guarantee badge must describe the open the CTA is about to perform: a
+  // free daily Gold guarantees less than a purchased one. Same resolver the
+  // generator uses, so the number on the card is the number you get.
+  const tier = resolvePackTier(rawTier, isFreeOpenMethod(method));
   const noMethod = method === null;
   const disabled = !squadOk || noMethod || !affordable;
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionPref();
 
   // CTA chip text + icon vary by active unlock method. Price is folded
   // into the label for paid methods so the card carries no second text

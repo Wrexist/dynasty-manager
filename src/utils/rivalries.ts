@@ -1,6 +1,7 @@
 import type { Club, HeadToHeadRecord, Match, RivalSummary } from '@/types/game';
 import { DERBIES, getDerbyIntensity, getDerbyName } from '@/data/league';
 import { RIVAL_MIN_GRUDGE, RIVAL_MIN_MEETINGS } from '@/config/ui';
+import { GRUDGE_INTENSITY_SCALE } from '@/config/playoffs';
 
 interface DeriveRivalsParams {
   playerClubId: string;
@@ -150,4 +151,37 @@ export function deriveRivals({
   );
 
   return summaries;
+}
+
+/**
+ * Match intensity for a fixture, blending the hardcoded historic derby with the
+ * grudge the player has actually built up against this opponent.
+ *
+ * `grudgeLevel` was written on every player result (`matchProcessing.ts:311-315`)
+ * and then read ONLY for display — the Rivalries Hub, Match Prep and the week
+ * preview. It never reached the simulation. So rivalries the player *earned*
+ * were cosmetic while rivalries they *inherited* from `DERBIES` were real, which
+ * is exactly backwards from how a rivalry is supposed to feel: the club that
+ * knocked you out three years running should be a harder night than a fixture
+ * the data file happens to know about.
+ *
+ * Takes the max rather than the sum so a real derby is never diluted, and so the
+ * ceiling stays inside the range the engine was tuned against.
+ */
+export function getEffectiveMatchIntensity(
+  clubIdA: string,
+  clubIdB: string,
+  rivalries: Record<string, { grudgeLevel: number }> | undefined,
+  playerClubId: string,
+): number {
+  const base = getDerbyIntensity(clubIdA, clubIdB);
+  if (!rivalries) return base;
+  // Records are keyed by OPPONENT id, relative to the player's club, so a
+  // fixture between two AI clubs has no grudge component by construction.
+  const oppId = clubIdA === playerClubId ? clubIdB : clubIdA === playerClubId ? clubIdA : clubIdB === playerClubId ? clubIdA : null;
+  if (!oppId) return base;
+  const grudge = rivalries[oppId]?.grudgeLevel ?? 0;
+  if (grudge < RIVAL_MIN_GRUDGE) return base;
+  // grudgeLevel is 0-5; DERBIES intensity is authored on the same scale.
+  return Math.max(base, grudge * GRUDGE_INTENSITY_SCALE);
 }

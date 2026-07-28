@@ -11,10 +11,10 @@ import type { TransferNewsEntry } from '@/types/game';
 import { pick, shuffle, addMsg, safeRandomUUID } from '@/utils/helpers';
 import { formatMoney } from '@/utils/helpers';
 import {
-  MATCHDAY_INCOME_PER_FAN, COMMERCIAL_INCOME_PER_REP, COMMERCIAL_INCOME_BASE,
   STADIUM_INCOME_PER_LEVEL, POSITION_PRIZE_PER_RANK, POSITION_PRIZE_MAX_RANK,
   MIN_SQUAD_SIZE,
 } from '@/config/gameBalance';
+import { getMatchdayIncome, getCommercialIncome } from '@/utils/financeHelpers';
 import {
   AI_INCOME_MULTIPLIER, AI_STAFF_COST_PER_REP,
   AI_MAX_WAGE_TO_INCOME_RATIO, AI_EMERGENCY_SELL_WAGE_RATIO,
@@ -80,8 +80,15 @@ function getPositionCount(club: Club, players: Record<string, Player>): Record<P
 }
 
 function estimateWeeklyIncome(club: Club, divisionTable: LeagueTableEntry[]): number {
-  const matchday = Math.round(club.fanBase * MATCHDAY_INCOME_PER_FAN * AI_INCOME_MULTIPLIER);
-  const commercial = Math.round((COMMERCIAL_INCOME_BASE + club.reputation * COMMERCIAL_INCOME_PER_REP) * AI_INCOME_MULTIPLIER);
+  // Share the PLAYER's income model. These used the raw unscaled constants while
+  // the player's club is league-tier scaled, so a fourth-tier AI club believed it
+  // earned ~GBP 3M/wk where the equivalent player club earns ~GBP 527k. That
+  // inflated AI wage ceilings and transfer aggression at exactly the tiers where
+  // money should be tightest, and it is what let AI budgets run away over a long
+  // save. One divergence between the AI's economy and the player's is one too
+  // many — this is a decision input, so it must match what the world actually pays.
+  const matchday = Math.round(getMatchdayIncome(club, club.divisionId) * AI_INCOME_MULTIPLIER);
+  const commercial = Math.round(getCommercialIncome(club, club.divisionId) * AI_INCOME_MULTIPLIER);
   const stadium = Math.round(club.facilities * STADIUM_INCOME_PER_LEVEL * AI_INCOME_MULTIPLIER);
   const tableIdx = divisionTable.findIndex(e => e.clubId === club.id);
   // When the standings aren't passed (empty array) or the club isn't found, fall back to a

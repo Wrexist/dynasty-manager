@@ -276,7 +276,13 @@ export function evaluateSponsorNegotiation(
   const durationDelta = proposal.seasonDuration - original.seasonDuration;
 
   const variableDemand = payOver + bonusOver * NEG_BONUS_WEIGHT;
-  const durationDemand = durationDelta * NEG_DURATION_WEIGHT;  // signed
+  // Asking for a LONGER deal costs demand budget; asking for a shorter one is
+  // free, never a credit. This was `durationDelta * NEG_DURATION_WEIGHT`
+  // unclamped, so shortening the term generated negative demand that paid for a
+  // fee increase: a rep-5 club on `platinum_fin` could take £580k/wk → £879k/wk
+  // accepted on round 1, deterministically, entirely inside the UI's steppers.
+  // A sponsor has no reason to pay MORE per week for LESS commitment.
+  const durationDemand = Math.max(0, durationDelta) * NEG_DURATION_WEIGHT;
   const demand = variableDemand + durationDemand;
 
   const tolerance = Math.max(

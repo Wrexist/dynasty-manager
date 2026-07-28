@@ -6,15 +6,17 @@ import { GameScreen } from '@/types/game';
 import { cn } from '@/lib/utils';
 import {
   Mail, Trophy, Target, DollarSign, Building2, Calendar, Home,
-  Settings, MoreHorizontal, ChevronRight, ChevronDown, GitCompare, User, Star, Award, ShoppingBag, Crown, HelpCircle, Globe, Briefcase, Search, Medal, Swords
+  Settings, MoreHorizontal, ChevronRight, ChevronDown, GitCompare, User, Star, Award, ShoppingBag, Crown, HelpCircle, Globe, Briefcase, Search, Medal, Swords,
+  Dumbbell, UserCog, Sprout, Users, Package, ArrowLeftRight
 } from 'lucide-react';
 import { hapticLight } from '@/utils/haptics';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { PINNED_DRAWER_SCREENS, DRAWER_PROGRESSIVE_SCREENS, UNEMPLOYED_ALLOWED_SCREENS } from '@/config/navigation';
-import { NEW_PLAYER_DRAWER_WEEK_THRESHOLD } from '@/config/ui';
+import { NEW_PLAYER_DRAWER_WEEK_THRESHOLD, SQUAD_SUB_NAV, MARKET_SUB_NAV } from '@/config/ui';
 import { getSuffix } from '@/utils/helpers';
 import { useCareerUnemployed } from '@/hooks/useGameSelectors';
 import { CountBadge } from '@/components/game/CountBadge';
+import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 
 // Liquid-glass tile shared by pinned quick-actions and drawer rows. Mirrors
 // the GlassPanel treatment (gradient + thick-rim inset shadow + specular top
@@ -56,6 +58,18 @@ const drawerSections: DrawerSection[] = [
     ],
   },
   {
+    // Training and Staff had NO drawer entry at all — their only real entry
+    // point was a horizontally-scrolling pill on the Squad tab, which made them
+    // effectively undiscoverable (and the onboarding checklist pointed players
+    // at a "More → Staff" row that never existed).
+    title: 'Squad',
+    items: [
+      { screen: 'training', label: 'Training', icon: Dumbbell, description: 'Weekly schedule & intensity' },
+      { screen: 'staff', label: 'Staff', icon: UserCog, description: 'Coaches, scouts & physios' },
+      { screen: 'youth-academy', label: 'Youth Academy', icon: Sprout, description: 'Prospects & promotions' },
+    ],
+  },
+  {
     title: 'Management',
     items: [
       { screen: 'club', label: 'Club', icon: Home, description: 'Club overview & squad info' },
@@ -88,8 +102,35 @@ const CAREER_MODE_ITEMS: DrawerItem[] = [
   { screen: 'job-market', label: 'Job Market', icon: Globe, description: 'Browse vacancies & offers' },
 ];
 
+// The search box promises "Search all features" but only ever filtered
+// `drawerSections`, so typing "tactics", "transfers", "scouting" or "packs"
+// returned nothing — those screens live on the bottom nav and its sub-navs
+// (SQUAD_SUB_NAV / MARKET_SUB_NAV in config/ui.ts), not in the drawer. They get
+// a search-only "Jump to" section so the promise holds. Screens already listed
+// in `drawerSections` above (Training, Staff, Youth) are excluded to avoid
+// duplicate hits.
+const SUB_NAV_SEARCH_META: Partial<Record<GameScreen, { icon: React.ElementType; description: string }>> = {
+  squad: { icon: Users, description: 'Your players, filters & depth' },
+  tactics: { icon: Target, description: 'Formation, lineup & instructions' },
+  transfers: { icon: ArrowLeftRight, description: 'Market, free agents & offers' },
+  scouting: { icon: Search, description: 'Send scouts & read reports' },
+  packs: { icon: Package, description: 'Open player packs' },
+};
+
 // Build a lookup for pinned items from drawer sections (preserves icon/label/description)
 const ALL_ITEMS: DrawerItem[] = drawerSections.flatMap(s => s.items);
+
+const SUB_NAV_SEARCH_ITEMS: DrawerItem[] = [...SQUAD_SUB_NAV, ...MARKET_SUB_NAV]
+  .filter(entry => !ALL_ITEMS.some(i => i.screen === entry.screen))
+  .map(entry => {
+    const meta = SUB_NAV_SEARCH_META[entry.screen];
+    return {
+      screen: entry.screen,
+      label: entry.label,
+      icon: meta?.icon ?? ChevronRight,
+      description: meta?.description ?? 'Open this screen',
+    };
+  });
 const PINNED_ITEMS = PINNED_DRAWER_SCREENS.map(screen => ALL_ITEMS.find(i => i.screen === screen)).filter(Boolean) as DrawerItem[];
 const PINNED_SET = new Set(PINNED_DRAWER_SCREENS);
 
@@ -113,7 +154,7 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
     else setOpenInternal(next);
   }, [onOpenChange]);
   const [search, setSearch] = useState('');
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useReducedMotionPref();
   const {
     messages, currentScreen, cup, leagueCup, gameMode, nationalTeamOffer,
     internationalTournament, nationalTeam, season, week,
@@ -312,6 +353,36 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
         </div>
 
         <div className="space-y-4">
+          {/* Search-only: bottom-nav + sub-nav destinations. */}
+          {isSearching && (() => {
+            const items = SUB_NAV_SEARCH_ITEMS
+              .filter(i => !isUnemployed || UNEMPLOYED_ALLOWED_SCREENS.has(i.screen))
+              .filter(i =>
+                i.label.toLowerCase().includes(searchLower) || i.description.toLowerCase().includes(searchLower),
+              );
+            if (items.length === 0) return null;
+            return (
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-[0.18em] font-semibold px-1.5 mb-2">
+                  Jump to
+                </p>
+                <div className="space-y-1.5">
+                  {items.map(item => (
+                    <DrawerListItem
+                      key={item.screen}
+                      item={item}
+                      currentScreen={currentScreen}
+                      onNav={handleNav}
+                      unread={unread}
+                      hasPendingCupMatch={hasPendingCupMatch}
+                      hasPendingLeagueCupMatch={hasPendingLeagueCupMatch}
+                      nationalTeamOffer={nationalTeamOffer}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
           {drawerSections.map(section => {
             // In career mode, prepend career-specific items to the Career section
             const baseItems = (section.title === 'Career' && gameMode === 'career')

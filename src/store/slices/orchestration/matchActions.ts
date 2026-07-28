@@ -13,13 +13,15 @@ import { hasPerk } from '@/utils/managerPerks';
 
 import { getAICounterTactics } from '@/config/aiManager';
 import { CONTINENTAL_PRIZE_MONEY } from '@/config/continental';
-import { CUP_EXTRA_TIME_GOAL_CHANCE, CUP_EXTRA_TIME_REPUTATION_DIVISOR, CUP_PENALTY_KICKS, FORFEIT_SCORE, FRIENDLY_BOARD_CONFIDENCE_MULT, LINEUP_SIZE, MAX_CAREER_TIMELINE, MOTIVATOR_MORALE_BOOST, PEN_AIM } from '@/config/gameBalance';
+import { CUP_EXTRA_TIME_GOAL_CHANCE, CUP_EXTRA_TIME_REPUTATION_DIVISOR, CUP_PENALTY_KICKS, FORFEIT_SCORE, FRIENDLY_BOARD_CONFIDENCE_MULT, MAX_CAREER_TIMELINE, MOTIVATOR_MORALE_BOOST, PEN_AIM } from '@/config/gameBalance';
 import { MOD_DISCIPLINE_CARDS, REP_DRAW, REP_LOSS, REP_WIN } from '@/config/managerCareer';
 import { SHOUT_CUMULATIVE_SCALE, SHOUT_MODIFIERS } from '@/config/matchEngine';
 import { CALM_DEFENSE_BOOST, CALM_FITNESS_DRAIN_MULT, CALM_FOUL_REDUCTION, DEMAND_ATTACK_BOOST, DEMAND_DEFENSE_PENALTY, DEMAND_FITNESS_DRAIN_MULT, MOTIVATE_ATTACK_BOOST, MOTIVATE_FITNESS_DRAIN_MULT, MOTIVATE_FOUL_BONUS, teamTalkModifiers } from '@/config/teamTalk';
 import { mergeGamePlanMods } from '@/config/gamePlan';
 import { advanceCupRound, getRoundName } from '@/data/cup';
 import { getDerbyIntensity } from '@/data/league';
+import { pickAiMatchSquad, stripAiMatchDetail } from '@/store/slices/orchestration/helpers';
+import { getEffectiveMatchIntensity } from '@/utils/rivalries';
 import { generatePressConference } from '@/data/pressConferences';
 import { HalfState, finalizeMatch, generateMatchWeather, simulateHalf, simulateMatch } from '@/engine/match';
 import { processMatchResult } from '@/store/helpers/matchProcessing';
@@ -428,9 +430,15 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   const continentalTourney = champMatch ? state.championsCup : shieldMatch ? state.shieldCup : confMatch ? state.conferenceCup : null;
   const cupTie = !friendlyMatch && !continentalMatch ? state.cup.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
   const leagueCupTie = !friendlyMatch && !continentalMatch && !cupTie ? state.leagueCup?.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
+  // `week >= sc.week`, not `===`. Super Cup is last in this priority chain, and
+  // both Super Cup weeks are raw constants (1 and 2) that the compressed cup /
+  // League Cup / continental calendars land on in short seasons. With a strict
+  // equality the player could never play a Super Cup that was outranked on its
+  // own week — and weekAdvance's AI sim deliberately skips player matches, so
+  // the fixture sat unplayed all season: no trophy, no prize money.
   const superCup = !friendlyMatch && !continentalMatch && !cupTie && !leagueCupTie
-    ? (state.domesticSuperCup && !state.domesticSuperCup.played && state.domesticSuperCup.week === week && (state.domesticSuperCup.homeClubId === playerClubId || state.domesticSuperCup.awayClubId === playerClubId) ? state.domesticSuperCup : null)
-      || (state.continentalSuperCup && !state.continentalSuperCup.played && state.continentalSuperCup.week === week && (state.continentalSuperCup.homeClubId === playerClubId || state.continentalSuperCup.awayClubId === playerClubId) ? state.continentalSuperCup : null)
+    ? (state.domesticSuperCup && !state.domesticSuperCup.played && week >= state.domesticSuperCup.week && (state.domesticSuperCup.homeClubId === playerClubId || state.domesticSuperCup.awayClubId === playerClubId) ? state.domesticSuperCup : null)
+      || (state.continentalSuperCup && !state.continentalSuperCup.played && week >= state.continentalSuperCup.week && (state.continentalSuperCup.homeClubId === playerClubId || state.continentalSuperCup.awayClubId === playerClubId) ? state.continentalSuperCup : null)
     : null;
   const leagueMatch = !friendlyMatch && !continentalMatch && !cupTie && !leagueCupTie && !superCup
     ? fixtures.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId))
@@ -515,8 +523,13 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
     }
     return lineup;
   };
-  let hp = backfillFromSubs((hc.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p)), hc);
-  let ap = backfillFromSubs((ac.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p)), ac);
+  // Injured players cannot start. This filter omitted `!p.injured`, while bench
+  // construction and EVERY AI-sim path filter it — so an injured player left in
+  // the saved XI played at full strength for the player's club only, and the
+  // LineupEditor toast ("They cannot play until recovered") was simply untrue.
+  // `backfillFromSubs` tops the XI back up and already excludes injured players.
+  let hp = backfillFromSubs((hc.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured), hc);
+  let ap = backfillFromSubs((ac.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured), ac);
 
   // Need minimum players to simulate a match
   if (hp.length < 7 || ap.length < 7) return null;
@@ -547,7 +560,7 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   const prePos = preEntry ? state.leagueTable.indexOf(preEntry) + 1 : 10;
 
   try {
-  const matchDerbyIntensity = getDerbyIntensity(match.homeClubId, match.awayClubId);
+  const matchDerbyIntensity = getEffectiveMatchIntensity(match.homeClubId, match.awayClubId, state.rivalries, playerClubId);
   const hasDisciplinarian = hasPerk(state.managerProgression, 'disciplinarian');
   const careerDisciplineMod = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.discipline * MOD_DISCIPLINE_CARDS : 0;
   // Build bench for both teams
@@ -590,23 +603,49 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
     let penaltyShootout: { home: number; away: number } | undefined;
     let cupWinnerId: string | undefined;
 
-    if (result.homeGoals === result.awayGoals) {
-      const isContinentalGroup = continentalMatch?.type === 'group';
-      // Continental knockout leg 1 (non-final): draws are valid, aggregate decided after leg 2
-      const isContinentalLeg1 = continentalMatch?.type === 'knockout' && continentalMatch.leg === 1
-        && continentalTourney?.knockoutTies[continentalMatch.tieIdx]?.round !== 'F';
-      // Check aggregate for continental knockout leg 2
-      let isAggDecided = false;
-      if (continentalMatch && continentalMatch.type === 'knockout' && continentalTourney) {
-        const tie = continentalTourney.knockoutTies[continentalMatch.tieIdx];
-        if (continentalMatch.leg === 2 && tie.round !== 'F') {
-          const homeAgg = tie.leg1HomeGoals + result.awayGoals;
-          const awayAgg = tie.leg1AwayGoals + result.homeGoals;
-          isAggDecided = homeAgg !== awayAgg;
-        }
-      }
+    // Does this result leave the tie UNDECIDED, and therefore need extra time /
+    // penalties?
+    //
+    // The old gate asked "was this leg drawn?" and then bailed out early if the
+    // aggregate happened to be decided. That misses the most common two-leg
+    // pattern in football: 1-0 then 1-0 leaves the aggregate level on a leg that
+    // was NOT a draw, so no shootout ran and `processTournamentResult` left
+    // `winnerId` null. The result was unrecoverable — `simulateKnockoutLeg`
+    // requires `!leg2Played`, `isKnockoutRoundComplete` requires a winner, and
+    // `findPlayerContinentalMatch` requires an unplayed leg, so the tie could be
+    // neither resolved nor replayed. The tournament then burned its 12-iteration
+    // guard every week for the rest of the season with no advance message, no
+    // knockout prize money and no coefficient points. 2-1/2-1 and 2-0/2-0 hit it
+    // too.
+    //
+    // Ask the right question instead: for a two-legged tie, resolution is driven
+    // by the AGGREGATE; for anything single-legged, by the scoreline.
+    const isContinentalGroup = continentalMatch?.type === 'group';
+    const continentalTie = (continentalMatch?.type === 'knockout' && continentalTourney)
+      ? continentalTourney.knockoutTies[continentalMatch.tieIdx]
+      : undefined;
+    // Continental knockout leg 1 (non-final): a draw is a valid result, the tie
+    // is decided after leg 2.
+    const continentalLeg = continentalMatch?.type === 'knockout' ? continentalMatch.leg : undefined;
+    const isContinentalLeg1 = !!continentalTie && continentalLeg === 1 && continentalTie.round !== 'F';
+    const isContinentalLeg2 = !!continentalTie && continentalLeg === 2 && continentalTie.round !== 'F';
 
-      if (!isContinentalGroup && !isContinentalLeg1 && !isAggDecided) {
+    let needsTieBreak: boolean;
+    if (isContinentalGroup || isContinentalLeg1) {
+      needsTieBreak = false;
+    } else if (isContinentalLeg2 && continentalTie) {
+      const homeAgg = continentalTie.leg1HomeGoals + result.awayGoals;
+      const awayAgg = continentalTie.leg1AwayGoals + result.homeGoals;
+      // No away-goals rule — abolished in real competition in 2021, and
+      // `resolveKnockoutTie` no longer applies it to AI ties either, so the
+      // player's tie and an AI tie now resolve the same way.
+      needsTieBreak = homeAgg === awayAgg;
+    } else {
+      needsTieBreak = result.homeGoals === result.awayGoals;
+    }
+
+    if (needsTieBreak) {
+      {
         let hGoals = result.homeGoals;
         let aGoals = result.awayGoals;
         const cupEvents = [...result.events];
@@ -803,16 +842,16 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
     const hc2 = clubs[m.homeClubId];
     const ac2 = clubs[m.awayClubId];
     if (!hc2 || !ac2) continue;
-    const hAvail2 = hc2.playerIds.map(id => playersWithAI[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week));
-    const aAvail2 = ac2.playerIds.map(id => playersWithAI[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week));
-    const hp2 = hAvail2.slice(0, LINEUP_SIZE);
-    const ap2 = aAvail2.slice(0, LINEUP_SIZE);
+    const hSq2 = pickAiMatchSquad(hc2, playersWithAI, week);
+    const aSq2 = pickAiMatchSquad(ac2, playersWithAI, week);
+    const hp2 = hSq2.xi;
+    const ap2 = aSq2.xi;
     if (hp2.length === 0 || ap2.length === 0) {
       fullFixtures[idx] = { ...m, played: true, homeGoals: hp2.length === 0 ? 0 : FORFEIT_SCORE, awayGoals: ap2.length === 0 ? 0 : FORFEIT_SCORE, events: [{ minute: 0, type: 'half_time' as const, clubId: '', description: 'Match forfeited — insufficient players' }] };
       continue;
     }
-    const { result: aiResult } = simulateMatch(m, hc2, ac2, hp2, ap2, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hAvail2.slice(11, 18), aAvail2.slice(11, 18));
-    fullFixtures[idx] = aiResult;
+    const { result: aiResult } = simulateMatch(m, hc2, ac2, hp2, ap2, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hSq2.bench, aSq2.bench);
+    fullFixtures[idx] = stripAiMatchDetail(aiResult, playerClubId);
     applyAIMatchEvents(aiResult.events, playersWithAI, clubs, week, hp2, ap2, aiResult.homeGoals, aiResult.awayGoals, eloRankings, m.homeClubId, m.awayClubId);
     updateEloRatings(eloRankings, m.homeClubId, m.awayClubId, aiResult.homeGoals, aiResult.awayGoals, 'league');
   }
@@ -913,9 +952,15 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   const continentalTourney = champMatch ? state.championsCup : shieldMatch ? state.shieldCup : confMatch ? state.conferenceCup : null;
   const cupTie = !friendlyMatch && !continentalMatch ? state.cup.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
   const leagueCupTie = !friendlyMatch && !continentalMatch && !cupTie ? state.leagueCup?.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
+  // `week >= sc.week`, not `===`. Super Cup is last in this priority chain, and
+  // both Super Cup weeks are raw constants (1 and 2) that the compressed cup /
+  // League Cup / continental calendars land on in short seasons. With a strict
+  // equality the player could never play a Super Cup that was outranked on its
+  // own week — and weekAdvance's AI sim deliberately skips player matches, so
+  // the fixture sat unplayed all season: no trophy, no prize money.
   const superCup = !friendlyMatch && !continentalMatch && !cupTie && !leagueCupTie
-    ? (state.domesticSuperCup && !state.domesticSuperCup.played && state.domesticSuperCup.week === week && (state.domesticSuperCup.homeClubId === playerClubId || state.domesticSuperCup.awayClubId === playerClubId) ? state.domesticSuperCup : null)
-      || (state.continentalSuperCup && !state.continentalSuperCup.played && state.continentalSuperCup.week === week && (state.continentalSuperCup.homeClubId === playerClubId || state.continentalSuperCup.awayClubId === playerClubId) ? state.continentalSuperCup : null)
+    ? (state.domesticSuperCup && !state.domesticSuperCup.played && week >= state.domesticSuperCup.week && (state.domesticSuperCup.homeClubId === playerClubId || state.domesticSuperCup.awayClubId === playerClubId) ? state.domesticSuperCup : null)
+      || (state.continentalSuperCup && !state.continentalSuperCup.played && week >= state.continentalSuperCup.week && (state.continentalSuperCup.homeClubId === playerClubId || state.continentalSuperCup.awayClubId === playerClubId) ? state.continentalSuperCup : null)
     : null;
   const leagueMatch = !friendlyMatch && !continentalMatch && !cupTie && !leagueCupTie && !superCup
     ? fixtures.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId))
@@ -986,8 +1031,13 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
     }
     return lineup;
   };
-  let hp = backfillFromSubs((hc.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p)), hc);
-  let ap = backfillFromSubs((ac.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p)), ac);
+  // Injured players cannot start. This filter omitted `!p.injured`, while bench
+  // construction and EVERY AI-sim path filter it — so an injured player left in
+  // the saved XI played at full strength for the player's club only, and the
+  // LineupEditor toast ("They cannot play until recovered") was simply untrue.
+  // `backfillFromSubs` tops the XI back up and already excludes injured players.
+  let hp = backfillFromSubs((hc.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured), hc);
+  let ap = backfillFromSubs((ac.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured), ac);
 
   // Need minimum players to simulate a match
   if (hp.length < 7 || ap.length < 7) return null;
@@ -1024,7 +1074,7 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   const hBench = (hc.subs || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !hpIds.has(p.id) && !p.injured && !isSuspended(p));
   const aBench = (ac.subs || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !apIds.has(p.id) && !p.injured && !isSuspended(p));
 
-  const halfDerbyIntensity = getDerbyIntensity(match.homeClubId, match.awayClubId);
+  const halfDerbyIntensity = getEffectiveMatchIntensity(match.homeClubId, match.awayClubId, state.rivalries, playerClubId);
   const hasDisciplinarian = hasPerk(state.managerProgression, 'disciplinarian');
   const halfCareerMod = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.discipline * MOD_DISCIPLINE_CARDS : 0;
   const spCoachBonus = hasPerk(state.managerProgression, 'set_piece_coach') ? 0.009 * dynastyMult(state.managerProgression) : 0;
@@ -1053,6 +1103,8 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
     : null;
   set({
     halfTimeState: halfState, currentMatchWeather: matchWeather, matchPhase: 'half_time', matchSubsUsed: 0, matchSubbedOffIds: [], preMatchLeaguePosition: preMatchPos,
+    // Second half hasn't started; segments resume from the break.
+    secondHalfSimulatedTo: 45,
     // Clear the pre-match talk so the half-time team-talk sheet opens fresh at
     // 'none' — the pre-match talk affected the first half only (G3).
     matchTeamTalk: 'none',
@@ -1082,7 +1134,18 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   }
 }
 
-export function playSecondHalfImpl(set: Set, get: Get): Match | null {
+/**
+ * Simulate the interactive second half up to `untilMin`.
+ *
+ * `untilMin` defaults to 90, which reproduces the original whole-half behaviour
+ * exactly — callers that don't opt into segmentation are unaffected. When it is
+ * below 90 the match is NOT finalised: the updated HalfState is stored, the phase
+ * stays `second_half`, and the caller resumes by calling again with the next
+ * boundary. Resuming re-reads the club's CURRENT lineup, subs and shouts, which is
+ * the entire point — decisions made during playback now affect the minutes that
+ * follow instead of being theatre.
+ */
+export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): Match | null {
   const state = get();
   const { week, fixtures, clubs, players, playerClubId, tactics, training, halfTimeState, currentMatchWeather, season } = state;
   if (!halfTimeState) return null;
@@ -1198,7 +1261,29 @@ export function playSecondHalfImpl(set: Set, get: Get): Match | null {
   const combinedMods = mergeGamePlanMods(talkAndShoutMods, state.matchGamePlan);
 
   const spCoachBonus2H = hasPerk(state.managerProgression, 'set_piece_coach') ? 0.009 * dynastyMult(state.managerProgression) : 0;
-  const fullState = simulateHalf(hc, ac, hp, ap, 46, 90, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, secondHalfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities, season, secondHalfCareerMod, undefined, undefined, combinedMods, currentMatchWeather ?? undefined, spCoachBonus2H);
+  // Resume from wherever the last segment finished (45 at the break).
+  const resumeFrom = Math.max(45, state.secondHalfSimulatedTo || 45) + 1;
+  const segmentEnd = Math.max(resumeFrom, Math.min(90, Math.round(untilMin)));
+  const fullState = simulateHalf(hc, ac, hp, ap, resumeFrom, segmentEnd, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, secondHalfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities, season, secondHalfCareerMod, undefined, undefined, combinedMods, currentMatchWeather ?? undefined, spCoachBonus2H);
+
+  // Partial segment: bank the state and hand control back so the player can act
+  // before the next stretch is simulated. Deliberately does NOT finalise — no
+  // ratings, no tournament processing, no save.
+  if (segmentEnd < 90) {
+    set({
+      halfTimeState: fullState,
+      secondHalfSimulatedTo: segmentEnd,
+      matchPhase: 'second_half',
+    });
+    return {
+      ...match,
+      played: false,
+      homeGoals: fullState.homeGoals,
+      awayGoals: fullState.awayGoals,
+      events: fullState.events,
+    } as Match;
+  }
+
   // `players` lookup lets finalizeMatch rate half-time-subbed-out starters
   // (they're missing from hp/ap — the lineup was edited at the break)
   const { result, playerRatings } = finalizeMatch(match, hc, ac, hp, ap, fullState, players);
@@ -1300,16 +1385,16 @@ export function playSecondHalfImpl(set: Set, get: Get): Match | null {
     const hc2 = clubs[m.homeClubId];
     const ac2 = clubs[m.awayClubId];
     if (!hc2 || !ac2) continue;
-    const hAvail3 = hc2.playerIds.map(id => playersWithAI2[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week));
-    const aAvail3 = ac2.playerIds.map(id => playersWithAI2[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week));
-    const hp2 = hAvail3.slice(0, LINEUP_SIZE);
-    const ap2 = aAvail3.slice(0, LINEUP_SIZE);
+    const hSq3 = pickAiMatchSquad(hc2, playersWithAI2, week);
+    const aSq3 = pickAiMatchSquad(ac2, playersWithAI2, week);
+    const hp2 = hSq3.xi;
+    const ap2 = aSq3.xi;
     if (hp2.length === 0 || ap2.length === 0) {
       fullFixtures2[idx] = { ...m, played: true, homeGoals: hp2.length === 0 ? 0 : FORFEIT_SCORE, awayGoals: ap2.length === 0 ? 0 : FORFEIT_SCORE, events: [{ minute: 0, type: 'half_time' as const, clubId: '', description: 'Match forfeited — insufficient players' }] };
       continue;
     }
-    const { result: aiResult } = simulateMatch(m, hc2, ac2, hp2, ap2, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hAvail3.slice(11, 18), aAvail3.slice(11, 18));
-    fullFixtures2[idx] = aiResult;
+    const { result: aiResult } = simulateMatch(m, hc2, ac2, hp2, ap2, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hSq3.bench, aSq3.bench);
+    fullFixtures2[idx] = stripAiMatchDetail(aiResult, playerClubId);
     applyAIMatchEvents(aiResult.events, playersWithAI2, clubs, week, hp2, ap2, aiResult.homeGoals, aiResult.awayGoals, eloRankings2, m.homeClubId, m.awayClubId);
     updateEloRatings(eloRankings2, m.homeClubId, m.awayClubId, aiResult.homeGoals, aiResult.awayGoals, 'league');
   }
@@ -1762,7 +1847,7 @@ export function skipPenaltyShootoutImpl(set: Set, get: Get): void {
   if (!halfTimeState) {
     Sentry.captureMessage('[Penalties] halfTimeState missing — aborting finalization', 'error');
     set({
-      matchPhase: 'none',
+      matchPhase: 'none', secondHalfSimulatedTo: 45,
       penaltyShootoutKicks: [],
       penaltyShootoutRevealIndex: 0,
       penaltyShootoutCtx: null,

@@ -10,9 +10,12 @@ import { formatMoney } from '@/utils/helpers';
 import { useFinanceBreakdown } from '@/hooks/useFinanceBreakdown';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { FinanceBreakdownSheet, FinanceSheetMode } from '@/components/game/FinanceBreakdownSheet';
+import { assessFfp } from '@/utils/financeHelpers';
+import { FFP_WAGE_RATIO_WARNING, FFP_WAGE_RATIO_CRITICAL } from '@/config/gameBalance';
 import { SponsorshipPanel } from '@/components/game/SponsorshipPanel';
 import { AnimatedNumber } from '@/components/game/AnimatedNumber';
 import { useFlash } from '@/hooks/useFlash';
+import { SectionHeader } from '@/components/game/SectionHeader';
 
 const FinancePage = () => {
   const { clubs, playerClubId, players, financeHistory, careerManager } = useGameStore(useShallow(s => ({
@@ -68,14 +71,20 @@ const FinancePage = () => {
   return (
     <>
     <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
-      <h2 className="text-lg font-display font-bold text-foreground">Finance</h2>
+      <SectionHeader title="Finance" />
       <PageHint screen="finance" title={PAGE_HINTS.finance.title} body={PAGE_HINTS.finance.body} />
 
       {/* Negative Budget Warning */}
       {club.budget < 0 && (
         <div className="flex items-center gap-2 bg-destructive/10 border border-destructive/30 rounded-xl px-3 py-2">
           <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
-          <p className="text-xs text-destructive font-medium">Your club is in debt. The board may intervene if finances don't improve.</p>
+          {/* Was "The board may intervene if finances don't improve" — nothing in
+              the game reacted to a negative balance, so the warning promised a
+              consequence that never arrived. State what is actually true: a
+              negative budget blocks every fee signing (executeTransfer requires
+              fee ≤ budget), and the cost-to-revenue ratio below is what the
+              board actually penalises. */}
+          <p className="text-xs text-destructive font-medium">Your club is in debt. You cannot make signings until the balance is positive — sell players or cut wages.</p>
         </div>
       )}
 
@@ -136,7 +145,7 @@ const FinancePage = () => {
             </span>
           </div>
           {netPerWeek < 0 && club.budget > 0 && (
-            <p className="text-[10px] text-amber-400 mt-1">
+            <p className="text-micro text-amber-400 mt-1">
               At current spending, budget runs out in ~{Math.ceil(club.budget / Math.abs(netPerWeek))} weeks
             </p>
           )}
@@ -152,11 +161,11 @@ const FinancePage = () => {
           </div>
           <p className="text-lg font-bold text-emerald-400 tabular-nums">{formatMoney(weeklyIncome)}</p>
           <div className="mt-2 space-y-1">
-            <div className="flex justify-between text-[10px]">
+            <div className="flex justify-between text-micro">
               <span className="text-muted-foreground">Matchday</span>
               <span className="text-foreground">{formatMoney(breakdown?.income.find(i => i.label === 'Matchday')?.amount ?? 0)}</span>
             </div>
-            <div className="flex justify-between text-[10px]">
+            <div className="flex justify-between text-micro">
               <span className="text-muted-foreground">Commercial</span>
               <span className="text-foreground">{formatMoney(breakdown?.income.find(i => i.label === 'Commercial')?.amount ?? 0)}</span>
             </div>
@@ -169,12 +178,12 @@ const FinancePage = () => {
           </div>
           <p className="text-lg font-bold text-destructive tabular-nums">{formatMoney(displayExpenses)}</p>
           <div className="mt-2 space-y-1">
-            <div className="flex justify-between text-[10px]">
+            <div className="flex justify-between text-micro">
               <span className="text-muted-foreground">Player Wages</span>
               <span className="text-foreground">{formatMoney(totalWages)}</span>
             </div>
             {managerSalary > 0 && (
-              <div className="flex justify-between text-[10px]">
+              <div className="flex justify-between text-micro">
                 <span className="text-muted-foreground">Manager Salary</span>
                 <span className="text-foreground">{formatMoney(managerSalary)}</span>
               </div>
@@ -188,10 +197,17 @@ const FinancePage = () => {
 
       {/* Financial Fair Play */}
       {(() => {
-        const noIncome = weeklyIncome <= 0 && club.wageBill > 0;
-        const wageRatio = weeklyIncome > 0 ? club.wageBill / weeklyIncome : (club.wageBill > 0 ? 1 : 0);
-        const ratioPct = Math.round(wageRatio * 100);
-        const ffpStatus = noIncome ? 'critical' : ratioPct >= 90 ? 'critical' : ratioPct >= 70 ? 'warning' : 'healthy';
+        // ONE FFP measurement, shared with the board's weekly penalty via
+        // assessFfp(). This block used to compute `club.wageBill / weeklyIncome`
+        // — player wages only, against a hardcoded 70/90 — while weekAdvance
+        // charged confidence on TOTAL expenses (staff, scouting, manager salary
+        // included) against the config thresholds. Players read
+        // "62% — Healthy" while the board applied −6 confidence a week.
+        const ffp = assessFfp(displayExpenses, weeklyIncome);
+        const { noIncome, status: ffpStatus } = ffp;
+        const ratioPct = Math.round(ffp.ratio * 100);
+        const warningPct = Math.round(FFP_WAGE_RATIO_WARNING * 100);
+        const criticalPct = Math.round(FFP_WAGE_RATIO_CRITICAL * 100);
         const statusColor = ffpStatus === 'critical' ? 'text-destructive' : ffpStatus === 'warning' ? 'text-amber-400' : 'text-emerald-400';
         const statusBg = ffpStatus === 'critical' ? 'bg-destructive/20' : ffpStatus === 'warning' ? 'bg-amber-400/20' : 'bg-emerald-500/20';
         const statusText = noIncome ? 'Critical — No Revenue' : ffpStatus === 'critical' ? 'Critical — Restrictions Active' : ffpStatus === 'warning' ? 'Warning — Board Concern' : 'Healthy';
@@ -202,7 +218,7 @@ const FinancePage = () => {
               <h3 className="text-sm font-semibold text-foreground">Financial Fair Play</h3>
             </div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-muted-foreground">Wage-to-Revenue Ratio</span>
+              <span className="text-xs text-muted-foreground">Cost-to-Revenue Ratio</span>
               <span className={cn('text-sm font-bold tabular-nums', statusColor)}>{ratioPct}%</span>
             </div>
             <div className="relative w-full h-3 rounded-full bg-muted/40 overflow-hidden mb-2">
@@ -210,24 +226,24 @@ const FinancePage = () => {
                 className={cn('h-full rounded-full transition-all', ffpStatus === 'critical' ? 'bg-destructive' : ffpStatus === 'warning' ? 'bg-amber-500' : 'bg-emerald-500')}
                 style={{ width: `${Math.min(100, ratioPct)}%` }}
               />
-              <div className="absolute top-0 bottom-0 w-px bg-amber-400/60" style={{ left: '70%' }} />
-              <div className="absolute top-0 bottom-0 w-px bg-destructive/60" style={{ left: '90%' }} />
+              <div className="absolute top-0 bottom-0 w-px bg-amber-400/60" style={{ left: `${warningPct}%` }} />
+              <div className="absolute top-0 bottom-0 w-px bg-destructive/60" style={{ left: `${criticalPct}%` }} />
             </div>
-            <div className="flex justify-between text-[9px] text-muted-foreground mb-2">
+            <div className="flex justify-between text-micro text-muted-foreground mb-2">
               <span>0%</span>
-              <span className="text-amber-400">70%</span>
-              <span className="text-destructive">90%</span>
+              <span className="text-amber-400">{warningPct}%</span>
+              <span className="text-destructive">{criticalPct}%</span>
               <span>100%</span>
             </div>
-            <div className={cn('text-[10px] font-semibold px-2 py-1 rounded-md text-center', statusColor, statusBg)}>
+            <div className={cn('text-micro font-semibold px-2 py-1 rounded-md text-center', statusColor, statusBg)}>
               {statusText}
             </div>
-            <p className="text-[9px] text-muted-foreground/60 mt-2 leading-relaxed">
+            <p className="text-micro text-muted-foreground/60 mt-2 leading-relaxed">
               {ffpStatus === 'critical'
-                ? 'Your wage bill is dangerously high. Board confidence drops sharply each week. Reduce wages by selling players or renegotiating contracts.'
+                ? `Your total weekly costs are above ${criticalPct}% of revenue. Board confidence drops sharply every week. Cut wages by selling players or renegotiating contracts.`
                 : ffpStatus === 'warning'
-                ? 'Wages are above 70% of revenue. Board confidence will slowly decline. Consider offloading high earners.'
-                : 'Finances are sustainable. Keep wage-to-revenue ratio below 70% to stay in good standing with the board.'}
+                ? `Total weekly costs are above ${warningPct}% of revenue. Board confidence declines every week. Consider offloading high earners.`
+                : `Finances are sustainable. Keep total weekly costs — player wages, staff, scouting and your own salary — below ${warningPct}% of revenue to stay in good standing with the board.`}
             </p>
           </GlassPanel>
         );

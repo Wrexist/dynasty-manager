@@ -5,6 +5,8 @@ import type { Club, Player } from '@/types/game';
 import { resolveClub } from '@/utils/helpers';
 import { guardAsync } from '@/utils/asyncGuard';
 import { GlassPanel } from '@/components/game/GlassPanel';
+import { ClubCrest } from '@/components/game/ClubCrest';
+import { SPRING_SOFT } from '@/config/motion';
 import { EmptyState } from '@/components/EmptyState';
 import { ChevronRight, Flame, Calendar, HeartPulse, Star, TrendingUp, TrendingDown, Minus, MapPin, Shield, ArrowLeft, ArrowRight, Trophy, ArrowUp, ArrowDown, Lightbulb } from 'lucide-react';
 import { AdRewardButton } from '@/components/game/AdRewardButton';
@@ -68,7 +70,8 @@ import { YellowCardIcon, RedCardIcon } from '@/components/game/PlayerAvatar';
 import { getSuffix } from '@/utils/helpers';
 import { PageHint } from '@/components/game/PageHint';
 import { findTournamentMatch } from '@/hooks/useGameSelectors';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 
 const MatchReview = () => {
   const { currentMatchResult, clubs, players, playerClubId, boardConfidence, matchPlayerRatings, week, divisionFixtures, playerDivision, divisionTables, boardObjectives, monetization, lastMatchCompetition, virtualClubs } = useGameStore(useShallow(s => ({
@@ -92,7 +95,7 @@ const MatchReview = () => {
   useEffect(() => () => clearTimeout(advanceTimerRef.current), []);
   const [highlightFilter, setHighlightFilter] = useState<'all' | 'us' | 'goals'>('all');
 
-  const reducedMotion = useReducedMotion();
+  const reducedMotion = useReducedMotionPref();
 
   const matchInsights = useMemo(
     () => currentMatchResult ? generateMatchInsights(currentMatchResult, playerClubId) : [],
@@ -275,7 +278,7 @@ const MatchReview = () => {
             return (
               <div className="flex justify-center mb-1">
                 <span className={cn(
-                  'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border',
+                  'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-micro font-bold uppercase tracking-wider border',
                   compInfo.bg
                 )}>
                   <Trophy className="w-2.5 h-2.5" />
@@ -287,7 +290,7 @@ const MatchReview = () => {
           {/* Home/Away + Venue */}
           <div className="flex items-center justify-center gap-2 mb-1">
             <span className={cn(
-              'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest',
+              'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-micro font-bold uppercase tracking-widest',
               isHome
                 ? 'bg-primary/15 text-primary border border-primary/30'
                 : 'bg-muted/40 text-muted-foreground border border-border/50'
@@ -295,27 +298,27 @@ const MatchReview = () => {
               {isHome ? <><Shield className="w-2.5 h-2.5" /> Home</> : <><ArrowLeft className="w-2.5 h-2.5" /> Away</>}
             </span>
             {homeClub.stadiumName && (
-              <span className="inline-flex items-center gap-1 text-[9px] text-muted-foreground/60">
+              <span className="inline-flex items-center gap-1 text-micro text-muted-foreground/60">
                 <MapPin className="w-2.5 h-2.5" /> {homeClub.stadiumName}
               </span>
             )}
           </div>
           <div className="flex items-center justify-center gap-4 my-3">
             <div className="text-center">
-              <div className="w-12 h-12 rounded-full mx-auto mb-1" style={{ backgroundColor: homeClub.color }} />
-              <p className="text-xs font-bold text-foreground">{homeClub.shortName}</p>
+              <ClubCrest club={homeClub} size="lg" className="mx-auto mb-1" />
+              <p className="text-caption font-bold text-foreground">{homeClub.shortName}</p>
             </div>
             <motion.p
               initial={{ scale: 0.5, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.3, duration: 0.4, type: 'spring', stiffness: 200 }}
+              transition={{ ...SPRING_SOFT, delay: 0.3 }}
               className="text-4xl font-black text-foreground font-display tabular-nums"
             >
               {match.homeGoals} - {match.awayGoals}
             </motion.p>
             <div className="text-center">
-              <div className="w-12 h-12 rounded-full mx-auto mb-1" style={{ backgroundColor: awayClub.color }} />
-              <p className="text-xs font-bold text-foreground">{awayClub.shortName}</p>
+              <ClubCrest club={awayClub} size="lg" className="mx-auto mb-1" />
+              <p className="text-caption font-bold text-foreground">{awayClub.shortName}</p>
             </div>
           </div>
         </GlassPanel>
@@ -350,13 +353,13 @@ const MatchReview = () => {
               style={{ borderColor: accentColor }}
               aria-label={`View ${p.firstName} ${p.lastName}`}
             >
-              {variant === 'gk' && <span className="text-[9px] font-bold text-red-400 uppercase">GK</span>}
+              {variant === 'gk' && <span className="text-micro font-bold text-red-400 uppercase">GK</span>}
               <FlagIcon nationality={p.nationality} size={12} />
               <span className="text-[11px] font-semibold text-foreground leading-none">
                 {p.firstName} {p.lastName}
               </span>
               <span
-                className="text-[10px] font-bold tabular-nums leading-none"
+                className="text-micro font-bold tabular-nums leading-none"
                 style={{ color: accentColor }}
               >
                 {p.overall}
@@ -376,7 +379,7 @@ const MatchReview = () => {
                     type="button"
                     onClick={() => setHighlightFilter(f)}
                     className={cn(
-                      'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider transition-colors',
+                      'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-micro font-semibold uppercase tracking-wider transition-colors',
                       highlightFilter === f
                         ? 'bg-primary text-primary-foreground'
                         : 'text-muted-foreground hover:text-foreground'
@@ -385,7 +388,7 @@ const MatchReview = () => {
                   >
                     <span>{f === 'us' ? 'Us' : f === 'goals' ? 'Goals' : 'All'}</span>
                     <span className={cn(
-                      'text-[9px] font-bold tabular-nums',
+                      'text-micro font-bold tabular-nums',
                       highlightFilter === f ? 'opacity-80' : 'opacity-50'
                     )}>
                       {highlightCounts[f]}
@@ -482,9 +485,9 @@ const MatchReview = () => {
                           {renderPlayerPill(evPlayer, isOwnGoal ? 'own-goal' : 'scorer')}
                           {isOwnGoal && (
                             <>
-                              <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider" aria-hidden>(OG)</span>
+                              <span className="text-micro font-bold text-amber-400 uppercase tracking-wider" aria-hidden>(OG)</span>
                               {benefitingClubShort && (
-                                <span className="text-[10px] text-muted-foreground/80 font-medium tabular-nums inline-flex items-center gap-1" aria-hidden>
+                                <span className="text-micro text-muted-foreground/80 font-medium tabular-nums inline-flex items-center gap-1" aria-hidden>
                                   <ArrowRight className="w-3 h-3 text-amber-400/80 shrink-0" />
                                   {benefitingClubShort}
                                 </span>
@@ -496,7 +499,7 @@ const MatchReview = () => {
                             <button
                               type="button"
                               onClick={() => selectPlayer(assistPlayer.id)}
-                              className="inline-flex items-center gap-1 text-[10px] text-primary/70 hover:text-primary transition-colors focus:outline-none"
+                              className="inline-flex items-center gap-1 text-micro text-primary/70 hover:text-primary transition-colors focus:outline-none"
                               aria-label={`View ${assistPlayer.firstName} ${assistPlayer.lastName}`}
                             >
                               <span>assist</span>
@@ -513,8 +516,8 @@ const MatchReview = () => {
                     const content = (
                       <div className={cn('flex flex-col gap-1 min-w-0', isHomeTeamEvent ? 'items-end text-right' : 'items-start text-left')}>
                         <div className={cn('flex items-center gap-2', isHomeTeamEvent && 'flex-row-reverse')}>
-                          <span className="text-[10px] font-mono text-primary tabular-nums">{ev.displayMinute ?? ev.minute}'</span>
-                          <span className={cn('text-[10px] font-bold uppercase tracking-wider', toneClass.text)}>{label}</span>
+                          <span className="text-micro text-primary tabular-nums">{ev.displayMinute ?? ev.minute}'</span>
+                          <span className={cn('text-micro font-bold uppercase tracking-wider', toneClass.text)}>{label}</span>
                           {evClub && (
                             <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: evClub.color }} />
                           )}
@@ -578,7 +581,7 @@ const MatchReview = () => {
                   </span>
                   {scorer && (
                     <span
-                      className="text-[10px] font-bold tabular-nums shrink-0"
+                      className="text-micro font-bold tabular-nums shrink-0"
                       style={{ color: getRatingHex(scorer.overall) }}
                     >
                       {scorer.overall}
@@ -596,9 +599,9 @@ const MatchReview = () => {
       {match.stats && (
         <GlassPanel className="p-4">
           <h3 className="text-sm font-semibold text-foreground mb-2">Match Stats</h3>
-          <div className="flex items-center justify-between text-[10px] font-bold mb-3">
+          <div className="flex items-center justify-between text-micro font-bold mb-3">
             <span style={{ color: homeBarColor }}>{homeClub.shortName}</span>
-            <span className="text-muted-foreground/40 uppercase tracking-widest text-[8px]">vs</span>
+            <span className="text-muted-foreground/40 uppercase tracking-widest text-micro">vs</span>
             <span style={{ color: awayBarColor }}>{awayClub.shortName}</span>
           </div>
           <div className="space-y-2.5">
@@ -616,7 +619,7 @@ const MatchReview = () => {
                 <div key={label}>
                   <div className="flex items-center justify-between text-xs mb-1">
                     <span className="tabular-nums font-medium" style={{ color: homeBarColor }}>{home}</span>
-                    <span className="text-muted-foreground text-[10px]">{label}</span>
+                    <span className="text-muted-foreground text-micro">{label}</span>
                     <span className="tabular-nums font-medium" style={{ color: awayBarColor }}>{away}</span>
                   </div>
                   <div className="flex h-1.5 rounded-full overflow-hidden gap-0.5">
@@ -687,7 +690,7 @@ const MatchReview = () => {
           <GlassPanel className="p-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-semibold text-foreground">Top Performers</h3>
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Tap to view</span>
+              <span className="text-micro uppercase tracking-wider text-muted-foreground">Tap to view</span>
             </div>
             <div className="space-y-2.5">
               {topThree.map((r, idx) => {
@@ -729,7 +732,7 @@ const MatchReview = () => {
                       aria-label={`Open ${player.firstName} ${player.lastName}`}
                     >
                       {isMotm && (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-primary">
+                        <span className="inline-flex items-center gap-1 text-micro font-bold uppercase tracking-wider text-primary">
                           <Star className="w-3 h-3 fill-primary" /> Man of the Match
                         </span>
                       )}
@@ -883,12 +886,12 @@ const MatchReview = () => {
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] text-primary uppercase tracking-wider font-semibold">Man of the Match</p>
+                <p className="text-micro text-primary uppercase tracking-wider font-semibold">Man of the Match</p>
                 <p className="text-sm font-bold text-foreground truncate flex items-center gap-1.5">
                   <FlagIcon nationality={bestPlayer.nationality} size={14} className="shrink-0" />
                   {bestPlayer.firstName} {bestPlayer.lastName}
                 </p>
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-micro text-muted-foreground">
                   {best.goals > 0 ? `${best.goals}G ` : ''}{best.assists > 0 ? `${best.assists}A ` : ''}{bestPlayer.position}
                 </p>
               </div>
@@ -908,14 +911,14 @@ const MatchReview = () => {
             : 'The board is concerned. Results must improve immediately.'}
         </p>
         <div className="flex items-center gap-2 mt-2">
-          <span className="text-[10px] text-muted-foreground">Confidence:</span>
+          <span className="text-micro text-muted-foreground">Confidence:</span>
           <div className="flex-1 h-1.5 bg-muted/50 rounded-full overflow-hidden">
             <div
               className={cn('h-full rounded-full', getConfidenceColor(boardConfidence).bgClass)}
               style={{ width: `${boardConfidence}%` }}
             />
           </div>
-          <span className="text-[10px] font-semibold text-foreground tabular-nums">{boardConfidence}%</span>
+          <span className="text-micro font-semibold text-foreground tabular-nums">{boardConfidence}%</span>
         </div>
       </GlassPanel>
 
@@ -946,7 +949,7 @@ const MatchReview = () => {
                     : `Holding ${newPos}${getSuffix(newPos)}`}
                 </p>
                 {delta !== 0 && (
-                  <p className="text-[10px] text-muted-foreground inline-flex items-center gap-1">
+                  <p className="text-micro text-muted-foreground inline-flex items-center gap-1">
                     <span>{oldPos}{getSuffix(oldPos)}</span>
                     <ArrowRight className="w-2.5 h-2.5 text-muted-foreground/70 shrink-0" aria-hidden />
                     <span>{newPos}{getSuffix(newPos)} in the table</span>
@@ -976,7 +979,7 @@ const MatchReview = () => {
             <GlassPanel className="p-4 border-border/30">
               <div className="flex items-center gap-2 mb-2">
                 <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Season Progress</p>
+                <p className="text-micro text-muted-foreground uppercase tracking-wider">Season Progress</p>
               </div>
               <p className="text-sm text-foreground">
                 {remainingMatches > 0
@@ -1027,16 +1030,14 @@ const MatchReview = () => {
           <GlassPanel className="p-4 border-primary/20">
             <div className="flex items-center gap-2 mb-2">
               <Calendar className="w-3.5 h-3.5 text-primary" />
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Coming Up — Week {nextFixture.week}</p>
+              <p className="text-micro text-muted-foreground uppercase tracking-wider">Coming Up — Week {nextFixture.week}</p>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ backgroundColor: opponent.color, color: opponent.secondaryColor }}>
-                  {opponent.shortName}
-                </div>
+                <ClubCrest club={opponent} size="md" />
                 <div>
                   <p className="text-sm font-bold text-foreground">{opponent.name}</p>
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-micro text-muted-foreground">
                     {isNextHome ? 'Home' : 'Away'}{oppPos > 0 ? ` · ${oppPos}${getSuffix(oppPos)} in table` : ''}
                   </p>
                 </div>
@@ -1045,7 +1046,7 @@ const MatchReview = () => {
                 <div className="flex gap-0.5">
                   {oppForm.map((f, i) => (
                     <span key={`${f}-${i}`} className={cn(
-                      'w-4 h-4 rounded-sm flex items-center justify-center text-[8px] font-bold',
+                      'w-4 h-4 rounded-sm flex items-center justify-center text-micro font-bold',
                       f === 'W' ? 'bg-emerald-500/20 text-emerald-400' :
                       f === 'L' ? 'bg-destructive/20 text-destructive' :
                       'bg-amber-500/20 text-amber-400'

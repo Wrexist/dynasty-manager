@@ -5,6 +5,7 @@ import { GROWTH_YOUTH_PER_PROMOTION, STAT_MAX as CAREER_STAT_MAX } from '@/confi
 import { createAssignment } from '@/utils/scouting';
 import { STARTING_TACTICAL_FAMILIARITY, FACILITY_COST_PER_LEVEL, FACILITY_BASE_UPGRADE_WEEKS, FACILITY_MAX_LEVEL, STAND_COST_PER_LEVEL, STAND_BASE_UPGRADE_WEEKS, MAX_SQUAD_SIZE } from '@/config/gameBalance';
 import { MAX_TACTICAL_PRESETS } from '@/config/monetization';
+import { isPro } from '@/utils/monetization';
 import {
   STAFF_HIRING_FEE_WEEKS,
   STAFF_PRAISE_GAIN, STAFF_CRITICIZE_LOSS, STAFF_INTERACTION_COOLDOWN,
@@ -39,6 +40,11 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
 
   saveTacticalPreset: (name: string) => {
     const state = get();
+    // Pro entitlement guard — custom tactical presets are a listed Pro feature
+    // (`custom_tactics`). The UI gates this at TacticsPage, but mirror
+    // `autoFillTeam`'s slice-level re-check so a non-UI caller can't bypass the
+    // paywall. Same defense-in-depth boundary, same reasoning.
+    if (!isPro(state.monetization)) return;
     if (state.tacticalPresets.length >= MAX_TACTICAL_PRESETS) return;
     const club = state.clubs[state.playerClubId];
     if (!club) return;
@@ -108,14 +114,22 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
     return { training: { ...s.training, individualPlans: plans } };
   }),
 
+  // Returns a {success, message} result so the caller can toast honestly. This
+  // used to return void and silently no-op on an unaffordable fee while
+  // StaffPage fired an unconditional "Staff Hired" toast.
   hireStaff: (staffId: string) => {
     const state = get();
     const hire = state.staff.availableHires.find(s => s.id === staffId);
-    if (!hire) return;
+    if (!hire) return { success: false, message: 'That candidate is no longer available.' };
     const club = state.clubs[state.playerClubId];
-    if (!club) return;
+    if (!club) return { success: false, message: 'No club found.' };
     const hiringFee = hire.wage * STAFF_HIRING_FEE_WEEKS;
-    if (club.budget < hiringFee) return;
+    if (club.budget < hiringFee) {
+      return {
+        success: false,
+        message: `Insufficient budget — the signing fee is £${Math.round(hiringFee / 1000)}K and you have £${Math.round(club.budget / 1000)}K.`,
+      };
+    }
     // One staff per role — auto-release existing holder
     const existing = state.staff.members.find(s => s.role === hire.role);
     const membersAfterRelease = existing
@@ -144,6 +158,10 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
       scouting: { ...state.scouting, maxAssignments: scoutCount },
       messages: newMessages,
     });
+    return {
+      success: true,
+      message: `${hire.firstName} ${hire.lastName} has joined the club as ${hire.role.replace(/-/g, ' ')}.`,
+    };
   },
 
   fireStaff: (staffId: string) => {

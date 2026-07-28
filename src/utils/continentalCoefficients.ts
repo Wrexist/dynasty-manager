@@ -9,6 +9,7 @@ import {
   COEFF_SHIELD_MULTIPLIER, COEFF_CONFERENCE_MULTIPLIER,
   COEFF_SEASON_WINDOW, COEFF_SEASON_WEIGHTS,
   COEFF_SEEDING_BLEND,
+  isPlaceholderClubId,
 } from '@/config/continental';
 
 /** Calculate coefficient points earned by a club in a single continental tournament */
@@ -66,10 +67,18 @@ export function updateCoefficients(
 ): Record<string, ContinentalCoefficient> {
   const updated = { ...existing };
 
-  // Collect all club IDs from the tournament
+  // Collect all club IDs from the tournament. Legacy `placeholder-*` filler
+  // (fabricated when the qualification tables came up short of 32 — see
+  // continentalDraw.ts) is excluded: it belongs to no league, so crediting it
+  // with coefficient points both persists a dead id forever and, because
+  // `leagueRanking` averages coefficients over a league's clubs, could not be
+  // attributed to anything meaningful anyway.
   const clubIds = new Set<string>();
   for (const group of tournament.groups) {
-    for (const clubId of group.clubIds) clubIds.add(clubId);
+    for (const clubId of group.clubIds) {
+      if (isPlaceholderClubId(clubId)) continue;
+      clubIds.add(clubId);
+    }
   }
 
   for (const clubId of clubIds) {
@@ -96,6 +105,11 @@ export function updateCoefficients(
   // forever — permanently inflating its league's coefficient ranking and
   // continental spot allocation.
   for (const [clubId, coeff] of Object.entries(updated)) {
+    // Drop legacy fabricated filler carried in from an older save.
+    if (isPlaceholderClubId(clubId)) {
+      delete updated[clubId];
+      continue;
+    }
     const pruned: Record<number, number> = {};
     for (const [s, pts] of Object.entries(coeff.seasonPoints)) {
       if (Number(s) > season - COEFF_SEASON_WINDOW) pruned[Number(s)] = pts;

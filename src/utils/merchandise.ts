@@ -16,22 +16,36 @@ import {
   STAR_PLAYER_SALE_DIP_FACTOR, STAR_SIGNING_BUZZ_FACTOR,
   MERCH_CAMPAIGNS,
   CAMPAIGN_KIT_LAUNCH_MAX_WEEK, CAMPAIGN_TITLE_RACE_MAX_POSITION,
-  CAMPAIGN_END_OF_SEASON_MIN_WEEK, CAMPAIGN_HOLIDAY_MIN_WEEK, CAMPAIGN_HOLIDAY_MAX_WEEK,
+  CAMPAIGN_END_OF_SEASON_MIN_WEEK, CAMPAIGN_END_OF_SEASON_WEEK_FRACTION,
+  CAMPAIGN_HOLIDAY_MIN_WEEK, CAMPAIGN_HOLIDAY_MAX_WEEK,
   CAMPAIGN_STAR_SIGNING_MIN_VALUE,
   WIN_STREAK_BONUS_THRESHOLD, WIN_STREAK_BONUS_PER_WIN, WIN_STREAK_BONUS_CAP,
   DERBY_BUZZ_FACTOR,
   SIGNATURE_DROP_BASE_BONUS, SIGNATURE_DROP_BONUS_PER_MARKET,
+  MARKETABILITY_PER_CONTRIBUTION, MARKETABILITY_CONTRIBUTION_CAP,
 } from '@/config/merchandise';
 import { hasPerk } from '@/utils/managerPerks';
 
-/** Calculate a player's marketability score (higher = more shirt sales) */
+/**
+ * Calculate a player's marketability score (higher = more shirt sales).
+ *
+ * Returns roughly 30-100 for a playing squad member. The goals+assists term is
+ * CAPPED: it used to be uncapped `(goals + assists) * 2`, which — because the
+ * score is multiplied by `STAR_PLAYER_MERCH_FACTOR` — bought a permanent slice
+ * of weekly revenue for every goal scored, forever. A 40-goal season alone
+ * added 80 points of marketability, more than the rest of the formula combined.
+ */
 export function getPlayerMarketability(player: Player): number {
-  // Base from overall rating (0-100)
-  let score = player.overall * 0.4;
-  // Performance: goals + assists this season
-  score += (player.goals + player.assists) * 2;
   // Must actually play to be marketable
   if (player.appearances < 3) return 0;
+  // Base from overall rating (0-100)
+  let score = player.overall * 0.4;
+  // Performance: goals + assists this season, capped so a hot streak can't
+  // compound without limit.
+  score += Math.min(
+    MARKETABILITY_CONTRIBUTION_CAP,
+    (player.goals + player.assists) * MARKETABILITY_PER_CONTRIBUTION,
+  );
   score += Math.min(player.appearances, 20) * 0.5;
   // Wonderkid premium: young stars (18-25) get a bonus
   if (player.age >= 18 && player.age <= 25) score += 10;
@@ -118,19 +132,64 @@ export function calculateWeeklyMerchRevenue(
   // Derby buzz — auto-applied for a few weeks after a derby
   const derbyMult = (merch.derbyBuzzWeeks ?? 0) > 0 ? DERBY_BUZZ_FACTOR : 1;
 
-  // Star player bonus
+  // ── Star player + signature-drop demand ──
+  // These are ADDENDS TO THE REVENUE BASE, not bolt-ons to the final figure.
+  // They used to be added AFTER the whole multiplicative chain, so they
+  // bypassed the league tier scale, the active product lines, pricing strategy
+  // and campaigns entirely — three star players in the Championship generated
+  // more untouchable weekly revenue than the club's whole wage bill, and no
+  // merchandising decision the player made could affect it.
+  //
+  // Folded into the base (and tier-scaled the same way `baseRevenue` is) they
+  // now flow through every multiplier: you only monetise your stars as well as
+  // your product lines, pricing and campaigns let you.
   const starPlayers = getStarPlayerMerch(club, players);
-  const starPlayerBonus = starPlayers.reduce((sum, sp) => sum + sp.merchBonus, 0);
+  const starPlayerDemand = starPlayers.reduce((sum, sp) => sum + sp.merchBonus, 0) * divisionScale;
 
-  // Signature drop bonus (flat weekly add-on while active)
   const sigDrop = merch.signatureDrop ?? null;
-  const signatureBonus = sigDrop && sigDrop.weeksRemaining > 0 ? sigDrop.weeklyBonus : 0;
+  const signatureDemand = (sigDrop && sigDrop.weeksRemaining > 0 ? sigDrop.weeklyBonus : 0) * divisionScale;
 
   // Operating costs
   const operatingCosts = getMerchOperatingCost(merch.activeProductLines);
 
-  const grossRevenue = baseRevenue * productLineFactor * pricingMult * campaignBoost * dipBuzzMult * fanFavMult * streakMult * derbyMult;
-  return Math.max(0, Math.round(grossRevenue + starPlayerBonus + signatureBonus - operatingCosts));
+  const grossRevenue = (baseRevenue + starPlayerDemand + signatureDemand)
+    * productLineFactor * pricingMult * campaignBoost * dipBuzzMult * fanFavMult * streakMult * derbyMult;
+  // NOT clamped at 0: a merchandising operation whose running costs exceed its
+  // revenue is a real loss and must show up as one. The old `Math.max(0, …)`
+  // made merchandise a risk-free bet and desynced the finance breakdown's
+  // reported gross from the money actually applied.
+  return Math.round(grossRevenue - operatingCosts);
+}
+
+/**
+ * The actual weekly revenue delta a signature drop for `player` would produce,
+ * i.e. the number worth showing the user. `getSignatureDropBonus` returns the
+ * raw demand addend, which then flows through the tier scale, product-line
+ * factor, pricing and campaign multipliers — so the raw figure overstates the
+ * benefit (badly, if only one product line is active).
+ */
+export function getSignatureDropRevenueDelta(
+  merch: MerchState,
+  club: Club,
+  players: Record<string, Player>,
+  division: LeagueId,
+  managerProgression: ManagerProgression,
+  player: Player,
+): number {
+  const weeklyBonus = getSignatureDropBonus(player);
+  const withDrop: MerchState = {
+    ...merch,
+    signatureDrop: {
+      playerId: player.id,
+      playerName: `${player.firstName} ${player.lastName}`,
+      weeksRemaining: 1,
+      totalWeeks: 1,
+      weeklyBonus,
+    },
+  };
+  const before = calculateWeeklyMerchRevenue(merch, club, players, division, managerProgression);
+  const after = calculateWeeklyMerchRevenue(withDrop, club, players, division, managerProgression);
+  return Math.max(0, after - before);
 }
 
 /** Compute the per-week bonus a player would generate as a signature drop. */
@@ -138,6 +197,17 @@ export function getSignatureDropBonus(player: Player): number {
   const market = getPlayerMarketability(player);
   if (market <= 0) return 0;
   return Math.round(SIGNATURE_DROP_BASE_BONUS + market * SIGNATURE_DROP_BONUS_PER_MARKET);
+}
+
+/**
+ * First week the End of Season Sale becomes available, scaled to the league's
+ * season length. The old hardcoded week 38 was past the final week in 33 of the
+ * 45 leagues (most run 34 weeks or fewer), so the campaign was dead content for
+ * the majority of the club list.
+ */
+export function getEndOfSeasonMinWeek(totalWeeks?: number): number {
+  if (!totalWeeks || totalWeeks <= 0) return CAMPAIGN_END_OF_SEASON_MIN_WEEK;
+  return Math.max(1, Math.round(totalWeeks * CAMPAIGN_END_OF_SEASON_WEEK_FRACTION));
 }
 
 /** Check if a campaign can be launched */
@@ -152,6 +222,9 @@ export function canLaunchCampaign(
     cupCurrentRound: string | null;
     hasRecentBigSigning: boolean;
     kitLaunchUsedThisSeason: boolean;
+    /** The player's league season length. Omit only for the 46-week baseline —
+     *  the End of Season Sale window scales off it. */
+    totalWeeks?: number;
   }
 ): { eligible: boolean; reason?: string } {
   const { merch, budget, week } = opts;
@@ -177,9 +250,11 @@ export function canLaunchCampaign(
       if (currentIdx < requiredIdx) return { eligible: false, reason: 'Must reach cup quarter-finals' };
       break;
     }
-    case 'end_of_season_sale':
-      if (week < CAMPAIGN_END_OF_SEASON_MIN_WEEK) return { eligible: false, reason: `Only available from week ${CAMPAIGN_END_OF_SEASON_MIN_WEEK}` };
+    case 'end_of_season_sale': {
+      const minWeek = getEndOfSeasonMinWeek(opts.totalWeeks);
+      if (week < minWeek) return { eligible: false, reason: `Only available from week ${minWeek}` };
       break;
+    }
     case 'star_signing':
       if (!opts.hasRecentBigSigning) return { eligible: false, reason: `Need a recent signing worth £${(CAMPAIGN_STAR_SIGNING_MIN_VALUE / 1e6).toFixed(0)}M+` };
       break;

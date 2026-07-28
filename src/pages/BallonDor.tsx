@@ -11,7 +11,7 @@ import { BallonDOrEntry, Player } from '@/types/game';
 import { PremiumLaurel } from '@/components/game/icons/PremiumLaurel';
 
 const RANK_MEDAL_COLORS: Record<number, { bg: string; text: string; border: string; glow: string }> = {
-  1: { bg: 'bg-[hsl(43,96%,46%)]/15', text: 'text-[hsl(43,96%,62%)]', border: 'border-[hsl(43,96%,46%)]/35', glow: 'shadow-[0_0_24px_hsl(43,96%,46%,0.28)]' },
+  1: { bg: 'bg-gold/15', text: 'text-gold', border: 'border-gold/35', glow: 'shadow-[0_0_24px_hsl(var(--gold)/0.28)]' },
   2: { bg: 'bg-[hsl(var(--silver))]/10', text: 'text-[hsl(var(--silver))]', border: 'border-[hsl(var(--silver))]/30', glow: 'shadow-[0_0_18px_hsl(var(--silver)/0.22)]' },
   3: { bg: 'bg-[hsl(var(--bronze))]/12', text: 'text-[hsl(var(--bronze))]', border: 'border-[hsl(var(--bronze))]/30', glow: 'shadow-[0_0_18px_hsl(var(--bronze)/0.22)]' },
 };
@@ -23,7 +23,8 @@ function getMedalStyle(rank: number) {
 }
 
 const HERO_TITLE_STYLE: React.CSSProperties = {
-  background: 'linear-gradient(180deg, #ffe9a8 0%, #f4c84a 55%, #b8862c 100%)',
+  background:
+    'linear-gradient(180deg, color-mix(in srgb, hsl(var(--gold)) 55%, white) 0%, hsl(var(--gold)) 55%, color-mix(in srgb, hsl(var(--gold)) 62%, black) 100%)',
   WebkitBackgroundClip: 'text',
   WebkitTextFillColor: 'transparent',
   backgroundClip: 'text',
@@ -35,14 +36,14 @@ const PageHero = ({ subtitle }: { subtitle: string }) => (
     <div
       aria-hidden
       className="absolute inset-x-0 -top-2 h-32 pointer-events-none"
-      style={{ background: 'radial-gradient(ellipse 70% 90% at 50% 30%, hsl(43,96%,46%,0.18), transparent 70%)' }}
+      style={{ background: 'radial-gradient(ellipse 70% 90% at 50% 30%, hsl(var(--gold) / 0.18), transparent 70%)' }}
     />
     <div className="relative z-10 inline-flex items-center justify-center gap-2 mb-1.5">
-      <Trophy className="w-5 h-5 text-[hsl(43,96%,56%)] drop-shadow-[0_0_10px_hsl(43,96%,46%,0.6)]" />
+      <Trophy className="w-5 h-5 text-gold drop-shadow-[0_0_10px_hsl(var(--gold)/0.6)]" />
       <h2 className="text-[26px] font-black font-display tracking-tight leading-none" style={HERO_TITLE_STYLE}>
         Ballon d&rsquo;Or
       </h2>
-      <Trophy className="w-5 h-5 text-[hsl(43,96%,56%)] drop-shadow-[0_0_10px_hsl(43,96%,46%,0.6)] scale-x-[-1]" />
+      <Trophy className="w-5 h-5 text-gold drop-shadow-[0_0_10px_hsl(var(--gold)/0.6)] scale-x-[-1]" />
     </div>
     <p className="relative z-10 text-[11px] text-muted-foreground">{subtitle}</p>
   </div>
@@ -51,28 +52,28 @@ const PageHero = ({ subtitle }: { subtitle: string }) => (
 const WinnerSpotlight = ({ entry, player, onNavigate }: { entry: BallonDOrEntry; player: Player | null; onNavigate: () => void }) => (
   <div>
     <button type="button" onClick={onNavigate} className="w-full text-left group">
-      <GlassPanel className="p-5 text-center border-[hsl(43,96%,46%)]/35 relative overflow-hidden transition-all group-hover:brightness-110 group-active:scale-[0.99]">
+      <GlassPanel className="p-5 text-center border-gold/35 relative overflow-hidden transition-all group-hover:brightness-110 group-active:scale-[0.99]">
         <div
           aria-hidden
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              'radial-gradient(circle at 50% 0%, hsl(43,96%,46%,0.22), transparent 60%),' +
-              'radial-gradient(circle at 50% 100%, hsl(43,96%,46%,0.08), transparent 55%)',
+              'radial-gradient(circle at 50% 0%, hsl(var(--gold) / 0.22), transparent 60%),' +
+              'radial-gradient(circle at 50% 100%, hsl(var(--gold) / 0.08), transparent 55%)',
           }}
         />
         <div
           aria-hidden
           className="absolute inset-x-0 top-0 h-px"
-          style={{ background: 'linear-gradient(90deg, transparent, hsl(43,96%,46%,0.55), transparent)' }}
+          style={{ background: 'linear-gradient(90deg, transparent, hsl(var(--gold) / 0.55), transparent)' }}
         />
 
         <div className="relative z-10 inline-flex items-center justify-center gap-2 mb-3">
-          <PremiumLaurel className="w-3 h-[18px] scale-x-[-1] drop-shadow-[0_0_6px_hsl(43,96%,46%,0.45)]" />
-          <p className="text-[10px] text-[hsl(43,96%,62%)] uppercase tracking-[0.32em] font-black leading-none">
+          <PremiumLaurel className="w-3 h-[18px] scale-x-[-1] drop-shadow-[0_0_6px_hsl(var(--gold)/0.45)]" />
+          <p className="text-micro text-gold uppercase tracking-[0.32em] font-black leading-none">
             Winner
           </p>
-          <PremiumLaurel className="w-3 h-[18px] drop-shadow-[0_0_6px_hsl(43,96%,46%,0.45)]" />
+          <PremiumLaurel className="w-3 h-[18px] drop-shadow-[0_0_6px_hsl(var(--gold)/0.45)]" />
         </div>
 
         <div className="relative z-10 mx-auto mb-3 inline-block">
@@ -81,7 +82,7 @@ const WinnerSpotlight = ({ entry, player, onNavigate }: { entry: BallonDOrEntry;
               <div
                 aria-hidden
                 className="absolute -inset-3 rounded-full pointer-events-none"
-                style={{ background: 'radial-gradient(circle, hsl(43,96%,46%,0.35), transparent 70%)' }}
+                style={{ background: 'radial-gradient(circle, hsl(var(--gold) / 0.35), transparent 70%)' }}
               />
               <PlayerCard
                 player={{ ...player, overall: entry.overall, position: entry.position }}
@@ -89,13 +90,13 @@ const WinnerSpotlight = ({ entry, player, onNavigate }: { entry: BallonDOrEntry;
                 interactive="none"
                 compact
               />
-              <div className="absolute -top-2 -right-2 w-9 h-9 rounded-full bg-[hsl(43,96%,46%)] flex items-center justify-center shadow-[0_4px_14px_rgba(0,0,0,0.5)]">
-                <Trophy className="w-4 h-4 text-[hsl(43,15%,15%)]" />
+              <div className="absolute -top-2 -right-2 w-9 h-9 rounded-full bg-gold flex items-center justify-center shadow-[0_4px_14px_rgba(0,0,0,0.5)]">
+                <Trophy className="w-4 h-4 text-background" />
               </div>
             </div>
           ) : (
-            <div className="w-20 h-20 rounded-full bg-[hsl(43,96%,46%)]/15 border-2 border-[hsl(43,96%,46%)]/40 flex items-center justify-center shadow-[0_0_30px_hsl(43,96%,46%,0.35)]">
-              <Trophy className="w-10 h-10 text-[hsl(43,96%,56%)]" />
+            <div className="w-20 h-20 rounded-full bg-gold/15 border-2 border-gold/40 flex items-center justify-center shadow-[0_0_30px_hsl(var(--gold)/0.35)]">
+              <Trophy className="w-10 h-10 text-gold" />
             </div>
           )}
         </div>
@@ -109,13 +110,13 @@ const WinnerSpotlight = ({ entry, player, onNavigate }: { entry: BallonDOrEntry;
             <div className="w-2.5 h-2.5 rounded-full ring-1 ring-white/15" style={{ backgroundColor: entry.clubColor }} />
             <span className="text-[12px] text-muted-foreground">{entry.clubName}</span>
           </div>
-          <span className="text-[10px] text-muted-foreground/60">·</span>
+          <span className="text-micro text-muted-foreground/60">·</span>
           <span className="text-[12px] font-bold text-primary tabular-nums">{entry.overall} OVR</span>
-          <span className="text-[10px] text-muted-foreground/60">·</span>
+          <span className="text-micro text-muted-foreground/60">·</span>
           <span className="text-[11px] text-muted-foreground">{entry.position}</span>
         </div>
 
-        <div className="relative z-10 grid grid-cols-4 gap-2 mt-4 pt-3 border-t border-[hsl(43,96%,46%)]/20">
+        <div className="relative z-10 grid grid-cols-4 gap-2 mt-4 pt-3 border-t border-gold/20">
           <StatCell label="Goals" value={entry.goals.toString()} />
           <StatCell label="Assists" value={entry.assists.toString()} />
           <StatCell label="Rating" value={entry.avgRating?.toFixed(1) ?? '-'} />
@@ -128,10 +129,10 @@ const WinnerSpotlight = ({ entry, player, onNavigate }: { entry: BallonDOrEntry;
 
 const StatCell = ({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) => (
   <div>
-    <p className={cn('text-lg font-black tabular-nums leading-none', highlight ? 'text-[hsl(43,96%,62%)]' : 'text-foreground')}>
+    <p className={cn('text-lg font-black tabular-nums leading-none', highlight ? 'text-gold' : 'text-foreground')}>
       {value}
     </p>
-    <p className="text-[9px] text-muted-foreground uppercase tracking-wider mt-1">{label}</p>
+    <p className="text-micro text-muted-foreground uppercase tracking-wider mt-1">{label}</p>
   </div>
 );
 
@@ -177,7 +178,7 @@ const RankingRow = ({ entry, isExpanded, onToggle, isPlayerClub }: {
           </p>
           <div className="flex items-center gap-1.5">
             <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: entry.clubColor }} />
-            <span className="text-[10px] text-muted-foreground truncate">
+            <span className="text-micro text-muted-foreground truncate">
               {entry.clubName} · {entry.position} · {entry.overall} OVR
             </span>
           </div>
@@ -188,7 +189,7 @@ const RankingRow = ({ entry, isExpanded, onToggle, isPlayerClub }: {
             <p className={cn('text-xs font-black tabular-nums leading-none', isPodium ? style.text : 'text-foreground')}>
               {entry.score.toFixed(1)}
             </p>
-            <p className="text-[8px] text-muted-foreground mt-0.5">pts</p>
+            <p className="text-micro text-muted-foreground mt-0.5">pts</p>
           </div>
           <motion.div
             aria-hidden
@@ -234,19 +235,19 @@ const ReigningHoldersPanel = ({ holders, onNavigate, canNavigate }: {
   onNavigate: (id: string) => void;
   canNavigate: (id: string) => boolean;
 }) => (
-  <GlassPanel className="p-4 border-[hsl(43,96%,46%)]/25 relative overflow-hidden">
+  <GlassPanel className="p-4 border-gold/25 relative overflow-hidden">
     <div
       aria-hidden
       className="absolute inset-0 pointer-events-none"
-      style={{ background: 'radial-gradient(ellipse 65% 35% at 50% 0%, hsl(43,96%,46%,0.14), transparent 70%)' }}
+      style={{ background: 'radial-gradient(ellipse 65% 35% at 50% 0%, hsl(var(--gold) / 0.14), transparent 70%)' }}
     />
     <div className="relative z-10">
       <div className="flex items-center gap-2 mb-1.5">
-        <Award className="w-3.5 h-3.5 text-[hsl(43,96%,62%)]" />
-        <h3 className="text-[10px] uppercase tracking-[0.22em] font-black text-[hsl(43,96%,62%)] leading-none flex-1">
+        <Award className="w-3.5 h-3.5 text-gold" />
+        <h3 className="text-micro uppercase tracking-[0.22em] font-black text-gold leading-none flex-1">
           Reigning Top 10
         </h3>
-        <span className="text-[10px] font-bold text-muted-foreground tabular-nums">
+        <span className="text-micro font-bold text-muted-foreground tabular-nums">
           {holders.length} active
         </span>
       </div>
@@ -271,9 +272,9 @@ const ReigningHoldersPanel = ({ holders, onNavigate, canNavigate }: {
                 <PlayerCard player={p} size="sm" interactive="none" compact />
                 <div
                   className={cn(
-                    'absolute -top-1.5 -left-1.5 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black tabular-nums border shadow-[0_2px_8px_rgba(0,0,0,0.55)]',
+                    'absolute -top-1.5 -left-1.5 w-6 h-6 rounded-full flex items-center justify-center text-micro font-black tabular-nums border shadow-[0_2px_8px_rgba(0,0,0,0.55)]',
                     i < 3
-                      ? 'bg-gradient-to-br from-[hsl(43,96%,56%)] to-[hsl(43,96%,38%)] text-black border-[hsl(43,96%,30%)]'
+                      ? 'bg-gold text-background border-gold/50'
                       : 'bg-card border-border/50 text-foreground/90',
                   )}
                 >
@@ -342,12 +343,12 @@ const SeasonCeremony = ({
                 <p className={cn('text-xs font-bold truncate', style.text)}>{entry.playerName}</p>
                 <div className="flex items-center justify-center gap-1 mt-1">
                   <div className="w-1.5 h-1.5 rounded-full ring-1 ring-white/15" style={{ backgroundColor: entry.clubColor }} />
-                  <span className="text-[10px] text-muted-foreground truncate">{entry.clubName}</span>
+                  <span className="text-micro text-muted-foreground truncate">{entry.clubName}</span>
                 </div>
                 <p className={cn('text-base font-black mt-1 tabular-nums leading-none', style.text)}>
                   {entry.score.toFixed(1)}
                 </p>
-                <p className="text-[9px] text-muted-foreground mt-0.5">{entry.goals}G · {entry.assists}A</p>
+                <p className="text-micro text-muted-foreground mt-0.5">{entry.goals}G · {entry.assists}A</p>
               </button>
             );
           })}
@@ -357,10 +358,10 @@ const SeasonCeremony = ({
       {ranking.length > 3 && (
         <GlassPanel className="p-3">
           <div className="flex items-center justify-between mb-2.5 px-1">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-[0.22em] font-bold">
+            <p className="text-micro text-muted-foreground uppercase tracking-[0.22em] font-bold">
               Full Ranking
             </p>
-            <p className="text-[10px] text-muted-foreground tabular-nums">
+            <p className="text-micro text-muted-foreground tabular-nums">
               {ranking.length} players
             </p>
           </div>
@@ -388,7 +389,7 @@ const SeasonCeremony = ({
           <div className="relative z-10">
             <div className="flex items-center gap-2 mb-2">
               <Crown className="w-3.5 h-3.5 text-primary" />
-              <p className="text-[10px] text-primary uppercase tracking-[0.22em] font-bold">
+              <p className="text-micro text-primary uppercase tracking-[0.22em] font-bold">
                 Your Players in Top 25
               </p>
             </div>
@@ -406,7 +407,7 @@ const SeasonCeremony = ({
                   <span className="text-xs font-bold text-foreground flex-1 truncate">
                     {entry.playerName}
                   </span>
-                  <span className="text-[10px] text-muted-foreground shrink-0">
+                  <span className="text-micro text-muted-foreground shrink-0">
                     {entry.goals}G · {entry.assists}A
                   </span>
                   <span className="text-xs font-black text-primary tabular-nums shrink-0">
@@ -440,18 +441,18 @@ const SeasonHeader = ({ season, winner, isOpen, isLatest, onToggle }: {
       'bg-card/60 backdrop-blur-xl hover:brightness-110 active:scale-[0.99]',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
       isLatest
-        ? 'border-[hsl(43,96%,46%)]/35 shadow-[0_4px_14px_rgba(0,0,0,0.35)]'
+        ? 'border-gold/35 shadow-[0_4px_14px_rgba(0,0,0,0.35)]'
         : 'border-border/50',
     )}
   >
-    <Trophy className={cn('w-4 h-4 shrink-0', isLatest ? 'text-[hsl(43,96%,62%)]' : 'text-muted-foreground')} />
+    <Trophy className={cn('w-4 h-4 shrink-0', isLatest ? 'text-gold' : 'text-muted-foreground')} />
     <div className="flex-1 text-left min-w-0">
       <div className="flex items-center gap-2">
-        <p className={cn('text-xs font-black tabular-nums', isLatest ? 'text-[hsl(43,96%,62%)]' : 'text-foreground')}>
+        <p className={cn('text-xs font-black tabular-nums', isLatest ? 'text-gold' : 'text-foreground')}>
           Season {season}
         </p>
         {isLatest && (
-          <span className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-[hsl(43,96%,46%)]/20 text-[hsl(43,96%,62%)]">
+          <span className="text-micro font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-gold/20 text-gold">
             Latest
           </span>
         )}
@@ -560,7 +561,7 @@ const BallonDor = () => {
       {seasonsWithData.length === 0 ? (
         <>
           <GlassPanel className="p-5 text-center">
-            <Crown className="w-7 h-7 text-[hsl(43,96%,56%)]/70 mx-auto mb-2" />
+            <Crown className="w-7 h-7 text-gold/70 mx-auto mb-2" />
             <p className="text-xs text-foreground/85 font-semibold">No ceremony yet</p>
             <p className="text-[11px] text-muted-foreground mt-1 max-w-[260px] mx-auto leading-snug">
               Complete a full season to crown the next Ballon d&rsquo;Or winner.

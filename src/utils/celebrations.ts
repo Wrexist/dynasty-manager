@@ -282,9 +282,22 @@ export function getDramaCelebration(drama: MatchDramaType): Celebration | null {
 
 // ── Trophy ceremonies (G4) ──────────────────────────────────────────────
 
+/** Every competition that can produce a trophy-lift ceremony. Ordered by
+ *  prestige — `detectTrophyMoments` emits in this order so a treble plays the
+ *  biggest trophy first. */
+export type TrophyMomentId =
+  | 'championsCup'
+  | 'league'
+  | 'shieldCup'
+  | 'conferenceCup'
+  | 'cup'
+  | 'leagueCup'
+  | 'continentalSuperCup'
+  | 'domesticSuperCup';
+
 export interface TrophyMoment {
   /** Stable per-competition id; the caller dedupes as `trophy-${id}-${season}`. */
-  id: 'league' | 'cup' | 'leagueCup';
+  id: TrophyMomentId;
   title: string;
   subtitle: string;
 }
@@ -317,8 +330,12 @@ export function isLeagueTitleClinched(
  * Confirmed silverware for the player's club, for the trophy-lift ceremony.
  * Reuses shipped detection rather than inventing new logic: `cup.winner` /
  * `leagueCup.winner` are stamped the moment the player wins the final
- * (matchActions), and the league title is reported once mathematically
+ * (matchActions), the continental tournaments and both Super Cups carry their
+ * own `winnerId`, and the league title is reported once mathematically
  * clinched. Deduping to once-per-season is the caller's job.
+ *
+ * Emission order is prestige order (see `TrophyMomentId`) so a double or a
+ * treble opens with the biggest trophy — the caller queues the rest.
  */
 export function detectTrophyMoments(args: {
   playerClubId: string;
@@ -326,17 +343,69 @@ export function detectTrophyMoments(args: {
   leagueTable: LeagueTableEntry[];
   cupWinnerId: string | null | undefined;
   leagueCupWinnerId: string | null | undefined;
+  /** `championsCup.winnerId` — the pinnacle achievement in the game. */
+  championsCupWinnerId?: string | null;
+  shieldCupWinnerId?: string | null;
+  conferenceCupWinnerId?: string | null;
+  /** `domesticSuperCup.winnerId` (league champions v cup winners). */
+  domesticSuperCupWinnerId?: string | null;
+  /** `continentalSuperCup.winnerId` (Champions Cup v Shield Cup winners). */
+  continentalSuperCupWinnerId?: string | null;
 }): TrophyMoment[] {
-  const { playerClubId, clubName, leagueTable, cupWinnerId, leagueCupWinnerId } = args;
+  const {
+    playerClubId, clubName, leagueTable, cupWinnerId, leagueCupWinnerId,
+    championsCupWinnerId, shieldCupWinnerId, conferenceCupWinnerId,
+    domesticSuperCupWinnerId, continentalSuperCupWinnerId,
+  } = args;
   const moments: TrophyMoment[] = [];
+  const won = (winnerId: string | null | undefined) => !!winnerId && winnerId === playerClubId;
+
+  // Continental first — subtitle copy scales with prestige, so the Champions
+  // Cup reads like the end of a multi-season European campaign and the
+  // Conference Cup reads like a genuine but smaller night.
+  if (won(championsCupWinnerId)) {
+    moments.push({
+      id: 'championsCup',
+      title: 'CHAMPIONS OF EUROPE!',
+      subtitle: `${clubName} have conquered the continent. The Champions Cup is yours — the greatest prize in club football.`,
+    });
+  }
   if (isLeagueTitleClinched(playerClubId, leagueTable)) {
     moments.push({ id: 'league', title: 'Champions!', subtitle: `${clubName} have won the league title.` });
   }
-  if (cupWinnerId && cupWinnerId === playerClubId) {
+  if (won(shieldCupWinnerId)) {
+    moments.push({
+      id: 'shieldCup',
+      title: 'Shield Cup Winners!',
+      subtitle: `${clubName} are continental champions — a European trophy for the cabinet.`,
+    });
+  }
+  if (won(conferenceCupWinnerId)) {
+    moments.push({
+      id: 'conferenceCup',
+      title: 'Conference Cup Winners!',
+      subtitle: `${clubName} have won in Europe. A night this club will not forget.`,
+    });
+  }
+  if (won(cupWinnerId)) {
     moments.push({ id: 'cup', title: 'Cup Winners!', subtitle: `${clubName} have lifted the Cup.` });
   }
-  if (leagueCupWinnerId && leagueCupWinnerId === playerClubId) {
+  if (won(leagueCupWinnerId)) {
     moments.push({ id: 'leagueCup', title: 'League Cup Winners!', subtitle: `${clubName} have won the League Cup.` });
+  }
+  if (won(continentalSuperCupWinnerId)) {
+    moments.push({
+      id: 'continentalSuperCup',
+      title: 'Super Cup Winners!',
+      subtitle: `${clubName} have beaten Europe's best to take the Continental Super Cup.`,
+    });
+  }
+  if (won(domesticSuperCupWinnerId)) {
+    moments.push({
+      id: 'domesticSuperCup',
+      title: 'Super Cup Winners!',
+      subtitle: `${clubName} start the campaign with silverware — the Domestic Super Cup is theirs.`,
+    });
   }
   return moments;
 }

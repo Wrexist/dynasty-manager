@@ -169,20 +169,34 @@ export function applyPromotionRelegation(
 
     // Record turnovers — each league tracks clubs entering and leaving
     if (!turnovers[upperLeague.id]) {
-      turnovers[upperLeague.id] = { leagueId: upperLeague.id, promotedClubs: [], relegatedClubs: [], playoffWinners: [] };
+      turnovers[upperLeague.id] = { leagueId: upperLeague.id, promotedClubs: [], relegatedClubs: [], playoffWinners: [], promotedOutClubs: [] };
     }
     if (!turnovers[lowerLeague.id]) {
-      turnovers[lowerLeague.id] = { leagueId: lowerLeague.id, promotedClubs: [], relegatedClubs: [], playoffWinners: [] };
+      turnovers[lowerLeague.id] = { leagueId: lowerLeague.id, promotedClubs: [], relegatedClubs: [], playoffWinners: [], promotedOutClubs: [] };
     }
 
     // Upper tier turnover: who arrived (promoted from below), who left (relegated)
     turnovers[upperLeague.id].promotedClubs.push(...cappedPromoted);
     turnovers[upperLeague.id].relegatedClubs.push(...relegatedDown);
 
-    // Lower tier turnover: who left via promotion, playoff winners
+    // Lower tier turnover: who LEFT via promotion, plus playoff winners.
+    // These go in `promotedOutClubs`, NOT `promotedClubs` — the latter means
+    // "arrived here from below" (see the type), and pushing departures into it
+    // made every middle tier's record mix the two directions. The season summary
+    // then announced departing clubs as new arrivals.
     const cappedAutoPromoted = cappedPromoted.filter(id => promotedUp.includes(id));
     const cappedPlayoffWinners = cappedPromoted.filter(id => playoffWinners.includes(id));
-    turnovers[lowerLeague.id].promotedClubs.push(...cappedAutoPromoted);
+    // BOTH routes out are departures: automatic promotion and the playoff.
+    // `playoffWinners` stays as the labelled subset (the season summary calls
+    // them out separately) but they also belong in `promotedOutClubs`, which is
+    // the complete "left this league by going up" list. Leaving them out of it
+    // was an inconsistency — a playoff winner is no less promoted than an
+    // automatic one, and any consumer asking "who went up?" would have missed them.
+    turnovers[lowerLeague.id].promotedOutClubs = [
+      ...(turnovers[lowerLeague.id].promotedOutClubs ?? []),
+      ...cappedAutoPromoted,
+      ...cappedPlayoffWinners,
+    ];
     turnovers[lowerLeague.id].playoffWinners.push(...cappedPlayoffWinners);
 
     // Adjust budgets and reputation for moved clubs
@@ -274,11 +288,24 @@ export function applyPromotionRelegation(
 
 // ── Legacy: apply season turnover for a single league (backward compat) ──
 
+/** Single-league turnover for countries with no second tier (Brazil, Argentina,
+ *  Saudi Arabia, South Korea, ...): the bottom clubs are replaced rather than
+ *  relegated into a division that doesn't exist.
+ *
+ *  `playerClubId` is EXCLUDED from the relegation zone, mirroring
+ *  `applyPromotionRelegation`. Without it, a player finishing in the drop zone of
+ *  a single-tier league was put in `relegatedClubs` and then had every one of
+ *  their players deleted by the caller's cleanup loop — you started the next
+ *  season with a procedurally generated squad, no youth graduates and no
+ *  chemistry. The league also drifted a club larger every time, because the
+ *  caller generated one replacement per entry in `relegatedClubs` while only the
+ *  other clubs had actually left. */
 export function applySeasonTurnover(
   leagueId: LeagueId,
   leagueClubs: string[],
   leagueTable: LeagueTableEntry[],
   clubs: Record<string, Club>,
+  playerClubId?: string,
 ): { turnover: SeasonTurnover; updatedClubs: Record<string, Club>; updatedLeagueClubs: string[] } {
   const league = LEAGUES.find(l => l.id === leagueId);
   if (!league) {
@@ -290,17 +317,21 @@ export function applySeasonTurnover(
   }
 
   const zones = determineProRelZones(leagueTable, league);
+  // Spare the player's club before the zone is used for ANYTHING — the turnover
+  // record, the club deletion, and the caller's player-deletion and
+  // replacement-generation loops all key off this list.
+  const relegated = playerClubId ? zones.relegated.filter(id => id !== playerClubId) : zones.relegated;
   const turnover: SeasonTurnover = {
     leagueId,
     promotedClubs: [],
-    relegatedClubs: zones.relegated,
+    relegatedClubs: relegated,
     playoffWinners: [],
   };
 
   const newClubs = { ...clubs };
-  const updatedLeagueClubs = leagueClubs.filter(id => !zones.relegated.includes(id));
+  const updatedLeagueClubs = leagueClubs.filter(id => !relegated.includes(id));
 
-  for (const cid of zones.relegated) {
+  for (const cid of relegated) {
     delete newClubs[cid];
   }
 

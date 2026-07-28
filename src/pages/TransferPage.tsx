@@ -13,6 +13,7 @@ import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { TransferListing, IncomingOffer } from '@/types/game';
 import { successToast, errorToast, infoToast } from '@/utils/gameToast';
 import { POSITION_FILTERS, PAGE_HINTS, SIGNIFICANT_OFFER_OVERALL, SIGNIFICANT_OFFER_FEE, BUDGET_WARNING_THRESHOLD, HOT_FORM_THRESHOLD, GOOD_FORM_THRESHOLD, OFFER_EXPIRY_WARNING_WEEKS } from '@/config/ui';
+import { ConfirmDialog } from '@/components/game/ConfirmDialog';
 import { TransferNegotiation } from '@/components/game/TransferNegotiation';
 import { IncomingOfferNegotiation } from '@/components/game/IncomingOfferNegotiation';
 import { PageHint } from '@/components/game/PageHint';
@@ -86,6 +87,10 @@ const TransferPage = () => {
   const [confirmAction, setConfirmAction] = useState<{ offerId: string; accept: boolean; playerName: string; fee: number } | null>(null);
   const [confirmLoanBuy, setConfirmLoanBuy] = useState<{ loanId: string; playerName: string; fee: number } | null>(null);
   const [negotiatingOffer, setNegotiatingOffer] = useState<IncomingOffer | null>(null);
+  // Loan responses and recalls are irreversible squad changes that were bare
+  // onClicks — one mis-tap and a player is gone (or yanked back) for good.
+  const [confirmLoanOffer, setConfirmLoanOffer] = useState<{ offerId: string; accept: boolean; playerName: string; clubName: string } | null>(null);
+  const [confirmRecall, setConfirmRecall] = useState<{ loanId: string; playerName: string; clubName: string } | null>(null);
 
   const club = clubs[playerClubId];
   // At the cap, offers/signings are rejected by the store anyway — disable the
@@ -270,6 +275,20 @@ const TransferPage = () => {
     setConfirmLoanBuy(null);
   };
 
+  const runLoanOfferResponse = () => {
+    if (!confirmLoanOffer) return;
+    const r = respondToLoanOffer(confirmLoanOffer.offerId, confirmLoanOffer.accept);
+    if (r.success) { hapticMedium(); successToast(r.message); } else { errorToast(r.message); }
+    setConfirmLoanOffer(null);
+  };
+
+  const runRecall = () => {
+    if (!confirmRecall) return;
+    const r = recallLoan(confirmRecall.loanId);
+    if (r.success) { hapticMedium(); successToast(r.message); } else { errorToast(r.message); }
+    setConfirmRecall(null);
+  };
+
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
       <PageHint screen="transfers" title={PAGE_HINTS.transfers.title} body={PAGE_HINTS.transfers.body} />
@@ -412,7 +431,9 @@ const TransferPage = () => {
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  // Visual stays a 14px glyph; `after:-inset-2` grows only the
+                  // hit area (same trick as SquadPage's Renew chip).
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors after:absolute after:-inset-3 after:content-['']"
                   aria-label="Clear search"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -442,7 +463,9 @@ const TransferPage = () => {
                 aria-label={`Filter by ${f.label === 'All' ? 'all positions' : f.label}`}
                 onClick={() => { hapticLight(); setPosFilter(i); }}
                 className={cn(
-                  'px-2 py-0.5 rounded text-[10px] font-medium transition-all',
+                  'relative px-2 py-0.5 rounded text-[10px] font-medium transition-all',
+                  // Hit area only — keeps the compact toolbar look.
+                  'after:absolute after:-inset-2 after:content-[""]',
                   posFilter === i ? 'bg-secondary text-secondary-foreground' : 'text-muted-foreground hover:text-foreground'
                 )}
               >
@@ -455,7 +478,8 @@ const TransferPage = () => {
                 aria-label={hideUnaffordable ? 'Show all prices' : 'Hide unaffordable'}
                 onClick={() => { hapticLight(); setHideUnaffordable(!hideUnaffordable); }}
                 className={cn(
-                  'px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0 transition-all',
+                  'relative px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0 transition-all',
+                  'after:absolute after:-inset-2 after:content-[""]',
                   hideUnaffordable ? 'bg-emerald-500/20 text-emerald-400' : 'text-muted-foreground hover:text-foreground'
                 )}
               >
@@ -474,7 +498,7 @@ const TransferPage = () => {
                   setSortBy(opts[(opts.indexOf(sortBy) + 1) % opts.length]);
                 }
               }}
-              className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-muted/50 text-muted-foreground hover:text-foreground shrink-0"
+              className="relative flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-muted/50 text-muted-foreground hover:text-foreground shrink-0 after:absolute after:-inset-2 after:content-['']"
             >
               <ArrowUpDown className="w-2.5 h-2.5" />
               {tab === 'freeAgents'
@@ -498,7 +522,8 @@ const TransferPage = () => {
                   aria-label={`Filter by ${d.label}`}
                   onClick={() => { hapticLight(); setDivFilter(d.id); }}
                   className={cn(
-                    'px-2 py-0.5 rounded text-[10px] font-medium shrink-0 transition-all',
+                    'relative px-2 py-0.5 rounded text-[10px] font-medium shrink-0 transition-all',
+                    'after:absolute after:-inset-2 after:content-[""]',
                     divFilter === d.id ? 'bg-primary/20 text-primary' : 'text-muted-foreground/60 hover:text-foreground'
                   )}
                 >
@@ -755,20 +780,22 @@ const TransferPage = () => {
                     actions={
                       <>
                         <Button
-                          size="sm" className="flex-1 h-8 text-xs bg-emerald-600 hover:bg-emerald-700"
-                          onClick={() => {
-                            const r = respondToLoanOffer(offer.id, true);
-                            if (r.success) { successToast(r.message); } else { errorToast(r.message); }
-                          }}
+                          size="sm" className="flex-1 h-9 text-xs bg-emerald-600 hover:bg-emerald-700"
+                          onClick={() => setConfirmLoanOffer({
+                            offerId: offer.id, accept: true,
+                            playerName: `${p.firstName} ${p.lastName}`,
+                            clubName: fromClub?.name || 'the other club',
+                          })}
                         >
                           Accept Loan
                         </Button>
                         <Button
-                          size="sm" variant="destructive" className="flex-1 h-8 text-xs"
-                          onClick={() => {
-                            const r = respondToLoanOffer(offer.id, false);
-                            if (r.success) { successToast(r.message); } else { errorToast(r.message); }
-                          }}
+                          size="sm" variant="destructive" className="flex-1 h-9 text-xs"
+                          onClick={() => setConfirmLoanOffer({
+                            offerId: offer.id, accept: false,
+                            playerName: `${p.firstName} ${p.lastName}`,
+                            clubName: fromClub?.name || 'the other club',
+                          })}
                         >
                           Reject
                         </Button>
@@ -868,11 +895,12 @@ const TransferPage = () => {
                           }
                           actions={loan.recallClause && elapsed >= LOAN_MIN_WEEKS_BEFORE_RECALL ? (
                             <Button
-                              size="sm" variant="outline" className="w-full h-8 text-xs"
-                              onClick={() => {
-                                const r = recallLoan(loan.id);
-                                if (r.success) { successToast(r.message); } else { errorToast(r.message); }
-                              }}
+                              size="sm" variant="outline" className="w-full h-9 text-xs"
+                              onClick={() => setConfirmRecall({
+                                loanId: loan.id,
+                                playerName: `${p.firstName} ${p.lastName}`,
+                                clubName: destClub?.name || 'their loan club',
+                              })}
                             >
                               Recall Player
                             </Button>
@@ -1030,65 +1058,59 @@ const TransferPage = () => {
         />
       )}
 
-      {/* Confirm permanent loan purchase \u2014 an irreversible multi-million commitment. */}
-      {confirmLoanBuy && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-          <GlassPanel className="p-5 max-w-sm w-full space-y-4">
-            <h3 className="text-base font-bold text-foreground font-display">Sign permanently?</h3>
-            <p className="text-sm text-muted-foreground">
-              Buy <span className="text-foreground font-medium">{confirmLoanBuy.playerName}</span> from
-              their parent club for {'\u00a3'}{(confirmLoanBuy.fee / 1e6).toFixed(1)}M? This permanent transfer cannot be undone.
-            </p>
-            <div className="flex gap-2">
-              <Button
-                size="sm" className="flex-1 h-9 bg-emerald-600 hover:bg-emerald-700"
-                onClick={runLoanBuy}
-              >
-                Confirm Signing
-              </Button>
-              <Button
-                size="sm" variant="outline" className="flex-1 h-9"
-                onClick={() => setConfirmLoanBuy(null)}
-              >
-                Cancel
-              </Button>
-            </div>
-          </GlassPanel>
-        </div>
-      )}
+      {/* Irreversible actions all go through ConfirmDialog \u2014 it brings dialog
+          semantics, a focus trap, Escape and scroll lock, none of which the
+          hand-rolled `fixed inset-0` overlays here had. */}
+      <ConfirmDialog
+        open={confirmLoanBuy !== null}
+        onOpenChange={(open) => { if (!open) setConfirmLoanBuy(null); }}
+        title="Sign permanently?"
+        description={confirmLoanBuy
+          ? `Buy ${confirmLoanBuy.playerName} from their parent club for \u00A3${(confirmLoanBuy.fee / 1e6).toFixed(1)}M? This permanent transfer cannot be undone.`
+          : ''}
+        confirmLabel="Confirm Signing"
+        variant="default"
+        onConfirm={runLoanBuy}
+      />
 
-      {/* Confirm offer response \u2014 covers both Accept (sale) and Reject. */}
-      {confirmAction && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-          <GlassPanel className="p-5 max-w-sm w-full space-y-4">
-            <h3 className="text-base font-bold text-foreground font-display">
-              {confirmAction.accept ? 'Confirm Sale' : 'Reject Offer'}
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              {confirmAction.accept ? (
-                <>Accept {'\u00A3'}{(confirmAction.fee / 1e6).toFixed(1)}M for <span className="text-foreground font-medium">{confirmAction.playerName}</span>? This cannot be undone.</>
-              ) : (
-                <>Reject the {'\u00A3'}{(confirmAction.fee / 1e6).toFixed(1)}M bid for <span className="text-foreground font-medium">{confirmAction.playerName}</span>? The offer will be withdrawn for good.</>
-              )}
-            </p>
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                className={cn('flex-1 h-9', confirmAction.accept ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-destructive hover:bg-destructive/90')}
-                onClick={() => { hapticHeavy(); executeOfferResponse(confirmAction.offerId, confirmAction.accept); }}
-              >
-                {confirmAction.accept ? 'Confirm Sale' : 'Reject Offer'}
-              </Button>
-              <Button
-                size="sm" variant="outline" className="flex-1 h-9"
-                onClick={() => setConfirmAction(null)}
-              >
-                Cancel
-              </Button>
-            </div>
-          </GlassPanel>
-        </div>
-      )}
+      <ConfirmDialog
+        open={confirmAction !== null}
+        onOpenChange={(open) => { if (!open) setConfirmAction(null); }}
+        title={confirmAction?.accept ? 'Confirm Sale' : 'Reject Offer'}
+        description={confirmAction
+          ? confirmAction.accept
+            ? `Accept \u00A3${(confirmAction.fee / 1e6).toFixed(1)}M for ${confirmAction.playerName}? This cannot be undone.`
+            : `Reject the \u00A3${(confirmAction.fee / 1e6).toFixed(1)}M bid for ${confirmAction.playerName}? The offer will be withdrawn for good.`
+          : ''}
+        confirmLabel={confirmAction?.accept ? 'Confirm Sale' : 'Reject Offer'}
+        variant={confirmAction?.accept ? 'default' : 'destructive'}
+        onConfirm={() => { if (confirmAction) { hapticHeavy(); executeOfferResponse(confirmAction.offerId, confirmAction.accept); } }}
+      />
+
+      <ConfirmDialog
+        open={confirmLoanOffer !== null}
+        onOpenChange={(open) => { if (!open) setConfirmLoanOffer(null); }}
+        title={confirmLoanOffer?.accept ? 'Accept loan offer?' : 'Reject loan offer?'}
+        description={confirmLoanOffer
+          ? confirmLoanOffer.accept
+            ? `${confirmLoanOffer.playerName} will join ${confirmLoanOffer.clubName} on loan and be unavailable for selection until the loan ends.`
+            : `${confirmLoanOffer.clubName} will withdraw their loan offer for ${confirmLoanOffer.playerName}. This cannot be undone.`
+          : ''}
+        confirmLabel={confirmLoanOffer?.accept ? 'Accept Loan' : 'Reject'}
+        variant={confirmLoanOffer?.accept ? 'default' : 'destructive'}
+        onConfirm={runLoanOfferResponse}
+      />
+
+      <ConfirmDialog
+        open={confirmRecall !== null}
+        onOpenChange={(open) => { if (!open) setConfirmRecall(null); }}
+        title="Recall player?"
+        description={confirmRecall
+          ? `Cut ${confirmRecall.playerName}'s loan at ${confirmRecall.clubName} short and bring him back now? The loan cannot be restarted.`
+          : ''}
+        confirmLabel="Recall"
+        onConfirm={runRecall}
+      />
     </div>
   );
 };

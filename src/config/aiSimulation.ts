@@ -10,7 +10,45 @@ import type { Position } from '@/types/game';
 
 // ── AI Weekly Income ──
 // AI clubs earn a fraction of the player's equivalent income to keep player advantage
+/** Minimum players an AI side must field before `isSquadValid` forfeits the
+ *  match. `pickAiMatchSquad` backfills up to this from the unavailable pool so an
+ *  injury crisis produces an under-strength team rather than a fictional 3-0. */
+export const AI_MIN_MATCH_PLAYERS = 7;
+
+/** Calibration of the AI clubs' SYNTHETIC match rating against the real engine's
+ *  distribution. AI-vs-AI matches don't produce per-player ratings, so
+ *  `applyAIMatchEvents` synthesises them — and it was miscalibrated by +1.14:
+ *  synthetic mean 7.43 against a measured engine mean of 6.29 (median 6.2,
+ *  p10 5.4, p90 7.4). That only became load-bearing once match ratings started
+ *  driving development, at which point AI squads sat ABOVE the development
+ *  baseline and the player's own squad sat BELOW it — a systematic growth edge to
+ *  the AI, compounding every season. Bases are the result term; the quality term
+ *  is now relative to a pivot instead of adding a flat ~1.1 for everyone.
+ *  Re-measure both distributions together if the engine's rating spread changes. */
+export const AI_RATING_BASE_WIN = 6.75;
+export const AI_RATING_BASE_DRAW = 6.15;
+export const AI_RATING_BASE_LOSS = 5.55;
+export const AI_RATING_OVERALL_PIVOT = 70;
+export const AI_RATING_OVERALL_SCALE = 1.5;
+
 export const AI_INCOME_MULTIPLIER = 0.85;
+
+/** How many development passes each non-player-club player gets at season end.
+ *
+ *  `applyPlayerDevelopment` is a per-week roll, and it was only ever called for
+ *  the PLAYER's squad (inside `playerClub.playerIds.forEach`). Every other player
+ *  in the game just had `age + 1` applied, so across 756 clubs `potential` was
+ *  meaningless: AI wonderkids never became stars, AI 36-year-olds never declined,
+ *  and the league drifted DOWNWARD in quality while the player's squad compounded
+ *  upward. Measured over 10 seasons the player's top-11 OVR edge went -4.3 -> +5.2
+ *  while the league lost ~6 OVR — difficulty decayed monotonically.
+ *
+ *  This is deliberately fewer than a season's 46 weeks: the player's squad also
+ *  gets weekly training on top of development, and better facilities and staff
+ *  should still mean faster growth. `MAX_SEASON_GROWTH` caps the total either way,
+ *  so this is a rate, not a ceiling. Batched at season end rather than run weekly
+ *  to keep the cost off the weekly tick. */
+export const AI_SEASON_DEVELOPMENT_PASSES = 12;
 export const AI_STAFF_COST_PER_REP = 15_000;
 
 // ── AI Wage Constraints ──

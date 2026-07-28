@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { getFlag } from '@/utils/nationality';
@@ -13,6 +13,7 @@ import { getPlayerNextWorldCupMatch } from '@/utils/internationalMatch';
 import { getNation } from '@/data/nations';
 import { GameScreen } from '@/types/game';
 import { Play, Users, Shield, Trophy, Mail, ChevronRight, Flag } from 'lucide-react';
+import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 
 // Exact same icons/colors as the club Dashboard's QUICK_LINKS — Squad (Users,
 // sky), Tactics (Shield, blue) — with the League tile reformatted to the
@@ -58,7 +59,7 @@ const WorldCupDashboard = () => {
   const advanceWeek = useGameStore(s => s.advanceWeek);
   const setScreen = useGameStore(s => s.setScreen);
   const matchLocked = useMatchLocked();
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useReducedMotionPref();
 
   const nextMatch = useMemo(
     () => (nation ? getPlayerNextWorldCupMatch(tournament, nation) : null),

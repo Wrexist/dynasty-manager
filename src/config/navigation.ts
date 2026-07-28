@@ -6,7 +6,7 @@ export const DETAIL_SCREENS: GameScreen[] = [
   'league-table', 'comparison', 'manager-profile', 'cup', 'league-cup', 'champions-cup', 'shield-cup', 'super-cup', 'perks', 'trophy-cabinet', 'prestige', 'hall-of-managers', 'club', 'team-detail', 'shop', 'help', 'whats-new',
   'national-team', 'national-squad-picker', 'international-tournament', 'conference-cup',
   'job-market', 'career-overview', 'ballon-dor', 'festival', 'dynasty-legacy', 'world-cup-draw', 'world-cup-result',
-  'rivalries', 'competitions',
+  'rivalries', 'competitions', 'career-retired',
 ];
 
 export const BACK_TARGET: Partial<Record<GameScreen, GameScreen>> = {
@@ -48,6 +48,7 @@ export const BACK_TARGET: Partial<Record<GameScreen, GameScreen>> = {
   'dynasty-legacy': 'hall-of-managers',
   'rivalries': 'dashboard',
   'competitions': 'dashboard',
+  'career-retired': 'hall-of-managers',
 };
 
 export const SCREEN_TITLES: Partial<Record<GameScreen, string>> = {
@@ -101,6 +102,7 @@ export const SCREEN_TITLES: Partial<Record<GameScreen, string>> = {
   'world-cup-result': 'World Cup',
   'rivalries': 'Rivalries',
   'competitions': 'Competitions',
+  'career-retired': 'Career Retrospective',
 };
 
 export const MAIN_TABS: GameScreen[] = ['dashboard', 'squad', 'tactics', 'transfers'];
@@ -125,7 +127,9 @@ export const PINNED_DRAWER_SCREENS: GameScreen[] = ['inbox', 'league-table', 'ca
 export const DRAWER_PROGRESSIVE_SCREENS: Partial<Record<GameScreen, number>> = {
   'ballon-dor': 1,
   'hall-of-managers': 2,
-  'comparison': 2,
+  // Player comparison is a first-session tool — it is how you decide between
+  // two transfer targets, or a target and the incumbent he'd replace. Hiding it
+  // for a full season withheld it exactly when it is most useful.
 };
 
 // Screens accessible when unemployed in career mode (everything else redirects to job-market)
@@ -133,7 +137,7 @@ export const UNEMPLOYED_ALLOWED_SCREENS = new Set<GameScreen>([
   'job-market', 'career-overview', 'inbox', 'settings', 'manager-profile',
   'trophy-cabinet', 'hall-of-managers', 'perks', 'prestige', 'help', 'whats-new', 'shop',
   'ballon-dor', 'league-table', 'calendar', 'team-detail', 'season-summary',
-  'player-detail', 'dynasty-legacy',
+  'player-detail', 'dynasty-legacy', 'career-retired',
 ]);
 
 // BottomNav tabs shown when unemployed in career mode

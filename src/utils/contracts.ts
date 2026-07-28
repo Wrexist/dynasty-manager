@@ -1,5 +1,5 @@
 import type { Player, ContractOffer } from '@/types/game';
-import { safeRandomUUID } from '@/utils/helpers';
+import { safeRandomUUID, formatMoney } from '@/utils/helpers';
 import {
   CONTRACT_NEAR_EXPIRY_SEASONS,
   CONTRACT_AGE_BRACKETS, CONTRACT_DEFAULT_AGE_FACTOR,
@@ -92,11 +92,57 @@ export function getSignedWage(player: Player, buyerClubReputation: number): numb
   return Math.max(player.wage, demand);
 }
 
-/** Calculate agent fee based on player value and deal complexity. */
-function calculateAgentFee(player: Player): number {
+/**
+ * Calculate agent fee based on the wage the deal will actually pay.
+ *
+ * Was computed from `player.wage` — the player's CURRENT wage — so tripling a
+ * player's wage cost exactly the same agent fee as not raising it at all, and
+ * the agent had no stake in the size of the contract he negotiated. Uses the
+ * larger of the current and prospective wage so a pay cut can't shrink the fee
+ * below the status quo either.
+ */
+function calculateAgentFee(player: Player, dealWage?: number): number {
   const feeRate = CONTRACT_AGENT_FEE_BASE + Math.random() * CONTRACT_AGENT_FEE_RANGE;
-  const annualWage = player.wage * CONTRACT_WAGE_WEEKS_PER_YEAR;
+  const billedWage = Math.max(player.wage || 0, dealWage ?? 0);
+  const annualWage = billedWage * CONTRACT_WAGE_WEEKS_PER_YEAR;
   return Math.round(annualWage * feeRate);
+}
+
+/**
+ * Probability a free agent accepts a contract at `offeredWage`.
+ *
+ * `signFreeAgent` had NO acceptance roll, and the UI floors offers at
+ * `FREE_AGENT_MIN_WAGE_RATIO` (0.7) of the player's wage — so every free agent
+ * signed at a guaranteed 30% discount while ordinary contract negotiation could
+ * fail meaningfully. Meeting or beating his expected wage is still an automatic
+ * yes (nothing to haggle over); below that, the discount you're asking for is
+ * rolled against, modulated by the player's willingness.
+ *
+ * TODO(config): the tuning constants below belong in `src/config/contracts.ts`
+ * next to the other CONTRACT_* values — inlined here only because that file
+ * could not be edited concurrently.
+ */
+export function getFreeAgentAcceptChance(player: Player, offeredWage: number, clubReputation: number, currentSeason = 1): number {
+  /** Chance of accepting at the UI's minimum (0.7x) offer, before willingness. */
+  const FREE_AGENT_ACCEPT_AT_FLOOR = 0.25;
+  /** Chance of accepting at exactly the expected wage. */
+  const FREE_AGENT_ACCEPT_AT_ASK = 1.0;
+  /** How much willingness (0-100, centred on 50) shifts the chance. */
+  const FREE_AGENT_WILLINGNESS_SWING = 0.3;
+
+  const expected = Math.max(1, player.wage || 0);
+  const ratio = offeredWage / expected;
+  if (ratio >= 1) return 1;
+
+  // Linear between the UI floor (0.7x) and the ask.
+  const floorRatio = 0.7;
+  const span = Math.max(0.01, 1 - floorRatio);
+  const t = Math.max(0, Math.min(1, (ratio - floorRatio) / span));
+  const base = FREE_AGENT_ACCEPT_AT_FLOOR + t * (FREE_AGENT_ACCEPT_AT_ASK - FREE_AGENT_ACCEPT_AT_FLOOR);
+
+  const willingness = getPlayerWillingness(player, clubReputation, false, currentSeason);
+  const willingnessShift = ((willingness - 50) / 50) * FREE_AGENT_WILLINGNESS_SWING;
+  return Math.max(0.05, Math.min(1, base + willingnessShift));
 }
 
 /**
@@ -139,7 +185,9 @@ export function createContractOffer(
   currentSeason: number = 1,
 ): ContractOffer {
   const demandedWage = calculateWageDemand(player, clubReputation);
-  const agentFee = calculateAgentFee(player);
+  // Bill the agent against the wage this deal is heading for, not the player's
+  // current wage — see calculateAgentFee.
+  const agentFee = calculateAgentFee(player, demandedWage);
   const willingness = getPlayerWillingness(player, clubReputation, isRenewal, currentSeason);
   const loyaltyBonus = isRenewal ? Math.round(player.value * CONTRACT_LOYALTY_BONUS_RATE) : 0;
 
@@ -306,10 +354,11 @@ export function getAcceptanceHint(
 }
 
 /**
- * Format wage for display.
+ * Format wage for display — a thin `/wk` wrapper over the canonical
+ * `formatMoney`. It used to FLOOR to the nearest £1K while `formatMoney`
+ * ROUNDED, so a £42,900 wage read `£42K/wk` on the contract screen and
+ * `£43K` on the squad list. Never re-implement the magnitude logic here.
  */
 export function formatWage(wage: number): string {
-  if (wage >= 1_000_000) return `£${(wage / 1_000_000).toFixed(1)}M/wk`;
-  if (wage >= 1_000) return `£${Math.floor(wage / 1_000)}K/wk`;
-  return `£${wage}/wk`;
+  return formatMoney(wage, { suffix: '/wk' });
 }

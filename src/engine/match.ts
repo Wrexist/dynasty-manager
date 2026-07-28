@@ -14,12 +14,13 @@ import {
   DEFENDER_POSITIONS,
   GK_SAVE_BASE, GK_SAVE_RANGE,
   BASE_EVENT_CHANCE, LATE_GAME_EVENT_BONUS, LATE_GAME_THRESHOLD_MINUTE,
-  SHOT_ATTEMPT_THRESHOLD, FOUL_THRESHOLD, INJURY_EVENT_THRESHOLD,
+  SHOT_ATTEMPT_THRESHOLD, FOUL_BAND_WIDTH, INJURY_BAND_WIDTH, FOUL_BAND_END_CAP, TEMPO_SHOT_THRESHOLD_SCALE,
   LOW_XG_MISS_THRESHOLD, LOW_XG_MISS_SHOW_CHANCE,
   SHOT_QUALITY_WEIGHTS, FITNESS_FACTOR_BASE, FITNESS_FACTOR_SCALE,
   GOAL_CHANCE_ATTACK_MULT, GOAL_CHANCE_DEFENSE_MULT, GOAL_CHANCE_ATTACK_MOD_SCALE, GOAL_CHANCE_COUNTER_VULN_SCALE, GOAL_CHANCE_MIN,
   CORNER_FROM_SAVE_CHANCE, CORNER_FROM_MISS_CHANCE,
-  CARD_BASE_CHANCE, STRAIGHT_RED_CHANCE,
+  CARD_BASE_CHANCE, STRAIGHT_RED_CHANCE, BOOKED_PLAYER_CARD_MULT,
+  MENTALITY_SHOT_SHIFT_SCALE, TEMPO_SHOT_QUALITY_MOD,
   FOUL_INJURY_CHANCE, NON_FOUL_INJURY_BASE, PHYSICAL_FRAGILITY_FACTOR, OLD_PLAYER_INJURY_BONUS, OLD_PLAYER_INJURY_AGE_THRESHOLD,
   RATING_BASE_WIN, RATING_BASE_LOSS, RATING_BASE_DRAW,
   RATING_GOAL_BONUS, RATING_ASSIST_BONUS, RATING_SAVE_BONUS, RATING_YELLOW_PENALTY, RATING_RED_PENALTY, RATING_CLEAN_SHEET_BONUS,
@@ -329,11 +330,11 @@ export function simulateHalf(
     }
     teamTalkFoulMod = foulMod;
   }
-  // Where the foul band ends on the event roll. The injury band sits
-  // RELATIVE to this: with an absolute INJURY_EVENT_THRESHOLD, any derby /
-  // weather / team-talk foul modifier pushed the foul band past it and
-  // non-foul injuries became impossible in exactly those matches.
-  const injuryBandWidth = INJURY_EVENT_THRESHOLD - FOUL_THRESHOLD;
+  // The injury band sits RELATIVE to the end of the foul band: with an
+  // absolute threshold, any derby / weather / team-talk foul modifier pushed
+  // the foul band past it and non-foul injuries became impossible in exactly
+  // those matches.
+  const injuryBandWidth = INJURY_BAND_WIDTH;
 
   // Generate tactical insights for the player's team
   const tacticalInsights: string[] = prevState?.tacticalInsights ? [...prevState.tacticalInsights] : [];
@@ -400,9 +401,14 @@ export function simulateHalf(
     }
   }
 
-  // Pre-compute defensive qualities for both teams
-  const homeDefQuality = getDefenseQuality(homePlayers);
-  const awayDefQuality = getDefenseQuality(awayPlayers);
+  // Defensive quality is mutable for the same reason GK save chance is: it must
+  // track the players actually on the pitch. It used to be computed ONCE from
+  // the starting XI and read for all 90 minutes, so losing your best centre-back
+  // to a red card or an injury did not raise your concession rate at all —
+  // strength and GK save were refreshed on those events, defence was not.
+  // Refreshed by refreshDefenceMetrics() alongside every strength recompute.
+  let homeDefQuality = getDefenseQuality(homePlayers);
+  let awayDefQuality = getDefenseQuality(awayPlayers);
   // GK save chance is mutable: it must track the ACTIVE keeper, so it gets
   // refreshed (via refreshGKChances below) whenever availability changes —
   // a sent-off/injured GK previously kept "saving" at full quality all match.
@@ -494,11 +500,14 @@ export function simulateHalf(
   // availability changes (red card, injury, sub) so the chances follow the
   // keeper actually on the pitch (a subbed-on backup GK, or no GK at all —
   // getGKSaveChance degrades to GK_SAVE_BASE when the pool has no keeper).
-  const refreshGKChances = () => {
+  // …and the same for defensive quality, which the per-shot goal chance reads.
+  const refreshDefenceMetrics = () => {
     homeGKSave = getGKSaveChance(homeAvail());
     awayGKSave = getGKSaveChance(awayAvail());
     homeGKErrorChance = computeGKErrorChance(homeGKSave);
     awayGKErrorChance = computeGKErrorChance(awayGKSave);
+    homeDefQuality = getDefenseQuality(homeAvail());
+    awayDefQuality = getDefenseQuality(awayAvail());
   };
 
   // Carry numerical disadvantage across half/extra-time boundaries. The
@@ -523,7 +532,7 @@ export function simulateHalf(
         homeStr = homeStr * (1 - defenseMod * DEFENSE_MODIFIER_SCALE);
       }
     }
-    refreshGKChances();
+    refreshDefenceMetrics();
   }
 
   // Description variants for event variety
@@ -1144,8 +1153,15 @@ export function simulateHalf(
     // Tempo affects event frequency: fast tempo = more events, slow = fewer
     const tempoEventMod = homeTactics?.tempo === 'fast' || awayTactics?.tempo === 'fast' ? 0.04
       : homeTactics?.tempo === 'slow' && awayTactics?.tempo === 'slow' ? -0.03 : 0;
-    const baseChance = BASE_EVENT_CHANCE + (min > LATE_GAME_THRESHOLD_MINUTE ? LATE_GAME_EVENT_BONUS : 0) + derbyEventMod + tempoEventMod;
-    const eventChance = baseChance + (homeMods.shotMod + awayMods.shotMod) * 0.5;
+    // NB: the per-side TEMPO_SHOT_MOD is deliberately NOT folded in here. It
+    // used to be — `base + (homeMods.shotMod + awayMods.shotMod) * 0.5` — which
+    // made it a single SHARED probability, so a fast tempo handed the opponent
+    // exactly as many extra shots as it gained (measured: home `fast` 13.0 vs
+    // away 12.5 shots, -0.06 pts/g). It is now applied per-side inside the shot
+    // threshold, to whichever team owns the event. `tempoEventMod` above keeps
+    // the small legitimate symmetric effect (both sides playing fast = a more
+    // frantic match).
+    const eventChance = BASE_EVENT_CHANCE + (min > LATE_GAME_THRESHOLD_MINUTE ? LATE_GAME_EVENT_BONUS : 0) + derbyEventMod + tempoEventMod;
     if (Math.random() > eventChance) {
       // Late drama atmosphere: inject once when game is tight in the final minutes
       if (!lateDramaFired && min >= LATE_GAME_THRESHOLD_MINUTE && Math.abs(homeGoals - awayGoals) <= 1) {
@@ -1194,19 +1210,35 @@ export function simulateHalf(
     // - Defensive mentality shifts more events toward fouls/blocks
     // - Attacking mentality shifts more events toward shots
     const widthCornerBonus = atkMods.widthMod > 0 ? 0.08 : 0;
-    const mentalityShotShift = atkMods.attackMod > 0 ? 0.03 : atkMods.attackMod < -0.1 ? -0.03 : 0;
-    const adjustedShotThreshold = SHOT_ATTEMPT_THRESHOLD + mentalityShotShift;
+    // Mentality shifts shot VOLUME symmetrically: your aggression buys you more
+    // shots, the opponent's compactness takes them away (and their recklessness
+    // hands them over). The old flat ±0.03 keyed only on your own mentality,
+    // which the opponent never paid for.
+    const mentalityShotShift = (atkMods.attackMod - oppMods.defenseMod) * MENTALITY_SHOT_SHIFT_SCALE;
+    // Tempo is the EVENT TEAM's own: a fast side turns more of its possessions
+    // into shots, a slow side fewer — and the shots it takes are correspondingly
+    // rushed (tempoQualityMod, applied to conversion below) so volume is paid
+    // for in quality rather than being free.
+    const tempoShotShift = (atkMods.shotMod || 0) * TEMPO_SHOT_THRESHOLD_SCALE;
+    const eventTeamTempo = isHome ? homeTactics?.tempo : awayTactics?.tempo;
+    const tempoQualityMod = eventTeamTempo ? (TEMPO_SHOT_QUALITY_MOD[eventTeamTempo] || 0) : 0;
+    const adjustedShotThreshold = SHOT_ATTEMPT_THRESHOLD + mentalityShotShift + tempoShotShift;
 
-    // Where the foul band ends for THIS event minute. Derby and weather widen
-    // fouls for both sides; the team-talk modifier belongs only to the
-    // player's club (the talk was given to that dressing room); pressing
-    // intensity (tactics foulMod, reused from the per-half mods — not
-    // recomputed per minute) raises the event team's own foul risk. The
-    // injury band offsets from this end so it stays relative (see
-    // injuryBandWidth above).
-    const eventTeamIsPlayers = (isHome ? homeClub.id : awayClub.id) === playerClubId;
-    const foulBandEnd = FOUL_THRESHOLD + derbyFoulMod + weatherFoulMod
-      + (eventTeamIsPlayers ? teamTalkFoulMod : 0) + (atkMods.foulMod || 0);
+    // Where the foul band ends for THIS event minute. Measured as a WIDTH from
+    // the (tempo-adjusted) shot threshold so a tempo shift moves the boundary
+    // without squeezing the foul band. Derby and weather widen fouls for both
+    // sides; the team-talk modifier belongs only to the player's club (the talk
+    // was given to that dressing room); pressing intensity (tactics foulMod,
+    // reused from the per-half mods — not recomputed per minute) raises the
+    // FOULING side's risk, and the fouling side is the one DEFENDING this
+    // possession (see the FOUL branch). The injury band offsets from this end
+    // so it stays relative (see injuryBandWidth above).
+    const defendingTeamIsPlayers = (isHome ? awayClub.id : homeClub.id) === playerClubId;
+    const foulBandEnd = Math.min(
+      FOUL_BAND_END_CAP,
+      adjustedShotThreshold + FOUL_BAND_WIDTH + derbyFoulMod + weatherFoulMod
+        + (defendingTeamIsPlayers ? teamTalkFoulMod : 0) + (oppMods.foulMod || 0),
+    );
 
     // === SHOT ATTEMPT ===
     if (roll < adjustedShotThreshold) {
@@ -1232,14 +1264,33 @@ export function simulateHalf(
       // Morale factor: high morale boosts, low morale penalizes
       const moraleMod = (scorer.morale - MORALE_BASELINE) / 100 * MORALE_PERFORMANCE_WEIGHT;
 
-      // Goal chance: attacker quality vs opponent defense, modified by tactics and weather
-      const goalChance = (shotQuality * fitnessFactor * GOAL_CHANCE_ATTACK_MULT) - (oppDefense * GOAL_CHANCE_DEFENSE_MULT) + atkMods.attackMod * GOAL_CHANCE_ATTACK_MOD_SCALE + oppMods.counterVuln * GOAL_CHANCE_COUNTER_VULN_SCALE - lowFitPenalty + moraleMod + pitchShotMod + weatherPaceMod + weatherMod;
+      // Goal chance: attacker quality vs opponent defense, modified by tactics
+      // and weather. The MENTALITY term is symmetric — your own aggression
+      // lifts your conversion (+attackMod) and the opponent's caution suppresses
+      // it (-oppMods.defenseMod) — so mentality trades goals-for against
+      // goals-against. It used to be one-sided AND double-counted in team
+      // strength; see the note in computeStrengths.
+      const goalChance = (shotQuality * fitnessFactor * GOAL_CHANCE_ATTACK_MULT) - (oppDefense * GOAL_CHANCE_DEFENSE_MULT)
+        + (atkMods.attackMod - oppMods.defenseMod) * GOAL_CHANCE_ATTACK_MOD_SCALE
+        + oppMods.counterVuln * GOAL_CHANCE_COUNTER_VULN_SCALE
+        + tempoQualityMod
+        - lowFitPenalty + moraleMod + pitchShotMod + weatherPaceMod + weatherMod;
 
-      // Accumulate xG for every shot attempt
       const clampedChance = Math.max(GOAL_CHANCE_MIN, goalChance);
-      if (isHome) homeXG += clampedChance; else awayXG += clampedChance;
+      // The keeper is part of RESOLVING the chance, not a relabelling applied
+      // afterwards. The goal roll used to be settled first and `oppGKSave` only
+      // decided whether the already-decided non-goal read as "saved" or
+      // "missed" — so a 64-point swing in GK attributes moved goals conceded by
+      // under 20%. Folding the save into the goal roll makes keeper quality a
+      // first-class defensive attribute.
+      const effectiveGoalChance = clampedChance * (1 - oppGKSave);
 
-      if (Math.random() < clampedChance) {
+      // xG accumulates the EFFECTIVE chance so aggregate xG tracks the goals
+      // actually scored (the UI shows xG next to the scoreline). It therefore
+      // reads as "expected goals against this keeper".
+      if (isHome) homeXG += effectiveGoalChance; else awayXG += effectiveGoalChance;
+
+      if (Math.random() < effectiveGoalChance) {
         // Goal scored!
         const preGoalHomeGoals = homeGoals;
         const preGoalAwayGoals = awayGoals;
@@ -1415,7 +1466,10 @@ export function simulateHalf(
           if (isHome) homeCorners++; else awayCorners++;
           // Corner goal attempt — designated set-piece taker improves delivery
           const setPieceBonus = (club.setPieceTakerId && eligibleSquad.some(p => p.id === club.setPieceTakerId)) ? SET_PIECE_TAKER_CORNER_BONUS : 0;
-          const perkSetPieceBonus = (isHome && setPieceCoachBonus) ? setPieceCoachBonus : 0;
+          // The Set-Piece Coach perk belongs to the PLAYER's club, not to
+          // whoever happens to be at home. Gating it on `isHome` meant every
+          // away fixture donated the player's paid perk to the AI opponent.
+          const perkSetPieceBonus = (setPieceCoachBonus && club.id === playerClubId) ? setPieceCoachBonus : 0;
           if (Math.random() < CORNER_GOAL_CHANCE + setPieceBonus + perkSetPieceBonus) {
             const headerCandidates = eligibleSquad.filter(p => p.position !== 'GK');
             if (headerCandidates.length > 0) {
@@ -1425,11 +1479,15 @@ export function simulateHalf(
               let rr = Math.random() * tw;
               let header = headerCandidates[0];
               for (let i = 0; i < headerCandidates.length; i++) { rr -= headerWeights[i]; if (rr <= 0) { header = headerCandidates[i]; break; } }
-              // Header attempt from the corner accrues xG whether or not it
-              // goes in — the nominal corner-conversion chance is the xG
-              // value, matching how penalties use PENALTY_CONVERSION_RATE.
-              if (isHome) homeXG += CORNER_GOAL_CHANCE; else awayXG += CORNER_GOAL_CHANCE;
-              if (Math.random() < Math.max(CORNER_HEADER_MIN_CHANCE, (header.attributes.physical / 100) * CORNER_HEADER_PHYSICAL_SCALE)) {
+              // Header attempt from the corner accrues xG whether or not it goes
+              // in. The xG is the header's OWN conversion probability — this
+              // used to add CORNER_GOAL_CHANCE (0.12) after the 0.12 gate had
+              // already been passed, i.e. it charged the probability of the
+              // attempt existing rather than the probability of it scoring, and
+              // under-reported corner xG by ~3x.
+              const headerGoalChance = Math.max(CORNER_HEADER_MIN_CHANCE, (header.attributes.physical / 100) * CORNER_HEADER_PHYSICAL_SCALE);
+              if (isHome) homeXG += headerGoalChance; else awayXG += headerGoalChance;
+              if (Math.random() < headerGoalChance) {
                 if (isHome) homeGoals++; else awayGoals++;
                 if (isHome) { homeShots++; homeSoT++; } else { awayShots++; awaySoT++; }
                 if (playerEvents[header.id]) playerEvents[header.id].goals++;
@@ -1480,7 +1538,7 @@ export function simulateHalf(
           // Suppress most low-xG misses from the live commentary feed to keep it focused.
           // Stats (shot count, xG, momentum) above already updated, so the underlying
           // match data is unchanged — only the on-screen prose gets quieter.
-          const isMeaningfulChance = clampedChance >= LOW_XG_MISS_THRESHOLD;
+          const isMeaningfulChance = effectiveGoalChance >= LOW_XG_MISS_THRESHOLD;
           if (isMeaningfulChance || Math.random() < LOW_XG_MISS_SHOW_CHANCE) {
             events.push({ minute: min, type: 'shot_missed', playerId: scorer.id, clubId: club.id, description: withContextSuffix(pick(missDescs)(scorer.lastName)), momentum, homeXG, awayXG });
           }
@@ -1491,17 +1549,31 @@ export function simulateHalf(
         }
       }
     }
-    // === FOUL ===
+    // === FOUL (committed by the side DEFENDING this possession) ===
     else if (roll < foulBandEnd) {
-      const eligibleFoulers = squad.filter(p => !unavailable.has(p.id));
+      // The event team is the side in possession, so the foul that stops that
+      // possession is conceded by the side defending it. Fouls used to be
+      // charged to the event team, and the event team is drawn by strength
+      // share, so the BETTER side fouled more — and therefore conceded more
+      // penalties. Measured elite-88 v weak-52: penalties awarded home 0.276 /
+      // away 0.474, with 64% of the weak side's goals coming from the spot.
+      const foulingIsHome = !isHome;
+      const foulingClub = foulingIsHome ? homeClub : awayClub;
+      const foulingSquad = oppSquad;   // defending side — commits the foul
+      const fouledSquad = squad;       // attacking side — wins the free kick
+      const eligibleFoulers = foulingSquad.filter(p => !unavailable.has(p.id));
       if (eligibleFoulers.length === 0) continue;
       const fouler = pickFouler(eligibleFoulers);
       if (!fouler) continue;
-      if (isHome) homeFouls++; else awayFouls++;
-      const isPlayerTeamFouling = (isHome && homeClub.id === playerClubId) || (!isHome && awayClub.id === playerClubId);
+      if (foulingIsHome) homeFouls++; else awayFouls++;
+      const isPlayerTeamFouling = foulingClub.id === playerClubId;
       const disciplinarianMod = (disciplinarianActive && isPlayerTeamFouling) ? (1 - DISCIPLINARIAN_CARD_REDUCTION) : 1;
       const careerMod = (careerDisciplineMod && isPlayerTeamFouling) ? (1 - careerDisciplineMod) : 1;
-      const cardChance = (CARD_BASE_CHANCE + derbyCardMod) * getCardRiskMultiplier(fouler.personality) * disciplinarianMod * careerMod;
+      // A player already on a yellow knows the next one ends his match — he
+      // pulls out of challenges. Without this, a realistic yellow rate produced
+      // ~3x real football's red-card rate purely from second bookings.
+      const bookedMod = (playerEvents[fouler.id]?.yellows ?? 0) >= 1 ? BOOKED_PLAYER_CARD_MULT : 1;
+      const cardChance = (CARD_BASE_CHANCE + derbyCardMod) * getCardRiskMultiplier(fouler.personality) * disciplinarianMod * careerMod * bookedMod;
       if (Math.random() < cardChance) {
         const pe = playerEvents[fouler.id];
         if (pe) {
@@ -1510,27 +1582,35 @@ export function simulateHalf(
             pe.redCard = true;
             sentOffSet.add(fouler.id);
             unavailable.add(fouler.id);
-            // Momentum swings toward the opposing team on red card
+            // Emit the booking itself as well as the dismissal. Only the
+            // `red_card` event used to be pushed, and `Player.yellowCards` is
+            // derived from `yellow_card` events — so a second booking was never
+            // counted. Season yellow totals under-reported and the new
+            // yellow-accumulation bans were reached a match late. A second yellow
+            // genuinely IS a yellow followed by a red, which is how a real match
+            // log reads.
+            events.push({ minute: min, type: 'yellow_card', playerId: fouler.id, clubId: foulingClub.id, description: `${fouler.lastName} is booked for a second time.` });
+            // Momentum swings toward the team that was fouled (the event team)
             momentum = isHome
-              ? Math.max(-100, momentum - MOMENTUM_RED_CARD_SWING)
-              : Math.min(100, momentum + MOMENTUM_RED_CARD_SWING);
-            events.push({ minute: min, type: 'red_card', playerId: fouler.id, clubId: club.id, description: pick(secondYellowDescs)(fouler.lastName), momentum });
+              ? Math.min(100, momentum + MOMENTUM_RED_CARD_SWING)
+              : Math.max(-100, momentum - MOMENTUM_RED_CARD_SWING);
+            events.push({ minute: min, type: 'red_card', playerId: fouler.id, clubId: foulingClub.id, description: pick(secondYellowDescs)(fouler.lastName), momentum });
             // Warn if team is down to 8 players (one more red = abandonment)
-            const teamAvail = isHome ? homeAvail().length : awayAvail().length;
+            const teamAvail = foulingIsHome ? homeAvail().length : awayAvail().length;
             if (teamAvail === MIN_PLAYERS_TO_CONTINUE + 1) {
-              events.push({ minute: min, type: 'commentary', clubId: club.id, description: `${club.shortName} are down to ${teamAvail} players! One more sending off and the match will be abandoned.`, momentum });
+              events.push({ minute: min, type: 'commentary', clubId: foulingClub.id, description: `${foulingClub.shortName} are down to ${teamAvail} players! One more sending off and the match will be abandoned.`, momentum });
             }
             // Rebalance strength after red card (the sent-off player might be the GK)
             const recomputed = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId, currentSeason);
             homeStr = recomputed.homeStr; awayStr = recomputed.awayStr;
-            refreshGKChances();
+            refreshDefenceMetrics();
             checkAbandon(min);
           } else {
-            // Momentum swings toward the non-fouling team on yellow cards
+            // Momentum swings toward the non-fouling (event) team on yellows
             momentum = isHome
-              ? Math.max(-100, momentum - MOMENTUM_CARD_SWING)
-              : Math.min(100, momentum + MOMENTUM_CARD_SWING);
-            events.push({ minute: min, type: 'yellow_card', playerId: fouler.id, clubId: club.id, description: withContextSuffix(pick(yellowDescs)(fouler.lastName)), momentum });
+              ? Math.min(100, momentum + MOMENTUM_CARD_SWING)
+              : Math.max(-100, momentum - MOMENTUM_CARD_SWING);
+            events.push({ minute: min, type: 'yellow_card', playerId: fouler.id, clubId: foulingClub.id, description: withContextSuffix(pick(yellowDescs)(fouler.lastName)), momentum });
           }
         }
       } else if (Math.random() < STRAIGHT_RED_CHANCE) {
@@ -1539,36 +1619,37 @@ export function simulateHalf(
           pe.redCard = true;
           sentOffSet.add(fouler.id);
           unavailable.add(fouler.id);
-          // Momentum swings toward the opposing team on red card
+          // Momentum swings toward the team that was fouled (the event team)
           momentum = isHome
-            ? Math.max(-100, momentum - MOMENTUM_RED_CARD_SWING)
-            : Math.min(100, momentum + MOMENTUM_RED_CARD_SWING);
-          events.push({ minute: min, type: 'red_card', playerId: fouler.id, clubId: club.id, description: pick(straightRedDescs)(fouler.lastName), momentum });
+            ? Math.min(100, momentum + MOMENTUM_RED_CARD_SWING)
+            : Math.max(-100, momentum - MOMENTUM_RED_CARD_SWING);
+          events.push({ minute: min, type: 'red_card', playerId: fouler.id, clubId: foulingClub.id, description: pick(straightRedDescs)(fouler.lastName), momentum });
             // Warn if team is down to 8 players
-            const teamAvail2 = isHome ? homeAvail().length : awayAvail().length;
+            const teamAvail2 = foulingIsHome ? homeAvail().length : awayAvail().length;
             if (teamAvail2 === MIN_PLAYERS_TO_CONTINUE + 1) {
-              events.push({ minute: min, type: 'commentary', clubId: club.id, description: `${club.shortName} are down to ${teamAvail2} players! One more sending off and the match will be abandoned.`, momentum });
+              events.push({ minute: min, type: 'commentary', clubId: foulingClub.id, description: `${foulingClub.shortName} are down to ${teamAvail2} players! One more sending off and the match will be abandoned.`, momentum });
             }
             // Rebalance strength after red card (the sent-off player might be the GK)
             const recomputed2 = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId, currentSeason);
             homeStr = recomputed2.homeStr; awayStr = recomputed2.awayStr;
-            refreshGKChances();
+            refreshDefenceMetrics();
             checkAbandon(min);
         }
       } else {
-        // Momentum shifts toward the fouled team
+        // Momentum shifts toward the fouled (event) team
         momentum = isHome
-          ? Math.max(-100, momentum - MOMENTUM_FOUL_SWING)
-          : Math.min(100, momentum + MOMENTUM_FOUL_SWING);
-        events.push({ minute: min, type: 'foul', playerId: fouler.id, clubId: club.id, description: withContextSuffix(pick(foulDescs)(fouler.lastName)), momentum });
+          ? Math.min(100, momentum + MOMENTUM_FOUL_SWING)
+          : Math.max(-100, momentum - MOMENTUM_FOUL_SWING);
+        events.push({ minute: min, type: 'foul', playerId: fouler.id, clubId: foulingClub.id, description: withContextSuffix(pick(foulDescs)(fouler.lastName)), momentum });
       }
 
-      // Foul can cause injury to fouled player (3% chance)
+      // Foul can cause injury to the FOULED player — i.e. someone on the
+      // attacking (event) side, treated by that side's medical staff.
       if (Math.random() < FOUL_INJURY_CHANCE) {
-        const oppEligible = oppSquad.filter(p => !unavailable.has(p.id));
+        const oppEligible = fouledSquad.filter(p => !unavailable.has(p.id));
         if (oppEligible.length > 0) {
           const fouled = pick(oppEligible);
-          const medLevel = isHome ? (awayMedicalLevel ?? 5) : (homeMedicalLevel ?? 5);
+          const medLevel = isHome ? (homeMedicalLevel ?? 5) : (awayMedicalLevel ?? 5);
           const details = generateInjuryDetails(true, medLevel);
           matchInjuries[fouled.id] = details;
           injuredSet.add(fouled.id);
@@ -1580,7 +1661,7 @@ export function simulateHalf(
           // Rebalance strength after injury (numerical disadvantage; GK may be the casualty)
           const injRecomp = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId, currentSeason);
           homeStr = injRecomp.homeStr; awayStr = injRecomp.awayStr;
-          refreshGKChances();
+          refreshDefenceMetrics();
           // AI substitution for injured player (non-player team only)
           const injuredIsHome = fouled.clubId === homeClub.id;
           const injuredIsPlayerTeam = fouled.clubId === playerClubId;
@@ -1603,21 +1684,19 @@ export function simulateHalf(
               // Rebalance after sub improves team (a backup GK may have come on)
               const subRecomp = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId, currentSeason);
               homeStr = subRecomp.homeStr; awayStr = subRecomp.awayStr;
-              refreshGKChances();
+              refreshDefenceMetrics();
             }
           }
         }
       }
 
-      // Penalty: the foul was in the box — awarded AGAINST the fouling side.
-      // The taker comes from the OPPOSING squad and the goal credits the
-      // opposing team. (Previously both were drawn from the fouling team's
-      // squad, so committing fouls and winning penalties were positively
-      // correlated for the same side.)
+      // Penalty: the foul was in the box — awarded AGAINST the fouling side,
+      // which is the side defending this possession. The taker therefore comes
+      // from the ATTACKING (event) squad.
       if (Math.random() < PENALTY_FROM_FOUL_CHANCE) {
-        const attackingIsHome = !isHome;
+        const attackingIsHome = isHome;
         const attackingClub = attackingIsHome ? homeClub : awayClub;
-        const atkEligibleAll = oppSquad.filter(p => !unavailable.has(p.id));
+        const atkEligibleAll = fouledSquad.filter(p => !unavailable.has(p.id));
         const atkEligible = atkEligibleAll.filter(p => p.position !== 'GK').length > 0
           ? atkEligibleAll.filter(p => p.position !== 'GK')
           : atkEligibleAll;
@@ -1632,7 +1711,8 @@ export function simulateHalf(
             if (attackingIsHome) homeGoals++; else awayGoals++;
             if (attackingIsHome) { homeShots++; homeSoT++; } else { awayShots++; awaySoT++; }
             if (playerEvents[penaltyTaker.id]) playerEvents[penaltyTaker.id].goals++;
-            squad.forEach(p => { if (p.position === 'GK' && playerEvents[p.id]) playerEvents[p.id].cleanSheet = false; });
+            // The conceding keeper is on the FOULING side.
+            foulingSquad.forEach(p => { if (p.position === 'GK' && playerEvents[p.id]) playerEvents[p.id].cleanSheet = false; });
             // Momentum swings toward the penalty-scoring (attacking) team
             momentum = attackingIsHome
               ? Math.min(100, momentum + MOMENTUM_PENALTY_SWING)
@@ -1646,6 +1726,10 @@ export function simulateHalf(
       }
     }
     // === OWN GOAL (rare) ===
+    // No xG is accrued here, deliberately: an own goal is not a shot by the
+    // benefiting team and standard xG models exclude them entirely. (The
+    // `goalkeeper_error` branch above likewise adds none of its own — the shot
+    // that the keeper fumbled already booked its xG at the shot-attempt roll.)
     else if (Math.random() < OWN_GOAL_CHANCE) {
       const oppEligible = oppSquad.filter(p => !unavailable.has(p.id) && (DEFENDER_POSITIONS as readonly string[]).includes(p.position));
       if (oppEligible.length > 0) {
@@ -1685,7 +1769,7 @@ export function simulateHalf(
         // Rebalance strength after injury (numerical disadvantage; GK may be the casualty)
         const injRecomp2 = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId, currentSeason);
         homeStr = injRecomp2.homeStr; awayStr = injRecomp2.awayStr;
-        refreshGKChances();
+        refreshDefenceMetrics();
         // AI substitution for injured player (non-player team only)
         const candIsHome = club.id === homeClub.id;
         const candIsPlayerTeam = club.id === playerClubId;
@@ -1702,7 +1786,7 @@ export function simulateHalf(
             events.push({ minute: min, type: 'substitution', playerId: inPlayer.id, assistPlayerId: outPlayer.id, clubId: club.id, description: pickSubDesc(inPlayer.lastName, outPlayer.lastName, club.shortName, true) });
             const subRecomp2 = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId, currentSeason);
             homeStr = subRecomp2.homeStr; awayStr = subRecomp2.awayStr;
-            refreshGKChances();
+            refreshDefenceMetrics();
           }
         }
       }
@@ -1736,7 +1820,7 @@ export function simulateHalf(
           events.push({ minute: min, type: 'substitution', playerId: aiSub.inPlayer.id, assistPlayerId: aiSub.outPlayer.id, clubId: homeClub.id, description: pickSubDesc(aiSub.inPlayer.lastName, aiSub.outPlayer.lastName, homeClub.shortName, false) });
           const recomp = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId, currentSeason);
           homeStr = recomp.homeStr; awayStr = recomp.awayStr;
-          refreshGKChances();
+          refreshDefenceMetrics();
         }
       }
       // Away team AI tactical sub (skip if player's team)
@@ -1757,7 +1841,7 @@ export function simulateHalf(
           events.push({ minute: min, type: 'substitution', playerId: aiSub.inPlayer.id, assistPlayerId: aiSub.outPlayer.id, clubId: awayClub.id, description: pickSubDesc(aiSub.inPlayer.lastName, aiSub.outPlayer.lastName, awayClub.shortName, false) });
           const recomp = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId, currentSeason);
           homeStr = recomp.homeStr; awayStr = recomp.awayStr;
-          refreshGKChances();
+          refreshDefenceMetrics();
         }
       }
     }

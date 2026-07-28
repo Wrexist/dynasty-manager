@@ -5,17 +5,128 @@ import { autoFillBestTeam } from '@/utils/autoFillLineup';
 import { NATIONS } from '@/data/nations';
 import { getPlayerRarity, getRarityValueMultiplier, getRarityWageMultiplier } from '@/utils/playerRarity';
 import type { Club, Player, FormationType } from '@/types/game';
+import { isPlaceholderClubId } from '@/config/continental';
 /**
  * Save migration system for Dynasty Manager.
  * Each migration transforms save data from one version to the next.
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 73;
+const CURRENT_VERSION = 78;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
 const migrations: Record<number, MigrationFn> = {
+  // v77 → v78: `SeasonTurnover` gained `promotedOutClubs`. `promotedClubs` is
+  // documented as "clubs promoted TO this league from below", but the code also
+  // pushed clubs promoted OUT of a middle tier into it — so the season summary
+  // announced departing clubs as new arrivals. Old saves have no such field;
+  // default it so consumers don't have to branch on undefined.
+  77: (data) => {
+    const t = data.lastSeasonTurnover as Record<string, unknown> | null | undefined;
+    return {
+      ...data,
+      version: 78,
+      lastSeasonTurnover: t && typeof t === 'object'
+        ? { ...t, promotedOutClubs: t.promotedOutClubs ?? [] }
+        : (t ?? null),
+    };
+  },
+
+  // v76 → v77: the living world (Phase 6). `initGame` now instantiates the top
+  // tier of the strongest foreign leagues as real clubs, and the continental
+  // draw backfills short qualifier lists with real clubs instead of fabricating
+  // reputation-1 `placeholder-N` entries.
+  //
+  // NO BACKFILL FOR EXISTING SAVES — deliberately. Instantiating ~3 leagues
+  // mid-save would mean generating ~1,000 players inside a synchronous
+  // migration on the launch path (hundreds of ms on an older iPhone, with no
+  // progress UI), and it would drop those clubs into a season whose continental
+  // draw, fixtures and coefficients were already computed without them. An
+  // existing save therefore keeps exactly the world it has: continental
+  // opponents stay ephemeral, and the Ballon d'Or falls back to its
+  // sparse-world path (`isProductionCeremony`) instead of the retired ghost
+  // fabrication. Starting a new dynasty gets the living world.
+  //
+  // What this step DOES do is evict the fabricated placeholder qualifiers that
+  // older saves accumulated in `continentalCoefficients`, where they inflated
+  // no league ranking but did persist forever. `virtualClubs` entries are left
+  // alone: an in-flight tournament may still reference a placeholder in a group
+  // or tie, and removing its display data would render that fixture nameless.
+  76: (data) => {
+    const coeffs = data.continentalCoefficients;
+    if (!coeffs || typeof coeffs !== 'object' || Array.isArray(coeffs)) {
+      return { ...data, version: 77 };
+    }
+    const cleaned: Record<string, unknown> = {};
+    for (const [clubId, coeff] of Object.entries(coeffs as Record<string, unknown>)) {
+      if (isPlaceholderClubId(clubId)) continue;
+      cleaned[clubId] = coeff;
+    }
+    return { ...data, version: 77, continentalCoefficients: cleaned };
+  },
+
+  // v75 → v76: GameState gained `celebrationDedupe`. The set of already-shown
+  // celebration keys used to live in a Dashboard `useRef`, and GameShell renders
+  // only the active screen — so Dashboard unmounted on every navigation and the
+  // set was discarded, re-firing "Top of the Table!" 20+ times a season for a side
+  // sitting top. Now persisted and season-bucketed.
+  75: (data) => ({
+    ...data,
+    version: 76,
+    celebrationDedupe: data.celebrationDedupe || { season: (data.season as number) || 1, keys: [] },
+  }),
+
+  // v74 → v75: `Player` gained `minutesPlayed` (season minutes, derived from the
+  // match event stream). The development playing-time term reads minutes when
+  // present and falls back to `appearances` when absent, so a save that skipped
+  // the backfill would still work — but seeding 0 here means every player starts
+  // the first post-upgrade season on a consistent basis instead of a mid-season
+  // mix of "no data" and real minutes.
+  74: (data) => {
+    const players = data.players as Record<string, unknown> | undefined;
+    if (!players || typeof players !== 'object') return { ...data, version: 75 };
+    const next: Record<string, unknown> = {};
+    for (const [id, raw] of Object.entries(players)) {
+      // Guard the null player: neighbouring migrations learned this the hard way
+      // (one null in `players` throws and the backup takes the same path).
+      if (!raw || typeof raw !== 'object') { next[id] = raw; continue; }
+      const p = raw as Record<string, unknown>;
+      next[id] = typeof p.minutesPlayed === 'number' ? p : { ...p, minutesPlayed: 0 };
+    }
+    return { ...data, version: 75, players: next };
+  },
+  // v73 → v74: `SubscriptionInfo` gained `grantedAt`, and a null `expiresAt` no
+  // longer means "lifetime" (it means "the store didn't tell us"). Lifetime is
+  // now identified by tier/productId. Backfill the anchor where we have a
+  // usable expiry, and clear any recurring record that has neither an expiry
+  // nor an anchor — those are exactly the records that used to grant permanent
+  // Pro for one month's payment, and they cannot be verified locally. The next
+  // RevenueCat sync restores Pro for anyone genuinely entitled.
+  //
+  // Also adds `careerRetired` so a retired manager has a terminal state instead
+  // of re-entering the unemployed branch forever.
+  73: (data) => {
+    const monetization = data.monetization as Record<string, unknown> | undefined;
+    const sub = monetization?.subscription as Record<string, unknown> | null | undefined;
+    let nextSub = sub ?? null;
+    if (sub && typeof sub === 'object') {
+      const tier = sub.tier;
+      const hasExpiry = typeof sub.expiresAt === 'string' && sub.expiresAt !== '';
+      if (tier === 'lifetime' || hasExpiry) {
+        nextSub = { ...sub, grantedAt: sub.grantedAt ?? new Date().toISOString() };
+      } else {
+        nextSub = null;
+      }
+    }
+    return {
+      ...data,
+      version: 74,
+      careerRetired: data.careerRetired ?? false,
+      ...(monetization ? { monetization: { ...monetization, subscription: nextSub } } : {}),
+    };
+  },
+
   // v72 → v73: GameState gained `boardUltimatum` (mid-season board ultimatum
   // issued at review weeks when confidence is critically low — see
   // config/gameBalance ULTIMATUM_* constants). Existing saves have no active
@@ -487,6 +598,12 @@ const migrations: Record<number, MigrationFn> = {
     const players = data.players as Record<string, Record<string, unknown>> | undefined;
     if (players) {
       for (const p of Object.values(players)) {
+        // Real corrupted saves do contain null entries here — which is why
+        // every neighbouring migration guards. Without this, one null player
+        // threw, `migrateSaveData` flagged migrationError, and the user got
+        // "Save upgrade failed"; the backup then took the same path, so
+        // recovery failed too.
+        if (!p || typeof p !== 'object') continue;
         if (typeof p.suspendedUntilWeek === 'number') {
           p.suspendedUntilWeek = p.suspendedUntilWeek + 1;
         }
@@ -739,8 +856,13 @@ const migrations: Record<number, MigrationFn> = {
 
   // v53 → v54: Backfill board objectives with structured checkType fields
   53: (data) => {
-    const objectives = (data.boardObjectives || []) as Record<string, unknown>[];
+    // `|| []` only covers null/undefined — a corrupted save where
+    // boardObjectives is an object or string would throw on `.map`, failing the
+    // whole migration (and the backup's, since it takes the same path).
+    const rawObjectives = data.boardObjectives;
+    const objectives = (Array.isArray(rawObjectives) ? rawObjectives : []) as Record<string, unknown>[];
     const updated = objectives.map(obj => {
+      if (!obj || typeof obj !== 'object') return obj;
       if (obj.checkType) return obj; // Already has structured fields
       const desc = (obj.description || '') as string;
       if (desc === 'Win the League') return { ...obj, checkType: 'league_position', targetMin: 1, xpReward: 40 };
@@ -1297,7 +1419,20 @@ export function isSaveFromNewerVersion(data: unknown): boolean {
 }
 
 export function migrateSaveData(data: Record<string, unknown>): Record<string, unknown> {
-  let version = (data.version || 1) as number;
+  // A save with no numeric `version` is NOT a v1 save. Treating it as one drove
+  // it through migration 22, which is a deliberate clean break that discards all
+  // game state (monetization included) — so a payload that merely lost its
+  // version field came back as an empty save that then failed validation. Refuse
+  // instead, and let the caller offer recovery. Reachable via the stale-save
+  // salvage path and via `importJsonToSlot`.
+  if (typeof data.version !== 'number' || !Number.isFinite(data.version)) {
+    Sentry.captureException(new Error('saveMigration: save has no usable version field'), {
+      tags: { context: 'saveMigration', fromVersion: 'missing' },
+    });
+    return { ...data, migrationError: true };
+  }
+
+  let version = data.version;
   let migrated = { ...data };
 
   while (version < CURRENT_VERSION) {
@@ -1323,7 +1458,20 @@ export function migrateSaveData(data: Record<string, unknown>): Record<string, u
       migrated = { ...migrated, migrationError: true };
       break;
     }
-    version = migrated.version as number;
+    // Assert monotonic progress. A migration step that forgets to set
+    // `version: N + 1` would otherwise spin this loop forever ON THE MAIN
+    // THREAD — a hard launch hang with no error and no crash report, which is
+    // far worse than a flagged failure.
+    const nextVersion = migrated.version;
+    if (typeof nextVersion !== 'number' || !Number.isFinite(nextVersion) || nextVersion <= version) {
+      Sentry.captureException(
+        new Error(`saveMigration: step ${version} did not advance version (got ${String(nextVersion)})`),
+        { tags: { context: 'saveMigration', fromVersion: String(version) } },
+      );
+      migrated = { ...migrated, migrationError: true };
+      break;
+    }
+    version = nextVersion;
   }
 
   return migrated;

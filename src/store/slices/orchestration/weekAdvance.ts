@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react';
 import { Club, Player, TransferListing, Match } from '@/types/game';
-import { calculateReputationTier, generateJobVacancies, generateCompetitors } from '@/utils/managerCareer';
+import { calculateReputationTier, generateJobVacancies, generateCompetitors, getRetirementAge } from '@/utils/managerCareer';
 import {
   REP_MIN, REP_MAX,
 } from '@/config/managerCareer';
@@ -23,7 +23,7 @@ import {
   TOTAL_WEEKS, CONFIDENCE_MIN, LISTING_PRICE_MIN_MULTIPLIER, LISTING_PRICE_RANDOM_RANGE, getExpectedPosition, FREE_AGENT_POOL_MAX,
 } from '@/config/gameBalance';
 
-import { NATIONAL_CALLUP_MORALE_BOOST } from '@/config/gameBalance';
+import { NATIONAL_CALLUP_MORALE_BOOST, NATIONAL_SQUAD_SIZE } from '@/config/gameBalance';
 
 import { generateMonthlyObjectives } from '@/utils/weeklyObjectives';
 
@@ -35,11 +35,11 @@ import { JOB_MARKET_REFRESH_WEEKS, PROACTIVE_OFFER_CHECK_INTERVAL, PROACTIVE_OFF
 import { getAICounterTactics } from '@/config/aiManager';
 import { AI_LOAN_DURATIONS, AI_LOAN_OBLIGATORY_BUY_CHANCE, AI_LOAN_OBLIGATORY_BUY_MULTIPLIER, AI_LOAN_WAGE_SPLITS } from '@/config/aiSimulation';
 import { getCompetitionCalendar } from '@/config/continental';
-import { AI_LOAN_OFFER_CHANCE, AI_LOAN_RECALL_CLAUSE_CHANCE, ASSISTANT_MANAGER_FAMILIARITY_BOOST, BENCH_REST_BONUS, BOARD_REVIEW_ADJUST_POSITIONS, BOARD_REVIEW_RAISE_THRESHOLD, BOARD_REVIEW_RELAX_THRESHOLD, BOARD_REVIEW_WEEKS, CALLUP_SNUB_MORALE_PENALTY, COMMERCIAL_INCOME_BASE, COMMERCIAL_INCOME_PER_REP, CONGESTED_FIXTURE_INJURY_MULTIPLIER, CONTRACT_MORALE_HIT_AMOUNT, CONTRACT_MORALE_HIT_OVERALL_THRESHOLD, CONTRACT_MORALE_HIT_WEEK_THRESHOLD, CONTRACT_MORALE_MIN, CONTRACT_WARNING_OVERALL_THRESHOLD, CONTRACT_WARNING_WEEKS, CONTRACT_WARNING_YOUTH_AGE_MAX, CONTRACT_WARNING_YOUTH_POTENTIAL_MIN, CUP_EXTRA_TIME_GOAL_CHANCE, CUP_EXTRA_TIME_REPUTATION_DIVISOR, CUP_PENALTY_GK_QUALITY_FACTOR, CUP_PENALTY_KICKS, FACILITY_MAX_LEVEL, FAN_MOOD_BASE, FAN_MOOD_SCALE, FFP_CONFIDENCE_PENALTY, FFP_CRITICAL_CONFIDENCE_PENALTY, FFP_WAGE_RATIO_CRITICAL, FFP_WAGE_RATIO_WARNING, FORFEIT_SCORE, INJURY_TYPES, INTERNATIONAL_BREAK_FITNESS_COST, INTERNATIONAL_BREAK_WEEKS, INTERNATIONAL_CALLUP_MIN_OVR, INTERNATIONAL_FITNESS_COST, INTERNATIONAL_SNUB_MIN_OVR, LEGENDARY_OBJECTIVE_XP_MULTIPLIER, LINEUP_SIZE, LOAN_DEV_BASE_CHANCE, LOAN_DEV_REP_FACTOR, LOAN_FITNESS_DRAIN, LOAN_PLAY_CHANCE_HIGH, LOAN_PLAY_CHANCE_LOW, LOAN_QUALITY_FORMULA_BASE, LOAN_QUALITY_FORMULA_REP_MULT, LOAN_YOUNG_AGE_THRESHOLD, MANAGER_SALARY_CONFIDENCE_PENALTY, MANAGER_SALARY_RATIO_CRITICAL, MANAGER_SALARY_RATIO_WARNING, MATCHDAY_INCOME_PER_FAN, MAX_CAREER_TIMELINE, MAX_FINANCE_HISTORY, MORALE_BENCH_MIN, MORALE_BENCH_WEEKLY_LOSS, NT_SACK_GROUP_EXIT_THRESHOLD, OBJECTIVE_CYCLE_WEEKS, PHYSIO_INJURY_REDUCTION_PER_QUALITY, PHYSIO_RECOVERY_BOOST_THRESHOLD, PHYSIO_RECOVERY_CHANCE, POST_TOURNAMENT_FITNESS_COST_HIGH, POST_TOURNAMENT_FITNESS_COST_LOW, RARE_OBJECTIVE_XP_MULTIPLIER, REP_INTL_FINAL, REP_INTL_GROUP_EXIT, REP_INTL_KNOCKOUT, REP_INTL_SEMI, REP_INTL_TOURNAMENT_WIN, SCOUTING_COST_PER_ASSIGNMENT, SIM_PENALTY_BASE_WIN_CHANCE, SIM_PENALTY_MENTAL_SCALE, STADIUM_INCOME_PER_LEVEL, STREAK_FORM_BONUS, STREAK_FORM_THRESHOLD, STREAK_INCOME_MULTIPLIER, STREAK_INCOME_THRESHOLD, STREAK_MORALE_BONUS, STREAK_MORALE_THRESHOLD, TRAINING_GROUND_BOOST, ULTIMATUM_CONFIDENCE_THRESHOLD, ULTIMATUM_HORIZON_WEEKS, ULTIMATUM_POSITION_TOLERANCE, ULTIMATUM_SANDBOX_BUDGET_CUT, ULTIMATUM_SANDBOX_CONFIDENCE_FLOOR, ULTIMATUM_SEASON1_GRACE_WEEK, ULTIMATUM_SURVIVE_CONFIDENCE, ULTIMATUM_SURVIVE_CONFIDENCE_BONUS, UNHAPPY_CONTAGION_MORALE_HIT, UNHAPPY_CONTAGION_WEEKS, UNHAPPY_THRESHOLD, UNHAPPY_WEEKS_TO_REQUEST, YOUTH_DEVELOPER_BOOST } from '@/config/gameBalance';
-import { FORCED_RETIREMENT_UNEMPLOYED_WEEKS, GROWTH_DISCIPLINE_PER_CLEAN_MATCH, GROWTH_MOTIVATION_PER_MORALE_EVENT, GROWTH_SCOUTING_PER_ASSIGNMENT, GROWTH_TACTICAL_PER_MATCH, MOD_SCOUTING_SPEED, MOD_TACTICAL_FAMILIARITY, MOD_YOUTH_GROWTH, STAT_MAX, UNEMPLOYED_OFFER_CHECK_INTERVAL, UNEMPLOYED_OFFER_MAX_PENDING } from '@/config/managerCareer';
+import { AI_LOAN_OFFER_CHANCE, AI_LOAN_RECALL_CLAUSE_CHANCE, ASSISTANT_MANAGER_FAMILIARITY_BOOST, BENCH_REST_BONUS, BOARD_REVIEW_ADJUST_POSITIONS, BOARD_REVIEW_RAISE_THRESHOLD, BOARD_REVIEW_RELAX_THRESHOLD, BOARD_REVIEW_WEEKS, CALLUP_SNUB_MORALE_PENALTY, CONGESTED_FIXTURE_INJURY_MULTIPLIER, CONTRACT_MORALE_HIT_AMOUNT, CONTRACT_MORALE_HIT_OVERALL_THRESHOLD, CONTRACT_MORALE_HIT_WEEK_THRESHOLD, CONTRACT_MORALE_MIN, CONTRACT_WARNING_OVERALL_THRESHOLD, CONTRACT_WARNING_WEEKS, CONTRACT_WARNING_YOUTH_AGE_MAX, CONTRACT_WARNING_YOUTH_POTENTIAL_MIN, CUP_EXTRA_TIME_GOAL_CHANCE, CUP_EXTRA_TIME_REPUTATION_DIVISOR, CUP_PENALTY_GK_QUALITY_FACTOR, CUP_PENALTY_KICKS, FACILITY_MAX_LEVEL, FAN_MOOD_BASE, FAN_MOOD_SCALE, FFP_CONFIDENCE_PENALTY, FFP_CRITICAL_CONFIDENCE_PENALTY, FFP_WAGE_RATIO_CRITICAL, FFP_WAGE_RATIO_WARNING, FORFEIT_SCORE, INJURY_TYPES, INTERNATIONAL_BREAK_FITNESS_COST, INTERNATIONAL_BREAK_WEEKS, INTERNATIONAL_CALLUP_MIN_OVR, INTERNATIONAL_FITNESS_COST, INTERNATIONAL_SNUB_MIN_OVR, LEGENDARY_OBJECTIVE_XP_MULTIPLIER, LOAN_DEV_BASE_CHANCE, LOAN_DEV_REP_FACTOR, LOAN_FITNESS_DRAIN, LOAN_PLAY_CHANCE_HIGH, LOAN_PLAY_CHANCE_LOW, LOAN_QUALITY_FORMULA_BASE, LOAN_QUALITY_FORMULA_REP_MULT, LOAN_YOUNG_AGE_THRESHOLD, MANAGER_SALARY_CONFIDENCE_PENALTY, MANAGER_SALARY_RATIO_CRITICAL, MANAGER_SALARY_RATIO_WARNING, MAX_CAREER_TIMELINE, MAX_FINANCE_HISTORY, MORALE_BENCH_MIN, MORALE_BENCH_WEEKLY_LOSS, NT_SACK_GROUP_EXIT_THRESHOLD, OBJECTIVE_CYCLE_WEEKS, PHYSIO_INJURY_REDUCTION_PER_QUALITY, PHYSIO_RECOVERY_BOOST_THRESHOLD, PHYSIO_RECOVERY_CHANCE, POST_TOURNAMENT_FITNESS_COST_HIGH, POST_TOURNAMENT_FITNESS_COST_LOW, RARE_OBJECTIVE_XP_MULTIPLIER, REP_INTL_FINAL, REP_INTL_GROUP_EXIT, REP_INTL_KNOCKOUT, REP_INTL_SEMI, REP_INTL_TOURNAMENT_WIN, SCOUTING_COST_PER_ASSIGNMENT, SIM_PENALTY_BASE_WIN_CHANCE, SIM_PENALTY_MENTAL_SCALE, STADIUM_INCOME_PER_LEVEL, STREAK_FORM_BONUS, STREAK_FORM_THRESHOLD, STREAK_INCOME_MULTIPLIER, STREAK_INCOME_THRESHOLD, STREAK_MORALE_BONUS, STREAK_MORALE_THRESHOLD, TRAINING_GROUND_BOOST, ULTIMATUM_CONFIDENCE_THRESHOLD, ULTIMATUM_HORIZON_WEEKS, ULTIMATUM_POSITION_TOLERANCE, ULTIMATUM_SANDBOX_BUDGET_CUT, ULTIMATUM_SANDBOX_CONFIDENCE_FLOOR, ULTIMATUM_SEASON1_GRACE_WEEK, ULTIMATUM_SURVIVE_CONFIDENCE, ULTIMATUM_SURVIVE_CONFIDENCE_BONUS, UNHAPPY_CONTAGION_MORALE_HIT, UNHAPPY_CONTAGION_WEEKS, UNHAPPY_THRESHOLD, UNHAPPY_WEEKS_TO_REQUEST, YOUTH_DEVELOPER_BOOST } from '@/config/gameBalance';
+import { FORCED_RETIREMENT_AGE_GRACE_YEARS, FORCED_RETIREMENT_UNEMPLOYED_WEEKS, GROWTH_DISCIPLINE_PER_CLEAN_MATCH, GROWTH_MOTIVATION_PER_MORALE_EVENT, GROWTH_SCOUTING_PER_ASSIGNMENT, GROWTH_TACTICAL_PER_MATCH, MOD_SCOUTING_SPEED, MOD_TACTICAL_FAMILIARITY, MOD_YOUTH_GROWTH, STAT_MAX, UNEMPLOYED_OFFER_CHECK_INTERVAL, UNEMPLOYED_OFFER_MAX_PENDING } from '@/config/managerCareer';
 import { NATIONAL_OVR_STR_FLOOR, NATIONAL_OVR_STR_MAX, NATIONAL_OVR_STR_MIN, NATIONAL_OVR_STR_RANGE, PENALTY_CONVERSION_RATE } from '@/config/matchEngine';
 import { MERCH_CAMPAIGN_COOLDOWN_WEEKS, MERCH_PRICING_TIERS, SIGNATURE_DROP_COOLDOWN_WEEKS } from '@/config/merchandise';
-import { STORYLINE_CHAIN_MIN_WEEK, STORYLINE_CHAIN_TRIGGER_CHANCE } from '@/config/playoffs';
+import { STORYLINE_CHAIN_MIN_WEEK, STORYLINE_CHAIN_TRIGGER_CHANCE, STORYLINE_CHAIN_COOLDOWN_SEASONS } from '@/config/playoffs';
 import { MAX_SCOUT_REPORTS } from '@/config/scouting';
 import { GK_COACH_DEV_BONUS_PER_QUALITY, STAFF_MARKET_REFRESH_WEEK } from '@/config/staff';
 import { INDIVIDUAL_INJURY_RISK_MODIFIER } from '@/config/training';
@@ -60,15 +60,17 @@ import { processAIWeekly } from '@/utils/aiSimulation';
 import { getWinStreak } from '@/utils/celebrations';
 import { getMentorBonus } from '@/utils/chemistry';
 import { advanceKnockoutRound, generateKnockoutFromGroups, getCurrentMatchday, isGroupStageComplete, isKnockoutRoundComplete, simulateGroupMatchday, simulateKnockoutLeg } from '@/utils/continental';
+import type { ContinentalWorld } from '@/utils/continental';
+import { stripAiMatchDetail } from '@/store/slices/orchestration/helpers';
 import { getEffectiveStadiumLevel } from '@/utils/facilities';
-import { getLeaguePositionPrize } from '@/utils/financeHelpers';
+import { getLeaguePositionPrize, getMatchdayIncome, getCommercialIncome, assessFfp } from '@/utils/financeHelpers';
 import { formatMoney, getSuffix } from '@/utils/helpers';
-import { generateKnockoutBracket, processGroupWeek, processKnockoutRound, simulateKnockoutToCompletion } from '@/utils/international';
+import { generateKnockoutBracket, processGroupWeek, processKnockoutRound, simulateKnockoutToCompletion, autoSelectNationalSquad } from '@/utils/international';
 import { generateUnemployedOffer } from '@/utils/managerCareer';
 import { dynastyMult } from '@/utils/managerPerks';
 import { calculateWeeklyMerchRevenue } from '@/utils/merchandise';
 import { getLeadershipBonus, wantsTransfer } from '@/utils/personality';
-import { calculateOverall } from '@/utils/playerGen';
+import { calculateOverall, selectBestLineup } from '@/utils/playerGen';
 import { recomputePlayerValueOnly } from '@/utils/playerEconomics';
 import { generateRandomEvents } from '@/utils/randomEvents';
 import { completeAssignment } from '@/utils/scouting';
@@ -83,6 +85,7 @@ import { generateCliffhangers } from '@/utils/weekPreview';
 import { ObjectiveContext, calculateCompletedXP, evaluateObjectives, objectiveClaimXP } from '@/utils/weeklyObjectives';
 import { generateProactiveOffer, getReputationTierLabel } from '@/utils/managerCareer';
 import { refreshCommunityPackMarket, seedCommunityPackFreeAgents } from './communityPackRuntime';
+import { pickAiMatchSquad } from '@/store/slices/orchestration/helpers';
 
 /**
  * Week-advancement pipeline extracted from orchestrationSlice.ts.
@@ -119,10 +122,31 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
   // we must not progress the week — the picker is the canonical "first
   // week before the first national game" gate.
   if (!tournament.squadConfirmed) {
+    // HARD ESCAPE. Blocking the week on a UI gate is only safe if that gate can
+    // always be satisfied, and it could not: the picker's Confirm requires
+    // exactly 23 players meeting position quotas, and at end of season — which is
+    // when tournaments are scheduled — the eligible pool can come up short
+    // (notably on goalkeepers). The result was an unrecoverable save: every
+    // Advance Week snapped back to the picker, `seasonPhase` stayed
+    // 'international', and there was no skip.
+    //
+    // The picker and `autoSelectNationalSquad` are both hardened now, so this
+    // should never fire — but the game loop must not be one UI regression away
+    // from a dead save. If a full squad can be assembled automatically, confirm
+    // it and carry on rather than blocking forever.
     if (state.currentScreen !== 'national-squad-picker') {
-      set({ currentScreen: 'national-squad-picker' });
+      const auto = autoSelectNationalSquad(nationality, state.players, tournament.currentWeek);
+      if (auto.length >= NATIONAL_SQUAD_SIZE && state.nationalTeam) {
+        const squadPlayers = auto.map(id => state.players[id]).filter(Boolean);
+        const { lineup, subs } = selectBestLineup(squadPlayers, state.nationalTeam.formation, state.week);
+        get().confirmNationalSquad(auto, lineup.map(p => p.id), subs.map(p => p.id));
+      } else {
+        set({ currentScreen: 'national-squad-picker' });
+        return;
+      }
+    } else {
+      return;
     }
-    return;
   }
 
   if (tournament.phase === 'group') {
@@ -616,19 +640,37 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     return;
   }
 
+  // A retired manager is DONE. Without this guard the retirement path fell
+  // straight back into the unemployed branch below: weekly "Between Jobs" spam,
+  // every job offer auto-rejected by respondToJobOffer's retirement-age check,
+  // and after another 24 weeks the forced-retirement branch fired again and
+  // bounced the player to Hall of Managers on every single tick. The career is
+  // over — the retirement screen offers a new career instead.
+  if (state.gameMode === 'career' && state.careerRetired) {
+    set({ currentScreen: 'career-retired' });
+    return;
+  }
+
   // Career mode: unemployed managers skip gameplay, only process job market
   if (state.gameMode === 'career' && state.careerManager && !state.careerManager.contract) {
     const cm = { ...state.careerManager, attributes: { ...state.careerManager.attributes } };
     cm.unemployedWeeks = (cm.unemployedWeeks || 0) + 1;
     const newWeek = state.week + 1;
 
-    // Forced retirement after extended unemployment
-    if (cm.unemployedWeeks >= FORCED_RETIREMENT_UNEMPLOYED_WEEKS) {
+    // Forced retirement after extended unemployment — but only for a manager
+    // who is actually near the end of a career. This used to fire on age alone
+    // being irrelevant: a 40-year-old who had one bad run was "retired" against
+    // his will, and because the branch returned before regenerating vacancies,
+    // nothing was ever generated again and the save was unrecoverable in-game.
+    // A younger manager out of work this long gets a guaranteed low-tier offer
+    // instead (the desperation-vacancy path below).
+    const nearEndOfCareer = cm.age >= getRetirementAge(cm) - FORCED_RETIREMENT_AGE_GRACE_YEARS;
+    if (cm.unemployedWeeks >= FORCED_RETIREMENT_UNEMPLOYED_WEEKS && nearEndOfCareer) {
       cm.careerHistory = cm.careerHistory.map(e =>
         e.endSeason === null ? { ...e, endSeason: state.season, reason: 'retired' as const } : e
       );
       cm.contract = null;
-      set({ week: newWeek, careerManager: cm, activeInterview: null, currentScreen: 'hall-of-managers' });
+      set({ week: newWeek, careerManager: cm, activeInterview: null, careerRetired: true, currentScreen: 'career-retired' });
       if (state.settings.autoSave) get().saveGame();
       return;
     }
@@ -646,7 +688,13 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
 
     // Desperation vacancies (weak or no competitors)
     if (cm.unemployedWeeks >= 12 && vacancies.length === 0) {
-      const desperate = Object.values(state.clubs).filter(c => c.id !== state.playerClubId).slice(0, 2);
+      // Weakest clubs first. `.slice(0, 2)` on insertion order handed out the
+      // first two clubs in the record, which can be a top-flight giant — offered
+      // at a GBP 1,500 salary with "Survive and stabilize the club" expectations.
+      const desperate = Object.values(state.clubs)
+        .filter(c => c.id !== state.playerClubId)
+        .sort((a, b) => (a.reputation || 0) - (b.reputation || 0))
+        .slice(0, 2);
       vacancies = desperate.map(club => {
         const league = LEAGUES.find(l => l.id === club.divisionId);
         const clubData = ALL_CLUBS.find(c => c.id === club.id);
@@ -711,23 +759,23 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
         const hc = simClubs[m.homeClubId];
         const ac = simClubs[m.awayClubId];
         if (!hc || !ac) continue;
-        const hAvail = hc.playerIds.map(id => simPlayers[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > newWeek));
-        const aAvail = ac.playerIds.map(id => simPlayers[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > newWeek));
-        const hp = hAvail.slice(0, LINEUP_SIZE);
-        const ap = aAvail.slice(0, LINEUP_SIZE);
+        const hSquadAI = pickAiMatchSquad(hc, simPlayers, newWeek);
+        const aSquadAI = pickAiMatchSquad(ac, simPlayers, newWeek);
+        const hp = hSquadAI.xi;
+        const ap = aSquadAI.xi;
         if (hp.length === 0 || ap.length === 0) {
           leagueFixtures[fi] = { ...m, played: true, homeGoals: hp.length === 0 ? 0 : FORFEIT_SCORE, awayGoals: ap.length === 0 ? 0 : FORFEIT_SCORE, events: [{ minute: 0, type: 'half_time' as const, clubId: '', description: 'Match forfeited' }] };
           changed = true;
           continue;
         }
-        const hBenchAI = hAvail.slice(11, 18);
-        const aBenchAI = aAvail.slice(11, 18);
+        const hBenchAI = hSquadAI.bench;
+        const aBenchAI = aSquadAI.bench;
         const hProfile = hc.aiManagerProfile;
         const aProfile = ac.aiManagerProfile;
         const hTacticsAI = hProfile && aProfile ? getAICounterTactics(hProfile, aProfile.defaultTactics, ac.formation || '4-4-2') : undefined;
         const aTacticsAI = aProfile && hProfile ? getAICounterTactics(aProfile, hProfile.defaultTactics, hc.formation || '4-4-2') : undefined;
         const { result } = simulateMatch(m, hc, ac, hp, ap, hTacticsAI, aTacticsAI, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, state.season, undefined, hBenchAI, aBenchAI);
-        leagueFixtures[fi] = result;
+        leagueFixtures[fi] = stripAiMatchDetail(result, state.playerClubId);
         applyAIMatchEvents(result.events, simPlayers, simClubs, newWeek, hp, ap, result.homeGoals, result.awayGoals, eloRankings, m.homeClubId, m.awayClubId);
         updateEloRatings(eloRankings, m.homeClubId, m.awayClubId, result.homeGoals, result.awayGoals, 'league');
         changed = true;
@@ -1083,39 +1131,22 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   // Mutable copy of power rankings — updated after every match this week
   const eloRankings = { ...(state.clubPowerRankings || {}) };
 
-  // When a fixture belongs to the player's club it's only in `aiMatches`
-  // because a higher-priority match forced it to be auto-simmed. In that case
-  // honour the manager's chosen XI: order available players by lineup → subs →
-  // rest-of-roster before slicing, instead of raw roster order (which ignored
-  // the saved lineup entirely). Injured/suspended lineup members are already
-  // filtered out of `avail`, so they fall through to bench/best-available
-  // cover gracefully. AI clubs keep plain roster order.
-  const orderByLineup = (club: typeof clubs[string], avail: typeof newPlayers[string][]) => {
-    if (club.id !== playerClubId) return avail;
-    const availById = new Map(avail.map(p => [p.id, p]));
-    const ordered: typeof avail = [];
-    const seen = new Set<string>();
-    for (const id of [...(club.lineup || []), ...(club.subs || [])]) {
-      const p = availById.get(id);
-      if (p && !seen.has(id)) { ordered.push(p); seen.add(id); }
-    }
-    for (const p of avail) {
-      if (!seen.has(p.id)) { ordered.push(p); seen.add(p.id); }
-    }
-    return ordered;
-  };
-
+  // A fixture belonging to the player's club is only in `aiMatches` because a
+  // higher-priority match forced it to be auto-simmed. That club gets its saved
+  // XI honoured (`honourSavedLineup`) — the manager picked it, so the assistant
+  // should field it, replacing only unavailable names. AI clubs get the
+  // optimizer's position-aware pick.
   for (const m of aiMatches) {
     const idx = updatedFixtures.findIndex(f => f.id === m.id);
     const hc = clubs[m.homeClubId];
     const ac = clubs[m.awayClubId];
     if (!hc || !ac) continue;
-    const hAvail = orderByLineup(hc, hc.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week)));
-    const aAvail = orderByLineup(ac, ac.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week)));
-    const hp = hAvail.slice(0, LINEUP_SIZE);
-    const ap = aAvail.slice(0, LINEUP_SIZE);
-    const hBenchAI = hAvail.slice(11, 18);
-    const aBenchAI = aAvail.slice(11, 18);
+    const hSquadColl = pickAiMatchSquad(hc, newPlayers, week, hc.id === playerClubId);
+    const aSquadColl = pickAiMatchSquad(ac, newPlayers, week, ac.id === playerClubId);
+    const hp = hSquadColl.xi;
+    const ap = aSquadColl.xi;
+    const hBenchAI = hSquadColl.bench;
+    const aBenchAI = aSquadColl.bench;
     // Forfeit if either team has no available players
     if (hp.length === 0 || ap.length === 0) {
       const forfeit = { ...m, played: true, homeGoals: hp.length === 0 ? 0 : FORFEIT_SCORE, awayGoals: ap.length === 0 ? 0 : FORFEIT_SCORE, events: [{ minute: 0, type: 'half_time' as const, clubId: '', description: 'Match forfeited — insufficient players' }] };
@@ -1128,7 +1159,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     const hTacticsAI = hProfile && aProfile ? getAICounterTactics(hProfile, aProfile.defaultTactics, ac.formation || '4-4-2') : undefined;
     const aTacticsAI = aProfile && hProfile ? getAICounterTactics(aProfile, hProfile.defaultTactics, hc.formation || '4-4-2') : undefined;
     const { result } = simulateMatch(m, hc, ac, hp, ap, hTacticsAI, aTacticsAI, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hBenchAI, aBenchAI);
-    updatedFixtures[idx] = result;
+    updatedFixtures[idx] = stripAiMatchDetail(result, playerClubId);
     applyAIMatchEvents(result.events, newPlayers, clubs, week, hp, ap, result.homeGoals, result.awayGoals, eloRankings, m.homeClubId, m.awayClubId);
     updateEloRatings(eloRankings, m.homeClubId, m.awayClubId, result.homeGoals, result.awayGoals, 'league');
   }
@@ -1161,10 +1192,10 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
       const hClub = clubs[tie.homeClubId];
       const aClub = clubs[tie.awayClubId];
       if (!hClub || !aClub) continue;
-      const hCupAvail = hClub.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week));
-      const aCupAvail = aClub.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week));
-      const hPlayers = hCupAvail.slice(0, LINEUP_SIZE);
-      const aPlayers = aCupAvail.slice(0, LINEUP_SIZE);
+      const hCupSquad = pickAiMatchSquad(hClub, newPlayers, week);
+      const aCupSquad = pickAiMatchSquad(aClub, newPlayers, week);
+      const hPlayers = hCupSquad.xi;
+      const aPlayers = aCupSquad.xi;
 
       const isPlayerMatch = tie.homeClubId === playerClubId || tie.awayClubId === playerClubId;
       if (isPlayerMatch && tie.week === week) continue; // Player's current-week cup match is played interactively
@@ -1176,7 +1207,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
       }
       const { result: cupResult } = simulateMatch(
         { id: tie.id, week: tie.week, homeClubId: tie.homeClubId, awayClubId: tie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] },
-        hClub, aClub, hPlayers, aPlayers, undefined, undefined, undefined, undefined, getDerbyIntensity(tie.homeClubId, tie.awayClubId), undefined, season, undefined, hCupAvail.slice(11, 18), aCupAvail.slice(11, 18)
+        hClub, aClub, hPlayers, aPlayers, undefined, undefined, undefined, undefined, getDerbyIntensity(tie.homeClubId, tie.awayClubId), undefined, season, undefined, hCupSquad.bench, aCupSquad.bench
       );
 
       // Resolve draws via extra time then penalties
@@ -1275,10 +1306,10 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
       const hClub = clubs[tie.homeClubId];
       const aClub = clubs[tie.awayClubId];
       if (!hClub || !aClub) continue;
-      const hLcAvail = hClub.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week));
-      const aLcAvail = aClub.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week));
-      const hPlayers = hLcAvail.slice(0, LINEUP_SIZE);
-      const aPlayers = aLcAvail.slice(0, LINEUP_SIZE);
+      const hLcSquad = pickAiMatchSquad(hClub, newPlayers, week);
+      const aLcSquad = pickAiMatchSquad(aClub, newPlayers, week);
+      const hPlayers = hLcSquad.xi;
+      const aPlayers = aLcSquad.xi;
 
       const isPlayerMatch = tie.homeClubId === playerClubId || tie.awayClubId === playerClubId;
       if (isPlayerMatch && tie.week === week) continue; // Player's current-week league cup match is played interactively
@@ -1290,7 +1321,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
       }
       const { result: lcResult } = simulateMatch(
         { id: tie.id, week: tie.week, homeClubId: tie.homeClubId, awayClubId: tie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] },
-        hClub, aClub, hPlayers, aPlayers, undefined, undefined, undefined, undefined, getDerbyIntensity(tie.homeClubId, tie.awayClubId), undefined, season, undefined, hLcAvail.slice(11, 18), aLcAvail.slice(11, 18)
+        hClub, aClub, hPlayers, aPlayers, undefined, undefined, undefined, undefined, getDerbyIntensity(tie.homeClubId, tie.awayClubId), undefined, season, undefined, hLcSquad.bench, aLcSquad.bench
       );
 
       // League Cup: straight to penalties if drawn (no extra time in early rounds)
@@ -1358,18 +1389,26 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
 
   // ── Domestic Super Cup Simulation ──
   let newDomesticSuperCup = state.domesticSuperCup;
-  if (newDomesticSuperCup && !newDomesticSuperCup.played && week === DOMESTIC_SUPER_CUP_WEEK) {
+  // `>=`, not `===`. Both Super Cup weeks are raw, unscaled constants (1 and 2)
+  // while the cup / League Cup / continental calendars compress into the same
+  // weeks in short seasons — and Super Cup is LAST in playCurrentMatchImpl's
+  // priority. So in every league with totalWeeks <= 38 a colliding League Cup R1
+  // outranked the Continental Super Cup, week 2 passed, `week === 2` was false
+  // forever, and the fixture sat unplayed in state for the whole season: no
+  // match, no trophy, no prize money. Cup, League Cup and continental all have
+  // this catch-up already; the Super Cups were the only competitions without it.
+  if (newDomesticSuperCup && !newDomesticSuperCup.played && week >= DOMESTIC_SUPER_CUP_WEEK) {
     const hClub = clubs[newDomesticSuperCup.homeClubId];
     const aClub = clubs[newDomesticSuperCup.awayClubId];
     const isPlayerMatch = newDomesticSuperCup.homeClubId === playerClubId || newDomesticSuperCup.awayClubId === playerClubId;
     if (!isPlayerMatch && hClub && aClub) {
       // AI simulation
-      const hAvailSC = hClub.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured);
-      const hPlayers = hAvailSC.slice(0, LINEUP_SIZE);
-      const hBenchSC = hAvailSC.slice(11, 18);
-      const aAvailSC = aClub.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured);
-      const aPlayers = aAvailSC.slice(0, LINEUP_SIZE);
-      const aBenchSC = aAvailSC.slice(11, 18);
+      const hScSquad = pickAiMatchSquad(hClub, newPlayers, week);
+      const aScSquad = pickAiMatchSquad(aClub, newPlayers, week);
+      const hPlayers = hScSquad.xi;
+      const hBenchSC = hScSquad.bench;
+      const aPlayers = aScSquad.xi;
+      const aBenchSC = aScSquad.bench;
       if (hPlayers.length > 0 && aPlayers.length > 0) {
         const { result: scResult } = simulateMatch(
           { id: 'super-cup', week, homeClubId: newDomesticSuperCup.homeClubId, awayClubId: newDomesticSuperCup.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] },
@@ -1385,17 +1424,19 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
 
   // ── Continental Super Cup Simulation ──
   let newContinentalSuperCup = state.continentalSuperCup;
-  if (newContinentalSuperCup && !newContinentalSuperCup.played && week === CONTINENTAL_SUPER_CUP_WEEK) {
+  if (newContinentalSuperCup && !newContinentalSuperCup.played && week >= CONTINENTAL_SUPER_CUP_WEEK) {
     const hClub = clubs[newContinentalSuperCup.homeClubId] || (state.virtualClubs || {})[newContinentalSuperCup.homeClubId];
     const aClub = clubs[newContinentalSuperCup.awayClubId] || (state.virtualClubs || {})[newContinentalSuperCup.awayClubId];
     const isPlayerMatch = newContinentalSuperCup.homeClubId === playerClubId || newContinentalSuperCup.awayClubId === playerClubId;
     if (!isPlayerMatch && hClub && aClub) {
-      const hAvailCSC = (hClub as Club).playerIds ? (hClub as Club).playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured) : [];
-      const hPlayers = hAvailCSC.slice(0, LINEUP_SIZE);
-      const hBenchCSC = hAvailCSC.slice(11, 18);
-      const aAvailCSC = (aClub as Club).playerIds ? (aClub as Club).playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured) : [];
-      const aPlayers = aAvailCSC.slice(0, LINEUP_SIZE);
-      const aBenchCSC = aAvailCSC.slice(11, 18);
+      // Continental Super Cup opponents can be virtual clubs with no squad, so
+      // guard on `playerIds` before asking the picker for an XI.
+      const hCscSquad = (hClub as Club).playerIds ? pickAiMatchSquad(hClub as Club, newPlayers, week) : { xi: [], bench: [] };
+      const hPlayers = hCscSquad.xi;
+      const hBenchCSC = hCscSquad.bench;
+      const aCscSquad = (aClub as Club).playerIds ? pickAiMatchSquad(aClub as Club, newPlayers, week) : { xi: [], bench: [] };
+      const aPlayers = aCscSquad.xi;
+      const aBenchCSC = aCscSquad.bench;
       if (hPlayers.length > 0 && aPlayers.length > 0) {
         const { result: scResult } = simulateMatch(
           { id: 'continental-super-cup', week, homeClubId: newContinentalSuperCup.homeClubId, awayClubId: newContinentalSuperCup.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] },
@@ -1418,6 +1459,25 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   let newShieldCup = state.shieldCup;
   let newConferenceCup = state.conferenceCup;
   const virtualClubs = state.virtualClubs || {};
+
+  // Real-engine continental football. `simulateGroupMatchday` used to resolve
+  // Real Madrid vs Bayern as a Poisson draw off two integers, while the PLAYER's
+  // own tie in the same competition ran the full match engine — two rulebooks in
+  // one tournament. Now that the strongest foreign leagues are instantiated as
+  // real clubs with real squads (see initGame's living world), club-vs-club ties
+  // go through `simulateMatch`, and the callback feeds the results back so foreign
+  // players accumulate goals, assists and ratings from continental football and
+  // their Elo moves — exactly as the league sim does. Genuinely virtual filler
+  // still falls back to the reputation model.
+  const continentalWorld: ContinentalWorld = {
+    clubs, players: newPlayers, week, season,
+    onEngineMatch: ({ result, homeXI, awayXI }) => {
+      applyAIMatchEvents(result.events, newPlayers, clubs, week, homeXI, awayXI,
+        result.homeGoals, result.awayGoals, eloRankings, result.homeClubId, result.awayClubId);
+      updateEloRatings(eloRankings, result.homeClubId, result.awayClubId,
+        result.homeGoals, result.awayGoals, 'cup');
+    },
+  };
   const continentalCalendar = getCompetitionCalendar(state.totalWeeks);
   const groupWeeks = continentalCalendar.groupWeeks;
 
@@ -1442,7 +1502,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
       if (mdWeek === undefined || mdWeek > week) break;
       const isCurrentWeek = mdWeek === week;
       // '' = no club is exempt → the player's overdue match is auto-simmed.
-      t = simulateGroupMatchday(t, md, virtualClubs, isCurrentWeek ? playerClubId : '');
+      t = simulateGroupMatchday(t, md, virtualClubs, isCurrentWeek ? playerClubId : '', continentalWorld);
       if (isGroupStageComplete(t)) {
         t = generateKnockoutFromGroups(t, playerClubId, state.totalWeeks);
         const compName = continentalName(t.competition);
@@ -1489,7 +1549,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
       if (legWeek > week) break;
 
       const isCurrentWeek = legWeek === week;
-      t = simulateKnockoutLeg(t, round, leg, virtualClubs, isCurrentWeek ? playerClubId : '');
+      t = simulateKnockoutLeg(t, round, leg, virtualClubs, isCurrentWeek ? playerClubId : '', continentalWorld);
 
       if (isKnockoutRoundComplete(t, round)) {
         const advanced = advanceKnockoutRound(t, playerClubId, state.totalWeeks);
@@ -1536,18 +1596,22 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     const updatedLeagueFixtures = [...leagueFixtures];
     for (let i = 0; i < updatedLeagueFixtures.length; i++) {
       const m = updatedLeagueFixtures[i];
-      if (m.week !== week || m.played) continue;
+      // `<= week`, not `=== week`: an AI fixture whose week slipped past
+      // unplayed (mid-season collision, a save resumed mid-week) used to be
+      // stranded forever, leaving that division's table permanently short.
+      // `endSeasonImpl` now also fast-forwards anything still outstanding.
+      if (m.week > week || m.played) continue;
       const hc = clubs[m.homeClubId];
       const ac = clubs[m.awayClubId];
       if (!hc || !ac) continue;
-      const hp = hc.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured).slice(0, LINEUP_SIZE);
-      const ap = ac.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured).slice(0, LINEUP_SIZE);
+      const hp = pickAiMatchSquad(hc, newPlayers, week).xi;
+      const ap = pickAiMatchSquad(ac, newPlayers, week).xi;
       if (hp.length === 0 || ap.length === 0) {
         updatedLeagueFixtures[i] = { ...m, played: true, homeGoals: hp.length === 0 ? 0 : FORFEIT_SCORE, awayGoals: ap.length === 0 ? 0 : FORFEIT_SCORE, events: [] };
         continue;
       }
       const { result } = simulateMatch(m, hc, ac, hp, ap);
-      updatedLeagueFixtures[i] = result;
+      updatedLeagueFixtures[i] = stripAiMatchDetail(result, playerClubId);
       applyAIMatchEvents(result.events, newPlayers, clubs, week, hp, ap, result.homeGoals, result.awayGoals, eloRankings, m.homeClubId, m.awayClubId);
       updateEloRatings(eloRankings, m.homeClubId, m.awayClubId, result.homeGoals, result.awayGoals, 'league');
     }
@@ -1667,7 +1731,15 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
         : AI_OFFER_CHANCE * preSeasonOfferMult;
       if (Math.random() < effectiveOfferChance) {
         const listing = currentMarket.find(l => l.playerId === lp.id);
-        const askingFloor = listing ? listing.askingPrice * ASKING_PRICE_BID_ANCHOR : 0;
+        // A player listed within the last few weeks cannot anchor AI bids above
+        // what he is actually worth. Without this, buying at just under the
+        // sell-on threshold and relisting at the UI's 2x cap was a repeatable
+        // profit machine across every spare squad slot, every window — and an
+        // ancient listing kept its original asking price forever, so AI clubs
+        // bid ~8x a declining player's real value for seasons on end.
+        const listedRecently = !!listing && listing.listedSeason === season
+          && (newWeek - (listing.listedWeek ?? 0)) <= 4;
+        const askingFloor = listing && !listedRecently ? listing.askingPrice * ASKING_PRICE_BID_ANCHOR : 0;
         const effectiveValue = Math.max(lp.value, askingFloor);
         tryGenerateOffer(lp, OFFER_FEE_BASE, OFFER_FEE_RANDOM_RANGE, effectiveValue);
       }
@@ -1757,7 +1829,9 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     const nextStepIdx = chain.currentStep + 1;
     if (nextStepIdx >= chainDef.steps.length) {
       // Chain complete — add completion summary and track as completed
-      newCompletedChainIds.push(chain.chainId);
+      // Stamp the season so the cooldown in the trigger block below can expire
+      // this marker. Bare ids (legacy saves) read as "long ago" and expire at once.
+      newCompletedChainIds.push(`${chain.chainId}@${season}`);
       const targetPlayer = chain.targetPlayerId ? newPlayers[chain.targetPlayerId] : null;
       const playerLabel = targetPlayer ? `${targetPlayer.firstName} ${targetPlayer.lastName}` : 'Your star player';
       const lastChoice = chain.choices[chain.choices.length - 1];
@@ -1812,9 +1886,28 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     const squadPlayers = Object.values(newPlayers).filter(p => p.clubId === playerClubId);
     const clubsList = Object.values(clubs);
     const avgBudget = clubsList.length > 0 ? clubsList.reduce((s, c) => s + c.budget, 0) / clubsList.length : 0;
-    const completedChainIds = new Set<string>(newCompletedChainIds);
+    // Completion markers are stored as `chainId@season` so they can expire.
+    // The field stays a string[] (no schema change); a legacy bare `chainId`
+    // has no season and is treated as long past, which lets an existing save
+    // whose storyline system had already gone dark start telling stories again.
+    const chainCooldownUntil = new Map<string, number>();
+    for (const marker of newCompletedChainIds) {
+      const at = marker.lastIndexOf('@');
+      const id = at >= 0 ? marker.slice(0, at) : marker;
+      const doneSeason = at >= 0 ? Number(marker.slice(at + 1)) : Number.NEGATIVE_INFINITY;
+      const until = Number.isFinite(doneSeason) ? doneSeason + STORYLINE_CHAIN_COOLDOWN_SEASONS : Number.NEGATIVE_INFINITY;
+      // Keep the strictest (latest) cooldown if a chain somehow has two markers.
+      chainCooldownUntil.set(id, Math.max(chainCooldownUntil.get(id) ?? Number.NEGATIVE_INFINITY, until));
+    }
+
+    // Collect EVERY eligible chain, then pick at random. The loop used to take
+    // the first match in `STORYLINE_CHAINS` order, and the trigger predicates
+    // overlap heavily (`injury-crisis` needs only `recentLosses >= 1 && week >= 5`,
+    // `dressing-room-power-struggle` `>= 2 && week >= 8`), so early array entries
+    // systematically won and every save told the same stories in the same order.
+    const eligibleChains: typeof STORYLINE_CHAINS[number][] = [];
     for (const chainDef of STORYLINE_CHAINS) {
-      if (completedChainIds.has(chainDef.id)) continue;
+      if (season < (chainCooldownUntil.get(chainDef.id) ?? Number.NEGATIVE_INFINITY)) continue;
       const triggered = shouldTriggerChain(chainDef.id, {
         week: newWeek,
         recentWins: recentResults.won,
@@ -1825,38 +1918,40 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
         budget: playerClub?.budget || 0,
         averageBudget: avgBudget,
       });
-      if (triggered) {
-        // Identify the target player for player-specific chains
-        let targetPlayerId: string | undefined;
-        if (chainDef.id === 'star-player-transfer-saga') {
-          const starPlayer = squadPlayers
-            .filter(p => p.overall >= 75 && !p.injured && !p.onLoan && !p.wantsToLeave && !p.listedForSale)
-            .sort((a, b) => b.overall - a.overall)[0];
-          if (starPlayer) targetPlayerId = starPlayer.id;
-        }
+      if (triggered) eligibleChains.push(chainDef);
+    }
 
-        const newChain: ActiveStorylineChain = {
-          chainId: chainDef.id,
-          startWeek: newWeek,
-          currentStep: 0,
-          choices: [],
-          targetPlayerId,
-        };
-
-        const firstStep = chainDef.steps[0];
-        if (!pendingStorylineEvent) {
-          const rawEvent: StorylineEvent = {
-            id: `chain-${chainDef.id}-step-0`,
-            title: firstStep.title,
-            body: firstStep.body,
-            icon: firstStep.icon,
-            options: firstStep.options,
-          };
-          pendingStorylineEvent = interpolateEvent(rawEvent, newChain);
-        }
-        updatedChains.push(newChain);
-        break;
+    const chainDef = eligibleChains.length > 0 ? pick(eligibleChains) : null;
+    if (chainDef) {
+      // Identify the target player for player-specific chains
+      let targetPlayerId: string | undefined;
+      if (chainDef.id === 'star-player-transfer-saga') {
+        const starPlayer = squadPlayers
+          .filter(p => p.overall >= 75 && !p.injured && !p.onLoan && !p.wantsToLeave && !p.listedForSale)
+          .sort((a, b) => b.overall - a.overall)[0];
+        if (starPlayer) targetPlayerId = starPlayer.id;
       }
+
+      const newChain: ActiveStorylineChain = {
+        chainId: chainDef.id,
+        startWeek: newWeek,
+        currentStep: 0,
+        choices: [],
+        targetPlayerId,
+      };
+
+      const firstStep = chainDef.steps[0];
+      if (!pendingStorylineEvent) {
+        const rawEvent: StorylineEvent = {
+          id: `chain-${chainDef.id}-step-0`,
+          title: firstStep.title,
+          body: firstStep.body,
+          icon: firstStep.icon,
+          options: firstStep.options,
+        };
+        pendingStorylineEvent = interpolateEvent(rawEvent, newChain);
+      }
+      updatedChains.push(newChain);
     }
   }
 
@@ -2004,6 +2099,12 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
       });
     }
   }
+  // Count assignments BEFORE dropping the completed ones — they were active this
+  // week and must be billed. Filtering first made the final week of every
+  // assignment free, and with the `scout_network` perk a 2-week domestic
+  // assignment dropped 2 -> 0 on its first tick and completed before it was ever
+  // billed: GBP 0, repeatable weekly, per scout, forever.
+  const billableAssignmentCount = newScouting.assignments.length;
   newScouting.assignments = newScouting.assignments.filter(a => !completedAssignments.includes(a.id));
   // Cap scout reports to prevent unbounded growth
   if (newScouting.reports.length > MAX_SCOUT_REPORTS) {
@@ -2157,8 +2258,45 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   });
   newStaff = { ...newStaff, members: moraleTickedMembers };
   const streakIncomeMult = currentWinStreak >= STREAK_INCOME_THRESHOLD ? 1 + STREAK_INCOME_MULTIPLIER : 1;
-  const matchdayIncome = Math.round(playerClub.fanBase * MATCHDAY_INCOME_PER_FAN * fanMoodMult * derbyIncomeBonus * streakIncomeMult);
-  const commercialIncome = Math.round(COMMERCIAL_INCOME_BASE + playerClub.reputation * COMMERCIAL_INCOME_PER_REP);
+  // Matchday is GATE money: paid at 2x on home weeks and nothing otherwise, so
+  // the season total is unchanged (every league plays exactly half its fixtures
+  // at home) while the money becomes something real. It used to pay every week
+  // including away games, byes and post-season. Both figures are also
+  // league-tier scaled now — `fanBase` is a 0-100 popularity index, not a
+  // headcount, and it only spans 41-54 across the English pyramid while wages
+  // span 20x, so a League Two club was clearing more profit per week than
+  // Arsenal. Commercial had the same problem: unscaled, it paid a tier-4 club
+  // GBP 500k/wk, more than its wage bill.
+  // Both live behind helpers shared with the Finance page so the displayed
+  // breakdown can never drift from the money actually paid.
+  // Home-gate on the SCHEDULE, not on a played league fixture.
+  //
+  // `thisWeekMatch` requires `m.played` and only scans league fixtures. Keying the
+  // gate on it meant matchday income silently became GBP 0 whenever the player's
+  // fixture wasn't a played league game — which is every cup and continental week,
+  // and every week of an auto-simulated save. Measured over 5 seasons that drove
+  // the player's own club to -GBP 242M with its wage bill collapsing from
+  // GBP 3.9M to GBP 0.4M as the squad emptied. A gate is owed for being at home,
+  // whatever competition you were at home in, and whether or not the fixture has
+  // been resolved yet this tick.
+  const isHomeFixture =
+    updatedFixtures.some(m => m.week === week && m.homeClubId === playerClubId)
+    || (newCup?.ties ?? []).some(t => t.week === week && t.homeClubId === playerClubId)
+    || (newLeagueCup?.ties ?? []).some(t => t.week === week && t.homeClubId === playerClubId)
+    || [newChampionsCup, newShieldCup, newConferenceCup].some(t => {
+      if (!t) return false;
+      const inGroup = (t.groups ?? []).some(g => (g.matches ?? []).some(m => m.week === week && m.homeClubId === playerClubId));
+      if (inGroup) return true;
+      return (t.knockoutTies ?? []).some(tie =>
+        (tie.week1 === week && tie.homeClubId === playerClubId)
+        || (tie.week2 === week && tie.round !== 'F' && tie.awayClubId === playerClubId));
+    })
+    || (newDomesticSuperCup?.week === week && newDomesticSuperCup.homeClubId === playerClubId)
+    || (newContinentalSuperCup?.week === week && newContinentalSuperCup.homeClubId === playerClubId);
+  const matchdayIncome = getMatchdayIncome(playerClub, playerDiv, {
+    fanMood: fanMoodMult, derby: derbyIncomeBonus, streak: streakIncomeMult, isHomeFixture,
+  });
+  const commercialIncome = getCommercialIncome(playerClub, playerDiv);
   // League position prize money: higher position = more income, scaled by tier
   const playerTableIdx = leagueTable.findIndex(e => e.clubId === playerClubId);
   const playerTablePos = playerTableIdx >= 0 ? playerTableIdx + 1 : leagueTable.length;
@@ -2175,7 +2313,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   const weeklyIncome = matchdayIncome + commercialIncome + stadiumIncome + positionPrize + sponsorIncome + merchandiseIncome;
   const staffWages = staff.members.reduce((sum, s) => sum + s.wage, 0);
   // Scouting costs: each active assignment costs money per week
-  const scoutingCosts = newScouting.assignments.length * SCOUTING_COST_PER_ASSIGNMENT;
+  const scoutingCosts = billableAssignmentCount * SCOUTING_COST_PER_ASSIGNMENT;
   // Manager salary: deducted weekly from club budget and accumulated as personal wealth
   const managerSalary = state.careerManager?.contract?.salary ?? 0;
   const totalExpenses = playerClub.wageBill + staffWages + scoutingCosts + managerSalary;
@@ -2188,16 +2326,20 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
 
   // Financial Fair Play check: warn/penalise when wages are too high relative to income
   let newBoardConfidence = boardConfidence;
-  const wageToRevenueRatio = weeklyIncome > 0 ? totalExpenses / weeklyIncome : 1;
+  // One shared definition with the Finance page. They used to disagree: the
+  // engine measured TOTAL expenses with merch net, the page measured the player
+  // wage bill alone with merch gross against hardcoded thresholds — so a player
+  // could read "62% - Healthy" while the board docked confidence every week.
+  const wageToRevenueRatio = assessFfp(totalExpenses, weeklyIncome).ratio;
   if (wageToRevenueRatio >= FFP_WAGE_RATIO_CRITICAL) {
     newBoardConfidence = Math.max(CONFIDENCE_MIN, newBoardConfidence - FFP_CRITICAL_CONFIDENCE_PENALTY);
     if (newWeek % 4 === 0) {
-      newMessages = addMsg(newMessages, { week: newWeek, season, type: 'board', title: 'FFP: Critical Warning!', body: `Your wage bill is ${Math.round(wageToRevenueRatio * 100)}% of revenue. The board demands immediate action to reduce spending or face severe consequences.` });
+      newMessages = addMsg(newMessages, { week: newWeek, season, type: 'board', title: 'FFP: Critical Warning!', body: `Your total weekly costs are ${Math.round(wageToRevenueRatio * 100)}% of revenue. The board demands immediate action to reduce spending or face severe consequences.` });
     }
   } else if (wageToRevenueRatio >= FFP_WAGE_RATIO_WARNING) {
     newBoardConfidence = Math.max(CONFIDENCE_MIN, newBoardConfidence - FFP_CONFIDENCE_PENALTY);
     if (newWeek % 8 === 0) {
-      newMessages = addMsg(newMessages, { week: newWeek, season, type: 'board', title: 'FFP: Spending Warning', body: `Your wage bill is ${Math.round(wageToRevenueRatio * 100)}% of revenue. The board urges you to manage finances more carefully.` });
+      newMessages = addMsg(newMessages, { week: newWeek, season, type: 'board', title: 'FFP: Spending Warning', body: `Your total weekly costs are ${Math.round(wageToRevenueRatio * 100)}% of revenue. The board urges you to manage finances more carefully.` });
     }
   }
 
@@ -2944,7 +3086,13 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
         const playerTeamCards = (lastMatch.events || []).filter(e =>
           (e.type === 'yellow_card' || e.type === 'red_card') && e.clubId === playerClubId
         );
-        if (playerTeamCards.length === 0) {
+        // Matches the retuned Fair Play objective: no red, at most one booking.
+        // The old zero-cards condition fired ~3x less often after cards rose to
+        // real-football volume, so the manager's discipline stat grew ~3x slower
+        // for no design reason.
+        const reds = playerTeamCards.filter(e => e.type === 'red_card').length;
+        const yellows = playerTeamCards.length - reds;
+        if (reds === 0 && yellows <= 1) {
           cm.attributes.discipline = Math.min(STAT_MAX, cm.attributes.discipline + GROWTH_DISCIPLINE_PER_CLEAN_MATCH);
         }
       }

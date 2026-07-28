@@ -6,19 +6,58 @@
  * transfer values, or any core simulation parameter.
  */
 
-import type { MonetizationState, ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo } from '@/types/game';
+import type { MonetizationState, ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo, SubscriptionTier } from '@/types/game';
 import { COSMETIC_ITEMS, AD_REWARD_LIMITS, STARTER_KIT_WINDOW_MS, PRO_ONE_TIME_PRODUCT_IDS } from '@/config/monetization';
 
-/** Check if a subscription has expired */
+/** Upper bound on how long a recurring subscription record is trusted when the
+ *  store gave us no `expiresAt`. Generous enough that a paying customer keeps
+ *  Pro across a normal billing period offline, bounded so the record can never
+ *  become permanent. */
+const UNANCHORED_WINDOW_MS: Record<SubscriptionTier, number> = {
+  trial: 8 * 24 * 60 * 60 * 1000,
+  monthly: 32 * 24 * 60 * 60 * 1000,
+  annual: 367 * 24 * 60 * 60 * 1000,
+  lifetime: Infinity,
+};
+
+/** Check if a subscription has expired.
+ *
+ *  Lifetime is identified by IDENTITY (`tier` / one-time product id), never by
+ *  a missing expiry date. `extractSubscriptionInfo` writes
+ *  `expiresAt: proEntitlement.expirationDate || null` for EVERY tier, so a
+ *  missing or empty `expirationDate` on an active monthly entitlement — which
+ *  RevenueCat does return in sandbox, in some grace/billing-issue states, and
+ *  for promotional entitlements — used to fall through the old
+ *  `expiresAt == null → lifetime` branch. One month paid became Pro for life,
+ *  and no later sync could correct it because every sync site guards
+ *  `if (sub) updateSubscription(sub)` and only ever writes non-null. This is
+ *  the same failure class as the `allPurchasedProductIdentifiers` bug we
+ *  already defend against, arriving via the date instead of the SKU list.
+ *
+ *  An unparseable expiry must also read as expired: `new Date('garbage') <
+ *  new Date()` is false (NaN comparison), so without that guard a malformed
+ *  expiry silently granted permanent Pro too. */
 function isSubscriptionExpired(sub: SubscriptionInfo): boolean {
-  // Only an EXPLICIT null/undefined expiry means lifetime. An empty string
-  // or unparseable date must read as expired: `new Date('garbage') < new
-  // Date()` is false (NaN comparison), so without this guard a malformed
-  // expiry silently granted permanent Pro.
-  if (sub.expiresAt == null) return false; // lifetime never expires
-  const expiresMs = new Date(sub.expiresAt).getTime();
-  if (!Number.isFinite(expiresMs)) return true;
-  return expiresMs < Date.now();
+  // Genuinely non-expiring: the lifetime tier, or any one-time Pro SKU that
+  // somehow landed in the subscription slot.
+  if (sub.tier === 'lifetime') return false;
+  if (PRO_ONE_TIME_PRODUCT_IDS.includes(sub.productId)) return false;
+
+  if (sub.expiresAt != null) {
+    const expiresMs = new Date(sub.expiresAt).getTime();
+    if (!Number.isFinite(expiresMs)) return true;
+    return expiresMs < Date.now();
+  }
+
+  // Recurring tier with no expiry date. Fail closed against a bounded window
+  // anchored on when we wrote the record: a real subscriber keeps Pro for at
+  // least a full billing period offline, and the next successful sync replaces
+  // this record with a properly dated one. With no anchor at all (a record
+  // predating `grantedAt`, or a hand-edited save) we cannot verify anything, so
+  // treat it as expired and let the store be the judge.
+  const grantedMs = sub.grantedAt ? new Date(sub.grantedAt).getTime() : NaN;
+  if (!Number.isFinite(grantedMs)) return true;
+  return grantedMs + UNANCHORED_WINDOW_MS[sub.tier] < Date.now();
 }
 
 /** Check if the player has an active subscription */

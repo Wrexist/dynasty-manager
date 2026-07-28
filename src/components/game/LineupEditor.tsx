@@ -417,15 +417,27 @@ export function LineupEditor() {
                   onClick={() => handleTap(playerId)}
                 />
               ) : (
+                // Mirrors LineupPlayerTile's operable pattern. Without a role,
+                // tabIndex and key handler, keyboard/switch users could select
+                // a player but never place him — the lineup was unsettable.
                 <div
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Empty ${slot.pos} slot${selectedId ? ' — place selected player here' : ''}`}
+                  onClick={() => handleTap(`slot-${i}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleTap(`slot-${i}`);
+                    }
+                  }}
                   className={cn(
                     'w-[52px] aspect-[3/4] rounded-[7px] border border-dashed border-white/20 bg-white/5 flex items-center justify-center',
                     selectedId ? 'cursor-pointer' : '',
                     compat ? (compat === 'natural' ? 'ring-2 ring-emerald-400' : compat === 'compatible' ? 'ring-2 ring-amber-400' : 'ring-2 ring-red-500') : ''
                   )}
-                  onClick={() => handleTap(`slot-${i}`)}
                 >
-                  <span className="text-[9px] font-semibold uppercase tracking-wide text-white/50">{slot.pos}</span>
+                  <span className="text-[9px] font-semibold uppercase tracking-wide text-white/50" aria-hidden>{slot.pos}</span>
                 </div>
               )}
             </div>

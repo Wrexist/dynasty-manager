@@ -1,6 +1,7 @@
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
+import { ClubCrest } from '@/components/game/ClubCrest';
 import { DollarSign, Users, Building2, GraduationCap, TrendingUp, TrendingDown, Star, HeartPulse, Smile, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getConfidenceColor, getFanConfidenceColor } from '@/utils/uiHelpers';
@@ -9,6 +10,8 @@ import { FAN_MOOD_HIGH_THRESHOLD, FAN_MOOD_MID_THRESHOLD } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
 import { PremiumCheck } from '@/components/game/icons/PremiumCheck';
 import { useSquadSummary } from '@/hooks/useGameSelectors';
+import { formatMoney } from '@/utils/helpers';
+import { SectionHeader } from '@/components/game/SectionHeader';
 
 const ClubPage = () => {
   const { playerClubId, clubs, season, boardConfidence, boardObjectives, fanMood, facilities } = useGameStore(useShallow(s => ({
@@ -44,11 +47,9 @@ const ClubPage = () => {
 
       {/* Club Header */}
       <div className="flex items-center gap-4">
-        <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-lg font-black" style={{ backgroundColor: club.color, color: club.secondaryColor }}>
-          {club.shortName}
-        </div>
+        <ClubCrest club={club} size="xl" shape="squircle" />
         <div>
-          <h2 className="text-xl font-black text-foreground font-display">{club.name}</h2>
+          <SectionHeader title={club.name} />
           <p className="text-sm text-muted-foreground flex items-center gap-1">Season {season} • {Array.from({ length: club.reputation }).map((_, i) => <Star key={i} className="w-3 h-3 fill-primary text-primary inline" />)}</p>
         </div>
       </div>
@@ -77,7 +78,7 @@ const ClubPage = () => {
         </div>
         <div className="mt-3 space-y-1.5">
           <div>
-            <div className="flex justify-between text-[10px] mb-0.5">
+            <div className="flex justify-between text-micro mb-0.5">
               <span className="text-muted-foreground">Fan Mood</span>
               <span className="text-muted-foreground">{fanMood}%</span>
             </div>
@@ -86,7 +87,7 @@ const ClubPage = () => {
             </div>
           </div>
           <div>
-            <div className="flex justify-between text-[10px] mb-0.5">
+            <div className="flex justify-between text-micro mb-0.5">
               <span className="text-muted-foreground">Squad Morale</span>
               <span className="text-muted-foreground">{avgMorale}%</span>
             </div>
@@ -108,21 +109,21 @@ const ClubPage = () => {
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="text-2xl font-black text-foreground">£{(club.budget / 1e6).toFixed(1)}M</p>
+            <p className="text-2xl font-black text-foreground tabular-nums">{formatMoney(club.budget)}</p>
             <p className="text-xs text-muted-foreground">Transfer Budget</p>
           </div>
           <div>
-            <p className="text-lg font-bold text-foreground">£{(club.wageBill / 1e3).toFixed(0)}K</p>
+            <p className="text-lg font-bold text-foreground tabular-nums">{formatMoney(club.wageBill)}</p>
             <p className="text-xs text-muted-foreground">Weekly Wages</p>
           </div>
           <div>
-            <p className="text-lg font-bold text-foreground">£{(weeklyIncome / 1e3).toFixed(0)}K</p>
+            <p className="text-lg font-bold text-foreground tabular-nums">{formatMoney(weeklyIncome)}</p>
             <p className="text-xs text-muted-foreground">Weekly Income</p>
           </div>
           <div>
-            <p className={cn('text-lg font-bold', netWeekly >= 0 ? 'text-emerald-400' : 'text-destructive')}>
+            <p className={cn('text-lg font-bold tabular-nums', netWeekly >= 0 ? 'text-emerald-400' : 'text-destructive')}>
               {netWeekly >= 0 ? <TrendingUp className="w-4 h-4 inline mr-1" /> : <TrendingDown className="w-4 h-4 inline mr-1" />}
-              £{(Math.abs(netWeekly) / 1e3).toFixed(0)}K
+              {formatMoney(netWeekly, { signed: true })}
             </p>
             <p className="text-xs text-muted-foreground">Net per Week</p>
           </div>

@@ -4,7 +4,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { LiquidButton } from '@/components/game/LiquidButton';
 import { SaveStatusIndicator } from '@/components/game/SaveStatusIndicator';
-import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users, Bug, ChartBar, Sparkles, Gauge, Bell, Clapperboard, Volume2, Share2, Upload } from 'lucide-react';
+import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users, Bug, ChartBar, Sparkles, Gauge, Bell, Clapperboard, Volume2, Share2, Upload, Newspaper } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { useState, useRef, useEffect } from 'react';
@@ -232,17 +232,31 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
     setRestoringPurchases(true);
     try {
       const granted = await restorePurchases();
-      if (granted.length > 0) {
-        restoreEntitlements(granted);
-        successToast('Purchases Restored', `${granted.length} product${granted.length > 1 ? 's' : ''} restored.`);
-      } else {
-        infoToast('No Purchases Found', 'No previous purchases were found for this account.');
-      }
-      // Also sync subscription info — only write a confirmed, non-null sub so a
-      // transient/empty customerInfo can't clear an active subscription.
+      if (granted.length > 0) restoreEntitlements(granted);
+
+      // Sync the subscription BEFORE deciding what to tell the user.
+      // `mapEntitlements` deliberately excludes subscription SKUs (they'd
+      // outlive the sub in `entitlements`), so a monthly/annual customer's
+      // restore legitimately returns `[]` — their Pro is recoverable only
+      // through extractSubscriptionInfo. Toasting off `granted.length` alone
+      // told every subscription-only customer "No Purchases Found" moments
+      // before their sub was actually restored. This is the primary Restore
+      // entry point for existing users, and the one App Review exercises.
+      // SubscribeOnboarding already got this treatment; Settings never did.
+      // Only write a confirmed, non-null sub so a transient/empty customerInfo
+      // can't clear an active subscription.
       const info = await getCustomerInfo();
       const sub = extractSubscriptionInfo(info);
       if (sub) updateSubscription(sub);
+
+      const proActive = isPro(useGameStore.getState().monetization);
+      if (granted.length > 0) {
+        successToast('Purchases Restored', `${granted.length} product${granted.length > 1 ? 's' : ''} restored.`);
+      } else if (proActive) {
+        successToast('Purchases Restored', 'Your Pro subscription is active.');
+      } else {
+        infoToast('No Purchases Found', 'No previous purchases were found for this account.');
+      }
     } catch {
       errorToast('Restore Failed', 'Could not restore purchases. Please try again.');
     } finally {
@@ -434,6 +448,16 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
             description="Ask before accepting any transfer offer"
             value={settings.confirmAllOffers}
             onChange={() => updateSettings({ confirmAllOffers: !settings.confirmAllOffers })}
+          />
+
+          <div className="border-t border-white/10" />
+
+          <ToggleRow
+            icon={Newspaper}
+            label="Only interrupt for important weeks"
+            description="Show the weekly summary as a full-screen popup only when there's something to act on. Quiet weeks appear as a card on your Dashboard instead."
+            value={settings.digestOnlyWhenSignificant !== false}
+            onChange={() => updateSettings({ digestOnlyWhenSignificant: settings.digestOnlyWhenSignificant === false })}
           />
         </div>
       </SettingsSection>

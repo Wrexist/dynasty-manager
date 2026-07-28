@@ -51,7 +51,10 @@ const CalendarView = () => {
   const phaseRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const weekCount = totalWeeks || TOTAL_WEEKS;
-  const tw = getTransferWindows(totalWeeks);
+  // Memoised so the phase-grouping useMemo below can depend on it by identity.
+  // Recomputing it every render made it un-listable as a dependency, which left
+  // the phase boundaries reading window weeks from whichever render first ran.
+  const tw = useMemo(() => getTransferWindows(totalWeeks), [totalWeeks]);
 
   // Build unified calendar: league + cup + international merged by week
   const { entries, stats } = useMemo(() => {
@@ -293,7 +296,7 @@ const CalendarView = () => {
     }
 
     return groups;
-  }, [entries, weekCount, playerClubId, internationalTournament]);
+  }, [entries, weekCount, playerClubId, internationalTournament, tw]);
 
   // Active phase for quick-jump
   const activePhaseId = useMemo(() => {
@@ -500,7 +503,7 @@ const CalendarView = () => {
                         isCurrentWeek ? 'bg-primary/10 border border-primary/30' : 'bg-card/20'
                       )}
                     >
-                      <span className={cn('text-xs font-mono w-10 shrink-0', isCurrentWeek ? 'text-primary font-bold' : 'text-muted-foreground/50')}>
+                      <span className={cn('text-xs font-display tabular-nums w-10 shrink-0', isCurrentWeek ? 'text-primary font-bold' : 'text-muted-foreground/50')}>
                         W{entry.week}
                       </span>
                       <span className="text-xs text-muted-foreground/50 italic flex-1">No match</span>
@@ -525,7 +528,7 @@ const CalendarView = () => {
                         isCurrentWeek ? 'bg-blue-500/10 border border-blue-400/30' : 'bg-card/40',
                       )}
                     >
-                      <span className={cn('text-xs font-mono w-10 shrink-0', isCurrentWeek ? 'text-blue-400 font-bold' : 'text-muted-foreground')}>
+                      <span className={cn('text-xs font-display tabular-nums w-10 shrink-0', isCurrentWeek ? 'text-blue-400 font-bold' : 'text-muted-foreground')}>
                         W{entry.week}
                       </span>
                       <span className="text-[10px] w-6 shrink-0 font-bold rounded px-1 py-0.5 text-center bg-blue-500/15 text-blue-400">
@@ -615,7 +618,7 @@ const CalendarView = () => {
         )}
       >
         {/* Week number */}
-        <span className={cn('text-xs font-mono w-10 shrink-0', isCurrent ? 'text-primary font-bold' : 'text-muted-foreground')}>
+        <span className={cn('text-xs font-display tabular-nums w-10 shrink-0', isCurrent ? 'text-primary font-bold' : 'text-muted-foreground')}>
           W{match.week}
         </span>
 
@@ -657,7 +660,7 @@ const CalendarView = () => {
               resultLabel === 'D' && 'bg-muted/50 text-muted-foreground',
               resultLabel === 'L' && 'bg-destructive/15 text-destructive',
             )}>{resultLabel}</span>
-            <span className={cn('text-sm font-mono font-bold', resultColor)}>{result}</span>
+            <span className={cn('text-sm font-display tabular-nums font-bold', resultColor)}>{result}</span>
           </div>
         ) : isCurrent ? (
           <span className="text-xs text-primary font-bold animate-pulse">NEXT</span>
@@ -713,7 +716,7 @@ const CalendarView = () => {
         )}
       >
         {/* Week number */}
-        <span className={cn('text-xs font-mono w-10 shrink-0', isCurrent ? 'text-primary font-bold' : 'text-muted-foreground')}>
+        <span className={cn('text-xs font-display tabular-nums w-10 shrink-0', isCurrent ? 'text-primary font-bold' : 'text-muted-foreground')}>
           W{tie.week}
         </span>
 
@@ -752,7 +755,7 @@ const CalendarView = () => {
                 resultLabel === 'L' && 'bg-destructive/15 text-destructive',
                 resultLabel === 'D' && 'bg-muted/50 text-muted-foreground',
               )}>{resultLabel}</span>
-              <span className={cn('text-sm font-mono font-bold', resultColor)}>{result}</span>
+              <span className={cn('text-sm font-display tabular-nums font-bold', resultColor)}>{result}</span>
             </div>
             {penaltyNote && <span className="text-[9px] text-muted-foreground">{penaltyNote}</span>}
           </div>

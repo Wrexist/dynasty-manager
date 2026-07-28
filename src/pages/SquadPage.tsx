@@ -7,7 +7,7 @@ import { PlayerCard } from '@/components/game/PlayerCard';
 import { cn } from '@/lib/utils';
 import { Player } from '@/types/game';
 import type { SquadSortKey, SquadStatusFilter } from '@/types/game';
-import { ShoppingCart, UserSearch, AlertTriangle, FileText, Users, ChevronDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { ShoppingCart, UserSearch, AlertTriangle, FileText, Users, ChevronDown, ArrowUp, ArrowDown, PenLine, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getRatingColor, posBadgeColor } from '@/utils/uiHelpers';
 import { hapticLight } from '@/utils/haptics';
@@ -41,27 +41,27 @@ function ContractAlertChip({ p, variant, onSelect, onRenew }: {
         {p.overall}
       </span>
       <FlagIcon nationality={p.nationality} size={12} />
-      <span className={cn('text-[8px] font-bold px-1 py-0.5 rounded leading-none', posBadgeColor(p.position))}>
+      <span className={cn('text-micro font-bold px-1 py-0.5 rounded leading-none', posBadgeColor(p.position))}>
         {p.position}
       </span>
       <button
         onClick={() => onSelect(p.id)}
-        className={cn('text-[10px] font-medium hover:underline truncate max-w-[80px]', nameColor)}
+        className={cn('text-micro font-medium hover:underline truncate max-w-[80px]', nameColor)}
         title={`${p.firstName} ${p.lastName}`}
       >
         {p.lastName}
       </button>
-      <span className="text-[9px] text-muted-foreground tabular-nums">{p.age}y</span>
+      <span className="text-micro text-muted-foreground tabular-nums">{p.age}y</span>
       {p.injured ? (
-        <span className="text-[8px] font-bold text-muted-foreground/50 px-1" title="Cannot renew while injured">INJ</span>
+        <span className="text-micro font-bold text-muted-foreground/50 px-1" title="Cannot renew while injured">INJ</span>
       ) : p.onLoan ? (
-        <span className="text-[8px] font-bold text-muted-foreground/50 px-1" title="Cannot renew while on loan">LOAN</span>
+        <span className="text-micro font-bold text-muted-foreground/50 px-1" title="Cannot renew while on loan">LOAN</span>
       ) : (
         <button
           onClick={(e) => { e.stopPropagation(); hapticLight(); onRenew(p.id); }}
           // Keep the chip visually tiny but give the touch target real size —
           // the visible pill was ~16px tall, easy to mis-tap next to the name.
-          className={cn('relative text-[8px] font-bold px-1.5 py-0.5 rounded transition-colors after:absolute after:-inset-2 after:content-[""]', btnText, btnBg)}
+          className={cn('relative text-micro font-bold px-1.5 py-0.5 rounded transition-colors after:absolute after:-inset-2 after:content-[""]', btnText, btnBg)}
         >
           Renew
         </button>
@@ -217,24 +217,35 @@ const SquadPage = () => {
         <PageHint screen="squad" title={PAGE_HINTS.squad.title} body={PAGE_HINTS.squad.body} />
 
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
             <h2 className="text-lg font-bold text-foreground font-display">Squad</h2>
             <p className="text-xs text-muted-foreground tabular-nums">
               {fullSquad.length} players · Avg {avgOverall} OVR
             </p>
           </div>
+          {/* This page is read-only — the LineupEditor lives on Tactics. Without
+              this the tab named "Squad" couldn't set the XI and didn't say
+              where to. */}
+          <button
+            type="button"
+            onClick={() => { hapticLight(); setScreen('tactics'); }}
+            className="shrink-0 inline-flex items-center gap-1.5 px-3 min-h-[44px] rounded-xl text-xs font-semibold bg-primary/20 text-primary hover:bg-primary/30 active:scale-[0.97] transition-all"
+          >
+            <PenLine className="w-3.5 h-3.5" /> Edit Lineup
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
         </div>
 
         {/* Squad Depth Summary */}
         <GlassPanel className="p-3">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Squad Depth</p>
+          <p className="text-micro text-muted-foreground uppercase tracking-wider mb-2">Squad Depth</p>
           <div className="grid grid-cols-4 gap-2">
             {Object.entries(depthCounts).map(([group, count]) => (
               <div key={group} className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-semibold text-muted-foreground">{group}</span>
-                  <span className="text-[10px] font-bold text-foreground tabular-nums">{count}</span>
+                  <span className="text-micro font-semibold text-muted-foreground">{group}</span>
+                  <span className="text-micro font-bold text-foreground tabular-nums">{count}</span>
                 </div>
                 <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                   <div
@@ -250,7 +261,7 @@ const SquadPage = () => {
         {/* Squad vs League — per-position-group strength benchmark to guide transfers */}
         {squadVsLeague && (
           <GlassPanel className="p-3">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Squad vs League</p>
+            <p className="text-micro text-muted-foreground uppercase tracking-wider mb-2">Squad vs League</p>
             <div className="space-y-1.5">
               {squadVsLeague.map(row => {
                 const hasPlayers = row.count > 0;
@@ -261,11 +272,11 @@ const SquadPage = () => {
                       : 'text-muted-foreground';
                 return (
                   <div key={row.group} className="flex items-center gap-3">
-                    <span className="text-[10px] font-semibold text-muted-foreground w-8 shrink-0">{row.group}</span>
+                    <span className="text-micro font-semibold text-muted-foreground w-8 shrink-0">{row.group}</span>
                     <span className={cn('text-sm font-bold tabular-nums w-7 text-right', hasPlayers ? getRatingColor(row.mine) : 'text-muted-foreground/40')}>
                       {hasPlayers ? row.mine : '—'}
                     </span>
-                    <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">vs lg {row.league}</span>
+                    <span className="text-micro text-muted-foreground tabular-nums shrink-0">vs lg {row.league}</span>
                     <span className={cn('ml-auto text-[11px] font-bold tabular-nums', deltaTone)}>
                       {!hasPlayers ? 'No players' : row.delta > 0 ? `+${row.delta}` : row.delta}
                     </span>
@@ -273,7 +284,7 @@ const SquadPage = () => {
                 );
               })}
             </div>
-            <p className="text-[9px] text-muted-foreground/60 mt-2">Average overall by position vs the rest of your league.</p>
+            <p className="text-micro text-muted-foreground/60 mt-2">Average overall by position vs the rest of your league.</p>
           </GlassPanel>
         )}
 
@@ -285,8 +296,8 @@ const SquadPage = () => {
               className="flex items-center gap-2 w-full"
             >
               <FileText className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <p className="text-[10px] text-amber-400 font-semibold uppercase tracking-wider">Contract Alerts</p>
-              <span className="text-[9px] font-bold text-amber-400 bg-amber-400/15 px-1.5 py-0.5 rounded-full tabular-nums">
+              <p className="text-micro text-amber-400 font-semibold uppercase tracking-wider">Contract Alerts</p>
+              <span className="text-micro font-bold text-amber-400 bg-amber-400/15 px-1.5 py-0.5 rounded-full tabular-nums">
                 {contractAlerts.total}
               </span>
               <ChevronDown className={cn(
@@ -300,7 +311,7 @@ const SquadPage = () => {
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-1.5">
                       <AlertTriangle className="w-2.5 h-2.5 text-destructive shrink-0" />
-                      <p className="text-[9px] text-destructive font-semibold">
+                      <p className="text-micro text-destructive font-semibold">
                         Expiring this season ({contractAlerts.expiring.length})
                       </p>
                     </div>
@@ -315,7 +326,7 @@ const SquadPage = () => {
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-1.5">
                       <AlertTriangle className="w-2.5 h-2.5 text-amber-400 shrink-0" />
-                      <p className="text-[9px] text-amber-400 font-semibold">
+                      <p className="text-micro text-amber-400 font-semibold">
                         Expiring next season ({contractAlerts.nearExpiry.length})
                       </p>
                     </div>
@@ -352,9 +363,9 @@ const SquadPage = () => {
             <GlassPanel className="p-3 border-blue-500/20">
               <div className="flex items-center gap-2 mb-1">
                 <Users className="w-3.5 h-3.5 text-blue-400" />
-                <p className="text-[10px] text-blue-400 font-semibold uppercase tracking-wider">Squad Gaps</p>
+                <p className="text-micro text-blue-400 font-semibold uppercase tracking-wider">Squad Gaps</p>
               </div>
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-micro text-muted-foreground">
                 You lack depth at: {weakPositions.map(p => <span key={p.pos} className="font-bold text-blue-300">{p.label} ({p.players.length})</span>).reduce<React.ReactNode[]>((acc, el, i) => i === 0 ? [el] : [...acc, ', ', el], [])}
                 . Consider signing backup players.
               </p>
@@ -398,7 +409,9 @@ const SquadPage = () => {
               key={key}
               onClick={() => toggleStatus(key)}
               className={cn(
-                'px-2.5 py-1 rounded-lg text-[10px] font-medium transition-colors border whitespace-nowrap shrink-0',
+                'relative px-2.5 py-1 rounded-lg text-micro font-medium transition-colors border whitespace-nowrap shrink-0',
+                // Hit area only — visual chip stays compact.
+                'after:absolute after:-inset-2 after:content-[""]',
                 statusFilters.has(key)
                   ? 'border-primary/50 bg-primary/10 text-primary'
                   : 'border-border/30 bg-muted/30 text-muted-foreground'
@@ -424,7 +437,8 @@ const SquadPage = () => {
                 }
               }}
               className={cn(
-                'px-2 py-1 rounded text-[10px] uppercase tracking-wider transition-colors whitespace-nowrap shrink-0 active:scale-[0.95] inline-flex items-center gap-0.5',
+                'relative px-2 py-1 rounded text-micro uppercase tracking-wider transition-colors whitespace-nowrap shrink-0 active:scale-[0.95] inline-flex items-center gap-0.5',
+                'after:absolute after:-inset-2 after:content-[""]',
                 sortBy === s ? 'text-primary font-bold' : 'text-muted-foreground'
               )}
             >
@@ -444,7 +458,7 @@ const SquadPage = () => {
             <p className="text-sm text-muted-foreground">
               {statusFilters.size > 0 ? 'No players match your filters' : 'No players in your squad'}
             </p>
-            <p className="text-[10px] text-muted-foreground/60">
+            <p className="text-micro text-muted-foreground/60">
               {statusFilters.size > 0 ? 'Try clearing your filters above' : 'Sign players from the transfer market or check free agents'}
             </p>
             {statusFilters.size === 0 && (
@@ -487,10 +501,21 @@ const SquadPage = () => {
                       season={season}
                       week={week}
                       contextBadge={
-                        isStarter ? (
-                          <StatusPill tone="emerald" label="XI" title="In starting XI" />
-                        ) : isSub ? (
-                          <StatusPill tone="amber" label="SUB" title="On the bench" />
+                        isStarter || isSub ? (
+                          // The pill was a dead label. It's the most obvious
+                          // place a player taps expecting to change the XI, so
+                          // route it to the editor. `pointer-events-auto`
+                          // re-enables it inside the pass-through overlay.
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); hapticLight(); setScreen('tactics'); }}
+                            aria-label={isStarter ? 'In starting XI — edit lineup' : 'On the bench — edit lineup'}
+                            className="pointer-events-auto relative after:absolute after:-inset-2 after:content-['']"
+                          >
+                            {isStarter
+                              ? <StatusPill tone="emerald" label="XI" title="In starting XI" />
+                              : <StatusPill tone="amber" label="SUB" title="On the bench" />}
+                          </button>
                         ) : null
                       }
                     />

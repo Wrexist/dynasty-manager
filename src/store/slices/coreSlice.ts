@@ -34,8 +34,12 @@ export const createCoreSlice = (set: Set, get: Get) => ({
   boardObjectives: [] as GameState['boardObjectives'],
   boardConfidence: 50,
   boardUltimatum: null as GameState['boardUltimatum'],
+  secondHalfSimulatedTo: 45,
+  pendingPostSeason: null as GameState['pendingPostSeason'],
+  careerRetired: false,
   seasonHistory: [] as GameState['seasonHistory'],
-  settings: { matchSpeed: 3300, showOverallOnPitch: true, autoSave: true, hapticsEnabled: true, soundEnabled: true, hidePageHints: false, hideOnboarding: false, confirmAllOffers: false, reducedMotion: false, performanceMode: false } as GameSettings,
+  settings: { matchSpeed: 3300, showOverallOnPitch: true, autoSave: true, hapticsEnabled: true, soundEnabled: true, hidePageHints: false, hideOnboarding: false, confirmAllOffers: false, reducedMotion: false, performanceMode: false, digestOnlyWhenSignificant: true } as GameSettings,
+  celebrationDedupe: { season: 1, keys: [] as string[] },
   activeSlot: 1,
   transferNews: [] as TransferNewsEntry[],
 
@@ -115,6 +119,18 @@ export const createCoreSlice = (set: Set, get: Get) => ({
       currentScreen: target,
       ...(target !== s.currentScreen ? { previousScreen: s.currentScreen } : {}),
     }));
+  },
+  /** See `GameState.recordCelebrationKeys`. Filter + record happen in one
+   *  synchronous pass so a double render can't fire the same modal twice. */
+  recordCelebrationKeys: (season: number, keys: string[]): string[] => {
+    const bucket = get().celebrationDedupe;
+    const sameSeason = bucket?.season === season;
+    const existing = sameSeason ? bucket.keys : [];
+    const fresh = keys.filter((k, i) => keys.indexOf(k) === i && !existing.includes(k));
+    if (!sameSeason || fresh.length > 0) {
+      set({ celebrationDedupe: { season, keys: [...existing, ...fresh] } });
+    }
+    return fresh;
   },
   markMessageRead: (id: string) => set(s => ({ messages: s.messages.map(m => m.id === id ? { ...m, read: true } : m) })),
   markAllRead: () => set(s => ({ messages: s.messages.map(m => ({ ...m, read: true })) })),

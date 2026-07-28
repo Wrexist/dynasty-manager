@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 import type { Player } from '@/types/game';
 import { PlayerCard } from '@/components/game/PlayerCard';
 import { PACK_ANIM, LEGENDARY_OVR_THRESHOLD } from '@/config/packs';
@@ -272,7 +273,7 @@ function AttributePill({
 export function WalkoutReveal({ player, onComplete, onAdvance }: WalkoutRevealProps) {
   const tier = tierForOvr(player.overall);
   const isLegendary = player.overall >= LEGENDARY_OVR_THRESHOLD;
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionPref();
 
   const [phase, setPhase] = useState<'enter' | 'name' | 'breath' | 'flip' | 'stats' | 'hold' | 'done'>('enter');
   // Crescendo flash — pulses on top of the halo when the LAST stat pill

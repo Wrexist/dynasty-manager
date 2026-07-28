@@ -26,6 +26,7 @@ import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useEscapeClose } from '@/hooks/useEscapeClose';
 import { usePresentationSlot } from '@/hooks/usePresentationQueue';
 import { hapticLight, hapticSuccess } from '@/utils/haptics';
+import { sfxChime } from '@/utils/sfx';
 import { cn } from '@/lib/utils';
 
 // Tab-scoped guard: stamp the day we last auto-opened so the modal doesn't
@@ -74,6 +75,9 @@ export function DailyRewardModal() {
     const result = claimDailyStreakReward();
     if (!result) { setOpen(false); return; }
     hapticSuccess();
+    // Reward beat gets audio too (the weekly digest already chimes for far
+    // less). Fired on the successful claim only, so it can't double-fire.
+    if (useGameStore.getState().settings.soundEnabled !== false) sfxChime(true);
     setStatus(result);
     setClaimed(true);
     // The modal itself shows the claimed reward — no toast on top of it.

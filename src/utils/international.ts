@@ -670,14 +670,16 @@ export function autoSelectNationalSquad(
   currentWeek?: number,
 ): string[] {
   const nats = new Set(resolveNationalityAliases(nationality));
+  // Suspended players miss the next match window — but only knowable when the
+  // caller supplied the current week (legacy callers omit it).
+  const isSuspendedNow = (p: Player) =>
+    currentWeek !== undefined && !!p.suspendedUntilWeek && p.suspendedUntilWeek > currentWeek;
   const eligible = Object.values(allPlayers)
     .filter(p => {
       if (!nats.has(p.nationality)) return false;
       if (p.injured) return false;
       if (p.age < 17) return false;
-      // Suspended players miss the next match window — exclude when the
-      // caller supplied the current week.
-      if (currentWeek !== undefined && p.suspendedUntilWeek && p.suspendedUntilWeek > currentWeek) return false;
+      if (isSuspendedNow(p)) return false;
       // Low-fitness exhaustion. Treat undefined fitness as max (legacy
       // saves don't always track it on every code path).
       const fit = p.fitness ?? 100;
@@ -712,6 +714,40 @@ export function autoSelectNationalSquad(
   for (const p of remaining) {
     if (squad.length >= NATIONAL_SQUAD_SIZE) break;
     squad.push(p);
+  }
+
+  // Pad to a full squad by relaxing the soft filters, hardest constraint last.
+  // This function used to return fewer than 23 ids without comment, which meant
+  // it could not rescue a player stuck on the squad picker — and the picker's
+  // Confirm requires exactly 23. End of season is exactly when fitness is at its
+  // lowest, so the `fitness < LOW_FITNESS_THRESHOLD` filter alone could empty the
+  // pool. A tired or suspended 23rd man is always better than a dead save.
+  if (squad.length < NATIONAL_SQUAD_SIZE) {
+    const picked = new Set(squad.map(p => p.id));
+    // The ladder must actually be a ladder: pass 1 said "allow low fitness" but
+    // its predicate did not exclude suspension, so a suspended star was pulled
+    // in ahead of an available tired player on the *first* relaxation. Fitness
+    // is the cheaper concession — a tired player can be sent out, a suspended
+    // one cannot — so it gives way first, and suspension only on pass 2.
+    const relaxedPasses: ((p: Player) => boolean)[] = [
+      // Pass 1: allow low fitness only.
+      p => nats.has(p.nationality) && !p.injured && p.age >= 17 && !isSuspendedNow(p),
+      // Pass 2: allow suspended too.
+      p => nats.has(p.nationality) && !p.injured && p.age >= 17,
+      // Pass 3: anyone of the nationality at all.
+      p => nats.has(p.nationality),
+    ];
+    for (const accept of relaxedPasses) {
+      if (squad.length >= NATIONAL_SQUAD_SIZE) break;
+      const extra = Object.values(allPlayers)
+        .filter(p => !picked.has(p.id) && accept(p))
+        .sort((a, b) => b.overall - a.overall);
+      for (const p of extra) {
+        if (squad.length >= NATIONAL_SQUAD_SIZE) break;
+        squad.push(p);
+        picked.add(p.id);
+      }
+    }
   }
 
   return squad.map(p => p.id);

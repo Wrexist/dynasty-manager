@@ -168,6 +168,12 @@ export function getAIReactiveTactics(
   const shouldReact = Math.random() < profile.adaptability;
   if (!shouldReact) return tactics;
 
+  // These aggression shifts are a genuine two-way trade in the engine: mentality
+  // feeds the per-shot conversion channel SYMMETRICALLY (own attackMod up, the
+  // opponent's defenseMod down) and a high line buys territory at the price of
+  // counter-vulnerability. They used to be a one-way conversion spike — an AI
+  // two goals down got ~3x conversion with no defensive cost — so this block
+  // was effectively "the AI cheats when losing".
   if (goalDiff <= -2) {
     // Losing badly: go all-out attack
     tactics.mentality = 'all-out-attack';

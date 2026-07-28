@@ -3,6 +3,7 @@
  * Centralized color/rating logic used across pages and components.
  */
 
+import type { CSSProperties } from 'react';
 import { PlayerAttributes, PlayerCardArt, PlayerCardArtOptions, Position } from '@/types/game';
 import { FAN_CONFIDENCE_FAN_WEIGHT, FAN_CONFIDENCE_BOARD_WEIGHT } from '@/config/gameBalance';
 import {
@@ -170,6 +171,58 @@ export function getStatBarColor(pct: number): string {
   return 'bg-destructive';
 }
 
+/**
+ * Premium gradient + tinted glow for one stat-bar tier, keyed by the tier's
+ * `bgClass` from `STAT_BAR_THRESHOLDS`.
+ *
+ * WHY KEYED, NOT DUPLICATED: `StatBar.tsx` used to hardcode its own
+ * 80 / 60 / 40 boundaries AND its own hex ramps, which had drifted from the
+ * config — the mid tier was sky-600 where the config says sky-500, and the
+ * bottom tier was rose-600 where the config says `--destructive`. Two stat
+ * bars on adjacent screens (`PlayerDetail` via StatBar, flat bars via
+ * `getStatBarColor`) were therefore subtly different colours for the same
+ * value. Keying off `bgClass` makes `STAT_BAR_THRESHOLDS` the single source
+ * of truth for BOTH the boundaries and which tier a value lands in.
+ *
+ * NOTE: the ramp stops themselves still live here rather than in
+ * `src/config/ui.ts` — see the handoff. Moving them into the config is the
+ * next step; this at least removes the duplicate boundary literals.
+ */
+const STAT_BAR_GRADIENTS: Record<string, { background: string; glow: string }> = {
+  'bg-emerald-500': {
+    background: 'linear-gradient(180deg, #6EE7B7 0%, #10B981 60%, #047857 100%)',
+    glow: 'rgba(16,185,129,0.4)',
+  },
+  'bg-sky-500': {
+    background: 'linear-gradient(180deg, #7DD3FC 0%, #0EA5E9 60%, #075985 100%)',
+    glow: 'rgba(14,165,233,0.4)',
+  },
+  'bg-amber-500': {
+    background: 'linear-gradient(180deg, #FDE68A 0%, #F59E0B 60%, #B45309 100%)',
+    glow: 'rgba(245,158,11,0.4)',
+  },
+  'bg-destructive': {
+    background:
+      'linear-gradient(180deg, color-mix(in srgb, hsl(var(--destructive)) 55%, white) 0%, ' +
+      'hsl(var(--destructive)) 60%, color-mix(in srgb, hsl(var(--destructive)) 60%, black) 100%)',
+    glow: 'hsl(var(--destructive) / 0.4)',
+  },
+};
+
+/**
+ * Inline style for a stat-bar fill: tier gradient + rim + tinted glow.
+ * Inline (not a class) because there are dozens per PlayerDetail render and
+ * the gradient is per-tier, not per-instance.
+ */
+export function getStatBarStyle(pct: number): CSSProperties {
+  const tier = STAT_BAR_GRADIENTS[getStatBarColor(pct)] ?? STAT_BAR_GRADIENTS['bg-destructive'];
+  return {
+    background: tier.background,
+    boxShadow:
+      `inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -1px 0 rgba(0,0,0,0.2), 0 0 5px ${tier.glow}`,
+  };
+}
+
 /** Get text + bg color classes for board confidence value */
 export function getConfidenceColor(value: number): { textClass: string; bgClass: string } {
   for (const t of CONFIDENCE_COLOR_THRESHOLDS) {
@@ -299,32 +352,46 @@ export function areColorsSimilar(c1: string, c2: string, threshold = 80): boolea
 const CLUB_PREFIX_RE = /^(?:1\.\s*)?(?:FC|SC|AC|AS|SL|SK|NK|BSC|TSG|VfB|VfL|SV|SSC|US|RC|CF|CD|SD|RCD|CA|AEK|OGC|SM|Bayer|Borussia|Sporting|Stade)\s+/i;
 const CLUB_SUFFIX_RE = /\s+(?:FC|SC|CF|SK|FK|BK|IF|FF|SK|United|City)$/i;
 
-/** Special-case overrides for clubs whose auto-derived name is awkward */
+/**
+ * Special-case overrides for clubs whose auto-derived name is awkward.
+ *
+ * RULE: an override must be a name a football fan would actually SAY —
+ * 'Spurs', 'Forest', 'Man Utd', 'PSG', 'Wolves'. It must NEVER be a
+ * mid-word slice. This map used to ship 'Tottenha', 'Gladbac', 'Leverku',
+ * 'Leiceste', 'Bournemo', 'Newcastl', 'Nott For', 'Grasshop' and
+ * 'St-Étien', which read as rendering bugs rather than abbreviations —
+ * the entries right next to them ('PSG', 'Wolves', 'Man Utd') already
+ * proved the file knew better.
+ *
+ * Overrides are exempt from `maxLen`: they are deliberate, and the call
+ * sites that use them are CSS-truncated containers, so a real name that
+ * ellipsizes always beats a fake one that doesn't.
+ */
 const DISPLAY_NAME_OVERRIDES: Record<string, string> = {
   'BSC Young Boys': 'Young B.',
-  'Grasshopper Club Zürich': 'Grasshop',
-  'Bayer 04 Leverkusen': 'Leverku',
+  'Grasshopper Club Zürich': 'GC Zürich',
+  'Bayer 04 Leverkusen': 'Leverkusen',
   'Borussia Dortmund': 'Dortmund',
-  'Borussia Mönchengladbach': 'Gladbac',
+  'Borussia Mönchengladbach': 'Gladbach',
   'RB Leipzig': 'Leipzig',
   'Paris Saint-Germain': 'PSG',
   'Olympique de Marseille': 'Marseil',
   'Olympique Lyonnais': 'Lyon',
-  'AS Saint-Étienne': 'St-Étien',
+  'AS Saint-Étienne': 'St-Étienne',
   'Stade Rennais': 'Rennes',
   'West Ham United': 'West Ham',
   'Aston Villa': 'A. Villa',
   'Manchester United': 'Man Utd',
   'Manchester City': 'Man City',
-  'Tottenham Hotspur': 'Tottenha',
+  'Tottenham Hotspur': 'Spurs',
   'Crystal Palace': 'C.Palace',
-  'Nottingham Forest': 'Nott For',
+  'Nottingham Forest': 'Forest',
   'Sheffield United': 'Sheff U',
-  'Newcastle United': 'Newcastl',
+  'Newcastle United': 'Newcastle',
   'Wolverhampton Wanderers': 'Wolves',
   'Brighton & Hove Albion': 'Brighton',
-  'Leicester City': 'Leiceste',
-  'AFC Bournemouth': 'Bournemo',
+  'Leicester City': 'Leicester',
+  'AFC Bournemouth': 'Bournemouth',
   'Real Sociedad': 'R.Socied',
   'Atlético Madrid': 'Atlético',
   'Athletic Club': 'Athletic',
@@ -356,8 +423,13 @@ const DISPLAY_NAME_OVERRIDES: Record<string, string> = {
 /**
  * Derive a short, recognizable display name (max `maxLen` chars) from a club's
  * full name. Strips common prefixes/suffixes and picks the most recognizable word.
+ *
+ * `maxLen` defaults to 9, not 7: at 7 the generic path chopped real names
+ * mid-word ('Bournem…', 'Leiceste'), and 9 characters fits every call site's
+ * container at 375px while letting 'Leicester', 'Newcastle' and 'Gladbach'
+ * through whole.
  */
-export function getClubDisplayName(fullName: string, maxLen = 7): string {
+export function getClubDisplayName(fullName: string, maxLen = 9): string {
   if (!fullName || fullName === '?') return '?';
 
   // Check overrides first

@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
 import { generateAiCounterSignings, generatePackContents, shouldPityTrigger, updatedPityCounter } from '@/utils/packGeneration';
-import { AI_BACKFILL_OVR_GAP, AI_BACKFILL_PER_TIER, PACK_TIER_MAP, PACK_PITY_THRESHOLD, WALKOUT_OVR_THRESHOLD } from '@/config/packs';
+import { AI_BACKFILL_OVR_GAP, AI_BACKFILL_PER_TIER, PACK_TIER_MAP, PACK_PITY_THRESHOLD, PACK_PITY_MAX_OVERSHOOT, WALKOUT_OVR_THRESHOLD, resolvePackTier } from '@/config/packs';
+import type { Club, PackTierKey } from '@/types/game';
 import { MAX_SQUAD_SIZE } from '@/config/gameBalance';
 import {
   VALUE_EXP_BASE,
@@ -67,12 +68,115 @@ describe('Pack opening — generation', () => {
     }
   });
 
-  it('pity trigger promotes the guaranteed slot to at least 80', () => {
-    // Bronze pack would normally guarantee 60+; with pity on it should jump to 80+
+  it('pity lifts the guaranteed slot above the tier ceiling but stays tied to the tier', () => {
+    // Pity used to ignore the tier ceiling outright, so one free Bronze in nine
+    // could produce an 89 — better than the $6.99 Rare Gold guarantee. It must
+    // still be a visible reward (above the tier's own ceiling) without turning
+    // a free pack into a gold mine.
+    for (const tier of Object.values(PACK_TIER_MAP)) {
+      const cap = tier.ovrMax + PACK_PITY_MAX_OVERSHOOT;
+      let sawImprovement = false;
+      for (let run = 0; run < 40; run++) {
+        const players = generatePackContents(tier.key, 1, { pityTriggered: true });
+        const topOvr = Math.max(...players.map(p => p.overall));
+        expect(topOvr, `${tier.key} pity pull ${topOvr} exceeded cap ${cap}`).toBeLessThanOrEqual(cap);
+        expect(topOvr).toBeGreaterThanOrEqual(tier.guaranteedMinOvr);
+        if (topOvr > tier.ovrMax) sawImprovement = true;
+      }
+      expect(sawImprovement, `${tier.key} pity never beat its normal ceiling`).toBe(true);
+    }
+  });
+
+  it('pity still reaches 80+ from Gold upward', () => {
+    // The mercy mechanic should feel like mercy where 80+ is plausible. Cheap
+    // tiers are capped by the rule above; from Gold on, pity means a gold card.
+    for (const key of ['gold', 'premium', 'rare', 'icon'] as PackTierKey[]) {
+      for (let run = 0; run < 20; run++) {
+        const players = generatePackContents(key, 1, { pityTriggered: true });
+        expect(Math.max(...players.map(p => p.overall))).toBeGreaterThanOrEqual(80);
+      }
+    }
+  });
+});
+
+describe('Pack opening — free vs paid odds', () => {
+  it('a free Gold open cannot exceed the free ceiling', () => {
+    const paid = PACK_TIER_MAP.gold;
+    const free = resolvePackTier(paid, true);
+    expect(free.ovrMax).toBeLessThan(paid.ovrMax);
+    for (let run = 0; run < 60; run++) {
+      const players = generatePackContents('gold', 1, { freeOpen: true });
+      for (const p of players) {
+        expect(p.overall).toBeLessThanOrEqual(free.ovrMax);
+      }
+      expect(Math.max(...players.map(p => p.overall))).toBeGreaterThanOrEqual(free.guaranteedMinOvr);
+    }
+  });
+
+  it('a paid Gold open keeps the full guarantee — nobody\'s purchase got worse', () => {
+    const paid = PACK_TIER_MAP.gold;
+    for (let run = 0; run < 60; run++) {
+      const players = generatePackContents('gold', 1, { freeOpen: false });
+      expect(Math.max(...players.map(p => p.overall))).toBeGreaterThanOrEqual(paid.guaranteedMinOvr);
+      for (const p of players) expect(p.overall).toBeLessThanOrEqual(paid.ovrMax);
+    }
+  });
+
+  it('defaults to PAID odds when the caller omits freeOpen', () => {
+    // Failing open to the weaker odds would silently short-change purchases,
+    // which is the more damaging direction to get wrong.
+    const paid = PACK_TIER_MAP.gold;
+    let sawAbovefreeCeiling = false;
+    const freeCeiling = resolvePackTier(paid, true).ovrMax;
+    for (let run = 0; run < 80 && !sawAbovefreeCeiling; run++) {
+      const players = generatePackContents('gold', 1);
+      if (players.some(p => p.overall > freeCeiling)) sawAbovefreeCeiling = true;
+    }
+    expect(sawAbovefreeCeiling).toBe(true);
+  });
+
+  it('free odds make 80+ markedly rarer without making it impossible', () => {
+    // The point of the change: the free daily Gold was handing out ~2.3 cards
+    // at 80+ every single day, which outran the transfer market as a route to
+    // a squad. It should still be possible — just not a firehose.
+    const RUNS = 300;
+    let freeGold = 0;
+    let paidGold = 0;
+    for (let i = 0; i < RUNS; i++) {
+      freeGold += generatePackContents('gold', 1, { freeOpen: true }).filter(p => p.overall >= 80).length;
+      paidGold += generatePackContents('gold', 1, { freeOpen: false }).filter(p => p.overall >= 80).length;
+    }
+    const freePerOpen = freeGold / RUNS;
+    const paidPerOpen = paidGold / RUNS;
+    expect(freePerOpen, `free 80+/open was ${freePerOpen.toFixed(2)}`).toBeLessThan(1.2);
+    expect(freePerOpen).toBeGreaterThan(0);
+    expect(paidPerOpen, 'paid opens must stay clearly more rewarding').toBeGreaterThan(freePerOpen * 1.5);
+  });
+
+  it('tiers with no free override are identical on both paths', () => {
+    for (const tier of Object.values(PACK_TIER_MAP)) {
+      if (tier.freeOpenOverride) continue;
+      expect(resolvePackTier(tier, true)).toBe(tier);
+    }
+  });
+
+  it('AI counter-signings stay below the FREE guarantee on a free open', () => {
+    // The AI ceiling is derived from the user's guarantee. If a free Gold open
+    // lowered the user's card but not the AI's, the league would out-sign the
+    // player off their own pack.
+    const free = resolvePackTier(PACK_TIER_MAP.gold, true);
+    const clubs: Record<string, Club> = {
+      me: { id: 'me', divisionId: 'd1', playerIds: [], reputation: 50, wageBill: 0 } as unknown as Club,
+      rival: { id: 'rival', divisionId: 'd1', playerIds: [], reputation: 70, wageBill: 0 } as unknown as Club,
+      other: { id: 'other', divisionId: 'd1', playerIds: [], reputation: 60, wageBill: 0 } as unknown as Club,
+    };
     for (let run = 0; run < 30; run++) {
-      const players = generatePackContents('bronze', 1, { pityTriggered: true });
-      const topOvr = Math.max(...players.map(p => p.overall));
-      expect(topOvr).toBeGreaterThanOrEqual(80);
+      const { perClub } = generateAiCounterSignings('gold', clubs, 'me', 'd1', 1, true);
+      for (const players of Object.values(perClub)) {
+        for (const p of players) {
+          expect(p.overall).toBeLessThan(free.guaranteedMinOvr);
+        }
+      }
     }
   });
 });

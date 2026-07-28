@@ -61,10 +61,38 @@ export function resolveClub(
   return { id: clubId, name: vc.name, shortName: vc.shortName, color: vc.color, secondaryColor: vc.secondaryColor, stadiumName: '' } as Club;
 }
 
-export function formatMoney(amount: number): string {
-  const abs = Math.abs(amount);
-  const sign = amount < 0 ? '-' : '';
-  if (abs >= 1_000_000) return `${sign}£${(abs / 1_000_000).toFixed(1)}M`;
-  if (abs >= 1_000) return `${sign}£${Math.round(abs / 1_000)}K`;
-  return `${sign}£${abs}`;
+export interface FormatMoneyOptions {
+  /** Prefix a `+` on positive values (for deltas: net weekly, transfer profit). */
+  signed?: boolean;
+  /** Append a suffix inside the formatted string, e.g. `'/wk'`. */
+  suffix?: string;
+}
+
+/**
+ * THE canonical money formatter. Every £ figure the player ever sees must go
+ * through this — no exceptions, no local re-implementations.
+ *
+ * WHY IT MATTERS: before this was enforced, the Dashboard showed `+£1.2M` and
+ * tapping it opened a sheet reading `+£1200K/week net` — the same number at
+ * two magnitudes, one tap apart. A £400 line item rendered as `£0K`. One
+ * screen floored a £42,900 wage to `£42K` while another rounded it to `£43K`.
+ * `ManagerCreation` shipped its own local `formatMoney` shadowing this one.
+ * All of those read as bugs to a player, because they are.
+ *
+ * Rules (fixed — do not add a second magnitude policy):
+ *   - >= £1,000,000  → 1 decimal + `M`   (£1.2M)
+ *   - >= £1,000      → rounded + `K`     (£43K, never £42K for 42,900)
+ *   - below £1,000   → whole pounds      (£400, never £0K)
+ *   - negatives always keep the minus sign. Never `Math.abs()` at a call
+ *     site to "clean up" a loss — a loss shown as a gain is a real bug.
+ */
+export function formatMoney(amount: number, options?: FormatMoneyOptions): string {
+  const safe = Number.isFinite(amount) ? amount : 0;
+  const abs = Math.abs(safe);
+  const sign = safe < 0 ? '-' : options?.signed && safe > 0 ? '+' : '';
+  const suffix = options?.suffix ?? '';
+
+  if (abs >= 1_000_000) return `${sign}£${(abs / 1_000_000).toFixed(1)}M${suffix}`;
+  if (abs >= 1_000) return `${sign}£${Math.round(abs / 1_000)}K${suffix}`;
+  return `${sign}£${Math.round(abs)}${suffix}`;
 }

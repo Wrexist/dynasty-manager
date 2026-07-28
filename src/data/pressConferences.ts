@@ -828,10 +828,49 @@ export const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
   ],
 };
 
+// ── Question recency memory ──
+//
+// A bare `pick(pool)` over 7–8 questions per context means back-to-back
+// identical questions are likely (~1-in-7 every time, and the same context
+// repeats after consecutive wins). This mirrors the `pickFreshLine` pattern
+// already used for match commentary: remember the last few questions asked per
+// context and exclude them from the draw.
+//
+// Deliberately module-level rather than store state: `generatePressConference`
+// is called from 11 sites inside `matchActions.ts`, none of which thread extra
+// arguments, and adding a persisted field would mean a save-schema bump for a
+// cosmetic variety fix. The buffer therefore survives navigation and the whole
+// app session but not a cold launch — which is exactly the window where
+// repetition is noticeable. See the handoff note for the persisted version.
+
+/** How many recently-asked questions to exclude per context. Kept below the
+ *  smallest pool size so the exclusion set can never swallow a whole pool. */
+export const PRESS_RECENT_MEMORY = 4;
+
+const recentQuestions = new Map<PressConference['context'], string[]>();
+
+/** Test/So-a-new-save-starts-fresh hook. */
+export function resetPressConferenceMemory(): void {
+  recentQuestions.clear();
+}
+
+/** Pick a question from `pool`, preferring ones not asked recently in this
+ *  context, then record the choice in that context's ring buffer. */
+function pickFreshQuestion(context: PressConference['context'], pool: QuestionDef[]): QuestionDef {
+  const recent = recentQuestions.get(context) ?? [];
+  const fresh = pool.filter(q => !recent.includes(q.question));
+  const chosen = fresh.length > 0 ? pick(fresh) : pick(pool);
+  // Cap at PRESS_RECENT_MEMORY, and never at or above the pool size — a pool
+  // of 4 with a memory of 4 would exclude everything and defeat the point.
+  const limit = Math.min(PRESS_RECENT_MEMORY, Math.max(0, pool.length - 1));
+  recentQuestions.set(context, [...recent.filter(q => q !== chosen.question), chosen.question].slice(-limit));
+  return chosen;
+}
+
 /** Pick a press conference appropriate to the context */
 export function generatePressConference(context: PressConference['context'], proUser = false): PressConference {
   const pool = QUESTIONS[context];
-  const chosen = pick(pool);
+  const chosen = pickFreshQuestion(context, pool);
   const baseOptions: [PressOption, PressOption, PressOption] = [
     { tone: 'confident', text: chosen.options.confident.text, effects: chosen.options.confident.effects },
     { tone: 'humble', text: chosen.options.humble.text, effects: chosen.options.humble.effects },

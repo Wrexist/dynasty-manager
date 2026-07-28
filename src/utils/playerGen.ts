@@ -18,6 +18,7 @@ import {
   REAL_FILLER_OVR_FLOOR, REAL_FILLER_OVR_CEIL, REAL_FILLER_OVR_BAND_BELOW, REAL_FILLER_OVR_BAND_ABOVE,
   EFFECTIVE_RATING_OVERALL_WEIGHT, EFFECTIVE_RATING_FORM_WEIGHT, EFFECTIVE_RATING_FITNESS_WEIGHT,
   MAX_SUBS, MIN_TEAM_STRENGTH, TEAM_STRENGTH_BASE, TEAM_STRENGTH_FITNESS_SCALE, TEAM_STRENGTH_MORALE_SCALE,
+  TEAM_STRENGTH_QUALITY_PIVOT, TEAM_STRENGTH_QUALITY_SCALE,
   NATIONALITY_DISTRIBUTION,
 } from '@/config/playerGeneration';
 import { NATIONALITY_NAME_POOLS, FALLBACK_FIRST_NAMES, FALLBACK_LAST_NAMES } from '@/config/namePool';
@@ -587,5 +588,14 @@ export function getTeamStrength(players: Player[]): number {
   const avg = players.reduce((s, p) => s + p.overall, 0) / players.length;
   const fitnessModifier = players.reduce((s, p) => s + p.fitness, 0) / players.length / 100;
   const moraleModifier = players.reduce((s, p) => s + p.morale, 0) / players.length / 100;
-  return avg * (TEAM_STRENGTH_BASE + fitnessModifier * TEAM_STRENGTH_FITNESS_SCALE + moraleModifier * TEAM_STRENGTH_MORALE_SCALE);
+  const condition = TEAM_STRENGTH_BASE + fitnessModifier * TEAM_STRENGTH_FITNESS_SCALE + moraleModifier * TEAM_STRENGTH_MORALE_SCALE;
+  // Elo-style quality curve rather than a linear read of average overall. This
+  // value feeds an event-share RATIO (homeStr / (homeStr + awayStr)), so a linear
+  // mapping compressed real quality gaps into near-parity: a 19-point OVR gap
+  // produced only 59% wins, and a squad +5.4 above its league average finished
+  // last in a measured live save. Anchored at the pivot so magnitudes stay
+  // comparable to the old formula near league-average quality — only the SPREAD
+  // widens.
+  const quality = TEAM_STRENGTH_QUALITY_PIVOT * Math.exp((avg - TEAM_STRENGTH_QUALITY_PIVOT) / TEAM_STRENGTH_QUALITY_SCALE);
+  return quality * condition;
 }

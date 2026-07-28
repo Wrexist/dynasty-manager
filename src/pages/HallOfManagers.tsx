@@ -7,6 +7,7 @@ import { loadHall, type HallEntry } from '@/utils/hallOfManagers';
 import { useGameStore } from '@/store/gameStore';
 import { isPro, getActiveCosmetic } from '@/utils/monetization';
 import { PageHint } from '@/components/game/PageHint';
+import { SectionHeader } from '@/components/game/SectionHeader';
 
 const PRESTIGE_BADGE_ICONS: Record<string, React.ElementType> = {
   'prestige-crown': Crown,
@@ -18,9 +19,9 @@ const PRESTIGE_BADGE_ICONS: Record<string, React.ElementType> = {
 };
 
 const getRankIcon = (rank: number) => {
-  if (rank === 1) return <Crown className="w-5 h-5 text-primary" />;
-  if (rank === 2) return <Medal className="w-5 h-5 text-[#C0C0C0]" />;
-  if (rank === 3) return <Medal className="w-5 h-5 text-[#CD7F32]" />;
+  if (rank === 1) return <Crown className="w-5 h-5 text-gold" />;
+  if (rank === 2) return <Medal className="w-5 h-5 text-silver" />;
+  if (rank === 3) return <Medal className="w-5 h-5 text-bronze" />;
   return <span className="text-xs font-bold text-muted-foreground w-5 text-center">{rank}</span>;
 };
 
@@ -46,8 +47,8 @@ const HallOfManagers = () => {
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <div className="text-center mb-4">
-          <Trophy className="w-10 h-10 text-primary mx-auto mb-2" />
-          <h2 className="text-xl font-black text-foreground font-display">Hall of Managers</h2>
+          <Trophy className="w-10 h-10 text-gold mx-auto mb-2" />
+          <SectionHeader title="Hall of Managers" className="justify-center" />
           <p className="text-xs text-muted-foreground mt-1">Your greatest careers across all saves</p>
         </div>
 
@@ -98,7 +99,7 @@ const HallOfManagers = () => {
                         <span className="text-sm font-black text-primary tabular-nums">{entry.titles}</span>
                       </div>
                       {entry.cupWins > 0 && (
-                        <p className="text-[10px] text-muted-foreground">{entry.cupWins} cup{entry.cupWins !== 1 ? 's' : ''}</p>
+                        <p className="text-micro text-muted-foreground">{entry.cupWins} cup{entry.cupWins !== 1 ? 's' : ''}</p>
                       )}
                     </div>
                   </div>
@@ -107,19 +108,19 @@ const HallOfManagers = () => {
                   <div className="grid grid-cols-4 gap-2 mt-3 pt-2 border-t border-border/20 text-center">
                     <div>
                       <p className="text-xs font-bold text-foreground tabular-nums">{entry.bestPosition}{entry.bestPosition === 1 ? 'st' : entry.bestPosition === 2 ? 'nd' : entry.bestPosition === 3 ? 'rd' : 'th'}</p>
-                      <p className="text-[9px] text-muted-foreground">Best Pos</p>
+                      <p className="text-micro text-muted-foreground">Best Pos</p>
                     </div>
                     <div>
                       <p className="text-xs font-bold text-foreground tabular-nums">{entry.bestPoints}</p>
-                      <p className="text-[9px] text-muted-foreground">Best Pts</p>
+                      <p className="text-micro text-muted-foreground">Best Pts</p>
                     </div>
                     <div>
                       <p className="text-xs font-bold text-foreground tabular-nums">{entry.totalWins}</p>
-                      <p className="text-[9px] text-muted-foreground">Wins</p>
+                      <p className="text-micro text-muted-foreground">Wins</p>
                     </div>
                     <div>
                       <p className="text-xs font-bold text-foreground tabular-nums">{entry.totalMatches}</p>
-                      <p className="text-[9px] text-muted-foreground">Matches</p>
+                      <p className="text-micro text-muted-foreground">Matches</p>
                     </div>
                   </div>
                 </GlassPanel>

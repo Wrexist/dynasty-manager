@@ -16,6 +16,8 @@ import {
 import { cn } from '@/lib/utils';
 import { } from '@/utils/uiHelpers';
 import { AnimatedNumber } from '@/components/game/AnimatedNumber';
+import { GlassPanel } from '@/components/game/GlassPanel';
+import { isWeeklyDigestSignificant } from '@/config/ui';
 
 // ── Animation helpers ──
 
@@ -49,7 +51,7 @@ function DevBar({ attribute, newValue, delay }: { attribute: string; newValue: n
 
   return (
     <div className="flex items-center gap-2 min-w-0">
-      <span className="text-[10px] text-muted-foreground font-mono w-7 shrink-0">{abbr}</span>
+      <span className="text-micro text-muted-foreground font-mono w-7 shrink-0">{abbr}</span>
       <div className="flex-1 h-1.5 bg-muted/40 rounded-full overflow-hidden">
         <motion.div
           className={cn('h-full rounded-full', barColor)}
@@ -58,9 +60,9 @@ function DevBar({ attribute, newValue, delay }: { attribute: string; newValue: n
           transition={{ delay: delay + 0.3, duration: 0.6, ease: 'easeOut' }}
         />
       </div>
-      <span className="text-[10px] font-mono font-bold text-foreground w-5 text-right">{newValue}</span>
+      <span className="text-micro font-mono font-bold text-foreground w-5 text-right">{newValue}</span>
       <motion.span
-        className="text-[10px] font-bold text-emerald-400 drop-shadow-[0_0_4px_rgba(52,211,153,0.5)]"
+        className="text-micro font-bold text-emerald-400 drop-shadow-[0_0_4px_rgba(52,211,153,0.5)]"
         initial={{ opacity: 0, scale: 0.5 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ type: 'spring', stiffness: 500, damping: 15, delay: delay + 0.7 }}
@@ -77,7 +79,7 @@ function SectionLabel({ children, delay }: { children: React.ReactNode; delay: n
   return (
     <motion.div className="flex items-center gap-2 pt-1" {...sectionAnim(delay)}>
       <div className="w-4 h-px bg-primary/50" />
-      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">{children}</p>
+      <p className="text-micro text-muted-foreground uppercase tracking-wider font-semibold">{children}</p>
     </motion.div>
   );
 }
@@ -88,10 +90,19 @@ export function WeeklyDigest() {
   const digest = useGameStore(s => s.weeklyDigest);
   const week = useGameStore(s => s.week);
   const dismissWeeklyDigest = useGameStore(s => s.dismissWeeklyDigest);
-  // Presentation queue (G3): a digest may be pending while another overlay is
-  // on screen. Register intent, but only show/lock when we're the active slot.
-  const active = usePresentationSlot('weeklyDigest', !!digest);
-  const visible = !!digest && active;
+  const onlyWhenSignificant = useGameStore(s => s.settings.digestOnlyWhenSignificant !== false);
+  // Interruption budget: `advanceWeek` builds a digest EVERY week, so showing
+  // it as a scroll-locked modal every week costs ~43 forced dismiss-taps a
+  // season. Quiet weeks (nothing to act on — see `isWeeklyDigestSignificant`)
+  // fall through to the inline Dashboard card below, which shows the same
+  // numbers without stealing the screen. Nothing is lost, only the tap.
+  //
+  // The presentation-slot registration is gated on the SAME predicate on
+  // purpose: registering intent for a digest we never intend to show would
+  // hold the 'weeklyDigest' slot forever and starve every overlay behind it.
+  const wantsModal = !!digest && (!onlyWhenSignificant || isWeeklyDigestSignificant(digest));
+  const active = usePresentationSlot('weeklyDigest', wantsModal);
+  const visible = wantsModal && active;
   useScrollLock(visible);
   const soundEnabled = useGameStore(s => s.settings.soundEnabled !== false);
   // Subtle chime + success haptic when the digest actually surfaces (G4) —
@@ -109,6 +120,86 @@ export function WeeklyDigest() {
     <AnimatePresence mode="wait">
       {visible && <WeeklyDigestCard digest={digest} week={week} dismiss={dismissWeeklyDigest} />}
     </AnimatePresence>
+  );
+}
+
+/**
+ * Inline week-summary card — the non-interrupting half of the digest fix.
+ *
+ * Renders on the Dashboard whenever a digest exists that is NOT being shown as
+ * a modal (a quiet week under the default setting). Same information, zero
+ * mandatory taps, no scroll lock, no chime. Dismissing is optional; the next
+ * `advanceWeek` overwrites `weeklyDigest` anyway.
+ */
+export function WeeklyDigestInlineCard() {
+  const digest = useGameStore(s => s.weeklyDigest);
+  const week = useGameStore(s => s.week);
+  const dismiss = useGameStore(s => s.dismissWeeklyDigest);
+  const onlyWhenSignificant = useGameStore(s => s.settings.digestOnlyWhenSignificant !== false);
+  const [expanded, setExpanded] = useState(false);
+
+  // Only render for weeks the modal deliberately skipped — otherwise the
+  // player would see the summary twice.
+  if (!digest || !onlyWhenSignificant || isWeeklyDigestSignificant(digest)) return null;
+
+  const netIncome = digest.incomeEarned - digest.expensesPaid;
+  const devCount = digest.playerDevelopment.length;
+  const trainingCount = digest.trainingGains.length;
+
+  return (
+    <GlassPanel className="p-3">
+      <button
+        type="button"
+        onClick={() => setExpanded(v => !v)}
+        aria-expanded={expanded}
+        className="w-full flex items-center gap-2 min-w-0 text-left"
+      >
+        <div className="bg-muted/40 border border-border/40 rounded-lg px-1.5 py-0.5 shrink-0">
+          <span className="text-micro font-bold text-muted-foreground font-display">W{week}</span>
+        </div>
+        <span className="text-xs font-semibold text-foreground shrink-0">Week Summary</span>
+        <span className="text-micro text-muted-foreground truncate flex-1">A quiet week</span>
+        <span className={cn('text-[11px] font-bold tabular-nums shrink-0', netIncome >= 0 ? 'text-emerald-400' : 'text-destructive')}>
+          {netIncome >= 0 ? '+' : '-'}£{Math.round(Math.abs(netIncome) / 1e3)}K
+        </span>
+        <ChevronDown className={cn('w-3.5 h-3.5 text-muted-foreground shrink-0 transition-transform', expanded && 'rotate-180')} />
+      </button>
+
+      {expanded && (
+        <div className="mt-2.5 pt-2.5 border-t border-border/30 space-y-1.5">
+          <div className="flex items-center gap-2 text-[11px]">
+            <Heart className={cn('w-3 h-3 shrink-0', digest.moraleChange > 0 ? 'text-emerald-400' : digest.moraleChange < 0 ? 'text-destructive' : 'text-muted-foreground')} />
+            <span className="text-muted-foreground flex-1">Squad morale</span>
+            <span className="text-foreground font-semibold tabular-nums">
+              {digest.moraleChange > 0 ? '+' : ''}{Math.round(digest.moraleChange)} pts
+            </span>
+          </div>
+          {devCount > 0 && (
+            <div className="flex items-center gap-2 text-[11px]">
+              <TrendingUp className="w-3 h-3 text-emerald-400 shrink-0" />
+              <span className="text-muted-foreground flex-1">Attribute gains</span>
+              <span className="text-foreground font-semibold tabular-nums">{devCount}</span>
+            </div>
+          )}
+          {trainingCount > 0 && (
+            <div className="flex items-center gap-2 text-[11px]">
+              <Dumbbell className="w-3 h-3 text-primary shrink-0" />
+              <span className="text-muted-foreground flex-1">Standout in training</span>
+              <span className="text-foreground font-semibold truncate max-w-[45%] text-right">
+                {digest.trainingGains[0].playerName}{trainingCount > 1 ? ` +${trainingCount - 1}` : ''}
+              </span>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={dismiss}
+            className="w-full text-micro text-muted-foreground hover:text-foreground transition-colors pt-1"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+    </GlassPanel>
   );
 }
 
@@ -198,7 +289,7 @@ function WeeklyDigestCard({ digest, week, dismiss }: {
                   </div>
                   <h3 className="text-sm font-bold text-foreground font-display">Summary</h3>
                 </div>
-                <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider">Weekly Digest</span>
+                <span className="text-micro text-muted-foreground/70 uppercase tracking-wider">Weekly Digest</span>
               </motion.div>
 
               {/* ── Headline ── */}
@@ -227,7 +318,7 @@ function WeeklyDigestCard({ digest, week, dismiss }: {
                     >
                       <DollarSign className={cn('w-3.5 h-3.5', netIncome >= 0 ? 'text-emerald-400' : 'text-red-400')} />
                     </motion.div>
-                    <span className="text-[10px] text-muted-foreground">Net Income</span>
+                    <span className="text-micro text-muted-foreground">Net Income</span>
                   </div>
                   <AnimatedNumber
                     value={Math.abs(netIncome) / 1e3}
@@ -255,7 +346,7 @@ function WeeklyDigestCard({ digest, week, dismiss }: {
                         digest.moraleChange > 0 ? 'text-emerald-400' : digest.moraleChange < 0 ? 'text-red-400' : 'text-muted-foreground'
                       )} />
                     </motion.div>
-                    <span className="text-[10px] text-muted-foreground">Morale</span>
+                    <span className="text-micro text-muted-foreground">Morale</span>
                   </div>
                   <AnimatedNumber
                     value={digest.moraleChange}
@@ -330,7 +421,7 @@ function WeeklyDigestCard({ digest, week, dismiss }: {
 
                   {hiddenDevCount > 0 && (
                     <motion.button
-                      className="flex items-center gap-1 text-[10px] text-primary hover:text-primary/80 transition-colors w-full justify-center py-1"
+                      className="flex items-center gap-1 text-micro text-primary hover:text-primary/80 transition-colors w-full justify-center py-1"
                       onClick={() => setDevExpanded(!devExpanded)}
                       {...sectionAnim(d + 0.1)}
                     >
@@ -363,7 +454,7 @@ function WeeklyDigestCard({ digest, week, dismiss }: {
                       </motion.div>
                     ))}
                     {digest.trainingGains.length > 6 && (
-                      <span className="inline-flex items-center text-[10px] text-muted-foreground px-2 py-1">
+                      <span className="inline-flex items-center text-micro text-muted-foreground px-2 py-1">
                         +{digest.trainingGains.length - 6} more
                       </span>
                     )}
@@ -392,7 +483,7 @@ function WeeklyDigestCard({ digest, week, dismiss }: {
                           </motion.div>
                           <span className="text-emerald-400 flex-1">{obj.title}</span>
                           <motion.span
-                            className="text-[10px] font-bold text-primary bg-primary/10 rounded-full px-2 py-0.5 drop-shadow-[0_0_4px_hsl(43_96%_46%/0.4)]"
+                            className="text-micro font-bold text-primary bg-primary/10 rounded-full px-2 py-0.5 drop-shadow-[0_0_4px_hsl(43_96%_46%/0.4)]"
                             initial={{ opacity: 0, x: 8 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: d + i * 0.06 + 0.3 }}

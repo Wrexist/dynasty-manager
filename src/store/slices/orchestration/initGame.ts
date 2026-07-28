@@ -56,39 +56,27 @@ import { generateInitialStaff } from '@/utils/staff';
 import { initializeClubPowerRankings } from '@/utils/teamRankings';
 import { generateInitialFreeAgents } from '@/utils/transferMarketGen';
 import { applyBallonDorTop10Boost } from '@/utils/ballonDorBoost';
-import { BALLON_DOR_TOP10_RANK, BALLON_DOR_ELITE_CLUB_BONUS } from '@/config/gameBalance';
-import { getClubTemplatesSync, loadClubTemplates } from '@/data/playerTemplatesAccess';
+import { BALLON_DOR_TOP10_RANK } from '@/config/gameBalance';
+import { loadClubTemplates } from '@/data/playerTemplatesAccess';
+import { LIVING_WORLD_LEAGUE_COUNT, LIVING_WORLD_SQUAD_SIZE } from '@/config/continental';
+import { getLivingWorldLeagueIds } from '@/data/continentalDraw';
 
 /**
  * Pick the 10 reigning Ballon d'Or top-10 holders for a freshly initialised
- * save. Pool: real loaded country pyramid players + synthetic "ghost" stars
- * from elite global clubs not in the loaded save (Real Madrid / Bayern /
- * PSG etc.) so the seed feels like a global award rather than a single-
- * country shortlist. Weighted random sampling from the top 22 keeps OVR
- * dominant but reshuffles the ten between saves. Picked ghosts must be
- * inserted into `allPlayers` by the caller so their reign survives saves.
+ * save. Weighted random sampling from the top 22 by overall keeps OVR
+ * dominant but reshuffles the ten between saves.
+ *
+ * Phase 6: this used to blend in synthetic "ghost" stars built from templates
+ * of elite clubs that weren't in the save (Real Madrid / Bayern / PSG when
+ * managing in England) because those clubs simply didn't exist as entities.
+ * The living world instantiates the strongest foreign top tiers, so those
+ * players are now REAL squad members and the pool is global by construction —
+ * no fabrication, and the holders can be scouted, bought and developed.
  */
-function pickInitialBallonDorTop10(
-  allPlayers: Record<string, Player>,
-  loadedClubIdSet: Record<string, true>,
-): { picks: Player[]; ghosts: Player[] } {
+function pickInitialBallonDorTop10(allPlayers: Record<string, Player>): Player[] {
   const POOL = 22;
-  const realCandidates = Object.values(allPlayers).filter(p => p.clubId && !p.injured);
-
-  const ghostCandidates: Player[] = [];
-  for (const clubId of Object.keys(BALLON_DOR_ELITE_CLUB_BONUS)) {
-    if (loadedClubIdSet[clubId]) continue;
-    const templates = getClubTemplatesSync()[clubId] || [];
-    if (templates.length === 0) continue;
-    const topStars = [...templates].sort((a, b) => b.ovr - a.ovr).slice(0, 2);
-    for (const t of topStars) {
-      const ghost = buildPlayerFromTemplate(t, clubId, 1, undefined, true);
-      ghost.clubId = clubId;
-      ghostCandidates.push(ghost);
-    }
-  }
-
-  const candidatePool = [...realCandidates, ...ghostCandidates]
+  const candidatePool = Object.values(allPlayers)
+    .filter(p => p.clubId && !p.injured)
     .sort((a, b) => b.overall !== a.overall ? b.overall - a.overall : a.age - b.age)
     .slice(0, POOL);
 
@@ -108,9 +96,50 @@ function pickInitialBallonDorTop10(
     picks.push(remaining.splice(pickedIdx, 1)[0]);
   }
 
-  const pickedIds: Record<string, true> = {};
-  for (const p of picks) pickedIds[p.id] = true;
-  return { picks, ghosts: ghostCandidates.filter(g => pickedIds[g.id]) };
+  return picks;
+}
+
+/** Build the `Club` entity for a static club definition. Shared by the
+ *  player-country pyramid pass and the living-world foreign-league pass. */
+function buildClubEntity(cd: (typeof ALL_CLUBS)[number]): Club {
+  return {
+    id: cd.id, name: cd.name, shortName: cd.shortName,
+    color: cd.color, secondaryColor: cd.secondaryColor,
+    budget: cd.budget, wageBill: 0, reputation: cd.reputation,
+    facilities: cd.facilities, youthRating: cd.youthRating,
+    fanBase: cd.fanBase, boardPatience: cd.boardPatience,
+    playerIds: [], formation: '4-3-3', lineup: [], subs: [],
+    divisionId: cd.divisionId,
+    stadiumName: cd.stadiumName,
+    stadiumCapacity: cd.stadiumCapacity,
+  };
+}
+
+/**
+ * Trim a generated squad down to `LIVING_WORLD_SQUAD_SIZE` for a foreign
+ * living-world club. Club templates hand out ~28-man squads; a foreign club is
+ * AI-only, so we keep the best players (the recognisable names are the whole
+ * point of making these clubs real) plus a guaranteed second keeper so an
+ * injury to the first choice can't force a forfeit. Cuts ~30% off the save
+ * payload for every instantiated league.
+ */
+function trimForeignSquad(squad: Player[]): Player[] {
+  if (squad.length <= LIVING_WORLD_SQUAD_SIZE) return squad;
+  const byOverall = [...squad].sort((a, b) => b.overall - a.overall);
+  const kept = byOverall.slice(0, LIVING_WORLD_SQUAD_SIZE);
+  const keepers = kept.filter(p => p.position === 'GK');
+  if (keepers.length < 2) {
+    const spare = byOverall.slice(LIVING_WORLD_SQUAD_SIZE).filter(p => p.position === 'GK');
+    for (let i = 0; i < spare.length && keepers.length + i < 2; i++) {
+      // Swap out the weakest outfield player for a backup keeper.
+      const weakestOutfieldIdx = kept.map((p, idx) => ({ p, idx }))
+        .filter(e => e.p.position !== 'GK')
+        .pop()?.idx;
+      if (weakestOutfieldIdx === undefined) break;
+      kept[weakestOutfieldIdx] = spare[i];
+    }
+  }
+  return kept;
 }
 /**
  * Game initialization extracted from orchestrationSlice.ts.
@@ -213,17 +242,7 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
   const leagueClubData = ALL_CLUBS.filter(cd => countryLeagueIds.includes(cd.divisionId));
 
   leagueClubData.forEach(cd => {
-    const club: Club = {
-      id: cd.id, name: cd.name, shortName: cd.shortName,
-      color: cd.color, secondaryColor: cd.secondaryColor,
-      budget: cd.budget, wageBill: 0, reputation: cd.reputation,
-      facilities: cd.facilities, youthRating: cd.youthRating,
-      fanBase: cd.fanBase, boardPatience: cd.boardPatience,
-      playerIds: [], formation: '4-3-3', lineup: [], subs: [],
-      divisionId: cd.divisionId,
-      stadiumName: cd.stadiumName,
-      stadiumCapacity: cd.stadiumCapacity,
-    };
+    const club: Club = buildClubEntity(cd);
 
     const cpTemplates = communityPackEnabled ? cpByClub?.[club.id] : undefined;
     const squad = cpTemplates && cpTemplates.length > 0
@@ -260,6 +279,74 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
     divisionFixtures[cl.id] = generateDivisionFixtures(clubIds, cl.totalWeeks || TOTAL_WEEKS);
     divisionTables[cl.id] = buildLeagueTable(divisionFixtures[cl.id], clubIds);
   }
+  // ── The living world (Phase 6) ──
+  // Instantiate the top tier of the strongest FOREIGN leagues as real,
+  // persisted clubs. Before this, `initGame` built entities only for the
+  // player's own country: 92 of 756 clubs in an English save, 18 in a Dutch
+  // one. Every continental opponent was an ephemeral throwaway
+  // (`createEphemeralClub`) whose squad was generated from `32 + rep * 10` and
+  // discarded after the match, so Real Madrid had no squad, no history, no
+  // transfers, nothing to scout — and the Ballon d'Or had to fabricate
+  // synthetic seasons for "ghost" players to look like a global award.
+  //
+  // Three deliberate choices here:
+  //
+  // 1. Squads come from `generateSquad` (i.e. the lazily-loaded club-template
+  //    data behind `getClubTemplatesSync`), NOT from the community-pack
+  //    datasets. The community pack is dynamic-imported and must never be
+  //    pulled into the boot graph for clubs the player didn't choose. This is
+  //    the same data path `createEphemeralClub` already used — the difference
+  //    is that these squads persist and develop instead of being thrown away.
+  //
+  // 2. Foreign leagues DO get domestic fixtures and tables. This is the
+  //    expensive half of the feature (an extra ~9 AI matches per league per
+  //    week), and it is deliberate for two reasons. First, without appearances
+  //    no foreign player clears `BALLON_DOR_MIN_APPEARANCES`, so retiring the
+  //    ghost-BdO hack would quietly turn the ceremony back into a
+  //    single-country award. Second, `endSeasonImpl` regenerates fixtures for
+  //    EVERY entry in `divisionClubs`, so a fixture-less foreign league in
+  //    season 1 would sprout fixtures in season 2 anyway — the cost is not
+  //    avoidable, only deferred, and deferring it makes season 2 mysteriously
+  //    slower than season 1.
+  //
+  // 3. Foreign leagues get no promotion/relegation: `endSeasonImpl` scopes the
+  //    cascade to the player's own country, so a relegated foreign club simply
+  //    stays put. Accepted for v1 — the alternative is instantiating second
+  //    tiers we'd never show. Foreign tables still turn over via development,
+  //    AI transfers and the prize-money reputation drift.
+  const livingWorldLeagueIds = getLivingWorldLeagueIds(countryId, LIVING_WORLD_LEAGUE_COUNT);
+  for (const foreignLeagueId of livingWorldLeagueIds) {
+    const foreignLeague = LEAGUES.find(l => l.id === foreignLeagueId);
+    const foreignClubIds: string[] = [];
+    for (const cd of ALL_CLUBS) {
+      if (cd.divisionId !== foreignLeagueId) continue;
+      const club = buildClubEntity(cd);
+      const squad = trimForeignSquad(generateSquad(
+        club.id, cd.squadQuality, 1, cd.divisionId,
+        /* isInitialSeason */ true, /* useRealNames */ communityPackEnabled,
+      ));
+      let foreignWages = 0;
+      for (const p of squad) {
+        allPlayers[p.id] = p;
+        club.playerIds.push(p.id);
+        foreignWages += p.wage;
+      }
+      club.wageBill = foreignWages;
+      const { lineup: fLineup, subs: fSubs } = selectBestLineup(squad, '4-3-3');
+      club.lineup = fLineup.map(p => p.id);
+      club.subs = fSubs.map(p => p.id);
+      club.aiManagerProfile = generateAIManagerProfile(club.id, cd.reputation);
+      clubs[club.id] = club;
+      foreignClubIds.push(club.id);
+    }
+    if (foreignClubIds.length === 0) continue;
+    divisionClubs[foreignLeagueId] = foreignClubIds;
+    divisionFixtures[foreignLeagueId] = generateDivisionFixtures(
+      foreignClubIds, foreignLeague?.totalWeeks || TOTAL_WEEKS,
+    );
+    divisionTables[foreignLeagueId] = buildLeagueTable(divisionFixtures[foreignLeagueId], foreignClubIds);
+  }
+
   const leagueClubIds = divisionClubs[playerDivision] || [];
   const fixtures = divisionFixtures[playerDivision];
   const leagueTable = divisionTables[playerDivision];
@@ -414,29 +501,21 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
     collectOccupiedWeeks(clubId, [fixtures, cup.ties, leagueCup?.ties || []]),
   );
 
-  // Seed the 10 reigning Ballon d'Or top-10 holders. Picks from the
-  // combined real-loaded + global-elite-ghost pool with weighted random
+  // Seed the 10 reigning Ballon d'Or top-10 holders with weighted random
   // sampling, so each save lands on a different (but realistic) ten —
   // Salah / Haaland / Vinicius / Mbappé / Bellingham etc. shuffle around
   // instead of being identical every restart. Their reign expires at
   // season 1's award ceremony: those who re-make the new top 10 keep it,
   // others revert. `season - 1 = 0` is just a marker — the boost lifecycle
   // only cares whether the field is set.
-  const loadedClubIdSet: Record<string, true> = {};
-  for (const id of Object.keys(clubs)) loadedClubIdSet[id] = true;
-  const { picks: seededTop10, ghosts: seededGhosts } = pickInitialBallonDorTop10(allPlayers, loadedClubIdSet);
-  // Persist any picked ghost stars into the players map so the reigning-
-  // top-10 panel can render them. They have a real-world clubId for
-  // narrative context but no entry in the `clubs` map, so the rest of the
-  // game (lineups, transfers, AI sims) treats them as nonexistent.
-  for (const g of seededGhosts) {
-    allPlayers[g.id] = g;
-  }
+  //
+  // The pool is now purely real players: the living world means the foreign
+  // giants are instantiated, so no synthetic ghost holders are needed and
+  // every reigning holder is a squad member you could actually sign.
+  const seededTop10 = pickInitialBallonDorTop10(allPlayers);
   const affectedClubIds = new Set<string>();
   for (const p of seededTop10) {
     applyBallonDorTop10Boost(p, 0);
-    // Only refresh wage bills for clubs actually loaded in this save —
-    // ghost-club holders don't affect any real club's finances.
     if (p.clubId && clubs[p.clubId]) affectedClubIds.add(p.clubId);
   }
   // The boost recalculates `player.wage`, so any club hosting a seeded

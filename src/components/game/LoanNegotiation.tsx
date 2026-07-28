@@ -130,6 +130,15 @@ export function LoanNegotiation({ playerId, onClose }: Props) {
   const buyFeeMin = Math.round((player.value || 1_000_000) * LOAN_BUY_FEE_MIN_RATIO);
   const buyFeeMax = Math.round((player.value || 1_000_000) * LOAN_BUY_FEE_MAX_RATIO);
 
+  // Fill percentages for the painted rails (the range inputs themselves are
+  // transparent and 44pt tall so they can actually be grabbed on a phone).
+  const durationPercent = LOAN_REQUEST_MAX_DURATION > LOAN_REQUEST_MIN_DURATION
+    ? ((duration - LOAN_REQUEST_MIN_DURATION) / (LOAN_REQUEST_MAX_DURATION - LOAN_REQUEST_MIN_DURATION)) * 100
+    : 0;
+  const buyFeePercent = buyFeeMax > buyFeeMin
+    ? ((buyFee - buyFeeMin) / (buyFeeMax - buyFeeMin)) * 100
+    : 0;
+
   return (
     <AnimatePresence>
       <motion.div
@@ -240,15 +249,25 @@ export function LoanNegotiation({ playerId, onClose }: Props) {
                         {duration} weeks
                       </span>
                     </div>
-                    <input
-                      type="range"
-                      min={LOAN_REQUEST_MIN_DURATION}
-                      max={LOAN_REQUEST_MAX_DURATION}
-                      step={2}
-                      value={duration}
-                      onChange={(e) => setDuration(Number(e.target.value))}
-                      className="w-full h-1.5 bg-muted rounded-full accent-blue-500 cursor-pointer"
-                    />
+                    {/* 44pt grab area; rail painted as an absolute sibling. */}
+                    <div className="relative h-11">
+                      <div
+                        aria-hidden
+                        className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 h-2 rounded-full bg-muted overflow-hidden"
+                      >
+                        <div className="h-full rounded-full bg-blue-500" style={{ width: `${durationPercent}%` }} />
+                      </div>
+                      <input
+                        type="range"
+                        min={LOAN_REQUEST_MIN_DURATION}
+                        max={LOAN_REQUEST_MAX_DURATION}
+                        step={2}
+                        value={duration}
+                        onChange={(e) => setDuration(Number(e.target.value))}
+                        aria-label="Loan duration in weeks"
+                        className="range-touch range-touch-blue relative z-10"
+                      />
+                    </div>
                     <div className="flex justify-between text-[10px] text-muted-foreground tabular-nums">
                       <span>{LOAN_REQUEST_MIN_DURATION}w</span>
                       <span className="text-blue-400/70 font-medium">
@@ -271,15 +290,24 @@ export function LoanNegotiation({ playerId, onClose }: Props) {
                         {wageSplit}%
                       </span>
                     </div>
-                    <input
-                      type="range"
-                      min={0}
-                      max={100}
-                      step={5}
-                      value={wageSplit}
-                      onChange={(e) => setWageSplit(Number(e.target.value))}
-                      className="w-full h-1.5 bg-muted rounded-full accent-primary cursor-pointer"
-                    />
+                    <div className="relative h-11">
+                      <div
+                        aria-hidden
+                        className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 h-2 rounded-full bg-muted overflow-hidden"
+                      >
+                        <div className="h-full rounded-full bg-primary" style={{ width: `${wageSplit}%` }} />
+                      </div>
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        step={5}
+                        value={wageSplit}
+                        onChange={(e) => setWageSplit(Number(e.target.value))}
+                        aria-label="Your wage contribution percentage"
+                        className="range-touch relative z-10"
+                      />
+                    </div>
                     <div className="flex justify-between text-[10px] text-muted-foreground tabular-nums">
                       <span>0% (they pay all)</span>
                       <span className="font-medium text-foreground">
@@ -339,15 +367,24 @@ export function LoanNegotiation({ playerId, onClose }: Props) {
                             {formatMoney(buyFee)}
                           </span>
                         </div>
-                        <input
-                          type="range"
-                          min={buyFeeMin}
-                          max={buyFeeMax}
-                          step={buyFeeStep}
-                          value={buyFee}
-                          onChange={(e) => setBuyFee(Number(e.target.value))}
-                          className="w-full h-1.5 bg-muted rounded-full accent-primary cursor-pointer"
-                        />
+                        <div className="relative h-11">
+                          <div
+                            aria-hidden
+                            className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 h-2 rounded-full bg-muted overflow-hidden"
+                          >
+                            <div className="h-full rounded-full bg-primary" style={{ width: `${buyFeePercent}%` }} />
+                          </div>
+                          <input
+                            type="range"
+                            min={buyFeeMin}
+                            max={buyFeeMax}
+                            step={buyFeeStep}
+                            value={buyFee}
+                            onChange={(e) => setBuyFee(Number(e.target.value))}
+                            aria-label="Obligatory buy fee"
+                            className="range-touch relative z-10"
+                          />
+                        </div>
                       </div>
                     )}
                   </motion.div>

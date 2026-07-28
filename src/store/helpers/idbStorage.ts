@@ -20,6 +20,20 @@ const DB_NAME = 'dynasty-manager';
 const DB_VERSION = 1;
 const STORE = 'kv';
 
+/** Hard ceiling on how long we wait for `indexedDB.open` to fire ANY event.
+ *
+ *  iOS WKWebView can leave an open request permanently pending — no
+ *  `onsuccess`, no `onerror`, no `onblocked` — after an app update or a WebView
+ *  crash that left the database locked. Because `openDB` resolved only from
+ *  those three handlers, the promise never settled, `hydrateSaveStorage()` never
+ *  resolved, and `TitleScreen`'s `hydrated` flag stayed false forever: the user
+ *  sat on three animated skeleton slot rows with NO Continue and NO New Game,
+ *  and force-quitting didn't help because the locked DB state persisted.
+ *
+ *  Timing out to `null` degrades to the localStorage mirror, which is exactly
+ *  the path already taken when IDB is unavailable. */
+const OPEN_TIMEOUT_MS = 2000;
+
 let dbPromise: Promise<IDBDatabase | null> | null = null;
 
 function openDB(): Promise<IDBDatabase | null> {
@@ -29,6 +43,22 @@ function openDB(): Promise<IDBDatabase | null> {
     return dbPromise;
   }
   dbPromise = new Promise<IDBDatabase | null>((resolve) => {
+    let settled = false;
+    const settle = (db: IDBDatabase | null) => {
+      if (settled) return;
+      settled = true;
+      resolve(db);
+    };
+    // Don't cache a timed-out attempt — a later operation may find the DB has
+    // become openable again.
+    const timer = setTimeout(() => {
+      if (!settled) dbPromise = null;
+      settle(null);
+    }, OPEN_TIMEOUT_MS);
+    const resolveOnce = (db: IDBDatabase | null) => {
+      clearTimeout(timer);
+      settle(db);
+    };
     try {
       const req = indexedDB.open(DB_NAME, DB_VERSION);
       req.onupgradeneeded = () => {
@@ -45,17 +75,17 @@ function openDB(): Promise<IDBDatabase | null> {
           try { db.close(); } catch { /* ignore */ }
           dbPromise = null;
         };
-        resolve(db);
+        resolveOnce(db);
       };
-      req.onerror = () => resolve(null);
+      req.onerror = () => resolveOnce(null);
       req.onblocked = () => {
         // Blocked is transient (another tab holds an old connection). Don't
         // cache the failed attempt — let the next op retry.
         dbPromise = null;
-        resolve(null);
+        resolveOnce(null);
       };
     } catch {
-      resolve(null);
+      resolveOnce(null);
     }
   });
   return dbPromise;

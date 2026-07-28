@@ -20,6 +20,18 @@ type Get = () => GameState;
 // 50/50 split and zero wage so the arithmetic stays finite, and clamp the
 // split into [0,100] so a malformed/persisted out-of-range percentage can't
 // charge a club more than 100% of a wage.
+/**
+ * How many times its own average player wage a club will absorb for a single
+ * loanee, and the share of its whole wage bill it will commit. The looser of the
+ * two applies, so small clubs can still take a decent loanee.
+ *
+ * TODO(config): belongs in `src/config/transfers.ts` beside the other LOAN_*
+ * constants — inlined here only because that file could not be edited
+ * concurrently with this change.
+ */
+const LOAN_DEST_AVG_WAGE_MULT = 2.5;
+const LOAN_DEST_WAGE_SHARE_MAX = 0.35;
+
 const clampSplit = (splitPct: number | undefined): number => {
   const s = Number.isFinite(splitPct as number) ? (splitPct as number) : 50;
   return Math.max(0, Math.min(100, s));
@@ -158,6 +170,36 @@ export const createLoanSlice = (set: Set, get: Get) => ({
     // Clamp wageSplit to valid range
     wageSplit = Math.max(0, Math.min(100, wageSplit));
 
+    // ── Destination acceptance ──
+    // `loanOut` had no UI caller, so it also had no acceptance logic at all: no
+    // squad-room check, no fitness check, and — critically — no test that the
+    // destination could carry the wage it was being handed. Wiring the action up
+    // to a button without these would make it a wage-dumping exploit (park your
+    // £200k/week flop at a fourth-tier club at a 100% split, forever, free).
+    // Deliberately deterministic rather than a dice roll: the user can see why a
+    // club said no, and the gate cannot be re-rolled.
+    if (toClub.playerIds.length >= MAX_SQUAD_SIZE) {
+      return { success: false, message: `${toClub.name} have no room in their squad (${MAX_SQUAD_SIZE} players).` };
+    }
+    if (player.injured && (player.injuryWeeks || 0) > 0) {
+      return { success: false, message: `${player.lastName} is injured — no club will take him on loan right now.` };
+    }
+    const proposedShare = safeWageShare(player.wage, wageSplit);
+    const destAvgWage = toClub.wageBill / Math.max(1, toClub.playerIds.length);
+    const wageCeiling = Math.max(
+      destAvgWage * LOAN_DEST_AVG_WAGE_MULT,
+      toClub.wageBill * LOAN_DEST_WAGE_SHARE_MAX,
+    );
+    if (proposedShare > wageCeiling) {
+      return {
+        success: false,
+        message: `${toClub.name} can't take on £${Math.round(proposedShare / 1000)}K/week. Offer to cover more of the wage.`,
+      };
+    }
+    if (toClub.budget < 0) {
+      return { success: false, message: `${toClub.name} are in debt and can't add wages right now.` };
+    }
+
     const loan: LoanDeal = {
       id: safeRandomUUID(),
       playerId,
@@ -234,7 +276,11 @@ export const createLoanSlice = (set: Set, get: Get) => ({
     if (!loan) return { success: false, message: 'Loan not found.' };
     if (!loan.recallClause) return { success: false, message: 'No recall clause in this loan.' };
 
-    const elapsed = (state.season - loan.startSeason) * TOTAL_WEEKS + (state.week - loan.startWeek);
+    // Season length is per-league (38-46) — the global TOTAL_WEEKS constant (46)
+    // over-counts elapsed weeks by up to 8 for any loan spanning a season
+    // boundary in a 38-week league, which recalls/terminates loans early.
+    const seasonWeeks = state.totalWeeks || TOTAL_WEEKS;
+    const elapsed = (state.season - loan.startSeason) * seasonWeeks + (state.week - loan.startWeek);
     if (elapsed < LOAN_MIN_WEEKS_BEFORE_RECALL) return { success: false, message: `Must wait at least ${LOAN_MIN_WEEKS_BEFORE_RECALL} weeks before recalling.` };
 
     const player = state.players[loan.playerId];
@@ -385,8 +431,10 @@ export const createLoanSlice = (set: Set, get: Get) => ({
     // left in `remaining` there would silently become a free permanent
     // transfer — the borrower keeps the player and the parent club never
     // gets them back.
+    // Per-league season length, not the global 46-week constant — see recallLoan.
+    const seasonWeeks = state.totalWeeks || TOTAL_WEEKS;
     for (const loan of state.activeLoans) {
-      const elapsed = (state.season - loan.startSeason) * TOTAL_WEEKS + (state.week - loan.startWeek);
+      const elapsed = (state.season - loan.startSeason) * seasonWeeks + (state.week - loan.startWeek);
       if (forceAll || elapsed >= loan.durationWeeks) {
         returning.push(loan);
       } else {

@@ -28,6 +28,11 @@
     --primary-foreground: 30 20% 10%;
 
     --gold: 43 96% 46%;
+    /* Lighter/darker siblings for gradients that need gold depth (Ballon d'Or
+       hero text, medal gradients). Without these, callers reached for inline
+       color-mix and drifted apart. */
+    --gold-light: 43 96% 62%;
+    --gold-deep: 38 92% 34%;
 
     /* Medal tier palette — siblings to --gold so silver/bronze chips can
        pick up the same "use a semantic token" pattern. Tuned for the
@@ -132,6 +137,36 @@
 .perf-mode .pack-starfield-mid,
 .perf-mode .pack-starfield-near {
   animation: none !important;
+}
+
+/* ── Global decorative-animation kill switch ──
+   Tailwind's `animate-pulse` / `animate-bounce` / `animate-ping` are infinite
+   decorative loops, and dozens of call sites sit permanently in the player's
+   field of view (bottom-nav badges, lineup selection rings, board warnings).
+   Only a handful were individually guarded with `motion-reduce:animate-none`.
+   App.tsx's <MotionConfig> governs framer-motion transforms only — it cannot
+   see CSS classes — so both triggers are handled here: the OS reduced-motion
+   preference AND Performance mode.
+
+   `animate-spin` is deliberately NOT stopped: a frozen spinner reads as a
+   hung app. It is slowed instead. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse,
+  .animate-bounce,
+  .animate-ping {
+    animation: none !important;
+  }
+  .animate-spin {
+    animation-duration: 1.5s !important;
+  }
+}
+.perf-mode .animate-pulse,
+.perf-mode .animate-bounce,
+.perf-mode .animate-ping {
+  animation: none !important;
+}
+.perf-mode .animate-spin {
+  animation-duration: 1.5s !important;
 }
 
 @layer base {
@@ -464,9 +499,81 @@
 }
 
 /* Touch-friendly range inputs (non-slider pages) */
-input[type="range"]:not(.age-slider)::-webkit-slider-thumb {
+input[type="range"]:not(.age-slider):not(.range-touch)::-webkit-slider-thumb {
   width: 28px;
   height: 28px;
+}
+
+/* ── Touch-safe money / value range inputs ──
+   The hit box of an <input type="range"> IS the element box — an overflowing
+   thumb is paint-only. A 6px-tall input (`h-1.5`) is effectively ungrabbable on
+   a touch screen, which is fatal for the transfer-fee / wage / loan sliders.
+   `.range-touch` gives the input Apple's 44pt minimum height with a fully
+   transparent track; the visible rail is painted by an absolutely-positioned
+   sibling so the control still reads as a thin groove.
+   Selectors are qualified with input[type="range"] so they outrank the generic
+   thumb-sizing rule above regardless of source order. */
+input[type="range"].range-touch {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 44px;
+  background: transparent;
+  outline: none;
+  cursor: pointer;
+}
+
+input[type="range"].range-touch::-webkit-slider-runnable-track {
+  height: 44px;
+  background: transparent;
+  border: none;
+}
+
+input[type="range"].range-touch::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  /* WebKit aligns the thumb to the top of the runnable track, so centring is
+     (trackHeight - thumbHeight) / 2 = (44 - 24) / 2. */
+  margin-top: 10px;
+  border-radius: 50%;
+  background: var(--range-thumb, hsl(var(--primary)));
+  border: 2px solid hsl(var(--background));
+  box-shadow:
+    0 0 0 2px var(--range-thumb-halo, hsl(var(--primary) / 0.25)),
+    0 2px 8px hsl(0 0% 0% / 0.45);
+  cursor: grab;
+  transition: transform 0.15s ease;
+}
+
+input[type="range"].range-touch::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.12);
+}
+
+/* Tone modifier — the loan-duration slider is blue rather than gold. */
+input[type="range"].range-touch-blue {
+  --range-thumb: hsl(217 91% 60%);
+  --range-thumb-halo: hsl(217 91% 60% / 0.25);
+}
+
+input[type="range"].range-touch::-moz-range-track {
+  height: 44px;
+  background: transparent;
+  border: none;
+}
+
+input[type="range"].range-touch::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--range-thumb, hsl(var(--primary)));
+  border: 2px solid hsl(var(--background));
+  box-shadow:
+    0 0 0 2px var(--range-thumb-halo, hsl(var(--primary) / 0.25)),
+    0 2px 8px hsl(0 0% 0% / 0.45);
+  cursor: grab;
 }
 
 /* ── Cosmetic Pitch Skins ── */

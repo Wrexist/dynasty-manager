@@ -1,9 +1,11 @@
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { GameScreen } from '@/types/game';
 import { cn } from '@/lib/utils';
 import { hapticLight } from '@/utils/haptics';
 import { useMatchLocked } from '@/hooks/useGameSelectors';
+import { SPRING_SNAPPY } from '@/config/motion';
+import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 
 export interface SubNavItem {
   screen: GameScreen;
@@ -22,7 +24,7 @@ export function SubNav({ items, layoutId = 'subnav-pill' }: SubNavProps) {
   const currentScreen = useGameStore(s => s.currentScreen);
   const setScreen = useGameStore(s => s.setScreen);
   const matchLocked = useMatchLocked();
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useReducedMotionPref();
 
   return (
     <div className="relative px-4 py-2">
@@ -46,12 +48,18 @@ export function SubNav({ items, layoutId = 'subnav-pill' }: SubNavProps) {
               aria-label={label}
               disabled={matchLocked}
               onClick={() => {
-                if (matchLocked || active) return;
+                if (matchLocked) return;
+                // Haptic fires BEFORE the active-tab early return: re-tapping
+                // the current tab used to produce literally nothing — no
+                // navigation, no animation, no haptic — which reads as a
+                // broken control rather than a no-op.
                 hapticLight();
+                if (active) return;
                 setScreen(screen);
               }}
               className={cn(
-                'relative px-4 py-2.5 rounded-full text-sm font-semibold whitespace-nowrap shrink-0 transition-colors',
+                'relative px-4 py-2.5 rounded-full text-sm font-semibold whitespace-nowrap shrink-0',
+                'transition-[transform,colors] duration-150 active:scale-[0.97] motion-reduce:active:scale-100',
                 active ? 'text-primary-foreground' : 'text-foreground/70 hover:text-foreground',
                 matchLocked && 'cursor-not-allowed',
               )}
@@ -61,9 +69,7 @@ export function SubNav({ items, layoutId = 'subnav-pill' }: SubNavProps) {
                   layoutId={layoutId}
                   initial={false}
                   transition={
-                    reduceMotion
-                      ? { duration: 0 }
-                      : { type: 'spring', stiffness: 500, damping: 38, mass: 0.8 }
+                    reduceMotion ? { duration: 0 } : SPRING_SNAPPY
                   }
                   className={cn(
                     'absolute inset-0 rounded-full will-change-transform shadow-lg',

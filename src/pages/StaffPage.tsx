@@ -179,13 +179,20 @@ const StaffPage = () => {
   const refreshCooldown = Math.max(0, STAFF_MARKET_REFRESH_COOLDOWN - weeksSinceRefresh);
   const refreshAvailable = refreshCooldown <= 0 && (club?.budget ?? 0) >= STAFF_MARKET_REFRESH_FEE;
 
+  // `hireStaff` no-ops when the club can't cover the signing fee, so the toast
+  // must follow the result — never fire unconditionally.
+  const runHire = (staffId: string) => {
+    const r = hireStaff(staffId);
+    if (r.success) successToast('Staff Hired', r.message);
+    else errorToast(r.message);
+  };
+
   const handleHire = (upgrade: StaffMember, current: StaffMember | undefined) => {
     hapticLight();
     if (current) {
       setConfirmReplaceId(upgrade.id);
     } else {
-      hireStaff(upgrade.id);
-      successToast('Staff Hired', `${upgrade.firstName} ${upgrade.lastName} has joined the club`);
+      runHire(upgrade.id);
     }
   };
 
@@ -542,7 +549,7 @@ const StaffPage = () => {
                         )}
                       </div>
                       <div className="flex items-center gap-2">
-                        <button type="button" onClick={() => { hireStaff(upgrade.id); setConfirmReplaceId(null); successToast('Staff Hired', `${upgrade.firstName} ${upgrade.lastName} has joined the club`); }} className="text-xs text-primary font-bold py-1 px-2 min-h-[36px]">Confirm</button>
+                        <button type="button" onClick={() => { runHire(upgrade.id); setConfirmReplaceId(null); }} className="text-xs text-primary font-bold py-1 px-2 min-h-[36px]">Confirm</button>
                         <button type="button" onClick={() => setConfirmReplaceId(null)} className="text-xs text-muted-foreground font-semibold py-1 px-2 min-h-[36px]">Cancel</button>
                       </div>
                     </div>
@@ -584,7 +591,7 @@ const StaffPage = () => {
                                 ? 'bg-muted/20 text-muted-foreground cursor-not-allowed'
                                 : 'bg-primary/20 text-primary hover:bg-primary/30'
                             )}
-                            title={!canAfford ? 'Insufficient budget' : current ? `Replace (fee: £${Math.round(hiringFee / 1000)}K)` : `Hire (fee: £${Math.round(hiringFee / 1000)}K)`}
+                            aria-label={!canAfford ? `Cannot hire ${upgrade.firstName} ${upgrade.lastName} — insufficient budget` : current ? `Replace with ${upgrade.firstName} ${upgrade.lastName} (fee £${Math.round(hiringFee / 1000)}K)` : `Hire ${upgrade.firstName} ${upgrade.lastName} (fee £${Math.round(hiringFee / 1000)}K)`}
                           >
                             {current ? <RefreshCw className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                           </button>
@@ -614,6 +621,14 @@ const StaffPage = () => {
                           </span>
                         </div>
                       </div>
+                      {/* Affordability reason as visible text — a `title=`
+                          attribute does nothing on a touch device. */}
+                      {!canAfford && (
+                        <p className="text-[10px] text-destructive font-medium mt-1">
+                          Can't afford the {'£'}{Math.round(hiringFee / 1000)}K signing fee
+                          {' '}(budget {'£'}{Math.round((club?.budget ?? 0) / 1000)}K).
+                        </p>
+                      )}
                     </>
                   )}
                 </div>

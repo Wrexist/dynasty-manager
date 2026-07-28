@@ -154,8 +154,16 @@ export const MERCH_QUALITY_TIER_SCALE: Record<number, number> = {
 };
 
 export const MERCH_CAMPAIGN_COOLDOWN_WEEKS = 4;
+/** Revenue-base addend per point of a star's marketability score. Feeds the
+ *  multiplicative chain in `calculateWeeklyMerchRevenue` — it is NOT a direct
+ *  weekly cash figure. */
 export const STAR_PLAYER_MERCH_FACTOR = 3_000;
 export const STAR_PLAYER_COUNT = 3;
+/** Marketability points per (goal + assist). */
+export const MARKETABILITY_PER_CONTRIBUTION = 2;
+/** Hard cap on the goals+assists contribution to marketability (= 20 goal
+ *  involvements). Uncapped, every extra goal bought permanent weekly revenue. */
+export const MARKETABILITY_CONTRIBUTION_CAP = 40;
 export const STAR_PLAYER_SALE_DIP_WEEKS = 4;
 export const STAR_PLAYER_SALE_DIP_FACTOR = 0.85;
 export const STAR_SIGNING_BUZZ_WEEKS = 4;
@@ -169,7 +177,15 @@ export const MERCH_TOTAL_REVENUE_FACTORS = Object.values(MERCH_PRODUCT_LINES).re
 /** Campaign requirements: week ranges and conditions */
 export const CAMPAIGN_KIT_LAUNCH_MAX_WEEK = 4;
 export const CAMPAIGN_TITLE_RACE_MAX_POSITION = 4;
+/**
+ * Absolute fallback for the End of Season Sale window (46-week baseline).
+ * Prefer `getEndOfSeasonMinWeek(totalWeeks)`: hardcoding 38 made the campaign
+ * unreachable in 33 of the 45 leagues, because most seasons are 34 weeks or
+ * shorter and the season ends before week 38 ever arrives.
+ */
 export const CAMPAIGN_END_OF_SEASON_MIN_WEEK = 38;
+/** End of Season Sale unlocks at this fraction of the season (38/46). */
+export const CAMPAIGN_END_OF_SEASON_WEEK_FRACTION = 38 / 46;
 export const CAMPAIGN_STAR_SIGNING_MIN_VALUE = 5_000_000;
 export const CAMPAIGN_HOLIDAY_MIN_WEEK = 18;
 export const CAMPAIGN_HOLIDAY_MAX_WEEK = 22;
@@ -179,10 +195,19 @@ export const CAMPAIGN_HOLIDAY_MAX_WEEK = 22;
 export const SIGNATURE_DROP_COST = 75_000;
 /** Duration in weeks. */
 export const SIGNATURE_DROP_WEEKS = 3;
-/** Per-week revenue bonus, scaled by player marketability score (>=10 typically). */
-export const SIGNATURE_DROP_BONUS_PER_MARKET = 18_000;
-/** Floor weekly bonus regardless of marketability. */
-export const SIGNATURE_DROP_BASE_BONUS = 60_000;
+/**
+ * Revenue-BASE addend per point of the player's marketability score.
+ *
+ * Was 18,000 with a doc comment claiming marketability is ">=10 typically".
+ * `getPlayerMarketability` actually returns 40-150, so a marketability-116
+ * striker produced £6.44M/week of untouchable revenue on a £75k outlay (86x),
+ * roughly five times over per season. Re-priced to a base addend that then
+ * flows through the tier scale / product lines / pricing / campaigns like every
+ * other merch revenue term.
+ */
+export const SIGNATURE_DROP_BONUS_PER_MARKET = 1_500;
+/** Floor base addend regardless of marketability. */
+export const SIGNATURE_DROP_BASE_BONUS = 20_000;
 /** Cooldown in weeks before another drop can be launched. */
 export const SIGNATURE_DROP_COOLDOWN_WEEKS = 6;
 

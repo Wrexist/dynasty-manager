@@ -10,6 +10,8 @@ import { cn } from '@/lib/utils';
 import type { Achievement } from '@/utils/achievements';
 import { getTierColor, getTierBgColor, getAchievementXP } from '@/utils/achievements';
 import { hapticSuccess } from '@/utils/haptics';
+import { sfxChime } from '@/utils/sfx';
+import { useGameStore } from '@/store/gameStore';
 import { usePresentationSlot } from '@/hooks/usePresentationQueue';
 
 interface AchievementUnlockModalProps {
@@ -76,6 +78,7 @@ export function AchievementUnlockModal({ open, onClose, achievement }: Achieveme
   // and buzz when we're the active overlay.
   const slotActive = usePresentationSlot('achievement', open && !!achievement);
   const visible = open && !!achievement && slotActive;
+  const soundEnabled = useGameStore(s => s.settings.soundEnabled !== false);
   useScrollLock(visible);
 
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -83,10 +86,15 @@ export function AchievementUnlockModal({ open, onClose, achievement }: Achieveme
   useEscapeClose(onClose, visible);
 
   // Match the CelebrationModal pattern — fire one success notification haptic
-  // exactly when the modal becomes visible (not while queued behind others).
+  // and one audio sting exactly when the modal becomes visible (not while
+  // queued behind others). An unlock is a reward beat: it should be at least
+  // as audible as the routine weekly digest, which was chiming while this was
+  // silent.
   useEffect(() => {
-    if (visible) hapticSuccess();
-  }, [visible]);
+    if (!visible) return;
+    hapticSuccess();
+    if (soundEnabled) sfxChime(true);
+  }, [visible, soundEnabled]);
 
   // Sparkle layout rolled once and stable across re-renders.
   const sparkleSpecs = useMemo(() => makeSparkleSpecs(), []);

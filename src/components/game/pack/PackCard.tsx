@@ -1,5 +1,6 @@
 import { memo, useState } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 import type { Player } from '@/types/game';
 import { cn } from '@/lib/utils';
 import { tierForOvr, tierGradient } from './packHelpers';
@@ -44,7 +45,7 @@ interface PackCardProps {
  */
 export const PackCard = memo(function PackCard({ player, revealed, onReveal, entranceDelay = 0, onDismiss }: PackCardProps) {
   const tier = tierForOvr(player.overall);
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionPref();
   const [hovered, setHovered] = useState(false);
 
   const canReveal = !revealed && !!onReveal;

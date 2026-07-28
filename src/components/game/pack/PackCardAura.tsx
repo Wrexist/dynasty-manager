@@ -1,4 +1,5 @@
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 
 /**
  * Rarity aura rendered behind a revealed pack card.
@@ -34,7 +35,7 @@ const AURA: Record<string, AuraSpec> = {
 };
 
 export function PackCardAura({ tierKey }: { tierKey: string }) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionPref();
   const spec = AURA[tierKey] ?? AURA.common;
   const breathe = spec.pulse && !reduce;
 

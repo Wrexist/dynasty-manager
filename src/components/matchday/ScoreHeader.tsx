@@ -7,6 +7,8 @@
  */
 import { motion, AnimatePresence } from 'framer-motion';
 import { GlassPanel } from '@/components/game/GlassPanel';
+import { ClubCrest } from '@/components/game/ClubCrest';
+import { SPRING_SNAPPY } from '@/config/motion';
 import { YellowCardIcon, RedCardIcon } from '@/components/game/PlayerAvatar';
 import { PremiumProgress } from '@/components/game/PremiumProgress';
 import { getFlag } from '@/utils/nationality';
@@ -70,14 +72,14 @@ export function ScoreHeader({
     worldCup ? (
       <div className="mx-auto mb-1 text-center text-[44px] leading-none drop-shadow">{getFlag(club.id)}</div>
     ) : (
-      <div className="w-12 h-12 rounded-full mx-auto mb-1 flex items-center justify-center text-xs font-bold" style={{ backgroundColor: club.color, color: club.secondaryColor }}>{club.shortName}</div>
+      <ClubCrest club={club} size="lg" className="mx-auto mb-1" />
     );
   // Card counts (+ "men" when reduced) as a compact column placed on the OUTER
   // edge of each side, so the crest–score–crest stays perfectly symmetric.
   const Cards = ({ yellow, red, men }: { yellow: number; red: number; men: number }) => {
     if (yellow <= 0 && red <= 0) return null;
     return (
-      <div className="flex flex-col items-center gap-1 text-[9px] font-semibold">
+      <div className="flex flex-col items-center gap-1 text-micro font-semibold">
         {yellow > 0 && (
           <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-400/15 px-1.5 py-0.5 text-amber-300">
             <YellowCardIcon size={10} /> {yellow}
@@ -89,7 +91,7 @@ export function ScoreHeader({
           </span>
         )}
         {red > 0 && men > 0 && (
-          <span className="text-[8px] font-bold uppercase tracking-wide text-red-300">{men} men</span>
+          <span className="text-micro font-bold uppercase tracking-wide text-red-300">{men} men</span>
         )}
       </div>
     );
@@ -105,8 +107,8 @@ export function ScoreHeader({
     : 'Full Time';
 
   return (
-    <GlassPanel className={cn('p-5 transition-all duration-300', goalFlash && 'border-primary/60 shadow-[0_0_20px_hsl(var(--primary)/0.3)]')}>
-      <p className="text-[10px] text-muted-foreground uppercase tracking-wider text-center mb-3">{headerLabel}</p>
+    <GlassPanel className={cn('p-5 transition-all duration-300', goalFlash && 'border-primary/60 shadow-glow-primary')}>
+      <p className="text-micro text-muted-foreground uppercase tracking-wider text-center mb-3 tabular-nums">{headerLabel}</p>
       <div className="flex items-center justify-center gap-4">
         {/* Home cards — outer-left, equal flex width keeps the centre symmetric */}
         <div className="flex-1 flex justify-end">
@@ -114,36 +116,50 @@ export function ScoreHeader({
         </div>
         <div className="text-center">
           <Crest club={homeClub} />
-          <p className="text-xs font-bold text-foreground">{homeClub.shortName}</p>
+          <p className="text-caption font-bold text-foreground">{homeClub.shortName}</p>
         </div>
         <div className="text-center" aria-live="polite" aria-atomic="true" role="status">
           <p className="text-4xl font-black text-foreground tabular-nums font-display flex items-center justify-center gap-1">
-            <AnimatePresence mode="popLayout">
-              <motion.span
-                key={phase === 'half_time' ? `ht-h-${htHomeGoals}` : `h-${homeGoals}`}
-                initial={{ scale: 1.4, color: 'hsl(160, 84%, 39%)' }}
-                animate={{ scale: 1, color: 'hsl(0, 0%, 95%)' }}
-                transition={{ duration: 0.4, type: 'spring', stiffness: 300 }}
-              >
-                {phase === 'half_time' ? htHomeGoals : homeGoals}
-              </motion.span>
-            </AnimatePresence>
-            <span>-</span>
-            <AnimatePresence mode="popLayout">
-              <motion.span
-                key={phase === 'half_time' ? `ht-a-${htAwayGoals}` : `a-${awayGoals}`}
-                initial={{ scale: 1.4, color: 'hsl(160, 84%, 39%)' }}
-                animate={{ scale: 1, color: 'hsl(0, 0%, 95%)' }}
-                transition={{ duration: 0.4, type: 'spring', stiffness: 300 }}
-              >
-                {phase === 'half_time' ? htAwayGoals : awayGoals}
-              </motion.span>
-            </AnimatePresence>
+            {/* Each digit gets its own fixed-width cell. `popLayout` used to
+                let the outgoing digit collapse the flex row, so the whole
+                scoreline slid sideways at the exact moment a goal went in —
+                the highest-drama frame in the game. `w-[1ch]` pins it.
+                The goal flash animates back to `--foreground`, NOT a raw
+                `hsl(0,0%,95%)`: that literal left the score a permanently
+                different white from every label around it after the first
+                goal, because `--foreground` is `220 15% 90%`. */}
+            <span className="inline-block w-[1ch] text-center">
+              <AnimatePresence mode="popLayout">
+                <motion.span
+                  className="inline-block"
+                  key={phase === 'half_time' ? `ht-h-${htHomeGoals}` : `h-${homeGoals}`}
+                  initial={{ scale: 1.4, color: 'hsl(var(--primary))' }}
+                  animate={{ scale: 1, color: 'hsl(var(--foreground))' }}
+                  transition={SPRING_SNAPPY}
+                >
+                  {phase === 'half_time' ? htHomeGoals : homeGoals}
+                </motion.span>
+              </AnimatePresence>
+            </span>
+            <span aria-hidden>-</span>
+            <span className="inline-block w-[1ch] text-center">
+              <AnimatePresence mode="popLayout">
+                <motion.span
+                  className="inline-block"
+                  key={phase === 'half_time' ? `ht-a-${htAwayGoals}` : `a-${awayGoals}`}
+                  initial={{ scale: 1.4, color: 'hsl(var(--primary))' }}
+                  animate={{ scale: 1, color: 'hsl(var(--foreground))' }}
+                  transition={SPRING_SNAPPY}
+                >
+                  {phase === 'half_time' ? htAwayGoals : awayGoals}
+                </motion.span>
+              </AnimatePresence>
+            </span>
           </p>
         </div>
         <div className="text-center">
           <Crest club={awayClub} />
-          <p className="text-xs font-bold text-foreground">{awayClub.shortName}</p>
+          <p className="text-caption font-bold text-foreground">{awayClub.shortName}</p>
         </div>
         {/* Away cards — outer-right */}
         <div className="flex-1 flex justify-start">
@@ -153,7 +169,7 @@ export function ScoreHeader({
 
       {/* Live xG Tracker */}
       {showLiveXG && (
-        <div className="flex justify-between mt-2 text-[9px] text-muted-foreground/70 tabular-nums">
+        <div className="flex justify-between mt-2 text-micro text-muted-foreground/70 tabular-nums">
           <span>xG: {liveHomeXG.toFixed(2)}</span>
           <span>xG: {liveAwayXG.toFixed(2)}</span>
         </div>

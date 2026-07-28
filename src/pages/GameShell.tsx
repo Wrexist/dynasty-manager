@@ -10,10 +10,10 @@ import { PageErrorBoundary } from '@/components/game/PageErrorBoundary';
 import { ErrorBoundary } from '@/components/game/ErrorBoundary';
 import { ContractNegotiation } from '@/components/game/ContractNegotiation';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
-import { BACK_TARGET, MAIN_TABS, WC_MAIN_TABS, SCREEN_GROUPS, UNEMPLOYED_MAIN_TABS } from '@/config/navigation';
+import { BACK_TARGET, MAIN_TABS, WC_MAIN_TABS, SCREEN_GROUPS, UNEMPLOYED_MAIN_TABS, UNEMPLOYED_ALLOWED_SCREENS } from '@/config/navigation';
 import { MARKET_SUB_NAV, SQUAD_SUB_NAV } from '@/config/ui';
 import { PACK_PITY_THRESHOLD } from '@/config/packs';
-import { useMatchLocked, useCareerUnemployed } from '@/hooks/useGameSelectors';
+import { useMatchLocked, useCareerUnemployed, useCareerRetired } from '@/hooks/useGameSelectors';
 import { InfoTipProvider } from '@/components/game/InfoTip';
 import { PresentationQueueProvider } from '@/hooks/usePresentationQueue';
 import { getEntitlements, getCustomerInfo, extractSubscriptionInfo, startEntitlementListener, stopEntitlementListener } from '@/utils/purchases';
@@ -51,6 +51,7 @@ const PerksPage = lazy(() => import('./PerksPage'));
 const TrophyCabinet = lazy(() => import('./TrophyCabinet'));
 const PrestigePage = lazy(() => import('./PrestigePage'));
 const HallOfManagers = lazy(() => import('./HallOfManagers'));
+const CareerRetired = lazy(() => import('./CareerRetired'));
 const MerchandisePage = lazy(() => import('./MerchandisePage'));
 const TeamDetailPage = lazy(() => import('./TeamDetailPage'));
 const ShopPage = lazy(() => import('./ShopPage'));
@@ -106,6 +107,7 @@ const screens: Record<string, React.ComponentType> = {
   'trophy-cabinet': TrophyCabinet,
   'prestige': PrestigePage,
   'hall-of-managers': HallOfManagers,
+  'career-retired': CareerRetired,
   'team-detail': TeamDetailPage,
   'shop': ShopPage,
   'help': HelpPage,
@@ -155,7 +157,17 @@ const GameShell = () => {
   const setScreen = useGameStore(s => s.setScreen);
   const matchLocked = useMatchLocked();
   const isUnemployed = useCareerUnemployed();
+  const isRetired = useCareerRetired();
   const activeTabs = gameMode === 'world-cup' ? WC_MAIN_TABS : isUnemployed ? UNEMPLOYED_MAIN_TABS : MAIN_TABS;
+
+  // A retired manager has no club, so the club tabs would point at a squad they
+  // no longer manage. Keep them on the retrospective; everything reachable from
+  // there (Hall of Fame, Main Menu) is an explicit navigation.
+  useEffect(() => {
+    if (isRetired && currentScreen !== 'career-retired' && !UNEMPLOYED_ALLOWED_SCREENS.has(currentScreen)) {
+      setScreen('career-retired');
+    }
+  }, [isRetired, currentScreen, setScreen]);
 
   // Derive the sub-nav group for the current screen, if any. Memoized so
   // SubNav doesn't receive a fresh `items` array on every GameShell render

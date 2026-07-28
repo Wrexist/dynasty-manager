@@ -11,17 +11,22 @@ import { FormGuide } from '@/components/game/FormGuide';
 import { Briefcase, DollarSign, Clock, Check, X, LogOut, ArrowLeft, Building2, TrendingUp, Handshake, Users, Plus, Minus, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { errorToast, infoToast, successToast } from '@/utils/gameToast';
 import { getManagerBonusLabel, getReputationTierLabel } from '@/utils/managerCareer';
-import { getSuffix } from '@/utils/helpers';
+import { getSuffix, formatMoney } from '@/utils/helpers';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS } from '@/config/ui';
 import { CONTRACT_LENGTH_MIN, CONTRACT_LENGTH_MAX, BONUS_NEGOTIATION_MAX_INCREASE, INITIAL_VACANCIES_SHOWN } from '@/config/managerCareer';
 import type { JobVacancy, JobOffer, ManagerBonus } from '@/types/game';
+import { SectionHeader } from '@/components/game/SectionHeader';
 
 const JobMarket = () => {
   const [showRetireConfirm, setShowRetireConfirm] = useState(false);
   const [showResignConfirm, setShowResignConfirm] = useState(false);
   const [isAdvancing, setIsAdvancing] = useState(false);
   const [showAllVacancies, setShowAllVacancies] = useState(false);
+  // Accepting a job ENDS your tenure at the current club — strictly more
+  // consequential than resigning, which already had a confirm. Declining is
+  // irreversible too (the offer is consumed), so both route through a confirm.
+  const [pendingOffer, setPendingOffer] = useState<{ offer: JobOffer; accept: boolean } | null>(null);
   const { careerManager, jobVacancies, jobOffers, season, week, activeInterview } = useGameStore(useShallow(s => ({
     careerManager: s.careerManager,
     jobVacancies: s.jobVacancies,
@@ -47,17 +52,30 @@ const JobMarket = () => {
     }
   };
 
-  const handleAcceptOffer = (offerId: string) => {
+  const executeOfferResponse = (offer: JobOffer, accept: boolean) => {
     // Accepting at/after retirement age no-ops in the store — surface it
     // instead of leaving a button that appears to do nothing.
-    const result = respondToJobOffer(offerId, true);
+    const result = respondToJobOffer(offer.id, accept);
     if (result && !result.success) {
-      errorToast('Cannot Accept', result.message || 'This offer can no longer be accepted.');
+      errorToast(
+        accept ? 'Cannot Accept' : 'Cannot Decline',
+        result.message || 'This offer can no longer be actioned.',
+      );
+      return;
     }
+    if (accept) successToast('Contract signed', `You are the new manager of ${offer.clubName}.`);
+    // Declining used to give no feedback at all — the card simply vanished.
+    else infoToast('Offer declined', `${offer.clubName} will look elsewhere.`);
+  };
+
+  const handleAcceptOffer = (offerId: string) => {
+    const offer = jobOffers.find(o => o.id === offerId);
+    if (offer) setPendingOffer({ offer, accept: true });
   };
 
   const handleDeclineOffer = (offerId: string) => {
-    respondToJobOffer(offerId, false);
+    const offer = jobOffers.find(o => o.id === offerId);
+    if (offer) setPendingOffer({ offer, accept: false });
   };
 
   const handleWait = () => {
@@ -95,7 +113,7 @@ const JobMarket = () => {
           <GlassPanel className="p-4">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <h2 className="text-lg font-bold text-foreground">Job Market</h2>
+                <SectionHeader title="Job Market" />
                 <p className="text-xs text-muted-foreground">
                   {careerManager.contract ? 'Browse opportunities' : 'Find your next club'}
                 </p>
@@ -235,21 +253,35 @@ const JobMarket = () => {
             onConfirm={resignFromClub}
           />
 
+          <ConfirmDialog
+            open={pendingOffer !== null}
+            onOpenChange={(open) => { if (!open) setPendingOffer(null); }}
+            title={pendingOffer?.accept
+              ? `Take the ${pendingOffer.offer.clubName} job?`
+              : `Decline ${pendingOffer?.offer.clubName ?? 'this offer'}?`}
+            description={pendingOffer?.accept
+              ? `Signing for ${pendingOffer.offer.clubName} ends your current tenure immediately and cannot be undone.`
+              : `${pendingOffer?.offer.clubName ?? 'The club'} will withdraw the offer and look elsewhere. This cannot be undone.`}
+            confirmLabel={pendingOffer?.accept ? 'Sign contract' : 'Decline'}
+            variant={pendingOffer?.accept ? 'default' : 'destructive'}
+            onConfirm={() => { if (pendingOffer) executeOfferResponse(pendingOffer.offer, pendingOffer.accept); }}
+          />
+
           {/* Career Summary */}
           <GlassPanel className="p-4">
             <p className="text-xs font-semibold text-foreground mb-2">Career Summary</p>
             <div className="grid grid-cols-3 gap-3 text-center">
               <div>
                 <p className="text-lg font-bold text-foreground">{careerManager.totalCareerMatches}</p>
-                <p className="text-[10px] text-muted-foreground">Matches</p>
+                <p className="text-micro text-muted-foreground">Matches</p>
               </div>
               <div>
                 <p className="text-lg font-bold text-emerald-400">{careerManager.totalCareerWins}</p>
-                <p className="text-[10px] text-muted-foreground">Wins</p>
+                <p className="text-micro text-muted-foreground">Wins</p>
               </div>
               <div>
                 <p className="text-lg font-bold text-primary">{careerManager.titlesWon}</p>
-                <p className="text-[10px] text-muted-foreground">Titles</p>
+                <p className="text-micro text-muted-foreground">Titles</p>
               </div>
             </div>
           </GlassPanel>
@@ -273,27 +305,27 @@ function VacancyCard({ vacancy, canApply, onApply }: { vacancy: JobVacancy; canA
           )}
           <div className="min-w-0">
             <h3 className="text-sm font-bold text-foreground truncate">{vacancy.clubName}</h3>
-            {vacancy.leagueName && <p className="text-[9px] text-muted-foreground">{vacancy.leagueName}</p>}
+            {vacancy.leagueName && <p className="text-micro text-muted-foreground">{vacancy.leagueName}</p>}
           </div>
         </div>
         <div className="flex gap-1 shrink-0">
           {vacancy.interviewActive && (
-            <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-semibold">Interviewing</span>
+            <span className="text-micro bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-semibold">Interviewing</span>
           )}
           {vacancy.applied && !vacancy.interviewActive && (
-            <span className="text-[9px] bg-muted/30 text-muted-foreground px-1.5 py-0.5 rounded-full font-semibold">Applied</span>
+            <span className="text-micro bg-muted/30 text-muted-foreground px-1.5 py-0.5 rounded-full font-semibold">Applied</span>
           )}
           {!canApply && !vacancy.applied && !vacancy.interviewActive && (
-            <span className="text-[9px] bg-red-500/10 text-red-400 px-1.5 py-0.5 rounded-full font-semibold">Rep too low</span>
+            <span className="text-micro bg-red-500/10 text-red-400 px-1.5 py-0.5 rounded-full font-semibold">Rep too low</span>
           )}
         </div>
       </div>
 
       {/* Key info: salary, contract */}
-      <div className="grid grid-cols-2 gap-1.5 text-[10px] mb-2">
+      <div className="grid grid-cols-2 gap-1.5 text-micro mb-2">
         <div className="flex items-center gap-1 text-muted-foreground">
           <DollarSign className="w-3 h-3" />
-          £{(vacancy.salary / 1000).toFixed(1)}k/wk
+          {formatMoney(vacancy.salary, { suffix: '/wk' })}
         </div>
         <div className="flex items-center gap-1 text-muted-foreground">
           <Clock className="w-3 h-3" />
@@ -305,12 +337,12 @@ function VacancyCard({ vacancy, canApply, onApply }: { vacancy: JobVacancy; canA
       {(vacancy.currentPosition != null || vacancy.expectedPosition) && (
         <div className="flex items-center gap-2 mb-2 flex-wrap">
           {vacancy.currentPosition != null ? (
-            <span className="text-[9px] bg-muted/20 text-muted-foreground/90 px-1.5 py-0.5 rounded font-semibold">
+            <span className="text-micro bg-muted/20 text-muted-foreground/90 px-1.5 py-0.5 rounded font-semibold">
               {vacancy.currentPosition}{getSuffix(vacancy.currentPosition)}
               {vacancy.currentPoints != null && ` · ${vacancy.currentPoints}pts`}
             </span>
           ) : vacancy.expectedPosition ? (
-            <span className="text-[9px] bg-muted/20 text-muted-foreground/70 px-1.5 py-0.5 rounded">
+            <span className="text-micro bg-muted/20 text-muted-foreground/70 px-1.5 py-0.5 rounded">
               <TrendingUp className="w-2.5 h-2.5 inline mr-0.5" />
               {vacancy.expectedPosition}
             </span>
@@ -323,7 +355,7 @@ function VacancyCard({ vacancy, canApply, onApply }: { vacancy: JobVacancy; canA
 
       {/* Club details row */}
       {(vacancy.facilities != null || vacancy.budget != null) && (
-        <div className="grid grid-cols-3 gap-1 text-[9px] text-muted-foreground/80 mb-2">
+        <div className="grid grid-cols-3 gap-1 text-micro text-muted-foreground/80 mb-2">
           {vacancy.expectedPosition && vacancy.currentPosition != null && (
             <div className="flex items-center gap-0.5">
               <TrendingUp className="w-2.5 h-2.5" />
@@ -339,18 +371,18 @@ function VacancyCard({ vacancy, canApply, onApply }: { vacancy: JobVacancy; canA
           {vacancy.budget != null && vacancy.budget > 0 && (
             <div className="flex items-center gap-0.5">
               <DollarSign className="w-2.5 h-2.5" />
-              £{(vacancy.budget / 1_000_000).toFixed(1)}M
+              {formatMoney(vacancy.budget)}
             </div>
           )}
         </div>
       )}
 
-      <p className="text-[10px] text-primary/70 italic mb-2">"{vacancy.boardExpectations}"</p>
+      <p className="text-micro text-primary/70 italic mb-2">"{vacancy.boardExpectations}"</p>
 
       {/* Expandable details */}
       {(competitors.length > 0) && (
         <button
-          className="flex items-center gap-1 text-[9px] text-muted-foreground/60 mb-2 hover:text-muted-foreground transition-colors"
+          className="flex items-center gap-1 text-micro text-muted-foreground/60 mb-2 hover:text-muted-foreground transition-colors"
           onClick={() => setExpanded(e => !e)}
         >
           {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
@@ -363,9 +395,9 @@ function VacancyCard({ vacancy, canApply, onApply }: { vacancy: JobVacancy; canA
         <div className="bg-muted/10 rounded-lg px-2.5 py-1.5 mb-2">
           <div className="flex items-center gap-1.5 flex-wrap">
             <Users className="w-3 h-3 text-muted-foreground/60 shrink-0" />
-            <span className="text-[9px] text-muted-foreground/50 font-semibold uppercase tracking-wider">Candidates</span>
+            <span className="text-micro text-muted-foreground/50 font-semibold uppercase tracking-wider">Candidates</span>
             {competitors.map((c, i) => (
-              <span key={i} className="text-[9px] bg-muted/30 text-muted-foreground/70 px-1.5 py-0.5 rounded-full">
+              <span key={i} className="text-micro bg-muted/30 text-muted-foreground/70 px-1.5 py-0.5 rounded-full">
                 {c.name} ({getReputationTierLabel(c.reputationTier)})
               </span>
             ))}
@@ -435,11 +467,11 @@ function OfferCard({
     const updated = updatedOffers.find(o => o.id === offer.id);
     if (updated) {
       if (updated.negotiationStatus === 'accepted') {
-        successToast('Terms Accepted!', `Salary: £${(updated.salary / 1000).toFixed(1)}k/wk, ${updated.contractLength}yr contract`);
+        successToast('Terms Accepted!', `Salary: ${formatMoney(updated.salary, { suffix: '/wk' })}, ${updated.contractLength}yr contract`);
       } else if (updated.negotiationStatus === 'final') {
-        infoToast('Final Offer', `The board won't negotiate further. £${(updated.salary / 1000).toFixed(1)}k/wk, ${updated.contractLength}yr`);
+        infoToast('Final Offer', `The board won't negotiate further. ${formatMoney(updated.salary, { suffix: '/wk' })}, ${updated.contractLength}yr`);
       } else {
-        infoToast('Counter-Offer', `Board countered: £${(updated.salary / 1000).toFixed(1)}k/wk, ${updated.contractLength}yr contract`);
+        infoToast('Counter-Offer', `Board countered: ${formatMoney(updated.salary, { suffix: '/wk' })}, ${updated.contractLength}yr contract`);
       }
     }
   };
@@ -465,13 +497,13 @@ function OfferCard({
         )}
         <div className="min-w-0">
           <h3 className="text-sm font-bold text-primary truncate">{offer.clubName}</h3>
-          {offer.leagueName && <p className="text-[9px] text-muted-foreground">{offer.leagueName}</p>}
+          {offer.leagueName && <p className="text-micro text-muted-foreground">{offer.leagueName}</p>}
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-1.5 text-[10px] mb-2">
+      <div className="grid grid-cols-2 gap-1.5 text-micro mb-2">
         <div className="flex items-center gap-1 text-muted-foreground">
           <DollarSign className="w-3 h-3" />
-          £{(offer.salary / 1000).toFixed(1)}k/wk
+          {formatMoney(offer.salary, { suffix: '/wk' })}
         </div>
         <div className="flex items-center gap-1 text-muted-foreground">
           <Clock className="w-3 h-3" />
@@ -483,11 +515,11 @@ function OfferCard({
       {(leaguePosition != null || offer.expectedPosition) && (
         <div className="flex items-center gap-2 mb-2 flex-wrap">
           {leaguePosition != null && tableEntry ? (
-            <span className="text-[9px] bg-muted/20 text-muted-foreground/90 px-1.5 py-0.5 rounded font-semibold">
+            <span className="text-micro bg-muted/20 text-muted-foreground/90 px-1.5 py-0.5 rounded font-semibold">
               {leaguePosition}{getSuffix(leaguePosition)} · {tableEntry.points}pts
             </span>
           ) : offer.expectedPosition ? (
-            <span className="text-[9px] bg-muted/20 text-muted-foreground/70 px-1.5 py-0.5 rounded">
+            <span className="text-micro bg-muted/20 text-muted-foreground/70 px-1.5 py-0.5 rounded">
               <TrendingUp className="w-2.5 h-2.5 inline mr-0.5" />
               {offer.expectedPosition}
             </span>
@@ -500,7 +532,7 @@ function OfferCard({
 
       {/* Enriched club details */}
       {(offer.expectedPosition || offer.facilities != null || offer.budget != null) && (
-        <div className="grid grid-cols-3 gap-1 text-[9px] text-muted-foreground/80 mb-2">
+        <div className="grid grid-cols-3 gap-1 text-micro text-muted-foreground/80 mb-2">
           {offer.expectedPosition && leaguePosition != null && (
             <div className="flex items-center gap-0.5">
               <TrendingUp className="w-2.5 h-2.5" />
@@ -516,18 +548,18 @@ function OfferCard({
           {offer.budget != null && offer.budget > 0 && (
             <div className="flex items-center gap-0.5">
               <DollarSign className="w-2.5 h-2.5" />
-              £{(offer.budget / 1_000_000).toFixed(1)}M
+              {formatMoney(offer.budget)}
             </div>
           )}
         </div>
       )}
 
-      <p className="text-[10px] text-primary/70 italic mb-3">"{offer.boardExpectations}"</p>
+      <p className="text-micro text-primary/70 italic mb-3">"{offer.boardExpectations}"</p>
       {offer.bonuses.length > 0 && (
         <div className="flex flex-wrap gap-1 mb-3">
           {offer.bonuses.map((b, i) => (
-            <span key={i} className="text-[9px] bg-muted/30 text-muted-foreground px-1.5 py-0.5 rounded">
-              {getManagerBonusLabel(b.condition)}: £{(b.amount / 1000).toFixed(0)}k
+            <span key={i} className="text-micro bg-muted/30 text-muted-foreground px-1.5 py-0.5 rounded">
+              {getManagerBonusLabel(b.condition)}: {formatMoney(b.amount)}
             </span>
           ))}
         </div>
@@ -537,8 +569,8 @@ function OfferCard({
       {offer.boardTolerance != null && offer.boardTolerance < 80 && (
         <div className="mb-3">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[9px] text-muted-foreground">Board Patience</span>
-            <span className="text-[9px] text-muted-foreground">{tolerance}%</span>
+            <span className="text-micro text-muted-foreground">Board Patience</span>
+            <span className="text-micro text-muted-foreground">{tolerance}%</span>
           </div>
           <div className="h-1 bg-muted/30 rounded-full overflow-hidden">
             <div
@@ -553,9 +585,9 @@ function OfferCard({
       {negotiating && (
         <div className="bg-muted/20 rounded-lg p-2.5 mb-3 space-y-3">
           {/* Club context in negotiation */}
-          <div className="grid grid-cols-2 gap-1.5 text-[9px] text-muted-foreground/80">
+          <div className="grid grid-cols-2 gap-1.5 text-micro text-muted-foreground/80">
             {offer.budget != null && offer.budget > 0 && (
-              <div>Transfer Budget: £{(offer.budget / 1_000_000).toFixed(1)}M</div>
+              <div>Transfer Budget: {formatMoney(offer.budget)}</div>
             )}
             {offer.expectedPosition && (
               <div>Expected: {offer.expectedPosition}</div>
@@ -572,7 +604,7 @@ function OfferCard({
 
           {/* Salary */}
           <div>
-            <p className="text-[10px] font-semibold text-foreground mb-1">Salary</p>
+            <p className="text-micro font-semibold text-foreground mb-1">Salary</p>
             <input
               type="range"
               min={minSalary}
@@ -583,16 +615,16 @@ function OfferCard({
               className="age-slider"
               style={{ '--slider-progress': `${sliderProgress}%` } as React.CSSProperties}
             />
-            <div className="flex items-center justify-between text-[10px]">
-              <span className="text-muted-foreground">£{(minSalary / 1000).toFixed(1)}k</span>
-              <span className="text-primary font-bold">£{(counterSalary / 1000).toFixed(1)}k/wk</span>
-              <span className="text-muted-foreground">£{(maxSalary / 1000).toFixed(1)}k</span>
+            <div className="flex items-center justify-between text-micro">
+              <span className="text-muted-foreground">{formatMoney(minSalary)}</span>
+              <span className="text-primary font-bold">{formatMoney(counterSalary, { suffix: '/wk' })}</span>
+              <span className="text-muted-foreground">{formatMoney(maxSalary)}</span>
             </div>
           </div>
 
           {/* Contract Length */}
           <div>
-            <p className="text-[10px] font-semibold text-foreground mb-1">Contract Length</p>
+            <p className="text-micro font-semibold text-foreground mb-1">Contract Length</p>
             <div className="flex items-center justify-center gap-3">
               <button
                 className="w-7 h-7 rounded-lg bg-muted/40 flex items-center justify-center hover:bg-muted/60 transition-colors disabled:opacity-30"
@@ -617,13 +649,13 @@ function OfferCard({
           {/* Bonuses */}
           {counterBonuses.length > 0 && (
             <div>
-              <p className="text-[10px] font-semibold text-foreground mb-1.5">Bonuses</p>
+              <p className="text-micro font-semibold text-foreground mb-1.5">Bonuses</p>
               <div className="space-y-1.5">
                 {counterBonuses.map((b, i) => {
                   const step = b.amount >= 50000 ? 10000 : 5000;
                   return (
                     <div key={i} className="flex items-center justify-between">
-                      <span className="text-[10px] text-muted-foreground">{getManagerBonusLabel(b.condition)}</span>
+                      <span className="text-micro text-muted-foreground">{getManagerBonusLabel(b.condition)}</span>
                       <div className="flex items-center gap-1.5">
                         <button
                           className="w-5 h-5 rounded bg-muted/40 flex items-center justify-center hover:bg-muted/60 transition-colors disabled:opacity-30"
@@ -632,8 +664,8 @@ function OfferCard({
                         >
                           <Minus className="w-2.5 h-2.5" />
                         </button>
-                        <span className="text-[10px] font-semibold text-foreground w-12 text-center">
-                          £{(b.amount / 1000).toFixed(0)}k
+                        <span className="text-micro font-semibold text-foreground w-12 text-center">
+                          {formatMoney(b.amount)}
                         </span>
                         <button
                           className="w-5 h-5 rounded bg-muted/40 flex items-center justify-center hover:bg-muted/60 transition-colors"
@@ -650,10 +682,10 @@ function OfferCard({
           )}
 
           <div className="flex gap-2">
-            <Button size="sm" className="flex-1 h-7 text-[10px] gap-1" onClick={handleNegotiate}>
+            <Button size="sm" className="flex-1 h-7 text-micro gap-1" onClick={handleNegotiate}>
               <Handshake className="w-3 h-3" /> Submit
             </Button>
-            <Button size="sm" variant="outline" className="flex-1 h-7 text-[10px]" onClick={() => setNegotiating(false)}>
+            <Button size="sm" variant="outline" className="flex-1 h-7 text-micro" onClick={() => setNegotiating(false)}>
               Cancel
             </Button>
           </div>

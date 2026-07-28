@@ -163,8 +163,11 @@ export function OnboardingChecklist() {
       screen: 'scouting',
       whyItMatters: 'The transfer market only shows players whose clubs have listed them. Scouts find the rest — hidden gems, high-potential teenagers. You start with idle scouts costing you nothing; put them to work.',
       steps: [
-        { text: 'Tap "More" in the bottom navigation bar.' },
-        { text: 'In the menu, tap "Scouting".' },
+        // Scouting is NOT in the More drawer — it lives on the Market tab's
+        // sub-nav (MARKET_SUB_NAV in config/ui.ts). Do not "simplify" this back
+        // to "tap More" — that instruction is impossible to follow.
+        { text: 'Tap "Market" in the bottom navigation bar (the left-right arrows).' },
+        { text: 'At the top of the Market page there\'s a row of pills: Transfers · Scouting · Packs. Tap "Scouting".' },
         { text: 'Below the empty reports area you\'ll see "Send Scout" with five regions.' },
         { text: 'Tap any region. Domestic returns reports fastest (2 weeks); Asia and Africa take 4-5 weeks but surface higher-potential youngsters.' },
         { text: 'A confirmation toast appears. Reports arrive in your inbox automatically.' },
@@ -184,10 +187,12 @@ export function OnboardingChecklist() {
       screen: 'staff',
       whyItMatters: 'Without a scout on your staff you cannot send anyone out on assignment, and the entire Scouting page sits idle. Tier-1 scouts are cheap and find domestic talent reliably.',
       steps: [
-        { text: 'Tap "More" in the bottom navigation bar.' },
-        { text: 'In the menu, tap "Staff".' },
-        { text: 'Switch to the "Hires" tab at the top of the page.' },
-        { text: 'Find a candidate with the "Scout" role and tap "Hire" — the cost is shown as a one-off signing fee plus weekly wage.' },
+        // Staff is NOT in the More drawer — it lives on the Squad tab's sub-nav
+        // (SQUAD_SUB_NAV in config/ui.ts).
+        { text: 'Tap "Squad" in the bottom navigation bar.' },
+        { text: 'At the top of the Squad page there\'s a row of pills: Squad · Training · Staff · Youth. Tap "Staff".' },
+        { text: 'Scroll to the Scout role card — a candidate appears under "Available to Hire".' },
+        { text: 'Tap the "+" button on that card to hire — the cost is a one-off signing fee plus a weekly wage. If you can\'t afford the fee the card says so.' },
       ],
       successCue: 'Once hired, this row swaps to "Send your first scout" — head to Scouting and send them on assignment.',
     });

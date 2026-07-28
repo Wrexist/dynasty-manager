@@ -39,9 +39,20 @@ function assertEnglishPyramidCounts(state: GameState) {
     const ids = state.divisionClubs[league.id];
     expect(ids?.length ?? 0, `${league.id} club count`).toBe(league.teamCount);
   }
-  const unique = new Set(allDivisionClubIds(state));
+  // Scope the uniqueness check to the ENGLISH pyramid, which is what this
+  // assertion is about. It used to take the union of EVERY entry in
+  // `divisionClubs` and compare it to the English total — fine while the game
+  // only ever loaded the player's own country, but it silently doubled as an
+  // assertion that the world IS England-only, so it broke the moment foreign
+  // leagues were instantiated. The real invariant is: correct counts per league,
+  // and no club appearing twice.
+  const engIds = engLeagues.flatMap(l => state.divisionClubs[l.id] ?? []);
+  const uniqueEng = new Set(engIds);
   const sum = engLeagues.reduce((s, l) => s + l.teamCount, 0);
-  expect(unique.size, 'unique clubs across English pyramid').toBe(sum);
+  expect(uniqueEng.size, 'unique clubs across English pyramid').toBe(sum);
+  // And no club may be registered in two divisions anywhere in the world.
+  const allIds = allDivisionClubIds(state);
+  expect(new Set(allIds).size, 'no club registered in two divisions').toBe(allIds.length);
   expect(sum, 'England configured club total').toBe(92);
 }
 
@@ -134,10 +145,24 @@ describe('Phase 1 — strict multi-season invariants', () => {
           }
         }
       }
+      // Playoff winners are recorded on the league they LEFT, so they must now be
+      // in the tier ABOVE — asserting they're still in their old division had it
+      // backwards. They must also appear in `promotedOutClubs`, the complete
+      // "went up" list.
       if (t && t.playoffWinners.length > 0 && t.leagueId) {
+        const from = LEAGUES.find(l => l.id === t.leagueId);
+        const above = from ? LEAGUES.find(l => l.countryId === from.countryId && l.tier === from.tier - 1) : undefined;
         for (const cid of t.playoffWinners) {
-          expect(state.divisionClubs[t.leagueId] ?? []).toContain(cid);
+          expect(t.promotedOutClubs ?? [], `playoff winner ${cid} in promotedOutClubs`).toContain(cid);
+          if (above) {
+            expect(state.divisionClubs[above.id] ?? [], `playoff winner ${cid} in ${above.id}`).toContain(cid);
+          }
         }
+      }
+
+      // And every departure must genuinely be gone from this league.
+      for (const cid of t?.promotedOutClubs ?? []) {
+        expect(state.divisionClubs[t!.leagueId] ?? [], `${cid} left ${t!.leagueId}`).not.toContain(cid);
       }
 
       for (const clubId of allDivisionClubIds(state)) {
@@ -195,9 +220,17 @@ describe('Phase 1 — strict multi-season invariants', () => {
         expect(p.appearances).toBeGreaterThanOrEqual(0);
       }
 
+      // Bound player population RELATIVE to the number of loaded clubs rather
+      // than against a magic number sized for a single-country world. The point
+      // of this guard is that the population doesn't grow without limit across 20
+      // seasons — that has to keep working whatever size the world is, and a
+      // hardcoded ceiling silently becomes either meaningless or a false alarm as
+      // soon as the world changes size.
       const totalPlayers = Object.keys(state.players).length;
-      expect(totalPlayers).toBeGreaterThanOrEqual(2000);
-      expect(totalPlayers).toBeLessThanOrEqual(4500);
+      const loadedClubs = new Set(allDivisionClubIds(state)).size;
+      expect(loadedClubs).toBeGreaterThan(0);
+      expect(totalPlayers / loadedClubs, 'players per loaded club').toBeGreaterThanOrEqual(12);
+      expect(totalPlayers / loadedClubs, 'players per loaded club').toBeLessThanOrEqual(45);
 
       for (const cid of allDivisionClubIds(state)) {
         const c = state.clubs[cid];
@@ -388,11 +421,46 @@ describe('Phase 4 — save round-trip + migration', () => {
       const raw = useGameStore.getState() as unknown as Record<string, unknown>;
       const json = JSON.stringify(raw);
       const parsed = JSON.parse(json) as Record<string, unknown>;
-      parsed.version = (parsed.version as number) ?? 1;
-      const migrated = migrateSaveData(parsed);
-      expect(typeof migrated.version).toBe('number');
-      expect(migrated.version as number).toBeGreaterThanOrEqual(1);
-      expect(migrated.version as number).toBeLessThanOrEqual(CURRENT_VERSION);
+      // This test used to stamp `version ?? 1` onto a CURRENT snapshot. The
+      // store state carries no `version` key, so every run started at v1 and
+      // was driven through migration 22 — the clean break that DISCARDS all
+      // game state — and then asserted only that the result's version was a
+      // number in range. It therefore passed no matter what the migration did
+      // to the data, which is the likeliest reason the "13 fields never
+      // persisted" class of bug survived so long (audit Phase 7).
+      //
+      // A current save is by definition at CURRENT_VERSION, so stamp that and
+      // assert the DATA survives the trip.
+      parsed.version = CURRENT_VERSION;
+      const migrated = migrateSaveData(parsed) as unknown as Record<string, unknown>;
+      expect(migrated.version).toBe(CURRENT_VERSION);
+
+      const before = useGameStore.getState();
+      expect(migrated.season, 'season survived').toBe(before.season);
+      expect(migrated.week, 'week survived').toBe(before.week);
+      expect(migrated.playerClubId, 'club identity survived').toBe(before.playerClubId);
+      expect(migrated.playerDivision, 'division survived').toBe(before.playerDivision);
+
+      const mClubs = migrated.clubs as Record<string, unknown>;
+      const mPlayers = migrated.players as Record<string, { overall?: number }>;
+      const mFixtures = migrated.fixtures as unknown[];
+      expect(Object.keys(mClubs), 'every club survived').toHaveLength(Object.keys(before.clubs).length);
+      expect(Object.keys(mPlayers), 'every player survived').toHaveLength(Object.keys(before.players).length);
+      expect(mFixtures, 'fixtures survived').toHaveLength(before.fixtures.length);
+
+      // The player's own club must come back intact, not just present.
+      const myClubBefore = before.clubs[before.playerClubId];
+      const myClubAfter = mClubs[before.playerClubId] as { playerIds?: string[]; budget?: number } | undefined;
+      expect(myClubAfter, 'player club survived').toBeTruthy();
+      expect(myClubAfter!.playerIds, 'squad survived').toHaveLength(myClubBefore.playerIds.length);
+      expect(myClubAfter!.budget, 'budget survived').toBe(myClubBefore.budget);
+
+      // And the players must still be players — a migration that blanked
+      // attributes would otherwise pass every count-based assertion above.
+      const sampleId = myClubBefore.playerIds.find(id => before.players[id]);
+      if (sampleId) {
+        expect(mPlayers[sampleId]?.overall, 'player overall survived').toBe(before.players[sampleId].overall);
+      }
 
       const size = json.length;
       expect(size).toBeGreaterThan(10_000);

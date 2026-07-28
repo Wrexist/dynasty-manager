@@ -409,3 +409,66 @@ describe('save migration (v22→v23 clean break)', () => {
     expect(migrated.gameStarted).toBe(false);
   });
 });
+
+describe('subscription expiry is anchored, never permanent by omission', () => {
+  const base = { productId: 'com.dynastymanager.pro.monthly' as const, isInGracePeriod: false, willRenew: true };
+
+  it('treats a monthly sub with no expiry and no anchor as expired', async () => {
+    const { isPro } = await import('@/utils/monetization');
+    // The bug this guards: `expiresAt == null` used to mean "lifetime", so a
+    // RevenueCat response that omitted expirationDate on an active monthly
+    // entitlement granted Pro forever for one month's payment.
+    expect(isPro({
+      entitlements: [], activeCosmetics: {}, adRewardsClaimed: {},
+      subscription: { ...base, tier: 'monthly', expiresAt: null },
+    } as never)).toBe(false);
+  });
+
+  it('honours a monthly sub with no expiry inside its anchored window', async () => {
+    const { isPro } = await import('@/utils/monetization');
+    expect(isPro({
+      entitlements: [], activeCosmetics: {}, adRewardsClaimed: {},
+      subscription: { ...base, tier: 'monthly', expiresAt: null, grantedAt: new Date().toISOString() },
+    } as never)).toBe(true);
+  });
+
+  it('expires a monthly sub whose anchor is older than a billing period', async () => {
+    const { isPro } = await import('@/utils/monetization');
+    const stale = new Date(Date.now() - 90 * 24 * 3600 * 1000).toISOString();
+    expect(isPro({
+      entitlements: [], activeCosmetics: {}, adRewardsClaimed: {},
+      subscription: { ...base, tier: 'monthly', expiresAt: null, grantedAt: stale },
+    } as never)).toBe(false);
+  });
+
+  it('keeps lifetime permanent, identified by tier rather than a missing date', async () => {
+    const { isPro } = await import('@/utils/monetization');
+    expect(isPro({
+      entitlements: [], activeCosmetics: {}, adRewardsClaimed: {},
+      subscription: { productId: 'com.dynastymanager.pro.lifetime', tier: 'lifetime', expiresAt: null, isInGracePeriod: false, willRenew: false },
+    } as never)).toBe(true);
+  });
+});
+
+describe('imported saves cannot grant entitlements', () => {
+  it('strips monetization from an imported payload', async () => {
+    const { importJsonToSlot } = await import('@/utils/saveBackup');
+    const { CURRENT_VERSION } = await import('@/utils/saveMigration');
+    const { readSaveSlot, __resetSaveStorageForTests } = await import('@/store/helpers/persistence');
+    __resetSaveStorageForTests();
+    // A hand-edited export is the whole exploit: add the Pro SKU, re-import,
+    // hold Pro forever (restoreEntitlements only ever ADDS).
+    const forged = {
+      version: CURRENT_VERSION,
+      playerClubId: 'ars',
+      clubs: { ars: { id: 'ars', playerIds: [], lineup: [], subs: [] } },
+      season: 1,
+      week: 1,
+      monetization: { entitlements: ['com.dynastymanager.pro'], activeCosmetics: {}, adRewardsClaimed: {} },
+    };
+    const res = importJsonToSlot(1, JSON.stringify(forged));
+    expect(res.ok).toBe(true);
+    const written = JSON.parse(readSaveSlot(1) as string);
+    expect(written.monetization).toBeUndefined();
+  });
+});

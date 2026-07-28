@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { getSuffix } from '@/utils/helpers';
@@ -13,9 +13,9 @@ import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { VERDICT_COLORS, VERDICT_LABELS } from '@/config/ui';
-import { hapticHeavy } from '@/utils/haptics';
 import { PageHint } from '@/components/game/PageHint';
 import { isCelebratorySeason, maybeRequestReview, pickSeasonReviewTrigger } from '@/utils/appReview';
+import { TrophyCeremonyModal } from '@/components/game/TrophyCeremonyModal';
 
 const AWARD_ICONS: Record<string, string> = {
   'Golden Boot': 'footprints',
@@ -46,8 +46,27 @@ const SeasonSummary = () => {
     careerManager: s.careerManager,
   })));
   const setScreen = useGameStore((s) => s.setScreen);
+  const recordCelebrationKeys = useGameStore((s) => s.recordCelebrationKeys);
   const latest = seasonHistory[seasonHistory.length - 1];
   const [showBestXI, setShowBestXI] = useState(false);
+
+  // Promotion / relegation ceremony. These are the emotional peak (and nadir)
+  // of a lower-league save and used to be a static text banner with a haptic:
+  // no lift, no confetti, no audio. Promotion now runs the full ceremony;
+  // relegation gets a deliberately different, somber beat rather than reusing
+  // the celebration path.
+  //
+  // Deduped in the store (season-bucketed) so revisiting the screen — or a
+  // re-render — cannot re-fire it. The bucket is keyed on the CURRENT season
+  // (the rollover has already happened by the time this screen renders) while
+  // the key names the season that just ended.
+  const [seasonVerdict, setSeasonVerdict] = useState<'promoted' | 'relegated' | null>(null);
+  const verdictKind = latest?.promoted ? 'promoted' as const : latest?.replaced ? 'relegated' as const : null;
+  useEffect(() => {
+    if (!verdictKind || !latest) return;
+    const fresh = recordCelebrationKeys(season, [`season-${verdictKind}-s${latest.season}`]);
+    if (fresh.length > 0) setSeasonVerdict(verdictKind);
+  }, [verdictKind, latest, season, recordCelebrationKeys]);
 
   // Near-miss detection: check if player barely missed a milestone
   const nearMiss = (() => {
@@ -88,8 +107,23 @@ const SeasonSummary = () => {
   const playerClubShort = clubs[playerClubId]?.shortName || '';
   const individualAwards = (latest.awards || []).filter(a => a.name !== 'Team of the Season');
   const bestXI = (latest.awards || []).filter(a => a.name === 'Team of the Season');
+  const clubName = clubs[playerClubId]?.name || 'Your club';
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
+      {/* Promotion: full ceremony (trophy lift + confetti + roar + haptic).
+          Relegation: somber tone — no lift, no confetti, a deflating groan. */}
+      <TrophyCeremonyModal
+        open={!!seasonVerdict}
+        onClose={() => setSeasonVerdict(null)}
+        tone={seasonVerdict === 'relegated' ? 'somber' : 'triumph'}
+        title={seasonVerdict === 'relegated' ? 'RELEGATED' : 'PROMOTED!'}
+        subtitle={
+          seasonVerdict === 'relegated'
+            ? `${clubName} drop a division. A long summer — and a promotion campaign to plan.`
+            : `${clubName} are going up. Promotion earned, on merit, over a full season.`
+        }
+      />
+
       <PageHint
         screen="season-summary"
         title="Season Summary"
@@ -116,7 +150,7 @@ const SeasonSummary = () => {
 
         {/* Promoted Banner */}
         {latest.promoted && (
-          <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2, duration: 0.6, type: 'spring' }} onAnimationComplete={() => hapticHeavy()}>
+          <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2, duration: 0.6, type: 'spring' }}>
             <GlassPanel className="p-5 text-center border-emerald-500/50 bg-emerald-500/10">
               <ArrowUp className="w-10 h-10 text-emerald-300 mx-auto mb-2 drop-shadow-[0_0_10px_rgba(16,185,129,0.65)]" />
               <p
@@ -138,7 +172,7 @@ const SeasonSummary = () => {
 
         {/* Relegated Banner */}
         {latest.replaced && !latest.promoted && (
-          <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2, duration: 0.6, type: 'spring' }} onAnimationComplete={() => hapticHeavy()}>
+          <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2, duration: 0.6, type: 'spring' }}>
             <GlassPanel className="p-5 text-center border-destructive/50 bg-destructive/10">
               <ArrowDown className="w-10 h-10 text-rose-300 mx-auto mb-2 drop-shadow-[0_0_10px_rgba(244,63,94,0.6)]" />
               <p

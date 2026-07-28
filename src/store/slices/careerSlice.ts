@@ -11,6 +11,7 @@ import { generateStarterDeals, generateStarterOffers } from '@/store/slices/spon
 import { getDefaultMerchState } from '@/utils/merchandise';
 import { generateYouthProspects, generateIntakePreview } from '@/utils/youth';
 import { guardAsync } from '@/utils/asyncGuard';
+import { createEmptyRecords } from '@/utils/records';
 
 /** Inject live league position/form data into vacancies from divisionTables. */
 function enrichVacanciesWithLeagueData(
@@ -556,6 +557,15 @@ export const createCareerSlice = (set: Set, get: Get) => ({
         youthAcademy: { prospects: newProspects, nextIntakePreview: generateIntakePreview(targetClub.youthRating), youthPreviewEnhanced: false },
         financeHistory: [],
         tacticalPresets: [],
+        // Club records belong to the CLUB, not the manager. Omitting these from
+        // the reset meant "all-time club top scorer" and every other club record
+        // followed the manager to their next job, so a record set at Arsenal
+        // showed up as Coventry's club history.
+        clubRecords: createEmptyRecords(),
+        rivalries: {},
+        // Season-bucketed on its own, but a MID-season club change would otherwise
+        // carry the old club's seen-keys and suppress one repeat celebration.
+        celebrationDedupe: { season: state.season, keys: [] },
       });
     } else {
       // Different league: must reinitialize game for the new league.
@@ -629,7 +639,11 @@ export const createCareerSlice = (set: Set, get: Get) => ({
     set({
       careerManager: { ...manager, contract: null, careerHistory: updatedHistory },
       activeInterview: null,
-      currentScreen: 'hall-of-managers',
+      // Terminal. Without `careerRetired`, `advanceWeek` fell back into the
+      // unemployed branch on the very next tick and the career never actually
+      // ended — see the guard at the top of advanceWeekImpl.
+      careerRetired: true,
+      currentScreen: 'career-retired',
     });
   },
 });

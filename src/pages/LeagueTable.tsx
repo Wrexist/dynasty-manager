@@ -188,7 +188,7 @@ const LeagueTable = () => {
         <FlagIcon nationality={currentLeague?.country || 'England'} size={24} className="rounded-[2px]" />
         <div className="flex-1 text-left min-w-0">
           <p className="text-sm font-bold text-foreground font-display truncate">{currentLeague?.name || 'League'}</p>
-          <p className="text-[10px] text-muted-foreground">{currentLeague?.country}{isPlayerLeague ? ' \u2022 Your League' : ''}</p>
+          <p className="text-micro text-muted-foreground">{currentLeague?.country}{isPlayerLeague ? ' \u2022 Your League' : ''}</p>
         </div>
         <ChevronDown className={cn('w-4 h-4 text-muted-foreground transition-transform', pickerOpen && 'rotate-180')} />
       </button>
@@ -231,7 +231,7 @@ const LeagueTable = () => {
               <div className="max-h-72 overflow-y-auto space-y-3 -mx-1 px-1">
                 {filteredTiers.map(group => (
                   <div key={group.tier}>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5 px-1">{group.label}</p>
+                    <p className="text-micro text-muted-foreground uppercase tracking-wider mb-1.5 px-1">{group.label}</p>
                     <div className="space-y-0.5">
                       {group.leagues.map(topLeague => {
                         // Get all tiers for this country
@@ -256,7 +256,7 @@ const LeagueTable = () => {
                               )}
                             >
                               {!isLowerTier && <FlagIcon nationality={league.country} size={20} className="rounded-[1px]" />}
-                              {isLowerTier && <span className="text-[10px] text-muted-foreground w-5 text-center shrink-0">T{league.tier}</span>}
+                              {isLowerTier && <span className="text-micro text-muted-foreground w-5 text-center shrink-0">T{league.tier}</span>}
                               <span className={cn(
                                 'text-xs font-medium flex-1 truncate',
                                 isActive ? 'text-primary' : isLowerTier ? 'text-muted-foreground' : 'text-foreground'
@@ -264,11 +264,11 @@ const LeagueTable = () => {
                                 {league.name}
                               </span>
                               {isPlayerHome && (
-                                <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-primary/20 text-primary font-bold shrink-0">
+                                <span className="text-micro px-1.5 py-0.5 rounded-full bg-primary/20 text-primary font-bold shrink-0">
                                   YOU
                                 </span>
                               )}
-                              <span className="text-[10px] text-muted-foreground shrink-0">{league.teamCount}</span>
+                              <span className="text-micro text-muted-foreground shrink-0">{league.teamCount}</span>
                             </button>
                           );
                         });
@@ -290,7 +290,7 @@ const LeagueTable = () => {
         <GlassPanel className="p-8 text-center">
           <div className="animate-pulse space-y-2">
             <p className="text-sm font-medium text-foreground">Loading league data...</p>
-            <p className="text-[10px] text-muted-foreground">Generating squads and simulating matches</p>
+            <p className="text-micro text-muted-foreground">Generating squads and simulating matches</p>
           </div>
         </GlassPanel>
       )}
@@ -348,7 +348,7 @@ const LeagueTable = () => {
                   <div className="w-2.5 h-2.5 rounded-sm bg-blue-400/50 mt-1 shrink-0" />
                   <div>
                     <p className="text-xs font-medium text-blue-400">Champions Cup</p>
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-micro text-muted-foreground">
                       Position{qualZones.championsCup.length > 1 ? 's' : ''} {qualZones.championsCup.join(', ')} qualify for the elite continental tournament.
                       Top 2 in each group advance to knockouts.
                     </p>
@@ -361,7 +361,7 @@ const LeagueTable = () => {
                   <div className="w-2.5 h-2.5 rounded-sm bg-orange-400/50 mt-1 shrink-0" />
                   <div>
                     <p className="text-xs font-medium text-orange-400">Shield Cup</p>
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-micro text-muted-foreground">
                       Position{qualZones.shieldCup.length > 1 ? 's' : ''} {qualZones.shieldCup.join(', ')} qualify for the secondary continental cup.
                       Shield Cup winners earn a Champions Cup spot next season.
                     </p>
@@ -374,7 +374,7 @@ const LeagueTable = () => {
                   <div className="w-2.5 h-2.5 rounded-sm bg-emerald-400/50 mt-1 shrink-0" />
                   <div>
                     <p className="text-xs font-medium text-emerald-400">Conference Cup</p>
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-micro text-muted-foreground">
                       Position{qualZones.conferenceCup.length > 1 ? 's' : ''} {qualZones.conferenceCup.join(', ')} qualify for the third-tier continental cup.
                       Conference Cup winners earn a Shield Cup spot next season.
                     </p>
@@ -383,7 +383,7 @@ const LeagueTable = () => {
               )}
 
               {qualZones.championsCup.length === 0 && qualZones.shieldCup.length === 0 && qualZones.conferenceCup.length === 0 && (
-                <p className="text-[10px] text-muted-foreground">This league does not have continental qualification spots.</p>
+                <p className="text-micro text-muted-foreground">This league does not have continental qualification spots.</p>
               )}
 
               {currentLeague && currentLeague.replacedSlots > 0 && (
@@ -391,7 +391,7 @@ const LeagueTable = () => {
                   <div className="w-2.5 h-2.5 rounded-sm bg-destructive/50 mt-1 shrink-0" />
                   <div>
                     <p className="text-xs font-medium text-destructive">Replaced Zone</p>
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-micro text-muted-foreground">
                       Bottom {currentLeague.replacedSlots} club{currentLeague.replacedSlots > 1 ? 's' : ''} are replaced at end of season.
                     </p>
                   </div>
@@ -399,7 +399,7 @@ const LeagueTable = () => {
               )}
 
               <div className="pt-1 border-t border-border/20">
-                <p className="text-[10px] text-muted-foreground italic">
+                <p className="text-micro text-muted-foreground italic">
                   Domestic cup winners may also earn continental spots. Spots are based on league ranking which evolves with continental performance over seasons.
                 </p>
               </div>
@@ -440,13 +440,13 @@ const LeagueTable = () => {
             <table className="w-full text-sm table-fixed">
               <thead>
                 <tr className="border-b border-border/30">
-                  <th className="text-left px-1 py-2 text-[10px] text-muted-foreground uppercase w-6">#</th>
-                  <th className="text-left px-1 py-2 text-[10px] text-muted-foreground uppercase">Club</th>
-                  <th className="text-center px-1 py-2 text-[10px] text-muted-foreground uppercase w-6">P</th>
-                  <th className="text-center px-1 py-2 text-[10px] text-muted-foreground uppercase w-[2.6rem]">W-D-L</th>
-                  <th className="text-center px-1 py-2 text-[10px] text-muted-foreground uppercase w-7">GD</th>
-                  <th className="text-center px-1 py-2 text-[10px] text-muted-foreground uppercase w-7">Pts</th>
-                  <th className="text-center px-1 py-2 text-[10px] text-muted-foreground uppercase w-[4rem]">Form</th>
+                  <th className="text-left px-1 py-2 text-micro text-muted-foreground uppercase w-6">#</th>
+                  <th className="text-left px-1 py-2 text-micro text-muted-foreground uppercase">Club</th>
+                  <th className="text-center px-1 py-2 text-micro text-muted-foreground uppercase w-6">P</th>
+                  <th className="text-center px-1 py-2 text-micro text-muted-foreground uppercase w-[2.6rem]">W-D-L</th>
+                  <th className="text-center px-1 py-2 text-micro text-muted-foreground uppercase w-7">GD</th>
+                  <th className="text-center px-1 py-2 text-micro text-muted-foreground uppercase w-7">Pts</th>
+                  <th className="text-center px-1 py-2 text-micro text-muted-foreground uppercase w-[5rem]">Form</th>
                 </tr>
               </thead>
               <tbody>
@@ -493,14 +493,14 @@ const LeagueTable = () => {
                         </div>
                       </td>
                       <td className="text-center px-1 py-2 text-xs text-muted-foreground tabular-nums">{entry.played}</td>
-                      <td className="text-center px-1 py-2 text-[10px] text-muted-foreground tabular-nums">{entry.won}-{entry.drawn}-{entry.lost}</td>
+                      <td className="text-center px-1 py-2 text-micro text-muted-foreground tabular-nums">{entry.won}-{entry.drawn}-{entry.lost}</td>
                       <td className="text-center px-1 py-2 text-xs text-muted-foreground tabular-nums">{entry.goalDifference > 0 ? '+' : ''}{entry.goalDifference}</td>
                       <td className="text-center px-1 py-2 text-xs font-bold text-foreground tabular-nums">{entry.points}</td>
                       <td className="px-1 py-2">
-                        <div className="flex gap-0.5 justify-center">
+                        <div className="flex gap-px justify-center">
                           {entry.form.map((r, j) => (
                             <span key={j} className={cn(
-                              'w-3 h-3 rounded-sm flex items-center justify-center text-[7px] font-bold shrink-0',
+                              'w-3.5 h-3.5 rounded-sm flex items-center justify-center text-micro font-bold shrink-0 leading-none',
                               r === 'W' ? 'bg-emerald-500/20 text-emerald-400' : r === 'L' ? 'bg-destructive/20 text-destructive' : 'bg-muted text-muted-foreground'
                             )}>{r}</span>
                           ))}
@@ -524,43 +524,43 @@ const LeagueTable = () => {
             {qualZones.promotion?.length > 0 && (
               <div className="flex items-center gap-1.5">
                 <div className="w-2.5 h-2.5 rounded-sm bg-emerald-400/50" />
-                <span className="text-[10px] text-muted-foreground">Promotion</span>
+                <span className="text-micro text-muted-foreground">Promotion</span>
               </div>
             )}
             {qualZones.playoff?.length > 0 && (
               <div className="flex items-center gap-1.5">
                 <div className="w-2.5 h-2.5 rounded-sm bg-amber-400/50" />
-                <span className="text-[10px] text-muted-foreground">Playoffs</span>
+                <span className="text-micro text-muted-foreground">Playoffs</span>
               </div>
             )}
             {qualZones.championsCup.length > 0 && (
               <div className="flex items-center gap-1.5">
                 <div className="w-2.5 h-2.5 rounded-sm bg-blue-400/50" />
-                <span className="text-[10px] text-muted-foreground">Champions Cup</span>
+                <span className="text-micro text-muted-foreground">Champions Cup</span>
               </div>
             )}
             {qualZones.shieldCup.length > 0 && (
               <div className="flex items-center gap-1.5">
                 <div className="w-2.5 h-2.5 rounded-sm bg-orange-400/50" />
-                <span className="text-[10px] text-muted-foreground">Shield Cup</span>
+                <span className="text-micro text-muted-foreground">Shield Cup</span>
               </div>
             )}
             {qualZones.conferenceCup.length > 0 && (
               <div className="flex items-center gap-1.5">
                 <div className="w-2.5 h-2.5 rounded-sm bg-emerald-400/50" />
-                <span className="text-[10px] text-muted-foreground">Conference Cup</span>
+                <span className="text-micro text-muted-foreground">Conference Cup</span>
               </div>
             )}
             {qualZones.replaced.length > 0 && (
               <div className="flex items-center gap-1.5">
                 <div className="w-2.5 h-2.5 rounded-sm bg-destructive/50" />
-                <span className="text-[10px] text-muted-foreground">Relegation</span>
+                <span className="text-micro text-muted-foreground">Relegation</span>
               </div>
             )}
             {isPlayerLeague && (
               <div className="flex items-center gap-1.5">
                 <div className="w-2.5 h-2.5 rounded-sm bg-foreground/30" />
-                <span className="text-[10px] text-muted-foreground">Your team</span>
+                <span className="text-micro text-muted-foreground">Your team</span>
               </div>
             )}
           </div>
@@ -585,7 +585,7 @@ const LeagueTable = () => {
             </button>
             <div className="text-center">
               <p className="text-sm font-bold text-foreground">Week {browseWeek}</p>
-              {browseWeek === week && <p className="text-[10px] text-primary">Current Week</p>}
+              {browseWeek === week && <p className="text-micro text-primary">Current Week</p>}
             </div>
             <button
               onClick={() => { hapticLight(); setBrowseWeek(w => Math.min(totalWeeks, w + 1)); }}
@@ -628,7 +628,7 @@ const LeagueTable = () => {
                       </div>
                       <div className="w-16 text-center shrink-0">
                         {match.played ? (
-                          <span className="text-sm font-mono font-bold text-foreground">
+                          <span className="text-sm font-display font-bold text-foreground tabular-nums">
                             {match.homeGoals} - {match.awayGoals}
                           </span>
                         ) : (
@@ -687,9 +687,9 @@ const LeagueTable = () => {
                         <p className={cn('text-sm font-medium truncate', p.clubId === playerClubId ? 'text-primary' : 'text-foreground')}>
                           {p.firstName[0]}. {p.lastName}
                         </p>
-                        <p className="text-[10px] text-muted-foreground">{p.position} {'\u2022'} {getClubDisplayName(pClub?.name || '?')}</p>
+                        <p className="text-micro text-muted-foreground">{p.position} {'\u2022'} {getClubDisplayName(pClub?.name || '?')}</p>
                       </div>
-                      <span className={cn('text-sm font-mono font-bold', i === 0 ? 'text-primary' : 'text-foreground')}>{p.goals}</span>
+                      <span className={cn('text-sm font-display font-bold tabular-nums', i === 0 ? 'text-primary' : 'text-foreground')}>{p.goals}</span>
                     </div>
                   );
                 })}
@@ -721,9 +721,9 @@ const LeagueTable = () => {
                         <p className={cn('text-sm font-medium truncate', p.clubId === playerClubId ? 'text-primary' : 'text-foreground')}>
                           {p.firstName[0]}. {p.lastName}
                         </p>
-                        <p className="text-[10px] text-muted-foreground">{p.position} {'\u2022'} {getClubDisplayName(pClub?.name || '?')}</p>
+                        <p className="text-micro text-muted-foreground">{p.position} {'\u2022'} {getClubDisplayName(pClub?.name || '?')}</p>
                       </div>
-                      <span className={cn('text-sm font-mono font-bold', i === 0 ? 'text-primary' : 'text-foreground')}>{p.assists}</span>
+                      <span className={cn('text-sm font-display font-bold tabular-nums', i === 0 ? 'text-primary' : 'text-foreground')}>{p.assists}</span>
                     </div>
                   );
                 })}

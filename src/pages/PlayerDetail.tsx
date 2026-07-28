@@ -6,7 +6,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { StatBar } from '@/components/game/StatBar';
 import { Button } from '@/components/ui/button';
 import { POSITION_COMPATIBILITY, type Position, type TrainingModule } from '@/types/game';
-import { Heart, Zap, TrendingUp, Tag, X, Target, Activity, FileText, Brain, Award, HeartPulse, Stethoscope, AlertTriangle, Dumbbell, Flame, Shield, Banknote, Repeat2, Trophy, Medal } from 'lucide-react';
+import { Heart, Zap, TrendingUp, Tag, X, Target, Activity, FileText, Brain, Award, HeartPulse, Stethoscope, AlertTriangle, Dumbbell, Flame, Shield, Banknote, Repeat2, Trophy, Medal, GitCompare, UserMinus } from 'lucide-react';
 import { TransferApproach } from '@/components/game/TransferApproach';
 import { LoanNegotiation } from '@/components/game/LoanNegotiation';
 import { ListForSaleModal } from '@/components/game/ListForSaleModal';
@@ -30,7 +30,10 @@ import { getContractUrgency } from '@/utils/contracts';
 import { hasPerk } from '@/utils/managerPerks';
 import { getWinStreak } from '@/utils/celebrations';
 import { getLeadershipBonus } from '@/utils/personality';
-import { UNHAPPY_CONTAGION_WEEKS, STREAK_MORALE_THRESHOLD } from '@/config/gameBalance';
+import { UNHAPPY_CONTAGION_WEEKS, STREAK_MORALE_THRESHOLD, MIN_SQUAD_SIZE, TOTAL_WEEKS } from '@/config/gameBalance';
+import { LABEL_HOT_HEAD_TEMP_BELOW } from '@/config/personality';
+import { ConfirmDialog } from '@/components/game/ConfirmDialog';
+import { useCareerUnemployed } from '@/hooks/useGameSelectors';
 
 const TRAINING_MODULE_INFO: { module: TrainingModule; label: string; icon: React.ElementType; color: string }[] = [
   { module: 'fitness', label: 'Fitness', icon: Dumbbell, color: 'text-emerald-400' },
@@ -79,11 +82,14 @@ const PlayerDetail = () => {
   const respondToOffer = useGameStore(s => s.respondToOffer);
   const startNegotiation = useGameStore(s => s.startNegotiation);
   const setIndividualTraining = useGameStore(s => s.setIndividualTraining);
+  const releasePlayer = useGameStore(s => s.releasePlayer);
+  const isUnemployed = useCareerUnemployed();
 
   const [showApproach, setShowApproach] = useState(false);
   const [showLoanRequest, setShowLoanRequest] = useState(false);
   const [showListConfirm, setShowListConfirm] = useState(false);
   const [showFullHistory, setShowFullHistory] = useState(false);
+  const [showReleaseConfirm, setShowReleaseConfirm] = useState(false);
 
   const player = selectedPlayerId ? players[selectedPlayerId] : null;
 
@@ -188,6 +194,27 @@ const PlayerDetail = () => {
     setShowListConfirm(false);
   };
 
+  // Severance preview. Mirrors the formula in transferSlice.releasePlayer —
+  // shown so the player sees the bill before committing. The store recomputes
+  // it authoritatively and rejects the release if the budget can't cover it.
+  const releaseRemainingWeeks =
+    Math.max(0, player.contractEnd - season) * (totalWeeks || TOTAL_WEEKS) +
+    Math.max(0, (totalWeeks || TOTAL_WEEKS) - week);
+  const severanceCost = Math.round(player.wage * releaseRemainingWeeks);
+  const squadSize = clubs[playerClubId]?.playerIds.length ?? 0;
+  const canRelease = !player.onLoan && squadSize > MIN_SQUAD_SIZE;
+
+  const handleRelease = () => {
+    const result = releasePlayer(player.id);
+    if (result.success) {
+      successToast('Contract terminated', result.message);
+      selectPlayer(null);
+      setScreen('squad');
+    } else {
+      errorToast(result.message);
+    }
+  };
+
   const handleOffer = (offerId: string, accept: boolean) => {
     const result = respondToOffer(offerId, accept);
     if (result.success) {
@@ -222,7 +249,10 @@ const PlayerDetail = () => {
   else if (getContractUrgency(player.contractEnd, season) === 'near') moraleFactors.push({ label: 'Contract expiring soon', impact: 'negative' });
   if (player.injured) moraleFactors.push({ label: 'Currently injured', impact: 'negative' });
   if (player.wantsToLeave) moraleFactors.push({ label: 'Wants to leave the club', impact: 'negative' });
-  if (player.personality?.temperament && player.personality.temperament < 40) moraleFactors.push({ label: 'Volatile temperament', impact: 'negative' });
+  // Personality traits are on a 1-20 scale (see types/game.ts) — the old `< 40`
+  // threshold matched literally every player in the game. `personality.ts`
+  // treats temperament below LABEL_HOT_HEAD_TEMP_BELOW as a "Hot Head".
+  if (player.personality?.temperament && player.personality.temperament < LABEL_HOT_HEAD_TEMP_BELOW) moraleFactors.push({ label: 'Volatile temperament', impact: 'negative' });
 
   // Season performance derived stats
   const goalsPerApp = player.appearances > 0 ? (player.goals / player.appearances).toFixed(2) : '0.00';
@@ -973,6 +1003,48 @@ const PlayerDetail = () => {
         </Button>
       )}
 
+      {/* Compare — the primary use of the comparison screen is weighing a
+          transfer target against the incumbent, so it needs an entry point
+          from the player you're looking at. Hidden while unemployed: the
+          `comparison` screen isn't in UNEMPLOYED_ALLOWED_SCREENS, so
+          setScreen would bounce straight to the job market. */}
+      {!isUnemployed && (
+        <Button
+          variant="outline"
+          className="w-full gap-2"
+          onClick={() => { hapticLight(); setScreen('comparison'); }}
+        >
+          <GitCompare className="w-4 h-4" /> Compare with another player
+        </Button>
+      )}
+
+      {/* Release / terminate contract. `releasePlayer` has existed in the store
+          with zero callers — an aging, overpaid, unsellable player was
+          permanently stuck on the wage bill with no way out. */}
+      {!isWorldCup && isOwnPlayer && (
+        <div className="space-y-1">
+          <Button
+            variant="outline"
+            className="w-full gap-2 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+            disabled={!canRelease}
+            onClick={() => { hapticLight(); setShowReleaseConfirm(true); }}
+          >
+            <UserMinus className="w-4 h-4" /> Release Player
+            <span className="text-[10px] text-muted-foreground ml-auto tabular-nums">
+              Severance £{(severanceCost / 1e6).toFixed(1)}M
+            </span>
+          </Button>
+          {/* Why the button is disabled, as visible text rather than a tooltip. */}
+          {!canRelease && (
+            <p className="text-[10px] text-muted-foreground/70 px-1">
+              {player.onLoan
+                ? 'Cannot release a player who is currently on loan.'
+                : `Squad would drop below the minimum of ${MIN_SQUAD_SIZE} players.`}
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Contract Renewal */}
       {!isWorldCup && isOwnPlayer && getContractUrgency(player.contractEnd, season) !== null && (
         <Button
@@ -1063,6 +1135,15 @@ const PlayerDetail = () => {
           onListed={handleListComplete}
         />
       )}
+
+      <ConfirmDialog
+        open={showReleaseConfirm}
+        onOpenChange={setShowReleaseConfirm}
+        title={`Release ${player.firstName} ${player.lastName}?`}
+        description={`Terminating the contract costs £${(severanceCost / 1e6).toFixed(1)}M in severance (${releaseRemainingWeeks} weeks at £${(player.wage / 1000).toFixed(0)}K/week). He leaves immediately as a free agent, and £${(player.wage / 1000).toFixed(0)}K/week comes off your wage bill. This cannot be undone.`}
+        confirmLabel="Release"
+        onConfirm={handleRelease}
+      />
     </div>
   );
 };

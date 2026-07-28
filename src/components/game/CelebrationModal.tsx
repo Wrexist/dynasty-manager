@@ -1,4 +1,5 @@
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 import { useEffect, useMemo, useRef } from 'react';
 import { X } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
@@ -103,7 +104,7 @@ export function CelebrationModal({ open, onClose, title, description, icon, stat
   // 20–30 particles animating translate + scale for 1.5–3s is a vestibular
   // trigger for reduced-motion users. Skip rendering them entirely — the
   // spring-in modal + haptic + gold border is celebration enough.
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionPref();
   // Presentation queue (G3): stack after the weekly digest — only show, lock
   // and buzz when we're the active overlay.
   const slotActive = usePresentationSlot('celebration', open);

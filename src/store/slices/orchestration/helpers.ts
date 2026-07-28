@@ -9,6 +9,7 @@
  * orchestrationSlice.ts. This file is for the cleanly-pure subset.
  */
 import type {
+  MatchEvent,
   Player,
   Club,
   BoardObjective,
@@ -20,8 +21,9 @@ import type {
   LeagueCupState,
   ContinentalTournamentState,
   SuperCupMatch,
+  Match,
 } from '@/types/game';
-import { LEAGUES } from '@/data/league';
+import { LEAGUES, ALL_CLUBS } from '@/data/league';
 import {
   BOARD_OBJ_XP_CRITICAL,
   BOARD_OBJ_XP_IMPORTANT,
@@ -39,10 +41,27 @@ import {
   INJURY_TYPES,
   NON_FOUL_INJURY_TYPE_WEIGHTS,
   INJURY_SEVERITY_WEIGHTS,
+  CATCH_UP_EXPECTED_GOALS,
+  YELLOW_ACCUMULATION_THRESHOLDS,
+  YELLOW_ACCUMULATION_BAN_WEEKS,
+  RATING_MORALE_BASELINE,
+  FORM_PER_RATING_POINT,
+  FORM_RATING_ADJ_CAP,
+  REPLACEMENT_QUALITY_REP_MULTIPLIER,
+  REPLACEMENT_QUALITY_BASE,
+  REPLACEMENT_QUALITY_VARIANCE,
+  REGEN_DESIGN_WEIGHT,
+  REGEN_PLAYER_CLUB_MARGIN,
 } from '@/config/gameBalance';
-import { GOAL_EVENT_TYPES } from '@/config/matchEngine';
+import { GOAL_EVENT_TYPES, HOME_ADVANTAGE } from '@/config/matchEngine';
 import { resetRealPlayerClaims, claimRealPlayer } from '@/utils/realPlayerPicker';
 import { getOpponentQualityBonus } from '@/utils/teamRankings';
+import { selectBestLineup, getTeamStrength } from '@/utils/playerGen';
+import {
+  AI_MIN_MATCH_PLAYERS,
+  AI_RATING_BASE_WIN, AI_RATING_BASE_DRAW, AI_RATING_BASE_LOSS,
+  AI_RATING_OVERALL_PIVOT, AI_RATING_OVERALL_SCALE,
+} from '@/config/aiSimulation';
 
 /**
  * Reset the module-level real-player claim registry and re-claim every
@@ -71,12 +90,14 @@ export function rebuildRealPlayerClaims(players: Record<string, Player>): void {
 export function findTournamentMatch(s: { week: number; playerClubId: string; cup: CupState; leagueCup: LeagueCupState | null; championsCup: ContinentalTournamentState | null; shieldCup: ContinentalTournamentState | null; conferenceCup?: ContinentalTournamentState | null; domesticSuperCup: SuperCupMatch | null; continentalSuperCup: SuperCupMatch | null }): { homeClubId: string; awayClubId: string; competition: string } | null {
   const w = s.week;
   const pid = s.playerClubId;
-  // Dynasty Cup
-  const cupTie = s.cup?.ties?.find(t => t.week === w && !t.played && (t.homeClubId === pid || t.awayClubId === pid));
-  if (cupTie) return { homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, competition: 'Dynasty Cup' };
-  // League Cup
-  const lcTie = s.leagueCup?.ties?.find(t => t.week === w && !t.played && (t.homeClubId === pid || t.awayClubId === pid));
-  if (lcTie) return { homeClubId: lcTie.homeClubId, awayClubId: lcTie.awayClubId, competition: 'League Cup' };
+  // ORDER IS LOAD-BEARING and must match `playCurrentMatchImpl`'s detection
+  // chain exactly: continental → cup → leagueCup → superCup. It used to run
+  // cup → leagueCup → continental here, so on a week holding both a cup tie and
+  // a continental fixture the UI announced the cup tie while the engine played
+  // the continental one — different opponent, possibly flipped home/away, wrong
+  // competition badge, wrong lineup prepared. If you change the priority in one
+  // place, change it in the other.
+
   // Continental group + knockout
   for (const [tourney, name] of [[s.championsCup, 'Champions Cup'], [s.shieldCup, 'Shield Cup'], [s.conferenceCup || null, 'Conference Cup']] as const) {
     if (!tourney) continue;
@@ -92,12 +113,119 @@ export function findTournamentMatch(s: { week: number; playerClubId: string; cup
       if (tie.leg1Played && !tie.leg2Played && tie.week2 === w && tie.round !== 'F') return { homeClubId: tie.awayClubId, awayClubId: tie.homeClubId, competition: name as string };
     }
   }
+  // Dynasty Cup
+  const cupTie = s.cup?.ties?.find(t => t.week === w && !t.played && (t.homeClubId === pid || t.awayClubId === pid));
+  if (cupTie) return { homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, competition: 'Dynasty Cup' };
+  // League Cup
+  const lcTie = s.leagueCup?.ties?.find(t => t.week === w && !t.played && (t.homeClubId === pid || t.awayClubId === pid));
+  if (lcTie) return { homeClubId: lcTie.homeClubId, awayClubId: lcTie.awayClubId, competition: 'League Cup' };
   // Super cups
   const dsc = s.domesticSuperCup;
-  if (dsc && !dsc.played && dsc.week === w && (dsc.homeClubId === pid || dsc.awayClubId === pid)) return { homeClubId: dsc.homeClubId, awayClubId: dsc.awayClubId, competition: 'Super Cup' };
+  if (dsc && !dsc.played && w >= dsc.week && (dsc.homeClubId === pid || dsc.awayClubId === pid)) return { homeClubId: dsc.homeClubId, awayClubId: dsc.awayClubId, competition: 'Super Cup' };
   const csc = s.continentalSuperCup;
-  if (csc && !csc.played && csc.week === w && (csc.homeClubId === pid || csc.awayClubId === pid)) return { homeClubId: csc.homeClubId, awayClubId: csc.awayClubId, competition: 'Continental Super Cup' };
+  if (csc && !csc.played && w >= csc.week && (csc.homeClubId === pid || csc.awayClubId === pid)) return { homeClubId: csc.homeClubId, awayClubId: csc.awayClubId, competition: 'Continental Super Cup' };
   return null;
+}
+
+/**
+ * Yellow-card accumulation ban.
+ *
+ * Yellows were incremented and then caused NOTHING — only reds suspended
+ * anyone, so `pressingIntensity`, `personality.temperament`, the
+ * `disciplinarian` perk and squad depth were all disconnected from discipline.
+ *
+ * Thresholds are per-season because `seasonEnd.ts` resets `yellowCards` to 0
+ * (and clears `suspendedUntilWeek`) at rollover — no extra persisted field is
+ * needed. A player picking up two yellows in one match (without a second-yellow
+ * red) can cross a threshold from below, so we test for *crossing* rather than
+ * equality.
+ *
+ * Returns the week the player is suspended until, or `null` for no ban.
+ * `suspendedUntilWeek > week` is the "is suspended" test used everywhere, so
+ * `week + 1 + banWeeks` makes him miss exactly `banWeeks` following weeks.
+ */
+export function getYellowAccumulationBanWeek(
+  previousYellows: number,
+  newYellows: number,
+  week: number,
+): number | null {
+  const crossed = YELLOW_ACCUMULATION_THRESHOLDS.some(
+    t => previousYellows < t && newYellows >= t,
+  );
+  if (!crossed) return null;
+  return week + 1 + YELLOW_ACCUMULATION_BAN_WEEKS;
+}
+
+/**
+ * Per-player minutes played, derived from the match event stream.
+ *
+ * The engine models per-minute fatigue and per-minute participation and then
+ * threw both away: every participant took the same flat post-match drain and
+ * `minutesPlayed` did not exist anywhere in the codebase. Deriving minutes from
+ * the events keeps this a pure function of the persisted `Match`, so it works
+ * for the player's match, AI-vs-AI matches, and replays alike.
+ *
+ * A player's shift ends at the earliest of: being substituted off, being sent
+ * off, or going down injured with no replacement. It starts at the minute he
+ * came on (0 for starters).
+ */
+export function computeMinutesPlayed(
+  events: Pick<MatchEvent, 'minute' | 'type' | 'playerId' | 'assistPlayerId'>[],
+  participantIds: string[],
+): Record<string, number> {
+  let fullTime = 90;
+  const cameOn: Record<string, number> = {};
+  const wentOff: Record<string, number> = {};
+  const noteOff = (id: string, minute: number) => {
+    if (wentOff[id] === undefined || minute < wentOff[id]) wentOff[id] = minute;
+  };
+  for (const ev of events) {
+    if (ev.minute > fullTime) fullTime = ev.minute;
+    if (ev.type === 'substitution') {
+      // `playerId` comes on, `assistPlayerId` goes off (see makeMatchSub).
+      if (ev.playerId && cameOn[ev.playerId] === undefined) cameOn[ev.playerId] = ev.minute;
+      if (ev.assistPlayerId) noteOff(ev.assistPlayerId, ev.minute);
+    } else if (ev.type === 'red_card' && ev.playerId) {
+      noteOff(ev.playerId, ev.minute);
+    } else if (ev.type === 'injury' && ev.playerId) {
+      // If he was substituted the substitution event above gives the same or a
+      // later minute; `noteOff` keeps the earlier one either way.
+      noteOff(ev.playerId, ev.minute);
+    }
+  }
+  const out: Record<string, number> = {};
+  for (const id of participantIds) {
+    const start = cameOn[id] ?? 0;
+    const end = wentOff[id] ?? fullTime;
+    // Floor at 1: a stoppage-time substitute has his minute clamped to the
+    // half's nominal end (see MatchEvent.displayMinute), which would otherwise
+    // credit a player who demonstrably took the pitch with zero minutes.
+    out[id] = Math.max(1, Math.round(end - start));
+  }
+  return out;
+}
+
+/**
+ * Last known in-match fitness per player, recovered from the periodic snapshots
+ * the engine stamps onto events (`FITNESS_SNAPSHOT_INTERVAL`). Snapshots skip
+ * players who have become unavailable, so merging forwards and keeping the last
+ * seen value gives a subbed-off / sent-off / injured player the fitness he had
+ * when he left the pitch rather than a full-90 figure.
+ *
+ * Reading it off the `Match` (rather than plumbing `HalfState` through every
+ * call site) keeps this usable from the shared post-match path.
+ */
+export function extractFinalMatchFitness(
+  events: Pick<MatchEvent, 'playerFitness'>[],
+): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const ev of events) {
+    if (!ev.playerFitness) continue;
+    for (const [pid, fit] of Object.entries(ev.playerFitness)) {
+      if (typeof fit === 'number' && Number.isFinite(fit)) out[pid] = fit;
+    }
+  }
+  return out;
 }
 
 /** Weighted random pick from a record of weights */
@@ -131,7 +259,10 @@ export function generateAIInjuryDetails(medicalLevel: number = 5): InjuryDetails
 
 /** Apply AI match events to players: goals, assists, injuries, cards, suspensions. */
 export function applyAIMatchEvents(
-  events: { type: string; playerId?: string; assistPlayerId?: string; clubId: string }[],
+  // Widened from a hand-rolled subset to the real event shape: `minute` is
+  // needed to derive minutes played, and every caller already passes
+  // `result.events` (a full MatchEvent[]).
+  events: MatchEvent[],
   newPlayers: Record<string, Player>,
   clubs: Record<string, Club>,
   week: number,
@@ -163,7 +294,17 @@ export function applyAIMatchEvents(
       newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], injured: true, injuryWeeks: injDetails.weeksRemaining, injuryDetails: injDetails };
     }
     if (ev.type === 'yellow_card' && ev.playerId && newPlayers[ev.playerId]) {
-      newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], yellowCards: newPlayers[ev.playerId].yellowCards + 1 };
+      const prevYellows = newPlayers[ev.playerId].yellowCards;
+      const nextYellows = prevYellows + 1;
+      const banUntil = getYellowAccumulationBanWeek(prevYellows, nextYellows, week);
+      newPlayers[ev.playerId] = {
+        ...newPlayers[ev.playerId],
+        yellowCards: nextYellows,
+        // Never shorten an existing (longer) suspension.
+        ...(banUntil != null
+          ? { suspendedUntilWeek: Math.max(newPlayers[ev.playerId].suspendedUntilWeek ?? 0, banUntil) }
+          : {}),
+      };
     }
     if (ev.type === 'red_card' && ev.playerId && newPlayers[ev.playerId]) {
       newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], redCards: newPlayers[ev.playerId].redCards + 1, suspendedUntilWeek: week + 1 + RED_CARD_SUSPENSION_MIN + Math.floor(Math.random() * RED_CARD_SUSPENSION_RANGE) };
@@ -172,6 +313,11 @@ export function applyAIMatchEvents(
 
   // Track appearances and synthetic match ratings for AI lineups
   if (homeLineup && awayLineup && homeGoals !== undefined && awayGoals !== undefined) {
+    // Minutes played: derived from the same event stream the player's club uses,
+    // so `Player.minutesPlayed` means the same thing league-wide (and the
+    // minutes-based playing-time term in development.ts is comparable across
+    // the player's squad and the other 755 clubs).
+    const minutes = computeMinutesPlayed(events, [...homeLineup, ...awayLineup].map(p => p.id));
     const sides: { lineup: Player[]; won: boolean; lost: boolean; clubId: string; oppClubId: string }[] = [
       { lineup: homeLineup, won: homeGoals > awayGoals, lost: homeGoals < awayGoals, clubId: homeClubId || '', oppClubId: awayClubId || '' },
       { lineup: awayLineup, won: awayGoals > homeGoals, lost: awayGoals < homeGoals, clubId: awayClubId || '', oppClubId: homeClubId || '' },
@@ -184,8 +330,11 @@ export function applyAIMatchEvents(
       for (const p of side.lineup) {
         if (!newPlayers[p.id]) continue;
         // Synthetic match rating: base from result + quality + contribution + opponent quality
-        let rating = side.won ? 7.0 : side.lost ? 5.5 : 6.2;
-        rating += (p.overall / 100) * 1.5;
+        let rating = side.won ? AI_RATING_BASE_WIN : side.lost ? AI_RATING_BASE_LOSS : AI_RATING_BASE_DRAW;
+        // Quality is RELATIVE to a pivot. `(overall / 100) * 1.5` added ~1.1 to
+        // every player regardless of quality, which is most of why the synthetic
+        // mean sat 1.14 above the engine's.
+        rating += ((p.overall - AI_RATING_OVERALL_PIVOT) / 100) * AI_RATING_OVERALL_SCALE;
         rating += (playerGoalCounts[p.id] || 0) * 0.5;
         rating += (playerAssistCounts[p.id] || 0) * 0.3;
         rating += oppBonus;
@@ -193,11 +342,15 @@ export function applyAIMatchEvents(
         rating = Math.max(3, Math.min(10, Math.round(rating * 10) / 10));
 
         const prev = newPlayers[p.id];
-        const formChange = side.won ? FORM_WIN_CHANGE : side.lost ? FORM_LOSS_CHANGE : FORM_DRAW_CHANGE;
+        // Team result stays dominant; the rating only softens or sharpens it.
+        const formChange = (side.won ? FORM_WIN_CHANGE : side.lost ? FORM_LOSS_CHANGE : FORM_DRAW_CHANGE)
+          + Math.max(-FORM_RATING_ADJ_CAP, Math.min(FORM_RATING_ADJ_CAP,
+            (rating - RATING_MORALE_BASELINE) * FORM_PER_RATING_POINT));
         newPlayers[p.id] = {
           ...prev,
           appearances: prev.appearances + 1,
-          form: Math.min(100, Math.max(10, prev.form + formChange)),
+          minutesPlayed: (prev.minutesPlayed || 0) + (minutes[p.id] ?? 0),
+          form: Math.min(100, Math.max(10, prev.form + Math.round(formChange))),
           seasonRatingTotal: (prev.seasonRatingTotal || 0) + rating,
           seasonRatedMatches: (prev.seasonRatedMatches || 0) + 1,
         };
@@ -266,4 +419,275 @@ export function generateObjectives(club: Club, leagueId?: LeagueId): BoardObject
     xpReward: BOARD_OBJ_XP_OPTIONAL });
 
   return objectives;
+}
+
+/**
+ * Build an AI club's XI and bench for a simulated match.
+ *
+ * WHY THIS EXISTS: every AI-sim site used to do
+ * `club.playerIds.map(...).filter(p => !p.injured).slice(0, LINEUP_SIZE)` —
+ * i.e. the first 11 players in raw `playerIds` insertion order. `isSquadValid`
+ * (engine/match.ts) requires a goalkeeper among the starters and forfeits 3-0
+ * otherwise, and MEASURED AT INIT, 23 of 92 English clubs (25%) had no GK in
+ * that slice. So P(at least one side invalid) was ~44% on day one, and it got
+ * worse as transfers shuffled roster order: a full simulated season produced
+ * 1,119 forfeits out of 1,712 fixtures — 65%.
+ *
+ * Everything downstream was therefore fiction: league tables, promotion and
+ * relegation, position prize money, top scorers, goals/cards per match, and any
+ * balance measurement taken against a live save rather than an isolated engine
+ * harness.
+ *
+ * `selectBestLineup` picks position-aware against the club's actual formation
+ * and already excludes injured, on-loan and suspended players, so it fills the
+ * GK slot whenever the squad contains any goalkeeper at all.
+ *
+ * `honourSavedLineup` is for the one club that has a human opinion: when the
+ * player's own league fixture gets auto-simmed because a higher-priority match
+ * took the week, their saved XI is what should take the field, not the
+ * optimizer's. Slot order is preserved (chemistry links and formation rendering
+ * align by index), and only unavailable or missing entries are replaced.
+ */
+export function pickAiMatchSquad(
+  club: Club,
+  players: Record<string, Player>,
+  week: number,
+  honourSavedLineup = false,
+): { xi: Player[]; bench: Player[] } {
+  const squad = club.playerIds.map(id => players[id]).filter(Boolean);
+  const { lineup, subs } = selectBestLineup(squad, club.formation, week);
+  let xi = lineup;
+  let bench = subs;
+
+  if (honourSavedLineup && club.lineup?.length) {
+    const isAvailable = (p: Player) =>
+      !!p && !p.injured && !p.onLoan && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week);
+    const used = new Set<string>();
+    const onBooks = new Set(club.playerIds);
+    const take = (id: string | undefined) => {
+      const p = id ? players[id] : undefined;
+      // A saved lineup can name a player who has since been sold or loaned out —
+      // the id lingers in `club.lineup` after the roster moves on. Requiring
+      // current club membership stops a departed player taking the field.
+      if (!p || used.has(p.id) || !onBooks.has(p.id) || p.clubId !== club.id) return undefined;
+      if (!isAvailable(p)) return undefined;
+      used.add(p.id);
+      return p;
+    };
+    // Cover for holes in the saved XI, best-rated first. This is not slot-matched
+    // — `selectBestLineup` has already positioned its own picks, and preserving
+    // the manager's remaining choices matters more here than perfecting the shape
+    // of a match they are not watching.
+    const cover = [...lineup, ...subs];
+    let coverIdx = 0;
+    const nextCover = () => {
+      while (coverIdx < cover.length) {
+        const p = cover[coverIdx++];
+        if (p && !used.has(p.id)) { used.add(p.id); return p; }
+      }
+      return undefined;
+    };
+    const savedXi: Player[] = [];
+    for (const id of club.lineup) {
+      const p = take(id) ?? nextCover();
+      if (p) savedXi.push(p);
+    }
+    while (savedXi.length < lineup.length) {
+      const p = nextCover();
+      if (!p) break;
+      savedXi.push(p);
+    }
+    if (savedXi.length > 0) {
+      xi = savedXi;
+      const savedBench = (club.subs ?? []).map(id => take(id)).filter(Boolean) as Player[];
+      bench = savedBench;
+      while (bench.length < 7) {
+        const p = nextCover();
+        if (!p) break;
+        bench = [...bench, p];
+      }
+    }
+  }
+
+  // Emergency XI. `isSquadValid` forfeits below 7 players, and an injury crisis
+  // can genuinely take a thin squad under that — measured mid-season, the worst
+  // club had 6 available. A fabricated 3-0 walkover corrupts the table, the prize
+  // money and every balance measurement far more than an under-strength side
+  // losing on merit does, and clubs in that position sign emergency cover rather
+  // than forfeit. Backfill from the unavailable pool, least-injured first, so the
+  // fixture is actually played.
+  if (xi.length < AI_MIN_MATCH_PLAYERS) {
+    const picked = new Set(xi.map(p => p.id));
+    const reserves = squad
+      .filter(p => !picked.has(p.id) && !p.onLoan)
+      .sort((a, b) => (a.injuryDetails?.weeksRemaining ?? 1) - (b.injuryDetails?.weeksRemaining ?? 1) || b.overall - a.overall);
+    for (const p of reserves) {
+      if (xi.length >= AI_MIN_MATCH_PLAYERS) break;
+      xi = [...xi, p];
+      picked.add(p.id);
+    }
+  }
+  const inXi = new Set(xi.map(p => p.id));
+  return { xi, bench: bench.filter(p => !inXi.has(p.id)).slice(0, 7) };
+}
+
+/**
+ * Drop the event log and stats from an AI-vs-AI match result before it goes into
+ * state.
+ *
+ * Only the SCORE matters for tables, records and history; the events are consumed
+ * immediately by `applyAIMatchEvents` (goals, assists, cards, injuries) and never
+ * read again. The player's own matches keep everything — Match Review renders them.
+ *
+ * WHY: measured at the end of one season with the living world loaded, AI fixtures
+ * carried 175,656 events across 3,082 matches — 83.9 MB of `divisionFixtures` held
+ * in memory, against 1.73 MB once the save path trimmed it. The save was always
+ * fine (`trimFixturesForSave` strips the same fields); the heap was not, and it got
+ * much worse when AI fixtures stopped being one-event forfeits and started being
+ * real simulated matches. On a phone that is the difference between comfortable and
+ * a memory-pressure kill.
+ */
+export function stripAiMatchDetail(result: Match, playerClubId: string): Match {
+  if (result.homeClubId === playerClubId || result.awayClubId === playerClubId) return result;
+  if (!result.events?.length && !result.stats) return result;
+  const { events: _events, stats: _stats, ...rest } = result as Match & Record<string, unknown>;
+  return { ...rest, events: [] } as Match;
+}
+
+/**
+ * Cheap scoreline-only resolver for AI-vs-AI catch-up fixtures.
+ *
+ * The season-end catch-up exists to COMPLETE TABLES — it fast-forwards fixtures
+ * that were never played so a division doesn't finish its season short (a Premier
+ * League save used to leave 8 rounds unplayed in each lower English tier). Tables
+ * need scores and nothing else, and `stripAiMatchDetail` discards AI event logs on
+ * the way into state anyway — so running the full event engine here was doing a
+ * large amount of work purely to throw the result away.
+ *
+ * That waste became a real latency hazard: with the living world loaded, a save
+ * where other divisions lag can present thousands of outstanding fixtures at
+ * season end, and `endSeason` blocks the UI. Measured 6.2s against a 5s budget
+ * before this, on a pyramid where only the player's own division had been played.
+ *
+ * Poisson around a strength-derived expectation, with the same home advantage the
+ * engine uses, so promotion and relegation stay plausible.
+ */
+export function resolveCatchUpFixture(
+  match: Match,
+  homePlayers: Player[],
+  awayPlayers: Player[],
+): Match {
+  const hs = getTeamStrength(homePlayers) * HOME_ADVANTAGE;
+  const as = getTeamStrength(awayPlayers);
+  const total = hs + as;
+  const share = total > 0 ? hs / total : 0.5;
+  // Centre on a realistic combined goal total, split by strength share.
+  const combined = CATCH_UP_EXPECTED_GOALS;
+  return {
+    ...match,
+    played: true,
+    homeGoals: poissonSample(combined * share),
+    awayGoals: poissonSample(combined * (1 - share)),
+    events: [],
+  };
+}
+
+/**
+ * The quality level a club was DESIGNED at — the same `squadQuality` the world
+ * was built from at init.
+ *
+ * WHY THIS EXISTS (audit 6.2 — "leagues converge instead of diverging"): squad
+ * regeneration anchored replacement players on `club.reputation`, via
+ * `reputation * 10 + 20`. Reputation only spans 2–5, and MEASURED across the
+ * English pyramid it barely spans anything at all: tier 2 is 21×rep2 + 3×rep3,
+ * tier 3 is identical, and tier 4 is 24×rep2. So the anchor could not tell a
+ * Championship club from a League Two club, and every one of them regenerated
+ * toward the same ~47 while their designed levels are 65–71 and 58–62.
+ *
+ * `squadQuality` is the number that actually describes a club (England: tier 1
+ * spans 56–93, tier 2 65–71, tier 3 60–68, tier 4 58–62) and it is already what
+ * `generateSquad` is handed at init and for replacement clubs. Anchoring regen
+ * on it means a club rebuilds toward its own stature instead of sliding toward a
+ * league-wide mean.
+ *
+ * Falls back, in order: the club's designed value → the median designed value of
+ * its current division (covers procedurally `replaced-*` clubs, which never had
+ * a ClubData row) → the old reputation formula, so nothing can return NaN.
+ */
+const designedQualityById = new Map<string, number>();
+const designedQualityByLeague = new Map<string, number>();
+function buildDesignedQualityIndex(): void {
+  if (designedQualityById.size > 0) return;
+  const perLeague = new Map<string, number[]>();
+  for (const cd of ALL_CLUBS) {
+    if (typeof cd.squadQuality !== 'number') continue;
+    designedQualityById.set(cd.id, cd.squadQuality);
+    const list = perLeague.get(cd.divisionId) ?? [];
+    list.push(cd.squadQuality);
+    perLeague.set(cd.divisionId, list);
+  }
+  for (const [leagueId, values] of perLeague) {
+    values.sort((a, b) => a - b);
+    designedQualityByLeague.set(leagueId, values[Math.floor(values.length / 2)]);
+  }
+}
+
+export function designedClubQuality(club: Pick<Club, 'id' | 'divisionId' | 'reputation'>): number {
+  buildDesignedQualityIndex();
+  const own = designedQualityById.get(club.id);
+  if (typeof own === 'number') return own;
+  const leagueMedian = designedQualityByLeague.get(club.divisionId);
+  if (typeof leagueMedian === 'number') return leagueMedian;
+  return Math.max(35, (club.reputation ?? 2) * REPLACEMENT_QUALITY_REP_MULTIPLIER + REPLACEMENT_QUALITY_BASE);
+}
+
+/**
+ * Quality to generate a regeneration/gap-fill player at.
+ *
+ * Blends the club's designed stature with where its squad actually is, so a
+ * collapsing giant still rebuilds like a giant and an over-performing minnow
+ * doesn't permanently inherit a squad it was never meant to have.
+ *
+ * `isPlayerClub` MATTERS, and not for fairness — for solvency. This gap-fill is
+ * a squad-legality safety net, and for the AI it is also the only way a league
+ * regenerates. But the player's club is the one club that ALSO buys players, so
+ * for it the two stack: MEASURED over 12 seasons with the design anchor applied
+ * to everyone, Arsenal (designed 90) reached a squad average of 91.5 on a
+ * £17.5M/week wage bill and went from -£269M at season 7 to -£2.5B by season 13,
+ * blowing `longevityStress` 1D's -£100M floor. Free 90-rated replacements every
+ * season is not a safety net, it is an unearned squad — and the audit finding
+ * (6.2) was about AI leagues rotting, not about topping up the user.
+ *
+ * So the player's club fills at REPLACEMENT level relative to the squad it
+ * already has: cover, never an upgrade. Their squad quality then moves only
+ * through transfers, youth and development — things they pay for and choose.
+ */
+export function regenFillQuality(
+  club: Pick<Club, 'id' | 'divisionId' | 'reputation'>,
+  currentSquadAvgOvr: number | null,
+  isPlayerClub = false,
+): number {
+  const designed = designedClubQuality(club);
+  const avg = currentSquadAvgOvr != null && Number.isFinite(currentSquadAvgOvr)
+    ? currentSquadAvgOvr
+    : designed;
+  const variance = Math.floor(Math.random() * REPLACEMENT_QUALITY_VARIANCE) - Math.floor(REPLACEMENT_QUALITY_VARIANCE / 2);
+  const anchor = isPlayerClub
+    ? Math.min(designed, avg) - REGEN_PLAYER_CLUB_MARGIN
+    : designed * REGEN_DESIGN_WEIGHT + avg * (1 - REGEN_DESIGN_WEIGHT);
+  return Math.max(35, Math.min(95, Math.round(anchor + variance)));
+}
+
+/** Small-lambda Poisson sampler. Bounded so a pathological lambda can't spin. */
+function poissonSample(lambda: number): number {
+  if (!Number.isFinite(lambda) || lambda <= 0) return 0;
+  const L = Math.exp(-lambda);
+  let k = 0;
+  let p = 1;
+  do {
+    k++;
+    p *= Math.random();
+    if (k > 12) break;
+  } while (p > L);
+  return k - 1;
 }

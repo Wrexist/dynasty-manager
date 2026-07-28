@@ -219,6 +219,7 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
         tier: 'trial',
         productId,
         expiresAt,
+        grantedAt: new Date().toISOString(),
         isInGracePeriod: false,
         willRenew: true,
         isTrial: true,

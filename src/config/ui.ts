@@ -182,9 +182,15 @@ export const SCOUTING_KNOWLEDGE_THRESHOLDS = {
 } as const;
 
 // ── Scouting / Youth Potential Color Thresholds ──
+// NOTE: `text-primary` must never appear in a tier ladder that also contains an
+// emerald step. `.game-theme` overrides `--primary` to emerald 160 84% 39%
+// (src/index.css), so in-game the min-65 tier used to render at the same hue as
+// the min-75 tier, 13% lightness apart — "Good" and "High" potential were
+// visually indistinguishable. Sky matches the mid tier of STAT_BAR_THRESHOLDS
+// and getRatingHex's 70-band, so the ladder now reads muted -> sky -> emerald.
 export const POTENTIAL_COLOR_THRESHOLDS = [
   { min: 75, textClass: 'text-emerald-400', fillClass: 'text-emerald-400 fill-emerald-400', bgClass: 'bg-emerald-500/20 text-emerald-400', label: 'High' },
-  { min: 65, textClass: 'text-primary', fillClass: 'text-primary fill-primary', bgClass: 'bg-primary/20 text-primary', label: 'Good' },
+  { min: 65, textClass: 'text-sky-400', fillClass: 'text-sky-400 fill-sky-400', bgClass: 'bg-sky-500/20 text-sky-400', label: 'Good' },
   { min: 0,  textClass: 'text-muted-foreground', fillClass: 'text-muted-foreground', bgClass: 'bg-muted/50 text-muted-foreground', label: 'Average' },
 ] as const;
 
@@ -204,7 +210,7 @@ export const HELP_TEXTS = {
   boardConfidence: 'Board confidence reflects how happy the board is with your results. Winning boosts it, losing drops it. Below 25% you risk being sacked.',
   morale: 'Average squad morale. Winning boosts morale, losing lowers it. Low morale hurts match performance.',
   budget: 'Your transfer budget. Income comes from matchday, commercial, and stadium revenue minus your weekly wage bill.',
-  fanMood: 'Fan mood affects stadium atmosphere and income. Good results and winning streaks keep fans happy.',
+  fanMood: 'Fan mood scales your matchday income up or down. Good results and winning streaks keep fans happy. Note that the size of that matchday income depends on your league — top-flight gates are worth many times a lower-division gate, so promotion is the biggest revenue jump available to you.',
   trainingIntensity: 'Training intensity affects development speed and injury risk. Heavy training develops players faster but increases injury risk. Light training recovers fitness but progress is slower. Medium balances both.',
   tacticalFamiliarity: 'How well your team knows the current formation. Higher familiarity improves match performance. Train "Tactical" to boost it.',
   transferBudget: 'Your available funds for buying players. Wage costs reduce your weekly income, so watch the wage bill too.',
@@ -366,6 +372,52 @@ export const LISTING_ATTRACTIVENESS = [
 export const ATTR_RATING_HIGH = 15;
 export const ATTR_RATING_MID = 10;
 export const ATTR_RATING_LOW = 7;
+
+// ── Weekly Digest significance ──
+//
+// `advanceWeek` builds a digest every single week. Surfacing it as a
+// scroll-locked, haptic + chime modal every week is ~43 forced dismiss-taps a
+// season and ~430 across a ten-season dynasty — the highest-frequency
+// interruption in the game, and most of those weeks contain nothing the player
+// can act on.
+//
+// The rule below is deliberately about ACTION, not information: a week is
+// "significant" when the digest is telling the player something they may want
+// to respond to (a lineup change, an offer, a renewal, a report to read, XP to
+// claim, a morale problem). Passive readouts — finances, per-attribute growth,
+// training star performers — are *not* significant on their own: they happen
+// almost every week and they are fully visible on the inline Dashboard card,
+// so they never justify stealing the screen.
+
+/** Morale swing (absolute points) that makes a quiet week worth interrupting.
+ *  Matches the threshold the digest headline already uses. */
+export const DIGEST_SIGNIFICANT_MORALE_SWING = 8;
+
+/** Structural shape of `GameState['weeklyDigest']`, declared locally so this
+ *  config module stays free of store imports. */
+export interface WeeklyDigestSummary {
+  injuriesThisWeek: string[];
+  recoveriesThisWeek: string[];
+  offersReceived: number;
+  moraleChange: number;
+  scoutReportsCompleted: number;
+  contractWarnings: string[];
+  objectiveProgress: { completed: boolean }[];
+}
+
+/** True when the weekly digest earns a full-screen, scroll-locking modal. */
+export function isWeeklyDigestSignificant(digest: WeeklyDigestSummary | null | undefined): boolean {
+  if (!digest) return false;
+  return (
+    digest.injuriesThisWeek.length > 0 ||
+    digest.recoveriesThisWeek.length > 0 ||
+    digest.offersReceived > 0 ||
+    digest.contractWarnings.length > 0 ||
+    digest.scoutReportsCompleted > 0 ||
+    digest.objectiveProgress.some(o => o.completed) ||
+    Math.abs(digest.moraleChange) >= DIGEST_SIGNIFICANT_MORALE_SWING
+  );
+}
 
 // ── Animation & Timer Durations (ms) ──
 export const SAVE_CONFIRMATION_MS = 2000;

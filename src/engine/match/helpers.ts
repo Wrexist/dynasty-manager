@@ -38,11 +38,13 @@ import {
   ASSIST_CHANCE, ASSIST_PASSING_WEIGHT, ASSIST_MENTAL_WEIGHT,
   MENTALITY_ATTACK_MOD, MENTALITY_DEFENSE_MOD,
   TEMPO_SHOT_MOD, DEFENSIVE_LINE_COUNTER_VULN, WIDTH_POSSESSION_MOD,
+  DEFENSIVE_LINE_COMPRESSION, PRESSING_TURNOVER_PER_POINT, PRESSING_TURNOVER_BASELINE,
   PRESSING_THRESHOLD, PRESSING_VS_SLOW_BONUS, WIDE_VS_NARROW_BONUS,
   DEEP_VS_HIGH_BONUS, FAST_VS_CAUTIOUS_BONUS, ALL_OUT_VS_DEFENSIVE_BONUS,
   PRESSING_FOUL_MULTIPLIER, PRESSING_FOUL_BASELINE,
   DEFENDER_POSITIONS, DEFENSE_DEFENDING_WEIGHT, DEFENSE_PHYSICAL_WEIGHT, DEFENSE_MENTAL_WEIGHT, DEFENSE_QUALITY_FALLBACK,
   GK_DEFENDING_WEIGHT, GK_MENTAL_WEIGHT, GK_PHYSICAL_WEIGHT, GK_SAVE_BASE, GK_SAVE_RANGE,
+  EMERGENCY_KEEPER_SAVE_MULT,
   TACTICAL_FAMILIARITY_MULTIPLIER, HOME_ADVANTAGE,
   FORMATION_ATTACK_BONUS, FORMATION_DEFENSE_BONUS,
   STOPPAGE_TIME_BASE, STOPPAGE_TIME_MAX_EXTRA, STOPPAGE_TIME_INJURY_ADD, STOPPAGE_TIME_CARD_ADD, STOPPAGE_TIME_GOAL_ADD, STOPPAGE_TIME_MAX,
@@ -158,17 +160,60 @@ export function pickFouler(players: Player[]): Player | null {
 
 // ── Strength + matchup math ──────────────────────────────────────────────
 
-/** Formation fit bonus: 0.0 to ~0.12 — mismatched players are a real penalty */
+/**
+ * Formation fit bonus: 0.0 to FORMATION_FIT_MAX_BONUS.
+ *
+ * This is an ASSIGNMENT problem, not a set-cover one. The previous version
+ * asked "does ANY player in the pool cover this slot?" without consuming the
+ * player, so one versatile midfielder satisfied every midfield slot and an
+ * essentially random XI scored 0.100 out of a 0.250 ceiling — a genuinely
+ * optimal XI was worth only 2.5x a shambles.
+ *
+ * Now each slot is matched to a distinct player and the per-slot compatibility
+ * is averaged, so playing people out of position costs real strength. Greedy
+ * over slots by scarcity (fewest natural candidates first) — an exact
+ * assignment would need Hungarian matching for a payoff far below the noise
+ * floor of a single match.
+ */
 export function getFormationFitBonus(players: Player[], formation: FormationType): number {
   const slots = FORMATION_POSITIONS[formation];
   if (!slots || players.length === 0) return 0;
-  let fitCount = 0;
   const outfieldSlots = slots.filter(s => s.pos !== 'GK');
   const outfieldPlayers = players.filter(p => p.position !== 'GK');
-  for (const slot of outfieldSlots) {
-    if (outfieldPlayers.some(p => canPlayPosition(p, slot.pos))) fitCount++;
+  if (outfieldSlots.length === 0) return FORMATION_FIT_MAX_BONUS;
+  if (outfieldPlayers.length === 0) return 0;
+
+  /** 1.0 natural, 0.7 listed alternate, 0.3 out of position. */
+  const compat = (p: Player, pos: (typeof outfieldSlots)[number]['pos']): number => {
+    if (p.position === pos) return 1;
+    if (canPlayPosition(p, pos)) return 0.7;
+    return 0.3;
+  };
+
+  // Hardest slots first: a slot with no natural fit should not lose its only
+  // alternate-position candidate to a slot that had a natural option.
+  const orderedSlots = [...outfieldSlots].sort(
+    (a, b) =>
+      outfieldPlayers.filter(p => p.position === a.pos).length -
+      outfieldPlayers.filter(p => p.position === b.pos).length,
+  );
+
+  const taken = new Set<string>();
+  let score = 0;
+  for (const slot of orderedSlots) {
+    let best: Player | null = null;
+    let bestScore = -1;
+    for (const p of outfieldPlayers) {
+      if (taken.has(p.id)) continue;
+      const c = compat(p, slot.pos);
+      if (c > bestScore) { bestScore = c; best = p; }
+      if (c === 1) break; // can't beat a natural fit
+    }
+    if (!best) continue; // fewer players than slots — unfilled slots score 0
+    taken.add(best.id);
+    score += bestScore;
   }
-  const fitRatio = Math.min(1, outfieldSlots.length > 0 ? fitCount / outfieldSlots.length : 1);
+  const fitRatio = Math.min(1, score / outfieldSlots.length);
   return fitRatio * FORMATION_FIT_MAX_BONUS;
 }
 
@@ -190,7 +235,7 @@ export function getFormationMatchupBonus(myFormation: FormationType, oppFormatio
 }
 
 export function getTacticsModifiers(tactics?: TacticalInstructions) {
-  if (!tactics) return { attackMod: 0, defenseMod: 0, shotMod: 0, foulMod: 0, counterVuln: 0, widthMod: 0 };
+  if (!tactics) return { attackMod: 0, defenseMod: 0, shotMod: 0, foulMod: 0, counterVuln: 0, widthMod: 0, territoryMod: 0 };
   return {
     attackMod: MENTALITY_ATTACK_MOD[tactics.mentality] || 0,
     defenseMod: MENTALITY_DEFENSE_MOD[tactics.mentality] || 0,
@@ -198,6 +243,14 @@ export function getTacticsModifiers(tactics?: TacticalInstructions) {
     foulMod: (tactics.pressingIntensity - PRESSING_FOUL_BASELINE) * PRESSING_FOUL_MULTIPLIER,
     counterVuln: DEFENSIVE_LINE_COUNTER_VULN[tactics.defensiveLine] || 0,
     widthMod: WIDTH_POSSESSION_MOD[tactics.width] || 0,
+    // Territory = where the ball is won and how much of the pitch you own.
+    // A high line and heavy pressing both buy territory (more event share);
+    // they are paid for by counter-vulnerability, fouls and fitness drain.
+    // Mentality deliberately does NOT feed this channel — see the strength
+    // formula note below.
+    territoryMod:
+      (DEFENSIVE_LINE_COMPRESSION[tactics.defensiveLine] || 0) +
+      (tactics.pressingIntensity - PRESSING_TURNOVER_BASELINE) * PRESSING_TURNOVER_PER_POINT,
   };
 }
 
@@ -215,9 +268,17 @@ export function getDefenseQuality(squad: Player[]): number {
 /** Get the GK's save ability (0.30 to 0.70) */
 export function getGKSaveChance(squad: Player[]): number {
   const gk = squad.find(p => p.position === 'GK');
-  if (!gk) return GK_SAVE_BASE;
-  const quality = (gk.attributes.defending * GK_DEFENDING_WEIGHT + gk.attributes.mental * GK_MENTAL_WEIGHT + gk.attributes.physical * GK_PHYSICAL_WEIGHT) / 100;
-  return GK_SAVE_BASE + quality * GK_SAVE_RANGE;
+  if (gk) {
+    const quality = (gk.attributes.defending * GK_DEFENDING_WEIGHT + gk.attributes.mental * GK_MENTAL_WEIGHT + gk.attributes.physical * GK_PHYSICAL_WEIGHT) / 100;
+    return GK_SAVE_BASE + quality * GK_SAVE_RANGE;
+  }
+  // Emergency keeper: an outfielder in goal. Derive from the best available
+  // outfielder so a strong squad in crisis still isn't identical to a weak one,
+  // then apply a heavy penalty. Previously this case forfeited the match outright.
+  if (squad.length === 0) return GK_SAVE_BASE * EMERGENCY_KEEPER_SAVE_MULT;
+  const best = squad.reduce((a, b) => (b.overall > a.overall ? b : a));
+  const quality = (best.attributes.defending * GK_DEFENDING_WEIGHT + best.attributes.mental * GK_MENTAL_WEIGHT + best.attributes.physical * GK_PHYSICAL_WEIGHT) / 100;
+  return (GK_SAVE_BASE + quality * GK_SAVE_RANGE) * EMERGENCY_KEEPER_SAVE_MULT;
 }
 
 /**
@@ -298,10 +359,24 @@ export function computeStrengths(
   const awayMissing = Math.max(0, LINEUP_SIZE - awayPlayers.length);
   const homeNumericalMod = 1 - homeMissing * RED_CARD_STRENGTH_PENALTY_PER_PLAYER;
   const awayNumericalMod = 1 - awayMissing * RED_CARD_STRENGTH_PENALTY_PER_PLAYER;
-  // Strength = base * (attack modifiers) reduced by opponent's defensive modifiers
+  // Strength = base * (territory/quality modifiers) reduced by opponent's
+  // structural defensive modifiers. Strength drives EVENT SHARE only (who has
+  // the ball), which is very nearly zero-sum: scaling both sides equally
+  // changes nothing.
+  //
+  // MENTALITY IS DELIBERATELY ABSENT HERE. It used to appear as
+  // `homeMods.attackMod` in this expression AND additively in the per-shot
+  // conversion formula in match.ts, while its counterweight
+  // (`MENTALITY_DEFENSE_MOD`) was applied once, damped by
+  // DEFENSE_MODIFIER_SCALE (0.3), and never touched the opponent's conversion.
+  // Net effect: `all-out-attack` scored 2.9x more AND conceded less than
+  // `balanced` on identical squads (measured 2.33 vs 1.27 pts/g) — a strictly
+  // dominant strategy. Mentality now lives ONLY in the conversion channel,
+  // symmetrically (own attackMod up, opponent's defenseMod down), so it trades
+  // goals-for against goals-against instead of being free points.
   // Clamped to a minimum of 0.01 to prevent negative/zero strength from extreme modifier combinations
-  const homeStr = Math.max(0.01, getTeamStrength(homePlayers) * homeUnhappyMod * homeNumericalMod * (HOME_ADVANTAGE + homeMods.attackMod + homeMods.widthMod + homeFamBonus + homeFormBonus + homeMatchup + homeChemistry + homeFormAtk + homeFormMatchup + homeFirstMatchBoost) * (1 - (awayMods.defenseMod + awayFormDef + awayDefFitBonus + awayFirstDefBoost) * DEFENSE_MODIFIER_SCALE));
-  const awayStr = Math.max(0.01, getTeamStrength(awayPlayers) * awayUnhappyMod * awayNumericalMod * (1 + awayMods.attackMod + awayMods.widthMod + awayFamBonus + awayFormBonus + awayMatchup + awayChemistry + awayFormAtk + awayFormMatchup + awayFirstMatchBoost) * (1 - (homeMods.defenseMod + homeFormDef + homeDefFitBonus + homeFirstDefBoost) * DEFENSE_MODIFIER_SCALE));
+  const homeStr = Math.max(0.01, getTeamStrength(homePlayers) * homeUnhappyMod * homeNumericalMod * (HOME_ADVANTAGE + homeMods.territoryMod + homeMods.widthMod + homeFamBonus + homeFormBonus + homeMatchup + homeChemistry + homeFormAtk + homeFormMatchup + homeFirstMatchBoost) * (1 - (awayFormDef + awayDefFitBonus + awayFirstDefBoost) * DEFENSE_MODIFIER_SCALE));
+  const awayStr = Math.max(0.01, getTeamStrength(awayPlayers) * awayUnhappyMod * awayNumericalMod * (1 + awayMods.territoryMod + awayMods.widthMod + awayFamBonus + awayFormBonus + awayMatchup + awayChemistry + awayFormAtk + awayFormMatchup + awayFirstMatchBoost) * (1 - (homeFormDef + homeDefFitBonus + homeFirstDefBoost) * DEFENSE_MODIFIER_SCALE));
   return { homeStr, awayStr, homeMods, awayMods };
 }
 
@@ -349,7 +424,13 @@ export function generateInjuryDetails(isFoulRelated: boolean, medicalLevel: numb
 export function isSquadValid(players: Player[], isPlayerTeam = false): boolean {
   const minPlayers = isPlayerTeam ? 11 : 7;
   if (players.length < minPlayers) return false;
-  if (!players.some(p => p.position === 'GK')) return false;
+  // NOTE: deliberately does NOT require a recognised goalkeeper. It used to, and
+  // that turned an injury crisis into a 3-0 walkover: measured mid-season, 9 of
+  // 92 clubs had every keeper injured simultaneously, which forfeited ~20% of all
+  // AI fixtures and made league tables, promotion, prize money and every balance
+  // measurement taken on a live save fiction. A keeperless XI now plays with an
+  // emergency keeper (see `getGKSaveChance` / EMERGENCY_KEEPER_SAVE_MULT), which
+  // is what actually happens in football.
   const ids = new Set<string>();
   for (const p of players) {
     if (ids.has(p.id)) return false;

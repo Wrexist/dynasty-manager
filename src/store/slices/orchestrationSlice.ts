@@ -24,7 +24,7 @@ import { getDefaultMerchState } from '@/utils/merchandise';
 import { DEFAULT_MONETIZATION_STATE } from '@/config/monetization';
 
 import {
-  FORFEIT_SCORE, LINEUP_SIZE,
+  FORFEIT_SCORE,
 } from '@/config/gameBalance';
 import { isTransferWindowOpen } from '@/config/transfers';
 
@@ -52,6 +52,7 @@ import {
   playWorldCupPenaltiesImpl, finalizeWorldCupPenaltiesImpl,
 } from '@/store/slices/orchestration/worldCupMatchActions';
 import { initGameImpl } from '@/store/slices/orchestration/initGame';
+import { pickAiMatchSquad } from '@/store/slices/orchestration/helpers';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -252,6 +253,10 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
     preMatchLeaguePosition: state.preMatchLeaguePosition,
     lastMatchXPGain: state.lastMatchXPGain,
     weeklyDigest: state.weeklyDigest,
+    // Persisted so a reload can't re-show a celebration the player already saw.
+    // The dedupe already survives navigation (which was the actual bug — it lived
+    // in a Dashboard useRef and Dashboard unmounts on every screen change).
+    celebrationDedupe: state.celebrationDedupe,
     sponsorDeals: state.sponsorDeals,
     sponsorOffers: state.sponsorOffers,
     sponsorSlotCooldowns: state.sponsorSlotCooldowns,
@@ -492,7 +497,7 @@ function buildFreshSessionState(get: Get): Partial<GameState> {
     gameStarted: false, playerClubId: '', currentScreen: 'dashboard' as GameState['currentScreen'],
     clubs: {}, players: {}, fixtures: [], leagueTable: [],
     messages: [], seasonHistory: [], incomingOffers: [], boardUltimatum: null,
-    matchPlayerRatings: [], halfTimeState: null, currentMatchWeather: null, matchPhase: 'none' as const,
+    matchPlayerRatings: [], halfTimeState: null, currentMatchWeather: null, matchPhase: 'none' as const, secondHalfSimulatedTo: 45,
     currentMatchResult: null, matchSubsUsed: 0, matchSubbedOffIds: [], currentCupTieId: null,
     // Match-scoped state that previously persisted across resets — audit
     // finding O2 (stale shootout kicks, leftover team talk, etc.).
@@ -608,8 +613,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       const hc = newClubs[m.homeClubId];
       const ac = newClubs[m.awayClubId];
       if (!hc || !ac) continue;
-      const hp = hc.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured).slice(0, LINEUP_SIZE);
-      const ap = ac.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured).slice(0, LINEUP_SIZE);
+      const hp = pickAiMatchSquad(hc, newPlayers, currentWeek).xi;
+      const ap = pickAiMatchSquad(ac, newPlayers, currentWeek).xi;
       if (hp.length === 0 || ap.length === 0) {
         m.played = true;
         m.homeGoals = hp.length === 0 ? 0 : FORFEIT_SCORE;
@@ -690,7 +695,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
   playFirstHalf: () => playFirstHalfImpl(set, get),
 
-  playSecondHalf: () => playSecondHalfImpl(set, get),
+  playSecondHalf: (untilMin?: number) => playSecondHalfImpl(set, get, untilMin),
 
   playExtraTime: () => playExtraTimeImpl(set, get),
 
@@ -713,6 +718,16 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
   finalizeWorldCupPenalties: () => finalizeWorldCupPenaltiesImpl(set, get),
 
   endSeason: () => {
+    const state = get();
+    // Idempotence guard. This was a bare call, and its only trigger is an
+    // un-disabled Dashboard button — so a double-tap ran the whole rollover
+    // twice. The second run computed promotion/relegation from the freshly
+    // regenerated ALL-ZERO table, and `buildLeagueTable` breaks ties on
+    // `clubId.localeCompare`, so the three alphabetically-last clubs were
+    // relegated. Every player also aged twice and every contract decremented
+    // twice. `seasonHistory` gets this season's entry appended by the rollover,
+    // so its presence is the marker that the season is already done.
+    if (state.seasonHistory.some(h => h.season === state.season)) return;
     endSeasonImpl(set, get);
   },
 
@@ -976,6 +991,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         lastMatchCompetition: data.lastMatchCompetition || null,
         sessionStats: data.sessionStats || { startWeek: data.week || 1, startSeason: data.season || 1, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 },
         weeklyDigest: data.weeklyDigest || null,
+        celebrationDedupe: data.celebrationDedupe || { season: data.season || 1, keys: [] },
         pendingStoryline: data.pendingStoryline || null,
         activeStorylineChains: data.activeStorylineChains || [],
         completedStorylineChainIds: data.completedStorylineChainIds || [],
@@ -990,7 +1006,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         negotiationStrikes: data.negotiationStrikes || {},
         merchandise: data.merchandise || getDefaultMerchState(),
         halfTimeState: null,
-        matchPhase: 'none' as const,
+        matchPhase: 'none' as const, secondHalfSimulatedTo: 45,
         pendingFarewell: Array.isArray(data.pendingFarewell) ? data.pendingFarewell : data.pendingFarewell ? [data.pendingFarewell] : [],
         monetization: data.monetization || DEFAULT_MONETIZATION_STATE,
         nationalTeam: data.nationalTeam || null,
@@ -1150,7 +1166,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     }
     set({
       ...(mutated ? { clubs: newClubs, players: newPlayers } : {}),
-      halfTimeState: null, currentMatchWeather: null, matchPhase: 'none' as const,
+      halfTimeState: null, currentMatchWeather: null, matchPhase: 'none' as const, secondHalfSimulatedTo: 45,
       currentCupTieId: null, currentLeagueCupTieId: null,
       currentContinentalMatchId: null, currentContinentalCompetition: null,
       matchSubsUsed: 0,

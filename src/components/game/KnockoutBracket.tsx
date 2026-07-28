@@ -64,10 +64,10 @@ function TieCard({ tie, virtualClubs, playerClubId, clubs, compRing }: {
           {home.shortName}
         </span>
         <div className="flex items-center gap-1 text-xs">
-          {tie.leg1Played && <span className="font-mono text-muted-foreground">{tie.leg1HomeGoals}</span>}
-          {tie.leg2Played && !isFinal && <span className="font-mono text-muted-foreground">{tie.leg2AwayGoals}</span>}
+          {tie.leg1Played && <span className="font-display tabular-nums text-muted-foreground">{tie.leg1HomeGoals}</span>}
+          {tie.leg2Played && !isFinal && <span className="font-display tabular-nums text-muted-foreground">{tie.leg2AwayGoals}</span>}
           {(tie.leg1Played || tie.leg2Played) && !isFinal && (
-            <span className={cn('font-mono font-bold ml-1', tie.winnerId === tie.homeClubId ? 'text-emerald-400' : 'text-foreground')}>({homeAgg})</span>
+            <span className={cn('font-display tabular-nums font-bold ml-1', tie.winnerId === tie.homeClubId ? 'text-emerald-400' : 'text-foreground')}>({homeAgg})</span>
           )}
         </div>
       </div>
@@ -85,10 +85,10 @@ function TieCard({ tie, virtualClubs, playerClubId, clubs, compRing }: {
           {away.shortName}
         </span>
         <div className="flex items-center gap-1 text-xs">
-          {tie.leg1Played && <span className="font-mono text-muted-foreground">{tie.leg1AwayGoals}</span>}
-          {tie.leg2Played && !isFinal && <span className="font-mono text-muted-foreground">{tie.leg2HomeGoals}</span>}
+          {tie.leg1Played && <span className="font-display tabular-nums text-muted-foreground">{tie.leg1AwayGoals}</span>}
+          {tie.leg2Played && !isFinal && <span className="font-display tabular-nums text-muted-foreground">{tie.leg2HomeGoals}</span>}
           {(tie.leg1Played || tie.leg2Played) && !isFinal && (
-            <span className={cn('font-mono font-bold ml-1', tie.winnerId === tie.awayClubId ? 'text-emerald-400' : 'text-foreground')}>({awayAgg})</span>
+            <span className={cn('font-display tabular-nums font-bold ml-1', tie.winnerId === tie.awayClubId ? 'text-emerald-400' : 'text-foreground')}>({awayAgg})</span>
           )}
         </div>
       </div>

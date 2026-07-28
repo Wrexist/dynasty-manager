@@ -26,6 +26,7 @@ import { isPro } from '@/utils/monetization';
 import { hasPerk } from '@/utils/managerPerks';
 import { ProUpsell } from '@/components/game/ProUpsell';
 import { MAX_TACTICAL_PRESETS } from '@/config/monetization';
+import { SectionHeader } from '@/components/game/SectionHeader';
 
 function pressingLabel(v: number): string {
   if (v <= PRESSING_LOW_THRESHOLD) return 'Low';
@@ -147,7 +148,7 @@ const TacticsPage = () => {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
-      <h2 className="text-lg font-bold text-foreground font-display">Tactics</h2>
+      <SectionHeader title="Tactics" />
 
       {/* Team Rating Summary — slim Liquid Glass row */}
       {teamRating && (
@@ -155,9 +156,9 @@ const TacticsPage = () => {
           <div className="flex items-center justify-between gap-2 mb-2">
             <div className="flex items-center gap-1.5">
               <Swords className="w-3 h-3 text-primary" />
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Starting XI</p>
+              <p className="text-micro text-muted-foreground uppercase tracking-wider">Starting XI</p>
             </div>
-            <div className="flex items-center gap-2 text-[10px]">
+            <div className="flex items-center gap-2 text-micro">
               <span>
                 <span className="text-muted-foreground/70">Bench </span>
                 <span className={cn('font-semibold tabular-nums', getRatingColor(teamRating.subsAvg))}>{teamRating.subsAvg}</span>
@@ -182,7 +183,7 @@ const TacticsPage = () => {
               'shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-1px_0_rgba(0,0,0,0.25),0_0_0_1px_rgba(255,255,255,0.06)_inset]',
               getRatingBadgeClasses(teamRating.overall)
             )}>
-              <span className="text-[9px] font-semibold opacity-70 tracking-wider">OVR</span>
+              <span className="text-micro font-semibold opacity-70 tracking-wider">OVR</span>
               <span className="text-base font-black tabular-nums leading-none">{teamRating.overall}</span>
               <div
                 aria-hidden
@@ -209,7 +210,7 @@ const TacticsPage = () => {
                     : 'bg-muted/20'
                 )}>
                   {u.icon}
-                  <span className="text-[9px] text-muted-foreground font-semibold tracking-wider">{u.label}</span>
+                  <span className="text-micro text-muted-foreground font-semibold tracking-wider">{u.label}</span>
                   <span className={cn('text-sm font-bold tabular-nums leading-none', getRatingColor(u.value))}>{u.value}</span>
                   <div
                     aria-hidden
@@ -266,7 +267,7 @@ const TacticsPage = () => {
             <div key={`${link.type}-${link.playerIdA}-${link.playerIdB}-${idx}`} className="flex items-center gap-2 bg-muted/20 rounded px-2 py-1">
               {meta.icon}
               {link.type === 'nationality' && <FlagIcon nationality={a.nationality} size={12} />}
-              <span className="text-[10px] text-foreground flex-1 truncate inline-flex items-center gap-1 min-w-0">
+              <span className="text-micro text-foreground flex-1 truncate inline-flex items-center gap-1 min-w-0">
                 <span className="truncate">{displayA.lastName}</span>
                 {link.type === 'mentor' ? (
                   <ArrowRight className="w-2.5 h-2.5 text-amber-400 shrink-0" aria-hidden />
@@ -275,7 +276,7 @@ const TacticsPage = () => {
                 )}
                 <span className="truncate">{displayB.lastName}</span>
               </span>
-              <span className={cn('text-[9px] font-bold', meta.color)}>+{link.strength}</span>
+              <span className={cn('text-micro font-bold', meta.color)}>+{link.strength}</span>
             </div>
           );
         };
@@ -285,20 +286,20 @@ const TacticsPage = () => {
               <p className="text-xs text-muted-foreground uppercase tracking-wider">Chemistry</p>
               <div className="flex items-center gap-2">
                 <span className={cn('text-xs font-bold tabular-nums', label.color)}>+{Math.round(chemistry.bonus * 100)}%</span>
-                <span className={cn('text-[10px] font-semibold', label.color)}>{label.label}</span>
-                <span className="text-[9px] text-muted-foreground">· {chemistry.links.length} links</span>
+                <span className={cn('text-micro font-semibold', label.color)}>{label.label}</span>
+                <span className="text-micro text-muted-foreground">· {chemistry.links.length} links</span>
               </div>
             </div>
 
             {!showAllChem && (
               <div className="space-y-2">
                 <div>
-                  <p className="text-[9px] text-muted-foreground font-semibold mb-1">STRONGEST</p>
+                  <p className="text-micro text-muted-foreground font-semibold mb-1">STRONGEST</p>
                   <div className="space-y-0.5">{top.map(renderRow)}</div>
                 </div>
                 {bottom.length > 0 && (
                   <div>
-                    <p className="text-[9px] text-muted-foreground font-semibold mb-1">WEAKEST</p>
+                    <p className="text-micro text-muted-foreground font-semibold mb-1">WEAKEST</p>
                     <div className="space-y-0.5">{bottom.map(renderRow)}</div>
                   </div>
                 )}
@@ -314,7 +315,7 @@ const TacticsPage = () => {
                     <div key={type}>
                       <div className="flex items-center gap-1.5 mb-1">
                         {typeMeta[type].icon}
-                        <span className="text-[10px] text-muted-foreground font-semibold">{typeMeta[type].label} ({group.length})</span>
+                        <span className="text-micro text-muted-foreground font-semibold">{typeMeta[type].label} ({group.length})</span>
                       </div>
                       <div className="space-y-0.5">{group.map(renderRow)}</div>
                     </div>
@@ -325,7 +326,7 @@ const TacticsPage = () => {
 
             <button
               onClick={() => setShowAllChem(v => !v)}
-              className="mt-3 w-full flex items-center justify-center gap-1 py-1.5 rounded-md text-[10px] font-semibold text-primary hover:bg-primary/10 transition-colors"
+              className="mt-3 w-full flex items-center justify-center gap-1 py-1.5 rounded-md text-micro font-semibold text-primary hover:bg-primary/10 transition-colors"
             >
               {showAllChem ? <>Show less <ChevronUp className="w-3 h-3" /></> : <>Show all <ChevronDown className="w-3 h-3" /></>}
             </button>
@@ -348,21 +349,21 @@ const TacticsPage = () => {
             </div>
             <div className="grid grid-cols-3 gap-2">
               <div className="bg-muted/20 rounded-lg py-2 text-center">
-                <p className="text-[9px] text-muted-foreground font-semibold mb-0.5">FORMATION</p>
-                <p className="text-lg font-mono font-bold text-foreground tabular-nums leading-none">{club.formation}</p>
+                <p className="text-micro text-muted-foreground font-semibold mb-0.5">FORMATION</p>
+                <p className="text-lg font-display font-bold text-foreground tabular-nums leading-none">{club.formation}</p>
               </div>
               <div className="bg-muted/20 rounded-lg py-2 text-center">
-                <p className="text-[9px] text-muted-foreground font-semibold mb-0.5">CHEMISTRY</p>
+                <p className="text-micro text-muted-foreground font-semibold mb-0.5">CHEMISTRY</p>
                 <p className={cn('text-lg font-bold tabular-nums leading-none', readiness.label.color)}>
                   +{Math.round(readiness.bonus * 100)}%
                 </p>
-                <p className={cn('text-[9px] font-semibold mt-0.5', readiness.label.color)}>{readiness.label.label}</p>
+                <p className={cn('text-micro font-semibold mt-0.5', readiness.label.color)}>{readiness.label.label}</p>
               </div>
               <div className={cn(
                 'rounded-lg py-2 text-center',
                 unavailable > 0 ? 'bg-amber-500/10 border border-amber-500/20' : 'bg-muted/20'
               )}>
-                <p className="text-[9px] text-muted-foreground font-semibold mb-0.5">AVAILABLE</p>
+                <p className="text-micro text-muted-foreground font-semibold mb-0.5">AVAILABLE</p>
                 <p className={cn(
                   'text-lg font-bold tabular-nums leading-none',
                   unavailable > 0 ? 'text-amber-400' : 'text-emerald-400'
@@ -374,7 +375,7 @@ const TacticsPage = () => {
             {unavailable > 0 && (
               <div className="mt-3 space-y-1">
                 {readiness.injured.map(p => (
-                  <div key={`inj-${p.id}`} className="flex items-center gap-1.5 text-[10px]">
+                  <div key={`inj-${p.id}`} className="flex items-center gap-1.5 text-micro">
                     <HeartPulse className="w-3 h-3 text-destructive shrink-0" />
                     <span className="text-destructive font-semibold">Injured</span>
                     <span className="text-foreground">{p.firstName[0]}. {p.lastName}</span>
@@ -382,7 +383,7 @@ const TacticsPage = () => {
                   </div>
                 ))}
                 {readiness.suspended.map(p => (
-                  <div key={`sus-${p.id}`} className="flex items-center gap-1.5 text-[10px]">
+                  <div key={`sus-${p.id}`} className="flex items-center gap-1.5 text-micro">
                     <Ban className="w-3 h-3 text-amber-400 shrink-0" />
                     <span className="text-amber-400 font-semibold">Suspended</span>
                     <span className="text-foreground">{p.firstName[0]}. {p.lastName}</span>
@@ -400,10 +401,10 @@ const TacticsPage = () => {
         <div className="flex items-center justify-between mb-2">
           <p className="text-xs text-muted-foreground uppercase tracking-wider">Formation</p>
           <div className="flex items-center gap-1.5">
-            <span className="text-[10px] text-muted-foreground">Familiarity</span>
+            <span className="text-micro text-muted-foreground">Familiarity</span>
             <InfoTip text={HELP_TEXTS.tacticalFamiliarity} />
             <span className={cn(
-              'text-[10px] font-bold tabular-nums px-1.5 py-0.5 rounded',
+              'text-micro font-bold tabular-nums px-1.5 py-0.5 rounded',
               training.tacticalFamiliarity >= 80 ? 'text-emerald-400 bg-emerald-400/10' :
               training.tacticalFamiliarity >= 50 ? 'text-amber-400 bg-amber-400/10' :
               'text-destructive bg-destructive/10'
@@ -418,7 +419,7 @@ const TacticsPage = () => {
               key={f}
               onClick={() => { if (club.formation !== f) { setFormation(f); infoToast(`Formation set to ${f}`); } }}
               className={cn(
-                'px-3 py-1.5 rounded-full text-sm font-mono font-bold transition-all shrink-0',
+                'px-3 py-1.5 rounded-full text-sm font-display font-bold tabular-nums transition-all shrink-0',
                 club.formation === f
                   ? 'bg-primary text-primary-foreground shadow-[0_0_12px_hsl(var(--primary)/0.3)]'
                   : 'bg-muted/50 text-muted-foreground hover:bg-muted'
@@ -429,7 +430,7 @@ const TacticsPage = () => {
           ))}
         </div>
         {training.tacticalFamiliarity < 50 && (
-          <p className="text-[10px] text-amber-400 mt-2 flex items-center gap-1">
+          <p className="text-micro text-amber-400 mt-2 flex items-center gap-1">
             <AlertTriangle className="w-3 h-3" />
             Low familiarity hurts match performance. Train "Tactical" to improve it, and avoid switching formations frequently.
           </p>
@@ -439,13 +440,13 @@ const TacticsPage = () => {
       {/* Defensive Formation (Out of Possession) */}
       <GlassPanel className="p-4">
         <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">
-          Defensive Shape <span className="text-[10px] normal-case">(out of possession)</span>
+          Defensive Shape <span className="text-micro normal-case">(out of possession)</span>
         </p>
         <div className="flex gap-2 overflow-x-auto scrollbar-hide">
           <button
             onClick={() => { setDefensiveFormation(null); hapticLight(); infoToast('Defensive shape mirrors formation'); }}
             className={cn(
-              'px-3 py-1.5 rounded-full text-sm font-mono font-bold transition-all shrink-0',
+              'px-3 py-1.5 rounded-full text-sm font-display font-bold tabular-nums transition-all shrink-0',
               !club.defensiveFormation
                 ? 'bg-primary text-primary-foreground shadow-[0_0_12px_hsl(var(--primary)/0.3)]'
                 : 'bg-muted/50 text-muted-foreground hover:bg-muted'
@@ -458,7 +459,7 @@ const TacticsPage = () => {
               key={f}
               onClick={() => { setDefensiveFormation(f); hapticLight(); infoToast(`Defensive shape set to ${f}`); }}
               className={cn(
-                'px-3 py-1.5 rounded-full text-sm font-mono font-bold transition-all shrink-0',
+                'px-3 py-1.5 rounded-full text-sm font-display font-bold tabular-nums transition-all shrink-0',
                 club.defensiveFormation === f
                   ? 'bg-primary text-primary-foreground shadow-[0_0_12px_hsl(var(--primary)/0.3)]'
                   : 'bg-muted/50 text-muted-foreground hover:bg-muted'
@@ -469,7 +470,7 @@ const TacticsPage = () => {
           ))}
         </div>
         {club.defensiveFormation && (
-          <p className="text-[10px] text-muted-foreground mt-2 inline-flex items-center gap-1">
+          <p className="text-micro text-muted-foreground mt-2 inline-flex items-center gap-1">
             <span>Attack: {club.formation}</span>
             <ArrowRight className="w-2.5 h-2.5 text-muted-foreground/70 shrink-0" aria-hidden />
             <span>Defend: {club.defensiveFormation}</span>
@@ -495,7 +496,7 @@ const TacticsPage = () => {
                 )}
               >
                 <span className="text-sm font-medium block">{preset.label}</span>
-                <span className={cn('text-[9px] leading-tight block mt-0.5', active ? 'text-primary-foreground/70' : 'text-muted-foreground/60')}>
+                <span className={cn('text-micro leading-tight block mt-0.5', active ? 'text-primary-foreground/70' : 'text-muted-foreground/60')}>
                   {preset.description}
                 </span>
               </button>
@@ -514,7 +515,7 @@ const TacticsPage = () => {
                 <div key={preset.id} className="flex items-center gap-2 bg-muted/20 rounded-lg px-3 py-2">
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold text-foreground truncate">{preset.name}</p>
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-micro text-muted-foreground">
                       {preset.formation} · {preset.tactics.mentality} · {preset.tactics.tempo} tempo
                     </p>
                   </div>
@@ -535,7 +536,7 @@ const TacticsPage = () => {
                       aria-label={`Confirm delete preset ${preset.name}`}
                       autoFocus
                     >
-                      <span className="text-[10px] font-bold uppercase tracking-wider">Delete?</span>
+                      <span className="text-micro font-bold uppercase tracking-wider">Delete?</span>
                     </button>
                   ) : (
                     <button
@@ -574,7 +575,7 @@ const TacticsPage = () => {
               </button>
             </div>
           ) : (
-            <p className="text-[10px] text-muted-foreground">Maximum {MAX_TACTICAL_PRESETS} presets saved.</p>
+            <p className="text-micro text-muted-foreground">Maximum {MAX_TACTICAL_PRESETS} presets saved.</p>
           )}
         </GlassPanel>
       ) : (
@@ -589,7 +590,7 @@ const TacticsPage = () => {
           aria-expanded={showAdvancedTactics}
         >
           <p className="text-xs text-muted-foreground uppercase tracking-wider">Advanced Instructions</p>
-          <span className="flex items-center gap-1 text-[10px] font-semibold text-primary">
+          <span className="flex items-center gap-1 text-micro font-semibold text-primary">
             {showAdvancedTactics ? <>Hide <ChevronUp className="w-3 h-3" /></> : <>Customize <ChevronDown className="w-3 h-3" /></>}
           </span>
         </button>
@@ -675,7 +676,7 @@ const TacticsPage = () => {
       {/* Set-Piece Takers */}
       <GlassPanel className="p-4">
         <h3 className="text-sm font-bold text-foreground mb-1">Set-Piece Takers</h3>
-        <p className="text-[9px] text-muted-foreground/60 mb-3">Assigned takers get a delivery bonus on corners and free kicks. Penalty taker is used in shootouts and spot-kicks.</p>
+        <p className="text-micro text-muted-foreground/60 mb-3">Assigned takers get a delivery bonus on corners and free kicks. Penalty taker is used in shootouts and spot-kicks.</p>
         <div className="space-y-3">
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">Corner / Free Kick Taker</label>

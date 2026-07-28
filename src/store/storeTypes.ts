@@ -1,5 +1,6 @@
 import { Club, Player, Match, MatchWeather, LeagueTableEntry, FormationType, TransferListing, BoardObjective, BoardUltimatum, GameScreen, Message, SeasonHistory, IncomingOffer, GameSettings, TacticalInstructions, TrainingState, TrainingModule, StaffMember, ScoutingState, ScoutRegion, YouthAcademyState, FacilitiesState, FinanceRecord, PlayerMatchRating, LoanDeal, IncomingLoanOffer, OutgoingLoanRequest, CupState, PressConference, ContractOffer, ActiveChallenge, LeagueId, SeasonTurnover, DerbyRivalry, ClubRecords, SeasonPhase, CareerMilestone, ManagerProgression, PerkId, StorylineEvent, ActiveStorylineChain, SponsorDeal, SponsorOffer, SponsorNegotiationProposal, SponsorSlotId, MerchState, MerchProductLine, MerchPricingTier, MerchCampaignType, CliffhangerItem, MatchDramaType, SessionStats, HeadToHeadRecord, MonetizationState, ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo, TransferNewsEntry, NationalTeamState, NationalTeamOffer, InternationalTournamentState, GameMode, CareerManager, JobVacancy, JobOffer, ActiveInterview, PitchTone, ManagerBonus, LeagueCupState, ContinentalTournamentState, ContinentalCompetition, VirtualClub, SuperCupMatch, TransferTalk, TeamTalkType, GamePlanId, PenaltyKick, PenaltyShootoutCtx, MatchShout, ShoutType, NegotiationStrike, OpenedPackRecord, OpenPackResult, ReleasePackedPlayerResult, QuickSellPackedPlayerResult, PackTierKey, PackUnlockMethod, LoadError, CaptureScenario } from '@/types/game';
 import type { ObjectiveInstance } from '@/utils/weeklyObjectives';
+import type { PostSeasonSnapshot } from '@/store/slices/orchestration/seasonEnd';
 import type { HalfState } from '@/engine/match';
 
 export interface GameState {
@@ -19,6 +20,16 @@ export interface GameState {
   boardConfidence: number;
   /** Active mid-season board ultimatum, or null. Persisted (schema v73). */
   boardUltimatum: BoardUltimatum | null;
+  /** Pre-rollover facts the career post-season tail judges the completed season
+   *  against. Set when the season rolls over, cleared once the tail has run.
+   *  Persisted (schema v74) because the international-tournament path DEFERS the
+   *  tail until the tournament finishes, which can span a save/reload. */
+  pendingPostSeason: PostSeasonSnapshot | null;
+  /** Terminal flag for a retired career manager. Persisted (schema v74).
+   *  Without it, a retired manager kept re-entering the unemployed branch of
+   *  `advanceWeek` — weekly "Between Jobs" spam, every job offer auto-rejected,
+   *  and a forced re-retirement bounce to Hall of Managers on every tick. */
+  careerRetired: boolean;
   seasonHistory: SeasonHistory[];
   settings: GameSettings;
   activeSlot: number;
@@ -98,6 +109,10 @@ export interface GameState {
   // Match
   currentMatchResult: Match | null;
   matchSubsUsed: number;
+  /** Highest minute the interactive second half has been simulated to. Drives
+   *  segmented resumption so in-play subs and shouts affect later minutes.
+   *  Transient — reset with the rest of the match state, never persisted. */
+  secondHalfSimulatedTo: number;
   /** Player ids substituted OFF during the current match (transient — NOT
    *  persisted; reset each match alongside matchSubsUsed). makeMatchSub
    *  rejects bringing one of these back on — a substituted player cannot
@@ -223,6 +238,17 @@ export interface GameState {
     objectiveProgress: { title: string; completed: boolean; xpEarned: number }[];
   } | null;
 
+  /**
+   * Per-season dedupe bucket for one-shot presentation beats — celebration
+   * modals, trophy ceremonies, the promotion/relegation sting.
+   *
+   * This has to live in the store rather than a component ref: `GameShell`
+   * renders only the active screen, so `Dashboard` unmounts on every
+   * navigation. A `useRef<Set<string>>` was therefore discarded ~20+ times a
+   * season and "Top of the Table!" re-fired all season long.
+   */
+  celebrationDedupe: { season: number; keys: string[] };
+
   // Challenge Mode
   activeChallenge: ActiveChallenge | null;
 
@@ -289,6 +315,13 @@ export interface GameState {
   markMessageRead: (id: string) => void;
   markAllRead: () => void;
   updateSettings: (partial: Partial<GameSettings>) => void;
+  /**
+   * Claim one-shot presentation keys. Returns only the subset that had NOT
+   * already fired, and records the whole set. Resets the bucket when `season`
+   * differs from the stored one, so keys self-expire at the season rollover
+   * without any caller having to remember to clear them.
+   */
+  recordCelebrationKeys: (season: number, keys: string[]) => string[];
 
   // Actions — Club
   setFormation: (f: FormationType) => void;
@@ -344,7 +377,7 @@ export interface GameState {
   // Actions — Match
   playCurrentMatch: () => Match | null;
   playFirstHalf: () => HalfState | null;
-  playSecondHalf: () => Match | null;
+  playSecondHalf: (untilMin?: number) => Match | null;
   playExtraTime: () => Match | null;
   playPenalties: () => void;
   /** Interactive shootout: roll (idempotently, per kick) whether the keeper
@@ -384,7 +417,7 @@ export interface GameState {
   updateTraining: (schedule: Partial<TrainingState['schedule']>, intensity?: TrainingState['intensity']) => void;
   updateDrillSchedule: (drills: Partial<TrainingState['drillSchedule']>) => void;
   setIndividualTraining: (playerId: string, focus: TrainingModule | null) => void;
-  hireStaff: (staffId: string) => void;
+  hireStaff: (staffId: string) => { success: boolean; message: string };
   fireStaff: (staffId: string) => void;
   praiseStaff: (staffId: string) => { success: boolean; message: string };
   criticizeStaff: (staffId: string) => { success: boolean; message: string };

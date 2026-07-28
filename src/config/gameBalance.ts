@@ -12,6 +12,9 @@ export const SPRING_PHASE_END_WEEK = 38;
 export const STARTING_BOARD_CONFIDENCE = 50;
 export const FRIENDLY_BOARD_CONFIDENCE_MULT = 0.25;
 export const LINEUP_SIZE = 11;
+/** Combined goals the season-end catch-up resolver centres on. Matches the
+ *  engine's real-football target band; see `resolveCatchUpFixture`. */
+export const CATCH_UP_EXPECTED_GOALS = 2.7;
 export const LOW_FITNESS_THRESHOLD = 65;
 
 // ── First Match Confidence Boost (Season 1 only) ──
@@ -28,6 +31,45 @@ export const DEV_DIMINISHING_RETURNS_CEILING = 100;
 export const DEV_DIMINISHING_RETURNS_DIVISOR = 60;
 export const PLAYING_TIME_BONUS_MAX = 0.20;
 export const PLAYING_TIME_BONUS_PER_APP = 0.007;
+/** Minutes that count as one "appearance" for the playing-time growth term.
+ *  Playing time is credited from `Player.minutesPlayed / this`, so an 87th-minute
+ *  cameo is worth ~0.03 appearances instead of a full one. Saves written before
+ *  minutes tracking existed have no `minutesPlayed`, so `appearances` is used
+ *  as the fallback (see `development.ts`). */
+export const MINUTES_PER_APPEARANCE = 90;
+
+// ── Player Development: Match-Rating Performance Term ──
+// The engine computes a per-player match rating (`match.ts` → finalizeMatch)
+// and used to spend it on nothing but the Ballon d'Or. These constants feed the
+// season-average rating back into the growth roll so a 9.0 develops faster than
+// a 4.0. Deliberately smaller than the playing-time term (max 0.20) — minutes
+// still dominate, performance differentiates.
+/** Season-average rating that produces zero adjustment, so an average performer's
+ *  growth rate is unchanged by this term — the point is to differentiate, not to
+ *  inflate.
+ *
+ *  Set to the measured MATCH-ENGINE mean (6.29; median 6.2, p10 5.4, p90 7.4 over
+ *  7,099 ratings at league-average quality). It was previously 7.15, which had
+ *  been sampled from a live save where AI clubs' SYNTHETIC ratings outnumber real
+ *  engine ratings ~24:1 and were themselves miscalibrated +1.14 high. The result
+ *  was backwards: the player's own squad sat below baseline and took a development
+ *  PENALTY while every AI squad sat above it and took a bonus. If the engine's
+ *  rating scale is retuned, re-measure this and the AI_RATING_* constants together. */
+export const DEV_RATING_BASELINE = 6.3;
+/** Growth-chance change per point of season-average rating above/below baseline.
+ *  Sized against the MEASURED spread of season-average ratings, which is narrow
+ *  (p10 6.74 → p90 7.39, i.e. roughly ±0.35 around the mean). At 0.25 that band
+ *  maps to about ±0.09 of growth chance against a typical base of ~0.29 — a
+ *  ~30% swing, meaningful without overtaking the playing-time term (0 → 0.20).
+ *  If the engine's rating formula is ever widened, lower this to compensate. */
+export const DEV_RATING_BONUS_PER_POINT = 0.25;
+/** Clamp on the performance term. Asymmetric: a great season helps more than a
+ *  poor one hurts, because the growth chance already floors at 0. */
+export const DEV_RATING_BONUS_MAX = 0.12;
+export const DEV_RATING_BONUS_MIN = -0.09;
+/** Rated matches required before the performance term applies at all — a
+ *  one-match sample is noise, not form. */
+export const DEV_RATING_MIN_MATCHES = 5;
 
 // ── Player Development: Decline ──
 export const DECLINE_AGE_THRESHOLD = 31;
@@ -155,6 +197,42 @@ export const FORM_WIN_CHANGE = 5;
 export const FORM_LOSS_CHANGE = -8;
 export const FORM_DRAW_CHANGE = -2;
 
+// ── Match Rating → Morale / Form ──
+// Layered ON TOP of the team result above, never replacing it. The team result
+// must stay dominant: with the caps below, a man-of-the-match in a defeat still
+// loses morale and form (just less), and an anonymous 4.5 in a win still gains
+// (just less). Before this existed, the MOTM and the player sent off took an
+// identical morale hit.
+/** Per-match rating that produces zero adjustment (league-wide mean). */
+export const RATING_MORALE_BASELINE = 7.0;
+export const MORALE_PER_RATING_POINT = 2.5;
+/** Cap must stay below |MORALE_LOSS_CHANGE| (10) or a good game inverts a defeat. */
+export const MORALE_RATING_ADJ_CAP = 5;
+export const FORM_PER_RATING_POINT = 2.0;
+/** Cap must stay below |FORM_LOSS_CHANGE| (8) for the same reason. */
+export const FORM_RATING_ADJ_CAP = 4;
+
+// ── Match Fitness Carry-Over ──
+/** When true, the per-minute fitness the engine already computed is written back
+ *  to the player instead of the flat `FITNESS_DRAIN_PER_MATCH`. A 90-minute shift
+ *  at high pressing then costs far more than an 87th-minute cameo, which is what
+ *  makes rotation a real decision. Falls back to the flat drain for participants
+ *  the engine reported no fitness for (AI quick paths, forfeits, legacy saves). */
+export const MATCH_FITNESS_CARRY_ENABLED = true;
+/** Scales the engine-measured drain on write-back. 1.0 = use it verbatim. Lower
+ *  it to soften the change without touching the in-match model. */
+export const MATCH_FITNESS_CARRY_SCALE = 1.0;
+
+// ── Yellow-Card Accumulation Bans ──
+// Yellows were tracked and caused nothing; only reds suspended anyone. With
+// bans, `pressingIntensity`, `personality.temperament`, the `disciplinarian`
+// perk and squad depth all start to matter.
+/** Season yellow-card totals that each trigger a ban when crossed. Yellow totals
+ *  reset at season end (`seasonEnd.ts`), so these are per-season thresholds. */
+export const YELLOW_ACCUMULATION_THRESHOLDS = [5, 10, 15] as const;
+/** Matches missed per accumulation ban. */
+export const YELLOW_ACCUMULATION_BAN_WEEKS = 1;
+
 // ── Injury ──
 export const MATCH_INJURY_WEEKS_MIN = 1;
 export const MATCH_INJURY_WEEKS_RANGE = 4;
@@ -180,10 +258,62 @@ export const CONTRACT_MORALE_HIT_AMOUNT = -5;
 export const CONTRACT_MORALE_MIN = 20;
 
 // ── Income ──
+/**
+ * Matchday revenue per point of `club.fanBase`.
+ *
+ * ⚠️ `club.fanBase` is a 0-100 POPULARITY INDEX, not a headcount. It spans
+ * roughly 85 (Arsenal) down to 40 (AFC Wimbledon) — a ~2x range — while
+ * `LeagueInfo.averageWage` spans £120k → £6k (20x). Multiplying the index by a
+ * flat per-fan rate therefore produced an almost flat matchday line across the
+ * pyramid, and a League Two side out-earned the Premier League net-of-wages.
+ * ALWAYS scale this by `LEAGUE_TIER_REVENUE_SCALE` — use
+ * `getMatchdayIncome()` in `utils/financeHelpers.ts` rather than multiplying
+ * this constant directly.
+ */
 export const MATCHDAY_INCOME_PER_FAN = 50000;
+/**
+ * Multiplier applied to the weekly-average matchday figure on a HOME match
+ * week. Matchday was paid every week — away games, byes and the post-season
+ * included — so it behaved as a weekly stipend rather than gate receipts.
+ *
+ * Every league plays exactly half its fixtures at home (38 fixtures / 19 home,
+ * 46 / 23), so paying 2x on home weeks and nothing otherwise leaves the season
+ * total unchanged while tying the money to actually hosting a match. The season
+ * total is deliberately preserved: measured against real wage bills, halving
+ * top-flight matchday takes a tier-1 club straight past the FFP critical
+ * threshold into insolvency.
+ */
+export const MATCHDAY_HOME_FIXTURE_MULTIPLIER = 2.0;
+/** Commercial income per point of club reputation (1-5). Tier-scaled — see
+ *  `getCommercialIncome()` in `utils/financeHelpers.ts`. */
 export const COMMERCIAL_INCOME_PER_REP = 200000;
-/** Base weekly income floor so lower-league clubs can still compete */
-export const COMMERCIAL_INCOME_BASE = 100000;
+/** Flat weekly income floor (NOT tier-scaled) so a tiny club always has some
+ *  revenue to work with. Deliberately small: it used to be £100k, which made
+ *  commercial revenue the dominant income line for a fourth-tier club. */
+export const COMMERCIAL_INCOME_BASE = 25000;
+/**
+ * Weekly club-revenue scale by **`LeagueInfo.qualityTier`** (1 = elite,
+ * 4 = developing). Applied to matchday and the reputation-driven commercial
+ * component so the league pyramid has a real financial gradient.
+ *
+ * Keyed on `qualityTier`, NOT `tier`: `tier` is pyramid depth, and 33 of the
+ * 45 leagues are single-tier top divisions (Cyprus is `tier: 1`), so keying on
+ * `tier` would pay Cyprus Premier League money. `qualityTier` captures actual
+ * league prestige — England 1 / Championship 2 / League One 3 / League Two 4,
+ * Scotland 3, Cyprus 4 — and is the same key `MERCH_QUALITY_TIER_SCALE` uses.
+ *
+ * Unknown tiers fall back to the tier-4 scale (see
+ * `getLeagueRevenueScale()`), so a missing league definition can never mint
+ * top-flight revenue.
+ *
+ * Calibrated against measured AI wage bills, not against real-world revenue
+ * ratios (which are far steeper). The binding constraint is cost-to-revenue:
+ * these values land every tier in a 65-90% band, which is tight-but-playable
+ * everywhere. A steeper curve (tier 3 at 0.18) made Celtic — `tier: 1`,
+ * `qualityTier: 3`, and the default club in two test suites — insolvent from
+ * week one of season one with no mistake by the player.
+ */
+export const LEAGUE_TIER_REVENUE_SCALE: Record<number, number> = { 1: 1.0, 2: 0.38, 3: 0.26, 4: 0.14 };
 export const STADIUM_INCOME_PER_LEVEL = 20000;
 export const POSITION_PRIZE_PER_RANK = 15000;
 /** Fallback max prize rank (20-team baseline) used only when no league table
@@ -233,6 +363,38 @@ export const REPLACEMENT_QUALITY_REP_MULTIPLIER = 10;
 export const REPLACEMENT_QUALITY_BASE = 20;
 export const REPLACEMENT_QUALITY_VARIANCE = 15;
 export const GENERIC_FILL_POSITIONS: Position[] = ['CM', 'CB', 'ST', 'LW', 'RW'];
+
+/**
+ * How much a regenerated player is pulled toward the club's DESIGNED level
+ * (`ClubData.squadQuality`) rather than its current squad average.
+ *
+ * Audit 6.2 — "leagues converge instead of diverging". Regen used to blend a
+ * reputation-derived anchor at 0.4 with the club's own squad average at 0.6.
+ * Reputation spans only 2–5, and across the English pyramid tiers 2, 3 and 4 are
+ * almost entirely rep 2 — so the anchor could not distinguish a Championship
+ * club from a League Two club, and dragged both toward the same ~47 while their
+ * designed levels are 65–71 and 58–62. Meanwhile the 0.6 on the club's own
+ * average made every fill an average player, so squads slowly lost their shape.
+ *
+ * At 0.55 a club rebuilds mostly toward its own stature (a fallen giant
+ * recovers, an over-performing minnow regresses) while its current squad still
+ * matters. Raise it for a more rigid, more predictable world; lower it to let
+ * clubs drift further from what they were designed to be.
+ */
+export const REGEN_DESIGN_WEIGHT = 0.55;
+
+/**
+ * How far BELOW the player club's own level its gap-fill replacements land.
+ *
+ * The player's club is the only one that both regenerates and buys, so the
+ * design anchor above stacked with transfer spending: measured over 12 seasons,
+ * a designed-90 club reached a 91.5 squad average on a £17.5M/week wage bill and
+ * fell to -£2.5B, because it was handed free 90-rated players every season. A
+ * safety net should keep the squad legal, not upgrade it — at 6 the fill is
+ * clearly cover, and squad quality only improves through things the user pays
+ * for. Does not apply to AI clubs, which need regen to keep leagues alive.
+ */
+export const REGEN_PLAYER_CLUB_MARGIN = 6;
 
 // ── Transfer Market Listing ──
 export const LISTING_PRICE_MIN_MULTIPLIER = 1.1;

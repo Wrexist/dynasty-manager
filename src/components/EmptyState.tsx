@@ -1,8 +1,9 @@
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { LucideIcon } from 'lucide-react';
+import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 
 interface EmptyStateProps {
   /** Optional lucide icon rendered above the title. Muted + small. */
@@ -47,7 +48,7 @@ export function EmptyState({
   variant = 'panel',
   className,
 }: EmptyStateProps) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionPref();
   const body = (
     <div className={cn('text-center', variant === 'panel' ? 'p-6' : 'py-6', className)}>
       {Icon && (

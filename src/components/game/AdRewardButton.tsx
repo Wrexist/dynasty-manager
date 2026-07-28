@@ -30,10 +30,21 @@ export function AdRewardButton({ rewardType, onRewardClaimed, claimContext, clas
   const canClaim = canClaimAdReward(monetization, rewardType, season, claimContext);
 
   if (!canClaim) return null;
-  // V1: ads are disabled. Hide the "Watch Ad" affordance from free users so
-  // they don't tap a button that can't deliver. Pro users keep the instant
-  // "Claim" path because it doesn't depend on an ad.
-  if (!userIsPro && !NATIVE_ADS_READY) return null;
+  // V1: ads are disabled, so this affordance is hidden from EVERYONE.
+  //
+  // It previously stayed visible for Pro (`!userIsPro && !NATIVE_ADS_READY`),
+  // which quietly turned an ad-opt-in into a Pro-exclusive economic buff:
+  // +£500K×2 and +£1M transfer budget, hidden-potential scout reveals and
+  // youth previews per season, for paying users only. That violates the
+  // invariant asserted in this file's config header and in
+  // utils/monetization.ts — monetization must never modify transfer values or
+  // any simulation parameter — and it is pay-to-win framing besides.
+  // PRO_FEATURES contains no economic perk, and it must stay that way.
+  //
+  // When ads are re-enabled (see utils/ads.ts), both branches below become
+  // reachable again and parity is restored: free users watch an ad, Pro users
+  // skip it. Until then, nobody gets the reward.
+  if (!NATIVE_ADS_READY) return null;
 
   const reward = AD_REWARDS[rewardType];
 

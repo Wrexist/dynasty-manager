@@ -1,5 +1,6 @@
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 
 type Tone = 'red' | 'emerald' | 'primary' | 'sky';
 
@@ -42,7 +43,7 @@ export function CountBadge({
   // Only the transform scales — opacity is left to the optional CSS pulse so
   // the two effects never fight over the same property. Hook runs before the
   // early return below to satisfy the rules-of-hooks.
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionPref();
 
   if (count <= 0) return null;
   const display = count > cap ? `${cap}+` : String(count);

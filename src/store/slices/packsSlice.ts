@@ -3,7 +3,7 @@ import type { OpenedPackRecord, OpenPackResult, PackTierKey, PackUnlockMethod, P
 import type { GameState } from '../storeTypes';
 import { addMsg, safeRandomUUID } from '@/utils/helpers';
 import { MAX_SQUAD_SIZE, MIN_SQUAD_SIZE, FFP_WAGE_RATIO_WARNING } from '@/config/gameBalance';
-import { PACK_TIER_MAP, RECENT_PULLS_LIMIT } from '@/config/packs';
+import { PACK_TIER_MAP, RECENT_PULLS_LIMIT, isFreeOpenMethod } from '@/config/packs';
 import { generateAiCounterSignings, generatePackContents, shouldPityTrigger, updatedPityCounter } from '@/utils/packGeneration';
 import { CHALLENGES } from '@/data/challenges';
 import { grantXP, XP_REWARDS } from '@/utils/managerPerks';
@@ -247,7 +247,10 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     const usedToday = buckets.date === today ? buckets : { date: today, free: {}, ad: {} };
 
     const pityTriggered = shouldPityTrigger(state.packPityCounter || 0);
-    const players = generatePackContents(tierKey, state.season, { pityTriggered });
+    // A free daily / rewarded-ad open uses the tier's weaker odds where it has
+    // them (currently Gold). Paid opens are unaffected.
+    const freeOpen = isFreeOpenMethod(method);
+    const players = generatePackContents(tierKey, state.season, { pityTriggered, freeOpen });
 
     // Claim players onto the club roster. Generators created them with
     // clubId = ''; we finalize ownership here.
@@ -409,8 +412,11 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       const userClub = s.clubs[pid];
       if (!userClub) return;
 
-      // AI counter-signings at strictly lower OVR (league keeps pace).
-      const aiBackfill = generateAiCounterSignings(tierKey, s.clubs, pid, s.playerDivision, s.season);
+      // AI counter-signings at strictly lower OVR (league keeps pace). Passes
+      // the same `freeOpen` resolution as the pull itself — the AI ceiling is
+      // derived from the user's guarantee, so a free Gold open must lower the
+      // AI ceiling too or the counter-signings would out-rate the user's card.
+      const aiBackfill = generateAiCounterSignings(tierKey, s.clubs, pid, s.playerDivision, s.season, freeOpen);
       let clubsAcc = s.clubs;
       const playersAcc = { ...s.players };
       for (const [aiClubId, aiPlayers] of Object.entries(aiBackfill.perClub)) {

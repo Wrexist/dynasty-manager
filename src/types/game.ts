@@ -43,7 +43,17 @@ export interface SeasonTurnover {
   leagueId: LeagueId;
   promotedClubs: string[];    // Clubs promoted TO this league from below
   relegatedClubs: string[];   // Clubs relegated FROM this league to below
-  playoffWinners: string[];   // Clubs promoted via playoffs
+  /** Clubs that left this league by winning the promotion playoff — a labelled
+   *  subset of `promotedOutClubs`, kept separate only so the season summary can
+   *  call the playoff route out by name. */
+  playoffWinners: string[];
+  /** Clubs that LEFT this league by being promoted to the tier above, by EITHER
+   *  route (automatic or playoff).
+   *  `promotedClubs` used to carry these too, so for any middle tier it mixed
+   *  arrivals and departures — and the season-summary message renders it as
+   *  "Promoted to the league: ...", i.e. it listed clubs that had just left as
+   *  having joined. Optional so pre-v78 saves load unchanged. */
+  promotedOutClubs?: string[];
   /** @deprecated kept for save compat — use promotedClubs/relegatedClubs */
   replacedClubs?: string[];
   /** @deprecated kept for save compat */
@@ -119,7 +129,7 @@ export interface RedeemResult {
   amount?: number;
 }
 
-export type GameScreen = 'dashboard' | 'squad' | 'tactics' | 'transfers' | 'club' | 'match' | 'player-detail' | 'league-table' | 'inbox' | 'season-summary' | 'calendar' | 'training' | 'scouting' | 'packs' | 'staff' | 'youth-academy' | 'facilities' | 'finance' | 'merchandise' | 'match-prep' | 'match-review' | 'board' | 'settings' | 'comparison' | 'manager-profile' | 'cup' | 'league-cup' | 'champions-cup' | 'shield-cup' | 'conference-cup' | 'super-cup' | 'perks' | 'trophy-cabinet' | 'prestige' | 'hall-of-managers' | 'team-detail' | 'shop' | 'help' | 'whats-new' | 'national-team' | 'national-squad-picker' | 'international-tournament' | 'job-market' | 'career-overview' | 'ballon-dor' | 'festival' | 'dynasty-legacy' | 'world-cup-draw' | 'world-cup-result' | 'rivalries' | 'competitions';
+export type GameScreen = 'dashboard' | 'squad' | 'tactics' | 'transfers' | 'club' | 'match' | 'player-detail' | 'league-table' | 'inbox' | 'season-summary' | 'calendar' | 'training' | 'scouting' | 'packs' | 'staff' | 'youth-academy' | 'facilities' | 'finance' | 'merchandise' | 'match-prep' | 'match-review' | 'board' | 'settings' | 'comparison' | 'manager-profile' | 'cup' | 'league-cup' | 'champions-cup' | 'shield-cup' | 'conference-cup' | 'super-cup' | 'perks' | 'trophy-cabinet' | 'prestige' | 'hall-of-managers' | 'team-detail' | 'shop' | 'help' | 'whats-new' | 'national-team' | 'national-squad-picker' | 'international-tournament' | 'job-market' | 'career-overview' | 'ballon-dor' | 'festival' | 'dynasty-legacy' | 'world-cup-draw' | 'world-cup-result' | 'rivalries' | 'competitions' | 'career-retired';
 
 export interface PlayerAttributes {
   pace: number;
@@ -212,6 +222,13 @@ export interface Player {
   careerGoals: number;
   careerAssists: number;
   careerAppearances: number;
+  /** Minutes played this season, derived from the match event stream
+   *  (`computeMinutesPlayed`). Distinct from `appearances`, which counts an
+   *  87th-minute cameo the same as a 90-minute shift; the development
+   *  playing-time term and rotation decisions read minutes instead. Reset with
+   *  the other season stats at rollover. Optional so pre-v75 saves and any
+   *  generator that predates it keep working (readers use `?? 0`). */
+  minutesPlayed?: number;
   yellowCards: number;
   redCards: number;
   suspendedUntilWeek?: number;
@@ -971,6 +988,11 @@ export interface GameSettings {
   hidePageHints: boolean;
   hideOnboarding: boolean;
   confirmAllOffers: boolean;
+  /** When true (the default) the Weekly Digest only takes over the screen on
+   *  weeks that actually need a decision — quiet weeks render as an inline
+   *  "Last Week" card on the Dashboard instead of a scroll-locked modal.
+   *  Optional so pre-existing saves read as `undefined` → default. */
+  digestOnlyWhenSignificant?: boolean;
   reducedMotion: boolean;
   /** Maximises smoothness on lower-end devices: disables backdrop-blur (solid
    *  surfaces), drops decorative specular overlays, and forces reduced motion. */
@@ -1738,8 +1760,18 @@ export type SubscriptionTier = 'trial' | 'monthly' | 'annual' | 'lifetime';
 export interface SubscriptionInfo {
   tier: SubscriptionTier;
   productId: ProductId;
-  /** ISO date string of expiration, or null for lifetime */
+  /** ISO date string of expiration. `null` means "the store did not tell us".
+   *  It does NOT mean lifetime — see `isSubscriptionExpired` in
+   *  utils/monetization.ts. Lifetime is identified by `tier`/`productId`,
+   *  never by a missing date, because RevenueCat can omit `expirationDate`
+   *  on an active recurring entitlement (sandbox, grace/billing-issue states,
+   *  promotional entitlements) and treating that as lifetime granted
+   *  permanent Pro for one month's payment. */
   expiresAt: string | null;
+  /** ISO date this record was written from the store. Used as the anchor for a
+   *  bounded fallback window when a recurring tier arrives with no
+   *  `expiresAt`, so such a record can never be permanent. */
+  grantedAt?: string;
   /** Whether the subscription has a billing issue (grace period) */
   isInGracePeriod: boolean;
   /** Whether the subscription will auto-renew */
@@ -2185,6 +2217,13 @@ export interface PackTierDefinition {
   /** Display-only price string for the IAP path (e.g. `'$4.99'`). Real
    *  price comes from the store at runtime — this is the planned tier. */
   iapPriceDisplay?: string;
+  /** Weaker odds applied when the pack is obtained WITHOUT paying (free
+   *  daily or rewarded ad). Only meaningful for a tier that has both a free
+   *  allowance and a `productId` — currently Gold, whose free daily open was
+   *  handing out a guaranteed 78+ every day. Resolve with `resolvePackTier`;
+   *  never read these fields directly, or the shop badge and the generator
+   *  will drift apart. */
+  freeOpenOverride?: Partial<Pick<PackTierDefinition, 'guaranteedMinOvr' | 'ovrMin' | 'ovrMax' | 'rarity'>>;
 }
 
 export interface OpenedPackRecord {
