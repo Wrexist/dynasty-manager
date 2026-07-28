@@ -69,6 +69,13 @@ const DEFAULTS = {
   monthlyChurn: 0.25, // --churn        monthly subscriber churn per month
   consumableArpi: 0.05, // --consumables  player-pack IAP revenue per install, USD
 
+  // Rewarded-ad revenue per install, USD. Currently 0.00 because ads are
+  // disabled at every layer (src/utils/ads.ts, NATIVE_ADS_READY = false).
+  // NOTE: ad revenue does NOT pay Apple's IAP commission, so this is added
+  // after the cut, not before it — modelling it alongside IAP would understate
+  // it by the commission rate.
+  adArpi: 0.0, // --ad-arpi      rewarded-ad revenue per install, USD
+
   // --- ad mechanics ---
   cr: 0.55, // --cr           tap → install (Apple Ads search results run high)
   cpt: 1.20, // --cpt          cost per tap, USD
@@ -89,17 +96,33 @@ function parseArgs(argv) {
     'trial-to-paid': 'trialToPaid',
     churn: 'monthlyChurn',
     consumables: 'consumableArpi',
+    'ad-arpi': 'adArpi',
     cr: 'cr',
     cpt: 'cpt',
     commission: 'commission',
     horizon: 'horizonMonths',
     roas: 'targetRoas',
   };
+  // Price overrides let a REPRICED ladder be modelled without editing the
+  // shipped catalog. Without these, any roadmap that proposes a price change
+  // has no reproducible way to show its effect.
+  const priceAlias = {
+    'price-pro': 'com.dynastymanager.pro',
+    'price-monthly': 'com.dynastymanager.pro.monthly',
+    'price-annual': 'com.dynastymanager.pro.annual',
+    'price-lifetime': 'com.dynastymanager.pro.lifetime',
+    'price-bundle': 'com.dynastymanager.bundle.all',
+  };
   const out = { ...DEFAULTS };
+  const priceOverrides = {};
   const overridden = new Set();
   for (const arg of argv) {
     const m = /^--([a-z-]+)=([0-9.]+)$/.exec(arg);
     if (!m) continue;
+    if (priceAlias[m[1]]) {
+      priceOverrides[priceAlias[m[1]]] = Number(m[2]);
+      continue;
+    }
     const key = alias[m[1]];
     if (!key) {
       console.error(`Unknown flag --${m[1]}`);
@@ -108,7 +131,7 @@ function parseArgs(argv) {
     out[key] = Number(m[2]);
     overridden.add(key);
   }
-  return { cfg: out, overridden };
+  return { cfg: out, overridden, priceOverrides };
 }
 
 /** Expected number of successful monthly bills inside the horizon. */
@@ -155,22 +178,28 @@ function model(cfg, prices) {
     { label: 'Consumable player packs', rate: 1, unit: cfg.consumableArpi, qty: 1 },
   ].map((l) => ({ ...l, gross: l.rate * l.unit * l.qty }));
 
-  const grossPerInstall = lines.reduce((s, l) => s + l.gross, 0);
-  const netPerInstall = grossPerInstall * (1 - cfg.commission);
+  // IAP revenue pays Apple's commission; ad revenue does not. Keeping them in
+  // separate buckets until after the cut is applied is the difference between
+  // a correct ad-revenue line and one understated by the commission rate.
+  const iapGross = lines.reduce((s, l) => s + l.gross, 0);
+  const netPerInstall = iapGross * (1 - cfg.commission) + cfg.adArpi;
+  // "Gross" reported to the user is the comparable pre-cut figure, so the ad
+  // line has to be grossed back up to sit in the same column as the IAP lines.
+  const grossPerInstall = iapGross + cfg.adArpi / (1 - cfg.commission);
   const maxCpi = netPerInstall / cfg.targetRoas;
   const maxCpt = maxCpi * cfg.cr;
   const actualCpi = cfg.cpt / cfg.cr;
   const roas = netPerInstall / actualCpi;
 
-  return { lines, bills, grossPerInstall, netPerInstall, maxCpi, maxCpt, actualCpi, roas };
+  return { lines, bills, iapGross, grossPerInstall, netPerInstall, maxCpi, maxCpt, actualCpi, roas };
 }
 
 const usd = (n) => `$${n.toFixed(n < 1 ? 3 : 2)}`;
 const pct = (n) => `${(n * 100).toFixed(1)}%`;
 
 function main() {
-  const { cfg, overridden } = parseArgs(process.argv.slice(2));
-  const prices = loadPrices();
+  const { cfg, overridden, priceOverrides } = parseArgs(process.argv.slice(2));
+  const prices = { ...loadPrices(), ...priceOverrides };
   const r = model(cfg, prices);
 
   if (process.argv.includes('--json')) {
@@ -186,12 +215,25 @@ function main() {
   console.log('  ' + '─'.repeat(66));
   console.log(`  Horizon ${cfg.horizonMonths} months · Apple cut ${pct(cfg.commission)} · target ROAS ${cfg.targetRoas.toFixed(2)}x\n`);
 
+  const repriced = Object.keys(priceOverrides);
+  if (repriced.length) {
+    console.log('  ⚑ MODELLING A REPRICED LADDER — these are not the shipped prices:');
+    for (const id of repriced) {
+      console.log(`      ${id.replace('com.dynastymanager.', '').padEnd(20)} → ${usd(priceOverrides[id])}`);
+    }
+    console.log('');
+  }
+
   console.log('  Revenue per install');
   for (const l of r.lines) {
     console.log(`    ${l.label.padEnd(46)} ${usd(l.gross).padStart(8)}`);
   }
+  console.log(`    ${'Subtotal, IAP (pays Apple’s cut)'.padEnd(46)} ${usd(r.iapGross).padStart(8)}`);
+  if (cfg.adArpi > 0) {
+    console.log(`    ${'Rewarded ads (no Apple cut)'.padEnd(46)} ${usd(cfg.adArpi).padStart(8)}`);
+  }
   console.log('    ' + '─'.repeat(55));
-  console.log(`    ${'Gross per install'.padEnd(46)} ${usd(r.grossPerInstall).padStart(8)}`);
+  console.log(`    ${'Gross per install (ads grossed up)'.padEnd(46)} ${usd(r.grossPerInstall).padStart(8)}`);
   console.log(`    ${`Net per install (after Apple's cut)`.padEnd(46)} ${usd(r.netPerInstall).padStart(8)}`);
 
   console.log('\n  Bid ceilings implied by that revenue');

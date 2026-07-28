@@ -45,6 +45,23 @@ node marketing/ads/unit-economics.mjs --pro=0.03 --monthly=0.05 \
 node marketing/ads/unit-economics.mjs --json    # machine-readable
 ```
 
+**Modelling changes you have not shipped yet.** Two flag families exist so a
+proposed change can be evaluated before anyone edits the app:
+
+```bash
+# Rewarded ads, currently a $0.00 line (src/utils/ads.ts, NATIVE_ADS_READY=false)
+node marketing/ads/unit-economics.mjs --ad-arpi=0.12
+
+# A repriced ladder, without touching the shipped catalog
+node marketing/ads/unit-economics.mjs --price-annual=19.99 --price-bundle=24.99
+```
+
+Ad revenue is deliberately added **after** Apple's commission — ads do not pay
+the IAP cut, and modelling them alongside IAP understates them by the
+commission rate. The printed "gross" line grosses the ad revenue back up so it
+sits in the same column as the IAP lines; the "net" line is the one that sets
+the bid ceiling.
+
 ## Two rules that are easy to get wrong
 
 1. **Rival brand names are legal in Apple Ads and a Guideline 2.3.7 violation
