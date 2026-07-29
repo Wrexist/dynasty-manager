@@ -193,7 +193,7 @@ export const AD_REWARDS: Record<AdRewardType, { label: string; description: stri
   },
   transfer_budget: {
     label: 'Budget Boost',
-    description: 'Get a one-time £500K transfer budget injection.',
+    description: 'Get a one-time boost to your transfer budget.',
   },
   youth_preview: {
     label: 'Youth Preview',
@@ -201,7 +201,7 @@ export const AD_REWARDS: Record<AdRewardType, { label: string; description: stri
   },
   season_bonus: {
     label: 'Season Bonus',
-    description: 'Start next season with an extra £1M in the transfer budget.',
+    description: 'Start next season with a bonus added to your transfer budget.',
   },
 };
 

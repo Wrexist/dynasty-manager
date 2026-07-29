@@ -6,7 +6,7 @@ import { isPro, canClaimAdReward } from '@/utils/monetization';
 import { AD_REWARDS } from '@/config/monetization';
 import type { AdRewardType } from '@/types/game';
 import { hapticLight } from '@/utils/haptics';
-import { NATIVE_ADS_READY, showRewardedAd } from '@/utils/ads';
+import { REWARDED_ADS_USABLE, showRewardedAd } from '@/utils/ads';
 
 interface AdRewardButtonProps {
   rewardType: AdRewardType;
@@ -44,7 +44,11 @@ export function AdRewardButton({ rewardType, onRewardClaimed, claimContext, clas
   // When ads are re-enabled (see utils/ads.ts), both branches below become
   // reachable again and parity is restored: free users watch an ad, Pro users
   // skip it. Until then, nobody gets the reward.
-  if (!NATIVE_ADS_READY) return null;
+  //
+  // Gated on REWARDED_ADS_USABLE rather than NATIVE_ADS_READY so that enabling
+  // the plugin without shipping a real showRewardedAd() cannot re-open the
+  // Pro-only branch on its own — see the comment on REWARDED_AD_IMPL_IS_STUB.
+  if (!REWARDED_ADS_USABLE) return null;
 
   const reward = AD_REWARDS[rewardType];
 

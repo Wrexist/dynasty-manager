@@ -19,7 +19,7 @@ import { formatMoney } from '@/utils/helpers';
 import { cn } from '@/lib/utils';
 import { errorToast, infoToast, successToast } from '@/utils/gameToast';
 import type { Player } from '@/types/game';
-import { NATIVE_ADS_READY, showRewardedAd } from '@/utils/ads';
+import { REWARDED_ADS_USABLE, showRewardedAd } from '@/utils/ads';
 import { purchaseConsumable } from '@/utils/purchases';
 import { readPendingPackCredit, writePendingPackCredit, clearPendingPackCredit } from '@/store/helpers/persistence';
 import { isReviewWorthyPackTier, maybeRequestReview } from '@/utils/appReview';
@@ -292,8 +292,10 @@ const PacksPage = () => {
   };
   const adRemaining = (tier: PackTierDefinition): number => {
     // V1: ads are disabled at the native layer, so the ad-unlock path is
-    // never offered. Re-enables automatically when NATIVE_ADS_READY flips.
-    if (!NATIVE_ADS_READY) return 0;
+    // never offered. Re-enables automatically once REWARDED_ADS_USABLE is true
+    // — which needs BOTH the plugin flag and a real showRewardedAd(), so the
+    // slot can never be offered against a stub that always fails.
+    if (!REWARDED_ADS_USABLE) return 0;
     const cap = tier.adDailyLimit ?? 0;
     if (cap === 0) return 0;
     return Math.max(0, cap - usedToday(tier).ad);
