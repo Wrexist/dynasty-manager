@@ -14,20 +14,15 @@ import {
 } from '@/utils/monetization';
 import {
   PRODUCTS,
+  AD_REWARDS,
   AD_REWARD_VALUES,
+  adBudgetReward,
   AD_REWARD_LIMITS,
   COSMETIC_ITEMS,
   DEFAULT_MONETIZATION_STATE,
   STARTER_KIT_WINDOW_MS,
 } from '@/config/monetization';
 import type { MonetizationState } from '@/types/game';
-
-// ── Balance Imports ──
-import {
-  MATCHDAY_INCOME_PER_FAN,
-  COMMERCIAL_INCOME_BASE,
-  COMMERCIAL_INCOME_PER_REP,
-} from '@/config/gameBalance';
 
 function makeState(overrides: Partial<MonetizationState> = {}): MonetizationState {
   return {
@@ -356,28 +351,49 @@ describe('product catalog', () => {
 });
 
 describe('economy balance guarantees', () => {
-  it('ad transfer budget bonus is less than 5% of a mid-tier league weekly income', () => {
-    // Mid-tier league club: fanBase ~40, reputation ~3
-    const weeklyIncome = 40 * MATCHDAY_INCOME_PER_FAN + COMMERCIAL_INCOME_BASE + 3 * COMMERCIAL_INCOME_PER_REP;
-    const ratio = AD_REWARD_VALUES.TRANSFER_BUDGET_BONUS / weeklyIncome;
-    expect(ratio).toBeLessThan(0.35); // Budget bonus is a one-time injection vs weekly income, generous threshold
+  it('ad budget rewards scale with club size and stay capped at both ends', () => {
+    const { TRANSFER_BUDGET_BONUS_PCT: pct, TRANSFER_BUDGET_BONUS_MIN: min, TRANSFER_BUDGET_BONUS_MAX: max } = AD_REWARD_VALUES;
+
+    // A bottom-tier club must not have its budget transformed by one ad. The
+    // old flat GBP 500K grant was ~100% of such a budget.
+    const smallBudget = 300_000;
+    const smallReward = adBudgetReward(smallBudget, pct, min, max);
+    expect(smallReward).toBe(min);
+    expect(smallReward / smallBudget).toBeLessThan(0.2);
+
+    // A rich club gets a meaningful but clamped amount.
+    const bigBudget = 200_000_000;
+    const bigReward = adBudgetReward(bigBudget, pct, min, max);
+    expect(bigReward).toBe(max);
+    expect(bigReward / bigBudget).toBeLessThan(0.01);
+
+    // Mid-tier sits on the proportional band, between the clamps.
+    const midReward = adBudgetReward(4_000_000, pct, min, max);
+    expect(midReward).toBe(200_000);
+    expect(midReward).toBeGreaterThan(min);
+    expect(midReward).toBeLessThan(max);
   });
 
-  it('ad season bonus is less than 2 weeks of small league income', () => {
-    // Small league club: fanBase ~20, reputation ~1
-    const weeklyIncome = 20 * MATCHDAY_INCOME_PER_FAN + COMMERCIAL_INCOME_BASE + 1 * COMMERCIAL_INCOME_PER_REP;
-    const twoWeeks = weeklyIncome * 2;
-    expect(AD_REWARD_VALUES.SEASON_END_BONUS).toBeLessThanOrEqual(twoWeeks);
+  it('ad budget rewards survive a zero or malformed budget', () => {
+    const { SEASON_END_BONUS_PCT: pct, SEASON_END_BONUS_MIN: min, SEASON_END_BONUS_MAX: max } = AD_REWARD_VALUES;
+    expect(adBudgetReward(0, pct, min, max)).toBe(min);
+    expect(adBudgetReward(-5_000, pct, min, max)).toBe(min);
+    expect(adBudgetReward(NaN, pct, min, max)).toBe(min);
   });
 
-  it('XP multiplier only doubles (never more)', () => {
-    expect(AD_REWARD_VALUES.XP_MULTIPLIER).toBe(2);
+  it('no ad reward grants manager XP — XP feeds perks, perks feed the sim', () => {
+    // Manager XP unlocks perks (training_ground, set_piece_coach, dna_coach)
+    // which are read by applyPlayerDevelopment and simulateMatch. An XP reward
+    // is therefore monetization mutating simulation parameters, which the
+    // header contracts in config/monetization.ts and utils/monetization.ts
+    // forbid. Guard the removal so it cannot be reintroduced by accident.
+    expect(Object.keys(AD_REWARDS)).not.toContain('xp_double');
+    expect(AD_REWARD_VALUES).not.toHaveProperty('XP_MULTIPLIER');
   });
 
   it('ad reward limits prevent abuse', () => {
     expect(AD_REWARD_LIMITS.transfer_budget).toBeLessThanOrEqual(2);
     expect(AD_REWARD_LIMITS.season_bonus).toBe(1);
-    expect(AD_REWARD_LIMITS.xp_double).toBeLessThanOrEqual(46); // Max one per match week
   });
 });
 

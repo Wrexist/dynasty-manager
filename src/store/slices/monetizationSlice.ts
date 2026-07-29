@@ -1,7 +1,6 @@
 import type { GameState } from '../storeTypes';
 import type { ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo } from '@/types/game';
-import { PRODUCTS, COSMETIC_ITEMS, AD_REWARD_LIMITS, AD_REWARD_VALUES, DEFAULT_MONETIZATION_STATE, FREE_TRIAL_MS, TRIAL_TARGET_PRODUCT_ID, CONSUMABLE_PRODUCT_IDS } from '@/config/monetization';
-import { grantXP } from '@/utils/managerPerks';
+import { PRODUCTS, COSMETIC_ITEMS, AD_REWARD_LIMITS, AD_REWARD_VALUES, adBudgetReward, DEFAULT_MONETIZATION_STATE, FREE_TRIAL_MS, TRIAL_TARGET_PRODUCT_ID, CONSUMABLE_PRODUCT_IDS } from '@/config/monetization';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -184,7 +183,12 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
             ...s.clubs,
             [s.playerClubId]: {
               ...club,
-              budget: club.budget + AD_REWARD_VALUES.TRANSFER_BUDGET_BONUS,
+              budget: club.budget + adBudgetReward(
+                club.budget,
+                AD_REWARD_VALUES.TRANSFER_BUDGET_BONUS_PCT,
+                AD_REWARD_VALUES.TRANSFER_BUDGET_BONUS_MIN,
+                AD_REWARD_VALUES.TRANSFER_BUDGET_BONUS_MAX,
+              ),
             },
           },
         };
@@ -258,7 +262,12 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
             ...s.clubs,
             [s.playerClubId]: {
               ...club,
-              budget: club.budget + AD_REWARD_VALUES.SEASON_END_BONUS,
+              budget: club.budget + adBudgetReward(
+                club.budget,
+                AD_REWARD_VALUES.SEASON_END_BONUS_PCT,
+                AD_REWARD_VALUES.SEASON_END_BONUS_MIN,
+                AD_REWARD_VALUES.SEASON_END_BONUS_MAX,
+              ),
             },
           },
         };
@@ -275,14 +284,5 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
       }));
     },
 
-    /** Apply double XP from ad reward for the last match */
-    applyDoubleXP: () => {
-      const state = _get();
-      const bonusXP = state.lastMatchXPGain;
-      if (bonusXP <= 0) return;
-      _set({
-        managerProgression: grantXP(state.managerProgression, bonusXP),
-      });
-    },
   };
 }

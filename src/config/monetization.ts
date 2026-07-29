@@ -195,10 +195,6 @@ export const AD_REWARDS: Record<AdRewardType, { label: string; description: stri
     label: 'Budget Boost',
     description: 'Get a one-time £500K transfer budget injection.',
   },
-  xp_double: {
-    label: 'Double XP',
-    description: 'Earn 2× XP from this match result.',
-  },
   youth_preview: {
     label: 'Youth Preview',
     description: 'Preview your next youth academy intake\'s top prospect.',
@@ -209,17 +205,44 @@ export const AD_REWARDS: Record<AdRewardType, { label: string; description: stri
   },
 };
 
+// Budget rewards are a PERCENTAGE of the club's current budget, clamped.
+//
+// They used to be flat (£500K / £1M), which reads as "small" only against a
+// Premier League club. For a bottom-tier side those figures are on the order
+// of the entire transfer budget — a single ad would have doubled a League Two
+// club's spending power while barely registering for a rich one, which is both
+// backwards and a sim-affecting reward. Proportional-with-a-clamp keeps the
+// reward meaningful at every tier without ever being decisive at any.
+//
+// Nobody has ever received these rewards (AdRewardButton returns null for
+// everyone while NATIVE_ADS_READY is false), so there is no player expectation
+// to preserve here.
 export const AD_REWARD_VALUES = {
-  TRANSFER_BUDGET_BONUS: 500_000,
-  SEASON_END_BONUS: 1_000_000,
-  XP_MULTIPLIER: 2,
+  /** Fraction of current budget granted by the Budget Boost reward. */
+  TRANSFER_BUDGET_BONUS_PCT: 0.05,
+  TRANSFER_BUDGET_BONUS_MIN: 50_000,
+  TRANSFER_BUDGET_BONUS_MAX: 500_000,
+  /** Fraction of current budget granted by the season-end reward. */
+  SEASON_END_BONUS_PCT: 0.08,
+  SEASON_END_BONUS_MIN: 100_000,
+  SEASON_END_BONUS_MAX: 1_000_000,
 } as const;
+
+/** Resolve a clamped, proportional ad budget reward for a club's current budget. */
+export function adBudgetReward(
+  budget: number,
+  pct: number,
+  min: number,
+  max: number
+): number {
+  const safeBudget = Number.isFinite(budget) && budget > 0 ? budget : 0;
+  return Math.round(Math.min(Math.max(safeBudget * pct, min), max));
+}
 
 /** Max ad rewards claimable per season per type */
 export const AD_REWARD_LIMITS: Record<AdRewardType, number> = {
   scout_potential: 10,
   transfer_budget: 2,
-  xp_double: 20,
   youth_preview: 2,
   season_bonus: 1,
 };
