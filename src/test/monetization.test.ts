@@ -11,6 +11,7 @@ import {
   getPurchaseCount,
   isOnFreeTrial,
   getFreeTrialDaysRemaining,
+  mergeDeviceMonetization,
 } from '@/utils/monetization';
 import {
   PRODUCTS,
@@ -486,5 +487,84 @@ describe('imported saves cannot grant entitlements', () => {
     expect(res.ok).toBe(true);
     const written = JSON.parse(readSaveSlot(1) as string);
     expect(written.monetization).toBeUndefined();
+  });
+});
+
+describe('mergeDeviceMonetization', () => {
+  const sub = (over = {}) => ({
+    tier: 'monthly' as const,
+    productId: 'com.dynastymanager.pro.monthly' as const,
+    expiresAt: new Date(Date.now() + 30 * 86_400_000).toISOString(),
+    isInGracePeriod: false,
+    willRenew: true,
+    ...over,
+  });
+  const expiredSub = () => sub({ expiresAt: new Date(Date.now() - 86_400_000).toISOString() });
+
+  it('unions entitlements from both sides and never drops one', () => {
+    const r = mergeDeviceMonetization(
+      { entitlements: ['com.dynastymanager.pack.manager'], subscription: null, firstLaunchTimestamp: 5 },
+      { entitlements: ['com.dynastymanager.pro'], subscription: null, firstLaunchTimestamp: 9 },
+    );
+    expect(r.entitlements).toContain('com.dynastymanager.pro');
+    expect(r.entitlements).toContain('com.dynastymanager.pack.manager');
+  });
+
+  it('deduplicates entitlements present on both sides', () => {
+    const r = mergeDeviceMonetization(
+      { entitlements: ['com.dynastymanager.pro'], subscription: null, firstLaunchTimestamp: 0 },
+      { entitlements: ['com.dynastymanager.pro'], subscription: null, firstLaunchTimestamp: 0 },
+    );
+    expect(r.entitlements).toEqual(['com.dynastymanager.pro']);
+  });
+
+  it('takes whichever side has a subscription when the other has none', () => {
+    const s = sub();
+    expect(mergeDeviceMonetization(
+      { entitlements: [], subscription: s, firstLaunchTimestamp: 0 },
+      { entitlements: [], subscription: null, firstLaunchTimestamp: 0 },
+    ).subscription).toEqual(s);
+    expect(mergeDeviceMonetization(
+      { entitlements: [], subscription: null, firstLaunchTimestamp: 0 },
+      { entitlements: [], subscription: s, firstLaunchTimestamp: 0 },
+    ).subscription).toEqual(s);
+  });
+
+  it('prefers an active subscription over an expired one, from either side', () => {
+    const active = sub();
+    expect(mergeDeviceMonetization(
+      { entitlements: [], subscription: active, firstLaunchTimestamp: 0 },
+      { entitlements: [], subscription: expiredSub(), firstLaunchTimestamp: 0 },
+    ).subscription).toEqual(active);
+    expect(mergeDeviceMonetization(
+      { entitlements: [], subscription: expiredSub(), firstLaunchTimestamp: 0 },
+      { entitlements: [], subscription: active, firstLaunchTimestamp: 0 },
+    ).subscription).toEqual(active);
+  });
+
+  it('takes the earliest REAL first-launch stamp so the Starter Kit cannot re-arm', () => {
+    // 0 means "never stamped" and must not win — `??` would wrongly keep it.
+    expect(mergeDeviceMonetization(
+      { entitlements: [], subscription: null, firstLaunchTimestamp: 1_000 },
+      { entitlements: [], subscription: null, firstLaunchTimestamp: 0 },
+    ).firstLaunchTimestamp).toBe(1_000);
+
+    expect(mergeDeviceMonetization(
+      { entitlements: [], subscription: null, firstLaunchTimestamp: 8_000 },
+      { entitlements: [], subscription: null, firstLaunchTimestamp: 3_000 },
+    ).firstLaunchTimestamp).toBe(3_000);
+
+    expect(mergeDeviceMonetization(
+      { entitlements: [], subscription: null, firstLaunchTimestamp: 0 },
+      { entitlements: [], subscription: null, firstLaunchTimestamp: 0 },
+    ).firstLaunchTimestamp).toBe(0);
+  });
+
+  it('survives missing entitlement arrays', () => {
+    const r = mergeDeviceMonetization(
+      { entitlements: undefined as never, subscription: null, firstLaunchTimestamp: 0 },
+      { entitlements: undefined as never, subscription: null, firstLaunchTimestamp: 0 },
+    );
+    expect(r.entitlements).toEqual([]);
   });
 });

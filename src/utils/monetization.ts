@@ -65,6 +65,58 @@ export function isSubscriptionActive(state: MonetizationState): boolean {
   return state.subscription != null && !isSubscriptionExpired(state.subscription);
 }
 
+/**
+ * Merge the device-scoped purchase fields of two monetization records, keeping
+ * whichever side actually proves a purchase.
+ *
+ * `loadGame` needs this because BOTH directions are real and they happen at
+ * different moments:
+ *
+ *  - Live is ahead of the save. The user bought Pro, then loaded a slot written
+ *    before the purchase. Taking the save's block revokes Pro from a payer.
+ *  - The SAVE is ahead of live. At cold launch the store still holds
+ *    DEFAULT_MONETIZATION_STATE — `loadGame` runs from TitleScreen *before*
+ *    GameShell's async RevenueCat sync — so taking live's block wipes the
+ *    purchase record, and the next autosave writes that loss to disk.
+ *
+ * Neither side can be trusted wholesale, so merge rather than pick: the union
+ * of entitlements, the stronger subscription record, and the earliest real
+ * first-launch timestamp. A purchase is only ever added by this function, never
+ * dropped; the store remains the authority for taking one away (an expired
+ * subscription still reads as expired through isSubscriptionExpired).
+ */
+export function mergeDeviceMonetization(
+  saved: Pick<MonetizationState, 'entitlements' | 'subscription' | 'firstLaunchTimestamp'>,
+  live: Pick<MonetizationState, 'entitlements' | 'subscription' | 'firstLaunchTimestamp'>,
+): Pick<MonetizationState, 'entitlements' | 'subscription' | 'firstLaunchTimestamp'> {
+  const entitlements = Array.from(
+    new Set([...(saved.entitlements ?? []), ...(live.entitlements ?? [])]),
+  );
+
+  // Prefer an unexpired record over an expired one; if both agree, prefer live,
+  // which is the one a RevenueCat sync can have refreshed.
+  const savedSub = saved.subscription ?? null;
+  const liveSub = live.subscription ?? null;
+  let subscription: SubscriptionInfo | null;
+  if (!savedSub) subscription = liveSub;
+  else if (!liveSub) subscription = savedSub;
+  else {
+    const liveActive = !isSubscriptionExpired(liveSub);
+    const savedActive = !isSubscriptionExpired(savedSub);
+    subscription = liveActive === savedActive ? liveSub : liveActive ? liveSub : savedSub;
+  }
+
+  // 0 means "never stamped". Take the earliest REAL stamp so the Starter Kit
+  // window measures from genuine first launch and cannot be re-armed by
+  // loading a save (`??` is wrong here — it does not fall through on 0).
+  const stamps = [saved.firstLaunchTimestamp, live.firstLaunchTimestamp].filter(
+    (t): t is number => typeof t === 'number' && t > 0,
+  );
+  const firstLaunchTimestamp = stamps.length ? Math.min(...stamps) : 0;
+
+  return { entitlements, subscription, firstLaunchTimestamp };
+}
+
 /** Check if the player has Dynasty Pro (via one-time purchase OR active subscription).
  *  Subscription SKUs are intentionally NOT checked against `entitlements`
  *  because RevenueCat keeps expired subs in `allPurchasedProductIdentifiers`

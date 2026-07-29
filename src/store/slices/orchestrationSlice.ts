@@ -22,6 +22,7 @@ import { createEmptyRecords } from '@/utils/records';
 
 import { getDefaultMerchState } from '@/utils/merchandise';
 import { DEFAULT_MONETIZATION_STATE } from '@/config/monetization';
+import { mergeDeviceMonetization } from '@/utils/monetization';
 
 import {
   FORFEIT_SCORE,
@@ -1008,29 +1009,25 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         halfTimeState: null,
         matchPhase: 'none' as const, secondHalfSimulatedTo: 45,
         pendingFarewell: Array.isArray(data.pendingFarewell) ? data.pendingFarewell : data.pendingFarewell ? [data.pendingFarewell] : [],
-        // Purchases belong to the DEVICE, not to the save slot. Taking this
-        // block wholesale from `data` revoked Pro from a paying user the
-        // moment they loaded a slot saved before they bought — isPro() reads
-        // entitlements and subscription.expiresAt, so both have to survive a
-        // load. Nothing re-syncs them at launch either: initPurchases()
-        // (main.tsx:187) does not write entitlements into the store, and
-        // restorePurchases() is only reachable from the manual buttons in
-        // SettingsPage and SubscribeOnboarding. The reset path already guards
-        // this (see makeFreshState above, "Preserve purchases and subscription
-        // across save resets") — loadGame simply never did.
+        // Purchases are device-scoped; slot progress is not. Both sides of this
+        // can be the stale one, so they are MERGED rather than one picked:
         //
-        // Slot-scoped progress (ad-reward counters, starter-kit dismissal,
-        // cosmetics equipped) still comes from the save; only the three
-        // device-scoped purchase fields are pinned to live state.
+        //  - Taking the block wholesale from `data` (the original behaviour)
+        //    revoked Pro from a payer who loaded a slot saved before buying.
+        //  - Pinning it to live state is wrong in the opposite direction and
+        //    more often: `loadGame` is called from TitleScreen at cold launch,
+        //    while the store still holds DEFAULT_MONETIZATION_STATE — GameShell's
+        //    RevenueCat sync only runs after navigation — so it would discard the
+        //    save's purchase record and the next autosave would persist the loss.
+        //
+        // mergeDeviceMonetization keeps the union of entitlements, the stronger
+        // subscription record and the earliest real first-launch stamp. It only
+        // ever adds a purchase; revocation stays the store's job via
+        // isSubscriptionExpired. Slot-scoped fields (activeCosmetics,
+        // adRewardsClaimed, starterKitDismissed) still come from the save.
         monetization: (() => {
-          const live = get().monetization;
           const saved = data.monetization || DEFAULT_MONETIZATION_STATE;
-          return {
-            ...saved,
-            entitlements: live.entitlements,
-            subscription: live.subscription,
-            firstLaunchTimestamp: live.firstLaunchTimestamp ?? saved.firstLaunchTimestamp,
-          };
+          return { ...saved, ...mergeDeviceMonetization(saved, get().monetization) };
         })(),
         nationalTeam: data.nationalTeam || null,
         internationalTournament: data.internationalTournament || null,
