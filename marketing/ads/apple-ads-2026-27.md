@@ -37,6 +37,20 @@ consumables) the picture only moves this far:
 | Optimistic funnel, head terms @55% CR | $0.70 | $0.38 | $1.20 | 0.32x | 3.1x over |
 | **Optimistic funnel, brand terms @75% CR** | **$0.70** | **$0.52** | **$0.35** | **1.49x** | **Pays back** |
 
+**The break-even thresholds, solved rather than read off a scenario row.** The
+"$0.70" column above is one modelled scenario's revenue, not the level revenue
+has to reach. The actual threshold is `cpt / cr / (1 − commission)`:
+
+| Campaign type | Threshold (gross/install) | vs today's $0.286 |
+|---|---|---|
+| Brand terms — $0.35 CPT @ 75% CR | **$0.549** | 1.9x |
+| Head terms — $1.20 CPT @ 55% CR | **$2.567** | 9.0x |
+
+Use $0.549, not $0.70, as the brand-term target — it is ~21% closer than the
+scenario row implies. `marketing/ads/arpi-roadmap.md` shows the route there and
+establishes that $2.567 is **not** reachable, so campaign 5 should be read as
+permanently parked rather than merely paused.
+
 Reproduce any row:
 
 ```bash
@@ -135,8 +149,20 @@ HEAD-TERMS-US  (paused)
 
 ## 3. Custom product pages — the highest-leverage lever in this document
 
-Page CVR is 17%. A paid tap into a 17% page costs 6× the CPT to produce one
-install. **Fixing the landing page is worth more than any bid change**, and CPPs
+**First, a correction: page CVR and tap→install CR are not the same number, and
+an earlier draft of this section treated them as one.** The 17% figure is the
+*blended* store conversion rate over all traffic, most of it search-browse
+impressions. Apple Ads tap→install CR measures something narrower — a tap is
+already a product-page view by a user who chose your ad — and it runs far
+higher, which is why the model defaults to 55%. The two are related but not
+interchangeable, and every bid ceiling in this document rests on that 55%
+assumption being roughly right. **It is unmeasured.** If the real tap→install
+CR turns out to be 35%, every max-CPT figure here falls by a third (the
+sensitivity row in `unit-economics.mjs` prints exactly that). Measuring it is
+part of what phase 1 buys.
+
+What remains true is the direction: the landing page multiplies everything.
+**Fixing it is worth more than any bid change**, and CPPs
 are free, need no build, and since July 2025 carry their own organic keywords —
 so the same asset lifts paid and organic together.
 
