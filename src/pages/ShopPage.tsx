@@ -10,7 +10,7 @@ import { isPro, hasProduct, isStarterKitAvailable, getOwnedCosmetics, getActiveC
 import type { CosmeticCategory } from '@/types/game';
 import type { ProductId, ProFeature } from '@/types/game';
 import { useNavigate } from 'react-router-dom';
-import { purchaseProduct as purchaseViaSDK, restorePurchases as restoreViaSDK, getEntitlements, getCustomerInfo, extractSubscriptionInfo, openSubscriptionManagement, getStorePrices } from '@/utils/purchases';
+import { purchaseProduct as purchaseViaSDK, restorePurchases as restoreViaSDK, getEntitlements, getCustomerInfo, extractSubscriptionInfo, openSubscriptionManagement, getStoreAvailability } from '@/utils/purchases';
 import { hapticMedium } from '@/utils/haptics';
 import { infoToast, successToast, errorToast } from '@/utils/gameToast';
 import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
@@ -78,12 +78,33 @@ const ShopPage = () => {
   // Localised store prices fetched from RevenueCat. Empty on web/dev — falls
   // back to the USD config price for display.
   const [storePrices, setStorePrices] = useState<Partial<Record<ProductId, string>>>({});
+  // Product IDs the store confirmed it can actually sell. `null` = not probed
+  // yet (or off-device), which means "show everything" — the same convention
+  // SubscribeOnboarding uses for `availableIds`.
+  //
+  // Without this, a SKU pulled from sale in App Store Connect still renders a
+  // buy button here, and tapping it can only fail. That is the Guideline 2.1.0
+  // condition that got build 174 rejected, and it is the sequencing hazard for
+  // any price-ladder change that retires a SKU.
+  const [availableIds, setAvailableIds] = useState<ProductId[] | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    getStorePrices().then(prices => { if (!cancelled) setStorePrices(prices); });
+    getStoreAvailability()
+      .then(({ supported, available, prices }) => {
+        if (cancelled) return;
+        setStorePrices(prices);
+        // Off-device the plugin reports unsupported and returns nothing; keep
+        // the full catalog visible so web/dev testing still exercises the UI.
+        setAvailableIds(supported && available.length > 0 ? available : null);
+      })
+      .catch(() => { if (!cancelled) setAvailableIds(null); });
     return () => { cancelled = true; };
   }, []);
+
+  /** Can the store actually sell this? Unprobed/off-device answers yes. */
+  const isPurchasable = (productId: ProductId) =>
+    availableIds === null || availableIds.includes(productId);
 
   /** Display price — store-localised when available, USD config price otherwise. */
   const priceFor = (productId: ProductId) =>
@@ -239,12 +260,12 @@ const ShopPage = () => {
                 {formatPrice(BUNDLE_INDIVIDUAL_TOTAL)}
               </span>
             </div>
-            <button
+            {isPurchasable('com.dynastymanager.bundle.all') && <button
               onClick={() => handlePurchase('com.dynastymanager.bundle.all')}
               className="w-full py-2.5 rounded-lg bg-[hsl(var(--gold))] text-[hsl(30,20%,10%)] font-bold text-sm active:scale-[0.98] transition-transform shadow-[0_0_16px_hsl(var(--gold)/0.25)]"
             >
               Get Everything
-            </button>
+            </button>}
           </div>
         </GlassPanel>
       )}
@@ -265,12 +286,12 @@ const ShopPage = () => {
             <span className="text-[9px] bg-muted/40 text-muted-foreground px-2 py-0.5 rounded-full">8 Title Badges</span>
             <span className="text-[9px] bg-muted/40 text-muted-foreground px-2 py-0.5 rounded-full">3 Celebration Texts</span>
           </div>
-          <button
+          {isPurchasable('com.dynastymanager.pack.manager') && <button
             onClick={() => handlePurchase('com.dynastymanager.pack.manager')}
             className="mt-3 w-full py-2 rounded-lg bg-[hsl(var(--gold))] text-[hsl(30,20%,10%)] font-bold text-sm active:scale-[0.98] transition-transform"
           >
             Get — {priceFor('com.dynastymanager.pack.manager')}
-          </button>
+          </button>}
         </GlassPanel>
       )}
 
@@ -344,19 +365,19 @@ const ShopPage = () => {
               <p className="text-[10px] text-muted-foreground/60 mb-3">
                 Just ${ANNUAL_PER_MONTH}/month billed yearly
               </p>
-              <button
+              {isPurchasable('com.dynastymanager.pro.annual') && <button
                 onClick={() => handlePurchase('com.dynastymanager.pro.annual')}
                 className="w-full py-2.5 rounded-lg bg-emerald-500/90 hover:bg-emerald-500 text-white font-bold text-sm active:scale-[0.98] transition-all shadow-[0_0_12px_rgba(16,185,129,0.25)]"
               >
                 Upgrade — {priceFor('com.dynastymanager.pro.annual')}/year
-              </button>
+              </button>}
             </GlassPanel>
           )}
 
           {/* Subscription Tier Cards */}
           {!userIsPro && (
             <div className="space-y-3">
-              {SUBSCRIPTION_PRODUCTS.map(productId => {
+              {SUBSCRIPTION_PRODUCTS.filter(isPurchasable).map(productId => {
                 const product = PRODUCTS[productId];
                 const isLifetime = product.subscriptionTier === 'lifetime';
                 const isMonthly = product.subscriptionTier === 'monthly';
@@ -413,7 +434,10 @@ const ShopPage = () => {
                 );
               })}
 
-              {/* One-time Pro alternative */}
+              {/* One-time Pro alternative. Hidden outright when the store
+                  cannot sell it — a visible CTA for a removed SKU can only
+                  fail, which is the Guideline 2.1.0 rejection condition. */}
+              {isPurchasable('com.dynastymanager.pro') && (<>
               <div className="relative">
                 <div className="absolute inset-x-0 top-0 h-px bg-border/30" />
                 <p className="text-[10px] text-muted-foreground text-center py-2">or buy once</p>
@@ -432,6 +456,7 @@ const ShopPage = () => {
                   </button>
                 </div>
               </GlassPanel>
+              </>)}
             </div>
           )}
         </div>
@@ -485,7 +510,7 @@ const ShopPage = () => {
           <p className="text-xs font-bold text-foreground uppercase tracking-wider">Customization Packs</p>
         </div>
         <div className="space-y-3">
-          {COSMETIC_PACK_IDS.map(productId => {
+          {COSMETIC_PACK_IDS.filter(isPurchasable).map(productId => {
             const product = PRODUCTS[productId];
             const owned = hasProduct(monetization, productId);
             const isExpanded = expandedPack === productId;
@@ -554,12 +579,12 @@ const ShopPage = () => {
           <p className="text-[10px] text-muted-foreground/60 mb-3">
             <span className="line-through">{formatPrice(BUNDLE_INDIVIDUAL_TOTAL)}</span> individually
           </p>
-          <button
+          {isPurchasable('com.dynastymanager.bundle.all') && <button
             onClick={() => handlePurchase('com.dynastymanager.bundle.all')}
             className="w-full py-2.5 rounded-lg bg-[hsl(var(--gold))] text-[hsl(30,20%,10%)] font-bold text-sm active:scale-[0.98] transition-transform shadow-[0_0_12px_hsl(var(--gold)/0.2)]"
           >
             Get Everything — {priceFor('com.dynastymanager.bundle.all')}
-          </button>
+          </button>}
         </GlassPanel>
       )}
 
