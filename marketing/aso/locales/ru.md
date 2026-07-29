@@ -1,57 +1,61 @@
 # ru — Russian (App Store)
 
-Storefronts reached: Russian-preferring users across many storefronts — Kazakhstan, Belarus, Armenia, Georgia, Israel, Germany, the Baltics and more (the Russian App Store itself is closed to new purchases, but ru metadata indexes broadly wherever users set Russian as their language). Fans type "ЧМ" (Чемпионат мира) or "Мундиаль" for the World Cup and "футбольный менеджер" as the head phrase.
+Storefronts reached: Russian-preferring users across many storefronts — Kazakhstan, Belarus, Armenia, Georgia, Israel, Germany, the Baltics and more (the Russian App Store itself is closed to new purchases, but ru metadata indexes broadly wherever users set Russian as their language). The head phrase this market types is "футбольный менеджер"; the season-window intent is "режим карьеры" — running a club through a season, not following a tournament.
 
 ## App Name [23/30]
 `Dynasty Manager: Футбол`
 
 ## Subtitle [28/30]
-`ЧМ 2026: футбольный менеджер`
+`Футбольный менеджер: карьера`
 
-## Promotional Text [155/170]
-`Режим ЧМ 2026 уже здесь. Проведи сборную от группы до финала по пенальти. Без шкал энергии, без пакетов отдыха, без ожидания. Полная глубина, без подписки.`
+## Promotional Text [167/170]
+`Новый сезон — новая династия. Бери любой из 756 реальных клубов и веди его от предсезонки до титула: трансферы, тактика, каждая минута. Без шкал энергии. Без подписки.`
 
-## Keywords [98/100]
-`мундиаль,сборная,пенальти,тактика,карьера,лига,трансферы,состав,тренер,кубок,клуб,чемпионат,онлайн`
+## Keywords [99/100]
+`сезон,лига,клуб,состав,тактика,трансфер,тренер,кубок,чемпионат,симулятор,сборная,онлайн,схема,скаут`
 
-## Description [1439/4000]
-Режим ЧМ 2026 уже здесь. Выбери одну из более чем 50 сборных и проведи её от группового этапа до финала, который решится по пенальти – каждое решение за тобой.
+## Description [1842/4000]
+Сезон 2026/27 стартует. Выбирай клуб, выставляй состав и управляй каждой его минутой.
 
-Dynasty Manager – это глубокий симулятор футбольного менеджмента, в который играешь где угодно. Без pay-to-win, без шкал энергии, без пакетов отдыха, без ожидания между сессиями. Играй сколько хочешь – вся менеджерская глубина без какой-либо подписки.
+Dynasty Manager – это глубокий симулятор футбольного менеджмента: настоящая карьера тренера, а не гринд с карточками. Бери любой из 756 реальных клубов в 45 лигах и 37 странах или соглашайся возглавить сборную своей страны. Настраивай тактику, работай на трансферном рынке и делай каждую замену, пока матч идёт минута за минутой.
 
-Берёшь клуб, выставляешь стартовый состав, доводишь до ума тактику и схему, подписываешь игроков на трансферном рынке и ведёшь команду минута за минутой через каждый матч.
+Без шкал энергии. Без пакетов отдыха. Без ожидания между сессиями. Играй сколько хочешь и когда хочешь.
 
 Что тебя ждёт:
-- ЧМ 2026: более 50 сборных от группы до финала
-- 45 лиг и 756 реальных клубов в 37 странах
-- Режим карьеры: подавайся на вакансии, веди переговоры по контрактам, поднимайся вверх – или получи увольнение
-- Нервные серии пенальти под управлением удар за ударом
-- Матчи вживую: состав, тактика, замены и речи в реальном времени
-- Трансферы и аренды, переговоры по контрактам и собственная молодёжная академия
-- Континентальные турниры, кубковые походы и должность тренера сборной
-- Наборы игроков в стиле FUT с реальными футболистами
+- Режим карьеры: начинай безвестным, подавайся на вакансии, веди переговоры по контрактам, бери трофеи – поднимайся вверх или получай увольнение
+- 45 лиг и 756 реальных клубов: выход в высший дивизион, вылет и плей-офф на всех уровнях
+- Матчи минута за минутой: живые комментарии, установки в перерыве, тактические правки и серии пенальти под твоим управлением
+- Тактика и схемы: настрой, темп, прессинг, ширина и собственные указания
+- Трансферы и контракты: ищи талантов через скаутов, договаривайся о суммах и зарплатах, оформляй аренды, держи зарплатную ведомость под контролем
+- Молодёжная академия и тренировки: выращивай своих звёзд, а не покупай их
+- Кубки и континентальные турниры: иди за треблом в кубках страны, континентальных турнирах и Суперкубке
+- Сборная страны: проведи национальную команду через отбор до мирового турнира
+- Наборы игроков: открывай паки и лови редкие карточки
+- Стадион, финансы, спонсоры и мерч: управляй всем клубом, а не только командой
 
-Без шкал энергии. Без ожидания. Только футбол, когда захочешь.
+Скачивание бесплатное
+Всё перечисленное входит в бесплатную загрузку. Dynasty Pro – по желанию: мгновенная симуляция, расширенная статистика, свои тактики, расширенные пресс-конференции, исторические рекорды и отсутствие рекламы. Начни с 7 дней бесплатно на пробу или купи один раз и владей навсегда.
 
-Dynasty Pro открывает расширенную статистику, свои тактики, мгновенную симуляцию и другое – с 7 днями бесплатно на пробу. Весь путь карьеры остаётся полностью проходимым и без подписки.
-
-Скачивай бесплатно. Стань тренером и выиграй ЧМ 2026.
+Управляй своей династией.
 
 ## What's New (next release note blurb)
-Режим ЧМ 2026 уже здесь – проведи одну из более чем 50 сборных от группы до финала по пенальти. Искусственный интеллект на скамейке стал умнее, а несколько ошибок в день матча исправлены. По-прежнему без шкал энергии, без ожидания – только футбол.
+Новый сезон, новая династия. Свежий вид в App Store, более умный ИИ на скамейке и несколько исправлений в день матча. По-прежнему без шкал энергии, без пакетов отдыха, без ожидания – только футбол.
 
 ## Screenshot Captions (5)
-1. Более 50 сборных на ЧМ 2026
-2. Выиграй ЧМ 2026
-3. Пенальти, от которых замирает сердце
-4. Состав, тактика, схема
-5. Управляй каждой минутой матча
+1. 45 лиг, 37 стран, 756 клубов
+2. Матч минута за минутой: замены и пенальти
+3. Состав, схема и химия команды
+4. Трансферное окно: скауты и контракты
+5. Сборная страны и континентальные турниры
 
 ## Keyword rationale
 - ru is a high-reach locale: it indexes across Kazakhstan, Belarus, Armenia, Georgia, Israel, the Baltics and diaspora storefronts, so the terms target pan-regional Russian search behaviour rather than one country.
-- The Subtitle already owns "футбольный менеджер" — the head phrase rivals ship even on the Ukraine storefront; keeping it in-title (not the keyword field) is the right weighting, so Keywords fund the tail.
-- **New: "онлайн" added** — the pan-regional pattern is "футбольный онлайн менеджер" (OSM's own descriptor), so "онлайн" complements the in-title phrase to reconstruct it in search.
-- "мундиаль" captures the second everyday name for the World Cup (alongside "ЧМ" in the Subtitle), widening tournament coverage; "сборная", "пенальти", "состав", "трансферы", "кубок", "чемпионат" are the natural Russian words for national team, penalty, lineup, transfers, cup and championship.
+- **Window change: the tournament framing is gone.** The 2026 tournament ended 19 July; the live intent for the 2026-27 club season is "run my club", so the Subtitle now spends all 28 characters on evergreen head terms instead of a dead token.
+- The Subtitle still binds "футбольный менеджер" — the head phrase rivals ship even on the Ukraine storefront. Cyrillic "менеджер" is a different token from the Latin "Manager" in the App Name, so this placement is not a duplicate: it is the only way the Cyrillic head query is indexed at subtitle weight. "карьера" joins it because career-mode intent is the season-window equivalent of tournament intent, and it reads as a benefit in the Today-tab format (name + icon + subtitle only).
+- **Keywords reclaimed from the tournament:** dropping "мундиаль" (the everyday second name for the tournament) and "пенальти" freed the characters now funding "сезон", "симулятор", "схема" and "скаут" — season, sim, formation and scouting are the queries this window actually gets.
+- "карьера" moved out of Keywords the moment it entered the Subtitle — Apple indexes App Name + Subtitle + Keywords as one set, so a repeat is a wasted character and the validator fails on it.
+- **"онлайн" retained** — the pan-regional pattern is "футбольный онлайн менеджер" (OSM's own descriptor), so "онлайн" complements the in-title phrase to reconstruct it in search.
+- "сборная", "состав", "трансфер", "кубок", "чемпионат", "тренер" are the natural Russian words for national team, lineup, transfer, cup, championship and coach. Singulars only ("трансфер", not "трансферы") — Apple matches the plural.
 - Cyrillic script has no accent-stripping concern, so keyword tokens are spelled exactly as users type them.
-- "Футбол", "футбольный", "менеджер" are omitted from Keywords — they sit in the App Name/Subtitle and are indexed separately. Dropped the weakest terms ("гол", "пас") to fund "онлайн".
-- "тактика", "карьера", "лига", "клуб", "тренер" anchor the field as high-volume management-sim head terms. No plurals of included singulars, no club/league proper nouns.
+- "Футбол", "футбольный", "менеджер", "карьера" are omitted from Keywords — they sit in the App Name/Subtitle and are indexed separately. No plurals of included singulars, no club/league proper nouns, no category name.
+- The captions carry what the 100-char field cannot afford: "трансферное окно", "химия команды", "скауты", "контракты", "континентальные турниры" and "пенальти" — all indexed since Apple began OCR-extracting screenshot text, and none of them affordable inside 100 characters.

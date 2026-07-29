@@ -1,19 +1,29 @@
 # App Store localization kit — 37 locales
 
-> **2026-07-28 — season refresh.** The World Cup 2026 window closed on
-> 19 July 2026. Every locale has been pivoted off the tournament token and onto
-> the 2026-27 club season; tournament marks have been replaced with generic
-> descriptors everywhere in listing copy (`APP_STORE_LISTING.md` risk #4). The
-> validator now fails on trademarks and reports expired-campaign tokens, so
-> this cannot rot silently again. Strategy and sources:
-> `../RESEARCH-2026.md`. en-US paste-ready set: `../season-2026-refresh.md`.
+> **2026-07-29 — season refresh.** The World Cup 2026 window closed on
+> 19 July 2026. All 37 locales are pivoted onto the 2026-27 club season in the
+> four **indexed** fields — App Name, Subtitle, Promotional Text, Keywords —
+> and `validate-locales.mjs` passes clean with no expired-campaign tokens.
+> Strategy and sources: `../RESEARCH-2026.md`. en-US paste-ready set:
+> `../season-2026-refresh.md` (NOT `../wc-2026-refresh.md`, which is the
+> superseded tournament set, kept only for the next tournament window).
+>
+> **Known residue — do not read this notice as "all clear".** Seven locales
+> still carry tournament copy in fields the validator does not scan
+> (What's New, Description tail, screenshot captions): `de-DE`, `fr-CA`,
+> `hi`, `it`, `ms`, `pl`, `pt-PT`, plus `vi`. Six of those are literal marks
+> in the What's New blurb ("World Cup 2026", "Coupe du Monde 2026",
+> "Piala Dunia 2026", "Mundial 2026") and are an `APP_STORE_LISTING.md`
+> risk #4 exposure. Several of those files also still have rationale prose
+> arguing for a tournament token their Subtitle no longer contains. These
+> need a follow-up pass before the next version submission.
 
 > Paste-ready App Store Connect metadata for every football-relevant storefront,
-> transcreated (not translated) from `../wc-2026-refresh.md` by native-market
-> passes and machine-validated against Apple's limits (name/subtitle ≤30,
-> promo ≤170, keywords ≤100, description ≤4000; no space after commas; no
-> App-Name/Subtitle words repeated in keywords; no competitor, league, club,
-> or player names anywhere). en-US lives in `../wc-2026-refresh.md`.
+> transcreated (not translated) by native-market passes and machine-validated
+> against Apple's limits (name/subtitle ≤30, promo ≤170, keywords ≤100,
+> description ≤4000; no space after commas; no App-Name/Subtitle words repeated
+> in keywords; no competitor, league, club, or player names anywhere).
+> en-US lives in `../season-2026-refresh.md`.
 
 ## Rollout order (do the top tier first)
 
@@ -27,14 +37,16 @@
 ## How to apply (App Store Connect)
 
 1. **No build needed:** Subtitle, Promotional Text, and Keywords are editable
-   any time — set Tier 1 today while the World Cup window is open.
+   any time — set Tier 1 today; the 2026-27 season window is open now and the
+   summer transfer window closes 1 September.
 2. **Needs a version submission:** App Name, Description, What's New — batch
    them into the next release.
 3. Add each locale under *App Information → Localizations*, then paste the
    fields from the matching file here. The `[n/limit]` counts are pre-verified.
 4. **Cross-locale indexing:** on several storefronts Apple indexes TWO locales'
-   keyword fields (e.g. US: en-US + es-MX · Canada: en-CA + fr-CA · UK: en-GB +
-   en-AU fallbacks). The files are written so paired fields COMPLEMENT rather
+   keyword fields (US: en-US + es-MX · Canada: en-CA + fr-CA). UK/IE serves
+   **en-GB only**, falling back to en-US — never to en-AU, so do not tune en-AU
+   for UK coverage. The files are written so paired fields COMPLEMENT rather
    than duplicate each other — don't "fix" apparent gaps by copying terms
    between them.
 5. **In-app language note:** the game itself is English-only for now. That is

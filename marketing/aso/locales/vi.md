@@ -14,15 +14,16 @@ Storefronts reached: Vietnam (Apple serves vi metadata to Vietnamese-preferring 
 ## Keywords [92/100]
 `HLV,đội tuyển,sự nghiệp,giải đấu,sút luân lưu,đội hình,câu lạc bộ,học viện,mùa giải,mô phỏng`
 
-## Description [1803/4000]
-Chế độ giải đấu thế giới 2026 đã có: chọn một trong hơn 50 đội tuyển và săn vinh quang từ vòng bảng đến trận chung kết được định đoạt trên chấm luân lưu — mọi quyết định nằm trong tay bạn.
+## Description [1901/4000]
+Mùa giải 2026-27 đã khởi tranh: chọn một trong 756 câu lạc bộ thật và điều hành từng phút từ tiền mùa giải đến chức vô địch — mọi quyết định nằm trong tay bạn.
 
 Dynasty Manager là game mô phỏng quản lý bóng đá thực sự chuyên sâu, không phải game ngồi chờ. Không thanh năng lượng. Không gói nghỉ. Không đếm ngược. Chơi bao nhiêu tùy thích, bất cứ lúc nào. Toàn bộ chiều sâu quản lý mà không cần đăng ký thuê bao.
 
 Bạn là HLV. Xếp đội hình, chốt chuyển nhượng, chỉnh chiến thuật từng trận và đưa câu lạc bộ của bạn từ đáy lên đỉnh qua nhiều mùa giải.
 
 Những gì bạn điều hành:
-- Chế độ giải đấu thế giới 2026: đưa đội tuyển từ vòng bảng đến chức vô địch thế giới.
+- Trọn một mùa giải: tiền mùa giải, kỳ chuyển nhượng, chặng nước rút và ngày nâng cúp.
+- Chế độ đội tuyển quốc gia: chọn một trong hơn 50 đội tuyển và đưa họ từ vòng bảng đến trận chung kết ở các giải đấu quốc tế.
 - 45 giải đấu ở 37 quốc gia với 756 câu lạc bộ thật, đầy đủ thăng hạng, xuống hạng và play-off.
 - Chế độ sự nghiệp: tạo HLV của riêng bạn, giành hợp đồng qua các buổi phỏng vấn với ban lãnh đạo, nhận thưởng, trụ lại trước nguy cơ sa thải và trở thành huyền thoại.
 - Sút luân lưu tương tác: bạn tự sút và tự bắt — căng như một trận chung kết thật ở mỗi cú đá.
@@ -37,19 +38,19 @@ Dynasty Pro mở khóa thống kê nâng cao, chiến thuật tùy chỉnh, mô 
 Tải miễn phí. Bắt đầu triều đại của bạn hôm nay.
 
 ## What's New (next release note blurb)
-Chế độ World Cup 2026 đã lên sân! Đưa đội tuyển bạn chọn từ vòng bảng đến trận chung kết luân lưu. Chúng tôi cũng làm AI bên đường biên thông minh hơn và sửa vài lỗi ngày thi đấu. Vẫn không thanh năng lượng, không chờ đợi — chỉ có bóng đá.
+Mùa giải mới, triều đại mới. Mùa giải 2026-27 đã lăn bóng — chọn câu lạc bộ của bạn và điều hành từng phút từ tiền mùa giải đến chức vô địch. Chúng tôi cũng làm AI bên đường biên thông minh hơn và sửa vài lỗi ngày thi đấu. Vẫn không thanh năng lượng, không chờ đợi — chỉ có bóng đá.
 
 ## Screenshot Captions (5)
-1. Từ vòng bảng đến chung kết giải đấu thế giới
-2. Nâng cúp giải đấu thế giới 2026
+1. Hơn 50 đội tuyển, giải đấu quốc tế
+2. Từ tiền mùa giải đến chức vô địch
 3. Loạt luân lưu nghẹt thở
 4. Đội hình và chiến thuật của bạn
 5. Điều hành từng phút trận đấu
 
 ## Keyword rationale
 - Title-descriptor localization is the top lever and Vietnam rewards it most — the leader even ships a separate locally-published build with a fully Vietnamese title. The App Name keeps the locked brand "Dynasty Manager" and appends the native sport descriptor "Bóng Đá" ("Dynasty Manager: Bóng Đá"), so "manager" (brand) + "bóng đá" sit in the highest-weighted field. The abbreviation "HLV" in keywords carries the Vietnamese coach/manager query.
-- Subtitle is the conversion line: switched from a pure keyword string to "World Cup 2026, Không Chờ Đợi" (World Cup 2026, no waiting) — the no-grind wedge against the leader's energy/token grind, plus the WC window term and year. The manager-intent words it dropped ("HLV", "đội tuyển") move into keywords, so no coverage is lost.
-- "HLV" leads keywords: it is the abbreviation every Vietnamese fan uses for a coach/manager, more searched than the full "huấn luyện viên". "đội tuyển" (national team) rides the WC window.
+- Subtitle is the conversion line and now carries the two head management queries, "Chiến Thuật" (tactics) and "Chuyển Nhượng" (transfers). The seasonal tournament token it used to hold was retired when that window closed on 19 July 2026; tournament names are registered marks we keep out of every consumer-visible field (APP_STORE_LISTING.md risk #4). The manager-intent words the Subtitle dropped ("HLV", "đội tuyển") sit in keywords, so no coverage is lost.
+- "HLV" leads keywords: it is the abbreviation every Vietnamese fan uses for a coach/manager, more searched than the full "huấn luyện viên". "đội tuyển" (national team) carries international-tournament intent generically, year-round.
 - "câu lạc bộ" (club) is kept as a strong standalone head term. Added "game" so Apple recombines it with the App Name's "Bóng Đá" to form "game bóng đá", a top Vietnamese search phrase; dropped the lower-value "mô phỏng" and "sơ đồ" to fund both ("đội hình" already covers the lineup/formation concept).
 - Keywords keep full diacritics because Vietnamese is typed with tone marks; "sút luân lưu" is the natural phrase over the calque.
-- Excluded "bóng đá" (App Name), "World Cup" (Subtitle), and club/league proper nouns (IP). No plurals of included singulars. Field at 96/100. No US cross-index for Vietnamese.
+- Excluded "bóng đá" (App Name), every tournament name (registered marks; that window has closed), and club/league proper nouns (IP). No plurals of included singulars. Field at 96/100. No US cross-index for Vietnamese.

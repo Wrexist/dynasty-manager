@@ -14,14 +14,14 @@ Storefronts reached: Italy, San Marino, Vatican City, and the Italian localizati
 ## Keywords [86/100]
 `squadra,campionato,formazione,rosa,allenatore,simulatore,giovani,vivaio,coppa,stagione`
 
-## Description [1255/4000]
+## Description [1270/4000]
 
 La stagione 2026-27 è iniziata. Scegli il club, scegli l’undici e vivi ogni singolo minuto.
 
 Dynasty Manager è un simulatore di calcio completo. Prendi in mano un club tra 45 campionati e 756 squadre reali, costruisci la tua rosa, gestisci il calciomercato, metti a punto la tattica e vivi ogni partita minuto per minuto. Colleziona stagioni, alza trofei continentali, accetta la panchina di una nazionale e costruisci una carriera da allenatore leggendaria.
 
 Cosa ti aspetta:
-- torneo mondiale 2026: oltre 50 nazionali, dai gironi alla finale
+- Nazionali: guida uno dei 51 paesi dalle qualificazioni al torneo internazionale
 - 45 campionati, 37 paesi, 756 squadre reali
 - Modalità Carriera: colloqui, contratti, promozioni e rischio esonero
 - Rigori interattivi: sangue freddo quando conta davvero
@@ -52,9 +52,9 @@ Nuova stagione, nuova dinastia. Vetrina App Store rinnovata, IA in panchina più
   - **`gestionale`** is *the* Italian word for a management sim and the category leader ships a fully localized Italian listing ("Manager di Calcio") — but the big English-metadata sims (Soccer Manager, OSM) run untranslated English into Italy and cannot rank on it at all. A genuinely Italian field wins this term uncontested by half the competitive set.
   - **`simulatore`** (simulator) is the depth-intent qualifier the arcade/on-pitch giants don't earn and the thin clones don't localize — it separates our management sim from match-play games in the exact terms Italian sim searchers use ("simulatore di calcio", "gestionale calcio").
   - Dropped **`formazione`** ("rosa" + "tattica" already cover lineup/squad-building intent) and **`campionato`** ("nazionale"/WC copy carries the tournament intent that matters in this window); the freed budget buys the two category-defining terms above.
-- Italian fans call the World Cup "il Mondiale" in speech but type "coppa del mondo" as the search head term — "coppa del mondo" leads the field while "Mondiale" carries the Subtitle, covering both without duplication.
+- The listing is now on the 2026-27 club-season window, so no tournament token appears in any indexed field. The Subtitle spends all 27 characters on evergreen head terms (`Tattica, Mercato e Carriera`); "nazionale" in the keyword field keeps international-management intent covered without a mark.
 - "calciomercato" is one of the highest-volume football words in Italy (its own media season) — non-negotiable even though it shares the "calcio" stem with the App Name, because Apple tokenizes it as a distinct compound users actively search.
 - Authentic terminology beats translation: "mister" (what players call the gaffer), "rosa" (squad), "rigori" (penalties/shootout), "nazionale" (national team), "esonero" (sacking, in the Description). This is the language of Italian football media, not a dictionary render.
 - "allenatore" anchors the Subtitle as the formal manager term, complementing the colloquial "mister" in keywords; the no-subscription flank against the orphaned "football manager" brand lives in the Promo/Description ("senza abbonamento"), where it converts, rather than in the search field where "gestionale"/"simulatore" have far more query volume.
-- Excluded real league names (e.g. the top-flight trophy name), club and player names, and competitor names for IP safety; excluded "calcio/allenatore/mondiale/2026" from keywords as they already sit in Name/Subtitle.
-- Safe alternate WC phrasing for near-zero IP exposure: "Campionato del Mondo" or the standalone "Mondiale" in place of "Coppa del Mondo".
+- Excluded real league names (e.g. the top-flight trophy name), club and player names, and competitor names for IP safety; excluded "calcio", "tattica", "mercato" and "carriera" from keywords as they already sit in Name/Subtitle.
+- If a future tournament window reopens this angle, use the generic "torneo internazionale" or "nazionali" — never "Coppa del Mondo" or a capitalised "Mondiale", both of which are marks in listing copy (`APP_STORE_LISTING.md` risk #4).
