@@ -37,6 +37,21 @@ const SUBSCRIPTION_PRODUCTS: ProductId[] = [
   'com.dynastymanager.pro.lifetime',
 ];
 
+/** Exactly the SKUs this page can sell — the availability probe is scoped to
+ *  these so an unconfigured consumable elsewhere in the catalog cannot blank
+ *  the products that are configured. Consumable player packs are sold on
+ *  PacksPage, not here, so they are deliberately absent. */
+const SHOP_PROBE_IDS: ProductId[] = [
+  'com.dynastymanager.pro',
+  'com.dynastymanager.pro.monthly',
+  'com.dynastymanager.pro.annual',
+  'com.dynastymanager.pro.lifetime',
+  'com.dynastymanager.bundle.all',
+  'com.dynastymanager.pack.manager',
+  'com.dynastymanager.pack.stadium',
+  'com.dynastymanager.pack.legends',
+];
+
 const COSMETIC_PACK_IDS: ProductId[] = [
   'com.dynastymanager.pack.manager',
   'com.dynastymanager.pack.stadium',
@@ -90,21 +105,32 @@ const ShopPage = () => {
 
   useEffect(() => {
     let cancelled = false;
-    getStoreAvailability()
+    // Probe ONLY the SKUs this page can sell. Probing the whole catalog means a
+    // single unconfigured product (e.g. a consumable pack missing from the
+    // RevenueCat offering) drags down the batch and can blank the one-time
+    // catalog that IS configured.
+    getStoreAvailability(SHOP_PROBE_IDS)
       .then(({ supported, available, prices }) => {
         if (cancelled) return;
         setStorePrices(prices);
-        // Off-device the plugin reports unsupported and returns nothing; keep
-        // the full catalog visible so web/dev testing still exercises the UI.
-        setAvailableIds(supported && available.length > 0 ? available : null);
+        // `supported` false means off-device / plugin absent — not a store
+        // verdict, so keep the full catalog visible for web + dev testing.
+        // When the store IS supported we trust its answer even if it is empty:
+        // an empty list means it could sell nothing, and rendering CTAs then is
+        // the Guideline 2.1.0 failure this gate exists to prevent. Treating
+        // empty as "show everything" would fail open in exactly that case.
+        setAvailableIds(supported ? available : null);
       })
       .catch(() => { if (!cancelled) setAvailableIds(null); });
     return () => { cancelled = true; };
   }, []);
 
-  /** Can the store actually sell this? Unprobed/off-device answers yes. */
+  /** Can the store actually sell this? Off-device / unprobed answers yes. */
   const isPurchasable = (productId: ProductId) =>
     availableIds === null || availableIds.includes(productId);
+
+  /** True once the store has answered and said it can sell nothing at all. */
+  const storeSellsNothing = availableIds !== null && availableIds.length === 0;
 
   /** Display price — store-localised when available, USD config price otherwise. */
   const priceFor = (productId: ProductId) =>
@@ -176,13 +202,26 @@ const ShopPage = () => {
     track('restore_clicked', {});
     try {
       const granted = await restoreViaSDK();
+      if (granted.length > 0) restoreEntitlements(granted);
+
+      // Sync BEFORE deciding what to tell the user. `mapEntitlements`
+      // deliberately excludes subscription SKUs (they would outlive the sub in
+      // `entitlements`), so a monthly/annual customer's restore legitimately
+      // returns [] — their Pro comes back only through extractSubscriptionInfo.
+      // Toasting off `granted.length` alone told every subscription-only
+      // customer "No Purchases Found" moments before their sub was restored.
+      // SettingsPage and SubscribeOnboarding already do this; the Shop never
+      // did.
+      await syncAfterPurchase();
+
+      const proActive = isPro(useGameStore.getState().monetization);
       if (granted.length > 0) {
-        restoreEntitlements(granted);
         successToast('Purchases Restored', `${granted.length} product${granted.length > 1 ? 's' : ''} restored.`);
+      } else if (proActive) {
+        successToast('Purchases Restored', 'Your Pro subscription is active.');
       } else {
         infoToast('No Purchases Found', 'No previous purchases were found for this account.');
       }
-      await syncAfterPurchase();
       track('restore_completed', { restoredCount: granted.length });
     } catch (err) {
       Sentry.captureException(err, { tags: { context: 'ShopPage.restore' } });
@@ -374,10 +413,22 @@ const ShopPage = () => {
             </GlassPanel>
           )}
 
+          {/* Store reachable but selling nothing — say so instead of rendering
+              an empty section the user cannot act on. */}
+          {!userIsPro && storeSellsNothing && (
+            <GlassPanel className="p-4">
+              <p className="text-sm font-semibold text-foreground">Store unavailable</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                The App Store isn't reachable right now, so purchases can't be shown.
+                Check your connection and try again in a moment.
+              </p>
+            </GlassPanel>
+          )}
+
           {/* Subscription Tier Cards */}
-          {!userIsPro && (
+          {!userIsPro && !storeSellsNothing && (
             <div className="space-y-3">
-              {SUBSCRIPTION_PRODUCTS.filter(isPurchasable).map(productId => {
+              {SUBSCRIPTION_PRODUCTS.filter(id => isPurchasable(id) || hasProduct(monetization, id)).map(productId => {
                 const product = PRODUCTS[productId];
                 const isLifetime = product.subscriptionTier === 'lifetime';
                 const isMonthly = product.subscriptionTier === 'monthly';
@@ -510,7 +561,10 @@ const ShopPage = () => {
           <p className="text-xs font-bold text-foreground uppercase tracking-wider">Customization Packs</p>
         </div>
         <div className="space-y-3">
-          {COSMETIC_PACK_IDS.filter(isPurchasable).map(productId => {
+          {/* An owned pack stays visible even if the store can no longer sell
+              it — the card is how the user sees what they already have. Only
+              its (already `!owned`-gated) buy button would be dead. */}
+          {COSMETIC_PACK_IDS.filter(id => isPurchasable(id) || hasProduct(monetization, id)).map(productId => {
             const product = PRODUCTS[productId];
             const owned = hasProduct(monetization, productId);
             const isExpanded = expandedPack === productId;

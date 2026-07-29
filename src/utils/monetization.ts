@@ -7,7 +7,7 @@
  */
 
 import type { MonetizationState, ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo, SubscriptionTier } from '@/types/game';
-import { COSMETIC_ITEMS, AD_REWARD_LIMITS, STARTER_KIT_WINDOW_MS, PRO_ONE_TIME_PRODUCT_IDS } from '@/config/monetization';
+import { COSMETIC_ITEMS, AD_REWARD_LIMITS, STARTER_KIT_WINDOW_MS, PRO_ONE_TIME_PRODUCT_IDS, PRODUCTS, CONSUMABLE_PRODUCT_IDS } from '@/config/monetization';
 
 /** Upper bound on how long a recurring subscription record is trusted when the
  *  store gave us no `expiresAt`. Generous enough that a paying customer keeps
@@ -66,6 +66,27 @@ export function isSubscriptionActive(state: MonetizationState): boolean {
 }
 
 /**
+ * May this product ID be persisted in `monetization.entitlements`?
+ *
+ *  - Subscription SKUs are banned: RevenueCat keeps them in
+ *    allPurchasedProductIdentifiers forever, so a persisted sub SKU outlives
+ *    the subscription. Sub status flows ONLY through subscription.expiresAt.
+ *  - Consumable pack SKUs are banned: they grant a single pack open at
+ *    purchase time and must never be restorable.
+ *
+ * Lives here rather than in the store slice so that every writer of
+ * `entitlements` — the slice actions AND mergeDeviceMonetization — enforces
+ * the same boundary.
+ */
+export function isPersistableEntitlement(productId: ProductId): boolean {
+  const product = PRODUCTS[productId];
+  if (!product) return false;
+  if (product.type === 'subscription') return false;
+  if (CONSUMABLE_PRODUCT_IDS.includes(productId)) return false;
+  return true;
+}
+
+/**
  * Merge the device-scoped purchase fields of two monetization records, keeping
  * whichever side actually proves a purchase.
  *
@@ -89,9 +110,13 @@ export function mergeDeviceMonetization(
   saved: Pick<MonetizationState, 'entitlements' | 'subscription' | 'firstLaunchTimestamp'>,
   live: Pick<MonetizationState, 'entitlements' | 'subscription' | 'firstLaunchTimestamp'>,
 ): Pick<MonetizationState, 'entitlements' | 'subscription' | 'firstLaunchTimestamp'> {
+  // Filter the union through the same boundary the slice writers use. A save
+  // written by an older build (or a hand-edited one) can carry a subscription
+  // or consumable SKU in `entitlements`; unioning raw would preserve that
+  // contamination permanently and carry it into every other slot.
   const entitlements = Array.from(
     new Set([...(saved.entitlements ?? []), ...(live.entitlements ?? [])]),
-  );
+  ).filter(isPersistableEntitlement);
 
   // Prefer an unexpired record over an expired one; if both agree, prefer live,
   // which is the one a RevenueCat sync can have refreshed.

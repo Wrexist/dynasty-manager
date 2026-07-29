@@ -1,25 +1,12 @@
 import type { GameState } from '../storeTypes';
 import type { ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo } from '@/types/game';
-import { PRODUCTS, COSMETIC_ITEMS, AD_REWARD_LIMITS, AD_REWARD_VALUES, adBudgetReward, DEFAULT_MONETIZATION_STATE, FREE_TRIAL_MS, TRIAL_TARGET_PRODUCT_ID, CONSUMABLE_PRODUCT_IDS } from '@/config/monetization';
+import { PRODUCTS, COSMETIC_ITEMS, AD_REWARD_LIMITS, AD_REWARD_VALUES, adBudgetReward, DEFAULT_MONETIZATION_STATE, FREE_TRIAL_MS, TRIAL_TARGET_PRODUCT_ID } from '@/config/monetization';
+// Single source of truth for the entitlement boundary — shared with
+// mergeDeviceMonetization so every writer of `entitlements` enforces it.
+import { isPersistableEntitlement } from '@/utils/monetization';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
-
-/** Defense-in-depth boundary for what may live in `monetization.entitlements`:
- *  - Subscription SKUs are banned — RevenueCat keeps lapsed subs in
- *    allPurchasedProductIdentifiers forever, so a persisted sub SKU outlives
- *    the subscription. Sub status flows ONLY through subscription.expiresAt.
- *  - Consumable pack SKUs are banned — they grant a single pack open at
- *    purchase time and must never be restorable.
- *  Enforced here (not just in the purchases wrapper) so no future caller of
- *  grantEntitlement/restoreEntitlements can reintroduce either bug. */
-function isPersistableEntitlement(productId: ProductId): boolean {
-  const product = PRODUCTS[productId];
-  if (!product) return false;
-  if (product.type === 'subscription') return false;
-  if (CONSUMABLE_PRODUCT_IDS.includes(productId)) return false;
-  return true;
-}
 
 export function createMonetizationSlice(_set: Set, _get: Get) {
   return {

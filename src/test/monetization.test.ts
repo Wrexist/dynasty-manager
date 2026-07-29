@@ -560,6 +560,28 @@ describe('mergeDeviceMonetization', () => {
     ).firstLaunchTimestamp).toBe(0);
   });
 
+  it('strips subscription and consumable SKUs from the union', () => {
+    // A save from an older build (or a hand-edited one) can carry a banned SKU
+    // in `entitlements`. Unioning raw would make that contamination permanent
+    // and carry it into every other slot — a lapsed subscriber would keep Pro
+    // forever, which is the exact failure isPersistableEntitlement exists to
+    // prevent.
+    const r = mergeDeviceMonetization(
+      {
+        entitlements: [
+          'com.dynastymanager.pro.monthly',
+          'com.dynastymanager.pack.gold',
+          'com.dynastymanager.pro',
+        ],
+        subscription: null,
+        firstLaunchTimestamp: 0,
+      },
+      { entitlements: ['com.dynastymanager.pack.icon'], subscription: null, firstLaunchTimestamp: 0 },
+    );
+    expect(r.entitlements).toEqual(['com.dynastymanager.pro']);
+    expect(isPro({ ...DEFAULT_MONETIZATION_STATE, entitlements: r.entitlements })).toBe(true);
+  });
+
   it('survives missing entitlement arrays', () => {
     const r = mergeDeviceMonetization(
       { entitlements: undefined as never, subscription: null, firstLaunchTimestamp: 0 },
