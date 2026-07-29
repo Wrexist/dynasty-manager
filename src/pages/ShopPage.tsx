@@ -319,7 +319,7 @@ const ShopPage = () => {
       )}
 
       {/* ─── Dynasty Edition Hero Banner (Anchoring — best deal first) ─── */}
-      {!hasProduct(monetization, 'com.dynastymanager.bundle.all') && !userIsPro && (
+      {!hasProduct(monetization, 'com.dynastymanager.bundle.all') && !userIsPro && isPurchasable('com.dynastymanager.bundle.all') && (
         <GlassPanel className="p-0 overflow-hidden border-[hsl(var(--gold)/0.3)]">
           <div className="bg-gradient-to-br from-[hsl(var(--gold)/0.12)] via-transparent to-[hsl(var(--gold)/0.05)] p-4">
             <div className="flex items-center gap-2 mb-1">
@@ -353,12 +353,12 @@ const ShopPage = () => {
                 </span>
               )}
             </div>
-            {isPurchasable('com.dynastymanager.bundle.all') && <button
+            <button
               onClick={() => handlePurchase('com.dynastymanager.bundle.all')}
               className="w-full py-2.5 rounded-lg bg-[hsl(var(--gold))] text-[hsl(30,20%,10%)] font-bold text-sm active:scale-[0.98] transition-transform shadow-[0_0_16px_hsl(var(--gold)/0.25)]"
             >
               Get Everything
-            </button>}
+            </button>
           </div>
         </GlassPanel>
       )}
@@ -366,7 +366,7 @@ const ShopPage = () => {
       {/* ─── Starter Kit — new-manager recommendation (NOT a limited offer:
               same product, same price as the Manager Identity Pack below; shown
               to new managers as a "start here" suggestion, no fake countdown) ─── */}
-      {starterKitAvailable && (
+      {starterKitAvailable && isPurchasable('com.dynastymanager.pack.manager') && (
         <GlassPanel className="p-4 border-[hsl(var(--gold)/0.3)] bg-[hsl(var(--gold)/0.04)]">
           <div className="flex items-center gap-2 mb-2">
             <Star className="w-4 h-4 text-[hsl(var(--gold))]" />
@@ -379,12 +379,12 @@ const ShopPage = () => {
             <span className="text-[9px] bg-muted/40 text-muted-foreground px-2 py-0.5 rounded-full">8 Title Badges</span>
             <span className="text-[9px] bg-muted/40 text-muted-foreground px-2 py-0.5 rounded-full">3 Celebration Texts</span>
           </div>
-          {isPurchasable('com.dynastymanager.pack.manager') && <button
+          <button
             onClick={() => handlePurchase('com.dynastymanager.pack.manager')}
             className="mt-3 w-full py-2 rounded-lg bg-[hsl(var(--gold))] text-[hsl(30,20%,10%)] font-bold text-sm active:scale-[0.98] transition-transform"
           >
             Get — {priceFor('com.dynastymanager.pack.manager')}
-          </button>}
+          </button>
         </GlassPanel>
       )}
 
@@ -672,7 +672,7 @@ const ShopPage = () => {
       </div>
 
       {/* ─── Dynasty Edition (for Pro users who may want cosmetics) ─── */}
-      {!hasProduct(monetization, 'com.dynastymanager.bundle.all') && userIsPro && (
+      {!hasProduct(monetization, 'com.dynastymanager.bundle.all') && userIsPro && isPurchasable('com.dynastymanager.bundle.all') && (
         <GlassPanel className="p-4 border-[hsl(var(--gold)/0.2)] bg-gradient-to-br from-[hsl(var(--gold)/0.05)] to-transparent">
           <div className="flex items-center gap-2 mb-2">
             <Package className="w-5 h-5 text-[hsl(var(--gold))]" />
@@ -693,12 +693,12 @@ const ShopPage = () => {
               <><span className="line-through">{formatPrice(bundleIndividualTotal)}</span> individually</>
             )}
           </p>
-          {isPurchasable('com.dynastymanager.bundle.all') && <button
+          <button
             onClick={() => handlePurchase('com.dynastymanager.bundle.all')}
             className="w-full py-2.5 rounded-lg bg-[hsl(var(--gold))] text-[hsl(30,20%,10%)] font-bold text-sm active:scale-[0.98] transition-transform shadow-[0_0_12px_hsl(var(--gold)/0.2)]"
           >
             Get Everything — {priceFor('com.dynastymanager.bundle.all')}
-          </button>}
+          </button>
         </GlassPanel>
       )}
 

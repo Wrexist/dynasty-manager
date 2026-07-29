@@ -196,18 +196,42 @@ async function fetchStoreProducts(Purchases: PurchasesModule, ids: string[]): Pr
   const types: (string | undefined)[] =
     Capacitor.getPlatform() === 'android' ? ['SUBSCRIPTION', 'NON_SUBSCRIPTION'] : [undefined];
 
+  const query = async (productIdentifiers: string[], type: string | undefined) => {
+    const options = { productIdentifiers, ...(type ? { type } : {}) };
+    const res = await Purchases.getProducts(
+      options as Parameters<PurchasesModule['getProducts']>[0],
+    ) as unknown as { products?: StoreProductLike[] };
+    return res?.products || [];
+  };
+
   const batches = await Promise.all(types.map(async type => {
     try {
-      const options = { productIdentifiers: ids, ...(type ? { type } : {}) };
-      const res = await Purchases.getProducts(
-        options as Parameters<PurchasesModule['getProducts']>[0],
-      ) as unknown as { products?: StoreProductLike[] };
-      return res?.products || [];
+      return await query(ids, type);
     } catch (err) {
-      // getProducts rejects wholesale when ANY requested ID is unconfigured;
-      // treat it as "nothing from this category" rather than a fatal error.
-      if (import.meta.env.DEV) console.warn('[Purchases] getProducts failed:', err);
-      return [];
+      // getProducts rejects WHOLESALE when any single requested ID is
+      // unconfigured. Returning [] here used to mean one SKU that had not
+      // finished propagating through App Store Connect made every *other*
+      // product invisible too — the Shop silently emptied, with no error
+      // anywhere. Fall back to querying one ID at a time so the configured
+      // products still resolve; only the genuinely bad ID drops out.
+      //
+      // Bounded: this path runs only on failure, and at most once per ID.
+      if (import.meta.env.DEV) console.warn('[Purchases] getProducts batch failed, retrying per-ID:', err);
+      if (ids.length <= 1) return [];
+      const settled = await Promise.all(
+        ids.map(id => query([id], type).catch(() => [] as StoreProductLike[])),
+      );
+      const recovered = settled.flat();
+      const missing = ids.length - recovered.length;
+      if (missing > 0) {
+        // Worth knowing about: a permanently unconfigured SKU is a store
+        // setup bug, and silently degrading is how it stays unnoticed.
+        Sentry.captureMessage(
+          `getProducts: ${missing} of ${ids.length} product IDs unavailable from the store`,
+          { level: 'warning', tags: { context: 'purchases.fetchStoreProducts' } },
+        );
+      }
+      return recovered;
     }
   }));
 
