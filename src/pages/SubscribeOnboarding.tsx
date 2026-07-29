@@ -23,11 +23,13 @@ import {
   getCustomerInfo,
   extractSubscriptionInfo,
   getStoreAvailability,
+  isEligibleForIntroOffer,
 } from '@/utils/purchases';
 import {
   FREE_TRIAL_DAYS,
   PRODUCTS,
   SUB_TRIAL_PRODUCT_IDS,
+  TRIAL_TARGET_PRODUCT_ID,
 } from '@/config/monetization';
 import { isPro } from '@/utils/monetization';
 import { addGameBreadcrumb } from '@/utils/sentry';
@@ -107,12 +109,31 @@ const SubscribeOnboarding = () => {
   const restoreEntitlementsAction = useGameStore(s => s.restoreEntitlements);
   const updateSubscription = useGameStore(s => s.updateSubscription);
   const monetization = useGameStore(s => s.monetization);
-  // Trial framing is only shown to users with NO subscription record at all.
-  // Apple grants the introductory offer once per Apple ID — a lapsed/existing
-  // record means the user would be charged full price immediately, so showing
-  // "free trial" copy (caption, CTA, success toast) to them would be a lie
-  // and a 3.1.2(c) exposure. Mirrors startFreeTrial()'s own guard.
-  const trialEligible = monetization.subscription == null;
+  // Trial framing requires BOTH a clean local record and, where the store can
+  // tell us, the store's confirmation.
+  //
+  // The local check alone is not sufficient: Apple grants the introductory
+  // offer once per Apple ID, but `monetization.subscription` is null on every
+  // fresh install — so a lapsed subscriber who reinstalls looked eligible and
+  // was shown "7 days free" on a purchase the store charges immediately. That
+  // is a false claim, a 3.1.2(c) exposure and a refund request.
+  //
+  // `storeTrialEligible` is null until the probe answers (and stays null
+  // off-device), in which case we fall back to the local heuristic so web/dev
+  // testing still shows the trial flow. A definite `false` from the store
+  // always wins.
+  const locallyTrialEligible = monetization.subscription == null;
+  const [storeTrialEligible, setStoreTrialEligible] = useState<boolean | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    isEligibleForIntroOffer(TRIAL_TARGET_PRODUCT_ID)
+      .then(v => { if (!cancelled) setStoreTrialEligible(v); })
+      .catch(() => { if (!cancelled) setStoreTrialEligible(null); });
+    return () => { cancelled = true; };
+  }, []);
+  const trialEligible = storeTrialEligible === null
+    ? locallyTrialEligible
+    : storeTrialEligible && locallyTrialEligible;
 
   const navState = (location.state as { slot?: number; communityPackEnabled?: boolean; returnTo?: string }) || {};
   // A webview reload / deep link on #/subscribe loses nav state. Without a slot

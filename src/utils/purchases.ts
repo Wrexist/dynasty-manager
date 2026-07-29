@@ -156,6 +156,11 @@ export function isUserCancelledError(err: unknown): boolean {
 interface StoreProductLike {
   identifier: string;
   priceString?: string;
+  /** Numeric price in the storefront's currency. Needed for any comparative
+   *  claim ("save 12%", "$1.25/month") — those must never be computed from the
+   *  USD config values, which are wrong in every non-US storefront. */
+  price?: number;
+  currencyCode?: string;
 }
 
 interface PackageLike {
@@ -247,6 +252,13 @@ export interface StoreAvailability {
   available: ProductId[];
   /** Localised price strings, keyed by product ID. */
   prices: Partial<Record<ProductId, string>>;
+  /** Numeric prices in the storefront's currency, keyed by product ID. Use
+   *  these — never the USD config values — for savings percentages and
+   *  per-period breakdowns, which are false claims when computed in the wrong
+   *  currency and against the wrong price tier. */
+  amounts: Partial<Record<ProductId, number>>;
+  /** ISO currency code of the storefront, when the store reported one. */
+  currencyCode?: string;
 }
 
 /**
@@ -260,7 +272,7 @@ export async function getStoreAvailability(
   productIds: ProductId[] = Object.keys(PRODUCTS) as ProductId[],
 ): Promise<StoreAvailability> {
   if (!Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) {
-    return { supported: false, available: [], prices: {} };
+    return { supported: false, available: [], prices: {}, amounts: {} };
   }
 
   try {
@@ -273,18 +285,24 @@ export async function getStoreAvailability(
 
     const wanted = new Set<string>(productIds);
     const prices: Partial<Record<ProductId, string>> = {};
+    const amounts: Partial<Record<ProductId, number>> = {};
     const available = new Set<ProductId>();
+    let currencyCode: string | undefined;
     for (const entry of [...packages.map(p => p.product), ...products]) {
       if (!wanted.has(entry.identifier)) continue;
       const id = entry.identifier as ProductId;
       available.add(id);
       if (entry.priceString && !prices[id]) prices[id] = entry.priceString;
+      if (typeof entry.price === 'number' && Number.isFinite(entry.price) && amounts[id] == null) {
+        amounts[id] = entry.price;
+      }
+      if (!currencyCode && entry.currencyCode) currencyCode = entry.currencyCode;
     }
-    return { supported: true, available: Array.from(available), prices };
+    return { supported: true, available: Array.from(available), prices, amounts, currencyCode };
   } catch (err) {
     if (import.meta.env.DEV) console.error('[Purchases] getStoreAvailability failed:', err);
     Sentry.captureException(err, { tags: { context: 'purchases.getStoreAvailability' } });
-    return { supported: true, available: [], prices: {} };
+    return { supported: true, available: [], prices: {}, amounts: {} };
   }
 }
 
@@ -392,6 +410,50 @@ export async function restorePurchases(): Promise<ProductId[]> {
  * should fall back to the USD config price in that case. Products missing
  * from RevenueCat's offerings are still priced via a direct store lookup.
  */
+/**
+ * Ask the STORE whether this Apple ID can still use the introductory free
+ * trial for a product.
+ *
+ * Local state cannot answer this. Apple grants the intro offer once per Apple
+ * ID, but `monetization.subscription` is null on any fresh install — so a
+ * lapsed subscriber who reinstalls looks eligible locally and would be shown
+ * "7 days free" on a purchase the store charges immediately. That is a false
+ * claim and a Guideline 3.1.2(c) exposure, plus a refund request.
+ *
+ * Returns:
+ *   true  — the store confirmed the user is eligible.
+ *   false — the store confirmed they are NOT eligible, or that no intro offer
+ *           exists for this product.
+ *   null  — undeterminable (off-device, plugin absent, RevenueCat unsure, or
+ *           the call threw). The CALLER decides what to do with "unknown";
+ *           this function never guesses.
+ */
+export async function isEligibleForIntroOffer(productId: ProductId): Promise<boolean | null> {
+  if (!Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) return null;
+
+  try {
+    await ensureConfigured();
+    const { Purchases, INTRO_ELIGIBILITY_STATUS } = await import('@revenuecat/purchases-capacitor');
+    const result = await Purchases.checkTrialOrIntroductoryPriceEligibility({
+      productIdentifiers: [productId],
+    });
+    const status = result?.[productId]?.status;
+    if (status === INTRO_ELIGIBILITY_STATUS.INTRO_ELIGIBILITY_STATUS_ELIGIBLE) return true;
+    if (
+      status === INTRO_ELIGIBILITY_STATUS.INTRO_ELIGIBILITY_STATUS_INELIGIBLE ||
+      status === INTRO_ELIGIBILITY_STATUS.INTRO_ELIGIBILITY_STATUS_NO_INTRO_OFFER_EXISTS
+    ) {
+      return false;
+    }
+    // INTRO_ELIGIBILITY_STATUS_UNKNOWN, or a shape we don't recognise.
+    return null;
+  } catch (err) {
+    if (import.meta.env.DEV) console.error('[Purchases] intro eligibility check failed:', err);
+    Sentry.captureException(err, { tags: { context: 'purchases.isEligibleForIntroOffer' } });
+    return null;
+  }
+}
+
 export async function getStorePrices(): Promise<Partial<Record<ProductId, string>>> {
   const { prices } = await getStoreAvailability();
   return prices;

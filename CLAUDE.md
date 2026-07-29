@@ -1,6 +1,6 @@
 # CLAUDE.md — Dynasty Manager
 
-> Last verified against the codebase 2026-07-18 (app v1.2.0, save schema v73).
+> Last verified against the codebase 2026-07-29 (app v1.3.0, save schema v78).
 > If the numbers below disagree with the code, trust the code — and update this file.
 
 ## TestFlight Release Notes ("What's New")
@@ -337,7 +337,7 @@ src/
 ├── types/game.ts        → ALL types (2,083 LOC): Player, Club, Match, LeagueInfo,
 │                          10 formations, 45 GameScreens, MonetizationState,
 │                          CareerManager, NationalTeamState, PackTierDefinition, …
-├── utils/               → 74+ files: playerGen, saveMigration (v73),
+├── utils/               → 74+ files: playerGen, saveMigration (v78),
 │                          purchases (RevenueCat wrapper), monetization, ads (stub),
 │                          packGeneration, communityPackPool, international,
 │                          managerCareer, continental, continentalCoefficients,
@@ -358,7 +358,7 @@ src/
 5. **`src/engine/match.ts`** — match simulation (1,828 LOC).
 6. **`src/data/leagues/index.ts`** — aggregates 45 leagues / 756 clubs; `src/data/league.ts` for fixtures/tables/derbies.
 7. **`src/utils/playerGen.ts`** — player generation, overall calc, squad building.
-8. **`src/utils/saveMigration.ts`** — save schema `CURRENT_VERSION = 73` + migration chain. Every state-shape change bumps it.
+8. **`src/utils/saveMigration.ts`** — save schema `CURRENT_VERSION = 78` + migration chain. Every state-shape change bumps it.
 9. **`src/config/monetization.ts` + `src/utils/purchases.ts` + `src/utils/monetization.ts`** — product catalog, RevenueCat wrapper, entitlement checks (see Monetization).
 10. **`src/store/slices/orchestration/seasonEnd.ts`** — end-of-season: aging, contracts, promotion/relegation cascade, awards, fixtures.
 
@@ -429,6 +429,17 @@ in `src/utils/monetization.ts`; state in `monetizationSlice`.
    (`purchaseProduct` → `[productId]`, `purchaseConsumable` → `true`).
    Real purchase paths only run on device.
 
+### Observability: wired but INERT until secrets exist
+
+`VITE_ANALYTICS_ENDPOINT` and `VITE_SENTRY_DSN` are now passed through in
+`ios-testflight.yml` / `android-build.yml`, but **the GitHub secrets do not
+exist yet**. Both consumers hard-return on an empty value
+(`analytics.ts` `if (!endpoint) return`, `sentry.ts` `if (!dsn) return`), so
+until those secrets are set: no analytics event and no crash report leaves a
+production device, and every conversion rate in
+`marketing/ads/unit-economics.mjs` is unmeasurable. See
+`marketing/ads/RELEASE-READINESS.md` for the setup steps.
+
 ### Ads: disabled in V1
 `@capacitor-community/admob` is fully removed (it crashed TestFlight builds —
 see the saga above). `src/utils/ads.ts` is a stub with
@@ -458,7 +469,7 @@ identities draw from the **community pack** real-player dataset
 - ALL storage access goes through `src/store/helpers/persistence.ts`
   (`readSaveSlot`, `getFlag`/`setFlag`, `readSessionJson`, …). New keys
   register in `STORAGE_KEYS`. Direct `localStorage` use is ESLint-banned.
-- **Save schema version `73`** in `utils/saveMigration.ts`. Any change to
+- **Save schema version `78`** in `utils/saveMigration.ts`. Any change to
   persisted state shape bumps `CURRENT_VERSION` and adds a migration step.
   `SaveRecoveryDialog` + backup slots handle corrupted saves; parse failures
   breadcrumb to Sentry.
@@ -505,7 +516,7 @@ identities draw from the **community pack** real-player dataset
 - **Never check subscription SKUs against `monetization.entitlements`** — see Entitlement invariants above.
 - **Generated data is not source code:** `src/data/communityPack/*`, `src/data/nationalPlayerPool.ts` are tool-generated. Never hand-edit; regenerate via the fc26/scrape scripts.
 - HashRouter: deep links are `#/route`; route changes don't hit the server.
-- `package.json.version` (1.2.0) must never regress below the top `whatsNew.ts` entry — CI guard will fail the TestFlight build.
+- `package.json.version` (1.3.0) must never regress below the top `whatsNew.ts` entry — CI guard will fail the TestFlight build.
 
 ## Commands
 ```bash

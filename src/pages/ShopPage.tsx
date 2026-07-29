@@ -58,20 +58,15 @@ const COSMETIC_PACK_IDS: ProductId[] = [
   'com.dynastymanager.pack.legends',
 ];
 
-const BUNDLE_INDIVIDUAL_TOTAL = PRODUCTS['com.dynastymanager.pro'].priceUsd
-  + PRODUCTS['com.dynastymanager.pack.manager'].priceUsd
-  + PRODUCTS['com.dynastymanager.pack.stadium'].priceUsd
-  + PRODUCTS['com.dynastymanager.pack.legends'].priceUsd;
-const BUNDLE_SAVINGS_PCT = Math.round((1 - PRODUCTS['com.dynastymanager.bundle.all'].priceUsd / BUNDLE_INDIVIDUAL_TOTAL) * 100);
-
-/** Per-day cost for monthly subscription */
-const MONTHLY_PER_DAY = (PRODUCTS['com.dynastymanager.pro.monthly'].priceUsd / 30).toFixed(2);
-/** Effective per-month cost when paying annually (for value framing) */
-const ANNUAL_PER_MONTH = (PRODUCTS['com.dynastymanager.pro.annual'].priceUsd / 12).toFixed(2);
-/** % savings of annual vs paying monthly for a year */
-const ANNUAL_SAVINGS_PCT = Math.round(
-  (1 - PRODUCTS['com.dynastymanager.pro.annual'].priceUsd / (PRODUCTS['com.dynastymanager.pro.monthly'].priceUsd * 12)) * 100,
-);
+// NOTE: the USD-derived constants that used to live here (BUNDLE_SAVINGS_PCT,
+// ANNUAL_SAVINGS_PCT, MONTHLY_PER_DAY, ANNUAL_PER_MONTH,
+// BUNDLE_INDIVIDUAL_TOTAL) were rendered as claims — "Save 12%", "just
+// $1.25/month", a struck-through "$28.96". All four are false outside the US:
+// the figures are in the wrong currency and Apple's price tiers do not
+// preserve the USD ratios, so the percentages are wrong even ignoring the
+// symbol. They are now computed per-storefront from the store's numeric
+// prices inside the component, and omitted entirely when the store has not
+// answered. Do not reintroduce a comparative claim derived from priceUsd.
 
 const ShopPage = () => {
   const navigate = useNavigate();
@@ -102,6 +97,13 @@ const ShopPage = () => {
   // condition that got build 174 rejected, and it is the sequencing hazard for
   // any price-ladder change that retires a SKU.
   const [availableIds, setAvailableIds] = useState<ProductId[] | null>(null);
+  // Numeric prices in the storefront currency. Every comparative claim below
+  // ("Save 12%", "just $1.25/month", the strikethrough total) is computed from
+  // these — NOT from the USD constants, which are a false price claim in any
+  // non-US storefront, and whose ratios do not survive Apple's price tiers.
+  // When the store hasn't answered, the claims are suppressed rather than
+  // guessed.
+  const [storeAmounts, setStoreAmounts] = useState<Partial<Record<ProductId, number>>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -110,9 +112,10 @@ const ShopPage = () => {
     // RevenueCat offering) drags down the batch and can blank the one-time
     // catalog that IS configured.
     getStoreAvailability(SHOP_PROBE_IDS)
-      .then(({ supported, available, prices }) => {
+      .then(({ supported, available, prices, amounts }) => {
         if (cancelled) return;
         setStorePrices(prices);
+        setStoreAmounts(amounts || {});
         // `supported` false means off-device / plugin absent — not a store
         // verdict, so keep the full catalog visible for web + dev testing.
         // When the store IS supported we trust its answer even if it is empty:
@@ -131,6 +134,53 @@ const ShopPage = () => {
 
   /** True once the store has answered and said it can sell nothing at all. */
   const storeSellsNothing = availableIds !== null && availableIds.length === 0;
+
+  // ── Comparative price claims, storefront-correct or omitted ──
+  //
+  // `amountFor` returns the real local price when the store gave us one, and
+  // the USD config price ONLY when the store isn't answering at all
+  // (web/dev/off-device), where nothing is being claimed to a real buyer.
+  const storeAnswered = Object.keys(storeAmounts).length > 0;
+  const amountFor = (id: ProductId): number | null =>
+    storeAmounts[id] ?? (storeAnswered ? null : PRODUCTS[id].priceUsd);
+
+  /** Percentage saved by `discounted` vs `full`, or null if either is unknown. */
+  const savingsPct = (full: number | null, discounted: number | null): number | null => {
+    if (full == null || discounted == null || full <= 0 || discounted > full) return null;
+    const pct = Math.round((1 - discounted / full) * 100);
+    return pct > 0 ? pct : null;
+  };
+
+  const bundleIndividualTotal = (() => {
+    const parts = ([
+      'com.dynastymanager.pro',
+      'com.dynastymanager.pack.manager',
+      'com.dynastymanager.pack.stadium',
+      'com.dynastymanager.pack.legends',
+    ] as ProductId[]).map(amountFor);
+    return parts.every(p => p != null) ? (parts as number[]).reduce((a, b) => a + b, 0) : null;
+  })();
+  const bundleSavingsPct = savingsPct(bundleIndividualTotal, amountFor('com.dynastymanager.bundle.all'));
+
+  const monthlyAmount = amountFor('com.dynastymanager.pro.monthly');
+  const annualAmount = amountFor('com.dynastymanager.pro.annual');
+  const annualSavingsPct = savingsPct(monthlyAmount != null ? monthlyAmount * 12 : null, annualAmount);
+
+  /** Format a derived per-period amount in the storefront's own formatting by
+   *  reusing the store's price string shape. Falls back to null (caller omits
+   *  the line) when we have no localized string to model. */
+  const perPeriod = (id: ProductId, divisor: number): string | null => {
+    const amount = amountFor(id);
+    if (amount == null) return null;
+    const localized = storePrices[id];
+    const value = amount / divisor;
+    if (!localized) return `$${value.toFixed(2)}`;
+    // Swap the numeric portion of the store's own localized string so the
+    // currency symbol, placement and separators stay correct for the storefront.
+    const numeric = localized.match(/[\d.,]+/);
+    if (!numeric) return null;
+    return localized.replace(numeric[0], value.toFixed(2));
+  };
 
   /** Display price — store-localised when available, USD config price otherwise. */
   const priceFor = (productId: ProductId) =>
@@ -275,9 +325,11 @@ const ShopPage = () => {
             <div className="flex items-center gap-2 mb-1">
               <Star className="w-4 h-4 text-[hsl(var(--gold))] fill-[hsl(var(--gold))]" />
               <span className="text-xs font-bold text-[hsl(var(--gold))] uppercase tracking-wider">Best Deal</span>
-              <span className="text-[10px] bg-[hsl(var(--gold)/0.15)] text-[hsl(var(--gold))] px-2 py-0.5 rounded-full font-bold ml-auto">
-                Save {BUNDLE_SAVINGS_PCT}%
-              </span>
+              {bundleSavingsPct != null && (
+                <span className="text-[10px] bg-[hsl(var(--gold)/0.15)] text-[hsl(var(--gold))] px-2 py-0.5 rounded-full font-bold ml-auto">
+                  Save {bundleSavingsPct}%
+                </span>
+              )}
             </div>
             <h3 className="text-base font-display font-bold text-foreground mt-2">
               {PRODUCTS['com.dynastymanager.bundle.all'].name}
@@ -295,9 +347,11 @@ const ShopPage = () => {
               <span className="text-lg font-bold text-[hsl(var(--gold))]">
                 {priceFor('com.dynastymanager.bundle.all')}
               </span>
-              <span className="text-xs text-muted-foreground/60 line-through">
-                {formatPrice(BUNDLE_INDIVIDUAL_TOTAL)}
-              </span>
+              {bundleIndividualTotal != null && (
+                <span className="text-xs text-muted-foreground/60 line-through">
+                  {formatPrice(bundleIndividualTotal)}
+                </span>
+              )}
             </div>
             {isPurchasable('com.dynastymanager.bundle.all') && <button
               onClick={() => handlePurchase('com.dynastymanager.bundle.all')}
@@ -394,15 +448,17 @@ const ShopPage = () => {
               <div className="flex items-center gap-2 mb-1">
                 <TrendingUp className="w-4 h-4 text-emerald-400" />
                 <span className="text-sm font-semibold text-emerald-400">Switch to Annual</span>
-                <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold ml-auto">
-                  Save {ANNUAL_SAVINGS_PCT}%
-                </span>
+                {annualSavingsPct != null && (
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold ml-auto">
+                    Save {annualSavingsPct}%
+                  </span>
+                )}
               </div>
               <p className="text-xs text-muted-foreground mb-2">
                 Pay yearly and save vs your current monthly plan — same Pro features.
               </p>
               <p className="text-[10px] text-muted-foreground/60 mb-3">
-                Just ${ANNUAL_PER_MONTH}/month billed yearly
+                {perPeriod('com.dynastymanager.pro.annual', 12) && `Just ${perPeriod('com.dynastymanager.pro.annual', 12)}/month billed yearly`}
               </p>
               {isPurchasable('com.dynastymanager.pro.annual') && <button
                 onClick={() => handlePurchase('com.dynastymanager.pro.annual')}
@@ -446,9 +502,9 @@ const ShopPage = () => {
                     <div className="flex items-center justify-between mb-1">
                       <h4 className="text-sm font-semibold text-foreground">{product.name}</h4>
                       <div className="flex items-center gap-1.5">
-                        {isAnnual && (
+                        {isAnnual && annualSavingsPct != null && (
                           <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold">
-                            Save {ANNUAL_SAVINGS_PCT}%
+                            Save {annualSavingsPct}%
                           </span>
                         )}
                         {isLifetime && (
@@ -459,11 +515,11 @@ const ShopPage = () => {
                       </div>
                     </div>
                     <p className="text-xs text-muted-foreground mb-1">{product.description}</p>
-                    {isMonthly && (
-                      <p className="text-[10px] text-muted-foreground/60 mb-2">Just ${MONTHLY_PER_DAY}/day — cancel anytime</p>
+                    {isMonthly && perPeriod('com.dynastymanager.pro.monthly', 30) && (
+                      <p className="text-[10px] text-muted-foreground/60 mb-2">Just {perPeriod('com.dynastymanager.pro.monthly', 30)}/day — cancel anytime</p>
                     )}
-                    {isAnnual && (
-                      <p className="text-[10px] text-muted-foreground/60 mb-2">Just ${ANNUAL_PER_MONTH}/month — billed yearly</p>
+                    {isAnnual && perPeriod('com.dynastymanager.pro.annual', 12) && (
+                      <p className="text-[10px] text-muted-foreground/60 mb-2">Just {perPeriod('com.dynastymanager.pro.annual', 12)}/month — billed yearly</p>
                     )}
                     {isLifetime && (
                       <p className="text-[10px] text-muted-foreground/60 mb-2">One-time purchase, yours forever</p>
@@ -623,15 +679,19 @@ const ShopPage = () => {
             <h3 className="text-base font-display font-bold text-foreground">
               {PRODUCTS['com.dynastymanager.bundle.all'].name}
             </h3>
-            <span className="text-[10px] bg-[hsl(var(--gold)/0.15)] text-[hsl(var(--gold))] px-2 py-0.5 rounded-full font-bold ml-auto">
-              Save {BUNDLE_SAVINGS_PCT}%
-            </span>
+            {bundleSavingsPct != null && (
+              <span className="text-[10px] bg-[hsl(var(--gold)/0.15)] text-[hsl(var(--gold))] px-2 py-0.5 rounded-full font-bold ml-auto">
+                Save {bundleSavingsPct}%
+              </span>
+            )}
           </div>
           <p className="text-xs text-muted-foreground mb-2">
             {PRODUCTS['com.dynastymanager.bundle.all'].description}
           </p>
           <p className="text-[10px] text-muted-foreground/60 mb-3">
-            <span className="line-through">{formatPrice(BUNDLE_INDIVIDUAL_TOTAL)}</span> individually
+            {bundleIndividualTotal != null && (
+              <><span className="line-through">{formatPrice(bundleIndividualTotal)}</span> individually</>
+            )}
           </p>
           {isPurchasable('com.dynastymanager.bundle.all') && <button
             onClick={() => handlePurchase('com.dynastymanager.bundle.all')}
