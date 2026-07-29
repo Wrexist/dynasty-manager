@@ -28,6 +28,7 @@ import {
   CURRENT_VERSION,
 } from '@/utils/saveMigration';
 import { __resetAutosaveSchedulerForTests } from '@/store/slices/orchestrationSlice';
+import { isPro } from '@/utils/monetization';
 
 /** Reset every save-storage layer (memory cache + localStorage) between
  *  tests. Required now that the memory cache outlives a `localStorage.clear()`
@@ -389,6 +390,108 @@ describe('saveGame/loadGame — Invincible pre-match snapshot (G6)', () => {
     const after = useGameStore.getState();
     expect(after.preMatchSnapshot).toBeTruthy();
     expect(after.preMatchSnapshot!.boardConfidence).toBe(55);
+
+    vi.useRealTimers();
+  });
+});
+
+describe('loadGame — purchases are device-scoped, not slot-scoped', () => {
+  beforeEach(() => { clearAllSaveStorage(); });
+
+  /**
+   * Regression: loadGame used to apply `monetization` wholesale from the save
+   * slot, so loading a slot written BEFORE a purchase revoked Pro from a
+   * paying customer. Nothing re-syncs entitlements at launch — initPurchases()
+   * does not write them into the store, and restorePurchases() is only
+   * reachable from the manual buttons in Settings / SubscribeOnboarding — so
+   * the user's only recovery was to find "Restore Purchases" themselves.
+   *
+   * The reset path already preserved these three fields; loadGame did not.
+   */
+  it('keeps entitlements and subscription when loading a slot saved before the purchase', () => {
+    vi.useFakeTimers();
+    __resetAutosaveSchedulerForTests();
+    useGameStore.getState().initGame('celtic');
+
+    // Save a slot from a free user — no entitlements, no subscription.
+    useGameStore.setState({
+      monetization: {
+        ...useGameStore.getState().monetization,
+        entitlements: [],
+        subscription: null,
+        firstLaunchTimestamp: 1_000,
+        starterKitDismissed: false,
+      },
+    });
+    useGameStore.getState().saveGame(SLOT);
+    vi.runAllTimers();
+    useGameStore.getState().flushSave();
+
+    // The user then buys Pro and takes out a subscription.
+    const liveSub = {
+      tier: 'monthly' as const,
+      productId: 'com.dynastymanager.pro.monthly' as const,
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      isInGracePeriod: false,
+      willRenew: true,
+    };
+    useGameStore.setState({
+      monetization: {
+        ...useGameStore.getState().monetization,
+        entitlements: ['com.dynastymanager.pro'],
+        subscription: liveSub,
+        firstLaunchTimestamp: 2_000,
+        starterKitDismissed: true,
+      },
+    });
+    expect(isPro(useGameStore.getState().monetization)).toBe(true);
+
+    // Loading the pre-purchase slot must not take Pro away.
+    useGameStore.getState().loadGame(SLOT);
+
+    const after = useGameStore.getState().monetization;
+    expect(after.entitlements).toEqual(['com.dynastymanager.pro']);
+    expect(after.subscription).toEqual(liveSub);
+    expect(after.firstLaunchTimestamp).toBe(2_000);
+    expect(isPro(after)).toBe(true);
+
+    vi.useRealTimers();
+  });
+
+  it('still restores slot-scoped monetization progress from the save', () => {
+    vi.useFakeTimers();
+    __resetAutosaveSchedulerForTests();
+    useGameStore.getState().initGame('celtic');
+
+    // Slot-scoped fields (cosmetics equipped, ad-reward counters, starter-kit
+    // dismissal) belong to the save and must NOT be pinned to live state.
+    useGameStore.setState({
+      monetization: {
+        ...useGameStore.getState().monetization,
+        activeCosmetics: { stadium_theme: 'floodlit' },
+        adRewardsClaimed: { transfer_budget: 3 },
+        starterKitDismissed: true,
+      },
+    });
+    useGameStore.getState().saveGame(SLOT);
+    vi.runAllTimers();
+    useGameStore.getState().flushSave();
+
+    useGameStore.setState({
+      monetization: {
+        ...useGameStore.getState().monetization,
+        activeCosmetics: {},
+        adRewardsClaimed: {},
+        starterKitDismissed: false,
+      },
+    });
+
+    useGameStore.getState().loadGame(SLOT);
+
+    const after = useGameStore.getState().monetization;
+    expect(after.activeCosmetics).toEqual({ stadium_theme: 'floodlit' });
+    expect(after.adRewardsClaimed).toEqual({ transfer_budget: 3 });
+    expect(after.starterKitDismissed).toBe(true);
 
     vi.useRealTimers();
   });
