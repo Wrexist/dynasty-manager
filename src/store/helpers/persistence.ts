@@ -291,6 +291,16 @@ export const STORAGE_KEYS = {
    *  save so the user only answers once. Values: 'granted' | 'denied'. Missing
    *  key = never asked → show the consent screen. */
   ANALYTICS_CONSENT: 'dynasty-analytics-consent',
+  /** localStorage: device-scoped purchase record — entitlements, subscription
+   *  and the first-launch stamp. Purchases belong to the DEVICE (really to the
+   *  Apple ID), not to a save slot, but the only durable copy used to live
+   *  inside the slot. That left every path which does not load a slot — most
+   *  obviously "New Game" — starting with no Pro until a RevenueCat sync
+   *  landed, and re-arming the Starter Kit window because a missing stamp
+   *  reads as "first launch is now". Written by the monetization mutators,
+   *  read in main.tsx BEFORE the first render so live state is populated
+   *  before TitleScreen can offer Continue or New Game. */
+  DEVICE_ENTITLEMENTS: 'dynasty-entitlements',
   /** localStorage: crash-durable record of a paid consumable pack purchase
    *  that has not yet been granted in-game. Written BEFORE the StoreKit
    *  charge, cleared after the pack is opened and the save flushed.
@@ -406,6 +416,41 @@ export function readDailyStreak(): DailyStreakRecord | null {
     if (raw !== null) breadcrumbCorruption('readDailyStreak', raw, err);
     return null;
   }
+}
+
+/** Device-scoped purchase record. Deliberately a narrow subset of
+ *  MonetizationState — slot-scoped progress (cosmetics equipped, ad-reward
+ *  counters, starter-kit dismissal) stays in the save. */
+export interface DeviceEntitlementRecord {
+  entitlements: string[];
+  subscription: unknown | null;
+  firstLaunchTimestamp: number;
+}
+
+export function readDeviceEntitlements(): DeviceEntitlementRecord | null {
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem(STORAGE_KEYS.DEVICE_ENTITLEMENTS);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    return {
+      entitlements: Array.isArray(parsed.entitlements)
+        ? parsed.entitlements.filter((e: unknown): e is string => typeof e === 'string')
+        : [],
+      subscription: parsed.subscription ?? null,
+      firstLaunchTimestamp:
+        typeof parsed.firstLaunchTimestamp === 'number' ? parsed.firstLaunchTimestamp : 0,
+    };
+  } catch (err) {
+    if (raw !== null) breadcrumbCorruption('readDeviceEntitlements', raw, err);
+    return null;
+  }
+}
+
+export function writeDeviceEntitlements(record: DeviceEntitlementRecord): void {
+  try { localStorage.setItem(STORAGE_KEYS.DEVICE_ENTITLEMENTS, JSON.stringify(record)); }
+  catch { /* storage unavailable — non-fatal, the save slot remains the fallback */ }
 }
 
 export function writeDailyStreak(record: DailyStreakRecord): void {

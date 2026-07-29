@@ -21,6 +21,7 @@ import {
   readSaveSlotTmp,
   recoverStaleSaveTmp,
   __resetSaveStorageForTests,
+  readDeviceEntitlements,
 } from '@/store/helpers/persistence';
 import {
   validateSaveShape,
@@ -516,5 +517,68 @@ describe('loadGame — purchases survive in BOTH directions', () => {
     expect(after.adRewardsClaimed).toEqual({ transfer_budget: 3 });
     expect(after.starterKitDismissed).toBe(true);
     vi.useRealTimers();
+  });
+});
+
+describe('device-scoped purchase record', () => {
+  beforeEach(() => { clearAllSaveStorage(); });
+
+  /**
+   * Purchases belong to the device, not to a save slot. Before this record
+   * existed, the only durable copy lived inside the slot — so "New Game", and
+   * anything else that does not load a slot, started with no Pro until a
+   * RevenueCat sync landed after navigation.
+   */
+  it('mirrors entitlements, subscription and first-launch stamp on every mutation', () => {
+    useGameStore.setState({ monetization: { ...DEFAULT_MONETIZATION_STATE } });
+
+    useGameStore.getState().grantEntitlement('com.dynastymanager.pro');
+    expect(readDeviceEntitlements()?.entitlements).toContain('com.dynastymanager.pro');
+
+    const sub = {
+      tier: 'annual' as const,
+      productId: 'com.dynastymanager.pro.annual' as const,
+      expiresAt: new Date(Date.now() + 365 * 86_400_000).toISOString(),
+      isInGracePeriod: false,
+      willRenew: true,
+    };
+    useGameStore.getState().updateSubscription(sub);
+    expect(readDeviceEntitlements()?.subscription).toEqual(sub);
+
+    useGameStore.getState().initMonetizationTimestamp();
+    expect(readDeviceEntitlements()!.firstLaunchTimestamp).toBeGreaterThan(0);
+  });
+
+  it('expands a bundle into the device record, without persisting banned SKUs', () => {
+    useGameStore.setState({ monetization: { ...DEFAULT_MONETIZATION_STATE } });
+    useGameStore.getState().grantEntitlement('com.dynastymanager.bundle.all');
+
+    const stored = readDeviceEntitlements()!.entitlements;
+    expect(stored).toContain('com.dynastymanager.bundle.all');
+    expect(stored).toContain('com.dynastymanager.pro');
+    expect(stored).toContain('com.dynastymanager.pack.manager');
+    // Subscription and consumable SKUs must never reach the record.
+    expect(stored).not.toContain('com.dynastymanager.pro.monthly');
+    expect(stored).not.toContain('com.dynastymanager.pack.gold');
+  });
+
+  it('clears the record when dev-tools resets entitlements', () => {
+    useGameStore.setState({ monetization: { ...DEFAULT_MONETIZATION_STATE } });
+    useGameStore.getState().grantEntitlement('com.dynastymanager.pro');
+    expect(readDeviceEntitlements()?.entitlements.length).toBeGreaterThan(0);
+
+    // Without this, the next launch would re-hydrate exactly what was wiped.
+    useGameStore.getState().resetEntitlementsForTesting();
+    expect(readDeviceEntitlements()?.entitlements).toEqual([]);
+  });
+
+  it('tolerates a corrupt record rather than throwing at launch', () => {
+    localStorage.setItem(STORAGE_KEYS.DEVICE_ENTITLEMENTS, 'not-json{{{');
+    expect(readDeviceEntitlements()).toBeNull();
+
+    localStorage.setItem(STORAGE_KEYS.DEVICE_ENTITLEMENTS, JSON.stringify({ entitlements: 'nope' }));
+    const r = readDeviceEntitlements();
+    expect(r?.entitlements).toEqual([]);
+    expect(r?.firstLaunchTimestamp).toBe(0);
   });
 });

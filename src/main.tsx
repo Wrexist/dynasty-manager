@@ -10,9 +10,10 @@ import { initPurchases } from '@/utils/purchases';
 import { initAds } from '@/utils/ads';
 import { scheduleEngagementReminders, cancelAllEngagementReminders, derivePersonalContext } from '@/utils/notifications';
 import { useGameStore } from '@/store/gameStore';
+import type { ProductId, SubscriptionInfo } from '@/types/game';
 import { initSentry, addGameBreadcrumb } from '@/utils/sentry';
 import { track } from '@/utils/analytics';
-import { hydrateSaveStorage } from '@/store/helpers/persistence';
+import { hydrateSaveStorage, readDeviceEntitlements } from '@/store/helpers/persistence';
 import { setSfxEnabled, sfxRoar, sfxChime, sfxWhoosh, sfxBurst } from '@/utils/sfx';
 import { setPackSfxHandler } from '@/utils/packAudio';
 
@@ -33,6 +34,38 @@ try {
 // picker — otherwise the picker could render "No Save" on an install
 // whose data lives only in IndexedDB, not localStorage.
 export const saveStorageReady = hydrateSaveStorage();
+
+// Restore device-scoped purchases BEFORE the first render.
+//
+// Purchases belong to the device, not to a save slot, but the only durable
+// copy used to live inside the slot. That left every path which does not load
+// a slot — most obviously "New Game" — running with no Pro until a RevenueCat
+// sync landed after navigation, and re-arming the Starter Kit window because a
+// missing first-launch stamp reads as "first launch is now".
+//
+// This is a synchronous localStorage read, so it completes before TitleScreen
+// can offer Continue or New Game. It is a local cache, never an authority: the
+// store still gets the last word through GameShell's sync, and
+// mergeDeviceMonetization only ever ADDS a purchase on load, so a stale record
+// here can never revoke one. An expired subscription still reads as expired
+// via isSubscriptionExpired.
+try {
+  const device = readDeviceEntitlements();
+  if (device) {
+    const store = useGameStore.getState();
+    store.restoreEntitlements(device.entitlements as ProductId[]);
+    if (device.subscription) {
+      store.updateSubscription(device.subscription as SubscriptionInfo);
+    }
+    if (device.firstLaunchTimestamp > 0) {
+      useGameStore.setState((s) => ({
+        monetization: { ...s.monetization, firstLaunchTimestamp: device.firstLaunchTimestamp },
+      }));
+    }
+  }
+} catch (err) {
+  if (import.meta.env.DEV) console.warn('[main] device entitlement hydrate failed:', err);
+}
 
 // Promise that resolves once the first frame has painted
 let resolveAppReady: (() => void) | null = null;

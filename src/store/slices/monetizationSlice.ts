@@ -4,11 +4,26 @@ import { PRODUCTS, COSMETIC_ITEMS, AD_REWARD_LIMITS, AD_REWARD_VALUES, adBudgetR
 // Single source of truth for the entitlement boundary — shared with
 // mergeDeviceMonetization so every writer of `entitlements` enforces it.
 import { isPersistableEntitlement } from '@/utils/monetization';
+import { writeDeviceEntitlements } from '@/store/helpers/persistence';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
 
 export function createMonetizationSlice(_set: Set, _get: Get) {
+  /** Mirror the device-scoped purchase fields to localStorage after any change.
+   *  Zustand's set() is synchronous, so calling this immediately after a
+   *  mutation captures the new state. Purchases belong to the device, not to a
+   *  save slot — without this, "New Game" and any pre-load screen start with no
+   *  Pro until a RevenueCat sync lands, and the Starter Kit window re-arms. */
+  const mirrorDevicePurchases = () => {
+    const m = _get().monetization;
+    writeDeviceEntitlements({
+      entitlements: m.entitlements,
+      subscription: m.subscription,
+      firstLaunchTimestamp: m.firstLaunchTimestamp,
+    });
+  };
+
   return {
     // Deep-copy the nested arrays/objects — a shallow spread would alias
     // them to the module-level default, so one in-place mutation anywhere
@@ -49,6 +64,7 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
           },
         };
       });
+      mirrorDevicePurchases();
     },
 
     /** Restore all entitlements (e.g. from RevenueCat restore flow).
@@ -78,6 +94,7 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
           },
         };
       });
+      mirrorDevicePurchases();
     },
 
     /** Set a cosmetic selection for a given category */
@@ -158,6 +175,7 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
           firstLaunchTimestamp: Date.now(),
         },
       }));
+      mirrorDevicePurchases();
     },
 
     /** Apply transfer budget bonus from ad reward */
@@ -190,6 +208,7 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
           subscription: info,
         },
       }));
+      mirrorDevicePurchases();
     },
 
     /** Start the introductory free trial (FREE_TRIAL_DAYS, currently 7).
@@ -221,6 +240,7 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
           subscription: trialInfo,
         },
       }));
+      mirrorDevicePurchases();
     },
 
     /** Testing-only: wipe local Pro/entitlement state so the paywall funnel
@@ -237,6 +257,9 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
           activeCosmetics: {},
         },
       }));
+      // Clear the device record too, or the next hydrate at launch restores
+      // exactly what the dev-tools reset was meant to wipe.
+      mirrorDevicePurchases();
     },
 
     /** Apply season-end budget bonus from ad reward */
