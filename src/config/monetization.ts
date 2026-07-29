@@ -236,7 +236,12 @@ export function adBudgetReward(
   max: number
 ): number {
   const safeBudget = Number.isFinite(budget) && budget > 0 ? budget : 0;
-  return Math.round(Math.min(Math.max(safeBudget * pct, min), max));
+  // Clamp order matters: with min > max (a misconfiguration), min-then-max
+  // silently discards the floor and returns max. Normalise the bounds first so
+  // the result is always inside the intended band whichever way round they are.
+  const lo = Math.min(min, max);
+  const hi = Math.max(min, max);
+  return Math.round(Math.min(Math.max(safeBudget * pct, lo), hi));
 }
 
 /** Max ad rewards claimable per season per type */
