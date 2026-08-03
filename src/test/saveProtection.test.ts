@@ -21,6 +21,7 @@ import {
   readSaveSlotTmp,
   recoverStaleSaveTmp,
   __resetSaveStorageForTests,
+  readDeviceEntitlements,
 } from '@/store/helpers/persistence';
 import {
   validateSaveShape,
@@ -28,6 +29,8 @@ import {
   CURRENT_VERSION,
 } from '@/utils/saveMigration';
 import { __resetAutosaveSchedulerForTests } from '@/store/slices/orchestrationSlice';
+import { isPro } from '@/utils/monetization';
+import { DEFAULT_MONETIZATION_STATE } from '@/config/monetization';
 
 /** Reset every save-storage layer (memory cache + localStorage) between
  *  tests. Required now that the memory cache outlives a `localStorage.clear()`
@@ -391,5 +394,191 @@ describe('saveGame/loadGame — Invincible pre-match snapshot (G6)', () => {
     expect(after.preMatchSnapshot!.boardConfidence).toBe(55);
 
     vi.useRealTimers();
+  });
+});
+
+describe('loadGame — purchases survive in BOTH directions', () => {
+  beforeEach(() => { clearAllSaveStorage(); });
+
+  const liveSub = () => ({
+    tier: 'monthly' as const,
+    productId: 'com.dynastymanager.pro.monthly' as const,
+    expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    isInGracePeriod: false,
+    willRenew: true,
+  });
+
+  /**
+   * Direction 1 — live is ahead of the save. The user buys Pro, then loads a
+   * slot written before the purchase. Taking the save's block would revoke Pro
+   * from a paying customer.
+   */
+  it('keeps a live purchase when loading a slot saved before it', () => {
+    vi.useFakeTimers();
+    __resetAutosaveSchedulerForTests();
+    useGameStore.getState().initGame('celtic');
+
+    useGameStore.setState({
+      monetization: {
+        ...useGameStore.getState().monetization,
+        entitlements: [], subscription: null, firstLaunchTimestamp: 1_000,
+      },
+    });
+    useGameStore.getState().saveGame(SLOT);
+    vi.runAllTimers();
+    useGameStore.getState().flushSave();
+
+    const sub = liveSub();
+    useGameStore.setState({
+      monetization: {
+        ...useGameStore.getState().monetization,
+        entitlements: ['com.dynastymanager.pro'], subscription: sub, firstLaunchTimestamp: 2_000,
+      },
+    });
+    expect(isPro(useGameStore.getState().monetization)).toBe(true);
+
+    useGameStore.getState().loadGame(SLOT);
+
+    const after = useGameStore.getState().monetization;
+    expect(after.entitlements).toContain('com.dynastymanager.pro');
+    expect(after.subscription).toEqual(sub);
+    expect(isPro(after)).toBe(true);
+    vi.useRealTimers();
+  });
+
+  /**
+   * Direction 2 — the SAVE is ahead of live, which is the cold-launch case and
+   * the more common one. loadGame runs from TitleScreen while the store still
+   * holds DEFAULT_MONETIZATION_STATE (GameShell's RevenueCat sync only runs
+   * after navigation), so pinning to live state would wipe the purchase record
+   * and the next autosave would persist that loss to disk.
+   */
+  it('keeps a saved purchase when live state is still un-hydrated (cold launch)', () => {
+    vi.useFakeTimers();
+    __resetAutosaveSchedulerForTests();
+    useGameStore.getState().initGame('celtic');
+
+    const sub = liveSub();
+    useGameStore.setState({
+      monetization: {
+        ...useGameStore.getState().monetization,
+        entitlements: ['com.dynastymanager.pro'], subscription: sub, firstLaunchTimestamp: 1_000,
+      },
+    });
+    useGameStore.getState().saveGame(SLOT);
+    vi.runAllTimers();
+    useGameStore.getState().flushSave();
+
+    // Simulate a cold launch: the store is back to defaults, nothing synced yet.
+    useGameStore.setState({
+      monetization: { ...DEFAULT_MONETIZATION_STATE, entitlements: [], subscription: null, firstLaunchTimestamp: 0 },
+    });
+    expect(isPro(useGameStore.getState().monetization)).toBe(false);
+
+    useGameStore.getState().loadGame(SLOT);
+
+    const after = useGameStore.getState().monetization;
+    expect(after.entitlements).toContain('com.dynastymanager.pro');
+    expect(after.subscription).toEqual(sub);
+    expect(isPro(after)).toBe(true);
+    // The Starter Kit window must measure from genuine first launch, not re-arm.
+    expect(after.firstLaunchTimestamp).toBe(1_000);
+    vi.useRealTimers();
+  });
+
+  it('still restores slot-scoped monetization progress from the save', () => {
+    vi.useFakeTimers();
+    __resetAutosaveSchedulerForTests();
+    useGameStore.getState().initGame('celtic');
+
+    useGameStore.setState({
+      monetization: {
+        ...useGameStore.getState().monetization,
+        activeCosmetics: { stadium_theme: 'floodlit' },
+        adRewardsClaimed: { transfer_budget: 3 },
+        starterKitDismissed: true,
+      },
+    });
+    useGameStore.getState().saveGame(SLOT);
+    vi.runAllTimers();
+    useGameStore.getState().flushSave();
+
+    useGameStore.setState({
+      monetization: {
+        ...useGameStore.getState().monetization,
+        activeCosmetics: {}, adRewardsClaimed: {}, starterKitDismissed: false,
+      },
+    });
+
+    useGameStore.getState().loadGame(SLOT);
+
+    const after = useGameStore.getState().monetization;
+    expect(after.activeCosmetics).toEqual({ stadium_theme: 'floodlit' });
+    expect(after.adRewardsClaimed).toEqual({ transfer_budget: 3 });
+    expect(after.starterKitDismissed).toBe(true);
+    vi.useRealTimers();
+  });
+});
+
+describe('device-scoped purchase record', () => {
+  beforeEach(() => { clearAllSaveStorage(); });
+
+  /**
+   * Purchases belong to the device, not to a save slot. Before this record
+   * existed, the only durable copy lived inside the slot — so "New Game", and
+   * anything else that does not load a slot, started with no Pro until a
+   * RevenueCat sync landed after navigation.
+   */
+  it('mirrors entitlements, subscription and first-launch stamp on every mutation', () => {
+    useGameStore.setState({ monetization: { ...DEFAULT_MONETIZATION_STATE } });
+
+    useGameStore.getState().grantEntitlement('com.dynastymanager.pro');
+    expect(readDeviceEntitlements()?.entitlements).toContain('com.dynastymanager.pro');
+
+    const sub = {
+      tier: 'annual' as const,
+      productId: 'com.dynastymanager.pro.annual' as const,
+      expiresAt: new Date(Date.now() + 365 * 86_400_000).toISOString(),
+      isInGracePeriod: false,
+      willRenew: true,
+    };
+    useGameStore.getState().updateSubscription(sub);
+    expect(readDeviceEntitlements()?.subscription).toEqual(sub);
+
+    useGameStore.getState().initMonetizationTimestamp();
+    expect(readDeviceEntitlements()!.firstLaunchTimestamp).toBeGreaterThan(0);
+  });
+
+  it('expands a bundle into the device record, without persisting banned SKUs', () => {
+    useGameStore.setState({ monetization: { ...DEFAULT_MONETIZATION_STATE } });
+    useGameStore.getState().grantEntitlement('com.dynastymanager.bundle.all');
+
+    const stored = readDeviceEntitlements()!.entitlements;
+    expect(stored).toContain('com.dynastymanager.bundle.all');
+    expect(stored).toContain('com.dynastymanager.pro');
+    expect(stored).toContain('com.dynastymanager.pack.manager');
+    // Subscription and consumable SKUs must never reach the record.
+    expect(stored).not.toContain('com.dynastymanager.pro.monthly');
+    expect(stored).not.toContain('com.dynastymanager.pack.gold');
+  });
+
+  it('clears the record when dev-tools resets entitlements', () => {
+    useGameStore.setState({ monetization: { ...DEFAULT_MONETIZATION_STATE } });
+    useGameStore.getState().grantEntitlement('com.dynastymanager.pro');
+    expect(readDeviceEntitlements()?.entitlements.length).toBeGreaterThan(0);
+
+    // Without this, the next launch would re-hydrate exactly what was wiped.
+    useGameStore.getState().resetEntitlementsForTesting();
+    expect(readDeviceEntitlements()?.entitlements).toEqual([]);
+  });
+
+  it('tolerates a corrupt record rather than throwing at launch', () => {
+    localStorage.setItem(STORAGE_KEYS.DEVICE_ENTITLEMENTS, 'not-json{{{');
+    expect(readDeviceEntitlements()).toBeNull();
+
+    localStorage.setItem(STORAGE_KEYS.DEVICE_ENTITLEMENTS, JSON.stringify({ entitlements: 'nope' }));
+    const r = readDeviceEntitlements();
+    expect(r?.entitlements).toEqual([]);
+    expect(r?.firstLaunchTimestamp).toBe(0);
   });
 });

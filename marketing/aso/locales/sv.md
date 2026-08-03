@@ -1,56 +1,59 @@
 # sv — Swedish (App Store)
 
-Storefronts reached: Sweden primarily; also the default for Swedish-preferring users in Finland. "VM" (Världsmästerskapet) is the universal Swedish shorthand for the World Cup. Swedish football fans search heavily in a mix of native terms and English loanwords — the keyword field leans native because the English head term "manager" is already carried by the English brand in the App Name.
+Storefronts reached: Sweden primarily; also the default for Swedish-preferring users in Finland. Swedish football fans search in a mix of native terms and English loanwords — the keyword field leans native because the English head term "manager" is already carried by the English brand in the App Name. Window is now the 2026-27 club season: Allsvenskan runs spring-autumn but Swedish fans follow the European leagues that kick off in August, and "säsong"/"transferfönster" intent peaks through the window closing 1 September.
 
 ## App Name [24/30]
 `Dynasty Manager: Fotboll`
 
-## Subtitle [25/30]
-`Fotbollsmanager · VM 2026`
+## Subtitle [30/30]
+`Fotbollsmanager: hela säsongen`
 
-## Promotional Text [166/170]
-`VM 2026-läget är här: ta vilket landslag från gruppspel till straffläggning i finalen. Inga energimätare, inga vilopaket, ingen väntan. Fullt djup utan prenumeration.`
+## Promotional Text [168/170]
+`Ny säsong, ny dynasti. Ta vilken som helst av 756 riktiga klubbar från försäsong till guld – varje värvning, varje taktik, varje minut. Inga energimätare. Ingen väntan.`
 
-## Keywords [93/100]
-`straffar,taktik,laguppställning,trupp,övergångar,tränare,liga,karriär,landslag,klubb,cup,spel`
+## Keywords [96/100]
+`taktik,laguppställning,trupp,övergångar,tränare,liga,karriär,landslag,klubb,cup,spel,managerspel`
 
-## Description [1431/4000]
-VM 2026-läget är här. Välj vilket som helst av 50+ landslag och ta dem från gruppspelet till en nagelbitande final på straffar – du fattar varje beslut vid sidlinjen.
+## Description [1424/4000]
+Säsongen 2026-27 har dragit i gång. Välj din klubb, sätt din elva och styr varje minut.
 
 Dynasty Manager är en på riktigt djup fotbollsmanager-simulator för mobilen. Inget pay-to-win, inga energimätare, inga vilopaket, ingen väntan mellan omgångarna. Spela så mycket du vill, när du vill – hela djupet finns utan prenumeration.
 
 Du tar över en klubb, sätter laget, finjusterar taktik och laguppställning, värvar spelare på övergångsmarknaden och styr laget minut för minut genom varje match.
 
 Vad du kan göra:
-- VM 2026: ta något av 50+ landslag från gruppspel till final
+- Hela säsongen: försäsong, transferfönster, slutspurt och guld
 - 45 ligor med 756 riktiga klubbar i 37 länder – från Sveriges högsta serie till Sydamerika
+- Upp- och nedflyttning, kval och slutspel i varje serie
 - Karriärläge: sök jobb, förhandla kontrakt, klättra – eller få sparken
 - Nagelbitande straffläggningar där du slår varje straff själv
 - Livematcher: laguppställning, taktik, byten och lagsnack i realtid
 - Övergångar och lån, kontraktsförhandlingar och en egen ungdomsakademi
-- Kontinentala turneringar, cupäventyr och jobb som förbundskapten
-- Spelarpaket i FUT-stil med riktiga spelare och walkout-ögonblick
+- Kontinentala turneringar, cupäventyr och jobb som förbundskapten för något av 51 landslag
+- Spelarpaket att öppna, med riktiga spelare och walkout-ögonblick
 
 Inga energimätare. Ingen väntan. Bara fotboll, när du vill.
 
 Dynasty Pro låser upp avancerad statistik, egna taktiker, instant-sim och mer – med 7 dagar gratis att testa. Hela karriären går att spela även utan prenumeration.
 
-Gratis att ladda ner. Bli tränare och vinn VM 2026.
+Gratis att ladda ner. Bygg din dynasti.
 
 ## What's New (next release note blurb)
-VM 2026-läget är här – ta något av 50+ landslag från gruppspelet till en final på straffar. AI:n vid sidlinjen är vassare och ett par matchbuggar är fixade. Fortfarande inga energimätare, ingen väntan – bara fotboll.
+Ny säsong, ny dynasti. Nytt utseende i App Store, vassare AI vid sidlinjen och ett par matchdagsfixar. Fortfarande inga energimätare, ingen väntan – bara fotboll.
 
 ## Screenshot Captions (5)
-1. Över 50 landslag i VM 2026
-2. Vinn VM 2026
-3. Nagelbitande straffläggningar
-4. Sätt laget och taktiken
-5. Styr varje minut
+1. 45 ligor, 756 riktiga klubbar
+2. Matchdag minut för minut
+3. Straffläggning och egen elva
+4. Transferfönstret är öppet
+5. Förbundskapten och turneringar
 
 ## Keyword rationale
-- Biggest change: the native head compound "fotbollsmanager" now leads the **Subtitle** instead of the keyword field. It is the exact term Top Eleven translates its own descriptor to for the Swedish store, so we match it in the highest-weighted field. "VM 2026" stays in the subtitle to keep the tournament window visible.
-- The English head term "manager" is already carried by the English App Name, and "fotbollsmanager", "Fotboll", "VM", "2026" now sit in the Name/Subtitle — so the keyword field spends its characters entirely on native Swedish coverage that English-only rivals miss.
-- "tränare" (coach, freed from the old subtitle) and "taktik" are added; "spel" (added) recombines with the name's "Fotboll" to cover "fotbollsspel" (football game). "straffar", "laguppställning", "trupp", "övergångar", "landslag", "klubb" are the exact words for penalties, lineup, squad, transfers, national team and club — accented forms kept where users type them.
-- "liga", "karriär", "cup" are high-volume category heads. ("spelare" was dropped to fund tränare/taktik/spel.) No plurals of included singulars, no club/league proper nouns.
+- The native head compound "fotbollsmanager" keeps the **Subtitle** lead — it is the exact term Top Eleven translates its own descriptor to for the Swedish store, and Swedish links compounds with an "s" ("fotboll" + s + "manager"), which Apple's tokenizer does not reliably reassemble from the separate words in the App Name. It is worth spelling out in the highest-weighted field we own.
+- The tournament stamp that used to share the subtitle is gone (that window closed 19 July 2026). Its 10 characters now go to "hela säsongen" — season intent plus a benefit read, which is what the Today-tab ad format needs since it renders only name + icon + subtitle.
+- The English head term "manager" is already carried by the English App Name, and "fotbollsmanager", "Fotboll" and "säsongen" now sit in Name/Subtitle — so the keyword field spends its characters entirely on native Swedish coverage that English-only rivals miss.
+- "managerspel" is added: it is how Swedes name the genre in search ("bästa managerspel"), and it cannot be assembled from Name/Subtitle tokens. "spel" is kept because it recombines with the name's "Fotboll" to cover "fotbollsspel".
+- "straffar" is dropped from the keyword field and moved into the screenshot captions ("straffläggning"). Penalty shootouts are a marquee *visual* with a narrow query volume — captions have been an indexed field since June 2025, so a feature that sells on sight belongs there, not in the 100 characters.
+- "laguppställning", "trupp", "övergångar", "tränare", "landslag", "klubb" are the exact words for lineup, squad, transfers, coach, national team and club — accented forms kept where users type them. "liga", "karriär", "cup", "taktik" are the high-volume category heads for a club season.
 - Description keeps the local-relevance hook but phrases it generically ("Sveriges högsta serie") instead of naming any real league or club — the home-market pull Soccer Manager 26 and OSM get from real clubs, achieved here trademark-free. No real league or club appears in any store field.
-- Safe trademark alternate (near-zero IP exposure): "VM 2026" is already the generic Swedish championship term (Världsmästerskapet), not a FIFA mark — spell it out as "Världsmästerskapet 2026" if preferred.
+- The old "FUT-stil" phrasing in the pack bullet is gone: it borrows a competitor's mode abbreviation for no search benefit (the description is not indexed) and is a needless 2.3.7 exposure.

@@ -518,7 +518,6 @@ export interface GameState {
   applyTransferBudgetBonus: () => void;
   applySeasonBonus: () => void;
   applyYouthPreview: () => void;
-  applyDoubleXP: () => void;
   updateSubscription: (info: SubscriptionInfo | null) => void;
   /** Record the store-granted free trial locally (web/dev mock + instant
    *  unlock). `productId` is the subscription the trial converts into —

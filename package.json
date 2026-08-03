@@ -29,6 +29,7 @@
     "analyze-fc26": "node scripts/analyzeFC26.mjs",
     "process-fc26": "node scripts/processFC26.mjs",
     "validate-cp": "node scripts/validateCommunityPack.mjs",
+    "ads:model": "node marketing/ads/unit-economics.mjs",
     "redeem-code": "node scripts/gen-redeem-code.mjs",
     "prepare": "husky",
     "version:sync": "node scripts/sync-version.mjs",

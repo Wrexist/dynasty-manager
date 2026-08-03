@@ -1,0 +1,17 @@
+campaign,ad_group,keyword,match,bid_usd,note
+# WARNING: rival brand terms are legal in Apple Ads and ILLEGAL in App Store
+# metadata (Guideline 2.3.7). Nothing in this file may ever be copied into
+# marketing/aso/locales/*.md. See apple-ads-2026-27.md section 4.
+CONQUEST-US,ag_conquest_premium_sim,football manager 26,Exact,0.75,licensed premium sim posture
+CONQUEST-US,ag_conquest_premium_sim,football manager mobile,Exact,0.75,
+CONQUEST-US,ag_conquest_premium_sim,football manager 26 mobile,Exact,0.70,
+CONQUEST-US,ag_conquest_premium_sim,fm mobile,Exact,0.55,abbreviation; verify Search Popularity before funding
+CONQUEST-US,ag_conquest_realtime_pvp,top eleven,Exact,0.75,real-time PvP posture - lead the CPP on no timers
+CONQUEST-US,ag_conquest_realtime_pvp,top eleven be football manager,Exact,0.65,
+CONQUEST-US,ag_conquest_realtime_pvp,top football manager,Exact,0.70,
+CONQUEST-US,ag_conquest_realtime_pvp,top football manager 2026,Exact,0.60,
+CONQUEST-US,ag_conquest_breadth,soccer manager 2026,Exact,0.75,breadth collector posture - do not fight on league count
+CONQUEST-US,ag_conquest_breadth,soccer manager 2025,Exact,0.45,prior-year train still carries residual volume
+CONQUEST-US,ag_conquest_breadth,football club management 2026,Exact,0.55,
+CONQUEST-US,ag_conquest_breadth,rfm26,Exact,0.45,fast-session sim posture
+CONQUEST-US,ag_conquest_breadth,rfm football manager,Exact,0.45,

@@ -1,28 +1,29 @@
 import type { GameState } from '../storeTypes';
 import type { ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo } from '@/types/game';
-import { PRODUCTS, COSMETIC_ITEMS, AD_REWARD_LIMITS, AD_REWARD_VALUES, DEFAULT_MONETIZATION_STATE, FREE_TRIAL_MS, TRIAL_TARGET_PRODUCT_ID, CONSUMABLE_PRODUCT_IDS } from '@/config/monetization';
-import { grantXP } from '@/utils/managerPerks';
+import { PRODUCTS, COSMETIC_ITEMS, AD_REWARD_LIMITS, AD_REWARD_VALUES, adBudgetReward, DEFAULT_MONETIZATION_STATE, FREE_TRIAL_MS, TRIAL_TARGET_PRODUCT_ID } from '@/config/monetization';
+// Single source of truth for the entitlement boundary — shared with
+// mergeDeviceMonetization so every writer of `entitlements` enforces it.
+import { isPersistableEntitlement } from '@/utils/monetization';
+import { writeDeviceEntitlements } from '@/store/helpers/persistence';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
 
-/** Defense-in-depth boundary for what may live in `monetization.entitlements`:
- *  - Subscription SKUs are banned — RevenueCat keeps lapsed subs in
- *    allPurchasedProductIdentifiers forever, so a persisted sub SKU outlives
- *    the subscription. Sub status flows ONLY through subscription.expiresAt.
- *  - Consumable pack SKUs are banned — they grant a single pack open at
- *    purchase time and must never be restorable.
- *  Enforced here (not just in the purchases wrapper) so no future caller of
- *  grantEntitlement/restoreEntitlements can reintroduce either bug. */
-function isPersistableEntitlement(productId: ProductId): boolean {
-  const product = PRODUCTS[productId];
-  if (!product) return false;
-  if (product.type === 'subscription') return false;
-  if (CONSUMABLE_PRODUCT_IDS.includes(productId)) return false;
-  return true;
-}
-
 export function createMonetizationSlice(_set: Set, _get: Get) {
+  /** Mirror the device-scoped purchase fields to localStorage after any change.
+   *  Zustand's set() is synchronous, so calling this immediately after a
+   *  mutation captures the new state. Purchases belong to the device, not to a
+   *  save slot — without this, "New Game" and any pre-load screen start with no
+   *  Pro until a RevenueCat sync lands, and the Starter Kit window re-arms. */
+  const mirrorDevicePurchases = () => {
+    const m = _get().monetization;
+    writeDeviceEntitlements({
+      entitlements: m.entitlements,
+      subscription: m.subscription,
+      firstLaunchTimestamp: m.firstLaunchTimestamp,
+    });
+  };
+
   return {
     // Deep-copy the nested arrays/objects — a shallow spread would alias
     // them to the module-level default, so one in-place mutation anywhere
@@ -63,6 +64,7 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
           },
         };
       });
+      mirrorDevicePurchases();
     },
 
     /** Restore all entitlements (e.g. from RevenueCat restore flow).
@@ -92,6 +94,7 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
           },
         };
       });
+      mirrorDevicePurchases();
     },
 
     /** Set a cosmetic selection for a given category */
@@ -172,6 +175,7 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
           firstLaunchTimestamp: Date.now(),
         },
       }));
+      mirrorDevicePurchases();
     },
 
     /** Apply transfer budget bonus from ad reward */
@@ -184,7 +188,12 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
             ...s.clubs,
             [s.playerClubId]: {
               ...club,
-              budget: club.budget + AD_REWARD_VALUES.TRANSFER_BUDGET_BONUS,
+              budget: club.budget + adBudgetReward(
+                club.budget,
+                AD_REWARD_VALUES.TRANSFER_BUDGET_BONUS_PCT,
+                AD_REWARD_VALUES.TRANSFER_BUDGET_BONUS_MIN,
+                AD_REWARD_VALUES.TRANSFER_BUDGET_BONUS_MAX,
+              ),
             },
           },
         };
@@ -199,6 +208,7 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
           subscription: info,
         },
       }));
+      mirrorDevicePurchases();
     },
 
     /** Start the introductory free trial (FREE_TRIAL_DAYS, currently 7).
@@ -230,6 +240,7 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
           subscription: trialInfo,
         },
       }));
+      mirrorDevicePurchases();
     },
 
     /** Testing-only: wipe local Pro/entitlement state so the paywall funnel
@@ -246,6 +257,9 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
           activeCosmetics: {},
         },
       }));
+      // Clear the device record too, or the next hydrate at launch restores
+      // exactly what the dev-tools reset was meant to wipe.
+      mirrorDevicePurchases();
     },
 
     /** Apply season-end budget bonus from ad reward */
@@ -258,7 +272,12 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
             ...s.clubs,
             [s.playerClubId]: {
               ...club,
-              budget: club.budget + AD_REWARD_VALUES.SEASON_END_BONUS,
+              budget: club.budget + adBudgetReward(
+                club.budget,
+                AD_REWARD_VALUES.SEASON_END_BONUS_PCT,
+                AD_REWARD_VALUES.SEASON_END_BONUS_MIN,
+                AD_REWARD_VALUES.SEASON_END_BONUS_MAX,
+              ),
             },
           },
         };
@@ -275,14 +294,5 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
       }));
     },
 
-    /** Apply double XP from ad reward for the last match */
-    applyDoubleXP: () => {
-      const state = _get();
-      const bonusXP = state.lastMatchXPGain;
-      if (bonusXP <= 0) return;
-      _set({
-        managerProgression: grantXP(state.managerProgression, bonusXP),
-      });
-    },
   };
 }

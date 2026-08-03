@@ -1802,7 +1802,12 @@ export interface CosmeticItem {
   pack: ProductId;
 }
 
-export type AdRewardType = 'scout_potential' | 'transfer_budget' | 'xp_double' | 'youth_preview' | 'season_bonus';
+// NOTE: `xp_double` was removed. Manager XP feeds the perk tree, and perks
+// (training_ground, set_piece_coach, dna_coach) feed training rates and
+// match probabilities — so an XP reward was monetization mutating the
+// simulation, which config/monetization.ts and utils/monetization.ts both
+// forbid in their header contracts. Do not reintroduce it.
+export type AdRewardType = 'scout_potential' | 'transfer_budget' | 'youth_preview' | 'season_bonus';
 
 export interface MonetizationState {
   /** Product IDs the player has purchased */

@@ -1,57 +1,61 @@
 # ro — Romanian (App Store)
 
-Storefronts reached: Romania and Moldova (Romanian localization). Single Romanian keyword field per storefront — no cross-locale indexing.
+Storefronts reached: Romania and Moldova (Romanian localization). Single Romanian keyword field per storefront — no cross-locale indexing. Window: the 2026-27 club season. Ligue play across Europe restarted in August and the summer transfer window shuts on 1 September, so search intent has moved from a tournament to running a club for a full season — which is what this app is all year.
 
 ## App Name [23/30]
 `Dynasty Manager: Fotbal`
 
-## Subtitle [28/30]
-`Antrenor: Cupa Mondială 2026`
+## Subtitle [30/30]
+`Antrenor de club: sezon întreg`
 
-## Promotional Text [161/170]
-`Modul Cupa Mondială 2026 e aici: du-ți naționala din grupe până la finala cu penaltiuri. Fără bare de energie, fără așteptare. Simulare completă, fără abonament.`
+## Promotional Text [165/170]
+`Sezon nou, dinastie nouă. Preia unul dintre cele 756 de cluburi reale, din pregătire până la titlu: fiecare transfer, fiecare tactică, fiecare minut. Fără așteptare.`
 
-## Keywords [97/100]
-`mondial,simulator,fara abonament,lot,tactica,transferuri,cariera,penaltiuri,echipa nationala,liga`
+## Keywords [99/100]
+`simulator,lot,tactica,transferuri,cariera,penaltiuri,echipa nationala,liga,gratis,juniori,cupa,meci`
 
-## Description [1366/4000]
-Modul Cupa Mondială 2026 a sosit. Alege dintre peste 50 de naționale și du-o pe a ta din faza grupelor până la o finală decisă la penaltiuri. Fiecare decizie contează: primul unsprezece, schimbările, tactica de la pauză.
+## Description [1875/4000]
+Sezonul 2026-27 a început. Alege un club, alege primul unsprezece și condu fiecare minut.
 
-Dynasty Manager este un simulator de fotbal complet. Preia un club dintre 45 de ligi și 756 de cluburi reale, construiește-ți lotul, gestionează transferurile, reglează tactica și trăiește fiecare meci minut cu minut. Adună sezoane, câștigă trofee continentale, preia banca unei echipe naționale și clădește o carieră de antrenor de legendă.
+Dynasty Manager este un simulator complet de management fotbalistic — o carieră adevărată de antrenor, nu o colecție de cartonașe. Preia oricare dintre cele 756 de cluburi reale din 45 de ligi și 37 de țări, sau preia banca unei echipe naționale. Reglează tactica, lucrează piața transferurilor și decide fiecare schimbare în timp ce meciul se joacă minut cu minut.
 
-Ce te așteaptă:
-- Cupa Mondială 2026: peste 50 de naționale, din grupe până în finală
-- 45 de ligi, 37 de țări, 756 de cluburi reale
-- Modul Carieră: interviuri, contracte, promovări și riscul demiterii
-- Penaltiuri interactive: sânge rece când contează cu adevărat
-- Deschidere de pachete și carduri de jucători
-- Tactică, formații și schimbări în timp real
-- Transferuri: achiziții, vânzări, împrumuturi și negocieri
+Fără bare de energie. Fără pachete de refacere. Fără așteptare între sesiuni. Joacă cât vrei, când vrei.
 
-Joacă cât vrei. Fără bare de energie. Fără pachete de refacere. Fără așteptare. Toată profunzimea unui simulator adevărat de management, fără abonament obligatoriu.
+CE POȚI FACE
+- Modul Carieră: pornești anonim, dai interviuri, negociezi contracte, câștigi trofee, urci ierarhia sau ești demis
+- 45 de ligi, 756 de cluburi reale, 37 de țări: promovare, retrogradare și drama barajelor la fiecare nivel
+- Meciuri minut cu minut: comentariu live, discursuri la pauză, schimbări tactice și penaltiuri interactive
+- Tactică și formații: mentalitate, ritm, presing, lățime și instrucțiuni personalizate
+- Transferuri și contracte: descoperi puști-minune, negociezi sume și salarii, aranjezi împrumuturi și ții în frâu masa salarială
+- Academie de juniori și antrenamente: îți crești propriile vedete în loc să le cumperi
+- Cupe interne și competiții continentale: vânează tripla, inclusiv Supercupa
+- Echipa națională: duci o țară prin preliminarii până la un turneu internațional
+- Pachete de jucători: deschizi pachete și vânezi carduri de walkout
+- Stadion, finanțe, sponsori și merchandising: conduci tot clubul, nu doar echipa
 
-Dynasty Pro deblochează analize avansate, simulare instantanee, tactici personalizate și multe altele — cu 7 zile gratuite. Abonament sau achiziție unică, tu alegi.
+DESCĂRCARE GRATUITĂ
+Tot ce e mai sus intră în descărcarea gratuită. Dynasty Pro este opțional: simulare instantanee, analize avansate, tactici personalizate, conferințe de presă extinse, recorduri istorice și experiență fără reclame. Începe cu 7 zile gratuite sau cumperi o singură dată și rămâne al tău pentru totdeauna.
 
-Descărcare gratuită. Acum e rândul tău, antrenor.
+Construiește-ți dinastia.
 
 ## What's New (next release note blurb)
-Modul Cupa Mondială 2026 este acum disponibil: du peste 50 de naționale din grupe până la finala cu penaltiuri. Ca întotdeauna, fără bare de energie și fără așteptare — joacă cât vrei. Mulțumim că joci Dynasty Manager!
+Sezon nou, dinastie nouă. Aspect proaspăt în App Store, AI mai ascuțit pe bancă și câteva erori de zi de meci rezolvate. În continuare fără bare de energie și fără așteptare — doar fotbal.
 
 ## Screenshot Captions (5)
-1. Peste 50 de naționale
-2. Ridică Cupa Mondială 2026
-3. Penaltiuri de infarct
-4. Lotul tău, tactica ta
-5. Trăiește fiecare minut
+1. 45 de ligi · 756 de cluburi reale
+2. Zi de meci, minut cu minut
+3. Lotul tău, primul unsprezece, formația
+4. Piața transferurilor: scouting și negocieri
+5. Selecționer: preliminarii și turnee
 
 ## Keyword rationale
-- **WC-2026 refresh (2026-07):** added **`simulator`** and **`fara abonament`**, dropped **`campionat`**, **`formatie`** and **`titlu`**:
-  - **`simulator`** ("simulator de fotbal" / "joc de management fotbal") is the depth qualifier that separates us from arcade play, and the incumbent to displace in RO (OSM) is beatable on freshness + this sim framing. The native coach term "antrenor" already anchors the Subtitle (majors under-index it), so the field covers the sim-intent side of Romanian search that splits between "manager de fotbal" and "antrenor de fotbal".
-  - **`fara abonament`** flanks the orphaned #1 brand: the flagship "football manager" listing is subscription-gated (Netflix-exclusive) and its former mobile edition was delisted (Nov 2025) — Romanian searchers who hit that wall convert on a free download. Kept unaccented to match how RO users type.
-  - Dropped **`campionat`** and **`titlu`** (league-title-race intent is lower-priority in the WC window; "liga" still carries generic league search) and **`formatie`** ("lot" covers squad intent) to fund the two terms above.
-- Romanians search the WC as "Cupa Mondială" (in Subtitle, indexed) and as the accentless head term "mondial" (leads the field) — RO users routinely type without diacritics, so keyword forms are unaccented ("tactica", "nationala", "cariera") while visible copy keeps full diacritics.
-- Real football vocabulary: "lot" (squad), "transferuri", "penaltiuri" (shootout), "echipa nationala" (national team, the exact two-word query), "liga". "antrenor" (the native coach/manager term) anchors the Subtitle; "primul unsprezece" (the starting XI) appears in the Description for flavour.
-- Head terms targeted: "mondial" and "fotbal" (the latter in the App Name) — the two highest-volume football queries in the market. "liga" captures generic league search without naming the real domestic league (IP).
-- Editorial note: Apple RO actively merchandises football-game "stories" — pursue an App Store feature/story pitch alongside this keyword work; organic editorial lift is visible in this storefront.
-- Deliberately excluded real league/club/player names, any trophy name, and competitor names for IP safety; excluded "fotbal/antrenor/cupa/mondială/2026" from keywords since they already live in the Name/Subtitle.
-- Safe alternate WC phrasing for near-zero IP exposure: "Campionatul Mondial" or the standalone "Mondialul" in place of "Cupa Mondială".
+- **Season pivot (2026-08):** "Cupa Mondială 2026" is out of the Subtitle and the Promotional Text. The tournament ended on 19 July 2026 and the token was burning the second-most-weighted field we own (and the one Apple's Today-tab ads render). The Subtitle is now `Antrenor de club: sezon întreg` — it keeps the native coach term **`antrenor`** that the majors under-index in RO, and spends the reclaimed characters on `club` and `sezon`, which is the intent now live in this market.
+- `mondial` is dropped from the keyword field for the same reason: it was a window term, and the window closed. Those 8 characters plus the 4 from the old subtitle overlap funded `gratis`, `juniori`, `cupa` and `meci`.
+- **`gratis` replaces `fara abonament`.** The market insight behind that keyword is still true and still worth trading on — the flagship "football manager" listing is subscription-gated (Netflix-exclusive) and its former mobile edition was delisted in Nov 2025, so Romanian searchers who hit that wall convert on a free download. But nobody types "fara abonament" into App Store search; they type "gratis". The argument moves to the copy (promotional text and the DESCĂRCARE GRATUITĂ block, which state the free-to-download claim plainly), and the field buys a term people actually search. Kept unaccented to match how RO users type.
+- **`simulator`** stays and still leads the depth argument ("simulator de fotbal" / "joc de management fotbal") — the qualifier that separates us from arcade play, and the side of Romanian search that splits between "manager de fotbal" and "antrenor de fotbal". The Subtitle now carries the "antrenor" half outright.
+- RO users routinely type without diacritics, so keyword forms are unaccented (`tactica`, `nationala`, `cariera`) while all visible copy keeps full diacritics.
+- Real football vocabulary is preserved: `lot` (squad), `transferuri`, `penaltiuri` (shootout), `echipa nationala` (the exact two-word query), `liga`, and now `juniori` (the youth academy, a genuine differentiator against the clones) and `meci`. "primul unsprezece" (the starting XI) stays in the Description and now also in caption 03.
+- Excluded from keywords because they already sit in the Name/Subtitle and Apple indexes the union: `fotbal`, `manager`, `antrenor`, `club`, `sezon`.
+- Screenshot captions are an indexed field (Apple OCR-extracts them since June 2025) and now carry what the 100-char field cannot afford: "zi de meci", "formația", "scouting", "selecționer", "preliminarii".
+- Editorial note: Apple RO actively merchandises football-game "stories" — pursue an App Store feature/story pitch alongside this keyword work; organic editorial lift is visible in this storefront, and a season-kickoff angle is a better editorial pitch than a tournament that has finished.
+- Deliberately excluded real league/club/player names, any tournament or trophy mark, and competitor names for IP safety. The national-team line says "un turneu internațional", never a tournament mark.

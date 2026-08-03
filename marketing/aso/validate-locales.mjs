@@ -26,8 +26,38 @@ const EXPIRED_CAMPAIGNS = [
     until: '2026-07-19',
     // Matches the seasonal token in every locale we ship, not the evergreen
     // in-game mode name used in Description/Captions prose.
-    pattern:
-      /(world cup|mundial|copa do mundo|coupe du monde|coppa del mondo|weltmeisterschaft|wm)\s*2026|2026\s*(dünya kupası|piala dunia)|dünya kupası\s*2026|piala dunia\s*2026/i,
+    //
+    // The original pattern only covered Latin-script Western European
+    // spellings, which are exactly the locales that had already been migrated
+    // off tournament copy — so it matched 0 of the 20 locales still carrying
+    // the token and reported clean. Native spellings and local abbreviations
+    // are the whole point of the guard: most storefronts abbreviate
+    // ("VM", "MS", "ЧМ", "WK"), so a word-list of full names never fires.
+    // Bare abbreviations are required to sit adjacent to "2026" to keep them
+    // from matching ordinary words.
+    pattern: new RegExp(
+      [
+        // full names, any script, either side of the year
+        String.raw`(world cup|mundial|mondiale|copa do mundo|coupe du monde|coppa del mondo|weltmeisterschaft`,
+        String.raw`|dünya kupası|piala dunia|cupa mondială|μουντιάλ|παγκόσμιο κύπελλο|كأس العالم|מונדיאל`,
+        String.raw`|ワールドカップ|월드컵|世界杯|世界盃|ฟุตบอลโลก|чемпіонат світу|чемпионат мира`,
+        String.raw`|svjetsko prvenstvo|mistrovství světa|majstrovstvá sveta|világbajnokság)`,
+        String.raw`\s*2026`,
+        // ...or the year first (CJK/Thai/RTL orderings)
+        String.raw`|2026\s*(world cup|mundial|dünya kupası|piala dunia|ワールドカップ|월드컵|世界杯|世界盃)`,
+        // ...or a local abbreviation immediately adjacent to the year.
+        // Latin abbreviations can use \b; Cyrillic ones cannot — JS \b is
+        // defined over [A-Za-z0-9_], so "ЧМ" has no boundary before it and a
+        // \b-anchored alternative silently never fires (this is what let ru
+        // and uk through the first version of this fix). Match those against
+        // start-of-string or an explicit separator instead.
+        String.raw`|\b(wm|vm|mm|ms|wk|sp|vb)\b\s*[-·:]?\s*2026`,
+        String.raw`|2026\s*[-·:]?\s*\b(wm|vm|mm|ms|wk|sp|vb)\b`,
+        String.raw`|(^|[\s:·,.\-—])(чм|чс)\s*[-·:]?\s*2026`,
+        String.raw`|2026\s*[-·:]?\s*(чм|чс)([\s:·,.\-—]|$)`,
+      ].join(''),
+      'i'
+    ),
     // Indexed/consumer-visible fields only — the Description and rationale may
     // legitimately mention the in-game World Cup mode.
     fields: ['App Name', 'Subtitle', 'Promotional Text', 'Keywords'],
@@ -39,11 +69,19 @@ const EXPIRED_CAMPAIGNS = [
 // every consumer-visible store field must use a generic descriptor instead.
 const TRADEMARKS_ANY =
   /\b(world cup|copa am[eé]rica|afcon|gold cup|euros?\s*20\d\d|european championship|copa do mundo|coupe du monde|coppa del mondo|weltmeisterschaft|dünya kupası|piala dunia|world championship)\b/i;
+// Local abbreviations are the form these markets actually write, and a
+// word-list of full names never catches them. Only flagged when adjacent to a
+// year, so ordinary words are not swept up. Latin forms can use \b; Cyrillic
+// cannot — JS \b is defined over [A-Za-z0-9_], so "ЧМ" has no boundary before
+// it and a \b-anchored branch silently never fires.
+const TRADEMARK_ABBREVIATIONS =
+  /\b(wm|vm|mm|ms|wk|sp|vb)\b\s*[-·:]?\s*20\d\d|20\d\d\s*[-·:]?\s*\b(wm|vm|mm|ms|wk|sp|vb)\b|(^|[\s:·,.\-—])(чм|чс)\s*[-·:]?\s*20\d\d/i;
 // "Mundial"/"Mondiale" are ordinary adjectives in ES/PT/IT ("torneo mundial")
 // and only a mark when used as a capitalised proper noun, so these are matched
 // case-sensitively to avoid flagging the generic replacements themselves.
 const TRADEMARKS_PROPER = /\b(Mundial|Mondiale)\b/;
-const trademarkHit = (s) => (s.match(TRADEMARKS_ANY) || s.match(TRADEMARKS_PROPER) || [null])[0];
+const trademarkHit = (s) =>
+  (s.match(TRADEMARKS_ANY) || s.match(TRADEMARKS_PROPER) || s.match(TRADEMARK_ABBREVIATIONS) || [null])[0];
 
 const today = new Date('2026-07-28'); // stamped: bump when re-running a seasonal audit
 
@@ -133,7 +171,13 @@ for (const f of readdirSync(DIR).filter((f) => f.endsWith('.md') && f !== 'READM
   }
 
   // Trademarked tournament names anywhere in the consumer-visible copy.
-  for (const heading of ['App Name', 'Subtitle', 'Promotional Text', 'Keywords', 'Description', 'Screenshot Captions']) {
+  //
+  // "What's New" was missing from this list, and that gap is exactly how six
+  // locales kept shipping literal marks ("World Cup 2026", "Coupe du Monde
+  // 2026", "Piala Dunia 2026", "Mundial 2026") in a field App Review reads,
+  // long after every scanned field had been cleaned. A release-note blurb is
+  // consumer-visible copy like any other.
+  for (const heading of ['App Name', 'Subtitle', 'Promotional Text', 'Keywords', 'Description', 'Screenshot Captions', "What's New"]) {
     const sec = text.match(new RegExp(`##\\s*${heading}[^\\n]*\\n([\\s\\S]*?)(?=\\n## |$)`, 'i'));
     const hit = sec && trademarkHit(sec[1]);
     if (hit) trademarks.push({ locale, field: heading, match: hit });

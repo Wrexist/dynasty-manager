@@ -34,6 +34,9 @@ jobs:
       - name: Build web bundle with production keys
         env:
           VITE_REVENUECAT_API_KEY_ANDROID: ${{ secrets.VITE_REVENUECAT_API_KEY_ANDROID }}
+          # See ios-testflight.yml — empty secrets are a safe no-op.
+          VITE_ANALYTICS_ENDPOINT: ${{ secrets.VITE_ANALYTICS_ENDPOINT }}
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
         run: npm run build
       - run: npm run version:sync
       - run: npx cap sync android

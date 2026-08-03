@@ -9,7 +9,6 @@ import { ClubCrest } from '@/components/game/ClubCrest';
 import { SPRING_SOFT } from '@/config/motion';
 import { EmptyState } from '@/components/EmptyState';
 import { ChevronRight, Flame, Calendar, HeartPulse, Star, TrendingUp, TrendingDown, Minus, MapPin, Shield, ArrowLeft, ArrowRight, Trophy, ArrowUp, ArrowDown, Lightbulb } from 'lucide-react';
-import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { cn } from '@/lib/utils';
 
 import { isPro } from '@/utils/monetization';
@@ -209,7 +208,6 @@ const MatchReview = () => {
   const won = shootoutWon ?? (isHome ? match.homeGoals > match.awayGoals : match.awayGoals > match.homeGoals);
   const drew = shootoutWon === null && match.homeGoals === match.awayGoals;
   const lost = !won && !drew;
-  const xpDoubleClaimContext = `match_w${week}_${match.homeClubId}_${match.awayClubId}_${match.homeGoals}-${match.awayGoals}_${lastMatchCompetition || 'league'}`;
 
   // goals/injuries/cards are memoized above the early-return guard.
 
@@ -1062,13 +1060,6 @@ const MatchReview = () => {
           </GlassPanel>
         );
       })()}
-
-      {/* Ad Reward: Double XP */}
-      <AdRewardButton
-        rewardType="xp_double"
-        claimContext={xpDoubleClaimContext}
-        onRewardClaimed={() => { useGameStore.getState().applyDoubleXP(); }}
-      />
 
     </div>
   );

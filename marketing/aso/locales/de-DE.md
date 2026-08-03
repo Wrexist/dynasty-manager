@@ -1,6 +1,6 @@
 # de-DE — German (App Store)
 
-Storefronts reached: Germany, Austria, and Switzerland (German-preferring users). Apple serves de-DE across the DACH region; Swiss and Austrian fans see the same metadata, so the copy uses standard German that reads naturally in all three. "WM" (Weltmeisterschaft) is the universal DACH shorthand for the World Cup and is the term fans actually type.
+Storefronts reached: Germany, Austria, and Switzerland (German-preferring users). Apple serves de-DE across the DACH region; Swiss and Austrian fans see the same metadata, so the copy uses standard German that reads naturally in all three. The listing is now on the 2026-27 club-season window; the DACH tournament shorthand "WM" is deliberately absent from every consumer-visible field (it is both a decayed token and an IP risk).
 
 ## App Name [24/30]
 `Dynasty Manager: Fußball`
@@ -14,7 +14,7 @@ Storefronts reached: Germany, Austria, and Switzerland (German-preferring users)
 ## Keywords [86/100]
 `verein,liga,aufstellung,kader,trainer,simulation,jugend,akademie,pokal,saison,aufstieg`
 
-## Description [1539/4000]
+## Description [1551/4000]
 
 Die Saison 2026-27 beginnt. Wähle deinen Verein, stelle deine Elf auf und leite jede einzelne Minute.
 
@@ -36,7 +36,7 @@ Keine Energiebalken. Keine Wartezeit. Nur Fußball, wann immer du willst.
 
 Dynasty Pro schaltet erweiterte Analysen, individuelle Taktiken, Instant-Sim und mehr frei – mit 7 Tagen kostenlos zum Ausprobieren. Der komplette Karriereweg bleibt aber auch ohne Abo voll spielbar.
 
-Kostenloser Download. Jetzt Trainer werden und die WM 2026 holen.
+Kostenloser Download. Übernimm jetzt einen Verein und bau deine Dynastie auf.
 
 ## What's New (next release note blurb)
 
@@ -51,10 +51,10 @@ Neue Saison, neue Dynastie. Frischer Auftritt im App Store, schärfere Trainer-K
 5. Nationalelf und Turniere
 
 ## Keyword rationale
-- Biggest change: the head compound "Fußballmanager" now leads the **Subtitle** instead of sitting in the keyword field. It is the single highest-intent term in this market — the exact word Top Eleven localizes its own descriptor to — and the subtitle is weighted far higher than keywords by Apple's ranking, so the descriptor claims the more valuable slot. "WM 2026" stays in the subtitle too, keeping the tournament window in a visible field.
-- Because "Fußballmanager", "Fußball", "Manager", "WM" and "2026" now all live in the App Name/Subtitle, they are dropped from Keywords (Apple indexes those separately and recombines tokens across fields, so "fussball" + the name's "Manager" still matches "fussballmanager" queries).
+- The Subtitle is now `Taktik, Transfers & Karriere` — three evergreen category head terms that read as a benefit in the Today-tab ad format (which renders name + icon + subtitle only). The tournament token that used to share this field is gone: it decayed on 19 July 2026 and was consuming the second-most-weighted indexed field we own.
+- Because "Fußball", "Manager", "Taktik", "Transfers" and "Karriere" live in the App Name/Subtitle, they are dropped from Keywords (Apple indexes those separately and recombines tokens across fields, so "fussball" + the name's "Manager" still matches "fussballmanager" queries).
 - "fussball" (unaccented ss form) is retained deliberately: countless DACH users type ss instead of ß, and it recombines with the name's "Manager" to cover the ss-spelled compound.
 - Space reclaimed by dropping the long ß-compound now funds three high-value terms the old field couldn't fit: "trainer" (the coach-genre term — DACH fans search both Manager and Trainer), "taktik", and "transfers". "transfers" is used rather than the compound "Transfermarkt" to avoid echoing the well-known transfermarkt.de site brand while still covering transfer intent.
-- "elfmeter", "aufstellung", "kader", "verein" and "nationalmannschaft" are the exact words German fans use for penalties, lineup, squad, club and national team — culturally correct, and "nationalmannschaft" rides the WM window without repeating "WM". "liga" and "karriere" anchor the field as high-volume category heads. ("pokal" was cut for room.)
+- "elfmeter", "aufstellung", "kader", "verein" and "nationalmannschaft" are the exact words German fans use for penalties, lineup, squad, club and national team — culturally correct, and "nationalmannschaft" keeps international-management intent covered without any tournament mark. "liga" anchors the field as a high-volume category head. ("pokal" was cut for room.)
 - Description keeps the local-relevance hook but phrases it generically ("Deutschlands höchster Spielklasse") instead of naming any real league or club — the home-market pull that Soccer Manager 26 and OSM get from real clubs, achieved here trademark-free. No real league or club appears in any store field.
-- Safe trademark alternate (near-zero IP exposure): swap "WM 2026" for "Weltmeisterschaft 2026" — already a generic championship term in German (not a FIFA mark).
+- If a future tournament window reopens this angle, use the generic "Weltturnier" or "Nationalmannschaft" rather than "WM"/"Weltmeisterschaft 2026" — the in-game mode is generic and the listing must stay clear of tournament marks (`APP_STORE_LISTING.md` risk #4).

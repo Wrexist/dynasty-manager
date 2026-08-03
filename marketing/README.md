@@ -32,8 +32,24 @@ marketing/
 ├── postproduction/
 │   ├── build-ad.sh        ← ffmpeg pipeline: raw screen-recording + captions → final 9:16 ad
 │   └── captions.template.srt
+├── ads/                   ← Apple Ads (paid App Store search)
+│   ├── apple-ads-2026-27.md   ← campaign structure, bid ceilings, CPPs, gates
+│   ├── unit-economics.mjs     ← runnable max-CPT model; run before touching a bid
+│   └── keywords/*.csv         ← paste-ready keyword + negative sets
+├── aso/                   ← Organic App Store metadata, 37 locales
 └── ai-prompts.md          ← Ready-to-paste Runway / Veo / Sora prompts
 ```
+
+## Which channel, in one line each
+
+- **Apple Ads** (`ads/`) — bottom-funnel App Store search. The only paid channel
+  where the current unit economics can close, and only on brand/long-tail at
+  capped bids. Start here.
+- **ASO** (`aso/`) — free, compounding, and a prerequisite for all paid: page
+  CVR is the multiplier on every ad bid.
+- **Meta / TikTok** (`scripts/`, `posters/`) — top-funnel. Gated behind the same
+  revenue-per-install arithmetic in `ads/unit-economics.mjs`, which does not
+  care which platform sends the install.
 
 ## The fastest path to a shipped ad
 

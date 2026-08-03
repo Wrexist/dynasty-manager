@@ -22,6 +22,7 @@ import { createEmptyRecords } from '@/utils/records';
 
 import { getDefaultMerchState } from '@/utils/merchandise';
 import { DEFAULT_MONETIZATION_STATE } from '@/config/monetization';
+import { mergeDeviceMonetization } from '@/utils/monetization';
 
 import {
   FORFEIT_SCORE,
@@ -1008,7 +1009,26 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         halfTimeState: null,
         matchPhase: 'none' as const, secondHalfSimulatedTo: 45,
         pendingFarewell: Array.isArray(data.pendingFarewell) ? data.pendingFarewell : data.pendingFarewell ? [data.pendingFarewell] : [],
-        monetization: data.monetization || DEFAULT_MONETIZATION_STATE,
+        // Purchases are device-scoped; slot progress is not. Both sides of this
+        // can be the stale one, so they are MERGED rather than one picked:
+        //
+        //  - Taking the block wholesale from `data` (the original behaviour)
+        //    revoked Pro from a payer who loaded a slot saved before buying.
+        //  - Pinning it to live state is wrong in the opposite direction and
+        //    more often: `loadGame` is called from TitleScreen at cold launch,
+        //    while the store still holds DEFAULT_MONETIZATION_STATE — GameShell's
+        //    RevenueCat sync only runs after navigation — so it would discard the
+        //    save's purchase record and the next autosave would persist the loss.
+        //
+        // mergeDeviceMonetization keeps the union of entitlements, the stronger
+        // subscription record and the earliest real first-launch stamp. It only
+        // ever adds a purchase; revocation stays the store's job via
+        // isSubscriptionExpired. Slot-scoped fields (activeCosmetics,
+        // adRewardsClaimed, starterKitDismissed) still come from the save.
+        monetization: (() => {
+          const saved = data.monetization || DEFAULT_MONETIZATION_STATE;
+          return { ...saved, ...mergeDeviceMonetization(saved, get().monetization) };
+        })(),
         nationalTeam: data.nationalTeam || null,
         internationalTournament: data.internationalTournament || null,
         managerNationality: data.managerNationality || null,

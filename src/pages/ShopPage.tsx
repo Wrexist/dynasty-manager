@@ -10,7 +10,7 @@ import { isPro, hasProduct, isStarterKitAvailable, getOwnedCosmetics, getActiveC
 import type { CosmeticCategory } from '@/types/game';
 import type { ProductId, ProFeature } from '@/types/game';
 import { useNavigate } from 'react-router-dom';
-import { purchaseProduct as purchaseViaSDK, restorePurchases as restoreViaSDK, getEntitlements, getCustomerInfo, extractSubscriptionInfo, openSubscriptionManagement, getStorePrices } from '@/utils/purchases';
+import { purchaseProduct as purchaseViaSDK, restorePurchases as restoreViaSDK, getEntitlements, getCustomerInfo, extractSubscriptionInfo, openSubscriptionManagement, getStoreAvailability } from '@/utils/purchases';
 import { hapticMedium } from '@/utils/haptics';
 import { infoToast, successToast, errorToast } from '@/utils/gameToast';
 import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
@@ -37,26 +37,36 @@ const SUBSCRIPTION_PRODUCTS: ProductId[] = [
   'com.dynastymanager.pro.lifetime',
 ];
 
+/** Exactly the SKUs this page can sell — the availability probe is scoped to
+ *  these so an unconfigured consumable elsewhere in the catalog cannot blank
+ *  the products that are configured. Consumable player packs are sold on
+ *  PacksPage, not here, so they are deliberately absent. */
+const SHOP_PROBE_IDS: ProductId[] = [
+  'com.dynastymanager.pro',
+  'com.dynastymanager.pro.monthly',
+  'com.dynastymanager.pro.annual',
+  'com.dynastymanager.pro.lifetime',
+  'com.dynastymanager.bundle.all',
+  'com.dynastymanager.pack.manager',
+  'com.dynastymanager.pack.stadium',
+  'com.dynastymanager.pack.legends',
+];
+
 const COSMETIC_PACK_IDS: ProductId[] = [
   'com.dynastymanager.pack.manager',
   'com.dynastymanager.pack.stadium',
   'com.dynastymanager.pack.legends',
 ];
 
-const BUNDLE_INDIVIDUAL_TOTAL = PRODUCTS['com.dynastymanager.pro'].priceUsd
-  + PRODUCTS['com.dynastymanager.pack.manager'].priceUsd
-  + PRODUCTS['com.dynastymanager.pack.stadium'].priceUsd
-  + PRODUCTS['com.dynastymanager.pack.legends'].priceUsd;
-const BUNDLE_SAVINGS_PCT = Math.round((1 - PRODUCTS['com.dynastymanager.bundle.all'].priceUsd / BUNDLE_INDIVIDUAL_TOTAL) * 100);
-
-/** Per-day cost for monthly subscription */
-const MONTHLY_PER_DAY = (PRODUCTS['com.dynastymanager.pro.monthly'].priceUsd / 30).toFixed(2);
-/** Effective per-month cost when paying annually (for value framing) */
-const ANNUAL_PER_MONTH = (PRODUCTS['com.dynastymanager.pro.annual'].priceUsd / 12).toFixed(2);
-/** % savings of annual vs paying monthly for a year */
-const ANNUAL_SAVINGS_PCT = Math.round(
-  (1 - PRODUCTS['com.dynastymanager.pro.annual'].priceUsd / (PRODUCTS['com.dynastymanager.pro.monthly'].priceUsd * 12)) * 100,
-);
+// NOTE: the USD-derived constants that used to live here (BUNDLE_SAVINGS_PCT,
+// ANNUAL_SAVINGS_PCT, MONTHLY_PER_DAY, ANNUAL_PER_MONTH,
+// BUNDLE_INDIVIDUAL_TOTAL) were rendered as claims — "Save 12%", "just
+// $1.25/month", a struck-through "$28.96". All four are false outside the US:
+// the figures are in the wrong currency and Apple's price tiers do not
+// preserve the USD ratios, so the percentages are wrong even ignoring the
+// symbol. They are now computed per-storefront from the store's numeric
+// prices inside the component, and omitted entirely when the store has not
+// answered. Do not reintroduce a comparative claim derived from priceUsd.
 
 const ShopPage = () => {
   const navigate = useNavigate();
@@ -78,12 +88,99 @@ const ShopPage = () => {
   // Localised store prices fetched from RevenueCat. Empty on web/dev — falls
   // back to the USD config price for display.
   const [storePrices, setStorePrices] = useState<Partial<Record<ProductId, string>>>({});
+  // Product IDs the store confirmed it can actually sell. `null` = not probed
+  // yet (or off-device), which means "show everything" — the same convention
+  // SubscribeOnboarding uses for `availableIds`.
+  //
+  // Without this, a SKU pulled from sale in App Store Connect still renders a
+  // buy button here, and tapping it can only fail. That is the Guideline 2.1.0
+  // condition that got build 174 rejected, and it is the sequencing hazard for
+  // any price-ladder change that retires a SKU.
+  const [availableIds, setAvailableIds] = useState<ProductId[] | null>(null);
+  // Numeric prices in the storefront currency. Every comparative claim below
+  // ("Save 12%", "just $1.25/month", the strikethrough total) is computed from
+  // these — NOT from the USD constants, which are a false price claim in any
+  // non-US storefront, and whose ratios do not survive Apple's price tiers.
+  // When the store hasn't answered, the claims are suppressed rather than
+  // guessed.
+  const [storeAmounts, setStoreAmounts] = useState<Partial<Record<ProductId, number>>>({});
 
   useEffect(() => {
     let cancelled = false;
-    getStorePrices().then(prices => { if (!cancelled) setStorePrices(prices); });
+    // Probe ONLY the SKUs this page can sell. Probing the whole catalog means a
+    // single unconfigured product (e.g. a consumable pack missing from the
+    // RevenueCat offering) drags down the batch and can blank the one-time
+    // catalog that IS configured.
+    getStoreAvailability(SHOP_PROBE_IDS)
+      .then(({ supported, available, prices, amounts }) => {
+        if (cancelled) return;
+        setStorePrices(prices);
+        setStoreAmounts(amounts || {});
+        // `supported` false means off-device / plugin absent — not a store
+        // verdict, so keep the full catalog visible for web + dev testing.
+        // When the store IS supported we trust its answer even if it is empty:
+        // an empty list means it could sell nothing, and rendering CTAs then is
+        // the Guideline 2.1.0 failure this gate exists to prevent. Treating
+        // empty as "show everything" would fail open in exactly that case.
+        setAvailableIds(supported ? available : null);
+      })
+      .catch(() => { if (!cancelled) setAvailableIds(null); });
     return () => { cancelled = true; };
   }, []);
+
+  /** Can the store actually sell this? Off-device / unprobed answers yes. */
+  const isPurchasable = (productId: ProductId) =>
+    availableIds === null || availableIds.includes(productId);
+
+  /** True once the store has answered and said it can sell nothing at all. */
+  const storeSellsNothing = availableIds !== null && availableIds.length === 0;
+
+  // ── Comparative price claims, storefront-correct or omitted ──
+  //
+  // `amountFor` returns the real local price when the store gave us one, and
+  // the USD config price ONLY when the store isn't answering at all
+  // (web/dev/off-device), where nothing is being claimed to a real buyer.
+  const storeAnswered = Object.keys(storeAmounts).length > 0;
+  const amountFor = (id: ProductId): number | null =>
+    storeAmounts[id] ?? (storeAnswered ? null : PRODUCTS[id].priceUsd);
+
+  /** Percentage saved by `discounted` vs `full`, or null if either is unknown. */
+  const savingsPct = (full: number | null, discounted: number | null): number | null => {
+    if (full == null || discounted == null || full <= 0 || discounted > full) return null;
+    const pct = Math.round((1 - discounted / full) * 100);
+    return pct > 0 ? pct : null;
+  };
+
+  const bundleIndividualTotal = (() => {
+    const parts = ([
+      'com.dynastymanager.pro',
+      'com.dynastymanager.pack.manager',
+      'com.dynastymanager.pack.stadium',
+      'com.dynastymanager.pack.legends',
+    ] as ProductId[]).map(amountFor);
+    return parts.every(p => p != null) ? (parts as number[]).reduce((a, b) => a + b, 0) : null;
+  })();
+  const bundleSavingsPct = savingsPct(bundleIndividualTotal, amountFor('com.dynastymanager.bundle.all'));
+
+  const monthlyAmount = amountFor('com.dynastymanager.pro.monthly');
+  const annualAmount = amountFor('com.dynastymanager.pro.annual');
+  const annualSavingsPct = savingsPct(monthlyAmount != null ? monthlyAmount * 12 : null, annualAmount);
+
+  /** Format a derived per-period amount in the storefront's own formatting by
+   *  reusing the store's price string shape. Falls back to null (caller omits
+   *  the line) when we have no localized string to model. */
+  const perPeriod = (id: ProductId, divisor: number): string | null => {
+    const amount = amountFor(id);
+    if (amount == null) return null;
+    const localized = storePrices[id];
+    const value = amount / divisor;
+    if (!localized) return `$${value.toFixed(2)}`;
+    // Swap the numeric portion of the store's own localized string so the
+    // currency symbol, placement and separators stay correct for the storefront.
+    const numeric = localized.match(/[\d.,]+/);
+    if (!numeric) return null;
+    return localized.replace(numeric[0], value.toFixed(2));
+  };
 
   /** Display price — store-localised when available, USD config price otherwise. */
   const priceFor = (productId: ProductId) =>
@@ -155,13 +252,26 @@ const ShopPage = () => {
     track('restore_clicked', {});
     try {
       const granted = await restoreViaSDK();
+      if (granted.length > 0) restoreEntitlements(granted);
+
+      // Sync BEFORE deciding what to tell the user. `mapEntitlements`
+      // deliberately excludes subscription SKUs (they would outlive the sub in
+      // `entitlements`), so a monthly/annual customer's restore legitimately
+      // returns [] — their Pro comes back only through extractSubscriptionInfo.
+      // Toasting off `granted.length` alone told every subscription-only
+      // customer "No Purchases Found" moments before their sub was restored.
+      // SettingsPage and SubscribeOnboarding already do this; the Shop never
+      // did.
+      await syncAfterPurchase();
+
+      const proActive = isPro(useGameStore.getState().monetization);
       if (granted.length > 0) {
-        restoreEntitlements(granted);
         successToast('Purchases Restored', `${granted.length} product${granted.length > 1 ? 's' : ''} restored.`);
+      } else if (proActive) {
+        successToast('Purchases Restored', 'Your Pro subscription is active.');
       } else {
         infoToast('No Purchases Found', 'No previous purchases were found for this account.');
       }
-      await syncAfterPurchase();
       track('restore_completed', { restoredCount: granted.length });
     } catch (err) {
       Sentry.captureException(err, { tags: { context: 'ShopPage.restore' } });
@@ -209,15 +319,17 @@ const ShopPage = () => {
       )}
 
       {/* ─── Dynasty Edition Hero Banner (Anchoring — best deal first) ─── */}
-      {!hasProduct(monetization, 'com.dynastymanager.bundle.all') && !userIsPro && (
+      {!hasProduct(monetization, 'com.dynastymanager.bundle.all') && !userIsPro && isPurchasable('com.dynastymanager.bundle.all') && (
         <GlassPanel className="p-0 overflow-hidden border-[hsl(var(--gold)/0.3)]">
           <div className="bg-gradient-to-br from-[hsl(var(--gold)/0.12)] via-transparent to-[hsl(var(--gold)/0.05)] p-4">
             <div className="flex items-center gap-2 mb-1">
               <Star className="w-4 h-4 text-[hsl(var(--gold))] fill-[hsl(var(--gold))]" />
               <span className="text-xs font-bold text-[hsl(var(--gold))] uppercase tracking-wider">Best Deal</span>
-              <span className="text-[10px] bg-[hsl(var(--gold)/0.15)] text-[hsl(var(--gold))] px-2 py-0.5 rounded-full font-bold ml-auto">
-                Save {BUNDLE_SAVINGS_PCT}%
-              </span>
+              {bundleSavingsPct != null && (
+                <span className="text-[10px] bg-[hsl(var(--gold)/0.15)] text-[hsl(var(--gold))] px-2 py-0.5 rounded-full font-bold ml-auto">
+                  Save {bundleSavingsPct}%
+                </span>
+              )}
             </div>
             <h3 className="text-base font-display font-bold text-foreground mt-2">
               {PRODUCTS['com.dynastymanager.bundle.all'].name}
@@ -235,9 +347,11 @@ const ShopPage = () => {
               <span className="text-lg font-bold text-[hsl(var(--gold))]">
                 {priceFor('com.dynastymanager.bundle.all')}
               </span>
-              <span className="text-xs text-muted-foreground/60 line-through">
-                {formatPrice(BUNDLE_INDIVIDUAL_TOTAL)}
-              </span>
+              {bundleIndividualTotal != null && (
+                <span className="text-xs text-muted-foreground/60 line-through">
+                  {formatPrice(bundleIndividualTotal)}
+                </span>
+              )}
             </div>
             <button
               onClick={() => handlePurchase('com.dynastymanager.bundle.all')}
@@ -252,7 +366,7 @@ const ShopPage = () => {
       {/* ─── Starter Kit — new-manager recommendation (NOT a limited offer:
               same product, same price as the Manager Identity Pack below; shown
               to new managers as a "start here" suggestion, no fake countdown) ─── */}
-      {starterKitAvailable && (
+      {starterKitAvailable && isPurchasable('com.dynastymanager.pack.manager') && (
         <GlassPanel className="p-4 border-[hsl(var(--gold)/0.3)] bg-[hsl(var(--gold)/0.04)]">
           <div className="flex items-center gap-2 mb-2">
             <Star className="w-4 h-4 text-[hsl(var(--gold))]" />
@@ -334,29 +448,43 @@ const ShopPage = () => {
               <div className="flex items-center gap-2 mb-1">
                 <TrendingUp className="w-4 h-4 text-emerald-400" />
                 <span className="text-sm font-semibold text-emerald-400">Switch to Annual</span>
-                <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold ml-auto">
-                  Save {ANNUAL_SAVINGS_PCT}%
-                </span>
+                {annualSavingsPct != null && (
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold ml-auto">
+                    Save {annualSavingsPct}%
+                  </span>
+                )}
               </div>
               <p className="text-xs text-muted-foreground mb-2">
                 Pay yearly and save vs your current monthly plan — same Pro features.
               </p>
               <p className="text-[10px] text-muted-foreground/60 mb-3">
-                Just ${ANNUAL_PER_MONTH}/month billed yearly
+                {perPeriod('com.dynastymanager.pro.annual', 12) && `Just ${perPeriod('com.dynastymanager.pro.annual', 12)}/month billed yearly`}
               </p>
-              <button
+              {isPurchasable('com.dynastymanager.pro.annual') && <button
                 onClick={() => handlePurchase('com.dynastymanager.pro.annual')}
                 className="w-full py-2.5 rounded-lg bg-emerald-500/90 hover:bg-emerald-500 text-white font-bold text-sm active:scale-[0.98] transition-all shadow-[0_0_12px_rgba(16,185,129,0.25)]"
               >
                 Upgrade — {priceFor('com.dynastymanager.pro.annual')}/year
-              </button>
+              </button>}
+            </GlassPanel>
+          )}
+
+          {/* Store reachable but selling nothing — say so instead of rendering
+              an empty section the user cannot act on. */}
+          {!userIsPro && storeSellsNothing && (
+            <GlassPanel className="p-4">
+              <p className="text-sm font-semibold text-foreground">Store unavailable</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                The App Store isn't reachable right now, so purchases can't be shown.
+                Check your connection and try again in a moment.
+              </p>
             </GlassPanel>
           )}
 
           {/* Subscription Tier Cards */}
-          {!userIsPro && (
+          {!userIsPro && !storeSellsNothing && (
             <div className="space-y-3">
-              {SUBSCRIPTION_PRODUCTS.map(productId => {
+              {SUBSCRIPTION_PRODUCTS.filter(id => isPurchasable(id) || hasProduct(monetization, id)).map(productId => {
                 const product = PRODUCTS[productId];
                 const isLifetime = product.subscriptionTier === 'lifetime';
                 const isMonthly = product.subscriptionTier === 'monthly';
@@ -374,9 +502,9 @@ const ShopPage = () => {
                     <div className="flex items-center justify-between mb-1">
                       <h4 className="text-sm font-semibold text-foreground">{product.name}</h4>
                       <div className="flex items-center gap-1.5">
-                        {isAnnual && (
+                        {isAnnual && annualSavingsPct != null && (
                           <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold">
-                            Save {ANNUAL_SAVINGS_PCT}%
+                            Save {annualSavingsPct}%
                           </span>
                         )}
                         {isLifetime && (
@@ -387,11 +515,11 @@ const ShopPage = () => {
                       </div>
                     </div>
                     <p className="text-xs text-muted-foreground mb-1">{product.description}</p>
-                    {isMonthly && (
-                      <p className="text-[10px] text-muted-foreground/60 mb-2">Just ${MONTHLY_PER_DAY}/day — cancel anytime</p>
+                    {isMonthly && perPeriod('com.dynastymanager.pro.monthly', 30) && (
+                      <p className="text-[10px] text-muted-foreground/60 mb-2">Just {perPeriod('com.dynastymanager.pro.monthly', 30)}/day — cancel anytime</p>
                     )}
-                    {isAnnual && (
-                      <p className="text-[10px] text-muted-foreground/60 mb-2">Just ${ANNUAL_PER_MONTH}/month — billed yearly</p>
+                    {isAnnual && perPeriod('com.dynastymanager.pro.annual', 12) && (
+                      <p className="text-[10px] text-muted-foreground/60 mb-2">Just {perPeriod('com.dynastymanager.pro.annual', 12)}/month — billed yearly</p>
                     )}
                     {isLifetime && (
                       <p className="text-[10px] text-muted-foreground/60 mb-2">One-time purchase, yours forever</p>
@@ -413,7 +541,10 @@ const ShopPage = () => {
                 );
               })}
 
-              {/* One-time Pro alternative */}
+              {/* One-time Pro alternative. Hidden outright when the store
+                  cannot sell it — a visible CTA for a removed SKU can only
+                  fail, which is the Guideline 2.1.0 rejection condition. */}
+              {isPurchasable('com.dynastymanager.pro') && (<>
               <div className="relative">
                 <div className="absolute inset-x-0 top-0 h-px bg-border/30" />
                 <p className="text-[10px] text-muted-foreground text-center py-2">or buy once</p>
@@ -432,6 +563,7 @@ const ShopPage = () => {
                   </button>
                 </div>
               </GlassPanel>
+              </>)}
             </div>
           )}
         </div>
@@ -485,7 +617,10 @@ const ShopPage = () => {
           <p className="text-xs font-bold text-foreground uppercase tracking-wider">Customization Packs</p>
         </div>
         <div className="space-y-3">
-          {COSMETIC_PACK_IDS.map(productId => {
+          {/* An owned pack stays visible even if the store can no longer sell
+              it — the card is how the user sees what they already have. Only
+              its (already `!owned`-gated) buy button would be dead. */}
+          {COSMETIC_PACK_IDS.filter(id => isPurchasable(id) || hasProduct(monetization, id)).map(productId => {
             const product = PRODUCTS[productId];
             const owned = hasProduct(monetization, productId);
             const isExpanded = expandedPack === productId;
@@ -537,22 +672,26 @@ const ShopPage = () => {
       </div>
 
       {/* ─── Dynasty Edition (for Pro users who may want cosmetics) ─── */}
-      {!hasProduct(monetization, 'com.dynastymanager.bundle.all') && userIsPro && (
+      {!hasProduct(monetization, 'com.dynastymanager.bundle.all') && userIsPro && isPurchasable('com.dynastymanager.bundle.all') && (
         <GlassPanel className="p-4 border-[hsl(var(--gold)/0.2)] bg-gradient-to-br from-[hsl(var(--gold)/0.05)] to-transparent">
           <div className="flex items-center gap-2 mb-2">
             <Package className="w-5 h-5 text-[hsl(var(--gold))]" />
             <h3 className="text-base font-display font-bold text-foreground">
               {PRODUCTS['com.dynastymanager.bundle.all'].name}
             </h3>
-            <span className="text-[10px] bg-[hsl(var(--gold)/0.15)] text-[hsl(var(--gold))] px-2 py-0.5 rounded-full font-bold ml-auto">
-              Save {BUNDLE_SAVINGS_PCT}%
-            </span>
+            {bundleSavingsPct != null && (
+              <span className="text-[10px] bg-[hsl(var(--gold)/0.15)] text-[hsl(var(--gold))] px-2 py-0.5 rounded-full font-bold ml-auto">
+                Save {bundleSavingsPct}%
+              </span>
+            )}
           </div>
           <p className="text-xs text-muted-foreground mb-2">
             {PRODUCTS['com.dynastymanager.bundle.all'].description}
           </p>
           <p className="text-[10px] text-muted-foreground/60 mb-3">
-            <span className="line-through">{formatPrice(BUNDLE_INDIVIDUAL_TOTAL)}</span> individually
+            {bundleIndividualTotal != null && (
+              <><span className="line-through">{formatPrice(bundleIndividualTotal)}</span> individually</>
+            )}
           </p>
           <button
             onClick={() => handlePurchase('com.dynastymanager.bundle.all')}

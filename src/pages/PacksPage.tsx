@@ -11,7 +11,7 @@ import { PAGE_HINTS, PLAYER_TIER_THRESHOLDS } from '@/config/ui';
 import { MAX_SQUAD_SIZE } from '@/config/gameBalance';
 import { PACK_TIERS, PACK_TIER_MAP, PACK_PITY_THRESHOLD, RECENT_PULLS_LIMIT, getFeaturedPackTier } from '@/config/packs';
 import { hapticLight } from '@/utils/haptics';
-import type { PackPlayerPlacement, PackTierKey, PackTierDefinition, PackUnlockMethod } from '@/types/game';
+import type { PackPlayerPlacement, PackTierKey, PackTierDefinition, PackUnlockMethod, ProductId } from '@/types/game';
 import { PackShopCard } from '@/components/game/pack/PackShopCard';
 import { PackOpeningOverlay } from '@/components/game/pack/PackOpeningOverlay';
 import { PlayerCard } from '@/components/game/PlayerCard';
@@ -19,8 +19,8 @@ import { formatMoney } from '@/utils/helpers';
 import { cn } from '@/lib/utils';
 import { errorToast, infoToast, successToast } from '@/utils/gameToast';
 import type { Player } from '@/types/game';
-import { NATIVE_ADS_READY, showRewardedAd } from '@/utils/ads';
-import { purchaseConsumable } from '@/utils/purchases';
+import { REWARDED_ADS_USABLE, showRewardedAd } from '@/utils/ads';
+import { purchaseConsumable, getStoreAvailability } from '@/utils/purchases';
 import { readPendingPackCredit, writePendingPackCredit, clearPendingPackCredit } from '@/store/helpers/persistence';
 import { isReviewWorthyPackTier, maybeRequestReview } from '@/utils/appReview';
 import { addGameBreadcrumb } from '@/utils/sentry';
@@ -292,8 +292,10 @@ const PacksPage = () => {
   };
   const adRemaining = (tier: PackTierDefinition): number => {
     // V1: ads are disabled at the native layer, so the ad-unlock path is
-    // never offered. Re-enables automatically when NATIVE_ADS_READY flips.
-    if (!NATIVE_ADS_READY) return 0;
+    // never offered. Re-enables automatically once REWARDED_ADS_USABLE is true
+    // — which needs BOTH the plugin flag and a real showRewardedAd(), so the
+    // slot can never be offered against a stub that always fails.
+    if (!REWARDED_ADS_USABLE) return 0;
     const cap = tier.adDailyLimit ?? 0;
     if (cap === 0) return 0;
     return Math.max(0, cap - usedToday(tier).ad);
@@ -306,10 +308,33 @@ const PacksPage = () => {
   const activeMethodFor = (tier: PackTierDefinition): PackUnlockMethod | null => {
     if (freeRemaining(tier) > 0) return 'free';
     if (adRemaining(tier) > 0) return 'ad';
-    if (tier.productId) return 'iap';
+    // Only offer the IAP path when the store confirmed it can sell this SKU.
+    // Offering a buy button the store will reject is the Guideline 2.1.0
+    // condition that got build 174 rejected — ShopPage and SubscribeOnboarding
+    // both guard it, and this surface sells consumables that are far more
+    // likely to be mid-configuration than the Pro SKUs.
+    if (tier.productId && packSkuPurchasable(tier.productId)) return 'iap';
     if ((tier.price ?? 0) > 0) return 'currency';
     return null;
   };
+
+  // Store-availability probe, scoped to the consumable pack SKUs this page
+  // sells. `null` = not probed yet or off-device → assume sellable, matching
+  // the convention in ShopPage and SubscribeOnboarding.
+  const [packAvailableIds, setPackAvailableIds] = useState<ProductId[] | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    const ids = PACK_TIERS.map(t => t.productId).filter(Boolean) as ProductId[];
+    if (ids.length === 0) return;
+    getStoreAvailability(ids)
+      .then(({ supported, available }) => {
+        if (!cancelled) setPackAvailableIds(supported ? available : null);
+      })
+      .catch(() => { if (!cancelled) setPackAvailableIds(null); });
+    return () => { cancelled = true; };
+  }, []);
+  const packSkuPurchasable = (productId: ProductId) =>
+    packAvailableIds === null || packAvailableIds.includes(productId);
 
   const featuredKey = useMemo(() => getFeaturedPackTier(season, week), [season, week]);
   const featured = PACK_TIER_MAP[featuredKey];

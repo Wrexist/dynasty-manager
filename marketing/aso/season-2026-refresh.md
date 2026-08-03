@@ -162,9 +162,19 @@ so the cost is one re-render per page:
 | `tactics` | tactics, formation, match day | 02, 03, 01 | Tactics, Transfers & Trophies |
 | `transfers` | transfer market, scouting | 04, 03, 01 | Scout, Sign, Win |
 | `nation` | national team, international tournaments | 05, 02, 01 | Club and Country |
+| `brand` | brand search (paid defence) — no organic keywords assigned | 01, 02, 04 | Tactics, Transfers & Trophies |
+| `pro` | Today-tab ad destination; depth-without-a-paywall pitch | 03, 01, 02 | Deep Career Sim · No Timers |
 
-Each CPP is also the landing page for the matching Apple Ads campaign, and
-Today-tab ads *require* a CPP as their destination.
+The first four carry assigned organic keywords and earn their keep whether or
+not anything is being paid for. The last two are ad-serving pages: `brand` is
+the destination for the brand-defence campaign (a brand searcher already knows
+what they want — do not re-pitch, just confirm), and `pro` exists because
+Today-tab ads *require* a CPP destination.
+
+Each CPP is the landing page for the matching Apple Ads campaign — the mapping
+and per-campaign bid ceilings live in `marketing/ads/apple-ads-2026-27.md` §3.
+Page CVR is the binding constraint on paid spend, so a CVR gain here raises the
+affordable bid on every campaign at once.
 
 ## In-app events
 

@@ -1,55 +1,59 @@
 # hr — Croatian (App Store)
 
-Storefronts reached: Croatia (and Croatian-preferring users in Bosnia & Herzegovina, Serbia and Montenegro storefronts, where the copy reads naturally). Fans type "SP" (Svjetsko prvenstvo) for the World Cup and "nogometni menadžer" as the head phrase. HR is the thinnest manager market of the set — football search is owned by betting and fantasy apps, and every sim rival (Top Eleven, DLS, the Netflix-gated FM) sits untranslated — so a fully Croatian Subtitle faces almost no localized-title competition.
+Storefronts reached: Croatia (and Croatian-preferring users in the Bosnia & Herzegovina, Serbia and Montenegro storefronts, where the copy reads naturally). The head phrase is "nogometni menadžer". HR is the thinnest manager market of this set — football search is owned by betting and fantasy apps, and every sim rival (Top Eleven, DLS, the Netflix-gated FM) sits untranslated — so a fully Croatian Subtitle faces almost no localized-title competition. For the 2026/27 window that Subtitle now sells the club season instead of a finished tournament.
 
 ## App Name [24/30]
 `Dynasty Manager: Nogomet`
 
-## Subtitle [27/30]
-`SP 2026: nogometni menadžer`
+## Subtitle [28/30]
+`Nogometni menadžer: karijera`
 
-## Promotional Text [158/170]
-`Stigao je način SP 2026. Povedi reprezentaciju od skupine do finala na penale. Bez traka energije, bez paketa odmora, bez čekanja. Puna dubina, bez pretplate.`
+## Promotional Text [166/170]
+`Nova sezona, nova dinastija. Vodi jedan od 756 stvarnih klubova od priprema do naslova – svaki transfer, svaka taktika, svaka minuta. Bez traka energije. Bez čekanja.`
 
-## Keywords [92/100]
-`penali,reprezentacija,karijera,liga,postava,transferi,taktika,trener,kup,klub,prvenstvo,igre`
+## Keywords [99/100]
+`liga,postava,taktika,transfer,klub,trener,kup,simulator,sezona,akademija,skaut,penal,prvenstvo,igra`
 
-## Description [1387/4000]
-Način SP 2026 je stigao. Odaberi jednu od više od 50 reprezentacija i povedi je od skupine sve do finala odlučenog na penale – svaka odluka je tvoja.
+## Description [1785/4000]
+Sezona 2026/27 počinje. Odaberi klub, složi početnu postavu i vodi svaku njezinu minutu.
 
-Dynasty Manager je duboka nogometna menadžerska simulacija koju igraš gdje god jesi. Bez pay-to-win mehanike, bez traka energije, bez paketa odmora, bez čekanja između sesija. Igraj koliko želiš – punu menadžersku dubinu imaš i bez ikakve pretplate.
+Dynasty Manager je duboka nogometna menadžerska simulacija – prava trenerska karijera, a ne skupljanje sličica. Preuzmi bilo koji od 756 stvarnih klubova u 45 liga i 37 zemalja, ili sjedni na klupu reprezentacije. Postavi taktiku, odradi prijelazni rok i odluči o svakoj izmjeni dok utakmica teče minutu po minutu.
 
-Preuzimaš klub, slažeš početnu postavu, dorađuješ taktiku i raspored, dovodiš igrače s transfer tržišta i vodiš momčad minutu po minutu kroz svaku utakmicu.
+Bez traka energije. Bez paketa odmora. Bez čekanja između igranja. Igraj koliko želiš i kad želiš.
 
 Što te čeka:
-- SP 2026: preko 50 reprezentacija od skupine do finala
-- 45 liga i 756 stvarnih klubova u 37 zemalja
-- Karijera: javljaj se na poslove, pregovaraj ugovore, napreduj – ili dobiješ otkaz
-- Napeti raspucavanji s penala, upravljani udarac po udarac
-- Utakmice uživo: postava, taktika, izmjene i govori u stvarnom vremenu
-- Transferi i posudbe, pregovori o ugovorima i vlastita omladinska akademija
-- Kontinentalni kupovi, kup pohodi i mjesto izbornika reprezentacije
-- Paketi igrača u FUT stilu sa stvarnim nogometašima
+- Karijera – kreni kao anoniman, javljaj se na natječaje, pregovaraj ugovore, skupljaj trofeje i napreduj – ili dobiješ otkaz
+- 45 liga i 756 stvarnih klubova – ulazak u viši rang, ispadanje i doigravanje kroz sve razine
+- Utakmice minutu po minutu – komentar uživo, govori na poluvremenu, taktičke promjene i interaktivna raspucavanja s penala
+- Taktika i raspored – mentalitet, tempo, presing, širina igre i vlastite upute
+- Transferi i ugovori – skautiraj talente, pregovaraj o odštetama i plaćama, dogovaraj posudbe i pazi na masu plaća
+- Omladinska akademija i treninzi – odgoji svoje zvijezde umjesto da ih kupuješ
+- Kupovi i kontinentalni pohodi – lovi trostruku krunu kroz domaće kupove, kontinentalna natjecanja i Superkup
+- Reprezentacija – provedi svoju zemlju kroz kvalifikacije sve do svjetskog turnira
+- Paketi igrača – otvaraj pakete i lovi walkout kartice
+- Stadion, financije, sponzori i merchandising – vodiš cijeli klub, a ne samo momčad
 
-Bez traka energije. Bez čekanja. Samo nogomet, kad god poželiš.
+PREUZMI BESPLATNO
+Sve navedeno je u besplatnom preuzimanju. Dynasty Pro je opcionalan: trenutna simulacija, napredne statistike, vlastite taktike, proširene konferencije za medije, povijesni rekordi i igra bez reklama. Kreni sa 7 dana besplatno ili ga kupi jednom i zadrži zauvijek.
 
-Dynasty Pro otključava napredne statistike, vlastite taktike, trenutnu simulaciju i više – uz 7 dana besplatno za probu. Cijeli put karijere ostaje potpuno igriv i bez pretplate.
-
-Preuzmi besplatno. Postani trener i osvoji SP 2026.
+Izgradi svoju dinastiju.
 
 ## What's New (next release note blurb)
-Način SP 2026 je stigao – povedi jednu od više od 50 reprezentacija od skupine do finala na penale. UI na klupi je pametniji, a nekoliko grešaka na dan utakmice je popravljeno. I dalje bez traka energije, bez čekanja – samo nogomet.
+Nova sezona, nova dinastija. Osvježen izgled na App Storeu, pametnija UI na klupi i nekoliko popravaka za dan utakmice. I dalje bez traka energije, bez paketa odmora, bez čekanja – samo nogomet.
 
 ## Screenshot Captions (5)
-1. Preko 50 reprezentacija na SP 2026
-2. Osvoji SP 2026
-3. Raspucavanje s penala za živce
-4. Postava, taktika, raspored
-5. Vodi svaku minutu utakmice
+1. 45 liga, 756 klubova, karijera
+2. Dan utakmice minutu po minutu
+3. Postava, raspored, raspucavanje s penala
+4. Prijelazni rok: skauting i ugovori
+5. Reprezentacija i kontinentalni kupovi
 
-- The Subtitle already owns "nogometni menadžer" — the exact head phrase every sim rival leaves untranslated on HR. Since Croatia is open field (see intro), that in-title placement is the single highest-ROI move here; Keywords fund the surrounding tail.
-- **New: "igre" added** to harvest "nogometne igre" (football games) — a lane the research flags as easy to rank on HR, where the football category is otherwise owned by betting/fantasy apps rather than sims.
-- "penali" is the exact Croatian word for a penalty shootout and heads the WC window; "reprezentacija", "postava", "transferi", "prvenstvo" are the natural words for national team, lineup, transfers and championship — not literal translations.
-- Croatian diacritics (č, ć, ž, š, đ) are largely absent from these tokens; users search them as plain letters, matching phone typing.
-- "SP", "nogomet", "nogometni", "menadžer" are omitted from Keywords — they sit in the App Name/Subtitle and are indexed separately; "kup" and "prvenstvo" cover generic cup/league search. Dropped the weakest terms ("sastav" — overlaps "postava" — and "gol") to fund "igre".
-- The copy reads naturally for the wider region (BiH, Serbia, Montenegro storefronts default many users to Croatian). No plurals of included singulars, no club/league proper nouns.
+## Keyword rationale
+- **Subtitle pivot.** "SP 2026" is gone — the tournament ended 19 July 2026, and on the Today-tab ad format (name + icon + subtitle only) that token was the whole pitch. The Subtitle keeps "nogometni menadžer", the exact head phrase every sim rival leaves untranslated on HR; with Croatia this open (see intro) that in-title placement remains the single highest-ROI move here. The freed characters go to **karijera** — the intent the club season brings.
+- **Reclaimed characters.** "karijera" left the keyword field (it is now in the Subtitle, and Apple indexes Name + Subtitle + Keywords as one union) and "reprezentacija", at 14 characters the most expensive token in the field, left with the tournament window. That bought **simulator, sezona, akademija, skaut** and a shorter **transfer/penal** — season-window depth terms instead of a one-month tournament spike.
+- **"igra" stays**, singular: the research flags "nogometne igre" as an easy lane to rank on HR, where the football category is otherwise owned by betting and fantasy apps rather than sims. Apple matches the plural from the singular, so "igre" was paying for a character it did not need — same reason "transferi" became "transfer" and "penali" became "penal".
+- **"prvenstvo" is kept but re-pointed**: it now works as the generic championship/title-race term for league search, not as half of the tournament name. "kup" covers cup search without duplicating "liga".
+- Croatian diacritics (č, ć, ž, š, đ) are largely absent from these tokens because users type them as plain letters; visible copy keeps them everywhere.
+- "nogomet", "nogometni", "menadžer", "karijera" are absent from Keywords — already indexed via App Name/Subtitle.
+- National-team intent moved rather than disappeared: **reprezentacija** and **kontinentalni kupovi** now sit in screenshot caption 5, which Apple OCR-indexes as metadata (since June 2025), alongside "dan utakmice", "prijelazni rok", "skauting" and "raspucavanje s penala" — full-length terms the 100-character field cannot afford.
+- The copy still reads naturally for the wider region (the BiH, Serbia and Montenegro storefronts default many users to Croatian). No plurals of included singulars, no club/league proper nouns, no tournament marks in consumer-visible copy (Guideline 2.3.7) — the description says "svjetski turnir", never the mark.

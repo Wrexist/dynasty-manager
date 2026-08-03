@@ -128,6 +128,30 @@ describe('launch-crash guardrails — AdMob / GMA SDK must not regress into the 
       expect(NATIVE_ADS_READY).toBe(false);
     });
 
+    it('REWARDED_ADS_USABLE is false while showRewardedAd is a stub', async () => {
+      // The reward UI gates on REWARDED_ADS_USABLE, not NATIVE_ADS_READY.
+      // AdRewardButton grants Pro users their reward instantly (they skip the
+      // ad) and routes free users through showRewardedAd(). If the plugin flag
+      // were flipped while this file still returned false, Pro would collect
+      // every budget reward and free users none — a Pro-only economic buff and
+      // a breach of the "monetization never touches sim parameters" contract.
+      // This test pins the two flags together so one cannot be flipped alone.
+      const { REWARDED_ADS_USABLE, showRewardedAd } = await import('@/utils/ads');
+      expect(REWARDED_ADS_USABLE).toBe(false);
+      await expect(showRewardedAd()).resolves.toBe(false);
+    });
+
+    it('no reward surface gates on NATIVE_ADS_READY directly', async () => {
+      // Callsites must use the derived REWARDED_ADS_USABLE so that enabling the
+      // plugin cannot open a reward path against a stub implementation.
+      const offenders: string[] = [];
+      for (const rel of ['src/components/game/AdRewardButton.tsx', 'src/pages/PacksPage.tsx']) {
+        const src = readFileSync(resolve(REPO_ROOT, rel), 'utf8');
+        if (/\bNATIVE_ADS_READY\b/.test(src.replace(/\/\/[^\n]*/g, ''))) offenders.push(rel);
+      }
+      expect(offenders).toEqual([]);
+    });
+
     it('initAds() resolves without throwing', async () => {
       const { initAds } = await import('@/utils/ads');
       await expect(initAds()).resolves.toBeUndefined();
