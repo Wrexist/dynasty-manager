@@ -44,13 +44,16 @@ export interface PendingRelease {
 export const PENDING_NEWS: PendingRelease = {
   highlights: [],
   new: [],
-  improved: [
-    'Release(1.3.0): seal the What\'s New card and bump the marketing version.',
-    'Hero-cluster App Store screenshots for iPhone 6.9/6.5 + iPad 13.',
+  improved: [],
+  fixed: [
+    'Dynasty Pro is no longer lost when you load an older save or start a new career.',
+    'Restore Purchases now correctly recognises an active Pro subscription.',
+    'The 7-day free trial is only offered when the App Store can actually grant it, so you are never charged unexpectedly.',
+    'Prices and savings now show in your own currency instead of US dollars.',
+    'The Shop no longer shows buy buttons for items the store cannot sell right now.',
   ],
-  fixed: [],
-  headline: null,
-  summary: null,
+  headline: 'Purchases now stick, everywhere.',
+  summary: 'Dynasty Pro survives loading an older save or starting a new career, the free trial is only offered when the App Store can actually grant it, and prices now show in your own currency.',
 };
 
 export const PENDING_CATEGORIES: ReleaseCategory[] = ['highlights', 'new', 'improved', 'fixed'];
