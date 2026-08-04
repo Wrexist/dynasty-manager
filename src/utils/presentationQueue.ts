@@ -27,8 +27,9 @@
  *      blocking narrative/decision modals; grouped after the reward beats so
  *      the player sees what happened before being asked to decide.
  *   8. farewell       — departures; informational, low urgency.
- *   9. dailyReward    — the meta daily-login reward, last so it never
- *      preempts in-fiction beats.
+ *   9. dailyReward    — the meta daily-login reward, after in-fiction beats.
+ *  10. adOffer        — rewarded-ad offer, dead last: it may fill a gap but
+ *      must never interrupt a beat the player cares about.
  */
 
 export type OverlayId =
@@ -45,7 +46,8 @@ export type OverlayId =
   | 'transferTalk'
   | 'farewell'
   | 'notifPrompt'
-  | 'dailyReward';
+  | 'dailyReward'
+  | 'adOffer';
 
 export const PRESENTATION_ORDER: OverlayId[] = [
   'sessionRecap',
@@ -67,6 +69,12 @@ export const PRESENTATION_ORDER: OverlayId[] = [
   // meta daily reward.
   'notifPrompt',
   'dailyReward',
+  // Rewarded-ad offer — DEAD LAST, deliberately. An ad prompt must never
+  // preempt a trophy lift, a sacking, a press conference or a daily reward.
+  // It fills a gap when nothing in-fiction wants the screen; it never
+  // interrupts. Moving this up the list trades D7 retention (a 2026 App Store
+  // ranking input) for a few impressions — a bad trade at any ad rate.
+  'adOffer',
 ];
 
 /**

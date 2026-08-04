@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
 import { errorToast, infoToast, successToast } from '@/utils/gameToast';
 import type { Player } from '@/types/game';
 import { REWARDED_ADS_USABLE, showRewardedAd } from '@/utils/ads';
+import { isPro } from '@/utils/monetization';
 import { purchaseConsumable, getStoreAvailability } from '@/utils/purchases';
 import { readPendingPackCredit, writePendingPackCredit, clearPendingPackCredit } from '@/store/helpers/persistence';
 import { isReviewWorthyPackTier, maybeRequestReview } from '@/utils/appReview';
@@ -102,6 +103,9 @@ const PacksPage = () => {
     week: s.week,
     dailyPackOpens: s.dailyPackOpens || { date: '', free: {}, ad: {} },
   })));
+  const monetization = useGameStore(s => s.monetization);
+  const recordAdWatched = useGameStore(s => s.recordAdWatched);
+  const userIsPro = isPro(monetization);
   const openPack = useGameStore(s => s.openPack);
   const canOpenPack = useGameStore(s => s.canOpenPack);
   const quickSellPackedPlayer = useGameStore(s => s.quickSellPackedPlayer);
@@ -291,10 +295,10 @@ const PacksPage = () => {
     return Math.max(0, cap - usedToday(tier).free);
   };
   const adRemaining = (tier: PackTierDefinition): number => {
-    // V1: ads are disabled at the native layer, so the ad-unlock path is
-    // never offered. Re-enables automatically once REWARDED_ADS_USABLE is true
-    // — which needs BOTH the plugin flag and a real showRewardedAd(), so the
-    // slot can never be offered against a stub that always fails.
+    // Gated for BOTH cohorts on a real ad SDK. Pro's entitlement is skipping
+    // the video (see the `userIsPro ? true : await showRewardedAd()` below),
+    // NOT getting free pack opens that free players cannot earn — that would
+    // be a paid squad advantage. Both unlock together when the SDK ships.
     if (!REWARDED_ADS_USABLE) return 0;
     const cap = tier.adDailyLimit ?? 0;
     if (cap === 0) return 0;
@@ -394,11 +398,15 @@ const PacksPage = () => {
     if (method === 'ad') {
       setBusy(true);
       try {
-        const watched = await showRewardedAd();
+        // Pro paid for ad-free: same pack, same daily allowance, no video.
+        // Skipping the watch is the entitlement, not a shortcut around a cap —
+        // the adDailyLimit still applies to both cohorts identically.
+        const watched = userIsPro ? true : await showRewardedAd();
         if (!watched) {
           infoToast('Ad not shown', 'No reward granted — please try again.');
           return;
         }
+        recordAdWatched();
         const result = openPack(tierKey, { method, skipPayment: true });
         if (!result.success || !result.players) {
           errorToast('Could not open pack', result.message);

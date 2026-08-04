@@ -4,6 +4,7 @@ import { PRODUCTS, COSMETIC_ITEMS, AD_REWARD_LIMITS, AD_REWARD_VALUES, adBudgetR
 // Single source of truth for the entitlement boundary — shared with
 // mergeDeviceMonetization so every writer of `entitlements` enforces it.
 import { isPersistableEntitlement } from '@/utils/monetization';
+import { withPromptShown, withWatchCompleted, withPromptDismissed } from '@/utils/adPacing';
 import { writeDeviceEntitlements } from '@/store/helpers/persistence';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
@@ -198,6 +199,44 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
           },
         };
       });
+    },
+
+    // ── Rewarded-ad pacing ──
+    //
+    // These only move counters; whether a prompt may be raised at all is
+    // decided by `canPrompt` in utils/adPacing.ts, and whether an ad can
+    // actually be shown is decided by REWARDED_ADS_USABLE in utils/ads.ts.
+
+    /** Record that an ad offer was shown to the player. */
+    recordAdPromptShown: () => {
+      _set((s) => ({
+        monetization: {
+          ...s.monetization,
+          adEngagement: withPromptShown(s.monetization.adEngagement, Date.now()),
+        },
+      }));
+    },
+
+    /** Record a completed watch, or a Pro direct claim. Raises tomorrow's
+     *  allowance and clears the dismissal decay. */
+    recordAdWatched: () => {
+      _set((s) => ({
+        monetization: {
+          ...s.monetization,
+          adEngagement: withWatchCompleted(s.monetization.adEngagement, Date.now()),
+        },
+      }));
+    },
+
+    /** Record a dismissal. Lowers the allowance so a disengaged player is
+     *  asked less, not more. */
+    recordAdPromptDismissed: () => {
+      _set((s) => ({
+        monetization: {
+          ...s.monetization,
+          adEngagement: withPromptDismissed(s.monetization.adEngagement, Date.now()),
+        },
+      }));
     },
 
     /** Update subscription info from RevenueCat */

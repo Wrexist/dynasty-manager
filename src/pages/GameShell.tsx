@@ -16,6 +16,7 @@ import { PACK_PITY_THRESHOLD } from '@/config/packs';
 import { useMatchLocked, useCareerUnemployed, useCareerRetired } from '@/hooks/useGameSelectors';
 import { InfoTipProvider } from '@/components/game/InfoTip';
 import { PresentationQueueProvider } from '@/hooks/usePresentationQueue';
+import { AdOfferHost } from '@/components/game/AdOfferHost';
 import { getEntitlements, getCustomerInfo, extractSubscriptionInfo, startEntitlementListener, stopEntitlementListener } from '@/utils/purchases';
 
 // Lazy-load all pages for code splitting (Dashboard prefetched from TitleScreen)
@@ -368,6 +369,9 @@ const GameShell = () => {
                   shows at a time (G3). */}
               <PresentationQueueProvider>
                 <Screen />
+                {/* Rewarded-ad offers. Inside the provider so they queue at the
+                    lowest priority and can never preempt an in-fiction beat. */}
+                <AdOfferHost />
               </PresentationQueueProvider>
             </Suspense>
           </PageErrorBoundary>
