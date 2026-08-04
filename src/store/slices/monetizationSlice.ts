@@ -1,6 +1,6 @@
 import type { GameState } from '../storeTypes';
 import type { ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo } from '@/types/game';
-import { PRODUCTS, COSMETIC_ITEMS, AD_REWARD_LIMITS, AD_REWARD_VALUES, adBudgetReward, DEFAULT_MONETIZATION_STATE, FREE_TRIAL_MS, TRIAL_TARGET_PRODUCT_ID } from '@/config/monetization';
+import { PRODUCTS, COSMETIC_ITEMS, AD_REWARD_LIMITS, AD_REWARD_VALUES, adBudgetReward, DEFAULT_MONETIZATION_STATE, FREE_TRIAL_MS, TRIAL_TARGET_PRODUCT_ID, SUB_TRIAL_PRODUCT_IDS } from '@/config/monetization';
 // Single source of truth for the entitlement boundary — shared with
 // mergeDeviceMonetization so every writer of `entitlements` enforces it.
 import { isPersistableEntitlement } from '@/utils/monetization';
@@ -263,6 +263,18 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
       // The old `tier !== 'trial'` check let an active trial restart its own clock,
       // granting unlimited free trials on re-entry to the onboarding screen.
       if (state.monetization.subscription) return;
+      // Only a genuinely trial-eligible SUBSCRIPTION SKU may be recorded here.
+      // The signature accepts any ProductId, so a caller passing a one-time SKU
+      // (or a consumable) would write `{ tier: 'trial', productId: <one-time> }`
+      // — and isSubscriptionExpired treats a PRO_ONE_TIME_PRODUCT_ID in the
+      // subscription slot as NEVER expiring, turning a 7-day trial into
+      // permanent Pro. Fail closed rather than mint that record.
+      if (!SUB_TRIAL_PRODUCT_IDS.includes(productId)) {
+        if (import.meta.env.DEV) {
+          console.error(`[monetization] startFreeTrial called with non-trial SKU "${productId}"`);
+        }
+        return;
+      }
       const expiresAt = new Date(Date.now() + FREE_TRIAL_MS).toISOString();
       const trialInfo: SubscriptionInfo = {
         tier: 'trial',

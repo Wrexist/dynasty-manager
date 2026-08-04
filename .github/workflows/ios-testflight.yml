@@ -87,6 +87,15 @@ jobs:
       - name: Validate + stamp What's New build number
         run: node scripts/check-whats-new.mjs --inject-build ${{ github.run_number }}
 
+      # Surfaces a missing observability secret in the run log. Warn-only for
+      # now — flip to `--strict` once the secrets exist so a rotated or renamed
+      # secret fails the build instead of silently blinding production.
+      - name: Check observability secrets
+        env:
+          VITE_ANALYTICS_ENDPOINT: ${{ secrets.VITE_ANALYTICS_ENDPOINT }}
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+        run: node scripts/check-observability.mjs
+
       - name: Build web bundle with production keys
         env:
           VITE_REVENUECAT_API_KEY: ${{ secrets.VITE_REVENUECAT_API_KEY }}
