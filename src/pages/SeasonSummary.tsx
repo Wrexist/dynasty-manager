@@ -11,6 +11,7 @@ import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { LEAGUES } from '@/data/league';
 import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/hooks/useTranslation';
 import { motion } from 'framer-motion';
 import { VERDICT_COLORS, VERDICT_LABELS } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
@@ -49,6 +50,7 @@ const SeasonSummary = () => {
   const recordCelebrationKeys = useGameStore((s) => s.recordCelebrationKeys);
   const latest = seasonHistory[seasonHistory.length - 1];
   const [showBestXI, setShowBestXI] = useState(false);
+  const { t } = useTranslation();
 
   // Promotion / relegation ceremony. These are the emotional peak (and nadir)
   // of a lower-league save and used to be a static text banner with a haptic:
@@ -116,7 +118,7 @@ const SeasonSummary = () => {
         open={!!seasonVerdict}
         onClose={() => setSeasonVerdict(null)}
         tone={seasonVerdict === 'relegated' ? 'somber' : 'triumph'}
-        title={seasonVerdict === 'relegated' ? 'RELEGATED' : 'PROMOTED!'}
+        title={seasonVerdict === 'relegated' ? t('season.relegated') : t('season.promoted')}
         subtitle={
           seasonVerdict === 'relegated'
             ? `${clubName} drop a division. A long summer — and a promotion campaign to plan.`
@@ -144,7 +146,7 @@ const SeasonSummary = () => {
             className="text-2xl font-black font-display tracking-tight bg-clip-text text-transparent"
             style={{ backgroundImage: 'linear-gradient(180deg, #FFF6D8 0%, hsl(var(--foreground)) 50%, hsl(var(--foreground)/0.85) 100%)' }}
           >
-            Season {latest.season} Complete
+            {t('season.complete', { season: latest.season })}
           </h2>
         </div>
 
@@ -161,10 +163,10 @@ const SeasonSummary = () => {
                   filter: 'drop-shadow(0 1px 0 rgba(0,0,0,0.4))',
                 }}
               >
-                PROMOTED!
+                {t('season.promoted')}
               </p>
               <p className="text-sm text-emerald-400/80 mt-1">
-                Congratulations! You've earned promotion to a higher division.
+                {t('season.promotedBody')}
               </p>
             </GlassPanel>
           </motion.div>
@@ -177,7 +179,7 @@ const SeasonSummary = () => {
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.4 }}>
             <GlassPanel className="p-4">
               <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground mb-3">
-                Promotion Playoff
+                {t('season.playoff')}
               </p>
               <div className="space-y-2">
                 {latest.playoffRun.map((tie, i) => {
@@ -204,7 +206,7 @@ const SeasonSummary = () => {
                         {away?.shortName ?? tie.awayClubId}
                       </span>
                       <span className="text-[10px] uppercase tracking-wider text-muted-foreground w-12 text-right shrink-0">
-                        {isFinal ? 'Final' : 'Semi'}
+                        {isFinal ? t('season.playoffFinal') : t('season.playoffSemi')}
                       </span>
                     </div>
                   );
@@ -212,8 +214,8 @@ const SeasonSummary = () => {
               </div>
               <p className="text-xs text-muted-foreground mt-3">
                 {latest.playoffRun[latest.playoffRun.length - 1].playerAdvanced
-                  ? 'You came through the playoff.'
-                  : 'Your playoff run ended here.'}
+                  ? t('season.playoffWon')
+                  : t('season.playoffLost')}
               </p>
             </GlassPanel>
           </motion.div>
@@ -232,10 +234,10 @@ const SeasonSummary = () => {
                   filter: 'drop-shadow(0 1px 0 rgba(0,0,0,0.4))',
                 }}
               >
-                RELEGATED
+                {t('season.relegated')}
               </p>
               <p className="text-sm text-destructive/80 mt-1">
-                Your club has been relegated to a lower division.
+                {t('season.relegatedBody')}
               </p>
             </GlassPanel>
           </motion.div>

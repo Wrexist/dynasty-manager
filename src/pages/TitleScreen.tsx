@@ -10,6 +10,7 @@ import { useGameStore } from '@/store/gameStore';
 import { getSlotSummaries } from '@/store/slices/orchestrationSlice';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Play, Settings, Trash2, Save, Swords, ChevronRight, RotateCcw } from 'lucide-react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { PremiumSparkle } from '@/components/game/icons/PremiumSparkle';
 import { cn } from '@/lib/utils';
 import { getSuffix } from '@/utils/helpers';
@@ -32,6 +33,7 @@ const TitleScreen = () => {
   const loadGame = useGameStore(s => s.loadGame);
   const resetGame = useGameStore(s => s.resetGame);
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
+  const { t } = useTranslation();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -179,10 +181,10 @@ const TitleScreen = () => {
           whatsNewUnseen && 'border-primary/35',
         )}
         style={{ top: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}
-        aria-label={whatsNewUnseen ? 'What’s new — unread update' : 'What’s new'}
+        aria-label={whatsNewUnseen ? t('title.whatsNewAriaUnread') : t('title.whatsNewAria')}
       >
         <PremiumSparkle className="w-4 h-4 shrink-0" />
-        <span>What&apos;s New!</span>
+        <span>{t('title.whatsNew')}</span>
         {whatsNewUnseen && (
           <span
             aria-hidden
@@ -275,7 +277,7 @@ const TitleScreen = () => {
                     type="button"
                     onClick={() => { hapticLight(); handleContinue(slot.slot); }}
                     className="w-full flex items-center gap-3 px-4 py-3.5 text-left active:scale-[0.985] transition-transform"
-                    aria-label={`Continue — ${slot.clubName}, Season ${slot.season} Week ${slot.week}`}
+                    aria-label={t('title.continueAria', { club: slot.clubName, season: slot.season, week: slot.week })}
                   >
                     <div className="relative shrink-0">
                       <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary/25 to-primary/10 border border-primary/30 flex items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_4px_12px_-4px_hsl(43_96%_46%/0.4)]">
@@ -336,15 +338,15 @@ const TitleScreen = () => {
               <GlassPanel
                 className="p-0"
                 onClick={() => handleNewGame(slot.slot)}
-                aria-label={`Start new game in slot ${slot.slot}`}
+                aria-label={t('title.newGameAria', { slot: slot.slot })}
               >
                 <div className="flex items-center gap-3 px-4 py-3.5">
                   <div className="w-11 h-11 rounded-xl bg-white/[0.04] border border-dashed border-white/15 flex items-center justify-center shrink-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]">
                     <Play className="w-[18px] h-[18px] text-muted-foreground fill-muted-foreground/30" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-foreground/90">New Game</p>
-                    <p className="text-[11px] text-muted-foreground/80 mt-0.5">Slot {slot.slot} · Start a new dynasty</p>
+                    <p className="text-sm font-bold text-foreground/90">{t('title.newGame')}</p>
+                    <p className="text-[11px] text-muted-foreground/80 mt-0.5">{t('title.newGameSubtitle', { slot: slot.slot })}</p>
                   </div>
                   <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
                 </div>
@@ -391,7 +393,7 @@ const TitleScreen = () => {
                 type="button"
                 onClick={() => { hapticLight(); setSettingsOpen(true); }}
                 className="w-full rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 active:scale-[0.985] transition-transform"
-                aria-label="Open settings"
+                aria-label={t('title.openSettings')}
               >
                 <GlassPanel className="p-0">
                   <div className="flex items-center gap-3 px-4 py-3.5">
@@ -399,8 +401,8 @@ const TitleScreen = () => {
                       <Settings className="w-[18px] h-[18px] text-muted-foreground" />
                     </div>
                     <div className="flex-1 min-w-0 text-left">
-                      <p className="text-sm font-bold text-foreground">Settings</p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">Speed · display · purchases</p>
+                      <p className="text-sm font-bold text-foreground">{t('title.settings')}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">{t('title.settingsSubtitle')}</p>
                     </div>
                     <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
                   </div>
