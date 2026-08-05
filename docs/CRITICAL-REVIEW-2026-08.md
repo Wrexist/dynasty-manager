@@ -44,11 +44,21 @@ tabeller ur den.** `endSeasonImpl` snabbspolar varje divisions ospelade matcher
   nedflyttningszonen i tabellen *efter*. Den togs bort ur sin liga en gång men
   lades till i två. eng-2 växte till 25 lag och stannade där. Cirka 1 rullning
   av 10, permanent, ärvd av varje efterföljande säsong.
-- **Spelarens sista match kunde simuleras om.** `divisionFixtures` synkas mot
+- **Spelarens egna resultat kunde simuleras om.** `divisionFixtures` synkas mot
   `fixtures` bara inne i `advanceWeek`. Avslutas säsongen direkt efter sista
   matchen saknas den i `divisionFixtures`, och snabbspolningen hittade på ett
-  annat resultat — in i tabellen som avgör uppflyttning. Det här träffar varje
-  spelare, inte bara playoff-fall.
+  annat resultat — in i tabellen som avgör uppflyttning. Verifierat direkt: mot
+  koden före fixen kastade snabbspolningen **552 riktiga resultat** och
+  ersatte dem med påhittade.
+
+  *Rättelse till min egen första formulering:* jag skrev först att det här
+  ändrar utfallet — att klubben blir upp- eller nedflyttad på fel grund. Det
+  kunde jag inte visa. Vid `initGame` har bara spelarens klubb en sparad
+  laguppställning, så snabbspolningens walkover-regel ("ingen elva = förlust")
+  producerar en tabell som råkar sammanfalla med den påtvingade. Två utkast av
+  testet passerade mot den trasiga koden av just det skälet. Det som är
+  bevisat är att resultaten skrivs över; att det *alltid* ändrar utfallet är
+  det inte. Testet påstår därför bara det förra.
 - **`playoffState` städades aldrig.** Rullningen konsumerade den men nollställde
   den inte, så *nästa* säsongs rullning körde förra säsongens bracket med förra
   säsongens resultat. En klubb som slutade 19:a fick ett uppflyttningsplayoff mot
@@ -61,6 +71,17 @@ Fixen är att `endSeason` avgör ligan och *committar* den innan något läser e
 tabell, plus en strukturell spärr i `applyPromotionRelegation` så att storleks-
 drift är omöjlig även om de två tabellerna någonsin skiljer sig igen. Alla sex
 testerna fallerar mot koden före fixen.
+
+**Ett femte fynd, rapporterat men inte åtgärdat:** `buildLeagueTable` cachar på
+nyckeln `playedCount:clubIds` — antalet spelade matcher, inte deras *resultat*.
+Två olika resultatuppsättningar med samma antal spelade matcher i samma liga
+delar cachepost. Cachen töms vid init, load och säsongsrullning, så den kända
+farliga vägen (förra säsongens sluttabell serverad till nästa) är stängd. Men
+invarianten är svag: den vilar på att varje ny anropsväg kommer ihåg att tömma.
+Jag upptäckte den genom att mitt eget test passerade mot trasig kod — mitt
+`buildLeagueTable`-anrop före `endSeason` hade fyllt cachen som rullningen sedan
+läste ur. Att byta nyckel till en resultathash kostar prestanda på en het väg
+och är ett eget beslut, inte något att smyga in i den här fixen.
 
 **Ett icke-fynd, för ordningens skull:** min mätrigg flaggade röda kort som låga
 (0,12/match mot referensen 0,25). Referensen var fel. 0,12 med ett gult:rött-
@@ -752,3 +773,12 @@ Listade för att de säger något om hur granskningen ska läsas.
 - **`playoffPhase.test.ts` byggde på ett antagande som fixen tog bort.** Den
   lutade sig mot att en nyinitierad tabell sorteras alfabetiskt. Nu tvingar den
   fram sluttabellen explicit, vilket den borde ha gjort från början.
+- **Jag överdrev vad fynd 2 bevisar.** Se rättelsen i punktlistan ovan: att
+  resultaten skrivs över är verifierat, att utfallet alltid ändras är det inte.
+- **Tre utkast av samma test passerade mot trasig kod, av tre olika skäl** —
+  cachekollision, walkover-regeln, och för svag assertion. Det säger något om
+  hur lätt ett grönt test här betyder ingenting. Varje test i den filen är nu
+  körd mot koden före fixen och verifierat rött.
+- **Jag rapporterade "väntar på preflight" när preflight redan hade fallerat.**
+  Exitkoden jag läste kom från `tail` i en pipe, inte från `npm` — samma misstag
+  som släppte igenom typecheck-felet ovan, gjort en andra gång i samma session.

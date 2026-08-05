@@ -750,13 +750,18 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       { ...state.divisionFixtures, [state.playerDivision]: state.fixtures },
       state.clubs, state.players, state.week, pickAiMatchSquad, FORFEIT_SCORE,
     );
+    // FIXTURES ONLY — deliberately not `divisionTables` / `leagueTable`.
+    // `endSeasonImpl` derives the recorded final position from `state.leagueTable`
+    // but promotion and relegation from tables it rebuilds out of fixtures. That
+    // split predates this change and is not what this fix is about; rewriting the
+    // tables here would silently re-point the recorded position at a different
+    // source, which is a behaviour change several season tests correctly pin.
+    // Everything this fix needs — playoff seeding, and the promotion/relegation
+    // tables — is derived from fixtures downstream.
     if (settled.mutated) {
-      const divisionTables = buildAllDivisionTables(settled.divisionFixtures, state.divisionClubs);
       set({
         divisionFixtures: settled.divisionFixtures,
         fixtures: settled.divisionFixtures[state.playerDivision] || state.fixtures,
-        divisionTables,
-        leagueTable: divisionTables[state.playerDivision] || state.leagueTable,
       });
     }
     // A club in the promotion playoff plays it BEFORE the season rolls. This

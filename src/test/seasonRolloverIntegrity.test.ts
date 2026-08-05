@@ -27,7 +27,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
 import { applyPromotionRelegation } from '@/utils/promotionRelegation';
-import { buildLeagueTable, LEAGUES } from '@/data/league';
+import { LEAGUES } from '@/data/league';
 import type { LeagueTableEntry } from '@/types/game';
 
 /** eng-2: four playoff spots, so the player can plausibly land in the zone. */
@@ -104,40 +104,66 @@ describe('season rollover — the playoff belongs to the season that ran it', ()
 describe('season rollover — the player\'s own results are authoritative', () => {
   beforeEach(() => { useGameStore.getState().initGame(SECOND_TIER_CLUB); });
 
-  it('a result in `fixtures` is not re-simulated from stale `divisionFixtures`', () => {
+  /**
+   * Asserts the CONTRACT of the fix rather than a downstream outcome.
+   *
+   * The tempting test — force a season, roll it, check the club went up or down
+   * — cannot tell the two versions apart. At init only the player's club has a
+   * stored lineup, so the catch-up's forfeit rule ("no XI = concede") produces
+   * standings that happen to agree with a forced table. Two drafts of this test
+   * passed against the broken code for exactly that reason.
+   *
+   * What the fix actually guarantees is narrower and directly observable:
+   * `endSeason` settles the league from `state.fixtures` and COMMITS it, so the
+   * player's own results are in `divisionFixtures` before anything reads a table.
+   * Pre-fix, `endSeason` never wrote fixtures at all.
+   */
+  it('endSeason commits the settled league, seeded from `fixtures`', () => {
     const s = useGameStore.getState();
     const div = s.playerDivision;
     const playerClub = s.playerClubId;
 
-    // Play out the player's whole division in `fixtures` with lopsided results
-    // that make the standings unambiguous, and leave `divisionFixtures` — which
-    // only re-syncs inside `advanceWeek` — entirely unplayed.
-    const fixtures = s.fixtures.map(f => ({
-      ...f,
-      played: true,
-      homeGoals: f.homeClubId === playerClub ? 5 : 0,
-      awayGoals: f.awayClubId === playerClub ? 5 : 0,
-      events: [],
+    // A scoreline nothing else in the codebase produces, so its presence is
+    // proof these exact results survived rather than being re-invented.
+    const played = s.fixtures.map(f => ({
+      ...f, played: true, events: [],
+      homeGoals: f.homeClubId === playerClub ? 7 : 1,
+      awayGoals: f.awayClubId === playerClub ? 7 : 1,
     }));
     useGameStore.setState({
-      fixtures,
-      divisionFixtures: { ...s.divisionFixtures, [div]: s.divisionFixtures[div].map(f => ({ ...f, played: false })) },
+      fixtures: played,
+      divisionFixtures: {
+        ...s.divisionFixtures,
+        [div]: s.divisionFixtures[div].map(f => ({ ...f, played: false })),
+      },
     });
+    expect(useGameStore.getState().divisionFixtures[div].every(f => !f.played)).toBe(true);
 
-    // Winning every game by five must top the table. If the catch-up overwrote
-    // those results with invented ones, it won't.
-    const expected = buildLeagueTable(fixtures, s.divisionClubs[div]);
-    expect(expected[0].clubId).toBe(playerClub);
+    // Rollover regenerates fixtures for the new season, so the committed settle
+    // is only visible while it happens. The settle `set` is the first store
+    // write `endSeason` makes, so the first snapshot in which the player's
+    // division is played is the one rollover went on to consume.
+    let settledDivision: typeof played | null = null;
+    const unsubscribe = useGameStore.subscribe(state => {
+      if (settledDivision) return;
+      const dv = state.divisionFixtures[div];
+      if (dv?.length && dv.every(f => f.played)) settledDivision = dv as typeof played;
+    });
+    try {
+      useGameStore.getState().endSeason();
+    } finally {
+      unsubscribe();
+    }
 
-    useGameStore.getState().endSeason();
-    // Rollover regenerates fixtures, so the recorded final position is the only
-    // durable evidence of the table it actually decided from. Deliberately NOT
-    // "did they get promoted" — a randomly re-simulated season promotes the
-    // player about one time in eight, so that assertion passed on the broken
-    // code often enough to be worthless.
-    const history = useGameStore.getState().seasonHistory.slice(-1)[0];
-    expect(history?.position, 'a season won by five goals a game did not finish 1st')
-      .toBe(1);
+    expect(settledDivision, 'endSeason did not commit a settled league').not.toBeNull();
+    const playerGames = settledDivision!.filter(
+      f => f.homeClubId === playerClub || f.awayClubId === playerClub,
+    );
+    expect(playerGames.length).toBeGreaterThan(0);
+    for (const f of playerGames) {
+      const forHim = f.homeClubId === playerClub ? f.homeGoals : f.awayGoals;
+      expect(forHim, 'a played result was overwritten by the catch-up').toBe(7);
+    }
   });
 });
 
