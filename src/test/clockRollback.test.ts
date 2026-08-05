@@ -13,7 +13,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { isPro, isSubscriptionActive, isStarterKitAvailable } from '@/utils/monetization';
-import { readClockHighWater, observeClock, reanchorClock, STORAGE_KEYS } from '@/store/helpers/persistence';
+import { readClockHighWater, observeClock, reanchorClock, __resetClockHighWaterCache, STORAGE_KEYS } from '@/store/helpers/persistence';
 import { STARTER_KIT_WINDOW_MS } from '@/config/monetization';
 import type { MonetizationState } from '@/types/game';
 
@@ -42,6 +42,10 @@ const lapsedSub = {
 describe('monotonic clock guard', () => {
   beforeEach(() => {
     localStorage.removeItem(STORAGE_KEYS.CLOCK_HIGH_WATER);
+    // The mark is mirrored in memory so `isPro` — called from render paths —
+    // never hits a synchronous localStorage write. Clearing storage alone
+    // therefore does not reset it between cases.
+    __resetClockHighWaterCache();
     vi.useFakeTimers();
   });
   afterEach(() => { vi.useRealTimers(); });
@@ -78,6 +82,10 @@ describe('monotonic clock guard', () => {
 describe('a lapsed subscription cannot be revived by the clock', () => {
   beforeEach(() => {
     localStorage.removeItem(STORAGE_KEYS.CLOCK_HIGH_WATER);
+    // The mark is mirrored in memory so `isPro` — called from render paths —
+    // never hits a synchronous localStorage write. Clearing storage alone
+    // therefore does not reset it between cases.
+    __resetClockHighWaterCache();
     vi.useFakeTimers();
   });
   afterEach(() => { vi.useRealTimers(); });
@@ -124,6 +132,10 @@ describe('a lapsed subscription cannot be revived by the clock', () => {
 describe('the Starter Kit window cannot be re-armed by the clock', () => {
   beforeEach(() => {
     localStorage.removeItem(STORAGE_KEYS.CLOCK_HIGH_WATER);
+    // The mark is mirrored in memory so `isPro` — called from render paths —
+    // never hits a synchronous localStorage write. Clearing storage alone
+    // therefore does not reset it between cases.
+    __resetClockHighWaterCache();
     vi.useFakeTimers();
   });
   afterEach(() => { vi.useRealTimers(); });

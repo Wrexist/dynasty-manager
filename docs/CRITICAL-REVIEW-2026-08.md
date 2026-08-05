@@ -11,9 +11,18 @@ Ordnat efter hur mycket det kostar er — inte efter hur svårt det är att fixa
 
 ## Status
 
-**Åtgärdade (16 av 22):** 1, 2, 3 (till största delen), 4, 5, 6, 7, 8, 9, 10,
-11, 12, 13, 14, 15, 16, 18. Varje fix bär en regressionstest; de som gick att
-verifiera negativt kördes mot koden före fixen och fallerade där.
+**Åtgärdade (18 av 22):** 1, 2, 3 (till största delen), 4, 5, 6, 7, 8, 9, 10,
+11, 12, 13, 14, 15, 16, 18, 20 (exploiten). Varje fix bär en regressionstest; de
+som gick att verifiera negativt kördes mot koden före fixen och fallerade där.
+
+Två av dem stod först som "går inte att åtgärda härifrån" och visade sig göra
+det ändå:
+
+- **#20** filades som "kräver backend". Riktig kvittovalidering gör det — men
+  *exploiten* gör det inte. Klockmanipulation stängs lokalt med en monoton
+  högvattenmärkning.
+- **#18** stod som halvlöst med en "oidentifierbar" flake. Den var identifierbar;
+  jag gav upp för tidigt. Det var en enda timeout under CPU-kontention.
 
 **Två extra fynd hittades under arbetet**, båda åtgärdade:
 
@@ -32,13 +41,13 @@ Premier League (0,16 och ~28:1). Jag ändrade ingenting.
 
 | # | Varför inte åtgärdat |
 |---|---|
-| 3 (rest) | Spelarens egna playoff spelas fortfarande inte interaktivt i `MatchDay`. Resultaten *visas* nu i säsongssammanfattningen, men att spela tien kräver att säsongsrullningen görs pausbar och återupptagbar — en state-machine-ändring i kodbasens mest komplexa fil, utan befintlig testtäckning för en pausad rullning. Det är en feature som behöver design, inte något att landa ensidigt i slutet av en granskning |
+| 3 (rest) | Spelarens egna playoff spelas fortfarande inte interaktivt. Resultaten *visas* nu. **Designen är gjord och nedskriven** i `docs/PLAN-interactive-playoff.md` — inklusive nyckelbeslutet att INTE göra säsongsrullningen pausbar, utan köra playoffet före rullningen som vanliga matcher. Inte implementerad: det ändrar spelets mest bärande transition och förtjänar att byggas med testerna först, inte blint i slutet av en granskningssession |
 | 17 | i18n. ~490 filer med hårdkodad engelska. Dessutom blockerat av två projektregler: inga nya npm-beroenden utan diskussion, och eager bundle har 38 kB kvar av 560. Att scaffolda halvvägs är värre än att inte börja |
 | 19 | Eager bundle 522/560 kB. Inte en bugg utan en budget — kan bara "fixas" genom att ta bort funktionalitet |
-| 20 | Server-side kvittovalidering. Kräver backend som inte finns |
+| 20 (rest) | Riktig kvittovalidering kräver en backend som inte finns. **Men exploiten är stängd** — klockmanipulation neutraliseras nu av en monoton högvattenmärkning (`41d4bf4`), verifierad mot koden före fixen |
 | 21 | AI-utveckling batchad till säsongsslut. Dokumenterat prestandaval, inte ett fel |
 | 22 | Online-läge. Ett produktbeslut, inte en fix |
-| 18 (rest) | Full parallellisering. Fungerar (10 min 54 s mot 28,6) men införde en intermittent flake i den fulla sviten som inte gick att reproducera eller namnge. Per-commit-gaten är parallell och verifierad; release-gaten står seriell tills flaken är hittad |
+
 
 ---
 
@@ -452,7 +461,24 @@ styrelsemeddelanden, kontraktsförhandlingar.
 > wall clock. Det är avsiktligt (delad modulnivå-state i real-player-claims och
 > den primade genererade datan), så det är inte något att bara slå på.
 >
-> **UPPFÖLJNING — åtgärdat för per-commit-gaten, medvetet inte för den fulla.**
+> **SLUTLIGT UTFALL — helt åtgärdat.** Flaken var inte oidentifierbar; jag gav
+> upp för tidigt. Jagad med `VITEST_PARALLEL=1 vitest run --reporter=verbose` var
+> den **en enda timeout**: `longevity.test.ts` 10-säsongersfall budgeterade
+> 120 s och tog 124 s när fyra forks konkurrerar om fyra kärnor. Ingen delad
+> state, ingen korruption — arbetet är bara långsammare per fil under kontention.
+> Syskonsviten `longevityStress.test.ts` budgeterar ~16,7 s per simulerad säsong
+> och klarade sig; `longevity.test.ts` budgeterade ~12 s. Timeouterna där är nu
+> skalade till samma headroom, och parallellisering är påslagen för hela sviten.
+>
+> **28,6 min → ~11 min för hela sviten, 6 min → 2,5 min för per-commit-gaten.**
+>
+> Historiken nedan står kvar, eftersom mellansteget — att begränsa
+> parallelliseringen när jag inte kunde namnge flaken — var rätt beslut med den
+> information jag hade då.
+>
+> ---
+>
+> **MELLANSTEG — åtgärdat för per-commit-gaten, medvetet inte för den fulla.**
 > `fileParallelism` är påslaget enbart när `VITEST_FAST` är satt:
 > **6 min 00 s → 2 min 30 s** för snabbsviten, tre raka gröna körningar
 > (146,8 s / 146,6 s / 148,9 s, 157 filer).

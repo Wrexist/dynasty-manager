@@ -464,14 +464,36 @@ export function writeDeviceEntitlements(record: DeviceEntitlementRecord): void {
 
 // ── Monotonic clock guard (device-global) ──
 
+/**
+ * In-memory mirror of the persisted high-water mark, and the value last written.
+ *
+ * `observeClock` runs on every entitlement check, and `isPro` is called from
+ * render paths — 23 call sites, several inside components. Persisting on each
+ * call would mean a synchronous localStorage write per render, which blocks the
+ * main thread and janks a WKWebView. So the mark advances in memory always and
+ * reaches storage at most once per CLOCK_PERSIST_INTERVAL_MS.
+ *
+ * Losing up to that interval on a hard kill costs nothing: the attack this
+ * defends against needs the clock moved back by hours or days, not seconds.
+ */
+let clockHighWaterMem: number | null = null;
+let clockHighWaterPersisted = 0;
+const CLOCK_PERSIST_INTERVAL_MS = 60_000;
+
 /** Highest `Date.now()` this device has ever recorded, or 0 if never stamped. */
 export function readClockHighWater(): number {
+  if (clockHighWaterMem !== null) return clockHighWaterMem;
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.CLOCK_HIGH_WATER);
-    if (!raw) return 0;
-    const v = Number(raw);
-    return Number.isFinite(v) && v > 0 ? v : 0;
-  } catch { return 0; }
+    const v = raw ? Number(raw) : 0;
+    const parsed = Number.isFinite(v) && v > 0 ? v : 0;
+    clockHighWaterMem = parsed;
+    clockHighWaterPersisted = parsed;
+    return parsed;
+  } catch {
+    clockHighWaterMem = 0;
+    return 0;
+  }
 }
 
 /**
@@ -483,12 +505,16 @@ export function readClockHighWater(): number {
  */
 export function observeClock(now: number = Date.now()): number {
   const previous = readClockHighWater();
-  if (now > previous) {
-    try { localStorage.setItem(STORAGE_KEYS.CLOCK_HIGH_WATER, String(now)); }
-    catch { /* storage unavailable — fall back to the live clock */ }
-    return now;
+  if (now <= previous) return previous;
+  clockHighWaterMem = now;
+  // Throttled write — see CLOCK_PERSIST_INTERVAL_MS above.
+  if (now - clockHighWaterPersisted >= CLOCK_PERSIST_INTERVAL_MS) {
+    try {
+      localStorage.setItem(STORAGE_KEYS.CLOCK_HIGH_WATER, String(now));
+      clockHighWaterPersisted = now;
+    } catch { /* storage unavailable — the in-memory mark still holds for this session */ }
   }
-  return previous;
+  return now;
 }
 
 /**
@@ -501,8 +527,17 @@ export function observeClock(now: number = Date.now()): number {
  * this guard would otherwise create for an honest paying customer.
  */
 export function reanchorClock(now: number = Date.now()): void {
+  clockHighWaterMem = now;
+  clockHighWaterPersisted = now;
   try { localStorage.setItem(STORAGE_KEYS.CLOCK_HIGH_WATER, String(now)); }
   catch { /* storage unavailable — non-fatal */ }
+}
+
+/** Drop the in-memory mirror. Tests only — lets a spec manipulate the stored
+ *  value directly and have the next read pick it up. */
+export function __resetClockHighWaterCache(): void {
+  clockHighWaterMem = null;
+  clockHighWaterPersisted = 0;
 }
 
 export function writeDailyStreak(record: DailyStreakRecord): void {

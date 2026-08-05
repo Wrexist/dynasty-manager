@@ -10,8 +10,9 @@ const pkgVersion = createRequire(import.meta.url)("./package.json").version;
  *
  * These simulate whole seasons (or many of them) and dominate the wall clock:
  * measured 28.6 minutes for the full suite, and these files alone account for
- * the bulk of it. Note that only the fast set runs in parallel (see
- * `fileParallelism` below), so for the full suite file time is wall-clock time.
+ * the bulk of it. The suite runs in parallel (see `fileParallelism` below), but
+ * a 20-season simulation is still a 20-season simulation — parallelism cannot
+ * shorten the longest single file, which is what these are.
  *
  * The split exists because a gate nobody runs is not a gate. `preflight` covers
  * every fast suite and is meant for each commit; `preflight:full` runs
@@ -58,35 +59,30 @@ export default defineConfig({
     // slow runner, and every file in the suite fails the hook when it isn't.
     hookTimeout: 120_000,
     pool: "forks",
-    // Parallel for the PER-COMMIT gate only; the full suite stays serial.
+    // Files run in PARALLEL. Serial was the single largest cost in the suite:
+    // it made file time equal wall-clock time, which is how the full run reached
+    // 28.6 minutes.
     //
-    // Serial was not, as an earlier version of this comment claimed, protecting
-    // shared module-level state — `pool: 'forks'` already gives every test file
-    // its own process, so that state is isolated by construction. Parallelism
-    // works, and it is a large win: the fast suite goes 6m00s -> 2m28s.
+    // Two wrong assumptions were made on the way here, both recorded so they are
+    // not made again:
     //
-    // But it is not yet trustworthy for the WHOLE suite. Evidence gathered:
-    //   fast suite, parallel      2 runs, 157 files green, 146.8s / 146.6s
-    //   slow suites alone, parallel  1 run, 12 files green
-    //   FULL suite, parallel      run 1: 1 file FAILED, run 2: 169 green
+    //   1. That serial mode protected shared module-level state. It did not —
+    //      `pool: 'forks'` already gives every test FILE its own process, so that
+    //      state is isolated by construction.
+    //   2. That the one failure which appeared when parallelism was first
+    //      enabled was an unidentifiable flake. It was not. Hunted with
+    //      `VITEST_PARALLEL=1 vitest run --reporter=verbose`, it is a single
+    //      TIMEOUT: longevity.test.ts's 10-season case budgeted 120s and took
+    //      124s once four forks compete for four cores. Nothing shared, nothing
+    //      corrupted — the work is simply slower per file under contention. The
+    //      budgets in that file are now sized for parallel execution.
     //
-    // That one failure did not reproduce and was not captured by name, so there
-    // is an intermittent, unidentified flake that only appears when all 172
-    // files run concurrently — most likely timing or memory pressure in the
-    // multi-season suites, which are excluded from the fast set. The suite was
-    // deterministic before; a gate that goes green on the second try teaches
-    // people to re-run rather than to read, which is worse than a slow gate.
-    //
-    // So: the fast gate takes the win where the evidence supports it, and
-    // `preflight:full` keeps the determinism it had. To lift this, run the full
-    // suite parallel repeatedly with `--reporter=verbose`, identify the flake,
-    // fix it, and then flip this to `true` unconditionally.
-    // `VITEST_PARALLEL=1` forces parallelism on regardless of the file set — the
-    // reproducer for the flake described above. Use it with --reporter=verbose.
-    fileParallelism: process.env.VITEST_PARALLEL === "1" || !!process.env.VITEST_FAST,
-    // Only meaningful when parallel. Capped rather than left to default because
-    // each fork primes the ~400K LOC of generated data in `setup.ts`, making
-    // memory the binding constraint rather than CPU.
+    // `VITEST_PARALLEL=0` forces serial if a future flake needs bisecting.
+    fileParallelism: process.env.VITEST_PARALLEL !== "0",
+    // Capped rather than left to default: each fork primes the ~400K LOC of
+    // generated national + club-template data in `setup.ts`, so memory is the
+    // binding constraint, not CPU. Raise only alongside a memory measurement —
+    // and re-check the stress-suite timeouts, which scale with contention.
     maxForks: 4,
   },
   resolve: {
