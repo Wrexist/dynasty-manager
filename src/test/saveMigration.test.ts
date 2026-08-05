@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 
 describe('saveMigration', () => {
-  it('should have current version set to 81', () => {
-    expect(CURRENT_VERSION).toBe(81);
+  it('should have current version set to 82', () => {
+    expect(CURRENT_VERSION).toBe(82);
   });
 
   it('v78 → v79 backfills monetization.adEngagement', () => {

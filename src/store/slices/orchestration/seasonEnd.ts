@@ -346,7 +346,22 @@ export function endSeasonImpl(set: Set, get: Get) {
   // show the matches that decided their season instead of silently promoting
   // or not promoting them.
   const playerPlayoffRun: PlayoffTieResult[] = [];
+  // Ties the player already PLAYED, if they came through the interactive
+  // playoff phase. Rollover must replay these rather than simulate them again,
+  // or the match the player just won gets silently re-decided.
+  const prePlayed = new Map<string, PlayoffTieResult>();
+  for (const r of state.playoffState?.resolved ?? []) {
+    prePlayed.set([r.homeClubId, r.awayClubId].sort().join('|'), r);
+  }
   const resolvePlayoffTie = (homeClubId: string, awayClubId: string): string => {
+    const already = prePlayed.get([homeClubId, awayClubId].sort().join('|'));
+    if (already) {
+      if (already.homeClubId === playerClubId || already.awayClubId === playerClubId) {
+        playerPlayoffRun.push(already);
+      }
+      if (already.homeGoals === already.awayGoals) return already.homeClubId;
+      return already.homeGoals > already.awayGoals ? already.homeClubId : already.awayClubId;
+    }
     const hc = clubs[homeClubId];
     const ac = clubs[awayClubId];
     if (!hc || !ac) return homeClubId;
@@ -382,6 +397,11 @@ export function endSeasonImpl(set: Set, get: Get) {
     const proRelResult = applyPromotionRelegation(
       countryId, state.divisionClubs, finalDivisionTables, clubs, playerClubId,
       resolvePlayoffTie,
+      // Pin the bracket the player actually played, so rollover cannot walk a
+      // differently-seeded one and re-simulate ties they already won.
+      state.playoffState
+        ? { leagueId: state.playoffState.leagueId, candidates: state.playoffState.candidates }
+        : null,
     );
     workingClubs = proRelResult.updatedClubs;
     newDivisionClubs = { ...state.divisionClubs, ...proRelResult.updatedDivisionClubs };

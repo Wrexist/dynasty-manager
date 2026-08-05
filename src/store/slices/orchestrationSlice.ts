@@ -44,6 +44,7 @@ import {
 } from '@/store/slices/orchestration/helpers';
 
 import { endSeasonImpl } from '@/store/slices/orchestration/seasonEnd';
+import { maybeEnterPlayoff } from '@/store/slices/orchestration/playoff';
 import { advanceWeekImpl } from '@/store/slices/orchestration/weekAdvance';
 import {
   playCurrentMatchImpl, playFirstHalfImpl, playSecondHalfImpl, playExtraTimeImpl, playPenaltiesImpl, skipPenaltyShootoutImpl, takeAimedPenaltyImpl, revealOpponentPenaltyImpl, rollKeeperTauntImpl,
@@ -729,6 +730,11 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     // twice. `seasonHistory` gets this season's entry appended by the rollover,
     // so its presence is the marker that the season is already done.
     if (state.seasonHistory.some(h => h.season === state.season)) return;
+    // A club in the promotion playoff plays it BEFORE the season rolls. This
+    // returns true while there is still a tie for the player to play, and the
+    // rollover is deferred until `recordPlayerPlayoffResult` says otherwise.
+    // See `orchestration/playoff.ts` for why rollover is not made pausable.
+    if (maybeEnterPlayoff(set, get)) return;
     endSeasonImpl(set, get);
   },
 

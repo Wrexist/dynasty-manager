@@ -14,6 +14,8 @@ import { hasPerk } from '@/utils/managerPerks';
 import { getAICounterTactics } from '@/config/aiManager';
 import { CONTINENTAL_PRIZE_MONEY } from '@/config/continental';
 import { CUP_EXTRA_TIME_GOAL_CHANCE, CUP_EXTRA_TIME_REPUTATION_DIVISOR, CUP_PENALTY_KICKS, FORFEIT_SCORE, FRIENDLY_BOARD_CONFIDENCE_MULT, MAX_CAREER_TIMELINE, MOTIVATOR_MORALE_BOOST, PEN_AIM, clubMedicalLevel } from '@/config/gameBalance';
+import { recordPlayerPlayoffResult } from '@/store/slices/orchestration/playoff';
+import { endSeasonImpl } from '@/store/slices/orchestration/seasonEnd';
 import { MOD_DISCIPLINE_CARDS, REP_DRAW, REP_LOSS, REP_WIN } from '@/config/managerCareer';
 import { SHOUT_CUMULATIVE_SCALE, SHOUT_MODIFIERS } from '@/config/matchEngine';
 import { CALM_DEFENSE_BOOST, CALM_FITNESS_DRAIN_MULT, CALM_FOUL_REDUCTION, DEMAND_ATTACK_BOOST, DEMAND_DEFENSE_PENALTY, DEMAND_FITNESS_DRAIN_MULT, MOTIVATE_ATTACK_BOOST, MOTIVATE_FITNESS_DRAIN_MULT, MOTIVATE_FOUL_BONUS, teamTalkModifiers } from '@/config/teamTalk';
@@ -444,8 +446,11 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   // ahead in priority caused 0-played continental campaigns and the user
   // being eliminated without ever seeing a game). The conflicting league
   // fixture gets AI-simulated by advanceWeek's div-fixture loop instead.
-  const friendlyMatch = state.friendlies?.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
-  const champMatch = !friendlyMatch ? findPlayerContinentalMatch(state.championsCup, week, playerClubId) : null;
+  // Playoff first: it is played after the league season has finished, decides
+  // promotion, and has no other week to fall back to.
+  const playoffMatch = state.seasonPhase === 'playoff' ? (state.playoffState?.pendingMatch ?? null) : null;
+  const friendlyMatch = !playoffMatch ? state.friendlies?.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId)) : null;
+  const champMatch = !playoffMatch && !friendlyMatch ? findPlayerContinentalMatch(state.championsCup, week, playerClubId) : null;
   const shieldMatch = !friendlyMatch && !champMatch ? findPlayerContinentalMatch(state.shieldCup, week, playerClubId) : null;
   const confMatch = !friendlyMatch && !champMatch && !shieldMatch ? findPlayerContinentalMatch(state.conferenceCup, week, playerClubId) : null;
   const continentalMatch = champMatch || shieldMatch || confMatch;
@@ -473,7 +478,9 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   let effectiveClubs = clubs;
   let effectivePlayers = players;
 
-  if (friendlyMatch) {
+  if (playoffMatch) {
+    match = playoffMatch;
+  } else if (friendlyMatch) {
     match = friendlyMatch;
   } else if (leagueMatch) {
     match = leagueMatch;
@@ -806,6 +813,30 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
 
     if (get().settings.autoSave) get().saveGame();
     return finalResult;
+  }
+
+  // ── Promotion playoff path ──
+  // Modelled on the friendly path below: no league table to update, because a
+  // playoff tie is deliberately not a league fixture. The difference is that the
+  // bracket has to move on, and when it runs out the season finally rolls.
+  if (playoffMatch) {
+    const processed = processMatchResult(state, match, result, playerRatings, () => get().week, matchInjuries);
+    const teamsInRound = state.playoffState?.teamsInRound ?? 4;
+    set({
+      currentMatchResult: result,
+      players: processed.newPlayers,
+      messages: processed.newMessages,
+      matchSubsUsed: 0,
+      matchPlayerRatings: processed.playerRatings,
+      managerStats: processed.managerStats,
+      matchPhase: 'full_time' as const,
+      lastMatchCompetition: teamsInRound <= 2 ? 'Promotion Playoff Final' : 'Promotion Playoff',
+      careerTimeline: [...state.careerTimeline, ...processed.newMilestones].slice(-MAX_CAREER_TIMELINE),
+    });
+    const { seasonShouldRoll } = recordPlayerPlayoffResult(set, get, result);
+    if (seasonShouldRoll) endSeasonImpl(set, get);
+    if (get().settings.autoSave) get().saveGame();
+    return result;
   }
 
   // ── Friendly match path ──

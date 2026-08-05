@@ -188,6 +188,14 @@ export function applyPromotionRelegation(
   /** Optional real-match resolver for playoff ties. Omitted, ties fall back to
    *  a coin flip that ignores squads entirely — see simulatePlayoff. */
   resolveTie?: PlayoffTieResolver,
+  /** Seeding to use instead of re-deriving it, for one league.
+   *
+   *  The interactive playoff seeds its bracket from the player's live fixtures,
+   *  while rollover rebuilds the table from the division fixture set. Those two
+   *  can disagree, and when they do the bracket rollover walks is not the one the
+   *  player actually played — so the recorded results match nothing and are
+   *  silently re-simulated. Pinning the seeding closes that. */
+  playoffSeeding?: { leagueId: string; candidates: string[] } | null,
 ): {
   turnovers: Record<string, SeasonTurnover>;
   updatedDivisionClubs: Record<string, string[]>;
@@ -227,8 +235,16 @@ export function applyPromotionRelegation(
 
     // Run playoffs for lower tier if configured
     const playoffWinners: string[] = [];
-    if (lowerLeague.playoffSpots > 0 && lowerZones.playoffCandidates.length > 0) {
-      const winner = simulatePlayoff(lowerZones.playoffCandidates, resolveTie);
+    // A pinned bracket is seeded from the player's live table, while `promotedUp`
+    // comes from the division table rebuilt here. When those disagree a club can
+    // appear in BOTH — auto-promoted and playoff winner — which fills two
+    // promotion slots with one club and leaves the leagues a size apart.
+    const rawSeeding = playoffSeeding && playoffSeeding.leagueId === lowerLeague.id
+      ? playoffSeeding.candidates
+      : lowerZones.playoffCandidates;
+    const seeding = rawSeeding.filter(id => !promotedUp.includes(id));
+    if (lowerLeague.playoffSpots > 0 && seeding.length > 0) {
+      const winner = simulatePlayoff(seeding, resolveTie);
       if (winner) playoffWinners.push(winner);
     }
 
@@ -244,7 +260,10 @@ export function applyPromotionRelegation(
 
     // Cap total promotions to the number of relegation slots in the upper tier
     // to prevent league size drift from config mismatches
-    const allPromoted = [...promotedUp, ...playoffWinners];
+    // Deduped: promotion slots must be filled by DISTINCT clubs. A duplicate
+    // consumes a slot without moving anyone, so the tier above shrinks while the
+    // tier below grows — league sizes drift apart by one, permanently.
+    const allPromoted = Array.from(new Set([...promotedUp, ...playoffWinners]));
     const maxPromotions = relegatedDown.length;
     const cappedPromoted = allPromoted.slice(0, maxPromotions);
 

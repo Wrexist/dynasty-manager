@@ -12,11 +12,18 @@ import { isPlaceholderClubId } from '@/config/continental';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 81;
+const CURRENT_VERSION = 82;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
 const migrations: Record<number, MigrationFn> = {
+  // v81 → v82: `playoffState` holds the player's live promotion playoff between
+  // the final league week and rollover. Additive and nullable — an old save was
+  // never mid-playoff, because the phase did not exist, so `null` is the only
+  // correct value and there is nothing to backfill. The bump exists so the shape
+  // change is declared rather than sneaking in.
+  81: (data) => ({ ...data, version: 82, playoffState: data.playoffState ?? null }),
+
   // v80 → v81: `SeasonHistory` gained the optional `playoffRun`, the player's own
   // promotion-playoff ties. Purely additive and optional — an old save simply has
   // no record of past playoffs (the ties were never stored), so the field stays

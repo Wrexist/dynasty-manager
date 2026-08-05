@@ -117,7 +117,26 @@ export type Position = 'GK' | 'CB' | 'LB' | 'RB' | 'CDM' | 'CM' | 'CAM' | 'LM' |
 
 export type FormationType = '4-4-2' | '4-3-3' | '3-5-2' | '4-2-3-1' | '4-1-4-1' | '3-4-3' | '5-3-2' | '4-5-1' | '4-1-2-1-2' | '3-4-1-2';
 
-export type SeasonPhase = 'regular' | 'offseason' | 'international';
+export type SeasonPhase = 'regular' | 'offseason' | 'international' | 'playoff';
+
+/**
+ * The player's promotion playoff, live between the final league week and season
+ * rollover.
+ *
+ * Deliberately NOT part of `fixtures`: the final league table is rebuilt from
+ * that array at rollover, so a playoff tie living there would corrupt it.
+ */
+export interface PlayoffState {
+  leagueId: LeagueId;
+  /** Playoff clubs in league-position order, best first — the bracket seeding. */
+  candidates: string[];
+  /** Every tie decided so far, the player's and the AI's alike. */
+  resolved: PlayoffTieResult[];
+  /** The player's tie awaiting interactive play, or null when none is pending. */
+  pendingMatch: Match | null;
+  /** Clubs left in the round `pendingMatch` belongs to: 4 = semi, 2 = final. */
+  teamsInRound: number;
+}
 
 /** Outcome of a redeem-code attempt, surfaced to the Settings UI. */
 export interface RedeemResult {
