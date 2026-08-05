@@ -510,28 +510,66 @@ export function simulateHalf(
     awayDefQuality = getDefenseQuality(awayAvail());
   };
 
+  // The tactics CURRENTLY in effect. The AI's mid-match reactivity (minutes 60
+  // and 75) replaces these, so every later strength recompute has to read them
+  // rather than the values this half started with — otherwise a red card, an
+  // injury or a substitution silently reverted the opposing manager's tactical
+  // change back to his kickoff setup for the rest of the match.
+  let currentHomeTactics = homeTactics;
+  let currentAwayTactics = awayTactics;
+
+  /**
+   * Re-apply the team-talk multipliers to a freshly computed strength pair.
+   *
+   * The talk is folded into homeStr/awayStr as a MULTIPLIER, so any bare
+   * `computeStrengths` assignment discards it. That is exactly what used to
+   * happen: ten separate recompute sites (AI reactivity at 60/75, both red-card
+   * branches, both injury branches, all four substitution branches) overwrote
+   * homeStr/awayStr without re-applying it. AI reactivity fires in effectively
+   * every match, so the player's half-time team talk survived about fourteen
+   * minutes of the second half and then vanished — on the one mechanic where
+   * the player has direct in-match agency.
+   *
+   * Mirrors the kickoff application above: attackMod lifts your own strength,
+   * defenseMod damps the OPPONENT's (via DEFENSE_MODIFIER_SCALE).
+   */
+  const withTeamTalk = (s: { homeStr: number; awayStr: number }): { homeStr: number; awayStr: number } => {
+    if (!teamTalkModifiers || !playerClubId) return s;
+    const { attackMod, defenseMod } = teamTalkModifiers;
+    if (playerClubId === homeClub.id) {
+      return {
+        homeStr: s.homeStr * (1 + attackMod),
+        awayStr: s.awayStr * (1 - defenseMod * DEFENSE_MODIFIER_SCALE),
+      };
+    }
+    if (playerClubId === awayClub.id) {
+      return {
+        homeStr: s.homeStr * (1 - defenseMod * DEFENSE_MODIFIER_SCALE),
+        awayStr: s.awayStr * (1 + attackMod),
+      };
+    }
+    return s;
+  };
+
+  /** Recompute both sides' strength from the players currently available and
+   *  the tactics currently in effect, preserving the team talk. EVERY
+   *  mid-match strength recompute must go through here. */
+  const recomputeStrengths = () => {
+    const s = withTeamTalk(computeStrengths(
+      homeClub, awayClub, homeAvail(), awayAvail(),
+      currentHomeTactics, currentAwayTactics,
+      tacticalFamiliarity, playerClubId, currentSeason,
+    ));
+    homeStr = s.homeStr;
+    awayStr = s.awayStr;
+  };
+
   // Carry numerical disadvantage across half/extra-time boundaries. The
   // initial strength computation above used the full passed lineups — the
   // store lineup is never edited on a send-off, so a team reduced to 10 in
-  // the first half silently regained full strength here. Recompute from the
-  // available pools and re-apply the team-talk multipliers (already folded
-  // into homeStr/awayStr above).
+  // the first half silently regained full strength here.
   if (prevState && unavailable.size > 0) {
-    const rebal = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId, currentSeason);
-    homeStr = rebal.homeStr;
-    awayStr = rebal.awayStr;
-    if (teamTalkModifiers && playerClubId) {
-      // Mirror the initial application above: attackMod on own strength,
-      // defenseMod damping the opponent.
-      const { attackMod, defenseMod } = teamTalkModifiers;
-      if (playerClubId === homeClub.id) {
-        homeStr = homeStr * (1 + attackMod);
-        awayStr = awayStr * (1 - defenseMod * DEFENSE_MODIFIER_SCALE);
-      } else if (playerClubId === awayClub.id) {
-        awayStr = awayStr * (1 + attackMod);
-        homeStr = homeStr * (1 - defenseMod * DEFENSE_MODIFIER_SCALE);
-      }
-    }
+    recomputeStrengths();
     refreshDefenceMetrics();
   }
 
@@ -1071,8 +1109,10 @@ export function simulateHalf(
         if (newHomeTactics.mentality !== oldMentality) {
           events.push({ minute: min, type: 'ai_tactical_change', clubId: homeClub.id, description: `${homeClub.shortName} manager switches to ${newHomeTactics.mentality} mentality.`, momentum });
         }
-        const recomp = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), newHomeTactics, awayTactics ?? awayClub.aiManagerProfile?.defaultTactics ?? AI_DEFAULT_TACTICS, tacticalFamiliarity, playerClubId, currentSeason);
-        homeStr = recomp.homeStr; awayStr = recomp.awayStr;
+        // Latch the new tactics so every LATER recompute this match keeps them
+        // (a red card at 70' used to revert this change).
+        currentHomeTactics = newHomeTactics;
+        recomputeStrengths();
       }
       if (awayClub.id !== playerClubId && awayClub.aiManagerProfile) {
         const oldMentality = awayClub.aiManagerProfile.defaultTactics.mentality;
@@ -1080,8 +1120,8 @@ export function simulateHalf(
         if (newAwayTactics.mentality !== oldMentality) {
           events.push({ minute: min, type: 'ai_tactical_change', clubId: awayClub.id, description: `${awayClub.shortName} manager switches to ${newAwayTactics.mentality} mentality.`, momentum });
         }
-        const recomp = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics ?? homeClub.aiManagerProfile?.defaultTactics ?? AI_DEFAULT_TACTICS, newAwayTactics, tacticalFamiliarity, playerClubId, currentSeason);
-        homeStr = recomp.homeStr; awayStr = recomp.awayStr;
+        currentAwayTactics = newAwayTactics;
+        recomputeStrengths();
       }
     }
 
@@ -1601,8 +1641,7 @@ export function simulateHalf(
               events.push({ minute: min, type: 'commentary', clubId: foulingClub.id, description: `${foulingClub.shortName} are down to ${teamAvail} players! One more sending off and the match will be abandoned.`, momentum });
             }
             // Rebalance strength after red card (the sent-off player might be the GK)
-            const recomputed = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId, currentSeason);
-            homeStr = recomputed.homeStr; awayStr = recomputed.awayStr;
+            recomputeStrengths();
             refreshDefenceMetrics();
             checkAbandon(min);
           } else {
@@ -1630,8 +1669,7 @@ export function simulateHalf(
               events.push({ minute: min, type: 'commentary', clubId: foulingClub.id, description: `${foulingClub.shortName} are down to ${teamAvail2} players! One more sending off and the match will be abandoned.`, momentum });
             }
             // Rebalance strength after red card (the sent-off player might be the GK)
-            const recomputed2 = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId, currentSeason);
-            homeStr = recomputed2.homeStr; awayStr = recomputed2.awayStr;
+            recomputeStrengths();
             refreshDefenceMetrics();
             checkAbandon(min);
         }
@@ -1659,8 +1697,7 @@ export function simulateHalf(
           const injDesc = `${fouled.lastName} goes down injured after the foul! ${sevLabel} ${injLabel} — ${details.weeksRemaining} week${details.weeksRemaining > 1 ? 's' : ''} out.`;
           events.push({ minute: min, type: 'injury', playerId: fouled.id, clubId: fouled.clubId, description: injDesc + (maybeWeatherSuffix() || maybePitchSuffix()) });
           // Rebalance strength after injury (numerical disadvantage; GK may be the casualty)
-          const injRecomp = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId, currentSeason);
-          homeStr = injRecomp.homeStr; awayStr = injRecomp.awayStr;
+          recomputeStrengths();
           refreshDefenceMetrics();
           // AI substitution for injured player (non-player team only)
           const injuredIsHome = fouled.clubId === homeClub.id;
@@ -1682,8 +1719,7 @@ export function simulateHalf(
                 events.push({ minute: min, type: 'substitution', playerId: inPlayer.id, assistPlayerId: outPlayer.id, clubId: subClub.id, description: pickSubDesc(inPlayer.lastName, outPlayer.lastName, subClub.shortName, true) });
               }
               // Rebalance after sub improves team (a backup GK may have come on)
-              const subRecomp = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId, currentSeason);
-              homeStr = subRecomp.homeStr; awayStr = subRecomp.awayStr;
+              recomputeStrengths();
               refreshDefenceMetrics();
             }
           }
@@ -1767,8 +1803,7 @@ export function simulateHalf(
         const nonFoulInjDesc = `${pick(injuryDescs)(candidate.lastName)} ${sevLabel} ${injLabel} — ${details.weeksRemaining} week${details.weeksRemaining > 1 ? 's' : ''} out.`;
         events.push({ minute: min, type: 'injury', playerId: candidate.id, clubId: club.id, description: nonFoulInjDesc + (maybeWeatherSuffix() || maybePitchSuffix()) });
         // Rebalance strength after injury (numerical disadvantage; GK may be the casualty)
-        const injRecomp2 = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId, currentSeason);
-        homeStr = injRecomp2.homeStr; awayStr = injRecomp2.awayStr;
+        recomputeStrengths();
         refreshDefenceMetrics();
         // AI substitution for injured player (non-player team only)
         const candIsHome = club.id === homeClub.id;
@@ -1784,8 +1819,7 @@ export function simulateHalf(
             if (!playerEvents[inPlayer.id]) playerEvents[inPlayer.id] = { goals: 0, assists: 0, yellows: 0, redCard: false, saves: 0, cleanSheet: true, goalsAtEntry: candIsHome ? awayGoals : homeGoals };
             matchFitness[inPlayer.id] = Math.min(100, inPlayer.fitness + SUB_ENTRY_FITNESS_BOOST);
             events.push({ minute: min, type: 'substitution', playerId: inPlayer.id, assistPlayerId: outPlayer.id, clubId: club.id, description: pickSubDesc(inPlayer.lastName, outPlayer.lastName, club.shortName, true) });
-            const subRecomp2 = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId, currentSeason);
-            homeStr = subRecomp2.homeStr; awayStr = subRecomp2.awayStr;
+            recomputeStrengths();
             refreshDefenceMetrics();
           }
         }
@@ -1818,8 +1852,7 @@ export function simulateHalf(
           if (!playerEvents[aiSub.inPlayer.id]) playerEvents[aiSub.inPlayer.id] = { goals: 0, assists: 0, yellows: 0, redCard: false, saves: 0, cleanSheet: true, goalsAtEntry: awayGoals };
           matchFitness[aiSub.inPlayer.id] = Math.min(100, aiSub.inPlayer.fitness + SUB_ENTRY_FITNESS_BOOST);
           events.push({ minute: min, type: 'substitution', playerId: aiSub.inPlayer.id, assistPlayerId: aiSub.outPlayer.id, clubId: homeClub.id, description: pickSubDesc(aiSub.inPlayer.lastName, aiSub.outPlayer.lastName, homeClub.shortName, false) });
-          const recomp = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId, currentSeason);
-          homeStr = recomp.homeStr; awayStr = recomp.awayStr;
+          recomputeStrengths();
           refreshDefenceMetrics();
         }
       }
@@ -1839,8 +1872,7 @@ export function simulateHalf(
           if (!playerEvents[aiSub.inPlayer.id]) playerEvents[aiSub.inPlayer.id] = { goals: 0, assists: 0, yellows: 0, redCard: false, saves: 0, cleanSheet: true, goalsAtEntry: homeGoals };
           matchFitness[aiSub.inPlayer.id] = Math.min(100, aiSub.inPlayer.fitness + SUB_ENTRY_FITNESS_BOOST);
           events.push({ minute: min, type: 'substitution', playerId: aiSub.inPlayer.id, assistPlayerId: aiSub.outPlayer.id, clubId: awayClub.id, description: pickSubDesc(aiSub.inPlayer.lastName, aiSub.outPlayer.lastName, awayClub.shortName, false) });
-          const recomp = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId, currentSeason);
-          homeStr = recomp.homeStr; awayStr = recomp.awayStr;
+          recomputeStrengths();
           refreshDefenceMetrics();
         }
       }
