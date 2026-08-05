@@ -15,7 +15,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { isPro, isSubscriptionActive, isStarterKitAvailable } from '@/utils/monetization';
 import { readClockHighWater, observeClock, reanchorClock, __resetClockHighWaterCache, STORAGE_KEYS } from '@/store/helpers/persistence';
 import { STARTER_KIT_WINDOW_MS } from '@/config/monetization';
-import type { MonetizationState } from '@/types/game';
+import type { MonetizationState, SubscriptionInfo } from '@/types/game';
 
 const DAY = 24 * 60 * 60 * 1000;
 const T0 = 1_800_000_000_000; // fixed reference instant
@@ -31,12 +31,16 @@ const baseState = (over: Partial<MonetizationState> = {}): MonetizationState => 
 } as MonetizationState);
 
 /** A monthly sub that expired one day before T0. */
-const lapsedSub = {
+const lapsedSub: SubscriptionInfo = {
   productId: 'com.dynastymanager.pro.monthly',
   tier: 'monthly' as const,
   expiresAt: new Date(T0 - DAY).toISOString(),
   grantedAt: new Date(T0 - 31 * DAY).toISOString(),
   isTrial: false,
+  // Both required on `SubscriptionInfo`. A lapsed sub has neither a live
+  // billing-issue grace window nor a pending renewal.
+  isInGracePeriod: false,
+  willRenew: false,
 };
 
 describe('monotonic clock guard', () => {

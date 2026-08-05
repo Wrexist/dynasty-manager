@@ -8,6 +8,15 @@
  *
  * The 90% path matters most: a club NOT in a playoff must roll the season
  * exactly as before. That is asserted first and deliberately.
+ *
+ * WHY THE TABLE IS BUILT BY HAND. The first version of this file leaned on the
+ * fact that a freshly-initialised save has an all-zero table, which
+ * `buildLeagueTable` breaks on `clubId.localeCompare` — so positions 3-6 of
+ * eng-2 were a known alphabetical slice. `endSeason` now settles the league
+ * before anything reads a table off it (see `seasonRolloverIntegrity.test.ts`),
+ * so the standings at rollover are simulated ones and nobody is deterministically
+ * in the playoff zone. Forcing the results is both more honest and more precise:
+ * the club under test is placed at an exact position rather than an assumed one.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
@@ -15,17 +24,49 @@ import { getPlayerPlayoffCandidates } from '@/store/slices/orchestration/playoff
 import { buildLeagueTable, LEAGUES } from '@/data/league';
 import { determineProRelZones } from '@/utils/promotionRelegation';
 
-/** A club that lands in the playoff ZONE from a fresh init.
- *
- *  This matters and is not arbitrary. At init no fixtures are played, so the
- *  table is all-zero and `buildLeagueTable` breaks ties on `clubId.localeCompare`
- *  — which puts eng-2 positions 3-6 at burnley, cardiff-city, coventry-city,
- *  derby-county. The first draft of this file used `leeds-united`, which sits
- *  OUTSIDE that zone, so every playoff assertion fell through an escape hatch
- *  and the file passed while testing none of the feature. */
+/** A second-tier club — eng-2 has four playoff spots. */
 const PLAYOFF_CLUB = 'coventry-city';
 /** A top-tier club, whose league has playoffSpots: 0. */
 const TOP_TIER_CLUB = 'manchester-city';
+
+/**
+ * Play out the player's division so the final table is exactly `order`.
+ *
+ * Every fixture is decided in favour of the better-ranked side, so in a double
+ * round-robin the club at rank i finishes on 2*(n-1-i) wins — strictly
+ * decreasing, hence no tie-breaks and no ambiguity.
+ *
+ * Writes BOTH `fixtures` and `divisionFixtures[div]`: the season-settling step
+ * only leaves results alone when they are already `played`.
+ */
+function forceFinalTable(order: string[]): void {
+  const s = useGameStore.getState();
+  const div = s.playerDivision;
+  const rank = new Map(order.map((id, i) => [id, i]));
+  const decided = s.fixtures.map(f => {
+    const homeBetter = (rank.get(f.homeClubId) ?? 99) < (rank.get(f.awayClubId) ?? 99);
+    return {
+      ...f, played: true, events: [],
+      homeGoals: homeBetter ? 1 : 0,
+      awayGoals: homeBetter ? 0 : 1,
+    };
+  });
+  useGameStore.setState({
+    fixtures: decided,
+    divisionFixtures: { ...s.divisionFixtures, [div]: decided },
+    week: s.totalWeeks,
+  });
+}
+
+/** Put `clubId` at `position` (1-indexed) and everyone else around it. */
+function placeAt(clubId: string, position: number): string[] {
+  const s = useGameStore.getState();
+  const rest = (s.divisionClubs[s.playerDivision] || []).filter(id => id !== clubId);
+  const order = [...rest];
+  order.splice(position - 1, 0, clubId);
+  forceFinalTable(order);
+  return order;
+}
 
 /** The playoff zone as the game computes it, straight from the current table. */
 function playoffZoneFromTable(): string[] {
@@ -57,12 +98,15 @@ describe('playoff phase — the non-playoff path is untouched', () => {
 });
 
 describe('playoff phase — a qualifying club', () => {
-  beforeEach(() => { useGameStore.getState().initGame(PLAYOFF_CLUB); });
+  beforeEach(() => {
+    useGameStore.getState().initGame(PLAYOFF_CLUB);
+    // 3rd: first outside automatic promotion, top seed of a four-team bracket.
+    placeAt(PLAYOFF_CLUB, 3);
+  });
 
   it('the club sits in a league that actually has a playoff', () => {
     const s = useGameStore.getState();
-    const league = LEAGUES.find(l => l.id === s.playerDivision)!;
-    expect(league.playoffSpots).toBeGreaterThanOrEqual(2);
+    expect(LEAGUES.find(l => l.id === s.playerDivision)!.playoffSpots).toBeGreaterThanOrEqual(2);
   });
 
   it('detection agrees with the zone helper, and the club is in the zone', () => {
@@ -75,16 +119,13 @@ describe('playoff phase — a qualifying club', () => {
   });
 
   it('entering the playoff defers the rollover, and playing it out completes the season', () => {
-    // Drive the club into the playoff zone by hand: the phase machinery is what
-    // is under test, not the league simulation that would get us there.
-    const s0 = useGameStore.getState();
     // Hard assertion, no escape hatch: if the club stops qualifying this test
     // must FAIL rather than quietly verify nothing.
     const detected = getPlayerPlayoffCandidates(useGameStore.getState());
     expect(detected, `${PLAYOFF_CLUB} must start inside the playoff zone`).not.toBeNull();
     expect(detected!.candidates).toContain(PLAYOFF_CLUB);
 
-    const season = s0.season;
+    const season = useGameStore.getState().season;
     useGameStore.getState().endSeason();
     const entered = useGameStore.getState();
 
@@ -102,8 +143,7 @@ describe('playoff phase — a qualifying club', () => {
     for (let guard = 0; guard < 4; guard++) {
       const cur = useGameStore.getState();
       if (cur.seasonPhase !== 'playoff' || !cur.playoffState?.pendingMatch) break;
-      const played = useGameStore.getState().playCurrentMatch();
-      expect(played).not.toBeNull();
+      expect(useGameStore.getState().playCurrentMatch()).not.toBeNull();
     }
 
     const done = useGameStore.getState();
@@ -144,7 +184,10 @@ describe('playoff phase — a qualifying club', () => {
 });
 
 describe('playoff phase — the UI and the engine agree on which match is next', () => {
-  beforeEach(() => { useGameStore.getState().initGame(PLAYOFF_CLUB); });
+  beforeEach(() => {
+    useGameStore.getState().initGame(PLAYOFF_CLUB);
+    placeAt(PLAYOFF_CLUB, 3);
+  });
 
   it('the pending tie is what a screen reading the store would show', () => {
     useGameStore.getState().endSeason();

@@ -235,14 +235,20 @@ export function applyPromotionRelegation(
 
     // Run playoffs for lower tier if configured
     const playoffWinners: string[] = [];
-    // A pinned bracket is seeded from the player's live table, while `promotedUp`
-    // comes from the division table rebuilt here. When those disagree a club can
-    // appear in BOTH — auto-promoted and playoff winner — which fills two
-    // promotion slots with one club and leaves the leagues a size apart.
+    // A pinned bracket is seeded from the table the player's playoff was drawn
+    // off; `promotedUp` and `lowerZones.relegated` come from the final table
+    // rebuilt here. `endSeason` now settles the league before either is read so
+    // they should agree — but if they ever drift again, a club present in both
+    // sets would be promoted to the tier above AND relegated to the tier below
+    // in the same pass, removed from this league once but added to two. Filter
+    // both, so the bracket can only ever contain clubs that are actually free
+    // to go up.
     const rawSeeding = playoffSeeding && playoffSeeding.leagueId === lowerLeague.id
       ? playoffSeeding.candidates
       : lowerZones.playoffCandidates;
-    const seeding = rawSeeding.filter(id => !promotedUp.includes(id));
+    const seeding = rawSeeding.filter(
+      id => !promotedUp.includes(id) && !lowerZones.relegated.includes(id),
+    );
     if (lowerLeague.playoffSpots > 0 && seeding.length > 0) {
       const winner = simulatePlayoff(seeding, resolveTie);
       if (winner) playoffWinners.push(winner);
@@ -265,7 +271,22 @@ export function applyPromotionRelegation(
     // tier below grows — league sizes drift apart by one, permanently.
     const allPromoted = Array.from(new Set([...promotedUp, ...playoffWinners]));
     const maxPromotions = relegatedDown.length;
-    const cappedPromoted = allPromoted.slice(0, maxPromotions);
+    // Both directions must balance or the two tiers drift apart PERMANENTLY —
+    // the drift is written into `divisionClubs` and every later season inherits
+    // it. Capping handles too many promotions; this handles too few, which is
+    // what an unresolved playoff (no winner, e.g. every candidate filtered out
+    // above) leaves behind. Backfill in table order, skipping anyone already
+    // going up or being relegated.
+    const backfilled = [...allPromoted];
+    if (backfilled.length < maxPromotions) {
+      for (const entry of lowerTable) {
+        if (backfilled.length >= maxPromotions) break;
+        if (backfilled.includes(entry.clubId)) continue;
+        if (lowerZones.relegated.includes(entry.clubId)) continue;
+        backfilled.push(entry.clubId);
+      }
+    }
+    const cappedPromoted = backfilled.slice(0, maxPromotions);
 
     // Move promoted clubs up
     for (const clubId of cappedPromoted) {

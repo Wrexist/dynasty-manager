@@ -646,6 +646,10 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
     halfTimeState: null,
     preMatchLeaguePosition: 0,
     seasonPhase: 'regular',
+    // A new career must not inherit the previous one's promotion playoff.
+    // `initGame` sets state explicitly rather than resetting to the slice
+    // defaults, so anything omitted here survives into the new save.
+    playoffState: null,
     clubPowerRankings: initializeClubPowerRankings(clubs, LEAGUES),
     activeNegotiation: null,
     pendingTransferTalk: null,

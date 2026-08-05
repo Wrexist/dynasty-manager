@@ -54,7 +54,7 @@ import {
   playWorldCupPenaltiesImpl, finalizeWorldCupPenaltiesImpl,
 } from '@/store/slices/orchestration/worldCupMatchActions';
 import { initGameImpl } from '@/store/slices/orchestration/initGame';
-import { pickAiMatchSquad } from '@/store/slices/orchestration/helpers';
+import { pickAiMatchSquad, catchUpUnplayedFixtures } from '@/store/slices/orchestration/helpers';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -730,6 +730,35 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     // twice. `seasonHistory` gets this season's entry appended by the rollover,
     // so its presence is the marker that the season is already done.
     if (state.seasonHistory.some(h => h.season === state.season)) return;
+    // Settle the league season BEFORE anything reads a table off it.
+    //
+    // The playoff is seeded from a table and rollover decides promotion and
+    // relegation from a table. Those were two different tables: the catch-up
+    // that completes every division's calendar ran inside `endSeasonImpl`,
+    // i.e. AFTER the bracket had already been pinned. A club could therefore be
+    // seeded into the playoff off the pre-catch-up table, win it, and be
+    // auto-relegated by the post-catch-up one — promoted to the tier above and
+    // relegated to the tier below in the same rollover, leaving the leagues a
+    // club apart permanently.
+    //
+    // Running it here and committing collapses that to one table. It also fixes
+    // the narrower case that bites every save: `divisionFixtures` only re-syncs
+    // with `fixtures` inside `advanceWeek`, so triggering rollover straight
+    // after the final match left that match unplayed in `divisionFixtures` and
+    // the catch-up invented a different scoreline for it.
+    const settled = catchUpUnplayedFixtures(
+      { ...state.divisionFixtures, [state.playerDivision]: state.fixtures },
+      state.clubs, state.players, state.week, pickAiMatchSquad, FORFEIT_SCORE,
+    );
+    if (settled.mutated) {
+      const divisionTables = buildAllDivisionTables(settled.divisionFixtures, state.divisionClubs);
+      set({
+        divisionFixtures: settled.divisionFixtures,
+        fixtures: settled.divisionFixtures[state.playerDivision] || state.fixtures,
+        divisionTables,
+        leagueTable: divisionTables[state.playerDivision] || state.leagueTable,
+      });
+    }
     // A club in the promotion playoff plays it BEFORE the season rolls. This
     // returns true while there is still a tie for the player to play, and the
     // rollover is deferred until `recordPlayerPlayoffResult` says otherwise.

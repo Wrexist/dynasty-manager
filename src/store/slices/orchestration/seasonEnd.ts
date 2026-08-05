@@ -66,7 +66,7 @@ import { processSponsorSeasonEnd } from '@/store/slices/sponsorSlice';
 import {
   generateObjectives,
   pickAiMatchSquad,
-  resolveCatchUpFixture,
+  catchUpUnplayedFixtures,
   regenFillQuality,
 } from '@/store/slices/orchestration/helpers';
 import {
@@ -253,51 +253,21 @@ export function endSeasonImpl(set: Set, get: Get) {
   const hasMultipleTiers = countryLeagues.length > 1;
 
   // Fast-forward every unplayed fixture in every loaded division BEFORE building
-  // the final tables.
+  // the final tables. See `catchUpUnplayedFixtures` for why. Normally a no-op by
+  // this point — `endSeason` runs the same catch-up and commits it before the
+  // promotion playoff is seeded — but kept here so any other caller of
+  // `endSeasonImpl` still gets complete tables.
   //
-  // `weekAdvance` only simulates other divisions where `m.week === week`, and the
-  // season ends at the PLAYER's `totalWeeks` — but each division's fixtures are
-  // generated over its OWN length. A Premier League save (38 weeks) therefore left
-  // 8 rounds / 96 fixtures unplayed in each of the three lower English tiers,
-  // EVERY season: browse the Championship and every club is on 38 games in a
-  // 46-game season, with promotion and relegation for three divisions decided 8
-  // rounds early. Same in Spain (4 rounds), Germany (4). It also catches any
-  // fixture stranded by a mid-season collision, and the final round of an
-  // odd-team league where one club is idle.
-  const caughtUpDivisionFixtures: Record<string, Match[]> = { ...state.divisionFixtures };
-  // EVERY loaded division, not just the player's country. The living world
-  // instantiates foreign top tiers whose calendars can be longer than the
-  // player's, and a fixture-less tail leaves those tables short.
-  const catchUpLeagueIds = Array.from(new Set([
-    ...countryLeagues.map(cl => cl.id),
-    ...Object.keys(state.divisionClubs),
-  ]));
-  for (const leagueId of catchUpLeagueIds) {
-    const divFixtures = caughtUpDivisionFixtures[leagueId];
-    if (!divFixtures?.length) continue;
-    let mutated = false;
-    const next = [...divFixtures];
-    for (let i = 0; i < next.length; i++) {
-      const m = next[i];
-      if (m.played) continue;
-      const hc = clubs[m.homeClubId];
-      const ac = clubs[m.awayClubId];
-      if (!hc || !ac) continue;
-      const hp = pickAiMatchSquad(hc, players, state.week).xi;
-      const ap = pickAiMatchSquad(ac, players, state.week).xi;
-      mutated = true;
-      if (hp.length === 0 || ap.length === 0) {
-        next[i] = { ...m, played: true, homeGoals: hp.length === 0 ? 0 : FORFEIT_SCORE, awayGoals: ap.length === 0 ? 0 : FORFEIT_SCORE, events: [] };
-        continue;
-      }
-      // Scoreline-only: the catch-up exists to complete TABLES, and AI event logs
-      // are discarded on the way into state anyway, so running the full event
-      // engine here was expensive work thrown away. The player's own fixtures are
-      // played interactively and never reach this loop.
-      next[i] = resolveCatchUpFixture(m, hp, ap);
-    }
-    if (mutated) caughtUpDivisionFixtures[leagueId] = next;
-  }
+  // The player's own division is seeded from `state.fixtures`, NOT
+  // `state.divisionFixtures`. Those two only re-sync inside `advanceWeek`, so
+  // the player's LAST match of the season is missing from `divisionFixtures`
+  // when rollover is triggered straight after playing it — and the catch-up
+  // would then re-simulate a match they had just played, with a different
+  // scoreline, into the table that decides their promotion.
+  const { divisionFixtures: caughtUpDivisionFixtures } = catchUpUnplayedFixtures(
+    { ...state.divisionFixtures, [playerDiv]: state.fixtures },
+    clubs, players, state.week, pickAiMatchSquad, FORFEIT_SCORE,
+  );
 
   // Build final tables for all loaded divisions in this country
   const finalDivisionTables: Record<string, LeagueTableEntry[]> = {};
@@ -1487,6 +1457,13 @@ function finalizeSeason(
   set({
     season: newSeason, week: 1, totalWeeks: newLeagueTotalWeeks, transferWindowOpen: true,
     seasonPhase: 'regular',
+    // Rollover has now CONSUMED the playoff: it replayed `resolved` so the ties
+    // the player played were not re-decided, and pinned the bracket off
+    // `candidates`. Leaving it set carried both into the NEXT season's rollover,
+    // which then ran last season's bracket regardless of where the club actually
+    // finished — a 19th-placed side was handed a promotion playoff, with last
+    // season's scorelines, against clubs it had not played.
+    playoffState: null,
     clubs: newClubs, players: newPlayers, fixtures: newFixtures, leagueTable: newLeagueTable,
     divisionFixtures: newDivisionFixtures, divisionTables: newDivisionTables,
     divisionClubs: newDivisionClubs,

@@ -593,6 +593,74 @@ export function resolveCatchUpFixture(
 }
 
 /**
+ * Fast-forward every unplayed fixture in every loaded division.
+ *
+ * `weekAdvance` only simulates other divisions where `m.week === week`, and the
+ * season ends at the PLAYER's `totalWeeks` — but each division's fixtures are
+ * generated over its OWN length. A Premier League save (38 weeks) therefore left
+ * 8 rounds / 96 fixtures unplayed in each of the three lower English tiers,
+ * EVERY season: browse the Championship and every club is on 38 games in a
+ * 46-game season, with promotion and relegation for three divisions decided 8
+ * rounds early. Same in Spain (4 rounds), Germany (4). It also catches any
+ * fixture stranded by a mid-season collision, and the final round of an
+ * odd-team league where one club is idle.
+ *
+ * WHY THIS IS A SHARED HELPER RATHER THAN INLINE IN `endSeasonImpl`. The
+ * promotion playoff is seeded from a league table, and rollover decides
+ * promotion and relegation from a league table. If the catch-up runs between
+ * those two reads, they are DIFFERENT TABLES, and a club can be seeded into the
+ * playoff off one while the other auto-relegates it — promoting and relegating
+ * the same club in one rollover. `endSeason` therefore runs this first and
+ * commits the result, so everything downstream reads one settled table.
+ *
+ * Idempotent: fixtures already `played` are left alone, so calling it twice is
+ * a no-op and `endSeasonImpl` can keep calling it defensively.
+ */
+export function catchUpUnplayedFixtures(
+  divisionFixtures: Record<string, Match[]>,
+  clubs: Record<string, Club>,
+  players: Record<string, Player>,
+  week: number,
+  pickSquad: (club: Club, players: Record<string, Player>, week: number) => { xi: Player[] },
+  forfeitScore: number,
+): { divisionFixtures: Record<string, Match[]>; mutated: boolean } {
+  const out: Record<string, Match[]> = { ...divisionFixtures };
+  let anyMutated = false;
+  for (const leagueId of Object.keys(out)) {
+    const divFixtures = out[leagueId];
+    if (!divFixtures?.length) continue;
+    let mutated = false;
+    const next = [...divFixtures];
+    for (let i = 0; i < next.length; i++) {
+      const m = next[i];
+      if (m.played) continue;
+      const hc = clubs[m.homeClubId];
+      const ac = clubs[m.awayClubId];
+      if (!hc || !ac) continue;
+      const hp = pickSquad(hc, players, week).xi;
+      const ap = pickSquad(ac, players, week).xi;
+      mutated = true;
+      if (hp.length === 0 || ap.length === 0) {
+        next[i] = {
+          ...m, played: true,
+          homeGoals: hp.length === 0 ? 0 : forfeitScore,
+          awayGoals: ap.length === 0 ? 0 : forfeitScore,
+          events: [],
+        };
+        continue;
+      }
+      // Scoreline-only: the catch-up exists to complete TABLES, and AI event logs
+      // are discarded on the way into state anyway, so running the full event
+      // engine here was expensive work thrown away. The player's own fixtures are
+      // played interactively and never reach this loop.
+      next[i] = resolveCatchUpFixture(m, hp, ap);
+    }
+    if (mutated) { out[leagueId] = next; anyMutated = true; }
+  }
+  return { divisionFixtures: out, mutated: anyMutated };
+}
+
+/**
  * The quality level a club was DESIGNED at — the same `squadQuality` the world
  * was built from at init.
  *
