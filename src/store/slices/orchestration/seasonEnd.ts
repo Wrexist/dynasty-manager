@@ -48,6 +48,8 @@ import {
 } from '@/config/playoffs';
 import { resetSeasonGrowth } from '@/store/helpers/development';
 import { applySeasonTurnover, applyPromotionRelegation, generateReplacementClub } from '@/utils/promotionRelegation';
+import { simulateMatch } from '@/engine/match';
+import { getDerbyIntensity } from '@/data/league';
 
 import { getTournamentForSeason, generateTournament, autoSelectNationalSquad, generateNationalTeamPool } from '@/utils/international';
 import { NATIONAL_CALLUP_MORALE_BOOST, NT_JOB_REHIRE_REPUTATION, NT_JOB_OFFER_DURATION_WEEKS } from '@/config/gameBalance';
@@ -329,10 +331,44 @@ export function endSeasonImpl(set: Set, get: Get) {
   let newPlayerDiv = playerDiv;
   const turnover: SeasonTurnover = { leagueId: playerDiv, promotedClubs: [], relegatedClubs: [], playoffWinners: [], promotedOutClubs: [] };
 
+  // Promotion playoffs are decided by an actual match rather than a coin flip.
+  //
+  // `simulatePlayoff` used to be `Math.random() < 0.6 ? higherSeed : lowerSeed`
+  // with no reference to squads, form or home advantage — and that governed the
+  // PLAYER's own promotion too. A whole season in tier 2-4 could end on two
+  // invisible dice rolls. A playoff bracket is at most three ties per tier pair
+  // once a season, so running the real engine here is cheap.
+  //
+  // Level after 90 minutes sends the better-placed side through: that is the
+  // reward for finishing higher, and it matches how real playoff formats break
+  // a tie without needing a shootout in this code path.
+  const resolvePlayoffTie = (homeClubId: string, awayClubId: string): string => {
+    const hc = clubs[homeClubId];
+    const ac = clubs[awayClubId];
+    if (!hc || !ac) return homeClubId;
+    const hp = pickAiMatchSquad(hc, workingPlayers, state.week).xi;
+    const ap = pickAiMatchSquad(ac, workingPlayers, state.week).xi;
+    if (hp.length === 0) return awayClubId;
+    if (ap.length === 0) return homeClubId;
+    const tie: Match = {
+      id: `playoff-${state.season}-${homeClubId}-${awayClubId}`,
+      week: state.week, season: state.season,
+      homeClubId, awayClubId, homeGoals: 0, awayGoals: 0, played: false, events: [],
+    } as Match;
+    const { result } = simulateMatch(
+      tie, hc, ac, hp, ap,
+      undefined, undefined, undefined, playerClubId,
+      getDerbyIntensity(homeClubId, awayClubId), undefined, state.season,
+    );
+    if (result.homeGoals === result.awayGoals) return homeClubId;
+    return result.homeGoals > result.awayGoals ? homeClubId : awayClubId;
+  };
+
   if (hasMultipleTiers) {
     // Real promotion/relegation between tiers
     const proRelResult = applyPromotionRelegation(
       countryId, state.divisionClubs, finalDivisionTables, clubs, playerClubId,
+      resolvePlayoffTie,
     );
     workingClubs = proRelResult.updatedClubs;
     newDivisionClubs = { ...state.divisionClubs, ...proRelResult.updatedDivisionClubs };

@@ -49,36 +49,56 @@ export function determineZones(table: LeagueTableEntry[], league: LeagueInfo) {
 // ── Run a simple playoff tournament (best 2 of the playoff candidates) ──
 
 /**
- * Simulate a promotion playoff among candidates.
- * Returns the winning club ID (promoted via playoffs).
+ * Decide one playoff tie. `homeClubId` is the better-placed side, which hosts.
+ * Returns the winner's club id.
+ *
+ * Injected rather than imported so this module stays free of the match engine
+ * (and so the existing pure tests can keep running it without squads).
  */
-export function simulatePlayoff(candidates: string[]): string | null {
+export type PlayoffTieResolver = (homeClubId: string, awayClubId: string) => string;
+
+/** Fallback when no resolver is supplied: the better-placed side goes through
+ *  this often. Only used by callers that have no squads to simulate with. */
+export const PLAYOFF_HIGHER_SEED_WIN_CHANCE = 0.6;
+
+/**
+ * Run a promotion playoff among candidates, given in league-position order
+ * (best first). Returns the winning club ID.
+ *
+ * Seeding is 1vN, 2v(N-1), … with the better-placed side hosting, and winners
+ * are re-sorted by original seed between rounds so the bracket stays stable.
+ * The previous general case paired adjacent entries — 1v2 and 3v4 — which is
+ * not a bracket, and handed the BYE to the worst-placed side on an odd count.
+ * The bye now goes to the top seed. (The old four-team special case was
+ * correct; this generalises it.)
+ *
+ * Without a `resolveTie` the result is a flat coin flip that ignores squads,
+ * form and home advantage entirely. Callers that can simulate — i.e. anything
+ * with access to players — should pass one.
+ */
+export function simulatePlayoff(candidates: string[], resolveTie?: PlayoffTieResolver): string | null {
   if (candidates.length === 0) return null;
   if (candidates.length === 1) return candidates[0];
 
-  // Simple bracket: 3rd vs 6th, 4th vs 5th, then winners play final
-  // Higher-placed team wins 60% of the time
-  const matchup = (a: string, b: string) => Math.random() < 0.6 ? a : b;
+  const seedOf = new Map(candidates.map((id, i) => [id, i]));
+  const decide = (home: string, away: string): string =>
+    resolveTie
+      ? resolveTie(home, away)
+      : (Math.random() < PLAYOFF_HIGHER_SEED_WIN_CHANCE ? home : away);
 
-  if (candidates.length === 2) {
-    return matchup(candidates[0], candidates[1]);
-  }
-  if (candidates.length === 4) {
-    // Semi-finals: 3rd vs 6th, 4th vs 5th
-    const sf1 = matchup(candidates[0], candidates[3]);
-    const sf2 = matchup(candidates[1], candidates[2]);
-    return matchup(sf1, sf2);
-  }
-
-  // General case: bracket tournament
   let remaining = [...candidates];
   while (remaining.length > 1) {
-    const next = [];
-    for (let i = 0; i < remaining.length - 1; i += 2) {
-      next.push(matchup(remaining[i], remaining[i + 1]));
-    }
-    if (remaining.length % 2 === 1) {
-      next.push(remaining[remaining.length - 1]);
+    remaining.sort((a, b) => (seedOf.get(a) ?? 0) - (seedOf.get(b) ?? 0));
+    const next: string[] = [];
+    let lo = 0;
+    let hi = remaining.length - 1;
+    // Odd field: the top seed sits the round out rather than the bottom one.
+    if (remaining.length % 2 === 1) { next.push(remaining[0]); lo = 1; }
+    while (lo < hi) {
+      // Better-placed side (lower seed index) is the home team.
+      next.push(decide(remaining[lo], remaining[hi]));
+      lo++;
+      hi--;
     }
     remaining = next;
   }
@@ -97,6 +117,9 @@ export function applyPromotionRelegation(
   divisionTables: Record<string, LeagueTableEntry[]>,
   clubs: Record<string, Club>,
   playerClubId: string,
+  /** Optional real-match resolver for playoff ties. Omitted, ties fall back to
+   *  a coin flip that ignores squads entirely — see simulatePlayoff. */
+  resolveTie?: PlayoffTieResolver,
 ): {
   turnovers: Record<string, SeasonTurnover>;
   updatedDivisionClubs: Record<string, string[]>;
@@ -137,7 +160,7 @@ export function applyPromotionRelegation(
     // Run playoffs for lower tier if configured
     const playoffWinners: string[] = [];
     if (lowerLeague.playoffSpots > 0 && lowerZones.playoffCandidates.length > 0) {
-      const winner = simulatePlayoff(lowerZones.playoffCandidates);
+      const winner = simulatePlayoff(lowerZones.playoffCandidates, resolveTie);
       if (winner) playoffWinners.push(winner);
     }
 
