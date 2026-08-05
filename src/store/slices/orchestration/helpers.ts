@@ -593,6 +593,28 @@ export function resolveCatchUpFixture(
 }
 
 /**
+ * Which weekly development slice a club belongs to.
+ *
+ * Hashes the club ID rather than using its position in `divisionClubs`, because
+ * that array is rewritten by promotion and relegation at every rollover. An
+ * index-based split would silently reassign clubs to different slices across a
+ * season boundary, letting a club skip a development pass or take two.
+ *
+ * FNV-1a, chosen only because it is short, dependency-free and stable across
+ * runs — nothing here needs cryptographic quality, but it does need to give the
+ * same answer for the same club forever, including after a save/load.
+ */
+export function stableClubSlice(clubId: string, slices: number): number {
+  if (slices <= 1) return 0;
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < clubId.length; i++) {
+    hash ^= clubId.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash % slices;
+}
+
+/**
  * Fast-forward every unplayed fixture in every loaded division.
  *
  * `weekAdvance` only simulates other divisions where `m.week === week`, and the

@@ -9,8 +9,7 @@ import { BOARD_OBJ_ALL_COMPLETE_XP, BOARD_OBJ_ALL_COMPLETE_CONFIDENCE, FORFEIT_S
 import { generateSquad, selectBestLineup, generatePlayer } from '@/utils/playerGen';
 
 import { generateStaffMarket, getStaffBonus, ensureStaffFields } from '@/utils/staff';
-import { applyPlayerDevelopment } from '@/store/helpers/development';
-import { AI_SEASON_DEVELOPMENT_PASSES } from '@/config/aiSimulation';
+import {  } from '@/store/helpers/development';
 
 import { generateYouthProspects, generateIntakePreview } from '@/utils/youth';
 import type { GameState } from '../../storeTypes';
@@ -757,12 +756,19 @@ function finalizeSeason(
     // meaningless for 755 of 756 clubs and let difficulty decay every season.
     // Runs on the PRE-RESET player so the playing-time term still sees this
     // season's appearances; `applyPlayerDevelopment` recomputes overall and value.
-    let p = rawPlayer;
-    if (rawPlayer.clubId && rawPlayer.clubId !== playerClubId) {
-      for (let i = 0; i < AI_SEASON_DEVELOPMENT_PASSES; i++) {
-        p = applyPlayerDevelopment(p, 'balanced');
-      }
-    }
+    // AI development is NO LONGER APPLIED HERE. It runs a slice of clubs per
+    // week inside `advanceWeek` (see `aiDevelopmentSlices`), which spends the
+    // same `AI_SEASON_DEVELOPMENT_PASSES` budget against the same
+    // `MAX_SEASON_GROWTH` cap, but spread across the season so the world moves
+    // while the player watches instead of jumping at rollover.
+    //
+    // Deliberately NOT topped up with a residual pass here. A residual would
+    // need the per-season count of weekly passes actually applied, which is not
+    // recoverable after a mid-season save/load without new persisted state —
+    // and getting it wrong means double-developing every club in the world.
+    // Under-spending the budget slightly is the safe direction; the cap makes
+    // it self-limiting either way.
+    const p = rawPlayer;
 
     const aged = {
       ...p, age: p.age + 1,

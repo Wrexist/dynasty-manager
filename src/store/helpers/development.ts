@@ -103,8 +103,24 @@ export function applyPlayerDevelopment(p: Player, trainingFocus: string, mentorB
     }
   }
 
-  updated.overall = calculateOverall(updated.attributes, updated.position);
-  const devDelta = updated.overall - oldOverall;
+  // Apply the CHANGE the formula sees, not the formula's absolute answer.
+  //
+  // A stored `overall` is not always `calculateOverall(attributes, position)`.
+  // Community-pack players carry authored ratings, and measured at game start
+  // 3575 of 3767 club players (95%) sit ABOVE what the formula computes from
+  // their attributes — mean +4.05, worst +15. Overwriting `overall` with the
+  // formula therefore knocked ~4 points off nearly every AI player the first
+  // time this function touched them, even when their attributes had just
+  // IMPROVED. One measured case: 80 -> 69 on a week where pace went 77 -> 78.
+  //
+  // Worse, `devDelta` was that same bogus negative, so `growthDelta` reported a
+  // decline the player never had and the `seasonGrowthTracker` credit was
+  // skipped. Taking the delta preserves the authored baseline while still
+  // reflecting exactly what development changed.
+  const formulaBefore = calculateOverall(p.attributes, p.position);
+  const formulaAfter = calculateOverall(updated.attributes, updated.position);
+  const devDelta = formulaAfter - formulaBefore;
+  updated.overall = Math.max(1, Math.min(99, oldOverall + devDelta));
   updated.growthDelta = trainingDelta + devDelta;
 
   // Only track the development portion against the season cap — applyWeeklyTraining

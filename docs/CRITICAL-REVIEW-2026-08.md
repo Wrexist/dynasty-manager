@@ -32,6 +32,14 @@ det ändå:
   avvikelsen i matchstatistiken, som ingen mätning tidigare fångat. Höjd till
   9,7, med merparten av ökningen tagen på den målneutrala grenen. Se punkt 13.
 
+**Det allvarligaste fyndet i hela granskningen hittades sist, av misstag.**
+`applyPlayerDevelopment` skrev över författade spelarbetyg med sitt eget
+formelsvar och tappade i snitt **4 OVR på 95 % av världens spelare** — även när
+attributen förbättrats. Det syntes inte förrän punkt 21 flyttade utvecklingen ut
+ur säsongsrullningen. Se **21b**. Att det låg dolt bakom en annan fix är i sig
+värt att notera: ingen av mina 22 punkter hittade det, och ingen befintlig gate
+såg det.
+
 **Fyra ytterligare fynd, alla i säsongsrullningen, alla åtgärdade** (`se
 seasonRolloverIntegrity.test.ts`). De föll ut när regressionstestet för #3 började
 fallera på en storleksavvikelse jag först antog var flakig. Den var inte flakig.
@@ -96,7 +104,7 @@ Premier League (0,16 och ~28:1). Jag ändrade ingenting.
 | 17 | **ÅTGÄRDAT (363 → 0 strängar).** Båda "blockerarna" jag angav var mina egna antaganden: en handrullad `t()` lägger till *noll* beroenden, och jag hade precis själv höjt bundle-headroom till 53,5 kB. Kvar stod bara "halvmigrerad i18n är värre än ingen" — vilket bara gäller om otextade ytor *går sönder*. Med engelska alltid laddad som fallback gör de inte det: `t()` på en omigrerad nyckel returnerar exakt samma sträng som literalen gjorde. Grunden finns nu (`src/i18n/`, `useTranslation`), plus svenska som bevis att en andra locale fungerar, och `SeasonSummary` + `TitleScreen` migrerade som första ytor. Kvar: översättning av `sv.ts` (76 av 268 nycklar) — men det är innehållsarbete, inte teknik. Mätbart med `npm run i18n:check` |
 | 19 | **ÅTGÄRDAT.** Jag hade fel: den kunde fixas utan att ta bort någon funktionalitet. Radix delades vid `react-dialog`, och de två villkorliga dialogerna plus titelskärmens inställningspanel gjordes lata. **522,1 → 506,5 kB gz eager, headroom 37,9 → 53,5 kB (+41 %)** |
 | 20 (rest) | Riktig kvittovalidering kräver en backend som inte finns. **Men exploiten är stängd** — klockmanipulation neutraliseras nu av en monoton högvattenmärkning (`41d4bf4`), verifierad mot koden före fixen |
-| 21 | AI-utveckling batchad till säsongsslut. **Min "inte ett fel" var för slapp** — det går att amortera över säsongen med roterande skivor till lägre veckokostnad än dagens toppl. Inte gjord: kräver persisterad ackumulerad tillväxt, save-schemabump och omgjorda balanstester. Vägen är nedskriven i punkt 21 |
+| 21 | **ÅTGÄRDAT.** Amorterad över säsongen med roterande skivor. Båda mina skäl att skjuta upp den var felaktiga — `seasonGrowthTracker` var redan persisterad. Mätt: 0 av 1 259 AI-spelare utvecklades under 12 veckor före fixen. Ledde till fynd **21b** nedan |
 | 22 | Online-läge. Ett produktbeslut, inte en fix |
 
 
@@ -686,35 +694,64 @@ lokalt låst innehåll), men den finns.
 
 ### 21. AI-spelarnas utveckling batchas till säsongsslutet
 
-> **OMBEDÖMD, MEN INTE ÅTGÄRDAD — och min första bedömning var för slapp.**
-> Jag skrev "dokumenterat prestandaval, inte ett fel" och lämnade det där. Det
-> var att förväxla *en motivering finns* med *problemet är olösligt*.
-> Prestandaargumentet gäller bara den naiva fixen (kör hela batchen varje vecka,
-> 46× kostnaden). Det finns en billig medelväg:
+> **ÅTGÄRDAT — och mina två skäl att inte göra det var båda fel.**
 >
-> **Amortera batchen över säsongen med roterande skivor.** Dela AI-klubbarna i
-> N grupper (N ≈ 4). Varje vecka körs *en* utvecklingspass på *en* grupp. Över
-> 46 veckor får varje klubb ~11–12 pass — samma totalbudget som idag — men
-> kostnaden per vecka blir ~1/4 pass i stället för 12 pass på en gång, alltså
-> lägre topplatens än nuvarande säsongsslut och en värld som rör sig hela tiden.
+> Jag skrev först "dokumenterat prestandaval, inte ett fel". Sedan, när jag
+> ombads igen, skrev jag att det *gick* men krävde "ny persisterad state, en
+> save-schemabump och omgjorda balanstester". Även det var fel:
+> `seasonGrowthTracker` ligger **redan** i `GameState` (`storeTypes.ts:158`),
+> skrivs varje vecka och hydreras vid load — för spelarens egen trupp har alltid
+> utvecklats veckovis genom exakt den mekanismen. Ingen ny state, ingen
+> schemabump.
 >
-> **Varför jag ändå inte bygger det nu**, och det här är en bedömning, inte en
-> blockering:
+> **Fixen:** varje vecka utvecklas *en skiva* av AI-klubbarna med *ett* pass.
+> Skivan väljs på en stabil hash av klubb-id, inte på index i `divisionClubs` —
+> den arrayen skrivs om av upp- och nedflyttning varje säsong, så ett
+> index-baserat urval hade tyst flyttat klubbar mellan skivor över en
+> säsongsgräns och låtit någon hoppa över eller ta dubbelt. Skivantalet härleds
+> ur ligans egen kalender så en 38-veckorsliga får ~12,7 pass och en
+> 46-veckors ~11,5 — samma budget som förr, utspridd.
 >
-> - `MAX_SEASON_GROWTH` är ett *säsongstak* som idag kan tillämpas i ett enda
->   svep. Amorterat måste ackumulerad tillväxt spåras per spelare över säsongen
->   — alltså **ny persisterad state och en `CURRENT_VERSION`-bump med
->   migrationssteg**.
-> - `seasonEnd` måste sluta köra batchen utan att dubbelapplicera, och
->   balanstesterna mäter utveckling per säsong i klump.
-> - Det ändrar kännbar spelbalans: en wonderkid som köps i januari har redan
->   vuxit en bit, vilket påverkar transfervärden mitt i säsongen.
+> Veckokostnaden är en bråkdel av *ett* pass, alltså långt **under** den gamla
+> säsongsslutstoppen på 12 pass över varje spelare i världen. Prestandaargumentet
+> gällde bara den naiva fixen.
 >
-> Det är en funktionsändring i spelets känsligaste loop plus en
-> save-schemaändring. Mitt eget råd tidigare i det här dokumentet var att sånt
-> byggs med testerna först. Att göra det blint i slutet av en granskningssession,
-> i en app som redan ligger i App Store, vore precis det jag varnade för.
-> **Vägen är beskriven ovan så att den går att plocka upp — den är inte gjord.**
+> **Mätt, före och efter, över 12 veckor från ny save:**
+>
+> | | Före | Efter |
+> |---|---|---|
+> | AI-spelare som utvecklades | **0 av 1 259** | 55 av 1 276 |
+> | Kohortens medel-OVR | 0,000 | +0,043 |
+>
+> Noll. Världen stod exakt stilla, precis som punkten påstod.
+
+### 21b. Utvecklingsfunktionen skrev över påhittade betyg — hittad under 21
+
+**Det här är det största fyndet i hela granskningen, och det hittades bara för
+att amorteringen gjorde det synligt.**
+
+`applyPlayerDevelopment` avslutade med
+`updated.overall = calculateOverall(updated.attributes, updated.position)` —
+alltså formelns *absoluta* svar. Men ett lagrat `overall` är inte alltid det
+formeln räknar fram: community-pack-spelare bär **författade** betyg.
+
+Uppmätt vid spelstart: **3 575 av 3 767 klubbspelare (95 %) ligger ÖVER vad
+formeln ger från deras attribut — i snitt +4,05, som mest +15.**
+
+Konsekvensen: första gången funktionen rörde en AI-spelare tappade han ~4 OVR,
+*även när attributen just hade förbättrats*. Ett uppmätt fall: **80 → 69 samma
+vecka som pace gick 77 → 78.** Dessutom blev `devDelta` samma falska negativa
+tal, så `growthDelta` rapporterade ett ras som aldrig hänt och krediteringen mot
+`seasonGrowthTracker` uteblev.
+
+Under den gamla koden hände det en gång per säsong, dolt inne i rullningen.
+Amorteringen hade gjort det till en synlig, återkommande förlust — vilket är hur
+det upptäcktes.
+
+**Fixen** är att applicera *förändringen* formeln ser, inte formelns absoluta
+svar: `overall = oldOverall + (formelEfter - formelFöre)`. Det bevarar det
+författade betyget och speglar exakt vad utvecklingen ändrade. Efter fixen föll
+**0** spelare i kohorten (mot 446 med ett snittfall på 4 OVR).
 
 `config/aiSimulation.ts` — `AI_SEASON_DEVELOPMENT_PASSES = 12`, körda i klump i
 `seasonEnd`. Kommentaren motiverar det väl (veckovis över 756 klubbar är för
