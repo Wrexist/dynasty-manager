@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { useEscapeClose } from '@/hooks/useEscapeClose';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -25,6 +26,7 @@ interface Props {
 }
 
 export function ListForSaleModal({ player, onClose, onListed }: Props) {
+  const { t } = useTranslation();
   const { clubs, playerClubId, players, season } = useGameStore(useShallow(s => ({
     clubs: s.clubs,
     playerClubId: s.playerClubId,
@@ -185,7 +187,7 @@ export function ListForSaleModal({ player, onClose, onListed }: Props) {
                 step={step}
                 value={askingPrice}
                 onChange={(e) => setAskingPrice(Number(e.target.value))}
-                aria-label="Asking price"
+                aria-label={t('listForSaleModal.askingPrice')}
                 className="range-touch relative z-10"
               />
             </div>

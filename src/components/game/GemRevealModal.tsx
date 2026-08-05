@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -19,6 +20,7 @@ import { useEscapeClose } from '@/hooks/useEscapeClose';
 import { usePresentationSlot } from '@/hooks/usePresentationQueue';
 
 export function GemRevealModal() {
+  const { t } = useTranslation();
   const { gem, players, clubs, playerClubId, transferMarket } = useGameStore(useShallow(s => ({
     gem: s.pendingGemReveal, players: s.players, clubs: s.clubs,
     playerClubId: s.playerClubId, transferMarket: s.transferMarket,
@@ -103,7 +105,7 @@ export function GemRevealModal() {
         onClick={dismiss}
         role="dialog"
         aria-modal="true"
-        aria-label="Gem player reveal"
+        aria-label={t('gemRevealModal.gemPlayerReveal')}
       >
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}

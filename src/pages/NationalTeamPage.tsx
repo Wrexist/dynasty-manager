@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -50,6 +51,7 @@ function bucketForPosition(pos: string): PositionBucket {
 }
 
 const NationalTeamPage = () => {
+  const { t } = useTranslation();
   const { nationalTeam, managerNationality, players, setScreen, updateNationalSquad, setNationalFormation, internationalTournament, selectPlayer } = useGameStore(useShallow(s => ({
     nationalTeam: s.nationalTeam,
     managerNationality: s.managerNationality,
@@ -421,7 +423,7 @@ const NationalTeamPage = () => {
       {/* Formation Picker */}
       <div className={cn(LIQUID_GLASS_SURFACE, 'border border-white/10 p-4')}>
         <div className="flex items-center justify-between mb-1">
-          <SectionHeader title="Formation" level="section" />
+          <SectionHeader title={t('nationalTeamPage.formation')} level="section" />
           <button
             onClick={() => setShowFormationPicker(!showFormationPicker)}
             className="flex items-center gap-1 text-sm text-primary font-display tabular-nums hover:text-primary/80 transition-colors"
@@ -477,7 +479,7 @@ const NationalTeamPage = () => {
         {/* Header row — squad size + edit toggle */}
         <div className="flex items-center justify-between px-1">
           <div>
-            <SectionHeader title="Squad" level="section" />
+            <SectionHeader title={t('nationalTeamPage.squad')} level="section" />
             <p className="text-micro text-muted-foreground tabular-nums">
               <span className={cn(
                 squadPlayers.length === NATIONAL_SQUAD_SIZE && 'text-emerald-400',
@@ -711,9 +713,9 @@ const NationalTeamPage = () => {
                                 hideContract
                                 contextBadge={
                                   isStarter ? (
-                                    <StatusPill tone="emerald" label="XI" title="In starting XI" />
+                                    <StatusPill tone="emerald" label="XI" title={t('nationalTeamPage.inStartingXi')} />
                                   ) : isSub ? (
-                                    <StatusPill tone="amber" label="SUB" title="On the bench" />
+                                    <StatusPill tone="amber" label="SUB" title={t('nationalTeamPage.onTheBench')} />
                                   ) : null
                                 }
                               />

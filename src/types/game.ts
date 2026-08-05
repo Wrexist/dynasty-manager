@@ -117,7 +117,26 @@ export type Position = 'GK' | 'CB' | 'LB' | 'RB' | 'CDM' | 'CM' | 'CAM' | 'LM' |
 
 export type FormationType = '4-4-2' | '4-3-3' | '3-5-2' | '4-2-3-1' | '4-1-4-1' | '3-4-3' | '5-3-2' | '4-5-1' | '4-1-2-1-2' | '3-4-1-2';
 
-export type SeasonPhase = 'regular' | 'offseason' | 'international';
+export type SeasonPhase = 'regular' | 'offseason' | 'international' | 'playoff';
+
+/**
+ * The player's promotion playoff, live between the final league week and season
+ * rollover.
+ *
+ * Deliberately NOT part of `fixtures`: the final league table is rebuilt from
+ * that array at rollover, so a playoff tie living there would corrupt it.
+ */
+export interface PlayoffState {
+  leagueId: LeagueId;
+  /** Playoff clubs in league-position order, best first — the bracket seeding. */
+  candidates: string[];
+  /** Every tie decided so far, the player's and the AI's alike. */
+  resolved: PlayoffTieResult[];
+  /** The player's tie awaiting interactive play, or null when none is pending. */
+  pendingMatch: Match | null;
+  /** Clubs left in the round `pendingMatch` belongs to: 4 = semi, 2 = final. */
+  teamsInRound: number;
+}
 
 /** Outcome of a redeem-code attempt, surfaced to the Settings UI. */
 export interface RedeemResult {
@@ -842,6 +861,25 @@ export interface SeasonHistory {
   transferActivity?: { bought: { playerName: string; fee: number }[]; sold: { playerName: string; fee: number }[] };
   squadStrengthDelta?: { startAvgOVR: number; endAvgOVR: number; delta: number };
   ballonDOrRanking?: BallonDOrEntry[];
+  /** The player's own promotion-playoff ties, in order, when they were in one.
+   *
+   *  Promotion playoffs are resolved inside season rollover, so the player never
+   *  saw the matches that decided their season — a tier 2-4 campaign could end
+   *  without a single line acknowledging the playoff happened. Recording the
+   *  scorelines here at least tells them what occurred and against whom.
+   *  Absent when the club was not in a playoff. Save schema v81. */
+  playoffRun?: PlayoffTieResult[];
+}
+
+/** One promotion-playoff tie the player's club took part in. `homeClubId` is
+ *  the better-placed side, which hosts; a level tie is won by that side. */
+export interface PlayoffTieResult {
+  homeClubId: string;
+  awayClubId: string;
+  homeGoals: number;
+  awayGoals: number;
+  /** True when the player's club went through. */
+  playerAdvanced: boolean;
 }
 
 /** Lifetime achievement tier, derived from total trophies across all dynasties. */

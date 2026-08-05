@@ -1,4 +1,5 @@
 import { useRef, useEffect, useMemo, useCallback } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -14,6 +15,7 @@ import type { CupRound, Match, CupTie, ContinentalTournamentState, SuperCupMatch
 
 
 const CalendarView = () => {
+  const { t } = useTranslation();
   const {
     week, season, fixtures, clubs, playerClubId,
     transferWindowOpen, cup, leagueCup, championsCup, shieldCup, conferenceCup,
@@ -340,8 +342,8 @@ const CalendarView = () => {
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
       <PageHint
         screen="calendar"
-        title="Season Calendar"
-        body="View your full fixture list across league, cup, and continental competitions. The current week is highlighted — scroll down to see upcoming matches and bye weeks."
+        title={t('calendarView.seasonCalendar')}
+        body={t('calendarView.viewYourFullFixtureList')}
       />
 
       <div className="flex items-center gap-2">

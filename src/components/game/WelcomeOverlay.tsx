@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Target, ChevronRight, Trophy, LayoutDashboard, Users, Swords, ShoppingBag } from 'lucide-react';
@@ -49,6 +50,7 @@ interface WelcomeOverlayProps {
 }
 
 export function WelcomeOverlay({ onComplete }: WelcomeOverlayProps) {
+  const { t } = useTranslation();
   // Full-screen tour — the dashboard must not scroll behind it.
   useScrollLock(true);
   const [step, setStep] = useState(0);
@@ -112,7 +114,7 @@ export function WelcomeOverlay({ onComplete }: WelcomeOverlayProps) {
               <button
                 onClick={onComplete}
                 className="min-h-11 px-3 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
-                aria-label="Skip tutorial"
+                aria-label={t('welcomeOverlay.skipTutorial')}
               >
                 Skip
               </button>

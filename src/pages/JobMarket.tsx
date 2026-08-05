@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -19,6 +20,7 @@ import type { JobVacancy, JobOffer, ManagerBonus } from '@/types/game';
 import { SectionHeader } from '@/components/game/SectionHeader';
 
 const JobMarket = () => {
+  const { t } = useTranslation();
   const [showRetireConfirm, setShowRetireConfirm] = useState(false);
   const [showResignConfirm, setShowResignConfirm] = useState(false);
   const [isAdvancing, setIsAdvancing] = useState(false);
@@ -113,7 +115,7 @@ const JobMarket = () => {
           <GlassPanel className="p-4">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <SectionHeader title="Job Market" />
+                <SectionHeader title={t('jobMarket.jobMarket')} />
                 <p className="text-xs text-muted-foreground">
                   {careerManager.contract ? 'Browse opportunities' : 'Find your next club'}
                 </p>
@@ -238,7 +240,7 @@ const JobMarket = () => {
           <ConfirmDialog
             open={showRetireConfirm}
             onOpenChange={setShowRetireConfirm}
-            title="Retire from Management"
+            title={t('jobMarket.retireFromManagement')}
             description={`Retire from management? Your legacy score is ${careerManager.legacyScore}. This cannot be undone.`}
             confirmLabel="Retire"
             onConfirm={retireManager}
@@ -247,8 +249,8 @@ const JobMarket = () => {
           <ConfirmDialog
             open={showResignConfirm}
             onOpenChange={setShowResignConfirm}
-            title="Resign from Club"
-            description="Are you sure you want to resign? You will enter the job market."
+            title={t('boardPage.resignFromClub')}
+            description={t('boardPage.areYouSureYouWant')}
             confirmLabel="Resign"
             onConfirm={resignFromClub}
           />

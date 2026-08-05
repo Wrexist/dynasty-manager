@@ -1,4 +1,5 @@
 import { useMemo, useState, lazy, Suspense } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { Loader2 } from 'lucide-react';
@@ -41,12 +42,14 @@ interface TabDef {
  * rather than "empty screen", which is the difference between a load and a
  * glitch. Honors reduced motion via Tailwind's `motion-reduce` variant.
  */
-const TabSuspenseFallback = () => (
+const TabSuspenseFallback = () => {
+  const { t } = useTranslation();
+  return (
   <div
     role="status"
     aria-busy="true"
     aria-live="polite"
-    aria-label="Loading competition"
+    aria-label={t('competitionsPage.loadingCompetition')}
     className="min-h-[60vh] flex flex-col items-center justify-center gap-4 rounded-2xl border border-border/30 bg-card/20"
   >
     <Loader2 className="w-6 h-6 text-muted-foreground animate-spin motion-reduce:animate-none" />
@@ -56,7 +59,8 @@ const TabSuspenseFallback = () => (
       ))}
     </div>
   </div>
-);
+  );
+};
 
 /** Maps a findTournamentMatch competition label to the hub tab it belongs to. */
 function competitionLabelToTab(label: string): CompetitionKey | null {

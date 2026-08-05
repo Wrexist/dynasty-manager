@@ -5,9 +5,17 @@ import { HashRouter, Routes, Route } from "react-router-dom";
 import { MotionConfig } from "framer-motion";
 import { useGameStore } from "@/store/gameStore";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { SaveRecoveryDialog } from "@/components/SaveRecoveryDialog";
-import { AnalyticsConsentModal } from "@/components/AnalyticsConsentModal";
 import TitleScreen from "./pages/TitleScreen";
+// Both of these are Radix Dialogs that appear on a CONDITION — first launch for
+// the consent modal, a corrupt save for the recovery dialog — yet importing them
+// eagerly pulled @radix-ui/react-dialog into the boot graph for every launch.
+// Lazy + conditionally mounted, so the chunk is fetched only when one is
+// actually shown. There is no fallback on purpose: nothing should flash while a
+// dialog nobody asked for downloads.
+const AnalyticsConsentModal = lazy(() =>
+  import("@/components/AnalyticsConsentModal").then(m => ({ default: m.AnalyticsConsentModal })));
+const SaveRecoveryDialog = lazy(() =>
+  import("@/components/SaveRecoveryDialog").then(m => ({ default: m.SaveRecoveryDialog })));
 import NotFound from "./pages/NotFound";
 import { readAnalyticsConsent } from "@/store/helpers/persistence";
 import { refreshAnalyticsConsent } from "@/utils/analytics";
@@ -64,12 +72,16 @@ const App = () => {
     <MotionConfig reducedMotion={(reducedMotion || performanceMode) ? "always" : "user"}>
       <TooltipProvider>
         <Sonner />
-        <AnalyticsConsentModal
-          open={consent === 'unknown'}
-          onChoice={() => setConsent(readAnalyticsConsent())}
-        />
+        {consent === 'unknown' && (
+          <Suspense fallback={null}>
+            <AnalyticsConsentModal
+              open
+              onChoice={() => setConsent(readAnalyticsConsent())}
+            />
+          </Suspense>
+        )}
         <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-          <SaveRecoveryDialog />
+          <Suspense fallback={null}><SaveRecoveryDialog /></Suspense>
           <Suspense fallback={<LoadingFallback />}>
             <Routes>
               <Route path="/" element={<TitleScreen />} />

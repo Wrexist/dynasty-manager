@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/react';
-import { Club, Player, TransferListing, SeasonHistory, Position, Match, LeagueId, SeasonTurnover, LeagueTableEntry, ContinentalTournamentState } from '@/types/game';
+import { Club, Player, TransferListing, SeasonHistory, Position, Match, LeagueId, SeasonTurnover, LeagueTableEntry, ContinentalTournamentState, PlayoffTieResult } from '@/types/game';
 import { calculateReputationTier, generateJobVacancies, getRetirementAge, calculateLegacyScore, generateCompetitors } from '@/utils/managerCareer';
 import {
   REP_PROMOTION, REP_RELEGATION, REP_OVERACHIEVE_BONUS, REP_UNDERACHIEVE_PENALTY, REP_TITLE, REP_CUP_WIN, REP_SACKING, REP_MIN, REP_MAX,
@@ -9,8 +9,7 @@ import { BOARD_OBJ_ALL_COMPLETE_XP, BOARD_OBJ_ALL_COMPLETE_CONFIDENCE, FORFEIT_S
 import { generateSquad, selectBestLineup, generatePlayer } from '@/utils/playerGen';
 
 import { generateStaffMarket, getStaffBonus, ensureStaffFields } from '@/utils/staff';
-import { applyPlayerDevelopment } from '@/store/helpers/development';
-import { AI_SEASON_DEVELOPMENT_PASSES } from '@/config/aiSimulation';
+import {  } from '@/store/helpers/development';
 
 import { generateYouthProspects, generateIntakePreview } from '@/utils/youth';
 import type { GameState } from '../../storeTypes';
@@ -48,6 +47,8 @@ import {
 } from '@/config/playoffs';
 import { resetSeasonGrowth } from '@/store/helpers/development';
 import { applySeasonTurnover, applyPromotionRelegation, generateReplacementClub } from '@/utils/promotionRelegation';
+import { simulateMatch } from '@/engine/match';
+import { getDerbyIntensity } from '@/data/league';
 
 import { getTournamentForSeason, generateTournament, autoSelectNationalSquad, generateNationalTeamPool } from '@/utils/international';
 import { NATIONAL_CALLUP_MORALE_BOOST, NT_JOB_REHIRE_REPUTATION, NT_JOB_OFFER_DURATION_WEEKS } from '@/config/gameBalance';
@@ -64,7 +65,7 @@ import { processSponsorSeasonEnd } from '@/store/slices/sponsorSlice';
 import {
   generateObjectives,
   pickAiMatchSquad,
-  resolveCatchUpFixture,
+  catchUpUnplayedFixtures,
   regenFillQuality,
 } from '@/store/slices/orchestration/helpers';
 import {
@@ -251,51 +252,21 @@ export function endSeasonImpl(set: Set, get: Get) {
   const hasMultipleTiers = countryLeagues.length > 1;
 
   // Fast-forward every unplayed fixture in every loaded division BEFORE building
-  // the final tables.
+  // the final tables. See `catchUpUnplayedFixtures` for why. Normally a no-op by
+  // this point — `endSeason` runs the same catch-up and commits it before the
+  // promotion playoff is seeded — but kept here so any other caller of
+  // `endSeasonImpl` still gets complete tables.
   //
-  // `weekAdvance` only simulates other divisions where `m.week === week`, and the
-  // season ends at the PLAYER's `totalWeeks` — but each division's fixtures are
-  // generated over its OWN length. A Premier League save (38 weeks) therefore left
-  // 8 rounds / 96 fixtures unplayed in each of the three lower English tiers,
-  // EVERY season: browse the Championship and every club is on 38 games in a
-  // 46-game season, with promotion and relegation for three divisions decided 8
-  // rounds early. Same in Spain (4 rounds), Germany (4). It also catches any
-  // fixture stranded by a mid-season collision, and the final round of an
-  // odd-team league where one club is idle.
-  const caughtUpDivisionFixtures: Record<string, Match[]> = { ...state.divisionFixtures };
-  // EVERY loaded division, not just the player's country. The living world
-  // instantiates foreign top tiers whose calendars can be longer than the
-  // player's, and a fixture-less tail leaves those tables short.
-  const catchUpLeagueIds = Array.from(new Set([
-    ...countryLeagues.map(cl => cl.id),
-    ...Object.keys(state.divisionClubs),
-  ]));
-  for (const leagueId of catchUpLeagueIds) {
-    const divFixtures = caughtUpDivisionFixtures[leagueId];
-    if (!divFixtures?.length) continue;
-    let mutated = false;
-    const next = [...divFixtures];
-    for (let i = 0; i < next.length; i++) {
-      const m = next[i];
-      if (m.played) continue;
-      const hc = clubs[m.homeClubId];
-      const ac = clubs[m.awayClubId];
-      if (!hc || !ac) continue;
-      const hp = pickAiMatchSquad(hc, players, state.week).xi;
-      const ap = pickAiMatchSquad(ac, players, state.week).xi;
-      mutated = true;
-      if (hp.length === 0 || ap.length === 0) {
-        next[i] = { ...m, played: true, homeGoals: hp.length === 0 ? 0 : FORFEIT_SCORE, awayGoals: ap.length === 0 ? 0 : FORFEIT_SCORE, events: [] };
-        continue;
-      }
-      // Scoreline-only: the catch-up exists to complete TABLES, and AI event logs
-      // are discarded on the way into state anyway, so running the full event
-      // engine here was expensive work thrown away. The player's own fixtures are
-      // played interactively and never reach this loop.
-      next[i] = resolveCatchUpFixture(m, hp, ap);
-    }
-    if (mutated) caughtUpDivisionFixtures[leagueId] = next;
-  }
+  // The player's own division is seeded from `state.fixtures`, NOT
+  // `state.divisionFixtures`. Those two only re-sync inside `advanceWeek`, so
+  // the player's LAST match of the season is missing from `divisionFixtures`
+  // when rollover is triggered straight after playing it — and the catch-up
+  // would then re-simulate a match they had just played, with a different
+  // scoreline, into the table that decides their promotion.
+  const { divisionFixtures: caughtUpDivisionFixtures } = catchUpUnplayedFixtures(
+    { ...state.divisionFixtures, [playerDiv]: state.fixtures },
+    clubs, players, state.week, pickAiMatchSquad, FORFEIT_SCORE,
+  );
 
   // Build final tables for all loaded divisions in this country
   const finalDivisionTables: Record<string, LeagueTableEntry[]> = {};
@@ -329,10 +300,77 @@ export function endSeasonImpl(set: Set, get: Get) {
   let newPlayerDiv = playerDiv;
   const turnover: SeasonTurnover = { leagueId: playerDiv, promotedClubs: [], relegatedClubs: [], playoffWinners: [], promotedOutClubs: [] };
 
+  // Promotion playoffs are decided by an actual match rather than a coin flip.
+  //
+  // `simulatePlayoff` used to be `Math.random() < 0.6 ? higherSeed : lowerSeed`
+  // with no reference to squads, form or home advantage — and that governed the
+  // PLAYER's own promotion too. A whole season in tier 2-4 could end on two
+  // invisible dice rolls. A playoff bracket is at most three ties per tier pair
+  // once a season, so running the real engine here is cheap.
+  //
+  // Level after 90 minutes sends the better-placed side through: that is the
+  // reward for finishing higher, and it matches how real playoff formats break
+  // a tie without needing a shootout in this code path.
+  // Ties the PLAYER's club took part in, recorded so the season summary can
+  // show the matches that decided their season instead of silently promoting
+  // or not promoting them.
+  const playerPlayoffRun: PlayoffTieResult[] = [];
+  // Ties the player already PLAYED, if they came through the interactive
+  // playoff phase. Rollover must replay these rather than simulate them again,
+  // or the match the player just won gets silently re-decided.
+  const prePlayed = new Map<string, PlayoffTieResult>();
+  for (const r of state.playoffState?.resolved ?? []) {
+    prePlayed.set([r.homeClubId, r.awayClubId].sort().join('|'), r);
+  }
+  const resolvePlayoffTie = (homeClubId: string, awayClubId: string): string => {
+    const already = prePlayed.get([homeClubId, awayClubId].sort().join('|'));
+    if (already) {
+      if (already.homeClubId === playerClubId || already.awayClubId === playerClubId) {
+        playerPlayoffRun.push(already);
+      }
+      if (already.homeGoals === already.awayGoals) return already.homeClubId;
+      return already.homeGoals > already.awayGoals ? already.homeClubId : already.awayClubId;
+    }
+    const hc = clubs[homeClubId];
+    const ac = clubs[awayClubId];
+    if (!hc || !ac) return homeClubId;
+    const hp = pickAiMatchSquad(hc, workingPlayers, state.week).xi;
+    const ap = pickAiMatchSquad(ac, workingPlayers, state.week).xi;
+    if (hp.length === 0) return awayClubId;
+    if (ap.length === 0) return homeClubId;
+    const tie: Match = {
+      id: `playoff-${state.season}-${homeClubId}-${awayClubId}`,
+      week: state.week, season: state.season,
+      homeClubId, awayClubId, homeGoals: 0, awayGoals: 0, played: false, events: [],
+    } as Match;
+    const { result } = simulateMatch(
+      tie, hc, ac, hp, ap,
+      undefined, undefined, undefined, playerClubId,
+      getDerbyIntensity(homeClubId, awayClubId), undefined, state.season,
+    );
+    const winner = result.homeGoals === result.awayGoals
+      ? homeClubId
+      : (result.homeGoals > result.awayGoals ? homeClubId : awayClubId);
+    if (homeClubId === playerClubId || awayClubId === playerClubId) {
+      playerPlayoffRun.push({
+        homeClubId, awayClubId,
+        homeGoals: result.homeGoals, awayGoals: result.awayGoals,
+        playerAdvanced: winner === playerClubId,
+      });
+    }
+    return winner;
+  };
+
   if (hasMultipleTiers) {
     // Real promotion/relegation between tiers
     const proRelResult = applyPromotionRelegation(
       countryId, state.divisionClubs, finalDivisionTables, clubs, playerClubId,
+      resolvePlayoffTie,
+      // Pin the bracket the player actually played, so rollover cannot walk a
+      // differently-seeded one and re-simulate ties they already won.
+      state.playoffState
+        ? { leagueId: state.playoffState.leagueId, candidates: state.playoffState.candidates }
+        : null,
     );
     workingClubs = proRelResult.updatedClubs;
     newDivisionClubs = { ...state.divisionClubs, ...proRelResult.updatedDivisionClubs };
@@ -465,6 +503,14 @@ export function endSeasonImpl(set: Set, get: Get) {
   } else {
     history.promoted = false;
     history.replaced = false;
+  }
+
+  // Surface the playoff ties the player actually took part in. Promotion
+  // playoffs resolve inside season rollover, so without this a tier 2-4 season
+  // could end with the club promoted (or not) and no acknowledgement anywhere
+  // that a playoff had been played at all.
+  if (playerPlayoffRun.length > 0) {
+    history.playoffRun = playerPlayoffRun;
   }
 
   let newMessages = [...messages];
@@ -710,12 +756,19 @@ function finalizeSeason(
     // meaningless for 755 of 756 clubs and let difficulty decay every season.
     // Runs on the PRE-RESET player so the playing-time term still sees this
     // season's appearances; `applyPlayerDevelopment` recomputes overall and value.
-    let p = rawPlayer;
-    if (rawPlayer.clubId && rawPlayer.clubId !== playerClubId) {
-      for (let i = 0; i < AI_SEASON_DEVELOPMENT_PASSES; i++) {
-        p = applyPlayerDevelopment(p, 'balanced');
-      }
-    }
+    // AI development is NO LONGER APPLIED HERE. It runs a slice of clubs per
+    // week inside `advanceWeek` (see `aiDevelopmentSlices`), which spends the
+    // same `AI_SEASON_DEVELOPMENT_PASSES` budget against the same
+    // `MAX_SEASON_GROWTH` cap, but spread across the season so the world moves
+    // while the player watches instead of jumping at rollover.
+    //
+    // Deliberately NOT topped up with a residual pass here. A residual would
+    // need the per-season count of weekly passes actually applied, which is not
+    // recoverable after a mid-season save/load without new persisted state —
+    // and getting it wrong means double-developing every club in the world.
+    // Under-spending the budget slightly is the safe direction; the cap makes
+    // it self-limiting either way.
+    const p = rawPlayer;
 
     const aged = {
       ...p, age: p.age + 1,
@@ -1410,6 +1463,13 @@ function finalizeSeason(
   set({
     season: newSeason, week: 1, totalWeeks: newLeagueTotalWeeks, transferWindowOpen: true,
     seasonPhase: 'regular',
+    // Rollover has now CONSUMED the playoff: it replayed `resolved` so the ties
+    // the player played were not re-decided, and pinned the bracket off
+    // `candidates`. Leaving it set carried both into the NEXT season's rollover,
+    // which then ran last season's bracket regardless of where the club actually
+    // finished — a 19th-placed side was handed a promotion playoff, with last
+    // season's scorelines, against clubs it had not played.
+    playoffState: null,
     clubs: newClubs, players: newPlayers, fixtures: newFixtures, leagueTable: newLeagueTable,
     divisionFixtures: newDivisionFixtures, divisionTables: newDivisionTables,
     divisionClubs: newDivisionClubs,

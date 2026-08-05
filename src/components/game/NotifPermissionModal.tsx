@@ -11,6 +11,7 @@
  * Settings toggle still works later). Either way it never re-appears.
  */
 import { useCallback, useEffect, useSyncExternalStore } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Capacitor } from '@capacitor/core';
 import { Bell, X } from 'lucide-react';
@@ -28,6 +29,7 @@ import { hapticLight, hapticSuccess } from '@/utils/haptics';
 import { track } from '@/utils/analytics';
 
 export function NotifPermissionModal() {
+  const { t } = useTranslation();
   const pending = useSyncExternalStore(
     subscribeFirstWinPrompt,
     isFirstWinPromptPending,
@@ -79,7 +81,7 @@ export function NotifPermissionModal() {
           <motion.div
             role="dialog"
             aria-modal="true"
-            aria-label="Enable match reminders"
+            aria-label={t('notifPermissionModal.enableMatchReminders')}
             className="relative bg-card/95 backdrop-blur-xl border border-primary/40 rounded-2xl max-w-sm w-full p-6 overflow-hidden shadow-[0_0_40px_rgba(234,179,8,0.12)]"
             initial={{ scale: 0.9, opacity: 0, y: 16 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -89,7 +91,7 @@ export function NotifPermissionModal() {
             <button
               type="button"
               onClick={handleDismiss}
-              aria-label="Not now"
+              aria-label={t('notifPermissionModal.notNow')}
               className="absolute top-1 right-1 z-10 flex items-center justify-center min-w-[44px] min-h-[44px] rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
             >
               <X className="w-5 h-5" />

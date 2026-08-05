@@ -162,4 +162,44 @@ describe('launch-crash guardrails — AdMob / GMA SDK must not regress into the 
       await expect(showRewardedAd()).resolves.toBe(false);
     });
   });
+
+  // While AdMob is removed, NOBODY sees an ad — free or paying. Advertising
+  // "Ad-Free Experience" as a Pro benefit therefore charged money for removing
+  // something that does not exist: a refund and review-rating problem, and a
+  // fair reading of App Store Guideline 2.3.1 (accurate metadata).
+  //
+  // The `ad_free` ENTITLEMENT stays valid — it is what lets a Pro user claim a
+  // rewarded offer without watching. Only the paid-screen claim is gated.
+  describe('paywall claims match shipped behaviour', () => {
+    it('does not advertise ad_free among Pro features while ads are disabled', async () => {
+      const { NATIVE_ADS_READY } = await import('@/utils/ads');
+      const { PRO_FEATURES } = await import('@/config/monetization');
+      if (NATIVE_ADS_READY) {
+        expect(PRO_FEATURES).toContain('ad_free');
+      } else {
+        expect(PRO_FEATURES).not.toContain('ad_free');
+      }
+    });
+
+    it('the subscribe screen makes no ad-free promise while ads are disabled', async () => {
+      const { NATIVE_ADS_READY } = await import('@/utils/ads');
+      if (NATIVE_ADS_READY) return;
+      // Read the source rather than render: the bullet list is module-level and
+      // the assertion is about the shipped copy, not the DOM.
+      const src = readFileSync(resolve(REPO_ROOT, 'src/pages/SubscribeOnboarding.tsx'), 'utf8');
+      // Strip comments — the gating rationale legitimately names the feature.
+      const code = src.replace(/\/\/[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
+      // The literal may still appear inside the NATIVE_ADS_READY-gated branch;
+      // what must not exist is an ungated bullet.
+      const ungatedAdFree = /\{\s*title:\s*'Ad-Free[^}]*\}/.test(
+        code.replace(/\.\.\.\(NATIVE_ADS_READY[\s\S]*?\)\s*,/, ''),
+      );
+      expect(ungatedAdFree).toBe(false);
+    });
+
+    it('every advertised Pro feature has a label', async () => {
+      const { PRO_FEATURES, PRO_FEATURE_LABELS } = await import('@/config/monetization');
+      for (const f of PRO_FEATURES) expect(PRO_FEATURE_LABELS[f]).toBeTruthy();
+    });
+  });
 });

@@ -5,6 +5,7 @@
  * on the next launch — a gentle recurring nudge rather than a one-and-done.
  */
 import { useState } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, ArrowRight, X, CalendarClock } from 'lucide-react';
 import { useGameStore } from '@/store/gameStore';
@@ -16,6 +17,7 @@ import { cn } from '@/lib/utils';
 const DISMISS_KEY = 'dynasty-festival-banner-dismissed';
 
 export function FestivalBanner() {
+  const { t } = useTranslation();
   const setScreen = useGameStore(s => s.setScreen);
   const event = getActiveLiveEvent();
 
@@ -63,7 +65,7 @@ export function FestivalBanner() {
           type="button"
           onClick={dismiss}
           className="absolute top-2 right-2 p-2 -m-1 rounded-full text-foreground/40 hover:text-foreground/80 hover:bg-white/5 transition-colors"
-          aria-label="Dismiss festival banner"
+          aria-label={t('festivalBanner.dismissFestivalBanner')}
         >
           <X className="w-3.5 h-3.5" />
         </button>

@@ -19,7 +19,11 @@ export const LEAGUE_INFO: LeagueInfo = {
   countryId: 'ita',
   promotionSpots: 2,
   relegationSpots: 0,
-  playoffSpots: 1,
+  // 4 candidates = positions 3-6, which is what a promotion playoff actually
+  // is. With 1 the bracket collapsed to a single candidate that
+  // simulatePlayoff returns unconditionally, so 3rd place was simply
+  // auto-promoted and no playoff was ever played.
+  playoffSpots: 4,
 };
 
 export const CLUBS: ClubData[] = [

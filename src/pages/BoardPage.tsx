@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { getSuffix } from '@/utils/helpers';
@@ -104,6 +105,7 @@ const fadeUp = {
 
 /* ── Page ── */
 const BoardPage = () => {
+  const { t } = useTranslation();
   const [showResignConfirm, setShowResignConfirm] = useState(false);
   const { boardConfidence, boardObjectives, season, seasonHistory, gameMode } = useGameStore(useShallow(s => ({
     boardConfidence: s.boardConfidence,
@@ -157,8 +159,8 @@ const BoardPage = () => {
     >
       <PageHint
         screen="board"
-        title="Board Room"
-        body="The board tracks your performance against seasonal objectives. Keep confidence high by meeting targets — drop too low and you risk the sack. Check verdicts after each objective deadline."
+        title={t('boardPage.boardRoom')}
+        body={t('boardPage.theBoardTracksYourPerformance')}
       />
 
       {/* Header */}
@@ -413,8 +415,8 @@ const BoardPage = () => {
           <ConfirmDialog
             open={showResignConfirm}
             onOpenChange={setShowResignConfirm}
-            title="Resign from Club"
-            description="Are you sure you want to resign? You will enter the job market."
+            title={t('boardPage.resignFromClub')}
+            description={t('boardPage.areYouSureYouWant')}
             confirmLabel="Resign"
             onConfirm={resignFromClub}
           />

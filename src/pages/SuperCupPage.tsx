@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { cn } from '@/lib/utils';
@@ -113,6 +114,7 @@ function SuperCupMatchCard({ match, clubs, playerClubId, index }: {
 }
 
 const SuperCupPage = () => {
+  const { t } = useTranslation();
   const { domesticSuperCup, continentalSuperCup, clubs, playerClubId } = useGameStore(useShallow(s => ({
     domesticSuperCup: s.domesticSuperCup,
     continentalSuperCup: s.continentalSuperCup,
@@ -141,7 +143,7 @@ const SuperCupPage = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
       >
-        <TournamentHeader competition="super_cup" subtitle="Season opener" />
+        <TournamentHeader competition="super_cup" subtitle={t('superCupPage.seasonOpener')} />
       </motion.div>
 
       {domesticSuperCup && (

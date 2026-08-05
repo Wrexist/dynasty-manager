@@ -1,4 +1,5 @@
 import { useGameStore } from '@/store/gameStore';
+import { useTranslation } from '@/hooks/useTranslation';
 import { cn } from '@/lib/utils';
 import { Mic, X, MessageSquare } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
@@ -19,6 +20,7 @@ const TONE_STYLES: Record<PressResponseTone, { label: string; color: string; ico
 };
 
 export function PressConference() {
+  const { t } = useTranslation();
   const pendingPressConference = useGameStore(s => s.pendingPressConference);
   const respondToPress = useGameStore(s => s.respondToPress);
   const dismissPress = useGameStore(s => s.dismissPress);
@@ -45,7 +47,7 @@ export function PressConference() {
         <button
           onClick={() => { hapticLight(); dismissPress(); }}
           className="p-1.5 rounded-lg hover:bg-muted/50 transition-colors"
-          title="Skip (small penalty)"
+          title={t('pressConference.skipSmallPenalty')}
         >
           <X className="w-4 h-4 text-muted-foreground" />
         </button>

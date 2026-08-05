@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Wand2, TrendingUp, TrendingDown, Minus, Users, Sparkles, Check } from 'lucide-react';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { cn } from '@/lib/utils';
@@ -91,6 +92,7 @@ function StatCard({ icon, label, value, tone, valueClassName, delay }: StatCardP
 }
 
 export function OptimizeResultModal({ result, onDismiss }: OptimizeResultModalProps) {
+  const { t } = useTranslation();
   useScrollLock(!!result);
 
   return (
@@ -104,7 +106,7 @@ export function OptimizeResultModal({ result, onDismiss }: OptimizeResultModalPr
           transition={{ duration: 0.18 }}
           aria-modal="true"
           role="dialog"
-          aria-label="Lineup optimization result"
+          aria-label={t('optimizeResultModal.lineupOptimizationResult')}
         >
           <motion.div
             className="absolute inset-0 bg-background/70 backdrop-blur-md"
@@ -190,7 +192,7 @@ export function OptimizeResultModal({ result, onDismiss }: OptimizeResultModalPr
                 <div className="grid grid-cols-3 gap-2">
                   <StatCard
                     icon={<Users className="w-3.5 h-3.5" />}
-                    label="Changes"
+                    label={t('optimizeResultModal.changes')}
                     value={String(result.changes)}
                     tone="text-foreground"
                     delay={0.12}

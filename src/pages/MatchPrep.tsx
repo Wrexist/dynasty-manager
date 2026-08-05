@@ -1,4 +1,5 @@
 import { useGameStore } from '@/store/gameStore';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useShallow } from 'zustand/react/shallow';
 import { getSuffix } from '@/utils/helpers';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -38,6 +39,7 @@ const FORMATION_HINTS: Record<FormationType, string> = {
 };
 
 const MatchPrep = () => {
+  const { t } = useTranslation();
   const { week, clubs, players, playerClubId, leagueTable, monetization, rivalries, playerDivision, seasonPhase, matchGamePlan } = useGameStore(useShallow((s) => ({
     week: s.week,
     clubs: s.clubs,
@@ -155,7 +157,7 @@ const MatchPrep = () => {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4 pb-bar-safe space-y-3">
-      <SectionHeader title="Match Preparation" />
+      <SectionHeader title={t('matchPrep.matchPreparation')} />
       <PageHint screen="matchPrep" title={PAGE_HINTS.matchPrep.title} body={PAGE_HINTS.matchPrep.body} />
 
       {/* Match Header */}

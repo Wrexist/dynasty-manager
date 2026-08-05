@@ -7,6 +7,9 @@
  */
 
 import type { ProductId, ProFeature, CosmeticItem, AdRewardType, AdEngagementState, MonetizationState, SubscriptionTier } from '@/types/game';
+// `utils/ads.ts` is dependency-free (flags + a stub), so importing it here
+// introduces no cycle back into config.
+import { NATIVE_ADS_READY } from '@/utils/ads';
 
 // ── Product Definitions ──
 
@@ -157,8 +160,23 @@ export const PRO_PRODUCT_IDS: ProductId[] = [
 
 // ── Pro Features ──
 
+/**
+ * Pro benefits ADVERTISED on the paywall and in the shop.
+ *
+ * `ad_free` is deliberately absent while `NATIVE_ADS_READY` is false. AdMob is
+ * fully removed for V1 — no user, free or paying, sees a single ad — so listing
+ * "Ad-Free Experience" as a Pro benefit charged money for the removal of
+ * something that does not exist. That is a refund and review-rating problem and
+ * a fair reading of App Store Guideline 2.3.1 (accurate metadata).
+ *
+ * The entitlement itself is untouched: `ad_free` remains a valid ProFeature
+ * with a label, and it is what lets Pro users claim a rewarded-ad offer without
+ * watching the video. Only the *claim* is gated. Flip `NATIVE_ADS_READY` and
+ * the bullet returns on its own — see the re-enable checklist in `utils/ads.ts`,
+ * and keep `PRO_FEATURE_BULLETS` in `SubscribeOnboarding` in step with this.
+ */
 export const PRO_FEATURES: ProFeature[] = [
-  'ad_free',
+  ...(NATIVE_ADS_READY ? (['ad_free'] as ProFeature[]) : []),
   'advanced_analytics',
   'custom_tactics',
   'expanded_press',

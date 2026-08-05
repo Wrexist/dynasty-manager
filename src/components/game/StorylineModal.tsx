@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
 import { cn } from '@/lib/utils';
 import { X, BookOpen } from 'lucide-react';
@@ -10,6 +11,7 @@ import { STORYLINE_CHAINS } from '@/data/storylineChains';
 import { usePresentationSlot } from '@/hooks/usePresentationQueue';
 
 export function StorylineModal() {
+  const { t } = useTranslation();
   const pendingStoryline = useGameStore(s => s.pendingStoryline);
   const activeStorylineChains = useGameStore(s => s.activeStorylineChains);
   const respondToStoryline = useGameStore(s => s.respondToStoryline);
@@ -65,7 +67,7 @@ export function StorylineModal() {
           type="button"
           onClick={dismissStoryline}
           className="flex items-center justify-center min-w-[44px] min-h-[44px] -m-2.5 rounded-lg hover:bg-muted/50 transition-colors"
-          aria-label="Dismiss storyline event"
+          aria-label={t('storylineModal.dismissStorylineEvent')}
         >
           <X className="w-4 h-4 text-muted-foreground" />
         </button>

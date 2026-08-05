@@ -82,6 +82,7 @@ export const createCoreSlice = (set: Set, get: Get) => ({
 
   // League system defaults
   seasonPhase: 'regular' as SeasonPhase,
+  playoffState: null as GameState['playoffState'],
   divisionFixtures: {} as GameState['divisionFixtures'],
   divisionTables: {} as GameState['divisionTables'],
   divisionClubs: {} as GameState['divisionClubs'],

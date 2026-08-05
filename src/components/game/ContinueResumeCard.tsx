@@ -7,6 +7,7 @@
  * no new save shape; the once-per-session guard is sessionStorage only.
  */
 import { useMemo, useState, useEffect } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, X } from 'lucide-react';
 import { useGameStore } from '@/store/gameStore';
@@ -18,6 +19,7 @@ import { track } from '@/utils/analytics';
 import { cn } from '@/lib/utils';
 
 export function ContinueResumeCard() {
+  const { t } = useTranslation();
   const setScreen = useGameStore(s => s.setScreen);
   const playerClubId = useGameStore(s => s.playerClubId);
   const clubs = useGameStore(s => s.clubs);
@@ -89,13 +91,13 @@ export function ContinueResumeCard() {
           'shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]',
         )}
         role="region"
-        aria-label="Continue where you left off"
+        aria-label={t('continueResumeCard.continueWhereYouLeftOff')}
       >
         <button
           type="button"
           onClick={dismiss}
           className="absolute top-2 right-2 p-2 -m-1 rounded-full text-foreground/40 hover:text-foreground/80 hover:bg-white/5 transition-colors"
-          aria-label="Dismiss resume card"
+          aria-label={t('continueResumeCard.dismissResumeCard')}
         >
           <X className="w-3.5 h-3.5" />
         </button>

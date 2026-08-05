@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -145,6 +146,7 @@ const TraitChip = ({ trait }: { trait: StaffTrait }) => (
 );
 
 const StaffPage = () => {
+  const { t } = useTranslation();
   const { staff, club, week, season } = useGameStore(useShallow(s => ({
     staff: s.staff,
     club: s.clubs[s.playerClubId],
@@ -412,7 +414,7 @@ const StaffPage = () => {
                       <button
                         type="button"
                         onClick={() => setChatOpenId(null)}
-                        aria-label="Close"
+                        aria-label={t('common.close')}
                         className="p-1.5 rounded text-muted-foreground hover:text-foreground transition-colors min-h-[36px] min-w-[36px]"
                       >
                         <X className="w-3.5 h-3.5" />
@@ -510,7 +512,7 @@ const StaffPage = () => {
                         <button
                           onClick={() => setConfirmFireId(current.id)}
                           className="p-1.5 rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20 active:scale-[0.94] transition-all min-h-[32px] min-w-[32px]"
-                          title="Release"
+                          title={t('staffPage.release')}
                           aria-label={`Release ${current.firstName} ${current.lastName}`}
                         >
                           <X className="w-3 h-3" />

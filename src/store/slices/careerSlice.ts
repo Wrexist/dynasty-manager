@@ -2,7 +2,7 @@ import type { GameState } from '../storeTypes';
 import type { CareerManager, JobVacancy, JobOffer, GameMode, ActiveInterview, PitchTone, ManagerBonus, LeagueTableEntry } from '@/types/game';
 import { generateJobVacancies, getRetirementAge, generateDefaultBonuses, estimateSquadValue, calculateExpectedPosition, generateCompetitors, selectPitchQuestions, calculateInterviewResult, negotiateContract, generateUnemployedOffer } from '@/utils/managerCareer';
 import { LEAGUES, CLUBS_DATA } from '@/data/league';
-import { STARTING_BOARD_CONFIDENCE, STARTING_TACTICAL_FAMILIARITY, FACILITY_MAX_LEVEL, MEDICAL_LEVEL_FACTOR, RECOVERY_LEVEL_FACTOR, STADIUM_LEVEL_DIVISOR } from '@/config/gameBalance';
+import { STARTING_BOARD_CONFIDENCE, STARTING_TACTICAL_FAMILIARITY, FACILITY_MAX_LEVEL, RECOVERY_LEVEL_FACTOR, STADIUM_LEVEL_DIVISOR, clubMedicalLevel } from '@/config/gameBalance';
 import { PITCH_SCORE_BASE, BOARD_TOLERANCE_START, UNEMPLOYED_INITIAL_OFFERS, REP_SACKING, REP_MIN } from '@/config/managerCareer';
 import { generateAIManagerProfile } from '@/config/aiManager';
 import { generateInitialStaff, generateStaffMarket, getStaffBonus } from '@/utils/staff';
@@ -550,7 +550,7 @@ export const createCareerSlice = (set: Set, get: Get) => ({
           trainingLevel: targetClub.facilities,
           youthLevel: targetClub.youthRating,
           stadiumStands: { north: stadiumLvl, south: stadiumLvl, east: stadiumLvl, west: stadiumLvl },
-          medicalLevel: Math.min(FACILITY_MAX_LEVEL, Math.round(targetClub.facilities * MEDICAL_LEVEL_FACTOR)),
+          medicalLevel: clubMedicalLevel(targetClub.facilities),
           recoveryLevel: Math.min(FACILITY_MAX_LEVEL, Math.round(targetClub.facilities * RECOVERY_LEVEL_FACTOR)),
           upgradeInProgress: null,
         },

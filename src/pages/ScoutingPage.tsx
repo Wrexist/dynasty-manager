@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -36,6 +37,7 @@ const REPORT_SORTS = [
 type ReportSort = typeof REPORT_SORTS[number]['id'];
 
 const ScoutingPage = () => {
+  const { t } = useTranslation();
   const { scouting, players, scoutWatchList, transferMarket, transferWindowOpen } = useGameStore(useShallow((s) => ({
     scouting: s.scouting,
     players: s.players,
@@ -302,8 +304,8 @@ const ScoutingPage = () => {
                           type="button"
                           onClick={() => dismissScoutReport(report.id)}
                           className="p-2.5 -m-1.5 rounded hover:bg-destructive/20 transition-colors"
-                          title="Dismiss report"
-                          aria-label="Dismiss scout report"
+                          title={t('scoutingPage.dismissReport')}
+                          aria-label={t('scoutingPage.dismissScoutReport')}
                         >
                           <X className="w-3 h-3 text-muted-foreground/50 hover:text-destructive" />
                         </button>
@@ -429,7 +431,7 @@ const ScoutingPage = () => {
                       <button
                         onClick={() => { hapticLight(); removeFromWatchList(pid); infoToast('Removed from Watch List'); }}
                         className="p-1.5 rounded-md hover:bg-destructive/20 transition-colors"
-                        title="Remove from watch list"
+                        title={t('scoutingPage.removeFromWatchList')}
                       >
                         <StarOff className="w-4 h-4 text-destructive" />
                       </button>

@@ -19,6 +19,7 @@
  * dismissal is recorded and *reduces* future frequency.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Play, Crown, Loader2 } from 'lucide-react';
 import { useGameStore } from '@/store/gameStore';
@@ -43,6 +44,7 @@ interface AdOfferModalProps {
 }
 
 export function AdOfferModal({ placementId, onGranted, onDismissed }: AdOfferModalProps) {
+  const { t } = useTranslation();
   const monetization = useGameStore(s => s.monetization);
   const recordAdPromptShown = useGameStore(s => s.recordAdPromptShown);
   const recordAdWatched = useGameStore(s => s.recordAdWatched);
@@ -144,7 +146,7 @@ export function AdOfferModal({ placementId, onGranted, onDismissed }: AdOfferMod
             <button
               onClick={dismiss}
               disabled={busy}
-              aria-label="Close"
+              aria-label={t('common.close')}
               className="absolute top-3 right-3 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors disabled:opacity-40"
             >
               <X className="w-4 h-4" />

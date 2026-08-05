@@ -21,8 +21,12 @@ export function validateGameState(state: GameState): ValidationError[] {
   if (state.season < 1) {
     errors.push({ field: 'season', message: `season is ${state.season}, expected >= 1`, severity: 'critical' });
   }
-  if (state.week < 1 || state.week > (state.totalWeeks || 46)) {
-    errors.push({ field: 'week', message: `week is ${state.week}, expected 1-${state.totalWeeks || 46}`, severity: 'critical' });
+  // The promotion playoff is played AFTER the final league week and BEFORE the
+  // season rolls, so `totalWeeks + 1` is a legal, persistable state while
+  // `seasonPhase` is 'playoff'. Outside that phase it still is not.
+  const maxWeek = (state.totalWeeks || 46) + (state.seasonPhase === 'playoff' ? 1 : 0);
+  if (state.week < 1 || state.week > maxWeek) {
+    errors.push({ field: 'week', message: `week is ${state.week}, expected 1-${maxWeek}`, severity: 'critical' });
   }
 
   // ── League club counts ──

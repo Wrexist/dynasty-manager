@@ -39,7 +39,9 @@ export function useCurrentMatch(): { match: Match | undefined; isHome: boolean; 
   const {
     week, playerClubId, fixtures, friendlies, clubs, cup, leagueCup,
     championsCup, shieldCup, conferenceCup, domesticSuperCup, continentalSuperCup, virtualClubs,
+    seasonPhase, playoffState,
   } = useGameStore(useShallow(s => ({
+    seasonPhase: s.seasonPhase, playoffState: s.playoffState,
     week: s.week, playerClubId: s.playerClubId, fixtures: s.fixtures, friendlies: s.friendlies, clubs: s.clubs,
     cup: s.cup, leagueCup: s.leagueCup, championsCup: s.championsCup, shieldCup: s.shieldCup,
     conferenceCup: s.conferenceCup,
@@ -48,6 +50,19 @@ export function useCurrentMatch(): { match: Match | undefined; isHome: boolean; 
   })));
 
   return useMemo(() => {
+    // Promotion playoff first, matching `playCurrentMatchImpl`'s priority. This
+    // is not cosmetic: if the hook returned a stale league fixture while the
+    // engine kicked off the playoff tie, Dashboard and MatchPrep would name a
+    // different opponent — possibly with home/away flipped — which is exactly
+    // the failure the tournament-priority note below describes.
+    const playoffMatch = seasonPhase === 'playoff' ? (playoffState?.pendingMatch ?? null) : null;
+    if (playoffMatch) {
+      const isHome = playoffMatch.homeClubId === playerClubId;
+      const opponent = clubs[isHome ? playoffMatch.awayClubId : playoffMatch.homeClubId];
+      const round = (playoffState?.teamsInRound ?? 4) <= 2 ? 'Final' : 'Semi-Final';
+      return { match: playoffMatch, isHome, opponent, competition: `Promotion Playoff — ${round}` };
+    }
+
     // Check friendlies first (pre-season weeks 1-3)
     const friendlyMatch = friendlies?.find(
       m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId)
@@ -117,7 +132,7 @@ export function useCurrentMatch(): { match: Match | undefined; isHome: boolean; 
     }
 
     return { match: undefined, isHome: false, opponent: undefined };
-  }, [friendlies, fixtures, week, playerClubId, clubs, cup, leagueCup, championsCup, shieldCup, conferenceCup, domesticSuperCup, continentalSuperCup, virtualClubs]);
+  }, [seasonPhase, playoffState, friendlies, fixtures, week, playerClubId, clubs, cup, leagueCup, championsCup, shieldCup, conferenceCup, domesticSuperCup, continentalSuperCup, virtualClubs]);
 }
 
 /** Returns true when navigation should be locked (match screen active and match not reset). */

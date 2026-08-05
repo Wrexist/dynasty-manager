@@ -301,6 +301,15 @@ export const STORAGE_KEYS = {
    *  read in main.tsx BEFORE the first render so live state is populated
    *  before TitleScreen can offer Continue or New Game. */
   DEVICE_ENTITLEMENTS: 'dynasty-entitlements',
+  /** localStorage: the furthest wall-clock time this device has ever observed.
+   *
+   *  Every entitlement decision compares a stored `expiresAt` against
+   *  `Date.now()`, which the user controls. Winding the device clock backwards
+   *  therefore extended a lapsed subscription indefinitely, offline, with no
+   *  purchase — and re-armed the Starter Kit window. There is no backend to ask,
+   *  so the defence is local: judge expiry against the LATEST time ever seen
+   *  rather than the time currently claimed. */
+  CLOCK_HIGH_WATER: 'dynasty-clock-high-water',
   /** localStorage: crash-durable record of a paid consumable pack purchase
    *  that has not yet been granted in-game. Written BEFORE the StoreKit
    *  charge, cleared after the pack is opened and the save flushed.
@@ -451,6 +460,84 @@ export function readDeviceEntitlements(): DeviceEntitlementRecord | null {
 export function writeDeviceEntitlements(record: DeviceEntitlementRecord): void {
   try { localStorage.setItem(STORAGE_KEYS.DEVICE_ENTITLEMENTS, JSON.stringify(record)); }
   catch { /* storage unavailable — non-fatal, the save slot remains the fallback */ }
+}
+
+// ── Monotonic clock guard (device-global) ──
+
+/**
+ * In-memory mirror of the persisted high-water mark, and the value last written.
+ *
+ * `observeClock` runs on every entitlement check, and `isPro` is called from
+ * render paths — 23 call sites, several inside components. Persisting on each
+ * call would mean a synchronous localStorage write per render, which blocks the
+ * main thread and janks a WKWebView. So the mark advances in memory always and
+ * reaches storage at most once per CLOCK_PERSIST_INTERVAL_MS.
+ *
+ * Losing up to that interval on a hard kill costs nothing: the attack this
+ * defends against needs the clock moved back by hours or days, not seconds.
+ */
+let clockHighWaterMem: number | null = null;
+let clockHighWaterPersisted = 0;
+const CLOCK_PERSIST_INTERVAL_MS = 60_000;
+
+/** Highest `Date.now()` this device has ever recorded, or 0 if never stamped. */
+export function readClockHighWater(): number {
+  if (clockHighWaterMem !== null) return clockHighWaterMem;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.CLOCK_HIGH_WATER);
+    const v = raw ? Number(raw) : 0;
+    const parsed = Number.isFinite(v) && v > 0 ? v : 0;
+    clockHighWaterMem = parsed;
+    clockHighWaterPersisted = parsed;
+    return parsed;
+  } catch {
+    clockHighWaterMem = 0;
+    return 0;
+  }
+}
+
+/**
+ * Advance the high-water mark to `now` when it moves forward, and return the
+ * effective "now" to judge expiry against: the later of the two.
+ *
+ * A clock wound backwards therefore buys nothing — expiry is still measured
+ * against the furthest point the device ever reached.
+ */
+export function observeClock(now: number = Date.now()): number {
+  const previous = readClockHighWater();
+  if (now <= previous) return previous;
+  clockHighWaterMem = now;
+  // Throttled write — see CLOCK_PERSIST_INTERVAL_MS above.
+  if (now - clockHighWaterPersisted >= CLOCK_PERSIST_INTERVAL_MS) {
+    try {
+      localStorage.setItem(STORAGE_KEYS.CLOCK_HIGH_WATER, String(now));
+      clockHighWaterPersisted = now;
+    } catch { /* storage unavailable — the in-memory mark still holds for this session */ }
+  }
+  return now;
+}
+
+/**
+ * Re-anchor the mark to `now`, discarding a higher previous value.
+ *
+ * Called ONLY after the store has confirmed entitlement state, because that is
+ * the one moment the device's clock is corroborated by an outside authority.
+ * Without this, a device whose clock was accidentally set far into the future
+ * and then corrected would read as permanently expired — the false positive
+ * this guard would otherwise create for an honest paying customer.
+ */
+export function reanchorClock(now: number = Date.now()): void {
+  clockHighWaterMem = now;
+  clockHighWaterPersisted = now;
+  try { localStorage.setItem(STORAGE_KEYS.CLOCK_HIGH_WATER, String(now)); }
+  catch { /* storage unavailable — non-fatal */ }
+}
+
+/** Drop the in-memory mirror. Tests only — lets a spec manipulate the stored
+ *  value directly and have the next read pick it up. */
+export function __resetClockHighWaterCache(): void {
+  clockHighWaterMem = null;
+  clockHighWaterPersisted = 0;
 }
 
 export function writeDailyStreak(record: DailyStreakRecord): void {

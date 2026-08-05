@@ -50,6 +50,7 @@ import { ALL_CLUBS, getDerbyIntensity, getDerbyName } from '@/data/league';
 import { STORYLINE_CHAINS, shouldTriggerChain } from '@/data/storylineChains';
 import { simulateMatch } from '@/engine/match';
 import { applyPlayerDevelopment, seasonGrowthTracker } from '@/store/helpers/development';
+import { aiDevelopmentSlices } from '@/config/aiSimulation';
 import { applyAIMatchEvents, generateAIInjuryDetails } from '@/store/slices/orchestration/helpers';
 import { endSeasonImpl, runPostSeasonTail } from '@/store/slices/orchestration/seasonEnd';
 import { advanceLeagueCupRound } from '@/store/slices/orchestration/tournaments';
@@ -61,7 +62,7 @@ import { getWinStreak } from '@/utils/celebrations';
 import { getMentorBonus } from '@/utils/chemistry';
 import { advanceKnockoutRound, generateKnockoutFromGroups, getCurrentMatchday, isGroupStageComplete, isKnockoutRoundComplete, simulateGroupMatchday, simulateKnockoutLeg } from '@/utils/continental';
 import type { ContinentalWorld } from '@/utils/continental';
-import { stripAiMatchDetail } from '@/store/slices/orchestration/helpers';
+import { stripAiMatchDetail, stableClubSlice } from '@/store/slices/orchestration/helpers';
 import { getEffectiveStadiumLevel } from '@/utils/facilities';
 import { getLeaguePositionPrize, getMatchdayIncome, getCommercialIncome, assessFfp } from '@/utils/financeHelpers';
 import { formatMoney, getSuffix } from '@/utils/helpers';
@@ -1008,6 +1009,38 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
 
     newPlayers[pid] = p;
   });
+
+  // ── AI world development, one slice of clubs per week ──
+  //
+  // These passes used to run as a single lump inside `endSeason`. Same passes,
+  // same `MAX_SEASON_GROWTH` cap, same `seasonGrowthTracker` — only the timing
+  // changed, so that a rival's 19-year-old visibly develops during the season
+  // instead of changing number overnight in June.
+  //
+  // Cost: one slice takes ONE pass, so the weekly bill is a fraction of a single
+  // pass — well under the old season-end spike of 12 passes over every player at
+  // every club, which is what the batching was protecting against.
+  //
+  // The slice is chosen by a stable hash of the club id, NOT by array index:
+  // `divisionClubs` is rewritten by promotion and relegation every season, so an
+  // index-based split would silently re-shuffle which clubs share a slice and
+  // let a club skip or double up across a rollover.
+  {
+    const slices = aiDevelopmentSlices(state.totalWeeks || TOTAL_WEEKS);
+    const activeSlice = state.week % slices;
+    // Start-of-week rosters. A transfer completed later this same tick lands in
+    // the next slice pass; a one-week lag in squad membership is immaterial to
+    // development and keeps this out of the mid-tick club rebuild.
+    for (const club of Object.values(clubs)) {
+      if (club.id === playerClubId) continue; // handled above, with training
+      if (stableClubSlice(club.id, slices) !== activeSlice) continue;
+      for (const pid2 of club.playerIds) {
+        const target = newPlayers[pid2];
+        if (!target) continue; // ids can outlive the player they point at
+        newPlayers[pid2] = applyPlayerDevelopment(target, 'balanced');
+      }
+    }
+  }
 
   // Weekly development ticks and training injuries are reported via the
   // WeeklyDigest (playerDevelopment / injuriesThisWeek) — no inbox duplicates.

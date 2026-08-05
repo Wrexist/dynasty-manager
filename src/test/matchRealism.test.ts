@@ -220,7 +220,18 @@ describe('Match Realism', () => {
   });
 
   it('no mentality is dominant — each trades goals scored against goals conceded', () => {
-    const N = 300;
+    // n=300/cell put the max-min of five sample means inside its own noise band:
+    // with a per-cell ppg standard error around 0.06, the expected spread from
+    // sampling alone is ~0.15 on top of a true value of ~0.12, so a clean engine
+    // could land anywhere up to the 0.35 ceiling by luck. It did — measured
+    // 0.3500000000000001 on an engine whose TRUE spread, at n=1200/cell, is
+    // 0.122 (defensive 1.488 → attacking 1.609, with all-out-attack scoring
+    // 1.85 and conceding 1.49 against defensive's 1.18 and 0.99).
+    //
+    // Raised rather than loosening the ceiling: the guard should measure the
+    // property it names, and 0.35 only ever made sense as headroom for noise
+    // this sample size no longer has.
+    const N = 900;
     const mentalities = ['defensive', 'cautious', 'balanced', 'attacking', 'all-out-attack'] as const;
     const cells = mentalities.map((mentality, i) => ({
       mentality,

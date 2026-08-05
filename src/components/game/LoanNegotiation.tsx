@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useEscapeClose } from '@/hooks/useEscapeClose';
@@ -25,6 +26,7 @@ type Phase = 'negotiate' | 'thinking' | 'result';
 type Outcome = 'accepted' | 'rejected' | 'counter';
 
 export function LoanNegotiation({ playerId, onClose }: Props) {
+  const { t } = useTranslation();
   const { players, clubs, playerClubId, season } = useGameStore(useShallow(s => ({
     players: s.players,
     clubs: s.clubs,
@@ -161,7 +163,7 @@ export function LoanNegotiation({ playerId, onClose }: Props) {
           transition={{ type: 'spring', stiffness: 300, damping: 25 }}
           role="dialog"
           aria-modal="true"
-          aria-label="Loan negotiation"
+          aria-label={t('loanNegotiation.loanNegotiation')}
         >
           <div className="max-h-[85vh] overflow-y-auto overscroll-contain">
           {/* NEGOTIATE PHASE */}
@@ -264,7 +266,7 @@ export function LoanNegotiation({ playerId, onClose }: Props) {
                         step={2}
                         value={duration}
                         onChange={(e) => setDuration(Number(e.target.value))}
-                        aria-label="Loan duration in weeks"
+                        aria-label={t('loanNegotiation.loanDurationInWeeks')}
                         className="range-touch range-touch-blue relative z-10"
                       />
                     </div>
@@ -304,16 +306,16 @@ export function LoanNegotiation({ playerId, onClose }: Props) {
                         step={5}
                         value={wageSplit}
                         onChange={(e) => setWageSplit(Number(e.target.value))}
-                        aria-label="Your wage contribution percentage"
+                        aria-label={t('loanNegotiation.yourWageContributionPercentage')}
                         className="range-touch relative z-10"
                       />
                     </div>
                     <div className="flex justify-between text-[10px] text-muted-foreground tabular-nums">
-                      <span>0% (they pay all)</span>
+                      <span>{t('loanNegotiation.wageSplitNone')}</span>
                       <span className="font-medium text-foreground">
                         {formatWage(Math.round(player.wage * wageSplit / 100))}/w
                       </span>
-                      <span>100% (you pay all)</span>
+                      <span>{t('loanNegotiation.wageSplitAll')}</span>
                     </div>
                   </motion.div>
 
@@ -381,7 +383,7 @@ export function LoanNegotiation({ playerId, onClose }: Props) {
                             step={buyFeeStep}
                             value={buyFee}
                             onChange={(e) => setBuyFee(Number(e.target.value))}
-                            aria-label="Obligatory buy fee"
+                            aria-label={t('loanNegotiation.obligatoryBuyFee')}
                             className="range-touch relative z-10"
                           />
                         </div>

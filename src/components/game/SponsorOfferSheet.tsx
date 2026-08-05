@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { useGameStore } from '@/store/gameStore';
 import {
@@ -114,6 +115,7 @@ function Stepper({ tone, icon, label, value, min, max, step, original, format, o
 const seasons = (n: number) => `${n} season${n !== 1 ? 's' : ''}`;
 
 export function SponsorOfferSheet({ offer, onClose }: Props) {
+  const { t } = useTranslation();
   const week = useGameStore(s => s.week);
   const offerId = offer?.id;
   // Re-derive the offer from the store by id so the sheet reflects live
@@ -241,7 +243,7 @@ export function SponsorOfferSheet({ offer, onClose }: Props) {
 
           <div className="relative space-y-2.5 mb-3">
             <Stepper
-              tone="gold" label="Weekly Pay"
+              tone="gold" label={t('sponsorOfferSheet.weeklyPay')}
               icon={<Banknote className="w-3.5 h-3.5 text-primary" />}
               value={proposal.weeklyPayment} original={live.weeklyPayment}
               min={bounds.weeklyPayment.min} max={bounds.weeklyPayment.max} step={bounds.weeklyPayment.step}
@@ -249,7 +251,7 @@ export function SponsorOfferSheet({ offer, onClose }: Props) {
               onChange={n => setProposal(p => ({ ...p, weeklyPayment: n }))}
             />
             <Stepper
-              tone="sky" label="Duration"
+              tone="sky" label={t('sponsorOfferSheet.duration')}
               icon={<Calendar className="w-3.5 h-3.5 text-sky-400" />}
               value={proposal.seasonDuration} original={live.seasonDuration}
               min={bounds.seasonDuration.min} max={bounds.seasonDuration.max} step={bounds.seasonDuration.step}
@@ -257,7 +259,7 @@ export function SponsorOfferSheet({ offer, onClose }: Props) {
               onChange={n => setProposal(p => ({ ...p, seasonDuration: n }))}
             />
             <Stepper
-              tone="amber" label="Performance Bonus"
+              tone="amber" label={t('sponsorOfferSheet.performanceBonus')}
               icon={<Trophy className="w-3.5 h-3.5 text-amber-400" />}
               value={proposal.performanceBonus} original={live.performanceBonus}
               min={bounds.performanceBonus.min} max={bounds.performanceBonus.max} step={bounds.performanceBonus.step}
@@ -319,7 +321,7 @@ export function SponsorOfferSheet({ offer, onClose }: Props) {
           <StatTile
             tone="gold"
             icon={<Banknote className="w-3.5 h-3.5 text-primary" />}
-            label="Weekly Pay"
+            label={t('sponsorOfferSheet.weeklyPay')}
             value={formatMoney(live.weeklyPayment)}
             sub={`${formatMoney(live.weeklyPayment * TOTAL_WEEKS)}/season`}
             was={neg && live.weeklyPayment !== original.weeklyPayment ? formatMoney(original.weeklyPayment) : undefined}
@@ -327,7 +329,7 @@ export function SponsorOfferSheet({ offer, onClose }: Props) {
           <StatTile
             tone="sky"
             icon={<Calendar className="w-3.5 h-3.5 text-sky-400" />}
-            label="Duration"
+            label={t('sponsorOfferSheet.duration')}
             value={seasons(live.seasonDuration)}
             was={neg && live.seasonDuration !== original.seasonDuration ? seasons(original.seasonDuration) : undefined}
           />
@@ -338,7 +340,7 @@ export function SponsorOfferSheet({ offer, onClose }: Props) {
           <StatTile
             tone="amber"
             icon={<Trophy className="w-3.5 h-3.5 text-amber-400" />}
-            label="Performance Bonus"
+            label={t('sponsorOfferSheet.performanceBonus')}
             value={formatMoney(live.performanceBonus)}
             sub={`Paid if you: ${getBonusConditionLabel(liveOffer.bonusCondition)}`}
             was={neg && live.performanceBonus !== original.performanceBonus ? formatMoney(original.performanceBonus) : undefined}
@@ -353,7 +355,7 @@ export function SponsorOfferSheet({ offer, onClose }: Props) {
           </div>
           <ul className="text-[11px] text-muted-foreground space-y-1">
             <li>· Early termination buyout: {formatMoney(liveOffer.buyoutCost)}</li>
-            <li>· Sponsor may withdraw if satisfaction drops below 15%</li>
+            <li>{t('sponsorOfferSheet.withdrawWarning')}</li>
             <li className={cn(weeksLeft <= 2 && 'text-amber-400')}>
               · Offer expires in {weeksLeft} week{weeksLeft !== 1 ? 's' : ''}
             </li>

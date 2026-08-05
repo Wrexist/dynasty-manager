@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -39,6 +40,7 @@ import type { ProductId } from '@/types/game';
 import { track } from '@/utils/analytics';
 import { subscribeSlotContextMissing } from '@/utils/paywallTiming';
 import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
+import { NATIVE_ADS_READY } from '@/utils/ads';
 
 /**
  * Apple-compliant in-app paywall (Guideline 3.1.2(c)).
@@ -57,8 +59,15 @@ import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
  * rejections. All Pro purchase flows now route here.
  */
 
+// The "Ad-Free Experience" bullet is gated on ads actually existing. With
+// `NATIVE_ADS_READY` false, AdMob is fully removed and nobody — free or paying —
+// sees an ad, so promising its removal on a paid screen sold a benefit that
+// does not exist. Kept in step with `PRO_FEATURES` in config/monetization.ts;
+// both come back together when the flag flips.
 const PRO_FEATURE_BULLETS: { title: string; description: string }[] = [
-  { title: 'Ad-Free Experience', description: 'No banners, no video pre-rolls. Ever.' },
+  ...(NATIVE_ADS_READY
+    ? [{ title: 'Ad-Free Experience', description: 'No banners, no video pre-rolls. Ever.' }]
+    : []),
   { title: 'Instant Match Sim', description: 'Long-press to fast-forward a match in under a second.' },
   { title: 'Advanced Analytics', description: 'Possession, conversion, and per-match performance reads.' },
   { title: 'Custom Tactics Creator', description: 'Save up to 5 tactical presets and switch mid-season.' },
@@ -101,6 +110,7 @@ const PLAN_ROWS: PlanRow[] = [
 ];
 
 const SubscribeOnboarding = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const reduceMotion = useReducedMotionPref();
@@ -376,7 +386,7 @@ const SubscribeOnboarding = () => {
           type="button"
           onClick={handleSkip}
           disabled={purchasing}
-          aria-label="Close paywall"
+          aria-label={t('subscribeOnboarding.closePaywall')}
           className="w-9 h-9 rounded-full flex items-center justify-center bg-white/[0.06] border border-white/10 text-foreground/80 hover:text-foreground transition-colors disabled:opacity-40"
         >
           <X className="w-4 h-4" />

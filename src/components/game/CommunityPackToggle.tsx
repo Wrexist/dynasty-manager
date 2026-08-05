@@ -1,4 +1,5 @@
 import { Users } from 'lucide-react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { cn } from '@/lib/utils';
 import { hapticLight } from '@/utils/haptics';
 
@@ -16,6 +17,7 @@ interface CommunityPackToggleProps {
  * the popup's removal, so it renders whenever real players are enabled.
  */
 export function CommunityPackToggle({ enabled, onChange, className }: CommunityPackToggleProps) {
+  const { t } = useTranslation();
   return (
     <div className={cn('bg-card/60 backdrop-blur-xl border border-border/50 rounded-xl p-3.5', className)}>
       <div className="flex items-center gap-3">
@@ -32,7 +34,7 @@ export function CommunityPackToggle({ enabled, onChange, className }: CommunityP
           type="button"
           role="switch"
           aria-checked={enabled}
-          aria-label="Use real players (community pack)"
+          aria-label={t('communityPackToggle.useRealPlayersCommunityPack')}
           onClick={() => { hapticLight(); onChange(!enabled); }}
           className={cn(
             'relative w-12 h-7 rounded-full border transition-colors shrink-0',

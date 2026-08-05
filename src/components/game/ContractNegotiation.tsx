@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -17,6 +18,7 @@ import { FlagIcon } from '@/components/game/FlagIcon';
 import { CONTRACT_MIN_YEARS, CONTRACT_MAX_YEARS, CONTRACT_MAX_STRIKES } from '@/config/contracts';
 
 export function ContractNegotiation() {
+  const { t } = useTranslation();
   const { activeNegotiation, players, clubs, playerClubId } = useGameStore(useShallow(s => ({
     activeNegotiation: s.activeNegotiation, players: s.players, clubs: s.clubs, playerClubId: s.playerClubId,
   })));
@@ -305,12 +307,12 @@ export function ContractNegotiation() {
               {/* Other details */}
               <div className="space-y-1.5 text-xs text-muted-foreground">
                 <div className="flex justify-between">
-                  <span>Agent Fee</span>
+                  <span>{t('contractNegotiation.agentFee')}</span>
                   <span className="text-foreground">£{(activeNegotiation.agentFee / 1000).toFixed(0)}K</span>
                 </div>
                 {activeNegotiation.loyaltyBonus > 0 && (
                   <div className="flex justify-between">
-                    <span>Loyalty Bonus</span>
+                    <span>{t('contractNegotiation.loyaltyBonus')}</span>
                     <span className="text-foreground">£{(activeNegotiation.loyaltyBonus / 1000).toFixed(0)}K</span>
                   </div>
                 )}
@@ -366,7 +368,7 @@ export function ContractNegotiation() {
                         value={customWage ?? activeNegotiation.offeredWage}
                         onChange={(e) => setCustomWage(Number(e.target.value))}
                         style={{ touchAction: 'auto' }}
-                        aria-label="Offered weekly wage"
+                        aria-label={t('contractNegotiation.offeredWeeklyWage')}
                         // 44pt-tall transparent input; the zone-coloured rail
                         // above is the visual (see index.css .range-touch).
                         className="range-touch relative z-10"

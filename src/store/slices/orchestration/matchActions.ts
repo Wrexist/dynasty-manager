@@ -13,7 +13,9 @@ import { hasPerk } from '@/utils/managerPerks';
 
 import { getAICounterTactics } from '@/config/aiManager';
 import { CONTINENTAL_PRIZE_MONEY } from '@/config/continental';
-import { CUP_EXTRA_TIME_GOAL_CHANCE, CUP_EXTRA_TIME_REPUTATION_DIVISOR, CUP_PENALTY_KICKS, FORFEIT_SCORE, FRIENDLY_BOARD_CONFIDENCE_MULT, MAX_CAREER_TIMELINE, MOTIVATOR_MORALE_BOOST, PEN_AIM } from '@/config/gameBalance';
+import { CUP_EXTRA_TIME_GOAL_CHANCE, CUP_EXTRA_TIME_REPUTATION_DIVISOR, CUP_PENALTY_KICKS, FORFEIT_SCORE, FRIENDLY_BOARD_CONFIDENCE_MULT, MAX_CAREER_TIMELINE, MOTIVATOR_MORALE_BOOST, PEN_AIM, clubMedicalLevel } from '@/config/gameBalance';
+import { recordPlayerPlayoffResult } from '@/store/slices/orchestration/playoff';
+import { endSeasonImpl } from '@/store/slices/orchestration/seasonEnd';
 import { MOD_DISCIPLINE_CARDS, REP_DRAW, REP_LOSS, REP_WIN } from '@/config/managerCareer';
 import { SHOUT_CUMULATIVE_SCALE, SHOUT_MODIFIERS } from '@/config/matchEngine';
 import { CALM_DEFENSE_BOOST, CALM_FITNESS_DRAIN_MULT, CALM_FOUL_REDUCTION, DEMAND_ATTACK_BOOST, DEMAND_DEFENSE_PENALTY, DEMAND_FITNESS_DRAIN_MULT, MOTIVATE_ATTACK_BOOST, MOTIVATE_FITNESS_DRAIN_MULT, MOTIVATE_FOUL_BONUS, teamTalkModifiers } from '@/config/teamTalk';
@@ -406,6 +408,29 @@ function computeShoutMods(matchShouts: { type: keyof typeof SHOUT_MODIFIERS }[])
   return { attackMod: aMod * scale, defenseMod: dMod * scale, foulMod: fMod * scale };
 }
 
+/**
+ * Medical Centre levels for a match the player is involved in.
+ *
+ * The player's own club uses `facilities.medicalLevel` — the level they
+ * actually spent money upgrading. The opponent has no FacilitiesState, so its
+ * level is derived from its static club rating via `clubMedicalLevel`.
+ *
+ * Every callsite here used to pass `club.facilities` raw for BOTH sides. That
+ * is a fixed quality rating from the league data which never changes, so
+ * upgrading the Medical Centre did nothing for in-match injury probability,
+ * injury duration or re-injury risk — while the UI reported the upgraded level
+ * back to the player. Match injuries are the dominant injury source, so the
+ * upgrade was very nearly inert.
+ */
+function resolveMatchMedical(
+  hc: Club, ac: Club, playerClubId: string, facilities: GameState['facilities'],
+): { hcMedical: number; acMedical: number } {
+  const own = facilities?.medicalLevel;
+  const resolve = (club: Club) =>
+    club.id === playerClubId && typeof own === 'number' ? own : clubMedicalLevel(club.facilities);
+  return { hcMedical: resolve(hc), acMedical: resolve(ac) };
+}
+
 export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   const state = get();
   // Career mode: block match play when unemployed
@@ -421,8 +446,11 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   // ahead in priority caused 0-played continental campaigns and the user
   // being eliminated without ever seeing a game). The conflicting league
   // fixture gets AI-simulated by advanceWeek's div-fixture loop instead.
-  const friendlyMatch = state.friendlies?.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
-  const champMatch = !friendlyMatch ? findPlayerContinentalMatch(state.championsCup, week, playerClubId) : null;
+  // Playoff first: it is played after the league season has finished, decides
+  // promotion, and has no other week to fall back to.
+  const playoffMatch = state.seasonPhase === 'playoff' ? (state.playoffState?.pendingMatch ?? null) : null;
+  const friendlyMatch = !playoffMatch ? state.friendlies?.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId)) : null;
+  const champMatch = !playoffMatch && !friendlyMatch ? findPlayerContinentalMatch(state.championsCup, week, playerClubId) : null;
   const shieldMatch = !friendlyMatch && !champMatch ? findPlayerContinentalMatch(state.shieldCup, week, playerClubId) : null;
   const confMatch = !friendlyMatch && !champMatch && !shieldMatch ? findPlayerContinentalMatch(state.conferenceCup, week, playerClubId) : null;
   const continentalMatch = champMatch || shieldMatch || confMatch;
@@ -450,7 +478,9 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   let effectiveClubs = clubs;
   let effectivePlayers = players;
 
-  if (friendlyMatch) {
+  if (playoffMatch) {
+    match = playoffMatch;
+  } else if (friendlyMatch) {
     match = friendlyMatch;
   } else if (leagueMatch) {
     match = leagueMatch;
@@ -594,7 +624,8 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   }
 
   const spCoachInstant = hasPerk(state.managerProgression, 'set_piece_coach') ? 0.009 * dynastyMult(state.managerProgression) : 0;
-  const { result, playerRatings, matchInjuries } = simulateMatch(match, hc, ac, hp, ap, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, matchDerbyIntensity, hasDisciplinarian, season, careerDisciplineMod, hBenchCM, aBenchCM, undefined, spCoachInstant);
+  const { hcMedical: hcMedIS, acMedical: acMedIS } = resolveMatchMedical(hc, ac, playerClubId, state.facilities);
+  const { result, playerRatings, matchInjuries } = simulateMatch(match, hc, ac, hp, ap, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, matchDerbyIntensity, hasDisciplinarian, season, careerDisciplineMod, hBenchCM, aBenchCM, undefined, spCoachInstant, hcMedIS, acMedIS);
 
   // ── Cup/Tournament match path ──
   if (isCupMatch) {
@@ -782,6 +813,30 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
 
     if (get().settings.autoSave) get().saveGame();
     return finalResult;
+  }
+
+  // ── Promotion playoff path ──
+  // Modelled on the friendly path below: no league table to update, because a
+  // playoff tie is deliberately not a league fixture. The difference is that the
+  // bracket has to move on, and when it runs out the season finally rolls.
+  if (playoffMatch) {
+    const processed = processMatchResult(state, match, result, playerRatings, () => get().week, matchInjuries);
+    const teamsInRound = state.playoffState?.teamsInRound ?? 4;
+    set({
+      currentMatchResult: result,
+      players: processed.newPlayers,
+      messages: processed.newMessages,
+      matchSubsUsed: 0,
+      matchPlayerRatings: processed.playerRatings,
+      managerStats: processed.managerStats,
+      matchPhase: 'full_time' as const,
+      lastMatchCompetition: teamsInRound <= 2 ? 'Promotion Playoff Final' : 'Promotion Playoff',
+      careerTimeline: [...state.careerTimeline, ...processed.newMilestones].slice(-MAX_CAREER_TIMELINE),
+    });
+    const { seasonShouldRoll } = recordPlayerPlayoffResult(set, get, result);
+    if (seasonShouldRoll) endSeasonImpl(set, get);
+    if (get().settings.autoSave) get().saveGame();
+    return result;
   }
 
   // ── Friendly match path ──
@@ -1089,7 +1144,8 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   // extra time via the same merge, and is only cleared when the result screen
   // is dismissed (clearMatchResult).
   const preMatchTalkMods = mergeGamePlanMods(teamTalkModifiers(state.matchTeamTalk), state.matchGamePlan);
-  const halfState = simulateHalf(hc, ac, hp, ap, 1, 45, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, undefined, halfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities, season, halfCareerMod, hBench, aBench, preMatchTalkMods, matchWeather, spCoachBonus);
+  const { hcMedical, acMedical } = resolveMatchMedical(hc, ac, playerClubId, state.facilities);
+  const halfState = simulateHalf(hc, ac, hp, ap, 1, 45, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, undefined, halfDerbyIntensity, hasDisciplinarian, hcMedical, acMedical, season, halfCareerMod, hBench, aBench, preMatchTalkMods, matchWeather, spCoachBonus);
 
   // Determine which cup tracking IDs to set
   const isCupMatch = !!cupTie || !!leagueCupTie || !!continentalMatch || !!superCup;
@@ -1264,7 +1320,8 @@ export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): M
   // Resume from wherever the last segment finished (45 at the break).
   const resumeFrom = Math.max(45, state.secondHalfSimulatedTo || 45) + 1;
   const segmentEnd = Math.max(resumeFrom, Math.min(90, Math.round(untilMin)));
-  const fullState = simulateHalf(hc, ac, hp, ap, resumeFrom, segmentEnd, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, secondHalfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities, season, secondHalfCareerMod, undefined, undefined, combinedMods, currentMatchWeather ?? undefined, spCoachBonus2H);
+  const { hcMedical, acMedical } = resolveMatchMedical(hc, ac, playerClubId, state.facilities);
+  const fullState = simulateHalf(hc, ac, hp, ap, resumeFrom, segmentEnd, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, secondHalfDerbyIntensity, hasDisciplinarian, hcMedical, acMedical, season, secondHalfCareerMod, undefined, undefined, combinedMods, currentMatchWeather ?? undefined, spCoachBonus2H);
 
   // Partial segment: bank the state and hand control back so the player can act
   // before the next stretch is simulated. Deliberately does NOT finalise — no
@@ -1494,7 +1551,8 @@ export function playExtraTimeImpl(set: Set, get: Get): Match | null {
   const etMods = mergeGamePlanMods(etTalkAndShoutMods, state.matchGamePlan);
   const spCoachBonusET = hasPerk(state.managerProgression, 'set_piece_coach') ? 0.009 * dynastyMult(state.managerProgression) : 0;
   const etWeather = state.currentMatchWeather;
-  const etState = simulateHalf(hc, ac, hp, ap, 91, 120, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, derbyInt, hasDisciplinarian, hc.facilities, ac.facilities, season, etCareerMod, undefined, undefined, etMods, etWeather ?? undefined, spCoachBonusET);
+  const { hcMedical, acMedical } = resolveMatchMedical(hc, ac, playerClubId, state.facilities);
+  const etState = simulateHalf(hc, ac, hp, ap, 91, 120, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, derbyInt, hasDisciplinarian, hcMedical, acMedical, season, etCareerMod, undefined, undefined, etMods, etWeather ?? undefined, spCoachBonusET);
 
   // Build the extended match result
   const etResult: Match = {

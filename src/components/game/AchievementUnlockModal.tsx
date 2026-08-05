@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useEffect, useMemo, useRef } from 'react';
 import { X } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
@@ -74,6 +75,7 @@ function Sparkle({ spec }: { spec: SparkleSpec }) {
 }
 
 export function AchievementUnlockModal({ open, onClose, achievement }: AchievementUnlockModalProps) {
+  const { t } = useTranslation();
   // Presentation queue (G3): stack behind the digest/celebration — only show
   // and buzz when we're the active overlay.
   const slotActive = usePresentationSlot('achievement', open && !!achievement);
@@ -140,7 +142,7 @@ export function AchievementUnlockModal({ open, onClose, achievement }: Achieveme
             <button
               type="button"
               onClick={onClose}
-              aria-label="Close achievement"
+              aria-label={t('achievementUnlockModal.closeAchievement')}
               className="absolute top-0 right-0 z-10 flex items-center justify-center min-w-[44px] min-h-[44px] rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
             >
               <X className="w-5 h-5" />

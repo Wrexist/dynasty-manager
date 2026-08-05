@@ -1,4 +1,5 @@
 import { Crown } from 'lucide-react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { cn } from '@/lib/utils';
 import { PremiumSparkle } from '@/components/game/icons/PremiumSparkle';
 
@@ -9,6 +10,7 @@ interface OptimizeLineupButtonProps {
 }
 
 export function OptimizeLineupButton({ potentialGain, autoFilling, onOptimize }: OptimizeLineupButtonProps) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-1">
       {potentialGain > 0 && (
@@ -52,7 +54,7 @@ export function OptimizeLineupButton({ potentialGain, autoFilling, onOptimize }:
             boxShadow:
               'inset 0 1px 0 rgba(255,255,255,0.65), inset 0 -1px 0 rgba(0,0,0,0.3), 0 0 8px rgba(252,211,77,0.55)',
           }}
-          aria-label="Dynasty Pro feature"
+          aria-label={t('optimizeLineupButton.dynastyProFeature')}
         >
           <Crown className="w-2.5 h-2.5 drop-shadow-[0_1px_0_rgba(255,255,255,0.4)]" />
           Pro

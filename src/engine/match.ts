@@ -4,6 +4,7 @@ import {
   INJURY_TYPES,
   MEDICAL_INJURY_PREVENTION_PER_LEVEL,
   REINJURY_MATCH_CHECK_CHANCE,
+  clubMedicalLevel,
 } from '@/config/gameBalance';
 import type { InjuryDetails } from '@/types/game';
 import { pick } from '@/utils/helpers';
@@ -17,8 +18,8 @@ import {
   SHOT_ATTEMPT_THRESHOLD, FOUL_BAND_WIDTH, INJURY_BAND_WIDTH, FOUL_BAND_END_CAP, TEMPO_SHOT_THRESHOLD_SCALE,
   LOW_XG_MISS_THRESHOLD, LOW_XG_MISS_SHOW_CHANCE,
   SHOT_QUALITY_WEIGHTS, FITNESS_FACTOR_BASE, FITNESS_FACTOR_SCALE,
-  GOAL_CHANCE_ATTACK_MULT, GOAL_CHANCE_DEFENSE_MULT, GOAL_CHANCE_ATTACK_MOD_SCALE, GOAL_CHANCE_COUNTER_VULN_SCALE, GOAL_CHANCE_MIN,
-  CORNER_FROM_SAVE_CHANCE, CORNER_FROM_MISS_CHANCE,
+  GOAL_CHANCE_ATTACK_MULT, GOAL_CHANCE_DEFENSE_MULT, GOAL_CHANCE_VOLUME_SCALE, GOAL_CHANCE_ATTACK_MOD_SCALE, GOAL_CHANCE_COUNTER_VULN_SCALE, GOAL_CHANCE_MIN,
+  CORNER_FROM_SAVE_CHANCE, CORNER_FROM_MISS_CHANCE, SHOT_ON_TARGET_SAVE_SCALE,
   CARD_BASE_CHANCE, STRAIGHT_RED_CHANCE, BOOKED_PLAYER_CARD_MULT,
   MENTALITY_SHOT_SHIFT_SCALE, TEMPO_SHOT_QUALITY_MOD,
   FOUL_INJURY_CHANCE, NON_FOUL_INJURY_BASE, PHYSICAL_FRAGILITY_FACTOR, OLD_PLAYER_INJURY_BONUS, OLD_PLAYER_INJURY_AGE_THRESHOLD,
@@ -116,6 +117,15 @@ export interface HalfState {
   /** Tracks which gap-filler commentary templates have been used this match (avoids repetition).
    *  Plain array (not Set) so JSON.stringify in saveGame survives a mid-match save. */
   usedCommentaryLines: string[];
+  /** The match was abandoned under FIFA Law 3 (a side below
+   *  MIN_PLAYERS_TO_CONTINUE) and the score has been forfeited.
+   *
+   *  This MUST live on the carried state, not just in a local. `abandonMatch`
+   *  was a local inside simulateHalf, so a first half that ended in a forfeit
+   *  was followed by a completely normal second half: the depleted side played
+   *  on, both sides kept scoring, and the forfeit was silently undone.
+   *  Optional so mid-match saves written before this field default to false. */
+  abandoned?: boolean;
 }
 
 // Pure helpers (`getFormationFitBonus`, `pickAttacker`, `pickPenaltyTaker`,
@@ -255,6 +265,28 @@ export function simulateHalf(
   matchWeather?: MatchWeather,
   setPieceCoachBonus?: number,
 ): HalfState {
+  // An abandoned match is over. Every later segment — second half, extra time,
+  // a resumed mid-match save — must be a no-op, or the forfeited scoreline gets
+  // played over and the forfeit is undone.
+  if (prevState?.abandoned) {
+    return {
+      ...prevState,
+      events: [...prevState.events],
+      sentOff: [...prevState.sentOff],
+      injured: [...prevState.injured],
+      subbedOut: prevState.subbedOut ? [...prevState.subbedOut] : undefined,
+      playerEvents: { ...prevState.playerEvents },
+      matchInjuries: { ...prevState.matchInjuries },
+      homeBench: [...prevState.homeBench],
+      awayBench: [...prevState.awayBench],
+      homeSubbedIn: [...prevState.homeSubbedIn],
+      awaySubbedIn: [...prevState.awaySubbedIn],
+      playerFitness: { ...prevState.playerFitness },
+      tacticalInsights: [...prevState.tacticalInsights],
+      usedCommentaryLines: [...prevState.usedCommentaryLines],
+    };
+  }
+
   // Guard against empty squads — return a forfeit-like state (clone refs to avoid mutation)
   if (homePlayers.length === 0 || awayPlayers.length === 0) {
     const forfeitHome = homePlayers.length === 0;
@@ -510,28 +542,66 @@ export function simulateHalf(
     awayDefQuality = getDefenseQuality(awayAvail());
   };
 
+  // The tactics CURRENTLY in effect. The AI's mid-match reactivity (minutes 60
+  // and 75) replaces these, so every later strength recompute has to read them
+  // rather than the values this half started with — otherwise a red card, an
+  // injury or a substitution silently reverted the opposing manager's tactical
+  // change back to his kickoff setup for the rest of the match.
+  let currentHomeTactics = homeTactics;
+  let currentAwayTactics = awayTactics;
+
+  /**
+   * Re-apply the team-talk multipliers to a freshly computed strength pair.
+   *
+   * The talk is folded into homeStr/awayStr as a MULTIPLIER, so any bare
+   * `computeStrengths` assignment discards it. That is exactly what used to
+   * happen: ten separate recompute sites (AI reactivity at 60/75, both red-card
+   * branches, both injury branches, all four substitution branches) overwrote
+   * homeStr/awayStr without re-applying it. AI reactivity fires in effectively
+   * every match, so the player's half-time team talk survived about fourteen
+   * minutes of the second half and then vanished — on the one mechanic where
+   * the player has direct in-match agency.
+   *
+   * Mirrors the kickoff application above: attackMod lifts your own strength,
+   * defenseMod damps the OPPONENT's (via DEFENSE_MODIFIER_SCALE).
+   */
+  const withTeamTalk = (s: { homeStr: number; awayStr: number }): { homeStr: number; awayStr: number } => {
+    if (!teamTalkModifiers || !playerClubId) return s;
+    const { attackMod, defenseMod } = teamTalkModifiers;
+    if (playerClubId === homeClub.id) {
+      return {
+        homeStr: s.homeStr * (1 + attackMod),
+        awayStr: s.awayStr * (1 - defenseMod * DEFENSE_MODIFIER_SCALE),
+      };
+    }
+    if (playerClubId === awayClub.id) {
+      return {
+        homeStr: s.homeStr * (1 - defenseMod * DEFENSE_MODIFIER_SCALE),
+        awayStr: s.awayStr * (1 + attackMod),
+      };
+    }
+    return s;
+  };
+
+  /** Recompute both sides' strength from the players currently available and
+   *  the tactics currently in effect, preserving the team talk. EVERY
+   *  mid-match strength recompute must go through here. */
+  const recomputeStrengths = () => {
+    const s = withTeamTalk(computeStrengths(
+      homeClub, awayClub, homeAvail(), awayAvail(),
+      currentHomeTactics, currentAwayTactics,
+      tacticalFamiliarity, playerClubId, currentSeason,
+    ));
+    homeStr = s.homeStr;
+    awayStr = s.awayStr;
+  };
+
   // Carry numerical disadvantage across half/extra-time boundaries. The
   // initial strength computation above used the full passed lineups — the
   // store lineup is never edited on a send-off, so a team reduced to 10 in
-  // the first half silently regained full strength here. Recompute from the
-  // available pools and re-apply the team-talk multipliers (already folded
-  // into homeStr/awayStr above).
+  // the first half silently regained full strength here.
   if (prevState && unavailable.size > 0) {
-    const rebal = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId, currentSeason);
-    homeStr = rebal.homeStr;
-    awayStr = rebal.awayStr;
-    if (teamTalkModifiers && playerClubId) {
-      // Mirror the initial application above: attackMod on own strength,
-      // defenseMod damping the opponent.
-      const { attackMod, defenseMod } = teamTalkModifiers;
-      if (playerClubId === homeClub.id) {
-        homeStr = homeStr * (1 + attackMod);
-        awayStr = awayStr * (1 - defenseMod * DEFENSE_MODIFIER_SCALE);
-      } else if (playerClubId === awayClub.id) {
-        awayStr = awayStr * (1 + attackMod);
-        homeStr = homeStr * (1 - defenseMod * DEFENSE_MODIFIER_SCALE);
-      }
-    }
+    recomputeStrengths();
     refreshDefenceMetrics();
   }
 
@@ -990,7 +1060,10 @@ export function simulateHalf(
   let stoppageTime = 0;
 
   const MAX_MATCH_MINUTES = 150; // Safety cap to prevent infinite loops
-  let abandonMatch = false;
+  // Seeded from the carried state so a resumed segment of an already-abandoned
+  // match cannot restart play (the early return above normally catches this;
+  // this keeps the local honest if the guard is ever relaxed).
+  let abandonMatch = prevState?.abandoned ?? false;
   // Helper: check if a team has fallen below minimum viable size (FIFA Law 3)
   const checkAbandon = (minute: number): boolean => {
     const homeAvailCount = homeAvail().length;
@@ -1071,8 +1144,10 @@ export function simulateHalf(
         if (newHomeTactics.mentality !== oldMentality) {
           events.push({ minute: min, type: 'ai_tactical_change', clubId: homeClub.id, description: `${homeClub.shortName} manager switches to ${newHomeTactics.mentality} mentality.`, momentum });
         }
-        const recomp = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), newHomeTactics, awayTactics ?? awayClub.aiManagerProfile?.defaultTactics ?? AI_DEFAULT_TACTICS, tacticalFamiliarity, playerClubId, currentSeason);
-        homeStr = recomp.homeStr; awayStr = recomp.awayStr;
+        // Latch the new tactics so every LATER recompute this match keeps them
+        // (a red card at 70' used to revert this change).
+        currentHomeTactics = newHomeTactics;
+        recomputeStrengths();
       }
       if (awayClub.id !== playerClubId && awayClub.aiManagerProfile) {
         const oldMentality = awayClub.aiManagerProfile.defaultTactics.mentality;
@@ -1080,8 +1155,8 @@ export function simulateHalf(
         if (newAwayTactics.mentality !== oldMentality) {
           events.push({ minute: min, type: 'ai_tactical_change', clubId: awayClub.id, description: `${awayClub.shortName} manager switches to ${newAwayTactics.mentality} mentality.`, momentum });
         }
-        const recomp = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics ?? homeClub.aiManagerProfile?.defaultTactics ?? AI_DEFAULT_TACTICS, newAwayTactics, tacticalFamiliarity, playerClubId, currentSeason);
-        homeStr = recomp.homeStr; awayStr = recomp.awayStr;
+        currentAwayTactics = newAwayTactics;
+        recomputeStrengths();
       }
     }
 
@@ -1276,7 +1351,11 @@ export function simulateHalf(
         + tempoQualityMod
         - lowFitPenalty + moraleMod + pitchShotMod + weatherPaceMod + weatherMod;
 
-      const clampedChance = Math.max(GOAL_CHANCE_MIN, goalChance);
+      // Uniform scale so the added shot volume does not inflate the goal total.
+      // Multiplicative and applied to the whole expression on purpose — see
+      // GOAL_CHANCE_VOLUME_SCALE for why the additive alternatives distort
+      // quality separation and draw rate respectively.
+      const clampedChance = Math.max(GOAL_CHANCE_MIN, goalChance * GOAL_CHANCE_VOLUME_SCALE);
       // The keeper is part of RESOLVING the chance, not a relabelling applied
       // afterwards. The goal roll used to be settled first and `oppGKSave` only
       // decided whether the already-decided non-goal read as "saved" or
@@ -1339,19 +1418,51 @@ export function simulateHalf(
         let actualScorerId = scorer.id; // Can be overridden by free kick taker
         const hasHighLine = oppMods.counterVuln > 0.1;
         const flavorRoll = Math.random();
-        if (hasHighLine && flavorRoll < COUNTER_ATTACK_GOAL_CHANCE) {
+        // Walk cumulative bands over the flavours this scorer is ELIGIBLE for.
+        //
+        // The chain used to be an else-if ladder whose thresholds were
+        // cumulative (`CA`, `CA+LR`, `CA+LR+HEADER`, …) while each branch ALSO
+        // carried an independent eligibility gate. When a gate failed its band
+        // was not skipped — it was inherited by the next branch. With no high
+        // line the long-range branch owned [0, CA+LR) rather than [CA, CA+LR),
+        // so it fired at 22% instead of its configured 10%, headers likewise
+        // over-fired, and free kicks — last in the ladder — were squeezed out.
+        // Free kicks are the only flavour that honours `club.setPieceTakerId`,
+        // so the player's chosen dead-ball specialist mattered less than the
+        // config implied.
+        //
+        // Building the eligible list first gives every flavour exactly its
+        // configured probability, and anything left over stays a plain goal.
+        const flavorBands: { type: MatchEvent['type']; chance: number }[] = [];
+        if (hasHighLine) flavorBands.push({ type: 'counter_attack_goal', chance: COUNTER_ATTACK_GOAL_CHANCE });
+        if (scorer.attributes.shooting >= 75) flavorBands.push({ type: 'long_range_goal', chance: LONG_RANGE_GOAL_CHANCE });
+        if (scorer.attributes.physical >= 70) flavorBands.push({ type: 'header_goal', chance: HEADER_GOAL_CHANCE });
+        if ((scorer.skillMoves ?? 2) >= 4 && scorer.attributes.pace >= 70) flavorBands.push({ type: 'solo_goal', chance: SOLO_GOAL_CHANCE });
+        // Free kicks have no scorer-level gate here: the shooting bar depends on
+        // WHO ends up taking it (a designated specialist gets a lower bar), so
+        // it is applied below once the taker is resolved.
+        flavorBands.push({ type: 'free_kick_goal', chance: FREE_KICK_GOAL_CHANCE });
+
+        let chosenFlavor: MatchEvent['type'] | null = null;
+        let flavorCumulative = 0;
+        for (const band of flavorBands) {
+          flavorCumulative += band.chance;
+          if (flavorRoll < flavorCumulative) { chosenFlavor = band.type; break; }
+        }
+
+        if (chosenFlavor === 'counter_attack_goal') {
           goalType = 'counter_attack_goal';
           goalDescription = pick(counterAttackGoalDescs)(scorerName, clubName);
-        } else if (scorer.attributes.shooting >= 75 && flavorRoll < COUNTER_ATTACK_GOAL_CHANCE + LONG_RANGE_GOAL_CHANCE) {
+        } else if (chosenFlavor === 'long_range_goal') {
           goalType = 'long_range_goal';
           goalDescription = pick(longRangeGoalDescs)(scorerName, clubName);
-        } else if (scorer.attributes.physical >= 70 && flavorRoll < COUNTER_ATTACK_GOAL_CHANCE + LONG_RANGE_GOAL_CHANCE + HEADER_GOAL_CHANCE) {
+        } else if (chosenFlavor === 'header_goal') {
           goalType = 'header_goal';
           goalDescription = pick(headerGoalDescs)(scorerName, clubName);
-        } else if ((scorer.skillMoves ?? 2) >= 4 && scorer.attributes.pace >= 70 && flavorRoll < COUNTER_ATTACK_GOAL_CHANCE + LONG_RANGE_GOAL_CHANCE + HEADER_GOAL_CHANCE + SOLO_GOAL_CHANCE) {
+        } else if (chosenFlavor === 'solo_goal') {
           goalType = 'solo_goal';
           goalDescription = pick(soloGoalDescs)(scorerName, clubName);
-        } else if (flavorRoll < COUNTER_ATTACK_GOAL_CHANCE + LONG_RANGE_GOAL_CHANCE + HEADER_GOAL_CHANCE + FREE_KICK_GOAL_CHANCE) {
+        } else if (chosenFlavor === 'free_kick_goal') {
           // Prefer designated set-piece taker for free kicks
           let fkScorer = scorer;
           if (club.setPieceTakerId && club.setPieceTakerId !== scorer.id) {
@@ -1441,16 +1552,28 @@ export function simulateHalf(
           }
         }
       } else if (Math.random() < Math.max(0, oppGKSave - weatherGKErrorMod)) {
-        // Shot on target but saved — GK quality determines save rate (weather worsens handling)
-        if (isHome) { homeShots++; homeSoT++; } else { awayShots++; awaySoT++; }
+        // The defence stopped this one. Entering the branch is DELIBERATELY the
+        // unscaled keeper roll: the corner opportunity below hangs off it and
+        // carries its own header-goal attempt, so scaling the ENTRY would move
+        // the goal model. Only the ACCOUNTING was wrong — the keeper is already
+        // folded into the goal roll above, so recording every stopped shot as a
+        // save counted him twice and put 46% of shots on target against a real
+        // ~34%. See SHOT_ON_TARGET_SAVE_SCALE.
+        const recordedOnTarget = Math.random() < SHOT_ON_TARGET_SAVE_SCALE;
+        if (isHome) { homeShots++; if (recordedOnTarget) homeSoT++; }
+        else { awayShots++; if (recordedOnTarget) awaySoT++; }
         // Credit the ACTIVE keeper: filter unavailable so a sent-off/injured
         // GK stops accruing saves and a subbed-on backup gets the credit.
         const gk = oppSquad.find(p => p.position === 'GK' && !unavailable.has(p.id));
-        if (gk && playerEvents[gk.id]) playerEvents[gk.id].saves++;
-        // Momentum swings toward the defending (saving) team
+        if (recordedOnTarget && gk && playerEvents[gk.id]) playerEvents[gk.id].saves++;
+        // Momentum swings toward the defending team either way — the chance was
+        // stopped.
         momentum = isHome
           ? Math.max(-100, momentum - MOMENTUM_SAVE_SWING)
           : Math.min(100, momentum + MOMENTUM_SAVE_SWING);
+        if (!recordedOnTarget) {
+          events.push({ minute: min, type: 'shot_missed', playerId: scorer.id, clubId: club.id, description: withContextSuffix(`${scorer.lastName}'s effort is deflected away.`), momentum, homeXG, awayXG });
+        } else {
         // Goal-line clearance: dramatic defensive intervention
         const eligibleDefenders = oppSquad.filter(p => !unavailable.has(p.id) && DEFENDER_POSITIONS.includes(p.position as typeof DEFENDER_POSITIONS[number]));
         if (Math.random() < GOAL_LINE_CLEARANCE_CHANCE && eligibleDefenders.length > 0) {
@@ -1460,8 +1583,9 @@ export function simulateHalf(
         } else {
           const saveDesc = pick(saveDescs);
           events.push({ minute: min, type: 'shot_saved', playerId: scorer.id, clubId: club.id, description: withContextSuffix(gk ? saveDesc(scorer.lastName, gk.lastName) : `${scorer.lastName}'s shot is saved.`), momentum, homeXG, awayXG });
+          }
         }
-        // Corner chance from saved shot (wide play increases corner frequency)
+        // Corner chance from a stopped shot (rate unchanged — see above)
         if (Math.random() < CORNER_FROM_SAVE_CHANCE + widthCornerBonus) {
           if (isHome) homeCorners++; else awayCorners++;
           // Corner goal attempt — designated set-piece taker improves delivery
@@ -1505,9 +1629,17 @@ export function simulateHalf(
           }
         }
       } else if (Math.random() < oppGKErrorChance) {
-        // Goalkeeper error — fumble leads to a goal (not a shot — GK dropped it).
+        // Goalkeeper error — the keeper spills a shot and it goes in.
         // Chance scaled by GK quality + weather, pre-computed once per match.
+        //
+        // This branch sits inside the SHOT ATTEMPT block, so an attempt was
+        // made and it ended up in the net: it counts as a shot AND as a shot on
+        // target, exactly like the goal branch above. It used to increment
+        // neither, which let a match finish with more goals than shots.
+        // (The xG was already booked at the shot-attempt roll, so none is added
+        // here — see the own-goal note below.)
         if (isHome) homeGoals++; else awayGoals++;
+        if (isHome) { homeShots++; homeSoT++; } else { awayShots++; awaySoT++; }
         const gkErrorAssist = pickAssist(squad.filter(p => !unavailable.has(p.id)), scorer.id);
         if (playerEvents[scorer.id]) playerEvents[scorer.id].goals++;
         if (gkErrorAssist && playerEvents[gkErrorAssist.id]) playerEvents[gkErrorAssist.id].assists++;
@@ -1601,8 +1733,7 @@ export function simulateHalf(
               events.push({ minute: min, type: 'commentary', clubId: foulingClub.id, description: `${foulingClub.shortName} are down to ${teamAvail} players! One more sending off and the match will be abandoned.`, momentum });
             }
             // Rebalance strength after red card (the sent-off player might be the GK)
-            const recomputed = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId, currentSeason);
-            homeStr = recomputed.homeStr; awayStr = recomputed.awayStr;
+            recomputeStrengths();
             refreshDefenceMetrics();
             checkAbandon(min);
           } else {
@@ -1630,8 +1761,7 @@ export function simulateHalf(
               events.push({ minute: min, type: 'commentary', clubId: foulingClub.id, description: `${foulingClub.shortName} are down to ${teamAvail2} players! One more sending off and the match will be abandoned.`, momentum });
             }
             // Rebalance strength after red card (the sent-off player might be the GK)
-            const recomputed2 = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId, currentSeason);
-            homeStr = recomputed2.homeStr; awayStr = recomputed2.awayStr;
+            recomputeStrengths();
             refreshDefenceMetrics();
             checkAbandon(min);
         }
@@ -1642,6 +1772,15 @@ export function simulateHalf(
           : Math.max(-100, momentum - MOMENTUM_FOUL_SWING);
         events.push({ minute: min, type: 'foul', playerId: fouler.id, clubId: foulingClub.id, description: withContextSuffix(pick(foulDescs)(fouler.lastName)), momentum });
       }
+
+      // A sending-off just above may have taken a side below the minimum and
+      // ended the match. `checkAbandon` has already forfeited the score and
+      // stripped the goal events, but the loop only breaks at the TOP of the
+      // next minute — so the injury and penalty blocks below still ran, and a
+      // penalty converted here incremented a scoreline the forfeit had just
+      // finalised (0-3 becoming 1-3, with a scorer the forfeit had zeroed).
+      // Leave immediately instead.
+      if (abandonMatch) break;
 
       // Foul can cause injury to the FOULED player — i.e. someone on the
       // attacking (event) side, treated by that side's medical staff.
@@ -1659,8 +1798,7 @@ export function simulateHalf(
           const injDesc = `${fouled.lastName} goes down injured after the foul! ${sevLabel} ${injLabel} — ${details.weeksRemaining} week${details.weeksRemaining > 1 ? 's' : ''} out.`;
           events.push({ minute: min, type: 'injury', playerId: fouled.id, clubId: fouled.clubId, description: injDesc + (maybeWeatherSuffix() || maybePitchSuffix()) });
           // Rebalance strength after injury (numerical disadvantage; GK may be the casualty)
-          const injRecomp = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId, currentSeason);
-          homeStr = injRecomp.homeStr; awayStr = injRecomp.awayStr;
+          recomputeStrengths();
           refreshDefenceMetrics();
           // AI substitution for injured player (non-player team only)
           const injuredIsHome = fouled.clubId === homeClub.id;
@@ -1682,8 +1820,7 @@ export function simulateHalf(
                 events.push({ minute: min, type: 'substitution', playerId: inPlayer.id, assistPlayerId: outPlayer.id, clubId: subClub.id, description: pickSubDesc(inPlayer.lastName, outPlayer.lastName, subClub.shortName, true) });
               }
               // Rebalance after sub improves team (a backup GK may have come on)
-              const subRecomp = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId, currentSeason);
-              homeStr = subRecomp.homeStr; awayStr = subRecomp.awayStr;
+              recomputeStrengths();
               refreshDefenceMetrics();
             }
           }
@@ -1767,8 +1904,7 @@ export function simulateHalf(
         const nonFoulInjDesc = `${pick(injuryDescs)(candidate.lastName)} ${sevLabel} ${injLabel} — ${details.weeksRemaining} week${details.weeksRemaining > 1 ? 's' : ''} out.`;
         events.push({ minute: min, type: 'injury', playerId: candidate.id, clubId: club.id, description: nonFoulInjDesc + (maybeWeatherSuffix() || maybePitchSuffix()) });
         // Rebalance strength after injury (numerical disadvantage; GK may be the casualty)
-        const injRecomp2 = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId, currentSeason);
-        homeStr = injRecomp2.homeStr; awayStr = injRecomp2.awayStr;
+        recomputeStrengths();
         refreshDefenceMetrics();
         // AI substitution for injured player (non-player team only)
         const candIsHome = club.id === homeClub.id;
@@ -1784,8 +1920,7 @@ export function simulateHalf(
             if (!playerEvents[inPlayer.id]) playerEvents[inPlayer.id] = { goals: 0, assists: 0, yellows: 0, redCard: false, saves: 0, cleanSheet: true, goalsAtEntry: candIsHome ? awayGoals : homeGoals };
             matchFitness[inPlayer.id] = Math.min(100, inPlayer.fitness + SUB_ENTRY_FITNESS_BOOST);
             events.push({ minute: min, type: 'substitution', playerId: inPlayer.id, assistPlayerId: outPlayer.id, clubId: club.id, description: pickSubDesc(inPlayer.lastName, outPlayer.lastName, club.shortName, true) });
-            const subRecomp2 = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId, currentSeason);
-            homeStr = subRecomp2.homeStr; awayStr = subRecomp2.awayStr;
+            recomputeStrengths();
             refreshDefenceMetrics();
           }
         }
@@ -1818,8 +1953,7 @@ export function simulateHalf(
           if (!playerEvents[aiSub.inPlayer.id]) playerEvents[aiSub.inPlayer.id] = { goals: 0, assists: 0, yellows: 0, redCard: false, saves: 0, cleanSheet: true, goalsAtEntry: awayGoals };
           matchFitness[aiSub.inPlayer.id] = Math.min(100, aiSub.inPlayer.fitness + SUB_ENTRY_FITNESS_BOOST);
           events.push({ minute: min, type: 'substitution', playerId: aiSub.inPlayer.id, assistPlayerId: aiSub.outPlayer.id, clubId: homeClub.id, description: pickSubDesc(aiSub.inPlayer.lastName, aiSub.outPlayer.lastName, homeClub.shortName, false) });
-          const recomp = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId, currentSeason);
-          homeStr = recomp.homeStr; awayStr = recomp.awayStr;
+          recomputeStrengths();
           refreshDefenceMetrics();
         }
       }
@@ -1839,8 +1973,7 @@ export function simulateHalf(
           if (!playerEvents[aiSub.inPlayer.id]) playerEvents[aiSub.inPlayer.id] = { goals: 0, assists: 0, yellows: 0, redCard: false, saves: 0, cleanSheet: true, goalsAtEntry: homeGoals };
           matchFitness[aiSub.inPlayer.id] = Math.min(100, aiSub.inPlayer.fitness + SUB_ENTRY_FITNESS_BOOST);
           events.push({ minute: min, type: 'substitution', playerId: aiSub.inPlayer.id, assistPlayerId: aiSub.outPlayer.id, clubId: awayClub.id, description: pickSubDesc(aiSub.inPlayer.lastName, aiSub.outPlayer.lastName, awayClub.shortName, false) });
-          const recomp = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId, currentSeason);
-          homeStr = recomp.homeStr; awayStr = recomp.awayStr;
+          recomputeStrengths();
           refreshDefenceMetrics();
         }
       }
@@ -1907,6 +2040,7 @@ export function simulateHalf(
     playerFitness: { ...matchFitness },
     tacticalInsights,
     usedCommentaryLines: usedLines,
+    abandoned: abandonMatch,
   };
 }
 
@@ -2041,9 +2175,20 @@ export function simulateMatch(
   awayBench?: Player[],
   matchWeather?: MatchWeather,
   setPieceCoachBonus?: number,
+  /** Medical Centre level (0-10) for each side. The player's club must pass
+   *  `facilities.medicalLevel` — the level they actually paid to upgrade.
+   *  Omitted for AI-vs-AI, where `clubMedicalLevel` derives it from the club's
+   *  static rating. Passing `club.facilities` raw is wrong: that is a fixed
+   *  quality rating on a different scale which never reflects an upgrade. */
+  homeMedicalLevel?: number,
+  awayMedicalLevel?: number,
 ): { result: Match; playerRatings: PlayerMatchRating[]; matchInjuries: Record<string, InjuryDetails> } {
   // Generate weather if not provided
   const weather = matchWeather || generateMatchWeather();
+  // Resolve each side's Medical Centre level. Callers that know the player's
+  // upgraded level pass it; otherwise derive it from the club's static rating.
+  const homeMed = homeMedicalLevel ?? clubMedicalLevel(homeClub.facilities);
+  const awayMed = awayMedicalLevel ?? clubMedicalLevel(awayClub.facilities);
   // Forfeit if either squad is invalid
   const homeIsPlayer = playerClubId === homeClub.id;
   const awayIsPlayer = playerClubId === awayClub.id;
@@ -2063,7 +2208,7 @@ export function simulateMatch(
   const effectiveAwayTactics = awayTactics ?? awayClub.aiManagerProfile?.defaultTactics ?? AI_DEFAULT_TACTICS;
 
   // Simulate first half (1-45)
-  const firstHalf = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 1, 45, effectiveHomeTactics, effectiveAwayTactics, tacticalFamiliarity, playerClubId, undefined, derbyIntensity, disciplinarianActive, homeClub.facilities, awayClub.facilities, currentSeason, careerDisciplineMod, homeBench, awayBench, undefined, weather, setPieceCoachBonus);
+  const firstHalf = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 1, 45, effectiveHomeTactics, effectiveAwayTactics, tacticalFamiliarity, playerClubId, undefined, derbyIntensity, disciplinarianActive, homeMed, awayMed, currentSeason, careerDisciplineMod, homeBench, awayBench, undefined, weather, setPieceCoachBonus);
 
   // AI tactical reactivity: adjust tactics for second half based on scoreline
   let secondHalfHomeTactics = effectiveHomeTactics;
@@ -2079,7 +2224,7 @@ export function simulateMatch(
   }
 
   // Simulate second half (46-90) with potentially adjusted AI tactics
-  const fullState = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 46, 90, secondHalfHomeTactics, secondHalfAwayTactics, tacticalFamiliarity, playerClubId, firstHalf, derbyIntensity, disciplinarianActive, homeClub.facilities, awayClub.facilities, currentSeason, careerDisciplineMod, homeBench, awayBench, undefined, weather, setPieceCoachBonus);
+  const fullState = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 46, 90, secondHalfHomeTactics, secondHalfAwayTactics, tacticalFamiliarity, playerClubId, firstHalf, derbyIntensity, disciplinarianActive, homeMed, awayMed, currentSeason, careerDisciplineMod, homeBench, awayBench, undefined, weather, setPieceCoachBonus);
 
   const finalized = finalizeMatch(match, homeClub, awayClub, homePlayers, awayPlayers, fullState);
   // Attach weather to the match result

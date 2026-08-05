@@ -46,9 +46,42 @@ export const AI_INCOME_MULTIPLIER = 0.85;
  *  This is deliberately fewer than a season's 46 weeks: the player's squad also
  *  gets weekly training on top of development, and better facilities and staff
  *  should still mean faster growth. `MAX_SEASON_GROWTH` caps the total either way,
- *  so this is a rate, not a ceiling. Batched at season end rather than run weekly
- *  to keep the cost off the weekly tick. */
+ *  so this is a rate, not a ceiling.
+ *
+ *  NO LONGER BATCHED AT SEASON END. The passes are the same; when they run is
+ *  not. See `AI_DEVELOPMENT_SLICES` below. */
 export const AI_SEASON_DEVELOPMENT_PASSES = 12;
+
+/**
+ * How many groups the AI clubs are split into for weekly development.
+ *
+ * WHY THIS EXISTS. All 12 passes used to run in one lump inside `endSeason`,
+ * for every player at 756 clubs. The justification was real — running the full
+ * pass weekly is 46x the work — but it only ruled out the NAIVE fix, and the
+ * consequence was that the world stood still for a whole season and jumped in
+ * June. A rival's 19-year-old never developed while you watched him; he changed
+ * number overnight. For a game whose core fantasy is building over time, that is
+ * a real loss.
+ *
+ * Amortising fixes it without paying the naive cost. Each week exactly ONE slice
+ * of clubs takes ONE pass, so a club is developed every `slices` weeks and
+ * receives `totalWeeks / slices` passes across the season — the same budget,
+ * spread out. The weekly cost is a fraction of one pass, which is far BELOW the
+ * old season-end spike rather than above it.
+ *
+ * The slice count is derived per league from its own calendar
+ * (`aiDevelopmentSlices`) so a 38-week league and a 46-week league still land on
+ * roughly `AI_SEASON_DEVELOPMENT_PASSES` passes, instead of the shorter calendar
+ * quietly developing its world less.
+ *
+ * `MAX_SEASON_GROWTH` still caps the total, and it is enforced through
+ * `seasonGrowthTracker`, which is already part of `GameState` and already
+ * persisted — the player's own squad has always developed this way. No new
+ * persisted state, and no save-schema change.
+ */
+export function aiDevelopmentSlices(totalWeeks: number): number {
+  return Math.max(1, Math.round(totalWeeks / AI_SEASON_DEVELOPMENT_PASSES));
+}
 export const AI_STAFF_COST_PER_REP = 15_000;
 
 // ── AI Wage Constraints ──

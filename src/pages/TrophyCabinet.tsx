@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -15,6 +16,7 @@ import { PageHint } from '@/components/game/PageHint';
 import { SectionHeader } from '@/components/game/SectionHeader';
 
 const TrophyCabinet = () => {
+  const { t } = useTranslation();
   const setScreen = useGameStore(s => s.setScreen);
   const { seasonHistory, unlockedAchievements, clubRecords, monetization } = useGameStore(useShallow(s => ({
     seasonHistory: s.seasonHistory,
@@ -51,11 +53,11 @@ const TrophyCabinet = () => {
     )}>
       <PageHint
         screen="trophy-cabinet"
-        title="Trophy Cabinet"
-        body="All your honours and achievements displayed here. Trophies are earned by winning competitions. Achievements unlock by reaching specific milestones — check the progress tracker to see what's next."
+        title={t('trophyCabinet.trophyCabinet')}
+        body={t('trophyCabinet.allYourHonoursAndAchievements')}
       />
 
-      <SectionHeader title="Trophy Cabinet" />
+      <SectionHeader title={t('trophyCabinet.trophyCabinet')} />
 
       {/* Trophy Count Header */}
       <GlassPanel className="p-5 text-center border-primary/30">

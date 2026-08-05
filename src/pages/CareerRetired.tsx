@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -22,6 +23,7 @@ import { cn } from '@/lib/utils';
  * This is the ending: what the career amounted to, and one clear next step.
  */
 const CareerRetired = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const careerManager = useGameStore((s) => s.careerManager);
   const seasonHistory = useGameStore((s) => s.seasonHistory);
@@ -88,10 +90,10 @@ const CareerRetired = () => {
           <p className="text-xs text-muted-foreground mt-1">Legacy score</p>
         </div>
         <div className="grid grid-cols-2 gap-2 mt-4">
-          <RetiredStat icon={Trophy} label="Trophies" value={stats.trophies} />
-          <RetiredStat icon={Calendar} label="Seasons" value={stats.seasons} />
-          <RetiredStat icon={Briefcase} label="Clubs" value={stats.clubs} />
-          <RetiredStat icon={Percent} label="Win rate" value={`${stats.winRate}%`} />
+          <RetiredStat icon={Trophy} label={t('careerRetired.trophies')} value={stats.trophies} />
+          <RetiredStat icon={Calendar} label={t('careerRetired.seasons')} value={stats.seasons} />
+          <RetiredStat icon={Briefcase} label={t('careerRetired.clubs')} value={stats.clubs} />
+          <RetiredStat icon={Percent} label={t('careerRetired.winRate')} value={`${stats.winRate}%`} />
         </div>
         <p className="text-[11px] text-muted-foreground text-center mt-3 tabular-nums">
           {stats.matches} matches · {careerManager.totalCareerWins}W {careerManager.totalCareerDraws}D {careerManager.totalCareerLosses}L

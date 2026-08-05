@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useIncrementalReveal } from '@/hooks/useIncrementalReveal';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -27,6 +28,7 @@ import { NewsTab } from '@/components/transfer/NewsTab';
 import { FreeAgentSigningModal } from '@/components/transfer/FreeAgentSigningModal';
 
 const TransferPage = () => {
+  const { t } = useTranslation();
   const {
     transferMarket, players, clubs, playerClubId, shortlist, transferWindowOpen,
     incomingOffers, activeLoans, incomingLoanOffers, outgoingLoanRequests,
@@ -423,7 +425,7 @@ const TransferPage = () => {
                 type="text"
                 inputMode="search"
                 enterKeyHint="search"
-                placeholder="Search player..."
+                placeholder={t('transferPage.searchPlayer')}
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 className="w-full px-3 py-1.5 pr-8 rounded-lg text-xs bg-card/60 backdrop-blur-xl border border-border/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
@@ -434,7 +436,7 @@ const TransferPage = () => {
                   // Visual stays a 14px glyph; `after:-inset-2` grows only the
                   // hit area (same trick as SquadPage's Renew chip).
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors after:absolute after:-inset-3 after:content-['']"
-                  aria-label="Clear search"
+                  aria-label={t('common.clearSearch')}
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -1064,7 +1066,7 @@ const TransferPage = () => {
       <ConfirmDialog
         open={confirmLoanBuy !== null}
         onOpenChange={(open) => { if (!open) setConfirmLoanBuy(null); }}
-        title="Sign permanently?"
+        title={t('transferPage.signPermanently')}
         description={confirmLoanBuy
           ? `Buy ${confirmLoanBuy.playerName} from their parent club for \u00A3${(confirmLoanBuy.fee / 1e6).toFixed(1)}M? This permanent transfer cannot be undone.`
           : ''}
@@ -1104,7 +1106,7 @@ const TransferPage = () => {
       <ConfirmDialog
         open={confirmRecall !== null}
         onOpenChange={(open) => { if (!open) setConfirmRecall(null); }}
-        title="Recall player?"
+        title={t('transferPage.recallPlayer')}
         description={confirmRecall
           ? `Cut ${confirmRecall.playerName}'s loan at ${confirmRecall.clubName} short and bring him back now? The loan cannot be restarted.`
           : ''}

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { getSuffix, formatMoney } from '@/utils/helpers';
@@ -131,6 +132,7 @@ function competitionRowIcon(entry: CompetitionStatusEntry) {
 }
 
 const Dashboard = () => {
+  const { t } = useTranslation();
   const reduceMotion = useReducedMotionPref();
   // Use useShallow to only re-render when specific properties change (prevents React #185)
   const {
@@ -768,8 +770,8 @@ const Dashboard = () => {
 
       <PageHint
         screen="dashboard"
-        title="Your Dashboard"
-        body="This is your weekly hub. Check upcoming matches, review finances, track objectives, and advance to the next week. Visit Squad to manage players, Tactics to set formations, and Transfers to buy or sell."
+        title={t('dashboard.yourDashboard')}
+        body={t('dashboard.thisIsYourWeeklyHub')}
       />
 
       {/* Live-event banner (World Cup or the generated monthly festival).
@@ -842,7 +844,7 @@ const Dashboard = () => {
                 type="button"
                 className="relative w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center transition-colors hover:bg-primary/20"
                 onClick={(e) => { e.stopPropagation(); setScreen('inbox'); }}
-                aria-label="Inbox"
+                aria-label={t('dashboard.inbox')}
               >
                 <Mail className="w-4 h-4 text-primary" />
                 {unread > 0 && (
@@ -1407,7 +1409,7 @@ const Dashboard = () => {
               <button
                 type="button"
                 onClick={() => setScreen('transfers')}
-                aria-label="Transfer window open — open transfers"
+                aria-label={t('dashboard.transferWindowOpenOpenTransfers')}
                 className="inline-flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2.5 py-1 cursor-pointer hover:bg-emerald-500/15 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
               >
                 <ShoppingBag className="w-3 h-3 text-emerald-400" />

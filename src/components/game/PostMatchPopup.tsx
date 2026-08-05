@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { resolveClub } from '@/utils/helpers';
@@ -25,6 +26,7 @@ interface PostMatchPopupProps {
 }
 
 export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
+  const { t } = useTranslation();
   const { currentMatchResult, clubs, playerClubId, preMatchLeaguePosition, lastMatchXPGain, leagueTable, managerProgression, matchPlayerRatings, players, virtualClubs, invincibleUsedThisSeason, preMatchSnapshot, lastMatchCompetition, matchGamePlan } = useGameStore(
     useShallow(s => ({
       currentMatchResult: s.currentMatchResult,
@@ -107,7 +109,7 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 py-6"
       role="dialog"
       aria-modal="true"
-      aria-label="Post-match summary"
+      aria-label={t('postMatchPopup.postMatchSummary')}
     >
       {/* Backdrop swallows page scroll; the panel itself must stay scrollable
           or "Continue" can sit off-screen after a goal-heavy match on a short

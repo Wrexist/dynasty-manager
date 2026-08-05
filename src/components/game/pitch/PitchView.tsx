@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { Club, Match, MatchEvent, Player, TacticalInstructions } from '@/types/game';
 import { buildMatchTimeline } from '@/engine/match/choreography';
@@ -65,6 +66,7 @@ const teamCode = (s: string) => (s || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 
 // light top-left sheen and a dark lower-right, so it reads as a crest rather
 // than a flat dot. Pure CSS, no colour maths.
 function ScoreCrest({ color }: { color: string }) {
+  const { t } = useTranslation();
   return (
     <span className="relative h-3 w-3 shrink-0 rounded-full ring-1 ring-black/40" style={{ backgroundColor: color || '#888888' }}>
       <span
@@ -78,6 +80,9 @@ function ScoreCrest({ color }: { color: string }) {
 export default function PitchView({
   match, homeClub, awayClub, events, minute, playerIsHome, homeTactics, awayTactics, players, orientation = 'portrait', showOverall, reducedMotion, msPerMinute,
 }: PitchViewProps) {
+  // Aliased: this file already uses `t` as a loop variable further down
+  // (`for (const t of targets)`), and shadowing it reads as a bug.
+  const { t: tr } = useTranslation();
   const landscape = orientation === 'landscape';
   const quality = useMemo(() => detectPitchQuality(!!reducedMotion), [reducedMotion]);
 
@@ -317,7 +322,7 @@ export default function PitchView({
         <button
           onClick={() => setReplay({ from: Math.max(0, lastGoal.minute - 3), to: lastGoal.minute + 1 })}
           className="absolute right-2 top-2 z-10 flex items-center gap-1 rounded-full bg-card/75 px-2.5 py-1 backdrop-blur-md border border-border/40 active:scale-95"
-          aria-label="Replay last goal"
+          aria-label={tr('pitchView.replayLastGoal')}
         >
           <RotateCcw className="h-3 w-3 text-primary" />
           <span className="text-[10px] font-semibold text-foreground">Replay</span>

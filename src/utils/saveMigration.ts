@@ -12,11 +12,49 @@ import { isPlaceholderClubId } from '@/config/continental';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 79;
+const CURRENT_VERSION = 82;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
 const migrations: Record<number, MigrationFn> = {
+  // v81 → v82: `playoffState` holds the player's live promotion playoff between
+  // the final league week and rollover. Additive and nullable — an old save was
+  // never mid-playoff, because the phase did not exist, so `null` is the only
+  // correct value and there is nothing to backfill. The bump exists so the shape
+  // change is declared rather than sneaking in.
+  81: (data) => ({ ...data, version: 82, playoffState: data.playoffState ?? null }),
+
+  // v80 → v81: `SeasonHistory` gained the optional `playoffRun`, the player's own
+  // promotion-playoff ties. Purely additive and optional — an old save simply has
+  // no record of past playoffs (the ties were never stored), so the field stays
+  // absent for historical seasons and the season summary omits the panel, which
+  // is exactly what it did before. Nothing to backfill; the version bump exists
+  // so the shape change is declared rather than sneaking in.
+  80: (data) => ({ ...data, version: 81 }),
+
+  // v79 → v80: `managerStats` gained `biggestSigningFee`, the largest fee this
+  // manager has ever paid. The "Record Signing" milestone used to compare the
+  // fee against `totalSpent * RECORD_SIGNING_SPEND_RATIO` — career SPEND, not
+  // the biggest previous FEE — so the first qualifying signing always fired and
+  // later ones fired less and less often as the career total grew, regardless
+  // of whether they were actually records.
+  //
+  // Seeded to 0 rather than guessed from history: existing careers have no
+  // record of past fees (`careerTimeline` stores prose, not amounts), so the
+  // next big signing simply re-establishes the record. That is a one-off extra
+  // milestone on upgrade, which is the harmless direction to be wrong in.
+  79: (data) => {
+    const ms = data.managerStats as Record<string, unknown> | null | undefined;
+    if (!ms || typeof ms !== 'object' || Array.isArray(ms)) {
+      return { ...data, version: 80 };
+    }
+    return {
+      ...data,
+      version: 80,
+      managerStats: { ...ms, biggestSigningFee: ms.biggestSigningFee ?? 0 },
+    };
+  },
+
   // v78 → v79: `MonetizationState` gained `adEngagement`, which paces rewarded-ad
   // prompt frequency (see config/ads.ts). Old saves have no such field. Default
   // it to zeroed counters with an empty `dayKey` so the first read rolls the day

@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -147,6 +148,7 @@ interface MoreDrawerProps {
 }
 
 export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawerProps) {
+  const { t } = useTranslation();
   const [openInternal, setOpenInternal] = useState(false);
   const open = openProp ?? openInternal;
   const setOpen = useCallback((next: boolean) => {
@@ -347,7 +349,7 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search all features..."
+            placeholder={t('moreDrawer.searchAllFeatures')}
             className="relative w-full pl-9 pr-4 py-2.5 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none rounded-full"
           />
         </div>

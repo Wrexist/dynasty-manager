@@ -1,3 +1,14 @@
+/**
+ * NOTE ON TIMEOUTS: these are sized for PARALLEL execution.
+ *
+ * They were originally tuned against a serial runner, and the 10-season case sat
+ * at 120s against a measured 124s once four forks compete for four cores — the
+ * one flake that appeared when file parallelism was first switched on. Nothing
+ * is shared or corrupted; the work simply takes longer per file under
+ * contention. The budgets now match the ~16.7s-per-simulated-season headroom
+ * that longevityStress.test.ts already proved adequate under the same
+ * conditions.
+ */
 /* eslint-disable no-console -- diagnostic stats reporting */
 /**
  * Longevity & Stress Tests — Multi-season simulation
@@ -34,6 +45,15 @@ async function advanceFullSeason() {
 
   // Call endSeason to trigger season turnover
   store.getState().endSeason();
+  // …and play out the promotion playoff if the club qualified. `endSeason`
+  // defers the rollover in that case, so a harness that stops here parks the
+  // save in the playoff phase and every later season assertion is made against
+  // a season that never rolled.
+  for (let guard = 0; guard < 6; guard++) {
+    const s = store.getState();
+    if (s.seasonPhase !== 'playoff' || !s.playoffState?.pendingMatch) break;
+    store.getState().playCurrentMatch();
+  }
 }
 
 /** Check every club has at least minSize valid players. */
@@ -73,7 +93,7 @@ describe('1A: Season Lifecycle Stress Test (10 seasons)', () => {
     useGameStore.getState().initGame(CLUB_ID);
   });
 
-  it('runs 10 full seasons without state corruption', { timeout: 120_000 }, async () => {
+  it('runs 10 full seasons without state corruption', { timeout: 200_000 }, async () => {
     for (let s = 0; s < 10; s++) {
       const expectedSeason = s + 1;
       const state = useGameStore.getState();
@@ -125,7 +145,7 @@ describe('1B: Season Turnover Integrity (15 seasons)', () => {
     useGameStore.getState().initGame(CLUB_ID);
   });
 
-  it('maintains correct league size and no duplicates across 15 seasons', { timeout: 180_000 }, async () => {
+  it('maintains correct league size and no duplicates across 15 seasons', { timeout: 280_000 }, async () => {
     const seenReplacementIds = new Set<string>();
 
     for (let s = 0; s < 15; s++) {
@@ -175,7 +195,7 @@ describe('1C: Player Lifecycle (20 seasons)', () => {
     useGameStore.getState().initGame(CLUB_ID);
   });
 
-  it('tracks player aging, generation, and retirement correctly over 20 seasons', { timeout: 300_000 }, async () => {
+  it('tracks player aging, generation, and retirement correctly over 20 seasons', { timeout: 420_000 }, async () => {
     let _previousPlayerCount = Object.keys(useGameStore.getState().players).length;
 
     for (let s = 0; s < 20; s++) {
@@ -225,7 +245,7 @@ describe('1D: Financial Sustainability (15 seasons)', () => {
     useGameStore.getState().initGame(CLUB_ID);
   });
 
-  it('maintains financial sanity across 15 seasons', { timeout: 180_000 }, async () => {
+  it('maintains financial sanity across 15 seasons', { timeout: 280_000 }, async () => {
     for (let s = 0; s < 15; s++) {
       await advanceFullSeason();
       const state = useGameStore.getState();
@@ -264,7 +284,7 @@ describe('1E: Cup Competition Integrity', () => {
     useGameStore.getState().initGame(CLUB_ID);
   });
 
-  it('cup competition works correctly across 5 seasons', { timeout: 60_000 }, async () => {
+  it('cup competition works correctly across 5 seasons', { timeout: 100_000 }, async () => {
     for (let s = 0; s < 5; s++) {
       const preState = useGameStore.getState();
       const cup = preState.cup;
@@ -310,7 +330,7 @@ describe('State Size & Growth Tracking', () => {
     useGameStore.getState().initGame(CLUB_ID);
   });
 
-  it('tracks state size growth over 10 seasons', { timeout: 120_000 }, async () => {
+  it('tracks state size growth over 10 seasons', { timeout: 200_000 }, async () => {
     const sizes: { season: number; totalPlayers: number; activePlayers: number; stateKeys: number; messagesLength: number; financeHistoryLength: number; careerTimelineLength: number }[] = [];
 
     for (let s = 0; s < 10; s++) {

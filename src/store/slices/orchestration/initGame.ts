@@ -41,7 +41,7 @@ import {
 
 import { CP_FA_SEED_COUNT_BY_SEASON, CP_FA_SEED_ELITE_COUNT, CP_FA_SEED_ELITE_MIN_OVR, CP_FA_SEED_MAX_AGE, CP_FA_SEED_MID_MIN_OVR, CP_FA_SEED_MIN_AGE, CP_FA_SEED_TOP_COUNT, CP_FA_SEED_TOP_MIN_OVR } from '@/config/aiSimulation';
 import { INITIAL_FAMILIARITY_SEED } from '@/config/chemistry';
-import { FACILITY_MAX_LEVEL, MEDICAL_LEVEL_FACTOR, RECOVERY_LEVEL_FACTOR, STADIUM_LEVEL_DIVISOR, STARTING_BOARD_CONFIDENCE, STARTING_TACTICAL_FAMILIARITY } from '@/config/gameBalance';
+import { FACILITY_MAX_LEVEL, RECOVERY_LEVEL_FACTOR, STADIUM_LEVEL_DIVISOR, STARTING_BOARD_CONFIDENCE, STARTING_TACTICAL_FAMILIARITY, clubMedicalLevel } from '@/config/gameBalance';
 import { DEFAULT_MONETIZATION_STATE } from '@/config/monetization';
 import { ALL_CLUBS, DERBIES, clearLeagueTableCache } from '@/data/league';
 import type { PlayerTemplate } from '@/data/playerTemplates';
@@ -577,13 +577,13 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
     facilities: {
       trainingLevel: pcInit.facilities, youthLevel: pcInit.youthRating,
       stadiumStands: (() => { const lvl = Math.min(FACILITY_MAX_LEVEL, Math.round(pcInit.fanBase / STADIUM_LEVEL_DIVISOR)); return { north: lvl, south: lvl, east: lvl, west: lvl }; })(),
-      medicalLevel: Math.min(FACILITY_MAX_LEVEL, Math.round(pcInit.facilities * MEDICAL_LEVEL_FACTOR)),
+      medicalLevel: clubMedicalLevel(pcInit.facilities),
       recoveryLevel: Math.min(FACILITY_MAX_LEVEL, Math.round(pcInit.facilities * RECOVERY_LEVEL_FACTOR)),
       upgradeInProgress: null,
     },
     financeHistory: [], matchPlayerRatings: [],
     unlockedAchievements: [], pendingAchievementIds: [],
-    managerStats: { totalWins: 0, totalDraws: 0, totalLosses: 0, totalSpent: 0, totalEarned: 0 },
+    managerStats: { totalWins: 0, totalDraws: 0, totalLosses: 0, totalSpent: 0, totalEarned: 0, biggestSigningFee: 0 },
     clubRecords: createEmptyRecords(),
     careerTimeline: [createMilestone('season_start', 'Career Begins', `Started managing ${ALL_CLUBS.find(c => c.id === clubId)?.name || 'a club'}.`, 1, 1, 'calendar')],
     managerProgression: createDefaultProgression(),
@@ -646,6 +646,10 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
     halfTimeState: null,
     preMatchLeaguePosition: 0,
     seasonPhase: 'regular',
+    // A new career must not inherit the previous one's promotion playoff.
+    // `initGame` sets state explicitly rather than resetting to the slice
+    // defaults, so anything omitted here survives into the new save.
+    playoffState: null,
     clubPowerRankings: initializeClubPowerRankings(clubs, LEAGUES),
     activeNegotiation: null,
     pendingTransferTalk: null,

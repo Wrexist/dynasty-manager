@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { ConfirmDialog } from '@/components/game/ConfirmDialog';
@@ -24,6 +25,7 @@ const getStandCost = (level: number) => (level + 1) * STAND_COST_PER_LEVEL;
 const getFacilityCost = (level: number) => (level + 1) * FACILITY_COST_PER_LEVEL;
 
 const FacilitiesPage = () => {
+  const { t } = useTranslation();
   const facilities = useGameStore(s => s.facilities);
   const clubs = useGameStore(s => s.clubs);
   const playerClubId = useGameStore(s => s.playerClubId);
@@ -121,8 +123,8 @@ const FacilitiesPage = () => {
     <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
       <PageHint
         screen="facilities"
-        title="Facility Upgrades"
-        body="Expand your stadium stand by stand for more matchday revenue, and upgrade training, medical, youth, and recovery facilities for lasting competitive advantages."
+        title={t('facilitiesPage.facilityUpgrades')}
+        body={t('facilitiesPage.expandYourStadiumStandBy')}
       />
 
       {/* Tab pills — page title and budget already shown in TopBar */}

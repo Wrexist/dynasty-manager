@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useEscapeClose } from '@/hooks/useEscapeClose';
@@ -29,6 +30,7 @@ type Phase = 'negotiate' | 'thinking' | 'result';
 type Outcome = 'accepted' | 'rejected' | 'counter';
 
 export function TransferNegotiation({ listing, onClose }: Props) {
+  const { t } = useTranslation();
   const { players, clubs, playerClubId, season, shortlist } = useGameStore(useShallow(s => ({
     players: s.players,
     clubs: s.clubs,
@@ -367,7 +369,7 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                       value={offerFee}
                       onChange={(e) => setOfferFee(Number(e.target.value))}
                       style={{ touchAction: 'auto' }}
-                      aria-label="Your transfer offer"
+                      aria-label={t('transferNegotiation.yourTransferOffer')}
                       // 44pt-tall transparent input — the zone-coloured rail
                       // above is the visual. The old h-1.5 box meant a 6px
                       // hit area no matter how big the thumb was painted.

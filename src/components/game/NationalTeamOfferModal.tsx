@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Globe, CheckCircle, XCircle, X } from 'lucide-react';
 import { useRef } from 'react';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,7 @@ import { FlagIcon } from '@/components/game/FlagIcon';
 import { usePresentationSlot } from '@/hooks/usePresentationQueue';
 
 export function NationalTeamOfferModal() {
+  const { t } = useTranslation();
   const showNationalTeamOffer = useGameStore(s => s.showNationalTeamOffer);
   const nationalTeamOffer = useGameStore(s => s.nationalTeamOffer);
   const managerNationality = useGameStore(s => s.managerNationality);
@@ -62,7 +64,7 @@ export function NationalTeamOfferModal() {
             <button
               type="button"
               onClick={declineNationalTeamOffer}
-              aria-label="Decline national team offer"
+              aria-label={t('nationalTeamOfferModal.declineNationalTeamOffer')}
               className="absolute top-0 right-0 z-10 flex items-center justify-center min-w-11 min-h-11 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
             >
               <X className="w-5 h-5" />

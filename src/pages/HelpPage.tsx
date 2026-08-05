@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { ChevronDown, ChevronUp, Search, HelpCircle, Route, Rocket, ShieldCheck } from 'lucide-react';
 import { useGameStore } from '@/store/gameStore';
@@ -80,6 +81,7 @@ const HELP_SECTIONS: HelpSection[] = [
 ];
 
 const HelpPage = () => {
+  const { t } = useTranslation();
   const setScreen = useGameStore(s => s.setScreen);
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
   const [search, setSearch] = useState('');
@@ -103,7 +105,7 @@ const HelpPage = () => {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <input
           type="text"
-          placeholder="Search topics..."
+          placeholder={t('helpPage.searchTopics')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full pl-9 pr-4 py-2.5 bg-muted/30 border border-border/50 rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"

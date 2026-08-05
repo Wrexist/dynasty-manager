@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -188,6 +189,7 @@ function TournamentView({ tournament, competition }: { tournament: ContinentalTo
 }
 
 const ContinentalPage = ({ embedded = false }: { embedded?: boolean } = {}) => {
+  const { t } = useTranslation();
   const championsCup = useGameStore(s => s.championsCup);
   const shieldCup = useGameStore(s => s.shieldCup);
   const conferenceCup = useGameStore(s => s.conferenceCup);
@@ -221,8 +223,8 @@ const ContinentalPage = ({ embedded = false }: { embedded?: boolean } = {}) => {
     <div className="max-w-lg mx-auto px-4 py-6 space-y-4">
       <PageHint
         screen="continental"
-        title="Continental Competition"
-        body="Compete against the best clubs from across the league system. The group stage determines who advances to the knockout rounds. Win the final to claim continental glory and a major reputation boost."
+        title={t('continentalPage.continentalCompetition')}
+        body={t('continentalPage.competeAgainstTheBestClubs')}
       />
 
       <TournamentView tournament={tournament} competition={competition} />

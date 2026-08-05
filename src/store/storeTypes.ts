@@ -1,4 +1,4 @@
-import { Club, Player, Match, MatchWeather, LeagueTableEntry, FormationType, TransferListing, BoardObjective, BoardUltimatum, GameScreen, Message, SeasonHistory, IncomingOffer, GameSettings, TacticalInstructions, TrainingState, TrainingModule, StaffMember, ScoutingState, ScoutRegion, YouthAcademyState, FacilitiesState, FinanceRecord, PlayerMatchRating, LoanDeal, IncomingLoanOffer, OutgoingLoanRequest, CupState, PressConference, ContractOffer, ActiveChallenge, LeagueId, SeasonTurnover, DerbyRivalry, ClubRecords, SeasonPhase, CareerMilestone, ManagerProgression, PerkId, StorylineEvent, ActiveStorylineChain, SponsorDeal, SponsorOffer, SponsorNegotiationProposal, SponsorSlotId, MerchState, MerchProductLine, MerchPricingTier, MerchCampaignType, CliffhangerItem, MatchDramaType, SessionStats, HeadToHeadRecord, MonetizationState, ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo, TransferNewsEntry, NationalTeamState, NationalTeamOffer, InternationalTournamentState, GameMode, CareerManager, JobVacancy, JobOffer, ActiveInterview, PitchTone, ManagerBonus, LeagueCupState, ContinentalTournamentState, ContinentalCompetition, VirtualClub, SuperCupMatch, TransferTalk, TeamTalkType, GamePlanId, PenaltyKick, PenaltyShootoutCtx, MatchShout, ShoutType, NegotiationStrike, OpenedPackRecord, OpenPackResult, ReleasePackedPlayerResult, QuickSellPackedPlayerResult, PackTierKey, PackUnlockMethod, LoadError, CaptureScenario } from '@/types/game';
+import { Club, Player, Match, MatchWeather, LeagueTableEntry, FormationType, TransferListing, BoardObjective, BoardUltimatum, GameScreen, Message, SeasonHistory, IncomingOffer, GameSettings, TacticalInstructions, TrainingState, TrainingModule, StaffMember, ScoutingState, ScoutRegion, YouthAcademyState, FacilitiesState, FinanceRecord, PlayerMatchRating, LoanDeal, IncomingLoanOffer, OutgoingLoanRequest, CupState, PressConference, ContractOffer, ActiveChallenge, LeagueId, SeasonTurnover, DerbyRivalry, ClubRecords, SeasonPhase, PlayoffState, CareerMilestone, ManagerProgression, PerkId, StorylineEvent, ActiveStorylineChain, SponsorDeal, SponsorOffer, SponsorNegotiationProposal, SponsorSlotId, MerchState, MerchProductLine, MerchPricingTier, MerchCampaignType, CliffhangerItem, MatchDramaType, SessionStats, HeadToHeadRecord, MonetizationState, ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo, TransferNewsEntry, NationalTeamState, NationalTeamOffer, InternationalTournamentState, GameMode, CareerManager, JobVacancy, JobOffer, ActiveInterview, PitchTone, ManagerBonus, LeagueCupState, ContinentalTournamentState, ContinentalCompetition, VirtualClub, SuperCupMatch, TransferTalk, TeamTalkType, GamePlanId, PenaltyKick, PenaltyShootoutCtx, MatchShout, ShoutType, NegotiationStrike, OpenedPackRecord, OpenPackResult, ReleasePackedPlayerResult, QuickSellPackedPlayerResult, PackTierKey, PackUnlockMethod, LoadError, CaptureScenario } from '@/types/game';
 import type { ObjectiveInstance } from '@/utils/weeklyObjectives';
 import type { PostSeasonSnapshot } from '@/store/slices/orchestration/seasonEnd';
 import type { HalfState } from '@/engine/match';
@@ -64,6 +64,8 @@ export interface GameState {
   divisionClubs: Record<string, string[]>;
   playerDivision: LeagueId;
   seasonPhase: SeasonPhase;
+  /** Live promotion playoff for the player's club, or null. Save schema v82. */
+  playoffState: PlayoffState | null;
   lastSeasonTurnover: SeasonTurnover | null;
   derbies: DerbyRivalry[];
 
@@ -145,7 +147,9 @@ export interface GameState {
   facilities: FacilitiesState;
   financeHistory: FinanceRecord[];
   unlockedAchievements: string[];
-  managerStats: { totalWins: number; totalDraws: number; totalLosses: number; totalSpent: number; totalEarned: number };
+  /** `biggestSigningFee` is the largest fee ever paid by this manager — the
+   *  reference the "Record Signing" milestone compares against. Save schema v80. */
+  managerStats: { totalWins: number; totalDraws: number; totalLosses: number; totalSpent: number; totalEarned: number; biggestSigningFee?: number };
   clubRecords: ClubRecords;
   careerTimeline: CareerMilestone[];
   managerProgression: ManagerProgression;

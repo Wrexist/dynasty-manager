@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -23,6 +24,7 @@ const PRESTIGE_BADGE_ICONS: Record<string, React.ElementType> = {
 };
 
 const PrestigePage = () => {
+  const { t } = useTranslation();
   const { seasonHistory, managerStats, managerProgression, monetization } = useGameStore(useShallow((s) => ({
     seasonHistory: s.seasonHistory,
     managerStats: s.managerStats,
@@ -138,7 +140,7 @@ const PrestigePage = () => {
         <ConfirmDialog
           open={!!confirmOption}
           onOpenChange={(open) => { if (!open) setConfirmOption(null); }}
-          title="Confirm Prestige"
+          title={t('prestigePage.confirmPrestige')}
           description={`Are you sure you want to prestige with ${confirmOption?.label ?? ''}? This will reset your current save and start a new career.`}
           confirmLabel="Prestige Now"
           variant="destructive"

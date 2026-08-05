@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Lightbulb, X } from 'lucide-react';
 import { getFlag, setFlag } from '@/store/helpers/persistence';
@@ -11,6 +12,7 @@ interface PageHintProps {
 }
 
 export function PageHint({ screen, title, body }: PageHintProps) {
+  const { t } = useTranslation();
   const hidePageHints = useGameStore(s => s.settings.hidePageHints);
   const storageKey = `dynasty-hint-${screen}-shown`;
   const [visible, setVisible] = useState(() => !getFlag(storageKey));
@@ -52,7 +54,7 @@ export function PageHint({ screen, title, body }: PageHintProps) {
             type="button"
             onClick={dismiss}
             className="text-primary/40 hover:text-primary/70 transition-colors shrink-0"
-            aria-label="Dismiss hint"
+            aria-label={t('pageHint.dismissHint')}
           >
             <X className="w-3.5 h-3.5" />
           </button>

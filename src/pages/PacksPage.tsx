@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
@@ -94,6 +95,7 @@ function computeSquadImprovement(
 let iapInFlight = false;
 
 const PacksPage = () => {
+  const { t } = useTranslation();
   const { club, players, openedPacks, packPityCounter, season, week, dailyPackOpens } = useGameStore(useShallow((s) => ({
     club: s.clubs[s.playerClubId],
     players: s.players,
@@ -811,7 +813,7 @@ const PacksPage = () => {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm pointer-events-auto"
           role="status"
-          aria-label="Processing purchase"
+          aria-label={t('packsPage.processingPurchase')}
         >
           <div className="flex flex-col items-center gap-3 bg-card/90 border border-border/50 rounded-2xl px-6 py-5 shadow-xl">
             <Loader2 className="w-7 h-7 text-primary animate-spin" />

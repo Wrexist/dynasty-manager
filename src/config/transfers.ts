@@ -140,6 +140,10 @@ export const COUNTER_OFFER_BASE_RATIO = 0.5;
 export const COUNTER_OFFER_RANDOM_RANGE = 0.3;
 
 // ── Record Signing ──
+/** @deprecated The "Record Signing" milestone now compares a fee against the
+ *  biggest fee previously paid (`managerStats.biggestSigningFee`), not against
+ *  a fraction of career spend. Kept only so old references fail loudly rather
+ *  than silently resurrecting the old comparison. */
 export const RECORD_SIGNING_SPEND_RATIO = 0.4;
 export const RECORD_SIGNING_MIN_FEE = 5_000_000;
 

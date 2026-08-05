@@ -10,6 +10,7 @@
  */
 
 import { memo } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { TrendingUp, TrendingDown, Star } from 'lucide-react';
 import type { Player, Club } from '@/types/game';
 import { GlassPanel } from './GlassPanel';
@@ -33,6 +34,7 @@ export const PlayerHeroCard = memo(function PlayerHeroCard({
   season,
   week,
 }: PlayerHeroCardProps) {
+  const { t } = useTranslation();
   const clubColor = club?.color || '#888';
   const showPotential = player.potential > player.overall;
   const potentialGap = Math.max(0, player.potential - player.overall);
@@ -150,7 +152,7 @@ export const PlayerHeroCard = memo(function PlayerHeroCard({
             {player.source === 'real' && (
               <span
                 className="ml-auto px-1.5 py-0.5 rounded text-[8px] font-medium uppercase tracking-wider text-muted-foreground bg-muted/40 border border-border/40 shrink-0"
-                aria-label="Real player"
+                aria-label={t('playerHeroCard.realPlayer')}
               >
                 Real
               </span>

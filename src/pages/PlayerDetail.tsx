@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -49,6 +50,7 @@ const ATTR_LABELS: Record<string, string> = {
 };
 
 const PlayerDetail = () => {
+  const { t } = useTranslation();
   const {
     selectedPlayerId, players, clubs, playerClubId, previousScreen,
     incomingOffers, season, week, totalWeeks, facilities,
@@ -655,8 +657,8 @@ const PlayerDetail = () => {
         <div>
           <p className="text-[10px] text-red-400/80 uppercase tracking-wider font-semibold mb-2">Attack</p>
           <div className="space-y-2">
-            <StatBar label="Pace" value={player.attributes.pace} change={player.lastAttributeChanges?.pace} />
-            <StatBar label="Shooting" value={player.attributes.shooting} change={player.lastAttributeChanges?.shooting} />
+            <StatBar label={t('playerDetail.pace')} value={player.attributes.pace} change={player.lastAttributeChanges?.pace} />
+            <StatBar label={t('playerDetail.shooting')} value={player.attributes.shooting} change={player.lastAttributeChanges?.shooting} />
           </div>
         </div>
 
@@ -664,8 +666,8 @@ const PlayerDetail = () => {
         <div>
           <p className="text-[10px] text-emerald-400/80 uppercase tracking-wider font-semibold mb-2">Playmaking</p>
           <div className="space-y-2">
-            <StatBar label="Passing" value={player.attributes.passing} change={player.lastAttributeChanges?.passing} />
-            <StatBar label="Mental" value={player.attributes.mental} change={player.lastAttributeChanges?.mental} />
+            <StatBar label={t('playerDetail.passing')} value={player.attributes.passing} change={player.lastAttributeChanges?.passing} />
+            <StatBar label={t('playerDetail.mental')} value={player.attributes.mental} change={player.lastAttributeChanges?.mental} />
           </div>
         </div>
 
@@ -673,8 +675,8 @@ const PlayerDetail = () => {
         <div>
           <p className="text-[10px] text-blue-400/80 uppercase tracking-wider font-semibold mb-2">Defense</p>
           <div className="space-y-2">
-            <StatBar label="Defending" value={player.attributes.defending} change={player.lastAttributeChanges?.defending} />
-            <StatBar label="Physical" value={player.attributes.physical} change={player.lastAttributeChanges?.physical} />
+            <StatBar label={t('playerDetail.defending')} value={player.attributes.defending} change={player.lastAttributeChanges?.defending} />
+            <StatBar label={t('playerDetail.physical')} value={player.attributes.physical} change={player.lastAttributeChanges?.physical} />
           </div>
         </div>
       </GlassPanel>
@@ -782,8 +784,8 @@ const PlayerDetail = () => {
       {(!player.matchHistory || player.matchHistory.length === 0) && (
         <EmptyState
           icon={Trophy}
-          title="No match history yet"
-          description="Appearances, goals, and ratings will appear here after this player features in a match."
+          title={t('playerDetail.noMatchHistoryYet')}
+          description={t('playerDetail.appearancesGoalsAndRatingsWill')}
         />
       )}
       {player.matchHistory && player.matchHistory.length > 0 && (
@@ -953,7 +955,7 @@ const PlayerDetail = () => {
             <div className="space-y-2">
               <div>
                 <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
-                  <span>Recovery Progress</span>
+                  <span>{t('playerDetail.recoveryProgress')}</span>
                   <span>
                     {/* A return week past the season's end used to clamp to
                         totalWeeks, promising a comeback this season that

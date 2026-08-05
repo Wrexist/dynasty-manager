@@ -1,4 +1,5 @@
 import { HeartPulse, LogOut, Repeat2, Tag, FileText, ShieldAlert } from 'lucide-react';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { Player } from '@/types/game';
 import { getContractUrgency } from '@/utils/contracts';
 import { StatusPill } from './StatusPill';
@@ -39,6 +40,7 @@ export function PlayerStatusBadges({
   contextBadge,
   hideContract = false,
 }: PlayerStatusBadgesProps) {
+  const { t } = useTranslation();
   const isSuspended =
     player.suspendedUntilWeek != null &&
     (week === undefined || player.suspendedUntilWeek > week);
@@ -74,17 +76,17 @@ export function PlayerStatusBadges({
         />
       )}
       {!player.injured && !isSuspended && player.wantsToLeave && (
-        <StatusPill tone="amber" Icon={LogOut} label="OUT" title="Wants to leave" />
+        <StatusPill tone="amber" Icon={LogOut} label="OUT" title={t('playerStatusBadges.wantsToLeave')} />
       )}
       {!player.injured && !isSuspended && !player.wantsToLeave && player.onLoan && (
-        <StatusPill tone="sky" Icon={Repeat2} label="LOAN" title="On loan" />
+        <StatusPill tone="sky" Icon={Repeat2} label="LOAN" title={t('playerStatusBadges.onLoan')} />
       )}
       {!player.injured &&
         !isSuspended &&
         !player.wantsToLeave &&
         !player.onLoan &&
         player.listedForSale && (
-          <StatusPill tone="primary" Icon={Tag} label="LIST" title="Listed for sale" />
+          <StatusPill tone="primary" Icon={Tag} label="LIST" title={t('playerStatusBadges.listedForSale')} />
         )}
       {contractUrgency && !player.onLoan && !player.injured && (
         <StatusPill

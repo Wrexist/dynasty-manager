@@ -6,7 +6,7 @@
 
 import * as Sentry from '@sentry/react';
 
-import { LeagueId, LeagueInfo, LeagueTableEntry, SeasonTurnover, Club } from '@/types/game';
+import { LeagueId, LeagueInfo, LeagueTableEntry, SeasonTurnover, Club, PlayoffTieResult } from '@/types/game';
 import { LEAGUES, getLeaguesByCountry } from '@/data/league';
 import type { ClubData } from '@/types/game';
 
@@ -49,40 +49,128 @@ export function determineZones(table: LeagueTableEntry[], league: LeagueInfo) {
 // ── Run a simple playoff tournament (best 2 of the playoff candidates) ──
 
 /**
- * Simulate a promotion playoff among candidates.
- * Returns the winning club ID (promoted via playoffs).
+ * Decide one playoff tie. `homeClubId` is the better-placed side, which hosts.
+ * Returns the winner's club id.
+ *
+ * Injected rather than imported so this module stays free of the match engine
+ * (and so the existing pure tests can keep running it without squads).
  */
-export function simulatePlayoff(candidates: string[]): string | null {
-  if (candidates.length === 0) return null;
-  if (candidates.length === 1) return candidates[0];
+export type PlayoffTieResolver = (homeClubId: string, awayClubId: string) => string;
 
-  // Simple bracket: 3rd vs 6th, 4th vs 5th, then winners play final
-  // Higher-placed team wins 60% of the time
-  const matchup = (a: string, b: string) => Math.random() < 0.6 ? a : b;
+/** Fallback when no resolver is supplied: the better-placed side goes through
+ *  this often. Only used by callers that have no squads to simulate with. */
+export const PLAYOFF_HIGHER_SEED_WIN_CHANCE = 0.6;
 
-  if (candidates.length === 2) {
-    return matchup(candidates[0], candidates[1]);
-  }
-  if (candidates.length === 4) {
-    // Semi-finals: 3rd vs 6th, 4th vs 5th
-    const sf1 = matchup(candidates[0], candidates[3]);
-    const sf2 = matchup(candidates[1], candidates[2]);
-    return matchup(sf1, sf2);
-  }
+/**
+ * Run a promotion playoff among candidates, given in league-position order
+ * (best first). Returns the winning club ID.
+ *
+ * Seeding is 1vN, 2v(N-1), … with the better-placed side hosting, and winners
+ * are re-sorted by original seed between rounds so the bracket stays stable.
+ * The previous general case paired adjacent entries — 1v2 and 3v4 — which is
+ * not a bracket, and handed the BYE to the worst-placed side on an odd count.
+ * The bye now goes to the top seed. (The old four-team special case was
+ * correct; this generalises it.)
+ *
+ * Without a `resolveTie` the result is a flat coin flip that ignores squads,
+ * form and home advantage entirely. Callers that can simulate — i.e. anything
+ * with access to players — should pass one.
+ */
+export function simulatePlayoff(candidates: string[], resolveTie?: PlayoffTieResolver): string | null {
+  const outcome = stepPlayoff(candidates, (home, away) =>
+    resolveTie
+      ? resolveTie(home, away)
+      : (Math.random() < PLAYOFF_HIGHER_SEED_WIN_CHANCE ? home : away));
+  return outcome.kind === 'decided' ? outcome.winner : null;
+}
 
-  // General case: bracket tournament
+/** A tie the caller asked to handle itself rather than resolve inline. */
+export interface PlayoffPendingTie {
+  homeClubId: string;
+  awayClubId: string;
+  /** How many clubs are still in the bracket for this round: 4 is a semi-final,
+   *  2 is the final. Deliberately NOT "ties left in the round" — that is 1 for
+   *  the last tie of every round, so it cannot tell a semi from a final. */
+  teamsInRound: number;
+}
+
+export type PlayoffOutcome =
+  | { kind: 'decided'; winner: string | null }
+  | { kind: 'pending'; tie: PlayoffPendingTie };
+
+/**
+ * Walk the bracket, letting the resolver SUSPEND.
+ *
+ * `resolveStep` returns the winner of a tie, or `null` to say "I want to handle
+ * this one myself" — at which point the walk stops and returns the pending tie.
+ * That is what lets the player's own tie be played interactively without
+ * duplicating the seeding rules: the caller replays the walk after recording a
+ * result, and gets either the next tie it owns or the finished bracket.
+ *
+ * Seeding, home advantage and bye placement live here and nowhere else;
+ * `simulatePlayoff` is this function with a resolver that never suspends.
+ */
+export function stepPlayoff(
+  candidates: string[],
+  resolveStep: (homeClubId: string, awayClubId: string) => string | null,
+): PlayoffOutcome {
+  if (candidates.length === 0) return { kind: 'decided', winner: null };
+  if (candidates.length === 1) return { kind: 'decided', winner: candidates[0] };
+
+  const seedOf = new Map(candidates.map((id, i) => [id, i]));
   let remaining = [...candidates];
+
   while (remaining.length > 1) {
-    const next = [];
-    for (let i = 0; i < remaining.length - 1; i += 2) {
-      next.push(matchup(remaining[i], remaining[i + 1]));
-    }
-    if (remaining.length % 2 === 1) {
-      next.push(remaining[remaining.length - 1]);
+    remaining.sort((a, b) => (seedOf.get(a) ?? 0) - (seedOf.get(b) ?? 0));
+    const next: string[] = [];
+    let lo = 0;
+    let hi = remaining.length - 1;
+    // Odd field: the top seed sits the round out rather than the bottom one.
+    if (remaining.length % 2 === 1) { next.push(remaining[0]); lo = 1; }
+    const teamsInRound = remaining.length;
+    while (lo < hi) {
+      const home = remaining[lo];
+      const away = remaining[hi];
+      const winner = resolveStep(home, away);
+      if (winner === null) {
+        return { kind: 'pending', tie: { homeClubId: home, awayClubId: away, teamsInRound } };
+      }
+      next.push(winner);
+      lo++;
+      hi--;
     }
     remaining = next;
   }
-  return remaining[0];
+  return { kind: 'decided', winner: remaining[0] };
+}
+
+/**
+ * Replay a bracket against results already decided, suspending on the first tie
+ * involving `pauseForClubId` that has no recorded result yet.
+ *
+ * `resolved` is matched by the unordered club pair, so replay order does not
+ * matter and a result recorded once is never re-decided.
+ */
+export function resumePlayoff(
+  candidates: string[],
+  resolved: PlayoffTieResult[],
+  pauseForClubId: string,
+  simulateTie: (homeClubId: string, awayClubId: string) => string,
+): PlayoffOutcome {
+  const key = (a: string, b: string) => [a, b].sort().join('|');
+  const decided = new Map<string, string>();
+  for (const r of resolved) {
+    const winner = r.homeGoals === r.awayGoals
+      ? r.homeClubId
+      : (r.homeGoals > r.awayGoals ? r.homeClubId : r.awayClubId);
+    decided.set(key(r.homeClubId, r.awayClubId), winner);
+  }
+  return stepPlayoff(candidates, (home, away) => {
+    const known = decided.get(key(home, away));
+    if (known) return known;
+    if (home === pauseForClubId || away === pauseForClubId) return null;
+    return simulateTie(home, away);
+  });
 }
 
 // ── Apply promotion/relegation across a country's league pyramid ──
@@ -97,6 +185,17 @@ export function applyPromotionRelegation(
   divisionTables: Record<string, LeagueTableEntry[]>,
   clubs: Record<string, Club>,
   playerClubId: string,
+  /** Optional real-match resolver for playoff ties. Omitted, ties fall back to
+   *  a coin flip that ignores squads entirely — see simulatePlayoff. */
+  resolveTie?: PlayoffTieResolver,
+  /** Seeding to use instead of re-deriving it, for one league.
+   *
+   *  The interactive playoff seeds its bracket from the player's live fixtures,
+   *  while rollover rebuilds the table from the division fixture set. Those two
+   *  can disagree, and when they do the bracket rollover walks is not the one the
+   *  player actually played — so the recorded results match nothing and are
+   *  silently re-simulated. Pinning the seeding closes that. */
+  playoffSeeding?: { leagueId: string; candidates: string[] } | null,
 ): {
   turnovers: Record<string, SeasonTurnover>;
   updatedDivisionClubs: Record<string, string[]>;
@@ -136,8 +235,22 @@ export function applyPromotionRelegation(
 
     // Run playoffs for lower tier if configured
     const playoffWinners: string[] = [];
-    if (lowerLeague.playoffSpots > 0 && lowerZones.playoffCandidates.length > 0) {
-      const winner = simulatePlayoff(lowerZones.playoffCandidates);
+    // A pinned bracket is seeded from the table the player's playoff was drawn
+    // off; `promotedUp` and `lowerZones.relegated` come from the final table
+    // rebuilt here. `endSeason` now settles the league before either is read so
+    // they should agree — but if they ever drift again, a club present in both
+    // sets would be promoted to the tier above AND relegated to the tier below
+    // in the same pass, removed from this league once but added to two. Filter
+    // both, so the bracket can only ever contain clubs that are actually free
+    // to go up.
+    const rawSeeding = playoffSeeding && playoffSeeding.leagueId === lowerLeague.id
+      ? playoffSeeding.candidates
+      : lowerZones.playoffCandidates;
+    const seeding = rawSeeding.filter(
+      id => !promotedUp.includes(id) && !lowerZones.relegated.includes(id),
+    );
+    if (lowerLeague.playoffSpots > 0 && seeding.length > 0) {
+      const winner = simulatePlayoff(seeding, resolveTie);
       if (winner) playoffWinners.push(winner);
     }
 
@@ -153,9 +266,27 @@ export function applyPromotionRelegation(
 
     // Cap total promotions to the number of relegation slots in the upper tier
     // to prevent league size drift from config mismatches
-    const allPromoted = [...promotedUp, ...playoffWinners];
+    // Deduped: promotion slots must be filled by DISTINCT clubs. A duplicate
+    // consumes a slot without moving anyone, so the tier above shrinks while the
+    // tier below grows — league sizes drift apart by one, permanently.
+    const allPromoted = Array.from(new Set([...promotedUp, ...playoffWinners]));
     const maxPromotions = relegatedDown.length;
-    const cappedPromoted = allPromoted.slice(0, maxPromotions);
+    // Both directions must balance or the two tiers drift apart PERMANENTLY —
+    // the drift is written into `divisionClubs` and every later season inherits
+    // it. Capping handles too many promotions; this handles too few, which is
+    // what an unresolved playoff (no winner, e.g. every candidate filtered out
+    // above) leaves behind. Backfill in table order, skipping anyone already
+    // going up or being relegated.
+    const backfilled = [...allPromoted];
+    if (backfilled.length < maxPromotions) {
+      for (const entry of lowerTable) {
+        if (backfilled.length >= maxPromotions) break;
+        if (backfilled.includes(entry.clubId)) continue;
+        if (lowerZones.relegated.includes(entry.clubId)) continue;
+        backfilled.push(entry.clubId);
+      }
+    }
+    const cappedPromoted = backfilled.slice(0, maxPromotions);
 
     // Move promoted clubs up
     for (const clubId of cappedPromoted) {

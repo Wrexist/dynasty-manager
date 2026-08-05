@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 import type { Player } from '@/types/game';
@@ -271,6 +272,7 @@ function AttributePill({
  * atmosphere; legendary tier adds the stadium dressing.
  */
 export function WalkoutReveal({ player, onComplete, onAdvance }: WalkoutRevealProps) {
+  const { t } = useTranslation();
   const tier = tierForOvr(player.overall);
   const isLegendary = player.overall >= LEGENDARY_OVR_THRESHOLD;
   const prefersReducedMotion = useReducedMotionPref();
@@ -751,7 +753,7 @@ export function WalkoutReveal({ player, onComplete, onAdvance }: WalkoutRevealPr
             className="flex items-center justify-between text-[10px] uppercase tracking-widest mb-1"
             style={{ color: tier.gradientVia }}
           >
-            <span>Potential</span>
+            <span>{t('walkoutReveal.potential')}</span>
             <span>{player.potential}</span>
           </div>
           <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
@@ -782,7 +784,7 @@ export function WalkoutReveal({ player, onComplete, onAdvance }: WalkoutRevealPr
           'active:scale-[0.96] transition-[transform,background-color] duration-150',
           'hover:bg-white/[0.12]',
         )}
-        aria-label="Skip cinematic"
+        aria-label={t('walkoutReveal.skipCinematic')}
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: phase === 'done' ? 0 : 1, y: 0 }}
         transition={{ duration: 0.45, delay: 0.8, ease: 'easeOut' }}
@@ -807,7 +809,7 @@ export function WalkoutReveal({ player, onComplete, onAdvance }: WalkoutRevealPr
             transition={{ duration: totalMs / 1000, ease: 'linear' }}
           />
         </svg>
-        <span>Skip</span>
+        <span>{t('walkoutReveal.skip')}</span>
       </motion.button>
 
       {/* SR announcement at reveal. */}

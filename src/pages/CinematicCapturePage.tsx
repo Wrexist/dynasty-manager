@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useNavigate } from 'react-router-dom';
 import { PackOpeningOverlay } from '@/components/game/pack/PackOpeningOverlay';
 import { CelebrationModal } from '@/components/game/CelebrationModal';
@@ -106,6 +107,7 @@ const WONDERKID_SCENARIOS = [
 ];
 
 const CinematicCapturePage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [beatIndex, setBeatIndex] = useState(0);
   const [loopCount, setLoopCount] = useState(0);
@@ -207,7 +209,7 @@ const CinematicCapturePage = () => {
       <button
         type="button"
         onClick={() => navigate('/')}
-        aria-label="Exit cinematic capture"
+        aria-label={t('cinematicCapturePage.exitCinematicCapture')}
         className="fixed top-3 left-3 z-[9999] rounded-full bg-black/60 backdrop-blur-md border border-white/15 px-3 py-1.5 text-[10px] tracking-[0.2em] uppercase text-white/70 hover:text-white"
         style={{ fontFamily: 'monospace' }}
       >
@@ -222,7 +224,7 @@ const CinematicCapturePage = () => {
           if (timerRef.current) window.clearTimeout(timerRef.current);
           if (beat === 'pack') handlePackClose(); else advance();
         }}
-        aria-label="Skip to next beat"
+        aria-label={t('cinematicCapturePage.skipToNextBeat')}
         className="fixed bottom-3 right-3 z-[9999] rounded-full bg-black/60 backdrop-blur-md border border-white/15 px-3 py-1.5 text-[10px] tracking-[0.2em] uppercase text-white/70 hover:text-white"
         style={{ fontFamily: 'monospace' }}
       >
