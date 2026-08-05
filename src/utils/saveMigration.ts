@@ -12,11 +12,19 @@ import { isPlaceholderClubId } from '@/config/continental';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 80;
+const CURRENT_VERSION = 81;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
 const migrations: Record<number, MigrationFn> = {
+  // v80 → v81: `SeasonHistory` gained the optional `playoffRun`, the player's own
+  // promotion-playoff ties. Purely additive and optional — an old save simply has
+  // no record of past playoffs (the ties were never stored), so the field stays
+  // absent for historical seasons and the season summary omits the panel, which
+  // is exactly what it did before. Nothing to backfill; the version bump exists
+  // so the shape change is declared rather than sneaking in.
+  80: (data) => ({ ...data, version: 81 }),
+
   // v79 → v80: `managerStats` gained `biggestSigningFee`, the largest fee this
   // manager has ever paid. The "Record Signing" milestone used to compare the
   // fee against `totalSpent * RECORD_SIGNING_SPEND_RATIO` — career SPEND, not

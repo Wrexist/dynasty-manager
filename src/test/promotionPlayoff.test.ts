@@ -68,6 +68,59 @@ describe('simulatePlayoff — bracket seeding', () => {
   });
 });
 
+describe('the player\'s own playoff run is recoverable from the bracket', () => {
+  // seasonEnd records the ties its resolver sees that involve the player's club,
+  // and stores them on SeasonHistory.playoffRun so the season summary can show
+  // the matches that decided the season. Before this, promotion playoffs
+  // resolved silently inside season rollover and the player was simply promoted
+  // or not, with nothing on screen acknowledging a playoff had happened.
+  //
+  // This exercises the same shape seasonEnd's closure uses: record a tie when
+  // either side is the player, and note whether the player went through.
+  const runWithRecorder = (candidates: string[], playerId: string, winnerOf: (h: string, a: string) => string) => {
+    const run: { homeClubId: string; awayClubId: string; playerAdvanced: boolean }[] = [];
+    const champion = simulatePlayoff(candidates, (home, away) => {
+      const winner = winnerOf(home, away);
+      if (home === playerId || away === playerId) {
+        run.push({ homeClubId: home, awayClubId: away, playerAdvanced: winner === playerId });
+      }
+      return winner;
+    });
+    return { run, champion };
+  };
+
+  it('captures every tie the player played, and no others', () => {
+    // Seeds: a(0) b(1) c(2) d(3). Bracket is a-d and b-c, then the final.
+    // Player is 'c', who upsets 'b' and then loses the final to 'a'.
+    const { run, champion } = runWithRecorder(['a', 'b', 'c', 'd'], 'c', (home, away) => {
+      if (home === 'b' && away === 'c') return 'c';   // semi upset
+      if (home === 'a' && away === 'd') return 'a';   // other semi
+      return 'a';                                     // final
+    });
+
+    expect(run).toHaveLength(2);
+    expect(run[0]).toMatchObject({ homeClubId: 'b', awayClubId: 'c', playerAdvanced: true });
+    expect(run[1].playerAdvanced).toBe(false);
+    // The player reached the final, so the losing tie must be against the champion.
+    expect(champion).toBe('a');
+    expect([run[1].homeClubId, run[1].awayClubId]).toContain('a');
+    expect([run[1].homeClubId, run[1].awayClubId]).toContain('c');
+  });
+
+  it('records nothing when the player is not in the bracket', () => {
+    const { run } = runWithRecorder(['a', 'b', 'c', 'd'], 'not-playing', home => home);
+    expect(run).toEqual([]);
+  });
+
+  it('the last recorded tie decides whether the player went up', () => {
+    const { run, champion } = runWithRecorder(['p', 'b', 'c', 'd'], 'p', home => home);
+    // Top seed wins every tie, so the player wins the semi and the final.
+    expect(champion).toBe('p');
+    expect(run).toHaveLength(2);
+    expect(run[run.length - 1].playerAdvanced).toBe(true);
+  });
+});
+
 describe('league config — a playoff must have something to play for', () => {
   const table = (n: number): LeagueTableEntry[] =>
     Array.from({ length: n }, (_, i) => ({ clubId: `c${i}` } as LeagueTableEntry));

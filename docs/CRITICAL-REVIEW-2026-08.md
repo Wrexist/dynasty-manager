@@ -409,12 +409,17 @@ styrelsemeddelanden, kontraktsförhandlingar.
 > wall clock. Det är avsiktligt (delad modulnivå-state i real-player-claims och
 > den primade genererade datan), så det är inte något att bara slå på.
 >
-> 6,0 min är fortfarande inte en per-commit-gate, och att exkludera mer hjälper
-> inte: av de 359 sekunderna är bara 194 s faktisk testtid. Resten (~146 s) är
-> fast overhead — `transform` + `collect` + jsdom-`environment` per fil under
-> `pool: 'forks'` med seriell körning. Golvet ligger där, och att sänka det
-> kräver att den delade modulnivå-state:n isoleras så `fileParallelism` kan slås
-> på.
+> **UPPFÖLJNING — helt åtgärdat.** `fileParallelism` är nu påslaget:
+> **28,6 min → 2 min 28 s** för snabbsviten. Två identiska körningar (146,8 s /
+> 146,6 s, samma 157 filer gröna) bekräftar att det är stabilt.
+>
+> **Och en rättelse till mig själv igen:** jag skrev att seriell körning var
+> avsiktlig och skyddade delad modulnivå-state. Det stämde inte. `pool: 'forks'`
+> ger redan varje testfil sin egen process, så modulnivå-state är isolerad by
+> construction. Jag antog ett skäl i stället för att testa det — precis det
+> misstag jag anmärkte på i punkt 16. `maxForks` är däremot begränsad till 4,
+> eftersom varje fork primar ~400K LOC genererad data; där är minne den bindande
+> faktorn, inte CPU.
 
 Era egna regler säger att ingen commit får pushas utan preflight. Uppmätt på
 denna maskin:

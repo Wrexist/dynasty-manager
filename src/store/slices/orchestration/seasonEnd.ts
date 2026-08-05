@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/react';
-import { Club, Player, TransferListing, SeasonHistory, Position, Match, LeagueId, SeasonTurnover, LeagueTableEntry, ContinentalTournamentState } from '@/types/game';
+import { Club, Player, TransferListing, SeasonHistory, Position, Match, LeagueId, SeasonTurnover, LeagueTableEntry, ContinentalTournamentState, PlayoffTieResult } from '@/types/game';
 import { calculateReputationTier, generateJobVacancies, getRetirementAge, calculateLegacyScore, generateCompetitors } from '@/utils/managerCareer';
 import {
   REP_PROMOTION, REP_RELEGATION, REP_OVERACHIEVE_BONUS, REP_UNDERACHIEVE_PENALTY, REP_TITLE, REP_CUP_WIN, REP_SACKING, REP_MIN, REP_MAX,
@@ -342,6 +342,10 @@ export function endSeasonImpl(set: Set, get: Get) {
   // Level after 90 minutes sends the better-placed side through: that is the
   // reward for finishing higher, and it matches how real playoff formats break
   // a tie without needing a shootout in this code path.
+  // Ties the PLAYER's club took part in, recorded so the season summary can
+  // show the matches that decided their season instead of silently promoting
+  // or not promoting them.
+  const playerPlayoffRun: PlayoffTieResult[] = [];
   const resolvePlayoffTie = (homeClubId: string, awayClubId: string): string => {
     const hc = clubs[homeClubId];
     const ac = clubs[awayClubId];
@@ -360,8 +364,17 @@ export function endSeasonImpl(set: Set, get: Get) {
       undefined, undefined, undefined, playerClubId,
       getDerbyIntensity(homeClubId, awayClubId), undefined, state.season,
     );
-    if (result.homeGoals === result.awayGoals) return homeClubId;
-    return result.homeGoals > result.awayGoals ? homeClubId : awayClubId;
+    const winner = result.homeGoals === result.awayGoals
+      ? homeClubId
+      : (result.homeGoals > result.awayGoals ? homeClubId : awayClubId);
+    if (homeClubId === playerClubId || awayClubId === playerClubId) {
+      playerPlayoffRun.push({
+        homeClubId, awayClubId,
+        homeGoals: result.homeGoals, awayGoals: result.awayGoals,
+        playerAdvanced: winner === playerClubId,
+      });
+    }
+    return winner;
   };
 
   if (hasMultipleTiers) {
@@ -501,6 +514,14 @@ export function endSeasonImpl(set: Set, get: Get) {
   } else {
     history.promoted = false;
     history.replaced = false;
+  }
+
+  // Surface the playoff ties the player actually took part in. Promotion
+  // playoffs resolve inside season rollover, so without this a tier 2-4 season
+  // could end with the club promoted (or not) and no acknowledgement anywhere
+  // that a playoff had been played at all.
+  if (playerPlayoffRun.length > 0) {
+    history.playoffRun = playerPlayoffRun;
   }
 
   let newMessages = [...messages];

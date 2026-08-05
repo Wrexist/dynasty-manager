@@ -170,6 +170,55 @@ const SeasonSummary = () => {
           </motion.div>
         )}
 
+        {/* Promotion playoff run. Playoffs resolve inside season rollover, so
+            without this the matches that decided a tier 2-4 season were never
+            shown to the player at all — they simply woke up promoted or not. */}
+        {latest.playoffRun && latest.playoffRun.length > 0 && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.4 }}>
+            <GlassPanel className="p-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground mb-3">
+                Promotion Playoff
+              </p>
+              <div className="space-y-2">
+                {latest.playoffRun.map((tie, i) => {
+                  const home = clubs[tie.homeClubId];
+                  const away = clubs[tie.awayClubId];
+                  const isFinal = i === latest.playoffRun!.length - 1;
+                  return (
+                    <div
+                      key={`${tie.homeClubId}-${tie.awayClubId}-${i}`}
+                      className={cn(
+                        'flex items-center justify-between gap-2 rounded-lg px-3 py-2 border',
+                        tie.playerAdvanced
+                          ? 'border-emerald-500/40 bg-emerald-500/10'
+                          : 'border-border/50 bg-card/40',
+                      )}
+                    >
+                      <span className="flex-1 truncate text-sm text-right">
+                        {home?.shortName ?? tie.homeClubId}
+                      </span>
+                      <span className="font-display font-bold tabular-nums text-base px-2">
+                        {tie.homeGoals}–{tie.awayGoals}
+                      </span>
+                      <span className="flex-1 truncate text-sm">
+                        {away?.shortName ?? tie.awayClubId}
+                      </span>
+                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground w-12 text-right shrink-0">
+                        {isFinal ? 'Final' : 'Semi'}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground mt-3">
+                {latest.playoffRun[latest.playoffRun.length - 1].playerAdvanced
+                  ? 'You came through the playoff.'
+                  : 'Your playoff run ended here.'}
+              </p>
+            </GlassPanel>
+          </motion.div>
+        )}
+
         {/* Relegated Banner */}
         {latest.replaced && !latest.promoted && (
           <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2, duration: 0.6, type: 'spring' }}>

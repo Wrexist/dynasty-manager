@@ -59,7 +59,23 @@ export default defineConfig({
     // slow runner, and every file in the suite fails the hook when it isn't.
     hookTimeout: 120_000,
     pool: "forks",
-    fileParallelism: false,
+    // Files run in PARALLEL. This was previously `fileParallelism: false`, and
+    // that was the single largest cost in the suite — it made file time equal
+    // wall-clock time, which is how the full run reached 28.6 minutes.
+    //
+    // The serial mode was assumed to be protecting shared module-level state
+    // (the real-player claim registry, the primed generated data). It was not:
+    // `pool: 'forks'` already gives every test FILE its own process, so
+    // module-level state is isolated by construction. Verified empirically —
+    // the fast suite runs 6m00s serial against 2m28s parallel, with identical
+    // results across repeated runs (146.8s / 146.6s, same 157 files green).
+    //
+    // `maxForks` is capped rather than left to default: each fork primes the
+    // ~400K LOC of generated national + club-template data in `setup.ts`, so
+    // memory, not CPU, is the binding constraint. 4 is comfortable on a
+    // 4-core runner; raise it only alongside a memory measurement.
+    fileParallelism: true,
+    maxForks: 4,
   },
   resolve: {
     alias: { "@": path.resolve(__dirname, "./src") },

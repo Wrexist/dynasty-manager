@@ -842,6 +842,25 @@ export interface SeasonHistory {
   transferActivity?: { bought: { playerName: string; fee: number }[]; sold: { playerName: string; fee: number }[] };
   squadStrengthDelta?: { startAvgOVR: number; endAvgOVR: number; delta: number };
   ballonDOrRanking?: BallonDOrEntry[];
+  /** The player's own promotion-playoff ties, in order, when they were in one.
+   *
+   *  Promotion playoffs are resolved inside season rollover, so the player never
+   *  saw the matches that decided their season — a tier 2-4 campaign could end
+   *  without a single line acknowledging the playoff happened. Recording the
+   *  scorelines here at least tells them what occurred and against whom.
+   *  Absent when the club was not in a playoff. Save schema v81. */
+  playoffRun?: PlayoffTieResult[];
+}
+
+/** One promotion-playoff tie the player's club took part in. `homeClubId` is
+ *  the better-placed side, which hosts; a level tie is won by that side. */
+export interface PlayoffTieResult {
+  homeClubId: string;
+  awayClubId: string;
+  homeGoals: number;
+  awayGoals: number;
+  /** True when the player's club went through. */
+  playerAdvanced: boolean;
 }
 
 /** Lifetime achievement tier, derived from total trophies across all dynasties. */
