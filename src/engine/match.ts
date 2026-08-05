@@ -18,8 +18,8 @@ import {
   SHOT_ATTEMPT_THRESHOLD, FOUL_BAND_WIDTH, INJURY_BAND_WIDTH, FOUL_BAND_END_CAP, TEMPO_SHOT_THRESHOLD_SCALE,
   LOW_XG_MISS_THRESHOLD, LOW_XG_MISS_SHOW_CHANCE,
   SHOT_QUALITY_WEIGHTS, FITNESS_FACTOR_BASE, FITNESS_FACTOR_SCALE,
-  GOAL_CHANCE_ATTACK_MULT, GOAL_CHANCE_DEFENSE_MULT, GOAL_CHANCE_ATTACK_MOD_SCALE, GOAL_CHANCE_COUNTER_VULN_SCALE, GOAL_CHANCE_MIN,
-  CORNER_FROM_SAVE_CHANCE, CORNER_FROM_MISS_CHANCE,
+  GOAL_CHANCE_ATTACK_MULT, GOAL_CHANCE_DEFENSE_MULT, GOAL_CHANCE_VOLUME_SCALE, GOAL_CHANCE_ATTACK_MOD_SCALE, GOAL_CHANCE_COUNTER_VULN_SCALE, GOAL_CHANCE_MIN,
+  CORNER_FROM_SAVE_CHANCE, CORNER_FROM_MISS_CHANCE, SHOT_ON_TARGET_SAVE_SCALE,
   CARD_BASE_CHANCE, STRAIGHT_RED_CHANCE, BOOKED_PLAYER_CARD_MULT,
   MENTALITY_SHOT_SHIFT_SCALE, TEMPO_SHOT_QUALITY_MOD,
   FOUL_INJURY_CHANCE, NON_FOUL_INJURY_BASE, PHYSICAL_FRAGILITY_FACTOR, OLD_PLAYER_INJURY_BONUS, OLD_PLAYER_INJURY_AGE_THRESHOLD,
@@ -1351,7 +1351,11 @@ export function simulateHalf(
         + tempoQualityMod
         - lowFitPenalty + moraleMod + pitchShotMod + weatherPaceMod + weatherMod;
 
-      const clampedChance = Math.max(GOAL_CHANCE_MIN, goalChance);
+      // Uniform scale so the added shot volume does not inflate the goal total.
+      // Multiplicative and applied to the whole expression on purpose — see
+      // GOAL_CHANCE_VOLUME_SCALE for why the additive alternatives distort
+      // quality separation and draw rate respectively.
+      const clampedChance = Math.max(GOAL_CHANCE_MIN, goalChance * GOAL_CHANCE_VOLUME_SCALE);
       // The keeper is part of RESOLVING the chance, not a relabelling applied
       // afterwards. The goal roll used to be settled first and `oppGKSave` only
       // decided whether the already-decided non-goal read as "saved" or
@@ -1548,16 +1552,28 @@ export function simulateHalf(
           }
         }
       } else if (Math.random() < Math.max(0, oppGKSave - weatherGKErrorMod)) {
-        // Shot on target but saved — GK quality determines save rate (weather worsens handling)
-        if (isHome) { homeShots++; homeSoT++; } else { awayShots++; awaySoT++; }
+        // The defence stopped this one. Entering the branch is DELIBERATELY the
+        // unscaled keeper roll: the corner opportunity below hangs off it and
+        // carries its own header-goal attempt, so scaling the ENTRY would move
+        // the goal model. Only the ACCOUNTING was wrong — the keeper is already
+        // folded into the goal roll above, so recording every stopped shot as a
+        // save counted him twice and put 46% of shots on target against a real
+        // ~34%. See SHOT_ON_TARGET_SAVE_SCALE.
+        const recordedOnTarget = Math.random() < SHOT_ON_TARGET_SAVE_SCALE;
+        if (isHome) { homeShots++; if (recordedOnTarget) homeSoT++; }
+        else { awayShots++; if (recordedOnTarget) awaySoT++; }
         // Credit the ACTIVE keeper: filter unavailable so a sent-off/injured
         // GK stops accruing saves and a subbed-on backup gets the credit.
         const gk = oppSquad.find(p => p.position === 'GK' && !unavailable.has(p.id));
-        if (gk && playerEvents[gk.id]) playerEvents[gk.id].saves++;
-        // Momentum swings toward the defending (saving) team
+        if (recordedOnTarget && gk && playerEvents[gk.id]) playerEvents[gk.id].saves++;
+        // Momentum swings toward the defending team either way — the chance was
+        // stopped.
         momentum = isHome
           ? Math.max(-100, momentum - MOMENTUM_SAVE_SWING)
           : Math.min(100, momentum + MOMENTUM_SAVE_SWING);
+        if (!recordedOnTarget) {
+          events.push({ minute: min, type: 'shot_missed', playerId: scorer.id, clubId: club.id, description: withContextSuffix(`${scorer.lastName}'s effort is deflected away.`), momentum, homeXG, awayXG });
+        } else {
         // Goal-line clearance: dramatic defensive intervention
         const eligibleDefenders = oppSquad.filter(p => !unavailable.has(p.id) && DEFENDER_POSITIONS.includes(p.position as typeof DEFENDER_POSITIONS[number]));
         if (Math.random() < GOAL_LINE_CLEARANCE_CHANCE && eligibleDefenders.length > 0) {
@@ -1567,8 +1583,9 @@ export function simulateHalf(
         } else {
           const saveDesc = pick(saveDescs);
           events.push({ minute: min, type: 'shot_saved', playerId: scorer.id, clubId: club.id, description: withContextSuffix(gk ? saveDesc(scorer.lastName, gk.lastName) : `${scorer.lastName}'s shot is saved.`), momentum, homeXG, awayXG });
+          }
         }
-        // Corner chance from saved shot (wide play increases corner frequency)
+        // Corner chance from a stopped shot (rate unchanged — see above)
         if (Math.random() < CORNER_FROM_SAVE_CHANCE + widthCornerBonus) {
           if (isHome) homeCorners++; else awayCorners++;
           // Corner goal attempt — designated set-piece taker improves delivery

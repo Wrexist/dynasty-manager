@@ -190,8 +190,21 @@ export const LATE_GAME_THRESHOLD_MINUTE = 85;
 export const COMMENTARY_GAP_MAX = 4;
 /** Chance to generate a commentary event when event roll succeeds but no shot/foul/injury triggers */
 export const COMMENTARY_CHANCE = 0.35;
-/** Fraction of event rolls that become shot attempts (before per-side tempo shift) */
-export const SHOT_ATTEMPT_THRESHOLD = 0.40;
+/** Fraction of event rolls that become shot attempts (before per-side tempo shift).
+ *
+ *  MEASURED at 0.40: 20.5 shots per match against a real top-five-league ~25.
+ *  Shot volume being low is not cosmetic — it over-determines the other shooting
+ *  metrics. With only 20 shots you cannot simultaneously land a realistic
+ *  on-target rate (~34%), a realistic conversion (~32% of shots on target) and a
+ *  realistic goal total (~2.8); the three are inconsistent at that volume, which
+ *  is why an earlier attempt to fix the on-target rate alone could not work.
+ *
+ *  0.49 lands ~25 shots. The value is chosen so the foul band still fits UNDER
+ *  FOUL_BAND_END_CAP at neutral tactics (0.49 + 0.42 = 0.91 < 0.95), so fouls,
+ *  cards and penalties — all of which measured correctly at 0.40 — keep their
+ *  full band width and are unchanged. The extra conversion the added volume
+ *  would otherwise buy is taken back out in GOAL_CHANCE_ATTACK_MULT. */
+export const SHOT_ATTEMPT_THRESHOLD = 0.49;
 /** Width of the foul band, measured FROM the (tempo-adjusted) shot threshold.
  *  Relative rather than absolute so a tempo shift moves the shot/foul boundary
  *  without silently squeezing the foul band shut. */
@@ -234,6 +247,14 @@ export const FITNESS_FACTOR_SCALE = 0.3;
 // all three). The multiplier had to rise when the GK save roll was folded INTO
 // the goal roll (see `effectiveGoalChance` in match.ts) — every shot is now
 // damped by (1 - oppGKSave) ≈ 0.62 for a 75-rated keeper.
+/** Attacker-quality weight in the per-shot conversion.
+ *
+ *  DO NOT lower this to compensate for shot volume. It is the term that carries
+ *  the ATTACKER's quality into conversion, so cutting it compresses the gap
+ *  between a good forward and a bad one — measured, dropping it 0.575 -> 0.50
+ *  took the 20-point squad-quality separation cell from comfortably passing to
+ *  57.5% against matchRealism's 58% floor. The extra volume from
+ *  SHOT_ATTEMPT_THRESHOLD is taken back through GOAL_CHANCE_VOLUME_SCALE. */
 export const GOAL_CHANCE_ATTACK_MULT = 0.575;
 export const GOAL_CHANCE_DEFENSE_MULT = 0.20;
 /** Scale on the MENTALITY conversion channel. Applied SYMMETRICALLY: a side's
@@ -245,11 +266,62 @@ export const GOAL_CHANCE_DEFENSE_MULT = 0.20;
  *  DEFENSE_MODIFIER_SCALE, and never touched the opponent's conversion. */
 export const GOAL_CHANCE_ATTACK_MOD_SCALE = 0.09;
 export const GOAL_CHANCE_COUNTER_VULN_SCALE = 0.09;
+/**
+ * Uniform scalar on the assembled per-shot conversion, applied before the floor.
+ *
+ * Exists solely to hold the goal total steady after SHOT_ATTEMPT_THRESHOLD
+ * raised shot volume from ~20 to ~25 per match. It is MULTIPLICATIVE and applies
+ * to the whole expression, which matters: the two obvious alternatives both
+ * distort the model.
+ *
+ *   - Lowering GOAL_CHANCE_ATTACK_MULT compresses the attacker-quality signal.
+ *     Measured: squad-quality separation fell to 57.5% against a 58% floor.
+ *   - Raising GOAL_CHANCE_DEFENSE_MULT subtracts a near-constant, pushing weak
+ *     attackers against GOAL_CHANCE_MIN far more often. That truncates the low
+ *     tail, compresses scoring variance and inflates draws. Measured: 34.5%
+ *     against matchBalance's 34% ceiling.
+ *
+ * Scaling everything uniformly preserves every ratio in the expression — quality
+ * separation, tactical modifiers and weather all keep their relative weight — and
+ * adds no clamping bias beyond what the floor already imposes.
+ */
+export const GOAL_CHANCE_VOLUME_SCALE = 0.78;
+
 export const GOAL_CHANCE_MIN = 0.008;
 
+/**
+ * How much of a stopped shot is RECORDED as on target.
+ *
+ * The keeper is already folded into the goal roll: `effectiveGoalChance =
+ * clampedChance * (1 - oppGKSave)`. Recording every stopped shot as a save then
+ * counted him twice — once as a shot-stopper, again as a labeller.
+ *
+ * MEASURED at scale 1.0 (i.e. no correction), 300 matches of even 70-quality
+ * sides: 46.4% of shots on target and 7.9 saves per match, against a real
+ * 33-35% and ~5.8. At 0.70: ~34% and ~5.5. Goals are untouched — the goal roll
+ * happens strictly before this branch, and the branch ENTRY is deliberately
+ * left unscaled so the corner opportunity that hangs off it (and the header-goal
+ * attempt inside that) keeps its rate. Only the label moves.
+ *
+ * Shots not recorded on target read as deflected away, which is what a blocked
+ * or deflected effort is.
+ */
+export const SHOT_ON_TARGET_SAVE_SCALE = 0.70;
+
 // ── Corner Chances ──
-export const CORNER_FROM_SAVE_CHANCE = 0.35;
-export const CORNER_FROM_MISS_CHANCE = 0.22;
+/**
+ * MEASURED at 0.35/0.22: 5.9 corners per match against a real top-five-league
+ * ~10. Corners were the largest untouched deviation in the match stats.
+ *
+ * The two are raised UNEVENLY on purpose. The save path carries a header-goal
+ * attempt (CORNER_GOAL_CHANCE) and the miss path does not, so lifting the save
+ * side adds goals as well as corners. Most of the increase is therefore taken on
+ * the miss side, which is corner-neutral for the goal model — and is also the
+ * more realistic source, since a shot deflected or dragged wide is the classic
+ * way a corner is won.
+ */
+export const CORNER_FROM_SAVE_CHANCE = 0.42;
+export const CORNER_FROM_MISS_CHANCE = 0.46;
 
 // ── Cards / Fouls ──
 // Per-FOUL card probability (multiplied by the fouler's personality risk,
