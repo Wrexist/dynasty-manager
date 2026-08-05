@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -27,6 +28,7 @@ for (const league of LEAGUES) {
 }
 
 const ChallengePicker = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const startChallenge = useGameStore(s => s.startChallenge);
   const [selected, setSelected] = useState<ChallengeScenario | null>(null);
@@ -146,7 +148,7 @@ const ChallengePicker = () => {
           <div className="flex items-center gap-3 p-4 max-w-lg mx-auto">
             <button
               onClick={handleBack}
-              aria-label="Back to challenges"
+              aria-label={t('challenge.backToChallenges')}
               className="p-2 -ml-2 rounded-lg hover:bg-muted/50 transition-colors"
             >
               <ArrowLeft className="w-5 h-5 text-foreground" />
@@ -171,15 +173,15 @@ const ChallengePicker = () => {
                 type="text"
                 value={clubSearch}
                 onChange={e => setClubSearch(e.target.value)}
-                placeholder="Search clubs..."
-                aria-label="Search clubs"
+                placeholder={t('common.searchClubs')}
+                aria-label={t('common.searchClubsAria')}
                 className="w-full bg-muted/30 border border-border/30 rounded-lg pl-9 pr-12 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-primary/40 transition-colors"
               />
               {clubSearch && (
                 <button
                   type="button"
                   onClick={() => { setClubSearch(''); searchRef.current?.focus(); }}
-                  aria-label="Clear search"
+                  aria-label={t('common.clearSearch')}
                   className="absolute right-1 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -361,7 +363,7 @@ const ChallengePicker = () => {
         <button
           type="button"
           onClick={() => navigate('/')}
-          aria-label="Back"
+          aria-label={t('common.back')}
           className="w-11 h-11 flex items-center justify-center rounded-lg hover:bg-muted/50"
         >
           <ArrowLeft className="w-5 h-5 text-foreground" />

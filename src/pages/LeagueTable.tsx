@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -30,6 +31,7 @@ const leaguesByTier = TIER_ORDER.map(tier => ({
 
 
 const LeagueTable = () => {
+  const { t } = useTranslation();
   const { divisionTables, divisionFixtures, divisionClubs, clubs, players, playerClubId, playerDivision, week, totalWeeks } = useGameStore(useShallow((s) => ({
     divisionTables: s.divisionTables,
     divisionFixtures: s.divisionFixtures,
@@ -176,7 +178,7 @@ const LeagueTable = () => {
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
       <PageHint
         screen="league-table"
-        title="League Table"
+        title={t('league.table')}
         body="Track standings, browse weekly fixtures, and see top scorers and assist leaders. Green zones mean promotion, red zones mean relegation. Tap any team to view their details."
       />
 
@@ -212,14 +214,14 @@ const LeagueTable = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Escape') setPickerOpen(false); }}
-                  placeholder="Search leagues..."
+                  placeholder={t('common.searchLeagues')}
                   className="w-full pl-8 pr-12 py-2 text-sm bg-muted/50 rounded-lg border border-border/30 text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary/50"
                 />
                 {searchQuery && (
                   <button
                     type="button"
                     onClick={() => setSearchQuery('')}
-                    aria-label="Clear search"
+                    aria-label={t('common.clearSearch')}
                     className="absolute right-1 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center"
                   >
                     <X className="w-3.5 h-3.5 text-muted-foreground" />
@@ -322,7 +324,7 @@ const LeagueTable = () => {
             'ml-auto p-1.5 rounded-lg transition-colors shrink-0',
             infoOpen ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
           )}
-          aria-label="Qualification info"
+          aria-label={t('league.qualificationInfo')}
         >
           <Info className="w-4 h-4" />
         </button>
@@ -418,15 +420,15 @@ const LeagueTable = () => {
             inputMode="search"
             value={clubSearch}
             onChange={e => setClubSearch(e.target.value)}
-            placeholder="Search clubs in this table…"
-            aria-label="Search clubs in this table"
+            placeholder={t('league.searchClubsInTable')}
+            aria-label={t('league.searchClubsInTableAria')}
             className="w-full bg-muted/40 border border-border/50 rounded-full pl-9 pr-9 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
           />
           {clubSearch && (
             <button
               type="button"
               onClick={() => { hapticLight(); setClubSearch(''); }}
-              aria-label="Clear club search"
+              aria-label={t('league.clearClubSearch')}
               className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-muted-foreground hover:text-foreground"
             >
               <X className="w-3.5 h-3.5" />
@@ -575,7 +577,7 @@ const LeagueTable = () => {
             <button
               onClick={() => { hapticLight(); setBrowseWeek(w => Math.max(1, w - 1)); }}
               disabled={browseWeek <= 1}
-              aria-label="Previous week"
+              aria-label={t('common.previousWeek')}
               className={cn(
                 'p-1.5 rounded-lg transition-all',
                 browseWeek <= 1 ? 'text-muted-foreground/30' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
@@ -590,7 +592,7 @@ const LeagueTable = () => {
             <button
               onClick={() => { hapticLight(); setBrowseWeek(w => Math.min(totalWeeks, w + 1)); }}
               disabled={browseWeek >= totalWeeks}
-              aria-label="Next week"
+              aria-label={t('common.nextWeek')}
               className={cn(
                 'p-1.5 rounded-lg transition-all',
                 browseWeek >= totalWeeks ? 'text-muted-foreground/30' : 'text-muted-foreground hover:bg-muted hover:text-foreground'

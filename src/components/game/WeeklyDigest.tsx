@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import type { GameState } from '@/store/storeTypes';
@@ -208,6 +209,7 @@ function WeeklyDigestCard({ digest, week, dismiss }: {
   week: number;
   dismiss: () => void;
 }) {
+  const { t } = useTranslation();
   const [devExpanded, setDevExpanded] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   useFocusTrap(containerRef, true);
@@ -267,7 +269,7 @@ function WeeklyDigestCard({ digest, week, dismiss }: {
         onClick={dismiss}
         onKeyDown={e => { if (e.key === 'Escape') dismiss(); }}
         role="dialog"
-        aria-label="Weekly Summary"
+        aria-label={t('digest.weeklySummary')}
       >
         <motion.div
           initial={{ opacity: 0, y: 50, scale: 0.97 }}
@@ -394,7 +396,7 @@ function WeeklyDigestCard({ digest, week, dismiss }: {
               {/* ── Player Development ── */}
               {devEntries.length > 0 && (
                 <div className="space-y-1.5">
-                  <SectionLabel delay={nextDelay()}>Development</SectionLabel>
+                  <SectionLabel delay={nextDelay()}>{t('digest.development')}</SectionLabel>
                   <AnimatePresence mode="popLayout">
                     {visibleDev.map((entry, pi) => (
                       <motion.div
@@ -437,7 +439,7 @@ function WeeklyDigestCard({ digest, week, dismiss }: {
               {/* ── Training Gains ── */}
               {digest.trainingGains.length > 0 && (
                 <div className="space-y-1.5">
-                  <SectionLabel delay={nextDelay()}>Training</SectionLabel>
+                  <SectionLabel delay={nextDelay()}>{t('digest.training')}</SectionLabel>
                   <motion.div className="flex flex-wrap gap-1.5" {...sectionAnim(d + 0.05)}>
                     {digest.trainingGains.slice(0, 6).map((g, i) => (
                       <motion.div
@@ -465,7 +467,7 @@ function WeeklyDigestCard({ digest, week, dismiss }: {
               {/* ── Objectives ── */}
               {digest.objectiveProgress.length > 0 && (
                 <div className="space-y-1.5">
-                  <SectionLabel delay={nextDelay()}>Objectives</SectionLabel>
+                  <SectionLabel delay={nextDelay()}>{t('digest.objectives')}</SectionLabel>
                   {digest.objectiveProgress.map((obj, i) => (
                     <motion.div
                       key={i}

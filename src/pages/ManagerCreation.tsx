@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -45,6 +46,7 @@ const CONFEDERATION_LABELS: Record<string, string> = {
 };
 
 const ManagerCreation = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const initCareerGame = useGameStore(s => s.initCareerGame);
@@ -238,7 +240,7 @@ const ManagerCreation = () => {
         <Button
           variant="ghost"
           size="sm"
-          aria-label="Back"
+          aria-label={t('common.back')}
           className="text-muted-foreground hover:text-foreground -ml-2 h-11 w-11 px-0"
           onClick={handleBack}
         >
@@ -281,15 +283,15 @@ const ManagerCreation = () => {
                 <div className={cn(LIQUID_GLASS_SURFACE, 'border border-white/10 p-5')}>
                   <div className="flex items-center gap-3 mb-4">
                     <User className="w-5 h-5 text-primary" />
-                    <SectionHeader title="Manager Name" level="section" />
+                    <SectionHeader title={t('manager.name')} level="section" />
                   </div>
                   <input
                     type="text"
                     value={managerName}
                     onChange={e => setManagerName(e.target.value)}
-                    placeholder="Enter your name..."
+                    placeholder={t('manager.namePlaceholder')}
                     maxLength={30}
-                    aria-label="Manager name"
+                    aria-label={t('manager.nameAria')}
                     className="w-full bg-white/5 border border-white/15 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/30 transition-colors backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-1px_0_rgba(0,0,0,0.25)]"
                     autoFocus
                   />
@@ -309,8 +311,8 @@ const ManagerCreation = () => {
                     type="text"
                     value={nationSearch}
                     onChange={e => setNationSearch(e.target.value)}
-                    placeholder="Search nations..."
-                    aria-label="Search nations"
+                    placeholder={t('common.searchNations')}
+                    aria-label={t('common.searchNationsAria')}
                     className={cn(LIQUID_GLASS_SURFACE, 'w-full pl-9 pr-9 py-2.5 border border-white/10 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all')}
                   />
                   {nationSearch && (
@@ -427,7 +429,7 @@ const ManagerCreation = () => {
                 <div className={cn(LIQUID_GLASS_SURFACE, 'border border-white/10 p-6')}>
                   <div className="flex items-center gap-3 mb-6">
                     <Globe className="w-5 h-5 text-primary" />
-                    <SectionHeader title="Starting Age" level="section" />
+                    <SectionHeader title={t('manager.startingAge')} level="section" />
                   </div>
                   <div className="text-center mb-8">
                     <span className="text-6xl font-black text-primary font-display">{age}</span>
@@ -440,7 +442,7 @@ const ManagerCreation = () => {
                       max={STARTING_AGE_MAX}
                       value={age}
                       onChange={e => setAge(Number(e.target.value))}
-                      aria-label="Starting age"
+                      aria-label={t('manager.startingAgeAria')}
                       aria-valuetext={`${age} years old`}
                       className="age-slider"
                       style={{
@@ -467,7 +469,7 @@ const ManagerCreation = () => {
                 <div className="flex items-center gap-3 mb-2">
                   <PremiumSparkle className="w-5 h-5" />
                   <div>
-                    <SectionHeader title="Choose Your Traits" level="section" />
+                    <SectionHeader title={t('manager.chooseTraits')} level="section" />
                     <p className="text-xs text-muted-foreground">Pick {TRAITS_TO_PICK} traits that define your management style</p>
                   </div>
                 </div>
@@ -506,7 +508,7 @@ const ManagerCreation = () => {
                 <div className="flex items-center gap-3 mb-2">
                   <Briefcase className="w-5 h-5 text-primary" />
                   <div>
-                    <SectionHeader title="Job Offers" level="section" />
+                    <SectionHeader title={t('manager.jobOffers')} level="section" />
                     <p className="text-xs text-muted-foreground">Three clubs want you as their new manager</p>
                   </div>
                 </div>
@@ -640,7 +642,7 @@ const ManagerCreation = () => {
                                   step={100}
                                   value={counterSalary}
                                   onChange={e => setCounterSalary(Number(e.target.value))}
-                                  aria-label="Counter-offer salary"
+                                  aria-label={t('manager.counterOfferAria')}
                                   aria-valuetext={`£${Math.round(counterSalary / 1000)} thousand`}
                                   className="flex-1 accent-primary h-1.5"
                                   onClick={e => e.stopPropagation()}

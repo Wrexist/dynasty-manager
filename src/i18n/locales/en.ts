@@ -36,7 +36,71 @@ export const en = {
   'season.playoffFinal': 'Final',
   'season.playoffSemi': 'Semi',
 
+  // ── Settings ──
+  'settings.gameplay': 'Gameplay',
+  'settings.communityPack': 'Community Pack',
+  'settings.display': 'Display & Accessibility',
+  'settings.data': 'Data',
+  'settings.backupRestore': 'Back up & restore',
+  'settings.help': 'Help',
+  'settings.unreadUpdate': 'Unread update',
+  'settings.redeemCode': 'Redeem Code',
+  'settings.enterCode': 'Enter a code…',
+  'settings.redeemCodeAria': 'Redeem code',
+  'settings.support': 'Support',
+  'settings.legal': 'Legal',
+  'settings.privacy': 'Privacy',
+  'settings.dataManagement': 'Data Management',
+  'settings.captureStudio': 'Capture Studio',
+  'settings.developer': 'Developer',
+  'settings.feedbackPlaceholder': "Tell us what's on your mind…",
+  'settings.feedbackAria': 'Feedback message',
+
+  // ── Manager creation ──
+  'manager.name': 'Manager Name',
+  'manager.namePlaceholder': 'Enter your name...',
+  'manager.nameAria': 'Manager name',
+  'manager.startingAge': 'Starting Age',
+  'manager.startingAgeAria': 'Starting age',
+  'manager.chooseTraits': 'Choose Your Traits',
+  'manager.jobOffers': 'Job Offers',
+  'manager.counterOfferAria': 'Counter-offer salary',
+
+  // ── League table ──
+  'league.table': 'League Table',
+  'league.qualificationInfo': 'Qualification info',
+  'league.searchClubsInTable': 'Search clubs in this table…',
+  'league.searchClubsInTableAria': 'Search clubs in this table',
+  'league.clearClubSearch': 'Clear club search',
+
+  // ── Tactics ──
+  'tactics.title': 'Tactics',
+  'tactics.loadPreset': 'Load preset',
+  'tactics.confirmDelete': 'Confirm delete',
+  'tactics.deletePreset': 'Delete preset',
+  'tactics.presetNamePlaceholder': 'Preset name...',
+
+  // ── Challenges ──
+  'challenge.backToChallenges': 'Back to challenges',
+
+  // ── Weekly digest ──
+  'digest.weeklySummary': 'Weekly Summary',
+  'digest.development': 'Development',
+  'digest.training': 'Training',
+  'digest.objectives': 'Objectives',
+
   // ── Common ──
+  'common.goBack': 'Go back',
+  'common.settings': 'Settings',
+  'common.shop': 'Shop',
+  'common.clearSearch': 'Clear search',
+  'common.searchClubs': 'Search clubs...',
+  'common.searchClubsAria': 'Search clubs',
+  'common.searchNations': 'Search nations...',
+  'common.searchNationsAria': 'Search nations',
+  'common.searchLeagues': 'Search leagues...',
+  'common.previousWeek': 'Previous week',
+  'common.nextWeek': 'Next week',
   'common.cancel': 'Cancel',
   'common.confirm': 'Confirm',
   'common.close': 'Close',

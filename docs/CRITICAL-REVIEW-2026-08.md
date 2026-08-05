@@ -93,10 +93,10 @@ Premier League (0,16 och ~28:1). Jag ändrade ingenting.
 | # | Varför inte åtgärdat |
 |---|---|
 | 3 (rest) | Spelarens egna playoff spelas fortfarande inte interaktivt. Resultaten *visas* nu. **Designen är gjord och nedskriven** i `docs/PLAN-interactive-playoff.md` — inklusive nyckelbeslutet att INTE göra säsongsrullningen pausbar, utan köra playoffet före rullningen som vanliga matcher. Inte implementerad: det ändrar spelets mest bärande transition och förtjänar att byggas med testerna först, inte blint i slutet av en granskningssession |
-| 17 | **DELVIS ÅTGÄRDAT.** Båda "blockerarna" jag angav var mina egna antaganden: en handrullad `t()` lägger till *noll* beroenden, och jag hade precis själv höjt bundle-headroom till 53,5 kB. Kvar stod bara "halvmigrerad i18n är värre än ingen" — vilket bara gäller om otextade ytor *går sönder*. Med engelska alltid laddad som fallback gör de inte det: `t()` på en omigrerad nyckel returnerar exakt samma sträng som literalen gjorde. Grunden finns nu (`src/i18n/`, `useTranslation`), plus svenska som bevis att en andra locale fungerar, och `SeasonSummary` + `TitleScreen` migrerade som första ytor. Resterande ~490 filer är mekaniska och kan tas en skärm i taget |
+| 17 | **DELVIS ÅTGÄRDAT (57 av 206 strängar).** Båda "blockerarna" jag angav var mina egna antaganden: en handrullad `t()` lägger till *noll* beroenden, och jag hade precis själv höjt bundle-headroom till 53,5 kB. Kvar stod bara "halvmigrerad i18n är värre än ingen" — vilket bara gäller om otextade ytor *går sönder*. Med engelska alltid laddad som fallback gör de inte det: `t()` på en omigrerad nyckel returnerar exakt samma sträng som literalen gjorde. Grunden finns nu (`src/i18n/`, `useTranslation`), plus svenska som bevis att en andra locale fungerar, och `SeasonSummary` + `TitleScreen` migrerade som första ytor. Kvar: 149 strängar, mätbara med `npm run i18n:check` |
 | 19 | **ÅTGÄRDAT.** Jag hade fel: den kunde fixas utan att ta bort någon funktionalitet. Radix delades vid `react-dialog`, och de två villkorliga dialogerna plus titelskärmens inställningspanel gjordes lata. **522,1 → 506,5 kB gz eager, headroom 37,9 → 53,5 kB (+41 %)** |
 | 20 (rest) | Riktig kvittovalidering kräver en backend som inte finns. **Men exploiten är stängd** — klockmanipulation neutraliseras nu av en monoton högvattenmärkning (`41d4bf4`), verifierad mot koden före fixen |
-| 21 | AI-utveckling batchad till säsongsslut. Dokumenterat prestandaval, inte ett fel |
+| 21 | AI-utveckling batchad till säsongsslut. **Min "inte ett fel" var för slapp** — det går att amortera över säsongen med roterande skivor till lägre veckokostnad än dagens toppl. Inte gjord: kräver persisterad ackumulerad tillväxt, save-schemabump och omgjorda balanstester. Vägen är nedskriven i punkt 21 |
 | 22 | Online-läge. Ett produktbeslut, inte en fix |
 
 
@@ -503,9 +503,20 @@ skript i preflight, eller så tas de bort.
 > oöversatt nyckel returnerar exakt samma sträng som literalen gjorde.
 > Migrationen kan därför tas en skärm i taget utan att någon skärm regredierar.
 >
-> Kvar: ~490 filer. Mekaniskt arbete, inte designarbete. Matchmotorn,
-> `src/config/` och allt som producerar *lagrade* strängar stannar på engelska
-> — det är speldata, inte presentation.
+> **Rättelse till siffran.** Jag skrev "~490 filer". Det var en filräkning av
+> hela `src/`, inte ett arbetsestimat, och den fick jobbet att se obegränsat ut
+> — vilket är en del av varför det aldrig påbörjades. Det som faktiskt betyder
+> något är hur många *strängar en spelare kan se*. `npm run i18n:check` mäter
+> det: utgångsläget var **206 strängar i 93 filer**, inte 490 filer.
+>
+> Efter den här sessionen: **149 kvar i 87 filer** — 57 migrerade (28 %).
+> Migrerade ytor: `SeasonSummary`, `TitleScreen`, `SettingsPage`,
+> `ManagerCreation`, `LeagueTable`, `TacticsPage`, `TopBar`, `ChallengePicker`,
+> `WeeklyDigest`.
+>
+> Matchmotorn, `src/config/` och allt som producerar *lagrade* strängar stannar
+> på engelska — det är speldata, inte presentation. Klubb- och spelarnamn
+> likaså.
 
 Noll `i18next` / `react-intl` / `useTranslation` i hela `src/`. Samtidigt:
 
@@ -661,6 +672,36 @@ lokalt låst innehåll), men den finns.
 
 ### 21. AI-spelarnas utveckling batchas till säsongsslutet
 
+> **OMBEDÖMD, MEN INTE ÅTGÄRDAD — och min första bedömning var för slapp.**
+> Jag skrev "dokumenterat prestandaval, inte ett fel" och lämnade det där. Det
+> var att förväxla *en motivering finns* med *problemet är olösligt*.
+> Prestandaargumentet gäller bara den naiva fixen (kör hela batchen varje vecka,
+> 46× kostnaden). Det finns en billig medelväg:
+>
+> **Amortera batchen över säsongen med roterande skivor.** Dela AI-klubbarna i
+> N grupper (N ≈ 4). Varje vecka körs *en* utvecklingspass på *en* grupp. Över
+> 46 veckor får varje klubb ~11–12 pass — samma totalbudget som idag — men
+> kostnaden per vecka blir ~1/4 pass i stället för 12 pass på en gång, alltså
+> lägre topplatens än nuvarande säsongsslut och en värld som rör sig hela tiden.
+>
+> **Varför jag ändå inte bygger det nu**, och det här är en bedömning, inte en
+> blockering:
+>
+> - `MAX_SEASON_GROWTH` är ett *säsongstak* som idag kan tillämpas i ett enda
+>   svep. Amorterat måste ackumulerad tillväxt spåras per spelare över säsongen
+>   — alltså **ny persisterad state och en `CURRENT_VERSION`-bump med
+>   migrationssteg**.
+> - `seasonEnd` måste sluta köra batchen utan att dubbelapplicera, och
+>   balanstesterna mäter utveckling per säsong i klump.
+> - Det ändrar kännbar spelbalans: en wonderkid som köps i januari har redan
+>   vuxit en bit, vilket påverkar transfervärden mitt i säsongen.
+>
+> Det är en funktionsändring i spelets känsligaste loop plus en
+> save-schemaändring. Mitt eget råd tidigare i det här dokumentet var att sånt
+> byggs med testerna först. Att göra det blint i slutet av en granskningssession,
+> i en app som redan ligger i App Store, vore precis det jag varnade för.
+> **Vägen är beskriven ovan så att den går att plocka upp — den är inte gjord.**
+
 `config/aiSimulation.ts` — `AI_SEASON_DEVELOPMENT_PASSES = 12`, körda i klump i
 `seasonEnd`. Kommentaren motiverar det väl (veckovis över 756 klubbar är för
 dyrt), men konsekvensen är att hela världen står stilla i 46 veckor och hoppar i
@@ -745,7 +786,13 @@ Ingenting här har körts på en enhet. Två av fixarna kan bara bekräftas i en
 TestFlight-build:
 
 - **#5** — att paywallen inte längre lovar reklamfrihet.
-- **#6** — att IPA-storleken faktiskt sjunker med ~35 MB.
+- **#6** — **VERIFIERAD LOKALT, inte längre öppen.** Mätt på en riktig
+  produktionsbuild: `dist` var 66 MB, varav 134 `.map`-filer på 34,8 MB.
+  Efter `strip-sourcemaps` är `dist` **31 MB** och noll kartfiler — 53 %
+  bort från det Capacitor kopierar in i appen. Skriptet är idempotent
+  (andra körningen är en no-op), inga `sourceMappingURL`-referenser läcker,
+  och steget är inkopplat i `build:native`, `cap:sync` och båda
+  CI-workflowsen. Det enda TestFlight skulle tillföra är IPA-siffran.
 
 Och en tredje kan bara bekräftas av att spela: **#1**, att halvtidstalet nu
 håller i sig hela andra halvlek. Testet bevisar att modifieraren överlever

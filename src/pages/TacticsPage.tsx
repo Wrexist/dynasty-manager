@@ -1,4 +1,5 @@
 import { useGameStore } from '@/store/gameStore';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { LineupEditor } from '@/components/game/LineupEditor';
@@ -35,6 +36,7 @@ function pressingLabel(v: number): string {
 }
 
 const TacticsPage = () => {
+  const { t } = useTranslation();
   const { playerClubId, clubs, players, tactics, training, season, week } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId, clubs: s.clubs, players: s.players, tactics: s.tactics,
     training: s.training, season: s.season, week: s.week,
@@ -148,7 +150,7 @@ const TacticsPage = () => {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
-      <SectionHeader title="Tactics" />
+      <SectionHeader title={t('tactics.title')} />
 
       {/* Team Rating Summary — slim Liquid Glass row */}
       {teamRating && (
@@ -522,7 +524,7 @@ const TacticsPage = () => {
                   <button
                     onClick={() => { loadTacticalPreset(preset.id); infoToast(`Loaded "${preset.name}"`); }}
                     className="min-w-11 min-h-11 flex items-center justify-center rounded-lg hover:bg-primary/20 text-primary transition-colors"
-                    title="Load preset"
+                    title={t('tactics.loadPreset')}
                     aria-label={`Load preset ${preset.name}`}
                   >
                     <Upload className="w-4 h-4" />
@@ -532,7 +534,7 @@ const TacticsPage = () => {
                       onClick={() => { deleteTacticalPreset(preset.id); setPendingDeletePresetId(null); infoToast(`Deleted "${preset.name}"`); }}
                       onBlur={() => setPendingDeletePresetId(null)}
                       className="min-w-11 min-h-11 flex items-center justify-center rounded-lg bg-destructive/20 text-destructive border border-destructive/40 transition-colors"
-                      title="Confirm delete"
+                      title={t('tactics.confirmDelete')}
                       aria-label={`Confirm delete preset ${preset.name}`}
                       autoFocus
                     >
@@ -542,7 +544,7 @@ const TacticsPage = () => {
                     <button
                       onClick={() => setPendingDeletePresetId(preset.id)}
                       className="min-w-11 min-h-11 flex items-center justify-center rounded-lg hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"
-                      title="Delete preset"
+                      title={t('tactics.deletePreset')}
                       aria-label={`Delete preset ${preset.name}`}
                     >
                       <Trash2 className="w-4 h-4" />
@@ -558,7 +560,7 @@ const TacticsPage = () => {
                 type="text"
                 value={presetName}
                 onChange={e => setPresetName(e.target.value)}
-                placeholder="Preset name..."
+                placeholder={t('tactics.presetNamePlaceholder')}
                 maxLength={24}
                 className="flex-1 bg-muted/30 border border-border/30 rounded-lg px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
               />

@@ -16,6 +16,7 @@
     "strip-sourcemaps": "node scripts/strip-sourcemaps.mjs",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
+    "i18n:check": "node scripts/check-i18n-coverage.mjs",
     "docs:check": "node scripts/check-docs-drift.mjs",
     "preview": "vite preview",
     "test": "vitest run",

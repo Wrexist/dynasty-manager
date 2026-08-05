@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { Settings, ArrowLeft, Star, Mail, Crown, Briefcase } from 'lucide-react';
@@ -18,6 +19,9 @@ import { useMatchLocked, useCareerUnemployed } from '@/hooks/useGameSelectors';
 import { XP_GLOW_MS } from '@/config/ui';
 
 export function TopBar() {
+  // `t` is already a local in this file (an InternationalTournamentState).
+  // Alias rather than rename that, to keep the diff to this feature.
+  const { t: tr } = useTranslation();
   const {
     playerClubId, clubs, leagueTable, playerDivision, fixtures,
     currentScreen, previousScreen, managerProgression, gameMode, careerManager,
@@ -86,7 +90,7 @@ export function TopBar() {
           <div className="flex items-center gap-2 min-w-0">
             <button
               onClick={() => { setScreen(BACK_TARGET[currentScreen] || 'dashboard'); hapticMedium(); }}
-              aria-label="Go back"
+              aria-label={tr('common.goBack')}
               className="shrink-0 w-10 h-10 -ml-1 rounded-full flex items-center justify-center text-foreground/90 hover:text-foreground bg-white/[0.06] border border-white/20 active:scale-95 transition-transform"
             >
               <ArrowLeft className="w-[18px] h-[18px]" />
@@ -110,7 +114,7 @@ export function TopBar() {
             <button
               disabled={matchLocked}
               onClick={() => { setScreen('settings'); hapticMedium(); }}
-              aria-label="Settings"
+              aria-label={tr('common.settings')}
               className="p-2 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
             >
               <Settings className="w-4 h-4" />
@@ -175,7 +179,7 @@ export function TopBar() {
           {showBack && (
             <button
               onClick={() => { setScreen(backTarget); hapticMedium(); }}
-              aria-label="Go back"
+              aria-label={tr('common.goBack')}
               className={cn(
                 // Round Liquid Glass back button — translucent, outlined, sees
                 // through to the background with subtle refraction + specular
@@ -267,7 +271,7 @@ export function TopBar() {
           <button
             disabled={matchLocked}
             onClick={() => { setScreen('shop'); hapticMedium(); }}
-            aria-label="Shop"
+            aria-label={tr('common.shop')}
             className="p-2 rounded-lg hover:bg-muted/50 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
           >
             <Crown className="w-4 h-4 text-[hsl(var(--gold))] drop-shadow-[0_0_4px_hsl(var(--gold)/0.4)]" />
@@ -297,7 +301,7 @@ export function TopBar() {
           <button
             disabled={matchLocked}
             onClick={() => { setScreen('settings'); hapticMedium(); }}
-            aria-label="Settings"
+            aria-label={tr('common.settings')}
             className="p-2 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
           >
             <Settings className="w-4 h-4" />

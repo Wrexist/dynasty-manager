@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -118,6 +119,7 @@ function ToggleRow({ icon: Icon, label, description, value, onChange }: {
 export type SettingsVariant = 'title' | 'in-game';
 
 const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
+  const { t } = useTranslation();
   const settings = useGameStore(s => s.settings);
   const monetization = useGameStore(s => s.monetization);
   const activeSlot = useGameStore(s => s.activeSlot);
@@ -397,7 +399,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
       )}
 
       {/* ─── Gameplay ─── */}
-      <SettingsSection title="Gameplay">
+      <SettingsSection title={t('settings.gameplay')}>
         <div className="space-y-4">
           {/* Match Speed — glass segmented control */}
           <div>
@@ -464,7 +466,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
 
       {/* ─── Community Pack ─── (in-game only — depends on activeSlot) */}
       {variant === 'in-game' && (
-      <SettingsSection title="Community Pack">
+      <SettingsSection title={t('settings.communityPack')}>
         <ToggleRow
           icon={Users}
           label="Use Real Players (Community Pack)"
@@ -506,7 +508,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
       )}
 
       {/* ─── Display & Accessibility ─── */}
-      <SettingsSection title="Display & Accessibility">
+      <SettingsSection title={t('settings.display')}>
         <div className="space-y-4">
           <ToggleRow
             icon={Eye}
@@ -586,7 +588,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
       </SettingsSection>
 
       {/* ─── Data ─── */}
-      <SettingsSection title="Data">
+      <SettingsSection title={t('settings.data')}>
         <div className="space-y-3">
           {variant === 'in-game' && (
             <>
@@ -676,7 +678,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
 
       {/* ─── Back up & restore ─── (in-game only — operates on the active slot) */}
       {variant === 'in-game' && (
-      <SettingsSection title="Back up & restore">
+      <SettingsSection title={t('settings.backupRestore')}>
         <div className="space-y-3">
           <p className="text-[10px] text-muted-foreground leading-snug">
             Save a copy of this career to a file you control, or restore one on a
@@ -726,7 +728,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
       )}
 
       {/* ─── Help ─── */}
-      <SettingsSection title="Help">
+      <SettingsSection title={t('settings.help')}>
         <div className="space-y-2">
           <LiquidButton
             onClick={() => {
@@ -756,7 +758,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
                 <span>v{LATEST_RELEASE.version}</span>
                 {hasUnseenWhatsNew() && (
                   <span
-                    aria-label="Unread update"
+                    aria-label={t('settings.unreadUpdate')}
                     className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 ring-2 ring-background/90 animate-pulse"
                   />
                 )}
@@ -766,18 +768,18 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
         </div>
       </SettingsSection>
 
-      <SettingsSection title="Redeem Code">
+      <SettingsSection title={t('settings.redeemCode')}>
         <div className="flex items-center gap-2">
           <input
             type="text"
             value={redeemInput}
             onChange={(e) => setRedeemInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') void handleRedeem(); }}
-            placeholder="Enter a code…"
+            placeholder={t('settings.enterCode')}
             autoCapitalize="characters"
             autoCorrect="off"
             spellCheck={false}
-            aria-label="Redeem code"
+            aria-label={t('settings.redeemCodeAria')}
             className="flex-1 min-w-0 bg-white/5 border border-white/15 rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground uppercase tracking-wide focus:outline-none focus:ring-2 focus:ring-primary/40 backdrop-blur-md"
           />
           <LiquidButton tone="primary" className="shrink-0 w-auto px-5" onClick={() => void handleRedeem()} disabled={redeeming || !redeemInput.trim()}>
@@ -847,7 +849,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
       </SettingsSection>
 
       {/* ─── Support & Feedback ─── */}
-      <SettingsSection title="Support">
+      <SettingsSection title={t('settings.support')}>
         <div className="space-y-2">
           <LiquidButton
             onClick={() => { void openExternalUrl('mailto:support@dynastymanager.com?subject=Dynasty%20Manager%20Support'); }}
@@ -870,7 +872,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
       </SettingsSection>
 
       {/* ─── Legal ─── */}
-      <SettingsSection title="Legal">
+      <SettingsSection title={t('settings.legal')}>
         <div className="space-y-2">
           <LiquidButton onClick={() => { void openExternalUrl(PRIVACY_URL); }}>
             <span className="flex items-center justify-start gap-3 px-3">
@@ -888,7 +890,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
       </SettingsSection>
 
       {/* ─── Privacy ─── */}
-      <SettingsSection title="Privacy">
+      <SettingsSection title={t('settings.privacy')}>
         <ToggleRow
           icon={ChartBar}
           label="Share anonymous usage stats"
@@ -904,7 +906,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
       </SettingsSection>
 
       {/* ─── Data Management (destructive) ─── */}
-      <SettingsSection title="Data Management" tone="danger">
+      <SettingsSection title={t('settings.dataManagement')} tone="danger">
         {!showDeleteDataConfirm ? (
           <LiquidButton
             tone="destructive"
@@ -939,7 +941,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
       </SettingsSection>
 
       {/* ─── Capture Studio (marketing footage) ─── */}
-      <SettingsSection title="Capture Studio">
+      <SettingsSection title={t('settings.captureStudio')}>
         <p className="text-[10px] text-muted-foreground leading-snug mb-3">
           Staged World Cup finals for screen-recording promo videos. Each scenario
           runs as a throwaway session — nothing in it is ever saved, and your
@@ -984,7 +986,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
 
       {/* ─── Developer (dev + dev-tools builds only) ─── */}
       {DEV_TOOLS_ENABLED && (
-        <SettingsSection title="Developer">
+        <SettingsSection title={t('settings.developer')}>
           <LiquidButton tone="amber" onClick={handleResetProForTesting}>
             <span className="flex items-center justify-start gap-3 px-3">
               <RotateCcw className="w-4 h-4" />
@@ -1086,8 +1088,8 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
                   });
                 }, 280);
               }}
-              placeholder="Tell us what's on your mind…"
-              aria-label="Feedback message"
+              placeholder={t('settings.feedbackPlaceholder')}
+              aria-label={t('settings.feedbackAria')}
               className="w-full mt-4 p-3 rounded-2xl bg-white/5 border border-white/15 backdrop-blur-md text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-1px_0_rgba(0,0,0,0.3)]"
               rows={4}
             />
