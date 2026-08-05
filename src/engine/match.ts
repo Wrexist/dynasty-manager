@@ -117,6 +117,15 @@ export interface HalfState {
   /** Tracks which gap-filler commentary templates have been used this match (avoids repetition).
    *  Plain array (not Set) so JSON.stringify in saveGame survives a mid-match save. */
   usedCommentaryLines: string[];
+  /** The match was abandoned under FIFA Law 3 (a side below
+   *  MIN_PLAYERS_TO_CONTINUE) and the score has been forfeited.
+   *
+   *  This MUST live on the carried state, not just in a local. `abandonMatch`
+   *  was a local inside simulateHalf, so a first half that ended in a forfeit
+   *  was followed by a completely normal second half: the depleted side played
+   *  on, both sides kept scoring, and the forfeit was silently undone.
+   *  Optional so mid-match saves written before this field default to false. */
+  abandoned?: boolean;
 }
 
 // Pure helpers (`getFormationFitBonus`, `pickAttacker`, `pickPenaltyTaker`,
@@ -256,6 +265,28 @@ export function simulateHalf(
   matchWeather?: MatchWeather,
   setPieceCoachBonus?: number,
 ): HalfState {
+  // An abandoned match is over. Every later segment — second half, extra time,
+  // a resumed mid-match save — must be a no-op, or the forfeited scoreline gets
+  // played over and the forfeit is undone.
+  if (prevState?.abandoned) {
+    return {
+      ...prevState,
+      events: [...prevState.events],
+      sentOff: [...prevState.sentOff],
+      injured: [...prevState.injured],
+      subbedOut: prevState.subbedOut ? [...prevState.subbedOut] : undefined,
+      playerEvents: { ...prevState.playerEvents },
+      matchInjuries: { ...prevState.matchInjuries },
+      homeBench: [...prevState.homeBench],
+      awayBench: [...prevState.awayBench],
+      homeSubbedIn: [...prevState.homeSubbedIn],
+      awaySubbedIn: [...prevState.awaySubbedIn],
+      playerFitness: { ...prevState.playerFitness },
+      tacticalInsights: [...prevState.tacticalInsights],
+      usedCommentaryLines: [...prevState.usedCommentaryLines],
+    };
+  }
+
   // Guard against empty squads — return a forfeit-like state (clone refs to avoid mutation)
   if (homePlayers.length === 0 || awayPlayers.length === 0) {
     const forfeitHome = homePlayers.length === 0;
@@ -1029,7 +1060,10 @@ export function simulateHalf(
   let stoppageTime = 0;
 
   const MAX_MATCH_MINUTES = 150; // Safety cap to prevent infinite loops
-  let abandonMatch = false;
+  // Seeded from the carried state so a resumed segment of an already-abandoned
+  // match cannot restart play (the early return above normally catches this;
+  // this keeps the local honest if the guard is ever relaxed).
+  let abandonMatch = prevState?.abandoned ?? false;
   // Helper: check if a team has fallen below minimum viable size (FIFA Law 3)
   const checkAbandon = (minute: number): boolean => {
     const homeAvailCount = homeAvail().length;
@@ -1380,19 +1414,51 @@ export function simulateHalf(
         let actualScorerId = scorer.id; // Can be overridden by free kick taker
         const hasHighLine = oppMods.counterVuln > 0.1;
         const flavorRoll = Math.random();
-        if (hasHighLine && flavorRoll < COUNTER_ATTACK_GOAL_CHANCE) {
+        // Walk cumulative bands over the flavours this scorer is ELIGIBLE for.
+        //
+        // The chain used to be an else-if ladder whose thresholds were
+        // cumulative (`CA`, `CA+LR`, `CA+LR+HEADER`, …) while each branch ALSO
+        // carried an independent eligibility gate. When a gate failed its band
+        // was not skipped — it was inherited by the next branch. With no high
+        // line the long-range branch owned [0, CA+LR) rather than [CA, CA+LR),
+        // so it fired at 22% instead of its configured 10%, headers likewise
+        // over-fired, and free kicks — last in the ladder — were squeezed out.
+        // Free kicks are the only flavour that honours `club.setPieceTakerId`,
+        // so the player's chosen dead-ball specialist mattered less than the
+        // config implied.
+        //
+        // Building the eligible list first gives every flavour exactly its
+        // configured probability, and anything left over stays a plain goal.
+        const flavorBands: { type: MatchEvent['type']; chance: number }[] = [];
+        if (hasHighLine) flavorBands.push({ type: 'counter_attack_goal', chance: COUNTER_ATTACK_GOAL_CHANCE });
+        if (scorer.attributes.shooting >= 75) flavorBands.push({ type: 'long_range_goal', chance: LONG_RANGE_GOAL_CHANCE });
+        if (scorer.attributes.physical >= 70) flavorBands.push({ type: 'header_goal', chance: HEADER_GOAL_CHANCE });
+        if ((scorer.skillMoves ?? 2) >= 4 && scorer.attributes.pace >= 70) flavorBands.push({ type: 'solo_goal', chance: SOLO_GOAL_CHANCE });
+        // Free kicks have no scorer-level gate here: the shooting bar depends on
+        // WHO ends up taking it (a designated specialist gets a lower bar), so
+        // it is applied below once the taker is resolved.
+        flavorBands.push({ type: 'free_kick_goal', chance: FREE_KICK_GOAL_CHANCE });
+
+        let chosenFlavor: MatchEvent['type'] | null = null;
+        let flavorCumulative = 0;
+        for (const band of flavorBands) {
+          flavorCumulative += band.chance;
+          if (flavorRoll < flavorCumulative) { chosenFlavor = band.type; break; }
+        }
+
+        if (chosenFlavor === 'counter_attack_goal') {
           goalType = 'counter_attack_goal';
           goalDescription = pick(counterAttackGoalDescs)(scorerName, clubName);
-        } else if (scorer.attributes.shooting >= 75 && flavorRoll < COUNTER_ATTACK_GOAL_CHANCE + LONG_RANGE_GOAL_CHANCE) {
+        } else if (chosenFlavor === 'long_range_goal') {
           goalType = 'long_range_goal';
           goalDescription = pick(longRangeGoalDescs)(scorerName, clubName);
-        } else if (scorer.attributes.physical >= 70 && flavorRoll < COUNTER_ATTACK_GOAL_CHANCE + LONG_RANGE_GOAL_CHANCE + HEADER_GOAL_CHANCE) {
+        } else if (chosenFlavor === 'header_goal') {
           goalType = 'header_goal';
           goalDescription = pick(headerGoalDescs)(scorerName, clubName);
-        } else if ((scorer.skillMoves ?? 2) >= 4 && scorer.attributes.pace >= 70 && flavorRoll < COUNTER_ATTACK_GOAL_CHANCE + LONG_RANGE_GOAL_CHANCE + HEADER_GOAL_CHANCE + SOLO_GOAL_CHANCE) {
+        } else if (chosenFlavor === 'solo_goal') {
           goalType = 'solo_goal';
           goalDescription = pick(soloGoalDescs)(scorerName, clubName);
-        } else if (flavorRoll < COUNTER_ATTACK_GOAL_CHANCE + LONG_RANGE_GOAL_CHANCE + HEADER_GOAL_CHANCE + FREE_KICK_GOAL_CHANCE) {
+        } else if (chosenFlavor === 'free_kick_goal') {
           // Prefer designated set-piece taker for free kicks
           let fkScorer = scorer;
           if (club.setPieceTakerId && club.setPieceTakerId !== scorer.id) {
@@ -1546,9 +1612,17 @@ export function simulateHalf(
           }
         }
       } else if (Math.random() < oppGKErrorChance) {
-        // Goalkeeper error — fumble leads to a goal (not a shot — GK dropped it).
+        // Goalkeeper error — the keeper spills a shot and it goes in.
         // Chance scaled by GK quality + weather, pre-computed once per match.
+        //
+        // This branch sits inside the SHOT ATTEMPT block, so an attempt was
+        // made and it ended up in the net: it counts as a shot AND as a shot on
+        // target, exactly like the goal branch above. It used to increment
+        // neither, which let a match finish with more goals than shots.
+        // (The xG was already booked at the shot-attempt roll, so none is added
+        // here — see the own-goal note below.)
         if (isHome) homeGoals++; else awayGoals++;
+        if (isHome) { homeShots++; homeSoT++; } else { awayShots++; awaySoT++; }
         const gkErrorAssist = pickAssist(squad.filter(p => !unavailable.has(p.id)), scorer.id);
         if (playerEvents[scorer.id]) playerEvents[scorer.id].goals++;
         if (gkErrorAssist && playerEvents[gkErrorAssist.id]) playerEvents[gkErrorAssist.id].assists++;
@@ -1681,6 +1755,15 @@ export function simulateHalf(
           : Math.max(-100, momentum - MOMENTUM_FOUL_SWING);
         events.push({ minute: min, type: 'foul', playerId: fouler.id, clubId: foulingClub.id, description: withContextSuffix(pick(foulDescs)(fouler.lastName)), momentum });
       }
+
+      // A sending-off just above may have taken a side below the minimum and
+      // ended the match. `checkAbandon` has already forfeited the score and
+      // stripped the goal events, but the loop only breaks at the TOP of the
+      // next minute — so the injury and penalty blocks below still ran, and a
+      // penalty converted here incremented a scoreline the forfeit had just
+      // finalised (0-3 becoming 1-3, with a scorer the forfeit had zeroed).
+      // Leave immediately instead.
+      if (abandonMatch) break;
 
       // Foul can cause injury to the FOULED player — i.e. someone on the
       // attacking (event) side, treated by that side's medical staff.
@@ -1940,6 +2023,7 @@ export function simulateHalf(
     playerFitness: { ...matchFitness },
     tacticalInsights,
     usedCommentaryLines: usedLines,
+    abandoned: abandonMatch,
   };
 }
 
