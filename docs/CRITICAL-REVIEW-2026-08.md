@@ -32,6 +32,36 @@ det ändå:
   avvikelsen i matchstatistiken, som ingen mätning tidigare fångat. Höjd till
   9,7, med merparten av ökningen tagen på den målneutrala grenen. Se punkt 13.
 
+**Fyra ytterligare fynd, alla i säsongsrullningen, alla åtgärdade** (`se
+seasonRolloverIntegrity.test.ts`). De föll ut när regressionstestet för #3 började
+fallera på en storleksavvikelse jag först antog var flakig. Den var inte flakig.
+Gemensam grundorsak: **säsongen var inte *avgjord* innan saker började läsa
+tabeller ur den.** `endSeasonImpl` snabbspolar varje divisions ospelade matcher
+*efter* att playoff-bracketen redan seedats — två olika tabeller.
+
+- **Klubbar både uppflyttade och nedflyttade i samma rullning.** En klubb seedad
+  in i playoffet från tabellen *före* snabbspolningen kunde ligga i
+  nedflyttningszonen i tabellen *efter*. Den togs bort ur sin liga en gång men
+  lades till i två. eng-2 växte till 25 lag och stannade där. Cirka 1 rullning
+  av 10, permanent, ärvd av varje efterföljande säsong.
+- **Spelarens sista match kunde simuleras om.** `divisionFixtures` synkas mot
+  `fixtures` bara inne i `advanceWeek`. Avslutas säsongen direkt efter sista
+  matchen saknas den i `divisionFixtures`, och snabbspolningen hittade på ett
+  annat resultat — in i tabellen som avgör uppflyttning. Det här träffar varje
+  spelare, inte bara playoff-fall.
+- **`playoffState` städades aldrig.** Rullningen konsumerade den men nollställde
+  den inte, så *nästa* säsongs rullning körde förra säsongens bracket med förra
+  säsongens resultat. En klubb som slutade 19:a fick ett uppflyttningsplayoff mot
+  motståndare den inte mött. `initGame` nollställde den inte heller, så en ny
+  karriär ärvde den föregåendes.
+- **Uppflyttningsplatser kunde bli ostädade.** Gav playoffet ingen vinnare
+  fylldes inte platsen, och de två nivåerna gled isär permanent.
+
+Fixen är att `endSeason` avgör ligan och *committar* den innan något läser en
+tabell, plus en strukturell spärr i `applyPromotionRelegation` så att storleks-
+drift är omöjlig även om de två tabellerna någonsin skiljer sig igen. Alla sex
+testerna fallerar mot koden före fixen.
+
 **Ett icke-fynd, för ordningens skull:** min mätrigg flaggade röda kort som låga
 (0,12/match mot referensen 0,25). Referensen var fel. 0,12 med ett gult:rött-
 förhållande på 31,8:1 ligger inom kodens egna dokumenterade mål och nära
@@ -42,7 +72,7 @@ Premier League (0,16 och ~28:1). Jag ändrade ingenting.
 | # | Varför inte åtgärdat |
 |---|---|
 | 3 (rest) | Spelarens egna playoff spelas fortfarande inte interaktivt. Resultaten *visas* nu. **Designen är gjord och nedskriven** i `docs/PLAN-interactive-playoff.md` — inklusive nyckelbeslutet att INTE göra säsongsrullningen pausbar, utan köra playoffet före rullningen som vanliga matcher. Inte implementerad: det ändrar spelets mest bärande transition och förtjänar att byggas med testerna först, inte blint i slutet av en granskningssession |
-| 17 | i18n. ~490 filer med hårdkodad engelska. Dessutom blockerat av två projektregler: inga nya npm-beroenden utan diskussion, och eager bundle har 38 kB kvar av 560. Att scaffolda halvvägs är värre än att inte börja |
+| 17 | **DELVIS ÅTGÄRDAT.** Båda "blockerarna" jag angav var mina egna antaganden: en handrullad `t()` lägger till *noll* beroenden, och jag hade precis själv höjt bundle-headroom till 53,5 kB. Kvar stod bara "halvmigrerad i18n är värre än ingen" — vilket bara gäller om otextade ytor *går sönder*. Med engelska alltid laddad som fallback gör de inte det: `t()` på en omigrerad nyckel returnerar exakt samma sträng som literalen gjorde. Grunden finns nu (`src/i18n/`, `useTranslation`), plus svenska som bevis att en andra locale fungerar, och `SeasonSummary` + `TitleScreen` migrerade som första ytor. Resterande ~490 filer är mekaniska och kan tas en skärm i taget |
 | 19 | **ÅTGÄRDAT.** Jag hade fel: den kunde fixas utan att ta bort någon funktionalitet. Radix delades vid `react-dialog`, och de två villkorliga dialogerna plus titelskärmens inställningspanel gjordes lata. **522,1 → 506,5 kB gz eager, headroom 37,9 → 53,5 kB (+41 %)** |
 | 20 (rest) | Riktig kvittovalidering kräver en backend som inte finns. **Men exploiten är stängd** — klockmanipulation neutraliseras nu av en monoton högvattenmärkning (`41d4bf4`), verifierad mot koden före fixen |
 | 21 | AI-utveckling batchad till säsongsslut. Dokumenterat prestandaval, inte ett fel |
@@ -437,6 +467,25 @@ skript i preflight, eller så tas de bort.
 
 ### 17. Ingen i18n — engelska hårdkodat överallt
 
+> **DELVIS ÅTGÄRDAT.** Grunden finns: `src/i18n/` (handrullad, ~40 rader,
+> noll beroenden), `useTranslation`, engelska som källa, svenska som lazy
+> overlay, och `SeasonSummary` + `TitleScreen` migrerade som första ytor —
+> titelskärmen medvetet vald för att den är den första skärmen varje spelare
+> ser och därmed den enda som garanterat syns på varje enhet.
+>
+> **Rättelse till mitt eget påstående nedan.** Jag angav två blockerare —
+> "inga nya npm-beroenden" och "38 kB kvar av bundlebudgeten". Ingen av dem
+> var verklig. En handrullad `t()` lägger till noll beroenden, och jag hade
+> precis själv höjt headroom till 53,5 kB via #19. Det enda äkta argumentet
+> var "halvmigrerad i18n är värre än ingen" — och det gäller bara om otextade
+> ytor går sönder. Engelska laddas alltid, så `t()` på en omigrerad eller
+> oöversatt nyckel returnerar exakt samma sträng som literalen gjorde.
+> Migrationen kan därför tas en skärm i taget utan att någon skärm regredierar.
+>
+> Kvar: ~490 filer. Mekaniskt arbete, inte designarbete. Matchmotorn,
+> `src/config/` och allt som producerar *lagrade* strängar stannar på engelska
+> — det är speldata, inte presentation.
+
 Noll `i18next` / `react-intl` / `useTranslation` i hela `src/`. Samtidigt:
 
 - ASO-metadata på 37 locales (`aso-metadata`-skill).
@@ -656,11 +705,11 @@ granskningsenergin har gått till motorns inre.
    komplexa filen i kodbasen utan befintlig testtäckning för en pausad rullning.
    Skriv testerna för den pausade rullningen först.
 2. **#17 i18n.** Störst kommersiell effekt av allt som återstår: ASO-metadata på
-   37 språk mot en produkt som bara finns på engelska. Blockerat av två
-   projektregler som kräver ditt beslut — nya beroenden, och 38 kB kvar av
-   bundlebudgeten. Börja med att bestämma bibliotek (eller ett handrullat `t()`),
-   sedan extrahera `pages/` och `components/game/`; motorn och `config/` behöver
-   aldrig översättas.
+   37 språk mot en produkt som bara finns på engelska. **Grunden är byggd** —
+   handrullad, noll beroenden, engelska som alltid laddad fallback. Det som
+   återstår är mekaniskt: extrahera `pages/` och `components/game/` en skärm i
+   taget. Motorn, `config/` och allt som producerar lagrade strängar ska aldrig
+   översättas.
 3. **#22 online.** Produktbeslut. Det största hålet i produkten, och värt mer än
    allt annat på listan.
 
@@ -680,3 +729,26 @@ TestFlight-build:
 Och en tredje kan bara bekräftas av att spela: **#1**, att halvtidstalet nu
 håller i sig hela andra halvlek. Testet bevisar att modifieraren överlever
 omräkningarna; det bevisar inte att effekten *känns* rätt.
+
+---
+
+## Rättelser till mitt eget arbete i den här sessionen
+
+Listade för att de säger något om hur granskningen ska läsas.
+
+- **Jag avfärdade en fallerande test som flakig.** Storleksavvikelsen i
+  `playoffPhase` var en äkta bugg — fyra buggar, faktiskt, i säsongsrullningen.
+  Att den bara syntes i cirka 1 körning av 10 var symptomet, inte bruset.
+- **Ett tidigare pushat commit klarade inte typecheck.** `clockRollback.test.ts`
+  (från #20-fixen) utelämnade två obligatoriska fält på `SubscriptionInfo` och
+  saknade typannotering på literalen. Jag hade verifierat den med `tsc --noEmit`
+  mot fel tsconfig och läst preflight-utfallet genom en pipe, där exitkoden kom
+  från `tail` och inte från `npm`. Åtgärdat här.
+- **Två av mina egna testfall var innehållslösa.** Enhetstesterna för
+  `applyPromotionRelegation` skickade `'England'` där funktionen matchar på
+  `countryId` (`'eng'`), så den returnerade direkt och testet passerade utan att
+  köra någonting. En senare version populerade bara två nivåer, vilket gör
+  dubbelflytten omöjlig att reproducera. Båda passerade mot den trasiga koden.
+- **`playoffPhase.test.ts` byggde på ett antagande som fixen tog bort.** Den
+  lutade sig mot att en nyinitierad tabell sorteras alfabetiskt. Nu tvingar den
+  fram sluttabellen explicit, vilket den borde ha gjort från början.
