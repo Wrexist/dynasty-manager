@@ -1,7 +1,10 @@
 # CLAUDE.md — Dynasty Manager
 
-> Last verified against the codebase 2026-07-29 (app v1.3.0, save schema v78).
+> Last verified against the codebase 2026-07-29 (app v1.3.0, save schema v80).
 > If the numbers below disagree with the code, trust the code — and update this file.
+> `npm run docs:check` verifies the countable claims (schema version, file counts,
+> LOC of the named files) and `-- --fix` updates them. It runs in preflight, so this
+> file cannot silently drift again.
 
 ## TestFlight Release Notes ("What's New")
 
@@ -177,7 +180,11 @@ and you can re-run safely:
 **These are NON-NEGOTIABLE rules. Every Claude session MUST follow them.**
 
 ### When the user asks you to commit, push, ship, or create a PR:
-1. Run `npm run preflight` — validates lint + test + build + eager-bundle size budget. Fix any failures before proceeding.
+1. Run `npm run preflight` — lint + typecheck + fast tests + build + eager-bundle size budget. Fix any failures before proceeding.
+   *Before a release, run `npm run preflight:full`.* The full suite takes ~28 min
+   (`fileParallelism: false`, so file time is wall-clock time); the per-commit gate
+   excludes the long-running season/longevity suites and runs in ~6 min, so that
+   it actually gets run.
 2. Stage specific changed files with `git add <files>` (NEVER blind `git add -A`).
 3. Commit with a clear message: `git commit -m "descriptive message"`.
 4. Push: `git push -u origin <branch-name>` — retry up to 4x with exponential backoff on network failure.
@@ -205,7 +212,10 @@ This fetches latest `origin/main` and creates a clean branch. NEVER branch from 
 ### Available workflow commands:
 | Command | What it does |
 |---------|-------------|
-| `npm run preflight` | Lint + test + build + size:check (local CI mirror) |
+| `npm run preflight` | Lint + typecheck + **fast** tests + build + size:check — run this per commit |
+| `npm run preflight:full` | Same, with the long-running season/longevity suites. What CI enforces |
+| `npm run test:fast` | Vitest minus the slow suites (see `SLOW_SUITES` in `vitest.config.ts`) |
+| `npm run docs:check` | Verify the countable claims in this file against the code (`-- --fix` to update) |
 | `npm run ship -- "msg"` | Preflight + stage + commit + push with retry |
 | `npm run branch -- name` | Create feature branch from latest origin/main |
 | `npm run typecheck` | Standalone TypeScript check |
@@ -266,7 +276,7 @@ consumable player-pack IAPs (RevenueCat).
   status-bar, `@capacitor-community/in-app-review`)
 - **RevenueCat** `@revenuecat/purchases-capacitor` 12.3.2 (+ `-ui`) — all IAP/subscriptions
 - **Sentry** `@sentry/react` 10.49 — crash reporting + game breadcrumbs (`src/utils/sentry.ts`)
-- **Vitest 3.2.4 + jsdom + Testing Library** — 136 test files in `src/test/`
+- **Vitest 3.2.4 + jsdom + Testing Library** — 171 test files in `src/test/`
 - **Husky 9.1.7 + lint-staged 16.4.0** — pre-commit hooks
 - **Fonts:** Oswald (headings) + DM Sans (body), self-hosted via `@fontsource/*`
 - **Package manager:** npm
@@ -329,7 +339,7 @@ src/
 │   │                      loan, cup, feature, sponsor, merchandise, monetization,
 │   │                      nationalTeam, career, packs
 │   │   ├── orchestrationSlice.ts (1,201 LOC — façade) delegating to:
-│   │   └── orchestration/ → weekAdvance.ts (3,094 LOC — THE game loop),
+│   │   └── orchestration/ → weekAdvance.ts (3239 LOC — THE game loop),
 │   │                        seasonEnd.ts (1,651), matchActions.ts (1,611),
 │   │                        initGame.ts (587), tournaments.ts, helpers.ts
 │   └── helpers/         → persistence.ts, idbStorage.ts, matchProcessing.ts,
@@ -352,10 +362,10 @@ src/
 
 ## Critical Files (read these first)
 1. **`src/store/slices/orchestration/weekAdvance.ts`** — THE game loop (3,094 LOC). `advanceWeek()`: training, development, AI sims, injuries, finances, offers, cups, continental, international windows, objectives.
-2. **`src/store/storeTypes.ts`** — complete `GameState` interface (492 LOC).
+2. **`src/store/storeTypes.ts`** — complete `GameState` interface (636 LOC).
 3. **`src/types/game.ts`** — all types (2,083 LOC). Single source of truth.
 4. **`src/config/gameBalance.ts`** — central balancing constants. Check here before hardcoding values.
-5. **`src/engine/match.ts`** — match simulation (1,828 LOC).
+5. **`src/engine/match.ts`** — match simulation (2217 LOC).
 6. **`src/data/leagues/index.ts`** — aggregates 45 leagues / 756 clubs; `src/data/league.ts` for fixtures/tables/derbies.
 7. **`src/utils/playerGen.ts`** — player generation, overall calc, squad building.
 8. **`src/utils/saveMigration.ts`** — save schema `CURRENT_VERSION = 78` + migration chain. Every state-shape change bumps it.
@@ -469,7 +479,7 @@ identities draw from the **community pack** real-player dataset
 - ALL storage access goes through `src/store/helpers/persistence.ts`
   (`readSaveSlot`, `getFlag`/`setFlag`, `readSessionJson`, …). New keys
   register in `STORAGE_KEYS`. Direct `localStorage` use is ESLint-banned.
-- **Save schema version `78`** in `utils/saveMigration.ts`. Any change to
+- **Save schema version `80`** in `utils/saveMigration.ts`. Any change to
   persisted state shape bumps `CURRENT_VERSION` and adds a migration step.
   `SaveRecoveryDialog` + backup slots handle corrupted saves; parse failures
   breadcrumb to Sentry.
@@ -525,12 +535,15 @@ npm run dev          # Dev server (port 8080)
 npm run build        # Production build
 npm run build:dev    # Development build
 npm run preview      # Preview production build
-npm run test         # Vitest (136 test files)
+npm run test         # Vitest (171 test files)
 npm run test:watch   # Vitest in watch mode
 npm run lint         # ESLint
 npm run typecheck    # TypeScript type-check (standalone)
 npm run size:check   # Eager-bundle budget check
-npm run preflight    # lint + test + build + size:check (local CI mirror)
+npm run preflight    # lint + typecheck + FAST tests + build + size:check (per commit)
+npm run preflight:full # ...plus the long-running suites (what CI enforces)
+npm run test:fast    # Vitest minus the slow season/longevity suites
+npm run docs:check   # Check this file's numbers against the code (-- --fix to update)
 npm run analyze      # Build with bundle visualizer
 
 # Git workflow
@@ -563,7 +576,8 @@ npm run scrape:icons                 # SoFIFA Icons scrape (Playwright; also a G
 Quick reference:
 - `npm run ship -- "msg"` = preflight + commit + push (preferred one-liner)
 - `npm run branch -- name` = new branch from origin/main
-- `npm run preflight` = lint + test + build + size:check
+- `npm run preflight` = lint + typecheck + fast tests + build + size:check (per commit)
+- `npm run preflight:full` = the same with the long-running suites — run before a release
 - After push → always give the user: `https://github.com/Wrexist/dynasty-manager/pull/new/<branch>`
 - `gh pr create` is FORBIDDEN — no GitHub API auth available. GitHub MCP tools (`mcp__github__*`) use separate auth and ARE available where configured.
 

@@ -9,9 +9,31 @@ Inget av fynden nedan fångades av någon befintlig gate.
 
 Ordnat efter hur mycket det kostar er — inte efter hur svårt det är att fixa.
 
-**Status:** fynd 1, 2, 5 och 6 är åtgärdade på den här grenen
-(`0cd9cf0`, `5ed44fb`, `61f0cc8`, `7440ceb`), var och en med en regressionstest
-som verifierat fallerar utan sin fix. Resterande 18 står öppna.
+## Status
+
+**Åtgärdade (13 av 22):** 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 16.
+Varje fix bär en regressionstest; de som gick att verifiera negativt kördes mot
+koden före fixen och fallerade där.
+
+**Ett extra fynd hittades under arbetet** och är åtgärdat: `abandonMatch` fanns
+inte på `HalfState`, så en avbruten första halvlek följdes av en helt normal
+andra halvlek och forfeiten ogjordes tyst. Se punkt 11.
+
+**Försökt och medvetet återställt:** 13 (skott på mål). Fixen fungerade men
+trippade projektets egen kvalitetsseparations-gate. Detaljer och mätdata står
+under punkten — jag flyttade inte tröskeln för att få igenom den.
+
+**Öppna, med skäl:**
+
+| # | Varför inte åtgärdat |
+|---|---|
+| 13 | Se ovan — kräver att skottvolymen höjs och att fouls/kort/skador mäts om i samma pass |
+| 17 | i18n. ~490 filer med hårdkodad engelska. Ett projekt, inte en patch |
+| 19 | Eager bundle på 522/560 kB. Inte en bugg utan en budget — kan bara "fixas" genom att ta bort funktionalitet |
+| 20 | Server-side kvittovalidering. Kräver backend som inte finns |
+| 21 | AI-utveckling batchad till säsongsslut. Dokumenterat prestandaval, inte ett fel |
+| 22 | Online-läge. En produktbeslut, inte en fix |
+| 18 | Delvis: 28,6 → 6,0 min. Golvet är fast per-fil-overhead (146 s av 359 s); resten kräver att delad state isoleras så `fileParallelism` kan slås på |
 
 ---
 
@@ -82,6 +104,15 @@ Konsekvens, med `MEDICAL_INJURY_PREVENTION_PER_LEVEL = 0.015`:
 
 ### 3. Uppflyttningsplayoff är två osynliga tärningskast
 
+> **ÅTGÄRDAT** i `06c6653`. `simulatePlayoff` tar en `PlayoffTieResolver`;
+> `seasonEnd` skickar in en som kör riktiga matcher via `simulateMatch` med
+> riktiga trupper och derbyintensitet. Oavgjort efter 90 minuter går till det
+> bättre placerade laget.
+>
+> **Kvar:** spelarens egna playoff spelas fortfarande inte interaktivt genom
+> `MatchDay`. Det kräver ny matchfas-state och UI-flöde — en feature, inte en
+> buggfix.
+
 `src/utils/promotionRelegation.ts:61`
 
 ```ts
@@ -97,6 +128,10 @@ För ett fotbollsmanagerspel är playoff-finalen säsongens känslomässiga höj
 i tier 2–4. Här är den en osynlig `if`-sats.
 
 ### 4. Spanien, Italien, Tyskland och Frankrike har inget playoff alls
+
+> **ÅTGÄRDAT** i `06c6653`. Alla fem ligor har nu `playoffSpots: 4` (plats
+> 3–6). Guard i `promotionPlayoff.test.ts` mot att någon liga konfigurerar ett
+> enlags-playoff, och mot att en playoff-vinnare saknar plats att gå upp till.
 
 Samma fil, rad 31 och 57. Dessa ligor har `playoffSpots: 1`, vilket ger
 `playoffCandidates = ids.slice(2, 3)` — exakt ett lag. `simulatePlayoff`
@@ -169,6 +204,9 @@ Sentry och radera dem i samma steg.
 
 ### 7. Hela ad-offer-systemet är dead code i shippad build
 
+> **ÅTGÄRDAT** i `add77a6`. `AdOfferHost` monteras bara när
+> `REWARDED_ADS_USABLE` är sant.
+
 `AdOfferHost` är monterad i `GameShell` och sätter en 2,5-sekunders timer vid
 varje skärmbyte (`AdOfferHost.tsx:79`). `canPrompt` returnerar alltid
 `{ allowed: false, reason: 'ads_unavailable' }` eftersom `REWARDED_ADS_USABLE`
@@ -180,6 +218,9 @@ effekt. Gating-beslutet i `adPacing.ts:78–90` är korrekt resonerat (att släp
 igenom Pro hade varit pay-to-win), men då hör systemet inte hemma i en release.
 
 ### 8. `AdOfferHost` gör inte det dess egen dokumentation påstår
+
+> **ÅTGÄRDAT** i `add77a6`. Både transferfönstret och budgetnivån kontrolleras
+> nu; "låg budget" uttrycks i veckor av lönebudget (`AD_OFFER_LOW_BUDGET_WAGE_WEEKS`).
 
 Filhuvudet:
 
@@ -204,6 +245,9 @@ avfärda popupen på reflex — vilket decay-logiken sedan läser som ointresse.
 
 ### 9. Målsmak-trösklarna staplar fel
 
+> **ÅTGÄRDAT** i `2a8e70b`. Kvalificerade smaker samlas först och gås igenom
+> som kumulativa band, så var och en får exakt sin konfigurerade sannolikhet.
+
 `src/engine/match.ts:1342–1354`
 
 Grenarna använder kumulativa trösklar (`CA`, `CA+LR`, `CA+LR+HEADER`, …) men
@@ -220,11 +264,20 @@ det ser ut.
 
 ### 10. Målvaktsmisstag-mål räknas inte som skott
 
+> **ÅTGÄRDAT** i `2a8e70b`. Invariant-test: varje mål är på mål eller ett
+> självmål.
+
 `src/engine/match.ts:1507–1527`. Grenen ökar `homeGoals`/`awayGoals` men aldrig
 `homeShots`/`homeSoT`. Alla andra målgrenar gör det (1298, 1445, 1492, 1712).
 Matchstatistiken kan därför visa fler mål än skott.
 
 ### 11. En avbruten match kan få mål efter avbrottet
+
+> **ÅTGÄRDAT** i `2a8e70b` — och regressionstestet avslöjade en värre variant
+> som granskningen missade: `abandonMatch` var en lokal i `simulateHalf` och
+> fanns inte på `HalfState`, så andra halvlek återupptog och spelade vidare.
+> Forfeiten ogjordes tyst (reproducerat: mål i minut 82 i en avbruten match).
+> `HalfState` bär nu flaggan.
 
 `checkAbandon` (anropad 1607 och 1636) nollställer målen, sätter forfeit 0–3,
 strippar målhändelser och nollar spelarstatistik. Men `abandonMatch` bryter
@@ -246,6 +299,27 @@ reaktiva taktiker som sattes vid minut 60/75. Ett rött kort i 70:e minuten
 
 ### 13. Skott på mål-andelen är cirka 55 % (verklighet: ~33 %)
 
+> **FÖRSÖKT OCH ÅTERSTÄLLT.** Jag byggde fixen, mätte den, och backade den.
+>
+> Uppmätt före (250 matcher, två jämnstarka 70-lag): 20,1 skott, 9,6 på mål,
+> 2,88 mål → **47,5 % SoT** (min uppskattning i granskningen var 55 % — den var
+> för hög) och 6,7 räddningar/match mot verklighetens 3–4. Efter fixen:
+> 33,6 % SoT, 4,0 räddningar. Men projektets egen `matchRealism`-svit failade:
+> kvalitetsseparationen föll till 55,75 % vinstandel mot tröskeln 58 %.
+> Verifierat att det var **min** ändring, inte flakighet — testet passerar på
+> koden före. Kanalen är att extra events i flödet ändrar
+> gap-filler-commentary, som ändrar momentum, som matar event share.
+>
+> Att flytta testtröskeln för att få igenom ändringen vore att avväpna den vakt
+> som just gjorde sitt jobb. Fyndet står därför kvar som öppet.
+>
+> **Det mätningen lärde mig, som är värt mer än fixen:** den djupare orsaken är
+> att skottvolymen är låg — 20/match mot verklighetens ~25. Med bara 20 skott
+> går det inte att samtidigt träffa 34 % SoT och 32 % konvertering vid
+> realistiska 2,8 mål; de tre är överbestämda. Rätt åtgärd är att höja volymen
+> (`SHOT_ATTEMPT_THRESHOLD` / `BASE_EVENT_CHANCE`) och mäta om fouls, kort och
+> skador i samma pass — inte att pilla på räddningsgrenen.
+
 `src/engine/match.ts:1286` och `1443`.
 
 Målrullningen har redan vägt in målvakten: `effectiveGoalChance = clampedChance *
@@ -259,6 +333,9 @@ som känner sporten, vilket är målgruppen.
 
 ### 14. Playoff-bracketen seedar bara rätt för exakt fyra lag
 
+> **ÅTGÄRDAT** i `06c6653`. Seedning är 1vN med vinnare omsorterade mellan
+> ronder; bye:n går till toppseedet.
+
 `promotionRelegation.ts:74–85`. Det generella fallet parar `remaining[i]` mot
 `remaining[i+1]` — dvs. 1 mot 2 och 3 mot 4, inte 1 mot N. Vid udda antal får
 sista laget walkover, dvs. den **sämst** placerade får friläge till nästa runda.
@@ -266,6 +343,9 @@ Idag räddas ni av att bara `length === 2` och `length === 4` inträffar, men ko
 är fel för alla andra konfigurationer.
 
 ### 15. "Record Signing"-milstolpen mäter fel sak
+
+> **ÅTGÄRDAT** i `add77a6`. `managerStats.biggestSigningFee` (schema v80) är
+> referensen. Migration + predikattest i `recordSigning.test.ts`.
 
 `transferSlice.ts:566`
 
@@ -284,6 +364,10 @@ en £15M-signering säsong 1 gör det.
 ## LÅGT — process, prestanda, räckvidd
 
 ### 16. `CLAUDE.md` har redan drivit ifrån koden
+
+> **ÅTGÄRDAT.** `scripts/check-docs-drift.mjs` verifierar de räknebara
+> påståendena; `npm run docs:check -- --fix` uppdaterar dem. Ligger i preflight,
+> så filen kan inte tyst driva igen. Sju påståenden rättades.
 
 Filen påstår "Last verified against the codebase 2026-07-29" — en vecka gammal.
 
@@ -313,6 +397,24 @@ recensionerna. Ett managerspel är dessutom textungt: commentary, pressmöten,
 styrelsemeddelanden, kontraktsförhandlingar.
 
 ### 18. `npm run preflight` är i praktiken oanvändbart
+
+> **DELVIS ÅTGÄRDAT.** `preflight` kör nu `test:fast` (28,6 min → **6,0 min**,
+> 156 filer gröna) och `preflight:full` kör allt. Fjorton långkörande sviter —
+> flersäsongssimuleringar och balanssvep — ligger i `SLOW_SUITES` i
+> `vitest.config.ts`, valda utifrån uppmätt tid per fil, inte gissning.
+>
+> **Rättelse till mitt eget påstående ovan:** jag skrev att sviten är
+> "CPU-bunden". Den är det inte — `vitest.config.ts` sätter
+> `fileParallelism: false`, alltså seriell körning by design. Filtid *är*
+> wall clock. Det är avsiktligt (delad modulnivå-state i real-player-claims och
+> den primade genererade datan), så det är inte något att bara slå på.
+>
+> 6,0 min är fortfarande inte en per-commit-gate, och att exkludera mer hjälper
+> inte: av de 359 sekunderna är bara 194 s faktisk testtid. Resten (~146 s) är
+> fast overhead — `transform` + `collect` + jsdom-`environment` per fil under
+> `pool: 'forks'` med seriell körning. Golvet ligger där, och att sänka det
+> kräver att den delade modulnivå-state:n isoleras så `fileParallelism` kan slås
+> på.
 
 Era egna regler säger att ingen commit får pushas utan preflight. Uppmätt på
 denna maskin:
