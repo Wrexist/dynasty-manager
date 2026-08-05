@@ -1,9 +1,10 @@
 import type { GameState } from '../storeTypes';
 import type { ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo } from '@/types/game';
-import { PRODUCTS, COSMETIC_ITEMS, AD_REWARD_LIMITS, AD_REWARD_VALUES, adBudgetReward, DEFAULT_MONETIZATION_STATE, FREE_TRIAL_MS, TRIAL_TARGET_PRODUCT_ID } from '@/config/monetization';
+import { PRODUCTS, COSMETIC_ITEMS, AD_REWARD_LIMITS, AD_REWARD_VALUES, adBudgetReward, DEFAULT_MONETIZATION_STATE, FREE_TRIAL_MS, TRIAL_TARGET_PRODUCT_ID, SUB_TRIAL_PRODUCT_IDS } from '@/config/monetization';
 // Single source of truth for the entitlement boundary — shared with
 // mergeDeviceMonetization so every writer of `entitlements` enforces it.
 import { isPersistableEntitlement } from '@/utils/monetization';
+import { withPromptShown, withWatchCompleted, withPromptDismissed } from '@/utils/adPacing';
 import { writeDeviceEntitlements } from '@/store/helpers/persistence';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
@@ -200,6 +201,44 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
       });
     },
 
+    // ── Rewarded-ad pacing ──
+    //
+    // These only move counters; whether a prompt may be raised at all is
+    // decided by `canPrompt` in utils/adPacing.ts, and whether an ad can
+    // actually be shown is decided by REWARDED_ADS_USABLE in utils/ads.ts.
+
+    /** Record that an ad offer was shown to the player. */
+    recordAdPromptShown: () => {
+      _set((s) => ({
+        monetization: {
+          ...s.monetization,
+          adEngagement: withPromptShown(s.monetization.adEngagement, Date.now()),
+        },
+      }));
+    },
+
+    /** Record a completed watch, or a Pro direct claim. Raises tomorrow's
+     *  allowance and clears the dismissal decay. */
+    recordAdWatched: () => {
+      _set((s) => ({
+        monetization: {
+          ...s.monetization,
+          adEngagement: withWatchCompleted(s.monetization.adEngagement, Date.now()),
+        },
+      }));
+    },
+
+    /** Record a dismissal. Lowers the allowance so a disengaged player is
+     *  asked less, not more. */
+    recordAdPromptDismissed: () => {
+      _set((s) => ({
+        monetization: {
+          ...s.monetization,
+          adEngagement: withPromptDismissed(s.monetization.adEngagement, Date.now()),
+        },
+      }));
+    },
+
     /** Update subscription info from RevenueCat */
     updateSubscription: (info: SubscriptionInfo | null) => {
       _set((s) => ({
@@ -224,6 +263,18 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
       // The old `tier !== 'trial'` check let an active trial restart its own clock,
       // granting unlimited free trials on re-entry to the onboarding screen.
       if (state.monetization.subscription) return;
+      // Only a genuinely trial-eligible SUBSCRIPTION SKU may be recorded here.
+      // The signature accepts any ProductId, so a caller passing a one-time SKU
+      // (or a consumable) would write `{ tier: 'trial', productId: <one-time> }`
+      // — and isSubscriptionExpired treats a PRO_ONE_TIME_PRODUCT_ID in the
+      // subscription slot as NEVER expiring, turning a 7-day trial into
+      // permanent Pro. Fail closed rather than mint that record.
+      if (!SUB_TRIAL_PRODUCT_IDS.includes(productId)) {
+        if (import.meta.env.DEV) {
+          console.error(`[monetization] startFreeTrial called with non-trial SKU "${productId}"`);
+        }
+        return;
+      }
       const expiresAt = new Date(Date.now() + FREE_TRIAL_MS).toISOString();
       const trialInfo: SubscriptionInfo = {
         tier: 'trial',

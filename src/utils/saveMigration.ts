@@ -12,11 +12,41 @@ import { isPlaceholderClubId } from '@/config/continental';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 78;
+const CURRENT_VERSION = 79;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
 const migrations: Record<number, MigrationFn> = {
+  // v78 → v79: `MonetizationState` gained `adEngagement`, which paces rewarded-ad
+  // prompt frequency (see config/ads.ts). Old saves have no such field. Default
+  // it to zeroed counters with an empty `dayKey` so the first read rolls the day
+  // over naturally rather than trusting a stale date.
+  //
+  // `monetization` itself can be absent on very old saves; leave it alone in
+  // that case — loadGame falls back to DEFAULT_MONETIZATION_STATE, which
+  // already carries the new field.
+  78: (data) => {
+    const m = data.monetization as Record<string, unknown> | null | undefined;
+    if (!m || typeof m !== 'object' || Array.isArray(m)) {
+      return { ...data, version: 79 };
+    }
+    return {
+      ...data,
+      version: 79,
+      monetization: {
+        ...m,
+        adEngagement: m.adEngagement ?? {
+          dayKey: '',
+          watchedToday: 0,
+          promptsToday: 0,
+          consecutiveDismissals: 0,
+          lastPromptAt: 0,
+          totalWatched: 0,
+        },
+      },
+    };
+  },
+
   // v77 → v78: `SeasonTurnover` gained `promotedOutClubs`. `promotedClubs` is
   // documented as "clubs promoted TO this league from below", but the code also
   // pushed clubs promoted OUT of a middle tier into it — so the season summary

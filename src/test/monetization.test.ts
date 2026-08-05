@@ -13,9 +13,11 @@ import {
   getFreeTrialDaysRemaining,
   mergeDeviceMonetization,
 } from '@/utils/monetization';
+import { useGameStore } from '@/store/gameStore';
 import {
   PRODUCTS,
   AD_REWARDS,
+  SUB_TRIAL_PRODUCT_IDS,
   AD_REWARD_VALUES,
   adBudgetReward,
   AD_REWARD_LIMITS,
@@ -588,5 +590,33 @@ describe('mergeDeviceMonetization', () => {
       { entitlements: undefined as never, subscription: null, firstLaunchTimestamp: 0 },
     );
     expect(r.entitlements).toEqual([]);
+  });
+});
+
+describe('startFreeTrial SKU validation', () => {
+  it('refuses a one-time SKU, which would otherwise become permanent Pro', () => {
+    // isSubscriptionExpired treats a PRO_ONE_TIME_PRODUCT_ID in the
+    // subscription slot as never expiring, so writing one here would convert a
+    // 7-day trial into Pro forever.
+    useGameStore.setState({ monetization: { ...DEFAULT_MONETIZATION_STATE } });
+    useGameStore.getState().startFreeTrial('com.dynastymanager.pro');
+    expect(useGameStore.getState().monetization.subscription).toBeNull();
+  });
+
+  it('refuses a consumable SKU', () => {
+    useGameStore.setState({ monetization: { ...DEFAULT_MONETIZATION_STATE } });
+    useGameStore.getState().startFreeTrial('com.dynastymanager.pack.gold');
+    expect(useGameStore.getState().monetization.subscription).toBeNull();
+  });
+
+  it('accepts the trial-eligible subscription SKUs', () => {
+    for (const id of SUB_TRIAL_PRODUCT_IDS) {
+      useGameStore.setState({ monetization: { ...DEFAULT_MONETIZATION_STATE } });
+      useGameStore.getState().startFreeTrial(id);
+      const sub = useGameStore.getState().monetization.subscription;
+      expect(sub).not.toBeNull();
+      expect(sub!.tier).toBe('trial');
+      expect(sub!.productId).toBe(id);
+    }
   });
 });

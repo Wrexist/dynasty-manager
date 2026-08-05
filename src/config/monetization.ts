@@ -6,7 +6,7 @@
  * transfer values, or any core simulation parameter.
  */
 
-import type { ProductId, ProFeature, CosmeticItem, AdRewardType, MonetizationState, SubscriptionTier } from '@/types/game';
+import type { ProductId, ProFeature, CosmeticItem, AdRewardType, AdEngagementState, MonetizationState, SubscriptionTier } from '@/types/game';
 
 // ── Product Definitions ──
 
@@ -360,6 +360,16 @@ export const STARTER_KIT = {
 
 // ── Default State ──
 
+/** Zeroed ad-engagement counters. `dayKey` empty so the first read rolls it. */
+export const DEFAULT_AD_ENGAGEMENT: AdEngagementState = {
+  dayKey: '',
+  watchedToday: 0,
+  promptsToday: 0,
+  consecutiveDismissals: 0,
+  lastPromptAt: 0,
+  totalWatched: 0,
+};
+
 export const DEFAULT_MONETIZATION_STATE: MonetizationState = {
   entitlements: [],
   activeCosmetics: {},
@@ -367,4 +377,5 @@ export const DEFAULT_MONETIZATION_STATE: MonetizationState = {
   firstLaunchTimestamp: 0,
   starterKitDismissed: false,
   subscription: null,
+  adEngagement: { ...DEFAULT_AD_ENGAGEMENT },
 };

@@ -19,8 +19,22 @@
  * caused by AdMob's reference to the ATT API). App Privacy stays "no
  * tracking" with no linked ad framework.
  *
- * `NATIVE_ADS_READY = false` keeps every callsite (AdRewardButton, PacksPage)
- * gracefully gated off. Re-enable ads in a future build by:
+ * `NATIVE_ADS_READY = false` keeps every callsite (AdRewardButton, PacksPage,
+ * AdOfferModal / AdOfferHost) gracefully gated off.
+ *
+ * THE APP-SIDE AD SYSTEM IS COMPLETE AND WAITING ON THIS FILE.
+ * Already built and tested, all of it inert until the two flags below flip:
+ *   - `config/ads.ts`        — placements + escalating/capped pacing policy
+ *   - `utils/adPacing.ts`    — pure pacing decisions (24 unit tests)
+ *   - `AdOfferModal`         — the popup; Pro claims without watching
+ *   - `AdOfferHost`          — contextual placement selection, mounted in GameShell
+ *   - `monetization.adEngagement` — persisted counters (save schema v79)
+ *
+ * So the ONLY remaining work is the native SDK below. When it lands, flip
+ * `NATIVE_ADS_READY` to true AND `REWARDED_AD_IMPL_IS_STUB` to false in the
+ * same commit, and the whole system turns on for free and Pro users together.
+ *
+ * Re-enable ads in a future build by:
  *   1. `npm install @capacitor-community/admob`
  *   2. Re-add the package + product to `ios/App/CapApp-SPM/Package.swift`
  *      (or run `npx cap sync ios` to regenerate it).
@@ -29,8 +43,18 @@
  *      strings in `ios/App/App/*.lproj/InfoPlist.strings`.
  *   4. Update App Privacy to declare Device ID -> tracking, Third-Party Ads
  *      and the privacy policy at docs/privacy.html.
- *   5. Replace this file with a real implementation that calls
- *      `AdMob.initialize()` at startup.
+ *   5. Replace `showRewardedAd()` below with a real implementation that calls
+ *      `AdMob.initialize()` at startup and resolves true ONLY on a completed
+ *      view (the reward callback), never on dismiss or error.
+ *   6. Flip `NATIVE_ADS_READY = true` and `REWARDED_AD_IMPL_IS_STUB = false`
+ *      together. The guardrail tests in `launchCrashGuardrails.test.ts` pin
+ *      them as a pair precisely so one cannot ship without the other.
+ *   7. Sequence the ATT prompt against the existing first-launch
+ *      `AnalyticsConsentModal` so the user does not get two system-looking
+ *      dialogs back to back, and add Google UMP for EEA consent.
+ *
+ * Nothing above can be done or verified from a headless environment — it needs
+ * Xcode, a device, and an App Store Connect privacy update.
  */
 
 /** Set to true once AdMob is reinstalled and configured for production. */

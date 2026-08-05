@@ -1822,6 +1822,29 @@ export interface MonetizationState {
   starterKitDismissed: boolean;
   /** Active subscription info, null if no subscription */
   subscription: SubscriptionInfo | null;
+  /** Rewarded-ad engagement, used to pace prompt frequency. Device-scoped in
+   *  spirit but stored here so it rides the save; a fresh install starting
+   *  from a clean slate is the correct behaviour. */
+  adEngagement: AdEngagementState;
+}
+
+/** Drives the escalating-but-capped prompt pacing in `config/ads.ts`. */
+export interface AdEngagementState {
+  /** Local calendar day the counters below belong to (YYYY-MM-DD). Counters
+   *  reset when this no longer matches today. */
+  dayKey: string;
+  /** Ads actually watched to completion today. Raises the daily allowance. */
+  watchedToday: number;
+  /** Prompts shown today, whatever the outcome. Checked against the allowance. */
+  promptsToday: number;
+  /** Consecutive dismissals with no watch in between. Lowers the allowance so
+   *  a disengaged player is asked less, not more. Reset by any completed watch. */
+  consecutiveDismissals: number;
+  /** Epoch ms of the last prompt, for the minimum-gap check. */
+  lastPromptAt: number;
+  /** Lifetime completed watches. Analytics/diagnostics only — pacing uses the
+   *  daily counter so a long-time player does not inherit yesterday's ceiling. */
+  totalWatched: number;
 }
 
 // ── National Team System ──

@@ -2,8 +2,34 @@ import { describe, it, expect } from 'vitest';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 
 describe('saveMigration', () => {
-  it('should have current version set to 78', () => {
-    expect(CURRENT_VERSION).toBe(78);
+  it('should have current version set to 79', () => {
+    expect(CURRENT_VERSION).toBe(79);
+  });
+
+  it('v78 → v79 backfills monetization.adEngagement', () => {
+    const out = migrateSaveData({
+      version: 78,
+      monetization: { entitlements: ['com.dynastymanager.pro'], subscription: null },
+    });
+    expect(out.version).toBe(CURRENT_VERSION);
+    const m = out.monetization as Record<string, unknown>;
+    // Existing purchase state must survive untouched.
+    expect(m.entitlements).toEqual(['com.dynastymanager.pro']);
+    const ad = m.adEngagement as Record<string, unknown>;
+    expect(ad).toBeDefined();
+    // Empty dayKey so the first read rolls the day rather than trusting a
+    // stale date from whenever the save was written.
+    expect(ad.dayKey).toBe('');
+    expect(ad.watchedToday).toBe(0);
+    expect(ad.promptsToday).toBe(0);
+    expect(ad.consecutiveDismissals).toBe(0);
+    expect(ad.totalWatched).toBe(0);
+  });
+
+  it('v78 → v79 tolerates a save with no monetization block', () => {
+    const out = migrateSaveData({ version: 78 });
+    expect(out.version).toBe(CURRENT_VERSION);
+    expect(out.migrationError).toBeUndefined();
   });
 
   it('v69 → v70 backfills settings.performanceMode (default off)', () => {
