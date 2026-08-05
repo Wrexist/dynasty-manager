@@ -5,15 +5,26 @@ Genomförd 2026-08-05 mot `main` @ `952ac1d`. Allt nedan är verifierat i koden.
 också grön — **162 filer passerade, 3 skippade (165), 2 347 tester passerade,
 4 skippade** — men tog **1 717 s (28,6 min)** wall clock att köra.
 
-Inget av fynden nedan fångas alltså av någon befintlig gate.
+Inget av fynden nedan fångades av någon befintlig gate.
 
 Ordnat efter hur mycket det kostar er — inte efter hur svårt det är att fixa.
+
+**Status:** fynd 1, 2, 5 och 6 är åtgärdade på den här grenen
+(`0cd9cf0`, `5ed44fb`, `61f0cc8`, `7440ceb`), var och en med en regressionstest
+som verifierat fallerar utan sin fix. Resterande 18 står öppna.
 
 ---
 
 ## KRITISKT — spelmekanik som är trasig i produktion
 
 ### 1. Halvtidstalet raderas mitt i andra halvlek
+
+> **ÅTGÄRDAT** i `0cd9cf0`. Alla tio omräkningar går nu genom en
+> `recomputeStrengths()` som applicerar om talet via `withTeamTalk()`. Samma
+> commit latchar AI:ns reaktiva taktik i `currentHomeTactics`/`currentAwayTactics`
+> så punkt 12 nedan också är borta. Regressionstest:
+> `src/test/teamTalkPersistence.test.ts` — jämför xG före minut 60 mot xG efter,
+> verifierat fallerande på gamla motorn (23,25 mot 23,43, dvs. ingen effekt).
 
 `src/engine/match.ts`
 
@@ -40,6 +51,13 @@ Detta är en av få mekaniker där spelaren har direkt agens under matchen. Den
 fungerar inte.
 
 ### 2. Medical Centre-uppgraderingar påverkar inte matchskador
+
+> **ÅTGÄRDAT** i `5ed44fb`. `simulateMatch` tar nu explicita
+> `homeMedicalLevel`/`awayMedicalLevel`, och `resolveMatchMedical` i
+> `matchActions` ger spelarens klubb dess riktiga `facilities.medicalLevel` och
+> härleder motståndarens via nya `clubMedicalLevel()`. Samma helper används nu
+> av `initGame` och `careerSlice` så skalorna inte kan glida isär.
+> Regressionstest: `src/test/medicalLevel.test.ts`.
 
 `src/store/slices/orchestration/matchActions.ts:1092, 1267, 1497`
 `src/engine/match.ts:2066`
@@ -103,6 +121,12 @@ Bara England (`po=4`) kör faktiskt en bracket.
 
 ### 5. Ni säljer "Ad-Free Experience" i en app som inte har reklam
 
+> **ÅTGÄRDAT** i `61f0cc8`. Både `PRO_FEATURES` och paywallens bullet-lista är
+> gate:ade på `NATIVE_ADS_READY` — påståendet kommer tillbaka av sig självt när
+> ads faktiskt shippar. `ad_free`-*entitlementet* är orört; bara det betalda
+> påståendet är borttaget. Guardrail i `launchCrashGuardrails.test.ts` pinnar
+> båda listorna mot flaggan i båda riktningarna.
+
 `src/pages/SubscribeOnboarding.tsx:61`
 
 > `{ title: 'Ad-Free Experience', description: 'No banners, no video pre-rolls. Ever.' }`
@@ -118,6 +142,13 @@ Det är refund-risk, recensionsrisk, och en rimlig träff på App Store Guidelin
 2.3.1 (accurate metadata). Ta bort raden tills ads faktiskt lever.
 
 ### 6. 35 MB source maps skeppas i IPA:n
+
+> **ÅTGÄRDAT** i `7440ceb`. `scripts/strip-sourcemaps.mjs` + `npm run
+> build:native`; båda mobil-workflowsen kör strip-steget mellan bygget och
+> `cap sync`, och `cap:sync` använder `build:native`. Uppmätt lokalt: 66 MB →
+> 31 MB. Guardrail i `src/test/sourcemapStripping.test.ts` kräver att varje
+> workflow som kör `cap sync` strippar *före* — verifierat genom att flytta
+> steget efter och se testet fallera.
 
 - `vite.config.ts:91` — `sourcemap: 'hidden'`
 - `capacitor.config.ts:6` — `webDir: 'dist'`
@@ -205,6 +236,8 @@ slutresultat 1–3 i stället för 0–3, med ett målskyttestatistik som forfei
 just påstod sig ha raderat. Sällsynt, men resultatet blir osammanhängande.
 
 ### 12. Rött kort, skada eller byte återställer AI:ns taktikbyte
+
+> **ÅTGÄRDAT** i `0cd9cf0` tillsammans med punkt 1 — samma kodväg.
 
 Alla omräkningar på rad 1604, 1633, 1662, 1770, 1685, 1788, 1821, 1842 skickar in
 `homeTactics` / `awayTactics` — parametervärdena från halvlekens start, inte de
@@ -376,11 +409,25 @@ granskningsenergin har gått till motorns inre.
 
 ## Föreslagen ordning
 
-1. **#1 team talk** — enrads-helper `applyTeamTalk(str)` som varje omräkning går
-   igenom. En timme.
-2. **#5 ad-free-påståendet** — ta bort raden. Tio minuter, direkt refund-risk.
-3. **#2 medicalLevel** — skicka `state.facilities.medicalLevel` för spelarens
-   klubb i alla fyra callsites. En timme.
-4. **#6 source maps** — ett steg i `ios-testflight.yml`. Tio minuter, ~35 MB.
-5. **#3 + #4 playoff** — kör riktiga matcher via `simulateMatch`, spelarens egna
-   playoff genom `MatchDay`. Störst arbete, störst upplevelseeffekt.
+**Klart på den här grenen:**
+
+1. ~~#1 team talk~~ — `0cd9cf0`
+2. ~~#5 ad-free-påståendet~~ — `61f0cc8`
+3. ~~#2 medicalLevel~~ — `5ed44fb`
+4. ~~#6 source maps~~ — `7440ceb`
+
+**Kvar, i den ordning jag skulle ta dem:**
+
+1. **#3 + #4 playoff** — kör riktiga matcher via `simulateMatch`, spelarens egna
+   playoff genom `MatchDay`. Störst arbete av det som återstår, störst
+   upplevelseeffekt. #4 är dessutom nästan gratis: ge Spanien/Italien/Tyskland/
+   Frankrike `playoffSpots: 4` så bracket-koden får något att göra.
+2. **#7 + #8 ad-offer-systemet** — antingen bakom en feature-flagga som håller
+   `AdOfferHost` omonterad tills ads lever, eller så implementeras den
+   kontextgating som filens eget huvud redan lovar.
+3. **#10 + #11** — två enradsfixar i `match.ts` (räkna målvaktsmisstag som skott;
+   flytta `abandonMatch`-brytningen så straff efter forfeit inte kan sättas).
+4. **#13 skott på mål-andelen** — kräver ombalansering och en ny mätning, inte en
+   patch. Ta den tillsammans med #9.
+5. **#18 preflight-tiden** — dela upp gaten. Blockerar inget, men allt annat blir
+   dyrare så länge den tar en halvtimme.
