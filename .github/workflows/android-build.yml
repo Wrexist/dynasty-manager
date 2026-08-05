@@ -38,6 +38,12 @@ jobs:
           VITE_ANALYTICS_ENDPOINT: ${{ secrets.VITE_ANALYTICS_ENDPOINT }}
           VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
         run: npm run build
+      # `sourcemap: 'hidden'` still WRITES .map files, and Capacitor's webDir is
+      # `dist`, so `cap sync` would copy ~35 MB of readable source maps into the
+      # app bundle. Strip them before the sync, never after.
+      - name: Strip source maps before native sync
+        run: npm run strip-sourcemaps
+
       - run: npm run version:sync
       - run: npx cap sync android
 

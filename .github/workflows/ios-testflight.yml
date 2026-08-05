@@ -114,6 +114,12 @@ jobs:
           VITE_DEV_TOOLS: ${{ github.event.inputs.dev_tools }}
         run: npm run build
 
+      # `sourcemap: 'hidden'` still WRITES .map files, and Capacitor's webDir is
+      # `dist`, so `cap sync` would copy ~35 MB of readable source maps into the
+      # app bundle. Strip them before the sync, never after.
+      - name: Strip source maps before native sync
+        run: npm run strip-sourcemaps
+
       - name: Sync marketing version from package.json into iOS project
         run: npm run version:sync
 
