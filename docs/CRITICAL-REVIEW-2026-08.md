@@ -868,6 +868,14 @@ Listade för att de säger något om hur granskningen ska läsas.
   `countryId` (`'eng'`), så den returnerade direkt och testet passerade utan att
   köra någonting. En senare version populerade bara två nivåer, vilket gör
   dubbelflytten omöjlig att reproducera. Båda passerade mot den trasiga koden.
+- **Det interaktiva playoffet lämnade varje testharness trasig, och jag märkte
+  det inte förrän `preflight:full` kördes två gånger.** `endSeason` skjuter upp
+  rullningen när klubben kvalificerar sig, så en harness som anropar
+  `endSeason()` och går vidare parkerar saven i playoff-fasen på vecka 47 — och
+  alla senare säsongspåståenden görs mot en säsong som aldrig rullade. Det slog
+  igenom som ett intermittent `week is 47`, intermittent bara för att
+  kvalificeringen är det. Första `preflight:full`-körningen var grön; det var
+  den andra som fångade det. En körning hade räckt för att skeppa buggen.
 - **`playoffPhase.test.ts` byggde på ett antagande som fixen tog bort.** Den
   lutade sig mot att en nyinitierad tabell sorteras alfabetiskt. Nu tvingar den
   fram sluttabellen explicit, vilket den borde ha gjort från början.

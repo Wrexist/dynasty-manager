@@ -27,6 +27,17 @@ async function advanceFullSeason() {
     if (w % 10 === 9) await tick();
   }
   store.getState().endSeason();
+  // `endSeason` DEFERS the rollover when the club qualifies for the promotion
+  // playoff — the ties are played first, as ordinary matches. A harness that
+  // stops here leaves the save parked in the playoff phase at `totalWeeks + 1`
+  // and every later season assertion is made against a season that never
+  // rolled. This surfaced as an intermittent "week is 47" failure, intermittent
+  // only because qualifying is.
+  for (let guard = 0; guard < 6; guard++) {
+    const s = store.getState();
+    if (s.seasonPhase !== 'playoff' || !s.playoffState?.pendingMatch) break;
+    store.getState().playCurrentMatch();
+  }
 }
 
 function allDivisionClubIds(state: GameState): string[] {

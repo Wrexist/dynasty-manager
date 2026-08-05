@@ -45,6 +45,15 @@ async function advanceFullSeason() {
 
   // Call endSeason to trigger season turnover
   store.getState().endSeason();
+  // …and play out the promotion playoff if the club qualified. `endSeason`
+  // defers the rollover in that case, so a harness that stops here parks the
+  // save in the playoff phase and every later season assertion is made against
+  // a season that never rolled.
+  for (let guard = 0; guard < 6; guard++) {
+    const s = store.getState();
+    if (s.seasonPhase !== 'playoff' || !s.playoffState?.pendingMatch) break;
+    store.getState().playCurrentMatch();
+  }
 }
 
 /** Check every club has at least minSize valid players. */
