@@ -17,7 +17,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { AdOfferModal } from '@/components/game/AdOfferModal';
-import { AD_PLACEMENTS, type AdPlacementId } from '@/config/ads';
+import { AD_PLACEMENTS, AD_OFFER_LOW_BUDGET_WAGE_WEEKS, type AdPlacementId } from '@/config/ads';
 import { canPrompt } from '@/utils/adPacing';
 import { REWARDED_ADS_USABLE } from '@/utils/ads';
 import { canClaimAdReward } from '@/utils/monetization';
@@ -35,6 +35,7 @@ export function AdOfferHost() {
   const club = useGameStore(s => s.clubs[s.playerClubId]);
   const scoutReports = useGameStore(s => s.scouting?.reports);
   const youthAcademy = useGameStore(s => s.youthAcademy);
+  const transferWindowOpen = useGameStore(s => s.transferWindowOpen);
 
   const applyTransferBudgetBonus = useGameStore(s => s.applyTransferBudgetBonus);
   const applyYouthPreview = useGameStore(s => s.applyYouthPreview);
@@ -65,11 +66,20 @@ export function AdOfferHost() {
     }
 
     if ((screen === 'transfers' || screen === 'squad') && club && claimable('transfer_budget')) {
+      // The two conditions this file's own header promises, which were never
+      // implemented — the gate was `club &&`, nothing more. Without them a
+      // player sitting on £200M in December got pitched a budget top-up on the
+      // squad screen: an offer for something they cannot use, which is the
+      // exact "just an interruption" the header warns trains people to dismiss
+      // on sight — and the decay logic then reads that as disinterest.
+      if (!transferWindowOpen) return null;
+      const budgetIsLow = club.budget < club.wageBill * AD_OFFER_LOW_BUDGET_WAGE_WEEKS;
+      if (!budgetIsLow) return null;
       return 'transfer_budget';
     }
 
     return null;
-  }, [screen, scoutReports, youthAcademy, club, monetization, season]);
+  }, [screen, scoutReports, youthAcademy, club, monetization, season, transferWindowOpen]);
 
   useEffect(() => {
     // Already showing one — don't stack or churn.

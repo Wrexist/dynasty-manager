@@ -17,6 +17,7 @@ import { useMatchLocked, useCareerUnemployed, useCareerRetired } from '@/hooks/u
 import { InfoTipProvider } from '@/components/game/InfoTip';
 import { PresentationQueueProvider } from '@/hooks/usePresentationQueue';
 import { AdOfferHost } from '@/components/game/AdOfferHost';
+import { REWARDED_ADS_USABLE } from '@/utils/ads';
 import { getEntitlements, getCustomerInfo, extractSubscriptionInfo, startEntitlementListener, stopEntitlementListener } from '@/utils/purchases';
 
 // Lazy-load all pages for code splitting (Dashboard prefetched from TitleScreen)
@@ -370,8 +371,12 @@ const GameShell = () => {
               <PresentationQueueProvider>
                 <Screen />
                 {/* Rewarded-ad offers. Inside the provider so they queue at the
-                    lowest priority and can never preempt an in-fiction beat. */}
-                <AdOfferHost />
+                    lowest priority and can never preempt an in-fiction beat.
+                    Not mounted at all while ads are unusable: `canPrompt` would
+                    return `ads_unavailable` every time, so the host was running
+                    a 2.5s timer on every screen change to reach a decision it
+                    could never take. */}
+                {REWARDED_ADS_USABLE && <AdOfferHost />}
               </PresentationQueueProvider>
             </Suspense>
           </PageErrorBoundary>

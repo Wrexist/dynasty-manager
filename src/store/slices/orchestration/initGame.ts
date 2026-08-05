@@ -583,7 +583,7 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
     },
     financeHistory: [], matchPlayerRatings: [],
     unlockedAchievements: [], pendingAchievementIds: [],
-    managerStats: { totalWins: 0, totalDraws: 0, totalLosses: 0, totalSpent: 0, totalEarned: 0 },
+    managerStats: { totalWins: 0, totalDraws: 0, totalLosses: 0, totalSpent: 0, totalEarned: 0, biggestSigningFee: 0 },
     clubRecords: createEmptyRecords(),
     careerTimeline: [createMilestone('season_start', 'Career Begins', `Started managing ${ALL_CLUBS.find(c => c.id === clubId)?.name || 'a club'}.`, 1, 1, 'calendar')],
     managerProgression: createDefaultProgression(),

@@ -145,7 +145,9 @@ export interface GameState {
   facilities: FacilitiesState;
   financeHistory: FinanceRecord[];
   unlockedAchievements: string[];
-  managerStats: { totalWins: number; totalDraws: number; totalLosses: number; totalSpent: number; totalEarned: number };
+  /** `biggestSigningFee` is the largest fee ever paid by this manager — the
+   *  reference the "Record Signing" milestone compares against. Save schema v80. */
+  managerStats: { totalWins: number; totalDraws: number; totalLosses: number; totalSpent: number; totalEarned: number; biggestSigningFee?: number };
   clubRecords: ClubRecords;
   careerTimeline: CareerMilestone[];
   managerProgression: ManagerProgression;

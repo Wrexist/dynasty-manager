@@ -948,7 +948,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         currentCupTieId: null,
         unlockedAchievements: data.unlockedAchievements || [],
         pendingAchievementIds: [],
-        managerStats: data.managerStats || { totalWins: 0, totalDraws: 0, totalLosses: 0, totalSpent: 0, totalEarned: 0 },
+        managerStats: data.managerStats || { totalWins: 0, totalDraws: 0, totalLosses: 0, totalSpent: 0, totalEarned: 0, biggestSigningFee: 0 },
         activeLoans: data.activeLoans || [],
         incomingLoanOffers: data.incomingLoanOffers || [],
         outgoingLoanRequests: data.outgoingLoanRequests || [],

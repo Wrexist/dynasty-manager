@@ -156,3 +156,13 @@ export function dailyPromptAllowance(
 export function promptGapMs(isProUser: boolean): number {
   return isProUser ? AD_PACING.PRO_MIN_GAP_MS : AD_PACING.MIN_GAP_MS;
 }
+
+/**
+ * "Low budget" for the contextual transfer-budget offer, measured in weeks of
+ * wage bill the club could still cover.
+ *
+ * Expressed relative to the wage bill rather than as a flat figure because the
+ * same absolute number is a crisis for a League Two side and a rounding error
+ * for Arsenal — the same reason `AD_REWARD_VALUES` grants a percentage.
+ */
+export const AD_OFFER_LOW_BUDGET_WAGE_WEEKS = 8;

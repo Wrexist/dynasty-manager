@@ -14,7 +14,7 @@ import {
   SELL_ON_HIGH_BASE_PCT, SELL_ON_HIGH_RANGE_PCT, SELL_ON_LOW_BASE_PCT, SELL_ON_LOW_RANGE_PCT,
   SELL_ON_EVAL_HIGH_PCT, SELL_ON_EVAL_LOW_PCT,
   COUNTER_OFFER_BASE_RATIO, COUNTER_OFFER_RANDOM_RANGE,
-  RECORD_SIGNING_SPEND_RATIO, RECORD_SIGNING_MIN_FEE,
+  RECORD_SIGNING_MIN_FEE,
   LISTING_PRICE_FLOOR, LISTING_PRICE_MAX_RATIO,
   INCOMING_NEGOTIATE_ACCEPT_AT_OFFER, INCOMING_NEGOTIATE_ACCEPT_AT_120, INCOMING_NEGOTIATE_ACCEPT_AT_MAX,
   INCOMING_NEGOTIATE_COUNTER_CHANCE, INCOMING_NEGOTIATE_COUNTER_BASE, INCOMING_NEGOTIATE_COUNTER_RANGE,
@@ -561,9 +561,20 @@ export const createTransferSlice = (set: Set, get: Get) => ({
       playerId,
     });
 
-    const ms = { ...state.managerStats, totalSpent: state.managerStats.totalSpent + fee };
-    // Record signing milestone if this is the most expensive signing ever
-    const isRecordSigning = fee > state.managerStats.totalSpent * RECORD_SIGNING_SPEND_RATIO && fee >= RECORD_SIGNING_MIN_FEE;
+    // "Most expensive signing ever" means exactly that: compare against the
+    // biggest fee previously paid. It used to compare against
+    // `totalSpent * RECORD_SIGNING_SPEND_RATIO` — career SPEND, not the biggest
+    // previous FEE — so the very first qualifying signing always fired (spend
+    // was 0) and later ones fired less and less often as the running total grew,
+    // whether or not they were records. A £120M buy in season 8 went unlogged
+    // while a £15M buy in season 1 was celebrated.
+    const previousBest = state.managerStats.biggestSigningFee ?? 0;
+    const isRecordSigning = fee > previousBest && fee >= RECORD_SIGNING_MIN_FEE;
+    const ms = {
+      ...state.managerStats,
+      totalSpent: state.managerStats.totalSpent + fee,
+      biggestSigningFee: Math.max(previousBest, fee),
+    };
     const newTimeline = isRecordSigning
       ? [...state.careerTimeline, { id: safeRandomUUID(), type: 'record_signing' as const, title: 'Record Signing', description: `Signed ${updatedPlayer.firstName} ${updatedPlayer.lastName} for £${(fee / 1e6).toFixed(1)}M from ${fromName}.`, season: state.season, week: state.week, icon: 'pen-line' }]
       : state.careerTimeline;

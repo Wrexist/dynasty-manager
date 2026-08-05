@@ -40,7 +40,7 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
   freeAgents: [] as string[],
   unlockedAchievements: [] as string[],
   pendingAchievementIds: [] as string[],
-  managerStats: { totalWins: 0, totalDraws: 0, totalLosses: 0, totalSpent: 0, totalEarned: 0 },
+  managerStats: { totalWins: 0, totalDraws: 0, totalLosses: 0, totalSpent: 0, totalEarned: 0, biggestSigningFee: 0 },
   clubRecords: createEmptyRecords(),
   careerTimeline: [] as GameState['careerTimeline'],
   managerProgression: { xp: 0, level: 1, unlockedPerks: [], prestigeLevel: 0 } as ManagerProgression,
