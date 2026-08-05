@@ -38,6 +38,7 @@ Premier League (0,16 och ~28:1). Jag ändrade ingenting.
 | 20 | Server-side kvittovalidering. Kräver backend som inte finns |
 | 21 | AI-utveckling batchad till säsongsslut. Dokumenterat prestandaval, inte ett fel |
 | 22 | Online-läge. Ett produktbeslut, inte en fix |
+| 18 (rest) | Full parallellisering. Fungerar (10 min 54 s mot 28,6) men införde en intermittent flake i den fulla sviten som inte gick att reproducera eller namnge. Per-commit-gaten är parallell och verifierad; release-gaten står seriell tills flaken är hittad |
 
 ---
 
@@ -451,9 +452,29 @@ styrelsemeddelanden, kontraktsförhandlingar.
 > wall clock. Det är avsiktligt (delad modulnivå-state i real-player-claims och
 > den primade genererade datan), så det är inte något att bara slå på.
 >
-> **UPPFÖLJNING — helt åtgärdat.** `fileParallelism` är nu påslaget:
-> **28,6 min → 2 min 28 s** för snabbsviten. Två identiska körningar (146,8 s /
-> 146,6 s, samma 157 filer gröna) bekräftar att det är stabilt.
+> **UPPFÖLJNING — åtgärdat för per-commit-gaten, medvetet inte för den fulla.**
+> `fileParallelism` är påslaget enbart när `VITEST_FAST` är satt:
+> **6 min 00 s → 2 min 30 s** för snabbsviten, tre raka gröna körningar
+> (146,8 s / 146,6 s / 148,9 s, 157 filer).
+>
+> **Full parallellisering testades och backades.** Bevisen:
+>
+> | Körning | Resultat |
+> |---|---|
+> | Snabb, parallell ×3 | 157 filer gröna |
+> | Långsamma isolerat, parallellt | 12 filer gröna |
+> | **Full svit, parallell #1** | **1 fil failade** / 168 gröna |
+> | Full svit, parallell #2 | 169 gröna |
+>
+> Failuren återkom inte och fångades inte vid namn — det finns alltså en
+> intermittent, oidentifierad flake som bara uppträder när alla 172 filer körs
+> samtidigt. Sviten var deterministisk innan jag rörde den, och en gate som blir
+> grön på andra försöket lär folk att köra om i stället för att läsa. Det är
+> sämre än en långsam gate.
+>
+> Den fulla sviten (10 min 54 s parallellt mot 28,6 min seriellt) står alltså
+> kvar som seriell tills flaken är identifierad. Instruktion för att lyfta
+> spärren ligger i `vitest.config.ts`.
 >
 > **Och en rättelse till mig själv igen:** jag skrev att seriell körning var
 > avsiktlig och skyddade delad modulnivå-state. Det stämde inte. `pool: 'forks'`

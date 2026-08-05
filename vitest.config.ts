@@ -10,9 +10,8 @@ const pkgVersion = createRequire(import.meta.url)("./package.json").version;
  *
  * These simulate whole seasons (or many of them) and dominate the wall clock:
  * measured 28.6 minutes for the full suite, and these files alone account for
- * the bulk of it. Note `fileParallelism: false` below — the suite runs strictly
- * serially by design, so file time IS wall-clock time and there is no
- * parallelism to win back.
+ * the bulk of it. Note that only the fast set runs in parallel (see
+ * `fileParallelism` below), so for the full suite file time is wall-clock time.
  *
  * The split exists because a gate nobody runs is not a gate. `preflight` covers
  * every fast suite and is meant for each commit; `preflight:full` runs
@@ -59,22 +58,33 @@ export default defineConfig({
     // slow runner, and every file in the suite fails the hook when it isn't.
     hookTimeout: 120_000,
     pool: "forks",
-    // Files run in PARALLEL. This was previously `fileParallelism: false`, and
-    // that was the single largest cost in the suite — it made file time equal
-    // wall-clock time, which is how the full run reached 28.6 minutes.
+    // Parallel for the PER-COMMIT gate only; the full suite stays serial.
     //
-    // The serial mode was assumed to be protecting shared module-level state
-    // (the real-player claim registry, the primed generated data). It was not:
-    // `pool: 'forks'` already gives every test FILE its own process, so
-    // module-level state is isolated by construction. Verified empirically —
-    // the fast suite runs 6m00s serial against 2m28s parallel, with identical
-    // results across repeated runs (146.8s / 146.6s, same 157 files green).
+    // Serial was not, as an earlier version of this comment claimed, protecting
+    // shared module-level state — `pool: 'forks'` already gives every test file
+    // its own process, so that state is isolated by construction. Parallelism
+    // works, and it is a large win: the fast suite goes 6m00s -> 2m28s.
     //
-    // `maxForks` is capped rather than left to default: each fork primes the
-    // ~400K LOC of generated national + club-template data in `setup.ts`, so
-    // memory, not CPU, is the binding constraint. 4 is comfortable on a
-    // 4-core runner; raise it only alongside a memory measurement.
-    fileParallelism: true,
+    // But it is not yet trustworthy for the WHOLE suite. Evidence gathered:
+    //   fast suite, parallel      2 runs, 157 files green, 146.8s / 146.6s
+    //   slow suites alone, parallel  1 run, 12 files green
+    //   FULL suite, parallel      run 1: 1 file FAILED, run 2: 169 green
+    //
+    // That one failure did not reproduce and was not captured by name, so there
+    // is an intermittent, unidentified flake that only appears when all 172
+    // files run concurrently — most likely timing or memory pressure in the
+    // multi-season suites, which are excluded from the fast set. The suite was
+    // deterministic before; a gate that goes green on the second try teaches
+    // people to re-run rather than to read, which is worse than a slow gate.
+    //
+    // So: the fast gate takes the win where the evidence supports it, and
+    // `preflight:full` keeps the determinism it had. To lift this, run the full
+    // suite parallel repeatedly with `--reporter=verbose`, identify the flake,
+    // fix it, and then flip this to `true` unconditionally.
+    fileParallelism: !!process.env.VITEST_FAST,
+    // Only meaningful when parallel. Capped rather than left to default because
+    // each fork primes the ~400K LOC of generated data in `setup.ts`, making
+    // memory the binding constraint rather than CPU.
     maxForks: 4,
   },
   resolve: {
