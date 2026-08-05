@@ -6,7 +6,7 @@
 
 import * as Sentry from '@sentry/react';
 
-import { LeagueId, LeagueInfo, LeagueTableEntry, SeasonTurnover, Club } from '@/types/game';
+import { LeagueId, LeagueInfo, LeagueTableEntry, SeasonTurnover, Club, PlayoffTieResult } from '@/types/game';
 import { LEAGUES, getLeaguesByCountry } from '@/data/league';
 import type { ClubData } from '@/types/game';
 
@@ -77,16 +77,49 @@ export const PLAYOFF_HIGHER_SEED_WIN_CHANCE = 0.6;
  * with access to players — should pass one.
  */
 export function simulatePlayoff(candidates: string[], resolveTie?: PlayoffTieResolver): string | null {
-  if (candidates.length === 0) return null;
-  if (candidates.length === 1) return candidates[0];
-
-  const seedOf = new Map(candidates.map((id, i) => [id, i]));
-  const decide = (home: string, away: string): string =>
+  const outcome = stepPlayoff(candidates, (home, away) =>
     resolveTie
       ? resolveTie(home, away)
-      : (Math.random() < PLAYOFF_HIGHER_SEED_WIN_CHANCE ? home : away);
+      : (Math.random() < PLAYOFF_HIGHER_SEED_WIN_CHANCE ? home : away));
+  return outcome.kind === 'decided' ? outcome.winner : null;
+}
 
+/** A tie the caller asked to handle itself rather than resolve inline. */
+export interface PlayoffPendingTie {
+  homeClubId: string;
+  awayClubId: string;
+  /** How many clubs are still in the bracket for this round: 4 is a semi-final,
+   *  2 is the final. Deliberately NOT "ties left in the round" — that is 1 for
+   *  the last tie of every round, so it cannot tell a semi from a final. */
+  teamsInRound: number;
+}
+
+export type PlayoffOutcome =
+  | { kind: 'decided'; winner: string | null }
+  | { kind: 'pending'; tie: PlayoffPendingTie };
+
+/**
+ * Walk the bracket, letting the resolver SUSPEND.
+ *
+ * `resolveStep` returns the winner of a tie, or `null` to say "I want to handle
+ * this one myself" — at which point the walk stops and returns the pending tie.
+ * That is what lets the player's own tie be played interactively without
+ * duplicating the seeding rules: the caller replays the walk after recording a
+ * result, and gets either the next tie it owns or the finished bracket.
+ *
+ * Seeding, home advantage and bye placement live here and nowhere else;
+ * `simulatePlayoff` is this function with a resolver that never suspends.
+ */
+export function stepPlayoff(
+  candidates: string[],
+  resolveStep: (homeClubId: string, awayClubId: string) => string | null,
+): PlayoffOutcome {
+  if (candidates.length === 0) return { kind: 'decided', winner: null };
+  if (candidates.length === 1) return { kind: 'decided', winner: candidates[0] };
+
+  const seedOf = new Map(candidates.map((id, i) => [id, i]));
   let remaining = [...candidates];
+
   while (remaining.length > 1) {
     remaining.sort((a, b) => (seedOf.get(a) ?? 0) - (seedOf.get(b) ?? 0));
     const next: string[] = [];
@@ -94,15 +127,50 @@ export function simulatePlayoff(candidates: string[], resolveTie?: PlayoffTieRes
     let hi = remaining.length - 1;
     // Odd field: the top seed sits the round out rather than the bottom one.
     if (remaining.length % 2 === 1) { next.push(remaining[0]); lo = 1; }
+    const teamsInRound = remaining.length;
     while (lo < hi) {
-      // Better-placed side (lower seed index) is the home team.
-      next.push(decide(remaining[lo], remaining[hi]));
+      const home = remaining[lo];
+      const away = remaining[hi];
+      const winner = resolveStep(home, away);
+      if (winner === null) {
+        return { kind: 'pending', tie: { homeClubId: home, awayClubId: away, teamsInRound } };
+      }
+      next.push(winner);
       lo++;
       hi--;
     }
     remaining = next;
   }
-  return remaining[0];
+  return { kind: 'decided', winner: remaining[0] };
+}
+
+/**
+ * Replay a bracket against results already decided, suspending on the first tie
+ * involving `pauseForClubId` that has no recorded result yet.
+ *
+ * `resolved` is matched by the unordered club pair, so replay order does not
+ * matter and a result recorded once is never re-decided.
+ */
+export function resumePlayoff(
+  candidates: string[],
+  resolved: PlayoffTieResult[],
+  pauseForClubId: string,
+  simulateTie: (homeClubId: string, awayClubId: string) => string,
+): PlayoffOutcome {
+  const key = (a: string, b: string) => [a, b].sort().join('|');
+  const decided = new Map<string, string>();
+  for (const r of resolved) {
+    const winner = r.homeGoals === r.awayGoals
+      ? r.homeClubId
+      : (r.homeGoals > r.awayGoals ? r.homeClubId : r.awayClubId);
+    decided.set(key(r.homeClubId, r.awayClubId), winner);
+  }
+  return stepPlayoff(candidates, (home, away) => {
+    const known = decided.get(key(home, away));
+    if (known) return known;
+    if (home === pauseForClubId || away === pauseForClubId) return null;
+    return simulateTie(home, away);
+  });
 }
 
 // ── Apply promotion/relegation across a country's league pyramid ──

@@ -17,7 +17,7 @@
  * returns unconditionally — 3rd place was auto-promoted and no playoff existed.
  */
 import { describe, it, expect } from 'vitest';
-import { simulatePlayoff, determineProRelZones } from '@/utils/promotionRelegation';
+import { simulatePlayoff, determineProRelZones, stepPlayoff, resumePlayoff } from '@/utils/promotionRelegation';
 import { ALL_LEAGUES } from '@/data/leagues/index';
 import type { LeagueTableEntry } from '@/types/game';
 
@@ -118,6 +118,84 @@ describe('the player\'s own playoff run is recoverable from the bracket', () => 
     expect(champion).toBe('p');
     expect(run).toHaveLength(2);
     expect(run[run.length - 1].playerAdvanced).toBe(true);
+  });
+});
+
+
+describe('stepPlayoff / resumePlayoff — suspending for the player\'s own tie', () => {
+  // The interactive playoff needs to pause the bracket on the tie the player is
+  // in, let them play it, then carry on — without duplicating the seeding rules
+  // anywhere. `stepPlayoff` is the single walk; `simulatePlayoff` is that walk
+  // with a resolver that never suspends.
+  const tie = (h: string, a: string, hg: number, ag: number) => ({
+    homeClubId: h, awayClubId: a, homeGoals: hg, awayGoals: ag,
+    playerAdvanced: hg === ag ? true : hg > ag,
+  });
+
+  it('suspends on the first tie the resolver declines', () => {
+    const out = stepPlayoff(['a', 'b', 'p', 'd'], (home, away) =>
+      (home === 'p' || away === 'p') ? null : home);
+    expect(out.kind).toBe('pending');
+    if (out.kind !== 'pending') return;
+    // Bracket is a-d and b-p, so the player's semi is b vs p.
+    expect(out.tie).toMatchObject({ homeClubId: 'b', awayClubId: 'p' });
+    // Four clubs still in it — a semi-final.
+    expect(out.tie.teamsInRound).toBe(4);
+  });
+
+  it('reports teamsInRound 2 for the final, so a caller can name the round', () => {
+    // Player loses nothing: only the final involves them.
+    const out = stepPlayoff(['p', 'b', 'c', 'd'], (home, away) => {
+      if (home === 'p' && away === 'd') return 'p';   // player's semi, resolved
+      if (home === 'b' && away === 'c') return 'b';
+      return null;                                    // suspend on the final
+    });
+    expect(out.kind).toBe('pending');
+    if (out.kind !== 'pending') return;
+    expect(out.tie.teamsInRound).toBe(2);
+    expect([out.tie.homeClubId, out.tie.awayClubId].sort()).toEqual(['b', 'p']);
+  });
+
+  it('resumePlayoff replays recorded results and never re-decides them', () => {
+    const candidates = ['a', 'b', 'p', 'd'];
+    // Player already won their semi 2-1 against b.
+    const resolved = [tie('b', 'p', 1, 2)];
+    let simulated = 0;
+    const out = resumePlayoff(candidates, resolved, 'p', (home) => { simulated++; return home; });
+    // a-d is simulated; b-p is replayed from the record; the final suspends.
+    expect(simulated).toBe(1);
+    expect(out.kind).toBe('pending');
+    if (out.kind !== 'pending') return;
+    expect([out.tie.homeClubId, out.tie.awayClubId].sort()).toEqual(['a', 'p']);
+    expect(out.tie.teamsInRound).toBe(2);
+  });
+
+  it('a level tie is replayed as a win for the better-placed side', () => {
+    // The rule lives in one place; resumePlayoff must apply the same one.
+    // b hosted the player's semi and drew, so b advances and the player is OUT
+    // — which means nothing suspends and the bracket runs to a decision.
+    const out = resumePlayoff(['a', 'b', 'p', 'd'], [tie('b', 'p', 1, 1)], 'p', home => home);
+    expect(out).toEqual({ kind: 'decided', winner: 'a' });
+  });
+
+  it('finishes without suspending once every player tie is recorded', () => {
+    const resolved = [tie('b', 'p', 0, 3), tie('a', 'p', 1, 2)];
+    const out = resumePlayoff(['a', 'b', 'p', 'd'], resolved, 'p', home => home);
+    expect(out).toEqual({ kind: 'decided', winner: 'p' });
+  });
+
+  it('an eliminated player does not suspend the rest of the bracket', () => {
+    const resolved = [tie('b', 'p', 4, 0)]; // player knocked out in the semi
+    const out = resumePlayoff(['a', 'b', 'p', 'd'], resolved, 'p', home => home);
+    expect(out).toEqual({ kind: 'decided', winner: 'a' });
+  });
+
+  it('stepPlayoff and simulatePlayoff agree when nothing suspends', () => {
+    const alwaysHome = (home: string) => home;
+    const stepped = stepPlayoff(['a', 'b', 'c', 'd'], alwaysHome);
+    const simulated = simulatePlayoff(['a', 'b', 'c', 'd'], alwaysHome);
+    expect(stepped).toEqual({ kind: 'decided', winner: 'a' });
+    expect(simulated).toBe('a');
   });
 });
 
