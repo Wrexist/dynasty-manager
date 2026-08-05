@@ -47,6 +47,7 @@ export const PENDING_NEWS: PendingRelease = {
   improved: [
     'Release(1.3.0): seal the What\'s New card and bump the marketing version.',
     'Hero-cluster App Store screenshots for iPhone 6.9/6.5 + iPad 13.',
+    'Rewarded-ad offer system with escalating, capped popups.',
   ],
   fixed: [],
   headline: null,
