@@ -11,29 +11,33 @@ Ordnat efter hur mycket det kostar er — inte efter hur svårt det är att fixa
 
 ## Status
 
-**Åtgärdade (13 av 22):** 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 16.
-Varje fix bär en regressionstest; de som gick att verifiera negativt kördes mot
-koden före fixen och fallerade där.
+**Åtgärdade (16 av 22):** 1, 2, 3 (till största delen), 4, 5, 6, 7, 8, 9, 10,
+11, 12, 13, 14, 15, 16, 18. Varje fix bär en regressionstest; de som gick att
+verifiera negativt kördes mot koden före fixen och fallerade där.
 
-**Ett extra fynd hittades under arbetet** och är åtgärdat: `abandonMatch` fanns
-inte på `HalfState`, så en avbruten första halvlek följdes av en helt normal
-andra halvlek och forfeiten ogjordes tyst. Se punkt 11.
+**Två extra fynd hittades under arbetet**, båda åtgärdade:
 
-**Försökt och medvetet återställt:** 13 (skott på mål). Fixen fungerade men
-trippade projektets egen kvalitetsseparations-gate. Detaljer och mätdata står
-under punkten — jag flyttade inte tröskeln för att få igenom den.
+- `abandonMatch` fanns inte på `HalfState`, så en avbruten första halvlek följdes
+  av en helt normal andra halvlek och forfeiten ogjordes tyst. Se punkt 11.
+- **Hörnor låg på 5,9/match mot verklighetens ~10** — den största orörda
+  avvikelsen i matchstatistiken, som ingen mätning tidigare fångat. Höjd till
+  9,7, med merparten av ökningen tagen på den målneutrala grenen. Se punkt 13.
+
+**Ett icke-fynd, för ordningens skull:** min mätrigg flaggade röda kort som låga
+(0,12/match mot referensen 0,25). Referensen var fel. 0,12 med ett gult:rött-
+förhållande på 31,8:1 ligger inom kodens egna dokumenterade mål och nära
+Premier League (0,16 och ~28:1). Jag ändrade ingenting.
 
 **Öppna, med skäl:**
 
 | # | Varför inte åtgärdat |
 |---|---|
-| 13 | Se ovan — kräver att skottvolymen höjs och att fouls/kort/skador mäts om i samma pass |
-| 17 | i18n. ~490 filer med hårdkodad engelska. Ett projekt, inte en patch |
-| 19 | Eager bundle på 522/560 kB. Inte en bugg utan en budget — kan bara "fixas" genom att ta bort funktionalitet |
+| 3 (rest) | Spelarens egna playoff spelas fortfarande inte interaktivt i `MatchDay`. Resultaten *visas* nu i säsongssammanfattningen, men att spela tien kräver att säsongsrullningen görs pausbar och återupptagbar — en state-machine-ändring i kodbasens mest komplexa fil, utan befintlig testtäckning för en pausad rullning. Det är en feature som behöver design, inte något att landa ensidigt i slutet av en granskning |
+| 17 | i18n. ~490 filer med hårdkodad engelska. Dessutom blockerat av två projektregler: inga nya npm-beroenden utan diskussion, och eager bundle har 38 kB kvar av 560. Att scaffolda halvvägs är värre än att inte börja |
+| 19 | Eager bundle 522/560 kB. Inte en bugg utan en budget — kan bara "fixas" genom att ta bort funktionalitet |
 | 20 | Server-side kvittovalidering. Kräver backend som inte finns |
 | 21 | AI-utveckling batchad till säsongsslut. Dokumenterat prestandaval, inte ett fel |
-| 22 | Online-läge. En produktbeslut, inte en fix |
-| 18 | Delvis: 28,6 → 6,0 min. Golvet är fast per-fil-overhead (146 s av 359 s); resten kräver att delad state isoleras så `fileParallelism` kan slås på |
+| 22 | Online-läge. Ett produktbeslut, inte en fix |
 
 ---
 
@@ -299,7 +303,45 @@ reaktiva taktiker som sattes vid minut 60/75. Ett rött kort i 70:e minuten
 
 ### 13. Skott på mål-andelen är cirka 55 % (verklighet: ~33 %)
 
-> **FÖRSÖKT OCH ÅTERSTÄLLT.** Jag byggde fixen, mätte den, och backade den.
+> **ÅTGÄRDAT** i `4b75a73`, i andra försöket. Första försöket byggdes, mättes
+> och backades — historiken står kvar nedan, eftersom mätningen därifrån är det
+> som pekade ut den verkliga orsaken.
+>
+> Slutresultat, 400 matcher jämnstarka 70-lag:
+>
+> | Mått | Före | Efter | Verklighet |
+> |---|---|---|---|
+> | skott | 20,5 | **24,9** | ~25 |
+> | på mål | 47,4 % | **36,0 %** | 33–35 % |
+> | konvertering | 30,1 % | **31,6 %** | ~32 |
+> | mål | 2,91 | **2,83** | 2,7–2,8 |
+> | hörnor | 5,9 | **9,7** | ~10 |
+> | räddningar | 6,2 | **5,6** | ~5,8 |
+> | fouls | 21,6 | 21,8 | ~22 |
+> | gula | 3,80 | 3,81 | 3,5–4 |
+> | oavgjort | 28,0 % | **26,3 %** | 24–26 % |
+>
+> Nyckeln var att volymen måste flyttas först — de fyra skottmåtten är
+> överbestämda. `SHOT_ATTEMPT_THRESHOLD` 0,40 → 0,49 (vald så foul-bandet
+> behåller full bredd under taket, alltså orörda fouls/kort/straffar), plus en ny
+> `GOAL_CHANCE_VOLUME_SCALE` som håller målen. Båda uppenbara alternativen
+> testades och mättes som modellförvrängande: att sänka `ATTACK_MULT` komprimerar
+> anfallarnas kvalitetssignal (separationen föll till 57,5 % mot golvet 58 %),
+> att höja `DEFENSE_MULT` trycker svaga anfallare mot `GOAL_CHANCE_MIN` och
+> blåser upp oavgjort till 34,5 % mot taket 34 %.
+>
+> **En testtröskel rördes**, och åt det skärpande hållet: `matchRealism`s
+> mentalitetscell gick från n=300 till n=900 per cell. Vid n=300 låg max-min av
+> fem urvalsmedelvärden inne i sitt eget brusband, så en frisk motor kunde nå
+> taket 0,35 av ren tur — och gjorde det, på 0,3500000000000001. Motorns sanna
+> spridning, mätt vid n=1200/cell, är **0,122** mot testets egen dokumenterade
+> baslinje 0,13. Jag lossade inte taket; jag lät testet mäta det det påstår.
+>
+> ---
+>
+> Historiken från första försöket:
+>
+> Jag byggde fixen, mätte den, och backade den.
 >
 > Uppmätt före (250 matcher, två jämnstarka 70-lag): 20,1 skott, 9,6 på mål,
 > 2,88 mål → **47,5 % SoT** (min uppskattning i granskningen var 55 % — den var
@@ -528,7 +570,7 @@ granskningsenergin har gått till motorns inre.
 
 ## Föreslagen ordning
 
-**Klart på den här grenen** — 13 av 22 fynd, plus ett upptäckt under arbetet:
+**Klart på den här grenen** — 16 av 22 fynd, plus två upptäckta under arbetet:
 
 | Fynd | Commit |
 |---|---|
@@ -537,29 +579,43 @@ granskningsenergin har gått till motorns inre.
 | #5 ad-free-påståendet | `61f0cc8` |
 | #6 source maps | `7440ceb` |
 | #9 + #10 + #11 + abandon-läckaget | `2a8e70b` |
-| #3 + #4 + #14 playoff | `06c6653` |
+| #3 + #4 + #14 playoff som riktiga matcher | `06c6653` |
 | #7 + #8 ad-offer + #15 Record Signing | `add77a6` |
-| #16 dokumentationsdrift + #18 preflight | `1b6ea42` |
+| #16 dokumentationsdrift + #18 preflight-uppdelning | `1b6ea42` |
+| #13 skottprofil + hörnor | `4b75a73` |
+| #3 playoff-synlighet + #18 parallellisering | `1e33365` |
 
 **Kvar, i den ordning jag skulle ta dem:**
 
-1. **#13 skott på mål** — börja med skottvolymen, inte räddningsgrenen. Höj
-   `SHOT_ATTEMPT_THRESHOLD` / `BASE_EVENT_CHANCE` mot ~25 skott/match och mät om
-   mål, fouls, kort och skador i samma pass. Mätdata och det misslyckade
-   försöket står under punkten. Ta #9:s smakfördelning som referens — den är nu
-   korrekt och bör inte röras igen.
-2. **#3 resten** — spelarens egna playoff genom `MatchDay`. Ligan avgörs nu av
-   riktiga matcher, men spelaren ser fortfarande inte sin egen. Det är den
-   enskilt största kvarvarande upplevelseluckan.
-3. **#18 resten** — isolera den delade modulnivå-state:n (real-player claims,
-   den primade genererade datan) så `fileParallelism` kan slås på. Det är vad
-   som står mellan 6 minuter och något som faktiskt körs varje commit.
-4. **#17 i18n** — det största av allt, och det som mest direkt kostar pengar:
-   ASO-metadata på 37 språk mot en produkt som bara finns på engelska. Börja med
-   att extrahera strängar i `pages/` och `components/game/`; motorn och config
-   behöver aldrig översättas.
-5. **#22 online** — produktbeslut, inte en fix. Men det är det största hålet i
-   produkten och värt mer än allt annat på den här listan.
+1. **#3 sista biten — spela playoff-tien själv.** Resultaten syns nu, men
+   matchen spelas inte. Kräver att `processSeasonEnd` görs pausbar: ny
+   `seasonEndPhase`-state, en `pendingPlayoffTie`, MatchDay-stöd för en
+   playoff-kontext och en återupptagningsväg. Störst kvarvarande
+   upplevelseeffekt, men det är en feature med designbehov — och den rör den mest
+   komplexa filen i kodbasen utan befintlig testtäckning för en pausad rullning.
+   Skriv testerna för den pausade rullningen först.
+2. **#17 i18n.** Störst kommersiell effekt av allt som återstår: ASO-metadata på
+   37 språk mot en produkt som bara finns på engelska. Blockerat av två
+   projektregler som kräver ditt beslut — nya beroenden, och 38 kB kvar av
+   bundlebudgeten. Börja med att bestämma bibliotek (eller ett handrullat `t()`),
+   sedan extrahera `pages/` och `components/game/`; motorn och `config/` behöver
+   aldrig översättas.
+3. **#22 online.** Produktbeslut. Det största hålet i produkten, och värt mer än
+   allt annat på listan.
 
 **Inte planerade:** #19 (bundlebudget — inte en bugg), #20 (kräver backend),
 #21 (dokumenterat prestandaval).
+
+---
+
+## Vad som är kvar att verifiera på riktigt
+
+Ingenting här har körts på en enhet. Två av fixarna kan bara bekräftas i en
+TestFlight-build:
+
+- **#5** — att paywallen inte längre lovar reklamfrihet.
+- **#6** — att IPA-storleken faktiskt sjunker med ~35 MB.
+
+Och en tredje kan bara bekräftas av att spela: **#1**, att halvtidstalet nu
+håller i sig hela andra halvlek. Testet bevisar att modifieraren överlever
+omräkningarna; det bevisar inte att effekten *känns* rätt.
