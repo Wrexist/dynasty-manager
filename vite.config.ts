@@ -103,6 +103,23 @@ export default defineConfig(() => ({
       output: {
         manualChunks(id) {
           if (id.includes('framer-motion')) return 'framer-motion';
+          // One chunk PER Radix primitive, not one chunk for all of Radix.
+          //
+          // Lumping them together meant the eager ones dragged the lazy ones
+          // along: `TooltipProvider` is an app-wide context in App.tsx and
+          // `Slot` backs every Button, both unavoidably eager — and they kept
+          // `react-dialog`, which only modals and sheets need, in the boot graph
+          // of every launch. Splitting lets each primitive land wherever it is
+          // actually used.
+          // `react-dialog` gets its own chunk; everything else Radix shares one.
+          //
+          // Splitting per primitive worked but produced ten sub-kilobyte chunks
+          // for no gain — the entire win comes from this one boundary. Dialog
+          // backs every modal and sheet, none of which are on the first paint,
+          // while `Slot` (every Button) and `Tooltip` (an app-wide provider in
+          // App.tsx) are unavoidably eager. Sharing one chunk meant the eager
+          // two dragged dialog into the boot graph of every launch.
+          if (id.includes('@radix-ui/react-dialog')) return 'radix-dialog';
           if (id.includes('@radix-ui')) return 'radix';
           // Note: recharts (~414 KB raw / 111 KB gz) is intentionally NOT
           // manually chunked. Letting Rollup co-locate it with the 5 lazy

@@ -1,9 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+
+// Lazy so @radix-ui/react-dialog (and SettingsPage) stay out of the boot graph.
+// TitleScreen itself must stay eager — it is the first paint — but the settings
+// panel behind it does not. See the note in TitleSettingsSheet.
+const TitleSettingsSheet = lazy(() => import('./title/TitleSettingsSheet'));
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
 import { getSlotSummaries } from '@/store/slices/orchestrationSlice';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Play, Settings, Trash2, Save, Swords, ChevronRight, RotateCcw } from 'lucide-react';
 import { PremiumSparkle } from '@/components/game/icons/PremiumSparkle';
@@ -20,7 +24,6 @@ import {
 } from '@/store/helpers/persistence';
 import { isPro } from '@/utils/monetization';
 import { hasUnseenWhatsNew } from '@/data/whatsNew';
-import { SettingsBody } from './SettingsPage';
 import type { TitleFloatingCircle } from '@/types/game';
 
 
@@ -29,6 +32,7 @@ const TitleScreen = () => {
   const loadGame = useGameStore(s => s.loadGame);
   const resetGame = useGameStore(s => s.resetGame);
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   // Signal to main.tsx that the first screen is mounted (hides splash)
@@ -382,11 +386,10 @@ const TitleScreen = () => {
 
         {/* Settings */}
         <motion.div custom={slots.length + 3} variants={buttonVariants} initial="hidden" animate="visible">
-          <Sheet>
-            <SheetTrigger asChild>
-              <button
+          <>
+            <button
                 type="button"
-                onClick={() => hapticLight()}
+                onClick={() => { hapticLight(); setSettingsOpen(true); }}
                 className="w-full rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 active:scale-[0.985] transition-transform"
                 aria-label="Open settings"
               >
@@ -403,16 +406,12 @@ const TitleScreen = () => {
                   </div>
                 </GlassPanel>
               </button>
-            </SheetTrigger>
-            <SheetContent side="bottom" className="bg-background border-border/50 rounded-t-2xl h-[85vh] max-h-[85vh] flex flex-col">
-              <SheetHeader>
-                <SheetTitle className="text-foreground">Settings</SheetTitle>
-              </SheetHeader>
-              <div className="flex-1 overflow-y-auto -mx-6 px-6 pt-2">
-                <SettingsBody variant="title" />
-              </div>
-            </SheetContent>
-          </Sheet>
+            {settingsOpen && (
+              <Suspense fallback={null}>
+                <TitleSettingsSheet open onOpenChange={setSettingsOpen} />
+              </Suspense>
+            )}
+          </>
         </motion.div>
       </div>
 

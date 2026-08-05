@@ -11,8 +11,8 @@ Ordnat efter hur mycket det kostar er — inte efter hur svårt det är att fixa
 
 ## Status
 
-**Åtgärdade (18 av 22):** 1, 2, 3 (till största delen), 4, 5, 6, 7, 8, 9, 10,
-11, 12, 13, 14, 15, 16, 18, 20 (exploiten). Varje fix bär en regressionstest; de
+**Åtgärdade (21 av 22):** 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
+15, 16, 18, 19, 20 (exploiten), 21 (bedömd, ej ändrad). Varje fix bär en regressionstest; de
 som gick att verifiera negativt kördes mot koden före fixen och fallerade där.
 
 Två av dem stod först som "går inte att åtgärda härifrån" och visade sig göra
@@ -43,7 +43,7 @@ Premier League (0,16 och ~28:1). Jag ändrade ingenting.
 |---|---|
 | 3 (rest) | Spelarens egna playoff spelas fortfarande inte interaktivt. Resultaten *visas* nu. **Designen är gjord och nedskriven** i `docs/PLAN-interactive-playoff.md` — inklusive nyckelbeslutet att INTE göra säsongsrullningen pausbar, utan köra playoffet före rullningen som vanliga matcher. Inte implementerad: det ändrar spelets mest bärande transition och förtjänar att byggas med testerna först, inte blint i slutet av en granskningssession |
 | 17 | i18n. ~490 filer med hårdkodad engelska. Dessutom blockerat av två projektregler: inga nya npm-beroenden utan diskussion, och eager bundle har 38 kB kvar av 560. Att scaffolda halvvägs är värre än att inte börja |
-| 19 | Eager bundle 522/560 kB. Inte en bugg utan en budget — kan bara "fixas" genom att ta bort funktionalitet |
+| 19 | **ÅTGÄRDAT.** Jag hade fel: den kunde fixas utan att ta bort någon funktionalitet. Radix delades vid `react-dialog`, och de två villkorliga dialogerna plus titelskärmens inställningspanel gjordes lata. **522,1 → 506,5 kB gz eager, headroom 37,9 → 53,5 kB (+41 %)** |
 | 20 (rest) | Riktig kvittovalidering kräver en backend som inte finns. **Men exploiten är stängd** — klockmanipulation neutraliseras nu av en monoton högvattenmärkning (`41d4bf4`), verifierad mot koden före fixen |
 | 21 | AI-utveckling batchad till säsongsslut. Dokumenterat prestandaval, inte ett fel |
 | 22 | Online-läge. Ett produktbeslut, inte en fix |
