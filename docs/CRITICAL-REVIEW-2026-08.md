@@ -327,12 +327,24 @@ Test Files  162 passed | 3 skipped (165)
 **28,6 minuter för testsviten ensam.** Med lint + typecheck + build + size:check
 ovanpå landar gaten runt halvtimmen.
 
-*Caveat:* en andra vitest-körning överlappade under delar av tiden, så 28,6 min
-är en övre gräns under CPU-kontention — men `tests 1534.82s` av 1717 s wall
-clock visar att parallelliseringen ändå ger nästan ingenting, dvs. sviten är
-CPU-bunden på riktiga säsongssimuleringar, inte på I/O. Per-fil-attribuering går
-inte att göra från denna körning (reporter-outputen trunkerades); kör
-`vitest run --reporter=verbose` och sortera för att hitta de tyngsta filerna.
+Den första mätningen hade en annan vitest-körning överlappande, så jag noterade
+28,6 min som en övre gräns under CPU-kontention. En ren körning efteråt — enda
+processen på maskinen, med de tre nya testfilerna tillagda — landade på
+**1 717,97 s**, alltså 0,3 sekunder från den första:
+
+```
+Test Files  165 passed | 3 skipped (168)
+     Tests  2359 passed | 4 skipped (2363)
+  Duration  1717.97s (transform 16.28s, setup 6.40s, collect 47.72s,
+                      tests 1539.67s, environment 80.17s, prepare 9.94s)
+```
+
+**Kontentionen betydde ingenting — 28,6 min är den faktiska siffran, inte ett
+tak.** `tests ≈ 1 535 s` av 1 718 s wall clock i båda körningarna säger varför:
+parallelliseringen ger nästan noll, sviten är CPU-bunden på riktiga
+säsongssimuleringar. Per-fil-attribuering går inte att få ur dessa körningar
+(reporter-outputen trunkerades); kör `vitest run --reporter=verbose` och sortera
+för att hitta de tyngsta filerna.
 
 Sviten är alltså **grön och grundlig** — det är inte kvaliteten som är problemet.
 Problemet är att en gate som tar en halvtimme inte körs, och då är den ingen
