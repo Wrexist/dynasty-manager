@@ -523,25 +523,38 @@ granskningsenergin har gått till motorns inre.
 
 ## Föreslagen ordning
 
-**Klart på den här grenen:**
+**Klart på den här grenen** — 13 av 22 fynd, plus ett upptäckt under arbetet:
 
-1. ~~#1 team talk~~ — `0cd9cf0`
-2. ~~#5 ad-free-påståendet~~ — `61f0cc8`
-3. ~~#2 medicalLevel~~ — `5ed44fb`
-4. ~~#6 source maps~~ — `7440ceb`
+| Fynd | Commit |
+|---|---|
+| #1 team talk + #12 AI-taktik | `0cd9cf0` |
+| #2 medicalLevel | `5ed44fb` |
+| #5 ad-free-påståendet | `61f0cc8` |
+| #6 source maps | `7440ceb` |
+| #9 + #10 + #11 + abandon-läckaget | `2a8e70b` |
+| #3 + #4 + #14 playoff | `06c6653` |
+| #7 + #8 ad-offer + #15 Record Signing | `add77a6` |
+| #16 dokumentationsdrift + #18 preflight | `1b6ea42` |
 
 **Kvar, i den ordning jag skulle ta dem:**
 
-1. **#3 + #4 playoff** — kör riktiga matcher via `simulateMatch`, spelarens egna
-   playoff genom `MatchDay`. Störst arbete av det som återstår, störst
-   upplevelseeffekt. #4 är dessutom nästan gratis: ge Spanien/Italien/Tyskland/
-   Frankrike `playoffSpots: 4` så bracket-koden får något att göra.
-2. **#7 + #8 ad-offer-systemet** — antingen bakom en feature-flagga som håller
-   `AdOfferHost` omonterad tills ads lever, eller så implementeras den
-   kontextgating som filens eget huvud redan lovar.
-3. **#10 + #11** — två enradsfixar i `match.ts` (räkna målvaktsmisstag som skott;
-   flytta `abandonMatch`-brytningen så straff efter forfeit inte kan sättas).
-4. **#13 skott på mål-andelen** — kräver ombalansering och en ny mätning, inte en
-   patch. Ta den tillsammans med #9.
-5. **#18 preflight-tiden** — dela upp gaten. Blockerar inget, men allt annat blir
-   dyrare så länge den tar en halvtimme.
+1. **#13 skott på mål** — börja med skottvolymen, inte räddningsgrenen. Höj
+   `SHOT_ATTEMPT_THRESHOLD` / `BASE_EVENT_CHANCE` mot ~25 skott/match och mät om
+   mål, fouls, kort och skador i samma pass. Mätdata och det misslyckade
+   försöket står under punkten. Ta #9:s smakfördelning som referens — den är nu
+   korrekt och bör inte röras igen.
+2. **#3 resten** — spelarens egna playoff genom `MatchDay`. Ligan avgörs nu av
+   riktiga matcher, men spelaren ser fortfarande inte sin egen. Det är den
+   enskilt största kvarvarande upplevelseluckan.
+3. **#18 resten** — isolera den delade modulnivå-state:n (real-player claims,
+   den primade genererade datan) så `fileParallelism` kan slås på. Det är vad
+   som står mellan 6 minuter och något som faktiskt körs varje commit.
+4. **#17 i18n** — det största av allt, och det som mest direkt kostar pengar:
+   ASO-metadata på 37 språk mot en produkt som bara finns på engelska. Börja med
+   att extrahera strängar i `pages/` och `components/game/`; motorn och config
+   behöver aldrig översättas.
+5. **#22 online** — produktbeslut, inte en fix. Men det är det största hålet i
+   produkten och värt mer än allt annat på den här listan.
+
+**Inte planerade:** #19 (bundlebudget — inte en bugg), #20 (kräver backend),
+#21 (dokumenterat prestandaval).
