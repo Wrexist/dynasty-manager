@@ -8,6 +8,25 @@
 
 import type { MonetizationState, ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo, SubscriptionTier } from '@/types/game';
 import { COSMETIC_ITEMS, AD_REWARD_LIMITS, STARTER_KIT_WINDOW_MS, PRO_ONE_TIME_PRODUCT_IDS, PRODUCTS, CONSUMABLE_PRODUCT_IDS } from '@/config/monetization';
+import { observeClock } from '@/store/helpers/persistence';
+
+/**
+ * The time entitlement decisions are judged against.
+ *
+ * NOT `Date.now()`. Every check here compares a stored `expiresAt` to the
+ * device clock, which the user controls — so winding it backwards extended a
+ * lapsed subscription indefinitely, offline, with no purchase, and re-armed the
+ * Starter Kit window. There is no backend to ask, so the defence is local:
+ * `observeClock` keeps the furthest time this device ever saw and returns the
+ * later of that and now, which makes rolling the clock back worth nothing.
+ *
+ * A successful store sync calls `reanchorClock`, so a device whose clock was
+ * genuinely wrong (set far ahead, then corrected) recovers rather than reading
+ * as permanently expired.
+ */
+function entitlementNow(): number {
+  return observeClock();
+}
 
 /** Upper bound on how long a recurring subscription record is trusted when the
  *  store gave us no `expiresAt`. Generous enough that a paying customer keeps
@@ -46,7 +65,7 @@ function isSubscriptionExpired(sub: SubscriptionInfo): boolean {
   if (sub.expiresAt != null) {
     const expiresMs = new Date(sub.expiresAt).getTime();
     if (!Number.isFinite(expiresMs)) return true;
-    return expiresMs < Date.now();
+    return expiresMs < entitlementNow();
   }
 
   // Recurring tier with no expiry date. Fail closed against a bounded window
@@ -57,7 +76,7 @@ function isSubscriptionExpired(sub: SubscriptionInfo): boolean {
   // treat it as expired and let the store be the judge.
   const grantedMs = sub.grantedAt ? new Date(sub.grantedAt).getTime() : NaN;
   if (!Number.isFinite(grantedMs)) return true;
-  return grantedMs + UNANCHORED_WINDOW_MS[sub.tier] < Date.now();
+  return grantedMs + UNANCHORED_WINDOW_MS[sub.tier] < entitlementNow();
 }
 
 /** Check if the player has an active subscription */
@@ -168,7 +187,7 @@ export function getFreeTrialDaysRemaining(state: MonetizationState): number {
   if (!isOnFreeTrial(state)) return 0;
   const expiresAt = state.subscription?.expiresAt;
   if (!expiresAt) return 0;
-  const ms = new Date(expiresAt).getTime() - Date.now();
+  const ms = new Date(expiresAt).getTime() - entitlementNow();
   if (ms <= 0) return 0;
   return Math.ceil(ms / (24 * 60 * 60 * 1000));
 }
@@ -219,14 +238,14 @@ export function isStarterKitAvailable(state: MonetizationState): boolean {
   if (state.starterKitDismissed) return false;
   if (state.firstLaunchTimestamp <= 0) return false;
   if (isPro(state)) return false;
-  const elapsed = Date.now() - state.firstLaunchTimestamp;
+  const elapsed = entitlementNow() - state.firstLaunchTimestamp;
   return elapsed < STARTER_KIT_WINDOW_MS;
 }
 
 /** Get remaining time for starter kit offer in milliseconds */
 export function getStarterKitRemainingMs(state: MonetizationState): number {
   if (!isStarterKitAvailable(state)) return 0;
-  const elapsed = Date.now() - state.firstLaunchTimestamp;
+  const elapsed = entitlementNow() - state.firstLaunchTimestamp;
   return Math.max(0, STARTER_KIT_WINDOW_MS - elapsed);
 }
 

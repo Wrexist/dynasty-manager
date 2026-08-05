@@ -16,6 +16,7 @@ import type { CustomerInfo } from '@revenuecat/purchases-capacitor';
 import type { ProductId, SubscriptionInfo } from '@/types/game';
 import { PRODUCTS } from '@/config/monetization';
 import { Capacitor } from '@capacitor/core';
+import { reanchorClock } from '@/store/helpers/persistence';
 
 // RevenueCat requires a separate API key per platform ('appl_…' for iOS,
 // 'goog_…' for Android). VITE_REVENUECAT_API_KEY is the legacy single-key
@@ -492,6 +493,7 @@ export async function getEntitlements(): Promise<ProductId[]> {  if (!Capacitor.
     await ensureConfigured();
     const { Purchases } = await import('@revenuecat/purchases-capacitor');
     const { customerInfo } = await Purchases.getCustomerInfo();
+    reanchorClock();
     return mapEntitlements(customerInfo);
   } catch (err) {
     if (import.meta.env.DEV) console.error('[Purchases] Get entitlements failed:', err);
@@ -510,6 +512,11 @@ export async function getCustomerInfo(): Promise<CustomerInfo | null> {
     await ensureConfigured();
     const { Purchases } = await import('@revenuecat/purchases-capacitor');
     const { customerInfo } = await Purchases.getCustomerInfo();
+    // The store just corroborated this device's entitlement state, which is the
+    // one moment its clock can be trusted. Re-anchor the monotonic guard so a
+    // device whose clock was genuinely wrong — set far ahead, then corrected —
+    // recovers instead of reading as permanently expired. See `observeClock`.
+    reanchorClock();
     return customerInfo;
   } catch (err) {
     if (import.meta.env.DEV) console.error('[Purchases] Get customer info failed:', err);

@@ -81,7 +81,9 @@ export default defineConfig({
     // `preflight:full` keeps the determinism it had. To lift this, run the full
     // suite parallel repeatedly with `--reporter=verbose`, identify the flake,
     // fix it, and then flip this to `true` unconditionally.
-    fileParallelism: !!process.env.VITEST_FAST,
+    // `VITEST_PARALLEL=1` forces parallelism on regardless of the file set — the
+    // reproducer for the flake described above. Use it with --reporter=verbose.
+    fileParallelism: process.env.VITEST_PARALLEL === "1" || !!process.env.VITEST_FAST,
     // Only meaningful when parallel. Capped rather than left to default because
     // each fork primes the ~400K LOC of generated data in `setup.ts`, making
     // memory the binding constraint rather than CPU.
