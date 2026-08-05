@@ -1,8 +1,11 @@
 # Kritisk granskning — Dynasty Manager v1.3.0
 
 Genomförd 2026-08-05 mot `main` @ `952ac1d`. Allt nedan är verifierat i koden.
-`npm run lint`, `npm run typecheck` och `npm run build` är gröna; testsviten tar
->10 minuter och hann inte slutföras inom granskningen.
+`npm run lint`, `npm run typecheck` och `npm run build` är gröna. Testsviten är
+också grön — **162 filer passerade, 3 skippade (165), 2 347 tester passerade,
+4 skippade** — men tog **1 717 s (28,6 min)** wall clock att köra.
+
+Inget av fynden nedan fångas alltså av någon befintlig gate.
 
 Ordnat efter hur mycket det kostar er — inte efter hur svårt det är att fixa.
 
@@ -278,13 +281,30 @@ styrelsemeddelanden, kontraktsförhandlingar.
 
 ### 18. `npm run preflight` är i praktiken oanvändbart
 
-Era egna regler säger att ingen commit får pushas utan preflight. Testsviten
-ensam sprang >10 minuter på denna maskin utan att bli klar (165 filer, inklusive
-longevity- och stresssviter som simulerar hela säsonger). Med lint + build + size
-landar gaten långt över kvarten.
+Era egna regler säger att ingen commit får pushas utan preflight. Uppmätt på
+denna maskin:
 
-En gate som tar en kvart körs inte. Dela upp: en snabb `preflight` (lint +
-typecheck + enhetstester, <60 s) och en `preflight:full` som CI kör.
+```
+Test Files  162 passed | 3 skipped (165)
+     Tests  2347 passed | 4 skipped (2351)
+  Duration  1717.67s (transform 29.86s, setup 6.95s, collect 51.66s,
+                      tests 1534.82s, environment 79.95s, prepare 10.22s)
+```
+
+**28,6 minuter för testsviten ensam.** Med lint + typecheck + build + size:check
+ovanpå landar gaten runt halvtimmen.
+
+*Caveat:* en andra vitest-körning överlappade under delar av tiden, så 28,6 min
+är en övre gräns under CPU-kontention — men `tests 1534.82s` av 1717 s wall
+clock visar att parallelliseringen ändå ger nästan ingenting, dvs. sviten är
+CPU-bunden på riktiga säsongssimuleringar, inte på I/O. Per-fil-attribuering går
+inte att göra från denna körning (reporter-outputen trunkerades); kör
+`vitest run --reporter=verbose` och sortera för att hitta de tyngsta filerna.
+
+Sviten är alltså **grön och grundlig** — det är inte kvaliteten som är problemet.
+Problemet är att en gate som tar en halvtimme inte körs, och då är den ingen
+gate. Dela upp: snabb `preflight` (lint + typecheck + enhetstester, <60 s) för
+varje commit, och `preflight:full` med longevity-/stress-sviterna i CI.
 
 ### 19. Eager bundle har 37,9 kB kvar av budgeten
 
