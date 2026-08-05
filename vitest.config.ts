@@ -84,6 +84,21 @@ export default defineConfig({
     // binding constraint, not CPU. Raise only alongside a memory measurement —
     // and re-check the stress-suite timeouts, which scale with contention.
     maxForks: 4,
+    // Low-chatter reporter by default.
+    //
+    // WHY. The full suite twice exited 1 with *every* test passing — 2422
+    // passed, 0 failed — on `Error: [vitest-worker]: Timeout calling
+    // "onTaskUpdate"`. That is the worker's progress RPC to the main process
+    // timing out, not a product failure: four forks streaming per-test updates
+    // while one of them sits inside a 200-second season simulation is enough to
+    // stall the channel, and Vitest counts the stall as an unhandled error.
+    //
+    // A gate that reports failure on a green run is worse than no gate — it is
+    // exactly the disease finding 18 was about, and I very nearly dismissed a
+    // REAL failure as this same noise. `dot` emits a fraction of the traffic.
+    // A CLI `--reporter=verbose` still overrides this, which is what a flake
+    // hunt needs.
+    reporters: ["dot"],
   },
   resolve: {
     alias: { "@": path.resolve(__dirname, "./src") },

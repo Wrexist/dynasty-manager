@@ -868,6 +868,16 @@ Listade för att de säger något om hur granskningen ska läsas.
   `countryId` (`'eng'`), så den returnerade direkt och testet passerade utan att
   köra någonting. En senare version populerade bara två nivåer, vilket gör
   dubbelflytten omöjlig att reproducera. Båda passerade mot den trasiga koden.
+- **`preflight:full` rapporterade fel på en grön körning — två gånger av tre.**
+  Alla 2 422 tester gröna, noll fallerade, exitkod 1, orsakad av
+  `[vitest-worker]: Timeout calling "onTaskUpdate"` — arbetarprocessens
+  progress-RPC som stannar när fyra forkar strömmar per-test-uppdateringar
+  medan en av dem sitter i en 200-sekunders säsongssimulering. Vitest räknar
+  stoppet som ett ohanterat fel. En gate som larmar på grönt är samma sjukdom
+  som punkt 18 handlade om — och den fick mig att nästan avfärda ett *riktigt*
+  fel som samma brus. Åtgärdat med en lågpratande reporter (`dot`) som default;
+  `--reporter=verbose` går fortfarande att sätta på kommandoraden när en flake
+  ska jagas.
 - **Det interaktiva playoffet lämnade varje testharness trasig, och jag märkte
   det inte förrän `preflight:full` kördes två gånger.** `endSeason` skjuter upp
   rullningen när klubben kvalificerar sig, så en harness som anropar
