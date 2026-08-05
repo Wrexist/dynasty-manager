@@ -470,7 +470,21 @@ styrelsemeddelanden, kontraktsförhandlingar.
 > och klarade sig; `longevity.test.ts` budgeterade ~12 s. Timeouterna där är nu
 > skalade till samma headroom, och parallellisering är påslagen för hela sviten.
 >
-> **28,6 min → ~11 min för hela sviten, 6 min → 2,5 min för per-commit-gaten.**
+> **Uppmätt efter fixen**, två raka fulla parallella körningar:
+>
+> | Körning | Filer | Tester | Tid |
+> |---|---|---|---|
+> | #1 | 170 gröna, 3 skippade | 2389 gröna | **12 min 46 s** |
+> | #2 | 170 gröna, 3 skippade | 2389 gröna | **12 min 49 s** |
+>
+> Alltså **28,6 min → 12,8 min** för hela sviten (2,2×) och **6 min → 2,5 min**
+> för per-commit-gaten. Mitt tidigare estimat "~11 min" var en gissning från en
+> körning med de gamla timeouterna; 12,8 är den mätta siffran.
+>
+> Kvarvarande golv: `tests` står för ~2 010 s av 765 s wall clock, så
+> parallelliseringen ger 2,6× på testtiden. Att komma längre kräver att de
+> längsta enskilda filerna kortas — en 20-säsongerssimulering är en
+> 20-säsongerssimulering, och den kan inte delas över forks.
 >
 > Historiken nedan står kvar, eftersom mellansteget — att begränsa
 > parallelliseringen när jag inte kunde namnge flaken — var rätt beslut med den
