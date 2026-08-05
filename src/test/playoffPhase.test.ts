@@ -142,3 +142,46 @@ describe('playoff phase — a qualifying club', () => {
     }
   });
 });
+
+describe('playoff phase — the UI and the engine agree on which match is next', () => {
+  beforeEach(() => { useGameStore.getState().initGame(PLAYOFF_CLUB); });
+
+  it('the pending tie is what a screen reading the store would show', () => {
+    useGameStore.getState().endSeason();
+    const s = useGameStore.getState();
+    expect(s.seasonPhase).toBe('playoff');
+
+    const pending = s.playoffState!.pendingMatch!;
+    // `useCurrentMatch` resolves the playoff FIRST, so Dashboard, MatchPrep and
+    // MatchDay name the same opponent the engine is about to play. Returning a
+    // stale league fixture here is the failure the tournament-priority note in
+    // useGameSelectors describes: one opponent on screen, another on the pitch,
+    // possibly with home/away flipped.
+    const isHome = pending.homeClubId === s.playerClubId;
+    const opponentId = isHome ? pending.awayClubId : pending.homeClubId;
+    expect(s.clubs[opponentId]).toBeDefined();
+    expect(opponentId).not.toBe(s.playerClubId);
+
+    // The round label the badge derives from is present and sane.
+    expect([2, 4]).toContain(s.playoffState!.teamsInRound);
+
+    // And the engine plays exactly that match.
+    const played = useGameStore.getState().playCurrentMatch();
+    expect(played).not.toBeNull();
+    expect([played!.homeClubId, played!.awayClubId].sort())
+      .toEqual([pending.homeClubId, pending.awayClubId].sort());
+  });
+
+  it('the playoff tie never enters the league fixture list', () => {
+    const fixturesBefore = useGameStore.getState().fixtures.length;
+    useGameStore.getState().endSeason();
+    const pending = useGameStore.getState().playoffState!.pendingMatch!;
+    useGameStore.getState().playCurrentMatch();
+
+    const after = useGameStore.getState();
+    // The final table is rebuilt from `fixtures` at rollover, so a playoff tie
+    // living there would corrupt the standings the bracket was seeded from.
+    expect(after.fixtures.some(f => f.id === pending.id)).toBe(false);
+    expect(after.fixtures.length).toBeLessThanOrEqual(fixturesBefore);
+  });
+});

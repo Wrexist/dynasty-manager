@@ -266,6 +266,7 @@ const MatchDayInner = () => {
 
   // Competition context for display
   const competitionBadge = isWorldCup ? getCompetitionInfo('World Cup')
+    : liveCompetition?.startsWith('Promotion Playoff') ? getCompetitionInfo('Promotion Playoff')
     : liveCompetition === 'Pre-Season Friendly' ? getCompetitionInfo('Pre-Season Friendly')
     : cupTie ? getCompetitionInfo('Dynasty Cup')
     : leagueCupTie ? getCompetitionInfo('League Cup')
@@ -275,6 +276,9 @@ const MatchDayInner = () => {
     : superCupMatch ? getCompetitionInfo(domesticSuperCup?.week === week ? 'Super Cup' : 'Continental Super Cup')
     : null;
   const competitionRound = isWorldCup ? (wcNext?.group ? `Group ${wcNext.group}` : (wcNext?.roundLabel ?? ''))
+    // `useCurrentMatch` already resolves the playoff round from teamsInRound and
+    // encodes it after the em dash, the same shape cup matches use.
+    : liveCompetition?.startsWith('Promotion Playoff') ? (liveCompetition.split(' — ')[1] ?? '')
     : cupTie?.round ?? leagueCupTie?.round ?? champMatch?.roundLabel ?? shieldMatch?.roundLabel ?? confMatch?.roundLabel ?? (superCupMatch ? 'Final' : '');
   const competitionInfo = competitionBadge ? { ...competitionBadge, round: competitionRound } : null;
 

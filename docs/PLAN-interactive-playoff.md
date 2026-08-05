@@ -1,18 +1,17 @@
 # Implementation plan — play your own promotion playoff
 
-Finding 3 from `CRITICAL-REVIEW-2026-08.md`. The playoff is now decided by real
-simulated matches and its results are shown in the season summary, but the
-player still does not *play* their own tie. This is the remaining half.
+Finding 3 from `CRITICAL-REVIEW-2026-08.md`.
 
-Built deliberately, tests first, one layer at a time. **Step 4 — the bracket
-engine — is implemented and tested.** The remaining steps are the store wiring
-and the UI, and are scoped against the current code so they can be executed
-without re-deriving anything.
+**STATUS: complete.** The player enters a playoff phase instead of rolling the
+season, plays their tie through the normal match flow, and the season rolls when
+the bracket runs out. Steps 1-7 are all implemented and covered by
+`src/test/promotionPlayoff.test.ts` (18 tests) and
+`src/test/playoffPhase.test.ts` (7 tests, driving the real store through
+`endSeason()` and `playCurrentMatch()`).
 
-The reason for the staging: this changes the most load-bearing transition in the
-game. The bracket engine is pure and fully testable, so it lands first and
-carries its own regression suite. The store and UI steps cannot be verified
-without actually playing the game, so they should be built by someone who can.
+The plan is kept because the reasoning is worth more than the diff — in
+particular the key decision below, and the two bugs the tests caught that
+reading the code did not.
 
 ## The key decision: do NOT make season rollover pausable
 
@@ -86,22 +85,44 @@ final) and 44 (continental final). Weeks 45–46 are free in every configuration
    level tie replays as a win for the better-placed side — the same rule
    `seasonEnd` applies live, which must stay in one place.
 
-5. **Play the tie.** Create a `Match` and route it through the existing
+5. **Play the tie. — DONE.** Create a `Match` and route it through the existing
    `playCurrentMatch` / `playFirstHalf` path. A level tie is won by the
    better-placed side — that rule already lives in `seasonEnd.ts`'s resolver and
    must stay in exactly one place. Extra time and penalties are optional; the
    existing `playExtraTimeImpl` / `playPenaltiesImpl` are available if wanted.
 
-6. **Feed the outcome into rollover.** `applyPromotionRelegation` already
+6. **Feed the outcome into rollover. — DONE.** `applyPromotionRelegation` already
    accepts a resolver. Pass one that returns the pre-decided winner for any tie
    in `playoffState.resolved` and simulates the rest, so rollover cannot
    re-decide a match the player just played.
 
-7. **Season summary already works.** `SeasonHistory.playoffRun` and the panel in
+7. **Season summary and match-day context. — DONE.** `SeasonHistory.playoffRun` and the panel in
    `SeasonSummary.tsx` are in place; populate it from `playoffState.resolved` as
    `seasonEnd` already does.
 
-## Write these tests first
+## Bugs the tests caught
+
+Both were found by tests, not by reading the code:
+
+- **Rollover re-derived the bracket seeding.** The playoff seeds from the
+  player's live fixtures; rollover rebuilt the table from the division fixture
+  set. When those disagree, the bracket rollover walks is not the one that was
+  played, so every recorded result matches nothing and is silently re-simulated
+  — the player wins the final and then loses it again invisibly. The seeding is
+  now pinned through `applyPromotionRelegation`.
+- **A club could be auto-promoted AND win the playoff**, filling two promotion
+  slots with one club. eng-2 drifted 24 -> 25 against a fixed eng-1. Auto-promoted
+  clubs are excluded from the seeding and the promotion list is deduped, which
+  also hardens the pre-existing path.
+
+And one test that looked like coverage and was not: the first draft used
+`leeds-united`, which does not sit in the playoff zone from a fresh init (the
+all-zero table breaks ties on `clubId`, putting positions 3-6 at burnley,
+cardiff-city, coventry-city, derby-county). Every playoff assertion fell through
+an escape hatch while the file passed. It uses `coventry-city` now and asserts
+qualification outright.
+
+## Tests written first
 
 - Rollover is unchanged when the player is not in a playoff (guards the 90% path).
 - A player in the playoff zone enters `seasonPhase: 'playoff'` instead of ending

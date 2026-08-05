@@ -34,6 +34,12 @@ export function getCompetitionInfo(
   if (base === 'Super Cup' || base === 'Continental Super Cup') {
     return { name: base, color: 'text-rose-400', bg: 'bg-rose-500/10 border-rose-500/30', borderAccent: 'border-rose-500/40' };
   }
+  if (base === 'Promotion Playoff') {
+    // Green like promotion itself, and deliberately distinct from the league
+    // badge — the whole point of the interactive playoff is that these ties are
+    // not league fixtures.
+    return { name: 'Playoff', color: 'text-emerald-300', bg: 'bg-emerald-500/10 border-emerald-500/30', borderAccent: 'border-emerald-500/40' };
+  }
   if (base === 'World Cup') {
     return { name: 'World Cup', color: 'text-amber-300', bg: 'bg-amber-500/10 border-amber-500/30', borderAccent: 'border-amber-500/40' };
   }
