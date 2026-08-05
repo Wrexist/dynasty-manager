@@ -4,6 +4,7 @@ import {
   INJURY_TYPES,
   MEDICAL_INJURY_PREVENTION_PER_LEVEL,
   REINJURY_MATCH_CHECK_CHANCE,
+  clubMedicalLevel,
 } from '@/config/gameBalance';
 import type { InjuryDetails } from '@/types/game';
 import { pick } from '@/utils/helpers';
@@ -2073,9 +2074,20 @@ export function simulateMatch(
   awayBench?: Player[],
   matchWeather?: MatchWeather,
   setPieceCoachBonus?: number,
+  /** Medical Centre level (0-10) for each side. The player's club must pass
+   *  `facilities.medicalLevel` — the level they actually paid to upgrade.
+   *  Omitted for AI-vs-AI, where `clubMedicalLevel` derives it from the club's
+   *  static rating. Passing `club.facilities` raw is wrong: that is a fixed
+   *  quality rating on a different scale which never reflects an upgrade. */
+  homeMedicalLevel?: number,
+  awayMedicalLevel?: number,
 ): { result: Match; playerRatings: PlayerMatchRating[]; matchInjuries: Record<string, InjuryDetails> } {
   // Generate weather if not provided
   const weather = matchWeather || generateMatchWeather();
+  // Resolve each side's Medical Centre level. Callers that know the player's
+  // upgraded level pass it; otherwise derive it from the club's static rating.
+  const homeMed = homeMedicalLevel ?? clubMedicalLevel(homeClub.facilities);
+  const awayMed = awayMedicalLevel ?? clubMedicalLevel(awayClub.facilities);
   // Forfeit if either squad is invalid
   const homeIsPlayer = playerClubId === homeClub.id;
   const awayIsPlayer = playerClubId === awayClub.id;
@@ -2095,7 +2107,7 @@ export function simulateMatch(
   const effectiveAwayTactics = awayTactics ?? awayClub.aiManagerProfile?.defaultTactics ?? AI_DEFAULT_TACTICS;
 
   // Simulate first half (1-45)
-  const firstHalf = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 1, 45, effectiveHomeTactics, effectiveAwayTactics, tacticalFamiliarity, playerClubId, undefined, derbyIntensity, disciplinarianActive, homeClub.facilities, awayClub.facilities, currentSeason, careerDisciplineMod, homeBench, awayBench, undefined, weather, setPieceCoachBonus);
+  const firstHalf = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 1, 45, effectiveHomeTactics, effectiveAwayTactics, tacticalFamiliarity, playerClubId, undefined, derbyIntensity, disciplinarianActive, homeMed, awayMed, currentSeason, careerDisciplineMod, homeBench, awayBench, undefined, weather, setPieceCoachBonus);
 
   // AI tactical reactivity: adjust tactics for second half based on scoreline
   let secondHalfHomeTactics = effectiveHomeTactics;
@@ -2111,7 +2123,7 @@ export function simulateMatch(
   }
 
   // Simulate second half (46-90) with potentially adjusted AI tactics
-  const fullState = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 46, 90, secondHalfHomeTactics, secondHalfAwayTactics, tacticalFamiliarity, playerClubId, firstHalf, derbyIntensity, disciplinarianActive, homeClub.facilities, awayClub.facilities, currentSeason, careerDisciplineMod, homeBench, awayBench, undefined, weather, setPieceCoachBonus);
+  const fullState = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 46, 90, secondHalfHomeTactics, secondHalfAwayTactics, tacticalFamiliarity, playerClubId, firstHalf, derbyIntensity, disciplinarianActive, homeMed, awayMed, currentSeason, careerDisciplineMod, homeBench, awayBench, undefined, weather, setPieceCoachBonus);
 
   const finalized = finalizeMatch(match, homeClub, awayClub, homePlayers, awayPlayers, fullState);
   // Attach weather to the match result

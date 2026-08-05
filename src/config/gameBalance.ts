@@ -344,6 +344,24 @@ export const MEDICAL_LEVEL_FACTOR = 0.8;
 export const RECOVERY_LEVEL_FACTOR = 0.6;
 export const RECOVERY_FITNESS_BONUS_PER_LEVEL = 1.0;
 
+/**
+ * Project a club's static `facilities` rating (2-10, fixed in the league data)
+ * onto the MEDICAL scale used by the injury system.
+ *
+ * Two different numbers are easy to confuse here, and the match engine confused
+ * them: `Club.facilities` is a fixed quality rating that never changes, while
+ * `FacilitiesState.medicalLevel` is the upgradeable Medical Centre the player
+ * spends money on. Only the player's own club has the latter — every AI club is
+ * represented solely by the static rating, so it has to be converted rather than
+ * used raw, or the two sides of a match are scored on different scales.
+ *
+ * Use this for AI clubs; use `facilities.medicalLevel` directly for the player's.
+ */
+export function clubMedicalLevel(clubFacilities: number): number {
+  const base = Number.isFinite(clubFacilities) ? clubFacilities : 5;
+  return Math.min(FACILITY_MAX_LEVEL, Math.max(0, Math.round(base * MEDICAL_LEVEL_FACTOR)));
+}
+
 // ── Season-End Confidence by Verdict ──
 export const SEASON_END_CONFIDENCE: Record<string, number> = {
   excellent: 80,
