@@ -1,4 +1,5 @@
 import { useGameStore } from '@/store/gameStore';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { ClubCrest } from '@/components/game/ClubCrest';
@@ -14,6 +15,7 @@ import { formatMoney } from '@/utils/helpers';
 import { SectionHeader } from '@/components/game/SectionHeader';
 
 const ClubPage = () => {
+  const { t } = useTranslation();
   const { playerClubId, clubs, season, boardConfidence, boardObjectives, fanMood, facilities } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId,
     clubs: s.clubs,
@@ -41,8 +43,8 @@ const ClubPage = () => {
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
       <PageHint
         screen="club"
-        title="Club Overview"
-        body="Your club at a glance — fan mood, finances, facilities, and squad stats. Happy fans boost revenue. Upgrade facilities to improve training, youth development, and injury recovery."
+        title={t('clubPage.clubOverview')}
+        body={t('clubPage.yourClubAtAGlance')}
       />
 
       {/* Club Header */}

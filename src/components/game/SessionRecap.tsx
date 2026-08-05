@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { Button } from '@/components/ui/button';
@@ -13,6 +14,7 @@ import { usePresentationSlot } from '@/hooks/usePresentationQueue';
 import { getSuffix } from '@/utils/helpers';
 
 export function SessionRecap() {
+  const { t } = useTranslation();
   const [show, setShow] = useState(false);
   const [snapshot, setSnapshot] = useState<ReturnType<typeof loadSessionSnapshot>>(null);
   const club = usePlayerClub();
@@ -99,7 +101,7 @@ export function SessionRecap() {
           onClick={dismiss}
           role="dialog"
           aria-modal="true"
-          aria-label="Session recap"
+          aria-label={t('sessionRecap.sessionRecap')}
         >
           <motion.div
             initial={{ opacity: 0, y: 40 }}

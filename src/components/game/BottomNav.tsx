@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GameScreen } from '@/types/game';
@@ -37,6 +38,7 @@ const worldCupTabs: { screen: GameScreen; label: string; icon: React.ElementType
 ];
 
 export function BottomNav() {
+  const { t } = useTranslation();
   const { currentScreen, messages, incomingOffers, jobOffers, gameMode } = useGameStore(useShallow(s => ({
     currentScreen: s.currentScreen, messages: s.messages, incomingOffers: s.incomingOffers,
     jobOffers: s.jobOffers, gameMode: s.gameMode,
@@ -56,7 +58,7 @@ export function BottomNav() {
     <div className="fixed bottom-0 left-0 right-0 z-50 px-3 pt-2 pb-2 safe-area-bottom pointer-events-none transform-gpu">
       <nav
         role="navigation"
-        aria-label="Main navigation"
+        aria-label={t('bottomNav.mainNavigation')}
         className={cn(
           'pointer-events-auto max-w-lg mx-auto flex items-center gap-1 bg-card/95 border border-border/50 rounded-full p-1 shadow-[inset_0_1px_0_hsl(var(--foreground)/0.06)]',
           matchLocked && 'opacity-60',

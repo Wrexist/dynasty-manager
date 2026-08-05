@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Cloud, CloudOff, Loader2, Check } from 'lucide-react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -26,6 +27,7 @@ function formatRelative(ts: number, now: number): string {
  * the header stays quiet and the save state has a dedicated, proper place.
  */
 export function SaveStatusIndicator() {
+  const { t } = useTranslation();
   const { saveStatus, lastSavedAt, saveFailureMessage, autoSaveEnabled } = useGameStore(
     useShallow(s => ({
       saveStatus: s.saveStatus,
@@ -106,7 +108,7 @@ export function SaveStatusIndicator() {
         type="button"
         onClick={handleTap}
         disabled={saveStatus === 'saving'}
-        aria-label="Save now"
+        aria-label={t('saveStatusIndicator.saveNow')}
         className={cn(
           'text-[11px] font-semibold px-3 py-1.5 rounded-full shrink-0 transition-colors',
           'bg-white/5 border border-white/15 backdrop-blur-md text-foreground/90',

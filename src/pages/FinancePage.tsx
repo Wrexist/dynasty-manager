@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -18,6 +19,7 @@ import { useFlash } from '@/hooks/useFlash';
 import { SectionHeader } from '@/components/game/SectionHeader';
 
 const FinancePage = () => {
+  const { t } = useTranslation();
   const { clubs, playerClubId, players, financeHistory, careerManager } = useGameStore(useShallow(s => ({
     clubs: s.clubs,
     playerClubId: s.playerClubId,
@@ -71,7 +73,7 @@ const FinancePage = () => {
   return (
     <>
     <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
-      <SectionHeader title="Finance" />
+      <SectionHeader title={t('financePage.finance')} />
       <PageHint screen="finance" title={PAGE_HINTS.finance.title} body={PAGE_HINTS.finance.body} />
 
       {/* Negative Budget Warning */}

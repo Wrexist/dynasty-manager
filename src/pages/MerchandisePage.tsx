@@ -1,4 +1,5 @@
 import { useGameStore } from '@/store/gameStore';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { cn } from '@/lib/utils';
@@ -29,6 +30,7 @@ const PRODUCT_LINE_ICONS: Record<MerchProductLine, React.ElementType> = {
 };
 
 const MerchandisePage = () => {
+  const { t } = useTranslation();
   const { clubs, playerClubId, merchandise, players, playerDivision, facilities, managerProgression, week, cup, leagueTable } = useGameStore(useShallow(s => ({
     clubs: s.clubs,
     playerClubId: s.playerClubId,
@@ -85,8 +87,8 @@ const MerchandisePage = () => {
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4 pb-24">
       <PageHint
         screen="merchandise"
-        title="Merchandise"
-        body="Manage your club's merchandise lines to earn extra weekly revenue. Unlock new product lines as you grow. Launch campaigns for temporary revenue boosts, and set pricing tiers to balance sales volume vs. margins."
+        title={t('merchandisePage.merchandise')}
+        body={t('merchandisePage.manageYourClubSMerchandise')}
       />
 
       {/* Header */}
@@ -205,7 +207,7 @@ const MerchandisePage = () => {
               <button
                 onClick={() => cancelSignatureDrop()}
                 className="text-muted-foreground hover:text-destructive p-1"
-                title="End drop early (starts cooldown)"
+                title={t('merchandisePage.endDropEarlyStartsCooldown')}
               >
                 <X className="w-3.5 h-3.5" />
               </button>

@@ -15,6 +15,7 @@
  * crescent, a gold accent edge, spring entrance, focus trap + Escape close.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Flame, Check, X, Sparkles, Gift } from 'lucide-react';
 import { useGameStore } from '@/store/gameStore';
@@ -34,6 +35,7 @@ import { cn } from '@/lib/utils';
 const SESSION_SHOWN_KEY = 'dynasty-daily-reward-shown';
 
 export function DailyRewardModal() {
+  const { t } = useTranslation();
   const claimDailyStreakReward = useGameStore(s => s.claimDailyStreakReward);
 
   // Evaluate the streak once on mount (pure function of stored record + clock).
@@ -99,7 +101,7 @@ export function DailyRewardModal() {
           onClick={close}
           role="dialog"
           aria-modal="true"
-          aria-label="Daily reward"
+          aria-label={t('dailyRewardModal.dailyReward')}
         >
           <motion.div
             ref={cardRef}
@@ -130,7 +132,7 @@ export function DailyRewardModal() {
               type="button"
               onClick={close}
               className="absolute top-2.5 right-2.5 p-2 -m-1 rounded-full text-foreground/40 hover:text-foreground/80 hover:bg-white/5 transition-colors"
-              aria-label="Close daily reward"
+              aria-label={t('dailyRewardModal.closeDailyReward')}
             >
               <X className="w-4 h-4" />
             </button>

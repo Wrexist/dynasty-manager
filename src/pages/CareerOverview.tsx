@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { ManagerStatBar } from '@/components/game/ManagerStatBar';
@@ -16,6 +17,7 @@ import { getSpecializationTitle } from '@/utils/managerPerks';
 import { PageHint } from '@/components/game/PageHint';
 
 const CareerOverview = () => {
+  const { t } = useTranslation();
   const careerManager = useGameStore((s) => s.careerManager);
   const managerProgression = useGameStore((s) => s.managerProgression);
   const setScreen = useGameStore((s) => s.setScreen);
@@ -46,8 +48,8 @@ const CareerOverview = () => {
     <div className="space-y-4 pb-24">
       <PageHint
         screen="career-overview"
-        title="Career Mode"
-        body="Track your managerial journey across clubs. Build your reputation, earn legacy points, and climb the ranks. You can resign and take new jobs — each club adds to your career story."
+        title={t('careerOverview.careerMode')}
+        body={t('careerOverview.trackYourManagerialJourneyAcross')}
       />
 
       {/* Manager Header */}
@@ -257,8 +259,8 @@ const CareerOverview = () => {
       <ConfirmDialog
         open={showResignConfirm}
         onOpenChange={setShowResignConfirm}
-        title="Resign from Club"
-        description="Are you sure you want to resign? You will enter the job market."
+        title={t('boardPage.resignFromClub')}
+        description={t('boardPage.areYouSureYouWant')}
         confirmLabel="Resign"
         onConfirm={resignFromClub}
       />

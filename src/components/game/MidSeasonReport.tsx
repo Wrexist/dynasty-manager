@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -19,6 +20,7 @@ interface MidSeasonReportProps {
 }
 
 export function MidSeasonReport({ onDismiss }: MidSeasonReportProps) {
+  const { t } = useTranslation();
   const { playerClubId, clubs, players, leagueTable, fixtures, boardConfidence, season } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId, clubs: s.clubs, players: s.players,
     leagueTable: s.leagueTable, fixtures: s.fixtures, boardConfidence: s.boardConfidence, season: s.season,
@@ -87,7 +89,7 @@ export function MidSeasonReport({ onDismiss }: MidSeasonReportProps) {
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 px-4"
       role="dialog"
       aria-modal="true"
-      aria-label="Mid-season report"
+      aria-label={t('midSeasonReport.midSeasonReport')}
     >
       <AnimatePresence>
         <motion.div

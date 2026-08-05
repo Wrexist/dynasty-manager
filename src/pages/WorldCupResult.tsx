@@ -4,6 +4,7 @@
  * tournament completes (routed from `weekAdvance` in world-cup mode).
  */
 import { useMemo, type ReactNode } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -47,6 +48,7 @@ function AwardRow({ icon, label, name, detail, gold }: {
 }
 
 const WorldCupResult = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { tournament, nat, nationalTeam, players } = useGameStore(useShallow(s => ({
     tournament: s.internationalTournament,
@@ -232,7 +234,7 @@ const WorldCupResult = () => {
             <div className="space-y-2.5">
               <AwardRow
                 icon={<Award className="w-4 h-4" />}
-                label="Golden Boot"
+                label={t('worldCupResult.goldenBoot')}
                 name={awards.goldenBoot.player.lastName || awards.goldenBoot.player.firstName}
                 detail={`${awards.goldenBoot.goals} ${awards.goldenBoot.goals === 1 ? 'goal' : 'goals'}`}
                 gold
@@ -240,7 +242,7 @@ const WorldCupResult = () => {
               {awards.youngStar && (
                 <AwardRow
                   icon={<Star className="w-4 h-4" />}
-                  label="Young Star"
+                  label={t('worldCupResult.youngStar')}
                   name={awards.youngStar.player.lastName || awards.youngStar.player.firstName}
                   detail={`${awards.youngStar.goals} ${awards.youngStar.goals === 1 ? 'goal' : 'goals'} · age ${awards.youngStar.player.age}`}
                 />
@@ -264,7 +266,7 @@ const WorldCupResult = () => {
         {result.isChampion ? (
           // The trophy moment gets a branded image card; the text-share below
           // remains the fallback path when the image can't be produced.
-          <ShareMomentButton data={momentData} label="Share this moment" />
+          <ShareMomentButton data={momentData} label={t('worldCupResult.shareThisMoment')} />
         ) : null}
         <button
           type="button"

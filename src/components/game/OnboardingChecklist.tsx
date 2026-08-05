@@ -29,6 +29,7 @@
  * dark glass-morphism design language.
  */
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { useGameStore } from '@/store/gameStore';
@@ -62,6 +63,7 @@ interface ChecklistItem {
 }
 
 export function OnboardingChecklist() {
+  const { t } = useTranslation();
   const { week, season, sponsorOffers, scouting, managerProgression, hideOnboarding } = useGameStore(
     useShallow(s => ({
       week: s.week,
@@ -242,7 +244,7 @@ export function OnboardingChecklist() {
           transition={{ duration: 0.2 }}
           className={cn(LIQUID_GLASS_SURFACE, 'p-3.5 mb-3')}
           role="region"
-          aria-label="Getting started checklist"
+          aria-label={t('onboardingChecklist.gettingStartedChecklist')}
         >
           {/* Specular crescent — same lighting treatment as GlassPanel so the
               card reads as the same material as everything else around it. */}
@@ -267,7 +269,7 @@ export function OnboardingChecklist() {
             type="button"
             onClick={dismiss}
             className="absolute top-2 right-2 p-2 -m-1 rounded-full text-foreground/40 hover:text-foreground/80 hover:bg-white/5 transition-colors"
-            aria-label="Dismiss checklist"
+            aria-label={t('onboardingChecklist.dismissChecklist')}
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -369,7 +371,7 @@ export function OnboardingChecklist() {
                     type="button"
                     onClick={() => setActiveWalkthrough(null)}
                     className="p-2 -m-2 rounded-full text-foreground/50 hover:text-foreground hover:bg-white/5 transition-colors"
-                    aria-label="Close walkthrough"
+                    aria-label={t('onboardingChecklist.closeWalkthrough')}
                   >
                     <X className="w-4 h-4" />
                   </button>

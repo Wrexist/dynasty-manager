@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useEffect, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
@@ -132,12 +133,14 @@ const screens: Record<string, React.ComponentType> = {
 // a structural placeholder in the same `max-w-lg` column the real screens
 // use so there's no visual jump when the chunk resolves. Honors reduced
 // motion via Tailwind's motion-reduce variant.
-const PageSuspenseFallback = () => (
+const PageSuspenseFallback = () => {
+  const { t } = useTranslation();
+  return (
   <div
     role="status"
     aria-busy="true"
     aria-live="polite"
-    aria-label="Loading page"
+    aria-label={t('gameShell.loadingPage')}
     className="max-w-lg mx-auto px-4 py-4 space-y-3"
   >
     <div className="h-9 w-40 rounded-md bg-muted/40 animate-pulse motion-reduce:animate-none" />
@@ -145,7 +148,8 @@ const PageSuspenseFallback = () => (
     <div className="h-40 rounded-xl bg-card/40 border border-border/40 animate-pulse motion-reduce:animate-none" />
     <div className="h-40 rounded-xl bg-card/40 border border-border/40 animate-pulse motion-reduce:animate-none" />
   </div>
-);
+  );
+};
 
 
 const GameShell = () => {

@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useGameStore } from '@/store/gameStore';
@@ -112,6 +113,7 @@ function getTacticsSummary(t: { mentality: string; tempo: string; width: string;
 }
 
 const MatchDayInner = () => {
+  const { t } = useTranslation();
   const { playerClubId, week, clubs, matchSubsUsed, tactics, cup, leagueCup, championsCup, shieldCup, conferenceCup, virtualClubs, currentCupTieId, domesticSuperCup, continentalSuperCup, monetization, matchPhase, matchTeamTalk, penaltyShootoutKicks, penaltyShootoutCtx, gameMode, internationalTournament, managerNationality, leagueTable } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId,
     week: s.week,
@@ -982,7 +984,7 @@ const MatchDayInner = () => {
       {isLive && (
         <div className="px-1 space-y-1.5">
           <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
-            <span>Momentum</span>
+            <span>{t('matchDay.momentum')}</span>
             <span className="tabular-nums">{homeMomPct}% - {100 - homeMomPct}%</span>
           </div>
           <div className="flex h-2 rounded-full overflow-hidden gap-0.5">
@@ -1765,7 +1767,7 @@ const MatchDayInner = () => {
               <div className="flex items-center gap-2">
                 <button
                   onClick={handlePause}
-                  aria-label="Pause match"
+                  aria-label={t('matchDay.pauseMatch')}
                   className="flex items-center justify-center gap-1.5 px-3 min-h-[44px] min-w-[44px] rounded-lg text-[11px] font-semibold bg-muted/30 text-foreground hover:bg-muted/50 active:scale-[0.97] border border-border/30 transition-all"
                 >
                   <Pause className="w-3.5 h-3.5" /> Pause

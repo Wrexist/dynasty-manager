@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useEscapeClose } from '@/hooks/useEscapeClose';
@@ -28,6 +29,7 @@ type Phase = 'negotiate' | 'thinking' | 'result';
 type Outcome = 'accepted' | 'rejected' | 'counter';
 
 export function IncomingOfferNegotiation({ offer, onClose }: Props) {
+  const { t } = useTranslation();
   const { players, clubs, playerClubId, season } = useGameStore(useShallow(s => ({
     players: s.players,
     clubs: s.clubs,
@@ -180,7 +182,7 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
           transition={{ type: 'spring', stiffness: 300, damping: 25 }}
           role="dialog"
           aria-modal="true"
-          aria-label="Incoming offer negotiation"
+          aria-label={t('incomingOfferNegotiation.incomingOfferNegotiation')}
         >
           <div className="max-h-[85vh] overflow-y-auto overscroll-contain">
           {/* ── NEGOTIATE PHASE ── */}
@@ -327,7 +329,7 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
                         step={step}
                         value={counterFee}
                         onChange={(e) => setCounterFee(Number(e.target.value))}
-                        aria-label="Your counter-offer fee"
+                        aria-label={t('incomingOfferNegotiation.yourCounterOfferFee')}
                         className="range-touch relative z-10"
                       />
                     </div>

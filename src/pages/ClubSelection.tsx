@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useState, useMemo, memo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -88,6 +89,7 @@ function readOnboardingDraft(): OnboardingDraft {
 }
 
 const ClubSelection = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const initGame = useGameStore(s => s.initGame);
@@ -401,7 +403,7 @@ const ClubSelection = () => {
               className="space-y-4"
             >
               <SearchInput
-                placeholder="Search nations..."
+                placeholder={t('common.searchNations')}
                 value={nationSearch}
                 onChange={setNationSearch}
               />
@@ -489,7 +491,7 @@ const ClubSelection = () => {
               className="space-y-4"
             >
               <SearchInput
-                placeholder="Search leagues or countries..."
+                placeholder={t('clubSelection.searchLeaguesOrCountries')}
                 value={leagueSearch}
                 onChange={setLeagueSearch}
               />
@@ -572,7 +574,7 @@ const ClubSelection = () => {
               {/* Club search */}
               {leagueClubs.length > 8 && (
                 <SearchInput
-                  placeholder="Search clubs..."
+                  placeholder={t('common.searchClubs')}
                   value={clubSearch}
                   onChange={setClubSearch}
                 />
@@ -735,6 +737,7 @@ const ClubSelection = () => {
 
 // ── Reusable Search Input with Clear Button ──
 function SearchInput({ placeholder, value, onChange }: { placeholder: string; value: string; onChange: (v: string) => void }) {
+  const { t } = useTranslation();
   return (
     <div className="relative">
       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
@@ -750,7 +753,7 @@ function SearchInput({ placeholder, value, onChange }: { placeholder: string; va
         <button
           type="button"
           onClick={() => onChange('')}
-          aria-label="Clear search"
+          aria-label={t('common.clearSearch')}
           className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 text-muted-foreground hover:text-foreground transition-colors"
         >
           <X className="w-3.5 h-3.5" />

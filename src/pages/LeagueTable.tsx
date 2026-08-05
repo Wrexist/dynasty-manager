@@ -179,7 +179,7 @@ const LeagueTable = () => {
       <PageHint
         screen="league-table"
         title={t('league.table')}
-        body="Track standings, browse weekly fixtures, and see top scorers and assist leaders. Green zones mean promotion, red zones mean relegation. Tap any team to view their details."
+        body={t('leagueTable.trackStandingsBrowseWeeklyFixtures')}
       />
 
       {/* League Selector */}

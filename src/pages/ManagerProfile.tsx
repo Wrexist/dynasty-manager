@@ -1,4 +1,5 @@
 import { useGameStore } from '@/store/gameStore';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useShallow } from 'zustand/react/shallow';
 import { getSuffix } from '@/utils/helpers';
 import { LEAGUES } from '@/data/league';
@@ -57,6 +58,7 @@ const CareerOverviewSkeleton = () => (
 );
 
 const ManagerProfile = () => {
+  const { t } = useTranslation();
   const { season, seasonHistory, unlockedAchievements, managerStats, clubs, playerClubId, clubRecords, careerTimeline, monetization, gameMode } = useGameStore(useShallow((s) => ({
     season: s.season,
     seasonHistory: s.seasonHistory,
@@ -104,8 +106,8 @@ const ManagerProfile = () => {
     <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
       <PageHint
         screen="manager-profile"
-        title="Manager Profile"
-        body="Your career stats, records, and achievements at a glance. Track milestones, view your reputation graph over time, and see how you compare historically. Earn XP to unlock manager perks."
+        title={t('managerProfile.managerProfile')}
+        body={t('managerProfile.yourCareerStatsRecordsAnd')}
       />
 
       <h2 className="text-lg font-display font-bold text-foreground">Manager Profile</h2>
@@ -247,14 +249,14 @@ const ManagerProfile = () => {
           </div>
           {userIsPro ? (
             <>
-              <RecordRow label="Top Scorer" record={clubRecords.allTimeTopScorer} />
-              <RecordRow label="Top Assister" record={clubRecords.allTimeTopAssister} />
-              <RecordRow label="Best Points" record={clubRecords.bestSeasonPoints} />
-              <RecordRow label="Worst Points" record={clubRecords.worstSeasonPoints} />
-              <RecordRow label="Most Goals" record={clubRecords.mostGoalsInSeason} />
-              <RecordRow label="Best Defence" record={clubRecords.fewestGoalsAgainst} />
-              <RecordRow label="Best Position" record={clubRecords.highestLeaguePosition} />
-              <RecordRow label="Biggest Win" record={clubRecords.biggestWin} />
+              <RecordRow label={t('managerProfile.topScorer')} record={clubRecords.allTimeTopScorer} />
+              <RecordRow label={t('managerProfile.topAssister')} record={clubRecords.allTimeTopAssister} />
+              <RecordRow label={t('managerProfile.bestPoints')} record={clubRecords.bestSeasonPoints} />
+              <RecordRow label={t('managerProfile.worstPoints')} record={clubRecords.worstSeasonPoints} />
+              <RecordRow label={t('managerProfile.mostGoals')} record={clubRecords.mostGoalsInSeason} />
+              <RecordRow label={t('managerProfile.bestDefence')} record={clubRecords.fewestGoalsAgainst} />
+              <RecordRow label={t('managerProfile.bestPosition')} record={clubRecords.highestLeaguePosition} />
+              <RecordRow label={t('managerProfile.biggestWin')} record={clubRecords.biggestWin} />
             </>
           ) : (
             <ProUpsell feature="Historical Record Book" className="mt-2" />

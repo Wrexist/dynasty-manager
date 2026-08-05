@@ -93,7 +93,7 @@ Premier League (0,16 och ~28:1). Jag ändrade ingenting.
 | # | Varför inte åtgärdat |
 |---|---|
 | 3 (rest) | Spelarens egna playoff spelas fortfarande inte interaktivt. Resultaten *visas* nu. **Designen är gjord och nedskriven** i `docs/PLAN-interactive-playoff.md` — inklusive nyckelbeslutet att INTE göra säsongsrullningen pausbar, utan köra playoffet före rullningen som vanliga matcher. Inte implementerad: det ändrar spelets mest bärande transition och förtjänar att byggas med testerna först, inte blint i slutet av en granskningssession |
-| 17 | **DELVIS ÅTGÄRDAT (57 av 206 strängar).** Båda "blockerarna" jag angav var mina egna antaganden: en handrullad `t()` lägger till *noll* beroenden, och jag hade precis själv höjt bundle-headroom till 53,5 kB. Kvar stod bara "halvmigrerad i18n är värre än ingen" — vilket bara gäller om otextade ytor *går sönder*. Med engelska alltid laddad som fallback gör de inte det: `t()` på en omigrerad nyckel returnerar exakt samma sträng som literalen gjorde. Grunden finns nu (`src/i18n/`, `useTranslation`), plus svenska som bevis att en andra locale fungerar, och `SeasonSummary` + `TitleScreen` migrerade som första ytor. Kvar: 149 strängar, mätbara med `npm run i18n:check` |
+| 17 | **ÅTGÄRDAT (363 → 0 strängar).** Båda "blockerarna" jag angav var mina egna antaganden: en handrullad `t()` lägger till *noll* beroenden, och jag hade precis själv höjt bundle-headroom till 53,5 kB. Kvar stod bara "halvmigrerad i18n är värre än ingen" — vilket bara gäller om otextade ytor *går sönder*. Med engelska alltid laddad som fallback gör de inte det: `t()` på en omigrerad nyckel returnerar exakt samma sträng som literalen gjorde. Grunden finns nu (`src/i18n/`, `useTranslation`), plus svenska som bevis att en andra locale fungerar, och `SeasonSummary` + `TitleScreen` migrerade som första ytor. Kvar: översättning av `sv.ts` (76 av 268 nycklar) — men det är innehållsarbete, inte teknik. Mätbart med `npm run i18n:check` |
 | 19 | **ÅTGÄRDAT.** Jag hade fel: den kunde fixas utan att ta bort någon funktionalitet. Radix delades vid `react-dialog`, och de två villkorliga dialogerna plus titelskärmens inställningspanel gjordes lata. **522,1 → 506,5 kB gz eager, headroom 37,9 → 53,5 kB (+41 %)** |
 | 20 (rest) | Riktig kvittovalidering kräver en backend som inte finns. **Men exploiten är stängd** — klockmanipulation neutraliseras nu av en monoton högvattenmärkning (`41d4bf4`), verifierad mot koden före fixen |
 | 21 | AI-utveckling batchad till säsongsslut. **Min "inte ett fel" var för slapp** — det går att amortera över säsongen med roterande skivor till lägre veckokostnad än dagens toppl. Inte gjord: kräver persisterad ackumulerad tillväxt, save-schemabump och omgjorda balanstester. Vägen är nedskriven i punkt 21 |
@@ -503,20 +503,34 @@ skript i preflight, eller så tas de bort.
 > oöversatt nyckel returnerar exakt samma sträng som literalen gjorde.
 > Migrationen kan därför tas en skärm i taget utan att någon skärm regredierar.
 >
-> **Rättelse till siffran.** Jag skrev "~490 filer". Det var en filräkning av
-> hela `src/`, inte ett arbetsestimat, och den fick jobbet att se obegränsat ut
-> — vilket är en del av varför det aldrig påbörjades. Det som faktiskt betyder
-> något är hur många *strängar en spelare kan se*. `npm run i18n:check` mäter
-> det: utgångsläget var **206 strängar i 93 filer**, inte 490 filer.
+> **ÅTGÄRDAT: 363 → 0 strängar.** `npm run i18n:check` rapporterar noll
+> hårdkodade spelarvända strängar i `src/pages` och `src/components/game`.
 >
-> Efter den här sessionen: **149 kvar i 87 filer** — 57 migrerade (28 %).
-> Migrerade ytor: `SeasonSummary`, `TitleScreen`, `SettingsPage`,
-> `ManagerCreation`, `LeagueTable`, `TacticsPage`, `TopBar`, `ChallengePicker`,
-> `WeeklyDigest`.
+> **Två rättelser till mina egna siffror, i tur och ordning:**
+>
+> 1. Jag skrev först "~490 filer". Det var en filräkning av hela `src/`, inte
+>    ett arbetsestimat, och den fick jobbet att se obegränsat ut — vilket är en
+>    del av varför det aldrig påbörjades.
+> 2. Jag ersatte den med "206 strängar". Också fel, åt andra hållet: den mätaren
+>    såg bara ARIA/HTML-attribut och JSX-textnoder. Den missade
+>    **85 strängar långtext i egna props** (`body=`, `description=`,
+>    `subtitle=`) — hjälptexterna och bekräftelsedialogerna, alltså den mest
+>    ordrika copyn i appen. Mätaren rapporterade "0 kvar" medan de låg kvar.
+>    En mätare som inte ser de största strängarna är sämre än ingen mätare, för
+>    den bjuder in till precis det falska friskbeskedet.
+>
+> **Rätt siffra, mätt med samma mätare mot commiten före allt i18n-arbete:
+> 363 strängar i 90 filer.** Nu 0.
+>
+> `en.ts` har 268 nycklar (delade etiketter återanvänds, därav färre nycklar än
+> strängar). `sv.ts` har 76 — den är medvetet en `Partial` och ett bevis på att
+> mekanismen fungerar, **inte en färdig locale**. Resten faller tillbaka på
+> engelska, vilket är hela poängen med designen.
 >
 > Matchmotorn, `src/config/` och allt som producerar *lagrade* strängar stannar
 > på engelska — det är speldata, inte presentation. Klubb- och spelarnamn
-> likaså.
+> likaså. `alt="Dynasty Manager"` är varumärket och översätts aldrig; mätaren
+> känner till det.
 
 Noll `i18next` / `react-intl` / `useTranslation` i hela `src/`. Samtidigt:
 
@@ -829,3 +843,13 @@ Listade för att de säger något om hur granskningen ska läsas.
 - **Jag rapporterade "väntar på preflight" när preflight redan hade fallerat.**
   Exitkoden jag läste kom från `tail` i en pipe, inte från `npm` — samma misstag
   som släppte igenom typecheck-felet ovan, gjort en andra gång i samma session.
+- **Min i18n-mätare gav ett falskt friskbesked.** Den rapporterade "0 kvar"
+  medan 85 strängar långtext låg i egna props (`body=`, `description=`) som den
+  aldrig tittade på. Jag byggde alltså ett mätverktyg och trodde på det innan
+  jag hade kontrollerat vad det inte kunde se. Utökad och omkörd; den riktiga
+  utgångssiffran var 363, inte 206.
+- **Första bulkmigreringen förstörde 26 filer.** En regex kan inte skilja
+  `>Spara trupp<` från `a > b && c < d` eller från `Record<string, X>`. Alla tre
+  ser likadana ut. Upptäckt av `tsc` direkt, återställt, filtret skärpt, omkört
+  — men det är värt att notera att det *enda* som stod mellan den körningen och
+  en trasig build var typkontrollen.

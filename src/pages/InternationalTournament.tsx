@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { motion } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { getFlag } from '@/utils/nationality';
@@ -40,6 +41,7 @@ function getAdvanceLabel(phase: string, currentRound: string | null, isWorldCupM
 }
 
 const InternationalTournament = () => {
+  const { t } = useTranslation();
   const internationalTournament = useGameStore((s) => s.internationalTournament);
   const managerNationality = useGameStore((s) => s.managerNationality);
   const seasonPhase = useGameStore((s) => s.seasonPhase);
@@ -293,7 +295,7 @@ const InternationalTournament = () => {
               {/* Table */}
               <div className="px-4 py-2">
                 <div className="grid grid-cols-[1fr_24px_24px_24px_24px_40px_32px] gap-1 text-[10px] text-muted-foreground mb-1">
-                  <span>Team</span>
+                  <span>{t('internationalTournament.team')}</span>
                   <span className="text-center">P</span>
                   <span className="text-center">W</span>
                   <span className="text-center">D</span>

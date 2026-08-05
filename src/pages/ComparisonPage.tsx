@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -12,6 +13,7 @@ import type { Player } from '@/types/game';
 const byOverall = (a: Player, b: Player) => b.overall - a.overall;
 
 const ComparisonPage = () => {
+  const { t } = useTranslation();
   const { clubs, players, playerClubId, shortlist, transferMarket, scoutWatchList, selectedPlayerId } =
     useGameStore(useShallow(s => ({
       clubs: s.clubs,
@@ -111,14 +113,14 @@ const ComparisonPage = () => {
   const renderOptions = () => (
     <>
       {squadPlayers.length > 0 && (
-        <optgroup label="Your squad">
+        <optgroup label={t('comparisonPage.yourSquad')}>
           {squadPlayers.map(p => (
             <option key={p.id} value={p.id}>{p.lastName} ({p.position} · {p.overall})</option>
           ))}
         </optgroup>
       )}
       {targetPlayers.length > 0 && (
-        <optgroup label="Transfer targets">
+        <optgroup label={t('comparisonPage.transferTargets')}>
           {targetPlayers.map(p => (
             <option key={p.id} value={p.id}>{p.lastName} ({p.position} · {p.overall})</option>
           ))}

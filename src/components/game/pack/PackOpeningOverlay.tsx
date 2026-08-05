@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
@@ -92,6 +93,7 @@ const PLACEMENT_LABEL: Record<PackPlayerPlacement, string> = {
  * Mounts a portal so the overlay sits above bottom nav and other UI.
  */
 export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKeep, onQuickSell, onKeepAll, onSellAll, placement, improvement }: PackOpeningOverlayProps) {
+  const { t } = useTranslation();
   const tierDef = PACK_TIER_MAP[tier];
   const prefersReducedMotion = useReducedMotionPref();
   const [phase, setPhase] = useState<Phase>('loading');
@@ -1156,7 +1158,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
             >
               ✦
             </motion.span>
-            <span>Guarantee Unlocked</span>
+            <span>{t('packOpeningOverlay.guaranteeUnlocked')}</span>
           </motion.div>
         )}
       </AnimatePresence>
@@ -1342,7 +1344,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                           'flex flex-col items-center justify-center',
                         )}
                       >
-                        <span>Sell</span>
+                        <span>{t('packOpeningOverlay.sell')}</span>
                         <span className="tabular-nums tracking-tight text-[9px] font-black">
                           {formatMoney(quickSellAmount)}
                         </span>

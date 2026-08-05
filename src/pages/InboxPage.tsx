@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Mail, MailOpen, CheckCheck, Trophy, Stethoscope, ArrowLeftRight, TrendingUp, Megaphone, FileText, ChevronDown, ChevronRight, ChevronUp, BookOpen, Handshake, Filter, BellDot, ExternalLink, MessageCircle, Globe, AlertTriangle, Check, Circle, Loader2, Clock } from 'lucide-react';
@@ -118,6 +119,7 @@ const FILTER_OPTIONS: { label: string; types: Message['type'][]; icon: React.Ele
 ];
 
 const InboxPage = () => {
+  const { t } = useTranslation();
   const messages = useGameStore((s) => s.messages);
   const activeStorylineChains = useGameStore((s) => s.activeStorylineChains);
   const players = useGameStore((s) => s.players);
@@ -253,8 +255,8 @@ const InboxPage = () => {
     <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
       <PageHint
         screen="inbox"
-        title="Inbox"
-        body="All club communications in one place — transfer offers, injury updates, board messages, and more. Use the filter to find specific message types. Some messages have actions you can take directly."
+        title={t('dashboard.inbox')}
+        body={t('inboxPage.allClubCommunicationsInOne')}
       />
 
       {inGracePeriod && (

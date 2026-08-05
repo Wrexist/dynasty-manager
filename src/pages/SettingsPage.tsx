@@ -446,8 +446,8 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
 
           <ToggleRow
             icon={ShieldCheck}
-            label="Confirm all offers"
-            description="Ask before accepting any transfer offer"
+            label={t('settingsPage.confirmAllOffers')}
+            description={t('settingsPage.askBeforeAcceptingAnyTransfer')}
             value={settings.confirmAllOffers}
             onChange={() => updateSettings({ confirmAllOffers: !settings.confirmAllOffers })}
           />
@@ -456,8 +456,8 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
 
           <ToggleRow
             icon={Newspaper}
-            label="Only interrupt for important weeks"
-            description="Show the weekly summary as a full-screen popup only when there's something to act on. Quiet weeks appear as a card on your Dashboard instead."
+            label={t('settingsPage.onlyInterruptForImportantWeeks')}
+            description={t('settingsPage.showTheWeeklySummaryAs')}
             value={settings.digestOnlyWhenSignificant !== false}
             onChange={() => updateSettings({ digestOnlyWhenSignificant: settings.digestOnlyWhenSignificant === false })}
           />
@@ -469,8 +469,8 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
       <SettingsSection title={t('settings.communityPack')}>
         <ToggleRow
           icon={Users}
-          label="Use Real Players (Community Pack)"
-          description="Real-world squads, rotating transfer market, seven extra leagues, ratings inspired by real-world football data."
+          label={t('settingsPage.useRealPlayersCommunityPack')}
+          description={t('settingsPage.realWorldSquadsRotatingTransfer')}
           value={communityPackPref}
           onChange={() => {
             const next = !communityPackPref;
@@ -512,8 +512,8 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
         <div className="space-y-4">
           <ToggleRow
             icon={Eye}
-            label="Show OVR on pitch"
-            description="Display player ratings on the pitch view"
+            label={t('settingsPage.showOvrOnPitch')}
+            description={t('settingsPage.displayPlayerRatingsOnThe')}
             value={settings.showOverallOnPitch}
             onChange={() => updateSettings({ showOverallOnPitch: !settings.showOverallOnPitch })}
           />
@@ -522,8 +522,8 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
 
           <ToggleRow
             icon={Lightbulb}
-            label="Page hints"
-            description="Show tips when visiting pages for the first time"
+            label={t('settingsPage.pageHints')}
+            description={t('settingsPage.showTipsWhenVisitingPages')}
             value={!settings.hidePageHints}
             onChange={() => updateSettings({ hidePageHints: !settings.hidePageHints })}
           />
@@ -532,8 +532,8 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
 
           <ToggleRow
             icon={Lightbulb}
-            label="New-career walkthrough"
-            description="Show the Getting Started checklist on Dashboard in week 1 of a new career"
+            label={t('settingsPage.newCareerWalkthrough')}
+            description={t('settingsPage.showTheGettingStartedChecklist')}
             value={!settings.hideOnboarding}
             onChange={() => updateSettings({ hideOnboarding: !settings.hideOnboarding })}
           />
@@ -542,8 +542,8 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
 
           <ToggleRow
             icon={MonitorSmartphone}
-            label="Reduced motion"
-            description="Minimize animations throughout the app"
+            label={t('settingsPage.reducedMotion')}
+            description={t('settingsPage.minimizeAnimationsThroughoutTheApp')}
             value={settings.reducedMotion}
             onChange={() => updateSettings({ reducedMotion: !settings.reducedMotion })}
           />
@@ -552,8 +552,8 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
 
           <ToggleRow
             icon={Gauge}
-            label="Performance mode"
-            description="Smoother on older devices — uses solid panels instead of frosted glass and minimizes animations"
+            label={t('settingsPage.performanceMode')}
+            description={t('settingsPage.smootherOnOlderDevicesUses')}
             value={!!settings.performanceMode}
             onChange={() => updateSettings({ performanceMode: !settings.performanceMode })}
           />
@@ -562,15 +562,15 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
 
           <ToggleRow
             icon={Vibrate}
-            label="Haptic feedback"
-            description="Vibrate on key actions (mobile only)"
+            label={t('settingsPage.hapticFeedback')}
+            description={t('settingsPage.vibrateOnKeyActionsMobile')}
             value={settings.hapticsEnabled !== false}
             onChange={() => updateSettings({ hapticsEnabled: !settings.hapticsEnabled })}
           />
           <ToggleRow
             icon={Volume2}
-            label="Sound effects"
-            description="Crowd, whistles, goals, packs and celebrations"
+            label={t('settingsPage.soundEffects')}
+            description={t('settingsPage.crowdWhistlesGoalsPacksAnd')}
             value={settings.soundEnabled !== false}
             onChange={() => updateSettings({ soundEnabled: settings.soundEnabled === false })}
           />
@@ -579,8 +579,8 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
 
           <ToggleRow
             icon={Bell}
-            label="Reminders"
-            description="Notify me about my daily streak and live events (mobile only)"
+            label={t('settingsPage.reminders')}
+            description={t('settingsPage.notifyMeAboutMyDaily')}
             value={notificationsOn}
             onChange={() => { void handleToggleNotifications(); }}
           />
@@ -599,8 +599,8 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
 
           <ToggleRow
             icon={RotateCcw}
-            label="Auto-save"
-            description="Automatically save after each week"
+            label={t('settingsPage.autoSave')}
+            description={t('settingsPage.automaticallySaveAfterEachWeek')}
             value={settings.autoSave}
             onChange={() => updateSettings({ autoSave: !settings.autoSave })}
           />
@@ -893,8 +893,8 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
       <SettingsSection title={t('settings.privacy')}>
         <ToggleRow
           icon={ChartBar}
-          label="Share anonymous usage stats"
-          description="Help improve the game. We never send names, tactics, save data, fingerprints, or IP."
+          label={t('settingsPage.shareAnonymousUsageStats')}
+          description={t('settingsPage.helpImproveTheGameWe')}
           value={analyticsGranted}
           onChange={() => {
             const next = !analyticsGranted;

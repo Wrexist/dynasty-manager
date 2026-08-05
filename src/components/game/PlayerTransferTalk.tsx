@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
 import { cn } from '@/lib/utils';
 import { X, ArrowLeftRight, MessageCircle } from 'lucide-react';
@@ -8,6 +9,7 @@ import { successToast, errorToast, infoToast } from '@/utils/gameToast';
 import { usePresentationSlot } from '@/hooks/usePresentationQueue';
 
 export function PlayerTransferTalk() {
+  const { t } = useTranslation();
   const pendingTransferTalk = useGameStore(s => s.pendingTransferTalk);
   const respondToTransferTalk = useGameStore(s => s.respondToTransferTalk);
   const dismissTransferTalk = useGameStore(s => s.dismissTransferTalk);
@@ -73,7 +75,7 @@ export function PlayerTransferTalk() {
         <button
           onClick={handleDismiss}
           className="p-1.5 rounded-lg hover:bg-muted/50 transition-colors"
-          title="Dismiss"
+          title={t('playerTransferTalk.dismiss')}
         >
           <X className="w-4 h-4 text-muted-foreground" />
         </button>

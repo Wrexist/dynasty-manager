@@ -1,4 +1,5 @@
 import { createContext, useContext, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -110,6 +111,7 @@ function isRectInViewport(rect: DOMRect): boolean {
 }
 
 export function InfoTip({ text, className }: InfoTipProps) {
+  const { t } = useTranslation();
   const id = useId();
   const ctx = useContext(InfoTipContext);
   const isOpen = ctx.activeId === id;
@@ -171,7 +173,7 @@ export function InfoTip({ text, className }: InfoTipProps) {
         type="button"
         onClick={handleClick}
         className="inline-flex items-center justify-center w-6 h-6 -m-1 rounded-full bg-primary/10 hover:bg-primary/20 active:bg-primary/30 transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
-        aria-label="More info"
+        aria-label={t('infoTip.moreInfo')}
         aria-expanded={isOpen}
         aria-describedby={isOpen ? tooltipContentId : undefined}
       >

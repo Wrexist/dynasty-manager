@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 import { useEffect, useMemo, useRef } from 'react';
 import { X } from 'lucide-react';
@@ -94,6 +95,7 @@ function Particle({ spec }: { spec: ParticleSpec }) {
 }
 
 export function CelebrationModal({ open, onClose, title, description, icon, stats, severity }: CelebrationModalProps) {
+  const { t } = useTranslation();
   const monetization = useGameStore(s => s.monetization);
   const soundEnabled = useGameStore(s => s.settings.soundEnabled !== false);
   const celebTextId = getActiveCosmetic(monetization, 'celebration_text');
@@ -165,7 +167,7 @@ export function CelebrationModal({ open, onClose, title, description, icon, stat
             <button
               type="button"
               onClick={onClose}
-              aria-label="Close celebration"
+              aria-label={t('celebrationModal.closeCelebration')}
               className="absolute top-0 right-0 z-10 flex items-center justify-center min-w-[44px] min-h-[44px] rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
             >
               <X className="w-5 h-5" />

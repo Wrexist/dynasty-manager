@@ -28,8 +28,17 @@ import { join, relative, resolve } from 'node:path';
 const ROOT = resolve(process.cwd());
 const SCAN = ['src/pages', 'src/components/game'];
 
-/** Attributes whose string value is read aloud or displayed. */
-const TEXT_ATTRS = ['aria-label', 'placeholder', 'title', 'alt'];
+/** Attributes whose string value is read aloud or displayed.
+ *
+ *  The first version covered only the ARIA/HTML set and reported "0 remaining"
+ *  while 85 strings of long-form copy sat in custom props like `body=` and
+ *  `description=` — the help text and confirmation dialogs, some of the most
+ *  word-heavy copy in the app. A meter that cannot see the biggest strings is
+ *  worse than no meter, because it invites exactly that false all-clear. */
+const TEXT_ATTRS = ['aria-label', 'placeholder', 'title', 'alt', 'body', 'description', 'subtitle', 'heading', 'hint', 'caption', 'tooltip', 'label'];
+
+/** Copy that must never be translated, so it is not "remaining work". */
+const NEVER_TRANSLATE = new Set(['Dynasty Manager']);
 
 /** Lines that are never player-visible copy. */
 const SKIP_LINE = [
@@ -70,16 +79,24 @@ function findHardcoded(source) {
     if (/\bt\(\s*['"]/.test(line)) continue;
 
     // JSX text nodes: >Some words here<
-    for (const m of line.matchAll(/>([^<>{}]*[A-Za-z]{2,}[^<>{}]*)</g)) {
-      const text = m[1].trim();
-      // Needs a space or a capital: filters out stray identifiers and units.
-      if (text.length < 4) continue;
-      if (!/[A-Za-z]/.test(text)) continue;
-      if (!/\s/.test(text) && !/^[A-Z]/.test(text)) continue;
-      // `a > b && c.d < e` looks exactly like a JSX text node to a regex. Drop
-      // anything carrying operator syntax rather than prose.
-      if (/&&|\|\||=>|===|!==/.test(text)) continue;
-      hits.push({ line: i + 1, text });
+    //
+    // A regex cannot tell `>Save squad<` from `a > b && c < d`, from a ternary
+    // chain (`x > y ? 'W' : z < w`), or from a type generic (`Record<string,
+    // X>`). All three read identically. Lines carrying that syntax are skipped
+    // wholesale rather than picked apart — the same rule the bulk migration
+    // used, so the meter and the migration agree on what counts.
+    const lineIsCodey =
+      /Record<|Array<|Map<|Set<|Promise<|React\.\w+<|=>|&&|\|\||===|!==|>=|<=| \? | : /.test(line);
+    if (!lineIsCodey) {
+      for (const m of line.matchAll(/>([^<>{}]*[A-Za-z]{2,}[^<>{}]*)</g)) {
+        const text = m[1].trim();
+        // Needs a space or a capital: filters out stray identifiers and units.
+        if (text.length < 4) continue;
+        if (!/[A-Za-z]/.test(text)) continue;
+        if (!/\s/.test(text) && !/^[A-Z]/.test(text)) continue;
+        if (NEVER_TRANSLATE.has(text)) continue;
+        hits.push({ line: i + 1, text });
+      }
     }
 
     // Displayed / announced attribute literals.
@@ -88,6 +105,7 @@ function findHardcoded(source) {
       for (const m of line.matchAll(re)) {
         const text = (m[1] ?? m[2]).trim();
         if (!/[A-Za-z]{2,}/.test(text)) continue;
+        if (NEVER_TRANSLATE.has(text)) continue;
         hits.push({ line: i + 1, text: `${attr}="${text}"` });
       }
     }

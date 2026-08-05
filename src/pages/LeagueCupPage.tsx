@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -147,6 +148,7 @@ function RoundSection({ round, ties, playerClubId, clubs, isCurrent, allPlayed, 
 }
 
 const LeagueCupPage = () => {
+  const { t } = useTranslation();
   const { leagueCup, clubs, playerClubId, week, totalWeeks } = useGameStore(useShallow(s => ({
     leagueCup: s.leagueCup,
     clubs: s.clubs,
@@ -185,8 +187,8 @@ const LeagueCupPage = () => {
     <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
       <PageHint
         screen="league-cup"
-        title="League Cup"
-        body="A knockout cup competition running alongside the league. Win each round to progress — ties are decided on the day with extra time and penalties if needed. Winning earns prize money and board confidence."
+        title={t('leagueCupPage.leagueCup')}
+        body={t('leagueCupPage.aKnockoutCupCompetitionRunning')}
       />
 
       <motion.div

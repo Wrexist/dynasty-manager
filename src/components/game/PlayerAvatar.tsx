@@ -7,6 +7,7 @@
  */
 
 import { memo, useId } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { darken, lighten } from '@/utils/colorUtils';
 import { getRatingHex } from '@/utils/uiHelpers';
 
@@ -280,6 +281,7 @@ interface CardIconProps {
 
 /** Professional yellow card SVG — referee-style portrait card */
 export function YellowCardIcon({ size = 14, className }: CardIconProps) {
+  const { t } = useTranslation();
   // Per-instance gradient id — multiple cards render at once (pitch +
   // bench badges) and duplicate SVG ids are invalid (same pattern as the
   // avatar's useId above / PremiumSparkle).
@@ -290,7 +292,7 @@ export function YellowCardIcon({ size = 14, className }: CardIconProps) {
       height={size * 1.35}
       viewBox="0 0 10 13.5"
       className={className}
-      aria-label="Yellow card"
+      aria-label={t('playerAvatar.yellowCard')}
     >
       <defs>
         <linearGradient id={gradId} x1="0" y1="0" x2="0.3" y2="1">
@@ -311,6 +313,7 @@ export function YellowCardIcon({ size = 14, className }: CardIconProps) {
 
 /** Professional red card SVG — referee-style portrait card */
 export function RedCardIcon({ size = 14, className }: CardIconProps) {
+  const { t } = useTranslation();
   const gradId = `rc-grad-${useId().replace(/:/g, '')}`;
   return (
     <svg
@@ -318,7 +321,7 @@ export function RedCardIcon({ size = 14, className }: CardIconProps) {
       height={size * 1.35}
       viewBox="0 0 10 13.5"
       className={className}
-      aria-label="Red card"
+      aria-label={t('playerAvatar.redCard')}
     >
       <defs>
         <linearGradient id={gradId} x1="0" y1="0" x2="0.3" y2="1">

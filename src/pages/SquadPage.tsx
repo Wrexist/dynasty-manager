@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { toast } from 'sonner';
@@ -71,6 +72,7 @@ function ContractAlertChip({ p, variant, onSelect, onRenew }: {
 }
 
 const SquadPage = () => {
+  const { t } = useTranslation();
   const { playerClubId, clubs, players, season, week, leagueTable, gameMode } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId, clubs: s.clubs, players: s.players,
     season: s.season, week: s.week, leagueTable: s.leagueTable, gameMode: s.gameMode,
@@ -513,8 +515,8 @@ const SquadPage = () => {
                             className="pointer-events-auto relative after:absolute after:-inset-2 after:content-['']"
                           >
                             {isStarter
-                              ? <StatusPill tone="emerald" label="XI" title="In starting XI" />
-                              : <StatusPill tone="amber" label="SUB" title="On the bench" />}
+                              ? <StatusPill tone="emerald" label="XI" title={t('nationalTeamPage.inStartingXi')} />
+                              : <StatusPill tone="amber" label="SUB" title={t('nationalTeamPage.onTheBench')} />}
                           </button>
                         ) : null
                       }

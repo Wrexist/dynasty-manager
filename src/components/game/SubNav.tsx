@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
 import { GameScreen } from '@/types/game';
 import { cn } from '@/lib/utils';
@@ -21,6 +22,7 @@ interface SubNavProps {
 }
 
 export function SubNav({ items, layoutId = 'subnav-pill' }: SubNavProps) {
+  const { t } = useTranslation();
   const currentScreen = useGameStore(s => s.currentScreen);
   const setScreen = useGameStore(s => s.setScreen);
   const matchLocked = useMatchLocked();
@@ -29,7 +31,7 @@ export function SubNav({ items, layoutId = 'subnav-pill' }: SubNavProps) {
   return (
     <div className="relative px-4 py-2">
       <nav
-        aria-label="Sub navigation"
+        aria-label={t('subNav.subNavigation')}
         role="tablist"
         className={cn(
           'flex gap-1 overflow-x-auto scrollbar-hide bg-card/95 border border-border/50 rounded-full p-1 shadow-[inset_0_1px_0_hsl(var(--foreground)/0.06)]',

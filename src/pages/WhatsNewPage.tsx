@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -75,6 +76,7 @@ interface WhatsNewPageProps {
 }
 
 const WhatsNewPage = ({ standalone = false }: WhatsNewPageProps) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -101,7 +103,7 @@ const WhatsNewPage = ({ standalone = false }: WhatsNewPageProps) => {
             type="button"
             onClick={handleBack}
             className="w-8 h-8 -ml-1 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
-            aria-label="Back"
+            aria-label={t('common.back')}
           >
             <ArrowLeft className="w-4 h-4" />
           </button>

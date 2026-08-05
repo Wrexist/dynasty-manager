@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { cn } from '@/lib/utils';
@@ -16,6 +17,7 @@ const PITCH_TONE_STYLES: Record<PitchTone, { label: string; color: string; icon:
 };
 
 export function BoardPitch() {
+  const { t } = useTranslation();
   const { activeInterview } = useGameStore(useShallow(s => ({
     activeInterview: s.activeInterview,
   })));
@@ -108,7 +110,7 @@ export function BoardPitch() {
             <button
               onClick={dismissInterview}
               className="p-1.5 rounded-lg hover:bg-muted/50 transition-colors"
-              aria-label="Withdraw application"
+              aria-label={t('boardPitch.withdrawApplication')}
             >
               <X className="w-4 h-4 text-muted-foreground" />
             </button>

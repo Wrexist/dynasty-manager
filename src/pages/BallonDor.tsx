@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -49,7 +50,9 @@ const PageHero = ({ subtitle }: { subtitle: string }) => (
   </div>
 );
 
-const WinnerSpotlight = ({ entry, player, onNavigate }: { entry: BallonDOrEntry; player: Player | null; onNavigate: () => void }) => (
+const WinnerSpotlight = ({ entry, player, onNavigate }: { entry: BallonDOrEntry; player: Player | null; onNavigate: () => void }) => {
+  const { t } = useTranslation();
+  return (
   <div>
     <button type="button" onClick={onNavigate} className="w-full text-left group">
       <GlassPanel className="p-5 text-center border-gold/35 relative overflow-hidden transition-all group-hover:brightness-110 group-active:scale-[0.99]">
@@ -117,15 +120,16 @@ const WinnerSpotlight = ({ entry, player, onNavigate }: { entry: BallonDOrEntry;
         </div>
 
         <div className="relative z-10 grid grid-cols-4 gap-2 mt-4 pt-3 border-t border-gold/20">
-          <StatCell label="Goals" value={entry.goals.toString()} />
-          <StatCell label="Assists" value={entry.assists.toString()} />
-          <StatCell label="Rating" value={entry.avgRating?.toFixed(1) ?? '-'} />
-          <StatCell label="Score" value={entry.score.toFixed(1)} highlight />
+          <StatCell label={t('ballonDor.goals')} value={entry.goals.toString()} />
+          <StatCell label={t('ballonDor.assists')} value={entry.assists.toString()} />
+          <StatCell label={t('ballonDor.rating')} value={entry.avgRating?.toFixed(1) ?? '-'} />
+          <StatCell label={t('ballonDor.score')} value={entry.score.toFixed(1)} highlight />
         </div>
       </GlassPanel>
     </button>
   </div>
-);
+  );
+};
 
 const StatCell = ({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) => (
   <div>
@@ -142,6 +146,7 @@ const RankingRow = ({ entry, isExpanded, onToggle, isPlayerClub }: {
   onToggle: () => void;
   isPlayerClub: boolean;
 }) => {
+  const { t } = useTranslation();
   const style = getMedalStyle(entry.rank);
   const isPodium = entry.rank <= 3;
 
@@ -213,10 +218,10 @@ const RankingRow = ({ entry, isExpanded, onToggle, isPlayerClub }: {
           >
             <div className={cn('mx-2 mt-1 mb-1.5 p-2.5 rounded-lg border', style.border, 'bg-card/40')}>
               <div className="grid grid-cols-5 gap-2 text-center">
-                <StatCell label="Goals" value={entry.goals.toString()} />
-                <StatCell label="Assists" value={entry.assists.toString()} />
-                <StatCell label="Apps" value={entry.appearances.toString()} />
-                <StatCell label="Rating" value={entry.avgRating?.toFixed(1) ?? '-'} />
+                <StatCell label={t('ballonDor.goals')} value={entry.goals.toString()} />
+                <StatCell label={t('ballonDor.assists')} value={entry.assists.toString()} />
+                <StatCell label={t('ballonDor.apps')} value={entry.appearances.toString()} />
+                <StatCell label={t('ballonDor.rating')} value={entry.avgRating?.toFixed(1) ?? '-'} />
                 <StatCell label="Age" value={entry.age.toString()} />
               </div>
             </div>
@@ -234,7 +239,9 @@ const ReigningHoldersPanel = ({ holders, onNavigate, canNavigate }: {
   holders: Player[];
   onNavigate: (id: string) => void;
   canNavigate: (id: string) => boolean;
-}) => (
+}) => {
+  const { t } = useTranslation();
+  return (
   <GlassPanel className="p-4 border-gold/25 relative overflow-hidden">
     <div
       aria-hidden
@@ -287,7 +294,8 @@ const ReigningHoldersPanel = ({ holders, onNavigate, canNavigate }: {
       </div>
     </div>
   </GlassPanel>
-);
+  );
+};
 
 /** Body of one season's ceremony — the winner spotlight, podium and full
  *  ranking. Pulled out as a sub-component so each year in the stacked

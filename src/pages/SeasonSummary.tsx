@@ -128,8 +128,8 @@ const SeasonSummary = () => {
 
       <PageHint
         screen="season-summary"
-        title="Season Summary"
-        body="Review your season performance — final position, awards, and key stats. This summary only appears once at season end, so take a moment to review before moving on."
+        title={t('seasonSummary.seasonSummary')}
+        body={t('seasonSummary.reviewYourSeasonPerformanceFinal')}
       />
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="space-y-4">

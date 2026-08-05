@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Trophy, Star, Crown, Medal, Award, Diamond, Flame, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -26,6 +27,7 @@ const getRankIcon = (rank: number) => {
 };
 
 const HallOfManagers = () => {
+  const { t } = useTranslation();
   const monetization = useGameStore(s => s.monetization);
   const [entries, setEntries] = useState<HallEntry[]>([]);
   const userIsPro = isPro(monetization);
@@ -41,8 +43,8 @@ const HallOfManagers = () => {
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
       <PageHint
         screen="hall-of-managers"
-        title="Hall of Managers"
-        body="The ultimate leaderboard — your best careers ranked by legacy score. Points come from trophies, promotions, longevity, and prestige. Each save contributes to this permanent record."
+        title={t('hallOfManagers.hallOfManagers')}
+        body={t('hallOfManagers.theUltimateLeaderboardYourBest')}
       />
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>

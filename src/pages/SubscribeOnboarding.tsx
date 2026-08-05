@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -109,6 +110,7 @@ const PLAN_ROWS: PlanRow[] = [
 ];
 
 const SubscribeOnboarding = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const reduceMotion = useReducedMotionPref();
@@ -384,7 +386,7 @@ const SubscribeOnboarding = () => {
           type="button"
           onClick={handleSkip}
           disabled={purchasing}
-          aria-label="Close paywall"
+          aria-label={t('subscribeOnboarding.closePaywall')}
           className="w-9 h-9 rounded-full flex items-center justify-center bg-white/[0.06] border border-white/10 text-foreground/80 hover:text-foreground transition-colors disabled:opacity-40"
         >
           <X className="w-4 h-4" />

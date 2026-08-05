@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
 import { Check, ChevronRight, Hand, SkipForward, X } from 'lucide-react';
@@ -194,6 +195,7 @@ function TakerCard({ player, selected, onSelect }: {
 }
 
 export function PenaltyShootout() {
+  const { t } = useTranslation();
   const {
     kicks, ctx, players, clubs, currentMatchResult,
   } = useGameStore(useShallow(s => ({
@@ -732,7 +734,7 @@ export function PenaltyShootout() {
                       shareMessage: `Held my nerve — ${myClub.shortName} won it ${myTotal}–${oppTotal} on penalties in Dynasty Manager.`,
                     };
                   })()}
-                  label="Share this moment"
+                  label={t('worldCupResult.shareThisMoment')}
                 />
               )}
             </GlassPanel>

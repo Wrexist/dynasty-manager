@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useMemo, type ReactNode } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import type { Club, Player } from '@/types/game';
@@ -73,6 +74,7 @@ import { motion } from 'framer-motion';
 import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 
 const MatchReview = () => {
+  const { t } = useTranslation();
   const { currentMatchResult, clubs, players, playerClubId, boardConfidence, matchPlayerRatings, week, divisionFixtures, playerDivision, divisionTables, boardObjectives, monetization, lastMatchCompetition, virtualClubs } = useGameStore(useShallow(s => ({
     currentMatchResult: s.currentMatchResult, clubs: s.clubs, players: s.players,
     playerClubId: s.playerClubId, boardConfidence: s.boardConfidence,
@@ -171,8 +173,8 @@ const MatchReview = () => {
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3 }}>
           <EmptyState
             icon={Calendar}
-            title="No match to review"
-            description="Play a fixture and the post-match breakdown will appear here — goals, ratings, highlights, all of it."
+            title={t('matchReview.noMatchToReview')}
+            description={t('matchReview.playAFixtureAndThe')}
             action={{ label: 'Back to Dashboard', onClick: () => setScreen('dashboard') }}
           />
         </motion.div>
@@ -254,8 +256,8 @@ const MatchReview = () => {
     <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
       <PageHint
         screen="match-review"
-        title="Match Review"
-        body="Analyse your last match — check player ratings, key stats, and tactical insights. Top performers get highlighted. Use the insights to adjust your tactics for the next game."
+        title={t('matchReview.matchReview')}
+        body={t('matchReview.analyseYourLastMatchCheck')}
       />
 
       {/* Result Header */}

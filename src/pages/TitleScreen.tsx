@@ -255,7 +255,7 @@ const TitleScreen = () => {
               initial="hidden"
               animate="visible"
               aria-busy="true"
-              aria-label="Loading save slot"
+              aria-label={t('titleScreen.loadingSaveSlot')}
             >
               <GlassPanel className="p-0">
                 <div className="flex items-center gap-3 px-4 py-3.5">
@@ -371,7 +371,7 @@ const TitleScreen = () => {
           <GlassPanel
             className="p-0"
             onClick={() => navigate('/challenge')}
-            aria-label="Challenge Mode"
+            aria-label={t('titleScreen.challengeMode')}
           >
             <div className="flex items-center gap-3 px-4 py-3.5">
               <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary/25 to-primary/10 border border-primary/30 flex items-center justify-center shrink-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_4px_12px_-4px_hsl(43_96%_46%/0.4)]">

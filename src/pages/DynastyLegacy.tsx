@@ -7,6 +7,7 @@
  * own. The per-dynasty breakdown lives in the Hall of Fame (linked below).
  */
 import { useEffect, useMemo } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { motion } from 'framer-motion';
 import { Crown, Trophy, Medal, Award, Star, Shield, Globe2, Target, Flame, ChevronRight } from 'lucide-react';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -34,6 +35,7 @@ function ordinal(pos: number): string {
 }
 
 function DynastyLegacy() {
+  const { t } = useTranslation();
   const setScreen = useGameStore(s => s.setScreen);
   const legacy = useMemo(() => computeManagerLegacy(loadHall()), []);
   const TierIcon = TIER_META[legacy.tier].icon;
@@ -58,8 +60,8 @@ function DynastyLegacy() {
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
       <PageHint
         screen="dynasty-legacy"
-        title="Manager Legacy"
-        body="Your lifetime record across every save. Trophies, clubs and milestones from all your dynasties add up here into a single legacy — and a tier that rises as you win."
+        title={t('dynastyLegacy.managerLegacy')}
+        body={t('dynastyLegacy.yourLifetimeRecordAcrossEvery')}
       />
 
       {/* Hero — lifetime tier + total trophies */}

@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -33,6 +34,7 @@ function devBarTone(score: number): 'emerald' | 'primary' | 'amber' | 'rose' {
 }
 
 const YouthAcademy = () => {
+  const { t } = useTranslation();
   const { youthAcademy, players, clubs, playerClubId, facilities, staff, season, week } = useGameStore(useShallow(s => ({
     youthAcademy: s.youthAcademy,
     players: s.players,
@@ -221,8 +223,8 @@ const YouthAcademy = () => {
                               <StatusPill
                                 tone="emerald"
                                 Icon={ArrowUpRight}
-                                label="READY"
-                                title="Ready for first team"
+                                label={t('youthAcademy.ready')}
+                                title={t('youthAcademy.readyForFirstTeam')}
                               />
                             ) : null
                           }
@@ -304,14 +306,14 @@ const YouthAcademy = () => {
                           <button
                             onClick={() => handleRelease(prospect.playerId)}
                             className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md bg-destructive/20 text-destructive text-[10px] font-bold active:scale-[0.97] transition-all"
-                            aria-label="Confirm release"
+                            aria-label={t('youthAcademy.confirmRelease')}
                           >
                             <Check className="w-3 h-3" /> Release
                           </button>
                           <button
                             onClick={() => setConfirmReleaseId(null)}
                             className="px-2 py-1.5 rounded-md bg-muted/30 text-muted-foreground active:scale-[0.97] transition-all"
-                            aria-label="Cancel release"
+                            aria-label={t('youthAcademy.cancelRelease')}
                           >
                             <X className="w-3 h-3" />
                           </button>
@@ -333,7 +335,7 @@ const YouthAcademy = () => {
                           <button
                             onClick={() => { hapticLight(); setConfirmReleaseId(prospect.playerId); }}
                             className="px-2 py-1.5 rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20 active:scale-[0.97] transition-all"
-                            aria-label="Release player"
+                            aria-label={t('youthAcademy.releasePlayer')}
                           >
                             <Trash2 className="w-3 h-3" />
                           </button>
