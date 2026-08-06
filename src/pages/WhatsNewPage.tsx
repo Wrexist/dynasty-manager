@@ -16,6 +16,25 @@ import {
 
 const CATEGORY_ORDER: ReleaseCategory[] = ['highlights', 'new', 'improved', 'fixed'];
 
+/**
+ * Per-category label + bullet colour.
+ *
+ * `highlights` uses `gold`, not `primary`, deliberately: this page renders in
+ * two theme contexts — standalone from TitleScreen where `--primary` is gold,
+ * and inside GameShell where `.game-theme` flips `--primary` to emerald. The
+ * marquee section must read as gold on both (see the medal-tier comment in
+ * `tailwind.config.ts`). The other three avoid `primary` for the same reason.
+ *
+ * Class strings are written out in full — Tailwind cannot see interpolated
+ * names, so a template-built class would be purged from the build.
+ */
+const CATEGORY_META: Record<ReleaseCategory, { label: string; bullet: string; labelColor: string }> = {
+  highlights: { label: 'Highlights', bullet: "before:text-gold", labelColor: 'text-gold/90' },
+  new: { label: 'New', bullet: "before:text-emerald-300/80", labelColor: 'text-emerald-300/85' },
+  improved: { label: 'Improved', bullet: "before:text-accent/85", labelColor: 'text-accent/90' },
+  fixed: { label: 'Fixed', bullet: "before:text-muted-foreground/60", labelColor: 'text-muted-foreground/75' },
+};
+
 function formatDate(iso: string): string {
   const d = new Date(`${iso}T00:00:00`);
   if (Number.isNaN(d.getTime())) return iso;
@@ -23,9 +42,12 @@ function formatDate(iso: string): string {
 }
 
 function ReleaseCard({ entry, isLatest }: { entry: ReleaseNote; isLatest: boolean }) {
-  // Flatten every category into a single bullet list — players don't need
-  // the Highlights / New / Improved / Fixed split to scan a release.
-  const bullets = CATEGORY_ORDER.flatMap(cat => entry[cat] ?? []);
+  // Grouped, not flattened: a release this size is unreadable as one undivided
+  // list, and "what's new" vs "what's fixed" is the split players actually scan
+  // for. Empty categories drop out so short releases stay compact.
+  const sections = CATEGORY_ORDER
+    .map(cat => ({ cat, items: entry[cat] ?? [] }))
+    .filter(section => section.items.length > 0);
 
   return (
     <GlassPanel className={cn('p-3 space-y-2', isLatest && 'border border-primary/25')}>
@@ -50,17 +72,56 @@ function ReleaseCard({ entry, isLatest }: { entry: ReleaseNote; isLatest: boolea
         </span>
       </div>
 
-      {bullets.length > 0 && (
-        <ul className="space-y-1 pl-3">
-          {bullets.map((item, i) => (
-            <li
-              key={i}
-              className="text-[12px] leading-snug text-foreground/85 relative before:content-['•'] before:absolute before:-left-3 before:text-primary/60"
-            >
-              {item}
-            </li>
+      {entry.headline && (
+        <h3 className="font-display text-[13px] font-bold leading-snug text-foreground tracking-tight">
+          {entry.headline}
+        </h3>
+      )}
+
+      {/*
+        Summary is prose, and prose does not scan. It earns its space on the
+        card the player actually reads on launch; on the historical entries
+        below it, the grouped bullets carry the release on their own.
+      */}
+      {isLatest && entry.summary && (
+        <p className="text-[11px] leading-relaxed text-muted-foreground">
+          {entry.summary}
+        </p>
+      )}
+
+      {sections.length > 0 && (
+        <div className="space-y-2 pt-0.5">
+          {sections.map(({ cat, items }) => (
+            <div key={cat} className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className={cn(
+                  'text-[9px] font-bold uppercase tracking-widest',
+                  CATEGORY_META[cat].labelColor,
+                )}>
+                  {CATEGORY_META[cat].label}
+                </span>
+                <span className="h-px flex-1 bg-white/[0.06]" />
+                <span className="text-[9px] tabular-nums text-muted-foreground/50">
+                  {items.length}
+                </span>
+              </div>
+              <ul className="space-y-1 pl-3">
+                {items.map((item, i) => (
+                  <li
+                    key={i}
+                    className={cn(
+                      'text-[12px] leading-snug text-foreground/85 relative',
+                      "before:content-['•'] before:absolute before:-left-3",
+                      CATEGORY_META[cat].bullet,
+                    )}
+                  >
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
     </GlassPanel>
   );
