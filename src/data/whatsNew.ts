@@ -65,6 +65,33 @@ export { readWhatsNewSeenVersion, writeWhatsNewSeenVersion };
  */
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.4.0',
+    build: null,
+    date: '2026-08-17',
+    headline: 'Training builds your squad again, and a dynasty stays a challenge.',
+    summary: 'Weekly training no longer costs your players overall rating, and a promotion playoff can never strand your save mid-season. Deeper down, club finances stay meaningful into your tenth season and squads restock with academy talent every year, so the football world keeps its shape.',
+    highlights: [],
+    new: [],
+    improved: [
+      'Damaged saves are now offered for recovery instead of showing as an empty slot.',
+      'Free daily packs are now a true daily limit shared across all save slots.',
+      'Lower-division clubs earn prize money that matches their level.',
+      'Scouts now report real players instead of invented ones.',
+      'Press conferences now ask about injury crises, relegation battles and transfer rumours, not just the result.',
+      'Tap a competition on the dashboard to go straight to it.',
+      'Club money stays meaningful deep into a dynasty — the board reinvests idle cash in the club.',
+      'Squads restock with academy talent every season, so the football world stays young and full.',
+    ],
+    fixed: [
+      'Fixed a save bug that could permanently stall the season for clubs in a promotion playoff.',
+      'Fixed retirement not sticking, so a new career could refuse to start.',
+      'Your squad no longer loses overall rating after a normal training week.',
+      'The Competitions screen now shows the European competition you actually qualified for.',
+      'A sent-off player can no longer be replaced, so a red card costs you a man.',
+      'Fixed the board\'s spending warning disagreeing with the figure on your Finance screen.',
+    ],
+  },
+  {
     version: '1.3.0',
     build: null,
     date: '2026-07-28',

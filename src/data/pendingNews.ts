@@ -44,25 +44,8 @@ export interface PendingRelease {
 export const PENDING_NEWS: PendingRelease = {
   highlights: [],
   new: [],
-  improved: [
-    'Release(1.3.0): seal the What\'s New card and bump the marketing version.',
-    'Hero-cluster App Store screenshots for iPhone 6.9/6.5 + iPad 13.',
-    'Rewarded-ad offer system with escalating, capped popups.',
-    'Critical review of v1.3.0 — 22 findings, and the fixes for 21 of them.',
-    'Damaged saves are now offered for recovery instead of showing as an empty slot.',
-    'Free daily packs are now a true daily limit shared across all save slots.',
-    'Lower-division clubs earn prize money that matches their level.',
-    'Scouts now report real players instead of invented ones.',
-    'Press conferences now ask about injury crises, relegation battles and transfer rumours, not just the result.',
-    'Tap a competition on the dashboard to go straight to it.',
-  ],
-  fixed: [
-    'Fixed a save bug that could permanently stall the season for clubs in a promotion playoff.',
-    'Fixed retirement not sticking, so a new career could refuse to start.',
-    'Your squad no longer loses overall rating after a normal training week.',
-    'The Competitions screen now shows the European competition you actually qualified for.',
-    'A sent-off player can no longer be replaced, so a red card costs you a man.',
-  ],
+  improved: [],
+  fixed: [],
   headline: null,
   summary: null,
 };
