@@ -57,6 +57,17 @@ export function applyWeeklyTraining(
 ): Player {
   const updated = { ...player, attributes: { ...player.attributes } };
 
+  // A stored `overall` is NOT always `calculateOverall(attributes, position)` —
+  // community-pack players carry authored ratings, and 95% of club players sit
+  // above what the formula computes (mean +4). So every growth figure below is
+  // taken as a DELTA against this baseline rather than as the formula's
+  // absolute answer. See the long note in `store/helpers/development.ts`, which
+  // fixed exactly this bug on the development path; training was left behind,
+  // and because training only runs on the PLAYER's squad, the player was the
+  // only manager in the world paying for it (measured: −4.58 OVR mean, 24 of 26
+  // players down, after a single advanceWeek).
+  const formulaBefore = calculateOverall(player.attributes, player.position);
+
   // Count how many days each module is trained AND aggregate per-attribute weighted counts
   const days = DAYS.map(d => training.schedule[d]);
   const moduleCounts: Partial<Record<TrainingModule, number>> = {};
@@ -106,7 +117,7 @@ export function applyWeeklyTraining(
 
   // Update tracker after team pass so the independent pass sees accurate cap state
   const teamOverall = calculateOverall(updated.attributes, updated.position);
-  const teamGrowth = Math.max(0, teamOverall - player.overall);
+  const teamGrowth = Math.max(0, teamOverall - formulaBefore);
   if (teamGrowth > 0) {
     seasonGrowthTracker[player.id] = (seasonGrowthTracker[player.id] || 0) + teamGrowth;
   }
@@ -137,8 +148,9 @@ export function applyWeeklyTraining(
 
   // Recalculate final overall and track any additional growth from independent pass
   const finalOverall = calculateOverall(updated.attributes, updated.position);
-  updated.growthDelta = finalOverall - player.overall;
-  updated.overall = finalOverall;
+  const trainingDelta = finalOverall - formulaBefore;
+  updated.growthDelta = trainingDelta;
+  updated.overall = Math.max(1, Math.min(99, player.overall + trainingDelta));
   // Single-helper recompute keeps training pricing identical to development,
   // packs, and transfers. Wage stays put — training tweaks attributes, not
   // contract terms (those run through the contracts flow).
