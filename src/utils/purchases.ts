@@ -522,6 +522,34 @@ export async function getStorePrices(): Promise<Partial<Record<ProductId, string
 }
 
 /** Get current customer entitlements without making a purchase. */
+/**
+ * Entitlements as the store sees them, with "the store said nothing you own"
+ * distinguishable from "we could not ask".
+ *
+ * `getEntitlements` collapses both to `[]`, which is why nothing could ever
+ * REVOKE an entitlement: a refunded one-time purchase (Apple refunds are
+ * largely self-service) stayed in `monetization.entitlements` forever, because
+ * every write path is additive and a definitive empty answer was
+ * indistinguishable from a failed call.
+ *
+ * Returns `null` when undeterminable — off-device, monetization disabled, or
+ * the call threw. Callers must treat `null` as "change nothing".
+ */
+export async function getEntitlementsDefinitive(): Promise<ProductId[] | null> {
+  if (!Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) return null;
+  try {
+    await ensureConfigured();
+    const { Purchases } = await import('@revenuecat/purchases-capacitor');
+    const { customerInfo } = await Purchases.getCustomerInfo();
+    reanchorClock();
+    return mapEntitlements(customerInfo);
+  } catch (err) {
+    if (import.meta.env.DEV) console.error('[Purchases] Definitive entitlement read failed:', err);
+    Sentry.captureException(err, { tags: { context: 'purchases.getEntitlementsDefinitive' } });
+    return null;
+  }
+}
+
 export async function getEntitlements(): Promise<ProductId[]> {  if (!Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) {
     return [];
   }

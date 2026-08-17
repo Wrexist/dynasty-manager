@@ -98,6 +98,34 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
       mirrorDevicePurchases();
     },
 
+    /**
+     * Prune entitlements the store says are no longer owned.
+     *
+     * Every other write path is additive, so a refunded purchase kept Pro (and
+     * every cosmetic pack) permanently — buy Pro, request an Apple refund,
+     * keep Pro, on every save slot via the device mirror. Only ever called
+     * with a DEFINITIVE store answer (`getEntitlementsDefinitive`), never with
+     * the fail-open empty list, so a network failure can't strip a paying user.
+     *
+     * Subscriptions are untouched: their status lives exclusively in
+     * `subscription.expiresAt` and never in `entitlements`.
+     */
+    reconcileEntitlements: (ownedProductIds: ProductId[]) => {
+      _set((s) => {
+        const owned = new Set<ProductId>(ownedProductIds);
+        // Expand bundles the same way `restoreEntitlements` does, so owning the
+        // bundle keeps the things it includes.
+        for (const id of ownedProductIds) {
+          const product = PRODUCTS[id];
+          if (product?.includes) for (const inc of product.includes) owned.add(inc);
+        }
+        const kept = s.monetization.entitlements.filter(id => owned.has(id));
+        if (kept.length === s.monetization.entitlements.length) return {};
+        return { monetization: { ...s.monetization, entitlements: kept } };
+      });
+      mirrorDevicePurchases();
+    },
+
     /** Set a cosmetic selection for a given category */
     setCosmetic: (category: CosmeticCategory, cosmeticId: string) => {
       // Validate the cosmetic exists and player owns its pack

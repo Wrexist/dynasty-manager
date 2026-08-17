@@ -19,7 +19,7 @@ import { InfoTipProvider } from '@/components/game/InfoTip';
 import { PresentationQueueProvider } from '@/hooks/usePresentationQueue';
 import { AdOfferHost } from '@/components/game/AdOfferHost';
 import { REWARDED_ADS_USABLE } from '@/utils/ads';
-import { getEntitlements, getCustomerInfo, extractSubscriptionInfo, startEntitlementListener, stopEntitlementListener } from '@/utils/purchases';
+import { getEntitlementsDefinitive, getCustomerInfo, extractSubscriptionInfo, startEntitlementListener, stopEntitlementListener } from '@/utils/purchases';
 
 // Lazy-load all pages for code splitting (Dashboard prefetched from TitleScreen)
 const Dashboard = lazy(() => import('./Dashboard'));
@@ -226,16 +226,23 @@ const GameShell = () => {
   // Sync monetization state on game load
   useEffect(() => {
     let cancelled = false;
-    const { restoreEntitlements, initMonetizationTimestamp, updateSubscription } = useGameStore.getState();
+    const { restoreEntitlements, reconcileEntitlements, initMonetizationTimestamp, updateSubscription } = useGameStore.getState();
 
     // Start the starter kit countdown timer
     initMonetizationTimestamp();
 
     // Sync entitlements and subscription from RevenueCat (no-op on web)
-    Promise.all([getEntitlements(), getCustomerInfo()])
+    Promise.all([getEntitlementsDefinitive(), getCustomerInfo()])
       .then(([ids, info]) => {
         if (cancelled) return;
-        if (ids.length > 0) restoreEntitlements(ids);
+        // `null` means we could not ask — change nothing. A real list, even an
+        // empty one, is the store's answer: grant what is owned and prune what
+        // is not, so a refunded purchase stops conveying Pro forever. Every
+        // other write path is additive, which is why refunds never revoked.
+        if (ids !== null) {
+          if (ids.length > 0) restoreEntitlements(ids);
+          reconcileEntitlements(ids);
+        }
         // Never write a null sub from a sync path: extractSubscriptionInfo
         // returns null on a transient RC glitch (no active pro entitlement in
         // this payload), which would clear subscription.expiresAt — the ONLY
