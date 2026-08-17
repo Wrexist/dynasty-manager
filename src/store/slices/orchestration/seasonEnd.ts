@@ -1914,8 +1914,15 @@ export function runPostSeasonTail(set: Set, get: Get, completedSeason: number, s
         }
       }
 
+      // Retirement is checked BEFORE the sacked/not-sacked split. It used to
+      // live only in the not-sacked branch, so a manager sacked at or past
+      // retirement age was sent to the job market instead — where
+      // `respondToJobOffer` refuses every acceptance — and spent up to 24 weeks
+      // there before forced retirement finally fired.
+      const retiringNow = cm.age >= getRetirementAge(cm);
+
       // Handle sacking in career mode
-      if (latestHistory?.boardVerdict === 'sacked') {
+      if (latestHistory?.boardVerdict === 'sacked' && !retiringNow) {
         cm.sackedCount += 1;
         cm.reputationScore = Math.max(REP_MIN, cm.reputationScore + REP_SACKING);
         cm.careerHistory = cm.careerHistory.map(e =>
@@ -1949,9 +1956,16 @@ export function runPostSeasonTail(set: Set, get: Get, completedSeason: number, s
 
         const careerUpdate: Partial<GameState> = {};
 
-        // Check if manager should retire
-        const retAge = getRetirementAge(cm);
-        if (cm.age >= retAge) {
+        // Check if manager should retire. A sacking in the final season still
+        // ends the career here rather than in the job market.
+        if (retiringNow) {
+          if (latestHistory?.boardVerdict === 'sacked') {
+            cm.sackedCount += 1;
+            cm.reputationScore = Math.max(REP_MIN, cm.reputationScore + REP_SACKING);
+            cm.reputationTier = calculateReputationTier(cm.reputationScore);
+            // Recompute after the penalty — legacy was scored above, before it.
+            cm.legacyScore = calculateLegacyScore(cm);
+          }
           cm.careerHistory = cm.careerHistory.map(e =>
             e.endSeason === null ? { ...e, endSeason: completedSeason, reason: 'retired' as const } : e
           );

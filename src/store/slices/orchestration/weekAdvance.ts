@@ -272,7 +272,13 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
         // Move to knockout
         const knockoutTies = generateKnockoutBracket(rebuiltGroups);
         const firstRound = knockoutTies.length > 0 ? knockoutTies[0].round : null;
-        const eliminated = !rebuiltGroups.some(g => g.table.slice(0, 2).some(e => e.nationality === nationality));
+        // Elimination is whether the BRACKET contains you, not whether you
+        // finished top two. The 12-group World Cup seeds its R32 from 12
+        // winners + 12 runners-up + 8 best THIRDS, so a qualifying third-place
+        // side was handed a knockout tie and simultaneously marked eliminated —
+        // and in World Cup mode the game then simulated their own tie for them
+        // and dropped them on the result screen.
+        const eliminated = !isInBracket(knockoutTies, nationality, rebuiltGroups);
 
         // World Cup mode: if you fail to escape the group, the tournament plays
         // on without you — fast-forward the AI bracket to a champion and land
@@ -317,7 +323,7 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
       if (allGroupFixturesPlayed) {
         const knockoutTies = generateKnockoutBracket(groups);
         const firstRound = knockoutTies.length > 0 ? knockoutTies[0].round : null;
-        const eliminated = !groups.some(g => g.table.slice(0, 2).some(e => e.nationality === nationality));
+        const eliminated = !isInBracket(knockoutTies, nationality, groups);
         if (state.gameMode === 'world-cup' && eliminated) {
           const { knockoutTies: finishedTies, winner } = simulateKnockoutToCompletion(knockoutTies, firstRound!, nationality);
           set({
@@ -578,8 +584,14 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
         for (const ts of tournamentSeasons) {
           if (ts === state.season) continue; // skip current (already counted)
           const tsResults = results.filter(r => r.season === ts);
-          // If this tournament's results are all group stage (no knockout rounds)
-          const hadKnockout = tsResults.some(r => r.round && (r.round.includes('16') || r.round.includes('Quarter') || r.round.includes('Semi') || r.round.includes('Final')));
+          // If this tournament's results are all group stage (no knockout rounds).
+          // Match the ACTUAL round tokens. The substring test that used to live
+          // here ('16' / 'Quarter' / 'Semi' / 'Final') only ever matched 'R16'
+          // of the real union 'R32' | 'R16' | 'QF' | 'SF' | 'F' — so reaching
+          // the quarter-finals read as a group exit, and a manager who went to
+          // the QF last time and out at the group stage this time was counted
+          // at two consecutive group exits and sacked by the FA.
+          const hadKnockout = tsResults.some(r => r.round && KNOCKOUT_ROUNDS.has(r.round));
           if (!hadKnockout && tsResults.length > 0) consecutiveGroupExits++;
           else break;
         }
@@ -627,6 +639,30 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
     runPostSeasonTail(set, get, state.season - 1);
   }
 }
+
+/**
+ * Did `nationality` make the knockout stage?
+ *
+ * Read it off the generated bracket rather than re-deriving it from the group
+ * tables: the 12-group World Cup format promotes the eight best third-placed
+ * sides, so "top two of a group" is not the qualification rule. Falls back to
+ * the top-two check only when no bracket was generated at all, which is the
+ * degenerate case where nobody qualified.
+ */
+function isInBracket(
+  knockoutTies: { homeNation?: string; awayNation?: string }[],
+  nationality: string,
+  groups: { table: { nationality: string }[] }[],
+): boolean {
+  if (knockoutTies.length > 0) {
+    return knockoutTies.some(t => t.homeNation === nationality || t.awayNation === nationality);
+  }
+  return groups.some(g => g.table.slice(0, 2).some(e => e.nationality === nationality));
+}
+
+/** The real knockout round tokens (`InternationalKnockoutRound`). Group-stage
+ *  results carry no round, so "reached a knockout" is membership in this set. */
+const KNOCKOUT_ROUNDS = new Set<string>(['R32', 'R16', 'QF', 'SF', 'F']);
 
 export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   const state = get();

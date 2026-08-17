@@ -518,6 +518,12 @@ export const createCareerSlice = (set: Set, get: Get) => ({
         jobOffers: [],
         activeInterview: null,
         boardConfidence: STARTING_BOARD_CONFIDENCE,
+        // A board ultimatum belongs to the club that issued it. It only
+        // self-clears across seasons, so accepting a mid-season offer carried
+        // the old club's deadline week and target position to the new one —
+        // resolving there as a bogus "Ultimatum: Reprieve" plus a free
+        // confidence bonus.
+        boardUltimatum: null,
         currentScreen: 'dashboard',
         transferMarket: [],
         incomingOffers: [],
@@ -577,14 +583,18 @@ export const createCareerSlice = (set: Set, get: Get) => ({
       const lastEntry = updatedHistory[updatedHistory.length - 1];
       const continuedSeason = Math.max((lastEntry?.endSeason || 0) + 1, state.season);
 
-      // Career league change re-inits the game. initGame is only async when
-      // Community Pack is enabled, which isn't threaded through this path;
-      // guardAsync is defensive in case CP ever reaches here.
-      guardAsync(
-        state.initGame(clubId),
-        'signContract.initGame',
-        { title: 'League change failed', body: 'Could not initialise the new league.' },
-      );
+      // Career league change re-inits the game. Thread the Community Pack flag
+      // through: without it the whole world was regenerated procedurally while
+      // `communityPackEnabled` stayed true, so accepting a cross-league offer
+      // silently swapped every real player for a fictional one and the setting
+      // still claimed the pack was on. `startPrestige` and ClubSelection both
+      // thread it correctly; this path did not.
+      //
+      // With the pack enabled `initGameImpl` awaits its data chunks before it
+      // writes any state, so the contract work below has to run in the same
+      // continuation — reading `get()` straight after would see the OLD world.
+      const cpEnabled = state.communityPackEnabled;
+      const applyNewClub = () => {
       const newState = get();
       const club = newState.clubs[clubId];
 
@@ -620,8 +630,28 @@ export const createCareerSlice = (set: Set, get: Get) => ({
         jobOffers: [],
         activeInterview: null,
         boardConfidence: STARTING_BOARD_CONFIDENCE,
+        // A board ultimatum belongs to the club that issued it. It only
+        // self-cleared across seasons, so accepting a mid-season offer carried
+        // the old club's deadline and target position to the new one.
+        boardUltimatum: null,
         currentScreen: 'dashboard',
       });
+      };
+
+      const init = state.initGame(clubId, { communityPackEnabled: cpEnabled });
+      if (cpEnabled) {
+        // Only the pack path awaits before writing state, so only it needs the
+        // deferral. The pack-off path keeps its existing synchronous ordering
+        // exactly, which is what every current test exercises.
+        guardAsync(
+          Promise.resolve(init).then(applyNewClub),
+          'signContract.initGame',
+          { title: 'League change failed', body: 'Could not initialise the new league.' },
+        );
+      } else {
+        guardAsync(init, 'signContract.initGame', { title: 'League change failed', body: 'Could not initialise the new league.' });
+        applyNewClub();
+      }
     }
   },
 
