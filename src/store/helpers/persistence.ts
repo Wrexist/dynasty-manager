@@ -310,6 +310,14 @@ export const STORAGE_KEYS = {
    *  so the defence is local: judge expiry against the LATEST time ever seen
    *  rather than the time currently claimed. */
   CLOCK_HIGH_WATER: 'dynasty-clock-high-water',
+  /** localStorage: the day's free / rewarded-ad pack allowance, DEVICE-global.
+   *
+   *  It used to live only inside the save payload, which made the daily limit
+   *  per-slot (three saves = three free Gold packs a day) and rerollable by
+   *  force-quitting after a bad pull. The bucket is keyed on a day index taken
+   *  from `observeClock`, not a date string compared for inequality, so winding
+   *  the device clock backwards — or switching timezone — cannot re-arm it. */
+  DAILY_PACK_OPENS: 'dynasty-daily-pack-opens',
   /** localStorage: crash-durable record of a paid consumable pack purchase
    *  that has not yet been granted in-game. Written BEFORE the StoreKit
    *  charge, cleared after the pack is opened and the save flushed.
@@ -715,6 +723,19 @@ export interface PendingPackCredit {
    *  fired its one-time Sentry alert. Throttles the capture to once per marker
    *  so a persistently-blocked claim doesn't re-report on every mount. */
   reported?: boolean;
+  /** Whether the store transaction actually completed.
+   *
+   *  The marker is written BEFORE the charge, so its mere existence proves
+   *  nothing — a purchase that never reached the store (offline, product
+   *  unavailable, sheet dismissed by a force-quit) leaves an identical record.
+   *  Granting on existence alone made every paid pack free and repeatable.
+   *
+   *  `true`  — the store confirmed the purchase; grant it.
+   *  `false` — written pre-charge and never confirmed; do not grant.
+   *  absent  — a legacy marker from a build before this field existed. Those
+   *            can only have been written by the old binary, so they are still
+   *            honoured; new code always writes the flag. */
+  charged?: boolean;
 }
 
 export function readPendingPackCredit(): PendingPackCredit | null {
@@ -730,6 +751,9 @@ export function readPendingPackCredit(): PendingPackCredit | null {
       timestamp: typeof parsed.timestamp === 'number' ? parsed.timestamp : 0,
       slot: typeof parsed.slot === 'number' ? parsed.slot : 0,
       ...(parsed.reported === true ? { reported: true } : {}),
+      // Preserved as a tri-state: `undefined` (legacy marker) must stay
+      // distinguishable from an explicit `false` (written, never charged).
+      ...(typeof parsed.charged === 'boolean' ? { charged: parsed.charged } : {}),
     };
   } catch (err) {
     if (raw !== null) breadcrumbCorruption('readPendingPackCredit', raw, err);
@@ -745,6 +769,49 @@ export function writePendingPackCredit(credit: PendingPackCredit): void {
 export function clearPendingPackCredit(): void {
   try { localStorage.removeItem(STORAGE_KEYS.PENDING_PACK_CREDIT); }
   catch { /* storage unavailable */ }
+}
+
+/** Device-global daily pack allowance. `dayIndex` is whole days since epoch as
+ *  measured by `observeClock`, so it only ever moves forward. */
+export interface DailyPackOpensRecord {
+  dayIndex: number;
+  free: Record<string, number>;
+  ad: Record<string, number>;
+}
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+/** Today, as a monotonic day index. Never decreases, because `observeClock`
+ *  returns the furthest time this device has ever seen. */
+export function currentDayIndex(): number {
+  return Math.floor(observeClock() / MS_PER_DAY);
+}
+
+export function readDailyPackOpens(): DailyPackOpensRecord {
+  const empty: DailyPackOpensRecord = { dayIndex: currentDayIndex(), free: {}, ad: {} };
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem(STORAGE_KEYS.DAILY_PACK_OPENS);
+    if (!raw) return empty;
+    const parsed = JSON.parse(raw);
+    if (typeof parsed?.dayIndex !== 'number') return empty;
+    // Strictly-greater, not inequality: a clock that appears to have gone
+    // BACKWARDS must keep the stored counts rather than reset them.
+    if (currentDayIndex() > parsed.dayIndex) return empty;
+    return {
+      dayIndex: parsed.dayIndex,
+      free: (parsed.free && typeof parsed.free === 'object') ? { ...parsed.free } : {},
+      ad: (parsed.ad && typeof parsed.ad === 'object') ? { ...parsed.ad } : {},
+    };
+  } catch (err) {
+    if (raw !== null) breadcrumbCorruption('readDailyPackOpens', raw, err);
+    return empty;
+  }
+}
+
+export function writeDailyPackOpens(record: DailyPackOpensRecord): void {
+  try { localStorage.setItem(STORAGE_KEYS.DAILY_PACK_OPENS, JSON.stringify(record)); }
+  catch { /* storage unavailable — the in-memory mirror still holds this session */ }
 }
 
 /** Analytics consent state. `'unknown'` surfaces the first-launch prompt. */

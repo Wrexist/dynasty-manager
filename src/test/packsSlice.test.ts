@@ -6,10 +6,14 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
+import { writeDailyPackOpens, currentDayIndex } from '@/store/helpers/persistence';
 
 const CLUB_ID = 'celtic';
 
 function initAndGetState() {
+  // Daily allowances are device-global (localStorage), not part of the save,
+  // and jsdom keeps localStorage for the whole file — clear it per test.
+  writeDailyPackOpens({ dayIndex: currentDayIndex(), free: {}, ad: {} });
   useGameStore.getState().initGame(CLUB_ID);
   return useGameStore.getState();
 }
@@ -172,11 +176,11 @@ describe('packsSlice — canOpenPack edge cases', () => {
   });
 
   it('blocks bronze free path after the daily allowance is used', () => {
-    // Simulate today's bronze free already taken
-    const today = new Date().toISOString().slice(0, 10);
-    useGameStore.setState({
-      dailyPackOpens: { date: today, free: { bronze: 99 }, ad: {} },
-    });
+    // Simulate today's bronze free already taken. The allowance is judged
+    // against the DEVICE record, not the save — seeding `dailyPackOpens` in
+    // state no longer means anything, which is the whole point: a per-slot,
+    // save-scummable "daily" limit was not a daily limit.
+    writeDailyPackOpens({ dayIndex: currentDayIndex(), free: { bronze: 99 }, ad: {} });
     const result = useGameStore.getState().canOpenPack('bronze', 'free');
     expect('ok' in result && result.ok).toBe(false);
   });

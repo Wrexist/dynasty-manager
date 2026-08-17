@@ -150,13 +150,13 @@ export const PRO_ONE_TIME_PRODUCT_IDS: ProductId[] = [
   'com.dynastymanager.bundle.all',
 ];
 
-/** Every product (one-time + subscription) that conveys Pro access. Use for
- *  validation / catalog logic — NOT for entitlement checks. */
-export const PRO_PRODUCT_IDS: ProductId[] = [
-  ...PRO_ONE_TIME_PRODUCT_IDS,
-  'com.dynastymanager.pro.monthly',
-  'com.dynastymanager.pro.annual',
-];
+// NOTE: there is deliberately no subscription-inclusive "all Pro products"
+// list here. One existed, unused, and it was precisely the footgun the
+// entitlement invariant warns about: RevenueCat keeps expired subscriptions in
+// `allPurchasedProductIdentifiers` forever, so checking sub SKUs against
+// `monetization.entitlements` grants permanent Pro to lapsed subscribers.
+// `PRO_ONE_TIME_PRODUCT_IDS` is the only list an entitlement check may see;
+// subscription status lives exclusively in `subscription.expiresAt`.
 
 // ── Pro Features ──
 
@@ -340,6 +340,14 @@ export const COSMETIC_ITEMS: CosmeticItem[] = [
  *  mocked trial window on web/dev. If the store's intro offer differs, the
  *  paywall is making a false claim (Apple 3.1.2 exposure) — change BOTH
  *  together. */
+/** How long an un-reconciled paid-pack credit stays claimable.
+ *
+ *  The pending-credit marker exists so a crash between charge and grant does
+ *  not eat a purchase. It is not meant to be immortal: a marker that has
+ *  survived a week is not going to be reconciled by another mount, and an
+ *  immortal one is a standing grant waiting for a squad slot to free up. */
+export const PENDING_CREDIT_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
 export const FREE_TRIAL_DAYS = 7;
 export const FREE_TRIAL_MS = FREE_TRIAL_DAYS * 24 * 60 * 60 * 1000;
 

@@ -248,8 +248,40 @@ async function fetchStoreProducts(Purchases: PurchasesModule, ids: string[]): Pr
  * StoreKit / Play Billing product purchase. Rejects with the SDK's error
  * untouched so callers can classify it via isUserCancelledError.
  */
+/**
+ * A purchase that failed BEFORE the store transaction was initiated.
+ *
+ * The distinction matters for consumables, where the only record that money
+ * changed hands is a local marker written before the charge (see
+ * `PENDING_PACK_CREDIT`). Everything that throws while we are still resolving
+ * offerings or products is definitively un-charged — offline, product not
+ * configured, RevenueCat unreachable — and its marker must be dropped, not
+ * honoured. A throw at or after `purchasePackage`/`purchaseStoreProduct` (e.g.
+ * receipt validation) may well have charged the user, so that marker is kept.
+ *
+ * Without this split, Airplane Mode + tap = a marker the reconciler grants for
+ * free, repeatably.
+ */
+export class PurchaseNotAttemptedError extends Error {
+  readonly notAttempted = true;
+  constructor(message: string, readonly cause?: unknown) {
+    super(message);
+    this.name = 'PurchaseNotAttemptedError';
+  }
+}
+
+export function isPurchaseNotAttempted(err: unknown): boolean {
+  return err instanceof PurchaseNotAttemptedError
+    || (typeof err === 'object' && err !== null && (err as { notAttempted?: boolean }).notAttempted === true);
+}
+
 async function buyProduct(Purchases: PurchasesModule, productId: ProductId) {
-  const packages = await fetchOfferingPackages(Purchases);
+  let packages: Awaited<ReturnType<typeof fetchOfferingPackages>>;
+  try {
+    packages = await fetchOfferingPackages(Purchases);
+  } catch (err) {
+    throw new PurchaseNotAttemptedError(`Could not load offerings for ${productId}`, err);
+  }
   const pkg = packages.find(p => p.product.identifier === productId);
   if (pkg) {
     // pkg is narrowed from the loose offerings shape above; the runtime object
@@ -259,9 +291,14 @@ async function buyProduct(Purchases: PurchasesModule, productId: ProductId) {
     });
   }
 
-  const [product] = await fetchStoreProducts(Purchases, [productId]);
+  let product: Awaited<ReturnType<typeof fetchStoreProducts>>[number] | undefined;
+  try {
+    [product] = await fetchStoreProducts(Purchases, [productId]);
+  } catch (err) {
+    throw new PurchaseNotAttemptedError(`Could not load product ${productId}`, err);
+  }
   if (!product) {
-    throw new Error(`Product ${productId} is not available from the store`);
+    throw new PurchaseNotAttemptedError(`Product ${productId} is not available from the store`);
   }
   return Purchases.purchaseStoreProduct({
     product: product as unknown as Parameters<PurchasesModule['purchaseStoreProduct']>[0]['product'],
