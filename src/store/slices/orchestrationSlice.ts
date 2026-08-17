@@ -238,6 +238,14 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
     playerDivision: state.playerDivision,
     derbies: state.derbies,
     seasonPhase: state.seasonPhase,
+    // `seasonPhase: 'playoff'` is meaningless without the bracket it refers to.
+    // Persisting the phase but not the state bricked the save: `endSeason` saw
+    // the phase and refused to roll, while `playCurrentMatch` found no tie to
+    // play. Both fields must travel together.
+    playoffState: state.playoffState,
+    // Terminal career flag. Without it a retired manager reloaded into the
+    // unemployed branch and re-retired every 24 weeks.
+    careerRetired: state.careerRetired,
     lastSeasonTurnover: state.lastSeasonTurnover,
     clubRecords: state.clubRecords,
     careerTimeline: state.careerTimeline,
@@ -519,6 +527,10 @@ function buildFreshSessionState(get: Get): Partial<GameState> {
     sessionStats: { startWeek: 1, startSeason: 1, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 },
     weeklyDigest: null, careerTimeline: [],
     gameMode: 'sandbox' as const, careerManager: null, jobVacancies: [], jobOffers: [],
+    // Terminal-career flag and the live promotion bracket. Leaving either set
+    // meant a brand-new career inherited the previous one's ending: a fresh
+    // save with `careerRetired: true` refused to advance a single week.
+    careerRetired: false, playoffState: null, seasonPhase: 'regular' as const,
     // National-team + interview state — omitting these leaked an old NT
     // job (with dead player IDs) into a brand-new game.
     nationalTeam: null, internationalTournament: null, managerNationality: null,
@@ -1018,7 +1030,15 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         divisionFixtures,
         divisionTables,
         derbies: data.derbies || DERBIES,
-        seasonPhase: data.seasonPhase || 'regular',
+        // Self-heal: a save written before `playoffState` was persisted can
+        // carry `seasonPhase: 'playoff'` with no bracket. That combination is
+        // an unrollable season, so clamp it back to a normal phase on load.
+        seasonPhase:
+          data.seasonPhase === 'playoff' && !data.playoffState?.pendingMatch
+            ? 'regular'
+            : (data.seasonPhase || 'regular'),
+        playoffState: data.playoffState || null,
+        careerRetired: data.careerRetired ?? false,
         clubRecords: data.clubRecords || createEmptyRecords(),
         careerTimeline: data.careerTimeline || [],
         managerProgression: data.managerProgression || createDefaultProgression(),

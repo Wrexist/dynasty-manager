@@ -678,7 +678,12 @@ const Dashboard = () => {
     return { oppName: oppClub?.shortName || '?', score: `${lastMatch.homeGoals}-${lastMatch.awayGoals}`, result, week: lastMatch.week };
   }, [fixtures, playerClubId, clubs]);
 
-  const inPlayoffs = (seasonPhase as string) === 'playoffs';
+  // NB: the phase is 'playoff', not 'playoffs'. The plural (behind an `as
+  // string` cast that hid the type error) made this permanently false, so
+  // `seasonOver` stayed true through the whole playoff phase and suppressed
+  // both the Match Prep card and the Advance Week panel — the tie could never
+  // be started and the season could never roll.
+  const inPlayoffs = seasonPhase === 'playoff';
   const competitionInfo = getCompetitionInfo(competition, {
     inPlayoffs,
     leagueName: LEAGUES.find(d => d.id === playerDivision)?.shortName,
