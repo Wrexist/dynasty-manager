@@ -44,7 +44,9 @@ export interface PendingRelease {
 export const PENDING_NEWS: PendingRelease = {
   highlights: [],
   new: [],
-  improved: [],
+  improved: [
+    'V1.4.0: Fix critical save, training, and monetization regressions.',
+  ],
   fixed: [],
   headline: null,
   summary: null,
