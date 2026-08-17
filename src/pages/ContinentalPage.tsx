@@ -196,13 +196,21 @@ const ContinentalPage = ({ embedded = false }: { embedded?: boolean } = {}) => {
   const currentScreen = useGameStore(s => s.currentScreen);
 
   // When embedded in the Competitions hub, currentScreen is 'competitions', so
-  // we can't derive the competition from it. The player is only ever in one
-  // continental tournament per season, so pick whichever is present (highest
-  // tier first). Standalone routing still keys off currentScreen so deep links
-  // to a specific continental screen render that one.
-  const isChampions = embedded ? !!championsCup : currentScreen === 'champions-cup';
-  const isShield = embedded ? (!championsCup && !!shieldCup) : currentScreen === 'shield-cup';
-  const tournament = isChampions ? championsCup : isShield ? shieldCup : conferenceCup;
+  // we can't derive the competition from it. Select by PARTICIPATION: all three
+  // tournaments exist every season from season 2 on, so "whichever is present,
+  // highest tier first" always resolved to the Champions Cup and hid the
+  // player's actual competition entirely. `playerGroupId` is the marker the
+  // draw writes for the tournament the club is actually in. Standalone routing
+  // still keys off currentScreen so deep links render the screen asked for.
+  const isChampions = embedded ? !!championsCup?.playerGroupId : currentScreen === 'champions-cup';
+  const isShield = embedded ? (!championsCup?.playerGroupId && !!shieldCup?.playerGroupId) : currentScreen === 'shield-cup';
+  // Embedded: fall through to the Conference Cup only if the player is
+  // actually in it, otherwise there is no continental competition to show and
+  // the "not qualified" empty state below is the correct answer. (That empty
+  // state was unreachable from season 2 on, because the fall-through always
+  // found a tournament object.)
+  const conferenceForPlayer = embedded ? (conferenceCup?.playerGroupId ? conferenceCup : null) : conferenceCup;
+  const tournament = isChampions ? championsCup : isShield ? shieldCup : conferenceForPlayer;
   const competition: ContinentalCompetition = isChampions ? 'champions_cup' : isShield ? 'shield_cup' : 'conference_cup';
 
   if (!tournament) {
@@ -211,7 +219,10 @@ const ContinentalPage = ({ embedded = false }: { embedded?: boolean } = {}) => {
         <div className="text-center text-muted-foreground py-12">
           <Globe className="w-12 h-12 mx-auto mb-3 opacity-40" />
           <p className="text-sm">
-            {isChampions ? 'You have not qualified for the Champions Cup.' : isShield ? 'You have not qualified for the Shield Cup.' : 'You have not qualified for the Conference Cup.'}
+            {embedded ? 'You have not qualified for a continental competition.'
+              : isChampions ? 'You have not qualified for the Champions Cup.'
+              : isShield ? 'You have not qualified for the Shield Cup.'
+              : 'You have not qualified for the Conference Cup.'}
           </p>
           <p className="text-xs mt-1">Finish higher in the league to qualify next season.</p>
         </div>

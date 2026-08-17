@@ -225,6 +225,17 @@ export const createMatchSlice = (set: Set, get: Get) => ({
     // the out-player goes back to `subs` (so post-match processing still
     // sees them), but they're no longer a legal substitution target.
     if ((state.matchSubbedOffIds || []).includes(inId)) return { success: false, message: 'A substituted player cannot re-enter the match.' };
+    // A dismissed player cannot be substituted off. The engine deliberately
+    // never edits `club.lineup` on a red card — it tracks dismissals in
+    // `halfTimeState.sentOff` and derives the man disadvantage from how many of
+    // the XI are unavailable. So swapping the sent-off player for a substitute
+    // put a legal XI back on the pitch: `homeMissing` returned to 0, the
+    // red-card strength penalty never applied, and the dismissal cost one
+    // substitution instead of a player.
+    if ((state.halfTimeState?.sentOff || []).includes(outId)) {
+      const off = state.players[outId];
+      return { success: false, message: `${off ? off.lastName : 'That player'} has been sent off and cannot be replaced.` };
+    }
     const inPlayer = state.players[inId];
     if (!inPlayer) return { success: false, message: 'That substitute is unavailable.' };
     if (inPlayer.injured) return { success: false, message: `${inPlayer.lastName} is injured and cannot come on.` };

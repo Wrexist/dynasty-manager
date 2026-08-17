@@ -261,6 +261,9 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
                 'relative rounded-lg',
                 isSelectedOut && 'ring-2 ring-destructive scale-110 shadow-[0_0_12px_rgba(239,68,68,0.4)] animate-pulse',
                 isInjuredInMatch && !isSelectedOut && 'ring-2 ring-destructive/70 animate-pulse',
+                // A sent-off player cannot be replaced — the store rejects it.
+                // Show that here rather than letting the tap fail.
+                cardStatus === 'red' && 'opacity-40 pointer-events-none',
               )}>
                 {/* Injury badge — top right */}
                 {isInjuredInMatch && !isSelectedOut && (

@@ -103,11 +103,23 @@ export function getActiveCompetitions(ctx: CompetitionStatusContext): Competitio
     });
   }
 
-  // Continental — the player is only ever in one; prefer the highest tier present.
+  // Continental — select by PARTICIPATION, not by tier order.
+  //
+  // The old code picked the highest tier merely *present*, on the premise that
+  // "the player is only ever in one". State does not satisfy that premise:
+  // season rollover generates all three tournaments every year whenever there
+  // are enough qualifiers (always), and stamps the two the player is not in
+  // with `playerEliminated: true`. So from season 2 onward a Shield Cup
+  // qualifier — and a club that qualified for nothing — saw a permanent
+  // "Champions Cup — Eliminated" row, while their real competition, whose
+  // fixtures they were playing on MatchDay, had no reachable UI at all.
+  //
+  // `playerGroupId` is the participation marker the draw already writes.
+  const inTournament = (t: ContinentalTournamentState | null | undefined) => !!t?.playerGroupId;
   const continental: { t: ContinentalTournamentState; screen: GameScreen; title: string } | null =
-    championsCup ? { t: championsCup, screen: 'champions-cup', title: 'Champions Cup' }
-    : shieldCup ? { t: shieldCup, screen: 'shield-cup', title: 'Shield Cup' }
-    : conferenceCup ? { t: conferenceCup, screen: 'conference-cup', title: 'Conference Cup' }
+    inTournament(championsCup) ? { t: championsCup!, screen: 'champions-cup', title: 'Champions Cup' }
+    : inTournament(shieldCup) ? { t: shieldCup!, screen: 'shield-cup', title: 'Shield Cup' }
+    : inTournament(conferenceCup) ? { t: conferenceCup!, screen: 'conference-cup', title: 'Conference Cup' }
     : null;
   if (continental) {
     const { status, outcome } = continentalStatus(continental.t, playerClubId, clubs, virtualClubs);

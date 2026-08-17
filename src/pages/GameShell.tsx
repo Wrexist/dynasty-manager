@@ -368,7 +368,13 @@ const GameShell = () => {
               tab switches mount the new screen instantly instead of
               blocking on an exit animation, which was the dominant
               source of perceived "long loading between tabs". */}
-          <PageErrorBoundary>
+          {/* Keyed on the screen: an error boundary holds `hasError` in state
+              with no reset path, so a crash on one screen left the error card
+              rendered over EVERY subsequent tab — BottomNav sits outside the
+              boundary, so the tab highlight moved while the body did not, and
+              only "Try Again" recovered. Remounting per screen makes navigating
+              away the natural escape. */}
+          <PageErrorBoundary key={currentScreen}>
             <Suspense fallback={<PageSuspenseFallback />}>
               {/* Coordinates the post-advance overlay queue so only one modal
                   shows at a time (G3). */}
