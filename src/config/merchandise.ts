@@ -218,7 +218,5 @@ export const WIN_STREAK_BONUS_THRESHOLD = 3;
 export const WIN_STREAK_BONUS_PER_WIN = 0.04;
 /** Cap on streak revenue multiplier. */
 export const WIN_STREAK_BONUS_CAP = 0.20;
-/** Weeks of buzz applied automatically after a derby win. */
-export const DERBY_BUZZ_WEEKS = 2;
 /** Revenue multiplier during derby buzz weeks. */
 export const DERBY_BUZZ_FACTOR = 1.15;

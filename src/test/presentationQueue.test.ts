@@ -1,11 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  resolveActiveOverlay,
-  nextOverlay,
-  buildQueue,
-  PRESENTATION_ORDER,
-  type OverlayId,
-} from '@/utils/presentationQueue';
+import { resolveActiveOverlay } from '@/utils/presentationQueue';
 
 describe('presentationQueue — resolveActiveOverlay', () => {
   it('returns null when nothing is registered', () => {
@@ -47,31 +41,5 @@ describe('presentationQueue — resolveActiveOverlay', () => {
     expect(resolveActiveOverlay(registered)).toBe('pressConference');
     registered = registered.filter(x => x !== 'pressConference');
     expect(resolveActiveOverlay(registered)).toBeNull();
-  });
-});
-
-describe('presentationQueue — buildQueue / nextOverlay', () => {
-  it('buildQueue returns eligible overlays in priority order', () => {
-    const queue = buildQueue({ dailyReward: true, weeklyDigest: true, celebration: true });
-    expect(queue).toEqual(['weeklyDigest', 'celebration', 'dailyReward']);
-  });
-
-  it('buildQueue is empty when nothing is eligible', () => {
-    expect(buildQueue({})).toEqual([]);
-    expect(buildQueue({ weeklyDigest: false })).toEqual([]);
-  });
-
-  it('nextOverlay is the head of the queue', () => {
-    expect(nextOverlay({ dailyReward: true, celebration: true })).toBe('celebration');
-    expect(nextOverlay({})).toBeNull();
-  });
-
-  it('every OverlayId appears exactly once in PRESENTATION_ORDER', () => {
-    const seen = new Set<OverlayId>();
-    for (const id of PRESENTATION_ORDER) {
-      expect(seen.has(id)).toBe(false);
-      seen.add(id);
-    }
-    expect(seen.size).toBe(PRESENTATION_ORDER.length);
   });
 });

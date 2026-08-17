@@ -1071,11 +1071,6 @@ export function readSaveSlotTmp(slot: number): string | null {
   catch { return null; }
 }
 
-/** Drop the tmp key for a slot. Kept for backward compat. */
-export function clearSaveSlotTmp(slot: number): void {
-  try { localStorage.removeItem(STORAGE_KEYS.saveSlotTmp(slot)); }
-  catch { /* storage unavailable */ }
-}
 
 /** Sweep stale tmp keys from a previous app version that still used the
  *  tmp-staging write path. If tmp is valid JSON and the slot is empty

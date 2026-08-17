@@ -98,15 +98,8 @@ export function resolveActiveOverlay(registered: Iterable<string>): OverlayId | 
   return best;
 }
 
-/**
- * The ordered list of eligible overlays (highest priority first). Handy for
- * previewing the queue and for tests. `nextOverlay` = `buildQueue()[0]`.
- */
-export function buildQueue(eligible: Partial<Record<OverlayId, boolean>>): OverlayId[] {
-  return PRESENTATION_ORDER.filter(id => eligible[id]);
-}
+// `buildQueue` / `nextOverlay` used to live here: two re-expressions of
+// `resolveActiveOverlay`, self-described as "for previewing and tests", with no
+// production caller. A second implementation of the ordering rule is a second
+// place for it to be wrong.
 
-/** The single overlay that should be visible right now, or null. */
-export function nextOverlay(eligible: Partial<Record<OverlayId, boolean>>): OverlayId | null {
-  return buildQueue(eligible)[0] ?? null;
-}

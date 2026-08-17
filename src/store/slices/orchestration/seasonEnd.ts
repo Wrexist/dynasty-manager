@@ -28,7 +28,7 @@ import { checkChallengeComplete, CHALLENGES, getFeaturedChallengeId, FEATURED_CH
 import { addCompletedChallenge } from '@/store/helpers/persistence';
 import { calculateSeasonAwards } from '@/utils/seasonAwards';
 import { calculateBallonDOr } from '@/utils/ballonDor';
-import { getPlayerRarity } from '@/utils/playerRarity';
+import { applyRarityToPlayer } from '@/utils/playerRarity';
 import { applyBallonDorTop10Boost, revertBallonDorTop10Boost, hasBallonDorTop10Reign } from '@/utils/ballonDorBoost';
 import { recomputePlayerValueOnly as recomputePlacementValue } from '@/utils/playerEconomics';
 import { BALLON_DOR_TOP10_RANK, MAX_CAREER_TIMELINE } from '@/config/gameBalance';
@@ -162,7 +162,7 @@ export function endSeasonImpl(set: Set, get: Get) {
       // Non-top-10 placements: just refresh derived economics so the new
       // placement premium lands in `value`. Rarity may also shift (e.g. 90+
       // graduating to legend on their 3rd top-25 placement).
-      updatedPlayer.rarity = getPlayerRarity(updatedPlayer);
+      applyRarityToPlayer(updatedPlayer);
       // Inline recompute to avoid pulling another helper into this file —
       // matches the formula used everywhere else (overall × age × rarity ×
       // placement premium, captured by recomputeDerivedEconomics).

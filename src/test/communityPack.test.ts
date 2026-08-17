@@ -3,11 +3,8 @@ import type { PlayerTemplate } from '@/data/playerTemplates';
 import {
   ACTIVE_POOL_SIZE,
   advanceCursor,
-  drawForAISquadFill,
   drawForFaPoolSeed,
   drawForMarket,
-  drawForScouting,
-  drawForYouth,
   getActivePool,
   mulberry32,
   needsRefill,
@@ -149,91 +146,6 @@ describe('communityPack: drawForMarket', () => {
     const a = drawForMarket(activePool, 5, [], 2026);
     const b = drawForMarket(activePool, 5, [], 2026);
     expect(a.map(t => t.fcId)).toEqual(b.map(t => t.fcId));
-  });
-});
-
-describe('communityPack: drawForScouting', () => {
-  const activePool: PlayerTemplate[] = [
-    makeTemplate({ fcId: 'st-1', pos: 'ST', ovr: 80 }),
-    makeTemplate({ fcId: 'st-2', pos: 'ST', ovr: 81 }),
-    makeTemplate({ fcId: 'cm-1', pos: 'CM', ovr: 80 }),
-    makeTemplate({ fcId: 'lw-alt-st', pos: 'LW', altPos: ['ST'], ovr: 79 }),
-    makeTemplate({ fcId: 'st-far', pos: 'ST', ovr: 70 }), // >2 gap, should be filtered
-  ];
-
-  it('returns a player at the target position within OVR ±2', () => {
-    const pick = drawForScouting(activePool, 80, 'ST', [], 1);
-    expect(pick).not.toBeNull();
-    expect(['ST', 'LW']).toContain(pick!.pos);
-    expect(Math.abs(pick!.ovr - 80)).toBeLessThanOrEqual(2);
-  });
-
-  it('accepts altPos matches', () => {
-    // With only LW-alt-ST + too-far pool, should still return the alt-ST
-    const narrowPool = [
-      makeTemplate({ fcId: 'lw-alt-st', pos: 'LW', altPos: ['ST'], ovr: 80 }),
-    ];
-    const pick = drawForScouting(narrowPool, 80, 'ST', [], 1);
-    expect(pick?.fcId).toBe('lw-alt-st');
-  });
-
-  it('returns null when no candidate fits OVR window', () => {
-    const pick = drawForScouting(activePool, 40, 'ST', [], 1);
-    expect(pick).toBeNull();
-  });
-
-  it('respects excludeIds', () => {
-    const pick = drawForScouting(activePool, 80, 'ST', ['st-1', 'st-2', 'lw-alt-st'], 1);
-    // Remaining ST candidates at 80 OVR: none — st-far is >2 away, cm-1 is wrong pos
-    expect(pick).toBeNull();
-  });
-});
-
-describe('communityPack: drawForAISquadFill', () => {
-  const pool: PlayerTemplate[] = [
-    makeTemplate({ fcId: 'elite-gk', pos: 'GK', ovr: 85 }),
-    makeTemplate({ fcId: 'top-gk', pos: 'GK', ovr: 72 }),
-    makeTemplate({ fcId: 'mid-gk', pos: 'GK', ovr: 65 }),
-    makeTemplate({ fcId: 'low-gk', pos: 'GK', ovr: 55 }),
-  ];
-
-  it.each([
-    ['elite', 'elite-gk'],
-    ['top', 'top-gk'],
-    ['mid', 'mid-gk'],
-    ['low', 'low-gk'],
-  ] as const)('draws a %s tier GK', (tier, expectedId) => {
-    const pick = drawForAISquadFill(pool, 'GK', tier, [], 1);
-    expect(pick?.fcId).toBe(expectedId);
-  });
-
-  it('returns null when no player matches tier + position', () => {
-    const pick = drawForAISquadFill(pool, 'ST', 'elite', [], 1);
-    expect(pick).toBeNull();
-  });
-});
-
-describe('communityPack: drawForYouth', () => {
-  const pool: PlayerTemplate[] = [
-    makeTemplate({ fcId: 'y1', age: 17, ovr: 65 }),
-    makeTemplate({ fcId: 'y2', age: 20, ovr: 68 }),
-    makeTemplate({ fcId: 'too-old', age: 22, ovr: 65 }),
-    makeTemplate({ fcId: 'too-young', age: 15, ovr: 65 }),
-    makeTemplate({ fcId: 'too-good', age: 18, ovr: 80 }),
-  ];
-
-  it('returns a player aged 16-21 with ovr ≤ 70', () => {
-    const pick = drawForYouth(pool, [], 1);
-    expect(pick).not.toBeNull();
-    expect(pick!.age).toBeGreaterThanOrEqual(16);
-    expect(pick!.age).toBeLessThanOrEqual(21);
-    expect(pick!.ovr).toBeLessThanOrEqual(70);
-  });
-
-  it('returns null when pool has no eligible youth', () => {
-    const noYouth = pool.filter(t => !['y1', 'y2'].includes(t.fcId!));
-    const pick = drawForYouth(noYouth, [], 1);
-    expect(pick).toBeNull();
   });
 });
 

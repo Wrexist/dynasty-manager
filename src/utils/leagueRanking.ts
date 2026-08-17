@@ -90,16 +90,6 @@ export function getLeagueRankings(
 }
 
 /**
- * Get the ranked entry for a specific league.
- */
-export function getLeagueRank(
-  leagueId: string,
-  coefficients?: Record<string, ContinentalCoefficient>,
-): RankedLeague | undefined {
-  return getLeagueRankings(coefficients).find(r => r.leagueId === leagueId);
-}
-
-/**
  * Compute qualification zones for a given league, suitable for league table display.
  *
  * Returns which positions qualify for Champions Cup, Shield Cup, Conference Cup,
