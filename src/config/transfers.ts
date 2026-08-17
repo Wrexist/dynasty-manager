@@ -107,6 +107,13 @@ export const COMPETING_BID_PREMIUM = 0.05;             // 5% above highest exist
 
 // ── Asking Price Anchor ──
 export const ASKING_PRICE_BID_ANCHOR = 0.85;           // AI bids anchor at 85% of asking price as floor
+/** Hard ceiling on how far an asking price may pull a bid above the player's
+ *  actual value. Without it the anchor was a money printer: buy an external
+ *  target at ~1.1-1.5x value (no sell-on clause), relist at the UI's 2x cap,
+ *  and AI clubs bid 2.4-3.5x — repeatable every window, across every spare
+ *  squad slot. Measured before the cap: listings 6 weeks old drew a mean
+ *  3.45x value, peaking at 6.0x. */
+export const MAX_ASKING_ANCHOR_VALUE_MULTIPLE = 1.3;
 
 // ── Injury Discount ──
 export const INJURY_BID_DISCOUNT = 0.80;               // 20% discount for injured players

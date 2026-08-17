@@ -43,7 +43,7 @@ import { STORYLINE_CHAIN_MIN_WEEK, STORYLINE_CHAIN_TRIGGER_CHANCE, STORYLINE_CHA
 import { MAX_SCOUT_REPORTS } from '@/config/scouting';
 import { GK_COACH_DEV_BONUS_PER_QUALITY, STAFF_MARKET_REFRESH_WEEK } from '@/config/staff';
 import { INDIVIDUAL_INJURY_RISK_MODIFIER } from '@/config/training';
-import { AI_OFFER_CHANCE, AI_OFFER_MIN_BUDGET_RATIO, AI_OFFER_POSITION_THRESHOLD, ASKING_PRICE_BID_ANCHOR, CLUB_LISTING_EXPIRY_WEEKS, COMPETING_BID_PREMIUM, DEADLINE_BARGAIN_DISCOUNT, DEADLINE_DAY_BID_PREMIUM, DEADLINE_DAY_OFFER_MULTIPLIER, DEADLINE_MULTI_BID_CHANCE, DEADLINE_PANIC_BID_PREMIUM, DEADLINE_PANIC_OFFER_COUNT, FREE_AGENT_SPAWN_CHANCE, INJURY_BID_DISCOUNT, LISTING_EXPIRY_WEEKS, LISTING_RELIST_CHANCE, LISTING_RELIST_DISCOUNT, LONG_INJURY_BID_DISCOUNT, LONG_INJURY_WEEKS_THRESHOLD, MARKET_REPLENISH_THRESHOLD, OFFER_EXPIRY_WEEKS, OFFER_FEE_BASE, OFFER_FEE_RANDOM_RANGE, OFFER_MAX_BUDGET_RATIO, PRE_SEASON_END, PRE_SEASON_OFFER_MULTIPLIER, PRE_SEASON_RUMOR_MULTIPLIER, PRE_SEASON_UNSOLICITED_MULTIPLIER, RUMOR_CHANCE, getTransferWindows, isTransferWindowOpen, UNSOLICITED_FEE_BASE, UNSOLICITED_FEE_RANGE, UNSOLICITED_OFFER_CHANCE, URGENCY_NONE, URGENCY_ONE, URGENCY_TWO_PLUS, } from '@/config/transfers';
+import { AI_OFFER_CHANCE, AI_OFFER_MIN_BUDGET_RATIO, AI_OFFER_POSITION_THRESHOLD, ASKING_PRICE_BID_ANCHOR, CLUB_LISTING_EXPIRY_WEEKS, COMPETING_BID_PREMIUM, DEADLINE_BARGAIN_DISCOUNT, DEADLINE_DAY_BID_PREMIUM, DEADLINE_DAY_OFFER_MULTIPLIER, DEADLINE_MULTI_BID_CHANCE, DEADLINE_PANIC_BID_PREMIUM, DEADLINE_PANIC_OFFER_COUNT, FREE_AGENT_SPAWN_CHANCE, INJURY_BID_DISCOUNT, LISTING_EXPIRY_WEEKS, LISTING_RELIST_CHANCE, LISTING_RELIST_DISCOUNT, LONG_INJURY_BID_DISCOUNT, MAX_ASKING_ANCHOR_VALUE_MULTIPLE, LONG_INJURY_WEEKS_THRESHOLD, MARKET_REPLENISH_THRESHOLD, OFFER_EXPIRY_WEEKS, OFFER_FEE_BASE, OFFER_FEE_RANDOM_RANGE, OFFER_MAX_BUDGET_RATIO, PRE_SEASON_END, PRE_SEASON_OFFER_MULTIPLIER, PRE_SEASON_RUMOR_MULTIPLIER, PRE_SEASON_UNSOLICITED_MULTIPLIER, RUMOR_CHANCE, getTransferWindows, isTransferWindowOpen, UNSOLICITED_FEE_BASE, UNSOLICITED_FEE_RANGE, UNSOLICITED_OFFER_CHANCE, URGENCY_NONE, URGENCY_ONE, URGENCY_TWO_PLUS, } from '@/config/transfers';
 import { checkChallengeFailed } from '@/data/challenges';
 import { advanceCupRound, getRoundName } from '@/data/cup';
 import { ALL_CLUBS, getDerbyIntensity, getDerbyName } from '@/data/league';
@@ -1781,9 +1781,24 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
         // profit machine across every spare squad slot, every window — and an
         // ancient listing kept its original asking price forever, so AI clubs
         // bid ~8x a declining player's real value for seasons on end.
+        // The condition used to be inverted: the anchor applied ONLY to
+        // listings older than four weeks, i.e. exactly the ancient-listing case
+        // the comment says it exists to prevent. Measured on the old code, a
+        // squad listed at the UI's 2x cap drew bids of 0.86x value in week 1
+        // and 3.45x (peak 6.0x) by week 6 — the profit machine, on a timer.
+        //
+        // A fresh listing may pull bids a little above value; a stale one
+        // decays back to worth. Either way the anchor is capped, so an asking
+        // price can never drag a bid an unbounded distance from what the player
+        // is actually worth.
         const listedRecently = !!listing && listing.listedSeason === season
           && (newWeek - (listing.listedWeek ?? 0)) <= 4;
-        const askingFloor = listing && !listedRecently ? listing.askingPrice * ASKING_PRICE_BID_ANCHOR : 0;
+        const askingFloor = listing && listedRecently
+          ? Math.min(
+              listing.askingPrice * ASKING_PRICE_BID_ANCHOR,
+              lp.value * MAX_ASKING_ANCHOR_VALUE_MULTIPLE,
+            )
+          : 0;
         const effectiveValue = Math.max(lp.value, askingFloor);
         tryGenerateOffer(lp, OFFER_FEE_BASE, OFFER_FEE_RANDOM_RANGE, effectiveValue);
       }
@@ -2347,7 +2362,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   const playerLeagueInfo = LEAGUES.find(l => l.id === playerDiv);
   // Single shared prize function (also used by the finance breakdown) so the
   // displayed "League Position" line always matches the money paid here.
-  const positionPrize = getLeaguePositionPrize(playerTablePos, leagueTable.length, playerLeagueInfo?.tier);
+  const positionPrize = getLeaguePositionPrize(playerTablePos, leagueTable.length, playerLeagueInfo?.qualityTier);
   // Sponsorship: sum of active sponsor deals
   const sponsorIncome = state.sponsorDeals.reduce((sum, d) => sum + d.weeklyPayment, 0);
   // Merchandise: strategic system with product lines, pricing, campaigns, star players

@@ -31,7 +31,7 @@ import type { Match } from '@/types/game';
 const CLUB = 'manchester-city';
 
 function fixture(id: string, home: string, away: string, hg: number, ag: number): Match {
-  return { id, week: 1, homeClubId: home, awayClubId: away, homeGoals: hg, awayGoals: ag, played: true, competition: 'league' } as Match;
+  return { id, week: 1, homeClubId: home, awayClubId: away, homeGoals: hg, awayGoals: ag, played: true, competition: 'league', events: [] } as unknown as Match;
 }
 
 describe('buildLeagueTable keys on results, not on how many there are', () => {
