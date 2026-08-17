@@ -47,6 +47,16 @@ const HYDRATE_TIMEOUT_MS = 3000;
 const memSlots: (string | null)[] = [null, null, null, null]; // slot 0 unused
 const memSlotBackups: (string | null)[] = [null, null, null, null];
 let hydrated = false;
+/** Per-slot: has IndexedDB actually been READ for this slot yet?
+ *
+ *  The global `hydrated` flag is set in a `finally` after a 3 s race, so it
+ *  also flips when hydration TIMES OUT — at which point the memory cache can be
+ *  empty while IDB still holds a full career. Any code that treats "no save
+ *  found" as "this slot is empty" must gate on this instead, or a wedged
+ *  database turns into deleting the user's only backup on their next write.
+ *  A late-arriving hydrate still flips it, so recovery is possible after the
+ *  timeout rather than only before it. */
+const slotHydrated: boolean[] = [false, false, false, false];
 let hydratePromise: Promise<void> | null = null;
 
 /** Hydrate the in-memory save cache from IndexedDB. Called once at app
@@ -118,6 +128,9 @@ async function hydrateOneSlot(slot: number): Promise<void> {
       }
     } catch { /* storage unavailable */ }
   }
+  // Reached only when both IDB reads resolved. A timed-out or rejected read
+  // leaves this false, which is exactly what the write path needs to know.
+  slotHydrated[slot] = true;
 }
 
 /** True once `hydrateSaveStorage` has resolved. UI code that lists slots
@@ -133,9 +146,17 @@ export function __resetSaveStorageForTests(): void {
   for (let i = 0; i < memSlots.length; i++) {
     memSlots[i] = null;
     memSlotBackups[i] = null;
+    slotHydrated[i] = false;
   }
   hydrated = false;
   hydratePromise = null;
+}
+
+/** True once IndexedDB has actually been read for this slot. Distinct from
+ *  `isSaveStorageHydrated()`, which also returns true when hydration timed out
+ *  without reading anything. */
+export function isSlotHydrated(slot: number): boolean {
+  return slotHydrated[slot] === true;
 }
 
 /** Best-effort localStorage write. Swallows quota/availability errors —
@@ -993,31 +1014,50 @@ export function writeSaveSlot(slot: number, json: string, opts?: WriteSaveSlotOp
   // "both disk paths failed" case and surface a Save Failed warning.
   const idbPromise = idbPut(mainKey, json);
   if (rotate) void idbPut(backupKey, oldMain as string);
-  else if (!oldMain && hydrated) void idbDel(backupKey);
+  else if (!oldMain && slotHydrated[slot]) void idbDel(backupKey);
   // else: either the outgoing main failed validation (leave the existing backup
-  // intact), or we haven't hydrated yet. The `hydrated` guard matters: before
-  // hydration `readSaveSlot` can legitimately return null while IDB still holds
-  // both a main and a backup, so an early write — reachable via
+  // intact), or this slot has not been read from IDB yet. That guard matters:
+  // before hydration `readSaveSlot` can legitimately return null while IDB still
+  // holds both a main and a backup, so an early write — reachable via
   // `migrateLegacySave()` or a deep link straight to #/select-club — would read
   // `oldMain === null` and DELETE the last-known-good IDB backup while
   // overwriting the main. Never destroy a recovery layer we haven't looked at.
+  //
+  // It is deliberately PER-SLOT rather than the global `hydrated` flag: that one
+  // is set in a `finally` after a 3 s race, so it is also true when hydration
+  // timed out having read nothing. On a slow or wedged database that produced
+  // the worst version of this bug — the title screen showed empty slots, the
+  // user tapped New Game, and the write deleted the real IDB backup.
 
   // Step 4: best-effort localStorage mirror. On quota exceeded we drop
   // whatever was there so the two stores don't diverge — IDB is truth.
   let lsOk = true;
+  // Rotate the backup mirror BEFORE writing the main one. The main write is the
+  // one that blows the ~5 MB WKWebView quota, and it used to run first: the
+  // rotation never happened, and the catch then removed the previous, untouched
+  // backup mirror on the strength of a `rotate` flag that only described the
+  // in-memory rotation. localStorage ended up holding neither layer — and since
+  // mature-career saves exceed the quota routinely, that fired on essentially
+  // every save, leaving nothing to fall back on when IDB also failed to open.
+  if (rotate) {
+    lsSetSafe(backupKey, oldMain as string);
+  } else if (!oldMain && slotHydrated[slot]) {
+    // Same per-slot guard as the IDB path above — this one was missing it
+    // entirely, so a pre-hydration write deleted the localStorage backup even
+    // though the IDB one was correctly spared.
+    lsRemoveSafe(backupKey);
+  }
+  // else: preserve the existing backup mirror for the invalid-main case.
   try {
     localStorage.setItem(mainKey, json);
-    if (rotate) lsSetSafe(backupKey, oldMain as string);
-    else if (!oldMain) lsRemoveSafe(backupKey);
-    // else: preserve the existing backup mirror for the invalid-main case.
   } catch {
-    // Quota exceeded — drop the main mirror. The caller now sees `lsOk: false`
-    // and can await `idbPromise` to decide whether to warn the user. We only
-    // clear the backup mirror when we just rotated into it; an untouched
-    // last-known-good backup must survive a main-write quota failure.
+    // Quota exceeded — drop the main mirror only. The caller sees `lsOk: false`
+    // and can await `idbPromise` to decide whether to warn the user. Whatever
+    // the backup mirror holds is valid data and a real recovery layer, so it
+    // stays: a divergence between the two stores is strictly better than
+    // having no local copy at all.
     lsOk = false;
     lsRemoveSafe(mainKey);
-    if (rotate) lsRemoveSafe(backupKey);
   }
 
   return { lsOk, idbPromise };
@@ -1149,9 +1189,30 @@ export function deleteAllDynastyData(): void {
  *  fallback for users whose slots haven't been hydrated yet. */
 export function getSlotSummaries(): SlotSummary[] {
   migrateLegacySave();
-  return [1, 2, 3].map(slot => {
-    const raw = readSaveSlot(slot);
-    if (!raw) return { slot, exists: false };
+  return [1, 2, 3].map(slot => summariseSlot(slot));
+}
+
+function summariseSlot(slot: number): SlotSummary {
+  const raw = readSaveSlot(slot);
+  if (!raw) return { slot, exists: false };
+  const parsed = parseSummary(slot, raw);
+  if (parsed) return parsed;
+
+  // The primary failed to parse. It used to stop here and report the slot as
+  // EMPTY, which is the worst possible answer: TitleScreen rendered a "New
+  // Game" row over a real career, `loadGame` (which already recovers from the
+  // backup) was never reached, and starting a new game there rotated the fresh
+  // save into the backup on the following autosave — destroying the last good
+  // copy for good. Report the slot as present-but-damaged instead, described by
+  // the backup where one parses, so the existing recovery path is reachable.
+  const backupRaw = readSaveSlotBackup(slot);
+  const fromBackup = backupRaw ? parseSummary(slot, backupRaw) : null;
+  return fromBackup
+    ? { ...fromBackup, needsRecovery: true }
+    : { slot, exists: true, needsRecovery: true };
+}
+
+function parseSummary(slot: number, raw: string): SlotSummary | null {
     try {
       const data = JSON.parse(raw);
       const club = data.clubs?.[data.playerClubId];
@@ -1174,12 +1235,7 @@ export function getSlotSummaries(): SlotSummary[] {
       }
       return { slot, exists: true, clubName: club?.name, season: data.season, week: data.week, position, gameMode: data.gameMode || 'sandbox' };
     } catch (err) {
-      // Slot data exists but failed to parse — corruption. Without the
-      // breadcrumb the user just sees their populated slot rendered as
-      // an empty "New Game" row on TitleScreen, with no signal to us
-      // that a save was lost.
       breadcrumbCorruption(`getSlotSummaries:slot${slot}`, raw, err);
-      return { slot, exists: false };
+      return null;
     }
-  });
 }

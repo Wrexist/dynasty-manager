@@ -1395,6 +1395,12 @@ export interface PlayerMatchRecord {
 export interface SlotSummary {
   slot: number;
   exists: boolean;
+  /** The primary save could not be parsed. The slot is NOT empty — any
+   *  populated fields here were read from the backup. Surfacing this rather
+   *  than reporting `exists: false` is what makes `loadGame`'s existing
+   *  backup-promotion path reachable; a damaged slot rendered as "New Game"
+   *  invited the user to overwrite a recoverable career. */
+  needsRecovery?: boolean;
   clubName?: string;
   season?: number;
   position?: string;

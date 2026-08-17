@@ -287,18 +287,29 @@ const TitleScreen = () => {
                     </div>
                     <div className="flex-1 min-w-0 pr-8">
                       <div className="flex items-center gap-1.5">
-                        <p className="text-sm font-bold text-foreground truncate">{slot.clubName}</p>
+                        <p className="text-sm font-bold text-foreground truncate">{slot.clubName || t('title.damaged')}</p>
                         {slot.gameMode === 'career' && (
                           <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-[1px] rounded-full font-semibold shrink-0 uppercase tracking-wider border border-primary/25">
                             Career
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-muted-foreground truncate mt-0.5 flex items-center gap-1.5">
-                        <RotateCcw className="w-3 h-3 text-primary/70 shrink-0" aria-hidden />
-                        Season {slot.season} · Wk {slot.week}
-                        {slot.position && ` · ${slot.position}${getSuffix(Number(slot.position))}`}
-                      </p>
+                      {/* A slot whose primary save will not parse is still a
+                          real career — loadGame promotes the backup. Say so,
+                          rather than showing standings read from a file we
+                          could not read. */}
+                      {slot.needsRecovery ? (
+                        <p className="text-[11px] text-amber-400 truncate mt-0.5 flex items-center gap-1.5">
+                          <RotateCcw className="w-3 h-3 shrink-0" aria-hidden />
+                          {t('title.damagedSubtitle')}
+                        </p>
+                      ) : (
+                        <p className="text-[11px] text-muted-foreground truncate mt-0.5 flex items-center gap-1.5">
+                          <RotateCcw className="w-3 h-3 text-primary/70 shrink-0" aria-hidden />
+                          Season {slot.season} · Wk {slot.week}
+                          {slot.position && ` · ${slot.position}${getSuffix(Number(slot.position))}`}
+                        </p>
+                      )}
                     </div>
                   </button>
                   <button

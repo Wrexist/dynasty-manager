@@ -17,6 +17,8 @@ export const en = {
   'title.newGameSubtitle': 'Slot {slot} · Start a new dynasty',
   'title.newGameAria': 'Start new game in slot {slot}',
   'title.continueAria': 'Continue — {club}, Season {season} Week {week}',
+  'title.damaged': 'Damaged save',
+  'title.damagedSubtitle': 'Tap to recover from backup',
   'title.settings': 'Settings',
   'title.settingsSubtitle': 'Speed · display · purchases',
   'title.whatsNew': "What's New!",
