@@ -36,6 +36,7 @@ import { generateAIManagerProfile } from '@/config/aiManager';
 
 import { createDefaultProgression, MANAGER_PERKS, canUnlockPerk } from '@/utils/managerPerks';
 import { buildHallEntry, saveToHall } from '@/utils/hallOfManagers';
+import { PRESTIGE_RESTART_PERK_XP } from '@/utils/prestige';
 
 import type { PerkId, ManagerProgression } from '@/types/game';
 
@@ -138,10 +139,26 @@ function countFixtureEventBytes(
   return total;
 }
 
-const stripAllEvents = (fixtures: unknown[]): unknown[] =>
+/**
+ * Last-resort trim for oversized saves.
+ *
+ * Preserves the PLAYER's own matches from the current season, which the normal
+ * `trimFixturesForSave` also deliberately keeps. Stripping them too meant that
+ * the moment a save crossed AGGRESSIVE_TRIM_THRESHOLD — i.e. exactly the mature
+ * careers with the most history worth keeping — match review silently lost the
+ * player's own games while AI-vs-AI results it never showed were treated the
+ * same. The AI events are the overwhelming bulk of the payload anyway: a
+ * 20-team division plays ~380 matches a season against the player's ~38.
+ */
+const stripAllEvents = (fixtures: unknown[], playerClubId?: string, currentSeason?: number): unknown[] =>
   fixtures.map((f: unknown) => {
-    const m = f as { played?: boolean; events?: unknown[]; stats?: unknown };
+    const m = f as { played?: boolean; events?: unknown[]; stats?: unknown; homeClubId?: string; awayClubId?: string; season?: number };
     if (!m.played || !m.events) return m;
+    if (playerClubId && (m.homeClubId === playerClubId || m.awayClubId === playerClubId)) {
+      // Only this season's own matches — older ones are already history the
+      // season summary keeps, and they are what pushed the payload over.
+      if (m.season === undefined || currentSeason === undefined || m.season === currentSeason) return m;
+    }
     const { events: _e, stats: _s, ...rest } = m as Record<string, unknown>;
     return rest;
   });
@@ -185,11 +202,11 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
     if (divFixturesForSave) {
       const aggressiveTrim: Record<string, unknown[]> = {};
       for (const [div, fx] of Object.entries(divFixturesForSave)) {
-        aggressiveTrim[div] = stripAllEvents(fx);
+        aggressiveTrim[div] = stripAllEvents(fx, state.playerClubId, state.season);
       }
       divFixturesForSave = aggressiveTrim;
     }
-    if (flatFixturesForSave) flatFixturesForSave = stripAllEvents(flatFixturesForSave);
+    if (flatFixturesForSave) flatFixturesForSave = stripAllEvents(flatFixturesForSave, state.playerClubId, state.season);
   }
 
   // Invincible-perk rewind snapshot. It was restored on load and widened by
@@ -350,12 +367,12 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
       if (saveData.divisionFixtures) {
         const aggressiveTrim: Record<string, unknown[]> = {};
         for (const [div, fx] of Object.entries(saveData.divisionFixtures as Record<string, unknown[]>)) {
-          aggressiveTrim[div] = stripAllEvents(fx);
+          aggressiveTrim[div] = stripAllEvents(fx, state.playerClubId, state.season);
         }
         saveData.divisionFixtures = aggressiveTrim;
       }
       if (saveData.fixtures) {
-        saveData.fixtures = stripAllEvents(saveData.fixtures as unknown[]);
+        saveData.fixtures = stripAllEvents(saveData.fixtures as unknown[], state.playerClubId, state.season);
       }
       json = JSON.stringify(saveData);
     }
@@ -1301,6 +1318,15 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
   // ── Prestige ──
   startPrestige: (optionId: 'rival' | 'drop-division' | 'restart-perks') => {
     const state = get();
+    // Prestige is a SANDBOX arc — "take over a rival", "reset to season 1". It
+    // re-inits the game at a new club and never touches `careerManager`, so in
+    // career mode it left `playerClubId` pointing at one club while
+    // `contract.clubId` still named the old one, and the open `careerHistory`
+    // entry never closed. Season-end contract and bonus logic then paid the new
+    // club's budget against the old club's terms. Career mode has its own arc
+    // (job market, sacking, retirement, Hall of Managers) — it does not need
+    // this one, and the UI no longer offers it.
+    if (state.gameMode === 'career') return;
     const currentProg = state.managerProgression;
     const newPrestigeLevel = (currentProg.prestigeLevel || 0) + 1;
 
@@ -1358,7 +1384,15 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       const freshState = get();
       const updatedProg = preserveProgression
         ? { ...currentProg, prestigeLevel: newPrestigeLevel }
-        : { ...freshState.managerProgression, prestigeLevel: newPrestigeLevel };
+        // "Fresh Start+" advertises "+1 starting perk point" among its bonuses
+        // and used to grant a plain reset. Perk points are derived from XP
+        // (`getTotalXP` = lifetime XP minus perk costs), so the honest way to
+        // hand over one point is to seed the XP a tier-1 perk costs.
+        : {
+            ...freshState.managerProgression,
+            prestigeLevel: newPrestigeLevel,
+            xp: (freshState.managerProgression.xp || 0) + PRESTIGE_RESTART_PERK_XP,
+          };
 
       const updates: Partial<GameState> = {
         managerProgression: updatedProg,

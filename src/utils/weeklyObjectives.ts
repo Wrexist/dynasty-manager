@@ -555,9 +555,17 @@ export function generateMonthlyObjectives(hasMatch: boolean): ObjectiveInstance[
 /** Base XP for a single completed objective, including its rarity multiplier.
  *  Used when the player claims an objective's reward. */
 export function objectiveClaimXP(inst: ObjectiveInstance): number {
-  const rarityMult = inst.rarity === 'legendary' ? LEGENDARY_OBJECTIVE_XP_MULTIPLIER
+  return Math.round(inst.xpReward * objectiveXpMultiplier(inst));
+}
+
+/** Rarity multiplier for an objective's XP.
+ *
+ *  The same ternary was written out four times — twice here, once in
+ *  `weekAdvance`, once in `Dashboard` — so a change to what these constants
+ *  mean had four places to drift out of step. One definition, four callers. */
+export function objectiveXpMultiplier(inst: { rarity?: ObjectiveInstance['rarity'] }): number {
+  return inst.rarity === 'legendary' ? LEGENDARY_OBJECTIVE_XP_MULTIPLIER
     : inst.rarity === 'rare' ? RARE_OBJECTIVE_XP_MULTIPLIER : 1;
-  return Math.round(inst.xpReward * rarityMult);
 }
 
 /** Detect newly-completed objectives. NO XP is granted or returned here:
@@ -616,9 +624,7 @@ export function calculateCompletedXP(
   let baseXP = 0;
   for (const inst of objectives) {
     if (!inst.completed) continue;
-    const rarityMult = inst.rarity === 'legendary' ? LEGENDARY_OBJECTIVE_XP_MULTIPLIER
-      : inst.rarity === 'rare' ? RARE_OBJECTIVE_XP_MULTIPLIER : 1;
-    baseXP += inst.xpReward * rarityMult;
+    baseXP += inst.xpReward * objectiveXpMultiplier(inst);
   }
 
   if (newStreak >= OBJECTIVE_STREAK_THRESHOLD) {

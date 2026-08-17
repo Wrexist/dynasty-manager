@@ -611,7 +611,10 @@ const SeasonSummary = () => {
           </GlassPanel>
         )}
 
-        {latest.position === 1 && (
+        {/* Sandbox only: prestige re-inits at a new club without touching the
+            career contract, which desynced `playerClubId` from
+            `careerManager.contract.clubId`. Career mode has its own arc. */}
+        {latest.position === 1 && gameMode !== 'career' && (
           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }}>
             <GlassPanel className="p-4 border-primary/50 bg-primary/5 text-center">
               <Star className="w-6 h-6 text-primary mx-auto mb-1" />

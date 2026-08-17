@@ -124,3 +124,11 @@ export const CONTRACT_STRIKE_COOLDOWN_WEEKS = 8;
 // ── Contract Expiry Visibility ──
 /** How many seasons ahead to flag a contract as "near expiry" on squad views */
 export const CONTRACT_NEAR_EXPIRY_SEASONS = 1;
+
+// ── Free-Agent Signing Acceptance ──
+/** Chance of accepting at the UI's minimum (0.7x) offer, before willingness. */
+export const FREE_AGENT_ACCEPT_AT_FLOOR = 0.25;
+/** Chance of accepting at exactly the expected wage. */
+export const FREE_AGENT_ACCEPT_AT_ASK = 1.0;
+/** How much willingness (0-100, centred on 50) shifts the chance. */
+export const FREE_AGENT_WILLINGNESS_SWING = 0.3;

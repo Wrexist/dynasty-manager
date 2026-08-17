@@ -619,6 +619,15 @@ export const PRESS_PROMOTION_RACE_TOP_N = 3;       // top N positions to trigger
 export const PRESS_RELEGATION_BATTLE_BOTTOM_N = 3;  // bottom N positions to trigger relegation_battle
 export const PRESS_INJURY_CRISIS_MIN = 3;            // minimum injured players to trigger injury_crisis
 export const PRESS_DERBY_PREVIEW_CHANCE = 0.6;       // chance of derby_preview context before derby
+/** Chance a post-match press conference asks about the club's SITUATION
+ *  (injury crisis, relegation battle, promotion race, transfer rumours, form,
+ *  a new signing) instead of the result.
+ *
+ *  Every production call site hardcoded post_win/post_loss/post_draw, so nine
+ *  of the twelve authored contexts — 66 of the 90 questions in
+ *  `pressConferences.ts` — were unreachable. Kept a minority of conferences so
+ *  the result still dominates the room, which is what a post-match presser is. */
+export const PRESS_SITUATIONAL_POST_MATCH_CHANCE = 0.35;
 
 // ── Injury Types & Severity ──
 import type { InjuryType, InjurySeverity } from '@/types/game';

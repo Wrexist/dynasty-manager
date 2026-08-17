@@ -1863,6 +1863,15 @@ export function simulateHalf(
       }
     }
     // === OWN GOAL (rare) ===
+    // NOTE on ordering: this is an independent draw evaluated for every roll
+    // past `foulBandEnd`, so it intercepts OWN_GOAL_CHANCE (0.45%) of the rolls
+    // the injury band below would otherwise classify. That is deliberate to
+    // leave alone rather than deliberate by design: the measured aggregates sit
+    // inside real-football envelopes as they stand (0.493 injuries and 0.018
+    // own goals per match over 1500 matches), so re-ordering the branches would
+    // shift two calibrated rates to satisfy a comment. Revisit only alongside a
+    // recalibration, not on its own.
+    //
     // No xG is accrued here, deliberately: an own goal is not a shot by the
     // benefiting team and standard xG models exclude them entirely. (The
     // `goalkeeper_error` branch above likewise adds none of its own — the shot

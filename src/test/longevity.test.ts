@@ -103,8 +103,25 @@ describe('1A: Season Lifecycle Stress Test (10 seasons)', () => {
 
       const postState = useGameStore.getState();
 
-      // Season incremented
-      expect(postState.season).toBe(expectedSeason + 1);
+      // Season incremented.
+      //
+      // This assertion fired once in a full-suite run and could not be
+      // reproduced afterwards — 120 seeded rolls (12 seeds x 10 seasons) plus
+      // 40 unseeded ones all passed, and the one failure coincided with the
+      // reporter-RPC stalls that only appear under heavy contention. A bare
+      // "expected 9 to be 10" says nothing about WHY, so carry the state that
+      // distinguishes the candidate causes: a parked playoff phase, a rollover
+      // the idempotence guard refused, or a season that never reached its end.
+      expect(postState.season, [
+        `season failed to roll from ${expectedSeason}`,
+        `phase=${postState.seasonPhase}`,
+        `week=${postState.week}/${postState.totalWeeks}`,
+        `playoffPending=${postState.playoffState?.pendingMatch ? 'yes' : 'no'}`,
+        `playoffResolved=${postState.playoffState?.resolved?.length ?? 'n/a'}`,
+        `div=${postState.playerDivision}`,
+        `historyHasSeason=${postState.seasonHistory.some(h => h.season === postState.season)}`,
+        `unplayedThisSeason=${postState.fixtures.filter(f => !f.played).length}`,
+      ].join(' ')).toBe(expectedSeason + 1);
 
       // Week reset to 1
       expect(postState.week).toBe(1);

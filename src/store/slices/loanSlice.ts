@@ -6,6 +6,8 @@ import {
   LOAN_REQUEST_BASE_ACCEPT, LOAN_REQUEST_LINEUP_PENALTY,
   LOAN_REQUEST_WAGE_BONUS, LOAN_REQUEST_AGE_BONUS,
   LOAN_REQUEST_COUNTER_CHANCE, LOAN_TERMINATION_MORALE_PENALTY,
+  LOAN_DEST_AVG_WAGE_MULT,
+  LOAN_DEST_WAGE_SHARE_MAX,
 } from '@/config/transfers';
 import { getLoanBuyFee } from '@/utils/transferOffers';
 import { checkChallengeBlock } from './transferSlice';
@@ -25,12 +27,8 @@ type Get = () => GameState;
  * loanee, and the share of its whole wage bill it will commit. The looser of the
  * two applies, so small clubs can still take a decent loanee.
  *
- * TODO(config): belongs in `src/config/transfers.ts` beside the other LOAN_*
- * constants — inlined here only because that file could not be edited
- * concurrently with this change.
+ * Lives in `src/config/transfers.ts` beside the other LOAN_* constants.
  */
-const LOAN_DEST_AVG_WAGE_MULT = 2.5;
-const LOAN_DEST_WAGE_SHARE_MAX = 0.35;
 
 const clampSplit = (splitPct: number | undefined): number => {
   const s = Number.isFinite(splitPct as number) ? (splitPct as number) : 50;

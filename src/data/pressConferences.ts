@@ -1,6 +1,6 @@
 import type { PressConference, PressOption, PressResponseTone } from '@/types/game';
 import { pick, safeRandomUUID } from '@/utils/helpers';
-import { PRESS_TRANSFER_RUMOUR_CHANCE, PRESS_POOR_FORM_LOSSES, PRESS_GOOD_FORM_WINS, PRESS_BIG_MATCH_REP_GAP, PRESS_PROMOTION_RACE_TOP_N, PRESS_RELEGATION_BATTLE_BOTTOM_N, PRESS_INJURY_CRISIS_MIN, PRESS_DERBY_PREVIEW_CHANCE } from '@/config/gameBalance';
+import { PRESS_TRANSFER_RUMOUR_CHANCE, PRESS_POOR_FORM_LOSSES, PRESS_GOOD_FORM_WINS, PRESS_BIG_MATCH_REP_GAP, PRESS_PROMOTION_RACE_TOP_N, PRESS_RELEGATION_BATTLE_BOTTOM_N, PRESS_INJURY_CRISIS_MIN, PRESS_DERBY_PREVIEW_CHANCE, PRESS_SITUATIONAL_POST_MATCH_CHANCE } from '@/config/gameBalance';
 
 interface QuestionDef {
   question: string;
@@ -903,6 +903,36 @@ export interface PressContextExtras {
   recentSigning?: boolean;
   injuredCount?: number;
   isDerby?: boolean;
+}
+
+/**
+ * Post-match context: usually the result, sometimes the club's situation.
+ *
+ * Every production call site used to hardcode the post_win/post_loss/post_draw
+ * trio, so nine of the twelve authored contexts never shipped. This keeps the
+ * result dominant — it is a post-match press conference — while letting the
+ * situational questions through often enough to be seen.
+ *
+ * The two PREVIEW contexts are deliberately excluded: `derby_preview` and
+ * `pre_big_match` are written in the future tense and read wrong after a match.
+ */
+export function getPostMatchPressContext(
+  won: boolean | null,
+  lost: boolean | null,
+  recentForm: ('W' | 'D' | 'L')[],
+  hasListedPlayers: boolean,
+  extras?: PressContextExtras,
+): PressConference['context'] {
+  const result: PressConference['context'] = won ? 'post_win' : lost ? 'post_loss' : 'post_draw';
+  if (Math.random() >= PRESS_SITUATIONAL_POST_MATCH_CHANCE) return result;
+
+  // `won`/`lost` are passed as null so the post-match short-circuit inside
+  // `getPressContext` doesn't fire and the situational branches are reached.
+  const situational = getPressContext(null, null, recentForm, hasListedPlayers, undefined, undefined, {
+    ...extras,
+    isDerby: false, // preview-tense; never post-match
+  });
+  return situational === 'derby_preview' || situational === 'pre_big_match' ? result : situational;
 }
 
 /** Determine what kind of press conference to show based on game state */

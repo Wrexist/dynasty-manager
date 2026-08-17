@@ -30,7 +30,7 @@ import { cn } from '@/lib/utils';
 import { useFinanceBreakdown } from '@/hooks/useFinanceBreakdown';
 import { getContractUrgency } from '@/utils/contracts';
 import { checkCelebrations, getWinStreak, getUnbeatenRun, getCleanSheetStreak, getDramaCelebration, detectTrophyMoments } from '@/utils/celebrations';
-import { STREAK_MORALE_THRESHOLD, OBJECTIVE_STREAK_THRESHOLD, OBJECTIVE_CYCLE_WEEKS, OBJECTIVE_STREAK_MULTIPLIER, RARE_OBJECTIVE_XP_MULTIPLIER, LEGENDARY_OBJECTIVE_XP_MULTIPLIER, COACH_ALL_TASKS_BONUS_XP, ACHIEVEMENT_XP_BRONZE, ACHIEVEMENT_XP_SILVER, ACHIEVEMENT_XP_GOLD } from '@/config/gameBalance';
+import { STREAK_MORALE_THRESHOLD, OBJECTIVE_STREAK_THRESHOLD, OBJECTIVE_CYCLE_WEEKS, OBJECTIVE_STREAK_MULTIPLIER, COACH_ALL_TASKS_BONUS_XP, ACHIEVEMENT_XP_BRONZE, ACHIEVEMENT_XP_SILVER, ACHIEVEMENT_XP_GOLD } from '@/config/gameBalance';
 import { getXPProgress, MANAGER_PERKS, canUnlockPerk, getTotalXP } from '@/utils/managerPerks';
 import { getReputationTierLabel } from '@/utils/managerCareer';
 import { getTransferWindows } from '@/config/transfers';
@@ -77,7 +77,7 @@ import { buildCoachTasks } from '@/utils/gameCoach';
 import { STORYLINE_CHAINS } from '@/data/storylineChains';
 import { FormGuide } from '@/components/game/FormGuide';
 import { getRecentForm } from '@/utils/formGuide';
-import { computeObjectiveProgress } from '@/utils/weeklyObjectives';
+import { computeObjectiveProgress, objectiveXpMultiplier } from '@/utils/weeklyObjectives';
 import { getCompetitionInfo } from '@/utils/competitionBadge';
 
 const WELCOME_KEY = STORAGE_KEYS.WELCOME_SHOWN;
@@ -610,11 +610,10 @@ const Dashboard = () => {
     if (newlyDone.size > 0) hapticLight();
   }, [coachTasks]);
 
-  const effectiveObjXp = (obj: { xpReward: number; rarity?: string }) => {
-    const mult = obj.rarity === 'legendary' ? LEGENDARY_OBJECTIVE_XP_MULTIPLIER
-      : obj.rarity === 'rare' ? RARE_OBJECTIVE_XP_MULTIPLIER : 1;
-    return obj.xpReward * mult;
-  };
+  // Shared with weeklyObjectives + weekAdvance so the number shown here can
+  // never drift from the number granted.
+  const effectiveObjXp = (obj: { xpReward: number; rarity?: string }) =>
+    obj.xpReward * objectiveXpMultiplier(obj as { rarity?: 'common' | 'rare' | 'legendary' });
 
   const prevCompletedObjRef = useRef<Set<string> | null>(null);
   const [justCompletedObj, setJustCompletedObj] = useState<Set<string>>(new Set());
