@@ -1752,7 +1752,16 @@ export function runPostSeasonTail(set: Set, get: Get, completedSeason: number, s
         conference: { winnerId: null, playerEliminated: true, currentRound: null, participated: false },
       },
     };
-    if (cs.gameMode === 'career' && cs.careerManager) {
+    // An UNEMPLOYED career manager is not credited with anything. `playerClubId`
+    // still points at the club that fired them — nothing clears it in
+    // `resignFromClub`/`sackManagerMidSeason` — and this whole block ran
+    // unconditionally, so their ex-club's season accrued to them: career wins,
+    // titles and reputation for a league they did not manage, a SECOND sacking
+    // penalty for a verdict at a club they had already left, and `jobOffers: []`
+    // wiping the offer they were about to accept. They still age.
+    if (cs.gameMode === 'career' && cs.careerManager && !cs.careerManager.contract) {
+      set({ careerManager: { ...cs.careerManager, age: cs.careerManager.age + 1 } });
+    } else if (cs.gameMode === 'career' && cs.careerManager) {
       const cm = { ...cs.careerManager };
       const cmAttrs = { ...cm.attributes };
       cm.attributes = cmAttrs;

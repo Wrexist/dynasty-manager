@@ -6,6 +6,7 @@ import { getSuffix, formatMoney } from '@/utils/helpers';
 import { getConfidenceColor, getFanConfidenceColor, getFanConfidence } from '@/utils/uiHelpers';
 import { usePlayerClub, useLeaguePosition, useCurrentMatch, useUnreadCount, findTournamentMatch, useSquadAverageMorale } from '@/hooks/useGameSelectors';
 import { GlassPanel } from '@/components/game/GlassPanel';
+import { LiquidButton } from '@/components/game/LiquidButton';
 import { getActiveCompetitions } from '@/utils/competitionStatus';
 import type { CompetitionStatusEntry } from '@/types/game';
 import { BoardObjectivesCard } from '@/components/dashboard/BoardObjectivesCard';
@@ -716,9 +717,17 @@ const Dashboard = () => {
   }, [seasonOver, inPlayoffs, totalWeeks, week, entry, leagueTable]);
 
   if (!club) {
+    // `playerClubId` no longer resolves. In career mode `setScreen` redirects an
+    // unemployed manager, so reaching here means a save whose club is gone —
+    // and a bare spinner with no timeout and no escape left the player staring
+    // at it forever. Offer the same way out the root ErrorBoundary does.
     return (
-      <div className="max-w-lg mx-auto px-4 py-8 flex items-center justify-center">
+      <div className="max-w-lg mx-auto px-4 py-8 flex flex-col items-center justify-center gap-4 text-center">
         <Loader2 className="w-6 h-6 text-primary animate-spin" />
+        <p className="text-xs text-muted-foreground">{t('dashboard.clubUnavailable')}</p>
+        <LiquidButton onClick={() => { window.location.hash = '#/'; }}>
+          {t('dashboard.returnToMenu')}
+        </LiquidButton>
       </div>
     );
   }

@@ -25,7 +25,10 @@ export const CHALLENGES: ChallengeScenario[] = [
     description: 'Take over a struggling club with a slashed budget. Avoid relegation.',
     icon: 'rocket',
     difficulty: 'medium',
-    startingClubId: undefined, // Will be assigned to lowest-rep club
+    // Assigned to the lowest-reputation club by ChallengePicker (the same path
+    // giant-killer uses). This comment used to describe an intent nothing
+    // implemented, so any of the 756 clubs was pickable.
+    startingClubId: undefined,
     seasonLimit: 1,
     winCondition: 'Finish above the relegation zone at the end of the season',
     constraints: ['Lowest-reputation club in the league', 'Budget reduced by 50%'],
@@ -224,6 +227,8 @@ export function checkChallengeComplete(
     case 'double-winner':
       return leaguePosition === 1 && cupWinner;
     case 'promotion-express':
+      // Honest only because the START is now constrained to tier 3+ by
+      // ChallengePicker — on its own this is true for every single-tier league.
       return LEAGUES.find(l => l.id === extraData?.divisionId)?.tier === 1;
     default:
       return false;
