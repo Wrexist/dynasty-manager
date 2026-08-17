@@ -756,7 +756,12 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
       let changed = false;
       for (let fi = 0; fi < leagueFixtures.length; fi++) {
         const m = leagueFixtures[fi];
-        if (m.week !== newWeek || m.played) continue;
+        // `> newWeek`, not `!== newWeek`: mirror the employed path's catch-up.
+        // A mid-season sacking leaves `week` already advanced past the week it
+        // simulated, so the first unemployed tick jumped a whole round of
+        // fixtures for EVERY division — and with no catch-up they stayed
+        // unplayed until rollover invented scorelines for them.
+        if (m.week > newWeek || m.played) continue;
         const hc = simClubs[m.homeClubId];
         const ac = simClubs[m.awayClubId];
         if (!hc || !ac) continue;
@@ -813,6 +818,12 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
       messages: unempAI.messages, currentScreen: 'job-market',
       players: unempAI.players, clubs: unempAI.clubs,
       fixtures: mainFixtures, divisionFixtures: simDivFixtures,
+      // `leagueTable` was NOT updated here, only `divisionTables`. If the
+      // season ended while unemployed, `endSeasonImpl` read a table frozen at
+      // the week of the sacking — so the season-history row, the board verdict,
+      // the records update and the Ballon d'Or input all described a
+      // half-played season.
+      leagueTable: simDivTables[state.playerDivision] ?? state.leagueTable,
       divisionTables: simDivTables, clubPowerRankings: eloRankings,
       transferMarket: unempAI.transferMarket, freeAgents: unempAI.freeAgents,
       activeLoans: unempAI.activeLoans, transferNews: unempAI.transferNews,
