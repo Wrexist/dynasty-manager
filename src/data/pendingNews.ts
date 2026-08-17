@@ -52,6 +52,9 @@ export const PENDING_NEWS: PendingRelease = {
     'Damaged saves are now offered for recovery instead of showing as an empty slot.',
     'Free daily packs are now a true daily limit shared across all save slots.',
     'Lower-division clubs earn prize money that matches their level.',
+    'Scouts now report real players instead of invented ones.',
+    'Press conferences now ask about injury crises, relegation battles and transfer rumours, not just the result.',
+    'Tap a competition on the dashboard to go straight to it.',
   ],
   fixed: [
     'Fixed a save bug that could permanently stall the season for clubs in a promotion playoff.',
