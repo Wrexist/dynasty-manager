@@ -35,7 +35,7 @@ import { JOB_MARKET_REFRESH_WEEKS, PROACTIVE_OFFER_CHECK_INTERVAL, PROACTIVE_OFF
 import { getAICounterTactics } from '@/config/aiManager';
 import { AI_LOAN_DURATIONS, AI_LOAN_OBLIGATORY_BUY_CHANCE, AI_LOAN_OBLIGATORY_BUY_MULTIPLIER, AI_LOAN_WAGE_SPLITS } from '@/config/aiSimulation';
 import { getCompetitionCalendar } from '@/config/continental';
-import { AI_LOAN_OFFER_CHANCE, AI_LOAN_RECALL_CLAUSE_CHANCE, ASSISTANT_MANAGER_FAMILIARITY_BOOST, BENCH_REST_BONUS, BOARD_REVIEW_ADJUST_POSITIONS, BOARD_REVIEW_RAISE_THRESHOLD, BOARD_REVIEW_RELAX_THRESHOLD, BOARD_REVIEW_WEEKS, CALLUP_SNUB_MORALE_PENALTY, CONGESTED_FIXTURE_INJURY_MULTIPLIER, CONTRACT_MORALE_HIT_AMOUNT, CONTRACT_MORALE_HIT_OVERALL_THRESHOLD, CONTRACT_MORALE_HIT_WEEK_THRESHOLD, CONTRACT_MORALE_MIN, CONTRACT_WARNING_OVERALL_THRESHOLD, CONTRACT_WARNING_WEEKS, CONTRACT_WARNING_YOUTH_AGE_MAX, CONTRACT_WARNING_YOUTH_POTENTIAL_MIN, CUP_EXTRA_TIME_GOAL_CHANCE, CUP_EXTRA_TIME_REPUTATION_DIVISOR, CUP_PENALTY_GK_QUALITY_FACTOR, CUP_PENALTY_KICKS, FACILITY_MAX_LEVEL, FAN_MOOD_BASE, FAN_MOOD_SCALE, FFP_CONFIDENCE_PENALTY, FFP_CRITICAL_CONFIDENCE_PENALTY, FFP_WAGE_RATIO_CRITICAL, FFP_WAGE_RATIO_WARNING, FORFEIT_SCORE, INJURY_TYPES, INTERNATIONAL_BREAK_FITNESS_COST, INTERNATIONAL_BREAK_WEEKS, INTERNATIONAL_CALLUP_MIN_OVR, INTERNATIONAL_FITNESS_COST, INTERNATIONAL_SNUB_MIN_OVR, LEGENDARY_OBJECTIVE_XP_MULTIPLIER, LOAN_DEV_BASE_CHANCE, LOAN_DEV_REP_FACTOR, LOAN_FITNESS_DRAIN, LOAN_PLAY_CHANCE_HIGH, LOAN_PLAY_CHANCE_LOW, LOAN_QUALITY_FORMULA_BASE, LOAN_QUALITY_FORMULA_REP_MULT, LOAN_YOUNG_AGE_THRESHOLD, MANAGER_SALARY_CONFIDENCE_PENALTY, MANAGER_SALARY_RATIO_CRITICAL, MANAGER_SALARY_RATIO_WARNING, MAX_CAREER_TIMELINE, MAX_FINANCE_HISTORY, MORALE_BENCH_MIN, MORALE_BENCH_WEEKLY_LOSS, NT_SACK_GROUP_EXIT_THRESHOLD, OBJECTIVE_CYCLE_WEEKS, PHYSIO_INJURY_REDUCTION_PER_QUALITY, PHYSIO_RECOVERY_BOOST_THRESHOLD, PHYSIO_RECOVERY_CHANCE, POST_TOURNAMENT_FITNESS_COST_HIGH, POST_TOURNAMENT_FITNESS_COST_LOW, RARE_OBJECTIVE_XP_MULTIPLIER, REP_INTL_FINAL, REP_INTL_GROUP_EXIT, REP_INTL_KNOCKOUT, REP_INTL_SEMI, REP_INTL_TOURNAMENT_WIN, SCOUTING_COST_PER_ASSIGNMENT, SIM_PENALTY_BASE_WIN_CHANCE, SIM_PENALTY_MENTAL_SCALE, STADIUM_INCOME_PER_LEVEL, STREAK_FORM_BONUS, STREAK_FORM_THRESHOLD, STREAK_INCOME_MULTIPLIER, STREAK_INCOME_THRESHOLD, STREAK_MORALE_BONUS, STREAK_MORALE_THRESHOLD, TRAINING_GROUND_BOOST, ULTIMATUM_CONFIDENCE_THRESHOLD, ULTIMATUM_HORIZON_WEEKS, ULTIMATUM_POSITION_TOLERANCE, ULTIMATUM_SANDBOX_BUDGET_CUT, ULTIMATUM_SANDBOX_CONFIDENCE_FLOOR, ULTIMATUM_SEASON1_GRACE_WEEK, ULTIMATUM_SURVIVE_CONFIDENCE, ULTIMATUM_SURVIVE_CONFIDENCE_BONUS, UNHAPPY_CONTAGION_MORALE_HIT, UNHAPPY_CONTAGION_WEEKS, UNHAPPY_THRESHOLD, UNHAPPY_WEEKS_TO_REQUEST, YOUTH_DEVELOPER_BOOST } from '@/config/gameBalance';
+import { AI_LOAN_OFFER_CHANCE, AI_LOAN_RECALL_CLAUSE_CHANCE, ASSISTANT_MANAGER_FAMILIARITY_BOOST, BENCH_REST_BONUS, BOARD_REVIEW_ADJUST_POSITIONS, BOARD_REVIEW_RAISE_THRESHOLD, BOARD_REVIEW_RELAX_THRESHOLD, BOARD_REVIEW_WEEKS, CALLUP_SNUB_MORALE_PENALTY, CONGESTED_FIXTURE_INJURY_MULTIPLIER, CONTRACT_MORALE_HIT_AMOUNT, CONTRACT_MORALE_HIT_OVERALL_THRESHOLD, CONTRACT_MORALE_HIT_WEEK_THRESHOLD, CONTRACT_MORALE_MIN, CONTRACT_WARNING_OVERALL_THRESHOLD, CONTRACT_WARNING_WEEKS, CONTRACT_WARNING_YOUTH_AGE_MAX, CONTRACT_WARNING_YOUTH_POTENTIAL_MIN, CUP_EXTRA_TIME_GOAL_CHANCE, CUP_EXTRA_TIME_REPUTATION_DIVISOR, CUP_PENALTY_GK_QUALITY_FACTOR, CUP_PENALTY_KICKS, FACILITY_MAX_LEVEL, FAN_MOOD_BASE, FAN_MOOD_SCALE, FFP_CONFIDENCE_PENALTY, FFP_CRITICAL_CONFIDENCE_PENALTY, FFP_WAGE_RATIO_CRITICAL, FFP_WAGE_RATIO_WARNING, FORFEIT_SCORE, INJURY_TYPES, INTERNATIONAL_BREAK_FITNESS_COST, INTERNATIONAL_BREAK_WEEKS, INTERNATIONAL_CALLUP_MIN_OVR, INTERNATIONAL_FITNESS_COST, INTERNATIONAL_SNUB_MIN_OVR, LOAN_DEV_BASE_CHANCE, LOAN_DEV_REP_FACTOR, LOAN_FITNESS_DRAIN, LOAN_PLAY_CHANCE_HIGH, LOAN_PLAY_CHANCE_LOW, LOAN_QUALITY_FORMULA_BASE, LOAN_QUALITY_FORMULA_REP_MULT, LOAN_YOUNG_AGE_THRESHOLD, MANAGER_SALARY_CONFIDENCE_PENALTY, MANAGER_SALARY_RATIO_CRITICAL, MANAGER_SALARY_RATIO_WARNING, MAX_CAREER_TIMELINE, MAX_FINANCE_HISTORY, MORALE_BENCH_MIN, MORALE_BENCH_WEEKLY_LOSS, NT_SACK_GROUP_EXIT_THRESHOLD, OBJECTIVE_CYCLE_WEEKS, PHYSIO_INJURY_REDUCTION_PER_QUALITY, PHYSIO_RECOVERY_BOOST_THRESHOLD, PHYSIO_RECOVERY_CHANCE, POST_TOURNAMENT_FITNESS_COST_HIGH, POST_TOURNAMENT_FITNESS_COST_LOW, REP_INTL_FINAL, REP_INTL_GROUP_EXIT, REP_INTL_KNOCKOUT, REP_INTL_SEMI, REP_INTL_TOURNAMENT_WIN, SCOUTING_COST_PER_ASSIGNMENT, SIM_PENALTY_BASE_WIN_CHANCE, SIM_PENALTY_MENTAL_SCALE, STADIUM_INCOME_PER_LEVEL, STREAK_FORM_BONUS, STREAK_FORM_THRESHOLD, STREAK_INCOME_MULTIPLIER, STREAK_INCOME_THRESHOLD, STREAK_MORALE_BONUS, STREAK_MORALE_THRESHOLD, TRAINING_GROUND_BOOST, ULTIMATUM_CONFIDENCE_THRESHOLD, ULTIMATUM_HORIZON_WEEKS, ULTIMATUM_POSITION_TOLERANCE, ULTIMATUM_SANDBOX_BUDGET_CUT, ULTIMATUM_SANDBOX_CONFIDENCE_FLOOR, ULTIMATUM_SEASON1_GRACE_WEEK, ULTIMATUM_SURVIVE_CONFIDENCE, ULTIMATUM_SURVIVE_CONFIDENCE_BONUS, UNHAPPY_CONTAGION_MORALE_HIT, UNHAPPY_CONTAGION_WEEKS, UNHAPPY_THRESHOLD, UNHAPPY_WEEKS_TO_REQUEST, YOUTH_DEVELOPER_BOOST } from '@/config/gameBalance';
 import { FORCED_RETIREMENT_AGE_GRACE_YEARS, FORCED_RETIREMENT_UNEMPLOYED_WEEKS, GROWTH_DISCIPLINE_PER_CLEAN_MATCH, GROWTH_MOTIVATION_PER_MORALE_EVENT, GROWTH_SCOUTING_PER_ASSIGNMENT, GROWTH_TACTICAL_PER_MATCH, MOD_SCOUTING_SPEED, MOD_TACTICAL_FAMILIARITY, MOD_YOUTH_GROWTH, STAT_MAX, UNEMPLOYED_OFFER_CHECK_INTERVAL, UNEMPLOYED_OFFER_MAX_PENDING } from '@/config/managerCareer';
 import { NATIONAL_OVR_STR_FLOOR, NATIONAL_OVR_STR_MAX, NATIONAL_OVR_STR_MIN, NATIONAL_OVR_STR_RANGE, PENALTY_CONVERSION_RATE } from '@/config/matchEngine';
 import { MERCH_CAMPAIGN_COOLDOWN_WEEKS, MERCH_PRICING_TIERS, SIGNATURE_DROP_COOLDOWN_WEEKS } from '@/config/merchandise';
@@ -43,7 +43,7 @@ import { STORYLINE_CHAIN_MIN_WEEK, STORYLINE_CHAIN_TRIGGER_CHANCE, STORYLINE_CHA
 import { MAX_SCOUT_REPORTS } from '@/config/scouting';
 import { GK_COACH_DEV_BONUS_PER_QUALITY, STAFF_MARKET_REFRESH_WEEK } from '@/config/staff';
 import { INDIVIDUAL_INJURY_RISK_MODIFIER } from '@/config/training';
-import { AI_OFFER_CHANCE, AI_OFFER_MIN_BUDGET_RATIO, AI_OFFER_POSITION_THRESHOLD, ASKING_PRICE_BID_ANCHOR, CLUB_LISTING_EXPIRY_WEEKS, COMPETING_BID_PREMIUM, DEADLINE_BARGAIN_DISCOUNT, DEADLINE_DAY_BID_PREMIUM, DEADLINE_DAY_OFFER_MULTIPLIER, DEADLINE_MULTI_BID_CHANCE, DEADLINE_PANIC_BID_PREMIUM, DEADLINE_PANIC_OFFER_COUNT, FREE_AGENT_SPAWN_CHANCE, INJURY_BID_DISCOUNT, LISTING_EXPIRY_WEEKS, LISTING_RELIST_CHANCE, LISTING_RELIST_DISCOUNT, LONG_INJURY_BID_DISCOUNT, LONG_INJURY_WEEKS_THRESHOLD, MARKET_REPLENISH_THRESHOLD, OFFER_EXPIRY_WEEKS, OFFER_FEE_BASE, OFFER_FEE_RANDOM_RANGE, OFFER_MAX_BUDGET_RATIO, PRE_SEASON_END, PRE_SEASON_OFFER_MULTIPLIER, PRE_SEASON_RUMOR_MULTIPLIER, PRE_SEASON_UNSOLICITED_MULTIPLIER, RUMOR_CHANCE, getTransferWindows, isTransferWindowOpen, UNSOLICITED_FEE_BASE, UNSOLICITED_FEE_RANGE, UNSOLICITED_OFFER_CHANCE, URGENCY_NONE, URGENCY_ONE, URGENCY_TWO_PLUS, } from '@/config/transfers';
+import { AI_OFFER_CHANCE, AI_OFFER_MIN_BUDGET_RATIO, AI_OFFER_POSITION_THRESHOLD, ASKING_PRICE_BID_ANCHOR, CLUB_LISTING_EXPIRY_WEEKS, COMPETING_BID_PREMIUM, DEADLINE_BARGAIN_DISCOUNT, DEADLINE_DAY_BID_PREMIUM, DEADLINE_DAY_OFFER_MULTIPLIER, DEADLINE_MULTI_BID_CHANCE, DEADLINE_PANIC_BID_PREMIUM, DEADLINE_PANIC_OFFER_COUNT, FREE_AGENT_SPAWN_CHANCE, INJURY_BID_DISCOUNT, LISTING_EXPIRY_WEEKS, LISTING_RELIST_CHANCE, LISTING_RELIST_DISCOUNT, LONG_INJURY_BID_DISCOUNT, MAX_ASKING_ANCHOR_VALUE_MULTIPLE, LONG_INJURY_WEEKS_THRESHOLD, MARKET_REPLENISH_THRESHOLD, OFFER_EXPIRY_WEEKS, OFFER_FEE_BASE, OFFER_FEE_RANDOM_RANGE, OFFER_MAX_BUDGET_RATIO, PRE_SEASON_END, PRE_SEASON_OFFER_MULTIPLIER, PRE_SEASON_RUMOR_MULTIPLIER, PRE_SEASON_UNSOLICITED_MULTIPLIER, RUMOR_CHANCE, getTransferWindows, isTransferWindowOpen, UNSOLICITED_FEE_BASE, UNSOLICITED_FEE_RANGE, UNSOLICITED_OFFER_CHANCE, URGENCY_NONE, URGENCY_ONE, URGENCY_TWO_PLUS, } from '@/config/transfers';
 import { checkChallengeFailed } from '@/data/challenges';
 import { advanceCupRound, getRoundName } from '@/data/cup';
 import { ALL_CLUBS, getDerbyIntensity, getDerbyName } from '@/data/league';
@@ -69,7 +69,7 @@ import { formatMoney, getSuffix } from '@/utils/helpers';
 import { generateKnockoutBracket, processGroupWeek, processKnockoutRound, simulateKnockoutToCompletion, autoSelectNationalSquad } from '@/utils/international';
 import { generateUnemployedOffer } from '@/utils/managerCareer';
 import { dynastyMult } from '@/utils/managerPerks';
-import { calculateWeeklyMerchRevenue } from '@/utils/merchandise';
+import { calculateWeeklyMerchRevenue, getMerchOperatingCost } from '@/utils/merchandise';
 import { getLeadershipBonus, wantsTransfer } from '@/utils/personality';
 import { calculateOverall, selectBestLineup } from '@/utils/playerGen';
 import { recomputePlayerValueOnly } from '@/utils/playerEconomics';
@@ -83,7 +83,7 @@ import { processListingExpiry, replenishMarket, replenishMarketPreSeason, spawnF
 import { getContractLengthFactor, getPerformanceMultiplier } from '@/utils/transferOffers';
 import { buildTransferTalk } from '@/utils/transferTalk';
 import { generateCliffhangers } from '@/utils/weekPreview';
-import { ObjectiveContext, calculateCompletedXP, evaluateObjectives, objectiveClaimXP } from '@/utils/weeklyObjectives';
+import { ObjectiveContext, calculateCompletedXP, evaluateObjectives, objectiveClaimXP, objectiveXpMultiplier } from '@/utils/weeklyObjectives';
 import { generateProactiveOffer, getReputationTierLabel } from '@/utils/managerCareer';
 import { refreshCommunityPackMarket, seedCommunityPackFreeAgents } from './communityPackRuntime';
 import { pickAiMatchSquad } from '@/store/slices/orchestration/helpers';
@@ -272,7 +272,13 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
         // Move to knockout
         const knockoutTies = generateKnockoutBracket(rebuiltGroups);
         const firstRound = knockoutTies.length > 0 ? knockoutTies[0].round : null;
-        const eliminated = !rebuiltGroups.some(g => g.table.slice(0, 2).some(e => e.nationality === nationality));
+        // Elimination is whether the BRACKET contains you, not whether you
+        // finished top two. The 12-group World Cup seeds its R32 from 12
+        // winners + 12 runners-up + 8 best THIRDS, so a qualifying third-place
+        // side was handed a knockout tie and simultaneously marked eliminated —
+        // and in World Cup mode the game then simulated their own tie for them
+        // and dropped them on the result screen.
+        const eliminated = !isInBracket(knockoutTies, nationality, rebuiltGroups);
 
         // World Cup mode: if you fail to escape the group, the tournament plays
         // on without you — fast-forward the AI bracket to a champion and land
@@ -317,7 +323,7 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
       if (allGroupFixturesPlayed) {
         const knockoutTies = generateKnockoutBracket(groups);
         const firstRound = knockoutTies.length > 0 ? knockoutTies[0].round : null;
-        const eliminated = !groups.some(g => g.table.slice(0, 2).some(e => e.nationality === nationality));
+        const eliminated = !isInBracket(knockoutTies, nationality, groups);
         if (state.gameMode === 'world-cup' && eliminated) {
           const { knockoutTies: finishedTies, winner } = simulateKnockoutToCompletion(knockoutTies, firstRound!, nationality);
           set({
@@ -578,8 +584,14 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
         for (const ts of tournamentSeasons) {
           if (ts === state.season) continue; // skip current (already counted)
           const tsResults = results.filter(r => r.season === ts);
-          // If this tournament's results are all group stage (no knockout rounds)
-          const hadKnockout = tsResults.some(r => r.round && (r.round.includes('16') || r.round.includes('Quarter') || r.round.includes('Semi') || r.round.includes('Final')));
+          // If this tournament's results are all group stage (no knockout rounds).
+          // Match the ACTUAL round tokens. The substring test that used to live
+          // here ('16' / 'Quarter' / 'Semi' / 'Final') only ever matched 'R16'
+          // of the real union 'R32' | 'R16' | 'QF' | 'SF' | 'F' — so reaching
+          // the quarter-finals read as a group exit, and a manager who went to
+          // the QF last time and out at the group stage this time was counted
+          // at two consecutive group exits and sacked by the FA.
+          const hadKnockout = tsResults.some(r => r.round && KNOCKOUT_ROUNDS.has(r.round));
           if (!hadKnockout && tsResults.length > 0) consecutiveGroupExits++;
           else break;
         }
@@ -627,6 +639,30 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
     runPostSeasonTail(set, get, state.season - 1);
   }
 }
+
+/**
+ * Did `nationality` make the knockout stage?
+ *
+ * Read it off the generated bracket rather than re-deriving it from the group
+ * tables: the 12-group World Cup format promotes the eight best third-placed
+ * sides, so "top two of a group" is not the qualification rule. Falls back to
+ * the top-two check only when no bracket was generated at all, which is the
+ * degenerate case where nobody qualified.
+ */
+function isInBracket(
+  knockoutTies: { homeNation?: string; awayNation?: string }[],
+  nationality: string,
+  groups: { table: { nationality: string }[] }[],
+): boolean {
+  if (knockoutTies.length > 0) {
+    return knockoutTies.some(t => t.homeNation === nationality || t.awayNation === nationality);
+  }
+  return groups.some(g => g.table.slice(0, 2).some(e => e.nationality === nationality));
+}
+
+/** The real knockout round tokens (`InternationalKnockoutRound`). Group-stage
+ *  results carry no round, so "reached a knockout" is membership in this set. */
+const KNOCKOUT_ROUNDS = new Set<string>(['R32', 'R16', 'QF', 'SF', 'F']);
 
 export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   const state = get();
@@ -756,7 +792,12 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
       let changed = false;
       for (let fi = 0; fi < leagueFixtures.length; fi++) {
         const m = leagueFixtures[fi];
-        if (m.week !== newWeek || m.played) continue;
+        // `> newWeek`, not `!== newWeek`: mirror the employed path's catch-up.
+        // A mid-season sacking leaves `week` already advanced past the week it
+        // simulated, so the first unemployed tick jumped a whole round of
+        // fixtures for EVERY division — and with no catch-up they stayed
+        // unplayed until rollover invented scorelines for them.
+        if (m.week > newWeek || m.played) continue;
         const hc = simClubs[m.homeClubId];
         const ac = simClubs[m.awayClubId];
         if (!hc || !ac) continue;
@@ -813,6 +854,12 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
       messages: unempAI.messages, currentScreen: 'job-market',
       players: unempAI.players, clubs: unempAI.clubs,
       fixtures: mainFixtures, divisionFixtures: simDivFixtures,
+      // `leagueTable` was NOT updated here, only `divisionTables`. If the
+      // season ended while unemployed, `endSeasonImpl` read a table frozen at
+      // the week of the sacking — so the season-history row, the board verdict,
+      // the records update and the Ballon d'Or input all described a
+      // half-played season.
+      leagueTable: simDivTables[state.playerDivision] ?? state.leagueTable,
       divisionTables: simDivTables, clubPowerRankings: eloRankings,
       transferMarket: unempAI.transferMarket, freeAgents: unempAI.freeAgents,
       activeLoans: unempAI.activeLoans, transferNews: unempAI.transferNews,
@@ -1770,9 +1817,24 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
         // profit machine across every spare squad slot, every window — and an
         // ancient listing kept its original asking price forever, so AI clubs
         // bid ~8x a declining player's real value for seasons on end.
+        // The condition used to be inverted: the anchor applied ONLY to
+        // listings older than four weeks, i.e. exactly the ancient-listing case
+        // the comment says it exists to prevent. Measured on the old code, a
+        // squad listed at the UI's 2x cap drew bids of 0.86x value in week 1
+        // and 3.45x (peak 6.0x) by week 6 — the profit machine, on a timer.
+        //
+        // A fresh listing may pull bids a little above value; a stale one
+        // decays back to worth. Either way the anchor is capped, so an asking
+        // price can never drag a bid an unbounded distance from what the player
+        // is actually worth.
         const listedRecently = !!listing && listing.listedSeason === season
           && (newWeek - (listing.listedWeek ?? 0)) <= 4;
-        const askingFloor = listing && !listedRecently ? listing.askingPrice * ASKING_PRICE_BID_ANCHOR : 0;
+        const askingFloor = listing && listedRecently
+          ? Math.min(
+              listing.askingPrice * ASKING_PRICE_BID_ANCHOR,
+              lp.value * MAX_ASKING_ANCHOR_VALUE_MULTIPLE,
+            )
+          : 0;
         const effectiveValue = Math.max(lp.value, askingFloor);
         tryGenerateOffer(lp, OFFER_FEE_BASE, OFFER_FEE_RANDOM_RANGE, effectiveValue);
       }
@@ -2336,7 +2398,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   const playerLeagueInfo = LEAGUES.find(l => l.id === playerDiv);
   // Single shared prize function (also used by the finance breakdown) so the
   // displayed "League Position" line always matches the money paid here.
-  const positionPrize = getLeaguePositionPrize(playerTablePos, leagueTable.length, playerLeagueInfo?.tier);
+  const positionPrize = getLeaguePositionPrize(playerTablePos, leagueTable.length, playerLeagueInfo?.qualityTier);
   // Sponsorship: sum of active sponsor deals
   const sponsorIncome = state.sponsorDeals.reduce((sum, d) => sum + d.weeklyPayment, 0);
   // Merchandise: strategic system with product lines, pricing, campaigns, star players
@@ -2363,7 +2425,16 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   // engine measured TOTAL expenses with merch net, the page measured the player
   // wage bill alone with merch gross against hardcoded thresholds — so a player
   // could read "62% - Healthy" while the board docked confidence every week.
-  const wageToRevenueRatio = assessFfp(totalExpenses, weeklyIncome).ratio;
+  //
+  // Both sides must ALSO agree on merchandise. `weeklyIncome` folds in merch
+  // NET and `totalExpenses` excludes the operating cost, while the Finance page
+  // reads `getFinanceBreakdown`, which puts merch GROSS on income and the
+  // operating cost on expenses. That is E/(I+M) versus (E+C)/(I+M+C) — not the
+  // same ratio for any non-zero cost, and the cost reaches ~£95k/wk with all
+  // five product lines. Same bottom line either way, so restate this side on
+  // the page's basis rather than changing the money actually applied.
+  const merchOperatingCost = getMerchOperatingCost(state.merchandise.activeProductLines);
+  const wageToRevenueRatio = assessFfp(totalExpenses + merchOperatingCost, weeklyIncome + merchOperatingCost).ratio;
   if (wageToRevenueRatio >= FFP_WAGE_RATIO_CRITICAL) {
     newBoardConfidence = Math.max(CONFIDENCE_MIN, newBoardConfidence - FFP_CRITICAL_CONFIDENCE_PENALTY);
     if (newWeek % 4 === 0) {
@@ -2849,8 +2920,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     : [];
 
   const digestObjectiveProgress = evalObjectives.map(obj => {
-    const rarityMult = obj.rarity === 'legendary' ? LEGENDARY_OBJECTIVE_XP_MULTIPLIER
-      : obj.rarity === 'rare' ? RARE_OBJECTIVE_XP_MULTIPLIER : 1;
+    const rarityMult = objectiveXpMultiplier(obj);
     return {
       title: obj.title,
       completed: obj.completed,

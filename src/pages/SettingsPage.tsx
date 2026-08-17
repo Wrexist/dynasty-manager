@@ -940,7 +940,13 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
         </p>
       </SettingsSection>
 
-      {/* ─── Capture Studio (marketing footage) ─── */}
+      {/* ─── Capture Studio (marketing footage) — dev + dev-tools builds only ───
+          It sat OUTSIDE the DEV_TOOLS_ENABLED gate that the Developer section
+          below uses, so every App Store player saw five staged "Messi vs
+          Ronaldo" World Cup scenarios whose own copy warns that starting one
+          closes the live session and loses anything since the last manual
+          save. A marketing capture tool is not a player-facing feature. */}
+      {DEV_TOOLS_ENABLED && (
       <SettingsSection title={t('settings.captureStudio')}>
         <p className="text-[10px] text-muted-foreground leading-snug mb-3">
           Staged World Cup finals for screen-recording promo videos. Each scenario
@@ -983,6 +989,7 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
           ))}
         </div>
       </SettingsSection>
+      )}
 
       {/* ─── Developer (dev + dev-tools builds only) ─── */}
       {DEV_TOOLS_ENABLED && (

@@ -135,7 +135,10 @@ export const DRAWER_PROGRESSIVE_SCREENS: Partial<Record<GameScreen, number>> = {
 // Screens accessible when unemployed in career mode (everything else redirects to job-market)
 export const UNEMPLOYED_ALLOWED_SCREENS = new Set<GameScreen>([
   'job-market', 'career-overview', 'inbox', 'settings', 'manager-profile',
-  'trophy-cabinet', 'hall-of-managers', 'perks', 'prestige', 'help', 'whats-new', 'shop',
+  // 'prestige' is deliberately absent: it re-inits the game at a new club and
+  // never touches `careerManager`, so an unemployed career manager who reached
+  // it ended up with a club but no matching contract.
+  'trophy-cabinet', 'hall-of-managers', 'perks', 'help', 'whats-new', 'shop',
   'ballon-dor', 'league-table', 'calendar', 'team-detail', 'season-summary',
   'player-detail', 'dynasty-legacy', 'career-retired',
 ]);

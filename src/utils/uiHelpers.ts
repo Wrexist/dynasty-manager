@@ -11,7 +11,6 @@ import {
   STAT_BAR_THRESHOLDS,
   CONFIDENCE_COLOR_THRESHOLDS,
   FAN_CONFIDENCE_THRESHOLDS,
-  FITNESS_COLOR_THRESHOLDS,
   FITNESS_HEX_THRESHOLDS,
   MATCH_RATING_THRESHOLDS,
   MOOD_COLOR_THRESHOLDS,
@@ -54,18 +53,6 @@ export function getRatingBadge(value: number): string {
   return 'bg-muted/20 text-muted-foreground border-border/30';
 }
 
-/**
- * Text color for "star player" displays (club previews, manager creation).
- * Uses a tighter 90/85/80 ladder than {@link getRatingColor} because every
- * star is by definition above 80, so the standard thresholds would paint
- * every value emerald.
- */
-export function getStarRatingColor(value: number): string {
-  if (value >= 90) return 'text-emerald-400';
-  if (value >= 85) return 'text-primary';
-  if (value >= 80) return 'text-amber-400';
-  return 'text-muted-foreground';
-}
 
 /** Get a hex color matching the player-rating tier (for inline style borders/strokes). */
 export function getRatingHex(value: number | undefined): string {
@@ -146,13 +133,6 @@ export function getTierGlowStyle(tier: PlayerTier): { boxShadow: string } | unde
   return undefined;
 }
 
-/**
- * @deprecated Use getPlayerTier + the gradient-border wrapper pattern instead.
- * Retained as a no-op so older callers don't crash; returns empty class string.
- */
-export function getTierGlowClass(_overall: number): string {
-  return '';
-}
 
 /** Deterministic 1–99 jersey number derived from a player id (stable across renders). */
 export function getStableJerseyNumber(playerId: string): number {
@@ -239,13 +219,6 @@ export function getFanConfidenceColor(value: number): string {
   return 'text-destructive';
 }
 
-/** Get background color class for fitness/morale bars */
-export function getFitnessColor(value: number): string {
-  for (const t of FITNESS_COLOR_THRESHOLDS) {
-    if (value >= t.min) return t.bgClass;
-  }
-  return 'bg-destructive';
-}
 
 /** Get hex color string for fitness (SVG rendering on pitch views) */
 export function getFitnessHexColor(fitness: number): string {

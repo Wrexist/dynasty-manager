@@ -1,4 +1,4 @@
-import { ClubData, Match, LeagueTableEntry, LeagueId, LeagueInfo, DerbyRivalry, CountryLeagueSystem } from '@/types/game';
+import { ClubData, Match, LeagueTableEntry, LeagueId, LeagueInfo, DerbyRivalry } from '@/types/game';
 import { shuffle, safeRandomUUID } from '@/utils/helpers';
 import { PRESEASON_FRIENDLY_COUNT, FRIENDLY_PLACEMENT_MAX_WEEK } from '@/config/gameBalance';
 
@@ -19,49 +19,14 @@ export function getLeaguesByCountry(countryId: string): LeagueInfo[] {
   return LEAGUES.filter(l => l.countryId === countryId).sort((a, b) => a.tier - b.tier);
 }
 
-/** Get the league one tier above (null if already top tier) */
-export function getLeagueAbove(leagueId: string): LeagueInfo | null {
-  const league = LEAGUES.find(l => l.id === leagueId);
-  if (!league || league.tier <= 1) return null;
-  return LEAGUES.find(l => l.countryId === league.countryId && l.tier === league.tier - 1) || null;
-}
 
-/** Get the league one tier below (null if already bottom tier) */
-export function getLeagueBelow(leagueId: string): LeagueInfo | null {
-  const league = LEAGUES.find(l => l.id === leagueId);
-  if (!league) return null;
-  return LEAGUES.find(l => l.countryId === league.countryId && l.tier === league.tier + 1) || null;
-}
 
-/** Build all country league system descriptors */
-export function getCountryLeagueSystems(): CountryLeagueSystem[] {
-  const byCountry: Record<string, LeagueInfo[]> = {};
-  for (const league of LEAGUES) {
-    if (!byCountry[league.countryId]) byCountry[league.countryId] = [];
-    byCountry[league.countryId].push(league);
-  }
-  return Object.entries(byCountry).map(([countryId, leagues]) => {
-    leagues.sort((a, b) => a.tier - b.tier);
-    return {
-      countryId,
-      country: leagues[0].country,
-      countryCode: leagues[0].countryCode,
-      leagueIds: leagues.map(l => l.id),
-    };
-  });
-}
 
 /** Check if a country has multiple tiers */
 export function hasMultipleTiers(countryId: string): boolean {
   return getLeaguesByCountry(countryId).length > 1;
 }
 
-/** Get all related league IDs for a given league (all tiers in same country) */
-export function getRelatedLeagueIds(leagueId: string): string[] {
-  const league = LEAGUES.find(l => l.id === leagueId);
-  if (!league) return [leagueId];
-  return getLeaguesByCountry(league.countryId).map(l => l.id);
-}
 
 // ── Real Derby Rivalries ──
 export const DERBIES: DerbyRivalry[] = [
@@ -131,17 +96,6 @@ export function getDerbyName(clubIdA: string, clubIdB: string): string | null {
 }
 
 // ── Helper: get clubs by league ──
-export function getClubsByLeague(): Record<string, string[]> {
-  const result: Record<string, string[]> = {};
-  for (const league of LEAGUES) {
-    result[league.id] = [];
-  }
-  for (const club of CLUBS_DATA) {
-    if (!result[club.divisionId]) result[club.divisionId] = [];
-    result[club.divisionId].push(club.id);
-  }
-  return result;
-}
 
 export function getLeague(id: LeagueId): LeagueInfo {
   return LEAGUES.find(l => l.id === id)!;
@@ -306,13 +260,14 @@ export function generateAllDivisionFixtures(
 
 // ── League Table ──
 // Module-level memoization for `buildLeagueTable`. Keyed on (playedCount,
-// clubIds) so the same fixture snapshot returns a cached sort without
-// rebuilding the standings from scratch.
+// results hash, clubIds) so the same standings return a cached sort without
+// rebuilding from scratch.
 //
-// INVARIANT: the cache MUST be cleared whenever fixtures mutate in a way
-// that doesn't bump `playedCount` — game load (different save), season
-// rollover (new fixture list, played = 0 again), and resetGame. This
-// happens via `clearLeagueTableCache()` calls in the store.
+// The key used to be (playedCount, clubIds), which made correctness depend on
+// every caller remembering to clear — and one did not (the `invincible`
+// rewind). Folding the results into the key makes a stale hit structurally
+// impossible rather than conventionally avoided; `clearLeagueTableCache()`
+// stays as cheap hygiene on load/reset/rollover.
 //
 // A self-eviction guard at size 8 prevents unbounded growth if keys start
 // churning (e.g. mid-season rollovers); it's a belt-and-braces safety net,
@@ -324,8 +279,26 @@ const _btlCache = new Map<string, LeagueTableEntry[]>();
 export function clearLeagueTableCache() { _btlCache.clear(); }
 
 export function buildLeagueTable(fixtures: Match[], clubIds: string[]): LeagueTableEntry[] {
-  const playedCount = fixtures.filter(m => m.played).length;
-  const cacheKey = `${playedCount}:${clubIds.join(',')}`;
+  // Key on the RESULTS, not merely how many there are. Counting played
+  // fixtures made two different scorelines at the same played count share a
+  // cache entry, and the `invincible` perk reaches exactly that state:
+  // `rewindMatch` restores the pre-match fixtures and table, the player
+  // replays the tie, and the rebuild afterwards has the same fixture count and
+  // the same clubs — so the table from the match they just erased was served
+  // back and written into `leagueTable`/`divisionTables`. On the final week of
+  // a season that is the table `endSeasonImpl` records history from.
+  //
+  // The hash costs one extra multiply-add per played fixture inside a scan the
+  // old key already paid for; the work this memo exists to avoid is the table
+  // build and the sort, both of which still get skipped on a true hit.
+  let playedCount = 0;
+  let resultsHash = 0;
+  for (const m of fixtures) {
+    if (!m.played) continue;
+    playedCount++;
+    resultsHash = (Math.imul(resultsHash, 31) + m.week * 1000 + m.homeGoals * 31 + m.awayGoals) | 0;
+  }
+  const cacheKey = `${playedCount}:${resultsHash}:${clubIds.join(',')}`;
   const cached = _btlCache.get(cacheKey);
   if (cached) return cached;
   if (_btlCache.size >= 8) _btlCache.clear();

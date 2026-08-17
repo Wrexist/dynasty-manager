@@ -6,16 +6,22 @@ import { cn } from '@/lib/utils';
 import { Shield, Trophy } from 'lucide-react';
 import { TournamentHeader } from '@/components/game/TournamentHeader';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import type { SuperCupMatch } from '@/types/game';
+import type { Club, SuperCupMatch, VirtualClub } from '@/types/game';
+import { resolveClub } from '@/utils/helpers';
 
-function SuperCupMatchCard({ match, clubs, playerClubId, index }: {
+function SuperCupMatchCard({ match, clubs, virtualClubs, playerClubId, index }: {
   match: SuperCupMatch;
-  clubs: Record<string, { name: string; shortName: string; color: string }>;
+  clubs: Record<string, Club>;
+  virtualClubs: Record<string, VirtualClub> | undefined;
   playerClubId: string;
   index: number;
 }) {
-  const home = clubs[match.homeClubId];
-  const away = clubs[match.awayClubId];
+  // Resolve through `virtualClubs` like every other club-rendering surface.
+  // This page read `clubs` alone, and the continental Super Cup's opponent is
+  // by construction the OTHER competition's winner — frequently a virtual club
+  // — so the card read "YourClub ??? vs ???" the season after winning it.
+  const home = resolveClub(clubs, virtualClubs, match.homeClubId);
+  const away = resolveClub(clubs, virtualClubs, match.awayClubId);
   const isPlayer = match.homeClubId === playerClubId || match.awayClubId === playerClubId;
   // Participant labels are derived from the cup type (seasonEnd.ts seeds home/
   // away in this order). The continental Super Cup is Champions-winner vs
@@ -104,7 +110,7 @@ function SuperCupMatchCard({ match, clubs, playerClubId, index }: {
                 : 'bg-white/10 text-foreground border border-white/15'
             )}>
               <Trophy className="w-3 h-3" />
-              {clubs[match.winnerId]?.name || 'Winner'}
+              {resolveClub(clubs, virtualClubs, match.winnerId)?.name || 'Winner'}
             </div>
           </motion.div>
         )}
@@ -115,10 +121,11 @@ function SuperCupMatchCard({ match, clubs, playerClubId, index }: {
 
 const SuperCupPage = () => {
   const { t } = useTranslation();
-  const { domesticSuperCup, continentalSuperCup, clubs, playerClubId } = useGameStore(useShallow(s => ({
+  const { domesticSuperCup, continentalSuperCup, clubs, virtualClubs, playerClubId } = useGameStore(useShallow(s => ({
     domesticSuperCup: s.domesticSuperCup,
     continentalSuperCup: s.continentalSuperCup,
     clubs: s.clubs,
+    virtualClubs: s.virtualClubs,
     playerClubId: s.playerClubId,
   })));
 
@@ -147,10 +154,10 @@ const SuperCupPage = () => {
       </motion.div>
 
       {domesticSuperCup && (
-        <SuperCupMatchCard match={domesticSuperCup} clubs={clubs} playerClubId={playerClubId} index={0} />
+        <SuperCupMatchCard match={domesticSuperCup} clubs={clubs} virtualClubs={virtualClubs} playerClubId={playerClubId} index={0} />
       )}
       {continentalSuperCup && (
-        <SuperCupMatchCard match={continentalSuperCup} clubs={clubs} playerClubId={playerClubId} index={1} />
+        <SuperCupMatchCard match={continentalSuperCup} clubs={clubs} virtualClubs={virtualClubs} playerClubId={playerClubId} index={1} />
       )}
     </div>
   );

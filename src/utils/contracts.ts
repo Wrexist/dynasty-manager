@@ -26,6 +26,9 @@ import {
   CONTRACT_YEARS_ACCEPTANCE_BONUS, CONTRACT_YEARS_ACCEPTANCE_PENALTY,
   CONTRACT_YEARS_MOOD_PENALTY, CONTRACT_YEARS_MOOD_BONUS,
   CONTRACT_VETERAN_AGE, CONTRACT_VETERAN_YEARS_BONUS_MULT,
+  FREE_AGENT_ACCEPT_AT_FLOOR,
+  FREE_AGENT_ACCEPT_AT_ASK,
+  FREE_AGENT_WILLINGNESS_SWING,
 } from '@/config/contracts';
 
 export type ContractUrgency = 'expired' | 'near' | null;
@@ -118,18 +121,10 @@ function calculateAgentFee(player: Player, dealWage?: number): number {
  * yes (nothing to haggle over); below that, the discount you're asking for is
  * rolled against, modulated by the player's willingness.
  *
- * TODO(config): the tuning constants below belong in `src/config/contracts.ts`
- * next to the other CONTRACT_* values — inlined here only because that file
- * could not be edited concurrently.
+ * Tuning constants live in `src/config/contracts.ts` next to the other
+ * CONTRACT_* values.
  */
 export function getFreeAgentAcceptChance(player: Player, offeredWage: number, clubReputation: number, currentSeason = 1): number {
-  /** Chance of accepting at the UI's minimum (0.7x) offer, before willingness. */
-  const FREE_AGENT_ACCEPT_AT_FLOOR = 0.25;
-  /** Chance of accepting at exactly the expected wage. */
-  const FREE_AGENT_ACCEPT_AT_ASK = 1.0;
-  /** How much willingness (0-100, centred on 50) shifts the chance. */
-  const FREE_AGENT_WILLINGNESS_SWING = 0.3;
-
   const expected = Math.max(1, player.wage || 0);
   const ratio = offeredWage / expected;
   if (ratio >= 1) return 1;

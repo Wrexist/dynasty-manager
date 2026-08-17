@@ -20,6 +20,8 @@ import {
   INCOMING_NEGOTIATE_COUNTER_CHANCE, INCOMING_NEGOTIATE_COUNTER_BASE, INCOMING_NEGOTIATE_COUNTER_RANGE,
   NEGOTIATION_MAX_STRIKES, NEGOTIATION_COOLDOWN_WEEKS, NEGOTIATION_STRIKE_PENALTY,
   getTransferWindows,
+  SELL_ON_VALUE_TRIGGER_RATIO,
+  FEE_SIGNING_OVERALL_BONUS,
 } from '@/config/transfers';
 import { NegotiationStrike } from '@/types/game';
 import { CONTRACT_MIN_YEARS, CONTRACT_MAX_YEARS } from '@/config/contracts';
@@ -55,11 +57,8 @@ export const checkChallengeBlock = (state: GameState, playerAge?: number): strin
  * window. Making the trigger proportional means a bargain buy is still a
  * bargain, but the selling club keeps an interest in the upside.
  *
- * TODO(config): belongs in `src/config/transfers.ts` alongside the other
- * SELL_ON_* constants — kept local here only because this change could not
- * touch that file concurrently.
+ * Lives in `src/config/transfers.ts` alongside the other SELL_ON_* constants.
  */
-const SELL_ON_VALUE_TRIGGER_RATIO = 0.4;
 
 /**
  * Overall-rating headroom a fee-paying signing gets over the free-agent
@@ -68,10 +67,9 @@ const SELL_ON_VALUE_TRIGGER_RATIO = 0.4;
  * listings dodge the transfer window on top of that, so "keep a scout assigned"
  * was a licence to sign 85 OVR in week 30.
  *
- * TODO(config): both constants belong in `src/config/transfers.ts` next to
- * FREE_AGENT_REP_BASE / FREE_AGENT_DIV_BONUS.
+ * Lives in `src/config/transfers.ts` next to FREE_AGENT_REP_BASE /
+ * FREE_AGENT_DIV_BONUS.
  */
-const FEE_SIGNING_OVERALL_BONUS = 12;
 
 /**
  * Headroom over the club's OWN best player.

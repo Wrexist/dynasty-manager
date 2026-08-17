@@ -3,7 +3,7 @@ import { LEAGUES, getLeaguesByCountry, generateDivisionFixtures, ALL_CLUBS } fro
 import { generateSquad, selectBestLineup, expandAbbreviatedFirstName } from '@/utils/playerGen';
 import { autoFillBestTeam } from '@/utils/autoFillLineup';
 import { NATIONS } from '@/data/nations';
-import { getPlayerRarity, getRarityValueMultiplier, getRarityWageMultiplier } from '@/utils/playerRarity';
+import { applyRarityToPlayer, getRarityValueMultiplier, getRarityWageMultiplier } from '@/utils/playerRarity';
 import type { Club, Player, FormationType } from '@/types/game';
 import { isPlaceholderClubId } from '@/config/continental';
 /**
@@ -1294,7 +1294,7 @@ const migrations: Record<number, MigrationFn> = {
           continue;
         }
         const next: Player = { ...p };
-        next.rarity = getPlayerRarity(next);
+        applyRarityToPlayer(next);
         const valueMult = getRarityValueMultiplier(next.rarity);
         const wageMult = getRarityWageMultiplier(next.rarity);
         // Only inflate — never deflate — to keep the migration safe for old

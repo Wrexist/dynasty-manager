@@ -8,7 +8,7 @@
 import type { Player, TransferListing, Position } from '@/types/game';
 import { generatePlayer } from '@/utils/playerGen';
 import { calculatePlayerValue, calculatePlayerWage } from '@/config/playerGeneration';
-import { getPlayerRarity, getRarityValueMultiplier, getRarityWageMultiplier } from '@/utils/playerRarity';
+import { applyRarityToPlayer, getRarityValueMultiplier, getRarityWageMultiplier } from '@/utils/playerRarity';
 import {
   DIVISION_QUALITY_RANGES, DIVISION_MARKET_WEIGHTS,
   MARKET_AGE_BUCKETS, AGE_PRICE_MULTIPLIER,
@@ -101,7 +101,7 @@ function generateMarketPlayer(
   // standard VALUE_AGE_MULTIPLIERS — the listing market punishes 30+ players
   // harder than the in-club dev curve. Rarity multipliers still match the
   // global pricing model.
-  player.rarity = getPlayerRarity(player);
+  applyRarityToPlayer(player);
   const baseValue = calculatePlayerValue(player.overall);
   const ageMultiplier = getAgePriceMultiplier(age);
   player.value = Math.round(baseValue * ageMultiplier * getRarityValueMultiplier(player.rarity));
@@ -150,7 +150,7 @@ function generateFreeAgentPlayer(season: number): Player {
 
   // Free agents accept lower wages — but rarity still pushes premium so a
   // free-agent legend isn't suddenly cheap.
-  player.rarity = getPlayerRarity(player);
+  applyRarityToPlayer(player);
   player.wage = Math.round(calculatePlayerWage(player.overall) * (0.6 + Math.random() * 0.3) * getRarityWageMultiplier(player.rarity));
   player.value = Math.round(calculatePlayerValue(player.overall) * getAgePriceMultiplier(adjustedAge) * getRarityValueMultiplier(player.rarity));
 

@@ -76,7 +76,7 @@ const MatchPrep = () => {
   const isVirtualOpp = !!match && !!oppClubId && !clubs[oppClubId];
   const oppPos = useLeaguePosition(oppClubId);
   const myPos = useLeaguePosition();
-  const inPlayoffs = (seasonPhase as string) === 'playoffs';
+  const inPlayoffs = seasonPhase === 'playoff';
   const competitionInfo = getCompetitionInfo(competition, {
     inPlayoffs,
     leagueName: LEAGUES.find(d => d.id === playerDivision)?.shortName,

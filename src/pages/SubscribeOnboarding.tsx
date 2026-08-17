@@ -32,6 +32,7 @@ import {
   SUB_TRIAL_PRODUCT_IDS,
   TRIAL_TARGET_PRODUCT_ID,
 } from '@/config/monetization';
+import { Capacitor } from '@capacitor/core';
 import { isPro } from '@/utils/monetization';
 import { addGameBreadcrumb } from '@/utils/sentry';
 import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
@@ -141,8 +142,17 @@ const SubscribeOnboarding = () => {
       .catch(() => { if (!cancelled) setStoreTrialEligible(null); });
     return () => { cancelled = true; };
   }, []);
+  // On device, "unknown" must NOT be treated as eligible. The probe returns
+  // null whenever it throws — the common offline case — and
+  // `locallyTrialEligible` is true on any fresh install, so a lapsed subscriber
+  // reinstalling with a flaky connection was shown "Try 7 Days Free" and "Free
+  // for 7 days, then ..." on a purchase Apple charges immediately. That is the
+  // false-claim class (Guideline 3.1.2(c)) this probe exists to prevent; a
+  // definite `false` winning is not enough if `null` loses to a local guess.
+  // Off-device the purchase is mocked anyway, so the local value still drives
+  // the flow there and keeps it testable.
   const trialEligible = storeTrialEligible === null
-    ? locallyTrialEligible
+    ? (Capacitor.isNativePlatform() ? false : locallyTrialEligible)
     : storeTrialEligible && locallyTrialEligible;
 
   const navState = (location.state as { slot?: number; communityPackEnabled?: boolean; returnTo?: string }) || {};
@@ -220,7 +230,8 @@ const SubscribeOnboarding = () => {
     navigate(returnTo, { state: { slot, communityPackEnabled } });
   };
 
-  const syncAfterPurchase = async () => {
+  /** Returns true when the store gave us a real subscription record. */
+  const syncAfterPurchase = async (): Promise<boolean> => {
     const ids = await getEntitlements();
     if (ids.length > 0) restoreEntitlementsAction(ids);
     const info = await getCustomerInfo();
@@ -228,6 +239,7 @@ const SubscribeOnboarding = () => {
     // must not clear an active subscription (expiry handled via expiresAt).
     const sub = extractSubscriptionInfo(info);
     if (sub) updateSubscription(sub);
+    return !!sub;
   };
 
   const handleSubscribe = async () => {
@@ -253,10 +265,17 @@ const SubscribeOnboarding = () => {
       // If the user picked a trial-bearing plan, the App Store Connect
       // introductory offer grants the free trial automatically — mirror it
       // locally so gated features unlock immediately.
+      //
+      // The store's own answer wins where we can get it: this used to write a
+      // 7-day local record BEFORE the sync, and `syncAfterPurchase` only
+      // overwrites when `extractSubscriptionInfo` returns non-null. A network
+      // blip right after an ANNUAL purchase therefore left a 7-day record on a
+      // 12-month subscription, and Pro vanished at day 7 until the next
+      // successful sync. Sync first, and only mint the local record if the
+      // store gave us nothing.
       const isTrial = trialEligible && SUB_TRIAL_PRODUCT_IDS.includes(selected);
-      if (isTrial) startFreeTrial(selected);
-
-      await syncAfterPurchase();
+      const syncedSub = await syncAfterPurchase();
+      if (isTrial && !syncedSub) startFreeTrial(selected);
       track('purchase_completed', { productId: selected });
 
       const product = PRODUCTS[selected];

@@ -18,10 +18,6 @@ export const FAST = 0.15;
 export const BASE = 0.25;
 export const SLOW = 0.4;
 
-/** Durations in MILLISECONDS — for CSS/Tailwind `duration-*` and setTimeout. */
-export const FAST_MS = 150;
-export const BASE_MS = 250;
-export const SLOW_MS = 400;
 
 /**
  * The one easing curve. Standard-decelerate: leaves fast, settles soft —
@@ -51,6 +47,3 @@ export const PRESS = 0.97;
 /** Press feedback: cards/panels (large targets — a 3% dip looks broken). */
 export const PRESS_CARD = 0.985;
 
-/** Ready-made framer-motion transition using the shared duration + curve. */
-export const TRANSITION_BASE = { duration: BASE, ease: EASE_OUT };
-export const TRANSITION_FAST = { duration: FAST, ease: EASE_OUT };

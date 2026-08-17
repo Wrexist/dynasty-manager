@@ -18,7 +18,7 @@
 
 import type { Player, BallonDOrPlacement } from '@/types/game';
 import { calculatePlayerValue, calculatePlayerWage } from '@/config/playerGeneration';
-import { getPlayerRarity, getRarityValueMultiplier, getRarityWageMultiplier } from '@/utils/playerRarity';
+import { applyRarityToPlayer, getRarityValueMultiplier, getRarityWageMultiplier } from '@/utils/playerRarity';
 import { VALUE_AGE_MULTIPLIERS } from '@/config/gameBalance';
 import { getBallonDOrValueBoost } from '@/utils/ballonDor';
 
@@ -51,7 +51,7 @@ export function getBallonDorPlacementPremium(placements: BallonDOrPlacement[] | 
  * decline, attribute boost) so all paths converge on the same pricing.
  */
 export function recomputeDerivedEconomics(player: Player): void {
-  player.rarity = getPlayerRarity(player);
+  applyRarityToPlayer(player);
   const ageMult = getValueAgeMultiplier(player.age);
   const rarityValueMult = getRarityValueMultiplier(player.rarity);
   const rarityWageMult = getRarityWageMultiplier(player.rarity);
@@ -70,7 +70,7 @@ export function recomputeDerivedEconomics(player: Player): void {
  * Math.random() call sequence so seeded tests stay deterministic.
  */
 export function recomputePlayerValueOnly(player: Player): void {
-  player.rarity = getPlayerRarity(player);
+  applyRarityToPlayer(player);
   const ageMult = getValueAgeMultiplier(player.age);
   const rarityValueMult = getRarityValueMultiplier(player.rarity);
   const placementMult = getBallonDorPlacementPremium(player.ballonDOrPlacements);

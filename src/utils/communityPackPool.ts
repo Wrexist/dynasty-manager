@@ -1,4 +1,3 @@
-import type { Position } from '@/types/game';
 import type { PlayerTemplate } from '@/data/playerTemplates';
 
 export const ACTIVE_POOL_SIZE = 800;
@@ -89,70 +88,14 @@ export function drawForMarket(
   return result;
 }
 
-export function drawForScouting(
-  activePool: PlayerTemplate[],
-  targetOvr: number,
-  position: Position,
-  excludeIds: string[],
-  seed: number,
-): PlayerTemplate | null {
-  const excluded = new Set(excludeIds);
-  const candidates = activePool.filter((t) => {
-    if (t.fcId && excluded.has(t.fcId)) return false;
-    if (Math.abs(t.ovr - targetOvr) > 2) return false;
-    if (t.pos === position) return true;
-    if (t.altPos?.includes(position)) return true;
-    return false;
-  });
-  if (candidates.length === 0) return null;
-  const rand = mulberry32(seed);
-  return candidates[Math.floor(rand() * candidates.length)];
-}
-
-export type AIQualityTier = 'elite' | 'top' | 'mid' | 'low';
-
-export function drawForAISquadFill(
-  activePool: PlayerTemplate[],
-  position: Position,
-  qualityTier: AIQualityTier,
-  excludeIds: string[],
-  seed: number,
-): PlayerTemplate | null {
-  const excluded = new Set(excludeIds);
-  const inTier = (ovr: number): boolean => {
-    switch (qualityTier) {
-      case 'elite': return ovr >= 80;
-      case 'top': return ovr >= 70 && ovr < 80;
-      case 'mid': return ovr >= 60 && ovr < 70;
-      case 'low': return ovr < 60;
-    }
-  };
-  const candidates = activePool.filter((t) => {
-    if (t.fcId && excluded.has(t.fcId)) return false;
-    if (!inTier(t.ovr)) return false;
-    if (t.pos === position) return true;
-    if (t.altPos?.includes(position)) return true;
-    return false;
-  });
-  if (candidates.length === 0) return null;
-  const rand = mulberry32(seed);
-  return candidates[Math.floor(rand() * candidates.length)];
-}
-
-export function drawForYouth(
-  activePool: PlayerTemplate[],
-  excludeIds: string[],
-  seed: number,
-): PlayerTemplate | null {
-  const excluded = new Set(excludeIds);
-  const candidates = activePool.filter((t) => {
-    if (t.fcId && excluded.has(t.fcId)) return false;
-    return t.age >= 16 && t.age <= 21 && t.ovr <= 70;
-  });
-  if (candidates.length === 0) return null;
-  const rand = mulberry32(seed);
-  return candidates[Math.floor(rand() * candidates.length)];
-}
+// NOTE: `drawForScouting`, `drawForAISquadFill` and `drawForYouth` used to live
+// here. All three were written, tested and never called, and they are now
+// redundant by construction: every real identity in the game — club squads,
+// free agents, community-pack rosters and (since scouting was wired up) scout
+// reports — is drawn through `pickUnclaimedRealPlayer` against ONE claim
+// registry, which `initGame` seeds with the community-pack templates before any
+// squad is built. A second, unclaimed draw path is exactly how the same person
+// ends up in two places at once.
 
 export function advanceCursor(
   cpPool: CpPoolState,

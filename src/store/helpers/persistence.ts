@@ -47,6 +47,16 @@ const HYDRATE_TIMEOUT_MS = 3000;
 const memSlots: (string | null)[] = [null, null, null, null]; // slot 0 unused
 const memSlotBackups: (string | null)[] = [null, null, null, null];
 let hydrated = false;
+/** Per-slot: has IndexedDB actually been READ for this slot yet?
+ *
+ *  The global `hydrated` flag is set in a `finally` after a 3 s race, so it
+ *  also flips when hydration TIMES OUT — at which point the memory cache can be
+ *  empty while IDB still holds a full career. Any code that treats "no save
+ *  found" as "this slot is empty" must gate on this instead, or a wedged
+ *  database turns into deleting the user's only backup on their next write.
+ *  A late-arriving hydrate still flips it, so recovery is possible after the
+ *  timeout rather than only before it. */
+const slotHydrated: boolean[] = [false, false, false, false];
 let hydratePromise: Promise<void> | null = null;
 
 /** Hydrate the in-memory save cache from IndexedDB. Called once at app
@@ -118,6 +128,9 @@ async function hydrateOneSlot(slot: number): Promise<void> {
       }
     } catch { /* storage unavailable */ }
   }
+  // Reached only when both IDB reads resolved. A timed-out or rejected read
+  // leaves this false, which is exactly what the write path needs to know.
+  slotHydrated[slot] = true;
 }
 
 /** True once `hydrateSaveStorage` has resolved. UI code that lists slots
@@ -133,9 +146,17 @@ export function __resetSaveStorageForTests(): void {
   for (let i = 0; i < memSlots.length; i++) {
     memSlots[i] = null;
     memSlotBackups[i] = null;
+    slotHydrated[i] = false;
   }
   hydrated = false;
   hydratePromise = null;
+}
+
+/** True once IndexedDB has actually been read for this slot. Distinct from
+ *  `isSaveStorageHydrated()`, which also returns true when hydration timed out
+ *  without reading anything. */
+export function isSlotHydrated(slot: number): boolean {
+  return slotHydrated[slot] === true;
 }
 
 /** Best-effort localStorage write. Swallows quota/availability errors —
@@ -310,6 +331,14 @@ export const STORAGE_KEYS = {
    *  so the defence is local: judge expiry against the LATEST time ever seen
    *  rather than the time currently claimed. */
   CLOCK_HIGH_WATER: 'dynasty-clock-high-water',
+  /** localStorage: the day's free / rewarded-ad pack allowance, DEVICE-global.
+   *
+   *  It used to live only inside the save payload, which made the daily limit
+   *  per-slot (three saves = three free Gold packs a day) and rerollable by
+   *  force-quitting after a bad pull. The bucket is keyed on a day index taken
+   *  from `observeClock`, not a date string compared for inequality, so winding
+   *  the device clock backwards — or switching timezone — cannot re-arm it. */
+  DAILY_PACK_OPENS: 'dynasty-daily-pack-opens',
   /** localStorage: crash-durable record of a paid consumable pack purchase
    *  that has not yet been granted in-game. Written BEFORE the StoreKit
    *  charge, cleared after the pack is opened and the save flushed.
@@ -715,6 +744,19 @@ export interface PendingPackCredit {
    *  fired its one-time Sentry alert. Throttles the capture to once per marker
    *  so a persistently-blocked claim doesn't re-report on every mount. */
   reported?: boolean;
+  /** Whether the store transaction actually completed.
+   *
+   *  The marker is written BEFORE the charge, so its mere existence proves
+   *  nothing — a purchase that never reached the store (offline, product
+   *  unavailable, sheet dismissed by a force-quit) leaves an identical record.
+   *  Granting on existence alone made every paid pack free and repeatable.
+   *
+   *  `true`  — the store confirmed the purchase; grant it.
+   *  `false` — written pre-charge and never confirmed; do not grant.
+   *  absent  — a legacy marker from a build before this field existed. Those
+   *            can only have been written by the old binary, so they are still
+   *            honoured; new code always writes the flag. */
+  charged?: boolean;
 }
 
 export function readPendingPackCredit(): PendingPackCredit | null {
@@ -730,6 +772,9 @@ export function readPendingPackCredit(): PendingPackCredit | null {
       timestamp: typeof parsed.timestamp === 'number' ? parsed.timestamp : 0,
       slot: typeof parsed.slot === 'number' ? parsed.slot : 0,
       ...(parsed.reported === true ? { reported: true } : {}),
+      // Preserved as a tri-state: `undefined` (legacy marker) must stay
+      // distinguishable from an explicit `false` (written, never charged).
+      ...(typeof parsed.charged === 'boolean' ? { charged: parsed.charged } : {}),
     };
   } catch (err) {
     if (raw !== null) breadcrumbCorruption('readPendingPackCredit', raw, err);
@@ -745,6 +790,49 @@ export function writePendingPackCredit(credit: PendingPackCredit): void {
 export function clearPendingPackCredit(): void {
   try { localStorage.removeItem(STORAGE_KEYS.PENDING_PACK_CREDIT); }
   catch { /* storage unavailable */ }
+}
+
+/** Device-global daily pack allowance. `dayIndex` is whole days since epoch as
+ *  measured by `observeClock`, so it only ever moves forward. */
+export interface DailyPackOpensRecord {
+  dayIndex: number;
+  free: Record<string, number>;
+  ad: Record<string, number>;
+}
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+/** Today, as a monotonic day index. Never decreases, because `observeClock`
+ *  returns the furthest time this device has ever seen. */
+export function currentDayIndex(): number {
+  return Math.floor(observeClock() / MS_PER_DAY);
+}
+
+export function readDailyPackOpens(): DailyPackOpensRecord {
+  const empty: DailyPackOpensRecord = { dayIndex: currentDayIndex(), free: {}, ad: {} };
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem(STORAGE_KEYS.DAILY_PACK_OPENS);
+    if (!raw) return empty;
+    const parsed = JSON.parse(raw);
+    if (typeof parsed?.dayIndex !== 'number') return empty;
+    // Strictly-greater, not inequality: a clock that appears to have gone
+    // BACKWARDS must keep the stored counts rather than reset them.
+    if (currentDayIndex() > parsed.dayIndex) return empty;
+    return {
+      dayIndex: parsed.dayIndex,
+      free: (parsed.free && typeof parsed.free === 'object') ? { ...parsed.free } : {},
+      ad: (parsed.ad && typeof parsed.ad === 'object') ? { ...parsed.ad } : {},
+    };
+  } catch (err) {
+    if (raw !== null) breadcrumbCorruption('readDailyPackOpens', raw, err);
+    return empty;
+  }
+}
+
+export function writeDailyPackOpens(record: DailyPackOpensRecord): void {
+  try { localStorage.setItem(STORAGE_KEYS.DAILY_PACK_OPENS, JSON.stringify(record)); }
+  catch { /* storage unavailable — the in-memory mirror still holds this session */ }
 }
 
 /** Analytics consent state. `'unknown'` surfaces the first-launch prompt. */
@@ -926,31 +1014,50 @@ export function writeSaveSlot(slot: number, json: string, opts?: WriteSaveSlotOp
   // "both disk paths failed" case and surface a Save Failed warning.
   const idbPromise = idbPut(mainKey, json);
   if (rotate) void idbPut(backupKey, oldMain as string);
-  else if (!oldMain && hydrated) void idbDel(backupKey);
+  else if (!oldMain && slotHydrated[slot]) void idbDel(backupKey);
   // else: either the outgoing main failed validation (leave the existing backup
-  // intact), or we haven't hydrated yet. The `hydrated` guard matters: before
-  // hydration `readSaveSlot` can legitimately return null while IDB still holds
-  // both a main and a backup, so an early write — reachable via
+  // intact), or this slot has not been read from IDB yet. That guard matters:
+  // before hydration `readSaveSlot` can legitimately return null while IDB still
+  // holds both a main and a backup, so an early write — reachable via
   // `migrateLegacySave()` or a deep link straight to #/select-club — would read
   // `oldMain === null` and DELETE the last-known-good IDB backup while
   // overwriting the main. Never destroy a recovery layer we haven't looked at.
+  //
+  // It is deliberately PER-SLOT rather than the global `hydrated` flag: that one
+  // is set in a `finally` after a 3 s race, so it is also true when hydration
+  // timed out having read nothing. On a slow or wedged database that produced
+  // the worst version of this bug — the title screen showed empty slots, the
+  // user tapped New Game, and the write deleted the real IDB backup.
 
   // Step 4: best-effort localStorage mirror. On quota exceeded we drop
   // whatever was there so the two stores don't diverge — IDB is truth.
   let lsOk = true;
+  // Rotate the backup mirror BEFORE writing the main one. The main write is the
+  // one that blows the ~5 MB WKWebView quota, and it used to run first: the
+  // rotation never happened, and the catch then removed the previous, untouched
+  // backup mirror on the strength of a `rotate` flag that only described the
+  // in-memory rotation. localStorage ended up holding neither layer — and since
+  // mature-career saves exceed the quota routinely, that fired on essentially
+  // every save, leaving nothing to fall back on when IDB also failed to open.
+  if (rotate) {
+    lsSetSafe(backupKey, oldMain as string);
+  } else if (!oldMain && slotHydrated[slot]) {
+    // Same per-slot guard as the IDB path above — this one was missing it
+    // entirely, so a pre-hydration write deleted the localStorage backup even
+    // though the IDB one was correctly spared.
+    lsRemoveSafe(backupKey);
+  }
+  // else: preserve the existing backup mirror for the invalid-main case.
   try {
     localStorage.setItem(mainKey, json);
-    if (rotate) lsSetSafe(backupKey, oldMain as string);
-    else if (!oldMain) lsRemoveSafe(backupKey);
-    // else: preserve the existing backup mirror for the invalid-main case.
   } catch {
-    // Quota exceeded — drop the main mirror. The caller now sees `lsOk: false`
-    // and can await `idbPromise` to decide whether to warn the user. We only
-    // clear the backup mirror when we just rotated into it; an untouched
-    // last-known-good backup must survive a main-write quota failure.
+    // Quota exceeded — drop the main mirror only. The caller sees `lsOk: false`
+    // and can await `idbPromise` to decide whether to warn the user. Whatever
+    // the backup mirror holds is valid data and a real recovery layer, so it
+    // stays: a divergence between the two stores is strictly better than
+    // having no local copy at all.
     lsOk = false;
     lsRemoveSafe(mainKey);
-    if (rotate) lsRemoveSafe(backupKey);
   }
 
   return { lsOk, idbPromise };
@@ -964,11 +1071,6 @@ export function readSaveSlotTmp(slot: number): string | null {
   catch { return null; }
 }
 
-/** Drop the tmp key for a slot. Kept for backward compat. */
-export function clearSaveSlotTmp(slot: number): void {
-  try { localStorage.removeItem(STORAGE_KEYS.saveSlotTmp(slot)); }
-  catch { /* storage unavailable */ }
-}
 
 /** Sweep stale tmp keys from a previous app version that still used the
  *  tmp-staging write path. If tmp is valid JSON and the slot is empty
@@ -1082,9 +1184,30 @@ export function deleteAllDynastyData(): void {
  *  fallback for users whose slots haven't been hydrated yet. */
 export function getSlotSummaries(): SlotSummary[] {
   migrateLegacySave();
-  return [1, 2, 3].map(slot => {
-    const raw = readSaveSlot(slot);
-    if (!raw) return { slot, exists: false };
+  return [1, 2, 3].map(slot => summariseSlot(slot));
+}
+
+function summariseSlot(slot: number): SlotSummary {
+  const raw = readSaveSlot(slot);
+  if (!raw) return { slot, exists: false };
+  const parsed = parseSummary(slot, raw);
+  if (parsed) return parsed;
+
+  // The primary failed to parse. It used to stop here and report the slot as
+  // EMPTY, which is the worst possible answer: TitleScreen rendered a "New
+  // Game" row over a real career, `loadGame` (which already recovers from the
+  // backup) was never reached, and starting a new game there rotated the fresh
+  // save into the backup on the following autosave — destroying the last good
+  // copy for good. Report the slot as present-but-damaged instead, described by
+  // the backup where one parses, so the existing recovery path is reachable.
+  const backupRaw = readSaveSlotBackup(slot);
+  const fromBackup = backupRaw ? parseSummary(slot, backupRaw) : null;
+  return fromBackup
+    ? { ...fromBackup, needsRecovery: true }
+    : { slot, exists: true, needsRecovery: true };
+}
+
+function parseSummary(slot: number, raw: string): SlotSummary | null {
     try {
       const data = JSON.parse(raw);
       const club = data.clubs?.[data.playerClubId];
@@ -1107,12 +1230,7 @@ export function getSlotSummaries(): SlotSummary[] {
       }
       return { slot, exists: true, clubName: club?.name, season: data.season, week: data.week, position, gameMode: data.gameMode || 'sandbox' };
     } catch (err) {
-      // Slot data exists but failed to parse — corruption. Without the
-      // breadcrumb the user just sees their populated slot rendered as
-      // an empty "New Game" row on TitleScreen, with no signal to us
-      // that a save was lost.
       breadcrumbCorruption(`getSlotSummaries:slot${slot}`, raw, err);
-      return { slot, exists: false };
+      return null;
     }
-  });
 }

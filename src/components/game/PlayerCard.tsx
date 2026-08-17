@@ -4,6 +4,9 @@ import { X, Star } from 'lucide-react';
 import type { Player, PlayerAttributes } from '@/types/game';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { cn } from '@/lib/utils';
+// The helper this card's own docblock was written for: multi-word surnames
+// ("De Bruyne", "Van Dijk") ellipsized under `truncate` instead of shortening.
+import { getPlayerDisplayName } from '@/utils/playerDisplay';
 import { hapticLight } from '@/utils/haptics';
 import { getPlayerCardArt, getFitnessHexColor } from '@/utils/uiHelpers';
 import { getPersonalityLabel } from '@/utils/personality';
@@ -331,7 +334,7 @@ export const PlayerCard = memo(function PlayerCard({
                   className="min-w-0 font-display font-black leading-none truncate uppercase tracking-[0.02em]"
                   style={{ fontSize: tk.namePx, textShadow: '0 2px 6px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.5)' }}
                 >
-                  {player.lastName}
+                  {getPlayerDisplayName(player)}
                 </p>
                 {!flagOverName && (
                   <div

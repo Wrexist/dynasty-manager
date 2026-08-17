@@ -20,6 +20,11 @@ export interface PrestigeStats {
   prestigeLevel: number;
 }
 
+/** XP granted by "Fresh Start+" so its advertised "+1 starting perk point" is
+ *  real. Perk points are derived (`getTotalXP` = lifetime XP minus perk costs),
+ *  so one point is exactly the cost of a tier-1 perk. */
+export const PRESTIGE_RESTART_PERK_XP = 80;
+
 export const PRESTIGE_OPTIONS: PrestigeOption[] = [
   {
     id: 'rival',

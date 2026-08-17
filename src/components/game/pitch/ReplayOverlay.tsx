@@ -29,16 +29,20 @@ export function ReplayOverlay({ timeline, quality, homeColor, awayColor, from, t
 
   useEffect(() => {
     let m = from;
+    // The trailing timeout has to be cancellable too: it is scheduled INSIDE
+    // the interval callback, so unmounting during its 900ms window — leaving
+    // the pitch view as a replay finishes — fired `onDone` on a torn-down tree.
+    let doneTimer: ReturnType<typeof setTimeout> | undefined;
     const id = setInterval(() => {
       m += 1;
       if (m > to) {
         clearInterval(id);
-        setTimeout(onDone, 900);
+        doneTimer = setTimeout(onDone, 900);
         return;
       }
       setMinute(m);
     }, STEP_MS);
-    return () => clearInterval(id);
+    return () => { clearInterval(id); if (doneTimer !== undefined) clearTimeout(doneTimer); };
   }, [from, to, onDone]);
 
   return (

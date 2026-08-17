@@ -6,6 +6,7 @@ import { getSuffix, formatMoney } from '@/utils/helpers';
 import { getConfidenceColor, getFanConfidenceColor, getFanConfidence } from '@/utils/uiHelpers';
 import { usePlayerClub, useLeaguePosition, useCurrentMatch, useUnreadCount, findTournamentMatch, useSquadAverageMorale } from '@/hooks/useGameSelectors';
 import { GlassPanel } from '@/components/game/GlassPanel';
+import { LiquidButton } from '@/components/game/LiquidButton';
 import { getActiveCompetitions } from '@/utils/competitionStatus';
 import type { CompetitionStatusEntry } from '@/types/game';
 import { BoardObjectivesCard } from '@/components/dashboard/BoardObjectivesCard';
@@ -29,7 +30,7 @@ import { cn } from '@/lib/utils';
 import { useFinanceBreakdown } from '@/hooks/useFinanceBreakdown';
 import { getContractUrgency } from '@/utils/contracts';
 import { checkCelebrations, getWinStreak, getUnbeatenRun, getCleanSheetStreak, getDramaCelebration, detectTrophyMoments } from '@/utils/celebrations';
-import { STREAK_MORALE_THRESHOLD, OBJECTIVE_STREAK_THRESHOLD, OBJECTIVE_CYCLE_WEEKS, OBJECTIVE_STREAK_MULTIPLIER, RARE_OBJECTIVE_XP_MULTIPLIER, LEGENDARY_OBJECTIVE_XP_MULTIPLIER, COACH_ALL_TASKS_BONUS_XP, ACHIEVEMENT_XP_BRONZE, ACHIEVEMENT_XP_SILVER, ACHIEVEMENT_XP_GOLD } from '@/config/gameBalance';
+import { STREAK_MORALE_THRESHOLD, OBJECTIVE_STREAK_THRESHOLD, OBJECTIVE_CYCLE_WEEKS, OBJECTIVE_STREAK_MULTIPLIER, COACH_ALL_TASKS_BONUS_XP, ACHIEVEMENT_XP_BRONZE, ACHIEVEMENT_XP_SILVER, ACHIEVEMENT_XP_GOLD } from '@/config/gameBalance';
 import { getXPProgress, MANAGER_PERKS, canUnlockPerk, getTotalXP } from '@/utils/managerPerks';
 import { getReputationTierLabel } from '@/utils/managerCareer';
 import { getTransferWindows } from '@/config/transfers';
@@ -76,7 +77,7 @@ import { buildCoachTasks } from '@/utils/gameCoach';
 import { STORYLINE_CHAINS } from '@/data/storylineChains';
 import { FormGuide } from '@/components/game/FormGuide';
 import { getRecentForm } from '@/utils/formGuide';
-import { computeObjectiveProgress } from '@/utils/weeklyObjectives';
+import { computeObjectiveProgress, objectiveXpMultiplier } from '@/utils/weeklyObjectives';
 import { getCompetitionInfo } from '@/utils/competitionBadge';
 
 const WELCOME_KEY = STORAGE_KEYS.WELCOME_SHOWN;
@@ -609,11 +610,10 @@ const Dashboard = () => {
     if (newlyDone.size > 0) hapticLight();
   }, [coachTasks]);
 
-  const effectiveObjXp = (obj: { xpReward: number; rarity?: string }) => {
-    const mult = obj.rarity === 'legendary' ? LEGENDARY_OBJECTIVE_XP_MULTIPLIER
-      : obj.rarity === 'rare' ? RARE_OBJECTIVE_XP_MULTIPLIER : 1;
-    return obj.xpReward * mult;
-  };
+  // Shared with weeklyObjectives + weekAdvance so the number shown here can
+  // never drift from the number granted.
+  const effectiveObjXp = (obj: { xpReward: number; rarity?: string }) =>
+    obj.xpReward * objectiveXpMultiplier(obj as { rarity?: 'common' | 'rare' | 'legendary' });
 
   const prevCompletedObjRef = useRef<Set<string> | null>(null);
   const [justCompletedObj, setJustCompletedObj] = useState<Set<string>>(new Set());
@@ -678,7 +678,12 @@ const Dashboard = () => {
     return { oppName: oppClub?.shortName || '?', score: `${lastMatch.homeGoals}-${lastMatch.awayGoals}`, result, week: lastMatch.week };
   }, [fixtures, playerClubId, clubs]);
 
-  const inPlayoffs = (seasonPhase as string) === 'playoffs';
+  // NB: the phase is 'playoff', not 'playoffs'. The plural (behind an `as
+  // string` cast that hid the type error) made this permanently false, so
+  // `seasonOver` stayed true through the whole playoff phase and suppressed
+  // both the Match Prep card and the Advance Week panel — the tie could never
+  // be started and the season could never roll.
+  const inPlayoffs = seasonPhase === 'playoff';
   const competitionInfo = getCompetitionInfo(competition, {
     inPlayoffs,
     leagueName: LEAGUES.find(d => d.id === playerDivision)?.shortName,
@@ -711,9 +716,17 @@ const Dashboard = () => {
   }, [seasonOver, inPlayoffs, totalWeeks, week, entry, leagueTable]);
 
   if (!club) {
+    // `playerClubId` no longer resolves. In career mode `setScreen` redirects an
+    // unemployed manager, so reaching here means a save whose club is gone —
+    // and a bare spinner with no timeout and no escape left the player staring
+    // at it forever. Offer the same way out the root ErrorBoundary does.
     return (
-      <div className="max-w-lg mx-auto px-4 py-8 flex items-center justify-center">
+      <div className="max-w-lg mx-auto px-4 py-8 flex flex-col items-center justify-center gap-4 text-center">
         <Loader2 className="w-6 h-6 text-primary animate-spin" />
+        <p className="text-xs text-muted-foreground">{t('dashboard.clubUnavailable')}</p>
+        <LiquidButton onClick={() => { window.location.hash = '#/'; }}>
+          {t('dashboard.returnToMenu')}
+        </LiquidButton>
       </div>
     );
   }
@@ -2092,7 +2105,19 @@ const Dashboard = () => {
             {activeCompetitions.map(entry => {
               const Icon = competitionRowIcon(entry);
               return (
-                <div key={entry.screen} className="flex items-center justify-between gap-3">
+                // Each row goes to ITS competition. `entry.screen` was computed
+                // and then used only as a React key, so the four registered
+                // screens it names ('champions-cup', 'shield-cup',
+                // 'conference-cup', 'super-cup') had no `setScreen` call site
+                // anywhere and their routing branches were dead. Tapping the
+                // Cup row and landing on a hub you then have to navigate again
+                // is also one tap too many.
+                <button
+                  type="button"
+                  key={entry.screen}
+                  onClick={(e) => { e.stopPropagation(); setScreen(entry.screen); }}
+                  className="w-full flex items-center justify-between gap-3 text-left active:opacity-70 transition-opacity"
+                >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <Icon className={cn(
                       'w-4 h-4 shrink-0',
@@ -2101,7 +2126,7 @@ const Dashboard = () => {
                     <span className="text-sm text-foreground truncate">{entry.title}</span>
                   </div>
                   <span className="text-xs text-muted-foreground shrink-0">{entry.status}</span>
-                </div>
+                </button>
               );
             })}
           </div>

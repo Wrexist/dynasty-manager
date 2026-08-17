@@ -55,3 +55,8 @@ export const SCOUT_REPORTS_COLLAPSED_COUNT = 10;
 export const SIGN_POTENTIAL_THRESHOLD = 75;
 export const SIGN_OVERALL_THRESHOLD = 72;
 export const MONITOR_POTENTIAL_THRESHOLD = 65;
+
+/** OVR band around an assignment's rolled quality when drawing a REAL player
+ *  for a scout report. Wide enough that the pool usually has someone, narrow
+ *  enough that a region's quality range still means something. */
+export const SCOUT_REAL_OVR_BAND = 3;

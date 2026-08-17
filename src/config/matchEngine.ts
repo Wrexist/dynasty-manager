@@ -626,5 +626,3 @@ export const VAR_CHECK_CHANCE = 0.12;
 export const VAR_DISALLOW_CHANCE = 0.25;
 
 // ── AI Counter-Tactics ──
-/** Chance of generating a tactical counter-insight comment at match start */
-export const AI_COUNTER_INSIGHT_CHANCE = 0.7;

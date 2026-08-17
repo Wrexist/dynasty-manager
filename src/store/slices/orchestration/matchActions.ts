@@ -24,7 +24,7 @@ import { advanceCupRound, getRoundName } from '@/data/cup';
 import { getDerbyIntensity } from '@/data/league';
 import { pickAiMatchSquad, stripAiMatchDetail } from '@/store/slices/orchestration/helpers';
 import { getEffectiveMatchIntensity } from '@/utils/rivalries';
-import { generatePressConference } from '@/data/pressConferences';
+import { generatePressConference, getPostMatchPressContext } from '@/data/pressConferences';
 import { HalfState, finalizeMatch, generateMatchWeather, simulateHalf, simulateMatch } from '@/engine/match';
 import { processMatchResult } from '@/store/helpers/matchProcessing';
 import { applyAIMatchEvents } from '@/store/slices/orchestration/helpers';
@@ -431,6 +431,35 @@ function resolveMatchMedical(
   return { hcMedical: resolve(hc), acMedical: resolve(ac) };
 }
 
+
+/**
+ * Inputs the post-match press conference needs to ask about the club's
+ * SITUATION rather than only the result. Derived once here so all six
+ * match-completion paths agree.
+ */
+function pressExtrasFor(state: GameState): {
+  recentForm: ('W' | 'D' | 'L')[];
+  hasListedPlayers: boolean;
+  extras: { leaguePosition?: number; totalTeams?: number; injuredCount?: number; recentSigning?: boolean };
+} {
+  const table = state.leagueTable || [];
+  const idx = table.findIndex(e => e.clubId === state.playerClubId);
+  const entry = idx >= 0 ? table[idx] : null;
+  const club = state.clubs[state.playerClubId];
+  const squad = (club?.playerIds || []).map(id => state.players[id]).filter(Boolean);
+  return {
+    recentForm: (entry?.form || []) as ('W' | 'D' | 'L')[],
+    hasListedPlayers: squad.some(p => p.listedForSale),
+    extras: {
+      leaguePosition: idx >= 0 ? idx + 1 : undefined,
+      totalTeams: table.length || undefined,
+      injuredCount: squad.filter(p => p.injured).length,
+      recentSigning: (state.seasonTransfersBought || []).length > 0
+        && squad.some(p => p.joinedSeason === state.season),
+    },
+  };
+}
+
 export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   const state = get();
   // Career mode: block match play when unemployed
@@ -735,7 +764,8 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
       : processTournamentResult(tempState, finalResult, playerClubId, processed, season, week);
 
     const cupDrama = detectMatchDrama(finalResult, playerClubId, effectiveClubs);
-    const pressContext = processed.won ? 'post_win' : processed.lost ? 'post_loss' : 'post_draw';
+    const pe = pressExtrasFor(get());
+    const pressContext = getPostMatchPressContext(processed.won, processed.lost, pe.recentForm, pe.hasListedPlayers, pe.extras);
 
     // Add tournament-specific inbox message (e.g. "Cup: R2 Won!" / "League Cup: Eliminated")
     const oppClub = effectiveClubs[isPlayerHome ? match.awayClubId : match.homeClubId];
@@ -846,7 +876,8 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
     const confDelta = (processed.confidence - (state.boardConfidence || 50)) * FRIENDLY_BOARD_CONFIDENCE_MULT;
     const friendlyConfidence = Math.max(0, Math.min(100, (state.boardConfidence || 50) + confDelta));
 
-    const pressContext = processed.won ? 'post_win' : processed.lost ? 'post_loss' : 'post_draw';
+    const pe = pressExtrasFor(get());
+    const pressContext = getPostMatchPressContext(processed.won, processed.lost, pe.recentForm, pe.hasListedPlayers, pe.extras);
     const press = generatePressConference(pressContext, isPro(get().monetization));
     const drama = detectMatchDrama(result, playerClubId, clubs);
     const prevSession = state.sessionStats || { startWeek: week, startSeason: season, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 };
@@ -917,7 +948,8 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   const drama = detectMatchDrama(result, playerClubId, clubs);
 
   // Generate post-match press conference
-  const pressContext = processed.won ? 'post_win' : processed.lost ? 'post_loss' : 'post_draw';
+  const pe = pressExtrasFor(get());
+    const pressContext = getPostMatchPressContext(processed.won, processed.lost, pe.recentForm, pe.hasListedPlayers, pe.extras);
   const press = generatePressConference(pressContext, isPro(get().monetization));
 
   // Update session stats for wins/losses
@@ -1369,7 +1401,8 @@ export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): M
     const processed = processMatchResult(state, match, result, playerRatings, () => get().week, fullState.matchInjuries);
     const confDelta = (processed.confidence - (state.boardConfidence || 50)) * FRIENDLY_BOARD_CONFIDENCE_MULT;
     const friendlyConfidence = Math.max(0, Math.min(100, (state.boardConfidence || 50) + confDelta));
-    const pressContext = processed.won ? 'post_win' : processed.lost ? 'post_loss' : 'post_draw';
+    const pe = pressExtrasFor(get());
+    const pressContext = getPostMatchPressContext(processed.won, processed.lost, pe.recentForm, pe.hasListedPlayers, pe.extras);
     const drama = detectMatchDrama(result, playerClubId, clubs);
 
     set({
@@ -1400,7 +1433,8 @@ export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): M
   if (state.currentCupTieId) {
     const processed = processMatchResult(state, match, result, playerRatings, () => get().week, fullState.matchInjuries);
     const cupDrama = detectMatchDrama(result, playerClubId, clubs);
-    const pressContext = processed.won ? 'post_win' : processed.lost ? 'post_loss' : 'post_draw';
+    const pe = pressExtrasFor(get());
+    const pressContext = getPostMatchPressContext(processed.won, processed.lost, pe.recentForm, pe.hasListedPlayers, pe.extras);
     const tournamentUpdates = processTournamentResult(state, result, playerClubId, processed, season, week);
 
     set({
@@ -1461,7 +1495,8 @@ export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): M
   const leagueDrama = detectMatchDrama(result, playerClubId, clubs);
 
   // Generate post-match press conference
-  const pressContext2 = processed.won ? 'post_win' : processed.lost ? 'post_loss' : 'post_draw';
+  const pe2 = pressExtrasFor(get());
+  const pressContext2 = getPostMatchPressContext(processed.won, processed.lost, pe2.recentForm, pe2.hasListedPlayers, pe2.extras);
   const press2 = generatePressConference(pressContext2, isPro(get().monetization));
 
   const syncedDivFixtures2 = { ...state.divisionFixtures, [state.playerDivision]: fullFixtures2 };

@@ -619,6 +619,15 @@ export const PRESS_PROMOTION_RACE_TOP_N = 3;       // top N positions to trigger
 export const PRESS_RELEGATION_BATTLE_BOTTOM_N = 3;  // bottom N positions to trigger relegation_battle
 export const PRESS_INJURY_CRISIS_MIN = 3;            // minimum injured players to trigger injury_crisis
 export const PRESS_DERBY_PREVIEW_CHANCE = 0.6;       // chance of derby_preview context before derby
+/** Chance a post-match press conference asks about the club's SITUATION
+ *  (injury crisis, relegation battle, promotion race, transfer rumours, form,
+ *  a new signing) instead of the result.
+ *
+ *  Every production call site hardcoded post_win/post_loss/post_draw, so nine
+ *  of the twelve authored contexts — 66 of the 90 questions in
+ *  `pressConferences.ts` — were unreachable. Kept a minority of conferences so
+ *  the result still dominates the room, which is what a post-match presser is. */
+export const PRESS_SITUATIONAL_POST_MATCH_CHANCE = 0.35;
 
 // ── Injury Types & Severity ──
 import type { InjuryType, InjurySeverity } from '@/types/game';
@@ -795,6 +804,48 @@ export const FREE_AGENT_POOL_MAX = 200;
  * players) while leaving room for a few veterans (Buffon, Ibrahimović) to
  * play into their 39th year.
  */
+// ── Board Reinvestment (the surplus sink) ──
+//
+// Income scales with success but the only recurring cost is wages, which the
+// manager controls, and facility upgrades are capped — so cash accumulated with
+// nothing to spend it on. Measured over 12 seasons before this existed: mean
+// club budget GBP 63M -> 190M and the player's GBP 331M -> 1663M, i.e. money
+// stopped being a constraint somewhere around season 6.
+//
+// At each rollover the board keeps a working reserve and reinvests a share of
+// anything above it in infrastructure. That bounds the hoard without touching
+// the revenue curve, and it applies to every club so the AI economy is bounded
+// by the same rule the player's is.
+/** Working reserve a club keeps, as a multiple of its WEEKLY wage bill. */
+export const BOARD_RESERVE_WAGE_MULTIPLE = 30;
+/** Share of the cash above the reserve the board reinvests each season. */
+export const BOARD_REINVESTMENT_RATE = 0.6;
+/** Floor on the reserve, so the mechanic never squeezes clubs whose wage bill
+ *  is tiny — a fourth-tier side needs a usable transfer kitty too. */
+export const BOARD_MIN_RESERVE = 20_000_000;
+/** Below this, reinvestment is skipped entirely rather than shaving pennies. */
+export const BOARD_REINVESTMENT_MIN_SURPLUS = 5_000_000;
+
+// ── World Population Stability ──
+//
+// Retirement age stays at 40 by design. The population drain was never
+// retirement — it was that regeneration only ever filled a squad back to
+// MIN_SQUAD_SIZE, so every squad decayed toward that floor and stayed there.
+// Measured over 12 seasons: average squad 30.4 -> 26.3, world population
+// 5132 -> 4635 (falling monotonically), under-21s 851 -> 356 while over-33s
+// grew 510 -> 1456. The world aged because it stopped producing youth, not
+// because nobody left.
+//
+// Topping squads up to their WORKING size instead of their minimum holds the
+// population flat and restores the youth intake, without touching retirement.
+/** Squad size regeneration tops a club up to. Matches the observed steady
+ *  state after season 1, so this restores the level rather than inflating it. */
+export const REGEN_TARGET_SQUAD_SIZE = 30;
+/** Top-up players are academy-age intake, which is what pulls the age
+ *  distribution back down. Position-gap fills keep their existing behaviour. */
+export const REGEN_YOUTH_AGE_MIN = 17;
+export const REGEN_YOUTH_AGE_MAX = 21;
+
 export const FORCED_RETIREMENT_AGE = 40;
 // ── Cliffhanger System ──
 /** Maximum number of cliffhangers shown per week */

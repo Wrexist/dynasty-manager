@@ -16,6 +16,7 @@ import {
   candidatesCanCrackSquad,
 } from '@/utils/autoFillContext';
 import { purgePlayerReferences } from '../helpers/rosterOps';
+import { readDailyPackOpens, writeDailyPackOpens, currentDayIndex } from '../helpers/persistence';
 
 /**
  * Transient (non-persisted) snapshot of the state slices a quick-sell touches,
@@ -47,9 +48,9 @@ type Get = () => GameState;
 // OpenedPackRecord, OpenPackResult, ReleasePackedPlayerResult all live in
 // `@/types/game` (single source of truth for domain types).
 
-/** Real-world date key (YYYY-MM-DD, device-local) used to bucket
- *  daily ad-pack opens. Lives in the slice so tests can stub `Date`
- *  without touching production timezone logic. */
+/** Real-world date key (YYYY-MM-DD, device-local) used to LABEL the in-state
+ *  mirror of the daily bucket. Display only — the allowance itself is judged
+ *  against `currentDayIndex()`, which is monotonic. */
 function todayDateKey(): string {
   const d = new Date();
   const yyyy = d.getFullYear();
@@ -62,13 +63,17 @@ export type CanOpenPackResult = { ok: true } | { ok: false; message: string };
 
 /** Read today's free/ad open count for a given tier from state, defaulting
  *  to 0 if the bucket date no longer matches the device's current day. */
-function todayCounts(state: GameState, tierKey: PackTierKey): { free: number; ad: number } {
-  const today = todayDateKey();
-  const buckets = state.dailyPackOpens || { date: '', free: {}, ad: {} };
-  if (buckets.date !== today) return { free: 0, ad: 0 };
+function todayCounts(_state: GameState, tierKey: PackTierKey): { free: number; ad: number } {
+  // Read the DEVICE-global record, not the save. The bucket used to live only
+  // in the save payload, which made a "daily" free pack per-slot (three saves =
+  // three free Gold packs a day) and rerollable by force-quitting after a bad
+  // pull. It also reset on date INEQUALITY, so winding the clock back — or just
+  // changing timezone — re-armed it. `readDailyPackOpens` fixes both: one
+  // device-wide record, keyed on a monotonic day index that only moves forward.
+  const record = readDailyPackOpens();
   return {
-    free: buckets.free?.[tierKey] || 0,
-    ad: buckets.ad?.[tierKey] || 0,
+    free: record.free[tierKey] || 0,
+    ad: record.ad[tierKey] || 0,
   };
 }
 
@@ -243,8 +248,10 @@ export const createPacksSlice = (set: Set, get: Get) => ({
 
     const club = state.clubs[state.playerClubId]!;
     const today = todayDateKey();
-    const buckets = state.dailyPackOpens || { date: '', free: {}, ad: {} };
-    const usedToday = buckets.date === today ? buckets : { date: today, free: {}, ad: {} };
+    // Authoritative allowance is the device record; the state field is a mirror
+    // kept purely so the UI re-renders when a count changes.
+    const deviceBucket = readDailyPackOpens();
+    const usedToday = { date: today, free: { ...deviceBucket.free }, ad: { ...deviceBucket.ad } };
 
     const pityTriggered = shouldPityTrigger(state.packPityCounter || 0);
     // A free daily / rewarded-ad open uses the tier's weaker odds where it has
@@ -377,6 +384,16 @@ export const createPacksSlice = (set: Set, get: Get) => ({
         free: usedToday.free,
         ad: { ...usedToday.ad, [tierKey]: (usedToday.ad[tierKey] || 0) + 1 },
       };
+    }
+    if (nextDailyOpens !== usedToday) {
+      // Persist outside the save, immediately. Deferring this to the next
+      // autosave is what made the free daily pack a best-of-N reroll: quit
+      // after a bad pull and the allowance came back with the old save.
+      writeDailyPackOpens({
+        dayIndex: currentDayIndex(),
+        free: nextDailyOpens.free as Record<string, number>,
+        ad: nextDailyOpens.ad as Record<string, number>,
+      });
     }
 
     // ── Phase 1: synchronous core write ──

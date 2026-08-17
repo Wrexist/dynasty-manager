@@ -11,10 +11,11 @@ import type { TransferNewsEntry } from '@/types/game';
 import { pick, shuffle, addMsg, safeRandomUUID } from '@/utils/helpers';
 import { formatMoney } from '@/utils/helpers';
 import {
-  STADIUM_INCOME_PER_LEVEL, POSITION_PRIZE_PER_RANK, POSITION_PRIZE_MAX_RANK,
+  STADIUM_INCOME_PER_LEVEL, POSITION_PRIZE_MAX_RANK,
   MIN_SQUAD_SIZE,
 } from '@/config/gameBalance';
-import { getMatchdayIncome, getCommercialIncome } from '@/utils/financeHelpers';
+import { getMatchdayIncome, getCommercialIncome, getLeaguePositionPrize } from '@/utils/financeHelpers';
+import { LEAGUES } from '@/data/league';
 import {
   AI_INCOME_MULTIPLIER, AI_STAFF_COST_PER_REP,
   AI_MAX_WAGE_TO_INCOME_RATIO, AI_EMERGENCY_SELL_WAGE_RATIO,
@@ -79,7 +80,10 @@ function getPositionCount(club: Club, players: Record<string, Player>): Record<P
   return counts;
 }
 
-function estimateWeeklyIncome(club: Club, divisionTable: LeagueTableEntry[]): number {
+/** Exported so a test can pin the invariant this file's header states: the AI
+ *  and the player must be on ONE income model. It diverged silently on prize
+ *  money for an entire release. */
+export function estimateWeeklyIncome(club: Club, divisionTable: LeagueTableEntry[]): number {
   // Share the PLAYER's income model. These used the raw unscaled constants while
   // the player's club is league-tier scaled, so a fourth-tier AI club believed it
   // earned ~GBP 3M/wk where the equivalent player club earns ~GBP 527k. That
@@ -99,8 +103,14 @@ function estimateWeeklyIncome(club: Club, divisionTable: LeagueTableEntry[]): nu
     : (divisionTable.length > 0 ? divisionTable.length : POSITION_PRIZE_MAX_RANK);
   // Derive max prize rank from the actual division size (teamCount + 1), matching
   // getFinanceBreakdown — a flat 21 zeroes out positions 21-24 in 24-team divisions.
-  const maxPrizeRank = divisionTable.length > 0 ? divisionTable.length + 1 : POSITION_PRIZE_MAX_RANK;
-  const prize = Math.max(0, maxPrizeRank - tablePos) * POSITION_PRIZE_PER_RANK;
+  // Share the PLAYER's prize formula, tier scaling included. This line used to
+  // compute the prize inline WITHOUT the tier scale that
+  // `getLeaguePositionPrize` applies, so AI clubs were paid top-flight prize
+  // money in every division: measured in season 1, an eng-4 club drew 20.9x the
+  // prize the player's own formula would pay it, and that prize was 93% of its
+  // entire weekly surplus. It inflated AI wage headroom and transfer
+  // aggression at exactly the tiers meant to be poor.
+  const prize = getLeaguePositionPrize(tablePos, divisionTable.length, LEAGUES.find(l => l.id === club.divisionId)?.qualityTier);
   return matchday + commercial + stadium + prize;
 }
 

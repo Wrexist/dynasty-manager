@@ -121,7 +121,15 @@ function advanceBracket(
  */
 export function maybeEnterPlayoff(set: Set, get: Get): boolean {
   const state = get();
-  if (state.seasonPhase === 'playoff') return true; // already in it
+  if (state.seasonPhase === 'playoff') {
+    // Only block the rollover while there is actually a tie to play. A phase
+    // with no pending match is an unrollable season — it can only arise from a
+    // save written before `playoffState` was persisted, so recover instead of
+    // deadlocking the career.
+    if (state.playoffState?.pendingMatch) return true;
+    set({ seasonPhase: 'regular', playoffState: null });
+    return false;
+  }
   const qualified = getPlayerPlayoffCandidates(state);
   if (!qualified) return false;
 

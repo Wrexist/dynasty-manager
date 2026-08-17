@@ -98,9 +98,6 @@ export function initSentry(): void {
   initialized = true;
 }
 
-export function isSentryInitialised(): boolean {
-  return initialized;
-}
 
 /** The narrow set of game-lifecycle breadcrumbs the observability plan calls
  *  out. Keep this list small — every addition becomes a field in the Sentry

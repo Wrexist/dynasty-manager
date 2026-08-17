@@ -116,10 +116,13 @@ export function AdOfferModal({ placementId, onGranted, onDismissed }: AdOfferMod
     }
   }, [placement, busy, userIsPro, recordAdWatched, onGranted, onDismissed]);
 
-  // A free player can only be offered this if an ad can actually be shown.
-  // Offering a reward the app cannot deliver is the failure mode that made
-  // rewards Pro-only the last time ads were half-wired.
-  if (!userIsPro && !REWARDED_ADS_USABLE) return null;
+  // Nobody — Pro included — is offered this while ads cannot actually be
+  // shown. The `!userIsPro &&` that used to guard it let Pro users through to
+  // `accept()`, which grants the reward with no ad; `AD_PLACEMENTS.transfer_budget`
+  // pays out clamped budget money, i.e. a simulation parameter, which
+  // monetization code must never touch. `AdRewardButton` gates unconditionally
+  // for exactly this reason — the two now agree.
+  if (!REWARDED_ADS_USABLE) return null;
 
   return (
     <AnimatePresence>

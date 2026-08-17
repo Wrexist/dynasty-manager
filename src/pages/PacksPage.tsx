@@ -22,7 +22,8 @@ import { errorToast, infoToast, successToast } from '@/utils/gameToast';
 import type { Player } from '@/types/game';
 import { REWARDED_ADS_USABLE, showRewardedAd } from '@/utils/ads';
 import { isPro } from '@/utils/monetization';
-import { purchaseConsumable, getStoreAvailability } from '@/utils/purchases';
+import { PENDING_CREDIT_TTL_MS } from '@/config/monetization';
+import { purchaseConsumable, getStoreAvailability, isPurchaseNotAttempted } from '@/utils/purchases';
 import { readPendingPackCredit, writePendingPackCredit, clearPendingPackCredit } from '@/store/helpers/persistence';
 import { isReviewWorthyPackTier, maybeRequestReview } from '@/utils/appReview';
 import { addGameBreadcrumb } from '@/utils/sentry';
@@ -112,7 +113,9 @@ const PacksPage = () => {
   const canOpenPack = useGameStore(s => s.canOpenPack);
   const quickSellPackedPlayer = useGameStore(s => s.quickSellPackedPlayer);
   const undoLastQuickSell = useGameStore(s => s.undoLastQuickSell);
-  const saveGame = useGameStore(s => s.saveGame);
+  // Paid-pack durability uses `flushSave` (synchronous) rather than
+  // `saveGame` (debounced idle) — see the purchase path below.
+  const flushSave = useGameStore(s => s.flushSave);
   const activeSlot = useGameStore(s => s.activeSlot);
 
   const [opening, setOpening] = useState<{ tier: PackTierKey; players: Player[]; pityTriggered?: boolean } | null>(null);
@@ -150,6 +153,24 @@ const PacksPage = () => {
     const pending = readPendingPackCredit();
     if (!pending) return;
     if (pending.slot !== activeSlot) return; // credit belongs to another save
+    // Proof of payment, not merely evidence of an attempt. `charged === false`
+    // means the marker was written and the store never confirmed — granting it
+    // handed out paid packs for free, repeatably. Report it rather than
+    // dropping it silently: with no receipt backend, Sentry is the only trail
+    // support has if a real charge ever lands here.
+    if (pending.charged === false) {
+      Sentry.captureMessage('[Packs] Dropping unconfirmed pack credit', 'info');
+      clearPendingPackCredit();
+      return;
+    }
+    // Stale markers expire. A credit that has survived this long is not going
+    // to be reconciled by another mount, and an immortal marker is a standing
+    // grant waiting for a squad slot to free up.
+    if (pending.timestamp > 0 && Date.now() - pending.timestamp > PENDING_CREDIT_TTL_MS) {
+      Sentry.captureMessage('[Packs] Dropping expired pack credit', 'warning');
+      clearPendingPackCredit();
+      return;
+    }
     const tier = PACK_TIER_MAP[pending.tierKey as PackTierKey];
     if (!tier) { clearPendingPackCredit(); return; } // tier removed — nothing we can grant
     const result = openPack(pending.tierKey as PackTierKey, {
@@ -161,8 +182,9 @@ const PacksPage = () => {
       suppressPaidRejectSentry: pending.reported === true,
     });
     if (result.success && result.players) {
-      clearPendingPackCredit();
-      saveGame();
+      // Durable first, clear second — see the note on the purchase path.
+      flushSave();
+      if (useGameStore.getState().saveStatus !== 'failed') clearPendingPackCredit();
       successToast('Purchase restored', `Your paid ${tier.label} from the previous session has been credited.`);
       setOpening({ tier: pending.tierKey as PackTierKey, players: result.players, pityTriggered: result.pityTriggered });
     } else {
@@ -436,13 +458,21 @@ const PacksPage = () => {
       // granted + saved, this marker is the only record that money changed
       // hands — the mount-time reconciler below re-grants it. Cleared on
       // cancel and after a successful grant.
-      writePendingPackCredit({ productId: tier.productId, tierKey, timestamp: Date.now(), slot: activeSlot });
+      // ...but the marker alone is NOT proof of payment. It is written
+      // un-charged and only promoted once the store confirms, otherwise any
+      // failed attempt (offline, force-quit on the sheet) left a record the
+      // reconciler happily granted — a free, repeatable paid pack.
+      const marker = { productId: tier.productId, tierKey, timestamp: Date.now(), slot: activeSlot, charged: false };
+      writePendingPackCredit(marker);
       const purchased = await purchaseConsumable(tier.productId);
       if (!purchased) {
         // User cancelled or store unavailable — no charge, drop the marker.
         clearPendingPackCredit();
         return;
       }
+      // Charge confirmed. Promote the marker BEFORE granting, so a crash
+      // between here and the save still reconciles into a real credit.
+      writePendingPackCredit({ ...marker, charged: true });
       const result = openPack(tierKey, { method, skipPayment: true });
       if (!result.success || !result.players) {
         if (result.paidButRejected) {
@@ -459,10 +489,12 @@ const PacksPage = () => {
         }
         return;
       }
-      clearPendingPackCredit();
-      // Autosave only fires on advanceWeek — flush now so a crash after the
-      // reveal can't lose paid players while the consumable stays consumed.
-      saveGame();
+      // Order matters: the marker is the only evidence of payment, so it is
+      // cleared only once the paid players are durably on disk. `saveGame()`
+      // here was the debounced idle path and routinely a no-op, which meant
+      // the marker could be deleted while the grant existed in memory only.
+      flushSave();
+      if (useGameStore.getState().saveStatus !== 'failed') clearPendingPackCredit();
       successToast('Purchase complete', `${tier.label} unlocked.`);
       setOpening({ tier: tierKey, players: result.players, pityTriggered: result.pityTriggered });
     } catch (err) {
@@ -470,10 +502,13 @@ const PacksPage = () => {
       // impossible to triage real IAP failures (receipt validation throws,
       // RevenueCat SDK errors mid-purchase, etc.). The user toast stays
       // generic to avoid leaking implementation details.
-      // NOTE: the pending-credit marker is deliberately NOT cleared here —
-      // RevenueCat can throw after the charge (receipt validation), and a
-      // rare unearned re-grant beats losing a real payment.
-      addGameBreadcrumb('purchase', 'pack iap threw', { surface: 'packs', tierKey });
+      // The marker is kept ONLY when the throw could have followed a charge —
+      // RevenueCat can throw on receipt validation after taking the money, and
+      // a rare unearned re-grant beats losing a real payment. A failure that
+      // never reached the store (offline, product unavailable) is definitively
+      // un-charged and its marker is dropped; keeping it was the exploit.
+      if (isPurchaseNotAttempted(err)) clearPendingPackCredit();
+      addGameBreadcrumb('purchase', 'pack iap threw', { surface: 'packs', tierKey, notAttempted: isPurchaseNotAttempted(err) });
       Sentry.captureException(err, { tags: { context: 'PacksPage.iap' }, extra: { tierKey } });
       errorToast('Purchase failed', 'Please try again.');
     } finally {

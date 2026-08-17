@@ -5,7 +5,7 @@ import {
   REP_PROMOTION, REP_RELEGATION, REP_OVERACHIEVE_BONUS, REP_UNDERACHIEVE_PENALTY, REP_TITLE, REP_CUP_WIN, REP_SACKING, REP_MIN, REP_MAX,
 } from '@/config/managerCareer';
 import { buildLeagueTable, generateDivisionFixtures, buildAllDivisionTables, LEAGUES, generateFriendlies, collectOccupiedWeeks, getLeaguesByCountry, clearLeagueTableCache } from '@/data/league';
-import { BOARD_OBJ_ALL_COMPLETE_XP, BOARD_OBJ_ALL_COMPLETE_CONFIDENCE, FORFEIT_SCORE } from '@/config/gameBalance';
+import { BOARD_OBJ_ALL_COMPLETE_XP, BOARD_OBJ_ALL_COMPLETE_CONFIDENCE, FORFEIT_SCORE, BOARD_RESERVE_WAGE_MULTIPLE, BOARD_REINVESTMENT_RATE, BOARD_MIN_RESERVE, BOARD_REINVESTMENT_MIN_SURPLUS } from '@/config/gameBalance';
 import { generateSquad, selectBestLineup, generatePlayer } from '@/utils/playerGen';
 
 import { generateStaffMarket, getStaffBonus, ensureStaffFields } from '@/utils/staff';
@@ -13,7 +13,8 @@ import {  } from '@/store/helpers/development';
 
 import { generateYouthProspects, generateIntakePreview } from '@/utils/youth';
 import type { GameState } from '../../storeTypes';
-import { addMsg, pick, shuffle, safeRandomUUID } from '@/utils/helpers';
+import { addMsg, pick, shuffle, safeRandomUUID, formatMoney } from '@/utils/helpers';
+import { YOUNG_POTENTIAL_BOOST_BASE } from '@/config/playerGeneration';
 
 import { addGameBreadcrumb } from '@/utils/sentry';
 import { track } from '@/utils/analytics';
@@ -28,7 +29,7 @@ import { checkChallengeComplete, CHALLENGES, getFeaturedChallengeId, FEATURED_CH
 import { addCompletedChallenge } from '@/store/helpers/persistence';
 import { calculateSeasonAwards } from '@/utils/seasonAwards';
 import { calculateBallonDOr } from '@/utils/ballonDor';
-import { getPlayerRarity } from '@/utils/playerRarity';
+import { applyRarityToPlayer } from '@/utils/playerRarity';
 import { applyBallonDorTop10Boost, revertBallonDorTop10Boost, hasBallonDorTop10Reign } from '@/utils/ballonDorBoost';
 import { recomputePlayerValueOnly as recomputePlacementValue } from '@/utils/playerEconomics';
 import { BALLON_DOR_TOP10_RANK, MAX_CAREER_TIMELINE } from '@/config/gameBalance';
@@ -37,7 +38,7 @@ import { createEmptyRecords, updateRecords, findBiggestWin } from '@/utils/recor
 import { getFarewellSummary } from '@/utils/playerNarratives';
 
 import {
-  TOTAL_WEEKS, CONFIDENCE_MIN, SEASON_END_CONFIDENCE, MIN_SQUAD_SIZE, MAX_SQUAD_SIZE, GENERIC_FILL_POSITIONS, LISTING_PRICE_MIN_MULTIPLIER, LISTING_PRICE_RANDOM_RANGE, INITIAL_LISTINGS_MIN, INITIAL_LISTINGS_RANGE, SEASON_YOUTH_INTAKE_MIN, SEASON_YOUTH_INTAKE_RANGE, getExpectedPosition, GOLDEN_GEN_MIN_POTENTIAL, FREE_AGENT_POOL_MAX, FORCED_RETIREMENT_AGE,
+  TOTAL_WEEKS, CONFIDENCE_MIN, SEASON_END_CONFIDENCE, MAX_SQUAD_SIZE, GENERIC_FILL_POSITIONS, LISTING_PRICE_MIN_MULTIPLIER, LISTING_PRICE_RANDOM_RANGE, INITIAL_LISTINGS_MIN, INITIAL_LISTINGS_RANGE, SEASON_YOUTH_INTAKE_MIN, SEASON_YOUTH_INTAKE_RANGE, getExpectedPosition, GOLDEN_GEN_MIN_POTENTIAL, FREE_AGENT_POOL_MAX, FORCED_RETIREMENT_AGE, REGEN_TARGET_SQUAD_SIZE, REGEN_YOUTH_AGE_MIN, REGEN_YOUTH_AGE_MAX,
 } from '@/config/gameBalance';
 
 import { generateInitialMarket, generatePreSeasonMarket } from '@/utils/transferMarketGen';
@@ -162,7 +163,7 @@ export function endSeasonImpl(set: Set, get: Get) {
       // Non-top-10 placements: just refresh derived economics so the new
       // placement premium lands in `value`. Rarity may also shift (e.g. 90+
       // graduating to legend on their 3rd top-25 placement).
-      updatedPlayer.rarity = getPlayerRarity(updatedPlayer);
+      applyRarityToPlayer(updatedPlayer);
       // Inline recompute to avoid pulling another helper into this file —
       // matches the formula used everywhere else (overall × age × rarity ×
       // placement premium, captured by recomputeDerivedEconomics).
@@ -875,10 +876,16 @@ function finalizeSeason(
     if (!currentSquad.some(p => p.position === 'GK') && !gaps.some(g => g.pos === 'GK')) {
       gaps.unshift({ pos: 'GK' as Position, deficit: 99 });
     }
-    const totalNeeded = Math.max(0, MIN_SQUAD_SIZE - currentSquadIds.length);
-    const toFill = gaps.length > 0 ? gaps : [];
+    // Top up to the WORKING squad size, not the bare minimum. Filling only to
+    // MIN_SQUAD_SIZE meant every squad decayed toward that floor and stayed
+    // there — measured: average squad 30.4 -> 26.3 and world population
+    // 5132 -> 4635 over 12 seasons, with under-21s collapsing 851 -> 356.
+    const totalNeeded = Math.max(0, REGEN_TARGET_SQUAD_SIZE - currentSquadIds.length);
+    const toFill = gaps.length > 0 ? [...gaps] : [];
+    // Everything past the position gaps is intake rather than a hole to plug.
+    const gapCount = toFill.length;
     while (toFill.length < totalNeeded) toFill.push({ pos: pick(GENERIC_FILL_POSITIONS), deficit: 0 });
-    for (const { pos: fillPos } of toFill) {
+    for (const [fillIdx, { pos: fillPos }] of toFill.entries()) {
       const currentClub = newClubs[club.id];
       if (currentClub.playerIds.length >= MAX_SQUAD_SIZE) break;
       const clubSquad = currentClub.playerIds.map(id => newPlayers[id]).filter(Boolean);
@@ -888,6 +895,13 @@ function finalizeSeason(
       // tier from the fourth.
       const quality = regenFillQuality(club, avgOvr, club.id === playerClubId);
       const newP = generatePlayer(fillPos, quality, club.id, newSeason, club.divisionId);
+      // Intake beyond the position gaps comes through the academy: young, with
+      // room to grow. This is what restores the youth the world stopped making,
+      // and it does so without retiring anyone earlier.
+      if (fillIdx >= gapCount) {
+        newP.age = REGEN_YOUTH_AGE_MIN + Math.floor(Math.random() * (REGEN_YOUTH_AGE_MAX - REGEN_YOUTH_AGE_MIN + 1));
+        newP.potential = Math.max(newP.potential, Math.min(99, newP.overall + YOUNG_POTENTIAL_BOOST_BASE));
+      }
       newPlayers[newP.id] = newP;
       const fillClub = { ...currentClub };
       fillClub.playerIds = [...fillClub.playerIds, newP.id];
@@ -1010,6 +1024,31 @@ function finalizeSeason(
         reputation: Math.max(1, Math.min(5, club.reputation + repDelta)),
       };
     }
+  }
+
+  // ── Board reinvestment: the surplus sink ──
+  //
+  // Applied AFTER the season's prize money, so a club is skimmed on what it
+  // actually finishes the year holding. Every club goes through the same rule,
+  // player included — an AI economy bounded by a different one is how the two
+  // drifted apart in the first place.
+  let playerReinvested = 0;
+  for (const clubId of Object.keys(newClubs)) {
+    const club = newClubs[clubId];
+    if (!club || club.budget <= 0) continue;
+    const reserve = Math.max(BOARD_MIN_RESERVE, club.wageBill * BOARD_RESERVE_WAGE_MULTIPLE);
+    const surplus = club.budget - reserve;
+    if (surplus < BOARD_REINVESTMENT_MIN_SURPLUS) continue;
+    const reinvested = Math.round(surplus * BOARD_REINVESTMENT_RATE);
+    newClubs[clubId] = { ...club, budget: club.budget - reinvested };
+    if (clubId === playerClubId) playerReinvested = reinvested;
+  }
+  if (playerReinvested > 0) {
+    newMessages = addMsg(newMessages, {
+      week: 1, season: newSeason, type: 'board',
+      title: 'Board Reinvests Surplus',
+      body: `The board has committed ${formatMoney(playerReinvested)} of unspent funds to club infrastructure. Your working transfer budget is unaffected — but cash left idle over a season will keep being put to work.`,
+    });
   }
 
   // Consistency: ensure all divisionClubs entries reference valid clubs
@@ -1752,7 +1791,16 @@ export function runPostSeasonTail(set: Set, get: Get, completedSeason: number, s
         conference: { winnerId: null, playerEliminated: true, currentRound: null, participated: false },
       },
     };
-    if (cs.gameMode === 'career' && cs.careerManager) {
+    // An UNEMPLOYED career manager is not credited with anything. `playerClubId`
+    // still points at the club that fired them — nothing clears it in
+    // `resignFromClub`/`sackManagerMidSeason` — and this whole block ran
+    // unconditionally, so their ex-club's season accrued to them: career wins,
+    // titles and reputation for a league they did not manage, a SECOND sacking
+    // penalty for a verdict at a club they had already left, and `jobOffers: []`
+    // wiping the offer they were about to accept. They still age.
+    if (cs.gameMode === 'career' && cs.careerManager && !cs.careerManager.contract) {
+      set({ careerManager: { ...cs.careerManager, age: cs.careerManager.age + 1 } });
+    } else if (cs.gameMode === 'career' && cs.careerManager) {
       const cm = { ...cs.careerManager };
       const cmAttrs = { ...cm.attributes };
       cm.attributes = cmAttrs;
@@ -1914,8 +1962,15 @@ export function runPostSeasonTail(set: Set, get: Get, completedSeason: number, s
         }
       }
 
+      // Retirement is checked BEFORE the sacked/not-sacked split. It used to
+      // live only in the not-sacked branch, so a manager sacked at or past
+      // retirement age was sent to the job market instead — where
+      // `respondToJobOffer` refuses every acceptance — and spent up to 24 weeks
+      // there before forced retirement finally fired.
+      const retiringNow = cm.age >= getRetirementAge(cm);
+
       // Handle sacking in career mode
-      if (latestHistory?.boardVerdict === 'sacked') {
+      if (latestHistory?.boardVerdict === 'sacked' && !retiringNow) {
         cm.sackedCount += 1;
         cm.reputationScore = Math.max(REP_MIN, cm.reputationScore + REP_SACKING);
         cm.careerHistory = cm.careerHistory.map(e =>
@@ -1949,9 +2004,16 @@ export function runPostSeasonTail(set: Set, get: Get, completedSeason: number, s
 
         const careerUpdate: Partial<GameState> = {};
 
-        // Check if manager should retire
-        const retAge = getRetirementAge(cm);
-        if (cm.age >= retAge) {
+        // Check if manager should retire. A sacking in the final season still
+        // ends the career here rather than in the job market.
+        if (retiringNow) {
+          if (latestHistory?.boardVerdict === 'sacked') {
+            cm.sackedCount += 1;
+            cm.reputationScore = Math.max(REP_MIN, cm.reputationScore + REP_SACKING);
+            cm.reputationTier = calculateReputationTier(cm.reputationScore);
+            // Recompute after the penalty — legacy was scored above, before it.
+            cm.legacyScore = calculateLegacyScore(cm);
+          }
           cm.careerHistory = cm.careerHistory.map(e =>
             e.endSeason === null ? { ...e, endSeason: completedSeason, reason: 'retired' as const } : e
           );

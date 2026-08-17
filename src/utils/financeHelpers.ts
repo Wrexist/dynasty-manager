@@ -51,9 +51,15 @@ export interface FinanceBreakdown {
  * The result is scaled by league tier so lower divisions pay proportionally
  * less (unknown tiers use the tier-4 scale).
  */
-export function getLeaguePositionPrize(tablePos: number, tableSize: number, tier?: number): number {
+export function getLeaguePositionPrize(tablePos: number, tableSize: number, qualityTier?: number): number {
   const maxPrizeRank = tableSize > 0 ? tableSize + 1 : POSITION_PRIZE_MAX_RANK;
-  const tierScale = POSITION_PRIZE_TIER_SCALE[tier ?? -1] ?? POSITION_PRIZE_TIER_SCALE[4];
+  // Keyed on `qualityTier`, like every other revenue line. It used to take the
+  // pyramid `tier`, and 32 of the 45 leagues are single-tier — `tier: 1` with a
+  // `qualityTier` of 2-4 — so Cyprus, Bulgaria, Australia and the rest drew
+  // FULL top-flight prize money (scale 1.0) alongside matchday and commercial
+  // income scaled to 0.14-0.38. The financial gradient existed only inside the
+  // English/German/Spanish/Italian/French pyramids.
+  const tierScale = POSITION_PRIZE_TIER_SCALE[qualityTier ?? -1] ?? POSITION_PRIZE_TIER_SCALE[4];
   return Math.round(Math.max(0, maxPrizeRank - tablePos) * POSITION_PRIZE_PER_RANK * tierScale);
 }
 
@@ -189,8 +195,8 @@ export function getFinanceBreakdown(opts: {
 
   const playerTableIdx = leagueTable.findIndex(e => e.clubId === club.id);
   const playerTablePos = playerTableIdx >= 0 ? playerTableIdx + 1 : leagueTable.length;
-  const leagueTier = LEAGUES.find(l => l.id === (division ?? club.divisionId))?.tier;
-  const positionPrize = getLeaguePositionPrize(playerTablePos, leagueTable.length, leagueTier);
+  const leagueQualityTier = LEAGUES.find(l => l.id === (division ?? club.divisionId))?.qualityTier;
+  const positionPrize = getLeaguePositionPrize(playerTablePos, leagueTable.length, leagueQualityTier);
 
   const sponsorIncome = sponsorDeals ? sponsorDeals.reduce((sum, d) => sum + d.weeklyPayment, 0) : 0;
   const filledSlots = sponsorDeals ? sponsorDeals.length : 0;

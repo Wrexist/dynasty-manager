@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
+import { writeDailyPackOpens, currentDayIndex } from '@/store/helpers/persistence';
 import { generateAiCounterSignings, generatePackContents, shouldPityTrigger, updatedPityCounter } from '@/utils/packGeneration';
 import { AI_BACKFILL_OVR_GAP, AI_BACKFILL_PER_TIER, PACK_TIER_MAP, PACK_PITY_THRESHOLD, PACK_PITY_MAX_OVERSHOOT, WALKOUT_OVR_THRESHOLD, resolvePackTier } from '@/config/packs';
 import type { Club, PackTierKey } from '@/types/game';
@@ -29,6 +30,11 @@ function maxValueForOvr(ovr: number): number {
 const CLUB_ID = 'celtic';
 
 function initAndGetState() {
+  // The daily free/ad allowance is DEVICE-global (localStorage), not part of
+  // the save — that is what makes it a real daily limit rather than a per-slot,
+  // save-scummable one. jsdom keeps localStorage for the whole file, so it has
+  // to be cleared per test or allowances leak between them.
+  writeDailyPackOpens({ dayIndex: currentDayIndex(), free: {}, ad: {} });
   useGameStore.getState().initGame(CLUB_ID);
   return useGameStore.getState();
 }

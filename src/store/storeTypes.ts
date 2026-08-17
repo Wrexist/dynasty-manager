@@ -514,6 +514,9 @@ export interface GameState {
   // Actions — Monetization
   grantEntitlement: (productId: ProductId) => void;
   restoreEntitlements: (productIds: ProductId[]) => void;
+  /** Prune entitlements the store definitively reports as no longer owned.
+   *  Never call with a fail-open empty list — see the slice implementation. */
+  reconcileEntitlements: (ownedProductIds: ProductId[]) => void;
   setCosmetic: (category: CosmeticCategory, cosmeticId: string) => void;
   clearCosmetic: (category: CosmeticCategory) => void;
   claimAdReward: (rewardType: AdRewardType, contextKey?: string) => boolean;

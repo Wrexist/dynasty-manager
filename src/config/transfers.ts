@@ -107,6 +107,13 @@ export const COMPETING_BID_PREMIUM = 0.05;             // 5% above highest exist
 
 // ── Asking Price Anchor ──
 export const ASKING_PRICE_BID_ANCHOR = 0.85;           // AI bids anchor at 85% of asking price as floor
+/** Hard ceiling on how far an asking price may pull a bid above the player's
+ *  actual value. Without it the anchor was a money printer: buy an external
+ *  target at ~1.1-1.5x value (no sell-on clause), relist at the UI's 2x cap,
+ *  and AI clubs bid 2.4-3.5x — repeatable every window, across every spare
+ *  squad slot. Measured before the cap: listings 6 weeks old drew a mean
+ *  3.45x value, peaking at 6.0x. */
+export const MAX_ASKING_ANCHOR_VALUE_MULTIPLE = 1.3;
 
 // ── Injury Discount ──
 export const INJURY_BID_DISCOUNT = 0.80;               // 20% discount for injured players
@@ -124,6 +131,23 @@ export const DEADLINE_PANIC_BID_PREMIUM = 0.30;
 export const DEADLINE_BARGAIN_DISCOUNT = 0.20;
 /** Chance of a competing bid on the same player during deadline frenzy */
 export const DEADLINE_MULTI_BID_CHANCE = 0.4;
+
+/** Fraction of a player's VALUE a sell-on clause triggers above. Proportional
+ *  rather than a flat fee threshold, so a bargain buy stays a bargain while the
+ *  selling club keeps an interest in the upside. */
+export const SELL_ON_VALUE_TRIGGER_RATIO = 0.4;
+
+/** Overall-rating headroom a fee-paying signing gets over the free-agent
+ *  reputation cap. Fee transfers had no cap at all, so a League Two club with a
+ *  GBP 1.3M budget could buy 85-OVR players in its first window. */
+export const FEE_SIGNING_OVERALL_BONUS = 12;
+
+// ── Loan Destination Affordability ──
+/** A loan destination will pay up to this multiple of its average wage… */
+export const LOAN_DEST_AVG_WAGE_MULT = 2.5;
+/** …or this share of its whole wage bill, whichever is looser, so small clubs
+ *  can still take a decent loanee. */
+export const LOAN_DEST_WAGE_SHARE_MAX = 0.35;
 
 // ── Sell-On Clauses ──
 export const SELL_ON_HIGH_FEE_THRESHOLD = 10_000_000;

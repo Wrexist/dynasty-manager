@@ -77,9 +77,6 @@ export function claimRealPlayer(t: { fcId?: string; fn: string; ln: string }): v
   claimedNames.add(nameKey(t.fn, t.ln));
 }
 
-export function claimByName(fn: string, ln: string): void {
-  claimedNames.add(nameKey(fn, ln));
-}
 
 function isClaimed(t: PlayerTemplate): boolean {
   if (t.fcId && claimedFcIds.has(t.fcId)) return true;

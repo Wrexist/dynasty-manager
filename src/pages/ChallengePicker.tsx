@@ -47,6 +47,9 @@ const ChallengePicker = () => {
     if (pickingClub) window.scrollTo(0, 0);
   }, [pickingClub]);
 
+  /** Minimum league tier a scenario may start in, or 0 for no constraint. */
+  const startTierMin = selected?.id === 'promotion-express' ? 3 : 0;
+
   const handleSelectChallenge = (scenario: ChallengeScenario) => {
     if (loading) return;
     setSelected(scenario);
@@ -54,7 +57,10 @@ const ChallengePicker = () => {
     // Resolve the fixed club (preset start or giant-killer's lowest-rep club);
     // null means the user picks one.
     let fixedClubId: string | null = scenario.startingClubId || null;
-    if (!fixedClubId && scenario.id === 'giant-killer') {
+    // The Great Escape's own comment says the club "will be assigned to
+    // lowest-rep club" — it never was, so "avoid relegation" was winnable with
+    // Manchester City on half budget. Pin it like giant-killer does.
+    if (!fixedClubId && (scenario.id === 'giant-killer' || scenario.id === 'great-escape')) {
       const lowestRep = [...CLUBS_DATA].sort((a, b) => a.reputation - b.reputation)[0];
       if (!lowestRep) return;
       fixedClubId = lowestRep.id;
@@ -218,6 +224,12 @@ const ChallengePicker = () => {
             const regionLeagues = region.ids
               .map(id => LEAGUE_MAP[id])
               .filter(Boolean)
+              // "Must start in the third tier or lower" was advertised on
+              // Promotion Express and enforced nowhere: the completion check is
+              // just "current division tier === 1", which is true for every
+              // single-tier league — 32 of the 45 — so the badge was free.
+              // Constrain the start instead of loosening the check.
+              .filter(league => !startTierMin || (league.tier ?? 1) >= startTierMin)
               .filter(league => !isSearching || (searchResults[league.id]?.length > 0));
 
             if (regionLeagues.length === 0) return null;

@@ -34,55 +34,6 @@ function getScoreContext(ctx: CommentaryContext, scoringClubIsHome: boolean): st
   return '';
 }
 
-export function getCommentaryStyle(event: MatchEvent): { textClass: string; prefix: string } {
-  switch (event.type) {
-    case 'goal':
-    case 'penalty_scored':
-    case 'free_kick_goal':
-    case 'long_range_goal':
-    case 'counter_attack_goal':
-    case 'header_goal':
-    case 'solo_goal':
-      return { textClass: 'text-foreground font-bold', prefix: '' };
-    case 'goalkeeper_error':
-      return { textClass: 'text-foreground font-bold', prefix: '' };
-    case 'var_check':
-      return { textClass: 'text-amber-400 font-semibold italic', prefix: '' };
-    case 'own_goal':
-      return { textClass: 'text-destructive font-bold', prefix: '' };
-    case 'penalty_missed':
-      return { textClass: 'text-amber-400', prefix: '' };
-    case 'shot_saved':
-      return { textClass: 'text-blue-400', prefix: '' };
-    case 'shot_missed':
-      return { textClass: 'text-muted-foreground', prefix: '' };
-    case 'hit_woodwork':
-      return { textClass: 'text-amber-400 font-semibold', prefix: '' };
-    case 'goal_line_clearance':
-      return { textClass: 'text-amber-400 font-semibold', prefix: '' };
-    case 'yellow_card':
-      return { textClass: 'text-amber-400', prefix: '' };
-    case 'red_card':
-      return { textClass: 'text-destructive font-bold', prefix: '' };
-    case 'injury':
-      return { textClass: 'text-destructive', prefix: '' };
-    case 'extra_time_goal':
-      return { textClass: 'text-primary font-bold', prefix: '' };
-    case 'penalty_shootout':
-      return { textClass: 'text-primary font-black', prefix: '' };
-    case 'foul':
-      return { textClass: 'text-muted-foreground/70', prefix: '' };
-    case 'commentary':
-      return { textClass: 'text-muted-foreground/60 italic', prefix: '' };
-    case 'kickoff':
-    case 'half_time':
-    case 'added_time':
-    case 'full_time':
-      return { textClass: 'text-primary font-semibold', prefix: '' };
-    default:
-      return { textClass: 'text-muted-foreground', prefix: '' };
-  }
-}
 
 export function enrichDescription(event: MatchEvent, ctx: CommentaryContext): string {
   if (!(GOAL_DISPLAY_TYPES as readonly string[]).includes(event.type)) return event.description;

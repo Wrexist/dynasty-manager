@@ -42,7 +42,12 @@ function continental(partial: Partial<ContinentalTournamentState>): ContinentalT
     currentPhase: 'group',
     currentRound: 'group',
     playerEliminated: false,
-    playerGroupId: null,
+    // The player is IN this tournament by default. Selection keys on
+    // `playerGroupId`, because season rollover creates all three continental
+    // competitions every year and stamps the ones the player is not in as
+    // eliminated — so "whichever is present, highest tier first" showed a
+    // permanent "Champions Cup — Eliminated" row to Shield Cup qualifiers.
+    playerGroupId: 'A',
     winnerId: null,
     ...partial,
   };
@@ -85,7 +90,7 @@ describe('getActiveCompetitions', () => {
     expect(result.find(e => e.key === 'super-cup')!.status).toBe('Week 2');
   });
 
-  it('collapses continental to a single entry, preferring the highest tier', () => {
+  it('collapses continental to a single entry, preferring the highest tier the player is in', () => {
     const result = getActiveCompetitions(baseCtx({
       shieldCup: continental({ competition: 'shield_cup', currentPhase: 'group', currentRound: 'group' }),
       conferenceCup: continental({ competition: 'conference_cup' }),
@@ -93,6 +98,28 @@ describe('getActiveCompetitions', () => {
     const continentalEntries = result.filter(e => e.key === 'continental');
     expect(continentalEntries).toHaveLength(1);
     expect(continentalEntries[0]).toMatchObject({ screen: 'shield-cup', title: 'Shield Cup', status: 'Group Stage' });
+  });
+
+  it('picks the tournament the player is actually IN, not the highest tier present', () => {
+    // The real state from season 2 onward: all three exist, the two the player
+    // is not in are stamped eliminated with no group.
+    const result = getActiveCompetitions(baseCtx({
+      championsCup: continental({ competition: 'champions_cup', playerGroupId: null, playerEliminated: true }),
+      shieldCup: continental({ competition: 'shield_cup', currentPhase: 'group', currentRound: 'group' }),
+      conferenceCup: continental({ competition: 'conference_cup', playerGroupId: null, playerEliminated: true }),
+    }));
+    const continentalEntries = result.filter(e => e.key === 'continental');
+    expect(continentalEntries).toHaveLength(1);
+    expect(continentalEntries[0]).toMatchObject({ screen: 'shield-cup', title: 'Shield Cup' });
+  });
+
+  it('shows no continental entry when the player qualified for nothing', () => {
+    const result = getActiveCompetitions(baseCtx({
+      championsCup: continental({ competition: 'champions_cup', playerGroupId: null, playerEliminated: true }),
+      shieldCup: continental({ competition: 'shield_cup', playerGroupId: null, playerEliminated: true }),
+      conferenceCup: continental({ competition: 'conference_cup', playerGroupId: null, playerEliminated: true }),
+    }));
+    expect(result.filter(e => e.key === 'continental')).toHaveLength(0);
   });
 
   it('reflects eliminated states', () => {

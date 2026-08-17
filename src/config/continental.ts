@@ -19,8 +19,6 @@ export const CONTINENTAL_TEAMS_PER_GROUP = 4;
 export const CONTINENTAL_TOTAL_TEAMS = CONTINENTAL_GROUPS * CONTINENTAL_TEAMS_PER_GROUP; // 32
 
 // Keep old exports as aliases for backwards compatibility in imports
-export const CHAMPIONS_CUP_GROUPS = CONTINENTAL_GROUPS;
-export const CHAMPIONS_CUP_TEAMS_PER_GROUP = CONTINENTAL_TEAMS_PER_GROUP;
 
 // ── Rank-Based Qualification Spots ──
 // Leagues are ranked 1-30 based on coefficient + reputation.
@@ -125,13 +123,11 @@ export const LIVING_WORLD_LEAGUE_COUNT = 4;
  *  point) plus a guaranteed second keeper. Trims ~30% of the save cost. */
 export const LIVING_WORLD_SQUAD_SIZE = 20;
 
-// ── Legacy tier-based exports (kept for any remaining references) ──
-export const CHAMPIONS_CUP_SPOTS: Record<number, number> = { 1: 4, 2: 2, 3: 1, 4: 0 };
-export const CHAMPIONS_CUP_TIER3_MAX = 4;
-export const SHIELD_CUP_TOTAL_TEAMS = 32;
-export const SHIELD_CUP_SPOTS: Record<number, number> = { 1: 3, 2: 2, 3: 1, 4: 1 };
-export const SHIELD_CUP_TIER3_MAX = 10;
-export const SHIELD_CUP_TIER4_MAX = 7;
+// The "legacy tier-based exports" that used to sit here (CHAMPIONS_CUP_SPOTS,
+// SHIELD_CUP_SPOTS, the TIER*_MAX pair, SHIELD_CUP_TOTAL_TEAMS) were removed:
+// nothing referenced them, and they hardcoded a SECOND copy of numbers that
+// live in *_SPOTS_BY_RANK above. A stale duplicate of a live value is worse
+// than no value — the next person to import one gets the 2023 allocation.
 
 // ── Week Schedule ──
 // ALL week constants below describe the REFERENCE 46-week calendar. Most
