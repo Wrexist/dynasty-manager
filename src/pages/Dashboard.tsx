@@ -2105,7 +2105,19 @@ const Dashboard = () => {
             {activeCompetitions.map(entry => {
               const Icon = competitionRowIcon(entry);
               return (
-                <div key={entry.screen} className="flex items-center justify-between gap-3">
+                // Each row goes to ITS competition. `entry.screen` was computed
+                // and then used only as a React key, so the four registered
+                // screens it names ('champions-cup', 'shield-cup',
+                // 'conference-cup', 'super-cup') had no `setScreen` call site
+                // anywhere and their routing branches were dead. Tapping the
+                // Cup row and landing on a hub you then have to navigate again
+                // is also one tap too many.
+                <button
+                  type="button"
+                  key={entry.screen}
+                  onClick={(e) => { e.stopPropagation(); setScreen(entry.screen); }}
+                  className="w-full flex items-center justify-between gap-3 text-left active:opacity-70 transition-opacity"
+                >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <Icon className={cn(
                       'w-4 h-4 shrink-0',
@@ -2114,7 +2126,7 @@ const Dashboard = () => {
                     <span className="text-sm text-foreground truncate">{entry.title}</span>
                   </div>
                   <span className="text-xs text-muted-foreground shrink-0">{entry.status}</span>
-                </div>
+                </button>
               );
             })}
           </div>

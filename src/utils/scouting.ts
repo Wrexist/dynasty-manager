@@ -1,5 +1,6 @@
 import { ScoutAssignment, ScoutReport, ScoutRegion, Position } from '@/types/game';
-import { generatePlayer } from './playerGen';
+import { generatePlayer, buildPlayerFromTemplate } from './playerGen';
+import { pickUnclaimedRealPlayer, claimRealPlayer } from './realPlayerPicker';
 import { pick, safeRandomUUID } from './helpers';
 import {
   REGION_WEEKS as CONFIG_REGION_WEEKS,
@@ -10,6 +11,7 @@ import {
   MEDIUM_KNOWLEDGE_THRESHOLD, MEDIUM_KNOWLEDGE_BUST_CHANCE, MEDIUM_KNOWLEDGE_BUST_RANGE, MEDIUM_KNOWLEDGE_NOISE_RANGE,
   LOW_KNOWLEDGE_BUST_CHANCE, LOW_KNOWLEDGE_BUST_RANGE, LOW_KNOWLEDGE_NOISE_RANGE,
   SIGN_POTENTIAL_THRESHOLD, SIGN_OVERALL_THRESHOLD, MONITOR_POTENTIAL_THRESHOLD,
+  SCOUT_REAL_OVR_BAND,
 } from '@/config/scouting';
 
 const REGION_WEEKS = CONFIG_REGION_WEEKS;
@@ -63,7 +65,22 @@ export function completeAssignment(
   for (let i = 0; i < numPlayers; i++) {
     const quality = minQ + Math.floor(Math.random() * (maxQ - minQ + 1));
     const pos = pick(positions);
-    const player = generatePlayer(pos, quality, '', season);
+    // Scouted players are real people where the pool has one to spare.
+    //
+    // Club squads are already built from the FC26 pool via
+    // `pickUnclaimedRealPlayer` + `buildPlayerFromTemplate`, so scouting was the
+    // one surface that put an invented name in front of a player whose whole
+    // world is real ones — you scouted "John Smith" out of a league of actual
+    // footballers. The claim is taken here so the same person can never be
+    // scouted twice or scouted while already playing somewhere.
+    const realTemplate = pickUnclaimedRealPlayer('', pos, {
+      minOvr: Math.max(1, quality - SCOUT_REAL_OVR_BAND),
+      maxOvr: quality + SCOUT_REAL_OVR_BAND,
+    });
+    const player = realTemplate
+      ? buildPlayerFromTemplate(realTemplate, '', season)
+      : generatePlayer(pos, quality, '', season);
+    if (realTemplate) claimRealPlayer(realTemplate);
 
     // Knowledge level based on scout quality
     const knowledge = Math.min(KNOWLEDGE_MAX, KNOWLEDGE_BASE + scoutQuality * KNOWLEDGE_PER_QUALITY + Math.floor(Math.random() * KNOWLEDGE_RANDOM_RANGE));
