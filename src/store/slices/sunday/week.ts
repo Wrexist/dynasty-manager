@@ -33,10 +33,12 @@ import {
   SUNDAY_MAX_SQUAD, SUNDAY_THIN_SQUAD, SUNDAY_DEBT_FLOOR,
   SUNDAY_CUP_ROUND_PRIZE, SUNDAY_CUP_ROUNDS, SUNDAY_WEEK_LOG_MAX,
   SUNDAY_AI_GOALS_BASE, SUNDAY_AI_GOALS_SWING, SUNDAY_AI_HOME_ADVANTAGE,
+  SUNDAY_FORM_DRIFT, SUNDAY_FORM_NEUTRAL,
 } from '@/config/sundayLeague';
 import { SUNDAY_SPONSORS, SUNDAY_SPONSOR_CONDITION_TEXT, SUNDAY_TAUNTS } from '@/data/sundayNames';
 import { buildWeekLedger } from '@/utils/sunday/finance';
 import { rollSundayAvailability, tickAbsence } from '@/utils/sunday/availability';
+import { makeMemory, rememberMoment } from '@/utils/sunday/memories';
 import { generateSundayRecruit, sundaySquadNeeds } from '@/utils/sunday/generation';
 import { pickSundayEvent, toEventPerson, cooldownWeekFor } from '@/utils/sunday/events';
 import type { SundayEventContext } from '@/data/sundayEvents';
@@ -435,7 +437,15 @@ export function advanceSundayWeek(set: Set, get: Get): void {
   if (!pendingEvent && rng.chance(SUNDAY_EVENT_CHANCE)) {
     const table = buildSundayTable(fixtures, sunday.divisionClubIds);
     const captainMember = sunday.captainId ? squad.find(m => m.playerId === sunday.captainId) : null;
-    const subjectMember = rng.pick(squad) ?? null;
+    // A live chain flag points its step at ONE player. The story stays about
+    // him, so the flagged member preempts the random subject draw.
+    let flaggedMember = null as (typeof squad)[number] | null;
+    for (const name of Object.keys(sunday.flags)) {
+      if (!name.startsWith('wants-out:')) continue;
+      flaggedMember = squad.find(x => x.playerId === name.slice(10)) ?? null;
+      if (flaggedMember) break;
+    }
+    const subjectMember = flaggedMember ?? rng.pick(squad) ?? null;
     const unhappyMember = squad.filter(m => m.happiness < 40).sort((a, b) => a.happiness - b.happiness)[0] ?? null;
     const person = (m: typeof subjectMember) => {
       if (!m) return null;
@@ -460,6 +470,9 @@ export function advanceSundayWeek(set: Set, get: Get): void {
       captain: person(captainMember ?? null),
       subject: person(subjectMember),
       unhappy: person(unhappyMember),
+      flags: sunday.flags,
+      flagged: flaggedMember ? person(flaggedMember) : null,
+      defectorName: sunday.rivalry?.defector?.name ?? null,
     };
     const ev = pickSundayEvent({
       rng, ctx, cooldowns: eventCooldowns, firedOnce, week,
@@ -497,6 +510,18 @@ export function advanceSundayWeek(set: Set, get: Get): void {
     freeWeek: !nextFixture && !nextCupTie,
   };
 
+  // Form decays toward neutral for anyone who did not play this week — a
+  // hot streak you cannot get on the pitch stops being a hot streak.
+  const playedSet = new Set(playedIds);
+  for (const m of squad) {
+    const p = players[m.playerId];
+    if (!p || playedSet.has(m.playerId)) continue;
+    if (p.form !== SUNDAY_FORM_NEUTRAL) {
+      const drift = Math.sign(SUNDAY_FORM_NEUTRAL - p.form) * Math.min(SUNDAY_FORM_DRIFT, Math.abs(SUNDAY_FORM_NEUTRAL - p.form));
+      players[m.playerId] = { ...p, form: Math.round(p.form + drift) };
+    }
+  }
+
   // Injuries and bans tick down on the Player, which availability reads.
   for (const m of squad) {
     const p = players[m.playerId];
@@ -522,14 +547,22 @@ export function advanceSundayWeek(set: Set, get: Get): void {
   if (!seasonComplete) {
     const availRng = createSundayRng(subSeed(sunday.seed, `avail:${season}:${nextWeek}`), 0);
     squad = squad.map(m => {
+      const longAbsence = m.availability.status === 'out'
+        && (m.availability.reason === 'injury' || m.availability.reason === 'holiday')
+        && m.availability.weeksRemaining >= 1;
       const ticked = m.availability.weeksRemaining > 0 && m.availability.status === 'out'
         ? tickAbsence(m.availability)
         : m.availability;
       const withTick = { ...m, availability: ticked };
-      return {
-        ...withTick,
-        availability: rollSundayAvailability(availRng, withTick, players[m.playerId], availCtx, nextWeek),
-      };
+      const rolled = rollSundayAvailability(availRng, withTick, players[m.playerId], availCtx, nextWeek);
+      // Coming back from a long lay-off is a moment: the squad screen and the
+      // narrative both get to say "he's back".
+      const memories = longAbsence && rolled.status === 'available'
+        && (players[m.playerId]?.injuryWeeks ?? 0) === 0
+        ? rememberMoment(m.memories, makeMemory(season, nextWeek, 'motm',
+            `Back after ${Math.max(2, m.availability.weeksRemaining + 1)} weeks out. First name on the sheet.`))
+        : m.memories;
+      return { ...withTick, memories, availability: rolled };
     });
   }
 
@@ -571,6 +604,11 @@ export function advanceSundayWeek(set: Set, get: Get): void {
     captainId,
     cup,
     rivalry,
+    // The morning belongs to the week that is ending.
+    arrival: null,
+    // Chain flags a step never picked up expire after six weeks — an
+    // unresolved story goes quiet, it does not haunt the save forever.
+    flags: Object.fromEntries(Object.entries(sunday.flags).filter(([, setWeek]) => week - setWeek < 6)),
     sponsors,
     sponsorOffers,
     recruits,

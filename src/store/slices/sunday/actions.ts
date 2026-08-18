@@ -28,13 +28,15 @@ import {
   SUNDAY_FUNDRAISER_COOLDOWN, SUNDAY_FUNDRAISER_MAX, SUNDAY_FUNDRAISER_MIN,
   SUNDAY_FUNDRAISER_MORALE, SUNDAY_MAX_BENCH, SUNDAY_MAX_SQUAD, SUNDAY_MIN_START,
   SUNDAY_RINGROUND_COST, SUNDAY_RINGROUND_MORALE, SUNDAY_EVENT_LOG_MAX,
-  SUNDAY_POACH_HEAT, SUNDAY_RIVAL_HEAT_MAX, getSundayUpgrade, sundayUpgradeCost,
+  SUNDAY_POACH_HEAT, SUNDAY_RIVAL_HEAT_MAX, SUNDAY_PROMISE_WEEKS, getSundayUpgrade, sundayUpgradeCost,
 } from '@/config/sundayLeague';
 import { resolveSundayChoice, toEventPerson } from '@/utils/sunday/events';
 import type { SundayEventContext } from '@/data/sundayEvents';
 import { ringRoundChance } from '@/utils/sunday/availability';
 import { generateSundayRecruit, sundaySquadNeeds } from '@/utils/sunday/generation';
 import { buildSundayTable, sundayPosition } from '@/utils/sunday/season';
+import { bumpHeat, recordRivalryIncident } from '@/utils/sunday/rivalry';
+import { makeMemory, rememberMoment } from '@/utils/sunday/memories';
 import { validateSundayState } from '@/utils/sunday/invariants';
 import { track } from '@/utils/analytics';
 import { addGameBreadcrumb } from '@/utils/sentry';
@@ -45,6 +47,7 @@ import { rolloverSundaySeason } from './seasonEnd';
 import { clamp, clampRound, logWeek, memberOf, sundayMessage, updateMember, withRng, type Get, type Set } from './shared';
 
 export { advanceSundayWeek };
+export { ensureArrival, hireSundayRingers } from './matchday';
 
 /** Build the read-only context an event choice's odds are evaluated against.
  *  Rebuilt at resolution time rather than stored with the event, so a choice
@@ -79,6 +82,14 @@ function buildEventContext(state: GameState, sunday: SundayState): SundayEventCo
     captain: person(sunday.captainId),
     subject: person(sunday.pendingEvent?.playerId ?? null),
     unhappy: person([...sunday.squad].sort((a, b) => a.happiness - b.happiness)[0]?.playerId ?? null),
+    flags: sunday.flags,
+    flagged: (() => {
+      for (const name of Object.keys(sunday.flags)) {
+        if (name.startsWith('wants-out:')) return person(name.slice(10));
+      }
+      return null;
+    })(),
+    defectorName: sunday.rivalry?.defector?.name ?? null,
   };
 }
 
@@ -192,7 +203,7 @@ export function resolveSundayEvent(set: Set, get: Get, choiceId: string) {
   const fx = resolution.effects;
 
   let balance = sunday.balance + (fx.money ?? 0);
-  const teamMorale = clampRound(sunday.teamMorale + (fx.morale ?? 0), 0, 100);
+  let teamMorale = clampRound(sunday.teamMorale + (fx.morale ?? 0), 0, 100);
   const reputation = clampRound(sunday.reputation + (fx.reputation ?? 0), 0, 100);
   let squad = sunday.squad;
   let recruits = sunday.recruits;
@@ -248,6 +259,47 @@ export function resolveSundayEvent(set: Set, get: Get, choiceId: string) {
       // a dangling captainId is the violation the stress harness caught.
       subjectLeft = true;
     }
+    if (fx.subjectLeavesForRival) {
+      const p = players[subjectId];
+      squad = squad.filter(m => m.playerId !== subjectId);
+      const club = clubs[state.playerClubId];
+      if (club) clubs[state.playerClubId] = { ...club, playerIds: club.playerIds.filter(id => id !== subjectId) };
+      delete players[subjectId];
+      subjectLeft = true;
+      if (p && rivalry) {
+        // The feud gets a face. His name follows both clubs around from here:
+        // derby build-ups mention him, and results against them carry him in
+        // the incident log.
+        const fullName = `${p.firstName} ${p.lastName}`;
+        rivalry = recordRivalryIncident(
+          bumpHeat({ ...rivalry, defector: { name: fullName, season: state.season } }, 3),
+          `Season ${state.season}: ${fullName} crossed the road to ${clubs[rivalry.clubId]?.shortName ?? 'the rival'}. Nobody says his name lightly now.`,
+        );
+        teamMorale = clampRound(teamMorale - 4, 0, 100);
+        messages = sundayMessage(messages, state.season, state.week, `${p.firstName} has joined the rival`,
+          `${fullName} is theirs now. The next derby just became personal for everyone.`, 'warning');
+      }
+    }
+    if (fx.promiseStart) {
+      squad = updateMember(squad, subjectId, {
+        promise: {
+          kind: 'start',
+          madeSeason: state.season,
+          madeWeek: state.week,
+          dueWeek: state.week + SUNDAY_PROMISE_WEEKS,
+        },
+      });
+    }
+  }
+
+  // Chain flags. `{subject}` binds the flag to this event's player, which is
+  // how a multi-step story stays about one person.
+  let flags = sunday.flags;
+  const bindFlag = (name: string) => name.replace('{subject}', subjectId ?? 'nobody');
+  if (fx.setFlag) flags = { ...flags, [bindFlag(fx.setFlag)]: state.week };
+  if (fx.clearFlag) {
+    const cleared = bindFlag(fx.clearFlag);
+    flags = Object.fromEntries(Object.entries(flags).filter(([k]) => k !== cleared));
   }
 
   if (fx.collectSubs) {
@@ -298,6 +350,7 @@ export function resolveSundayEvent(set: Set, get: Get, choiceId: string) {
     bench: subjectLeft ? sunday.bench.filter(id => id !== subjectId) : sunday.bench,
     recruits,
     rivalry,
+    flags,
     rngCursor: recruitCursor,
     pendingEvent: nextPending ?? null,
     eventQueue: restQueue,
@@ -538,9 +591,11 @@ export function ringRoundSunday(set: Set, get: Get, playerId: string) {
       balance: Math.round(sunday.balance - SUNDAY_RINGROUND_COST),
       teamMorale: clampRound(sunday.teamMorale + SUNDAY_RINGROUND_MORALE, 0, 100),
       squad: talkedRound
-        ? updateMember(sunday.squad, playerId, {
-            availability: { status: 'available', reason: null, note: null, warned: true, weeksRemaining: 0 },
-          })
+        ? updateMember(sunday.squad, playerId, m => ({
+            availability: { status: 'available' as const, reason: null, note: null, warned: true, weeksRemaining: 0 },
+            memories: rememberMoment(m.memories, makeMemory(state.season, state.week, 'talked-round',
+              'Was going to skip it. One phone call later he was there — and everybody knew who made the call.')),
+          }))
         : sunday.squad,
       weekLog: logWeek(sunday, talkedRound
         ? `${player?.firstName ?? 'He'} has been talked round.`

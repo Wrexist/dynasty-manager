@@ -14,6 +14,7 @@
  * charges for the same referee.
  */
 import type {
+  SundayArrival,
   Club, InjuryDetails, Match, Player, PlayerMatchRating, SundayCupTie,
   SundayMatchReport, SundaySquadMember, SundayState,
 } from '@/types/game';
@@ -29,18 +30,26 @@ import {
   SUNDAY_REP_WIN, SUNDAY_RINGER_MORALE, SUNDAY_RIVAL_HEAT_LOSS, SUNDAY_RIVAL_HEAT_MAX,
   SUNDAY_RIVAL_HEAT_WIN, SUNDAY_RIVAL_INTENSITY_SCALE, SUNDAY_DERBY_MORALE,
   getSundayTactic,
+  SUNDAY_FORM_BASELINE_RATING, SUNDAY_FORM_MAX, SUNDAY_FORM_MIN, SUNDAY_FORM_PER_RATING,
+  SUNDAY_PROMISE_BROKEN_HAPPINESS, SUNDAY_PROMISE_BROKEN_MORALE, SUNDAY_PROMISE_KEPT_HAPPINESS,
+  SUNDAY_RINGER_COST,
 } from '@/config/sundayLeague';
-import { SUNDAY_POSTMATCH_LINES } from '@/data/sundayNames';
+import {
+  SUNDAY_ARRIVAL_CRIED_OFF, SUNDAY_ARRIVAL_NO_SHOW, SUNDAY_ARRIVAL_TURNED_UP,
+  SUNDAY_POSTMATCH_LINES,
+} from '@/data/sundayNames';
+import { captureMatchMemories, findMatchWinner, findTurningPoint, makeMemory, rememberMoment } from '@/utils/sunday/memories';
+import { bumpHeat, deriveDerbyIncident, recordRivalryIncident } from '@/utils/sunday/rivalry';
 import { resolveDoubt } from '@/utils/sunday/availability';
 import { clearSundayRingers, generateSundayRinger } from '@/utils/sunday/generation';
 import {
   buildMatchdayTeam, buildSundayNarrative, pickMotm, pickSundayOppositionXI,
   rollSundayWeather, simulateSundayMatch,
 } from '@/utils/sunday/match';
-import { advanceSundayCup, buildSundayTable, sundaySeasonWeeks } from '@/utils/sunday/season';
+import { advanceSundayCup, buildSundayTable, recordSundayRecord, sundayCupRoundName, sundaySeasonWeeks } from '@/utils/sunday/season';
 import { selectBestLineup } from '@/utils/playerGen';
 import type { SundayRng } from '@/utils/sunday/rng';
-import { createSundayRng, subSeed } from '@/utils/sunday/rng';
+import { createSundayRng, cursorOf, subSeed } from '@/utils/sunday/rng';
 import type { Get, Set } from './shared';
 import { clamp, clampRound, logWeek, upgradeLevel } from './shared';
 
@@ -123,6 +132,124 @@ function shootout(rng: SundayRng, homeXI: Player[], awayXI: Player[]): { home: n
   return { home, away };
 }
 
+// ── The arrival phase ───────────────────────────────────────────────────────
+
+/**
+ * Resolve the Sunday morning: doubts turn up or cry off, unwarned absentees
+ * are discovered, and the shortfall is counted.
+ *
+ * Idempotent per (season, week): the resolved morning is WRITTEN to state, so
+ * a reload, a re-render or a second tap replays the same one. Draws come from
+ * the front of the week's match stream; the stored cursor lets the match
+ * itself continue that stream without repeating the morning's luck.
+ *
+ * This is where the mode's sharpest decision is staged: below eleven, the
+ * manager chooses between paying for guests and playing short — see
+ * `hireSundayRingers`. Below seven, guests are forced, because the
+ * alternative is handing the league a walkover.
+ */
+export function ensureArrival(set: Set, get: Get): SundayArrival | null {
+  const state = get();
+  const sunday = state.sunday;
+  if (!sunday || sunday.folded || sunday.seasonComplete) return null;
+  if (sunday.arrival && sunday.arrival.season === state.season && sunday.arrival.week === state.week) {
+    return sunday.arrival;
+  }
+  const clubId = state.playerClubId;
+  const fixture = findSundayFixture(sunday, state.fixtures, state.week, clubId);
+  if (!fixture) return null;
+
+  const season = state.season;
+  const week = state.week;
+  const rng = createSundayRng(subSeed(sunday.seed, `match:${season}:${week}`), 0);
+  const beats: string[] = [];
+  const players = state.players;
+  const nameOf = (id: string) => players[id]?.firstName ?? 'Someone';
+
+  // Doubts resolve first — the "should be alright" messages coming true or not.
+  const squad: SundaySquadMember[] = sunday.squad.map(m => {
+    if (m.availability.status !== 'doubt') return m;
+    const resolved = resolveDoubt(rng, m.availability);
+    const line = resolved.status === 'available' ? SUNDAY_ARRIVAL_TURNED_UP : SUNDAY_ARRIVAL_CRIED_OFF;
+    beats.push((rng.pick(line) ?? '{name}.').replace('{name}', nameOf(m.playerId)));
+    return { ...m, availability: resolved };
+  });
+
+  // Then the discoveries: people who never said a word and are simply not here.
+  for (const m of squad) {
+    if (m.availability.status === 'out' && !m.availability.warned) {
+      beats.push((rng.pick(SUNDAY_ARRIVAL_NO_SHOW) ?? '{name} is missing.').replace('{name}', nameOf(m.playerId)));
+    }
+  }
+
+  // The XI that is actually standing here: the named side minus the missing.
+  // When it is gutted, the BENCH steps up — they were named and they made the
+  // trip. The deliberately-unnamed never auto-return: dropping a player has to
+  // stick, or a promise (and a punishment) could be silently undone by this
+  // very function re-picking him. The remaining gap is the ringer decision.
+  const availableIds = new Set(squad.filter(m => m.availability.status !== 'out').map(m => m.playerId));
+  const presentIds = sunday.teamsheet.filter(id => availableIds.has(id));
+  const benchPool = sunday.bench.filter(id => availableIds.has(id) && !presentIds.includes(id));
+  while (presentIds.length < SUNDAY_FULL_XI && benchPool.length > 0) {
+    presentIds.push(benchPool.shift()!);
+  }
+  let benchIds = benchPool;
+  if (sunday.teamsheet.length === 0) {
+    // Never named at all (the advance-the-week path): pick the side the
+    // manager would have.
+    const auto = autoPickSunday({ ...sunday, squad }, players);
+    for (const id of auto.xi) {
+      if (presentIds.length >= SUNDAY_FULL_XI) break;
+      if (!presentIds.includes(id)) presentIds.push(id);
+    }
+    benchIds = auto.bench.filter(id => !presentIds.includes(id)).slice(0, SUNDAY_MAX_BENCH);
+  }
+
+  const forcedRingers = Math.min(SUNDAY_MAX_RINGERS, Math.max(0, SUNDAY_MIN_START - presentIds.length));
+  const optionalRingers = Math.max(
+    0,
+    Math.min(SUNDAY_MAX_RINGERS - forcedRingers, SUNDAY_FULL_XI - presentIds.length - forcedRingers),
+  );
+
+  const arrival: SundayArrival = {
+    season, week, beats, presentIds, benchIds,
+    forcedRingers, optionalRingers, ringersHired: null,
+    rngCursor: cursorOf(rng),
+  };
+  set({ sunday: { ...get().sunday!, squad, arrival } });
+  return arrival;
+}
+
+/**
+ * The manager's arrival decision: hire `count` optional guests (0 = play
+ * short). Charged here, once — a decision, not a toggle: it cannot be
+ * revisited once made, exactly like standing in a car park at kick-off.
+ */
+export function hireSundayRingers(set: Set, get: Get, count: number): { ok: boolean; message: string } {
+  const state = get();
+  const sunday = state.sunday;
+  const arrival = sunday?.arrival;
+  if (!sunday || !arrival || arrival.week !== state.week || arrival.season !== state.season) {
+    return { ok: false, message: 'There is no morning to decide about.' };
+  }
+  if (arrival.ringersHired !== null) return { ok: false, message: 'That decision has been made.' };
+  const hired = Math.max(0, Math.min(arrival.optionalRingers, Math.floor(count)));
+  const cost = hired * SUNDAY_RINGER_COST;
+  if (hired > 0 && sunday.balance < cost) {
+    return { ok: false, message: `You cannot cover £${cost} for ${hired} guest${hired === 1 ? '' : 's'}.` };
+  }
+  // Charged ONCE, as a ledger line at the weekly settlement, via the report's
+  // ringer count — the same path the forced guests take. Moving the balance
+  // here as well would double-charge.
+  set({ sunday: { ...sunday, arrival: { ...arrival, ringersHired: hired } } });
+  return {
+    ok: true,
+    message: hired > 0
+      ? `${hired} guest${hired === 1 ? '' : 's'} sorted. £${cost} when the whip-round settles.`
+      : `You go with the ${arrival.presentIds.length + arrival.forcedRingers} you have.`,
+  };
+}
+
 export interface RunSundayMatchResult {
   report: SundayMatchReport;
 }
@@ -143,19 +270,6 @@ export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
 
   const week = state.week;
   const season = state.season;
-  // The match's draws (weather, doubt resolution, ringers, shootout, narrative)
-  // come from a stream keyed to THIS week, not from the persistent cursor. Two
-  // reasons, both load-bearing:
-  //   1. Reload-stability. How many draws a match consumes depends on the
-  //      shared engine's (unseeded) event stream — narrative lines per event,
-  //      subs used, and so on. Advancing the persistent cursor by a variable
-  //      amount made everything AFTER the match (that week's event, sponsors,
-  //      recruits) differ between a reloaded and an unreloaded save.
-  //   2. Anti-save-scum. Keyed to the week, the weather, whether the doubtful
-  //      centre-half turns up, and who the ringers are all resolve the same on
-  //      every replay of the same Sunday — reloading cannot re-roll them.
-  const rng = createSundayRng(subSeed(sunday.seed, `match:${season}:${week}`), 0);
-
   const isCup = fixture.kind === 'cup';
   const homeClubId = isCup ? fixture.tie.homeClubId : fixture.match.homeClubId;
   const awayClubId = isCup ? fixture.tie.awayClubId : fixture.match.awayClubId;
@@ -168,35 +282,40 @@ export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
   const ourClub = clubs[clubId];
   if (!oppClub || !ourClub) return null;
 
-  // ── Who actually turned up ───────────────────────────────────────────────
-  let squad: SundaySquadMember[] = sunday.squad.map(m => ({
-    ...m,
-    availability: resolveDoubt(rng, m.availability),
-  }));
-  const availableIds = new Set(squad.filter(m => m.availability.status !== 'out').map(m => m.playerId));
-  const noShows = squad.filter(m => m.availability.status === 'out' && !m.availability.warned);
+  // ── The Sunday morning ───────────────────────────────────────────────────
+  // Who is actually here was settled by the arrival phase — including the
+  // manager's ringer decision. When the player skipped Match Day entirely
+  // (advancing the week directly), arrive now with the default decision:
+  // forced guests only, which is exactly the old automatic behaviour.
+  const arrival = ensureArrival(set, get) ?? {
+    season, week, beats: [], presentIds: [], benchIds: [],
+    forcedRingers: 0, optionalRingers: 0, ringersHired: null, rngCursor: 0,
+  };
+  // Continue the match stream from where the arrival draws left it — replaying
+  // them would correlate the morning's luck with the afternoon's.
+  const rng = createSundayRng(subSeed(sunday.seed, `match:${season}:${week}`), arrival.rngCursor);
 
-  // Honour the manager's teamsheet, minus anyone who did not make it.
-  let xiIds = sunday.teamsheet.filter(id => availableIds.has(id));
-  let benchIds = sunday.bench.filter(id => availableIds.has(id) && !xiIds.includes(id));
-  if (xiIds.length < SUNDAY_MIN_START) {
-    // Either nothing was picked or the picked side has been gutted. Fill from
-    // whoever is left rather than refusing to play.
-    const auto = autoPickSunday({ ...sunday, squad }, players);
-    const merged = [...xiIds, ...auto.xi.filter(id => !xiIds.includes(id))];
-    xiIds = merged.slice(0, SUNDAY_FULL_XI);
-    benchIds = auto.bench.filter(id => !xiIds.includes(id)).slice(0, SUNDAY_MAX_BENCH);
-  }
+  let squad: SundaySquadMember[] = get().sunday?.squad ?? sunday.squad;
+  const noShows = squad.filter(m => m.availability.status === 'out' && !m.availability.warned);
+  const xiIds = [...arrival.presentIds];
+  const benchIds = [...arrival.benchIds];
 
   // ── Ringers ──────────────────────────────────────────────────────────────
+  // Forced guests keep the fixture alive; optional ones are the manager's
+  // call, made (and paid for) at arrival. An undecided arrival means the
+  // manager never looked — forced only.
+  const ringerCount = Math.min(
+    SUNDAY_MAX_RINGERS,
+    arrival.forcedRingers + (arrival.ringersHired ?? 0),
+  );
   const ringers: Player[] = [];
-  while (xiIds.length + ringers.length < SUNDAY_MIN_START && ringers.length < SUNDAY_MAX_RINGERS) {
-    const r = generateSundayRinger(rng, clubId, season, ringers.length);
+  for (let i = 0; i < ringerCount; i++) {
+    const r = generateSundayRinger(rng, clubId, season, i);
     ringers.push(r);
     players[r.id] = r;
   }
   const ringerIds = ringers.map(r => r.id);
-  const startingIds = [...xiIds, ...ringerIds];
+  const startingIds = [...xiIds, ...ringerIds].slice(0, SUNDAY_FULL_XI);
   const forfeited = startingIds.length < SUNDAY_MIN_START;
 
   // ── Simulate ─────────────────────────────────────────────────────────────
@@ -292,6 +411,7 @@ export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
       events: result.events,
       clubId,
       players,
+      isDerby,
       noShowNames: noShows.map(m => players[m.playerId]?.firstName ?? 'someone'),
       ringerNames: ringers.map(r => r.firstName),
       startedWith: startingIds.length,
@@ -383,6 +503,14 @@ export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
         ? {
             seasonRatingTotal: (p.seasonRatingTotal ?? 0) + rating,
             seasonRatedMatches: (p.seasonRatedMatches ?? 0) + 1,
+            // Form follows performance. The engine reads `form` in shot
+            // quality, so a striker on a run genuinely scores more and a slump
+            // genuinely deepens — visible momentum with no hidden hand. This
+            // was generated once and never updated before v2: a dead input.
+            form: clampRound(
+              p.form + (rating - SUNDAY_FORM_BASELINE_RATING) * SUNDAY_FORM_PER_RATING,
+              SUNDAY_FORM_MIN, SUNDAY_FORM_MAX,
+            ),
           }
         : {}),
     };
@@ -406,6 +534,25 @@ export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
   const usedSubs = new Set(
     result.events.filter(e => e.type === 'substitution' && e.playerId && e.clubId === clubId).map(e => e.playerId as string),
   );
+
+  // ── The story of the match ───────────────────────────────────────────────
+  // Who won it, who stank it out, and where it turned — all read off the
+  // engine's own events, never invented.
+  const squadIdSet = new Set(squad.map(m => m.playerId));
+  const winner = forfeited ? null : findMatchWinner(result, clubId, isHome);
+  const winnerId = winner && squadIdSet.has(winner.playerId) ? winner.playerId : null;
+  const turningPoint = forfeited ? null : findTurningPoint(result, clubId, isHome, players);
+  let lowlight: PlayerMatchRating | null = null;
+  for (const r of ratings) {
+    if (!squadIdSet.has(r.playerId)) continue;
+    if (r.rating <= 5.2 && (!lowlight || r.rating < lowlight.rating)) lowlight = r;
+  }
+  const consequences: string[] = [];
+  const bansStarting: string[] = [];
+  const injuriesPicked: string[] = [];
+  const cupRound = isCup ? sundayCupRoundName(fixture.tie.round) : null;
+  let promiseMoraleHit = 0;
+
   squad = squad.map(m => {
     const started = startedSet.has(m.playerId);
     const usedAsSub = usedSubs.has(m.playerId);
@@ -432,33 +579,100 @@ export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
         ? { status: 'out' as const, reason: 'injury' as const, note: `${p.firstName} is injured`, warned: true, weeksRemaining: p.injuryWeeks }
         : m.availability;
 
+    // ── His story ──────────────────────────────────────────────────────────
+    // Everything this match wrote into this player's biography, judged from
+    // the state BEFORE the totals move.
+    const took = started || usedAsSub;
+    let memories = m.memories;
+    if (!forfeited && p) {
+      const newMemories = captureMatchMemories({
+        member: m,
+        player: p,
+        rating: r,
+        report: { goalsFor: ourGoals, goalsAgainst: theirGoals, opponentName: oppClub.name, season, week },
+        isDerby,
+        isCup,
+        cupRound,
+        winnerMinute: winnerId === m.playerId ? winner!.minute : null,
+        motm: motm?.playerId === m.playerId,
+        played: took,
+        sentOff: result.events.some(e => e.type === 'red_card' && e.playerId === m.playerId),
+        injuryWeeks: p.injured ? p.injuryWeeks : 0,
+        prevApps: m.clubApps,
+        prevGoals: m.clubGoals,
+      });
+      for (const memory of newMemories) memories = rememberMoment(memories, memory);
+    }
+    if (p && p.injured && p.injuryWeeks > 0 && took) {
+      injuriesPicked.push(`${p.firstName} (${p.injuryWeeks}w)`);
+    }
+    if (banned && p) bansStarting.push(p.firstName);
+
+    // ── The promise ────────────────────────────────────────────────────────
+    // "You will start on Sunday" is judged here, at the only moment it can
+    // be: he started, or the match happened without him. An unavailable week
+    // does not break it — you cannot start a man who is in Tenerife.
+    let promise = m.promise;
+    if (promise && p) {
+      if (started) {
+        happy += SUNDAY_PROMISE_KEPT_HAPPINESS;
+        memories = rememberMoment(memories, makeMemory(season, week, 'promise-kept',
+          `The gaffer promised him a start against ${oppClub.name} and kept his word.`));
+        consequences.push(`Promise kept — ${p.firstName} got his start.`);
+        promise = null;
+      } else if (wasAvailable && week >= promise.dueWeek) {
+        happy += SUNDAY_PROMISE_BROKEN_HAPPINESS;
+        promiseMoraleHit += SUNDAY_PROMISE_BROKEN_MORALE;
+        memories = rememberMoment(memories, makeMemory(season, week, 'promise-broken',
+          `Was promised a start and watched from the touchline against ${oppClub.name}. He has not forgotten.`));
+        consequences.push(`Promise broken — ${p.firstName} was told he would start.`);
+        promise = null;
+      }
+    }
+
     return {
       ...m,
       availability,
+      memories,
+      promise,
       happiness: clampRound(happy, 0, 100),
-      benchedStreak: started || usedAsSub ? 0 : wasAvailable ? m.benchedStreak + 1 : m.benchedStreak,
+      benchedStreak: took ? 0 : wasAvailable ? m.benchedStreak + 1 : m.benchedStreak,
       startedStreak: started ? m.startedStreak + 1 : 0,
-      clubApps: started || usedAsSub ? m.clubApps + 1 : m.clubApps,
+      clubApps: took ? m.clubApps + 1 : m.clubApps,
       clubGoals: m.clubGoals + (r?.goals ?? 0),
       clubAssists: m.clubAssists + (r?.assists ?? 0),
       clubMotm: motm?.playerId === m.playerId ? m.clubMotm + 1 : m.clubMotm,
     };
   });
+  moraleDelta += promiseMoraleHit;
 
   const repDelta = forfeited ? SUNDAY_REP_FORFEIT : won ? SUNDAY_REP_WIN : drew ? SUNDAY_REP_DRAW : SUNDAY_REP_LOSS;
 
-  const rivalry = sunday.rivalry && isDerby
-    ? {
-        ...sunday.rivalry,
-        wins: sunday.rivalry.wins + (won ? 1 : 0),
-        draws: sunday.rivalry.draws + (drew ? 1 : 0),
-        losses: sunday.rivalry.losses + (lost ? 1 : 0),
-        heat: clamp(
-          sunday.rivalry.heat + (lost ? SUNDAY_RIVAL_HEAT_LOSS : won ? SUNDAY_RIVAL_HEAT_WIN : 0),
-          0, SUNDAY_RIVAL_HEAT_MAX,
-        ),
-      }
-    : sunday.rivalry;
+  let rivalry = sunday.rivalry;
+  if (rivalry && isDerby) {
+    rivalry = {
+      ...rivalry,
+      wins: rivalry.wins + (won ? 1 : 0),
+      draws: rivalry.draws + (drew ? 1 : 0),
+      losses: rivalry.losses + (lost ? 1 : 0),
+      heat: clamp(
+        rivalry.heat + (lost ? SUNDAY_RIVAL_HEAT_LOSS : won ? SUNDAY_RIVAL_HEAT_WIN : 0),
+        0, SUNDAY_RIVAL_HEAT_MAX,
+      ),
+    };
+    // The feud keeps its own diary. Hammerings, capitulations and results
+    // with the defector involved all go in it, straight off the report.
+    const incident = deriveDerbyIncident(rivalry, {
+      season, week, goalsFor: ourGoals, goalsAgainst: theirGoals, forfeited,
+      opponentName: oppClub.name,
+    } as SundayMatchReport);
+    if (incident.line) rivalry = recordRivalryIncident(rivalry, incident.line);
+    if (incident.extraHeat) rivalry = bumpHeat(rivalry, incident.extraHeat);
+    if (isCup && cupWinnerId && cupWinnerId !== clubId) {
+      rivalry = recordRivalryIncident(bumpHeat(rivalry, 2),
+        `Season ${season}: they knocked you out of the cup. ${rivalry.managerName} still mentions it.`);
+    }
+  }
 
   narrative.push(rng.pick(SUNDAY_POSTMATCH_LINES) ?? '');
 
@@ -466,6 +680,16 @@ export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
   // not pay subs and they are not on the books.
   const squadIds = new Set(squad.map(m => m.playerId));
   const playedIds = [...participantIds].filter(id => squadIds.has(id));
+
+  // What Sunday costs you. Every line is a real state change made above.
+  const buildConsequences = (): string[] => {
+    const out: string[] = [...consequences];
+    if (injuriesPicked.length) out.push(`Injured: ${injuriesPicked.join(', ')}.`);
+    if (bansStarting.length) out.push(`Suspended: ${bansStarting.join(', ')}.`);
+    if (isDerby) out.push(won ? 'Derby won. The pub is yours tonight.' : lost ? 'Derby lost. Expect to hear about it.' : 'Derby honours even. Nobody satisfied.');
+    if (ringerCount > 0) out.push(`${ringerCount} guest${ringerCount === 1 ? '' : 's'} played — £${ringerCount * SUNDAY_RINGER_COST} owed and a few noses out of joint.`);
+    return out.slice(0, 5);
+  };
 
   const report: SundayMatchReport = {
     matchId: result.id,
@@ -482,7 +706,11 @@ export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
     playedIds,
     motmPlayerId: motm?.playerId ?? null,
     motmRating: motm?.rating ?? 0,
-    narrative: narrative.filter(Boolean),
+    lowlightPlayerId: lowlight?.playerId ?? null,
+    lowlightRating: lowlight?.rating ?? 0,
+    turningPoint,
+    consequences: buildConsequences(),
+    narrative: [...arrival.beats, ...narrative.filter(Boolean)],
     // Money is settled in the weekly advance so it can never be charged twice.
     moneyDelta: 0,
     moraleDelta,
@@ -538,8 +766,38 @@ export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
   // Ringers exist for one afternoon only.
   const cleaned = clearSundayRingers(players) ?? players;
 
+  // Club records are written HERE, where the context still exists: the
+  // opponent, how many you had, who was a guest. "9-1" is a number; "9-1 with
+  // eight men and two ringers" is a story someone retells.
+  let records = sunday.records;
+  if (!forfeited && won) {
+    const context = startingIds.length < SUNDAY_FULL_XI
+      ? `With ${startingIds.length} men${ringers.length ? ` and ${ringers.length} guest${ringers.length === 1 ? '' : 's'}` : ''}.`
+      : isDerby ? 'In the derby, which made it twice as loud.' : undefined;
+    records = recordSundayRecord(
+      records, 'biggest-win', `${ourGoals}-${theirGoals} v ${oppClub.shortName}`,
+      margin, season, week, 'higher', context,
+    );
+  }
+  if (!forfeited && lost && margin >= 3) {
+    records = recordSundayRecord(
+      records, 'worst-defeat', `${theirGoals}-${ourGoals} v ${oppClub.shortName}`,
+      margin, season, week, 'higher',
+      startingIds.length < SUNDAY_FULL_XI ? `Started with ${startingIds.length}. It showed.` : undefined,
+    );
+  }
+  if (!forfeited && won && startingIds.length < SUNDAY_FULL_XI) {
+    records = recordSundayRecord(
+      records, 'fewest-men', `Won with ${startingIds.length} v ${oppClub.shortName}`,
+      // Lower is the record here.
+      startingIds.length, season, week, 'lower',
+      `${ourGoals}-${theirGoals}, and nobody will ever be allowed to forget it.`,
+    );
+  }
+
   const nextSunday: SundayState = {
     ...sunday,
+    records,
     squad,
     cup,
     rivalry,
@@ -547,6 +805,9 @@ export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
     reputation: clampRound(sunday.reputation + repDelta, 0, 100),
     lastMatch: report,
     seasonStats,
+    // The morning is spent. Leaving it would let a stale arrival satisfy next
+    // week's ensureArrival if the week numbers ever collided across seasons.
+    arrival: null,
     // The named team was consumed by the fixture it was named for. Leaving it
     // in place kept a player who got injured or sent off DURING the match on
     // the sheet until the next advance — a teamsheet naming an unavailable

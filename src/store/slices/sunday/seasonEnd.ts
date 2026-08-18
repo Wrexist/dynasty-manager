@@ -22,13 +22,14 @@ import {
 } from '@/config/sundayLeague';
 import { createSundayRng, cursorOf, subSeed } from '@/utils/sunday/rng';
 import { generateSundayDivision } from '@/utils/sunday/generation';
+import { makeMemory, momentOfSeason, rememberMoment, definingMemory } from '@/utils/sunday/memories';
 import {
   addSundayLegend, buildSundayFixtures, buildSundaySeasonRecord, buildSundayTable,
   developSundayPlayer, drawSundayCup, qualifiesAsLegend, recordSundayRecord,
   resolveSundayOutcome, sundayCupRoundName, sundayPosition, sundaySeasonWeeks,
 } from '@/utils/sunday/season';
 import { rollSundayAvailability } from '@/utils/sunday/availability';
-import { SUNDAY_RIVALRY_NAMES } from '@/data/sundayNames';
+import { buildSundayRivalry } from '@/utils/sunday/rivalry';
 import type { Get, Set } from './shared';
 import { clampRound, sundayMessage } from './shared';
 
@@ -78,9 +79,8 @@ export function rolloverSundaySeason(set: Set, get: Get): void {
   // ── Records ──────────────────────────────────────────────────────────────
   let records = [...sunday.records];
   const s = sunday.seasonStats;
-  if (s.biggestWin > 0) {
-    records = recordSundayRecord(records, 'biggest-win', `${s.biggestWin}-goal win`, s.biggestWin, season, state.week);
-  }
+  // biggest-win / worst-defeat / fewest-men are written at MATCH time, where
+  // the opponent and the shirt count still exist to make them stories.
   if (s.bestUnbeatenRun > 0) {
     records = recordSundayRecord(records, 'longest-unbeaten', `${s.bestUnbeatenRun} matches`, s.bestUnbeatenRun, season, state.week);
   }
@@ -107,8 +107,11 @@ export function rolloverSundaySeason(set: Set, get: Get): void {
   if (topScorer && topScorer.player.goals > 0) highlights.push(`${topScorer.player.firstName} finished on ${topScorer.player.goals}.`);
   if (!highlights.length) highlights.push('A season of Sunday football happened, and here we are.');
 
+  const seasonMoment = momentOfSeason(sunday.squad, season);
+
   const record: SundaySeasonRecord = buildSundaySeasonRecord({
     state: sunday, table, playerClubId: clubId, season, outcome,
+    momentOfTheSeason: seasonMoment ? seasonMoment.text : null,
     topScorer: topScorer && topScorer.player.goals > 0
       ? { name: `${topScorer.player.firstName} ${topScorer.player.lastName}`, goals: topScorer.player.goals }
       : null,
@@ -136,9 +139,12 @@ export function rolloverSundaySeason(set: Set, get: Get): void {
     const dev = developSundayPlayer(rng, player, member, coachLevel);
     if (dev.retiring) {
       if (qualifiesAsLegend(member)) {
+        // A legend is remembered for his best DAY, not his totals — the totals
+        // are the second sentence.
+        const moment = definingMemory(member.memories);
         legends = addSundayLegend(
           legends, member, `${player.firstName} ${player.lastName}`,
-          `${member.clubApps} appearances and ${member.clubGoals} goals over ${Math.max(1, season - member.joinedSeason + 1)} seasons.`,
+          `${moment ? `${moment.text} ` : ''}${member.clubApps} appearances and ${member.clubGoals} goals over ${Math.max(1, season - member.joinedSeason + 1)} seasons.`,
           season,
         );
         messages = sundayMessage(
@@ -149,9 +155,23 @@ export function rolloverSundaySeason(set: Set, get: Get): void {
       delete players[member.playerId];
       continue;
     }
-    players[member.playerId] = dev.player;
+    // Going up or down together is part of everyone's story.
+    let memories = member.memories;
+    if (outcome.promoted) {
+      memories = rememberMoment(memories, makeMemory(season, state.week, 'promotion',
+        outcome.champion
+          ? `Champions of the ${div.shortName}. His medal is on the pub wall.`
+          : `Part of the squad that went up from the ${div.shortName}.`));
+    } else if (outcome.relegated) {
+      memories = rememberMoment(memories, makeMemory(season, state.week, 'relegation',
+        `Went down with the club, and stayed anyway.`));
+    }
+    players[member.playerId] = { ...dev.player, form: 55 };
     squad.push({
       ...member,
+      memories,
+      // A new season, a clean slate: promises do not survive the summer.
+      promise: null,
       availability: { status: 'available', reason: null, note: null, warned: true, weeksRemaining: 0 },
       benchedStreak: 0,
       startedStreak: 0,
@@ -210,9 +230,7 @@ export function rolloverSundaySeason(set: Set, get: Get): void {
     ? sunday.rivalry
     : (() => {
         const c = rng.pick(opponents)?.club;
-        return c
-          ? { clubId: c.id, name: rng.pick(SUNDAY_RIVALRY_NAMES) ?? 'The Rec Derby', wins: 0, draws: 0, losses: 0, heat: 3, lastTaunt: null }
-          : null;
+        return c ? buildSundayRivalry(rng, c.id) : null;
       })();
 
   const reputation = clampRound(
@@ -271,6 +289,10 @@ export function rolloverSundaySeason(set: Set, get: Get): void {
     eventQueue: [],
     // Cooldowns are weeks-in-season, so they are meaningless across a rollover.
     eventCooldowns: {},
+    // Chain flags are week-stamped for the same reason; an unresolved chain
+    // does not survive the summer. The morning is long over.
+    flags: {},
+    arrival: null,
     rivalry,
     cup,
     lastMatch: null,

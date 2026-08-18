@@ -14,7 +14,7 @@ import {
   SUNDAY_MORALE_START, SUNDAY_REPUTATION_START, SUNDAY_STATE_VERSION,
   getSundayDivision, getSundayPersonality, SUNDAY_DIVISIONS,
 } from '@/config/sundayLeague';
-import { SUNDAY_RIVALRY_NAMES } from '@/data/sundayNames';
+import { buildSundayRivalry } from '@/utils/sunday/rivalry';
 import { createSundayRng, cursorOf, newSundaySeed, subSeed } from '@/utils/sunday/rng';
 import {
   buildSundayClub, generateSundayDivision, generateSundayIdentity,
@@ -88,15 +88,7 @@ export function buildSundayWorld(opts: StartSundayOptions): SundayWorld {
   // are in the same division. A rivalry that re-rolls every season is not a
   // rivalry.
   const rivalClub = rng.pick(opponents)?.club ?? null;
-  const rivalry = rivalClub
-    ? {
-        clubId: rivalClub.id,
-        name: rng.pick(SUNDAY_RIVALRY_NAMES) ?? 'The Rec Derby',
-        wins: 0, draws: 0, losses: 0,
-        heat: 3,
-        lastTaunt: null,
-      }
-    : null;
+  const rivalry = rivalClub ? buildSundayRivalry(rng, rivalClub.id) : null;
 
   // Captain: the most influential player who also turns up. Appointing the best
   // player would be wrong — the armband here goes to whoever runs the club.
@@ -129,6 +121,8 @@ export function buildSundayWorld(opts: StartSundayOptions): SundayWorld {
     eventLog: [],
     rivalry,
     cup,
+    arrival: null,
+    flags: {},
     weeksInDebt: 0,
     lastFundraiserWeek: -99,
     ledger: [],

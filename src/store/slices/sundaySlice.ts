@@ -86,6 +86,10 @@ export const createSundaySlice = (set: Set, get: Get) => ({
   playSundayMatch: async (): Promise<SundayMatchReport | null> =>
     (await actions()).playSundayMatch(set, get),
 
+  arriveSundayMatch: async () => (await actions()).ensureArrival(set, get),
+
+  hireSundayRingers: async (count: number) => (await actions()).hireSundayRingers(set, get, count),
+
   resolveSundayEvent: async (choiceId: string) => (await actions()).resolveSundayEvent(set, get, choiceId),
 
   signSundayRecruit: async (recruitId: string) => (await actions()).signSundayRecruit(set, get, recruitId),
