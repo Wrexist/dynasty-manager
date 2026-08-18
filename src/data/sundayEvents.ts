@@ -14,7 +14,14 @@
  * still cooling down. `once: true` marks an event that may fire a single time
  * per save. Both are enforced in `src/utils/sunday/events.ts`, not here.
  */
-import type { SundayChainId, SundayChainState, SundayEventInstance } from '@/types/game';
+import type {
+  SundayChainId, SundayChainState, SundayEventInstance, SundayMemoryKind,
+} from '@/types/game';
+import {
+  SUNDAY_CHAIN_DEBT_WEEKS, SUNDAY_CHAIN_PROSPECT_CEILING, SUNDAY_CHAIN_STAR_OVERALL,
+  SUNDAY_CHAIN_VETERAN_AGE, SUNDAY_CHAIN_VETERAN_APPS, SUNDAY_CRISIS_SALE_FEE,
+  SUNDAY_SPONSOR_RENEGOTIATE_MULT, SUNDAY_SPONSOR_RENEGOTIATE_UPFRONT,
+} from '@/config/sundayLeague';
 
 /** State an event definition is allowed to read when deciding to fire. */
 export interface SundayEventContext {
@@ -38,6 +45,16 @@ export interface SundayEventContext {
   hasSponsor: boolean;
   /** Total unpaid subs across the squad. */
   subsOwed: number;
+  /** Consecutive weeks the books have been deep enough in the red to count
+   *  toward folding. The financial crisis is triggered by this, not by a die. */
+  weeksInDebt: number;
+  /** Still in the cup, with a tie to come. */
+  cupAlive: boolean;
+  /** Cup ties won this season — one is a run, two is a story. */
+  cupRoundsWon: number;
+  /** English name of the next cup round the club is in ("Semi-Final"), or
+   *  null. Substituted into copy as `{round}`. */
+  cupRoundName: string | null;
   /** The captain's squad record, when one is appointed. */
   captain: SundayEventPerson | null;
   /** A squad member the event can be about — pre-picked by the selector so
@@ -51,6 +68,12 @@ export interface SundayEventContext {
    *  the same kind of thing. Chained beats do not need to read this — the
    *  selector has already matched them against their chain. */
   chains: readonly SundayChainState[];
+  /** True while a story about a PLAYER is already running. Every player-chain
+   *  opener checks it: one man's situation at a time, or the mode is telling
+   *  three tangled tales about the same fortnight. */
+  playerStoryLive: boolean;
+  /** True while a story about the CLUB is already running. */
+  clubStoryLive: boolean;
   /** What earlier beats of THIS chain decided. Empty for an unchained event.
    *  A beat reads it so its text cannot contradict the choice that produced
    *  it — the whole reason a chain carries data at all. */
@@ -69,6 +92,10 @@ export interface SundayEventPerson {
   /** Where he plays. An event about the goalkeeper has to be about A
    *  goalkeeper — see `subjectFilter`. */
   position: string;
+  age: number;
+  /** Appearances for THIS club. A long server is a different story from an
+   *  old signing who arrived in the summer. */
+  clubApps: number;
   /** False when he is `out` for the coming Sunday. Most events are about
    *  somebody who will be there; a couple are explicitly about somebody who
    *  will not. */
@@ -124,6 +151,23 @@ export interface SundayEventEffects {
    *  event's subject id. */
   setFlag?: string;
   clearFlag?: string;
+  /** Hand the armband to the subject, or take it off him. Stripping it moves
+   *  the room in proportion to how much of the room he actually carried —
+   *  see the influence weighting in `resolveSundayEvent`. */
+  captaincy?: 'give' | 'strip';
+  /** Write a moment into the subject's biography. The mode's storytelling
+   *  spine: a decision that produced a memory is one the squad screen, the
+   *  season retrospective and the legend citation can all still see. */
+  subjectMemory?: { kind: SundayMemoryKind; text: string };
+  /** Add weeks to the fold clock. Interacts with the EXISTING bankruptcy
+   *  machinery — `weeksInDebt` is what `advanceSundayWeek` counts toward
+   *  folding — rather than inventing a second way to die. */
+  debtWeeks?: number;
+  /** Take cash from the shirt sponsor now in exchange for a smaller weekly.
+   *  A real change to a real deal, not a line of copy about one. */
+  renegotiateSponsor?: { upfront: number; weeklyMult: number };
+  /** Lose the shirt sponsor outright. */
+  loseSponsor?: boolean;
 
   // ── Chains ────────────────────────────────────────────────────────────────
   /** Open a story. Only an UNCHAINED definition may do this: the chain starts
@@ -285,7 +329,10 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
     weight: 8,
     needsSubject: true,
     subjectIsCaptain: true,
-    condition: ctx => !!ctx.captain && ctx.captain.benchedStreak >= 1,
+    // OPENER of `captain-conflict`. Two of the three answers leave it hanging,
+    // and a hanging armband row is the start of a story rather than the end
+    // of a conversation.
+    condition: ctx => !!ctx.captain && ctx.captain.benchedStreak >= 1 && !ctx.playerStoryLive,
     choices: [
       {
         id: 'start', label: 'Tell him he starts', hint: 'A real promise. Break it and he will know.',
@@ -293,8 +340,8 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
         outcome: 'He gets his way, and everyone within earshot knows it.',
       },
       {
-        id: 'bench', label: 'He is on the bench', hint: 'Hold the line. He will sulk.',
-        effects: { subjectHappiness: -14, morale: 2 },
+        id: 'bench', label: 'He is on the bench', hint: 'Hold the line. He will not let it go.',
+        effects: { subjectHappiness: -14, morale: 2, startChain: { id: 'captain-conflict' } },
         outcome: 'He takes it badly and says almost nothing all afternoon. The rest of them respect it.',
       },
       {
@@ -302,8 +349,97 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
         successChance: ctx => 0.35 + (ctx.captain ? (20 - ctx.captain.ego) * 0.03 : 0),
         effects: { subjectHappiness: 5, morale: 3 },
         outcome: 'He does not like it, but he gets it. He is first on the touchline when it kicks off.',
-        failEffects: { subjectHappiness: -10, morale: -3 },
+        failEffects: { subjectHappiness: -10, morale: -3, startChain: { id: 'captain-conflict' } },
         failOutcome: 'He listens to about nine words of it and walks off mid-sentence.',
+      },
+    ],
+  },
+  {
+    id: 'captain-showdown',
+    category: 'player',
+    title: '{name} has taken it to the group',
+    body: 'It is not a private grievance any more. {name} raised the whole thing in front of everybody before training — the bench, the armband, who actually runs this club — and now the room is standing about waiting to see what you do.',
+    weight: 20,
+    needsSubject: true,
+    chain: { id: 'captain-conflict', step: 2 },
+    subjectFilter: () => true,
+    condition: () => true,
+    choices: [
+      {
+        id: 'back', label: 'Put him straight back in the side', hint: 'He gets what he wanted. Some of them are counting.',
+        effects: {
+          subjectHappiness: 12, squadHappiness: -3, morale: -2, promiseStart: true,
+          advanceChain: 'captain-conflict', chainData: { stance: 'backed' },
+        },
+        outcome: 'He is named in the XI before the meeting has broken up. Two of them exchange a look.',
+      },
+      {
+        id: 'strip', label: 'Take the armband off him', hint: 'The room will feel this in proportion to how much of it he carried.',
+        effects: {
+          captaincy: 'strip', subjectHappiness: -16,
+          advanceChain: 'captain-conflict', chainData: { stance: 'stripped' },
+        },
+        outcome: 'You hand it to somebody else in front of everyone. Nobody says a word, which is worse.',
+      },
+      {
+        id: 'hold', label: 'Say your piece and end it there', hint: 'Finishes it, well or badly.',
+        successChance: ctx => 0.4 + (ctx.subject ? (20 - ctx.subject.ego) * 0.025 : 0),
+        effects: { morale: 3, subjectHappiness: -4, endChain: 'captain-conflict' },
+        outcome: 'It lands. He is not happy about it, but he is finished talking about it.',
+        failEffects: { morale: -4, subjectHappiness: -10, squadHappiness: -2, endChain: 'captain-conflict' },
+        failOutcome: 'He hears none of it and the meeting breaks up badly. That is the end of the conversation, at least.',
+      },
+    ],
+  },
+  {
+    id: 'captain-backed-fallout',
+    category: 'player',
+    title: 'The armband had a price',
+    body: 'You backed {name} in front of the group and he has been the best thing about the last few weeks. The trouble is the two lads who have not started since: one has begun arriving at ten past, and the other has stopped arriving.',
+    weight: 20,
+    needsSubject: true,
+    chain: { id: 'captain-conflict', step: 3 },
+    subjectFilter: () => true,
+    condition: ctx => ctx.chainData.stance === 'backed',
+    choices: [
+      {
+        id: 'mend', label: 'Go and see the two you lost', hint: 'Two phone calls and an honest hour.',
+        successChance: ctx => 0.4 + ctx.teamMorale * 0.005,
+        effects: { squadHappiness: 7, morale: 4, endChain: 'captain-conflict' },
+        outcome: 'Both of them turn up on Sunday. One of them even says thanks, in his own way.',
+        failEffects: { squadHappiness: -4, morale: -3, endChain: 'captain-conflict' },
+        failOutcome: 'One is polite and unmoved. The other does not pick up. That is a squad number gone.',
+      },
+      {
+        id: 'settle', label: 'Let it settle on its own', hint: 'It might. He is worth it either way.',
+        effects: { morale: -2, subjectHappiness: 5, subjectCommitment: 1, endChain: 'captain-conflict' },
+        outcome: 'It does not blow up and it does not go away. {name} plays like a man who owes you one.',
+      },
+    ],
+  },
+  {
+    id: 'captain-stripped-fallout',
+    category: 'player',
+    title: '{name} has gone quiet',
+    body: '{name} has said almost nothing since you took the armband off him. He turns up, he plays, he goes home. The new captain is doing fine. Nobody has mentioned it once, which is how you know it is still going on.',
+    weight: 20,
+    needsSubject: true,
+    chain: { id: 'captain-conflict', step: 3 },
+    subjectFilter: () => true,
+    condition: ctx => ctx.chainData.stance === 'stripped',
+    choices: [
+      {
+        id: 'job', label: 'Give him something that matters', hint: 'Set pieces, the subs tin, the young lads.',
+        effects: {
+          subjectHappiness: 12, subjectCommitment: 1, morale: 3, endChain: 'captain-conflict',
+          subjectMemory: { kind: 'talked-round', text: 'Lost the armband and was given a job that mattered more. Never mentioned it again.' },
+        },
+        outcome: 'He takes it seriously, because of course he does. That is why he had the armband.',
+      },
+      {
+        id: 'leave', label: 'Leave him to it', hint: 'He is a grown man. Costs nothing today.',
+        effects: { subjectHappiness: -7, morale: 1, endChain: 'captain-conflict' },
+        outcome: 'He gets on with it. He is a little further away every week, and nobody can point to when it started.',
       },
     ],
   },
@@ -437,34 +573,124 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
     ],
   },
   {
+    id: 'star-ego',
+    category: 'player',
+    title: '{name} has started saying it out loud',
+    body: '{name} is comfortably the best player at this club, and he has begun mentioning — to anyone in earshot, in the car park, at some length — that he is playing at the wrong level. He is not wrong. That is the problem.',
+    weight: 7,
+    needsSubject: true,
+    // OPENER of `star-arc`. The old catalogue had three separate events saying
+    // "somebody wants your best player" (`better-offer`, `rival-poach`,
+    // `rival-sniffing`) with no relationship between them. Now the offer is
+    // the END of an arc that starts here, and `rival-poach` is retired.
+    subjectFilter: p => p.available && p.overall >= SUNDAY_CHAIN_STAR_OVERALL,
+    condition: ctx => !!ctx.subject && ctx.subject.ego >= 12 && !ctx.playerStoryLive,
+    cooldown: 14,
+    choices: [
+      {
+        id: 'indulge', label: 'Build the side around him', hint: 'He will love it. They will notice.',
+        effects: {
+          subjectHappiness: 10, squadHappiness: -3, subjectEgo: 1,
+          startChain: { id: 'star-arc' }, chainData: { gave: 'nothing', handled: 'indulged' },
+        },
+        outcome: 'Everything goes through him from Sunday on. He is brilliant, and the room is a degree colder.',
+      },
+      {
+        id: 'level', label: 'Remind him where he is playing', hint: 'Depends how far gone he is.',
+        successChance: ctx => 0.55 - (ctx.subject ? ctx.subject.ego * 0.02 : 0),
+        effects: { subjectEgo: -2, morale: 3, squadHappiness: 2 },
+        outcome: 'He laughs, admits it, and buys the first round. That is the end of that.',
+        failEffects: {
+          subjectHappiness: -10,
+          startChain: { id: 'star-arc' }, chainData: { gave: 'nothing', handled: 'challenged' },
+        },
+        failOutcome: 'He does not laugh. He says very little for the rest of the evening.',
+      },
+      {
+        id: 'ignore', label: 'Say nothing and keep picking him', hint: 'It is only talk. For now.',
+        effects: {
+          subjectHappiness: 2,
+          startChain: { id: 'star-arc' }, chainData: { gave: 'nothing', handled: 'ignored' },
+        },
+        outcome: 'You let it go. He keeps saying it, and one or two of them have started agreeing.',
+      },
+    ],
+  },
+  {
+    id: 'star-demands',
+    category: 'player',
+    title: '{name} wants something',
+    body: 'He has been straight with you, which you can at least respect. He will stay, and he would like something for it: his subs covered for the season, or the armband, or a straight answer about why neither.',
+    weight: 20,
+    needsSubject: true,
+    chain: { id: 'star-arc', step: 2 },
+    subjectFilter: () => true,
+    condition: () => true,
+    choices: [
+      {
+        id: 'subs', label: 'Cover his subs for the season (£40)', hint: 'Crude. Works on some.',
+        available: ctx => ctx.balance >= 40,
+        effects: {
+          money: -40, subjectHappiness: 8, squadHappiness: -2,
+          advanceChain: 'star-arc', chainData: { gave: 'money' },
+        },
+        outcome: 'Done, quietly. Two of them work it out within a fortnight anyway.',
+      },
+      {
+        id: 'armband', label: 'Give him the captaincy', hint: 'Costs whoever has it now.',
+        effects: {
+          captaincy: 'give', subjectHappiness: 12, squadHappiness: -4,
+          advanceChain: 'star-arc', chainData: { gave: 'armband' },
+        },
+        outcome: 'He has the armband and he is visibly delighted. The man who had it says nothing at all.',
+      },
+      {
+        id: 'nothing', label: 'He gets what everybody gets', hint: 'Popular. Risky.',
+        effects: {
+          subjectHappiness: -12, morale: 3, squadHappiness: 3,
+          advanceChain: 'star-arc', chainData: { gave: 'nothing' },
+        },
+        outcome: 'You tell him in front of two other people, which they enjoy enormously and he does not.',
+      },
+    ],
+  },
+  {
     id: 'better-offer',
     category: 'player',
     title: 'Somebody else wants {name}',
-    body: 'A team two divisions up have been in touch with {name}. They train. They have a proper pitch. They have, he mentions, a physio.',
-    weight: 8,
+    body: 'A team two divisions up have been in touch with {name}. They train. They have a proper pitch. They have, he mentions, a physio. He has told you rather than not told you, which is something.',
+    weight: 20,
     needsSubject: true,
-    condition: ctx => !!ctx.subject && ctx.subject.overall >= 44,
+    // The TERMINAL beat of `star-arc`. What you gave him at step two is what
+    // you have to work with here — see `chainData.gave` in the odds below.
+    chain: { id: 'star-arc', step: 3 },
+    subjectFilter: () => true,
+    condition: () => true,
     choices: [
       {
-        id: 'match', label: 'Tell him what he means to this club', hint: 'Words are free.',
-        successChance: ctx => 0.35 + (ctx.subject ? ctx.subject.commitment * 0.025 : 0) + ctx.teamMorale * 0.003,
-        effects: { subjectHappiness: 10 },
+        id: 'match', label: 'Tell him what he means to this club', hint: 'Words are free. They are also all you have left.',
+        successChance: ctx => 0.3
+          + (ctx.subject ? ctx.subject.commitment * 0.025 : 0)
+          + ctx.teamMorale * 0.003
+          + (ctx.chainData.gave === 'nothing' ? -0.1 : 0.12),
+        effects: { subjectHappiness: 10, endChain: 'star-arc' },
         outcome: 'He stays. He says he would rather play with his mates, and he means it.',
-        failEffects: { subjectLeaves: true, morale: -6 },
+        failEffects: { subjectLeaves: true, morale: -6, endChain: 'star-arc' },
         failOutcome: 'He is gone. He was polite about it, which somehow makes it worse.',
       },
       {
-        id: 'pay', label: 'Cover his subs for the season (£40)', hint: 'Crude, but it works on some.',
+        id: 'pay', label: 'Put money on the table (£40)', hint: 'Crude, but it works on some.',
         available: ctx => ctx.balance >= 40,
-        successChance: ctx => 0.55 + (ctx.subject ? ctx.subject.commitment * 0.015 : 0),
-        effects: { money: -40, subjectHappiness: 8 },
+        successChance: ctx => 0.5 + (ctx.subject ? ctx.subject.commitment * 0.015 : 0)
+          + (ctx.chainData.gave === 'money' ? -0.15 : 0),
+        effects: { money: -40, subjectHappiness: 8, endChain: 'star-arc' },
         outcome: 'He takes the deal and shakes on it. Do not tell the others.',
-        failEffects: { money: -40, subjectLeaves: true, morale: -6 },
+        failEffects: { money: -40, subjectLeaves: true, morale: -6, endChain: 'star-arc' },
         failOutcome: 'He takes the money for this week and leaves anyway. Outstanding.',
       },
       {
         id: 'let-go', label: 'Wish him well', hint: 'He goes. The squad notices you did not fight.',
-        effects: { subjectLeaves: true, morale: -3, reputation: 1 },
+        effects: { subjectLeaves: true, morale: -3, reputation: 1, endChain: 'star-arc' },
         outcome: 'He leaves on good terms. He says he will come back for the cup games. He will not.',
       },
     ],
@@ -496,6 +722,240 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
     choices: [
       { id: 'welcome', label: 'Welcome him back', hint: 'No questions asked.', effects: { subjectHappiness: 8, subjectCommitment: 1 }, outcome: 'He is back, briefly, and scores. Obviously.' },
       { id: 'question', label: 'Ask where he has been', hint: 'Everyone wants to know.', successChance: () => 0.5, effects: { subjectCommitment: 2, morale: 2 }, outcome: 'The explanation is so mundane that everyone forgives him instantly.', failEffects: { subjectHappiness: -8 }, failOutcome: 'He goes quiet again. That is probably that.' },
+    ],
+  },
+
+  // ── The wonderkid ─────────────────────────────────────────────────────────
+  {
+    id: 'wonderkid-spotted',
+    category: 'player',
+    title: 'Somebody has noticed {name}',
+    body: '{name} is the youngest name on the sheet, he is raw as anything, and on Sunday he did something in the warm-up that made two of the older lads stop and look at each other. He has no idea he did it.',
+    weight: 7,
+    needsSubject: true,
+    subjectFilter: p => p.available && p.archetype === 'prospect' && p.overall < SUNDAY_CHAIN_PROSPECT_CEILING,
+    condition: ctx => !!ctx.subject && !ctx.playerStoryLive,
+    cooldown: 14,
+    choices: [
+      {
+        id: 'coach', label: 'Stay behind the extra half hour with him', hint: 'Slow, and it actually works.',
+        effects: {
+          subjectAttrDelta: 1, subjectHappiness: 5,
+          startChain: { id: 'wonderkid' }, chainData: { care: 'coached' },
+        },
+        outcome: 'Forty minutes of crossing and finishing in the dark. He is there before you the following week.',
+      },
+      {
+        id: 'throw', label: 'Throw him straight in', hint: 'A real promise of a start. He is nowhere near ready.',
+        effects: {
+          promiseStart: true, subjectHappiness: 8, squadHappiness: -2,
+          startChain: { id: 'wonderkid' }, chainData: { care: 'thrown' },
+        },
+        outcome: 'He is in the side. Somebody who has been here six years is not, and has views.',
+      },
+      {
+        id: 'leave', label: 'Leave him alone and let him find it', hint: 'Free. Nothing happens on its own.',
+        effects: { morale: 1, subjectHappiness: -2, startChain: { id: 'wonderkid' }, chainData: { care: 'left' } },
+        outcome: 'You say nothing to him about it. He carries on being nineteen.',
+      },
+    ],
+  },
+  {
+    id: 'wonderkid-first-start',
+    category: 'player',
+    title: '{name} is ready, or he is not',
+    body: 'It has stopped being theoretical. {name} is fit, he is available, and the man in front of him has done nothing for a month. Everybody can see it. Nobody wants to be the one who says it.',
+    weight: 20,
+    needsSubject: true,
+    chain: { id: 'wonderkid', step: 2 },
+    subjectFilter: () => true,
+    condition: () => true,
+    choices: [
+      {
+        id: 'start', label: 'Name him and mean it', hint: 'A real promise. The game holds you to it.',
+        effects: {
+          promiseStart: true, subjectHappiness: 6, squadHappiness: -2,
+          advanceChain: 'wonderkid', chainData: { debut: 'started' },
+        },
+        outcome: 'He is on the teamsheet in ink. His mum is coming.',
+      },
+      {
+        id: 'hold', label: 'Not yet — bring him on when it is safe', hint: 'Protects him. He will not see it that way.',
+        effects: { subjectHappiness: -8, morale: 1, advanceChain: 'wonderkid', chainData: { debut: 'held' } },
+        outcome: 'Twenty minutes at the end of a game already won. He knows exactly what that is.',
+      },
+      {
+        id: 'ask', label: 'Ask the senior lads what they think', hint: 'They will tell you. You may not like it.',
+        successChance: ctx => 0.45 + ctx.teamMorale * 0.004,
+        effects: { morale: 4, subjectHappiness: 4, advanceChain: 'wonderkid', chainData: { debut: 'backed' } },
+        outcome: 'They say play him, and two of them say they will look after him. That is the club working properly.',
+        failEffects: { morale: -3, subjectHappiness: -6, advanceChain: 'wonderkid', chainData: { debut: 'held' } },
+        failOutcome: 'They close ranks. He is not playing, and now he knows whose decision that was.',
+      },
+    ],
+  },
+  {
+    id: 'wonderkid-scouted',
+    category: 'player',
+    title: 'A proper club have sent somebody',
+    body: 'There was a man on the touchline on Sunday in a good coat with a notebook, and he was not there for the football. He has left a number for {name}, who has not stopped looking at it.',
+    weight: 20,
+    needsSubject: true,
+    chain: { id: 'wonderkid', step: 3 },
+    subjectFilter: () => true,
+    condition: () => true,
+    choices: [
+      {
+        id: 'blessing', label: 'Drive him to the trial yourself', hint: 'You lose him. You do it properly.',
+        effects: { subjectLeaves: true, reputation: 4, morale: -3, endChain: 'wonderkid' },
+        outcome: 'He signs on the Tuesday and rings you after his first game. That is worth more than the player was.',
+      },
+      {
+        id: 'keep', label: 'Tell him he owes this club a season', hint: 'Depends entirely on the lad.',
+        successChance: ctx => 0.35 + (ctx.subject ? ctx.subject.commitment * 0.03 : 0),
+        effects: {
+          subjectHappiness: 6, subjectCommitment: 2, endChain: 'wonderkid',
+          subjectMemory: { kind: 'milestone', text: 'Turned down a proper club to see the season out here. Nobody made him.' },
+        },
+        outcome: 'He stays. He tells them he has got something on here first, which is one way of putting it.',
+        failEffects: { subjectLeaves: true, morale: -6, squadHappiness: -3, endChain: 'wonderkid' },
+        failOutcome: 'He goes anyway, and he goes badly — no goodbye, and two of the lads think you handled it wrong.',
+      },
+    ],
+  },
+
+  // ── The long server ───────────────────────────────────────────────────────
+  {
+    id: 'veteran-hints',
+    category: 'player',
+    title: '{name} has started talking about his knees',
+    body: '{name} has played {apps} games for this club and spent most of Sunday afternoon with a bag of frozen peas on something. He mentioned, twice, that his lad has started playing on Saturdays and he would quite like to watch.',
+    weight: 6,
+    needsSubject: true,
+    subjectFilter: p => p.age >= SUNDAY_CHAIN_VETERAN_AGE && p.clubApps >= SUNDAY_CHAIN_VETERAN_APPS,
+    condition: ctx => !!ctx.subject && !ctx.playerStoryLive,
+    cooldown: 16,
+    choices: [
+      {
+        id: 'persuade', label: 'Tell him you need one more year out of him', hint: 'Depends what is left in the legs and the head.',
+        successChance: ctx => 0.4 + (ctx.subject ? ctx.subject.commitment * 0.02 : 0),
+        effects: {
+          subjectCommitment: 2, subjectHappiness: 6,
+          startChain: { id: 'veteran-farewell' }, chainData: { mood: 'persuaded' },
+        },
+        outcome: 'He grumbles the whole way through and then says he will see how it goes. That is a yes.',
+        failEffects: {
+          subjectHappiness: -2,
+          startChain: { id: 'veteran-farewell' }, chainData: { mood: 'tired' },
+        },
+        failOutcome: 'He says he will think about it in the voice men use when they have already thought about it.',
+      },
+      {
+        id: 'respect', label: 'Tell him nobody would blame him', hint: 'Honest. It makes it real.',
+        effects: {
+          subjectHappiness: 8, morale: 2,
+          startChain: { id: 'veteran-farewell' }, chainData: { mood: 'ready' },
+        },
+        outcome: 'He looks relieved, which tells you he had been carrying it for a while.',
+      },
+    ],
+  },
+  {
+    id: 'veteran-decision',
+    category: 'player',
+    title: 'How {name} finishes',
+    body: 'It is going to happen this season one way or the other, and how is your call. A proper send-off with a bucket at the gate, one more year on the sheet, or nothing at all and one Sunday he simply is not there.',
+    weight: 20,
+    needsSubject: true,
+    chain: { id: 'veteran-farewell', step: 2 },
+    subjectFilter: () => true,
+    condition: () => true,
+    choices: [
+      {
+        id: 'testimonial', label: 'Put on a testimonial', hint: 'A bucket at the gate and a night in the club. It pays.',
+        effects: {
+          money: 55, morale: 6, reputation: 2,
+          advanceChain: 'veteran-farewell', chainData: { send: 'testimonial' },
+        },
+        outcome: 'A date goes in the calendar and somebody\'s sister does a poster. It is happening.',
+      },
+      {
+        id: 'again', label: 'Ask him for one more season', hint: 'You keep him. His knees do not get a vote.',
+        effects: {
+          subjectCommitment: 2, subjectHappiness: 8,
+          advanceChain: 'veteran-farewell', chainData: { send: 'again' },
+        },
+        outcome: 'He signs on for another year on the understanding that nobody mentions the knees again.',
+      },
+      {
+        id: 'quiet', label: 'Let it end quietly', hint: 'No fuss. Everybody notices the no fuss.',
+        effects: { subjectLeaves: true, morale: -4, squadHappiness: -3, endChain: 'veteran-farewell' },
+        outcome: 'He stops being on the sheet. Nobody organises anything. It is exactly what everybody was afraid of.',
+      },
+    ],
+  },
+  {
+    id: 'veteran-testimonial-day',
+    category: 'club',
+    title: '{name}\'s afternoon',
+    body: 'Two hundred people, most of whom have never watched a Sunday league game in their lives, are stood round the pitch in coats. He has the armband whether he wants it or not, and his lad is a mascot.',
+    weight: 20,
+    needsSubject: true,
+    chain: { id: 'veteran-farewell', step: 3 },
+    subjectFilter: () => true,
+    condition: ctx => ctx.chainData.send === 'testimonial',
+    choices: [
+      {
+        id: 'ninety', label: 'He plays the full ninety', hint: 'What he wants. His hamstring may disagree.',
+        successChance: () => 0.6,
+        effects: {
+          morale: 9, squadHappiness: 6, reputation: 2, subjectHappiness: 14, endChain: 'veteran-farewell',
+          subjectMemory: { kind: 'milestone', text: 'His testimonial. Ninety minutes, and the whole touchline sang his name at the end.' },
+        },
+        outcome: 'He lasts the ninety, sets one up, and is carried off by people who were not born when he signed.',
+        failEffects: {
+          morale: 4, squadHappiness: 3, subjectInjuryWeeks: 3, subjectOut: true, endChain: 'veteran-farewell',
+          subjectMemory: { kind: 'injury', text: 'Went at the hour mark of his own testimonial and laughed about it all the way off.' },
+        },
+        failOutcome: 'His hamstring goes on the hour in front of everyone he knows. He is still laughing about it in the bar.',
+      },
+      {
+        id: 'cameo', label: 'Ten minutes and a standing ovation', hint: 'Safe, and the moment still lands.',
+        effects: {
+          morale: 6, squadHappiness: 4, subjectHappiness: 9, reputation: 1, endChain: 'veteran-farewell',
+          subjectMemory: { kind: 'milestone', text: 'Came on for the last ten of his testimonial to a standing ovation from both sides.' },
+        },
+        outcome: 'Ten minutes, one heavy touch, and an ovation that goes on longer than the cameo did.',
+      },
+    ],
+  },
+  {
+    id: 'veteran-last-season',
+    category: 'player',
+    title: '{name} has signed on for one more',
+    body: 'He is back for another year, and everybody knows what it cost him to say yes. He wants to know what you actually want from him, because he is not going to be running about like he did.',
+    weight: 20,
+    needsSubject: true,
+    chain: { id: 'veteran-farewell', step: 3 },
+    subjectFilter: () => true,
+    condition: ctx => ctx.chainData.send === 'again',
+    choices: [
+      {
+        id: 'armband', label: 'Give him the armband for the year', hint: 'Costs whoever has it now.',
+        effects: {
+          captaincy: 'give', subjectHappiness: 10, morale: 4, endChain: 'veteran-farewell',
+          subjectMemory: { kind: 'milestone', text: 'Given the armband for a last season and led the club through all of it.' },
+        },
+        outcome: 'He takes it seriously, runs the dressing room, and does about nine miles less a game. Worth it.',
+      },
+      {
+        id: 'coach', label: 'Ask him to bring the young ones on', hint: 'Spreads what he knows before it walks out.',
+        effects: {
+          subjectHappiness: 6, squadHappiness: 5, subjectCommitment: 1, endChain: 'veteran-farewell',
+          subjectMemory: { kind: 'talked-round', text: 'Spent his last season teaching the young lads how to actually defend a corner.' },
+        },
+        outcome: 'Two of the younger ones start standing where he tells them to. It is noticeable within a month.',
+      },
     ],
   },
 
@@ -569,6 +1029,233 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
     ],
   },
 
+  // ── The crisis ────────────────────────────────────────────────────────────
+  //
+  // Triggered by the books, not by a die: `weeksInDebt` is the same counter
+  // `advanceSundayWeek` runs the fold clock off, so this story only ever opens
+  // when the club is genuinely in trouble — and its beats push that same
+  // counter rather than inventing a second way to die.
+  {
+    id: 'committee-ultimatum',
+    category: 'money',
+    title: 'The committee want a word',
+    body: 'There is a meeting in the back room of the pub and it is about you. The account has been in the red for {weeks} weeks, the league have written twice, and somebody used the phrase "winding it up" without lowering his voice.',
+    weight: 14,
+    condition: ctx => ctx.weeksInDebt >= SUNDAY_CHAIN_DEBT_WEEKS && !ctx.clubStoryLive,
+    cooldown: 12,
+    choices: [
+      {
+        id: 'plan', label: 'Put an actual plan in front of them', hint: 'Numbers on a page. Depends how you are seen.',
+        successChance: ctx => 0.35 + ctx.reputation * 0.01,
+        effects: {
+          morale: 3, reputation: 1,
+          startChain: { id: 'financial-crisis' }, chainData: { standing: 'trusted' },
+        },
+        outcome: 'They read it, ask two sensible questions, and give you until the end of the season.',
+        failEffects: {
+          reputation: -2,
+          startChain: { id: 'financial-crisis' }, chainData: { standing: 'watched' },
+        },
+        failOutcome: 'One of them reads it out loud in a particular voice. You have until they say otherwise.',
+      },
+      {
+        id: 'plead', label: 'Ask them for time and nothing else', hint: 'Buys weeks. Costs standing.',
+        effects: {
+          reputation: -1,
+          startChain: { id: 'financial-crisis' }, chainData: { standing: 'watched' },
+        },
+        outcome: 'You get the time. You also get the distinct impression this was your one ask.',
+      },
+    ],
+  },
+  {
+    id: 'crisis-sacrifice',
+    category: 'money',
+    title: 'Something has to go',
+    body: 'The maths does not work and everyone has stopped pretending it does. There are people who would take {name} off your hands and pay something for the privilege, the sponsor would talk about a different deal, or you go round the squad with your hand out again.',
+    weight: 20,
+    needsSubject: true,
+    chain: { id: 'financial-crisis', step: 2 },
+    // A CLUB chain, so this beat picks its own subject: somebody actually worth
+    // money, not whoever the story happened to name earlier.
+    subjectFilter: p => p.overall >= 44,
+    condition: () => true,
+    choices: [
+      {
+        id: 'sell', label: `Let {name} go for what they will pay (£${SUNDAY_CRISIS_SALE_FEE})`,
+        hint: 'Real money. A real hole in the side.',
+        effects: {
+          money: SUNDAY_CRISIS_SALE_FEE, subjectLeaves: true, morale: -7, squadHappiness: -4,
+          advanceChain: 'financial-crisis', chainData: { gave: 'player' },
+        },
+        outcome: 'Cash in an envelope and a set of match balls. He shakes hands with everyone on the way out.',
+      },
+      {
+        id: 'sponsor', label: 'Go back to the sponsor for a worse deal', hint: 'Money now, less every week after.',
+        available: ctx => ctx.hasSponsor,
+        effects: {
+          renegotiateSponsor: { upfront: SUNDAY_SPONSOR_RENEGOTIATE_UPFRONT, weeklyMult: SUNDAY_SPONSOR_RENEGOTIATE_MULT },
+          morale: -1,
+          advanceChain: 'financial-crisis', chainData: { gave: 'sponsor' },
+        },
+        outcome: 'They are happy to help, on their terms, and their terms are worse than the ones you had.',
+      },
+      {
+        id: 'beg', label: 'Go round the squad with your hand out', hint: 'Every penny owed, today. They will remember.',
+        effects: {
+          collectSubs: 1, squadHappiness: -8, morale: -6,
+          advanceChain: 'financial-crisis', chainData: { gave: 'squad' },
+        },
+        outcome: 'Everybody pays. Nobody enjoys it, and two of them make a point of paying in coins.',
+      },
+    ],
+  },
+  {
+    id: 'crisis-survived',
+    category: 'money',
+    title: 'The committee have stopped ringing',
+    body: 'There is money in the account, the league have been paid, and the man who said "winding it up" has bought you a drink and behaved as though he never said it.',
+    weight: 20,
+    chain: { id: 'financial-crisis', step: 3 },
+    condition: ctx => ctx.balance >= 0,
+    choices: ack(
+      'It is over. The club exists, which two months ago was genuinely in question.',
+      { morale: 5, reputation: 1, endChain: 'financial-crisis' },
+    ),
+  },
+  {
+    id: 'crisis-deepens',
+    category: 'money',
+    title: 'It has not worked',
+    body: 'Whatever you sold and whoever you squeezed, the account is still red. The committee have written it down this time, and there is a date on it.',
+    weight: 20,
+    chain: { id: 'financial-crisis', step: 3 },
+    condition: ctx => ctx.balance < 0,
+    choices: [
+      {
+        id: 'throw', label: 'One last fundraiser, everything in it', hint: 'A big swing. It can also miss.',
+        successChance: () => 0.55,
+        effects: { money: 130, morale: -6, squadHappiness: -4, endChain: 'financial-crisis' },
+        outcome: 'Raffle, race night, a bucket in the pub. It comes in, and it very nearly did not.',
+        failEffects: { money: 25, morale: -8, debtWeeks: 2, endChain: 'financial-crisis' },
+        failOutcome: 'Twenty-five pounds and an evening nobody will discuss. The clock has moved on two weeks.',
+      },
+      {
+        id: 'accept', label: 'Take it on the chin and keep playing', hint: 'Costs you weeks you may not have.',
+        effects: { debtWeeks: 2, morale: -3, endChain: 'financial-crisis' },
+        outcome: 'You say nothing and put a fixture out. The date the committee wrote down is closer than it was.',
+      },
+    ],
+  },
+
+  // ── The cup run ───────────────────────────────────────────────────────────
+  //
+  // Reads the cup state, which until now NO event did — so a mode with a
+  // knockout in it never once mentioned the knockout. Every beat checks
+  // `cupAlive`, which is what stops the club being told about a semi-final it
+  // went out of a fortnight ago.
+  {
+    id: 'cup-buzz',
+    category: 'club',
+    title: 'Nobody is talking about anything except the cup',
+    body: 'The {round} is on the calendar and the club has not shut up about it since the draw. Two people who have not played since September have asked whether they are still registered.',
+    weight: 10,
+    condition: ctx => ctx.cupAlive && ctx.cupRoundsWon >= 1 && !ctx.clubStoryLive,
+    cooldown: 20,
+    choices: [
+      {
+        id: 'hype', label: 'Make it the biggest thing of the year (£30)', hint: 'Everybody turns up for a big one. Availability follows the mood.',
+        available: ctx => ctx.balance >= 30,
+        effects: {
+          money: -30, morale: 6, squadHappiness: 5, reputation: 1,
+          startChain: { id: 'cup-run' }, chainData: { mood: 'loud' },
+        },
+        outcome: 'Kit washed, a coach booked, a photo in the local paper. Everyone in the squad has replied to the message.',
+      },
+      {
+        id: 'calm', label: 'Play it down — it is another Sunday', hint: 'Free. Keeps the lid on.',
+        effects: { morale: 2, squadHappiness: 1, startChain: { id: 'cup-run' }, chainData: { mood: 'quiet' } },
+        outcome: 'You treat it like a league game and say so. One or two are visibly deflated.',
+      },
+    ],
+  },
+  {
+    id: 'cup-pressure',
+    category: 'club',
+    title: 'The {round} is coming',
+    body: 'It is close enough now that people have started driving past the pitch to look at it. The other lot have hired a coach. Somebody has asked about a team photo.',
+    weight: 20,
+    chain: { id: 'cup-run', step: 2 },
+    // Only while there is actually a tie ahead. Knocked out between beats and
+    // this cannot fire, which sends the story straight to its aftermath.
+    condition: ctx => ctx.cupAlive,
+    choices: [
+      {
+        id: 'spend', label: 'Do it properly — coach, kit, a real warm-up (£45)', hint: 'Costs money. They will feel like a team.',
+        available: ctx => ctx.balance >= 45,
+        effects: { money: -45, morale: 5, squadHappiness: 4, advanceChain: 'cup-run', chainData: { prep: 'proper' } },
+        outcome: 'Everyone arrives together for once. It looks, briefly, like a football club.',
+      },
+      {
+        id: 'normal', label: 'Same as any other week', hint: 'Free. Some of them prefer it.',
+        effects: { morale: 1, advanceChain: 'cup-run', chainData: { prep: 'normal' } },
+        outcome: 'Nothing special is done and nothing special is said. Kick-off is kick-off.',
+      },
+      {
+        id: 'nerves', label: 'Tell them there is no pressure on them', hint: 'Lands or it does not.',
+        successChance: ctx => 0.45 + ctx.teamMorale * 0.004,
+        effects: { morale: 7, squadHappiness: 2, advanceChain: 'cup-run', chainData: { prep: 'loose' } },
+        outcome: 'It lands. They go into it loose and enjoying themselves, which is the whole trick.',
+        failEffects: { morale: -4, squadHappiness: -3, advanceChain: 'cup-run', chainData: { prep: 'tight' } },
+        failOutcome: 'Saying it out loud puts the thought in their heads. Two of them barely sleep on Saturday.',
+      },
+    ],
+  },
+  {
+    id: 'cup-still-standing',
+    category: 'club',
+    title: 'Still in it',
+    body: 'The club is in the {round}. Nobody at this level expects to be in the {round}, which has not stopped three separate people telling you they always knew.',
+    weight: 20,
+    chain: { id: 'cup-run', step: 3 },
+    condition: ctx => ctx.cupAlive,
+    choices: [
+      {
+        id: 'enjoy', label: 'Let them enjoy it (£25 behind the bar)', hint: 'One night. It costs.',
+        available: ctx => ctx.balance >= 25,
+        effects: { money: -25, morale: 7, squadHappiness: 5, reputation: 1, endChain: 'cup-run' },
+        outcome: 'A night that gets talked about for months, and a training turnout on Sunday that does not.',
+      },
+      {
+        id: 'focus', label: 'Nothing is won yet', hint: 'Keeps their heads. Nobody thanks you.',
+        effects: { morale: 2, reputation: 1, squadHappiness: -1, endChain: 'cup-run' },
+        outcome: 'You say the sentence every manager says. They roll their eyes, and they turn up on time.',
+      },
+    ],
+  },
+  {
+    id: 'cup-knocked-out',
+    category: 'club',
+    title: 'Out of the cup',
+    body: 'That is the run over. It was the best thing that happened all season and it lasted about six weeks, which at this level is a long time to have something to look forward to.',
+    weight: 20,
+    chain: { id: 'cup-run', step: 3 },
+    condition: ctx => !ctx.cupAlive,
+    choices: [
+      {
+        id: 'night', label: 'Take them out anyway (£35)', hint: 'It was worth marking. It still costs.',
+        available: ctx => ctx.balance >= 35,
+        effects: { money: -35, morale: 6, squadHappiness: 5, endChain: 'cup-run' },
+        outcome: 'Nobody mentions the score once. Two of them commit to next season before closing time.',
+      },
+      {
+        id: 'league', label: 'Straight back to the league', hint: 'Cheap. Flat.',
+        effects: { morale: -2, squadHappiness: -2, reputation: 1, endChain: 'cup-run' },
+        outcome: 'The following Sunday is a nine-thirty against a team in eighth. It feels like it.',
+      },
+    ],
+  },
+
   // ── Club ──────────────────────────────────────────────────────────────────
   {
     id: 'pitch-unplayable',
@@ -611,22 +1298,17 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
       { id: 'ignore', label: 'Rise above it', hint: 'Dignified. Dull.', effects: { morale: 1 }, outcome: 'You say nothing. It eats at two of your lads all week.' },
       { id: 'respond', label: 'Give it back', hint: 'Fires the squad up. Fires them up too.', effects: { morale: 6, rivalHeat: 2 }, outcome: 'The reply gets screenshotted and shared widely. It is on now.' },
       { id: 'bet', label: 'Bet him £50 on the next meeting', hint: 'High stakes for a Sunday.', effects: { rivalHeat: 3, morale: 4 }, outcome: 'The bet is on and everyone in both clubs knows about it by Tuesday.' },
+      // Inherited from the retired `rival-poach`: the one branch of that event
+      // that was not a duplicate of the defection story.
+      { id: 'poach-back', label: 'Go after one of theirs', hint: 'An eye for an eye. He will be expensive.', effects: { rivalHeat: 3, spawnRecruit: 'poached' }, outcome: 'You make a call of your own. Somebody in their squad is suddenly very interested indeed.' },
     ],
   },
-  {
-    id: 'rival-poach',
-    category: 'rivalry',
-    title: '{rival} are circling {name}',
-    body: 'Their manager has been seen talking to {name} outside the changing rooms. Twice.',
-    weight: 7,
-    needsSubject: true,
-    condition: ctx => ctx.hasRival && !!ctx.subject && ctx.subject.happiness < 55,
-    choices: [
-      { id: 'confront', label: 'Confront their manager', hint: 'Satisfying. Escalates things.', effects: { rivalHeat: 2, morale: 3 }, outcome: 'It gets heated in a car park. Nothing is resolved and everyone enjoys it.' },
-      { id: 'talk', label: 'Talk to {name} instead', hint: 'Deals with the actual problem.', successChance: ctx => 0.45 + (ctx.subject ? ctx.subject.commitment * 0.02 : 0), effects: { subjectHappiness: 12 }, outcome: 'He tells you exactly what was said, and that he told them where to go.' , failEffects: { subjectHappiness: -6 }, failOutcome: 'He is non-committal, which tells you everything.' },
-      { id: 'poach-back', label: 'Go after one of theirs', hint: 'An eye for an eye.', effects: { rivalHeat: 3, spawnRecruit: 'poached' }, outcome: 'You make a call of your own. Somebody from their squad is suddenly very interested.' },
-    ],
-  },
+  // NOTE: `rival-poach` was retired here. It said the same thing as
+  // `rival-sniffing` ("their manager has been seen talking to your unhappy
+  // player") with no relationship to it, so the two fired in either order and
+  // contradicted each other. The premise now belongs to the defection chain,
+  // and its one distinctive branch — going after one of theirs — moved onto
+  // `rival-trash-talk`, which is the event about the feud itself.
 
   {
     id: 'rival-sniffing',
@@ -813,7 +1495,11 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
 /** Substitute the placeholders a definition may use. */
 export function fillSundayEventText(
   text: string,
-  vars: { name?: string; job?: string; rival?: string; club?: string; balance?: number; subsOwed?: number; squadSize?: number },
+  vars: {
+    name?: string; job?: string; rival?: string; club?: string;
+    balance?: number; subsOwed?: number; squadSize?: number;
+    apps?: number; weeks?: number; round?: string | null;
+  },
 ): string {
   return text
     .replace(/\{name\}/g, vars.name ?? 'someone')
@@ -822,5 +1508,8 @@ export function fillSundayEventText(
     .replace(/\{club\}/g, vars.club ?? 'the club')
     .replace(/\{balance\}/g, String(Math.round(vars.balance ?? 0)))
     .replace(/\{subsOwed\}/g, String(Math.round(vars.subsOwed ?? 0)))
-    .replace(/\{squadSize\}/g, String(vars.squadSize ?? 0));
+    .replace(/\{squadSize\}/g, String(vars.squadSize ?? 0))
+    .replace(/\{apps\}/g, String(vars.apps ?? 0))
+    .replace(/\{weeks\}/g, String(vars.weeks ?? 0))
+    .replace(/\{round\}/g, vars.round ?? 'cup tie');
 }

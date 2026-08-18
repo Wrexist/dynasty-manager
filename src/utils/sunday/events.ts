@@ -14,13 +14,14 @@
  */
 import type {
   Player, SundayChainId, SundayChainState, SundayEventInstance,
-  SundayEventChoiceState, SundaySquadMember,
+  SundayEventChoiceState, SundaySquadMember, SundayState,
 } from '@/types/game';
 import type { SundayEventContext, SundayEventDef, SundayEventEffects, SundayEventPerson } from '@/data/sundayEvents';
 import { SUNDAY_EVENTS, fillSundayEventText } from '@/data/sundayEvents';
 import {
   SUNDAY_CHAIN_SEASON_MARGIN, SUNDAY_EVENT_COOLDOWN, getSundayChain,
 } from '@/config/sundayLeague';
+import { sundayCupRoundName } from './season';
 import type { SundayRng } from './rng';
 
 /** Build the read-only view of a squad member an event definition sees. */
@@ -32,6 +33,8 @@ export function toEventPerson(m: SundaySquadMember, player: Player): SundayEvent
     job: m.job,
     archetype: m.archetype,
     position: player.position,
+    age: player.age,
+    clubApps: m.clubApps,
     available: m.availability.status !== 'out',
     happiness: m.happiness,
     ego: m.ego,
@@ -46,6 +49,40 @@ export function toEventPerson(m: SundaySquadMember, player: Player): SundayEvent
 /** Who an event is about unless it says otherwise: somebody who will actually
  *  be there. Most of the catalogue describes a man in a car park. */
 const DEFAULT_SUBJECT_FILTER = (p: SundayEventPerson): boolean => p.available;
+
+/**
+ * The cup, as an event definition sees it.
+ *
+ * Until the cup chain there was no such view, and NO event in the catalogue
+ * read the cup at all — a mode with a knockout in it never mentioned the
+ * knockout, and could not have done so without risking telling the club about
+ * a semi-final it went out of a fortnight ago.
+ */
+export function sundayCupView(
+  sunday: Pick<SundayState, 'cup' | 'divisionId'>,
+  clubId: string,
+): Pick<SundayEventContext, 'cupAlive' | 'cupRoundsWon' | 'cupRoundName'> {
+  const cup = sunday.cup;
+  if (!cup) return { cupAlive: false, cupRoundsWon: 0, cupRoundName: null };
+  const ours = cup.ties.filter(t => t.homeClubId === clubId || t.awayClubId === clubId);
+  const next = ours.find(t => !t.played);
+  return {
+    cupAlive: !cup.eliminated && !!next,
+    cupRoundsWon: ours.filter(t => t.played && t.winnerClubId === clubId).length,
+    cupRoundName: next ? sundayCupRoundName(next.round) : null,
+  };
+}
+
+/** Which KINDS of story are already running. Every chain opener checks the one
+ *  that matters to it, which is what keeps the mode to one story per kind. */
+export function sundayStoryFlags(
+  chains: readonly SundayChainState[],
+): Pick<SundayEventContext, 'playerStoryLive' | 'clubStoryLive'> {
+  return {
+    playerStoryLive: chains.some(c => getSundayChain(c.id).kind === 'player'),
+    clubStoryLive: chains.some(c => getSundayChain(c.id).kind === 'club'),
+  };
+}
 
 export interface PickEventInput {
   rng: SundayRng;
@@ -239,6 +276,9 @@ function instantiate(
     balance: ctx.balance,
     subsOwed: ctx.subsOwed,
     squadSize: ctx.squadSize,
+    apps: person?.clubApps,
+    weeks: ctx.weeksInDebt,
+    round: ctx.cupRoundName,
   };
   const choices: SundayEventChoiceState[] = def.choices
     .filter(c => !c.available || c.available(ctx))

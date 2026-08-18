@@ -815,6 +815,16 @@ export interface SundayChainInfo {
 
 export const SUNDAY_CHAINS: readonly SundayChainInfo[] = [
   { id: 'rival-defection',  kind: 'player', durationWeeks: 4, terminalStep: 2 },
+  { id: 'captain-conflict', kind: 'player', durationWeeks: 3, terminalStep: 3 },
+  { id: 'star-arc',         kind: 'player', durationWeeks: 4, terminalStep: 3 },
+  { id: 'wonderkid',        kind: 'player', durationWeeks: 4, terminalStep: 3 },
+  { id: 'veteran-farewell', kind: 'player', durationWeeks: 3, terminalStep: 3 },
+  { id: 'financial-crisis', kind: 'club',   durationWeeks: 3, terminalStep: 3 },
+  // Three weeks is deliberate: the cup rounds sit roughly seven weeks apart,
+  // so a beat forced on the deadline still lands between ties rather than
+  // describing an afternoon that has not happened. The beats themselves check
+  // `cupAlive`, which is what keeps the copy honest either way.
+  { id: 'cup-run',          kind: 'club',   durationWeeks: 3, terminalStep: 3 },
 ] as const;
 
 export function getSundayChain(id: SundayChainId): SundayChainInfo {

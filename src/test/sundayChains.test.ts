@@ -15,10 +15,12 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
-import { SUNDAY_EVENTS } from '@/data/sundayEvents';
+import { SUNDAY_EVENTS, type SundayEventContext, type SundayEventPerson } from '@/data/sundayEvents';
 import { SUNDAY_CHAINS } from '@/config/sundayLeague';
 import { assertSundayState, validateSundayState } from '@/utils/sunday/invariants';
 import { sundaySeasonWeeks } from '@/utils/sunday/season';
+import { pickSundayEvent } from '@/utils/sunday/events';
+import { createSundayRng } from '@/utils/sunday/rng';
 import type { SundayChainId, SundayChainState, SundayState } from '@/types/game';
 
 const SEED = 4242;
@@ -192,32 +194,188 @@ describe('a chain always finishes', () => {
     expect(pending.playerId).not.toBe(other.playerId);
   });
 
-  it('does not let an unchained event be hijacked by a live story', async () => {
-    // The bug this replaces: a live flag forced EVERY subject-bearing event to
-    // be about the flagged man for as long as it lived.
-    const s0 = state();
-    const subject = s0.sunday!.squad.find(m => m.availability.status !== 'out')!;
-    patch({
-      // Only the wrong-boots comedy event is available, and it is not a beat.
-      eventCooldowns: isolate('wrong-boots'),
+  it('does not let an unchained event be hijacked by a live story', () => {
+    // THE BUG THIS REPLACES. A live `wants-out:` flag forced every
+    // subject-bearing event in the catalogue to be about the flagged man for as
+    // long as the flag lived — up to six weeks in which the goalkeeper, the
+    // comedy boots and the ex-pro's lecture were all the same person.
+    //
+    // Driven through the selector rather than the store so the assertion is
+    // about the selection rule and not about which week the draw landed on.
+    const people: SundayEventPerson[] = ['a', 'b', 'c'].map((id, i) => ({
+      playerId: id, firstName: `P${i}`, lastName: 'X', job: 'sparky',
+      archetype: 'journeyman', position: 'CM', age: 27, clubApps: 10, available: true,
+      happiness: 50, ego: 10, commitment: 12, temper: 10, influence: 10,
+      overall: 45, benchedStreak: 0,
+    }));
+    const ctx: SundayEventContext = {
+      season: 1, week: 8, balance: 300, reputation: 20, teamMorale: 60,
+      squadSize: 3, availableCount: 3, lastResult: 0, winless: 0, winStreak: 0,
+      leaguePosition: 4, leagueSize: 8, hasRival: true, rivalHeat: 5, hasSponsor: false,
+      subsOwed: 0, weeksInDebt: 0, cupAlive: false, cupRoundsWon: 0, cupRoundName: null,
+      captain: null, subject: null, unhappy: null, flags: {},
       chains: [{
-        id: 'rival-defection', step: 2, subjectId: subject.playerId,
-        startedWeek: s0.week, startedSeason: s0.season, dueWeek: s0.week + 20, data: {},
+        id: 'rival-defection', step: 2, subjectId: 'a',
+        startedWeek: 4, startedSeason: 1, dueWeek: 40,
       }],
-    });
+      playerStoryLive: true, clubStoryLive: false, chainData: {}, defectorName: null,
+    };
+    const cooldowns = isolate('wrong-boots');
     const seen = new Set<string>();
+    for (let i = 0; i < 60; i++) {
+      const ev = pickSundayEvent({
+        rng: createSundayRng(i * 31 + 7, 0), ctx, subjects: people,
+        cooldowns, firedOnce: new Set(), week: 8, rivalName: 'them', clubName: 'us',
+      });
+      if (ev?.playerId) seen.add(ev.playerId);
+    }
+    expect(seen.size, 'the unchained event only ever named one man').toBeGreaterThan(1);
+  });
+});
+
+describe('every chain runs end to end', () => {
+  /**
+   * Drive one chain from its live state to its ending, taking the choice named
+   * (or the first) at each beat, and assert it terminates.
+   *
+   * Deliberately generic: the point is not what any individual beat says, it is
+   * that no configured chain can be started and then left hanging — which is
+   * exactly what the flag scheme allowed.
+   */
+  async function runChain(chain: SundayChainState, picks: Record<string, string> = {}) {
+    patch({ eventCooldowns: isolate(), chains: [chain] });
+    const beats: string[] = [];
     for (let i = 0; i < 8; i++) {
       const st = state();
       if (st.sunday!.seasonComplete || st.sunday!.folded) break;
-      if (st.sunday!.pendingEvent) {
-        if (st.sunday!.pendingEvent.playerId) seen.add(st.sunday!.pendingEvent.playerId);
-        await st.resolveSundayEvent(st.sunday!.pendingEvent.choices[0].id);
-      }
+      if (!st.sunday!.chains.length) break;
       await state().advanceWeek();
+      const pending = state().sunday!.pendingEvent;
+      if (!pending) continue;
+      beats.push(pending.defId);
+      const choice = pending.choices.find(c => c.id === picks[pending.defId]) ?? pending.choices[0];
+      await state().resolveSundayEvent(choice.id);
     }
-    // Over eight weeks of a comedy event about a random squad member, the
-    // chain's subject must not be the only name that ever comes up.
-    expect(seen.size === 0 || !(seen.size === 1 && seen.has(subject.playerId))).toBe(true);
+    return beats;
+  }
+
+  const subjectOf = () => state().sunday!.squad.find(m => m.availability.status !== 'out')!.playerId;
+
+  it('captain-conflict reaches a fallout beat and ends', async () => {
+    const s0 = state();
+    const id = s0.sunday!.captainId!;
+    const beats = await runChain(
+      {
+        id: 'captain-conflict', step: 2, subjectId: id,
+        startedWeek: s0.week, startedSeason: s0.season, dueWeek: s0.week, data: {},
+      },
+      { 'captain-showdown': 'strip' },
+    );
+    expect(beats).toContain('captain-showdown');
+    expect(beats).toContain('captain-stripped-fallout');
+    // The armband actually moved, and it did not vanish.
+    expect(state().sunday!.captainId).not.toBe(id);
+    expect(state().sunday!.captainId).toBeTruthy();
+    expect(state().sunday!.chains).toHaveLength(0);
+    check();
+  });
+
+  it('star-arc ends at the offer, and what you gave him is remembered', async () => {
+    const s0 = state();
+    const beats = await runChain(
+      {
+        id: 'star-arc', step: 2, subjectId: subjectOf(),
+        startedWeek: s0.week, startedSeason: s0.season, dueWeek: s0.week, data: { gave: 'nothing' },
+      },
+      { 'star-demands': 'armband', 'better-offer': 'let-go' },
+    );
+    expect(beats).toContain('star-demands');
+    expect(beats).toContain('better-offer');
+    expect(state().sunday!.chains).toHaveLength(0);
+    check();
+  });
+
+  it('wonderkid ends with the scout, either way', async () => {
+    const s0 = state();
+    const beats = await runChain(
+      {
+        id: 'wonderkid', step: 2, subjectId: subjectOf(),
+        startedWeek: s0.week, startedSeason: s0.season, dueWeek: s0.week, data: {},
+      },
+      { 'wonderkid-first-start': 'start', 'wonderkid-scouted': 'keep' },
+    );
+    expect(beats).toContain('wonderkid-first-start');
+    expect(beats).toContain('wonderkid-scouted');
+    expect(state().sunday!.chains).toHaveLength(0);
+    check();
+  });
+
+  it('veteran-farewell writes a heavy memory on the man it was about', async () => {
+    const s0 = state();
+    const id = subjectOf();
+    const beats = await runChain(
+      {
+        id: 'veteran-farewell', step: 2, subjectId: id,
+        startedWeek: s0.week, startedSeason: s0.season, dueWeek: s0.week, data: {},
+      },
+      { 'veteran-decision': 'again', 'veteran-last-season': 'coach' },
+    );
+    expect(beats).toContain('veteran-decision');
+    expect(beats).toContain('veteran-last-season');
+    const member = state().sunday!.squad.find(m => m.playerId === id);
+    // He stayed, so the moment is his to carry — the squad screen, the season
+    // retrospective and the legend citation all read this list.
+    expect(member?.memories.some(mem => mem.text.includes('last season'))).toBe(true);
+    expect(state().sunday!.chains).toHaveLength(0);
+    check();
+  });
+
+  it('financial-crisis pushes the club\'s own fold clock, not a second one', async () => {
+    const s0 = state();
+    // Deep in the red and staying there, so the verdict beat is the grim one.
+    patch({ balance: -120, weeksInDebt: 3 });
+    const before = state().sunday!.weeksInDebt;
+    const beats = await runChain(
+      {
+        id: 'financial-crisis', step: 2, subjectId: null,
+        startedWeek: s0.week, startedSeason: s0.season, dueWeek: s0.week, data: { standing: 'watched' },
+      },
+      { 'crisis-sacrifice': 'beg', 'crisis-deepens': 'accept' },
+    );
+    expect(beats).toContain('crisis-sacrifice');
+    // Whichever verdict fired, the story ended.
+    expect(beats.some(b => b === 'crisis-deepens' || b === 'crisis-survived')).toBe(true);
+    if (beats.includes('crisis-deepens')) {
+      expect(state().sunday!.weeksInDebt).toBeGreaterThan(before);
+    }
+    expect(state().sunday!.chains).toHaveLength(0);
+  });
+
+  it('cup-run never tells the club about a tie it is not in', async () => {
+    const s0 = state();
+    // Out of the cup entirely: every tie played, none of them ours to come.
+    patch({
+      cup: s0.sunday!.cup
+        ? { ...s0.sunday!.cup, eliminated: true }
+        : null,
+      eventCooldowns: isolate(),
+      chains: [{
+        id: 'cup-run', step: 2, subjectId: null,
+        startedWeek: s0.week, startedSeason: s0.season, dueWeek: s0.week, data: { mood: 'loud' },
+      }],
+    });
+    await state().advanceWeek();
+    const pending = state().sunday!.pendingEvent;
+    // The pressure beat's premise is false, so the forced pass skips to the
+    // aftermath rather than announcing a semi-final that is not happening.
+    expect(pending?.defId).not.toBe('cup-pressure');
+    expect(pending?.defId).not.toBe('cup-still-standing');
+    if (pending) {
+      expect(pending.defId).toBe('cup-knocked-out');
+      await state().resolveSundayEvent(pending.choices[pending.choices.length - 1].id);
+    }
+    expect(state().sunday!.chains).toHaveLength(0);
+    check();
   });
 });
 

@@ -36,7 +36,8 @@ import {
 import {
   advanceSundayChain, endSundayChain, pruneSundayChains, pruneSundayFlags,
   resolveSundayChoice, startSundayChain, sundayChainSubjectName,
-  sundayEventChainId, toEventPerson, writeSundayChainData,
+  sundayCupView, sundayEventChainId, sundayStoryFlags, toEventPerson,
+  writeSundayChainData,
 } from '@/utils/sunday/events';
 import type { SundayEventContext, SundayEventEffects } from '@/data/sundayEvents';
 import { sundayChainClosingLine } from '@/data/sundayEvents';
@@ -73,6 +74,7 @@ function buildEventContext(state: GameState, sunday: SundayState): SundayEventCo
     return m && p ? toEventPerson(m, p) : null;
   };
   const last = sunday.lastMatch;
+  const cup = sundayCupView(sunday, state.playerClubId);
   return {
     season: state.season,
     week: state.week,
@@ -90,11 +92,14 @@ function buildEventContext(state: GameState, sunday: SundayState): SundayEventCo
     rivalHeat: sunday.rivalry?.heat ?? 0,
     hasSponsor: sunday.sponsors.length > 0,
     subsOwed: sunday.squad.reduce((n, m) => n + m.subsOwed, 0),
+    weeksInDebt: sunday.weeksInDebt,
+    ...cup,
     captain: person(sunday.captainId),
     subject: person(sunday.pendingEvent?.playerId ?? null),
     unhappy: person([...sunday.squad].sort((a, b) => a.happiness - b.happiness)[0]?.playerId ?? null),
     flags: sunday.flags,
     chains: sunday.chains,
+    ...sundayStoryFlags(sunday.chains),
     // The odds a chained choice is judged against may legitimately depend on
     // what an earlier beat decided, so the live chain's memory travels with the
     // context — rebuilt now, like everything else here.
@@ -263,6 +268,7 @@ export const SUNDAY_HANDLED_EFFECT_KEYS: ReadonlySet<keyof SundayEventEffects> =
   'subjectInjuryWeeks', 'subjectAttrDelta',
   'rivalHeat', 'collectSubs', 'spawnRecruit', 'pitchDamage', 'promiseStart',
   'setFlag', 'clearFlag',
+  'captaincy', 'subjectMemory', 'debtWeeks', 'renegotiateSponsor', 'loseSponsor',
   'startChain', 'advanceChain', 'endChain', 'chainData',
 ] satisfies (keyof SundayEventEffects)[]);
 
@@ -393,6 +399,18 @@ export function resolveSundayEvent(set: Set, get: Get, choiceId: string) {
         },
       });
     }
+    // A decision worth remembering goes into his biography, which the squad
+    // screen, the season retrospective and the legend citation all read. A
+    // memory written on somebody who has just left would be thrown away with
+    // him, so the departure branches above deliberately do not use it.
+    if (fx.subjectMemory && !subjectLeft) {
+      squad = updateMember(squad, subjectId, m => ({
+        memories: rememberMoment(
+          m.memories,
+          makeMemory(state.season, state.week, fx.subjectMemory!.kind, fx.subjectMemory!.text),
+        ),
+      }));
+    }
   }
 
   // Story markers. `{subject}` binds the marker to this event's player.
@@ -458,6 +476,33 @@ export function resolveSundayEvent(set: Set, get: Get, choiceId: string) {
     rivalry = { ...rivalry, heat: clamp(rivalry.heat + fx.rivalHeat, 0, SUNDAY_RIVAL_HEAT_MAX) };
   }
 
+  // The shirt deal is a real deal and an event that talks about it has to be
+  // able to change it. `sponsor-unhappy` promised branches that "touch the
+  // sponsorship" and touched nothing; the crisis chain trades cash now for a
+  // smaller weekly, which is the honest version of the same conversation.
+  let sponsors = sunday.sponsors;
+  const sponsorLines: string[] = [];
+  if (fx.renegotiateSponsor && sponsors.length) {
+    const deal = sponsors[0];
+    const weekly = Math.max(1, Math.round(deal.weekly * fx.renegotiateSponsor.weeklyMult));
+    sponsors = [{ ...deal, weekly }, ...sponsors.slice(1)];
+    balance += fx.renegotiateSponsor.upfront;
+    pendingLedger.push({ kind: 'sponsor', amount: fx.renegotiateSponsor.upfront, label: `${deal.name} — renegotiated` });
+    sponsorLines.push(`${deal.name} have paid £${fx.renegotiateSponsor.upfront} up front. The weekly is £${weekly} now.`);
+  }
+  if (fx.loseSponsor && sponsors.length) {
+    const [dropped, ...rest] = sponsors;
+    sponsors = rest;
+    sponsorLines.push(`${dropped.name} are off the shirt.`);
+  }
+
+  // Events may only ever push the EXISTING fold clock; there is no second way
+  // for a Sunday club to die. `advanceSundayWeek` reads `weeksInDebt` against
+  // `SUNDAY_BANKRUPT_GRACE_WEEKS` exactly as before.
+  const weeksInDebt = fx.debtWeeks
+    ? Math.max(0, sunday.weeksInDebt + fx.debtWeeks)
+    : sunday.weeksInDebt;
+
   // Playing on a churned surface churns it further. `sundayPitchQuality` reads
   // this straight into the match engine's pitch channel, so "we talked him into
   // letting us play" now costs the club something it can feel for a few weeks.
@@ -465,9 +510,33 @@ export function resolveSundayEvent(set: Set, get: Get, choiceId: string) {
     ? clampRound(sunday.pitchDamage + fx.pitchDamage, 0, SUNDAY_PITCH_DAMAGE_MAX)
     : sunday.pitchDamage;
 
-  const captainId = subjectLeft && sunday.captainId === subjectId
-    ? ([...squad].sort((a, b) => (b.influence * 2 + b.commitment) - (a.influence * 2 + a.commitment))[0]?.playerId ?? null)
-    : sunday.captainId;
+  // ── The armband ───────────────────────────────────────────────────────────
+  // Handing it over or taking it away is a real change to a real field, and it
+  // costs the man on the other end of it — the same rule `setSundayCaptain`
+  // applies when the manager does it from the squad screen.
+  const nextBest = (exclude: string | null) =>
+    [...squad]
+      .filter(m => m.playerId !== exclude)
+      .sort((a, b) => (b.influence * 2 + b.commitment) - (a.influence * 2 + a.commitment))[0]?.playerId ?? null;
+
+  let captainId = sunday.captainId;
+  if (fx.captaincy === 'give' && subjectId && squad.some(m => m.playerId === subjectId)) {
+    const previous = captainId;
+    captainId = subjectId;
+    if (previous && previous !== subjectId) {
+      squad = updateMember(squad, previous, m => ({
+        happiness: clampRound(m.happiness - 4 - Math.max(0, m.ego - 12) * 0.5, 0, 100),
+      }));
+    }
+  } else if (fx.captaincy === 'strip' && subjectId && captainId === subjectId) {
+    const stripped = memberOf(sunday, subjectId);
+    captainId = nextBest(subjectId);
+    // The room feels it in proportion to how much of the room he carried. A
+    // figurehead nobody listened to barely registers; the man who organised
+    // the lifts and chased the subs takes half the dressing room with him.
+    if (stripped) teamMorale = clampRound(teamMorale - Math.round(stripped.influence / 3), 0, 100);
+  }
+  if (subjectLeft && captainId === subjectId) captainId = nextBest(subjectId);
 
   let recruitCursor = rngCursor;
   if (fx.spawnRecruit && squad.length < SUNDAY_MAX_SQUAD) {
@@ -498,16 +567,18 @@ export function resolveSundayEvent(set: Set, get: Get, choiceId: string) {
     bench: subjectLeft ? sunday.bench.filter(id => id !== subjectId) : sunday.bench,
     recruits,
     rivalry,
+    sponsors,
     flags,
     chains,
     pitchDamage,
+    weeksInDebt,
     pendingLedger,
     rngCursor: recruitCursor,
     pendingEvent: null,
     eventLog: [...sunday.eventLog, {
       season: state.season, week: state.week, defId: instance.defId, summary: resolution.outcome,
     }].slice(-SUNDAY_EVENT_LOG_MAX),
-    weekLog: logWeek(sunday, resolution.outcome, ...chainLines),
+    weekLog: logWeek(sunday, resolution.outcome, ...sponsorLines, ...chainLines),
   };
 
   set({ sunday: nextSunday, players, clubs, messages });

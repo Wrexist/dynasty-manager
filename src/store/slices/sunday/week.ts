@@ -45,6 +45,7 @@ import { generateSundayRecruit, sundaySquadNeeds } from '@/utils/sunday/generati
 import {
   pickSundayEvent, toEventPerson, cooldownWeekFor, isOnceSundayEvent,
   forceSundayChainStep, pruneSundayChains, pruneSundayFlags, sundayChainSubjectName,
+  sundayCupView, sundayStoryFlags,
 } from '@/utils/sunday/events';
 import type { SundayEventContext } from '@/data/sundayEvents';
 import { sundayChainClosingLine } from '@/data/sundayEvents';
@@ -498,6 +499,13 @@ export function advanceSundayWeek(set: Set, get: Get): void {
       rivalHeat: sunday.rivalry?.heat ?? 0,
       hasSponsor: sponsors.length > 0,
       subsOwed: squad.reduce((n, m) => n + m.subsOwed, 0),
+      // The books as the fold clock sees them: this week's counter, not last
+      // week's, so the crisis chain opens on the state the player is looking at.
+      weeksInDebt: balance < SUNDAY_DEBT_FLOOR ? sunday.weeksInDebt + 1 : 0,
+      // The cup AFTER this week's tie was played and the bracket advanced, so
+      // a beat can never describe an afternoon that has already gone the other
+      // way.
+      ...sundayCupView({ cup, divisionId: sunday.divisionId }, clubId),
       captain: person(captainMember),
       // Each definition claims its own subject out of `subjects` below; there
       // is deliberately no single pre-picked one to judge every condition
@@ -506,6 +514,7 @@ export function advanceSundayWeek(set: Set, get: Get): void {
       unhappy: person(unhappyMember),
       flags: sunday.flags,
       chains,
+      ...sundayStoryFlags(chains),
       // Filled per definition by the selector, from that definition's own
       // chain. Nothing unchained can read another story's memory.
       chainData: {},
