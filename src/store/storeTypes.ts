@@ -1,4 +1,4 @@
-import { Club, Player, Match, MatchWeather, LeagueTableEntry, FormationType, TransferListing, BoardObjective, BoardUltimatum, GameScreen, Message, SeasonHistory, IncomingOffer, GameSettings, TacticalInstructions, TrainingState, TrainingModule, StaffMember, ScoutingState, ScoutRegion, YouthAcademyState, FacilitiesState, FinanceRecord, PlayerMatchRating, LoanDeal, IncomingLoanOffer, OutgoingLoanRequest, CupState, PressConference, ContractOffer, ActiveChallenge, LeagueId, SeasonTurnover, DerbyRivalry, ClubRecords, SeasonPhase, PlayoffState, CareerMilestone, ManagerProgression, PerkId, StorylineEvent, ActiveStorylineChain, SponsorDeal, SponsorOffer, SponsorNegotiationProposal, SponsorSlotId, MerchState, MerchProductLine, MerchPricingTier, MerchCampaignType, CliffhangerItem, MatchDramaType, SessionStats, HeadToHeadRecord, MonetizationState, ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo, TransferNewsEntry, NationalTeamState, NationalTeamOffer, InternationalTournamentState, GameMode, CareerManager, JobVacancy, JobOffer, ActiveInterview, PitchTone, ManagerBonus, LeagueCupState, ContinentalTournamentState, ContinentalCompetition, VirtualClub, SuperCupMatch, TransferTalk, TeamTalkType, GamePlanId, PenaltyKick, PenaltyShootoutCtx, MatchShout, ShoutType, NegotiationStrike, OpenedPackRecord, OpenPackResult, ReleasePackedPlayerResult, QuickSellPackedPlayerResult, PackTierKey, PackUnlockMethod, LoadError, CaptureScenario } from '@/types/game';
+import { Club, Player, Match, MatchWeather, LeagueTableEntry, FormationType, TransferListing, BoardObjective, BoardUltimatum, GameScreen, Message, SeasonHistory, IncomingOffer, GameSettings, TacticalInstructions, TrainingState, TrainingModule, StaffMember, ScoutingState, ScoutRegion, YouthAcademyState, FacilitiesState, FinanceRecord, PlayerMatchRating, LoanDeal, IncomingLoanOffer, OutgoingLoanRequest, CupState, PressConference, ContractOffer, ActiveChallenge, LeagueId, SeasonTurnover, DerbyRivalry, ClubRecords, SeasonPhase, PlayoffState, CareerMilestone, ManagerProgression, PerkId, StorylineEvent, ActiveStorylineChain, SponsorDeal, SponsorOffer, SponsorNegotiationProposal, SponsorSlotId, MerchState, MerchProductLine, MerchPricingTier, MerchCampaignType, CliffhangerItem, MatchDramaType, SessionStats, HeadToHeadRecord, MonetizationState, ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo, TransferNewsEntry, NationalTeamState, NationalTeamOffer, InternationalTournamentState, GameMode, CareerManager, JobVacancy, JobOffer, ActiveInterview, PitchTone, ManagerBonus, LeagueCupState, ContinentalTournamentState, ContinentalCompetition, VirtualClub, SuperCupMatch, TransferTalk, TeamTalkType, GamePlanId, PenaltyKick, PenaltyShootoutCtx, MatchShout, ShoutType, NegotiationStrike, OpenedPackRecord, OpenPackResult, ReleasePackedPlayerResult, QuickSellPackedPlayerResult, PackTierKey, PackUnlockMethod, LoadError, CaptureScenario, SundayState, SundayClubIdentity, SundayClubPersonalityId, SundayTacticId, SundayUpgradeId, SundayMatchReport } from '@/types/game';
 import type { ObjectiveInstance } from '@/utils/weeklyObjectives';
 import type { PostSeasonSnapshot } from '@/store/slices/orchestration/seasonEnd';
 import type { HalfState } from '@/engine/match';
@@ -259,6 +259,11 @@ export interface GameState {
   // Game Mode
   gameMode: GameMode;
 
+  /** Sunday League mode's entire persisted state, or null in every other mode.
+   *  The club and its players live in the normal `clubs` / `players` maps —
+   *  see the header of the Sunday section in `src/types/game.ts`. */
+  sunday: SundayState | null;
+
   // Career Mode (null in sandbox)
   careerManager: CareerManager | null;
   jobVacancies: JobVacancy[];
@@ -295,6 +300,39 @@ export interface GameState {
   currentContinentalMatchId: string | null;
   currentContinentalCompetition: ContinentalCompetition | null;
   currentLeagueCupTieId: string | null;
+
+  // Actions — Sunday League
+  /** Boot a brand-new Sunday League save into the active slot. Wipes the slot
+   *  first, exactly like `startWorldCup`. */
+  // Every Sunday action is async: the mode's implementation is dynamic-imported
+  // so it stays out of the eager boot bundle. See the header of
+  // `src/store/slices/sundaySlice.ts`.
+  startSundayLeague: (options: { personality: SundayClubPersonalityId; identity?: Partial<SundayClubIdentity>; seed?: number }) => Promise<void>;
+  setSundayTactic: (tactic: SundayTacticId) => Promise<void>;
+  setSundayCaptain: (playerId: string) => Promise<void>;
+  /** Replace the XI and bench. Rejects unavailable or unknown players and
+   *  returns what it actually set, so the UI can explain a partial pick. */
+  setSundayTeamsheet: (xi: string[], bench: string[]) => Promise<{ ok: boolean; message: string }>;
+  /** Best available XI for the current tactic. */
+  autoPickSundayTeamsheet: () => Promise<{ picked: number; short: boolean }>;
+  /** Play this week's fixture. No-op (resolves null) when there isn't one or it
+   *  has already been played — the guard that makes replaying impossible. */
+  playSundayMatch: () => Promise<SundayMatchReport | null>;
+  /** Resolve the pending event. `choiceId` must be one of its choices. */
+  resolveSundayEvent: (choiceId: string) => Promise<{ outcome: string } | null>;
+  signSundayRecruit: (recruitId: string) => Promise<{ ok: boolean; message: string }>;
+  releaseSundayPlayer: (playerId: string) => Promise<{ ok: boolean; message: string }>;
+  buySundayUpgrade: (upgradeId: SundayUpgradeId) => Promise<{ ok: boolean; message: string }>;
+  acceptSundaySponsor: (offerId: string) => Promise<{ ok: boolean; message: string }>;
+  declineSundaySponsor: (offerId: string) => Promise<void>;
+  /** Raffle, car wash, sponsored silence. Once per cooldown. */
+  runSundayFundraiser: () => Promise<{ ok: boolean; message: string; raised: number }>;
+  /** Chase the outstanding match fees. Recovers most, costs goodwill. */
+  chaseSundaySubs: () => Promise<{ ok: boolean; message: string; recovered: number }>;
+  /** Spend an afternoon on the phone talking one absentee round. */
+  ringRoundSunday: (playerId: string) => Promise<{ ok: boolean; message: string }>;
+  /** Roll the season over: awards, ageing, promotion, a fresh fixture list. */
+  endSundaySeason: () => Promise<void>;
 
   // Actions — Core
   initGame: (clubId: string, options?: { communityPackEnabled?: boolean }) => Promise<void> | void;

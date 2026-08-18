@@ -12,11 +12,20 @@ import { isPlaceholderClubId } from '@/config/continental';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 83;
+const CURRENT_VERSION = 84;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
 const migrations: Record<number, MigrationFn> = {
+  // v83 → v84: `sunday` carries the whole Sunday League mode. Every save
+  // written before this is by definition not a Sunday save — the mode did not
+  // exist — so `null` is the only correct value and there is nothing to
+  // backfill. The bump exists so the shape change is declared rather than
+  // sneaking in, and so a v84 Sunday save cannot be silently loaded by an
+  // older build that would drop the key and leave `gameMode: 'sunday'` with
+  // no state behind it.
+  83: (data) => ({ ...data, version: 84, sunday: data.sunday ?? null }),
+
   // v82 -> v83: `SuperCupMatch` gained the optional `playedWeek`, the week a
   // Super Cup was ACTUALLY played when a catch-up moved it off its scheduled
   // `week`. Every reader falls back to `week` when it is absent, so an old save

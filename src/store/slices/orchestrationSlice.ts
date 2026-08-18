@@ -15,6 +15,7 @@ import { track } from '@/utils/analytics';
 import { fnv1a } from '@/utils/hashString';
 import { migrateLegacySave, saveSessionSnapshot, readSaveSlot, readSaveSlotBackup, writeSaveSlot, promoteSaveBackup, removeSaveSlot, recoverStaleSaveTmp, trimFixturesForSave, trimFixtureArrayForSave } from '@/store/helpers/persistence';
 import { migrateSaveData, validateSaveShape, isSaveFromNewerVersion, CURRENT_VERSION } from '@/utils/saveMigration';
+import { assertSundayStateInDev, preloadSundayActions } from '@/store/slices/sundaySlice';
 
 import { generateCupDraw } from '@/data/cup';
 
@@ -318,6 +319,9 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
     currentContinentalMatchId: state.currentContinentalMatchId,
     currentContinentalCompetition: state.currentContinentalCompetition,
     continentalCoefficients: state.continentalCoefficients || {},
+    // Sunday League — the whole mode lives in one key; its club and players
+    // are already covered by `clubs`/`players` above.
+    sunday: state.sunday,
     // Career Mode
     gameMode: state.gameMode,
     careerManager: state.careerManager,
@@ -544,6 +548,9 @@ function buildFreshSessionState(get: Get): Partial<GameState> {
     sessionStats: { startWeek: 1, startSeason: 1, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 },
     weeklyDigest: null, careerTimeline: [],
     gameMode: 'sandbox' as const, careerManager: null, jobVacancies: [], jobOffers: [],
+    // Leaving a Sunday state behind would give a brand-new sandbox save a
+    // squad of scaffolders and a £180 overdraft.
+    sunday: null,
     // Terminal-career flag and the live promotion bracket. Leaving either set
     // meant a brand-new career inherited the previous one's ending: a fresh
     // save with `careerRetired: true` refused to advance a single week.
@@ -1007,7 +1014,12 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         currentScreen:
           (data.gameMode === 'career' && data.careerManager && !data.careerManager.contract)
             ? (data.careerManager.careerHistory?.some((e: { reason: string }) => e.reason === 'retired') ? 'hall-of-managers' : 'job-market')
-            : 'dashboard',
+            // Sunday League has no `dashboard`; landing there would render the
+            // hub (GameShell redirects) but with the club TopBar's back-button
+            // chrome, because 'dashboard' is not one of its tabs.
+            : data.gameMode === 'sunday'
+              ? (data.sunday?.folded ? 'sunday-history' : 'sunday-hub')
+              : 'dashboard',
         previousScreen: null,
         currentMatchResult: null, selectedPlayerId: null,
         transferWindowOpen: isTransferWindowOpen(data.week, data.totalWeeks),
@@ -1109,6 +1121,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         nationalTeam: data.nationalTeam || null,
         internationalTournament: data.internationalTournament || null,
         managerNationality: data.managerNationality || null,
+        // Sunday League. Null for every save that is not a Sunday save, which
+        // is every save written before v84.
+        sunday: data.sunday ?? null,
         // Career Mode
         gameMode: data.gameMode || 'sandbox',
         careerManager: data.careerManager
@@ -1164,6 +1179,12 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       // them as fillers, or (same tab as a previous session) keeps stale
       // claims from the old game and blocks valid picks.
       rebuildRealPlayerClaims(data.players || {});
+      // Development-only: a Sunday save that arrives corrupt should say so by
+      // name here rather than as a blank screen three taps later.
+      assertSundayStateInDev(get());
+      // Warm the (lazy) Sunday implementation chunk so the first tap on the hub
+      // does not pay the fetch. No-op for every other mode.
+      if (data.gameMode === 'sunday') preloadSundayActions();
       track('save_loaded', { slot: s });
       return true;
     } catch (err) {
