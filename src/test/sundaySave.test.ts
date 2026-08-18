@@ -186,6 +186,41 @@ describe('migration', () => {
     const migrated = migrateSaveData(current) as Record<string, unknown>;
     expect(migrated.sunday).toEqual({ v: 1, balance: 123 });
   });
+
+  it('gives a v85 Sunday save an empty chain list', () => {
+    const old = {
+      version: 85, playerClubId: 'sunday-club', clubs: {}, season: 1, week: 6,
+      gameMode: 'sunday', sunday: { v: 2, balance: 200, flags: {}, squad: [] },
+    };
+    const migrated = migrateSaveData(old) as Record<string, unknown>;
+    const sunday = migrated.sunday as Record<string, unknown>;
+    expect(sunday.v).toBe(3);
+    expect(sunday.chains).toEqual([]);
+  });
+
+  it('carries a mid-story wants-out flag forward as a live chain', () => {
+    // The one chain that shipped as an ad-hoc flag. A save reloaded mid-story
+    // must continue it, not lose it: the flag selects nothing now, and the
+    // payoff beat only fires for a live chain.
+    const old = {
+      version: 85, playerClubId: 'sunday-club', clubs: {}, season: 3, week: 9,
+      gameMode: 'sunday',
+      players: { 'sun-p-1': { firstName: 'Danny', lastName: 'Vaughan' } },
+      sunday: { v: 2, balance: 200, flags: { 'wants-out:sun-p-1': 7 }, squad: [] },
+    };
+    const migrated = migrateSaveData(old) as Record<string, unknown>;
+    const sunday = migrated.sunday as Record<string, unknown>;
+    expect(sunday.flags).toEqual({});
+    expect(sunday.chains).toEqual([{
+      id: 'rival-defection',
+      step: 2,
+      subjectId: 'sun-p-1',
+      startedWeek: 7,
+      startedSeason: 3,
+      dueWeek: 11,
+      data: { name: 'Danny' },
+    }]);
+  });
 });
 
 describe('mode isolation', () => {

@@ -313,9 +313,15 @@ export function rolloverSundaySeason(set: Set, get: Get): void {
     // Cooldowns are weeks-in-season, so they are meaningless across a rollover.
     // `onceFiredIds` deliberately survives: once per SAVE means once.
     eventCooldowns: {},
-    // Chain flags are week-stamped for the same reason; an unresolved chain
-    // does not survive the summer. The morning is long over.
+    // Story markers are week-stamped for the same reason. The morning is long
+    // over, and the damper and the derby bet both belong to a season that has
+    // finished.
     flags: {},
+    // NO CHAIN SURVIVES THE SUMMER — see `SUNDAY_CHAIN_SEASON_MARGIN`. Every
+    // deadline is clamped so the remaining beats are forced out before the last
+    // Sunday; this line is the backstop for the case where the club folded, the
+    // season ended early, or a beat's premise evaporated on the final week.
+    chains: [],
     // A summer of growth repairs anything the winter churned up.
     pitchDamage: 0,
     arrival: null,

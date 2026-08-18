@@ -19,8 +19,8 @@
  * test tells you what it did.
  */
 import type {
-  FormationType, TacticalInstructions, SundayArchetypeId, SundayClubPersonalityId,
-  SundayDivisionId, SundayTacticId, SundayUpgradeId,
+  FormationType, TacticalInstructions, SundayArchetypeId, SundayChainId,
+  SundayClubPersonalityId, SundayDivisionId, SundayTacticId, SundayUpgradeId,
 } from '@/types/game';
 
 // ── Schema ──────────────────────────────────────────────────────────────────
@@ -32,9 +32,9 @@ import type {
  *  v3: the match report carries its own discipline/injury counts and the
  *  man-of-the-match name, `onceFiredIds` outlives the capped event log,
  *  `pendingLedger` holds mid-week money, `divisionStyles` records how each AI
- *  club plays, and the dead `eventQueue` is gone. Migrated in saveMigration
- *  v86 — which is unreleased, so later waves EXTEND that step rather than
- *  adding another. */
+ *  club plays, `chains` holds the live multi-step stories, and the dead
+ *  `eventQueue` is gone. Migrated in saveMigration v86 — which is unreleased,
+ *  so later waves EXTEND that step rather than adding another. */
 export const SUNDAY_STATE_VERSION = 3;
 
 // ── The pyramid ─────────────────────────────────────────────────────────────
@@ -770,6 +770,98 @@ export const SUNDAY_EVENT_CHANCE = 0.55;
 export const SUNDAY_EVENT_COOLDOWN = 10;
 /** Events kept in the log for the season retrospective. */
 export const SUNDAY_EVENT_LOG_MAX = 60;
+/** Weeks a story marker in `SundayState.flags` survives before it is swept. */
+export const SUNDAY_FLAG_EXPIRY_WEEKS = 6;
+
+// ── Clustering protection ───────────────────────────────────────────────────
+//
+// Randomness is managed, not removed. Left alone, a 0.55 weekly roll over a
+// pool with plenty of negative entries produces runs — a forfeit, then somebody
+// walking out, then a bill, three Sundays in a row — which reads as the game
+// piling on rather than as a season having a bad month. Two rules, both
+// deterministic off the existing week-keyed stream:
+//
+//   1. the week AFTER something genuinely bad, negative events are down-WEIGHTED
+//      (never zeroed: a bad month is allowed to be a bad month)
+//   2. no two departure-causing events inside `SUNDAY_EVENT_DEPARTURE_GAP`
+//
+// Chain beats are exempt from both. A story that has started must be allowed to
+// finish on schedule, and its beats are already rationed by the chain cap.
+
+/** Weight multiplier on `tone: 'negative'` events the week after a forfeit, a
+ *  walk-out, or an event resolution that cost the club money or morale. */
+export const SUNDAY_EVENT_NEGATIVE_DAMPING = 0.35;
+/** Weeks that must pass between two events that can cost the club a player. */
+export const SUNDAY_EVENT_DEPARTURE_GAP = 5;
+
+// ── Event chains ────────────────────────────────────────────────────────────
+
+/** How one chain behaves. Content lives in `src/data/sundayEvents.ts`; this is
+ *  the shape and the clock. */
+export interface SundayChainInfo {
+  id: SundayChainId;
+  /** A player chain is ABOUT somebody and binds its beats to him; a club chain
+   *  is about the club. ONE OF EACH may be live at a time — that cap is what
+   *  stops the mode telling four tangled stories about the same fortnight. */
+  kind: 'player' | 'club';
+  /** Weeks the next beat has to arrive on its own before it is forced. Short
+   *  enough that a story keeps moving, long enough that it can be interrupted
+   *  by an ordinary Sunday or two. */
+  durationWeeks: number;
+  /** The last step. Every definition at this step must end the chain, which
+   *  `sundayEvents.test.ts` enforces — that is what guarantees termination. */
+  terminalStep: number;
+}
+
+export const SUNDAY_CHAINS: readonly SundayChainInfo[] = [
+  { id: 'rival-defection',  kind: 'player', durationWeeks: 4, terminalStep: 2 },
+  { id: 'captain-conflict', kind: 'player', durationWeeks: 3, terminalStep: 3 },
+  { id: 'star-arc',         kind: 'player', durationWeeks: 4, terminalStep: 3 },
+  { id: 'wonderkid',        kind: 'player', durationWeeks: 4, terminalStep: 3 },
+  { id: 'veteran-farewell', kind: 'player', durationWeeks: 3, terminalStep: 3 },
+  { id: 'financial-crisis', kind: 'club',   durationWeeks: 3, terminalStep: 3 },
+  { id: 'cup-run',          kind: 'club',   durationWeeks: 2, terminalStep: 3 },
+] as const;
+
+export function getSundayChain(id: SundayChainId): SundayChainInfo {
+  return SUNDAY_CHAINS.find(c => c.id === id) ?? SUNDAY_CHAINS[0];
+}
+
+/**
+ * Weeks of headroom a chain's deadline keeps clear of the season's end.
+ *
+ * ROLLOVER POLICY, stated once: no chain survives the summer. Sunday teams
+ * re-form every year, the opposition is regenerated and event cooldowns are
+ * meaningless across the boundary, so a half-told story would resume in a
+ * different league against different people. Instead of carrying chains over,
+ * every deadline is CLAMPED to `totalWeeks - SUNDAY_CHAIN_SEASON_MARGIN`, which
+ * forces the remaining beats to fire and resolve while the season still exists.
+ * `rolloverSundaySeason` then clears the list as a backstop.
+ */
+export const SUNDAY_CHAIN_SEASON_MARGIN = 2;
+/** Consecutive weeks under `SUNDAY_DEBT_FLOOR` before the committee chain can
+ *  open. Deliberately shorter than `SUNDAY_BANKRUPT_GRACE_WEEKS`: the crisis
+ *  story has to have room to run before the fold clock runs out. */
+export const SUNDAY_CHAIN_DEBT_WEEKS = 3;
+/** Age at which a long-serving player starts talking about his knees. */
+export const SUNDAY_CHAIN_VETERAN_AGE = 35;
+/** Appearances that make him a long-SERVER rather than an old signing. */
+export const SUNDAY_CHAIN_VETERAN_APPS = 20;
+/** Overall at which a Sunday player is unmistakably the best thing here. */
+export const SUNDAY_CHAIN_STAR_OVERALL = 48;
+/** Overall a prospect must still be UNDER for the wonderkid story to be about
+ *  a breakthrough rather than about somebody who has already broken through. */
+export const SUNDAY_CHAIN_PROSPECT_CEILING = 52;
+/** What the local rival's committee will put up for your best player when the
+ *  club is desperate. Sunday-scale: a bag of cash and a set of match balls. */
+export const SUNDAY_CRISIS_SALE_FEE = 85;
+/** Cash a renegotiated sponsor deal pays up front, and what it does to the
+ *  weekly. Real money now for less money later — a genuine trade. */
+export const SUNDAY_SPONSOR_RENEGOTIATE_UPFRONT = 70;
+export const SUNDAY_SPONSOR_RENEGOTIATE_MULT = 0.6;
+/** The standing derby bet with the rival manager, in pounds. Staked when it is
+ *  made and settled on the next derby result — see `runSundayMatch`. */
+export const SUNDAY_DERBY_BET = 50;
 
 // ── AI-versus-AI fixtures ───────────────────────────────────────────────────
 //

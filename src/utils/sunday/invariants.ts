@@ -18,8 +18,9 @@ import type {
   Match, Player, SundayState, SundayValidationResult,
 } from '@/types/game';
 import {
-  SUNDAY_MAX_BENCH, SUNDAY_STATE_VERSION, SUNDAY_MIN_START, SUNDAY_FULL_XI,
-  SUNDAY_PENDING_LEDGER_MAX, SUNDAY_PITCH_DAMAGE_MAX, SUNDAY_TACTICS,
+  SUNDAY_CHAINS, SUNDAY_MAX_BENCH, SUNDAY_STATE_VERSION, SUNDAY_MIN_START,
+  SUNDAY_FULL_XI, SUNDAY_PENDING_LEDGER_MAX, SUNDAY_PITCH_DAMAGE_MAX,
+  SUNDAY_TACTICS,
 } from '@/config/sundayLeague';
 import { sundaySeasonWeeks } from './season';
 import { sundayFlagSubjectId } from './events';
@@ -306,14 +307,45 @@ export function validateSundayState(input: ValidateSundayInput): SundayValidatio
       if (a.ringersHired != null && a.ringersHired > a.optionalRingers) push('arrival hired more ringers than were on offer');
     }
 
-    // ── Chain flags (v2) ────────────────────────────────────────────────────
+    // ── Story markers (v2) ──────────────────────────────────────────────────
     for (const [name, setWeek] of Object.entries(sunday.flags ?? {})) {
       if (!finite(setWeek)) push(`flag ${name} has a non-numeric week`);
-      // A flag names the player its chain is about. Once he has gone the flag
-      // is a story about a ghost — and it blocks the chain from restarting
-      // with somebody who is actually here.
+      // A flag that names a player is a story about a ghost once he has gone.
       const subject = sundayFlagSubjectId(name);
       if (subject && !seen.has(subject)) push(`flag ${name} is about ${subject}, who is not in the squad`);
+    }
+
+    // ── Chains (v3) ─────────────────────────────────────────────────────────
+    // The cap is the design: one story about a player, one about the club. Two
+    // live player chains would fight over the same subject slot and produce
+    // beats that contradict each other in consecutive weeks.
+    if (!Array.isArray(sunday.chains)) push('chains is missing');
+    else {
+      const kinds = new Map<string, number>();
+      const ids = new Set<string>();
+      for (const c of sunday.chains) {
+        const info = SUNDAY_CHAINS.find(x => x.id === c.id);
+        if (!info) { push(`unknown chain ${String(c.id)}`); continue; }
+        if (ids.has(c.id)) push(`chain ${c.id} is live twice`);
+        ids.add(c.id);
+        kinds.set(info.kind, (kinds.get(info.kind) ?? 0) + 1);
+        if (!finite(c.step) || c.step < 1) push(`chain ${c.id} has step ${String(c.step)}`);
+        if (c.step > info.terminalStep) push(`chain ${c.id} is past its terminal step (${c.step} > ${info.terminalStep})`);
+        if (!finite(c.startedWeek) || !finite(c.dueWeek)) push(`chain ${c.id} has a non-numeric week`);
+        else if (c.dueWeek < c.startedWeek) push(`chain ${c.id} is due before it started`);
+        if (info.kind === 'player') {
+          if (!c.subjectId) push(`chain ${c.id} is a player story with nobody in it`);
+          else if (!seen.has(c.subjectId)) push(`chain ${c.id} is about ${c.subjectId}, who is not in the squad`);
+        } else if (c.subjectId) {
+          push(`chain ${c.id} is a club story but names ${c.subjectId}`);
+        }
+        if (c.data != null && (typeof c.data !== 'object' || Array.isArray(c.data))) {
+          push(`chain ${c.id} carries non-object data`);
+        }
+      }
+      for (const [kind, n] of kinds) {
+        if (n > 1) push(`${n} ${kind} chains are live at once`);
+      }
     }
 
     // ── Rivalry (v2) ────────────────────────────────────────────────────────

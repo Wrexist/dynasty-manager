@@ -44,6 +44,14 @@ const migrations: Record<number, MigrationFn> = {
   //     division did. Empty-with-lazy-fill is the robust option: an old save
   //     meets a division that plays four different ways from its first fixture,
   //     and the map fills itself at the next rollover.
+  //   - `chains` holds the live multi-step stories. Empty for a save that
+  //     never had one — EXCEPT for the single chain that already shipped as an
+  //     ad-hoc flag. A live `wants-out:<playerId>` flag WAS the rival-defection
+  //     story sitting at its second beat, so it is converted into the
+  //     equivalent chain (step 2, same subject, same deadline) and the flag is
+  //     dropped. Without that, a save reloaded mid-story would lose it
+  //     silently: the flag no longer selects anything and the payoff beat is
+  //     now chain-gated.
   //   - `eventQueue` is dropped. It was never written to.
   //
   // Later waves EXTEND this step rather than adding another: keep the shape
@@ -68,6 +76,37 @@ const migrations: Record<number, MigrationFn> = {
     const onceFiredIds = Array.isArray(sunday.onceFiredIds)
       ? sunday.onceFiredIds
       : [...new Set(log.map(e => e?.defId).filter((id): id is string => typeof id === 'string'))];
+
+    // The legacy 'wants-out:<playerId>' flag → the rival-defection chain.
+    // Numbers are LITERALS on purpose: a migration describes what an old save
+    // meant at the moment it was written, so reading a live balance constant
+    // here would silently rewrite history the next time that constant is tuned.
+    const flagsIn: Record<string, unknown> =
+      sunday.flags && typeof sunday.flags === 'object' && !Array.isArray(sunday.flags)
+        ? { ...(sunday.flags as Record<string, unknown>) }
+        : {};
+    const wantsOut = Object.entries(flagsIn).find(([k]) => k.startsWith('wants-out:'));
+    const players = (data.players ?? {}) as Record<string, { firstName?: string }>;
+    let chains: unknown[] = Array.isArray(sunday.chains) ? sunday.chains : [];
+    let flags: Record<string, unknown> = flagsIn;
+    if (!Array.isArray(sunday.chains) && wantsOut) {
+      const subjectId = wantsOut[0].slice('wants-out:'.length);
+      const setWeek = typeof wantsOut[1] === 'number' ? wantsOut[1] : Number(data.week) || 1;
+      const name = players[subjectId]?.firstName;
+      chains = [{
+        id: 'rival-defection',
+        step: 2,
+        subjectId,
+        startedWeek: setWeek,
+        startedSeason: Number(data.season) || 1,
+        // Four weeks was the flag's effective life once the six-week sweep and
+        // the payoff event's own cooldown were both accounted for.
+        dueWeek: setWeek + 4,
+        data: name ? { name } : {},
+      }];
+      flags = Object.fromEntries(Object.entries(flagsIn).filter(([k]) => k !== wantsOut[0]));
+    }
+
     return {
       ...data,
       version: 86,
@@ -76,6 +115,8 @@ const migrations: Record<number, MigrationFn> = {
         v: 3,
         lastMatch,
         onceFiredIds,
+        flags,
+        chains,
         pendingLedger: Array.isArray(sunday.pendingLedger) ? sunday.pendingLedger : [],
         pitchDamage: typeof sunday.pitchDamage === 'number' ? sunday.pitchDamage : 0,
         divisionStyles: sunday.divisionStyles && typeof sunday.divisionStyles === 'object'

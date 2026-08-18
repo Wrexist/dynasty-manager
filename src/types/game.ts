@@ -2769,6 +2769,50 @@ export interface SundayEventLogEntry {
   summary: string;
 }
 
+/**
+ * A multi-step story the mode is currently telling.
+ *
+ * WHY THIS EXISTS AS STATE. The first chain (the rival defection) was built out
+ * of `flags`, a bare `Record<string, number>`, with the subject smuggled into
+ * the flag NAME (`wants-out:<playerId>`). That worked for exactly one story and
+ * broke down for the second: there was no step counter, so a chain could not
+ * have three beats; the subject binding was GLOBAL, so a live flag hijacked the
+ * subject of every other subject-bearing event for six weeks; and continuation
+ * was a lottery — the follow-up beat had to win the weighted draw before the
+ * flag expired, which about a third of the time it did not, so the story simply
+ * stopped with no ending.
+ *
+ * A chain fixes all three: the step says which beat is next, `subjectId` binds
+ * only the beats that declare the chain, and `dueWeek` is a DEADLINE —
+ * `forceSundayChainStep` serves the next beat directly once it passes, so a
+ * started story always finishes.
+ */
+export type SundayChainId =
+  | 'rival-defection'
+  | 'captain-conflict'
+  | 'star-arc'
+  | 'wonderkid'
+  | 'veteran-farewell'
+  | 'financial-crisis'
+  | 'cup-run';
+
+export interface SundayChainState {
+  id: SundayChainId;
+  /** The step the NEXT beat must declare. Openers are unchained events that
+   *  call `startChain`, so a live chain is always waiting for step 2 or later. */
+  step: number;
+  /** The one player the story is about, or null for a club chain. */
+  subjectId: string | null;
+  startedWeek: number;
+  startedSeason: number;
+  /** Week by which the next beat MUST have fired. Past it the selector serves
+   *  that beat directly instead of leaving it to the weighted draw. */
+  dueWeek: number;
+  /** What earlier beats decided, so later ones can be written to agree with
+   *  them. Small by construction: a couple of short keys per chain. */
+  data?: Record<string, string | number>;
+}
+
 /** One tie in the local knockout cup. */
 export interface SundayCupTie {
   /** 1-based round; the last round is the final. */
@@ -3045,10 +3089,18 @@ export interface SundayState {
   /** This week's resolved Sunday morning, or null before arrival / on a free
    *  week. Cleared by the weekly advance. Schema v2. */
   arrival: SundayArrival | null;
-  /** Story flags for multi-step event chains: flag name → week it was set.
-   *  Small by construction — a chain sets one flag per step and clears it
-   *  when the chain resolves. Schema v2. */
+  /**
+   * Short-lived story markers: flag name → week it was set.
+   *
+   * What is LEFT here after chains took over the multi-step stories: one-week
+   * bookkeeping that no other field wants. The clustering damper (`rough-week`),
+   * the departure spacer (`departure`) and the standing derby bet
+   * (`derby-bet`). Flags expire after `SUNDAY_FLAG_EXPIRY_WEEKS`. Schema v2.
+   */
   flags: Record<string, number>;
+  /** Live event chains: at most one player-subject story and one club story at
+   *  a time, so the mode never tells two tangled tales at once. Schema v3. */
+  chains: SundayChainState[];
   /** Damage to the playing surface, in pitch-quality points, carried until it
    *  heals. Written by events that let the club play on a bog; read by
    *  `sundayPitchQuality`, which is what the match engine sees. Schema v3. */
