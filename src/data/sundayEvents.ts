@@ -20,6 +20,7 @@ import type {
 import {
   SUNDAY_CHAIN_DEBT_WEEKS, SUNDAY_CHAIN_PROSPECT_CEILING, SUNDAY_CHAIN_STAR_OVERALL,
   SUNDAY_CHAIN_VETERAN_AGE, SUNDAY_CHAIN_VETERAN_APPS, SUNDAY_CRISIS_SALE_FEE,
+  SUNDAY_DERBY_BET, SUNDAY_MANAGER_LOAN,
   SUNDAY_SPONSOR_RENEGOTIATE_MULT, SUNDAY_SPONSOR_RENEGOTIATE_UPFRONT,
 } from '@/config/sundayLeague';
 
@@ -168,6 +169,13 @@ export interface SundayEventEffects {
   renegotiateSponsor?: { upfront: number; weeklyMult: number };
   /** Lose the shirt sponsor outright. */
   loseSponsor?: boolean;
+  /** Pounds the manager puts in himself. The cash arrives via `money`; this
+   *  records what the club owes him, which the weekly settlement pays back.
+   *  Reaching into your own pocket is a LOAN, not a windfall. */
+  managerLoan?: number;
+  /** Stake the standing bet with the rival manager. Settled on the next
+   *  decisive derby by `runSundayMatch` — the money is real either way. */
+  stakeDerbyBet?: boolean;
 
   // ── Chains ────────────────────────────────────────────────────────────────
   /** Open a story. Only an UNCHAINED definition may do this: the chain starts
@@ -1189,17 +1197,26 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
     body: 'The balance is £{balance}. The referee wants paying in cash on Sunday, and he does not take excuses.',
     weight: 12,
     condition: ctx => ctx.balance < 40,
-    cooldown: 5,
+    // Eight, not five. At five this fired often enough to be a standing income
+    // stream rather than a crisis.
+    cooldown: 8,
     choices: [
       {
-        id: 'raffle', label: 'Run a raffle', hint: 'Raises something. Everyone has to sell tickets.',
+        id: 'raffle', label: 'Run a raffle', hint: 'Makes money out of nothing. Everyone has to sell tickets.',
         effects: { money: 90, morale: -4 },
         outcome: 'Ninety pounds and a bottle of whisky nobody wanted. It will do.',
       },
       {
-        id: 'own-pocket', label: 'Put your hand in your own pocket', hint: 'Instant. Yours.',
-        effects: { money: 60, morale: 4, reputation: 1 },
-        outcome: 'You cover it. Two of them find out and insist on buying the drinks after.',
+        // THE FIX THE AUDIT ASKED FOR. This used to be +£60, +4 morale and
+        // +1 reputation for nothing at all — free money on a five-week timer,
+        // which is why bankruptcy never actually bit. It is a LOAN now: the
+        // cash is real and immediate, and the club pays you back out of the
+        // weekly settlement for the next six or seven weeks.
+        id: 'own-pocket',
+        label: `Put £${SUNDAY_MANAGER_LOAN} in yourself`,
+        hint: 'Instant, and the biggest number here. The club owes you it back.',
+        effects: { money: SUNDAY_MANAGER_LOAN, managerLoan: SUNDAY_MANAGER_LOAN, morale: 2 },
+        outcome: 'You cover it out of your own account. It goes in the book, and the club starts paying it back on Sunday.',
       },
       {
         id: 'beg', label: 'Ask the pub for an advance', hint: 'Depends on the club’s standing.',
@@ -1220,8 +1237,13 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
     condition: ctx => ctx.week > 6,
     cooldown: 15,
     choices: [
-      { id: 'pay', label: 'Pay it (£70)', hint: 'Done and dusted.', available: ctx => ctx.balance >= 70, effects: { money: -70 }, outcome: 'Paid. Filed. Never spoken of again.' },
-      { id: 'dispute', label: 'Dispute it', hint: 'Might work. Might make it worse.', successChance: () => 0.45, effects: {}, outcome: 'They drop it entirely. Nobody knows why.', failEffects: { money: -100 }, failOutcome: 'They add an administration charge. It is now £100.' },
+      { id: 'pay', label: 'Pay it (£70)', hint: 'Done and dusted. No argument, no record.', available: ctx => ctx.balance >= 70, effects: { money: -70 }, outcome: 'Paid. Filed. Never spoken of again.' },
+      // Rebalanced. At 45% of nothing versus 55% of −£100 the dispute was worth
+      // −£55 against a certain −£70 and cost nothing else, so paying was never
+      // the right answer. Losing an argument with the council now costs the
+      // charge AND standing with the people who allocate the pitches.
+      { id: 'dispute', label: 'Dispute it', hint: 'Cheaper on average. Losing it costs more than money.', successChance: () => 0.45, effects: { reputation: 1 }, outcome: 'They drop it entirely. Nobody knows why, and nobody is asking.', failEffects: { money: -110, reputation: -2 }, failOutcome: 'They add an administration charge and a paragraph about "the club\u2019s conduct". It is now £110.' },
+      { id: 'ignore', label: 'Put it in the drawer', hint: 'Free today. It does not go away.', effects: { debtWeeks: 1, reputation: -1 }, outcome: 'You file it under the tin. It will be back, and it will have friends.' },
     ],
   },
 
@@ -1462,8 +1484,12 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
     condition: ctx => ctx.week > 4,
     cooldown: 10,
     choices: [
-      { id: 'play', label: 'Talk him into letting you play', hint: 'It will be a swamp.', successChance: () => 0.55, effects: { pitchDamage: 25 }, outcome: 'He relents. It is barely football, but it is a fixture off the list.', failEffects: { morale: -2 }, failOutcome: 'Called off. Everyone drove here for nothing.' },
-      { id: 'forks', label: 'Everyone brings a fork and gets to work', hint: 'Free, filthy, oddly bonding.', effects: { pitchDamage: 12, morale: 5, squadHappiness: 2 }, outcome: 'Two hours of forking the surface. It plays. Everyone is caked in mud before kick-off.' },
+      // Rebalanced now that `pitchDamage` is a real cost. Forking the pitch was
+      // strictly better on every axis — less damage AND more morale — so it was
+      // not a decision. It costs money now, which means a skint club genuinely
+      // has to play on the bog and live with the surface for a month.
+      { id: 'play', label: 'Talk him into letting you play on it', hint: 'Free. The surface will not forgive you.', successChance: () => 0.55, effects: { pitchDamage: 22, morale: 1 }, outcome: 'He relents. It is barely football, but it is a fixture off the list.', failEffects: { pitchDamage: 30, morale: -3 }, failOutcome: 'He makes everyone wait an hour before relenting anyway. Frozen, furious, and the pitch is ruined.' },
+      { id: 'forks', label: 'Forks, sand and two hours of work (£18)', hint: 'Filthy, oddly bonding, and it costs.', available: ctx => ctx.balance >= 18, effects: { money: -18, pitchDamage: 10, morale: 5, squadHappiness: 2 }, outcome: 'Two hours of forking and a bag of sand off the builder. It plays, and everyone is caked before kick-off.' },
     ],
   },
   {
@@ -1493,7 +1519,10 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
     choices: [
       { id: 'ignore', label: 'Rise above it', hint: 'Dignified. Dull.', effects: { morale: 1 }, outcome: 'You say nothing. It eats at two of your lads all week.' },
       { id: 'respond', label: 'Give it back', hint: 'Fires the squad up. Fires them up too.', effects: { morale: 6, rivalHeat: 2 }, outcome: 'The reply gets screenshotted and shared widely. It is on now.' },
-      { id: 'bet', label: 'Bet him £50 on the next meeting', hint: 'High stakes for a Sunday.', effects: { rivalHeat: 3, morale: 4 }, outcome: 'The bet is on and everyone in both clubs knows about it by Tuesday.' },
+      // The £50 is STAKED now. It used to be a line of dialogue: heat, morale,
+      // and no money ever changed hands whatever happened in the derby. It is
+      // settled on the next decisive meeting, in the ledger, either way.
+      { id: 'bet', label: `Bet him £${SUNDAY_DERBY_BET} on the next meeting`, hint: 'Real money, settled on the derby. A draw leaves it standing.', effects: { rivalHeat: 3, morale: 4, stakeDerbyBet: true }, outcome: 'The bet is on, and everyone in both clubs knows the exact figure by Tuesday.' },
       // Inherited from the retired `rival-poach`: the one branch of that event
       // that was not a duplicate of the defection story.
       { id: 'poach-back', label: 'Go after one of theirs', hint: 'An eye for an eye. He will be expensive.', effects: { rivalHeat: 3, spawnRecruit: 'poached' }, outcome: 'You make a call of your own. Somebody in their squad is suddenly very interested indeed.' },
@@ -1585,9 +1614,13 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
     condition: ctx => ctx.hasSponsor && ctx.winless >= 3,
     cooldown: 10,
     choices: [
-      { id: 'promise', label: 'Promise them a turnaround', hint: 'Buys time.', effects: { reputation: -1 }, outcome: 'They give you until the end of the season. They will be checking.' },
+      { id: 'promise', label: 'Promise them a turnaround', hint: 'Buys time. Costs standing.', effects: { reputation: -1 }, outcome: 'They give you until the end of the season. They will be checking.' },
       { id: 'invite', label: 'Invite them to a match and the pub after', hint: 'Costs a round.', available: ctx => ctx.balance >= 30, effects: { money: -30, reputation: 2 }, outcome: 'They have a great time and stop reading the results table.' },
-      { id: 'honest', label: 'Tell them it is a Sunday league team', hint: 'Bold.', successChance: () => 0.5, effects: { reputation: 2, morale: 3 }, outcome: 'They laugh, agree entirely, and double down on the sponsorship.', failEffects: { reputation: -3 }, failOutcome: 'They do not laugh. The renewal is not looking likely.' },
+      // The copy always promised branches that touched the sponsorship and no
+      // branch touched it. These two do: one changes the deal, the other can
+      // lose it.
+      { id: 'renegotiate', label: 'Offer them a cheaper deal to stay', hint: 'Money up front, less every week from here.', effects: { renegotiateSponsor: { upfront: SUNDAY_SPONSOR_RENEGOTIATE_UPFRONT, weeklyMult: SUNDAY_SPONSOR_RENEGOTIATE_MULT }, reputation: 1 }, outcome: 'They take the new terms happily, which tells you what the old ones were worth to them.' },
+      { id: 'honest', label: 'Tell them it is a Sunday league team', hint: 'Bold. They can walk.', successChance: () => 0.5, effects: { reputation: 2, morale: 3 }, outcome: 'They laugh, agree entirely, and double down on the sponsorship.', failEffects: { reputation: -3, loseSponsor: true }, failOutcome: 'They do not laugh. The logo is off the shirt by the end of the week.' },
     ],
   },
 
@@ -1615,8 +1648,12 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
     condition: ctx => ctx.lastResult !== null,
     cooldown: 9,
     choices: [
-      { id: 'complain', label: 'Complain to the league', hint: 'Nothing will come of it.', effects: { morale: 2, reputation: -1 }, outcome: 'The league acknowledge receipt of your email. That is the end of the matter.' },
-      { id: 'let-it-go', label: 'Let it go', hint: 'Healthy.', effects: { morale: -1 }, outcome: 'You let it go. You do not let it go.' },
+      // Made consequential. Complaining used to be +2 morale for −1 reputation
+      // with no upside at all, which is a worse version of doing nothing
+      // dressed up as agency. There is now something to win and something to
+      // lose on both sides.
+      { id: 'complain', label: 'Put it in writing to the league', hint: 'A small chance of the fee back. A real chance of a reputation.', successChance: () => 0.3, effects: { money: 15, reputation: 1, morale: 3 }, outcome: 'They uphold it, refund the match fee and quietly stop appointing him to your games.', failEffects: { reputation: -2, morale: 1 }, failOutcome: 'The league acknowledge receipt. You are now, formally, one of those clubs.' },
+      { id: 'let-it-go', label: 'Let it go', hint: 'Costs a bit of steam. Buys you a name for it.', effects: { morale: -2, reputation: 2 }, outcome: 'You say nothing, shake his hand, and he remembers that in March.' },
     ],
   },
   {
@@ -1662,8 +1699,11 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
     condition: ctx => ctx.squadSize <= 12,
     cooldown: 8,
     choices: [
-      { id: 'ring', label: 'Get on the phone to everyone you know', hint: 'Produces someone. Usually.', effects: { spawnRecruit: 'mate', morale: -1 }, outcome: 'Two hours of calls turns up exactly one interested human being.' },
-      { id: 'work', label: 'Ask at work', hint: 'Slower, but he will turn up.', effects: { spawnRecruit: 'work' }, outcome: 'Somebody from the depot says he used to play a bit.' },
+      // Differentiated. Both branches used to produce a recruit and one of them
+      // was free, so "ask at work" was the answer every time. Certainty costs
+      // money and goodwill now; the free option is a coin flip.
+      { id: 'ring', label: 'Two hours on the phone and a round of drinks (£8)', hint: 'Produces somebody. Guaranteed, and it costs.', available: ctx => ctx.balance >= 8, effects: { money: -8, spawnRecruit: 'mate', morale: -3 }, outcome: 'Two hours of calls, one round bought, and exactly one interested human being.' },
+      { id: 'work', label: 'Ask around at work', hint: 'Free. He might not fancy it.', successChance: () => 0.55, effects: { spawnRecruit: 'work' }, outcome: 'Somebody from the depot says he used to play a bit. He is coming Sunday.' , failEffects: { morale: -1 }, failOutcome: 'Everybody says they know somebody. Nobody produces anybody.' },
     ],
   },
   {

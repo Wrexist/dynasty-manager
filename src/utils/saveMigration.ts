@@ -119,6 +119,9 @@ const migrations: Record<number, MigrationFn> = {
         chains,
         pendingLedger: Array.isArray(sunday.pendingLedger) ? sunday.pendingLedger : [],
         pitchDamage: typeof sunday.pitchDamage === 'number' ? sunday.pitchDamage : 0,
+        // Nobody can owe the manager anything in a save written before the
+        // club could borrow from him.
+        managerLoan: typeof sunday.managerLoan === 'number' ? sunday.managerLoan : 0,
         divisionStyles: sunday.divisionStyles && typeof sunday.divisionStyles === 'object'
           ? sunday.divisionStyles
           : {},

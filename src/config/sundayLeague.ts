@@ -866,6 +866,23 @@ export const SUNDAY_SPONSOR_RENEGOTIATE_MULT = 0.6;
 /** The standing derby bet with the rival manager, in pounds. Staked when it is
  *  made and settled on the next derby result — see `runSundayMatch`. */
 export const SUNDAY_DERBY_BET = 50;
+/** Flag name the standing bet is held under. Exempt from the weekly flag
+ *  sweep: the next derby can be ten weeks away and the bet is still on. */
+export const SUNDAY_DERBY_BET_FLAG = 'derby-bet';
+
+// ── The manager's own pocket ────────────────────────────────────────────────
+//
+// Putting your own money in used to be free: `broke`'s own-pocket branch paid
+// the club £60 and cost nothing at all, so a club could stay solvent on it
+// indefinitely and the bankruptcy pressure the mode is built around never
+// arrived. It is a LOAN now — real cash today, paid back out of the weekly
+// settlement — so it fixes cash flow without inventing money.
+
+/** What the manager puts in when he covers the club, in pounds. */
+export const SUNDAY_MANAGER_LOAN = 100;
+/** Paid back per week, while the club can afford it. Six or seven weeks of
+ *  a real drain on a budget where a good week is £120. */
+export const SUNDAY_MANAGER_LOAN_REPAYMENT = 16;
 
 // ── AI-versus-AI fixtures ───────────────────────────────────────────────────
 //

@@ -2654,7 +2654,9 @@ export type SundayLedgerKind =
   /** Signing-on cost for a recruit. Schema v3. */
   | 'recruit'
   /** An afternoon on the phone talking somebody into playing. Schema v3. */
-  | 'ring-round';
+  | 'ring-round'
+  /** Paying the manager back what he put in himself. Schema v3. */
+  | 'loan';
 
 export interface SundayLedgerLine {
   kind: SundayLedgerKind;
@@ -3109,6 +3111,18 @@ export interface SundayState {
    *  at `SUNDAY_BANKRUPT_GRACE_WEEKS`, so a single bad week is survivable
    *  and a month of ignoring it is not. */
   weeksInDebt: number;
+  /**
+   * Pounds the club owes the MANAGER for money he put in himself.
+   *
+   * The point of the field: reaching into your own pocket used to be free
+   * money — the balance went up, nothing went down, and a club could stay
+   * solvent forever on it. It is now a LOAN. The cash lands immediately, and
+   * the weekly settlement pays it back a bit at a time (and pauses while the
+   * club genuinely cannot afford to), so it solves a cash-flow crisis without
+   * ever creating money. Survives a rollover; a debt to the manager does not
+   * expire because the season did. Schema v3.
+   */
+  managerLoan: number;
   /** Week the last fundraiser was run, for the cooldown. */
   lastFundraiserWeek: number;
   ledger: SundayWeekLedger[];

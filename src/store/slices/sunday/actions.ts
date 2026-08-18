@@ -30,7 +30,7 @@ import {
   SUNDAY_RINGROUND_COST, SUNDAY_RINGROUND_MORALE, SUNDAY_EVENT_LOG_MAX,
   SUNDAY_POACH_HEAT, SUNDAY_RIVAL_HEAT_MAX, SUNDAY_PROMISE_WEEKS, SUNDAY_PITCH_DAMAGE_MAX,
   SUNDAY_KIT_MORALE_PER_LEVEL, SUNDAY_KIT_REP_PER_LEVEL, SUNDAY_CLUBHOUSE_MORALE_PER_LEVEL,
-  SUNDAY_NETS_REP, SUNDAY_FLOODLIGHT_REP,
+  SUNDAY_NETS_REP, SUNDAY_FLOODLIGHT_REP, SUNDAY_DERBY_BET_FLAG,
   getSundayUpgrade, sundayUpgradeCost,
 } from '@/config/sundayLeague';
 import {
@@ -269,6 +269,7 @@ export const SUNDAY_HANDLED_EFFECT_KEYS: ReadonlySet<keyof SundayEventEffects> =
   'rivalHeat', 'collectSubs', 'spawnRecruit', 'pitchDamage', 'promiseStart',
   'setFlag', 'clearFlag',
   'captaincy', 'subjectMemory', 'debtWeeks', 'renegotiateSponsor', 'loseSponsor',
+  'managerLoan', 'stakeDerbyBet',
   'startChain', 'advanceChain', 'endChain', 'chainData',
 ] satisfies (keyof SundayEventEffects)[]);
 
@@ -503,6 +504,13 @@ export function resolveSundayEvent(set: Set, get: Get, choiceId: string) {
     ? Math.max(0, sunday.weeksInDebt + fx.debtWeeks)
     : sunday.weeksInDebt;
 
+  // Money out of the manager's own pocket is a loan, and the club starts
+  // paying it back at the next settlement.
+  const managerLoan = fx.managerLoan
+    ? Math.max(0, sunday.managerLoan + fx.managerLoan)
+    : sunday.managerLoan;
+  if (fx.stakeDerbyBet) flags = { ...flags, [SUNDAY_DERBY_BET_FLAG]: state.week };
+
   // Playing on a churned surface churns it further. `sundayPitchQuality` reads
   // this straight into the match engine's pitch channel, so "we talked him into
   // letting us play" now costs the club something it can feel for a few weeks.
@@ -572,6 +580,7 @@ export function resolveSundayEvent(set: Set, get: Get, choiceId: string) {
     chains,
     pitchDamage,
     weeksInDebt,
+    managerLoan,
     pendingLedger,
     rngCursor: recruitCursor,
     pendingEvent: null,

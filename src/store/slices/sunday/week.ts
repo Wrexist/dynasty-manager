@@ -36,6 +36,7 @@ import {
   SUNDAY_AI_GOALS_BASE, SUNDAY_AI_GOALS_SWING, SUNDAY_AI_HOME_ADVANTAGE,
   SUNDAY_FORM_DRIFT, SUNDAY_FORM_NEUTRAL, SUNDAY_PITCH_DAMAGE_HEAL,
   SUNDAY_PHYSIO_HEAL_PER_LEVEL, SUNDAY_FLAG_EXPIRY_WEEKS,
+  SUNDAY_MANAGER_LOAN_REPAYMENT, SUNDAY_DERBY_BET_FLAG,
 } from '@/config/sundayLeague';
 import { SUNDAY_SPONSORS, SUNDAY_SPONSOR_CONDITION_TEXT, SUNDAY_TAUNTS } from '@/data/sundayNames';
 import { buildWeekLedger } from '@/utils/sunday/finance';
@@ -290,6 +291,21 @@ export function advanceSundayWeek(set: Set, get: Get): void {
       lines.push({ kind: 'prize', amount: prize, label: `${sundayCupRoundName(tie.round)} prize money` });
     }
   }
+
+  // Paying the manager back what he put in himself. Only while the club can
+  // actually afford it: a repayment that pushed the balance under the debt
+  // floor would turn a cash-flow rescue into an accelerant, which is the
+  // opposite of what putting your own money in is for. A club that never gets
+  // above water simply never pays him back, which is also true to life.
+  const repayment = sunday.managerLoan > 0
+    ? Math.min(sunday.managerLoan, SUNDAY_MANAGER_LOAN_REPAYMENT)
+    : 0;
+  const settledSoFar = lines.reduce((n, l) => n + l.amount, 0);
+  const canRepay = repayment > 0 && sunday.balance + settledSoFar - repayment > SUNDAY_DEBT_FLOOR;
+  if (canRepay) {
+    lines.push({ kind: 'loan', amount: -repayment, label: 'Paying the manager back' });
+  }
+  const managerLoan = canRepay ? sunday.managerLoan - repayment : sunday.managerLoan;
 
   // Only the lines this settlement is CREATING move the balance. Anything the
   // manager spent or raised during the week was applied to `balance` when he
@@ -684,10 +700,13 @@ export function advanceSundayWeek(set: Set, get: Get): void {
     // The morning belongs to the week that is ending.
     arrival: null,
     // Story markers are swept after `SUNDAY_FLAG_EXPIRY_WEEKS`, and one about
-    // somebody who has walked out goes with him.
+    // somebody who has walked out goes with him. The standing derby bet is
+    // exempt: the next derby can be ten weeks away and the bet is still on
+    // until somebody wins it.
     flags: pruneSundayFlags(
       Object.fromEntries(Object.entries(sunday.flags)
-        .filter(([, setWeek]) => week - setWeek < SUNDAY_FLAG_EXPIRY_WEEKS)),
+        .filter(([name, setWeek]) => name === SUNDAY_DERBY_BET_FLAG
+          || week - setWeek < SUNDAY_FLAG_EXPIRY_WEEKS)),
       squadIds,
     ),
     chains,
@@ -698,6 +717,7 @@ export function advanceSundayWeek(set: Set, get: Get): void {
     reputation: clampRound(reputation, 0, 100),
     teamMorale: clampRound(teamMorale, 0, 100),
     pitchDamage,
+    managerLoan,
     ledger: nextLedger,
     // Folded into the entry above; the new week starts with a clean slate.
     pendingLedger: [],

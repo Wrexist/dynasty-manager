@@ -16,7 +16,7 @@
 import type {
   SundayArrival,
   Club, InjuryDetails, Match, Player, PlayerMatchRating, SundayCupTie,
-  SundayMatchReport, SundaySquadMember, SundayState,
+  SundayLedgerLine, SundayMatchReport, SundaySquadMember, SundayState,
 } from '@/types/game';
 import { computeMinutesPlayed, extractFinalMatchFitness, getYellowAccumulationBanWeek } from '@/store/slices/orchestration/helpers';
 import { RED_CARD_SUSPENSION_MIN, RED_CARD_SUSPENSION_RANGE } from '@/config/gameBalance';
@@ -32,7 +32,7 @@ import {
   getSundayTactic,
   SUNDAY_FORM_BASELINE_RATING, SUNDAY_FORM_MAX, SUNDAY_FORM_MIN, SUNDAY_FORM_PER_RATING,
   SUNDAY_PROMISE_BROKEN_HAPPINESS, SUNDAY_PROMISE_BROKEN_MORALE, SUNDAY_PROMISE_KEPT_HAPPINESS,
-  SUNDAY_RINGER_COST,
+  SUNDAY_RINGER_COST, SUNDAY_DERBY_BET, SUNDAY_DERBY_BET_FLAG,
 } from '@/config/sundayLeague';
 import {
   SUNDAY_ARRIVAL_CRIED_OFF, SUNDAY_ARRIVAL_NO_SHOW, SUNDAY_ARRIVAL_TURNED_UP,
@@ -709,6 +709,25 @@ export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
     }
   }
 
+  // The standing bet with their manager, settled the only place it can be:
+  // on the result. `rival-trash-talk` used to offer "bet him £50" and stake
+  // nothing at all, which made it a free morale bump with a joke attached.
+  // A draw leaves it on the table — nobody pays out on a nil-nil.
+  let betLine: SundayLedgerLine | null = null;
+  let flags = sunday.flags;
+  if (isDerby && !forfeited && (won || lost) && sunday.flags[SUNDAY_DERBY_BET_FLAG] != null) {
+    const amount = won ? SUNDAY_DERBY_BET : -SUNDAY_DERBY_BET;
+    betLine = {
+      kind: 'event',
+      amount,
+      label: won ? 'Derby bet — collected' : 'Derby bet — paid out',
+    };
+    flags = Object.fromEntries(Object.entries(flags).filter(([k]) => k !== SUNDAY_DERBY_BET_FLAG));
+    consequences.push(won
+      ? `He paid the £${SUNDAY_DERBY_BET} in the car park, in front of people.`
+      : `You paid him the £${SUNDAY_DERBY_BET} in the car park, in front of people.`);
+  }
+
   narrative.push(rng.pick(SUNDAY_POSTMATCH_LINES) ?? '');
 
   // Squad members who actually took the field. Ringers are excluded — they do
@@ -856,6 +875,11 @@ export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
     squad,
     cup,
     rivalry,
+    flags,
+    // The bet is real money and moves the balance like any other, with a line
+    // parked for this week's settlement — the mode's one money convention.
+    balance: betLine ? Math.round(sunday.balance + betLine.amount) : sunday.balance,
+    pendingLedger: betLine ? [...sunday.pendingLedger, betLine] : sunday.pendingLedger,
     teamMorale: clampRound(sunday.teamMorale + moraleDelta, 0, 100),
     reputation: clampRound(sunday.reputation + repDelta, 0, 100),
     lastMatch: report,

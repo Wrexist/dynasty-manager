@@ -247,6 +247,9 @@ export function validateSundayState(input: ValidateSundayInput): SundayValidatio
       }
     }
     if (!finite(sunday.weeksInDebt) || sunday.weeksInDebt < 0) push('weeksInDebt is invalid');
+    // A negative loan would mean the club had over-repaid the manager, which
+    // the settlement cannot produce and nothing would ever unwind.
+    if (!finite(sunday.managerLoan) || sunday.managerLoan < 0) push('managerLoan is invalid');
 
     // ── The pitch (v3) ─────────────────────────────────────────────────────
     if (!finite(sunday.pitchDamage) || sunday.pitchDamage < 0 || sunday.pitchDamage > SUNDAY_PITCH_DAMAGE_MAX) {

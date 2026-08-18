@@ -15,7 +15,8 @@ import { assertSundayState } from '@/utils/sunday/invariants';
 import {
   SUNDAY_BANKRUPT_GRACE_WEEKS, SUNDAY_FORFEIT_FINE, SUNDAY_FUNDRAISER_COOLDOWN,
   SUNDAY_REFEREE_FEE, SUNDAY_SUBS_PER_PLAYER, getSundayDivision, getSundayUpgrade,
-  sundayUpgradeCost,
+  sundayUpgradeCost, SUNDAY_MANAGER_LOAN, SUNDAY_DEBT_FLOOR, SUNDAY_DERBY_BET,
+  SUNDAY_DERBY_BET_FLAG,
 } from '@/config/sundayLeague';
 import type { SundaySquadMember } from '@/types/game';
 
@@ -268,6 +269,91 @@ describe('the ways out of trouble', () => {
     const r = await useGameStore.getState().chaseSundaySubs();
     expect(r.ok).toBe(false);
     expect(r.recovered).toBe(0);
+  });
+
+  it('the manager\'s own pocket is a loan, and the club pays it back', async () => {
+    // It used to be FREE MONEY: +£60, +4 morale, +1 reputation, on a five-week
+    // timer, which is why the bankruptcy pressure the mode is built around
+    // never actually arrived. Now the cash is real and so is the repayment.
+    const s0 = useGameStore.getState();
+    useGameStore.setState({
+      sunday: {
+        ...s0.sunday!,
+        balance: 20,
+        managerLoan: 0,
+        pendingEvent: {
+          defId: 'broke', season: s0.season, week: s0.week,
+          title: 't', body: 'b', playerId: null,
+          choices: [{ id: 'own-pocket', label: 'p', hint: '' }],
+          category: 'money',
+        },
+      },
+    });
+    await useGameStore.getState().resolveSundayEvent('own-pocket');
+    const lent = useGameStore.getState().sunday!;
+    expect(lent.balance).toBe(20 + SUNDAY_MANAGER_LOAN);
+    expect(lent.managerLoan).toBe(SUNDAY_MANAGER_LOAN);
+
+    // The next settlement starts paying it back, and the ledger says so.
+    await useGameStore.getState().advanceWeek();
+    const after = useGameStore.getState().sunday!;
+    expect(after.managerLoan).toBeLessThan(SUNDAY_MANAGER_LOAN);
+    const week = after.ledger[after.ledger.length - 1];
+    expect(week.lines.some(l => l.kind === 'loan')).toBe(true);
+    check();
+  });
+
+  it('does not repay the manager while that would sink the club', async () => {
+    // A repayment that pushed the balance under the debt floor would turn a
+    // cash-flow rescue into an accelerant.
+    const s0 = useGameStore.getState();
+    useGameStore.setState({
+      sunday: { ...s0.sunday!, balance: SUNDAY_DEBT_FLOOR, managerLoan: 80, pendingEvent: null },
+    });
+    await useGameStore.getState().advanceWeek();
+    const after = useGameStore.getState().sunday!;
+    expect(after.managerLoan).toBe(80);
+    const week = after.ledger[after.ledger.length - 1];
+    expect(week.lines.some(l => l.kind === 'loan')).toBe(false);
+  });
+
+  it('settles the derby bet in real money on the derby', async () => {
+    // "Bet him £50" used to stake nothing whatsoever.
+    const s0 = useGameStore.getState();
+    const rivalId = s0.sunday!.rivalry!.clubId;
+    useGameStore.setState({
+      sunday: { ...s0.sunday!, flags: { [SUNDAY_DERBY_BET_FLAG]: s0.week }, pendingEvent: null },
+    });
+    let settled = false;
+    for (let i = 0; i < 20 && !settled; i++) {
+      const st = useGameStore.getState();
+      if (st.sunday!.seasonComplete || st.sunday!.folded) break;
+      if (st.sunday!.pendingEvent) await st.resolveSundayEvent(st.sunday!.pendingEvent.choices[0].id);
+      const fx = useGameStore.getState().fixtures.find(m => m.week === useGameStore.getState().week && !m.played
+        && ((m.homeClubId === st.playerClubId && m.awayClubId === rivalId)
+          || (m.awayClubId === st.playerClubId && m.homeClubId === rivalId)));
+      if (fx) {
+        const before = useGameStore.getState().sunday!.balance;
+        await useGameStore.getState().playSundayMatch();
+        const report = useGameStore.getState().sunday!.lastMatch!;
+        const after = useGameStore.getState().sunday!;
+        if (report.goalsFor === report.goalsAgainst) {
+          // A draw settles nothing; the bet stands.
+          expect(after.flags[SUNDAY_DERBY_BET_FLAG]).toBeDefined();
+          expect(after.balance).toBe(before);
+        } else {
+          const won = report.goalsFor > report.goalsAgainst;
+          expect(after.balance).toBe(before + (won ? SUNDAY_DERBY_BET : -SUNDAY_DERBY_BET));
+          expect(after.flags[SUNDAY_DERBY_BET_FLAG]).toBeUndefined();
+          expect(after.pendingLedger.some(l => l.label.includes('Derby bet'))).toBe(true);
+        }
+        settled = true;
+      } else {
+        await useGameStore.getState().advanceWeek();
+      }
+    }
+    expect(settled, 'never met the rival').toBe(true);
+    check();
   });
 });
 
