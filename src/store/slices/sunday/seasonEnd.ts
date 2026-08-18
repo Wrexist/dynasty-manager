@@ -286,8 +286,8 @@ export function rolloverSundaySeason(set: Set, get: Get): void {
     sponsorOffers: [],
     recruits: [],
     pendingEvent: null,
-    eventQueue: [],
     // Cooldowns are weeks-in-season, so they are meaningless across a rollover.
+    // `onceFiredIds` deliberately survives: once per SAVE means once.
     eventCooldowns: {},
     // Chain flags are week-stamped for the same reason; an unresolved chain
     // does not survive the summer. The morning is long over.

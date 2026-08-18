@@ -17,7 +17,10 @@
 import type {
   Match, Player, SundayState, SundayValidationResult,
 } from '@/types/game';
-import { SUNDAY_MAX_BENCH, SUNDAY_STATE_VERSION, SUNDAY_MIN_START, SUNDAY_FULL_XI } from '@/config/sundayLeague';
+import {
+  SUNDAY_MAX_BENCH, SUNDAY_STATE_VERSION, SUNDAY_MIN_START, SUNDAY_FULL_XI,
+  SUNDAY_PENDING_LEDGER_MAX,
+} from '@/config/sundayLeague';
 import { sundaySeasonWeeks } from './season';
 
 const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
@@ -203,6 +206,18 @@ export function validateSundayState(input: ValidateSundayInput): SundayValidatio
         if (!finite(line.amount)) push(`ledger line "${line.label}" has a non-finite amount`);
       }
     }
+    // v3: mid-week lines are parked until the settlement folds them in. They
+    // must be real lines, and they must not have grown without bound (an
+    // action that forgot to clear them would show up here first).
+    if (!Array.isArray(sunday.pendingLedger)) push('pendingLedger is missing');
+    else {
+      if (sunday.pendingLedger.length > SUNDAY_PENDING_LEDGER_MAX) {
+        push(`pendingLedger has ${sunday.pendingLedger.length} lines — the settlement is not clearing it`);
+      }
+      for (const line of sunday.pendingLedger) {
+        if (!finite(line.amount)) push(`pending ledger line "${line.label}" has a non-finite amount`);
+      }
+    }
     if (!finite(sunday.weeksInDebt) || sunday.weeksInDebt < 0) push('weeksInDebt is invalid');
 
     // ── Sponsors and recruits ──────────────────────────────────────────────
@@ -231,6 +246,12 @@ export function validateSundayState(input: ValidateSundayInput): SundayValidatio
     // ── Pending event ──────────────────────────────────────────────────────
     if (sunday.pendingEvent && sunday.pendingEvent.choices.length === 0) {
       push('pending event has no choices — the player would be stuck');
+    }
+    // v3: the once-per-save register. It outlives the capped event log, so it
+    // only ever grows — but it can never exceed the catalogue.
+    if (!Array.isArray(sunday.onceFiredIds)) push('onceFiredIds is missing');
+    else if (new Set(sunday.onceFiredIds).size !== sunday.onceFiredIds.length) {
+      push('onceFiredIds contains a duplicate');
     }
 
     // ── Arrival (v2) ────────────────────────────────────────────────────────

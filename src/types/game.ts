@@ -2650,7 +2650,11 @@ export type SundayTacticId = 'route-one' | 'park-the-bus' | 'chaos-ball' | 'prop
 /** Where the money went this week. */
 export type SundayLedgerKind =
   | 'subs' | 'sponsor' | 'fundraiser' | 'prize' | 'fine' | 'pitch' | 'referee'
-  | 'kit' | 'equipment' | 'league-fee' | 'medical' | 'travel' | 'social' | 'upgrade' | 'event';
+  | 'kit' | 'equipment' | 'league-fee' | 'medical' | 'travel' | 'social' | 'upgrade' | 'event'
+  /** Signing-on cost for a recruit. Schema v3. */
+  | 'recruit'
+  /** An afternoon on the phone talking somebody into playing. Schema v3. */
+  | 'ring-round';
 
 export interface SundayLedgerLine {
   kind: SundayLedgerKind;
@@ -2902,10 +2906,24 @@ export interface SundayMatchReport {
    *  anyone who came off the bench. */
   playedIds: string[];
   motmPlayerId: string | null;
+  /** Name at the time, snapshotted. A guest can be man of the match and then
+   *  cease to exist an hour later (ringers are wiped after the whistle), which
+   *  left the id dangling and the hero panel silently blank. Schema v3. */
+  motmName: string | null;
   motmRating: number;
   /** Worst rating on the day, when someone genuinely stank the place out. */
   lowlightPlayerId: string | null;
+  /** Name at the time, for the same reason as `motmName`. Schema v3. */
+  lowlightName: string | null;
   lowlightRating: number;
+  /** Red cards the club picked up. Stored rather than re-read from
+   *  `currentMatchResult`, which is NOT persisted — the weekly settlement runs
+   *  after an autosave, so a reload used to wipe the disciplinary fine.
+   *  Schema v3. */
+  redCards: number;
+  /** New injuries the club sustained, for the treatment bill. Same reasoning
+   *  as `redCards`. Schema v3. */
+  injuries: number;
   /** English one-liner on the swing that decided it, or null for a match
    *  that never turned — derived from the actual goal sequence. */
   turningPoint: string | null;
@@ -3006,11 +3024,13 @@ export interface SundayState {
   recruits: SundayRecruit[];
   /** Event currently demanding an answer, or null. */
   pendingEvent: SundayEventInstance | null;
-  /** Events queued behind `pendingEvent` (at most a couple). */
-  eventQueue: SundayEventInstance[];
   /** defId → week it may fire again. Anti-repeat protection. */
   eventCooldowns: Record<string, number>;
   eventLog: SundayEventLogEntry[];
+  /** defIds of `once: true` events that have fired. Kept separately from
+   *  `eventLog`, which is capped at `SUNDAY_EVENT_LOG_MAX` and therefore
+   *  forgot a once-per-save event after roughly five seasons. Schema v3. */
+  onceFiredIds: string[];
   rivalry: SundayRivalry | null;
   cup: SundayCupState | null;
   /** This week's resolved Sunday morning, or null before arrival / on a free
@@ -3027,6 +3047,18 @@ export interface SundayState {
   /** Week the last fundraiser was run, for the cooldown. */
   lastFundraiserWeek: number;
   ledger: SundayWeekLedger[];
+  /**
+   * Money the manager has moved DURING the week now in progress, waiting for
+   * the weekly settlement to fold it into that week's `SundayWeekLedger`.
+   *
+   * THE CONVENTION, in one place (schema v3): `balance` is applied immediately
+   * by the action, and the line is parked here. `advanceSundayWeek` prepends
+   * these lines to the week it is closing and then clears the list, so the
+   * completed entry's `lines` sum exactly to the balance movement its own
+   * `balance` field records. A completed ledger entry is therefore immutable —
+   * no action may ever reach backwards and edit one.
+   */
+  pendingLedger: SundayLedgerLine[];
   records: SundayRecordEntry[];
   legends: SundayLegend[];
   history: SundaySeasonRecord[];

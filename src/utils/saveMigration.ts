@@ -12,11 +12,64 @@ import { isPlaceholderClubId } from '@/config/continental';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 85;
+const CURRENT_VERSION = 86;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
 const migrations: Record<number, MigrationFn> = {
+  // v85 → v86: Sunday League schema v3. Additive apart from one deletion, and
+  // every field is backfilled with the value the old behaviour implied:
+  //
+  //   - `lastMatch` gains `redCards` / `injuries` (the counts the weekly
+  //     settlement used to read from the unpersisted `currentMatchResult`) and
+  //     `motmName` / `lowlightName` (name snapshots, so a guest who was man of
+  //     the match survives being wiped after the whistle). Zero and null are
+  //     correct for a report written before the fields existed: the fine for
+  //     that week has already been settled one way or the other, and inventing
+  //     a retrospective charge would be worse than losing it.
+  //   - `onceFiredIds` replaces deriving "has this fired?" from the capped
+  //     event log. Seeded from whatever the log still remembers, which is the
+  //     best available answer and never wrong in the direction of re-firing
+  //     something the player saw recently.
+  //   - `pendingLedger` starts empty: no action has run since the last
+  //     settlement in a save that is being loaded.
+  //   - `eventQueue` is dropped. It was never written to.
+  //
+  // Later waves EXTEND this step rather than adding another: keep the shape
+  // below (a single `sunday` rewrite with per-field fallbacks) and add fields.
+  85: (data) => {
+    const sunday = data.sunday as Record<string, unknown> | null | undefined;
+    if (!sunday || typeof sunday !== 'object') return { ...data, version: 86, sunday: sunday ?? null };
+    const { eventQueue: _dropped, ...rest } = sunday;
+    const lastMatch = sunday.lastMatch && typeof sunday.lastMatch === 'object'
+      ? (() => {
+          const lm = sunday.lastMatch as Record<string, unknown>;
+          return {
+            ...lm,
+            redCards: typeof lm.redCards === 'number' ? lm.redCards : 0,
+            injuries: typeof lm.injuries === 'number' ? lm.injuries : 0,
+            motmName: lm.motmName ?? null,
+            lowlightName: lm.lowlightName ?? null,
+          };
+        })()
+      : null;
+    const log = Array.isArray(sunday.eventLog) ? (sunday.eventLog as Record<string, unknown>[]) : [];
+    const onceFiredIds = Array.isArray(sunday.onceFiredIds)
+      ? sunday.onceFiredIds
+      : [...new Set(log.map(e => e?.defId).filter((id): id is string => typeof id === 'string'))];
+    return {
+      ...data,
+      version: 86,
+      sunday: {
+        ...rest,
+        v: 3,
+        lastMatch,
+        onceFiredIds,
+        pendingLedger: Array.isArray(sunday.pendingLedger) ? sunday.pendingLedger : [],
+      },
+    };
+  },
+
   // v84 → v85: Sunday League schema v2 — player memories and promises, the
   // arrival phase, event-chain flags, the rival's manager. All additive, all
   // backfilled with their empty values here so the sub-state validator (which

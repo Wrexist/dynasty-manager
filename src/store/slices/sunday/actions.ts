@@ -335,10 +335,6 @@ export function resolveSundayEvent(set: Set, get: Get, choiceId: string) {
     recruitCursor = spawn.rngCursor;
   }
 
-  // The next queued event becomes the pending one, so a busy week still only
-  // ever asks one question at a time.
-  const [nextPending, ...restQueue] = sunday.eventQueue;
-
   const nextSunday: SundayState = {
     ...sunday,
     balance: Math.round(balance),
@@ -352,8 +348,7 @@ export function resolveSundayEvent(set: Set, get: Get, choiceId: string) {
     rivalry,
     flags,
     rngCursor: recruitCursor,
-    pendingEvent: nextPending ?? null,
-    eventQueue: restQueue,
+    pendingEvent: null,
     eventLog: [...sunday.eventLog, {
       season: state.season, week: state.week, defId: instance.defId, summary: resolution.outcome,
     }].slice(-SUNDAY_EVENT_LOG_MAX),

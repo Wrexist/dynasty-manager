@@ -689,6 +689,18 @@ export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
     return out.slice(0, 5);
   };
 
+  // Discipline and treatment, counted HERE and carried on the report. The
+  // weekly settlement used to read them back off `currentMatchResult`, which
+  // is not persisted — so reloading between the whistle and Next Week wiped
+  // the fine and the physio bill. See the note on the fields.
+  const ourRedCards = result.events.filter(e => e.type === 'red_card' && e.clubId === clubId).length;
+  const ourInjuries = result.events.filter(e => e.type === 'injury' && e.clubId === clubId).length;
+  const nameOfPlayer = (id: string | null | undefined): string | null => {
+    if (!id) return null;
+    const p = players[id];
+    return p ? `${p.firstName} ${p.lastName}` : null;
+  };
+
   const report: SundayMatchReport = {
     matchId: result.id,
     season, week,
@@ -703,9 +715,14 @@ export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
     ringersUsed: ringers.length,
     playedIds,
     motmPlayerId: motm?.playerId ?? null,
+    // Snapshotted while the guest still exists — ringers are wiped below.
+    motmName: nameOfPlayer(motm?.playerId),
     motmRating: motm?.rating ?? 0,
     lowlightPlayerId: lowlight?.playerId ?? null,
+    lowlightName: nameOfPlayer(lowlight?.playerId),
     lowlightRating: lowlight?.rating ?? 0,
+    redCards: ourRedCards,
+    injuries: ourInjuries,
     turningPoint,
     consequences: buildConsequences(),
     narrative: [...arrival.beats, ...narrative.filter(Boolean)],

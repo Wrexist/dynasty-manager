@@ -28,8 +28,12 @@ import type {
 /** Bumped when `SundayState`'s shape changes. `validateSundayState` refuses a
  *  state whose `v` it does not recognise rather than reading missing fields.
  *  v2: player memories + promises, the arrival phase, the rival's manager,
- *  event-chain flags, record context lines. Migrated in saveMigration v85. */
-export const SUNDAY_STATE_VERSION = 2;
+ *  event-chain flags, record context lines. Migrated in saveMigration v85.
+ *  v3: the match report carries its own discipline/injury counts and the
+ *  man-of-the-match name, `onceFiredIds` outlives the capped event log,
+ *  `pendingLedger` holds mid-week money, and the dead `eventQueue` is gone.
+ *  Migrated in saveMigration v86. */
+export const SUNDAY_STATE_VERSION = 3;
 
 // ── The pyramid ─────────────────────────────────────────────────────────────
 
@@ -746,3 +750,8 @@ export const SUNDAY_RECORDS_MAX = 40;
 export const SUNDAY_LEGENDS_MAX = 24;
 export const SUNDAY_WEEK_LOG_MAX = 14;
 export const SUNDAY_LEDGER_MAX = 60;
+/** Ceiling on mid-week ledger lines awaiting the settlement. Generous — a busy
+ *  week is a fundraiser, an upgrade, a signing and a couple of event payouts —
+ *  and low enough that a settlement which stopped clearing the list trips the
+ *  invariant instead of growing the save forever. */
+export const SUNDAY_PENDING_LEDGER_MAX = 40;
