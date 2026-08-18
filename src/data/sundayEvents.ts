@@ -738,10 +738,24 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
     needsSubject: true,
     condition: () => true,
     cooldown: 12,
-    choices: ack(
-      'He is out for a fortnight and the group chat is merciless.',
-      { subjectInjuryWeeks: 2, subjectOut: true, morale: -2 },
-    ),
+    // Was a pure acknowledgement: the dice had already decided and the modal
+    // was a notification with a button. There is a real call in it — you have
+    // eleven men and one of them has just pulled something — so it asks.
+    choices: [
+      {
+        id: 'strap', label: 'Strap him up and play him', hint: 'You need eleven. It could be a fortnight or it could be six weeks.',
+        successChance: () => 0.5,
+        effects: { subjectHappiness: 5, morale: 2 },
+        outcome: 'He runs it off, plays the ninety, and is stiff for three days. No harm done.',
+        failEffects: { subjectInjuryWeeks: 5, subjectOut: true, morale: -5, subjectHappiness: -4 },
+        failOutcome: 'It goes properly inside twenty minutes. Five weeks, and everybody knows whose call it was.',
+      },
+      {
+        id: 'stand-down', label: 'Stand him down', hint: 'Safe, and you are a man short.',
+        effects: { subjectInjuryWeeks: 2, subjectOut: true, morale: -2 },
+        outcome: 'He is out for a fortnight and the group chat is merciless about the stretch.',
+      },
+    ],
   },
   {
     id: 'ghost-returns',
@@ -1692,10 +1706,22 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
     needsSubject: true,
     condition: () => true,
     cooldown: 12,
-    choices: ack(
-      'He will spend the first half on his backside and the second half in someone else’s trainers.',
-      { morale: 2, subjectHappiness: -2 },
-    ),
+    choices: [
+      {
+        id: 'lend', label: 'Sort him out a pair from somewhere (£12)', hint: 'Cheap, and he stays upright.',
+        available: ctx => ctx.balance >= 12,
+        effects: { money: -12, subjectHappiness: 6, morale: 1 },
+        outcome: 'A pair of somebody\u2019s brother\u2019s old blades turn up. They fit, roughly, and he stays on his feet.',
+      },
+      {
+        id: 'let-him', label: 'He says he will be fine', hint: 'He will not be fine. It will be funny.',
+        successChance: () => 0.62,
+        effects: { morale: 4, subjectHappiness: -2 },
+        outcome: 'He spends the first half on his backside and the second half in somebody else\u2019s trainers. Nobody has laughed like that in months.',
+        failEffects: { subjectInjuryWeeks: 1, subjectOut: true, morale: 1, subjectHappiness: -4 },
+        failOutcome: 'His studs find nothing, his ankle finds everything. A week out, and it was entirely avoidable.',
+      },
+    ],
   },
   {
     id: 'ref-decision',

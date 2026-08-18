@@ -186,12 +186,14 @@ describe('an event-inflicted injury, in the running game', () => {
         pendingEvent: {
           defId: 'warm-up-injury', season: s.season, week: s.week,
           title: 't', body: 'b', playerId: subjectId,
-          choices: [{ id: 'ok', label: 'Right then', hint: '' }],
+          // The safe branch: he is stood down for the fortnight. (The event
+          // used to be a bare acknowledgement with no choice at all.)
+          choices: [{ id: 'stand-down', label: 'Stand him down', hint: '' }],
           category: 'player',
         },
       },
     });
-    return useGameStore.getState().resolveSundayEvent('ok');
+    return useGameStore.getState().resolveSundayEvent('stand-down');
   };
 
   it('cannot shorten a longer lay-off, and leaves the squad record agreeing with it', async () => {

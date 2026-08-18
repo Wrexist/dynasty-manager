@@ -619,6 +619,48 @@ describe('events in the running game', () => {
     }
   });
 
+  it('takes a man an event has sidelined off the named side and out of the morning', async () => {
+    // `warm-up-injury` has a real choice now, and both of its branches can end
+    // with him unavailable. A teamsheet naming an unavailable player and an
+    // arrival presenting one are both invariant violations — and a starting XI
+    // containing somebody the match cannot field.
+    const s0 = useGameStore.getState();
+    const victim = s0.sunday!.squad.find(m => m.availability.status === 'available')!;
+    await useGameStore.getState().autoPickSundayTeamsheet();
+    const named = useGameStore.getState().sunday!;
+    if (!named.teamsheet.includes(victim.playerId) && !named.bench.includes(victim.playerId)) {
+      await useGameStore.getState().setSundayTeamsheet(
+        [victim.playerId, ...named.teamsheet.filter(id => id !== victim.playerId)].slice(0, 11),
+        named.bench.filter(id => id !== victim.playerId),
+      );
+    }
+    await useGameStore.getState().arriveSundayMatch();
+
+    useGameStore.setState({
+      sunday: {
+        ...useGameStore.getState().sunday!,
+        pendingEvent: {
+          defId: 'warm-up-injury', season: s0.season, week: useGameStore.getState().week,
+          title: 't', body: 'b', playerId: victim.playerId,
+          choices: [{ id: 'stand-down', label: 's', hint: '' }],
+          category: 'player',
+        },
+      },
+    });
+    await useGameStore.getState().resolveSundayEvent('stand-down');
+
+    const after = useGameStore.getState();
+    const member = after.sunday!.squad.find(m => m.playerId === victim.playerId)!;
+    expect(member.availability.status).toBe('out');
+    expect(after.sunday!.teamsheet).not.toContain(victim.playerId);
+    expect(after.sunday!.bench).not.toContain(victim.playerId);
+    expect(after.sunday!.arrival?.presentIds ?? []).not.toContain(victim.playerId);
+    assertSundayState({
+      sunday: after.sunday!, players: after.players, clubs: after.clubs,
+      playerClubId: after.playerClubId, fixtures: after.fixtures, week: after.week,
+    });
+  });
+
   it('logs what happened so the season can be retold', async () => {
     for (let i = 0; i < 20; i++) {
       const s = useGameStore.getState();

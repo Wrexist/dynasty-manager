@@ -529,6 +529,10 @@ export function resolveSundayEvent(set: Set, get: Get, choiceId: string) {
     ? clampRound(sunday.pitchDamage + fx.pitchDamage, 0, SUNDAY_PITCH_DAMAGE_MAX)
     : sunday.pitchDamage;
 
+  // He is off the sheet either way: gone for good, or unavailable for Sunday.
+  const subjectSidelined = !!subjectId && !subjectLeft && !!(fx.subjectOut || fx.subjectInjuryWeeks);
+  const subjectGone = subjectLeft || subjectSidelined;
+
   // ── The armband ───────────────────────────────────────────────────────────
   // Handing it over or taking it away is a real change to a real field, and it
   // costs the man on the other end of it — the same rule `setSundayCaptain`
@@ -582,8 +586,22 @@ export function resolveSundayEvent(set: Set, get: Get, choiceId: string) {
     reputation,
     squad,
     captainId,
-    teamsheet: subjectLeft ? sunday.teamsheet.filter(id => id !== subjectId) : sunday.teamsheet,
-    bench: subjectLeft ? sunday.bench.filter(id => id !== subjectId) : sunday.bench,
+    // A man an event has just made unavailable comes off the named side and out
+    // of the resolved morning, exactly as a departing one does. Without this,
+    // "strap him up and hope" could leave a teamsheet naming somebody who is
+    // out and an arrival presenting him — two invariant violations, and a
+    // starting XI containing a player the match cannot field. The arrival is
+    // EDITED rather than thrown away: it may already have guests booked and
+    // paid for against it, and re-deriving it would let those be bought twice.
+    teamsheet: subjectGone ? sunday.teamsheet.filter(id => id !== subjectId) : sunday.teamsheet,
+    bench: subjectGone ? sunday.bench.filter(id => id !== subjectId) : sunday.bench,
+    arrival: subjectGone && sunday.arrival
+      ? {
+          ...sunday.arrival,
+          presentIds: sunday.arrival.presentIds.filter(id => id !== subjectId),
+          benchIds: sunday.arrival.benchIds.filter(id => id !== subjectId),
+        }
+      : sunday.arrival,
     recruits,
     rivalry,
     sponsors,
