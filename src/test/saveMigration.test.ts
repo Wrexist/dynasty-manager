@@ -2,8 +2,15 @@ import { describe, it, expect } from 'vitest';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 
 describe('saveMigration', () => {
-  it('should have current version set to 83', () => {
-    expect(CURRENT_VERSION).toBe(83);
+  it('should have current version set to 84', () => {
+    expect(CURRENT_VERSION).toBe(84);
+  });
+
+  it('v83 → v84 introduces the Sunday League key as null on every older save', () => {
+    const out = migrateSaveData({ version: 83, playerClubId: 'x', clubs: { x: {} }, season: 1, week: 1 });
+    expect(out.version).toBe(CURRENT_VERSION);
+    expect(out.sunday).toBeNull();
+    expect(out.migrationError).toBeUndefined();
   });
 
   it('v78 → v79 backfills monetization.adEngagement', () => {

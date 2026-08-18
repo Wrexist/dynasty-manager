@@ -1,0 +1,226 @@
+/**
+ * Match day — short sides, guests, forfeits, and the promises the narrative
+ * makes.
+ *
+ * The narrative assertions matter as much as the mechanical ones: the mode
+ * generates prose from an event stream, and prose that contradicts the
+ * scoreline is a bug the player WILL notice.
+ */
+import { describe, it, expect, beforeEach } from 'vitest';
+import { useGameStore } from '@/store/gameStore';
+import { assertSundayState } from '@/utils/sunday/invariants';
+import { SUNDAY_MAX_RINGERS, SUNDAY_MIN_START, SUNDAY_FULL_XI } from '@/config/sundayLeague';
+import { isSundayRinger } from '@/utils/sunday/generation';
+import { buildSundayNarrative, pitchConditionFor, sundayTacticFit } from '@/utils/sunday/match';
+import { createSundayRng } from '@/utils/sunday/rng';
+import type { MatchEvent, Player } from '@/types/game';
+
+const SEED = 4242;
+
+function check() {
+  const s = useGameStore.getState();
+  assertSundayState({
+    sunday: s.sunday!, players: s.players, clubs: s.clubs,
+    playerClubId: s.playerClubId, fixtures: s.fixtures, week: s.week,
+  });
+}
+
+/** Force exactly `keep` squad members available and everyone else out.
+ *  Explicit on BOTH sides: keeping members "as they are" left the week's own
+ *  availability roll in play, so the count under test was not the count. */
+function stripSquadTo(keep: number) {
+  const s = useGameStore.getState();
+  const sunday = s.sunday!;
+  useGameStore.setState({
+    sunday: {
+      ...sunday,
+      teamsheet: [],
+      bench: [],
+      squad: sunday.squad.map((m, i) => ({
+        ...m,
+        availability: i < keep
+          ? { status: 'available' as const, reason: null, note: null, warned: true, weeksRemaining: 0 }
+          : { status: 'out' as const, reason: 'work' as const, note: 'at work', warned: true, weeksRemaining: 0 },
+      })),
+    },
+  });
+}
+
+beforeEach(async () => {
+  useGameStore.getState().resetGame();
+  await useGameStore.getState().startSundayLeague({ personality: 'pub', seed: SEED });
+});
+
+describe('playing the fixture', () => {
+  it('plays exactly once — a second call is a no-op', async () => {
+    const first = await useGameStore.getState().playSundayMatch();
+    expect(first).not.toBeNull();
+    const goals = first!.goalsFor;
+    const second = await useGameStore.getState().playSundayMatch();
+    expect(second).toBeNull();
+    expect(useGameStore.getState().sunday!.lastMatch!.goalsFor).toBe(goals);
+    check();
+  });
+
+  it('records the result on the fixture and nowhere else', async () => {
+    const report = await useGameStore.getState().playSundayMatch();
+    const s = useGameStore.getState();
+    const played = s.fixtures.filter(m => m.played);
+    expect(played).toHaveLength(1);
+    const m = played[0];
+    const ourGoals = m.homeClubId === s.playerClubId ? m.homeGoals : m.awayGoals;
+    expect(ourGoals).toBe(report!.goalsFor);
+  });
+
+  it('drafts guests when the squad cannot raise eleven, and removes them after', async () => {
+    stripSquadTo(SUNDAY_MIN_START);
+    const report = await useGameStore.getState().playSundayMatch();
+    expect(report).not.toBeNull();
+    expect(report!.forfeited).toBe(false);
+    expect(report!.startedWith).toBeGreaterThanOrEqual(SUNDAY_MIN_START);
+    expect(report!.startedWith).toBeLessThanOrEqual(SUNDAY_FULL_XI);
+    // No ringer may survive into the persisted players map.
+    expect(Object.keys(useGameStore.getState().players).some(isSundayRinger)).toBe(false);
+    check();
+  });
+
+  it('caps the guests it will find', async () => {
+    stripSquadTo(2);
+    const report = await useGameStore.getState().playSundayMatch();
+    expect(report!.ringersUsed).toBeLessThanOrEqual(SUNDAY_MAX_RINGERS);
+  });
+
+  it('forfeits — and says so — when even the guests cannot make seven', async () => {
+    // 3 available + at most SUNDAY_MAX_RINGERS guests is still short of seven.
+    stripSquadTo(3);
+    const report = await useGameStore.getState().playSundayMatch();
+    expect(report!.forfeited).toBe(true);
+    expect(report!.goalsFor).toBe(0);
+    expect(report!.goalsAgainst).toBe(3);
+    expect(report!.narrative.join(' ')).toContain('could not raise');
+    check();
+  });
+
+  it('never fields a player who is unavailable', async () => {
+    const s0 = useGameStore.getState();
+    const banned = s0.sunday!.squad[0].playerId;
+    useGameStore.setState({
+      sunday: {
+        ...s0.sunday!,
+        squad: s0.sunday!.squad.map(m => (m.playerId === banned ? {
+          ...m,
+          availability: { status: 'out' as const, reason: 'suspended' as const, note: null, warned: true, weeksRemaining: 1 },
+        } : m)),
+      },
+    });
+    const report = await useGameStore.getState().playSundayMatch();
+    expect(report!.playedIds).not.toContain(banned);
+  });
+
+  it('credits goals, appearances and cards to real players only', async () => {
+    await useGameStore.getState().playSundayMatch();
+    const s = useGameStore.getState();
+    const squadIds = new Set(s.sunday!.squad.map(m => m.playerId));
+    for (const id of s.sunday!.lastMatch!.playedIds) {
+      expect(squadIds.has(id)).toBe(true);
+      const p = s.players[id];
+      expect(p.appearances).toBeGreaterThan(0);
+      expect(Number.isFinite(p.minutesPlayed ?? 0)).toBe(true);
+      expect(p.goals).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it('a red card produces a suspension that blocks selection next week', async () => {
+    // Play weeks until someone is sent off; the engine's card rate makes this
+    // very likely inside a season, and the assertion is skipped if it is not.
+    let suspended: string | null = null;
+    for (let i = 0; i < 14 && !suspended; i++) {
+      const s = useGameStore.getState();
+      if (s.sunday!.pendingEvent) await s.resolveSundayEvent(s.sunday!.pendingEvent.choices[0].id);
+      await useGameStore.getState().advanceWeek();
+      const after = useGameStore.getState();
+      suspended = Object.values(after.players).find(p =>
+        p.clubId === after.playerClubId && (p.suspendedUntilWeek ?? 0) > after.week)?.id ?? null;
+      if (after.sunday!.seasonComplete) break;
+    }
+    if (!suspended) return;
+    const s = useGameStore.getState();
+    const member = s.sunday!.squad.find(m => m.playerId === suspended)!;
+    expect(member.availability.status).toBe('out');
+    expect(member.availability.reason).toBe('suspended');
+    check();
+  });
+});
+
+describe('narrative', () => {
+  it('tracks the scoreline exactly as the engine recorded it', () => {
+    const players: Record<string, Player> = {};
+    const mk = (id: string, firstName: string): Player => ({
+      id, firstName, lastName: 'X', age: 25, nationality: 'England', position: 'ST',
+      attributes: { pace: 40, shooting: 40, passing: 40, defending: 40, physical: 40, mental: 40 },
+      overall: 40, potential: 40, clubId: 'us', wage: 0, value: 0, contractEnd: 99,
+      fitness: 100, morale: 60, form: 60, injured: false, injuryWeeks: 0,
+      goals: 0, assists: 0, appearances: 0, careerGoals: 0, careerAssists: 0,
+      careerAppearances: 0, yellowCards: 0, redCards: 0,
+    });
+    players.a = mk('a', 'Dave');
+    players.b = mk('b', 'Kev');
+
+    const events: MatchEvent[] = [
+      { minute: 10, type: 'goal', clubId: 'us', playerId: 'a', description: '' },
+      { minute: 20, type: 'goal', clubId: 'them', playerId: 'b', description: '' },
+      { minute: 70, type: 'goal', clubId: 'us', playerId: 'a', description: '' },
+      // An own goal credited to us, scored by one of theirs.
+      { minute: 80, type: 'own_goal', clubId: 'us', playerId: 'b', description: '' },
+    ];
+    const lines = buildSundayNarrative({
+      rng: createSundayRng(1, 0), events, clubId: 'us', players,
+      noShowNames: [], ringerNames: [], startedWith: 11,
+      homeGoals: 3, awayGoals: 1, isHome: true,
+    });
+    // The last goal line must read 3-1 — the final score.
+    const goalLines = lines.filter(l => /\d+-\d+/.test(l));
+    expect(goalLines[goalLines.length - 1]).toContain('3-1');
+  });
+
+  it('names the no-shows and the guests', () => {
+    const lines = buildSundayNarrative({
+      rng: createSundayRng(2, 0), events: [], clubId: 'us', players: {},
+      noShowNames: ['Gary', 'Baz'], ringerNames: ['Trev'], startedWith: 9,
+      homeGoals: 0, awayGoals: 0, isHome: true,
+    });
+    const text = lines.join(' ');
+    expect(text).toContain('Gary');
+    expect(text).toContain('Baz');
+    expect(text).toContain('Trev');
+    expect(text).toContain('9');
+  });
+});
+
+describe('pitch and fit', () => {
+  it('maps pitch quality monotonically', () => {
+    expect(pitchConditionFor(5)).toBe('waterlogged');
+    expect(pitchConditionFor(20)).toBe('poor');
+    expect(pitchConditionFor(40)).toBe('good');
+    expect(pitchConditionFor(80)).toBe('excellent');
+  });
+
+  it('measures tactical fit against the squad, not against an absolute scale', () => {
+    const mk = (over: Partial<Player['attributes']>): Player => ({
+      id: Math.random().toString(36), firstName: 'A', lastName: 'B', age: 25, nationality: 'England',
+      position: 'CM',
+      attributes: { pace: 40, shooting: 40, passing: 40, defending: 40, physical: 40, mental: 40, ...over },
+      overall: 40, potential: 40, clubId: 'c', wage: 0, value: 0, contractEnd: 99,
+      fitness: 100, morale: 60, form: 60, injured: false, injuryWeeks: 0,
+      goals: 0, assists: 0, appearances: 0, careerGoals: 0, careerAssists: 0,
+      careerAppearances: 0, yellowCards: 0, redCards: 0,
+    });
+    const passers = Array.from({ length: 10 }, () => mk({ passing: 60, mental: 55 }));
+    const bruisers = Array.from({ length: 10 }, () => mk({ physical: 60, shooting: 50 }));
+    expect(sundayTacticFit('proper-football', passers)).toBeGreaterThan(sundayTacticFit('proper-football', bruisers));
+    expect(sundayTacticFit('route-one', bruisers)).toBeGreaterThan(sundayTacticFit('route-one', passers));
+    // Doubling everyone's ability must NOT change fit — it is a shape metric.
+    const better = passers.map(p => ({ ...p, attributes: Object.fromEntries(Object.entries(p.attributes).map(([k, v]) => [k, v + 15])) as Player['attributes'] }));
+    expect(Math.abs(sundayTacticFit('proper-football', better) - sundayTacticFit('proper-football', passers))).toBeLessThan(0.001);
+  });
+});

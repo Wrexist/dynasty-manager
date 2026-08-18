@@ -1,6 +1,6 @@
 # CLAUDE.md — Dynasty Manager
 
-> Last verified against the codebase 2026-07-29 (app v1.3.0, save schema v83).
+> Last verified against the codebase 2026-07-29 (app v1.3.0, save schema v84).
 > If the numbers below disagree with the code, trust the code — and update this file.
 > `npm run docs:check` verifies the countable claims (schema version, file counts,
 > LOC of the named files) and `-- --fix` updates them. It runs in preflight, so this
@@ -259,6 +259,11 @@ consumable player-pack IAPs (RevenueCat).
 - **Sandbox** — pick any club, manage forever.
 - **Manager Career** — create a manager, interview for jobs via board pitches,
   earn contracts/bonuses, get sacked, climb the job market, retire.
+- **Sunday League** (`/sunday-league`) — run a local park team: seeded RNG,
+  weekly availability crises, pound-scale finances, a 5-division local pyramid.
+  Whole mode lives in `state.sunday` + `src/store/slices/sunday/` +
+  `src/utils/sunday/` + `src/config/sundayLeague.ts`; implementation is
+  dynamic-imported so it stays off the eager bundle.
 - **Online** — `comingSoon: true`, not implemented.
 - **Challenges** (`/challenge`) — scenario starts from `src/data/challenges.ts`.
 
@@ -266,7 +271,7 @@ consumable player-pack IAPs (RevenueCat).
 - **React 18.3.1** + **TypeScript 5.9.3** (non-strict) via **Vite 7.3.2** (SWC plugin)
 - **Tailwind CSS 3.4.19** + `tailwindcss-animate` + HSL CSS variables (dark-only theme)
 - **shadcn/ui** (Radix + CVA + clsx + tailwind-merge) — 8 files in `src/components/ui/`
-- **Zustand 5.0.12** — modular store: `gameStore.ts` composition + **15 slices** + 5 helpers
+- **Zustand 5.0.12** — modular store: `gameStore.ts` composition + **16 slices** + 5 helpers
 - **React Router DOM 6.30.3** — **HashRouter** (`#/` URLs). Routes: `/`, `/mode-select`,
   `/select-club`, `/create-manager`, `/challenge`, `/whats-new`, `/subscribe`, `/game`, `*`.
   In-game navigation is a separate system: 45 `GameScreen` ids rendered inside
@@ -277,7 +282,7 @@ consumable player-pack IAPs (RevenueCat).
   status-bar, `@capacitor-community/in-app-review`)
 - **RevenueCat** `@revenuecat/purchases-capacitor` 12.3.2 (+ `-ui`) — all IAP/subscriptions
 - **Sentry** `@sentry/react` 10.49 — crash reporting + game breadcrumbs (`src/utils/sentry.ts`)
-- **Vitest 3.2.4 + jsdom + Testing Library** — 193 test files in `src/test/`
+- **Vitest 3.2.4 + jsdom + Testing Library** — 203 test files in `src/test/`
 - **Husky 9.1.7 + lint-staged 16.4.0** — pre-commit hooks
 - **Fonts:** Oswald (headings) + DM Sans (body), self-hosted via `@fontsource/*`
 - **Package manager:** npm
@@ -340,7 +345,7 @@ src/
 │   │                      loan, cup, feature, sponsor, merchandise, monetization,
 │   │                      nationalTeam, career, packs
 │   │   ├── orchestrationSlice.ts (1,201 LOC — façade) delegating to:
-│   │   └── orchestration/ → weekAdvance.ts (3369 LOC — THE game loop),
+│   │   └── orchestration/ → weekAdvance.ts (3382 LOC — THE game loop),
 │   │                        seasonEnd.ts (1,651), matchActions.ts (1,611),
 │   │                        initGame.ts (587), tournaments.ts, helpers.ts
 │   └── helpers/         → persistence.ts, idbStorage.ts, matchProcessing.ts,
@@ -363,7 +368,7 @@ src/
 
 ## Critical Files (read these first)
 1. **`src/store/slices/orchestration/weekAdvance.ts`** — THE game loop (3,094 LOC). `advanceWeek()`: training, development, AI sims, injuries, finances, offers, cups, continental, international windows, objectives.
-2. **`src/store/storeTypes.ts`** — complete `GameState` interface (641 LOC).
+2. **`src/store/storeTypes.ts`** — complete `GameState` interface (679 LOC).
 3. **`src/types/game.ts`** — all types (2,083 LOC). Single source of truth.
 4. **`src/config/gameBalance.ts`** — central balancing constants. Check here before hardcoding values.
 5. **`src/engine/match.ts`** — match simulation (2243 LOC).
@@ -480,7 +485,7 @@ identities draw from the **community pack** real-player dataset
 - ALL storage access goes through `src/store/helpers/persistence.ts`
   (`readSaveSlot`, `getFlag`/`setFlag`, `readSessionJson`, …). New keys
   register in `STORAGE_KEYS`. Direct `localStorage` use is ESLint-banned.
-- **Save schema version `83`** in `utils/saveMigration.ts`. Any change to
+- **Save schema version `84`** in `utils/saveMigration.ts`. Any change to
   persisted state shape bumps `CURRENT_VERSION` and adds a migration step.
   `SaveRecoveryDialog` + backup slots handle corrupted saves; parse failures
   breadcrumb to Sentry.
@@ -536,7 +541,7 @@ npm run dev          # Dev server (port 8080)
 npm run build        # Production build
 npm run build:dev    # Development build
 npm run preview      # Preview production build
-npm run test         # Vitest (193 test files)
+npm run test         # Vitest (203 test files)
 npm run test:watch   # Vitest in watch mode
 npm run lint         # ESLint
 npm run typecheck    # TypeScript type-check (standalone)
