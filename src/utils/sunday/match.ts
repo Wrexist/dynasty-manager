@@ -15,7 +15,10 @@
  *   match balls        → passing/shooting for the club that bought them
  *   goalkeeper gloves  → the keeper's defending
  *   off-pitch condition→ physical/pace, and it decays through the match anyway
- *   tactical fit       → the attributes the chosen tactic leans on
+ *   tactical fit       → the attributes the tactic leans on, weighted by how
+ *                        much it wants each, AND `overall` (the only input
+ *                        `computeStrengths` reads) — for BOTH sides
+ *   tactic variance    → the level tilt below, scaled by `varianceMult`
  *   morale + happiness → mental
  *
  * `buildMatchdayAdjustments` returns those as a list so the post-match report
@@ -32,14 +35,15 @@
  * `tacticalFamiliarity` channel, which is gated on the same club id.
  */
 import type {
-  Club, Match, MatchEvent, MatchWeather, PitchCondition, Player, PlayerMatchRating,
-  SundayMatchReport, SundaySquadMember, SundayTacticId, WeatherCondition, InjuryDetails,
+  Club, FormationType, Match, MatchEvent, MatchWeather, PitchCondition, Player,
+  PlayerMatchRating, SundayMatchReport, SundaySquadMember, SundayTacticId,
+  WeatherCondition, InjuryDetails,
 } from '@/types/game';
 import { simulateMatch } from '@/engine/match';
 import { selectBestLineup } from '@/utils/playerGen';
 import {
   SUNDAY_BALLS_ATTR_PER_LEVEL, SUNDAY_FIT_SPREAD,
-  SUNDAY_GLOVES_GK_PER_LEVEL, SUNDAY_MIN_START, SUNDAY_PITCH_POOR,
+  SUNDAY_GLOVES_GK_PER_LEVEL, SUNDAY_MIN_START, SUNDAY_FULL_XI, SUNDAY_PITCH_POOR,
   SUNDAY_LEVEL_DEFENDING_PENALTY, SUNDAY_LEVEL_GK_PENALTY, SUNDAY_LEVEL_SHOOTING_BONUS,
   SUNDAY_FIT_DELTA_RANGE, SUNDAY_FIT_OVERALL_PER_POINT, SUNDAY_VARIANCE_TILT_SHARE,
   SUNDAY_TACTICS, getSundayTactic, SUNDAY_COACH_FIT_PER_LEVEL,
@@ -154,6 +158,64 @@ export function bestSundayTactic(xi: readonly Player[], coachLevel = 0): SundayT
     if (fit > bestFit) { bestFit = fit; best = tactic.id; }
   }
   return best;
+}
+
+/** The eleven a club nominally puts out, for anything that needs a shape
+ *  rather than this week's availability. */
+function nominalXI(club: Club, players: Record<string, Player>): Player[] {
+  const ids = club.lineup.length >= SUNDAY_FULL_XI ? club.lineup : club.playerIds;
+  return ids.slice(0, SUNDAY_FULL_XI).map(id => players[id]).filter((p): p is Player => !!p);
+}
+
+/**
+ * Work out how every AI club in the division plays.
+ *
+ * Each club is given the tactic its OWN squad suits best, which is what makes
+ * the matchup channel real: before this every opponent was hardcoded to Route
+ * One, so `getTacticalMatchupBonus` returned zero for the manager in all four
+ * tactics while the AI collected +0.20 against Park the Bus — measurably
+ * turning one of the four into a structural loser (−0.24 to −0.33 ppg
+ * everywhere, including the squads it fits best).
+ *
+ * Assigned ONCE, at world build and at each rollover, and persisted: a club
+ * that changes shape week to week cannot be learned, and learning the division
+ * is the point. The derivation is a pure function of the seeded squad, so it is
+ * stable across a reload with or without the stored map.
+ */
+export function deriveSundayDivisionStyles(
+  divisionClubIds: readonly string[],
+  clubs: Record<string, Club>,
+  players: Record<string, Player>,
+  playerClubId: string,
+): Record<string, SundayTacticId> {
+  const out: Record<string, SundayTacticId> = {};
+  for (const id of divisionClubIds) {
+    if (id === playerClubId) continue;
+    const club = clubs[id];
+    if (!club) continue;
+    out[id] = bestSundayTactic(nominalXI(club, players));
+  }
+  return out;
+}
+
+/**
+ * How a given club plays, from the persisted map when it is there and from the
+ * squad when it is not.
+ *
+ * The fallback is not defensive padding: a save written before the map existed
+ * carries no styles, and re-deriving gives it exactly the value the map would
+ * have held rather than silently reverting that division to Route One.
+ */
+export function sundayStyleOf(
+  styles: Readonly<Record<string, SundayTacticId>> | undefined,
+  clubId: string,
+  clubs: Record<string, Club>,
+  players: Record<string, Player>,
+): SundayTacticId {
+  const stored = styles?.[clubId];
+  if (stored && SUNDAY_TACTICS.some(t => t.id === stored)) return stored;
+  const club = clubs[clubId];
+  return club ? bestSundayTactic(nominalXI(club, players)) : SUNDAY_TACTICS[0].id;
 }
 
 // ── Match-day adjustments ───────────────────────────────────────────────────
@@ -293,13 +355,19 @@ export function buildMatchdayTeam(input: MatchdayAdjustmentInput): MatchdayTeam 
  * and hangovers like everyone else. Doing this here rather than fielding their
  * best eleven every week is what keeps the division competitive from the bottom
  * as well as the top, and it is why a good side can be turned over by a bad one.
+ *
+ * They are also picked INTO their own tactic's shape, exactly as the player's
+ * side is: a club whose style is Park the Bus lines up 5-3-2, which is what
+ * makes the formation matchup channel (and the pre-match intel that describes
+ * it) mean something.
  */
 export function pickSundayOppositionXI(
   rng: SundayRng,
   club: Club,
   players: Record<string, Player>,
   week: number,
-): { xi: Player[]; bench: Player[]; missing: number } {
+  tacticId: SundayTacticId,
+): { xi: Player[]; bench: Player[]; missing: number; formation: FormationType } {
   const squad = club.playerIds
     .map(id => players[id])
     .filter((p): p is Player => !!p && !p.injured && !(p.suspendedUntilWeek != null && p.suspendedUntilWeek > week));
@@ -310,8 +378,10 @@ export function pickSundayOppositionXI(
   const availableCount = Math.max(SUNDAY_MIN_START, squad.length - missing);
   const available = rng.sample(squad, Math.min(squad.length, availableCount));
 
-  const { lineup, subs } = selectBestLineup(available, club.formation, week);
-  return { xi: lineup, bench: subs, missing: squad.length - available.length };
+  const tactic = getSundayTactic(tacticId);
+  const formation = available.length >= SUNDAY_FULL_XI ? tactic.formation : tactic.shortFormation;
+  const { lineup, subs } = selectBestLineup(available, formation, week);
+  return { xi: lineup, bench: subs, missing: squad.length - available.length, formation };
 }
 
 // ── Narrative ───────────────────────────────────────────────────────────────

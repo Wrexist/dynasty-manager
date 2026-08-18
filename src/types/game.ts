@@ -2999,6 +2999,15 @@ export interface SundayState {
   divisionId: SundayDivisionId;
   /** Club ids of every side in the current division, INCLUDING the player's. */
   divisionClubIds: string[];
+  /**
+   * How each AI club in the division plays, club id → tactic. Assigned once at
+   * world build and at each rollover from that club's own squad, and held for
+   * the whole season so the manager can learn a side and set up against it.
+   *
+   * The player's own club is deliberately absent — its tactic is `tactic`
+   * above, which the manager changes whenever he likes. Schema v3.
+   */
+  divisionStyles: Record<string, SundayTacticId>;
   /** Seeded RNG state. Every Sunday-owned random draw comes from here, so a
    *  reloaded save continues the same story rather than re-rolling it. */
   seed: number;

@@ -19,7 +19,7 @@ import type {
 } from '@/types/game';
 import {
   SUNDAY_MAX_BENCH, SUNDAY_STATE_VERSION, SUNDAY_MIN_START, SUNDAY_FULL_XI,
-  SUNDAY_PENDING_LEDGER_MAX, SUNDAY_PITCH_DAMAGE_MAX,
+  SUNDAY_PENDING_LEDGER_MAX, SUNDAY_PITCH_DAMAGE_MAX, SUNDAY_TACTICS,
 } from '@/config/sundayLeague';
 import { sundaySeasonWeeks } from './season';
 import { sundayFlagSubjectId } from './events';
@@ -167,6 +167,20 @@ export function validateSundayState(input: ValidateSundayInput): SundayValidatio
     if (!divSet.has(playerClubId)) push('player club is not in its own division');
     for (const id of sunday.divisionClubIds) {
       if (!clubs[id]) push(`division names ${id}, which has no club record`);
+    }
+    // v3: how each AI club plays. A style for a club that is not in the
+    // division is a stale entry from a rollover that failed to rebuild the map;
+    // a style the tactics table does not know would be read as Route One
+    // forever. A MISSING style is legal — `sundayStyleOf` re-derives it, which
+    // is how a save written before this field still meets a varied division.
+    const styles = sunday.divisionStyles ?? {};
+    if (typeof styles !== 'object' || Array.isArray(styles)) push('divisionStyles is not a map');
+    else {
+      for (const [clubIdKey, tacticId] of Object.entries(styles)) {
+        if (!divSet.has(clubIdKey)) push(`divisionStyles names ${clubIdKey}, who is not in the division`);
+        if (clubIdKey === playerClubId) push('divisionStyles carries the player\'s own club');
+        if (!SUNDAY_TACTICS.some(t => t.id === tacticId)) push(`divisionStyles gives ${clubIdKey} an unknown tactic ${String(tacticId)}`);
+      }
     }
 
     // ── Cup ────────────────────────────────────────────────────────────────

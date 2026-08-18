@@ -29,6 +29,10 @@ describe('saveMigration', () => {
     // The dead queue is gone, not carried forward as an empty array.
     expect('eventQueue' in sunday).toBe(false);
     expect(sunday.pendingLedger).toEqual([]);
+    // Left empty on purpose: `sundayStyleOf` re-derives each AI club's style
+    // from its squad, so an old save meets a varied division without the
+    // migration having to reproduce the fit metric. See the step's comment.
+    expect(sunday.divisionStyles).toEqual({});
     // Seeded from whatever the capped log still remembers, deduplicated.
     expect(sunday.onceFiredIds).toEqual(['social-media', 'broke']);
     const lastMatch = sunday.lastMatch as Record<string, unknown>;

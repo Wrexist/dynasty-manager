@@ -21,6 +21,7 @@ import {
   generateSundayStartingSquad,
 } from '@/utils/sunday/generation';
 import { buildSundayFixtures, buildSundayTable, drawSundayCup, sundaySeasonWeeks } from '@/utils/sunday/season';
+import { deriveSundayDivisionStyles } from '@/utils/sunday/match';
 import { rollSundayAvailability } from '@/utils/sunday/availability';
 import type { Get, Set } from './shared';
 import { clampRound } from './shared';
@@ -81,6 +82,10 @@ export function buildSundayWorld(opts: StartSundayOptions): SundayWorld {
   }
 
   const divisionClubIds = [club.id, ...opponents.map(o => o.club.id)];
+  // Every AI club gets the tactic its own squad suits, for the season. Derived
+  // rather than drawn: the squads are already a property of the seed, so this
+  // adds no draw and cannot move the cursor.
+  const divisionStyles = deriveSundayDivisionStyles(divisionClubIds, clubs, players, club.id);
   const fixtures = buildSundayFixtures(rng, divisionId, divisionClubIds);
   const cup = drawSundayCup(rng, divisionId, divisionClubIds, club.id);
 
@@ -100,6 +105,7 @@ export function buildSundayWorld(opts: StartSundayOptions): SundayWorld {
     identity,
     divisionId,
     divisionClubIds,
+    divisionStyles,
     seed,
     rngCursor: cursorOf(rng),
     balance: p.startBalance,

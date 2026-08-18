@@ -11,7 +11,10 @@ import { useGameStore } from '@/store/gameStore';
 import { assertSundayState } from '@/utils/sunday/invariants';
 import { SUNDAY_MAX_RINGERS, SUNDAY_MIN_START, SUNDAY_FULL_XI } from '@/config/sundayLeague';
 import { isSundayRinger } from '@/utils/sunday/generation';
-import { buildSundayNarrative, pitchConditionFor, sundayTacticFit } from '@/utils/sunday/match';
+import {
+  bestSundayTactic, buildMatchdayTeam, buildSundayNarrative, pitchConditionFor,
+  sundayStyleOf, sundayTacticFit,
+} from '@/utils/sunday/match';
 import { createSundayRng } from '@/utils/sunday/rng';
 import type { MatchEvent, Player } from '@/types/game';
 
@@ -314,5 +317,83 @@ describe('pitch and fit', () => {
     // Doubling everyone's ability must NOT change fit — it is a shape metric.
     const better = passers.map(p => ({ ...p, attributes: Object.fromEntries(Object.entries(p.attributes).map(([k, v]) => [k, v + 15])) as Player['attributes'] }));
     expect(Math.abs(sundayTacticFit('proper-football', better) - sundayTacticFit('proper-football', passers))).toBeLessThan(0.001);
+  });
+
+  it('carries the fit into the overall the engine actually reads', () => {
+    // The whole point of SUNDAY_FIT_OVERALL_PER_POINT: `computeStrengths` reads
+    // `overall`, so a fit that only moved attributes could never move
+    // possession. Same XI, two tactics, opposite fits — the copies handed to
+    // the engine must differ in `overall`, and the stored players must not.
+    const mk = (over: Partial<Player['attributes']>): Player => ({
+      id: `p${Object.values(over).join('-')}${Math.random()}`, firstName: 'A', lastName: 'B',
+      age: 25, nationality: 'England', position: 'CM',
+      attributes: { pace: 40, shooting: 40, passing: 40, defending: 40, physical: 40, mental: 40, ...over },
+      overall: 45, potential: 45, clubId: 'c', wage: 0, value: 0, contractEnd: 99,
+      fitness: 100, morale: 60, form: 60, injured: false, injuryWeeks: 0,
+      goals: 0, assists: 0, appearances: 0, careerGoals: 0, careerAssists: 0,
+      careerAppearances: 0, yellowCards: 0, redCards: 0,
+    });
+    const bruisers = Array.from({ length: 11 }, () => mk({ physical: 62, shooting: 50 }));
+    const base = {
+      squad: [], pitchQuality: 50, ballsLevel: 0, glovesLevel: 0, coachLevel: 0,
+      teamMorale: 55, isPlayerClub: true,
+    };
+    const suited = buildMatchdayTeam({ ...base, xi: bruisers, tacticId: 'route-one' });
+    const wrong = buildMatchdayTeam({ ...base, xi: bruisers, tacticId: 'proper-football' });
+    expect(suited.fit).toBeGreaterThan(wrong.fit);
+    expect(suited.players[0].overall).toBeGreaterThan(wrong.players[0].overall);
+    // The stored Player is untouched — the copies are thrown away after the
+    // whistle and must never bake a tactic into a squad.
+    expect(bruisers[0].overall).toBe(45);
+  });
+
+  it('spends the fit delta in proportion to what the tactic wants', () => {
+    // Route One wants physical 4, shooting 2, pace 1. A perfect fit must move
+    // physicality furthest, not move all three the same distance.
+    const mk = (): Player => ({
+      id: Math.random().toString(36), firstName: 'A', lastName: 'B', age: 25, nationality: 'England',
+      position: 'CM',
+      attributes: { pace: 40, shooting: 50, passing: 30, defending: 30, physical: 70, mental: 30 },
+      overall: 45, potential: 45, clubId: 'c', wage: 0, value: 0, contractEnd: 99,
+      fitness: 100, morale: 60, form: 60, injured: false, injuryWeeks: 0,
+      goals: 0, assists: 0, appearances: 0, careerGoals: 0, careerAssists: 0,
+      careerAppearances: 0, yellowCards: 0, redCards: 0,
+    });
+    const xi = Array.from({ length: 11 }, mk);
+    const team = buildMatchdayTeam({
+      xi, squad: [], tacticId: 'route-one', pitchQuality: 50, ballsLevel: 0,
+      glovesLevel: 0, coachLevel: 0, teamMorale: 55, isPlayerClub: true,
+    });
+    const before = xi[0].attributes;
+    const after = team.players[0].attributes;
+    const physicalGain = after.physical - before.physical;
+    const paceGain = after.pace - before.pace;
+    expect(team.fit).toBeGreaterThan(0.9);
+    expect(physicalGain).toBeGreaterThan(paceGain);
+  });
+
+  it('gives every AI club the tactic its own squad suits, and keeps it', async () => {
+    const s = useGameStore.getState();
+    const sunday = s.sunday!;
+    const aiIds = sunday.divisionClubIds.filter(id => id !== s.playerClubId);
+    expect(aiIds.length).toBeGreaterThan(0);
+    for (const id of aiIds) {
+      const style = sunday.divisionStyles[id];
+      expect(style, `${id} has no style`).toBeTruthy();
+      const xi = s.clubs[id].lineup.map(pid => s.players[pid]).filter(Boolean);
+      expect(style).toBe(bestSundayTactic(xi));
+      // The read path agrees with the stored map, and agrees with itself when
+      // the map is empty — which is what an old save gets.
+      expect(sundayStyleOf(sunday.divisionStyles, id, s.clubs, s.players)).toBe(style);
+      expect(sundayStyleOf({}, id, s.clubs, s.players)).toBe(style);
+    }
+    // The division must not be one tactic wearing eight shirts — that was the
+    // hardcoded-Route-One bug this replaced.
+    const distinct = new Set(aiIds.map(id => sunday.divisionStyles[id]));
+    expect(distinct.size).toBeGreaterThan(1);
+
+    // A style is for the season: playing a match cannot change it.
+    await useGameStore.getState().playSundayMatch();
+    expect(useGameStore.getState().sunday!.divisionStyles).toEqual(sunday.divisionStyles);
   });
 });

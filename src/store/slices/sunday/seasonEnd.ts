@@ -29,6 +29,7 @@ import {
   resolveSundayOutcome, sundayCupRoundName, sundayPosition, sundaySeasonWeeks,
 } from '@/utils/sunday/season';
 import { rollSundayAvailability } from '@/utils/sunday/availability';
+import { deriveSundayDivisionStyles } from '@/utils/sunday/match';
 import { buildSundayRivalry } from '@/utils/sunday/rivalry';
 import type { Get, Set } from './shared';
 import { clampRound, sundayMessage } from './shared';
@@ -225,6 +226,12 @@ export function rolloverSundaySeason(set: Set, get: Get): void {
   }
 
   const divisionClubIds = [clubId, ...opponents.map(o => o.club.id)];
+  // A new division means new opponents and therefore new styles. Re-derived
+  // from the squads that were just generated, so a promoted club walks into a
+  // league that sets up differently — and one that stands still meets the same
+  // sides playing the same way, because their squads are re-formed from the
+  // same seed.
+  const divisionStyles = deriveSundayDivisionStyles(divisionClubIds, clubs, players, clubId);
   const fixtures = buildSundayFixtures(rng, nextDivisionId, divisionClubIds);
   const cup = drawSundayCup(rng, nextDivisionId, divisionClubIds, clubId);
 
@@ -291,6 +298,7 @@ export function rolloverSundaySeason(set: Set, get: Get): void {
     sponsors: sunday.sponsors.map(s => ({ ...s, conditionProgress: 0 })),
     divisionId: nextDivisionId,
     divisionClubIds,
+    divisionStyles,
     rngCursor: cursorOf(rng),
     reputation,
     squad,

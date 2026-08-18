@@ -35,6 +35,15 @@ const migrations: Record<number, MigrationFn> = {
   //     settlement in a save that is being loaded.
   //   - `pitchDamage` starts at zero: the effect that writes it did nothing at
   //     all before this version, so no old save has any damage to carry.
+  //   - `divisionStyles` starts EMPTY rather than being computed here. The map
+  //     says how each AI club plays, derived from that club's squad — and
+  //     `sundayStyleOf` re-derives exactly the same answer from the loaded
+  //     world whenever a key is absent. Backfilling it here would mean pulling
+  //     the Sunday fit metric into the migration chain to reproduce a value the
+  //     read path already produces, and would go stale the moment the save's
+  //     division did. Empty-with-lazy-fill is the robust option: an old save
+  //     meets a division that plays four different ways from its first fixture,
+  //     and the map fills itself at the next rollover.
   //   - `eventQueue` is dropped. It was never written to.
   //
   // Later waves EXTEND this step rather than adding another: keep the shape
@@ -69,6 +78,9 @@ const migrations: Record<number, MigrationFn> = {
         onceFiredIds,
         pendingLedger: Array.isArray(sunday.pendingLedger) ? sunday.pendingLedger : [],
         pitchDamage: typeof sunday.pitchDamage === 'number' ? sunday.pitchDamage : 0,
+        divisionStyles: sunday.divisionStyles && typeof sunday.divisionStyles === 'object'
+          ? sunday.divisionStyles
+          : {},
       },
     };
   },

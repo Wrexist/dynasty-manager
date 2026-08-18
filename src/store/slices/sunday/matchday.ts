@@ -44,7 +44,7 @@ import { resolveDoubt } from '@/utils/sunday/availability';
 import { clearSundayRingers, generateSundayRinger } from '@/utils/sunday/generation';
 import {
   buildMatchdayTeam, buildSundayNarrative, pickMotm, pickSundayOppositionXI,
-  rollSundayWeather, simulateSundayMatch,
+  rollSundayWeather, simulateSundayMatch, sundayStyleOf,
 } from '@/utils/sunday/match';
 import { advanceSundayCup, buildSundayTable, recordSundayRecord, sundayCupRoundName, sundaySeasonWeeks } from '@/utils/sunday/season';
 import { selectBestLineup } from '@/utils/playerGen';
@@ -363,29 +363,38 @@ export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
   } else {
     const ourXI = startingIds.map(id => players[id]).filter((p): p is Player => !!p);
     const ourBenchPlayers = benchIds.map(id => players[id]).filter((p): p is Player => !!p);
-    const opp = pickSundayOppositionXI(rng, oppClub, players, week);
+    // How they play. Held for the season and derived from their own squad, so
+    // the manager can learn a side and set up against it — and so the engine's
+    // tactical-matchup channel is live for all four of the player's options
+    // instead of being flat against a division of hardcoded Route One.
+    const oppTactic = sundayStyleOf(sunday.divisionStyles, oppClubId, clubs, players);
+    const opp = pickSundayOppositionXI(rng, oppClub, players, week, oppTactic);
 
     const ourTeam = buildMatchdayTeam({
       xi: ourXI, squad, tacticId: sunday.tactic, pitchQuality,
       ballsLevel: upgradeLevel(sunday, 'balls'), glovesLevel: upgradeLevel(sunday, 'keeper-gloves'),
       coachLevel: upgradeLevel(sunday, 'coach'), teamMorale: sunday.teamMorale, isPlayerClub: true,
     });
-    // The opposition get the pitch, and nothing else — they have no Sunday
-    // state of their own, and inventing one for them would be simulation for
-    // its own sake.
+    // The opposition get the pitch and their own tactical fit — they picked a
+    // tactic too, and a fit only the manager can hold would be a thumb on the
+    // scale rather than a system. They do NOT get equipment, a coach or a
+    // dressing room: those are things the club buys, and they have no Sunday
+    // state of their own to buy them with.
     const oppTeam = buildMatchdayTeam({
-      xi: opp.xi, squad: [], tacticId: 'route-one', pitchQuality,
+      xi: opp.xi, squad: [], tacticId: oppTactic, pitchQuality,
       ballsLevel: 0, glovesLevel: 0, coachLevel: 0, teamMorale: 55, isPlayerClub: false,
     });
 
     // `club.lineup` is what the chemistry calculation aligns against, so the
-    // match-day copies of the clubs carry the sides that are actually playing.
-    const homeClubForSim: Club = isHome
-      ? { ...ourClub, lineup: ourTeam.players.map(p => p.id), formation: startingIds.length >= SUNDAY_FULL_XI ? getSundayTactic(sunday.tactic).formation : getSundayTactic(sunday.tactic).shortFormation }
-      : { ...oppClub, lineup: oppTeam.players.map(p => p.id) };
-    const awayClubForSim: Club = isHome
-      ? { ...oppClub, lineup: oppTeam.players.map(p => p.id) }
-      : { ...ourClub, lineup: ourTeam.players.map(p => p.id), formation: startingIds.length >= SUNDAY_FULL_XI ? getSundayTactic(sunday.tactic).formation : getSundayTactic(sunday.tactic).shortFormation };
+    // match-day copies of the clubs carry the sides that are actually playing —
+    // in the shape their own tactic asks for, on both sides.
+    const ourFormation = startingIds.length >= SUNDAY_FULL_XI
+      ? getSundayTactic(sunday.tactic).formation
+      : getSundayTactic(sunday.tactic).shortFormation;
+    const ourClubForSim: Club = { ...ourClub, lineup: ourTeam.players.map(p => p.id), formation: ourFormation };
+    const oppClubForSim: Club = { ...oppClub, lineup: oppTeam.players.map(p => p.id), formation: opp.formation };
+    const homeClubForSim: Club = isHome ? ourClubForSim : oppClubForSim;
+    const awayClubForSim: Club = isHome ? oppClubForSim : ourClubForSim;
 
     const outcome = simulateSundayMatch({
       rng,
@@ -396,8 +405,8 @@ export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
       awayXI: isHome ? oppTeam.players : ourTeam.players,
       homeBench: isHome ? ourBenchPlayers : opp.bench,
       awayBench: isHome ? opp.bench : ourBenchPlayers,
-      homeTacticId: isHome ? sunday.tactic : 'route-one',
-      awayTacticId: isHome ? 'route-one' : sunday.tactic,
+      homeTacticId: isHome ? sunday.tactic : oppTactic,
+      awayTacticId: isHome ? oppTactic : sunday.tactic,
       weather,
       derbyIntensity,
       season,

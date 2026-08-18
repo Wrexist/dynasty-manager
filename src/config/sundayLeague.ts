@@ -31,8 +31,10 @@ import type {
  *  event-chain flags, record context lines. Migrated in saveMigration v85.
  *  v3: the match report carries its own discipline/injury counts and the
  *  man-of-the-match name, `onceFiredIds` outlives the capped event log,
- *  `pendingLedger` holds mid-week money, and the dead `eventQueue` is gone.
- *  Migrated in saveMigration v86. */
+ *  `pendingLedger` holds mid-week money, `divisionStyles` records how each AI
+ *  club plays, and the dead `eventQueue` is gone. Migrated in saveMigration
+ *  v86 — which is unreleased, so later waves EXTEND that step rather than
+ *  adding another. */
 export const SUNDAY_STATE_VERSION = 3;
 
 // ── The pyramid ─────────────────────────────────────────────────────────────
