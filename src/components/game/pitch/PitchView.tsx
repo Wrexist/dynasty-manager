@@ -66,7 +66,6 @@ const teamCode = (s: string) => (s || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 
 // light top-left sheen and a dark lower-right, so it reads as a crest rather
 // than a flat dot. Pure CSS, no colour maths.
 function ScoreCrest({ color }: { color: string }) {
-  const { t } = useTranslation();
   return (
     <span className="relative h-3 w-3 shrink-0 rounded-full ring-1 ring-black/40" style={{ backgroundColor: color || '#888888' }}>
       <span
