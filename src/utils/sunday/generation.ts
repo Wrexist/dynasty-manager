@@ -157,30 +157,6 @@ export function pickSundayArchetype(
   return chosen?.id ?? 'journeyman';
 }
 
-/**
- * Read an archetype back OFF a squad member's numbers.
- *
- * Used for players who arrive without one (ringers who stay, imported saves,
- * anyone whose attributes have drifted). The label always describes the
- * numbers rather than overriding them.
- */
-export function classifySundayArchetype(
-  m: Pick<SundaySquadMember, 'commitment' | 'punctuality' | 'ego' | 'loyalty' | 'temper' | 'influence' | 'condition' | 'injuryProne'>,
-  overall: number,
-  age: number,
-): SundayArchetypeId {
-  if (m.commitment <= 6 && m.punctuality <= 9) return 'ghost';
-  if (m.injuryProne >= 16 && overall >= 40) return 'glass';
-  if (m.temper >= 17) return 'hothead';
-  if (overall >= 50 && m.ego >= 16) return 'ex-pro';
-  if (age >= 32 && m.influence >= 16 && m.commitment >= 15) return 'captain';
-  if (m.influence >= 17 && overall < 45) return 'legend';
-  if (m.commitment >= 17 && overall < 40) return overall < 32 ? 'retriever' : 'warrior';
-  if (age <= 21 && overall >= 30) return 'prospect';
-  if (m.commitment >= 11 && m.commitment <= 17 && m.punctuality <= 14 && overall >= 42) return 'shift';
-  return 'journeyman';
-}
-
 function rollSundayTraits(
   rng: SundayRng,
   archetype: SundayArchetypeId,

@@ -103,14 +103,10 @@ export const SUNDAY_MIN_START = 7;
 export const SUNDAY_FULL_XI = 11;
 /** Most named substitutes. */
 export const SUNDAY_MAX_BENCH = 5;
-/** Substitutions allowed per match. Sunday League uses roll-on/roll-off. */
-export const SUNDAY_MAX_SUBS = 5;
 /** Registered-squad ceiling. Beyond this, players start asking why they came. */
 export const SUNDAY_MAX_SQUAD = 22;
 /** Below this the club is in a staffing crisis and events react to it. */
 export const SUNDAY_THIN_SQUAD = 13;
-/** Squad size a new club starts with, before personality adjustment. */
-export const SUNDAY_STARTING_SQUAD = 14;
 
 /** Guests dragged in when the squad cannot raise seven. Capped so the mode
  *  never silently plays itself: at 3 ringers the manager has clearly lost
@@ -382,10 +378,10 @@ export function getSundayPersonality(id: SundayClubPersonalityId): SundayPersona
 
 // ── Archetypes ──────────────────────────────────────────────────────────────
 //
-// Archetypes are DERIVED, not assigned: `classifySundayArchetype` reads the
-// generated attributes and returns the label that fits. That keeps the fiction
-// honest — a player is "The Ghost" because his commitment is 4, not because a
-// tag was stapled on and the numbers were made to match afterwards.
+// An archetype is a GENERATION TARGET, not a label stapled on afterwards: the
+// bands below are what a player of that archetype is rolled from, so a player
+// is "The Ghost" because his commitment really is 4. `pickSundayArchetype`
+// chooses which one a generated player is built toward.
 
 export interface SundayArchetypeInfo {
   id: SundayArchetypeId;
@@ -536,10 +532,10 @@ export const SUNDAY_PITCH_DAMAGE_MAX = 30;
  *  pitch is a pitch again — which is what makes playing on a bog a cost you
  *  can choose to absorb rather than a permanent tax. */
 export const SUNDAY_PITCH_DAMAGE_HEAL = 5;
-/** Chance a home fixture is called off for a waterlogged pitch, at pitch 0. */
-export const SUNDAY_POSTPONE_BASE = 0.10;
-/** Reduction in that chance per point of pitch quality. */
-export const SUNDAY_POSTPONE_PER_PITCH = 0.0022;
+// NOTE: there are deliberately no postponement constants here. Waterlogging is
+// an EVENT (`pitch-unplayable`) with a decision attached, not a silent dice
+// roll that deletes the manager's week. The unreferenced `SUNDAY_POSTPONE_*`
+// pair that used to sit here described a system that was never built.
 
 // ── Upgrades ────────────────────────────────────────────────────────────────
 

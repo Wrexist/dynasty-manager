@@ -73,14 +73,26 @@ describe('startSundayLeague', () => {
   });
 
   it('produces different worlds from different seeds', async () => {
-    const a = useGameStore.getState().sunday!.identity.name;
+    const snapshot = () => {
+      const s = useGameStore.getState();
+      return {
+        identity: s.sunday!.identity.name,
+        squad: s.sunday!.squad
+          .map(m => `${s.players[m.playerId].firstName} ${s.players[m.playerId].lastName}`)
+          .join(','),
+        opponents: s.sunday!.divisionClubIds.map(id => s.clubs[id].name).join(','),
+      };
+    };
+    const a = snapshot();
     useGameStore.getState().resetGame();
     await useGameStore.getState().startSundayLeague({ personality: 'pub', seed: SEED + 1 });
-    const b = useGameStore.getState().sunday!.identity.name;
-    // Not a guarantee for any single field, but the full squad cannot match.
-    const squadA = a;
-    expect(typeof squadA).toBe('string');
-    expect(typeof b).toBe('string');
+    const b = snapshot();
+    // Any single field could collide by chance; a whole squad and a whole
+    // division cannot. The old version of this test asserted `typeof` on two
+    // strings and passed no matter what the generator did.
+    expect(b.squad).not.toBe(a.squad);
+    expect(b.opponents).not.toBe(a.opponents);
+    expect(b.identity).not.toBe(a.identity);
   });
 });
 

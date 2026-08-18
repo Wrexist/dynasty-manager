@@ -29,6 +29,8 @@ import {
   SUNDAY_FUNDRAISER_MORALE, SUNDAY_MAX_BENCH, SUNDAY_MAX_SQUAD, SUNDAY_MIN_START,
   SUNDAY_RINGROUND_COST, SUNDAY_RINGROUND_MORALE, SUNDAY_EVENT_LOG_MAX,
   SUNDAY_POACH_HEAT, SUNDAY_RIVAL_HEAT_MAX, SUNDAY_PROMISE_WEEKS, SUNDAY_PITCH_DAMAGE_MAX,
+  SUNDAY_KIT_MORALE_PER_LEVEL, SUNDAY_KIT_REP_PER_LEVEL, SUNDAY_CLUBHOUSE_MORALE_PER_LEVEL,
+  SUNDAY_NETS_REP, SUNDAY_FLOODLIGHT_REP,
   getSundayUpgrade, sundayUpgradeCost,
 } from '@/config/sundayLeague';
 import {
@@ -576,9 +578,17 @@ export function buySundayUpgrade(set: Set, get: Get, upgradeId: SundayUpgradeId)
     : [...sunday.upgrades, { id: upgradeId, level: 1 }];
 
 
-  // A few upgrades pay out immediately rather than through the sim.
-  const moraleBump = upgradeId === 'kit' ? 3 : upgradeId === 'clubhouse' ? 2 : 0;
-  const repBump = upgradeId === 'kit' ? 2 : upgradeId === 'nets' ? 1 : upgradeId === 'floodlights' ? 3 : 0;
+  // A few upgrades pay out immediately rather than through the sim. The
+  // magnitudes are the config's, not this call site's — they were duplicated
+  // here as bare numbers, which is exactly how a card's `effectText` and its
+  // actual effect drift apart.
+  const moraleBump = upgradeId === 'kit'
+    ? SUNDAY_KIT_MORALE_PER_LEVEL
+    : upgradeId === 'clubhouse' ? SUNDAY_CLUBHOUSE_MORALE_PER_LEVEL : 0;
+  const repBump = upgradeId === 'kit'
+    ? SUNDAY_KIT_REP_PER_LEVEL
+    : upgradeId === 'nets' ? SUNDAY_NETS_REP
+      : upgradeId === 'floodlights' ? SUNDAY_FLOODLIGHT_REP : 0;
 
   set({
     sunday: {

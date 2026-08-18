@@ -35,6 +35,7 @@ import {
   SUNDAY_CUP_ROUND_PRIZE, SUNDAY_CUP_ROUNDS, SUNDAY_WEEK_LOG_MAX,
   SUNDAY_AI_GOALS_BASE, SUNDAY_AI_GOALS_SWING, SUNDAY_AI_HOME_ADVANTAGE,
   SUNDAY_FORM_DRIFT, SUNDAY_FORM_NEUTRAL, SUNDAY_PITCH_DAMAGE_HEAL,
+  SUNDAY_PHYSIO_HEAL_PER_LEVEL,
 } from '@/config/sundayLeague';
 import { SUNDAY_SPONSORS, SUNDAY_SPONSOR_CONDITION_TEXT, SUNDAY_TAUNTS } from '@/data/sundayNames';
 import { buildWeekLedger } from '@/utils/sunday/finance';
@@ -557,7 +558,7 @@ export function advanceSundayWeek(set: Set, get: Get): void {
     if (!p) continue;
     if (p.injured && p.injuryWeeks > 0) {
       const physio = sunday.upgrades.find(u => u.id === 'physio')?.level ?? 0;
-      const heal = 1 + (rng.chance(physio * 0.3) ? 1 : 0);
+      const heal = 1 + (rng.chance(physio * SUNDAY_PHYSIO_HEAL_PER_LEVEL) ? 1 : 0);
       const remaining = Math.max(0, p.injuryWeeks - heal);
       players[m.playerId] = { ...p, injuryWeeks: remaining, injured: remaining > 0, injuryDetails: remaining > 0 ? p.injuryDetails : undefined };
     }
