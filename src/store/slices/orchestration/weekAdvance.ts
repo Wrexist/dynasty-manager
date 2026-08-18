@@ -66,6 +66,7 @@ import { stripAiMatchDetail, stableClubSlice } from '@/store/slices/orchestratio
 import { getEffectiveStadiumLevel } from '@/utils/facilities';
 import { markSuperCupPlayed, superCupPlayedOn } from '@/utils/superCup';
 import { nextFanMood } from '@/utils/fanMood';
+import { recoverInjuriesForOthers, stepInjuryRecovery } from '@/utils/injuryRecovery';
 import { getRecentForm } from '@/utils/formGuide';
 import { getLeaguePositionPrize, getMatchdayIncome, getCommercialIncome, assessFfp } from '@/utils/financeHelpers';
 import { formatMoney, getSuffix } from '@/utils/helpers';
@@ -935,33 +936,17 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     // last week's gain added to this week's dev delta — silently inflating
     // their displayed growth.
     p.growthDelta = 0;
-    if (p.injured) {
-      const recoveryBoost = physioBonus >= PHYSIO_RECOVERY_BOOST_THRESHOLD && Math.random() < PHYSIO_RECOVERY_CHANCE ? 1 : 0;
-      p.injuryWeeks = Math.max(0, p.injuryWeeks - 1 - recoveryBoost);
-      if (p.injuryDetails) {
-        p.injuryDetails = { ...p.injuryDetails, weeksRemaining: p.injuryWeeks };
-      }
-      if (p.injuryWeeks === 0) {
-        p.injured = false;
-        // Set fitness on return based on injury severity
-        if (p.injuryDetails) {
-          p.fitness = p.injuryDetails.fitnessOnReturn;
-          // Keep reinjury risk active for a period after return
-          p.injuryDetails = { ...p.injuryDetails, weeksRemaining: 0 };
-        }
-        // Recovery is reported via the WeeklyDigest (recoveriesThisWeek) — no inbox message.
-        digestRecoveries.push(p.lastName);
-      }
-    }
-    // Decrement re-injury risk window for recovered players
-    if (!p.injured && p.injuryDetails && p.injuryDetails.reinjuryWeeksRemaining > 0) {
-      p.injuryDetails = { ...p.injuryDetails, reinjuryWeeksRemaining: p.injuryDetails.reinjuryWeeksRemaining - 1 };
-      if (p.injuryDetails.reinjuryWeeksRemaining === 0) {
-        p.injuryDetails = undefined;
-      }
-    }
-    if (p.suspendedUntilWeek && p.suspendedUntilWeek <= week) {
-      p.suspendedUntilWeek = undefined;
+    // Injury / re-injury / suspension clocks. Shared with every other club in
+    // the world via `recoverInjuriesForOthers` below — this pass used to be the
+    // ONLY one, so AI squads never healed. Recovery is reported via the
+    // WeeklyDigest (recoveriesThisWeek); no inbox message.
+    {
+      const physioExtraWeek = p.injured
+        && physioBonus >= PHYSIO_RECOVERY_BOOST_THRESHOLD
+        && Math.random() < PHYSIO_RECOVERY_CHANCE ? 1 : 0;
+      const stepped = stepInjuryRecovery(p, week, physioExtraWeek);
+      p = stepped.player;
+      if (stepped.recovered) digestRecoveries.push(p.lastName);
     }
 
     // Snapshot attributes before training + development to track per-attribute changes
@@ -1075,6 +1060,22 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   // `divisionClubs` is rewritten by promotion and relegation every season, so an
   // index-based split would silently re-shuffle which clubs share a slice and
   // let a club skip or double up across a rollover.
+  // Injury / re-injury / suspension recovery for EVERY other player in the
+  // world. This is deliberately NOT amortised the way development above is:
+  // development is a slow drift where a one-week lag is immaterial, whereas an
+  // injury clock that ticks once every N weeks is an injury N times longer than
+  // the one that was diagnosed. It is a single scan with an early-out on the
+  // overwhelmingly common case (a fit player with no injury history), so the
+  // cost is a bounded fraction of the passes already made here.
+  //
+  // Without it AI clubs never healed at all: 0 injured at kickoff, 539 of 667
+  // by the end of season 3, which is what made `playCurrentMatchImpl` start
+  // refusing to play the PLAYER's fixtures for want of eleven fit opponents.
+  {
+    const recoveries = recoverInjuriesForOthers(newPlayers, week, playerClub.playerIds);
+    void recoveries; // digest reports the player's own squad only
+  }
+
   {
     const slices = aiDevelopmentSlices(state.totalWeeks || TOTAL_WEEKS);
     const activeSlice = state.week % slices;

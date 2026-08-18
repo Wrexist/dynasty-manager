@@ -582,12 +582,31 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   const ac = effectiveClubs[match.awayClubId];
   if (!hc || !ac) return null;
   const isSuspended = (p: Player) => p.suspendedUntilWeek != null && p.suspendedUntilWeek > week;
-  const backfillFromSubs = (lineup: Player[], club: typeof hc) => {
-    const availableSubs = (club.subs || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured);
+  // Cover holes in a saved XI: named bench first (the manager picked it), then
+  // the rest of the squad.
+  //
+  // This drew from `club.subs` ALONE, which is why a club with a full squad
+  // could still fall under the `< 7` guard below and make this function return
+  // null — silently, with no match, no message, and no fallback. Measured over
+  // three simulated seasons: the player's club finished with 36 / 32 / 25 league
+  // matches played against 36-38 for every other club in the division, because
+  // each skipped fixture was also invisible to `weekAdvance`'s auto-sim (which
+  // only fires when the player played SOMETHING else that week). The league
+  // table, prize money and promotion/relegation were all computed off that.
+  //
+  // Every AI club already covers from the whole squad — `pickAiMatchSquad`'s
+  // `honourSavedLineup` branch fills holes from `selectBestLineup(squad)`. This
+  // is the same rule for the player's club.
+  const backfillXI = (lineup: Player[], club: typeof hc) => {
     const ids = new Set(lineup.map(p => p.id));
-    for (const sub of availableSubs) {
+    for (const id of [...(club.subs || []), ...(club.playerIds || [])]) {
       if (lineup.length >= 11) break;
-      if (!ids.has(sub.id)) { lineup.push(sub); ids.add(sub.id); }
+      const p = effectivePlayers[id];
+      // `onLoan` matches the availability rule `pickAiMatchSquad` uses — a
+      // player out on loan is not available to the parent club.
+      if (!p || ids.has(p.id) || isSuspended(p) || p.injured || p.onLoan) continue;
+      lineup.push(p);
+      ids.add(p.id);
     }
     return lineup;
   };
@@ -595,9 +614,9 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   // construction and EVERY AI-sim path filter it — so an injured player left in
   // the saved XI played at full strength for the player's club only, and the
   // LineupEditor toast ("They cannot play until recovered") was simply untrue.
-  // `backfillFromSubs` tops the XI back up and already excludes injured players.
-  let hp = backfillFromSubs((hc.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured), hc);
-  let ap = backfillFromSubs((ac.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured), ac);
+  // `backfillXI` tops the XI back up and already excludes unavailable players.
+  let hp = backfillXI((hc.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured), hc);
+  let ap = backfillXI((ac.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured), ac);
 
   // Need minimum players to simulate a match
   if (hp.length < 7 || ap.length < 7) return null;
@@ -1117,12 +1136,31 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   const ac = effectiveClubs[match.awayClubId];
   if (!hc || !ac) return null;
   const isSuspended = (p: Player) => p.suspendedUntilWeek != null && p.suspendedUntilWeek > week;
-  const backfillFromSubs = (lineup: Player[], club: typeof hc) => {
-    const availableSubs = (club.subs || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured);
+  // Cover holes in a saved XI: named bench first (the manager picked it), then
+  // the rest of the squad.
+  //
+  // This drew from `club.subs` ALONE, which is why a club with a full squad
+  // could still fall under the `< 7` guard below and make this function return
+  // null — silently, with no match, no message, and no fallback. Measured over
+  // three simulated seasons: the player's club finished with 36 / 32 / 25 league
+  // matches played against 36-38 for every other club in the division, because
+  // each skipped fixture was also invisible to `weekAdvance`'s auto-sim (which
+  // only fires when the player played SOMETHING else that week). The league
+  // table, prize money and promotion/relegation were all computed off that.
+  //
+  // Every AI club already covers from the whole squad — `pickAiMatchSquad`'s
+  // `honourSavedLineup` branch fills holes from `selectBestLineup(squad)`. This
+  // is the same rule for the player's club.
+  const backfillXI = (lineup: Player[], club: typeof hc) => {
     const ids = new Set(lineup.map(p => p.id));
-    for (const sub of availableSubs) {
+    for (const id of [...(club.subs || []), ...(club.playerIds || [])]) {
       if (lineup.length >= 11) break;
-      if (!ids.has(sub.id)) { lineup.push(sub); ids.add(sub.id); }
+      const p = effectivePlayers[id];
+      // `onLoan` matches the availability rule `pickAiMatchSquad` uses — a
+      // player out on loan is not available to the parent club.
+      if (!p || ids.has(p.id) || isSuspended(p) || p.injured || p.onLoan) continue;
+      lineup.push(p);
+      ids.add(p.id);
     }
     return lineup;
   };
@@ -1130,9 +1168,9 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   // construction and EVERY AI-sim path filter it — so an injured player left in
   // the saved XI played at full strength for the player's club only, and the
   // LineupEditor toast ("They cannot play until recovered") was simply untrue.
-  // `backfillFromSubs` tops the XI back up and already excludes injured players.
-  let hp = backfillFromSubs((hc.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured), hc);
-  let ap = backfillFromSubs((ac.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured), ac);
+  // `backfillXI` tops the XI back up and already excludes unavailable players.
+  let hp = backfillXI((hc.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured), hc);
+  let ap = backfillXI((ac.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured), ac);
 
   // Need minimum players to simulate a match
   if (hp.length < 7 || ap.length < 7) return null;
