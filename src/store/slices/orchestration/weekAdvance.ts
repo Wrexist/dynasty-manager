@@ -66,7 +66,7 @@ import { stripAiMatchDetail, stableClubSlice } from '@/store/slices/orchestratio
 import { getEffectiveStadiumLevel } from '@/utils/facilities';
 import { markSuperCupPlayed, superCupPlayedOn } from '@/utils/superCup';
 import { nextFanMood } from '@/utils/fanMood';
-import { recoverInjuriesForOthers, stepInjuryRecovery } from '@/utils/injuryRecovery';
+import { applyWorldWeeklyUpkeep, stepInjuryRecovery } from '@/utils/injuryRecovery';
 import { getRecentForm } from '@/utils/formGuide';
 import { getLeaguePositionPrize, getMatchdayIncome, getCommercialIncome, assessFfp } from '@/utils/financeHelpers';
 import { formatMoney, getSuffix } from '@/utils/helpers';
@@ -1060,19 +1060,21 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   // `divisionClubs` is rewritten by promotion and relegation every season, so an
   // index-based split would silently re-shuffle which clubs share a slice and
   // let a club skip or double up across a rollover.
-  // Injury / re-injury / suspension recovery for EVERY other player in the
-  // world. This is deliberately NOT amortised the way development above is:
+  // Injury, re-injury, suspension and fitness clocks for EVERY other player in
+  // the world. Deliberately NOT amortised the way development below is:
   // development is a slow drift where a one-week lag is immaterial, whereas an
   // injury clock that ticks once every N weeks is an injury N times longer than
-  // the one that was diagnosed. It is a single scan with an early-out on the
-  // overwhelmingly common case (a fit player with no injury history), so the
-  // cost is a bounded fraction of the passes already made here.
+  // the one diagnosed, and a fitness clock that ticks that slowly is a world
+  // that never recovers between matches. One scan with an early-out on the
+  // common case.
   //
-  // Without it AI clubs never healed at all: 0 injured at kickoff, 539 of 667
-  // by the end of season 3, which is what made `playCurrentMatchImpl` start
-  // refusing to play the PLAYER's fixtures for want of eleven fit opponents.
+  // Without it AI clubs never healed (0 injured at kickoff, 539 of 667 by the
+  // end of season 3 — which is what made `playCurrentMatchImpl` refuse to play
+  // the PLAYER's fixtures for want of eleven fit opponents) and never recovered
+  // fitness (average 87 -> 74.8 by season 4 while the player's club held ~89,
+  // a compounding unearned edge through `getTeamStrength`).
   {
-    const recoveries = recoverInjuriesForOthers(newPlayers, week, playerClub.playerIds);
+    const recoveries = applyWorldWeeklyUpkeep(newPlayers, clubs, week, playerClub.playerIds);
     void recoveries; // digest reports the player's own squad only
   }
 

@@ -53,6 +53,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Fan mood now reacts to results and league position instead of sitting at a flat 50 all game — matchday income finally rises with a winning run and dips during a slump.',
     'The Super Cup now actually finishes: if it gets bumped off its scheduled week it is played once, awards the trophy and the prize money, and stops reappearing every free week.',
     'Your assistant now fills gaps in the starting XI from the whole squad, not just the named bench, so a run of injuries can no longer leave a match unplayable.',
+    'Rival clubs now recover fitness between matches like your own squad does. Previously only your players rested, so the rest of the world got quietly and permanently more tired every season.',
   ],
   headline: null,
   summary: null,

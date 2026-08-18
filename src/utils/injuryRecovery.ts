@@ -30,8 +30,25 @@
  *
  * No existing gate could see it. `stateValidator` and the longevity suites
  * count players that EXIST, not players who can play.
+ *
+ * FITNESS HAD THE SAME SHAPE. Weekly fitness recovery lives in
+ * `applyWeeklyTraining`, which is likewise only run for the player's squad, so
+ * AI clubs took the per-match drain and never got it back. Average fitness in
+ * the player's division, player's club vs everyone else:
+ *
+ *     S1 kickoff   86.5  /  87.0
+ *     S2 mid       88.5  /  80.4
+ *     S3 mid       90.8  /  76.4
+ *     S4 mid       89.2  /  74.8
+ *
+ * `getTeamStrength` scales by average fitness
+ * (`TEAM_STRENGTH_FITNESS_SCALE`), so that gap is a compounding, unearned
+ * advantage to the player: the world got measurably weaker every season. Both
+ * clocks are now wound by the same weekly pass.
  */
-import type { Player } from '@/types/game';
+import { FITNESS_RECOVERY_BASE, FITNESS_MIN, INTENSITY_FITNESS_COST } from '@/config/training';
+import { AI_FITNESS_CEILING_BASE, AI_FITNESS_CEILING_PER_RECOVERY_LEVEL, RECOVERY_FITNESS_BONUS_PER_LEVEL, clubRecoveryLevel } from '@/config/gameBalance';
+import type { Club, Player } from '@/types/game';
 
 export interface InjuryStepResult {
   /** The player after one week of recovery. Same object identity when nothing changed. */
@@ -88,27 +105,81 @@ export function stepInjuryRecovery(input: Player, week: number, recoveryBoost = 
 }
 
 /**
- * Run the recovery step over every player NOT handled by the player's own
- * squad pass. Returns the number of players who returned to fitness.
+ * A club's weekly fitness gain when nobody is choosing its training.
  *
- * Writes back into `players` in place — `advanceWeek` already owns that object
- * as a fresh copy (`newPlayers`), and rebuilding a 5,000-entry record every week
- * on the game's hottest path is not worth the purity.
+ * Modelled as the neutral schedule the player's own club would run — medium
+ * intensity, no dedicated fitness days — plus the club's recovery facilities,
+ * projected off the static `facilities` rating exactly as `clubMedicalLevel`
+ * does for injuries. A club with the median rating lands just under a player
+ * who has invested in the Recovery Suite, which is the intended shape: the
+ * player's facility spending should buy an edge, not the absence of a system.
  */
-export function recoverInjuriesForOthers(
+export function aiWeeklyFitnessGain(clubFacilities: number): number {
+  return FITNESS_RECOVERY_BASE
+    + INTENSITY_FITNESS_COST.medium
+    + clubRecoveryLevel(clubFacilities) * RECOVERY_FITNESS_BONUS_PER_LEVEL;
+}
+
+/** The resting fitness an AI club's squad settles at — see the constant's note. */
+export function aiFitnessCeiling(clubFacilities: number): number {
+  return Math.min(100, AI_FITNESS_CEILING_BASE
+    + clubRecoveryLevel(clubFacilities) * AI_FITNESS_CEILING_PER_RECOVERY_LEVEL);
+}
+
+/**
+ * Wind every weekly clock for players NOT handled by the player's own squad
+ * pass: injury, re-injury, suspension and fitness. Returns how many players
+ * returned from injury.
+ *
+ * One scan rather than several — this runs on the game's hottest path. It
+ * writes back into `players` in place, which `advanceWeek` already owns as a
+ * fresh copy (`newPlayers`); rebuilding a 5,000-entry record every week is not
+ * worth the purity.
+ */
+export function applyWorldWeeklyUpkeep(
   players: Record<string, Player>,
+  clubs: Record<string, Club>,
   week: number,
   skipIds: Iterable<string>,
 ): number {
   const skip = skipIds instanceof Set ? skipIds : new Set(skipIds);
+  // Cache per club: `clubRecoveryLevel` is cheap but this runs over every
+  // player in the world, every week.
+  const restByClub = new Map<string, { gain: number; ceiling: number }>();
+  const restFor = (clubId: string) => {
+    let r = restByClub.get(clubId);
+    if (r === undefined) {
+      const facilities = clubs[clubId]?.facilities ?? 5;
+      r = { gain: aiWeeklyFitnessGain(facilities), ceiling: aiFitnessCeiling(facilities) };
+      restByClub.set(clubId, r);
+    }
+    return r;
+  };
+
   let recoveries = 0;
   for (const id in players) {
     if (skip.has(id)) continue;
     const current = players[id];
     if (!current) continue;
+
     const { player, recovered } = stepInjuryRecovery(current, week);
-    if (player !== current) players[id] = player;
     if (recovered) recoveries++;
+
+    // An injured player does not train — same rule the player's squad follows
+    // (`applyWeeklyTraining` is gated on `!p.injured`), and a returning player
+    // has just had his fitness set to `fitnessOnReturn`, which this must not
+    // immediately undo.
+    let next = player;
+    if (!next.injured && !recovered && next.clubId) {
+      const { gain, ceiling } = restFor(next.clubId);
+      // Rest brings a squad back UP to its club's ceiling and no further. Never
+      // downward: a player already above it (a fresh signing, a fitness perk)
+      // keeps what he has rather than being dragged to the mean.
+      const rested = Math.max(FITNESS_MIN, Math.min(ceiling, next.fitness + gain));
+      if (rested > next.fitness) next = { ...next, fitness: rested };
+    }
+
+    if (next !== current) players[id] = next;
   }
   return recoveries;
 }

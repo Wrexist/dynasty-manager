@@ -41,10 +41,12 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
-import { recoverInjuriesForOthers, stepInjuryRecovery } from '@/utils/injuryRecovery';
+import { aiFitnessCeiling, aiWeeklyFitnessGain, applyWorldWeeklyUpkeep, stepInjuryRecovery } from '@/utils/injuryRecovery';
 import { __resetSaveStorageForTests } from '@/store/helpers/persistence';
 import { __resetAutosaveSchedulerForTests } from '@/store/slices/orchestrationSlice';
-import type { InjuryDetails, Player } from '@/types/game';
+import { FITNESS_RECOVERY_BASE, INTENSITY_FITNESS_COST } from '@/config/training';
+import { AI_FITNESS_CEILING_BASE, AI_FITNESS_CEILING_PER_RECOVERY_LEVEL, RECOVERY_FITNESS_BONUS_PER_LEVEL, clubRecoveryLevel } from '@/config/gameBalance';
+import type { Club, InjuryDetails, Player } from '@/types/game';
 
 const CLUB = 'manchester-city';
 
@@ -117,14 +119,49 @@ describe('stepInjuryRecovery', () => {
   });
 });
 
-describe('recoverInjuriesForOthers', () => {
+const CLUBS: Record<string, Club> = { rival: { id: 'rival', facilities: 5 } as Club };
+
+describe('aiFitnessCeiling', () => {
+  it('brackets the ~87 every club starts at', () => {
+    expect(aiFitnessCeiling(2)).toBeGreaterThanOrEqual(85);
+    expect(aiFitnessCeiling(10)).toBeLessThan(100);
+    expect(aiFitnessCeiling(10)).toBeGreaterThan(aiFitnessCeiling(2));
+  });
+
+  it('is the configured base plus the club\'s recovery level', () => {
+    expect(aiFitnessCeiling(5)).toBe(
+      AI_FITNESS_CEILING_BASE + clubRecoveryLevel(5) * AI_FITNESS_CEILING_PER_RECOVERY_LEVEL,
+    );
+  });
+});
+
+describe('aiWeeklyFitnessGain', () => {
+  it('is the neutral schedule plus the club\'s recovery facilities', () => {
+    expect(aiWeeklyFitnessGain(5)).toBe(
+      FITNESS_RECOVERY_BASE + INTENSITY_FITNESS_COST.medium + clubRecoveryLevel(5) * RECOVERY_FITNESS_BONUS_PER_LEVEL,
+    );
+  });
+
+  it('rewards better facilities, and never goes backwards', () => {
+    const weak = aiWeeklyFitnessGain(2);
+    const strong = aiWeeklyFitnessGain(10);
+    expect(strong).toBeGreaterThan(weak);
+    expect(weak).toBeGreaterThan(0);
+  });
+
+  it('falls back to the median rating for a club with no facilities figure', () => {
+    expect(aiWeeklyFitnessGain(NaN)).toBe(aiWeeklyFitnessGain(5));
+  });
+});
+
+describe('applyWorldWeeklyUpkeep', () => {
   it('heals everyone except the skipped squad, and counts returns', () => {
     const players: Record<string, Player> = {
-      mine: injured({ id: 'mine', injuryWeeks: 1 }),
-      theirs: injured({ id: 'theirs', injuryWeeks: 1 }),
-      slow: injured({ id: 'slow', injuryWeeks: 4 }),
+      mine: injured({ id: 'mine', injuryWeeks: 1, clubId: 'rival' }),
+      theirs: injured({ id: 'theirs', injuryWeeks: 1, clubId: 'rival' }),
+      slow: injured({ id: 'slow', injuryWeeks: 4, clubId: 'rival' }),
     };
-    const recoveries = recoverInjuriesForOthers(players, 7, ['mine']);
+    const recoveries = applyWorldWeeklyUpkeep(players, CLUBS, 7, ['mine']);
     expect(players.mine.injured, 'the skipped squad is handled by its own pass').toBe(true);
     expect(players.theirs.injured).toBe(false);
     expect(players.slow.injuryWeeks).toBe(3);
@@ -132,9 +169,59 @@ describe('recoverInjuriesForOthers', () => {
   });
 
   it('accepts a Set as well as an array', () => {
-    const players: Record<string, Player> = { a: injured({ id: 'a', injuryWeeks: 1 }) };
-    recoverInjuriesForOthers(players, 7, new Set(['a']));
+    const players: Record<string, Player> = { a: injured({ id: 'a', injuryWeeks: 1, clubId: 'rival' }) };
+    applyWorldWeeklyUpkeep(players, CLUBS, 7, new Set(['a']));
     expect(players.a.injured).toBe(true);
+  });
+
+  it('rests a tired AI player back toward the club ceiling', () => {
+    const players: Record<string, Player> = {
+      tired: { id: 'tired', lastName: 'T', clubId: 'rival', injured: false, injuryWeeks: 0, fitness: 60 } as Player,
+    };
+    applyWorldWeeklyUpkeep(players, CLUBS, 7, []);
+    expect(players.tired.fitness).toBe(Math.min(aiFitnessCeiling(5), 60 + aiWeeklyFitnessGain(5)));
+  });
+
+  it('stops at the ceiling instead of pinning the world at 100', () => {
+    // A flat gain with no ceiling was tried first and drove the AI squad
+    // average to 99.7 against the player's 85 — the original decay bug with
+    // the sign flipped.
+    const players: Record<string, Player> = {
+      near: { id: 'near', lastName: 'N', clubId: 'rival', injured: false, injuryWeeks: 0, fitness: 86 } as Player,
+    };
+    for (let w = 0; w < 10; w++) applyWorldWeeklyUpkeep(players, CLUBS, 7 + w, []);
+    expect(players.near.fitness).toBe(aiFitnessCeiling(5));
+    expect(players.near.fitness).toBeLessThan(100);
+  });
+
+  it('never drags a player who is already above the ceiling back down', () => {
+    const players: Record<string, Player> = {
+      flying: { id: 'flying', lastName: 'F', clubId: 'rival', injured: false, injuryWeeks: 0, fitness: 100 } as Player,
+    };
+    applyWorldWeeklyUpkeep(players, CLUBS, 7, []);
+    expect(players.flying.fitness).toBe(100);
+  });
+
+  it('does not train an injured player back to fitness', () => {
+    const players: Record<string, Player> = { hurt: injured({ id: 'hurt', clubId: 'rival', injuryWeeks: 3, fitness: 40 }) };
+    applyWorldWeeklyUpkeep(players, CLUBS, 7, []);
+    expect(players.hurt.injured).toBe(true);
+    expect(players.hurt.fitness).toBe(40);
+  });
+
+  it('leaves fitnessOnReturn intact on the week a player comes back', () => {
+    const players: Record<string, Player> = { back: injured({ id: 'back', clubId: 'rival', injuryWeeks: 1, fitness: 40 }) };
+    applyWorldWeeklyUpkeep(players, CLUBS, 7, []);
+    expect(players.back.injured).toBe(false);
+    expect(players.back.fitness, 'the return-week gain overwrote fitnessOnReturn').toBe(65);
+  });
+
+  it('skips a player with no club — free agents do not train', () => {
+    const players: Record<string, Player> = {
+      fa: { id: 'fa', lastName: 'A', clubId: '', injured: false, injuryWeeks: 0, fitness: 55 } as Player,
+    };
+    applyWorldWeeklyUpkeep(players, CLUBS, 7, []);
+    expect(players.fa.fitness).toBe(55);
   });
 });
 
