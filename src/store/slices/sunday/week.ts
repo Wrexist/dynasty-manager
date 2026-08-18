@@ -246,12 +246,13 @@ export function advanceSundayWeek(set: Set, get: Get): void {
   // ── 3. The books ─────────────────────────────────────────────────────────
   const lastMatch = sunday.lastMatch;
   const playedThisWeek = lastMatch && lastMatch.week === week && lastMatch.season === season;
-  const redCards = playedThisWeek
-    ? (state.currentMatchResult?.events ?? []).filter(e => e.type === 'red_card' && e.clubId === clubId).length
-    : 0;
-  const injuriesThisWeek = playedThisWeek
-    ? (state.currentMatchResult?.events ?? []).filter(e => e.type === 'injury' && e.clubId === clubId).length
-    : 0;
+  // Discipline and treatment come off the REPORT, which is persisted, not off
+  // `state.currentMatchResult`, which is not. The game autosaves the moment the
+  // whistle goes, so a player who reloaded between the match and Next Week used
+  // to skip the red-card fine and the physio bill entirely — a save-scum the
+  // seeded-RNG design explicitly promises does not exist.
+  const redCards = playedThisWeek ? lastMatch.redCards : 0;
+  const injuriesThisWeek = playedThisWeek ? lastMatch.injuries : 0;
   const playedIds = playedThisWeek ? lastMatch.playedIds : [];
 
   const ledger = buildWeekLedger({

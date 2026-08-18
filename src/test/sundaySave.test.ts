@@ -11,6 +11,7 @@ import { useGameStore } from '@/store/gameStore';
 import { __resetSaveStorageForTests, readSaveSlot } from '@/store/helpers/persistence';
 import { CURRENT_VERSION, migrateSaveData, validateSaveShape } from '@/utils/saveMigration';
 import { assertSundayState } from '@/utils/sunday/invariants';
+import { SUNDAY_INJURY_COST, SUNDAY_RED_CARD_FINE } from '@/config/sundayLeague';
 import { __resetAutosaveSchedulerForTests } from '@/store/slices/orchestrationSlice';
 
 const SEED = 20250;
@@ -115,6 +116,41 @@ describe('save round trip', () => {
     // this fails, some loop code has started drawing from the persistent
     // stream again.
     expect(pathB.cursor).toBe(pathA.cursor);
+  });
+
+  it('still charges the red-card fine and the treatment bill after a reload', async () => {
+    // The save-scum this closes: the game autosaves the moment the whistle
+    // goes, and the weekly settlement used to read the counts off
+    // `currentMatchResult`, which is not persisted. Reload, tap Next Week, and
+    // the fines vanished. The counts now live on the persisted report.
+    await useGameStore.getState().startSundayLeague({ personality: 'pub', seed: SEED });
+    await useGameStore.getState().playSundayMatch();
+
+    // Force the counts rather than waiting for the (unseeded) engine to produce
+    // a sending-off: what is under test is where the numbers are READ from.
+    const played = useGameStore.getState();
+    useGameStore.setState({
+      sunday: {
+        ...played.sunday!,
+        upgrades: [], // no physio, so the treatment bill is charged
+        lastMatch: { ...played.sunday!.lastMatch!, redCards: 2, injuries: 1 },
+      },
+    });
+
+    useGameStore.getState().saveGame(1);
+    useGameStore.getState().flushSave();
+    useGameStore.getState().loadGame(1);
+    expect(useGameStore.getState().currentMatchResult).toBeNull();
+
+    await useGameStore.getState().advanceWeek();
+    const ledger = useGameStore.getState().sunday!.ledger;
+    const lines = ledger[ledger.length - 1].lines;
+    const fine = lines.find(l => l.kind === 'fine');
+    expect(fine, JSON.stringify(lines)).toBeTruthy();
+    expect(fine!.amount).toBe(-2 * SUNDAY_RED_CARD_FINE);
+    const medical = lines.find(l => l.kind === 'medical');
+    expect(medical, JSON.stringify(lines)).toBeTruthy();
+    expect(medical!.amount).toBe(-SUNDAY_INJURY_COST);
   });
 
   it('writes a save that passes the shape validator', async () => {
