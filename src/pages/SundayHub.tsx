@@ -1,0 +1,325 @@
+/**
+ * Sunday League hub — the screen the mode lives on.
+ *
+ * Answers, in order, the four questions a Sunday manager actually has on a
+ * Wednesday night: who is available, who are we playing, have we got any money,
+ * and what happened last week. Everything else is a tap away.
+ *
+ * The primary action changes with the state of the week — name a team, play the
+ * match, move on — so there is always exactly one obvious next thing to do.
+ */
+import { useMemo } from 'react';
+import { motion } from 'framer-motion';
+import {
+  ArrowRight, CalendarDays, Coins, Flame, HandCoins, History, Landmark,
+  Swords, Trophy, UserPlus,
+} from 'lucide-react';
+import { toast } from 'sonner';
+import { useShallow } from 'zustand/react/shallow';
+import { GlassPanel } from '@/components/game/GlassPanel';
+import { LiquidButton } from '@/components/game/LiquidButton';
+import { SectionHeader } from '@/components/game/SectionHeader';
+import { AvailabilityPill, Meter, StatChip, SundayCrest } from '@/components/game/sunday/SundayBits';
+import { SundayEventModal } from '@/components/game/sunday/SundayEventModal';
+import { useGameStore } from '@/store/gameStore';
+import { useTranslation } from '@/hooks/useTranslation';
+import { formatMoney } from '@/utils/helpers';
+import { cn } from '@/lib/utils';
+import { getSundayDivision, getSundayTactic, SUNDAY_MIN_START } from '@/config/sundayLeague';
+import { summariseAvailability } from '@/utils/sunday/availability';
+import { sundayCupRoundName, sundaySeasonWeeks } from '@/utils/sunday/season';
+import { findSundayFixture, sundayPitchQuality } from '@/store/slices/sunday/matchday';
+import { sundayResultVerdict } from '@/utils/sunday/match';
+
+const SundayHub = () => {
+  const { t } = useTranslation();
+  const { sunday, players, clubs, fixtures, week, season, playerClubId } = useGameStore(useShallow(s => ({
+    sunday: s.sunday,
+    players: s.players,
+    clubs: s.clubs,
+    fixtures: s.fixtures,
+    week: s.week,
+    season: s.season,
+    playerClubId: s.playerClubId,
+  })));
+  const setScreen = useGameStore(s => s.setScreen);
+  const advanceWeek = useGameStore(s => s.advanceWeek);
+  const runFundraiser = useGameStore(s => s.runSundayFundraiser);
+  const chaseSubs = useGameStore(s => s.chaseSundaySubs);
+
+  const fixture = useMemo(
+    () => (sunday ? findSundayFixture(sunday, fixtures, week, playerClubId) : null),
+    [sunday, fixtures, week, playerClubId],
+  );
+
+  if (!sunday) return null;
+
+  const div = getSundayDivision(sunday.divisionId);
+  const avail = summariseAvailability(sunday.squad);
+  const subsOwed = sunday.squad.reduce((n, m) => n + m.subsOwed, 0);
+  const totalWeeks = sundaySeasonWeeks(sunday.divisionId);
+  const pitch = sundayPitchQuality(sunday, week);
+  const tactic = getSundayTactic(sunday.tactic);
+
+  const opponentId = fixture
+    ? fixture.kind === 'cup'
+      ? (fixture.tie.homeClubId === playerClubId ? fixture.tie.awayClubId : fixture.tie.homeClubId)
+      : (fixture.match.homeClubId === playerClubId ? fixture.match.awayClubId : fixture.match.homeClubId)
+    : null;
+  const opponent = opponentId ? clubs[opponentId] : null;
+  const isHome = fixture
+    ? (fixture.kind === 'cup' ? fixture.tie.homeClubId : fixture.match.homeClubId) === playerClubId
+    : false;
+
+  const namedCount = sunday.teamsheet.length;
+  const teamReady = namedCount >= SUNDAY_MIN_START;
+
+  const primary = sunday.seasonComplete
+    ? { label: t('sunday.hub.viewSeason'), action: () => setScreen('sunday-history') }
+    : fixture
+      ? teamReady
+        ? { label: t('sunday.hub.playMatch'), action: () => setScreen('sunday-match') }
+        : { label: t('sunday.hub.pickTeam'), action: () => setScreen('sunday-teamsheet') }
+      : { label: t('sunday.hub.nextWeek'), action: () => { void advanceWeek(); } };
+
+  const quick = (fn: () => Promise<{ ok: boolean; message: string }>) => () => {
+    void fn().then(r => {
+      if (r.ok) toast.success(r.message);
+      else toast.info(r.message);
+    });
+  };
+
+  return (
+    <div className="max-w-lg mx-auto px-4 pt-3 pb-4 space-y-3">
+      <SundayEventModal />
+
+      {/* Club header */}
+      <GlassPanel className="p-4">
+        <div className="flex items-center gap-3">
+          <SundayCrest shortName={sunday.identity.shortName} color={sunday.identity.color} secondaryColor={sunday.identity.secondaryColor} size={44} />
+          <div className="min-w-0 flex-1">
+            <p className="text-title font-display font-bold text-foreground truncate">{sunday.identity.name}</p>
+            <p className="text-caption text-muted-foreground truncate">
+              {div.name} · {t('sunday.hub.week', { week })} / {totalWeeks} · {t('sunday.hub.season', { season })}
+            </p>
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-2 mt-3">
+          <StatChip
+            label={t('sunday.hub.balance')}
+            value={formatMoney(sunday.balance)}
+            tone={sunday.balance < 0 ? 'bad' : sunday.balance < 100 ? 'warn' : 'good'}
+          />
+          <StatChip label={t('sunday.hub.squadLabel')} value={t('sunday.hub.squadSize', { n: sunday.squad.length })} />
+          <StatChip label={t('sunday.hub.pitch')} value={`${Math.round(pitch)}/100`} tone={pitch < 25 ? 'warn' : 'default'} />
+        </div>
+        <div className="grid grid-cols-2 gap-3 mt-3">
+          <Meter label={t('sunday.hub.morale')} value={sunday.teamMorale} />
+          <Meter label={t('sunday.hub.reputation')} value={sunday.reputation} />
+        </div>
+      </GlassPanel>
+
+      {/* Availability */}
+      <GlassPanel className="p-4 space-y-2.5">
+        <SectionHeader
+          level="section"
+          title={t('sunday.hub.availability')}
+          accessory={
+            <button
+              type="button"
+              onClick={() => setScreen('sunday-teamsheet')}
+              className="text-caption font-semibold text-primary inline-flex items-center gap-1 min-h-[44px] px-1"
+            >
+              {teamReady ? t('sunday.hub.teamNamed', { n: namedCount }) : t('sunday.hub.teamNotNamed')}
+              <ArrowRight className="w-3.5 h-3.5" aria-hidden />
+            </button>
+          }
+        />
+        <div className="flex flex-wrap gap-2">
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-micro font-semibold text-emerald-300">
+            {t('sunday.hub.available', { n: avail.available })}
+          </span>
+          {avail.doubts > 0 && (
+            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-400/15 border border-amber-400/30 text-micro font-semibold text-amber-200">
+              {t('sunday.hub.doubts', { n: avail.doubts })}
+            </span>
+          )}
+          {avail.out > 0 && (
+            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-destructive/15 border border-destructive/30 text-micro font-semibold text-destructive">
+              {t('sunday.hub.out', { n: avail.out })}
+            </span>
+          )}
+        </div>
+        {/* Everyone who has cried off, with the reason where the manager has
+            been told one. An unwarned absence stays a blank until the match. */}
+        <ul className="space-y-1">
+          {sunday.squad
+            .filter(m => m.availability.status !== 'available' && m.availability.warned)
+            .slice(0, 4)
+            .map(m => (
+              <li key={m.playerId} className="flex items-center gap-2 text-caption text-muted-foreground">
+                <AvailabilityPill availability={m.availability} />
+                <span className="truncate">{m.availability.note ?? players[m.playerId]?.firstName}</span>
+              </li>
+            ))}
+        </ul>
+      </GlassPanel>
+
+      {/* Fixture */}
+      <GlassPanel className="p-4 space-y-3">
+        <SectionHeader level="section" title={t('sunday.hub.nextFixture')} />
+        {sunday.seasonComplete ? (
+          <div>
+            <p className="text-body font-semibold text-foreground">{t('sunday.hub.seasonOver')}</p>
+            <p className="text-caption text-muted-foreground mt-1">{t('sunday.hub.seasonOverBody')}</p>
+          </div>
+        ) : fixture && opponent ? (
+          <div className="flex items-center gap-3">
+            <SundayCrest shortName={opponent.shortName} color={opponent.color} secondaryColor={opponent.secondaryColor} size={38} />
+            <div className="min-w-0 flex-1">
+              <p className="text-body font-semibold text-foreground truncate">
+                {isHome ? t('sunday.hub.homeTo', { club: opponent.name }) : t('sunday.hub.awayAt', { club: opponent.name })}
+              </p>
+              <p className="text-caption text-muted-foreground truncate">
+                {fixture.kind === 'cup'
+                  ? t('sunday.hub.cupTie', { round: sundayCupRoundName(fixture.tie.round), club: sunday.cup?.name ?? '' })
+                  : `${tactic.name} · ${div.shortName}`}
+              </p>
+            </div>
+            {sunday.rivalry?.clubId === opponent.id && (
+              <span className="inline-flex items-center gap-1 text-micro font-semibold text-orange-300 shrink-0">
+                <Flame className="w-3.5 h-3.5" aria-hidden /> {sunday.rivalry.name}
+              </span>
+            )}
+          </div>
+        ) : (
+          <div>
+            <p className="text-body font-semibold text-foreground">{t('sunday.hub.freeWeek')}</p>
+            <p className="text-caption text-muted-foreground mt-1">{t('sunday.hub.freeWeekBody')}</p>
+          </div>
+        )}
+
+        <LiquidButton tone="primary" className="w-full py-3" onClick={primary.action}>
+          {primary.label}
+        </LiquidButton>
+      </GlassPanel>
+
+      {/* Last result */}
+      {sunday.lastMatch && (
+        <GlassPanel className="p-4">
+          <SectionHeader level="section" title={t('sunday.hub.lastResult')} />
+          <div className="flex items-center gap-3 mt-2">
+            <span className={cn(
+              'text-h3 font-display font-bold tabular-nums',
+              sunday.lastMatch.goalsFor > sunday.lastMatch.goalsAgainst ? 'text-emerald-300'
+                : sunday.lastMatch.goalsFor === sunday.lastMatch.goalsAgainst ? 'text-amber-300' : 'text-destructive',
+            )}>
+              {sunday.lastMatch.goalsFor}-{sunday.lastMatch.goalsAgainst}
+            </span>
+            <div className="min-w-0">
+              <p className="text-caption text-foreground truncate">{sunday.lastMatch.opponentName}</p>
+              <p className="text-micro text-muted-foreground truncate">{sundayResultVerdict(sunday.lastMatch)}</p>
+            </div>
+          </div>
+        </GlassPanel>
+      )}
+
+      {/* Week log */}
+      {sunday.weekLog.length > 0 && (
+        <GlassPanel className="p-4">
+          <SectionHeader level="section" title={t('sunday.hub.weekLog')} />
+          <ul className="mt-2 space-y-1.5">
+            {sunday.weekLog.map((line, i) => (
+              <motion.li
+                key={`${line}-${i}`}
+                initial={{ opacity: 0, x: -6 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: Math.min(i * 0.04, 0.3), duration: 0.22 }}
+                className="text-caption text-muted-foreground leading-relaxed"
+              >
+                {line}
+              </motion.li>
+            ))}
+          </ul>
+        </GlassPanel>
+      )}
+
+      {/* Club business */}
+      <GlassPanel className="p-4 space-y-2">
+        <SectionHeader level="section" title={t('sunday.hub.quickActions')} />
+        <div className="grid grid-cols-2 gap-2">
+          <LiquidButton className="py-2.5" onClick={quick(() => runFundraiser())}>
+            <span className="inline-flex items-center gap-1.5 text-caption"><HandCoins className="w-4 h-4" aria-hidden /> {t('sunday.hub.fundraiser')}</span>
+          </LiquidButton>
+          <LiquidButton className="py-2.5" onClick={quick(() => chaseSubs())}>
+            <span className="inline-flex items-center gap-1.5 text-caption">
+              <Coins className="w-4 h-4" aria-hidden />
+              {subsOwed > 0 ? t('sunday.hub.subsOwed', { n: subsOwed }) : t('sunday.hub.chaseSubs')}
+            </span>
+          </LiquidButton>
+          <LiquidButton className="py-2.5" onClick={() => setScreen('sunday-recruit')}>
+            <span className="inline-flex items-center gap-1.5 text-caption">
+              <UserPlus className="w-4 h-4" aria-hidden />
+              {sunday.recruits.length > 0 ? t('sunday.hub.recruitsWaiting', { n: sunday.recruits.length }) : t('sunday.hub.recruits')}
+            </span>
+          </LiquidButton>
+          <LiquidButton className="py-2.5" onClick={() => setScreen('sunday-table')}>
+            <span className="inline-flex items-center gap-1.5 text-caption"><CalendarDays className="w-4 h-4" aria-hidden /> {t('sunday.hub.table')}</span>
+          </LiquidButton>
+          <LiquidButton className="py-2.5" onClick={() => setScreen('sunday-club')}>
+            <span className="inline-flex items-center gap-1.5 text-caption"><Landmark className="w-4 h-4" aria-hidden /> {t('sunday.hub.club')}</span>
+          </LiquidButton>
+          <LiquidButton className="py-2.5" onClick={() => setScreen('sunday-history')}>
+            <span className="inline-flex items-center gap-1.5 text-caption"><History className="w-4 h-4" aria-hidden /> {t('sunday.hub.history')}</span>
+          </LiquidButton>
+        </div>
+      </GlassPanel>
+
+      {/* Rivalry */}
+      {sunday.rivalry && clubs[sunday.rivalry.clubId] && (
+        <GlassPanel className="p-4">
+          <SectionHeader
+            level="section"
+            title={t('sunday.hub.rival')}
+            accessory={
+              <span className="text-caption text-muted-foreground">
+                {t('sunday.hub.rivalRecord', { w: sunday.rivalry.wins, d: sunday.rivalry.draws, l: sunday.rivalry.losses })}
+              </span>
+            }
+          />
+          <div className="flex items-center gap-2 mt-2">
+            <Swords className="w-4 h-4 text-orange-300 shrink-0" aria-hidden />
+            <p className="text-caption text-foreground truncate">
+              {sunday.rivalry.name} · {clubs[sunday.rivalry.clubId].name}
+            </p>
+          </div>
+          {sunday.rivalry.lastTaunt && (
+            <p className="text-caption text-muted-foreground mt-2 leading-relaxed">{sunday.rivalry.lastTaunt}</p>
+          )}
+        </GlassPanel>
+      )}
+
+      {/* Cup progress */}
+      {sunday.cup && (
+        <GlassPanel className="p-3">
+          <button
+            type="button"
+            onClick={() => setScreen('sunday-table')}
+            className="w-full flex items-center gap-2 min-h-[44px] text-left"
+          >
+            <Trophy className="w-4 h-4 text-primary shrink-0" aria-hidden />
+            <span className="text-caption text-foreground flex-1 truncate">{sunday.cup.name}</span>
+            <span className="text-micro text-muted-foreground">
+              {sunday.cup.winnerClubId === playerClubId
+                ? t('sunday.table.cupWon')
+                : sunday.cup.eliminated ? t('sunday.table.cupOut') : ''}
+            </span>
+            <ArrowRight className="w-3.5 h-3.5 text-muted-foreground" aria-hidden />
+          </button>
+        </GlassPanel>
+      )}
+    </div>
+  );
+};
+
+export default SundayHub;

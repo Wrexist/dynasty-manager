@@ -11,7 +11,7 @@ import { PageErrorBoundary } from '@/components/game/PageErrorBoundary';
 import { ErrorBoundary } from '@/components/game/ErrorBoundary';
 import { ContractNegotiation } from '@/components/game/ContractNegotiation';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
-import { BACK_TARGET, MAIN_TABS, WC_MAIN_TABS, SCREEN_GROUPS, UNEMPLOYED_MAIN_TABS, UNEMPLOYED_ALLOWED_SCREENS } from '@/config/navigation';
+import { BACK_TARGET, MAIN_TABS, WC_MAIN_TABS, SUNDAY_MAIN_TABS, SCREEN_GROUPS, UNEMPLOYED_MAIN_TABS, UNEMPLOYED_ALLOWED_SCREENS } from '@/config/navigation';
 import { MARKET_SUB_NAV, SQUAD_SUB_NAV } from '@/config/ui';
 import { PACK_PITY_THRESHOLD } from '@/config/packs';
 import { useMatchLocked, useCareerUnemployed, useCareerRetired } from '@/hooks/useGameSelectors';
@@ -73,6 +73,14 @@ const WorldCupDraw = lazy(() => import('./WorldCupDraw'));
 const WorldCupDashboard = lazy(() => import('./WorldCupDashboard'));
 const RivalriesPage = lazy(() => import('./RivalriesPage'));
 const CompetitionsPage = lazy(() => import('./CompetitionsPage'));
+const SundayHub = lazy(() => import('./SundayHub'));
+const SundayTeamsheet = lazy(() => import('./SundayTeamsheet'));
+const SundayMatchDay = lazy(() => import('./SundayMatchDay'));
+const SundaySquad = lazy(() => import('./SundaySquad'));
+const SundayClub = lazy(() => import('./SundayClub'));
+const SundayTable = lazy(() => import('./SundayTable'));
+const SundayRecruit = lazy(() => import('./SundayRecruit'));
+const SundayHistory = lazy(() => import('./SundayHistory'));
 
 const screens: Record<string, React.ComponentType> = {
   dashboard: Dashboard,
@@ -127,6 +135,14 @@ const screens: Record<string, React.ComponentType> = {
   'world-cup-result': WorldCupResult,
   'rivalries': RivalriesPage,
   'competitions': CompetitionsPage,
+  'sunday-hub': SundayHub,
+  'sunday-teamsheet': SundayTeamsheet,
+  'sunday-match': SundayMatchDay,
+  'sunday-squad': SundaySquad,
+  'sunday-club': SundayClub,
+  'sunday-table': SundayTable,
+  'sunday-recruit': SundayRecruit,
+  'sunday-history': SundayHistory,
 };
 
 // Route-level Suspense fallback while a lazy page chunk downloads. Renders
@@ -164,7 +180,9 @@ const GameShell = () => {
   const matchLocked = useMatchLocked();
   const isUnemployed = useCareerUnemployed();
   const isRetired = useCareerRetired();
-  const activeTabs = gameMode === 'world-cup' ? WC_MAIN_TABS : isUnemployed ? UNEMPLOYED_MAIN_TABS : MAIN_TABS;
+  const activeTabs = gameMode === 'sunday'
+    ? SUNDAY_MAIN_TABS
+    : gameMode === 'world-cup' ? WC_MAIN_TABS : isUnemployed ? UNEMPLOYED_MAIN_TABS : MAIN_TABS;
 
   // A retired manager has no club, so the club tabs would point at a squad they
   // no longer manage. Keep them on the retrospective; everything reachable from
@@ -179,9 +197,9 @@ const GameShell = () => {
   // SubNav doesn't receive a fresh `items` array on every GameShell render
   // (which would defeat its prop stability and trigger child re-renders).
   const subNavGroup = useMemo(() => {
-    // World Cup mode strips the club sub-screens (Staff/Youth/Training,
-    // Scouting/Packs) — so no Squad/Market sub-nav to show.
-    if (gameMode === 'world-cup') return null;
+    // World Cup and Sunday League strip the club sub-screens (Staff/Youth/
+    // Training, Scouting/Packs) — so there is no Squad/Market sub-nav to show.
+    if (gameMode === 'world-cup' || gameMode === 'sunday') return null;
     const group = SCREEN_GROUPS.find(g => g.includes(currentScreen));
     if (!group) return null;
     if (group[0] === 'squad') {
@@ -268,7 +286,7 @@ const GameShell = () => {
   }, []);
 
   // World Cup mode has no Squad/Market sub-groups, so swipe ignores them.
-  const useSubGroups = !isUnemployed && gameMode !== 'world-cup';
+  const useSubGroups = !isUnemployed && gameMode !== 'world-cup' && gameMode !== 'sunday';
 
   const handleSwipeLeft = useCallback(() => {
     if (matchLocked) return;
@@ -325,9 +343,14 @@ const GameShell = () => {
   // World Cup mode swaps the club Dashboard for a nation-adapted hub. Every
   // other screen (Squad, Tactics, MatchDay, …) is shared — the national team
   // is the player's club, so they operate on it natively.
+  // Sunday League never uses `dashboard`; `startSundayLeague` and every
+  // Sunday screen navigate to `sunday-hub` directly. The redirect here catches
+  // the one path that cannot: `loadGame`, which sets `dashboard` for every mode.
   const Screen = (gameMode === 'world-cup' && currentScreen === 'dashboard')
     ? WorldCupDashboard
-    : (screens[currentScreen] || Dashboard);
+    : (gameMode === 'sunday' && currentScreen === 'dashboard')
+      ? SundayHub
+      : (screens[currentScreen] || Dashboard);
 
   // Scroll-position memory per screen. Returning to a long list (Market, Squad,
   // Inbox) should land you back where you were, not dumped at the top — which

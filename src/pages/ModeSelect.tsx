@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Gamepad2, Briefcase, Users, Sparkles, Trophy } from 'lucide-react';
+import { ArrowLeft, Gamepad2, Briefcase, Users, Sparkles, Trophy, Beer } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -56,6 +56,18 @@ const modes: readonly Mode[] = [
     iconColor: 'text-amber-400',
     iconBg: 'bg-amber-500/10',
     route: '/world-cup',
+  },
+  {
+    id: 'sunday',
+    name: 'Sunday League',
+    tagline: 'Eleven people. One pitch.',
+    description: 'Run a local Sunday side. Work out who is actually turning up, find the money for the referee, and try to turn a pub team into a football club.',
+    icon: Beer,
+    color: 'from-lime-500/20 to-lime-600/5',
+    borderColor: 'border-lime-500/30 hover:border-lime-500/60',
+    iconColor: 'text-lime-400',
+    iconBg: 'bg-lime-500/10',
+    route: '/sunday-league',
   },
   {
     id: 'online',

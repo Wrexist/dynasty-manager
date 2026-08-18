@@ -7,6 +7,8 @@ export const DETAIL_SCREENS: GameScreen[] = [
   'national-team', 'national-squad-picker', 'international-tournament', 'conference-cup',
   'job-market', 'career-overview', 'ballon-dor', 'festival', 'dynasty-legacy', 'world-cup-draw', 'world-cup-result',
   'rivalries', 'competitions', 'career-retired',
+  // Sunday League detail screens. The hub, teamsheet, squad and club are tabs.
+  'sunday-table', 'sunday-recruit', 'sunday-history', 'sunday-match',
 ];
 
 export const BACK_TARGET: Partial<Record<GameScreen, GameScreen>> = {
@@ -49,6 +51,13 @@ export const BACK_TARGET: Partial<Record<GameScreen, GameScreen>> = {
   'rivalries': 'dashboard',
   'competitions': 'dashboard',
   'career-retired': 'hall-of-managers',
+  'sunday-table': 'sunday-hub',
+  'sunday-recruit': 'sunday-hub',
+  'sunday-history': 'sunday-hub',
+  'sunday-match': 'sunday-hub',
+  'sunday-teamsheet': 'sunday-hub',
+  'sunday-squad': 'sunday-hub',
+  'sunday-club': 'sunday-hub',
 };
 
 export const SCREEN_TITLES: Partial<Record<GameScreen, string>> = {
@@ -103,6 +112,14 @@ export const SCREEN_TITLES: Partial<Record<GameScreen, string>> = {
   'rivalries': 'Rivalries',
   'competitions': 'Competitions',
   'career-retired': 'Career Retrospective',
+  'sunday-hub': 'Sunday League',
+  'sunday-teamsheet': 'Teamsheet',
+  'sunday-match': 'Match Day',
+  'sunday-squad': 'Squad',
+  'sunday-club': 'The Club',
+  'sunday-table': 'League',
+  'sunday-recruit': 'Recruitment',
+  'sunday-history': 'Club History',
 };
 
 export const MAIN_TABS: GameScreen[] = ['dashboard', 'squad', 'tactics', 'transfers'];
@@ -110,6 +127,11 @@ export const MAIN_TABS: GameScreen[] = ['dashboard', 'squad', 'tactics', 'transf
 // World Cup mode's tab set — mirrors the bottom nav (Home/Squad/Tactics +
 // Tournament instead of Market) so swipe navigation matches.
 export const WC_MAIN_TABS: GameScreen[] = ['dashboard', 'squad', 'tactics', 'international-tournament'];
+
+// Sunday League's tab set. Its screens share nothing with the club game beyond
+// the shell, so it gets its own four: the hub, the teamsheet (the mode's core
+// decision), the squad, and the club.
+export const SUNDAY_MAIN_TABS: GameScreen[] = ['sunday-hub', 'sunday-teamsheet', 'sunday-squad', 'sunday-club'];
 
 // SubNav group mappings for swipe navigation within grouped screens
 export const SCREEN_GROUPS: GameScreen[][] = [

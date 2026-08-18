@@ -3,7 +3,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GameScreen } from '@/types/game';
-import { LayoutDashboard, Users, Target, ArrowLeftRight, Briefcase, User, Mail, Trophy } from 'lucide-react';
+import { LayoutDashboard, Users, Target, ArrowLeftRight, Briefcase, User, Mail, Trophy, ClipboardList, Landmark } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { MoreDrawer } from './MoreDrawer';
@@ -37,6 +37,18 @@ const worldCupTabs: { screen: GameScreen; label: string; icon: React.ElementType
   { screen: 'international-tournament', label: 'Tournament', icon: Trophy },
 ];
 
+// Sunday League: the hub, the teamsheet (the mode's core weekly decision), the
+// squad and the club. No market, no tactics screen — tactics live on the
+// teamsheet where the XI they apply to is visible.
+const sundayTabs: { screen: GameScreen; label: string; icon: React.ElementType; group?: GameScreen[] }[] = [
+  // 'dashboard' in the group: shared screens back-target 'dashboard', which
+  // GameShell renders as the hub in this mode — the tab highlight must agree.
+  { screen: 'sunday-hub', label: 'Club', icon: LayoutDashboard, group: ['sunday-hub', 'dashboard'] },
+  { screen: 'sunday-teamsheet', label: 'Team', icon: ClipboardList },
+  { screen: 'sunday-squad', label: 'Squad', icon: Users },
+  { screen: 'sunday-club', label: 'Money', icon: Landmark },
+];
+
 export function BottomNav() {
   const { t } = useTranslation();
   const { currentScreen, messages, incomingOffers, jobOffers, gameMode } = useGameStore(useShallow(s => ({
@@ -52,7 +64,8 @@ export function BottomNav() {
   const pendingOffers = incomingOffers.length;
   const hasJobOffers = gameMode === 'career' && jobOffers.length > 0;
   const isWorldCup = gameMode === 'world-cup';
-  const activeTabs = isWorldCup ? worldCupTabs : isUnemployed ? unemployedTabs : tabs;
+  const isSunday = gameMode === 'sunday';
+  const activeTabs = isSunday ? sundayTabs : isWorldCup ? worldCupTabs : isUnemployed ? unemployedTabs : tabs;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 px-3 pt-2 pb-2 safe-area-bottom pointer-events-none transform-gpu">
@@ -145,7 +158,10 @@ export function BottomNav() {
         })}
         {/* No "More" drawer in World Cup mode — there are no club screens
             (transfers, finance, board, …) to surface. */}
-        {!isWorldCup && <MoreDrawer disabled={matchLocked} open={drawerOpen} onOpenChange={setDrawerOpen} />}
+        {/* The More drawer lists club-game screens (Training, Scouting, Board,
+            Continental…) that do not exist in World Cup or Sunday League, so it is
+            hidden in both rather than offering routes that dead-end. */}
+        {!isWorldCup && !isSunday && <MoreDrawer disabled={matchLocked} open={drawerOpen} onOpenChange={setDrawerOpen} />}
       </nav>
     </div>
   );

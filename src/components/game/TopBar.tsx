@@ -11,6 +11,7 @@ import { FormGuide } from '@/components/game/FormGuide';
 import { CountBadge } from '@/components/game/CountBadge';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { LEAGUES } from '@/data/league';
+import { getSundayDivision } from '@/config/sundayLeague';
 import { DETAIL_SCREENS, BACK_TARGET, SCREEN_TITLES, UNEMPLOYED_MAIN_TABS } from '@/config/navigation';
 import { hapticMedium } from '@/utils/haptics';
 import { cn } from '@/lib/utils';
@@ -25,13 +26,14 @@ export function TopBar() {
   const {
     playerClubId, clubs, leagueTable, playerDivision, fixtures,
     currentScreen, previousScreen, managerProgression, gameMode, careerManager,
-    messages, managerNationality, internationalTournament,
+    messages, managerNationality, internationalTournament, sunday, week,
   } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId, clubs: s.clubs, leagueTable: s.leagueTable,
     playerDivision: s.playerDivision, fixtures: s.fixtures,
     currentScreen: s.currentScreen, previousScreen: s.previousScreen,
     managerProgression: s.managerProgression, gameMode: s.gameMode, careerManager: s.careerManager,
     messages: s.messages, managerNationality: s.managerNationality, internationalTournament: s.internationalTournament,
+    sunday: s.sunday, week: s.week,
   })));
   const setScreen = useGameStore(s => s.setScreen);
   const matchLocked = useMatchLocked();
@@ -60,6 +62,72 @@ export function TopBar() {
     }
     prevXpRef.current = xpProgress.percentage;
   }, [xpProgress.percentage]);
+
+  // Sunday League has a club but none of the club game's chrome: no budget, no
+  // board, no league pyramid entry in `LEAGUES`. Rendering the normal header
+  // would show "£0" and a blank division. Same shape as the World Cup branch
+  // below — tabs get the identity header, everything deeper gets a back button.
+  if (gameMode === 'sunday' && sunday) {
+    // 'dashboard' is an alias for the hub here: shared screens (Settings,
+    // Inbox) carry BACK_TARGETs of 'dashboard', and GameShell renders the hub
+    // for it in this mode — the header has to agree or the hub appears under
+    // back-button chrome pointing at itself.
+    const SUNDAY_TABS = ['sunday-hub', 'sunday-teamsheet', 'sunday-squad', 'sunday-club', 'dashboard'];
+    const isSundayTab = SUNDAY_TABS.includes(currentScreen);
+    return (
+      <header role="banner" className="fixed top-0 left-0 right-0 z-50 bg-background/95 border-b border-border/30 safe-area-top transform-gpu">
+        <div className="flex items-center justify-between gap-2.5 h-14 px-4 max-w-lg mx-auto">
+          {isSundayTab ? (
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div
+                aria-hidden
+                className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 ring-1 ring-inset ring-white/10"
+                style={{ backgroundColor: sunday.identity.color, color: sunday.identity.secondaryColor }}
+              >
+                {sunday.identity.shortName.slice(0, 3).toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-foreground truncate">{sunday.identity.name}</p>
+                <p className="text-[10px] text-lime-400 truncate font-medium">
+                  {getSundayDivision(sunday.divisionId).shortName} · {tr('sunday.hub.week', { week })}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 min-w-0">
+              <button
+                onClick={() => { setScreen(BACK_TARGET[currentScreen] || 'sunday-hub'); hapticMedium(); }}
+                aria-label={tr('common.goBack')}
+                className="shrink-0 w-10 h-10 -ml-1 rounded-full flex items-center justify-center text-foreground/90 hover:text-foreground bg-white/[0.06] border border-white/20 active:scale-95 transition-transform"
+              >
+                <ArrowLeft className="w-[18px] h-[18px]" />
+              </button>
+              <p className="text-sm font-bold text-foreground truncate">{SCREEN_TITLES[currentScreen] || 'Sunday League'}</p>
+            </div>
+          )}
+          <div className={cn('flex items-center gap-2', matchLocked && 'opacity-40')}>
+            <button
+              disabled={matchLocked}
+              onClick={() => { setScreen('inbox'); hapticMedium(); }}
+              aria-label={unreadCount > 0 ? `Inbox — ${unreadCount} unread` : 'Inbox'}
+              className="relative p-2 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+            >
+              <Mail className="w-4 h-4" />
+              <CountBadge count={unreadCount} pulse className="absolute top-0.5 right-0.5" />
+            </button>
+            <button
+              disabled={matchLocked}
+              onClick={() => { setScreen('settings'); hapticMedium(); }}
+              aria-label={tr('common.settings')}
+              className="p-2 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </header>
+    );
+  }
 
   // World Cup mode has no club — show a nation + tournament-round header
   // instead of the club/league chrome. Display-only (the squad picker and

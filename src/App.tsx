@@ -27,6 +27,7 @@ const ChallengePicker = lazy(() => import("./pages/ChallengePicker"));
 const ModeSelect = lazy(() => import("./pages/ModeSelect"));
 const ManagerCreation = lazy(() => import("./pages/ManagerCreation"));
 const WorldCupSetup = lazy(() => import("./pages/WorldCupSetup"));
+const SundaySetup = lazy(() => import("./pages/SundaySetup"));
 const WhatsNewPage = lazy(() => import("./pages/WhatsNewPage"));
 const SubscribeOnboarding = lazy(() => import("./pages/SubscribeOnboarding"));
 // Cinematic Capture — hidden marketing/dev capture tool. Disabled for now so users can't
@@ -100,6 +101,10 @@ const App = () => {
               <Route
                 path="/world-cup"
                 element={<ErrorBoundary scope="world-cup"><WorldCupSetup /></ErrorBoundary>}
+              />
+              <Route
+                path="/sunday-league"
+                element={<ErrorBoundary scope="sunday-league"><SundaySetup /></ErrorBoundary>}
               />
               <Route
                 path="/challenge"
