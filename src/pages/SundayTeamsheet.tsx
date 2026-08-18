@@ -192,6 +192,9 @@ const SundayTeamsheet = () => {
             </span>
           }
         />
+        {/* The fit percentage is a shape metric, not a quality score, and a
+            player reading "48%" with no context assumes his squad is bad. */}
+        <p className="text-micro text-muted-foreground leading-relaxed">{t('sunday.sheet.tacticFitHint')}</p>
         <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={t('sunday.sheet.tactic')}>
           {SUNDAY_TACTICS.map(tac => (
             <button

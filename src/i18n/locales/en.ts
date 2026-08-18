@@ -105,6 +105,7 @@ export const en = {
   'sunday.sheet.arrivalLocked': 'The guests are booked and paid for. This is the side.',
   'sunday.sheet.tactic': 'How you are playing',
   'sunday.sheet.tacticFit': 'Suits this XI',
+  'sunday.sheet.tacticFitHint': 'Measured against your own squad, not the league. Above 50% means this XI suits the shape better than its average.',
   'sunday.sheet.captain': 'Captain',
   'sunday.sheet.makeCaptain': 'Give him the armband',
   'sunday.sheet.noFixture': 'No fixture to pick a team for.',
@@ -139,6 +140,17 @@ export const en = {
   'sunday.match.forfeited': 'Not fulfilled',
   'sunday.match.skip': 'Skip to the result',
   'sunday.match.playing': 'Playing…',
+  // What the opposition do, in the language a man on a touchline would use.
+  // Never the matchup matrix, never a number — a read, and a hint at the
+  // answer. The style itself is real: it is the tactic that club plays.
+  'sunday.match.style.route-one': 'They line up {formation} and lump it long at the big lad.',
+  'sunday.match.style.park-the-bus': 'They line up {formation} and sit deep with everybody behind the ball.',
+  'sunday.match.style.chaos-ball': 'They line up {formation} and send everyone forward. Nobody is defending.',
+  'sunday.match.style.proper-football': 'They line up {formation} and fancy themselves passing it about.',
+  'sunday.match.counter.route-one': 'Quick defenders will eat that up.',
+  'sunday.match.counter.park-the-bus': 'You will need craft, not hoofing.',
+  'sunday.match.counter.chaos-ball': 'Leave a man up top and it is end to end.',
+  'sunday.match.counter.proper-football': 'Get after them early and it tends to fall apart.',
 
   // Post-match story
   'sunday.story.hero': 'Man of the match',

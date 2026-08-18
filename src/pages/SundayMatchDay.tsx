@@ -32,10 +32,10 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 import { hapticLight, hapticSuccess } from '@/utils/haptics';
 import { cn } from '@/lib/utils';
-import { SUNDAY_MIN_START, SUNDAY_RINGER_COST } from '@/config/sundayLeague';
+import { SUNDAY_MIN_START, SUNDAY_RINGER_COST, getSundayTactic } from '@/config/sundayLeague';
 import { findSundayFixture, sundayPitchQuality } from '@/store/slices/sunday/matchday';
 import { buildSundayTable, sundayCupRoundName, sundayPosition } from '@/utils/sunday/season';
-import { sundayResultVerdict } from '@/utils/sunday/match';
+import { sundayResultVerdict, sundayStyleOf } from '@/utils/sunday/match';
 import type { WeatherCondition } from '@/types/game';
 
 const WEATHER_ICON: Record<WeatherCondition, React.ElementType> = {
@@ -146,6 +146,14 @@ const SundayMatchDay = () => {
     ? (fixture.kind === 'cup' ? fixture.tie.homeClubId : fixture.match.homeClubId) === playerClubId
     : report?.home ?? true;
   const isDerby = !!opponentId && sunday.rivalry?.clubId === opponentId;
+
+  // How they play, in touchline English. Read off the club's persisted style —
+  // the same one the simulation will use — so the clue is never a lie. It says
+  // what they DO and hints at an answer; it never prints the matchup matrix or
+  // a number, because working it out is the game.
+  const oppStyle = opponentId && clubs[opponentId]
+    ? sundayStyleOf(sunday.divisionStyles, opponentId, clubs, players)
+    : null;
 
   if (!fixture && !report) {
     return (
@@ -278,6 +286,15 @@ const SundayMatchDay = () => {
                   <span className="truncate ml-auto">⚠ {intel.danger.name} ({intel.danger.goals})</span>
                 )}
               </div>
+            )}
+            {/* Deliberately OUTSIDE the league-only intel block above: a cup
+                tie is exactly when knowing how they set up matters most. */}
+            {oppStyle && (
+              <p className="text-caption text-foreground/85 leading-relaxed">
+                {t(`sunday.match.style.${oppStyle}`, { formation: getSundayTactic(oppStyle).formation })}
+                {' '}
+                <span className="text-muted-foreground">{t(`sunday.match.counter.${oppStyle}`)}</span>
+              </p>
             )}
             {isDerby && sunday.rivalry && (
               <p className="text-caption text-orange-300">
