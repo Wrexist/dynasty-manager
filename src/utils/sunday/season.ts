@@ -30,8 +30,6 @@ const clampAttr = (v: number) => Math.max(1, Math.min(99, Math.round(v)));
 
 // ── Calendar ────────────────────────────────────────────────────────────────
 
-export type SundayWeekKind = 'league' | 'cup' | 'free' | 'season-over';
-
 /** League rounds a division needs: a full double round-robin. */
 export function sundayLeagueRounds(teamCount: number): number {
   return teamCount % 2 === 0 ? 2 * (teamCount - 1) : 2 * teamCount;
@@ -61,16 +59,6 @@ export function sundayCupWeeks(divisionId: SundayDivisionId): number[] {
     if (weeks[i] <= weeks[i - 1]) weeks[i] = weeks[i - 1] + 1;
   }
   return weeks;
-}
-
-/** What kind of week this is for the player's club. */
-export function sundayWeekKind(state: SundayState, fixtures: readonly Match[], week: number, playerClubId: string): SundayWeekKind {
-  if (week > sundaySeasonWeeks(state.divisionId)) return 'season-over';
-  const cupTie = state.cup?.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId));
-  if (cupTie) return 'cup';
-  const league = fixtures.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
-  if (league) return 'league';
-  return 'free';
 }
 
 /**

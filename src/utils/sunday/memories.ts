@@ -74,8 +74,6 @@ export function momentOfSeason(
 // ── Match capture ───────────────────────────────────────────────────────────
 
 export interface MatchMemoryInput {
-  member: SundaySquadMember;
-  player: Player;
   rating: PlayerMatchRating | undefined;
   report: Pick<SundayMatchReport, 'goalsFor' | 'goalsAgainst' | 'opponentName' | 'season' | 'week'>;
   /** True when this fixture was against the persistent rival. */
@@ -108,7 +106,7 @@ export const SUNDAY_GOAL_MILESTONES = [25, 50, 75, 100] as const;
  */
 export function captureMatchMemories(input: MatchMemoryInput): SundayMemory[] {
   const {
-    member, player, rating, report, isDerby, isCup, cupRound, winnerMinute,
+    rating, report, isDerby, isCup, cupRound, winnerMinute,
     motm, played, sentOff, injuryWeeks, prevApps, prevGoals,
   } = input;
   const out: SundayMemory[] = [];
@@ -163,7 +161,6 @@ export function captureMatchMemories(input: MatchMemoryInput): SundayMemory[] {
       break;
     }
   }
-  void member;
   return out;
 }
 

@@ -143,17 +143,12 @@ export function rollSundayAvailability(
     status: 'out',
     reason,
     // An unwarned absence is not knowable in advance. The note is generated
-    // now (so it is stable across a reload) but the UI must not show it until
-    // the match has been played — see `isAbsenceKnown`.
+    // now (so it is stable across a reload) but the UI only shows it once
+    // `warned` flips — the hub and squad screens gate on that flag directly.
     note: noteFor(rng, reason, player.firstName),
     warned,
     weeksRemaining,
   };
-}
-
-/** Whether the manager can see WHY a player is missing before kickoff. */
-export function isAbsenceKnown(a: SundayAvailability): boolean {
-  return a.status === 'available' || a.warned;
 }
 
 /** Advance a multi-week absence by one week. Returns the new availability. */
@@ -175,11 +170,6 @@ export function ringRoundChance(m: SundaySquadMember): number {
   if (m.availability.reason === 'injury' || m.availability.reason === 'suspended') return 0;
   if (m.availability.reason === 'holiday') return 0;
   return Math.max(0, Math.min(0.85, SUNDAY_RINGROUND_BASE + m.commitment * SUNDAY_RINGROUND_PER_COMMITMENT));
-}
-
-/** Players who can be picked for the coming match. */
-export function sundayAvailableIds(squad: readonly SundaySquadMember[]): string[] {
-  return squad.filter(m => m.availability.status !== 'out').map(m => m.playerId);
 }
 
 /** A short English summary of the week's availability, for the hub. */

@@ -8,7 +8,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import {
-  AVAILABLE, isAbsenceKnown, resolveDoubt, ringRoundChance, rollSundayAvailability,
+  AVAILABLE, resolveDoubt, ringRoundChance, rollSundayAvailability,
   summariseAvailability, sundayAvailabilityChance, tickAbsence,
 } from '@/utils/sunday/availability';
 import { createSundayRng } from '@/utils/sunday/rng';
@@ -106,7 +106,6 @@ describe('rolling availability', () => {
       if (a.reason === 'no-show') {
         sawNoShow = true;
         expect(a.warned).toBe(false);
-        expect(isAbsenceKnown(a)).toBe(false);
       }
     }
     expect(sawNoShow).toBe(true);

@@ -586,8 +586,6 @@ export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
     let memories = m.memories;
     if (!forfeited && p) {
       const newMemories = captureMatchMemories({
-        member: m,
-        player: p,
         rating: r,
         report: { goalsFor: ourGoals, goalsAgainst: theirGoals, opponentName: oppClub.name, season, week },
         isDerby,

@@ -145,11 +145,6 @@ export function buildWeekLedger(input: WeekLedgerInput): WeekLedgerResult {
   return { lines, net, subsCollected, subsOwed };
 }
 
-/** Total of a ledger's lines. */
-export function ledgerNet(lines: readonly SundayLedgerLine[]): number {
-  return lines.reduce((n, l) => n + l.amount, 0);
-}
-
 /** Income and expenses split out, for the finance screen's headline figures. */
 export function splitLedger(lines: readonly SundayLedgerLine[]): { income: number; expenses: number } {
   let income = 0;

@@ -12,7 +12,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
 import { assertSundayState } from '@/utils/sunday/invariants';
 import { captureMatchMemories, findMatchWinner, findTurningPoint, rememberMoment, makeMemory, definingMemory } from '@/utils/sunday/memories';
-import { SUNDAY_MEMORIES_MAX, SUNDAY_PROMISE_WEEKS, SUNDAY_RINGER_COST } from '@/config/sundayLeague';
+import { SUNDAY_MEMORIES_MAX, SUNDAY_PROMISE_WEEKS } from '@/config/sundayLeague';
 import type { Match, SundayMemory } from '@/types/game';
 
 const SEED = 20250;
@@ -112,7 +112,6 @@ describe('memories are written by the simulation', () => {
     const member = useGameStore.getState().sunday!.squad[0];
     const player = useGameStore.getState().players[member.playerId];
     const out = captureMatchMemories({
-      member, player,
       rating: { playerId: player.id, rating: 9.1, goals: 3, assists: 0, yellowCards: 0, redCards: 0 },
       report: { goalsFor: 4, goalsAgainst: 1, opponentName: 'Dog & Duck', season: 1, week: 3 },
       isDerby: false, isCup: false, cupRound: null, winnerMinute: null,

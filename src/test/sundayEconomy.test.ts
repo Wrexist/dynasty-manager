@@ -8,7 +8,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
-import { buildWeekLedger, ledgerNet, splitLedger, sundayWeeklyBurn } from '@/utils/sunday/finance';
+import { buildWeekLedger, splitLedger, sundayWeeklyBurn } from '@/utils/sunday/finance';
 import { createSundayRng } from '@/utils/sunday/rng';
 import { assertSundayState } from '@/utils/sunday/invariants';
 import {
@@ -121,7 +121,6 @@ describe('the weekly ledger', () => {
       fixture: { home: true, derby: true, forfeited: false },
       redCards: 2, injuries: 1, chargeLeagueFee: true, ringers: 2,
     });
-    expect(ledgerNet(r.lines)).toBe(r.net);
     const { income, expenses } = splitLedger(r.lines);
     expect(income - expenses).toBe(r.net);
   });
