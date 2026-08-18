@@ -148,7 +148,7 @@ export interface RedeemResult {
   amount?: number;
 }
 
-export type GameScreen = 'dashboard' | 'squad' | 'tactics' | 'transfers' | 'club' | 'match' | 'player-detail' | 'league-table' | 'inbox' | 'season-summary' | 'calendar' | 'training' | 'scouting' | 'packs' | 'staff' | 'youth-academy' | 'facilities' | 'finance' | 'merchandise' | 'match-prep' | 'match-review' | 'board' | 'settings' | 'comparison' | 'manager-profile' | 'cup' | 'league-cup' | 'champions-cup' | 'shield-cup' | 'conference-cup' | 'super-cup' | 'perks' | 'trophy-cabinet' | 'prestige' | 'hall-of-managers' | 'team-detail' | 'shop' | 'help' | 'whats-new' | 'national-team' | 'national-squad-picker' | 'international-tournament' | 'job-market' | 'career-overview' | 'ballon-dor' | 'festival' | 'dynasty-legacy' | 'world-cup-draw' | 'world-cup-result' | 'rivalries' | 'competitions' | 'career-retired';
+export type GameScreen = 'dashboard' | 'squad' | 'tactics' | 'transfers' | 'club' | 'match' | 'player-detail' | 'league-table' | 'inbox' | 'season-summary' | 'calendar' | 'training' | 'scouting' | 'packs' | 'staff' | 'youth-academy' | 'facilities' | 'finance' | 'merchandise' | 'match-prep' | 'match-review' | 'board' | 'settings' | 'comparison' | 'manager-profile' | 'cup' | 'league-cup' | 'champions-cup' | 'shield-cup' | 'conference-cup' | 'super-cup' | 'perks' | 'trophy-cabinet' | 'prestige' | 'hall-of-managers' | 'team-detail' | 'shop' | 'help' | 'whats-new' | 'national-team' | 'national-squad-picker' | 'international-tournament' | 'job-market' | 'career-overview' | 'ballon-dor' | 'festival' | 'dynasty-legacy' | 'world-cup-draw' | 'world-cup-result' | 'rivalries' | 'competitions' | 'career-retired' | 'sunday-hub' | 'sunday-teamsheet' | 'sunday-match' | 'sunday-squad' | 'sunday-club' | 'sunday-table' | 'sunday-recruit' | 'sunday-history';
 
 export interface PlayerAttributes {
   pace: number;
@@ -2006,7 +2006,7 @@ export interface InternationalKnockoutTie {
 
 // ── Game Modes ──
 
-export type GameMode = 'sandbox' | 'career' | 'world-cup';
+export type GameMode = 'sandbox' | 'career' | 'world-cup' | 'sunday';
 
 // ── Capture Studio (staged World Cup moments for marketing footage) ──
 
@@ -2462,4 +2462,490 @@ export interface PickRealPlayerOptions {
   minOvr?: number;
   /** Inclusive upper OVR bound. */
   maxOvr?: number;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Sunday League mode
+// ════════════════════════════════════════════════════════════════════════════
+//
+// A whole game mode that shares the engine and none of the fantasy. The elite
+// game is about money and reputation; Sunday League is about whether eleven
+// people turn up.
+//
+// KEY ARCHITECTURAL DECISION. The player's Sunday club is a normal `Club` in
+// `clubs` and its players are normal `Player`s in `players`, so `simulateMatch`,
+// `buildLeagueTable` and `generateDivisionFixtures` all work unchanged. The
+// Sunday-specific layer is a SINGLE state key (`sunday: SundayState | null`)
+// that references those entities by id. Nothing is duplicated: attributes,
+// fitness, cards, injuries and season stats live on the `Player` exactly as
+// they do in every other mode; `SundaySquadMember` carries only what a Sunday
+// footballer has that a professional does not (a job, a temper, a reason he
+// cannot make Sunday).
+//
+// Everything here is persisted, so any change to these shapes needs a save
+// migration — see `CURRENT_VERSION` in `src/utils/saveMigration.ts`.
+
+/** Which local division the club is in. Index 0 is the bottom of the pyramid. */
+export type SundayDivisionId = 'sun-4' | 'sun-3' | 'sun-2' | 'sun-1' | 'sun-prem';
+
+/** What kind of club the manager is running. Chosen at setup; drives starting
+ *  resources, squad flavour, event weighting and a permanent modifier. */
+export type SundayClubPersonalityId =
+  | 'pub'          // Pub FC — cheap beer, cheaper defending
+  | 'family'       // Family Club — reliable, gentle, not very good
+  | 'serious'      // Serious Amateur Club — actually train
+  | 'washed'       // Washed Professionals — good, old, fragile, arrogant
+  | 'chaos'        // Chaos FC — high variance in every direction
+  | 'youth'        // Youth Development — young, raw, improving fast
+  | 'moneyball'    // Moneyball — poor squad, good books
+  | 'eleven';      // We Just Need 11 Players — desperate, resilient, broke
+
+/** Player archetype. DERIVED from Sunday attributes at generation time and
+ *  stored so events and copy can address the player by who he is. */
+export type SundayArchetypeId =
+  | 'warrior'      // The Sunday Warrior — never misses, cannot play
+  | 'ex-pro'       // The Ex-Pro — brilliant, insufferable
+  | 'shift'        // The Shift Worker — good, availability is a coin flip
+  | 'legend'       // The Pub Legend — average, socially load-bearing
+  | 'glass'        // The Glass Ankle — excellent when upright
+  | 'retriever'    // The Golden Retriever — beloved, useless
+  | 'hothead'      // The Hothead — intense, suspended
+  | 'ghost'        // The Ghost — occasionally exists
+  | 'prospect'     // The Young Star — raw, will be good
+  | 'captain'      // The Old Captain — declining, irreplaceable
+  | 'journeyman';  // no strong archetype
+
+/** Why a player is not available this week. */
+export type SundayAbsenceReason =
+  | 'work' | 'family' | 'holiday' | 'injury' | 'suspended' | 'wedding'
+  | 'hungover' | 'travel' | 'school' | 'fell-out' | 'other-team'
+  | 'cant-be-bothered' | 'no-show';
+
+/** Availability for the UPCOMING match. `doubt` resolves at teamsheet lock. */
+export type SundayAvailabilityStatus = 'available' | 'doubt' | 'out';
+
+/** A player's availability for the coming Sunday, with the reason and whether
+ *  the club got any warning. `warned: false` is the same-day no-show — the
+ *  reason is hidden from the teamsheet until the match is played. */
+export interface SundayAvailability {
+  status: SundayAvailabilityStatus;
+  reason: SundayAbsenceReason | null;
+  /** Player-facing note, e.g. "on a stag do in Prague". Game data → English. */
+  note: string | null;
+  /** True when the player told the manager in advance. A `doubt` is always
+   *  warned; an unwarned `out` is a no-show discovered at kickoff. */
+  warned: boolean;
+  /** Weeks of a multi-week absence still to run (holiday, injury, suspension). */
+  weeksRemaining: number;
+}
+
+/** The Sunday-specific half of a squad member. The football half lives on the
+ *  `Player` with the same `playerId`. */
+export interface SundaySquadMember {
+  playerId: string;
+  archetype: SundayArchetypeId;
+  /** What he does on weekdays — flavour that drives work-related absences. */
+  job: string;
+  /** 1-20. Turns up, trains, cares. Drives availability and morale recovery. */
+  commitment: number;
+  /** 1-20. Arrives on time. Low punctuality risks a late-arrival event. */
+  punctuality: number;
+  /** 1-20. Self-importance. Drives sulking when benched and post-match rows. */
+  ego: number;
+  /** 1-20. Resistance to being poached and to quitting in a huff. */
+  loyalty: number;
+  /** 1-20. Card magnetism. */
+  temper: number;
+  /** 1-20. Dressing-room influence — multiplies his morale onto the squad. */
+  influence: number;
+  /** 1-20. Off-pitch conditioning. Low = fades after 60 minutes, every week. */
+  condition: number;
+  /** 1-20. Likelihood of picking up a knock. */
+  injuryProne: number;
+  /** How happy HE is, 0-100. Distinct from `Player.morale`, which the engine
+   *  reads for performance: this is the relationship with the manager and is
+   *  what makes him quit. */
+  happiness: number;
+  /** Consecutive weeks he has been available and unused. Drives "play me". */
+  benchedStreak: number;
+  /** Consecutive matches started. Feeds the "he's carrying us" narrative. */
+  startedStreak: number;
+  /** Season appearances/goals mirror `Player`; these are CLUB-CAREER totals
+   *  that survive season rollover and drive the club's all-time records. */
+  clubApps: number;
+  clubGoals: number;
+  clubAssists: number;
+  clubMotm: number;
+  /** Season he joined the club — used for testimonial/legend status. */
+  joinedSeason: number;
+  /** Current availability for the coming match. */
+  availability: SundayAvailability;
+  /** Player ids he gets on with / cannot stand. Small, at most 2 each. */
+  friends: string[];
+  rivals: string[];
+  /** True once he has told the manager he is thinking of leaving. */
+  unsettled: boolean;
+  /** Subs (match fees) he owes the club, in pounds. Chasing it is a decision. */
+  subsOwed: number;
+}
+
+/** A Sunday-scale tactic. Deliberately four choices, not forty. */
+export type SundayTacticId = 'route-one' | 'park-the-bus' | 'chaos-ball' | 'proper-football';
+
+/** Where the money went this week. */
+export type SundayLedgerKind =
+  | 'subs' | 'sponsor' | 'fundraiser' | 'prize' | 'fine' | 'pitch' | 'referee'
+  | 'kit' | 'equipment' | 'league-fee' | 'medical' | 'travel' | 'social' | 'upgrade' | 'event';
+
+export interface SundayLedgerLine {
+  kind: SundayLedgerKind;
+  /** Positive = income, negative = expense. Whole pounds. */
+  amount: number;
+  /** English label — game data, not UI copy. */
+  label: string;
+}
+
+/** One week's finances, kept for the ledger screen. */
+export interface SundayWeekLedger {
+  season: number;
+  week: number;
+  lines: SundayLedgerLine[];
+  /** Balance AFTER this week's lines were applied. */
+  balance: number;
+}
+
+export type SundayUpgradeId =
+  | 'kit' | 'pitch' | 'balls' | 'nets' | 'physio' | 'minibus'
+  | 'floodlights' | 'clubhouse' | 'coach' | 'keeper-gloves';
+
+/** A purchased club upgrade and how far it has been taken. */
+export interface SundayUpgradeState {
+  id: SundayUpgradeId;
+  level: number;
+}
+
+export type SundaySponsorConditionKind =
+  | 'none' | 'win-streak' | 'avoid-defeat' | 'goals' | 'attendance' | 'discipline';
+
+/** A live sponsorship. Conditions are checked at expiry; failing one costs the
+ *  renewal, not the money already paid. */
+export interface SundaySponsorDeal {
+  id: string;
+  /** English business name — game data. */
+  name: string;
+  /** English one-liner about what they sell. */
+  blurb: string;
+  /** Paid weekly, in pounds. */
+  weekly: number;
+  /** One-off signing payment, already banked when the deal starts. */
+  signOn: number;
+  /** Season the deal expires at the end of. */
+  expiresSeason: number;
+  condition: SundaySponsorConditionKind;
+  /** Threshold the condition is measured against (meaning depends on kind). */
+  conditionTarget: number;
+  /** Progress toward the condition this season. */
+  conditionProgress: number;
+  /** English description of the condition, for the sponsor card. */
+  conditionText: string;
+}
+
+/** A sponsor offer awaiting an answer. */
+export interface SundaySponsorOffer extends SundaySponsorDeal {
+  /** Week the offer lapses. */
+  expiresWeek: number;
+}
+
+/** Someone the manager could sign. */
+export interface SundayRecruit {
+  id: string;
+  /** Fully-built Player, not yet in `players` — added on signing. */
+  player: Player;
+  member: Omit<SundaySquadMember, 'playerId'>;
+  /** How the manager heard about him. English — game data. */
+  source: 'mate' | 'work' | 'trial' | 'poached' | 'walk-up' | 'returning';
+  sourceText: string;
+  /** One-off signing-on cost in pounds (boots, registration, a favour). */
+  fee: number;
+  /** Week the recruit stops being available. */
+  expiresWeek: number;
+  /** What the manager can see before signing. Scouting is a rumour, not a
+   *  report: only `revealed` fields are shown accurately. */
+  revealed: boolean;
+}
+
+/** A choice inside a decision event. Effects are applied by
+ *  `applySundayEventOutcome`, never by the UI. */
+export interface SundayEventChoiceState {
+  id: string;
+  /** English button label. */
+  label: string;
+  /** English hint about what it will probably do. */
+  hint: string;
+}
+
+/** A live event awaiting the manager's attention. Only one at a time. */
+export interface SundayEventInstance {
+  /** Catalogue id, used for cooldown bookkeeping. */
+  defId: string;
+  season: number;
+  week: number;
+  /** English title/body with placeholders already substituted. */
+  title: string;
+  body: string;
+  /** Player the event is about, when it is about one. */
+  playerId: string | null;
+  /** Empty for an informational event the manager just acknowledges. */
+  choices: SundayEventChoiceState[];
+  /** Category, for the icon and the log. */
+  category: 'player' | 'club' | 'money' | 'matchday' | 'rivalry' | 'sponsor' | 'comedy';
+}
+
+/** A resolved event, kept so the season summary can retell the story. */
+export interface SundayEventLogEntry {
+  season: number;
+  week: number;
+  defId: string;
+  /** English one-line summary of what happened, already resolved. */
+  summary: string;
+}
+
+/** One tie in the local knockout cup. */
+export interface SundayCupTie {
+  /** 1-based round; the last round is the final. */
+  round: number;
+  week: number;
+  homeClubId: string;
+  awayClubId: string;
+  played: boolean;
+  homeGoals: number;
+  awayGoals: number;
+  /** Set once played. A drawn tie is settled on penalties, so this is never
+   *  null for a played tie — a cup round with no winner cannot be drawn out
+   *  of, and leaving it nullable is how a bracket hangs. */
+  winnerClubId: string | null;
+  /** Shootout score when the tie went to penalties, else null. */
+  shootout: { home: number; away: number } | null;
+}
+
+/** The local knockout cup: eight clubs, three rounds, one afternoon each. */
+export interface SundayCupState {
+  /** English competition name. */
+  name: string;
+  /** The eight entrants, in bracket order. */
+  entrants: string[];
+  ties: SundayCupTie[];
+  /** True once the player's club is out. */
+  eliminated: boolean;
+  winnerClubId: string | null;
+}
+
+/** Head-to-head with the local rival. */
+export interface SundayRivalry {
+  clubId: string;
+  /** English rivalry name, e.g. "The Retail Park Derby". */
+  name: string;
+  wins: number;
+  draws: number;
+  losses: number;
+  /** 0-10. Rises on defeats and incidents, falls slowly on wins. Drives
+   *  intensity passed to the match engine and unlocks rivalry events. */
+  heat: number;
+  /** English trash-talk line the rival manager last aimed at the club. */
+  lastTaunt: string | null;
+}
+
+/** A club record worth a line in the trophy room. */
+export interface SundayRecordEntry {
+  /** Stable id so a record can be beaten rather than duplicated. */
+  id: string;
+  /** English label. */
+  label: string;
+  /** English value as displayed, e.g. "9-1 vs Dog & Duck". */
+  value: string;
+  season: number;
+  week: number;
+}
+
+/** A player who has passed into club folklore. */
+export interface SundayLegend {
+  playerId: string;
+  name: string;
+  /** English reason he is remembered. */
+  reason: string;
+  apps: number;
+  goals: number;
+  seasons: number;
+}
+
+/** One completed Sunday season. */
+export interface SundaySeasonRecord {
+  season: number;
+  divisionId: SundayDivisionId;
+  /** English division name at the time. */
+  divisionName: string;
+  position: number;
+  played: number;
+  won: number;
+  drawn: number;
+  lost: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  points: number;
+  promoted: boolean;
+  relegated: boolean;
+  /** Whether the club survived the season at all. */
+  folded: boolean;
+  cupResult: string | null;
+  topScorer: { name: string; goals: number } | null;
+  playerOfTheSeason: { name: string; rating: number } | null;
+  balanceEnd: number;
+  /** English highlights for the season summary. */
+  highlights: string[];
+}
+
+/** Everything the last match produced that the Sunday layer cares about. */
+export interface SundayMatchReport {
+  matchId: string;
+  season: number;
+  week: number;
+  opponentClubId: string;
+  /** English opponent name at time of play (opponents can be re-drawn). */
+  opponentName: string;
+  home: boolean;
+  goalsFor: number;
+  goalsAgainst: number;
+  /** True when the club could not field 7 and forfeited. */
+  forfeited: boolean;
+  /** Players who did not turn up without warning. */
+  noShows: string[];
+  /** How many the club actually started with (7-11), guests included. */
+  startedWith: number;
+  /** Guests drafted in to make up the numbers. */
+  ringersUsed: number;
+  /** Squad members who took the field, for subs collection and the ledger.
+   *  Stored rather than re-derived: the week that settles the books runs after
+   *  the match, and reconstructing "who played" from streaks was wrong for
+   *  anyone who came off the bench. */
+  playedIds: string[];
+  motmPlayerId: string | null;
+  motmRating: number;
+  /** English narrative beats, already merged with engine events. */
+  narrative: string[];
+  /** Net money the match produced. */
+  moneyDelta: number;
+  /** Squad-wide morale change. */
+  moraleDelta: number;
+}
+
+/** Fixed identity chosen at setup. */
+export interface SundayClubIdentity {
+  name: string;
+  shortName: string;
+  nickname: string;
+  /** HSL/hex colours, reused for the crest exactly like a normal club. */
+  color: string;
+  secondaryColor: string;
+  personality: SundayClubPersonalityId;
+  /** English venue name, e.g. "Marsh Lane Rec, Pitch 4". */
+  venue: string;
+  /** English town/area. */
+  town: string;
+}
+
+/**
+ * The whole Sunday League mode's persisted state.
+ *
+ * `null` in every other mode. Club and player entities live in the normal
+ * `clubs` / `players` maps and are referenced by id from here.
+ */
+export interface SundayState {
+  /** Schema marker for this sub-state, independent of the save version. Lets
+   *  `validateSundayState` reject a shape it does not understand instead of
+   *  crashing on a missing field. */
+  v: number;
+  identity: SundayClubIdentity;
+  divisionId: SundayDivisionId;
+  /** Club ids of every side in the current division, INCLUDING the player's. */
+  divisionClubIds: string[];
+  /** Seeded RNG state. Every Sunday-owned random draw comes from here, so a
+   *  reloaded save continues the same story rather than re-rolling it. */
+  seed: number;
+  rngCursor: number;
+  /** Pounds. Can go negative — that is the crisis, not a bug. */
+  balance: number;
+  /** 0-100. Drives crowd, sponsor interest and recruit quality. */
+  reputation: number;
+  /** 0-100 squad-wide. Distinct from per-player happiness. */
+  teamMorale: number;
+  tactic: SundayTacticId;
+  captainId: string | null;
+  /** Player ids picked to start; length 7-11. Empty until the manager picks. */
+  teamsheet: string[];
+  /** Named substitutes, in order. */
+  bench: string[];
+  /** True once the teamsheet for THIS week has been confirmed. Reset weekly. */
+  teamsheetLocked: boolean;
+  squad: SundaySquadMember[];
+  upgrades: SundayUpgradeState[];
+  sponsors: SundaySponsorDeal[];
+  sponsorOffers: SundaySponsorOffer[];
+  recruits: SundayRecruit[];
+  /** Event currently demanding an answer, or null. */
+  pendingEvent: SundayEventInstance | null;
+  /** Events queued behind `pendingEvent` (at most a couple). */
+  eventQueue: SundayEventInstance[];
+  /** defId → week it may fire again. Anti-repeat protection. */
+  eventCooldowns: Record<string, number>;
+  eventLog: SundayEventLogEntry[];
+  rivalry: SundayRivalry | null;
+  cup: SundayCupState | null;
+  /** Consecutive weeks the balance has been below zero. The club folds
+   *  at `SUNDAY_BANKRUPT_GRACE_WEEKS`, so a single bad week is survivable
+   *  and a month of ignoring it is not. */
+  weeksInDebt: number;
+  /** Week the last fundraiser was run, for the cooldown. */
+  lastFundraiserWeek: number;
+  ledger: SundayWeekLedger[];
+  records: SundayRecordEntry[];
+  legends: SundayLegend[];
+  history: SundaySeasonRecord[];
+  lastMatch: SundayMatchReport | null;
+  /** English one-liners describing what happened this week, shown on the hub. */
+  weekLog: string[];
+  /** Season-to-date aggregates used by objectives, sponsors and records. */
+  seasonStats: {
+    played: number;
+    won: number;
+    drawn: number;
+    lost: number;
+    goalsFor: number;
+    goalsAgainst: number;
+    cleanSheets: number;
+    forfeits: number;
+    noShows: number;
+    subsCollected: number;
+    biggestWin: number;
+    unbeatenRun: number;
+    bestUnbeatenRun: number;
+    /** Consecutive league matches without a win. Drives the "this is not fun
+     *  any more" event and the sponsor's patience. */
+    winlessRun: number;
+    /** Longest run of wins this season, for sponsor conditions. */
+    winRun: number;
+    bestWinRun: number;
+  };
+  /** Set when the club has run out of money and people and the run is over. */
+  folded: boolean;
+  /** English reason the club folded, for the retrospective. */
+  foldReason: string | null;
+  /** True once the season's fixtures are all played and the rollover is due. */
+  seasonComplete: boolean;
+}
+
+/** Result of `validateSundayState` — used by tests and by the runtime guard. */
+export interface SundayValidationResult {
+  ok: boolean;
+  /** Every invariant violation found, most severe first. Empty when ok. */
+  problems: string[];
 }
