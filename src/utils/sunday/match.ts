@@ -627,7 +627,51 @@ export interface SundayMatchOutcome {
   matchInjuries: Record<string, InjuryDetails>;
 }
 
-/** Run a Sunday fixture through the shared engine. */
+/**
+ * Run a Sunday fixture through the shared engine, ninety minutes in one call.
+ *
+ * ── HALF-TIME ADAPTATION: INVESTIGATED, NOT BUILT (Wave 1) ─────────────────
+ *
+ * The question was whether the manager could change tactic at half time and
+ * have the second half actually simulated under the new one. The answer is
+ * YES, IT IS POSSIBLE — this is not an engine limitation, and nobody should
+ * re-derive that. The evidence, so the next attempt starts from it:
+ *
+ *   - `simulateHalf(...)` is exported from `@/engine/match` and takes explicit
+ *     `startMin` / `endMin` plus a `prevState: HalfState`. `simulateMatch` is
+ *     literally two calls — (1,45) then (46,90, prevState) — and `finalizeMatch`
+ *     over the merged state. Second-half events already carry their real
+ *     minutes, so there is no offsetting to get wrong.
+ *   - `getAIReactiveTactics` is already applied between those two calls, so a
+ *     per-half tactic swap is a shape the engine expects.
+ *   - Mid-match state is already persistable: the elite mode keeps
+ *     `halfTimeState` in the store and `saveGame` writes it out.
+ *
+ * It is NOT built here because it is a different wave's worth of work against
+ * this file's strongest guarantee — that the result is settled the moment the
+ * manager taps Kick Off, so backgrounding, killing or reloading cannot change
+ * what happened. Splitting the match in two needs all of:
+ *
+ *   1. `runSundayMatch` split into a first half and a finish, with the
+ *      exactly-once refusal re-established across two entry points instead of
+ *      one, and every consequence still written in a single pass at the end.
+ *   2. The second half's inputs persisted, because they cannot be re-derived:
+ *      the XI, the bench, the opposition's XI and tactic, the weather, the
+ *      pitch, the derby intensity, the RNG cursor — and the RINGERS, who are
+ *      generated at kickoff and deleted after the whistle, so a reload at half
+ *      time would resume with nine men.
+ *   3. The advance-the-week path still playing the whole match in one go.
+ *   4. A decision about the shared `matchPhase` / `halfTimeState` fields, which
+ *      the autosave guard and the elite Match Day screen both read.
+ *   5. Somewhere for the pause to live on screen.
+ *
+ * (5) is the tell: the interactive half-time belongs with the Match Day reveal
+ * redesign, not with a balance pass. Until then the half-time score is a
+ * narrative beat (`HT x-y` in `buildSundayNarrative`) and nothing more. What
+ * was deliberately NOT done instead: a morale or team-talk prompt at half time
+ * dressed up as a tactical change. It would not have altered the simulation,
+ * and a choice that does nothing is worse than no choice at all.
+ */
 export function simulateSundayMatch(input: SundayMatchInput): SundayMatchOutcome {
   const {
     match, homeClub, awayClub, homeXI, awayXI, homeBench, awayBench,
