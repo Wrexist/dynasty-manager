@@ -41,8 +41,8 @@ import {
   SUNDAY_BALLS_ATTR_PER_LEVEL, SUNDAY_FIT_SPREAD,
   SUNDAY_GLOVES_GK_PER_LEVEL, SUNDAY_MIN_START, SUNDAY_PITCH_POOR,
   SUNDAY_LEVEL_DEFENDING_PENALTY, SUNDAY_LEVEL_GK_PENALTY, SUNDAY_LEVEL_SHOOTING_BONUS,
-  SUNDAY_FIT_DELTA_RANGE,
-  getSundayTactic, SUNDAY_COACH_FIT_PER_LEVEL,
+  SUNDAY_FIT_DELTA_RANGE, SUNDAY_FIT_OVERALL_PER_POINT, SUNDAY_VARIANCE_TILT_SHARE,
+  SUNDAY_TACTICS, getSundayTactic, SUNDAY_COACH_FIT_PER_LEVEL,
 } from '@/config/sundayLeague';
 import { SUNDAY_AMBIENCE, SUNDAY_RINGER_LINES, SUNDAY_SHORT_SIDE_LINES } from '@/data/sundayNames';
 import type { SundayRng } from './rng';
@@ -136,6 +136,26 @@ export function sundayTacticFit(tacticId: SundayTacticId, xi: readonly Player[],
   return Math.max(0, Math.min(1, 0.5 + differential / SUNDAY_FIT_SPREAD));
 }
 
+/**
+ * The tactic this XI suits best.
+ *
+ * Deterministic and unseeded on purpose: it is a pure function of the squad, so
+ * an AI club derives the same style from the same generated squad every time it
+ * is asked, on a fresh boot and after a reload alike. Ties break on
+ * `SUNDAY_TACTICS` order, which is fixed. That is what lets the style be
+ * persisted once at world build and still be safely re-derivable for any save
+ * that predates the field.
+ */
+export function bestSundayTactic(xi: readonly Player[], coachLevel = 0): SundayTacticId {
+  let best: SundayTacticId = SUNDAY_TACTICS[0].id;
+  let bestFit = -Infinity;
+  for (const tactic of SUNDAY_TACTICS) {
+    const fit = sundayTacticFit(tactic.id, xi, coachLevel);
+    if (fit > bestFit) { bestFit = fit; best = tactic.id; }
+  }
+  return best;
+}
+
 // ── Match-day adjustments ───────────────────────────────────────────────────
 
 /** One reason the team is better or worse than its attributes suggest. */
@@ -155,7 +175,9 @@ export interface MatchdayAdjustmentInput {
   glovesLevel: number;
   coachLevel: number;
   teamMorale: number;
-  /** Only the player's own club gets equipment and fit adjustments. */
+  /** Only the player's own club gets equipment adjustments and a coach. Tactical
+   *  fit is computed and applied for BOTH sides — the opposition pick a tactic
+   *  too, and an edge only the manager can hold is not a tactical system. */
   isPlayerClub: boolean;
 }
 
@@ -171,7 +193,20 @@ export interface MatchdayTeam {
  * why it differs from the squad on paper.
  *
  * Every copy is fresh (`{...p, attributes: {...}}`) — mutating a stored Player
- * here would permanently bake a wet pitch into his passing.
+ * here would permanently bake a wet pitch into his passing. That includes
+ * `overall`, which the fit adjustment now moves: the copies are handed to
+ * `simulateMatch` and thrown away, and nothing in this file or its callers
+ * writes one back into `players`.
+ *
+ * HOW THE FIT DELTA IS SPREAD. The tactic's `wants` weights decide the fit
+ * SCORE, so they decide the delta too — a flat `+delta` on every wanted
+ * attribute threw that information away. Each wanted attribute moves by
+ * `delta × weight / meanWeight`, where the mean is taken over the wanted
+ * attributes only. The multipliers therefore average exactly 1, so the total
+ * attribute points a perfect fit is worth is unchanged (`SUNDAY_FIT_DELTA_RANGE`
+ * per wanted attribute, as before) and only their distribution differs — Route
+ * One's physicality now moves nearly twice as far as its shooting instead of
+ * the same distance.
  */
 export function buildMatchdayTeam(input: MatchdayAdjustmentInput): MatchdayTeam {
   const { xi, squad, tacticId, pitchQuality, ballsLevel, glovesLevel, coachLevel, teamMorale, isPlayerClub } = input;
@@ -185,10 +220,12 @@ export function buildMatchdayTeam(input: MatchdayAdjustmentInput): MatchdayTeam 
   const pitchDelta = Math.round((pitchQuality - SUNDAY_PITCH_POOR) * 0.12);
   if (pitchDelta !== 0) adjustments.push({ label: `Pitch (${Math.round(pitchQuality)}/100)`, delta: pitchDelta });
 
-  // Tactical fit: ±6 on the attributes the tactic leans on. Small in isolation,
-  // decisive across eleven players and ninety minutes.
-  const fitDelta = Math.round((fit - 0.5) * SUNDAY_FIT_DELTA_RANGE);
-  if (isPlayerClub && fitDelta !== 0) adjustments.push({ label: `${tactic.name} suits the XI`, delta: fitDelta });
+  // Tactical fit: up to ±8 on the attributes the tactic leans on, weighted by
+  // how much it wants each of them, plus a nudge to `overall` so the fit
+  // reaches team strength as well as shot quality.
+  const fitDelta = (fit - 0.5) * SUNDAY_FIT_DELTA_RANGE;
+  const fitOverall = Math.round(fitDelta * SUNDAY_FIT_OVERALL_PER_POINT);
+  if (fitDelta !== 0) adjustments.push({ label: `${tactic.name} suits the XI`, delta: Math.round(fitDelta) });
 
   const ballsDelta = isPlayerClub ? ballsLevel * SUNDAY_BALLS_ATTR_PER_LEVEL : 0;
   if (ballsDelta) adjustments.push({ label: 'Decent match balls', delta: ballsDelta });
@@ -199,12 +236,25 @@ export function buildMatchdayTeam(input: MatchdayAdjustmentInput): MatchdayTeam 
   const moraleDelta = Math.round((teamMorale - 55) * 0.10);
   if (moraleDelta !== 0) adjustments.push({ label: moraleDelta > 0 ? 'Confident dressing room' : 'Flat dressing room', delta: moraleDelta });
 
-  const wanted = new Set(Object.keys(tactic.wants).filter(k => (tactic.wants as Record<string, number>)[k] > 0));
+  // Per-attribute fit multipliers: the tactic's own weights, normalised to
+  // average 1 over the attributes it actually wants.
+  const wantEntries = Object.entries(tactic.wants).filter(([, w]) => (w ?? 0) > 0) as [keyof Player['attributes'], number][];
+  const weightMean = wantEntries.length
+    ? wantEntries.reduce((n, [, w]) => n + w, 0) / wantEntries.length
+    : 1;
+  const fitByAttr = new Map<keyof Player['attributes'], number>(
+    wantEntries.map(([attr, w]) => [attr, Math.round(fitDelta * (w / weightMean))]),
+  );
 
-  // The level itself, applied to both sides. See the "Nobody defends on a
-  // Sunday" block in `config/sundayLeague.ts` for why this exists and what it
-  // is worth in goals.
-  adjustments.push({ label: 'Sunday League football', delta: SUNDAY_LEVEL_SHOOTING_BONUS });
+  // The level itself. See the "Nobody defends on a Sunday" block in
+  // `config/sundayLeague.ts` for why this exists and what it is worth in goals.
+  // Each side's own tactic scales it: Chaos Ball really does produce more
+  // shooting and worse marking than Park the Bus, rather than merely saying so.
+  const varianceTilt = 1 + (tactic.varianceMult - 1) * SUNDAY_VARIANCE_TILT_SHARE;
+  const levelShooting = Math.round(SUNDAY_LEVEL_SHOOTING_BONUS * varianceTilt);
+  const levelDefending = Math.round(SUNDAY_LEVEL_DEFENDING_PENALTY * varianceTilt);
+  const levelGk = Math.round(SUNDAY_LEVEL_GK_PENALTY * varianceTilt);
+  adjustments.push({ label: 'Sunday League football', delta: levelShooting });
 
   const players = xi.map(p => {
     const m = byId.get(p.id);
@@ -216,16 +266,19 @@ export function buildMatchdayTeam(input: MatchdayAdjustmentInput): MatchdayTeam 
 
     attrs.passing = clamp(attrs.passing + pitchDelta + ballsDelta);
     attrs.pace = clamp(attrs.pace + Math.round(pitchDelta * 0.5) + Math.round(conditionDelta * 0.5));
-    attrs.shooting = clamp(attrs.shooting + ballsDelta + SUNDAY_LEVEL_SHOOTING_BONUS);
+    attrs.shooting = clamp(attrs.shooting + ballsDelta + levelShooting);
     attrs.physical = clamp(attrs.physical + conditionDelta);
     attrs.mental = clamp(attrs.mental + moraleDelta + happinessDelta);
-    attrs.defending = clamp(attrs.defending - SUNDAY_LEVEL_DEFENDING_PENALTY);
-    if (p.position === 'GK') attrs.defending = clamp(attrs.defending + glovesDelta - SUNDAY_LEVEL_GK_PENALTY);
-    for (const key of wanted) {
-      if (key in attrs) attrs[key as keyof typeof attrs] = clamp(attrs[key as keyof typeof attrs] + fitDelta);
+    attrs.defending = clamp(attrs.defending - levelDefending);
+    if (p.position === 'GK') attrs.defending = clamp(attrs.defending + glovesDelta - levelGk);
+    for (const [key, delta] of fitByAttr) {
+      if (key in attrs) attrs[key] = clamp(attrs[key] + delta);
     }
 
-    return { ...p, attributes: attrs };
+    // `computeStrengths` reads `overall`, never the attributes — so without
+    // this line the tactical choice cannot move possession or event share at
+    // all. Copies only: see the header.
+    return { ...p, attributes: attrs, overall: clamp(p.overall + fitOverall, 1, 99) };
   });
 
   return { players, adjustments, fit };

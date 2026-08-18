@@ -430,9 +430,15 @@ export const SUNDAY_FAVOURED_ARCHETYPE_WEIGHT = 3;
 // ── Tactics ─────────────────────────────────────────────────────────────────
 //
 // Four tactics, each with an honest trade-off and a squad it wants. `fit` is
-// measured against the XI actually on the pitch, and translates into the match
-// engine's `tacticalFamiliarity` channel — so picking Proper Football with a
-// squad who cannot pass is a real, visible penalty rather than a flavour note.
+// measured against the XI actually on the pitch and reaches the engine through
+// `buildMatchdayTeam`: it moves the wanted attributes (in proportion to the
+// weights below) AND the throwaway copies' `overall`, which is what
+// `computeStrengths` reads. So picking Proper Football with a squad who cannot
+// keep the ball is a real, measurable penalty rather than a flavour note.
+//
+// NOT through `tacticalFamiliarity`: that channel is gated on `playerClubId`,
+// which this mode deliberately does not pass (a short side must be allowed to
+// play — see the header of `utils/sunday/match.ts`).
 
 export interface SundayTacticInfo {
   id: SundayTacticId;
@@ -444,9 +450,17 @@ export interface SundayTacticInfo {
    *  a plan, it is a surrender. */
   shortFormation: FormationType;
   instructions: TacticalInstructions;
-  /** Attribute weights the fit score is measured on. Keys are `PlayerAttributes`. */
+  /** Attribute weights the fit score is measured on. Keys are `PlayerAttributes`.
+   *  The SAME weights scale the delta that is applied to the XI's attributes —
+   *  see the normalisation note on `buildMatchdayTeam`. A tactic that wants
+   *  physicality four times as much as pace now moves physicality four times as
+   *  far, which is what makes the four tactics feel like different instructions
+   *  rather than four labels on one bonus. */
   wants: Partial<Record<'pace' | 'shooting' | 'passing' | 'defending' | 'physical' | 'mental', number>>;
-  /** Multiplies the match's event variance — chaos-ball really is chaos. */
+  /** Scales how far this tactic pushes the level's own "nobody defends on a
+   *  Sunday" tilt — see `SUNDAY_VARIANCE_TILT_SHARE`. Above 1 means more goals
+   *  at both ends and therefore a wilder scoreline; below 1 means a tighter,
+   *  duller, more predictable morning. */
   varianceMult: number;
 }
 
@@ -477,7 +491,18 @@ export const SUNDAY_TACTICS: readonly SundayTacticInfo[] = [
     description: 'Keep the ball, move it, make them chase. Devastating with technical players and suicidal without them — and on a pitch like yours it is a matter of faith.',
     formation: '4-3-3', shortFormation: '4-5-1',
     instructions: { mentality: 'balanced', width: 'normal', tempo: 'normal', defensiveLine: 'high', pressingIntensity: 65 },
-    wants: { passing: 4, mental: 3 }, varianceMult: 0.9,
+    // PASSING WAS REMOVED FROM THE WEIGHTS DELIBERATELY. It is a near-null
+    // channel in the shared engine: outside the assist pick and the midfielder
+    // rating term, nothing reads it, so four sevenths of this tactic's fit was
+    // being spent on an attribute the simulation does not price. Measured, that
+    // made Proper Football the weakest of the four tactics (smallest 0→1 fit
+    // swing, 0.144 ppg against 0.246 for the pack) for a reason that had
+    // nothing to do with football. `mental` and `pace` both reach shot quality
+    // and team strength, so the tactic now buys what it advertises: composure
+    // on the ball and the legs to play out from the back. The engine's own
+    // `SHOT_QUALITY_WEIGHTS` are shared with every other mode and are NOT the
+    // place to fix this.
+    wants: { mental: 4, pace: 3 }, varianceMult: 0.9,
   },
 ] as const;
 
@@ -485,14 +510,56 @@ export function getSundayTactic(id: SundayTacticId): SundayTacticInfo {
   return SUNDAY_TACTICS.find(tac => tac.id === id) ?? SUNDAY_TACTICS[0];
 }
 
-/** Attribute-point differential between a tactic's wanted attributes and the
- *  XI's own average that counts as a perfect (or hopeless) fit. ±this maps to
- *  fit 1.0 / 0.0. */
-export const SUNDAY_FIT_SPREAD = 9;
+/**
+ * Attribute-point differential between a tactic's wanted attributes and the
+ * XI's own average that counts as a perfect (or hopeless) fit. ±this maps to
+ * fit 1.0 / 0.0.
+ *
+ * RETUNED 9 → 4. At 9 the scale was calibrated for squads that do not exist:
+ * real generated XIs only ever produced differentials in the middle of the
+ * band, so across a measured sweep the accessible best-vs-worst fit range was
+ * 0.236 of the 0-1 scale — the manager could move about a fifth of a lever that
+ * was already small. At 4 the same squads span ~0.516, which together with
+ * `SUNDAY_FIT_OVERALL_PER_POINT` puts the accessible swing in the target 0.3
+ * ppg band. It is deliberately still smaller than the squad-quality span
+ * (~1.5 ppg): who you can get out of bed must always outrank how you set up.
+ */
+export const SUNDAY_FIT_SPREAD = 4;
 /** Attribute points a perfect fit is worth on the attributes the tactic leans
  *  on, relative to a neutral fit. Wide enough to decide matches, narrow enough
- *  that it cannot rescue a bad squad. */
+ *  that it cannot rescue a bad squad. Distributed across the wanted attributes
+ *  in proportion to their weights — see `buildMatchdayTeam`. */
 export const SUNDAY_FIT_DELTA_RANGE = 16;
+/**
+ * Overall points a point of fit delta is worth, applied to the throwaway
+ * match-day copies only.
+ *
+ * WHY THIS EXISTS. `computeStrengths` reads `Player.overall`, not the
+ * attributes — so before this constant, tactical fit could not touch team
+ * strength at all, and therefore could not move possession or event share. It
+ * was confined to the shot-quality / defence / goalkeeper channels and the
+ * whole lever measured 0.246 ppg from a full 0→1 swing, of which real squads
+ * could access a fifth. Nudging `overall` on the copies puts fit into the same
+ * channel every other strength input uses, WITHOUT touching the shared engine.
+ *
+ * CALIBRATION: measured over a sweep of squad shapes, a full 0→1 fit swing
+ * moves 0.246 → 0.556 ppg at k = 0.35 (0.37 accessible ppg at k = 0.5, which
+ * over-powered it against the squad-quality span). k = 0.35 it is.
+ */
+export const SUNDAY_FIT_OVERALL_PER_POINT = 0.35;
+/**
+ * How much of a tactic's `varianceMult` reaches the level tilt below.
+ *
+ * The tilt ("nobody defends on a Sunday") is what produces this mode's 5-4s. A
+ * tactic that advertises chaos gets MORE of it — more shooting, worse marking,
+ * a worse keeper — and one that advertises a bus gets less, so the trade-off
+ * the card describes is a real mechanical property of the side that chose it,
+ * applied by the same code to whichever side chose it. The share is well under
+ * 1 because the tilt is large: at full strength Chaos Ball would add sixteen
+ * points of shooting and take thirteen off the marking, which is not a tactic,
+ * it is a different sport.
+ */
+export const SUNDAY_VARIANCE_TILT_SHARE = 0.35;
 
 // ── "Nobody defends on a Sunday" ────────────────────────────────────────────
 //
@@ -501,11 +568,15 @@ export const SUNDAY_FIT_DELTA_RANGE = 16;
 // Sunday football is the opposite: the attacking is bad and the DEFENDING AND
 // GOALKEEPING ARE WORSE, which is why a local park on a Sunday produces 5-4s.
 //
-// These three numbers express that, and they are applied SYMMETRICALLY to both
-// sides in `buildMatchdayTeam` — it is a property of the level, not an edge for
-// the player. Measured effect (see `sundayBalance.test.ts`): total goals per
-// match rises from ~1.3 to the 3.5-4.5 band, which is where a real Sunday
-// league sits.
+// These three numbers express that, and they are applied by the same code to
+// both sides in `buildMatchdayTeam` — it is a property of the level, not an
+// edge for the player. Measured effect (see `sundayBalance.test.ts`): total
+// goals per match rises from ~1.3 to the 3.5-4.5 band, which is where a real
+// Sunday league sits.
+//
+// Each side's own tactic scales its share of the tilt by `varianceMult`,
+// damped by `SUNDAY_VARIANCE_TILT_SHARE` — the rule is identical for both
+// sides, so it stays a property of the choice rather than of who made it.
 
 /** Everybody shoots, from everywhere. */
 export const SUNDAY_LEVEL_SHOOTING_BONUS = 30;
@@ -583,7 +654,15 @@ export const SUNDAY_BALLS_ATTR_PER_LEVEL = 2;
 export const SUNDAY_GLOVES_GK_PER_LEVEL = 4;
 export const SUNDAY_PHYSIO_HEAL_PER_LEVEL = 0.3;
 export const SUNDAY_COACH_GROWTH_PER_LEVEL = 0.5;
-export const SUNDAY_COACH_FIT_PER_LEVEL = 3;
+/** Attribute-points of fit differential a coach level is worth.
+ *
+ *  RETUNED 3 → 1.0 alongside `SUNDAY_FIT_SPREAD`. Three levels of coach used to
+ *  add 9 differential points — a whole `SUNDAY_FIT_SPREAD` — which pinned fit
+ *  at 1.0 for any tactic once the coach was maxed and deleted the choice the
+ *  fit metric exists to price. At 1.0 a maxed coach is worth three quarters of
+ *  the retuned spread's half-width: a real, buyable edge that still cannot
+ *  make a hopeless shape work. */
+export const SUNDAY_COACH_FIT_PER_LEVEL = 1.0;
 export const SUNDAY_CLUBHOUSE_MORALE_PER_LEVEL = 2;
 export const SUNDAY_CLUBHOUSE_RECRUIT_PER_LEVEL = 3;
 export const SUNDAY_FLOODLIGHT_REP = 3;
