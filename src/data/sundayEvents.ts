@@ -959,6 +959,202 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
     ],
   },
 
+  // ── Who they are ──────────────────────────────────────────────────────────
+  //
+  // Eleven archetypes are generated for every squad and, until these, exactly
+  // ZERO events read one — the same was true of `temper`, `influence`,
+  // `leaguePosition` and the cup. A Golden Retriever and a Hothead lived
+  // identical lives. These six are gated on who the man actually is, so the
+  // week a hothead gets sent off feels like a different week from the one the
+  // glass ankle limps out of.
+  {
+    id: 'ex-pro-punditry',
+    category: 'comedy',
+    title: '{name} has been on the radio',
+    body: 'Local radio wanted forty seconds on the state of the county leagues. {name} gave them eleven minutes, named three referees, and described this division as "a graveyard for talent" while wearing the club\'s training top.',
+    weight: 6,
+    needsSubject: true,
+    subjectFilter: p => p.archetype === 'ex-pro',
+    condition: ctx => !!ctx.subject,
+    cooldown: 14,
+    choices: [
+      {
+        id: 'lean-in', label: 'Put him up for more of it', hint: 'He is good at it. It gets the club named.',
+        effects: { reputation: 4, subjectHappiness: 8, subjectEgo: 1, squadHappiness: -2 },
+        outcome: 'He becomes a minor local fixture. The club gets mentioned every fortnight, usually favourably.',
+      },
+      {
+        id: 'quiet', label: 'Ask him to leave the club out of it', hint: 'Depends how much he listens to anybody.',
+        successChance: ctx => 0.5 + (ctx.subject ? (20 - ctx.subject.ego) * 0.02 : 0),
+        effects: { subjectEgo: -1, morale: 2 },
+        outcome: 'He takes the point and keeps the badge out of shot from then on.',
+        failEffects: { subjectHappiness: -8, reputation: -2 },
+        failOutcome: 'He mentions on air that some people at his club cannot take honesty. Marvellous.',
+      },
+      {
+        id: 'nothing', label: 'Leave him to it', hint: 'It is only local radio.', effects: {}, declines: true,
+        outcome: 'You let it go. Somebody at the league office did not.',
+      },
+    ],
+  },
+  {
+    id: 'hothead-row',
+    category: 'matchday',
+    title: '{name} and the touchline',
+    body: 'There was a full and frank exchange with somebody\'s dad behind the goal on Sunday, and {name} was one half of it. The referee did not see it. Roughly forty other people did.',
+    weight: 7,
+    needsSubject: true,
+    subjectFilter: p => p.available && (p.archetype === 'hothead' || p.temper >= 15),
+    condition: ctx => !!ctx.subject && ctx.lastResult !== null,
+    cooldown: 10,
+    choices: [
+      {
+        id: 'sit', label: 'Sit him out on Sunday', hint: 'Costs you a player. Ends it here.',
+        effects: { subjectOut: true, subjectHappiness: -10, morale: 2, reputation: 1 },
+        outcome: 'He does not play, and he stands behind the goal all afternoon being extremely well behaved.',
+      },
+      {
+        id: 'captain-word', label: 'Get the senior lads to have a word', hint: 'Works if the room actually carries.',
+        successChance: ctx => 0.35 + (ctx.captain ? ctx.captain.influence * 0.025 : 0),
+        effects: { subjectHappiness: 2, morale: 3, subjectCommitment: 1 },
+        outcome: 'Two of them take him for a pint and it is dealt with the way these things should be dealt with.',
+        failEffects: { subjectHappiness: -6, morale: -3 },
+        failOutcome: 'It turns into a second row, this time inside the club. Nobody comes out of it well.',
+      },
+      {
+        id: 'shrug', label: 'He is who he is', hint: 'Free. He plays. So does his temper.',
+        effects: { subjectHappiness: 6, reputation: -2 },
+        outcome: 'You back him without saying much. He is booked inside twenty minutes on Sunday.',
+      },
+    ],
+  },
+  {
+    id: 'glass-scare',
+    category: 'player',
+    title: '{name} felt something in the warm-up',
+    body: 'Nothing has gone, exactly. {name} has just gone very quiet and started walking it off in small circles, which anybody who has watched him for a season recognises immediately.',
+    weight: 7,
+    needsSubject: true,
+    subjectFilter: p => p.available && p.archetype === 'glass',
+    condition: ctx => !!ctx.subject,
+    cooldown: 10,
+    choices: [
+      {
+        id: 'risk', label: 'Start him and hope', hint: 'He is your best option. He is also made of glass.',
+        successChance: () => 0.45,
+        effects: { subjectHappiness: 6, morale: 2 },
+        outcome: 'He gets through it and is outstanding, and does not train again until Thursday.',
+        failEffects: { subjectInjuryWeeks: 3, subjectOut: true, morale: -4, subjectHappiness: -4 },
+        failOutcome: 'Twenty-five minutes, and it goes properly. Three weeks, minimum, and everybody saw it coming.',
+      },
+      {
+        id: 'rest', label: 'Stand him down for a fortnight', hint: 'Safe. Short-handed.',
+        effects: { subjectOut: true, subjectHappiness: -5, subjectCommitment: 1 },
+        outcome: 'He sulks about it for a week and is genuinely grateful for it by the third.',
+      },
+      {
+        id: 'strap', label: 'Strap it and give him twenty minutes (£10)', hint: 'A compromise, and it costs.',
+        available: ctx => ctx.balance >= 10,
+        successChance: () => 0.72,
+        effects: { money: -10, subjectHappiness: 4, morale: 1 },
+        outcome: 'Twenty minutes off the bench, strapped to the eyeballs, and he comes through it fine.',
+        failEffects: { money: -10, subjectInjuryWeeks: 2, subjectOut: true, morale: -2 },
+        failOutcome: 'He goes in his fourth minute on the pitch. The strapping was decorative.',
+      },
+    ],
+  },
+  {
+    id: 'prospect-trial',
+    category: 'player',
+    title: 'The district side want a look at {name}',
+    body: 'Somebody has put {name} forward for a district trial. It is on a Sunday morning, obviously, and it is the same Sunday morning as everybody else\'s Sunday morning.',
+    weight: 6,
+    needsSubject: true,
+    subjectFilter: p => p.available && p.archetype === 'prospect',
+    condition: ctx => !!ctx.subject && ctx.availableCount >= 9,
+    cooldown: 12,
+    choices: [
+      {
+        id: 'let-him', label: 'Let him go to it', hint: 'You lose him for a week. He will not forget it.',
+        effects: {
+          subjectOut: true, subjectHappiness: 12, subjectCommitment: 2, reputation: 1,
+          subjectMemory: { kind: 'milestone', text: 'The club let him miss a Sunday for his district trial. He talks about it years later.' },
+        },
+        outcome: 'He goes. He does not get in, and he comes back convinced this club is the best one in the world.',
+      },
+      {
+        id: 'need-him', label: 'You need him on Sunday', hint: 'Honest. He will take it badly.',
+        effects: { subjectHappiness: -14, morale: 1 },
+        outcome: 'He plays, and he plays well, and he does not say a word to you for a fortnight.',
+      },
+      {
+        id: 'both', label: 'Trial in the morning, bench in the afternoon', hint: 'Two games in a day, at nineteen.',
+        successChance: () => 0.55,
+        effects: { subjectHappiness: 8, morale: 2, subjectCommitment: 1 },
+        outcome: 'He does both, plays the last half hour, and sleeps for fourteen hours. Youth is wasted on them.',
+        failEffects: { subjectInjuryWeeks: 2, subjectOut: true, subjectHappiness: -6, morale: -2 },
+        failOutcome: 'His legs go halfway through the second game of the day. Entirely predictable, in hindsight.',
+      },
+    ],
+  },
+  {
+    id: 'top-of-table-nerves',
+    category: 'club',
+    title: 'Top of the league, and everybody has noticed',
+    body: 'The table has been screenshotted and sent to people who do not care. Two of them have started talking about the last day. It is the back half of the season and this club has never been here.',
+    weight: 8,
+    needsSubject: true,
+    // The man the room listens to is the one who steadies it, or does not.
+    subjectFilter: p => p.available && p.influence >= 13,
+    condition: ctx => ctx.leaguePosition === 1 && ctx.week > 10 && !!ctx.subject,
+    cooldown: 12,
+    choices: [
+      {
+        id: 'name-it', label: 'Say it out loud: we can win this', hint: 'Frees some of them. Freezes others.',
+        successChance: ctx => 0.4 + ctx.teamMorale * 0.005,
+        effects: { morale: 8, squadHappiness: 4 },
+        outcome: 'Saying it takes the weight off. They play the next one like it is a five-a-side.',
+        failEffects: { morale: -5, squadHappiness: -3 },
+        failOutcome: 'Saying it puts the weight ON. Two of them are unrecognisable on Sunday.',
+      },
+      {
+        id: 'one-at-a-time', label: 'One game at a time, and mean it', hint: 'Dull, steady, occasionally correct.',
+        effects: { morale: 2, subjectCommitment: 1, squadHappiness: -1 },
+        outcome: 'You give them the oldest line in football with a straight face. It works about as well as it ever does.',
+      },
+      {
+        id: 'lean-on-him', label: `Ask {name} to keep them level`, hint: 'He carries the room. Ask him to use it.',
+        effects: { subjectHappiness: 8, morale: 4, squadHappiness: 2, subjectEgo: 1 },
+        outcome: '{name} takes it on and the dressing room settles behind him. He enjoys the responsibility rather too much.',
+      },
+    ],
+  },
+  {
+    id: 'giant-killing-hangover',
+    category: 'club',
+    title: 'Nobody wants to play a league game',
+    body: 'The cup tie is still being replayed in the group chat frame by frame. Sunday is a nine-thirty against a side in mid-table, and not one person has mentioned it.',
+    weight: 8,
+    // Reads the CUP, which no event did before the cup chain existed.
+    condition: ctx => ctx.cupRoundsWon >= 1 && ctx.week > 4,
+    cooldown: 12,
+    choices: [
+      {
+        id: 'ban-it', label: 'Ban all talk of the cup until Monday', hint: 'Unpopular. Focuses them.',
+        effects: { morale: -2, squadHappiness: -2, reputation: 1 },
+        outcome: 'You get a professional, joyless performance out of them, which is exactly what you asked for.',
+      },
+      {
+        id: 'ride-it', label: 'Ride the wave — they are enjoying themselves', hint: 'They might carry it into Sunday. Or not.',
+        successChance: ctx => 0.45 + ctx.teamMorale * 0.004,
+        effects: { morale: 6, squadHappiness: 4 },
+        outcome: 'They play like a side who believe they are good, because for six days they have been told they are.',
+        failEffects: { morale: -6, squadHappiness: -3 },
+        failOutcome: 'They turn up half an hour late in cup-final moods and are two down before anybody wakes up.',
+      },
+    ],
+  },
+
   // ── Money ─────────────────────────────────────────────────────────────────
   {
     id: 'subs-crisis',
@@ -1441,9 +1637,12 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
     category: 'club',
     title: 'Somebody has asked for a game',
     body: 'A bloke watching from the touchline has asked, fairly directly, whether you need anyone.',
-    weight: 9,
+    // Weight and cooldown both pulled back. At 9/4 this and `thin-squad` were
+    // measured firing four to six times a SEASON each: the touchline bloke
+    // turned up so often he stopped being a moment and became a menu.
+    weight: 6,
     condition: ctx => ctx.squadSize < 20,
-    cooldown: 4,
+    cooldown: 8,
     choices: [
       { id: 'look', label: 'Tell him to come to training', hint: 'You will see him properly first.', effects: { spawnRecruit: 'trial' }, outcome: 'He turns up, and you get a proper look at him before deciding.' },
       { id: 'straight-in', label: 'Sign him on the spot', hint: 'No idea what you are getting.', effects: { spawnRecruit: 'walk-up' }, outcome: 'He is registered before anyone has seen him kick a ball.' },
@@ -1455,9 +1654,13 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
     category: 'club',
     title: 'You are running out of players',
     body: 'There are {squadSize} names on the sheet and at least three of them have not been seen since September.',
-    weight: 14,
+    // Still the heaviest thing in the pool when the squad is genuinely short —
+    // it should crowd out the comedy — but not every fourth week. Recruitment
+    // does not depend on it either way: the weekly recruit roll is boosted
+    // separately while the squad is thin (see `SUNDAY_RECRUIT_CHANCE`).
+    weight: 11,
     condition: ctx => ctx.squadSize <= 12,
-    cooldown: 4,
+    cooldown: 8,
     choices: [
       { id: 'ring', label: 'Get on the phone to everyone you know', hint: 'Produces someone. Usually.', effects: { spawnRecruit: 'mate', morale: -1 }, outcome: 'Two hours of calls turns up exactly one interested human being.' },
       { id: 'work', label: 'Ask at work', hint: 'Slower, but he will turn up.', effects: { spawnRecruit: 'work' }, outcome: 'Somebody from the depot says he used to play a bit.' },

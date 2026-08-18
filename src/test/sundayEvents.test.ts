@@ -542,6 +542,29 @@ describe('events in the running game', () => {
     expect(result.problems.join(' ')).toContain('not in the squad');
   });
 
+  it('does not let one event become the season', async () => {
+    // MEASURED, not asserted from the config. `new-face` and `thin-squad` both
+    // sat at a short cooldown and a heavy weight, and a season produced four to
+    // six of each — at which point the touchline bloke asking for a game stops
+    // being a moment and becomes a menu item. Play a season out and count.
+    const total = sundaySeasonWeeks(useGameStore.getState().sunday!.divisionId);
+    for (let i = 0; i < total + 2; i++) {
+      const s = useGameStore.getState();
+      if (s.sunday!.folded || s.sunday!.seasonComplete) break;
+      if (s.sunday!.pendingEvent) {
+        await s.resolveSundayEvent(s.sunday!.pendingEvent.choices[0].id);
+      }
+      await useGameStore.getState().advanceWeek();
+    }
+    const counts = new Map<string, number>();
+    for (const entry of useGameStore.getState().sunday!.eventLog) {
+      counts.set(entry.defId, (counts.get(entry.defId) ?? 0) + 1);
+    }
+    for (const [defId, n] of counts) {
+      expect(n, `${defId} fired ${n} times in one season`).toBeLessThanOrEqual(3);
+    }
+  });
+
   it('logs what happened so the season can be retold', async () => {
     for (let i = 0; i < 20; i++) {
       const s = useGameStore.getState();
