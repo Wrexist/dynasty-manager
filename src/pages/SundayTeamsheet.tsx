@@ -139,6 +139,16 @@ const SundayTeamsheet = () => {
     return slot && !canPlayPosition(r.player, slot.pos) ? n + 1 : n;
   }, 0);
   if (outOfPosition > 0) warnings.push(t('sunday.sheet.warnOutOfPosition', { n: outOfPosition }));
+  // A promised start that the named XI does not honour is a warning, not a
+  // surprise after the match — the promise system only works if the manager
+  // can see the promise at the moment it can still be kept.
+  for (const m of sunday.squad) {
+    if (!m.promise || m.availability.status === 'out') continue;
+    if (!sunday.teamsheet.includes(m.playerId)) {
+      const p = players[m.playerId];
+      if (p) warnings.push(t('sunday.sheet.warnPromise', { name: p.firstName }));
+    }
+  }
   const knocks = xiRows.filter(r => r.player.fitness < 65 || r.player.injured).length;
   if (knocks > 0) warnings.push(t('sunday.sheet.warnTired', { n: knocks }));
   if (sunday.bench.length === 0 && sunday.teamsheet.length >= SUNDAY_MIN_START) {

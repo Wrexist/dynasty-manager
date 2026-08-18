@@ -7,7 +7,7 @@
  * beside them because both matter and separating them would imply otherwise.
  */
 import { useMemo, useState } from 'react';
-import { ChevronDown, UserMinus } from 'lucide-react';
+import { ChevronDown, Flame, UserMinus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -19,7 +19,7 @@ import { SundayEventModal } from '@/components/game/sunday/SundayEventModal';
 import { useGameStore } from '@/store/gameStore';
 import { useTranslation } from '@/hooks/useTranslation';
 import { cn } from '@/lib/utils';
-import { getSundayArchetype } from '@/config/sundayLeague';
+import { getSundayArchetype, SUNDAY_FORM_COLD, SUNDAY_FORM_HOT } from '@/config/sundayLeague';
 import type { Player, SundaySquadMember } from '@/types/game';
 
 type SortKey = 'availability' | 'overall' | 'commitment' | 'mood';
@@ -116,6 +116,17 @@ const SundaySquad = () => {
                         {member.unsettled && (
                           <span className="text-micro text-amber-300 shrink-0">{t('sunday.squad.unsettled')}</span>
                         )}
+                        {player.form >= SUNDAY_FORM_HOT && (
+                          <span className="inline-flex items-center gap-0.5 text-micro font-semibold text-emerald-300 shrink-0">
+                            <Flame className="w-3 h-3" aria-hidden /> {t('sunday.bio.onFire')}
+                          </span>
+                        )}
+                        {player.form <= SUNDAY_FORM_COLD && (
+                          <span className="text-micro font-semibold text-sky-300/80 shrink-0">{t('sunday.bio.struggling')}</span>
+                        )}
+                        {member.promise && (
+                          <span className="text-micro font-semibold text-primary shrink-0">{t('sunday.bio.promised')}</span>
+                        )}
                       </span>
                       <span className="block text-micro text-muted-foreground truncate">
                         {arch.name} · {member.job}
@@ -161,6 +172,33 @@ const SundaySquad = () => {
                       {member.availability.warned && member.availability.note && (
                         <p className="text-micro text-muted-foreground">{member.availability.note}</p>
                       )}
+
+                      {/* His story here — the memories the club keeps about him,
+                          heaviest first. This list IS the reason he stops being
+                          a stat block: it is written by the simulation and only
+                          by the simulation. */}
+                      <div>
+                        <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
+                          {t('sunday.bio.story')}
+                        </p>
+                        {member.memories.length === 0 ? (
+                          <p className="text-micro text-muted-foreground mt-1">{t('sunday.bio.noStory')}</p>
+                        ) : (
+                          <ul className="mt-1 space-y-1">
+                            {[...member.memories]
+                              .sort((a, b) => b.weight - a.weight || b.season - a.season || b.week - a.week)
+                              .slice(0, 5)
+                              .map((mem, i) => (
+                                <li key={`${mem.season}-${mem.week}-${i}`} className="flex items-baseline gap-2">
+                                  <span className="text-micro text-muted-foreground/70 tabular-nums shrink-0 w-14">
+                                    {t('sunday.bio.seasonWeek', { season: mem.season, week: mem.week })}
+                                  </span>
+                                  <span className="text-micro text-foreground/85 leading-relaxed">{mem.text}</span>
+                                </li>
+                              ))}
+                          </ul>
+                        )}
+                      </div>
 
                       <div className="flex gap-2">
                         <LiquidButton className="flex-1 py-2" onClick={() => { void setCaptain(player.id); }}>

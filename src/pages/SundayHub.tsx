@@ -293,8 +293,28 @@ const SundayHub = () => {
               {sunday.rivalry.name} · {clubs[sunday.rivalry.clubId].name}
             </p>
           </div>
+          <p className="text-micro text-muted-foreground mt-1 leading-relaxed">
+            {t('sunday.rival.manager')}: {sunday.rivalry.managerName}. {sunday.rivalry.managerStyle}
+          </p>
+          {sunday.rivalry.defector && (
+            <p className="text-micro text-orange-300/90 mt-1">
+              {t('sunday.rival.defector', { name: sunday.rivalry.defector.name })}
+            </p>
+          )}
           {sunday.rivalry.lastTaunt && (
             <p className="text-caption text-muted-foreground mt-2 leading-relaxed">{sunday.rivalry.lastTaunt}</p>
+          )}
+          {sunday.rivalry.story.length > 0 && (
+            <div className="mt-2 border-t border-border/30 pt-2">
+              <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">
+                {t('sunday.rival.storyTitle')}
+              </p>
+              <ul className="mt-1 space-y-1">
+                {sunday.rivalry.story.slice(-3).map((line, i) => (
+                  <li key={`${i}-${line.slice(0, 10)}`} className="text-micro text-foreground/80 leading-relaxed">{line}</li>
+                ))}
+              </ul>
+            </div>
           )}
         </GlassPanel>
       )}

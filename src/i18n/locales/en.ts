@@ -100,12 +100,25 @@ export const en = {
   'sunday.sheet.warnNoKeeper': 'Nobody in this XI is a goalkeeper.',
   'sunday.sheet.warnOutOfPosition': '{n} players are out of position.',
   'sunday.sheet.warnTired': '{n} players are carrying knocks or low fitness.',
+  'sunday.sheet.warnPromise': 'You promised {name} a start. He is not in the XI.',
   'sunday.sheet.warnNoBench': 'No substitutes. Anyone who goes off, stays off.',
   'sunday.sheet.tactic': 'How you are playing',
   'sunday.sheet.tacticFit': 'Suits this XI',
   'sunday.sheet.captain': 'Captain',
   'sunday.sheet.makeCaptain': 'Give him the armband',
   'sunday.sheet.noFixture': 'No fixture to pick a team for.',
+
+  // Match day — the Sunday morning
+  'sunday.arrival.title': 'Sunday morning',
+  'sunday.arrival.quiet': 'Everyone who said they would come, came. Remarkable.',
+  'sunday.arrival.standing': '{n} standing here in kit',
+  'sunday.arrival.short': 'You are {n} short of eleven.',
+  'sunday.arrival.forced': '{n} guest{s} already roped in to make the numbers legal.',
+  'sunday.arrival.hire': 'Bring in {n} guest{s} · £{cost}',
+  'sunday.arrival.playShort': 'Play with {n}',
+  'sunday.arrival.playShortHint': 'Save the money. Carry the gap.',
+  'sunday.arrival.hireHint': 'Somebody knows somebody. They will be terrible, but they will be here.',
+  'sunday.arrival.decided': 'Decision made.',
 
   // Match day
   'sunday.match.title': 'Match Day',
@@ -126,6 +139,12 @@ export const en = {
   'sunday.match.skip': 'Skip to the result',
   'sunday.match.playing': 'Playing…',
 
+  // Post-match story
+  'sunday.story.hero': 'Man of the match',
+  'sunday.story.lowlight': 'One to forget',
+  'sunday.story.turningPoint': 'Where it turned',
+  'sunday.story.consequences': 'The damage',
+
   // Squad
   'sunday.squad.title': 'Squad',
   'sunday.squad.empty': 'Nobody is registered yet.',
@@ -144,6 +163,15 @@ export const en = {
   'sunday.squad.releaseBody': 'He goes, and the rest of them will hear about it.',
   'sunday.squad.sortBy': 'Sort',
   'sunday.squad.unsettled': 'Thinking of leaving',
+
+  // Player biography
+  'sunday.bio.story': 'His story here',
+  'sunday.bio.noStory': 'No stories yet. Give him a Sunday.',
+  'sunday.bio.form': 'Form',
+  'sunday.bio.onFire': 'On fire',
+  'sunday.bio.struggling': 'Struggling',
+  'sunday.bio.promised': 'Promised a start',
+  'sunday.bio.seasonWeek': 'S{season} W{week}',
 
   // Club
   'sunday.club.title': 'The Club',
@@ -219,6 +247,22 @@ export const en = {
   'sunday.history.foldedBody': 'That is the end of the run. What is left is the record of it.',
   'sunday.history.mainMenu': 'Main menu',
   'sunday.history.appearances': '{n} apps',
+
+  // Rival
+  'sunday.rival.manager': 'Their manager',
+  'sunday.rival.defector': '{name} plays for them now.',
+  'sunday.rival.storyTitle': 'How it got like this',
+
+  // Endings & history additions
+  'sunday.history.moment': 'Moment of the season',
+  'sunday.history.awards': 'Presentation night',
+  'sunday.history.reliable': 'Most reliable',
+  'sunday.history.retro.seasons': 'Seasons',
+  'sunday.history.retro.promotions': 'Promotions',
+  'sunday.history.retro.cups': 'Cups won',
+  'sunday.history.retro.goals': 'Goals scored',
+  'sunday.history.retro.finalBalance': 'Final balance',
+  'sunday.history.retro.bestFinish': 'Best finish',
 
   // Events
   'sunday.event.title': 'Something has come up',
