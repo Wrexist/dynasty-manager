@@ -476,10 +476,30 @@ export const SUNDAY_TACTICS: readonly SundayTacticInfo[] = [
   },
   {
     id: 'park-the-bus', name: 'Park the Bus', tagline: 'Everybody behind the ball. Everybody.',
-    description: 'Two banks of four, a third bank behind those, and one lonely striker. Keeps the score down against better sides and makes for a joyless morning.',
-    formation: '5-3-2', shortFormation: '4-5-1',
-    instructions: { mentality: 'defensive', width: 'narrow', tempo: 'slow', defensiveLine: 'deep', pressingIntensity: 25 },
-    wants: { defending: 5, physical: 2, mental: 1 }, varianceMult: 0.75,
+    description: 'Two banks of four, a holding man behind those, and one lonely striker. Keeps the score down against better sides and makes for a joyless morning.',
+    // 4-1-4-1, not the 5-3-2 this used to be: the description always said two
+    // banks of four, and a Sunday squad has five defenders on the books, so a
+    // back five put a striker at left-back every week. Measured, the back four
+    // is worth ~0.04 ppg to the tactic for that reason alone.
+    formation: '4-1-4-1', shortFormation: '4-5-1',
+    // THE BUS IS A DEEP LINE AND A DEFENSIVE MENTALITY. It used to be those
+    // PLUS narrow PLUS slow PLUS a pressing intensity of 25, and in the shared
+    // engine those last three are volume levers whose only compensations
+    // (counter-vulnerability, shot quality) pay much less at a level where the
+    // defending has already been destroyed by the tilt. Stacked, they made Park
+    // the Bus a structural loser: −0.24 to −0.33 ppg against every other
+    // tactic, in every squad shape, including the ones it fits best.
+    //
+    // `narrow` was the worst of the three and is now gone entirely: in the
+    // shared engine it is −0.10 team strength AND it hands any wide opponent
+    // WIDE_VS_NARROW_BONUS, with no upside anywhere. It is a strictly dominated
+    // option, and no Sunday tactic should be built out of one.
+    instructions: { mentality: 'defensive', width: 'normal', tempo: 'normal', defensiveLine: 'deep', pressingIntensity: 40 },
+    // Defending is weighted down from 5 for the same reason passing left Proper
+    // Football: only the five defensive positions' `defending` reaches
+    // `getDefenseQuality`, so more than half of a defending-only delta landed
+    // on forwards and did nothing. Physical and mental are read for everybody.
+    wants: { defending: 3, physical: 2, mental: 2 }, varianceMult: 0.55,
   },
   {
     id: 'chaos-ball', name: 'Chaos Ball', tagline: 'Everyone forward. Sort it out later.',
@@ -544,11 +564,16 @@ export const SUNDAY_FIT_DELTA_RANGE = 16;
  * could access a fifth. Nudging `overall` on the copies puts fit into the same
  * channel every other strength input uses, WITHOUT touching the shared engine.
  *
- * CALIBRATION: measured over a sweep of squad shapes, a full 0→1 fit swing
- * moves 0.246 → 0.556 ppg at k = 0.35 (0.37 accessible ppg at k = 0.5, which
- * over-powered it against the squad-quality span). k = 0.35 it is.
+ * CALIBRATION. The pre-change audit measured a full 0→1 fit swing at 0.246 ppg
+ * and projected 0.556 at k = 0.35. Re-measured after the change (8 squad
+ * shapes × 4 tactics × 900 matches), the within-shape slope came out at 0.59
+ * ppg per unit of fit — but the accessible fit range on real squads is 0.37,
+ * not the 0.52 the audit projected, so the swing a manager can actually reach
+ * was 0.22 ppg against a 0.25-0.45 design target. k was raised 0.35 → 0.42 on
+ * that measurement. The squad-quality span across the same shapes is ~1.4 ppg,
+ * so who you can get out of bed still outranks how you set up by five to one.
  */
-export const SUNDAY_FIT_OVERALL_PER_POINT = 0.35;
+export const SUNDAY_FIT_OVERALL_PER_POINT = 0.42;
 /**
  * How much of a tactic's `varianceMult` reaches the level tilt below.
  *

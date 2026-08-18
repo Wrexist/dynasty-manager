@@ -87,16 +87,17 @@ describe('sunday balance bands', () => {
     const detail = `league=${league.toFixed(2)} own=${own.toFixed(2)} avail=${availability.toFixed(2)} folded=${folded}/6`;
 
     // Sunday football, not professional chess: ~3 goals a game either side of
-    // the whole division.
-    expect(league, detail).toBeGreaterThan(2.2);
-    expect(league, detail).toBeLessThan(4.8);
+    // the whole division. MEASURED (6 seasons, pub/Route One): 3.13 and 3.17
+    // on two runs of this exact case.
+    expect(league, detail).toBeGreaterThan(2.4);
+    expect(league, detail).toBeLessThan(4.2);
     // The player's own (engine-simulated) matches and the AI model's league
     // must describe the same sport, or the table stops being comparable with
-    // the club's record.
-    expect(Math.abs(own - league), detail).toBeLessThan(1.6);
-    // Availability bites without being a lottery.
-    expect(availability, detail).toBeGreaterThan(0.72);
-    expect(availability, detail).toBeLessThan(0.99);
+    // the club's record. MEASURED gap: 0.29 and 0.41.
+    expect(Math.abs(own - league), detail).toBeLessThan(1.3);
+    // Availability bites without being a lottery. MEASURED: 0.76-0.78.
+    expect(availability, detail).toBeGreaterThan(0.70);
+    expect(availability, detail).toBeLessThan(0.92);
     // An actively-managed ordinary club survives its first season nearly always.
     expect(folded, detail).toBeLessThanOrEqual(1);
   }, 600_000);
@@ -107,7 +108,7 @@ describe('sunday balance bands', () => {
     const varianceByTactic = new Map<SundayTacticId, number>();
     for (const tactic of tactics) {
       const runs: SeasonResult[] = [];
-      for (const seed of [21, 22, 23, 24]) {
+      for (const seed of [21, 22, 23, 24, 25, 26, 27, 28]) {
         runs.push(await runSeason(seed, 'pub', tactic));
       }
       ppgByTactic.set(tactic, avg(runs.map(r => r.ppg)));
@@ -117,14 +118,38 @@ describe('sunday balance bands', () => {
     const detail = [...ppgByTactic.entries()].map(([k, v]) => `${k}=${v.toFixed(2)}`).join(' ');
 
     // Every tactic must be playable, and none an automatic win.
+    // MEASURED (8 seasons per tactic, two runs of this exact case):
+    //   route-one 1.27 / 1.38 · park-the-bus 1.21 / 1.30
+    //   chaos-ball 1.46 / 1.35 · proper-football 1.33 / 1.22
     for (const v of values) {
-      expect(v, detail).toBeGreaterThan(0.55);
-      expect(v, detail).toBeLessThan(2.5);
+      expect(v, detail).toBeGreaterThan(0.7);
+      expect(v, detail).toBeLessThan(2.2);
     }
-    expect(Math.max(...values) - Math.min(...values), detail).toBeLessThan(1.1);
-    // Chaos Ball's identity is variance: it must produce busier scorelines
-    // than Park the Bus, or the trade-off it advertises is fiction.
-    expect(varianceByTactic.get('chaos-ball')!, detail).toBeGreaterThan(varianceByTactic.get('park-the-bus')!);
+    // Best-to-worst spread. MEASURED 0.25 and 0.16 here; 0.278 in the offline
+    // sweep (8 squad shapes x 4 tactics x 1,400 matches), which is the number
+    // to trust — a 14-match season is a noisy estimator and the band is sized
+    // for that noise, not for the true spread.
+    expect(Math.max(...values) - Math.min(...values), detail).toBeLessThan(0.85);
+    // PARK THE BUS IS NOT A TRAP. It used to be: hardcoded Route One opposition
+    // meant the AI collected an all-out-attack matchup bonus against it that the
+    // manager could never answer, and it stacked narrow + slow + a pressing
+    // intensity of 25 on top, all of which are volume penalties in the shared
+    // engine. The audit measured it 0.24-0.33 ppg behind every other tactic in
+    // every squad shape. MEASURED now: 0.14 and 0.02 behind the mean of the
+    // other three here, 0.185 behind in the offline sweep. The band is 3 SD of
+    // this case's own sampling noise (SD ~0.14 on the gap at 8 seasons), so it
+    // catches a return to "structural loser" without flagging a quiet week.
+    const bus = ppgByTactic.get('park-the-bus')!;
+    const pack = [...ppgByTactic.entries()].filter(([k]) => k !== 'park-the-bus').map(([, v]) => v);
+    const gap = bus - pack.reduce((a, b) => a + b, 0) / pack.length;
+    expect(gap, `${detail} | bus vs pack ${gap.toFixed(2)}`).toBeGreaterThan(-0.55);
+    // Chaos Ball's identity is variance, and since `varianceMult` was wired to
+    // the level tilt it is a mechanical property rather than a claim on a card:
+    // each side's tactic scales its own shooting bonus and marking penalty.
+    // MEASURED total goals per match: chaos-ball 4.81 / 5.08 against park-the-
+    // bus 3.12 / 2.73 — a gap of 1.69 and 2.35.
+    const busy = varianceByTactic.get('chaos-ball')! - varianceByTactic.get('park-the-bus')!;
+    expect(busy, `${detail} | chaos-bus goals ${busy.toFixed(2)}`).toBeGreaterThan(0.7);
   }, 600_000);
 
   it('separates the personalities without making any unplayable', async () => {
@@ -133,25 +158,30 @@ describe('sunday balance bands', () => {
     const folded: string[] = [];
     for (const p of picks) {
       const runs: SeasonResult[] = [];
-      for (const seed of [31, 32, 33]) {
+      for (const seed of [31, 32, 33, 34, 35]) {
         runs.push(await runSeason(seed, p, 'route-one'));
       }
       ppg.set(p, avg(runs.map(r => r.ppg)));
-      folded.push(`${p}=${runs.filter(r => r.folded).length}/3`);
+      folded.push(`${p}=${runs.filter(r => r.folded).length}/5`);
     }
     const detail = [...ppg.entries()].map(([k, v]) => `${k}=${v.toFixed(2)}`).join(' ') + ' | folded ' + folded.join(' ');
 
     // Washed Professionals are better at football than the Family Club — that
     // is their entire premise — but nobody is hopeless and nobody walks it.
+    // MEASURED (5 seasons each, two runs): washed 2.45 / 2.24, family 1.33 /
+    // 1.44, eleven 1.74 / 1.79, serious 2.12 / 2.39. The upper band moves 2.6
+    // -> 2.75 because the top of that range sits barely one standard deviation
+    // (~0.15 at five seasons) below the old bound — it was a flake waiting to
+    // happen, and 2.75 ppg is still a side winning nine games in ten.
     expect(ppg.get('washed')!, detail).toBeGreaterThan(ppg.get('family')!);
     for (const v of ppg.values()) {
       expect(v, detail).toBeGreaterThan(0.4);
-      expect(v, detail).toBeLessThan(2.6);
+      expect(v, detail).toBeLessThan(2.75);
     }
     // Hard-mode picks may fold sometimes; a managed club folding EVERY run
     // means the difficulty is a trap, not a challenge.
     for (const f of folded) {
-      expect(f, detail).not.toContain('3/3');
+      expect(f, detail).not.toContain('5/5');
     }
   }, 600_000);
 });
