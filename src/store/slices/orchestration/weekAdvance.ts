@@ -64,6 +64,7 @@ import { advanceKnockoutRound, generateKnockoutFromGroups, getCurrentMatchday, i
 import type { ContinentalWorld } from '@/utils/continental';
 import { stripAiMatchDetail, stableClubSlice } from '@/store/slices/orchestration/helpers';
 import { getEffectiveStadiumLevel } from '@/utils/facilities';
+import { markSuperCupPlayed, superCupPlayedOn } from '@/utils/superCup';
 import { nextFanMood } from '@/utils/fanMood';
 import { getRecentForm } from '@/utils/formGuide';
 import { getLeaguePositionPrize, getMatchdayIncome, getCommercialIncome, assessFfp } from '@/utils/financeHelpers';
@@ -1180,8 +1181,12 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     (state.friendlies?.some(m => m.played && m.week === week && (m.homeClubId === playerClubId || m.awayClubId === playerClubId)) ?? false)
     || state.cup.ties.some(t => t.played && t.week === week && (t.homeClubId === playerClubId || t.awayClubId === playerClubId))
     || (state.leagueCup?.ties?.some(t => t.played && t.week === week && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) ?? false)
-    || (state.domesticSuperCup?.played === true && state.domesticSuperCup.week === week && (state.domesticSuperCup.homeClubId === playerClubId || state.domesticSuperCup.awayClubId === playerClubId))
-    || (state.continentalSuperCup?.played === true && state.continentalSuperCup.week === week && (state.continentalSuperCup.homeClubId === playerClubId || state.continentalSuperCup.awayClubId === playerClubId))
+    // `superCupPlayedOn`, not `sc.week === week`: a Super Cup outranked on its
+    // own week is caught up later, and reading the SCHEDULED week here missed
+    // it — so the league fixture the tie displaced was never auto-simmed and
+    // the player's club finished the season a match short.
+    || (superCupPlayedOn(state.domesticSuperCup, week) && (state.domesticSuperCup!.homeClubId === playerClubId || state.domesticSuperCup!.awayClubId === playerClubId))
+    || (superCupPlayedOn(state.continentalSuperCup, week) && (state.continentalSuperCup!.homeClubId === playerClubId || state.continentalSuperCup!.awayClubId === playerClubId))
     || [state.championsCup, state.shieldCup, state.conferenceCup].some(t => {
       if (!t) return false;
       const inGroup = t.groups?.some(g => g.matches.some(m => m.played && m.week === week && (m.homeClubId === playerClubId || m.awayClubId === playerClubId))) ?? false;
@@ -1499,7 +1504,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
         const winnerId = scResult.homeGoals > scResult.awayGoals ? newDomesticSuperCup.homeClubId :
           scResult.awayGoals > scResult.homeGoals ? newDomesticSuperCup.awayClubId :
           Math.random() < 0.5 ? newDomesticSuperCup.homeClubId : newDomesticSuperCup.awayClubId;
-        newDomesticSuperCup = { ...newDomesticSuperCup, played: true, homeGoals: scResult.homeGoals, awayGoals: scResult.awayGoals, winnerId };
+        newDomesticSuperCup = markSuperCupPlayed(newDomesticSuperCup, week, scResult, winnerId);
       }
     }
   }
@@ -1527,11 +1532,15 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
         const winnerId = scResult.homeGoals > scResult.awayGoals ? newContinentalSuperCup.homeClubId :
           scResult.awayGoals > scResult.homeGoals ? newContinentalSuperCup.awayClubId :
           Math.random() < 0.5 ? newContinentalSuperCup.homeClubId : newContinentalSuperCup.awayClubId;
-        newContinentalSuperCup = { ...newContinentalSuperCup, played: true, homeGoals: scResult.homeGoals, awayGoals: scResult.awayGoals, winnerId };
+        newContinentalSuperCup = markSuperCupPlayed(newContinentalSuperCup, week, scResult, winnerId);
       } else {
         // Forfeit if virtual clubs without real players — random winner
         const winnerId = Math.random() < 0.5 ? newContinentalSuperCup.homeClubId : newContinentalSuperCup.awayClubId;
-        newContinentalSuperCup = { ...newContinentalSuperCup, played: true, homeGoals: winnerId === newContinentalSuperCup.homeClubId ? 1 : 0, awayGoals: winnerId === newContinentalSuperCup.awayClubId ? 1 : 0, winnerId };
+        newContinentalSuperCup = markSuperCupPlayed(
+          newContinentalSuperCup, week,
+          { homeGoals: winnerId === newContinentalSuperCup.homeClubId ? 1 : 0, awayGoals: winnerId === newContinentalSuperCup.awayClubId ? 1 : 0 },
+          winnerId,
+        );
       }
     }
   }
@@ -2388,8 +2397,8 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
         (tie.week1 === week && tie.homeClubId === playerClubId)
         || (tie.week2 === week && tie.round !== 'F' && tie.awayClubId === playerClubId));
     })
-    || (newDomesticSuperCup?.week === week && newDomesticSuperCup.homeClubId === playerClubId)
-    || (newContinentalSuperCup?.week === week && newContinentalSuperCup.homeClubId === playerClubId);
+    || (superCupPlayedOn(newDomesticSuperCup, week) && newDomesticSuperCup!.homeClubId === playerClubId)
+    || (superCupPlayedOn(newContinentalSuperCup, week) && newContinentalSuperCup!.homeClubId === playerClubId);
   const matchdayIncome = getMatchdayIncome(playerClub, playerDiv, {
     fanMood: fanMoodMult, derby: derbyIncomeBonus, streak: streakIncomeMult, isHomeFixture,
   });

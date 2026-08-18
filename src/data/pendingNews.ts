@@ -49,6 +49,7 @@ export const PENDING_NEWS: PendingRelease = {
   ],
   fixed: [
     'Fan mood now reacts to results and league position instead of sitting at a flat 50 all game — matchday income finally rises with a winning run and dips during a slump.',
+    'The Super Cup now actually finishes: if it gets bumped off its scheduled week it is played once, awards the trophy and the prize money, and stops reappearing every free week.',
   ],
   headline: null,
   summary: null,

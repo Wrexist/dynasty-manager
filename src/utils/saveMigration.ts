@@ -12,11 +12,20 @@ import { isPlaceholderClubId } from '@/config/continental';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 82;
+const CURRENT_VERSION = 83;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
 const migrations: Record<number, MigrationFn> = {
+  // v82 -> v83: `SuperCupMatch` gained the optional `playedWeek`, the week a
+  // Super Cup was ACTUALLY played when a catch-up moved it off its scheduled
+  // `week`. Every reader falls back to `week` when it is absent, so an old save
+  // behaves exactly as before and there is nothing to backfill — a tie that was
+  // already resolved was, under the old code, only ever resolvable on its own
+  // scheduled week, so `week` IS its played week. The bump exists so the shape
+  // change is declared rather than sneaking in.
+  82: (data) => ({ ...data, version: 83 }),
+
   // v81 → v82: `playoffState` holds the player's live promotion playoff between
   // the final league week and rollover. Additive and nullable — an old save was
   // never mid-playoff, because the phase did not exist, so `null` is the only
