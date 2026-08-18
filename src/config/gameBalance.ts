@@ -328,6 +328,22 @@ export const POSITION_PRIZE_TIER_SCALE: Record<number, number> = { 1: 1.0, 2: 0.
 export const SCOUTING_COST_PER_ASSIGNMENT = 25000;
 export const FAN_MOOD_BASE = 0.8;
 export const FAN_MOOD_SCALE = 0.4;
+/** How many recent league results feed the fan-mood target. Matches the count
+ *  the Form Guide shows the player, so the mood always has a visible cause. */
+export const FAN_MOOD_FORM_MATCHES = 5;
+/** Split of the fan-mood target between recent form and league standing. Form
+ *  leads because it is what the fans just watched; standing anchors it so a
+ *  good run at the bottom of the table does not read as a happy crowd. Must
+ *  sum to 1. */
+export const FAN_MOOD_FORM_WEIGHT = 0.6;
+export const FAN_MOOD_POSITION_WEIGHT = 0.4;
+/** Fraction of the gap to the target closed each week. Fans are slower to turn
+ *  than a board: at 0.15 a full swing takes roughly a third of a season, so a
+ *  single bad month dents matchday income without erasing it. Also sets what a
+ *  merchandise pricing tier is worth — the steady state sits at
+ *  `target + fanMoodImpact / FAN_MOOD_ADJUST_RATE`, i.e. about +13 for
+ *  Fan-Friendly and -7 for Premium. */
+export const FAN_MOOD_ADJUST_RATE = 0.15;
 
 // ── Facility Upgrade ──
 export const FACILITY_COST_PER_LEVEL = 5_000_000;
@@ -360,6 +376,40 @@ export const RECOVERY_FITNESS_BONUS_PER_LEVEL = 1.0;
 export function clubMedicalLevel(clubFacilities: number): number {
   const base = Number.isFinite(clubFacilities) ? clubFacilities : 5;
   return Math.min(FACILITY_MAX_LEVEL, Math.max(0, Math.round(base * MEDICAL_LEVEL_FACTOR)));
+}
+
+/**
+ * Project a club's static `facilities` rating onto the RECOVERY scale, the
+ * counterpart of `clubMedicalLevel` for weekly fitness.
+ *
+ * Same trap, same fix: `Club.facilities` is a fixed 2-10 quality rating while
+ * `FacilitiesState.recoveryLevel` is the upgradeable Recovery Suite only the
+ * player's club has. The projection was written out by hand at both call sites
+ * that needed it; it lives here now so the AI weekly-fitness pass cannot drift
+ * from the value the player's club is initialised with.
+ */
+/**
+ * Resting fitness an AI club's squad settles at, by facilities.
+ *
+ * A FLAT weekly gain does not work here and was tried first: AI clubs drain a
+ * flat `FITNESS_DRAIN_PER_MATCH` for the eleven who play, while the player's own
+ * matches drain the far larger measured in-match amount
+ * (`MATCH_FITNESS_CARRY_SCALE`). Give both sides the same weekly gain and the AI
+ * squad average pins at 100 within a season — measured 99.7 against the player's
+ * 85 — which is the original bug with the sign flipped.
+ *
+ * A ceiling models it correctly: a rested squad sits where its recovery
+ * facilities put it, matches pull it down, and the week's rest brings it back up
+ * to the ceiling and no further. The band (88 at the median rating, 91 at the
+ * top) brackets the ~87 every club starts at, so the world neither decays nor
+ * inflates.
+ */
+export const AI_FITNESS_CEILING_BASE = 85;
+export const AI_FITNESS_CEILING_PER_RECOVERY_LEVEL = 1;
+
+export function clubRecoveryLevel(clubFacilities: number): number {
+  const base = Number.isFinite(clubFacilities) ? clubFacilities : 5;
+  return Math.min(FACILITY_MAX_LEVEL, Math.max(0, Math.round(base * RECOVERY_LEVEL_FACTOR)));
 }
 
 // ── Season-End Confidence by Verdict ──

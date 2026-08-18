@@ -28,6 +28,7 @@ import type { HalfState } from '@/engine/match';
 import type { ShoutType, KeyMomentChoice } from '@/types/game';
 import { useCurrentMatch } from '@/hooks/useGameSelectors';
 import { getCompetitionInfo } from '@/utils/competitionBadge';
+import { pendingSuperCup } from '@/utils/superCup';
 import { getPlayerNextWorldCupMatch, nationToClub } from '@/utils/internationalMatch';
 import { PostMatchPopup } from '@/components/game/PostMatchPopup';
 import { TacticalPanel } from '@/components/game/TacticalPanel';
@@ -241,13 +242,16 @@ const MatchDayInner = () => {
   const continentalMatch = continentalMatchInfo ? { id: continentalMatchInfo.id, week, homeClubId: continentalMatchInfo.homeClubId, awayClubId: continentalMatchInfo.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match : null;
 
   // Detect super cup match
-  const superCupMatch = !liveMatch && !cupTie && !leagueCupTie && !continentalMatch ? (() => {
-    const dsc = domesticSuperCup;
-    const csc = continentalSuperCup;
-    const sc = dsc && !dsc.played && dsc.week === week && (dsc.homeClubId === playerClubId || dsc.awayClubId === playerClubId) ? dsc
-      : csc && !csc.played && csc.week === week && (csc.homeClubId === playerClubId || csc.awayClubId === playerClubId) ? csc : null;
-    return sc ? { id: `super-cup-${sc.type}`, week, homeClubId: sc.homeClubId, awayClubId: sc.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match : null;
-  })() : null;
+  // `pendingSuperCup` (>= the scheduled week, domestic first) is the same
+  // selector the store uses. With a strict `week === sc.week` this screen never
+  // offered a Super Cup that had been outranked on its own week, while the
+  // instant-sim path did — so the two disagreed about what match was on.
+  const pendingSc = !liveMatch && !cupTie && !leagueCupTie && !continentalMatch
+    ? pendingSuperCup({ domesticSuperCup, continentalSuperCup }, week, playerClubId)
+    : null;
+  const superCupMatch = pendingSc
+    ? { id: `super-cup-${pendingSc.type}`, week, homeClubId: pendingSc.homeClubId, awayClubId: pendingSc.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match
+    : null;
 
   const isCupMatch = !!cupTie || !!leagueCupTie || !!continentalMatch || !!superCupMatch || !!currentCupTieId;
 
@@ -275,7 +279,9 @@ const MatchDayInner = () => {
     : champMatch ? getCompetitionInfo('Champions Cup')
     : shieldMatch ? getCompetitionInfo('Shield Cup')
     : confMatch ? getCompetitionInfo('Conference Cup')
-    : superCupMatch ? getCompetitionInfo(domesticSuperCup?.week === week ? 'Super Cup' : 'Continental Super Cup')
+    // Label from the tie we actually selected. The old week comparison
+    // mislabelled a caught-up domestic Super Cup as the continental one.
+    : pendingSc ? getCompetitionInfo(pendingSc.type === 'domestic' ? 'Super Cup' : 'Continental Super Cup')
     : null;
   const competitionRound = isWorldCup ? (wcNext?.group ? `Group ${wcNext.group}` : (wcNext?.roundLabel ?? ''))
     // `useCurrentMatch` already resolves the playoff round from teamsInRound and

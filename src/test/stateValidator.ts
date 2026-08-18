@@ -21,10 +21,14 @@ export function validateGameState(state: GameState): ValidationError[] {
   if (state.season < 1) {
     errors.push({ field: 'season', message: `season is ${state.season}, expected >= 1`, severity: 'critical' });
   }
-  // The promotion playoff is played AFTER the final league week and BEFORE the
-  // season rolls, so `totalWeeks + 1` is a legal, persistable state while
-  // `seasonPhase` is 'playoff'. Outside that phase it still is not.
-  const maxWeek = (state.totalWeeks || 46) + (state.seasonPhase === 'playoff' ? 1 : 0);
+  // `totalWeeks + 1` is a legal, persistable state in TWO situations, not one:
+  // the promotion playoff (played after the final league week and before the
+  // season rolls), and the ordinary season-over window — the player finishes
+  // their last match, `MatchReview` advances the week, and the save sits at
+  // `totalWeeks + 1` until they tap "View Season Summary". Autosave fires in
+  // that window, so a perfectly healthy save was being reported as a CRITICAL
+  // week-bound violation. The bound was playoff-only; it is not any more.
+  const maxWeek = (state.totalWeeks || 46) + 1;
   if (state.week < 1 || state.week > maxWeek) {
     errors.push({ field: 'week', message: `week is ${state.week}, expected 1-${maxWeek}`, severity: 'critical' });
   }

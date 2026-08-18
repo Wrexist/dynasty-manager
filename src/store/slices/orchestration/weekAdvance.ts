@@ -35,7 +35,7 @@ import { JOB_MARKET_REFRESH_WEEKS, PROACTIVE_OFFER_CHECK_INTERVAL, PROACTIVE_OFF
 import { getAICounterTactics } from '@/config/aiManager';
 import { AI_LOAN_DURATIONS, AI_LOAN_OBLIGATORY_BUY_CHANCE, AI_LOAN_OBLIGATORY_BUY_MULTIPLIER, AI_LOAN_WAGE_SPLITS } from '@/config/aiSimulation';
 import { getCompetitionCalendar } from '@/config/continental';
-import { AI_LOAN_OFFER_CHANCE, AI_LOAN_RECALL_CLAUSE_CHANCE, ASSISTANT_MANAGER_FAMILIARITY_BOOST, BENCH_REST_BONUS, BOARD_REVIEW_ADJUST_POSITIONS, BOARD_REVIEW_RAISE_THRESHOLD, BOARD_REVIEW_RELAX_THRESHOLD, BOARD_REVIEW_WEEKS, CALLUP_SNUB_MORALE_PENALTY, CONGESTED_FIXTURE_INJURY_MULTIPLIER, CONTRACT_MORALE_HIT_AMOUNT, CONTRACT_MORALE_HIT_OVERALL_THRESHOLD, CONTRACT_MORALE_HIT_WEEK_THRESHOLD, CONTRACT_MORALE_MIN, CONTRACT_WARNING_OVERALL_THRESHOLD, CONTRACT_WARNING_WEEKS, CONTRACT_WARNING_YOUTH_AGE_MAX, CONTRACT_WARNING_YOUTH_POTENTIAL_MIN, CUP_EXTRA_TIME_GOAL_CHANCE, CUP_EXTRA_TIME_REPUTATION_DIVISOR, CUP_PENALTY_GK_QUALITY_FACTOR, CUP_PENALTY_KICKS, FACILITY_MAX_LEVEL, FAN_MOOD_BASE, FAN_MOOD_SCALE, FFP_CONFIDENCE_PENALTY, FFP_CRITICAL_CONFIDENCE_PENALTY, FFP_WAGE_RATIO_CRITICAL, FFP_WAGE_RATIO_WARNING, FORFEIT_SCORE, INJURY_TYPES, INTERNATIONAL_BREAK_FITNESS_COST, INTERNATIONAL_BREAK_WEEKS, INTERNATIONAL_CALLUP_MIN_OVR, INTERNATIONAL_FITNESS_COST, INTERNATIONAL_SNUB_MIN_OVR, LOAN_DEV_BASE_CHANCE, LOAN_DEV_REP_FACTOR, LOAN_FITNESS_DRAIN, LOAN_PLAY_CHANCE_HIGH, LOAN_PLAY_CHANCE_LOW, LOAN_QUALITY_FORMULA_BASE, LOAN_QUALITY_FORMULA_REP_MULT, LOAN_YOUNG_AGE_THRESHOLD, MANAGER_SALARY_CONFIDENCE_PENALTY, MANAGER_SALARY_RATIO_CRITICAL, MANAGER_SALARY_RATIO_WARNING, MAX_CAREER_TIMELINE, MAX_FINANCE_HISTORY, MORALE_BENCH_MIN, MORALE_BENCH_WEEKLY_LOSS, NT_SACK_GROUP_EXIT_THRESHOLD, OBJECTIVE_CYCLE_WEEKS, PHYSIO_INJURY_REDUCTION_PER_QUALITY, PHYSIO_RECOVERY_BOOST_THRESHOLD, PHYSIO_RECOVERY_CHANCE, POST_TOURNAMENT_FITNESS_COST_HIGH, POST_TOURNAMENT_FITNESS_COST_LOW, REP_INTL_FINAL, REP_INTL_GROUP_EXIT, REP_INTL_KNOCKOUT, REP_INTL_SEMI, REP_INTL_TOURNAMENT_WIN, SCOUTING_COST_PER_ASSIGNMENT, SIM_PENALTY_BASE_WIN_CHANCE, SIM_PENALTY_MENTAL_SCALE, STADIUM_INCOME_PER_LEVEL, STREAK_FORM_BONUS, STREAK_FORM_THRESHOLD, STREAK_INCOME_MULTIPLIER, STREAK_INCOME_THRESHOLD, STREAK_MORALE_BONUS, STREAK_MORALE_THRESHOLD, TRAINING_GROUND_BOOST, ULTIMATUM_CONFIDENCE_THRESHOLD, ULTIMATUM_HORIZON_WEEKS, ULTIMATUM_POSITION_TOLERANCE, ULTIMATUM_SANDBOX_BUDGET_CUT, ULTIMATUM_SANDBOX_CONFIDENCE_FLOOR, ULTIMATUM_SEASON1_GRACE_WEEK, ULTIMATUM_SURVIVE_CONFIDENCE, ULTIMATUM_SURVIVE_CONFIDENCE_BONUS, UNHAPPY_CONTAGION_MORALE_HIT, UNHAPPY_CONTAGION_WEEKS, UNHAPPY_THRESHOLD, UNHAPPY_WEEKS_TO_REQUEST, YOUTH_DEVELOPER_BOOST } from '@/config/gameBalance';
+import { AI_LOAN_OFFER_CHANCE, AI_LOAN_RECALL_CLAUSE_CHANCE, ASSISTANT_MANAGER_FAMILIARITY_BOOST, BENCH_REST_BONUS, BOARD_REVIEW_ADJUST_POSITIONS, BOARD_REVIEW_RAISE_THRESHOLD, BOARD_REVIEW_RELAX_THRESHOLD, BOARD_REVIEW_WEEKS, CALLUP_SNUB_MORALE_PENALTY, CONGESTED_FIXTURE_INJURY_MULTIPLIER, CONTRACT_MORALE_HIT_AMOUNT, CONTRACT_MORALE_HIT_OVERALL_THRESHOLD, CONTRACT_MORALE_HIT_WEEK_THRESHOLD, CONTRACT_MORALE_MIN, CONTRACT_WARNING_OVERALL_THRESHOLD, CONTRACT_WARNING_WEEKS, CONTRACT_WARNING_YOUTH_AGE_MAX, CONTRACT_WARNING_YOUTH_POTENTIAL_MIN, CUP_EXTRA_TIME_GOAL_CHANCE, CUP_EXTRA_TIME_REPUTATION_DIVISOR, CUP_PENALTY_GK_QUALITY_FACTOR, CUP_PENALTY_KICKS, FACILITY_MAX_LEVEL, FAN_MOOD_BASE, FAN_MOOD_FORM_MATCHES, FAN_MOOD_SCALE, FFP_CONFIDENCE_PENALTY, FFP_CRITICAL_CONFIDENCE_PENALTY, FFP_WAGE_RATIO_CRITICAL, FFP_WAGE_RATIO_WARNING, FORFEIT_SCORE, INJURY_TYPES, INTERNATIONAL_BREAK_FITNESS_COST, INTERNATIONAL_BREAK_WEEKS, INTERNATIONAL_CALLUP_MIN_OVR, INTERNATIONAL_FITNESS_COST, INTERNATIONAL_SNUB_MIN_OVR, LOAN_DEV_BASE_CHANCE, LOAN_DEV_REP_FACTOR, LOAN_FITNESS_DRAIN, LOAN_PLAY_CHANCE_HIGH, LOAN_PLAY_CHANCE_LOW, LOAN_QUALITY_FORMULA_BASE, LOAN_QUALITY_FORMULA_REP_MULT, LOAN_YOUNG_AGE_THRESHOLD, MANAGER_SALARY_CONFIDENCE_PENALTY, MANAGER_SALARY_RATIO_CRITICAL, MANAGER_SALARY_RATIO_WARNING, MAX_CAREER_TIMELINE, MAX_FINANCE_HISTORY, MORALE_BENCH_MIN, MORALE_BENCH_WEEKLY_LOSS, NT_SACK_GROUP_EXIT_THRESHOLD, OBJECTIVE_CYCLE_WEEKS, PHYSIO_INJURY_REDUCTION_PER_QUALITY, PHYSIO_RECOVERY_BOOST_THRESHOLD, PHYSIO_RECOVERY_CHANCE, POST_TOURNAMENT_FITNESS_COST_HIGH, POST_TOURNAMENT_FITNESS_COST_LOW, REP_INTL_FINAL, REP_INTL_GROUP_EXIT, REP_INTL_KNOCKOUT, REP_INTL_SEMI, REP_INTL_TOURNAMENT_WIN, SCOUTING_COST_PER_ASSIGNMENT, SIM_PENALTY_BASE_WIN_CHANCE, SIM_PENALTY_MENTAL_SCALE, STADIUM_INCOME_PER_LEVEL, STREAK_FORM_BONUS, STREAK_FORM_THRESHOLD, STREAK_INCOME_MULTIPLIER, STREAK_INCOME_THRESHOLD, STREAK_MORALE_BONUS, STREAK_MORALE_THRESHOLD, TRAINING_GROUND_BOOST, ULTIMATUM_CONFIDENCE_THRESHOLD, ULTIMATUM_HORIZON_WEEKS, ULTIMATUM_POSITION_TOLERANCE, ULTIMATUM_SANDBOX_BUDGET_CUT, ULTIMATUM_SANDBOX_CONFIDENCE_FLOOR, ULTIMATUM_SEASON1_GRACE_WEEK, ULTIMATUM_SURVIVE_CONFIDENCE, ULTIMATUM_SURVIVE_CONFIDENCE_BONUS, UNHAPPY_CONTAGION_MORALE_HIT, UNHAPPY_CONTAGION_WEEKS, UNHAPPY_THRESHOLD, UNHAPPY_WEEKS_TO_REQUEST, YOUTH_DEVELOPER_BOOST } from '@/config/gameBalance';
 import { FORCED_RETIREMENT_AGE_GRACE_YEARS, FORCED_RETIREMENT_UNEMPLOYED_WEEKS, GROWTH_DISCIPLINE_PER_CLEAN_MATCH, GROWTH_MOTIVATION_PER_MORALE_EVENT, GROWTH_SCOUTING_PER_ASSIGNMENT, GROWTH_TACTICAL_PER_MATCH, MOD_SCOUTING_SPEED, MOD_TACTICAL_FAMILIARITY, MOD_YOUTH_GROWTH, STAT_MAX, UNEMPLOYED_OFFER_CHECK_INTERVAL, UNEMPLOYED_OFFER_MAX_PENDING } from '@/config/managerCareer';
 import { NATIONAL_OVR_STR_FLOOR, NATIONAL_OVR_STR_MAX, NATIONAL_OVR_STR_MIN, NATIONAL_OVR_STR_RANGE, PENALTY_CONVERSION_RATE } from '@/config/matchEngine';
 import { MERCH_CAMPAIGN_COOLDOWN_WEEKS, MERCH_PRICING_TIERS, SIGNATURE_DROP_COOLDOWN_WEEKS } from '@/config/merchandise';
@@ -64,6 +64,10 @@ import { advanceKnockoutRound, generateKnockoutFromGroups, getCurrentMatchday, i
 import type { ContinentalWorld } from '@/utils/continental';
 import { stripAiMatchDetail, stableClubSlice } from '@/store/slices/orchestration/helpers';
 import { getEffectiveStadiumLevel } from '@/utils/facilities';
+import { markSuperCupPlayed, superCupPlayedOn } from '@/utils/superCup';
+import { nextFanMood } from '@/utils/fanMood';
+import { applyWorldWeeklyUpkeep, stepInjuryRecovery } from '@/utils/injuryRecovery';
+import { getRecentForm } from '@/utils/formGuide';
 import { getLeaguePositionPrize, getMatchdayIncome, getCommercialIncome, assessFfp } from '@/utils/financeHelpers';
 import { formatMoney, getSuffix } from '@/utils/helpers';
 import { generateKnockoutBracket, processGroupWeek, processKnockoutRound, simulateKnockoutToCompletion, autoSelectNationalSquad } from '@/utils/international';
@@ -932,33 +936,17 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     // last week's gain added to this week's dev delta — silently inflating
     // their displayed growth.
     p.growthDelta = 0;
-    if (p.injured) {
-      const recoveryBoost = physioBonus >= PHYSIO_RECOVERY_BOOST_THRESHOLD && Math.random() < PHYSIO_RECOVERY_CHANCE ? 1 : 0;
-      p.injuryWeeks = Math.max(0, p.injuryWeeks - 1 - recoveryBoost);
-      if (p.injuryDetails) {
-        p.injuryDetails = { ...p.injuryDetails, weeksRemaining: p.injuryWeeks };
-      }
-      if (p.injuryWeeks === 0) {
-        p.injured = false;
-        // Set fitness on return based on injury severity
-        if (p.injuryDetails) {
-          p.fitness = p.injuryDetails.fitnessOnReturn;
-          // Keep reinjury risk active for a period after return
-          p.injuryDetails = { ...p.injuryDetails, weeksRemaining: 0 };
-        }
-        // Recovery is reported via the WeeklyDigest (recoveriesThisWeek) — no inbox message.
-        digestRecoveries.push(p.lastName);
-      }
-    }
-    // Decrement re-injury risk window for recovered players
-    if (!p.injured && p.injuryDetails && p.injuryDetails.reinjuryWeeksRemaining > 0) {
-      p.injuryDetails = { ...p.injuryDetails, reinjuryWeeksRemaining: p.injuryDetails.reinjuryWeeksRemaining - 1 };
-      if (p.injuryDetails.reinjuryWeeksRemaining === 0) {
-        p.injuryDetails = undefined;
-      }
-    }
-    if (p.suspendedUntilWeek && p.suspendedUntilWeek <= week) {
-      p.suspendedUntilWeek = undefined;
+    // Injury / re-injury / suspension clocks. Shared with every other club in
+    // the world via `recoverInjuriesForOthers` below — this pass used to be the
+    // ONLY one, so AI squads never healed. Recovery is reported via the
+    // WeeklyDigest (recoveriesThisWeek); no inbox message.
+    {
+      const physioExtraWeek = p.injured
+        && physioBonus >= PHYSIO_RECOVERY_BOOST_THRESHOLD
+        && Math.random() < PHYSIO_RECOVERY_CHANCE ? 1 : 0;
+      const stepped = stepInjuryRecovery(p, week, physioExtraWeek);
+      p = stepped.player;
+      if (stepped.recovered) digestRecoveries.push(p.lastName);
     }
 
     // Snapshot attributes before training + development to track per-attribute changes
@@ -1072,6 +1060,24 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   // `divisionClubs` is rewritten by promotion and relegation every season, so an
   // index-based split would silently re-shuffle which clubs share a slice and
   // let a club skip or double up across a rollover.
+  // Injury, re-injury, suspension and fitness clocks for EVERY other player in
+  // the world. Deliberately NOT amortised the way development below is:
+  // development is a slow drift where a one-week lag is immaterial, whereas an
+  // injury clock that ticks once every N weeks is an injury N times longer than
+  // the one diagnosed, and a fitness clock that ticks that slowly is a world
+  // that never recovers between matches. One scan with an early-out on the
+  // common case.
+  //
+  // Without it AI clubs never healed (0 injured at kickoff, 539 of 667 by the
+  // end of season 3 — which is what made `playCurrentMatchImpl` refuse to play
+  // the PLAYER's fixtures for want of eleven fit opponents) and never recovered
+  // fitness (average 87 -> 74.8 by season 4 while the player's club held ~89,
+  // a compounding unearned edge through `getTeamStrength`).
+  {
+    const recoveries = applyWorldWeeklyUpkeep(newPlayers, clubs, week, playerClub.playerIds);
+    void recoveries; // digest reports the player's own squad only
+  }
+
   {
     const slices = aiDevelopmentSlices(state.totalWeeks || TOTAL_WEEKS);
     const activeSlice = state.week % slices;
@@ -1178,8 +1184,12 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     (state.friendlies?.some(m => m.played && m.week === week && (m.homeClubId === playerClubId || m.awayClubId === playerClubId)) ?? false)
     || state.cup.ties.some(t => t.played && t.week === week && (t.homeClubId === playerClubId || t.awayClubId === playerClubId))
     || (state.leagueCup?.ties?.some(t => t.played && t.week === week && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) ?? false)
-    || (state.domesticSuperCup?.played === true && state.domesticSuperCup.week === week && (state.domesticSuperCup.homeClubId === playerClubId || state.domesticSuperCup.awayClubId === playerClubId))
-    || (state.continentalSuperCup?.played === true && state.continentalSuperCup.week === week && (state.continentalSuperCup.homeClubId === playerClubId || state.continentalSuperCup.awayClubId === playerClubId))
+    // `superCupPlayedOn`, not `sc.week === week`: a Super Cup outranked on its
+    // own week is caught up later, and reading the SCHEDULED week here missed
+    // it — so the league fixture the tie displaced was never auto-simmed and
+    // the player's club finished the season a match short.
+    || (superCupPlayedOn(state.domesticSuperCup, week) && (state.domesticSuperCup!.homeClubId === playerClubId || state.domesticSuperCup!.awayClubId === playerClubId))
+    || (superCupPlayedOn(state.continentalSuperCup, week) && (state.continentalSuperCup!.homeClubId === playerClubId || state.continentalSuperCup!.awayClubId === playerClubId))
     || [state.championsCup, state.shieldCup, state.conferenceCup].some(t => {
       if (!t) return false;
       const inGroup = t.groups?.some(g => g.matches.some(m => m.played && m.week === week && (m.homeClubId === playerClubId || m.awayClubId === playerClubId))) ?? false;
@@ -1497,7 +1507,7 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
         const winnerId = scResult.homeGoals > scResult.awayGoals ? newDomesticSuperCup.homeClubId :
           scResult.awayGoals > scResult.homeGoals ? newDomesticSuperCup.awayClubId :
           Math.random() < 0.5 ? newDomesticSuperCup.homeClubId : newDomesticSuperCup.awayClubId;
-        newDomesticSuperCup = { ...newDomesticSuperCup, played: true, homeGoals: scResult.homeGoals, awayGoals: scResult.awayGoals, winnerId };
+        newDomesticSuperCup = markSuperCupPlayed(newDomesticSuperCup, week, scResult, winnerId);
       }
     }
   }
@@ -1525,11 +1535,15 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
         const winnerId = scResult.homeGoals > scResult.awayGoals ? newContinentalSuperCup.homeClubId :
           scResult.awayGoals > scResult.homeGoals ? newContinentalSuperCup.awayClubId :
           Math.random() < 0.5 ? newContinentalSuperCup.homeClubId : newContinentalSuperCup.awayClubId;
-        newContinentalSuperCup = { ...newContinentalSuperCup, played: true, homeGoals: scResult.homeGoals, awayGoals: scResult.awayGoals, winnerId };
+        newContinentalSuperCup = markSuperCupPlayed(newContinentalSuperCup, week, scResult, winnerId);
       } else {
         // Forfeit if virtual clubs without real players — random winner
         const winnerId = Math.random() < 0.5 ? newContinentalSuperCup.homeClubId : newContinentalSuperCup.awayClubId;
-        newContinentalSuperCup = { ...newContinentalSuperCup, played: true, homeGoals: winnerId === newContinentalSuperCup.homeClubId ? 1 : 0, awayGoals: winnerId === newContinentalSuperCup.awayClubId ? 1 : 0, winnerId };
+        newContinentalSuperCup = markSuperCupPlayed(
+          newContinentalSuperCup, week,
+          { homeGoals: winnerId === newContinentalSuperCup.homeClubId ? 1 : 0, awayGoals: winnerId === newContinentalSuperCup.awayClubId ? 1 : 0 },
+          winnerId,
+        );
       }
     }
   }
@@ -2386,8 +2400,8 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
         (tie.week1 === week && tie.homeClubId === playerClubId)
         || (tie.week2 === week && tie.round !== 'F' && tie.awayClubId === playerClubId));
     })
-    || (newDomesticSuperCup?.week === week && newDomesticSuperCup.homeClubId === playerClubId)
-    || (newContinentalSuperCup?.week === week && newContinentalSuperCup.homeClubId === playerClubId);
+    || (superCupPlayedOn(newDomesticSuperCup, week) && newDomesticSuperCup!.homeClubId === playerClubId)
+    || (superCupPlayedOn(newContinentalSuperCup, week) && newContinentalSuperCup!.homeClubId === playerClubId);
   const matchdayIncome = getMatchdayIncome(playerClub, playerDiv, {
     fanMood: fanMoodMult, derby: derbyIncomeBonus, streak: streakIncomeMult, isHomeFixture,
   });
@@ -2521,10 +2535,23 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
     if (myScore > oppScore) newMerch.winStreak = (newMerch.winStreak ?? 0) + 1;
     else newMerch.winStreak = 0;
   }
-  // Apply pricing fan mood impact
+  // Fan mood: recent form + league standing set the level, the merchandise
+  // pricing tier is an offset on top. Before this the pricing tier was the ONLY
+  // input, so a default save (standard tier, impact 0) sat at exactly 50 for
+  // its entire life and the +-20% matchday multiplier never moved. See the
+  // header of `utils/fanMood.ts`.
   const pricingMoodDelta = MERCH_PRICING_TIERS[newMerch.pricingTier].fanMoodImpact;
   const cultHeroFloor = hasPerk(state.managerProgression, 'cult_hero') ? 40 : 0;
-  const merchFanMood = Math.max(cultHeroFloor, Math.min(100, state.fanMood + pricingMoodDelta));
+  const merchFanMood = nextFanMood({
+    current: state.fanMood,
+    // Same helper and count the Form Guide renders, so the mood always has a
+    // cause the player can point at on their own dashboard.
+    form: getRecentForm(playerClubId, updatedFixtures, FAN_MOOD_FORM_MATCHES),
+    leaguePosition: playerTablePos,
+    leagueSize: leagueTable.length,
+    pricingDelta: pricingMoodDelta,
+    floor: cultHeroFloor,
+  });
 
   // Process sponsorship system (offers, satisfaction, new deals)
   // Sponsor satisfaction must react to THIS week's league fixture, not the

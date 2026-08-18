@@ -239,9 +239,7 @@ const ReigningHoldersPanel = ({ holders, onNavigate, canNavigate }: {
   holders: Player[];
   onNavigate: (id: string) => void;
   canNavigate: (id: string) => boolean;
-}) => {
-  const { t } = useTranslation();
-  return (
+}) => (
   <GlassPanel className="p-4 border-gold/25 relative overflow-hidden">
     <div
       aria-hidden
@@ -294,8 +292,7 @@ const ReigningHoldersPanel = ({ holders, onNavigate, canNavigate }: {
       </div>
     </div>
   </GlassPanel>
-  );
-};
+);
 
 /** Body of one season's ceremony — the winner spotlight, podium and full
  *  ranking. Pulled out as a sub-component so each year in the stacked

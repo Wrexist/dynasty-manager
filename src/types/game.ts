@@ -1556,7 +1556,16 @@ export interface SuperCupMatch {
   played: boolean;
   homeGoals: number;
   awayGoals: number;
+  /** The week the tie is SCHEDULED for (1 domestic, 2 continental). Super Cup
+   *  is last in the match-priority chain and these weeks are raw, unscaled
+   *  constants, so in compressed calendars the tie is routinely outranked on
+   *  its own week and has to be caught up later — see `utils/superCup.ts`. */
   week: number;
+  /** The week it was actually PLAYED, when that differs from `week` after a
+   *  catch-up. Undefined on an unplayed tie and on saves written before v83.
+   *  "Did the player play a non-league match this week" must read this, not
+   *  `week`, or the league fixture it displaced is never auto-simmed. */
+  playedWeek?: number;
   winnerId: string | null;
   penaltyShootout?: { home: number; away: number };
 }

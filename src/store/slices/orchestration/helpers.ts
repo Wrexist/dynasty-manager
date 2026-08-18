@@ -62,6 +62,7 @@ import {
   AI_RATING_BASE_WIN, AI_RATING_BASE_DRAW, AI_RATING_BASE_LOSS,
   AI_RATING_OVERALL_PIVOT, AI_RATING_OVERALL_SCALE,
 } from '@/config/aiSimulation';
+import { pendingSuperCup } from '@/utils/superCup';
 
 /**
  * Reset the module-level real-player claim registry and re-claim every
@@ -119,11 +120,16 @@ export function findTournamentMatch(s: { week: number; playerClubId: string; cup
   // League Cup
   const lcTie = s.leagueCup?.ties?.find(t => t.week === w && !t.played && (t.homeClubId === pid || t.awayClubId === pid));
   if (lcTie) return { homeClubId: lcTie.homeClubId, awayClubId: lcTie.awayClubId, competition: 'League Cup' };
-  // Super cups
-  const dsc = s.domesticSuperCup;
-  if (dsc && !dsc.played && w >= dsc.week && (dsc.homeClubId === pid || dsc.awayClubId === pid)) return { homeClubId: dsc.homeClubId, awayClubId: dsc.awayClubId, competition: 'Super Cup' };
-  const csc = s.continentalSuperCup;
-  if (csc && !csc.played && w >= csc.week && (csc.homeClubId === pid || csc.awayClubId === pid)) return { homeClubId: csc.homeClubId, awayClubId: csc.awayClubId, competition: 'Continental Super Cup' };
+  // Super cups — `pendingSuperCup` is the single source for the catch-up rule
+  // and the domestic-before-continental order.
+  const sc = pendingSuperCup(s, w, pid);
+  if (sc) {
+    return {
+      homeClubId: sc.homeClubId,
+      awayClubId: sc.awayClubId,
+      competition: sc.type === 'domestic' ? 'Super Cup' : 'Continental Super Cup',
+    };
+  }
   return null;
 }
 

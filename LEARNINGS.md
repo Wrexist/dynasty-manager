@@ -121,3 +121,53 @@
 - Mobile-first: `max-w-lg mx-auto`; test at 375px. `App.tsx` is HashRouter +
   `MotionConfig` + ErrorBoundary scopes + first-launch analytics-consent gate —
   there is **no** `QueryClientProvider` (an old LEARNINGS entry claimed one).
+
+## Weekly upkeep is easy to scope to the player's club by accident (2026-08-18)
+
+Two separate weekly clocks were written inside
+`advanceWeek`'s `playerClub.playerIds.forEach(...)` and therefore ran for the
+player's squad ONLY. Both went unnoticed for the life of the project because
+every gate counts players who EXIST, not players who can play.
+
+- **Injuries never healed anywhere else.** 0 injured at kickoff, 539 of 667 by
+  the end of season 3 — 81% of the division. Opponents could not field eleven
+  fit men, so `playCurrentMatchImpl`'s `hp.length < 7 || ap.length < 7` guard
+  returned null for the PLAYER's own fixture. Silently: no match, no message,
+  and no auto-sim (that only fires when the player played something else that
+  week). The player's club finished season 4 on **10 league games out of 38**
+  while everyone else played 36-38, and the table, prize money and
+  promotion/relegation were all computed off that.
+- **Fitness never recovered anywhere else.** Average AI fitness 87 -> 74.8 by
+  season 4 against the player's ~89, feeding `getTeamStrength` directly.
+
+Both now run through `utils/injuryRecovery.ts::applyWorldWeeklyUpkeep`. **When
+you add anything that ticks weekly, ask who it ticks FOR** — the player's squad
+pass is not the world.
+
+Two traps found while fixing them, worth keeping:
+
+- The interactive XI was topped up from `club.subs` alone
+  (`backfillFromSubs`), so a club with 27 fit players could still fail the
+  seven-man guard. Every AI club already covers from the whole squad via
+  `pickAiMatchSquad`'s `honourSavedLineup` branch. Match the AI, don't invent a
+  second rule.
+- Giving AI clubs the player's flat weekly fitness gain pinned their squad
+  average at **99.7** against the player's 85 — the same bug with the sign
+  flipped. The two sides drain differently: AI matches cost a flat
+  `FITNESS_DRAIN_PER_MATCH`, the player's own matches cost the much larger
+  measured in-match amount. Rest is a facilities-derived CEILING, not a flat
+  gain.
+
+### The "goals per match dropped" reading that is wrong
+
+`docs/balance-report.md` shows league scoring falling ~0.14/match after these
+fixes (PL 2.32 -> 2.25, Serie A 2.13 -> 1.76). **Do not tune
+`GOAL_CHANCE_VOLUME_SCALE` back up for it.** The engine is untouched and
+`matchRealism.test.ts` still passes its own 2.2-3.3 band. The old, higher number
+was an artifact of broken squads: with 40% of a division injured, clubs fielded
+emergency XIs and leaked goals. The lower figure is what a HEALTHY world scores.
+
+What is real is that lower-division scoring (1.67-1.76) sits under the report's
+own "under 1.8 is suspect" line — but it was already at 1.76-1.82 before these
+fixes. That is a pre-existing balance question for the owner, not a regression
+to paper over.

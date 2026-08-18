@@ -1,6 +1,6 @@
 # CLAUDE.md — Dynasty Manager
 
-> Last verified against the codebase 2026-07-29 (app v1.3.0, save schema v82).
+> Last verified against the codebase 2026-07-29 (app v1.3.0, save schema v83).
 > If the numbers below disagree with the code, trust the code — and update this file.
 > `npm run docs:check` verifies the countable claims (schema version, file counts,
 > LOC of the named files) and `-- --fix` updates them. It runs in preflight, so this
@@ -180,7 +180,7 @@ and you can re-run safely:
 **These are NON-NEGOTIABLE rules. Every Claude session MUST follow them.**
 
 ### When the user asks you to commit, push, ship, or create a PR:
-1. Run `npm run preflight` — lint + typecheck + fast tests + build + eager-bundle size budget. Fix any failures before proceeding.
+1. Run `npm run preflight` — lint + typecheck + docs drift + i18n ceiling + fast tests + build + eager-bundle size budget. Fix any failures before proceeding.
    *Before a release, run `npm run preflight:full`.* The full suite takes ~28 min
    (`fileParallelism: false`, so file time is wall-clock time); the per-commit gate
    excludes the long-running season/longevity suites and runs in ~6 min, so that
@@ -212,10 +212,11 @@ This fetches latest `origin/main` and creates a clean branch. NEVER branch from 
 ### Available workflow commands:
 | Command | What it does |
 |---------|-------------|
-| `npm run preflight` | Lint + typecheck + **fast** tests + build + size:check — run this per commit |
+| `npm run preflight` | Lint + typecheck + docs:check + i18n:check + **fast** tests + build + size:check — run this per commit |
 | `npm run preflight:full` | Same, with the long-running season/longevity suites. What CI enforces |
 | `npm run test:fast` | Vitest minus the slow suites (see `SLOW_SUITES` in `vitest.config.ts`) |
 | `npm run docs:check` | Verify the countable claims in this file against the code (`-- --fix` to update) |
+| `npm run i18n:check` | Count player-facing strings still hardcoded in English; fails above the ceiling in `package.json` |
 | `npm run ship -- "msg"` | Preflight + stage + commit + push with retry |
 | `npm run branch -- name` | Create feature branch from latest origin/main |
 | `npm run typecheck` | Standalone TypeScript check |
@@ -276,7 +277,7 @@ consumable player-pack IAPs (RevenueCat).
   status-bar, `@capacitor-community/in-app-review`)
 - **RevenueCat** `@revenuecat/purchases-capacitor` 12.3.2 (+ `-ui`) — all IAP/subscriptions
 - **Sentry** `@sentry/react` 10.49 — crash reporting + game breadcrumbs (`src/utils/sentry.ts`)
-- **Vitest 3.2.4 + jsdom + Testing Library** — 189 test files in `src/test/`
+- **Vitest 3.2.4 + jsdom + Testing Library** — 193 test files in `src/test/`
 - **Husky 9.1.7 + lint-staged 16.4.0** — pre-commit hooks
 - **Fonts:** Oswald (headings) + DM Sans (body), self-hosted via `@fontsource/*`
 - **Package manager:** npm
@@ -339,7 +340,7 @@ src/
 │   │                      loan, cup, feature, sponsor, merchandise, monetization,
 │   │                      nationalTeam, career, packs
 │   │   ├── orchestrationSlice.ts (1,201 LOC — façade) delegating to:
-│   │   └── orchestration/ → weekAdvance.ts (3342 LOC — THE game loop),
+│   │   └── orchestration/ → weekAdvance.ts (3369 LOC — THE game loop),
 │   │                        seasonEnd.ts (1,651), matchActions.ts (1,611),
 │   │                        initGame.ts (587), tournaments.ts, helpers.ts
 │   └── helpers/         → persistence.ts, idbStorage.ts, matchProcessing.ts,
@@ -479,7 +480,7 @@ identities draw from the **community pack** real-player dataset
 - ALL storage access goes through `src/store/helpers/persistence.ts`
   (`readSaveSlot`, `getFlag`/`setFlag`, `readSessionJson`, …). New keys
   register in `STORAGE_KEYS`. Direct `localStorage` use is ESLint-banned.
-- **Save schema version `82`** in `utils/saveMigration.ts`. Any change to
+- **Save schema version `83`** in `utils/saveMigration.ts`. Any change to
   persisted state shape bumps `CURRENT_VERSION` and adds a migration step.
   `SaveRecoveryDialog` + backup slots handle corrupted saves; parse failures
   breadcrumb to Sentry.
@@ -535,7 +536,7 @@ npm run dev          # Dev server (port 8080)
 npm run build        # Production build
 npm run build:dev    # Development build
 npm run preview      # Preview production build
-npm run test         # Vitest (189 test files)
+npm run test         # Vitest (193 test files)
 npm run test:watch   # Vitest in watch mode
 npm run lint         # ESLint
 npm run typecheck    # TypeScript type-check (standalone)
@@ -576,7 +577,7 @@ npm run scrape:icons                 # SoFIFA Icons scrape (Playwright; also a G
 Quick reference:
 - `npm run ship -- "msg"` = preflight + commit + push (preferred one-liner)
 - `npm run branch -- name` = new branch from origin/main
-- `npm run preflight` = lint + typecheck + fast tests + build + size:check (per commit)
+- `npm run preflight` = lint + typecheck + docs:check + i18n:check + fast tests + build + size:check (per commit)
 - `npm run preflight:full` = the same with the long-running suites — run before a release
 - After push → always give the user: `https://github.com/Wrexist/dynasty-manager/pull/new/<branch>`
 - `gh pr create` is FORBIDDEN — no GitHub API auth available. GitHub MCP tools (`mcp__github__*`) use separate auth and ARE available where configured.
@@ -639,6 +640,16 @@ ad capture) still exists in `src/pages/`, but its route and Settings entry are
 - **`scrape-icons.yml`** — SoFIFA icon scrape as a manual Action
 
 ## Known Tech Debt
+- **i18n is a started migration, not a finished one.** `src/i18n/` (hand-rolled
+  `t()`, English always loaded as fallback) works and 90 of 181 files in
+  `src/pages` + `src/components/game` use it, but **998 player-facing strings in
+  113 files are still hardcoded English** (`npm run i18n:check`). `sv.ts` covers
+  76 of `en.ts`'s keys and **nothing calls `setLocale` outside tests** — there is
+  deliberately no language picker, because shipping one today would give a
+  mostly-English "Swedish" UI. Don't advertise localisation until the count is
+  near zero. The meter itself lied for a while (it skipped every line containing
+  `className=`, i.e. every JSX text node, and reported 0) — see the correction in
+  `docs/CRITICAL-REVIEW-2026-08.md` §17.
 - `orchestration/weekAdvance.ts` (3,094 LOC) and `pages/Dashboard.tsx` (2,192 LOC) are the new oversized files — use `/refactor` for guided extraction.
 - TS strict mode OFF (`strict: false`, `strictNullChecks: false`).
 - Generated data dwarfs the code (~410K vs ~139K LOC) — keep it lazily imported; `size:check` is the guard.

@@ -101,7 +101,7 @@ Premier League (0,16 och ~28:1). Jag ändrade ingenting.
 | # | Varför inte åtgärdat |
 |---|---|
 | 3 (rest) | Spelarens egna playoff spelas fortfarande inte interaktivt. Resultaten *visas* nu. **Designen är gjord och nedskriven** i `docs/PLAN-interactive-playoff.md` — inklusive nyckelbeslutet att INTE göra säsongsrullningen pausbar, utan köra playoffet före rullningen som vanliga matcher. Inte implementerad: det ändrar spelets mest bärande transition och förtjänar att byggas med testerna först, inte blint i slutet av en granskningssession |
-| 17 | **ÅTGÄRDAT (363 → 0 strängar).** Båda "blockerarna" jag angav var mina egna antaganden: en handrullad `t()` lägger till *noll* beroenden, och jag hade precis själv höjt bundle-headroom till 53,5 kB. Kvar stod bara "halvmigrerad i18n är värre än ingen" — vilket bara gäller om otextade ytor *går sönder*. Med engelska alltid laddad som fallback gör de inte det: `t()` på en omigrerad nyckel returnerar exakt samma sträng som literalen gjorde. Grunden finns nu (`src/i18n/`, `useTranslation`), plus svenska som bevis att en andra locale fungerar, och `SeasonSummary` + `TitleScreen` migrerade som första ytor. Kvar: översättning av `sv.ts` (76 av 268 nycklar) — men det är innehållsarbete, inte teknik. Mätbart med `npm run i18n:check` |
+| 17 | **DELVIS ÅTGÄRDAT — se rättelsen i avsnitt 17 nedan. "0 strängar" var fel: mätaren hoppade över varje rad som innehöll `className=`, alltså i praktiken varje JSX-textnod i kodbasen. Rätt siffra efter att mätaren lagats: 998 strängar i 113 filer.** Båda "blockerarna" jag angav var mina egna antaganden: en handrullad `t()` lägger till *noll* beroenden, och jag hade precis själv höjt bundle-headroom till 53,5 kB. Kvar stod bara "halvmigrerad i18n är värre än ingen" — vilket bara gäller om otextade ytor *går sönder*. Med engelska alltid laddad som fallback gör de inte det: `t()` på en omigrerad nyckel returnerar exakt samma sträng som literalen gjorde. Grunden finns nu (`src/i18n/`, `useTranslation`), plus svenska som bevis att en andra locale fungerar, och `SeasonSummary` + `TitleScreen` migrerade som första ytor. Kvar: översättning av `sv.ts` (76 av 268 nycklar) — men det är innehållsarbete, inte teknik. Mätbart med `npm run i18n:check` |
 | 19 | **ÅTGÄRDAT.** Jag hade fel: den kunde fixas utan att ta bort någon funktionalitet. Radix delades vid `react-dialog`, och de två villkorliga dialogerna plus titelskärmens inställningspanel gjordes lata. **522,1 → 506,5 kB gz eager, headroom 37,9 → 53,5 kB (+41 %)** |
 | 20 (rest) | Riktig kvittovalidering kräver en backend som inte finns. **Men exploiten är stängd** — klockmanipulation neutraliseras nu av en monoton högvattenmärkning (`41d4bf4`), verifierad mot koden före fixen |
 | 21 | **ÅTGÄRDAT.** Amorterad över säsongen med roterande skivor. Båda mina skäl att skjuta upp den var felaktiga — `seasonGrowthTracker` var redan persisterad. Mätt: 0 av 1 259 AI-spelare utvecklades under 12 veckor före fixen. Ledde till fynd **21b** nedan |
@@ -511,10 +511,27 @@ skript i preflight, eller så tas de bort.
 > oöversatt nyckel returnerar exakt samma sträng som literalen gjorde.
 > Migrationen kan därför tas en skärm i taget utan att någon skärm regredierar.
 >
-> **ÅTGÄRDAT: 363 → 0 strängar.** `npm run i18n:check` rapporterar noll
-> hårdkodade spelarvända strängar i `src/pages` och `src/components/game`.
+> **RÄTTELSE (2026-08-18): "0 strängar" var ett mätfel, inte ett resultat.**
+> `SKIP_LINE` i `scripts/check-i18n-coverage.mjs` innehöll `/className=/`, och
+> den här kodbasen skriver `<h1 className="...">Choose Your Mode</h1>` på en
+> rad. Att hoppa över raden hoppade alltså över copyn. Mätaren rapporterade
+> "0 hårdkodade strängar" mot ett verkligt antal på **998 i 113 filer** —
+> exakt det falska friskbesked som rubriken nedan varnar för, producerat av
+> mätaren själv. Den tredje och största av mina felmätningar, och den enda som
+> pekade åt det bekväma hållet.
 >
-> **Två rättelser till mina egna siffror, i tur och ordning:**
+> Mätaren tar nu bort attributVÄRDEN (`attr="..."`) före JSX-textpasset i
+> stället för att kasta hela raden, vilket tar bort de falska träffar
+> `className=` fanns till för utan att dölja texten bredvid. Stickprov mot
+> `LeagueTable.tsx`: 22 träffar, alla äkta, noll falska.
+>
+> **Verkligt läge:** grunden är byggd och fungerar (`src/i18n/`,
+> `useTranslation`, engelska alltid laddad som fallback), 90 av 181 filer i
+> `src/pages` + `src/components/game` använder `t()`, och 998 strängar återstår.
+> Det är fortfarande en riktig framgång jämfört med noll infrastruktur — men
+> det är en **påbörjad** migration, inte en avslutad.
+>
+> **Två tidigare rättelser till mina egna siffror, i tur och ordning:**
 >
 > 1. Jag skrev först "~490 filer". Det var en filräkning av hela `src/`, inte
 >    ett arbetsestimat, och den fick jobbet att se obegränsat ut — vilket är en
@@ -527,8 +544,9 @@ skript i preflight, eller så tas de bort.
 >    En mätare som inte ser de största strängarna är sämre än ingen mätare, för
 >    den bjuder in till precis det falska friskbeskedet.
 >
-> **Rätt siffra, mätt med samma mätare mot commiten före allt i18n-arbete:
-> 363 strängar i 90 filer.** Nu 0.
+> **Rätt siffra, mätt med den DÅVARANDE mätaren mot commiten före allt
+> i18n-arbete: 363 strängar i 90 filer.** Den siffran är också för låg, av
+> samma `className=`-skäl som rättelsen ovan — den mätte aldrig hela ytan.
 >
 > `en.ts` har 268 nycklar (delade etiketter återanvänds, därav färre nycklar än
 > strängar). `sv.ts` har 76 — den är medvetet en `Partial` och ett bevis på att

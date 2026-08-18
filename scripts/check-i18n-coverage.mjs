@@ -40,14 +40,29 @@ const TEXT_ATTRS = ['aria-label', 'placeholder', 'title', 'alt', 'body', 'descri
 /** Copy that must never be translated, so it is not "remaining work". */
 const NEVER_TRANSLATE = new Set(['Dynasty Manager']);
 
-/** Lines that are never player-visible copy. */
+/** Lines that are never player-visible copy.
+ *
+ *  `className=` USED TO BE ON THIS LIST and made the meter useless: this
+ *  codebase writes `<h1 className="...">Choose Your Mode</h1>` on one line, so
+ *  skipping the line skipped the copy. The meter printed "0 hardcoded strings"
+ *  against a real count of 836 across 107 files — the exact false all-clear the
+ *  header of this file warns about, produced by this file. Attribute VALUES are
+ *  now stripped before the JSX-text pass instead (see `stripAttributeValues`),
+ *  which removes the false positives `className=` was there to suppress without
+ *  hiding the text next to them. */
 const SKIP_LINE = [
   /^\s*(import|export)\s/,
   /^\s*\/\//,
   /^\s*\*/,
-  /className=/,
   /data-testid=/,
 ];
+
+/** Blank out `attr="..."` / `attr='...'` values so a class list cannot be read
+ *  as copy, while the text node beside it still can. Runs AFTER the attribute
+ *  pass, which needs the values intact. */
+function stripAttributeValues(line) {
+  return line.replace(/([A-Za-z-]+)=("[^"]*"|'[^']*')/g, (_m, attr) => `${attr}=""`);
+}
 
 function walk(dir) {
   let out = [];
@@ -85,10 +100,18 @@ function findHardcoded(source) {
     // X>`). All three read identically. Lines carrying that syntax are skipped
     // wholesale rather than picked apart — the same rule the bulk migration
     // used, so the meter and the migration agree on what counts.
-    const lineIsCodey =
-      /Record<|Array<|Map<|Set<|Promise<|React\.\w+<|=>|&&|\|\||===|!==|>=|<=| \? | : /.test(line);
+    //
+    // The original guard also skipped `=>`, `&&`, `||` and ternaries. Those do
+    // not actually produce `>text<` false positives — the capture needs two
+    // consecutive letters between the brackets, and `{n > 0 && <span>` yields
+    // only ` 0 && `. They do appear on a large share of the JSX lines in this
+    // codebase, so skipping them cost far more real strings than it saved false
+    // ones. Only the generic-type forms, which genuinely read as `>Foo<`,
+    // remain.
+    const scan = stripAttributeValues(line);
+    const lineIsCodey = /Record<|Array<|Map<|Set<|Promise<|React\.\w+</.test(scan);
     if (!lineIsCodey) {
-      for (const m of line.matchAll(/>([^<>{}]*[A-Za-z]{2,}[^<>{}]*)</g)) {
+      for (const m of scan.matchAll(/>([^<>{}]*[A-Za-z]{2,}[^<>{}]*)</g)) {
         const text = m[1].trim();
         // Needs a space or a capital: filters out stray identifiers and units.
         if (text.length < 4) continue;

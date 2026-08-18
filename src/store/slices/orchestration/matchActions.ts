@@ -32,6 +32,7 @@ import { advanceLeagueCupRound, getContinentalMatchLabel, isAggregateDecided, is
 import type { MatchEvent } from '@/types/game';
 import { completeShootout, getClubGKQuality, getPenaltyTakerQuality, getShootoutProgress, pickAiAim, pickAiPower, resolveAimedKick, simulatePenaltyShootout } from '@/utils/penaltyShootout';
 import { detectMatchDrama } from '@/utils/celebrations';
+import { markSuperCupPlayed, pendingSuperCup } from '@/utils/superCup';
 import { advanceKnockoutRound, createEphemeralClub, findPlayerContinentalMatch, generateKnockoutFromGroups, isGroupStageComplete, isKnockoutRoundComplete } from '@/utils/continental';
 import { dynastyMult } from '@/utils/managerPerks';
 import { isPro } from '@/utils/monetization';
@@ -234,17 +235,24 @@ function processTournamentResult(
     return { stateUpdates: updates, cleanedPlayers };
   }
 
-  // Super Cup
-  const dsc = state.domesticSuperCup;
-  const csc = state.continentalSuperCup;
-  if (dsc && !dsc.played && dsc.week === week && (dsc.homeClubId === playerClubId || dsc.awayClubId === playerClubId)) {
-    const winnerId = result.homeGoals > result.awayGoals ? dsc.homeClubId : result.awayGoals > result.homeGoals ? dsc.awayClubId : (Math.random() < 0.5 ? dsc.homeClubId : dsc.awayClubId);
-    updates.domesticSuperCup = { ...dsc, played: true, homeGoals: result.homeGoals, awayGoals: result.awayGoals, winnerId };
-    if (winnerId === playerClubId) awardPrizeMoney(CONTINENTAL_PRIZE_MONEY.domestic_super_cup);
-  } else if (csc && !csc.played && csc.week === week && (csc.homeClubId === playerClubId || csc.awayClubId === playerClubId)) {
-    const winnerId = result.homeGoals > result.awayGoals ? csc.homeClubId : result.awayGoals > result.homeGoals ? csc.awayClubId : (Math.random() < 0.5 ? csc.homeClubId : csc.awayClubId);
-    updates.continentalSuperCup = { ...csc, played: true, homeGoals: result.homeGoals, awayGoals: result.awayGoals, winnerId };
-    if (winnerId === playerClubId) awardPrizeMoney(CONTINENTAL_PRIZE_MONEY.continental_super_cup);
+  // Super Cup. `pendingSuperCup` (>=, domestic first) rather than
+  // `sc.week === week`: selection has allowed catch-up since the compressed
+  // calendars started outranking week 1, but this resolver did not, so a
+  // caught-up tie was simulated and then left unplayed — every free week, all
+  // season. See the header of `utils/superCup.ts`.
+  const pendingSc = pendingSuperCup(state, week, playerClubId);
+  if (pendingSc) {
+    const winnerId = result.homeGoals > result.awayGoals ? pendingSc.homeClubId
+      : result.awayGoals > result.homeGoals ? pendingSc.awayClubId
+      : (Math.random() < 0.5 ? pendingSc.homeClubId : pendingSc.awayClubId);
+    const settled = markSuperCupPlayed(pendingSc, week, result, winnerId);
+    if (pendingSc.type === 'domestic') updates.domesticSuperCup = settled;
+    else updates.continentalSuperCup = settled;
+    if (winnerId === playerClubId) {
+      awardPrizeMoney(pendingSc.type === 'domestic'
+        ? CONTINENTAL_PRIZE_MONEY.domestic_super_cup
+        : CONTINENTAL_PRIZE_MONEY.continental_super_cup);
+    }
   }
 
   return { stateUpdates: updates, cleanedPlayers };
@@ -379,15 +387,17 @@ function processTournamentResultWithWinner(
     return { stateUpdates: updates, cleanedPlayers };
   }
 
-  // Super Cup (penalties)
-  const dsc = state.domesticSuperCup;
-  const csc = state.continentalSuperCup;
-  if (dsc && !dsc.played && dsc.week === week && (dsc.homeClubId === playerClubId || dsc.awayClubId === playerClubId)) {
-    updates.domesticSuperCup = { ...dsc, played: true, homeGoals: result.homeGoals, awayGoals: result.awayGoals, winnerId, penaltyShootout };
-    if (winnerId === playerClubId) awardPrizeMoney(CONTINENTAL_PRIZE_MONEY.domestic_super_cup);
-  } else if (csc && !csc.played && csc.week === week && (csc.homeClubId === playerClubId || csc.awayClubId === playerClubId)) {
-    updates.continentalSuperCup = { ...csc, played: true, homeGoals: result.homeGoals, awayGoals: result.awayGoals, winnerId, penaltyShootout };
-    if (winnerId === playerClubId) awardPrizeMoney(CONTINENTAL_PRIZE_MONEY.continental_super_cup);
+  // Super Cup (penalties) — same catch-up rule as the non-shootout resolver.
+  const pendingScPk = pendingSuperCup(state, week, playerClubId);
+  if (pendingScPk) {
+    const settled = markSuperCupPlayed(pendingScPk, week, result, winnerId, penaltyShootout);
+    if (pendingScPk.type === 'domestic') updates.domesticSuperCup = settled;
+    else updates.continentalSuperCup = settled;
+    if (winnerId === playerClubId) {
+      awardPrizeMoney(pendingScPk.type === 'domestic'
+        ? CONTINENTAL_PRIZE_MONEY.domestic_super_cup
+        : CONTINENTAL_PRIZE_MONEY.continental_super_cup);
+    }
   }
 
   return { stateUpdates: updates, cleanedPlayers };
@@ -494,8 +504,7 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   // own week — and weekAdvance's AI sim deliberately skips player matches, so
   // the fixture sat unplayed all season: no trophy, no prize money.
   const superCup = !friendlyMatch && !continentalMatch && !cupTie && !leagueCupTie
-    ? (state.domesticSuperCup && !state.domesticSuperCup.played && week >= state.domesticSuperCup.week && (state.domesticSuperCup.homeClubId === playerClubId || state.domesticSuperCup.awayClubId === playerClubId) ? state.domesticSuperCup : null)
-      || (state.continentalSuperCup && !state.continentalSuperCup.played && week >= state.continentalSuperCup.week && (state.continentalSuperCup.homeClubId === playerClubId || state.continentalSuperCup.awayClubId === playerClubId) ? state.continentalSuperCup : null)
+    ? pendingSuperCup(state, week, playerClubId)
     : null;
   const leagueMatch = !friendlyMatch && !continentalMatch && !cupTie && !leagueCupTie && !superCup
     ? fixtures.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId))
@@ -573,12 +582,31 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   const ac = effectiveClubs[match.awayClubId];
   if (!hc || !ac) return null;
   const isSuspended = (p: Player) => p.suspendedUntilWeek != null && p.suspendedUntilWeek > week;
-  const backfillFromSubs = (lineup: Player[], club: typeof hc) => {
-    const availableSubs = (club.subs || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured);
+  // Cover holes in a saved XI: named bench first (the manager picked it), then
+  // the rest of the squad.
+  //
+  // This drew from `club.subs` ALONE, which is why a club with a full squad
+  // could still fall under the `< 7` guard below and make this function return
+  // null — silently, with no match, no message, and no fallback. Measured over
+  // three simulated seasons: the player's club finished with 36 / 32 / 25 league
+  // matches played against 36-38 for every other club in the division, because
+  // each skipped fixture was also invisible to `weekAdvance`'s auto-sim (which
+  // only fires when the player played SOMETHING else that week). The league
+  // table, prize money and promotion/relegation were all computed off that.
+  //
+  // Every AI club already covers from the whole squad — `pickAiMatchSquad`'s
+  // `honourSavedLineup` branch fills holes from `selectBestLineup(squad)`. This
+  // is the same rule for the player's club.
+  const backfillXI = (lineup: Player[], club: typeof hc) => {
     const ids = new Set(lineup.map(p => p.id));
-    for (const sub of availableSubs) {
+    for (const id of [...(club.subs || []), ...(club.playerIds || [])]) {
       if (lineup.length >= 11) break;
-      if (!ids.has(sub.id)) { lineup.push(sub); ids.add(sub.id); }
+      const p = effectivePlayers[id];
+      // `onLoan` matches the availability rule `pickAiMatchSquad` uses — a
+      // player out on loan is not available to the parent club.
+      if (!p || ids.has(p.id) || isSuspended(p) || p.injured || p.onLoan) continue;
+      lineup.push(p);
+      ids.add(p.id);
     }
     return lineup;
   };
@@ -586,9 +614,9 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   // construction and EVERY AI-sim path filter it — so an injured player left in
   // the saved XI played at full strength for the player's club only, and the
   // LineupEditor toast ("They cannot play until recovered") was simply untrue.
-  // `backfillFromSubs` tops the XI back up and already excludes injured players.
-  let hp = backfillFromSubs((hc.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured), hc);
-  let ap = backfillFromSubs((ac.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured), ac);
+  // `backfillXI` tops the XI back up and already excludes unavailable players.
+  let hp = backfillXI((hc.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured), hc);
+  let ap = backfillXI((ac.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured), ac);
 
   // Need minimum players to simulate a match
   if (hp.length < 7 || ap.length < 7) return null;
@@ -1046,8 +1074,7 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   // own week — and weekAdvance's AI sim deliberately skips player matches, so
   // the fixture sat unplayed all season: no trophy, no prize money.
   const superCup = !friendlyMatch && !continentalMatch && !cupTie && !leagueCupTie
-    ? (state.domesticSuperCup && !state.domesticSuperCup.played && week >= state.domesticSuperCup.week && (state.domesticSuperCup.homeClubId === playerClubId || state.domesticSuperCup.awayClubId === playerClubId) ? state.domesticSuperCup : null)
-      || (state.continentalSuperCup && !state.continentalSuperCup.played && week >= state.continentalSuperCup.week && (state.continentalSuperCup.homeClubId === playerClubId || state.continentalSuperCup.awayClubId === playerClubId) ? state.continentalSuperCup : null)
+    ? pendingSuperCup(state, week, playerClubId)
     : null;
   const leagueMatch = !friendlyMatch && !continentalMatch && !cupTie && !leagueCupTie && !superCup
     ? fixtures.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId))
@@ -1109,12 +1136,31 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   const ac = effectiveClubs[match.awayClubId];
   if (!hc || !ac) return null;
   const isSuspended = (p: Player) => p.suspendedUntilWeek != null && p.suspendedUntilWeek > week;
-  const backfillFromSubs = (lineup: Player[], club: typeof hc) => {
-    const availableSubs = (club.subs || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured);
+  // Cover holes in a saved XI: named bench first (the manager picked it), then
+  // the rest of the squad.
+  //
+  // This drew from `club.subs` ALONE, which is why a club with a full squad
+  // could still fall under the `< 7` guard below and make this function return
+  // null — silently, with no match, no message, and no fallback. Measured over
+  // three simulated seasons: the player's club finished with 36 / 32 / 25 league
+  // matches played against 36-38 for every other club in the division, because
+  // each skipped fixture was also invisible to `weekAdvance`'s auto-sim (which
+  // only fires when the player played SOMETHING else that week). The league
+  // table, prize money and promotion/relegation were all computed off that.
+  //
+  // Every AI club already covers from the whole squad — `pickAiMatchSquad`'s
+  // `honourSavedLineup` branch fills holes from `selectBestLineup(squad)`. This
+  // is the same rule for the player's club.
+  const backfillXI = (lineup: Player[], club: typeof hc) => {
     const ids = new Set(lineup.map(p => p.id));
-    for (const sub of availableSubs) {
+    for (const id of [...(club.subs || []), ...(club.playerIds || [])]) {
       if (lineup.length >= 11) break;
-      if (!ids.has(sub.id)) { lineup.push(sub); ids.add(sub.id); }
+      const p = effectivePlayers[id];
+      // `onLoan` matches the availability rule `pickAiMatchSquad` uses — a
+      // player out on loan is not available to the parent club.
+      if (!p || ids.has(p.id) || isSuspended(p) || p.injured || p.onLoan) continue;
+      lineup.push(p);
+      ids.add(p.id);
     }
     return lineup;
   };
@@ -1122,9 +1168,9 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   // construction and EVERY AI-sim path filter it — so an injured player left in
   // the saved XI played at full strength for the player's club only, and the
   // LineupEditor toast ("They cannot play until recovered") was simply untrue.
-  // `backfillFromSubs` tops the XI back up and already excludes injured players.
-  let hp = backfillFromSubs((hc.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured), hc);
-  let ap = backfillFromSubs((ac.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured), ac);
+  // `backfillXI` tops the XI back up and already excludes unavailable players.
+  let hp = backfillXI((hc.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured), hc);
+  let ap = backfillXI((ac.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured), ac);
 
   // Need minimum players to simulate a match
   if (hp.length < 7 || ap.length < 7) return null;
@@ -1267,11 +1313,8 @@ export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): M
       const lcTie = state.leagueCup?.ties.find(t => t.id === state.currentLeagueCupTieId);
       if (lcTie) tournamentMatch = { id: lcTie.id, week, homeClubId: lcTie.homeClubId, awayClubId: lcTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
     } else {
-      // Super cup
-      const sc = state.domesticSuperCup && !state.domesticSuperCup.played && state.domesticSuperCup.week === week
-        ? state.domesticSuperCup
-        : state.continentalSuperCup && !state.continentalSuperCup.played && state.continentalSuperCup.week === week
-          ? state.continentalSuperCup : null;
+      // Super cup — same catch-up rule as every other selection site.
+      const sc = pendingSuperCup(state, week, playerClubId);
       if (sc) tournamentMatch = { id: `super-cup-${sc.type}`, week, homeClubId: sc.homeClubId, awayClubId: sc.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
     }
   }

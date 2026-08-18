@@ -11,6 +11,7 @@ import { generateStaffMarket, getStaffBonus } from '@/utils/staff';
 import { generateYouthProspects, generateIntakePreview } from '@/utils/youth';
 import type { GameState } from '../../storeTypes';
 
+import * as Sentry from '@sentry/react';
 import { addGameBreadcrumb } from '@/utils/sentry';
 import { track } from '@/utils/analytics';
 
@@ -41,7 +42,7 @@ import {
 
 import { CP_FA_SEED_COUNT_BY_SEASON, CP_FA_SEED_ELITE_COUNT, CP_FA_SEED_ELITE_MIN_OVR, CP_FA_SEED_MAX_AGE, CP_FA_SEED_MID_MIN_OVR, CP_FA_SEED_MIN_AGE, CP_FA_SEED_TOP_COUNT, CP_FA_SEED_TOP_MIN_OVR } from '@/config/aiSimulation';
 import { INITIAL_FAMILIARITY_SEED } from '@/config/chemistry';
-import { FACILITY_MAX_LEVEL, RECOVERY_LEVEL_FACTOR, STADIUM_LEVEL_DIVISOR, STARTING_BOARD_CONFIDENCE, STARTING_TACTICAL_FAMILIARITY, clubMedicalLevel } from '@/config/gameBalance';
+import { FACILITY_MAX_LEVEL, STADIUM_LEVEL_DIVISOR, STARTING_BOARD_CONFIDENCE, STARTING_TACTICAL_FAMILIARITY, clubMedicalLevel, clubRecoveryLevel } from '@/config/gameBalance';
 import { DEFAULT_MONETIZATION_STATE } from '@/config/monetization';
 import { ALL_CLUBS, DERBIES, clearLeagueTableCache } from '@/data/league';
 import type { PlayerTemplate } from '@/data/playerTemplates';
@@ -155,6 +156,26 @@ type Get = () => GameState;
 
 export async function initGameImpl(set: Set, get: Get, clubId: string, options?: { communityPackEnabled?: boolean }): Promise<void> {
   const communityPackEnabled = options?.communityPackEnabled ?? false;
+
+  // A club id that resolves to nothing used to run the whole init and then die
+  // on `club.divisionId` with an unguarded TypeError, half-way through building
+  // the world — a launch-time crash with a partially mutated store behind it.
+  // `ClubSelection` only ever offers real clubs, so this needs a stale
+  // reference to reach: a deep link, a restored screen, or a save written
+  // before a club was renamed or removed by a data regeneration (which
+  // `saveMigration` already has to handle for exactly that reason).
+  //
+  // `advanceWeek` already refuses to run on a missing player club rather than
+  // crashing; this is the same contract at the other end of the lifecycle.
+  // Bail BEFORE touching state so the caller's screen is still intact.
+  if (!clubId || !ALL_CLUBS.some(c => c.id === clubId)) {
+    Sentry.captureMessage('initGame: unknown club id', {
+      level: 'error',
+      tags: { clubId: clubId || 'empty' },
+    });
+    set({ loadError: { slot: get().activeSlot, kind: 'validation_failed', canRecover: false, reason: `unknown club "${clubId || ''}"` } });
+    return;
+  }
 
   // The national player pool is lazy-loaded to keep it off the boot bundle.
   // TitleScreen prefetches it ~1.5s after mount, so by the time the user
@@ -553,6 +574,10 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
 
   set({
     gameStarted: true, playerClubId: clubId, season: 1, week: 1, totalWeeks: league?.totalWeeks || TOTAL_WEEKS,
+    // A successful start clears any stale load error — otherwise a failed load
+    // (or the unknown-club guard above) leaves `SaveRecoveryDialog` hanging over
+    // a brand-new, perfectly healthy game.
+    loadError: null,
     // Starting a real game always exits any Capture Studio session — without
     // this, a new career begun after a capture teleport would inherit the
     // save-write block and silently never persist.
@@ -578,7 +603,7 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
       trainingLevel: pcInit.facilities, youthLevel: pcInit.youthRating,
       stadiumStands: (() => { const lvl = Math.min(FACILITY_MAX_LEVEL, Math.round(pcInit.fanBase / STADIUM_LEVEL_DIVISOR)); return { north: lvl, south: lvl, east: lvl, west: lvl }; })(),
       medicalLevel: clubMedicalLevel(pcInit.facilities),
-      recoveryLevel: Math.min(FACILITY_MAX_LEVEL, Math.round(pcInit.facilities * RECOVERY_LEVEL_FACTOR)),
+      recoveryLevel: clubRecoveryLevel(pcInit.facilities),
       upgradeInProgress: null,
     },
     financeHistory: [], matchPlayerRatings: [],

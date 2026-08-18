@@ -13,6 +13,12 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { getFlag } from '@/utils/nationality';
 import { hapticMedium } from '@/utils/haptics';
 import { cn } from '@/lib/utils';
+import type { InternationalGroup } from '@/types/game';
+
+/** Stable empty fallback. An inline `?? []` allocates a fresh array on every
+ *  render, which changed the `myGroupName` memo's dependency every time and
+ *  turned the memo into a no-op. */
+const NO_GROUPS: InternationalGroup[] = [];
 
 const WorldCupDraw = () => {
   const { tournament, nation, setScreen } = useGameStore(useShallow(s => ({
@@ -21,7 +27,7 @@ const WorldCupDraw = () => {
     setScreen: s.setScreen,
   })));
 
-  const groups = tournament?.groups ?? [];
+  const groups = tournament?.groups ?? NO_GROUPS;
 
   // Which group contains the player's nation — used to badge it.
   const myGroupName = useMemo(
