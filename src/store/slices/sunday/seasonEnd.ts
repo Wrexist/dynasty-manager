@@ -206,8 +206,14 @@ export function rolloverSundaySeason(set: Set, get: Get): void {
     if (!squad.some(m => m.playerId === id)) delete players[id];
   }
 
+  // The SAVE's root seed, not a per-season derivative: `generateSundayDivision`
+  // splits identity (season-independent) from squad (season-keyed) itself, and
+  // handing it a seed that already varied by season defeated the split — every
+  // club in the league changed its name every summer while keeping its id, so
+  // the rivalry story, the defector and the taunt all pointed at a club that no
+  // longer existed under that name.
   const opponents = generateSundayDivision(
-    subSeed(sunday.seed, `season:${nextSeason}`),
+    sunday.seed,
     nextDivisionId,
     nextDiv.teamCount - 1,
     nextSeason,

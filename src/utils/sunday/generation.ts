@@ -373,12 +373,28 @@ export interface GeneratedSundayOpponent {
 /**
  * Build the rest of a division.
  *
- * Derived from `subSeed(seed, 'div:<id>:<n>')` rather than the running cursor
- * so the same division always contains the same clubs, whatever order they were
- * generated in and however many times the season has rolled over.
+ * TWO STREAMS, AND THE SPLIT IS THE POINT.
+ *
+ *   WHO THE CLUB IS — its name, its colours, the field it plays on — comes
+ *   from `subSeed(rootSeed, 'club:<div>:<n>')`, which carries NO season. Club
+ *   ids (`sun-opp-<div>-<n>`) are already season-independent, so before this
+ *   split the rival kept its id and its grudge across a rollover while
+ *   silently becoming a differently-named club: the hub printed a feud story,
+ *   a defector and a taunt about "Dog & Duck" over a fixture against "The
+ *   Ferrets". Identity now survives as long as the id does, which is also what
+ *   makes cross-season head-to-head coherent.
+ *
+ *   WHO IS IN IT — quality, shape and the squad itself — comes from
+ *   `subSeed(rootSeed, 'squad:<div>:<season>:<n>')`. Sunday teams re-form every
+ *   summer, so a fresh cast each year is truthful; the badge on the shirt is
+ *   what stays.
+ *
+ * Both are derived from the SAVE's root seed rather than a running cursor, so
+ * the division is a property of the seed and nothing else. Callers must pass
+ * the root seed, not a per-season derivative.
  */
 export function generateSundayDivision(
-  seed: number,
+  rootSeed: number,
   divisionId: SundayDivisionId,
   count: number,
   season: number,
@@ -389,20 +405,24 @@ export function generateSundayDivision(
   const used = new Set(excludeNames.map(n => n.toLowerCase()));
 
   for (let i = 0; i < count; i++) {
-    const clubSeed = subSeed(seed, `div:${divisionId}:${season}:${i}`);
-    const rng = createSundayRng(clubSeed);
+    const identity = createSundayRng(subSeed(rootSeed, `club:${divisionId}:${i}`));
+    const squadSeed = subSeed(rootSeed, `squad:${divisionId}:${season}:${i}`);
+    const rng = createSundayRng(squadSeed);
     let name = '';
     // Names are drawn from a 45x23 space, so a collision inside one division
     // is unlikely but not impossible; retry a bounded number of times and fall
     // back to a numbered suffix rather than shipping two identical rows.
+    // Deterministic given the same `excludeNames`, so the resolution is stable
+    // across seasons too.
     for (let attempt = 0; attempt < 12; attempt++) {
-      const candidate = `${rng.pick(SUNDAY_CLUB_PREFIX)} ${rng.pick(SUNDAY_CLUB_SUFFIX)}`;
+      const candidate = `${identity.pick(SUNDAY_CLUB_PREFIX)} ${identity.pick(SUNDAY_CLUB_SUFFIX)}`;
       if (!used.has(candidate.toLowerCase())) { name = candidate; break; }
     }
-    if (!name) name = `${rng.pick(SUNDAY_CLUB_PREFIX)} ${rng.pick(SUNDAY_CLUB_SUFFIX)} ${i + 1}`;
+    if (!name) name = `${identity.pick(SUNDAY_CLUB_PREFIX)} ${identity.pick(SUNDAY_CLUB_SUFFIX)} ${i + 1}`;
     used.add(name.toLowerCase());
 
-    const colors = rng.pick(SUNDAY_KIT_COLORS) ?? (['#1E4FD8', '#FFFFFF'] as const);
+    const colors = identity.pick(SUNDAY_KIT_COLORS) ?? (['#1E4FD8', '#FFFFFF'] as const);
+    const venue = identity.pick(SUNDAY_VENUES) ?? 'The Rec';
     const clubId = `sun-opp-${divisionId}-${i}`;
     // Clubs in a division are not equal — a spread of quality is what makes a
     // table worth reading.
@@ -425,7 +445,7 @@ export function generateSundayDivision(
       lineup: [],
       subs: [],
       divisionId,
-      stadiumName: rng.pick(SUNDAY_VENUES) ?? 'The Rec',
+      stadiumName: venue,
       stadiumCapacity: 0,
     };
 
@@ -437,7 +457,7 @@ export function generateSundayDivision(
       const position = SQUAD_SHAPE[s % SQUAD_SHAPE.length];
       const { player } = generateSundayPlayer({
         rng,
-        id: sundayId(`sun-p-${divisionId}-${i}`, clubSeed, s),
+        id: sundayId(`sun-p-${divisionId}-${i}`, squadSeed, s),
         clubId,
         position,
         quality,

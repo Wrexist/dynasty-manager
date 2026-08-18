@@ -14,7 +14,7 @@ import {
   sundayPosition, sundaySeasonWeeks,
 } from '@/utils/sunday/season';
 import { createSundayRng } from '@/utils/sunday/rng';
-import { generateSundayPlayer } from '@/utils/sunday/generation';
+import { generateSundayDivision, generateSundayPlayer } from '@/utils/sunday/generation';
 import { assertSundayState } from '@/utils/sunday/invariants';
 import { SUNDAY_CUP_ROUNDS, SUNDAY_DIVISIONS, getSundayDivision } from '@/config/sundayLeague';
 import type { Match } from '@/types/game';
@@ -188,6 +188,40 @@ describe('the table', () => {
   });
 });
 
+describe('opponent identity', () => {
+  it('keeps a club\'s name, colours and ground across seasons but re-forms its squad', () => {
+    const s1 = generateSundayDivision(4242, 'sun-4', 7, 1, ['Marsh Lane FC']);
+    const s5 = generateSundayDivision(4242, 'sun-4', 7, 5, ['Marsh Lane FC']);
+    expect(s1.map(o => o.club.id)).toEqual(s5.map(o => o.club.id));
+    // Identity survives — this is what makes a rivalry, a defector and a
+    // head-to-head record mean anything across a rollover.
+    expect(s5.map(o => o.club.name)).toEqual(s1.map(o => o.club.name));
+    expect(s5.map(o => o.club.shortName)).toEqual(s1.map(o => o.club.shortName));
+    expect(s5.map(o => o.club.color)).toEqual(s1.map(o => o.club.color));
+    expect(s5.map(o => o.club.stadiumName)).toEqual(s1.map(o => o.club.stadiumName));
+    // The people in it do not: Sunday teams re-form every summer.
+    const names = (os: ReturnType<typeof generateSundayDivision>) =>
+      os.flatMap(o => o.players.map(p => `${p.firstName} ${p.lastName}`)).join('|');
+    expect(names(s5)).not.toBe(names(s1));
+  });
+
+  it('still builds a different world from a different seed', () => {
+    const a = generateSundayDivision(4242, 'sun-4', 7, 1, []);
+    const b = generateSundayDivision(9001, 'sun-4', 7, 1, []);
+    expect(b.map(o => o.club.name).join('|')).not.toBe(a.map(o => o.club.name).join('|'));
+  });
+
+  it('never ships two clubs with the same name', () => {
+    for (const seed of [1, 77, 4242, 90210]) {
+      for (const div of SUNDAY_DIVISIONS) {
+        const names = generateSundayDivision(seed, div.id, div.teamCount - 1, 3, ['Marsh Lane FC'])
+          .map(o => o.club.name);
+        expect(new Set(names).size, `${seed}/${div.id}`).toBe(names.length);
+      }
+    }
+  });
+});
+
 describe('promotion and relegation', () => {
   it('promotes from the top, relegates from the bottom, and clamps at the ends', () => {
     const bottom = SUNDAY_DIVISIONS[0];
@@ -330,6 +364,13 @@ describe('the rollover, in the running game', () => {
     // Nothing orphaned: every player in the map belongs to a club in the world.
     for (const p of Object.values(after.players)) {
       expect(clubIds.has(p.clubId)).toBe(true);
+    }
+    // A club that is still in the division is still the SAME club. The feud,
+    // the defector and the taunts all carry over by id, so a renamed opponent
+    // would have made every one of those lines a lie.
+    for (const id of after.sunday!.divisionClubIds) {
+      const was = before.clubs[id];
+      if (was) expect(after.clubs[id].name, id).toBe(was.name);
     }
     assertSundayState({
       sunday: after.sunday!, players: after.players, clubs: after.clubs,
