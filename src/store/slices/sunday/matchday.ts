@@ -440,8 +440,16 @@ export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
   }
 
   // ── Write the football facts back onto the players ───────────────────────
-  const participantIds = new Set<string>(ratings.map(r => r.playerId));
-  for (const id of startingIds) participantIds.add(id);
+  // NOBODY PLAYED IN A FORFEIT. The referee waited twenty minutes and went
+  // home, so there are no participants: no appearances, no career minutes, no
+  // fitness cost, no club apps, no form movement. Before this the men who did
+  // turn up were credited with a full ninety off the synthetic `full_time`
+  // event — which fed development, so an abandoned fixture grew the youngsters.
+  const participantIds = new Set<string>();
+  if (!forfeited) {
+    for (const r of ratings) participantIds.add(r.playerId);
+    for (const id of startingIds) participantIds.add(id);
+  }
   const minutes = computeMinutesPlayed(result.events, [...participantIds]);
   const finalFitness = extractFinalMatchFitness(result.events);
 
@@ -530,7 +538,8 @@ export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
   moraleDelta -= ringers.length * SUNDAY_RINGER_MORALE;
   if (isDerby) moraleDelta += won ? SUNDAY_DERBY_MORALE : lost ? -SUNDAY_DERBY_MORALE : 0;
 
-  const startedSet = new Set(startingIds);
+  // Nobody started and nobody came on when the fixture was not fulfilled.
+  const startedSet = new Set(forfeited ? [] : startingIds);
   const usedSubs = new Set(
     result.events.filter(e => e.type === 'substitution' && e.playerId && e.clubId === clubId).map(e => e.playerId as string),
   );
@@ -558,12 +567,17 @@ export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
     const usedAsSub = usedSubs.has(m.playerId);
     const wasAvailable = m.availability.status !== 'out';
     let happy = m.happiness;
-    if (started) happy += SUNDAY_HAPPY_STARTED;
-    else if (usedAsSub) happy += SUNDAY_HAPPY_SUB_USED;
-    else if (benchIds.includes(m.playerId)) happy += SUNDAY_HAPPY_SUB_UNUSED;
-    else if (wasAvailable) {
-      happy += SUNDAY_HAPPY_AVAILABLE_UNPICKED - Math.max(0, m.ego - 12) * SUNDAY_HAPPY_EGO_MULT;
-      if (m.playerId === sunday.captainId) happy += SUNDAY_HAPPY_CAPTAIN_BENCHED;
+    // Selection only means something when there was a selection. A forfeit is
+    // a squad-wide `SUNDAY_MORALE_FORFEIT` and nothing personal: the men who
+    // turned up were not "started", and the men who did not were not "left out".
+    if (!forfeited) {
+      if (started) happy += SUNDAY_HAPPY_STARTED;
+      else if (usedAsSub) happy += SUNDAY_HAPPY_SUB_USED;
+      else if (benchIds.includes(m.playerId)) happy += SUNDAY_HAPPY_SUB_UNUSED;
+      else if (wasAvailable) {
+        happy += SUNDAY_HAPPY_AVAILABLE_UNPICKED - Math.max(0, m.ego - 12) * SUNDAY_HAPPY_EGO_MULT;
+        if (m.playerId === sunday.captainId) happy += SUNDAY_HAPPY_CAPTAIN_BENCHED;
+      }
     }
     const r = ratingById.get(m.playerId);
     // A red card or a knock takes effect the moment the whistle goes, not at
@@ -609,9 +623,11 @@ export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
     // ── The promise ────────────────────────────────────────────────────────
     // "You will start on Sunday" is judged here, at the only moment it can
     // be: he started, or the match happened without him. An unavailable week
-    // does not break it — you cannot start a man who is in Tenerife.
+    // does not break it — you cannot start a man who is in Tenerife — and
+    // neither does a forfeit: no Sunday happened, so the promise is still live
+    // and rolls on to the next one.
     let promise = m.promise;
-    if (promise && p) {
+    if (promise && p && !forfeited) {
       if (started) {
         happy += SUNDAY_PROMISE_KEPT_HAPPINESS;
         memories = rememberMoment(memories, makeMemory(season, week, 'promise-kept',
@@ -626,6 +642,13 @@ export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
         consequences.push(`Promise broken — ${p.firstName} was told he would start.`);
         promise = null;
       }
+    }
+
+    // A forfeit leaves the streaks and the club totals exactly where they were:
+    // an abandoned fixture is not an appearance, and it is not a week benched
+    // either.
+    if (forfeited) {
+      return { ...m, availability, memories, promise, happiness: clampRound(happy, 0, 100) };
     }
 
     return {
@@ -675,7 +698,10 @@ export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
   narrative.push(rng.pick(SUNDAY_POSTMATCH_LINES) ?? '');
 
   // Squad members who actually took the field. Ringers are excluded — they do
-  // not pay subs and they are not on the books.
+  // not pay subs and they are not on the books — and so is everybody on a
+  // forfeit, which is why `participantIds` is empty above: the weekly ledger
+  // reads this list to collect match fees, and charging subs for a fixture
+  // nobody played was the club billing its own members for a car park.
   const squadIds = new Set(squad.map(m => m.playerId));
   const playedIds = [...participantIds].filter(id => squadIds.has(id));
 

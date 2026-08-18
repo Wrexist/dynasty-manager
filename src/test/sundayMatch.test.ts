@@ -101,6 +101,62 @@ describe('playing the fixture', () => {
     check();
   });
 
+  it('credits nobody with a game they did not play when the fixture is forfeited', async () => {
+    stripSquadTo(3);
+    const s0 = useGameStore.getState();
+    const before = new Map(s0.sunday!.squad.map(m => [m.playerId, {
+      apps: s0.players[m.playerId].appearances,
+      careerApps: s0.players[m.playerId].careerAppearances,
+      minutes: s0.players[m.playerId].minutesPlayed ?? 0,
+      fitness: s0.players[m.playerId].fitness,
+      clubApps: m.clubApps,
+      benched: m.benchedStreak,
+      started: m.startedStreak,
+    }]));
+
+    const report = (await useGameStore.getState().playSundayMatch())!;
+    expect(report.forfeited).toBe(true);
+    // Nobody took the field, so the ledger has nobody to charge subs to.
+    expect(report.playedIds).toEqual([]);
+
+    const after = useGameStore.getState();
+    for (const m of after.sunday!.squad) {
+      const b = before.get(m.playerId)!;
+      const p = after.players[m.playerId];
+      expect(p.appearances, m.playerId).toBe(b.apps);
+      expect(p.careerAppearances, m.playerId).toBe(b.careerApps);
+      expect(p.minutesPlayed ?? 0, m.playerId).toBe(b.minutes);
+      expect(p.fitness, m.playerId).toBe(b.fitness);
+      expect(m.clubApps, m.playerId).toBe(b.clubApps);
+      expect(m.benchedStreak, m.playerId).toBe(b.benched);
+      expect(m.startedStreak, m.playerId).toBe(b.started);
+    }
+    check();
+  });
+
+  it('does not judge a promise on a fixture that was never played', async () => {
+    stripSquadTo(3);
+    const s0 = useGameStore.getState();
+    // Promise a man who is one of the three still standing, and make it due now.
+    const target = s0.sunday!.squad.find(m => m.availability.status !== 'out')!;
+    const promise = { kind: 'start' as const, madeSeason: s0.season, madeWeek: s0.week - 2, dueWeek: s0.week };
+    useGameStore.setState({
+      sunday: {
+        ...s0.sunday!,
+        squad: s0.sunday!.squad.map(m => (m.playerId === target.playerId ? { ...m, promise } : m)),
+      },
+    });
+
+    const report = (await useGameStore.getState().playSundayMatch())!;
+    expect(report.forfeited).toBe(true);
+    const after = useGameStore.getState().sunday!.squad.find(m => m.playerId === target.playerId)!;
+    // Still owed a start — and not punished for one he was never given.
+    expect(after.promise).toEqual(promise);
+    expect(after.memories.some(m => m.kind === 'promise-broken')).toBe(false);
+    expect(report.consequences.join(' ')).not.toContain('Promise');
+    check();
+  });
+
   it('never fields a player who is unavailable', async () => {
     const s0 = useGameStore.getState();
     const banned = s0.sunday!.squad[0].playerId;
