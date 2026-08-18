@@ -279,6 +279,16 @@ export function rolloverSundaySeason(set: Set, get: Get): void {
   const nextSunday: SundayState = {
     ...sunday,
     balance: Math.round(sunday.balance + prize),
+    // Prize money is a real movement and needs a line like everything else. It
+    // is parked for the FIRST settlement of the new season, which is the next
+    // ledger entry that will be written.
+    pendingLedger: prize > 0
+      ? [...sunday.pendingLedger, { kind: 'prize' as const, amount: prize, label: `${div.shortName} prize money` }]
+      : sunday.pendingLedger,
+    // Sponsor conditions are judged within ONE season — see the block comment
+    // above `SUNDAY_SPONSOR_MIN_REPUTATION`. Reset the counters so a deal that
+    // spans a rollover is measured the same way a single-season one is.
+    sponsors: sunday.sponsors.map(s => ({ ...s, conditionProgress: 0 })),
     divisionId: nextDivisionId,
     divisionClubIds,
     rngCursor: cursorOf(rng),

@@ -7,9 +7,24 @@
  * balance can go negative, and only stays negative long enough to fold if the
  * manager ignores it for `SUNDAY_BANKRUPT_GRACE_WEEKS` running.
  *
- * Every pound that moves goes through `buildWeekLedger` and lands in a
- * `SundayLedgerLine`, so the Finances screen can always answer "where did it
- * go" line by line. No system may adjust `balance` directly.
+ * EVERY POUND LANDS IN A LINE, and there are exactly two ways it can:
+ *
+ *   1. The weekly settlement. `buildWeekLedger` is pure — it reads state and
+ *      returns lines, the caller applies them — which is what makes the weekly
+ *      economy testable without a store.
+ *   2. A player action taken DURING the week (a fundraiser, an upgrade, a
+ *      signing, an event payout). The action moves `balance` immediately and
+ *      parks its line in `SundayState.pendingLedger`; `advanceSundayWeek`
+ *      prepends those lines to the week it closes and clears the list.
+ *
+ * The invariant both halves exist to hold, checked in `validateSundayState`:
+ * each completed `SundayWeekLedger` entry's `balance` equals the previous
+ * entry's `balance` plus the sum of its own `lines`. A completed entry is
+ * therefore immutable — before `pendingLedger` existed, `buySundayUpgrade` and
+ * `runSundayFundraiser` reached backwards and appended a line to the PREVIOUS
+ * week's entry without touching its `balance` field (and dropped the line
+ * entirely when the ledger was empty), while five other actions moved the
+ * balance with no line at all.
  */
 import type {
   SundayLedgerLine, SundaySponsorDeal, SundaySquadMember, SundayUpgradeState,

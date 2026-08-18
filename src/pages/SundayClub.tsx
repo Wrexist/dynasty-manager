@@ -38,7 +38,9 @@ const SundayClub = () => {
 
   const totals = useMemo(() => {
     if (!sunday) return { income: 0, expenses: 0 };
-    return splitLedger(sunday.ledger.flatMap(l => l.lines));
+    // Money moved this week is already out of the account, so it belongs in the
+    // headline figures even though its ledger entry has not been written yet.
+    return splitLedger([...sunday.ledger.flatMap(l => l.lines), ...sunday.pendingLedger]);
   }, [sunday]);
 
   if (!sunday) return null;
@@ -206,7 +208,25 @@ const SundayClub = () => {
             </div>
           </GlassPanel>
 
-          {sunday.ledger.length === 0 ? (
+          {/* This week, so far. Lines the manager has caused but the weekly
+              settlement has not yet folded into an entry. */}
+          {sunday.pendingLedger.length > 0 && (
+            <GlassPanel className="p-3.5">
+              <SectionHeader level="section" title={t('sunday.club.ledgerPending')} />
+              <ul className="mt-2 space-y-1">
+                {sunday.pendingLedger.map((line, i) => (
+                  <li key={`${line.label}-${i}`} className="flex items-baseline gap-2 text-caption">
+                    <span className="min-w-0 flex-1 text-muted-foreground truncate">{line.label}</span>
+                    <span className={cn('font-semibold tabular-nums shrink-0', line.amount >= 0 ? 'text-emerald-300' : 'text-destructive')}>
+                      {formatMoney(line.amount, { signed: true })}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </GlassPanel>
+          )}
+
+          {sunday.ledger.length === 0 && sunday.pendingLedger.length === 0 ? (
             <GlassPanel className="p-6 text-center">
               <p className="text-body text-muted-foreground">{t('sunday.club.noLedger')}</p>
             </GlassPanel>

@@ -273,7 +273,10 @@ export function resolveSundayEvent(set: Set, get: Get, choiceId: string) {
   const { value: resolution, rngCursor } = withRng(sunday, rng => resolveSundayChoice(rng, instance, choiceId, ctx));
   const fx = resolution.effects;
 
+  // Money an event moves is real money and belongs in the books like any other.
+  const pendingLedger = [...sunday.pendingLedger];
   let balance = sunday.balance + (fx.money ?? 0);
+  if (fx.money) pendingLedger.push({ kind: 'event', amount: fx.money, label: instance.title });
   let teamMorale = clampRound(sunday.teamMorale + (fx.morale ?? 0), 0, 100);
   const reputation = clampRound(sunday.reputation + (fx.reputation ?? 0), 0, 100);
   let squad = sunday.squad;
@@ -377,6 +380,7 @@ export function resolveSundayEvent(set: Set, get: Get, choiceId: string) {
     const owed = squad.reduce((n, m) => n + m.subsOwed, 0);
     const recovered = Math.round(owed * fx.collectSubs);
     balance += recovered;
+    if (recovered !== 0) pendingLedger.push({ kind: 'subs', amount: recovered, label: 'Subs chased down' });
     squad = squad.map(m => ({ ...m, subsOwed: Math.round(m.subsOwed * (1 - fx.collectSubs!)) }));
   }
 
@@ -426,6 +430,7 @@ export function resolveSundayEvent(set: Set, get: Get, choiceId: string) {
     rivalry,
     flags,
     pitchDamage,
+    pendingLedger,
     rngCursor: recruitCursor,
     pendingEvent: null,
     eventLog: [...sunday.eventLog, {
@@ -470,6 +475,9 @@ export function signSundayRecruit(set: Set, get: Get, recruitId: string) {
     sunday: {
       ...sunday,
       balance: Math.round(sunday.balance - recruit.fee),
+      pendingLedger: recruit.fee > 0
+        ? [...sunday.pendingLedger, { kind: 'recruit' as const, amount: -recruit.fee, label: `${player.firstName} ${player.lastName} — signing on` }]
+        : sunday.pendingLedger,
       recruits: sunday.recruits.filter(r => r.id !== recruitId),
       rivalry: sunday.rivalry ? { ...sunday.rivalry, heat } : null,
       squad: [...sunday.squad, {
@@ -536,6 +544,7 @@ export function buySundayUpgrade(set: Set, get: Get, upgradeId: SundayUpgradeId)
     ? sunday.upgrades.map(u => (u.id === upgradeId ? { ...u, level: u.level + 1 } : u))
     : [...sunday.upgrades, { id: upgradeId, level: 1 }];
 
+
   // A few upgrades pay out immediately rather than through the sim.
   const moraleBump = upgradeId === 'kit' ? 3 : upgradeId === 'clubhouse' ? 2 : 0;
   const repBump = upgradeId === 'kit' ? 2 : upgradeId === 'nets' ? 1 : upgradeId === 'floodlights' ? 3 : 0;
@@ -547,11 +556,10 @@ export function buySundayUpgrade(set: Set, get: Get, upgradeId: SundayUpgradeId)
       balance: Math.round(sunday.balance - cost),
       teamMorale: clampRound(sunday.teamMorale + moraleBump, 0, 100),
       reputation: clampRound(sunday.reputation + repBump, 0, 100),
-      ledger: sunday.ledger.length
-        ? sunday.ledger.map((l, i) => (i === sunday.ledger.length - 1
-          ? { ...l, lines: [...l.lines, { kind: 'upgrade' as const, amount: -cost, label: info.name }] }
-          : l))
-        : sunday.ledger,
+      // Parked for THIS week's settlement. It used to be appended to the
+      // PREVIOUS week's entry without moving that entry's `balance` field —
+      // and silently dropped when the ledger was still empty.
+      pendingLedger: [...sunday.pendingLedger, { kind: 'upgrade' as const, amount: -cost, label: info.name }],
       weekLog: logWeek(sunday, `Bought: ${info.name}.`),
     },
   });
@@ -574,6 +582,9 @@ export function acceptSundaySponsor(set: Set, get: Get, offerId: string) {
       sponsors: [...sunday.sponsors, deal],
       sponsorOffers: sunday.sponsorOffers.filter(o => o.id !== offerId),
       balance: Math.round(sunday.balance + offer.signOn),
+      pendingLedger: offer.signOn > 0
+        ? [...sunday.pendingLedger, { kind: 'sponsor' as const, amount: offer.signOn, label: `${offer.name} sign-on` }]
+        : sunday.pendingLedger,
       reputation: clampRound(sunday.reputation + 1, 0, 100),
       weekLog: logWeek(sunday, `${offer.name} are on the shirt. £${offer.signOn} up front.`),
     },
@@ -606,11 +617,7 @@ export function runSundayFundraiser(set: Set, get: Get) {
       balance: Math.round(sunday.balance + raised),
       teamMorale: clampRound(sunday.teamMorale + SUNDAY_FUNDRAISER_MORALE, 0, 100),
       lastFundraiserWeek: state.week,
-      ledger: sunday.ledger.length
-        ? sunday.ledger.map((l, i) => (i === sunday.ledger.length - 1
-          ? { ...l, lines: [...l.lines, { kind: 'fundraiser' as const, amount: raised, label: 'Fundraiser' }] }
-          : l))
-        : sunday.ledger,
+      pendingLedger: [...sunday.pendingLedger, { kind: 'fundraiser' as const, amount: raised, label: 'Fundraiser' }],
       weekLog: logWeek(sunday, `The fundraiser brought in £${raised}. Everybody had to help.`),
     },
   });
@@ -629,6 +636,7 @@ export function chaseSundaySubs(set: Set, get: Get) {
     sunday: {
       ...sunday,
       balance: Math.round(sunday.balance + recovered),
+      pendingLedger: [...sunday.pendingLedger, { kind: 'subs' as const, amount: recovered, label: 'Subs chased down' }],
       squad: sunday.squad.map(m => ({
         ...m,
         subsOwed: Math.round(m.subsOwed * (1 - SUNDAY_CHASE_SUBS_RECOVERY)),
@@ -663,6 +671,11 @@ export function ringRoundSunday(set: Set, get: Get, playerId: string) {
       ...sunday,
       rngCursor,
       balance: Math.round(sunday.balance - SUNDAY_RINGROUND_COST),
+      pendingLedger: [...sunday.pendingLedger, {
+        kind: 'ring-round' as const,
+        amount: -SUNDAY_RINGROUND_COST,
+        label: `Ring-round (${player?.firstName ?? 'a phone call'})`,
+      }],
       teamMorale: clampRound(sunday.teamMorale + SUNDAY_RINGROUND_MORALE, 0, 100),
       squad: talkedRound
         ? updateMember(sunday.squad, playerId, m => ({

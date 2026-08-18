@@ -284,8 +284,12 @@ export function advanceSundayWeek(set: Set, get: Get): void {
     }
   }
 
-  const net = lines.reduce((n, l) => n + l.amount, 0);
-  let balance = sunday.balance + net;
+  // Only the lines this settlement is CREATING move the balance. Anything the
+  // manager spent or raised during the week was applied to `balance` when he
+  // did it and is parked in `pendingLedger`; folding it in here as well would
+  // charge it twice.
+  const settledNet = lines.reduce((n, l) => n + l.amount, 0);
+  let balance = sunday.balance + settledNet;
 
   let squad = sunday.squad.map(m => {
     const owed = ledger.subsOwed[m.playerId] ?? 0;
@@ -595,9 +599,14 @@ export function advanceSundayWeek(set: Set, get: Get): void {
     weekLogLines.push('The league have written about the outstanding balance. This is serious.');
   }
 
+  // The week's entry: what the manager did during it, then what it cost to
+  // play it. The two together sum exactly to the balance movement the entry
+  // records, which is the ledger's whole contract (see `utils/sunday/finance`).
+  const weekLines = [...sunday.pendingLedger, ...lines];
+  const weekNet = weekLines.reduce((n, l) => n + l.amount, 0);
   const nextLedger = [
     ...sunday.ledger,
-    { season, week, lines, balance: Math.round(balance) },
+    { season, week, lines: weekLines, balance: Math.round(balance) },
   ].slice(-SUNDAY_LEDGER_MAX);
 
   const nextSunday: SundayState = {
@@ -623,6 +632,8 @@ export function advanceSundayWeek(set: Set, get: Get): void {
     teamMorale: clampRound(teamMorale, 0, 100),
     pitchDamage,
     ledger: nextLedger,
+    // Folded into the entry above; the new week starts with a clean slate.
+    pendingLedger: [],
     pendingEvent,
     eventCooldowns,
     weeksInDebt,
@@ -635,7 +646,7 @@ export function advanceSundayWeek(set: Set, get: Get): void {
     // The log describes the week just completed and is replaced, not appended
     // to: the hub shows "what happened", and an ever-growing list stops being
     // that after about three weeks.
-    weekLog: buildWeekRecap(sunday, playedThisWeek ? lastMatch : null, net, weekLogLines),
+    weekLog: buildWeekRecap(sunday, playedThisWeek ? lastMatch : null, weekNet, weekLogLines),
     seasonStats: {
       ...sunday.seasonStats,
       subsCollected: sunday.seasonStats.subsCollected + ledger.subsCollected,

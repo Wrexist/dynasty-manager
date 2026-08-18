@@ -198,6 +198,7 @@ export const en = {
   'sunday.club.net': 'Net',
   'sunday.club.weeklyBurn': 'Roughly £{n} a week to exist',
   'sunday.club.ledgerWeek': 'Week {week}',
+  'sunday.club.ledgerPending': 'This week so far',
   'sunday.club.noLedger': 'Nothing has been spent yet.',
   'sunday.club.progress': '{n} of {target}',
 

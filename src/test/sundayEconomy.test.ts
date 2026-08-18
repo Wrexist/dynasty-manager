@@ -10,6 +10,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
 import { buildWeekLedger, splitLedger, sundayWeeklyBurn } from '@/utils/sunday/finance';
 import { createSundayRng } from '@/utils/sunday/rng';
+import { sundaySeasonWeeks } from '@/utils/sunday/season';
 import { assertSundayState } from '@/utils/sunday/invariants';
 import {
   SUNDAY_BANKRUPT_GRACE_WEEKS, SUNDAY_FORFEIT_FINE, SUNDAY_FUNDRAISER_COOLDOWN,
@@ -146,6 +147,82 @@ describe('balance and the ledger stay in step', () => {
     expect(sunday.ledger[sunday.ledger.length - 1].balance).toBe(sunday.balance);
     check();
   });
+
+  it('gives every action that moves money a line, in the week it happened', async () => {
+    // Five actions used to move `balance` with no line at all, and two more
+    // appended a line to the PREVIOUS week's entry without touching its
+    // `balance` field. `check()` runs the chain assertion in the validator, so
+    // any of them coming back breaks this test twice.
+    useGameStore.setState({
+      sunday: {
+        ...useGameStore.getState().sunday!,
+        balance: 5000,
+        reputation: 100,
+        squad: useGameStore.getState().sunday!.squad.map(m => ({ ...m, subsOwed: 12 })),
+      },
+    });
+    const start = useGameStore.getState().sunday!.balance;
+
+    const raised = (await useGameStore.getState().runSundayFundraiser()).raised;
+    await useGameStore.getState().buySundayUpgrade('kit');
+    const recovered = (await useGameStore.getState().chaseSundaySubs()).recovered;
+    const offer = {
+      id: 'sp-ledger', name: 'Test Kebabs', blurb: 'test', weekly: 10, signOn: 40,
+      expiresSeason: 9, condition: 'none' as const, conditionTarget: 0,
+      conditionProgress: 0, conditionText: 'none', expiresWeek: 99,
+    };
+    useGameStore.setState({ sunday: { ...useGameStore.getState().sunday!, sponsorOffers: [offer] } });
+    await useGameStore.getState().acceptSundaySponsor('sp-ledger');
+
+    const mid = useGameStore.getState().sunday!;
+    // Every movement so far is accounted for, to the pound.
+    const parked = mid.pendingLedger.reduce((n, l) => n + l.amount, 0);
+    expect(mid.balance - start).toBe(parked);
+    const kinds = mid.pendingLedger.map(l => l.kind);
+    expect(kinds).toContain('fundraiser');
+    expect(kinds).toContain('upgrade');
+    expect(kinds).toContain('subs');
+    expect(kinds).toContain('sponsor');
+    expect(raised).toBeGreaterThan(0);
+    expect(recovered).toBeGreaterThan(0);
+    check();
+
+    // The settlement folds them into the week it closes, and clears the slate.
+    const before = useGameStore.getState().sunday!.ledger.length;
+    const s = useGameStore.getState();
+    if (s.sunday!.pendingEvent) await s.resolveSundayEvent(s.sunday!.pendingEvent.choices[0].id);
+    await useGameStore.getState().advanceWeek();
+    const after = useGameStore.getState().sunday!;
+    expect(after.pendingLedger).toEqual([]);
+    expect(after.ledger.length).toBe(before + 1);
+    const entry = after.ledger[after.ledger.length - 1];
+    expect(entry.lines.map(l => l.kind)).toEqual(expect.arrayContaining(['fundraiser', 'upgrade', 'sponsor']));
+    expect(entry.balance).toBe(after.balance);
+    check();
+  });
+
+  it('records a line for the first thing bought in a brand-new save', async () => {
+    // The old code dropped the line entirely when `ledger` was still empty —
+    // the very first purchase of every save vanished from the books.
+    useGameStore.setState({ sunday: { ...useGameStore.getState().sunday!, ledger: [], balance: 5000, reputation: 100 } });
+    await useGameStore.getState().buySundayUpgrade('balls');
+    const sunday = useGameStore.getState().sunday!;
+    expect(sunday.pendingLedger.some(l => l.kind === 'upgrade')).toBe(true);
+  });
+
+  it('never edits a ledger entry that has already been closed', async () => {
+    for (let i = 0; i < 3; i++) {
+      const s = useGameStore.getState();
+      if (s.sunday!.pendingEvent) await s.resolveSundayEvent(s.sunday!.pendingEvent.choices[0].id);
+      await useGameStore.getState().advanceWeek();
+    }
+    useGameStore.setState({ sunday: { ...useGameStore.getState().sunday!, balance: 5000, reputation: 100 } });
+    const closed = JSON.stringify(useGameStore.getState().sunday!.ledger);
+    await useGameStore.getState().buySundayUpgrade('kit');
+    await useGameStore.getState().runSundayFundraiser();
+    expect(JSON.stringify(useGameStore.getState().sunday!.ledger)).toBe(closed);
+    check();
+  });
 });
 
 describe('the ways out of trouble', () => {
@@ -274,6 +351,44 @@ describe('running out of money', () => {
     await useGameStore.getState().advanceWeek();
     expect(useGameStore.getState().week).toBe(week);
     expect(useGameStore.getState().currentScreen).toBe('sunday-history');
+  });
+});
+
+describe('sponsor conditions', () => {
+  it('judges a deal on the season it expires in, whichever condition it carries', async () => {
+    // `win-streak` and `avoid-defeat` carried their best run across the summer
+    // via `Math.max` while `goals` and `discipline` reset with `seasonStats`,
+    // so a two-season deal was judged by a different rule depending on which
+    // condition the offer happened to roll.
+    const total = sundaySeasonWeeks('sun-4');
+    for (let i = 0; i < total + 2; i++) {
+      const s = useGameStore.getState();
+      if (s.sunday!.pendingEvent) await s.resolveSundayEvent(s.sunday!.pendingEvent.choices[0].id);
+      if (s.sunday!.folded || s.sunday!.seasonComplete) break;
+      await useGameStore.getState().advanceWeek();
+    }
+    if (useGameStore.getState().sunday!.folded) return;
+
+    const season = useGameStore.getState().season;
+    const carried = ['win-streak', 'avoid-defeat', 'goals', 'discipline', 'attendance'] as const;
+    useGameStore.setState({
+      sunday: {
+        ...useGameStore.getState().sunday!,
+        sponsors: carried.map((condition, i) => ({
+          id: `sp-${condition}`, name: `Sponsor ${i}`, blurb: 'b', weekly: 10, signOn: 0,
+          expiresSeason: season + 1, condition, conditionTarget: 5,
+          conditionProgress: 4, conditionText: 'c',
+        })),
+      },
+    });
+
+    await useGameStore.getState().endSundaySeason();
+    const after = useGameStore.getState().sunday!;
+    expect(after.sponsors).toHaveLength(carried.length);
+    for (const deal of after.sponsors) {
+      expect(deal.conditionProgress, deal.condition).toBe(0);
+    }
+    check();
   });
 });
 

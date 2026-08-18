@@ -594,6 +594,17 @@ export const SUNDAY_FLOODLIGHT_REP = 3;
 export const SUNDAY_NETS_REP = 1;
 
 // ── Sponsors ────────────────────────────────────────────────────────────────
+//
+// CONDITIONS ARE JUDGED WITHIN ONE SEASON. `conditionProgress` is reset at the
+// rollover and tracked against that season's `seasonStats` only, so a two-season
+// deal is measured on the season it expires in.
+//
+// This is not cosmetic. The counters were previously inconsistent with each
+// other: `win-streak` and `avoid-defeat` carried their best run forward with a
+// `Math.max` while `goals` and `discipline` read straight off `seasonStats` and
+// therefore reset — so half the conditions were "best ever across the deal" and
+// half were "this season", and which half you got was decided by a die roll
+// when the offer was generated.
 
 /** Reputation needed before sponsors start offering at all. */
 export const SUNDAY_SPONSOR_MIN_REPUTATION = 6;

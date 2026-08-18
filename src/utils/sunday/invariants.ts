@@ -200,11 +200,23 @@ export function validateSundayState(input: ValidateSundayInput): SundayValidatio
     if (week > total + 1) push(`week ${week} is past the end of a ${total}-week season`);
 
     // ── Money ──────────────────────────────────────────────────────────────
+    // The ledger's contract: each completed week's `balance` is the previous
+    // week's plus the sum of its own lines. Any action that moves `balance`
+    // without leaving a line — or that edits a closed entry — breaks the chain
+    // here. The first entry has no predecessor to check against, because the
+    // club's starting balance is not itself a line.
+    let previousBalance: number | null = null;
     for (const l of sunday.ledger) {
       if (!finite(l.balance)) push(`ledger week ${l.week} has a non-finite balance`);
+      let sum = 0;
       for (const line of l.lines) {
         if (!finite(line.amount)) push(`ledger line "${line.label}" has a non-finite amount`);
+        else sum += line.amount;
       }
+      if (previousBalance != null && finite(l.balance) && Math.round(previousBalance + sum) !== Math.round(l.balance)) {
+        push(`ledger week ${l.week} does not add up: ${previousBalance} + ${sum} != ${l.balance}`);
+      }
+      if (finite(l.balance)) previousBalance = l.balance;
     }
     // v3: mid-week lines are parked until the settlement folds them in. They
     // must be real lines, and they must not have grown without bound (an
