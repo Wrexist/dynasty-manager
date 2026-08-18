@@ -3040,6 +3040,10 @@ export interface SundayState {
    *  Small by construction — a chain sets one flag per step and clears it
    *  when the chain resolves. Schema v2. */
   flags: Record<string, number>;
+  /** Damage to the playing surface, in pitch-quality points, carried until it
+   *  heals. Written by events that let the club play on a bog; read by
+   *  `sundayPitchQuality`, which is what the match engine sees. Schema v3. */
+  pitchDamage: number;
   /** Consecutive weeks the balance has been below zero. The club folds
    *  at `SUNDAY_BANKRUPT_GRACE_WEEKS`, so a single bad week is survivable
    *  and a month of ignoring it is not. */

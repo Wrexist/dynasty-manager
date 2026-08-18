@@ -527,6 +527,15 @@ export const SUNDAY_PITCH_PER_UPGRADE = 14;
 export const SUNDAY_PITCH_WINTER_DROP = 14;
 /** Below this the pitch actively harms technical football. */
 export const SUNDAY_PITCH_POOR = 28;
+/** Floor on pitch quality after every deduction. There is always SOME grass,
+ *  and a surface of zero would make the engine's pitch channel a cliff. */
+export const SUNDAY_PITCH_MIN = 8;
+/** Most accumulated damage the surface can carry (quality points). */
+export const SUNDAY_PITCH_DAMAGE_MAX = 30;
+/** Damage that grows back each week. Three or four quiet weeks and a churned
+ *  pitch is a pitch again — which is what makes playing on a bog a cost you
+ *  can choose to absorb rather than a permanent tax. */
+export const SUNDAY_PITCH_DAMAGE_HEAL = 5;
 /** Chance a home fixture is called off for a waterlogged pitch, at pitch 0. */
 export const SUNDAY_POSTPONE_BASE = 0.10;
 /** Reduction in that chance per point of pitch quality. */

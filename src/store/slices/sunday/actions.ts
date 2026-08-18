@@ -28,10 +28,11 @@ import {
   SUNDAY_FUNDRAISER_COOLDOWN, SUNDAY_FUNDRAISER_MAX, SUNDAY_FUNDRAISER_MIN,
   SUNDAY_FUNDRAISER_MORALE, SUNDAY_MAX_BENCH, SUNDAY_MAX_SQUAD, SUNDAY_MIN_START,
   SUNDAY_RINGROUND_COST, SUNDAY_RINGROUND_MORALE, SUNDAY_EVENT_LOG_MAX,
-  SUNDAY_POACH_HEAT, SUNDAY_RIVAL_HEAT_MAX, SUNDAY_PROMISE_WEEKS, getSundayUpgrade, sundayUpgradeCost,
+  SUNDAY_POACH_HEAT, SUNDAY_RIVAL_HEAT_MAX, SUNDAY_PROMISE_WEEKS, SUNDAY_PITCH_DAMAGE_MAX,
+  getSundayUpgrade, sundayUpgradeCost,
 } from '@/config/sundayLeague';
 import { resolveSundayChoice, toEventPerson } from '@/utils/sunday/events';
-import type { SundayEventContext } from '@/data/sundayEvents';
+import type { SundayEventContext, SundayEventEffects } from '@/data/sundayEvents';
 import { ringRoundChance } from '@/utils/sunday/availability';
 import { generateSundayRecruit, sundaySquadNeeds } from '@/utils/sunday/generation';
 import { buildSundayTable, sundayPosition } from '@/utils/sunday/season';
@@ -236,6 +237,25 @@ export function playSundayMatch(set: Set, get: Get): SundayMatchReport | null {
   return report;
 }
 
+/**
+ * Every `SundayEventEffects` key `resolveSundayEvent` actually applies.
+ *
+ * The catalogue is data and the resolver is code, so an author can type an
+ * effect the switch below has never heard of — which is precisely what
+ * happened to `pitchDamage`: two choices in `pitch-unplayable` paid for it,
+ * nothing read it, and one of them was a no-op dressed as a decision.
+ * `sundayEvents.test.ts` asserts that every key used anywhere in the catalogue
+ * appears here, so the next one fails CI instead of shipping.
+ */
+export const SUNDAY_HANDLED_EFFECT_KEYS: ReadonlySet<keyof SundayEventEffects> = new Set([
+  'money', 'morale', 'reputation',
+  'subjectHappiness', 'squadHappiness', 'subjectCommitment', 'subjectEgo',
+  'subjectOut', 'subjectLeaves', 'subjectLeavesForRival',
+  'subjectInjuryWeeks', 'subjectAttrDelta',
+  'rivalHeat', 'collectSubs', 'spawnRecruit', 'pitchDamage', 'promiseStart',
+  'setFlag', 'clearFlag',
+] satisfies (keyof SundayEventEffects)[]);
+
 export function resolveSundayEvent(set: Set, get: Get, choiceId: string) {
   const state = get();
   const sunday = state.sunday;
@@ -364,6 +384,13 @@ export function resolveSundayEvent(set: Set, get: Get, choiceId: string) {
     rivalry = { ...rivalry, heat: clamp(rivalry.heat + fx.rivalHeat, 0, SUNDAY_RIVAL_HEAT_MAX) };
   }
 
+  // Playing on a churned surface churns it further. `sundayPitchQuality` reads
+  // this straight into the match engine's pitch channel, so "we talked him into
+  // letting us play" now costs the club something it can feel for a few weeks.
+  const pitchDamage = fx.pitchDamage
+    ? clampRound(sunday.pitchDamage + fx.pitchDamage, 0, SUNDAY_PITCH_DAMAGE_MAX)
+    : sunday.pitchDamage;
+
   const captainId = subjectLeft && sunday.captainId === subjectId
     ? ([...squad].sort((a, b) => (b.influence * 2 + b.commitment) - (a.influence * 2 + a.commitment))[0]?.playerId ?? null)
     : sunday.captainId;
@@ -398,6 +425,7 @@ export function resolveSundayEvent(set: Set, get: Get, choiceId: string) {
     recruits,
     rivalry,
     flags,
+    pitchDamage,
     rngCursor: recruitCursor,
     pendingEvent: null,
     eventLog: [...sunday.eventLog, {

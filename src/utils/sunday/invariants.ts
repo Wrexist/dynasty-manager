@@ -19,7 +19,7 @@ import type {
 } from '@/types/game';
 import {
   SUNDAY_MAX_BENCH, SUNDAY_STATE_VERSION, SUNDAY_MIN_START, SUNDAY_FULL_XI,
-  SUNDAY_PENDING_LEDGER_MAX,
+  SUNDAY_PENDING_LEDGER_MAX, SUNDAY_PITCH_DAMAGE_MAX,
 } from '@/config/sundayLeague';
 import { sundaySeasonWeeks } from './season';
 
@@ -219,6 +219,11 @@ export function validateSundayState(input: ValidateSundayInput): SundayValidatio
       }
     }
     if (!finite(sunday.weeksInDebt) || sunday.weeksInDebt < 0) push('weeksInDebt is invalid');
+
+    // ── The pitch (v3) ─────────────────────────────────────────────────────
+    if (!finite(sunday.pitchDamage) || sunday.pitchDamage < 0 || sunday.pitchDamage > SUNDAY_PITCH_DAMAGE_MAX) {
+      push(`pitchDamage out of range: ${String(sunday.pitchDamage)}`);
+    }
 
     // ── Sponsors and recruits ──────────────────────────────────────────────
     const sponsorIds = new Set<string>();

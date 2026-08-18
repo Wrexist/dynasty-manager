@@ -25,7 +25,7 @@ import {
   SUNDAY_HAPPY_EGO_MULT, SUNDAY_HAPPY_STARTED, SUNDAY_HAPPY_SUB_UNUSED,
   SUNDAY_HAPPY_SUB_USED, SUNDAY_HEAVY_LOSS_MARGIN, SUNDAY_MAX_BENCH, SUNDAY_MAX_RINGERS,
   SUNDAY_MIN_START, SUNDAY_MORALE_DRAW, SUNDAY_MORALE_FORFEIT, SUNDAY_MORALE_HEAVY_LOSS,
-  SUNDAY_MORALE_LOSS, SUNDAY_MORALE_WIN, SUNDAY_PITCH_BASE, SUNDAY_PITCH_PER_UPGRADE,
+  SUNDAY_MORALE_LOSS, SUNDAY_MORALE_WIN, SUNDAY_PITCH_BASE, SUNDAY_PITCH_MIN, SUNDAY_PITCH_PER_UPGRADE,
   SUNDAY_PITCH_WINTER_DROP, SUNDAY_REP_DRAW, SUNDAY_REP_FORFEIT, SUNDAY_REP_LOSS,
   SUNDAY_REP_WIN, SUNDAY_RINGER_MORALE, SUNDAY_RIVAL_HEAT_LOSS, SUNDAY_RIVAL_HEAT_MAX,
   SUNDAY_RIVAL_HEAT_WIN, SUNDAY_RIVAL_INTENSITY_SCALE, SUNDAY_DERBY_MORALE,
@@ -53,12 +53,17 @@ import { createSundayRng, cursorOf, subSeed } from '@/utils/sunday/rng';
 import type { Get, Set } from './shared';
 import { clamp, clampRound, logWeek, upgradeLevel } from './shared';
 
-/** Current pitch quality: base, plus what has been paid for, minus winter. */
+/** Current pitch quality: base, plus what has been paid for, minus winter, minus
+ *  whatever has been churned out of it and not yet grown back. */
 export function sundayPitchQuality(sunday: SundayState, week: number): number {
   const total = sundaySeasonWeeks(sunday.divisionId);
   const share = total > 0 ? week / total : 0;
   const winter = share > 0.3 && share < 0.75 ? SUNDAY_PITCH_WINTER_DROP : 0;
-  return clamp(SUNDAY_PITCH_BASE + upgradeLevel(sunday, 'pitch') * SUNDAY_PITCH_PER_UPGRADE - winter, 0, 100);
+  const damage = Math.max(0, sunday.pitchDamage ?? 0);
+  return clamp(
+    SUNDAY_PITCH_BASE + upgradeLevel(sunday, 'pitch') * SUNDAY_PITCH_PER_UPGRADE - winter - damage,
+    SUNDAY_PITCH_MIN, 100,
+  );
 }
 
 /** This week's fixture for the player's club, league or cup, or null. */

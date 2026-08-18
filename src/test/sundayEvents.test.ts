@@ -11,7 +11,9 @@ import { useGameStore } from '@/store/gameStore';
 import { SUNDAY_EVENTS, fillSundayEventText, type SundayEventContext } from '@/data/sundayEvents';
 import { cooldownWeekFor, pickSundayEvent, resolveSundayChoice } from '@/utils/sunday/events';
 import { createSundayRng } from '@/utils/sunday/rng';
-import { SUNDAY_EVENT_COOLDOWN } from '@/config/sundayLeague';
+import { SUNDAY_EVENT_COOLDOWN, SUNDAY_PITCH_DAMAGE_HEAL, SUNDAY_PITCH_DAMAGE_MAX } from '@/config/sundayLeague';
+import { SUNDAY_HANDLED_EFFECT_KEYS } from '@/store/slices/sunday/actions';
+import { sundayPitchQuality } from '@/store/slices/sunday/matchday';
 import { assertSundayState } from '@/utils/sunday/invariants';
 
 const person = {
@@ -96,6 +98,23 @@ describe('event catalogue integrity', () => {
         expect(() => def.condition(s)).not.toThrow();
       }
     }
+  });
+
+  it('uses no effect key the resolver does not apply', () => {
+    // The catalogue is data and the resolver is code, so an author can type an
+    // effect nothing reads. `pitchDamage` was exactly that for two releases:
+    // two choices paid for it, nothing applied it, and one of them was a no-op
+    // dressed as a decision.
+    const used = new Set<string>();
+    for (const def of SUNDAY_EVENTS) {
+      for (const choice of def.choices) {
+        for (const key of Object.keys(choice.effects)) used.add(key);
+        for (const key of Object.keys(choice.failEffects ?? {})) used.add(key);
+      }
+    }
+    expect(used.size).toBeGreaterThan(0);
+    const unhandled = [...used].filter(k => !SUNDAY_HANDLED_EFFECT_KEYS.has(k as never));
+    expect(unhandled, `effects nothing applies: ${unhandled.join(', ')}`).toEqual([]);
   });
 
   it('substitutes every placeholder it uses', () => {
@@ -215,6 +234,38 @@ describe('events in the running game', () => {
     expect(useGameStore.getState().sunday!.balance).toBe(balanceAfter);
     expect(Number.isFinite(balanceBefore)).toBe(true);
 
+    const s = useGameStore.getState();
+    assertSundayState({
+      sunday: s.sunday!, players: s.players, clubs: s.clubs,
+      playerClubId: s.playerClubId, fixtures: s.fixtures, week: s.week,
+    });
+  });
+
+  it('churns the pitch when the club plays on a bog, and grows it back', async () => {
+    const s0 = useGameStore.getState();
+    const before = sundayPitchQuality(s0.sunday!, s0.week);
+    useGameStore.setState({
+      sunday: {
+        ...s0.sunday!,
+        pendingEvent: {
+          defId: 'pitch-unplayable', season: s0.season, week: s0.week,
+          title: 't', body: 'b', playerId: null,
+          choices: [{ id: 'forks', label: 'f', hint: '' }],
+          category: 'club',
+        },
+      },
+    });
+    const r = await useGameStore.getState().resolveSundayEvent('forks');
+    expect(r).toBeTruthy();
+
+    const damaged = useGameStore.getState().sunday!;
+    expect(damaged.pitchDamage).toBeGreaterThan(0);
+    expect(damaged.pitchDamage).toBeLessThanOrEqual(SUNDAY_PITCH_DAMAGE_MAX);
+    expect(sundayPitchQuality(damaged, useGameStore.getState().week)).toBeLessThan(before);
+
+    await useGameStore.getState().advanceWeek();
+    const healed = useGameStore.getState().sunday!;
+    expect(healed.pitchDamage).toBe(Math.max(0, damaged.pitchDamage - SUNDAY_PITCH_DAMAGE_HEAL));
     const s = useGameStore.getState();
     assertSundayState({
       sunday: s.sunday!, players: s.players, clubs: s.clubs,

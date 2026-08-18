@@ -33,7 +33,7 @@ import {
   SUNDAY_MAX_SQUAD, SUNDAY_THIN_SQUAD, SUNDAY_DEBT_FLOOR,
   SUNDAY_CUP_ROUND_PRIZE, SUNDAY_CUP_ROUNDS, SUNDAY_WEEK_LOG_MAX,
   SUNDAY_AI_GOALS_BASE, SUNDAY_AI_GOALS_SWING, SUNDAY_AI_HOME_ADVANTAGE,
-  SUNDAY_FORM_DRIFT, SUNDAY_FORM_NEUTRAL,
+  SUNDAY_FORM_DRIFT, SUNDAY_FORM_NEUTRAL, SUNDAY_PITCH_DAMAGE_HEAL,
 } from '@/config/sundayLeague';
 import { SUNDAY_SPONSORS, SUNDAY_SPONSOR_CONDITION_TEXT, SUNDAY_TAUNTS } from '@/data/sundayNames';
 import { buildWeekLedger } from '@/utils/sunday/finance';
@@ -567,6 +567,11 @@ export function advanceSundayWeek(set: Set, get: Get): void {
     });
   }
 
+  // A churned pitch grows back. Three or four quiet weeks and the surface is a
+  // surface again, which is what makes playing on a bog a cost the manager can
+  // choose to absorb rather than a permanent tax on the club.
+  const pitchDamage = Math.max(0, sunday.pitchDamage - SUNDAY_PITCH_DAMAGE_HEAL);
+
   // ── 9. Table, debt, season end ───────────────────────────────────────────
   const table = buildSundayTable(fixtures, sunday.divisionClubIds);
   // A few pounds overdrawn is a Sunday club having a normal month. The
@@ -616,6 +621,7 @@ export function advanceSundayWeek(set: Set, get: Get): void {
     balance: Math.round(balance),
     reputation: clampRound(reputation, 0, 100),
     teamMorale: clampRound(teamMorale, 0, 100),
+    pitchDamage,
     ledger: nextLedger,
     pendingEvent,
     eventCooldowns,

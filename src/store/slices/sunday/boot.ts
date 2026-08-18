@@ -123,6 +123,7 @@ export function buildSundayWorld(opts: StartSundayOptions): SundayWorld {
     cup,
     arrival: null,
     flags: {},
+    pitchDamage: 0,
     weeksInDebt: 0,
     lastFundraiserWeek: -99,
     ledger: [],

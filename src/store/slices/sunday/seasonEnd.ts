@@ -298,6 +298,8 @@ export function rolloverSundaySeason(set: Set, get: Get): void {
     // Chain flags are week-stamped for the same reason; an unresolved chain
     // does not survive the summer. The morning is long over.
     flags: {},
+    // A summer of growth repairs anything the winter churned up.
+    pitchDamage: 0,
     arrival: null,
     rivalry,
     cup,

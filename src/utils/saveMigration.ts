@@ -33,6 +33,8 @@ const migrations: Record<number, MigrationFn> = {
   //     something the player saw recently.
   //   - `pendingLedger` starts empty: no action has run since the last
   //     settlement in a save that is being loaded.
+  //   - `pitchDamage` starts at zero: the effect that writes it did nothing at
+  //     all before this version, so no old save has any damage to carry.
   //   - `eventQueue` is dropped. It was never written to.
   //
   // Later waves EXTEND this step rather than adding another: keep the shape
@@ -66,6 +68,7 @@ const migrations: Record<number, MigrationFn> = {
         lastMatch,
         onceFiredIds,
         pendingLedger: Array.isArray(sunday.pendingLedger) ? sunday.pendingLedger : [],
+        pitchDamage: typeof sunday.pitchDamage === 'number' ? sunday.pitchDamage : 0,
       },
     };
   },
