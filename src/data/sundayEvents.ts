@@ -222,6 +222,20 @@ export interface SundayEventChoiceDef {
 export interface SundayEventDef {
   id: string;
   category: SundayEventInstance['category'];
+  /**
+   * Which way this event pulls, for clustering protection.
+   *
+   * REQUIRED, so an author has to decide. The selector down-weights (never
+   * zeroes) `negative` entries the week after something genuinely bad — a
+   * forfeit, a walk-out, or a resolution that cost money or morale. Left alone,
+   * a 0.55 weekly roll over a pool this negative produces runs of three and
+   * four, which reads as the game piling on rather than as a season having a
+   * bad month.
+   *
+   * `category` is what the modal's icon and colour come from; this is what the
+   * pacing reads. They are not the same question.
+   */
+  tone: 'negative' | 'positive' | 'neutral';
   /** `{name}`, `{job}`, `{rival}`, `{club}` are substituted at fire time. */
   title: string;
   body: string;
@@ -332,6 +346,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'captain-furious',
     category: 'player',
+    tone: 'negative',
     title: 'The captain is not having it',
     body: '{name} has pulled you aside. He knows he was only on the bench last week, he knows he is carrying a knock, and he wants you to know that he has played through worse than this and that the lads notice these things.',
     weight: 8,
@@ -365,6 +380,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'captain-showdown',
     category: 'player',
+    tone: 'negative',
     title: '{name} has taken it to the group',
     body: 'It is not a private grievance any more. {name} raised the whole thing in front of everybody before training — the bench, the armband, who actually runs this club — and now the room is standing about waiting to see what you do.',
     weight: 20,
@@ -402,6 +418,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'captain-backed-fallout',
     category: 'player',
+    tone: 'neutral',
     title: 'The armband had a price',
     body: 'You backed {name} in front of the group and he has been the best thing about the last few weeks. The trouble is the two lads who have not started since: one has begun arriving at ten past, and the other has stopped arriving.',
     weight: 20,
@@ -428,6 +445,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'captain-stripped-fallout',
     category: 'player',
+    tone: 'neutral',
     title: '{name} has gone quiet',
     body: '{name} has said almost nothing since you took the armband off him. He turns up, he plays, he goes home. The new captain is doing fine. Nobody has mentioned it once, which is how you know it is still going on.',
     weight: 20,
@@ -454,6 +472,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'play-me',
     category: 'player',
+    tone: 'negative',
     title: '"When am I actually playing?"',
     body: '{name} has been available every week and has watched every minute of it from a folding chair. He is not angry. He is worse than angry — he is asking reasonable questions.',
     weight: 10,
@@ -483,6 +502,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'kit-forgotten',
     category: 'matchday',
+    tone: 'negative',
     title: 'Nobody has the kit',
     // The event roll happens at the END of the week, so the framing is the
     // Sunday COMING rather than a car park forty minutes before kick-off.
@@ -517,6 +537,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'keeper-hungover',
     category: 'matchday',
+    tone: 'negative',
     title: 'The goalkeeper is in no state',
     body: 'Word has got back that {name} is still going at two in the morning, and Sunday is a nine-thirty kick-off. He has already asked, twice, what time it is.',
     weight: 7,
@@ -554,6 +575,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'ex-pro-attitude',
     category: 'player',
+    tone: 'negative',
     title: '{name} has some feedback',
     body: 'After Sunday, {name} explained to the group — at length, in the car park, unprompted — how things were done at the academy he was released from in 2011.',
     weight: 7,
@@ -583,6 +605,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'star-ego',
     category: 'player',
+    tone: 'negative',
     title: '{name} has started saying it out loud',
     body: '{name} is comfortably the best player at this club, and he has begun mentioning — to anyone in earshot, in the car park, at some length — that he is playing at the wrong level. He is not wrong. That is the problem.',
     weight: 7,
@@ -627,6 +650,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'star-demands',
     category: 'player',
+    tone: 'neutral',
     title: '{name} wants something',
     body: 'He has been straight with you, which you can at least respect. He will stay, and he would like something for it: his subs covered for the season, or the armband, or a straight answer about why neither.',
     weight: 20,
@@ -665,6 +689,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'better-offer',
     category: 'player',
+    tone: 'negative',
     title: 'Somebody else wants {name}',
     body: 'A team two divisions up have been in touch with {name}. They train. They have a proper pitch. They have, he mentions, a physio. He has told you rather than not told you, which is something.',
     weight: 20,
@@ -706,6 +731,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'warm-up-injury',
     category: 'player',
+    tone: 'negative',
     title: 'Injured in the warm-up',
     body: '{name} has gone down in the warm-up. Not in a challenge. Not even under pressure. He was doing a stretch he saw on the internet.',
     weight: 6,
@@ -720,6 +746,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'ghost-returns',
     category: 'comedy',
+    tone: 'positive',
     title: '{name} has resurfaced',
     body: '{name} has appeared in the group chat after several weeks of total silence, with no explanation and a thumbs up emoji.',
     weight: 6,
@@ -737,6 +764,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'wonderkid-spotted',
     category: 'player',
+    tone: 'positive',
     title: 'Somebody has noticed {name}',
     body: '{name} is the youngest name on the sheet, he is raw as anything, and on Sunday he did something in the warm-up that made two of the older lads stop and look at each other. He has no idea he did it.',
     weight: 7,
@@ -771,6 +799,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'wonderkid-first-start',
     category: 'player',
+    tone: 'neutral',
     title: '{name} is ready, or he is not',
     body: 'It has stopped being theoretical. {name} is fit, he is available, and the man in front of him has done nothing for a month. Everybody can see it. Nobody wants to be the one who says it.',
     weight: 20,
@@ -805,6 +834,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'wonderkid-scouted',
     category: 'player',
+    tone: 'negative',
     title: 'A proper club have sent somebody',
     body: 'There was a man on the touchline on Sunday in a good coat with a notebook, and he was not there for the football. He has left a number for {name}, who has not stopped looking at it.',
     weight: 20,
@@ -836,6 +866,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'veteran-hints',
     category: 'player',
+    tone: 'neutral',
     title: '{name} has started talking about his knees',
     body: '{name} has played {apps} games for this club and spent most of Sunday afternoon with a bag of frozen peas on something. He mentioned, twice, that his lad has started playing on Saturdays and he would quite like to watch.',
     weight: 6,
@@ -871,6 +902,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'veteran-decision',
     category: 'player',
+    tone: 'neutral',
     title: 'How {name} finishes',
     body: 'It is going to happen this season one way or the other, and how is your call. A proper send-off with a bucket at the gate, one more year on the sheet, or nothing at all and one Sunday he simply is not there.',
     weight: 20,
@@ -905,6 +937,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'veteran-testimonial-day',
     category: 'club',
+    tone: 'positive',
     title: '{name}\'s afternoon',
     body: 'Two hundred people, most of whom have never watched a Sunday league game in their lives, are stood round the pitch in coats. He has the armband whether he wants it or not, and his lad is a mascot.',
     weight: 20,
@@ -940,6 +973,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'veteran-last-season',
     category: 'player',
+    tone: 'positive',
     title: '{name} has signed on for one more',
     body: 'He is back for another year, and everybody knows what it cost him to say yes. He wants to know what you actually want from him, because he is not going to be running about like he did.',
     weight: 20,
@@ -978,6 +1012,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'ex-pro-punditry',
     category: 'comedy',
+    tone: 'neutral',
     title: '{name} has been on the radio',
     body: 'Local radio wanted forty seconds on the state of the county leagues. {name} gave them eleven minutes, named three referees, and described this division as "a graveyard for talent" while wearing the club\'s training top.',
     weight: 6,
@@ -1008,6 +1043,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'hothead-row',
     category: 'matchday',
+    tone: 'negative',
     title: '{name} and the touchline',
     body: 'There was a full and frank exchange with somebody\'s dad behind the goal on Sunday, and {name} was one half of it. The referee did not see it. Roughly forty other people did.',
     weight: 7,
@@ -1039,6 +1075,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'glass-scare',
     category: 'player',
+    tone: 'negative',
     title: '{name} felt something in the warm-up',
     body: 'Nothing has gone, exactly. {name} has just gone very quiet and started walking it off in small circles, which anybody who has watched him for a season recognises immediately.',
     weight: 7,
@@ -1074,6 +1111,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'prospect-trial',
     category: 'player',
+    tone: 'neutral',
     title: 'The district side want a look at {name}',
     body: 'Somebody has put {name} forward for a district trial. It is on a Sunday morning, obviously, and it is the same Sunday morning as everybody else\'s Sunday morning.',
     weight: 6,
@@ -1108,6 +1146,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'top-of-table-nerves',
     category: 'club',
+    tone: 'positive',
     title: 'Top of the league, and everybody has noticed',
     body: 'The table has been screenshotted and sent to people who do not care. Two of them have started talking about the last day. It is the back half of the season and this club has never been here.',
     weight: 8,
@@ -1140,6 +1179,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'giant-killing-hangover',
     category: 'club',
+    tone: 'neutral',
     title: 'Nobody wants to play a league game',
     body: 'The cup tie is still being replayed in the group chat frame by frame. Sunday is a nine-thirty against a side in mid-table, and not one person has mentioned it.',
     weight: 8,
@@ -1167,6 +1207,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'subs-crisis',
     category: 'money',
+    tone: 'negative',
     title: 'Nobody has paid their subs',
     body: 'The tab now stands at £{subsOwed}. Several people have promised to bring it "next week" for a month.',
     weight: 9,
@@ -1193,6 +1234,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'broke',
     category: 'money',
+    tone: 'negative',
     title: 'There is nothing in the account',
     body: 'The balance is £{balance}. The referee wants paying in cash on Sunday, and he does not take excuses.',
     weight: 12,
@@ -1231,6 +1273,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'unexpected-bill',
     category: 'money',
+    tone: 'negative',
     title: 'A bill you were not expecting',
     body: 'The council have written about "pitch reinstatement" following an incident in November that everyone had agreed not to mention again.',
     weight: 5,
@@ -1256,6 +1299,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'committee-ultimatum',
     category: 'money',
+    tone: 'negative',
     title: 'The committee want a word',
     body: 'There is a meeting in the back room of the pub and it is about you. The account has been in the red for {weeks} weeks, the league have written twice, and somebody used the phrase "winding it up" without lowering his voice.',
     weight: 14,
@@ -1289,6 +1333,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'crisis-sacrifice',
     category: 'money',
+    tone: 'negative',
     title: 'Something has to go',
     body: 'The maths does not work and everyone has stopped pretending it does. There are people who would take {name} off your hands and pay something for the privilege, the sponsor would talk about a different deal, or you go round the squad with your hand out again.',
     weight: 20,
@@ -1331,6 +1376,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'crisis-survived',
     category: 'money',
+    tone: 'positive',
     title: 'The committee have stopped ringing',
     body: 'There is money in the account, the league have been paid, and the man who said "winding it up" has bought you a drink and behaved as though he never said it.',
     weight: 20,
@@ -1344,6 +1390,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'crisis-deepens',
     category: 'money',
+    tone: 'negative',
     title: 'It has not worked',
     body: 'Whatever you sold and whoever you squeezed, the account is still red. The committee have written it down this time, and there is a date on it.',
     weight: 20,
@@ -1375,6 +1422,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'cup-buzz',
     category: 'club',
+    tone: 'positive',
     title: 'Nobody is talking about anything except the cup',
     body: 'The {round} is on the calendar and the club has not shut up about it since the draw. Two people who have not played since September have asked whether they are still registered.',
     weight: 10,
@@ -1400,6 +1448,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'cup-pressure',
     category: 'club',
+    tone: 'neutral',
     title: 'The {round} is coming',
     body: 'It is close enough now that people have started driving past the pitch to look at it. The other lot have hired a coach. Somebody has asked about a team photo.',
     weight: 20,
@@ -1432,6 +1481,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'cup-still-standing',
     category: 'club',
+    tone: 'positive',
     title: 'Still in it',
     body: 'The club is in the {round}. Nobody at this level expects to be in the {round}, which has not stopped three separate people telling you they always knew.',
     weight: 20,
@@ -1454,6 +1504,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'cup-knocked-out',
     category: 'club',
+    tone: 'negative',
     title: 'Out of the cup',
     body: 'That is the run over. It was the best thing that happened all season and it lasted about six weeks, which at this level is a long time to have something to look forward to.',
     weight: 20,
@@ -1478,6 +1529,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'pitch-unplayable',
     category: 'club',
+    tone: 'negative',
     title: 'The pitch is under water',
     body: 'There is standing water across most of the pitch and a man from the council is standing in the middle of it, shaking his head.',
     weight: 6,
@@ -1495,6 +1547,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'trophy-night',
     category: 'club',
+    tone: 'positive',
     title: 'End-of-season do',
     body: 'Somebody has suggested a proper night out with a trophy bought from the shop in town. Somebody else has already booked the function room.',
     weight: 6,
@@ -1511,6 +1564,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'rival-trash-talk',
     category: 'rivalry',
+    tone: 'neutral',
     title: '{rival} have been talking',
     body: 'Word has got back from the pub. Their manager has been holding court about your team, at volume, to anyone who would listen.',
     weight: 8,
@@ -1538,6 +1592,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'rival-sniffing',
     category: 'rivalry',
+    tone: 'negative',
     title: '{rival} are sniffing around {name}',
     body: '{name} has been quiet lately, and now their manager has been seen buying him a pint. Twice. He has not mentioned it, which is somehow worse.',
     weight: 8,
@@ -1571,6 +1626,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'rival-bid',
     category: 'rivalry',
+    tone: 'negative',
     title: 'They have actually asked for {name}',
     body: 'It is out in the open now: {rival} want {name}, {name} knows it, and the whole changing room is watching how you handle it.',
     weight: 20,
@@ -1608,6 +1664,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'sponsor-unhappy',
     category: 'sponsor',
+    tone: 'negative',
     title: 'Your sponsor has been in touch',
     body: 'They have seen the results. They were, they say, expecting rather more for their money.',
     weight: 6,
@@ -1628,6 +1685,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'wrong-boots',
     category: 'comedy',
+    tone: 'neutral',
     title: 'The wrong boots',
     body: '{name}, a {job}, has confirmed that the only footwear he owns is a pair of moulded studs he bought in 2014, and that Sunday\'s frozen pitch does not worry him in the slightest.',
     weight: 5,
@@ -1642,6 +1700,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'ref-decision',
     category: 'comedy',
+    tone: 'neutral',
     title: 'The referee has made a decision',
     body: 'A goal has been disallowed for a reason the referee has declined to share with anyone, including his own linesman, who is a substitute from the other team.',
     weight: 5,
@@ -1659,6 +1718,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'social-media',
     category: 'comedy',
+    tone: 'positive',
     title: 'Somebody has made a club account',
     body: 'There is now an official club account posting match reports. They are extremely detailed, extremely biased, and getting a worrying amount of local engagement.',
     weight: 4,
@@ -1672,6 +1732,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'new-face',
     category: 'club',
+    tone: 'positive',
     title: 'Somebody has asked for a game',
     body: 'A bloke watching from the touchline has asked, fairly directly, whether you need anyone.',
     // Weight and cooldown both pulled back. At 9/4 this and `thin-squad` were
@@ -1689,6 +1750,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'thin-squad',
     category: 'club',
+    tone: 'negative',
     title: 'You are running out of players',
     body: 'There are {squadSize} names on the sheet and at least three of them have not been seen since September.',
     // Still the heaviest thing in the pool when the squad is genuinely short —
@@ -1709,6 +1771,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'winning-run',
     category: 'club',
+    tone: 'positive',
     title: 'People have started turning up',
     body: 'Three wins on the bounce and suddenly everyone is available, everyone is early, and two people have brought their dads.',
     weight: 7,
@@ -1722,6 +1785,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   {
     id: 'losing-run',
     category: 'club',
+    tone: 'negative',
     title: 'This is not fun any more',
     body: 'Five without a win. The group chat has gone quiet in a way that group chats do not usually go quiet.',
     weight: 9,

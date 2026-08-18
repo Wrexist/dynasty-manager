@@ -36,7 +36,7 @@ import {
   SUNDAY_AI_GOALS_BASE, SUNDAY_AI_GOALS_SWING, SUNDAY_AI_HOME_ADVANTAGE,
   SUNDAY_FORM_DRIFT, SUNDAY_FORM_NEUTRAL, SUNDAY_PITCH_DAMAGE_HEAL,
   SUNDAY_PHYSIO_HEAL_PER_LEVEL, SUNDAY_FLAG_EXPIRY_WEEKS,
-  SUNDAY_MANAGER_LOAN_REPAYMENT, SUNDAY_DERBY_BET_FLAG,
+  SUNDAY_MANAGER_LOAN_REPAYMENT, SUNDAY_DERBY_BET_FLAG, SUNDAY_ROUGH_WEEK_FLAG,
 } from '@/config/sundayLeague';
 import { SUNDAY_SPONSORS, SUNDAY_SPONSOR_CONDITION_TEXT, SUNDAY_TAUNTS } from '@/data/sundayNames';
 import { buildWeekLedger } from '@/utils/sunday/finance';
@@ -471,6 +471,15 @@ export function advanceSundayWeek(set: Set, get: Get): void {
   // A story about somebody who has walked out this week is over. Say so — an
   // arc that simply stops being mentioned is indistinguishable from a bug, and
   // the flag-based version did exactly that.
+  // Clustering protection. A forfeited fixture or somebody packing it in marks
+  // the week, and `pickSundayEvent` leans away from negative events while the
+  // mark is fresh — including THIS week's draw, which is the case that matters
+  // most: a forfeit followed by an unpayable bill on the same Sunday is the
+  // pile-on the damper exists to soften.
+  let eventFlags = sunday.flags;
+  if (leaving.length || (playedThisWeek && lastMatch?.forfeited)) {
+    eventFlags = { ...eventFlags, [SUNDAY_ROUGH_WEEK_FLAG]: week };
+  }
   const squadIds = new Set(squad.map(m => m.playerId));
   const prunedChains = pruneSundayChains(sunday.chains, squadIds);
   let chains = prunedChains.kept;
@@ -528,7 +537,7 @@ export function advanceSundayWeek(set: Set, get: Get): void {
       // against.
       subject: null,
       unhappy: person(unhappyMember),
-      flags: sunday.flags,
+      flags: eventFlags,
       chains,
       ...sundayStoryFlags(chains),
       // Filled per definition by the selector, from that definition's own
@@ -704,7 +713,7 @@ export function advanceSundayWeek(set: Set, get: Get): void {
     // exempt: the next derby can be ten weeks away and the bet is still on
     // until somebody wins it.
     flags: pruneSundayFlags(
-      Object.fromEntries(Object.entries(sunday.flags)
+      Object.fromEntries(Object.entries(eventFlags)
         .filter(([name, setWeek]) => name === SUNDAY_DERBY_BET_FLAG
           || week - setWeek < SUNDAY_FLAG_EXPIRY_WEEKS)),
       squadIds,

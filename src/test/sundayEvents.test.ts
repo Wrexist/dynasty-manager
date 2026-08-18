@@ -12,10 +12,14 @@ import {
   SUNDAY_EVENTS, fillSundayEventText, sundayChainClosingLine,
   type SundayEventContext, type SundayEventEffects, type SundayEventPerson,
 } from '@/data/sundayEvents';
-import { cooldownWeekFor, pickSundayEvent, resolveSundayChoice } from '@/utils/sunday/events';
+import {
+  SUNDAY_DEPARTURE_DEFS, cooldownWeekFor, pickSundayEvent, resolveSundayChoice,
+} from '@/utils/sunday/events';
 import { createSundayRng } from '@/utils/sunday/rng';
 import {
-  SUNDAY_CHAINS, SUNDAY_EVENT_COOLDOWN, SUNDAY_PITCH_DAMAGE_HEAL, SUNDAY_PITCH_DAMAGE_MAX,
+  SUNDAY_CHAINS, SUNDAY_DEPARTURE_FLAG, SUNDAY_EVENT_COOLDOWN,
+  SUNDAY_EVENT_DEPARTURE_GAP, SUNDAY_PITCH_DAMAGE_HEAL, SUNDAY_PITCH_DAMAGE_MAX,
+  SUNDAY_ROUGH_WEEK_FLAG,
 } from '@/config/sundayLeague';
 import { SUNDAY_HANDLED_EFFECT_KEYS } from '@/store/slices/sunday/actions';
 import { sundayPitchQuality } from '@/store/slices/sunday/matchday';
@@ -24,7 +28,7 @@ import { sundaySeasonWeeks } from '@/utils/sunday/season';
 
 const person: SundayEventPerson = {
   playerId: 'p1', firstName: 'Kev', lastName: 'Naylor', job: 'sparky',
-  archetype: 'journeyman', position: 'CM', available: true,
+  archetype: 'journeyman', position: 'CM', age: 27, clubApps: 12, available: true,
   happiness: 50, ego: 10, commitment: 12, temper: 10,
   influence: 10, overall: 45, benchedStreak: 0,
 };
@@ -35,8 +39,10 @@ const ctx: SundayEventContext = {
   season: 1, week: 8, balance: 300, reputation: 20, teamMorale: 60,
   squadSize: 15, availableCount: 12, lastResult: 0, winless: 0, winStreak: 0,
   leaguePosition: 4, leagueSize: 8, hasRival: true, rivalHeat: 5, hasSponsor: true,
-  subsOwed: 40, captain: person, subject: person, unhappy: person,
-  flags: {}, chains: [], chainData: {}, defectorName: null,
+  subsOwed: 40, weeksInDebt: 0, cupAlive: false, cupRoundsWon: 0, cupRoundName: null,
+  captain: person, subject: person, unhappy: person,
+  flags: {}, chains: [], playerStoryLive: false, clubStoryLive: false,
+  chainData: {}, defectorName: null,
 };
 
 describe('event catalogue integrity', () => {
@@ -319,6 +325,54 @@ describe('selection', () => {
       if (!ev) continue;
       const def = SUNDAY_EVENTS.find(d => d.id === ev.defId)!;
       if (!def.needsSubject) expect(ev.playerId, def.id).toBeNull();
+    }
+  });
+
+  it('leans away from more bad news the week after something bad, without banning it', () => {
+    // MANAGED randomness, not removed. The damper multiplies the weight of
+    // negative events; it must not zero them, or a bad month stops being
+    // possible and the mode loses the thing it is about.
+    const negatives = SUNDAY_EVENTS.filter(d => d.tone === 'negative' && !d.chain).map(d => d.id);
+    const share = (flags: Record<string, number>) => {
+      let bad = 0;
+      let total = 0;
+      for (let i = 0; i < 200; i++) {
+        const ev = pickSundayEvent({
+          rng: createSundayRng(i * 13 + 5, 0), ctx: { ...ctx, flags }, subjects: squad,
+          cooldowns: {}, firedOnce: new Set(), week: 8, rivalName: 'Dog & Duck', clubName: 'c',
+        });
+        if (!ev) continue;
+        total++;
+        if (negatives.includes(ev.defId)) bad++;
+      }
+      return { bad, total };
+    };
+    const calm = share({});
+    const rough = share({ [SUNDAY_ROUGH_WEEK_FLAG]: 8 });
+    expect(calm.total).toBeGreaterThan(0);
+    expect(rough.total).toBeGreaterThan(0);
+    expect(rough.bad / rough.total).toBeLessThan(calm.bad / calm.total);
+    // Still possible. Down-weighted, never banned.
+    expect(rough.bad).toBeGreaterThan(0);
+  });
+
+  it('will not take a second player off you inside the departure gap', () => {
+    const departures = [...SUNDAY_DEPARTURE_DEFS];
+    expect(departures.length).toBeGreaterThan(0);
+    for (let i = 0; i < 120; i++) {
+      const ev = pickSundayEvent({
+        rng: createSundayRng(i * 7 + 3, 0),
+        ctx: { ...ctx, flags: { [SUNDAY_DEPARTURE_FLAG]: 8 } },
+        subjects: squad, cooldowns: {}, firedOnce: new Set(),
+        week: 8 + (i % SUNDAY_EVENT_DEPARTURE_GAP),
+        rivalName: 'Dog & Duck', clubName: 'c',
+      });
+      if (!ev) continue;
+      const def = SUNDAY_EVENTS.find(d => d.id === ev.defId)!;
+      // Chain beats are exempt on purpose: a story that has started has to be
+      // allowed to end, and the chain cap already rations those.
+      if (def.chain) continue;
+      expect(departures, `${ev.defId} fired inside the departure gap`).not.toContain(ev.defId);
     }
   });
 

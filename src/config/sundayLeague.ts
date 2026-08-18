@@ -793,6 +793,10 @@ export const SUNDAY_FLAG_EXPIRY_WEEKS = 6;
 export const SUNDAY_EVENT_NEGATIVE_DAMPING = 0.35;
 /** Weeks that must pass between two events that can cost the club a player. */
 export const SUNDAY_EVENT_DEPARTURE_GAP = 5;
+/** Marker set for the week after something genuinely bad happened. */
+export const SUNDAY_ROUGH_WEEK_FLAG = 'rough-week';
+/** Marker set the week an event cost the club a player. */
+export const SUNDAY_DEPARTURE_FLAG = 'departure';
 
 // ── Event chains ────────────────────────────────────────────────────────────
 

@@ -31,6 +31,7 @@ import {
   SUNDAY_POACH_HEAT, SUNDAY_RIVAL_HEAT_MAX, SUNDAY_PROMISE_WEEKS, SUNDAY_PITCH_DAMAGE_MAX,
   SUNDAY_KIT_MORALE_PER_LEVEL, SUNDAY_KIT_REP_PER_LEVEL, SUNDAY_CLUBHOUSE_MORALE_PER_LEVEL,
   SUNDAY_NETS_REP, SUNDAY_FLOODLIGHT_REP, SUNDAY_DERBY_BET_FLAG,
+  SUNDAY_DEPARTURE_FLAG, SUNDAY_ROUGH_WEEK_FLAG,
   getSundayUpgrade, sundayUpgradeCost,
 } from '@/config/sundayLeague';
 import {
@@ -416,6 +417,16 @@ export function resolveSundayEvent(set: Set, get: Get, choiceId: string) {
 
   // Story markers. `{subject}` binds the marker to this event's player.
   let flags = sunday.flags;
+  // Clustering protection. A resolution that cost the club money, morale or a
+  // player marks the week, and the next week's draw leans away from more of the
+  // same. Set HERE rather than in the week loop because this is the only place
+  // that knows which branch the manager actually took.
+  const wentBadly = !!fx.subjectLeaves || !!fx.subjectLeavesForRival
+    || (fx.morale ?? 0) < 0 || (fx.money ?? 0) < 0 || (fx.squadHappiness ?? 0) < 0;
+  if (wentBadly) flags = { ...flags, [SUNDAY_ROUGH_WEEK_FLAG]: state.week };
+  if (fx.subjectLeaves || fx.subjectLeavesForRival) {
+    flags = { ...flags, [SUNDAY_DEPARTURE_FLAG]: state.week };
+  }
   const bindFlag = (name: string) => name.replace('{subject}', subjectId ?? 'nobody');
   if (fx.setFlag) flags = { ...flags, [bindFlag(fx.setFlag)]: state.week };
   if (fx.clearFlag) {

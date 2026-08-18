@@ -19,7 +19,9 @@ import type {
 import type { SundayEventContext, SundayEventDef, SundayEventEffects, SundayEventPerson } from '@/data/sundayEvents';
 import { SUNDAY_EVENTS, fillSundayEventText } from '@/data/sundayEvents';
 import {
-  SUNDAY_CHAIN_SEASON_MARGIN, SUNDAY_EVENT_COOLDOWN, getSundayChain,
+  SUNDAY_CHAIN_SEASON_MARGIN, SUNDAY_DEPARTURE_FLAG, SUNDAY_EVENT_COOLDOWN,
+  SUNDAY_EVENT_DEPARTURE_GAP, SUNDAY_EVENT_NEGATIVE_DAMPING, SUNDAY_ROUGH_WEEK_FLAG,
+  getSundayChain,
 } from '@/config/sundayLeague';
 import { sundayCupRoundName } from './season';
 import type { SundayRng } from './rng';
@@ -132,11 +134,25 @@ export function pickSundayEvent(input: PickEventInput): SundayEventInstance | nu
     return order.find(filter) ?? null;
   };
 
+  // Clustering protection, read once. Both rules exempt chain beats: a story
+  // that has started must be allowed to finish on schedule, and the chain cap
+  // already rations how many of them there can be.
+  // Fresh for about a fortnight: the week the bad thing landed and the one
+  // after it.
+  const roughWeek = ctx.flags[SUNDAY_ROUGH_WEEK_FLAG];
+  const damped = roughWeek != null && week - roughWeek <= 1;
+  const lastDeparture = ctx.flags[SUNDAY_DEPARTURE_FLAG];
+  const departureBlocked = lastDeparture != null && week - lastDeparture < SUNDAY_EVENT_DEPARTURE_GAP;
+
   const eligible: { def: SundayEventDef; ctx: SundayEventContext; person: SundayEventPerson | null }[] = [];
   for (const def of SUNDAY_EVENTS) {
     const chain = chainFor(def, ctx);
     // A beat that is not the one its chain is waiting for is not an event.
     if (def.chain && !chain) continue;
+    // One departure-causing event per `SUNDAY_EVENT_DEPARTURE_GAP` weeks. Two
+    // people walking out on consecutive Sundays is a squad collapse the manager
+    // had no chance to react to, not a run of bad luck.
+    if (!def.chain && departureBlocked && SUNDAY_DEPARTURE_DEFS.has(def.id)) continue;
     if (def.once && firedOnce.has(def.id)) continue;
     // Cooldowns are anti-repeat for the RANDOM pool. A chain beat is rationed
     // by its own chain, and a cooldown left over from the last time the story
@@ -159,10 +175,31 @@ export function pickSundayEvent(input: PickEventInput): SundayEventInstance | nu
   }
   if (!eligible.length) return null;
 
-  const chosen = rng.weighted(eligible, e => e.def.weight);
+  // Down-weighted, NOT removed. A bad month is allowed to be a bad month; what
+  // the damper prevents is three pile-ons in a row reading as the game having
+  // it in for you.
+  const chosen = rng.weighted(eligible, e =>
+    damped && !e.def.chain && e.def.tone === 'negative'
+      ? e.def.weight * SUNDAY_EVENT_NEGATIVE_DAMPING
+      : e.def.weight);
   if (!chosen) return null;
   return instantiate(chosen.def, chosen.person, chosen.ctx, input);
 }
+
+/**
+ * Definitions that can cost the club a player.
+ *
+ * Derived from the catalogue rather than listed by hand, so a new event with a
+ * `subjectLeaves` branch is spaced by the departure rule automatically instead
+ * of quietly opting out of it.
+ */
+export const SUNDAY_DEPARTURE_DEFS: ReadonlySet<string> = new Set(
+  SUNDAY_EVENTS
+    .filter(d => d.choices.some(c =>
+      c.effects.subjectLeaves || c.effects.subjectLeavesForRival
+      || c.failEffects?.subjectLeaves || c.failEffects?.subjectLeavesForRival))
+    .map(d => d.id),
+);
 
 /** The live chain a definition belongs to, when it is waiting for this beat. */
 function chainFor(def: SundayEventDef, ctx: SundayEventContext): SundayChainState | null {
