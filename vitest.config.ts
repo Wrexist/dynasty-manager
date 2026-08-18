@@ -36,6 +36,7 @@ const SLOW_SUITES = [
   "src/test/seasonLifecycle.test.ts",    // 13s
   "src/test/boardUltimatum.test.ts",     // 12s
   "src/test/seasonRolloverState.test.ts", // 9s
+  "src/test/sundayCampaign.test.ts",     // 32 careers × 3 seasons — the Sunday balance campaign
 ];
 
 export default defineConfig({

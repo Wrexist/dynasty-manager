@@ -40,7 +40,7 @@ function squadOf(n: number, commitment: number): SundaySquadMember[] {
     condition: 10, injuryProne: 10, happiness: 60, benchedStreak: 0, startedStreak: 0,
     clubApps: 0, clubGoals: 0, clubAssists: 0, clubMotm: 0, joinedSeason: 1,
     availability: { status: 'available' as const, reason: null, note: null, warned: true, weeksRemaining: 0 },
-    friends: [], rivals: [], unsettled: false, subsOwed: 0,
+    friends: [], rivals: [], unsettled: false, subsOwed: 0, memories: [], promise: null,
   }));
 }
 

@@ -2,8 +2,31 @@ import { describe, it, expect } from 'vitest';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 
 describe('saveMigration', () => {
-  it('should have current version set to 84', () => {
-    expect(CURRENT_VERSION).toBe(84);
+  it('should have current version set to 85', () => {
+    expect(CURRENT_VERSION).toBe(85);
+  });
+
+  it('v84 → v85 upgrades a Sunday save to sub-schema v2 with empty stories', () => {
+    const out = migrateSaveData({
+      version: 84,
+      playerClubId: 'sunday-club',
+      clubs: { 'sunday-club': {} },
+      season: 2, week: 5,
+      sunday: {
+        v: 1,
+        squad: [{ playerId: 'a', happiness: 60 }],
+        rivalry: { clubId: 'r', name: 'The Rec Derby', wins: 1, draws: 0, losses: 2, heat: 6, lastTaunt: null },
+      },
+    }) as Record<string, Record<string, unknown>>;
+    expect(out.version).toBe(CURRENT_VERSION);
+    const sunday = out.sunday as Record<string, unknown>;
+    expect(sunday.v).toBe(2);
+    expect((sunday.squad as Record<string, unknown>[])[0].memories).toEqual([]);
+    expect((sunday.squad as Record<string, unknown>[])[0].promise).toBeNull();
+    expect((sunday.rivalry as Record<string, unknown>).story).toEqual([]);
+    expect((sunday.rivalry as Record<string, unknown>).defector).toBeNull();
+    expect(sunday.flags).toEqual({});
+    expect(sunday.arrival).toBeNull();
   });
 
   it('v83 → v84 introduces the Sunday League key as null on every older save', () => {

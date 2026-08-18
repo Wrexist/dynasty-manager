@@ -174,7 +174,7 @@ describe('narrative', () => {
       { minute: 80, type: 'own_goal', clubId: 'us', playerId: 'b', description: '' },
     ];
     const lines = buildSundayNarrative({
-      rng: createSundayRng(1, 0), events, clubId: 'us', players,
+      rng: createSundayRng(1, 0), events, clubId: 'us', players, isDerby: false,
       noShowNames: [], ringerNames: [], startedWith: 11,
       homeGoals: 3, awayGoals: 1, isHome: true,
     });
@@ -185,7 +185,7 @@ describe('narrative', () => {
 
   it('names the no-shows and the guests', () => {
     const lines = buildSundayNarrative({
-      rng: createSundayRng(2, 0), events: [], clubId: 'us', players: {},
+      rng: createSundayRng(2, 0), events: [], clubId: 'us', players: {}, isDerby: false,
       noShowNames: ['Gary', 'Baz'], ringerNames: ['Trev'], startedWith: 9,
       homeGoals: 0, awayGoals: 0, isHome: true,
     });

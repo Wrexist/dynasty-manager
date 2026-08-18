@@ -25,6 +25,7 @@ const ctx: SundayEventContext = {
   squadSize: 15, availableCount: 12, lastResult: 0, winless: 0, winStreak: 0,
   leaguePosition: 4, leagueSize: 8, hasRival: true, rivalHeat: 5, hasSponsor: true,
   subsOwed: 40, captain: person, subject: person, unhappy: person,
+  flags: {}, flagged: null, defectorName: null,
 };
 
 describe('event catalogue integrity', () => {

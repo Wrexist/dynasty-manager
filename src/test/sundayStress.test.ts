@@ -162,6 +162,17 @@ describe('sunday stress harness', () => {
     expect(s.sunday!.weekLog.length).toBeLessThanOrEqual(14);
     expect(s.sunday!.records.length).toBeLessThanOrEqual(40);
     expect(s.messages.length).toBeLessThanOrEqual(100);
+    // Ten seasons of biographies stay bounded per player, and the whole Sunday
+    // state serializes to something a save slot can carry without noticing.
+    for (const m of s.sunday!.squad) {
+      expect(m.memories.length).toBeLessThanOrEqual(12);
+    }
+    expect(JSON.stringify(s.sunday).length).toBeLessThan(120_000);
+    // A ten-season veteran actually HAS a story — the spine is writing.
+    const veteran = [...s.sunday!.squad].sort((a, b) => b.clubApps - a.clubApps)[0];
+    if (veteran && veteran.clubApps > 30) {
+      expect(veteran.memories.length).toBeGreaterThan(2);
+    }
     // The world must not accumulate: one division of clubs, one squad of
     // players plus the opposition, nothing orphaned.
     expect(Object.keys(s.clubs).length).toBeLessThanOrEqual(12);
