@@ -13,7 +13,7 @@
  * exactly once and clears `pendingEvent` in the same `set`.
  */
 import type {
-  SundayEventInstance, SundayEventChoiceState, SundaySquadMember,
+  Player, SundayEventInstance, SundayEventChoiceState, SundaySquadMember,
 } from '@/types/game';
 import type { SundayEventContext, SundayEventDef, SundayEventEffects, SundayEventPerson } from '@/data/sundayEvents';
 import { SUNDAY_EVENTS, fillSundayEventText } from '@/data/sundayEvents';
@@ -21,26 +21,38 @@ import { SUNDAY_EVENT_COOLDOWN } from '@/config/sundayLeague';
 import type { SundayRng } from './rng';
 
 /** Build the read-only view of a squad member an event definition sees. */
-export function toEventPerson(m: SundaySquadMember, firstName: string, lastName: string, overall: number): SundayEventPerson {
+export function toEventPerson(m: SundaySquadMember, player: Player): SundayEventPerson {
   return {
     playerId: m.playerId,
-    firstName,
-    lastName,
+    firstName: player.firstName,
+    lastName: player.lastName,
     job: m.job,
     archetype: m.archetype,
+    position: player.position,
+    available: m.availability.status !== 'out',
     happiness: m.happiness,
     ego: m.ego,
     commitment: m.commitment,
     temper: m.temper,
     influence: m.influence,
-    overall,
+    overall: player.overall,
     benchedStreak: m.benchedStreak,
   };
 }
 
+/** Who an event is about unless it says otherwise: somebody who will actually
+ *  be there. Most of the catalogue describes a man in a car park. */
+const DEFAULT_SUBJECT_FILTER = (p: SundayEventPerson): boolean => p.available;
+
 export interface PickEventInput {
   rng: SundayRng;
+  /** The state the conditions are judged against. `subject` is REPLACED per
+   *  definition with the person that definition is allowed to be about, so
+   *  callers do not pre-pick one. */
   ctx: SundayEventContext;
+  /** Every squad member, as the catalogue sees them. Each definition filters
+   *  this itself via `subjectFilter`. */
+  subjects: readonly SundayEventPerson[];
   cooldowns: Readonly<Record<string, number>>;
   /** defIds already fired at least once, for `once: true` events. */
   firedOnce: ReadonlySet<string>;
@@ -53,36 +65,62 @@ export interface PickEventInput {
  * Choose an event, or null when nothing is eligible.
  *
  * Anti-repeat is enforced HERE and nowhere else: an event on cooldown is never
- * even considered, so no caller can accidentally re-fire one. A `needsSubject`
- * event with no subject is likewise dropped rather than fired with a blank name.
+ * even considered, so no caller can accidentally re-fire one.
+ *
+ * SUBJECT SELECTION. One shuffle of the squad is taken up front and every
+ * definition claims the first person in that order who passes its
+ * `subjectFilter`. The alternative — the old behaviour — was to pre-pick a
+ * single random subject and judge every condition against him, which is how
+ * "the goalkeeper is in no state" came to be about a centre-half, and how an
+ * event with a condition like `ego >= 15` silently never fired in a week where
+ * the one pre-picked man happened to be modest.
  */
 export function pickSundayEvent(input: PickEventInput): SundayEventInstance | null {
-  const { rng, ctx, cooldowns, firedOnce, week } = input;
-  const eligible = SUNDAY_EVENTS.filter(def => {
-    if (def.once && firedOnce.has(def.id)) return false;
+  const { rng, ctx, cooldowns, firedOnce, week, subjects } = input;
+  const order = rng.shuffle(subjects);
+
+  const personFor = (def: SundayEventDef): SundayEventPerson | null => {
+    if (!def.needsSubject) return null;
+    // `captain-furious` and its like are about the captain specifically.
+    if (def.id === 'captain-furious') return ctx.captain ?? null;
+    const filter = def.subjectFilter ?? DEFAULT_SUBJECT_FILTER;
+    // A live chain flag points its step at ONE player, and the story stays
+    // about him.
+    if (ctx.flagged && filter(ctx.flagged)) return ctx.flagged;
+    return order.find(filter) ?? null;
+  };
+
+  const eligible: { def: SundayEventDef; ctx: SundayEventContext; person: SundayEventPerson | null }[] = [];
+  for (const def of SUNDAY_EVENTS) {
+    if (def.once && firedOnce.has(def.id)) continue;
     const readyWeek = cooldowns[def.id];
-    if (readyWeek != null && week < readyWeek) return false;
-    if (def.needsSubject && !ctx.subject && !ctx.captain) return false;
+    if (readyWeek != null && week < readyWeek) continue;
+    const person = personFor(def);
+    if (def.needsSubject && !person) continue;
+    const defCtx = def.needsSubject ? { ...ctx, subject: person } : ctx;
     try {
-      return def.condition(ctx);
+      if (!def.condition(defCtx)) continue;
     } catch {
       // A definition that throws is a content bug, not a reason to break the
       // week. Drop it and carry on; the invariant test catches it in CI.
-      return false;
+      continue;
     }
-  });
+    eligible.push({ def, ctx: defCtx, person });
+  }
   if (!eligible.length) return null;
 
-  const def = rng.weighted(eligible, d => d.weight);
-  if (!def) return null;
-  return instantiate(def, input);
+  const chosen = rng.weighted(eligible, e => e.def.weight);
+  if (!chosen) return null;
+  return instantiate(chosen.def, chosen.person, chosen.ctx, input);
 }
 
-function instantiate(def: SundayEventDef, input: PickEventInput): SundayEventInstance {
-  const { ctx, rivalName, clubName } = input;
-  // `captain-furious` and its like are about the captain specifically; every
-  // other subject-bearing event uses the pre-picked subject.
-  const person = def.id === 'captain-furious' ? (ctx.captain ?? ctx.subject) : (ctx.subject ?? ctx.captain);
+function instantiate(
+  def: SundayEventDef,
+  person: SundayEventPerson | null,
+  ctx: SundayEventContext,
+  input: PickEventInput,
+): SundayEventInstance {
+  const { rivalName, clubName } = input;
   const vars = {
     name: person ? person.firstName : undefined,
     job: person?.job,
@@ -109,10 +147,47 @@ function instantiate(def: SundayEventDef, input: PickEventInput): SundayEventIns
     week: ctx.week,
     title: fillSundayEventText(def.title, vars),
     body: fillSundayEventText(def.body, vars),
+    // An event with no subject carries no player id. It used to inherit the
+    // pre-picked one, which pointed the modal at somebody the text never
+    // mentioned.
     playerId: person?.playerId ?? null,
     choices,
     category: def.category,
   };
+}
+
+/** True when a definition may fire only once per save. */
+export function isOnceSundayEvent(defId: string): boolean {
+  return SUNDAY_EVENTS.find(d => d.id === defId)?.once === true;
+}
+
+/**
+ * The player a chain flag is about, when its name embeds one.
+ *
+ * Flags are named `<chain>:<playerId>` — see `SundayState.flags`, and the
+ * `{subject}` substitution in the event resolver. Returning the id lets both
+ * the departure cleanup and the invariant check work generically instead of
+ * string-matching `'wants-out:'` in three places.
+ */
+export function sundayFlagSubjectId(name: string): string | null {
+  const idx = name.indexOf(':');
+  if (idx < 0) return null;
+  const tail = name.slice(idx + 1);
+  return tail.startsWith('sun-') ? tail : null;
+}
+
+/** Drop every chain flag about somebody who is no longer on the books. A flag
+ *  naming a departed player blocks his chain from ever restarting and points
+ *  the story at a man who does not exist. */
+export function pruneSundayFlags(
+  flags: Readonly<Record<string, number>>,
+  squadIds: ReadonlySet<string>,
+): Record<string, number> {
+  const kept = Object.entries(flags).filter(([name]) => {
+    const subject = sundayFlagSubjectId(name);
+    return subject === null || squadIds.has(subject);
+  });
+  return kept.length === Object.keys(flags).length ? { ...flags } : Object.fromEntries(kept);
 }
 
 /** The state changes a resolved choice implies. Nothing is applied here. */

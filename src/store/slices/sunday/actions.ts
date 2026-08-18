@@ -31,7 +31,9 @@ import {
   SUNDAY_POACH_HEAT, SUNDAY_RIVAL_HEAT_MAX, SUNDAY_PROMISE_WEEKS, SUNDAY_PITCH_DAMAGE_MAX,
   getSundayUpgrade, sundayUpgradeCost,
 } from '@/config/sundayLeague';
-import { resolveSundayChoice, toEventPerson } from '@/utils/sunday/events';
+import {
+  pruneSundayFlags, resolveSundayChoice, sundayFlagSubjectId, toEventPerson,
+} from '@/utils/sunday/events';
 import type { SundayEventContext, SundayEventEffects } from '@/data/sundayEvents';
 import { ringRoundChance } from '@/utils/sunday/availability';
 import { generateSundayRecruit, sundaySquadNeeds } from '@/utils/sunday/generation';
@@ -60,7 +62,7 @@ function buildEventContext(state: GameState, sunday: SundayState): SundayEventCo
     if (!playerId) return null;
     const m = memberOf(sunday, playerId);
     const p = state.players[playerId];
-    return m && p ? toEventPerson(m, p.firstName, p.lastName, p.overall) : null;
+    return m && p ? toEventPerson(m, p) : null;
   };
   const last = sunday.lastMatch;
   return {
@@ -86,7 +88,8 @@ function buildEventContext(state: GameState, sunday: SundayState): SundayEventCo
     flags: sunday.flags,
     flagged: (() => {
       for (const name of Object.keys(sunday.flags)) {
-        if (name.startsWith('wants-out:')) return person(name.slice(10));
+        const subjectId = sundayFlagSubjectId(name);
+        if (subjectId) return person(subjectId);
       }
       return null;
     })(),
@@ -302,13 +305,32 @@ export function resolveSundayEvent(set: Set, get: Get, choiceId: string) {
     if (fx.subjectEgo) {
       squad = updateMember(squad, subjectId, m => ({ ego: clampRound(m.ego + fx.subjectEgo!, 1, 20) }));
     }
-    if (fx.subjectOut) {
-      squad = updateMember(squad, subjectId, m => ({
-        availability: { status: 'out' as const, reason: m.availability.reason ?? 'injury', note: m.availability.note, warned: true, weeksRemaining: Math.max(1, m.availability.weeksRemaining) },
-      }));
-    }
+    // A knock cannot UNDO a longer one, and the squad record has to agree with
+    // the Player. `warm-up-injury` used to overwrite `injuryWeeks` with its own
+    // 2 — so a man three weeks into a five-week lay-off came back early because
+    // he tweaked something doing a stretch — and then set
+    // `availability.weeksRemaining` from the state BEFORE the injury, leaving
+    // the squad screen and the player disagreeing about how long he was out.
     if (fx.subjectInjuryWeeks && players[subjectId]) {
-      players[subjectId] = { ...players[subjectId], injured: true, injuryWeeks: fx.subjectInjuryWeeks };
+      const p = players[subjectId];
+      players[subjectId] = {
+        ...p,
+        injured: true,
+        injuryWeeks: Math.max(p.injuryWeeks ?? 0, fx.subjectInjuryWeeks),
+      };
+    }
+    if (fx.subjectOut || fx.subjectInjuryWeeks) {
+      const p = players[subjectId];
+      const hurt = !!p?.injured && (p?.injuryWeeks ?? 0) > 0;
+      squad = updateMember(squad, subjectId, m => ({
+        availability: {
+          status: 'out' as const,
+          reason: hurt ? 'injury' as const : (m.availability.reason ?? 'work' as const),
+          note: hurt && p ? `${p.firstName} is injured` : m.availability.note,
+          warned: true,
+          weeksRemaining: Math.max(hurt ? p!.injuryWeeks : 1, m.availability.weeksRemaining),
+        },
+      }));
     }
     if (fx.subjectAttrDelta && players[subjectId]) {
       const p = players[subjectId];
@@ -375,6 +397,13 @@ export function resolveSundayEvent(set: Set, get: Get, choiceId: string) {
     const cleared = bindFlag(fx.clearFlag);
     flags = Object.fromEntries(Object.entries(flags).filter(([k]) => k !== cleared));
   }
+  // A man who has gone takes his story with him. `rival-bid`'s release branch
+  // and its fight-failure branch both left `wants-out:<id>` set on a player who
+  // no longer existed, which blocked the chain from ever starting again (up to
+  // the six-week flag expiry) and pointed `ctx.flagged` at a ghost. Done
+  // generically rather than by matching `'wants-out:'`, so the next chain gets
+  // the cleanup for free.
+  if (subjectLeft) flags = pruneSundayFlags(flags, new Set(squad.map(m => m.playerId)));
 
   if (fx.collectSubs) {
     const owed = squad.reduce((n, m) => n + m.subsOwed, 0);
@@ -519,6 +548,8 @@ export function releaseSundayPlayer(set: Set, get: Get, playerId: string) {
       captainId: sunday.captainId === playerId ? null : sunday.captainId,
       teamsheet: sunday.teamsheet.filter(id => id !== playerId),
       bench: sunday.bench.filter(id => id !== playerId),
+      // Any chain that was about him goes too.
+      flags: pruneSundayFlags(sunday.flags, new Set(sunday.squad.filter(m => m.playerId !== playerId).map(m => m.playerId))),
       teamMorale: clampRound(sunday.teamMorale - moraleHit, 0, 100),
       weekLog: logWeek(sunday, `${player ? player.firstName : 'A player'} has been told he is not needed.`),
     },

@@ -8,19 +8,26 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
-import { SUNDAY_EVENTS, fillSundayEventText, type SundayEventContext } from '@/data/sundayEvents';
+import {
+  SUNDAY_EVENTS, fillSundayEventText,
+  type SundayEventContext, type SundayEventPerson,
+} from '@/data/sundayEvents';
 import { cooldownWeekFor, pickSundayEvent, resolveSundayChoice } from '@/utils/sunday/events';
 import { createSundayRng } from '@/utils/sunday/rng';
 import { SUNDAY_EVENT_COOLDOWN, SUNDAY_PITCH_DAMAGE_HEAL, SUNDAY_PITCH_DAMAGE_MAX } from '@/config/sundayLeague';
 import { SUNDAY_HANDLED_EFFECT_KEYS } from '@/store/slices/sunday/actions';
 import { sundayPitchQuality } from '@/store/slices/sunday/matchday';
-import { assertSundayState } from '@/utils/sunday/invariants';
+import { assertSundayState, validateSundayState } from '@/utils/sunday/invariants';
+import { sundaySeasonWeeks } from '@/utils/sunday/season';
 
-const person = {
+const person: SundayEventPerson = {
   playerId: 'p1', firstName: 'Kev', lastName: 'Naylor', job: 'sparky',
-  archetype: 'journeyman', happiness: 50, ego: 10, commitment: 12, temper: 10,
+  archetype: 'journeyman', position: 'CM', available: true,
+  happiness: 50, ego: 10, commitment: 12, temper: 10,
   influence: 10, overall: 45, benchedStreak: 0,
 };
+const keeper: SundayEventPerson = { ...person, playerId: 'gk1', firstName: 'Baz', position: 'GK' };
+const absentee: SundayEventPerson = { ...person, playerId: 'p2', firstName: 'Gary', available: false, commitment: 4 };
 
 const ctx: SundayEventContext = {
   season: 1, week: 8, balance: 300, reputation: 20, teamMorale: 60,
@@ -129,9 +136,10 @@ describe('event catalogue integrity', () => {
 });
 
 describe('selection', () => {
+  const squad = [person, keeper, absentee];
   const pick = (cooldowns: Record<string, number> = {}, week = 8, fired = new Set<string>()) =>
     pickSundayEvent({
-      rng: createSundayRng(7, 0), ctx: { ...ctx, week }, cooldowns, firedOnce: fired,
+      rng: createSundayRng(7, 0), ctx: { ...ctx, week }, subjects: squad, cooldowns, firedOnce: fired,
       week, rivalName: 'Dog & Duck', clubName: 'Marsh Lane FC',
     });
 
@@ -148,7 +156,7 @@ describe('selection', () => {
     const cooldowns = { [ev!.defId]: 40 };
     for (let i = 0; i < 30; i++) {
       const next = pickSundayEvent({
-        rng: createSundayRng(i * 3 + 1, 0), ctx, cooldowns, firedOnce: new Set(),
+        rng: createSundayRng(i * 3 + 1, 0), ctx, subjects: squad, cooldowns, firedOnce: new Set(),
         week: 8, rivalName: null, clubName: 'c',
       });
       expect(next?.defId).not.toBe(ev!.defId);
@@ -170,11 +178,76 @@ describe('selection', () => {
       const ev = pickSundayEvent({
         rng: createSundayRng(i * 5 + 2, 0),
         ctx: { ...ctx, subject: null, captain: null, unhappy: null },
+        subjects: [],
         cooldowns: {}, firedOnce: new Set(), week: 8, rivalName: null, clubName: 'c',
       });
       if (!ev) continue;
       const def = SUNDAY_EVENTS.find(d => d.id === ev.defId)!;
       expect(def.needsSubject ?? false).toBe(false);
+    }
+  });
+
+  it('only ever puts a goalkeeper in the goalkeeper event', () => {
+    // Isolate the event by cooling everything else down.
+    const cooldowns = Object.fromEntries(
+      SUNDAY_EVENTS.filter(d => d.id !== 'keeper-hungover').map(d => [d.id, 999]),
+    );
+    let fired = 0;
+    for (let i = 0; i < 60; i++) {
+      const ev = pickSundayEvent({
+        rng: createSundayRng(i * 11 + 3, 0), ctx, subjects: squad, cooldowns,
+        firedOnce: new Set(), week: 8, rivalName: null, clubName: 'c',
+      });
+      if (!ev) continue;
+      expect(ev.defId).toBe('keeper-hungover');
+      expect(ev.playerId).toBe(keeper.playerId);
+      fired++;
+    }
+    expect(fired).toBeGreaterThan(0);
+  });
+
+  it('does not fire the goalkeeper event when no keeper is available', () => {
+    const cooldowns = Object.fromEntries(
+      SUNDAY_EVENTS.filter(d => d.id !== 'keeper-hungover').map(d => [d.id, 999]),
+    );
+    for (let i = 0; i < 40; i++) {
+      const ev = pickSundayEvent({
+        rng: createSundayRng(i * 13 + 5, 0), ctx,
+        subjects: [person, absentee, { ...keeper, available: false }],
+        cooldowns, firedOnce: new Set(), week: 8, rivalName: null, clubName: 'c',
+      });
+      expect(ev).toBeNull();
+    }
+  });
+
+  it('names somebody who will actually be there, unless the event is about an absentee', () => {
+    const byId = new Map(squad.map(p => [p.playerId, p]));
+    let sawSubjectEvent = false;
+    for (let i = 0; i < 120; i++) {
+      const ev = pickSundayEvent({
+        rng: createSundayRng(i * 7 + 1, 0), ctx: { ...ctx, week: 8 }, subjects: squad,
+        cooldowns: {}, firedOnce: new Set(), week: 8, rivalName: 'Dog & Duck', clubName: 'c',
+      });
+      if (!ev?.playerId) continue;
+      const def = SUNDAY_EVENTS.find(d => d.id === ev.defId)!;
+      sawSubjectEvent = true;
+      const subject = byId.get(ev.playerId);
+      if (subject && !def.subjectFilter && def.id !== 'captain-furious') {
+        expect(subject.available, `${def.id} named ${subject.firstName}, who is away`).toBe(true);
+      }
+    }
+    expect(sawSubjectEvent).toBe(true);
+  });
+
+  it('gives an event with no subject no player id at all', () => {
+    for (let i = 0; i < 60; i++) {
+      const ev = pickSundayEvent({
+        rng: createSundayRng(i * 17 + 2, 0), ctx, subjects: squad,
+        cooldowns: {}, firedOnce: new Set(), week: 8, rivalName: 'Dog & Duck', clubName: 'c',
+      });
+      if (!ev) continue;
+      const def = SUNDAY_EVENTS.find(d => d.id === ev.defId)!;
+      if (!def.needsSubject) expect(ev.playerId, def.id).toBeNull();
     }
   });
 
@@ -271,6 +344,127 @@ describe('events in the running game', () => {
       sunday: s.sunday!, players: s.players, clubs: s.clubs,
       playerClubId: s.playerClubId, fixtures: s.fixtures, week: s.week,
     });
+  });
+
+  it('remembers a once-per-save event for longer than the event log does', async () => {
+    // `firedOnce` used to be derived from `eventLog`, which is capped — so a
+    // once-only event came round again after roughly five seasons of play.
+    const s0 = useGameStore.getState();
+    useGameStore.setState({
+      sunday: {
+        ...s0.sunday!,
+        onceFiredIds: ['social-media'],
+        // The log has forgotten it entirely, exactly as it would after the cap
+        // rolled over.
+        eventLog: [],
+      },
+    });
+    for (let i = 0; i < 20; i++) {
+      const s = useGameStore.getState();
+      if (s.sunday!.pendingEvent) {
+        expect(s.sunday!.pendingEvent.defId).not.toBe('social-media');
+        await s.resolveSundayEvent(s.sunday!.pendingEvent.choices[0].id);
+      }
+      if (useGameStore.getState().sunday!.seasonComplete || useGameStore.getState().sunday!.folded) break;
+      await useGameStore.getState().advanceWeek();
+    }
+    expect(useGameStore.getState().sunday!.onceFiredIds).toContain('social-media');
+  });
+
+  it('registers a once-per-save event the moment it fires', async () => {
+    const s0 = useGameStore.getState();
+    // Cool everything else down so the only thing that can fire is the once-only.
+    useGameStore.setState({
+      sunday: {
+        ...s0.sunday!,
+        eventCooldowns: Object.fromEntries(
+          SUNDAY_EVENTS.filter(d => !d.once).map(d => [d.id, 999]),
+        ),
+      },
+    });
+    for (let i = 0; i < 20 && !useGameStore.getState().sunday!.pendingEvent; i++) {
+      if (useGameStore.getState().sunday!.seasonComplete) break;
+      await useGameStore.getState().advanceWeek();
+    }
+    const pending = useGameStore.getState().sunday!.pendingEvent;
+    if (!pending) return;
+    expect(useGameStore.getState().sunday!.onceFiredIds).toContain(pending.defId);
+  });
+
+  it('does not roll an event on the advance that ends the season', async () => {
+    const s0 = useGameStore.getState();
+    const total = sundaySeasonWeeks(s0.sunday!.divisionId);
+    useGameStore.setState({ week: total, sunday: { ...s0.sunday!, pendingEvent: null } });
+    await useGameStore.getState().advanceWeek();
+    const after = useGameStore.getState().sunday!;
+    expect(after.seasonComplete).toBe(true);
+    // An event rolled here would be silently discarded by the rollover.
+    expect(after.pendingEvent).toBeNull();
+  });
+
+  it('does not leave a folded club holding a raffle', async () => {
+    const s0 = useGameStore.getState();
+    useGameStore.setState({
+      sunday: { ...s0.sunday!, balance: -5000, pendingEvent: null },
+    });
+    await useGameStore.getState().advanceWeek();
+    const after = useGameStore.getState().sunday!;
+    expect(after.folded).toBe(true);
+    expect(after.pendingEvent).toBeNull();
+  });
+
+  it('takes a departing player\'s chain flags with him', async () => {
+    const s0 = useGameStore.getState();
+    const victim = s0.sunday!.squad.find(m => m.availability.status !== 'out')!;
+    useGameStore.setState({
+      sunday: {
+        ...s0.sunday!,
+        flags: { [`wants-out:${victim.playerId}`]: s0.week },
+        pendingEvent: {
+          defId: 'rival-bid', season: s0.season, week: s0.week,
+          title: 't', body: 'b', playerId: victim.playerId,
+          choices: [{ id: 'release', label: 'r', hint: '' }],
+          category: 'rivalry',
+        },
+      },
+    });
+    await useGameStore.getState().resolveSundayEvent('release');
+    const after = useGameStore.getState();
+    expect(after.sunday!.squad.some(m => m.playerId === victim.playerId)).toBe(false);
+    // The flag used to survive him, blocking the chain for six weeks and
+    // pointing `ctx.flagged` at somebody who no longer existed.
+    expect(Object.keys(after.sunday!.flags).some(f => f.includes(victim.playerId))).toBe(false);
+    assertSundayState({
+      sunday: after.sunday!, players: after.players, clubs: after.clubs,
+      playerClubId: after.playerClubId, fixtures: after.fixtures, week: after.week,
+    });
+  });
+
+  it('takes a released player\'s chain flags with him too', async () => {
+    const s0 = useGameStore.getState();
+    const victim = s0.sunday!.squad[0];
+    useGameStore.setState({
+      sunday: { ...s0.sunday!, flags: { [`wants-out:${victim.playerId}`]: s0.week } },
+    });
+    const r = await useGameStore.getState().releaseSundayPlayer(victim.playerId);
+    expect(r.ok).toBe(true);
+    expect(Object.keys(useGameStore.getState().sunday!.flags)).toEqual([]);
+    const s = useGameStore.getState();
+    assertSundayState({
+      sunday: s.sunday!, players: s.players, clubs: s.clubs,
+      playerClubId: s.playerClubId, fixtures: s.fixtures, week: s.week,
+    });
+  });
+
+  it('is caught by the validator when a flag names a ghost', () => {
+    const s = useGameStore.getState();
+    const result = validateSundayState({
+      sunday: { ...s.sunday!, flags: { 'wants-out:sun-p-sunday-club-999': 1 } },
+      players: s.players, clubs: s.clubs, playerClubId: s.playerClubId,
+      fixtures: s.fixtures, week: s.week,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.problems.join(' ')).toContain('not in the squad');
   });
 
   it('logs what happened so the season can be retold', async () => {

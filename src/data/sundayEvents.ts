@@ -61,6 +61,13 @@ export interface SundayEventPerson {
   lastName: string;
   job: string;
   archetype: string;
+  /** Where he plays. An event about the goalkeeper has to be about A
+   *  goalkeeper — see `subjectFilter`. */
+  position: string;
+  /** False when he is `out` for the coming Sunday. Most events are about
+   *  somebody who will be there; a couple are explicitly about somebody who
+   *  will not. */
+  available: boolean;
   happiness: number;
   ego: number;
   commitment: number;
@@ -154,6 +161,17 @@ export interface SundayEventDef {
   /** True when the event is about `ctx.subject` — the selector will not offer
    *  it unless a subject exists. */
   needsSubject?: boolean;
+  /**
+   * Who this event is allowed to be about. Defaults to "anybody who will
+   * actually be there on Sunday".
+   *
+   * Without it the selector picked any squad member at random, so the
+   * goalkeeper who was in no state to play could be a centre-half, and the
+   * event condition was judged against whoever the single pre-pick happened to
+   * land on rather than against anyone who fits. Override it to widen the pool
+   * (an event ABOUT an absentee) or to narrow it (an event about a keeper).
+   */
+  subjectFilter?: (person: SundayEventPerson) => boolean;
   /** Fires at most once per save. */
   once?: boolean;
   /** Override the default cooldown, in weeks. */
@@ -230,27 +248,31 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
     id: 'kit-forgotten',
     category: 'matchday',
     title: 'Nobody has the kit',
-    body: '{name} took the kit home to wash it three weeks ago. {name} is not answering his phone. Kick-off is in forty minutes and eleven men are standing in a car park in various shades of grey.',
+    // The event roll happens at the END of the week, so the framing is the
+    // Sunday COMING rather than a car park forty minutes before kick-off.
+    body: '{name} took the kit home to wash it three weeks ago and has not answered his phone since. Unless something changes before Sunday, eleven men will be turning out in various shades of grey.',
     weight: 9,
     needsSubject: true,
+    // The man with the kit is very often the man who has stopped turning up.
+    subjectFilter: () => true,
     condition: ctx => ctx.availableCount >= 7,
     choices: [
       {
         id: 'buy', label: 'Emergency bibs from the leisure centre (£25)', hint: 'Solves it. Looks ridiculous.',
         available: ctx => ctx.balance >= 25,
         effects: { money: -25, morale: -1 },
-        outcome: 'You play in bibs. The opposition find this extremely funny for the full ninety.',
+        outcome: 'Bibs it is. The opposition will find this extremely funny for the full ninety.',
       },
       {
         id: 'borrow', label: 'Ask the other lot to lend you theirs', hint: 'Free, if they are decent about it.',
         successChance: ctx => 0.5 + ctx.reputation * 0.004,
         effects: { reputation: 1, morale: 1 },
-        outcome: 'They have a spare set in the van. Genuinely nice people. You buy them a drink after.',
+        outcome: 'They have a spare set in the van and are happy to bring it. Genuinely nice people.',
         failEffects: { morale: -4, reputation: -1 },
-        failOutcome: 'They enjoy saying no far too much. You play in whatever you arrived in.',
+        failOutcome: 'They enjoy saying no far too much. You will play in whatever you arrive in.',
       },
       {
-        id: 'fine', label: 'Fine him and play in what you have', hint: 'Recovers £15. He will not forget.',
+        id: 'fine', label: 'Fine him and make do', hint: 'Recovers £15. He will not forget.',
         effects: { money: 15, subjectHappiness: -12, morale: -2 },
         outcome: 'He pays up eventually and mentions it every week until Christmas.',
       },
@@ -260,17 +282,20 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
     id: 'keeper-hungover',
     category: 'matchday',
     title: 'The goalkeeper is in no state',
-    body: '{name} has arrived. {name} is upright. Beyond that there is very little good news, and he has just asked what time it is twice.',
+    body: 'Word has got back that {name} is still going at two in the morning, and Sunday is a nine-thirty kick-off. He has already asked, twice, what time it is.',
     weight: 7,
     needsSubject: true,
+    // A goalkeeper, or it is not this event. If nobody who can go in goal is
+    // available, the week simply produces something else.
+    subjectFilter: p => p.available && p.position === 'GK',
     condition: ctx => ctx.availableCount >= 8,
     cooldown: 8,
     choices: [
       {
-        id: 'play', label: 'Stick him in goal anyway', hint: 'He might be fine. He might not.',
+        id: 'play', label: 'Put him in goal anyway', hint: 'He might be fine. He might not.',
         successChance: () => 0.4,
         effects: { morale: 2 },
-        outcome: 'He makes two outstanding saves and remembers none of it.',
+        outcome: 'He turns up, makes two outstanding saves, and remembers none of it.',
         failEffects: { morale: -5, subjectHappiness: -4 },
         failOutcome: 'He is beaten at his near post twice and apologises to everybody individually.',
       },
@@ -280,7 +305,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
         outcome: 'A centre-half volunteers with the air of a man being sent over the top.',
       },
       {
-        id: 'coffee', label: 'Buy him a coffee and a bacon roll (£8)', hint: 'Might just work.',
+        id: 'coffee', label: 'Coffee and a bacon roll waiting for him (£8)', hint: 'Might just work.',
         available: ctx => ctx.balance >= 8,
         successChance: () => 0.68,
         effects: { money: -8, subjectHappiness: 6 },
@@ -373,6 +398,8 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
     body: '{name} has appeared in the group chat after several weeks of total silence, with no explanation and a thumbs up emoji.',
     weight: 6,
     needsSubject: true,
+    // This one is ABOUT an absentee, so it deliberately widens the pool.
+    subjectFilter: () => true,
     condition: ctx => !!ctx.subject && ctx.subject.commitment <= 8,
     choices: [
       { id: 'welcome', label: 'Welcome him back', hint: 'No questions asked.', effects: { subjectHappiness: 8, subjectCommitment: 1 }, outcome: 'He is back, briefly, and scores. Obviously.' },
@@ -547,6 +574,10 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
     body: 'It is out in the open now: {rival} want {name}, {name} knows it, and the whole changing room is watching how you handle it.',
     weight: 20,
     needsSubject: true,
+    // The last step of a chain that is about ONE man. He is the subject
+    // whether or not he happens to be available this Sunday — picking anybody
+    // else would be a different story with the same title.
+    subjectFilter: () => true,
     condition: ctx => ctx.hasRival && !!ctx.flagged,
     cooldown: 6,
     choices: [
@@ -593,13 +624,13 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
     id: 'wrong-boots',
     category: 'comedy',
     title: 'The wrong boots',
-    body: '{name}, a {job}, has arrived at a frozen pitch with a pair of moulded studs he bought in 2014 and an expression of total confidence.',
+    body: '{name}, a {job}, has confirmed that the only footwear he owns is a pair of moulded studs he bought in 2014, and that Sunday\'s frozen pitch does not worry him in the slightest.',
     weight: 5,
     needsSubject: true,
     condition: () => true,
     cooldown: 12,
     choices: ack(
-      'He spends the first half on his backside and the second half in someone else’s trainers.',
+      'He will spend the first half on his backside and the second half in someone else’s trainers.',
       { morale: 2, subjectHappiness: -2 },
     ),
   },

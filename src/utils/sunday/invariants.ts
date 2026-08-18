@@ -22,6 +22,7 @@ import {
   SUNDAY_PENDING_LEDGER_MAX, SUNDAY_PITCH_DAMAGE_MAX,
 } from '@/config/sundayLeague';
 import { sundaySeasonWeeks } from './season';
+import { sundayFlagSubjectId } from './events';
 
 const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 
@@ -294,6 +295,11 @@ export function validateSundayState(input: ValidateSundayInput): SundayValidatio
     // ── Chain flags (v2) ────────────────────────────────────────────────────
     for (const [name, setWeek] of Object.entries(sunday.flags ?? {})) {
       if (!finite(setWeek)) push(`flag ${name} has a non-numeric week`);
+      // A flag names the player its chain is about. Once he has gone the flag
+      // is a story about a ghost — and it blocks the chain from restarting
+      // with somebody who is actually here.
+      const subject = sundayFlagSubjectId(name);
+      if (subject && !seen.has(subject)) push(`flag ${name} is about ${subject}, who is not in the squad`);
     }
 
     // ── Rivalry (v2) ────────────────────────────────────────────────────────

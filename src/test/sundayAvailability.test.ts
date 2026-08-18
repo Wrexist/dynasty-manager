@@ -6,12 +6,14 @@
  * silently override a hard fact (an injury, a suspension, a holiday already in
  * progress).
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import {
   AVAILABLE, resolveDoubt, ringRoundChance, rollSundayAvailability,
   summariseAvailability, sundayAvailabilityChance, tickAbsence,
 } from '@/utils/sunday/availability';
+import { useGameStore } from '@/store/gameStore';
 import { createSundayRng } from '@/utils/sunday/rng';
+import { assertSundayState } from '@/utils/sunday/invariants';
 import { generateSundayPlayer } from '@/utils/sunday/generation';
 import { SUNDAY_AVAIL_MAX, SUNDAY_AVAIL_MIN } from '@/config/sundayLeague';
 import type { Player, SundaySquadMember } from '@/types/game';
@@ -167,5 +169,74 @@ describe('absence bookkeeping', () => {
     expect(s.doubts).toBe(1);
     expect(s.out).toBe(2);
     expect(s.knownOut).toBe(1);
+  });
+});
+
+describe('an event-inflicted injury, in the running game', () => {
+  beforeEach(async () => {
+    useGameStore.getState().resetGame();
+    await useGameStore.getState().startSundayLeague({ personality: 'pub', seed: 8181 });
+  });
+
+  const fireWarmUpInjury = async (subjectId: string) => {
+    const s = useGameStore.getState();
+    useGameStore.setState({
+      sunday: {
+        ...s.sunday!,
+        pendingEvent: {
+          defId: 'warm-up-injury', season: s.season, week: s.week,
+          title: 't', body: 'b', playerId: subjectId,
+          choices: [{ id: 'ok', label: 'Right then', hint: '' }],
+          category: 'player',
+        },
+      },
+    });
+    return useGameStore.getState().resolveSundayEvent('ok');
+  };
+
+  it('cannot shorten a longer lay-off, and leaves the squad record agreeing with it', async () => {
+    const s0 = useGameStore.getState();
+    const victim = s0.sunday!.squad[0];
+    // Three weeks into a five-week problem.
+    useGameStore.setState({
+      players: {
+        ...s0.players,
+        [victim.playerId]: { ...s0.players[victim.playerId], injured: true, injuryWeeks: 5 },
+      },
+      sunday: {
+        ...s0.sunday!,
+        squad: s0.sunday!.squad.map(m => (m.playerId === victim.playerId
+          ? { ...m, availability: { status: 'out' as const, reason: 'injury' as const, note: 'x', warned: true, weeksRemaining: 5 } }
+          : m)),
+      },
+    });
+
+    await fireWarmUpInjury(victim.playerId);
+
+    const after = useGameStore.getState();
+    // The event's own two weeks must not overwrite the five he already had.
+    expect(after.players[victim.playerId].injuryWeeks).toBe(5);
+    const member = after.sunday!.squad.find(m => m.playerId === victim.playerId)!;
+    expect(member.availability.status).toBe('out');
+    expect(member.availability.reason).toBe('injury');
+    expect(member.availability.weeksRemaining).toBe(5);
+  });
+
+  it('puts a fit player out for exactly as long as the Player record says', async () => {
+    const s0 = useGameStore.getState();
+    const victim = s0.sunday!.squad.find(m => m.availability.status === 'available')!;
+    await fireWarmUpInjury(victim.playerId);
+
+    const after = useGameStore.getState();
+    const weeks = after.players[victim.playerId].injuryWeeks;
+    expect(weeks).toBe(2);
+    const member = after.sunday!.squad.find(m => m.playerId === victim.playerId)!;
+    expect(member.availability.status).toBe('out');
+    expect(member.availability.reason).toBe('injury');
+    expect(member.availability.weeksRemaining).toBe(weeks);
+    assertSundayState({
+      sunday: after.sunday!, players: after.players, clubs: after.clubs,
+      playerClubId: after.playerClubId, fixtures: after.fixtures, week: after.week,
+    });
   });
 });
