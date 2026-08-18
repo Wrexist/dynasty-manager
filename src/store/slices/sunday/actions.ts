@@ -134,10 +134,43 @@ export function setSundayCaptain(set: Set, get: Get, playerId: string) {
   set({ sunday: { ...sunday, captainId: playerId, squad } });
 }
 
+/**
+ * Whether the manager may still change the side, and what happens to the
+ * resolved Sunday morning if he does.
+ *
+ * The morning is cached per (season, week) so a reload replays it. That cache
+ * used to make a re-picked teamsheet a lie: `ensureArrival` returned the old
+ * `presentIds`, so the XI that took the field was the one named BEFORE the
+ * change. Two cases, and they are different:
+ *
+ *   - Nothing committed yet (`ringersHired === null`): the change is honoured
+ *     and the morning is thrown away, to be re-derived from the new sheet. No
+ *     save-scum in it: `ensureArrival` WRITES the morning's attrition into the
+ *     squad (a doubt that cried off is stored as `out`), so a second pass has
+ *     no doubts left to re-roll and nobody who is missing can come back.
+ *   - Guests already booked (`ringersHired !== null`): money has been
+ *     committed against a named side, so the side is fixed. Re-picking after
+ *     paying — or, worse, paying for guests and then naming a full XI — is the
+ *     one way the arrival decision could be gamed.
+ */
+function arrivalGuard(state: GameState, sunday: SundayState): { locked: boolean; clearArrival: boolean } {
+  const a = sunday.arrival;
+  if (!a || a.season !== state.season || a.week !== state.week) return { locked: false, clearArrival: false };
+  return a.ringersHired !== null
+    ? { locked: true, clearArrival: false }
+    : { locked: false, clearArrival: true };
+}
+
+/** English, deliberately: same register as every other message these actions
+ *  return, all of which are game voice rather than UI chrome. */
+const ARRIVAL_LOCKED_MESSAGE = 'The guests are booked and paid for. This is the side.';
+
 export function setSundayTeamsheet(set: Set, get: Get, xi: string[], bench: string[]) {
   const state = get();
   const sunday = state.sunday;
   if (!sunday) return { ok: false, message: 'No Sunday League save is active.' };
+  const guard = arrivalGuard(state, sunday);
+  if (guard.locked) return { ok: false, message: ARRIVAL_LOCKED_MESSAGE };
 
   const known = new Map(sunday.squad.map(m => [m.playerId, m]));
   const seen = new Set<string>();
@@ -158,7 +191,15 @@ export function setSundayTeamsheet(set: Set, get: Get, xi: string[], bench: stri
     if (cleanBench.length >= SUNDAY_MAX_BENCH) break;
   }
 
-  set({ sunday: { ...sunday, teamsheet: cleanXi, bench: cleanBench, teamsheetLocked: cleanXi.length >= SUNDAY_MIN_START } });
+  set({
+    sunday: {
+      ...sunday,
+      teamsheet: cleanXi,
+      bench: cleanBench,
+      teamsheetLocked: cleanXi.length >= SUNDAY_MIN_START,
+      ...(guard.clearArrival ? { arrival: null } : {}),
+    },
+  });
   if (cleanXi.length < SUNDAY_MIN_START) {
     return { ok: false, message: `Only ${cleanXi.length} named. You need ${SUNDAY_MIN_START} to start a match.` };
   }
@@ -174,8 +215,18 @@ export function autoPickSundayTeamsheet(set: Set, get: Get) {
   const state = get();
   const sunday = state.sunday;
   if (!sunday) return { picked: 0, short: true };
+  const guard = arrivalGuard(state, sunday);
+  if (guard.locked) return { picked: sunday.teamsheet.length, short: sunday.teamsheet.length < SUNDAY_FULL_XI };
   const { xi, bench } = autoPickSunday(sunday, state.players);
-  set({ sunday: { ...sunday, teamsheet: xi, bench, teamsheetLocked: xi.length >= SUNDAY_MIN_START } });
+  set({
+    sunday: {
+      ...sunday,
+      teamsheet: xi,
+      bench,
+      teamsheetLocked: xi.length >= SUNDAY_MIN_START,
+      ...(guard.clearArrival ? { arrival: null } : {}),
+    },
+  });
   return { picked: xi.length, short: xi.length < SUNDAY_FULL_XI };
 }
 

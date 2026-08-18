@@ -73,7 +73,9 @@ function PlayerRow({ row, right, onClick, dim }: {
 
 const SundayTeamsheet = () => {
   const { t } = useTranslation();
-  const { sunday, players } = useGameStore(useShallow(s => ({ sunday: s.sunday, players: s.players })));
+  const { sunday, players, week, season } = useGameStore(useShallow(s => ({
+    sunday: s.sunday, players: s.players, week: s.week, season: s.season,
+  })));
   const setTeamsheet = useGameStore(s => s.setSundayTeamsheet);
   const autoPick = useGameStore(s => s.autoPickSundayTeamsheet);
   const setTactic = useGameStore(s => s.setSundayTactic);
@@ -106,9 +108,18 @@ const SundayTeamsheet = () => {
   const tactic = getSundayTactic(sunday.tactic);
   const fit = sundayTacticFit(sunday.tactic, xiRows.map(r => r.player));
 
+  // Once the guests have been booked and paid for, the side is fixed — the
+  // store refuses the edit, so the screen has to say why rather than swallow
+  // the tap. See `arrivalGuard` in the Sunday actions.
+  const sheetLocked = !!sunday.arrival
+    && sunday.arrival.week === week
+    && sunday.arrival.season === season
+    && sunday.arrival.ringersHired !== null;
+
   const apply = (xi: string[], bench: string[]) => setTeamsheet(xi, bench);
 
   const addToXI = (id: string) => {
+    if (sheetLocked) return;
     if (sunday.teamsheet.length >= SUNDAY_FULL_XI) {
       if (sunday.bench.length >= SUNDAY_MAX_BENCH) return;
       void apply(sunday.teamsheet, [...sunday.bench, id]);
@@ -117,12 +128,14 @@ const SundayTeamsheet = () => {
     void apply([...sunday.teamsheet, id], sunday.bench);
   };
   const removeFromXI = (id: string) => {
+    if (sheetLocked) return;
     void apply(sunday.teamsheet.filter(x => x !== id), sunday.bench.filter(x => x !== id));
   };
 
   // Warnings, and only warnings that mean something. Each is a real risk the
   // manager can act on before kick-off.
   const warnings: string[] = [];
+  if (sheetLocked) warnings.push(t('sunday.sheet.arrivalLocked'));
   if (sunday.teamsheet.length < SUNDAY_MIN_START) {
     warnings.push(t('sunday.sheet.warnShort', { n: sunday.teamsheet.length, min: SUNDAY_MIN_START }));
   }
@@ -227,6 +240,7 @@ const SundayTeamsheet = () => {
           accessory={
             <LiquidButton
               className="px-3 py-1.5"
+              disabled={sheetLocked}
               onClick={() => {
                 void autoPick().then(r => toast.success(t('sunday.sheet.count', { n: r.picked, max: SUNDAY_FULL_XI })));
               }}
