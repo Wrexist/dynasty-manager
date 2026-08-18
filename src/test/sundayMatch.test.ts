@@ -173,6 +173,42 @@ describe('playing the fixture', () => {
     expect(report!.playedIds).not.toContain(banned);
   });
 
+  it('snapshots the man of the match by name, so a guest cannot vanish from his own report', async () => {
+    // Ringers are wiped from `players` the moment the whistle goes. A guest who
+    // was man of the match therefore left `motmPlayerId` dangling and the hero
+    // panel silently blank.
+    // Five available forces two guests just to reach the legal minimum.
+    stripSquadTo(SUNDAY_MIN_START - 2);
+    const report = (await useGameStore.getState().playSundayMatch())!;
+    expect(report.forfeited).toBe(false);
+    expect(report.ringersUsed).toBeGreaterThan(0);
+    if (report.motmPlayerId) {
+      expect(report.motmName, 'motm id with no name').toBeTruthy();
+      expect(report.motmName!.length).toBeGreaterThan(2);
+    }
+    if (report.lowlightPlayerId) {
+      expect(report.lowlightName, 'lowlight id with no name').toBeTruthy();
+    }
+    // The proof it matters: at least one of the two can point at somebody who
+    // is no longer in the players map, and the name still reads.
+    const players = useGameStore.getState().players;
+    for (const id of [report.motmPlayerId, report.lowlightPlayerId]) {
+      if (!id || players[id]) continue;
+      const name = id === report.motmPlayerId ? report.motmName : report.lowlightName;
+      expect(name, `${id} is gone and unnamed`).toBeTruthy();
+    }
+  });
+
+  it('records the discipline and injuries the settlement will bill for', async () => {
+    const report = (await useGameStore.getState().playSundayMatch())!;
+    const s = useGameStore.getState();
+    const events = s.currentMatchResult!.events;
+    const reds = events.filter(e => e.type === 'red_card' && e.clubId === s.playerClubId).length;
+    const knocks = events.filter(e => e.type === 'injury' && e.clubId === s.playerClubId).length;
+    expect(report.redCards).toBe(reds);
+    expect(report.injuries).toBe(knocks);
+  });
+
   it('credits goals, appearances and cards to real players only', async () => {
     await useGameStore.getState().playSundayMatch();
     const s = useGameStore.getState();
