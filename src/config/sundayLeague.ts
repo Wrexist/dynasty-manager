@@ -815,12 +815,6 @@ export interface SundayChainInfo {
 
 export const SUNDAY_CHAINS: readonly SundayChainInfo[] = [
   { id: 'rival-defection',  kind: 'player', durationWeeks: 4, terminalStep: 2 },
-  { id: 'captain-conflict', kind: 'player', durationWeeks: 3, terminalStep: 3 },
-  { id: 'star-arc',         kind: 'player', durationWeeks: 4, terminalStep: 3 },
-  { id: 'wonderkid',        kind: 'player', durationWeeks: 4, terminalStep: 3 },
-  { id: 'veteran-farewell', kind: 'player', durationWeeks: 3, terminalStep: 3 },
-  { id: 'financial-crisis', kind: 'club',   durationWeeks: 3, terminalStep: 3 },
-  { id: 'cup-run',          kind: 'club',   durationWeeks: 2, terminalStep: 3 },
 ] as const;
 
 export function getSundayChain(id: SundayChainId): SundayChainInfo {

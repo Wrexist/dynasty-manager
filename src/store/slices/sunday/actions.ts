@@ -34,12 +34,15 @@ import {
   getSundayUpgrade, sundayUpgradeCost,
 } from '@/config/sundayLeague';
 import {
-  pruneSundayFlags, resolveSundayChoice, sundayFlagSubjectId, toEventPerson,
+  advanceSundayChain, endSundayChain, pruneSundayChains, pruneSundayFlags,
+  resolveSundayChoice, startSundayChain, sundayChainSubjectName,
+  sundayEventChainId, toEventPerson, writeSundayChainData,
 } from '@/utils/sunday/events';
 import type { SundayEventContext, SundayEventEffects } from '@/data/sundayEvents';
+import { sundayChainClosingLine } from '@/data/sundayEvents';
 import { ringRoundChance } from '@/utils/sunday/availability';
 import { generateSundayRecruit, sundaySquadNeeds } from '@/utils/sunday/generation';
-import { buildSundayTable, sundayPosition } from '@/utils/sunday/season';
+import { buildSundayTable, sundayPosition, sundaySeasonWeeks } from '@/utils/sunday/season';
 import { bumpHeat, recordRivalryIncident } from '@/utils/sunday/rivalry';
 import { makeMemory, rememberMoment } from '@/utils/sunday/memories';
 import { validateSundayState } from '@/utils/sunday/invariants';
@@ -60,6 +63,9 @@ export { ensureArrival, hireSundayRingers } from './matchday';
  *  someone or spent the money since the event fired. */
 function buildEventContext(state: GameState, sunday: SundayState): SundayEventContext {
   const table = buildSundayTable(state.fixtures, sunday.divisionClubIds);
+  const chain = sunday.pendingEvent
+    ? sunday.chains.find(c => c.id === sundayEventChainId(sunday.pendingEvent!.defId))
+    : undefined;
   const person = (playerId: string | null) => {
     if (!playerId) return null;
     const m = memberOf(sunday, playerId);
@@ -88,13 +94,11 @@ function buildEventContext(state: GameState, sunday: SundayState): SundayEventCo
     subject: person(sunday.pendingEvent?.playerId ?? null),
     unhappy: person([...sunday.squad].sort((a, b) => a.happiness - b.happiness)[0]?.playerId ?? null),
     flags: sunday.flags,
-    flagged: (() => {
-      for (const name of Object.keys(sunday.flags)) {
-        const subjectId = sundayFlagSubjectId(name);
-        if (subjectId) return person(subjectId);
-      }
-      return null;
-    })(),
+    chains: sunday.chains,
+    // The odds a chained choice is judged against may legitimately depend on
+    // what an earlier beat decided, so the live chain's memory travels with the
+    // context — rebuilt now, like everything else here.
+    chainData: chain?.data ?? {},
     defectorName: sunday.rivalry?.defector?.name ?? null,
   };
 }
@@ -259,6 +263,7 @@ export const SUNDAY_HANDLED_EFFECT_KEYS: ReadonlySet<keyof SundayEventEffects> =
   'subjectInjuryWeeks', 'subjectAttrDelta',
   'rivalHeat', 'collectSubs', 'spawnRecruit', 'pitchDamage', 'promiseStart',
   'setFlag', 'clearFlag',
+  'startChain', 'advanceChain', 'endChain', 'chainData',
 ] satisfies (keyof SundayEventEffects)[]);
 
 export function resolveSundayEvent(set: Set, get: Get, choiceId: string) {
@@ -390,8 +395,7 @@ export function resolveSundayEvent(set: Set, get: Get, choiceId: string) {
     }
   }
 
-  // Chain flags. `{subject}` binds the flag to this event's player, which is
-  // how a multi-step story stays about one person.
+  // Story markers. `{subject}` binds the marker to this event's player.
   let flags = sunday.flags;
   const bindFlag = (name: string) => name.replace('{subject}', subjectId ?? 'nobody');
   if (fx.setFlag) flags = { ...flags, [bindFlag(fx.setFlag)]: state.week };
@@ -399,13 +403,48 @@ export function resolveSundayEvent(set: Set, get: Get, choiceId: string) {
     const cleared = bindFlag(fx.clearFlag);
     flags = Object.fromEntries(Object.entries(flags).filter(([k]) => k !== cleared));
   }
+
+  // ── Chains ────────────────────────────────────────────────────────────────
+  // The story moves HERE, on the choice, and nowhere else. A beat that neither
+  // advances nor ends its chain would leave the chain waiting for a step that
+  // has already been told — which the catalogue-integrity test rejects.
+  const totalWeeks = sundaySeasonWeeks(sunday.divisionId);
+  let chains = sunday.chains;
+  if (fx.startChain) {
+    chains = startSundayChain({
+      chains,
+      id: fx.startChain.id,
+      subjectId,
+      subjectName: subjectId ? players[subjectId]?.firstName ?? null : null,
+      season: state.season,
+      week: state.week,
+      totalWeeks,
+      durationWeeks: fx.startChain.durationWeeks,
+      data: fx.chainData,
+    });
+  } else if (fx.advanceChain) {
+    chains = advanceSundayChain(chains, fx.advanceChain, state.week, totalWeeks, fx.chainData);
+  } else if (fx.chainData) {
+    const target = sundayEventChainId(instance.defId);
+    if (target) chains = writeSundayChainData(chains, target, fx.chainData);
+  }
+  if (fx.endChain) chains = endSundayChain(chains, fx.endChain);
+
   // A man who has gone takes his story with him. `rival-bid`'s release branch
-  // and its fight-failure branch both left `wants-out:<id>` set on a player who
-  // no longer existed, which blocked the chain from ever starting again (up to
-  // the six-week flag expiry) and pointed `ctx.flagged` at a ghost. Done
-  // generically rather than by matching `'wants-out:'`, so the next chain gets
-  // the cleanup for free.
-  if (subjectLeft) flags = pruneSundayFlags(flags, new Set(squad.map(m => m.playerId)));
+  // and its fight-failure branch both left the old `wants-out:<id>` flag set on
+  // a player who no longer existed, which blocked the chain from ever starting
+  // again and pointed the story at a ghost. Done generically, so every chain
+  // gets the cleanup for free — and the week log SAYS the arc closed.
+  const chainLines: string[] = [];
+  if (subjectLeft) {
+    const squadIds = new Set(squad.map(m => m.playerId));
+    flags = pruneSundayFlags(flags, squadIds);
+    const pruned = pruneSundayChains(chains, squadIds);
+    chains = pruned.kept;
+    for (const c of pruned.dropped) {
+      chainLines.push(sundayChainClosingLine(c.id, 'gone', sundayChainSubjectName(c)));
+    }
+  }
 
   if (fx.collectSubs) {
     const owed = squad.reduce((n, m) => n + m.subsOwed, 0);
@@ -460,6 +499,7 @@ export function resolveSundayEvent(set: Set, get: Get, choiceId: string) {
     recruits,
     rivalry,
     flags,
+    chains,
     pitchDamage,
     pendingLedger,
     rngCursor: recruitCursor,
@@ -467,7 +507,7 @@ export function resolveSundayEvent(set: Set, get: Get, choiceId: string) {
     eventLog: [...sunday.eventLog, {
       season: state.season, week: state.week, defId: instance.defId, summary: resolution.outcome,
     }].slice(-SUNDAY_EVENT_LOG_MAX),
-    weekLog: logWeek(sunday, resolution.outcome),
+    weekLog: logWeek(sunday, resolution.outcome, ...chainLines),
   };
 
   set({ sunday: nextSunday, players, clubs, messages });
@@ -541,6 +581,10 @@ export function releaseSundayPlayer(set: Set, get: Get, playerId: string) {
   // Telling somebody they are not wanted is noticed by everybody else. A
   // popular player costs more goodwill than an unpopular one.
   const moraleHit = 2 + Math.round(member.influence / 5);
+  const remaining = new Set(sunday.squad.filter(m => m.playerId !== playerId).map(m => m.playerId));
+  // Any story that was about him goes with him — and says so, so the arc has a
+  // visible ending rather than simply never being mentioned again.
+  const prunedChains = pruneSundayChains(sunday.chains, remaining);
   set({
     players,
     clubs: club ? { ...state.clubs, [club.id]: { ...club, playerIds: club.playerIds.filter(id => id !== playerId) } } : state.clubs,
@@ -550,10 +594,14 @@ export function releaseSundayPlayer(set: Set, get: Get, playerId: string) {
       captainId: sunday.captainId === playerId ? null : sunday.captainId,
       teamsheet: sunday.teamsheet.filter(id => id !== playerId),
       bench: sunday.bench.filter(id => id !== playerId),
-      // Any chain that was about him goes too.
-      flags: pruneSundayFlags(sunday.flags, new Set(sunday.squad.filter(m => m.playerId !== playerId).map(m => m.playerId))),
+      flags: pruneSundayFlags(sunday.flags, remaining),
+      chains: prunedChains.kept,
       teamMorale: clampRound(sunday.teamMorale - moraleHit, 0, 100),
-      weekLog: logWeek(sunday, `${player ? player.firstName : 'A player'} has been told he is not needed.`),
+      weekLog: logWeek(
+        sunday,
+        `${player ? player.firstName : 'A player'} has been told he is not needed.`,
+        ...prunedChains.dropped.map(c => sundayChainClosingLine(c.id, 'gone', sundayChainSubjectName(c))),
+      ),
     },
   });
   if (get().settings.autoSave) get().saveGame();

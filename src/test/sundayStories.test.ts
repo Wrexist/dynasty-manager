@@ -257,7 +257,11 @@ describe('the defection arc', () => {
     useGameStore.setState({
       sunday: {
         ...sunday,
-        flags: { [`wants-out:${victim.playerId}`]: s0.week },
+        chains: [{
+          id: 'rival-defection', step: 2, subjectId: victim.playerId,
+          startedWeek: s0.week, startedSeason: s0.season, dueWeek: s0.week + 4,
+          data: { name: s0.players[victim.playerId].firstName },
+        }],
         pendingEvent: {
           defId: 'rival-bid', season: s0.season, week: s0.week,
           title: 't', body: 'b', playerId: victim.playerId,
@@ -282,7 +286,8 @@ describe('the defection arc', () => {
     const rivalry = after.sunday!.rivalry!;
     expect(rivalry.defector?.name).toBe(victimName);
     expect(rivalry.story.some(line => line.includes(victimName.split(' ')[0]))).toBe(true);
-    // The chain flag is spent (the subject left; flags expire naturally too).
+    // The chain is spent — he took the story with him.
+    expect(after.sunday!.chains).toHaveLength(0);
     check();
   });
 

@@ -9,12 +9,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
 import {
-  SUNDAY_EVENTS, fillSundayEventText,
-  type SundayEventContext, type SundayEventPerson,
+  SUNDAY_EVENTS, fillSundayEventText, sundayChainClosingLine,
+  type SundayEventContext, type SundayEventEffects, type SundayEventPerson,
 } from '@/data/sundayEvents';
 import { cooldownWeekFor, pickSundayEvent, resolveSundayChoice } from '@/utils/sunday/events';
 import { createSundayRng } from '@/utils/sunday/rng';
-import { SUNDAY_EVENT_COOLDOWN, SUNDAY_PITCH_DAMAGE_HEAL, SUNDAY_PITCH_DAMAGE_MAX } from '@/config/sundayLeague';
+import {
+  SUNDAY_CHAINS, SUNDAY_EVENT_COOLDOWN, SUNDAY_PITCH_DAMAGE_HEAL, SUNDAY_PITCH_DAMAGE_MAX,
+} from '@/config/sundayLeague';
 import { SUNDAY_HANDLED_EFFECT_KEYS } from '@/store/slices/sunday/actions';
 import { sundayPitchQuality } from '@/store/slices/sunday/matchday';
 import { assertSundayState, validateSundayState } from '@/utils/sunday/invariants';
@@ -34,7 +36,7 @@ const ctx: SundayEventContext = {
   squadSize: 15, availableCount: 12, lastResult: 0, winless: 0, winStreak: 0,
   leaguePosition: 4, leagueSize: 8, hasRival: true, rivalHeat: 5, hasSponsor: true,
   subsOwed: 40, captain: person, subject: person, unhappy: person,
-  flags: {}, flagged: null, defectorName: null,
+  flags: {}, chains: [], chainData: {}, defectorName: null,
 };
 
 describe('event catalogue integrity', () => {
@@ -122,6 +124,75 @@ describe('event catalogue integrity', () => {
     expect(used.size).toBeGreaterThan(0);
     const unhandled = [...used].filter(k => !SUNDAY_HANDLED_EFFECT_KEYS.has(k as never));
     expect(unhandled, `effects nothing applies: ${unhandled.join(', ')}`).toEqual([]);
+  });
+
+  it('gives every chain beat a live step, and every chain a reachable ending', () => {
+    // The three ways a chain silently breaks, all caught here:
+    //   a beat declaring a step nothing can reach; a step with no beat at all
+    //   (the story stalls at the deadline and gets closed as stranded); a
+    //   terminal beat with a choice that does not end the chain (the story
+    //   waits forever for a step past its terminal).
+    for (const info of SUNDAY_CHAINS) {
+      const beats = SUNDAY_EVENTS.filter(d => d.chain?.id === info.id);
+      expect(beats.length, `${info.id} has no beats`).toBeGreaterThan(0);
+      const openers = SUNDAY_EVENTS.filter(d =>
+        d.choices.some(c => c.effects.startChain?.id === info.id || c.failEffects?.startChain?.id === info.id));
+      expect(openers.length, `${info.id} can never start`).toBeGreaterThan(0);
+      for (const opener of openers) {
+        expect(opener.chain, `${opener.id} both starts ${info.id} and is a beat of a chain`).toBeUndefined();
+      }
+      // Chains open at step 2 — step 1 is the unchained opener.
+      for (let step = 2; step <= info.terminalStep; step++) {
+        const atStep = beats.filter(d => d.chain!.step === step);
+        expect(atStep.length, `${info.id} has nothing at step ${step}`).toBeGreaterThan(0);
+      }
+      for (const beat of beats) {
+        expect(beat.chain!.step, `${beat.id} declares step ${beat.chain!.step}`).toBeGreaterThanOrEqual(2);
+        expect(beat.chain!.step).toBeLessThanOrEqual(info.terminalStep);
+        const terminal = beat.chain!.step === info.terminalStep;
+        for (const choice of beat.choices) {
+          const branches = [choice.effects, choice.failEffects].filter(Boolean) as SundayEventEffects[];
+          for (const fx of branches) {
+            const moves = fx.endChain === info.id || fx.advanceChain === info.id;
+            expect(moves, `${beat.id}/${choice.id} leaves ${info.id} where it was`).toBe(true);
+            if (terminal) {
+              expect(fx.endChain, `${beat.id}/${choice.id} is terminal but does not end ${info.id}`).toBe(info.id);
+            }
+          }
+          // A gamble whose success branch ends the chain but whose failure
+          // branch does not (or vice versa) strands the story half the time.
+          if (choice.successChance) {
+            expect(choice.failEffects, `${beat.id}/${choice.id} gambles with no failure effects`).toBeTruthy();
+          }
+        }
+      }
+    }
+  });
+
+  it('never starts a chain from inside another beat of the same chain', () => {
+    for (const def of SUNDAY_EVENTS) {
+      for (const choice of def.choices) {
+        for (const fx of [choice.effects, choice.failEffects].filter(Boolean) as SundayEventEffects[]) {
+          if (!fx.startChain) continue;
+          expect(SUNDAY_CHAINS.some(c => c.id === fx.startChain!.id), `${def.id} starts an unknown chain`).toBe(true);
+        }
+        for (const fx of [choice.effects, choice.failEffects].filter(Boolean) as SundayEventEffects[]) {
+          for (const id of [fx.advanceChain, fx.endChain].filter(Boolean)) {
+            expect(def.chain?.id, `${def.id} moves ${id} without being one of its beats`).toBe(id);
+          }
+        }
+      }
+    }
+  });
+
+  it('closes every chain with a line that names the man it was about', () => {
+    for (const info of SUNDAY_CHAINS) {
+      for (const reason of ['gone', 'faded'] as const) {
+        const line = sundayChainClosingLine(info.id, reason, 'Danny');
+        expect(line.length, `${info.id}/${reason}`).toBeGreaterThan(10);
+        expect(line).not.toMatch(/\{[a-zA-Z]+\}/);
+      }
+    }
   });
 
   it('substitutes every placeholder it uses', () => {
@@ -413,13 +484,16 @@ describe('events in the running game', () => {
     expect(after.pendingEvent).toBeNull();
   });
 
-  it('takes a departing player\'s chain flags with him', async () => {
+  it('takes a departing player\'s story with him', async () => {
     const s0 = useGameStore.getState();
     const victim = s0.sunday!.squad.find(m => m.availability.status !== 'out')!;
     useGameStore.setState({
       sunday: {
         ...s0.sunday!,
-        flags: { [`wants-out:${victim.playerId}`]: s0.week },
+        chains: [{
+          id: 'rival-defection', step: 2, subjectId: victim.playerId,
+          startedWeek: s0.week, startedSeason: s0.season, dueWeek: s0.week + 4, data: {},
+        }],
         pendingEvent: {
           defId: 'rival-bid', season: s0.season, week: s0.week,
           title: 't', body: 'b', playerId: victim.playerId,
@@ -431,8 +505,9 @@ describe('events in the running game', () => {
     await useGameStore.getState().resolveSundayEvent('release');
     const after = useGameStore.getState();
     expect(after.sunday!.squad.some(m => m.playerId === victim.playerId)).toBe(false);
-    // The flag used to survive him, blocking the chain for six weeks and
-    // pointing `ctx.flagged` at somebody who no longer existed.
+    // The old flag used to survive him, blocking the chain for six weeks and
+    // pointing the story at somebody who no longer existed.
+    expect(after.sunday!.chains).toHaveLength(0);
     expect(Object.keys(after.sunday!.flags).some(f => f.includes(victim.playerId))).toBe(false);
     assertSundayState({
       sunday: after.sunday!, players: after.players, clubs: after.clubs,

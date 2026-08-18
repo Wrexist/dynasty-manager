@@ -13,11 +13,14 @@
  * exactly once and clears `pendingEvent` in the same `set`.
  */
 import type {
-  Player, SundayEventInstance, SundayEventChoiceState, SundaySquadMember,
+  Player, SundayChainId, SundayChainState, SundayEventInstance,
+  SundayEventChoiceState, SundaySquadMember,
 } from '@/types/game';
 import type { SundayEventContext, SundayEventDef, SundayEventEffects, SundayEventPerson } from '@/data/sundayEvents';
 import { SUNDAY_EVENTS, fillSundayEventText } from '@/data/sundayEvents';
-import { SUNDAY_EVENT_COOLDOWN } from '@/config/sundayLeague';
+import {
+  SUNDAY_CHAIN_SEASON_MARGIN, SUNDAY_EVENT_COOLDOWN, getSundayChain,
+} from '@/config/sundayLeague';
 import type { SundayRng } from './rng';
 
 /** Build the read-only view of a squad member an event definition sees. */
@@ -79,25 +82,35 @@ export function pickSundayEvent(input: PickEventInput): SundayEventInstance | nu
   const { rng, ctx, cooldowns, firedOnce, week, subjects } = input;
   const order = rng.shuffle(subjects);
 
-  const personFor = (def: SundayEventDef): SundayEventPerson | null => {
+  const personFor = (def: SundayEventDef, chain: SundayChainState | null): SundayEventPerson | null => {
     if (!def.needsSubject) return null;
-    // `captain-furious` and its like are about the captain specifically.
-    if (def.id === 'captain-furious') return ctx.captain ?? null;
+    if (def.subjectIsCaptain) return ctx.captain ?? null;
     const filter = def.subjectFilter ?? DEFAULT_SUBJECT_FILTER;
-    // A live chain flag points its step at ONE player, and the story stays
-    // about him.
-    if (ctx.flagged && filter(ctx.flagged)) return ctx.flagged;
+    // A beat of a PLAYER chain is about the man the chain named, full stop.
+    // (A club chain names nobody, so its beats pick freely like any other.)
+    if (chain?.subjectId) {
+      const bound = subjects.find(p => p.playerId === chain.subjectId);
+      return bound && filter(bound) ? bound : null;
+    }
     return order.find(filter) ?? null;
   };
 
   const eligible: { def: SundayEventDef; ctx: SundayEventContext; person: SundayEventPerson | null }[] = [];
   for (const def of SUNDAY_EVENTS) {
+    const chain = chainFor(def, ctx);
+    // A beat that is not the one its chain is waiting for is not an event.
+    if (def.chain && !chain) continue;
     if (def.once && firedOnce.has(def.id)) continue;
-    const readyWeek = cooldowns[def.id];
-    if (readyWeek != null && week < readyWeek) continue;
-    const person = personFor(def);
+    // Cooldowns are anti-repeat for the RANDOM pool. A chain beat is rationed
+    // by its own chain, and a cooldown left over from the last time the story
+    // ran would strand this one at a step nothing can serve.
+    if (!def.chain) {
+      const readyWeek = cooldowns[def.id];
+      if (readyWeek != null && week < readyWeek) continue;
+    }
+    const person = personFor(def, chain);
     if (def.needsSubject && !person) continue;
-    const defCtx = def.needsSubject ? { ...ctx, subject: person } : ctx;
+    const defCtx = contextFor(def, ctx, chain, person);
     try {
       if (!def.condition(defCtx)) continue;
     } catch {
@@ -112,6 +125,103 @@ export function pickSundayEvent(input: PickEventInput): SundayEventInstance | nu
   const chosen = rng.weighted(eligible, e => e.def.weight);
   if (!chosen) return null;
   return instantiate(chosen.def, chosen.person, chosen.ctx, input);
+}
+
+/** The live chain a definition belongs to, when it is waiting for this beat. */
+function chainFor(def: SundayEventDef, ctx: SundayEventContext): SundayChainState | null {
+  if (!def.chain) return null;
+  const chain = ctx.chains.find(c => c.id === def.chain!.id);
+  return chain && chain.step === def.chain.step ? chain : null;
+}
+
+/** The context ONE definition is judged against: its own subject, and its own
+ *  chain's memory of what has been decided so far. */
+function contextFor(
+  def: SundayEventDef,
+  ctx: SundayEventContext,
+  chain: SundayChainState | null,
+  person: SundayEventPerson | null,
+): SundayEventContext {
+  if (!def.needsSubject && !chain) return ctx;
+  return {
+    ...ctx,
+    ...(def.needsSubject ? { subject: person } : {}),
+    ...(chain ? { chainData: chain.data ?? {} } : {}),
+  };
+}
+
+/** What a forced pass produced: at most one beat, plus the chains that have
+ *  run out of road and must be closed. */
+export interface ForcedChainResult {
+  event: SundayEventInstance | null;
+  /** Chains past their deadline with no beat left that is true. Nothing more
+   *  can be told about them, so the caller closes them WITH A LINE. */
+  stranded: SundayChainId[];
+}
+
+/**
+ * Serve an overdue chain's next beat directly, bypassing the weighted draw.
+ *
+ * THE GUARANTEE THIS EXISTS FOR. Under the old flag scheme a started story
+ * only continued if its follow-up won a 0.55 weekly roll AND then the weighted
+ * draw against the whole catalogue, inside a six-week flag life — which failed
+ * about a third of the time, leaving the player with a set-up and no pay-off.
+ * Here the deadline is a deadline: once `week >= dueWeek` the beat is returned
+ * outright, with no roll and no competition.
+ *
+ * Two fallbacks keep it honest rather than forceful:
+ *   - if the current step's beats cannot fire (their premise stopped being
+ *     true), the chain's TERMINAL beats are tried, so the story still ends
+ *   - if nothing at all can fire, the chain is reported `stranded` and the
+ *     caller closes it with a factual line rather than leaving it to rot
+ *
+ * Draws nothing from the RNG: forcing must not shift the week's other draws.
+ */
+export function forceSundayChainStep(input: PickEventInput): ForcedChainResult {
+  const { ctx, week, subjects } = input;
+  const stranded: SundayChainId[] = [];
+  let event: SundayEventInstance | null = null;
+
+  for (const chain of ctx.chains) {
+    if (week < chain.dueWeek) continue;
+    const info = getSundayChain(chain.id);
+
+    const attempt = (step: number): SundayEventInstance | null => {
+      for (const def of SUNDAY_EVENTS) {
+        if (def.chain?.id !== chain.id || def.chain.step !== step) continue;
+        let person: SundayEventPerson | null = null;
+        if (def.needsSubject) {
+          const filter = def.subjectFilter ?? DEFAULT_SUBJECT_FILTER;
+          person = def.subjectIsCaptain
+            ? ctx.captain ?? null
+            : chain.subjectId
+              ? subjects.find(p => p.playerId === chain.subjectId && filter(p)) ?? null
+              : subjects.find(filter) ?? null;
+          if (!person) continue;
+        }
+        const defCtx = contextFor(def, ctx, chain, person);
+        try {
+          if (!def.condition(defCtx)) continue;
+        } catch {
+          continue;
+        }
+        return instantiate(def, person, defCtx, input);
+      }
+      return null;
+    };
+
+    const forced = attempt(chain.step)
+      ?? (chain.step !== info.terminalStep ? attempt(info.terminalStep) : null);
+    if (forced) {
+      // One forced beat per week: the pending event is a single slot, and a
+      // second chain's deadline can wait a week without breaking anything.
+      if (!event) { event = forced; continue; }
+      continue;
+    }
+    stranded.push(chain.id);
+  }
+
+  return { event, stranded };
 }
 
 function instantiate(
@@ -161,6 +271,11 @@ export function isOnceSundayEvent(defId: string): boolean {
   return SUNDAY_EVENTS.find(d => d.id === defId)?.once === true;
 }
 
+/** The chain a definition is a beat of, or null when it is a one-off. */
+export function sundayEventChainId(defId: string): SundayChainId | null {
+  return SUNDAY_EVENTS.find(d => d.id === defId)?.chain?.id ?? null;
+}
+
 /**
  * The player a chain flag is about, when its name embeds one.
  *
@@ -174,6 +289,132 @@ export function sundayFlagSubjectId(name: string): string | null {
   if (idx < 0) return null;
   const tail = name.slice(idx + 1);
   return tail.startsWith('sun-') ? tail : null;
+}
+
+// ── Chain lifecycle ─────────────────────────────────────────────────────────
+
+/**
+ * When the next beat of a chain is due.
+ *
+ * CLAMPED TO THE SEASON. A deadline past the last Sunday could never be met —
+ * no event fires on the advance that ends the season — so a story started in
+ * the run-in would be quietly deleted by the rollover. Pulling the deadline
+ * forward instead forces the remaining beats out while there is still a season
+ * to tell them in. See `SUNDAY_CHAIN_SEASON_MARGIN`.
+ */
+export function sundayChainDeadline(
+  id: SundayChainId,
+  week: number,
+  totalWeeks: number,
+  durationWeeks?: number,
+): number {
+  const info = getSundayChain(id);
+  const wanted = week + (durationWeeks ?? info.durationWeeks);
+  const latest = Math.max(week, totalWeeks - SUNDAY_CHAIN_SEASON_MARGIN);
+  return Math.min(wanted, latest);
+}
+
+export interface StartChainInput {
+  chains: readonly SundayChainState[];
+  id: SundayChainId;
+  subjectId: string | null;
+  /** First name of the subject, kept so a closing line can name him after his
+   *  Player record has gone. */
+  subjectName?: string | null;
+  season: number;
+  week: number;
+  totalWeeks: number;
+  durationWeeks?: number;
+  data?: Record<string, string | number>;
+}
+
+/**
+ * Open a chain, replacing any live chain of the same KIND.
+ *
+ * The cap (one player story, one club story) is enforced here rather than only
+ * in the openers' conditions: an opener whose condition was written wrong would
+ * otherwise leave two live player chains fighting over the subject slot, which
+ * the invariants reject on the next load.
+ */
+export function startSundayChain(input: StartChainInput): SundayChainState[] {
+  const info = getSundayChain(input.id);
+  const kept = input.chains.filter(c => getSundayChain(c.id).kind !== info.kind);
+  const data: Record<string, string | number> = { ...(input.data ?? {}) };
+  if (input.subjectName) data.name = input.subjectName;
+  return [...kept, {
+    id: input.id,
+    // Openers are unchained, so the first beat a chain waits for is step 2.
+    step: 2,
+    subjectId: info.kind === 'player' ? input.subjectId : null,
+    startedWeek: input.week,
+    startedSeason: input.season,
+    dueWeek: sundayChainDeadline(input.id, input.week, input.totalWeeks, input.durationWeeks),
+    data,
+  }];
+}
+
+/** Move a chain to its next beat and reset the deadline. A chain that would
+ *  advance past its terminal step is closed instead — a content bug must not
+ *  leave a story waiting for a beat that does not exist. */
+export function advanceSundayChain(
+  chains: readonly SundayChainState[],
+  id: SundayChainId,
+  week: number,
+  totalWeeks: number,
+  data?: Record<string, string | number>,
+): SundayChainState[] {
+  const info = getSundayChain(id);
+  const out: SundayChainState[] = [];
+  for (const c of chains) {
+    if (c.id !== id) { out.push(c); continue; }
+    const step = c.step + 1;
+    if (step > info.terminalStep) continue;
+    out.push({
+      ...c,
+      step,
+      dueWeek: sundayChainDeadline(id, week, totalWeeks),
+      data: { ...(c.data ?? {}), ...(data ?? {}) },
+    });
+  }
+  return out;
+}
+
+/** Record what a beat decided without moving the story on. */
+export function writeSundayChainData(
+  chains: readonly SundayChainState[],
+  id: SundayChainId,
+  data: Record<string, string | number>,
+): SundayChainState[] {
+  return chains.map(c => (c.id === id ? { ...c, data: { ...(c.data ?? {}), ...data } } : c));
+}
+
+export function endSundayChain(
+  chains: readonly SundayChainState[],
+  id: SundayChainId,
+): SundayChainState[] {
+  return chains.filter(c => c.id !== id);
+}
+
+/** Drop every chain about somebody who is no longer on the books, reporting
+ *  what was dropped so the caller can SAY the story is over. A chain naming a
+ *  departed player blocks its kind's slot and points the arc at a ghost. */
+export function pruneSundayChains(
+  chains: readonly SundayChainState[],
+  squadIds: ReadonlySet<string>,
+): { kept: SundayChainState[]; dropped: SundayChainState[] } {
+  const kept: SundayChainState[] = [];
+  const dropped: SundayChainState[] = [];
+  for (const c of chains) {
+    if (c.subjectId && !squadIds.has(c.subjectId)) dropped.push(c);
+    else kept.push(c);
+  }
+  return { kept, dropped };
+}
+
+/** The name a chain remembered for its subject, for a closing line. */
+export function sundayChainSubjectName(chain: SundayChainState): string | null {
+  const name = chain.data?.name;
+  return typeof name === 'string' && name ? name : null;
 }
 
 /** Drop every chain flag about somebody who is no longer on the books. A flag

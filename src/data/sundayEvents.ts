@@ -14,7 +14,7 @@
  * still cooling down. `once: true` marks an event that may fire a single time
  * per save. Both are enforced in `src/utils/sunday/events.ts`, not here.
  */
-import type { SundayEventInstance } from '@/types/game';
+import type { SundayChainId, SundayChainState, SundayEventInstance } from '@/types/game';
 
 /** State an event definition is allowed to read when deciding to fire. */
 export interface SundayEventContext {
@@ -45,11 +45,16 @@ export interface SundayEventContext {
   subject: SundayEventPerson | null;
   /** An unhappy squad member, when there is one. */
   unhappy: SundayEventPerson | null;
-  /** Chain flags currently set: name → week set. See `SundayState.flags`. */
+  /** Short-lived story markers: name → week set. See `SundayState.flags`. */
   flags: Record<string, number>;
-  /** The player a live chain flag points at, when one does. Chain steps use
-   *  this instead of the random `subject` so a story stays about ONE person. */
-  flagged: SundayEventPerson | null;
+  /** Every live chain, so an OPENER can refuse to start a second story about
+   *  the same kind of thing. Chained beats do not need to read this — the
+   *  selector has already matched them against their chain. */
+  chains: readonly SundayChainState[];
+  /** What earlier beats of THIS chain decided. Empty for an unchained event.
+   *  A beat reads it so its text cannot contradict the choice that produced
+   *  it — the whole reason a chain carries data at all. */
+  chainData: Readonly<Record<string, string | number>>;
   /** Name of the player who defected to the rival, when one has. */
   defectorName: string | null;
 }
@@ -115,10 +120,24 @@ export interface SundayEventEffects {
   /** The subject leaves FOR THE RIVAL: recorded on the rivalry (defector,
    *  story, heat) so the feud remembers him. The sharpest departure. */
   subjectLeavesForRival?: boolean;
-  /** Set / clear a chain flag. `{subject}` in the name is replaced with the
-   *  event's subject id, which is how a chain stays about one player. */
+  /** Set / clear a story marker. `{subject}` in the name is replaced with the
+   *  event's subject id. */
   setFlag?: string;
   clearFlag?: string;
+
+  // ── Chains ────────────────────────────────────────────────────────────────
+  /** Open a story. Only an UNCHAINED definition may do this: the chain starts
+   *  waiting for step 2, and a player chain binds itself to this event's
+   *  subject. `durationWeeks` overrides the chain's default deadline. */
+  startChain?: { id: SundayChainId; durationWeeks?: number };
+  /** Move the story to its next beat and reset the deadline. */
+  advanceChain?: SundayChainId;
+  /** Close the story. Every choice of a terminal beat must do this. */
+  endChain?: SundayChainId;
+  /** Merged into the live chain's `data`, so a later beat can be written to
+   *  agree with the choice taken here. Applied alongside `startChain` or
+   *  `advanceChain`; on its own it edits the live chain of the same kind. */
+  chainData?: Record<string, string | number>;
 }
 
 export interface SundayEventChoiceDef {
@@ -162,6 +181,21 @@ export interface SundayEventDef {
    *  it unless a subject exists. */
   needsSubject?: boolean;
   /**
+   * Marks this definition as one BEAT of a story.
+   *
+   * A chained definition is eligible only while that chain is live AND waiting
+   * for exactly this step, and — for a player chain — it is about the person
+   * the chain named rather than a fresh random subject. That binding replaced
+   * the old global one, where a single live flag made every subject-bearing
+   * event in the catalogue be about the same man for six weeks.
+   *
+   * Cooldowns do not apply to a beat: the chain itself rations it, and a
+   * cooldown left over from the last time the story ran would strand this one.
+   */
+  chain?: { id: SundayChainId; step: number };
+  /** The event is about the CAPTAIN, whoever that currently is. */
+  subjectIsCaptain?: boolean;
+  /**
    * Who this event is allowed to be about. Defaults to "anybody who will
    * actually be there on Sunday".
    *
@@ -184,6 +218,63 @@ const ack = (outcome: string, effects: SundayEventEffects = {}): SundayEventChoi
   { id: 'ok', label: 'Right then', hint: '', effects, outcome },
 ];
 
+/**
+ * How a story closes when it cannot be told any further.
+ *
+ * Two ways that happens, and they read differently:
+ *
+ *   `gone`  — the man it was about is off the books. The arc has an ending,
+ *             it just is not the one anybody chose.
+ *   `faded` — the premise evaporated (knocked out of the cup, the books came
+ *             good) and the deadline passed with no beat left that is true.
+ *
+ * Either way the week log SAYS SO. A story that stops without a line is
+ * indistinguishable from a bug, and it is the thing the old flag-based chain
+ * did roughly a third of the time.
+ */
+export interface SundayChainClosingText { gone: string; faded: string }
+
+export const SUNDAY_CHAIN_CLOSINGS: Readonly<Record<SundayChainId, SundayChainClosingText>> = {
+  'rival-defection': {
+    gone: 'The {name} situation resolved itself — he is gone.',
+    faded: 'Nothing more was said about {name} and the other lot. It has gone quiet.',
+  },
+  'captain-conflict': {
+    gone: '{name} is no longer here, and neither is the argument about him.',
+    faded: 'Whatever {name} was unhappy about, he has stopped saying it.',
+  },
+  'star-arc': {
+    gone: '{name} has moved on. The dressing room is noticeably quieter.',
+    faded: '{name} has gone off the boil and stopped mentioning bigger clubs.',
+  },
+  wonderkid: {
+    gone: '{name} has left. Somebody else will have to be the future.',
+    faded: 'The fuss about {name} has died down. He is just one of the lads again.',
+  },
+  'veteran-farewell': {
+    gone: '{name} has finished. No do, no speech — he just stopped coming.',
+    faded: '{name} has said no more about packing it in. Give him another year.',
+  },
+  'financial-crisis': {
+    gone: 'The committee have stopped ringing.',
+    faded: 'There is money in the account again. Nobody mentions the meeting.',
+  },
+  'cup-run': {
+    gone: 'The cup run is over.',
+    faded: 'The cup run is over, and Sunday is a league game like any other.',
+  },
+};
+
+/** Fill a closing line with what the chain remembered about its subject. */
+export function sundayChainClosingLine(
+  id: SundayChainId,
+  reason: keyof SundayChainClosingText,
+  name: string | null,
+): string {
+  const text = SUNDAY_CHAIN_CLOSINGS[id]?.[reason] ?? 'That story has run its course.';
+  return text.replace(/\{name\}/g, name ?? 'he');
+}
+
 export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
   // ── Player events ─────────────────────────────────────────────────────────
   {
@@ -193,6 +284,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
     body: '{name} has pulled you aside. He knows he was only on the bench last week, he knows he is carrying a knock, and he wants you to know that he has played through worse than this and that the lads notice these things.',
     weight: 8,
     needsSubject: true,
+    subjectIsCaptain: true,
     condition: ctx => !!ctx.captain && ctx.captain.benchedStreak >= 1,
     choices: [
       {
@@ -543,8 +635,10 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
     body: '{name} has been quiet lately, and now their manager has been seen buying him a pint. Twice. He has not mentioned it, which is somehow worse.',
     weight: 8,
     needsSubject: true,
+    // The OPENER of the rival-defection chain. It refuses to start while any
+    // player story is already running — one man's situation at a time.
     condition: ctx => ctx.hasRival && ctx.rivalHeat >= 4 && !!ctx.subject && ctx.subject.happiness < 55
-      && !Object.keys(ctx.flags).some(f => f.startsWith('wants-out:')),
+      && !ctx.chains.some(c => c.subjectId),
     cooldown: 12,
     choices: [
       {
@@ -552,17 +646,17 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
         successChance: ctx => 0.4 + (ctx.subject ? ctx.subject.happiness * 0.005 : 0),
         effects: { subjectHappiness: 10 },
         outcome: 'He lays it all out — playing time, the drive, the pitch. You listen. It helps.',
-        failEffects: { setFlag: 'wants-out:{subject}', subjectHappiness: -4 },
+        failEffects: { startChain: { id: 'rival-defection' }, subjectHappiness: -4 },
         failOutcome: 'He says the right words in the wrong tone. This is not finished.',
       },
       {
         id: 'confront-rival', label: 'Confront their manager about it', hint: 'Feels great. Fixes nothing.',
-        effects: { rivalHeat: 2, morale: 2, setFlag: 'wants-out:{subject}' },
+        effects: { rivalHeat: 2, morale: 2, startChain: { id: 'rival-defection' } },
         outcome: 'A frank exchange of views in a car park. Their manager loved every second of it.',
       },
       {
         id: 'ignore', label: 'Pretend you have not noticed', hint: 'Maybe it blows over.',
-        effects: { setFlag: 'wants-out:{subject}' },
+        effects: { startChain: { id: 'rival-defection' } },
         outcome: 'You say nothing. He notices that too.',
       },
     ],
@@ -574,30 +668,30 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
     body: 'It is out in the open now: {rival} want {name}, {name} knows it, and the whole changing room is watching how you handle it.',
     weight: 20,
     needsSubject: true,
-    // The last step of a chain that is about ONE man. He is the subject
-    // whether or not he happens to be available this Sunday — picking anybody
-    // else would be a different story with the same title.
+    // The TERMINAL beat of the chain, and it is about ONE man — the one the
+    // chain named — whether or not he happens to be available this Sunday.
+    // Picking anybody else would be a different story with the same title.
+    chain: { id: 'rival-defection', step: 2 },
     subjectFilter: () => true,
-    condition: ctx => ctx.hasRival && !!ctx.flagged,
-    cooldown: 6,
+    condition: ctx => ctx.hasRival,
     choices: [
       {
         id: 'fight', label: 'Fight for him', hint: 'A speech, his subs covered, first name on the sheet.',
         available: ctx => ctx.balance >= 30,
-        successChance: ctx => 0.35 + (ctx.flagged ? ctx.flagged.commitment * 0.03 : 0),
-        effects: { money: -30, subjectHappiness: 16, clearFlag: 'wants-out:{subject}', morale: 3 },
+        successChance: ctx => 0.35 + (ctx.subject ? ctx.subject.commitment * 0.03 : 0),
+        effects: { money: -30, subjectHappiness: 16, morale: 3, endChain: 'rival-defection' },
         outcome: 'He stays. The speech gets retold for weeks, improving each time.',
-        failEffects: { money: -30, subjectLeavesForRival: true },
+        failEffects: { money: -30, subjectLeavesForRival: true, endChain: 'rival-defection' },
         failOutcome: 'He hears you out, shakes your hand, and signs for them on Tuesday.',
       },
       {
         id: 'promise', label: 'Promise him a start every week he turns up', hint: 'A real promise. The game holds you to it.',
-        effects: { promiseStart: true, subjectHappiness: 8, clearFlag: 'wants-out:{subject}' },
+        effects: { promiseStart: true, subjectHappiness: 8, endChain: 'rival-defection' },
         outcome: 'That was all he wanted to hear. Now you have to mean it.',
       },
       {
         id: 'release', label: 'Let him go to them', hint: 'The feud gets a face.',
-        effects: { subjectLeavesForRival: true },
+        effects: { subjectLeavesForRival: true, endChain: 'rival-defection' },
         outcome: 'Done. He will be in their colours on Sunday, and everyone knows what that fixture becomes now.',
       },
     ],

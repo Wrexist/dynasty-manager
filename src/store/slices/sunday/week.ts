@@ -35,7 +35,7 @@ import {
   SUNDAY_CUP_ROUND_PRIZE, SUNDAY_CUP_ROUNDS, SUNDAY_WEEK_LOG_MAX,
   SUNDAY_AI_GOALS_BASE, SUNDAY_AI_GOALS_SWING, SUNDAY_AI_HOME_ADVANTAGE,
   SUNDAY_FORM_DRIFT, SUNDAY_FORM_NEUTRAL, SUNDAY_PITCH_DAMAGE_HEAL,
-  SUNDAY_PHYSIO_HEAL_PER_LEVEL,
+  SUNDAY_PHYSIO_HEAL_PER_LEVEL, SUNDAY_FLAG_EXPIRY_WEEKS,
 } from '@/config/sundayLeague';
 import { SUNDAY_SPONSORS, SUNDAY_SPONSOR_CONDITION_TEXT, SUNDAY_TAUNTS } from '@/data/sundayNames';
 import { buildWeekLedger } from '@/utils/sunday/finance';
@@ -44,9 +44,10 @@ import { makeMemory, rememberMoment } from '@/utils/sunday/memories';
 import { generateSundayRecruit, sundaySquadNeeds } from '@/utils/sunday/generation';
 import {
   pickSundayEvent, toEventPerson, cooldownWeekFor, isOnceSundayEvent,
-  sundayFlagSubjectId, pruneSundayFlags,
+  forceSundayChainStep, pruneSundayChains, pruneSundayFlags, sundayChainSubjectName,
 } from '@/utils/sunday/events';
 import type { SundayEventContext } from '@/data/sundayEvents';
+import { sundayChainClosingLine } from '@/data/sundayEvents';
 import {
   advanceSundayCup, buildSundayTable, sundaySeasonWeeks, sundayCupRoundName,
 } from '@/utils/sunday/season';
@@ -450,6 +451,15 @@ export function advanceSundayWeek(set: Set, get: Get): void {
   let pendingEvent = sunday.pendingEvent;
   let eventCooldowns = sunday.eventCooldowns;
   let onceFiredIds = sunday.onceFiredIds;
+  // A story about somebody who has walked out this week is over. Say so — an
+  // arc that simply stops being mentioned is indistinguishable from a bug, and
+  // the flag-based version did exactly that.
+  const squadIds = new Set(squad.map(m => m.playerId));
+  const prunedChains = pruneSundayChains(sunday.chains, squadIds);
+  let chains = prunedChains.kept;
+  for (const c of prunedChains.dropped) {
+    weekLogLines.push(sundayChainClosingLine(c.id, 'gone', sundayChainSubjectName(c)));
+  }
   // The once-per-save register, NOT the event log: the log is capped at
   // `SUNDAY_EVENT_LOG_MAX`, so deriving "has this fired?" from it let a
   // once-only event come round again after about five seasons.
@@ -457,7 +467,14 @@ export function advanceSundayWeek(set: Set, get: Get): void {
   // No event on the season's final advance. The rollover clears `pendingEvent`,
   // so one rolled here was written, shown to nobody, and thrown away — the same
   // reason the availability roll is skipped below.
-  if (!pendingEvent && !seasonComplete && rng.chance(SUNDAY_EVENT_CHANCE)) {
+  //
+  // The roll is taken BEFORE the forcing check even though a forced beat
+  // ignores it: drawing conditionally would move every later draw in the week
+  // whenever a chain happened to be live, so the same seed would produce a
+  // different sponsor approach and a different recruit depending on the state
+  // of an unrelated story.
+  const eventRoll = rng.chance(SUNDAY_EVENT_CHANCE);
+  if (!pendingEvent && !seasonComplete) {
     const table = buildSundayTable(fixtures, sunday.divisionClubIds);
     const person = (m: SundaySquadMember | null | undefined) => {
       if (!m) return null;
@@ -465,15 +482,6 @@ export function advanceSundayWeek(set: Set, get: Get): void {
       return p ? toEventPerson(m, p) : null;
     };
     const captainMember = sunday.captainId ? squad.find(m => m.playerId === sunday.captainId) : null;
-    // A live chain flag points its step at ONE player; the selector keeps the
-    // story about him.
-    let flaggedMember: SundaySquadMember | null = null;
-    for (const name of Object.keys(sunday.flags)) {
-      const subjectId = sundayFlagSubjectId(name);
-      if (!subjectId) continue;
-      flaggedMember = squad.find(x => x.playerId === subjectId) ?? null;
-      if (flaggedMember) break;
-    }
     const unhappyMember = squad.filter(m => m.happiness < 40).sort((a, b) => a.happiness - b.happiness)[0] ?? null;
     const ctx: SundayEventContext = {
       season, week, balance, reputation, teamMorale,
@@ -497,10 +505,13 @@ export function advanceSundayWeek(set: Set, get: Get): void {
       subject: null,
       unhappy: person(unhappyMember),
       flags: sunday.flags,
-      flagged: person(flaggedMember),
+      chains,
+      // Filled per definition by the selector, from that definition's own
+      // chain. Nothing unchained can read another story's memory.
+      chainData: {},
       defectorName: sunday.rivalry?.defector?.name ?? null,
     };
-    const ev = pickSundayEvent({
+    const pickInput = {
       rng,
       ctx,
       subjects: squad.map(person).filter((p): p is NonNullable<typeof p> => !!p),
@@ -509,7 +520,19 @@ export function advanceSundayWeek(set: Set, get: Get): void {
       week,
       rivalName: sunday.rivalry ? clubs[sunday.rivalry.clubId]?.shortName ?? null : null,
       clubName: sunday.identity.name,
-    });
+    };
+    // An overdue chain beat is served outright — no weekly roll, no weighted
+    // draw. That is the difference between a story and a set-up nobody paid
+    // off. A chain that has run out of true beats is CLOSED here, with a line.
+    const forced = forceSundayChainStep(pickInput);
+    if (forced.stranded.length) {
+      for (const id of forced.stranded) {
+        const dead = chains.find(c => c.id === id);
+        weekLogLines.push(sundayChainClosingLine(id, 'faded', dead ? sundayChainSubjectName(dead) : null));
+      }
+      chains = chains.filter(c => !forced.stranded.includes(c.id));
+    }
+    const ev = forced.event ?? (eventRoll ? pickSundayEvent(pickInput) : null);
     if (ev) {
       pendingEvent = ev;
       eventCooldowns = { ...eventCooldowns, [ev.defId]: cooldownWeekFor(ev.defId, week) };
@@ -651,13 +674,14 @@ export function advanceSundayWeek(set: Set, get: Get): void {
     rivalry,
     // The morning belongs to the week that is ending.
     arrival: null,
-    // Chain flags a step never picked up expire after six weeks — an
-    // unresolved story goes quiet, it does not haunt the save forever — and a
-    // flag about somebody who has walked out goes with him.
+    // Story markers are swept after `SUNDAY_FLAG_EXPIRY_WEEKS`, and one about
+    // somebody who has walked out goes with him.
     flags: pruneSundayFlags(
-      Object.fromEntries(Object.entries(sunday.flags).filter(([, setWeek]) => week - setWeek < 6)),
-      new Set(squad.map(m => m.playerId)),
+      Object.fromEntries(Object.entries(sunday.flags)
+        .filter(([, setWeek]) => week - setWeek < SUNDAY_FLAG_EXPIRY_WEEKS)),
+      squadIds,
     ),
+    chains,
     sponsors,
     sponsorOffers,
     recruits,
