@@ -328,6 +328,22 @@ export const POSITION_PRIZE_TIER_SCALE: Record<number, number> = { 1: 1.0, 2: 0.
 export const SCOUTING_COST_PER_ASSIGNMENT = 25000;
 export const FAN_MOOD_BASE = 0.8;
 export const FAN_MOOD_SCALE = 0.4;
+/** How many recent league results feed the fan-mood target. Matches the count
+ *  the Form Guide shows the player, so the mood always has a visible cause. */
+export const FAN_MOOD_FORM_MATCHES = 5;
+/** Split of the fan-mood target between recent form and league standing. Form
+ *  leads because it is what the fans just watched; standing anchors it so a
+ *  good run at the bottom of the table does not read as a happy crowd. Must
+ *  sum to 1. */
+export const FAN_MOOD_FORM_WEIGHT = 0.6;
+export const FAN_MOOD_POSITION_WEIGHT = 0.4;
+/** Fraction of the gap to the target closed each week. Fans are slower to turn
+ *  than a board: at 0.15 a full swing takes roughly a third of a season, so a
+ *  single bad month dents matchday income without erasing it. Also sets what a
+ *  merchandise pricing tier is worth — the steady state sits at
+ *  `target + fanMoodImpact / FAN_MOOD_ADJUST_RATE`, i.e. about +13 for
+ *  Fan-Friendly and -7 for Premium. */
+export const FAN_MOOD_ADJUST_RATE = 0.15;
 
 // ── Facility Upgrade ──
 export const FACILITY_COST_PER_LEVEL = 5_000_000;

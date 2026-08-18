@@ -47,7 +47,9 @@ export const PENDING_NEWS: PendingRelease = {
   improved: [
     'V1.4.0: Fix critical save, training, and monetization regressions.',
   ],
-  fixed: [],
+  fixed: [
+    'Fan mood now reacts to results and league position instead of sitting at a flat 50 all game — matchday income finally rises with a winning run and dips during a slump.',
+  ],
   headline: null,
   summary: null,
 };

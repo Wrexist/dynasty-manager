@@ -276,7 +276,7 @@ consumable player-pack IAPs (RevenueCat).
   status-bar, `@capacitor-community/in-app-review`)
 - **RevenueCat** `@revenuecat/purchases-capacitor` 12.3.2 (+ `-ui`) — all IAP/subscriptions
 - **Sentry** `@sentry/react` 10.49 — crash reporting + game breadcrumbs (`src/utils/sentry.ts`)
-- **Vitest 3.2.4 + jsdom + Testing Library** — 189 test files in `src/test/`
+- **Vitest 3.2.4 + jsdom + Testing Library** — 190 test files in `src/test/`
 - **Husky 9.1.7 + lint-staged 16.4.0** — pre-commit hooks
 - **Fonts:** Oswald (headings) + DM Sans (body), self-hosted via `@fontsource/*`
 - **Package manager:** npm
@@ -339,7 +339,7 @@ src/
 │   │                      loan, cup, feature, sponsor, merchandise, monetization,
 │   │                      nationalTeam, career, packs
 │   │   ├── orchestrationSlice.ts (1,201 LOC — façade) delegating to:
-│   │   └── orchestration/ → weekAdvance.ts (3342 LOC — THE game loop),
+│   │   └── orchestration/ → weekAdvance.ts (3357 LOC — THE game loop),
 │   │                        seasonEnd.ts (1,651), matchActions.ts (1,611),
 │   │                        initGame.ts (587), tournaments.ts, helpers.ts
 │   └── helpers/         → persistence.ts, idbStorage.ts, matchProcessing.ts,
@@ -535,7 +535,7 @@ npm run dev          # Dev server (port 8080)
 npm run build        # Production build
 npm run build:dev    # Development build
 npm run preview      # Preview production build
-npm run test         # Vitest (189 test files)
+npm run test         # Vitest (190 test files)
 npm run test:watch   # Vitest in watch mode
 npm run lint         # ESLint
 npm run typecheck    # TypeScript type-check (standalone)
