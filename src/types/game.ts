@@ -2539,6 +2539,57 @@ export interface SundayAvailability {
   weeksRemaining: number;
 }
 
+/** What a moment in a Sunday footballer's club life was. */
+export type SundayMemoryKind =
+  | 'debut'            // first appearance for the club
+  | 'first-goal'       // first club goal
+  | 'hat-trick'
+  | 'winner'           // scored the decisive goal in a one-goal win
+  | 'derby-goal'       // scored against the rival
+  | 'cup-hero'         // starred in a won cup tie
+  | 'promotion' | 'relegation'
+  | 'red-card'
+  | 'motm'             // an outstanding individual performance
+  | 'bad-day'          // an abject one
+  | 'injury'           // a long one
+  | 'milestone'        // 50/100/150 apps, 25/50 goals
+  | 'promise-kept' | 'promise-broken'
+  | 'talked-round';    // rang and persuaded to play
+
+/**
+ * One remembered moment. The spine of the mode's storytelling: memories are
+ * written where things actually happen (match processing, the week loop, the
+ * rollover), then READ everywhere a story is told — the squad screen's
+ * biography, legend citations, record context lines, the season's "moment of
+ * the season", and event conditions. Nothing invents a memory that the
+ * simulation did not produce.
+ */
+export interface SundayMemory {
+  season: number;
+  week: number;
+  kind: SundayMemoryKind;
+  /** English one-liner, written at capture time with full context. */
+  text: string;
+  /** 1-10. Pruning keeps the heaviest; "moment of the season" is the max. */
+  weight: number;
+}
+
+/**
+ * A promise the manager made to one player. Exactly one kind and at most one
+ * live promise per player, deliberately: a promise is only interesting if the
+ * game actually enforces it, and "you will start on Sunday" is the one promise
+ * a Sunday manager can make that the simulation can verify.
+ */
+export interface SundayPromise {
+  /** Only starts are promisable — the one commitment the sim can check. */
+  kind: 'start';
+  madeSeason: number;
+  madeWeek: number;
+  /** The promise is judged at the first match PLAYED at or before this week;
+   *  if the week passes without him starting, it is broken. */
+  dueWeek: number;
+}
+
 /** The Sunday-specific half of a squad member. The football half lives on the
  *  `Player` with the same `playerId`. */
 export interface SundaySquadMember {
@@ -2587,6 +2638,10 @@ export interface SundaySquadMember {
   unsettled: boolean;
   /** Subs (match fees) he owes the club, in pounds. Chasing it is a decision. */
   subsOwed: number;
+  /** His story at this club, heaviest moments kept. Sunday schema v2. */
+  memories: SundayMemory[];
+  /** The one live promise the manager has made him, or null. Schema v2. */
+  promise: SundayPromise | null;
 }
 
 /** A Sunday-scale tactic. Deliberately four choices, not forty. */
@@ -2753,6 +2808,18 @@ export interface SundayRivalry {
   heat: number;
   /** English trash-talk line the rival manager last aimed at the club. */
   lastTaunt: string | null;
+  /** The rival manager's name — a rivalry is with a PERSON. Schema v2. */
+  managerName: string;
+  /** English one-liner on how his sides play / who he is. Schema v2. */
+  managerStyle: string;
+  /** Capped log of things that actually happened between the clubs — cup
+   *  eliminations, defections, last-minute winners. English, newest last.
+   *  Schema v2. */
+  story: string[];
+  /** A player of yours who left FOR the rival, or null. His name keeps
+   *  turning up: derby build-ups mention him, and beating them means more.
+   *  Schema v2. */
+  defector: { name: string; season: number } | null;
 }
 
 /** A club record worth a line in the trophy room. */
@@ -2765,6 +2832,9 @@ export interface SundayRecordEntry {
   value: string;
   season: number;
   week: number;
+  /** English context that makes the number a story — "with eight men and two
+   *  ringers". Optional; older records simply have none. Schema v2. */
+  detail?: string;
 }
 
 /** A player who has passed into club folklore. */
@@ -2799,6 +2869,9 @@ export interface SundaySeasonRecord {
   cupResult: string | null;
   topScorer: { name: string; goals: number } | null;
   playerOfTheSeason: { name: string; rating: number } | null;
+  /** The heaviest memory written this season — the moment everyone will
+   *  still be talking about at the presentation night. */
+  momentOfTheSeason: string | null;
   balanceEnd: number;
   /** English highlights for the season summary. */
   highlights: string[];
@@ -2830,6 +2903,15 @@ export interface SundayMatchReport {
   playedIds: string[];
   motmPlayerId: string | null;
   motmRating: number;
+  /** Worst rating on the day, when someone genuinely stank the place out. */
+  lowlightPlayerId: string | null;
+  lowlightRating: number;
+  /** English one-liner on the swing that decided it, or null for a match
+   *  that never turned — derived from the actual goal sequence. */
+  turningPoint: string | null;
+  /** English consequence lines: injuries picked up, bans starting, rivalry
+   *  heat, promises kept or broken. All derived from real state changes. */
+  consequences: string[];
   /** English narrative beats, already merged with engine events. */
   narrative: string[];
   /** Net money the match produced. */
@@ -2851,6 +2933,37 @@ export interface SundayClubIdentity {
   venue: string;
   /** English town/area. */
   town: string;
+}
+
+/**
+ * The resolved "Sunday morning" for one fixture: who actually turned up.
+ *
+ * Written ONCE per match week by `arriveSundayMatch` (seeded from the match
+ * stream, so a reload replays the same morning), then consumed by
+ * `playSundayMatch`. Between the two sits the mode's sharpest decision: you
+ * are short — pay for guests, or play with what you have.
+ */
+export interface SundayArrival {
+  season: number;
+  week: number;
+  /** English beats, in discovery order: who turned up, who did not, who has
+   *  stopped answering his phone. */
+  beats: string[];
+  /** XI ids present after the morning's attrition (teamsheet order). */
+  presentIds: string[];
+  /** Bench ids still present. */
+  benchIds: string[];
+  /** Guests REQUIRED to reach the legal minimum — hired automatically,
+   *  because the alternative is a forfeit. */
+  forcedRingers: number;
+  /** Guests that COULD be drafted to fill back toward eleven. The decision. */
+  optionalRingers: number;
+  /** null = the manager has not decided; otherwise how many optional guests
+   *  were hired (0 = play short). */
+  ringersHired: number | null;
+  /** Cursor position in the week's match stream after the arrival draws, so
+   *  the match itself continues the same stream without replaying it. */
+  rngCursor: number;
 }
 
 /**
@@ -2900,6 +3013,13 @@ export interface SundayState {
   eventLog: SundayEventLogEntry[];
   rivalry: SundayRivalry | null;
   cup: SundayCupState | null;
+  /** This week's resolved Sunday morning, or null before arrival / on a free
+   *  week. Cleared by the weekly advance. Schema v2. */
+  arrival: SundayArrival | null;
+  /** Story flags for multi-step event chains: flag name → week it was set.
+   *  Small by construction — a chain sets one flag per step and clears it
+   *  when the chain resolves. Schema v2. */
+  flags: Record<string, number>;
   /** Consecutive weeks the balance has been below zero. The club folds
    *  at `SUNDAY_BANKRUPT_GRACE_WEEKS`, so a single bad week is survivable
    *  and a month of ignoring it is not. */

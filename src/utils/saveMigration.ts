@@ -12,11 +12,54 @@ import { isPlaceholderClubId } from '@/config/continental';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 84;
+const CURRENT_VERSION = 85;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
 const migrations: Record<number, MigrationFn> = {
+  // v84 → v85: Sunday League schema v2 — player memories and promises, the
+  // arrival phase, event-chain flags, the rival's manager. All additive, all
+  // backfilled with their empty values here so the sub-state validator (which
+  // refuses shapes it does not recognise) accepts an upgraded save. A non-
+  // Sunday save carries `sunday: null` and passes through untouched.
+  84: (data) => {
+    const sunday = data.sunday as Record<string, unknown> | null | undefined;
+    if (!sunday || typeof sunday !== 'object') return { ...data, version: 85, sunday: sunday ?? null };
+    const squad = Array.isArray(sunday.squad)
+      ? (sunday.squad as Record<string, unknown>[]).map(m => ({
+          ...m,
+          memories: Array.isArray(m.memories) ? m.memories : [],
+          promise: m.promise ?? null,
+        }))
+      : sunday.squad;
+    const rivalry = sunday.rivalry && typeof sunday.rivalry === 'object'
+      ? {
+          ...(sunday.rivalry as Record<string, unknown>),
+          // A v1 rivalry never had a manager; give it a placeholder identity
+          // rather than an invented one — the next season's rival is built
+          // properly. English strings are game data, not UI copy.
+          managerName: (sunday.rivalry as Record<string, unknown>).managerName ?? 'their manager',
+          managerStyle: (sunday.rivalry as Record<string, unknown>).managerStyle ?? 'Nobody has worked him out yet.',
+          story: Array.isArray((sunday.rivalry as Record<string, unknown>).story)
+            ? (sunday.rivalry as Record<string, unknown>).story
+            : [],
+          defector: (sunday.rivalry as Record<string, unknown>).defector ?? null,
+        }
+      : sunday.rivalry ?? null;
+    return {
+      ...data,
+      version: 85,
+      sunday: {
+        ...sunday,
+        v: 2,
+        squad,
+        rivalry,
+        arrival: null,
+        flags: sunday.flags ?? {},
+      },
+    };
+  },
+
   // v83 → v84: `sunday` carries the whole Sunday League mode. Every save
   // written before this is by definition not a Sunday save — the mode did not
   // exist — so `null` is the only correct value and there is nothing to

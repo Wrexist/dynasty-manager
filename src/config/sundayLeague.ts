@@ -26,8 +26,10 @@ import type {
 // ── Schema ──────────────────────────────────────────────────────────────────
 
 /** Bumped when `SundayState`'s shape changes. `validateSundayState` refuses a
- *  state whose `v` it does not recognise rather than reading missing fields. */
-export const SUNDAY_STATE_VERSION = 1;
+ *  state whose `v` it does not recognise rather than reading missing fields.
+ *  v2: player memories + promises, the arrival phase, the rival's manager,
+ *  event-chain flags, record context lines. Migrated in saveMigration v85. */
+export const SUNDAY_STATE_VERSION = 2;
 
 // ── The pyramid ─────────────────────────────────────────────────────────────
 
@@ -684,6 +686,55 @@ export const SUNDAY_GROWTH_MINUTES_TARGET = 700;
  */
 export const SUNDAY_OVERALL_CEILING = 78;
 export const SUNDAY_OVERALL_FLOOR = 20;
+
+// ── Memories, form and promises ─────────────────────────────────────────────
+
+/** Most memories one player carries. Pruning keeps the heaviest. */
+export const SUNDAY_MEMORIES_MAX = 12;
+
+/** Weight per memory kind, 1-10. Drives pruning, the biography's ordering and
+ *  the "moment of the season". A cup-final winner must outlive a debut. */
+export const SUNDAY_MEMORY_WEIGHTS: Readonly<Record<string, number>> = {
+  debut: 3,
+  'first-goal': 4,
+  'hat-trick': 7,
+  winner: 8,
+  'derby-goal': 8,
+  'cup-hero': 9,
+  promotion: 9,
+  relegation: 6,
+  'red-card': 5,
+  motm: 6,
+  'bad-day': 4,
+  injury: 5,
+  milestone: 7,
+  'promise-kept': 5,
+  'promise-broken': 7,
+  'talked-round': 3,
+};
+
+/** Form movement per match: rating pulls `Player.form` toward its own level.
+ *  The engine reads form in shot quality, so a striker on a run genuinely
+ *  scores more — and a slump genuinely deepens — without any hidden hand. */
+export const SUNDAY_FORM_PER_RATING = 5;
+export const SUNDAY_FORM_BASELINE_RATING = 6.3;
+export const SUNDAY_FORM_MIN = 20;
+export const SUNDAY_FORM_MAX = 95;
+/** Weekly drift toward neutral for players who did not play. */
+export const SUNDAY_FORM_DRIFT = 3;
+export const SUNDAY_FORM_NEUTRAL = 55;
+/** Display thresholds: at or above/below these the UI names the streak. */
+export const SUNDAY_FORM_HOT = 76;
+export const SUNDAY_FORM_COLD = 38;
+
+/** A promised start is judged within this many weeks of being made. */
+export const SUNDAY_PROMISE_WEEKS = 2;
+/** Happiness swing for keeping / breaking a promised start. Breaking costs
+ *  more than keeping pays — that is what makes promising a real decision. */
+export const SUNDAY_PROMISE_KEPT_HAPPINESS = 10;
+export const SUNDAY_PROMISE_BROKEN_HAPPINESS = -18;
+/** Squad-wide morale hit when the room watches a promise get broken. */
+export const SUNDAY_PROMISE_BROKEN_MORALE = -4;
 
 // ── Records and legends ─────────────────────────────────────────────────────
 

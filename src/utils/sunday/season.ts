@@ -382,6 +382,8 @@ export function recordSundayRecord(
   season: number,
   week: number,
   compare: 'higher' | 'lower' = 'higher',
+  /** English context line — what makes the number a story. */
+  detail?: string,
 ): SundayRecordEntry[] {
   const existing = records.find(r => r.id === id);
   if (existing) {
@@ -391,7 +393,7 @@ export function recordSundayRecord(
   }
   const label = SUNDAY_RECORD_LABELS[id] ?? id;
   const next = records.filter(r => r.id !== id);
-  next.push({ id, label, value, season, week });
+  next.push({ id, label, value, season, week, ...(detail ? { detail } : {}) });
   return next.slice(-SUNDAY_RECORDS_MAX);
 }
 
@@ -431,6 +433,7 @@ export interface BuildSeasonRecordInput {
   outcome: SundayOutcome;
   topScorer: { name: string; goals: number } | null;
   playerOfTheSeason: { name: string; rating: number } | null;
+  momentOfTheSeason: string | null;
   cupResult: string | null;
   highlights: string[];
 }
@@ -457,6 +460,7 @@ export function buildSundaySeasonRecord(input: BuildSeasonRecordInput): SundaySe
     cupResult: input.cupResult,
     topScorer: input.topScorer,
     playerOfTheSeason: input.playerOfTheSeason,
+    momentOfTheSeason: input.momentOfTheSeason,
     balanceEnd: Math.round(state.balance),
     highlights: input.highlights,
   };

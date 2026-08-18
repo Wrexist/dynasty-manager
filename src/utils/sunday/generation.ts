@@ -210,6 +210,8 @@ function rollSundayTraits(
     rivals: [],
     unsettled: false,
     subsOwed: 0,
+    memories: [],
+    promise: null,
   };
 }
 

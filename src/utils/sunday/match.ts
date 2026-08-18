@@ -306,6 +306,27 @@ const GOAL_LINES: Readonly<Record<string, readonly string[]>> = {
   ],
 };
 
+/** Context-first goal lines. When a goal has a story — a late winner, a derby
+ *  goal, a veteran rolling back the years — the story outranks the mechanism.
+ *  Same contract as every pool: the minute, scorer and score are the event's. */
+const LATE_WINNER_LINES: readonly string[] = [
+  '{scorer}!! In the {minute}th minute! Absolute bedlam on the touchline. ({score})',
+  'It falls to {scorer} with the referee checking his watch — and it is IN. ({score})',
+  '{scorer} has won it at the death. Grown men are hugging strangers. ({score})',
+];
+const DERBY_GOAL_LINES: readonly string[] = [
+  '{scorer} scores AGAINST THAT LOT. He will drink free on this for a month. ({score})',
+  '{scorer}, in the derby. He runs the full length of the pitch to celebrate at their bench. ({score})',
+];
+const VETERAN_GOAL_LINES: readonly string[] = [
+  '{scorer} — {age} years old and still doing it. He refuses to celebrate; his knees refuse harder. ({score})',
+  '{scorer} rolls back the years. The years object, but the goal stands. ({score})',
+];
+const COMEBACK_LEVELLER_LINES: readonly string[] = [
+  '{scorer} drags you level. From nowhere, this is a game again. ({score})',
+  'All square — {scorer} finishes and the comeback is officially on. ({score})',
+];
+
 const MISS_LINES: readonly string[] = [
   '{player} skies it over the fence and into the car park. Someone has to go and get it.',
   '{player} has to score. {player} does not score.',
@@ -340,6 +361,8 @@ export interface NarrativeInput {
   events: readonly MatchEvent[];
   clubId: string;
   players: Record<string, Player>;
+  /** True when this fixture is against the persistent rival. */
+  isDerby: boolean;
   /** Players who did not turn up, for the pre-match beats. */
   noShowNames: readonly string[];
   ringerNames: readonly string[];
@@ -358,7 +381,7 @@ export interface NarrativeInput {
  * assert nothing about the football, so they can never contradict the result.
  */
 export function buildSundayNarrative(input: NarrativeInput): string[] {
-  const { rng, events, clubId, players, isHome } = input;
+  const { rng, events, clubId, players, isHome, isDerby } = input;
   const out: string[] = [];
 
   if (input.startedWith < 11) {
@@ -378,7 +401,14 @@ export function buildSundayNarrative(input: NarrativeInput): string[] {
   let away = 0;
   const nameOf = (id?: string) => (id && players[id] ? players[id].firstName : 'someone');
 
+  let htPushed = false;
   for (const ev of events) {
+    // The half-time score line goes in before the first second-half event, so
+    // the feed reads like a match and not a list.
+    if (!htPushed && ev.minute > 45) {
+      out.push(`HT ${home}-${away}.`);
+      htPushed = true;
+    }
     const scored = ev.type === 'goal' || ev.type === 'own_goal' || ev.type === 'penalty_scored'
       || ev.type === 'extra_time_goal' || ev.type === 'free_kick_goal' || ev.type === 'long_range_goal'
       || ev.type === 'counter_attack_goal' || ev.type === 'header_goal' || ev.type === 'solo_goal'
@@ -398,8 +428,27 @@ export function buildSundayNarrative(input: NarrativeInput): string[] {
     const score = `${home}-${away}`;
 
     if (scored && GOAL_LINES[ev.type]) {
-      const template = rng.pick(GOAL_LINES[ev.type]) ?? '{scorer} scores. ({score})';
-      out.push(`${minute}': ${template.replace(/\{scorer\}/g, nameOf(ev.playerId)).replace('{score}', score)}`);
+      // Context outranks mechanism: a goal that means something gets the line
+      // about what it MEANS, chosen strictly from facts the event carries.
+      const ours = ev.clubId === clubId;
+      const ourScore = isHome ? home : away;
+      const theirScore = isHome ? away : home;
+      const scorerAge = ev.playerId ? players[ev.playerId]?.age ?? 0 : 0;
+      let pool: readonly string[] | null = null;
+      if (ours && ev.type !== 'own_goal') {
+        if (ev.minute >= 85 && ourScore === theirScore + 1) pool = LATE_WINNER_LINES;
+        else if (isDerby) pool = DERBY_GOAL_LINES;
+        else if (scorerAge >= 35) pool = VETERAN_GOAL_LINES;
+        else if (ourScore === theirScore && theirScore >= 2) pool = COMEBACK_LEVELLER_LINES;
+      }
+      const template = (pool ? rng.pick(pool) : null)
+        ?? rng.pick(GOAL_LINES[ev.type])
+        ?? '{scorer} scores. ({score})';
+      out.push(`${minute}': ${template
+        .replace(/\{scorer\}/g, nameOf(ev.playerId))
+        .replace('{score}', score)
+        .replace('{minute}', String(ev.minute))
+        .replace('{age}', String(scorerAge))}`);
       continue;
     }
     if (ev.type === 'shot_missed' && ev.clubId === clubId && rng.chance(0.3)) {
@@ -414,6 +463,9 @@ export function buildSundayNarrative(input: NarrativeInput): string[] {
       out.push(`${minute}': ${(rng.pick(INJURY_LINES) ?? '').replace(/\{player\}/g, nameOf(ev.playerId))}`);
     }
   }
+
+  if (!htPushed) out.push(`HT ${home}-${away}.`);
+  out.push(`FT ${home}-${away}.`);
 
   // One or two ambient beats, placed at the end so they never interleave with
   // a factual sequence and read as commentary on it.

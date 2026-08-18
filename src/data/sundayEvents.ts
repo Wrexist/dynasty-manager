@@ -45,6 +45,13 @@ export interface SundayEventContext {
   subject: SundayEventPerson | null;
   /** An unhappy squad member, when there is one. */
   unhappy: SundayEventPerson | null;
+  /** Chain flags currently set: name → week set. See `SundayState.flags`. */
+  flags: Record<string, number>;
+  /** The player a live chain flag points at, when one does. Chain steps use
+   *  this instead of the random `subject` so a story stays about ONE person. */
+  flagged: SundayEventPerson | null;
+  /** Name of the player who defected to the rival, when one has. */
+  defectorName: string | null;
 }
 
 /** The slice of a squad member an event definition can see. */
@@ -95,6 +102,16 @@ export interface SundayEventEffects {
   subjectAttrDelta?: number;
   /** Wipe the coming match's home advantage — the pitch is unplayable. */
   pitchDamage?: number;
+  /** Make the subject a REAL promise of a start — enforced by the match, and
+   *  broken promises cost more than kept ones pay. */
+  promiseStart?: boolean;
+  /** The subject leaves FOR THE RIVAL: recorded on the rivalry (defector,
+   *  story, heat) so the feud remembers him. The sharpest departure. */
+  subjectLeavesForRival?: boolean;
+  /** Set / clear a chain flag. `{subject}` in the name is replaced with the
+   *  event's subject id, which is how a chain stays about one player. */
+  setFlag?: string;
+  clearFlag?: string;
 }
 
 export interface SundayEventChoiceDef {
@@ -161,9 +178,9 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
     condition: ctx => !!ctx.captain && ctx.captain.benchedStreak >= 1,
     choices: [
       {
-        id: 'start', label: 'Start him', hint: 'He gets his way. The squad notices.',
-        effects: { subjectHappiness: 14, morale: -2, squadHappiness: -2 },
-        outcome: 'He starts. He is not quite fit, and two people mention it in the car park.',
+        id: 'start', label: 'Tell him he starts', hint: 'A real promise. Break it and he will know.',
+        effects: { subjectHappiness: 8, morale: -2, squadHappiness: -2, promiseStart: true },
+        outcome: 'He gets his way, and everyone within earshot knows it.',
       },
       {
         id: 'bench', label: 'He is on the bench', hint: 'Hold the line. He will sulk.',
@@ -190,8 +207,8 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
     condition: ctx => !!ctx.subject && ctx.subject.benchedStreak >= 3,
     choices: [
       {
-        id: 'promise', label: 'Promise him a start', hint: 'Buys goodwill you then owe.',
-        effects: { subjectHappiness: 12, subjectCommitment: 1 },
+        id: 'promise', label: 'Promise him a start', hint: 'A real promise. The game will hold you to it.',
+        effects: { subjectHappiness: 6, subjectCommitment: 1, promiseStart: true },
         outcome: 'He is visibly relieved. He will remember this, one way or the other.',
       },
       {
@@ -489,6 +506,69 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
       { id: 'confront', label: 'Confront their manager', hint: 'Satisfying. Escalates things.', effects: { rivalHeat: 2, morale: 3 }, outcome: 'It gets heated in a car park. Nothing is resolved and everyone enjoys it.' },
       { id: 'talk', label: 'Talk to {name} instead', hint: 'Deals with the actual problem.', successChance: ctx => 0.45 + (ctx.subject ? ctx.subject.commitment * 0.02 : 0), effects: { subjectHappiness: 12 }, outcome: 'He tells you exactly what was said, and that he told them where to go.' , failEffects: { subjectHappiness: -6 }, failOutcome: 'He is non-committal, which tells you everything.' },
       { id: 'poach-back', label: 'Go after one of theirs', hint: 'An eye for an eye.', effects: { rivalHeat: 3, spawnRecruit: 'poached' }, outcome: 'You make a call of your own. Somebody from their squad is suddenly very interested.' },
+    ],
+  },
+
+  {
+    id: 'rival-sniffing',
+    category: 'rivalry',
+    title: '{rival} are sniffing around {name}',
+    body: '{name} has been quiet lately, and now their manager has been seen buying him a pint. Twice. He has not mentioned it, which is somehow worse.',
+    weight: 8,
+    needsSubject: true,
+    condition: ctx => ctx.hasRival && ctx.rivalHeat >= 4 && !!ctx.subject && ctx.subject.happiness < 55
+      && !Object.keys(ctx.flags).some(f => f.startsWith('wants-out:')),
+    cooldown: 12,
+    choices: [
+      {
+        id: 'talk', label: 'Sit him down and talk it through', hint: 'Depends on what is left between you.',
+        successChance: ctx => 0.4 + (ctx.subject ? ctx.subject.happiness * 0.005 : 0),
+        effects: { subjectHappiness: 10 },
+        outcome: 'He lays it all out — playing time, the drive, the pitch. You listen. It helps.',
+        failEffects: { setFlag: 'wants-out:{subject}', subjectHappiness: -4 },
+        failOutcome: 'He says the right words in the wrong tone. This is not finished.',
+      },
+      {
+        id: 'confront-rival', label: 'Confront their manager about it', hint: 'Feels great. Fixes nothing.',
+        effects: { rivalHeat: 2, morale: 2, setFlag: 'wants-out:{subject}' },
+        outcome: 'A frank exchange of views in a car park. Their manager loved every second of it.',
+      },
+      {
+        id: 'ignore', label: 'Pretend you have not noticed', hint: 'Maybe it blows over.',
+        effects: { setFlag: 'wants-out:{subject}' },
+        outcome: 'You say nothing. He notices that too.',
+      },
+    ],
+  },
+  {
+    id: 'rival-bid',
+    category: 'rivalry',
+    title: 'They have actually asked for {name}',
+    body: 'It is out in the open now: {rival} want {name}, {name} knows it, and the whole changing room is watching how you handle it.',
+    weight: 20,
+    needsSubject: true,
+    condition: ctx => ctx.hasRival && !!ctx.flagged,
+    cooldown: 6,
+    choices: [
+      {
+        id: 'fight', label: 'Fight for him', hint: 'A speech, his subs covered, first name on the sheet.',
+        available: ctx => ctx.balance >= 30,
+        successChance: ctx => 0.35 + (ctx.flagged ? ctx.flagged.commitment * 0.03 : 0),
+        effects: { money: -30, subjectHappiness: 16, clearFlag: 'wants-out:{subject}', morale: 3 },
+        outcome: 'He stays. The speech gets retold for weeks, improving each time.',
+        failEffects: { money: -30, subjectLeavesForRival: true },
+        failOutcome: 'He hears you out, shakes your hand, and signs for them on Tuesday.',
+      },
+      {
+        id: 'promise', label: 'Promise him a start every week he turns up', hint: 'A real promise. The game holds you to it.',
+        effects: { promiseStart: true, subjectHappiness: 8, clearFlag: 'wants-out:{subject}' },
+        outcome: 'That was all he wanted to hear. Now you have to mean it.',
+      },
+      {
+        id: 'release', label: 'Let him go to them', hint: 'The feud gets a face.',
+        effects: { subjectLeavesForRival: true },
+        outcome: 'Done. He will be in their colours on Sunday, and everyone knows what that fixture becomes now.',
+      },
     ],
   },
 

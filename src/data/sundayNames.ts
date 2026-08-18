@@ -194,6 +194,30 @@ export const SUNDAY_ABSENCE_NOTES: Readonly<Record<string, readonly string[]>> =
   ],
 };
 
+// ── Sunday morning ──────────────────────────────────────────────────────────
+//
+// Arrival beats: what the manager learns standing in the car park at twenty
+// to eleven. `{name}` is the player. Discovery lines never state the excuse —
+// that arrives (or does not) after the match.
+
+export const SUNDAY_ARRIVAL_TURNED_UP: readonly string[] = [
+  '{name} has turned up after all, still doing his laces.',
+  '{name} made it. He looks like he ran here.',
+  '{name} is here — "told you I would be".',
+];
+
+export const SUNDAY_ARRIVAL_CRIED_OFF: readonly string[] = [
+  '{name} has cried off. Ten to eleven, of course.',
+  '{name} is not coming. The message arrived as everyone else got changed.',
+  '{name} sends his apologies, which do not head a corner out.',
+];
+
+export const SUNDAY_ARRIVAL_NO_SHOW: readonly string[] = [
+  '{name} has not arrived. Phone going straight to voicemail.',
+  'No sign of {name}. Someone drove past his house. Curtains shut.',
+  '{name} is simply not here. The group chat is being drafted.',
+];
+
 // ── Match ambience ──────────────────────────────────────────────────────────
 //
 // These are decoration ONLY. They never assert anything about the scoreline,
@@ -292,6 +316,18 @@ export const SUNDAY_RIVALRY_NAMES: readonly string[] = [
   'The Retail Park Derby', 'The Rec Derby', 'The Ring Road Derby',
   'The Old Firm (Pitch 4)', 'The Bypass Clasico', 'The Car Park Classic',
   'The Battle of the Bottom Pitch', 'The Sunday Special',
+];
+
+/** How the rival manager carries himself — picked once per rivalry. */
+export const SUNDAY_RIVAL_MANAGER_STYLES: readonly string[] = [
+  'Runs a tight 4-4-2 and an even tighter grudge list.',
+  'Wears a suit on the touchline. To a rec pitch. Every week.',
+  'Screams for ninety minutes and buys everyone a drink after.',
+  'Claims to have coached "at a decent level". Nobody can verify it.',
+  'Has a laminated set-piece folder and is not ashamed of it.',
+  'Protests every throw-in. Every single one.',
+  'Poaches players with the shamelessness of a man who has never been punched.',
+  'Genuinely good manager, which makes it so much worse.',
 ];
 
 export const SUNDAY_TAUNTS: readonly string[] = [

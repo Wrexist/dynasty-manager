@@ -88,6 +88,20 @@ export function validateSundayState(input: ValidateSundayInput): SundayValidatio
       if (m.availability.status === 'out' && m.availability.reason == null) push(`${m.playerId} is out with no reason`);
       if (m.availability.status === 'available' && m.availability.reason != null) push(`${m.playerId} is available but carries a reason`);
       if (m.availability.weeksRemaining < 0) push(`negative absence length for ${m.playerId}`);
+
+      // Sunday v2 — the story fields.
+      if (!Array.isArray(m.memories)) push(`memories missing for ${m.playerId}`);
+      else {
+        if (m.memories.length > 20) push(`memories unbounded for ${m.playerId} (${m.memories.length})`);
+        for (const mem of m.memories) {
+          if (!finite(mem.weight) || mem.weight < 1 || mem.weight > 10) push(`memory weight out of range for ${m.playerId}`);
+          if (!mem.text) push(`empty memory text for ${m.playerId}`);
+        }
+      }
+      if (m.promise) {
+        if (m.promise.kind !== 'start') push(`unknown promise kind for ${m.playerId}`);
+        if (!finite(m.promise.dueWeek) || m.promise.dueWeek < m.promise.madeWeek) push(`promise due before it was made for ${m.playerId}`);
+      }
     }
 
     if (club) {
@@ -217,6 +231,38 @@ export function validateSundayState(input: ValidateSundayInput): SundayValidatio
     // ── Pending event ──────────────────────────────────────────────────────
     if (sunday.pendingEvent && sunday.pendingEvent.choices.length === 0) {
       push('pending event has no choices — the player would be stuck');
+    }
+
+    // ── Arrival (v2) ────────────────────────────────────────────────────────
+    if (sunday.arrival) {
+      const a = sunday.arrival;
+      if (a.week !== week) push(`arrival is for week ${a.week} but the state is at week ${week}`);
+      const present = new Set<string>();
+      for (const id of a.presentIds) {
+        if (present.has(id)) push(`arrival names ${id} twice`);
+        present.add(id);
+        if (!seen.has(id)) push(`arrival names ${id}, who is not in the squad`);
+        const m = sunday.squad.find(x => x.playerId === id);
+        if (m && m.availability.status === 'out') push(`arrival presents ${id}, who is unavailable`);
+      }
+      for (const id of a.benchIds) {
+        if (present.has(id)) push(`arrival benches ${id}, who is also present in the XI`);
+        if (!seen.has(id)) push(`arrival benches ${id}, who is not in the squad`);
+      }
+      if (a.forcedRingers < 0 || a.optionalRingers < 0) push('arrival ringers negative');
+      if (a.ringersHired != null && a.ringersHired > a.optionalRingers) push('arrival hired more ringers than were on offer');
+    }
+
+    // ── Chain flags (v2) ────────────────────────────────────────────────────
+    for (const [name, setWeek] of Object.entries(sunday.flags ?? {})) {
+      if (!finite(setWeek)) push(`flag ${name} has a non-numeric week`);
+    }
+
+    // ── Rivalry (v2) ────────────────────────────────────────────────────────
+    if (sunday.rivalry) {
+      if (!sunday.rivalry.managerName) push('rivalry has no manager name');
+      if (!Array.isArray(sunday.rivalry.story)) push('rivalry story missing');
+      else if (sunday.rivalry.story.length > 12) push('rivalry story unbounded');
     }
   } catch (err) {
     problems.push(`validator threw: ${err instanceof Error ? err.message : String(err)}`);
