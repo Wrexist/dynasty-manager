@@ -267,3 +267,19 @@ export const SUNDAY_NEWS_ICON = {
 } as const satisfies Record<string, LucideIcon>;
 
 export type SundayNewsKind = keyof typeof SUNDAY_NEWS_ICON;
+
+/**
+ * News-feed kind → the glyph's colour.
+ *
+ * Paired with the map above for the same reason `SUNDAY_EVENT_CATEGORY_TONE`
+ * is paired with its icons: the tone is what lets a merged feed be scanned
+ * without reading it, and a kind with a glyph but no tone would silently
+ * inherit whatever the row happened to be painted.
+ */
+export const SUNDAY_NEWS_TONE: Record<SundayNewsKind, string> = {
+  week: 'text-muted-foreground',
+  event: 'text-sky-300',
+  record: 'text-primary',
+  rivalry: 'text-orange-300',
+  memory: 'text-fuchsia-300',
+};

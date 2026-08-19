@@ -68,6 +68,8 @@ export const en = {
   'sunday.hub.pickTeam': 'Pick the team',
   'sunday.hub.nextWeek': 'Next week',
   'sunday.hub.weekLog': 'What happened',
+  'sunday.hub.more': 'More',
+  'sunday.hub.less': 'Less',
   'sunday.hub.quickActions': 'Club business',
   'sunday.hub.fundraiser': 'Fundraiser',
   'sunday.hub.chaseSubs': 'Chase subs',
