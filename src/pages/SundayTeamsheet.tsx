@@ -24,6 +24,7 @@ import {
   SUNDAY_TACTICS, getSundayTactic,
 } from '@/config/sundayLeague';
 import { sundayTacticFit } from '@/utils/sunday/match';
+import { sundaySideIsSettled } from '@/utils/sunday/primaryAction';
 import { canPlayPosition, FORMATION_POSITIONS } from '@/types/game';
 import type { Player, SundaySquadMember, SundayTacticId } from '@/types/game';
 
@@ -128,15 +129,12 @@ const SundayTeamsheet = () => {
   const tactic = getSundayTactic(sunday.tactic);
   const fit = sundayTacticFit(sunday.tactic, xiRows.map(r => r.player));
 
-  // Once the guests have been booked and paid for, the side is fixed — the
-  // store refuses the edit, so the screen has to say why rather than swallow
-  // the tap. See `arrivalGuard` in the Sunday actions.
   const callsLeft = Math.max(0, SUNDAY_RINGROUND_ATTEMPTS_PER_WEEK - sunday.ringRoundsThisWeek);
 
-  const sheetLocked = !!sunday.arrival
-    && sunday.arrival.week === week
-    && sunday.arrival.season === season
-    && sunday.arrival.ringersHired !== null;
+  // Once the morning has happened the side is fixed — the store refuses the
+  // edit, so the screen has to say why rather than swallow the tap. The SAME
+  // predicate the store uses, so the two cannot drift apart again.
+  const sheetLocked = sundaySideIsSettled(sunday, season, week);
 
   const apply = (xi: string[], bench: string[]) => setTeamsheet(xi, bench);
 

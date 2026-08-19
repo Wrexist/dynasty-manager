@@ -16,6 +16,7 @@ import { render, screen } from '@testing-library/react';
 import SundayTeamsheet from '@/pages/SundayTeamsheet';
 import { useGameStore } from '@/store/gameStore';
 import { SUNDAY_MIN_START } from '@/config/sundayLeague';
+import { en } from '@/i18n/locales/en';
 
 vi.mock('@/utils/haptics', () => ({
   hapticLight: vi.fn(), hapticMedium: vi.fn(), hapticHeavy: vi.fn(),
@@ -61,5 +62,20 @@ describe('SundayTeamsheet renders valid, reachable DOM', () => {
   it('says out loud that seven, not eleven, is the number that matters', () => {
     render(<SundayTeamsheet />);
     expect(screen.getByText(new RegExp(`${SUNDAY_MIN_START} is the number that matters`))).toBeTruthy();
+  });
+
+  it('says the side is settled once the morning has happened', async () => {
+    // The screen and the store have to lock together. The screen used to ask
+    // "have guests been paid for?" — which is null whenever there were no
+    // optional guests to decide about — so on most weeks it stayed editable
+    // while the store refused every edit, and the tap vanished with no reason
+    // given.
+    await useGameStore.getState().autoPickSundayTeamsheet();
+    const arrival = await useGameStore.getState().arriveSundayMatch();
+    expect(arrival).not.toBeNull();
+    expect(arrival!.ringersHired).toBeNull();
+
+    render(<SundayTeamsheet />);
+    expect(screen.getByText(en['sunday.sheet.arrivalLocked'])).toBeTruthy();
   });
 });

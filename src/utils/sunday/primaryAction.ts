@@ -1,5 +1,5 @@
 /**
- * The one thing to do this week.
+ * What the manager may do this week, and the one thing he probably should.
  *
  * Sunday League has exactly one primary action at any moment and it changes
  * with the state of the week: name a side, play the match, move on, or look
@@ -12,6 +12,25 @@
 import { SUNDAY_MIN_START } from '@/config/sundayLeague';
 import type { TranslationKey } from '@/i18n';
 import type { GameScreen, SundayState } from '@/types/game';
+
+/**
+ * The side is settled and can no longer be changed.
+ *
+ * True from the moment the Sunday morning resolves for this week — the arrival
+ * tells the manager who cried off, so re-picking after reading it is naming a
+ * team with the answers in front of you — and while a match is paused at half
+ * time, when the men on the pitch are fixed on the pause.
+ *
+ * Lives here, pure, because BOTH the store action and the Teamsheet screen
+ * have to agree about it. They did not: the screen kept asking "have guests
+ * been paid for?" after the store stopped, so a tap the store refused was
+ * swallowed with no explanation.
+ */
+export function sundaySideIsSettled(sunday: SundayState, season: number, week: number): boolean {
+  const forThisWeek = (x: { season: number; week: number } | null | undefined) =>
+    !!x && x.season === season && x.week === week;
+  return forThisWeek(sunday.arrival) || forThisWeek(sunday.halfTime);
+}
 
 export type SundayPrimaryKind = 'review' | 'play' | 'pick' | 'advance';
 

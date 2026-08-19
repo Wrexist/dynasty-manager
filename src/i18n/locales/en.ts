@@ -115,7 +115,7 @@ export const en = {
   'sunday.sheet.warnTired': '{n} players are carrying knocks or low fitness.',
   'sunday.sheet.warnPromise': 'You promised {name} a start. He is not in the XI.',
   'sunday.sheet.warnNoBench': 'No substitutes. Anyone who goes off, stays off.',
-  'sunday.sheet.arrivalLocked': 'The guests are booked and paid for. This is the side.',
+  'sunday.sheet.arrivalLocked': 'They are already here. This is the side.',
   'sunday.sheet.tactic': 'How you are playing',
   'sunday.sheet.tacticFit': 'Suits this XI',
   'sunday.sheet.tacticFitHint': 'Measured against your own squad, not the league. Above 50% means this XI suits the shape better than its average.',

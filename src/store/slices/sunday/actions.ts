@@ -58,6 +58,7 @@ import {
 } from '@/utils/sunday/relationships';
 import { definingMemory, makeMemory, rememberMoment } from '@/utils/sunday/memories';
 import { validateSundayState } from '@/utils/sunday/invariants';
+import { sundaySideIsSettled } from '@/utils/sunday/primaryAction';
 import { track } from '@/utils/analytics';
 import { addGameBreadcrumb } from '@/utils/sentry';
 import { applySundayWorld, buildSundayWorld, type StartSundayOptions } from './boot';
@@ -192,9 +193,7 @@ export function setSundayCaptain(set: Set, get: Get, playerId: string) {
  * say is happening.
  */
 function arrivalGuard(state: GameState, sunday: SundayState): { locked: boolean } {
-  const forThisWeek = (x: { season: number; week: number } | null | undefined) =>
-    !!x && x.season === state.season && x.week === state.week;
-  return { locked: forThisWeek(sunday.arrival) || forThisWeek(sunday.halfTime) };
+  return { locked: sundaySideIsSettled(sunday, state.season, state.week) };
 }
 
 /** English, deliberately: same register as every other message these actions
