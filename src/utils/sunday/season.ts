@@ -62,6 +62,43 @@ export function sundayCupWeeks(divisionId: SundayDivisionId): number[] {
 }
 
 /**
+ * The weeks with no fixture at all.
+ *
+ * PLACED IN THE MIDDLE THIRD, deliberately. They used to be whatever was left
+ * over after the league rounds had been laid out from week one, which put both
+ * of them at the END: a Division Four season ran fixtures to week 16, then
+ * weeks 17 and 18 were empty, then the cup final on 19. A club knocked out of
+ * the cup therefore finished its season with three consecutive Sundays on
+ * which nothing whatsoever happened — the worst possible place for a break,
+ * because it is the run-in.
+ *
+ * In the middle they are what a break is for: a fortnight to fundraise, let
+ * knocks heal and let the dressing room settle, in the part of the season
+ * where the pitch is worst and the squad thinnest.
+ */
+export function sundayFreeWeeks(divisionId: SundayDivisionId): number[] {
+  const total = sundaySeasonWeeks(divisionId);
+  const cupWeeks = new Set(sundayCupWeeks(divisionId));
+  const out: number[] = [];
+  const first = Math.max(2, Math.round(total / 3));
+  const last = Math.max(first, Math.min(total - 1, Math.round((total * 2) / 3)));
+  const span = last - first;
+  for (let i = 0; i < SUNDAY_FREE_WEEKS_PER_SEASON; i++) {
+    const spread = SUNDAY_FREE_WEEKS_PER_SEASON > 1
+      ? Math.round((span * i) / (SUNDAY_FREE_WEEKS_PER_SEASON - 1))
+      : Math.round(span / 2);
+    // Walk forward off a cup week or a week already taken. Bounded by the
+    // season's length: a misconfigured calendar surfaces as a short list here
+    // and trips the fixture builder's own guard rather than silently
+    // overlapping a cup tie.
+    let week = first + spread;
+    while (week <= total && (cupWeeks.has(week) || out.includes(week))) week++;
+    if (week <= total) out.push(week);
+  }
+  return out.sort((a, b) => a - b);
+}
+
+/**
  * Build a season's league fixtures: a full double round-robin.
  *
  * Rolled by hand rather than reusing `generateFixtures` from
@@ -72,10 +109,12 @@ export function sundayCupWeeks(divisionId: SundayDivisionId): number[] {
  * easy to mirror a second time by mistake and end up with 112 fixtures in a
  * 14-round season.
  *
- * Rounds are laid onto the weeks that are NOT cup weeks, in order, so a league
- * fixture can never collide with a cup tie — the collision class the elite
- * game documents at length in `src/data/cup.ts` is designed out here rather
- * than choreographed around.
+ * Rounds are laid onto the weeks that are neither cup weeks nor free weeks, in
+ * order, so a league fixture can never collide with a cup tie — the collision
+ * class the elite game documents at length in `src/data/cup.ts` is designed
+ * out here rather than choreographed around — and the two breaks land in the
+ * middle of the season rather than stranding empty Sundays in the run-in (see
+ * `sundayFreeWeeks`).
  */
 export function buildSundayFixtures(rng: SundayRng, divisionId: SundayDivisionId, clubIds: readonly string[]): Match[] {
   const teams = rng.shuffle(clubIds);
@@ -86,10 +125,11 @@ export function buildSundayFixtures(rng: SundayRng, divisionId: SundayDivisionId
   const roundsPerHalf = n - 1;
 
   const cupWeeks = new Set(sundayCupWeeks(divisionId));
+  const freeWeeks = new Set(sundayFreeWeeks(divisionId));
   const total = sundaySeasonWeeks(divisionId);
   const playableWeeks: number[] = [];
   for (let w = 1; w <= total && playableWeeks.length < roundsPerHalf * 2; w++) {
-    if (!cupWeeks.has(w)) playableWeeks.push(w);
+    if (!cupWeeks.has(w) && !freeWeeks.has(w)) playableWeeks.push(w);
   }
   // A short calendar (only possible if the constants are edited badly) must not
   // silently pile fixtures onto the last week — pad with weeks past the end so

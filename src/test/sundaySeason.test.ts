@@ -10,15 +10,15 @@ import { useGameStore } from '@/store/gameStore';
 import {
   advanceSundayCup, buildSundayFixtures, buildSundayTable, developSundayPlayer,
   drawSundayCup, isSundayCupRoundComplete, qualifiesAsLegend, recordSundayRecord,
-  resolveSundayOutcome, sundayCupRoundName, sundayCupWeeks, sundayLeagueRounds,
-  sundayPosition, sundaySeasonWeeks,
+  resolveSundayOutcome, sundayCupRoundName, sundayCupWeeks, sundayFreeWeeks,
+  sundayLeagueRounds, sundayPosition, sundaySeasonWeeks,
 } from '@/utils/sunday/season';
 import { createSundayRng } from '@/utils/sunday/rng';
 import { generateSundayDivision, generateSundayPlayer } from '@/utils/sunday/generation';
 import { assertSundayState } from '@/utils/sunday/invariants';
 import {
   SUNDAY_CUP_ROUNDS, SUNDAY_DIVISIONS, getSundayDivision, sundayOppositionLift,
-  SUNDAY_OPP_SCALE_MAX, SUNDAY_REPUTATION_START,
+  SUNDAY_OPP_SCALE_MAX, SUNDAY_REPUTATION_START, SUNDAY_FREE_WEEKS_PER_SEASON,
 } from '@/config/sundayLeague';
 import type { Match } from '@/types/game';
 
@@ -188,6 +188,39 @@ describe('the table', () => {
     const table = buildSundayTable([], ['a', 'b']);
     expect(sundayPosition(table, 'a')).toBeGreaterThan(0);
     expect(sundayPosition(table, 'nope')).toBe(table.length);
+  });
+});
+
+describe('the two free Sundays', () => {
+  it('puts the breaks in the middle third, never in the run-in', () => {
+    for (const div of SUNDAY_DIVISIONS) {
+      const total = sundaySeasonWeeks(div.id);
+      const free = sundayFreeWeeks(div.id);
+      expect(free, div.name).toHaveLength(SUNDAY_FREE_WEEKS_PER_SEASON);
+      for (const w of free) {
+        // Middle third, with a week of slack either side for the cup-week
+        // walk-forward. The bug this closes: both breaks used to fall at the
+        // END, so a club out of the cup finished the season with three
+        // consecutive Sundays on which nothing happened.
+        expect(w, `${div.name} week ${w} of ${total}`).toBeGreaterThan(total * 0.28);
+        expect(w, `${div.name} week ${w} of ${total}`).toBeLessThan(total * 0.78);
+      }
+      // Never on a cup week: a break has to be a break.
+      for (const w of sundayCupWeeks(div.id)) expect(free).not.toContain(w);
+    }
+  });
+
+  it('leaves no empty Sunday anywhere else in the calendar', () => {
+    for (const div of SUNDAY_DIVISIONS) {
+      const ids = Array.from({ length: div.teamCount }, (_, i) => `c${i}`);
+      const fixtures = buildSundayFixtures(createSundayRng(9, 0), div.id, ids);
+      const total = sundaySeasonWeeks(div.id);
+      const busy = new Set([...fixtures.map(f => f.week), ...sundayCupWeeks(div.id)]);
+      const empty: number[] = [];
+      for (let w = 1; w <= total; w++) if (!busy.has(w)) empty.push(w);
+      // Exactly the two designed breaks, and they are the ones in the middle.
+      expect(empty, div.name).toEqual(sundayFreeWeeks(div.id));
+    }
   });
 });
 
