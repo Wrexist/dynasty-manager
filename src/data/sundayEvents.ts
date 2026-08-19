@@ -84,6 +84,18 @@ export interface SundayEventContext {
   /** The club owns goal nets, so nobody has to take anybody's word for it.
    *  Read by `ref-decision` — see `SundayUpgradeEffectKey`. */
   hasNets: boolean;
+  /**
+   * There is a fixture on the coming Sunday — league or cup.
+   *
+   * An event fires on the advance and is read at the start of the NEXT week,
+   * before that week's kick-off, and the season has two or three weeks with no
+   * fixture at all. Any definition whose text presupposes a kick-off ("gone
+   * down in the warm-up", "Sunday is a nine-thirty", "the referee wants paying
+   * in cash on Sunday") has to say so in its `condition`, or it will describe
+   * an afternoon that is not going to happen. `sundayEvents.test.ts` enforces
+   * the declaration for every body that reads that way.
+   */
+  hasFixture: boolean;
 }
 
 /** The slice of a squad member an event definition can see. */
@@ -514,7 +526,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
     needsSubject: true,
     // The man with the kit is very often the man who has stopped turning up.
     subjectFilter: () => true,
-    condition: ctx => ctx.availableCount >= 7,
+    condition: ctx => ctx.hasFixture && ctx.availableCount >= 7,
     choices: [
       {
         id: 'buy', label: 'Emergency bibs from the leisure centre (£25)', hint: 'Solves it. Looks ridiculous.',
@@ -548,7 +560,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
     // A goalkeeper, or it is not this event. If nobody who can go in goal is
     // available, the week simply produces something else.
     subjectFilter: p => p.available && p.position === 'GK',
-    condition: ctx => ctx.availableCount >= 8,
+    condition: ctx => ctx.hasFixture && ctx.availableCount >= 8,
     cooldown: 8,
     choices: [
       {
@@ -739,7 +751,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
     body: '{name} has gone down in the warm-up. Not in a challenge. Not even under pressure. He was doing a stretch he saw on the internet.',
     weight: 6,
     needsSubject: true,
-    condition: () => true,
+    condition: ctx => ctx.hasFixture,
     cooldown: 12,
     // Was a pure acknowledgement: the dice had already decided and the modal
     // was a notification with a button. There is a real call in it — you have
@@ -1098,7 +1110,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
     weight: 7,
     needsSubject: true,
     subjectFilter: p => p.available && p.archetype === 'glass',
-    condition: ctx => !!ctx.subject,
+    condition: ctx => ctx.hasFixture && !!ctx.subject,
     cooldown: 10,
     choices: [
       {
@@ -1134,7 +1146,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
     weight: 6,
     needsSubject: true,
     subjectFilter: p => p.available && p.archetype === 'prospect',
-    condition: ctx => !!ctx.subject && ctx.availableCount >= 9,
+    condition: ctx => ctx.hasFixture && !!ctx.subject && ctx.availableCount >= 9,
     cooldown: 12,
     choices: [
       {
@@ -1201,7 +1213,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
     body: 'The cup tie is still being replayed in the group chat frame by frame. Sunday is a nine-thirty against a side in mid-table, and not one person has mentioned it.',
     weight: 8,
     // Reads the CUP, which no event did before the cup chain existed.
-    condition: ctx => ctx.cupRoundsWon >= 1 && ctx.week > 4,
+    condition: ctx => ctx.hasFixture && ctx.cupRoundsWon >= 1 && ctx.week > 4,
     cooldown: 12,
     choices: [
       {
@@ -1255,7 +1267,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
     title: 'There is nothing in the account',
     body: 'The balance is £{balance}. The referee wants paying in cash on Sunday, and he does not take excuses.',
     weight: 12,
-    condition: ctx => ctx.balance < 40,
+    condition: ctx => ctx.hasFixture && ctx.balance < 40,
     // Eight, not five. At five this fired often enough to be a standing income
     // stream rather than a crisis.
     cooldown: 8,
@@ -1550,7 +1562,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
     title: 'The pitch is under water',
     body: 'There is standing water across most of the pitch and a man from the council is standing in the middle of it, shaking his head.',
     weight: 6,
-    condition: ctx => ctx.week > 4,
+    condition: ctx => ctx.hasFixture && ctx.week > 4,
     cooldown: 10,
     choices: [
       // Rebalanced now that `pitchDamage` is a real cost. Forking the pitch was
@@ -1707,7 +1719,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
     body: '{name}, a {job}, has confirmed that the only footwear he owns is a pair of moulded studs he bought in 2014, and that Sunday\'s frozen pitch does not worry him in the slightest.',
     weight: 5,
     needsSubject: true,
-    condition: () => true,
+    condition: ctx => ctx.hasFixture,
     cooldown: 12,
     choices: [
       {

@@ -61,7 +61,9 @@ import { validateSundayState } from '@/utils/sunday/invariants';
 import { track } from '@/utils/analytics';
 import { addGameBreadcrumb } from '@/utils/sentry';
 import { applySundayWorld, buildSundayWorld, type StartSundayOptions } from './boot';
-import { autoPickSunday, finishSundayMatch, playSundayFirstHalf, runSundayMatch } from './matchday';
+import {
+  autoPickSunday, findSundayFixture, finishSundayMatch, playSundayFirstHalf, runSundayMatch,
+} from './matchday';
 import { advanceSundayWeek } from './week';
 import { rolloverSundaySeason } from './seasonEnd';
 import { clamp, clampRound, logWeek, memberOf, sundayMessage, updateMember, withRng, type Get, type Set } from './shared';
@@ -102,6 +104,10 @@ function buildEventContext(state: GameState, sunday: SundayState): SundayEventCo
     hasRival: !!sunday.rivalry,
     rivalHeat: sunday.rivalry?.heat ?? 0,
     hasSponsor: sunday.sponsors.length > 0,
+    // The event was offered on the advance against NEXT week's fixture; by the
+    // time the manager answers it, that Sunday is this one. Re-derived rather
+    // than carried on the instance, like every other field here.
+    hasFixture: !!findSundayFixture(sunday, state.fixtures, state.week, state.playerClubId),
     subsOwed: sunday.squad.reduce((n, m) => n + m.subsOwed, 0),
     weeksInDebt: sunday.weeksInDebt,
     ...cup,

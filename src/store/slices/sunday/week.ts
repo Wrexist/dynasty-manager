@@ -567,6 +567,16 @@ export function advanceSundayWeek(set: Set, get: Get): void {
   const nextWeek = week + 1;
   const totalWeeks = sundaySeasonWeeks(sunday.divisionId);
   const seasonComplete = nextWeek > totalWeeks;
+  // WHETHER THERE IS A MATCH TO BE ABOUT. An event fired here is read at the
+  // start of `nextWeek`, before that week's kick-off, so the fixture it may
+  // presuppose is next week's — and the season has two or three weeks with no
+  // fixture at all. Half a dozen definitions are written about the coming
+  // Sunday ("gone down in the warm-up", "the referee wants paying in cash on
+  // Sunday"); firing them into a free week is the narrative-factuality bug
+  // this mode has already been bitten by twice.
+  const nextFixture = fixtures.find(m => m.week === nextWeek && (m.homeClubId === clubId || m.awayClubId === clubId));
+  const nextCupTie = cup?.ties.find(t => t.week === nextWeek && !t.played && (t.homeClubId === clubId || t.awayClubId === clubId));
+  const hasFixture = !!nextFixture || !!nextCupTie;
 
   // ── 7. An event ──────────────────────────────────────────────────────────
   let pendingEvent = sunday.pendingEvent;
@@ -627,6 +637,7 @@ export function advanceSundayWeek(set: Set, get: Get): void {
       hasRival: !!sunday.rivalry,
       rivalHeat: sunday.rivalry?.heat ?? 0,
       hasSponsor: sponsors.length > 0,
+      hasFixture,
       subsOwed: squad.reduce((n, m) => n + m.subsOwed, 0),
       // The books as the fold clock sees them: this week's counter, not last
       // week's, so the crisis chain opens on the state the player is looking at.
@@ -690,8 +701,8 @@ export function advanceSundayWeek(set: Set, get: Get): void {
   }
 
   // ── 8. Next week ─────────────────────────────────────────────────────────
-  const nextFixture = fixtures.find(m => m.week === nextWeek && (m.homeClubId === clubId || m.awayClubId === clubId));
-  const nextCupTie = cup?.ties.find(t => t.week === nextWeek && !t.played && (t.homeClubId === clubId || t.awayClubId === clubId));
+  // `nextFixture` / `nextCupTie` were resolved with the calendar above, so the
+  // event roll could be gated on them.
   const away = nextCupTie ? nextCupTie.awayClubId === clubId : nextFixture ? nextFixture.awayClubId === clubId : false;
   // Turnout rises when the fixture matters. A cup tie and the derby always
   // did; a league match that mathematically settles promotion, the title or

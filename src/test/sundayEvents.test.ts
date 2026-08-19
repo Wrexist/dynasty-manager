@@ -39,6 +39,7 @@ const ctx: SundayEventContext = {
   season: 1, week: 8, balance: 300, reputation: 20, teamMorale: 60,
   squadSize: 15, availableCount: 12, lastResult: 0, winless: 0, winStreak: 0,
   leaguePosition: 4, leagueSize: 8, hasRival: true, rivalHeat: 5, hasSponsor: true,
+  hasFixture: true,
   subsOwed: 40, weeksInDebt: 0, cupAlive: false, cupRoundsWon: 0, cupRoundName: null,
   captain: person, subject: person, unhappy: person,
   flags: {}, chains: [], playerStoryLive: false, clubStoryLive: false,
@@ -49,6 +50,54 @@ describe('event catalogue integrity', () => {
   it('has unique ids', () => {
     const ids = SUNDAY_EVENTS.map(d => d.id);
     expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  /**
+   * Copy that presupposes a kick-off — "gone down in the warm-up", "Sunday is a
+   * nine-thirty", "caked before kick-off", "the referee wants paying in cash on
+   * Sunday". An event fires on the advance and is read at the start of the next
+   * week, and the season has two or three weeks with no fixture at all, so any
+   * definition that reads this way has to declare `ctx.hasFixture` or it will
+   * describe an afternoon that is not going to happen.
+   */
+  const PRESUPPOSES_KICKOFF =
+    /warm-up|kick-off|kick off|nine-thirty|on Sunday|before Sunday|Sunday is|Sunday's|Sunday morning|fixture off the list/i;
+
+  /**
+   * Definitions whose Sunday is in the PAST — "after Sunday, he explained…",
+   * "there was a man on the touchline on Sunday". These are about a match that
+   * has already been played, so a free week does not make them untrue. Every id
+   * here is a deliberate exemption; anything else that reads like a kick-off
+   * has to gate itself.
+   */
+  const RETROSPECTIVE = new Set([
+    'wonderkid-spotted',  // "on Sunday he did something in the warm-up"
+    'wonderkid-scouted',  // "there was a man on the touchline on Sunday"
+    'hothead-row',        // "a full and frank exchange … on Sunday"
+  ]);
+
+  /**
+   * TITLE AND BODY ONLY — the premise the manager is handed. Outcome text is
+   * deliberately not scanned: "both of them turn up on Sunday" describes a
+   * consequence playing out over the coming weeks, which a free week does not
+   * make false. It is the premise that cannot be about a match that will never
+   * be played.
+   */
+  const eventText = (def: (typeof SUNDAY_EVENTS)[number]) => `${def.title} ${def.body}`;
+
+  it('gates every definition that presupposes a kick-off on there being one', () => {
+    const ungated = SUNDAY_EVENTS
+      .filter(def => !RETROSPECTIVE.has(def.id))
+      .filter(def => PRESUPPOSES_KICKOFF.test(eventText(def)))
+      .filter(def => !String(def.condition).includes('hasFixture'))
+      .map(def => def.id);
+    expect(
+      ungated,
+      `these describe a kick-off and can fire into a fixture-free week:\n${ungated.join('\n')}`,
+    ).toEqual([]);
+    // The exemption list may only name events that exist.
+    const ids = new Set(SUNDAY_EVENTS.map(d => d.id));
+    expect([...RETROSPECTIVE].filter(id => !ids.has(id))).toEqual([]);
   });
 
   it('gives every event a title, a body and at least one choice', () => {
@@ -281,6 +330,41 @@ describe('selection', () => {
       fired++;
     }
     expect(fired).toBeGreaterThan(0);
+  });
+
+  it('never offers a kick-off event in a week with no fixture', () => {
+    // Two definitions isolated in turn — everything else cooled right down, the
+    // context tuned so the one under test WOULD fire — with the only difference
+    // being whether there is a Sunday for it to be about. Both are written
+    // about the coming match: a man going down in the warm-up, and a referee
+    // who wants paying in cash on Sunday.
+    const cases: [string, SundayEventContext][] = [
+      ['warm-up-injury', ctx],
+      ['broke', { ...ctx, balance: 10 }],
+    ];
+    for (const [defId, tuned] of cases) {
+      const cooldowns = Object.fromEntries(
+        SUNDAY_EVENTS.filter(d => d.id !== defId).map(d => [d.id, 999]),
+      );
+      const draws = (hasFixture: boolean) => {
+        const fired: string[] = [];
+        for (let i = 0; i < 60; i++) {
+          const ev = pickSundayEvent({
+            rng: createSundayRng(i * 7 + 1, 0),
+            ctx: { ...tuned, hasFixture },
+            subjects: squad, cooldowns, firedOnce: new Set(),
+            week: 8, rivalName: null, clubName: 'c',
+          });
+          if (ev) fired.push(ev.defId);
+        }
+        return fired;
+      };
+      expect(draws(false), `${defId} fired into a fixture-free week`).toEqual([]);
+      expect(
+        draws(true).length,
+        `${defId} never fired at all — the isolation is wrong, not the gate`,
+      ).toBeGreaterThan(0);
+    }
   });
 
   it('does not fire the goalkeeper event when no keeper is available', () => {
