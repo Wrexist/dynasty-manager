@@ -21,9 +21,9 @@ import { cn } from '@/lib/utils';
 import { formatMoney } from '@/utils/helpers';
 import {
   SUNDAY_UPGRADES, getSundayPersonality, sundayUpgradeCost,
-  SUNDAY_UPGRADE_UPKEEP_PER_LEVEL, SUNDAY_UPGRADE_MOTHBALL_REFUND,
+  SUNDAY_UPGRADE_MOTHBALL_REFUND,
 } from '@/config/sundayLeague';
-import { splitLedger, sundayWeeklyBurn } from '@/utils/sunday/finance';
+import { splitLedger, sundayUpgradeUpkeep, sundayWeeklyBurn } from '@/utils/sunday/finance';
 
 type Tab = 'upgrades' | 'sponsors' | 'books';
 
@@ -112,7 +112,7 @@ const SundayClub = () => {
         <div className="space-y-2">
           <p className="text-micro text-muted-foreground px-1">
             {t('sunday.club.upkeepTotal', {
-              n: sunday.upgrades.reduce((n, x) => n + x.level, 0) * SUNDAY_UPGRADE_UPKEEP_PER_LEVEL,
+              n: sundayUpgradeUpkeep(sunday.divisionId, sunday.upgrades),
             })}
           </p>
           {SUNDAY_UPGRADES.map(u => {
@@ -135,7 +135,9 @@ const SundayClub = () => {
                     <p className="text-micro text-muted-foreground/80 mt-1">{u.effectText}</p>
                     {level > 0 && (
                       <p className="text-micro text-amber-200/80 mt-0.5">
-                        {t('sunday.club.upkeep', { n: level * SUNDAY_UPGRADE_UPKEEP_PER_LEVEL })}
+                        {t('sunday.club.upkeep', {
+                          n: sundayUpgradeUpkeep(sunday.divisionId, [{ id: u.id, level }]),
+                        })}
                       </p>
                     )}
                   </div>

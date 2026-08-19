@@ -76,6 +76,23 @@ const upgradeLevel = (upgrades: readonly SundayUpgradeState[], id: string): numb
   upgrades.find(u => u.id === id)?.level ?? 0;
 
 /**
+ * Weekly cost of keeping what the club owns, in pounds.
+ *
+ * Exported because the upgrade card quotes this figure and the settlement
+ * charges it: one function, so a card cannot understate a bill. Scaled by the
+ * division like every other standing cost — a County Premier ground is held to
+ * a County Premier standard, and that is also where the money piles up.
+ */
+export function sundayUpgradeUpkeep(
+  divisionId: SundayDivisionId,
+  upgrades: readonly SundayUpgradeState[],
+): number {
+  const levels = upgrades.reduce((n, u) => n + Math.max(0, u.level), 0);
+  if (levels <= 0) return 0;
+  return Math.round(levels * SUNDAY_UPGRADE_UPKEEP_PER_LEVEL * getSundayDivision(divisionId).costMult);
+}
+
+/**
  * Build this week's ledger.
  *
  * Pure: it reads state and returns lines. The caller applies them. That is what
@@ -165,12 +182,8 @@ export function buildWeekLedger(input: WeekLedgerInput): WeekLedgerResult {
   // meter runs on a free Sunday too — and the only way to stop paying it is to
   // sell the thing back (`mothballSundayUpgrade`).
   const ownedLevels = upgrades.reduce((n, u) => n + Math.max(0, u.level), 0);
-  if (ownedLevels > 0) {
-    // Scaled by the division for the same reason every other standing cost is:
-    // a County Premier ground is held to a County Premier standard, and it is
-    // also where the money is. A relegated club's bills fall with it, which is
-    // what keeps an over-built side's problem a setback rather than a spiral.
-    const upkeep = Math.round(ownedLevels * SUNDAY_UPGRADE_UPKEEP_PER_LEVEL * div.costMult);
+  const upkeep = sundayUpgradeUpkeep(divisionId, upgrades);
+  if (upkeep > 0) {
     lines.push({
       kind: 'upkeep',
       amount: -upkeep,
@@ -201,12 +214,12 @@ export function sundayWeeklyBurn(divisionId: SundayDivisionId, upgrades: readonl
   const minibus = upgradeLevel(upgrades, 'minibus');
   const travel = SUNDAY_AWAY_TRAVEL * div.costMult;
   const avgTravel = minibus > 0 ? travel / 2 : travel;
-  const ownedLevels = upgrades.reduce((n, u) => n + Math.max(0, u.level), 0);
   // Half the weeks are home (pitch hire) and half away (travel). Upkeep is
   // every week, which is exactly why it belongs in the figure the manager is
   // supposed to have in his head before he buys the floodlights.
   return Math.round(
-    (SUNDAY_UPKEEP + SUNDAY_REFEREE_FEE + ownedLevels * SUNDAY_UPGRADE_UPKEEP_PER_LEVEL) * div.costMult
-    + (div.pitchHire + avgTravel) / 2,
+    (SUNDAY_UPKEEP + SUNDAY_REFEREE_FEE) * div.costMult
+    + (div.pitchHire + avgTravel) / 2
+    + sundayUpgradeUpkeep(divisionId, upgrades),
   );
 }

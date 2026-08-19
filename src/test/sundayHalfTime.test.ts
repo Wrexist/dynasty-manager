@@ -15,7 +15,9 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
 import { validateSundayState } from '@/utils/sunday/invariants';
 import { __resetSundayHalfTimeSessionForTests } from '@/store/slices/sunday/matchday';
-import { SUNDAY_TACTICS } from '@/config/sundayLeague';
+import {
+  SUNDAY_TACTICS, SUNDAY_MIN_START, SUNDAY_FULL_XI, SUNDAY_MAX_BENCH,
+} from '@/config/sundayLeague';
 import type { SundayTacticId } from '@/types/game';
 
 const SEED = 8181;
@@ -38,6 +40,9 @@ function downstream() {
     ratedPlayers: s.matchPlayerRatings.length,
     playedIds: report.playedIds.length,
     apps: s.sunday!.squad.reduce((n, m) => n + m.clubApps, 0),
+    // Squad members among the men who took the field. `apps` must equal this
+    // on either path — see the note on the comparison below.
+    squadWhoPlayed: report.playedIds.filter(id => s.sunday!.squad.some(m => m.playerId === id)).length,
     appearances: report.playedIds.reduce((n, id) => n + (s.players[id]?.appearances ?? 0), 0),
     memories: s.sunday!.squad.reduce((n, m) => n + m.memories.length, 0),
     narrativeEndsAtFullTime: /^FT \d+-\d+\.$/.test(
@@ -102,7 +107,20 @@ describe('playing a match in two halves', () => {
     expect(split.hasReport).toBe(true);
     expect(split.playedIds).toBeGreaterThan(0);
     expect(split.ratedPlayers).toBeGreaterThan(0);
-    expect(split.apps).toBe(atomic.apps);
+    // APPEARANCES ARE COMPARED WITHIN A PATH, NOT ACROSS THE TWO.
+    //
+    // The shared engine is unseeded, so how many substitutes it decides to use
+    // is a property of the ninety minutes it actually played — two runs of
+    // "the same" fixture can field a different number of men. Asserting
+    // equality across the two runs passed by luck for as long as the squads
+    // were thin enough that the bench was always emptied; it started flaking
+    // the moment availability improved. The invariant that is actually load-
+    // bearing is that each path books an appearance for exactly the squad
+    // members who took the field, and that is checked on both.
+    expect(split.apps).toBe(split.squadWhoPlayed);
+    expect(atomic.apps).toBe(atomic.squadWhoPlayed);
+    expect(split.apps).toBeGreaterThanOrEqual(SUNDAY_MIN_START);
+    expect(split.apps).toBeLessThanOrEqual(SUNDAY_FULL_XI + SUNDAY_MAX_BENCH);
     expect(split.appearances).toBeGreaterThan(0);
     expect(split.narrativeEndsAtFullTime).toBe(true);
     expect(split.tier).toBe(atomic.tier);

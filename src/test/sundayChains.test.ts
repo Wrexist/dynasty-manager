@@ -344,12 +344,28 @@ describe('every chain runs end to end', () => {
       { 'crisis-sacrifice': 'beg', 'crisis-deepens': 'accept' },
     );
     expect(beats).toContain('crisis-sacrifice');
-    // Whichever verdict fired, the story ended.
-    expect(beats.some(b => b === 'crisis-deepens' || b === 'crisis-survived')).toBe(true);
+    // THE STORY ENDS ONE OF TWO WAYS, and both of them are the same clock.
+    //
+    // Either a verdict beat fires, or the club runs out of weeks and folds —
+    // which IS the financial crisis reaching its conclusion, and is exactly
+    // what "pushes the club's own fold clock, not a second one" means. The
+    // failure this guards against is the third outcome: a live club with the
+    // chain still open and no verdict in sight.
+    //
+    // Asserting the verdict alone was a timing assumption, not an invariant.
+    // A chain beat resets its own deadline to `durationWeeks` ahead, so the
+    // two Sundays in between are open to the ordinary event draw; when one of
+    // them takes the slot the verdict lands a week later than the fold clock
+    // does. It held until the wave-5 economy pass shifted the weekly stream
+    // (availability decides how many men play, and every player who plays
+    // takes a subs draw), and then it flaked one run in three.
+    const folded = state().sunday!.folded;
+    const verdict = beats.some(b => b === 'crisis-deepens' || b === 'crisis-survived');
+    expect(folded || verdict, `beats=${beats.join(',')}`).toBe(true);
     if (beats.includes('crisis-deepens')) {
       expect(state().sunday!.weeksInDebt).toBeGreaterThan(before);
     }
-    expect(state().sunday!.chains).toHaveLength(0);
+    if (!folded) expect(state().sunday!.chains).toHaveLength(0);
   });
 
   it('cup-run never tells the club about a tie it is not in', async () => {

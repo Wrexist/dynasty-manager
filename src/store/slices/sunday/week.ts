@@ -46,7 +46,7 @@ import {
   SUNDAY_SPONSOR_DISCIPLINE_PER_MATCH_MIN, SUNDAY_SPONSOR_DISCIPLINE_PER_MATCH_MAX,
 } from '@/config/sundayLeague';
 import { SUNDAY_SPONSORS, SUNDAY_SPONSOR_CONDITION_TEXT, SUNDAY_TAUNTS } from '@/data/sundayNames';
-import { buildWeekLedger } from '@/utils/sunday/finance';
+import { buildWeekLedger, sundayUpgradeUpkeep } from '@/utils/sunday/finance';
 import { rollSundayAvailability, tickAbsence } from '@/utils/sunday/availability';
 import { definingMemory, makeMemory, rememberMoment } from '@/utils/sunday/memories';
 import { generateSundayRecruit, sundaySquadNeeds } from '@/utils/sunday/generation';
@@ -810,6 +810,13 @@ export function advanceSundayWeek(set: Set, get: Get): void {
     weekLogLines.push('The account is properly in the red now. The referee still wants paying.');
   } else if (weeksInDebt >= SUNDAY_BANKRUPT_GRACE_WEEKS - 2 && !folded) {
     weekLogLines.push('The league have written about the outstanding balance. This is serious.');
+  }
+  // Name the way out. An escape valve nobody finds is not an escape valve, and
+  // upkeep on a full trophy cabinet is the most likely reason a well-run club
+  // is suddenly underwater — see `mothballSundayUpgrade`.
+  const owedUpkeep = sundayUpgradeUpkeep(sunday.divisionId, sunday.upgrades);
+  if (weeksInDebt >= 2 && !folded && owedUpkeep > 0) {
+    weekLogLines.push(`£${owedUpkeep} a week is going on keeping what the club owns. Some of it could go.`);
   }
 
   // The week's entry: what the manager did during it, then what it cost to

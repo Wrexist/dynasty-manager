@@ -18,7 +18,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
-import { buildWeekLedger, sundayWeeklyBurn } from '@/utils/sunday/finance';
+import { buildWeekLedger, sundayUpgradeUpkeep, sundayWeeklyBurn } from '@/utils/sunday/finance';
 import { createSundayRng } from '@/utils/sunday/rng';
 import { buildMatchdayTeam, sundayTacticFit } from '@/utils/sunday/match';
 import { sundayPitchQuality } from '@/store/slices/sunday/matchday';
@@ -331,6 +331,18 @@ describe('upgrade cards tell the truth', () => {
     // And the figure the manager checks before he buys includes it.
     expect(sundayWeeklyBurn('sun-4', [{ id: 'pitch', level: 2 }]))
       .toBe(sundayWeeklyBurn('sun-4', []) + 2 * SUNDAY_UPGRADE_UPKEEP_PER_LEVEL);
+    // The card and the settlement quote the SAME function, so a card cannot
+    // understate a bill — which is the whole subject of this file.
+    for (const division of ['sun-4', 'sun-2', 'sun-prem'] as const) {
+      const owned = [{ id: 'pitch' as const, level: 3 }, { id: 'coach' as const, level: 2 }];
+      const charged = buildWeekLedger({ ...base, divisionId: division, upgrades: owned })
+        .lines.find(l => l.kind === 'upkeep')!.amount;
+      expect(-charged, division).toBe(sundayUpgradeUpkeep(division, owned));
+    }
+    // And it costs more to keep a ground up in the County Premier than in
+    // Division Four, like every other standing cost.
+    const same = [{ id: 'pitch' as const, level: 3 }];
+    expect(sundayUpgradeUpkeep('sun-prem', same)).toBeGreaterThan(sundayUpgradeUpkeep('sun-4', same));
   });
 
   for (const [key, probe] of Object.entries(PROBES) as [SundayUpgradeEffectKey, Probe][]) {
