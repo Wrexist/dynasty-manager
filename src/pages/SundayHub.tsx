@@ -21,6 +21,7 @@ import { SectionHeader } from '@/components/game/SectionHeader';
 import { AvailabilityPill, Meter, StatChip, SundayCrest } from '@/components/game/sunday/SundayBits';
 import { useGameStore } from '@/store/gameStore';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 import { formatMoney } from '@/utils/helpers';
 import { cn } from '@/lib/utils';
 import { getSundayDivision, getSundayTactic, SUNDAY_MIN_START } from '@/config/sundayLeague';
@@ -32,6 +33,7 @@ import { sundayPrimaryAction } from '@/utils/sunday/primaryAction';
 
 const SundayHub = () => {
   const { t } = useTranslation();
+  const reduceMotion = useReducedMotionPref();
   const { sunday, players, clubs, fixtures, week, season, playerClubId } = useGameStore(useShallow(s => ({
     sunday: s.sunday,
     players: s.players,
@@ -229,9 +231,9 @@ const SundayHub = () => {
             {sunday.weekLog.map((line, i) => (
               <motion.li
                 key={`${line}-${i}`}
-                initial={{ opacity: 0, x: -6 }}
+                initial={reduceMotion ? false : { opacity: 0, x: -6 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: Math.min(i * 0.04, 0.3), duration: 0.22 }}
+                transition={reduceMotion ? { duration: 0 } : { delay: Math.min(i * 0.04, 0.3), duration: 0.22 }}
                 className="text-caption text-muted-foreground leading-relaxed"
               >
                 {line}

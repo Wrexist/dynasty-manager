@@ -122,7 +122,7 @@ const SundaySquad = () => {
             aria-pressed={sortKey === o.key}
             onClick={() => setSortKey(o.key)}
             className={cn(
-              'shrink-0 px-3 py-1.5 rounded-full border text-micro font-semibold min-h-[36px]',
+              'shrink-0 px-3 py-2 rounded-full border text-micro font-semibold min-h-[44px]',
               sortKey === o.key
                 ? 'bg-primary/15 border-primary/50 text-primary'
                 : 'bg-white/[0.04] border-white/10 text-muted-foreground',

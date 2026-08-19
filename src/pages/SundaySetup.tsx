@@ -17,6 +17,7 @@ import { GlassPanel, LIQUID_GLASS_SURFACE } from '@/components/game/GlassPanel';
 import { SectionHeader } from '@/components/game/SectionHeader';
 import { useGameStore } from '@/store/gameStore';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 import { cn } from '@/lib/utils';
 import { formatMoney } from '@/utils/helpers';
 import { SUNDAY_PERSONALITIES } from '@/config/sundayLeague';
@@ -26,6 +27,7 @@ import type { SundayClubPersonalityId } from '@/types/game';
 
 const SundaySetup = () => {
   const { t } = useTranslation();
+  const reduceMotion = useReducedMotionPref();
   const navigate = useNavigate();
   const location = useLocation();
   const navState = (location.state as { slot?: number }) || {};
@@ -151,9 +153,9 @@ const SundaySetup = () => {
                 type="button"
                 role="radio"
                 aria-checked={active}
-                initial={{ opacity: 0, y: 12 }}
+                initial={reduceMotion ? false : { opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: Math.min(idx * 0.03, 0.2), duration: 0.25 }}
+                transition={reduceMotion ? { duration: 0 } : { delay: Math.min(idx * 0.03, 0.2), duration: 0.25 }}
                 onClick={() => setPersonality(p.id)}
                 className={cn(
                   LIQUID_GLASS_SURFACE,

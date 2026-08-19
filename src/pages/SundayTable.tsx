@@ -5,7 +5,7 @@
  * rollover judges promotion on) rather than re-derived here, so what the player
  * reads and what the game acts on cannot diverge.
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarDays, ListOrdered, Trophy } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -13,6 +13,7 @@ import { SectionHeader } from '@/components/game/SectionHeader';
 import { SundayCrest } from '@/components/game/sunday/SundayBits';
 import { useGameStore } from '@/store/gameStore';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 import { cn } from '@/lib/utils';
 import { getSundayDivision } from '@/config/sundayLeague';
 import { buildSundayTable, sundayCupRoundName } from '@/utils/sunday/season';
@@ -25,6 +26,8 @@ const SundayTable = () => {
     sunday: s.sunday, clubs: s.clubs, fixtures: s.fixtures, week: s.week, playerClubId: s.playerClubId,
   })));
   const [tab, setTab] = useState<Tab>('table');
+  const reduceMotion = useReducedMotionPref();
+  const currentWeekRef = useRef<HTMLDivElement | null>(null);
 
   const table = useMemo(
     () => (sunday ? buildSundayTable(fixtures, sunday.divisionClubIds) : []),
@@ -40,6 +43,15 @@ const SundayTable = () => {
     }
     return [...map.entries()].sort((a, b) => a[0] - b[0]);
   }, [fixtures]);
+
+  // The fixtures tab lists the whole season, so opening it in week 14 dumped
+  // you at week 1 and made you scroll to find the game you are about to play.
+  useEffect(() => {
+    if (tab !== 'fixtures') return;
+    const node = currentWeekRef.current;
+    if (!node) return;
+    node.scrollIntoView({ block: 'center', behavior: reduceMotion ? 'auto' : 'smooth' });
+  }, [tab, reduceMotion]);
 
   if (!sunday) return null;
   const div = getSundayDivision(sunday.divisionId);
@@ -151,7 +163,11 @@ const SundayTable = () => {
       {tab === 'fixtures' && (
         <div className="space-y-2">
           {byWeek.map(([wk, matches]) => (
-            <GlassPanel key={wk} className={cn('p-3', wk === week && 'border border-primary/30')}>
+            // The ref sits on a wrapper rather than the panel: GlassPanel is a
+            // shared primitive and does not forward refs, and widening it for
+            // one Sunday screen is not worth the blast radius.
+            <div key={wk} ref={wk === week ? currentWeekRef : undefined}>
+            <GlassPanel className={cn('p-3', wk === week && 'border border-primary/30')}>
               <SectionHeader level="eyebrow" title={t('sunday.table.weekLabel', { n: wk })} />
               <div className="mt-1.5 space-y-1">
                 {matches.map(m => {
@@ -170,6 +186,7 @@ const SundayTable = () => {
                 })}
               </div>
             </GlassPanel>
+            </div>
           ))}
         </div>
       )}
