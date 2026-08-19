@@ -128,6 +128,7 @@ export function buildSundayWorld(opts: StartSundayOptions): SundayWorld {
     rivalry,
     cup,
     arrival: null,
+    halfTime: null,
     flags: {},
     chains: [],
     pitchDamage: 0,

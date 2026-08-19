@@ -57,7 +57,7 @@ import { validateSundayState } from '@/utils/sunday/invariants';
 import { track } from '@/utils/analytics';
 import { addGameBreadcrumb } from '@/utils/sentry';
 import { applySundayWorld, buildSundayWorld, type StartSundayOptions } from './boot';
-import { autoPickSunday, runSundayMatch } from './matchday';
+import { autoPickSunday, finishSundayMatch, playSundayFirstHalf, runSundayMatch } from './matchday';
 import { advanceSundayWeek } from './week';
 import { rolloverSundaySeason } from './seasonEnd';
 import { clamp, clampRound, logWeek, memberOf, sundayMessage, updateMember, withRng, type Get, type Set } from './shared';
@@ -254,6 +254,28 @@ export function autoPickSundayTeamsheet(set: Set, get: Get) {
 
 export function playSundayMatch(set: Set, get: Get): SundayMatchReport | null {
   const report = runSundayMatch(set, get);
+  if (report && get().settings.autoSave) get().saveGame();
+  return report;
+}
+
+/**
+ * Kick off with a break in it: the first half runs, and the manager gets one
+ * tactical decision before the second.
+ *
+ * The save at the pause is deliberate. A match in flight is real state — the
+ * guests, the engine's carried state, the half already on screen — and losing
+ * it to a phone call would be worse than the reload rule that governs it (see
+ * `SundayHalfTime`).
+ */
+export function playSundayFirstHalfAction(set: Set, get: Get) {
+  const outcome = playSundayFirstHalf(set, get);
+  if ((outcome.halfTime || outcome.report) && get().settings.autoSave) get().saveGame();
+  return outcome;
+}
+
+/** Second half, under the tactic the manager picked at the break. */
+export function finishSundayMatchAction(set: Set, get: Get, tactic?: SundayTacticId): SundayMatchReport | null {
+  const report = finishSundayMatch(set, get, tactic);
   if (report && get().settings.autoSave) get().saveGame();
   return report;
 }

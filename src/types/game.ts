@@ -1,3 +1,10 @@
+// The ONE import this file makes, and it is types-only so nothing is emitted:
+// `SundayHalfTime` carries the match engine's own carried state verbatim, and
+// re-declaring that shape here would be a copy that silently drifts. Keep it
+// `import type` — a value import from the engine would put the engine in every
+// bundle that touches a type.
+import type { HalfState } from '@/engine/match';
+
 // ── League System ──
 // LeagueId is a string identifier for each league division (e.g. 'eng', 'eng-2', 'esp', 'esp-2')
 export type LeagueId = string;
@@ -3076,6 +3083,67 @@ export interface SundayArrival {
 }
 
 /**
+ * A match paused at half time, with everything the second half needs.
+ *
+ * WHY IT IS PERSISTED. The manager gets one tactical decision at the break and
+ * the second half is really simulated under it, so between the two halves
+ * there is a match in flight — and this mode autosaves. Everything here is
+ * either unreproducible (the engine's own `HalfState`, the guests who are
+ * generated at kick-off and deleted after the whistle) or must not be
+ * re-rolled (the weather, the opposition's XI, the tier).
+ *
+ * WHAT A RELOAD DOES, and why. The engine is unseeded, so a second half can
+ * never be reproduced — resuming a pause that came off disk and offering the
+ * choice again would be a free re-roll of the result. So a pause loaded from a
+ * save is COMPLETED AUTOMATICALLY under `tactic` (the tactic the first half was
+ * played with) at the first opportunity, and the choice is lost. Reloading is
+ * therefore strictly worse for the player than playing on, which is the only
+ * honest way to close the exploit without seeding the shared engine.
+ *
+ * Cleared the moment the match settles; `null` at every other time.
+ */
+export interface SundayHalfTime {
+  season: number;
+  week: number;
+  /** The fixture this pause belongs to. Guards against settling twice. */
+  matchId: string;
+  isCup: boolean;
+  cupRound: number | null;
+  tier: SundayMatchTier;
+  /** The score at the break, from the club's own point of view. */
+  goalsFor: number;
+  goalsAgainst: number;
+  /** The tactic the first half was played under — and the one a resumed-from-
+   *  disk match is finished under. */
+  tactic: SundayTacticId;
+  /** How each tactic suits the XI ON THE PITCH, 0-1, for the switcher. Computed
+   *  at the break because the XI includes guests, who do not exist in
+   *  `players` and so cannot be measured from the page. */
+  tacticFit: Record<string, number>;
+  startingIds: string[];
+  benchIds: string[];
+  /** The guests, in full: they are generated at kick-off and wiped after the
+   *  whistle, so without them here a reload would resume with nine men. */
+  ringers: Player[];
+  oppXiIds: string[];
+  oppBenchIds: string[];
+  oppFormation: FormationType;
+  oppTactic: SundayTacticId;
+  weather: MatchWeather;
+  pitchQuality: number;
+  derbyIntensity: number;
+  /** Cursor into the week's match stream, so the second half's own draws
+   *  continue it rather than replaying the first half's luck. */
+  rngCursor: number;
+  /** Exactly the lines already on screen: the build-up, the first half, and
+   *  the `HT x-y` marker. The finished report's narrative begins with these,
+   *  so the reveal continues where it paused instead of restarting. */
+  narrative: string[];
+  /** The engine's own carried state after 45 minutes, verbatim. */
+  engineState: HalfState;
+}
+
+/**
  * The whole Sunday League mode's persisted state.
  *
  * `null` in every other mode. Club and player entities live in the normal
@@ -3136,6 +3204,9 @@ export interface SundayState {
   /** This week's resolved Sunday morning, or null before arrival / on a free
    *  week. Cleared by the weekly advance. Schema v2. */
   arrival: SundayArrival | null;
+  /** A match paused at half time waiting for the manager's one decision, or
+   *  null — which is every other moment in the mode. Schema v3. */
+  halfTime: SundayHalfTime | null;
   /**
    * Short-lived story markers: flag name → week it was set.
    *

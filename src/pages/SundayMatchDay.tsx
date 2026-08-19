@@ -22,6 +22,7 @@ import {
   AlertTriangle, CloudRain, Flag, Frown, History, Play, Repeat, SkipForward,
   Snowflake, Sparkles, Sun, TrendingDown, Trophy, Users, Wind,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { LiquidButton } from '@/components/game/LiquidButton';
@@ -32,13 +33,14 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 import { hapticLight, hapticSuccess } from '@/utils/haptics';
 import { cn } from '@/lib/utils';
-import { SUNDAY_MIN_START, SUNDAY_RINGER_COST, getSundayTactic } from '@/config/sundayLeague';
+import { SUNDAY_MIN_START, SUNDAY_RINGER_COST, SUNDAY_TACTICS, getSundayTactic } from '@/config/sundayLeague';
+import { MATCH_SPEEDS } from '@/config/matchSpeed';
 import { findSundayFixture, sundayPitchQuality } from '@/store/slices/sunday/matchday';
 import { buildSundayTable, sundayCupRoundName, sundayPosition } from '@/utils/sunday/season';
 import { sundayResultVerdict, sundayStyleOf } from '@/utils/sunday/match';
 import { deriveSundayStakes } from '@/utils/sunday/tier';
 import { sundayMilestoneToday, sundayReverseFixtureRecall } from '@/utils/sunday/briefing';
-import type { SundayMatchTier, WeatherCondition } from '@/types/game';
+import type { SundayMatchTier, SundayTacticId, WeatherCondition } from '@/types/game';
 
 const WEATHER_ICON: Record<WeatherCondition, React.ElementType> = {
   clear: Sun, rain: CloudRain, wind: Wind, snow: Snowflake,
@@ -47,6 +49,11 @@ const WEATHER_ICON: Record<WeatherCondition, React.ElementType> = {
 /** How long each narrative line takes to appear, scaled by the match-speed
  *  setting so the mode honours the same preference every other screen does. */
 const REVEAL_BASE_MS = 520;
+
+/** The fastest tier. At Instant the manager has asked not to watch a match, so
+ *  the half-time break is skipped and the ninety minutes are played in one go
+ *  under the tactic already set. */
+const INSTANT_SPEED = MATCH_SPEEDS[MATCH_SPEEDS.length - 1].value;
 
 /**
  * What the header and the briefing look like at each tier.
@@ -84,6 +91,8 @@ const SundayMatchDay = () => {
     matchWeather: s.currentMatchResult?.weather ?? null,
   })));
   const playMatch = useGameStore(s => s.playSundayMatch);
+  const playFirstHalf = useGameStore(s => s.playSundayFirstHalf);
+  const finishMatch = useGameStore(s => s.finishSundayMatch);
   const arrive = useGameStore(s => s.arriveSundayMatch);
   const hireRingers = useGameStore(s => s.hireSundayRingers);
   const setScreen = useGameStore(s => s.setScreen);
@@ -95,6 +104,9 @@ const SundayMatchDay = () => {
   const [playing, setPlaying] = useState(false);
   const [kicking, setKicking] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** True once this mount has started a match, so the mount-time rescue below
+   *  cannot fire on the pause we just created ourselves. */
+  const started = useRef(false);
 
   const fixture = useMemo(
     () => (sunday ? findSundayFixture(sunday, fixtures, week, playerClubId) : null),
@@ -105,6 +117,12 @@ const SundayMatchDay = () => {
   // and season (not merely "is there a report") is what stops last week's match
   // being replayed on screen after an advance.
   const report = sunday?.lastMatch && sunday.lastMatch.week === week ? sunday.lastMatch : null;
+  // A match paused at the break, waiting for the one decision.
+  const halfTime = sunday?.halfTime && sunday.halfTime.week === week ? sunday.halfTime : null;
+  // What is being revealed: the finished report once there is one, otherwise
+  // the half already played. The report BEGINS with the pause's own lines, so
+  // the index carries straight over when the second half arrives.
+  const feed = report ? report.narrative : halfTime ? halfTime.narrative : null;
 
   const clearTimer = useCallback(() => {
     if (timer.current) { clearTimeout(timer.current); timer.current = null; }
@@ -121,24 +139,41 @@ const SundayMatchDay = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [report, playing, kicking]);
 
+  // A pause that was already here when this screen mounted survived an app
+  // restart, so the manager's decision is gone (see `SundayHalfTime`): finish
+  // it under the tactic it kicked off with and say so, rather than pretending
+  // the choice is still open and handing out a free re-roll of the half.
+  useEffect(() => {
+    if (started.current || !halfTime || report || kicking) return;
+    started.current = true;
+    setKicking(true);
+    void finishMatch().then(finished => {
+      setKicking(false);
+      if (!finished) return;
+      setRevealed(finished.narrative.length);
+      toast(t('sunday.match.resumed'));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Reveal loop, with a haptic tap on each goal line as it lands.
   useEffect(() => {
-    if (!playing || !report) return;
-    if (revealed >= report.narrative.length) {
+    if (!playing || !feed) return;
+    if (revealed >= feed.length) {
       setPlaying(false);
-      if (report.goalsFor > report.goalsAgainst) hapticSuccess();
+      if (report && report.goalsFor > report.goalsAgainst) hapticSuccess();
       return;
     }
-    const line = report.narrative[revealed] ?? '';
+    const line = feed[revealed] ?? '';
     const isGoal = /\d+-\d+\)/.test(line);
     if (isGoal) hapticLight();
     // A goal in a final or a decider is allowed to hang. Everything else keeps
     // the manager's chosen match speed exactly.
-    const cadence = isGoal ? TIER_GOAL_CADENCE[report.tier] ?? 1 : 1;
+    const cadence = isGoal ? TIER_GOAL_CADENCE[report?.tier ?? halfTime?.tier ?? 'routine'] ?? 1 : 1;
     const delay = reduceMotion ? 0 : Math.max(120, (matchSpeed / 3300) * REVEAL_BASE_MS * cadence);
     timer.current = setTimeout(() => setRevealed(n => n + 1), delay);
     return () => clearTimer();
-  }, [playing, revealed, report, matchSpeed, reduceMotion, clearTimer]);
+  }, [playing, revealed, feed, report, halfTime, matchSpeed, reduceMotion, clearTimer]);
 
   // Opponent intel for the briefing — position, form, danger man. All read
   // straight off the table and the opposition squad; no invented scouting.
@@ -245,13 +280,34 @@ const SundayMatchDay = () => {
     void arrive().then(() => setKicking(false));
   };
   const kickOff = () => {
-    if (report || kicking || !canKickOff) return;
+    if (report || halfTime || kicking || !canKickOff) return;
+    started.current = true;
     setKicking(true);
-    void playMatch().then(result => {
+    setRevealed(0);
+    // Instant is the manager saying he does not want to watch. Ninety minutes
+    // in one call, no break, exactly as the weekly advance would play it.
+    if (matchSpeed <= INSTANT_SPEED) {
+      void playMatch().then(result => {
+        setKicking(false);
+        if (result) setPlaying(true);
+      });
+      return;
+    }
+    void playFirstHalf().then(result => {
       setKicking(false);
-      if (!result) return;
-      setRevealed(0);
-      setPlaying(true);
+      if (result.halfTime || result.report) setPlaying(true);
+    });
+  };
+
+  /** The one decision at the break. Kept as a single confirm — a tactic and a
+   *  whistle, not a menu. */
+  const chooseSecondHalf = (tactic: SundayTacticId) => {
+    if (!halfTime || kicking) return;
+    setKicking(true);
+    hapticLight();
+    void finishMatch(tactic).then(finished => {
+      setKicking(false);
+      if (finished) setPlaying(true);
     });
   };
   const decideRingers = (n: number) => {
@@ -261,6 +317,9 @@ const SundayMatchDay = () => {
   const pitch = Math.round(sundayPitchQuality(sunday, week));
   const WeatherIcon = WEATHER_ICON[matchWeather?.weather ?? 'clear'];
   const done = !!report && revealed >= report.narrative.length;
+  // The break is only offered once the first half has finished revealing —
+  // a decision on top of a feed still scrolling is a decision nobody read.
+  const atTheBreak = !!halfTime && !report && !playing && revealed >= halfTime.narrative.length;
   const hero = report?.motmPlayerId ? players[report.motmPlayerId] : null;
   const villain = report?.lowlightPlayerId ? players[report.lowlightPlayerId] : null;
   const standing = arrival ? arrival.presentIds.length + arrival.forcedRingers : 0;
@@ -480,7 +539,7 @@ const SundayMatchDay = () => {
       )}
 
       {/* 3 · THE MATCH */}
-      {report && (
+      {feed && (
         <GlassPanel className="p-4">
           <SectionHeader
             level="section"
@@ -489,7 +548,7 @@ const SundayMatchDay = () => {
               !done ? (
                 <button
                   type="button"
-                  onClick={() => { clearTimer(); setPlaying(false); setRevealed(report.narrative.length); }}
+                  onClick={() => { clearTimer(); setPlaying(false); setRevealed(feed.length); }}
                   className="text-caption font-semibold text-primary inline-flex items-center gap-1 min-h-[44px] px-1"
                 >
                   <SkipForward className="w-3.5 h-3.5" aria-hidden /> {t('sunday.match.skip')}
@@ -498,7 +557,7 @@ const SundayMatchDay = () => {
             }
           />
           <ul className="mt-2 space-y-2" aria-live="polite">
-            {report.narrative.slice(0, revealed).map((line, i) => {
+            {feed.slice(0, revealed).map((line, i) => {
               const isScoreBeat = /\d+-\d+\)/.test(line);
               const isMarker = /^(HT|FT) \d/.test(line);
               return (
@@ -524,6 +583,47 @@ const SundayMatchDay = () => {
           {!done && (
             <p className="text-micro text-muted-foreground mt-3">{t('sunday.match.playing')}</p>
           )}
+        </GlassPanel>
+      )}
+
+      {/* 3b · HALF TIME — the one decision, and it is really simulated */}
+      {atTheBreak && (
+        <GlassPanel className={cn('p-4 space-y-2', TIER_RIM[tier])}>
+          <SectionHeader
+            level="section"
+            title={t('sunday.match.halfTime')}
+            accessory={
+              <span className="text-h3 font-display font-bold tabular-nums text-foreground">
+                {halfTime!.goalsFor}-{halfTime!.goalsAgainst}
+              </span>
+            }
+          />
+          <p className="text-caption text-muted-foreground">{t('sunday.match.halfTimeHint')}</p>
+          <div className="space-y-1.5">
+            {SUNDAY_TACTICS.map(option => {
+              const current = option.id === halfTime!.tactic;
+              const fitPct = Math.round((halfTime!.tacticFit[option.id] ?? 0.5) * 100);
+              return (
+                <LiquidButton
+                  key={option.id}
+                  tone={current ? 'primary' : undefined}
+                  className="w-full py-2.5"
+                  disabled={kicking}
+                  onClick={() => chooseSecondHalf(option.id)}
+                >
+                  <span className="flex items-center gap-2 w-full text-left">
+                    <span className="min-w-0 flex-1 text-body font-semibold truncate">
+                      {option.name}
+                      {current && <span className="text-micro text-muted-foreground"> · {t('sunday.match.asWeAre')}</span>}
+                    </span>
+                    <span className="text-caption tabular-nums text-muted-foreground shrink-0">
+                      {fitPct}% {t('sunday.match.fit')}
+                    </span>
+                  </span>
+                </LiquidButton>
+              );
+            })}
+          </div>
         </GlassPanel>
       )}
 

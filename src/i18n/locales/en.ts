@@ -139,6 +139,11 @@ export const en = {
   'sunday.match.noFixture': 'There is no fixture to play.',
   'sunday.match.forfeited': 'Not fulfilled',
   'sunday.match.skip': 'Skip to the result',
+  'sunday.match.halfTime': 'Half time',
+  'sunday.match.halfTimeHint': 'One change. The second half is really played under whatever you pick.',
+  'sunday.match.asWeAre': 'as you set up',
+  'sunday.match.fit': 'fit',
+  'sunday.match.resumed': 'The app restarted at half time, so the second half was played as you had set up.',
   'sunday.match.playing': 'Playing…',
   // What the opposition do, in the language a man on a touchline would use.
   // Never the matchup matrix, never a number — a read, and a hint at the

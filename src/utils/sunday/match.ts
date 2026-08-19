@@ -40,7 +40,8 @@ import type {
   PlayerMatchRating, SundayMatchReport, SundaySquadMember, SundayTacticId,
   WeatherCondition, InjuryDetails,
 } from '@/types/game';
-import { simulateMatch } from '@/engine/match';
+import { finalizeMatch, simulateHalf, simulateMatch, type HalfState } from '@/engine/match';
+import { getAIReactiveTactics } from '@/config/aiManager';
 import { selectBestLineup } from '@/utils/playerGen';
 import {
   SUNDAY_BALLS_ATTR_PER_LEVEL, SUNDAY_FIT_SPREAD,
@@ -529,6 +530,17 @@ export interface NarrativeInput {
    * ever really signed by the rival, the in-match variants can follow the XI.
    */
   defectorName?: string | null;
+  /**
+   * Which stretch of the match to narrate.
+   *
+   * `first` stops at the half-time marker and omits the closing ambience;
+   * `second` skips the build-up and everything before the 46th minute but
+   * still walks the whole event list, so the running score it prints continues
+   * the first half's rather than restarting from nil. Concatenating the two is
+   * exactly `full`, which is what lets an interactive match pause at the break
+   * without the feed re-writing the half it already showed.
+   */
+  phase?: 'full' | 'first' | 'second';
 }
 
 /**
@@ -541,24 +553,27 @@ export interface NarrativeInput {
  */
 export function buildSundayNarrative(input: NarrativeInput): string[] {
   const { rng, events, clubId, players, isHome, isDerby } = input;
+  const phase = input.phase ?? 'full';
   const out: string[] = [];
 
-  if (input.startedWith < 11) {
+  if (phase !== 'second' && input.startedWith < 11) {
     const line = rng.pick(SUNDAY_SHORT_SIDE_LINES) ?? '{n} men.';
     out.push(line.replace('{n}', String(input.startedWith)));
   }
-  for (const name of input.ringerNames) {
+  for (const name of phase === 'second' ? [] : input.ringerNames) {
     out.push((rng.pick(SUNDAY_RINGER_LINES) ?? '{name} is playing.').replace('{name}', name));
   }
-  if (input.noShowNames.length === 1) {
+  if (phase === 'second') {
+    // The build-up is already on screen; this call adds the second half only.
+  } else if (input.noShowNames.length === 1) {
     out.push(`${input.noShowNames[0]} never arrived. Nobody can get hold of him.`);
   } else if (input.noShowNames.length > 1) {
     out.push(`${input.noShowNames.slice(0, -1).join(', ')} and ${input.noShowNames[input.noShowNames.length - 1]} never arrived.`);
   }
-  if (input.cupRound) {
+  if (phase !== 'second' && input.cupRound) {
     out.push((rng.pick(SUNDAY_CUP_TIE_LINES) ?? '{round}.').replace('{round}', input.cupRound));
   }
-  if (isDerby && input.defectorName) {
+  if (phase !== 'second' && isDerby && input.defectorName) {
     out.push((rng.pick(SUNDAY_DEFECTOR_DERBY_LINES) ?? '').replace(/\{name\}/g, input.defectorName));
   }
 
@@ -567,7 +582,7 @@ export function buildSundayNarrative(input: NarrativeInput): string[] {
   // exactly the count `captureMatchMemories` will write a memory for after the
   // whistle, so the feed and his biography can never disagree.
   const byPlayerId = new Map((input.squad ?? []).map(m => [m.playerId, m]));
-  if (input.startedIds?.length) {
+  if (phase !== 'second' && input.startedIds?.length) {
     let best: { name: string; apps: number } | null = null;
     for (const id of input.startedIds) {
       const member = byPlayerId.get(id);
@@ -597,7 +612,7 @@ export function buildSundayNarrative(input: NarrativeInput): string[] {
     // The half-time score line goes in before the first second-half event, so
     // the feed reads like a match and not a list.
     if (!htPushed && ev.minute > 45) {
-      out.push(`HT ${home}-${away}.`);
+      if (phase !== 'second') out.push(`HT ${home}-${away}.`);
       htPushed = true;
     }
     const scored = ev.type === 'goal' || ev.type === 'own_goal' || ev.type === 'penalty_scored'
@@ -615,6 +630,10 @@ export function buildSundayNarrative(input: NarrativeInput): string[] {
     }
 
     if (!REWRITTEN.has(ev.type)) continue;
+    // Outside this call's stretch: the score above has already been carried
+    // forward, and nothing is printed.
+    if (phase === 'first' && ev.minute > 45) continue;
+    if (phase === 'second' && ev.minute <= 45) continue;
     const minute = ev.displayMinute ?? String(ev.minute);
     const score = `${home}-${away}`;
 
@@ -689,13 +708,13 @@ export function buildSundayNarrative(input: NarrativeInput): string[] {
     }
   }
 
-  if (!htPushed) out.push(`HT ${home}-${away}.`);
-  out.push(`FT ${home}-${away}.`);
-
-  // One or two ambient beats, placed at the end so they never interleave with
-  // a factual sequence and read as commentary on it.
-  const ambience = rng.sample(SUNDAY_AMBIENCE, rng.int(1, 2));
-  out.push(...ambience);
+  if (!htPushed && phase !== 'second') out.push(`HT ${home}-${away}.`);
+  if (phase !== 'first') {
+    out.push(`FT ${home}-${away}.`);
+    // One or two ambient beats, placed at the end so they never interleave
+    // with a factual sequence and read as commentary on it.
+    out.push(...rng.sample(SUNDAY_AMBIENCE, rng.int(1, 2)));
+  }
 
   return out;
 }
@@ -721,6 +740,9 @@ export interface SundayMatchInput {
   playerPhysioLevel: number;
   /** Which side is the player's, for the medical level and the adjustments. */
   playerIsHome: boolean;
+  /** Every player who might need resolving at the whistle, for the split path
+   *  — a man substituted at half time is in neither second-half XI. */
+  playersById?: Record<string, Player>;
 }
 
 export interface SundayMatchOutcome {
@@ -732,47 +754,9 @@ export interface SundayMatchOutcome {
 /**
  * Run a Sunday fixture through the shared engine, ninety minutes in one call.
  *
- * ── HALF-TIME ADAPTATION: INVESTIGATED, NOT BUILT (Wave 1) ─────────────────
- *
- * The question was whether the manager could change tactic at half time and
- * have the second half actually simulated under the new one. The answer is
- * YES, IT IS POSSIBLE — this is not an engine limitation, and nobody should
- * re-derive that. The evidence, so the next attempt starts from it:
- *
- *   - `simulateHalf(...)` is exported from `@/engine/match` and takes explicit
- *     `startMin` / `endMin` plus a `prevState: HalfState`. `simulateMatch` is
- *     literally two calls — (1,45) then (46,90, prevState) — and `finalizeMatch`
- *     over the merged state. Second-half events already carry their real
- *     minutes, so there is no offsetting to get wrong.
- *   - `getAIReactiveTactics` is already applied between those two calls, so a
- *     per-half tactic swap is a shape the engine expects.
- *   - Mid-match state is already persistable: the elite mode keeps
- *     `halfTimeState` in the store and `saveGame` writes it out.
- *
- * It is NOT built here because it is a different wave's worth of work against
- * this file's strongest guarantee — that the result is settled the moment the
- * manager taps Kick Off, so backgrounding, killing or reloading cannot change
- * what happened. Splitting the match in two needs all of:
- *
- *   1. `runSundayMatch` split into a first half and a finish, with the
- *      exactly-once refusal re-established across two entry points instead of
- *      one, and every consequence still written in a single pass at the end.
- *   2. The second half's inputs persisted, because they cannot be re-derived:
- *      the XI, the bench, the opposition's XI and tactic, the weather, the
- *      pitch, the derby intensity, the RNG cursor — and the RINGERS, who are
- *      generated at kickoff and deleted after the whistle, so a reload at half
- *      time would resume with nine men.
- *   3. The advance-the-week path still playing the whole match in one go.
- *   4. A decision about the shared `matchPhase` / `halfTimeState` fields, which
- *      the autosave guard and the elite Match Day screen both read.
- *   5. Somewhere for the pause to live on screen.
- *
- * (5) is the tell: the interactive half-time belongs with the Match Day reveal
- * redesign, not with a balance pass. Until then the half-time score is a
- * narrative beat (`HT x-y` in `buildSundayNarrative`) and nothing more. What
- * was deliberately NOT done instead: a morale or team-talk prompt at half time
- * dressed up as a tactical change. It would not have altered the simulation,
- * and a choice that does nothing is worse than no choice at all.
+ * This is the atomic path: the weekly advance, the AI-facing paths and any
+ * instant sim use it, and the result is settled the moment it returns. The
+ * interactive Match Day screen uses the two-call split below instead.
  */
 export function simulateSundayMatch(input: SundayMatchInput): SundayMatchOutcome {
   const {
@@ -812,6 +796,105 @@ export function simulateSundayMatch(input: SundayMatchInput): SundayMatchOutcome
     playerIsHome ? physioMedical : baselineMedical,
     playerIsHome ? baselineMedical : physioMedical,
   );
+}
+
+/**
+ * ── HALF-TIME ADAPTATION ────────────────────────────────────────────────────
+ *
+ * The same fixture, in two calls, so the manager's tactical change at the
+ * break is really simulated rather than mimed. `simulateMatch` is itself
+ * exactly this — `simulateHalf(1,45)`, then `simulateHalf(46,90, prevState)`,
+ * then `finalizeMatch` — so nothing here reaches into the engine or changes
+ * how a Sunday match is played; it splits the SAME three calls across two
+ * entry points and lets the store put a decision between them. Second-half
+ * minutes come out of the engine already correct, which is why there is no
+ * offsetting anywhere in this file.
+ *
+ * WHAT MUST STAY TRUE ACROSS THE SPLIT, and is asserted in `sundayHalfTime`
+ * tests: the same downstream shape (ratings, injuries, the finished `Match`)
+ * as the atomic path, and no advantage the atomic path does not also give —
+ * the AI's second-half reactivity is applied on exactly the same condition
+ * `simulateMatch` applies it on.
+ */
+function sundayMedical(input: SundayMatchInput): { home: number; away: number } {
+  const physioMedical = 2 + input.playerPhysioLevel * 2;
+  const baselineMedical = 2;
+  return input.playerIsHome
+    ? { home: physioMedical, away: baselineMedical }
+    : { home: baselineMedical, away: physioMedical };
+}
+
+/** The first forty-five, returning the engine's carried state. */
+export function simulateSundayFirstHalf(input: SundayMatchInput): HalfState {
+  const medical = sundayMedical(input);
+  return simulateHalf(
+    input.homeClub, input.awayClub, input.homeXI, input.awayXI, 1, 45,
+    getSundayTactic(input.homeTacticId).instructions,
+    getSundayTactic(input.awayTacticId).instructions,
+    /* tacticalFamiliarity */ undefined,
+    /* playerClubId */ undefined,
+    /* prevState */ undefined,
+    input.derbyIntensity,
+    /* disciplinarianActive */ false,
+    medical.home, medical.away,
+    input.season,
+    /* careerDisciplineMod */ 0,
+    input.homeBench, input.awayBench,
+    /* teamTalkModifiers */ undefined,
+    input.weather,
+    /* setPieceCoachBonus */ 0,
+  );
+}
+
+/**
+ * The second forty-five and the whistle.
+ *
+ * `homeXI` / `awayXI` are the sides as they are NOW — the manager's side is
+ * rebuilt under whatever tactic he picked at the break, which is the whole
+ * point — and the engine tracks players by id, so everything the first half
+ * recorded about them carries over. The AI's reactive swap is gated exactly as
+ * `simulateMatch` gates it (a club with an `aiManagerProfile`); Sunday clubs do
+ * not carry one today, so in this mode both sides keep their first-half
+ * instructions unless the manager changes his.
+ */
+export function finishSundaySecondHalf(input: SundayMatchInput & { prevState: HalfState }): SundayMatchOutcome {
+  const medical = sundayMedical(input);
+  let homeTactics = getSundayTactic(input.homeTacticId).instructions;
+  let awayTactics = getSundayTactic(input.awayTacticId).instructions;
+  if (input.homeClub.aiManagerProfile) {
+    homeTactics = getAIReactiveTactics(input.homeClub.aiManagerProfile, true, input.prevState.homeGoals, input.prevState.awayGoals, 45);
+  }
+  if (input.awayClub.aiManagerProfile) {
+    awayTactics = getAIReactiveTactics(input.awayClub.aiManagerProfile, false, input.prevState.homeGoals, input.prevState.awayGoals, 45);
+  }
+
+  const full = simulateHalf(
+    input.homeClub, input.awayClub, input.homeXI, input.awayXI, 46, 90,
+    homeTactics, awayTactics,
+    /* tacticalFamiliarity */ undefined,
+    /* playerClubId */ undefined,
+    input.prevState,
+    input.derbyIntensity,
+    /* disciplinarianActive */ false,
+    medical.home, medical.away,
+    input.season,
+    /* careerDisciplineMod */ 0,
+    input.homeBench, input.awayBench,
+    /* teamTalkModifiers */ undefined,
+    input.weather,
+    /* setPieceCoachBonus */ 0,
+  );
+
+  const finalized = finalizeMatch(
+    input.match, input.homeClub, input.awayClub, input.homeXI, input.awayXI, full,
+    // Anyone who came off at the break is absent from the passed XIs; the
+    // engine resolves them through this lookup so they still get a rating.
+    input.playersById,
+  );
+  // `simulateMatch` attaches the weather to the finished match; the split path
+  // has to do it too, or a reloaded report loses the conditions it was played in.
+  finalized.result.weather = input.weather;
+  return { ...finalized, matchInjuries: full.matchInjuries };
 }
 
 /** Highest-rated player who actually played, or null. */

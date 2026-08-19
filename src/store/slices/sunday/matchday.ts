@@ -14,9 +14,9 @@
  * charges for the same referee.
  */
 import type {
-  SundayArrival,
+  SundayArrival, FormationType, MatchEvent, MatchWeather, SundayHalfTime, SundayMatchTier,
   Club, InjuryDetails, Match, Player, PlayerMatchRating, SundayCupTie,
-  SundayLedgerLine, SundayMatchReport, SundaySquadMember, SundayState,
+  SundayLedgerLine, SundayMatchReport, SundaySquadMember, SundayState, SundayTacticId,
 } from '@/types/game';
 import { computeMinutesPlayed, extractFinalMatchFitness, getYellowAccumulationBanWeek } from '@/store/slices/orchestration/helpers';
 import { RED_CARD_SUSPENSION_MIN, RED_CARD_SUSPENSION_RANGE } from '@/config/gameBalance';
@@ -32,7 +32,7 @@ import {
   getSundayTactic,
   SUNDAY_FORM_BASELINE_RATING, SUNDAY_FORM_MAX, SUNDAY_FORM_MIN, SUNDAY_FORM_PER_RATING,
   SUNDAY_PROMISE_BROKEN_HAPPINESS, SUNDAY_PROMISE_BROKEN_MORALE, SUNDAY_PROMISE_KEPT_HAPPINESS,
-  SUNDAY_RINGER_COST, SUNDAY_DERBY_BET, SUNDAY_DERBY_BET_FLAG,
+  SUNDAY_RINGER_COST, SUNDAY_DERBY_BET, SUNDAY_DERBY_BET_FLAG, SUNDAY_TACTICS,
 } from '@/config/sundayLeague';
 import {
   SUNDAY_ARRIVAL_CRIED_OFF, SUNDAY_ARRIVAL_NO_SHOW, SUNDAY_ARRIVAL_TURNED_UP,
@@ -44,8 +44,9 @@ import { resolveDoubt } from '@/utils/sunday/availability';
 import { bumpSundayAppsWith } from '@/utils/sunday/relationships';
 import { clearSundayRingers, generateSundayRinger } from '@/utils/sunday/generation';
 import {
-  buildMatchdayTeam, buildSundayNarrative, pickMotm, pickSundayOppositionXI,
-  rollSundayWeather, simulateSundayMatch, sundayStyleOf,
+  buildMatchdayTeam, buildSundayNarrative, finishSundaySecondHalf, pickMotm,
+  pickSundayOppositionXI, rollSundayWeather, simulateSundayFirstHalf,
+  simulateSundayMatch, sundayStyleOf, sundayTacticFit,
 } from '@/utils/sunday/match';
 import { advanceSundayCup, buildSundayTable, recordSundayRecord, sundayCupRoundName, sundaySeasonWeeks } from '@/utils/sunday/season';
 import { deriveSundayStakes } from '@/utils/sunday/tier';
@@ -262,12 +263,49 @@ export interface RunSundayMatchResult {
 }
 
 /**
- * Play this week's fixture and write every consequence.
+ * Everything settled before a ball is kicked.
  *
- * Returns null when there is nothing to play — no fixture, already played, the
- * club has folded, or the season is over.
+ * Pulled out of `runSundayMatch` so the SAME preparation serves three callers:
+ * the atomic ninety minutes, the first half of an interactive match, and the
+ * resumption of one at half time. The last of those is why `resume` exists —
+ * a paused match must be reconstructed EXACTLY, guests and weather included,
+ * and none of it may be re-rolled.
  */
-export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
+interface SundayMatchSetup {
+  clubId: string;
+  week: number;
+  season: number;
+  fixture: NonNullable<ReturnType<typeof findSundayFixture>>;
+  isCup: boolean;
+  cupRound: number | null;
+  homeClubId: string;
+  awayClubId: string;
+  isHome: boolean;
+  oppClubId: string;
+  ourClub: Club;
+  oppClub: Club;
+  /** A LOCAL copy of the players map with the guests added. Never the store's. */
+  players: Record<string, Player>;
+  squad: SundaySquadMember[];
+  noShows: SundaySquadMember[];
+  arrivalBeats: string[];
+  ringers: Player[];
+  startingIds: string[];
+  benchIds: string[];
+  forfeited: boolean;
+  rng: SundayRng;
+  weather: MatchWeather;
+  pitchQuality: number;
+  isDerby: boolean;
+  derbyIntensity: number;
+  tier: SundayMatchTier;
+  oppTactic: SundayTacticId;
+  baseMatch: Match;
+  /** The tactic the football is actually played under. */
+  tacticId: SundayTacticId;
+}
+
+function prepareSundayMatch(set: Set, get: Get, resume?: SundayHalfTime): SundayMatchSetup | null {
   const state = get();
   const sunday = state.sunday;
   if (!sunday || sunday.folded || sunday.seasonComplete) return null;
@@ -299,39 +337,53 @@ export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
     forcedRingers: 0, optionalRingers: 0, ringersHired: null, rngCursor: 0,
   };
   // Continue the match stream from where the arrival draws left it — replaying
-  // them would correlate the morning's luck with the afternoon's.
-  const rng = createSundayRng(subSeed(sunday.seed, `match:${season}:${week}`), arrival.rngCursor);
+  // them would correlate the morning's luck with the afternoon's. A resumed
+  // match continues from where its own first half left the stream.
+  const rng = createSundayRng(
+    subSeed(sunday.seed, `match:${season}:${week}`),
+    resume ? resume.rngCursor : arrival.rngCursor,
+  );
 
-  let squad: SundaySquadMember[] = get().sunday?.squad ?? sunday.squad;
+  const squad: SundaySquadMember[] = get().sunday?.squad ?? sunday.squad;
   const noShows = squad.filter(m => m.availability.status === 'out' && !m.availability.warned);
-  const xiIds = [...arrival.presentIds];
-  const benchIds = [...arrival.benchIds];
 
   // ── Ringers ──────────────────────────────────────────────────────────────
   // Forced guests keep the fixture alive; optional ones are the manager's
   // call, made (and paid for) at arrival. An undecided arrival means the
   // manager never looked — forced only.
-  const ringerCount = Math.min(
-    SUNDAY_MAX_RINGERS,
-    arrival.forcedRingers + (arrival.ringersHired ?? 0),
-  );
-  const ringers: Player[] = [];
-  for (let i = 0; i < ringerCount; i++) {
-    const r = generateSundayRinger(rng, clubId, season, i);
-    ringers.push(r);
-    players[r.id] = r;
+  //
+  // A RESUMED match takes its guests off the pause rather than generating new
+  // ones: they only exist for one afternoon and are wiped at the whistle, so
+  // re-rolling them here would put eleven different men on the pitch for the
+  // second half of a match nine of them already played.
+  let ringers: Player[];
+  let startingIds: string[];
+  let benchIds: string[];
+  if (resume) {
+    ringers = resume.ringers;
+    startingIds = [...resume.startingIds];
+    benchIds = [...resume.benchIds];
+  } else {
+    const ringerCount = Math.min(
+      SUNDAY_MAX_RINGERS,
+      arrival.forcedRingers + (arrival.ringersHired ?? 0),
+    );
+    ringers = [];
+    for (let i = 0; i < ringerCount; i++) ringers.push(generateSundayRinger(rng, clubId, season, i));
+    startingIds = [...arrival.presentIds, ...ringers.map(r => r.id)].slice(0, SUNDAY_FULL_XI);
+    benchIds = [...arrival.benchIds];
   }
-  const ringerIds = ringers.map(r => r.id);
-  const startingIds = [...xiIds, ...ringerIds].slice(0, SUNDAY_FULL_XI);
+  for (const r of ringers) players[r.id] = r;
   const forfeited = startingIds.length < SUNDAY_MIN_START;
 
-  // ── Simulate ─────────────────────────────────────────────────────────────
-  const pitchQuality = sundayPitchQuality(sunday, week);
-  const weather = rollSundayWeather(rng, week, sundaySeasonWeeks(sunday.divisionId), pitchQuality);
+  const pitchQuality = resume ? resume.pitchQuality : sundayPitchQuality(sunday, week);
+  const weather = resume
+    ? resume.weather
+    : rollSundayWeather(rng, week, sundaySeasonWeeks(sunday.divisionId), pitchQuality);
   // How big this afternoon is, fixed BEFORE the result exists — the table it
   // reads is the one the manager saw in the briefing, so the tier on the
   // report is the tier he was shown.
-  const tier = deriveSundayStakes({
+  const tier = resume ? resume.tier : deriveSundayStakes({
     divisionId: sunday.divisionId,
     clubId,
     opponentClubId: oppClubId,
@@ -342,17 +394,16 @@ export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
     cupRound: isCup ? fixture.tie.round : null,
   }).tier;
   const isDerby = sunday.rivalry?.clubId === oppClubId;
-  const derbyIntensity = isDerby && sunday.rivalry
-    ? clamp(sunday.rivalry.heat * SUNDAY_RIVAL_INTENSITY_SCALE, 0, 3)
-    : 0;
+  const derbyIntensity = resume ? resume.derbyIntensity
+    : isDerby && sunday.rivalry
+      ? clamp(sunday.rivalry.heat * SUNDAY_RIVAL_INTENSITY_SCALE, 0, 3)
+      : 0;
 
-  let result: Match;
-  let ratings: PlayerMatchRating[] = [];
-  let injuries: Record<string, InjuryDetails> = {};
-  let ourGoals = 0;
-  let theirGoals = 0;
-  let narrative: string[] = [];
-  let motm: PlayerMatchRating | null = null;
+  // How they play. Held for the season and derived from their own squad, so
+  // the manager can learn a side and set up against it — and so the engine's
+  // tactical-matchup channel is live for all four of the player's options
+  // instead of being flat against a division of hardcoded Route One.
+  const oppTactic = resume ? resume.oppTactic : sundayStyleOf(sunday.divisionStyles, oppClubId, clubs, players);
 
   const baseMatch: Match = isCup
     ? {
@@ -361,102 +412,195 @@ export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
       }
     : fixture.match;
 
-  if (forfeited) {
-    ourGoals = 0;
-    theirGoals = 3;
-    narrative = [
-      `You could not raise ${SUNDAY_MIN_START}. The referee waited twenty minutes and then went home.`,
-      'The result stands as a 3-0 defeat and the league will be in touch about the fine.',
-    ];
-    result = {
+  return {
+    clubId, week, season, fixture, isCup, cupRound: isCup ? fixture.tie.round : null,
+    homeClubId, awayClubId, isHome, oppClubId, ourClub, oppClub,
+    players, squad, noShows, arrivalBeats: arrival.beats,
+    ringers, startingIds, benchIds, forfeited,
+    rng, weather, pitchQuality, isDerby, derbyIntensity, tier, oppTactic, baseMatch,
+    tacticId: get().sunday?.tactic ?? sunday.tactic,
+  };
+}
+
+/** Everything the football produced, before any of it is written down. */
+interface SundaySimOutcome {
+  result: Match;
+  ratings: PlayerMatchRating[];
+  injuries: Record<string, InjuryDetails>;
+  /** The complete feed, arrival beats included. */
+  narrative: string[];
+  motm: PlayerMatchRating | null;
+}
+
+/**
+ * The forfeit outcome: nobody played, and the feed says why.
+ *
+ * A forfeit is not a match, which is why it never reaches the engine and never
+ * takes the half-time path.
+ */
+function forfeitOutcome(setup: SundayMatchSetup): SundaySimOutcome {
+  const { isHome, baseMatch, arrivalBeats } = setup;
+  return {
+    result: {
       ...baseMatch,
       played: true,
       homeGoals: isHome ? 0 : 3,
       awayGoals: isHome ? 3 : 0,
       events: [{ minute: 0, type: 'full_time', clubId: '', description: '— Fixture not fulfilled —' }],
-    };
-  } else {
-    const ourXI = startingIds.map(id => players[id]).filter((p): p is Player => !!p);
-    const ourBenchPlayers = benchIds.map(id => players[id]).filter((p): p is Player => !!p);
-    // How they play. Held for the season and derived from their own squad, so
-    // the manager can learn a side and set up against it — and so the engine's
-    // tactical-matchup channel is live for all four of the player's options
-    // instead of being flat against a division of hardcoded Route One.
-    const oppTactic = sundayStyleOf(sunday.divisionStyles, oppClubId, clubs, players);
-    const opp = pickSundayOppositionXI(rng, oppClub, players, week, oppTactic);
+    },
+    ratings: [],
+    injuries: {},
+    motm: null,
+    narrative: [
+      ...arrivalBeats,
+      `You could not raise ${SUNDAY_MIN_START}. The referee waited twenty minutes and then went home.`,
+      'The result stands as a 3-0 defeat and the league will be in touch about the fine.',
+    ],
+  };
+}
 
-    const ourTeam = buildMatchdayTeam({
-      xi: ourXI, squad, tacticId: sunday.tactic, pitchQuality,
-      ballsLevel: upgradeLevel(sunday, 'balls'), glovesLevel: upgradeLevel(sunday, 'keeper-gloves'),
-      coachLevel: upgradeLevel(sunday, 'coach'), teamMorale: sunday.teamMorale, isPlayerClub: true,
-    });
-    // The opposition get the pitch and their own tactical fit — they picked a
-    // tactic too, and a fit only the manager can hold would be a thumb on the
-    // scale rather than a system. They do NOT get equipment, a coach or a
-    // dressing room: those are things the club buys, and they have no Sunday
-    // state of their own to buy them with.
-    const oppTeam = buildMatchdayTeam({
-      xi: opp.xi, squad: [], tacticId: oppTactic, pitchQuality,
-      ballsLevel: 0, glovesLevel: 0, coachLevel: 0, teamMorale: 55, isPlayerClub: false,
-    });
+/**
+ * Both sides as the engine will see them, under a given tactic.
+ *
+ * Pure: it never draws, so the second half can rebuild OUR side under a new
+ * tactic without disturbing the seeded stream or the opposition. The
+ * opposition XI is passed in because choosing it does draw, and it is chosen
+ * exactly once per match.
+ */
+function buildSundaySides(
+  setup: SundayMatchSetup,
+  sunday: SundayState,
+  tacticId: SundayTacticId,
+  opp: { xi: Player[]; bench: Player[]; formation: FormationType },
+) {
+  const { players, squad, startingIds, benchIds, pitchQuality, ourClub, oppClub, isHome } = setup;
+  const ourXI = startingIds.map(id => players[id]).filter((p): p is Player => !!p);
+  const ourBenchPlayers = benchIds.map(id => players[id]).filter((p): p is Player => !!p);
 
-    // `club.lineup` is what the chemistry calculation aligns against, so the
-    // match-day copies of the clubs carry the sides that are actually playing —
-    // in the shape their own tactic asks for, on both sides.
-    const ourFormation = startingIds.length >= SUNDAY_FULL_XI
-      ? getSundayTactic(sunday.tactic).formation
-      : getSundayTactic(sunday.tactic).shortFormation;
-    const ourClubForSim: Club = { ...ourClub, lineup: ourTeam.players.map(p => p.id), formation: ourFormation };
-    const oppClubForSim: Club = { ...oppClub, lineup: oppTeam.players.map(p => p.id), formation: opp.formation };
-    const homeClubForSim: Club = isHome ? ourClubForSim : oppClubForSim;
-    const awayClubForSim: Club = isHome ? oppClubForSim : ourClubForSim;
+  const ourTeam = buildMatchdayTeam({
+    xi: ourXI, squad, tacticId, pitchQuality,
+    ballsLevel: upgradeLevel(sunday, 'balls'), glovesLevel: upgradeLevel(sunday, 'keeper-gloves'),
+    coachLevel: upgradeLevel(sunday, 'coach'), teamMorale: sunday.teamMorale, isPlayerClub: true,
+  });
+  // The opposition get the pitch and their own tactical fit — they picked a
+  // tactic too, and a fit only the manager can hold would be a thumb on the
+  // scale rather than a system. They do NOT get equipment, a coach or a
+  // dressing room: those are things the club buys, and they have no Sunday
+  // state of their own to buy them with.
+  const oppTeam = buildMatchdayTeam({
+    xi: opp.xi, squad: [], tacticId: setup.oppTactic, pitchQuality,
+    ballsLevel: 0, glovesLevel: 0, coachLevel: 0, teamMorale: 55, isPlayerClub: false,
+  });
 
-    const outcome = simulateSundayMatch({
-      rng,
-      match: baseMatch,
-      homeClub: homeClubForSim,
-      awayClub: awayClubForSim,
-      homeXI: isHome ? ourTeam.players : oppTeam.players,
-      awayXI: isHome ? oppTeam.players : ourTeam.players,
-      homeBench: isHome ? ourBenchPlayers : opp.bench,
-      awayBench: isHome ? opp.bench : ourBenchPlayers,
-      homeTacticId: isHome ? sunday.tactic : oppTactic,
-      awayTacticId: isHome ? oppTactic : sunday.tactic,
-      weather,
-      derbyIntensity,
-      season,
-      playerPhysioLevel: upgradeLevel(sunday, 'physio'),
-      playerIsHome: isHome,
-    });
+  // `club.lineup` is what the chemistry calculation aligns against, so the
+  // match-day copies of the clubs carry the sides that are actually playing —
+  // in the shape their own tactic asks for, on both sides.
+  const ourFormation = startingIds.length >= SUNDAY_FULL_XI
+    ? getSundayTactic(tacticId).formation
+    : getSundayTactic(tacticId).shortFormation;
+  const ourClubForSim: Club = { ...ourClub, lineup: ourTeam.players.map(p => p.id), formation: ourFormation };
+  const oppClubForSim: Club = { ...oppClub, lineup: oppTeam.players.map(p => p.id), formation: opp.formation };
 
-    result = outcome.result;
-    ratings = outcome.playerRatings;
-    injuries = outcome.matchInjuries;
-    ourGoals = isHome ? result.homeGoals : result.awayGoals;
-    theirGoals = isHome ? result.awayGoals : result.homeGoals;
+  return {
+    ourTeam, oppTeam, ourBenchPlayers,
+    homeClub: isHome ? ourClubForSim : oppClubForSim,
+    awayClub: isHome ? oppClubForSim : ourClubForSim,
+    homeXI: isHome ? ourTeam.players : oppTeam.players,
+    awayXI: isHome ? oppTeam.players : ourTeam.players,
+    homeBench: isHome ? ourBenchPlayers : opp.bench,
+    awayBench: isHome ? opp.bench : ourBenchPlayers,
+    homeTacticId: isHome ? tacticId : setup.oppTactic,
+    awayTacticId: isHome ? setup.oppTactic : tacticId,
+  };
+}
 
-    narrative = buildSundayNarrative({
-      rng,
-      events: result.events,
-      clubId,
-      players,
-      isDerby,
-      noShowNames: noShows.map(m => players[m.playerId]?.firstName ?? 'someone'),
-      ringerNames: ringers.map(r => r.firstName),
-      startedWith: startingIds.length,
-      homeGoals: result.homeGoals,
-      awayGoals: result.awayGoals,
-      isHome,
-      // The club's own records reach the feed here: what these men do on
-      // weekdays, how many afternoons they have given the club, and — for the
-      // build-up only — the one who crossed the road.
-      squad,
-      startedIds: startingIds,
-      cupRound: isCup ? sundayCupRoundName(fixture.tie.round) : null,
-      defectorName: sunday.rivalry?.defector?.name ?? null,
-    });
-    motm = pickMotm(ratings, startingIds);
-  }
+/** The feed for a stretch of the match, in the mode's voice. */
+function narrateSunday(
+  setup: SundayMatchSetup,
+  sunday: SundayState,
+  events: readonly MatchEvent[],
+  phase: 'full' | 'first' | 'second',
+): string[] {
+  const { rng, clubId, players, isDerby, noShows, ringers, startingIds, squad, isCup, fixture } = setup;
+  return buildSundayNarrative({
+    rng,
+    events,
+    clubId,
+    players,
+    isDerby,
+    noShowNames: noShows.map(m => players[m.playerId]?.firstName ?? 'someone'),
+    ringerNames: ringers.map(r => r.firstName),
+    startedWith: startingIds.length,
+    homeGoals: 0,
+    awayGoals: 0,
+    isHome: setup.isHome,
+    // The club's own records reach the feed here: what these men do on
+    // weekdays, how many afternoons they have given the club, and — for the
+    // build-up only — the one who crossed the road.
+    squad,
+    startedIds: startingIds,
+    cupRound: isCup && fixture.kind === 'cup' ? sundayCupRoundName(fixture.tie.round) : null,
+    defectorName: sunday.rivalry?.defector?.name ?? null,
+    phase,
+  });
+}
+
+/** The whole ninety minutes in one call. Every path but the interactive one. */
+function simulateSundayFull(
+  setup: SundayMatchSetup,
+  sunday: SundayState,
+  prePicked?: { xi: Player[]; bench: Player[]; formation: FormationType },
+): SundaySimOutcome {
+  const { rng, players, oppClub, week, isHome, startingIds, arrivalBeats } = setup;
+  // Passed in when the caller has already drawn it — drawing twice would both
+  // move the seeded stream and field two different oppositions.
+  const opp = prePicked ?? pickSundayOppositionXI(rng, oppClub, players, week, setup.oppTactic);
+  const sides = buildSundaySides(setup, sunday, setup.tacticId, opp);
+
+  const outcome = simulateSundayMatch({
+    rng,
+    match: setup.baseMatch,
+    ...sides,
+    weather: setup.weather,
+    derbyIntensity: setup.derbyIntensity,
+    season: setup.season,
+    playerPhysioLevel: upgradeLevel(sunday, 'physio'),
+    playerIsHome: isHome,
+  });
+
+  return {
+    result: outcome.result,
+    ratings: outcome.playerRatings,
+    injuries: outcome.matchInjuries,
+    motm: pickMotm(outcome.playerRatings, startingIds),
+    narrative: [...arrivalBeats, ...narrateSunday(setup, sunday, outcome.result.events, 'full')],
+  };
+}
+
+/**
+ * Write every consequence of a played (or abandoned) fixture, exactly once.
+ *
+ * The single place a Sunday result becomes history: player stats, the squad's
+ * happiness and streaks, memories, promises, the rivalry, records, the table
+ * and the report itself. Both the atomic path and the half-time path end here
+ * with the same shape, which is what makes them interchangeable.
+ */
+function settleSundayMatch(set: Set, get: Get, setup: SundayMatchSetup, sim: SundaySimOutcome): SundayMatchReport {
+  const state = get();
+  // The FRESH Sunday state: a half-time tactic switch happens between the
+  // preparation and this call, and spreading a stale copy would undo it.
+  const sunday = state.sunday!;
+  const {
+    clubId, week, season, fixture, isCup, homeClubId, awayClubId, isHome, oppClubId,
+    oppClub, players, ringers, startingIds, benchIds, forfeited, rng, tier, isDerby, noShows,
+  } = setup;
+  const clubs = state.clubs;
+  const cupTie = fixture.kind === 'cup' ? fixture.tie : null;
+  let squad = setup.squad;
+  const { result, ratings, injuries, motm } = sim;
+  const narrative = [...sim.narrative];
+  const ourGoals = isHome ? result.homeGoals : result.awayGoals;
+  const theirGoals = isHome ? result.awayGoals : result.homeGoals;
 
   // ── Cup shootout ─────────────────────────────────────────────────────────
   let shootoutScore: { home: number; away: number } | null = null;
@@ -601,7 +745,7 @@ export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
   const consequences: string[] = [];
   const bansStarting: string[] = [];
   const injuriesPicked: string[] = [];
-  const cupRound = isCup ? sundayCupRoundName(fixture.tie.round) : null;
+  const cupRound = cupTie ? sundayCupRoundName(cupTie.round) : null;
   let promiseMoraleHit = 0;
 
   squad = squad.map(m => {
@@ -773,7 +917,7 @@ export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
     if (injuriesPicked.length) out.push(`Injured: ${injuriesPicked.join(', ')}.`);
     if (bansStarting.length) out.push(`Suspended: ${bansStarting.join(', ')}.`);
     if (isDerby) out.push(won ? 'Derby won. The pub is yours tonight.' : lost ? 'Derby lost. Expect to hear about it.' : 'Derby honours even. Nobody satisfied.');
-    if (ringerCount > 0) out.push(`${ringerCount} guest${ringerCount === 1 ? '' : 's'} played — £${ringerCount * SUNDAY_RINGER_COST} owed and a few noses out of joint.`);
+    if (ringers.length > 0) out.push(`${ringers.length} guest${ringers.length === 1 ? '' : 's'} played — £${ringers.length * SUNDAY_RINGER_COST} owed and a few noses out of joint.`);
     return out.slice(0, 5);
   };
 
@@ -814,7 +958,7 @@ export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
     injuries: ourInjuries,
     turningPoint,
     consequences: buildConsequences(),
-    narrative: [...arrival.beats, ...narrative.filter(Boolean)],
+    narrative: narrative.filter(Boolean),
     // Money is settled in the weekly advance so it can never be charged twice.
     moneyDelta: 0,
     moraleDelta,
@@ -825,7 +969,7 @@ export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
   let cup = sunday.cup;
   if (isCup && cup) {
     const ties = cup.ties.map(t =>
-      t.round === fixture.tie.round && t.homeClubId === homeClubId && t.awayClubId === awayClubId
+      t.round === cupTie!.round && t.homeClubId === homeClubId && t.awayClubId === awayClubId
         ? {
             ...t, played: true,
             homeGoals: result.homeGoals, awayGoals: result.awayGoals,
@@ -835,11 +979,11 @@ export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
     );
     cup = { ...cup, ties };
     // Simulate the rest of this cup round so the bracket can advance.
-    cup = simulateRemainingCupTies(rng, cup, fixture.tie.round, clubs, players, week, season);
-    cup = advanceSundayCup(cup, sunday.divisionId, fixture.tie.round);
+    cup = simulateRemainingCupTies(rng, cup, cupTie!.round, clubs, players, week, season);
+    cup = advanceSundayCup(cup, sunday.divisionId, cupTie!.round);
     if (cupWinnerId !== clubId) cup = { ...cup, eliminated: true };
   } else {
-    fixtures = state.fixtures.map(m => (m.id === baseMatch.id ? result : m));
+    fixtures = state.fixtures.map(m => (m.id === setup.baseMatch.id ? result : m));
   }
 
   // ── Season aggregates ────────────────────────────────────────────────────
@@ -917,6 +1061,10 @@ export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
     // The morning is spent. Leaving it would let a stale arrival satisfy next
     // week's ensureArrival if the week numbers ever collided across seasons.
     arrival: null,
+    // The match is settled, so there is nothing paused any more. This is the
+    // other half of the exactly-once guarantee: the pause is cleared in the
+    // same write that marks the fixture played.
+    halfTime: null,
     // The named team was consumed by the fixture it was named for. Leaving it
     // in place kept a player who got injured or sent off DURING the match on
     // the sheet until the next advance — a teamsheet naming an unavailable
@@ -945,6 +1093,200 @@ export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
   });
 
   return report;
+}
+
+// ── Entry points ────────────────────────────────────────────────────────────
+
+/**
+ * Whether the pause currently in state was created by THIS session.
+ *
+ * Module state on purpose: it is exactly the question "did the app restart
+ * since half time?", and a reload is precisely what clears it. See
+ * `SundayHalfTime` for why that question decides whether the manager gets his
+ * decision back.
+ */
+let liveHalfTimeKey: string | null = null;
+const halfTimeKey = (h: SundayHalfTime) => `${h.season}:${h.week}:${h.matchId}`;
+
+export function isSundayHalfTimeLive(halfTime: SundayHalfTime | null | undefined): boolean {
+  return !!halfTime && liveHalfTimeKey === halfTimeKey(halfTime);
+}
+
+/** Simulates the app being restarted, for tests that exercise the reload rule. */
+export function __resetSundayHalfTimeSessionForTests(): void {
+  liveHalfTimeKey = null;
+}
+
+/**
+ * Play this week's fixture and write every consequence, in one call.
+ *
+ * Returns null when there is nothing to play — no fixture, already played, the
+ * club has folded, or the season is over. A match left paused at half time is
+ * finished here first, under the tactic it kicked off with: the weekly advance
+ * is not a person, and it cannot make the manager's decision for him.
+ */
+export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
+  if (get().sunday?.halfTime) return finishSundayMatch(set, get);
+  const setup = prepareSundayMatch(set, get);
+  if (!setup) return null;
+  const sunday = get().sunday!;
+  return settleSundayMatch(set, get, setup, setup.forfeited ? forfeitOutcome(setup) : simulateSundayFull(setup, sunday));
+}
+
+/**
+ * Play the first half and stop, leaving the manager one decision.
+ *
+ * Used ONLY by the interactive Match Day screen. Everything that is not a
+ * person — the weekly advance, the rest of the division, the cup ties nobody
+ * watches — goes through `runSundayMatch` and plays ninety minutes atomically.
+ *
+ * A fixture that cannot be split (a forfeit, or a side the engine would refuse)
+ * is played in full and returned as a finished report, so the caller always has
+ * something to show.
+ */
+export function playSundayFirstHalf(
+  set: Set, get: Get,
+): { halfTime: SundayHalfTime | null; report: SundayMatchReport | null } {
+  const existing = get().sunday?.halfTime;
+  // Already paused: hand back the same pause. A second first half would be a
+  // second match.
+  if (existing) return { halfTime: existing, report: null };
+
+  const setup = prepareSundayMatch(set, get);
+  if (!setup) return { halfTime: null, report: null };
+  const sunday = get().sunday!;
+  if (setup.forfeited) {
+    return { halfTime: null, report: settleSundayMatch(set, get, setup, forfeitOutcome(setup)) };
+  }
+
+  const opp = pickSundayOppositionXI(setup.rng, setup.oppClub, setup.players, setup.week, setup.oppTactic);
+  const ourXI = setup.startingIds.map(id => setup.players[id]).filter((p): p is Player => !!p);
+  // The engine forfeits a side below seven outright in `simulateMatch`; the
+  // split path must not reach the engine with one, or the two paths would
+  // disagree about the same fixture. Below the line, play it whole.
+  if (ourXI.length < SUNDAY_MIN_START || opp.xi.length < SUNDAY_MIN_START) {
+    return { halfTime: null, report: settleSundayMatch(set, get, setup, simulateSundayFull(setup, sunday, opp)) };
+  }
+
+  const sides = buildSundaySides(setup, sunday, setup.tacticId, opp);
+  const engineState = simulateSundayFirstHalf({
+    rng: setup.rng,
+    match: setup.baseMatch,
+    ...sides,
+    weather: setup.weather,
+    derbyIntensity: setup.derbyIntensity,
+    season: setup.season,
+    playerPhysioLevel: upgradeLevel(sunday, 'physio'),
+    playerIsHome: setup.isHome,
+  });
+
+  const coachLevel = upgradeLevel(sunday, 'coach');
+  const halfTime: SundayHalfTime = {
+    season: setup.season,
+    week: setup.week,
+    matchId: setup.baseMatch.id,
+    isCup: setup.isCup,
+    cupRound: setup.cupRound,
+    tier: setup.tier,
+    goalsFor: setup.isHome ? engineState.homeGoals : engineState.awayGoals,
+    goalsAgainst: setup.isHome ? engineState.awayGoals : engineState.homeGoals,
+    tactic: setup.tacticId,
+    // Measured on the men actually out there, guests included — they are not
+    // in `players`, so nothing outside this call could work it out.
+    tacticFit: Object.fromEntries(
+      SUNDAY_TACTICS.map(t => [t.id, sundayTacticFit(t.id, ourXI, coachLevel)]),
+    ),
+    startingIds: [...setup.startingIds],
+    benchIds: [...setup.benchIds],
+    ringers: setup.ringers,
+    oppXiIds: opp.xi.map(p => p.id),
+    oppBenchIds: opp.bench.map(p => p.id),
+    oppFormation: opp.formation,
+    oppTactic: setup.oppTactic,
+    weather: setup.weather,
+    pitchQuality: setup.pitchQuality,
+    derbyIntensity: setup.derbyIntensity,
+    rngCursor: cursorOf(setup.rng),
+    narrative: [...setup.arrivalBeats, ...narrateSunday(setup, sunday, engineState.events, 'first')],
+    engineState,
+  };
+
+  set({ sunday: { ...get().sunday!, halfTime } });
+  liveHalfTimeKey = halfTimeKey(halfTime);
+  return { halfTime, report: null };
+}
+
+/**
+ * Finish a match that is paused at half time, under `tactic` if the manager
+ * chose one.
+ *
+ * THE RELOAD RULE. A pause that came off disk (the app was killed at the
+ * break) is finished under the tactic the first half was played with, and the
+ * requested change is ignored. The shared engine is unseeded, so allowing the
+ * choice again after a reload would hand the player an unlimited re-roll of
+ * the second half; losing the decision instead makes reloading strictly worse
+ * than playing on, which is the only honest close available without seeding
+ * the engine. See `SundayHalfTime`.
+ *
+ * SETTLED ONCE. `prepareSundayMatch` returns null when there is no unplayed
+ * fixture this week, so a second call after the whistle clears the pause and
+ * refuses rather than writing a second set of consequences.
+ */
+export function finishSundayMatch(set: Set, get: Get, tactic?: SundayTacticId): SundayMatchReport | null {
+  const state = get();
+  const sunday = state.sunday;
+  const halfTime = sunday?.halfTime;
+  if (!sunday || !halfTime) return null;
+  const drop = () => set({ sunday: { ...get().sunday!, halfTime: null } });
+  if (halfTime.season !== state.season || halfTime.week !== state.week) {
+    drop();
+    return null;
+  }
+
+  const setup = prepareSundayMatch(set, get, halfTime);
+  if (!setup) { drop(); return null; }
+
+  const live = isSundayHalfTimeLive(halfTime);
+  const tacticId = live && tactic ? tactic : halfTime.tactic;
+  const sundayNow = get().sunday!;
+  const opp = {
+    xi: halfTime.oppXiIds.map(id => setup.players[id]).filter((p): p is Player => !!p),
+    bench: halfTime.oppBenchIds.map(id => setup.players[id]).filter((p): p is Player => !!p),
+    formation: halfTime.oppFormation,
+  };
+  // OUR side is rebuilt under the new tactic — different attributes, same men,
+  // same ids, so everything the first half recorded still belongs to them. The
+  // BENCH keeps the copies it warmed up with: the engine carries its own bench
+  // pool across the break, which is also what happens in every other mode.
+  const sides = buildSundaySides({ ...setup, tacticId }, sundayNow, tacticId, opp);
+
+  const outcome = finishSundaySecondHalf({
+    rng: setup.rng,
+    match: setup.baseMatch,
+    ...sides,
+    prevState: halfTime.engineState,
+    weather: setup.weather,
+    derbyIntensity: setup.derbyIntensity,
+    season: setup.season,
+    playerPhysioLevel: upgradeLevel(sundayNow, 'physio'),
+    playerIsHome: setup.isHome,
+    playersById: setup.players,
+  });
+
+  // The change he made at the break is his tactic from now on, exactly as if
+  // he had made it on the Tactics screen.
+  if (tacticId !== sundayNow.tactic) set({ sunday: { ...sundayNow, tactic: tacticId } });
+
+  return settleSundayMatch(set, get, { ...setup, tacticId }, {
+    result: outcome.result,
+    ratings: outcome.playerRatings,
+    injuries: outcome.matchInjuries,
+    motm: pickMotm(outcome.playerRatings, setup.startingIds),
+    // The half already on screen, then the half that just happened. The
+    // finished report therefore BEGINS with what the manager has been reading,
+    // so the reveal continues instead of starting again.
+    narrative: [...halfTime.narrative, ...narrateSunday(setup, sundayNow, outcome.result.events, 'second')],
+  });
 }
 
 /**

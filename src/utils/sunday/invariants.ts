@@ -359,6 +359,27 @@ export function validateSundayState(input: ValidateSundayInput): SundayValidatio
       if (a.ringersHired != null && a.ringersHired > a.optionalRingers) push('arrival hired more ringers than were on offer');
     }
 
+    // ── A match paused at half time (v3) ────────────────────────────────────
+    // The dangerous states are a pause left behind after the match settled
+    // (which would let the fixture be played twice) and one holding fewer men
+    // than a side — the reason the guests are carried on it in full.
+    if (sunday.halfTime) {
+      const h = sunday.halfTime;
+      if (h.week !== week) push(`half-time pause is for week ${h.week} but the state is at week ${week}`);
+      if (sunday.lastMatch && sunday.lastMatch.week === week && sunday.lastMatch.season === h.season) {
+        push('a match is paused at half time in a week that already has a result');
+      }
+      if (h.startingIds.length < SUNDAY_MIN_START) {
+        push(`half-time pause has only ${h.startingIds.length} men on the pitch`);
+      }
+      const ringerIds = new Set(h.ringers.map(r => r.id));
+      for (const id of h.startingIds) {
+        if (!seen.has(id) && !ringerIds.has(id)) push(`half-time pause names ${id}, who is neither in the squad nor a guest`);
+      }
+      if (!h.engineState || !Array.isArray(h.engineState.events)) push('half-time pause has no engine state');
+      if (!h.narrative.length) push('half-time pause has nothing on screen');
+    }
+
     // ── Story markers (v2) ──────────────────────────────────────────────────
     for (const [name, setWeek] of Object.entries(sunday.flags ?? {})) {
       if (!finite(setWeek)) push(`flag ${name} has a non-numeric week`);

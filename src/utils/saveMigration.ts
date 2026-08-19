@@ -179,6 +179,9 @@ const migrations: Record<number, MigrationFn> = {
         squad,
         recruits,
         pendingLedger: Array.isArray(sunday.pendingLedger) ? sunday.pendingLedger : [],
+        // No save can be mid-match: the field did not exist, and a match was
+        // settled in one call before it did.
+        halfTime: null,
         pitchDamage: typeof sunday.pitchDamage === 'number' ? sunday.pitchDamage : 0,
         // Nobody can owe the manager anything in a save written before the
         // club could borrow from him.
