@@ -17,7 +17,7 @@ import type {
 } from '@/types/game';
 import {
   SUNDAY_REP_PROMOTION, SUNDAY_REP_RELEGATION, SUNDAY_REP_TITLE,
-  SUNDAY_PRIZE_SHARES, SUNDAY_PROMOTION_BONUS,
+  SUNDAY_PRIZE_SHARES, SUNDAY_PROMOTION_BONUS, SUNDAY_MENTOR_GROWTH_MULT,
   getSundayDivision, sundayDivisionTier,
 } from '@/config/sundayLeague';
 import { createSundayRng, cursorOf, subSeed } from '@/utils/sunday/rng';
@@ -28,7 +28,7 @@ import {
   developSundayPlayer, drawSundayCup, mintSundayLegend, recordSundayRecord,
   resolveSundayOutcome, sundayCupRoundName, sundayPosition, sundaySeasonWeeks,
 } from '@/utils/sunday/season';
-import { applySundayDeparture } from '@/utils/sunday/relationships';
+import { applySundayDeparture, sundayMentor } from '@/utils/sunday/relationships';
 import { rollSundayAvailability } from '@/utils/sunday/availability';
 import { deriveSundayDivisionStyles } from '@/utils/sunday/match';
 import { buildSundayRivalry } from '@/utils/sunday/rivalry';
@@ -139,7 +139,15 @@ export function rolloverSundaySeason(set: Set, get: Get): void {
 
   const retired: { id: string; name: string }[] = [];
   for (const { member, player } of squadPlayers) {
-    const dev = developSundayPlayer(rng, player, member, coachLevel);
+    // A young player with an old head in his position group comes on faster.
+    // Derived from the squad as it stands at the last Sunday of the season and
+    // stored nowhere: the pair is true while both are here and gone the moment
+    // either is not. Nothing else in the mode rewards keeping a veteran past
+    // the point where he can still play.
+    const hasMentor = !!sundayMentor(member, sunday.squad, state.players, sunday.captainId);
+    const dev = developSundayPlayer(
+      rng, player, member, coachLevel, hasMentor ? SUNDAY_MENTOR_GROWTH_MULT : 1,
+    );
     if (dev.retiring) {
       const fullName = `${player.firstName} ${player.lastName}`;
       // A legend is remembered for his best DAY, not his totals — the totals

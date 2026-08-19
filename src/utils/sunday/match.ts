@@ -20,6 +20,7 @@
  *                        `computeStrengths` reads) — for BOTH sides
  *   tactic variance    → the level tilt below, scaled by `varianceMult`
  *   morale + happiness → mental
+ *   mates and enemies  → mental, ±2, for the men who have one on the pitch
  *
  * `buildMatchdayAdjustments` returns those as a list so the post-match report
  * can show the player exactly what helped and what did not. Nothing is applied
@@ -49,6 +50,7 @@ import {
   SUNDAY_TACTICS, getSundayTactic, SUNDAY_COACH_FIT_PER_LEVEL,
 } from '@/config/sundayLeague';
 import { SUNDAY_AMBIENCE, SUNDAY_RINGER_LINES, SUNDAY_SHORT_SIDE_LINES } from '@/data/sundayNames';
+import { sundayChemistry } from './relationships';
 import type { SundayRng } from './rng';
 
 const clamp = (v: number, lo = 1, hi = 99) => Math.max(lo, Math.min(hi, Math.round(v)));
@@ -298,6 +300,16 @@ export function buildMatchdayTeam(input: MatchdayAdjustmentInput): MatchdayTeam 
   const moraleDelta = Math.round((teamMorale - 55) * 0.10);
   if (moraleDelta !== 0) adjustments.push({ label: moraleDelta > 0 ? 'Confident dressing room' : 'Flat dressing room', delta: moraleDelta });
 
+  // Who is playing next to a mate, and who is playing next to somebody he has
+  // stopped passing to. ±2 of `mental` for the men involved, named in the
+  // breakdown — the smallest effect in this function and the only one that
+  // comes out of the club's own history rather than out of its wallet. The
+  // opposition pass an empty squad and get nothing: they have no Sunday records
+  // of their own, which is stated in `sundayChemistry` rather than left to be
+  // discovered by someone wondering why the AI never bonds.
+  const chemistry = sundayChemistry(xi, squad);
+  adjustments.push(...chemistry.rows);
+
   // Per-attribute fit multipliers: the tactic's own weights, normalised to
   // average 1 over the attributes it actually wants.
   const wantEntries = Object.entries(tactic.wants).filter(([, w]) => (w ?? 0) > 0) as [keyof Player['attributes'], number][];
@@ -330,7 +342,7 @@ export function buildMatchdayTeam(input: MatchdayAdjustmentInput): MatchdayTeam 
     attrs.pace = clamp(attrs.pace + Math.round(pitchDelta * 0.5) + Math.round(conditionDelta * 0.5));
     attrs.shooting = clamp(attrs.shooting + ballsDelta + levelShooting);
     attrs.physical = clamp(attrs.physical + conditionDelta);
-    attrs.mental = clamp(attrs.mental + moraleDelta + happinessDelta);
+    attrs.mental = clamp(attrs.mental + moraleDelta + happinessDelta + (chemistry.byPlayer.get(p.id) ?? 0));
     attrs.defending = clamp(attrs.defending - levelDefending);
     if (p.position === 'GK') attrs.defending = clamp(attrs.defending + glovesDelta - levelGk);
     for (const [key, delta] of fitByAttr) {

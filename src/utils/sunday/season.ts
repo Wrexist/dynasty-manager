@@ -314,6 +314,11 @@ export function developSundayPlayer(
   player: Player,
   member: SundaySquadMember,
   coachLevel: number,
+  /** Multiplier on a young player's yearly growth. The only caller that passes
+   *  anything but 1 is the rollover, when there is a veteran in his position
+   *  group taking him under his wing — see `sundayMentor`. Growth only, never
+   *  decline: nobody has ever slowed a thirty-six-year-old down by talking. */
+  growthMult = 1,
 ): DevelopmentResult {
   const next: Player = { ...player, attributes: { ...player.attributes }, age: player.age + 1 };
   const minutes = player.minutesPlayed ?? 0;
@@ -323,7 +328,8 @@ export function developSundayPlayer(
   if (next.age <= SUNDAY_GROWTH_AGE) {
     const gain = (SUNDAY_GROWTH_PER_SEASON + coachLevel * SUNDAY_COACH_GROWTH_PER_LEVEL)
       * (0.35 + 0.65 * playedShare)
-      * (0.6 + member.commitment / 20);
+      * (0.6 + member.commitment / 20)
+      * growthMult;
     if (gain > 0.4) {
       const keys = rng.sample(['pace', 'shooting', 'passing', 'defending', 'physical', 'mental'] as const, rng.int(2, 3));
       for (const k of keys) next.attributes[k] = clampAttr(next.attributes[k] + gain);
