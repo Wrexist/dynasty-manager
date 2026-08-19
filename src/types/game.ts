@@ -2690,7 +2690,9 @@ export type SundayLedgerKind =
   /** An afternoon on the phone talking somebody into playing. Schema v3. */
   | 'ring-round'
   /** Paying the manager back what he put in himself. Schema v3. */
-  | 'loan';
+  | 'loan'
+  /** Standing weekly cost of everything the club owns. Schema v3. */
+  | 'upkeep';
 
 export interface SundayLedgerLine {
   kind: SundayLedgerKind;

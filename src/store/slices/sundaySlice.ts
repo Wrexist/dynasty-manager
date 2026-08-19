@@ -103,6 +103,8 @@ export const createSundaySlice = (set: Set, get: Get) => ({
 
   buySundayUpgrade: async (upgradeId: SundayUpgradeId) => (await actions()).buySundayUpgrade(set, get, upgradeId),
 
+  mothballSundayUpgrade: async (upgradeId: SundayUpgradeId) => (await actions()).mothballSundayUpgrade(set, get, upgradeId),
+
   acceptSundaySponsor: async (offerId: string) => (await actions()).acceptSundaySponsor(set, get, offerId),
 
   declineSundaySponsor: async (offerId: string) => {

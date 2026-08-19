@@ -32,6 +32,7 @@ import {
   SUNDAY_KIT_MORALE_PER_LEVEL, SUNDAY_KIT_REP_PER_LEVEL, SUNDAY_CLUBHOUSE_MORALE_PER_LEVEL,
   SUNDAY_NETS_REP, SUNDAY_FLOODLIGHT_REP, SUNDAY_DERBY_BET_FLAG,
   SUNDAY_DEPARTURE_FLAG, SUNDAY_ROUGH_WEEK_FLAG, SUNDAY_RIVAL_EGO_MIN,
+  SUNDAY_UPGRADE_MOTHBALL_REFUND, SUNDAY_UPGRADE_MOTHBALL_MORALE,
   SUNDAY_RECRUIT_SIGNINGS_PER_SEASON, SUNDAY_SIGNING_DISPLACED_HAPPINESS,
   SUNDAY_SIGNING_DISPLACED_MAX, SUNDAY_HAPPY_EGO_MULT,
   getSundayUpgrade, sundayUpgradeCost,
@@ -927,6 +928,59 @@ export function buySundayUpgrade(set: Set, get: Get, upgradeId: SundayUpgradeId)
   });
   if (get().settings.autoSave) get().saveGame();
   return { ok: true, message: `${info.name} — done. £${cost} gone.` };
+}
+
+/**
+ * Sell one level of an upgrade back.
+ *
+ * The escape valve for `SUNDAY_UPGRADE_UPKEEP_PER_LEVEL`. A club that built a
+ * roller, floodlights and a minibus in the County Premier and then went down
+ * two divisions is carrying sixty pounds a week of standing cost against a
+ * Division Three gate, and without a way out that is an unrecoverable spiral
+ * rather than a setback. It is deliberately a bad trade — a quarter of what
+ * the level cost, and the room does not like watching the club's things go —
+ * so it is what you do to survive, not how you play.
+ */
+export function mothballSundayUpgrade(set: Set, get: Get, upgradeId: SundayUpgradeId) {
+  const state = get();
+  const sunday = state.sunday;
+  if (!sunday) return { ok: false, message: 'No Sunday League save is active.' };
+  const info = getSundayUpgrade(upgradeId);
+  const current = sunday.upgrades.find(u => u.id === upgradeId)?.level ?? 0;
+  if (current <= 0) return { ok: false, message: 'The club does not own that.' };
+
+  // Refund the price of the level being given up, not the next one.
+  const refund = Math.round(sundayUpgradeCost(upgradeId, current - 1) * SUNDAY_UPGRADE_MOTHBALL_REFUND);
+  const upgrades = sunday.upgrades
+    .map(u => (u.id === upgradeId ? { ...u, level: u.level - 1 } : u))
+    .filter(u => u.level > 0);
+
+  // Reputation the level bought goes back with it — the kit is returned, the
+  // nets come down, the lights are disconnected. Morale does NOT come back:
+  // the pint they had when it arrived was still had. Selling up costs its own
+  // goodwill instead.
+  const repBack = upgradeId === 'kit'
+    ? SUNDAY_KIT_REP_PER_LEVEL
+    : upgradeId === 'nets' ? SUNDAY_NETS_REP
+      : upgradeId === 'floodlights' ? SUNDAY_FLOODLIGHT_REP : 0;
+
+  set({
+    sunday: {
+      ...sunday,
+      upgrades,
+      balance: Math.round(sunday.balance + refund),
+      reputation: clampRound(sunday.reputation - repBack, 0, 100),
+      teamMorale: clampRound(sunday.teamMorale + SUNDAY_UPGRADE_MOTHBALL_MORALE, 0, 100),
+      pendingLedger: [...sunday.pendingLedger, {
+        kind: 'upgrade' as const,
+        amount: refund,
+        label: `Sold on: ${info.name}`,
+      }],
+      weekLog: logWeek(sunday, `${info.name} has gone. £${refund} back, and nobody is pleased about it.`),
+    },
+  });
+  if (get().settings.autoSave) get().saveGame();
+  return { ok: true, message: `${info.name} sold on. £${refund} back — and that is the last of the upkeep on it.` };
 }
 
 export function acceptSundaySponsor(set: Set, get: Get, offerId: string) {

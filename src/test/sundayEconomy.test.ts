@@ -16,7 +16,7 @@ import {
   SUNDAY_BANKRUPT_GRACE_WEEKS, SUNDAY_FORFEIT_FINE, SUNDAY_FUNDRAISER_COOLDOWN,
   SUNDAY_REFEREE_FEE, SUNDAY_SUBS_PER_PLAYER, getSundayDivision, getSundayUpgrade,
   sundayUpgradeCost, SUNDAY_MANAGER_LOAN, SUNDAY_DEBT_FLOOR, SUNDAY_DERBY_BET,
-  SUNDAY_DERBY_BET_FLAG,
+  SUNDAY_DERBY_BET_FLAG, SUNDAY_UPGRADE_UPKEEP_PER_LEVEL, SUNDAY_UPGRADE_MOTHBALL_REFUND,
 } from '@/config/sundayLeague';
 import type { SundaySquadMember } from '@/types/game';
 
@@ -394,6 +394,70 @@ describe('spending', () => {
     const r = await useGameStore.getState().buySundayUpgrade('floodlights');
     expect(r.ok).toBe(false);
     expect(useGameStore.getState().sunday!.balance).toBe(5000);
+  });
+});
+
+describe('what the club owns, it pays for', () => {
+  const base = {
+    divisionId: 'sun-4' as const, personality: 'pub' as const, reputation: 20,
+    sponsors: [], playedIds: [], squad: [], redCards: 0, injuries: 0,
+    chargeLeagueFee: false, ringers: 0,
+  };
+
+  it('charges upkeep per owned level, every week, fixture or not', () => {
+    const owned = [{ id: 'pitch' as const, level: 3 }, { id: 'minibus' as const, level: 1 }];
+    const quiet = buildWeekLedger({
+      ...base, rng: createSundayRng(1, 0), upgrades: owned, fixture: null,
+    });
+    const line = quiet.lines.find(l => l.kind === 'upkeep');
+    expect(line, 'a free Sunday still costs what the club owns').toBeTruthy();
+    expect(line!.amount).toBe(-4 * SUNDAY_UPGRADE_UPKEEP_PER_LEVEL);
+    // And a club that owns nothing is charged nothing.
+    const bare = buildWeekLedger({ ...base, rng: createSundayRng(1, 0), upgrades: [], fixture: null });
+    expect(bare.lines.some(l => l.kind === 'upkeep')).toBe(false);
+  });
+
+  it('puts upkeep into the weekly burn the manager is shown', () => {
+    const bare = sundayWeeklyBurn('sun-4', []);
+    const built = sundayWeeklyBurn('sun-4', [{ id: 'pitch', level: 3 }]);
+    expect(built - bare).toBe(3 * SUNDAY_UPGRADE_UPKEEP_PER_LEVEL);
+  });
+
+  it('selling a level back refunds a quarter and stops its upkeep', async () => {
+    const s0 = useGameStore.getState();
+    useGameStore.setState({ sunday: { ...s0.sunday!, balance: 5000, reputation: 100 } });
+    await useGameStore.getState().buySundayUpgrade('kit');
+    await useGameStore.getState().buySundayUpgrade('kit');
+    const before = useGameStore.getState().sunday!;
+    const refund = Math.round(sundayUpgradeCost('kit', 1) * SUNDAY_UPGRADE_MOTHBALL_REFUND);
+
+    const r = await useGameStore.getState().mothballSundayUpgrade('kit');
+    expect(r.ok).toBe(true);
+    const after = useGameStore.getState().sunday!;
+    expect(after.upgrades.find(u => u.id === 'kit')!.level).toBe(1);
+    expect(after.balance).toBe(before.balance + refund);
+    // A bad trade, deliberately: a quarter back, and the room notices.
+    expect(refund).toBeLessThan(sundayUpgradeCost('kit', 1) / 2);
+    expect(after.teamMorale).toBeLessThan(before.teamMorale);
+    // The line is in the books like every other pound.
+    expect(after.pendingLedger.some(l => l.kind === 'upgrade' && l.amount === refund)).toBe(true);
+    check();
+  });
+
+  it('sells the last level off the books entirely, and refuses to sell nothing', async () => {
+    const s0 = useGameStore.getState();
+    useGameStore.setState({ sunday: { ...s0.sunday!, balance: 5000, reputation: 100 } });
+    await useGameStore.getState().buySundayUpgrade('nets');
+    const withNets = useGameStore.getState().sunday!;
+    expect(withNets.upgrades.some(u => u.id === 'nets')).toBe(true);
+    await useGameStore.getState().mothballSundayUpgrade('nets');
+    const sold = useGameStore.getState().sunday!;
+    expect(sold.upgrades.some(u => u.id === 'nets')).toBe(false);
+    // The standing the nets bought goes back with them.
+    expect(sold.reputation).toBe(withNets.reputation - 1);
+    const again = await useGameStore.getState().mothballSundayUpgrade('nets');
+    expect(again.ok).toBe(false);
+    check();
   });
 });
 

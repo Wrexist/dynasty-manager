@@ -35,7 +35,7 @@ import {
   SUNDAY_INJURY_COST, SUNDAY_RED_CARD_FINE, SUNDAY_REFEREE_FEE,
   SUNDAY_SUBS_PAID_BASE, SUNDAY_SUBS_PAID_PER_COMMITMENT, SUNDAY_SUBS_PER_PLAYER,
   SUNDAY_UPKEEP, getSundayDivision, getSundayPersonality, SUNDAY_DERBY_GATE_BONUS,
-  SUNDAY_RINGER_COST,
+  SUNDAY_RINGER_COST, SUNDAY_UPGRADE_UPKEEP_PER_LEVEL,
 } from '@/config/sundayLeague';
 import type { SundayClubPersonalityId } from '@/types/game';
 import type { SundayRng } from './rng';
@@ -156,6 +156,19 @@ export function buildWeekLedger(input: WeekLedgerInput): WeekLedgerResult {
 
   lines.push({ kind: 'kit', amount: -SUNDAY_UPKEEP, label: 'Kit wash and odds and ends' });
 
+  // What the club owns, it pays for. Charged every week, fixture or not — the
+  // meter runs on a free Sunday too — and the only way to stop paying it is to
+  // sell the thing back (`mothballSundayUpgrade`).
+  const ownedLevels = upgrades.reduce((n, u) => n + Math.max(0, u.level), 0);
+  if (ownedLevels > 0) {
+    const upkeep = ownedLevels * SUNDAY_UPGRADE_UPKEEP_PER_LEVEL;
+    lines.push({
+      kind: 'upkeep',
+      amount: -upkeep,
+      label: `Upkeep (${ownedLevels} thing${ownedLevels === 1 ? '' : 's'} to look after)`,
+    });
+  }
+
   const net = lines.reduce((n, l) => n + l.amount, 0);
   return { lines, net, subsCollected, subsOwed };
 }
@@ -178,6 +191,12 @@ export function sundayWeeklyBurn(divisionId: SundayDivisionId, upgrades: readonl
   const div = getSundayDivision(divisionId);
   const minibus = upgradeLevel(upgrades, 'minibus');
   const avgTravel = minibus > 0 ? SUNDAY_AWAY_TRAVEL / 2 : SUNDAY_AWAY_TRAVEL;
-  // Half the weeks are home (pitch hire) and half away (travel).
-  return Math.round(SUNDAY_UPKEEP + SUNDAY_REFEREE_FEE + (div.pitchHire + avgTravel) / 2);
+  const ownedLevels = upgrades.reduce((n, u) => n + Math.max(0, u.level), 0);
+  // Half the weeks are home (pitch hire) and half away (travel). Upkeep is
+  // every week, which is exactly why it belongs in the figure the manager is
+  // supposed to have in his head before he buys the floodlights.
+  return Math.round(
+    SUNDAY_UPKEEP + SUNDAY_REFEREE_FEE + (div.pitchHire + avgTravel) / 2
+    + ownedLevels * SUNDAY_UPGRADE_UPKEEP_PER_LEVEL,
+  );
 }

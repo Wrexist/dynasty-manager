@@ -777,6 +777,38 @@ export function sundayUpgradeCost(id: SundayUpgradeId, level: number): number {
   return Math.round(info.baseCost * Math.pow(info.costMult, level));
 }
 
+/**
+ * Weekly upkeep, per level of upgrade owned, in pounds.
+ *
+ * THE MISSING TRADE-OFF AND THE MISSING SINK, in one number. Measured over 24
+ * careers x 10 seasons, the whole 21-level, £6,648 tree was maxed by median
+ * season 6 — after which the club had NO expense that scaled with anything it
+ * had built, income kept climbing with reputation, and the median balance ran
+ * from £1,417 at season six to £12,071 at season ten. Money stopped being a
+ * constraint permanently, which the audit named as quit-reason number one.
+ *
+ * Owning things costs money. The groundsman does not do it for love, the
+ * floodlights are on a meter, the minibus needs an MOT. A maxed club carries
+ * roughly £60 a week of standing cost against a good week's income of £250 —
+ * enough that the last few levels are a decision rather than a formality, and
+ * enough that a relegated club with a full trophy cabinet has a real problem.
+ *
+ * The escape valve is `mothballSundayUpgrade`, not a discount: a club in
+ * trouble can sell the roller back and stop paying for it.
+ */
+export const SUNDAY_UPGRADE_UPKEEP_PER_LEVEL = 3;
+/**
+ * Share of a level's purchase price recovered when it is mothballed.
+ *
+ * Deliberately punitive. Selling the club's kit back is what you do when the
+ * alternative is folding, not a way to time the market — but it MUST exist,
+ * because upkeep without a way out would turn a relegation into an
+ * unrecoverable spiral for a club that had built well.
+ */
+export const SUNDAY_UPGRADE_MOTHBALL_REFUND = 0.25;
+/** Squad morale hit for selling something the club owned. */
+export const SUNDAY_UPGRADE_MOTHBALL_MORALE = -4;
+
 // Per-upgrade effect magnitudes, so the systems that read them agree.
 export const SUNDAY_KIT_MORALE_PER_LEVEL = 3;
 export const SUNDAY_KIT_REP_PER_LEVEL = 2;

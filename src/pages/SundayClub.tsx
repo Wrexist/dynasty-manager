@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 import { formatMoney } from '@/utils/helpers';
 import {
   SUNDAY_UPGRADES, getSundayPersonality, sundayUpgradeCost,
+  SUNDAY_UPGRADE_UPKEEP_PER_LEVEL, SUNDAY_UPGRADE_MOTHBALL_REFUND,
 } from '@/config/sundayLeague';
 import { splitLedger, sundayWeeklyBurn } from '@/utils/sunday/finance';
 
@@ -29,8 +30,9 @@ type Tab = 'upgrades' | 'sponsors' | 'books';
 const SundayClub = () => {
   const { t } = useTranslation();
   const sunday = useGameStore(s => s.sunday);
-  const { buyUpgrade, acceptSponsor, declineSponsor } = useGameStore(useShallow(s => ({
+  const { buyUpgrade, mothballUpgrade, acceptSponsor, declineSponsor } = useGameStore(useShallow(s => ({
     buyUpgrade: s.buySundayUpgrade,
+    mothballUpgrade: s.mothballSundayUpgrade,
     acceptSponsor: s.acceptSundaySponsor,
     declineSponsor: s.declineSundaySponsor,
   })));
@@ -108,6 +110,11 @@ const SundayClub = () => {
 
       {tab === 'upgrades' && (
         <div className="space-y-2">
+          <p className="text-micro text-muted-foreground px-1">
+            {t('sunday.club.upkeepTotal', {
+              n: sunday.upgrades.reduce((n, x) => n + x.level, 0) * SUNDAY_UPGRADE_UPKEEP_PER_LEVEL,
+            })}
+          </p>
           {SUNDAY_UPGRADES.map(u => {
             const level = sunday.upgrades.find(x => x.id === u.id)?.level ?? 0;
             const maxed = level >= u.maxLevel;
@@ -126,6 +133,11 @@ const SundayClub = () => {
                     </p>
                     <p className="text-caption text-muted-foreground leading-relaxed mt-0.5">{u.description}</p>
                     <p className="text-micro text-muted-foreground/80 mt-1">{u.effectText}</p>
+                    {level > 0 && (
+                      <p className="text-micro text-amber-200/80 mt-0.5">
+                        {t('sunday.club.upkeep', { n: level * SUNDAY_UPGRADE_UPKEEP_PER_LEVEL })}
+                      </p>
+                    )}
                   </div>
                   <LiquidButton
                     tone={maxed ? 'default' : affordable && !locked ? 'primary' : 'default'}
@@ -138,6 +150,17 @@ const SundayClub = () => {
                     </span>
                   </LiquidButton>
                 </div>
+                {level > 0 && (
+                  <button
+                    type="button"
+                    className="mt-2 w-full min-h-[44px] rounded-xl border border-white/10 bg-white/[0.03] text-micro text-muted-foreground"
+                    onClick={() => { void mothballUpgrade(u.id).then(r => { if (r.ok) toast.success(r.message); else toast.info(r.message); }); }}
+                  >
+                    {t('sunday.club.mothball', {
+                      n: Math.round(sundayUpgradeCost(u.id, level - 1) * SUNDAY_UPGRADE_MOTHBALL_REFUND),
+                    })}
+                  </button>
+                )}
               </GlassPanel>
             );
           })}

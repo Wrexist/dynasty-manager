@@ -337,6 +337,9 @@ export interface GameState {
   signSundayRecruit: (recruitId: string) => Promise<{ ok: boolean; message: string }>;
   releaseSundayPlayer: (playerId: string) => Promise<{ ok: boolean; message: string }>;
   buySundayUpgrade: (upgradeId: SundayUpgradeId) => Promise<{ ok: boolean; message: string }>;
+  /** Sell one level back, for a quarter of what it cost, to stop paying its
+   *  weekly upkeep. The way out of an over-built club that got relegated. */
+  mothballSundayUpgrade: (upgradeId: SundayUpgradeId) => Promise<{ ok: boolean; message: string }>;
   acceptSundaySponsor: (offerId: string) => Promise<{ ok: boolean; message: string }>;
   declineSundaySponsor: (offerId: string) => Promise<void>;
   /** Raffle, car wash, sponsored silence. Once per cooldown. */
