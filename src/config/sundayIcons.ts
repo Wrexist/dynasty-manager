@@ -22,7 +22,7 @@
  * players never open. Every glyph below is one the app already imports
  * somewhere, so this map is free. Keep it that way: reuse before you import.
  *
- * This file holds NO copy and NO behaviour — icon choices only.
+ * This file holds NO copy and NO behaviour — glyph and tone choices only.
  */
 import {
   AlertTriangle, Armchair, ArrowLeft, ArrowRight, Award, Banknote, Beer,
@@ -37,7 +37,8 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type {
-  SundayEventInstance, SundayMemoryKind, SundayUpgradeId, WeatherCondition,
+  SundayEventInstance, SundayMatchTier, SundayMemoryKind, SundayUpgradeId,
+  WeatherCondition,
 } from '@/types/game';
 
 /**
@@ -180,6 +181,26 @@ export const SUNDAY_EVENT_CATEGORY_TONE: Record<SundayEventInstance['category'],
   rivalry: 'text-orange-300 bg-orange-500/10',
   sponsor: 'text-emerald-300 bg-emerald-500/10',
   comedy: 'text-fuchsia-300 bg-fuchsia-500/10',
+};
+
+/**
+ * What a fixture at each tier LOOKS like.
+ *
+ * Lived inside `SundayMatchDay` as a private const until the hub's fixture
+ * hero needed the same treatment — a cup final has to look like a cup final
+ * from the moment the app opens, not only once you are on match day. It sits
+ * beside `SUNDAY_EVENT_CATEGORY_TONE` because both answer "what colour is this
+ * concept", which is the same question the icon maps answer in glyphs.
+ *
+ * Existing tokens only: gold for a final, orange for the derby, sky for a cup
+ * tie, nothing at all for a wet Tuesday.
+ */
+export const SUNDAY_TIER_RIM: Record<SundayMatchTier, string> = {
+  routine: '',
+  cup: 'ring-1 ring-sky-400/30',
+  derby: 'ring-1 ring-orange-400/40',
+  'cup-final': 'ring-1 ring-primary/50 shadow-[0_0_28px_-8px_hsl(var(--primary)/0.55)]',
+  decider: 'ring-1 ring-primary/45 shadow-[0_0_24px_-8px_hsl(var(--primary)/0.45)]',
 };
 
 /** Upgrade → glyph. One per id in `SUNDAY_UPGRADES`, so a missing entry is a

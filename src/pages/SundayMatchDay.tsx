@@ -23,14 +23,14 @@ import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { LiquidButton } from '@/components/game/LiquidButton';
 import { SectionHeader } from '@/components/game/SectionHeader';
-import { SundayCrest } from '@/components/game/sunday/SundayBits';
+import { FormPills, SundayCrest } from '@/components/game/sunday/SundayBits';
 import { useGameStore } from '@/store/gameStore';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 import { hapticLight, hapticSuccess } from '@/utils/haptics';
 import { cn } from '@/lib/utils';
 import { SUNDAY_MIN_START, SUNDAY_RINGER_COST, SUNDAY_TACTICS, getSundayTactic } from '@/config/sundayLeague';
-import { SUNDAY_ICON, SUNDAY_WEATHER_ICON } from '@/config/sundayIcons';
+import { SUNDAY_ICON, SUNDAY_TIER_RIM, SUNDAY_WEATHER_ICON } from '@/config/sundayIcons';
 import { MATCH_SPEEDS } from '@/config/matchSpeed';
 import { findSundayFixture, sundayPitchQuality } from '@/store/slices/sunday/matchday';
 import { buildSundayTable, sundayCupRoundName, sundayPosition } from '@/utils/sunday/season';
@@ -59,22 +59,6 @@ const REVEAL_BASE_MS = 520;
  *  the half-time break is skipped and the ninety minutes are played in one go
  *  under the tactic already set. */
 const INSTANT_SPEED = MATCH_SPEEDS[MATCH_SPEEDS.length - 1].value;
-
-/**
- * What the header and the briefing look like at each tier.
- *
- * Existing tokens only, and deliberately quiet: a ring and a soft glow in a
- * colour the mode already uses for that thing (gold for a final, orange for
- * the derby, sky for a cup tie). A cup final should FEEL different from a wet
- * Tuesday without inventing a palette for it.
- */
-const TIER_RIM: Record<SundayMatchTier, string> = {
-  routine: '',
-  cup: 'ring-1 ring-sky-400/30',
-  derby: 'ring-1 ring-orange-400/40',
-  'cup-final': 'ring-1 ring-primary/50 shadow-[0_0_28px_-8px_hsl(var(--primary)/0.55)]',
-  decider: 'ring-1 ring-primary/45 shadow-[0_0_24px_-8px_hsl(var(--primary)/0.45)]',
-};
 
 /** How much longer a goal line hangs before the next one, by tier. A decider
  *  and a final breathe; nothing else changes pace. Reduced motion and
@@ -410,7 +394,7 @@ const SundayMatchDay = () => {
   return (
     <div className="max-w-lg mx-auto px-4 pt-3 pb-4 space-y-3">
       {/* Scoreline / fixture header */}
-      <GlassPanel className={cn('p-4', TIER_RIM[tier])}>
+      <GlassPanel className={cn('p-4', SUNDAY_TIER_RIM[tier])}>
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <SundayCrest
@@ -455,7 +439,7 @@ const SundayMatchDay = () => {
       {/* 1 · BRIEFING */}
       {!report && !arrival && (
         <>
-          <GlassPanel className={cn('p-4 space-y-2.5', TIER_RIM[tier])}>
+          <GlassPanel className={cn('p-4 space-y-2.5', SUNDAY_TIER_RIM[tier])}>
             <SectionHeader level="section" title={t('sunday.match.title')} />
             {stakes?.line && (
               <p className={cn(
@@ -480,22 +464,7 @@ const SundayMatchDay = () => {
             {intel && fixture?.kind !== 'cup' && (
               <div className="flex items-center gap-2 text-caption text-muted-foreground">
                 <span className="font-semibold text-foreground">{intel.position}/{intel.tableSize}</span>
-                {intel.form.length > 0 && (
-                  <span className="inline-flex gap-0.5" aria-label={intel.form.join(', ')}>
-                    {intel.form.map((r, i) => (
-                      <span
-                        key={i}
-                        className={cn(
-                          'w-5 h-5 rounded text-micro font-bold inline-flex items-center justify-center',
-                          r === 'W' ? 'bg-emerald-500/25 text-emerald-300'
-                            : r === 'L' ? 'bg-destructive/25 text-destructive' : 'bg-amber-400/20 text-amber-300',
-                        )}
-                      >
-                        {r}
-                      </span>
-                    ))}
-                  </span>
-                )}
+                <FormPills form={intel.form} />
                 {intel.danger && intel.danger.goals > 0 && (
                   <span className="truncate ml-auto">⚠ {intel.danger.name} ({intel.danger.goals})</span>
                 )}
@@ -686,7 +655,7 @@ const SundayMatchDay = () => {
 
       {/* 3b · HALF TIME — the one decision, and it is really simulated */}
       {atTheBreak && (
-        <GlassPanel className={cn('p-4 space-y-2', TIER_RIM[tier])}>
+        <GlassPanel className={cn('p-4 space-y-2', SUNDAY_TIER_RIM[tier])}>
           <SectionHeader
             level="section"
             title={t('sunday.match.halfTime')}

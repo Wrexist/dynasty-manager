@@ -8,10 +8,25 @@
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/hooks/useTranslation';
 import { SUNDAY_FORM_COLD, SUNDAY_FORM_HOT } from '@/config/sundayLeague';
-import { SUNDAY_ICON } from '@/config/sundayIcons';
-import type { Player, SundayAvailability, SundaySquadMember } from '@/types/game';
+import { SUNDAY_AVAILABILITY_ICON, SUNDAY_ICON } from '@/config/sundayIcons';
+import type {
+  Player, SundayAvailability, SundayAvailabilityStatus, SundaySquadMember,
+} from '@/types/game';
 
 const HotFormIcon = SUNDAY_ICON.hotForm;
+
+/**
+ * Availability status → the one tone.
+ *
+ * The hub used to hand-roll its own emerald/amber/red pill row beside a list
+ * built from `AvailabilityPill`, so the same status could be painted two
+ * slightly different ways on one screen. One map, read by both.
+ */
+const AVAIL_TONE: Record<SundayAvailabilityStatus, string> = {
+  available: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+  doubt: 'bg-amber-400/15 text-amber-200 border-amber-400/30',
+  out: 'bg-destructive/15 text-destructive border-destructive/30',
+};
 
 /** Availability at a glance. An unwarned absence reads as "no word from him"
  *  rather than naming the reason — the manager does not know it yet. */
@@ -23,14 +38,58 @@ export function AvailabilityPill({ availability, className }: { availability: Su
     : status === 'doubt'
       ? t('sunday.avail.doubt')
       : warned ? t('sunday.avail.out') : t('sunday.avail.noWord');
-  const tone = status === 'available'
-    ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-    : status === 'doubt'
-      ? 'bg-amber-400/15 text-amber-200 border-amber-400/30'
-      : 'bg-destructive/15 text-destructive border-destructive/30';
   return (
-    <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-micro font-semibold', tone, className)}>
+    <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-micro font-semibold', AVAIL_TONE[status], className)}>
       {label}
+    </span>
+  );
+}
+
+/**
+ * How many are in each state, in the same three colours as the pill.
+ *
+ * Counts and statuses have to be painted identically or the eye reads them as
+ * two different scales. The label is passed in already resolved because the
+ * caller owns the number — see `sundayClubSummary`, which is the only honest
+ * source of it.
+ */
+export function AvailabilityCount({ status, label }: { status: SundayAvailabilityStatus; label: string }) {
+  const Icon = SUNDAY_AVAILABILITY_ICON[status];
+  return (
+    <span className={cn('inline-flex items-center gap-1 px-2 py-1 rounded-full border text-micro font-semibold', AVAIL_TONE[status])}>
+      <Icon className="w-3 h-3 shrink-0" aria-hidden />
+      {label}
+    </span>
+  );
+}
+
+/**
+ * A club's last few results, newest first.
+ *
+ * Letters AND colour, never colour alone. Extracted from the match-day
+ * briefing so the hub's fixture hero shows the opposition's form in exactly
+ * the same shape the briefing does.
+ */
+export function FormPills({ form, size = 'md' }: {
+  form: readonly ('W' | 'D' | 'L')[];
+  size?: 'sm' | 'md';
+}) {
+  if (form.length === 0) return null;
+  return (
+    <span className="inline-flex gap-0.5" aria-label={form.join(', ')}>
+      {form.map((r, i) => (
+        <span
+          key={i}
+          className={cn(
+            'rounded text-micro font-bold inline-flex items-center justify-center shrink-0',
+            size === 'sm' ? 'w-[18px] h-[18px]' : 'w-5 h-5',
+            r === 'W' ? 'bg-emerald-500/25 text-emerald-300'
+              : r === 'L' ? 'bg-destructive/25 text-destructive' : 'bg-amber-400/20 text-amber-300',
+          )}
+        >
+          {r}
+        </span>
+      ))}
     </span>
   );
 }
@@ -55,14 +114,23 @@ export function StatChip({ label, value, tone, className }: {
 }
 
 /** 0-100 meter. Colour AND a numeric label, so the value is never carried by
- *  colour alone. */
-export function Meter({ label, value, className }: { label: string; value: number; className?: string }) {
+ *  colour alone. The optional glyph comes from `SUNDAY_ICON` and lets a row of
+ *  meters be scanned without reading three labels. */
+export function Meter({ label, value, icon: Icon, className }: {
+  label: string;
+  value: number;
+  icon?: React.ElementType;
+  className?: string;
+}) {
   const pct = Math.max(0, Math.min(100, Math.round(value)));
   const tone = pct >= 66 ? 'bg-emerald-500/80' : pct >= 33 ? 'bg-amber-400/80' : 'bg-destructive/80';
   return (
     <div className={cn('min-w-0', className)}>
       <div className="flex items-baseline justify-between gap-2">
-        <span className="text-micro text-muted-foreground truncate">{label}</span>
+        <span className="text-micro text-muted-foreground truncate inline-flex items-baseline gap-1">
+          {Icon && <Icon className="w-3 h-3 shrink-0 self-center" aria-hidden />}
+          {label}
+        </span>
         <span className="text-micro font-semibold text-foreground tabular-nums">{pct}</span>
       </div>
       <div
