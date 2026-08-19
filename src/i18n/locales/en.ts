@@ -54,7 +54,7 @@ export const en = {
   'sunday.hub.squadLabel': 'Squad',
   'sunday.hub.squadSize': '{n} registered',
   'sunday.hub.balance': 'In the account',
-  'sunday.hub.morale': 'Team morale',
+  'sunday.hub.morale': 'Morale',
   'sunday.hub.reputation': 'Standing',
   'sunday.hub.nextFixture': 'Next fixture',
   'sunday.hub.cupTie': '{round} · {club}',

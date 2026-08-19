@@ -25,9 +25,19 @@ export interface SundayNewsListProps {
   entries: readonly SundayNewsEntry[];
   /** Rows shown before the reveal. The rest are one tap away. */
   initial?: number;
+  /**
+   * Who an entry is about, when it is about somebody.
+   *
+   * Squad memories are written in the third person with no name in them
+   * ("Made his debut against Rose & Crown Rovers."), so three men making their
+   * debut in one afternoon produced three identical lines. The name is
+   * PREPENDED as its own element rather than spliced into the sentence — the
+   * authored line is still the authored line.
+   */
+  nameOf?: (playerId: string) => string | null;
 }
 
-export function SundayNewsList({ entries, initial = 5 }: SundayNewsListProps) {
+export function SundayNewsList({ entries, initial = 5, nameOf }: SundayNewsListProps) {
   const { t } = useTranslation();
   const reduceMotion = useReducedMotionPref();
   const [expanded, setExpanded] = useState(false);
@@ -63,6 +73,11 @@ export function SundayNewsList({ entries, initial = 5 }: SundayNewsListProps) {
                   'flex-1 min-w-0 text-caption text-muted-foreground leading-relaxed',
                   !open && 'line-clamp-2',
                 )}>
+                  {entry.playerId && nameOf?.(entry.playerId) && (
+                    <span className="font-semibold text-foreground/90">
+                      {nameOf(entry.playerId)}{' — '}
+                    </span>
+                  )}
                   {entry.text}
                 </span>
                 {entry.season != null && entry.week != null && (

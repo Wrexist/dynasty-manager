@@ -17,11 +17,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import SundayHub from '@/pages/SundayHub';
+import { SundayFixtureHero } from '@/components/game/sunday/SundayFixtureHero';
 import { useGameStore } from '@/store/gameStore';
 import { en } from '@/i18n/locales/en';
 import { findSundayFixture } from '@/store/slices/sunday/matchday';
 import { sundayPrimaryAction } from '@/utils/sunday/primaryAction';
 import { sundayClubSummary, sundayNewsFeed } from '@/utils/sunday/view';
+import type { SundayClubIdentity } from '@/types/game';
 
 vi.mock('@/utils/haptics', () => ({
   hapticLight: vi.fn(), hapticMedium: vi.fn(), hapticHeavy: vi.fn(),
@@ -50,12 +52,15 @@ describe('SundayHub renders the club', () => {
     expect(errors, errors.join('\n')).toEqual([]);
   });
 
-  it('shows the club, the division and the opposition it is about to play', () => {
+  it('draws both sides of the fixture it is about to play', () => {
     const s = useGameStore.getState();
     const sunday = s.sunday!;
     render(<SundayHub />);
 
-    expect(screen.getByText(sunday.identity.name)).toBeTruthy();
+    // The club's FULL name is deliberately absent: `TopBar` already prints it
+    // (with the crest and the division) on every Sunday tab, and the old club
+    // header repeated all three a thumb below it.
+    expect(screen.queryByText(sunday.identity.name)).toBeNull();
 
     const fixture = findSundayFixture(sunday, s.fixtures, s.week, s.playerClubId);
     expect(fixture, 'a fresh save should have a week-one fixture').toBeTruthy();
@@ -133,5 +138,64 @@ describe('SundayHub renders the club', () => {
       // "this line reached the DOM whole", not "exactly once".
       expect(screen.getAllByText(entry.text).length, entry.text).toBeGreaterThan(0);
     }
+  });
+});
+
+/**
+ * The three states the card has to hold. Rendered directly rather than through
+ * the hub, because "no fixture" and "season over" are otherwise reachable only
+ * by simulating a whole season for a layout assertion.
+ */
+describe('SundayFixtureHero', () => {
+  const identity = {
+    name: 'Marsh Lane AFC', shortName: 'Marsh Lane', nickname: 'The Lads',
+    color: '#D92B2B', secondaryColor: '#FFFFFF', personality: 'pub',
+    venue: 'The Rec', town: 'Ashworth',
+  } as SundayClubIdentity;
+
+  const base = {
+    identity,
+    opposition: null,
+    isHome: true,
+    tableSize: 8,
+    tier: 'routine' as const,
+    stakesLine: null,
+    derbyName: null,
+    contextLabel: 'Div 4 · Week 7/19 · Season 1',
+    pitch: 62,
+    onCta: () => {},
+  };
+
+  it('says there is no fixture, and still offers the week its action', () => {
+    render(<SundayFixtureHero {...base} mode="free" ctaLabel={en['sunday.hub.nextWeek']} />);
+    expect(screen.getByText(en['sunday.hub.freeWeek'])).toBeTruthy();
+    expect(screen.getByRole('button', { name: en['sunday.hub.nextWeek'] })).toBeTruthy();
+    // The blank week used to carry 94 characters explaining what a blank week
+    // was. The crest, the line and the button say it.
+    expect(screen.queryByText(/chase the subs/i)).toBeNull();
+  });
+
+  it('says the season is over, and points at the review', () => {
+    render(<SundayFixtureHero {...base} mode="seasonOver" ctaLabel={en['sunday.hub.viewSeason']} />);
+    expect(screen.getByText(en['sunday.hub.seasonOver'])).toBeTruthy();
+    expect(screen.getByRole('button', { name: en['sunday.hub.viewSeason'] })).toBeTruthy();
+  });
+
+  /**
+   * Decoration must be ABSENT under reduced motion, not merely still:
+   * `MotionConfig reducedMotion="always"` stops transforms and leaves paint
+   * alone, so a layer that costs anything has to not render.
+   */
+  it('does not paint the pitch stripes under reduced motion', () => {
+    const withStripes = render(
+      <SundayFixtureHero {...base} mode="free" ctaLabel="x" />,
+    ).container.querySelectorAll('svg rect').length;
+    expect(withStripes).toBeGreaterThan(0);
+
+    useGameStore.setState({ settings: { ...useGameStore.getState().settings, reducedMotion: true } });
+    const without = render(
+      <SundayFixtureHero {...base} mode="free" ctaLabel="x" />,
+    ).container.querySelectorAll('svg rect').length;
+    expect(without).toBe(0);
   });
 });

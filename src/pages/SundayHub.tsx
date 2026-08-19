@@ -3,7 +3,8 @@
  *
  * FOUR QUESTIONS, ANSWERED WITHOUT READING A PARAGRAPH, in this order:
  *
- *   who we are      → the identity strip: crest, name, division, season
+ *   who we are      → the shell's TopBar (crest, club, division, week) and our
+ *                     own crest on the fixture card
  *   what is happening → the fixture hero, which is deliberately the heaviest
  *                       thing on the screen
  *   what is next    → the one primary action, inside that hero and above the
@@ -156,9 +157,11 @@ const SundayHub = () => {
   const primary = sundayPrimaryAction(sunday, !!fixture, week);
 
   const weekLabel = `${t('sunday.hub.week', { week })}/${totalWeeks}`;
+  // A cup week names the round and the competition and has no room for the
+  // rest; every other week carries the division, the week and the season.
   const contextLabel = fixture?.kind === 'cup'
     ? t('sunday.hub.cupTie', { round: sundayCupRoundName(fixture.tie.round), club: sunday.cup?.name ?? '' })
-    : `${div.shortName} · ${weekLabel}`;
+    : `${div.shortName} · ${weekLabel} · ${t('sunday.hub.season', { season })}`;
 
   const heroMode = sunday.seasonComplete ? 'seasonOver' : fixture && opposition?.club ? 'fixture' : 'free';
   const isHome = fixture
@@ -180,24 +183,12 @@ const SundayHub = () => {
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-3 pb-4 space-y-3">
-      {/* WHO WE ARE. A strip, not a panel: it is an anchor, not a section, and
-          a card here would compete with the fixture below it. */}
-      <div className="flex items-center gap-3">
-        <SundayCrest
-          shortName={sunday.identity.shortName}
-          color={sunday.identity.color}
-          secondaryColor={sunday.identity.secondaryColor}
-          size={38}
-        />
-        <div className="min-w-0 flex-1">
-          <p className="text-title font-display font-bold text-foreground truncate">{sunday.identity.name}</p>
-          <p className="text-caption text-muted-foreground truncate">
-            {div.name} · {t('sunday.hub.season', { season })}
-          </p>
-        </div>
-      </div>
+      {/* WHO WE ARE is the shell's job, not this screen's: `TopBar` already
+          draws the crest, the club's name and `Div 4 · Week 3` on every Sunday
+          tab. The old club header repeated all three a thumb below it. What is
+          left of it here is the season, which the hero's eyebrow carries.
 
-      {/* WHAT IS HAPPENING, AND WHAT IS NEXT. */}
+          WHAT IS HAPPENING, AND WHAT IS NEXT. */}
       <SundayFixtureHero
         identity={sunday.identity}
         mode={heroMode}
@@ -244,22 +235,28 @@ const SundayHub = () => {
         {absent.length > 0 && (
           <ul className="space-y-1.5">
             {absent.slice(0, ABSENT_SHOWN).map(({ member, player }) => (
-              <li key={member.playerId} className="flex items-center gap-2">
+              <li key={member.playerId} className="flex items-start gap-2">
                 <SundayFace
                   {...sundayFaceSpec(player)}
                   shirtColor={kit.body}
                   shirtTrim={kit.trim}
                   size={32}
                 />
+                {/* Name and status on one line, the reason he gave on its own
+                    line beneath: "Unavailable" is a wide word, and sitting it
+                    beside the note squeezed the note to four syllables and an
+                    ellipsis. The note is the authored half of this row. */}
                 <div className="min-w-0 flex-1">
-                  <p className="text-caption text-foreground truncate">
-                    {player.firstName} {player.lastName}
-                  </p>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-caption text-foreground truncate min-w-0">
+                      {player.firstName} {player.lastName}
+                    </p>
+                    <AvailabilityPill availability={member.availability} className="shrink-0" />
+                  </div>
                   {member.availability.note && (
-                    <p className="text-micro text-muted-foreground truncate">{member.availability.note}</p>
+                    <p className="text-micro text-muted-foreground leading-snug">{member.availability.note}</p>
                   )}
                 </div>
-                <AvailabilityPill availability={member.availability} className="shrink-0" />
               </li>
             ))}
           </ul>
@@ -328,7 +325,13 @@ const SundayHub = () => {
               </div>
             </div>
           )}
-          <SundayNewsList entries={news} />
+          <SundayNewsList
+            entries={news}
+            nameOf={id => {
+              const p = players[id];
+              return p ? `${p.firstName} ${p.lastName}` : null;
+            }}
+          />
         </GlassPanel>
       )}
 

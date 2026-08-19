@@ -164,12 +164,28 @@ export function SundayFixtureHero({
               delay={0.08}
               animate={!reduceMotion}
             >
-              {opposition?.position != null && (
-                <span className="text-micro font-semibold text-foreground tabular-nums">
-                  {opposition.position}/{tableSize}
+              {/* Nothing is claimed about a side that has not kicked a ball:
+                  in week one every club has nought points and a table position
+                  is an artefact of the sort, not a fact about them. */}
+              {opposition && opposition.played > 0 && (
+                <>
+                  {opposition.position != null && (
+                    <span className="text-micro font-semibold text-foreground tabular-nums">
+                      {opposition.position}/{tableSize}
+                    </span>
+                  )}
+                  <FormPills form={opposition.form} size="sm" />
+                </>
+              )}
+              {/* Their shape, in their column. It sat in the shared row under
+                  both crests, where "Chaos Ball" beside the pitch reading gave
+                  no clue whose tactic it was. */}
+              {oppTactic && (
+                <span className="inline-flex items-center gap-1 min-w-0 text-micro text-muted-foreground">
+                  <TacticsIcon className="w-3 h-3 shrink-0" aria-hidden />
+                  <span className="truncate">{oppTactic.name}</span>
                 </span>
               )}
-              <FormPills form={opposition?.form ?? []} size="sm" />
             </Side>
           </div>
         ) : (
@@ -206,17 +222,9 @@ export function SundayFixtureHero({
         )}
 
         {showFixture && (
-          <div className="flex items-center justify-center gap-3 text-caption text-muted-foreground">
-            <span className="inline-flex items-center gap-1 min-w-0">
-              <PitchIcon className="w-3.5 h-3.5 shrink-0" aria-hidden />
-              <span className="tabular-nums">{t('sunday.hub.pitch')} {Math.round(pitch)}</span>
-            </span>
-            {oppTactic && (
-              <span className="inline-flex items-center gap-1 min-w-0">
-                <TacticsIcon className="w-3.5 h-3.5 shrink-0" aria-hidden />
-                <span className="truncate">{oppTactic.name}</span>
-              </span>
-            )}
+          <div className="flex items-center justify-center gap-1 text-caption text-muted-foreground">
+            <PitchIcon className="w-3.5 h-3.5 shrink-0" aria-hidden />
+            <span className="tabular-nums">{t('sunday.hub.pitch')} {Math.round(pitch)}</span>
           </div>
         )}
 
