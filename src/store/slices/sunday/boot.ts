@@ -166,6 +166,7 @@ export function buildSundayWorld(opts: StartSundayOptions): SundayWorld {
     bigGame: false,
     hasMinibus: false,
     freeWeek: !firstFixture,
+    captainId: sunday.captainId,
   };
   const availRng = createSundayRng(subSeed(seed, 'avail:1'), 0);
   sunday.squad = squad.map(m => ({

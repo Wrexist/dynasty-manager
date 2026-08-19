@@ -295,6 +295,15 @@ export function rolloverSundaySeason(set: Set, get: Get): void {
         return c ? buildSundayRivalry(rng, c.id) : null;
       })();
 
+  // Who has the armband is settled BEFORE the first availability roll: the
+  // captain turns up more than his commitment alone says (`SUNDAY_CAPTAIN_
+  // AVAIL_BONUS`), and rolling week one without knowing who he is would apply
+  // that to nobody.
+  const captainStillHere = sunday.captainId && squad.some(m => m.playerId === sunday.captainId);
+  const captainId = captainStillHere
+    ? sunday.captainId
+    : ([...squad].sort((a, b) => (b.influence * 2 + b.commitment) - (a.influence * 2 + a.commitment))[0]?.playerId ?? null);
+
   // ── Availability for week 1 ──────────────────────────────────────────────
   const firstFixture = fixtures.find(m => m.week === 1 && (m.homeClubId === clubId || m.awayClubId === clubId));
   const availRng = createSundayRng(subSeed(sunday.seed, `avail:${nextSeason}:1`), 0);
@@ -305,13 +314,9 @@ export function rolloverSundaySeason(set: Set, get: Get): void {
       bigGame: false,
       hasMinibus: (sunday.upgrades.find(u => u.id === 'minibus')?.level ?? 0) > 0,
       freeWeek: !firstFixture,
+      captainId,
     }, 1),
   }));
-
-  const captainStillHere = sunday.captainId && squad.some(m => m.playerId === sunday.captainId);
-  const captainId = captainStillHere
-    ? sunday.captainId
-    : ([...squad].sort((a, b) => (b.influence * 2 + b.commitment) - (a.influence * 2 + a.commitment))[0]?.playerId ?? null);
 
   messages = sundayMessage(
     messages, nextSeason, 1,

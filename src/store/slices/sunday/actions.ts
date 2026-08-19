@@ -1086,7 +1086,10 @@ export function ringRoundSunday(set: Set, get: Get, playerId: string) {
   const cost = sundayRingRoundCost(sunday.ringRoundsThisWeek);
   if (sunday.balance < cost) return { ok: false, message: 'You cannot even afford the phone credit.' };
 
-  const chance = ringRoundChance(member);
+  // The skipper makes the second call, and people answer a call from the man
+  // who runs the club differently. Nobody rings himself.
+  const captain = sunday.captainId ? memberOf(sunday, sunday.captainId) : null;
+  const chance = ringRoundChance(member, captain);
   if (chance <= 0) {
     return { ok: false, message: 'There is nothing you can say that will change this one.' };
   }

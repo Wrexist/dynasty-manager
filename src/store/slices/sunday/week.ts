@@ -38,6 +38,7 @@ import {
   SUNDAY_PHYSIO_HEAL_PER_LEVEL, SUNDAY_FLAG_EXPIRY_WEEKS,
   SUNDAY_MANAGER_LOAN_REPAYMENT, SUNDAY_DERBY_BET_FLAG, SUNDAY_ROUGH_WEEK_FLAG,
   SUNDAY_FULL_XI, getSundayDivision, sundayDivisionTier, SUNDAY_SPONSOR_TIER_MULT,
+  SUNDAY_CAPTAIN_MOOD_WEIGHT,
   SUNDAY_SPONSOR_WIN_STREAK_MIN, SUNDAY_SPONSOR_WIN_STREAK_MAX,
   SUNDAY_SPONSOR_UNBEATEN_MIN, SUNDAY_SPONSOR_UNBEATEN_MAX,
   SUNDAY_SPONSOR_GOALS_PER_MATCH_MIN, SUNDAY_SPONSOR_GOALS_PER_MATCH_MAX,
@@ -368,8 +369,14 @@ export function advanceSundayWeek(set: Set, get: Get): void {
 
   let teamMorale = sunday.teamMorale;
   if (squad.length) {
-    const influenceTotal = squad.reduce((n, m) => n + m.influence, 0) || 1;
-    const moodTarget = squad.reduce((n, m) => n + m.happiness * m.influence, 0) / influenceTotal;
+    // The captain counts double. He sets the tone in the changing room, which
+    // is the reason the armband exists — before this the appointment was worth
+    // one happiness modifier and one event, and the manager's choice of who
+    // runs the club had no mechanical consequence at all.
+    const weightOf = (m: SundaySquadMember) =>
+      m.influence * (m.playerId === sunday.captainId ? SUNDAY_CAPTAIN_MOOD_WEIGHT : 1);
+    const influenceTotal = squad.reduce((n, m) => n + weightOf(m), 0) || 1;
+    const moodTarget = squad.reduce((n, m) => n + m.happiness * weightOf(m), 0) / influenceTotal;
     teamMorale += (moodTarget - teamMorale) * SUNDAY_MORALE_MOOD_PULL;
   }
   teamMorale = clamp(teamMorale, 0, 100);
@@ -711,6 +718,9 @@ export function advanceSundayWeek(set: Set, get: Get): void {
     bigGame,
     hasMinibus: (sunday.upgrades.find(u => u.id === 'minibus')?.level ?? 0) > 0,
     freeWeek: !nextFixture && !nextCupTie,
+    // Resolved AFTER the departures above, so an armband that changed hands
+    // this week belongs to the man who actually has it on Sunday.
+    captainId,
   };
 
   // Form decays toward neutral for anyone who did not play this week — a

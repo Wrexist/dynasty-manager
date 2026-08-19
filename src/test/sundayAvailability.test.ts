@@ -15,7 +15,9 @@ import { useGameStore } from '@/store/gameStore';
 import { createSundayRng } from '@/utils/sunday/rng';
 import { assertSundayState } from '@/utils/sunday/invariants';
 import { generateSundayPlayer } from '@/utils/sunday/generation';
-import { SUNDAY_AVAIL_MAX, SUNDAY_AVAIL_MIN } from '@/config/sundayLeague';
+import {
+  SUNDAY_AVAIL_MAX, SUNDAY_AVAIL_MIN, SUNDAY_CAPTAIN_AVAIL_BONUS,
+} from '@/config/sundayLeague';
 import type { Player, SundaySquadMember } from '@/types/game';
 
 const ctx = { away: false, bigGame: false, hasMinibus: false, freeWeek: false };
@@ -51,6 +53,36 @@ describe('availability chance', () => {
     // A minibus buys the away penalty back.
     expect(sundayAvailabilityChance(m, { ...ctx, away: true, hasMinibus: true }))
       .toBe(sundayAvailabilityChance(m, ctx));
+  });
+});
+
+describe('the armband is worth something', () => {
+  it('gets the captain himself out of bed more often', () => {
+    const m = make({ commitment: 12 }).member;
+    const asCaptain = sundayAvailabilityChance(m, { ...ctx, captainId: m.playerId });
+    expect(asCaptain).toBeGreaterThan(sundayAvailabilityChance(m, ctx));
+    expect(asCaptain - sundayAvailabilityChance(m, ctx)).toBeCloseTo(SUNDAY_CAPTAIN_AVAIL_BONUS, 5);
+    // Somebody ELSE having the armband does nothing for him.
+    expect(sundayAvailabilityChance(m, { ...ctx, captainId: 'somebody-else' }))
+      .toBe(sundayAvailabilityChance(m, ctx));
+  });
+
+  it('is a bonus, not a hard floor — a miserable captain still stops turning up', () => {
+    const miserable = make({ commitment: 2, happiness: 0, benchedStreak: 10 }).member;
+    const chance = sundayAvailabilityChance(miserable, { ...ctx, captainId: miserable.playerId });
+    expect(chance).toBeLessThan(0.5);
+  });
+
+  it('makes the ring-round easier, and the captain cannot ring himself', () => {
+    const absent = make({ commitment: 10 }).member;
+    const skipper = { ...make({ influence: 18 }).member, playerId: 'skipper' };
+    expect(ringRoundChance(absent, skipper)).toBeGreaterThan(ringRoundChance(absent));
+    // A captain who nobody listens to is worth nothing here, which is the
+    // point of appointing on influence.
+    const quiet = { ...make({ influence: 1 }).member, playerId: 'quiet' };
+    expect(ringRoundChance(absent, quiet)).toBeLessThan(ringRoundChance(absent, skipper));
+    // And he is not talking himself round.
+    expect(ringRoundChance(absent, absent)).toBe(ringRoundChance(absent));
   });
 });
 

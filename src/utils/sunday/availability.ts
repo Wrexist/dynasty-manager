@@ -29,6 +29,7 @@ import {
   SUNDAY_DOUBT_SHARE, SUNDAY_DOUBT_TURNS_UP, SUNDAY_HOLIDAY_SHARE,
   SUNDAY_HOLIDAY_WEEKS_MAX, SUNDAY_HOLIDAY_WEEKS_MIN, SUNDAY_WARN_BASE,
   SUNDAY_WARN_PER_PUNCTUALITY, SUNDAY_RINGROUND_BASE, SUNDAY_RINGROUND_PER_COMMITMENT,
+  SUNDAY_CAPTAIN_AVAIL_BONUS, SUNDAY_CAPTAIN_RINGROUND_PER_INFLUENCE,
 } from '@/config/sundayLeague';
 import { SUNDAY_ABSENCE_NOTES } from '@/data/sundayNames';
 import type { SundayRng } from './rng';
@@ -47,6 +48,10 @@ export interface AvailabilityContext {
   /** No fixture this week: nobody can be unavailable for a match that does not
    *  exist, so multi-week absences tick down and everyone else resets. */
   freeWeek: boolean;
+  /** Who has the armband. The captain is the man who unlocks the changing
+   *  rooms, so he turns up more than his commitment alone would say — see
+   *  `SUNDAY_CAPTAIN_AVAIL_BONUS`. Null when nobody is appointed. */
+  captainId?: string | null;
 }
 
 /** Probability this player is available, before the reason is chosen. */
@@ -57,6 +62,10 @@ export function sundayAvailabilityChance(m: SundaySquadMember, ctx: Availability
     - m.benchedStreak * SUNDAY_AVAIL_BENCHED_PENALTY;
   if (ctx.bigGame) p += SUNDAY_AVAIL_BIG_GAME_BONUS;
   if (ctx.away && !ctx.hasMinibus) p -= SUNDAY_AVAIL_AWAY_PENALTY;
+  // Somebody has to open up. It is a bonus rather than a hard floor on
+  // purpose: a captain the manager has made miserable is still allowed to stop
+  // turning up, which is the whole point of the armband being a decision.
+  if (ctx.captainId && ctx.captainId === m.playerId) p += SUNDAY_CAPTAIN_AVAIL_BONUS;
   return Math.max(SUNDAY_AVAIL_MIN, Math.min(SUNDAY_AVAIL_MAX, p));
 }
 
@@ -164,12 +173,26 @@ export function resolveDoubt(rng: SundayRng, a: SundayAvailability): SundayAvail
   return { ...a, status: 'out' };
 }
 
-/** Chance a ring-round talks this particular player into playing after all. */
-export function ringRoundChance(m: SundaySquadMember): number {
+/**
+ * Chance a ring-round talks this particular player into playing after all.
+ *
+ * `captain` is the man with the armband, when there is one and he is not the
+ * man being rung. He makes the second call — and people answer a call from the
+ * bloke who runs the club differently, which is one of the three things that
+ * stopped the captaincy being decoration.
+ */
+export function ringRoundChance(
+  m: SundaySquadMember,
+  captain?: SundaySquadMember | null,
+): number {
   // Nobody is talking the injured or the banned into anything.
   if (m.availability.reason === 'injury' || m.availability.reason === 'suspended') return 0;
   if (m.availability.reason === 'holiday') return 0;
-  return Math.max(0, Math.min(0.85, SUNDAY_RINGROUND_BASE + m.commitment * SUNDAY_RINGROUND_PER_COMMITMENT));
+  const skipper = captain && captain.playerId !== m.playerId
+    ? captain.influence * SUNDAY_CAPTAIN_RINGROUND_PER_INFLUENCE
+    : 0;
+  return Math.max(0, Math.min(0.85,
+    SUNDAY_RINGROUND_BASE + m.commitment * SUNDAY_RINGROUND_PER_COMMITMENT + skipper));
 }
 
 /** A short English summary of the week's availability, for the hub. */

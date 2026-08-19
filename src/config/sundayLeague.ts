@@ -261,6 +261,30 @@ export const SUNDAY_HAPPY_AVAILABLE_UNPICKED = -5;
 export const SUNDAY_HAPPY_EGO_MULT = 0.4;
 /** Captain benched — he is not going to let this go. */
 export const SUNDAY_HAPPY_CAPTAIN_BENCHED = -6;
+
+// ── The armband ─────────────────────────────────────────────────────────────
+//
+// It was nearly cosmetic: one happiness modifier for benching him and one
+// event. Everything else about the captain — that he is the man who runs the
+// club, chases people on a Saturday night and sets the tone in the dressing
+// room — was flavour text. These three constants make appointing him a real
+// decision, and all three read the SAME attribute the appointment screen sorts
+// on (`influence`), so the choice the manager is offered is the choice that
+// pays out.
+
+/** Extra weight the captain's own mood carries in the dressing room's
+ *  influence-weighted average. He sets the tone; a miserable captain drags the
+ *  room down faster than a miserable reserve. */
+export const SUNDAY_CAPTAIN_MOOD_WEIGHT = 2;
+/** Added to a ring-round's chance, per point of the captain's influence. He
+ *  makes the second call, and people answer it. Worth about +0.09 for a
+ *  well-chosen captain and nothing at all for a badly-chosen one. */
+export const SUNDAY_CAPTAIN_RINGROUND_PER_INFLUENCE = 0.006;
+/** Floor under the captain's OWN availability. Whatever else happens, the man
+ *  with the armband unlocks the changing rooms — but only while he is happy
+ *  enough to still want the job, so the floor lifts from the base rather than
+ *  overriding a dressing-room collapse. */
+export const SUNDAY_CAPTAIN_AVAIL_BONUS = 0.10;
 /** Below this, the player becomes unsettled and starts fielding calls. */
 export const SUNDAY_UNSETTLED_THRESHOLD = 28;
 /** Below this (and unsettled), he leaves. */
