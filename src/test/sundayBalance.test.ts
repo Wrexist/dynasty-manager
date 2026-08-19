@@ -87,15 +87,20 @@ describe('sunday balance bands', () => {
     const detail = `league=${league.toFixed(2)} own=${own.toFixed(2)} avail=${availability.toFixed(2)} folded=${folded}/6`;
 
     // Sunday football, not professional chess: ~3 goals a game either side of
-    // the whole division. MEASURED (6 seasons, pub/Route One): 3.13 and 3.17
-    // on two runs of this exact case.
+    // the whole division. RE-MEASURED after the wave-5 economy pass (6 seasons,
+    // pub/Route One): 3.17 and 3.13 on two runs of this exact case — unmoved,
+    // which is the point: nothing in the economy may touch the football.
     expect(league, detail).toBeGreaterThan(2.4);
     expect(league, detail).toBeLessThan(4.2);
     // The player's own (engine-simulated) matches and the AI model's league
     // must describe the same sport, or the table stops being comparable with
-    // the club's record. MEASURED gap: 0.29 and 0.41.
+    // the club's record. RE-MEASURED gap: 0.39 and 0.24.
     expect(Math.abs(own - league), detail).toBeLessThan(1.3);
-    // Availability bites without being a lottery. MEASURED: 0.76-0.78.
+    // Availability bites without being a lottery. RE-MEASURED: 0.78 and 0.80,
+    // after `SUNDAY_AVAIL_PER_HAPPINESS` doubled to 0.004 — the coupling to
+    // the dressing room got twice as steep and the POPULATION average barely
+    // moved, which is exactly the intended shape: happy squads turn out more,
+    // unhappy ones much less, and the mean is unchanged.
     expect(availability, detail).toBeGreaterThan(0.70);
     expect(availability, detail).toBeLessThan(0.92);
     // An actively-managed ordinary club survives its first season nearly always.
@@ -118,25 +123,28 @@ describe('sunday balance bands', () => {
     const detail = [...ppgByTactic.entries()].map(([k, v]) => `${k}=${v.toFixed(2)}`).join(' ');
 
     // Every tactic must be playable, and none an automatic win.
-    // MEASURED (8 seasons per tactic, two runs of this exact case):
-    //   route-one 1.27 / 1.38 · park-the-bus 1.21 / 1.30
-    //   chaos-ball 1.46 / 1.35 · proper-football 1.33 / 1.22
+    // RE-MEASURED after wave 5 (8 seasons per tactic, two runs of this case):
+    //   route-one 1.61 / 1.39 · park-the-bus 1.29 / 1.39
+    //   chaos-ball 1.60 / 1.32 · proper-football 1.51 / 1.22
+    // The run-to-run spread on a single tactic is up to 0.29, which is what a
+    // 14-match season looks like as an estimator; the bands are sized for it.
     for (const v of values) {
       expect(v, detail).toBeGreaterThan(0.7);
       expect(v, detail).toBeLessThan(2.2);
     }
-    // Best-to-worst spread. MEASURED 0.25 and 0.16 here; 0.278 in the offline
-    // sweep (8 squad shapes x 4 tactics x 1,400 matches), which is the number
-    // to trust — a 14-match season is a noisy estimator and the band is sized
-    // for that noise, not for the true spread.
+    // Best-to-worst spread. RE-MEASURED 0.32 and 0.17 here; 0.278 in the
+    // offline sweep (8 squad shapes x 4 tactics x 1,400 matches), which is the
+    // number to trust — a 14-match season is a noisy estimator and the band is
+    // sized for that noise, not for the true spread.
     expect(Math.max(...values) - Math.min(...values), detail).toBeLessThan(0.85);
     // PARK THE BUS IS NOT A TRAP. It used to be: hardcoded Route One opposition
     // meant the AI collected an all-out-attack matchup bonus against it that the
     // manager could never answer, and it stacked narrow + slow + a pressing
     // intensity of 25 on top, all of which are volume penalties in the shared
     // engine. The audit measured it 0.24-0.33 ppg behind every other tactic in
-    // every squad shape. MEASURED now: 0.14 and 0.02 behind the mean of the
-    // other three here, 0.185 behind in the offline sweep. The band is 3 SD of
+    // every squad shape. RE-MEASURED after wave 5: 0.28 behind and 0.08 AHEAD
+    // of the mean of the other three on two runs here, 0.185 behind in the
+    // offline sweep. The band is 3 SD of
     // this case's own sampling noise (SD ~0.14 on the gap at 8 seasons), so it
     // catches a return to "structural loser" without flagging a quiet week.
     const bus = ppgByTactic.get('park-the-bus')!;
@@ -146,8 +154,8 @@ describe('sunday balance bands', () => {
     // Chaos Ball's identity is variance, and since `varianceMult` was wired to
     // the level tilt it is a mechanical property rather than a claim on a card:
     // each side's tactic scales its own shooting bonus and marking penalty.
-    // MEASURED total goals per match: chaos-ball 4.81 / 5.08 against park-the-
-    // bus 3.12 / 2.73 — a gap of 1.69 and 2.35.
+    // RE-MEASURED total goals per match: chaos-ball 5.09 / 4.95 against
+    // park-the-bus 2.67 / 3.04 — a gap of 2.42 and 1.91.
     const busy = varianceByTactic.get('chaos-ball')! - varianceByTactic.get('park-the-bus')!;
     expect(busy, `${detail} | chaos-bus goals ${busy.toFixed(2)}`).toBeGreaterThan(0.7);
   }, 600_000);
@@ -168,11 +176,11 @@ describe('sunday balance bands', () => {
 
     // Washed Professionals are better at football than the Family Club — that
     // is their entire premise — but nobody is hopeless and nobody walks it.
-    // MEASURED (5 seasons each, two runs): washed 2.45 / 2.24, family 1.33 /
-    // 1.44, eleven 1.74 / 1.79, serious 2.12 / 2.39. The upper band moves 2.6
-    // -> 2.75 because the top of that range sits barely one standard deviation
-    // (~0.15 at five seasons) below the old bound — it was a flake waiting to
-    // happen, and 2.75 ppg is still a side winning nine games in ten.
+    // RE-MEASURED after wave 5 (5 seasons each, two runs): washed 2.31 / 2.41,
+    // family 1.81 / 1.57, eleven 1.56 / 1.36, serious 2.49 / 2.53. The upper
+    // band of 2.75 still sits above the highest observed value by more than a
+    // standard deviation (~0.15 at five seasons); 2.75 ppg is a side winning
+    // nine games in ten.
     expect(ppg.get('washed')!, detail).toBeGreaterThan(ppg.get('family')!);
     for (const v of ppg.values()) {
       expect(v, detail).toBeGreaterThan(0.4);

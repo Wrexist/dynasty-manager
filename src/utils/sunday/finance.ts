@@ -166,7 +166,11 @@ export function buildWeekLedger(input: WeekLedgerInput): WeekLedgerResult {
   // sell the thing back (`mothballSundayUpgrade`).
   const ownedLevels = upgrades.reduce((n, u) => n + Math.max(0, u.level), 0);
   if (ownedLevels > 0) {
-    const upkeep = ownedLevels * SUNDAY_UPGRADE_UPKEEP_PER_LEVEL;
+    // Scaled by the division for the same reason every other standing cost is:
+    // a County Premier ground is held to a County Premier standard, and it is
+    // also where the money is. A relegated club's bills fall with it, which is
+    // what keeps an over-built side's problem a setback rather than a spiral.
+    const upkeep = Math.round(ownedLevels * SUNDAY_UPGRADE_UPKEEP_PER_LEVEL * div.costMult);
     lines.push({
       kind: 'upkeep',
       amount: -upkeep,
@@ -202,7 +206,7 @@ export function sundayWeeklyBurn(divisionId: SundayDivisionId, upgrades: readonl
   // every week, which is exactly why it belongs in the figure the manager is
   // supposed to have in his head before he buys the floodlights.
   return Math.round(
-    (SUNDAY_UPKEEP + SUNDAY_REFEREE_FEE) * div.costMult + (div.pitchHire + avgTravel) / 2
-    + ownedLevels * SUNDAY_UPGRADE_UPKEEP_PER_LEVEL,
+    (SUNDAY_UPKEEP + SUNDAY_REFEREE_FEE + ownedLevels * SUNDAY_UPGRADE_UPKEEP_PER_LEVEL) * div.costMult
+    + (div.pitchHire + avgTravel) / 2,
   );
 }

@@ -126,6 +126,124 @@ async function runCareer(seed: number, personality: SundayClubPersonalityId, tac
   };
 }
 
+/**
+ * THE LATE-GAME ECONOMY GATE.
+ *
+ * The audit's number-one answer to "why would anyone stop playing after five
+ * seasons" was measured, not felt: a competently-run club's median balance ran
+ * £381 (S1) → £697 (S5) → £12,071 (S10) with income/spend climbing 0.99 → 2.07,
+ * and the entire 21-level, £6,648 upgrade tree was bought out by median season
+ * 6. After that there was no sink of any kind and money stopped being a
+ * constraint permanently.
+ *
+ * This case is the tripwire for that regression returning. It runs a competent
+ * pilot — resolves events, takes sponsors, fundraises when short, buys the
+ * cheapest affordable upgrade, signs recruits within the cap — for eight
+ * seasons and asserts the shape of the curve rather than any single number.
+ */
+async function runEconomyCareer(seed: number, seasons: number) {
+  useGameStore.getState().resetGame();
+  await useGameStore.getState().startSundayLeague({ personality: 'pub', seed });
+
+  const balances: number[] = [];
+  let income = 0, spend = 0, ledgerSeen = 0;
+  let maxedAt: number | null = null;
+  const maxLevels = SUNDAY_UPGRADES.reduce((n, u) => n + u.maxLevel, 0);
+  let guard = 0;
+
+  while (useGameStore.getState().season <= seasons && guard++ < seasons * (sundaySeasonWeeks('sun-prem') + 6)) {
+    const s = useGameStore.getState();
+    const sunday = s.sunday!;
+    if (sunday.folded) break;
+    if (sunday.seasonComplete) {
+      balances.push(sunday.balance);
+      await useGameStore.getState().endSundaySeason();
+      continue;
+    }
+    if (sunday.pendingEvent) await s.resolveSundayEvent(sunday.pendingEvent.choices[0].id);
+    for (const o of useGameStore.getState().sunday!.sponsorOffers) {
+      await useGameStore.getState().acceptSundaySponsor(o.id);
+    }
+    if (useGameStore.getState().sunday!.balance < 130) await useGameStore.getState().runSundayFundraiser();
+    {
+      const st = useGameStore.getState().sunday!;
+      for (const u of SUNDAY_UPGRADES) {
+        const lvl = st.upgrades.find(x => x.id === u.id)?.level ?? 0;
+        if (lvl >= u.maxLevel || st.reputation < u.minReputation) continue;
+        if (st.balance - sundayUpgradeCost(u.id, lvl) > 260) {
+          await useGameStore.getState().buySundayUpgrade(u.id);
+          break;
+        }
+      }
+      for (const r of useGameStore.getState().sunday!.recruits) {
+        const cur = useGameStore.getState().sunday!;
+        if (cur.squad.length >= 18 || cur.balance <= r.fee + 100) continue;
+        await useGameStore.getState().signSundayRecruit(r.id);
+      }
+    }
+    await useGameStore.getState().advanceWeek();
+    const after = useGameStore.getState().sunday!;
+    if (maxedAt == null && after.upgrades.reduce((n, u) => n + u.level, 0) >= maxLevels) {
+      maxedAt = useGameStore.getState().season;
+    }
+    const last = after.ledger[after.ledger.length - 1];
+    if (last) {
+      const key = last.season * 1000 + last.week;
+      if (key > ledgerSeen) {
+        ledgerSeen = key;
+        for (const l of last.lines) {
+          if (l.amount >= 0) income += l.amount; else spend += -l.amount;
+        }
+      }
+    }
+  }
+  const end = useGameStore.getState().sunday!;
+  if (!end.folded && balances.length < seasons) balances.push(end.balance);
+  return { balances, incomeOverSpend: income / Math.max(1, spend), maxedAt, folded: end.folded };
+}
+
+describe('the late-game economy stays an economy', () => {
+  it('does not let money stop being a constraint by season five', async () => {
+    const careers: Awaited<ReturnType<typeof runEconomyCareer>>[] = [];
+    for (let i = 0; i < 12; i++) careers.push(await runEconomyCareer(900 + i, 8));
+
+    const median = (xs: number[]) => {
+      if (!xs.length) return NaN;
+      const sorted = [...xs].sort((a, b) => a - b);
+      const m = Math.floor(sorted.length / 2);
+      return sorted.length % 2 ? sorted[m] : (sorted[m - 1] + sorted[m]) / 2;
+    };
+    const at = (season: number) => median(careers.map(c => c.balances[season - 1]).filter(x => x != null));
+    const ratio = median(careers.map(c => c.incomeOverSpend));
+    const maxed = careers.map(c => c.maxedAt).filter((x): x is number => x != null);
+    const folded = careers.filter(c => c.folded).length;
+    const detail = `S3=${Math.round(at(3))} S5=${Math.round(at(5))} S8=${Math.round(at(8))} `
+      + `inc/spend=${ratio.toFixed(2)} maxedMedian=${maxed.length ? median(maxed) : 'never'} `
+      + `maxedCount=${maxed.length}/12 folded=${folded}/12`;
+
+    // MEASURED, 24 careers x 10 seasons on the harness this case is a cut-down
+    // of: median balance £337 (S1) £525 (S5) £1,561 (S8) £4,554 (S10), against
+    // a pre-wave baseline of £327 / £825 / £5,642 / £11,286 on the identical
+    // harness and seeds. The band is the pre-wave S8 figure: if a future change
+    // puts the club back above it, the sink has stopped working.
+    expect(at(8), detail).toBeLessThan(5600);
+    // Season five must still be hand-to-mouth. MEASURED £525 (was £825).
+    expect(at(5), detail).toBeLessThan(2000);
+    // ...but not a graveyard. The mode must remain winnable.
+    expect(at(8), detail).toBeGreaterThan(-200);
+    // Income must not run away from spending. MEASURED career ratio 1.09;
+    // pre-wave the SEASON-10 ratio alone was 2.12.
+    expect(ratio, detail).toBeLessThan(1.6);
+    // The tree must not be bought out before it has been a decision for a
+    // while. MEASURED median season 8, with 6 of 24 careers never finishing it
+    // inside ten seasons; pre-wave it was median season 6 and every career
+    // finished it.
+    if (maxed.length) expect(median(maxed), detail).toBeGreaterThan(5.5);
+    // Survivable throughout. MEASURED 0/24 folds for this pilot.
+    expect(folded, detail).toBeLessThanOrEqual(3);
+  }, 900_000);
+});
+
 describe('sunday balance campaign', () => {
   it('holds the design bands across 32 careers', async () => {
     const results: CareerResult[] = [];

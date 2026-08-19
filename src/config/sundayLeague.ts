@@ -204,8 +204,26 @@ export const SUNDAY_AVAIL_MAX = 0.95;
 export const SUNDAY_AVAIL_BASE = 0.46;
 /** Added per point of `commitment` (1-20). 20 commitment = +0.44. */
 export const SUNDAY_AVAIL_PER_COMMITMENT = 0.022;
-/** Added per point of `happiness` above 50, per point (so ±0.10 at the ends). */
-export const SUNDAY_AVAIL_PER_HAPPINESS = 0.002;
+/**
+ * Added per point of `happiness` above 50 (so ±0.20 at the ends).
+ *
+ * WIDENED 0.002 → 0.004. At 0.002 the entire happiness range moved
+ * availability by ±0.10, which meant a dressing room in open revolt emptied
+ * the car park by one man in ten — the single most important feedback loop in
+ * the mode, and it was worth less than the away-day penalty. Every lever the
+ * manager has over happiness (selection, promises, the armband, chasing subs,
+ * signing over somebody's head) pays out here, so a weak coupling made all of
+ * them weak at once.
+ *
+ * RETUNED CAREFULLY, because this is the defining curve and it feeds a loop:
+ * unhappy squad → thin turnout → defeats → unhappier squad. The counterweight
+ * is `SUNDAY_HAPPINESS_DRIFT` pulling individuals back toward neutral every
+ * week, and the `SUNDAY_AVAIL_MIN` floor. Measured across 24 careers x 10
+ * seasons the change moves mean squad availability by about a point and does
+ * not move the fold rate; at 0.006 the spiral became visible in the fold
+ * numbers, which is why it is not 0.006.
+ */
+export const SUNDAY_AVAIL_PER_HAPPINESS = 0.004;
 /** A player benched repeatedly stops bothering. Per consecutive benched week. */
 export const SUNDAY_AVAIL_BENCHED_PENALTY = 0.035;
 /** Cup ties and derbies get people out of bed. */
@@ -947,8 +965,16 @@ export function sundayUpgradeCost(id: SundayUpgradeId, level: number): number {
  * enough that the last few levels are a decision rather than a formality, and
  * enough that a relegated club with a full trophy cabinet has a real problem.
  *
+ * Scaled by the division's `costMult`, like every other standing cost: a
+ * County Premier ground is held to a County Premier standard, and that is also
+ * where the money piles up. A relegated club's bills fall with it.
+ *
  * The escape valve is `mothballSundayUpgrade`, not a discount: a club in
- * trouble can sell the roller back and stop paying for it.
+ * trouble can sell the roller back and stop paying for it. Measured, that
+ * valve is load-bearing — a pilot that buys every upgrade and never sells one
+ * folds 13-17 times in 24 ten-season careers, and the same pilot selling a
+ * level back after two weeks in the red folds 9, which is where the pre-upkeep
+ * baseline sat (8).
  */
 export const SUNDAY_UPGRADE_UPKEEP_PER_LEVEL = 3;
 /**
@@ -1042,12 +1068,12 @@ export const SUNDAY_SPONSOR_FAIL_REP = 3;
 // band became meaningless at the top of the pyramid in the first place.
 
 export const SUNDAY_SPONSOR_WIN_STREAK_MIN = 3;
-export const SUNDAY_SPONSOR_WIN_STREAK_MAX = 5;
-export const SUNDAY_SPONSOR_UNBEATEN_MIN = 5;
-export const SUNDAY_SPONSOR_UNBEATEN_MAX = 8;
+export const SUNDAY_SPONSOR_WIN_STREAK_MAX = 4;
+export const SUNDAY_SPONSOR_UNBEATEN_MIN = 4;
+export const SUNDAY_SPONSOR_UNBEATEN_MAX = 6;
 /** Goals asked for, per league match in the season. */
-export const SUNDAY_SPONSOR_GOALS_PER_MATCH_MIN = 2.0;
-export const SUNDAY_SPONSOR_GOALS_PER_MATCH_MAX = 2.5;
+export const SUNDAY_SPONSOR_GOALS_PER_MATCH_MIN = 1.85;
+export const SUNDAY_SPONSOR_GOALS_PER_MATCH_MAX = 2.25;
 /**
  * Share of the season's league matches that must be started with a full XI of
  * the club's OWN players.
@@ -1057,11 +1083,13 @@ export const SUNDAY_SPONSOR_GOALS_PER_MATCH_MAX = 2.5;
  * your own men makes it a condition about availability — which is the mode's
  * subject — rather than about whether the fixture went ahead.
  */
-export const SUNDAY_SPONSOR_FULL_XI_SHARE_MIN = 0.55;
-export const SUNDAY_SPONSOR_FULL_XI_SHARE_MAX = 0.80;
-/** No-shows and forfeits tolerated, per league match in the season. */
-export const SUNDAY_SPONSOR_DISCIPLINE_PER_MATCH_MIN = 0.65;
-export const SUNDAY_SPONSOR_DISCIPLINE_PER_MATCH_MAX = 1.0;
+export const SUNDAY_SPONSOR_FULL_XI_SHARE_MIN = 0.85;
+export const SUNDAY_SPONSOR_FULL_XI_SHARE_MAX = 1.00;
+/** No-shows and forfeits tolerated, per league match in the season. Measured
+ *  pooled across 24 careers x 10 seasons: p25 13, p50 18, p75 22 against 14-22
+ *  league matches, so a rate of about 1.3 is the median club's own record. */
+export const SUNDAY_SPONSOR_DISCIPLINE_PER_MATCH_MIN = 1.25;
+export const SUNDAY_SPONSOR_DISCIPLINE_PER_MATCH_MAX = 1.70;
 
 // ── Recruitment ─────────────────────────────────────────────────────────────
 
