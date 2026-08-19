@@ -248,6 +248,30 @@ describe('migration', () => {
     expect((recruits[0].member as Record<string, unknown>).friends).toEqual([]);
   });
 
+  it('backfills the counters wave 5 added, without closing a window mid-season', () => {
+    const old = {
+      version: 85, playerClubId: 'sunday-club', clubs: {}, season: 4, week: 11,
+      gameMode: 'sunday', sunday: { v: 2, balance: 200, flags: {}, squad: [] },
+    };
+    const sunday = (migrateSaveData(old) as Record<string, unknown>).sunday as Record<string, unknown>;
+    // Zero is the only honest backfill for both: the save was written when
+    // signings and phone calls were uncapped, so any other number would take
+    // away something the manager had already been told he could do.
+    expect(sunday.signingsThisSeason).toBe(0);
+    expect(sunday.ringRoundsThisWeek).toBe(0);
+  });
+
+  it('leaves a counter that is already present alone', () => {
+    const old = {
+      version: 85, playerClubId: 'sunday-club', clubs: {}, season: 2, week: 3,
+      gameMode: 'sunday',
+      sunday: { v: 2, balance: 200, flags: {}, squad: [], signingsThisSeason: 2, ringRoundsThisWeek: 1 },
+    };
+    const sunday = (migrateSaveData(old) as Record<string, unknown>).sunday as Record<string, unknown>;
+    expect(sunday.signingsThisSeason).toBe(2);
+    expect(sunday.ringRoundsThisWeek).toBe(1);
+  });
+
   it('carries a mid-story wants-out flag forward as a live chain', () => {
     // The one chain that shipped as an ad-hoc flag. A save reloaded mid-story
     // must continue it, not lose it: the flag selects nothing now, and the

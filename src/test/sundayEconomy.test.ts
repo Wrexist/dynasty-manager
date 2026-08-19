@@ -10,14 +10,16 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
 import { buildWeekLedger, splitLedger, sundayWeeklyBurn } from '@/utils/sunday/finance';
 import { createSundayRng } from '@/utils/sunday/rng';
-import { sundaySeasonWeeks } from '@/utils/sunday/season';
+import { sundayLeagueRounds, sundaySeasonWeeks } from '@/utils/sunday/season';
 import { assertSundayState } from '@/utils/sunday/invariants';
 import {
   SUNDAY_BANKRUPT_GRACE_WEEKS, SUNDAY_FORFEIT_FINE, SUNDAY_FUNDRAISER_COOLDOWN,
   SUNDAY_REFEREE_FEE, SUNDAY_SUBS_PER_PLAYER, getSundayDivision, getSundayUpgrade,
   sundayUpgradeCost, SUNDAY_MANAGER_LOAN, SUNDAY_DEBT_FLOOR, SUNDAY_DERBY_BET,
   SUNDAY_DERBY_BET_FLAG, SUNDAY_UPGRADE_UPKEEP_PER_LEVEL, SUNDAY_UPGRADE_MOTHBALL_REFUND,
-  SUNDAY_DIVISIONS,
+  SUNDAY_DIVISIONS, SUNDAY_SPONSOR_WIN_STREAK_MIN, SUNDAY_SPONSOR_UNBEATEN_MIN,
+  SUNDAY_SPONSOR_GOALS_PER_MATCH_MIN, SUNDAY_SPONSOR_GOALS_PER_MATCH_MAX,
+  SUNDAY_SPONSOR_BONUS_WEEKS,
 } from '@/config/sundayLeague';
 import type { SundaySquadMember } from '@/types/game';
 
@@ -541,6 +543,38 @@ describe('sponsor conditions', () => {
       expect(deal.conditionProgress, deal.condition).toBe(0);
     }
     check();
+  });
+
+  it('asks for something a competent club can miss', () => {
+    // Four of the five conditions used to pass on their own. Measured over 24
+    // careers x 10 seasons of a competently-run club, pooled by season:
+    //
+    //   best win run       p25 2  p50 2  p75 3  p90 5
+    //   best unbeaten run  p25 3  p50 4  p75 5  p90 8
+    //   goals per match    p25 1.64 p50 2.00 p75 2.44
+    //   own full XI        p25 15 p50 16 p75 19  (of 14-22 league matches)
+    //   no-shows+forfeits  p25 12 p50 16 p75 21
+    //
+    // Every band below straddles the median of its own distribution, which is
+    // what makes the bonus worth chasing. Measured aggregate pass rate for
+    // that pilot: 63-71%. For a struggling club (Family Club, passive) it is
+    // 22-24%.
+    expect(SUNDAY_SPONSOR_WIN_STREAK_MIN).toBeGreaterThanOrEqual(3);
+    expect(SUNDAY_SPONSOR_UNBEATEN_MIN).toBeGreaterThanOrEqual(4);
+    // The two that scale with the season's length must ask for a rate near the
+    // measured median rather than a flat number: a County Premier season is
+    // 22 league matches and a Division Four one is 14.
+    const leagueFour = sundayLeagueRounds(getSundayDivision('sun-4').teamCount);
+    const leaguePrem = sundayLeagueRounds(getSundayDivision('sun-prem').teamCount);
+    expect(leaguePrem).toBeGreaterThan(leagueFour);
+    const goalsFour = leagueFour * SUNDAY_SPONSOR_GOALS_PER_MATCH_MIN;
+    const goalsPrem = leaguePrem * SUNDAY_SPONSOR_GOALS_PER_MATCH_MIN;
+    expect(goalsPrem).toBeGreaterThan(goalsFour * 1.4);
+    // Around two a match, which is the measured median (2.00-2.11).
+    expect(SUNDAY_SPONSOR_GOALS_PER_MATCH_MIN).toBeGreaterThan(1.7);
+    expect(SUNDAY_SPONSOR_GOALS_PER_MATCH_MAX).toBeLessThan(2.6);
+    // And the bonus has to be worth the risk against a maxed club's upkeep.
+    expect(SUNDAY_SPONSOR_BONUS_WEEKS).toBeGreaterThanOrEqual(10);
   });
 });
 
