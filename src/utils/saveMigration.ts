@@ -192,6 +192,10 @@ const migrations: Record<number, MigrationFn> = {
         // Nobody can owe the manager anything in a save written before the
         // club could borrow from him.
         managerLoan: typeof sunday.managerLoan === 'number' ? sunday.managerLoan : 0,
+        // Signings were uncapped, so a save mid-season has an unknown count.
+        // Zero is the generous reading and the only one that cannot retro-
+        // actively lock a manager out of a window he was told was open.
+        signingsThisSeason: typeof sunday.signingsThisSeason === 'number' ? sunday.signingsThisSeason : 0,
         divisionStyles: sunday.divisionStyles && typeof sunday.divisionStyles === 'object'
           ? sunday.divisionStyles
           : {},

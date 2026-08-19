@@ -135,6 +135,7 @@ export function buildSundayWorld(opts: StartSundayOptions): SundayWorld {
     weeksInDebt: 0,
     managerLoan: 0,
     lastFundraiserWeek: -99,
+    signingsThisSeason: 0,
     ledger: [],
     pendingLedger: [],
     records: [],

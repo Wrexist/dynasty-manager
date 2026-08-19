@@ -32,6 +32,8 @@ import {
   SUNDAY_KIT_MORALE_PER_LEVEL, SUNDAY_KIT_REP_PER_LEVEL, SUNDAY_CLUBHOUSE_MORALE_PER_LEVEL,
   SUNDAY_NETS_REP, SUNDAY_FLOODLIGHT_REP, SUNDAY_DERBY_BET_FLAG,
   SUNDAY_DEPARTURE_FLAG, SUNDAY_ROUGH_WEEK_FLAG, SUNDAY_RIVAL_EGO_MIN,
+  SUNDAY_RECRUIT_SIGNINGS_PER_SEASON, SUNDAY_SIGNING_DISPLACED_HAPPINESS,
+  SUNDAY_SIGNING_DISPLACED_MAX, SUNDAY_HAPPY_EGO_MULT,
   getSundayUpgrade, sundayUpgradeCost,
 } from '@/config/sundayLeague';
 import {
@@ -655,6 +657,7 @@ export function resolveSundayEvent(set: Set, get: Get, choiceId: string) {
         rng, season: state.season, week: state.week, reputation,
         personality: sunday.identity.personality,
         needs: sundaySquadNeeds(squadPlayers),
+        divisionId: sunday.divisionId,
         clubhouseLevel: sunday.upgrades.find(u => u.id === 'clubhouse')?.level ?? 0,
         rivalName: sunday.rivalry ? clubs[sunday.rivalry.clubId]?.shortName ?? null : null,
         vouchName: voucher?.firstName ?? 'someone',
@@ -725,6 +728,12 @@ export function signSundayRecruit(set: Set, get: Get, recruitId: string) {
   if (sunday.squad.length >= SUNDAY_MAX_SQUAD) {
     return { ok: false, message: 'There are already too many names on the sheet.' };
   }
+  // The registration window. Three a season, so the fourth good player who
+  // walks past is a decision about the three already signed rather than a
+  // free tick of the ratchet.
+  if (sunday.signingsThisSeason >= SUNDAY_RECRUIT_SIGNINGS_PER_SEASON) {
+    return { ok: false, message: `You have registered your ${SUNDAY_RECRUIT_SIGNINGS_PER_SEASON} for the season. He will have to wait until the summer.` };
+  }
   if (sunday.balance < recruit.fee) {
     return { ok: false, message: `You cannot cover the £${recruit.fee}.` };
   }
@@ -756,6 +765,33 @@ export function signSundayRecruit(set: Set, get: Get, recruitId: string) {
   );
   const voucherName = voucher ? state.players[voucher]?.firstName ?? null : null;
 
+  // Somebody's shirt has just been bought. The men in the arrival's position
+  // who are worse than him take the hit, scaled by ego through exactly the
+  // arithmetic the match-day "available and not picked" branch uses — being
+  // replaced is the same grievance as being left out, arriving a week early.
+  const displaced = squadWithRecruit
+    .filter(m => m.playerId !== player.id)
+    .map(m => ({ m, p: state.players[m.playerId] }))
+    .filter(x => !!x.p && x.p.position === player.position && x.p.overall < player.overall)
+    .sort((a, b) => b.m.ego - a.m.ego || a.p!.overall - b.p!.overall)
+    .slice(0, SUNDAY_SIGNING_DISPLACED_MAX);
+  const displacedIds = new Set(displaced.map(x => x.m.playerId));
+  const squadAfterSigning = displacedIds.size
+    ? squadWithRecruit.map(m => (displacedIds.has(m.playerId)
+        ? {
+            ...m,
+            happiness: clampRound(
+              m.happiness + SUNDAY_SIGNING_DISPLACED_HAPPINESS
+                - Math.max(0, m.ego - 12) * SUNDAY_HAPPY_EGO_MULT,
+              0, 100,
+            ),
+          }
+        : m))
+    : squadWithRecruit;
+  const displacedLine = displaced.length
+    ? [`${displaced.map(x => state.players[x.m.playerId]?.firstName ?? 'Somebody').join(' and ')} ${displaced.length === 1 ? 'has' : 'have'} seen who has signed and worked out what it means.`]
+    : [];
+
   set({
     players: { ...state.players, [player.id]: player },
     clubs: { ...state.clubs, [club.id]: { ...club, playerIds: [...club.playerIds, player.id] } },
@@ -769,11 +805,13 @@ export function signSundayRecruit(set: Set, get: Get, recruitId: string) {
         : sunday.pendingLedger,
       recruits: sunday.recruits.filter(r => r.id !== recruitId),
       rivalry: sunday.rivalry ? { ...sunday.rivalry, heat } : null,
-      squad: squadWithRecruit,
+      squad: squadAfterSigning,
+      signingsThisSeason: sunday.signingsThisSeason + 1,
       weekLog: logWeek(
         sunday,
         `${player.firstName} ${player.lastName} has signed on.`,
         ...(voucherName ? [`He came with ${voucherName}. They will be travelling together.`] : []),
+        ...displacedLine,
       ),
     },
   });

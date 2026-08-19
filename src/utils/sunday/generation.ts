@@ -23,7 +23,7 @@ import { PLAYER_SKIN_TONES, PLAYER_HAIR_STYLES, PLAYER_HAIR_COLORS } from '@/con
 import {
   SUNDAY_ARCHETYPES, SUNDAY_ARCHETYPE_SHARE, SUNDAY_FAVOURED_ARCHETYPE_WEIGHT,
   SUNDAY_HAPPINESS_START, SUNDAY_OVERALL_CEILING, SUNDAY_OVERALL_FLOOR,
-  SUNDAY_RECRUIT_FEE_MAX, SUNDAY_RECRUIT_FEE_MIN, SUNDAY_RECRUIT_QUALITY_BASE,
+  sundayRecruitFee, SUNDAY_RECRUIT_FEE_JITTER, SUNDAY_RECRUIT_QUALITY_BASE,
   SUNDAY_RECRUIT_QUALITY_PER_REP, SUNDAY_RECRUIT_QUALITY_SPREAD, SUNDAY_RECRUIT_WEEKS,
   SUNDAY_RINGER_QUALITY_MAX, SUNDAY_RINGER_QUALITY_MIN, getSundayDivision,
   getSundayPersonality, SUNDAY_CLUBHOUSE_RECRUIT_PER_LEVEL,
@@ -554,6 +554,9 @@ export interface GenerateRecruitOptions {
   index: number;
   /** Force the source (used by events that produce a specific recruit). */
   source?: SundayRecruit['source'];
+  /** Division the club is playing in. Scales both the fee he asks for and the
+   *  standard of player who bothers turning up. */
+  divisionId: SundayDivisionId;
 }
 
 export function generateSundayRecruit(opts: GenerateRecruitOptions): SundayRecruit {
@@ -612,9 +615,14 @@ export function generateSundayRecruit(opts: GenerateRecruitOptions): SundayRecru
     source,
     sourceText,
     voucherId: opts.voucherId ?? null,
-    fee: source === 'poached'
-      ? rng.int(Math.round(SUNDAY_RECRUIT_FEE_MAX * 0.4), SUNDAY_RECRUIT_FEE_MAX)
-      : rng.int(SUNDAY_RECRUIT_FEE_MIN, Math.round(SUNDAY_RECRUIT_FEE_MAX * 0.6)),
+    // What he wants for signing on, from his own quality and the level the
+    // club is playing at — not a flat band that priced a County Premier
+    // arrival the same as a Division Four one. The jitter is a haggle, not a
+    // reroll.
+    fee: Math.max(0, Math.round(
+      sundayRecruitFee(player.overall, opts.divisionId, source === 'poached')
+      * rng.float(1 - SUNDAY_RECRUIT_FEE_JITTER, 1 + SUNDAY_RECRUIT_FEE_JITTER),
+    )),
     expiresWeek: week + SUNDAY_RECRUIT_WEEKS,
     // A trialist has been seen with your own eyes. Everyone else is a rumour,
     // and the numbers on his card are within `SUNDAY_RECRUIT_RUMOUR_ERROR` of

@@ -356,6 +356,9 @@ export function rolloverSundaySeason(set: Set, get: Get): void {
     seasonComplete: false,
     weeksInDebt: 0,
     lastFundraiserWeek: -99,
+    // A new registration window. The signing cap is per SEASON, so it resets
+    // here and nowhere else.
+    signingsThisSeason: 0,
     weekLog: [
       ...(prize > 0 ? [`£${prize} in prize money has landed.`] : []),
       ...retirementFallout.lines,

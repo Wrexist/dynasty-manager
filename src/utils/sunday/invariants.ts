@@ -21,7 +21,7 @@ import {
   SUNDAY_CHAINS, SUNDAY_MAX_BENCH, SUNDAY_STATE_VERSION, SUNDAY_MIN_START,
   SUNDAY_FULL_XI, SUNDAY_PENDING_LEDGER_MAX, SUNDAY_PITCH_DAMAGE_MAX,
   SUNDAY_TACTICS, SUNDAY_MAX_FRIENDS, SUNDAY_MAX_RIVALS, SUNDAY_MAX_SQUAD,
-  SUNDAY_FORMER_TEAMMATES_MAX,
+  SUNDAY_FORMER_TEAMMATES_MAX, SUNDAY_RECRUIT_SIGNINGS_PER_SEASON,
 } from '@/config/sundayLeague';
 import { sundaySeasonWeeks } from './season';
 import { sundayFlagSubjectId } from './events';
@@ -299,6 +299,12 @@ export function validateSundayState(input: ValidateSundayInput): SundayValidatio
     // A negative loan would mean the club had over-repaid the manager, which
     // the settlement cannot produce and nothing would ever unwind.
     if (!finite(sunday.managerLoan) || sunday.managerLoan < 0) push('managerLoan is invalid');
+    // The registration window. Over the cap means `signSundayRecruit` let one
+    // through, which is the whole difficulty lever for the mode.
+    if (!finite(sunday.signingsThisSeason) || sunday.signingsThisSeason < 0
+      || sunday.signingsThisSeason > SUNDAY_RECRUIT_SIGNINGS_PER_SEASON) {
+      push(`signingsThisSeason out of range: ${String(sunday.signingsThisSeason)}`);
+    }
 
     // ── The pitch (v3) ─────────────────────────────────────────────────────
     if (!finite(sunday.pitchDamage) || sunday.pitchDamage < 0 || sunday.pitchDamage > SUNDAY_PITCH_DAMAGE_MAX) {

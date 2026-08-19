@@ -3258,6 +3258,15 @@ export interface SundayState {
   managerLoan: number;
   /** Week the last fundraiser was run, for the cooldown. */
   lastFundraiserWeek: number;
+  /**
+   * Recruits registered since the season started.
+   *
+   * The mode's dominant strategy used to be "sign every recruit": measured at
+   * +0.30 ppg over 72 career-seasons for a fee of at most sixty pounds. The
+   * counter caps it at `SUNDAY_RECRUIT_SIGNINGS_PER_SEASON` so each offer is
+   * weighed against the ones behind it. Reset at the rollover. Schema v3.
+   */
+  signingsThisSeason: number;
   ledger: SundayWeekLedger[];
   /**
    * Money the manager has moved DURING the week now in progress, waiting for

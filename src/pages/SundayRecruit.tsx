@@ -19,7 +19,10 @@ import { SundayEventModal } from '@/components/game/sunday/SundayEventModal';
 import { useGameStore } from '@/store/gameStore';
 import { useTranslation } from '@/hooks/useTranslation';
 import { cn } from '@/lib/utils';
-import { SUNDAY_MAX_SQUAD, SUNDAY_RECRUIT_RUMOUR_ERROR, getSundayArchetype } from '@/config/sundayLeague';
+import {
+  SUNDAY_MAX_SQUAD, SUNDAY_RECRUIT_RUMOUR_ERROR, SUNDAY_RECRUIT_SIGNINGS_PER_SEASON,
+  getSundayArchetype,
+} from '@/config/sundayLeague';
 import { subSeed, createSundayRng } from '@/utils/sunday/rng';
 import type { PlayerAttributes, SundayRecruit } from '@/types/game';
 
@@ -60,6 +63,8 @@ const SundayRecruit = () => {
 
   if (!sunday) return null;
   const squadFull = sunday.squad.length >= SUNDAY_MAX_SQUAD;
+  const signingsLeft = Math.max(0, SUNDAY_RECRUIT_SIGNINGS_PER_SEASON - sunday.signingsThisSeason);
+  const windowClosed = signingsLeft === 0;
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-3 pb-4 space-y-3">
@@ -74,6 +79,18 @@ const SundayRecruit = () => {
         <GlassPanel className="p-3" tone="danger">
           <p className="text-caption text-amber-200">{t('sunday.recruit.squadFull')}</p>
         </GlassPanel>
+      )}
+
+      {windowClosed ? (
+        <GlassPanel className="p-3" tone="danger">
+          <p className="text-caption text-amber-200">
+            {t('sunday.recruit.windowClosed', { max: SUNDAY_RECRUIT_SIGNINGS_PER_SEASON })}
+          </p>
+        </GlassPanel>
+      ) : (
+        <p className="text-micro text-muted-foreground px-1">
+          {t('sunday.recruit.signingsLeft', { n: signingsLeft, max: SUNDAY_RECRUIT_SIGNINGS_PER_SEASON })}
+        </p>
       )}
 
       {recruits.length === 0 ? (
@@ -130,7 +147,7 @@ const SundayRecruit = () => {
                 <LiquidButton
                   tone="primary"
                   className="flex-1 py-2.5"
-                  disabled={squadFull || sunday.balance < recruit.fee}
+                  disabled={squadFull || windowClosed || sunday.balance < recruit.fee}
                   onClick={() => { void sign(recruit.id).then(r => { if (r.ok) toast.success(r.message); else toast.info(r.message); }); }}
                 >
                   <span className="text-caption">

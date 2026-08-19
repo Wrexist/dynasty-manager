@@ -841,9 +841,72 @@ export const SUNDAY_RECRUIT_WEEKS = 3;
 export const SUNDAY_RECRUIT_QUALITY_BASE = 38;
 export const SUNDAY_RECRUIT_QUALITY_PER_REP = 0.24;
 export const SUNDAY_RECRUIT_QUALITY_SPREAD = 10;
-/** Signing-on cost band, in pounds. */
-export const SUNDAY_RECRUIT_FEE_MIN = 0;
-export const SUNDAY_RECRUIT_FEE_MAX = 60;
+/**
+ * Signings the club may register in one season.
+ *
+ * WHY THERE IS A CAP AT ALL. Measured over 24 careers x 3 seasons, "sign every
+ * recruit" was worth +0.30 ppg against the same pilot doing nothing else —
+ * six times the whole upgrade tree and five times the tactic lever — for a
+ * signing-on fee of at most sixty pounds. It was not a decision, it was a
+ * button, and the mode's difficulty collapsed to whether the player had found
+ * it. Three a season means every offer is measured against the two behind it,
+ * which is what a Sunday club's registration window actually feels like.
+ */
+export const SUNDAY_RECRUIT_SIGNINGS_PER_SEASON = 3;
+
+// ── What a signing costs ────────────────────────────────────────────────────
+//
+// A Sunday signing-on fee is not a transfer fee. It is his subs covered for
+// the season, a shirt with his name nowhere on it, and a pair of boots if he
+// is any good — so the band stays in tens of pounds at the bottom of the
+// pyramid and reaches three figures only for a genuinely good player at a
+// genuinely established club. The old flat 0-60 band priced a 60-rated County
+// Premier arrival identically to a 38-rated Division Four one.
+
+/** What anybody costs before quality and division are considered. */
+export const SUNDAY_RECRUIT_FEE_BASE = 8;
+/** Overall at which a recruit is "the ordinary standard" and costs the base. */
+export const SUNDAY_RECRUIT_FEE_QUALITY_FLOOR = 38;
+/** Pounds per point of overall above that floor. */
+export const SUNDAY_RECRUIT_FEE_PER_QUALITY = 2.4;
+/** Added to the multiplier per division above the bottom, so the County
+ *  Premier pays 2.4x what Division Four pays for the same man. */
+export const SUNDAY_RECRUIT_FEE_TIER_MULT = 0.35;
+/** A poached rival costs more: he knows he is wanted, and so do they. */
+export const SUNDAY_RECRUIT_FEE_POACH_MULT = 1.6;
+/** Random spread around the computed fee, as a share of it. */
+export const SUNDAY_RECRUIT_FEE_JITTER = 0.18;
+
+/**
+ * The signing-on fee for one recruit, in whole pounds.
+ *
+ * Pure and exported so the recruit card, the generator and the tests all read
+ * the same number from the same place.
+ */
+export function sundayRecruitFee(
+  overall: number,
+  divisionId: SundayDivisionId,
+  poached: boolean,
+): number {
+  const tier = Math.max(0, sundayDivisionTier(divisionId));
+  const quality = Math.max(0, overall - SUNDAY_RECRUIT_FEE_QUALITY_FLOOR);
+  const raw = (SUNDAY_RECRUIT_FEE_BASE + quality * SUNDAY_RECRUIT_FEE_PER_QUALITY)
+    * (1 + tier * SUNDAY_RECRUIT_FEE_TIER_MULT)
+    * (poached ? SUNDAY_RECRUIT_FEE_POACH_MULT : 1);
+  return Math.max(0, Math.round(raw));
+}
+
+/**
+ * Happiness cost to the man whose shirt the new arrival has come for.
+ *
+ * Deliberately the SAME arithmetic the match-day "available and not picked"
+ * branch uses — the hit is scaled by ego through `SUNDAY_HAPPY_EGO_MULT` — so
+ * the dressing room reacts to being replaced the way it already reacts to
+ * being left out, rather than through a second, parallel grudge system.
+ */
+export const SUNDAY_SIGNING_DISPLACED_HAPPINESS = -6;
+/** How many squad members in the arrival's position feel it. */
+export const SUNDAY_SIGNING_DISPLACED_MAX = 2;
 /** A trialist's attributes are shown honestly; everyone else is a rumour and
  *  the numbers you see are within this much of the truth. */
 export const SUNDAY_RECRUIT_RUMOUR_ERROR = 8;

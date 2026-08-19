@@ -238,6 +238,8 @@ export const en = {
   'sunday.recruit.seen': 'You have watched him train. This is what he is.',
   'sunday.recruit.expires': 'Around for {n} more week{s}',
   'sunday.recruit.squadFull': 'There are already too many names on the sheet.',
+  'sunday.recruit.signingsLeft': '{n} of {max} signings left this season',
+  'sunday.recruit.windowClosed': 'You have registered your {max} for the season. Anyone else will have to wait until the summer.',
 
   // League
   'sunday.table.title': 'League',

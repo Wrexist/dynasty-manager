@@ -516,6 +516,7 @@ export function advanceSundayWeek(set: Set, get: Get): void {
       rng, season, week, reputation,
       personality: sunday.identity.personality,
       needs: sundaySquadNeeds(squadPlayers),
+      divisionId: sunday.divisionId,
       clubhouseLevel: sunday.upgrades.find(u => u.id === 'clubhouse')?.level ?? 0,
       rivalName: sunday.rivalry ? clubs[sunday.rivalry.clubId]?.shortName ?? null : null,
       vouchName: voucher?.firstName ?? 'someone',
