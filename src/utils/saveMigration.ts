@@ -53,6 +53,18 @@ const migrations: Record<number, MigrationFn> = {
   //     silently: the flag no longer selects anything and the payoff beat is
   //     now chain-gated.
   //   - `eventQueue` is dropped. It was never written to.
+  //   - THE RELATIONSHIPS LAYER. `friends` / `rivals` existed and were drawn at
+  //     founding, but nothing maintained them: every departure left a dangling
+  //     id behind, so an old save can name mates who have not been at the club
+  //     for three seasons. They are scrubbed against the squad's own id list
+  //     here — the same invariant the validator now enforces — deduplicated,
+  //     capped, and de-overlapped (a man cannot be both). `formerTeammates`
+  //     starts empty because the names are gone; `appsWith` starts empty
+  //     because nobody counted, which honestly means a loaded save begins
+  //     accumulating shared afternoons from the upgrade rather than inventing
+  //     a history. Pending recruits gain `voucherId: null`: the lad who
+  //     recommended them is unknowable after the fact, and null is exactly what
+  //     "nobody vouched" means at the signing desk.
   //
   // Later waves EXTEND this step rather than adding another: keep the shape
   // below (a single `sunday` rewrite with per-field fallbacks) and add fields.
@@ -107,6 +119,48 @@ const migrations: Record<number, MigrationFn> = {
       flags = Object.fromEntries(Object.entries(flagsIn).filter(([k]) => k !== wantsOut[0]));
     }
 
+    // The relationships layer. Caps are LITERALS for the same reason the chain
+    // deadline above is: this describes what an old save is allowed to have
+    // contained, and re-reading a balance constant here would silently rewrite
+    // old saves the next time the dressing room is tuned.
+    const squadIn = Array.isArray(sunday.squad) ? (sunday.squad as Record<string, unknown>[]) : [];
+    const liveIds = new Set(squadIn.map(m => String(m.playerId)));
+    const idList = (value: unknown, self: unknown, exclude: readonly string[] = []): string[] => {
+      if (!Array.isArray(value)) return [];
+      const out: string[] = [];
+      for (const id of value) {
+        if (typeof id !== 'string' || id === self) continue;
+        if (!liveIds.has(id) || out.includes(id) || exclude.includes(id)) continue;
+        out.push(id);
+      }
+      return out;
+    };
+    const squad = squadIn.map(m => {
+      const friends = idList(m.friends, m.playerId).slice(0, 3);
+      return {
+        ...m,
+        friends,
+        rivals: idList(m.rivals, m.playerId, friends).slice(0, 2),
+        formerTeammates: Array.isArray(m.formerTeammates) ? m.formerTeammates : [],
+        appsWith: m.appsWith && typeof m.appsWith === 'object' && !Array.isArray(m.appsWith)
+          ? m.appsWith
+          : {},
+      };
+    });
+    const recruits = Array.isArray(sunday.recruits)
+      ? (sunday.recruits as Record<string, unknown>[]).map(r => {
+          const member = r.member && typeof r.member === 'object' && !Array.isArray(r.member)
+            ? (r.member as Record<string, unknown>)
+            : {};
+          return {
+            ...r,
+            voucherId: typeof r.voucherId === 'string' ? r.voucherId : null,
+            // He has not signed, so he cannot have mates at the club yet.
+            member: { ...member, friends: [], rivals: [], formerTeammates: [], appsWith: {} },
+          };
+        })
+      : (sunday.recruits ?? []);
+
     return {
       ...data,
       version: 86,
@@ -117,6 +171,8 @@ const migrations: Record<number, MigrationFn> = {
         onceFiredIds,
         flags,
         chains,
+        squad,
+        recruits,
         pendingLedger: Array.isArray(sunday.pendingLedger) ? sunday.pendingLedger : [],
         pitchDamage: typeof sunday.pitchDamage === 'number' ? sunday.pitchDamage : 0,
         // Nobody can owe the manager anything in a save written before the

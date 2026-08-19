@@ -41,6 +41,7 @@ import {
 import { captureMatchMemories, findMatchWinner, findTurningPoint, makeMemory, rememberMoment } from '@/utils/sunday/memories';
 import { bumpHeat, deriveDerbyIncident, recordRivalryIncident } from '@/utils/sunday/rivalry';
 import { resolveDoubt } from '@/utils/sunday/availability';
+import { bumpSundayAppsWith } from '@/utils/sunday/relationships';
 import { clearSundayRingers, generateSundayRinger } from '@/utils/sunday/generation';
 import {
   buildMatchdayTeam, buildSundayNarrative, pickMotm, pickSundayOppositionXI,
@@ -562,6 +563,12 @@ export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
   // Who won it, who stank it out, and where it turned — all read off the
   // engine's own events, never invented.
   const squadIdSet = new Set(squad.map(m => m.playerId));
+  // Everybody on the books who actually took the field. Feeds the shared-
+  // appearance counter below, which is the only history the friendship rule
+  // reads: two men are mates because they have played twenty afternoons
+  // together, not because a dice said so. Guests are excluded — they are here
+  // for one morning and are wiped after the whistle.
+  const tookTheField = new Set([...participantIds].filter(id => squadIdSet.has(id)));
   const winner = forfeited ? null : findMatchWinner(result, clubId, isHome);
   const winnerId = winner && squadIdSet.has(winner.playerId) ? winner.playerId : null;
   const turningPoint = forfeited ? null : findTurningPoint(result, clubId, isHome, players);
@@ -674,6 +681,7 @@ export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
       benchedStreak: took ? 0 : wasAvailable ? m.benchedStreak + 1 : m.benchedStreak,
       startedStreak: started ? m.startedStreak + 1 : 0,
       clubApps: took ? m.clubApps + 1 : m.clubApps,
+      appsWith: took ? bumpSundayAppsWith(m.appsWith, tookTheField, m.playerId) : m.appsWith,
       clubGoals: m.clubGoals + (r?.goals ?? 0),
       clubAssists: m.clubAssists + (r?.assists ?? 0),
       clubMotm: motm?.playerId === m.playerId ? m.clubMotm + 1 : m.clubMotm,

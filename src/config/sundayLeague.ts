@@ -32,9 +32,11 @@ import type {
  *  v3: the match report carries its own discipline/injury counts and the
  *  man-of-the-match name, `onceFiredIds` outlives the capped event log,
  *  `pendingLedger` holds mid-week money, `divisionStyles` records how each AI
- *  club plays, `chains` holds the live multi-step stories, and the dead
- *  `eventQueue` is gone. Migrated in saveMigration v86 — which is unreleased,
- *  so later waves EXTEND that step rather than adding another. */
+ *  club plays, `chains` holds the live multi-step stories, squad members carry
+ *  `formerTeammates` / `appsWith` (and friends/rivals that are actually
+ *  maintained), recruits carry `voucherId`, and the dead `eventQueue` is gone.
+ *  Migrated in saveMigration v86 — which is unreleased, so later waves EXTEND
+ *  that step rather than adding another. */
 export const SUNDAY_STATE_VERSION = 3;
 
 // ── The pyramid ─────────────────────────────────────────────────────────────
@@ -207,6 +209,87 @@ export const SUNDAY_QUIT_PER_LOYALTY = 0.012;
  *  per week. Without it the +2 a starter gains every Sunday compounds over a
  *  season and the whole squad sits at 100 by Christmas regardless of results. */
 export const SUNDAY_HAPPINESS_DRIFT = 0.11;
+
+// ── Relationships ───────────────────────────────────────────────────────────
+//
+// Small, few and readable. There is no social screen and no hidden stat web:
+// a dressing room carries a HANDFUL of live links — two or three drawn at
+// founding, one forming every five or six weeks after that — and each one does
+// exactly four things (match-day chemistry, the mood when somebody leaves, who
+// vouched for the new lad, and one line on the squad screen).
+//
+// Everything that CAN be derived is derived and stored nowhere: who is stuck
+// behind whom is `position + streaks`, and who is mentoring whom is
+// `age + commitment + position group`. Only friendship, enmity, the count of
+// shared afternoons and the names of the departed are persisted.
+
+/** Most friends / rivals one player carries. Founding generation uses the same
+ *  caps, so nothing that forms later can change the shape of the room. */
+export const SUNDAY_MAX_FRIENDS = 3;
+export const SUNDAY_MAX_RIVALS = 2;
+/** Former team-mates remembered per player, newest first. */
+export const SUNDAY_FORMER_TEAMMATES_MAX = 3;
+
+/** Matches two men must have played TOGETHER before they start car-sharing.
+ *  Roughly a season and a bit of both being picked — long enough that a
+ *  friendship means they have actually been through something. */
+export const SUNDAY_FRIENDSHIP_APPS = 20;
+/** Weekly chance the best-qualified pair in the squad actually becomes one. */
+export const SUNDAY_FRIENDSHIP_CHANCE = 0.22;
+/** Multiplier on that chance when one of the two has just been talked round or
+ *  had a promise kept. A good week is when people bond. */
+export const SUNDAY_FRIENDSHIP_GOODWILL_MULT = 1.8;
+/** How recently such a moment counts as "just", in weeks. */
+export const SUNDAY_FRIENDSHIP_GOODWILL_WEEKS = 6;
+
+/** Consecutive weeks of one man starting while another in his position watches
+ *  before the one watching starts taking it personally. Also the threshold the
+ *  squad screen's "stuck behind" line reads. */
+export const SUNDAY_POSITION_RIVAL_STREAK = 4;
+/** Weekly chance a position rivalry hardens into a real one. Lower than
+ *  friendship: falling out takes a specific afternoon, not just time. */
+export const SUNDAY_POSITION_RIVAL_CHANCE = 0.14;
+/** Ego at or above which losing the armband makes an enemy rather than a sulk. */
+export const SUNDAY_RIVAL_EGO_MIN = 13;
+/** At most this many links form per week, whatever the squad. A dressing room
+ *  that rearranges itself every Sunday is noise, not narrative. */
+export const SUNDAY_LINKS_PER_WEEK = 1;
+
+/** Match-day chemistry, in points of `mental`, for a starter with a mate / an
+ *  enemy alongside him. Deliberately tiny: ±2 on one attribute for two or three
+ *  men is a fraction of a goal across a season, which is the right size for
+ *  something the manager cannot buy and can only barely see. Applied ONCE per
+ *  player however many mates are on the pitch — a clique is not a multiplier. */
+export const SUNDAY_CHEMISTRY_FRIEND = 2;
+export const SUNDAY_CHEMISTRY_RIVAL = -2;
+/** Named pairs the match-day breakdown lists before it stops naming them. */
+export const SUNDAY_CHEMISTRY_ROWS_MAX = 2;
+
+/** Happiness a man loses when a mate leaves the club, and gains when someone he
+ *  could not stand does. The loss is deliberately larger than a bad afternoon:
+ *  losing your lift to the ground is why people stop playing. */
+export const SUNDAY_FRIEND_LEFT_HAPPINESS = -8;
+export const SUNDAY_RIVAL_LEFT_HAPPINESS = 3;
+/** Most players who may follow a mate out of the door in the SAME week. The
+ *  friend-left hit feeds the ordinary quit roll, so two mates going together is
+ *  emergent — but a squad holds three or four overlapping friendships and an
+ *  uncapped cascade could empty half of it on one Sunday. */
+export const SUNDAY_CASCADE_QUIT_MAX = 1;
+
+/** Mentoring. A veteran of this age with the commitment (or the standing) to
+ *  bother, in the same position group as a prospect under
+ *  `SUNDAY_MENTOR_PROSPECT_AGE`, multiplies the young man's yearly growth. One
+ *  multiplier, applied at the rollover, worth about half a season of extra
+ *  development over three years — visible in a career, invisible in a week. */
+export const SUNDAY_MENTOR_AGE = 32;
+export const SUNDAY_MENTOR_COMMITMENT = 15;
+export const SUNDAY_MENTOR_PROSPECT_AGE = 21;
+export const SUNDAY_MENTOR_GROWTH_MULT = 1.3;
+
+/** Who gets to say "I know a lad". Influence is who the room listens to;
+ *  commitment is who is still around to be asked. */
+export const SUNDAY_VOUCH_PER_INFLUENCE = 1;
+export const SUNDAY_VOUCH_PER_COMMITMENT = 0.5;
 
 // ── Money ───────────────────────────────────────────────────────────────────
 

@@ -24,10 +24,11 @@ import { createSundayRng, cursorOf, subSeed } from '@/utils/sunday/rng';
 import { generateSundayDivision } from '@/utils/sunday/generation';
 import { makeMemory, momentOfSeason, rememberMoment, definingMemory } from '@/utils/sunday/memories';
 import {
-  addSundayLegend, buildSundayFixtures, buildSundaySeasonRecord, buildSundayTable,
-  developSundayPlayer, drawSundayCup, qualifiesAsLegend, recordSundayRecord,
+  buildSundayFixtures, buildSundaySeasonRecord, buildSundayTable,
+  developSundayPlayer, drawSundayCup, mintSundayLegend, recordSundayRecord,
   resolveSundayOutcome, sundayCupRoundName, sundayPosition, sundaySeasonWeeks,
 } from '@/utils/sunday/season';
+import { applySundayDeparture } from '@/utils/sunday/relationships';
 import { rollSundayAvailability } from '@/utils/sunday/availability';
 import { deriveSundayDivisionStyles } from '@/utils/sunday/match';
 import { buildSundayRivalry } from '@/utils/sunday/rivalry';
@@ -136,23 +137,27 @@ export function rolloverSundaySeason(set: Set, get: Get): void {
   let legends = [...sunday.legends];
   let messages = state.messages;
 
+  const retired: { id: string; name: string }[] = [];
   for (const { member, player } of squadPlayers) {
     const dev = developSundayPlayer(rng, player, member, coachLevel);
     if (dev.retiring) {
-      if (qualifiesAsLegend(member)) {
-        // A legend is remembered for his best DAY, not his totals — the totals
-        // are the second sentence.
-        const moment = definingMemory(member.memories);
-        legends = addSundayLegend(
-          legends, member, `${player.firstName} ${player.lastName}`,
-          `${moment ? `${moment.text} ` : ''}${member.clubApps} appearances and ${member.clubGoals} goals over ${Math.max(1, season - member.joinedSeason + 1)} seasons.`,
-          season,
-        );
+      const fullName = `${player.firstName} ${player.lastName}`;
+      // A legend is remembered for his best DAY, not his totals — the totals
+      // are the second sentence. Same gate and same citation shape as every
+      // other way out of the club now (`mintSundayLegend`); retirement is no
+      // longer the only door that leads to the honours board.
+      const before = legends.length;
+      legends = mintSundayLegend({
+        legends, member, name: fullName, kind: 'retired', season,
+        momentText: definingMemory(member.memories)?.text ?? null,
+      });
+      if (legends.length > before) {
         messages = sundayMessage(
           messages, season + 1, 1, `${player.firstName} is hanging them up`,
-          `After ${member.clubApps} games for the club, ${player.firstName} ${player.lastName} has called it a day. There will be a night out.`,
+          `After ${member.clubApps} games for the club, ${fullName} has called it a day. There will be a night out.`,
         );
       }
+      retired.push({ id: member.playerId, name: fullName });
       delete players[member.playerId];
       continue;
     }
@@ -183,6 +188,15 @@ export function rolloverSundaySeason(set: Set, get: Get): void {
       unsettled: false,
     });
   }
+
+  // A retirement is a departure like any other: the man comes out of everybody
+  // else's friends and rivals lists, and the mates he leaves behind keep his
+  // name. The happiness hit lands AFTER the pre-season optimism applied above,
+  // which is the right way round — a summer softens losing your lift to the
+  // ground, it does not erase it. Running this unconditionally also makes the
+  // rollover a full repair pass over the dressing room's ids.
+  const retirementFallout = applySundayDeparture({ squad, players, departed: retired, season });
+  squad = retirementFallout.squad;
 
   // ── The new world ────────────────────────────────────────────────────────
   const nextSeason = season + 1;
@@ -336,6 +350,7 @@ export function rolloverSundaySeason(set: Set, get: Get): void {
     lastFundraiserWeek: -99,
     weekLog: [
       ...(prize > 0 ? [`£${prize} in prize money has landed.`] : []),
+      ...retirementFallout.lines,
       outcome.promoted ? 'Promoted. Nobody can quite believe it.'
         : outcome.relegated ? 'Relegated. Pre-season starts here.'
           : 'A new season. Same pitch, same people, same referee.',

@@ -31,7 +31,7 @@ import {
   SUNDAY_POACH_HEAT, SUNDAY_RIVAL_HEAT_MAX, SUNDAY_PROMISE_WEEKS, SUNDAY_PITCH_DAMAGE_MAX,
   SUNDAY_KIT_MORALE_PER_LEVEL, SUNDAY_KIT_REP_PER_LEVEL, SUNDAY_CLUBHOUSE_MORALE_PER_LEVEL,
   SUNDAY_NETS_REP, SUNDAY_FLOODLIGHT_REP, SUNDAY_DERBY_BET_FLAG,
-  SUNDAY_DEPARTURE_FLAG, SUNDAY_ROUGH_WEEK_FLAG,
+  SUNDAY_DEPARTURE_FLAG, SUNDAY_ROUGH_WEEK_FLAG, SUNDAY_RIVAL_EGO_MIN,
   getSundayUpgrade, sundayUpgradeCost,
 } from '@/config/sundayLeague';
 import {
@@ -44,9 +44,15 @@ import type { SundayEventContext, SundayEventEffects } from '@/data/sundayEvents
 import { sundayChainClosingLine } from '@/data/sundayEvents';
 import { ringRoundChance } from '@/utils/sunday/availability';
 import { generateSundayRecruit, sundaySquadNeeds } from '@/utils/sunday/generation';
-import { buildSundayTable, sundayPosition, sundaySeasonWeeks } from '@/utils/sunday/season';
+import {
+  buildSundayTable, mintSundayLegend, sundayPosition, sundaySeasonWeeks,
+  type SundayDepartureKind,
+} from '@/utils/sunday/season';
 import { bumpHeat, recordRivalryIncident } from '@/utils/sunday/rivalry';
-import { makeMemory, rememberMoment } from '@/utils/sunday/memories';
+import {
+  addSundayRival, applySundayDeparture, linkSundayVoucher, pickSundayVoucher,
+} from '@/utils/sunday/relationships';
+import { definingMemory, makeMemory, rememberMoment } from '@/utils/sunday/memories';
 import { validateSundayState } from '@/utils/sunday/invariants';
 import { track } from '@/utils/analytics';
 import { addGameBreadcrumb } from '@/utils/sentry';
@@ -310,6 +316,14 @@ export function resolveSundayEvent(set: Set, get: Get, choiceId: string) {
   }
 
   const subjectId = instance.playerId;
+  // Read before anything can delete him: a departure branch wipes the `Player`
+  // and the squad record, and both the legend citation and the dressing room's
+  // reaction need them.
+  const subjectMember = subjectId ? memberOf(sunday, subjectId) : null;
+  const subjectFullName = subjectId && players[subjectId]
+    ? `${players[subjectId].firstName} ${players[subjectId].lastName}`
+    : 'A player';
+  let departureKind: SundayDepartureKind | null = null;
   if (subjectId && memberOf(sunday, subjectId)) {
     if (fx.subjectHappiness) {
       squad = updateMember(squad, subjectId, m => ({ happiness: clampRound(m.happiness + fx.subjectHappiness!, 0, 100) }));
@@ -369,6 +383,7 @@ export function resolveSundayEvent(set: Set, get: Get, choiceId: string) {
       // release path guards all three; a departure through an event must too —
       // a dangling captainId is the violation the stress harness caught.
       subjectLeft = true;
+      departureKind = 'left';
     }
     if (fx.subjectLeavesForRival) {
       const p = players[subjectId];
@@ -377,6 +392,7 @@ export function resolveSundayEvent(set: Set, get: Get, choiceId: string) {
       if (club) clubs[state.playerClubId] = { ...club, playerIds: club.playerIds.filter(id => id !== subjectId) };
       delete players[subjectId];
       subjectLeft = true;
+      departureKind = 'defected';
       if (p && rivalry) {
         // The feud gets a face. His name follows both clubs around from here:
         // derby build-ups mention him, and results against them carry him in
@@ -413,6 +429,27 @@ export function resolveSundayEvent(set: Set, get: Get, choiceId: string) {
         ),
       }));
     }
+  }
+
+  // ── The room, after somebody has gone ─────────────────────────────────────
+  // Whatever door he went out of, the same three things happen: he is
+  // remembered if he earned it, his id stops existing in anybody's friends or
+  // rivals list, and the men who gave him lifts take it personally. A defection
+  // to the rival gets a citation that reads like one.
+  let legends = sunday.legends;
+  const departureLines: string[] = [];
+  if (subjectLeft && subjectId && subjectMember && departureKind) {
+    legends = mintSundayLegend({
+      legends, member: subjectMember, name: subjectFullName, kind: departureKind,
+      season: state.season,
+      momentText: definingMemory(subjectMember.memories)?.text ?? null,
+    });
+    const fallout = applySundayDeparture({
+      squad, players, season: state.season,
+      departed: [{ id: subjectId, name: subjectFullName }],
+    });
+    squad = fallout.squad;
+    departureLines.push(...fallout.lines);
   }
 
   // Story markers. `{subject}` binds the marker to this event's player.
@@ -542,6 +579,7 @@ export function resolveSundayEvent(set: Set, get: Get, choiceId: string) {
       .filter(m => m.playerId !== exclude)
       .sort((a, b) => (b.influence * 2 + b.commitment) - (a.influence * 2 + a.commitment))[0]?.playerId ?? null;
 
+  const captainBefore = sunday.captainId;
   let captainId = sunday.captainId;
   if (fx.captaincy === 'give' && subjectId && squad.some(m => m.playerId === subjectId)) {
     const previous = captainId;
@@ -561,20 +599,49 @@ export function resolveSundayEvent(set: Set, get: Get, choiceId: string) {
   }
   if (subjectLeft && captainId === subjectId) captainId = nextBest(subjectId);
 
+  // Losing the armband TO A SPECIFIC MAN is the other way a rivalry starts, and
+  // the only one that does not need a dice: it either happened or it did not.
+  // Only a big enough ego turns it into a feud — everybody else takes it on the
+  // chin — and it is one-directional, because the man who now has the armband
+  // has not noticed a thing.
+  const armbandLines: string[] = [];
+  const armbandLoser = captainId !== captainBefore && !subjectLeft
+    ? (fx.captaincy === 'give' ? captainBefore : fx.captaincy === 'strip' ? subjectId : null)
+    : null;
+  if (armbandLoser && captainId && armbandLoser !== captainId) {
+    const loser = squad.find(m => m.playerId === armbandLoser);
+    if (loser && loser.ego >= SUNDAY_RIVAL_EGO_MIN && !loser.rivals.includes(captainId)) {
+      const next = addSundayRival(squad, armbandLoser, captainId);
+      if (next.find(m => m.playerId === armbandLoser)!.rivals.includes(captainId)) {
+        squad = next;
+        armbandLines.push(`${players[armbandLoser]?.firstName ?? 'He'} has not spoken to ${players[captainId]?.firstName ?? 'the new captain'} since the armband changed hands.`);
+      }
+    }
+  }
+
   let recruitCursor = rngCursor;
   if (fx.spawnRecruit && squad.length < SUNDAY_MAX_SQUAD) {
     const squadPlayers = squad.map(m => players[m.playerId]).filter((p): p is Player => !!p);
-    const spawn = withRng({ ...sunday, rngCursor }, rng => generateSundayRecruit({
-      rng, season: state.season, week: state.week, reputation,
-      personality: sunday.identity.personality,
-      needs: sundaySquadNeeds(squadPlayers),
-      clubhouseLevel: sunday.upgrades.find(u => u.id === 'clubhouse')?.level ?? 0,
-      rivalName: sunday.rivalry ? clubs[sunday.rivalry.clubId]?.shortName ?? null : null,
-      vouchName: squadPlayers[0]?.firstName ?? 'someone',
-      town: sunday.identity.town,
-      index: recruits.length,
-      source: fx.spawnRecruit,
-    }));
+    const spawn = withRng({ ...sunday, rngCursor }, rng => {
+      // Both recruit paths pick the voucher the same way now. This one used to
+      // name `squadPlayers[0]` — whoever happened to be first in the array —
+      // while the weekly roll picked at random, so the same "a mate of Kev's"
+      // line meant two different things depending on where the recruit came
+      // from, and neither of them meant anything at all once he signed.
+      const voucher = pickSundayVoucher(rng, squad, players);
+      return generateSundayRecruit({
+        rng, season: state.season, week: state.week, reputation,
+        personality: sunday.identity.personality,
+        needs: sundaySquadNeeds(squadPlayers),
+        clubhouseLevel: sunday.upgrades.find(u => u.id === 'clubhouse')?.level ?? 0,
+        rivalName: sunday.rivalry ? clubs[sunday.rivalry.clubId]?.shortName ?? null : null,
+        vouchName: voucher?.firstName ?? 'someone',
+        voucherId: voucher?.id ?? null,
+        town: sunday.identity.town,
+        index: recruits.length,
+        source: fx.spawnRecruit,
+      });
+    });
     recruits = [...recruits, spawn.value];
     recruitCursor = spawn.rngCursor;
   }
@@ -612,11 +679,12 @@ export function resolveSundayEvent(set: Set, get: Get, choiceId: string) {
     managerLoan,
     pendingLedger,
     rngCursor: recruitCursor,
+    legends,
     pendingEvent: null,
     eventLog: [...sunday.eventLog, {
       season: state.season, week: state.week, defId: instance.defId, summary: resolution.outcome,
     }].slice(-SUNDAY_EVENT_LOG_MAX),
-    weekLog: logWeek(sunday, resolution.outcome, ...sponsorLines, ...chainLines),
+    weekLog: logWeek(sunday, resolution.outcome, ...sponsorLines, ...departureLines, ...armbandLines, ...chainLines),
   };
 
   set({ sunday: nextSunday, players, clubs, messages });
@@ -647,6 +715,25 @@ export function signSundayRecruit(set: Set, get: Get, recruitId: string) {
     ? clamp(sunday.rivalry.heat + SUNDAY_POACH_HEAT, 0, SUNDAY_RIVAL_HEAT_MAX)
     : sunday.rivalry?.heat ?? 0;
 
+  // He came with a mate, and now that is true rather than a line on his card.
+  // The voucher may have left the club since the recruit appeared on the board,
+  // in which case there is nobody to link him to and the source text stands as
+  // the bit of history it is.
+  const voucher = recruit.voucherId && sunday.squad.some(m => m.playerId === recruit.voucherId)
+    ? recruit.voucherId
+    : null;
+  const squadWithRecruit = linkSundayVoucher(
+    [...sunday.squad, {
+      ...recruit.member,
+      playerId: player.id,
+      joinedSeason: state.season,
+      availability: { status: 'available' as const, reason: null, note: null, warned: true, weeksRemaining: 0 },
+    }],
+    player.id,
+    voucher,
+  );
+  const voucherName = voucher ? state.players[voucher]?.firstName ?? null : null;
+
   set({
     players: { ...state.players, [player.id]: player },
     clubs: { ...state.clubs, [club.id]: { ...club, playerIds: [...club.playerIds, player.id] } },
@@ -660,13 +747,12 @@ export function signSundayRecruit(set: Set, get: Get, recruitId: string) {
         : sunday.pendingLedger,
       recruits: sunday.recruits.filter(r => r.id !== recruitId),
       rivalry: sunday.rivalry ? { ...sunday.rivalry, heat } : null,
-      squad: [...sunday.squad, {
-        ...recruit.member,
-        playerId: player.id,
-        joinedSeason: state.season,
-        availability: { status: 'available', reason: null, note: null, warned: true, weeksRemaining: 0 },
-      }],
-      weekLog: logWeek(sunday, `${player.firstName} ${player.lastName} has signed on.`),
+      squad: squadWithRecruit,
+      weekLog: logWeek(
+        sunday,
+        `${player.firstName} ${player.lastName} has signed on.`,
+        ...(voucherName ? [`He came with ${voucherName}. They will be travelling together.`] : []),
+      ),
     },
   });
   if (get().settings.autoSave) get().saveGame();
@@ -685,12 +771,28 @@ export function releaseSundayPlayer(set: Set, get: Get, playerId: string) {
   const player = state.players[playerId];
   const club = state.clubs[state.playerClubId];
   const players = { ...state.players };
+  const departedName = player ? `${player.firstName} ${player.lastName}` : 'A player';
+  // Read what the club will remember him by BEFORE the record goes. A man with
+  // two hundred appearances who is told he is not needed is still a club
+  // legend; the gate used to be "did he retire", so he was simply erased.
+  const legends = mintSundayLegend({
+    legends: sunday.legends, member, name: departedName, kind: 'released', season: state.season,
+    momentText: definingMemory(member.memories)?.text ?? null,
+  });
   delete players[playerId];
 
   // Telling somebody they are not wanted is noticed by everybody else. A
-  // popular player costs more goodwill than an unpopular one.
+  // popular player costs more goodwill than an unpopular one — and the men who
+  // gave him lifts feel it personally, which is what `applySundayDeparture`
+  // does on top of scrubbing his id out of the dressing room.
   const moraleHit = 2 + Math.round(member.influence / 5);
-  const remaining = new Set(sunday.squad.filter(m => m.playerId !== playerId).map(m => m.playerId));
+  const fallout = applySundayDeparture({
+    squad: sunday.squad.filter(m => m.playerId !== playerId),
+    players,
+    departed: [{ id: playerId, name: departedName }],
+    season: state.season,
+  });
+  const remaining = new Set(fallout.squad.map(m => m.playerId));
   // Any story that was about him goes with him — and says so, so the arc has a
   // visible ending rather than simply never being mentioned again.
   const prunedChains = pruneSundayChains(sunday.chains, remaining);
@@ -699,7 +801,8 @@ export function releaseSundayPlayer(set: Set, get: Get, playerId: string) {
     clubs: club ? { ...state.clubs, [club.id]: { ...club, playerIds: club.playerIds.filter(id => id !== playerId) } } : state.clubs,
     sunday: {
       ...sunday,
-      squad: sunday.squad.filter(m => m.playerId !== playerId),
+      squad: fallout.squad,
+      legends,
       captainId: sunday.captainId === playerId ? null : sunday.captainId,
       teamsheet: sunday.teamsheet.filter(id => id !== playerId),
       bench: sunday.bench.filter(id => id !== playerId),
@@ -709,6 +812,7 @@ export function releaseSundayPlayer(set: Set, get: Get, playerId: string) {
       weekLog: logWeek(
         sunday,
         `${player ? player.firstName : 'A player'} has been told he is not needed.`,
+        ...fallout.lines,
         ...prunedChains.dropped.map(c => sundayChainClosingLine(c.id, 'gone', sundayChainSubjectName(c))),
       ),
     },

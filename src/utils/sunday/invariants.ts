@@ -20,7 +20,8 @@ import type {
 import {
   SUNDAY_CHAINS, SUNDAY_MAX_BENCH, SUNDAY_STATE_VERSION, SUNDAY_MIN_START,
   SUNDAY_FULL_XI, SUNDAY_PENDING_LEDGER_MAX, SUNDAY_PITCH_DAMAGE_MAX,
-  SUNDAY_TACTICS,
+  SUNDAY_TACTICS, SUNDAY_MAX_FRIENDS, SUNDAY_MAX_RIVALS, SUNDAY_MAX_SQUAD,
+  SUNDAY_FORMER_TEAMMATES_MAX,
 } from '@/config/sundayLeague';
 import { sundaySeasonWeeks } from './season';
 import { sundayFlagSubjectId } from './events';
@@ -70,6 +71,10 @@ export function validateSundayState(input: ValidateSundayInput): SundayValidatio
       push('player club missing from clubs map');
     }
     const seen = new Set<string>();
+    // Built up front rather than as the loop goes, because the relationship
+    // checks below have to be able to look FORWARD at a squad-mate who has not
+    // been visited yet.
+    const squadIds = new Set(sunday.squad.map(m => m.playerId));
     for (const m of sunday.squad) {
       if (seen.has(m.playerId)) push(`duplicate squad member ${m.playerId}`);
       seen.add(m.playerId);
@@ -106,6 +111,50 @@ export function validateSundayState(input: ValidateSundayInput): SundayValidatio
       if (m.promise) {
         if (m.promise.kind !== 'start') push(`unknown promise kind for ${m.playerId}`);
         if (!finite(m.promise.dueWeek) || m.promise.dueWeek < m.promise.madeWeek) push(`promise due before it was made for ${m.playerId}`);
+      }
+
+      // Sunday v3 — the relationships layer. THE invariant here is that every
+      // id references somebody who is still on the books: a friendship with a
+      // man who left two seasons ago is the exact bug this wave exists to
+      // close, and it is invisible until the squad screen prints a ghost's
+      // name. `applySundayDeparture` is the only thing that maintains these
+      // lists and every departure path is required to call it.
+      if (!Array.isArray(m.friends) || !Array.isArray(m.rivals)) {
+        push(`friends/rivals missing for ${m.playerId}`);
+      } else {
+        if (m.friends.length > SUNDAY_MAX_FRIENDS) push(`${m.playerId} has ${m.friends.length} friends`);
+        if (m.rivals.length > SUNDAY_MAX_RIVALS) push(`${m.playerId} has ${m.rivals.length} rivals`);
+        for (const id of m.friends) {
+          if (id === m.playerId) push(`${m.playerId} is his own friend`);
+          else if (!squadIds.has(id)) push(`${m.playerId} lists a friend, ${id}, who is not in the squad`);
+          if (m.rivals.includes(id)) push(`${m.playerId} lists ${id} as both a friend and a rival`);
+        }
+        for (const id of m.rivals) {
+          if (id === m.playerId) push(`${m.playerId} is his own rival`);
+          else if (!squadIds.has(id)) push(`${m.playerId} lists a rival, ${id}, who is not in the squad`);
+        }
+        if (new Set(m.friends).size !== m.friends.length) push(`${m.playerId} lists the same friend twice`);
+        if (new Set(m.rivals).size !== m.rivals.length) push(`${m.playerId} lists the same rival twice`);
+      }
+      if (!Array.isArray(m.formerTeammates)) push(`formerTeammates missing for ${m.playerId}`);
+      else if (m.formerTeammates.length > SUNDAY_FORMER_TEAMMATES_MAX) {
+        push(`formerTeammates unbounded for ${m.playerId} (${m.formerTeammates.length})`);
+      }
+      // The shared-appearance map is the only per-pair structure in the mode,
+      // so it is the only one that could grow quadratically. Bounded by the
+      // squad and pruned on every departure — if either stops being true it
+      // shows up here before it shows up in a save file.
+      if (!m.appsWith || typeof m.appsWith !== 'object' || Array.isArray(m.appsWith)) {
+        push(`appsWith missing for ${m.playerId}`);
+      } else {
+        const keys = Object.keys(m.appsWith);
+        if (keys.length > SUNDAY_MAX_SQUAD) push(`appsWith has ${keys.length} entries for ${m.playerId}`);
+        for (const id of keys) {
+          if (id === m.playerId) push(`${m.playerId} has played with himself`);
+          else if (!squadIds.has(id)) push(`appsWith for ${m.playerId} names ${id}, who is not in the squad`);
+          const n = m.appsWith[id];
+          if (!finite(n) || n < 0) push(`appsWith for ${m.playerId} has a nonsense count for ${id}`);
+        }
       }
     }
 

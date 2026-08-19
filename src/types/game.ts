@@ -2631,9 +2631,35 @@ export interface SundaySquadMember {
   joinedSeason: number;
   /** Current availability for the coming match. */
   availability: SundayAvailability;
-  /** Player ids he gets on with / cannot stand. Small, at most 2 each. */
+  /**
+   * Player ids he gets on with / cannot stand. Small — `SUNDAY_MAX_FRIENDS` and
+   * `SUNDAY_MAX_RIVALS` — and LIVE: every id here references a player who is
+   * still on the books, because every departure path scrubs the man who left
+   * out of everybody else's lists (`applySundayDeparture`). The invariant
+   * checker enforces it, so a dangling id is a bug rather than a shrug.
+   */
   friends: string[];
   rivals: string[];
+  /**
+   * Lads he played alongside who are not here any more, newest first, capped at
+   * `SUNDAY_FORMER_TEAMMATES_MAX`. Written when a FRIEND leaves — names only,
+   * because the man himself is deleted from `players` on the way out and an id
+   * would dangle forever. Sunday schema v3.
+   */
+  formerTeammates: { name: string; season: number }[];
+  /**
+   * Matches he has played alongside each current squad member — the substrate
+   * for "these two have been turning out together for two years".
+   *
+   * WHY A MAP AND WHAT IT COSTS. Friendship forms off shared history, and the
+   * only honest way to know two men have played twenty matches together is to
+   * have counted them. Keys are pruned to the live squad on every departure, so
+   * the map is bounded by `SUNDAY_MAX_SQUAD` entries per player and by
+   * `SUNDAY_MAX_SQUAD²` for the club — about 5 kB of JSON for a typical
+   * fifteen-man squad, roughly a tenth of what the squad's memories cost.
+   * Bounded, prunable and never read outside this mode. Sunday schema v3.
+   */
+  appsWith: Record<string, number>;
   /** True once he has told the manager he is thinking of leaving. */
   unsettled: boolean;
   /** Subs (match fees) he owes the club, in pounds. Chasing it is a decision. */
@@ -2726,6 +2752,11 @@ export interface SundayRecruit {
   /** How the manager heard about him. English — game data. */
   source: 'mate' | 'work' | 'trial' | 'poached' | 'walk-up' | 'returning';
   sourceText: string;
+  /** The squad member who put his name forward, when one did. Kept as an id
+   *  rather than only a name so signing him can make the two of them mates on
+   *  the spot — "he came with a mate" is the whole point of the source line.
+   *  Null when the voucher has since left. Sunday schema v3. */
+  voucherId: string | null;
   /** One-off signing-on cost in pounds (boots, registration, a favour). */
   fee: number;
   /** Week the recruit stops being available. */

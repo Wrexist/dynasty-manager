@@ -27,6 +27,7 @@ import {
   SUNDAY_RECRUIT_QUALITY_PER_REP, SUNDAY_RECRUIT_QUALITY_SPREAD, SUNDAY_RECRUIT_WEEKS,
   SUNDAY_RINGER_QUALITY_MAX, SUNDAY_RINGER_QUALITY_MIN, getSundayDivision,
   getSundayPersonality, SUNDAY_CLUBHOUSE_RECRUIT_PER_LEVEL,
+  SUNDAY_MAX_FRIENDS, SUNDAY_MAX_RIVALS,
 } from '@/config/sundayLeague';
 import {
   SUNDAY_CLUB_PREFIX, SUNDAY_CLUB_SUFFIX, SUNDAY_FIRST_NAMES, SUNDAY_JOBS,
@@ -184,6 +185,8 @@ function rollSundayTraits(
     clubMotm: 0,
     friends: [],
     rivals: [],
+    formerTeammates: [],
+    appsWith: {},
     unsettled: false,
     subsOwed: 0,
     memories: [],
@@ -543,6 +546,9 @@ export interface GenerateRecruitOptions {
   rivalName: string | null;
   /** A squad member's first name, for "a mate of Kev's". */
   vouchName: string;
+  /** That squad member's id, so signing the lad can make the two of them mates
+   *  rather than leaving the source line as decoration. */
+  voucherId?: string | null;
   town: string;
   /** Unique suffix so two recruits in the same week cannot share an id. */
   index: number;
@@ -605,6 +611,7 @@ export function generateSundayRecruit(opts: GenerateRecruitOptions): SundayRecru
     member: memberWithoutId,
     source,
     sourceText,
+    voucherId: opts.voucherId ?? null,
     fee: source === 'poached'
       ? rng.int(Math.round(SUNDAY_RECRUIT_FEE_MAX * 0.4), SUNDAY_RECRUIT_FEE_MAX)
       : rng.int(SUNDAY_RECRUIT_FEE_MIN, Math.round(SUNDAY_RECRUIT_FEE_MAX * 0.6)),
@@ -650,24 +657,39 @@ export function generateSundayStartingSquad(
   }
 
   // Friendships and feuds, drawn once so the dressing room has a shape from
-  // day one. Kept small: two of each, at most, and never symmetric-by-accident
-  // — a mutual friendship is written on both sides explicitly.
+  // day one. Kept small — the same caps everything formed later respects — and
+  // never symmetric-by-accident: a mutual friendship is written on both sides
+  // explicitly. From here on these lists are LIVE data: `formSundayLinks` adds
+  // to them out of shared history and `applySundayDeparture` scrubs them, so
+  // nothing below may write an id that will not be maintained.
   const ids = out.map(g => g.player.id);
   for (const g of out) {
     if (rng.chance(0.45)) {
+      // The reciprocal push below can already have named this pair from the
+      // other side, so the duplicate guard is on BOTH ends. Without it a
+      // mutual draw wrote the same id into one man's list twice — invisible
+      // while nothing read these arrays, and now an invariant violation.
       const friend = rng.pick(ids.filter(id => id !== g.player.id));
-      if (friend && g.member.friends.length < 2) {
+      if (friend && !g.member.friends.includes(friend) && g.member.friends.length < SUNDAY_MAX_FRIENDS) {
         g.member.friends.push(friend);
         const other = out.find(o => o.player.id === friend);
-        if (other && other.member.friends.length < 2 && !other.member.friends.includes(g.player.id)) {
+        if (other && other.member.friends.length < SUNDAY_MAX_FRIENDS && !other.member.friends.includes(g.player.id)) {
           other.member.friends.push(g.player.id);
         }
       }
     }
     if (rng.chance(0.16)) {
       const foe = rng.pick(ids.filter(id => id !== g.player.id && !g.member.friends.includes(id)));
-      if (foe && g.member.rivals.length < 2) g.member.rivals.push(foe);
+      if (foe && !g.member.rivals.includes(foe) && g.member.rivals.length < SUNDAY_MAX_RIVALS) {
+        g.member.rivals.push(foe);
+      }
     }
+  }
+  // A feud and a friendship with the same man cannot both be true. The draws
+  // above are independent, so the rare overlap is resolved here, in favour of
+  // the friendship — which is also the invariant the validator checks.
+  for (const g of out) {
+    g.member.rivals = g.member.rivals.filter(id => !g.member.friends.includes(id));
   }
 
   return out;

@@ -411,6 +411,68 @@ export function addSundayLegend(
   ].slice(-SUNDAY_LEGENDS_MAX);
 }
 
+/** How a long-serving player stopped being a player here. */
+export type SundayDepartureKind = 'retired' | 'quit' | 'released' | 'defected' | 'left';
+
+/**
+ * The sentence the club remembers him by.
+ *
+ * A legend is remembered for his best DAY where there was one — the defining
+ * memory leads, the totals are the second sentence. The exception is the man
+ * who walked across the road to the rival: what he did on the pitch is not the
+ * story any more, and the citation says so.
+ */
+export function sundayLegendCitation(
+  member: SundaySquadMember,
+  kind: SundayDepartureKind,
+  season: number,
+  momentText: string | null,
+): string {
+  const seasons = Math.max(1, season - member.joinedSeason + 1);
+  const service = `${member.clubApps} appearance${member.clubApps === 1 ? '' : 's'} and ${member.clubGoals} goal${member.clubGoals === 1 ? '' : 's'} over ${seasons} season${seasons === 1 ? '' : 's'}`;
+  const moment = momentText ? `${momentText} ` : '';
+  switch (kind) {
+    case 'defected':
+      return `${member.clubApps} games, then he crossed the road. ${moment}${service}, and nobody says his name lightly now.`;
+    case 'quit':
+      return `${moment}${service}, and then one Sunday he had had enough.`;
+    case 'released':
+      return `${moment}${service}. You told him he was not needed any more.`;
+    case 'left':
+      return `${moment}${service}. He is not around the club any more.`;
+    default:
+      return `${moment}${service}.`;
+  }
+}
+
+/**
+ * Remember a departing long-server, whichever door he went out of.
+ *
+ * The gate used to be `dev.retiring`, which meant a two-hundred-appearance
+ * servant who quit in a huff, was released, or defected to the rival was
+ * deleted along with his biography and never appeared in the club's history at
+ * all. The BAR is unchanged — earned in appearances or goals, never in rating —
+ * and everything the citation needs is read from the squad record, so the
+ * caller can (and must) mint the legend BEFORE deleting the man.
+ */
+export function mintSundayLegend(input: {
+  legends: readonly SundayLegend[];
+  member: SundaySquadMember;
+  name: string;
+  kind: SundayDepartureKind;
+  season: number;
+  /** The defining memory's text, when he had one. */
+  momentText?: string | null;
+}): SundayLegend[] {
+  const { legends, member, name, kind, season } = input;
+  if (!qualifiesAsLegend(member)) return [...legends];
+  return addSundayLegend(
+    legends, member, name,
+    sundayLegendCitation(member, kind, season, input.momentText ?? null),
+    season,
+  );
+}
+
 // ── Season record ───────────────────────────────────────────────────────────
 
 export interface BuildSeasonRecordInput {

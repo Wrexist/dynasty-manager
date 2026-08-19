@@ -41,8 +41,11 @@ import {
 import { SUNDAY_SPONSORS, SUNDAY_SPONSOR_CONDITION_TEXT, SUNDAY_TAUNTS } from '@/data/sundayNames';
 import { buildWeekLedger } from '@/utils/sunday/finance';
 import { rollSundayAvailability, tickAbsence } from '@/utils/sunday/availability';
-import { makeMemory, rememberMoment } from '@/utils/sunday/memories';
+import { definingMemory, makeMemory, rememberMoment } from '@/utils/sunday/memories';
 import { generateSundayRecruit, sundaySquadNeeds } from '@/utils/sunday/generation';
+import {
+  applySundayDeparture, formSundayLinks, pickSundayCascadeQuits, pickSundayVoucher,
+} from '@/utils/sunday/relationships';
 import {
   pickSundayEvent, toEventPerson, cooldownWeekFor, isOnceSundayEvent,
   forceSundayChainStep, pruneSundayChains, pruneSundayFlags, sundayChainSubjectName,
@@ -51,7 +54,7 @@ import {
 import type { SundayEventContext } from '@/data/sundayEvents';
 import { sundayChainClosingLine } from '@/data/sundayEvents';
 import {
-  advanceSundayCup, buildSundayTable, sundaySeasonWeeks, sundayCupRoundName,
+  advanceSundayCup, buildSundayTable, mintSundayLegend, sundaySeasonWeeks, sundayCupRoundName,
 } from '@/utils/sunday/season';
 import { createSundayRng, subSeed, type SundayRng } from '@/utils/sunday/rng';
 import { runSundayMatch } from './matchday';
@@ -345,6 +348,14 @@ export function advanceSundayWeek(set: Set, get: Get): void {
   let messages = state.messages;
   const players = { ...state.players };
   const clubs = { ...state.clubs };
+  let legends = sunday.legends;
+
+  // The dressing-room stream. Who becomes mates, who falls out and who follows
+  // a mate out of the door all draw HERE, from a week-keyed sub-stream of their
+  // own, so that adding them cannot move the sponsor approach, the recruit or
+  // the event that the main advance stream draws further down. Same reasoning
+  // as the availability stream below.
+  const linkRng = createSundayRng(subSeed(sunday.seed, `links:${season}:${week}`), 0);
 
   // People who have had enough.
   const leaving: string[] = [];
@@ -365,24 +376,73 @@ export function advanceSundayWeek(set: Set, get: Get): void {
     return unsettled === m.unsettled ? m : { ...m, unsettled };
   });
 
-  if (leaving.length) {
-    const club = clubs[clubId];
-    if (club) clubs[clubId] = { ...club, playerIds: club.playerIds.filter(id => !leaving.includes(id)) };
-    for (const id of leaving) {
+  /**
+   * The one door out of the club in this loop.
+   *
+   * Removing a man is four things, and doing three of them was the bug: he
+   * leaves the squad and the club sheet, he is remembered if he earned it
+   * (captured BEFORE his `Player` is deleted), and the dressing room feels it —
+   * his mates take it badly, the man who could not stand him takes it well, and
+   * nobody is left holding an id that points at a ghost.
+   */
+  let bereavedIds: readonly string[] = [];
+  const removeLeavers = (ids: readonly string[], following: boolean) => {
+    if (!ids.length) return;
+    const departed: { id: string; name: string }[] = [];
+    for (const id of ids) {
       const p = players[id];
-      if (p) {
-        weekLogLines.push(`${p.firstName} ${p.lastName} has packed it in.`);
-        messages = sundayMessage(
-          messages, season, week, `${p.firstName} has left`,
-          `${p.firstName} ${p.lastName} is not coming back. He was not enjoying it and said so.`,
-          'warning',
-        );
-        delete players[id];
+      const member = squad.find(m => m.playerId === id);
+      const name = p ? `${p.firstName} ${p.lastName}` : 'A player';
+      departed.push({ id, name });
+      if (member) {
+        legends = mintSundayLegend({
+          legends, member, name, kind: 'quit', season,
+          momentText: definingMemory(member.memories)?.text ?? null,
+        });
       }
+      if (!p) continue;
+      weekLogLines.push(following
+        ? `${name} has gone as well. He was only ever here because his mate was.`
+        : `${name} has packed it in.`);
+      messages = sundayMessage(
+        messages, season, week, `${p.firstName} has left`,
+        following
+          ? `${name} has followed his mate out of the door. That is two in one Sunday.`
+          : `${name} is not coming back. He was not enjoying it and said so.`,
+        'warning',
+      );
+      delete players[id];
     }
-    squad = squad.filter(m => !leaving.includes(m.playerId));
-    teamMorale = clamp(teamMorale - leaving.length * 3, 0, 100);
-  }
+    squad = squad.filter(m => !ids.includes(m.playerId));
+    const club = clubs[clubId];
+    if (club) clubs[clubId] = { ...club, playerIds: club.playerIds.filter(id => !ids.includes(id)) };
+    const fallout = applySundayDeparture({ squad, players, departed, season });
+    squad = fallout.squad;
+    weekLogLines.push(...fallout.lines);
+    bereavedIds = fallout.bereavedIds;
+    teamMorale = clamp(teamMorale - ids.length * 3, 0, 100);
+  };
+
+  removeLeavers(leaving, false);
+  // One man may follow a mate out on the same Sunday. The friend-left hit above
+  // has already pushed him down; this is the roll that turns it into a
+  // departure, and it is capped at one and deliberately does not chain — his
+  // own mates react to him next week, not this one.
+  const cascade = pickSundayCascadeQuits({
+    rng: linkRng,
+    squad,
+    bereavedIds,
+    quitThreshold: SUNDAY_QUIT_THRESHOLD,
+    chanceFor: m => Math.max(0.02, SUNDAY_QUIT_BASE_CHANCE - m.loyalty * SUNDAY_QUIT_PER_LOYALTY),
+  });
+  removeLeavers(cascade, true);
+
+  // What the week has actually built between people. After the departures, so
+  // a friendship cannot be written with somebody who walked out this morning
+  // and scrubbed again in the same breath.
+  const links = formSundayLinks({ rng: linkRng, squad, players, season, week });
+  squad = links.squad;
+  weekLogLines.push(...links.lines);
 
   // If the captain was among the leavers, the armband passes to whoever
   // actually runs the dressing room now — the same rule the season rollover
@@ -446,13 +506,19 @@ export function advanceSundayWeek(set: Set, get: Get): void {
     && rng.chance(thin ? SUNDAY_RECRUIT_CHANCE * 1.6 : SUNDAY_RECRUIT_CHANCE)
   ) {
     const squadPlayers = squad.map(m => players[m.playerId]).filter((p): p is Player => !!p);
+    // Who knows a lad. One weighted draw, replacing one uniform one, so the
+    // stream's sequence is untouched — but the man who brings people is now the
+    // man the room listens to, and signing the recruit makes them mates for
+    // real (`signSundayRecruit`) instead of printing a name and forgetting it.
+    const voucher = pickSundayVoucher(rng, squad, players);
     recruits = [...recruits, generateSundayRecruit({
       rng, season, week, reputation,
       personality: sunday.identity.personality,
       needs: sundaySquadNeeds(squadPlayers),
       clubhouseLevel: sunday.upgrades.find(u => u.id === 'clubhouse')?.level ?? 0,
       rivalName: sunday.rivalry ? clubs[sunday.rivalry.clubId]?.shortName ?? null : null,
-      vouchName: rng.pick(squadPlayers)?.firstName ?? 'someone',
+      vouchName: voucher?.firstName ?? 'someone',
+      voucherId: voucher?.id ?? null,
       town: sunday.identity.town,
       index: recruits.length,
     })];
@@ -706,6 +772,9 @@ export function advanceSundayWeek(set: Set, get: Get): void {
     captainId,
     cup,
     rivalry,
+    // A long server who walked out this week is still a club legend — minted
+    // above, while his record still existed to be read from.
+    legends,
     // The morning belongs to the week that is ending.
     arrival: null,
     // Story markers are swept after `SUNDAY_FLAG_EXPIRY_WEEKS`, and one about
