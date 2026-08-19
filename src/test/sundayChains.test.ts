@@ -210,7 +210,7 @@ describe('a chain always finishes', () => {
     }));
     const ctx: SundayEventContext = {
       season: 1, week: 8, balance: 300, reputation: 20, teamMorale: 60,
-      squadSize: 3, availableCount: 3, lastResult: 0, winless: 0, winStreak: 0,
+      squadSize: 3, selectableCount: 3, lastResult: 0, winless: 0, winStreak: 0,
       leaguePosition: 4, leagueSize: 8, hasRival: true, rivalHeat: 5, hasSponsor: false,
       hasFixture: true,
       subsOwed: 0, weeksInDebt: 0, cupAlive: false, cupRoundsWon: 0, cupRoundName: null,

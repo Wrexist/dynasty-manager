@@ -8,9 +8,10 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
-  AVAILABLE, resolveDoubt, ringRoundChance, rollSundayAvailability,
+  AVAILABLE, isSundaySelectable, resolveDoubt, ringRoundChance, rollSundayAvailability,
   summariseAvailability, sundayAvailabilityChance, tickAbsence,
 } from '@/utils/sunday/availability';
+import { autoPickSunday } from '@/store/slices/sunday/matchday';
 import { useGameStore } from '@/store/gameStore';
 import { createSundayRng } from '@/utils/sunday/rng';
 import { assertSundayState } from '@/utils/sunday/invariants';
@@ -201,6 +202,69 @@ describe('absence bookkeeping', () => {
     expect(s.doubts).toBe(1);
     expect(s.out).toBe(2);
     expect(s.knownOut).toBe(1);
+  });
+
+  /**
+   * The two readings of "available" — and the bug that made them disagree.
+   *
+   * The hub counted `status === 'available'` and every selection path counted
+   * `status !== 'out'`, which includes the doubts. Nobody named the difference,
+   * so the hub could print "9 available" beside eleven pickable men. Both
+   * numbers now come out of the SAME helper, and the loose one is the one the
+   * selection predicate uses.
+   */
+  it('reports both readings, and the loose one is what selection uses', () => {
+    const base = make().member;
+    const doubt = { status: 'doubt' as const, reason: 'work' as const, note: null, warned: true, weeksRemaining: 0 };
+    const out = { status: 'out' as const, reason: 'work' as const, note: null, warned: true, weeksRemaining: 0 };
+    const squad: SundaySquadMember[] = [
+      { ...base, playerId: 'a', availability: AVAILABLE },
+      { ...base, playerId: 'b', availability: AVAILABLE },
+      { ...base, playerId: 'c', availability: doubt },
+      { ...base, playerId: 'd', availability: doubt },
+      { ...base, playerId: 'e', availability: out },
+    ];
+    const s = summariseAvailability(squad);
+    expect(s.available).toBe(2);
+    expect(s.doubts).toBe(2);
+    expect(s.selectable).toBe(4);
+    // The invariant: selectable is exactly what the selection predicate admits.
+    expect(squad.filter(isSundaySelectable)).toHaveLength(s.selectable);
+    expect(s.selectable).toBe(s.available + s.doubts);
+  });
+});
+
+describe('the hub count and the pickable side are the same number', () => {
+  beforeEach(async () => {
+    useGameStore.getState().resetGame();
+    await useGameStore.getState().startSundayLeague({ personality: 'pub', seed: 3311 });
+  });
+
+  it('auto-pick draws from `selectable`, not from `available`', async () => {
+    const s0 = useGameStore.getState();
+    const sunday = s0.sunday!;
+    // Make two men doubts and put everyone else out, so the two readings are
+    // guaranteed to differ and the pool is small enough to name whole.
+    const squad = sunday.squad.map((m, i) => ({
+      ...m,
+      availability: i < 2
+        ? { status: 'doubt' as const, reason: 'work' as const, note: null, warned: true, weeksRemaining: 0 }
+        : i < 7
+          ? { ...AVAILABLE }
+          : { status: 'out' as const, reason: 'work' as const, note: null, warned: true, weeksRemaining: 0 },
+    }));
+    useGameStore.setState({ sunday: { ...sunday, squad } });
+
+    const summary = summariseAvailability(squad);
+    expect(summary.available).toBe(5);
+    expect(summary.doubts).toBe(2);
+    expect(summary.selectable).toBe(7);
+
+    const { xi, bench } = autoPickSunday(useGameStore.getState().sunday!, useGameStore.getState().players);
+    // Everyone who can be named IS named — including the two doubts. The count
+    // the hub shows as "available" is deliberately the smaller one.
+    expect(xi.length + bench.length).toBe(summary.selectable);
+    expect(xi.length + bench.length).toBeGreaterThan(summary.available);
   });
 });
 

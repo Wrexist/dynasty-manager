@@ -23,6 +23,7 @@ import {
   SUNDAY_RINGROUND_ATTEMPTS_PER_WEEK, sundayRingRoundCost,
   SUNDAY_TACTICS, getSundayTactic,
 } from '@/config/sundayLeague';
+import { isSundaySelectable } from '@/utils/sunday/availability';
 import { sundayTacticFit } from '@/utils/sunday/match';
 import { sundaySideIsSettled } from '@/utils/sunday/primaryAction';
 import { canPlayPosition, FORMATION_POSITIONS } from '@/types/game';
@@ -124,7 +125,9 @@ const SundayTeamsheet = () => {
   if (!sunday) return null;
 
   const namedIds = new Set([...sunday.teamsheet, ...sunday.bench]);
-  const availableRows = rows.filter(r => r.member.availability.status !== 'out' && !namedIds.has(r.player.id));
+  // Selectable, not strictly available — a doubt is pickable, which is why
+  // this list is longer than the hub's green count by exactly the doubts.
+  const availableRows = rows.filter(r => isSundaySelectable(r.member) && !namedIds.has(r.player.id));
   const outRows = rows.filter(r => r.member.availability.status === 'out');
   const tactic = getSundayTactic(sunday.tactic);
   const fit = sundayTacticFit(sunday.tactic, xiRows.map(r => r.player));

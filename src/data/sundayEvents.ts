@@ -32,7 +32,11 @@ export interface SundayEventContext {
   reputation: number;
   teamMorale: number;
   squadSize: number;
-  availableCount: number;
+  /** Men who can be NAMED — available plus doubts, the loose reading. See
+   *  `isSundaySelectable`. Named for the count it actually is: it used to be
+   *  `availableCount`, which read as the hub's strict green-pill number and is
+   *  not what any caller passes. */
+  selectableCount: number;
   /** Result of the most recent match: 1 win, 0 draw, -1 loss, null none yet. */
   lastResult: 1 | 0 | -1 | null;
   /** Consecutive matches without a win. */
@@ -526,7 +530,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
     needsSubject: true,
     // The man with the kit is very often the man who has stopped turning up.
     subjectFilter: () => true,
-    condition: ctx => ctx.hasFixture && ctx.availableCount >= 7,
+    condition: ctx => ctx.hasFixture && ctx.selectableCount >= 7,
     choices: [
       {
         id: 'buy', label: 'Emergency bibs from the leisure centre (£25)', hint: 'Solves it. Looks ridiculous.',
@@ -560,7 +564,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
     // A goalkeeper, or it is not this event. If nobody who can go in goal is
     // available, the week simply produces something else.
     subjectFilter: p => p.available && p.position === 'GK',
-    condition: ctx => ctx.hasFixture && ctx.availableCount >= 8,
+    condition: ctx => ctx.hasFixture && ctx.selectableCount >= 8,
     cooldown: 8,
     choices: [
       {
@@ -1146,7 +1150,7 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
     weight: 6,
     needsSubject: true,
     subjectFilter: p => p.available && p.archetype === 'prospect',
-    condition: ctx => ctx.hasFixture && !!ctx.subject && ctx.availableCount >= 9,
+    condition: ctx => ctx.hasFixture && !!ctx.subject && ctx.selectableCount >= 9,
     cooldown: 12,
     choices: [
       {

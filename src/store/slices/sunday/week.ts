@@ -47,7 +47,7 @@ import {
 } from '@/config/sundayLeague';
 import { SUNDAY_SPONSORS, SUNDAY_SPONSOR_CONDITION_TEXT, SUNDAY_TAUNTS } from '@/data/sundayNames';
 import { buildWeekLedger, sundayUpgradeUpkeep } from '@/utils/sunday/finance';
-import { rollSundayAvailability, tickAbsence } from '@/utils/sunday/availability';
+import { isSundaySelectable, rollSundayAvailability, tickAbsence } from '@/utils/sunday/availability';
 import { definingMemory, makeMemory, rememberMoment } from '@/utils/sunday/memories';
 import { generateSundayRecruit, sundaySquadNeeds } from '@/utils/sunday/generation';
 import {
@@ -630,7 +630,7 @@ export function advanceSundayWeek(set: Set, get: Get): void {
     const ctx: SundayEventContext = {
       season, week, balance, reputation, teamMorale,
       squadSize: squad.length,
-      availableCount: squad.filter(m => m.availability.status !== 'out').length,
+      selectableCount: squad.filter(isSundaySelectable).length,
       lastResult: playedThisWeek && lastMatch
         ? (lastMatch.goalsFor > lastMatch.goalsAgainst ? 1 : lastMatch.goalsFor === lastMatch.goalsAgainst ? 0 : -1)
         : null,

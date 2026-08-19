@@ -38,7 +38,7 @@ const absentee: SundayEventPerson = { ...person, playerId: 'p2', firstName: 'Gar
 
 const ctx: SundayEventContext = {
   season: 1, week: 8, balance: 300, reputation: 20, teamMorale: 60,
-  squadSize: 15, availableCount: 12, lastResult: 0, winless: 0, winStreak: 0,
+  squadSize: 15, selectableCount: 12, lastResult: 0, winless: 0, winStreak: 0,
   leaguePosition: 4, leagueSize: 8, hasRival: true, rivalHeat: 5, hasSponsor: true,
   hasFixture: true,
   subsOwed: 40, weeksInDebt: 0, cupAlive: false, cupRoundsWon: 0, cupRoundName: null,
@@ -159,7 +159,7 @@ describe('event catalogue integrity', () => {
     const states: SundayEventContext[] = [
       ctx,
       { ...ctx, captain: null, subject: null, unhappy: null, hasRival: false, hasSponsor: false },
-      { ...ctx, squadSize: 0, availableCount: 0, balance: -1000, lastResult: null },
+      { ...ctx, squadSize: 0, selectableCount: 0, balance: -1000, lastResult: null },
     ];
     for (const def of SUNDAY_EVENTS) {
       for (const s of states) {

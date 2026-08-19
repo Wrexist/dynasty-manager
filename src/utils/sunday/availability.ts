@@ -195,9 +195,34 @@ export function ringRoundChance(
     SUNDAY_RINGROUND_BASE + m.commitment * SUNDAY_RINGROUND_PER_COMMITMENT + skipper));
 }
 
-/** A short English summary of the week's availability, for the hub. */
+/**
+ * Can this man be named on the teamsheet?
+ *
+ * A DOUBT COUNTS. He has not cried off — he has said he will try — so the
+ * selection code lets him be picked and rolls `resolveDoubt` on the morning.
+ * That is the loose reading of "available", and it is the one every selection
+ * path uses: `autoPickSunday`, `buildSundayArrival`, the teamsheet's own list.
+ *
+ * The strict reading — "definitely turning up" — is `status === 'available'`,
+ * which is what the hub's green pill counts. Both are true and they differ by
+ * the doubts, so `summariseAvailability` returns BOTH and every caller names
+ * the one it means. They used to be spelled out inline in five places as
+ * `status !== 'out'` with no shared name, which is how the hub came to print
+ * "9 available" beside eleven pickable men.
+ */
+export function isSundaySelectable(m: SundaySquadMember): boolean {
+  return m.availability.status !== 'out';
+}
+
+/**
+ * A short English summary of the week's availability, for the hub.
+ *
+ * `available` is the strict count (definitely playing). `selectable` is
+ * `available + doubts` — the men the teamsheet will actually let you pick.
+ * See `isSundaySelectable` for why both exist.
+ */
 export function summariseAvailability(squad: readonly SundaySquadMember[]): {
-  available: number; doubts: number; out: number; knownOut: number;
+  available: number; selectable: number; doubts: number; out: number; knownOut: number;
 } {
   let available = 0, doubts = 0, out = 0, knownOut = 0;
   for (const m of squad) {
@@ -205,5 +230,5 @@ export function summariseAvailability(squad: readonly SundaySquadMember[]): {
     else if (m.availability.status === 'doubt') { doubts++; }
     else { out++; if (m.availability.warned) knownOut++; }
   }
-  return { available, doubts, out, knownOut };
+  return { available, selectable: available + doubts, doubts, out, knownOut };
 }

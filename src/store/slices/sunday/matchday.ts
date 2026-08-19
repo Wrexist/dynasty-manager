@@ -41,7 +41,7 @@ import {
 } from '@/data/sundayNames';
 import { captureMatchMemories, findMatchWinner, findTurningPoint, makeMemory, rememberMoment } from '@/utils/sunday/memories';
 import { bumpHeat, deriveDerbyIncident, recordRivalryIncident } from '@/utils/sunday/rivalry';
-import { resolveDoubt } from '@/utils/sunday/availability';
+import { isSundaySelectable, resolveDoubt } from '@/utils/sunday/availability';
 import { bumpSundayAppsWith } from '@/utils/sunday/relationships';
 import { clearSundayRingers, generateSundayRinger } from '@/utils/sunday/generation';
 import type { SundayAdjustment } from '@/utils/sunday/match';
@@ -91,7 +91,9 @@ export function autoPickSunday(
   players: Record<string, Player>,
 ): { xi: string[]; bench: string[] } {
   const tactic = getSundayTactic(sunday.tactic);
-  const availableIds = sunday.squad.filter(m => m.availability.status !== 'out').map(m => m.playerId);
+  // Selectable, not strictly available: a doubt has not cried off, so he can
+  // be named. `resolveDoubt` settles him on the morning.
+  const availableIds = sunday.squad.filter(isSundaySelectable).map(m => m.playerId);
   const pool = availableIds.map(id => players[id]).filter((p): p is Player => !!p);
   if (pool.length <= SUNDAY_FULL_XI) {
     // Everyone plays. `selectBestLineup` positions them as best it can; with
@@ -210,7 +212,7 @@ export function ensureArrival(set: Set, get: Get): SundayArrival | null {
   // trip. The deliberately-unnamed never auto-return: dropping a player has to
   // stick, or a promise (and a punishment) could be silently undone by this
   // very function re-picking him. The remaining gap is the ringer decision.
-  const availableIds = new Set(squad.filter(m => m.availability.status !== 'out').map(m => m.playerId));
+  const availableIds = new Set(squad.filter(isSundaySelectable).map(m => m.playerId));
   const presentIds = sunday.teamsheet.filter(id => availableIds.has(id));
   const benchPool = sunday.bench.filter(id => availableIds.has(id) && !presentIds.includes(id));
   while (presentIds.length < SUNDAY_FULL_XI && benchPool.length > 0) {

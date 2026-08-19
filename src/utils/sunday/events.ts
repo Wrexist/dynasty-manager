@@ -23,6 +23,7 @@ import {
   SUNDAY_EVENT_DEPARTURE_GAP, SUNDAY_EVENT_NEGATIVE_DAMPING, SUNDAY_ROUGH_WEEK_FLAG,
   getSundayChain,
 } from '@/config/sundayLeague';
+import { isSundaySelectable } from './availability';
 import { sundayCupRoundName } from './season';
 import type { SundayRng } from './rng';
 
@@ -37,7 +38,7 @@ export function toEventPerson(m: SundaySquadMember, player: Player): SundayEvent
     position: player.position,
     age: player.age,
     clubApps: m.clubApps,
-    available: m.availability.status !== 'out',
+    available: isSundaySelectable(m),
     happiness: m.happiness,
     ego: m.ego,
     commitment: m.commitment,

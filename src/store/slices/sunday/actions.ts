@@ -46,7 +46,7 @@ import {
 } from '@/utils/sunday/events';
 import type { SundayEventContext, SundayEventEffects } from '@/data/sundayEvents';
 import { sundayChainClosingLine } from '@/data/sundayEvents';
-import { ringRoundChance } from '@/utils/sunday/availability';
+import { isSundaySelectable, ringRoundChance } from '@/utils/sunday/availability';
 import { generateSundayRecruit, sundaySquadNeeds } from '@/utils/sunday/generation';
 import {
   buildSundayTable, mintSundayLegend, sundayPosition, sundaySeasonWeeks,
@@ -97,7 +97,7 @@ function buildEventContext(state: GameState, sunday: SundayState): SundayEventCo
     reputation: sunday.reputation,
     teamMorale: sunday.teamMorale,
     squadSize: sunday.squad.length,
-    availableCount: sunday.squad.filter(m => m.availability.status !== 'out').length,
+    selectableCount: sunday.squad.filter(isSundaySelectable).length,
     lastResult: last ? (last.goalsFor > last.goalsAgainst ? 1 : last.goalsFor === last.goalsAgainst ? 0 : -1) : null,
     winless: sunday.seasonStats.winlessRun,
     winStreak: sunday.seasonStats.winRun,
