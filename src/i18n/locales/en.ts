@@ -83,7 +83,8 @@ export const en = {
   'sunday.avail.out': 'Unavailable',
   'sunday.avail.noWord': 'No word from him',
   'sunday.avail.ringRound': 'Ring round',
-  'sunday.avail.ringRoundHint': 'Spend £{n} and an afternoon on the phone.',
+  'sunday.avail.ringRoundHint': 'Spend £{n} and an afternoon on the phone. {left} of {max} calls left this week.',
+  'sunday.avail.ringRoundSpent': 'You have been on the phone all morning. That is enough calls for one week.',
 
   // Teamsheet
   'sunday.sheet.title': 'Teamsheet',

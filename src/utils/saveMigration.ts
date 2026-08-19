@@ -196,6 +196,10 @@ const migrations: Record<number, MigrationFn> = {
         // Zero is the generous reading and the only one that cannot retro-
         // actively lock a manager out of a window he was told was open.
         signingsThisSeason: typeof sunday.signingsThisSeason === 'number' ? sunday.signingsThisSeason : 0,
+        // Same reading for the week's phone calls: the save was written under
+        // no cap, so zero is the only number that cannot take away a call the
+        // manager was told he had.
+        ringRoundsThisWeek: typeof sunday.ringRoundsThisWeek === 'number' ? sunday.ringRoundsThisWeek : 0,
         divisionStyles: sunday.divisionStyles && typeof sunday.divisionStyles === 'object'
           ? sunday.divisionStyles
           : {},

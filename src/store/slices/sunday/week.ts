@@ -830,6 +830,9 @@ export function advanceSundayWeek(set: Set, get: Get): void {
     teamsheet: [],
     bench: [],
     teamsheetLocked: false,
+    // A new week, a fresh two calls. The cap is per WEEK, so the settlement is
+    // the only thing that clears it.
+    ringRoundsThisWeek: 0,
     // The log describes the week just completed and is replaced, not appended
     // to: the hub shows "what happened", and an ever-growing list stops being
     // that after about three weeks.

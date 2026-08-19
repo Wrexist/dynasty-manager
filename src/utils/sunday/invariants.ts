@@ -22,6 +22,7 @@ import {
   SUNDAY_FULL_XI, SUNDAY_PENDING_LEDGER_MAX, SUNDAY_PITCH_DAMAGE_MAX,
   SUNDAY_TACTICS, SUNDAY_MAX_FRIENDS, SUNDAY_MAX_RIVALS, SUNDAY_MAX_SQUAD,
   SUNDAY_FORMER_TEAMMATES_MAX, SUNDAY_RECRUIT_SIGNINGS_PER_SEASON,
+  SUNDAY_RINGROUND_ATTEMPTS_PER_WEEK,
 } from '@/config/sundayLeague';
 import { sundaySeasonWeeks } from './season';
 import { sundayFlagSubjectId } from './events';
@@ -304,6 +305,12 @@ export function validateSundayState(input: ValidateSundayInput): SundayValidatio
     if (!finite(sunday.signingsThisSeason) || sunday.signingsThisSeason < 0
       || sunday.signingsThisSeason > SUNDAY_RECRUIT_SIGNINGS_PER_SEASON) {
       push(`signingsThisSeason out of range: ${String(sunday.signingsThisSeason)}`);
+    }
+    // Same reasoning for the phone: over the cap means the settlement stopped
+    // clearing the counter, and the ring-round exploit is back.
+    if (!finite(sunday.ringRoundsThisWeek) || sunday.ringRoundsThisWeek < 0
+      || sunday.ringRoundsThisWeek > SUNDAY_RINGROUND_ATTEMPTS_PER_WEEK) {
+      push(`ringRoundsThisWeek out of range: ${String(sunday.ringRoundsThisWeek)}`);
     }
 
     // ── The pitch (v3) ─────────────────────────────────────────────────────

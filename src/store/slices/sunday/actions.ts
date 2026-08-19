@@ -27,7 +27,8 @@ import {
   SUNDAY_CHASE_SUBS_MORALE, SUNDAY_CHASE_SUBS_RECOVERY, SUNDAY_FULL_XI,
   SUNDAY_FUNDRAISER_COOLDOWN, SUNDAY_FUNDRAISER_MAX, SUNDAY_FUNDRAISER_MIN,
   SUNDAY_FUNDRAISER_MORALE, SUNDAY_MAX_BENCH, SUNDAY_MAX_SQUAD, SUNDAY_MIN_START,
-  SUNDAY_RINGROUND_COST, SUNDAY_RINGROUND_MORALE, SUNDAY_EVENT_LOG_MAX,
+  SUNDAY_RINGROUND_MORALE, SUNDAY_EVENT_LOG_MAX,
+  SUNDAY_RINGROUND_ATTEMPTS_PER_WEEK, sundayRingRoundCost,
   SUNDAY_POACH_HEAT, SUNDAY_RIVAL_HEAT_MAX, SUNDAY_PROMISE_WEEKS, SUNDAY_PITCH_DAMAGE_MAX,
   SUNDAY_KIT_MORALE_PER_LEVEL, SUNDAY_KIT_REP_PER_LEVEL,
   SUNDAY_NETS_REP, SUNDAY_FLOODLIGHT_REP, SUNDAY_DERBY_BET_FLAG,
@@ -1077,7 +1078,13 @@ export function ringRoundSunday(set: Set, get: Get, playerId: string) {
   const member = memberOf(sunday, playerId);
   if (!member) return { ok: false, message: 'He is not on the books.' };
   if (member.availability.status !== 'out') return { ok: false, message: 'He is already available.' };
-  if (sunday.balance < SUNDAY_RINGROUND_COST) return { ok: false, message: 'You cannot even afford the phone credit.' };
+  // One Sunday morning's worth of favours. The cap is the constraint, not the
+  // morale cost — see the block comment above `SUNDAY_RINGROUND_COST`.
+  if (sunday.ringRoundsThisWeek >= SUNDAY_RINGROUND_ATTEMPTS_PER_WEEK) {
+    return { ok: false, message: 'You have been on the phone all morning. That is enough calls for one week.' };
+  }
+  const cost = sundayRingRoundCost(sunday.ringRoundsThisWeek);
+  if (sunday.balance < cost) return { ok: false, message: 'You cannot even afford the phone credit.' };
 
   const chance = ringRoundChance(member);
   if (chance <= 0) {
@@ -1090,10 +1097,11 @@ export function ringRoundSunday(set: Set, get: Get, playerId: string) {
     sunday: {
       ...sunday,
       rngCursor,
-      balance: Math.round(sunday.balance - SUNDAY_RINGROUND_COST),
+      balance: Math.round(sunday.balance - cost),
+      ringRoundsThisWeek: sunday.ringRoundsThisWeek + 1,
       pendingLedger: [...sunday.pendingLedger, {
         kind: 'ring-round' as const,
-        amount: -SUNDAY_RINGROUND_COST,
+        amount: -cost,
         label: `Ring-round (${player?.firstName ?? 'a phone call'})`,
       }],
       teamMorale: clampRound(sunday.teamMorale + SUNDAY_RINGROUND_MORALE, 0, 100),

@@ -3313,6 +3313,15 @@ export interface SundayState {
    * weighed against the ones behind it. Reset at the rollover. Schema v3.
    */
   signingsThisSeason: number;
+  /**
+   * Ring-round calls made in the week now in progress.
+   *
+   * The lever was uncapped: 70-85 calls a season measured, availability
+   * 77.7% → 88.9%, +0.17 ppg, for a tenner each against a late-game club with
+   * thousands spare. Capped at `SUNDAY_RINGROUND_ATTEMPTS_PER_WEEK` and reset
+   * by the weekly advance. Schema v3.
+   */
+  ringRoundsThisWeek: number;
   ledger: SundayWeekLedger[];
   /**
    * Money the manager has moved DURING the week now in progress, waiting for

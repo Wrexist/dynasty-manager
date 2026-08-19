@@ -355,8 +355,33 @@ export const SUNDAY_FUNDRAISER_MAX = 140;
 /** Fundraisers cost goodwill — everyone has to stand outside Tesco. */
 export const SUNDAY_FUNDRAISER_MORALE = -3;
 
-/** "Ring round" — spend an afternoon on the phone to un-cancel someone. */
+// ── "Ring round" ────────────────────────────────────────────────────────────
+//
+// Spend an afternoon on the phone to un-cancel someone.
+//
+// THE EXPLOIT IT USED TO BE. There was no cap and no cooldown: a manager could
+// work down the whole `out` column every week for a tenner a call, and the
+// measured pilot did — 70 to 85 calls a season, lifting squad availability
+// from 77.7% to 88.9% and points-per-game by 0.17. The morale cost was −1
+// clamped at zero, so once the dressing room had bottomed out the calls were
+// free of everything except money the late-game club had spare.
+//
+// The binding constraint is now the ATTEMPT CAP, deliberately, rather than the
+// morale: a cost that clamps to nothing is not a cost, and pushing morale
+// harder would have punished exactly the club least able to absorb it. Two
+// calls is one Sunday morning's worth of favours.
+
+/** Base cost of one call. */
 export const SUNDAY_RINGROUND_COST = 10;
+/** Calls the manager can make in one week. */
+export const SUNDAY_RINGROUND_ATTEMPTS_PER_WEEK = 2;
+/** Each call after the first costs this much more than the one before it —
+ *  the second favour of the morning is a harder ask than the first. */
+export const SUNDAY_RINGROUND_COST_ESCALATION = 1;
+/** Cost of the `n`-th call of the week (0-based). */
+export function sundayRingRoundCost(attemptsUsed: number): number {
+  return Math.round(SUNDAY_RINGROUND_COST * (1 + attemptsUsed * SUNDAY_RINGROUND_COST_ESCALATION));
+}
 export const SUNDAY_RINGROUND_MORALE = -1;
 /** Chance per attempt that a given `out` player can be talked round, scaled
  *  by his commitment. */

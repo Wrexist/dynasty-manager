@@ -20,7 +20,8 @@ import { useGameStore } from '@/store/gameStore';
 import { useTranslation } from '@/hooks/useTranslation';
 import { cn } from '@/lib/utils';
 import {
-  SUNDAY_FULL_XI, SUNDAY_MAX_BENCH, SUNDAY_MIN_START, SUNDAY_RINGROUND_COST,
+  SUNDAY_FULL_XI, SUNDAY_MAX_BENCH, SUNDAY_MIN_START,
+  SUNDAY_RINGROUND_ATTEMPTS_PER_WEEK, sundayRingRoundCost,
   SUNDAY_TACTICS, getSundayTactic,
 } from '@/config/sundayLeague';
 import { sundayTacticFit } from '@/utils/sunday/match';
@@ -111,6 +112,8 @@ const SundayTeamsheet = () => {
   // Once the guests have been booked and paid for, the side is fixed — the
   // store refuses the edit, so the screen has to say why rather than swallow
   // the tap. See `arrivalGuard` in the Sunday actions.
+  const callsLeft = Math.max(0, SUNDAY_RINGROUND_ATTEMPTS_PER_WEEK - sunday.ringRoundsThisWeek);
+
   const sheetLocked = !!sunday.arrival
     && sunday.arrival.week === week
     && sunday.arrival.season === season
@@ -338,6 +341,7 @@ const SundayTeamsheet = () => {
                     </p>
                     <LiquidButton
                       className="px-3 py-1.5"
+                      disabled={callsLeft <= 0}
                       onClick={() => { void ringRound(row.player.id).then(r => { if (r.ok) toast.success(r.message); else toast.info(r.message); }); }}
                     >
                       <span className="inline-flex items-center gap-1 text-micro">
@@ -345,7 +349,13 @@ const SundayTeamsheet = () => {
                       </span>
                     </LiquidButton>
                     <p className="text-micro text-muted-foreground">
-                      {t('sunday.avail.ringRoundHint', { n: SUNDAY_RINGROUND_COST })}
+                      {callsLeft > 0
+                        ? t('sunday.avail.ringRoundHint', {
+                            n: sundayRingRoundCost(sunday.ringRoundsThisWeek),
+                            left: callsLeft,
+                            max: SUNDAY_RINGROUND_ATTEMPTS_PER_WEEK,
+                          })
+                        : t('sunday.avail.ringRoundSpent')}
                     </p>
                   </div>
                 )}
