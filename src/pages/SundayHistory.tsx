@@ -7,6 +7,7 @@
  * separate route for each would mean three near-identical screens and a
  * navigation problem at exactly the moments that should feel weighty.
  */
+import { useState } from 'react';
 import { Award, Flag, Medal, Trophy } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useShallow } from 'zustand/react/shallow';
@@ -30,6 +31,9 @@ const SundayHistory = () => {
   })));
   const endSeason = useGameStore(s => s.endSundaySeason);
   const setScreen = useGameStore(s => s.setScreen);
+  // Rolling the season over is the heaviest action in the mode and it is
+  // async. A second tap while it runs would start a second rollover.
+  const [rolling, setRolling] = useState(false);
 
   if (!sunday) return null;
   const div = getSundayDivision(sunday.divisionId);
@@ -157,7 +161,18 @@ const SundayHistory = () => {
               )}
             </p>
           )}
-          <LiquidButton tone="primary" className="w-full py-3" onClick={() => { void endSeason().then(() => setScreen('sunday-hub')); }}>
+          <LiquidButton
+            tone="primary"
+            className="w-full py-3"
+            busy={rolling}
+            onClick={() => {
+              if (rolling) return;
+              setRolling(true);
+              void endSeason()
+                .then(() => setScreen('sunday-hub'))
+                .finally(() => setRolling(false));
+            }}
+          >
             {t('sunday.history.startNext')}
           </LiquidButton>
         </GlassPanel>

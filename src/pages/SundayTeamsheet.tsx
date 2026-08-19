@@ -100,6 +100,9 @@ const SundayTeamsheet = () => {
   const ringRound = useGameStore(s => s.ringRoundSunday);
   const setScreen = useGameStore(s => s.setScreen);
   const [expanded, setExpanded] = useState<string | null>(null);
+  // Which async teamsheet action is in flight. Both write the sheet, so two
+  // overlapping calls can race each other's result.
+  const [busy, setBusy] = useState<string | null>(null);
 
   const rows = useMemo<Row[]>(() => {
     if (!sunday) return [];
@@ -261,8 +264,13 @@ const SundayTeamsheet = () => {
             <LiquidButton
               className="px-3 py-1.5"
               disabled={sheetLocked}
+              busy={busy === 'auto'}
               onClick={() => {
-                void autoPick().then(r => toast.success(t('sunday.sheet.count', { n: r.picked, max: SUNDAY_FULL_XI })));
+                if (busy) return;
+                setBusy('auto');
+                void autoPick()
+                  .then(r => toast.success(t('sunday.sheet.count', { n: r.picked, max: SUNDAY_FULL_XI })))
+                  .finally(() => setBusy(null));
               }}
             >
               <span className="inline-flex items-center gap-1 text-micro"><Wand2 className="w-3.5 h-3.5" aria-hidden /> {t('sunday.sheet.autoPick')}</span>
@@ -384,11 +392,16 @@ const SundayTeamsheet = () => {
         tone="primary"
         className="w-full py-3"
         disabled={sunday.teamsheet.length < SUNDAY_MIN_START}
+        busy={busy === 'confirm'}
         onClick={() => {
-          void apply(sunday.teamsheet, sunday.bench).then(r => {
-            if (r.ok) { toast.success(r.message); setScreen('sunday-match'); }
-            else toast.info(r.message);
-          });
+          if (busy) return;
+          setBusy('confirm');
+          void apply(sunday.teamsheet, sunday.bench)
+            .then(r => {
+              if (r.ok) { toast.success(r.message); setScreen('sunday-match'); }
+              else toast.info(r.message);
+            })
+            .finally(() => setBusy(null));
         }}
       >
         <span className="inline-flex items-center gap-1.5">

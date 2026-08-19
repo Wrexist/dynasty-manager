@@ -36,6 +36,9 @@ const SundayClubhouse = () => {
     declineSponsor: s.declineSundaySponsor,
   })));
   const [tab, setTab] = useState<Tab>('upgrades');
+  // Which purchase is mid-flight. The store actions are async, so without this
+  // a double tap buys the upgrade twice or signs the sponsor twice.
+  const [busy, setBusy] = useState<string | null>(null);
 
   const totals = useMemo(() => {
     if (!sunday) return { income: 0, expenses: 0 };
@@ -142,8 +145,15 @@ const SundayClubhouse = () => {
                   <LiquidButton
                     tone={maxed ? 'default' : affordable && !locked ? 'primary' : 'default'}
                     disabled={maxed || locked || !affordable}
+                    busy={busy === `buy:${u.id}`}
                     className="shrink-0 px-3 py-2"
-                    onClick={() => { void buyUpgrade(u.id).then(r => { if (r.ok) toast.success(r.message); else toast.info(r.message); }); }}
+                    onClick={() => {
+                      if (busy) return;
+                      setBusy(`buy:${u.id}`);
+                      void buyUpgrade(u.id)
+                        .then(r => { if (r.ok) toast.success(r.message); else toast.info(r.message); })
+                        .finally(() => setBusy(null));
+                    }}
                   >
                     <span className="text-micro whitespace-nowrap">
                       {maxed ? t('sunday.club.maxed') : locked ? t('sunday.club.locked') : t('sunday.club.buy', { n: cost })}
@@ -180,9 +190,18 @@ const SundayClubhouse = () => {
                 {t('sunday.club.sponsorOffer')} · {formatMoney(offer.signOn)}
               </p>
               <div className="flex gap-2">
-                <LiquidButton tone="primary" className="flex-1 py-2" onClick={() => {
-                  void acceptSponsor(offer.id).then(r => { if (r.ok) toast.success(r.message); else toast.info(r.message); });
-                }}>
+                <LiquidButton
+                  tone="primary"
+                  className="flex-1 py-2"
+                  busy={busy === `sponsor:${offer.id}`}
+                  onClick={() => {
+                    if (busy) return;
+                    setBusy(`sponsor:${offer.id}`);
+                    void acceptSponsor(offer.id)
+                      .then(r => { if (r.ok) toast.success(r.message); else toast.info(r.message); })
+                      .finally(() => setBusy(null));
+                  }}
+                >
                   <span className="text-micro">{t('sunday.club.accept')}</span>
                 </LiquidButton>
                 <LiquidButton className="flex-1 py-2" onClick={() => { void declineSponsor(offer.id); }}>

@@ -8,7 +8,7 @@
  * The primary action changes with the state of the week — name a team, play the
  * match, move on — so there is always exactly one obvious next thing to do.
  */
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   ArrowRight, Coins, Flame, HandCoins, Swords, Trophy, UserPlus,
@@ -47,6 +47,7 @@ const SundayHub = () => {
   const advanceWeek = useGameStore(s => s.advanceWeek);
   const runFundraiser = useGameStore(s => s.runSundayFundraiser);
   const chaseSubs = useGameStore(s => s.chaseSundaySubs);
+  const [busy, setBusy] = useState<string | null>(null);
 
   const fixture = useMemo(
     () => (sunday ? findSundayFixture(sunday, fixtures, week, playerClubId) : null),
@@ -79,11 +80,15 @@ const SundayHub = () => {
   // about what this week's one obvious action is.
   const primary = sundayPrimaryAction(sunday, !!fixture);
 
-  const quick = (fn: () => Promise<{ ok: boolean; message: string }>) => () => {
-    void fn().then(r => {
-      if (r.ok) toast.success(r.message);
-      else toast.info(r.message);
-    });
+  // Which club-business action is mid-flight, if any. The store actions are
+  // async (the mode is a lazy chunk), so without this a second tap in the same
+  // frame runs the fundraiser twice.
+  const quick = (id: string, fn: () => Promise<{ ok: boolean; message: string }>) => () => {
+    if (busy) return;
+    setBusy(id);
+    void fn()
+      .then(r => { if (r.ok) toast.success(r.message); else toast.info(r.message); })
+      .finally(() => setBusy(null));
   };
 
   return (
@@ -247,10 +252,10 @@ const SundayHub = () => {
       <GlassPanel className="p-4 space-y-2">
         <SectionHeader level="section" title={t('sunday.hub.quickActions')} />
         <div className="grid grid-cols-2 gap-2">
-          <LiquidButton className="py-2.5" onClick={quick(() => runFundraiser())}>
+          <LiquidButton className="py-2.5" busy={busy === 'fundraiser'} onClick={quick('fundraiser', () => runFundraiser())}>
             <span className="inline-flex items-center gap-1.5 text-caption"><HandCoins className="w-4 h-4" aria-hidden /> {t('sunday.hub.fundraiser')}</span>
           </LiquidButton>
-          <LiquidButton className="py-2.5" onClick={quick(() => chaseSubs())}>
+          <LiquidButton className="py-2.5" busy={busy === 'subs'} onClick={quick('subs', () => chaseSubs())}>
             <span className="inline-flex items-center gap-1.5 text-caption">
               <Coins className="w-4 h-4" aria-hidden />
               {subsOwed > 0 ? t('sunday.hub.subsOwed', { n: subsOwed }) : t('sunday.hub.chaseSubs')}

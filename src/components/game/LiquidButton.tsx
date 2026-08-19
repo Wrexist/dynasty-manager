@@ -10,6 +10,11 @@ interface LiquidButtonProps {
    *  warning / danger variants; `default` is a neutral glass capsule. */
   tone?: LiquidButtonTone;
   disabled?: boolean;
+  /** An async action is in flight. Marks the button `aria-busy`, disables it,
+   *  and dims it with the same treatment as `disabled` — no spinner asset, no
+   *  new dependency. Additive and optional: leaving it unset behaves exactly
+   *  as before. */
+  busy?: boolean;
   className?: string;
   'aria-label'?: string;
   type?: 'button' | 'submit';
@@ -32,6 +37,7 @@ export function LiquidButton({
   onClick,
   tone = 'default',
   disabled,
+  busy,
   className,
   'aria-label': ariaLabel,
   type = 'button',
@@ -52,8 +58,10 @@ export function LiquidButton({
       'shadow-[inset_0_1px_0_rgba(255,255,255,0.22),inset_0_-1px_0_rgba(0,0,0,0.35),0_6px_16px_-8px_rgba(0,0,0,0.45)]',
   };
 
+  const isDisabled = disabled || busy;
+
   const handleClick = () => {
-    if (disabled) return;
+    if (isDisabled) return;
     if (haptic) hapticLight();
     onClick?.();
   };
@@ -62,13 +70,14 @@ export function LiquidButton({
     <button
       type={type}
       onClick={handleClick}
-      disabled={disabled}
+      disabled={isDisabled}
+      aria-busy={busy || undefined}
       aria-label={ariaLabel}
       className={cn(
         'relative w-full h-11 rounded-2xl font-semibold text-sm border backdrop-blur-xl backdrop-saturate-150',
         'active:scale-[0.98] transition-transform',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
-        disabled && 'opacity-50 cursor-not-allowed',
+        isDisabled && 'opacity-50 cursor-not-allowed',
         toneClasses[tone],
         className,
       )}

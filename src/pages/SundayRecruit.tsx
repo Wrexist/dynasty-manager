@@ -8,7 +8,7 @@
  * read as a bug and would also let a player re-roll the estimate by leaving the
  * screen.
  */
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Eye, MessageSquare, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useShallow } from 'zustand/react/shallow';
@@ -57,6 +57,9 @@ const SundayRecruit = () => {
   const { t } = useTranslation();
   const { sunday, week } = useGameStore(useShallow(s => ({ sunday: s.sunday, week: s.week })));
   const sign = useGameStore(s => s.signSundayRecruit);
+  // Signings are capped per season, so a double tap does not just duplicate a
+  // signing — it burns one of the three.
+  const [busy, setBusy] = useState<string | null>(null);
 
   const recruits = useMemo(() => sunday?.recruits ?? [], [sunday]);
 
@@ -146,7 +149,14 @@ const SundayRecruit = () => {
                   tone="primary"
                   className="flex-1 py-2.5"
                   disabled={squadFull || windowClosed || sunday.balance < recruit.fee}
-                  onClick={() => { void sign(recruit.id).then(r => { if (r.ok) toast.success(r.message); else toast.info(r.message); }); }}
+                  busy={busy === recruit.id}
+                  onClick={() => {
+                    if (busy) return;
+                    setBusy(recruit.id);
+                    void sign(recruit.id)
+                      .then(r => { if (r.ok) toast.success(r.message); else toast.info(r.message); })
+                      .finally(() => setBusy(null));
+                  }}
                 >
                   <span className="text-caption">
                     {recruit.fee > 0 ? t('sunday.recruit.sign', { n: recruit.fee }) : t('sunday.recruit.signFree')}
