@@ -10,14 +10,16 @@
  * Pure. No store access, no `t()` — the caller resolves `labelKey`.
  */
 import { SUNDAY_MIN_START } from '@/config/sundayLeague';
+import type { TranslationKey } from '@/i18n';
 import type { GameScreen, SundayState } from '@/types/game';
 
 export type SundayPrimaryKind = 'review' | 'play' | 'pick' | 'advance';
 
 export interface SundayPrimary {
   kind: SundayPrimaryKind;
-  /** i18n key for the button text. */
-  labelKey: string;
+  /** i18n key for the button text. Typed, so a renamed key fails the
+   *  build rather than rendering a raw id. */
+  labelKey: TranslationKey;
   /** Where the action goes. `undefined` for `advance`, which is not a
    *  navigation — it runs the week. */
   screen?: GameScreen;

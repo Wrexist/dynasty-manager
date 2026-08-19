@@ -5,6 +5,7 @@ import { ArrowLeft, Gamepad2, Briefcase, Users, Sparkles, Trophy, Beer } from 'l
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/hooks/useTranslation';
+import type { TranslationKey } from '@/i18n';
 import { cn } from '@/lib/utils';
 
 type Mode = {
@@ -15,9 +16,9 @@ type Mode = {
   /** i18n keys, where the copy has been keyed. Set per mode as each is
    *  migrated; the `name`/`tagline`/`description` above stay as the fallback so
    *  the un-migrated modes render exactly as before. */
-  nameKey?: string;
-  taglineKey?: string;
-  descKey?: string;
+  nameKey?: TranslationKey;
+  taglineKey?: TranslationKey;
+  descKey?: TranslationKey;
   icon: typeof Gamepad2;
   color: string;
   borderColor: string;

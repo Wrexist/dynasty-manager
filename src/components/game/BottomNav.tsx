@@ -3,6 +3,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GameScreen } from '@/types/game';
+import type { TranslationKey } from '@/i18n';
 import { LayoutDashboard, Users, Target, ArrowLeftRight, Briefcase, User, Mail, Trophy, ClipboardList, Landmark, ListOrdered } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -19,7 +20,7 @@ import { SUNDAY_TEAM_GROUP, SUNDAY_CLUB_GROUP } from '@/config/navigation';
 interface NavTab {
   screen: GameScreen;
   label?: string;
-  labelKey?: string;
+  labelKey?: TranslationKey;
   icon: React.ElementType;
   group?: GameScreen[];
 }

@@ -3,6 +3,7 @@
  * Rating colors, confidence colors, position filters, verdict labels, and thresholds.
  */
 
+import type { TranslationKey } from '@/i18n';
 import type { GameScreen, Position } from '@/types/game';
 
 // ── Rating Color Thresholds (overall, attribute values) ──
@@ -446,13 +447,13 @@ export const SQUAD_SUB_NAV: { screen: GameScreen; label: string }[] = [
 // through `t()` so the tab strip, the sub-nav strip and SCREEN_TITLES cannot
 // drift apart the way "Club"/"Money" did. The legacy English literals above
 // are left alone deliberately — converting them is a separate job.
-export const SUNDAY_TEAM_SUB_NAV: { screen: GameScreen; labelKey: string }[] = [
+export const SUNDAY_TEAM_SUB_NAV: { screen: GameScreen; labelKey: TranslationKey }[] = [
   { screen: 'sunday-teamsheet', labelKey: 'sunday.nav.teamsheet' },
   { screen: 'sunday-squad', labelKey: 'sunday.nav.squad' },
   { screen: 'sunday-recruit', labelKey: 'sunday.nav.recruits' },
 ];
 
-export const SUNDAY_CLUB_SUB_NAV: { screen: GameScreen; labelKey: string }[] = [
+export const SUNDAY_CLUB_SUB_NAV: { screen: GameScreen; labelKey: TranslationKey }[] = [
   { screen: 'sunday-clubhouse', labelKey: 'sunday.nav.clubhouse' },
   { screen: 'sunday-history', labelKey: 'sunday.nav.history' },
 ];
