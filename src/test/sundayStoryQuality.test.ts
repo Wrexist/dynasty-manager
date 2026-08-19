@@ -20,9 +20,12 @@
  * The divergence metric is stated and measured rather than asserted on a
  * feeling: see `describe('careers diverge')` below.
  *
- * Wall clock: measured 13s of test time for 24 careers x 4 seasons — in line
- * with `sundayBalance` (12s) and `sundayStress` (12s), so it stays in the
- * per-commit gate. If it ever grows past ~20s it belongs in `SLOW_SUITES`.
+ * Wall clock, measured: 13s of test time for 24 careers x 4 seasons run on its
+ * own, 20s when four forks are competing over the whole Sunday family. That is
+ * in line with `sundayBalance` (11s / 16s) and ahead of `sundayStress`
+ * (9s / 7s), and adding it took the per-commit gate from 217s to 233s, so it
+ * stays fast. If it ever doubles, `SLOW_SUITES` in vitest.config.ts is where it
+ * goes.
  */
 import { describe, it, expect } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
