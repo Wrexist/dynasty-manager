@@ -16,6 +16,7 @@ import { render, screen } from '@testing-library/react';
 import SundayTeamsheet from '@/pages/SundayTeamsheet';
 import { useGameStore } from '@/store/gameStore';
 import { SUNDAY_MIN_START } from '@/config/sundayLeague';
+import { sundayTacticFit } from '@/utils/sunday/match';
 import { en } from '@/i18n/locales/en';
 
 vi.mock('@/utils/haptics', () => ({
@@ -62,6 +63,30 @@ describe('SundayTeamsheet renders valid, reachable DOM', () => {
   it('says out loud that seven, not eleven, is the number that matters', () => {
     render(<SundayTeamsheet />);
     expect(screen.getByText(new RegExp(`${SUNDAY_MIN_START} is the number that matters`))).toBeTruthy();
+  });
+
+  /**
+   * The coach is an ADVERTISED effect ('tactical-fit'), applied by
+   * `buildMatchdayTeam` on the morning and by the half-time switcher. The
+   * teamsheet used to call `sundayTacticFit` with the default coachLevel of 0,
+   * so a club that had paid for him was shown a LOWER number than the one the
+   * match went on to use.
+   */
+  it('shows the fit the match will actually use, coach included', async () => {
+    await useGameStore.getState().autoPickSundayTeamsheet();
+    const s = useGameStore.getState();
+    useGameStore.setState({ sunday: { ...s.sunday!, upgrades: [{ id: 'coach', level: 1 }] } });
+
+    const sunday = useGameStore.getState().sunday!;
+    const xi = sunday.teamsheet.map(id => useGameStore.getState().players[id]).filter(Boolean);
+    expect(xi.length).toBeGreaterThan(0);
+    const withCoach = Math.round(sundayTacticFit(sunday.tactic, xi, 1) * 100);
+    const withoutCoach = Math.round(sundayTacticFit(sunday.tactic, xi, 0) * 100);
+    // If these were equal the assertion below would pass for the wrong reason.
+    expect(withCoach).toBeGreaterThan(withoutCoach);
+
+    render(<SundayTeamsheet />);
+    expect(screen.getByText(`${en['sunday.sheet.tacticFit']}: ${withCoach}%`)).toBeTruthy();
   });
 
   it('says the side is settled once the morning has happened', async () => {

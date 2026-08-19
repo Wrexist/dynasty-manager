@@ -25,6 +25,7 @@ import {
 } from '@/config/sundayLeague';
 import { isSundaySelectable } from '@/utils/sunday/availability';
 import { sundayTacticFit } from '@/utils/sunday/match';
+import { upgradeLevel } from '@/store/slices/sunday/shared';
 import { sundaySideIsSettled } from '@/utils/sunday/primaryAction';
 import { canPlayPosition, FORMATION_POSITIONS } from '@/types/game';
 import type { Player, SundaySquadMember, SundayTacticId } from '@/types/game';
@@ -130,7 +131,10 @@ const SundayTeamsheet = () => {
   const availableRows = rows.filter(r => isSundaySelectable(r.member) && !namedIds.has(r.player.id));
   const outRows = rows.filter(r => r.member.availability.status === 'out');
   const tactic = getSundayTactic(sunday.tactic);
-  const fit = sundayTacticFit(sunday.tactic, xiRows.map(r => r.player));
+  // The coach is applied by `buildMatchdayTeam` on the morning and by the
+  // half-time switcher; leaving him out here showed a club that had PAID for
+  // ‘tactical-fit’ a lower number than the one the match uses.
+  const fit = sundayTacticFit(sunday.tactic, xiRows.map(r => r.player), upgradeLevel(sunday, 'coach'));
 
   const callsLeft = Math.max(0, SUNDAY_RINGROUND_ATTEMPTS_PER_WEEK - sunday.ringRoundsThisWeek);
 
