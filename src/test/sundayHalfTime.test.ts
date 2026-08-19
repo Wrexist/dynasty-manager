@@ -253,3 +253,68 @@ describe('everything that is not a person', () => {
     expect(check()).toEqual([]);
   });
 });
+
+/**
+ * A pause is a fact about ONE afternoon. If one outlives its week — a rollover
+ * that forgot to clear it, a save doctored between seasons — every later
+ * fixture has to be played anyway. `runSundayMatch` used to hand back whatever
+ * `finishSundayMatch` returned, which for a pause belonging to another week is
+ * null: the week's real fixture was never touched.
+ */
+describe('a pause that outlived its week', () => {
+  it('is dropped, and this week\'s fixture is played anyway', async () => {
+    // Week 1 out of the way, then plant a pause from a week that has gone.
+    await useGameStore.getState().advanceWeek();
+    const stale = {
+      season: useGameStore.getState().season,
+      week: useGameStore.getState().week - 1,
+      matchId: 'ancient-history',
+      isCup: false, cupRound: null, tier: 'routine' as const,
+      goalsFor: 0, goalsAgainst: 0,
+      tactic: useGameStore.getState().sunday!.tactic,
+      tacticFit: {}, startingIds: [], benchIds: [], ringers: [],
+      oppXiIds: [], oppBenchIds: [], oppFormation: '4-4-2',
+      oppTactic: useGameStore.getState().sunday!.tactic,
+      weather: 'clear' as const, pitchQuality: 50, derbyIntensity: 0,
+      rngCursor: 0, narrative: ['nonsense'], engineState: null,
+    } as unknown as NonNullable<ReturnType<typeof useGameStore.getState>['sunday']>['halfTime'];
+    useGameStore.setState({ sunday: { ...useGameStore.getState().sunday!, halfTime: stale } });
+
+    const week = useGameStore.getState().week;
+    const report = await useGameStore.getState().playSundayMatch();
+
+    expect(report, 'the week was skipped entirely').not.toBeNull();
+    expect(report!.week).toBe(week);
+    expect(useGameStore.getState().sunday!.halfTime).toBeNull();
+    const ours = useGameStore.getState().fixtures.filter(m =>
+      m.week === week && m.played
+      && (m.homeClubId === useGameStore.getState().playerClubId || m.awayClubId === useGameStore.getState().playerClubId));
+    expect(ours).toHaveLength(1);
+    expect(check()).toEqual([]);
+  });
+
+  it('never survives the summer in the first place', async () => {
+    // Straight to the end of the season with a match paused, then over the
+    // rollover. `halfTime` was the one field the new-season state forgot.
+    const weeks = 60;
+    for (let i = 0; i < weeks && !useGameStore.getState().sunday!.seasonComplete; i++) {
+      const s = useGameStore.getState();
+      if (s.sunday!.pendingEvent) await s.resolveSundayEvent(s.sunday!.pendingEvent.choices[0].id);
+      await useGameStore.getState().advanceWeek();
+    }
+    expect(useGameStore.getState().sunday!.seasonComplete).toBe(true);
+    useGameStore.setState({
+      sunday: {
+        ...useGameStore.getState().sunday!,
+        halfTime: {
+          season: useGameStore.getState().season,
+          week: useGameStore.getState().week,
+          matchId: 'last-day',
+        } as NonNullable<ReturnType<typeof useGameStore.getState>['sunday']>['halfTime'],
+      },
+    });
+    await useGameStore.getState().endSundaySeason();
+    expect(useGameStore.getState().sunday!.halfTime).toBeNull();
+    expect(check()).toEqual([]);
+  });
+});

@@ -371,6 +371,11 @@ export function rolloverSundaySeason(set: Set, get: Get): void {
     // A summer of growth repairs anything the winter churned up.
     pitchDamage: 0,
     arrival: null,
+    // Nothing is paused over the summer. A pause that survived the rollover is
+    // a validator violation on its own (it claims a week the state has left),
+    // and it is what `runSundayMatch` finds first on the opening Sunday of the
+    // new season — where it used to swallow the fixture whole.
+    halfTime: null,
     rivalry,
     cup,
     lastMatch: null,

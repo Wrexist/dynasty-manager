@@ -1195,7 +1195,18 @@ export function __resetSundayHalfTimeSessionForTests(): void {
  * is not a person, and it cannot make the manager's decision for him.
  */
 export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
-  if (get().sunday?.halfTime) return finishSundayMatch(set, get);
+  const state = get();
+  const paused = state.sunday?.halfTime;
+  if (paused) {
+    // A pause belonging to THIS week is the match: finish it.
+    if (paused.season === state.season && paused.week === state.week) return finishSundayMatch(set, get);
+    // One belonging to another week is rubbish left behind (a rollover that
+    // kept it, a save edited between seasons). `finishSundayMatch` drops it and
+    // returns null — and returning that null here skipped THIS week's fixture
+    // entirely: no result, no forfeit, no ledger line, no row in the table, and
+    // the fixture stranded unplayed for good. Drop it and play the real one.
+    set({ sunday: { ...state.sunday!, halfTime: null } });
+  }
   const setup = prepareSundayMatch(set, get);
   if (!setup) return null;
   const sunday = get().sunday!;
