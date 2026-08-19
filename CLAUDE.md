@@ -282,7 +282,7 @@ consumable player-pack IAPs (RevenueCat).
   status-bar, `@capacitor-community/in-app-review`)
 - **RevenueCat** `@revenuecat/purchases-capacitor` 12.3.2 (+ `-ui`) — all IAP/subscriptions
 - **Sentry** `@sentry/react` 10.49 — crash reporting + game breadcrumbs (`src/utils/sentry.ts`)
-- **Vitest 3.2.4 + jsdom + Testing Library** — 220 test files in `src/test/`
+- **Vitest 3.2.4 + jsdom + Testing Library** — 221 test files in `src/test/`
 - **Husky 9.1.7 + lint-staged 16.4.0** — pre-commit hooks
 - **Fonts:** Oswald (headings) + DM Sans (body), self-hosted via `@fontsource/*`
 - **Package manager:** npm
@@ -359,7 +359,7 @@ src/
 │                          managerCareer, continental, continentalCoefficients,
 │                          ballonDor, penaltyShootout, substitutionLogic, analytics,
 │                          sentry, appReview, haptics, promotionRelegation, …
-├── test/                → 220 test files incl. longevity/stress suites, adversarial
+├── test/                → 221 test files incl. longevity/stress suites, adversarial
 │                          season tests, release-readiness, render hygiene,
 │                          launch-crash guardrails, balance reports, perf
 ├── index.css            → Tailwind + CSS vars (incl. pack tier palettes, perf-mode)
@@ -541,7 +541,7 @@ npm run dev          # Dev server (port 8080)
 npm run build        # Production build
 npm run build:dev    # Development build
 npm run preview      # Preview production build
-npm run test         # Vitest (220 test files)
+npm run test         # Vitest (221 test files)
 npm run test:watch   # Vitest in watch mode
 npm run lint         # ESLint
 npm run typecheck    # TypeScript type-check (standalone)
@@ -646,9 +646,9 @@ ad capture) still exists in `src/pages/`, but its route and Settings entry are
 
 ## Known Tech Debt
 - **i18n is a started migration, not a finished one.** `src/i18n/` (hand-rolled
-  `t()`, English always loaded as fallback) works and 90 of 181 files in
-  `src/pages` + `src/components/game` use it, but **998 player-facing strings in
-  113 files are still hardcoded English** (`npm run i18n:check`). `sv.ts` covers
+  `t()`, English always loaded as fallback) works and 101 of 197 files in
+  `src/pages` + `src/components/game` use it, but **999 player-facing strings in
+  114 files are still hardcoded English** (`npm run i18n:check`). `sv.ts` covers
   76 of `en.ts`'s keys and **nothing calls `setLocale` outside tests** — there is
   deliberately no language picker, because shipping one today would give a
   mostly-English "Swedish" UI. Don't advertise localisation until the count is
