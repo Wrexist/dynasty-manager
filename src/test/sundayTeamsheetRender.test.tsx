@@ -12,7 +12,7 @@
  * of "this DOM is invalid" available.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import SundayTeamsheet from '@/pages/SundayTeamsheet';
 import { useGameStore } from '@/store/gameStore';
 import { SUNDAY_MIN_START } from '@/config/sundayLeague';
@@ -72,6 +72,29 @@ describe('SundayTeamsheet renders valid, reachable DOM', () => {
    * so a club that had paid for him was shown a LOWER number than the one the
    * match went on to use.
    */
+  /**
+   * The armband belongs to the man, not to whether he happens to be named yet.
+   * It used to render only on the available-but-unpicked list, so handing it
+   * to a starter meant leaving this screen for the Squad screen and coming
+   * back — on the one screen where the decision is actually made.
+   */
+  it('offers the armband to a man who is already in the XI', async () => {
+    await useGameStore.getState().autoPickSundayTeamsheet();
+    const sunday = useGameStore.getState().sunday!;
+    expect(sunday.teamsheet.length).toBeGreaterThanOrEqual(SUNDAY_MIN_START);
+
+    render(<SundayTeamsheet />);
+    // Scoped to the ROW rather than to a panel's markup: what matters is that
+    // the armband sits beside this named man, wherever the layout puts him.
+    for (const id of sunday.teamsheet) {
+      const p = useGameStore.getState().players[id];
+      const row = screen.getByText(`${p.firstName} ${p.lastName}`).closest('div') as HTMLElement;
+      expect(row, id).toBeTruthy();
+      const armband = within(row).getByRole('button', { name: /armband/i });
+      expect(armband.parentElement?.closest('button') ?? null).toBeNull();
+    }
+  });
+
   it('shows the fit the match will actually use, coach included', async () => {
     await useGameStore.getState().autoPickSundayTeamsheet();
     const s = useGameStore.getState();

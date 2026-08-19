@@ -91,6 +91,40 @@ function PlayerRow({ row, right, onClick, dim, captain }: {
   );
 }
 
+/**
+ * The armband, as a control that sits BESIDE a row rather than inside it.
+ *
+ * Lives on every list on this screen — the XI, the bench and the unpicked —
+ * because the armband is a property of the man, not of whether he happens to
+ * be named yet. It used to render only on the available-but-unpicked list, so
+ * handing it to a starter meant leaving the teamsheet for the Squad screen.
+ *
+ * Same flat-sibling rule as `PlayerRow`'s `right` slot: never nested in the
+ * row's own <button>.
+ */
+function CaptainButton({ playerId, isCaptain, onPress }: {
+  playerId: string;
+  isCaptain: boolean;
+  onPress: (playerId: string) => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <button
+      type="button"
+      onClick={() => onPress(playerId)}
+      aria-label={t('sunday.sheet.makeCaptain')}
+      aria-pressed={isCaptain}
+      className={cn(
+        'text-micro font-semibold rounded-lg min-w-[44px] min-h-[44px] inline-flex items-center justify-center',
+        'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/60',
+        isCaptain ? 'text-primary' : 'text-muted-foreground hover:text-primary',
+      )}
+    >
+      C
+    </button>
+  );
+}
+
 const SundayTeamsheet = () => {
   const { t } = useTranslation();
   const { sunday, players, week, season } = useGameStore(useShallow(s => ({
@@ -144,6 +178,7 @@ const SundayTeamsheet = () => {
   const sheetLocked = sundaySideIsSettled(sunday, season, week);
 
   const apply = (xi: string[], bench: string[]) => setTeamsheet(xi, bench);
+  const giveArmband = (playerId: string) => { void setCaptain(playerId); };
 
   const addToXI = (id: string) => {
     if (sheetLocked) return;
@@ -297,7 +332,12 @@ const SundayTeamsheet = () => {
                 row={row}
                 captain={sunday.captainId === row.player.id}
                 onClick={() => removeFromXI(row.player.id)}
-                right={<AvailabilityPill availability={row.member.availability} />}
+                right={
+                  <>
+                    <AvailabilityPill availability={row.member.availability} />
+                    <CaptainButton playerId={row.player.id} isCaptain={sunday.captainId === row.player.id} onPress={giveArmband} />
+                  </>
+                }
               />
             ))}
           </div>
@@ -312,7 +352,13 @@ const SundayTeamsheet = () => {
         ) : (
           <div className="divide-y divide-border/30 mt-1">
             {benchRows.map(row => (
-              <PlayerRow key={row.player.id} row={row} captain={sunday.captainId === row.player.id} onClick={() => removeFromXI(row.player.id)} />
+              <PlayerRow
+                key={row.player.id}
+                row={row}
+                captain={sunday.captainId === row.player.id}
+                onClick={() => removeFromXI(row.player.id)}
+                right={<CaptainButton playerId={row.player.id} isCaptain={sunday.captainId === row.player.id} onPress={giveArmband} />}
+              />
             ))}
           </div>
         )}
@@ -331,19 +377,7 @@ const SundayTeamsheet = () => {
               right={
                 <>
                   <AvailabilityPill availability={row.member.availability} />
-                  <button
-                    type="button"
-                    onClick={() => { void setCaptain(row.player.id); }}
-                    aria-label={t('sunday.sheet.makeCaptain')}
-                    aria-pressed={sunday.captainId === row.player.id}
-                    className={cn(
-                      'text-micro font-semibold rounded-lg min-w-[44px] min-h-[44px] inline-flex items-center justify-center',
-                      'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/60',
-                      sunday.captainId === row.player.id ? 'text-primary' : 'text-muted-foreground hover:text-primary',
-                    )}
-                  >
-                    C
-                  </button>
+                  <CaptainButton playerId={row.player.id} isCaptain={sunday.captainId === row.player.id} onPress={giveArmband} />
                 </>
               }
             />
