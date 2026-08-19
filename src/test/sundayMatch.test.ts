@@ -19,6 +19,7 @@ import {
   SUNDAY_CONCEDED_DERBY_LINES, SUNDAY_CONCEDED_LATE_LINES, SUNDAY_CONCEDED_LINES,
 } from '@/data/sundayNames';
 import { deriveSundayStakes } from '@/utils/sunday/tier';
+import { sundayMilestoneToday, sundayReverseFixtureRecall } from '@/utils/sunday/briefing';
 import { sundayCupRoundName } from '@/utils/sunday/season';
 import { SUNDAY_CUP_ROUNDS } from '@/config/sundayLeague';
 import { createSundayRng } from '@/utils/sunday/rng';
@@ -650,5 +651,62 @@ describe('match importance', () => {
     expect(['routine', 'derby', 'cup', 'cup-final', 'decider']).toContain(report.tier);
     // And it survives a round trip through the store.
     expect(useGameStore.getState().sunday!.lastMatch!.tier).toBe(report.tier);
+  });
+});
+
+describe('the briefing remembers', () => {
+  const players: Record<string, Player> = { a: mkPlayer('a', 'Dave'), b: mkPlayer('b', 'Kev') };
+  const played = (over: Partial<Match>): Match => ({
+    id: 'r1', week: 6, homeClubId: 'them', awayClubId: 'us',
+    played: true, homeGoals: 2, awayGoals: 1, events: [], ...over,
+  });
+
+  it('recalls the reverse fixture with the score and who settled it', () => {
+    const match = played({
+      events: [
+        { minute: 20, type: 'goal', clubId: 'us', playerId: 'a', description: '' },
+        { minute: 55, type: 'goal', clubId: 'them', playerId: 'b', description: '' },
+        { minute: 89, type: 'goal', clubId: 'them', playerId: 'b', description: '' },
+      ] as MatchEvent[],
+    });
+    const line = sundayReverseFixtureRecall([match], 'us', 'them', players)!;
+    expect(line).toContain('Lost 2-1 over there in week 6.');
+    expect(line).toContain('89th');
+  });
+
+  it('names our man when we won it by one', () => {
+    const match = played({
+      homeClubId: 'us', awayClubId: 'them', homeGoals: 2, awayGoals: 1, week: 3,
+      events: [
+        { minute: 10, type: 'goal', clubId: 'them', playerId: 'b', description: '' },
+        { minute: 30, type: 'goal', clubId: 'us', playerId: 'a', description: '' },
+        { minute: 77, type: 'goal', clubId: 'us', playerId: 'a', description: '' },
+      ] as MatchEvent[],
+    });
+    const line = sundayReverseFixtureRecall([match], 'us', 'them', players)!;
+    expect(line).toContain('Won 2-1 at home in week 3.');
+    expect(line).toContain('Dave settled it in the 77th.');
+  });
+
+  it('says nothing at all when they have not met', () => {
+    const unplayed = played({ played: false });
+    expect(sundayReverseFixtureRecall([unplayed], 'us', 'them', players)).toBeNull();
+    expect(sundayReverseFixtureRecall([], 'us', 'them', players)).toBeNull();
+  });
+
+  it('invents no decisive goal in a match that was not close', () => {
+    const match = played({ homeGoals: 4, awayGoals: 0 });
+    const line = sundayReverseFixtureRecall([match], 'us', 'them', players)!;
+    expect(line).toBe('Lost 4-0 over there in week 6.');
+  });
+
+  it('flags a milestone only for a named man who actually reaches one', () => {
+    const squad = [
+      { playerId: 'a', clubApps: 99 },
+      { playerId: 'b', clubApps: 48 },
+    ] as unknown as SundaySquadMember[];
+    expect(sundayMilestoneToday(squad, players, ['a', 'b'])).toBe('Dave would hit 100 appearances for the club today.');
+    // Not named, not mentioned.
+    expect(sundayMilestoneToday(squad, players, ['b'])).toBeNull();
   });
 });

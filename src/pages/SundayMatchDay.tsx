@@ -19,8 +19,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-  AlertTriangle, CloudRain, Flag, Frown, Play, Repeat, SkipForward, Snowflake,
-  Sparkles, Sun, TrendingDown, Trophy, Users, Wind,
+  AlertTriangle, CloudRain, Flag, Frown, History, Play, Repeat, SkipForward,
+  Snowflake, Sparkles, Sun, TrendingDown, Trophy, Users, Wind,
 } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -37,6 +37,7 @@ import { findSundayFixture, sundayPitchQuality } from '@/store/slices/sunday/mat
 import { buildSundayTable, sundayCupRoundName, sundayPosition } from '@/utils/sunday/season';
 import { sundayResultVerdict, sundayStyleOf } from '@/utils/sunday/match';
 import { deriveSundayStakes } from '@/utils/sunday/tier';
+import { sundayMilestoneToday, sundayReverseFixtureRecall } from '@/utils/sunday/briefing';
 import type { SundayMatchTier, WeatherCondition } from '@/types/game';
 
 const WEATHER_ICON: Record<WeatherCondition, React.ElementType> = {
@@ -181,6 +182,21 @@ const SundayMatchDay = () => {
       cupRound: fixture.kind === 'cup' ? fixture.tie.round : null,
     });
   }, [sunday, fixture, fixtures, playerClubId]);
+
+  // What the club already knows about this afternoon: the last time these two
+  // met (score, and who settled it, off that fixture's own event array) and
+  // the man one game short of a milestone. Both derived — no new state.
+  const memory = useMemo(() => {
+    if (!sunday || !fixture) return null;
+    const oppId = fixture.kind === 'cup'
+      ? (fixture.tie.homeClubId === playerClubId ? fixture.tie.awayClubId : fixture.tie.homeClubId)
+      : (fixture.match.homeClubId === playerClubId ? fixture.match.awayClubId : fixture.match.homeClubId);
+    const named = sunday.arrival?.presentIds.length ? sunday.arrival.presentIds : sunday.teamsheet;
+    return {
+      reverse: sundayReverseFixtureRecall(fixtures, playerClubId, oppId, players),
+      milestone: sundayMilestoneToday(sunday.squad, players, named),
+    };
+  }, [sunday, fixture, fixtures, players, playerClubId]);
 
   if (!sunday) return null;
 
@@ -357,10 +373,23 @@ const SundayMatchDay = () => {
                 <span className="text-muted-foreground">{t(`sunday.match.counter.${oppStyle}`)}</span>
               </p>
             )}
+            {memory?.reverse && (
+              <p className="text-caption text-foreground/85 leading-relaxed">
+                <History className="w-3.5 h-3.5 inline-block mr-1 -mt-0.5 text-muted-foreground" aria-hidden />
+                {memory.reverse}
+              </p>
+            )}
+            {memory?.milestone && (
+              <p className="text-caption text-primary/90 leading-relaxed">{memory.milestone}</p>
+            )}
             {isDerby && sunday.rivalry && (
               <p className="text-caption text-orange-300">
                 {sunday.rivalry.managerName} — {sunday.rivalry.managerStyle}
                 {sunday.rivalry.defector && ` ${t('sunday.rival.defector', { name: sunday.rivalry.defector.name })}`}
+                {' · '}
+                {t('sunday.hub.rivalRecord', {
+                  w: sunday.rivalry.wins, d: sunday.rivalry.draws, l: sunday.rivalry.losses,
+                })}
               </p>
             )}
             <p className={cn('text-caption', sunday.teamsheet.length >= SUNDAY_MIN_START ? 'text-muted-foreground' : 'text-amber-300')}>
