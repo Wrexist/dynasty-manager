@@ -67,15 +67,35 @@ export interface SundayDivisionInfo {
   pitchHire: number;
   /** Baseline gate/bucket-collection income per home match. */
   gateBase: number;
+  /**
+   * Multiplier on the costs that used to be identical at every level: the
+   * referee's envelope, the away travel and the weekly kit upkeep.
+   *
+   * WHY IT EXISTS. Promotion changed exactly five things, and the ledger was
+   * not really one of them: gate rose 22 → 54 while pitch hire rose 34 → 68,
+   * so going up made the club two pounds POORER per home match while every
+   * other cost stood still. A County Premier referee charges County Premier
+   * money, the away trips are further, and the kit gets washed more often
+   * because somebody photographs the team now.
+   *
+   * THE DESIGN THIS SERVES, stated plainly: promotion does NOT make the weekly
+   * ledger comfortable. It makes it TIGHTER and the rewards much larger — the
+   * gate more than triples, the title is worth eight times as much, sponsors
+   * pay `SUNDAY_SPONSOR_TIER_MULT` more, and the bills rise to meet all of it.
+   * A club that goes up and then does not attract a sponsor is in trouble by
+   * the third week, which is exactly the pressure the mode loses when money
+   * stops being a constraint.
+   */
+  costMult: number;
 }
 
 /** Bottom to top. `SUNDAY_DIVISIONS[0]` is where a new club starts. */
 export const SUNDAY_DIVISIONS: readonly SundayDivisionInfo[] = [
-  { id: 'sun-4',    name: 'Sunday League Division Four', shortName: 'Div 4',   teamCount: 8,  oppQuality: 42, oppSpread: 8,  promotionSpots: 2, relegationSpots: 0, titlePrize: 150, leagueFee: 110, pitchHire: 34, gateBase: 22 },
-  { id: 'sun-3',    name: 'Sunday League Division Three', shortName: 'Div 3',  teamCount: 8,  oppQuality: 47, oppSpread: 8,  promotionSpots: 2, relegationSpots: 2, titlePrize: 250, leagueFee: 140, pitchHire: 40, gateBase: 26 },
-  { id: 'sun-2',    name: 'Sunday League Division Two', shortName: 'Div 2',    teamCount: 10, oppQuality: 52, oppSpread: 8,  promotionSpots: 2, relegationSpots: 2, titlePrize: 400, leagueFee: 170, pitchHire: 48, gateBase: 32 },
-  { id: 'sun-1',    name: 'Sunday League Division One', shortName: 'Div 1',    teamCount: 10, oppQuality: 57, oppSpread: 9,  promotionSpots: 2, relegationSpots: 2, titlePrize: 650, leagueFee: 210, pitchHire: 56, gateBase: 40 },
-  { id: 'sun-prem', name: 'County Sunday Premier', shortName: 'County Prem',   teamCount: 12, oppQuality: 63, oppSpread: 9,  promotionSpots: 0, relegationSpots: 2, titlePrize: 1200, leagueFee: 280, pitchHire: 68, gateBase: 54 },
+  { id: 'sun-4',    name: 'Sunday League Division Four', shortName: 'Div 4',   teamCount: 8,  oppQuality: 42, oppSpread: 8,  promotionSpots: 2, relegationSpots: 0, titlePrize: 150, leagueFee: 110, pitchHire: 34, gateBase: 22, costMult: 1.00 },
+  { id: 'sun-3',    name: 'Sunday League Division Three', shortName: 'Div 3',  teamCount: 8,  oppQuality: 47, oppSpread: 8,  promotionSpots: 2, relegationSpots: 2, titlePrize: 250, leagueFee: 150, pitchHire: 40, gateBase: 28, costMult: 1.08 },
+  { id: 'sun-2',    name: 'Sunday League Division Two', shortName: 'Div 2',    teamCount: 10, oppQuality: 52, oppSpread: 8,  promotionSpots: 2, relegationSpots: 2, titlePrize: 400, leagueFee: 200, pitchHire: 48, gateBase: 38, costMult: 1.20 },
+  { id: 'sun-1',    name: 'Sunday League Division One', shortName: 'Div 1',    teamCount: 10, oppQuality: 57, oppSpread: 9,  promotionSpots: 2, relegationSpots: 2, titlePrize: 650, leagueFee: 280, pitchHire: 56, gateBase: 50, costMult: 1.35 },
+  { id: 'sun-prem', name: 'County Sunday Premier', shortName: 'County Prem',   teamCount: 12, oppQuality: 63, oppSpread: 9,  promotionSpots: 0, relegationSpots: 2, titlePrize: 1200, leagueFee: 420, pitchHire: 68, gateBase: 74, costMult: 1.55 },
 ] as const;
 
 export function getSundayDivision(id: SundayDivisionId): SundayDivisionInfo {
@@ -959,6 +979,10 @@ export const SUNDAY_SPONSOR_OFFER_WEEKS = 2;
 /** Weekly payment scales with reputation. */
 export const SUNDAY_SPONSOR_WEEKLY_BASE = 7;
 export const SUNDAY_SPONSOR_WEEKLY_PER_REP = 0.35;
+/** Added to the multiplier per division above the bottom. The local sandwich
+ *  shop pays more to be on a County Premier shirt, and at that level it has to:
+ *  the referee, the pitch and the travel all cost `costMult` more. */
+export const SUNDAY_SPONSOR_TIER_MULT = 0.18;
 /** Sign-on is this many weeks of the weekly payment. */
 export const SUNDAY_SPONSOR_SIGNON_WEEKS = 4;
 /**
@@ -1027,6 +1051,11 @@ export const SUNDAY_RECRUIT_WEEKS = 3;
 export const SUNDAY_RECRUIT_QUALITY_BASE = 38;
 export const SUNDAY_RECRUIT_QUALITY_PER_REP = 0.24;
 export const SUNDAY_RECRUIT_QUALITY_SPREAD = 10;
+/** Added per division above the bottom. The standard of player who walks past
+ *  a County Premier pitch and asks who to speak to is not the standard who
+ *  walks past a Division Four one — and it is half the reason his signing-on
+ *  fee is higher up there too (`sundayRecruitFee`). */
+export const SUNDAY_RECRUIT_QUALITY_PER_TIER = 2;
 /**
  * Signings the club may register in one season.
  *

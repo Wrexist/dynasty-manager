@@ -37,7 +37,7 @@ import {
   SUNDAY_FORM_DRIFT, SUNDAY_FORM_NEUTRAL, SUNDAY_PITCH_DAMAGE_HEAL,
   SUNDAY_PHYSIO_HEAL_PER_LEVEL, SUNDAY_FLAG_EXPIRY_WEEKS,
   SUNDAY_MANAGER_LOAN_REPAYMENT, SUNDAY_DERBY_BET_FLAG, SUNDAY_ROUGH_WEEK_FLAG,
-  SUNDAY_FULL_XI, getSundayDivision,
+  SUNDAY_FULL_XI, getSundayDivision, sundayDivisionTier, SUNDAY_SPONSOR_TIER_MULT,
   SUNDAY_SPONSOR_WIN_STREAK_MIN, SUNDAY_SPONSOR_WIN_STREAK_MAX,
   SUNDAY_SPONSOR_UNBEATEN_MIN, SUNDAY_SPONSOR_UNBEATEN_MAX,
   SUNDAY_SPONSOR_GOALS_PER_MATCH_MIN, SUNDAY_SPONSOR_GOALS_PER_MATCH_MAX,
@@ -108,9 +108,16 @@ function buildSponsorOffer(rng: SundayRng, sunday: SundayState, week: number, se
   const candidates = SUNDAY_SPONSORS.filter(s => !taken.has(s.name));
   const template = rng.pick(candidates);
   if (!template) return null;
+  // Higher up the pyramid the shirt is worth more — and it has to be, because
+  // the referee, the pitch and the travel all cost `costMult` more up there.
+  const tier = Math.max(0, sundayDivisionTier(sunday.divisionId));
   const weekly = Math.max(
     5,
-    Math.round((SUNDAY_SPONSOR_WEEKLY_BASE + sunday.reputation * SUNDAY_SPONSOR_WEEKLY_PER_REP) * template.payMult),
+    Math.round(
+      (SUNDAY_SPONSOR_WEEKLY_BASE + sunday.reputation * SUNDAY_SPONSOR_WEEKLY_PER_REP)
+      * template.payMult
+      * (1 + tier * SUNDAY_SPONSOR_TIER_MULT),
+    ),
   );
   const condition = rng.pick(template.conditions) ?? 'none';
   // Two of the five scale with the season's own length: a County Premier

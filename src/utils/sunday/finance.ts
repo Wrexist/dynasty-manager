@@ -126,15 +126,20 @@ export function buildWeekLedger(input: WeekLedgerInput): WeekLedgerResult {
     lines.push({ kind: 'league-fee', amount: -div.leagueFee, label: `${div.name} registration` });
   }
 
+  // The costs that used to be identical at every level. A County Premier
+  // referee charges County Premier money and the away trips are further; see
+  // `SundayDivisionInfo.costMult` for why promotion used to make the club
+  // poorer per home match.
   if (fixture && !fixture.forfeited) {
     if (fixture.home) {
       lines.push({ kind: 'pitch', amount: -div.pitchHire, label: 'Pitch hire' });
     } else {
       const minibus = upgradeLevel(upgrades, 'minibus');
-      const travel = minibus > 0 ? Math.round(SUNDAY_AWAY_TRAVEL / 2) : SUNDAY_AWAY_TRAVEL;
+      const base = Math.round(SUNDAY_AWAY_TRAVEL * div.costMult);
+      const travel = minibus > 0 ? Math.round(base / 2) : base;
       lines.push({ kind: 'travel', amount: -travel, label: minibus > 0 ? 'Diesel for the minibus' : 'Travel (three cars and a lot of moaning)' });
     }
-    lines.push({ kind: 'referee', amount: -SUNDAY_REFEREE_FEE, label: 'Referee' });
+    lines.push({ kind: 'referee', amount: -Math.round(SUNDAY_REFEREE_FEE * div.costMult), label: 'Referee' });
   }
 
   if (fixture?.forfeited) {
@@ -154,7 +159,7 @@ export function buildWeekLedger(input: WeekLedgerInput): WeekLedgerResult {
     lines.push({ kind: 'medical', amount: -injuries * SUNDAY_INJURY_COST, label: `Treatment (${injuries} injur${injuries === 1 ? 'y' : 'ies'})` });
   }
 
-  lines.push({ kind: 'kit', amount: -SUNDAY_UPKEEP, label: 'Kit wash and odds and ends' });
+  lines.push({ kind: 'kit', amount: -Math.round(SUNDAY_UPKEEP * div.costMult), label: 'Kit wash and odds and ends' });
 
   // What the club owns, it pays for. Charged every week, fixture or not — the
   // meter runs on a free Sunday too — and the only way to stop paying it is to
@@ -190,13 +195,14 @@ export function splitLedger(lines: readonly SundayLedgerLine[]): { income: numbe
 export function sundayWeeklyBurn(divisionId: SundayDivisionId, upgrades: readonly SundayUpgradeState[]): number {
   const div = getSundayDivision(divisionId);
   const minibus = upgradeLevel(upgrades, 'minibus');
-  const avgTravel = minibus > 0 ? SUNDAY_AWAY_TRAVEL / 2 : SUNDAY_AWAY_TRAVEL;
+  const travel = SUNDAY_AWAY_TRAVEL * div.costMult;
+  const avgTravel = minibus > 0 ? travel / 2 : travel;
   const ownedLevels = upgrades.reduce((n, u) => n + Math.max(0, u.level), 0);
   // Half the weeks are home (pitch hire) and half away (travel). Upkeep is
   // every week, which is exactly why it belongs in the figure the manager is
   // supposed to have in his head before he buys the floodlights.
   return Math.round(
-    SUNDAY_UPKEEP + SUNDAY_REFEREE_FEE + (div.pitchHire + avgTravel) / 2
+    (SUNDAY_UPKEEP + SUNDAY_REFEREE_FEE) * div.costMult + (div.pitchHire + avgTravel) / 2
     + ownedLevels * SUNDAY_UPGRADE_UPKEEP_PER_LEVEL,
   );
 }

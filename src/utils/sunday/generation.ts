@@ -24,6 +24,7 @@ import {
   SUNDAY_ARCHETYPES, SUNDAY_ARCHETYPE_SHARE, SUNDAY_FAVOURED_ARCHETYPE_WEIGHT,
   SUNDAY_HAPPINESS_START, SUNDAY_OVERALL_CEILING, SUNDAY_OVERALL_FLOOR,
   sundayRecruitFee, SUNDAY_RECRUIT_FEE_JITTER, SUNDAY_RECRUIT_QUALITY_BASE,
+  SUNDAY_RECRUIT_QUALITY_PER_TIER, sundayDivisionTier,
   SUNDAY_RECRUIT_QUALITY_PER_REP, SUNDAY_RECRUIT_QUALITY_SPREAD, SUNDAY_RECRUIT_WEEKS,
   SUNDAY_RINGER_QUALITY_MAX, SUNDAY_RINGER_QUALITY_MIN, getSundayDivision,
   getSundayPersonality, SUNDAY_CLUBHOUSE_RECRUIT_PER_LEVEL,
@@ -585,6 +586,9 @@ export function generateSundayRecruit(opts: GenerateRecruitOptions): SundayRecru
       SUNDAY_RECRUIT_QUALITY_BASE
       + reputation * SUNDAY_RECRUIT_QUALITY_PER_REP
       + clubhouseLevel * SUNDAY_CLUBHOUSE_RECRUIT_PER_LEVEL
+      // The standard of player who bothers walking up to a County Premier
+      // pitch. Half the reason his fee is higher up there as well.
+      + Math.max(0, sundayDivisionTier(opts.divisionId)) * SUNDAY_RECRUIT_QUALITY_PER_TIER
       // A poached player is already playing at this level and is usually the
       // best thing on the board — that is what makes taking him tempting, and
       // what makes the rivalry worse.

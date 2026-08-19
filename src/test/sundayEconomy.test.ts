@@ -17,6 +17,7 @@ import {
   SUNDAY_REFEREE_FEE, SUNDAY_SUBS_PER_PLAYER, getSundayDivision, getSundayUpgrade,
   sundayUpgradeCost, SUNDAY_MANAGER_LOAN, SUNDAY_DEBT_FLOOR, SUNDAY_DERBY_BET,
   SUNDAY_DERBY_BET_FLAG, SUNDAY_UPGRADE_UPKEEP_PER_LEVEL, SUNDAY_UPGRADE_MOTHBALL_REFUND,
+  SUNDAY_DIVISIONS,
 } from '@/config/sundayLeague';
 import type { SundaySquadMember } from '@/types/game';
 
@@ -551,5 +552,42 @@ describe('division economics', () => {
     expect(prem.pitchHire).toBeGreaterThan(four.pitchHire);
     expect(prem.gateBase).toBeGreaterThan(four.gateBase);
     expect(prem.titlePrize).toBeGreaterThan(four.titlePrize);
+    // And every cost that used to be division-invariant now moves with it.
+    expect(prem.costMult).toBeGreaterThan(four.costMult);
+    let previous = 0;
+    for (const div of SUNDAY_DIVISIONS) {
+      expect(div.costMult, div.name).toBeGreaterThanOrEqual(previous);
+      previous = div.costMult;
+    }
+  });
+
+  it('going up raises both sides of the ledger', () => {
+    // The bug this closes: promotion used to change essentially nothing about
+    // the books. The gate rose 22 → 54 while pitch hire rose 34 → 68 and the
+    // referee, the travel and the kit wash did not move at all, so going up
+    // made the club two pounds POORER per home match and nothing else.
+    //
+    // What it is NOT: a raise. Promotion makes the weekly ledger tighter and
+    // the rewards much bigger — a club that goes up and does not land a
+    // sponsor is in trouble by the third week, which is the pressure the mode
+    // otherwise loses entirely by season six.
+    const gate = (divisionId: 'sun-4' | 'sun-prem', reputation: number) => {
+      const squad = squadOf(11, 12);
+      return buildWeekLedger({
+        rng: createSundayRng(3, 0), divisionId, personality: 'pub', reputation,
+        upgrades: [], sponsors: [], squad, playedIds: squad.map(m => m.playerId),
+        fixture: { home: true, derby: false, forfeited: false },
+        redCards: 0, injuries: 0, chargeLeagueFee: false, ringers: 0,
+      }).lines.filter(l => l.kind === 'subs' && l.label.includes('Bucket'))
+        .reduce((n, l) => n + l.amount, 0);
+    };
+    // Income side up: a County Premier bucket collection is worth far more.
+    expect(gate('sun-prem', 40)).toBeGreaterThan(gate('sun-4', 40) * 2);
+    // Cost side up too, and by enough to feel: the fixed costs of a
+    // top-division week are half as much again as the bottom's.
+    expect(sundayWeeklyBurn('sun-prem', [])).toBeGreaterThan(sundayWeeklyBurn('sun-4', []) * 1.4);
+    // And the one-off that lands in week one, before a ball is kicked.
+    expect(getSundayDivision('sun-prem').leagueFee)
+      .toBeGreaterThan(getSundayDivision('sun-4').leagueFee * 3);
   });
 });
