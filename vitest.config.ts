@@ -36,7 +36,15 @@ const SLOW_SUITES = [
   "src/test/seasonLifecycle.test.ts",    // 13s
   "src/test/boardUltimatum.test.ts",     // 12s
   "src/test/seasonRolloverState.test.ts", // 9s
-  "src/test/sundayCampaign.test.ts",     // 32 careers × 3 seasons — the Sunday balance campaign
+  // RE-TIMED in wave 7 and confirmed here rather than assumed. The audit
+  // argued this file did not belong alongside 45-second suites on a 15s
+  // measurement; it is now 29s of test time — 48 careers × 5 seasons (240
+  // seasons, ~3,800 matches) plus a 12 × 8-season economy sweep — which is
+  // longer than three of the entries above it and squarely in this list. The
+  // per-commit gate keeps its Sunday balance cover from `sundayBalance` (12s),
+  // `sundayPersonas` (9s), `sundayStress` (12s) and `sundayStoryQuality` (13s),
+  // all of which stayed fast.
+  "src/test/sundayCampaign.test.ts",
 ];
 
 export default defineConfig({
