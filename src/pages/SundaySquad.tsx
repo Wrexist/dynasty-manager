@@ -15,7 +15,6 @@ import { LiquidButton } from '@/components/game/LiquidButton';
 import { SectionHeader } from '@/components/game/SectionHeader';
 import { ConfirmDialog } from '@/components/game/ConfirmDialog';
 import { AvailabilityPill, Meter } from '@/components/game/sunday/SundayBits';
-import { SundayEventModal } from '@/components/game/sunday/SundayEventModal';
 import { useGameStore } from '@/store/gameStore';
 import { useTranslation } from '@/hooks/useTranslation';
 import { cn } from '@/lib/utils';
@@ -112,7 +111,6 @@ const SundaySquad = () => {
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-3 pb-4 space-y-3">
-      <SundayEventModal />
       <SectionHeader
         title={t('sunday.squad.title')}
         accessory={<span className="text-caption text-muted-foreground">{sunday.squad.length}</span>}

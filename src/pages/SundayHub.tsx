@@ -19,7 +19,6 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { LiquidButton } from '@/components/game/LiquidButton';
 import { SectionHeader } from '@/components/game/SectionHeader';
 import { AvailabilityPill, Meter, StatChip, SundayCrest } from '@/components/game/sunday/SundayBits';
-import { SundayEventModal } from '@/components/game/sunday/SundayEventModal';
 import { useGameStore } from '@/store/gameStore';
 import { useTranslation } from '@/hooks/useTranslation';
 import { formatMoney } from '@/utils/helpers';
@@ -87,8 +86,6 @@ const SundayHub = () => {
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-3 pb-4 space-y-3">
-      <SundayEventModal />
-
       {/* Club header */}
       <GlassPanel className="p-4">
         <div className="flex items-center gap-3">

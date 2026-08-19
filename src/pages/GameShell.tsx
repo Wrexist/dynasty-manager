@@ -87,6 +87,14 @@ const SundayHistory = lazy(() => import('./SundayHistory'));
 const SundayWeekBar = lazy(() =>
   import('@/components/game/sunday/SundayWeekBar').then(m => ({ default: m.SundayWeekBar })),
 );
+// ONE instance for the whole mode. It used to be mounted per page, on six of
+// the eight Sunday screens — History was the miss, and History is now a tab, so
+// a pending event would have been invisible there while `advanceSundayWeek`
+// refused to run: a soft deadlock with nothing on screen explaining it. The
+// modal self-gates on `sunday.pendingEvent`, so mounting it once here is enough.
+const SundayEventModal = lazy(() =>
+  import('@/components/game/sunday/SundayEventModal').then(m => ({ default: m.SundayEventModal })),
+);
 
 const screens: Record<string, React.ComponentType> = {
   dashboard: Dashboard,
@@ -452,6 +460,11 @@ const GameShell = () => {
         </main>
         {gameMode === 'sunday' && (
           <Suspense fallback={null}><SundayWeekBar /></Suspense>
+        )}
+        {/* Match day deliberately does not raise events mid-match and must stay
+            clean, so the modal is excluded there rather than self-suppressed. */}
+        {gameMode === 'sunday' && currentScreen !== 'sunday-match' && (
+          <Suspense fallback={null}><SundayEventModal /></Suspense>
         )}
         <BottomNav />
         <ContractNegotiation />

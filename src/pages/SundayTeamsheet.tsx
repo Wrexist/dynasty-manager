@@ -15,7 +15,6 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { LiquidButton } from '@/components/game/LiquidButton';
 import { SectionHeader } from '@/components/game/SectionHeader';
 import { AvailabilityPill } from '@/components/game/sunday/SundayBits';
-import { SundayEventModal } from '@/components/game/sunday/SundayEventModal';
 import { useGameStore } from '@/store/gameStore';
 import { useTranslation } from '@/hooks/useTranslation';
 import { cn } from '@/lib/utils';
@@ -173,8 +172,6 @@ const SundayTeamsheet = () => {
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-3 pb-4 space-y-3">
-      <SundayEventModal />
-
       <SectionHeader
         title={t('sunday.sheet.title')}
         accessory={

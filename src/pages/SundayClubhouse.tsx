@@ -1,5 +1,5 @@
 /**
- * The Club — identity, what the money could buy, sponsors, and the books.
+ * The Clubhouse — identity, what the money could buy, sponsors, and the books.
  *
  * One screen rather than three because at this scale they are one subject: the
  * upgrade you want costs the money you have not got, which is why the sponsor
@@ -14,7 +14,6 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { LiquidButton } from '@/components/game/LiquidButton';
 import { SectionHeader } from '@/components/game/SectionHeader';
 import { StatChip, SundayCrest } from '@/components/game/sunday/SundayBits';
-import { SundayEventModal } from '@/components/game/sunday/SundayEventModal';
 import { useGameStore } from '@/store/gameStore';
 import { useTranslation } from '@/hooks/useTranslation';
 import { cn } from '@/lib/utils';
@@ -27,7 +26,7 @@ import { splitLedger, sundayUpgradeUpkeep, sundayWeeklyBurn } from '@/utils/sund
 
 type Tab = 'upgrades' | 'sponsors' | 'books';
 
-const SundayClub = () => {
+const SundayClubhouse = () => {
   const { t } = useTranslation();
   const sunday = useGameStore(s => s.sunday);
   const { buyUpgrade, mothballUpgrade, acceptSponsor, declineSponsor } = useGameStore(useShallow(s => ({
@@ -57,7 +56,6 @@ const SundayClub = () => {
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-3 pb-4 space-y-3">
-      <SundayEventModal />
       <SectionHeader title={t('sunday.club.title')} icon={Landmark} />
 
       {/* Identity */}
@@ -282,4 +280,4 @@ const SundayClub = () => {
   );
 };
 
-export default SundayClub;
+export default SundayClubhouse;
