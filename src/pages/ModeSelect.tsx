@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Gamepad2, Briefcase, Users, Sparkles, Trophy, Beer } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { useTranslation } from '@/hooks/useTranslation';
 import { cn } from '@/lib/utils';
 
 type Mode = {
@@ -11,6 +12,12 @@ type Mode = {
   name: string;
   tagline: string;
   description: string;
+  /** i18n keys, where the copy has been keyed. Set per mode as each is
+   *  migrated; the `name`/`tagline`/`description` above stay as the fallback so
+   *  the un-migrated modes render exactly as before. */
+  nameKey?: string;
+  taglineKey?: string;
+  descKey?: string;
   icon: typeof Gamepad2;
   color: string;
   borderColor: string;
@@ -59,9 +66,14 @@ const modes: readonly Mode[] = [
   },
   {
     id: 'sunday',
+    // Keyed copy: `sunday.mode.*` already existed and had drifted from these
+    // literals (the key's tagline carries "No guarantees."). The key wins.
     name: 'Sunday League',
-    tagline: 'Eleven people. One pitch.',
+    tagline: 'Eleven people. One pitch. No guarantees.',
     description: 'Run a local Sunday side. Work out who is actually turning up, find the money for the referee, and try to turn a pub team into a football club.',
+    nameKey: 'sunday.mode.name',
+    taglineKey: 'sunday.mode.tagline',
+    descKey: 'sunday.mode.description',
     icon: Beer,
     color: 'from-lime-500/20 to-lime-600/5',
     borderColor: 'border-lime-500/30 hover:border-lime-500/60',
@@ -84,6 +96,7 @@ const modes: readonly Mode[] = [
 ] as const;
 
 const ModeSelect = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const navState = (location.state as { slot?: number; communityPackEnabled?: boolean }) || {};
@@ -189,15 +202,15 @@ const ModeSelect = () => {
                   </div>
                   <div className="min-w-0">
                     <h2 className="text-lg font-bold text-foreground leading-tight truncate">
-                      {mode.name}
+                      {mode.nameKey ? t(mode.nameKey) : mode.name}
                     </h2>
                     <p className={cn('text-xs font-semibold mt-0.5', mode.iconColor)}>
-                      {mode.tagline}
+                      {mode.taglineKey ? t(mode.taglineKey) : mode.tagline}
                     </p>
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  {mode.description}
+                  {mode.descKey ? t(mode.descKey) : mode.description}
                 </p>
               </div>
             </motion.button>

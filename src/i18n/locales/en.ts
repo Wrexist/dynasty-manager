@@ -19,7 +19,6 @@ export const en = {
   'sunday.mode.tagline': 'Eleven people. One pitch. No guarantees.',
   'sunday.mode.description': 'Run a local Sunday side. Work out who is actually turning up, find the money for the referee, and try to turn a pub team into a football club.',
 
-  // Setup
   // Navigation. The ONLY source of a Sunday tab or sub-nav label — the tab
   // strip, the sub-nav strip and SCREEN_TITLES all read from here or from each
   // other, never from a fourth hardcoded literal.
@@ -33,25 +32,21 @@ export const en = {
   'sunday.nav.history': 'History',
   'sunday.nav.recruitsInterested': '{n} recruits interested',
 
+  // Setup
   'sunday.setup.title': 'Start a Sunday Club',
   'sunday.setup.subtitle': 'What sort of club is this?',
-  'sunday.setup.clubName': 'Club',
   'sunday.setup.reroll': 'Roll again',
   'sunday.setup.rerollAria': 'Generate a different club name and colours',
-  'sunday.setup.venue': 'Home',
   'sunday.setup.start': 'Get Started',
   'sunday.setup.back': 'Back',
   'sunday.setup.startingBalance': 'Starting funds',
   'sunday.setup.squadSize': 'Squad',
   'sunday.setup.squadSizeValue': '{n} registered',
   'sunday.setup.nameLabel': 'Club name',
-  'sunday.setup.namePlaceholder': 'Name your club',
 
   // Hub
   'sunday.hub.week': 'Week {week}',
   'sunday.hub.season': 'Season {season}',
-  'sunday.hub.division': 'Division',
-  'sunday.hub.thisWeek': 'This week',
   'sunday.hub.availability': 'Availability',
   'sunday.hub.available': '{n} available',
   'sunday.hub.doubts': '{n} doubtful',
@@ -77,9 +72,7 @@ export const en = {
   'sunday.hub.subsOwed': '£{n} owed',
   'sunday.hub.recruits': 'Recruitment',
   'sunday.hub.recruitsWaiting': '{n} interested',
-  'sunday.hub.table': 'League',
   'sunday.hub.club': 'Club',
-  'sunday.hub.history': 'Club history',
   'sunday.hub.teamNamed': 'Team named — {n}',
   'sunday.hub.teamNotNamed': 'No team named yet',
   'sunday.hub.rival': 'Rivalry',
@@ -106,10 +99,8 @@ export const en = {
   'sunday.sheet.unavailable': 'Not available',
   'sunday.sheet.autoPick': 'Pick it for me',
   'sunday.sheet.confirm': 'Name the team',
-  'sunday.sheet.confirmed': 'Team named',
   'sunday.sheet.count': '{n} of {max}',
   'sunday.sheet.tapToAdd': 'Tap a player to name him',
-  'sunday.sheet.tapToRemove': 'Tap to take him out',
   'sunday.sheet.warnShort': 'You are naming {n}. You need {min} to start.',
   'sunday.sheet.warnNoKeeper': 'Nobody in this XI is a goalkeeper.',
   'sunday.sheet.warnOutOfPosition': '{n} players are out of position.',
@@ -122,7 +113,6 @@ export const en = {
   'sunday.sheet.tacticFitHint': 'Measured against your own squad, not the league. Above 50% means this XI suits the shape better than its average.',
   'sunday.sheet.captain': 'Captain',
   'sunday.sheet.makeCaptain': 'Give him the armband',
-  'sunday.sheet.noFixture': 'No fixture to pick a team for.',
 
   // Match day — the Sunday morning
   'sunday.arrival.title': 'Sunday morning',
@@ -142,16 +132,13 @@ export const en = {
   'sunday.match.vs': 'v',
   'sunday.match.home': 'Home',
   'sunday.match.away': 'Away',
-  'sunday.match.weather': 'Conditions',
   'sunday.match.pitch': 'Pitch',
   'sunday.match.namedSide': 'You have named {n}.',
   'sunday.match.whyPanel': 'Why it went that way',
   'sunday.match.narrative': 'How it happened',
-  'sunday.match.motm': 'Best of the lot',
   'sunday.match.ratings': 'Ratings',
   'sunday.match.done': 'Back to the club',
   'sunday.match.noFixture': 'There is no fixture to play.',
-  'sunday.match.forfeited': 'Not fulfilled',
   'sunday.match.skip': 'Skip to the result',
   'sunday.match.halfTime': 'Half time',
   'sunday.match.halfTimeHint': 'One change. The second half is really played under whatever you pick.',
@@ -183,7 +170,6 @@ export const en = {
   // Squad
   'sunday.squad.title': 'Squad',
   'sunday.squad.empty': 'Nobody is registered yet.',
-  'sunday.squad.job': 'Works as',
   'sunday.squad.happiness': 'Mood',
   'sunday.squad.commitment': 'Commitment',
   'sunday.squad.reliability': 'Turns up',
@@ -202,7 +188,6 @@ export const en = {
   // Player biography
   'sunday.bio.story': 'His story here',
   'sunday.bio.noStory': 'No stories yet. Give him a Sunday.',
-  'sunday.bio.form': 'Form',
   'sunday.bio.onFire': 'On fire',
   'sunday.bio.struggling': 'Struggling',
   'sunday.bio.promised': 'Promised a start',
@@ -217,10 +202,7 @@ export const en = {
 
   // Club
   'sunday.club.title': 'Clubhouse',
-  'sunday.club.identity': 'Identity',
   'sunday.club.nickname': 'Known as',
-  'sunday.club.venue': 'Home',
-  'sunday.club.town': 'Area',
   'sunday.club.personality': 'The club',
   'sunday.club.upgrades': 'What the money could buy',
   'sunday.club.owned': 'Level {n}',
@@ -294,7 +276,6 @@ export const en = {
   'sunday.history.folded': 'The club has folded',
   'sunday.history.foldedBody': 'That is the end of the run. What is left is the record of it.',
   'sunday.history.mainMenu': 'Main menu',
-  'sunday.history.appearances': '{n} apps',
 
   // Rival
   'sunday.rival.manager': 'Their manager',
@@ -313,7 +294,6 @@ export const en = {
   'sunday.history.retro.bestFinish': 'Best finish',
 
   // Events
-  'sunday.event.title': 'Something has come up',
   'sunday.event.acknowledge': 'Right then',
   'sunday.event.outcome': 'What happened',
   'sunday.event.continue': 'Continue',
