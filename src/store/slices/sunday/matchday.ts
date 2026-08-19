@@ -226,7 +226,30 @@ export function ensureArrival(set: Set, get: Get): SundayArrival | null {
     forcedRingers, optionalRingers, ringersHired: null,
     rngCursor: cursorOf(rng),
   };
-  set({ sunday: { ...get().sunday!, squad, arrival } });
+  // THE SHEET NOW SAYS WHO IS HERE.
+  //
+  // The morning takes men out of the squad, and leaving the named XI alone left
+  // the state carrying a teamsheet with an unavailable player on it for the
+  // whole of Match Day — the exact shape `validateSundayState` rejects, and the
+  // exact reason the whistle already clears the sheet (see the note there). A
+  // save taken in that window — an autosave, a backgrounded app — loaded back
+  // as an invalid state and said so in the dev console.
+  //
+  // Writing the arrival's own XI and bench back is not a new decision: it is
+  // the side `prepareSundayMatch` will field either way, since the kick-off
+  // reads `arrival.presentIds` and never the sheet. `teamsheetLocked` follows
+  // it, because a side gutted below the legal minimum is not a locked side any
+  // more — it is a forfeit waiting for guests.
+  set({
+    sunday: {
+      ...get().sunday!,
+      squad,
+      arrival,
+      teamsheet: [...presentIds],
+      bench: [...benchIds],
+      teamsheetLocked: presentIds.length >= SUNDAY_MIN_START,
+    },
+  });
   return arrival;
 }
 
