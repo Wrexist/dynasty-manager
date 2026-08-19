@@ -81,6 +81,11 @@ const migrations: Record<number, MigrationFn> = {
             injuries: typeof lm.injuries === 'number' ? lm.injuries : 0,
             motmName: lm.motmName ?? null,
             lowlightName: lm.lowlightName ?? null,
+            // Presentation tier. 'routine' is the honest backfill: every
+            // fixture WAS presented as routine before the tiers existed, and
+            // recomputing an old report's stakes would need the table as it
+            // stood that week, which the save does not keep.
+            tier: typeof lm.tier === 'string' ? lm.tier : 'routine',
           };
         })()
       : null;

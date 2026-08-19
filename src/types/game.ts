@@ -2958,6 +2958,18 @@ export interface SundaySeasonRecord {
   highlights: string[];
 }
 
+/**
+ * How big an afternoon this was, derived at kick-off from the fixture and the
+ * table (`utils/sunday/tier.ts`).
+ *
+ * `decider` is arithmetic, not atmosphere: it is only used when winning or
+ * losing mathematically settles the title, promotion or survival. Everything
+ * the tier drives — the stakes line, the rim on the header, the pace of the
+ * reveal, the turnout on the Sunday morning — is therefore never louder than
+ * the fixture actually is.
+ */
+export type SundayMatchTier = 'routine' | 'derby' | 'cup' | 'cup-final' | 'decider';
+
 /** Everything the last match produced that the Sunday layer cares about. */
 export interface SundayMatchReport {
   matchId: string;
@@ -2967,6 +2979,8 @@ export interface SundayMatchReport {
   /** English opponent name at time of play (opponents can be re-drawn). */
   opponentName: string;
   home: boolean;
+  /** What was riding on it, fixed at kick-off. Schema v3. */
+  tier: SundayMatchTier;
   goalsFor: number;
   goalsAgainst: number;
   /** True when the club could not field 7 and forfeited. */

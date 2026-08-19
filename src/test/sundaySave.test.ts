@@ -198,6 +198,25 @@ describe('migration', () => {
     expect(sunday.chains).toEqual([]);
   });
 
+  it('backfills the last report with the fields the settlement and the header read', () => {
+    const old = {
+      version: 85, playerClubId: 'sunday-club', clubs: {}, season: 2, week: 9,
+      gameMode: 'sunday',
+      sunday: {
+        v: 2, balance: 200, flags: {}, squad: [],
+        lastMatch: { matchId: 'm', season: 2, week: 8, goalsFor: 1, goalsAgainst: 1 },
+      },
+    };
+    const sunday = (migrateSaveData(old) as Record<string, unknown>).sunday as Record<string, unknown>;
+    const lastMatch = sunday.lastMatch as Record<string, unknown>;
+    expect(lastMatch.redCards).toBe(0);
+    expect(lastMatch.injuries).toBe(0);
+    expect(lastMatch.motmName).toBeNull();
+    // Every old fixture WAS presented as routine; claiming otherwise would need
+    // a table this save no longer has.
+    expect(lastMatch.tier).toBe('routine');
+  });
+
   it('scrubs friends and rivals who left the club seasons ago', () => {
     // The bug the relationships layer closes: nothing maintained these lists,
     // so an old save can name mates who have not been near the ground in

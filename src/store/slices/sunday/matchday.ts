@@ -48,6 +48,7 @@ import {
   rollSundayWeather, simulateSundayMatch, sundayStyleOf,
 } from '@/utils/sunday/match';
 import { advanceSundayCup, buildSundayTable, recordSundayRecord, sundayCupRoundName, sundaySeasonWeeks } from '@/utils/sunday/season';
+import { deriveSundayStakes } from '@/utils/sunday/tier';
 import { selectBestLineup } from '@/utils/playerGen';
 import type { SundayRng } from '@/utils/sunday/rng';
 import { createSundayRng, cursorOf, subSeed } from '@/utils/sunday/rng';
@@ -327,6 +328,19 @@ export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
   // ── Simulate ─────────────────────────────────────────────────────────────
   const pitchQuality = sundayPitchQuality(sunday, week);
   const weather = rollSundayWeather(rng, week, sundaySeasonWeeks(sunday.divisionId), pitchQuality);
+  // How big this afternoon is, fixed BEFORE the result exists — the table it
+  // reads is the one the manager saw in the briefing, so the tier on the
+  // report is the tier he was shown.
+  const tier = deriveSundayStakes({
+    divisionId: sunday.divisionId,
+    clubId,
+    opponentClubId: oppClubId,
+    fixtures: state.fixtures,
+    divisionClubIds: sunday.divisionClubIds,
+    table: buildSundayTable(state.fixtures, sunday.divisionClubIds),
+    rivalClubId: sunday.rivalry?.clubId ?? null,
+    cupRound: isCup ? fixture.tie.round : null,
+  }).tier;
   const isDerby = sunday.rivalry?.clubId === oppClubId;
   const derbyIntensity = isDerby && sunday.rivalry
     ? clamp(sunday.rivalry.heat * SUNDAY_RIVAL_INTENSITY_SCALE, 0, 3)
@@ -774,6 +788,7 @@ export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
     opponentClubId: oppClubId,
     opponentName: oppClub.name,
     home: isHome,
+    tier,
     goalsFor: ourGoals,
     goalsAgainst: theirGoals,
     forfeited,

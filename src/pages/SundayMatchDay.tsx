@@ -36,7 +36,8 @@ import { SUNDAY_MIN_START, SUNDAY_RINGER_COST, getSundayTactic } from '@/config/
 import { findSundayFixture, sundayPitchQuality } from '@/store/slices/sunday/matchday';
 import { buildSundayTable, sundayCupRoundName, sundayPosition } from '@/utils/sunday/season';
 import { sundayResultVerdict, sundayStyleOf } from '@/utils/sunday/match';
-import type { WeatherCondition } from '@/types/game';
+import { deriveSundayStakes } from '@/utils/sunday/tier';
+import type { SundayMatchTier, WeatherCondition } from '@/types/game';
 
 const WEATHER_ICON: Record<WeatherCondition, React.ElementType> = {
   clear: Sun, rain: CloudRain, wind: Wind, snow: Snowflake,
@@ -45,6 +46,29 @@ const WEATHER_ICON: Record<WeatherCondition, React.ElementType> = {
 /** How long each narrative line takes to appear, scaled by the match-speed
  *  setting so the mode honours the same preference every other screen does. */
 const REVEAL_BASE_MS = 520;
+
+/**
+ * What the header and the briefing look like at each tier.
+ *
+ * Existing tokens only, and deliberately quiet: a ring and a soft glow in a
+ * colour the mode already uses for that thing (gold for a final, orange for
+ * the derby, sky for a cup tie). A cup final should FEEL different from a wet
+ * Tuesday without inventing a palette for it.
+ */
+const TIER_RIM: Record<SundayMatchTier, string> = {
+  routine: '',
+  cup: 'ring-1 ring-sky-400/30',
+  derby: 'ring-1 ring-orange-400/40',
+  'cup-final': 'ring-1 ring-primary/50 shadow-[0_0_28px_-8px_hsl(var(--primary)/0.55)]',
+  decider: 'ring-1 ring-primary/45 shadow-[0_0_24px_-8px_hsl(var(--primary)/0.45)]',
+};
+
+/** How much longer a goal line hangs before the next one, by tier. A decider
+ *  and a final breathe; nothing else changes pace. Reduced motion and
+ *  performance mode bypass the reveal entirely, so this never applies there. */
+const TIER_GOAL_CADENCE: Record<SundayMatchTier, number> = {
+  routine: 1, cup: 1, derby: 1.15, 'cup-final': 1.5, decider: 1.5,
+};
 
 const SundayMatchDay = () => {
   const { t } = useTranslation();
@@ -105,8 +129,12 @@ const SundayMatchDay = () => {
       return;
     }
     const line = report.narrative[revealed] ?? '';
-    if (/\d+-\d+\)/.test(line)) hapticLight();
-    const delay = reduceMotion ? 0 : Math.max(120, (matchSpeed / 3300) * REVEAL_BASE_MS);
+    const isGoal = /\d+-\d+\)/.test(line);
+    if (isGoal) hapticLight();
+    // A goal in a final or a decider is allowed to hang. Everything else keeps
+    // the manager's chosen match speed exactly.
+    const cadence = isGoal ? TIER_GOAL_CADENCE[report.tier] ?? 1 : 1;
+    const delay = reduceMotion ? 0 : Math.max(120, (matchSpeed / 3300) * REVEAL_BASE_MS * cadence);
     timer.current = setTimeout(() => setRevealed(n => n + 1), delay);
     return () => clearTimer();
   }, [playing, revealed, report, matchSpeed, reduceMotion, clearTimer]);
@@ -133,6 +161,26 @@ const SundayMatchDay = () => {
       danger: danger ? { name: `${danger.firstName} ${danger.lastName}`, goals: danger.goals } : null,
     };
   }, [sunday, fixture, clubs, fixtures, players, playerClubId]);
+
+  // What is riding on it. Arithmetic, not atmosphere — see `utils/sunday/tier`.
+  // Computed from the table as it stands BEFORE kick-off, which is the same
+  // table the store used when it stamped the tier onto the report.
+  const stakes = useMemo(() => {
+    if (!sunday || !fixture) return null;
+    const oppId = fixture.kind === 'cup'
+      ? (fixture.tie.homeClubId === playerClubId ? fixture.tie.awayClubId : fixture.tie.homeClubId)
+      : (fixture.match.homeClubId === playerClubId ? fixture.match.awayClubId : fixture.match.homeClubId);
+    return deriveSundayStakes({
+      divisionId: sunday.divisionId,
+      clubId: playerClubId,
+      opponentClubId: oppId,
+      fixtures,
+      divisionClubIds: sunday.divisionClubIds,
+      table: buildSundayTable(fixtures, sunday.divisionClubIds),
+      rivalClubId: sunday.rivalry?.clubId ?? null,
+      cupRound: fixture.kind === 'cup' ? fixture.tie.round : null,
+    });
+  }, [sunday, fixture, fixtures, playerClubId]);
 
   if (!sunday) return null;
 
@@ -201,10 +249,15 @@ const SundayMatchDay = () => {
   const villain = report?.lowlightPlayerId ? players[report.lowlightPlayerId] : null;
   const standing = arrival ? arrival.presentIds.length + arrival.forcedRingers : 0;
 
+  // The tier drives the header rim and the pace of the reveal. Before kick-off
+  // it comes from the live arithmetic; afterwards from the report, which was
+  // stamped with the same answer at kick-off.
+  const tier = stakes?.tier ?? report?.tier ?? 'routine';
+
   return (
     <div className="max-w-lg mx-auto px-4 pt-3 pb-4 space-y-3">
       {/* Scoreline / fixture header */}
-      <GlassPanel className="p-4">
+      <GlassPanel className={cn('p-4', TIER_RIM[tier])}>
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <SundayCrest
@@ -249,8 +302,16 @@ const SundayMatchDay = () => {
       {/* 1 · BRIEFING */}
       {!report && !arrival && (
         <>
-          <GlassPanel className="p-4 space-y-2.5">
+          <GlassPanel className={cn('p-4 space-y-2.5', TIER_RIM[tier])}>
             <SectionHeader level="section" title={t('sunday.match.title')} />
+            {stakes?.line && (
+              <p className={cn(
+                'text-body font-semibold leading-snug',
+                tier === 'decider' || tier === 'cup-final' ? 'text-primary' : 'text-foreground',
+              )}>
+                {stakes.line}
+              </p>
+            )}
             <div className="grid grid-cols-2 gap-2">
               <div className="rounded-lg bg-white/[0.04] px-3 py-2">
                 <p className="text-micro text-muted-foreground">{t('sunday.match.pitch')}</p>

@@ -18,8 +18,11 @@ import {
 import {
   SUNDAY_CONCEDED_DERBY_LINES, SUNDAY_CONCEDED_LATE_LINES, SUNDAY_CONCEDED_LINES,
 } from '@/data/sundayNames';
+import { deriveSundayStakes } from '@/utils/sunday/tier';
+import { sundayCupRoundName } from '@/utils/sunday/season';
+import { SUNDAY_CUP_ROUNDS } from '@/config/sundayLeague';
 import { createSundayRng } from '@/utils/sunday/rng';
-import type { MatchEvent, Player } from '@/types/game';
+import type { LeagueTableEntry, Match, MatchEvent, Player } from '@/types/game';
 
 const SEED = 4242;
 
@@ -497,5 +500,99 @@ describe('pitch and fit', () => {
     // A style is for the season: playing a match cannot change it.
     await useGameStore.getState().playSundayMatch();
     expect(useGameStore.getState().sunday!.divisionStyles).toEqual(sunday.divisionStyles);
+  });
+});
+
+describe('match importance', () => {
+  /** A scripted division: one unplayed fixture per club, points as given. */
+  function scriptedTable(points: Record<string, number>, remainingEach: number) {
+    const clubIds = Object.keys(points);
+    const table: LeagueTableEntry[] = clubIds
+      .map(clubId => ({
+        clubId, played: 10, won: 0, drawn: 0, lost: 0,
+        goalsFor: 0, goalsAgainst: 0, goalDifference: 0, points: points[clubId], form: [], cleanSheets: 0,
+      }))
+      .sort((a, b) => b.points - a.points);
+    const fixtures: Match[] = [];
+    // Pair the clubs up so every one of them has `remainingEach` left.
+    for (let r = 0; r < remainingEach; r++) {
+      for (let i = 0; i < clubIds.length; i += 2) {
+        fixtures.push({
+          id: `f${r}-${i}`, week: 20 + r, homeClubId: clubIds[i], awayClubId: clubIds[i + 1],
+          played: false, homeGoals: 0, awayGoals: 0, events: [],
+        });
+      }
+    }
+    return { clubIds, table, fixtures };
+  }
+
+  it('calls the last-day promotion shootout a decider', () => {
+    // us v a on the final afternoon. Winning puts promotion out of reach of
+    // everyone but `a`, which is one club for two spots; losing leaves three
+    // clubs able to pass us.
+    const { clubIds, table, fixtures } = scriptedTable(
+      { us: 20, a: 24, b: 19, c: 19, d: 10, e: 8 }, 1,
+    );
+    const stakes = deriveSundayStakes({
+      divisionId: 'sun-4', clubId: 'us', opponentClubId: 'a',
+      fixtures, divisionClubIds: clubIds, table, rivalClubId: null, cupRound: null,
+    });
+    expect(stakes.tier).toBe('decider');
+    expect(stakes.line).toBe('Win and you are up.');
+  });
+
+  it('calls the last-day survival match a decider', () => {
+    const { clubIds, table, fixtures } = scriptedTable(
+      { us: 15, a: 30, b: 28, c: 26, d: 14, e: 13 }, 1,
+    );
+    const stakes = deriveSundayStakes({
+      divisionId: 'sun-3', clubId: 'us', opponentClubId: 'a',
+      fixtures, divisionClubIds: clubIds, table, rivalClubId: null, cupRound: null,
+    });
+    expect(stakes.tier).toBe('decider');
+    expect(stakes.line).toBe('Win and you are safe.');
+  });
+
+  it('refuses to call a mid-season fixture a decider, however tight the table', () => {
+    // The same table, six matches from the end. Nothing is settled by anything
+    // today, so nothing is claimed — this is the conservative half of the rule.
+    const { clubIds, table, fixtures } = scriptedTable(
+      { us: 20, a: 24, b: 19, c: 19, d: 10, e: 8 }, 6,
+    );
+    const stakes = deriveSundayStakes({
+      divisionId: 'sun-4', clubId: 'us', opponentClubId: 'a',
+      fixtures, divisionClubIds: clubIds, table, rivalClubId: null, cupRound: null,
+    });
+    expect(stakes.tier).toBe('routine');
+    expect(stakes.line).toBeNull();
+  });
+
+  it('keeps the derby a derby when it decides nothing', () => {
+    const { clubIds, table, fixtures } = scriptedTable(
+      { us: 20, a: 24, b: 19, c: 19, d: 10, e: 8 }, 6,
+    );
+    const stakes = deriveSundayStakes({
+      divisionId: 'sun-4', clubId: 'us', opponentClubId: 'a',
+      fixtures, divisionClubIds: clubIds, table, rivalClubId: 'a', cupRound: null,
+    });
+    expect(stakes.tier).toBe('derby');
+  });
+
+  it('reads the cup off the round, final included', () => {
+    const { clubIds, table, fixtures } = scriptedTable({ us: 20, a: 24 }, 4);
+    const base = {
+      divisionId: 'sun-4' as const, clubId: 'us', opponentClubId: 'a',
+      fixtures, divisionClubIds: clubIds, table, rivalClubId: 'a',
+    };
+    expect(deriveSundayStakes({ ...base, cupRound: 1 }).tier).toBe('cup');
+    expect(deriveSundayStakes({ ...base, cupRound: 1 }).line).toContain(sundayCupRoundName(2));
+    expect(deriveSundayStakes({ ...base, cupRound: SUNDAY_CUP_ROUNDS }).tier).toBe('cup-final');
+  });
+
+  it('stamps the tier onto the report the manager was shown', async () => {
+    const report = (await useGameStore.getState().playSundayMatch())!;
+    expect(['routine', 'derby', 'cup', 'cup-final', 'decider']).toContain(report.tier);
+    // And it survives a round trip through the store.
+    expect(useGameStore.getState().sunday!.lastMatch!.tier).toBe(report.tier);
   });
 });

@@ -56,6 +56,7 @@ import { sundayChainClosingLine } from '@/data/sundayEvents';
 import {
   advanceSundayCup, buildSundayTable, mintSundayLegend, sundaySeasonWeeks, sundayCupRoundName,
 } from '@/utils/sunday/season';
+import { deriveSundayStakes } from '@/utils/sunday/tier';
 import { createSundayRng, subSeed, type SundayRng } from '@/utils/sunday/rng';
 import { runSundayMatch } from './matchday';
 import type { Get, Set } from './shared';
@@ -654,8 +655,26 @@ export function advanceSundayWeek(set: Set, get: Get): void {
   const nextFixture = fixtures.find(m => m.week === nextWeek && (m.homeClubId === clubId || m.awayClubId === clubId));
   const nextCupTie = cup?.ties.find(t => t.week === nextWeek && !t.played && (t.homeClubId === clubId || t.awayClubId === clubId));
   const away = nextCupTie ? nextCupTie.awayClubId === clubId : nextFixture ? nextFixture.awayClubId === clubId : false;
-  const bigGame = !!nextCupTie
-    || (!!nextFixture && !!rivalry && (nextFixture.homeClubId === rivalry.clubId || nextFixture.awayClubId === rivalry.clubId));
+  // Turnout rises when the fixture matters. A cup tie and the derby always
+  // did; a league match that mathematically settles promotion, the title or
+  // survival now counts too — men who have been "on nights" since October find
+  // a way to the last day. The tier is the same arithmetic the briefing shows,
+  // so what the manager is told and what the squad reacts to cannot disagree.
+  const nextTier = nextFixture || nextCupTie
+    ? deriveSundayStakes({
+        divisionId: sunday.divisionId,
+        clubId,
+        opponentClubId: nextCupTie
+          ? (nextCupTie.homeClubId === clubId ? nextCupTie.awayClubId : nextCupTie.homeClubId)
+          : (nextFixture!.homeClubId === clubId ? nextFixture!.awayClubId : nextFixture!.homeClubId),
+        fixtures,
+        divisionClubIds: sunday.divisionClubIds,
+        table: buildSundayTable(fixtures, sunday.divisionClubIds),
+        rivalClubId: rivalry?.clubId ?? null,
+        cupRound: nextCupTie?.round ?? null,
+      }).tier
+    : 'routine';
+  const bigGame = nextTier !== 'routine';
   const availCtx = {
     away,
     bigGame,
