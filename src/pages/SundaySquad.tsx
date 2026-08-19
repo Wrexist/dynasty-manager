@@ -19,7 +19,9 @@ import { SundayEventModal } from '@/components/game/sunday/SundayEventModal';
 import { useGameStore } from '@/store/gameStore';
 import { useTranslation } from '@/hooks/useTranslation';
 import { cn } from '@/lib/utils';
-import { getSundayArchetype, SUNDAY_FORM_COLD, SUNDAY_FORM_HOT } from '@/config/sundayLeague';
+import {
+  getSundayArchetype, SUNDAY_FORM_COLD, SUNDAY_FORM_HOT, SUNDAY_MEMORY_LEGENDARY_WEIGHT,
+} from '@/config/sundayLeague';
 import {
   sundayFriendNames, sundayMentor, sundayPositionRival, sundayRivalNames,
 } from '@/utils/sunday/relationships';
@@ -245,7 +247,17 @@ const SundaySquad = () => {
                                   <span className="text-micro text-muted-foreground/70 tabular-nums shrink-0 w-14">
                                     {t('sunday.bio.seasonWeek', { season: mem.season, week: mem.week })}
                                   </span>
-                                  <span className="text-micro text-foreground/85 leading-relaxed">{mem.text}</span>
+                                  <span className="text-micro text-foreground/85 leading-relaxed">
+                                    {mem.text}
+                                    {/* The handful of afternoons a club actually
+                                        retells. Presentation only — the weight
+                                        is written by the simulation. */}
+                                    {mem.weight >= SUNDAY_MEMORY_LEGENDARY_WEIGHT && (
+                                      <span className="ml-1 text-micro font-semibold text-primary whitespace-nowrap">
+                                        · {t('sunday.story.legendary')}
+                                      </span>
+                                    )}
+                                  </span>
                                 </li>
                               ))}
                           </ul>

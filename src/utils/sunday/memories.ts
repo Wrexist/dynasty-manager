@@ -91,6 +91,10 @@ export interface MatchMemoryInput {
   /** Club-career totals BEFORE this match was added. */
   prevApps: number;
   prevGoals: number;
+  /** He scored the winner AND was one of the three worst players on the pitch
+   *  by overall. Judged by the caller, which is the only place that knows who
+   *  else was out there. */
+  unlikelyHero?: boolean;
 }
 
 /** Apps/goals milestones worth a memory and a mention. */
@@ -107,7 +111,7 @@ export const SUNDAY_GOAL_MILESTONES = [25, 50, 75, 100] as const;
 export function captureMatchMemories(input: MatchMemoryInput): SundayMemory[] {
   const {
     rating, report, isDerby, isCup, cupRound, winnerMinute,
-    motm, played, sentOff, injuryWeeks, prevApps, prevGoals,
+    motm, played, sentOff, injuryWeeks, prevApps, prevGoals, unlikelyHero,
   } = input;
   const out: SundayMemory[] = [];
   const { season, week } = report;
@@ -128,9 +132,18 @@ export function captureMatchMemories(input: MatchMemoryInput): SundayMemory[] {
     mem('hat-trick', `A hat-trick against ${report.opponentName}. The ball went home with him.`);
   }
   if (winnerMinute != null && won) {
-    mem('winner', winnerMinute >= 85
-      ? `Won it in the ${winnerMinute}th minute against ${report.opponentName}. Scenes.`
-      : `Scored the goal that beat ${report.opponentName} ${score}.`);
+    // The same goal, told two ways. A winner from one of the worst players on
+    // the pitch is the story the club actually retells, so it outranks the
+    // ordinary version rather than sitting next to it.
+    if (unlikelyHero) {
+      mem('unlikely-hero', winnerMinute >= 85
+        ? `Of all people, HE won it in the ${winnerMinute}th against ${report.opponentName}. Nobody has let it go since.`
+        : `Won the match against ${report.opponentName} ${score}. Him. Ask anyone who was there.`);
+    } else {
+      mem('winner', winnerMinute >= 85
+        ? `Won it in the ${winnerMinute}th minute against ${report.opponentName}. Scenes.`
+        : `Scored the goal that beat ${report.opponentName} ${score}.`);
+    }
   }
   if (isDerby && goals > 0) {
     mem('derby-goal', `Scored against ${report.opponentName} in the derby. Free drinks for a month.`);

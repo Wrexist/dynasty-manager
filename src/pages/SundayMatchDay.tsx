@@ -37,7 +37,7 @@ import { SUNDAY_MIN_START, SUNDAY_RINGER_COST, SUNDAY_TACTICS, getSundayTactic }
 import { MATCH_SPEEDS } from '@/config/matchSpeed';
 import { findSundayFixture, sundayPitchQuality } from '@/store/slices/sunday/matchday';
 import { buildSundayTable, sundayCupRoundName, sundayPosition } from '@/utils/sunday/season';
-import { sundayResultVerdict, sundayStyleOf } from '@/utils/sunday/match';
+import { buildMatchdayTeam, sundayResultVerdict, sundayStyleOf } from '@/utils/sunday/match';
 import { deriveSundayStakes } from '@/utils/sunday/tier';
 import { sundayMilestoneToday, sundayReverseFixtureRecall } from '@/utils/sunday/briefing';
 import type { SundayMatchTier, SundayTacticId, WeatherCondition } from '@/types/game';
@@ -77,6 +77,33 @@ const TIER_RIM: Record<SundayMatchTier, string> = {
 const TIER_GOAL_CADENCE: Record<SundayMatchTier, number> = {
   routine: 1, cup: 1, derby: 1.15, 'cup-final': 1.5, decider: 1.5,
 };
+
+/**
+ * The labelled reasons this XI is better or worse than it looks on paper.
+ *
+ * The same list before and after the match, deliberately: pre-match it is the
+ * answer to "what am I taking out there", post-match to "why did that happen".
+ * Nothing here is a judgement — every row is an adjustment the simulation
+ * really applied.
+ */
+const AdjustmentList = ({ rows, label }: { rows: readonly { label: string; delta: number }[]; label: string }) => (
+  <div>
+    <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+    <ul className="mt-1 space-y-0.5">
+      {rows.map((row, i) => (
+        <li key={`${row.label}-${i}`} className="flex items-baseline gap-2">
+          <span className="min-w-0 flex-1 text-caption text-foreground/85 truncate">{row.label}</span>
+          <span className={cn(
+            'text-caption font-semibold tabular-nums shrink-0',
+            row.delta > 0 ? 'text-emerald-300' : row.delta < 0 ? 'text-destructive' : 'text-muted-foreground',
+          )}>
+            {row.delta > 0 ? '+' : ''}{row.delta}
+          </span>
+        </li>
+      ))}
+    </ul>
+  </div>
+);
 
 const SundayMatchDay = () => {
   const { t } = useTranslation();
@@ -218,6 +245,28 @@ const SundayMatchDay = () => {
     });
   }, [sunday, fixture, fixtures, playerClubId]);
 
+  // The same breakdown the post-match panel shows, computed live from the men
+  // who are actually named. Nothing is stored: it is the honest answer to
+  // "what am I taking onto that pitch?" before it becomes the answer to "why
+  // did that happen?".
+  const preMatchAdjustments = useMemo(() => {
+    if (!sunday || !fixture || report) return [];
+    const named = sunday.arrival?.presentIds.length ? sunday.arrival.presentIds : sunday.teamsheet;
+    const xi = named.map(id => players[id]).filter(Boolean);
+    if (xi.length < SUNDAY_MIN_START) return [];
+    return buildMatchdayTeam({
+      xi,
+      squad: sunday.squad,
+      tacticId: sunday.tactic,
+      pitchQuality: sundayPitchQuality(sunday, week),
+      ballsLevel: sunday.upgrades.find(u => u.id === 'balls')?.level ?? 0,
+      glovesLevel: sunday.upgrades.find(u => u.id === 'keeper-gloves')?.level ?? 0,
+      coachLevel: sunday.upgrades.find(u => u.id === 'coach')?.level ?? 0,
+      teamMorale: sunday.teamMorale,
+      isPlayerClub: true,
+    }).adjustments;
+  }, [sunday, fixture, report, players, week]);
+
   // What the club already knows about this afternoon: the last time these two
   // met (score, and who settled it, off that fixture's own event array) and
   // the man one game short of a milestone. Both derived — no new state.
@@ -320,8 +369,18 @@ const SundayMatchDay = () => {
   // The break is only offered once the first half has finished revealing —
   // a decision on top of a feed still scrolling is a decision nobody read.
   const atTheBreak = !!halfTime && !report && !playing && revealed >= halfTime.narrative.length;
-  const hero = report?.motmPlayerId ? players[report.motmPlayerId] : null;
-  const villain = report?.lowlightPlayerId ? players[report.lowlightPlayerId] : null;
+  // Names off the REPORT, not the players map: a guest can be man of the match
+  // and cease to exist an hour later, which used to blank the panel entirely.
+  const heroName = report?.motmPlayerId
+    ? report.motmName ?? (players[report.motmPlayerId]
+      ? `${players[report.motmPlayerId].firstName} ${players[report.motmPlayerId].lastName}`
+      : null)
+    : null;
+  const villainName = report?.lowlightPlayerId
+    ? report.lowlightName ?? (players[report.lowlightPlayerId]
+      ? `${players[report.lowlightPlayerId].firstName} ${players[report.lowlightPlayerId].lastName}`
+      : null)
+    : null;
   const standing = arrival ? arrival.presentIds.length + arrival.forcedRingers : 0;
 
   // The tier drives the header rim and the pace of the reveal. Before kick-off
@@ -454,6 +513,7 @@ const SundayMatchDay = () => {
             <p className={cn('text-caption', sunday.teamsheet.length >= SUNDAY_MIN_START ? 'text-muted-foreground' : 'text-amber-300')}>
               {t('sunday.match.namedSide', { n: sunday.teamsheet.length })}
             </p>
+            {preMatchAdjustments.length > 0 && <AdjustmentList rows={preMatchAdjustments} label={t('sunday.match.whyPanel')} />}
           </GlassPanel>
 
           <LiquidButton tone="primary" className="w-full py-3" onClick={onArrive} disabled={kicking}>
@@ -639,21 +699,32 @@ const SundayMatchDay = () => {
               </p>
             )}
             <div className="space-y-2">
-              {hero && (
+              {heroName && (
                 <div className="flex items-start gap-2">
                   <Sparkles className="w-4 h-4 text-primary shrink-0 mt-0.5" aria-hidden />
                   <p className="text-caption text-foreground">
                     <span className="text-muted-foreground">{t('sunday.story.hero')}: </span>
-                    {hero.firstName} {hero.lastName} · {report.motmRating.toFixed(1)}
+                    {heroName} · {report.motmRating.toFixed(1)}
                   </p>
                 </div>
               )}
-              {villain && villain.id !== hero?.id && (
+              {villainName && report.lowlightPlayerId !== report.motmPlayerId && (
                 <div className="flex items-start gap-2">
                   <Frown className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" aria-hidden />
                   <p className="text-caption text-foreground">
                     <span className="text-muted-foreground">{t('sunday.story.lowlight')}: </span>
-                    {villain.firstName} {villain.lastName} · {report.lowlightRating.toFixed(1)}
+                    {villainName} · {report.lowlightRating.toFixed(1)}
+                  </p>
+                </div>
+              )}
+              {report.moraleDelta !== 0 && (
+                <div className="flex items-start gap-2">
+                  <Users className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" aria-hidden />
+                  <p className="text-caption text-foreground">
+                    <span className="text-muted-foreground">{t('sunday.story.morale')}: </span>
+                    <span className={cn('tabular-nums font-semibold', report.moraleDelta > 0 ? 'text-emerald-300' : 'text-destructive')}>
+                      {report.moraleDelta > 0 ? '+' : ''}{report.moraleDelta}
+                    </span>
                   </p>
                 </div>
               )}
@@ -680,7 +751,13 @@ const SundayMatchDay = () => {
             </div>
           </GlassPanel>
 
-          {ratings.length > 0 && (
+          {report.adjustments.length > 0 && (
+            <GlassPanel className="p-4">
+              <AdjustmentList rows={report.adjustments} label={t('sunday.match.whyPanel')} />
+            </GlassPanel>
+          )}
+
+          {(ratings.length > 0 || report.guestRatings.length > 0) && (
             <GlassPanel className="p-4">
               <SectionHeader level="section" title={t('sunday.match.ratings')} icon={Flag} />
               <div className="divide-y divide-border/30 mt-1">
@@ -702,6 +779,23 @@ const SundayMatchDay = () => {
                       </span>
                     </div>
                   ))}
+                {/* The guests, who are gone from the squad by now but earned
+                    their ratings on the same afternoon. */}
+                {report.guestRatings.map((g, i) => (
+                  <div key={`guest-${i}`} className="flex items-center gap-2 py-2">
+                    <span className="min-w-0 flex-1 text-body text-foreground truncate">
+                      {g.name} <span className="text-micro text-muted-foreground">· {t('sunday.story.guests')}</span>
+                    </span>
+                    {g.goals > 0 && <span className="text-micro text-emerald-300">{g.goals}G</span>}
+                    {g.assists > 0 && <span className="text-micro text-sky-300">{g.assists}A</span>}
+                    <span className={cn(
+                      'text-caption font-semibold tabular-nums w-8 text-right',
+                      g.rating >= 7.5 ? 'text-emerald-300' : g.rating >= 6 ? 'text-foreground' : 'text-destructive',
+                    )}>
+                      {g.rating.toFixed(1)}
+                    </span>
+                  </div>
+                ))}
               </div>
             </GlassPanel>
           )}

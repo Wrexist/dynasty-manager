@@ -162,6 +162,9 @@ export const en = {
   'sunday.story.lowlight': 'One to forget',
   'sunday.story.turningPoint': 'Where it turned',
   'sunday.story.consequences': 'The damage',
+  'sunday.story.morale': 'Dressing room',
+  'sunday.story.guests': 'Guests',
+  'sunday.story.legendary': 'One for the clubhouse wall',
 
   // Squad
   'sunday.squad.title': 'Squad',

@@ -86,6 +86,12 @@ const migrations: Record<number, MigrationFn> = {
             // recomputing an old report's stakes would need the table as it
             // stood that week, which the save does not keep.
             tier: typeof lm.tier === 'string' ? lm.tier : 'routine',
+            // The breakdown and the guests' ratings were computed and thrown
+            // away, so an old report genuinely has neither. Empty is the truth;
+            // reconstructing either would need a pitch, a squad and a morale
+            // that have all since moved.
+            adjustments: Array.isArray(lm.adjustments) ? lm.adjustments : [],
+            guestRatings: Array.isArray(lm.guestRatings) ? lm.guestRatings : [],
           };
         })()
       : null;

@@ -23,7 +23,8 @@ import { sundayMilestoneToday, sundayReverseFixtureRecall } from '@/utils/sunday
 import { sundayCupRoundName } from '@/utils/sunday/season';
 import { SUNDAY_CUP_ROUNDS } from '@/config/sundayLeague';
 import { createSundayRng } from '@/utils/sunday/rng';
-import { SUNDAY_NARRATIVE_COLOUR_MAX } from '@/config/sundayLeague';
+import { SUNDAY_MEMORY_LEGENDARY_WEIGHT, SUNDAY_NARRATIVE_COLOUR_MAX } from '@/config/sundayLeague';
+import { captureMatchMemories } from '@/utils/sunday/memories';
 import type { LeagueTableEntry, Match, MatchEvent, Player, SundaySquadMember } from '@/types/game';
 
 const SEED = 4242;
@@ -708,5 +709,52 @@ describe('the briefing remembers', () => {
     expect(sundayMilestoneToday(squad, players, ['a', 'b'])).toBe('Dave would hit 100 appearances for the club today.');
     // Not named, not mentioned.
     expect(sundayMilestoneToday(squad, players, ['b'])).toBeNull();
+  });
+});
+
+describe('the aftermath', () => {
+  it('carries the breakdown that explains the result', async () => {
+    const report = (await useGameStore.getState().playSundayMatch())!;
+    expect(report.adjustments.length).toBeGreaterThan(0);
+    for (const row of report.adjustments) {
+      expect(typeof row.label).toBe('string');
+      expect(row.label.length).toBeGreaterThan(2);
+      expect(Number.isFinite(row.delta)).toBe(true);
+    }
+    // The pitch and the tactic are always in there — they apply to every side
+    // in every fixture.
+    expect(report.adjustments.some(a => /Pitch/.test(a.label))).toBe(true);
+  });
+
+  it('keeps the guests in the ratings they earned', async () => {
+    stripSquadTo(SUNDAY_MIN_START - 2);
+    const report = (await useGameStore.getState().playSundayMatch())!;
+    expect(report.ringersUsed).toBeGreaterThan(0);
+    expect(report.guestRatings).toHaveLength(report.ringersUsed);
+    for (const g of report.guestRatings) {
+      expect(g.name.length).toBeGreaterThan(2);
+      expect(g.rating).toBeGreaterThan(0);
+    }
+    // And they are gone from the players map, which is the whole problem.
+    expect(Object.keys(useGameStore.getState().players).some(isSundayRinger)).toBe(false);
+  });
+
+  it('writes an unlikely hero only when one of the worst men wins it', () => {
+    const base = {
+      rating: undefined, isDerby: false, isCup: false, cupRound: null,
+      motm: false, played: true, sentOff: false, injuryWeeks: 0, prevApps: 10, prevGoals: 2,
+      report: { goalsFor: 1, goalsAgainst: 0, opponentName: 'Dog & Duck', season: 1, week: 4 },
+    };
+    const ordinary = captureMatchMemories({ ...base, winnerMinute: 70 });
+    expect(ordinary.some(m => m.kind === 'winner')).toBe(true);
+    expect(ordinary.some(m => m.kind === 'unlikely-hero')).toBe(false);
+
+    const unlikely = captureMatchMemories({ ...base, winnerMinute: 70, unlikelyHero: true });
+    expect(unlikely.some(m => m.kind === 'unlikely-hero')).toBe(true);
+    // One goal, one memory: the two versions of it never both fire.
+    expect(unlikely.some(m => m.kind === 'winner')).toBe(false);
+    // And it is heavy enough to be one for the clubhouse wall.
+    expect(unlikely.find(m => m.kind === 'unlikely-hero')!.weight)
+      .toBeGreaterThanOrEqual(SUNDAY_MEMORY_LEGENDARY_WEIGHT);
   });
 });

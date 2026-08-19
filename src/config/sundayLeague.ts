@@ -1080,8 +1080,19 @@ export const SUNDAY_MEMORY_WEIGHTS: Readonly<Record<string, number>> = {
   milestone: 7,
   'promise-kept': 5,
   'promise-broken': 7,
+  'unlikely-hero': 8,
   'talked-round': 3,
 };
+
+/**
+ * Weight at which a memory stops being a note and becomes one for the
+ * clubhouse wall.
+ *
+ * Presentation only — nothing about how a memory is written or pruned changes
+ * at this line. It exists so the squad biography and the season's moment can
+ * mark the handful of afternoons a club actually retells.
+ */
+export const SUNDAY_MEMORY_LEGENDARY_WEIGHT = 8;
 
 /** Form movement per match: rating pulls `Player.form` toward its own level.
  *  The engine reads form in shot quality, so a striker on a run genuinely

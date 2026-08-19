@@ -18,7 +18,7 @@ import { useGameStore } from '@/store/gameStore';
 import { useTranslation } from '@/hooks/useTranslation';
 import { cn } from '@/lib/utils';
 import { formatMoney, getSuffix } from '@/utils/helpers';
-import { getSundayDivision } from '@/config/sundayLeague';
+import { getSundayDivision, SUNDAY_MEMORY_LEGENDARY_WEIGHT } from '@/config/sundayLeague';
 import { buildSundayTable, sundayPosition } from '@/utils/sunday/season';
 import { momentOfSeason } from '@/utils/sunday/memories';
 
@@ -64,7 +64,7 @@ const SundayHistory = () => {
     return out;
   })();
   const seasonMoment = sunday.seasonComplete && !sunday.folded
-    ? momentOfSeason(sunday.squad, season)?.text ?? null
+    ? momentOfSeason(sunday.squad, season)
     : null;
 
   return (
@@ -147,7 +147,14 @@ const SundayHistory = () => {
           )}
           {seasonMoment && (
             <p className="text-caption text-primary/90 leading-relaxed border-l-2 border-primary/40 pl-3">
-              {t('sunday.history.moment')}: {seasonMoment}
+              {t('sunday.history.moment')}: {seasonMoment.text}
+              {/* The heaviest moments get named as what they are. Presentation
+                  only: the weight was written when the moment happened. */}
+              {seasonMoment.weight >= SUNDAY_MEMORY_LEGENDARY_WEIGHT && (
+                <span className="block text-micro font-semibold text-primary/80 mt-0.5">
+                  {t('sunday.story.legendary')}
+                </span>
+              )}
             </p>
           )}
           <LiquidButton tone="primary" className="w-full py-3" onClick={() => { void endSeason().then(() => setScreen('sunday-hub')); }}>

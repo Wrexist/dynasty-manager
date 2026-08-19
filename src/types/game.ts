@@ -2561,6 +2561,7 @@ export type SundayMemoryKind =
   | 'injury'           // a long one
   | 'milestone'        // 50/100/150 apps, 25/50 goals
   | 'promise-kept' | 'promise-broken'
+  | 'unlikely-hero'    // one of the worst players on the pitch won the match
   | 'talked-round';    // rang and persuaded to play
 
 /**
@@ -3030,6 +3031,22 @@ export interface SundayMatchReport {
   consequences: string[];
   /** English narrative beats, already merged with engine events. */
   narrative: string[];
+  /**
+   * Why the side played the way it did: the labelled attribute adjustments the
+   * XI actually carried onto the pitch — the surface, the tactic's fit, the
+   * kit that was paid for, the dressing room, who was standing next to a mate.
+   *
+   * `buildMatchdayTeam` produced these all along and they were thrown away at
+   * the whistle, which left the result unexplainable an hour later. Snapshotted
+   * because the XI, the pitch and the morale all move on. Schema v3.
+   */
+  adjustments: { label: string; delta: number }[];
+  /**
+   * Guests, with the ratings they earned. They are wiped from `players` after
+   * the whistle, so a man who was paid £15 and scored twice simply vanished
+   * from the ratings list he had topped. Schema v3.
+   */
+  guestRatings: { name: string; rating: number; goals: number; assists: number }[];
   /** Net money the match produced. */
   moneyDelta: number;
   /** Squad-wide morale change. */

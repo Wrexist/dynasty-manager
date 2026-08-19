@@ -43,6 +43,7 @@ import { bumpHeat, deriveDerbyIncident, recordRivalryIncident } from '@/utils/su
 import { resolveDoubt } from '@/utils/sunday/availability';
 import { bumpSundayAppsWith } from '@/utils/sunday/relationships';
 import { clearSundayRingers, generateSundayRinger } from '@/utils/sunday/generation';
+import type { SundayAdjustment } from '@/utils/sunday/match';
 import {
   buildMatchdayTeam, buildSundayNarrative, finishSundaySecondHalf, pickMotm,
   pickSundayOppositionXI, rollSundayWeather, simulateSundayFirstHalf,
@@ -430,6 +431,9 @@ interface SundaySimOutcome {
   /** The complete feed, arrival beats included. */
   narrative: string[];
   motm: PlayerMatchRating | null;
+  /** Why our side was better or worse than it looks on paper — the labelled
+   *  list `buildMatchdayTeam` produced for the XI that finished the match. */
+  adjustments: SundayAdjustment[];
 }
 
 /**
@@ -451,6 +455,8 @@ function forfeitOutcome(setup: SundayMatchSetup): SundaySimOutcome {
     ratings: [],
     injuries: {},
     motm: null,
+    // Nobody played, so nothing helped or hindered them.
+    adjustments: [],
     narrative: [
       ...arrivalBeats,
       `You could not raise ${SUNDAY_MIN_START}. The referee waited twenty minutes and then went home.`,
@@ -573,6 +579,7 @@ function simulateSundayFull(
     ratings: outcome.playerRatings,
     injuries: outcome.matchInjuries,
     motm: pickMotm(outcome.playerRatings, startingIds),
+    adjustments: sides.ourTeam.adjustments,
     narrative: [...arrivalBeats, ...narrateSunday(setup, sunday, outcome.result.events, 'full')],
   };
 }
@@ -598,6 +605,7 @@ function settleSundayMatch(set: Set, get: Get, setup: SundayMatchSetup, sim: Sun
   const cupTie = fixture.kind === 'cup' ? fixture.tie : null;
   let squad = setup.squad;
   const { result, ratings, injuries, motm } = sim;
+  const ringerIds = new Set(ringers.map(r => r.id));
   const narrative = [...sim.narrative];
   const ourGoals = isHome ? result.homeGoals : result.awayGoals;
   const theirGoals = isHome ? result.awayGoals : result.homeGoals;
@@ -737,12 +745,28 @@ function settleSundayMatch(set: Set, get: Get, setup: SundayMatchSetup, sim: Sun
   const winner = forfeited ? null : findMatchWinner(result, clubId, isHome);
   const winnerId = winner && squadIdSet.has(winner.playerId) ? winner.playerId : null;
   const turningPoint = forfeited ? null : findTurningPoint(result, clubId, isHome, players);
+  // The three worst men on the pitch by ability. One of them winning the match
+  // is the afternoon a club retells for years, so it is worth its own memory —
+  // and it is a fact about who was out there, not a judgement.
+  const weakestIds = new Set(
+    startingIds
+      .map(id => players[id])
+      .filter((p): p is Player => !!p)
+      .sort((a, b) => a.overall - b.overall)
+      .slice(0, 3)
+      .map(p => p.id),
+  );
   let lowlight: PlayerMatchRating | null = null;
   for (const r of ratings) {
     if (!squadIdSet.has(r.playerId)) continue;
     if (r.rating <= 5.2 && (!lowlight || r.rating < lowlight.rating)) lowlight = r;
   }
   const consequences: string[] = [];
+  // A guest can win it too, and he has no biography to write it into — the
+  // club just has to live with it.
+  if (winner && !winnerId && ringerIds.has(winner.playerId)) {
+    consequences.push('A guest nobody had met before won the match. Nobody is sure how to feel about it.');
+  }
   const bansStarting: string[] = [];
   const injuriesPicked: string[] = [];
   const cupRound = cupTie ? sundayCupRoundName(cupTie.round) : null;
@@ -793,6 +817,7 @@ function settleSundayMatch(set: Set, get: Get, setup: SundayMatchSetup, sim: Sun
         cupRound,
         winnerMinute: winnerId === m.playerId ? winner!.minute : null,
         motm: motm?.playerId === m.playerId,
+        unlikelyHero: winnerId === m.playerId && weakestIds.has(m.playerId),
         played: took,
         sentOff: result.events.some(e => e.type === 'red_card' && e.playerId === m.playerId),
         injuryWeeks: p.injured ? p.injuryWeeks : 0,
@@ -958,6 +983,18 @@ function settleSundayMatch(set: Set, get: Get, setup: SundayMatchSetup, sim: Sun
     injuries: ourInjuries,
     turningPoint,
     consequences: buildConsequences(),
+    adjustments: sim.adjustments.map(a => ({ label: a.label, delta: a.delta })),
+    // Snapshotted while the guests still exist. Everything else about them is
+    // wiped at the whistle, which is exactly why the ratings list lost them.
+    guestRatings: ratings
+      .filter(r => ringerIds.has(r.playerId))
+      .map(r => ({
+        name: players[r.playerId] ? `${players[r.playerId].firstName} ${players[r.playerId].lastName}` : 'A guest',
+        rating: r.rating,
+        goals: r.goals,
+        assists: r.assists,
+      }))
+      .sort((a, b) => b.rating - a.rating),
     narrative: narrative.filter(Boolean),
     // Money is settled in the weekly advance so it can never be charged twice.
     moneyDelta: 0,
@@ -1282,6 +1319,9 @@ export function finishSundayMatch(set: Set, get: Get, tactic?: SundayTacticId): 
     ratings: outcome.playerRatings,
     injuries: outcome.matchInjuries,
     motm: pickMotm(outcome.playerRatings, setup.startingIds),
+    // The build the match FINISHED under, which is the one that needs
+    // explaining when the manager changed something at the break.
+    adjustments: sides.ourTeam.adjustments,
     // The half already on screen, then the half that just happened. The
     // finished report therefore BEGINS with what the manager has been reading,
     // so the reveal continues instead of starting again.
