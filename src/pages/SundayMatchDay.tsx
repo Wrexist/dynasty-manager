@@ -130,6 +130,7 @@ const SundayMatchDay = () => {
   const [revealed, setRevealed] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [kicking, setKicking] = useState(false);
+  const [deciding, setDeciding] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** True once this mount has started a match, so the mount-time rescue below
    *  cannot fire on the pause we just created ourselves. */
@@ -359,8 +360,21 @@ const SundayMatchDay = () => {
       if (finished) setPlaying(true);
     });
   };
+  /**
+   * The arrival decision: guests or the gap. Once, and it says so afterwards.
+   *
+   * The result used to be discarded — both buttons stayed live while the
+   * action was in flight, and the store's own answer ("2 guests sorted. £30
+   * when the whip-round settles.") was never shown to anybody.
+   */
   const decideRingers = (n: number) => {
-    void hireRingers(n).then(() => hapticLight());
+    if (deciding || arrival?.ringersHired != null) return;
+    setDeciding(true);
+    void hireRingers(n).then(result => {
+      setDeciding(false);
+      hapticLight();
+      toast(result.message);
+    });
   };
 
   const pitch = Math.round(sundayPitchQuality(sunday, week));
@@ -556,6 +570,22 @@ const SundayMatchDay = () => {
                 </span>
               )}
             </p>
+            {/* A decision, and it stays decided. */}
+            {arrival.ringersHired != null && (
+              <p className="text-caption text-muted-foreground">
+                {t('sunday.arrival.decided')}
+                {arrival.ringersHired > 0 && (
+                  <span className="text-foreground">
+                    {' '}
+                    {t('sunday.arrival.hire', {
+                      n: arrival.ringersHired,
+                      s: arrival.ringersHired === 1 ? '' : 's',
+                      cost: arrival.ringersHired * SUNDAY_RINGER_COST,
+                    })}
+                  </span>
+                )}
+              </p>
+            )}
           </GlassPanel>
 
           {shortfallPending ? (
@@ -567,7 +597,7 @@ const SundayMatchDay = () => {
               <LiquidButton
                 tone="amber"
                 className="w-full py-2.5"
-                disabled={sunday.balance < arrival.optionalRingers * SUNDAY_RINGER_COST}
+                disabled={deciding || sunday.balance < arrival.optionalRingers * SUNDAY_RINGER_COST}
                 onClick={() => decideRingers(arrival.optionalRingers)}
               >
                 <span className="block text-left w-full">
@@ -581,7 +611,7 @@ const SundayMatchDay = () => {
                   <span className="block text-micro text-muted-foreground">{t('sunday.arrival.hireHint')}</span>
                 </span>
               </LiquidButton>
-              <LiquidButton className="w-full py-2.5" onClick={() => decideRingers(0)}>
+              <LiquidButton className="w-full py-2.5" disabled={deciding} onClick={() => decideRingers(0)}>
                 <span className="block text-left w-full">
                   <span className="block text-body font-semibold">
                     {t('sunday.arrival.playShort', { n: standing })}
