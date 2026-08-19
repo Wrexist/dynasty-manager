@@ -10,11 +10,14 @@
  */
 import { describe, it, expect } from 'vitest';
 import {
-  sundayCrestSpec, sundayFaceSpec, sundayHash, sundayKitSpec,
+  sundayCrestSpec, sundayFaceSpec, sundayHash, sundayKitSpec, sundayRatingTier,
 } from '@/utils/sunday/visuals';
 import {
   PLAYER_HAIR_COLORS, PLAYER_HAIR_STYLES, PLAYER_SKIN_TONES,
 } from '@/config/playerAppearance';
+import {
+  SUNDAY_DIVISIONS, SUNDAY_OVERALL_CEILING, SUNDAY_OVERALL_FLOOR,
+} from '@/config/sundayLeague';
 import { useGameStore } from '@/store/gameStore';
 import type { PlayerAppearance } from '@/types/game';
 
@@ -147,5 +150,60 @@ describe('a real Sunday squad', () => {
       // …and the spec hands it back rather than inventing a second face.
       expect(sundayFaceSpec(p)).toBe(p.appearance);
     }
+  });
+});
+
+/**
+ * The rating scale, which is the one place this mode deliberately departs from
+ * a house convention. The house thresholds (80 / 70 / 60) sit entirely above
+ * this world's ceiling of 78, so the tiers are anchored on the pyramid's own
+ * `oppQuality` ladder instead. These cases pin that anchoring — not the
+ * numbers, which are allowed to move with the ladder.
+ */
+describe('sundayRatingTier', () => {
+  it('never leaves a rating in the band uncoloured', () => {
+    for (let ovr = SUNDAY_OVERALL_FLOOR; ovr <= SUNDAY_OVERALL_CEILING; ovr++) {
+      expect(sundayRatingTier(ovr), String(ovr)).toMatch(/standout|good|steady|limited/);
+    }
+  });
+
+  it('reads the divisions rather than a magic number', () => {
+    const [div4, , div2, div1] = SUNDAY_DIVISIONS;
+    expect(sundayRatingTier(div1.oppQuality)).toBe('standout');
+    expect(sundayRatingTier(div1.oppQuality - 1)).toBe('good');
+    expect(sundayRatingTier(div2.oppQuality)).toBe('good');
+    expect(sundayRatingTier(div2.oppQuality - 1)).toBe('steady');
+    expect(sundayRatingTier(div4.oppQuality)).toBe('steady');
+    expect(sundayRatingTier(div4.oppQuality - 1)).toBe('limited');
+  });
+
+  it('rises monotonically — a better player is never painted worse', () => {
+    const rank = { limited: 0, steady: 1, good: 2, standout: 3 } as const;
+    let last = -1;
+    for (let ovr = 0; ovr <= 100; ovr++) {
+      const r = rank[sundayRatingTier(ovr)];
+      expect(r, String(ovr)).toBeGreaterThanOrEqual(last);
+      last = r;
+    }
+  });
+
+  /**
+   * The measurement the bands were chosen against: 3,218 generated players
+   * across every club personality. If a generation change ever makes a whole
+   * starting division `standout`, the scale has stopped meaning anything and
+   * this is where it shows up.
+   */
+  it('leaves a starting division mostly steady, with a handful above it', async () => {
+    const counts = { standout: 0, good: 0, steady: 0, limited: 0 };
+    for (const seed of [1, 777, 90210]) {
+      useGameStore.getState().resetGame();
+      await useGameStore.getState().startSundayLeague({ personality: 'pub', seed });
+      const s = useGameStore.getState();
+      for (const m of s.sunday!.squad) counts[sundayRatingTier(s.players[m.playerId].overall)]++;
+    }
+    const total = counts.standout + counts.good + counts.steady + counts.limited;
+    expect(total).toBeGreaterThan(20);
+    expect(counts.steady / total).toBeGreaterThan(0.5);
+    expect(counts.standout / total).toBeLessThan(0.2);
   });
 });

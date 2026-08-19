@@ -21,6 +21,7 @@
 import {
   PLAYER_HAIR_COLORS, PLAYER_HAIR_STYLES, PLAYER_SKIN_TONES,
 } from '@/config/playerAppearance';
+import { SUNDAY_DIVISIONS } from '@/config/sundayLeague';
 import type { Player, PlayerAppearance } from '@/types/game';
 import { subSeed } from './rng';
 
@@ -176,4 +177,47 @@ export function sundayFaceSpec(player: Pick<Player, 'id' | 'appearance'>): Playe
     accessory: faceField(id, 'accessoryRoll', 20) < 3 ? faceField(id, 'accessory', 4) + 1 : 0,
     bootColor: faceField(id, 'boots', 4),
   };
+}
+
+// ── Ratings ─────────────────────────────────────────────────────────────────
+
+/**
+ * How good a Sunday footballer is, in four words rather than a number.
+ *
+ * WHY THE PROJECT'S OWN THRESHOLDS DO NOT WORK HERE. The house rating scale is
+ * ">=80 emerald, >=70 primary, >=60 amber, below that muted", and it is
+ * calibrated for a world where a first-team professional is 70-85. This mode's
+ * band is `SUNDAY_OVERALL_FLOOR` 20 to `SUNDAY_OVERALL_CEILING` 78, and a
+ * measurement across all eight club personalities × three seeds (3,218
+ * generated players in a starting division) came back min 29, median 44, p90
+ * 50, p97 55, max 74. Under the house scale that is a screen of undifferentiated
+ * muted grey with one amber pixel in it: the colour would carry no information
+ * at all.
+ *
+ * WHAT THE BANDS ARE ANCHORED ON. Not invented numbers — the pyramid's own
+ * `oppQuality` ladder (42 / 47 / 52 / 57 / 63 from Division Four to County
+ * Premier). So a tone answers "what level does this man belong at", which is
+ * the same question OVR answers everywhere else in the app, and it keeps
+ * meaning that as a club climbs: a squad that is all `steady` in Division Four
+ * genuinely turns gold on the way to the County Premier.
+ *
+ *   standout — County Premier calibre (>= Div 1 quality). The ex-pro.
+ *   good     — a division or two above where a new club starts.
+ *   steady   — Division Four standard. The bulk of every Sunday squad.
+ *   limited  — below the bottom of the pyramid. There to make eleven.
+ *
+ * AND WHY `steady` IS NOT AMBER. Roughly 85% of a starting squad lands in it,
+ * and amber is the app's warning tone — a list of fifteen amber numbers reads
+ * as fifteen problems. `steady` is the neutral foreground; the tones are spent
+ * on the men who are actually unusual in either direction.
+ */
+export type SundayRatingTier = 'standout' | 'good' | 'steady' | 'limited';
+
+const tierQuality = (index: number): number => SUNDAY_DIVISIONS[index].oppQuality;
+
+export function sundayRatingTier(overall: number): SundayRatingTier {
+  if (overall >= tierQuality(3)) return 'standout';
+  if (overall >= tierQuality(2)) return 'good';
+  if (overall >= tierQuality(0)) return 'steady';
+  return 'limited';
 }
