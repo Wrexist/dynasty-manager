@@ -200,6 +200,11 @@ const SundayTeamsheet = () => {
           </span>
         }
       />
+      {/* The count chip reads "n of 11", so the constraint that actually
+          decides whether the game happens at all was invisible. */}
+      <p className="text-micro text-muted-foreground leading-relaxed -mt-1">
+        {t('sunday.sheet.minHint', { min: SUNDAY_MIN_START })}
+      </p>
 
       {/* Tactic */}
       <GlassPanel className="p-4 space-y-2">
@@ -278,7 +283,7 @@ const SundayTeamsheet = () => {
           }
         />
         {xiRows.length === 0 ? (
-          <p className="text-caption text-muted-foreground mt-2">{t('sunday.sheet.tapToAdd')}</p>
+          <p className="text-caption text-muted-foreground mt-2">{t('sunday.sheet.tapToAdd', { min: SUNDAY_MIN_START })}</p>
         ) : (
           <div className="divide-y divide-border/30 mt-1">
             {xiRows.map(row => (

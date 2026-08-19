@@ -113,10 +113,14 @@ const SundayHub = () => {
           <StatChip label={t('sunday.hub.squadLabel')} value={t('sunday.hub.squadSize', { n: sunday.squad.length })} />
           <StatChip label={t('sunday.hub.pitch')} value={`${Math.round(pitch)}/100`} tone={pitch < 25 ? 'warn' : 'default'} />
         </div>
+        {/* Onboarding: every number on this card was readable and none of them
+            said what it does. One caption per group, not a tooltip each. */}
+        <p className="text-micro text-muted-foreground leading-relaxed mt-2">{t('sunday.hub.pitchHint')}</p>
         <div className="grid grid-cols-2 gap-3 mt-3">
           <Meter label={t('sunday.hub.morale')} value={sunday.teamMorale} />
           <Meter label={t('sunday.hub.reputation')} value={sunday.reputation} />
         </div>
+        <p className="text-micro text-muted-foreground leading-relaxed mt-2">{t('sunday.hub.metersHint')}</p>
       </GlassPanel>
 
       {/* Availability */}
@@ -272,6 +276,9 @@ const SundayHub = () => {
             </span>
           </LiquidButton>
         </div>
+        {subsOwed > 0 && (
+          <p className="text-micro text-muted-foreground leading-relaxed">{t('sunday.hub.subsHint')}</p>
+        )}
       </GlassPanel>
 
       {/* Rivalry */}

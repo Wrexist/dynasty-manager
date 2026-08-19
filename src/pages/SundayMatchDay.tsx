@@ -481,7 +481,7 @@ const SundayMatchDay = () => {
                       <span
                         key={i}
                         className={cn(
-                          'w-4 h-4 rounded text-[9px] font-bold inline-flex items-center justify-center',
+                          'w-5 h-5 rounded text-micro font-bold inline-flex items-center justify-center',
                           r === 'W' ? 'bg-emerald-500/25 text-emerald-300'
                             : r === 'L' ? 'bg-destructive/25 text-destructive' : 'bg-amber-400/20 text-amber-300',
                         )}
@@ -533,6 +533,9 @@ const SundayMatchDay = () => {
           <LiquidButton tone="primary" className="w-full py-3" onClick={onArrive} disabled={kicking}>
             <span className="inline-flex items-center gap-1.5"><Users className="w-4 h-4" aria-hidden /> {t('sunday.arrival.title')}</span>
           </LiquidButton>
+          {/* The button's own label does not say it is a one-way door, and the
+              teamsheet locks behind it. */}
+          <p className="text-micro text-muted-foreground leading-relaxed px-1">{t('sunday.arrival.gateHint')}</p>
           <LiquidButton className="w-full py-2.5" onClick={() => setScreen('sunday-teamsheet')}>
             {t('sunday.sheet.title')}
           </LiquidButton>

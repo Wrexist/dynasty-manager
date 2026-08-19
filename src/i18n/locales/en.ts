@@ -78,6 +78,12 @@ export const en = {
   'sunday.hub.rival': 'Rivalry',
   'sunday.hub.rivalRecord': '{w}W {d}D {l}L',
   'sunday.hub.pitch': 'Pitch',
+  // Onboarding captions. The mode's numbers are all readable and none of them
+  // said what they DO — a player reading "Standing 31" learned nothing. Each
+  // caption names the mechanic it drives, in the register of the screen.
+  'sunday.hub.pitchHint': 'The state of your ground. A bad surface takes passing and pace off BOTH sides. Winter drags it down; pitch maintenance pulls it back up.',
+  'sunday.hub.metersHint': 'Morale lifts or drags every player a little on a Sunday, and drifts toward how happy the squad is. Standing is what the world outside thinks: it sets what sponsors offer, who is willing to sign, and how strong the sides you meet get.',
+  'sunday.hub.subsHint': 'Match fees the lads have not handed over. Chasing gets most of it back and costs you goodwill in the group chat.',
   'sunday.hub.lastResult': 'Last time out',
   'sunday.hub.seasonOver': 'The season is over',
   'sunday.hub.seasonOverBody': 'That is the last fixture played. Time to look back at it.',
@@ -100,7 +106,8 @@ export const en = {
   'sunday.sheet.autoPick': 'Pick it for me',
   'sunday.sheet.confirm': 'Name the team',
   'sunday.sheet.count': '{n} of {max}',
-  'sunday.sheet.tapToAdd': 'Tap a player to name him',
+  'sunday.sheet.tapToAdd': 'Tap a player to name him. {min} is the fewest you can start with.',
+  'sunday.sheet.minHint': 'Eleven is a full side. {min} is the number that matters — turn up with fewer and the game is forfeited.',
   'sunday.sheet.warnShort': 'You are naming {n}. You need {min} to start.',
   'sunday.sheet.warnNoKeeper': 'Nobody in this XI is a goalkeeper.',
   'sunday.sheet.warnOutOfPosition': '{n} players are out of position.',
@@ -116,6 +123,7 @@ export const en = {
 
   // Match day — the Sunday morning
   'sunday.arrival.title': 'Sunday morning',
+  'sunday.arrival.gateHint': 'Find out who actually turned up. There is no going back from this — once the guests are sorted the side is fixed, so name the team you want first.',
   'sunday.arrival.quiet': 'Everyone who said they would come, came. Remarkable.',
   'sunday.arrival.standing': '{n} standing here in kit',
   'sunday.arrival.short': 'You are {n} short of eleven.',
