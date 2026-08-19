@@ -9,9 +9,7 @@ import { cn } from '@/lib/utils';
 import { useTranslation } from '@/hooks/useTranslation';
 import { SUNDAY_FORM_COLD, SUNDAY_FORM_HOT } from '@/config/sundayLeague';
 import { SUNDAY_AVAILABILITY_ICON, SUNDAY_ICON } from '@/config/sundayIcons';
-import type {
-  Player, SundayAvailability, SundayAvailabilityStatus, SundaySquadMember,
-} from '@/types/game';
+import type { SundayAvailability, SundayAvailabilityStatus } from '@/types/game';
 
 const HotFormIcon = SUNDAY_ICON.hotForm;
 
@@ -28,9 +26,19 @@ const AVAIL_TONE: Record<SundayAvailabilityStatus, string> = {
   out: 'bg-destructive/15 text-destructive border-destructive/30',
 };
 
-/** Availability at a glance. An unwarned absence reads as "no word from him"
- *  rather than naming the reason — the manager does not know it yet. */
-export function AvailabilityPill({ availability, className }: { availability: SundayAvailability; className?: string }) {
+/**
+ * Availability at a glance. An unwarned absence reads as "no word from him"
+ * rather than naming the reason — the manager does not know it yet.
+ *
+ * The prop is narrowed to the two fields it reads so a caller that holds only
+ * `status` and `warned` — a memoized card whose props must all be scalars —
+ * can build the pair inline instead of dragging a whole `SundayAvailability`
+ * through its prop list. A full availability object still satisfies it.
+ */
+export function AvailabilityPill({ availability, className }: {
+  availability: Pick<SundayAvailability, 'status' | 'warned'>;
+  className?: string;
+}) {
   const { t } = useTranslation();
   const { status, warned } = availability;
   const label = status === 'available'
@@ -181,11 +189,22 @@ export function SundayCrest({ shortName, color, secondaryColor, size = 40, class
  * Shared by the Squad list and the Teamsheet rows on purpose. The Teamsheet is
  * where the decision is actually made, and it used to show only job and OVR —
  * every input to the decision lived one screen away.
+ *
+ * FOUR SCALARS, NOT TWO OBJECTS. It used to take the whole `SundaySquadMember`
+ * and the whole `Player`. The squad list now renders twenty memoized cards, and
+ * `players` is rewritten by the store on every match, every training tick and
+ * every week advance — so a card holding a `Player` re-renders whether or not
+ * anything about that man changed. Values in, memo intact. Same reasoning as
+ * `SundayFace`'s rule 2.
  */
-export function PlayerFlags({ member, player, captain }: {
-  member: SundaySquadMember;
-  player: Player;
+export function PlayerFlags({ captain, unsettled, form, promised }: {
   captain?: boolean;
+  /** He has told the manager he is thinking of leaving. */
+  unsettled?: boolean;
+  /** `Player.form`, 0-100. */
+  form: number;
+  /** He has been promised a start. */
+  promised?: boolean;
 }) {
   const { t } = useTranslation();
   return (
@@ -193,18 +212,18 @@ export function PlayerFlags({ member, player, captain }: {
       {captain && (
         <span className="text-micro font-bold text-primary shrink-0" aria-label={t('sunday.sheet.captain')}>C</span>
       )}
-      {member.unsettled && (
+      {unsettled && (
         <span className="text-micro text-amber-300 shrink-0">{t('sunday.squad.unsettled')}</span>
       )}
-      {player.form >= SUNDAY_FORM_HOT && (
+      {form >= SUNDAY_FORM_HOT && (
         <span className="inline-flex items-center gap-0.5 text-micro font-semibold text-emerald-300 shrink-0">
           <HotFormIcon className="w-3 h-3" aria-hidden /> {t('sunday.bio.onFire')}
         </span>
       )}
-      {player.form <= SUNDAY_FORM_COLD && (
+      {form <= SUNDAY_FORM_COLD && (
         <span className="text-micro font-semibold text-sky-300/80 shrink-0">{t('sunday.bio.struggling')}</span>
       )}
-      {member.promise && (
+      {promised && (
         <span className="text-micro font-semibold text-primary shrink-0">{t('sunday.bio.promised')}</span>
       )}
     </>

@@ -163,7 +163,12 @@ const SundaySquad = () => {
                         <span className="text-body font-medium text-foreground truncate">
                           {player.firstName} {player.lastName}
                         </span>
-                        <PlayerFlags member={member} player={player} captain={sunday.captainId === player.id} />
+                        <PlayerFlags
+                          captain={sunday.captainId === player.id}
+                          unsettled={member.unsettled}
+                          form={player.form}
+                          promised={!!member.promise}
+                        />
                       </span>
                       <span className="block text-micro text-muted-foreground truncate">
                         {arch.name} · {member.job}

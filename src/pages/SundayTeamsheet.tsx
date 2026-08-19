@@ -69,7 +69,12 @@ function PlayerRow({ row, right, onClick, dim, captain }: {
           </span>
           {/* Form, mood, the armband and any promise — the inputs to the
               decision this screen exists to make. */}
-          <PlayerFlags member={member} player={player} captain={captain} />
+          <PlayerFlags
+            captain={captain}
+            unsettled={member.unsettled}
+            form={player.form}
+            promised={!!member.promise}
+          />
         </span>
         <span className="block text-micro text-muted-foreground truncate">
           {member.job} · {player.overall} OVR
