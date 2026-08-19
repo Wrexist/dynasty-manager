@@ -13,7 +13,7 @@ import { SUNDAY_MAX_RINGERS, SUNDAY_MIN_START, SUNDAY_FULL_XI } from '@/config/s
 import { isSundayRinger } from '@/utils/sunday/generation';
 import {
   bestSundayTactic, buildMatchdayTeam, buildSundayNarrative, pitchConditionFor,
-  sundayStyleOf, sundayTacticFit,
+  sundayResultVerdict, sundayStyleOf, sundayTacticFit,
 } from '@/utils/sunday/match';
 import {
   SUNDAY_CONCEDED_DERBY_LINES, SUNDAY_CONCEDED_LATE_LINES, SUNDAY_CONCEDED_LINES,
@@ -25,7 +25,9 @@ import { SUNDAY_CUP_ROUNDS } from '@/config/sundayLeague';
 import { createSundayRng } from '@/utils/sunday/rng';
 import { SUNDAY_MEMORY_LEGENDARY_WEIGHT, SUNDAY_NARRATIVE_COLOUR_MAX } from '@/config/sundayLeague';
 import { captureMatchMemories, findTurningPoint } from '@/utils/sunday/memories';
-import type { LeagueTableEntry, Match, MatchEvent, Player, SundaySquadMember } from '@/types/game';
+import type {
+  LeagueTableEntry, Match, MatchEvent, Player, SundayMatchReport, SundaySquadMember,
+} from '@/types/game';
 
 const SEED = 4242;
 
@@ -890,5 +892,41 @@ describe('the turning point', () => {
     ]), 'us', true, players)!;
     expect(line).not.toMatch(/took it off you|Silence/);
     expect(line).toMatch(/hang on/);
+  });
+});
+
+/**
+ * The one-line verdict on the hub card and under the full-time whistle. It is
+ * the shortest piece of prose in the mode and the most read, so it has the
+ * same duty as the narrative: never describe something that did not happen.
+ */
+describe('the verdict', () => {
+  const report = (over: Partial<SundayMatchReport>): SundayMatchReport => ({
+    goalsFor: 0, goalsAgainst: 0, forfeited: false, startedWith: SUNDAY_FULL_XI,
+    ...over,
+  } as SundayMatchReport);
+
+  it('does not have a long conversation about the second goal of a 0-0', () => {
+    const line = sundayResultVerdict(report({ goalsFor: 0, goalsAgainst: 0 }));
+    expect(line).not.toMatch(/second goal/);
+    expect(line).toMatch(/Goalless/);
+  });
+
+  it('still does, when there were goals to talk about', () => {
+    expect(sundayResultVerdict(report({ goalsFor: 1, goalsAgainst: 1 }))).toMatch(/second goal/);
+    expect(sundayResultVerdict(report({ goalsFor: 2, goalsAgainst: 2 }))).toMatch(/second goal/);
+  });
+
+  it('counts the men it says it counted', () => {
+    expect(sundayResultVerdict(report({ goalsFor: 2, goalsAgainst: 0, startedWith: 8 })))
+      .toBe('Won it with 8 men.');
+    expect(sundayResultVerdict(report({ goalsFor: 0, goalsAgainst: 1, startedWith: 8 })))
+      .toBe('Lost, but you were down to 8.');
+    expect(sundayResultVerdict(report({ goalsFor: 0, goalsAgainst: 0, startedWith: 8 })))
+      .toMatch(/8 men/);
+  });
+
+  it('says so when there was no side at all', () => {
+    expect(sundayResultVerdict(report({ forfeited: true }))).toMatch(/could not raise a side/);
   });
 });

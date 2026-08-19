@@ -933,15 +933,30 @@ export function pickMotm(ratings: readonly PlayerMatchRating[], eligibleIds: rea
   return best;
 }
 
-/** A short English verdict on the result, for the hub card. */
+/**
+ * A short English verdict on the result, for the hub card.
+ *
+ * EVERY LINE HAS TO BE TRUE OF THE MATCH IT IS ABOUT. The draw line used to
+ * be a single string mentioning "the second goal", which on a 0-0 describes a
+ * goal nobody scored — the same class of fault as a card claiming a fixture
+ * that was never played. A draw is only a two-goal draw when somebody scored.
+ */
 export function sundayResultVerdict(report: SundayMatchReport): string {
   if (report.forfeited) return 'Match abandoned. You could not raise a side.';
   const diff = report.goalsFor - report.goalsAgainst;
+  const short = report.startedWith < SUNDAY_FULL_XI;
   if (diff >= 4) return 'A hiding, in the right direction.';
-  if (diff > 0 && report.startedWith < 11) return `Won it with ${report.startedWith} men.`;
+  if (diff > 0 && short) return `Won it with ${report.startedWith} men.`;
   if (diff > 0) return 'Won it.';
-  if (diff === 0) return 'A point, and a long conversation about the second goal.';
+  if (diff === 0) {
+    if (report.goalsFor === 0) {
+      return short
+        ? `Goalless, with ${report.startedWith} men. A point is a point.`
+        : 'Goalless. Nobody is talking about that one on Monday.';
+    }
+    return 'A point, and a long conversation about the second goal.';
+  }
   if (diff <= -4) return 'That was very bad indeed.';
-  if (report.startedWith < 11) return `Lost, but you were down to ${report.startedWith}.`;
+  if (short) return `Lost, but you were down to ${report.startedWith}.`;
   return 'Beaten.';
 }
