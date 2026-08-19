@@ -16,9 +16,10 @@
  * WHAT CHANGED AND WHY. This was eight `GlassPanel`s of identical weight and
  * identical padding, three of which explained themselves in a paragraph
  * underneath. Availability was stated three separate ways, the rivalry was five
- * stacked `<p>`, and the cup got a whole panel for one line. The panels are now
- * five, they are not the same weight, and the explanatory copy is two short
- * lines in `SectionHeader`'s subtitle slot instead of 535 characters of prose.
+ * stacked `<p>`, and the cup got a whole panel for one line. There are now five
+ * panels (six when the club has a rival), they are not the same weight, and the
+ * explanatory copy is two short lines in `SectionHeader`'s subtitle slot instead
+ * of 535 characters of prose beneath the things it described.
  *
  * NOTHING IS DERIVED HERE. Every number comes out of `sundayClubSummary`, the
  * opposition out of `sundayOppositionCard`, the feed out of `sundayNewsFeed`,
