@@ -242,15 +242,17 @@ describe('injury recovery in the live game loop', () => {
     const st = useGameStore.getState();
     const rivalId = (st.divisionClubs[st.playerDivision] || []).find(id => id !== CLUB)!;
     const victimId = st.clubs[rivalId].playerIds[0];
-    // A type string the injury generator cannot produce, so a NEW injury is
-    // always distinguishable from this one.
-    const MARKER = '__test-marker__';
+    // A `totalWeeks` the injury generator never produces, so a NEW injury
+    // picked up on the way back is always distinguishable from this one.
+    // (`type` would read better and is a closed union, so it cannot carry a
+    // marker.)
+    const MARKER = 99;
     useGameStore.setState({
       players: {
         ...st.players,
         [victimId]: {
           ...st.players[victimId], injured: true, injuryWeeks: 3, fitness: 40,
-          injuryDetails: { ...details(), type: MARKER, weeksRemaining: 3, totalWeeks: 3 },
+          injuryDetails: { ...details(), weeksRemaining: 3, totalWeeks: MARKER },
         },
       },
     });
@@ -281,7 +283,7 @@ describe('injury recovery in the live game loop', () => {
     // different event and is explicitly allowed — what may not happen is THIS
     // one still running.
     const after = useGameStore.getState().players[victimId];
-    const stillTheSameInjury = after.injured && after.injuryDetails?.type === MARKER;
+    const stillTheSameInjury = after.injured && after.injuryDetails?.totalWeeks === MARKER;
     expect(stillTheSameInjury, 'an AI club player never recovered').toBe(false);
   });
 

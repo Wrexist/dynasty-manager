@@ -660,7 +660,7 @@ describe('a squad shaped for a tactic plays better in it', () => {
   function playN(xi: Player[], tacticId: SundayTacticId, opponent: Player[], matches: number): number {
     const us = club('us');
     const them = club('them');
-    const weather: MatchWeather = 'clear' as MatchWeather;
+    const weather: MatchWeather = { weather: 'clear', pitch: 'good' };
     // Attribute adjustments the mode really applies, including the fit lever
     // this case exists to measure. Neutral pitch, no equipment, flat morale, so
     // fit is the only thing that differs between the two runs.
