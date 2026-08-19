@@ -215,6 +215,20 @@ describe('Render hygiene — always-on guards', () => {
     'src/components/game/BottomNav.tsx',
     'src/components/game/TopBar.tsx',
     'src/components/game/SubNav.tsx',
+    // Sunday League. Its screens sit on the same store as everything else and
+    // were never covered here, so the guard had a mode-shaped hole in it. They
+    // matter for the same reason the elite pages do — MatchDay ticks a live
+    // feed, the Hub is the mode's home, and the Teamsheet is a tap-heavy list —
+    // and the immersion work about to land on them adds crests, kits and
+    // portraits that re-render with whatever their host subscribes to.
+    'src/pages/SundayHub.tsx',
+    'src/pages/SundayTeamsheet.tsx',
+    'src/pages/SundaySquad.tsx',
+    'src/pages/SundayMatchDay.tsx',
+    'src/pages/SundayTable.tsx',
+    'src/pages/SundayClubhouse.tsx',
+    'src/pages/SundayRecruit.tsx',
+    'src/pages/SundayHistory.tsx',
   ];
 
   it('hot pages never subscribe to the whole store', () => {
