@@ -254,9 +254,18 @@ export function findTurningPoint(
   }
   const last = beats[beats.length - 1];
   if (last.minute >= 88 && ourFinal !== theirFinal) {
-    return last.ours
-      ? `${last.scorer}'s ${last.minute}th-minute goal settled it at the death.`
-      : `They took it off you in the ${last.minute}th minute. Silence in the changing room.`;
+    // WHOSE GOAL IT WAS IS NOT ENOUGH — the RESULT decides the sentence. A
+    // consolation in the 90th was being announced as having "settled it at the
+    // death" in a 1-2 defeat, which is the one thing this layer must never do:
+    // contradict the scoreline printed directly above it.
+    if (last.ours) {
+      return won
+        ? `${last.scorer}'s ${last.minute}th-minute goal settled it at the death.`
+        : `${last.scorer} scored in the ${last.minute}th. Far too late to be worth anything.`;
+    }
+    return lost
+      ? `They took it off you in the ${last.minute}th minute. Silence in the changing room.`
+      : `They pulled one back in the ${last.minute}th and you had to hang on for it.`;
   }
   if (won && worstDeficit >= 1) {
     return 'Behind at one point, in front when it mattered.';

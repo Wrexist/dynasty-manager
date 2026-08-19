@@ -24,7 +24,7 @@ import { sundayCupRoundName } from '@/utils/sunday/season';
 import { SUNDAY_CUP_ROUNDS } from '@/config/sundayLeague';
 import { createSundayRng } from '@/utils/sunday/rng';
 import { SUNDAY_MEMORY_LEGENDARY_WEIGHT, SUNDAY_NARRATIVE_COLOUR_MAX } from '@/config/sundayLeague';
-import { captureMatchMemories } from '@/utils/sunday/memories';
+import { captureMatchMemories, findTurningPoint } from '@/utils/sunday/memories';
 import type { LeagueTableEntry, Match, MatchEvent, Player, SundaySquadMember } from '@/types/game';
 
 const SEED = 4242;
@@ -756,5 +756,139 @@ describe('the aftermath', () => {
     // And it is heavy enough to be one for the clubhouse wall.
     expect(unlikely.find(m => m.kind === 'unlikely-hero')!.weight)
       .toBeGreaterThanOrEqual(SUNDAY_MEMORY_LEGENDARY_WEIGHT);
+  });
+});
+
+describe('every goal, told by the right side', () => {
+  /** Every event type the engine can put a goal on the board with. */
+  const SCORING_TYPES = [
+    'goal', 'own_goal', 'penalty_scored', 'free_kick_goal', 'long_range_goal',
+    'counter_attack_goal', 'header_goal', 'solo_goal', 'goalkeeper_error',
+    'extra_time_goal',
+  ] as const;
+
+  const players: Record<string, Player> = {
+    ours: mkPlayer('ours', 'Dave'),
+    theirs: mkPlayer('theirs', 'Kev', { clubId: 'them' }),
+  };
+
+  /**
+   * One goal, in isolation, from every angle: each scoring type, credited to
+   * each club, at home and away.
+   *
+   * The three things that must agree and once did not: WHO the engine credited
+   * (`clubId`, the benefiting side — for an own goal that is NOT the club the
+   * named player plays for), WHICH way the running score moved, and WHOSE
+   * VOICE told it.
+   */
+  for (const type of SCORING_TYPES) {
+    for (const benefits of ['us', 'them'] as const) {
+      for (const isHome of [true, false]) {
+        it(`${type} for ${benefits === 'us' ? 'us' : 'them'} ${isHome ? 'at home' : 'away'}`, () => {
+          const lines = buildSundayNarrative({
+            rng: createSundayRng(21, 0), clubId: 'us', players, isDerby: false,
+            events: [{
+              minute: 30, type, clubId: benefits,
+              // An own goal names a player from the side that did NOT benefit.
+              playerId: type === 'own_goal'
+                ? (benefits === 'us' ? 'theirs' : 'ours')
+                : (benefits === 'us' ? 'ours' : 'theirs'),
+              description: '',
+            }] as MatchEvent[],
+            noShowNames: [], ringerNames: [], startedWith: 11,
+            homeGoals: 0, awayGoals: 0, isHome,
+          });
+
+          // (a) The running score moved for the side the engine credited, in
+          //     the home-away orientation the HT/FT markers use.
+          const ourGoal = benefits === 'us' ? 1 : 0;
+          const theirGoal = 1 - ourGoal;
+          const expected = isHome ? `${ourGoal}-${theirGoal}` : `${theirGoal}-${ourGoal}`;
+          expect(lines).toContain(`FT ${expected}.`);
+          expect(lines).toContain(`HT ${expected}.`);
+
+          const goalLines = lines.filter(l => /^\d+': /.test(l));
+          if (type === 'extra_time_goal') {
+            // Not a rewritten type: it counts, but the mode says nothing about
+            // it rather than inventing a voice for it.
+            expect(goalLines).toHaveLength(0);
+            return;
+          }
+          expect(goalLines).toHaveLength(1);
+          const line = goalLines[0];
+
+          // The score inside the line is the same score, not a second opinion.
+          expect(line).toContain(`(${expected})`);
+
+          // (b) The conceded pool is used if and only if the OPPOSITION
+          //     benefited — the named player's own club is irrelevant, which
+          //     is the whole sharp edge of the own goal.
+          const conceded = Object.values(SUNDAY_CONCEDED_LINES).flat();
+          const fromConceded = conceded.some(tpl => matchesTemplate(line, tpl));
+          expect(fromConceded, `${line} (benefits ${benefits})`).toBe(benefits === 'them');
+        });
+      }
+    }
+  }
+
+  it('never says a goal won it when it did not', () => {
+    // 86th-minute lead, pegged back in the 89th. The old gate looked only at
+    // the score AT THE TIME, so the feed announced a winner and then printed
+    // FT 2-2 three lines later.
+    const events: MatchEvent[] = [
+      { minute: 20, type: 'goal', clubId: 'them', playerId: 'theirs', description: '' },
+      { minute: 60, type: 'goal', clubId: 'us', playerId: 'ours', description: '' },
+      { minute: 86, type: 'goal', clubId: 'us', playerId: 'ours', description: '' },
+      { minute: 89, type: 'goal', clubId: 'them', playerId: 'theirs', description: '' },
+    ];
+    const lines = buildSundayNarrative({
+      rng: createSundayRng(22, 0), events, clubId: 'us', players, isDerby: false,
+      noShowNames: [], ringerNames: [], startedWith: 11,
+      homeGoals: 2, awayGoals: 2, isHome: true,
+    });
+    const text = lines.join(' ');
+    expect(lines).toContain('FT 2-2.');
+    expect(text).not.toMatch(/won it at the death|has won it|taken it off you/i);
+  });
+});
+
+describe('the turning point', () => {
+  const players: Record<string, Player> = { ours: mkPlayer('ours', 'Finlay') };
+  const match = (homeGoals: number, awayGoals: number, events: MatchEvent[]): Match => ({
+    id: 'm', week: 5, homeClubId: 'us', awayClubId: 'them',
+    played: true, homeGoals, awayGoals, events,
+  });
+
+  it('does not tell a beaten side its consolation settled the match', () => {
+    // Observed live: FT 1-2, our man scores at 90+4, and the story block said
+    // "Finlay's 90th-minute goal settled it at the death."
+    const line = findTurningPoint(match(1, 2, [
+      { minute: 30, type: 'goal', clubId: 'them', playerId: 'x', description: '' },
+      { minute: 70, type: 'goal', clubId: 'them', playerId: 'x', description: '' },
+      { minute: 90, type: 'goal', clubId: 'us', playerId: 'ours', description: '' },
+    ]), 'us', true, players)!;
+    expect(line).not.toMatch(/settled it/);
+    expect(line).toContain('Finlay');
+    expect(line).toMatch(/late/i);
+  });
+
+  it('still calls a real late winner what it was', () => {
+    const line = findTurningPoint(match(2, 1, [
+      { minute: 30, type: 'goal', clubId: 'them', playerId: 'x', description: '' },
+      { minute: 70, type: 'goal', clubId: 'us', playerId: 'ours', description: '' },
+      { minute: 90, type: 'goal', clubId: 'us', playerId: 'ours', description: '' },
+    ]), 'us', true, players)!;
+    expect(line).toContain('settled it at the death');
+  });
+
+  it('does not call a late consolation against you a defeat', () => {
+    const line = findTurningPoint(match(3, 1, [
+      { minute: 10, type: 'goal', clubId: 'us', playerId: 'ours', description: '' },
+      { minute: 40, type: 'goal', clubId: 'us', playerId: 'ours', description: '' },
+      { minute: 60, type: 'goal', clubId: 'us', playerId: 'ours', description: '' },
+      { minute: 89, type: 'goal', clubId: 'them', playerId: 'x', description: '' },
+    ]), 'us', true, players)!;
+    expect(line).not.toMatch(/took it off you|Silence/);
+    expect(line).toMatch(/hang on/);
   });
 });

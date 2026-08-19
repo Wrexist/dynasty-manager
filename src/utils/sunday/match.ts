@@ -495,6 +495,20 @@ const INJURY_LINES: readonly string[] = [
   '{player} has gone over on his ankle and is being helped off by two people who should be defending.',
 ];
 
+/**
+ * Every event type that puts a goal on the board.
+ *
+ * ONE list, used both to run the score along and to decide whose voice tells
+ * it, so the two can never disagree about who scored — including the own goal,
+ * where the engine credits the BENEFITING club and names a defender from the
+ * other one.
+ */
+const SCORING_TYPES: ReadonlySet<string> = new Set([
+  'goal', 'own_goal', 'penalty_scored', 'extra_time_goal', 'free_kick_goal',
+  'long_range_goal', 'counter_attack_goal', 'header_goal', 'solo_goal', 'goalkeeper_error',
+]);
+const isScoringEvent = (type: string): boolean => SCORING_TYPES.has(type);
+
 /** Types the narrative layer will rewrite. Everything else is passed through
  *  from the engine untouched, so nothing can be silently contradicted. */
 const REWRITTEN = new Set([...Object.keys(GOAL_LINES), 'shot_missed', 'yellow_card', 'red_card', 'injury']);
@@ -603,22 +617,27 @@ export function buildSundayNarrative(input: NarrativeInput): string[] {
   let away = 0;
   const nameOf = (id?: string) => (id && players[id] ? players[id].firstName : 'someone');
 
+  // The index of the LAST goal in this event list, which is what makes "he has
+  // won it at the death" safe to say: a goal that is followed by another goal
+  // settled nothing, and a line claiming otherwise is contradicted three
+  // seconds later by the feed itself.
+  let lastGoalIndex = -1;
+  for (let i = 0; i < events.length; i++) if (isScoringEvent(events[i].type)) lastGoalIndex = i;
+
   let htPushed = false;
   // Budget for the lines that come out of the club's records rather than the
   // event stream. See `SUNDAY_NARRATIVE_COLOUR_MAX`.
   let colour = 0;
   const colouredIds = new Set<string>();
-  for (const ev of events) {
+  for (let index = 0; index < events.length; index++) {
+    const ev = events[index];
     // The half-time score line goes in before the first second-half event, so
     // the feed reads like a match and not a list.
     if (!htPushed && ev.minute > 45) {
       if (phase !== 'second') out.push(`HT ${home}-${away}.`);
       htPushed = true;
     }
-    const scored = ev.type === 'goal' || ev.type === 'own_goal' || ev.type === 'penalty_scored'
-      || ev.type === 'extra_time_goal' || ev.type === 'free_kick_goal' || ev.type === 'long_range_goal'
-      || ev.type === 'counter_attack_goal' || ev.type === 'header_goal' || ev.type === 'solo_goal'
-      || ev.type === 'goalkeeper_error';
+    const scored = isScoringEvent(ev.type);
     if (scored) {
       // `clubId` on a goal event is the BENEFITING side — own goals included,
       // where the engine credits the club that gained the goal and names the
@@ -653,15 +672,21 @@ export function buildSundayNarrative(input: NarrativeInput): string[] {
       // Own goals are excluded from every context pool on BOTH sides: the
       // event names a defender from the other team, so "he runs to celebrate
       // at their bench" would be about the wrong man.
+      // "The death" means the death: the last goal of the match, at 85 or
+      // later, that leaves one side a goal in front. Without the last-goal
+      // check a 86th-minute lead that was pegged back in the 89th was still
+      // announced as having won it, and the feed contradicted its own FT line
+      // two beats later.
+      const decisive = index === lastGoalIndex && ev.minute >= 85;
       if (ours && ev.type !== 'own_goal') {
-        if (ev.minute >= 85 && ourScore === theirScore + 1) pool = LATE_WINNER_LINES;
+        if (decisive && ourScore === theirScore + 1) pool = LATE_WINNER_LINES;
         else if (isDerby) pool = DERBY_GOAL_LINES;
         else if (scorerAge >= 35) pool = VETERAN_GOAL_LINES;
         else if (ourScore === theirScore && theirScore >= 2) pool = COMEBACK_LEVELLER_LINES;
       } else if (!ours && ev.type !== 'own_goal') {
-        // The mirror of the late winner: they have just gone in front with the
-        // referee looking at his watch.
-        if (ev.minute >= 85 && theirScore === ourScore + 1) pool = SUNDAY_CONCEDED_LATE_LINES;
+        // The mirror of the late winner: they have gone in front with the
+        // referee looking at his watch, and nobody answered it.
+        if (decisive && theirScore === ourScore + 1) pool = SUNDAY_CONCEDED_LATE_LINES;
         else if (isDerby) pool = SUNDAY_CONCEDED_DERBY_LINES;
       }
       const base = ours ? GOAL_LINES : SUNDAY_CONCEDED_LINES;

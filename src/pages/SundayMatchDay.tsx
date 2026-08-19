@@ -683,8 +683,14 @@ const SundayMatchDay = () => {
             level="section"
             title={t('sunday.match.halfTime')}
             accessory={
+              // HOME-AWAY, like the header above it and like the `HT x-y`
+              // marker in the feed. The report stores the score from the
+              // club's own point of view, and printing that here made the
+              // panel read 0-1 under a feed that had just said HT 1-0.
               <span className="text-h3 font-display font-bold tabular-nums text-foreground">
-                {halfTime!.goalsFor}-{halfTime!.goalsAgainst}
+                {isHome
+                  ? `${halfTime!.goalsFor}-${halfTime!.goalsAgainst}`
+                  : `${halfTime!.goalsAgainst}-${halfTime!.goalsFor}`}
               </span>
             }
           />
