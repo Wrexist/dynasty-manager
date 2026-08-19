@@ -35,8 +35,18 @@ const AVAIL_TONE: Record<SundayAvailabilityStatus, string> = {
  * can build the pair inline instead of dragging a whole `SundayAvailability`
  * through its prop list. A full availability object still satisfies it.
  */
-export function AvailabilityPill({ availability, className }: {
+export function AvailabilityPill({ availability, subtle, className }: {
   availability: Pick<SundayAvailability, 'status' | 'warned'>;
+  /**
+   * Keep the word, drop the chip.
+   *
+   * On the squad list eleven of fifteen cards say "Available", and a filled
+   * emerald capsule repeated eleven times outshouted the names it sat under —
+   * the eye is looking for the four that are a problem. Subtle mode keeps the
+   * label and its colour (so it is still read, still announced and still not
+   * carried by colour alone) and takes away the weight.
+   */
+  subtle?: boolean;
   className?: string;
 }) {
   const { t } = useTranslation();
@@ -47,7 +57,13 @@ export function AvailabilityPill({ availability, className }: {
       ? t('sunday.avail.doubt')
       : warned ? t('sunday.avail.out') : t('sunday.avail.noWord');
   return (
-    <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-micro font-semibold', AVAIL_TONE[status], className)}>
+    <span className={cn(
+      'inline-flex items-center gap-1 text-micro font-semibold',
+      subtle ? 'px-0' : 'px-2 py-0.5 rounded-full border',
+      AVAIL_TONE[status],
+      subtle && 'bg-transparent border-transparent',
+      className,
+    )}>
       {label}
     </span>
   );
@@ -121,37 +137,59 @@ export function StatChip({ label, value, tone, className }: {
   );
 }
 
-/** 0-100 meter. Colour AND a numeric label, so the value is never carried by
- *  colour alone. The optional glyph comes from `SUNDAY_ICON` and lets a row of
- *  meters be scanned without reading three labels. */
-export function Meter({ label, value, icon: Icon, className }: {
+/** The fill colour of a 0-100 bar. */
+function meterTone(pct: number): string {
+  return pct >= 66 ? 'bg-emerald-500/80' : pct >= 33 ? 'bg-amber-400/80' : 'bg-destructive/80';
+}
+
+/**
+ * 0-100 meter. Colour AND a numeric label, so the value is never carried by
+ * colour alone. The optional glyph comes from `SUNDAY_ICON` and lets a row of
+ * meters be scanned without reading three labels.
+ *
+ * BUILT FROM SPANS, NOT DIVS. Three of these sit inside the squad card's
+ * disclosure `<button>`, and a `<button>` may only contain phrasing content.
+ * `display: block` on a span renders identically and keeps the markup valid,
+ * which costs nothing and avoids a second, nearly-identical meter component
+ * existing purely to be button-safe.
+ *
+ * `tight` EXISTS BECAUSE OF WHAT A ROW OF THEM LOOKED LIKE. Three side by side
+ * with the label hard left and the number hard right put more space inside each
+ * meter than between two of them, so `Mood 72 Fitness 100 Form 74` read as one
+ * run-on line and the eye paired every number with the wrong word. Tight keeps
+ * the pair together and lets the grid gap do the separating; the spread form
+ * stays the default because a lone meter under a wide header wants it.
+ */
+export function Meter({ label, value, icon: Icon, tight, className }: {
   label: string;
   value: number;
   icon?: React.ElementType;
+  /** Label and number sit together rather than at opposite ends. Use in a
+   *  multi-column row of meters. */
+  tight?: boolean;
   className?: string;
 }) {
   const pct = Math.max(0, Math.min(100, Math.round(value)));
-  const tone = pct >= 66 ? 'bg-emerald-500/80' : pct >= 33 ? 'bg-amber-400/80' : 'bg-destructive/80';
   return (
-    <div className={cn('min-w-0', className)}>
-      <div className="flex items-baseline justify-between gap-2">
+    <span className={cn('block min-w-0', className)}>
+      <span className={cn('flex items-baseline gap-1.5 min-w-0', !tight && 'justify-between gap-2')}>
         <span className="text-micro text-muted-foreground truncate inline-flex items-baseline gap-1">
           {Icon && <Icon className="w-3 h-3 shrink-0 self-center" aria-hidden />}
           {label}
         </span>
-        <span className="text-micro font-semibold text-foreground tabular-nums">{pct}</span>
-      </div>
-      <div
-        className="h-1.5 rounded-full overflow-hidden bg-muted/30 mt-1"
+        <span className="text-micro font-semibold text-foreground tabular-nums shrink-0">{pct}</span>
+      </span>
+      <span
+        className="block h-1.5 rounded-full overflow-hidden bg-muted/30 mt-1"
         role="meter"
         aria-valuenow={pct}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-label={label}
       >
-        <div className={cn('h-full rounded-full', tone)} style={{ width: `${pct}%` }} />
-      </div>
-    </div>
+        <span className={cn('block h-full rounded-full', meterTone(pct))} style={{ width: `${pct}%` }} />
+      </span>
+    </span>
   );
 }
 

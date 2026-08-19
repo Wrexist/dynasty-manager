@@ -227,9 +227,19 @@ export const SundayFace = memo(function SundayFace({
 
       {/* Hair. Three tiers of cut, not twelve: at portrait scale the difference
           between a fade and an undercut is one pixel, and pretending otherwise
-          just adds nodes. */}
+          just adds nodes.
+
+          THE EDGE, added after looking at a squad list. Hair is a flat fill and
+          the palette runs from black to near-white, so a light blond or a grey
+          head on a pale skin tone had nothing separating the two shapes and
+          read as a swim cap rather than as hair. A hairline stroke in a darker
+          shade of the hair's own colour fixes every combination at once — it
+          costs two attributes on a path that is already there, and it is only
+          drawn at the large tier, where the cut is more than a silhouette. */}
       {!BALD.has(style) && (
         <path
+          stroke={isLarge ? darken(hair, 0.32) : undefined}
+          strokeWidth={isLarge ? 0.5 : undefined}
           d={hasVolume
             ? [
                 `M ${n(cx - jaw / 2 - 0.6)} ${n(cy - 1.2)}`,

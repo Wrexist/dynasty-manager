@@ -22,8 +22,8 @@
  * to prevent.
  */
 import type {
-  Club, Match, Player, SundaySponsorDeal, SundaySquadMember, SundayState,
-  SundayTacticId, SundayUpgradeId,
+  Club, Match, Player, SundayMemory, SundaySponsorDeal, SundaySquadMember,
+  SundayState, SundayTacticId, SundayUpgradeId,
 } from '@/types/game';
 import { SUNDAY_UPGRADES, sundayUpgradeCost } from '@/config/sundayLeague';
 import type { SundayNewsKind } from '@/config/sundayIcons';
@@ -58,6 +58,27 @@ export function sundaySquadView(
     if (player) out.push({ member, player });
   }
   return out;
+}
+
+/**
+ * The moments a club actually retells about one man, heaviest first.
+ *
+ * `SundaySquadMember.memories` is written in the order things happened and
+ * capped by weight elsewhere; a biography wants the opposite order — the
+ * afternoon everyone remembers at the top, this Sunday's booking at the bottom.
+ * Ties break on recency so two equally-weighted moments read newest-first.
+ *
+ * Here rather than in the card for the reason everything else in this file is
+ * here: it is a derivation, the screens are renderers, and it is testable
+ * without a DOM.
+ */
+export function sundayTopMemories(
+  member: SundaySquadMember,
+  limit: number,
+): SundayMemory[] {
+  return [...member.memories]
+    .sort((a, b) => b.weight - a.weight || b.season - a.season || b.week - a.week)
+    .slice(0, Math.max(0, limit));
 }
 
 // ── The club, in numbers ────────────────────────────────────────────────────
