@@ -15,10 +15,38 @@ import {
   bestSundayTactic, buildMatchdayTeam, buildSundayNarrative, pitchConditionFor,
   sundayStyleOf, sundayTacticFit,
 } from '@/utils/sunday/match';
+import {
+  SUNDAY_CONCEDED_DERBY_LINES, SUNDAY_CONCEDED_LATE_LINES, SUNDAY_CONCEDED_LINES,
+} from '@/data/sundayNames';
 import { createSundayRng } from '@/utils/sunday/rng';
 import type { MatchEvent, Player } from '@/types/game';
 
 const SEED = 4242;
+
+/** A throwaway Player, for narrative assertions that only need a name. */
+function mkPlayer(id: string, firstName: string, over: Partial<Player> = {}): Player {
+  return {
+    id, firstName, lastName: 'X', age: 25, nationality: 'England', position: 'ST',
+    attributes: { pace: 40, shooting: 40, passing: 40, defending: 40, physical: 40, mental: 40 },
+    overall: 40, potential: 40, clubId: 'us', wage: 0, value: 0, contractEnd: 99,
+    fitness: 100, morale: 60, form: 60, injured: false, injuryWeeks: 0,
+    goals: 0, assists: 0, appearances: 0, careerGoals: 0, careerAssists: 0,
+    careerAppearances: 0, yellowCards: 0, redCards: 0,
+    ...over,
+  };
+}
+
+/** Did this rendered line come from that template? Placeholders match anything
+ *  that is not a sentence break, so the pool a line came from is identifiable
+ *  without exporting the substitution machinery. */
+function matchesTemplate(line: string, template: string): boolean {
+  const body = line.replace(/^\d+': /, '');
+  const pattern = template
+    .split(/\{[a-z]+\}/)
+    .map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .join('[^.!?]*');
+  return new RegExp(`^${pattern}$`).test(body);
+}
 
 function check() {
   const s = useGameStore.getState();
@@ -276,6 +304,80 @@ describe('narrative', () => {
     // The last goal line must read 3-1 — the final score.
     const goalLines = lines.filter(l => /\d+-\d+/.test(l));
     expect(goalLines[goalLines.length - 1]).toContain('3-1');
+  });
+
+  it('never narrates a goal against you in the celebratory voice', () => {
+    // The bug: both sides' goals were drawn from GOAL_LINES, so the opposition
+    // going 1-0 up read "…and the man on the touchline with the dog applauds".
+    const players: Record<string, Player> = { a: mkPlayer('a', 'Dave'), b: mkPlayer('b', 'Kev') };
+    const types = Object.keys(SUNDAY_CONCEDED_LINES);
+    const events: MatchEvent[] = types.map((type, i) => ({
+      minute: 5 + i * 4, type, clubId: 'them', playerId: 'b', description: '',
+    })) as MatchEvent[];
+    // Own goals credited to THEM name one of OURS, which is the only case where
+    // the conceded pool talks about a player on this side.
+    const lines = buildSundayNarrative({
+      rng: createSundayRng(9, 0), events, clubId: 'us', players, isDerby: false,
+      noShowNames: [], ringerNames: [], startedWith: 11,
+      homeGoals: 0, awayGoals: types.length, isHome: true,
+    });
+    const goalLines = lines.filter(l => /^\d+': /.test(l));
+    expect(goalLines).toHaveLength(types.length);
+    const conceded = Object.values(SUNDAY_CONCEDED_LINES).flat();
+    for (const line of goalLines) {
+      expect(conceded.some(tpl => matchesTemplate(line, tpl)), line).toBe(true);
+    }
+
+    // The other direction, which is what makes the first assertion mean
+    // something: OUR goals must never come out of the conceded pools.
+    const oursLines = buildSundayNarrative({
+      rng: createSundayRng(10, 0), clubId: 'us', players, isDerby: false,
+      events: types.map((type, i) => ({
+        minute: 5 + i * 4, type, clubId: 'us', playerId: 'a', description: '',
+      })) as MatchEvent[],
+      noShowNames: [], ringerNames: [], startedWith: 11,
+      homeGoals: types.length, awayGoals: 0, isHome: true,
+    }).filter(l => /^\d+': /.test(l));
+    for (const line of oursLines) {
+      expect(conceded.some(tpl => matchesTemplate(line, tpl)), line).toBe(false);
+    }
+  });
+
+  it('gives a late goal against you its own sting, and a derby one too', () => {
+    const players: Record<string, Player> = { b: mkPlayer('b', 'Kev') };
+    const late = buildSundayNarrative({
+      rng: createSundayRng(11, 0), clubId: 'us', players, isDerby: false,
+      events: [{ minute: 89, type: 'goal', clubId: 'them', playerId: 'b', description: '' }],
+      noShowNames: [], ringerNames: [], startedWith: 11,
+      homeGoals: 0, awayGoals: 1, isHome: true,
+    }).filter(l => /^\d+': /.test(l));
+    expect(late).toHaveLength(1);
+    expect(SUNDAY_CONCEDED_LATE_LINES.some(tpl => matchesTemplate(late[0], tpl)), late[0]).toBe(true);
+
+    const derby = buildSundayNarrative({
+      rng: createSundayRng(12, 0), clubId: 'us', players, isDerby: true,
+      events: [{ minute: 30, type: 'goal', clubId: 'them', playerId: 'b', description: '' }],
+      noShowNames: [], ringerNames: [], startedWith: 11,
+      homeGoals: 0, awayGoals: 1, isHome: true,
+    }).filter(l => /^\d+': /.test(l));
+    expect(derby).toHaveLength(1);
+    expect(SUNDAY_CONCEDED_DERBY_LINES.some(tpl => matchesTemplate(derby[0], tpl)), derby[0]).toBe(true);
+  });
+
+  it('keeps the half-time and full-time markers exact', () => {
+    const players: Record<string, Player> = { a: mkPlayer('a', 'Dave'), b: mkPlayer('b', 'Kev') };
+    const lines = buildSundayNarrative({
+      rng: createSundayRng(13, 0), clubId: 'us', players, isDerby: false,
+      events: [
+        { minute: 10, type: 'goal', clubId: 'us', playerId: 'a', description: '' },
+        { minute: 44, type: 'goal', clubId: 'them', playerId: 'b', description: '' },
+        { minute: 70, type: 'goal', clubId: 'us', playerId: 'a', description: '' },
+      ],
+      noShowNames: [], ringerNames: [], startedWith: 11,
+      homeGoals: 2, awayGoals: 1, isHome: true,
+    });
+    expect(lines).toContain('HT 1-1.');
+    expect(lines).toContain('FT 2-1.');
   });
 
   it('names the no-shows and the guests', () => {

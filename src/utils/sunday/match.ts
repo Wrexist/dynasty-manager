@@ -49,7 +49,10 @@ import {
   SUNDAY_FIT_DELTA_RANGE, SUNDAY_FIT_OVERALL_PER_POINT, SUNDAY_VARIANCE_TILT_SHARE,
   SUNDAY_TACTICS, getSundayTactic, SUNDAY_COACH_FIT_PER_LEVEL,
 } from '@/config/sundayLeague';
-import { SUNDAY_AMBIENCE, SUNDAY_RINGER_LINES, SUNDAY_SHORT_SIDE_LINES } from '@/data/sundayNames';
+import {
+  SUNDAY_AMBIENCE, SUNDAY_CONCEDED_DERBY_LINES, SUNDAY_CONCEDED_LATE_LINES,
+  SUNDAY_CONCEDED_LINES, SUNDAY_RINGER_LINES, SUNDAY_SHORT_SIDE_LINES,
+} from '@/data/sundayNames';
 import { sundayChemistry } from './relationships';
 import type { SundayRng } from './rng';
 
@@ -565,19 +568,33 @@ export function buildSundayNarrative(input: NarrativeInput): string[] {
     if (scored && GOAL_LINES[ev.type]) {
       // Context outranks mechanism: a goal that means something gets the line
       // about what it MEANS, chosen strictly from facts the event carries.
+      //
+      // WHOSE GOAL IT IS OUTRANKS BOTH. The celebratory pools are for goals
+      // this club scored; a goal against gets the same event told from the
+      // touchline that has just gone silent. Both sides used to draw from the
+      // same pool, so half of every feed applauded the opposition.
       const ours = ev.clubId === clubId;
       const ourScore = isHome ? home : away;
       const theirScore = isHome ? away : home;
       const scorerAge = ev.playerId ? players[ev.playerId]?.age ?? 0 : 0;
       let pool: readonly string[] | null = null;
+      // Own goals are excluded from every context pool on BOTH sides: the
+      // event names a defender from the other team, so "he runs to celebrate
+      // at their bench" would be about the wrong man.
       if (ours && ev.type !== 'own_goal') {
         if (ev.minute >= 85 && ourScore === theirScore + 1) pool = LATE_WINNER_LINES;
         else if (isDerby) pool = DERBY_GOAL_LINES;
         else if (scorerAge >= 35) pool = VETERAN_GOAL_LINES;
         else if (ourScore === theirScore && theirScore >= 2) pool = COMEBACK_LEVELLER_LINES;
+      } else if (!ours && ev.type !== 'own_goal') {
+        // The mirror of the late winner: they have just gone in front with the
+        // referee looking at his watch.
+        if (ev.minute >= 85 && theirScore === ourScore + 1) pool = SUNDAY_CONCEDED_LATE_LINES;
+        else if (isDerby) pool = SUNDAY_CONCEDED_DERBY_LINES;
       }
+      const base = ours ? GOAL_LINES : SUNDAY_CONCEDED_LINES;
       const template = (pool ? rng.pick(pool) : null)
-        ?? rng.pick(GOAL_LINES[ev.type])
+        ?? rng.pick(base[ev.type] ?? base.goal ?? [])
         ?? '{scorer} scores. ({score})';
       out.push(`${minute}': ${template
         .replace(/\{scorer\}/g, nameOf(ev.playerId))

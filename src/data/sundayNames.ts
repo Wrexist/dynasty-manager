@@ -261,6 +261,74 @@ export const SUNDAY_RINGER_LINES: readonly string[] = [
   '{name} has not played since school but says he is "still quick".',
 ];
 
+// ── Conceding ───────────────────────────────────────────────────────────────
+//
+// THE OTHER SIDE OF THE SCORELINE. Both sides' goals used to be narrated from
+// the celebratory pools above, so roughly half of every match feed cheered the
+// opposition on: "Callum finishes, and the man on the touchline with the dog
+// applauds" was them going 1-0 up. These pools are the same events told from
+// the touchline that has just gone quiet.
+//
+// Same contract as `GOAL_LINES`: keyed by the engine's event type, `{scorer}`
+// is whoever the event names and `{score}` the running score. For a conceded
+// own goal the engine names OUR defender, which is why that pool reads the way
+// it does.
+
+export const SUNDAY_CONCEDED_LINES: Readonly<Record<string, readonly string[]>> = {
+  goal: [
+    'Nobody picks up {scorer} and he has the easiest finish of his life. ({score})',
+    '{scorer} is left alone six yards out. Two of yours look at each other. ({score})',
+    'It squirms in off {scorer}. Your keeper is already turning round to ask who was marking. ({score})',
+    '{scorer} scores, and your touchline goes very quiet. ({score})',
+  ],
+  long_range_goal: [
+    '{scorer} hits one from thirty yards and it flies in. Nothing anybody could have done. ({score})',
+    'From miles out, {scorer}. Your keeper had it covered right up until he did not. ({score})',
+  ],
+  header_goal: [
+    'A corner, nobody goes with {scorer}, and it is a free header. ({score})',
+    '{scorer} climbs above a man who was watching the ball. Everyone knows which man. ({score})',
+  ],
+  free_kick_goal: [
+    'The wall jumps. {scorer}’s free kick does not. In it goes. ({score})',
+    '{scorer} curls the free kick in while your lot are still arguing about the foul. ({score})',
+  ],
+  counter_attack_goal: [
+    'You lose it in their half, {scorer} finishes at the other end, and nobody got back. ({score})',
+    'Three passes and {scorer} is through. Your midfield is still walking. ({score})',
+  ],
+  solo_goal: [
+    '{scorer} goes past three of yours as though they had been put there for practice. ({score})',
+    '{scorer} beats everybody and finishes. Somebody shouts "get tight". Somewhat late. ({score})',
+  ],
+  penalty_scored: [
+    'Penalty against you. A long protest, no change of mind, {scorer} scores. ({score})',
+    'Your keeper guesses right. It goes the other way. {scorer} does not miss. ({score})',
+  ],
+  own_goal: [
+    '{scorer} has turned it into his own net. He pulls his shirt over his face. ({score})',
+    'It comes off {scorer} and in. Nobody says a word to him, which is worse. ({score})',
+  ],
+  goalkeeper_error: [
+    'Your keeper spills it and {scorer} rolls it into an empty net. Sickening. ({score})',
+    'It goes straight through your keeper. {scorer} cannot believe his luck. ({score})',
+  ],
+};
+
+/** Conceded late, when they have just gone in front. The ones that ruin the
+ *  drive home. `{minute}` is the event's own minute. */
+export const SUNDAY_CONCEDED_LATE_LINES: readonly string[] = [
+  '{scorer}, in the {minute}th minute. Your lot are on their knees. ({score})',
+  'The referee is checking his watch, and {scorer} scores. Nobody speaks. ({score})',
+  '{minute} minutes gone and {scorer} has taken it off you. ({score})',
+];
+
+/** Conceded to THAT lot. */
+export const SUNDAY_CONCEDED_DERBY_LINES: readonly string[] = [
+  '{scorer} scores, and their bench empties. You will hear about this all week. ({score})',
+  '{scorer}, against you, in this fixture of all fixtures. Their manager is looking straight at your dugout. ({score})',
+];
+
 /** Post-match social beats — the food, the pint, the debrief. */
 export const SUNDAY_POSTMATCH_LINES: readonly string[] = [
   'Everyone is back at the pub within forty minutes.',
