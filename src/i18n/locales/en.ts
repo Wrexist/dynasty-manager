@@ -20,6 +20,19 @@ export const en = {
   'sunday.mode.description': 'Run a local Sunday side. Work out who is actually turning up, find the money for the referee, and try to turn a pub team into a football club.',
 
   // Setup
+  // Navigation. The ONLY source of a Sunday tab or sub-nav label — the tab
+  // strip, the sub-nav strip and SCREEN_TITLES all read from here or from each
+  // other, never from a fourth hardcoded literal.
+  'sunday.nav.home': 'Home',
+  'sunday.nav.team': 'Team',
+  'sunday.nav.teamsheet': 'Teamsheet',
+  'sunday.nav.squad': 'Squad',
+  'sunday.nav.recruits': 'Recruits',
+  'sunday.nav.league': 'League',
+  'sunday.nav.clubhouse': 'Clubhouse',
+  'sunday.nav.history': 'History',
+  'sunday.nav.recruitsInterested': '{n} recruits interested',
+
   'sunday.setup.title': 'Start a Sunday Club',
   'sunday.setup.subtitle': 'What sort of club is this?',
   'sunday.setup.clubName': 'Club',
@@ -203,7 +216,7 @@ export const en = {
   'sunday.bio.formerTeammates': 'Used to play with {names}',
 
   // Club
-  'sunday.club.title': 'The Club',
+  'sunday.club.title': 'Clubhouse',
   'sunday.club.identity': 'Identity',
   'sunday.club.nickname': 'Known as',
   'sunday.club.venue': 'Home',

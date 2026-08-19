@@ -441,6 +441,22 @@ export const SQUAD_SUB_NAV: { screen: GameScreen; label: string }[] = [
   { screen: 'youth-academy', label: 'Youth' },
 ];
 
+// ── Sunday League Sub-Navigation ──
+// Key-based, unlike the two lists above: every Sunday nav label resolves
+// through `t()` so the tab strip, the sub-nav strip and SCREEN_TITLES cannot
+// drift apart the way "Club"/"Money" did. The legacy English literals above
+// are left alone deliberately — converting them is a separate job.
+export const SUNDAY_TEAM_SUB_NAV: { screen: GameScreen; labelKey: string }[] = [
+  { screen: 'sunday-teamsheet', labelKey: 'sunday.nav.teamsheet' },
+  { screen: 'sunday-squad', labelKey: 'sunday.nav.squad' },
+  { screen: 'sunday-recruit', labelKey: 'sunday.nav.recruits' },
+];
+
+export const SUNDAY_CLUB_SUB_NAV: { screen: GameScreen; labelKey: string }[] = [
+  { screen: 'sunday-clubhouse', labelKey: 'sunday.nav.clubhouse' },
+  { screen: 'sunday-history', labelKey: 'sunday.nav.history' },
+];
+
 // ── Team Talk Options (match day half-time) ──
 export const TEAM_TALK_OPTIONS = [
   {

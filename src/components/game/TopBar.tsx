@@ -72,7 +72,12 @@ export function TopBar() {
     // Inbox) carry BACK_TARGETs of 'dashboard', and GameShell renders the hub
     // for it in this mode — the header has to agree or the hub appears under
     // back-button chrome pointing at itself.
-    const SUNDAY_TABS = ['sunday-hub', 'sunday-teamsheet', 'sunday-squad', 'sunday-club', 'dashboard'];
+    // Every screen reachable from the tab strip or a sub-nav gets the identity
+    // header; only 'sunday-match' is deep enough to want a back button.
+    const SUNDAY_TABS = [
+      'sunday-hub', 'sunday-teamsheet', 'sunday-squad', 'sunday-recruit',
+      'sunday-table', 'sunday-clubhouse', 'sunday-history', 'dashboard',
+    ];
     const isSundayTab = SUNDAY_TABS.includes(currentScreen);
     return (
       <header role="banner" className="fixed top-0 left-0 right-0 z-50 bg-background/95 border-b border-border/30 safe-area-top transform-gpu">

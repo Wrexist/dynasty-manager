@@ -11,8 +11,8 @@ import { PageErrorBoundary } from '@/components/game/PageErrorBoundary';
 import { ErrorBoundary } from '@/components/game/ErrorBoundary';
 import { ContractNegotiation } from '@/components/game/ContractNegotiation';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
-import { BACK_TARGET, MAIN_TABS, WC_MAIN_TABS, SUNDAY_MAIN_TABS, SCREEN_GROUPS, UNEMPLOYED_MAIN_TABS, UNEMPLOYED_ALLOWED_SCREENS } from '@/config/navigation';
-import { MARKET_SUB_NAV, SQUAD_SUB_NAV } from '@/config/ui';
+import { BACK_TARGET, MAIN_TABS, WC_MAIN_TABS, SUNDAY_MAIN_TABS, SCREEN_GROUPS, SUNDAY_SCREEN_GROUPS, SUNDAY_TEAM_GROUP, UNEMPLOYED_MAIN_TABS, UNEMPLOYED_ALLOWED_SCREENS } from '@/config/navigation';
+import { MARKET_SUB_NAV, SQUAD_SUB_NAV, SUNDAY_TEAM_SUB_NAV, SUNDAY_CLUB_SUB_NAV } from '@/config/ui';
 import { PACK_PITY_THRESHOLD } from '@/config/packs';
 import { useMatchLocked, useCareerUnemployed, useCareerRetired } from '@/hooks/useGameSelectors';
 import { InfoTipProvider } from '@/components/game/InfoTip';
@@ -77,7 +77,7 @@ const SundayHub = lazy(() => import('./SundayHub'));
 const SundayTeamsheet = lazy(() => import('./SundayTeamsheet'));
 const SundayMatchDay = lazy(() => import('./SundayMatchDay'));
 const SundaySquad = lazy(() => import('./SundaySquad'));
-const SundayClub = lazy(() => import('./SundayClub'));
+const SundayClubhouse = lazy(() => import('./SundayClubhouse'));
 const SundayTable = lazy(() => import('./SundayTable'));
 const SundayRecruit = lazy(() => import('./SundayRecruit'));
 const SundayHistory = lazy(() => import('./SundayHistory'));
@@ -139,7 +139,7 @@ const screens: Record<string, React.ComponentType> = {
   'sunday-teamsheet': SundayTeamsheet,
   'sunday-match': SundayMatchDay,
   'sunday-squad': SundaySquad,
-  'sunday-club': SundayClub,
+  'sunday-clubhouse': SundayClubhouse,
   'sunday-table': SundayTable,
   'sunday-recruit': SundayRecruit,
   'sunday-history': SundayHistory,
@@ -170,6 +170,7 @@ const PageSuspenseFallback = () => {
 
 const GameShell = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { gameStarted, currentScreen, packPityCounter, gameMode } = useGameStore(useShallow(s => ({
     gameStarted: s.gameStarted,
     currentScreen: s.currentScreen,
@@ -197,9 +198,21 @@ const GameShell = () => {
   // SubNav doesn't receive a fresh `items` array on every GameShell render
   // (which would defeat its prop stability and trigger child re-renders).
   const subNavGroup = useMemo(() => {
-    // World Cup and Sunday League strip the club sub-screens (Staff/Youth/
-    // Training, Scouting/Packs) — so there is no Squad/Market sub-nav to show.
-    if (gameMode === 'world-cup' || gameMode === 'sunday') return null;
+    // Sunday League has its own two groups (Team and Clubhouse) and its own
+    // key-based labels, so it branches out before the club-game lookup.
+    if (gameMode === 'sunday') {
+      const sundayGroup = SUNDAY_SCREEN_GROUPS.find(g => g.includes(currentScreen));
+      if (!sundayGroup) return null;
+      const isTeam = sundayGroup === SUNDAY_TEAM_GROUP;
+      const source = isTeam ? SUNDAY_TEAM_SUB_NAV : SUNDAY_CLUB_SUB_NAV;
+      return {
+        items: source.map(i => ({ screen: i.screen, label: t(i.labelKey) })),
+        layoutId: isTeam ? 'subnav-pill-sunday-team' : 'subnav-pill-sunday-club',
+      };
+    }
+    // World Cup strips the club sub-screens (Staff/Youth/Training,
+    // Scouting/Packs) — so there is no Squad/Market sub-nav to show.
+    if (gameMode === 'world-cup') return null;
     const group = SCREEN_GROUPS.find(g => g.includes(currentScreen));
     if (!group) return null;
     if (group[0] === 'squad') {
@@ -214,7 +227,7 @@ const GameShell = () => {
       return { items, layoutId: 'subnav-pill-market' };
     }
     return null;
-  }, [currentScreen, packPityCounter, gameMode]);
+  }, [currentScreen, packPityCounter, gameMode, t]);
 
   useEffect(() => {
     if (!gameStarted) navigate('/');
@@ -285,14 +298,16 @@ const GameShell = () => {
     return () => { cancelled = true; stopEntitlementListener(); };
   }, []);
 
-  // World Cup mode has no Squad/Market sub-groups, so swipe ignores them.
-  const useSubGroups = !isUnemployed && gameMode !== 'world-cup' && gameMode !== 'sunday';
+  // World Cup mode has no sub-groups, so swipe ignores them. Sunday League has
+  // its own two, so swipe walks those instead of the club game's.
+  const useSubGroups = !isUnemployed && gameMode !== 'world-cup';
+  const activeGroups = gameMode === 'sunday' ? SUNDAY_SCREEN_GROUPS : SCREEN_GROUPS;
 
   const handleSwipeLeft = useCallback(() => {
     if (matchLocked) return;
     // Check SubNav groups first (skip when unemployed / World Cup — no sub-groups)
     if (useSubGroups) {
-      for (const group of SCREEN_GROUPS) {
+      for (const group of activeGroups) {
         const gIdx = group.indexOf(currentScreen);
         if (gIdx >= 0 && gIdx < group.length - 1) {
           setScreen(group[gIdx + 1]);
@@ -305,13 +320,13 @@ const GameShell = () => {
     if (idx >= 0 && idx < activeTabs.length - 1) {
       setScreen(activeTabs[idx + 1]);
     }
-  }, [currentScreen, setScreen, matchLocked, useSubGroups, activeTabs]);
+  }, [currentScreen, setScreen, matchLocked, useSubGroups, activeGroups, activeTabs]);
 
   const handleSwipeRight = useCallback(() => {
     if (matchLocked) return;
     // Check SubNav groups first (skip when unemployed / World Cup — no sub-groups)
     if (useSubGroups) {
-      for (const group of SCREEN_GROUPS) {
+      for (const group of activeGroups) {
         const gIdx = group.indexOf(currentScreen);
         if (gIdx > 0) {
           setScreen(group[gIdx - 1]);
@@ -330,7 +345,7 @@ const GameShell = () => {
       const backTarget = BACK_TARGET[currentScreen] || (isUnemployed ? 'job-market' : 'dashboard');
       setScreen(backTarget);
     }
-  }, [currentScreen, setScreen, matchLocked, isUnemployed, useSubGroups, activeTabs]);
+  }, [currentScreen, setScreen, matchLocked, isUnemployed, useSubGroups, activeGroups, activeTabs]);
 
   const swipeHandlers = useSwipeGesture({
     onSwipeLeft: handleSwipeLeft,

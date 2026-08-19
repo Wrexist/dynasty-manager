@@ -11,8 +11,7 @@
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
-  ArrowRight, CalendarDays, Coins, Flame, HandCoins, History, Landmark,
-  Swords, Trophy, UserPlus,
+  ArrowRight, Coins, Flame, HandCoins, Swords, Trophy, UserPlus,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useShallow } from 'zustand/react/shallow';
@@ -257,20 +256,15 @@ const SundayHub = () => {
               {subsOwed > 0 ? t('sunday.hub.subsOwed', { n: subsOwed }) : t('sunday.hub.chaseSubs')}
             </span>
           </LiquidButton>
-          <LiquidButton className="py-2.5" onClick={() => setScreen('sunday-recruit')}>
+          {/* Recruitment stays here — alone among the old grid's destinations
+              it carries a number the manager has to react to. League, Clubhouse
+              and History became tabs / sub-nav entries, so a button that only
+              navigates is now a second, worse copy of the nav. */}
+          <LiquidButton className="py-2.5 col-span-2" onClick={() => setScreen('sunday-recruit')}>
             <span className="inline-flex items-center gap-1.5 text-caption">
               <UserPlus className="w-4 h-4" aria-hidden />
               {sunday.recruits.length > 0 ? t('sunday.hub.recruitsWaiting', { n: sunday.recruits.length }) : t('sunday.hub.recruits')}
             </span>
-          </LiquidButton>
-          <LiquidButton className="py-2.5" onClick={() => setScreen('sunday-table')}>
-            <span className="inline-flex items-center gap-1.5 text-caption"><CalendarDays className="w-4 h-4" aria-hidden /> {t('sunday.hub.table')}</span>
-          </LiquidButton>
-          <LiquidButton className="py-2.5" onClick={() => setScreen('sunday-club')}>
-            <span className="inline-flex items-center gap-1.5 text-caption"><Landmark className="w-4 h-4" aria-hidden /> {t('sunday.hub.club')}</span>
-          </LiquidButton>
-          <LiquidButton className="py-2.5" onClick={() => setScreen('sunday-history')}>
-            <span className="inline-flex items-center gap-1.5 text-caption"><History className="w-4 h-4" aria-hidden /> {t('sunday.hub.history')}</span>
           </LiquidButton>
         </div>
       </GlassPanel>
