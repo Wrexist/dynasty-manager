@@ -456,7 +456,11 @@ export function advanceSundayWeek(set: Set, get: Get): void {
     const fallout = applySundayDeparture({ squad, players, departed, season });
     squad = fallout.squad;
     weekLogLines.push(...fallout.lines);
-    bereavedIds = fallout.bereavedIds;
+    // ACCUMULATES. Only the first call's list is read today (the cascade roll
+    // sits between the two), so overwriting happened to be right — and would
+    // stop being right the moment a third departure path is added above the
+    // read, in a way nothing would catch.
+    bereavedIds = [...new Set([...bereavedIds, ...fallout.bereavedIds])];
     teamMorale = clamp(teamMorale - ids.length * 3, 0, 100);
   };
 
