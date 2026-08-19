@@ -140,31 +140,51 @@ describe('Sunday navigation — group membership is total', () => {
 });
 
 describe('sundayPrimaryAction — all four states', () => {
+  const WEEK = 5;
   const base = (over: Partial<SundayState>) =>
-    ({ seasonComplete: false, teamsheet: [], ...over }) as SundayState;
+    ({ seasonComplete: false, teamsheet: [], halfTime: null, ...over }) as SundayState;
   const xi = (n: number) => Array.from({ length: n }, (_, i) => `p${i}`);
+  /** Only the two fields the helper reads; the rest of a real pause is the
+   *  engine state, which no routing decision depends on. */
+  const pause = (week: number) => ({ week, season: 1 } as SundayState['halfTime']);
 
   it('season over → review, whatever the fixture says', () => {
-    expect(sundayPrimaryAction(base({ seasonComplete: true }), true).kind).toBe('review');
-    expect(sundayPrimaryAction(base({ seasonComplete: true }), false).kind).toBe('review');
+    expect(sundayPrimaryAction(base({ seasonComplete: true }), true, WEEK).kind).toBe('review');
+    expect(sundayPrimaryAction(base({ seasonComplete: true }), false, WEEK).kind).toBe('review');
   });
 
   it('a fixture and a legal side → play', () => {
-    const a = sundayPrimaryAction(base({ teamsheet: xi(SUNDAY_MIN_START) }), true);
+    const a = sundayPrimaryAction(base({ teamsheet: xi(SUNDAY_MIN_START) }), true, WEEK);
     expect(a.kind).toBe('play');
     expect(a.screen).toBe('sunday-match');
   });
 
   it('a fixture and too few named → pick', () => {
-    const a = sundayPrimaryAction(base({ teamsheet: xi(SUNDAY_MIN_START - 1) }), true);
+    const a = sundayPrimaryAction(base({ teamsheet: xi(SUNDAY_MIN_START - 1) }), true, WEEK);
     expect(a.kind).toBe('pick');
     expect(a.screen).toBe('sunday-teamsheet');
   });
 
   it('no fixture → advance, with no screen to navigate to', () => {
-    const a = sundayPrimaryAction(base({ teamsheet: xi(11) }), false);
+    const a = sundayPrimaryAction(base({ teamsheet: xi(11) }), false, WEEK);
     expect(a.kind).toBe('advance');
     expect(a.screen).toBeUndefined();
+  });
+
+  it('a match paused at the break → back to it, even with the sheet gutted', () => {
+    // The morning can leave fewer than seven names on the sheet, and the pause
+    // holds the side that actually kicked off. Routing that manager to the
+    // teamsheet sends him to a screen that can only refuse him.
+    const a = sundayPrimaryAction(
+      base({ teamsheet: xi(SUNDAY_MIN_START - 2), halfTime: pause(WEEK) }), true, WEEK,
+    );
+    expect(a.kind).toBe('play');
+    expect(a.screen).toBe('sunday-match');
+  });
+
+  it('a pause left behind by an earlier week does not hijack this one', () => {
+    const a = sundayPrimaryAction(base({ teamsheet: xi(11), halfTime: pause(WEEK - 1) }), false, WEEK);
+    expect(a.kind).toBe('advance');
   });
 
   it('every label key it can return exists in en.ts', () => {
@@ -173,9 +193,10 @@ describe('sundayPrimaryAction — all four states', () => {
       [base({ teamsheet: xi(SUNDAY_MIN_START) }), true],
       [base({ teamsheet: xi(1) }), true],
       [base({}), false],
+      [base({ halfTime: pause(WEEK) }), true],
     ];
     for (const [state, hasFixture] of cases) {
-      expect(sundayPrimaryAction(state, hasFixture).labelKey in en).toBe(true);
+      expect(sundayPrimaryAction(state, hasFixture, WEEK).labelKey in en).toBe(true);
     }
   });
 });

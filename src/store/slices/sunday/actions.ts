@@ -162,35 +162,37 @@ export function setSundayCaptain(set: Set, get: Get, playerId: string) {
 }
 
 /**
- * Whether the manager may still change the side, and what happens to the
- * resolved Sunday morning if he does.
+ * Whether the manager may still change the side.
  *
- * The morning is cached per (season, week) so a reload replays it. That cache
- * used to make a re-picked teamsheet a lie: `ensureArrival` returned the old
- * `presentIds`, so the XI that took the field was the one named BEFORE the
- * change. Two cases, and they are different:
+ * ONCE THE MORNING HAS HAPPENED, THE SIDE IS THE SIDE. You name a team on
+ * Saturday and Sunday happens to you — that is the mode. The arrival resolves
+ * every doubt, tells the manager exactly who cried off, and writes the survivors
+ * back as the sheet; re-picking after reading it is choosing a team with the
+ * answers in front of you. It also undoes the two things the morning is careful
+ * about: a man deliberately left out (a punishment, or the cost of a broken
+ * promise) could be quietly named after all, and a full XI could be assembled
+ * on top of guests already being paid for.
  *
- *   - Nothing committed yet (`ringersHired === null`): the change is honoured
- *     and the morning is thrown away, to be re-derived from the new sheet. No
- *     save-scum in it: `ensureArrival` WRITES the morning's attrition into the
- *     squad (a doubt that cried off is stored as `out`), so a second pass has
- *     no doubts left to re-roll and nobody who is missing can come back.
- *   - Guests already booked (`ringersHired !== null`): money has been
- *     committed against a named side, so the side is fixed. Re-picking after
- *     paying — or, worse, paying for guests and then naming a full XI — is the
- *     one way the arrival decision could be gamed.
+ * The guard used to key off `ringersHired !== null` — "has money been committed
+ * yet?" — which is not the same question and is null in the commonest case of
+ * all: `optionalRingers === 0` (everybody turned up, or the side is so gutted
+ * that every available guest is forced). So the whole information exploit was
+ * open on any week without a guest decision to make.
+ *
+ * A match paused at half time locks it for the same reason, one step later:
+ * the men on the pitch are fixed on `halfTime`, so a sheet re-picked during the
+ * break changes nothing about the match and everything about what the screens
+ * say is happening.
  */
-function arrivalGuard(state: GameState, sunday: SundayState): { locked: boolean; clearArrival: boolean } {
-  const a = sunday.arrival;
-  if (!a || a.season !== state.season || a.week !== state.week) return { locked: false, clearArrival: false };
-  return a.ringersHired !== null
-    ? { locked: true, clearArrival: false }
-    : { locked: false, clearArrival: true };
+function arrivalGuard(state: GameState, sunday: SundayState): { locked: boolean } {
+  const forThisWeek = (x: { season: number; week: number } | null | undefined) =>
+    !!x && x.season === state.season && x.week === state.week;
+  return { locked: forThisWeek(sunday.arrival) || forThisWeek(sunday.halfTime) };
 }
 
 /** English, deliberately: same register as every other message these actions
  *  return, all of which are game voice rather than UI chrome. */
-const ARRIVAL_LOCKED_MESSAGE = 'The guests are booked and paid for. This is the side.';
+const ARRIVAL_LOCKED_MESSAGE = 'They are already here. This is the side.';
 
 export function setSundayTeamsheet(set: Set, get: Get, xi: string[], bench: string[]) {
   const state = get();
@@ -224,7 +226,6 @@ export function setSundayTeamsheet(set: Set, get: Get, xi: string[], bench: stri
       teamsheet: cleanXi,
       bench: cleanBench,
       teamsheetLocked: cleanXi.length >= SUNDAY_MIN_START,
-      ...(guard.clearArrival ? { arrival: null } : {}),
     },
   });
   if (cleanXi.length < SUNDAY_MIN_START) {
@@ -251,7 +252,6 @@ export function autoPickSundayTeamsheet(set: Set, get: Get) {
       teamsheet: xi,
       bench,
       teamsheetLocked: xi.length >= SUNDAY_MIN_START,
-      ...(guard.clearArrival ? { arrival: null } : {}),
     },
   });
   return { picked: xi.length, short: xi.length < SUNDAY_FULL_XI };

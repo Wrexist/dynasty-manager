@@ -78,7 +78,7 @@ const SundayHub = () => {
 
   // The same helper the shell's week bar reads, so the two can never disagree
   // about what this week's one obvious action is.
-  const primary = sundayPrimaryAction(sunday, !!fixture);
+  const primary = sundayPrimaryAction(sunday, !!fixture, week);
 
   // Which club-business action is mid-flight, if any. The store actions are
   // async (the mode is a lazy chunk), so without this a second tap in the same

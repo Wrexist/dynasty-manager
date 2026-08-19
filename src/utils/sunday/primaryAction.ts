@@ -29,10 +29,20 @@ export interface SundayPrimary {
  * @param sunday      the mode's state
  * @param hasFixture  whether the club has an unplayed fixture this week
  *                    (league or cup — see `findSundayFixture`)
+ * @param week        the week the state is on, to tell a live half-time pause
+ *                    from one left behind by an earlier week
  */
-export function sundayPrimaryAction(sunday: SundayState, hasFixture: boolean): SundayPrimary {
-  // The season being over outranks everything: there is no fixture to play and
-  // no week left to advance into until the summary has been read.
+export function sundayPrimaryAction(sunday: SundayState, hasFixture: boolean, week: number): SundayPrimary {
+  // A MATCH PAUSED AT THE BREAK OUTRANKS EVERYTHING. The side that kicked off
+  // is fixed on the pause, so the one thing to do is go back and finish it —
+  // and the sheet it was named from is deliberately no longer a live question.
+  // Without this the hub sent a manager whose morning had gutted the XI to the
+  // teamsheet instead, which is a screen that can only refuse him.
+  if (sunday.halfTime && sunday.halfTime.week === week) {
+    return { kind: 'play', labelKey: 'sunday.hub.resumeMatch', screen: 'sunday-match' };
+  }
+  // The season being over outranks everything else: there is no fixture to play
+  // and no week left to advance into until the summary has been read.
   if (sunday.seasonComplete) {
     return { kind: 'review', labelKey: 'sunday.hub.viewSeason', screen: 'sunday-history' };
   }

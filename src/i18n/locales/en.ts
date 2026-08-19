@@ -63,6 +63,7 @@ export const en = {
   'sunday.hub.freeWeek': 'No fixture this week',
   'sunday.hub.freeWeekBody': 'Nobody has to be anywhere. Use it — chase the subs, run a fundraiser, or leave everyone alone.',
   'sunday.hub.playMatch': 'Match Day',
+  'sunday.hub.resumeMatch': 'Back to the match',
   'sunday.hub.pickTeam': 'Pick the team',
   'sunday.hub.nextWeek': 'Next week',
   'sunday.hub.weekLog': 'What happened',
