@@ -213,10 +213,19 @@ export const SUNDAY_HAPPINESS_DRIFT = 0.11;
 // ── Relationships ───────────────────────────────────────────────────────────
 //
 // Small, few and readable. There is no social screen and no hidden stat web:
-// a dressing room carries a HANDFUL of live links — two or three drawn at
-// founding, one forming every five or six weeks after that — and each one does
-// exactly four things (match-day chemistry, the mood when somebody leaves, who
-// vouched for the new lad, and one line on the squad screen).
+// a dressing room carries a HANDFUL of live links, and each one does exactly
+// four things (match-day chemistry, the mood when somebody leaves, who vouched
+// for the new lad, and one line on the squad screen).
+//
+// MEASURED over six four-season careers with these numbers: founding draws 3-8
+// friendship pairs, another 1-5 form across the four seasons, and departures
+// scrub some of both — a 11-14 man squad finishes with 4-8 live pairs and 1-2
+// feuds. That is the target. At the first pass (20 shared matches, 0.14 a week,
+// three friends each) the same careers finished with 15 pairs in a 14-man
+// squad, which is a web: a Sunday side fields eleven out of thirteen every
+// week, so EVERY pair clears a low shared-appearance bar by season two. The
+// per-man cap does most of the limiting work; the threshold and the weekly
+// chance do the rest.
 //
 // Everything that CAN be derived is derived and stored nowhere: who is stuck
 // behind whom is `position + streaks`, and who is mentoring whom is
@@ -225,17 +234,18 @@ export const SUNDAY_HAPPINESS_DRIFT = 0.11;
 
 /** Most friends / rivals one player carries. Founding generation uses the same
  *  caps, so nothing that forms later can change the shape of the room. */
-export const SUNDAY_MAX_FRIENDS = 3;
+export const SUNDAY_MAX_FRIENDS = 2;
 export const SUNDAY_MAX_RIVALS = 2;
 /** Former team-mates remembered per player, newest first. */
 export const SUNDAY_FORMER_TEAMMATES_MAX = 3;
 
 /** Matches two men must have played TOGETHER before they start car-sharing.
- *  Roughly a season and a bit of both being picked — long enough that a
- *  friendship means they have actually been through something. */
-export const SUNDAY_FRIENDSHIP_APPS = 20;
+ *  A season and a half of both being picked — long enough that a friendship
+ *  means they have actually been through something, and high enough that the
+ *  whole squad does not clear it at once (see the measurement above). */
+export const SUNDAY_FRIENDSHIP_APPS = 32;
 /** Weekly chance the best-qualified pair in the squad actually becomes one. */
-export const SUNDAY_FRIENDSHIP_CHANCE = 0.22;
+export const SUNDAY_FRIENDSHIP_CHANCE = 0.14;
 /** Multiplier on that chance when one of the two has just been talked round or
  *  had a promise kept. A good week is when people bond. */
 export const SUNDAY_FRIENDSHIP_GOODWILL_MULT = 1.8;
@@ -244,11 +254,21 @@ export const SUNDAY_FRIENDSHIP_GOODWILL_WEEKS = 6;
 
 /** Consecutive weeks of one man starting while another in his position watches
  *  before the one watching starts taking it personally. Also the threshold the
- *  squad screen's "stuck behind" line reads. */
-export const SUNDAY_POSITION_RIVAL_STREAK = 4;
-/** Weekly chance a position rivalry hardens into a real one. Lower than
- *  friendship: falling out takes a specific afternoon, not just time. */
-export const SUNDAY_POSITION_RIVAL_CHANCE = 0.14;
+ *  squad screen's "stuck behind" line reads.
+ *
+ *  RARE BY STRUCTURE, not by tuning. A Sunday club fields eleven out of a
+ *  thirteen-man squad, so there is hardly ever a bench to be stuck on:
+ *  `benchedStreak` topped out at 2-4 across whole measured careers and the
+ *  candidate existed in single-figure weeks out of three hundred. That is
+ *  honest — an understudy is a professional-football problem — and it is why
+ *  the armband path below exists as the other, event-driven source of friction.
+ *  A club that recruits toward `SUNDAY_MAX_SQUAD` will meet this one. */
+export const SUNDAY_POSITION_RIVAL_STREAK = 3;
+/** Chance it hardens into a real one on a week the candidate exists. High,
+ *  precisely because those weeks are so rare: when a man has genuinely sat out
+ *  a month watching somebody else in his shirt, it should usually mean
+ *  something rather than needing to happen four times over. */
+export const SUNDAY_POSITION_RIVAL_CHANCE = 0.25;
 /** Ego at or above which losing the armband makes an enemy rather than a sulk. */
 export const SUNDAY_RIVAL_EGO_MIN = 13;
 /** At most this many links form per week, whatever the squad. A dressing room

@@ -198,6 +198,37 @@ describe('migration', () => {
     expect(sunday.chains).toEqual([]);
   });
 
+  it('scrubs friends and rivals who left the club seasons ago', () => {
+    // The bug the relationships layer closes: nothing maintained these lists,
+    // so an old save can name mates who have not been near the ground in
+    // years. The migration repairs it once; every departure keeps it repaired.
+    const old = {
+      version: 85, playerClubId: 'sunday-club', clubs: {}, season: 4, week: 12,
+      gameMode: 'sunday',
+      sunday: {
+        v: 2, balance: 200, flags: {},
+        squad: [
+          { playerId: 'a', friends: ['b', 'ghost', 'b', 'a'], rivals: ['b', 'gone'] },
+          { playerId: 'b', friends: ['a'], rivals: [] },
+        ],
+        recruits: [{ id: 'r1', member: { friends: ['ghost'], rivals: [] } }],
+      },
+    };
+    const sunday = (migrateSaveData(old) as Record<string, unknown>).sunday as Record<string, unknown>;
+    const squad = sunday.squad as Record<string, unknown>[];
+    // Departed ids gone, duplicates gone, self-reference gone.
+    expect(squad[0].friends).toEqual(['b']);
+    // And a man cannot be both — the friendship wins, which is the invariant.
+    expect(squad[0].rivals).toEqual([]);
+    // The new fields are backfilled empty: nobody counted shared afternoons
+    // before this version, so the count honestly starts now.
+    expect(squad[0].formerTeammates).toEqual([]);
+    expect(squad[0].appsWith).toEqual({});
+    const recruits = sunday.recruits as Record<string, unknown>[];
+    expect(recruits[0].voucherId).toBeNull();
+    expect((recruits[0].member as Record<string, unknown>).friends).toEqual([]);
+  });
+
   it('carries a mid-story wants-out flag forward as a live chain', () => {
     // The one chain that shipped as an ad-hoc flag. A save reloaded mid-story
     // must continue it, not lose it: the flag selects nothing now, and the
