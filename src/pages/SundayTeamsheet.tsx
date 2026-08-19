@@ -14,7 +14,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { LiquidButton } from '@/components/game/LiquidButton';
 import { SectionHeader } from '@/components/game/SectionHeader';
-import { AvailabilityPill } from '@/components/game/sunday/SundayBits';
+import { AvailabilityPill, PlayerFlags } from '@/components/game/sunday/SundayBits';
 import { useGameStore } from '@/store/gameStore';
 import { useTranslation } from '@/hooks/useTranslation';
 import { cn } from '@/lib/utils';
@@ -32,42 +32,59 @@ interface Row {
   player: Player;
 }
 
-function PlayerRow({ row, right, onClick, dim }: {
+/**
+ * One name on the sheet.
+ *
+ * The row and whatever sits on its right are FLAT SIBLINGS, never nested. The
+ * captain control used to live inside the row's own <button>, which is invalid
+ * DOM (React warns), made the inner control unreachable by keyboard, and needed
+ * an `e.stopPropagation()` to stop one tap doing two things. Two siblings in a
+ * flex row look identical and behave correctly.
+ */
+function PlayerRow({ row, right, onClick, dim, captain }: {
   row: Row;
   right?: React.ReactNode;
   onClick?: () => void;
   dim?: boolean;
+  captain?: boolean;
 }) {
   const { player, member } = row;
   const body = (
     <>
       <span className="w-9 text-micro font-semibold text-muted-foreground shrink-0">{player.position}</span>
       <span className="min-w-0 flex-1">
-        <span className="block text-body font-medium text-foreground truncate">
-          {player.firstName} {player.lastName}
+        <span className="flex items-center gap-1.5 min-w-0">
+          <span className="text-body font-medium text-foreground truncate">
+            {player.firstName} {player.lastName}
+          </span>
+          {/* Form, mood, the armband and any promise — the inputs to the
+              decision this screen exists to make. */}
+          <PlayerFlags member={member} player={player} captain={captain} />
         </span>
         <span className="block text-micro text-muted-foreground truncate">
           {member.job} · {player.overall} OVR
         </span>
       </span>
-      {right}
     </>
   );
-  if (!onClick) {
-    return <div className={cn('flex items-center gap-2 py-2', dim && 'opacity-55')}>{body}</div>;
-  }
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        'w-full flex items-center gap-2 py-2 min-h-[44px] text-left rounded-lg px-1 -mx-1',
-        'hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/60',
-        dim && 'opacity-55',
+    <div className={cn('flex items-center gap-1.5', dim && 'opacity-55')}>
+      {onClick ? (
+        <button
+          type="button"
+          onClick={onClick}
+          className={cn(
+            'min-w-0 flex-1 flex items-center gap-2 py-2 min-h-[44px] text-left rounded-lg px-1 -mx-1',
+            'hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/60',
+          )}
+        >
+          {body}
+        </button>
+      ) : (
+        <div className="min-w-0 flex-1 flex items-center gap-2 py-2">{body}</div>
       )}
-    >
-      {body}
-    </button>
+      {right && <span className="flex items-center gap-1.5 shrink-0">{right}</span>}
+    </div>
   );
 }
 
@@ -260,15 +277,9 @@ const SundayTeamsheet = () => {
               <PlayerRow
                 key={row.player.id}
                 row={row}
+                captain={sunday.captainId === row.player.id}
                 onClick={() => removeFromXI(row.player.id)}
-                right={
-                  <span className="flex items-center gap-1.5 shrink-0">
-                    {sunday.captainId === row.player.id && (
-                      <span className="text-micro font-bold text-primary" aria-label={t('sunday.sheet.captain')}>C</span>
-                    )}
-                    <AvailabilityPill availability={row.member.availability} />
-                  </span>
-                }
+                right={<AvailabilityPill availability={row.member.availability} />}
               />
             ))}
           </div>
@@ -283,7 +294,7 @@ const SundayTeamsheet = () => {
         ) : (
           <div className="divide-y divide-border/30 mt-1">
             {benchRows.map(row => (
-              <PlayerRow key={row.player.id} row={row} onClick={() => removeFromXI(row.player.id)} />
+              <PlayerRow key={row.player.id} row={row} captain={sunday.captainId === row.player.id} onClick={() => removeFromXI(row.player.id)} />
             ))}
           </div>
         )}
@@ -297,19 +308,25 @@ const SundayTeamsheet = () => {
             <PlayerRow
               key={row.player.id}
               row={row}
+              captain={sunday.captainId === row.player.id}
               onClick={() => addToXI(row.player.id)}
               right={
-                <span className="flex items-center gap-1.5 shrink-0">
+                <>
                   <AvailabilityPill availability={row.member.availability} />
                   <button
                     type="button"
-                    onClick={e => { e.stopPropagation(); void setCaptain(row.player.id); }}
+                    onClick={() => { void setCaptain(row.player.id); }}
                     aria-label={t('sunday.sheet.makeCaptain')}
-                    className="text-micro font-semibold text-muted-foreground hover:text-primary px-2 min-h-[44px]"
+                    aria-pressed={sunday.captainId === row.player.id}
+                    className={cn(
+                      'text-micro font-semibold rounded-lg min-w-[44px] min-h-[44px] inline-flex items-center justify-center',
+                      'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/60',
+                      sunday.captainId === row.player.id ? 'text-primary' : 'text-muted-foreground hover:text-primary',
+                    )}
                   >
                     C
                   </button>
-                </span>
+                </>
               }
             />
           ))}
@@ -326,6 +343,7 @@ const SundayTeamsheet = () => {
                 <PlayerRow
                   row={row}
                   dim
+                  captain={sunday.captainId === row.player.id}
                   onClick={() => setExpanded(expanded === row.player.id ? null : row.player.id)}
                   right={<AvailabilityPill availability={row.member.availability} />}
                 />

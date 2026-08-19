@@ -5,9 +5,11 @@
  * used together, so ten separate modules would be ceremony rather than
  * structure. Anything that grows past a screenful moves out.
  */
+import { Flame } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/hooks/useTranslation';
-import type { SundayAvailability } from '@/types/game';
+import { SUNDAY_FORM_COLD, SUNDAY_FORM_HOT } from '@/config/sundayLeague';
+import type { Player, SundayAvailability, SundaySquadMember } from '@/types/game';
 
 /** Availability at a glance. An unwarned absence reads as "no word from him"
  *  rather than naming the reason — the manager does not know it yet. */
@@ -98,5 +100,43 @@ export function SundayCrest({ shortName, color, secondaryColor, size = 40, class
     >
       {shortName.slice(0, 3).toUpperCase()}
     </div>
+  );
+}
+
+/**
+ * The four things about a player that change a selection decision: he has the
+ * armband, he is on his way out, he is in form (or out of it), and you promised
+ * him a start.
+ *
+ * Shared by the Squad list and the Teamsheet rows on purpose. The Teamsheet is
+ * where the decision is actually made, and it used to show only job and OVR —
+ * every input to the decision lived one screen away.
+ */
+export function PlayerFlags({ member, player, captain }: {
+  member: SundaySquadMember;
+  player: Player;
+  captain?: boolean;
+}) {
+  const { t } = useTranslation();
+  return (
+    <>
+      {captain && (
+        <span className="text-micro font-bold text-primary shrink-0" aria-label={t('sunday.sheet.captain')}>C</span>
+      )}
+      {member.unsettled && (
+        <span className="text-micro text-amber-300 shrink-0">{t('sunday.squad.unsettled')}</span>
+      )}
+      {player.form >= SUNDAY_FORM_HOT && (
+        <span className="inline-flex items-center gap-0.5 text-micro font-semibold text-emerald-300 shrink-0">
+          <Flame className="w-3 h-3" aria-hidden /> {t('sunday.bio.onFire')}
+        </span>
+      )}
+      {player.form <= SUNDAY_FORM_COLD && (
+        <span className="text-micro font-semibold text-sky-300/80 shrink-0">{t('sunday.bio.struggling')}</span>
+      )}
+      {member.promise && (
+        <span className="text-micro font-semibold text-primary shrink-0">{t('sunday.bio.promised')}</span>
+      )}
+    </>
   );
 }

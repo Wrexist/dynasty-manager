@@ -7,20 +7,18 @@
  * beside them because both matter and separating them would imply otherwise.
  */
 import { useMemo, useState } from 'react';
-import { ChevronDown, Flame, UserMinus } from 'lucide-react';
+import { ChevronDown, UserMinus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { LiquidButton } from '@/components/game/LiquidButton';
 import { SectionHeader } from '@/components/game/SectionHeader';
 import { ConfirmDialog } from '@/components/game/ConfirmDialog';
-import { AvailabilityPill, Meter } from '@/components/game/sunday/SundayBits';
+import { AvailabilityPill, Meter, PlayerFlags } from '@/components/game/sunday/SundayBits';
 import { useGameStore } from '@/store/gameStore';
 import { useTranslation } from '@/hooks/useTranslation';
 import { cn } from '@/lib/utils';
-import {
-  getSundayArchetype, SUNDAY_FORM_COLD, SUNDAY_FORM_HOT, SUNDAY_MEMORY_LEGENDARY_WEIGHT,
-} from '@/config/sundayLeague';
+import { getSundayArchetype, SUNDAY_MEMORY_LEGENDARY_WEIGHT } from '@/config/sundayLeague';
 import {
   sundayFriendNames, sundayMentor, sundayPositionRival, sundayRivalNames,
 } from '@/utils/sunday/relationships';
@@ -162,23 +160,7 @@ const SundaySquad = () => {
                         <span className="text-body font-medium text-foreground truncate">
                           {player.firstName} {player.lastName}
                         </span>
-                        {sunday.captainId === player.id && (
-                          <span className="text-micro font-bold text-primary shrink-0" aria-label={t('sunday.sheet.captain')}>C</span>
-                        )}
-                        {member.unsettled && (
-                          <span className="text-micro text-amber-300 shrink-0">{t('sunday.squad.unsettled')}</span>
-                        )}
-                        {player.form >= SUNDAY_FORM_HOT && (
-                          <span className="inline-flex items-center gap-0.5 text-micro font-semibold text-emerald-300 shrink-0">
-                            <Flame className="w-3 h-3" aria-hidden /> {t('sunday.bio.onFire')}
-                          </span>
-                        )}
-                        {player.form <= SUNDAY_FORM_COLD && (
-                          <span className="text-micro font-semibold text-sky-300/80 shrink-0">{t('sunday.bio.struggling')}</span>
-                        )}
-                        {member.promise && (
-                          <span className="text-micro font-semibold text-primary shrink-0">{t('sunday.bio.promised')}</span>
-                        )}
+                        <PlayerFlags member={member} player={player} captain={sunday.captainId === player.id} />
                       </span>
                       <span className="block text-micro text-muted-foreground truncate">
                         {arch.name} · {member.job}
