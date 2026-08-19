@@ -141,6 +141,7 @@ async function pilotWeek() {
 describe('sunday stress harness', () => {
   it('survives whole careers across seeds and personalities with invariants intact', async () => {
     const outcomes: string[] = [];
+    const fingerprints: string[] = [];
     for (const run of RUNS) {
       useGameStore.getState().resetGame();
       await useGameStore.getState().startSundayLeague({ personality: run.personality, seed: run.seed });
@@ -171,6 +172,13 @@ describe('sunday stress harness', () => {
         `folded=${sunday.folded} balance=${sunday.balance} squad=${sunday.squad.length} ` +
         `history=${sunday.history.length}`,
       );
+      // A fingerprint of the RUN, not of where it finished. See the divergence
+      // assertion at the bottom of this case.
+      fingerprints.push(JSON.stringify([
+        sunday.folded,
+        sunday.divisionId,
+        sunday.history.map(h => [h.position, h.points, h.goalsFor, h.goalsAgainst]),
+      ]));
 
       // A run that survived must have real history; a folded one must say why.
       if (sunday.folded) {
@@ -191,9 +199,21 @@ describe('sunday stress harness', () => {
     // minority may fold. Active management is supposed to be enough.
     const folded = outcomes.filter(o => o.includes('folded=true')).length;
     expect(folded, outcomes.join('\n')).toBeLessThanOrEqual(2);
-    // And the runs must not all tell the same story: divisions reached differ.
-    const divisions = new Set(outcomes.map(o => /div=(\S+)/.exec(o)?.[1]));
-    expect(divisions.size).toBeGreaterThan(1);
+    /**
+     * ...and the runs must not all tell the same story.
+     *
+     * This used to assert that the DIVISIONS reached differ, which flaked one
+     * run in ten — on the pre-wave tree too. Eight careers all finishing in the
+     * same division is a perfectly ordinary outcome of a five-division pyramid
+     * and an unseeded match engine; it is not evidence that the world is
+     * deterministic, so the assertion was measuring nothing it claimed to.
+     *
+     * The fingerprint is the season-by-season record instead: position, points
+     * and goals for and against, per season, plus whether the club survived.
+     * Eight different seeds producing byte-identical seasons is not a variance
+     * outcome, it is a broken seed — which is the thing worth failing on.
+     */
+    expect(new Set(fingerprints).size, outcomes.join('\n')).toBe(RUNS.length);
   }, 600_000);
 
   it('a decade in one save neither leaks memory into the save nor stalls', async () => {

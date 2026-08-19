@@ -228,30 +228,61 @@ describe('applyWorldWeeklyUpkeep', () => {
 describe('injury recovery in the live game loop', () => {
   const tick = () => new Promise<void>(r => setTimeout(r, 0));
 
-  beforeEach(() => {
+  beforeEach(async () => {
     __resetAutosaveSchedulerForTests();
     __resetSaveStorageForTests();
     localStorage.clear();
-    useGameStore.getState().initGame(CLUB);
+    // AWAITED. `initGame` is async (it may dynamic-import the community pack),
+    // so a synchronous `beforeEach` let the first assertions of a case race the
+    // world being built.
+    await useGameStore.getState().initGame(CLUB);
   });
 
   it('aiClubsHeal: an injured AI player recovers as weeks pass', { timeout: 120_000 }, async () => {
     const st = useGameStore.getState();
     const rivalId = (st.divisionClubs[st.playerDivision] || []).find(id => id !== CLUB)!;
     const victimId = st.clubs[rivalId].playerIds[0];
+    // A type string the injury generator cannot produce, so a NEW injury is
+    // always distinguishable from this one.
+    const MARKER = '__test-marker__';
     useGameStore.setState({
       players: {
         ...st.players,
-        [victimId]: { ...st.players[victimId], injured: true, injuryWeeks: 3, fitness: 40 },
+        [victimId]: {
+          ...st.players[victimId], injured: true, injuryWeeks: 3, fitness: 40,
+          injuryDetails: { ...details(), type: MARKER, weeksRemaining: 3, totalWeeks: 3 },
+        },
       },
     });
 
-    for (let w = 0; w < 5; w++) await useGameStore.getState().advanceWeek();
+    /**
+     * WATCH THE CLOCK, not the boolean.
+     *
+     * This case flaked roughly one run in six, on the pre-wave tree as well as
+     * this one. The cause was not the fix under test: it advanced FIVE weeks
+     * for a THREE-week injury, so the victim healed on week three, became
+     * selectable again, and could pick up a fresh knock in week four or five —
+     * at which point `injured` was true again and the case failed for the
+     * opposite reason to the bug it exists for.
+     *
+     * Weeks one and two are confound-free by construction: an injured player is
+     * never selected, so nothing can re-injure him, and the clock reading is
+     * exact. Pre-fix those two readings are [3, 3]; post-fix they are [2, 1].
+     * That is the whole regression, asserted deterministically.
+     */
+    const clock: number[] = [];
+    for (let w = 0; w < 3; w++) {
+      await useGameStore.getState().advanceWeek();
+      clock.push(useGameStore.getState().players[victimId].injuryWeeks);
+    }
+    expect(clock.slice(0, 2), 'an AI club\'s injury clock did not tick down').toEqual([2, 1]);
 
+    // And the injury itself is over. A knock picked up on the way back is a
+    // different event and is explicitly allowed — what may not happen is THIS
+    // one still running.
     const after = useGameStore.getState().players[victimId];
-    // Pre-fix: injuryWeeks stayed at 3 and `injured` stayed true forever.
-    expect(after.injured, 'an AI club player never recovered').toBe(false);
-    expect(after.injuryWeeks).toBe(0);
+    const stillTheSameInjury = after.injured && after.injuryDetails?.type === MARKER;
+    expect(stillTheSameInjury, 'an AI club player never recovered').toBe(false);
   });
 
   it('divisionStaysAvailable: the division does not silt up with injuries', { timeout: 300_000 }, async () => {
