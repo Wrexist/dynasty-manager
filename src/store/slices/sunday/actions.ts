@@ -674,6 +674,10 @@ export function resolveSundayEvent(set: Set, get: Get, choiceId: string) {
     recruitCursor = spawn.rngCursor;
   }
 
+  const nextTeamsheet = subjectGone
+    ? sunday.teamsheet.filter(id => id !== subjectId)
+    : sunday.teamsheet;
+
   const nextSunday: SundayState = {
     ...sunday,
     balance: Math.round(balance),
@@ -688,8 +692,12 @@ export function resolveSundayEvent(set: Set, get: Get, choiceId: string) {
     // starting XI containing a player the match cannot field. The arrival is
     // EDITED rather than thrown away: it may already have guests booked and
     // paid for against it, and re-deriving it would let those be bought twice.
-    teamsheet: subjectGone ? sunday.teamsheet.filter(id => id !== subjectId) : sunday.teamsheet,
+    teamsheet: nextTeamsheet,
     bench: subjectGone ? sunday.bench.filter(id => id !== subjectId) : sunday.bench,
+    // AND THE LOCK FOLLOWS THE SHEET. `teamsheetLocked` is not an independent
+    // fact — it means "this sheet is legal", and taking a man off a side of
+    // exactly seven makes it a lie the validator rejects on the next load.
+    teamsheetLocked: nextTeamsheet.length >= SUNDAY_MIN_START,
     arrival: subjectGone && sunday.arrival
       ? {
           ...sunday.arrival,
@@ -859,6 +867,11 @@ export function releaseSundayPlayer(set: Set, get: Get, playerId: string) {
   // Any story that was about him goes with him — and says so, so the arc has a
   // visible ending rather than simply never being mentioned again.
   const prunedChains = pruneSundayChains(sunday.chains, remaining);
+  // Releasing a named man shortens the sheet, so the lock has to be recomputed
+  // with it — see the note in `resolveSundayEvent`. A manager who named exactly
+  // the minimum and then released one of them was left locked on an illegal
+  // side, which the validator rejects the moment the autosave loads back.
+  const nextTeamsheet = sunday.teamsheet.filter(id => id !== playerId);
   set({
     players,
     clubs: club ? { ...state.clubs, [club.id]: { ...club, playerIds: club.playerIds.filter(id => id !== playerId) } } : state.clubs,
@@ -867,7 +880,8 @@ export function releaseSundayPlayer(set: Set, get: Get, playerId: string) {
       squad: fallout.squad,
       legends,
       captainId: sunday.captainId === playerId ? null : sunday.captainId,
-      teamsheet: sunday.teamsheet.filter(id => id !== playerId),
+      teamsheet: nextTeamsheet,
+      teamsheetLocked: nextTeamsheet.length >= SUNDAY_MIN_START,
       bench: sunday.bench.filter(id => id !== playerId),
       flags: pruneSundayFlags(sunday.flags, remaining),
       chains: prunedChains.kept,
