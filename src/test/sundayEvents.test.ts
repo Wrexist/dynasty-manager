@@ -13,7 +13,8 @@ import {
   type SundayEventContext, type SundayEventEffects, type SundayEventPerson,
 } from '@/data/sundayEvents';
 import {
-  SUNDAY_DEPARTURE_DEFS, cooldownWeekFor, pickSundayEvent, resolveSundayChoice,
+  SUNDAY_DEPARTURE_DEFS, allSundayEventIds, cooldownWeekFor, pickSundayEvent,
+  resolveSundayChoice,
 } from '@/utils/sunday/events';
 import { createSundayRng } from '@/utils/sunday/rng';
 import {
@@ -48,7 +49,10 @@ const ctx: SundayEventContext = {
 
 describe('event catalogue integrity', () => {
   it('has unique ids', () => {
-    const ids = SUNDAY_EVENTS.map(d => d.id);
+    // Through the accessor the catalogue exports for exactly this, so its
+    // doc-comment stops being a claim nothing backs up.
+    const ids = allSundayEventIds();
+    expect(ids).toHaveLength(SUNDAY_EVENTS.length);
     expect(new Set(ids).size).toBe(ids.length);
   });
 

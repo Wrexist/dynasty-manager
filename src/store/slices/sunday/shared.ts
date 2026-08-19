@@ -41,11 +41,6 @@ export function nameOf(players: Record<string, Player>, id: string | null | unde
   return p ? `${p.firstName} ${p.lastName}` : 'someone';
 }
 
-export function firstNameOf(players: Record<string, Player>, id: string | null | undefined): string {
-  if (!id) return 'someone';
-  return players[id]?.firstName ?? 'someone';
-}
-
 /** Append a line to the week log, keeping it short enough to read. */
 export function logWeek(sunday: SundayState, ...lines: string[]): string[] {
   return [...sunday.weekLog, ...lines].slice(-SUNDAY_WEEK_LOG_MAX);
