@@ -56,6 +56,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Your assistant now fills gaps in the starting XI from the whole squad, not just the named bench, so a run of injuries can no longer leave a match unplayable.',
     'Rival clubs now recover fitness between matches like your own squad does. Previously only your players rested, so the rest of the world got quietly and permanently more tired every season.',
     'Starting a game with a club that no longer exists (an old deep link, a stale save) now fails cleanly instead of crashing part-way through building the world.',
+    'Kick Off and Instant Sim could silently do nothing when a squad was deep in an injury crisis, leaving a save stuck on one fixture. Your side — and the opposition — now field emergency cover so the match is always playable, and any remaining failure says so instead of ignoring the tap.',
   ],
   headline: null,
   summary: null,

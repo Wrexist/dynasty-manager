@@ -355,7 +355,20 @@ const MatchDayInner = () => {
     resumeSfx();
     sfxWhistle();
     const halfState = isWorldCup ? playWorldCupFirstHalf() : playFirstHalf();
-    if (!halfState) { kickedOffRef.current = null; return; }
+    // A null here used to be the end of it: the button did nothing, no toast, no
+    // navigation, and the save was stuck on that fixture forever. The engine now
+    // fields an emergency XI rather than refuse (`buildPlayerMatchXI`), so this
+    // is a genuine fault — say so, and report it.
+    if (!halfState) {
+      kickedOffRef.current = null;
+      Sentry.captureMessage('kickOff: match engine returned no half state', {
+        level: 'error',
+        tags: { context: 'kickOff' },
+        extra: { matchId: match.id, homeClubId: match.homeClubId, awayClubId: match.awayClubId, isWorldCup },
+      });
+      errorToast("Couldn't kick off — neither squad can field enough available players. Check injuries and suspensions, or sign cover.");
+      return;
+    }
     // WC: the opponent squad is materialised by the action above — refresh the
     // cache with the real clubs so lineups render with players, not the shell.
     if (isWorldCup) {
@@ -405,7 +418,11 @@ const MatchDayInner = () => {
       const result = isWorldCup
         ? playWorldCupSecondHalf()
         : playSecondHalf(SECOND_HALF_SEGMENTS[0]);
-      if (!result) { resumingRef.current = false; return; }
+      if (!result) {
+        resumingRef.current = false;
+        errorToast("Couldn't restart the second half — not enough available players on the pitch.");
+        return;
+      }
       // Pre-populate visibleEvents with first-half events to avoid stale references
       const firstHalfEvents = result.events.filter((e: MatchEvent) => e.minute <= 45);
       setVisibleEvents(firstHalfEvents);
@@ -430,7 +447,11 @@ const MatchDayInner = () => {
     resumingRef.current = true;
     try {
       const result = isWorldCup ? playWorldCupExtraTime() : playExtraTime();
-      if (!result) { resumingRef.current = false; return; }
+      if (!result) {
+        resumingRef.current = false;
+        errorToast("Couldn't start extra time — not enough available players on the pitch.");
+        return;
+      }
       setAllEvents(result.events);
       currentMinRef.current = 90;
       setCurrentMin(90);

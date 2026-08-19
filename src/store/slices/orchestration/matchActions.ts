@@ -12,6 +12,7 @@ import { addMsg } from '@/utils/helpers';
 import { hasPerk } from '@/utils/managerPerks';
 
 import { getAICounterTactics } from '@/config/aiManager';
+import { AI_MIN_MATCH_PLAYERS } from '@/config/aiSimulation';
 import { CONTINENTAL_PRIZE_MONEY } from '@/config/continental';
 import { CUP_EXTRA_TIME_GOAL_CHANCE, CUP_EXTRA_TIME_REPUTATION_DIVISOR, CUP_PENALTY_KICKS, FORFEIT_SCORE, FRIENDLY_BOARD_CONFIDENCE_MULT, MAX_CAREER_TIMELINE, MOTIVATOR_MORALE_BOOST, PEN_AIM, clubMedicalLevel } from '@/config/gameBalance';
 import { recordPlayerPlayoffResult } from '@/store/slices/orchestration/playoff';
@@ -470,6 +471,73 @@ function pressExtrasFor(state: GameState): {
   };
 }
 
+/**
+ * Build a startable XI for one side of the player's own match.
+ *
+ * Tiers, in order: the manager's saved XI -> the named bench -> the rest of the
+ * squad -> (emergency only) the unavailable pool, least-injured first.
+ *
+ * WHY THE EMERGENCY TIER EXISTS. `pickAiMatchSquad` has had one since the
+ * forfeit fix, because a thin squad in an injury crisis genuinely cannot field
+ * eleven fit men and a fabricated walkover corrupts the table worse than an
+ * under-strength side losing on merit does. The player's own match had no such
+ * fallback: `playCurrentMatchImpl` and `playFirstHalfImpl` hit the
+ * `< AI_MIN_MATCH_PLAYERS` guard and returned `null`.
+ *
+ * That `null` reached the player as a Kick Off button that did nothing at all —
+ * no match, no toast, no navigation, and Instant Sim dead in the same way, so
+ * the save was simply unplayable from that week on. Reported from a live save
+ * (Feyenoord, S4 W16 League Cup at home to a PSV carrying 8 injured in a 22-man
+ * squad) and reproduced here in `matchStartability.test.ts`.
+ *
+ * A player out on loan is never picked, in any tier — he is at another club.
+ */
+export function buildPlayerMatchXI(
+  club: Club,
+  players: Record<string, Player>,
+  week: number,
+): Player[] {
+  const isSuspended = (p: Player) => p.suspendedUntilWeek != null && p.suspendedUntilWeek > week;
+  const isAvailable = (p: Player) => !isSuspended(p) && !p.injured && !p.onLoan;
+  const xi: Player[] = [];
+  const picked = new Set<string>();
+  const push = (p: Player) => {
+    if (picked.has(p.id) || xi.length >= 11) return;
+    xi.push(p);
+    picked.add(p.id);
+  };
+
+  // The manager's own selection first, in the order they chose it (chemistry
+  // links and the pitch rendering align by index).
+  for (const id of club.lineup || []) {
+    const p = players[id];
+    if (p && isAvailable(p)) push(p);
+  }
+  // Cover holes from the named bench, then from the rest of the squad. Every AI
+  // club already covers from the whole squad via `selectBestLineup`.
+  for (const id of [...(club.subs || []), ...(club.playerIds || [])]) {
+    if (xi.length >= 11) break;
+    const p = players[id];
+    if (p && isAvailable(p)) push(p);
+  }
+  if (xi.length >= AI_MIN_MATCH_PLAYERS) return xi;
+
+  // Emergency cover, same rule as `pickAiMatchSquad`: least-injured first, then
+  // best rated. Only ever up to the minimum that lets the fixture be played.
+  const reserves = (club.playerIds || [])
+    .map(id => players[id])
+    .filter(Boolean)
+    .filter(p => !picked.has(p.id) && !p.onLoan)
+    .sort((a, b) =>
+      (a.injuryDetails?.weeksRemaining ?? 1) - (b.injuryDetails?.weeksRemaining ?? 1) ||
+      b.overall - a.overall);
+  for (const p of reserves) {
+    if (xi.length >= AI_MIN_MATCH_PLAYERS) break;
+    push(p);
+  }
+  return xi;
+}
+
 export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   const state = get();
   // Career mode: block match play when unemployed
@@ -582,44 +650,16 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
   const ac = effectiveClubs[match.awayClubId];
   if (!hc || !ac) return null;
   const isSuspended = (p: Player) => p.suspendedUntilWeek != null && p.suspendedUntilWeek > week;
-  // Cover holes in a saved XI: named bench first (the manager picked it), then
-  // the rest of the squad.
-  //
-  // This drew from `club.subs` ALONE, which is why a club with a full squad
-  // could still fall under the `< 7` guard below and make this function return
-  // null — silently, with no match, no message, and no fallback. Measured over
-  // three simulated seasons: the player's club finished with 36 / 32 / 25 league
-  // matches played against 36-38 for every other club in the division, because
-  // each skipped fixture was also invisible to `weekAdvance`'s auto-sim (which
-  // only fires when the player played SOMETHING else that week). The league
-  // table, prize money and promotion/relegation were all computed off that.
-  //
-  // Every AI club already covers from the whole squad — `pickAiMatchSquad`'s
-  // `honourSavedLineup` branch fills holes from `selectBestLineup(squad)`. This
-  // is the same rule for the player's club.
-  const backfillXI = (lineup: Player[], club: typeof hc) => {
-    const ids = new Set(lineup.map(p => p.id));
-    for (const id of [...(club.subs || []), ...(club.playerIds || [])]) {
-      if (lineup.length >= 11) break;
-      const p = effectivePlayers[id];
-      // `onLoan` matches the availability rule `pickAiMatchSquad` uses — a
-      // player out on loan is not available to the parent club.
-      if (!p || ids.has(p.id) || isSuspended(p) || p.injured || p.onLoan) continue;
-      lineup.push(p);
-      ids.add(p.id);
-    }
-    return lineup;
-  };
-  // Injured players cannot start. This filter omitted `!p.injured`, while bench
-  // construction and EVERY AI-sim path filter it — so an injured player left in
-  // the saved XI played at full strength for the player's club only, and the
-  // LineupEditor toast ("They cannot play until recovered") was simply untrue.
-  // `backfillXI` tops the XI back up and already excludes unavailable players.
-  let hp = backfillXI((hc.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured), hc);
-  let ap = backfillXI((ac.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured), ac);
+  // Saved XI -> bench -> rest of the squad -> emergency cover. See
+  // `buildPlayerMatchXI`: this used to be a bench-only backfill, which is how a
+  // club with a full squad but a long injury list could take the guard below
+  // and make this function return null.
+  let hp = buildPlayerMatchXI(hc, effectivePlayers, week);
+  let ap = buildPlayerMatchXI(ac, effectivePlayers, week);
 
-  // Need minimum players to simulate a match
-  if (hp.length < 7 || ap.length < 7) return null;
+  // Only reachable now when a club has fewer than seven registered players who
+  // are not out on loan. The callers report it — never fail silently here.
+  if (hp.length < AI_MIN_MATCH_PLAYERS || ap.length < AI_MIN_MATCH_PLAYERS) return null;
 
   // For ephemeral clubs: inject their players and club into state temporarily
   if (ephemeralClub) {
@@ -1136,44 +1176,16 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   const ac = effectiveClubs[match.awayClubId];
   if (!hc || !ac) return null;
   const isSuspended = (p: Player) => p.suspendedUntilWeek != null && p.suspendedUntilWeek > week;
-  // Cover holes in a saved XI: named bench first (the manager picked it), then
-  // the rest of the squad.
-  //
-  // This drew from `club.subs` ALONE, which is why a club with a full squad
-  // could still fall under the `< 7` guard below and make this function return
-  // null — silently, with no match, no message, and no fallback. Measured over
-  // three simulated seasons: the player's club finished with 36 / 32 / 25 league
-  // matches played against 36-38 for every other club in the division, because
-  // each skipped fixture was also invisible to `weekAdvance`'s auto-sim (which
-  // only fires when the player played SOMETHING else that week). The league
-  // table, prize money and promotion/relegation were all computed off that.
-  //
-  // Every AI club already covers from the whole squad — `pickAiMatchSquad`'s
-  // `honourSavedLineup` branch fills holes from `selectBestLineup(squad)`. This
-  // is the same rule for the player's club.
-  const backfillXI = (lineup: Player[], club: typeof hc) => {
-    const ids = new Set(lineup.map(p => p.id));
-    for (const id of [...(club.subs || []), ...(club.playerIds || [])]) {
-      if (lineup.length >= 11) break;
-      const p = effectivePlayers[id];
-      // `onLoan` matches the availability rule `pickAiMatchSquad` uses — a
-      // player out on loan is not available to the parent club.
-      if (!p || ids.has(p.id) || isSuspended(p) || p.injured || p.onLoan) continue;
-      lineup.push(p);
-      ids.add(p.id);
-    }
-    return lineup;
-  };
-  // Injured players cannot start. This filter omitted `!p.injured`, while bench
-  // construction and EVERY AI-sim path filter it — so an injured player left in
-  // the saved XI played at full strength for the player's club only, and the
-  // LineupEditor toast ("They cannot play until recovered") was simply untrue.
-  // `backfillXI` tops the XI back up and already excludes unavailable players.
-  let hp = backfillXI((hc.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured), hc);
-  let ap = backfillXI((ac.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured), ac);
+  // Saved XI -> bench -> rest of the squad -> emergency cover. See
+  // `buildPlayerMatchXI`: this used to be a bench-only backfill, which is how a
+  // club with a full squad but a long injury list could take the guard below
+  // and make this function return null.
+  let hp = buildPlayerMatchXI(hc, effectivePlayers, week);
+  let ap = buildPlayerMatchXI(ac, effectivePlayers, week);
 
-  // Need minimum players to simulate a match
-  if (hp.length < 7 || ap.length < 7) return null;
+  // Only reachable now when a club has fewer than seven registered players who
+  // are not out on loan. The callers report it — never fail silently here.
+  if (hp.length < AI_MIN_MATCH_PLAYERS || ap.length < AI_MIN_MATCH_PLAYERS) return null;
 
   try {
   // For ephemeral clubs: inject their players and club into state temporarily
