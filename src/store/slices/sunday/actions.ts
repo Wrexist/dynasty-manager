@@ -47,7 +47,9 @@ import {
 import type { SundayEventContext, SundayEventEffects } from '@/data/sundayEvents';
 import { sundayChainClosingLine } from '@/data/sundayEvents';
 import { isSundaySelectable, ringRoundChance } from '@/utils/sunday/availability';
-import { generateSundayRecruit, sundaySquadNeeds } from '@/utils/sunday/generation';
+import {
+  generateSundayRecruit, sundayShirtNumber, sundaySquadNeeds, sundayTakenShirtNumbers,
+} from '@/utils/sunday/generation';
 import {
   buildSundayTable, mintSundayLegend, sundayPosition, sundaySeasonWeeks,
   type SundayDepartureKind,
@@ -785,6 +787,10 @@ export function signSundayRecruit(set: Set, get: Get, recruitId: string) {
       ...recruit.member,
       playerId: player.id,
       joinedSeason: state.season,
+      // He was generated in isolation, so the number on his card is the
+      // traditional one for his position and takes no account of who is
+      // already wearing it. Re-issued here against the actual pegs.
+      shirtNumber: sundayShirtNumber(player.position, sundayTakenShirtNumbers(sunday.squad)),
       availability: { status: 'available' as const, reason: null, note: null, warned: true, weeksRemaining: 0 },
     }],
     player.id,

@@ -176,6 +176,32 @@ export const SUNDAY_MAX_SQUAD = 22;
 /** Below this the club is in a staffing crisis and events react to it. */
 export const SUNDAY_THIN_SQUAD = 13;
 
+// ── Squad numbers ───────────────────────────────────────────────────────────
+//
+// A Sunday club's numbers come off a bag of shirts, so the range is the real
+// printable one and the preferences are the traditional ones — a keeper takes
+// 1, a right-back takes 2 — rather than anything the simulation reads. Nothing
+// in the engine, the economy or availability touches these: they exist so the
+// squad screen can print a number that does not change when the array does.
+export const SUNDAY_SHIRT_MIN = 1;
+export const SUNDAY_SHIRT_MAX = 99;
+
+/** Numbers each position reaches for first, in order of preference. */
+export const SUNDAY_SHIRT_PREFERENCES: Readonly<Record<string, readonly number[]>> = {
+  GK: [1, 13, 12],
+  RB: [2, 12],
+  LB: [3, 14],
+  CB: [5, 6, 4, 15],
+  CDM: [4, 6, 16],
+  CM: [8, 6, 16],
+  CAM: [10, 18],
+  RM: [7, 17],
+  LM: [11, 19],
+  RW: [7, 17],
+  LW: [11, 19],
+  ST: [9, 10, 20],
+};
+
 /** Guests dragged in when the squad cannot raise seven. Capped so the mode
  *  never silently plays itself: at 3 ringers the manager has clearly lost
  *  control of the week and the narrative says so. */

@@ -43,7 +43,7 @@ const SEED = 31337;
 
 function member(over: Partial<SundaySquadMember> = {}): SundaySquadMember {
   return {
-    playerId: 'p1', archetype: 'journeyman', job: 'sparky',
+    playerId: 'p1', archetype: 'journeyman', job: 'sparky', shirtNumber: 1,
     commitment: 10, punctuality: 10, ego: 10, loyalty: 10, temper: 10, influence: 10,
     condition: 10, injuryProne: 10, happiness: 60, benchedStreak: 0, startedStreak: 0,
     clubApps: 0, clubGoals: 0, clubAssists: 0, clubMotm: 0, joinedSeason: 1,

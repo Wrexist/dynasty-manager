@@ -330,7 +330,7 @@ describe('promotion and relegation', () => {
 
 describe('development', () => {
   const member = {
-    playerId: 'p', archetype: 'journeyman' as const, job: 'j', commitment: 15,
+    playerId: 'p', archetype: 'journeyman' as const, job: 'j', shirtNumber: 1, commitment: 15,
     punctuality: 12, ego: 8, loyalty: 12, temper: 8, influence: 8, condition: 12,
     injuryProne: 8, happiness: 60, benchedStreak: 0, startedStreak: 0, clubApps: 0,
     clubGoals: 0, clubAssists: 0, clubMotm: 0, joinedSeason: 1,

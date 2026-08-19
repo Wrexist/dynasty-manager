@@ -12,7 +12,10 @@ import { __resetSaveStorageForTests, readSaveSlot } from '@/store/helpers/persis
 import { CURRENT_VERSION, migrateSaveData, validateSaveShape } from '@/utils/saveMigration';
 import { assertSundayState } from '@/utils/sunday/invariants';
 import { pruneSundayFlags } from '@/utils/sunday/events';
-import { SUNDAY_INJURY_COST, SUNDAY_RED_CARD_FINE } from '@/config/sundayLeague';
+import {
+  SUNDAY_INJURY_COST, SUNDAY_RED_CARD_FINE, SUNDAY_SHIRT_MAX, SUNDAY_SHIRT_MIN,
+} from '@/config/sundayLeague';
+import { sundayShirtNumber } from '@/utils/sunday/generation';
 import { __resetAutosaveSchedulerForTests } from '@/store/slices/orchestrationSlice';
 
 const SEED = 20250;
@@ -216,6 +219,108 @@ describe('migration', () => {
     // Every old fixture WAS presented as routine; claiming otherwise would need
     // a table this save no longer has.
     expect(lastMatch.tier).toBe('routine');
+    // The weather is rolled inside `prepareSundayMatch` off the match-week
+    // stream, so it cannot be reconstructed without replaying that stream — and
+    // replaying it would change the result of every match in every save. Null
+    // is the honest answer: nobody wrote it down at the time.
+    expect(lastMatch.weather).toBeNull();
+  });
+
+  it('keeps a weather reading a newer report already carried', () => {
+    const old = {
+      version: 85, playerClubId: 'sunday-club', clubs: {}, season: 2, week: 9,
+      gameMode: 'sunday',
+      sunday: {
+        v: 2, balance: 200, flags: {}, squad: [],
+        lastMatch: { matchId: 'm', weather: { weather: 'rain', pitch: 'poor' } },
+      },
+    };
+    const sunday = (migrateSaveData(old) as Record<string, unknown>).sunday as Record<string, unknown>;
+    expect((sunday.lastMatch as Record<string, unknown>).weather).toEqual({ weather: 'rain', pitch: 'poor' });
+  });
+
+  /**
+   * SQUAD NUMBERS — the one field in this wave that cannot be derived.
+   *
+   * A number taken from a position in the `squad` array changes the moment
+   * somebody signs or retires, so it has to be assigned once and then owned by
+   * the save. Which means old saves need one handing out, and the rule that
+   * hands it out has to hold two things: unique, and inside 1-99.
+   */
+  it('hands an old squad a unique, in-range shirt number each', () => {
+    const old = {
+      version: 85, playerClubId: 'sunday-club', clubs: {}, season: 3, week: 4,
+      gameMode: 'sunday',
+      players: {
+        a: { position: 'CB' }, b: { position: 'GK' }, c: { position: 'ST' }, d: { position: 'GK' },
+      },
+      sunday: {
+        v: 2, balance: 200, flags: {},
+        squad: [{ playerId: 'a' }, { playerId: 'b' }, { playerId: 'c' }, { playerId: 'd' }],
+      },
+    };
+    const sunday = (migrateSaveData(old) as Record<string, unknown>).sunday as Record<string, unknown>;
+    const squad = sunday.squad as { playerId: string; shirtNumber: number }[];
+    const numbers = squad.map(m => m.shirtNumber);
+    expect(new Set(numbers).size).toBe(squad.length);
+    for (const n of numbers) {
+      expect(Number.isInteger(n)).toBe(true);
+      expect(n).toBeGreaterThanOrEqual(SUNDAY_SHIRT_MIN);
+      expect(n).toBeLessThanOrEqual(SUNDAY_SHIRT_MAX);
+    }
+    // The first keeper in squad order takes the one everybody expects. The
+    // second is just another man in the queue.
+    expect(squad.find(m => m.playerId === 'b')!.shirtNumber).toBe(1);
+    expect(squad.find(m => m.playerId === 'd')!.shirtNumber).not.toBe(1);
+  });
+
+  it('never re-issues a number a save already carried', () => {
+    // Re-running the chain (or extending this step again) must not renumber a
+    // squad: the number is the man's, not the migration's.
+    const old = {
+      version: 85, playerClubId: 'sunday-club', clubs: {}, season: 3, week: 4,
+      gameMode: 'sunday',
+      players: { a: { position: 'GK' }, b: { position: 'CM' } },
+      sunday: {
+        v: 2, balance: 200, flags: {},
+        squad: [{ playerId: 'a', shirtNumber: 7 }, { playerId: 'b' }],
+      },
+    };
+    const sunday = (migrateSaveData(old) as Record<string, unknown>).sunday as Record<string, unknown>;
+    const squad = sunday.squad as { playerId: string; shirtNumber: number }[];
+    expect(squad[0].shirtNumber).toBe(7);
+    expect(squad[1].shirtNumber).not.toBe(7);
+  });
+
+  it('agrees with the live shirt-number rule about range and uniqueness', () => {
+    // The migration inlines its own copy of the rule, because
+    // `utils/sunday/generation.ts` is a lazy chunk and must never be pulled
+    // into the eagerly-loaded migration (same reasoning as the flag rule
+    // above). This pins the two copies together on the properties that matter.
+    const positions = ['GK', 'CB', 'CB', 'LB', 'RB', 'CM', 'CM', 'ST'] as const;
+    const old = {
+      version: 85, playerClubId: 'sunday-club', clubs: {}, season: 1, week: 1,
+      gameMode: 'sunday',
+      players: Object.fromEntries(positions.map((p, i) => [`p${i}`, { position: p }])),
+      sunday: {
+        v: 2, balance: 0, flags: {},
+        squad: positions.map((_, i) => ({ playerId: `p${i}` })),
+      },
+    };
+    const migrated = ((migrateSaveData(old) as Record<string, unknown>).sunday as Record<string, unknown>)
+      .squad as { shirtNumber: number }[];
+
+    const live: number[] = [];
+    for (const pos of positions) live.push(sundayShirtNumber(pos, live));
+
+    for (const set of [migrated.map(m => m.shirtNumber), live]) {
+      expect(new Set(set).size).toBe(positions.length);
+      expect(Math.min(...set)).toBeGreaterThanOrEqual(SUNDAY_SHIRT_MIN);
+      expect(Math.max(...set)).toBeLessThanOrEqual(SUNDAY_SHIRT_MAX);
+    }
+    // And both give the keeper the shirt a keeper wears.
+    expect(migrated[0].shirtNumber).toBe(1);
+    expect(live[0]).toBe(1);
   });
 
   it('scrubs friends and rivals who left the club seasons ago', () => {

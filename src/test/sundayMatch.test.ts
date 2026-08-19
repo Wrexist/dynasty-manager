@@ -101,6 +101,25 @@ describe('playing the fixture', () => {
     check();
   });
 
+  it('writes down what the weather was, because nothing else can', async () => {
+    // The weather is rolled inside `prepareSundayMatch` off the match-week
+    // stream, AFTER the ringer draws. Nothing downstream can re-derive it
+    // without replaying that stream, and replaying it would change results in
+    // every existing save — so the report is the only honest record, and it
+    // has to agree with the match the engine actually played.
+    const report = await useGameStore.getState().playSundayMatch();
+    const live = useGameStore.getState().currentMatchResult?.weather ?? null;
+    expect(report!.weather).toBeTruthy();
+    expect(report!.weather).toEqual(live);
+
+    // …and it survives the reload that clears `currentMatchResult`.
+    useGameStore.getState().saveGame(1);
+    useGameStore.getState().flushSave();
+    useGameStore.getState().loadGame(1);
+    expect(useGameStore.getState().currentMatchResult).toBeNull();
+    expect(useGameStore.getState().sunday!.lastMatch!.weather).toEqual(live);
+  });
+
   it('records the result on the fixture and nowhere else', async () => {
     const report = await useGameStore.getState().playSundayMatch();
     const s = useGameStore.getState();

@@ -23,6 +23,7 @@ import {
   SUNDAY_TACTICS, SUNDAY_MAX_FRIENDS, SUNDAY_MAX_RIVALS, SUNDAY_MAX_SQUAD,
   SUNDAY_FORMER_TEAMMATES_MAX, SUNDAY_RECRUIT_SIGNINGS_PER_SEASON,
   SUNDAY_RINGROUND_ATTEMPTS_PER_WEEK, SUNDAY_MEMORIES_MAX,
+  SUNDAY_SHIRT_MAX, SUNDAY_SHIRT_MIN,
 } from '@/config/sundayLeague';
 import { sundaySeasonWeeks } from './season';
 import { sundayFlagSubjectId } from './events';
@@ -72,6 +73,9 @@ export function validateSundayState(input: ValidateSundayInput): SundayValidatio
       push('player club missing from clubs map');
     }
     const seen = new Set<string>();
+    // Two men in the same shirt is the whole point of the field being stored
+    // rather than derived, so it is the one thing worth checking about it.
+    const shirts = new Set<number>();
     // Built up front rather than as the loop goes, because the relationship
     // checks below have to be able to look FORWARD at a squad-mate who has not
     // been visited yet.
@@ -89,6 +93,15 @@ export function validateSundayState(input: ValidateSundayInput): SundayValidatio
         if (!finite(v) || v < 1 || v > 20) push(`${key} out of range for ${m.playerId}: ${String(v)}`);
       }
       if (!finite(m.subsOwed) || m.subsOwed < 0) push(`subsOwed invalid for ${m.playerId}`);
+      // Sunday v3 — squad numbers.
+      if (!finite(m.shirtNumber) || !Number.isInteger(m.shirtNumber)
+        || m.shirtNumber < SUNDAY_SHIRT_MIN || m.shirtNumber > SUNDAY_SHIRT_MAX) {
+        push(`shirt number out of range for ${m.playerId}: ${String(m.shirtNumber)}`);
+      } else if (shirts.has(m.shirtNumber)) {
+        push(`two players are wearing ${m.shirtNumber}`);
+      } else {
+        shirts.add(m.shirtNumber);
+      }
       if (m.clubApps < 0 || m.clubGoals < 0) push(`negative career totals for ${m.playerId}`);
       if (!finite(p.overall) || p.overall < 1 || p.overall > 99) push(`overall out of range for ${m.playerId}`);
 

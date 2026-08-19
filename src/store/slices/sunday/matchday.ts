@@ -1028,6 +1028,10 @@ function settleSundayMatch(set: Set, get: Get, setup: SundayMatchSetup, sim: Sun
     lowlightRating: lowlight?.rating ?? 0,
     redCards: ourRedCards,
     injuries: ourInjuries,
+    // Recorded, not re-derived. The roll happens once in `prepareSundayMatch`
+    // off the match-week stream; doing it again anywhere would either disagree
+    // or move the cursor and change every result in every existing save.
+    weather: setup.weather,
     turningPoint,
     consequences: buildConsequences(),
     adjustments: sim.adjustments.map(a => ({ label: a.label, delta: a.delta })),

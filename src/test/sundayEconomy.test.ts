@@ -40,7 +40,7 @@ beforeEach(async () => {
 
 function squadOf(n: number, commitment: number): SundaySquadMember[] {
   return Array.from({ length: n }, (_, i) => ({
-    playerId: `p${i}`, archetype: 'journeyman' as const, job: 'sparky',
+    playerId: `p${i}`, archetype: 'journeyman' as const, job: 'sparky', shirtNumber: i + 1,
     commitment, punctuality: 10, ego: 10, loyalty: 10, temper: 10, influence: 10,
     condition: 10, injuryProne: 10, happiness: 60, benchedStreak: 0, startedStreak: 0,
     clubApps: 0, clubGoals: 0, clubAssists: 0, clubMotm: 0, joinedSeason: 1,

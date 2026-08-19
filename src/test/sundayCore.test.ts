@@ -9,7 +9,9 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
 import { assertSundayState, validateSundayState } from '@/utils/sunday/invariants';
 import { sundaySeasonWeeks } from '@/utils/sunday/season';
-import { SUNDAY_MEMORIES_MAX, SUNDAY_MIN_START } from '@/config/sundayLeague';
+import {
+  SUNDAY_MEMORIES_MAX, SUNDAY_MIN_START, SUNDAY_SHIRT_MAX, SUNDAY_SHIRT_MIN,
+} from '@/config/sundayLeague';
 
 const SEED = 12345;
 
@@ -168,6 +170,86 @@ describe('the weekly loop', () => {
   });
 });
 
+describe('squad numbers', () => {
+  it('gives a new squad a unique number each, with the keeper in 1', () => {
+    const squad = useGameStore.getState().sunday!.squad;
+    const players = useGameStore.getState().players;
+    const numbers = squad.map(m => m.shirtNumber);
+    expect(new Set(numbers).size).toBe(squad.length);
+    for (const n of numbers) {
+      expect(Number.isInteger(n)).toBe(true);
+      expect(n).toBeGreaterThanOrEqual(SUNDAY_SHIRT_MIN);
+      expect(n).toBeLessThanOrEqual(SUNDAY_SHIRT_MAX);
+    }
+    // The squad is built keeper-first, so the first man out of the generator
+    // takes the shirt his position asks for.
+    const one = squad.find(m => m.shirtNumber === 1)!;
+    expect(players[one.playerId].position).toBe('GK');
+  });
+
+  it('is the same number after a reload — that is the point of storing it', () => {
+    const before = new Map(useGameStore.getState().sunday!.squad.map(m => [m.playerId, m.shirtNumber]));
+    useGameStore.getState().saveGame(1);
+    useGameStore.getState().flushSave();
+    useGameStore.getState().resetGame(2);
+    expect(useGameStore.getState().loadGame(1)).toBe(true);
+    for (const m of useGameStore.getState().sunday!.squad) {
+      expect(m.shirtNumber, m.playerId).toBe(before.get(m.playerId));
+    }
+  });
+
+  it('gives a signing a shirt nobody is already wearing', async () => {
+    // The recruit was generated in isolation, so the number on his card is the
+    // traditional one for his position and takes no account of the pegs. If
+    // signing did not re-issue it, the very first signing could put two men in
+    // the same shirt — which is precisely what the validator now refuses.
+    const { generateSundayRecruit } = await import('@/utils/sunday/generation');
+    const { createSundayRng } = await import('@/utils/sunday/rng');
+    const s0 = useGameStore.getState();
+    const recruit = generateSundayRecruit({
+      rng: createSundayRng(99, 0), season: s0.season, week: s0.week, reputation: 40,
+      personality: 'pub', needs: [], clubhouseLevel: 0, vouchName: 'Kev',
+      rivalName: null, town: 'Ashworth', index: 1, divisionId: s0.sunday!.divisionId,
+    });
+    // Force the collision the re-issue exists to prevent.
+    const clash = s0.sunday!.squad[0].shirtNumber;
+    useGameStore.setState({
+      sunday: {
+        ...s0.sunday!,
+        balance: 5000,
+        recruits: [{ ...recruit, fee: 0, member: { ...recruit.member, shirtNumber: clash } }],
+      },
+    });
+
+    const result = await useGameStore.getState().signSundayRecruit(recruit.id);
+    expect(result.ok, result.message).toBe(true);
+    const squad = useGameStore.getState().sunday!.squad;
+    expect(new Set(squad.map(m => m.shirtNumber)).size).toBe(squad.length);
+    expect(squad[squad.length - 1].shirtNumber).not.toBe(clash);
+    check();
+  });
+
+  it('survives the season rollover, squad churn and all', async () => {
+    const before = new Map(useGameStore.getState().sunday!.squad.map(m => [m.playerId, m.shirtNumber]));
+    const weeks = sundaySeasonWeeks(useGameStore.getState().sunday!.divisionId);
+    for (let i = 0; i < weeks + 2; i++) {
+      const s = useGameStore.getState();
+      if (s.sunday!.folded) break;
+      if (s.sunday!.pendingEvent) await s.resolveSundayEvent(s.sunday!.pendingEvent.choices[0].id);
+      if (s.sunday!.seasonComplete) { await useGameStore.getState().endSundaySeason(); break; }
+      await useGameStore.getState().advanceWeek();
+    }
+    const after = useGameStore.getState().sunday!;
+    expect(new Set(after.squad.map(m => m.shirtNumber)).size).toBe(after.squad.length);
+    for (const m of after.squad) {
+      // A number a man already had is his; anyone who arrived since simply has
+      // one that nobody else is wearing.
+      if (before.has(m.playerId)) expect(m.shirtNumber, m.playerId).toBe(before.get(m.playerId));
+    }
+    check();
+  });
+});
+
 describe('validateSundayState', () => {
   it('catches a player who is on two teams', () => {
     const s = useGameStore.getState();
@@ -208,6 +290,47 @@ describe('validateSundayState', () => {
     });
     expect(result.ok).toBe(false);
     expect(result.problems.join(' ')).toContain('memories unbounded');
+  });
+
+  it('catches two men in the same shirt', () => {
+    // The whole reason `shirtNumber` is stored rather than derived is that it
+    // has to be stable — and a stored number can collide, which a derived one
+    // cannot. This is the check that makes the field's one invariant real.
+    const s = useGameStore.getState();
+    const [first, second] = s.sunday!.squad;
+    const result = validateSundayState({
+      sunday: {
+        ...s.sunday!,
+        squad: s.sunday!.squad.map(m =>
+          (m.playerId === second.playerId ? { ...m, shirtNumber: first.shirtNumber } : m)),
+      },
+      players: s.players,
+      clubs: s.clubs,
+      playerClubId: s.playerClubId,
+      fixtures: s.fixtures,
+      week: s.week,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.problems.join(' ')).toContain('wearing');
+  });
+
+  it('catches a shirt number outside 1-99', () => {
+    const s = useGameStore.getState();
+    for (const bad of [0, 100, 4.5, Number.NaN]) {
+      const result = validateSundayState({
+        sunday: {
+          ...s.sunday!,
+          squad: s.sunday!.squad.map((m, i) => (i === 0 ? { ...m, shirtNumber: bad } : m)),
+        },
+        players: s.players,
+        clubs: s.clubs,
+        playerClubId: s.playerClubId,
+        fixtures: s.fixtures,
+        week: s.week,
+      });
+      expect(result.ok, String(bad)).toBe(false);
+      expect(result.problems.join(' ')).toContain('shirt number out of range');
+    }
   });
 
   it('catches two results for one fixture pairing in a week', () => {

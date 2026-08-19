@@ -52,6 +52,23 @@ const migrations: Record<number, MigrationFn> = {
   //     dropped. Without that, a save reloaded mid-story would lose it
   //     silently: the flag no longer selects anything and the payoff beat is
   //     now chain-gated.
+  //   - SQUAD NUMBERS. `shirtNumber` cannot be derived after the fact — a
+  //     number taken from a position in the `squad` array changes the moment
+  //     somebody signs or retires, and a number that moves is not a squad
+  //     number. Old saves therefore get one assigned HERE, once, in squad
+  //     order: the first goalkeeper takes 1 (the only preference cheap enough
+  //     to honour without dragging the mode's config into the eager migration
+  //     chunk) and everybody else takes the lowest free number. The rule is
+  //     re-stated inline below rather than imported for exactly the reason the
+  //     flag rule is — `utils/sunday/generation.ts` is a lazy chunk and must
+  //     not be pulled into the eagerly-loaded migration. `sundaySave.test.ts`
+  //     pins this copy against the real `sundayShirtNumber` so the two agree
+  //     about range and uniqueness.
+  //   - `lastMatch.weather` becomes null. The weather is rolled inside
+  //     `prepareSundayMatch` from the match-week stream AFTER the ringer draws,
+  //     so it is not reconstructible without replaying that stream — and
+  //     replaying it would change results in every existing save. Null is the
+  //     truth: nobody wrote it down at the time.
   //   - `eventQueue` is dropped. It was never written to.
   //   - THE RELATIONSHIPS LAYER. `friends` / `rivals` existed and were drawn at
   //     founding, but nothing maintained them: every departure left a dangling
@@ -92,6 +109,8 @@ const migrations: Record<number, MigrationFn> = {
             // that have all since moved.
             adjustments: Array.isArray(lm.adjustments) ? lm.adjustments : [],
             guestRatings: Array.isArray(lm.guestRatings) ? lm.guestRatings : [],
+            // Not derivable — see the note above. Nobody wrote it down.
+            weather: lm.weather && typeof lm.weather === 'object' ? lm.weather : null,
           };
         })()
       : null;
@@ -172,10 +191,43 @@ const migrations: Record<number, MigrationFn> = {
       }
       return out;
     };
+    // Squad numbers, handed out once and then owned by the save. Literals
+    // rather than `SUNDAY_SHIRT_MIN`/`MAX` for the same reason the caps above
+    // are: this describes what an old save is allowed to contain, and reading a
+    // live constant would silently rewrite old saves the next time it moved.
+    const takenShirts = new Set<number>(
+      squadIn
+        .map(m => m.shirtNumber)
+        .filter((n): n is number => typeof n === 'number' && Number.isInteger(n) && n >= 1 && n <= 99),
+    );
+    const nextShirt = (): number => {
+      for (let n = 1; n <= 99; n++) {
+        if (!takenShirts.has(n)) { takenShirts.add(n); return n; }
+      }
+      return 99;
+    };
+    const keptShirt = (m: Record<string, unknown>): number | null =>
+      typeof m.shirtNumber === 'number' && Number.isInteger(m.shirtNumber)
+        && m.shirtNumber >= 1 && m.shirtNumber <= 99
+        ? m.shirtNumber
+        : null;
+    // The first unnumbered keeper in squad order gets the shirt everybody
+    // expects — reserved BEFORE the walk, or a centre-half standing ahead of
+    // him in the array would take it as the lowest free number. A second
+    // keeper is just another man in the queue.
+    const playerPositions = (data.players ?? {}) as Record<string, { position?: string }>;
+    const keeperId = squadIn.find(m =>
+      keptShirt(m) === null && playerPositions[String(m.playerId)]?.position === 'GK')?.playerId;
+    const keeperGetsOne = keeperId != null && !takenShirts.has(1);
+    if (keeperGetsOne) takenShirts.add(1);
+
     const squad = squadIn.map(m => {
       const friends = idList(m.friends, m.playerId).slice(0, 3);
+      const existing = keptShirt(m);
       return {
         ...m,
+        shirtNumber: existing
+          ?? (keeperGetsOne && m.playerId === keeperId ? 1 : nextShirt()),
         friends,
         rivals: idList(m.rivals, m.playerId, friends).slice(0, 2),
         formerTeammates: Array.isArray(m.formerTeammates) ? m.formerTeammates : [],
@@ -192,8 +244,14 @@ const migrations: Record<number, MigrationFn> = {
           return {
             ...r,
             voucherId: typeof r.voucherId === 'string' ? r.voucherId : null,
-            // He has not signed, so he cannot have mates at the club yet.
-            member: { ...member, friends: [], rivals: [], formerTeammates: [], appsWith: {} },
+            // He has not signed, so he cannot have mates at the club yet — and
+            // the number on his card is provisional either way: `signSundayRecruit`
+            // re-issues it against the pegs the moment he does.
+            member: {
+              ...member,
+              shirtNumber: typeof member.shirtNumber === 'number' ? member.shirtNumber : 1,
+              friends: [], rivals: [], formerTeammates: [], appsWith: {},
+            },
           };
         })
       : (sunday.recruits ?? []);

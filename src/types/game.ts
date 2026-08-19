@@ -2603,6 +2603,22 @@ export interface SundayPromise {
 export interface SundaySquadMember {
   playerId: string;
   archetype: SundayArchetypeId;
+  /**
+   * The number on his back, 1-99 and unique within the squad.
+   *
+   * THE ONE VISUAL THING THAT CANNOT BE DERIVED. Every other piece of a Sunday
+   * player's look — his face, his club's crest, its kit pattern — is a pure
+   * function of an id that never changes, so it is computed on read and stored
+   * nowhere. A squad number is not: derive it from a position in `squad` and it
+   * changes the moment somebody signs, retires or is released, and a number
+   * that moves when an array is reordered is not a squad number.
+   *
+   * Assigned at generation and at signing (`sundayShirtNumber`, which leans a
+   * keeper toward 1 and everyone else toward the traditional number for his
+   * position), carried across the season rollover, and backfilled in squad
+   * order by the migration. Sunday schema v3.
+   */
+  shirtNumber: number;
   /** What he does on weekdays — flavour that drives work-related absences. */
   job: string;
   /** 1-20. Turns up, trains, cares. Drives availability and morale recovery. */
@@ -3093,6 +3109,18 @@ export interface SundayMatchReport {
    * from the ratings list he had topped. Schema v3.
    */
   guestRatings: { name: string; rating: number; goals: number; assists: number }[];
+  /**
+   * What it was like out there, snapshotted at the whistle.
+   *
+   * Null for a report written before the field existed, and — importantly —
+   * NOT derivable after the fact. The weather is rolled inside
+   * `prepareSundayMatch` from the match-week stream, AFTER the ringer draws;
+   * re-rolling it anywhere else would either give a different answer or move
+   * the cursor and change every result in every existing save. So it is
+   * recorded once, where it happens, and read from here by the arrival, the
+   * post-match panel and the history screen. Schema v3.
+   */
+  weather: MatchWeather | null;
   /** Net money the match produced. */
   moneyDelta: number;
   /** Squad-wide morale change. */

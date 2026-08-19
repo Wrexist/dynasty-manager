@@ -29,6 +29,7 @@ import {
   SUNDAY_RINGER_QUALITY_MAX, SUNDAY_RINGER_QUALITY_MIN, getSundayDivision,
   getSundayPersonality, SUNDAY_CLUBHOUSE_RECRUIT_PER_LEVEL,
   SUNDAY_MAX_FRIENDS, SUNDAY_MAX_RIVALS,
+  SUNDAY_SHIRT_MAX, SUNDAY_SHIRT_MIN, SUNDAY_SHIRT_PREFERENCES,
 } from '@/config/sundayLeague';
 import {
   SUNDAY_CLUB_PREFIX, SUNDAY_CLUB_SUFFIX, SUNDAY_FIRST_NAMES, SUNDAY_JOBS,
@@ -49,6 +50,41 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, M
  *  whole point is that the same seed rebuilds the same people. */
 function sundayId(prefix: string, seed: number, n: number): string {
   return `${prefix}-${(seed >>> 0).toString(36)}-${n.toString(36)}`;
+}
+
+// ── Squad numbers ───────────────────────────────────────────────────────────
+
+/**
+ * The number this man gets, given what is already on the pegs.
+ *
+ * DETERMINISTIC AND UNSEEDED, on purpose. It takes no RNG, so assigning a
+ * number costs no draw and cannot move the persisted cursor — a signing must
+ * not shift the stream that decides next week's availability. It leans on the
+ * traditional number for the position (`SUNDAY_SHIRT_PREFERENCES`: a keeper
+ * takes 1, a right-back 2) and falls back to the lowest free number, which is
+ * how a real Sunday side runs out of shirts.
+ *
+ * Returns `SUNDAY_SHIRT_MAX` in the impossible case that 1-99 are all taken;
+ * `SUNDAY_MAX_SQUAD` is 22, so the fallback exists only so the function has no
+ * undefined branch.
+ */
+export function sundayShirtNumber(position: Position, taken: Iterable<number>): number {
+  const used = new Set<number>();
+  for (const n of taken) if (Number.isFinite(n)) used.add(Math.trunc(n));
+  for (const preferred of SUNDAY_SHIRT_PREFERENCES[position] ?? []) {
+    if (!used.has(preferred)) return preferred;
+  }
+  for (let n = SUNDAY_SHIRT_MIN; n <= SUNDAY_SHIRT_MAX; n++) {
+    if (!used.has(n)) return n;
+  }
+  return SUNDAY_SHIRT_MAX;
+}
+
+/** Every number currently on the pegs. */
+export function sundayTakenShirtNumbers(
+  squad: readonly { shirtNumber?: number }[],
+): number[] {
+  return squad.map(m => m.shirtNumber).filter((n): n is number => typeof n === 'number');
 }
 
 // ── Attributes ──────────────────────────────────────────────────────────────
@@ -163,7 +199,7 @@ function rollSundayTraits(
   rng: SundayRng,
   archetype: SundayArchetypeId,
   personality: SundayClubPersonalityId,
-): Omit<SundaySquadMember, 'playerId' | 'archetype' | 'job' | 'availability' | 'joinedSeason'> {
+): Omit<SundaySquadMember, 'playerId' | 'archetype' | 'job' | 'availability' | 'joinedSeason' | 'shirtNumber'> {
   const gen = SUNDAY_ARCHETYPES.find(a => a.id === archetype)?.gen ?? {};
   const p = getSundayPersonality(personality);
   const band = (range: [number, number] | undefined, fallbackMid = 10): number =>
@@ -216,6 +252,12 @@ export interface GenerateSundayPlayerOptions {
   archetype?: SundayArchetypeId;
   /** Widens the attribute spread — Chaos FC squads are all over the place. */
   variance?: number;
+  /**
+   * Numbers already on the pegs. Defaults to none, which gives him the
+   * traditional number for his position — right for a recruit produced in
+   * isolation, and overwritten against the real squad when he signs.
+   */
+  takenShirtNumbers?: Iterable<number>;
 }
 
 /** One Sunday footballer: a `Player` for the engine and a `SundaySquadMember`
@@ -275,6 +317,9 @@ export function generateSundayPlayer(opts: GenerateSundayPlayerOptions): Generat
   const member: SundaySquadMember = {
     playerId: id,
     archetype,
+    // No draw: `sundayShirtNumber` is deterministic, so handing out a shirt
+    // cannot move the persisted cursor.
+    shirtNumber: sundayShirtNumber(position, opts.takenShirtNumbers ?? []),
     job: rng.pick(SUNDAY_JOBS) ?? 'between things',
     ...traits,
     joinedSeason: season,
@@ -659,11 +704,12 @@ export function generateSundayStartingSquad(
   const taken: SundayArchetypeId[] = [];
   const baseQuality = 44 + p.qualityMod;
 
+  const shirts: number[] = [];
   for (let i = 0; i < p.squadSize; i++) {
     const position = SQUAD_SHAPE[i % SQUAD_SHAPE.length];
     const archetype = pickSundayArchetype(rng, personality, taken);
     taken.push(archetype);
-    out.push(generateSundayPlayer({
+    const generated = generateSundayPlayer({
       rng,
       id: `sun-p-${clubId}-${i}`,
       clubId,
@@ -675,7 +721,10 @@ export function generateSundayStartingSquad(
       personality,
       archetype,
       variance: p.varianceMult,
-    }));
+      takenShirtNumbers: shirts,
+    });
+    shirts.push(generated.member.shirtNumber);
+    out.push(generated);
   }
 
   // Friendships and feuds, drawn once so the dressing room has a shape from
