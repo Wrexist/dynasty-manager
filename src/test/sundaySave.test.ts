@@ -11,6 +11,7 @@ import { useGameStore } from '@/store/gameStore';
 import { __resetSaveStorageForTests, readSaveSlot } from '@/store/helpers/persistence';
 import { CURRENT_VERSION, migrateSaveData, validateSaveShape } from '@/utils/saveMigration';
 import { assertSundayState } from '@/utils/sunday/invariants';
+import { pruneSundayFlags } from '@/utils/sunday/events';
 import { SUNDAY_INJURY_COST, SUNDAY_RED_CARD_FINE } from '@/config/sundayLeague';
 import { __resetAutosaveSchedulerForTests } from '@/store/slices/orchestrationSlice';
 
@@ -280,7 +281,10 @@ describe('migration', () => {
       version: 85, playerClubId: 'sunday-club', clubs: {}, season: 3, week: 9,
       gameMode: 'sunday',
       players: { 'sun-p-1': { firstName: 'Danny', lastName: 'Vaughan' } },
-      sunday: { v: 2, balance: 200, flags: { 'wants-out:sun-p-1': 7 }, squad: [] },
+      sunday: {
+        v: 2, balance: 200, flags: { 'wants-out:sun-p-1': 7 },
+        squad: [{ playerId: 'sun-p-1' }],
+      },
     };
     const migrated = migrateSaveData(old) as Record<string, unknown>;
     const sunday = migrated.sunday as Record<string, unknown>;
@@ -294,6 +298,53 @@ describe('migration', () => {
       dueWeek: 11,
       data: { name: 'Danny' },
     }]);
+  });
+
+  it('will not mint a chain about a man who has already left', () => {
+    // The expected input, not a hypothetical: the v85 baseline swept flags by
+    // AGE alone and never by squad membership, so a save can genuinely carry a
+    // wants-out flag about somebody who walked out weeks ago. Converting it
+    // produced a chain the validator rejects ("chain rival-defection is about
+    // X, who is not in the squad") whose beats could never fire.
+    const old = {
+      version: 85, playerClubId: 'sunday-club', clubs: {}, season: 3, week: 9,
+      gameMode: 'sunday',
+      players: { 'sun-p-2': { firstName: 'Kev' } },
+      sunday: {
+        v: 2, balance: 200,
+        flags: { 'wants-out:sun-p-gone': 7 },
+        squad: [{ playerId: 'sun-p-2' }],
+      },
+    };
+    const sunday = (migrateSaveData(old) as Record<string, unknown>).sunday as Record<string, unknown>;
+    expect(sunday.chains).toEqual([]);
+    // And the flag goes with it, rather than sitting there naming a ghost.
+    expect(sunday.flags).toEqual({});
+  });
+
+  it('scrubs dangling story flags by exactly the rule the validator uses', () => {
+    // The migration is the one load path that never runs `pruneSundayFlags` —
+    // the mode's own code prunes on every departure — so it carries its own
+    // copy of the rule. This pins the copy to the original.
+    const flags = {
+      'wants-out:sun-p-1': 3,      // live subject, and chains already exist so it is not converted
+      'sulking:sun-p-gone': 4,     // departed subject
+      'rough-week': 5,             // no subject at all
+      'derby-bet:not-a-player-id': 6, // a colon, but not a player id
+    };
+    const old = {
+      version: 85, playerClubId: 'sunday-club', clubs: {}, season: 2, week: 6,
+      gameMode: 'sunday',
+      sunday: {
+        v: 2, balance: 200, flags, chains: [],
+        squad: [{ playerId: 'sun-p-1' }, { playerId: 'sun-p-2' }],
+      },
+    };
+    const sunday = (migrateSaveData(old) as Record<string, unknown>).sunday as Record<string, unknown>;
+    expect(sunday.flags).toEqual(pruneSundayFlags(flags, new Set(['sun-p-1', 'sun-p-2'])));
+    expect(sunday.flags).toEqual({
+      'wants-out:sun-p-1': 3, 'rough-week': 5, 'derby-bet:not-a-player-id': 6,
+    });
   });
 });
 

@@ -100,6 +100,17 @@ const migrations: Record<number, MigrationFn> = {
       ? sunday.onceFiredIds
       : [...new Set(log.map(e => e?.defId).filter((id): id is string => typeof id === 'string'))];
 
+    // WHO IS STILL ON THE BOOKS. Computed FIRST, because both blocks below need
+    // it: the chain conversion may not mint a story about somebody who left,
+    // and the flags may not carry one about him either.
+    //
+    // The relationships caps further down are LITERALS for the same reason the
+    // chain deadline is: this describes what an old save is allowed to have
+    // contained, and re-reading a balance constant here would silently rewrite
+    // old saves the next time the dressing room is tuned.
+    const squadIn = Array.isArray(sunday.squad) ? (sunday.squad as Record<string, unknown>[]) : [];
+    const liveIds = new Set(squadIn.map(m => String(m.playerId)));
+
     // The legacy 'wants-out:<playerId>' flag → the rival-defection chain.
     // Numbers are LITERALS on purpose: a migration describes what an old save
     // meant at the moment it was written, so reading a live balance constant
@@ -112,8 +123,16 @@ const migrations: Record<number, MigrationFn> = {
     const players = (data.players ?? {}) as Record<string, { firstName?: string }>;
     let chains: unknown[] = Array.isArray(sunday.chains) ? sunday.chains : [];
     let flags: Record<string, unknown> = flagsIn;
-    if (!Array.isArray(sunday.chains) && wantsOut) {
+    // ONLY IF HE IS STILL HERE. A v85 save can genuinely carry a wants-out flag
+    // about a departed player — the baseline swept flags by age alone, never by
+    // squad membership, which is the documented pre-existing bug this migration
+    // is most likely to meet. Promoting that into a chain is worse than losing
+    // it: the validator rejects a chain about a man who is not in the squad,
+    // and none of its beats could ever fire. Drop the flag instead.
+    let convertedFlag: string | null = null;
+    if (!Array.isArray(sunday.chains) && wantsOut && liveIds.has(wantsOut[0].slice('wants-out:'.length))) {
       const subjectId = wantsOut[0].slice('wants-out:'.length);
+      convertedFlag = wantsOut[0];
       const setWeek = typeof wantsOut[1] === 'number' ? wantsOut[1] : Number(data.week) || 1;
       const name = players[subjectId]?.firstName;
       chains = [{
@@ -127,15 +146,22 @@ const migrations: Record<number, MigrationFn> = {
         dueWeek: setWeek + 4,
         data: name ? { name } : {},
       }];
-      flags = Object.fromEntries(Object.entries(flagsIn).filter(([k]) => k !== wantsOut[0]));
     }
-
-    // The relationships layer. Caps are LITERALS for the same reason the chain
-    // deadline above is: this describes what an old save is allowed to have
-    // contained, and re-reading a balance constant here would silently rewrite
-    // old saves the next time the dressing room is tuned.
-    const squadIn = Array.isArray(sunday.squad) ? (sunday.squad as Record<string, unknown>[]) : [];
-    const liveIds = new Set(squadIn.map(m => String(m.playerId)));
+    // Then scrub every flag whose subject has gone — including the wants-out
+    // one, whether it became a chain or not. This is the one load path that
+    // never runs `pruneSundayFlags` (the mode's own code prunes on every
+    // departure), so the rule is restated here rather than imported: the
+    // Sunday event module is a lazy chunk and must not be pulled into the
+    // eagerly-loaded migration. `sundayFlagSubjectId` is the source of truth
+    // for the rule; the migration block in `sundaySave.test.ts` pins this copy
+    // of it against `pruneSundayFlags` so the two cannot drift.
+    flags = Object.fromEntries(Object.entries(flags).filter(([name]) => {
+      if (name === convertedFlag) return false;
+      const colon = name.indexOf(':');
+      if (colon < 0) return true;
+      const subject = name.slice(colon + 1);
+      return !subject.startsWith('sun-') || liveIds.has(subject);
+    }));
     const idList = (value: unknown, self: unknown, exclude: readonly string[] = []): string[] => {
       if (!Array.isArray(value)) return [];
       const out: string[] = [];
