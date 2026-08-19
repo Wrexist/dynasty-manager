@@ -22,7 +22,7 @@ import {
   SUNDAY_FULL_XI, SUNDAY_PENDING_LEDGER_MAX, SUNDAY_PITCH_DAMAGE_MAX,
   SUNDAY_TACTICS, SUNDAY_MAX_FRIENDS, SUNDAY_MAX_RIVALS, SUNDAY_MAX_SQUAD,
   SUNDAY_FORMER_TEAMMATES_MAX, SUNDAY_RECRUIT_SIGNINGS_PER_SEASON,
-  SUNDAY_RINGROUND_ATTEMPTS_PER_WEEK,
+  SUNDAY_RINGROUND_ATTEMPTS_PER_WEEK, SUNDAY_MEMORIES_MAX,
 } from '@/config/sundayLeague';
 import { sundaySeasonWeeks } from './season';
 import { sundayFlagSubjectId } from './events';
@@ -103,7 +103,12 @@ export function validateSundayState(input: ValidateSundayInput): SundayValidatio
       // Sunday v2 — the story fields.
       if (!Array.isArray(m.memories)) push(`memories missing for ${m.playerId}`);
       else {
-        if (m.memories.length > 20) push(`memories unbounded for ${m.playerId} (${m.memories.length})`);
+        // The cap is `rememberMoment`'s, read from the config rather than
+        // guessed at: this said 20 while the real ceiling was 12, so eight
+        // units of overflow were invisible to the one thing that checks.
+        if (m.memories.length > SUNDAY_MEMORIES_MAX) {
+          push(`memories unbounded for ${m.playerId} (${m.memories.length})`);
+        }
         for (const mem of m.memories) {
           if (!finite(mem.weight) || mem.weight < 1 || mem.weight > 10) push(`memory weight out of range for ${m.playerId}`);
           if (!mem.text) push(`empty memory text for ${m.playerId}`);

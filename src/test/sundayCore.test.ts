@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
 import { assertSundayState, validateSundayState } from '@/utils/sunday/invariants';
 import { sundaySeasonWeeks } from '@/utils/sunday/season';
-import { SUNDAY_MIN_START } from '@/config/sundayLeague';
+import { SUNDAY_MEMORIES_MAX, SUNDAY_MIN_START } from '@/config/sundayLeague';
 
 const SEED = 12345;
 
@@ -182,6 +182,32 @@ describe('validateSundayState', () => {
     });
     expect(result.ok).toBe(false);
     expect(result.problems.join(' ')).toContain('clubId');
+  });
+
+  it('catches a memory list over the real cap, not a guessed one', () => {
+    // The check said `> 20` while `rememberMoment` trims at
+    // SUNDAY_MEMORIES_MAX (12), so eight units of overflow were invisible to
+    // the one thing that looks. A hardcoded balance value at a call site, and
+    // a validator with slack in it.
+    const s = useGameStore.getState();
+    const member = s.sunday!.squad[0];
+    const overflowing = Array.from({ length: SUNDAY_MEMORIES_MAX + 1 }, (_, i) => ({
+      season: 1, week: i + 1, kind: 'motm' as const, text: `memory ${i}`, weight: 5,
+    }));
+    const result = validateSundayState({
+      sunday: {
+        ...s.sunday!,
+        squad: s.sunday!.squad.map(m =>
+          (m.playerId === member.playerId ? { ...m, memories: overflowing } : m)),
+      },
+      players: s.players,
+      clubs: s.clubs,
+      playerClubId: s.playerClubId,
+      fixtures: s.fixtures,
+      week: s.week,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.problems.join(' ')).toContain('memories unbounded');
   });
 
   it('catches two results for one fixture pairing in a week', () => {
