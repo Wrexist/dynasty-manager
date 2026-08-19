@@ -3,12 +3,13 @@ import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { FORMATION_POSITIONS, canPlayPosition, type Position } from '@/types/game';
 import { MAX_SUBS } from '@/config/playerGeneration';
-import { PITCH_COLORS, SLOT_Y_RANGE, SLOT_Y_BOTTOM } from '@/config/ui';
 import { cn } from '@/lib/utils';
 import { calculateChemistryLinks, getChemistryBonus, getChemistryLabel } from '@/utils/chemistry';
 import { getChemistryLines, buildChemistryStrengthMap, getChemistryLineColor, getFormationStructureLines } from '@/utils/formationLines';
 import { getSquadInsights } from '@/utils/squadInsights';
 import { LineupPlayerTile } from './LineupPlayerTile';
+import { pitchSlotPoint } from '@/config/ui';
+import { PitchBoard } from './PitchBoard';
 import { BenchStrip } from './BenchStrip';
 import { ChemistryBar } from './ChemistryBar';
 import { InsightsPanel } from './InsightsPanel';
@@ -19,14 +20,11 @@ import { X } from 'lucide-react';
 import { hapticLight, hapticMedium } from '@/utils/haptics';
 import { infoToast } from '@/utils/gameToast';
 
-// Half-pitch viewBox constants (bottom half only — your team)
-const VP_Y = 46;
-const VP_H = 59;
-const VP_W = 68;
-
-// Slot Y-mapping constants (SLOT_Y_RANGE / SLOT_Y_BOTTOM) are shared with
-// SubstitutionSheet via `@/config/ui` so the same formation renders with
-// the same shape on the tactics screen and in-match.
+// The pitch itself, where a slot sits and what a tap target is now live in
+// `PitchBoard`. What is left here is the tactics screen's own rules —
+// chemistry, positional compatibility, swap semantics, insights — which is all
+// this file should ever have been. `pitchSlotPoint` is imported rather than
+// re-derived so the chemistry lines and the tiles cannot drift apart.
 
 function getCompatibility(player: { position: Position; alternatePositions?: Position[] }, slotPos: Position): 'natural' | 'compatible' | 'wrong' {
   if (player.position === slotPos) return 'natural';
@@ -308,142 +306,110 @@ export function LineupEditor() {
 
   return (
     <div>
-      {/* Half Pitch (bottom half only) */}
-      <div className="relative w-full mx-auto" style={{ aspectRatio: `${VP_W}/${VP_H}`, maxWidth: 'min(28rem, 100%)' }}>
-        <svg viewBox={`0 ${VP_Y} ${VP_W} ${VP_H}`} className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
-          {/* Pitch background & markings */}
-          <rect x="0" y="0" width="68" height="105" rx="1.5" fill={PITCH_COLORS.FILL} />
-          <rect x="2" y="2" width="64" height="101" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />
-          <line x1="2" y1="52.5" x2="66" y2="52.5" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />
-          <circle cx="34" cy="52.5" r="9.15" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />
-          <circle cx="34" cy="52.5" r="0.5" fill={PITCH_COLORS.LINE} />
-          <rect x="13.85" y="86.5" width="40.3" height="16.5" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />
-          <rect x="24.85" y="97.5" width="18.3" height="5.5" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />
-          <rect x="29" y="103" width="10" height="2" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />
-          <path d="M 26.85 86.5 A 9.15 9.15 0 0 1 41.15 86.5" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />
-
-          {/* Structural formation lines (faint skeleton, drawn under chemistry) */}
-          {structureLines.map(([a, b]) => {
-            const slotA = slots[a];
-            const slotB = slots[b];
-            if (!slotA || !slotB) return null;
-            // Only connect slots that actually have a player in them, so the
-            // pitch reads as your fielded XI rather than an abstract diagram.
-            if (!lineup[a] || !lineup[b]) return null;
-            const x1 = 2 + (slotA.x / 100) * 64;
-            const y1 = SLOT_Y_BOTTOM - (slotA.y / 100) * SLOT_Y_RANGE;
-            const x2 = 2 + (slotB.x / 100) * 64;
-            const y2 = SLOT_Y_BOTTOM - (slotB.y / 100) * SLOT_Y_RANGE;
-            return (
-              <line
-                key={`struct-${a}-${b}`}
-                x1={x1} y1={y1} x2={x2} y2={y2}
-                stroke="rgba(255,255,255,0.9)"
-                strokeWidth={0.25}
-                strokeOpacity={0.14}
-                strokeLinecap="round"
-              />
-            );
-          })}
-
-          {/* Chemistry connection lines */}
-          {chemLineData.map(({ a, b, color, strength }) => {
-            const slotA = slots[a];
-            const slotB = slots[b];
-            if (!slotA || !slotB) return null;
-            const idA = lineup[a];
-            const idB = lineup[b];
-            if (!idA || !idB) return null;
-            const x1 = 2 + (slotA.x / 100) * 64;
-            const y1 = SLOT_Y_BOTTOM - (slotA.y / 100) * SLOT_Y_RANGE;
-            const x2 = 2 + (slotB.x / 100) * 64;
-            const y2 = SLOT_Y_BOTTOM - (slotB.y / 100) * SLOT_Y_RANGE;
-            // Fade lines not connected to selected player
-            const isRelevant = !selectedId || idA === selectedId || idB === selectedId;
-            return (
-              <line
-                key={`chem-${a}-${b}`}
-                x1={x1} y1={y1} x2={x2} y2={y2}
-                stroke={color}
-                strokeWidth={strength >= 3 ? 0.7 : strength >= 2 ? 0.5 : 0.4}
-                strokeOpacity={isRelevant ? 0.7 : 0.12}
-                strokeLinecap="round"
-                strokeDasharray={strength === 1 ? '0.8 0.8' : undefined}
-              />
-            );
-          })}
-        </svg>
-
-        {/* Player Cards (HTML overlays) */}
-        {slots.map((slot, i) => {
-          const playerId = lineup[i];
-          const player = playerId ? players[playerId] : null;
-          const cxSvg = 2 + (slot.x / 100) * 64;
-          const cySvg = SLOT_Y_BOTTOM - (slot.y / 100) * SLOT_Y_RANGE;
-          const left = (cxSvg / VP_W) * 100;
-          const top = ((cySvg - VP_Y) / VP_H) * 100;
-
-          const isSelected = selectedId === playerId;
+      {/* The board. Everything about WHERE a slot is and what a tap target
+          looks like now lives in PitchBoard; what stays here is what this
+          screen knows and the board does not — chemistry, compatibility and
+          the swap rules. */}
+      <PitchBoard
+        slots={slots}
+        occupants={lineup}
+        selectedId={selectedId}
+        ariaLabel="Formation"
+        onSlotTap={({ index, occupantId }) => handleTap(occupantId ?? `slot-${index}`)}
+        slotLabel={({ slot, occupantId }) => {
+          const p = occupantId ? players[occupantId] : null;
+          if (p) return `${p.firstName} ${p.lastName}, ${slot.pos}`;
+          return `Empty ${slot.pos} slot${selectedId ? ' — place selected player here' : ''}`;
+        }}
+        slotClassName={({ occupantId, isSelected, slot }) => {
+          // An occupied slot fades when someone else is selected and shares no
+          // chemistry with the man standing here.
+          if (occupantId) {
+            return selectedId && !isSelected && !selectedChemPartners.has(occupantId)
+              ? 'opacity-40'
+              : undefined;
+          }
+          // An empty slot wears the compatibility ring for whoever is selected,
+          // which is how you can see where a bench player is allowed to go.
           const compat = selectedPlayer ? getCompatibility(selectedPlayer, slot.pos as Position) : null;
-
-          // Fade non-selected, non-chemistry-linked players when someone is selected
-          const isFaded = selectedId && !isSelected && playerId && !selectedChemPartners.has(playerId);
-
-          return (
-            <div
-              key={`slot-${i}`}
-              className={cn(
-                // Animate left/top so a formation switch visibly slides
-                // each tile to its new slot rather than snapping in place.
-                'absolute transition-[left,top,opacity] duration-300 ease-out',
-                isFaded && 'opacity-40',
-              )}
-              style={{
-                left: `${left}%`,
-                top: `${top}%`,
-                transform: 'translate(-50%, -50%)',
-                zIndex: isSelected ? 40 : 10 + i,
-              }}
-            >
-              {player ? (
-                <LineupPlayerTile
-                  player={player}
-                  position={slot.pos}
-                  isSelected={isSelected}
-                  chemistryLinkCount={playerChemCounts.get(player.id) || 0}
-                  compatRing={!isSelected ? compat : null}
-                  positionTone={getCompatibility(player, slot.pos as Position)}
-                  week={week}
-                  onClick={() => handleTap(playerId)}
-                />
-              ) : (
-                // Mirrors LineupPlayerTile's operable pattern. Without a role,
-                // tabIndex and key handler, keyboard/switch users could select
-                // a player but never place him — the lineup was unsettable.
-                <div
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`Empty ${slot.pos} slot${selectedId ? ' — place selected player here' : ''}`}
-                  onClick={() => handleTap(`slot-${i}`)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      handleTap(`slot-${i}`);
-                    }
-                  }}
-                  className={cn(
-                    'w-[52px] aspect-[3/4] rounded-[7px] border border-dashed border-white/20 bg-white/5 flex items-center justify-center',
-                    selectedId ? 'cursor-pointer' : '',
-                    compat ? (compat === 'natural' ? 'ring-2 ring-emerald-400' : compat === 'compatible' ? 'ring-2 ring-amber-400' : 'ring-2 ring-red-500') : ''
-                  )}
-                >
-                  <span className="text-[9px] font-semibold uppercase tracking-wide text-white/50" aria-hidden>{slot.pos}</span>
-                </div>
-              )}
-            </div>
+          if (!compat) return undefined;
+          return cn(
+            'rounded-[7px]',
+            compat === 'natural' ? 'ring-2 ring-emerald-400'
+              : compat === 'compatible' ? 'ring-2 ring-amber-400'
+                : 'ring-2 ring-red-500',
           );
-        })}
-      </div>
+        }}
+        renderToken={({ occupantId, slot, isSelected }) => {
+          const player = players[occupantId];
+          if (!player) return null;
+          const compat = selectedPlayer ? getCompatibility(selectedPlayer, slot.pos as Position) : null;
+          return (
+            <LineupPlayerTile
+              player={player}
+              position={slot.pos}
+              isSelected={isSelected}
+              chemistryLinkCount={playerChemCounts.get(player.id) || 0}
+              compatRing={!isSelected ? compat : null}
+              positionTone={getCompatibility(player, slot.pos as Position)}
+              week={week}
+              // PitchBoard owns the button; a tile with its own role="button"
+              // inside one would be two tab stops for a single action.
+              interactive={false}
+            />
+          );
+        }}
+        underlay={
+          <>
+            {/* Structural formation lines (faint skeleton, under chemistry) */}
+            {structureLines.map(([a, b]) => {
+              const slotA = slots[a];
+              const slotB = slots[b];
+              if (!slotA || !slotB) return null;
+              // Only connect slots that actually have a player in them, so the
+              // pitch reads as your fielded XI rather than an abstract diagram.
+              if (!lineup[a] || !lineup[b]) return null;
+              const p1 = pitchSlotPoint(slotA);
+              const p2 = pitchSlotPoint(slotB);
+              return (
+                <line
+                  key={`struct-${a}-${b}`}
+                  x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
+                  stroke="rgba(255,255,255,0.9)"
+                  strokeWidth={0.25}
+                  strokeOpacity={0.14}
+                  strokeLinecap="round"
+                />
+              );
+            })}
+
+            {/* Chemistry connection lines */}
+            {chemLineData.map(({ a, b, color, strength }) => {
+              const slotA = slots[a];
+              const slotB = slots[b];
+              if (!slotA || !slotB) return null;
+              const idA = lineup[a];
+              const idB = lineup[b];
+              if (!idA || !idB) return null;
+              const p1 = pitchSlotPoint(slotA);
+              const p2 = pitchSlotPoint(slotB);
+              // Fade lines not connected to the selected player.
+              const isRelevant = !selectedId || idA === selectedId || idB === selectedId;
+              return (
+                <line
+                  key={`chem-${a}-${b}`}
+                  x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
+                  stroke={color}
+                  strokeWidth={strength >= 3 ? 0.7 : strength >= 2 ? 0.5 : 0.4}
+                  strokeOpacity={isRelevant ? 0.7 : 0.12}
+                  strokeLinecap="round"
+                  strokeDasharray={strength === 1 ? '0.8 0.8' : undefined}
+                />
+              );
+            })}
+          </>
+        }
+      />
 
       {/* Selected Player Detail Panel */}
       <AnimatePresence>

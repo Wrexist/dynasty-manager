@@ -150,6 +150,22 @@ export const PITCH_COLORS = {
 export const SLOT_Y_RANGE = 54;
 export const SLOT_Y_BOTTOM = 97;
 
+/**
+ * A formation slot's centre, in the half-pitch SVG's own units.
+ *
+ * Lives beside the constants it uses rather than in `PitchBoard`, because the
+ * chemistry lines, the tokens and (one day) `SubstitutionSheet`'s badges all
+ * need it and none of them should have to import a component to get it. Two
+ * copies of this arithmetic is how a chemistry line ends up half a tile off
+ * the player it belongs to.
+ */
+export function pitchSlotPoint(slot: { x: number; y: number }): { x: number; y: number } {
+  return {
+    x: 2 + (slot.x / 100) * 64,
+    y: SLOT_Y_BOTTOM - (slot.y / 100) * SLOT_Y_RANGE,
+  };
+}
+
 // ── Chart Colors ──
 export const CHART_COLORS = {
   PRIMARY: 'hsl(160, 84%, 39%)',

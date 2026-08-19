@@ -23,7 +23,17 @@ interface LineupPlayerTileProps {
   week?: number;
   /** @deprecated kept for prop-API compatibility; colorstripe removed from tile. */
   clubColor?: string;
-  onClick: () => void;
+  /**
+   * Whether the tile itself is the thing you tap.
+   *
+   * Default true, which is how `SubstitutionSheet` uses it. `PitchBoard`
+   * passes FALSE: it owns a real <button> per slot, and a tile that brought
+   * its own `role="button"` inside that would nest two interactive elements
+   * for one action — invalid DOM, two tab stops, and exactly the bug the
+   * Sunday teamsheet had to have fixed.
+   */
+  interactive?: boolean;
+  onClick?: () => void;
 }
 
 const COMPAT_RING_CLASSES = {
@@ -58,6 +68,7 @@ export const LineupPlayerTile = memo(function LineupPlayerTile({
   compatRing,
   positionTone,
   week,
+  interactive = true,
   onClick,
 }: LineupPlayerTileProps) {
   const statusLabel = getStatusLabel(player, week);
@@ -75,11 +86,13 @@ export const LineupPlayerTile = memo(function LineupPlayerTile({
 
   return (
     <div
-      onClick={onClick}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
-      role="button"
-      tabIndex={0}
-      aria-label={fullName}
+      onClick={interactive ? onClick : undefined}
+      onKeyDown={interactive
+        ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }
+        : undefined}
+      role={interactive ? 'button' : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      aria-label={interactive ? fullName : undefined}
       title={fullName}
       className={cn(
         'relative shrink-0 cursor-pointer rounded-[7px]',
