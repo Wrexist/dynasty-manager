@@ -185,6 +185,13 @@ export const en = {
   'sunday.bio.struggling': 'Struggling',
   'sunday.bio.promised': 'Promised a start',
   'sunday.bio.seasonWeek': 'S{season} W{week}',
+  // Relationships — one line, in the biography's voice. Names are game data
+  // and are interpolated; only the framing is translated.
+  'sunday.bio.friends': 'Mates with {names}',
+  'sunday.bio.rivals': 'Has fallen out with {names}',
+  'sunday.bio.stuckBehind': 'Stuck behind {name}',
+  'sunday.bio.mentor': '{name} has taken him under his wing',
+  'sunday.bio.formerTeammates': 'Used to play with {names}',
 
   // Club
   'sunday.club.title': 'The Club',

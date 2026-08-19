@@ -20,9 +20,58 @@ import { useGameStore } from '@/store/gameStore';
 import { useTranslation } from '@/hooks/useTranslation';
 import { cn } from '@/lib/utils';
 import { getSundayArchetype, SUNDAY_FORM_COLD, SUNDAY_FORM_HOT } from '@/config/sundayLeague';
+import {
+  sundayFriendNames, sundayMentor, sundayPositionRival, sundayRivalNames,
+} from '@/utils/sunday/relationships';
 import type { Player, SundaySquadMember } from '@/types/game';
 
 type SortKey = 'availability' | 'overall' | 'commitment' | 'mood';
+
+/** "Kev", "Kev and Baz", "Kev, Baz and Dave" — the way a person says it. */
+function joinNames(names: readonly string[]): string {
+  if (names.length <= 1) return names[0] ?? '';
+  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+}
+
+/**
+ * His place in the room, as one line.
+ *
+ * Mates and feuds are stored; being stuck behind somebody and being mentored
+ * are DERIVED right here from position, streaks and age, which is why neither
+ * can go stale. Deliberately not a graph, not chips and not a screen: the same
+ * register as the biography above it, and nothing at all when he has no links
+ * — an empty state would be noise on fifteen rows out of fifteen in season one.
+ */
+function relationshipParts(
+  member: SundaySquadMember,
+  squad: readonly SundaySquadMember[],
+  players: Record<string, Player>,
+  captainId: string | null,
+  t: (key: string, params?: Record<string, string | number>) => string,
+): string[] {
+  const parts: string[] = [];
+  const friends = sundayFriendNames(member, players);
+  if (friends.length) parts.push(t('sunday.bio.friends', { names: joinNames(friends) }));
+  const rivals = sundayRivalNames(member, players);
+  if (rivals.length) parts.push(t('sunday.bio.rivals', { names: joinNames(rivals) }));
+
+  // A prospect being brought on outranks a prospect being kept out: both can be
+  // true at once and only one of them is the story.
+  const mentorId = sundayMentor(member, squad, players, captainId);
+  const aheadId = mentorId ? null : sundayPositionRival(member, squad, players);
+  if (mentorId && players[mentorId]) {
+    parts.push(t('sunday.bio.mentor', { name: players[mentorId].firstName }));
+  } else if (aheadId && players[aheadId]) {
+    parts.push(t('sunday.bio.stuckBehind', { name: players[aheadId].firstName }));
+  }
+
+  if (member.formerTeammates.length) {
+    parts.push(t('sunday.bio.formerTeammates', {
+      names: joinNames(member.formerTeammates.map(f => f.name.split(' ')[0])),
+    }));
+  }
+  return parts;
+}
 
 const SundaySquad = () => {
   const { t } = useTranslation();
@@ -96,6 +145,9 @@ const SundaySquad = () => {
             {rows.map(({ member, player }) => {
               const arch = getSundayArchetype(member.archetype);
               const open = expanded === player.id;
+              const links = open
+                ? relationshipParts(member, sunday.squad, players, sunday.captainId, t)
+                : [];
               return (
                 <div key={player.id}>
                   <button
@@ -199,6 +251,12 @@ const SundaySquad = () => {
                           </ul>
                         )}
                       </div>
+
+                      {links.length > 0 && (
+                        <p className="text-micro text-muted-foreground leading-relaxed">
+                          {links.join(' · ')}
+                        </p>
+                      )}
 
                       <div className="flex gap-2">
                         <LiquidButton className="flex-1 py-2" onClick={() => { void setCaptain(player.id); }}>
