@@ -33,6 +33,7 @@ import {
   SUNDAY_FORM_BASELINE_RATING, SUNDAY_FORM_MAX, SUNDAY_FORM_MIN, SUNDAY_FORM_PER_RATING,
   SUNDAY_PROMISE_BROKEN_HAPPINESS, SUNDAY_PROMISE_BROKEN_MORALE, SUNDAY_PROMISE_KEPT_HAPPINESS,
   SUNDAY_RINGER_COST, SUNDAY_DERBY_BET, SUNDAY_DERBY_BET_FLAG, SUNDAY_TACTICS,
+  SUNDAY_CLUBHOUSE_POSTMATCH_MORALE,
 } from '@/config/sundayLeague';
 import {
   SUNDAY_ARRIVAL_CRIED_OFF, SUNDAY_ARRIVAL_NO_SHOW, SUNDAY_ARRIVAL_TURNED_UP,
@@ -725,6 +726,14 @@ function settleSundayMatch(set: Set, get: Get, setup: SundayMatchSetup, sim: Sun
         : margin >= SUNDAY_HEAVY_LOSS_MARGIN ? SUNDAY_MORALE_HEAVY_LOSS : SUNDAY_MORALE_LOSS;
   moraleDelta -= ringers.length * SUNDAY_RINGER_MORALE;
   if (isDerby) moraleDelta += won ? SUNDAY_DERBY_MORALE : lost ? -SUNDAY_DERBY_MORALE : 0;
+  // An hour in the clubhouse afterwards. This is the effect the upgrade's card
+  // has always advertised as a "post-match morale boost" — until now it was a
+  // single +2 at the till and nothing on any Sunday since. Home only: there is
+  // no clubhouse at their place, and not for a fixture that was not fulfilled.
+  const clubhouseLevel = sunday.upgrades.find(u => u.id === 'clubhouse')?.level ?? 0;
+  if (!forfeited && isHome && clubhouseLevel > 0) {
+    moraleDelta += clubhouseLevel * SUNDAY_CLUBHOUSE_POSTMATCH_MORALE;
+  }
 
   // Nobody started and nobody came on when the fixture was not fulfilled.
   const startedSet = new Set(forfeited ? [] : startingIds);

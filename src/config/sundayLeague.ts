@@ -21,6 +21,7 @@
 import type {
   FormationType, TacticalInstructions, SundayArchetypeId, SundayChainId,
   SundayClubPersonalityId, SundayDivisionId, SundayTacticId, SundayUpgradeId,
+  SundayUpgradeEffectKey,
 } from '@/types/game';
 
 // ── Schema ──────────────────────────────────────────────────────────────────
@@ -746,6 +747,15 @@ export interface SundayUpgradeInfo {
   description: string;
   /** What each level actually does, in plain English, for the card. */
   effectText: string;
+  /**
+   * The effects this upgrade actually has, named.
+   *
+   * NOT decoration: `sundayUpgrades.test.ts` probes every key against the
+   * system that implements it, and the union is exhaustive, so an effect
+   * cannot be claimed on a card without something in the codebase doing it.
+   * Three cards used to lie — see `SundayUpgradeEffectKey`.
+   */
+  effects: readonly SundayUpgradeEffectKey[];
   maxLevel: number;
   /** Cost of level 1; each subsequent level multiplies by `costMult`. */
   baseCost: number;
@@ -754,17 +764,49 @@ export interface SundayUpgradeInfo {
   minReputation: number;
 }
 
+// Magnitudes the cards quote directly. They sit above the table because the
+// `effectText` strings interpolate them: a card and its effect cannot drift
+// apart if they are the same number.
+
+/** A new kit is a good week: a one-off bump the week it arrives. */
+export const SUNDAY_KIT_MORALE_PER_LEVEL = 3;
+export const SUNDAY_KIT_REP_PER_LEVEL = 2;
+/** Nets: nobody has to take anybody's word for it. */
+export const SUNDAY_NETS_REP = 1;
+/** Floodlights: the club is visibly a real club now. */
+export const SUNDAY_FLOODLIGHT_REP = 3;
+/**
+ * Commitment every squad member gains per season while the lights are up.
+ *
+ * THE CARD'S CLAIM, FINALLY BUILT. Floodlights are the most expensive thing
+ * in the mode at £450 and advertised "+1 commitment growth" that was
+ * implemented nowhere at all. Commitment is the biggest term in the
+ * availability curve (`SUNDAY_AVAIL_PER_COMMITMENT`), so this is a genuine
+ * long-game hook: train through the winter and, a season at a time, more of
+ * them turn up. Applied at the rollover, clamped at the 1-20 ceiling, so it
+ * cannot run away.
+ */
+export const SUNDAY_FLOODLIGHT_COMMITMENT_GROWTH = 1;
+/**
+ * Squad morale after every home match, per clubhouse level.
+ *
+ * Also a card that lied: "post-match morale boost" was a single +2 at the
+ * till and nothing afterwards. Small on purpose — half the fixtures are at
+ * home, and the morale system moves in single figures.
+ */
+export const SUNDAY_CLUBHOUSE_POSTMATCH_MORALE = 1;
+
 export const SUNDAY_UPGRADES: readonly SundayUpgradeInfo[] = [
-  { id: 'kit', name: 'Matching Kit', description: 'Numbered shirts that all came from the same order.', effectText: '+3 morale, +2 reputation per level', maxLevel: 3, baseCost: 140, costMult: 1.8, minReputation: 0 },
-  { id: 'pitch', name: 'Pitch Maintenance', description: 'A groundsman, a roller, and a man who owns a line-marker.', effectText: `+${SUNDAY_PITCH_PER_UPGRADE} pitch quality per level`, maxLevel: 3, baseCost: 200, costMult: 1.9, minReputation: 8 },
-  { id: 'balls', name: 'Decent Match Balls', description: 'Not the one from the garden with the split seam.', effectText: 'Small boost to passing and shooting', maxLevel: 2, baseCost: 70, costMult: 1.6, minReputation: 0 },
-  { id: 'nets', name: 'Goal Nets', description: 'So nobody has to argue about whether it went in.', effectText: '+1 reputation, fewer refereeing rows', maxLevel: 1, baseCost: 90, costMult: 1, minReputation: 0 },
-  { id: 'physio', name: 'Physio on the Touchline', description: 'A sports-science student who works for beer.', effectText: 'Injuries heal faster and cost nothing to treat', maxLevel: 3, baseCost: 180, costMult: 1.7, minReputation: 12 },
-  { id: 'minibus', name: 'Club Minibus', description: "Fourteen seats and a smell nobody can explain.", effectText: 'Halves travel cost, cancels the away availability penalty', maxLevel: 1, baseCost: 320, costMult: 1, minReputation: 15 },
-  { id: 'floodlights', name: 'Floodlights', description: 'Training after work, in November, like a real club.', effectText: '+1 commitment growth, +3 reputation', maxLevel: 1, baseCost: 450, costMult: 1, minReputation: 30 },
-  { id: 'clubhouse', name: 'Clubhouse Access', description: 'Somewhere to have a pint and a post-mortem.', effectText: 'Post-match morale boost, better recruits', maxLevel: 2, baseCost: 260, costMult: 1.8, minReputation: 20 },
-  { id: 'coach', name: 'An Actual Coach', description: 'Someone who has read a book about football.', effectText: 'Players improve faster; tactical fit improves', maxLevel: 3, baseCost: 240, costMult: 1.9, minReputation: 18 },
-  { id: 'keeper-gloves', name: 'Goalkeeper Gloves', description: 'Because he has been going in bare-handed.', effectText: 'Improves whoever is in goal', maxLevel: 2, baseCost: 60, costMult: 1.7, minReputation: 0 },
+  { id: 'kit', name: 'Matching Kit', description: 'Numbered shirts that all came from the same order.', effectText: `+${SUNDAY_KIT_MORALE_PER_LEVEL} morale and +${SUNDAY_KIT_REP_PER_LEVEL} reputation the week it arrives`, effects: ['morale-on-purchase', 'reputation-on-purchase'], maxLevel: 3, baseCost: 140, costMult: 1.8, minReputation: 0 },
+  { id: 'pitch', name: 'Pitch Maintenance', description: 'A groundsman, a roller, and a man who owns a line-marker.', effectText: `+${SUNDAY_PITCH_PER_UPGRADE} pitch quality per level`, effects: ['pitch-quality'], maxLevel: 3, baseCost: 200, costMult: 1.9, minReputation: 8 },
+  { id: 'balls', name: 'Decent Match Balls', description: 'Not the one from the garden with the split seam.', effectText: 'Small boost to passing and shooting', effects: ['outfield-attributes'], maxLevel: 2, baseCost: 70, costMult: 1.6, minReputation: 0 },
+  { id: 'nets', name: 'Goal Nets', description: 'So nobody has to argue about whether it went in.', effectText: `+${SUNDAY_NETS_REP} reputation, and the disputed-goal row stops happening`, effects: ['reputation-on-purchase', 'no-disputed-goal-row'], maxLevel: 1, baseCost: 90, costMult: 1, minReputation: 0 },
+  { id: 'physio', name: 'Physio on the Touchline', description: 'A sports-science student who works for beer.', effectText: 'Injuries heal faster and cost nothing to treat', effects: ['injury-treatment-free', 'injury-heal-faster'], maxLevel: 3, baseCost: 180, costMult: 1.7, minReputation: 12 },
+  { id: 'minibus', name: 'Club Minibus', description: "Fourteen seats and a smell nobody can explain.", effectText: 'Halves travel cost, cancels the away availability penalty', effects: ['travel-half', 'away-availability'], maxLevel: 1, baseCost: 320, costMult: 1, minReputation: 15 },
+  { id: 'floodlights', name: 'Floodlights', description: 'Training after work, in November, like a real club.', effectText: `Winter training: +${SUNDAY_FLOODLIGHT_COMMITMENT_GROWTH} commitment across the squad every season, +${SUNDAY_FLOODLIGHT_REP} reputation`, effects: ['commitment-growth', 'reputation-on-purchase'], maxLevel: 1, baseCost: 450, costMult: 1, minReputation: 30 },
+  { id: 'clubhouse', name: 'Clubhouse Access', description: 'Somewhere to have a pint and a post-mortem.', effectText: `+${SUNDAY_CLUBHOUSE_POSTMATCH_MORALE} morale after every home match per level, and better recruits`, effects: ['post-match-morale', 'recruit-quality'], maxLevel: 2, baseCost: 260, costMult: 1.8, minReputation: 20 },
+  { id: 'coach', name: 'An Actual Coach', description: 'Someone who has read a book about football.', effectText: 'Players improve faster; tactical fit improves', effects: ['growth-rate', 'tactical-fit'], maxLevel: 3, baseCost: 240, costMult: 1.9, minReputation: 18 },
+  { id: 'keeper-gloves', name: 'Goalkeeper Gloves', description: 'Because he has been going in bare-handed.', effectText: 'Improves whoever is in goal', effects: ['keeper-quality'], maxLevel: 2, baseCost: 60, costMult: 1.7, minReputation: 0 },
 ] as const;
 
 export function getSundayUpgrade(id: SundayUpgradeId): SundayUpgradeInfo {
@@ -810,8 +852,6 @@ export const SUNDAY_UPGRADE_MOTHBALL_REFUND = 0.25;
 export const SUNDAY_UPGRADE_MOTHBALL_MORALE = -4;
 
 // Per-upgrade effect magnitudes, so the systems that read them agree.
-export const SUNDAY_KIT_MORALE_PER_LEVEL = 3;
-export const SUNDAY_KIT_REP_PER_LEVEL = 2;
 export const SUNDAY_BALLS_ATTR_PER_LEVEL = 2;
 export const SUNDAY_GLOVES_GK_PER_LEVEL = 4;
 export const SUNDAY_PHYSIO_HEAL_PER_LEVEL = 0.3;
@@ -825,10 +865,7 @@ export const SUNDAY_COACH_GROWTH_PER_LEVEL = 0.5;
  *  the retuned spread's half-width: a real, buyable edge that still cannot
  *  make a hopeless shape work. */
 export const SUNDAY_COACH_FIT_PER_LEVEL = 1.0;
-export const SUNDAY_CLUBHOUSE_MORALE_PER_LEVEL = 2;
 export const SUNDAY_CLUBHOUSE_RECRUIT_PER_LEVEL = 3;
-export const SUNDAY_FLOODLIGHT_REP = 3;
-export const SUNDAY_NETS_REP = 1;
 
 // ── Sponsors ────────────────────────────────────────────────────────────────
 //

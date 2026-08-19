@@ -29,7 +29,7 @@ import {
   SUNDAY_FUNDRAISER_MORALE, SUNDAY_MAX_BENCH, SUNDAY_MAX_SQUAD, SUNDAY_MIN_START,
   SUNDAY_RINGROUND_COST, SUNDAY_RINGROUND_MORALE, SUNDAY_EVENT_LOG_MAX,
   SUNDAY_POACH_HEAT, SUNDAY_RIVAL_HEAT_MAX, SUNDAY_PROMISE_WEEKS, SUNDAY_PITCH_DAMAGE_MAX,
-  SUNDAY_KIT_MORALE_PER_LEVEL, SUNDAY_KIT_REP_PER_LEVEL, SUNDAY_CLUBHOUSE_MORALE_PER_LEVEL,
+  SUNDAY_KIT_MORALE_PER_LEVEL, SUNDAY_KIT_REP_PER_LEVEL,
   SUNDAY_NETS_REP, SUNDAY_FLOODLIGHT_REP, SUNDAY_DERBY_BET_FLAG,
   SUNDAY_DEPARTURE_FLAG, SUNDAY_ROUGH_WEEK_FLAG, SUNDAY_RIVAL_EGO_MIN,
   SUNDAY_UPGRADE_MOTHBALL_REFUND, SUNDAY_UPGRADE_MOTHBALL_MORALE,
@@ -115,6 +115,7 @@ function buildEventContext(state: GameState, sunday: SundayState): SundayEventCo
     // context — rebuilt now, like everything else here.
     chainData: chain?.data ?? {},
     defectorName: sunday.rivalry?.defector?.name ?? null,
+    hasNets: (sunday.upgrades.find(u => u.id === 'nets')?.level ?? 0) > 0,
   };
 }
 
@@ -904,9 +905,12 @@ export function buySundayUpgrade(set: Set, get: Get, upgradeId: SundayUpgradeId)
   // magnitudes are the config's, not this call site's — they were duplicated
   // here as bare numbers, which is exactly how a card's `effectText` and its
   // actual effect drift apart.
-  const moraleBump = upgradeId === 'kit'
-    ? SUNDAY_KIT_MORALE_PER_LEVEL
-    : upgradeId === 'clubhouse' ? SUNDAY_CLUBHOUSE_MORALE_PER_LEVEL : 0;
+  // The clubhouse used to bump morale once, here, while its card advertised a
+  // "post-match morale boost" — the boost is now an actual post-match effect
+  // (`SUNDAY_CLUBHOUSE_POSTMATCH_MORALE`, applied in `runSundayMatch`), so
+  // paying it at the till as well would be charging the player twice for the
+  // same sentence.
+  const moraleBump = upgradeId === 'kit' ? SUNDAY_KIT_MORALE_PER_LEVEL : 0;
   const repBump = upgradeId === 'kit'
     ? SUNDAY_KIT_REP_PER_LEVEL
     : upgradeId === 'nets' ? SUNDAY_NETS_REP

@@ -42,7 +42,7 @@ const ctx: SundayEventContext = {
   subsOwed: 40, weeksInDebt: 0, cupAlive: false, cupRoundsWon: 0, cupRoundName: null,
   captain: person, subject: person, unhappy: person,
   flags: {}, chains: [], playerStoryLive: false, clubStoryLive: false,
-  chainData: {}, defectorName: null,
+  chainData: {}, defectorName: null, hasNets: false,
 };
 
 describe('event catalogue integrity', () => {

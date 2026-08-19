@@ -18,6 +18,7 @@ import type {
 import {
   SUNDAY_REP_PROMOTION, SUNDAY_REP_RELEGATION, SUNDAY_REP_TITLE,
   SUNDAY_PRIZE_SHARES, SUNDAY_PROMOTION_BONUS, SUNDAY_MENTOR_GROWTH_MULT,
+  SUNDAY_FLOODLIGHT_COMMITMENT_GROWTH,
   getSundayDivision, sundayDivisionTier,
 } from '@/config/sundayLeague';
 import { createSundayRng, cursorOf, subSeed } from '@/utils/sunday/rng';
@@ -133,6 +134,13 @@ export function rolloverSundaySeason(set: Set, get: Get): void {
   // ── Ageing, departures and legends ───────────────────────────────────────
   const players: Record<string, Player> = { ...state.players };
   const coachLevel = sunday.upgrades.find(u => u.id === 'coach')?.level ?? 0;
+  // Floodlights mean training after work through the winter, and a squad that
+  // has trained together all year turns up more often. The upgrade card has
+  // advertised this since the mode shipped; this is the line that makes it
+  // true. Clamped at the 1-20 ceiling so it cannot run away over ten seasons.
+  const floodlitGrowth = (sunday.upgrades.find(u => u.id === 'floodlights')?.level ?? 0) > 0
+    ? SUNDAY_FLOODLIGHT_COMMITMENT_GROWTH
+    : 0;
   let squad: SundaySquadMember[] = [];
   let legends = [...sunday.legends];
   let messages = state.messages;
@@ -183,6 +191,7 @@ export function rolloverSundaySeason(set: Set, get: Get): void {
     players[member.playerId] = { ...dev.player, form: 55 };
     squad.push({
       ...member,
+      commitment: clampRound(member.commitment + floodlitGrowth, 1, 20),
       memories,
       // A new season, a clean slate: promises do not survive the summer.
       promise: null,

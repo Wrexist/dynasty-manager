@@ -2715,6 +2715,50 @@ export type SundayUpgradeId =
   | 'kit' | 'pitch' | 'balls' | 'nets' | 'physio' | 'minibus'
   | 'floodlights' | 'clubhouse' | 'coach' | 'keeper-gloves';
 
+/**
+ * One thing an upgrade actually DOES, named.
+ *
+ * Every upgrade declares its keys in `SUNDAY_UPGRADES`, and
+ * `sundayUpgrades.test.ts` probes each key against the real system that
+ * implements it. The list exists because three upgrade cards advertised
+ * effects that were implemented nowhere — Floodlights promised "+1 commitment
+ * growth" (£450, the most expensive thing in the mode), Nets promised "fewer
+ * refereeing rows", and the Clubhouse promised a "post-match morale boost"
+ * that was a single +2 at the till. A card that lies is worse than a card that
+ * offers nothing, and nothing in the codebase could tell the difference.
+ */
+export type SundayUpgradeEffectKey =
+  /** A one-off squad-morale bump when it is bought. */
+  | 'morale-on-purchase'
+  /** A one-off reputation bump when it is bought, handed back if it is sold. */
+  | 'reputation-on-purchase'
+  /** Raises the playing surface the match engine sees. */
+  | 'pitch-quality'
+  /** Adds attribute points to the outfielders on match day. */
+  | 'outfield-attributes'
+  /** Adds to whoever is in goal on match day. */
+  | 'keeper-quality'
+  /** Injuries cost nothing to treat. */
+  | 'injury-treatment-free'
+  /** Injuries tick down faster between Sundays. */
+  | 'injury-heal-faster'
+  /** Halves the away travel bill. */
+  | 'travel-half'
+  /** Cancels the away-day availability penalty. */
+  | 'away-availability'
+  /** Training after work: the squad's commitment grows over a season. */
+  | 'commitment-growth'
+  /** The disputed-goal argument stops happening. */
+  | 'no-disputed-goal-row'
+  /** Squad morale after every home match. */
+  | 'post-match-morale'
+  /** Better players come to the club. */
+  | 'recruit-quality'
+  /** Players develop faster over a season. */
+  | 'growth-rate'
+  /** Improves how well the XI fits the chosen tactic. */
+  | 'tactical-fit';
+
 /** A purchased club upgrade and how far it has been taken. */
 export interface SundayUpgradeState {
   id: SundayUpgradeId;

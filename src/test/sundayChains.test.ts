@@ -219,6 +219,7 @@ describe('a chain always finishes', () => {
         startedWeek: 4, startedSeason: 1, dueWeek: 40,
       }],
       playerStoryLive: true, clubStoryLive: false, chainData: {}, defectorName: null,
+      hasNets: false,
     };
     const cooldowns = isolate('wrong-boots');
     const seen = new Set<string>();

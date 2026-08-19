@@ -81,6 +81,9 @@ export interface SundayEventContext {
   chainData: Readonly<Record<string, string | number>>;
   /** Name of the player who defected to the rival, when one has. */
   defectorName: string | null;
+  /** The club owns goal nets, so nobody has to take anybody's word for it.
+   *  Read by `ref-decision` — see `SundayUpgradeEffectKey`. */
+  hasNets: boolean;
 }
 
 /** The slice of a squad member an event definition can see. */
@@ -1730,7 +1733,10 @@ export const SUNDAY_EVENTS: readonly SundayEventDef[] = [
     title: 'The referee has made a decision',
     body: 'A goal has been disallowed for a reason the referee has declined to share with anyone, including his own linesman, who is a substitute from the other team.',
     weight: 5,
-    condition: ctx => ctx.lastResult !== null,
+    // Nets are why. The upgrade's card promises "the disputed-goal row stops
+    // happening" and this is the only refereeing row in the catalogue, so the
+    // claim is exactly this condition and nothing else.
+    condition: ctx => ctx.lastResult !== null && !ctx.hasNets,
     cooldown: 9,
     choices: [
       // Made consequential. Complaining used to be +2 morale for −1 reputation

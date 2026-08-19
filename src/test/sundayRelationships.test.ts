@@ -542,6 +542,7 @@ describe('the lad who vouched for him is a real person', () => {
     const recruit = generateSundayRecruit({
       rng, season: s0.season, week: s0.week, reputation: sunday.reputation,
       personality: sunday.identity.personality, needs: [], clubhouseLevel: 0,
+      divisionId: sunday.divisionId,
       rivalName: null, vouchName: s0.players[voucher.playerId].firstName,
       voucherId: voucher.playerId, town: sunday.identity.town, index: 0,
     });

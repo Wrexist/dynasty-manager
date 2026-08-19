@@ -612,6 +612,7 @@ export function advanceSundayWeek(set: Set, get: Get): void {
       // chain. Nothing unchained can read another story's memory.
       chainData: {},
       defectorName: sunday.rivalry?.defector?.name ?? null,
+      hasNets: (sunday.upgrades.find(u => u.id === 'nets')?.level ?? 0) > 0,
     };
     const pickInput = {
       rng,
