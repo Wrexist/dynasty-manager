@@ -60,6 +60,7 @@ export const en = {
   'sunday.hub.homeTo': 'Home to {club}',
   'sunday.hub.awayAt': 'Away at {club}',
   'sunday.hub.cupTie': '{round} · {club}',
+  'sunday.hub.versus': 'vs',
   'sunday.hub.freeWeek': 'No fixture this week',
   'sunday.hub.freeWeekBody': 'Nobody has to be anywhere. Use it — chase the subs, run a fundraiser, or leave everyone alone.',
   'sunday.hub.playMatch': 'Match Day',
