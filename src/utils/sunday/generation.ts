@@ -378,6 +378,16 @@ export function generateSundayDivision(
   count: number,
   season: number,
   excludeNames: readonly string[] = [],
+  /**
+   * Quality points added to this division's baseline because of who the
+   * player's club has become — `sundayOppositionLift`, computed by the caller
+   * from reputation and titles. Zero for a brand-new club.
+   *
+   * Applied to the GENERATED OPPOSITION ONLY. Nothing here touches the
+   * player's squad or the match engine; the lift is a statement about who else
+   * is in this league, which is the honest version of "the game got harder".
+   */
+  qualityLift = 0,
 ): GeneratedSundayOpponent[] {
   const div = getSundayDivision(divisionId);
   const out: GeneratedSundayOpponent[] = [];
@@ -405,7 +415,7 @@ export function generateSundayDivision(
     const clubId = `sun-opp-${divisionId}-${i}`;
     // Clubs in a division are not equal — a spread of quality is what makes a
     // table worth reading.
-    const quality = clamp(rng.around(div.oppQuality, div.oppSpread), 22, 80);
+    const quality = clamp(rng.around(div.oppQuality + qualityLift, div.oppSpread), 22, 80);
     const club: Club = {
       id: clubId,
       name,

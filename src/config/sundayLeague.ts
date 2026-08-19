@@ -87,6 +87,49 @@ export function sundayDivisionTier(id: SundayDivisionId): number {
   return SUNDAY_DIVISIONS.findIndex(d => d.id === id);
 }
 
+// ── Opposition scaling ──────────────────────────────────────────────────────
+//
+// THE DIFFICULTY CEILING, in one block. `oppQuality` was a static per-division
+// constant regenerated identically every summer with no reference to the
+// player's own history, while the player's side kept improving — recruits
+// scale with reputation, young players grow, upgrades stack. Measured over 24
+// careers, by season 7-8 in the top division a well-run club permanently
+// outclassed everything in front of it: the pyramid runs out after four
+// promotions and there is nothing left to climb.
+//
+// The lift below is GENTLE and CAPPED, and it is a property of the LEVEL, not
+// a leash. A club with a big reputation and a trophy or two attracts better
+// opposition to its division the way a real local league churns: the good
+// sides in the area hear there is a proper league up the road. It is applied
+// only to generated opposition — never to the player's squad, never to the
+// match engine — and at its ceiling it is worth less than one division's
+// worth of quality (5 points), so it can never turn a promotion into a
+// demotion in disguise.
+
+/** Reputation at which the lift starts. Below this it is zero. */
+export const SUNDAY_OPP_SCALE_REP_BASE = 30;
+/** Quality points added per point of reputation above the base. */
+export const SUNDAY_OPP_SCALE_PER_REP = 0.06;
+/** Quality points added per division title already won. */
+export const SUNDAY_OPP_SCALE_PER_TITLE = 0.6;
+/** Ceiling on the whole lift, in quality points. Deliberately below the 5-6
+ *  point gap between two divisions: standing still must never feel like being
+ *  quietly promoted. */
+export const SUNDAY_OPP_SCALE_MAX = 4.5;
+
+/**
+ * How much better than the division's baseline the opposition is generated,
+ * for a club of this standing.
+ *
+ * Pure, exported and tested: it is the one place the mode is allowed to react
+ * to the player's success, and it must be readable at a glance.
+ */
+export function sundayOppositionLift(reputation: number, titles: number): number {
+  const fromRep = Math.max(0, reputation - SUNDAY_OPP_SCALE_REP_BASE) * SUNDAY_OPP_SCALE_PER_REP;
+  const fromTitles = Math.max(0, titles) * SUNDAY_OPP_SCALE_PER_TITLE;
+  return Math.min(SUNDAY_OPP_SCALE_MAX, fromRep + fromTitles);
+}
+
 /** Points awarded, kept explicit so the table builder and the AI agree. */
 export const SUNDAY_POINTS_WIN = 3;
 export const SUNDAY_POINTS_DRAW = 1;

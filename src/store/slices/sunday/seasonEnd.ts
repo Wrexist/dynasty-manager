@@ -18,7 +18,7 @@ import type {
 import {
   SUNDAY_REP_PROMOTION, SUNDAY_REP_RELEGATION, SUNDAY_REP_TITLE,
   SUNDAY_PRIZE_SHARES, SUNDAY_PROMOTION_BONUS, SUNDAY_MENTOR_GROWTH_MULT,
-  SUNDAY_FLOODLIGHT_COMMITMENT_GROWTH,
+  SUNDAY_FLOODLIGHT_COMMITMENT_GROWTH, sundayOppositionLift,
   getSundayDivision, sundayDivisionTier,
 } from '@/config/sundayLeague';
 import { createSundayRng, cursorOf, subSeed } from '@/utils/sunday/rng';
@@ -238,18 +238,36 @@ export function rolloverSundaySeason(set: Set, get: Get): void {
     if (!squad.some(m => m.playerId === id)) delete players[id];
   }
 
+  const reputation = clampRound(
+    sunday.reputation
+    + (outcome.promoted ? SUNDAY_REP_PROMOTION : 0)
+    + (outcome.relegated ? SUNDAY_REP_RELEGATION : 0)
+    + (outcome.champion ? SUNDAY_REP_TITLE : 0),
+    0, 100,
+  );
+
+  // Who else is in this league next year.
+  //
   // The SAVE's root seed, not a per-season derivative: `generateSundayDivision`
   // splits identity (season-independent) from squad (season-keyed) itself, and
   // handing it a seed that already varied by season defeated the split — every
   // club in the league changed its name every summer while keeping its id, so
   // the rivalry story, the defector and the taunt all pointed at a club that no
   // longer existed under that name.
+  //
+  // A club with a big name and a trophy or two draws better sides into its
+  // division — capped hard, and applied to the generated opposition only. See
+  // `sundayOppositionLift`: without it the top division's quality is a
+  // constant the player permanently outgrows by about season seven, and the
+  // mode runs out of anything to climb.
+  const titlesWon = sunday.history.filter(h => h.position === 1).length + (outcome.champion ? 1 : 0);
   const opponents = generateSundayDivision(
     sunday.seed,
     nextDivisionId,
     nextDiv.teamCount - 1,
     nextSeason,
     [sunday.identity.name],
+    sundayOppositionLift(reputation, titlesWon),
   );
   for (const o of opponents) {
     clubs[o.club.id] = o.club;
@@ -276,14 +294,6 @@ export function rolloverSundaySeason(set: Set, get: Get): void {
         const c = rng.pick(opponents)?.club;
         return c ? buildSundayRivalry(rng, c.id) : null;
       })();
-
-  const reputation = clampRound(
-    sunday.reputation
-    + (outcome.promoted ? SUNDAY_REP_PROMOTION : 0)
-    + (outcome.relegated ? SUNDAY_REP_RELEGATION : 0)
-    + (outcome.champion ? SUNDAY_REP_TITLE : 0),
-    0, 100,
-  );
 
   // ── Availability for week 1 ──────────────────────────────────────────────
   const firstFixture = fixtures.find(m => m.week === 1 && (m.homeClubId === clubId || m.awayClubId === clubId));

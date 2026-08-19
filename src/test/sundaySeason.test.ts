@@ -16,7 +16,10 @@ import {
 import { createSundayRng } from '@/utils/sunday/rng';
 import { generateSundayDivision, generateSundayPlayer } from '@/utils/sunday/generation';
 import { assertSundayState } from '@/utils/sunday/invariants';
-import { SUNDAY_CUP_ROUNDS, SUNDAY_DIVISIONS, getSundayDivision } from '@/config/sundayLeague';
+import {
+  SUNDAY_CUP_ROUNDS, SUNDAY_DIVISIONS, getSundayDivision, sundayOppositionLift,
+  SUNDAY_OPP_SCALE_MAX, SUNDAY_REPUTATION_START,
+} from '@/config/sundayLeague';
 import type { Match } from '@/types/game';
 
 const CLUBS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
@@ -185,6 +188,49 @@ describe('the table', () => {
     const table = buildSundayTable([], ['a', 'b']);
     expect(sundayPosition(table, 'a')).toBeGreaterThan(0);
     expect(sundayPosition(table, 'nope')).toBe(table.length);
+  });
+});
+
+describe('the league keeps up with you', () => {
+  const meanOverall = (os: ReturnType<typeof generateSundayDivision>) =>
+    os.flatMap(o => o.players).reduce((n, p) => n + p.overall, 0)
+    / os.flatMap(o => o.players).length;
+
+  it('lifts generated opposition for a club with a name and trophies, and caps it', () => {
+    // A brand-new club gets no lift at all: the ceiling only exists to stop the
+    // top of the pyramid becoming a formality by season seven.
+    expect(sundayOppositionLift(SUNDAY_REPUTATION_START, 0)).toBe(0);
+    expect(sundayOppositionLift(100, 6)).toBe(SUNDAY_OPP_SCALE_MAX);
+    // Monotonic in both inputs, and never above the cap.
+    let previous = -1;
+    for (let rep = 0; rep <= 100; rep += 5) {
+      const lift = sundayOppositionLift(rep, 0);
+      expect(lift).toBeGreaterThanOrEqual(previous);
+      expect(lift).toBeLessThanOrEqual(SUNDAY_OPP_SCALE_MAX);
+      previous = lift;
+    }
+    expect(sundayOppositionLift(50, 2)).toBeGreaterThan(sundayOppositionLift(50, 0));
+  });
+
+  it('is a real but small difference in the squads it generates', () => {
+    const plain = generateSundayDivision(4242, 'sun-prem', 11, 3, [], 0);
+    const lifted = generateSundayDivision(4242, 'sun-prem', 11, 3, [], SUNDAY_OPP_SCALE_MAX);
+    expect(meanOverall(lifted)).toBeGreaterThan(meanOverall(plain));
+    // Bounded. MEASURED at the cap: +5.02 mean overall across 11 generated
+    // squads (132 players), against a division step of +4.7 in the same
+    // measurement — overall is not linear in quality near the ceiling, which
+    // is why the bound is stated in overall points rather than by comparing
+    // the raw quality constants. Five points of opposition is a top-division
+    // club that can still be hurt; it is not a second promotion.
+    expect(meanOverall(lifted) - meanOverall(plain)).toBeLessThan(SUNDAY_OPP_SCALE_MAX + 2);
+  });
+
+  it('touches nothing but the opposition — same ids, same names, same grounds', () => {
+    const plain = generateSundayDivision(4242, 'sun-2', 9, 2, [], 0);
+    const lifted = generateSundayDivision(4242, 'sun-2', 9, 2, [], SUNDAY_OPP_SCALE_MAX);
+    expect(lifted.map(o => o.club.id)).toEqual(plain.map(o => o.club.id));
+    expect(lifted.map(o => o.club.name)).toEqual(plain.map(o => o.club.name));
+    expect(lifted.map(o => o.club.stadiumName)).toEqual(plain.map(o => o.club.stadiumName));
   });
 });
 
