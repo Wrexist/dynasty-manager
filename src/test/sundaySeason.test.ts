@@ -256,7 +256,8 @@ describe('development', () => {
     injuryProne: 8, happiness: 60, benchedStreak: 0, startedStreak: 0, clubApps: 0,
     clubGoals: 0, clubAssists: 0, clubMotm: 0, joinedSeason: 1,
     availability: { status: 'available' as const, reason: null, note: null, warned: true, weeksRemaining: 0 },
-    friends: [], rivals: [], unsettled: false, subsOwed: 0, memories: [], promise: null,
+    friends: [], rivals: [], formerTeammates: [], appsWith: {},
+    unsettled: false, subsOwed: 0, memories: [], promise: null,
   };
 
   it('improves a young player who played and barely moves one who did not', () => {
