@@ -145,6 +145,19 @@ function shootout(rng: SundayRng, homeXI: Player[], awayXI: Player[]): { home: n
 // ── The arrival phase ───────────────────────────────────────────────────────
 
 /**
+ * How many guests the fixture cannot go ahead without.
+ *
+ * Exported because the arrival is EDITED after it is resolved — an event can
+ * put one of the men who turned up out of the game — and the emergency cover
+ * has to be recomputed with it. `resolveSundayEvent` was taking a man off
+ * `presentIds` without touching this, which silently turned a playable fixture
+ * into a forfeit: seven men became six, and nothing arranged the seventh.
+ */
+export function sundayForcedRingers(presentCount: number): number {
+  return Math.min(SUNDAY_MAX_RINGERS, Math.max(0, SUNDAY_MIN_START - presentCount));
+}
+
+/**
  * Resolve the Sunday morning: doubts turn up or cry off, unwarned absentees
  * are discovered, and the shortfall is counted.
  *
@@ -215,7 +228,7 @@ export function ensureArrival(set: Set, get: Get): SundayArrival | null {
     benchIds = auto.bench.filter(id => !presentIds.includes(id)).slice(0, SUNDAY_MAX_BENCH);
   }
 
-  const forcedRingers = Math.min(SUNDAY_MAX_RINGERS, Math.max(0, SUNDAY_MIN_START - presentIds.length));
+  const forcedRingers = sundayForcedRingers(presentIds.length);
   const optionalRingers = Math.max(
     0,
     Math.min(SUNDAY_MAX_RINGERS - forcedRingers, SUNDAY_FULL_XI - presentIds.length - forcedRingers),

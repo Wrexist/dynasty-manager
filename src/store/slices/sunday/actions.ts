@@ -63,6 +63,7 @@ import { addGameBreadcrumb } from '@/utils/sentry';
 import { applySundayWorld, buildSundayWorld, type StartSundayOptions } from './boot';
 import {
   autoPickSunday, findSundayFixture, finishSundayMatch, playSundayFirstHalf, runSundayMatch,
+  sundayForcedRingers,
 } from './matchday';
 import { advanceSundayWeek } from './week';
 import { rolloverSundaySeason } from './seasonEnd';
@@ -705,11 +706,21 @@ export function resolveSundayEvent(set: Set, get: Get, choiceId: string) {
     // exactly seven makes it a lie the validator rejects on the next load.
     teamsheetLocked: nextTeamsheet.length >= SUNDAY_MIN_START,
     arrival: subjectGone && sunday.arrival
-      ? {
-          ...sunday.arrival,
-          presentIds: sunday.arrival.presentIds.filter(id => id !== subjectId),
-          benchIds: sunday.arrival.benchIds.filter(id => id !== subjectId),
-        }
+      ? (() => {
+          const presentIds = sunday.arrival.presentIds.filter(id => id !== subjectId);
+          return {
+            ...sunday.arrival,
+            presentIds,
+            benchIds: sunday.arrival.benchIds.filter(id => id !== subjectId),
+            // AND THE EMERGENCY COVER FOLLOWS HIM. Taking a man out of the
+            // morning without recomputing this turned a playable fixture into a
+            // forfeit in silence: seven men became six and nothing arranged the
+            // seventh. `optionalRingers` is deliberately left alone — the
+            // manager's guest decision was priced against the morning as it
+            // stood, and the forced ones are what keep the game on.
+            forcedRingers: Math.max(sunday.arrival.forcedRingers, sundayForcedRingers(presentIds.length)),
+          };
+        })()
       : sunday.arrival,
     recruits,
     rivalry,

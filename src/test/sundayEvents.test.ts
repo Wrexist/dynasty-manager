@@ -18,8 +18,8 @@ import {
 import { createSundayRng } from '@/utils/sunday/rng';
 import {
   SUNDAY_CHAINS, SUNDAY_DEPARTURE_FLAG, SUNDAY_EVENT_COOLDOWN,
-  SUNDAY_EVENT_DEPARTURE_GAP, SUNDAY_PITCH_DAMAGE_HEAL, SUNDAY_PITCH_DAMAGE_MAX,
-  SUNDAY_ROUGH_WEEK_FLAG,
+  SUNDAY_EVENT_DEPARTURE_GAP, SUNDAY_MIN_START, SUNDAY_PITCH_DAMAGE_HEAL,
+  SUNDAY_PITCH_DAMAGE_MAX, SUNDAY_ROUGH_WEEK_FLAG,
 } from '@/config/sundayLeague';
 import { SUNDAY_HANDLED_EFFECT_KEYS } from '@/store/slices/sunday/actions';
 import { sundayPitchQuality } from '@/store/slices/sunday/matchday';
@@ -743,6 +743,46 @@ describe('events in the running game', () => {
       sunday: after.sunday!, players: after.players, clubs: after.clubs,
       playerClubId: after.playerClubId, fixtures: after.fixtures, week: after.week,
     });
+  });
+
+  it('arranges cover when sidelining a man drops the morning below a side', async () => {
+    // The forfeit-by-accident case. Name exactly the legal minimum, let them
+    // all turn up, then have an event take one out: the morning is a man short
+    // of a fixture and nothing had recomputed the emergency guest, so a
+    // playable afternoon quietly became a forfeit.
+    const s0 = useGameStore.getState();
+    const available = s0.sunday!.squad
+      .filter(m => m.availability.status === 'available').map(m => m.playerId);
+    expect(available.length).toBeGreaterThanOrEqual(SUNDAY_MIN_START);
+    const named = available.slice(0, SUNDAY_MIN_START);
+    await useGameStore.getState().setSundayTeamsheet(named, []);
+
+    const arrival = await useGameStore.getState().arriveSundayMatch();
+    if (!arrival || arrival.presentIds.length !== SUNDAY_MIN_START) return; // somebody cried off — not this case
+    expect(arrival.forcedRingers).toBe(0);
+
+    useGameStore.setState({
+      sunday: {
+        ...useGameStore.getState().sunday!,
+        pendingEvent: {
+          defId: 'warm-up-injury',
+          season: useGameStore.getState().season,
+          week: useGameStore.getState().week,
+          title: 't', body: 'b', playerId: arrival.presentIds[0],
+          choices: [{ id: 'stand-down', label: 's', hint: '' }],
+          category: 'player',
+        },
+      },
+    });
+    await useGameStore.getState().resolveSundayEvent('stand-down');
+
+    const after = useGameStore.getState().sunday!.arrival!;
+    expect(after.presentIds).toHaveLength(SUNDAY_MIN_START - 1);
+    expect(after.forcedRingers).toBe(1);
+
+    const report = (await useGameStore.getState().playSundayMatch())!;
+    expect(report.forfeited).toBe(false);
+    expect(report.startedWith).toBeGreaterThanOrEqual(SUNDAY_MIN_START);
   });
 
   it('logs what happened so the season can be retold', async () => {
