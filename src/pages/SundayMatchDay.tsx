@@ -18,10 +18,6 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import {
-  AlertTriangle, CloudRain, Flag, Frown, History, Play, Repeat, SkipForward,
-  Snowflake, Sparkles, Sun, TrendingDown, Trophy, Users, Wind,
-} from 'lucide-react';
 import { toast } from 'sonner';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -34,17 +30,26 @@ import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 import { hapticLight, hapticSuccess } from '@/utils/haptics';
 import { cn } from '@/lib/utils';
 import { SUNDAY_MIN_START, SUNDAY_RINGER_COST, SUNDAY_TACTICS, getSundayTactic } from '@/config/sundayLeague';
+import { SUNDAY_ICON, SUNDAY_WEATHER_ICON } from '@/config/sundayIcons';
 import { MATCH_SPEEDS } from '@/config/matchSpeed';
 import { findSundayFixture, sundayPitchQuality } from '@/store/slices/sunday/matchday';
 import { buildSundayTable, sundayCupRoundName, sundayPosition } from '@/utils/sunday/season';
 import { buildMatchdayTeam, sundayResultVerdict, sundayStyleOf } from '@/utils/sunday/match';
 import { deriveSundayStakes } from '@/utils/sunday/tier';
 import { sundayMilestoneToday, sundayReverseFixtureRecall } from '@/utils/sunday/briefing';
-import type { SundayMatchTier, SundayTacticId, WeatherCondition } from '@/types/game';
+import type { SundayMatchTier, SundayTacticId } from '@/types/game';
 
-const WEATHER_ICON: Record<WeatherCondition, React.ElementType> = {
-  clear: Sun, rain: CloudRain, wind: Wind, snow: Snowflake,
-};
+const WarningIcon = SUNDAY_ICON.warning;
+const RecallIcon = SUNDAY_ICON.recall;
+const KickOffIcon = SUNDAY_ICON.kickOff;
+const SkipIcon = SUNDAY_ICON.skip;
+const HeroIcon = SUNDAY_ICON.hero;
+const LowlightIcon = SUNDAY_ICON.lowlight;
+const SquadIcon = SUNDAY_ICON.squad;
+const TurningPointIcon = SUNDAY_ICON.substitution;
+const ConsequenceIcon = SUNDAY_ICON.expense;
+const RatingsIcon = SUNDAY_ICON.ratings;
+const RivalIcon = SUNDAY_ICON.rival;
 
 /** How long each narrative line takes to appear, scaled by the match-speed
  *  setting so the mode honours the same preference every other screen does. */
@@ -378,7 +383,7 @@ const SundayMatchDay = () => {
   };
 
   const pitch = Math.round(sundayPitchQuality(sunday, week));
-  const WeatherIcon = WEATHER_ICON[matchWeather?.weather ?? 'clear'];
+  const WeatherIcon = SUNDAY_WEATHER_ICON[matchWeather?.weather ?? 'clear'];
   const done = !!report && revealed >= report.narrative.length;
   // The break is only offered once the first half has finished revealing —
   // a decision on top of a feed still scrolling is a decision nobody read.
@@ -507,7 +512,7 @@ const SundayMatchDay = () => {
             )}
             {memory?.reverse && (
               <p className="text-caption text-foreground/85 leading-relaxed">
-                <History className="w-3.5 h-3.5 inline-block mr-1 -mt-0.5 text-muted-foreground" aria-hidden />
+                <RecallIcon className="w-3.5 h-3.5 inline-block mr-1 -mt-0.5 text-muted-foreground" aria-hidden />
                 {memory.reverse}
               </p>
             )}
@@ -531,7 +536,7 @@ const SundayMatchDay = () => {
           </GlassPanel>
 
           <LiquidButton tone="primary" className="w-full py-3" onClick={onArrive} disabled={kicking}>
-            <span className="inline-flex items-center gap-1.5"><Users className="w-4 h-4" aria-hidden /> {t('sunday.arrival.title')}</span>
+            <span className="inline-flex items-center gap-1.5"><SquadIcon className="w-4 h-4" aria-hidden /> {t('sunday.arrival.title')}</span>
           </LiquidButton>
           {/* The button's own label does not say it is a one-way door, and the
               teamsheet locks behind it. */}
@@ -594,7 +599,7 @@ const SundayMatchDay = () => {
           {shortfallPending ? (
             <GlassPanel className="p-4 space-y-2" tone="danger">
               <p className="text-body font-semibold text-amber-200 inline-flex items-center gap-1.5">
-                <AlertTriangle className="w-4 h-4" aria-hidden />
+                <WarningIcon className="w-4 h-4" aria-hidden />
                 {t('sunday.arrival.short', { n: arrival.optionalRingers })}
               </p>
               <LiquidButton
@@ -625,7 +630,7 @@ const SundayMatchDay = () => {
             </GlassPanel>
           ) : (
             <LiquidButton tone="primary" className="w-full py-3" onClick={kickOff} disabled={kicking}>
-              <span className="inline-flex items-center gap-1.5"><Play className="w-4 h-4" aria-hidden /> {t('sunday.match.kickOff')}</span>
+              <span className="inline-flex items-center gap-1.5"><KickOffIcon className="w-4 h-4" aria-hidden /> {t('sunday.match.kickOff')}</span>
             </LiquidButton>
           )}
         </>
@@ -644,7 +649,7 @@ const SundayMatchDay = () => {
                   onClick={() => { clearTimer(); setPlaying(false); setRevealed(feed.length); }}
                   className="text-caption font-semibold text-primary inline-flex items-center gap-1 min-h-[44px] px-1"
                 >
-                  <SkipForward className="w-3.5 h-3.5" aria-hidden /> {t('sunday.match.skip')}
+                  <SkipIcon className="w-3.5 h-3.5" aria-hidden /> {t('sunday.match.skip')}
                 </button>
               ) : undefined
             }
@@ -740,7 +745,7 @@ const SundayMatchDay = () => {
             <div className="space-y-2">
               {heroName && (
                 <div className="flex items-start gap-2">
-                  <Sparkles className="w-4 h-4 text-primary shrink-0 mt-0.5" aria-hidden />
+                  <HeroIcon className="w-4 h-4 text-primary shrink-0 mt-0.5" aria-hidden />
                   <p className="text-caption text-foreground">
                     <span className="text-muted-foreground">{t('sunday.story.hero')}: </span>
                     {heroName} · {report.motmRating.toFixed(1)}
@@ -749,7 +754,7 @@ const SundayMatchDay = () => {
               )}
               {villainName && report.lowlightPlayerId !== report.motmPlayerId && (
                 <div className="flex items-start gap-2">
-                  <Frown className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" aria-hidden />
+                  <LowlightIcon className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" aria-hidden />
                   <p className="text-caption text-foreground">
                     <span className="text-muted-foreground">{t('sunday.story.lowlight')}: </span>
                     {villainName} · {report.lowlightRating.toFixed(1)}
@@ -758,7 +763,7 @@ const SundayMatchDay = () => {
               )}
               {report.moraleDelta !== 0 && (
                 <div className="flex items-start gap-2">
-                  <Users className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" aria-hidden />
+                  <SquadIcon className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" aria-hidden />
                   <p className="text-caption text-foreground">
                     <span className="text-muted-foreground">{t('sunday.story.morale')}: </span>
                     <span className={cn('tabular-nums font-semibold', report.moraleDelta > 0 ? 'text-emerald-300' : 'text-destructive')}>
@@ -769,7 +774,7 @@ const SundayMatchDay = () => {
               )}
               {report.turningPoint && (
                 <div className="flex items-start gap-2">
-                  <Repeat className="w-4 h-4 text-sky-300 shrink-0 mt-0.5" aria-hidden />
+                  <TurningPointIcon className="w-4 h-4 text-sky-300 shrink-0 mt-0.5" aria-hidden />
                   <p className="text-caption text-foreground">
                     <span className="text-muted-foreground">{t('sunday.story.turningPoint')}: </span>
                     {report.turningPoint}
@@ -778,7 +783,7 @@ const SundayMatchDay = () => {
               )}
               {report.consequences.length > 0 && (
                 <div className="flex items-start gap-2">
-                  <TrendingDown className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" aria-hidden />
+                  <ConsequenceIcon className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" aria-hidden />
                   <div className="min-w-0">
                     <p className="text-micro text-muted-foreground">{t('sunday.story.consequences')}</p>
                     {report.consequences.map(line => (
@@ -798,7 +803,7 @@ const SundayMatchDay = () => {
 
           {(ratings.length > 0 || report.guestRatings.length > 0) && (
             <GlassPanel className="p-4">
-              <SectionHeader level="section" title={t('sunday.match.ratings')} icon={Flag} />
+              <SectionHeader level="section" title={t('sunday.match.ratings')} icon={RatingsIcon} />
               <div className="divide-y divide-border/30 mt-1">
                 {ratings
                   .filter(r => report.playedIds.includes(r.playerId) && players[r.playerId])
@@ -842,7 +847,10 @@ const SundayMatchDay = () => {
           {isDerby && (
             <GlassPanel className="p-3">
               <p className="text-caption text-orange-300 inline-flex items-center gap-1.5">
-                <Trophy className="w-3.5 h-3.5" aria-hidden />
+                {/* The derby, not a trophy. This was `Trophy`, which on a
+                    screen that also shows the cup read as "you have won
+                    something". `Swords` is the rivalry glyph everywhere else. */}
+                <RivalIcon className="w-3.5 h-3.5" aria-hidden />
                 {sunday.rivalry?.name} · {t('sunday.hub.rivalRecord', {
                   w: sunday.rivalry?.wins ?? 0, d: sunday.rivalry?.draws ?? 0, l: sunday.rivalry?.losses ?? 0,
                 })}

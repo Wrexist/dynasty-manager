@@ -6,7 +6,6 @@
  * reads and what the game acts on cannot diverge.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarDays, ListOrdered, Trophy } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { SectionHeader } from '@/components/game/SectionHeader';
@@ -16,6 +15,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 import { cn } from '@/lib/utils';
 import { getSundayDivision } from '@/config/sundayLeague';
+import { SUNDAY_ICON } from '@/config/sundayIcons';
 import { buildSundayTable, sundayCupRoundName } from '@/utils/sunday/season';
 
 type Tab = 'table' | 'fixtures' | 'cup';
@@ -57,9 +57,9 @@ const SundayTable = () => {
   const div = getSundayDivision(sunday.divisionId);
 
   const tabs: { key: Tab; label: string; icon: React.ElementType }[] = [
-    { key: 'table', label: t('sunday.table.tabTable'), icon: ListOrdered },
-    { key: 'fixtures', label: t('sunday.table.tabFixtures'), icon: CalendarDays },
-    { key: 'cup', label: t('sunday.table.tabCup'), icon: Trophy },
+    { key: 'table', label: t('sunday.table.tabTable'), icon: SUNDAY_ICON.league },
+    { key: 'fixtures', label: t('sunday.table.tabFixtures'), icon: SUNDAY_ICON.fixtures },
+    { key: 'cup', label: t('sunday.table.tabCup'), icon: SUNDAY_ICON.cup },
   ];
 
   return (

@@ -7,7 +7,6 @@
  * beside them because both matter and separating them would imply otherwise.
  */
 import { useMemo, useState } from 'react';
-import { ChevronDown, UserMinus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -15,6 +14,7 @@ import { LiquidButton } from '@/components/game/LiquidButton';
 import { SectionHeader } from '@/components/game/SectionHeader';
 import { ConfirmDialog } from '@/components/game/ConfirmDialog';
 import { AvailabilityPill, Meter, PlayerFlags } from '@/components/game/sunday/SundayBits';
+import { SUNDAY_ICON } from '@/config/sundayIcons';
 import { useGameStore } from '@/store/gameStore';
 import { useTranslation } from '@/hooks/useTranslation';
 import { cn } from '@/lib/utils';
@@ -23,6 +23,9 @@ import {
   sundayFriendNames, sundayMentor, sundayPositionRival, sundayRivalNames,
 } from '@/utils/sunday/relationships';
 import type { Player, SundaySquadMember } from '@/types/game';
+
+const ExpandIcon = SUNDAY_ICON.expand;
+const ReleaseIcon = SUNDAY_ICON.release;
 
 type SortKey = 'availability' | 'overall' | 'commitment' | 'mood';
 
@@ -169,7 +172,7 @@ const SundaySquad = () => {
                     <span className="flex items-center gap-2 shrink-0">
                       <span className="text-caption font-semibold text-foreground tabular-nums">{player.overall}</span>
                       <AvailabilityPill availability={member.availability} />
-                      <ChevronDown className={cn('w-4 h-4 text-muted-foreground transition-transform', open && 'rotate-180')} aria-hidden />
+                      <ExpandIcon className={cn('w-4 h-4 text-muted-foreground transition-transform', open && 'rotate-180')} aria-hidden />
                     </span>
                   </button>
 
@@ -256,7 +259,7 @@ const SundaySquad = () => {
                         </LiquidButton>
                         <LiquidButton tone="destructive" className="flex-1 py-2" onClick={() => setConfirmRelease(player.id)}>
                           <span className="inline-flex items-center gap-1 text-micro">
-                            <UserMinus className="w-3.5 h-3.5" aria-hidden /> {t('sunday.squad.release')}
+                            <ReleaseIcon className="w-3.5 h-3.5" aria-hidden /> {t('sunday.squad.release')}
                           </span>
                         </LiquidButton>
                       </div>

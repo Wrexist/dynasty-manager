@@ -9,7 +9,6 @@
  * screen.
  */
 import { useMemo, useState } from 'react';
-import { Eye, MessageSquare, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -22,8 +21,12 @@ import {
   SUNDAY_MAX_SQUAD, SUNDAY_RECRUIT_RUMOUR_ERROR, SUNDAY_RECRUIT_SIGNINGS_PER_SEASON,
   getSundayArchetype,
 } from '@/config/sundayLeague';
+import { SUNDAY_ICON } from '@/config/sundayIcons';
 import { subSeed, createSundayRng } from '@/utils/sunday/rng';
 import type { PlayerAttributes, SundayRecruit } from '@/types/game';
+
+const ScoutedIcon = SUNDAY_ICON.scouted;
+const RumourIcon = SUNDAY_ICON.rumour;
 
 /** Fixed base for the rumour noise. Any constant works; it only has to be
  *  the SAME constant every time. */
@@ -72,7 +75,7 @@ const SundayRecruit = () => {
     <div className="max-w-lg mx-auto px-4 pt-3 pb-4 space-y-3">
       <SectionHeader
         title={t('sunday.recruit.title')}
-        icon={UserPlus}
+        icon={SUNDAY_ICON.recruit}
         accessory={<span className="text-caption text-muted-foreground">{sunday.squad.length}/{SUNDAY_MAX_SQUAD}</span>}
       />
 
@@ -124,8 +127,8 @@ const SundayRecruit = () => {
                     : 'bg-white/[0.06] text-muted-foreground border-white/15',
                 )}>
                   {recruit.revealed
-                    ? <Eye className="w-3 h-3" aria-hidden />
-                    : <MessageSquare className="w-3 h-3" aria-hidden />}
+                    ? <ScoutedIcon className="w-3 h-3" aria-hidden />
+                    : <RumourIcon className="w-3 h-3" aria-hidden />}
                 </span>
               </div>
 

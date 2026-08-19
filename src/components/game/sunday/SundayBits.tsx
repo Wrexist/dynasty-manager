@@ -5,11 +5,13 @@
  * used together, so ten separate modules would be ceremony rather than
  * structure. Anything that grows past a screenful moves out.
  */
-import { Flame } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/hooks/useTranslation';
 import { SUNDAY_FORM_COLD, SUNDAY_FORM_HOT } from '@/config/sundayLeague';
+import { SUNDAY_ICON } from '@/config/sundayIcons';
 import type { Player, SundayAvailability, SundaySquadMember } from '@/types/game';
+
+const HotFormIcon = SUNDAY_ICON.hotForm;
 
 /** Availability at a glance. An unwarned absence reads as "no word from him"
  *  rather than naming the reason — the manager does not know it yet. */
@@ -128,7 +130,7 @@ export function PlayerFlags({ member, player, captain }: {
       )}
       {player.form >= SUNDAY_FORM_HOT && (
         <span className="inline-flex items-center gap-0.5 text-micro font-semibold text-emerald-300 shrink-0">
-          <Flame className="w-3 h-3" aria-hidden /> {t('sunday.bio.onFire')}
+          <HotFormIcon className="w-3 h-3" aria-hidden /> {t('sunday.bio.onFire')}
         </span>
       )}
       {player.form <= SUNDAY_FORM_COLD && (

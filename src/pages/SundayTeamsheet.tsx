@@ -8,7 +8,6 @@
  * squad screen and a management decision.
  */
 import { useMemo, useState } from 'react';
-import { AlertTriangle, Armchair, Check, Phone, Shirt, Wand2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -24,11 +23,19 @@ import {
   SUNDAY_TACTICS, getSundayTactic,
 } from '@/config/sundayLeague';
 import { isSundaySelectable } from '@/utils/sunday/availability';
+import { SUNDAY_ICON } from '@/config/sundayIcons';
 import { sundayTacticFit } from '@/utils/sunday/match';
 import { upgradeLevel } from '@/store/slices/sunday/shared';
 import { sundaySideIsSettled } from '@/utils/sunday/primaryAction';
 import { canPlayPosition, FORMATION_POSITIONS } from '@/types/game';
 import type { Player, SundaySquadMember, SundayTacticId } from '@/types/game';
+
+const WarningIcon = SUNDAY_ICON.warning;
+const StartingIcon = SUNDAY_ICON.starting;
+const BenchIcon = SUNDAY_ICON.bench;
+const AutoPickIcon = SUNDAY_ICON.autoPick;
+const ConfirmIcon = SUNDAY_ICON.confirm;
+const RingRoundIcon = SUNDAY_ICON.ringRound;
 
 interface Row {
   member: SundaySquadMember;
@@ -291,7 +298,7 @@ const SundayTeamsheet = () => {
           <ul className="space-y-1.5">
             {warnings.map(w => (
               <li key={w} className="flex items-start gap-2 text-caption text-amber-200">
-                <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden />
+                <WarningIcon className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden />
                 <span>{w}</span>
               </li>
             ))}
@@ -304,7 +311,7 @@ const SundayTeamsheet = () => {
         <SectionHeader
           level="section"
           title={t('sunday.sheet.starting')}
-          icon={Shirt}
+          icon={StartingIcon}
           accessory={
             <LiquidButton
               className="px-3 py-1.5"
@@ -318,7 +325,7 @@ const SundayTeamsheet = () => {
                   .finally(() => setBusy(null));
               }}
             >
-              <span className="inline-flex items-center gap-1 text-micro"><Wand2 className="w-3.5 h-3.5" aria-hidden /> {t('sunday.sheet.autoPick')}</span>
+              <span className="inline-flex items-center gap-1 text-micro"><AutoPickIcon className="w-3.5 h-3.5" aria-hidden /> {t('sunday.sheet.autoPick')}</span>
             </LiquidButton>
           }
         />
@@ -346,7 +353,7 @@ const SundayTeamsheet = () => {
 
       {/* Bench */}
       <GlassPanel className="p-4">
-        <SectionHeader level="section" title={t('sunday.sheet.bench')} icon={Armchair} />
+        <SectionHeader level="section" title={t('sunday.sheet.bench')} icon={BenchIcon} />
         {benchRows.length === 0 ? (
           <p className="text-caption text-muted-foreground mt-2">{t('sunday.sheet.warnNoBench')}</p>
         ) : (
@@ -412,7 +419,7 @@ const SundayTeamsheet = () => {
                       onClick={() => { void ringRound(row.player.id).then(r => { if (r.ok) toast.success(r.message); else toast.info(r.message); }); }}
                     >
                       <span className="inline-flex items-center gap-1 text-micro">
-                        <Phone className="w-3.5 h-3.5" aria-hidden /> {t('sunday.avail.ringRound')}
+                        <RingRoundIcon className="w-3.5 h-3.5" aria-hidden /> {t('sunday.avail.ringRound')}
                       </span>
                     </LiquidButton>
                     <p className="text-micro text-muted-foreground">
@@ -449,7 +456,7 @@ const SundayTeamsheet = () => {
         }}
       >
         <span className="inline-flex items-center gap-1.5">
-          <Check className="w-4 h-4" aria-hidden /> {t('sunday.sheet.confirm')}
+          <ConfirmIcon className="w-4 h-4" aria-hidden /> {t('sunday.sheet.confirm')}
         </span>
       </LiquidButton>
     </div>

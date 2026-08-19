@@ -8,13 +8,13 @@
  * navigation problem at exactly the moments that should feel weighty.
  */
 import { useState } from 'react';
-import { Award, Flag, Medal, Trophy } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { LiquidButton } from '@/components/game/LiquidButton';
 import { SectionHeader } from '@/components/game/SectionHeader';
 import { StatChip } from '@/components/game/sunday/SundayBits';
+import { SUNDAY_ICON } from '@/config/sundayIcons';
 import { useGameStore } from '@/store/gameStore';
 import { useTranslation } from '@/hooks/useTranslation';
 import { cn } from '@/lib/utils';
@@ -22,6 +22,8 @@ import { formatMoney, getSuffix } from '@/utils/helpers';
 import { getSundayDivision, SUNDAY_MEMORY_LEGENDARY_WEIGHT } from '@/config/sundayLeague';
 import { buildSundayTable, sundayPosition } from '@/utils/sunday/season';
 import { momentOfSeason } from '@/utils/sunday/memories';
+
+const FoldedIcon = SUNDAY_ICON.folded;
 
 const SundayHistory = () => {
   const { t } = useTranslation();
@@ -77,7 +79,7 @@ const SundayHistory = () => {
       {sunday.folded && (
         <GlassPanel className="p-5 space-y-3" tone="danger">
           <div className="text-center space-y-2">
-            <Flag className="w-8 h-8 text-destructive mx-auto" aria-hidden />
+            <FoldedIcon className="w-8 h-8 text-destructive mx-auto" aria-hidden />
             <p className="text-h3 font-display font-bold text-foreground">{t('sunday.history.folded')}</p>
             <p className="text-caption text-muted-foreground leading-relaxed">{sunday.foldReason}</p>
             <p className="text-caption text-muted-foreground leading-relaxed">{t('sunday.history.foldedBody')}</p>
@@ -117,7 +119,7 @@ const SundayHistory = () => {
       {/* Season complete — the summary and the button that starts the next one. */}
       {!sunday.folded && sunday.seasonComplete && (
         <GlassPanel className="p-5 space-y-3">
-          <SectionHeader title={t('sunday.history.seasonComplete', { season })} icon={Trophy} />
+          <SectionHeader title={t('sunday.history.seasonComplete', { season })} icon={SUNDAY_ICON.seasonComplete} />
           <p className="text-body text-foreground">
             {t('sunday.history.finished', { position: `${position}${getSuffix(position)}` })} · {div.name}
           </p>
@@ -182,7 +184,7 @@ const SundayHistory = () => {
 
       {/* Records */}
       <GlassPanel className="p-4">
-        <SectionHeader level="section" title={t('sunday.history.records')} icon={Medal} />
+        <SectionHeader level="section" title={t('sunday.history.records')} icon={SUNDAY_ICON.honours} />
         {sunday.records.length === 0 ? (
           <p className="text-caption text-muted-foreground mt-2">{t('sunday.history.noRecords')}</p>
         ) : (
@@ -204,7 +206,7 @@ const SundayHistory = () => {
 
       {/* Legends */}
       <GlassPanel className="p-4">
-        <SectionHeader level="section" title={t('sunday.history.legends')} icon={Award} />
+        <SectionHeader level="section" title={t('sunday.history.legends')} icon={SUNDAY_ICON.legend} />
         {sunday.legends.length === 0 ? (
           <p className="text-caption text-muted-foreground mt-2">{t('sunday.history.noLegends')}</p>
         ) : (

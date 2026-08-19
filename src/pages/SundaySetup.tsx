@@ -10,11 +10,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Dices, MapPin, Users, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { LiquidButton } from '@/components/game/LiquidButton';
 import { GlassPanel, LIQUID_GLASS_SURFACE } from '@/components/game/GlassPanel';
 import { SectionHeader } from '@/components/game/SectionHeader';
+import { SUNDAY_ICON } from '@/config/sundayIcons';
 import { useGameStore } from '@/store/gameStore';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
@@ -24,6 +24,12 @@ import { SUNDAY_PERSONALITIES } from '@/config/sundayLeague';
 import { generateSundayIdentity } from '@/utils/sunday/generation';
 import { createSundayRng, newSundaySeed } from '@/utils/sunday/rng';
 import type { SundayClubPersonalityId } from '@/types/game';
+
+const BackIcon = SUNDAY_ICON.back;
+const VenueIcon = SUNDAY_ICON.venue;
+const RerollIcon = SUNDAY_ICON.reroll;
+const MoneyIcon = SUNDAY_ICON.money;
+const SquadIcon = SUNDAY_ICON.squad;
 
 const SundaySetup = () => {
   const { t } = useTranslation();
@@ -75,7 +81,7 @@ const SundaySetup = () => {
           className="text-muted-foreground hover:text-foreground gap-1.5 -ml-2 mt-2"
           onClick={() => navigate('/mode-select', { state: { slot: navState.slot } })}
         >
-          <ArrowLeft className="w-4 h-4" /> {t('sunday.setup.back')}
+          <BackIcon className="w-4 h-4" /> {t('sunday.setup.back')}
         </Button>
       </div>
 
@@ -106,7 +112,7 @@ const SundaySetup = () => {
                 className="w-full bg-transparent text-body font-bold text-foreground outline-none placeholder:text-foreground/70 focus-visible:ring-1 focus-visible:ring-primary/60 rounded px-1 -mx-1"
               />
               <p className="text-caption text-muted-foreground truncate flex items-center gap-1 mt-0.5">
-                <MapPin className="w-3 h-3 shrink-0" aria-hidden />
+                <VenueIcon className="w-3 h-3 shrink-0" aria-hidden />
                 {identity.venue}, {identity.town}
               </p>
             </div>
@@ -116,7 +122,7 @@ const SundaySetup = () => {
               className="shrink-0 px-3"
             >
               <span className="inline-flex items-center gap-1.5 text-caption">
-                <Dices className="w-4 h-4" aria-hidden /> {t('sunday.setup.reroll')}
+                <RerollIcon className="w-4 h-4" aria-hidden /> {t('sunday.setup.reroll')}
               </span>
             </LiquidButton>
           </div>
@@ -124,13 +130,13 @@ const SundaySetup = () => {
           <div className="grid grid-cols-2 gap-2">
             <div className="rounded-lg bg-white/[0.04] px-3 py-2">
               <p className="text-caption text-muted-foreground flex items-center gap-1">
-                <Wallet className="w-3 h-3" aria-hidden /> {t('sunday.setup.startingBalance')}
+                <MoneyIcon className="w-3 h-3" aria-hidden /> {t('sunday.setup.startingBalance')}
               </p>
               <p className="text-body font-semibold text-foreground">{formatMoney(info.startBalance)}</p>
             </div>
             <div className="rounded-lg bg-white/[0.04] px-3 py-2">
               <p className="text-caption text-muted-foreground flex items-center gap-1">
-                <Users className="w-3 h-3" aria-hidden /> {t('sunday.setup.squadSize')}
+                <SquadIcon className="w-3 h-3" aria-hidden /> {t('sunday.setup.squadSize')}
               </p>
               <p className="text-body font-semibold text-foreground">
                 {t('sunday.setup.squadSizeValue', { n: info.squadSize })}

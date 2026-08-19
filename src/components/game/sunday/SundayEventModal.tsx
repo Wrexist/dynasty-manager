@@ -10,33 +10,12 @@
  * event would silently stall the week with nothing on screen explaining why.
  */
 import { useState } from 'react';
-import { AlertTriangle, Banknote, HeartHandshake, PartyPopper, Shield, Swords, Wallet } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { LiquidButton } from '@/components/game/LiquidButton';
 import { useGameStore } from '@/store/gameStore';
 import { useTranslation } from '@/hooks/useTranslation';
 import { cn } from '@/lib/utils';
-import type { SundayEventInstance } from '@/types/game';
-
-const CATEGORY_ICON: Record<SundayEventInstance['category'], React.ElementType> = {
-  player: HeartHandshake,
-  club: Shield,
-  money: Wallet,
-  matchday: AlertTriangle,
-  rivalry: Swords,
-  sponsor: Banknote,
-  comedy: PartyPopper,
-};
-
-const CATEGORY_TONE: Record<SundayEventInstance['category'], string> = {
-  player: 'text-sky-300 bg-sky-500/10',
-  club: 'text-primary bg-primary/10',
-  money: 'text-emerald-300 bg-emerald-500/10',
-  matchday: 'text-amber-300 bg-amber-400/10',
-  rivalry: 'text-orange-300 bg-orange-500/10',
-  sponsor: 'text-emerald-300 bg-emerald-500/10',
-  comedy: 'text-fuchsia-300 bg-fuchsia-500/10',
-};
+import { SUNDAY_EVENT_CATEGORY_ICON, SUNDAY_EVENT_CATEGORY_TONE } from '@/config/sundayIcons';
 
 export function SundayEventModal() {
   const { t } = useTranslation();
@@ -49,8 +28,8 @@ export function SundayEventModal() {
 
   if (!event && !outcome) return null;
 
-  const Icon = event ? CATEGORY_ICON[event.category] : PartyPopper;
-  const tone = event ? CATEGORY_TONE[event.category] : CATEGORY_TONE.club;
+  const Icon = event ? SUNDAY_EVENT_CATEGORY_ICON[event.category] : SUNDAY_EVENT_CATEGORY_ICON.comedy;
+  const tone = event ? SUNDAY_EVENT_CATEGORY_TONE[event.category] : SUNDAY_EVENT_CATEGORY_TONE.club;
 
   const choose = async (choiceId: string) => {
     // Set synchronously, BEFORE the await: the action is async (the mode's

@@ -10,9 +10,6 @@
  */
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import {
-  ArrowRight, Coins, Flame, HandCoins, Swords, Trophy, UserPlus,
-} from 'lucide-react';
 import { toast } from 'sonner';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -25,11 +22,20 @@ import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 import { formatMoney } from '@/utils/helpers';
 import { cn } from '@/lib/utils';
 import { getSundayDivision, getSundayTactic, SUNDAY_MIN_START } from '@/config/sundayLeague';
+import { SUNDAY_ICON } from '@/config/sundayIcons';
 import { summariseAvailability } from '@/utils/sunday/availability';
 import { sundayCupRoundName, sundaySeasonWeeks } from '@/utils/sunday/season';
 import { findSundayFixture, sundayPitchQuality } from '@/store/slices/sunday/matchday';
 import { sundayResultVerdict } from '@/utils/sunday/match';
 import { sundayPrimaryAction } from '@/utils/sunday/primaryAction';
+
+const ForwardIcon = SUNDAY_ICON.forward;
+const SubsIcon = SUNDAY_ICON.subs;
+const FundraiserIcon = SUNDAY_ICON.fundraiser;
+const RecruitIcon = SUNDAY_ICON.recruit;
+const RivalIcon = SUNDAY_ICON.rival;
+const DerbyHeatIcon = SUNDAY_ICON.derbyHeat;
+const CupIcon = SUNDAY_ICON.cup;
 
 const SundayHub = () => {
   const { t } = useTranslation();
@@ -135,7 +141,7 @@ const SundayHub = () => {
               className="text-caption font-semibold text-primary inline-flex items-center gap-1 min-h-[44px] px-1"
             >
               {teamReady ? t('sunday.hub.teamNamed', { n: namedCount }) : t('sunday.hub.teamNotNamed')}
-              <ArrowRight className="w-3.5 h-3.5" aria-hidden />
+              <ForwardIcon className="w-3.5 h-3.5" aria-hidden />
             </button>
           }
         />
@@ -192,7 +198,7 @@ const SundayHub = () => {
             </div>
             {sunday.rivalry?.clubId === opponent.id && (
               <span className="inline-flex items-center gap-1 text-micro font-semibold text-orange-300 shrink-0">
-                <Flame className="w-3.5 h-3.5" aria-hidden /> {sunday.rivalry.name}
+                <DerbyHeatIcon className="w-3.5 h-3.5" aria-hidden /> {sunday.rivalry.name}
               </span>
             )}
           </div>
@@ -257,11 +263,11 @@ const SundayHub = () => {
         <SectionHeader level="section" title={t('sunday.hub.quickActions')} />
         <div className="grid grid-cols-2 gap-2">
           <LiquidButton className="py-2.5" busy={busy === 'fundraiser'} onClick={quick('fundraiser', () => runFundraiser())}>
-            <span className="inline-flex items-center gap-1.5 text-caption"><HandCoins className="w-4 h-4" aria-hidden /> {t('sunday.hub.fundraiser')}</span>
+            <span className="inline-flex items-center gap-1.5 text-caption"><FundraiserIcon className="w-4 h-4" aria-hidden /> {t('sunday.hub.fundraiser')}</span>
           </LiquidButton>
           <LiquidButton className="py-2.5" busy={busy === 'subs'} onClick={quick('subs', () => chaseSubs())}>
             <span className="inline-flex items-center gap-1.5 text-caption">
-              <Coins className="w-4 h-4" aria-hidden />
+              <SubsIcon className="w-4 h-4" aria-hidden />
               {subsOwed > 0 ? t('sunday.hub.subsOwed', { n: subsOwed }) : t('sunday.hub.chaseSubs')}
             </span>
           </LiquidButton>
@@ -271,7 +277,7 @@ const SundayHub = () => {
               navigates is now a second, worse copy of the nav. */}
           <LiquidButton className="py-2.5 col-span-2" onClick={() => setScreen('sunday-recruit')}>
             <span className="inline-flex items-center gap-1.5 text-caption">
-              <UserPlus className="w-4 h-4" aria-hidden />
+              <RecruitIcon className="w-4 h-4" aria-hidden />
               {sunday.recruits.length > 0 ? t('sunday.hub.recruitsWaiting', { n: sunday.recruits.length }) : t('sunday.hub.recruits')}
             </span>
           </LiquidButton>
@@ -294,7 +300,7 @@ const SundayHub = () => {
             }
           />
           <div className="flex items-center gap-2 mt-2">
-            <Swords className="w-4 h-4 text-orange-300 shrink-0" aria-hidden />
+            <RivalIcon className="w-4 h-4 text-orange-300 shrink-0" aria-hidden />
             <p className="text-caption text-foreground truncate">
               {sunday.rivalry.name} · {clubs[sunday.rivalry.clubId].name}
             </p>
@@ -333,14 +339,14 @@ const SundayHub = () => {
             onClick={() => setScreen('sunday-table')}
             className="w-full flex items-center gap-2 min-h-[44px] text-left"
           >
-            <Trophy className="w-4 h-4 text-primary shrink-0" aria-hidden />
+            <CupIcon className="w-4 h-4 text-primary shrink-0" aria-hidden />
             <span className="text-caption text-foreground flex-1 truncate">{sunday.cup.name}</span>
             <span className="text-micro text-muted-foreground">
               {sunday.cup.winnerClubId === playerClubId
                 ? t('sunday.table.cupWon')
                 : sunday.cup.eliminated ? t('sunday.table.cupOut') : ''}
             </span>
-            <ArrowRight className="w-3.5 h-3.5 text-muted-foreground" aria-hidden />
+            <ForwardIcon className="w-3.5 h-3.5 text-muted-foreground" aria-hidden />
           </button>
         </GlassPanel>
       )}

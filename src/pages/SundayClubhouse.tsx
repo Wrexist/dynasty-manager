@@ -7,7 +7,6 @@
  * the whole point.
  */
 import { useMemo, useState } from 'react';
-import { Banknote, Landmark, MapPin, Receipt, Wrench } from 'lucide-react';
 import { toast } from 'sonner';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -22,7 +21,10 @@ import {
   SUNDAY_UPGRADES, getSundayPersonality, sundayUpgradeCost,
   SUNDAY_UPGRADE_MOTHBALL_REFUND,
 } from '@/config/sundayLeague';
+import { SUNDAY_ICON } from '@/config/sundayIcons';
 import { splitLedger, sundayUpgradeUpkeep, sundayWeeklyBurn } from '@/utils/sunday/finance';
+
+const VenueIcon = SUNDAY_ICON.venue;
 
 type Tab = 'upgrades' | 'sponsors' | 'books';
 
@@ -52,14 +54,14 @@ const SundayClubhouse = () => {
   const burn = sundayWeeklyBurn(sunday.divisionId, sunday.upgrades);
 
   const tabs: { key: Tab; label: string; icon: React.ElementType }[] = [
-    { key: 'upgrades', label: t('sunday.club.upgrades'), icon: Wrench },
-    { key: 'sponsors', label: t('sunday.club.sponsors'), icon: Banknote },
-    { key: 'books', label: t('sunday.club.finances'), icon: Receipt },
+    { key: 'upgrades', label: t('sunday.club.upgrades'), icon: SUNDAY_ICON.upgrade },
+    { key: 'sponsors', label: t('sunday.club.sponsors'), icon: SUNDAY_ICON.sponsor },
+    { key: 'books', label: t('sunday.club.finances'), icon: SUNDAY_ICON.ledger },
   ];
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-3 pb-4 space-y-3">
-      <SectionHeader title={t('sunday.club.title')} icon={Landmark} />
+      <SectionHeader title={t('sunday.club.title')} icon={SUNDAY_ICON.clubhouse} />
 
       {/* Identity */}
       <GlassPanel className="p-4 space-y-3">
@@ -73,7 +75,7 @@ const SundayClubhouse = () => {
           </div>
         </div>
         <p className="text-caption text-muted-foreground flex items-center gap-1.5">
-          <MapPin className="w-3.5 h-3.5 shrink-0" aria-hidden />
+          <VenueIcon className="w-3.5 h-3.5 shrink-0" aria-hidden />
           {sunday.identity.venue} · {sunday.identity.town}
         </p>
         <div className="grid grid-cols-2 gap-2">
