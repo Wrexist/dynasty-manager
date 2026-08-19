@@ -57,12 +57,9 @@ export const en = {
   'sunday.hub.morale': 'Team morale',
   'sunday.hub.reputation': 'Standing',
   'sunday.hub.nextFixture': 'Next fixture',
-  'sunday.hub.homeTo': 'Home to {club}',
-  'sunday.hub.awayAt': 'Away at {club}',
   'sunday.hub.cupTie': '{round} · {club}',
   'sunday.hub.versus': 'vs',
   'sunday.hub.freeWeek': 'No fixture this week',
-  'sunday.hub.freeWeekBody': 'Nobody has to be anywhere. Use it — chase the subs, run a fundraiser, or leave everyone alone.',
   'sunday.hub.playMatch': 'Match Day',
   'sunday.hub.resumeMatch': 'Back to the match',
   'sunday.hub.pickTeam': 'Pick the team',
@@ -82,15 +79,12 @@ export const en = {
   'sunday.hub.rival': 'Rivalry',
   'sunday.hub.rivalRecord': '{w}W {d}D {l}L',
   'sunday.hub.pitch': 'Pitch',
+  'sunday.hub.clubHint': 'Morale swings the side, standing draws sponsors, a poor pitch costs both teams.',
+  'sunday.hub.businessHint': 'Chasing subs recovers most of it and costs goodwill.',
   // Onboarding captions. The mode's numbers are all readable and none of them
   // said what they DO — a player reading "Standing 31" learned nothing. Each
   // caption names the mechanic it drives, in the register of the screen.
-  'sunday.hub.pitchHint': 'A bad surface takes passing and pace off both sides. Winter drags it down; pitch maintenance pulls it back up.',
-  'sunday.hub.metersHint': 'Morale lifts or drags the whole side on a Sunday. Standing is what the world outside thinks — it drives sponsors, who will sign, and how good the opposition gets.',
-  'sunday.hub.subsHint': 'Match fees the lads have not handed over. Chasing gets most of it back and costs you goodwill in the group chat.',
-  'sunday.hub.lastResult': 'Last time out',
   'sunday.hub.seasonOver': 'The season is over',
-  'sunday.hub.seasonOverBody': 'That is the last fixture played. Time to look back at it.',
   'sunday.hub.viewSeason': 'Review the season',
 
   // Availability
@@ -293,7 +287,6 @@ export const en = {
   // Rival
   'sunday.rival.manager': 'Their manager',
   'sunday.rival.defector': '{name} plays for them now.',
-  'sunday.rival.storyTitle': 'How it got like this',
 
   // Endings & history additions
   'sunday.history.moment': 'Moment of the season',
