@@ -1093,13 +1093,22 @@ export function playCurrentMatchImpl(set: Set, get: Get): Match | null {
 export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   const state = get();
   const { week, fixtures, clubs, players, playerClubId, tactics, training, season } = state;
-  const friendlyMatch = state.friendlies?.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
+  // Playoff first, exactly as `playCurrentMatchImpl` orders it. This branch was
+  // missing entirely: `useCurrentMatch` resolves the playoff tie, so Dashboard
+  // offered Match Prep and MatchDay drew the Kick Off screen for it — and then
+  // this function fell through to a league fixture list with nothing unplayed
+  // left in it and returned null. Kick Off did nothing, `advanceWeek` ticked the
+  // week forever without resolving the bracket, and Instant Sim (the only path
+  // that DID handle the playoff) is Pro-only, so a free player who finished in
+  // the playoff zone could never end their season.
+  const playoffMatch = state.seasonPhase === 'playoff' ? (state.playoffState?.pendingMatch ?? null) : null;
+  const friendlyMatch = !playoffMatch ? state.friendlies?.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId)) : null;
 
-  // Priority: friendly → continental → cup → leagueCup → superCup → league.
+  // Priority: playoff → friendly → continental → cup → leagueCup → superCup → league.
   // Mirrors the order in playCurrentMatchImpl — see the comment there for the
   // reasoning. MatchDay uses THIS function for the interactive flow, so the
   // priority must match or the continental fix gets bypassed for live play.
-  const champMatch = !friendlyMatch ? findPlayerContinentalMatch(state.championsCup, week, playerClubId) : null;
+  const champMatch = !playoffMatch && !friendlyMatch ? findPlayerContinentalMatch(state.championsCup, week, playerClubId) : null;
   const shieldMatch = !friendlyMatch && !champMatch ? findPlayerContinentalMatch(state.shieldCup, week, playerClubId) : null;
   const confMatch = !friendlyMatch && !champMatch && !shieldMatch ? findPlayerContinentalMatch(state.conferenceCup, week, playerClubId) : null;
   const continentalMatch = champMatch || shieldMatch || confMatch;
@@ -1126,7 +1135,9 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
   let effectiveClubs = clubs;
   let effectivePlayers = players;
 
-  if (friendlyMatch) {
+  if (playoffMatch) {
+    match = playoffMatch;
+  } else if (friendlyMatch) {
     match = friendlyMatch;
   } else if (leagueMatch) {
     match = leagueMatch;
@@ -1239,7 +1250,9 @@ export function playFirstHalfImpl(set: Set, get: Get): HalfState | null {
 
   // Determine which cup tracking IDs to set
   const isCupMatch = !!cupTie || !!leagueCupTie || !!continentalMatch || !!superCup;
-  const matchCompetition = friendlyMatch ? 'Pre-Season Friendly'
+  const matchCompetition = playoffMatch
+    ? ((state.playoffState?.teamsInRound ?? 4) <= 2 ? 'Promotion Playoff Final' : 'Promotion Playoff')
+    : friendlyMatch ? 'Pre-Season Friendly'
     : cupTie ? `Dynasty Cup — ${cupTie.round}`
     : leagueCupTie ? `League Cup — ${leagueCupTie.round}`
     : champMatch && continentalTourney ? getContinentalMatchLabel('Champions Cup', champMatch, continentalTourney)
@@ -1297,7 +1310,11 @@ export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): M
   if (!halfTimeState) return null;
 
   try {
-  // Find friendly, league match, or cup/tournament match
+  // Find playoff, friendly, league match, or cup/tournament match. The playoff
+  // tie is deliberately NOT a league fixture, so without this branch the second
+  // half of an interactively played playoff resolved to `null` — see the note on
+  // the same branch in `playFirstHalfImpl`.
+  const playoffMatch = state.seasonPhase === 'playoff' ? (state.playoffState?.pendingMatch ?? null) : null;
   const friendlyMatch = state.friendlies?.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
   const leagueMatch = !friendlyMatch ? fixtures.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId)) : null;
   const isRealCupTie = state.currentCupTieId && state.currentCupTieId !== '__tournament__';
@@ -1344,7 +1361,7 @@ export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): M
     ? tournamentMatch
     : cupTie
       ? { id: cupTie.id, week: cupTie.week, homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match
-      : (friendlyMatch || leagueMatch || null);
+      : (playoffMatch || friendlyMatch || leagueMatch || null);
 
   // Tournament rebuild can return null if the tournament state mutated
   // between halves (rare — typically requires a save-load or dev action
@@ -1448,6 +1465,35 @@ export function playSecondHalfImpl(set: Set, get: Get, untilMin: number = 90): M
       matchSubsUsed: 0,
       matchPlayerRatings: playerRatings,
     });
+    return result;
+  }
+
+  // Promotion playoff — mirrors the playoff path in `playCurrentMatchImpl`: no
+  // league table or fixture update (the tie is not a league fixture), but the
+  // bracket has to move on, and when it runs out the season finally rolls. A
+  // level tie sends the better-placed side through, so no extra time.
+  if (playoffMatch) {
+    const processed = processMatchResult(state, match, result, playerRatings, () => get().week, fullState.matchInjuries);
+    const teamsInRound = state.playoffState?.teamsInRound ?? 4;
+    const playoffDrama = detectMatchDrama(result, playerClubId, clubs);
+    set({
+      currentMatchResult: result,
+      players: processed.newPlayers,
+      boardConfidence: processed.confidence,
+      messages: processed.newMessages,
+      matchSubsUsed: 0, matchPlayerRatings: processed.playerRatings, managerStats: processed.managerStats,
+      halfTimeState: null, matchPhase: 'full_time',
+      secondHalfSimulatedTo: 90,
+      lastMatchCompetition: teamsInRound <= 2 ? 'Promotion Playoff Final' : 'Promotion Playoff',
+      careerTimeline: [...state.careerTimeline, ...processed.newMilestones].slice(-MAX_CAREER_TIMELINE),
+      managerProgression: processed.managerProgression,
+      lastMatchXPGain: processed.xpGain || 0,
+      lastMatchDrama: playoffDrama,
+      pairFamiliarity: processed.pairFamiliarity,
+    });
+    const { seasonShouldRoll } = recordPlayerPlayoffResult(set, get, result);
+    if (seasonShouldRoll) endSeasonImpl(set, get);
+    if (get().settings.autoSave) get().saveGame();
     return result;
   }
 
