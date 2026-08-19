@@ -329,6 +329,49 @@ export const SUNDAY_CONCEDED_DERBY_LINES: readonly string[] = [
   '{scorer}, against you, in this fixture of all fixtures. Their manager is looking straight at your dugout. ({score})',
 ];
 
+// ── Knowing who they are ────────────────────────────────────────────────────
+//
+// Lines that reach into the squad's own records rather than the event stream.
+// Every one of them is gated on a fact that already exists in state — the
+// appearance count, the weekday job, the form the engine itself reads — and
+// there are at most a couple per match, because a feed that does this every
+// week is a feed nobody reads.
+
+/** A club-appearance milestone reached by starting today. `{name}` and `{n}`. */
+export const SUNDAY_MILESTONE_LINES: readonly string[] = [
+  '{name} makes his {n}th appearance for the club today.',
+  'Game number {n} for {name}. Nobody has organised anything.',
+  'It is {name}’s {n}th for the club. He has mentioned it twice.',
+];
+
+/** What the scorer does on weekdays. `{name}` and `{job}`. */
+export const SUNDAY_SCORER_JOB_LINES: readonly string[] = [
+  'A {job} on a Tuesday. A goalscorer on a Sunday.',
+  'That is {name} — {job} all week, and now this.',
+  '{name} celebrates like a man who has to be up at six. Because he is a {job}.',
+];
+
+/** The scorer is in form — and "in form" here means the number the engine
+ *  itself reads in shot quality, not a hunch. `{name}`. */
+export const SUNDAY_SCORER_FORM_LINES: readonly string[] = [
+  '{name} again. Nobody at this club is playing better right now.',
+  'That is {name} in the middle of the best run of his season.',
+];
+
+/** Opening beat for a cup tie. `{round}` is the round's own name. */
+export const SUNDAY_CUP_TIE_LINES: readonly string[] = [
+  '{round}. Whoever loses is out, and everybody knows it.',
+  'A {round} tie, on a pitch with one net.',
+];
+
+/** Derby build-up when a former player crossed the road. Deliberately social
+ *  rather than tactical: he is NOT tracked into the rival's XI, so nothing
+ *  here may suggest he is on the pitch. `{name}`. */
+export const SUNDAY_DEFECTOR_DERBY_LINES: readonly string[] = [
+  'Somebody has already said {name}’s name in the changing room. It is that kind of morning.',
+  'Two people have brought up {name} before a ball has been kicked.',
+];
+
 /** Post-match social beats — the food, the pint, the debrief. */
 export const SUNDAY_POSTMATCH_LINES: readonly string[] = [
   'Everyone is back at the pub within forty minutes.',

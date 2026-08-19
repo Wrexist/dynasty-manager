@@ -48,11 +48,15 @@ import {
   SUNDAY_LEVEL_DEFENDING_PENALTY, SUNDAY_LEVEL_GK_PENALTY, SUNDAY_LEVEL_SHOOTING_BONUS,
   SUNDAY_FIT_DELTA_RANGE, SUNDAY_FIT_OVERALL_PER_POINT, SUNDAY_VARIANCE_TILT_SHARE,
   SUNDAY_TACTICS, getSundayTactic, SUNDAY_COACH_FIT_PER_LEVEL,
+  SUNDAY_FORM_HOT, SUNDAY_NARRATIVE_COLOUR_CHANCE, SUNDAY_NARRATIVE_COLOUR_MAX,
 } from '@/config/sundayLeague';
 import {
   SUNDAY_AMBIENCE, SUNDAY_CONCEDED_DERBY_LINES, SUNDAY_CONCEDED_LATE_LINES,
-  SUNDAY_CONCEDED_LINES, SUNDAY_RINGER_LINES, SUNDAY_SHORT_SIDE_LINES,
+  SUNDAY_CONCEDED_LINES, SUNDAY_CUP_TIE_LINES, SUNDAY_DEFECTOR_DERBY_LINES,
+  SUNDAY_MILESTONE_LINES, SUNDAY_RINGER_LINES, SUNDAY_SCORER_FORM_LINES,
+  SUNDAY_SCORER_JOB_LINES, SUNDAY_SHORT_SIDE_LINES,
 } from '@/data/sundayNames';
+import { SUNDAY_APP_MILESTONES } from './memories';
 import { sundayChemistry } from './relationships';
 import type { SundayRng } from './rng';
 
@@ -508,6 +512,23 @@ export interface NarrativeInput {
   homeGoals: number;
   awayGoals: number;
   isHome: boolean;
+  /** The club's own records, so the feed can know who these men are: what they
+   *  do on weekdays, how many afternoons they have given this club. Optional
+   *  because the narrative must still build from an event stream alone. */
+  squad?: readonly SundaySquadMember[];
+  /** Who took the field, for the appearance-milestone beat. */
+  startedIds?: readonly string[];
+  /** English cup round name for a cup tie, e.g. "Semi-Final". */
+  cupRound?: string | null;
+  /**
+   * The man who crossed the road to the rival, for a DERBY BUILD-UP BEAT ONLY.
+   *
+   * He is not in the opposition's squad — `subjectLeavesForRival` deletes the
+   * player rather than transferring him — so nothing in this file may put him
+   * on the pitch, name him as a scorer, or say he was kept quiet. If he is
+   * ever really signed by the rival, the in-match variants can follow the XI.
+   */
+  defectorName?: string | null;
 }
 
 /**
@@ -534,12 +555,44 @@ export function buildSundayNarrative(input: NarrativeInput): string[] {
   } else if (input.noShowNames.length > 1) {
     out.push(`${input.noShowNames.slice(0, -1).join(', ')} and ${input.noShowNames[input.noShowNames.length - 1]} never arrived.`);
   }
+  if (input.cupRound) {
+    out.push((rng.pick(SUNDAY_CUP_TIE_LINES) ?? '{round}.').replace('{round}', input.cupRound));
+  }
+  if (isDerby && input.defectorName) {
+    out.push((rng.pick(SUNDAY_DEFECTOR_DERBY_LINES) ?? '').replace(/\{name\}/g, input.defectorName));
+  }
+
+  // A club-appearance milestone reached by walking onto the pitch. One only,
+  // the biggest, and only for a man who actually started — `clubApps + 1` is
+  // exactly the count `captureMatchMemories` will write a memory for after the
+  // whistle, so the feed and his biography can never disagree.
+  const byPlayerId = new Map((input.squad ?? []).map(m => [m.playerId, m]));
+  if (input.startedIds?.length) {
+    let best: { name: string; apps: number } | null = null;
+    for (const id of input.startedIds) {
+      const member = byPlayerId.get(id);
+      const player = players[id];
+      if (!member || !player) continue;
+      const apps = member.clubApps + 1;
+      if (!(SUNDAY_APP_MILESTONES as readonly number[]).includes(apps)) continue;
+      if (!best || apps > best.apps) best = { name: player.firstName, apps };
+    }
+    if (best) {
+      out.push((rng.pick(SUNDAY_MILESTONE_LINES) ?? '{name}: {n}.')
+        .replace(/\{name\}/g, best.name)
+        .replace('{n}', String(best.apps)));
+    }
+  }
 
   let home = 0;
   let away = 0;
   const nameOf = (id?: string) => (id && players[id] ? players[id].firstName : 'someone');
 
   let htPushed = false;
+  // Budget for the lines that come out of the club's records rather than the
+  // event stream. See `SUNDAY_NARRATIVE_COLOUR_MAX`.
+  let colour = 0;
+  const colouredIds = new Set<string>();
   for (const ev of events) {
     // The half-time score line goes in before the first second-half event, so
     // the feed reads like a match and not a list.
@@ -601,6 +654,26 @@ export function buildSundayNarrative(input: NarrativeInput): string[] {
         .replace('{score}', score)
         .replace('{minute}', String(ev.minute))
         .replace('{age}', String(scorerAge))}`);
+
+      // Who he actually is, from the club's own records. Strictly rationed:
+      // the form claim is only about how he has been PLAYING (the number the
+      // engine reads), and the job is what he does on weekdays. Anything the
+      // records do not know stays unsaid.
+      const member = ev.playerId ? byPlayerId.get(ev.playerId) : undefined;
+      if (ours && member && colour < SUNDAY_NARRATIVE_COLOUR_MAX
+        && !colouredIds.has(ev.playerId!) && rng.chance(SUNDAY_NARRATIVE_COLOUR_CHANCE)) {
+        const inForm = (players[ev.playerId!]?.form ?? 0) >= SUNDAY_FORM_HOT;
+        const line = inForm
+          ? rng.pick(SUNDAY_SCORER_FORM_LINES)
+          : member.job ? rng.pick(SUNDAY_SCORER_JOB_LINES) : null;
+        if (line) {
+          out.push(line
+            .replace(/\{name\}/g, nameOf(ev.playerId))
+            .replace(/\{job\}/g, member.job));
+          colouredIds.add(ev.playerId!);
+          colour++;
+        }
+      }
       continue;
     }
     if (ev.type === 'shot_missed' && ev.clubId === clubId && rng.chance(0.3)) {

@@ -22,7 +22,8 @@ import { deriveSundayStakes } from '@/utils/sunday/tier';
 import { sundayCupRoundName } from '@/utils/sunday/season';
 import { SUNDAY_CUP_ROUNDS } from '@/config/sundayLeague';
 import { createSundayRng } from '@/utils/sunday/rng';
-import type { LeagueTableEntry, Match, MatchEvent, Player } from '@/types/game';
+import { SUNDAY_NARRATIVE_COLOUR_MAX } from '@/config/sundayLeague';
+import type { LeagueTableEntry, Match, MatchEvent, Player, SundaySquadMember } from '@/types/game';
 
 const SEED = 4242;
 
@@ -381,6 +382,61 @@ describe('narrative', () => {
     });
     expect(lines).toContain('HT 1-1.');
     expect(lines).toContain('FT 2-1.');
+  });
+
+  it('marks an appearance milestone, and only a real one', () => {
+    const players: Record<string, Player> = { a: mkPlayer('a', 'Ben') };
+    const member = (clubApps: number) => ([{ playerId: 'a', clubApps, job: 'roofer' }] as unknown as SundaySquadMember[]);
+    const base = {
+      clubId: 'us', players, isDerby: false, events: [] as MatchEvent[],
+      noShowNames: [], ringerNames: [], startedWith: 11,
+      homeGoals: 0, awayGoals: 0, isHome: true, startedIds: ['a'],
+    };
+    // 49 played + today = his 50th.
+    const hit = buildSundayNarrative({ ...base, rng: createSundayRng(3, 0), squad: member(49) });
+    expect(hit.join(' ')).toContain('50');
+    expect(hit.join(' ')).toContain('Ben');
+    // 48 + today = 49, which is not a milestone and gets no line.
+    const miss = buildSundayNarrative({ ...base, rng: createSundayRng(3, 0), squad: member(48) });
+    expect(miss.join(' ')).not.toContain('Ben');
+  });
+
+  it('says what the scorer does on weekdays, but not more than twice', () => {
+    const players: Record<string, Player> = {
+      a: mkPlayer('a', 'Dave'), b: mkPlayer('b', 'Kev'), c: mkPlayer('c', 'Baz'),
+    };
+    const squad = [
+      { playerId: 'a', clubApps: 5, job: 'scaffolder' },
+      { playerId: 'b', clubApps: 5, job: 'postie' },
+      { playerId: 'c', clubApps: 5, job: 'chef' },
+    ] as unknown as SundaySquadMember[];
+    const events: MatchEvent[] = ['a', 'b', 'c', 'a', 'b'].map((pid, i) => ({
+      minute: 10 + i * 10, type: 'goal', clubId: 'us', playerId: pid, description: '',
+    })) as MatchEvent[];
+    const lines = buildSundayNarrative({
+      rng: createSundayRng(7, 0), events, clubId: 'us', players, isDerby: false,
+      noShowNames: [], ringerNames: [], startedWith: 11,
+      homeGoals: 5, awayGoals: 0, isHome: true, squad, startedIds: ['a', 'b', 'c'],
+    });
+    const jobs = lines.filter(l => /scaffolder|postie|chef/.test(l));
+    expect(jobs.length).toBeGreaterThan(0);
+    expect(jobs.length).toBeLessThanOrEqual(SUNDAY_NARRATIVE_COLOUR_MAX);
+  });
+
+  it('never puts the defector on the pitch — he is not in their squad', () => {
+    // He is deleted when he leaves, so the only honest place to mention him is
+    // the build-up. Anything in-match would be an invented fact.
+    const players: Record<string, Player> = { b: mkPlayer('b', 'Kev') };
+    const lines = buildSundayNarrative({
+      rng: createSundayRng(8, 0), clubId: 'us', players, isDerby: true,
+      events: [{ minute: 30, type: 'goal', clubId: 'them', playerId: 'b', description: '' }],
+      noShowNames: [], ringerNames: [], startedWith: 11,
+      homeGoals: 0, awayGoals: 1, isHome: true, defectorName: 'Danny Vaughan',
+    });
+    const mentions = lines.filter(l => l.includes('Danny'));
+    expect(mentions).toHaveLength(1);
+    // And it is a build-up line, not a minute'd one.
+    expect(mentions[0]).not.toMatch(/^\d+': /);
   });
 
   it('names the no-shows and the guests', () => {

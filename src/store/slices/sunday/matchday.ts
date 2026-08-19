@@ -447,6 +447,13 @@ export function runSundayMatch(set: Set, get: Get): SundayMatchReport | null {
       homeGoals: result.homeGoals,
       awayGoals: result.awayGoals,
       isHome,
+      // The club's own records reach the feed here: what these men do on
+      // weekdays, how many afternoons they have given the club, and — for the
+      // build-up only — the one who crossed the road.
+      squad,
+      startedIds: startingIds,
+      cupRound: isCup ? sundayCupRoundName(fixture.tie.round) : null,
+      defectorName: sunday.rivalry?.defector?.name ?? null,
     });
     motm = pickMotm(ratings, startingIds);
   }

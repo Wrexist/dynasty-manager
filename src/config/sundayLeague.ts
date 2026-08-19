@@ -1033,6 +1033,30 @@ export const SUNDAY_GROWTH_MINUTES_TARGET = 700;
 export const SUNDAY_OVERALL_CEILING = 78;
 export const SUNDAY_OVERALL_FLOOR = 20;
 
+// ── Narrative colour ────────────────────────────────────────────────────────
+
+/**
+ * How many lines in one match feed may come from the squad's own records
+ * rather than from the event stream — the scorer's weekday job, the run of
+ * form he is on.
+ *
+ * TWO, deliberately. These lines are the difference between "someone scored"
+ * and "the scaffolder scored", and their whole value is that they are rare;
+ * at one per goal they became the wallpaper they were meant to break up.
+ */
+export const SUNDAY_NARRATIVE_COLOUR_MAX = 2;
+/**
+ * Chance a qualifying goal actually takes one of those slots.
+ *
+ * The "in form" variant is gated on `SUNDAY_FORM_HOT` — the same threshold the
+ * squad screen uses to name a streak, so the feed and the squad list agree
+ * about who is playing well. Form is moved by match RATINGS
+ * (`SUNDAY_FORM_PER_RATING`), so those lines may only claim something about how
+ * he has been PLAYING. There is no goal-streak counter in the mode, which is
+ * why nothing says "third Sunday running": that would be invented.
+ */
+export const SUNDAY_NARRATIVE_COLOUR_CHANCE = 0.5;
+
 // ── Memories, form and promises ─────────────────────────────────────────────
 
 /** Most memories one player carries. Pruning keeps the heaviest. */
