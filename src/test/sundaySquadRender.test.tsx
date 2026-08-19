@@ -255,6 +255,31 @@ describe('SundaySquad renders a man\'s story whole', () => {
     expect(within(card).getByText(en['sunday.bio.noStory'])).toBeTruthy();
   });
 
+  /**
+   * Decoration must be ABSENT under reduced motion, not merely still:
+   * `MotionConfig reducedMotion="always"` stops transforms and leaves paint
+   * alone, so the shirt-number watermark on the open card has to not render.
+   */
+  it('does not paint the shirt-number watermark under reduced motion', () => {
+    const member = useGameStore.getState().sunday!.squad[0];
+    const number = String(member.shirtNumber);
+    const countNumber = (root: HTMLElement) =>
+      within(root).queryAllByText(number).length;
+
+    const withMark = render(<SundaySquad />);
+    const openCardWith = openCard(member.playerId);
+    const before = countNumber(openCardWith);
+    // The badge on the portrait plus the watermark behind the blurb.
+    expect(before).toBe(2);
+    withMark.unmount();
+
+    useGameStore.setState({
+      settings: { ...useGameStore.getState().settings, reducedMotion: true },
+    });
+    render(<SundaySquad />);
+    expect(countNumber(openCard(member.playerId))).toBe(1);
+  });
+
   it('shows his archetype blurb — character, not a category label', () => {
     const member = useGameStore.getState().sunday!.squad[0];
     render(<SundaySquad />);
