@@ -88,7 +88,10 @@ const SundayClubhouse = () => {
       </GlassPanel>
 
       {/* Tabs */}
-      <div className="flex gap-1.5" role="tablist" aria-label={t('sunday.club.title')}>
+      {/* Scrolls inside itself rather than shrinking the labels to ellipses —
+          and rather than pushing the page sideways, which is what the old
+          "What the money could buy" tab label did at 375px. */}
+      <div className="flex gap-1.5 overflow-x-auto scrollbar-hide" role="tablist" aria-label={t('sunday.club.title')}>
         {tabs.map(tb => (
           <button
             key={tb.key}
@@ -97,7 +100,7 @@ const SundayClubhouse = () => {
             aria-selected={tab === tb.key}
             onClick={() => setTab(tb.key)}
             className={cn(
-              'flex-1 px-3 py-2 rounded-full border text-caption font-semibold min-h-[44px] inline-flex items-center justify-center gap-1.5',
+              'flex-1 shrink-0 px-2 py-2 rounded-full border text-caption font-semibold min-h-[44px] inline-flex items-center justify-center gap-1',
               tab === tb.key
                 ? 'bg-primary/15 border-primary/50 text-primary'
                 : 'bg-white/[0.04] border-white/10 text-muted-foreground',
@@ -111,6 +114,9 @@ const SundayClubhouse = () => {
 
       {tab === 'upgrades' && (
         <div className="space-y-2">
+          {/* The evocative line lives here rather than on the tab: as a tab
+              label it was long enough to push the strip off a 375px screen. */}
+          <p className="text-caption text-muted-foreground px-1">{t('sunday.club.upgradesBlurb')}</p>
           <p className="text-micro text-muted-foreground px-1">
             {t('sunday.club.upkeepTotal', {
               n: sundayUpgradeUpkeep(sunday.divisionId, sunday.upgrades),
@@ -146,7 +152,7 @@ const SundayClubhouse = () => {
                     tone={maxed ? 'default' : affordable && !locked ? 'primary' : 'default'}
                     disabled={maxed || locked || !affordable}
                     busy={busy === `buy:${u.id}`}
-                    className="shrink-0 px-3 py-2"
+                    className="shrink-0 w-auto px-3 py-2"
                     onClick={() => {
                       if (busy) return;
                       setBusy(`buy:${u.id}`);

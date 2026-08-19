@@ -81,8 +81,8 @@ export const en = {
   // Onboarding captions. The mode's numbers are all readable and none of them
   // said what they DO — a player reading "Standing 31" learned nothing. Each
   // caption names the mechanic it drives, in the register of the screen.
-  'sunday.hub.pitchHint': 'The state of your ground. A bad surface takes passing and pace off BOTH sides. Winter drags it down; pitch maintenance pulls it back up.',
-  'sunday.hub.metersHint': 'Morale lifts or drags every player a little on a Sunday, and drifts toward how happy the squad is. Standing is what the world outside thinks: it sets what sponsors offer, who is willing to sign, and how strong the sides you meet get.',
+  'sunday.hub.pitchHint': 'A bad surface takes passing and pace off both sides. Winter drags it down; pitch maintenance pulls it back up.',
+  'sunday.hub.metersHint': 'Morale lifts or drags the whole side on a Sunday. Standing is what the world outside thinks — it drives sponsors, who will sign, and how good the opposition gets.',
   'sunday.hub.subsHint': 'Match fees the lads have not handed over. Chasing gets most of it back and costs you goodwill in the group chat.',
   'sunday.hub.lastResult': 'Last time out',
   'sunday.hub.seasonOver': 'The season is over',
@@ -212,7 +212,8 @@ export const en = {
   'sunday.club.title': 'Clubhouse',
   'sunday.club.nickname': 'Known as',
   'sunday.club.personality': 'The club',
-  'sunday.club.upgrades': 'What the money could buy',
+  'sunday.club.upgrades': 'Upgrades',
+  'sunday.club.upgradesBlurb': 'What the money could buy.',
   'sunday.club.owned': 'Level {n}',
   'sunday.club.maxed': 'Nothing more to buy',
   'sunday.club.buy': 'Buy · £{n}',

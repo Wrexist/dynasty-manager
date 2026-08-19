@@ -42,6 +42,9 @@ export function SundayWeekBar() {
 
   const fixture = findSundayFixture(sunday, fixtures, week, playerClubId);
   const primary = sundayPrimaryAction(sunday, !!fixture);
+  // "Pick the team" while standing on the teamsheet is a button that does
+  // nothing. The screen you are on always carries its own CTA for its own job.
+  if (primary.screen === currentScreen) return null;
 
   return (
     <div className="fixed left-0 right-0 z-40 px-3 pointer-events-none" style={{ bottom: 'calc(4.25rem + env(safe-area-inset-bottom, 0px))' }}>
