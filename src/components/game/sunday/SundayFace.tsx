@@ -101,12 +101,23 @@ export const SundayFace = memo(function SundayFace({
   const shade = darken(skin, 0.18);
   const beardColor = darken(hair, 0.1);
 
-  // Build widens the jaw; height drops the head a touch so a tall man's neck
-  // shows. Both are small on purpose — this is a face, not a body.
-  const jaw = 8.6 + (clampIndex(build, 3) - 1) * 0.9;
-  const top = 9 - (clampIndex(height, 3) - 1) * 0.5;
+  // Build widens the jaw and the shoulders; height lifts the head a touch so a
+  // tall man's neck shows. Both are small on purpose — this is a face, not a
+  // body.
+  //
+  // THE FRAME, which is the thing that was wrong when it first reached a
+  // screen: the head sat low in the 32-unit box on a shallow arc of shoulder,
+  // so it read as a head hovering over a hill rather than a bust. The head now
+  // starts near the top of the frame and the shoulders rise to y=24, which is
+  // where a portrait crops a real one.
+  const buildIdx = clampIndex(build, 3);
+  const jaw = 8.6 + (buildIdx - 1) * 0.9;
+  const top = 6.8 - (clampIndex(height, 3) - 1) * 0.5;
   const cx = 16;
   const cy = top + 7;
+  /** Where the shoulders swallow the neck. Fixed, so the neck cannot grow a gap
+   *  under a tall man's chin. */
+  const shoulderY = 24;
 
   const beard = clampIndex(facialHair, 5);
   const hasVolume = !BALD.has(style) && !CROPPED.has(style);
@@ -133,14 +144,17 @@ export const SundayFace = memo(function SundayFace({
         </defs>
       )}
 
-      {/* Shoulders. Drawn first so the head and neck sit on top of them. */}
+      {/* Shoulders. Drawn first so the head and neck sit on top of them. The
+          control point is `2 * apex - 32`, so this arc tops out at y=23 and
+          reaches the full width of the frame — the portrait is a bust, and the
+          first draft's narrow hill left the head apparently floating. */}
       <path
-        d={`M ${n(cx - 12 - (clampIndex(build, 3) - 1))} 32 Q ${cx} 23.5 ${n(cx + 12 + (clampIndex(build, 3) - 1))} 32 Z`}
+        d={`M ${n(cx - 15 - (buildIdx - 1))} 32 Q ${cx} 14 ${n(cx + 15 + (buildIdx - 1))} 32 Z`}
         fill={shirtColor}
       />
       {isMedium && (
         <path
-          d={`M ${n(cx - 4)} 26.4 Q ${cx} 29 ${n(cx + 4)} 26.4`}
+          d={`M ${n(cx - 4.4)} ${n(shoulderY - 0.4)} Q ${cx} ${n(shoulderY + 2.4)} ${n(cx + 4.4)} ${n(shoulderY - 0.4)}`}
           fill="none"
           stroke={shirtTrim}
           strokeWidth={isLarge ? 1.4 : 1.1}
@@ -148,8 +162,16 @@ export const SundayFace = memo(function SundayFace({
         />
       )}
 
-      {/* Neck */}
-      <rect x={n(cx - 2.6)} y={n(cy + 4)} width={5.2} height={7} rx={1.6} fill={shade} />
+      {/* Neck. Reaches the collar rather than running a fixed length, so the
+          height offset moves the head without opening a gap beneath it. */}
+      <rect
+        x={n(cx - 2.5)}
+        y={n(cy + 4)}
+        width={5}
+        height={n(Math.max(1.5, shoulderY + 1.5 - (cy + 4)))}
+        rx={1.4}
+        fill={shade}
+      />
 
       {/* Head */}
       <path
@@ -164,11 +186,12 @@ export const SundayFace = memo(function SundayFace({
         fill={isLarge ? `url(#${gradientId})` : skin}
       />
 
-      {/* Ears — only where they are more than two stray pixels. */}
+      {/* Ears — only where they are more than two stray pixels, and tucked
+          into the jaw line rather than stuck onto it. */}
       {isMedium && (
         <>
-          <ellipse cx={n(cx - jaw / 2)} cy={n(cy)} rx={0.9} ry={1.4} fill={shade} />
-          <ellipse cx={n(cx + jaw / 2)} cy={n(cy)} rx={0.9} ry={1.4} fill={shade} />
+          <ellipse cx={n(cx - jaw / 2 + 0.15)} cy={n(cy + 0.5)} rx={0.72} ry={1.15} fill={shade} />
+          <ellipse cx={n(cx + jaw / 2 - 0.15)} cy={n(cy + 0.5)} rx={0.72} ry={1.15} fill={shade} />
         </>
       )}
 
@@ -187,8 +210,12 @@ export const SundayFace = memo(function SundayFace({
           opacity={beard === 3 ? 0.92 : 1}
         />
       )}
+      {/* A goatee is a patch ON THE CHIN, not a disc in the middle of a face.
+          It was the latter — rx 1.7 centred exactly where the mouth goes — so
+          on a ginger squad member it read as a clown's nose and on a grey one
+          as an open mouth. It now sits low enough to touch the chin line. */}
       {beard === 2 && isMedium && (
-        <ellipse cx={cx} cy={n(cy + 4.1)} rx={1.7} ry={1.5} fill={beardColor} />
+        <ellipse cx={cx} cy={n(cy + 5.4)} rx={1.7} ry={0.8} fill={beardColor} />
       )}
       {beard === 1 && isLarge && (
         <path
