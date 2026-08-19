@@ -13,7 +13,11 @@ import { describe, it, expect } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
 import { validateSundayState } from '@/utils/sunday/invariants';
 import { sundaySeasonWeeks } from '@/utils/sunday/season';
-import { SUNDAY_DIVISIONS, getSundayUpgrade, sundayUpgradeCost, SUNDAY_UPGRADES } from '@/config/sundayLeague';
+import {
+  SUNDAY_DIVISIONS, SUNDAY_FORMER_TEAMMATES_MAX, SUNDAY_LEGENDS_MAX, SUNDAY_MAX_FRIENDS,
+  SUNDAY_MAX_RIVALS, SUNDAY_MAX_SQUAD, SUNDAY_MEMORIES_MAX, SUNDAY_RECORDS_MAX,
+  SUNDAY_STATE_VERSION, SUNDAY_UPGRADES, getSundayUpgrade, sundayUpgradeCost,
+} from '@/config/sundayLeague';
 import type { SundayClubPersonalityId } from '@/types/game';
 
 const SEASONS_PER_RUN = 4;
@@ -45,6 +49,55 @@ function validateOrThrow(tag: string) {
     if (!Number.isFinite(p.overall) || p.overall < 1) throw new Error(`[${tag}] ${p.id} overall ${p.overall}`);
     if (p.goals < 0 || p.appearances < 0) throw new Error(`[${tag}] ${p.id} negative stats`);
   }
+}
+
+/**
+ * Every collection that grows with time, checked against the bound that is
+ * supposed to hold it.
+ *
+ * The decade run is the only place a leak is visible: each of these is fed once
+ * a week or once a season, so a missing `.slice()` looks like nothing at all
+ * over four seasons and like an unloadable save over ten. The Sunday state is
+ * serialised into the save slot whole, so unbounded growth here is not a memory
+ * problem, it is a save-corruption problem.
+ */
+function boundedOrThrow(tag: string) {
+  const s = useGameStore.getState();
+  const sunday = s.sunday!;
+  const fail = (what: string) => { throw new Error(`[${tag}] ${what}`); };
+
+  if (sunday.v !== SUNDAY_STATE_VERSION) fail(`state version drifted to ${sunday.v}`);
+  if (sunday.ledger.length > 60) fail(`ledger has ${sunday.ledger.length} weeks`);
+  if (sunday.eventLog.length > 60) fail(`eventLog has ${sunday.eventLog.length} entries`);
+  if (sunday.weekLog.length > 14) fail(`weekLog has ${sunday.weekLog.length} lines`);
+  if (sunday.records.length > SUNDAY_RECORDS_MAX) fail(`records has ${sunday.records.length} entries`);
+  if (sunday.legends.length > SUNDAY_LEGENDS_MAX) fail(`legends has ${sunday.legends.length} entries`);
+  if (sunday.squad.length > SUNDAY_MAX_SQUAD) fail(`squad has ${sunday.squad.length}`);
+  // At most one player story and one club story, forever — the cap that stops
+  // the mode telling four tangled stories about the same fortnight.
+  if (sunday.chains.length > 2) fail(`chains has ${sunday.chains.length} live stories`);
+  if (s.messages.length > 100) fail(`inbox has ${s.messages.length} messages`);
+
+  for (const m of sunday.squad) {
+    if (m.memories.length > SUNDAY_MEMORIES_MAX) fail(`${m.playerId} carries ${m.memories.length} memories`);
+    if (m.friends.length > SUNDAY_MAX_FRIENDS) fail(`${m.playerId} has ${m.friends.length} friends`);
+    if (m.rivals.length > SUNDAY_MAX_RIVALS) fail(`${m.playerId} has ${m.rivals.length} rivals`);
+    if (m.formerTeammates.length > SUNDAY_FORMER_TEAMMATES_MAX) {
+      fail(`${m.playerId} remembers ${m.formerTeammates.length} former team-mates`);
+    }
+    // `appsWith` is pruned to the live squad on every departure, so it is
+    // bounded by squad size and not by career length. Ten seasons is where
+    // the difference between those two shows up.
+    const appsWith = Object.keys(m.appsWith ?? {});
+    if (appsWith.length > SUNDAY_MAX_SQUAD) fail(`${m.playerId} has ${appsWith.length} appsWith entries`);
+    const liveIds = new Set(sunday.squad.map(x => x.playerId));
+    for (const id of appsWith) {
+      if (!liveIds.has(id)) fail(`${m.playerId} still counts afternoons with the departed ${id}`);
+    }
+  }
+  // ...and the whole thing still fits in a save slot without anybody noticing.
+  const bytes = JSON.stringify(sunday).length;
+  if (bytes > 120_000) fail(`sunday state serialises to ${bytes} bytes`);
 }
 
 /** One week of a manager who is paying attention. */
@@ -147,27 +200,41 @@ describe('sunday stress harness', () => {
     useGameStore.getState().resetGame();
     await useGameStore.getState().startSundayLeague({ personality: 'serious', seed: 999 });
     let guard = 0;
+    /** Save slots the run has round-tripped through, with the season it did it. */
+    const roundTrips: string[] = [];
     while (useGameStore.getState().season <= 10 && guard++ < 500) {
       const s = useGameStore.getState();
       if (s.sunday!.folded) break;
-      if (s.sunday!.seasonComplete) { await useGameStore.getState().endSundaySeason(); continue; }
+      if (s.sunday!.seasonComplete) {
+        const season = s.season;
+        await useGameStore.getState().endSundaySeason();
+        // EVERY season boundary, not just the last one: an invariant that only
+        // breaks in season seven is exactly what a decade test is for.
+        validateOrThrow(`decade season ${season} rollover`);
+        boundedOrThrow(`decade season ${season}`);
+        // A save round trip at three points across the decade. The failure
+        // this guards against is a save that grows a field it cannot read
+        // back — silent until a player reloads in season nine.
+        if (season === 3 || season === 7 || season === 10) {
+          const before = JSON.stringify(useGameStore.getState().sunday);
+          useGameStore.getState().saveGame(1);
+          useGameStore.getState().flushSave();
+          useGameStore.getState().resetGame(2);
+          expect(useGameStore.getState().loadGame(1), `season ${season} would not load back`).toBe(true);
+          expect(JSON.stringify(useGameStore.getState().sunday)).toBe(before);
+          validateOrThrow(`decade season ${season} reload`);
+          roundTrips.push(`S${season}`);
+        }
+        continue;
+      }
       await pilotWeek();
     }
     const s = useGameStore.getState();
     if (s.sunday!.folded) return;
     expect(s.season).toBe(11);
-    // Bounded collections must actually be bounded after ten seasons.
-    expect(s.sunday!.ledger.length).toBeLessThanOrEqual(60);
-    expect(s.sunday!.eventLog.length).toBeLessThanOrEqual(60);
-    expect(s.sunday!.weekLog.length).toBeLessThanOrEqual(14);
-    expect(s.sunday!.records.length).toBeLessThanOrEqual(40);
-    expect(s.messages.length).toBeLessThanOrEqual(100);
-    // Ten seasons of biographies stay bounded per player, and the whole Sunday
-    // state serializes to something a save slot can carry without noticing.
-    for (const m of s.sunday!.squad) {
-      expect(m.memories.length).toBeLessThanOrEqual(12);
-    }
-    expect(JSON.stringify(s.sunday).length).toBeLessThan(120_000);
+    expect(roundTrips, 'the decade never round-tripped through a save slot').toEqual(['S3', 'S7', 'S10']);
+    boundedOrThrow('decade end');
+
     // A ten-season veteran actually HAS a story — the spine is writing.
     const veteran = [...s.sunday!.squad].sort((a, b) => b.clubApps - a.clubApps)[0];
     if (veteran && veteran.clubApps > 30) {
