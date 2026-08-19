@@ -416,8 +416,10 @@ export const SUNDAY_SPONSOR_CONDITION_TEXT: Readonly<Record<string, string>> = {
   'win-streak': 'Win {n} in a row before the deal is up.',
   'avoid-defeat': 'Go {n} matches without losing.',
   goals: 'Score {n} goals this season.',
-  attendance: 'Field a full eleven {n} times.',
-  discipline: 'Pick up fewer than {n} cards this season.',
+  attendance: 'Field a full eleven of your own — no guests — {n} times.',
+  // Says what it counts. It has never counted cards: the progress figure is
+  // forfeits plus no-shows, which is a different (and more Sunday) sin.
+  discipline: 'Get through the season with fewer than {n} no-shows and unfulfilled fixtures.',
 };
 
 // ── Rivalry ─────────────────────────────────────────────────────────────────

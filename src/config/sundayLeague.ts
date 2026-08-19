@@ -918,10 +918,59 @@ export const SUNDAY_SPONSOR_WEEKLY_BASE = 7;
 export const SUNDAY_SPONSOR_WEEKLY_PER_REP = 0.35;
 /** Sign-on is this many weeks of the weekly payment. */
 export const SUNDAY_SPONSOR_SIGNON_WEEKS = 4;
-/** Bonus paid when a conditional deal's condition is met at expiry. */
-export const SUNDAY_SPONSOR_BONUS_WEEKS = 8;
+/**
+ * Bonus paid when a conditional deal's condition is met at expiry, in weeks of
+ * the weekly payment.
+ *
+ * RAISED 8 → 12 alongside the retargeting below. The bonus used to be
+ * guaranteed money — four of the five conditions passed on their own — so its
+ * size did not matter. Now that a competent club fails one from time to time
+ * it has to be worth chasing, and it is measured against a maxed club's
+ * `SUNDAY_UPGRADE_UPKEEP_PER_LEVEL` bill rather than against nothing.
+ */
+export const SUNDAY_SPONSOR_BONUS_WEEKS = 12;
 /** Reputation lost when a conditional deal is failed. */
 export const SUNDAY_SPONSOR_FAIL_REP = 3;
+
+// ── What a sponsor actually asks for ────────────────────────────────────────
+//
+// FOUR OF THE FIVE CONDITIONS USED TO PASS ON THEIR OWN. Measured over 24
+// careers x 10 seasons of a competently-run club:
+//
+//   best win run      p25 2  p50 3  p75 4  p90 6   — asked for 2-4
+//   best unbeaten run p25 3  p50 5  p75 7  p90 9   — asked for 3-6
+//   goals for         p25 25 p50 33 p75 42 p90 50  — asked for 18-32
+//   full XI fielded   ~every match (guests count)  — asked for 4-8
+//
+// So the "conditional" deal was a flat bonus with a sentence on it. The bands
+// below sit around the 35th-50th percentile of that distribution, which is
+// where a good season passes and an ordinary one is genuinely in doubt — and
+// a struggling club fails most of them. The two that scale with the season's
+// length do so explicitly: a County Premier campaign is 22 league matches and
+// a Division Four one is 14, and asking both for the same 25 goals is how the
+// band became meaningless at the top of the pyramid in the first place.
+
+export const SUNDAY_SPONSOR_WIN_STREAK_MIN = 3;
+export const SUNDAY_SPONSOR_WIN_STREAK_MAX = 5;
+export const SUNDAY_SPONSOR_UNBEATEN_MIN = 5;
+export const SUNDAY_SPONSOR_UNBEATEN_MAX = 8;
+/** Goals asked for, per league match in the season. */
+export const SUNDAY_SPONSOR_GOALS_PER_MATCH_MIN = 2.0;
+export const SUNDAY_SPONSOR_GOALS_PER_MATCH_MAX = 2.5;
+/**
+ * Share of the season's league matches that must be started with a full XI of
+ * the club's OWN players.
+ *
+ * The counter used to accept any eleven shirts, and guests are drafted to make
+ * the numbers up, so it scored on essentially every fixture. Counting only
+ * your own men makes it a condition about availability — which is the mode's
+ * subject — rather than about whether the fixture went ahead.
+ */
+export const SUNDAY_SPONSOR_FULL_XI_SHARE_MIN = 0.55;
+export const SUNDAY_SPONSOR_FULL_XI_SHARE_MAX = 0.80;
+/** No-shows and forfeits tolerated, per league match in the season. */
+export const SUNDAY_SPONSOR_DISCIPLINE_PER_MATCH_MIN = 0.65;
+export const SUNDAY_SPONSOR_DISCIPLINE_PER_MATCH_MAX = 1.0;
 
 // ── Recruitment ─────────────────────────────────────────────────────────────
 

@@ -37,6 +37,12 @@ import {
   SUNDAY_FORM_DRIFT, SUNDAY_FORM_NEUTRAL, SUNDAY_PITCH_DAMAGE_HEAL,
   SUNDAY_PHYSIO_HEAL_PER_LEVEL, SUNDAY_FLAG_EXPIRY_WEEKS,
   SUNDAY_MANAGER_LOAN_REPAYMENT, SUNDAY_DERBY_BET_FLAG, SUNDAY_ROUGH_WEEK_FLAG,
+  SUNDAY_FULL_XI, getSundayDivision,
+  SUNDAY_SPONSOR_WIN_STREAK_MIN, SUNDAY_SPONSOR_WIN_STREAK_MAX,
+  SUNDAY_SPONSOR_UNBEATEN_MIN, SUNDAY_SPONSOR_UNBEATEN_MAX,
+  SUNDAY_SPONSOR_GOALS_PER_MATCH_MIN, SUNDAY_SPONSOR_GOALS_PER_MATCH_MAX,
+  SUNDAY_SPONSOR_FULL_XI_SHARE_MIN, SUNDAY_SPONSOR_FULL_XI_SHARE_MAX,
+  SUNDAY_SPONSOR_DISCIPLINE_PER_MATCH_MIN, SUNDAY_SPONSOR_DISCIPLINE_PER_MATCH_MAX,
 } from '@/config/sundayLeague';
 import { SUNDAY_SPONSORS, SUNDAY_SPONSOR_CONDITION_TEXT, SUNDAY_TAUNTS } from '@/data/sundayNames';
 import { buildWeekLedger } from '@/utils/sunday/finance';
@@ -55,6 +61,7 @@ import type { SundayEventContext } from '@/data/sundayEvents';
 import { sundayChainClosingLine } from '@/data/sundayEvents';
 import {
   advanceSundayCup, buildSundayTable, mintSundayLegend, sundaySeasonWeeks, sundayCupRoundName,
+  sundayLeagueRounds,
 } from '@/utils/sunday/season';
 import { deriveSundayStakes } from '@/utils/sunday/tier';
 import { createSundayRng, subSeed, type SundayRng } from '@/utils/sunday/rng';
@@ -106,12 +113,20 @@ function buildSponsorOffer(rng: SundayRng, sunday: SundayState, week: number, se
     Math.round((SUNDAY_SPONSOR_WEEKLY_BASE + sunday.reputation * SUNDAY_SPONSOR_WEEKLY_PER_REP) * template.payMult),
   );
   const condition = rng.pick(template.conditions) ?? 'none';
+  // Two of the five scale with the season's own length: a County Premier
+  // campaign is 22 league matches and a Division Four one is 14, and a flat
+  // goal target across both is how the band stopped meaning anything at the
+  // top of the pyramid. Exactly one draw is taken either way, so the stream's
+  // sequence does not depend on which condition came up.
+  const leagueMatches = sundayLeagueRounds(getSundayDivision(sunday.divisionId).teamCount);
   const target = condition === 'none' ? 0
-    : condition === 'win-streak' ? rng.int(2, 4)
-      : condition === 'avoid-defeat' ? rng.int(3, 6)
-        : condition === 'goals' ? rng.int(18, 32)
-          : condition === 'attendance' ? rng.int(4, 8)
-            : rng.int(10, 18);
+    : condition === 'win-streak' ? rng.int(SUNDAY_SPONSOR_WIN_STREAK_MIN, SUNDAY_SPONSOR_WIN_STREAK_MAX)
+      : condition === 'avoid-defeat' ? rng.int(SUNDAY_SPONSOR_UNBEATEN_MIN, SUNDAY_SPONSOR_UNBEATEN_MAX)
+        : condition === 'goals'
+          ? Math.round(leagueMatches * rng.float(SUNDAY_SPONSOR_GOALS_PER_MATCH_MIN, SUNDAY_SPONSOR_GOALS_PER_MATCH_MAX))
+          : condition === 'attendance'
+            ? Math.max(1, Math.round(leagueMatches * rng.float(SUNDAY_SPONSOR_FULL_XI_SHARE_MIN, SUNDAY_SPONSOR_FULL_XI_SHARE_MAX)))
+            : Math.max(2, Math.round(leagueMatches * rng.float(SUNDAY_SPONSOR_DISCIPLINE_PER_MATCH_MIN, SUNDAY_SPONSOR_DISCIPLINE_PER_MATCH_MAX)));
   return {
     id: `sun-sp-${season}-${week}-${template.name.replace(/\W+/g, '')}`,
     name: template.name,
@@ -143,7 +158,14 @@ function trackSponsorConditions(
       case 'attendance':
         // Counted per MATCH, not per week — without the guard a single
         // full-strength side kept scoring the condition every quiet week.
-        progress = playedThisWeek && sunday.lastMatch && sunday.lastMatch.startedWith >= 11 ? progress + 1 : progress;
+        //
+        // And it must be YOUR eleven. Guests are drafted to make the numbers
+        // up, so counting any eleven shirts scored on essentially every
+        // fixture and made the condition unfailable.
+        progress = playedThisWeek && sunday.lastMatch
+          && sunday.lastMatch.startedWith >= SUNDAY_FULL_XI
+          && sunday.lastMatch.ringersUsed === 0
+          ? progress + 1 : progress;
         break;
       case 'discipline': progress = s.forfeits + s.noShows; break;
       default: break;
