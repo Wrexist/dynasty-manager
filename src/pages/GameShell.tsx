@@ -81,6 +81,12 @@ const SundayClubhouse = lazy(() => import('./SundayClubhouse'));
 const SundayTable = lazy(() => import('./SundayTable'));
 const SundayRecruit = lazy(() => import('./SundayRecruit'));
 const SundayHistory = lazy(() => import('./SundayHistory'));
+// Lazy like the pages, not static like the rest of the shell: the bar reads
+// `findSundayFixture`, which lives in the Sunday matchday module and would
+// otherwise be pulled into the GameShell chunk every elite player downloads.
+const SundayWeekBar = lazy(() =>
+  import('@/components/game/sunday/SundayWeekBar').then(m => ({ default: m.SundayWeekBar })),
+);
 
 const screens: Record<string, React.ComponentType> = {
   dashboard: Dashboard,
@@ -401,7 +407,15 @@ const GameShell = () => {
           // intentional left/right swipes via useSwipeGesture (which already
           // ignores edge-originating touches).
           className="touch-pan-y"
-          style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))', paddingBottom: 'calc(6rem + env(safe-area-inset-bottom, 0px))' }}
+          style={{
+            paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))',
+            // Sunday reserves the week bar's strip ALWAYS, even on the two
+            // screens that hide it — render conditionally, reserve
+            // unconditionally, so changing tabs never reflows the page.
+            paddingBottom: gameMode === 'sunday'
+              ? 'calc(9.5rem + env(safe-area-inset-bottom, 0px))'
+              : 'calc(6rem + env(safe-area-inset-bottom, 0px))',
+          }}
           {...swipeHandlers}
         >
           {subNavGroup && (
@@ -436,6 +450,9 @@ const GameShell = () => {
             </Suspense>
           </PageErrorBoundary>
         </main>
+        {gameMode === 'sunday' && (
+          <Suspense fallback={null}><SundayWeekBar /></Suspense>
+        )}
         <BottomNav />
         <ContractNegotiation />
       </div>

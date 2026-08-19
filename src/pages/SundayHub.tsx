@@ -29,6 +29,7 @@ import { summariseAvailability } from '@/utils/sunday/availability';
 import { sundayCupRoundName, sundaySeasonWeeks } from '@/utils/sunday/season';
 import { findSundayFixture, sundayPitchQuality } from '@/store/slices/sunday/matchday';
 import { sundayResultVerdict } from '@/utils/sunday/match';
+import { sundayPrimaryAction } from '@/utils/sunday/primaryAction';
 
 const SundayHub = () => {
   const { t } = useTranslation();
@@ -73,13 +74,9 @@ const SundayHub = () => {
   const namedCount = sunday.teamsheet.length;
   const teamReady = namedCount >= SUNDAY_MIN_START;
 
-  const primary = sunday.seasonComplete
-    ? { label: t('sunday.hub.viewSeason'), action: () => setScreen('sunday-history') }
-    : fixture
-      ? teamReady
-        ? { label: t('sunday.hub.playMatch'), action: () => setScreen('sunday-match') }
-        : { label: t('sunday.hub.pickTeam'), action: () => setScreen('sunday-teamsheet') }
-      : { label: t('sunday.hub.nextWeek'), action: () => { void advanceWeek(); } };
+  // The same helper the shell's week bar reads, so the two can never disagree
+  // about what this week's one obvious action is.
+  const primary = sundayPrimaryAction(sunday, !!fixture);
 
   const quick = (fn: () => Promise<{ ok: boolean; message: string }>) => () => {
     void fn().then(r => {
@@ -198,8 +195,12 @@ const SundayHub = () => {
           </div>
         )}
 
-        <LiquidButton tone="primary" className="w-full py-3" onClick={primary.action}>
-          {primary.label}
+        <LiquidButton
+          tone="primary"
+          className="w-full py-3"
+          onClick={() => { if (primary.screen) setScreen(primary.screen); else void advanceWeek(); }}
+        >
+          {t(primary.labelKey)}
         </LiquidButton>
       </GlassPanel>
 
