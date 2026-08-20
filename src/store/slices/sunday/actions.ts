@@ -30,8 +30,7 @@ import {
   SUNDAY_RINGROUND_MORALE, SUNDAY_EVENT_LOG_MAX,
   SUNDAY_RINGROUND_ATTEMPTS_PER_WEEK, sundayRingRoundCost,
   SUNDAY_POACH_HEAT, SUNDAY_RIVAL_HEAT_MAX, SUNDAY_PROMISE_WEEKS, SUNDAY_PITCH_DAMAGE_MAX,
-  SUNDAY_KIT_MORALE_PER_LEVEL, SUNDAY_KIT_REP_PER_LEVEL,
-  SUNDAY_NETS_REP, SUNDAY_FLOODLIGHT_REP, SUNDAY_DERBY_BET_FLAG,
+  sundayUpgradeMoraleBump, sundayUpgradeRepBump, SUNDAY_DERBY_BET_FLAG,
   SUNDAY_DEPARTURE_FLAG, SUNDAY_ROUGH_WEEK_FLAG, SUNDAY_RIVAL_EGO_MIN,
   SUNDAY_UPGRADE_MOTHBALL_REFUND, SUNDAY_UPGRADE_MOTHBALL_MORALE,
   SUNDAY_RECRUIT_SIGNINGS_PER_SEASON, SUNDAY_SIGNING_DISPLACED_HAPPINESS,
@@ -947,11 +946,8 @@ export function buySundayUpgrade(set: Set, get: Get, upgradeId: SundayUpgradeId)
   // (`SUNDAY_CLUBHOUSE_POSTMATCH_MORALE`, applied in `runSundayMatch`), so
   // paying it at the till as well would be charging the player twice for the
   // same sentence.
-  const moraleBump = upgradeId === 'kit' ? SUNDAY_KIT_MORALE_PER_LEVEL : 0;
-  const repBump = upgradeId === 'kit'
-    ? SUNDAY_KIT_REP_PER_LEVEL
-    : upgradeId === 'nets' ? SUNDAY_NETS_REP
-      : upgradeId === 'floodlights' ? SUNDAY_FLOODLIGHT_REP : 0;
+  const moraleBump = sundayUpgradeMoraleBump(upgradeId);
+  const repBump = sundayUpgradeRepBump(upgradeId);
 
   set({
     sunday: {
@@ -1000,10 +996,7 @@ export function mothballSundayUpgrade(set: Set, get: Get, upgradeId: SundayUpgra
   // nets come down, the lights are disconnected. Morale does NOT come back:
   // the pint they had when it arrived was still had. Selling up costs its own
   // goodwill instead.
-  const repBack = upgradeId === 'kit'
-    ? SUNDAY_KIT_REP_PER_LEVEL
-    : upgradeId === 'nets' ? SUNDAY_NETS_REP
-      : upgradeId === 'floodlights' ? SUNDAY_FLOODLIGHT_REP : 0;
+  const repBack = sundayUpgradeRepBump(upgradeId);
 
   set({
     sunday: {

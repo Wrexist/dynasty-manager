@@ -1,10 +1,20 @@
 /**
- * The Clubhouse — identity, what the money could buy, sponsors, and the books.
+ * The Clubhouse — the ground itself, the sponsors on its fence, and the books.
  *
  * One screen rather than three because at this scale they are one subject: the
  * upgrade you want costs the money you have not got, which is why the sponsor
- * on the next panel matters. Splitting them would hide the trade-off that is
- * the whole point.
+ * on the next tab matters. Splitting them would hide the trade-off that is the
+ * whole point.
+ *
+ * WHAT CHANGED, AND WHY. This screen used to be ten stacked `GlassPanel`s, one
+ * per upgrade, each carrying a flavour sentence AND an effect sentence — 955
+ * characters of catalogue describing things the player could not see and could
+ * not check. It is now the ground, drawn (`SundayGround`), over one panel of
+ * ten one-line rows. Buying something changes the picture; the row that is open
+ * shows the NUMBER it moves (pitch 38 → 52, upkeep £9 → £12, from
+ * `sundayUpgradePreview`, which reads the same helpers the buy action does)
+ * rather than a sentence claiming it. The prose survives one line at a time on
+ * the open row, which is where it was always worth reading.
  */
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -13,31 +23,54 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { LiquidButton } from '@/components/game/LiquidButton';
 import { SectionHeader } from '@/components/game/SectionHeader';
 import { StatChip, SundayCrest } from '@/components/game/sunday/SundayBits';
+import { SundayGround } from '@/components/game/sunday/SundayGround';
 import { useGameStore } from '@/store/gameStore';
 import { useTranslation } from '@/hooks/useTranslation';
 import { cn } from '@/lib/utils';
 import { formatMoney } from '@/utils/helpers';
-import {
-  SUNDAY_UPGRADES, getSundayPersonality, sundayUpgradeCost,
-  SUNDAY_UPGRADE_MOTHBALL_REFUND,
-} from '@/config/sundayLeague';
-import { SUNDAY_ICON } from '@/config/sundayIcons';
+import { getSundayPersonality } from '@/config/sundayLeague';
+import { SUNDAY_ICON, SUNDAY_UPGRADE_ICON } from '@/config/sundayIcons';
+import type { SundayUpgradeId } from '@/types/game';
 import { splitLedger, sundayUpgradeUpkeep, sundayWeeklyBurn } from '@/utils/sunday/finance';
+import {
+  sundayUpgradePreview, sundayUpgradeScene,
+  type SundayUpgradeStat,
+} from '@/utils/sunday/view';
 
 const VenueIcon = SUNDAY_ICON.venue;
+const RepIcon = SUNDAY_ICON.reputation;
+
+/** Which glyph stands for each number an upgrade moves. */
+const STAT_ICON: Record<SundayUpgradeStat, React.ElementType> = {
+  pitch: SUNDAY_ICON.pitch,
+  reputation: SUNDAY_ICON.reputation,
+  morale: SUNDAY_ICON.morale,
+  upkeep: SUNDAY_ICON.expense,
+};
+
+const STAT_LABEL: Record<SundayUpgradeStat, string> = {
+  pitch: 'sunday.club.statPitch',
+  reputation: 'sunday.club.statReputation',
+  morale: 'sunday.club.statMorale',
+  upkeep: 'sunday.club.statUpkeep',
+};
 
 type Tab = 'upgrades' | 'sponsors' | 'books';
 
 const SundayClubhouse = () => {
   const { t } = useTranslation();
   const sunday = useGameStore(s => s.sunday);
-  const { buyUpgrade, mothballUpgrade, acceptSponsor, declineSponsor } = useGameStore(useShallow(s => ({
+  const { week, buyUpgrade, mothballUpgrade, acceptSponsor, declineSponsor } = useGameStore(useShallow(s => ({
+    week: s.week,
     buyUpgrade: s.buySundayUpgrade,
     mothballUpgrade: s.mothballSundayUpgrade,
     acceptSponsor: s.acceptSundaySponsor,
     declineSponsor: s.declineSundaySponsor,
   })));
   const [tab, setTab] = useState<Tab>('upgrades');
+  /** Which thing on the ground is open. Null until something is tapped, so the
+   *  screen opens on the picture rather than on a form. */
+  const [open, setOpen] = useState<SundayUpgradeId | null>(null);
   // Which purchase is mid-flight. The store actions are async, so without this
   // a double tap buys the upgrade twice or signs the sponsor twice.
   const [busy, setBusy] = useState<string | null>(null);
@@ -49,9 +82,16 @@ const SundayClubhouse = () => {
     return splitLedger([...sunday.ledger.flatMap(l => l.lines), ...sunday.pendingLedger]);
   }, [sunday]);
 
-  if (!sunday) return null;
+  const scene = useMemo(() => (sunday ? sundayUpgradeScene(sunday) : null), [sunday]);
+  const previews = useMemo(
+    () => (sunday ? scene!.items.map(i => sundayUpgradePreview(sunday, week, i.id)) : []),
+    [sunday, scene, week],
+  );
+
+  if (!sunday || !scene) return null;
   const personality = getSundayPersonality(sunday.identity.personality);
   const burn = sundayWeeklyBurn(sunday.divisionId, sunday.upgrades);
+  const upkeep = sundayUpgradeUpkeep(sunday.divisionId, sunday.upgrades);
 
   const tabs: { key: Tab; label: string; icon: React.ElementType }[] = [
     { key: 'upgrades', label: t('sunday.club.upgrades'), icon: SUNDAY_ICON.upgrade },
@@ -78,15 +118,18 @@ const SundayClubhouse = () => {
           <VenueIcon className="w-3.5 h-3.5 shrink-0" aria-hidden />
           {sunday.identity.venue} · {sunday.identity.town}
         </p>
-        <div className="grid grid-cols-2 gap-2">
+        {/* Three chips rather than two chips and a sentence: "Roughly £34 a
+            week to exist" was a whole line of prose carrying one number, and
+            the number is the part anyone reads. */}
+        <div className="grid grid-cols-3 gap-2">
           <StatChip label={t('sunday.club.personality')} value={personality.name} />
           <StatChip
             label={t('sunday.hub.balance')}
             value={formatMoney(sunday.balance)}
             tone={sunday.balance < 0 ? 'bad' : sunday.balance < 100 ? 'warn' : 'good'}
           />
+          <StatChip label={t('sunday.club.burnLabel')} value={formatMoney(-burn)} tone="bad" />
         </div>
-        <p className="text-micro text-muted-foreground">{t('sunday.club.weeklyBurn', { n: burn })}</p>
       </GlassPanel>
 
       {/* Tabs */}
@@ -116,74 +159,177 @@ const SundayClubhouse = () => {
 
       {tab === 'upgrades' && (
         <div className="space-y-2">
-          {/* The evocative line lives here rather than on the tab: as a tab
-              label it was long enough to push the strip off a 375px screen. */}
-          <p className="text-caption text-muted-foreground px-1">{t('sunday.club.upgradesBlurb')}</p>
-          <p className="text-micro text-muted-foreground px-1">
-            {t('sunday.club.upkeepTotal', {
-              n: sundayUpgradeUpkeep(sunday.divisionId, sunday.upgrades),
-            })}
-          </p>
-          {SUNDAY_UPGRADES.map(u => {
-            const level = sunday.upgrades.find(x => x.id === u.id)?.level ?? 0;
-            const maxed = level >= u.maxLevel;
-            const cost = sundayUpgradeCost(u.id, level);
-            const locked = sunday.reputation < u.minReputation;
-            const affordable = sunday.balance >= cost;
-            return (
-              <GlassPanel key={u.id} className="p-3.5">
-                <div className="flex items-start gap-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-body font-semibold text-foreground">
-                      {u.name}
-                      {level > 0 && (
-                        <span className="ml-2 text-micro font-medium text-primary">{t('sunday.club.owned', { n: level })}</span>
-                      )}
-                    </p>
-                    <p className="text-caption text-muted-foreground leading-relaxed mt-0.5">{u.description}</p>
-                    <p className="text-micro text-muted-foreground/80 mt-1">{u.effectText}</p>
-                    {level > 0 && (
-                      <p className="text-micro text-amber-200/80 mt-0.5">
-                        {t('sunday.club.upkeep', {
-                          n: sundayUpgradeUpkeep(sunday.divisionId, [{ id: u.id, level }]),
-                        })}
-                      </p>
+          <SundayGround
+            items={scene.items}
+            color={sunday.identity.color}
+            secondaryColor={sunday.identity.secondaryColor}
+            sponsorNames={sunday.sponsors.map(d => d.name)}
+            selected={open}
+            onSelect={id => setOpen(cur => (cur === id ? null : id))}
+          />
+
+          {/* ONE panel of ten rows, not ten panels. A card inside a card inside
+              a tab was three nested surfaces deep, and the mothball button —
+              full width, under a buy button that was not — made selling look
+              like the primary action on every owned upgrade. */}
+          <GlassPanel className="p-1.5">
+            <ul className="divide-y divide-white/[0.06]">
+              {previews.map(u => {
+                const Icon = SUNDAY_UPGRADE_ICON[u.id];
+                const isOpen = open === u.id;
+                const buyable = !u.maxed && !u.locked && u.affordable;
+                return (
+                  <li key={u.id}>
+                    <button
+                      type="button"
+                      onClick={() => setOpen(cur => (cur === u.id ? null : u.id))}
+                      aria-expanded={isOpen}
+                      aria-label={t('sunday.club.groundSpot', { name: u.name, n: u.level, max: u.maxLevel })}
+                      className="w-full min-h-[44px] flex items-center gap-2.5 px-2 py-2 text-left"
+                    >
+                      <Icon
+                        className={cn('w-4 h-4 shrink-0', u.owned ? 'text-primary' : 'text-muted-foreground')}
+                        aria-hidden
+                      />
+                      <span className={cn('flex-1 min-w-0 truncate text-body', u.owned ? 'text-foreground font-semibold' : 'text-foreground/80')}>
+                        {u.name}
+                      </span>
+                      {/* Level as pips: a row of ten "Level 2" labels is ten
+                          words to read, and the shape of a filled pip row is
+                          readable without reading. */}
+                      <span className="inline-flex gap-0.5 shrink-0" aria-hidden>
+                        {Array.from({ length: u.maxLevel }, (_, i) => (
+                          <span
+                            key={i}
+                            className={cn('w-1.5 h-1.5 rounded-full', i < u.level ? 'bg-primary' : 'bg-white/15')}
+                          />
+                        ))}
+                      </span>
+                      {/* The price, or the reason there is no price. "Needs 30
+                          standing" wrapped onto two lines here and grew every
+                          locked row by 12px, so a locked row shows the standing
+                          it wants as the reputation glyph and a number — the
+                          sentence survives on the open row's dead button. */}
+                      <span className={cn(
+                        'shrink-0 text-micro font-semibold tabular-nums w-16 text-right whitespace-nowrap',
+                        u.maxed ? 'text-muted-foreground'
+                          : u.locked ? 'text-muted-foreground/70'
+                            : u.affordable ? 'text-primary' : 'text-muted-foreground/70',
+                      )}>
+                        {u.maxed ? (
+                          /* The pips are already all filled; "Nothing more to
+                             buy" is nineteen characters saying so again. */
+                          '—'
+                        ) : u.locked ? (
+                          <span className="inline-flex items-center gap-1 justify-end">
+                            <RepIcon className="w-3 h-3 shrink-0" aria-hidden />
+                            {u.minReputation}
+                          </span>
+                        ) : (
+                          formatMoney(u.cost!)
+                        )}
+                      </span>
+                    </button>
+
+                    {isOpen && (
+                      <div className="px-2 pb-2.5 space-y-2">
+                        <p className="text-caption text-muted-foreground leading-snug">{u.description}</p>
+
+                        {/* The change, not a claim about the change. */}
+                        {u.changes.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {u.changes.map(c => {
+                              const StatIcon = STAT_ICON[c.stat];
+                              const money = c.stat === 'upkeep';
+                              return (
+                                <span
+                                  key={c.stat}
+                                  className="inline-flex items-center gap-1.5 rounded-lg bg-white/[0.05] px-2 py-1 text-micro"
+                                >
+                                  <StatIcon className="w-3 h-3 shrink-0 text-muted-foreground" aria-hidden />
+                                  <span className="text-muted-foreground">{t(STAT_LABEL[c.stat])}</span>
+                                  <span className="tabular-nums text-muted-foreground/70">
+                                    {money ? formatMoney(c.from) : c.from}
+                                  </span>
+                                  <span aria-hidden className="text-muted-foreground/50">→</span>
+                                  <span className={cn(
+                                    'tabular-nums font-semibold',
+                                    c.stat === 'upkeep' ? 'text-amber-300' : 'text-emerald-300',
+                                  )}>
+                                    {money ? formatMoney(c.to) : c.to}
+                                  </span>
+                                </span>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* The written claim survives only where no club number
+                            reports the effect — a physio who heals faster, a
+                            coach who improves the shape's fit. */}
+                        {u.changes.length <= 1 && (
+                          <p className="text-micro text-muted-foreground/80">{u.effectText}</p>
+                        )}
+                        {u.owned && (
+                          <p className="text-micro text-amber-200/80">
+                            {t('sunday.club.upkeep', {
+                              n: sundayUpgradeUpkeep(sunday.divisionId, [{ id: u.id, level: u.level }]),
+                            })}
+                          </p>
+                        )}
+
+                        <div className="flex items-center gap-2">
+                          <LiquidButton
+                            tone={buyable ? 'primary' : 'default'}
+                            disabled={!buyable}
+                            busy={busy === `buy:${u.id}`}
+                            className="flex-1 py-2.5"
+                            onClick={() => {
+                              if (busy) return;
+                              setBusy(`buy:${u.id}`);
+                              void buyUpgrade(u.id)
+                                .then(r => { if (r.ok) toast.success(r.message); else toast.info(r.message); })
+                                .finally(() => setBusy(null));
+                            }}
+                          >
+                            <span className="text-micro whitespace-nowrap">
+                              {u.maxed
+                                ? t('sunday.club.maxed')
+                                : u.locked
+                                  ? t('sunday.club.locked', { n: u.minReputation })
+                                  : t('sunday.club.buy', { n: u.cost })}
+                            </span>
+                          </LiquidButton>
+                          {/* Selling is the escape valve, not the offer. It
+                              reads as a link beside the button, which is the
+                              weight it should always have had. */}
+                          {u.owned && (
+                            <button
+                              type="button"
+                              className="shrink-0 min-h-[44px] px-3 text-micro text-muted-foreground underline underline-offset-2"
+                              onClick={() => {
+                                void mothballUpgrade(u.id)
+                                  .then(r => { if (r.ok) toast.success(r.message); else toast.info(r.message); });
+                              }}
+                            >
+                              {t('sunday.club.mothball', { n: u.refund })}
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     )}
-                  </div>
-                  <LiquidButton
-                    tone={maxed ? 'default' : affordable && !locked ? 'primary' : 'default'}
-                    disabled={maxed || locked || !affordable}
-                    busy={busy === `buy:${u.id}`}
-                    className="shrink-0 w-auto px-3 py-2"
-                    onClick={() => {
-                      if (busy) return;
-                      setBusy(`buy:${u.id}`);
-                      void buyUpgrade(u.id)
-                        .then(r => { if (r.ok) toast.success(r.message); else toast.info(r.message); })
-                        .finally(() => setBusy(null));
-                    }}
-                  >
-                    <span className="text-micro whitespace-nowrap">
-                      {maxed ? t('sunday.club.maxed') : locked ? t('sunday.club.locked') : t('sunday.club.buy', { n: cost })}
-                    </span>
-                  </LiquidButton>
-                </div>
-                {level > 0 && (
-                  <button
-                    type="button"
-                    className="mt-2 w-full min-h-[44px] rounded-xl border border-white/10 bg-white/[0.03] text-micro text-muted-foreground"
-                    onClick={() => { void mothballUpgrade(u.id).then(r => { if (r.ok) toast.success(r.message); else toast.info(r.message); }); }}
-                  >
-                    {t('sunday.club.mothball', {
-                      n: Math.round(sundayUpgradeCost(u.id, level - 1) * SUNDAY_UPGRADE_MOTHBALL_REFUND),
-                    })}
-                  </button>
-                )}
-              </GlassPanel>
-            );
-          })}
+                  </li>
+                );
+              })}
+            </ul>
+          </GlassPanel>
+
+          <p className="px-1 text-micro text-muted-foreground tabular-nums">
+            {t('sunday.club.statUpkeep')} · {formatMoney(-upkeep)}
+          </p>
         </div>
       )}
+
 
       {tab === 'sponsors' && (
         <div className="space-y-2">

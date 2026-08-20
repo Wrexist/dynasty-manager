@@ -965,6 +965,29 @@ export const SUNDAY_UPGRADES: readonly SundayUpgradeInfo[] = [
   { id: 'keeper-gloves', name: 'Goalkeeper Gloves', description: 'Because he has been going in bare-handed.', effectText: 'Improves whoever is in goal', effects: ['keeper-quality'], maxLevel: 2, baseCost: 60, costMult: 1.7, minReputation: 0 },
 ] as const;
 
+/**
+ * The one-off squad-morale bump the till pays when `id` is bought.
+ *
+ * HERE RATHER THAN AT THE TILL. `buySundayUpgrade` used to hold this ternary
+ * inline, which meant the only way a card could quote the number was to write
+ * it out a second time — and a card quoting its own copy of an effect is
+ * precisely how `effectText` drifted away from what the game did in the first
+ * place. The buy action and the Clubhouse's before/after preview now read the
+ * same function, so they cannot disagree.
+ */
+export function sundayUpgradeMoraleBump(id: SundayUpgradeId): number {
+  return id === 'kit' ? SUNDAY_KIT_MORALE_PER_LEVEL : 0;
+}
+
+/** The one-off reputation bump the till pays when `id` is bought — and hands
+ *  back when the level is sold. Same reasoning as the morale bump above. */
+export function sundayUpgradeRepBump(id: SundayUpgradeId): number {
+  return id === 'kit'
+    ? SUNDAY_KIT_REP_PER_LEVEL
+    : id === 'nets' ? SUNDAY_NETS_REP
+      : id === 'floodlights' ? SUNDAY_FLOODLIGHT_REP : 0;
+}
+
 export function getSundayUpgrade(id: SundayUpgradeId): SundayUpgradeInfo {
   return SUNDAY_UPGRADES.find(u => u.id === id) ?? SUNDAY_UPGRADES[0];
 }

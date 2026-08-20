@@ -25,7 +25,10 @@ import type {
   Club, Match, Player, SundayMemory, SundaySponsorDeal, SundaySquadMember,
   SundayState, SundayTacticId, SundayUpgradeId,
 } from '@/types/game';
-import { SUNDAY_UPGRADES, sundayUpgradeCost } from '@/config/sundayLeague';
+import {
+  SUNDAY_UPGRADES, SUNDAY_UPGRADE_MOTHBALL_REFUND, getSundayUpgrade,
+  sundayUpgradeCost, sundayUpgradeMoraleBump, sundayUpgradeRepBump,
+} from '@/config/sundayLeague';
 import type { SundayNewsKind } from '@/config/sundayIcons';
 import { sundayPitchQuality } from '@/store/slices/sunday/matchday';
 import { summariseAvailability } from './availability';
@@ -304,6 +307,134 @@ export function sundayUpgradeScene(sunday: SundayState): SundayUpgradeScene {
     };
   });
   return { items, totalLevels: items.reduce((n, i) => n + i.level, 0) };
+}
+
+/** A club number an upgrade moves, named so a screen can put an icon on it. */
+export type SundayUpgradeStat = 'pitch' | 'reputation' | 'morale' | 'upkeep';
+
+/** One number, before and after the next level is bought. */
+export interface SundayUpgradeChange {
+  stat: SundayUpgradeStat;
+  from: number;
+  to: number;
+}
+
+export interface SundayUpgradePreview {
+  id: SundayUpgradeId;
+  /** English catalogue name — game data. */
+  name: string;
+  /** The flavour line. One at a time on screen, never ten. */
+  description: string;
+  /** The written claim, for the effects no number can carry. */
+  effectText: string;
+  level: number;
+  maxLevel: number;
+  owned: boolean;
+  maxed: boolean;
+  /** The club is not established enough yet. */
+  locked: boolean;
+  minReputation: number;
+  /** What the next level costs, or null when there is no next level. */
+  cost: number | null;
+  /** Whether the club can pay `cost` today. False when there is nothing to buy. */
+  affordable: boolean;
+  /** What selling one level back would return, or null when none is owned. */
+  refund: number | null;
+  /** What buying the next level would visibly change. Empty when the effects
+   *  are all things no club number reports. */
+  changes: SundayUpgradeChange[];
+}
+
+/**
+ * One upgrade, priced and previewed: what it costs and what it MOVES.
+ *
+ * WHY THIS EXISTS. The Clubhouse used to answer "what does the roller do?"
+ * with two sentences of prose per upgrade, ten upgrades deep — 955 characters
+ * of catalogue on one screen, describing effects the player could not check.
+ * A manager buying a roller wants one thing: the pitch is 38 and it will be
+ * 52. Every `from`/`to` below is computed by the SAME function that owns the
+ * number in the game — `sundayPitchQuality` for the surface,
+ * `sundayUpgradeUpkeep` for the bill, `sundayUpgradeRepBump` /
+ * `sundayUpgradeMoraleBump` for the two the till pays at purchase — so a
+ * preview cannot promise something the buy action does not deliver.
+ *
+ * The effects that no club number reports (a physio who heals faster, a coach
+ * who improves the shape's fit) have no `change` and keep their `effectText`.
+ * That is the honest split: numbers where there is a number, words where the
+ * words are the only truth available.
+ */
+export function sundayUpgradePreview(
+  sunday: SundayState,
+  week: number,
+  id: SundayUpgradeId,
+): SundayUpgradePreview {
+  const info = getSundayUpgrade(id);
+  const level = sunday.upgrades.find(u => u.id === id)?.level ?? 0;
+  const maxed = level >= info.maxLevel;
+  const cost = maxed ? null : sundayUpgradeCost(id, level);
+  const locked = sunday.reputation < info.minReputation;
+
+  // The state as it would be one level from here. Nothing is written; this
+  // object exists only to be measured by the helpers that own each number.
+  const next: SundayState = {
+    ...sunday,
+    upgrades: sunday.upgrades.some(u => u.id === id)
+      ? sunday.upgrades.map(u => (u.id === id ? { ...u, level: u.level + 1 } : u))
+      : [...sunday.upgrades, { id, level: 1 }],
+  };
+
+  const changes: SundayUpgradeChange[] = [];
+  if (!maxed) {
+    if (info.effects.includes('pitch-quality')) {
+      changes.push({
+        stat: 'pitch',
+        from: sundayPitchQuality(sunday, week),
+        to: sundayPitchQuality(next, week),
+      });
+    }
+    const rep = sundayUpgradeRepBump(id);
+    if (rep > 0) {
+      changes.push({
+        stat: 'reputation',
+        from: sunday.reputation,
+        to: Math.min(100, sunday.reputation + rep),
+      });
+    }
+    const morale = sundayUpgradeMoraleBump(id);
+    if (morale > 0) {
+      changes.push({
+        stat: 'morale',
+        from: sunday.teamMorale,
+        to: Math.min(100, sunday.teamMorale + morale),
+      });
+    }
+    // Every level costs something to keep, which is the trade-off the upkeep
+    // constant exists to create. Always last: it is the price of the others.
+    changes.push({
+      stat: 'upkeep',
+      from: sundayUpgradeUpkeep(sunday.divisionId, sunday.upgrades),
+      to: sundayUpgradeUpkeep(sunday.divisionId, next.upgrades),
+    });
+  }
+
+  return {
+    id,
+    name: info.name,
+    description: info.description,
+    effectText: info.effectText,
+    level,
+    maxLevel: info.maxLevel,
+    owned: level > 0,
+    maxed,
+    locked,
+    minReputation: info.minReputation,
+    cost,
+    affordable: cost != null && sunday.balance >= cost,
+    refund: level > 0
+      ? Math.round(sundayUpgradeCost(id, level - 1) * SUNDAY_UPGRADE_MOTHBALL_REFUND)
+      : null,
+    changes,
+  };
 }
 
 export interface SundaySponsorBoard {
