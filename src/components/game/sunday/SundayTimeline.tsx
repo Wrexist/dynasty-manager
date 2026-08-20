@@ -145,22 +145,23 @@ export const SundayTimeline = memo(function SundayTimeline({ rows, us, them, cla
         }
         const scoring = row.kind === 'goal' || row.kind === 'own-goal';
         return (
-          <li key={key} className="flex items-stretch gap-2">
+          <li key={key} className="flex items-stretch gap-2 text-caption">
             <span className="w-8 shrink-0 pt-0.5 text-right text-micro tabular-nums text-muted-foreground">
               {row.minute}&rsquo;
             </span>
             <Spine><Mark row={row} /></Spine>
-            <span className={cn(
-              'min-w-0 flex-1 truncate py-0.5 text-caption',
-              row.ours ? 'text-foreground' : 'text-muted-foreground',
-            )}>
+            {/* SIZE OUTSIDE cn(). `tailwind-merge` does not know this
+                project's `text-<scale>` names and files them as text COLOURS,
+                so any cn() carrying both a scale class and a colour silently
+                drops the size. The row above owns the size; these spans own
+                only the colour, and there is nothing here to merge anyway. */}
+            <span className={row.ours ? 'min-w-0 flex-1 truncate py-0.5 text-foreground' : 'min-w-0 flex-1 truncate py-0.5 text-muted-foreground'}>
               <RowText row={row} us={us} them={them} />
             </span>
             {scoring && (
-              <span className={cn(
-                'shrink-0 py-0.5 text-caption font-bold tabular-nums',
-                row.ours ? 'text-primary' : 'text-muted-foreground',
-              )}>
+              <span className={row.ours
+                ? 'shrink-0 py-0.5 font-bold tabular-nums text-primary'
+                : 'shrink-0 py-0.5 font-bold tabular-nums text-muted-foreground'}>
                 {row.home}-{row.away}
               </span>
             )}

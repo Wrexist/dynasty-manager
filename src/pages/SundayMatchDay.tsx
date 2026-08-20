@@ -34,7 +34,7 @@ import { SUNDAY_ICON, SUNDAY_TIER_RIM, SUNDAY_WEATHER_ICON } from '@/config/sund
 import { MATCH_SPEEDS } from '@/config/matchSpeed';
 import { findSundayFixture, sundayPitchQuality } from '@/store/slices/sunday/matchday';
 import { buildSundayTable, sundayCupRoundName, sundayPosition } from '@/utils/sunday/season';
-import { buildMatchdayTeam, sundayResultVerdict, sundayStyleOf } from '@/utils/sunday/match';
+import { buildMatchdayTeam, pitchConditionFor, sundayResultVerdict, sundayStyleOf } from '@/utils/sunday/match';
 import { deriveSundayStakes } from '@/utils/sunday/tier';
 import { buildSundayTimeline } from '@/utils/sunday/timeline';
 import { SundayTimeline } from '@/components/game/sunday/SundayTimeline';
@@ -452,19 +452,28 @@ const SundayMatchDay = () => {
             </span>
           </div>
           <div className="text-center shrink-0">
-            {report ? (
+            {/* THE SCOREBOARD DOES NOT SPOIL THE REVEAL. The report exists the
+                instant the manager taps Kick Off — the ninety minutes are
+                computed atomically — so keying this on `report` printed the
+                final score above a feed that was still on the twelfth minute.
+                It shows the half-time score at the break, the full-time score
+                once the feed has finished (or been skipped), and "v" until
+                then. */}
+            {done ? (
               <p className="text-h2 font-display font-bold tabular-nums text-foreground">
                 {isHome
-                  ? `${report.goalsFor}-${report.goalsAgainst}`
-                  : `${report.goalsAgainst}-${report.goalsFor}`}
+                  ? `${report!.goalsFor}-${report!.goalsAgainst}`
+                  : `${report!.goalsAgainst}-${report!.goalsFor}`}
+              </p>
+            ) : atTheBreak ? (
+              <p className="text-h2 font-display font-bold tabular-nums text-foreground">
+                {isHome
+                  ? `${halfTime!.goalsFor}-${halfTime!.goalsAgainst}`
+                  : `${halfTime!.goalsAgainst}-${halfTime!.goalsFor}`}
               </p>
             ) : (
               <p className="text-h3 font-display font-bold text-muted-foreground">{t('sunday.match.vs')}</p>
             )}
-            <p className="text-micro text-muted-foreground">
-              {fixture?.kind === 'cup' ? sundayCupRoundName(fixture.tie.round) : t('sunday.hub.week', { week })}
-              {isDerby ? ` · ${sunday.rivalry?.name}` : ''}
-            </p>
           </div>
           <div className="flex items-center gap-2 min-w-0 flex-1 justify-end">
             <span className="text-caption font-semibold text-foreground truncate text-right">
@@ -478,6 +487,14 @@ const SundayMatchDay = () => {
             />
           </div>
         </div>
+        {/* THE FIXTURE'S NAME ON ITS OWN LINE. It sat in the centre column
+            between the two crests, where "Week 1 · The Ring Road Derby" is
+            wider than the scoreline it is under — the column is `shrink-0`, so
+            at 375px it starved both club names down to "Ca…" and "Ol…". */}
+        <p className="mt-1 text-center text-micro text-muted-foreground">
+          {fixture?.kind === 'cup' ? sundayCupRoundName(fixture.tie.round) : t('sunday.hub.week', { week })}
+          {isDerby && sunday.rivalry ? ` · ${sunday.rivalry.name}` : ''}
+        </p>
         {/* THE MATCH SHEET, under the score, exactly where a printed report
             puts its scorers. No heading: a column of minutes under a scoreline
             needs no label, and the panel below is titled "How it happened",
@@ -527,6 +544,7 @@ const SundayMatchDay = () => {
               adjustments={preMatchAdjustments}
               isHome={isHome}
               pitch={pitch}
+              pitchCondition={pitchConditionFor(pitch)}
               recall={memory?.reverse ?? null}
               milestone={memory?.milestone ?? null}
             />
@@ -541,7 +559,10 @@ const SundayMatchDay = () => {
           <LiquidButton className="w-full py-2.5" onClick={() => setScreen('sunday-teamsheet')}>
             {t('sunday.sheet.title')}
           </LiquidButton>
-          <LiquidButton tone="primary" className="w-full py-3" onClick={onArrive} disabled={kicking}>
+          {/* h-auto: LiquidButton is a fixed `h-11` box and a two-line label
+              simply spilled out of the bottom of it. The min-height keeps the
+              44px target. */}
+          <LiquidButton tone="primary" className="w-full h-auto min-h-[44px] py-2.5" onClick={onArrive} disabled={kicking}>
             <span className="block w-full text-center">
               <span className="inline-flex items-center gap-1.5 text-body font-semibold">
                 <SquadIcon className="w-4 h-4" aria-hidden /> {t('sunday.arrival.title')}
@@ -552,8 +573,10 @@ const SundayMatchDay = () => {
         </>
       )}
 
-      {/* 2 · ARRIVAL */}
-      {!report && arrival && (
+      {/* 2 · ARRIVAL — until the whistle. `halfTime` used to leave the morning
+          panel AND a live-looking Kick off button sitting above a match that
+          was already forty-five minutes old. */}
+      {!report && arrival && !halfTime && (
         <>
           <GlassPanel className="p-4 space-y-2">
             <SectionHeader level="section" title={t('sunday.arrival.title')} />
@@ -614,7 +637,7 @@ const SundayMatchDay = () => {
                   against pounds out of the tin. Same two facts, no reading. */}
               <LiquidButton
                 tone="amber"
-                className="w-full py-2.5"
+                className="w-full h-auto min-h-[44px] py-2.5"
                 disabled={deciding || sunday.balance < arrival.optionalRingers * SUNDAY_RINGER_COST}
                 onClick={() => decideRingers(arrival.optionalRingers)}
               >
@@ -632,7 +655,7 @@ const SundayMatchDay = () => {
                   />
                 </span>
               </LiquidButton>
-              <LiquidButton className="w-full py-2.5" disabled={deciding} onClick={() => decideRingers(0)}>
+              <LiquidButton className="w-full h-auto min-h-[44px] py-2.5" disabled={deciding} onClick={() => decideRingers(0)}>
                 <span className="block w-full text-left">
                   <span className="block text-body font-semibold">
                     {t('sunday.arrival.playShort', { n: standing })}
@@ -691,7 +714,9 @@ const SundayMatchDay = () => {
               );
             })}
           </ul>
-          {!done && (
+          {/* `!done` was true at half time as well, so a paused match sat
+              under a feed still claiming to be playing. */}
+          {playing && (
             <p className="text-micro text-muted-foreground mt-3">{t('sunday.match.playing')}</p>
           )}
         </GlassPanel>
@@ -703,17 +728,6 @@ const SundayMatchDay = () => {
           <SectionHeader
             level="section"
             title={t('sunday.match.halfTime')}
-            accessory={
-              // HOME-AWAY, like the header above it and like the `HT x-y`
-              // marker in the feed. The report stores the score from the
-              // club's own point of view, and printing that here made the
-              // panel read 0-1 under a feed that had just said HT 1-0.
-              <span className="text-h3 font-display font-bold tabular-nums text-foreground">
-                {isHome
-                  ? `${halfTime!.goalsFor}-${halfTime!.goalsAgainst}`
-                  : `${halfTime!.goalsAgainst}-${halfTime!.goalsFor}`}
-              </span>
-            }
           />
           {/* WHAT HAS ACTUALLY HAPPENED, before the decision that turns on it.
               A tactic switch chosen off eighteen sentences of prose is chosen

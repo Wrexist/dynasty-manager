@@ -29,11 +29,9 @@
  * (`deriveSundayStakes`, `sundayStyleOf`, `buildMatchdayTeam`), this owns the
  * ranking.
  */
-import { SectionHeader } from '@/components/game/SectionHeader';
 import { FormPills, SundayCrest } from '@/components/game/sunday/SundayBits';
 import { SundayAdjustments } from '@/components/game/sunday/SundayAdjustments';
 import { useTranslation } from '@/hooks/useTranslation';
-import { cn } from '@/lib/utils';
 import { SUNDAY_ICON, SUNDAY_TIER_CHIP } from '@/config/sundayIcons';
 import type { SundayMatchTier } from '@/types/game';
 
@@ -77,6 +75,9 @@ export interface SundayBriefingProps {
   // ── The ground, and memory ──
   isHome: boolean;
   pitch: number;
+  /** `pitchConditionFor(pitch)` — the word, so the briefing and the post-match
+   *  panel describe one surface in one vocabulary. */
+  pitchCondition: string;
   recall: string | null;
   milestone: string | null;
 }
@@ -89,26 +90,25 @@ export function SundayBriefing(props: SundayBriefingProps) {
 
   return (
     <div className="space-y-3">
-      {/* 1 · WHAT IT MEANS */}
+      {/* 1 · WHAT IT MEANS — absent entirely when nothing is riding on it.
+          `deriveSundayStakes` returns a null line for a routine fixture on
+          purpose (a stakes line is arithmetic, never atmosphere), so this band
+          collapses rather than leaving a gap where a headline should be. */}
+      {(tierLabel || stakes) && (
       <div className="space-y-1.5">
         {tierLabel && (
-          <span className={cn(
-            'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-micro font-bold uppercase tracking-wider',
-            SUNDAY_TIER_CHIP[tier] || 'text-muted-foreground border-border/50',
-          )}>
+          <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-micro font-bold uppercase tracking-wider ${SUNDAY_TIER_CHIP[tier] || 'text-muted-foreground border-border/50'}`}>
             {tier === 'derby' && <RivalIcon className="h-3 w-3" aria-hidden />}
             {tierLabel}
           </span>
         )}
         {stakes && (
-          <p className={cn(
-            'font-display font-bold leading-snug',
-            loud ? 'text-h3 text-primary' : 'text-title text-foreground',
-          )}>
+          <p className={`font-display font-bold leading-snug ${loud ? 'text-h3 text-primary' : 'text-title text-foreground'}`}>
             {stakes}
           </p>
         )}
       </div>
+      )}
 
       {/* 2 · THEM — one block, one heading, everything known about them. */}
       <div className="rounded-xl border border-border/40 bg-white/[0.03] p-3 space-y-2">
@@ -149,18 +149,16 @@ export function SundayBriefing(props: SundayBriefingProps) {
 
       {/* 3 · US */}
       <div className="space-y-2">
-        <SectionHeader
-          level="eyebrow"
-          title={t('sunday.match.yourSide')}
-          accessory={
-            <span className={cn(
-              'text-caption font-semibold tabular-nums',
-              short ? 'text-amber-300' : 'text-muted-foreground',
-            )}>
-              {t('sunday.match.namedSide', { n: props.namedCount })}
-            </span>
-          }
-        />
+        {/* A plain eyebrow rather than `SectionHeader level="eyebrow"`: that
+            component merges its level style with `truncate` through cn(), and
+            cn() drops a `text-<scale>` class that sits beside a colour, so the
+            heading renders at whatever size it inherits. See SundayTimeline. */}
+        <p className="flex items-baseline justify-between gap-2 text-micro font-semibold uppercase tracking-wider text-muted-foreground">
+          <span>{t('sunday.match.yourSide')}</span>
+          <span className={short ? 'tabular-nums text-amber-300' : 'tabular-nums'}>
+            {t('sunday.match.namedSide', { n: props.namedCount })}
+          </span>
+        </p>
         {props.adjustments.length > 0 && (
           <SundayAdjustments rows={props.adjustments} label={t('sunday.match.takingOut')} />
         )}
@@ -175,7 +173,13 @@ export function SundayBriefing(props: SundayBriefingProps) {
           </span>
           <span className="inline-flex items-center gap-1.5">
             <PitchIcon className="h-3.5 w-3.5" aria-hidden />
-            {t('sunday.match.pitch')} <span className="tabular-nums text-foreground/80">{props.pitch}</span>
+            {/* THE SAME WORD THE POST-MATCH PANEL USES. This said "Pitch 38"
+                while the panel three taps later said "Pitch: good" — both true
+                (`pitchConditionFor` puts 32 and up in "good" on purpose, see
+                its header) and flatly contradictory read side by side. The
+                condition leads; the number it came from follows it. */}
+            {t('sunday.match.pitch')} <span className="text-foreground/80">{props.pitchCondition}</span>
+            <span className="tabular-nums text-muted-foreground/70">({props.pitch})</span>
           </span>
         </p>
         {props.recall && (

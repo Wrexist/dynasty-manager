@@ -74,22 +74,25 @@ const Person = ({ person, kind, kitBody, kitTrim, label }: {
         ? 'border-primary/35 bg-primary/[0.06]'
         : 'border-border/50 bg-white/[0.02]',
     )}>
-      <p className="flex items-center gap-1 text-micro font-semibold uppercase tracking-wider text-muted-foreground">
-        <Icon className={cn('h-3 w-3', kind === 'hero' ? 'text-primary' : 'text-muted-foreground')} aria-hidden />
-        <span className="truncate">{label}</span>
+      {/* Wraps rather than truncates: "MAN OF THE MATCH" is two characters too
+          wide for a half-width card at 375px, and "MAN OF THE MAT…" is worse
+          than two short lines. No `tracking-wider` here for the same reason. */}
+      <p className="flex items-start gap-1 text-micro font-semibold uppercase text-muted-foreground">
+        <Icon className={cn('mt-px h-3 w-3 shrink-0', kind === 'hero' ? 'text-primary' : 'text-muted-foreground')} aria-hidden />
+        <span className="min-w-0">{label}</span>
       </p>
+      {/* The name gets the CARD's width, not what is left over beside a 44px
+          portrait — at 375px in a two-up grid that was truncating most surnames
+          to an ellipsis. Portrait and rating share the row above it. */}
       <div className="mt-2 flex items-center gap-2">
         <SundayFace {...person.face} size={44} shirtColor={kitBody} shirtTrim={kitTrim} />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-caption font-semibold text-foreground">{person.name}</p>
-          <p className={cn(
-            'font-display text-h3 font-bold tabular-nums',
-            kind === 'hero' ? 'text-primary' : 'text-muted-foreground',
-          )}>
-            {person.rating.toFixed(1)}
-          </p>
-        </div>
+        {/* Plain string, not cn(): there is nothing to merge, and cn() would
+            drop `text-h3` next to a colour — see SundayTimeline. */}
+        <p className={`font-display text-h3 font-bold tabular-nums ${kind === 'hero' ? 'text-primary' : 'text-muted-foreground'}`}>
+          {person.rating.toFixed(1)}
+        </p>
       </div>
+      <p className="mt-1 truncate text-caption font-semibold text-foreground">{person.name}</p>
     </div>
   );
 };
@@ -150,7 +153,9 @@ export function SundayStory(props: SundayStoryProps) {
         </div>
       )}
 
-      {chips.length > 0 && <div className="grid grid-cols-2 gap-2">{chips}</div>}
+      {chips.length > 0 && (
+        <div className={cn('grid gap-2', chips.length > 1 ? 'grid-cols-2' : 'grid-cols-1')}>{chips}</div>
+      )}
 
       {props.turningPoint && (
         <div className="flex items-start gap-2 rounded-xl border border-sky-400/25 bg-sky-500/[0.06] p-3">

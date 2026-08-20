@@ -38,10 +38,12 @@ export function SundayAdjustments({ rows, label, direction = 'forward', classNam
       </p>
       <ul className="mt-1 space-y-0.5">
         {rows.map((row, i) => (
-          <li key={`${row.label}-${i}`} className="flex items-baseline gap-2">
-            <span className="min-w-0 flex-1 truncate text-caption text-foreground/85">{row.label}</span>
+          <li key={`${row.label}-${i}`} className="flex items-baseline gap-2 text-caption">
+            <span className="min-w-0 flex-1 truncate text-foreground/85">{row.label}</span>
+            {/* Size lives on the row: cn() would eat a `text-<scale>` class
+                sitting beside a colour — see the note in SundayTimeline. */}
             <span className={cn(
-              'shrink-0 text-caption font-semibold tabular-nums',
+              'shrink-0 font-semibold tabular-nums',
               row.delta > 0 ? 'text-emerald-300' : row.delta < 0 ? 'text-destructive' : 'text-muted-foreground',
             )}>
               {row.delta > 0 ? '+' : ''}{row.delta}
