@@ -101,8 +101,8 @@ describe('SundayKit draws the kit the club actually has', () => {
 
   /** The spec is the source of truth for what gets drawn — a renderer that
    *  hard-coded a pattern would pass every case above. */
-  it('draws whatever the spec says for a real club id', () => {
-    const spec = sundayKitSpec(RED, WHITE, 'sunday-club');
+  it('draws whatever the spec says for a real club', () => {
+    const spec = sundayKitSpec(RED, WHITE, 'Hillside AFC');
     const html = svg(<SundayKit body={spec.body} trim={spec.trim} pattern={spec.pattern} size={78} />);
     if (spec.pattern === 'solid') {
       for (const mark of Object.values(MARKS)) expect(mark.test(html)).toBe(false);

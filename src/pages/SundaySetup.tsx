@@ -16,9 +16,9 @@
  * modifiers ranked against the other seven.
  *
  * And the club you are about to be given is now DRAWN: the crest, and the kit
- * `sundayKitSpec` has always described — seeded on `SUNDAY_CLUB_ID`, which is
- * the id the club will really have, so the strip in the preview is the strip
- * in the game.
+ * `sundayKitSpec` has always described — seeded on the rolled short name, the
+ * same string the Clubhouse seeds it on, so the strip in the preview is the
+ * strip in the game.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -32,9 +32,7 @@ import { SUNDAY_ICON } from '@/config/sundayIcons';
 import { useGameStore } from '@/store/gameStore';
 import { useTranslation } from '@/hooks/useTranslation';
 import { formatMoney } from '@/utils/helpers';
-import {
-  getSundayArchetype, SUNDAY_CLUB_ID, SUNDAY_PERSONALITIES,
-} from '@/config/sundayLeague';
+import { getSundayArchetype, SUNDAY_PERSONALITIES } from '@/config/sundayLeague';
 import { generateSundayIdentity } from '@/utils/sunday/generation';
 import { createSundayRng, newSundaySeed } from '@/utils/sunday/rng';
 import { sundayCrestSpec, sundayKitSpec } from '@/utils/sunday/visuals';
@@ -71,10 +69,11 @@ const SundaySetup = () => {
     [seed, personality],
   );
   const info = SUNDAY_PERSONALITIES.find(p => p.id === personality) ?? SUNDAY_PERSONALITIES[0];
-  // Both specs are pure hashes of the club id and its two colours, so they are
-  // the ones the Clubhouse will draw once the season starts.
-  const kit = sundayKitSpec(identity.color, identity.secondaryColor, SUNDAY_CLUB_ID);
-  const crest = sundayCrestSpec(SUNDAY_CLUB_ID, identity.color, identity.secondaryColor);
+  // Seeded on the rolled short name, exactly as the Clubhouse does it, so the
+  // strip in this preview is the strip the club plays in — and a reroll moves
+  // the pattern as well as the colours, because it really is a different club.
+  const kit = sundayKitSpec(identity.color, identity.secondaryColor, identity.shortName);
+  const crest = sundayCrestSpec(identity.shortName, identity.color, identity.secondaryColor);
 
   if (missingSlot) return null;
 

@@ -24,7 +24,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import SundayClubhouse from '@/pages/SundayClubhouse';
 import { useGameStore } from '@/store/gameStore';
-import { SUNDAY_CLUB_ID, SUNDAY_UPGRADES, sundayUpgradeCost } from '@/config/sundayLeague';
+import { SUNDAY_UPGRADES, sundayUpgradeCost } from '@/config/sundayLeague';
 import { sundayKitSpec } from '@/utils/sunday/visuals';
 import { sundayUpgradePreview } from '@/utils/sunday/view';
 import type { SundaySponsorDeal } from '@/types/game';
@@ -127,7 +127,7 @@ describe('the Clubhouse draws the club it has, not a picture of a club', () => {
     expect(markup).toContain(sunday().identity.color);
     expect(markup).toContain(sunday().identity.secondaryColor);
 
-    const spec = sundayKitSpec(sunday().identity.color, sunday().identity.secondaryColor, SUNDAY_CLUB_ID);
+    const spec = sundayKitSpec(sunday().identity.color, sunday().identity.secondaryColor, sunday().identity.shortName);
     const PATTERN_MARK: Record<string, RegExp> = {
       stripes: /<rect[^>]*x="17\.5"/,
       hoops: /<rect[^>]*y="13"/,

@@ -30,7 +30,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import type { TranslationKey } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { formatMoney } from '@/utils/helpers';
-import { getSundayPersonality, SUNDAY_CLUB_ID } from '@/config/sundayLeague';
+import { getSundayPersonality } from '@/config/sundayLeague';
 import { SUNDAY_ICON, SUNDAY_UPGRADE_ICON } from '@/config/sundayIcons';
 import type { SundayUpgradeId } from '@/types/game';
 import { splitLedger, sundayUpgradeUpkeep, sundayWeeklyBurn } from '@/utils/sunday/finance';
@@ -123,10 +123,17 @@ const SundayClubhouse = () => {
   const personality = getSundayPersonality(sunday.identity.personality);
   const burn = sundayWeeklyBurn(sunday.divisionId, sunday.upgrades);
   // Two pure specs and one lookup. Cheap enough to derive on render — they are
-  // hashes of an id that never changes — and deriving them here keeps the
+  // hashes of a string that never changes — and deriving them here keeps the
   // component free of the club-identity rules.
-  const kit = sundayKitSpec(sunday.identity.color, sunday.identity.secondaryColor, SUNDAY_CLUB_ID);
-  const crest = sundayCrestSpec(SUNDAY_CLUB_ID, sunday.identity.color, sunday.identity.secondaryColor);
+  //
+  // SEEDED ON THE SHORT NAME, NOT ON `SUNDAY_CLUB_ID`. The club id is the same
+  // four words in every save ever started, so seeding off it would give every
+  // Sunday club in the world the same crest shape and the same kit pattern and
+  // leave only the two colours to tell them apart. The short name is rolled per
+  // club, persisted, and never rewritten — which is the only property the seed
+  // actually needs (see the header of `visuals.ts`).
+  const kit = sundayKitSpec(sunday.identity.color, sunday.identity.secondaryColor, sunday.identity.shortName);
+  const crest = sundayCrestSpec(sunday.identity.shortName, sunday.identity.color, sunday.identity.secondaryColor);
   const captain = sunday.squad.find(m => m.playerId === sunday.captainId) ?? null;
   const captainPlayer = captain ? players[captain.playerId] : null;
   // Surname only: the caption sits under a 54px-wide kit.
