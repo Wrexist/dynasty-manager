@@ -160,16 +160,28 @@ function meterTone(pct: number): string {
  * the pair together and lets the grid gap do the separating; the spread form
  * stays the default because a lone meter under a wide header wants it.
  */
-export function Meter({ label, value, icon: Icon, tight, className }: {
+export function Meter({ label, value, icon: Icon, tight, mark, className }: {
   label: string;
   value: number;
   icon?: React.ElementType;
   /** Label and number sit together rather than at opposite ends. Use in a
    *  multi-column row of meters. */
   tight?: boolean;
+  /**
+   * A reference line at 0-100, drawn inside the track.
+   *
+   * EXISTS BECAUSE A NUMBER WITH NO SCALE IS NOT INFORMATION. The teamsheet's
+   * tactical fit is measured against the XI's own average, so 50 is "this
+   * shape suits them exactly as well as any other" and 48 is a shrug — but a
+   * bar filled 48% of the way reads as a failure, which is why the screen used
+   * to carry a 113-character sentence explaining that it was not one. The mark
+   * says the same thing in one pixel-wide line.
+   */
+  mark?: number;
   className?: string;
 }) {
   const pct = Math.max(0, Math.min(100, Math.round(value)));
+  const markPct = mark == null ? null : Math.max(0, Math.min(100, mark));
   return (
     <span className={cn('block min-w-0', className)}>
       <span className={cn('flex items-baseline gap-1.5 min-w-0', !tight && 'justify-between gap-2')}>
@@ -180,7 +192,7 @@ export function Meter({ label, value, icon: Icon, tight, className }: {
         <span className="text-micro font-semibold text-foreground tabular-nums shrink-0">{pct}</span>
       </span>
       <span
-        className="block h-1.5 rounded-full overflow-hidden bg-muted/30 mt-1"
+        className="relative block h-1.5 rounded-full overflow-hidden bg-muted/30 mt-1"
         role="meter"
         aria-valuenow={pct}
         aria-valuemin={0}
@@ -188,6 +200,13 @@ export function Meter({ label, value, icon: Icon, tight, className }: {
         aria-label={label}
       >
         <span className={cn('block h-full rounded-full', meterTone(pct))} style={{ width: `${pct}%` }} />
+        {markPct != null && (
+          <span
+            aria-hidden
+            className="absolute inset-y-0 w-px bg-white/70"
+            style={{ left: `${markPct}%` }}
+          />
+        )}
       </span>
     </span>
   );

@@ -115,7 +115,8 @@ export const en = {
   'sunday.sheet.arrivalLocked': 'They are already here. This is the side.',
   'sunday.sheet.tactic': 'How you are playing',
   'sunday.sheet.tacticFit': 'Suits this XI',
-  'sunday.sheet.tacticFitHint': 'Measured against your own squad, not the league. Above 50% means this XI suits the shape better than its average.',
+  'sunday.sheet.fitLow': 'Wrong shape',
+  'sunday.sheet.fitHigh': 'Made for it',
   'sunday.sheet.captain': 'Captain',
   'sunday.sheet.makeCaptain': 'Give him the armband',
 

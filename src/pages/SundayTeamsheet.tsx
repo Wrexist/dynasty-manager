@@ -7,13 +7,14 @@
  * that matters — "your only keeper is a doubt" is the difference between a
  * squad screen and a management decision.
  */
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { LiquidButton } from '@/components/game/LiquidButton';
 import { SectionHeader } from '@/components/game/SectionHeader';
 import { AvailabilityPill, PlayerFlags } from '@/components/game/sunday/SundayBits';
+import { SundayFitMeter, SundayTacticCard } from '@/components/game/sunday/SundayTacticCard';
 import { useGameStore } from '@/store/gameStore';
 import { useTranslation } from '@/hooks/useTranslation';
 import { cn } from '@/lib/utils';
@@ -36,6 +37,7 @@ const BenchIcon = SUNDAY_ICON.bench;
 const AutoPickIcon = SUNDAY_ICON.autoPick;
 const ConfirmIcon = SUNDAY_ICON.confirm;
 const RingRoundIcon = SUNDAY_ICON.ringRound;
+const TacticsIcon = SUNDAY_ICON.tactics;
 
 interface Row {
   member: SundaySquadMember;
@@ -169,6 +171,11 @@ const SundayTeamsheet = () => {
     [sunday, rows],
   );
 
+  // Stable identity so four memoized tactic cards are not re-rendered every
+  // time a token on the board below is tapped. Above the early return, like
+  // every other hook on this screen.
+  const pickTactic = useCallback((id: SundayTacticId) => { void setTactic(id); }, [setTactic]);
+
   if (!sunday) return null;
 
   const namedIds = new Set([...sunday.teamsheet, ...sunday.bench]);
@@ -181,6 +188,10 @@ const SundayTeamsheet = () => {
   // half-time switcher; leaving him out here showed a club that had PAID for
   // ‘tactical-fit’ a lower number than the one the match uses.
   const fit = sundayTacticFit(sunday.tactic, xiRows.map(r => r.player), upgradeLevel(sunday, 'coach'));
+  // The shape the match will use: `buildMatchdayTeam` and `sundayOpponentXI`
+  // both switch to `shortFormation` below eleven, so the screen must too or it
+  // draws a side that is never fielded.
+  const shortHanded = xiRows.length < SUNDAY_FULL_XI;
 
   const callsLeft = Math.max(0, SUNDAY_RINGROUND_ATTEMPTS_PER_WEEK - sunday.ringRoundsThisWeek);
 
@@ -220,7 +231,7 @@ const SundayTeamsheet = () => {
   // A short side is compared against the short formation, which is why the
   // warning does not fire simply because nine men do not fill an eleven-man
   // shape.
-  const slots = FORMATION_POSITIONS[xiRows.length >= SUNDAY_FULL_XI ? tactic.formation : tactic.shortFormation] ?? [];
+  const slots = FORMATION_POSITIONS[shortHanded ? tactic.shortFormation : tactic.formation] ?? [];
   const outOfPosition = xiRows.reduce((n, r, i) => {
     const slot = slots[i];
     return slot && !canPlayPosition(r.player, slot.pos) ? n + 1 : n;
@@ -258,43 +269,33 @@ const SundayTeamsheet = () => {
         {t('sunday.sheet.minHint', { min: SUNDAY_MIN_START })}
       </p>
 
-      {/* Tactic */}
-      <GlassPanel className="p-4 space-y-2">
-        <SectionHeader
-          level="section"
-          title={t('sunday.sheet.tactic')}
-          accessory={
-            <span className="text-caption text-muted-foreground">
-              {t('sunday.sheet.tacticFit')}: {Math.round(fit * 100)}%
-            </span>
-          }
-        />
-        {/* The fit percentage is a shape metric, not a quality score, and a
-            player reading "48%" with no context assumes his squad is bad. */}
-        <p className="text-micro text-muted-foreground leading-relaxed">{t('sunday.sheet.tacticFitHint')}</p>
+      {/* Tactic. The four descriptions are drawings now — see
+          `SundayTacticDiagram` — and the fit's missing context is the tick at
+          50 on the meter rather than a sentence under it. */}
+      <GlassPanel className="p-4 space-y-3">
+        <SectionHeader level="section" title={t('sunday.sheet.tactic')} icon={TacticsIcon} />
         <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={t('sunday.sheet.tactic')}>
           {SUNDAY_TACTICS.map(tac => (
-            <button
+            <SundayTacticCard
               key={tac.id}
-              type="button"
-              role="radio"
-              aria-checked={tac.id === sunday.tactic}
-              onClick={() => { void setTactic(tac.id as SundayTacticId); }}
-              className={cn(
-                'rounded-xl border px-3 py-2 text-left min-h-[44px] transition-colors',
-                tac.id === sunday.tactic
-                  ? 'border-primary/60 bg-primary/10'
-                  : 'border-white/10 bg-white/[0.03] hover:border-white/20',
-              )}
-            >
-              <span className={cn('block text-caption font-bold', tac.id === sunday.tactic ? 'text-primary' : 'text-foreground')}>
-                {tac.name}
-              </span>
-              <span className="block text-micro text-muted-foreground truncate">{tac.tagline}</span>
-            </button>
+              id={tac.id}
+              name={tac.name}
+              tagline={tac.tagline}
+              // The shape the board below is actually drawing, so a re-slot on
+              // the eleventh man is explained rather than mysterious.
+              formation={shortHanded ? tac.shortFormation : tac.formation}
+              selected={tac.id === sunday.tactic}
+              disabled={sheetLocked}
+              onSelect={pickTactic}
+            />
           ))}
         </div>
-        <p className="text-micro text-muted-foreground leading-relaxed">{tactic.description}</p>
+        <SundayFitMeter
+          label={t('sunday.sheet.tacticFit')}
+          value={fit}
+          lowLabel={t('sunday.sheet.fitLow')}
+          highLabel={t('sunday.sheet.fitHigh')}
+        />
       </GlassPanel>
 
       {/* Warnings */}

@@ -109,7 +109,11 @@ describe('SundayTeamsheet renders valid, reachable DOM', () => {
     expect(withCoach).toBeGreaterThan(withoutCoach);
 
     render(<SundayTeamsheet />);
-    expect(screen.getByText(`${en['sunday.sheet.tacticFit']}: ${withCoach}%`)).toBeTruthy();
+    // The fit is a meter now, not a sentence: read the value off the ARIA
+    // contract rather than off a formatted string, so a layout change cannot
+    // silently drop the assertion.
+    const meter = screen.getByRole('meter', { name: en['sunday.sheet.tacticFit'] });
+    expect(meter.getAttribute('aria-valuenow')).toBe(String(withCoach));
   });
 
   it('says the side is settled once the morning has happened', async () => {
