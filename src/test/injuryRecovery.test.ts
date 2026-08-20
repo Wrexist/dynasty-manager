@@ -246,12 +246,26 @@ describe('injury recovery in the live game loop', () => {
       },
     });
 
-    for (let w = 0; w < 5; w++) await useGameStore.getState().advanceWeek();
+    // Stop at the first week he is observed fit rather than looking once at a
+    // fixed horizon. The regression under test is that the clock MOVES for a
+    // club that is not the player's — pre-fix `injuryWeeks` stayed at 3 and
+    // `injured` stayed true for the rest of the save. It is deliberately not a
+    // test of the schedule.
+    //
+    // The schedule is not the sim's to promise. Recovery and a fresh injury can
+    // both land inside a single `advanceWeek`: he heals, is eligible again, and
+    // is hurt in that same week's match. Measured over 14 saves he is fit at
+    // week 3 every time, but an earlier assertion bounded at 4 weeks still
+    // failed a run at 6 — three weeks on the original clock plus a new
+    // three-week injury. Bounding the week just re-created the flake one step
+    // further out, so the only bound here is the loop itself.
+    let firstFitWeek = 0;
+    for (let w = 1; w <= 14 && !firstFitWeek; w++) {
+      await useGameStore.getState().advanceWeek();
+      if (!useGameStore.getState().players[victimId].injured) firstFitWeek = w;
+    }
 
-    const after = useGameStore.getState().players[victimId];
-    // Pre-fix: injuryWeeks stayed at 3 and `injured` stayed true forever.
-    expect(after.injured, 'an AI club player never recovered').toBe(false);
-    expect(after.injuryWeeks).toBe(0);
+    expect(firstFitWeek, 'an AI club player never recovered').toBeGreaterThan(0);
   });
 
   it('divisionStaysAvailable: the division does not silt up with injuries', { timeout: 300_000 }, async () => {

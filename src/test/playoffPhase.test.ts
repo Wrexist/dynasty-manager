@@ -23,6 +23,7 @@ import { useGameStore } from '@/store/gameStore';
 import { getPlayerPlayoffCandidates } from '@/store/slices/orchestration/playoff';
 import { buildLeagueTable, LEAGUES } from '@/data/league';
 import { determineProRelZones } from '@/utils/promotionRelegation';
+import { assertValidGameState } from './stateValidator';
 
 /** A second-tier club — eng-2 has four playoff spots. */
 const PLAYOFF_CLUB = 'coventry-city';
@@ -227,4 +228,97 @@ describe('playoff phase — the UI and the engine agree on which match is next',
     expect(after.fixtures.some(f => f.id === pending.id)).toBe(false);
     expect(after.fixtures.length).toBeLessThanOrEqual(fixturesBefore);
   });
+});
+
+/**
+ * The interactive path — Kick Off, not Instant Sim.
+ *
+ * `playCurrentMatchImpl` handled the playoff from the start; `playFirstHalfImpl`
+ * and `playSecondHalfImpl` did not. Since `useCurrentMatch` resolves the playoff
+ * tie, Dashboard offered Match Prep and MatchDay drew the Kick Off screen for it,
+ * and the button did nothing at all. `advanceWeek` meanwhile ticked the week
+ * forever without touching the bracket, and MatchPrep's Sim button is Pro-only —
+ * so a free player who finished in the playoff zone could never end their season.
+ *
+ * `freePlayerCanFinishTheirSeason` is the test that fails against the pre-fix code.
+ */
+describe('playoff phase — the interactive path', () => {
+  beforeEach(() => {
+    useGameStore.getState().initGame(PLAYOFF_CLUB);
+    placeAt(PLAYOFF_CLUB, 3);
+    useGameStore.getState().endSeason();
+  });
+
+  it('Kick Off starts the pending tie', () => {
+    const pending = useGameStore.getState().playoffState!.pendingMatch!;
+    const half = useGameStore.getState().playFirstHalf();
+
+    expect(half).not.toBeNull();
+    expect(useGameStore.getState().matchPhase).toBe('half_time');
+    // The tie is not a cup tie — none of the tournament tracking ids may be set,
+    // or the second half would try to rebuild a tournament match that isn't there.
+    expect(useGameStore.getState().currentCupTieId).toBeNull();
+    expect(useGameStore.getState().lastMatchCompetition).toMatch(/^Promotion Playoff/);
+    // And it is the tie the UI is showing.
+    const played = [pending.homeClubId, pending.awayClubId].sort();
+    expect(played).toContain(useGameStore.getState().playerClubId);
+  });
+
+  it('the second half finishes the tie and moves the bracket on', () => {
+    const before = useGameStore.getState().playoffState!;
+    expect(useGameStore.getState().playFirstHalf()).not.toBeNull();
+    const result = useGameStore.getState().playSecondHalf(90);
+
+    expect(result).not.toBeNull();
+
+    // WHICH of the two endings you get depends on the simulated scoreline, so
+    // assert the invariants of each rather than picking one. Two earlier
+    // versions of this test passed in isolation and failed in the full suite
+    // purely on where the RNG landed — first by asserting `full_time`
+    // unconditionally, then by reading `playoffState` unconditionally.
+    const after = useGameStore.getState();
+    if (after.seasonPhase === 'playoff') {
+      // Bracket continues: the next tie is queued and the full-time screen stands.
+      // `resolved` grows by more than one when the bracket also settles the
+      // AI-vs-AI tie in the same round — the point is the player's tie is in it.
+      expect(after.playoffState!.resolved.length).toBeGreaterThan(before.resolved.length);
+      expect(after.playoffState!.pendingMatch).toBeTruthy();
+      expect(after.matchPhase).toBe('full_time');
+    } else {
+      // Bracket finished: `endSeason` ran inside the same call. It clears
+      // `playoffState` outright, resets the match-scoped state and routes to the
+      // season summary — so there is no full-time screen and nothing left to
+      // read the tie off. `matchPhase: 'none'` here is the rollover doing its
+      // job, and it is also what makes MatchDay's unmount safe:
+      // `cleanupAbandonedMatch` early-returns on ('none', no halfTimeState) and
+      // so cannot touch the season that was just built.
+      expect(after.playoffState?.pendingMatch).toBeFalsy();
+      expect(after.matchPhase).toBe('none');
+      expect(after.halfTimeState).toBeNull();
+      expect(after.currentScreen).toBe('season-summary');
+    }
+  });
+
+  it('freePlayerCanFinishTheirSeason: the whole bracket plays out without Instant Sim', () => {
+    const season = useGameStore.getState().season;
+
+    // Instant Sim is Pro-gated in MatchPrep, so a free player only ever has
+    // playFirstHalf + playSecondHalf. Walk the bracket with those alone.
+    for (let tie = 0; tie < 4 && useGameStore.getState().seasonPhase === 'playoff'; tie++) {
+      expect(useGameStore.getState().playoffState?.pendingMatch).toBeTruthy();
+      expect(useGameStore.getState().playFirstHalf()).not.toBeNull();
+      expect(useGameStore.getState().playSecondHalf(90)).not.toBeNull();
+    }
+
+    const after = useGameStore.getState();
+    expect(after.seasonPhase).toBe('regular');
+    expect(after.playoffState?.pendingMatch).toBeFalsy();
+    // The last tie hands straight over to the season summary — there is no
+    // full-time screen to return to once the season has rolled.
+    expect(after.currentScreen).toBe('season-summary');
+    expect(after.matchPhase).toBe('none');
+    // The season actually rolled rather than parking on the last playoff week.
+    expect(after.season).toBe(season + 1);
+    assertValidGameState(after, 'after an interactively played promotion playoff');
+  }, 60_000);
 });

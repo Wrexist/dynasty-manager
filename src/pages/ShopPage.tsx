@@ -31,10 +31,17 @@ const FEATURE_ICONS: Record<ProFeature, React.ElementType> = {
   pro_badge: Crown,
 };
 
+/** Render order for the subscription cards — Yearly first, Monthly last.
+ *
+ *  This listed Monthly first, so the plainest plan led the page while Yearly
+ *  (the one carrying the emerald highlight, the "Save N%" badge and the
+ *  "$X/month billed yearly" line) sat below it. `SubscribeOnboarding` already
+ *  orders and preselects Yearly; the two paywalls now agree. Display order
+ *  only — nothing here decides what is purchasable or what is granted. */
 const SUBSCRIPTION_PRODUCTS: ProductId[] = [
-  'com.dynastymanager.pro.monthly',
   'com.dynastymanager.pro.annual',
   'com.dynastymanager.pro.lifetime',
+  'com.dynastymanager.pro.monthly',
 ];
 
 /** Exactly the SKUs this page can sell — the availability probe is scoped to
