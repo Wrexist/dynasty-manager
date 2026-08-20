@@ -23,7 +23,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { LiquidButton } from '@/components/game/LiquidButton';
 import { SectionHeader } from '@/components/game/SectionHeader';
-import { FormPills, SundayCrest } from '@/components/game/sunday/SundayBits';
+import { SundayCrest } from '@/components/game/sunday/SundayBits';
 import { useGameStore } from '@/store/gameStore';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
@@ -38,16 +38,18 @@ import { buildMatchdayTeam, sundayResultVerdict, sundayStyleOf } from '@/utils/s
 import { deriveSundayStakes } from '@/utils/sunday/tier';
 import { buildSundayTimeline } from '@/utils/sunday/timeline';
 import { SundayTimeline } from '@/components/game/sunday/SundayTimeline';
+import { SundayBriefing } from '@/components/game/sunday/SundayBriefing';
+import { SundayAdjustments } from '@/components/game/sunday/SundayAdjustments';
 import { sundayMilestoneToday, sundayReverseFixtureRecall } from '@/utils/sunday/briefing';
 import type { SundayMatchTier, SundayTacticId } from '@/types/game';
 
 const WarningIcon = SUNDAY_ICON.warning;
-const RecallIcon = SUNDAY_ICON.recall;
 const KickOffIcon = SUNDAY_ICON.kickOff;
 const SkipIcon = SUNDAY_ICON.skip;
 const HeroIcon = SUNDAY_ICON.hero;
 const LowlightIcon = SUNDAY_ICON.lowlight;
 const SquadIcon = SUNDAY_ICON.squad;
+const MoneyIcon = SUNDAY_ICON.money;
 const TurningPointIcon = SUNDAY_ICON.substitution;
 const ConsequenceIcon = SUNDAY_ICON.expense;
 const RatingsIcon = SUNDAY_ICON.ratings;
@@ -70,30 +72,23 @@ const TIER_GOAL_CADENCE: Record<SundayMatchTier, number> = {
 };
 
 /**
- * The labelled reasons this XI is better or worse than it looks on paper.
- *
- * The same list before and after the match, deliberately: pre-match it is the
- * answer to "what am I taking out there", post-match to "why did that happen".
- * Nothing here is a judgement — every row is an adjustment the simulation
- * really applied.
+ * What each arrival option leaves you with: men on the pitch, pounds out of the
+ * tin. Two glyphs and two numbers in place of a hundred characters of prose
+ * describing the same comparison.
  */
-const AdjustmentList = ({ rows, label }: { rows: readonly { label: string; delta: number }[]; label: string }) => (
-  <div>
-    <p className="text-micro font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
-    <ul className="mt-1 space-y-0.5">
-      {rows.map((row, i) => (
-        <li key={`${row.label}-${i}`} className="flex items-baseline gap-2">
-          <span className="min-w-0 flex-1 text-caption text-foreground/85 truncate">{row.label}</span>
-          <span className={cn(
-            'text-caption font-semibold tabular-nums shrink-0',
-            row.delta > 0 ? 'text-emerald-300' : row.delta < 0 ? 'text-destructive' : 'text-muted-foreground',
-          )}>
-            {row.delta > 0 ? '+' : ''}{row.delta}
-          </span>
-        </li>
-      ))}
-    </ul>
-  </div>
+const ArrivalOutcome = ({ bodies, cost }: { bodies: number; cost: number }) => (
+  <span className="mt-0.5 flex items-center gap-3 text-micro text-muted-foreground">
+    <span className="inline-flex items-center gap-1">
+      <SquadIcon className="h-3 w-3" aria-hidden />
+      <span className="tabular-nums font-semibold text-foreground/80">{bodies}</span>
+    </span>
+    <span className="inline-flex items-center gap-1">
+      <MoneyIcon className="h-3 w-3" aria-hidden />
+      <span className={cn('tabular-nums font-semibold', cost > 0 ? 'text-amber-200' : 'text-foreground/80')}>
+        &pound;{cost}
+      </span>
+    </span>
+  </span>
 );
 
 const SundayMatchDay = () => {
@@ -423,6 +418,16 @@ const SundayMatchDay = () => {
   // it comes from the live arithmetic; afterwards from the report, which was
   // stamped with the same answer at kick-off.
   const tier = stakes?.tier ?? report?.tier ?? 'routine';
+  // What to call this afternoon on the briefing's chip. A cup tie is named by
+  // its round and a derby by the rivalry's own name, because both are more
+  // informative than the tier word; only a decider has no name of its own.
+  const tierLabel = fixture?.kind === 'cup'
+    ? sundayCupRoundName(fixture.tie.round)
+    : tier === 'derby'
+      ? sunday.rivalry?.name ?? ''
+      : tier === 'decider'
+        ? t('sunday.match.decider')
+        : '';
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-3 pb-4 space-y-3">
@@ -481,79 +486,62 @@ const SundayMatchDay = () => {
       {/* 1 · BRIEFING */}
       {!report && !arrival && (
         <>
-          <GlassPanel className={cn('p-4 space-y-2.5', SUNDAY_TIER_RIM[tier])}>
-            <SectionHeader level="section" title={t('sunday.match.title')} />
-            {stakes?.line && (
-              <p className={cn(
-                'text-body font-semibold leading-snug',
-                tier === 'decider' || tier === 'cup-final' ? 'text-primary' : 'text-foreground',
-              )}>
-                {stakes.line}
-              </p>
-            )}
-            <div className="grid grid-cols-2 gap-2">
-              <div className="rounded-lg bg-white/[0.04] px-3 py-2">
-                <p className="text-micro text-muted-foreground">{t('sunday.match.pitch')}</p>
-                <p className="text-body font-semibold text-foreground">{pitch}/100</p>
-              </div>
-              <div className="rounded-lg bg-white/[0.04] px-3 py-2">
-                <p className="text-micro text-muted-foreground">{t('sunday.hub.nextFixture')}</p>
-                <p className="text-body font-semibold text-foreground">
-                  {isHome ? t('sunday.match.home') : t('sunday.match.away')}
-                </p>
-              </div>
-            </div>
-            {intel && fixture?.kind !== 'cup' && (
-              <div className="flex items-center gap-2 text-caption text-muted-foreground">
-                <span className="font-semibold text-foreground">{intel.position}/{intel.tableSize}</span>
-                <FormPills form={intel.form} />
-                {intel.danger && intel.danger.goals > 0 && (
-                  <span className="truncate ml-auto">⚠ {intel.danger.name} ({intel.danger.goals})</span>
-                )}
-              </div>
-            )}
-            {/* Deliberately OUTSIDE the league-only intel block above: a cup
-                tie is exactly when knowing how they set up matters most. */}
-            {oppStyle && (
-              <p className="text-caption text-foreground/85 leading-relaxed">
-                {t(`sunday.match.style.${oppStyle}`, { formation: getSundayTactic(oppStyle).formation })}
-                {' '}
-                <span className="text-muted-foreground">{t(`sunday.match.counter.${oppStyle}`)}</span>
-              </p>
-            )}
-            {memory?.reverse && (
-              <p className="text-caption text-foreground/85 leading-relaxed">
-                <RecallIcon className="w-3.5 h-3.5 inline-block mr-1 -mt-0.5 text-muted-foreground" aria-hidden />
-                {memory.reverse}
-              </p>
-            )}
-            {memory?.milestone && (
-              <p className="text-caption text-primary/90 leading-relaxed">{memory.milestone}</p>
-            )}
-            {isDerby && sunday.rivalry && (
-              <p className="text-caption text-orange-300">
-                {sunday.rivalry.managerName} — {sunday.rivalry.managerStyle}
-                {sunday.rivalry.defector && ` ${t('sunday.rival.defector', { name: sunday.rivalry.defector.name })}`}
-                {' · '}
-                {t('sunday.hub.rivalRecord', {
-                  w: sunday.rivalry.wins, d: sunday.rivalry.draws, l: sunday.rivalry.losses,
-                })}
-              </p>
-            )}
-            <p className={cn('text-caption', sunday.teamsheet.length >= SUNDAY_MIN_START ? 'text-muted-foreground' : 'text-amber-300')}>
-              {t('sunday.match.namedSide', { n: sunday.teamsheet.length })}
-            </p>
-            {preMatchAdjustments.length > 0 && <AdjustmentList rows={preMatchAdjustments} label={t('sunday.match.whyPanel')} />}
+          <GlassPanel className={cn('p-4', SUNDAY_TIER_RIM[tier])}>
+            <SundayBriefing
+              tier={tier}
+              tierLabel={tierLabel}
+              stakes={stakes?.line ?? null}
+              opponentName={opponent?.shortName ?? '???'}
+              opponentColor={opponent?.color ?? '#333'}
+              opponentSecondaryColor={opponent?.secondaryColor ?? '#fff'}
+              position={fixture?.kind === 'cup' ? null : intel?.position ?? null}
+              tableSize={intel?.tableSize ?? 0}
+              form={fixture?.kind === 'cup' ? [] : intel?.form ?? []}
+              dangerName={intel?.danger?.name ?? null}
+              dangerGoals={intel?.danger?.goals ?? 0}
+              // Deliberately NOT gated on a league fixture: a cup tie is
+              // exactly when knowing how they set up matters most.
+              styleLine={oppStyle
+                ? t(`sunday.match.style.${oppStyle}`, { formation: getSundayTactic(oppStyle).formation })
+                : null}
+              counterLine={oppStyle ? t(`sunday.match.counter.${oppStyle}`) : null}
+              rivalryLine={isDerby && sunday.rivalry
+                ? [
+                    `${sunday.rivalry.managerName} — ${sunday.rivalry.managerStyle}`,
+                    sunday.rivalry.defector
+                      ? t('sunday.rival.defector', { name: sunday.rivalry.defector.name })
+                      : '',
+                    t('sunday.hub.rivalRecord', {
+                      w: sunday.rivalry.wins, d: sunday.rivalry.draws, l: sunday.rivalry.losses,
+                    }),
+                  ].filter(Boolean).join(' · ')
+                : null}
+              namedCount={sunday.teamsheet.length}
+              minToPlay={SUNDAY_MIN_START}
+              adjustments={preMatchAdjustments}
+              isHome={isHome}
+              pitch={pitch}
+              recall={memory?.reverse ?? null}
+              milestone={memory?.milestone ?? null}
+            />
           </GlassPanel>
 
-          <LiquidButton tone="primary" className="w-full py-3" onClick={onArrive} disabled={kicking}>
-            <span className="inline-flex items-center gap-1.5"><SquadIcon className="w-4 h-4" aria-hidden /> {t('sunday.arrival.title')}</span>
-          </LiquidButton>
-          {/* The button's own label does not say it is a one-way door, and the
-              teamsheet locks behind it. */}
-          <p className="text-micro text-muted-foreground leading-relaxed px-1">{t('sunday.arrival.gateHint')}</p>
+          {/* NAME THE SIDE, THEN GO AND SEE WHO CAME — in that order, because
+              the second one is a one-way door and the first one is undone by
+              walking through it. That used to be a 146-character paragraph
+              sitting UNDER the door it was warning about, which is the one
+              place a warning cannot work. It is the ordering and the button's
+              own sub-line now. */}
           <LiquidButton className="w-full py-2.5" onClick={() => setScreen('sunday-teamsheet')}>
             {t('sunday.sheet.title')}
+          </LiquidButton>
+          <LiquidButton tone="primary" className="w-full py-3" onClick={onArrive} disabled={kicking}>
+            <span className="block w-full text-center">
+              <span className="inline-flex items-center gap-1.5 text-body font-semibold">
+                <SquadIcon className="w-4 h-4" aria-hidden /> {t('sunday.arrival.title')}
+              </span>
+              <span className="block text-micro text-primary-foreground/70">{t('sunday.arrival.locks')}</span>
+            </span>
           </LiquidButton>
         </>
       )}
@@ -613,13 +601,18 @@ const SundayMatchDay = () => {
                 <WarningIcon className="w-4 h-4" aria-hidden />
                 {t('sunday.arrival.short', { n: arrival.optionalRingers })}
               </p>
+              {/* THE TRADE, DRAWN. Two hints used to sit under these — "they
+                  will be terrible, but they will be here" and "save the money,
+                  carry the gap" — which is a hundred characters describing a
+                  comparison the buttons can simply SHOW: bodies on the pitch
+                  against pounds out of the tin. Same two facts, no reading. */}
               <LiquidButton
                 tone="amber"
                 className="w-full py-2.5"
                 disabled={deciding || sunday.balance < arrival.optionalRingers * SUNDAY_RINGER_COST}
                 onClick={() => decideRingers(arrival.optionalRingers)}
               >
-                <span className="block text-left w-full">
+                <span className="block w-full text-left">
                   <span className="block text-body font-semibold">
                     {t('sunday.arrival.hire', {
                       n: arrival.optionalRingers,
@@ -627,15 +620,18 @@ const SundayMatchDay = () => {
                       cost: arrival.optionalRingers * SUNDAY_RINGER_COST,
                     })}
                   </span>
-                  <span className="block text-micro text-muted-foreground">{t('sunday.arrival.hireHint')}</span>
+                  <ArrivalOutcome
+                    bodies={standing + arrival.optionalRingers}
+                    cost={arrival.optionalRingers * SUNDAY_RINGER_COST}
+                  />
                 </span>
               </LiquidButton>
               <LiquidButton className="w-full py-2.5" disabled={deciding} onClick={() => decideRingers(0)}>
-                <span className="block text-left w-full">
+                <span className="block w-full text-left">
                   <span className="block text-body font-semibold">
                     {t('sunday.arrival.playShort', { n: standing })}
                   </span>
-                  <span className="block text-micro text-muted-foreground">{t('sunday.arrival.playShortHint')}</span>
+                  <ArrivalOutcome bodies={standing} cost={0} />
                 </span>
               </LiquidButton>
             </GlassPanel>
@@ -819,7 +815,7 @@ const SundayMatchDay = () => {
 
           {report.adjustments.length > 0 && (
             <GlassPanel className="p-4">
-              <AdjustmentList rows={report.adjustments} label={t('sunday.match.whyPanel')} />
+              <SundayAdjustments rows={report.adjustments} label={t('sunday.match.whyPanel')} direction="back" />
             </GlassPanel>
           )}
 

@@ -56,7 +56,6 @@ export const en = {
   'sunday.hub.balance': 'In the account',
   'sunday.hub.morale': 'Morale',
   'sunday.hub.reputation': 'Standing',
-  'sunday.hub.nextFixture': 'Next fixture',
   'sunday.hub.cupTie': '{round} · {club}',
   'sunday.hub.versus': 'vs',
   'sunday.hub.freeWeek': 'No fixture this week',
@@ -127,25 +126,25 @@ export const en = {
 
   // Match day — the Sunday morning
   'sunday.arrival.title': 'Sunday morning',
-  'sunday.arrival.gateHint': 'Find out who actually turned up. There is no going back from this — once the guests are sorted the side is fixed, so name the team you want first.',
+  'sunday.arrival.locks': 'Locks the side',
   'sunday.arrival.quiet': 'Everyone who said they would come, came. Remarkable.',
   'sunday.arrival.standing': '{n} standing here in kit',
   'sunday.arrival.short': 'You are {n} short of eleven.',
   'sunday.arrival.forced': '{n} guest{s} already roped in to make the numbers legal.',
   'sunday.arrival.hire': 'Bring in {n} guest{s} · £{cost}',
   'sunday.arrival.playShort': 'Play with {n}',
-  'sunday.arrival.playShortHint': 'Save the money. Carry the gap.',
-  'sunday.arrival.hireHint': 'Somebody knows somebody. They will be terrible, but they will be here.',
   'sunday.arrival.decided': 'Decision made.',
 
   // Match day
-  'sunday.match.title': 'Match Day',
   'sunday.match.kickOff': 'Kick off',
   'sunday.match.vs': 'v',
   'sunday.match.home': 'Home',
   'sunday.match.away': 'Away',
   'sunday.match.pitch': 'Pitch',
   'sunday.match.namedSide': 'You have named {n}.',
+  'sunday.match.yourSide': 'Your side',
+  'sunday.match.takingOut': 'What you take out there',
+  'sunday.match.decider': 'Decider',
   'sunday.match.whyPanel': 'Why it went that way',
   'sunday.match.narrative': 'How it happened',
   'sunday.match.ratings': 'Ratings',
@@ -155,7 +154,7 @@ export const en = {
   'sunday.match.halfTime': 'Half time',
   'sunday.match.asWeAre': 'as you set up',
   'sunday.match.fit': 'fit',
-  'sunday.match.resumed': 'The app restarted at half time, so the second half was played as you had set up.',
+  'sunday.match.resumed': 'Restarted at the break — played on as you set up.',
   'sunday.match.playing': 'Playing…',
   // What the opposition do, in the language a man on a touchline would use.
   // Never the matchup matrix, never a number — a read, and a hint at the
