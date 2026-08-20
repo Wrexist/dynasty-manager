@@ -37,8 +37,8 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type {
-  SundayEventInstance, SundayMatchTier, SundayMemoryKind, SundayTimelineKind,
-  SundayUpgradeId, WeatherCondition,
+  SundayClubPersonalityId, SundayEventInstance, SundayMatchTier,
+  SundayMemoryKind, SundayTimelineKind, SundayUpgradeId, WeatherCondition,
 } from '@/types/game';
 
 /**
@@ -148,6 +148,54 @@ export type SundayIconName = keyof typeof SUNDAY_ICON;
  * exception is a rule nobody can check with a regex.
  */
 export type { LucideIcon };
+
+/**
+ * Club personality → glyph, and the colour that glyph is drawn in.
+ *
+ * WHY. The setup screen is the player's first contact with the mode and asks
+ * exactly one question that changes the game — and it used to answer it with
+ * eight identical panels of paragraph, so the only thing distinguishing the
+ * choices was how long the paragraph was. A glyph and a colour give each club
+ * an identity that survives being read at a glance.
+ *
+ * EVERY GLYPH IS ALREADY IMPORTED ABOVE, per the bundle rule at the top of
+ * this file: eight new lucide names would cost first-paint bytes for a mode
+ * most players never open. Each is the concept, not a decoration — the washed
+ * professionals get the injury glyph because the hamstrings are the joke, and
+ * the club that just needs eleven gets the phone because that is the whole
+ * afternoon.
+ */
+export const SUNDAY_PERSONALITY_ICON: Record<SundayClubPersonalityId, LucideIcon> = {
+  pub: Beer,
+  family: HeartHandshake,
+  serious: Dumbbell,
+  washed: Stethoscope,
+  chaos: Dices,
+  youth: TrendingUp,
+  moneyball: Receipt,
+  eleven: Phone,
+};
+
+/**
+ * Eight visibly different tints, paired with the map above for the same reason
+ * `SUNDAY_NEWS_TONE` is paired with its icons: the colour is what lets a list
+ * be scanned without being read.
+ *
+ * NOT `--primary` FOR MORE THAN ONE OF THEM. The setup route sits outside
+ * `.game-theme`, so primary there is the app's gold rather than the in-game
+ * emerald; using it twice would put two golds on one screen and lose the
+ * distinction the map exists to create.
+ */
+export const SUNDAY_PERSONALITY_TONE: Record<SundayClubPersonalityId, string> = {
+  pub: 'text-amber-300 bg-amber-400/10',
+  family: 'text-sky-300 bg-sky-500/10',
+  serious: 'text-primary bg-primary/10',
+  washed: 'text-orange-300 bg-orange-500/10',
+  chaos: 'text-fuchsia-300 bg-fuchsia-500/10',
+  youth: 'text-emerald-300 bg-emerald-500/10',
+  moneyball: 'text-slate-300 bg-slate-400/10',
+  eleven: 'text-rose-300 bg-rose-500/10',
+};
 
 /** Availability status → glyph. Mirrors `AvailabilityPill`'s three states. */
 export const SUNDAY_AVAILABILITY_ICON: Record<'available' | 'doubt' | 'out', LucideIcon> = {

@@ -43,6 +43,11 @@ export const en = {
   'sunday.setup.squadSize': 'Squad',
   'sunday.setup.squadSizeValue': '{n} registered',
   'sunday.setup.nameLabel': 'Club name',
+  'sunday.setup.traitAbility': 'Ability',
+  'sunday.setup.traitTurnout': 'Turnout',
+  'sunday.setup.traitChaos': 'Chaos',
+  'sunday.setup.traitAria': '{label}: {n} of {max}',
+  'sunday.setup.ages': 'Ages {min}-{max}',
 
   // Hub
   'sunday.hub.week': 'Week {week}',

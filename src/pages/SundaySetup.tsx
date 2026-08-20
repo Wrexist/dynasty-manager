@@ -6,23 +6,39 @@
  * the game ("what sort of club is this?") and then gets out of the way. The
  * club's name, colours, ground and nickname are rolled and re-rollable, because
  * naming things is fun for about eight seconds and a chore after that.
+ *
+ * WHAT CHANGED, AND WHY. The single question was being asked with eight
+ * identical panels, each carrying its whole description expanded — 841
+ * characters of paragraph on first paint, every block over eighty characters,
+ * and not one comparable fact between them. The eight are now rows with a
+ * glyph, a colour and their tagline, and the description belongs to whichever
+ * one is chosen (`SundayPersonalityCard`), which also shows the three
+ * modifiers ranked against the other seven.
+ *
+ * And the club you are about to be given is now DRAWN: the crest, and the kit
+ * `sundayKitSpec` has always described — seeded on `SUNDAY_CLUB_ID`, which is
+ * the id the club will really have, so the strip in the preview is the strip
+ * in the game.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { LiquidButton } from '@/components/game/LiquidButton';
-import { GlassPanel, LIQUID_GLASS_SURFACE } from '@/components/game/GlassPanel';
+import { GlassPanel } from '@/components/game/GlassPanel';
 import { SectionHeader } from '@/components/game/SectionHeader';
+import { SundayKit } from '@/components/game/sunday/SundayKit';
+import { SundayPersonalityCard } from '@/components/game/sunday/SundayPersonalityCard';
 import { SUNDAY_ICON } from '@/config/sundayIcons';
 import { useGameStore } from '@/store/gameStore';
 import { useTranslation } from '@/hooks/useTranslation';
-import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
-import { cn } from '@/lib/utils';
 import { formatMoney } from '@/utils/helpers';
-import { SUNDAY_PERSONALITIES } from '@/config/sundayLeague';
+import {
+  getSundayArchetype, SUNDAY_CLUB_ID, SUNDAY_PERSONALITIES,
+} from '@/config/sundayLeague';
 import { generateSundayIdentity } from '@/utils/sunday/generation';
 import { createSundayRng, newSundaySeed } from '@/utils/sunday/rng';
+import { sundayCrestSpec, sundayKitSpec } from '@/utils/sunday/visuals';
+import { sundayPersonalityTraits } from '@/utils/sunday/view';
 import type { SundayClubPersonalityId } from '@/types/game';
 
 const BackIcon = SUNDAY_ICON.back;
@@ -33,7 +49,6 @@ const SquadIcon = SUNDAY_ICON.squad;
 
 const SundaySetup = () => {
   const { t } = useTranslation();
-  const reduceMotion = useReducedMotionPref();
   const navigate = useNavigate();
   const location = useLocation();
   const navState = (location.state as { slot?: number }) || {};
@@ -56,6 +71,10 @@ const SundaySetup = () => {
     [seed, personality],
   );
   const info = SUNDAY_PERSONALITIES.find(p => p.id === personality) ?? SUNDAY_PERSONALITIES[0];
+  // Both specs are pure hashes of the club id and its two colours, so they are
+  // the ones the Clubhouse will draw once the season starts.
+  const kit = sundayKitSpec(identity.color, identity.secondaryColor, SUNDAY_CLUB_ID);
+  const crest = sundayCrestSpec(SUNDAY_CLUB_ID, identity.color, identity.secondaryColor);
 
   if (missingSlot) return null;
 
@@ -91,40 +110,49 @@ const SundaySetup = () => {
           <p className="text-caption text-muted-foreground mt-1">{t('sunday.setup.subtitle')}</p>
         </div>
 
-        {/* Club identity preview */}
+        {/* The club you are about to be handed, drawn rather than described.
+            The reroll sits UNDER the name rather than beside it: `LiquidButton`
+            is `w-full` by default, so as a flex sibling of the name field it
+            took the whole row and pushed the input — and the ground it plays
+            on — off the right edge of the panel. */}
         <GlassPanel className="p-4 space-y-3">
-          <div className="flex items-center gap-3">
-            <div
-              className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-[11px] shrink-0 ring-1 ring-inset ring-white/10"
-              style={{ backgroundColor: identity.color, color: identity.secondaryColor }}
-              aria-hidden
-            >
-              {identity.shortName.slice(0, 3).toUpperCase()}
+          <div className="flex items-start gap-3">
+            <SundayKit
+              body={kit.body}
+              trim={kit.trim}
+              pattern={kit.pattern}
+              crestShape={crest.shape}
+              size={76}
+              label={t('sunday.club.kitAria', { name: customName.trim() || identity.name })}
+            />
+            <div className="flex-1 min-w-0 space-y-2">
+              <div>
+                {/* The visible label is the placeholder — the rolled club
+                    name — so the accessible one is the only one, and giving
+                    the input an `aria-label` as well would name it twice. */}
+                <label className="sr-only" htmlFor="sunday-club-name">{t('sunday.setup.nameLabel')}</label>
+                <input
+                  id="sunday-club-name"
+                  value={customName}
+                  onChange={e => setCustomName(e.target.value.slice(0, 28))}
+                  placeholder={identity.name}
+                  className="w-full bg-transparent text-body font-bold text-foreground outline-none placeholder:text-foreground/70 focus-visible:ring-1 focus-visible:ring-primary/60 rounded px-1 -mx-1 py-2.5"
+                />
+                <p className="text-caption text-muted-foreground truncate flex items-center gap-1 mt-0.5">
+                  <VenueIcon className="w-3 h-3 shrink-0" aria-hidden />
+                  {identity.venue}, {identity.town}
+                </p>
+              </div>
+              <LiquidButton
+                onClick={() => setSeed(newSundaySeed())}
+                aria-label={t('sunday.setup.rerollAria')}
+                className="w-auto px-3"
+              >
+                <span className="inline-flex items-center gap-1.5 text-caption">
+                  <RerollIcon className="w-4 h-4" aria-hidden /> {t('sunday.setup.reroll')}
+                </span>
+              </LiquidButton>
             </div>
-            <div className="flex-1 min-w-0">
-              <label className="sr-only" htmlFor="sunday-club-name">{t('sunday.setup.nameLabel')}</label>
-              <input
-                id="sunday-club-name"
-                value={customName}
-                onChange={e => setCustomName(e.target.value.slice(0, 28))}
-                placeholder={identity.name}
-                aria-label={t('sunday.setup.nameLabel')}
-                className="w-full bg-transparent text-body font-bold text-foreground outline-none placeholder:text-foreground/70 focus-visible:ring-1 focus-visible:ring-primary/60 rounded px-1 -mx-1"
-              />
-              <p className="text-caption text-muted-foreground truncate flex items-center gap-1 mt-0.5">
-                <VenueIcon className="w-3 h-3 shrink-0" aria-hidden />
-                {identity.venue}, {identity.town}
-              </p>
-            </div>
-            <LiquidButton
-              onClick={() => setSeed(newSundaySeed())}
-              aria-label={t('sunday.setup.rerollAria')}
-              className="shrink-0 px-3"
-            >
-              <span className="inline-flex items-center gap-1.5 text-caption">
-                <RerollIcon className="w-4 h-4" aria-hidden /> {t('sunday.setup.reroll')}
-              </span>
-            </LiquidButton>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
@@ -151,34 +179,22 @@ const SundaySetup = () => {
           aria-label={t('sunday.setup.subtitle')}
           className="space-y-2"
         >
-          {SUNDAY_PERSONALITIES.map((p, idx) => {
-            const active = p.id === personality;
-            return (
-              <motion.button
-                key={p.id}
-                type="button"
-                role="radio"
-                aria-checked={active}
-                initial={reduceMotion ? false : { opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={reduceMotion ? { duration: 0 } : { delay: Math.min(idx * 0.03, 0.2), duration: 0.25 }}
-                onClick={() => setPersonality(p.id)}
-                className={cn(
-                  LIQUID_GLASS_SURFACE,
-                  'w-full text-left p-3.5 border transition-colors min-h-[44px]',
-                  active ? 'border-primary/60' : 'border-white/10 hover:border-white/20',
-                )}
-              >
-                <div className="flex items-baseline gap-2">
-                  <span className={cn('text-body font-bold', active ? 'text-primary' : 'text-foreground')}>
-                    {p.name}
-                  </span>
-                  <span className="text-caption text-muted-foreground truncate">{p.tagline}</span>
-                </div>
-                <p className="text-caption text-muted-foreground mt-1 leading-relaxed">{p.description}</p>
-              </motion.button>
-            );
-          })}
+          {SUNDAY_PERSONALITIES.map((p, idx) => (
+            <SundayPersonalityCard
+              key={p.id}
+              id={p.id}
+              name={p.name}
+              tagline={p.tagline}
+              description={p.description}
+              ageMin={p.ageMin}
+              ageMax={p.ageMax}
+              archetypeNames={p.favouredArchetypes.map(a => getSundayArchetype(a).name)}
+              traits={sundayPersonalityTraits(p)}
+              selected={p.id === personality}
+              index={idx}
+              onSelect={setPersonality}
+            />
+          ))}
         </div>
 
         <LiquidButton tone="primary" onClick={start} className="w-full py-3">

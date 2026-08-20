@@ -26,14 +26,66 @@ import type {
   SundayState, SundayTacticId, SundayUpgradeId,
 } from '@/types/game';
 import {
-  SUNDAY_UPGRADES, SUNDAY_UPGRADE_MOTHBALL_REFUND, getSundayUpgrade,
-  sundayUpgradeCost, sundayUpgradeMoraleBump, sundayUpgradeRepBump,
+  SUNDAY_PERSONALITIES, SUNDAY_UPGRADES, SUNDAY_UPGRADE_MOTHBALL_REFUND,
+  getSundayUpgrade, sundayUpgradeCost, sundayUpgradeMoraleBump,
+  sundayUpgradeRepBump, type SundayPersonalityInfo,
 } from '@/config/sundayLeague';
 import type { SundayNewsKind } from '@/config/sundayIcons';
 import { sundayPitchQuality } from '@/store/slices/sunday/matchday';
 import { summariseAvailability } from './availability';
 import { sundayUpgradeUpkeep, sundayWeeklyBurn } from './finance';
 import { buildSundayTable } from './season';
+
+// ── Club personalities ──────────────────────────────────────────────────────
+
+/** The three things about a club personality that change how a season feels. */
+export type SundayTraitId = 'ability' | 'turnout' | 'chaos';
+
+export interface SundayPersonalityTrait {
+  id: SundayTraitId;
+  /** 1-5, ranked WITHIN the catalogue — see `sundayPersonalityTraits`. */
+  pips: number;
+}
+
+/** Highest pip a trait can show. Exported so a renderer draws exactly as many
+ *  empty pips as the scale has, rather than guessing. */
+export const SUNDAY_TRAIT_PIPS = 5;
+
+/**
+ * Rank one personality's three modifiers against the whole catalogue.
+ *
+ * WHY RANKED AND NOT ABSOLUTE. `qualityMod` runs from -5 to +8 and
+ * `varianceMult` from 0.8 to 1.5; neither is a 0-100 quantity, and inventing a
+ * scale for them would mean inventing two magic constants that go stale the
+ * moment somebody adds a ninth personality. The spread of the catalogue IS the
+ * scale: 1 pip is the least of the eight, 5 is the most, and the numbers come
+ * from `SUNDAY_PERSONALITIES` itself.
+ *
+ * WHY THESE THREE. They are the three modifiers a player can feel from the
+ * first month — how good the squad is (`qualityMod`), whether it turns up
+ * (`commitmentMod`), and how far results swing (`varianceMult`). The rest —
+ * ego, morale, reputation, income — are real but second-order, and a card with
+ * seven bars on it is a spec sheet, not a choice.
+ *
+ * NO GOOD/BAD TONE ANYWHERE. Chaos at 5 is not a warning and ability at 1 is
+ * not a failure; they are styles. That is why the renderer draws pips in one
+ * ink rather than the app's green/amber/red meter.
+ */
+export function sundayPersonalityTraits(
+  personality: SundayPersonalityInfo,
+): SundayPersonalityTrait[] {
+  const rank = (values: readonly number[], value: number): number => {
+    const lo = Math.min(...values);
+    const hi = Math.max(...values);
+    if (hi === lo) return Math.ceil(SUNDAY_TRAIT_PIPS / 2);
+    return 1 + Math.round(((value - lo) / (hi - lo)) * (SUNDAY_TRAIT_PIPS - 1));
+  };
+  return [
+    { id: 'ability', pips: rank(SUNDAY_PERSONALITIES.map(p => p.qualityMod), personality.qualityMod) },
+    { id: 'turnout', pips: rank(SUNDAY_PERSONALITIES.map(p => p.commitmentMod), personality.commitmentMod) },
+    { id: 'chaos', pips: rank(SUNDAY_PERSONALITIES.map(p => p.varianceMult), personality.varianceMult) },
+  ];
+}
 
 // ── The squad, joined once ──────────────────────────────────────────────────
 
