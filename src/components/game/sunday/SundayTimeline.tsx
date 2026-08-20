@@ -150,11 +150,11 @@ export const SundayTimeline = memo(function SundayTimeline({ rows, us, them, cla
               {row.minute}&rsquo;
             </span>
             <Spine><Mark row={row} /></Spine>
-            {/* SIZE OUTSIDE cn(). `tailwind-merge` does not know this
-                project's `text-<scale>` names and files them as text COLOURS,
-                so any cn() carrying both a scale class and a colour silently
-                drops the size. The row above owns the size; these spans own
-                only the colour, and there is nothing here to merge anyway. */}
+            {/* The row above owns the size; these spans own only the colour,
+                so there is nothing to merge and no cn() needed. (This used to
+                be a workaround for `cn()` eating custom `text-<scale>` classes
+                — `src/lib/utils.ts` now teaches tailwind-merge the scale, so
+                the plain ternary is a preference here, not a dodge.) */}
             <span className={row.ours ? 'min-w-0 flex-1 truncate py-0.5 text-foreground' : 'min-w-0 flex-1 truncate py-0.5 text-muted-foreground'}>
               <RowText row={row} us={us} them={them} />
             </span>
