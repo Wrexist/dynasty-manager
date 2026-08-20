@@ -9,7 +9,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { SectionHeader } from '@/components/game/SectionHeader';
-import { SundayCrest } from '@/components/game/sunday/SundayBits';
+import { FormPills, SundayCrest } from '@/components/game/sunday/SundayBits';
 import { useGameStore } from '@/store/gameStore';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
@@ -17,6 +17,22 @@ import { cn } from '@/lib/utils';
 import { getSundayDivision } from '@/config/sundayLeague';
 import { SUNDAY_ICON } from '@/config/sundayIcons';
 import { buildSundayTable, sundayCupRoundName } from '@/utils/sunday/season';
+import { sundayLeagueBuzz, type SundayBuzzKind } from '@/utils/sunday/view';
+
+/** Which glyph the news strip puts on each kind of line. */
+const BUZZ_ICON: Record<SundayBuzzKind, React.ElementType> = {
+  upset: SUNDAY_ICON.hotForm,
+  heaviest: SUNDAY_ICON.hero,
+  streak: SUNDAY_ICON.form,
+  leader: SUNDAY_ICON.honours,
+};
+
+const BUZZ_TONE: Record<SundayBuzzKind, string> = {
+  upset: 'text-orange-300',
+  heaviest: 'text-fuchsia-300',
+  streak: 'text-emerald-300',
+  leader: 'text-amber-300',
+};
 
 type Tab = 'table' | 'fixtures' | 'cup';
 
@@ -32,6 +48,11 @@ const SundayTable = () => {
   const table = useMemo(
     () => (sunday ? buildSundayTable(fixtures, sunday.divisionClubIds) : []),
     [sunday, fixtures],
+  );
+
+  const buzz = useMemo(
+    () => (sunday ? sundayLeagueBuzz(sunday, clubs, fixtures, playerClubId) : []),
+    [sunday, clubs, fixtures, playerClubId],
   );
 
   const byWeek = useMemo(() => {
@@ -87,17 +108,19 @@ const SundayTable = () => {
 
       {tab === 'table' && (
         <GlassPanel className="p-2 overflow-x-auto">
-          <table className="w-full text-caption min-w-[320px]">
+          <table className="w-full text-caption min-w-[320px] table-fixed">
             <thead>
               <tr className="text-micro text-muted-foreground">
-                <th scope="col" className="text-left px-2 py-1.5 font-semibold">#</th>
+                <th scope="col" className="text-left px-2 py-1.5 font-semibold w-7">#</th>
                 <th scope="col" className="text-left px-1 py-1.5 font-semibold">{t('sunday.hub.club')}</th>
-                <th scope="col" className="text-right px-1 py-1.5 font-semibold">{t('sunday.table.played')}</th>
-                <th scope="col" className="text-right px-1 py-1.5 font-semibold">{t('sunday.table.won')}</th>
-                <th scope="col" className="text-right px-1 py-1.5 font-semibold">{t('sunday.table.drawn')}</th>
-                <th scope="col" className="text-right px-1 py-1.5 font-semibold">{t('sunday.table.lost')}</th>
-                <th scope="col" className="text-right px-1 py-1.5 font-semibold">{t('sunday.table.goalDifference')}</th>
-                <th scope="col" className="text-right px-2 py-1.5 font-semibold">{t('sunday.table.points')}</th>
+                <th scope="col" className="text-right px-1 py-1.5 font-semibold w-6">{t('sunday.table.played')}</th>
+                {/* One column, not three. W/D/L as three columns cost 60px and
+                    said less than the last five results do; the record is still
+                    all there, and the space bought the form. */}
+                <th scope="col" className="text-center px-1 py-1.5 font-semibold w-12 whitespace-nowrap">{t('sunday.table.record')}</th>
+                <th scope="col" className="text-right px-1 py-1.5 font-semibold w-7">{t('sunday.table.goalDifference')}</th>
+                <th scope="col" className="text-right px-1 py-1.5 font-semibold w-7">{t('sunday.table.points')}</th>
+                <th scope="col" className="text-center px-1 py-1.5 font-semibold w-[4.6rem]">{t('sunday.table.form')}</th>
               </tr>
             </thead>
             <tbody>
@@ -133,13 +156,16 @@ const SundayTable = () => {
                       </span>
                     </td>
                     <td className="px-1 py-2 text-right tabular-nums text-muted-foreground">{row.played}</td>
-                    <td className="px-1 py-2 text-right tabular-nums text-muted-foreground">{row.won}</td>
-                    <td className="px-1 py-2 text-right tabular-nums text-muted-foreground">{row.drawn}</td>
-                    <td className="px-1 py-2 text-right tabular-nums text-muted-foreground">{row.lost}</td>
+                    <td className="px-1 py-2 text-center text-micro tabular-nums text-muted-foreground whitespace-nowrap">
+                      {row.won}-{row.drawn}-{row.lost}
+                    </td>
                     <td className="px-1 py-2 text-right tabular-nums text-muted-foreground">
                       {row.goalDifference > 0 ? `+${row.goalDifference}` : row.goalDifference}
                     </td>
-                    <td className="px-2 py-2 text-right tabular-nums font-semibold text-foreground">{row.points}</td>
+                    <td className="px-1 py-2 text-right tabular-nums font-semibold text-foreground">{row.points}</td>
+                    <td className="px-1 py-2">
+                      <span className="flex justify-center"><FormPills form={row.form} size="xs" /></span>
+                    </td>
                   </tr>
                 );
               })}
@@ -157,6 +183,26 @@ const SundayTable = () => {
               </span>
             )}
           </div>
+        </GlassPanel>
+      )}
+
+      {/* What happened to everyone else. Three lines, every one of them a
+          statement about a fixture that was actually played or a row that is
+          actually in the table — see `sundayLeagueBuzz`. */}
+      {tab === 'table' && buzz.length > 0 && (
+        <GlassPanel className="p-3">
+          <SectionHeader level="eyebrow" title={t('sunday.table.elsewhere')} />
+          <ul className="mt-1.5 space-y-1.5">
+            {buzz.map(entry => {
+              const Icon = BUZZ_ICON[entry.kind];
+              return (
+                <li key={entry.id} className="flex items-start gap-2">
+                  <Icon className={cn('w-3.5 h-3.5 shrink-0 mt-0.5', BUZZ_TONE[entry.kind])} aria-hidden />
+                  <span className="text-caption text-foreground/85 leading-snug">{entry.text}</span>
+                </li>
+              );
+            })}
+          </ul>
         </GlassPanel>
       )}
 
@@ -193,54 +239,80 @@ const SundayTable = () => {
 
       {tab === 'cup' && (
         sunday.cup ? (
-          <div className="space-y-2">
-            <GlassPanel className="p-3">
-              <SectionHeader
-                level="section"
-                title={sunday.cup.name}
-                accessory={
-                  <span className="text-caption text-muted-foreground">
-                    {sunday.cup.winnerClubId === playerClubId
-                      ? t('sunday.table.cupWon')
-                      : sunday.cup.eliminated ? t('sunday.table.cupOut') : ''}
-                  </span>
-                }
-              />
-            </GlassPanel>
-            {[1, 2, 3].map(round => {
-              const ties = sunday.cup!.ties.filter(x => x.round === round);
-              if (!ties.length) return null;
-              return (
-                <GlassPanel key={round} className="p-3">
-                  <SectionHeader level="eyebrow" title={sundayCupRoundName(round)} />
-                  <div className="mt-1.5 space-y-1">
-                    {ties.map(tie => {
-                      const home = clubs[tie.homeClubId];
-                      const away = clubs[tie.awayClubId];
-                      const mine = tie.homeClubId === playerClubId || tie.awayClubId === playerClubId;
-                      return (
-                        <div key={`${tie.round}-${tie.homeClubId}-${tie.awayClubId}`} className={cn('flex items-center gap-2 text-caption', mine && 'font-semibold')}>
-                          <span className="flex-1 truncate text-right text-foreground/85">{home?.shortName ?? '?'}</span>
-                          <span className="shrink-0 tabular-nums text-foreground w-16 text-center">
-                            {tie.played
-                              ? `${tie.homeGoals}-${tie.awayGoals}${tie.shootout ? ` (${tie.shootout.home}-${tie.shootout.away})` : ''}`
-                              : t('sunday.match.vs')}
-                          </span>
-                          <span className="flex-1 truncate text-foreground/85">{away?.shortName ?? '?'}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </GlassPanel>
-              );
-            })}
-          </div>
+          /* ONE panel. It used to be a panel for the competition's name, then a
+             panel per round, each containing between one and four one-line
+             ties — three nested surfaces to render four lines of football. */
+          <GlassPanel className="p-3">
+            <SectionHeader
+              level="section"
+              title={sunday.cup.name}
+              accessory={
+                <span className={cn(
+                  'text-caption',
+                  sunday.cup.winnerClubId === playerClubId ? 'text-amber-300 font-semibold'
+                    : sunday.cup.eliminated ? 'text-muted-foreground' : 'text-transparent',
+                )}>
+                  {sunday.cup.winnerClubId === playerClubId
+                    ? t('sunday.table.cupWon')
+                    : sunday.cup.eliminated ? t('sunday.table.cupOut') : ''}
+                </span>
+              }
+            />
+            <ol className="mt-2 space-y-2.5">
+              {[1, 2, 3].map(round => {
+                const ties = sunday.cup!.ties.filter(x => x.round === round);
+                if (!ties.length) return null;
+                return (
+                  <li key={round}>
+                    <p className="text-micro font-semibold uppercase tracking-wide text-muted-foreground pb-1 border-b border-white/[0.08]">
+                      {sundayCupRoundName(round)}
+                    </p>
+                    <ul className="pt-1.5 space-y-1">
+                      {ties.map(tie => {
+                        const home = clubs[tie.homeClubId];
+                        const away = clubs[tie.awayClubId];
+                        const mine = tie.homeClubId === playerClubId || tie.awayClubId === playerClubId;
+                        return (
+                          <li
+                            key={`${tie.round}-${tie.homeClubId}-${tie.awayClubId}`}
+                            className={cn(
+                              'flex items-center gap-2 text-caption rounded-md px-1.5 py-1',
+                              mine && 'font-semibold bg-primary/10',
+                            )}
+                          >
+                            <span className="flex-1 min-w-0 flex items-center justify-end gap-1.5">
+                              <span className="truncate text-foreground/85">{home?.shortName ?? '?'}</span>
+                              {home && (
+                                <SundayCrest shortName={home.shortName} color={home.color} secondaryColor={home.secondaryColor} size={16} />
+                              )}
+                            </span>
+                            <span className="shrink-0 tabular-nums text-foreground w-16 text-center">
+                              {tie.played
+                                ? `${tie.homeGoals}-${tie.awayGoals}${tie.shootout ? ` (${tie.shootout.home}-${tie.shootout.away})` : ''}`
+                                : t('sunday.match.vs')}
+                            </span>
+                            <span className="flex-1 min-w-0 flex items-center gap-1.5">
+                              {away && (
+                                <SundayCrest shortName={away.shortName} color={away.color} secondaryColor={away.secondaryColor} size={16} />
+                              )}
+                              <span className="truncate text-foreground/85">{away?.shortName ?? '?'}</span>
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </li>
+                );
+              })}
+            </ol>
+          </GlassPanel>
         ) : (
           <GlassPanel className="p-6 text-center">
             <p className="text-body text-muted-foreground">{t('sunday.table.noCup')}</p>
           </GlassPanel>
         )
       )}
+
     </div>
   );
 };

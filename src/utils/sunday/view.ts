@@ -262,6 +262,111 @@ export function sundayOppositionCard(
   };
 }
 
+// ── What happened elsewhere ─────────────────────────────────────────────────
+
+export type SundayBuzzKind = 'upset' | 'heaviest' | 'streak' | 'leader';
+
+export interface SundayLeagueBuzzEntry {
+  kind: SundayBuzzKind;
+  /** English. Game data / narrative, never UI chrome — do not translate.
+   *  Same rule as `SundayNewsEntry.text`. */
+  text: string;
+  id: string;
+}
+
+/**
+ * The rest of the division, in three lines.
+ *
+ * WHY. A Sunday league table is eight rows of numbers that move once a week,
+ * and nothing on the League screen ever said that anything happened to anyone
+ * else. The other seven clubs were a list of names the player's own results
+ * pushed up and down.
+ *
+ * NOTHING HERE IS INVENTED. Every line is a statement about a fixture that was
+ * actually played or a row that is actually in `buildSundayTable` — the same
+ * table the season rollover judges promotion on. The player's own match is
+ * excluded: he watched it.
+ *
+ * ON THE UPSET LINE'S TENSE. "Four places between them" is measured on the
+ * table AS IT STANDS, after the result, which is why it is phrased in the
+ * present. A gap that the result itself closed reads as no gap and is not
+ * reported, which is the conservative direction to be wrong in.
+ */
+export function sundayLeagueBuzz(
+  sunday: SundayState,
+  clubs: Record<string, Club>,
+  fixtures: readonly Match[],
+  playerClubId: string,
+  limit = 3,
+): SundayLeagueBuzzEntry[] {
+  const table = buildSundayTable(fixtures, sunday.divisionClubIds);
+  const pos = new Map(table.map((r, i) => [r.clubId, i + 1]));
+  const played = fixtures.filter(
+    m => m.played && pos.has(m.homeClubId) && pos.has(m.awayClubId),
+  );
+  if (played.length === 0) return [];
+
+  const latest = Math.max(...played.map(m => m.week));
+  const elsewhere = played.filter(
+    m => m.week === latest && m.homeClubId !== playerClubId && m.awayClubId !== playerClubId,
+  );
+  const name = (id: string) => clubs[id]?.shortName ?? id;
+  const out: SundayLeagueBuzzEntry[] = [];
+
+  // The upset: the biggest table gap a lower-placed side beat.
+  let upset: { id: string; gap: number; won: string; lost: string; score: string } | null = null;
+  let heaviest: { id: string; margin: number; won: string; lost: string; score: string } | null = null;
+  for (const m of elsewhere) {
+    if (m.homeGoals === m.awayGoals) continue;
+    const homeWon = m.homeGoals > m.awayGoals;
+    const won = homeWon ? m.homeClubId : m.awayClubId;
+    const lost = homeWon ? m.awayClubId : m.homeClubId;
+    const score = `${Math.max(m.homeGoals, m.awayGoals)}-${Math.min(m.homeGoals, m.awayGoals)}`;
+    const gap = (pos.get(won) ?? 0) - (pos.get(lost) ?? 0);
+    if (gap >= 3 && (!upset || gap > upset.gap)) upset = { id: m.id, gap, won, lost, score };
+    const margin = Math.abs(m.homeGoals - m.awayGoals);
+    if (margin >= 3 && (!heaviest || margin > heaviest.margin)) {
+      heaviest = { id: m.id, margin, won, lost, score };
+    }
+  }
+  if (upset) {
+    out.push({
+      kind: 'upset', id: `upset-${upset.id}`,
+      text: `${name(upset.won)} beat ${name(upset.lost)} ${upset.score}. ${upset.gap} places between them.`,
+    });
+  }
+  if (heaviest && heaviest.id !== upset?.id) {
+    out.push({
+      kind: 'heaviest', id: `heaviest-${heaviest.id}`,
+      text: `${name(heaviest.won)} ${heaviest.score} ${name(heaviest.lost)}.`,
+    });
+  }
+
+  // A run somebody else is on. `form` is chronological and capped at five.
+  for (const row of table) {
+    if (out.length >= limit) break;
+    if (row.clubId === playerClubId) continue;
+    let run = 0;
+    for (let i = row.form.length - 1; i >= 0 && row.form[i] === 'W'; i--) run++;
+    if (run >= 3) {
+      out.push({
+        kind: 'streak', id: `streak-${row.clubId}`,
+        text: `${name(row.clubId)} have won ${run} in a row.`,
+      });
+      break;
+    }
+  }
+
+  if (out.length < limit && table[0]?.played > 0) {
+    out.push({
+      kind: 'leader', id: `leader-${table[0].clubId}`,
+      text: `${name(table[0].clubId)} lead the division on ${table[0].points} points.`,
+    });
+  }
+
+  return out.slice(0, Math.max(0, limit));
+}
+
 // ── The clubhouse ───────────────────────────────────────────────────────────
 
 export interface SundayUpgradeSceneItem {

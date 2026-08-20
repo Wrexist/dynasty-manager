@@ -96,17 +96,20 @@ export function AvailabilityCount({ status, label }: { status: SundayAvailabilit
  */
 export function FormPills({ form, size = 'md' }: {
   form: readonly ('W' | 'D' | 'L')[];
-  size?: 'sm' | 'md';
+  /** `xs` exists for the league table's own column: five 18px pills plus their
+   *  gaps need 98px, which at 375px leaves the club name 60px to live in. 14px
+   *  is the size the elite table already uses in the same place. */
+  size?: 'xs' | 'sm' | 'md';
 }) {
   if (form.length === 0) return null;
   return (
-    <span className="inline-flex gap-0.5" aria-label={form.join(', ')}>
+    <span className={cn('inline-flex', size === 'xs' ? 'gap-px' : 'gap-0.5')} aria-label={form.join(', ')}>
       {form.map((r, i) => (
         <span
           key={i}
           className={cn(
             'rounded text-micro font-bold inline-flex items-center justify-center shrink-0',
-            size === 'sm' ? 'w-[18px] h-[18px]' : 'w-5 h-5',
+            size === 'xs' ? 'w-3.5 h-3.5 leading-none' : size === 'sm' ? 'w-[18px] h-[18px]' : 'w-5 h-5',
             r === 'W' ? 'bg-emerald-500/25 text-emerald-300'
               : r === 'L' ? 'bg-destructive/25 text-destructive' : 'bg-amber-400/20 text-amber-300',
           )}
