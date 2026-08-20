@@ -113,14 +113,14 @@ const SundayTable = () => {
               <tr className="text-micro text-muted-foreground">
                 <th scope="col" className="text-left px-2 py-1.5 font-semibold w-7">#</th>
                 <th scope="col" className="text-left px-1 py-1.5 font-semibold">{t('sunday.hub.club')}</th>
-                <th scope="col" className="text-right px-1 py-1.5 font-semibold w-6">{t('sunday.table.played')}</th>
-                {/* One column, not three. W/D/L as three columns cost 60px and
-                    said less than the last five results do; the record is still
-                    all there, and the space bought the form. */}
+                {/* One column, not four. W/D/L as three columns cost 60px and
+                    said less than the last five results do, and P is the sum of
+                    the three — the whole record is still here, and dropping the
+                    redundancy bought the form column at 375px. */}
                 <th scope="col" className="text-center px-1 py-1.5 font-semibold w-12 whitespace-nowrap">{t('sunday.table.record')}</th>
                 <th scope="col" className="text-right px-1 py-1.5 font-semibold w-7">{t('sunday.table.goalDifference')}</th>
                 <th scope="col" className="text-right px-1 py-1.5 font-semibold w-7">{t('sunday.table.points')}</th>
-                <th scope="col" className="text-center px-1 py-1.5 font-semibold w-[4.6rem]">{t('sunday.table.form')}</th>
+                <th scope="col" className="text-center px-1 py-1.5 font-semibold w-[5.2rem]">{t('sunday.table.form')}</th>
               </tr>
             </thead>
             <tbody>
@@ -155,7 +155,6 @@ const SundayTable = () => {
                         </span>
                       </span>
                     </td>
-                    <td className="px-1 py-2 text-right tabular-nums text-muted-foreground">{row.played}</td>
                     <td className="px-1 py-2 text-center text-micro tabular-nums text-muted-foreground whitespace-nowrap">
                       {row.won}-{row.drawn}-{row.lost}
                     </td>
