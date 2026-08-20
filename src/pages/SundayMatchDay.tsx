@@ -39,6 +39,9 @@ import { deriveSundayStakes } from '@/utils/sunday/tier';
 import { buildSundayTimeline } from '@/utils/sunday/timeline';
 import { SundayTimeline } from '@/components/game/sunday/SundayTimeline';
 import { SundayBriefing } from '@/components/game/sunday/SundayBriefing';
+import { SundayStory } from '@/components/game/sunday/SundayStory';
+import type { SundayStoryPerson } from '@/components/game/sunday/SundayStory';
+import { sundayFaceSpec, sundayKitSpec } from '@/utils/sunday/visuals';
 import { SundayAdjustments } from '@/components/game/sunday/SundayAdjustments';
 import { sundayMilestoneToday, sundayReverseFixtureRecall } from '@/utils/sunday/briefing';
 import type { SundayMatchTier, SundayTacticId } from '@/types/game';
@@ -46,12 +49,8 @@ import type { SundayMatchTier, SundayTacticId } from '@/types/game';
 const WarningIcon = SUNDAY_ICON.warning;
 const KickOffIcon = SUNDAY_ICON.kickOff;
 const SkipIcon = SUNDAY_ICON.skip;
-const HeroIcon = SUNDAY_ICON.hero;
-const LowlightIcon = SUNDAY_ICON.lowlight;
 const SquadIcon = SUNDAY_ICON.squad;
 const MoneyIcon = SUNDAY_ICON.money;
-const TurningPointIcon = SUNDAY_ICON.substitution;
-const ConsequenceIcon = SUNDAY_ICON.expense;
 const RatingsIcon = SUNDAY_ICON.ratings;
 const RivalIcon = SUNDAY_ICON.rival;
 
@@ -402,16 +401,23 @@ const SundayMatchDay = () => {
   const atTheBreak = !!halfTime && !report && !playing && revealed >= halfTime.narrative.length;
   // Names off the REPORT, not the players map: a guest can be man of the match
   // and cease to exist an hour later, which used to blank the panel entirely.
-  const heroName = report?.motmPlayerId
-    ? report.motmName ?? (players[report.motmPlayerId]
-      ? `${players[report.motmPlayerId].firstName} ${players[report.motmPlayerId].lastName}`
-      : null)
+  // The face is drawn from whatever the players map still has; for a departed
+  // guest `sundayFaceSpec` derives a stable one from his id, which is the same
+  // face he wore on every other screen he ever appeared on.
+  const person = (
+    id: string | null, snapshot: string | null, rating: number,
+  ): SundayStoryPerson | null => {
+    if (!id) return null;
+    const live = players[id];
+    const name = snapshot ?? (live ? `${live.firstName} ${live.lastName}` : null);
+    if (!name) return null;
+    return { name, rating, face: sundayFaceSpec({ id, appearance: live?.appearance }) };
+  };
+  const hero = report ? person(report.motmPlayerId, report.motmName, report.motmRating) : null;
+  const villain = report && report.lowlightPlayerId !== report.motmPlayerId
+    ? person(report.lowlightPlayerId, report.lowlightName, report.lowlightRating)
     : null;
-  const villainName = report?.lowlightPlayerId
-    ? report.lowlightName ?? (players[report.lowlightPlayerId]
-      ? `${players[report.lowlightPlayerId].firstName} ${players[report.lowlightPlayerId].lastName}`
-      : null)
-    : null;
+  const kit = sundayKitSpec(sunday.identity.color, sunday.identity.secondaryColor, playerClubId);
   const standing = arrival ? arrival.presentIds.length + arrival.forcedRingers : 0;
 
   // The tier drives the header rim and the pace of the reveal. Before kick-off
@@ -752,65 +758,20 @@ const SundayMatchDay = () => {
       {/* 4 · THE STORY */}
       {report && done && (
         <>
-          <GlassPanel className="p-4 space-y-2.5">
-            <p className="text-body font-semibold text-foreground">{sundayResultVerdict(report)}</p>
-            {weather && (
-              <p className="text-micro text-muted-foreground inline-flex items-center gap-1.5">
-                <WeatherIcon className="w-3.5 h-3.5" aria-hidden />
-                {weather.weather} · {t('sunday.match.pitch')}: {weather.pitch}
-              </p>
-            )}
-            <div className="space-y-2">
-              {heroName && (
-                <div className="flex items-start gap-2">
-                  <HeroIcon className="w-4 h-4 text-primary shrink-0 mt-0.5" aria-hidden />
-                  <p className="text-caption text-foreground">
-                    <span className="text-muted-foreground">{t('sunday.story.hero')}: </span>
-                    {heroName} · {report.motmRating.toFixed(1)}
-                  </p>
-                </div>
-              )}
-              {villainName && report.lowlightPlayerId !== report.motmPlayerId && (
-                <div className="flex items-start gap-2">
-                  <LowlightIcon className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" aria-hidden />
-                  <p className="text-caption text-foreground">
-                    <span className="text-muted-foreground">{t('sunday.story.lowlight')}: </span>
-                    {villainName} · {report.lowlightRating.toFixed(1)}
-                  </p>
-                </div>
-              )}
-              {report.moraleDelta !== 0 && (
-                <div className="flex items-start gap-2">
-                  <SquadIcon className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" aria-hidden />
-                  <p className="text-caption text-foreground">
-                    <span className="text-muted-foreground">{t('sunday.story.morale')}: </span>
-                    <span className={cn('tabular-nums font-semibold', report.moraleDelta > 0 ? 'text-emerald-300' : 'text-destructive')}>
-                      {report.moraleDelta > 0 ? '+' : ''}{report.moraleDelta}
-                    </span>
-                  </p>
-                </div>
-              )}
-              {report.turningPoint && (
-                <div className="flex items-start gap-2">
-                  <TurningPointIcon className="w-4 h-4 text-sky-300 shrink-0 mt-0.5" aria-hidden />
-                  <p className="text-caption text-foreground">
-                    <span className="text-muted-foreground">{t('sunday.story.turningPoint')}: </span>
-                    {report.turningPoint}
-                  </p>
-                </div>
-              )}
-              {report.consequences.length > 0 && (
-                <div className="flex items-start gap-2">
-                  <ConsequenceIcon className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" aria-hidden />
-                  <div className="min-w-0">
-                    <p className="text-micro text-muted-foreground">{t('sunday.story.consequences')}</p>
-                    {report.consequences.map(line => (
-                      <p key={line} className="text-caption text-foreground leading-relaxed">{line}</p>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+          <GlassPanel className={cn('p-4', SUNDAY_TIER_RIM[tier])}>
+            <SundayStory
+              verdict={sundayResultVerdict(report)}
+              weatherLabel={weather ? `${weather.weather} · ${t('sunday.match.pitch')}: ${weather.pitch}` : null}
+              weatherIcon={weather ? WeatherIcon : null}
+              hero={hero}
+              lowlight={villain}
+              moraleDelta={report.moraleDelta}
+              guestCount={report.ringersUsed}
+              turningPoint={report.turningPoint}
+              consequences={report.consequences}
+              kitBody={kit.body}
+              kitTrim={kit.trim}
+            />
           </GlassPanel>
 
           {report.adjustments.length > 0 && (

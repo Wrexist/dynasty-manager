@@ -141,6 +141,14 @@ export const SUNDAY_ICON = {
 
 export type SundayIconName = keyof typeof SUNDAY_ICON;
 
+/**
+ * Re-exported so a Sunday component can TYPE an icon prop without importing
+ * from `lucide-react` — which `sundayIcons.test.ts` forbids on these screens,
+ * deliberately and without a carve-out for type-only imports: a rule with an
+ * exception is a rule nobody can check with a regex.
+ */
+export type { LucideIcon };
+
 /** Availability status → glyph. Mirrors `AvailabilityPill`'s three states. */
 export const SUNDAY_AVAILABILITY_ICON: Record<'available' | 'doubt' | 'out', LucideIcon> = {
   available: SUNDAY_ICON.available,
