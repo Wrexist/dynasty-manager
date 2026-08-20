@@ -37,8 +37,8 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type {
-  SundayEventInstance, SundayMatchTier, SundayMemoryKind, SundayUpgradeId,
-  WeatherCondition,
+  SundayEventInstance, SundayMatchTier, SundayMemoryKind, SundayTimelineKind,
+  SundayUpgradeId, WeatherCondition,
 } from '@/types/game';
 
 /**
@@ -192,16 +192,56 @@ export const SUNDAY_EVENT_CATEGORY_TONE: Record<SundayEventInstance['category'],
  * beside `SUNDAY_EVENT_CATEGORY_TONE` because both answer "what colour is this
  * concept", which is the same question the icon maps answer in glyphs.
  *
- * Existing tokens only: gold for a final, orange for the derby, sky for a cup
- * tie, nothing at all for a wet Tuesday.
+ * FIVE TIERS, FIVE VISIBLY DIFFERENT ANSWERS. This map used to claim "gold for
+ * a final" while painting the final and the decider with two nearly identical
+ * washes of `--primary` — which is EMERALD on every in-game page (`.game-theme`
+ * in index.css overrides the gold), so neither was gold and the two loudest
+ * fixtures in the mode were told apart by five percent of ring opacity. A final
+ * is amber now, and really is; a decider keeps the green light.
  */
 export const SUNDAY_TIER_RIM: Record<SundayMatchTier, string> = {
   routine: '',
   cup: 'ring-1 ring-sky-400/30',
   derby: 'ring-1 ring-orange-400/40',
-  'cup-final': 'ring-1 ring-primary/50 shadow-[0_0_28px_-8px_hsl(var(--primary)/0.55)]',
+  'cup-final': 'ring-1 ring-amber-300/60 shadow-[0_0_30px_-8px_rgb(252_211_77/0.5)]',
   decider: 'ring-1 ring-primary/45 shadow-[0_0_24px_-8px_hsl(var(--primary)/0.45)]',
 };
+
+/**
+ * The tier's own word for itself, and the colour that word is written in.
+ *
+ * The rim alone says "this one is different" without saying WHY. A chip that
+ * names the afternoon — Cup Final, Derby, Decider — is the shortest honest
+ * answer, and the tone matches the rim so the two read as one treatment.
+ * `routine` has no chip: a wet Tuesday should look like a wet Tuesday.
+ */
+export const SUNDAY_TIER_CHIP: Record<SundayMatchTier, string> = {
+  routine: '',
+  cup: 'text-sky-300 bg-sky-500/10 border-sky-400/25',
+  derby: 'text-orange-300 bg-orange-500/10 border-orange-400/30',
+  'cup-final': 'text-amber-200 bg-amber-400/10 border-amber-300/35',
+  decider: 'text-primary bg-primary/10 border-primary/30',
+};
+
+/**
+ * Match-timeline row → glyph.
+ *
+ * PARTIAL ON PURPOSE. A goal, a booking and a sending-off are SHAPES, not
+ * pictograms: a football is a filled disc and a card is a coloured rectangle,
+ * and every timeline ever printed draws them that way. `SundayTimeline` draws
+ * those three itself in six lines of SVG-free markup, which is both more
+ * legible at 10px than any glyph and free of bundle cost. Only the rows with
+ * no conventional shape are listed here.
+ *
+ * `penalty-missed` shares `Frown` with `lowlight` deliberately — a penalty put
+ * over the bar is precisely one to forget — and says so here rather than
+ * arriving at the same glyph by accident in two files.
+ */
+export const SUNDAY_TIMELINE_ICON = {
+  injury: SUNDAY_ICON.injury,
+  sub: SUNDAY_ICON.substitution,
+  'penalty-missed': SUNDAY_ICON.lowlight,
+} as const satisfies Partial<Record<SundayTimelineKind, LucideIcon>>;
 
 /** Upgrade → glyph. One per id in `SUNDAY_UPGRADES`, so a missing entry is a
  *  type error rather than a blank square. */

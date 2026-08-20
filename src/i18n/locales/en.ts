@@ -153,7 +153,6 @@ export const en = {
   'sunday.match.noFixture': 'There is no fixture to play.',
   'sunday.match.skip': 'Skip to the result',
   'sunday.match.halfTime': 'Half time',
-  'sunday.match.halfTimeHint': 'One change. The second half is really played under whatever you pick.',
   'sunday.match.asWeAre': 'as you set up',
   'sunday.match.fit': 'fit',
   'sunday.match.resumed': 'The app restarted at half time, so the second half was played as you had set up.',
@@ -171,6 +170,16 @@ export const en = {
   'sunday.match.counter.proper-football': 'Get after them early and it tends to fall apart.',
 
   // Post-match story
+  // Match timeline — the afternoon as a match sheet. Terse on purpose: each of
+  // these sits after a name on a 375px row.
+  'sunday.timeline.ownGoal': 'own goal',
+  'sunday.timeline.missed': 'penalty missed',
+  'sunday.timeline.booked': 'booked',
+  'sunday.timeline.sentOff': 'sent off',
+  'sunday.timeline.hurt': 'off hurt',
+  'sunday.timeline.onFor': 'on for {name}',
+  'sunday.timeline.penalties': 'Penalties',
+
   'sunday.story.hero': 'Man of the match',
   'sunday.story.lowlight': 'One to forget',
   'sunday.story.turningPoint': 'Where it turned',

@@ -36,6 +36,8 @@ import { findSundayFixture, sundayPitchQuality } from '@/store/slices/sunday/mat
 import { buildSundayTable, sundayCupRoundName, sundayPosition } from '@/utils/sunday/season';
 import { buildMatchdayTeam, sundayResultVerdict, sundayStyleOf } from '@/utils/sunday/match';
 import { deriveSundayStakes } from '@/utils/sunday/tier';
+import { buildSundayTimeline } from '@/utils/sunday/timeline';
+import { SundayTimeline } from '@/components/game/sunday/SundayTimeline';
 import { sundayMilestoneToday, sundayReverseFixtureRecall } from '@/utils/sunday/briefing';
 import type { SundayMatchTier, SundayTacticId } from '@/types/game';
 
@@ -97,14 +99,13 @@ const AdjustmentList = ({ rows, label }: { rows: readonly { label: string; delta
 const SundayMatchDay = () => {
   const { t } = useTranslation();
   const reduceMotion = useReducedMotionPref();
-  const { sunday, clubs, fixtures, week, playerClubId, matchSpeed, matchWeather } = useGameStore(useShallow(s => ({
+  const { sunday, clubs, fixtures, week, playerClubId, matchSpeed } = useGameStore(useShallow(s => ({
     sunday: s.sunday,
     clubs: s.clubs,
     fixtures: s.fixtures,
     week: s.week,
     playerClubId: s.playerClubId,
     matchSpeed: s.settings.matchSpeed,
-    matchWeather: s.currentMatchResult?.weather ?? null,
   })));
   const playMatch = useGameStore(s => s.playSundayMatch);
   const playFirstHalf = useGameStore(s => s.playSundayFirstHalf);
@@ -140,6 +141,38 @@ const SundayMatchDay = () => {
   // the half already played. The report BEGINS with the pause's own lines, so
   // the index carries straight over when the second half arrives.
   const feed = report ? report.narrative : halfTime ? halfTime.narrative : null;
+
+  /**
+   * WHAT IT WAS LIKE OUT THERE — and only once it exists.
+   *
+   * The weather is rolled inside `prepareSundayMatch`, from the match-week
+   * stream, AFTER the ringer draws. There is therefore no weather during the
+   * briefing or the arrival, and a badge there would be an invention. It is
+   * read from the pause while a match is in progress and from the REPORT
+   * afterwards — not from `currentMatchResult`, which is never persisted, so
+   * the post-match panel used to lose its weather line to a reload while the
+   * report sitting next to it still had it written down.
+   */
+  const weather = report?.weather ?? halfTime?.weather ?? null;
+
+  /**
+   * The afternoon as rows. Post-match it is the snapshot on the report; at the
+   * break it is derived from the engine state the pause carries, with the
+   * guests merged in — they are not in `players` and would otherwise be a
+   * nameless scorer on the one row that matters.
+   */
+  const timeline = useMemo(() => {
+    if (report) return report.timeline ?? [];
+    if (!halfTime) return [];
+    const withGuests = { ...players };
+    for (const r of halfTime.ringers) withGuests[r.id] = r;
+    return buildSundayTimeline({
+      events: halfTime.engineState.events,
+      clubId: playerClubId,
+      isHome: (fixtures.find(m => m.id === halfTime.matchId)?.homeClubId ?? playerClubId) === playerClubId,
+      players: withGuests,
+    });
+  }, [report, halfTime, players, playerClubId, fixtures]);
 
   const clearTimer = useCallback(() => {
     if (timer.current) { clearTimeout(timer.current); timer.current = null; }
@@ -367,7 +400,7 @@ const SundayMatchDay = () => {
   };
 
   const pitch = Math.round(sundayPitchQuality(sunday, week));
-  const WeatherIcon = SUNDAY_WEATHER_ICON[matchWeather?.weather ?? 'clear'];
+  const WeatherIcon = SUNDAY_WEATHER_ICON[weather?.weather ?? 'clear'];
   const done = !!report && revealed >= report.narrative.length;
   // The break is only offered once the first half has finished revealing —
   // a decision on top of a feed still scrolling is a decision nobody read.
@@ -434,6 +467,15 @@ const SundayMatchDay = () => {
             />
           </div>
         </div>
+        {/* THE MATCH SHEET, under the score, exactly where a printed report
+            puts its scorers. No heading: a column of minutes under a scoreline
+            needs no label, and the panel below is titled "How it happened",
+            which is a different thing and would read as a duplicate. */}
+        {report && done && timeline.length > 0 && (
+          <div className="mt-3 border-t border-border/40 pt-3">
+            <SundayTimeline rows={timeline} us={sunday.identity.shortName} them={opponent?.shortName ?? '???'} />
+          </div>
+        )}
       </GlassPanel>
 
       {/* 1 · BRIEFING */}
@@ -671,7 +713,18 @@ const SundayMatchDay = () => {
               </span>
             }
           />
-          <p className="text-caption text-muted-foreground">{t('sunday.match.halfTimeHint')}</p>
+          {/* WHAT HAS ACTUALLY HAPPENED, before the decision that turns on it.
+              A tactic switch chosen off eighteen sentences of prose is chosen
+              off whatever the manager can still remember of them. */}
+          {timeline.length > 0 && (
+            <SundayTimeline rows={timeline} us={sunday.identity.shortName} them={opponent?.shortName ?? '???'} />
+          )}
+          {weather && (
+            <p className="text-micro text-muted-foreground inline-flex items-center gap-1.5">
+              <WeatherIcon className="w-3.5 h-3.5" aria-hidden />
+              {weather.weather} · {t('sunday.match.pitch')}: {weather.pitch}
+            </p>
+          )}
           <div className="space-y-1.5">
             {SUNDAY_TACTICS.map(option => {
               const current = option.id === halfTime!.tactic;
@@ -705,10 +758,10 @@ const SundayMatchDay = () => {
         <>
           <GlassPanel className="p-4 space-y-2.5">
             <p className="text-body font-semibold text-foreground">{sundayResultVerdict(report)}</p>
-            {matchWeather && (
+            {weather && (
               <p className="text-micro text-muted-foreground inline-flex items-center gap-1.5">
                 <WeatherIcon className="w-3.5 h-3.5" aria-hidden />
-                {matchWeather.weather} · {t('sunday.match.pitch')}: {matchWeather.pitch}
+                {weather.weather} · {t('sunday.match.pitch')}: {weather.pitch}
               </p>
             )}
             <div className="space-y-2">
