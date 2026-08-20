@@ -245,6 +245,8 @@ export const en = {
   'sunday.club.noSponsors': 'Nobody wants their name on this shirt yet.',
   'sunday.club.sponsorWeekly': '£{n} a week',
   'sunday.club.sponsorOffer': 'On the table',
+  'sunday.club.sponsorUntil': 'To the end of season {n}',
+  'sunday.club.sponsorMet': 'Bonus earned',
   'sunday.club.accept': 'Sign it',
   'sunday.club.decline': 'Turn it down',
   'sunday.club.finances': 'The books',
@@ -254,6 +256,7 @@ export const en = {
   'sunday.club.ledgerWeek': 'Week {week}',
   'sunday.club.ledgerPending': 'This week so far',
   'sunday.club.noLedger': 'Nothing has been spent yet.',
+  'sunday.club.balanceTrend': 'Balance across the last {n} weeks',
   'sunday.club.progress': '{n} of {target}',
 
   // Recruitment

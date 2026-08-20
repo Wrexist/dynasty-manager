@@ -33,12 +33,13 @@ import { SUNDAY_ICON, SUNDAY_UPGRADE_ICON } from '@/config/sundayIcons';
 import type { SundayUpgradeId } from '@/types/game';
 import { splitLedger, sundayUpgradeUpkeep, sundayWeeklyBurn } from '@/utils/sunday/finance';
 import {
-  sundayUpgradePreview, sundayUpgradeScene,
+  sundaySponsorBoards, sundayUpgradePreview, sundayUpgradeScene,
   type SundayUpgradeStat,
 } from '@/utils/sunday/view';
 
 const VenueIcon = SUNDAY_ICON.venue;
 const RepIcon = SUNDAY_ICON.reputation;
+const SignOnIcon = SUNDAY_ICON.fundraiser;
 
 /** Which glyph stands for each number an upgrade moves. */
 const STAT_ICON: Record<SundayUpgradeStat, React.ElementType> = {
@@ -60,8 +61,9 @@ type Tab = 'upgrades' | 'sponsors' | 'books';
 const SundayClubhouse = () => {
   const { t } = useTranslation();
   const sunday = useGameStore(s => s.sunday);
-  const { week, buyUpgrade, mothballUpgrade, acceptSponsor, declineSponsor } = useGameStore(useShallow(s => ({
+  const { week, season, buyUpgrade, mothballUpgrade, acceptSponsor, declineSponsor } = useGameStore(useShallow(s => ({
     week: s.week,
+    season: s.season,
     buyUpgrade: s.buySundayUpgrade,
     mothballUpgrade: s.mothballSundayUpgrade,
     acceptSponsor: s.acceptSundaySponsor,
@@ -82,6 +84,30 @@ const SundayClubhouse = () => {
     return splitLedger([...sunday.ledger.flatMap(l => l.lines), ...sunday.pendingLedger]);
   }, [sunday]);
 
+  /**
+   * The balance, week by week, as a polyline in a 100x28 box.
+   *
+   * Derived here rather than in `view.ts` because it is a drawing, not a fact:
+   * the numbers are `entry.balance`, which the ledger already records, and all
+   * this does is scale them into a viewBox. Null below two weeks — a sparkline
+   * of one point is a dot pretending to be a trend.
+   */
+  const trend = useMemo(() => {
+    if (!sunday || sunday.ledger.length < 2) return null;
+    const values = sunday.ledger.map(e => e.balance);
+    const lo = Math.min(0, ...values);
+    const hi = Math.max(0, ...values);
+    const span = hi - lo || 1;
+    const y = (v: number) => 26 - ((v - lo) / span) * 24;
+    const step = 100 / (values.length - 1);
+    return {
+      count: values.length,
+      zero: y(0),
+      rising: values[values.length - 1] >= values[0],
+      points: values.map((v, i) => `${(i * step).toFixed(2)},${y(v).toFixed(2)}`).join(' '),
+    };
+  }, [sunday]);
+
   const scene = useMemo(() => (sunday ? sundayUpgradeScene(sunday) : null), [sunday]);
   const previews = useMemo(
     () => (sunday ? scene!.items.map(i => sundayUpgradePreview(sunday, week, i.id)) : []),
@@ -92,6 +118,7 @@ const SundayClubhouse = () => {
   const personality = getSundayPersonality(sunday.identity.personality);
   const burn = sundayWeeklyBurn(sunday.divisionId, sunday.upgrades);
   const upkeep = sundayUpgradeUpkeep(sunday.divisionId, sunday.upgrades);
+  const boards = sundaySponsorBoards(sunday, season);
 
   const tabs: { key: Tab; label: string; icon: React.ElementType }[] = [
     { key: 'upgrades', label: t('sunday.club.upgrades'), icon: SUNDAY_ICON.upgrade },
@@ -333,66 +360,129 @@ const SundayClubhouse = () => {
 
       {tab === 'sponsors' && (
         <div className="space-y-2">
-          {sunday.sponsorOffers.map(offer => (
-            <GlassPanel key={offer.id} className="p-4 space-y-2">
-              <SectionHeader level="section" title={offer.name} accessory={
-                <span className="text-caption text-emerald-300">{t('sunday.club.sponsorWeekly', { n: offer.weekly })}</span>
-              } />
-              <p className="text-caption text-muted-foreground leading-relaxed">{offer.blurb}</p>
-              <p className="text-caption text-foreground/80">{offer.conditionText}</p>
-              <p className="text-micro text-muted-foreground">
-                {t('sunday.club.sponsorOffer')} · {formatMoney(offer.signOn)}
-              </p>
-              <div className="flex gap-2">
-                <LiquidButton
-                  tone="primary"
-                  className="flex-1 py-2"
-                  busy={busy === `sponsor:${offer.id}`}
-                  onClick={() => {
-                    if (busy) return;
-                    setBusy(`sponsor:${offer.id}`);
-                    void acceptSponsor(offer.id)
-                      .then(r => { if (r.ok) toast.success(r.message); else toast.info(r.message); })
-                      .finally(() => setBusy(null));
-                  }}
-                >
-                  <span className="text-micro">{t('sunday.club.accept')}</span>
-                </LiquidButton>
-                <LiquidButton className="flex-1 py-2" onClick={() => { void declineSponsor(offer.id); }}>
-                  <span className="text-micro">{t('sunday.club.decline')}</span>
-                </LiquidButton>
-              </div>
+          {/* Offers first: they are the only thing here that needs an answer. */}
+          {sunday.sponsorOffers.length > 0 && (
+            <GlassPanel className="p-3 space-y-3">
+              <SectionHeader level="eyebrow" title={t('sunday.club.sponsorOffer')} />
+              {sunday.sponsorOffers.map((offer, i) => (
+                <div key={offer.id} className={cn('space-y-2', i > 0 && 'pt-3 border-t border-white/[0.06]')}>
+                  <div className="flex items-baseline gap-2">
+                    <p className="flex-1 min-w-0 truncate text-body font-semibold text-foreground">{offer.name}</p>
+                    <span className="shrink-0 text-caption font-semibold text-emerald-300 tabular-nums">
+                      {t('sunday.club.sponsorWeekly', { n: offer.weekly })}
+                    </span>
+                  </div>
+                  <p className="text-caption text-muted-foreground leading-snug">{offer.blurb}</p>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-micro">
+                    <span className="inline-flex items-center gap-1 text-emerald-300 tabular-nums">
+                      <SignOnIcon className="w-3 h-3" aria-hidden />
+                      {formatMoney(offer.signOn)}
+                    </span>
+                    {offer.condition !== 'none' && (
+                      <span className="text-foreground/75">{offer.conditionText}</span>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <LiquidButton
+                      tone="primary"
+                      className="flex-1 py-2.5"
+                      busy={busy === `sponsor:${offer.id}`}
+                      onClick={() => {
+                        if (busy) return;
+                        setBusy(`sponsor:${offer.id}`);
+                        void acceptSponsor(offer.id)
+                          .then(r => { if (r.ok) toast.success(r.message); else toast.info(r.message); })
+                          .finally(() => setBusy(null));
+                      }}
+                    >
+                      <span className="text-micro">{t('sunday.club.accept')}</span>
+                    </LiquidButton>
+                    <button
+                      type="button"
+                      className="shrink-0 min-h-[44px] px-3 text-micro text-muted-foreground underline underline-offset-2"
+                      onClick={() => { void declineSponsor(offer.id); }}
+                    >
+                      {t('sunday.club.decline')}
+                    </button>
+                  </div>
+                </div>
+              ))}
             </GlassPanel>
-          ))}
+          )}
 
-          {sunday.sponsors.length === 0 && sunday.sponsorOffers.length === 0 && (
+          {/* Live deals, drawn as what they physically are: the boards round
+              the ground. The same names are painted on the fence in the scene
+              on the Upgrades tab, in the same two colours. */}
+          {boards.length > 0 && (
+            <GlassPanel className="p-3 space-y-3">
+              <SectionHeader level="eyebrow" title={t('sunday.club.sponsors')} />
+              {boards.map((b, i) => (
+                <div key={b.deal.id} className={cn('space-y-1.5', i > 0 && 'pt-3 border-t border-white/[0.06]')}>
+                  <div
+                    className="rounded-md px-3 py-2 text-center ring-1 ring-inset ring-black/25"
+                    style={{
+                      backgroundColor: i % 2 ? sunday.identity.secondaryColor : sunday.identity.color,
+                      color: i % 2 ? sunday.identity.color : sunday.identity.secondaryColor,
+                    }}
+                  >
+                    <span className="text-caption font-display font-bold tracking-wide uppercase truncate block">
+                      {b.deal.name}
+                    </span>
+                  </div>
+                  <div className="flex items-baseline gap-2 text-micro">
+                    <span className="font-semibold text-emerald-300 tabular-nums shrink-0">
+                      {t('sunday.club.sponsorWeekly', { n: b.deal.weekly })}
+                    </span>
+                    <span className="text-muted-foreground truncate">
+                      {t('sunday.club.sponsorUntil', { n: b.deal.expiresSeason })}
+                    </span>
+                  </div>
+                  {b.progress != null && (
+                    <div>
+                      <p className="flex items-baseline justify-between gap-2">
+                        <span className="min-w-0 text-micro text-foreground/75 truncate">{b.deal.conditionText}</span>
+                        <span className="shrink-0 text-micro font-semibold tabular-nums text-foreground">
+                          {b.met
+                            ? t('sunday.club.sponsorMet')
+                            : t('sunday.club.progress', { n: b.deal.conditionProgress, target: b.deal.conditionTarget })}
+                        </span>
+                      </p>
+                      {/* Not `Meter`: its numeric readout is a percentage, and
+                          "11 of 25" beside a bare "44" reads as two different
+                          measurements of the same thing. The count IS the
+                          number here, so the bar carries no second one. */}
+                      <span
+                        role="meter"
+                        aria-valuenow={b.deal.conditionProgress}
+                        aria-valuemin={0}
+                        aria-valuemax={b.deal.conditionTarget}
+                        aria-label={b.deal.conditionText}
+                        className="relative block h-1.5 rounded-full overflow-hidden bg-muted/30 mt-1"
+                      >
+                        <span
+                          className={cn('block h-full rounded-full', b.met ? 'bg-emerald-500/80' : 'bg-amber-400/80')}
+                          style={{ width: `${Math.round(b.progress * 100)}%` }}
+                        />
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </GlassPanel>
+          )}
+
+          {boards.length === 0 && sunday.sponsorOffers.length === 0 && (
             <GlassPanel className="p-6 text-center">
               <p className="text-body text-muted-foreground">{t('sunday.club.noSponsors')}</p>
             </GlassPanel>
           )}
-
-          {sunday.sponsors.map(deal => (
-            <GlassPanel key={deal.id} className="p-4 space-y-1.5">
-              <SectionHeader level="section" title={deal.name} accessory={
-                <span className="text-caption text-emerald-300">{t('sunday.club.sponsorWeekly', { n: deal.weekly })}</span>
-              } />
-              <p className="text-caption text-muted-foreground leading-relaxed">{deal.blurb}</p>
-              {deal.condition !== 'none' && (
-                <>
-                  <p className="text-caption text-foreground/80">{deal.conditionText}</p>
-                  <p className="text-micro text-muted-foreground">
-                    {t('sunday.club.progress', { n: deal.conditionProgress, target: deal.conditionTarget })}
-                  </p>
-                </>
-              )}
-            </GlassPanel>
-          ))}
         </div>
       )}
 
+
       {tab === 'books' && (
         <div className="space-y-2">
-          <GlassPanel className="p-4">
+          <GlassPanel className="p-4 space-y-3">
             <div className="grid grid-cols-3 gap-2">
               <StatChip label={t('sunday.club.income')} value={formatMoney(totals.income)} tone="good" />
               <StatChip label={t('sunday.club.expenses')} value={formatMoney(-totals.expenses)} tone="bad" />
@@ -402,53 +492,88 @@ const SundayClubhouse = () => {
                 tone={totals.income - totals.expenses >= 0 ? 'good' : 'bad'}
               />
             </div>
+            {/* The shape of the season's money, from the balances the ledger
+                already records. A club that is quietly bleeding looks like a
+                slope; a stack of week panels looks like a stack of panels. */}
+            {trend && (
+              <svg
+                viewBox="0 0 100 28"
+                preserveAspectRatio="none"
+                className="block w-full h-9"
+                role="img"
+                aria-label={t('sunday.club.balanceTrend', { n: trend.count })}
+              >
+                <line x1="0" y1={trend.zero} x2="100" y2={trend.zero} stroke="currentColor" strokeWidth="0.4" className="text-white/20" />
+                <polyline
+                  points={trend.points}
+                  fill="none"
+                  strokeWidth="1.4"
+                  strokeLinejoin="round"
+                  stroke="currentColor"
+                  className={trend.rising ? 'text-emerald-300' : 'text-amber-300'}
+                  vectorEffect="non-scaling-stroke"
+                />
+              </svg>
+            )}
           </GlassPanel>
 
-          {/* This week, so far. Lines the manager has caused but the weekly
-              settlement has not yet folded into an entry. */}
-          {sunday.pendingLedger.length > 0 && (
-            <GlassPanel className="p-3.5">
-              <SectionHeader level="section" title={t('sunday.club.ledgerPending')} />
-              <ul className="mt-2 space-y-1">
-                {sunday.pendingLedger.map((line, i) => (
-                  <li key={`${line.label}-${i}`} className="flex items-baseline gap-2 text-caption">
-                    <span className="min-w-0 flex-1 text-muted-foreground truncate">{line.label}</span>
-                    <span className={cn('font-semibold tabular-nums shrink-0', line.amount >= 0 ? 'text-emerald-300' : 'text-destructive')}>
-                      {formatMoney(line.amount, { signed: true })}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </GlassPanel>
-          )}
-
+          {/* ONE ledger, not one panel per week. Eight weeks of a Sunday club's
+              money is about thirty lines; it was thirty lines inside eight
+              nested glass cards inside a tab. */}
           {sunday.ledger.length === 0 && sunday.pendingLedger.length === 0 ? (
             <GlassPanel className="p-6 text-center">
               <p className="text-body text-muted-foreground">{t('sunday.club.noLedger')}</p>
             </GlassPanel>
           ) : (
-            [...sunday.ledger].reverse().slice(0, 8).map(entry => (
-              <GlassPanel key={`${entry.season}-${entry.week}`} className="p-3.5">
-                <SectionHeader
-                  level="section"
-                  title={t('sunday.club.ledgerWeek', { week: entry.week })}
-                  accessory={<span className="text-caption font-semibold text-foreground">{formatMoney(entry.balance)}</span>}
-                />
-                <ul className="mt-2 space-y-1">
-                  {entry.lines.map((line, i) => (
-                    <li key={`${line.label}-${i}`} className="flex items-baseline gap-2 text-caption">
-                      <span className="min-w-0 flex-1 text-muted-foreground truncate">{line.label}</span>
-                      <span className={cn('font-semibold tabular-nums shrink-0', line.amount >= 0 ? 'text-emerald-300' : 'text-destructive')}>
-                        {formatMoney(line.amount, { signed: true })}
+            <GlassPanel className="p-3">
+              <ul>
+                {sunday.pendingLedger.length > 0 && (
+                  <li>
+                    <p className="flex items-baseline gap-2 pb-1 border-b border-white/[0.08]">
+                      <span className="flex-1 text-micro font-semibold uppercase tracking-wide text-primary">
+                        {t('sunday.club.ledgerPending')}
                       </span>
-                    </li>
-                  ))}
-                </ul>
-              </GlassPanel>
-            ))
+                    </p>
+                    <ul className="py-1.5 space-y-1">
+                      {sunday.pendingLedger.map((line, i) => (
+                        <li key={`${line.label}-${i}`} className="flex items-baseline gap-2 text-caption">
+                          <span className="min-w-0 flex-1 text-muted-foreground truncate">{line.label}</span>
+                          <span className={cn('font-semibold tabular-nums shrink-0', line.amount >= 0 ? 'text-emerald-300' : 'text-destructive')}>
+                            {formatMoney(line.amount, { signed: true })}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </li>
+                )}
+                {[...sunday.ledger].reverse().slice(0, 8).map(entry => (
+                  <li key={`${entry.season}-${entry.week}`}>
+                    <p className="flex items-baseline gap-2 pt-2 pb-1 border-b border-white/[0.08]">
+                      <span className="flex-1 text-micro font-semibold uppercase tracking-wide text-muted-foreground">
+                        {t('sunday.club.ledgerWeek', { week: entry.week })}
+                      </span>
+                      <span className="text-caption font-semibold text-foreground tabular-nums shrink-0">
+                        {formatMoney(entry.balance)}
+                      </span>
+                    </p>
+                    <ul className="py-1.5 space-y-1">
+                      {entry.lines.map((line, i) => (
+                        <li key={`${line.label}-${i}`} className="flex items-baseline gap-2 text-caption">
+                          <span className="min-w-0 flex-1 text-muted-foreground truncate">{line.label}</span>
+                          <span className={cn('font-semibold tabular-nums shrink-0', line.amount >= 0 ? 'text-emerald-300' : 'text-destructive')}>
+                            {formatMoney(line.amount, { signed: true })}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </li>
+                ))}
+              </ul>
+            </GlassPanel>
           )}
         </div>
       )}
+
     </div>
   );
 };
