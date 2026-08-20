@@ -270,14 +270,33 @@ describe('playoff phase — the interactive path', () => {
     const result = useGameStore.getState().playSecondHalf(90);
 
     expect(result).not.toBeNull();
-    expect(useGameStore.getState().matchPhase).toBe('full_time');
-    const after = useGameStore.getState().playoffState!;
-    // Grows by more than one when the bracket also settles the AI-vs-AI tie in
-    // the same round — the point is that the player's tie is now recorded.
-    expect(after.resolved.length).toBeGreaterThan(before.resolved.length);
-    // Either another tie is queued, or the phase has ended and the season rolled.
-    const stillGoing = useGameStore.getState().seasonPhase === 'playoff';
-    expect(!!after.pendingMatch).toBe(stillGoing);
+
+    // WHICH of the two endings you get depends on the simulated scoreline, so
+    // assert the invariants of each rather than picking one. Two earlier
+    // versions of this test passed in isolation and failed in the full suite
+    // purely on where the RNG landed — first by asserting `full_time`
+    // unconditionally, then by reading `playoffState` unconditionally.
+    const after = useGameStore.getState();
+    if (after.seasonPhase === 'playoff') {
+      // Bracket continues: the next tie is queued and the full-time screen stands.
+      // `resolved` grows by more than one when the bracket also settles the
+      // AI-vs-AI tie in the same round — the point is the player's tie is in it.
+      expect(after.playoffState!.resolved.length).toBeGreaterThan(before.resolved.length);
+      expect(after.playoffState!.pendingMatch).toBeTruthy();
+      expect(after.matchPhase).toBe('full_time');
+    } else {
+      // Bracket finished: `endSeason` ran inside the same call. It clears
+      // `playoffState` outright, resets the match-scoped state and routes to the
+      // season summary — so there is no full-time screen and nothing left to
+      // read the tie off. `matchPhase: 'none'` here is the rollover doing its
+      // job, and it is also what makes MatchDay's unmount safe:
+      // `cleanupAbandonedMatch` early-returns on ('none', no halfTimeState) and
+      // so cannot touch the season that was just built.
+      expect(after.playoffState?.pendingMatch).toBeFalsy();
+      expect(after.matchPhase).toBe('none');
+      expect(after.halfTimeState).toBeNull();
+      expect(after.currentScreen).toBe('season-summary');
+    }
   });
 
   it('freePlayerCanFinishTheirSeason: the whole bracket plays out without Instant Sim', () => {
@@ -294,6 +313,10 @@ describe('playoff phase — the interactive path', () => {
     const after = useGameStore.getState();
     expect(after.seasonPhase).toBe('regular');
     expect(after.playoffState?.pendingMatch).toBeFalsy();
+    // The last tie hands straight over to the season summary — there is no
+    // full-time screen to return to once the season has rolled.
+    expect(after.currentScreen).toBe('season-summary');
+    expect(after.matchPhase).toBe('none');
     // The season actually rolled rather than parking on the last playoff week.
     expect(after.season).toBe(season + 1);
     assertValidGameState(after, 'after an interactively played promotion playoff');
