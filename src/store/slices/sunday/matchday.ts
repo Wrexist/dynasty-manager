@@ -52,6 +52,7 @@ import {
 } from '@/utils/sunday/match';
 import { advanceSundayCup, buildSundayTable, recordSundayRecord, sundayCupRoundName, sundaySeasonWeeks } from '@/utils/sunday/season';
 import { deriveSundayStakes } from '@/utils/sunday/tier';
+import { buildSundayTimeline } from '@/utils/sunday/timeline';
 import { selectBestLineup } from '@/utils/playerGen';
 import type { SundayRng } from '@/utils/sunday/rng';
 import { createSundayRng, cursorOf, subSeed } from '@/utils/sunday/rng';
@@ -1047,6 +1048,16 @@ function settleSundayMatch(set: Set, get: Get, setup: SundayMatchSetup, sim: Sun
       }))
       .sort((a, b) => b.rating - a.rating),
     narrative: narrative.filter(Boolean),
+    // The same events the narrative was written from, flattened into rows and
+    // name-snapshotted so the timeline survives both a reload and the guests
+    // being wiped three lines below. See `utils/sunday/timeline.ts`.
+    timeline: buildSundayTimeline({
+      events: result.events,
+      clubId,
+      isHome,
+      players,
+      shootout: shootoutScore,
+    }),
     // Money is settled in the weekly advance so it can never be charged twice.
     moneyDelta: 0,
     moraleDelta,

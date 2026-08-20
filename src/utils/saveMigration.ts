@@ -64,6 +64,9 @@ const migrations: Record<number, MigrationFn> = {
   //     not be pulled into the eagerly-loaded migration. `sundaySave.test.ts`
   //     pins this copy against the real `sundayShirtNumber` so the two agree
   //     about range and uniqueness.
+  //   - `lastMatch.timeline` becomes empty, for the same reason `adjustments`
+  //     does: the events it flattens were on the unpersisted
+  //     `currentMatchResult` and are gone.
   //   - `lastMatch.weather` becomes null. The weather is rolled inside
   //     `prepareSundayMatch` from the match-week stream AFTER the ringer draws,
   //     so it is not reconstructible without replaying that stream — and
@@ -111,6 +114,13 @@ const migrations: Record<number, MigrationFn> = {
             guestRatings: Array.isArray(lm.guestRatings) ? lm.guestRatings : [],
             // Not derivable — see the note above. Nobody wrote it down.
             weather: lm.weather && typeof lm.weather === 'object' ? lm.weather : null,
+            // The timeline rows. Empty for the same reason `adjustments` is:
+            // the engine's event array lives on the unpersisted
+            // `currentMatchResult`, so an old report has no events to flatten
+            // and the only alternative would be parsing the generated English
+            // in `narrative` back into facts. The screen renders the prose feed
+            // and simply omits the timeline when there is nothing to draw.
+            timeline: Array.isArray(lm.timeline) ? lm.timeline : [],
           };
         })()
       : null;

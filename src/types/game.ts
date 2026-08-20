@@ -3040,6 +3040,43 @@ export interface SundaySeasonRecord {
  */
 export type SundayMatchTier = 'routine' | 'derby' | 'cup' | 'cup-final' | 'decider';
 
+/**
+ * One row of a match timeline: the things that would make the sheet of paper
+ * pinned to the clubhouse noticeboard.
+ *
+ * Deliberately NOT the engine's `MatchEvent`. That type carries momentum, xG,
+ * per-minute fitness snapshots and a `description` written for another mode's
+ * commentary panel; none of it belongs in a save file, and the names it points
+ * at go stale — a guest is wiped from `players` an hour after he scored. So
+ * this is the flattened, name-snapshotted subset a timeline can be drawn from
+ * a year later, and nothing else.
+ */
+export type SundayTimelineKind =
+  | 'goal' | 'own-goal' | 'penalty-missed' | 'yellow' | 'red' | 'injury'
+  | 'sub' | 'break' | 'shootout';
+
+export interface SundayTimelineEntry {
+  /** What the clock said, verbatim — "45+2" when the engine gave a stoppage
+   *  label, otherwise the plain minute. Empty for the half-time break. */
+  minute: string;
+  /** The clamped minute, for ordering. */
+  at: number;
+  kind: SundayTimelineKind;
+  /** True when it happened FOR the club this report belongs to. An own goal
+   *  is filed under whoever gained by it, exactly as the engine files it, so
+   *  the running score below can never disagree with the scoreline. */
+  ours: boolean;
+  /** The man, as he was called on the day. Null when the engine named nobody
+   *  (a break, a shootout). */
+  name: string | null;
+  /** The second man: the assist on a goal, the one coming on at a change. */
+  second: string | null;
+  /** The score AFTER this row, home-away — the same accounting the narrative
+   *  prints, so the two can never drift apart. */
+  home: number;
+  away: number;
+}
+
 /** Everything the last match produced that the Sunday layer cares about. */
 export interface SundayMatchReport {
   matchId: string;
@@ -3093,6 +3130,21 @@ export interface SundayMatchReport {
   consequences: string[];
   /** English narrative beats, already merged with engine events. */
   narrative: string[];
+  /**
+   * The afternoon as a list of things that happened, for a timeline that reads
+   * like a match rather than like prose.
+   *
+   * WHY IT IS STORED AND NOT DERIVED. The engine's event array lives on
+   * `currentMatchResult`, which is NOT persisted — kill the app after the
+   * whistle and it is gone, while the report survives. The names on it go
+   * stale too: guests are deleted from `players` the moment the settlement
+   * runs. Deriving the timeline back from `narrative` would mean parsing
+   * generated English, which is exactly the kind of invention this mode
+   * refuses. So the rows are flattened once, where the events actually exist,
+   * and the save carries about a kilobyte for the one report it keeps.
+   * Empty for a report written before the field existed. Schema v3.
+   */
+  timeline: SundayTimelineEntry[];
   /**
    * Why the side played the way it did: the labelled attribute adjustments the
    * XI actually carried onto the pitch — the surface, the tactic's fit, the
