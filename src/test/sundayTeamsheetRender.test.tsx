@@ -12,10 +12,10 @@
  * of "this DOM is invalid" available.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import SundayTeamsheet from '@/pages/SundayTeamsheet';
 import { useGameStore } from '@/store/gameStore';
-import { SUNDAY_MIN_START } from '@/config/sundayLeague';
+import { SUNDAY_FULL_XI, SUNDAY_MIN_START } from '@/config/sundayLeague';
 import { sundayTacticFit } from '@/utils/sunday/match';
 import { en } from '@/i18n/locales/en';
 
@@ -60,9 +60,17 @@ describe('SundayTeamsheet renders valid, reachable DOM', () => {
     }
   });
 
+  /**
+   * The cliff used to be a 103-character sentence under a chip that read
+   * "0 of 11", which made ELEVEN look like the constraint. It is drawn now —
+   * eleven pips with a rule after the seventh — so the assertions are on the
+   * meter's ARIA contract and on the label at the line, not on prose.
+   */
   it('says out loud that seven, not eleven, is the number that matters', () => {
     render(<SundayTeamsheet />);
-    expect(screen.getByText(new RegExp(`${SUNDAY_MIN_START} is the number that matters`))).toBeTruthy();
+    expect(screen.getByText(en['sunday.sheet.minToPlay'].replace('{min}', String(SUNDAY_MIN_START)))).toBeTruthy();
+    const meter = screen.getByRole('meter', { name: new RegExp(`fewer than ${SUNDAY_MIN_START}`, 'i') });
+    expect(meter.getAttribute('aria-valuemax')).toBe(String(SUNDAY_FULL_XI));
   });
 
   /**
@@ -84,14 +92,19 @@ describe('SundayTeamsheet renders valid, reachable DOM', () => {
     expect(sunday.teamsheet.length).toBeGreaterThanOrEqual(SUNDAY_MIN_START);
 
     render(<SundayTeamsheet />);
-    // Scoped to the ROW rather than to a panel's markup: what matters is that
-    // the armband sits beside this named man, wherever the layout puts him.
+    // A named man is a token on the board now, not a row in a list. Picking him
+    // up is what opens the controls that belong to him — so the assertion is
+    // that the armband is TWO taps away for a starter and never nested inside
+    // the token's own button.
     for (const id of sunday.teamsheet) {
       const p = useGameStore.getState().players[id];
-      const row = screen.getByText(`${p.firstName} ${p.lastName}`).closest('div') as HTMLElement;
-      expect(row, id).toBeTruthy();
-      const armband = within(row).getByRole('button', { name: /armband/i });
+      const token = screen.getByRole('button', { name: new RegExp(`^${p.firstName} ${p.lastName},`) });
+      expect(token.parentElement?.closest('button') ?? null).toBeNull();
+      fireEvent.click(token);
+      const armband = screen.getAllByRole('button', { name: /armband/i })[0];
+      expect(armband, id).toBeTruthy();
       expect(armband.parentElement?.closest('button') ?? null).toBeNull();
+      fireEvent.click(token);
     }
   });
 
@@ -128,6 +141,8 @@ describe('SundayTeamsheet renders valid, reachable DOM', () => {
     expect(arrival!.ringersHired).toBeNull();
 
     render(<SundayTeamsheet />);
-    expect(screen.getByText(en['sunday.sheet.arrivalLocked'])).toBeTruthy();
+    // The refusal is a state on the screen now, not a line in the warning
+    // list: a settled side is settled, it is not something going wrong.
+    expect(screen.getByText(en['sunday.sheet.settled'])).toBeTruthy();
   });
 });
