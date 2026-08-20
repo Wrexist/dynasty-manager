@@ -24,7 +24,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import SundayClubhouse from '@/pages/SundayClubhouse';
 import { useGameStore } from '@/store/gameStore';
-import { SUNDAY_UPGRADES, sundayUpgradeCost } from '@/config/sundayLeague';
+import { SUNDAY_CLUB_ID, SUNDAY_UPGRADES, sundayUpgradeCost } from '@/config/sundayLeague';
+import { sundayKitSpec } from '@/utils/sunday/visuals';
 import { sundayUpgradePreview } from '@/utils/sunday/view';
 import type { SundaySponsorDeal } from '@/types/game';
 
@@ -109,6 +110,33 @@ describe('the Clubhouse draws the club it has, not a picture of a club', () => {
       await act(async () => { await useGameStore.getState().buySundayUpgrade('kit'); });
       rerender(<SundayClubhouse />);
       expect(shirts(), `after buying kit level ${expected}`).toBe(expected);
+    }
+  });
+
+  /**
+   * The strip in the identity panel has to be THIS club's strip: the two
+   * colours out of the save and the pattern `sundayKitSpec` derives from the
+   * club id. A kit drawn in a house palette would look just as good and would
+   * be the same kit for every club in the mode.
+   */
+  it('hangs the club\'s own strip, in the club\'s own colours', () => {
+    const { container } = render(<SundayClubhouse />);
+    const kit = container.querySelector('svg[aria-label*="kit"]')!;
+    expect(kit, 'no kit drawn').not.toBeNull();
+    const markup = kit.outerHTML;
+    expect(markup).toContain(sunday().identity.color);
+    expect(markup).toContain(sunday().identity.secondaryColor);
+
+    const spec = sundayKitSpec(sunday().identity.color, sunday().identity.secondaryColor, SUNDAY_CLUB_ID);
+    const PATTERN_MARK: Record<string, RegExp> = {
+      stripes: /<rect[^>]*x="17\.5"/,
+      hoops: /<rect[^>]*y="13"/,
+      halves: /<rect[^>]*x="32"[^>]*width="28"/,
+      sash: /<path[^>]*d="M 8 50 L 30 4/,
+    };
+    for (const [pattern, mark] of Object.entries(PATTERN_MARK)) {
+      expect(mark.test(markup), `${pattern} drawn but the spec says ${spec.pattern}`)
+        .toBe(pattern === spec.pattern);
     }
   });
 

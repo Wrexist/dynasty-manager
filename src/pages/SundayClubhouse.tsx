@@ -24,15 +24,17 @@ import { LiquidButton } from '@/components/game/LiquidButton';
 import { SectionHeader } from '@/components/game/SectionHeader';
 import { StatChip, SundayCrest } from '@/components/game/sunday/SundayBits';
 import { SundayGround } from '@/components/game/sunday/SundayGround';
+import { SundayKit } from '@/components/game/sunday/SundayKit';
 import { useGameStore } from '@/store/gameStore';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { TranslationKey } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { formatMoney } from '@/utils/helpers';
-import { getSundayPersonality } from '@/config/sundayLeague';
+import { getSundayPersonality, SUNDAY_CLUB_ID } from '@/config/sundayLeague';
 import { SUNDAY_ICON, SUNDAY_UPGRADE_ICON } from '@/config/sundayIcons';
 import type { SundayUpgradeId } from '@/types/game';
 import { splitLedger, sundayUpgradeUpkeep, sundayWeeklyBurn } from '@/utils/sunday/finance';
+import { sundayCrestSpec, sundayKitSpec } from '@/utils/sunday/visuals';
 import {
   sundaySponsorBoards, sundayUpgradePreview, sundayUpgradeScene,
   type SundayUpgradeStat,
@@ -62,9 +64,11 @@ type Tab = 'upgrades' | 'sponsors' | 'books';
 const SundayClubhouse = () => {
   const { t } = useTranslation();
   const sunday = useGameStore(s => s.sunday);
-  const { week, season, buyUpgrade, mothballUpgrade, acceptSponsor, declineSponsor } = useGameStore(useShallow(s => ({
+  const { week, season, players, buyUpgrade, mothballUpgrade, acceptSponsor, declineSponsor } = useGameStore(useShallow(s => ({
     week: s.week,
     season: s.season,
+    // Read for one name: whoever has the armband, whose number is on the kit.
+    players: s.players,
     buyUpgrade: s.buySundayUpgrade,
     mothballUpgrade: s.mothballSundayUpgrade,
     acceptSponsor: s.acceptSundaySponsor,
@@ -118,6 +122,15 @@ const SundayClubhouse = () => {
   if (!sunday || !scene) return null;
   const personality = getSundayPersonality(sunday.identity.personality);
   const burn = sundayWeeklyBurn(sunday.divisionId, sunday.upgrades);
+  // Two pure specs and one lookup. Cheap enough to derive on render — they are
+  // hashes of an id that never changes — and deriving them here keeps the
+  // component free of the club-identity rules.
+  const kit = sundayKitSpec(sunday.identity.color, sunday.identity.secondaryColor, SUNDAY_CLUB_ID);
+  const crest = sundayCrestSpec(SUNDAY_CLUB_ID, sunday.identity.color, sunday.identity.secondaryColor);
+  const captain = sunday.squad.find(m => m.playerId === sunday.captainId) ?? null;
+  const captainPlayer = captain ? players[captain.playerId] : null;
+  // Surname only: the caption sits under a 54px-wide kit.
+  const captainName = captainPlayer ? captainPlayer.lastName : '';
   const upkeep = sundayUpgradeUpkeep(sunday.divisionId, sunday.upgrades);
   const boards = sundaySponsorBoards(sunday, season);
 
@@ -131,21 +144,44 @@ const SundayClubhouse = () => {
     <div className="max-w-lg mx-auto px-4 pt-3 pb-4 space-y-3">
       <SectionHeader title={t('sunday.club.title')} icon={SUNDAY_ICON.clubhouse} />
 
-      {/* Identity */}
+      {/* Identity — the crest, the name, and the strip they actually play in.
+          The kit is drawn from `sundayKitSpec`, which has existed since the
+          first visuals pass and had never been rendered anywhere: the club's
+          two colours AND the pattern the print shop had in stock. The number
+          on it is the captain's, which is the one fact about this squad the
+          Clubhouse never told anybody. */}
       <GlassPanel className="p-4 space-y-3">
-        <div className="flex items-center gap-3">
-          <SundayCrest shortName={sunday.identity.shortName} color={sunday.identity.color} secondaryColor={sunday.identity.secondaryColor} size={44} />
-          <div className="min-w-0">
-            <p className="text-title font-display font-bold text-foreground truncate">{sunday.identity.name}</p>
+        <div className="flex items-start gap-3">
+          <div className="shrink-0 text-center">
+            <SundayKit
+              body={kit.body}
+              trim={kit.trim}
+              pattern={kit.pattern}
+              crestShape={crest.shape}
+              number={captain?.shirtNumber}
+              size={78}
+              label={t('sunday.club.kitAria', { name: sunday.identity.name })}
+            />
+            {captainName && (
+              <p className="text-micro text-muted-foreground mt-0.5 truncate max-w-[68px]">
+                <span className="text-primary font-bold">C</span> {captainName}
+              </p>
+            )}
+          </div>
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <div className="flex items-center gap-2 min-w-0">
+              <SundayCrest shortName={sunday.identity.shortName} color={sunday.identity.color} secondaryColor={sunday.identity.secondaryColor} size={32} />
+              <p className="text-title font-display font-bold text-foreground truncate">{sunday.identity.name}</p>
+            </div>
             <p className="text-caption text-muted-foreground truncate">
               {t('sunday.club.nickname')} {sunday.identity.nickname}
             </p>
+            <p className="text-caption text-muted-foreground flex items-center gap-1.5 min-w-0">
+              <VenueIcon className="w-3.5 h-3.5 shrink-0" aria-hidden />
+              <span className="truncate">{sunday.identity.venue} · {sunday.identity.town}</span>
+            </p>
           </div>
         </div>
-        <p className="text-caption text-muted-foreground flex items-center gap-1.5">
-          <VenueIcon className="w-3.5 h-3.5 shrink-0" aria-hidden />
-          {sunday.identity.venue} · {sunday.identity.town}
-        </p>
         {/* Three chips rather than two chips and a sentence: "Roughly £34 a
             week to exist" was a whole line of prose carrying one number, and
             the number is the part anyone reads. */}

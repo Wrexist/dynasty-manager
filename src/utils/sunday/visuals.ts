@@ -146,6 +146,18 @@ export function sundayKitSpec(
   return { body: color, trim: secondaryColor, pattern, seedHash };
 }
 
+/**
+ * Ink that stays legible printed on a kit colour.
+ *
+ * The same 0.62 threshold `PlayerAvatar` uses for its jersey number, kept in
+ * one place rather than copied a third time: a Sunday club may be founded in
+ * white, yellow or sky blue, and a white number on a white shirt is not a
+ * stylistic choice, it is a missing number.
+ */
+export function sundayInkOn(hex: string): string {
+  return luminance(hex) > 0.62 ? '#111827' : '#FFFFFF';
+}
+
 // ── Faces ───────────────────────────────────────────────────────────────────
 
 /**

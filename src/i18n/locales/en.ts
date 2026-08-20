@@ -233,6 +233,7 @@ export const en = {
   'sunday.club.locked': 'Needs {n} standing',
   'sunday.club.upkeep': '£{n} a week to keep',
   'sunday.club.mothball': 'Sell it back · £{n}',
+  'sunday.club.kitAria': '{name} kit',
   'sunday.club.groundAlt': 'The ground, as it stands today.',
   'sunday.club.groundSpot': '{name} — level {n} of {max}',
   'sunday.club.statPitch': 'Pitch',

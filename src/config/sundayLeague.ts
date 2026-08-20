@@ -40,6 +40,19 @@ import type {
  *  that step rather than adding another. */
 export const SUNDAY_STATE_VERSION = 3;
 
+/**
+ * Stable id for the player's Sunday club. One per save; the mode is
+ * single-club by definition.
+ *
+ * LIVES IN CONFIG, NOT IN `boot.ts`, because it is read by things that must
+ * not drag the boot module in behind them: `sundayKitSpec` and
+ * `sundayCrestSpec` are seeded off the club id, so the setup screen has to
+ * know it to draw the strip the player is actually about to be given — and
+ * importing a store slice from a route would pull the whole mode into that
+ * route's chunk.
+ */
+export const SUNDAY_CLUB_ID = 'sunday-club';
+
 // ── The pyramid ─────────────────────────────────────────────────────────────
 
 export interface SundayDivisionInfo {

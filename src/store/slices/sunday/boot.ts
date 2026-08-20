@@ -11,8 +11,9 @@ import type {
   SundayState, SundaySquadMember, Match,
 } from '@/types/game';
 import {
-  SUNDAY_MORALE_START, SUNDAY_REPUTATION_START, SUNDAY_STATE_VERSION,
-  getSundayDivision, getSundayPersonality, SUNDAY_DIVISIONS,
+  SUNDAY_CLUB_ID, SUNDAY_MORALE_START, SUNDAY_REPUTATION_START,
+  SUNDAY_STATE_VERSION, getSundayDivision, getSundayPersonality,
+  SUNDAY_DIVISIONS,
 } from '@/config/sundayLeague';
 import { buildSundayRivalry } from '@/utils/sunday/rivalry';
 import { createSundayRng, cursorOf, newSundaySeed, subSeed } from '@/utils/sunday/rng';
@@ -26,9 +27,10 @@ import { rollSundayAvailability } from '@/utils/sunday/availability';
 import type { Get, Set } from './shared';
 import { clampRound } from './shared';
 
-/** Stable id for the player's Sunday club. One per save; the mode is
- *  single-club by definition. */
-export const SUNDAY_CLUB_ID = 'sunday-club';
+/** Re-exported so the many modules that already import it from here keep
+ *  working; the constant itself now lives in `config/sundayLeague.ts`, where a
+ *  screen can read it without importing a store slice. */
+export { SUNDAY_CLUB_ID };
 
 export interface StartSundayOptions {
   personality: SundayClubPersonalityId;
