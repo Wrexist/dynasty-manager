@@ -141,7 +141,7 @@ export const en = {
   'sunday.match.home': 'Home',
   'sunday.match.away': 'Away',
   'sunday.match.pitch': 'Pitch',
-  'sunday.match.namedSide': 'You have named {n}.',
+  'sunday.match.namedSide': '{n} named',
   'sunday.match.yourSide': 'Your side',
   'sunday.match.takingOut': 'What you take out there',
   'sunday.match.decider': 'Decider',
