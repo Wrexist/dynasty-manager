@@ -6,6 +6,16 @@
  * what it was (the retrospective, when it folds). Sending the player to a
  * separate route for each would mean three near-identical screens and a
  * navigation problem at exactly the moments that should feel weighty.
+ *
+ * WHAT CHANGED, AND WHY. The three sections were three lists in three panels,
+ * drawn identically and ranked by nothing: a season — the richest thing the
+ * mode writes — was five lines of 11px muted text, a legend was a name and a
+ * sentence with his fifty-four appearances thrown away, and a record's authored
+ * context sat in the same grey as the label above it. Every word here is
+ * authored by the simulation and none of it has been cut; it is ordered now.
+ * The seasons come first because they are the story, and the club's honours
+ * are three numbers at the top rather than something only a folded club ever
+ * got to see.
  */
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -14,16 +24,22 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { LiquidButton } from '@/components/game/LiquidButton';
 import { SectionHeader } from '@/components/game/SectionHeader';
 import { StatChip } from '@/components/game/sunday/SundayBits';
+import { SundayFace } from '@/components/game/sunday/SundayFace';
+import { SundaySeasonCard } from '@/components/game/sunday/SundaySeasonCard';
 import { SUNDAY_ICON } from '@/config/sundayIcons';
 import { useGameStore } from '@/store/gameStore';
 import { useTranslation } from '@/hooks/useTranslation';
-import { cn } from '@/lib/utils';
 import { formatMoney, getSuffix } from '@/utils/helpers';
 import { getSundayDivision, SUNDAY_MEMORY_LEGENDARY_WEIGHT } from '@/config/sundayLeague';
 import { buildSundayTable, sundayPosition } from '@/utils/sunday/season';
 import { momentOfSeason } from '@/utils/sunday/memories';
+import { sundayFaceSpec } from '@/utils/sunday/visuals';
 
 const FoldedIcon = SUNDAY_ICON.folded;
+
+/** The portrait size for a man who is remembered. Inside `SundayFace`'s large
+ *  tier, because a legend gets a face rather than a thumbnail. */
+const LEGEND_FACE = 44;
 
 const SundayHistory = () => {
   const { t } = useTranslation();
@@ -42,6 +58,8 @@ const SundayHistory = () => {
   const table = buildSundayTable(fixtures, sunday.divisionClubIds);
   const position = sundayPosition(table, playerClubId);
   const stats = sunday.seasonStats;
+  const promotions = sunday.history.filter(h => h.promoted).length;
+  const cups = sunday.history.filter(h => h.cupResult === 'Won the Sunday Cup').length;
 
   // Presentation night, derived on the spot: top scorer and best average from
   // the live players map, most reliable from club appearances this squad, the
@@ -88,14 +106,11 @@ const SundayHistory = () => {
               Every number is the club's own history — this is what it WAS. */}
           <div className="grid grid-cols-3 gap-2">
             <StatChip label={t('sunday.history.retro.seasons')} value={String(Math.max(season, sunday.history.length))} />
-            <StatChip label={t('sunday.history.retro.promotions')} value={String(sunday.history.filter(h => h.promoted).length)} tone="good" />
-            <StatChip label={t('sunday.history.retro.cups')} value={String(sunday.history.filter(h => h.cupResult === 'Won the Sunday Cup').length)} />
+            <StatChip label={t('sunday.history.retro.promotions')} value={String(promotions)} tone="good" />
+            <StatChip label={t('sunday.history.retro.cups')} value={String(cups)} />
           </div>
           <div className="grid grid-cols-3 gap-2">
-            <StatChip
-              label={t('sunday.history.retro.goals')}
-              value={String(sunday.history.reduce((n, h) => n + h.goalsFor, 0) + sunday.seasonStats.goalsFor)}
-            />
+            <StatChip label={t('sunday.history.retro.goals')} value={String(sunday.history.reduce((n, h) => n + h.goalsFor, 0) + sunday.seasonStats.goalsFor)} />
             <StatChip
               label={t('sunday.history.retro.bestFinish')}
               value={(() => {
@@ -180,23 +195,58 @@ const SundayHistory = () => {
         </GlassPanel>
       )}
 
-      <SectionHeader title={t('sunday.history.title')} />
+      <SectionHeader title={t('sunday.history.title')} icon={SUNDAY_ICON.honours} />
 
-      {/* Records */}
-      <GlassPanel className="p-4">
+      {/* What the club has won, which used to be visible only after it folded.
+          Hidden until there is a completed season, because three zeroes is not
+          an honours board — and hidden for a folded club, whose retrospective
+          above already carries the same three numbers plus the part-season it
+          died in. */}
+      {!sunday.folded && sunday.history.length > 0 && (
+        <div className="grid grid-cols-3 gap-2">
+          <StatChip label={t('sunday.history.retro.seasons')} value={String(sunday.history.length)} />
+          <StatChip label={t('sunday.history.retro.promotions')} value={String(promotions)} tone={promotions > 0 ? 'good' : 'default'} />
+          <StatChip label={t('sunday.history.retro.cups')} value={String(cups)} tone={cups > 0 ? 'good' : 'default'} />
+        </div>
+      )}
+
+      {/* Seasons — the story, newest first. */}
+      <GlassPanel className="p-3">
+        <SectionHeader level="section" title={t('sunday.history.seasons')} icon={SUNDAY_ICON.seasonComplete} />
+        {sunday.history.length === 0 ? (
+          <p className="text-caption text-muted-foreground mt-2">{t('sunday.history.noSeasons')}</p>
+        ) : (
+          <ul className="mt-2 space-y-2">
+            {[...sunday.history].reverse().map(h => (
+              <SundaySeasonCard key={h.season} record={h} />
+            ))}
+          </ul>
+        )}
+      </GlassPanel>
+
+      {/* Records — the number, then the sentence that makes it a story. */}
+      <GlassPanel className="p-3">
         <SectionHeader level="section" title={t('sunday.history.records')} icon={SUNDAY_ICON.honours} />
         {sunday.records.length === 0 ? (
           <p className="text-caption text-muted-foreground mt-2">{t('sunday.history.noRecords')}</p>
         ) : (
-          <ul className="mt-2 divide-y divide-border/30">
+          <ul className="mt-2 space-y-2">
             {sunday.records.map(r => (
-              <li key={r.id} className="py-2 text-caption">
+              <li key={r.id} className="rounded-xl bg-white/[0.025] ring-1 ring-inset ring-white/10 p-2.5">
                 <div className="flex items-baseline gap-2">
-                  <span className="min-w-0 flex-1 text-muted-foreground truncate">{r.label}</span>
-                  <span className="text-foreground font-medium text-right">{r.value}</span>
+                  <span className="min-w-0 flex-1 text-micro uppercase tracking-wider text-muted-foreground truncate">
+                    {r.label}
+                  </span>
+                  {/* When it happened. Carried in every record since the mode
+                      shipped and never drawn, so a record was a fact with no
+                      date on it. */}
+                  <span className="text-micro text-muted-foreground/70 shrink-0 tabular-nums">
+                    {t('sunday.history.recordWhen', { season: r.season, week: r.week })}
+                  </span>
                 </div>
+                <p className="text-body font-semibold text-foreground">{r.value}</p>
                 {r.detail && (
-                  <p className="text-micro text-muted-foreground/80 mt-0.5 leading-relaxed">{r.detail}</p>
+                  <p className="text-caption text-muted-foreground/90 mt-0.5 leading-relaxed">{r.detail}</p>
                 )}
               </li>
             ))}
@@ -204,58 +254,33 @@ const SundayHistory = () => {
         )}
       </GlassPanel>
 
-      {/* Legends */}
-      <GlassPanel className="p-4">
+      {/* Remembered — the men, with the numbers that earned it. */}
+      <GlassPanel className="p-3">
         <SectionHeader level="section" title={t('sunday.history.legends')} icon={SUNDAY_ICON.legend} />
         {sunday.legends.length === 0 ? (
           <p className="text-caption text-muted-foreground mt-2">{t('sunday.history.noLegends')}</p>
         ) : (
-          <ul className="mt-2 divide-y divide-border/30">
+          <ul className="mt-2 space-y-2">
             {sunday.legends.map(l => (
-              <li key={l.playerId} className="py-2">
-                <p className="text-body font-medium text-foreground truncate">{l.name}</p>
-                <p className="text-micro text-muted-foreground leading-relaxed">{l.reason}</p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </GlassPanel>
-
-      {/* Seasons */}
-      <GlassPanel className="p-4">
-        <SectionHeader level="section" title={t('sunday.history.seasons')} />
-        {sunday.history.length === 0 ? (
-          <p className="text-caption text-muted-foreground mt-2">{t('sunday.history.noRecords')}</p>
-        ) : (
-          <ul className="mt-2 space-y-3">
-            {[...sunday.history].reverse().map(h => (
-              <li key={h.season} className="border-l-2 border-border/50 pl-3">
-                <p className="text-caption font-semibold text-foreground">
-                  {t('sunday.history.seasonLine', { season: h.season, division: h.divisionName })}
-                </p>
-                <p className={cn(
-                  'text-caption',
-                  h.promoted ? 'text-emerald-300' : h.relegated ? 'text-destructive' : 'text-muted-foreground',
-                )}>
-                  {t('sunday.history.finished', { position: `${h.position}${getSuffix(h.position)}` })}
-                  {h.promoted && ` · ${t('sunday.history.promoted')}`}
-                  {h.relegated && ` · ${t('sunday.history.relegated')}`}
-                </p>
-                <p className="text-micro text-muted-foreground">
-                  {h.won}W {h.drawn}D {h.lost}L · {h.goalsFor}-{h.goalsAgainst}
-                  {h.cupResult ? ` · ${h.cupResult}` : ''}
-                </p>
-                {h.topScorer && (
-                  <p className="text-micro text-muted-foreground">
-                    {t('sunday.history.topScorer')}: {h.topScorer.name} ({h.topScorer.goals})
+              <li key={l.playerId} className="rounded-xl bg-white/[0.025] ring-1 ring-inset ring-white/10 p-2.5 flex items-start gap-2.5">
+                {/* His face survives him leaving: `sundayFaceSpec` returns the
+                    stored appearance while he is still in the players map and
+                    a stable one derived from his id once he is gone. */}
+                <span className="block rounded-lg overflow-hidden bg-white/[0.05] shrink-0">
+                  <SundayFace
+                    {...sundayFaceSpec(players[l.playerId] ?? { id: l.playerId })}
+                    size={LEGEND_FACE}
+                    className="block"
+                  />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-body font-semibold text-foreground truncate">{l.name}</p>
+                  {/* The three numbers that were in the save all along. */}
+                  <p className="text-micro text-muted-foreground tabular-nums">
+                    {t('sunday.history.legendLine', { apps: l.apps, goals: l.goals, seasons: l.seasons })}
                   </p>
-                )}
-                {h.momentOfTheSeason && (
-                  <p className="text-micro text-primary/85 mt-0.5 leading-relaxed">{h.momentOfTheSeason}</p>
-                )}
-                {h.highlights.map(hl => (
-                  <p key={hl} className="text-micro text-muted-foreground/85 mt-0.5">{hl}</p>
-                ))}
+                  <p className="text-caption text-muted-foreground/90 leading-relaxed mt-0.5">{l.reason}</p>
+                </div>
               </li>
             ))}
           </ul>
