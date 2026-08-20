@@ -50,6 +50,7 @@ export const PENDING_NEWS: PendingRelease = {
     'V1.4.0: Fix critical save, training, and monetization regressions.',
     'Make fan mood react to results instead of sitting at 50.',
     'The Shop now leads with Pro Yearly instead of Pro Monthly, matching the subscribe screen.',
+    'Kick Off can no longer do nothing at all.',
   ],
   fixed: [
     'Fan mood now reacts to results and league position instead of sitting at a flat 50 all game — matchday income finally rises with a winning run and dips during a slump.',
