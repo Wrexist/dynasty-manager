@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
-import { FORMATION_POSITIONS, canPlayPosition, type Position } from '@/types/game';
+import { FORMATION_POSITIONS, type Position } from '@/types/game';
 import { MAX_SUBS } from '@/config/playerGeneration';
 import { cn } from '@/lib/utils';
 import { calculateChemistryLinks, getChemistryBonus, getChemistryLabel } from '@/utils/chemistry';
@@ -9,6 +9,7 @@ import { getChemistryLines, buildChemistryStrengthMap, getChemistryLineColor, ge
 import { getSquadInsights } from '@/utils/squadInsights';
 import { LineupPlayerTile } from './LineupPlayerTile';
 import { pitchSlotPoint } from '@/config/ui';
+import { positionFit as getCompatibility } from '@/utils/positionFit';
 import { PitchBoard } from './PitchBoard';
 import { BenchStrip } from './BenchStrip';
 import { ChemistryBar } from './ChemistryBar';
@@ -25,16 +26,11 @@ import { infoToast } from '@/utils/gameToast';
 // chemistry, positional compatibility, swap semantics, insights — which is all
 // this file should ever have been. `pitchSlotPoint` is imported rather than
 // re-derived so the chemistry lines and the tiles cannot drift apart.
+//
+// `getCompatibility` moved to `@/utils/positionFit` unchanged: the Sunday
+// teamsheet draws this same board and needs the same three-way answer, and a
+// second private copy is how two boards start disagreeing.
 
-function getCompatibility(player: { position: Position; alternatePositions?: Position[] }, slotPos: Position): 'natural' | 'compatible' | 'wrong' {
-  if (player.position === slotPos) return 'natural';
-  // Alternate positions are part of the player's printed card position
-  // list (FC26-style "ALT POS"); treating them as natural matches FUT
-  // chemistry where ALT POS slots light up green, not amber.
-  if (player.alternatePositions?.includes(slotPos)) return 'natural';
-  if (canPlayPosition(player, slotPos)) return 'compatible';
-  return 'wrong';
-}
 
 export function LineupEditor() {
   const { playerClubId, clubs, players, week, season, pairFamiliarity } = useGameStore(useShallow(s => ({
