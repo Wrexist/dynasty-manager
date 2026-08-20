@@ -3,58 +3,29 @@
  *
  * The rumour/trialist split is the whole mechanic: a recruit you have only
  * heard about shows numbers that are within `SUNDAY_RECRUIT_RUMOUR_ERROR` of
- * the truth, and the card says so. The noise is generated from the recruit's
- * own id so it is stable across renders and reloads — a shifting card would
- * read as a bug and would also let a player re-roll the estimate by leaving the
- * screen.
+ * the truth. That used to be stated in a 68-character sentence repeated
+ * verbatim on every card, under a pill that already encoded it. The pill now
+ * carries a word, the estimated numbers carry a `~`, and the sentence is gone.
+ *
+ * The noise itself lives in `sundayRecruitReport` — generated from the
+ * recruit's own id so it is stable across renders and reloads. A shifting card
+ * would read as a bug and would also let a player re-roll the estimate by
+ * leaving the screen.
  */
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { LiquidButton } from '@/components/game/LiquidButton';
 import { SectionHeader } from '@/components/game/SectionHeader';
+import { SundayRecruitCard } from '@/components/game/sunday/SundayRecruitCard';
 import { useGameStore } from '@/store/gameStore';
 import { useTranslation } from '@/hooks/useTranslation';
-import { cn } from '@/lib/utils';
 import {
-  SUNDAY_MAX_SQUAD, SUNDAY_RECRUIT_RUMOUR_ERROR, SUNDAY_RECRUIT_SIGNINGS_PER_SEASON,
-  getSundayArchetype,
+  SUNDAY_MAX_SQUAD, SUNDAY_RECRUIT_SIGNINGS_PER_SEASON, getSundayArchetype,
 } from '@/config/sundayLeague';
 import { SUNDAY_ICON } from '@/config/sundayIcons';
-import { subSeed, createSundayRng } from '@/utils/sunday/rng';
-import type { PlayerAttributes, SundayRecruit } from '@/types/game';
-
-const ScoutedIcon = SUNDAY_ICON.scouted;
-const RumourIcon = SUNDAY_ICON.rumour;
-
-/** Fixed base for the rumour noise. Any constant works; it only has to be
- *  the SAME constant every time. */
-const RUMOUR_SEED = 0x51ac0de;
-
-const ATTR_LABELS: { key: keyof PlayerAttributes; short: string }[] = [
-  { key: 'pace', short: 'PAC' },
-  { key: 'shooting', short: 'SHO' },
-  { key: 'passing', short: 'PAS' },
-  { key: 'defending', short: 'DEF' },
-  { key: 'physical', short: 'PHY' },
-  { key: 'mental', short: 'MEN' },
-];
-
-/** What the manager THINKS the recruit is. Derived from the recruit's id so it
- *  never changes between renders, screens or sessions. */
-function reportedAttributes(recruit: SundayRecruit): PlayerAttributes {
-  if (recruit.revealed) return recruit.player.attributes;
-  // Fixed base so the estimate depends only on the recruit, not on when it
-  // is rendered.
-  const rng = createSundayRng(subSeed(RUMOUR_SEED, recruit.id), 0);
-  const out = { ...recruit.player.attributes };
-  for (const { key } of ATTR_LABELS) {
-    const drift = rng.int(-SUNDAY_RECRUIT_RUMOUR_ERROR, SUNDAY_RECRUIT_RUMOUR_ERROR);
-    out[key] = Math.max(1, Math.min(99, out[key] + drift));
-  }
-  return out;
-}
+import { sundayRecruitReport } from '@/utils/sunday/view';
+import { sundayFaceSpec } from '@/utils/sunday/visuals';
 
 const SundayRecruit = () => {
   const { t } = useTranslation();
@@ -73,105 +44,68 @@ const SundayRecruit = () => {
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-3 pb-4 space-y-3">
+      {/* Both allowances in the header, where the count already was: how many
+          names are on the sheet, and how many more may be added this season.
+          The second used to be a line of prose under the heading and a second,
+          longer line of prose once it ran out. */}
       <SectionHeader
         title={t('sunday.recruit.title')}
         icon={SUNDAY_ICON.recruit}
-        accessory={<span className="text-caption text-muted-foreground">{sunday.squad.length}/{SUNDAY_MAX_SQUAD}</span>}
+        accessory={(
+          <span className="inline-flex items-center gap-2 text-caption text-muted-foreground tabular-nums">
+            <span className={squadFull ? 'text-amber-300' : undefined}>
+              {sunday.squad.length}/{SUNDAY_MAX_SQUAD}
+            </span>
+            <span className={windowClosed ? 'text-amber-300' : undefined}>
+              {t('sunday.recruit.signingsLeft', { n: signingsLeft, max: SUNDAY_RECRUIT_SIGNINGS_PER_SEASON })}
+            </span>
+          </span>
+        )}
       />
-
-      {squadFull && (
-        <GlassPanel className="p-3" tone="danger">
-          <p className="text-caption text-amber-200">{t('sunday.recruit.squadFull')}</p>
-        </GlassPanel>
-      )}
-
-      {windowClosed ? (
-        <GlassPanel className="p-3" tone="danger">
-          <p className="text-caption text-amber-200">
-            {t('sunday.recruit.windowClosed', { max: SUNDAY_RECRUIT_SIGNINGS_PER_SEASON })}
-          </p>
-        </GlassPanel>
-      ) : (
-        <p className="text-micro text-muted-foreground px-1">
-          {t('sunday.recruit.signingsLeft', { n: signingsLeft, max: SUNDAY_RECRUIT_SIGNINGS_PER_SEASON })}
-        </p>
-      )}
 
       {recruits.length === 0 ? (
         <GlassPanel className="p-6 text-center">
           <p className="text-body text-muted-foreground leading-relaxed">{t('sunday.recruit.empty')}</p>
         </GlassPanel>
       ) : (
-        recruits.map(recruit => {
-          const attrs = reportedAttributes(recruit);
-          const arch = getSundayArchetype(recruit.member.archetype);
-          const weeksLeft = Math.max(0, recruit.expiresWeek - week);
-          return (
-            <GlassPanel key={recruit.id} className="p-4 space-y-3">
-              <div className="flex items-start gap-3">
-                <span className="w-9 text-micro font-semibold text-muted-foreground shrink-0 pt-1">
-                  {recruit.player.position}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-body font-semibold text-foreground truncate">
-                    {recruit.player.firstName} {recruit.player.lastName}
-                  </p>
-                  <p className="text-micro text-muted-foreground truncate">
-                    {recruit.player.age} · {arch.name} · {recruit.member.job}
-                  </p>
-                </div>
-                <span className={cn(
-                  'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-micro font-semibold shrink-0',
-                  recruit.revealed
-                    ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-                    : 'bg-white/[0.06] text-muted-foreground border-white/15',
-                )}>
-                  {recruit.revealed
-                    ? <ScoutedIcon className="w-3 h-3" aria-hidden />
-                    : <RumourIcon className="w-3 h-3" aria-hidden />}
-                </span>
-              </div>
-
-              <p className="text-caption text-muted-foreground leading-relaxed">{recruit.sourceText}</p>
-
-              <div className="grid grid-cols-6 gap-1">
-                {ATTR_LABELS.map(({ key, short }) => (
-                  <div key={key} className="rounded-lg bg-white/[0.04] px-1 py-1.5 text-center">
-                    <p className="text-micro text-muted-foreground">{short}</p>
-                    <p className="text-caption font-semibold text-foreground tabular-nums">{attrs[key]}</p>
-                  </div>
-                ))}
-              </div>
-
-              <p className="text-micro text-muted-foreground leading-relaxed">
-                {recruit.revealed ? t('sunday.recruit.seen') : t('sunday.recruit.rumour')}
-              </p>
-
-              <div className="flex items-center gap-2">
-                <LiquidButton
-                  tone="primary"
-                  className="flex-1 py-2.5"
-                  disabled={squadFull || windowClosed || sunday.balance < recruit.fee}
-                  busy={busy === recruit.id}
-                  onClick={() => {
-                    if (busy) return;
-                    setBusy(recruit.id);
-                    void sign(recruit.id)
-                      .then(r => { if (r.ok) toast.success(r.message); else toast.info(r.message); })
-                      .finally(() => setBusy(null));
-                  }}
-                >
-                  <span className="text-caption">
-                    {recruit.fee > 0 ? t('sunday.recruit.sign', { n: recruit.fee }) : t('sunday.recruit.signFree')}
-                  </span>
-                </LiquidButton>
-                <span className="text-micro text-muted-foreground shrink-0">
-                  {t('sunday.recruit.expires', { n: weeksLeft, s: weeksLeft === 1 ? '' : 's' })}
-                </span>
-              </div>
-            </GlassPanel>
-          );
-        })
+        <GlassPanel className="p-1.5 space-y-1.5">
+          {recruits.map(recruit => {
+            const report = sundayRecruitReport(recruit);
+            const arch = getSundayArchetype(recruit.member.archetype);
+            return (
+              <SundayRecruitCard
+                key={recruit.id}
+                {...sundayFaceSpec(recruit.player)}
+                firstName={recruit.player.firstName}
+                lastName={recruit.player.lastName}
+                position={recruit.player.position}
+                age={recruit.player.age}
+                archetypeName={arch.name}
+                job={recruit.member.job}
+                sourceText={recruit.sourceText}
+                attributes={report.attributes}
+                overall={report.overall}
+                revealed={report.revealed}
+                fee={recruit.fee}
+                weeksLeft={Math.max(0, recruit.expiresWeek - week)}
+                disabledReason={
+                  squadFull ? 'squad-full'
+                    : windowClosed ? 'window-closed'
+                      : sunday.balance < recruit.fee ? 'too-expensive'
+                        : 'none'
+                }
+                busy={busy === recruit.id}
+                onSign={() => {
+                  if (busy) return;
+                  setBusy(recruit.id);
+                  void sign(recruit.id)
+                    .then(r => { if (r.ok) toast.success(r.message); else toast.info(r.message); })
+                    .finally(() => setBusy(null));
+                }}
+              />
+            );
+          })}
+        </GlassPanel>
       )}
     </div>
   );

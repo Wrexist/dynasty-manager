@@ -269,12 +269,13 @@ export const en = {
   'sunday.recruit.empty': 'Nobody is interested this week. Ask around again next Sunday.',
   'sunday.recruit.sign': 'Sign him · £{n}',
   'sunday.recruit.signFree': 'Sign him',
-  'sunday.recruit.rumour': 'Nobody has actually seen him play. These numbers are what people say.',
-  'sunday.recruit.seen': 'You have watched him train. This is what he is.',
+  'sunday.recruit.rumour': 'Word of mouth',
+  'sunday.recruit.seen': 'Seen him play',
   'sunday.recruit.expires': 'Around for {n} more week{s}',
-  'sunday.recruit.squadFull': 'There are already too many names on the sheet.',
-  'sunday.recruit.signingsLeft': '{n} of {max} signings left this season',
-  'sunday.recruit.windowClosed': 'You have registered your {max} for the season. Anyone else will have to wait until the summer.',
+  'sunday.recruit.signingsLeft': '{n} of {max} signings left',
+  'sunday.recruit.blockedSquad': 'No room on the sheet',
+  'sunday.recruit.blockedWindow': 'Signings used up',
+  'sunday.recruit.blockedMoney': 'Cannot afford him',
 
   // League
   'sunday.table.title': 'League',

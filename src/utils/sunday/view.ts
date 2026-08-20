@@ -22,19 +22,77 @@
  * to prevent.
  */
 import type {
-  Club, Match, Player, SundayMemory, SundaySponsorDeal, SundaySquadMember,
-  SundayState, SundayTacticId, SundayUpgradeId,
+  Club, Match, Player, PlayerAttributes, SundayMemory, SundayRecruit,
+  SundaySponsorDeal, SundaySquadMember, SundayState, SundayTacticId,
+  SundayUpgradeId,
 } from '@/types/game';
 import {
-  SUNDAY_PERSONALITIES, SUNDAY_UPGRADES, SUNDAY_UPGRADE_MOTHBALL_REFUND,
-  getSundayUpgrade, sundayUpgradeCost, sundayUpgradeMoraleBump,
-  sundayUpgradeRepBump, type SundayPersonalityInfo,
+  SUNDAY_OVERALL_CEILING, SUNDAY_OVERALL_FLOOR, SUNDAY_PERSONALITIES,
+  SUNDAY_RECRUIT_RUMOUR_ERROR, SUNDAY_UPGRADES,
+  SUNDAY_UPGRADE_MOTHBALL_REFUND, getSundayUpgrade, sundayUpgradeCost,
+  sundayUpgradeMoraleBump, sundayUpgradeRepBump, type SundayPersonalityInfo,
 } from '@/config/sundayLeague';
+import { calculateOverall } from '@/utils/playerGen';
 import type { SundayNewsKind } from '@/config/sundayIcons';
 import { sundayPitchQuality } from '@/store/slices/sunday/matchday';
 import { summariseAvailability } from './availability';
+import { createSundayRng, subSeed } from './rng';
 import { sundayUpgradeUpkeep, sundayWeeklyBurn } from './finance';
 import { buildSundayTable } from './season';
+
+// ── Recruitment ─────────────────────────────────────────────────────────────
+
+/** The six attributes, in the order every Sunday screen shows them. */
+export const ATTRIBUTE_KEYS: readonly (keyof PlayerAttributes)[] = [
+  'pace', 'shooting', 'passing', 'defending', 'physical', 'mental',
+];
+
+/**
+ * Fixed base for the rumour noise. Any constant works; it only has to be the
+ * SAME constant every time.
+ */
+const RUMOUR_SEED = 0x51ac0de;
+
+export interface SundayRecruitReport {
+  /** What the manager THINKS the numbers are. Identical to the truth once the
+   *  recruit has been watched. */
+  attributes: PlayerAttributes;
+  /** The overall those numbers add up to — NOT `player.overall` while he is a
+   *  rumour, or the estimate and the headline figure would disagree and the
+   *  true rating would be readable straight off the card. */
+  overall: number;
+  revealed: boolean;
+}
+
+/**
+ * What the club has actually been told about a recruit.
+ *
+ * DETERMINISTIC, AND THAT IS THE WHOLE POINT. The noise is drawn from the
+ * recruit's own id, so the estimate is the same on every render, after a
+ * reload, and after leaving the screen and coming back. Anything else would
+ * read as a bug and would also let a player re-roll a bad estimate by
+ * switching tabs until the numbers looked better.
+ *
+ * Lived in `SundayRecruit.tsx` until the card was rebuilt. It is a rule about
+ * what the manager knows, which is game logic, and it belongs with the other
+ * derivations rather than in a component.
+ */
+export function sundayRecruitReport(recruit: SundayRecruit): SundayRecruitReport {
+  if (recruit.revealed) {
+    return { attributes: recruit.player.attributes, overall: recruit.player.overall, revealed: true };
+  }
+  const rng = createSundayRng(subSeed(RUMOUR_SEED, recruit.id), 0);
+  const attributes = { ...recruit.player.attributes };
+  for (const key of ATTRIBUTE_KEYS) {
+    const drift = rng.int(-SUNDAY_RECRUIT_RUMOUR_ERROR, SUNDAY_RECRUIT_RUMOUR_ERROR);
+    attributes[key] = Math.max(1, Math.min(99, attributes[key] + drift));
+  }
+  // Same clamp the generator applies, so an estimate can never sit outside the
+  // band the mode's players are allowed to occupy.
+  const raw = calculateOverall(attributes, recruit.player.position);
+  const overall = Math.max(SUNDAY_OVERALL_FLOOR, Math.min(SUNDAY_OVERALL_CEILING, raw));
+  return { attributes, overall, revealed: false };
+}
 
 // ── Club personalities ──────────────────────────────────────────────────────
 
