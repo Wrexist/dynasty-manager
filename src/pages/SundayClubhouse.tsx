@@ -26,6 +26,7 @@ import { StatChip, SundayCrest } from '@/components/game/sunday/SundayBits';
 import { SundayGround } from '@/components/game/sunday/SundayGround';
 import { useGameStore } from '@/store/gameStore';
 import { useTranslation } from '@/hooks/useTranslation';
+import type { TranslationKey } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { formatMoney } from '@/utils/helpers';
 import { getSundayPersonality } from '@/config/sundayLeague';
@@ -49,7 +50,7 @@ const STAT_ICON: Record<SundayUpgradeStat, React.ElementType> = {
   upkeep: SUNDAY_ICON.expense,
 };
 
-const STAT_LABEL: Record<SundayUpgradeStat, string> = {
+const STAT_LABEL: Record<SundayUpgradeStat, TranslationKey> = {
   pitch: 'sunday.club.statPitch',
   reputation: 'sunday.club.statReputation',
   morale: 'sunday.club.statMorale',
