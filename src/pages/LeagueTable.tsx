@@ -445,7 +445,11 @@ const LeagueTable = () => {
                   <th className="text-left px-1 py-2 text-micro text-muted-foreground uppercase w-6">#</th>
                   <th className="text-left px-1 py-2 text-micro text-muted-foreground uppercase">Club</th>
                   <th className="text-center px-1 py-2 text-micro text-muted-foreground uppercase w-6">P</th>
-                  <th className="text-center px-1 py-2 text-micro text-muted-foreground uppercase w-[2.6rem]">W-D-L</th>
+                  {/* w-12, not 2.6rem: at 11px tabular-nums a double-digit "10-4-2" is
+                      wider than 2.6rem minus the cell padding, so the cell wrapped and
+                      every row in the table grew from 33px to 45px. The six pixels come
+                      out of the Club column, which truncates cleanly. */}
+                  <th className="text-center px-1 py-2 text-micro text-muted-foreground uppercase w-12">W-D-L</th>
                   <th className="text-center px-1 py-2 text-micro text-muted-foreground uppercase w-7">GD</th>
                   <th className="text-center px-1 py-2 text-micro text-muted-foreground uppercase w-7">Pts</th>
                   <th className="text-center px-1 py-2 text-micro text-muted-foreground uppercase w-[5rem]">Form</th>
@@ -495,7 +499,7 @@ const LeagueTable = () => {
                         </div>
                       </td>
                       <td className="text-center px-1 py-2 text-xs text-muted-foreground tabular-nums">{entry.played}</td>
-                      <td className="text-center px-1 py-2 text-micro text-muted-foreground tabular-nums">{entry.won}-{entry.drawn}-{entry.lost}</td>
+                      <td className="text-center px-1 py-2 text-micro text-muted-foreground tabular-nums whitespace-nowrap">{entry.won}-{entry.drawn}-{entry.lost}</td>
                       <td className="text-center px-1 py-2 text-xs text-muted-foreground tabular-nums">{entry.goalDifference > 0 ? '+' : ''}{entry.goalDifference}</td>
                       <td className="text-center px-1 py-2 text-xs font-bold text-foreground tabular-nums">{entry.points}</td>
                       <td className="px-1 py-2">
