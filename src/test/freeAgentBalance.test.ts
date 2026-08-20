@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
+import { getMaxFeeSigningOverall } from '@/store/slices/transferSlice';
 import { MAX_SQUAD_SIZE, MIN_SQUAD_SIZE } from '@/config/gameBalance';
 import { SIGNING_BONUS_WEEKS_PER_YEAR, FREE_AGENT_REP_BASE, FREE_AGENT_REP_SCALE, FREE_AGENT_DIV_BONUS } from '@/config/transfers';
 import { LEAGUES } from '@/data/league';
@@ -124,10 +125,29 @@ describe('freeAgentBalance', () => {
     it('should reject transfer when squad is at MAX_SQUAD_SIZE', () => {
       const state = useGameStore.getState();
       if (state.transferMarket.length === 0) return;
-      const listing = state.transferMarket[0];
+
+      // Take a listing this club could otherwise actually sign. `executeTransfer`
+      // checks the reputation cap BEFORE the squad cap, so `transferMarket[0]`
+      // — whatever the generated market happened to put first — was a coin flip
+      // on which gate answered. CI drew a 92 OVR listing against Celtic's 88 OVR
+      // ceiling and got "won't drop to your level" instead of "Squad is full".
+      // Selecting with the store's own helper keeps this test on the gate it
+      // names, and follows the cap rule if that rule ever changes.
+      const club = state.clubs[state.playerClubId];
+      const squadBest = club.playerIds.reduce((best, id) => {
+        const p = state.players[id];
+        return p && p.overall > best ? p.overall : best;
+      }, 0);
+      const maxOvr = getMaxFeeSigningOverall(club.reputation, state.playerDivision, squadBest);
+      const listing = state.transferMarket.find(l => {
+        const p = state.players[l.playerId];
+        return !!p && p.overall <= maxOvr && !p.onLoan;
+      });
+      if (!listing) return;
 
       padSquadToMax(state);
       useGameStore.setState({ transferWindowOpen: true });
+      // Budget is not the gate either — `padSquadToMax` already grants funds.
       const result = useGameStore.getState().executeTransfer(listing.playerId, listing.askingPrice);
       expect(result.success).toBe(false);
       expect(result.message).toContain('Squad is full');

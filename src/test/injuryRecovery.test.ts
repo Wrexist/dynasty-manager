@@ -246,12 +246,25 @@ describe('injury recovery in the live game loop', () => {
       },
     });
 
-    for (let w = 0; w < 5; w++) await useGameStore.getState().advanceWeek();
+    // Stop at the week he recovers rather than looking once at the end. While
+    // injured he is unpickable, so nothing can re-injure him before that point —
+    // but the moment he is fit again he is back in the rival's XI and can pick up
+    // a NEW injury, which is the world working, not the clock failing. Reading
+    // `injured` five weeks later conflated the two and failed on CI when he was
+    // hurt again in week four or five.
+    let recoveredInWeek = 0;
+    for (let w = 1; w <= 6 && !recoveredInWeek; w++) {
+      await useGameStore.getState().advanceWeek();
+      if (!useGameStore.getState().players[victimId].injured) recoveredInWeek = w;
+    }
 
-    const after = useGameStore.getState().players[victimId];
-    // Pre-fix: injuryWeeks stayed at 3 and `injured` stayed true forever.
-    expect(after.injured, 'an AI club player never recovered').toBe(false);
-    expect(after.injuryWeeks).toBe(0);
+    // Pre-fix: injuryWeeks stayed at 3 and `injured` stayed true forever, so
+    // this never left 0.
+    expect(recoveredInWeek, 'an AI club player never recovered').toBeGreaterThan(0);
+    // Three weeks on the clock, one week off per `advanceWeek`, no physio boost
+    // outside the player's own club — the extra week is slack for a pre-season
+    // week that does not run the pass, not room for a second injury to hide in.
+    expect(recoveredInWeek).toBeLessThanOrEqual(4);
   });
 
   it('divisionStaysAvailable: the division does not silt up with injuries', { timeout: 300_000 }, async () => {
