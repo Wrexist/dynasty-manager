@@ -62,16 +62,18 @@ export const SundayTacticCard = memo(function SundayTacticCard({
         disabled && !selected && 'opacity-50',
       )}
     >
-      <span className={cn('block', selected ? 'text-primary' : 'text-muted-foreground')}>
+      {/* The formation sits ON the diagram rather than beside the name. Sharing
+          one line, `4-5-1` took enough of a 155px card to come back as
+          'Proper Foot…' at 390px — and the name is the half you have to be able
+          to read. */}
+      <span className={cn('relative block', selected ? 'text-primary' : 'text-muted-foreground')}>
         <SundayTacticDiagram tactic={id} />
-      </span>
-      <span className="mt-1.5 flex items-baseline justify-between gap-1.5 min-w-0">
-        <span className={cn('text-caption font-bold truncate', selected ? 'text-primary' : 'text-foreground')}>
-          {name}
-        </span>
-        <span className="text-micro font-semibold tabular-nums text-muted-foreground shrink-0">
+        <span className="absolute top-0 right-0 text-micro font-semibold tabular-nums text-muted-foreground">
           {formation}
         </span>
+      </span>
+      <span className={cn('block text-caption font-bold truncate mt-1', selected ? 'text-primary' : 'text-foreground')}>
+        {name}
       </span>
       <span className="block text-micro text-muted-foreground leading-tight mt-0.5">
         {tagline}

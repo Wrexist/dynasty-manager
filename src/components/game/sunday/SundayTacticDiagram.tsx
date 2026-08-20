@@ -69,19 +69,19 @@ const SHAPES: Record<SundayTacticId, (marker: string) => React.ReactNode> = {
   'route-one': marker => (
     <>
       <Man x={24} y={30} />
-      <Arrow d="M 24 27.5 Q 24 8 24 6.4" dashed marker={marker} />
-      <Man x={24} y={5} />
-      <Man x={13} y={13} filled={false} />
-      <Man x={35} y={13} filled={false} />
-      <Arrow d="M 14.5 11.5 L 21 7.4" marker={marker} />
-      <Arrow d="M 33.5 11.5 L 27 7.4" marker={marker} />
+      <Arrow d="M 24 27.5 Q 24 9.5 24 7.9" dashed marker={marker} />
+      <Man x={24} y={6.4} />
+      <Man x={13} y={14} filled={false} />
+      <Man x={35} y={14} filled={false} />
+      <Arrow d="M 14.5 12.5 L 21 8.8" marker={marker} />
+      <Arrow d="M 33.5 12.5 L 27 8.8" marker={marker} />
     </>
   ),
   // Everybody home. Two banks in front of the keeper, one man marooned.
   // No arrows: the whole point is that nobody goes anywhere.
   'park-the-bus': () => (
     <>
-      <Man x={24} y={4.5} filled={false} />
+      <Man x={24} y={6} filled={false} />
       <Man x={7} y={17} /><Man x={18} y={17} /><Man x={30} y={17} /><Man x={41} y={17} />
       <Man x={7} y={25} /><Man x={18} y={25} /><Man x={30} y={25} /><Man x={41} y={25} />
       <path
@@ -95,11 +95,11 @@ const SHAPES: Record<SundayTacticId, (marker: string) => React.ReactNode> = {
   'chaos-ball': marker => (
     <>
       <Man x={8} y={26} /><Man x={19} y={29} /><Man x={30} y={26} /><Man x={41} y={29} />
-      <Arrow d="M 8 23.5 L 8 8" marker={marker} />
-      <Arrow d="M 19 26.5 L 21.5 9" marker={marker} />
-      <Arrow d="M 30 23.5 L 28 8" marker={marker} />
-      <Arrow d="M 41 26.5 L 40 9" marker={marker} />
-      <Man x={24} y={4} filled={false} />
+      <Arrow d="M 8 23.5 L 8 9.5" marker={marker} />
+      <Arrow d="M 19 26.5 L 21.3 10.4" marker={marker} />
+      <Arrow d="M 30 23.5 L 28.2 9.5" marker={marker} />
+      <Arrow d="M 41 26.5 L 40.2 10.4" marker={marker} />
+      <Man x={24} y={6} filled={false} />
     </>
   ),
   // Three men and the triangle between them. The ball goes round, not over.
@@ -147,7 +147,7 @@ export const SundayTacticDiagram = memo(function SundayTacticDiagram({
       {/* The goal you are attacking, at the top — so "forward" is up in all
           four drawings and the four can be compared at a glance. */}
       <rect
-        x={17} y={0.6} width={14} height={2.4}
+        x={17} y={0.5} width={14} height={2}
         fill="none" stroke="currentColor" strokeWidth={0.7} opacity={0.4}
       />
       <g opacity={0.95}>{SHAPES[tactic](marker)}</g>

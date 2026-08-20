@@ -194,6 +194,10 @@ interface Warning {
   key: string;
   text: string;
   icon: React.ElementType;
+  /** How many men it is about, when that is the point. Drawn as a badge, which
+   *  is why the copy no longer interpolates it — '{n} players are out of
+   *  position' reads as '1 players are' exactly when you have one. */
+  count?: number;
   /** Player ids the board should ring. Empty when the warning is about the
    *  side as a whole. */
   targets: string[];
@@ -309,8 +313,8 @@ const SundayTeamsheet = () => {
   const misplaced = xiRows.filter((r, i) => fitOf(r.player, i) === 'wrong').map(r => r.player.id);
   if (misplaced.length > 0) {
     warnings.push({
-      key: 'position', icon: StartingIcon, targets: misplaced,
-      text: t('sunday.sheet.warnOutOfPosition', { n: misplaced.length }),
+      key: 'position', icon: StartingIcon, targets: misplaced, count: misplaced.length,
+      text: t('sunday.sheet.warnOutOfPosition'),
     });
   }
   // A promised start that the named XI does not honour is a warning, not a
@@ -331,8 +335,8 @@ const SundayTeamsheet = () => {
   const knocks = xiRows.filter(r => r.player.fitness < 65 || r.player.injured);
   if (knocks.length > 0) {
     warnings.push({
-      key: 'tired', icon: TiredIcon, targets: knocks.map(r => r.player.id),
-      text: t('sunday.sheet.warnTired', { n: knocks.length }),
+      key: 'tired', icon: TiredIcon, targets: knocks.map(r => r.player.id), count: knocks.length,
+      text: t('sunday.sheet.warnTired'),
     });
   }
   if (sunday.bench.length === 0 && sunday.teamsheet.length >= SUNDAY_MIN_START) {
@@ -402,7 +406,6 @@ const SundayTeamsheet = () => {
           slots={slots}
           occupants={occupants}
           selectedId={selectedId}
-          targetSlot={targetSlot}
           locked={sheetLocked}
           ariaLabel={t('sunday.sheet.boardLabel', { formation: shortHanded ? tactic.shortFormation : tactic.formation })}
           onSlotTap={tapSlot}
@@ -518,10 +521,19 @@ const SundayTeamsheet = () => {
                 <>
                   <Icon className="w-4 h-4 shrink-0 text-amber-300" aria-hidden />
                   <span className="min-w-0 flex-1 text-caption text-amber-200">{w.text}</span>
+                  {w.count != null && (
+                    <span className="shrink-0 text-micro font-bold tabular-nums text-amber-200 bg-amber-400/15 rounded-full px-2 py-0.5">
+                      {w.count}
+                    </span>
+                  )}
                 </>
               );
               return (
                 <li key={w.key}>
+                  {/* Only the ones that can point somewhere are controls, so
+                      only they need a 44px target. A statement of fact is a
+                      statement of fact and should not take a thumb's worth of
+                      a 375px screen. */}
                   {w.targets.length > 0 ? (
                     <button
                       type="button"
@@ -531,7 +543,7 @@ const SundayTeamsheet = () => {
                       {body}
                     </button>
                   ) : (
-                    <div className="min-h-[44px] flex items-center gap-2 px-1">{body}</div>
+                    <div className="flex items-center gap-2 px-1 py-2">{body}</div>
                   )}
                 </li>
               );
@@ -668,18 +680,26 @@ const SundayTeamsheet = () => {
                   dim
                   captain={sunday.captainId === row.player.id}
                   onClick={() => setExpanded(expanded === row.player.id ? null : row.player.id)}
-                  right={<AvailabilityPill availability={row.member.availability} />}
+                  // Subtle here too: the panel is already titled 'Not
+                  // available', so eleven filled red capsules under that
+                  // heading are the heading again, in red, eleven times.
+                  right={<AvailabilityPill availability={row.member.availability} subtle />}
                 />
                 {expanded === row.player.id && (
                   <div className="pb-2 pl-9 space-y-2">
-                    <p className="text-micro text-muted-foreground">
-                      {row.member.availability.warned
-                        ? row.member.availability.note
-                        : t('sunday.avail.noWord')}
-                    </p>
+                    {/* Only when there IS a word. An unwarned absence already
+                        reads 'No word from him' on the row's own pill, and
+                        printing it again directly underneath said nothing
+                        twice. */}
+                    {row.member.availability.warned && (
+                      <p className="text-micro text-muted-foreground">{row.member.availability.note}</p>
+                    )}
                     <div className="flex items-center gap-2 flex-wrap">
                       <LiquidButton
-                        className="px-3 py-1.5"
+                        // `w-auto` because LiquidButton is `w-full` by default,
+                        // which pushed the price and the two attempt pips onto
+                        // a line of their own.
+                        className="w-auto px-3 py-1.5"
                         disabled={callsLeft <= 0}
                         onClick={() => {
                           void ringRound(row.player.id).then(r => { if (r.ok) toast.success(r.message); else toast.info(r.message); });
