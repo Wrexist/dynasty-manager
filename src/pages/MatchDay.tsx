@@ -226,18 +226,29 @@ const MatchDayInner = () => {
 
   const { match: liveMatch, competition: liveCompetition } = useCurrentMatch();
 
-  // Detect cup match if no league match this week
-  const cupTie = !liveMatch ? cup.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
+  // `useCurrentMatch` resolves tournament ties itself and returns them as
+  // `liveMatch` with a `competition` label, so `liveMatch` is a plain LEAGUE
+  // fixture only when it carries no competition. The tie lookups below used to
+  // be gated on `!liveMatch`, which — once the hook gained tournament priority —
+  // silently switched every one of them off for cup weeks: no competition badge
+  // on the Kick Off screen, `isKnockoutTie` false, and `highStakes` computed as
+  // if a cup final were a mid-table league game, so the pre-match team talk was
+  // never offered. Visible in a reported save: League Cup on the Dashboard card,
+  // no badge at all one screen later.
+  const isLeagueFixture = !!liveMatch && !liveCompetition;
+
+  // Detect cup match
+  const cupTie = cup.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) ?? null;
   const cupMatch = cupTie ? { id: cupTie.id, week: cupTie.week, homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match : null;
 
   // Detect League Cup match
-  const leagueCupTie = !liveMatch && !cupTie ? leagueCup?.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
+  const leagueCupTie = !cupTie ? (leagueCup?.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) ?? null) : null;
   const leagueCupMatch = leagueCupTie ? { id: leagueCupTie.id, week: leagueCupTie.week, homeClubId: leagueCupTie.homeClubId, awayClubId: leagueCupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match : null;
 
   // Detect continental match (Champions Cup / Shield Cup)
-  const champMatch = !liveMatch && !cupTie && !leagueCupTie ? findPlayerContinentalMatchForUI(championsCup, week, playerClubId) : null;
-  const shieldMatch = !liveMatch && !cupTie && !leagueCupTie && !champMatch ? findPlayerContinentalMatchForUI(shieldCup, week, playerClubId) : null;
-  const confMatch = !liveMatch && !cupTie && !leagueCupTie && !champMatch && !shieldMatch ? findPlayerContinentalMatchForUI(conferenceCup, week, playerClubId) : null;
+  const champMatch = !cupTie && !leagueCupTie ? findPlayerContinentalMatchForUI(championsCup, week, playerClubId) : null;
+  const shieldMatch = !cupTie && !leagueCupTie && !champMatch ? findPlayerContinentalMatchForUI(shieldCup, week, playerClubId) : null;
+  const confMatch = !cupTie && !leagueCupTie && !champMatch && !shieldMatch ? findPlayerContinentalMatchForUI(conferenceCup, week, playerClubId) : null;
   const continentalMatchInfo = champMatch || shieldMatch || confMatch;
   const continentalMatch = continentalMatchInfo ? { id: continentalMatchInfo.id, week, homeClubId: continentalMatchInfo.homeClubId, awayClubId: continentalMatchInfo.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match : null;
 
@@ -246,7 +257,7 @@ const MatchDayInner = () => {
   // selector the store uses. With a strict `week === sc.week` this screen never
   // offered a Super Cup that had been outranked on its own week, while the
   // instant-sim path did — so the two disagreed about what match was on.
-  const pendingSc = !liveMatch && !cupTie && !leagueCupTie && !continentalMatch
+  const pendingSc = !cupTie && !leagueCupTie && !continentalMatch
     ? pendingSuperCup({ domesticSuperCup, continentalSuperCup }, week, playerClubId)
     : null;
   const superCupMatch = pendingSc
@@ -288,7 +299,12 @@ const MatchDayInner = () => {
     // encodes it after the em dash, the same shape cup matches use.
     : liveCompetition?.startsWith('Promotion Playoff') ? (liveCompetition.split(' — ')[1] ?? '')
     : cupTie?.round ?? leagueCupTie?.round ?? champMatch?.roundLabel ?? shieldMatch?.roundLabel ?? confMatch?.roundLabel ?? (superCupMatch ? 'Final' : '');
-  const competitionInfo = competitionBadge ? { ...competitionBadge, round: competitionRound } : null;
+  const liveCompetitionInfo = competitionBadge ? { ...competitionBadge, round: competitionRound } : null;
+  // Latched at kickoff for the same reason the match itself is: the tie is
+  // marked played the moment the match finishes, so the lookups above stop
+  // resolving and the badge would disappear from the full-time screen.
+  const competitionCacheRef = useRef<typeof liveCompetitionInfo>(null);
+  const competitionInfo = competitionCacheRef.current ?? liveCompetitionInfo;
 
   // Cache match data when kickoff starts — playSecondHalf() marks the fixture
   // as played which makes useCurrentMatch() return undefined mid-animation.
@@ -310,7 +326,7 @@ const MatchDayInner = () => {
     ? evaluateHighStakes({
         derbyIntensity: getDerbyIntensity(match.homeClubId, match.awayClubId),
         isKnockout: isKnockoutTie,
-        isLeagueMatch: !!liveMatch,
+        isLeagueMatch: isLeagueFixture,
         homeClubId: match.homeClubId,
         awayClubId: match.awayClubId,
         leagueTable,
@@ -350,12 +366,26 @@ const MatchDayInner = () => {
     kickedOffRef.current = match.id;
     // Cache match data so it survives the fixture being marked as played
     matchCacheRef.current = { match, homeClub, awayClub };
+    competitionCacheRef.current = liveCompetitionInfo;
     // This tap is the guaranteed user gesture — unlock iOS WebAudio and blow
     // the kickoff whistle. The crowd bed starts via the live-phase effect.
     resumeSfx();
     sfxWhistle();
     const halfState = isWorldCup ? playWorldCupFirstHalf() : playFirstHalf();
-    if (!halfState) { kickedOffRef.current = null; return; }
+    // A null here used to be the end of it: the button did nothing, no toast, no
+    // navigation, and the save was stuck on that fixture forever. The engine now
+    // fields an emergency XI rather than refuse (`buildPlayerMatchXI`), so this
+    // is a genuine fault — say so, and report it.
+    if (!halfState) {
+      kickedOffRef.current = null;
+      Sentry.captureMessage('kickOff: match engine returned no half state', {
+        level: 'error',
+        tags: { context: 'kickOff' },
+        extra: { matchId: match.id, homeClubId: match.homeClubId, awayClubId: match.awayClubId, isWorldCup },
+      });
+      errorToast("Couldn't kick off — neither squad can field enough available players. Check injuries and suspensions, or sign cover.");
+      return;
+    }
     // WC: the opponent squad is materialised by the action above — refresh the
     // cache with the real clubs so lineups render with players, not the shell.
     if (isWorldCup) {
@@ -405,7 +435,11 @@ const MatchDayInner = () => {
       const result = isWorldCup
         ? playWorldCupSecondHalf()
         : playSecondHalf(SECOND_HALF_SEGMENTS[0]);
-      if (!result) { resumingRef.current = false; return; }
+      if (!result) {
+        resumingRef.current = false;
+        errorToast("Couldn't restart the second half — not enough available players on the pitch.");
+        return;
+      }
       // Pre-populate visibleEvents with first-half events to avoid stale references
       const firstHalfEvents = result.events.filter((e: MatchEvent) => e.minute <= 45);
       setVisibleEvents(firstHalfEvents);
@@ -430,7 +464,11 @@ const MatchDayInner = () => {
     resumingRef.current = true;
     try {
       const result = isWorldCup ? playWorldCupExtraTime() : playExtraTime();
-      if (!result) { resumingRef.current = false; return; }
+      if (!result) {
+        resumingRef.current = false;
+        errorToast("Couldn't start extra time — not enough available players on the pitch.");
+        return;
+      }
       setAllEvents(result.events);
       currentMinRef.current = 90;
       setCurrentMin(90);

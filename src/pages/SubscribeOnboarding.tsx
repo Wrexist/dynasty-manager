@@ -201,6 +201,22 @@ const SubscribeOnboarding = () => {
           setStoreStatus('ready');
           return;
         }
+        // A plan the store does not return is dropped from the list silently,
+        // and the selection falls through to whatever DID come back — so a
+        // product that is live in App Store Connect but not attached to the
+        // RevenueCat Offering simply never appears, and looks from the outside
+        // like nobody chose it. Say so instead: this is the only signal that
+        // distinguishes "players prefer monthly" from "yearly was never on the
+        // screen", and there is no analytics endpoint configured to answer it.
+        const missing = PLAN_ROWS.map(r => r.productId).filter(id => !available.includes(id));
+        if (missing.length > 0) {
+          if (import.meta.env.DEV) console.warn('[subscribe] store did not return:', missing);
+          Sentry.captureMessage('subscribe: store did not return every configured plan', {
+            level: 'warning',
+            tags: { context: 'subscribe-onboarding.availability' },
+            extra: { missing, returned: available },
+          });
+        }
         setAvailableIds(available);
         setStoreStatus(available.length > 0 ? 'ready' : 'unavailable');
       })

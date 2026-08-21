@@ -49,6 +49,8 @@ export const PENDING_NEWS: PendingRelease = {
   improved: [
     'V1.4.0: Fix critical save, training, and monetization regressions.',
     'Make fan mood react to results instead of sitting at 50.',
+    'The Shop now leads with Pro Yearly instead of Pro Monthly, matching the subscribe screen.',
+    'Kick Off can no longer do nothing at all.',
   ],
   fixed: [
     'Fan mood now reacts to results and league position instead of sitting at a flat 50 all game — matchday income finally rises with a winning run and dips during a slump.',
@@ -56,6 +58,9 @@ export const PENDING_NEWS: PendingRelease = {
     'Your assistant now fills gaps in the starting XI from the whole squad, not just the named bench, so a run of injuries can no longer leave a match unplayable.',
     'Rival clubs now recover fitness between matches like your own squad does. Previously only your players rested, so the rest of the world got quietly and permanently more tired every season.',
     'Starting a game with a club that no longer exists (an old deep link, a stale save) now fails cleanly instead of crashing part-way through building the world.',
+    'Kick Off and Instant Sim could silently do nothing when a squad was deep in an injury crisis, leaving a save stuck on one fixture. Your side — and the opposition — now field emergency cover so the match is always playable, and any remaining failure says so instead of ignoring the tap.',
+    'The promotion playoff can now be played, not just watched. Kick Off did nothing on a playoff tie and Instant Sim is a Pro feature, so a free manager who finished in the playoff places could never finish their season.',
+    'Cup, League Cup, continental and Super Cup matches show their competition badge on the Kick Off screen again, and count as the big occasions they are — knockout ties and derbies now offer the pre-match team talk they were quietly skipping.',
   ],
   headline: null,
   summary: null,

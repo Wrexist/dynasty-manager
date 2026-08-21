@@ -258,33 +258,47 @@ describe('injury recovery in the live game loop', () => {
     });
 
     /**
-     * WATCH THE CLOCK, not the boolean.
+     * WATCH THE CLOCK FIRST, THEN WAIT FOR THE ALL-CLEAR.
      *
-     * This case flaked roughly one run in six, on the pre-wave tree as well as
-     * this one. The cause was not the fix under test: it advanced FIVE weeks
-     * for a THREE-week injury, so the victim healed on week three, became
-     * selectable again, and could pick up a fresh knock in week four or five —
-     * at which point `injured` was true again and the case failed for the
-     * opposite reason to the bug it exists for.
+     * This case flaked about one run in six on both trees, and the two fixes
+     * that landed for it — one here, one on main — were each half of the
+     * answer, so this keeps both.
+     *
+     * The flake's cause: the old case advanced FIVE weeks for a THREE-week
+     * injury, so the victim healed on week three, became selectable, and could
+     * pick up a FRESH knock in week four or five — `injured` true again, case
+     * failed for the opposite reason to the bug it guards.
      *
      * Weeks one and two are confound-free by construction: an injured player is
-     * never selected, so nothing can re-injure him, and the clock reading is
-     * exact. Pre-fix those two readings are [3, 3]; post-fix they are [2, 1].
-     * That is the whole regression, asserted deterministically.
+     * never selected, so nothing can re-injure him and the clock reading is
+     * exact. Pre-fix those two readings are [3, 3]; post-fix [2, 1]. That is
+     * the regression itself — the clock MOVES for a club that is not the
+     * player's — asserted deterministically rather than inferred.
+     *
+     * Recovery then gets main's unbounded wait instead of a fixed horizon:
+     * bounding the week merely re-created the flake one step further out (a
+     * run failed at six — three weeks of original clock plus a fresh
+     * three-week injury). The MARKER keeps that honest: a new injury carries a
+     * different `totalWeeks`, so a fresh knock cannot masquerade as this one
+     * never ending.
      */
     const clock: number[] = [];
-    for (let w = 0; w < 3; w++) {
+    for (let w = 0; w < 2; w++) {
       await useGameStore.getState().advanceWeek();
       clock.push(useGameStore.getState().players[victimId].injuryWeeks);
     }
-    expect(clock.slice(0, 2), 'an AI club\'s injury clock did not tick down').toEqual([2, 1]);
+    expect(clock, 'an AI club\'s injury clock did not tick down').toEqual([2, 1]);
 
-    // And the injury itself is over. A knock picked up on the way back is a
+    // The injury under test must end. A knock picked up on the way back is a
     // different event and is explicitly allowed — what may not happen is THIS
-    // one still running.
-    const after = useGameStore.getState().players[victimId];
-    const stillTheSameInjury = after.injured && after.injuryDetails?.totalWeeks === MARKER;
-    expect(stillTheSameInjury, 'an AI club player never recovered').toBe(false);
+    // one still running, which the marker distinguishes.
+    let cleared = false;
+    for (let w = 0; w < 14 && !cleared; w++) {
+      const p = useGameStore.getState().players[victimId];
+      cleared = !(p.injured && p.injuryDetails?.totalWeeks === MARKER);
+      if (!cleared) await useGameStore.getState().advanceWeek();
+    }
+    expect(cleared, 'an AI club player never recovered').toBe(true);
   });
 
   it('divisionStaysAvailable: the division does not silt up with injuries', { timeout: 300_000 }, async () => {

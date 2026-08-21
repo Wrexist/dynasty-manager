@@ -1,4 +1,6 @@
+import * as Sentry from '@sentry/react';
 import { useGameStore } from '@/store/gameStore';
+import { errorToast } from '@/utils/gameToast';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useShallow } from 'zustand/react/shallow';
 import { getSuffix } from '@/utils/helpers';
@@ -61,7 +63,16 @@ const MatchPrep = () => {
   const runSim = () => {
     setConfirmSim(false);
     const result = playCurrentMatch();
-    if (result) setScreen('match-review');
+    if (result) { setScreen('match-review'); return; }
+    // Same silent dead end Kick Off had: the sheet closed and nothing happened.
+    // The engine now fields an emergency XI rather than refuse, so a null here
+    // is a real fault worth reporting rather than swallowing.
+    Sentry.captureMessage('instantSim: match engine returned no result', {
+      level: 'error',
+      tags: { context: 'instantSim' },
+      extra: { week, playerClubId, oppClubId },
+    });
+    errorToast("Couldn't sim the match — neither squad can field enough available players. Check injuries and suspensions, or sign cover.");
   };
 
   const myClub = clubs[playerClubId];
