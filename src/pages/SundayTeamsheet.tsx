@@ -499,9 +499,12 @@ const SundayTeamsheet = () => {
             if (busy) return;
             setBusy('auto');
             select(null);
-            void autoPick()
-              .then(r => toast.success(t('sunday.sheet.count', { n: r.picked, max: SUNDAY_FULL_XI })))
-              .finally(() => setBusy(null));
+            // NO TOAST. This fired `sunday.sheet.count` — "11 of 11" — which
+            // is the counter label from the panel header two centimetres
+            // below it, rendered a third time as a floating card that then
+            // followed the player onto Match Day and covered the fixture.
+            // Eleven faces appearing on the board is the confirmation.
+            void autoPick().finally(() => setBusy(null));
           }}
         >
           <span className="inline-flex items-center gap-1.5 text-caption">

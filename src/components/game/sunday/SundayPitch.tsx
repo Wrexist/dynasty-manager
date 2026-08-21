@@ -303,10 +303,16 @@ export function SundayXiCount({ named, label, countLabel, minLabel, ariaLabel }:
         })}
       </div>
       {/* The caption starts AT the rule rather than at the left margin, so it
-          labels the line it is about instead of floating under the whole bar. */}
+          labels the line it is about instead of floating under the whole bar.
+          It DIMS once the side is legal: at full strength under a green
+          "11 of 11" it read as an instruction still outstanding — "7 to start"
+          under a side of eleven is a rule being restated, not a job to do. */}
       <div className="flex mt-1" aria-hidden>
         <span className="flex-[7]" />
-        <span className="flex-[4] text-micro font-semibold text-white/85 whitespace-nowrap">{minLabel}</span>
+        <span className={cn(
+          'flex-[4] text-micro font-semibold whitespace-nowrap',
+          legal ? 'text-muted-foreground' : 'text-white/85',
+        )}>{minLabel}</span>
       </div>
     </div>
   );
