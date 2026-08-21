@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   track,
+  trackAppOpen,
   setAnalyticsSink,
   refreshAnalyticsConsent,
   _resetAnalyticsCacheForTests,
@@ -146,6 +147,71 @@ describe('analytics', () => {
       expect(id.length).toBeGreaterThan(5);
       // Either a uuid (crypto.randomUUID) or our s_<ts>_<rand> fallback
       expect(/^[0-9a-f-]{36}$/i.test(id) || /^s_[a-z0-9_]+$/i.test(id)).toBe(true);
+    });
+  });
+  describe('growth funnel events', () => {
+    beforeEach(() => {
+      writeAnalyticsConsent('granted');
+      refreshAnalyticsConsent();
+    });
+
+    it('app_open fires once per session with a coarse day bucket', () => {
+      const installed = Date.now() - 3 * 86_400_000 - 12;
+      trackAppOpen(installed);
+      trackAppOpen(installed); // second call in the same session is a no-op
+      expect(captured).toHaveLength(1);
+      expect(captured[0].event).toBe('app_open');
+      expect(captured[0].data.daysSinceInstall).toBe(3);
+    });
+
+    it('app_open treats an unknown first-launch stamp as day 0', () => {
+      trackAppOpen(0);
+      expect(captured).toHaveLength(1);
+      expect(captured[0].data.daysSinceInstall).toBe(0);
+    });
+
+    it('app_open respects consent like every other event', () => {
+      writeAnalyticsConsent('denied');
+      refreshAnalyticsConsent();
+      trackAppOpen(Date.now());
+      expect(captured).toHaveLength(0);
+    });
+
+    it('purchase events carry their surface', () => {
+      track('purchase_initiated', { productId: 'com.dynastymanager.pro.monthly', surface: 'onboarding' });
+      track('purchase_completed', { productId: 'com.dynastymanager.pack.gold', surface: 'packs' });
+      track('paywall_viewed', { surface: 'onboarding', trialEligible: true });
+      track('paywall_dismissed', { surface: 'onboarding', secondsOnScreen: 42 });
+      track('trial_started', { productId: 'com.dynastymanager.pro.monthly', surface: 'onboarding' });
+      track('pack_opened', { tierKey: 'gold', method: 'free', pityTriggered: false });
+      track('world_cup_started', { nation: 'brazil' });
+      track('world_cup_match_completed', { round: 'Group Stage', result: 'W', goalsFor: 2, goalsAgainst: 1 });
+      track('world_cup_finished', { placement: 'champion' });
+      expect(captured.map(p => p.event)).toEqual([
+        'purchase_initiated',
+        'purchase_completed',
+        'paywall_viewed',
+        'paywall_dismissed',
+        'trial_started',
+        'pack_opened',
+        'world_cup_started',
+        'world_cup_match_completed',
+        'world_cup_finished',
+      ]);
+    });
+  });
+
+  describe('consent survives localStorage eviction (IDB mirror)', () => {
+    it('reads back from the mirror when the localStorage key is lost', () => {
+      writeAnalyticsConsent('granted');
+      // Simulate WKWebView evicting the key under quota pressure.
+      localStorage.removeItem(STORAGE_KEYS.ANALYTICS_CONSENT);
+      expect(readAnalyticsConsent()).toBe('granted');
+    });
+
+    it('still fails safe to unknown when nothing was ever answered', () => {
+      _resetAnalyticsCacheForTests();
+      expect(readAnalyticsConsent()).toBe('unknown');
     });
   });
 });

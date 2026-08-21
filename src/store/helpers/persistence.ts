@@ -72,6 +72,7 @@ export function hydrateSaveStorage(): Promise<void> {
       // Ask the browser to keep IDB data around under storage pressure.
       // Fire-and-forget — the promise resolves whether or not it's granted.
       void requestPersistentStorage();
+      hydrateAnalyticsConsentMirror();
       const jobs: Promise<void>[] = [];
       for (let slot = 1; slot <= MAX_SLOTS; slot++) {
         jobs.push(hydrateOneSlot(slot));
@@ -150,6 +151,7 @@ export function __resetSaveStorageForTests(): void {
   }
   hydrated = false;
   hydratePromise = null;
+  analyticsConsentMirror = null;
 }
 
 /** True once IndexedDB has actually been read for this slot. Distinct from
@@ -838,17 +840,41 @@ export function writeDailyPackOpens(record: DailyPackOpensRecord): void {
 /** Analytics consent state. `'unknown'` surfaces the first-launch prompt. */
 export type AnalyticsConsent = 'unknown' | 'granted' | 'denied';
 
+// IndexedDB mirror of the consent answer. localStorage is evictable under
+// WKWebView quota pressure; if it loses the key, a user who already answered
+// would otherwise see the mandatory consent modal again and analytics would
+// silently stop. Fail-safe by design: an absent answer everywhere reads as
+// 'unknown' (no events), never as granted.
+const ANALYTICS_CONSENT_MIRROR_KEY = 'dynasty-analytics-consent-mirror';
+let analyticsConsentMirror: AnalyticsConsent | null = null;
+
+function hydrateAnalyticsConsentMirror(): void {
+  void idbGet(ANALYTICS_CONSENT_MIRROR_KEY)
+    .then(raw => {
+      if (raw === 'granted' || raw === 'denied') analyticsConsentMirror = raw;
+    })
+    .catch(() => { /* mirror is best-effort */ });
+}
+
 export function readAnalyticsConsent(): AnalyticsConsent {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.ANALYTICS_CONSENT);
     if (raw === 'granted' || raw === 'denied') return raw;
-    return 'unknown';
-  } catch { return 'unknown'; }
+  } catch { /* fall through to the IDB mirror */ }
+  return analyticsConsentMirror ?? 'unknown';
 }
 
 export function writeAnalyticsConsent(value: 'granted' | 'denied'): void {
+  analyticsConsentMirror = value;
   try { localStorage.setItem(STORAGE_KEYS.ANALYTICS_CONSENT, value); }
-  catch { /* storage unavailable — consent stays 'unknown', analytics stays off. */ }
+  catch { /* storage unavailable — the IDB mirror below still holds it. */ }
+  void idbPut(ANALYTICS_CONSENT_MIRROR_KEY, value).catch(() => { /* best-effort */ });
+}
+
+/** Test-only: clear the in-memory consent mirror so tests start from a
+ *  blank slate. Never call from production. */
+export function __resetAnalyticsConsentForTests(): void {
+  analyticsConsentMirror = null;
 }
 
 /** Read the per-slot community pack opt-in. Returns null if the user has

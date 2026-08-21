@@ -1,6 +1,7 @@
 import { defineConfig, configDefaults } from "vitest/config";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+import os from "os";
 import { createRequire } from "module";
 
 const pkgVersion = createRequire(import.meta.url)("./package.json").version;
@@ -83,7 +84,16 @@ export default defineConfig({
     // generated national + club-template data in `setup.ts`, so memory is the
     // binding constraint, not CPU. Raise only alongside a memory measurement —
     // and re-check the stress-suite timeouts, which scale with contention.
-    maxForks: 4,
+    //
+    // CI keeps ONE core free for the main process. The full suite has twice
+    // exited 1 with every test passing because four forks starved the main
+    // thread's RPC channel while a season simulation ran — the worker's
+    // `onTaskUpdate` call times out and Vitest counts it as an unhandled
+    // error (see the reporter note below). The `dot` reporter reduced that
+    // traffic but did not eliminate it; on shared CI runners the starvation
+    // still happened. Reserving a core for the main process removes the
+    // contention at its source instead of tuning for it downstream.
+    maxForks: process.env.CI ? Math.max(1, os.cpus().length - 1) : 4,
     // Low-chatter reporter by default.
     //
     // WHY. The full suite twice exited 1 with *every* test passing — 2422

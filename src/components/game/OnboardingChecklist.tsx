@@ -206,13 +206,15 @@ export function OnboardingChecklist() {
     description: 'When you\'re set up, play your Week 1 matches to start the season.',
     icon: Calendar,
     done: false,
-    screen: 'dashboard',
+    screen: 'match-prep',
     whyItMatters: 'Time only moves when you advance it. The game pauses indefinitely between weeks so you can set tactics, manage transfers, and review scout reports. Once you advance, the next week begins and training fires.',
     steps: [
       { text: 'Make sure you\'ve looked at Squad (bottom nav) — your starting XI is already set, but glance at it.' },
       { text: 'Optionally peek at Tactics (bottom nav) — your default formation is 4-3-3.' },
-      { text: 'Come back to the Dashboard (Home button in the bottom nav).' },
-      { text: 'Your next match card is right at the top — tap "Match Prep".' },
+      // "Take me there" jumps straight to Match Prep; these steps describe
+      // the manual route for users who prefer to navigate themselves.
+      { text: 'Or tap "Take me there" below to jump straight to Match Prep.' },
+      { text: 'Review your squad, then tap "Kick Off".' },
       { text: 'Play your Week 1 match, then advance. Any pre-season friendlies are scheduled on free weeks, so you never face two matches in one week.' },
     ],
     successCue: 'Once advanced, this whole checklist disappears — you\'re inside the weekly loop now.',

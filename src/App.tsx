@@ -6,19 +6,14 @@ import { MotionConfig } from "framer-motion";
 import { useGameStore } from "@/store/gameStore";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import TitleScreen from "./pages/TitleScreen";
-// Both of these are Radix Dialogs that appear on a CONDITION — first launch for
-// the consent modal, a corrupt save for the recovery dialog — yet importing them
-// eagerly pulled @radix-ui/react-dialog into the boot graph for every launch.
-// Lazy + conditionally mounted, so the chunk is fetched only when one is
-// actually shown. There is no fallback on purpose: nothing should flash while a
-// dialog nobody asked for downloads.
-const AnalyticsConsentModal = lazy(() =>
-  import("@/components/AnalyticsConsentModal").then(m => ({ default: m.AnalyticsConsentModal })));
+// SaveRecoveryDialog is a Radix Dialog that appears on a CONDITION — a corrupt
+// save — yet importing it eagerly pulled @radix-ui/react-dialog into the boot
+// graph for every launch. Lazy + conditionally mounted, so the chunk is fetched
+// only when one is actually shown. There is no fallback on purpose: nothing
+// should flash while a dialog nobody asked for downloads.
 const SaveRecoveryDialog = lazy(() =>
   import("@/components/SaveRecoveryDialog").then(m => ({ default: m.SaveRecoveryDialog })));
 import NotFound from "./pages/NotFound";
-import { readAnalyticsConsent } from "@/store/helpers/persistence";
-import { refreshAnalyticsConsent } from "@/utils/analytics";
 
 // Lazy-loaded routes for code splitting
 const ClubSelection = lazy(() => import("./pages/ClubSelection"));
@@ -57,29 +52,16 @@ const App = () => {
     root.classList.toggle('perf-mode', !!performanceMode);
     return () => root.classList.remove('perf-mode');
   }, [performanceMode]);
-  // First-launch analytics consent: read once on mount, gate the rest of the
-  // app until the user answers. `refreshAnalyticsConsent` seeds the in-memory
-  // cache so early `track()` calls (e.g. from splash) see 'granted' only if
-  // the user already answered on a previous launch.
-  const [consent, setConsent] = useState(() => {
-    refreshAnalyticsConsent();
-    return readAnalyticsConsent();
-  });
-  useEffect(() => { refreshAnalyticsConsent(); }, []);
+  // Note: the first-launch analytics consent modal was removed — product
+  // analytics travel via RevenueCat + App Store Connect (decision in
+  // docs/growth-overhaul-plan.md §1.2), so no first-party stats leave the
+  // device and there is nothing to consent to.
 
   return (
   <ErrorBoundary scope="app">
     <MotionConfig reducedMotion={(reducedMotion || performanceMode) ? "always" : "user"}>
       <TooltipProvider>
         <Sonner />
-        {consent === 'unknown' && (
-          <Suspense fallback={null}>
-            <AnalyticsConsentModal
-              open
-              onChoice={() => setConsent(readAnalyticsConsent())}
-            />
-          </Suspense>
-        )}
         <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <Suspense fallback={null}><SaveRecoveryDialog /></Suspense>
           <Suspense fallback={<LoadingFallback />}>

@@ -1,4 +1,4 @@
-import { readAnalyticsConsent, type AnalyticsConsent } from '@/store/helpers/persistence';
+import { readAnalyticsConsent, __resetAnalyticsConsentForTests, type AnalyticsConsent } from '@/store/helpers/persistence';
 
 // Build-time constant; same mechanism as src/utils/sentry.ts. Falls back to
 // 'dev' in vitest where Vite's `define` doesn't run.
@@ -10,10 +10,21 @@ function getAppVersion(): string {
   } catch { return 'dev'; }
 }
 
+/** Where a commerce event originated. Without it, shop vs paywall vs packs
+ *  purchases are indistinguishable post-hoc and per-surface CVR is
+ *  uncomputable. */
+export type PurchaseSurface = 'shop' | 'onboarding' | 'packs';
+
 /** Allowed analytics events. Adding a new event? Extend this union and the
  *  matching `EventData` entry — the narrow shape is the whole privacy story.
  *  Anything not listed here can't be sent. */
 export type AnalyticsEvent =
+  // ── Lifecycle / activation ──
+  // Fired once per session from main.tsx. `daysSinceInstall` is a coarse
+  // whole-day count derived from the local first-launch timestamp — it is
+  // the retention denominator (installs) and D1/D7/D30 buckets, NOT a
+  // stable identifier: two devices installed the same day are identical.
+  | { name: 'app_open'; data: { daysSinceInstall: number } }
   | { name: 'game_started'; data: { communityPackEnabled: boolean; gameMode: 'sandbox' | 'career' | 'world-cup'; division: string } }
   | { name: 'season_completed'; data: { season: number; finalPosition: number; division: string } }
   | { name: 'save_created'; data: { slot: number; bytes: number } }
@@ -22,13 +33,23 @@ export type AnalyticsEvent =
   | { name: 'save_imported'; data: { slot: number } }
   | { name: 'community_pack_enabled'; data: Record<string, never> }
   | { name: 'community_pack_disabled'; data: Record<string, never> }
-  | { name: 'purchase_initiated'; data: { productId: string } }
-  | { name: 'purchase_completed'; data: { productId: string } }
-  | { name: 'purchase_cancelled'; data: { productId: string } }
-  | { name: 'purchase_failed'; data: { productId: string } }
+  // ── Commerce funnel ──
+  | { name: 'purchase_initiated'; data: { productId: string; surface: PurchaseSurface } }
+  | { name: 'purchase_completed'; data: { productId: string; surface: PurchaseSurface } }
+  | { name: 'purchase_cancelled'; data: { productId: string; surface: PurchaseSurface } }
+  | { name: 'purchase_failed'; data: { productId: string; surface: PurchaseSurface } }
+  | { name: 'paywall_viewed'; data: { surface: PurchaseSurface; trialEligible: boolean } }
+  | { name: 'paywall_dismissed'; data: { surface: PurchaseSurface; secondsOnScreen: number } }
+  | { name: 'trial_started'; data: { productId: string; surface: PurchaseSurface } }
   | { name: 'restore_clicked'; data: Record<string, never> }
   | { name: 'restore_completed'; data: { restoredCount: number } }
   | { name: 'crash'; data: { category: string } }
+  // ── Pack opening (free and paid share one funnel) ──
+  | { name: 'pack_opened'; data: { tierKey: string; method: 'free' | 'currency' | 'ad' | 'iap'; pityTriggered: boolean } }
+  // ── World Cup funnel ──
+  | { name: 'world_cup_started'; data: { nation: string } }
+  | { name: 'world_cup_match_completed'; data: { round: string; result: 'W' | 'D' | 'L'; goalsFor: number; goalsAgainst: number } }
+  | { name: 'world_cup_finished'; data: { placement: string } }
   // ── Retention loop ──
   | { name: 'daily_streak_claim'; data: { streak: number; xp: number } }
   | { name: 'festival_checkin'; data: { eventId: string; points: number } }
@@ -79,41 +100,24 @@ function mkSessionId(): string {
 }
 const SESSION_ID = mkSessionId();
 
-/** Sink abstraction. Default is a no-op; callers can override (useful for
- *  tests, or for wiring up a backend later without changing call sites). */
+/** Sink abstraction. Default is a LOCAL-ONLY log: product analytics travel
+ *  via RevenueCat + App Store Connect instead (decision recorded in
+ *  docs/growth-overhaul-plan.md §1.2), so nothing here ever touches the
+ *  network. Callers can override (tests, or re-wiring a backend later
+ *  without changing call sites). */
 export type AnalyticsSink = (payload: AnalyticsPayload) => void;
 
 let sink: AnalyticsSink = defaultSink;
 let cachedConsent: AnalyticsConsent | null = null;
 
 function defaultSink(payload: AnalyticsPayload): void {
-  // In dev, log so developers can see what would have been sent. In prod
-  // with no endpoint configured, stay silent — events leave the device only
-  // if an explicit endpoint is set AND the user granted consent.
+  // Dev builds log so developers can see what would have been collected.
+  // Production: silent by design — no endpoint exists, no event leaves the
+  // device. The consent-gated pipeline above stays intact so a future
+  // decision to ship an endpoint is a one-function change, not a rewrite.
   if (import.meta.env.DEV) {
     // eslint-disable-next-line no-console
     console.info('[analytics]', payload.event, payload.data);
-  }
-  const endpoint = import.meta.env.VITE_ANALYTICS_ENDPOINT;
-  if (!endpoint || typeof fetch === 'undefined') return;
-  // Best-effort; never throw, never await.
-  try {
-    const body = JSON.stringify(payload);
-    // Use sendBeacon when available (survives page unload) then fall back.
-    if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
-      const ok = navigator.sendBeacon(endpoint, body);
-      if (ok) return;
-    }
-    fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body,
-      keepalive: true,
-    }).catch(() => {
-      /* swallow — analytics is best-effort, never retried */
-    });
-  } catch {
-    /* sink errors must never surface to the app */
   }
 }
 
@@ -166,9 +170,27 @@ export function _getSessionIdForTests(): string {
   return SESSION_ID;
 }
 
+// ── Lifecycle: app_open ──
+// The install denominator. Without it, every conversion rate in the growth
+// model is uncomputable — there is no way to divide purchases by installs.
+let appOpenFired = false;
+
+/** Fire the once-per-session `app_open` event. `firstLaunchTimestamp` is the
+ *  device-level monetization anchor (0 = unknown → treat as first launch).
+ *  Safe to call repeatedly; only the first call per session emits. */
+export function trackAppOpen(firstLaunchTimestamp: number): void {
+  if (appOpenFired) return;
+  appOpenFired = true;
+  const ts = firstLaunchTimestamp > 0 ? firstLaunchTimestamp : Date.now();
+  const daysSinceInstall = Math.max(0, Math.floor((Date.now() - ts) / 86_400_000));
+  track('app_open', { daysSinceInstall });
+}
+
 /** Test-only: reset the cached consent so a test run can flip the flag and
  *  see the change on the next track() call. */
 export function _resetAnalyticsCacheForTests(): void {
   cachedConsent = null;
   sink = defaultSink;
+  appOpenFired = false;
+  __resetAnalyticsConsentForTests();
 }

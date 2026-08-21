@@ -3,7 +3,7 @@
  * champion, runners-up, or eliminated in a given round. Shown when the
  * tournament completes (routed from `weekAdvance` in world-cup mode).
  */
-import { useMemo, type ReactNode } from 'react';
+import { useEffect, useMemo, type ReactNode } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -21,6 +21,7 @@ import { hapticMedium } from '@/utils/haptics';
 import { shareText } from '@/utils/share';
 import { APP_STORE_URL } from '@/config/legal';
 import { cn } from '@/lib/utils';
+import { track } from '@/utils/analytics';
 
 const ROUND_NAMES: Record<string, string> = {
   R32: 'Round of 32', R16: 'Round of 16', QF: 'Quarter-Finals', SF: 'Semi-Finals', F: 'the Final',
@@ -72,6 +73,13 @@ const WorldCupResult = () => {
     else { headline = 'Group Stage Exit'; tier = 'group'; }
     return { isChampion, headline, tier, champion: tournament.winner };
   }, [tournament, nat]);
+
+  // Terminal funnel event — fires once per result-screen mount and covers
+  // every completion path (final win, elimination fast-forward, group exit).
+  useEffect(() => {
+    if (result) track('world_cup_finished', { placement: result.tier });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only; `result` is derived once the tournament is complete
+  }, []);
 
   // Tournament run summary — record, goals, top scorer — for parity with the
   // club season-summary card.

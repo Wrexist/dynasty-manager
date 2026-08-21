@@ -11,9 +11,12 @@
 //     (since June 2025), so the captions are a ranked field and are validated
 //     like one, not treated as art direction.
 import { readFileSync, writeFileSync, readdirSync } from 'fs';
-import { join } from 'path';
+import { join, dirname } from 'path';
 
-const DIR = new URL('./locales', import.meta.url).pathname;
+// `new URL(...).pathname` yields "/C:/..." on Windows — use fileURLToPath so
+// the validator runs on any dev machine, not just POSIX.
+import { fileURLToPath } from 'url';
+const DIR = join(dirname(fileURLToPath(import.meta.url)), 'locales');
 const LIMITS = { 'App Name': 30, 'Subtitle': 30, 'Promotional Text': 170, 'Keywords': 100 };
 const FIX = process.argv.includes('--fix-counts');
 
