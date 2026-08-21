@@ -20,6 +20,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
 import { validateGameState } from './stateValidator';
 import { LEAGUES } from '@/data/league';
+import { tick } from './helpers/eventLoop';
 
 // Gated behind VITEST_AUDIT=1 so regular CI/dev runs stay quiet.
 // Run `VITEST_AUDIT=1 npm test` to surface these diagnostic numbers.
@@ -49,9 +50,6 @@ const auditLog: typeof console.log = process.env.VITEST_AUDIT ? console.log : ()
 const CLUB_ID = 'manchester-city'; // eng league club for most tests
 const TOTAL_WEEKS = 46;
 
-/** Yield to event loop so the Vitest worker can process RPC heartbeats. */
-const tick = () => new Promise<void>(resolve => setTimeout(resolve, 0));
-
 /** Advance one full season: 46 advanceWeek() calls + playCurrentMatch() + endSeason. */
 async function advanceFullSeason() {
   const store = useGameStore;
@@ -60,7 +58,8 @@ async function advanceFullSeason() {
     await store.getState().advanceWeek();
     // Play the player's match if one exists this week
     store.getState().playCurrentMatch();
-    // Yield every 10 weeks to let the worker process RPC messages
+    // Every ten weeks is ~3 s of simulation — comfortably inside birpc's
+    // hardcoded 60 s deadline, with room for parallel contention.
     if (w % 10 === 9) await tick();
   }
 

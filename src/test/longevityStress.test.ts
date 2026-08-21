@@ -13,6 +13,7 @@ import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 import { MAX_FINANCE_HISTORY } from '@/config/gameBalance';
 import { CUP_BYE_MARKER } from '@/data/cup';
 import type { GameState } from '@/store/storeTypes';
+import { tick } from './helpers/eventLoop';
 
 /**
  * TIMEOUT BUDGETS ARE MEASURED, NOT GUESSED.
@@ -37,8 +38,6 @@ import type { GameState } from '@/store/storeTypes';
 
 const CLUB_ID = 'manchester-city';
 const TOTAL_WEEKS = 46;
-
-const tick = () => new Promise<void>(resolve => setTimeout(resolve, 0));
 
 async function advanceFullSeason() {
   const store = useGameStore;

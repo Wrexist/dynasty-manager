@@ -36,6 +36,7 @@ import { validateSundayState } from '@/utils/sunday/invariants';
 import { sundaySeasonWeeks } from '@/utils/sunday/season';
 import { SUNDAY_DIVISIONS, SUNDAY_PERSONALITIES, SUNDAY_TACTICS, SUNDAY_UPGRADES, sundayUpgradeCost } from '@/config/sundayLeague';
 import type { SundayClubPersonalityId, SundayTacticId } from '@/types/game';
+import { tick } from './helpers/eventLoop';
 
 const SEASONS = 5;
 
@@ -71,6 +72,12 @@ async function runCareer(seed: number, personality: SundayClubPersonalityId, tac
   const maxTicks = SEASONS * (sundaySeasonWeeks('sun-prem') + 6);
 
   while (useGameStore.getState().season <= SEASONS && guard++ < maxTicks) {
+    // One macrotask yield per simulated week. Both harnesses in this file are
+    // driven from a SINGLE `it()` — 48 careers here, 12 eight-season careers
+    // below — so without this the test body runs for minutes without the event
+    // loop ever reaching the timer phase, and birpc's hardcoded 60 s
+    // `onTaskUpdate` deadline expires mid-test. See `helpers/eventLoop.ts`.
+    await tick();
     const s = useGameStore.getState();
     const sunday = s.sunday!;
     if (sunday.folded) break;
@@ -190,6 +197,7 @@ async function runEconomyCareer(seed: number, seasons: number) {
   let guard = 0;
 
   while (useGameStore.getState().season <= seasons && guard++ < seasons * (sundaySeasonWeeks('sun-prem') + 6)) {
+    await tick();
     const s = useGameStore.getState();
     const sunday = s.sunday!;
     if (sunday.folded) break;
