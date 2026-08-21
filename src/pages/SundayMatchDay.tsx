@@ -234,8 +234,15 @@ const SundayMatchDay = () => {
       .map(id => players[id])
       .filter(Boolean)
       .sort((a, b) => (b.goals - a.goals) || (b.overall - a.overall))[0];
+    // A POSITION NOBODY HAS EARNED IS NOT A POSITION. Before a ball is kicked
+    // every row is 0-0-0 and the order is whatever the tie-break happened to
+    // produce, so week one printed "6/8" against an opponent who had never
+    // played — a scouting fact invented out of a sort. The briefing's
+    // `position` is already nullable for the cup tie against another division;
+    // an unplayed table is the same case.
+    const anyPlayed = table.some(r => r.played > 0);
     return {
-      position: sundayPosition(table, oppId),
+      position: anyPlayed ? sundayPosition(table, oppId) : null,
       tableSize: table.length,
       form: row?.form ?? [],
       danger: danger ? { name: `${danger.firstName} ${danger.lastName}`, goals: danger.goals } : null,
