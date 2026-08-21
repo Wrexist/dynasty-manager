@@ -234,12 +234,16 @@ const TacticsPage = () => {
         <LineupEditor />
       </GlassPanel>
 
-      {/* Optimize Lineup */}
-      {userIsPro ? (
-        <OptimizeLineupButton potentialGain={potentialGain} autoFilling={autoFilling} onOptimize={optimizeLineup} />
-      ) : (
-        <ProUpsell feature="Optimize Lineup" />
-      )}
+      {/* Optimize Lineup. Non-subscribers keep the button rather than getting a
+          generic upsell banner in its place: it names the feature, shows the
+          rating it would actually win them, and opens the in-app paywall on
+          tap. `onOptimize` is unreachable while locked. */}
+      <OptimizeLineupButton
+        potentialGain={potentialGain}
+        autoFilling={autoFilling}
+        onOptimize={optimizeLineup}
+        locked={!userIsPro}
+      />
 
       {/* Chemistry Summary */}
       {chemistry && chemistry.links.length > 0 && (() => {

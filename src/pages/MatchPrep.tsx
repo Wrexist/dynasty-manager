@@ -610,11 +610,14 @@ const MatchPrep = () => {
         <h3 className="text-sm font-semibold text-foreground mb-2">Your Formation: {myClub.formation}</h3>
 
         <div className="mb-3">
-          {isPro(monetization) ? (
-            <OptimizeLineupButton potentialGain={potentialGain} autoFilling={autoFilling} onOptimize={optimizeLineup} />
-          ) : (
-            <ProUpsell feature="Optimize Lineup" />
-          )}
+          {/* Same locked button as Tactics — the two screens offer the same
+              feature and must not present it two different ways. */}
+          <OptimizeLineupButton
+            potentialGain={potentialGain}
+            autoFilling={autoFilling}
+            onOptimize={optimizeLineup}
+            locked={!isPro(monetization)}
+          />
         </div>
 
         <LineupEditor />

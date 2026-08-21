@@ -529,6 +529,9 @@ export const en = {
   'onboardingChecklist.dismissChecklist': 'Dismiss checklist',
   'onboardingChecklist.gettingStartedChecklist': 'Getting started checklist',
   'optimizeLineupButton.dynastyProFeature': 'Dynasty Pro feature',
+  'optimizeLineupButton.locked': 'Unlock Smart Optimize',
+  'optimizeLineupButton.lockedAria': 'Smart Optimize Lineup — a Dynasty Pro feature. Opens the upgrade screen.',
+
   'optimizeResultModal.lineupOptimizationResult': 'Lineup optimization result',
   'pageHint.dismissHint': 'Dismiss hint',
   'playerAvatar.redCard': 'Red card',

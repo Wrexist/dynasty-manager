@@ -60,18 +60,6 @@ const modes: readonly Mode[] = [
     route: '/create-manager',
   },
   {
-    id: 'world-cup',
-    name: 'World Cup',
-    tagline: 'One nation. One tournament.',
-    description: 'Pick a national team and play the entire World Cup — group stage to the final. Lift the trophy, or go home.',
-    icon: Trophy,
-    color: 'from-amber-500/20 to-amber-600/5',
-    borderColor: 'border-amber-500/30 hover:border-amber-500/60',
-    iconColor: 'text-amber-400',
-    iconBg: 'bg-amber-500/10',
-    route: '/world-cup',
-  },
-  {
     id: 'sunday',
     // Keyed copy: `sunday.mode.*` already existed and had drifted from these
     // literals (the key's tagline carries "No guarantees."). The key wins.
@@ -88,6 +76,18 @@ const modes: readonly Mode[] = [
     iconBg: 'bg-lime-500/10',
     route: '/sunday-league',
     featured: true,
+  },
+  {
+    id: 'world-cup',
+    name: 'World Cup',
+    tagline: 'One nation. One tournament.',
+    description: 'Pick a national team and play the entire World Cup — group stage to the final. Lift the trophy, or go home.',
+    icon: Trophy,
+    color: 'from-amber-500/20 to-amber-600/5',
+    borderColor: 'border-amber-500/30 hover:border-amber-500/60',
+    iconColor: 'text-amber-400',
+    iconBg: 'bg-amber-500/10',
+    route: '/world-cup',
   },
   {
     id: 'online',
