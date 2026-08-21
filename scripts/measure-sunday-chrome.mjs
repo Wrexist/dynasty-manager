@@ -2,47 +2,70 @@
 /**
  * Sunday League chrome meter.
  *
- * Counts the STATIC ENGLISH TEXT each Sunday screen can put on the glass, at
- * any two git revisions, so a copy-reduction pass can be stated as a number
- * instead of an impression.
+ * Two modes, and the distinction matters more than anything else in this file:
  *
- *   node scripts/measure-sunday-chrome.mjs <before-rev> [after-rev]   # default HEAD
+ *   --dom    <beforeURL> <afterURL>   THE HEADLINE. What is on the glass.
+ *   --static <beforeRev> [afterRev]   A secondary signal, plus the voice floor.
  *
- * WHAT IT COUNTS, per file, deduped by string:
- *   1. `t('key')` resolved through `src/i18n/locales/en.ts`. A key whose EVERY
- *      occurrence sits in an `aria-*` attribute is not on the glass and is
- *      skipped; one used anywhere visible counts.
- *   2. Template keys — ``t(`sunday.match.style.${x}`)`` — as every en key under
- *      that prefix, because any of them can render.
- *   3. Keys reached through a lookup map (`{ pitch: 'sunday.club.statPitch' }`).
- *      Missing these under-counts exactly the screens a refactor moved into
- *      maps, which is the direction that flatters a reduction.
- *   4. Hardcoded JSX text nodes and visible string props.
- *   5. Prose fields of the config records the screen renders — a tactic's
- *      tagline, an upgrade's description, a sponsor's blurb. Rendered inside a
- *      `.map()` over the array it counts every record; reached through an
- *      accessor (`getSundayTactic(id)`) it counts one, at the mean record
- *      length, so the figure does not depend on which club was rolled.
+ * ── WHY --dom IS THE HEADLINE, AND WHAT WENT WRONG WITHOUT IT ───────────────
  *
- * CLASSIFICATION. `explanatory` is any string of EXPLANATORY_MIN characters or
- * more — copy that explains rather than labels. Calibrated against the opening
- * audit of the immersion overhaul, which reported 59.9% of its chrome as
- * explanatory; this threshold reproduces 59.7% on the same files at the same
- * revision.
+ * The measurement this tool exists to reproduce was always "what is on screen
+ * at once, in the default tab". The first reconstruction of it counted static
+ * source instead, and — fatally — counted config prose from the POOL: every
+ * one of the eight `SUNDAY_PERSONALITIES` descriptions, every
+ * `SUNDAY_UPGRADES` description, the whole `SUNDAY_SPONSORS` blurb catalogue.
  *
- * VOICE is measured separately and must never fall: the authored lines a player
- * reads as the club's own voice (commentary, arrival beats, memories,
- * relationship lines, event bodies, rivalry, opponent intel). Cutting chrome by
- * cutting voice is not the same trade.
+ * Screens do not render pools. `SundayPersonalityCard` renders a description
+ * only when its card is `selected`; the Clubhouse renders at most one upgrade
+ * description at a time and none on first paint. Counting the catalogue scored
+ * the Setup screen 1194 -> 1204 (+1%) with its long blocks unchanged at 8 -> 8.
+ * The browser says 1380 -> 731 with blocks 8 -> 1. The static number was not
+ * slightly off; it had the sign wrong, and it was the single largest input to a
+ * conclusion that a copy-reduction target had been missed when it had been met.
  *
- * PROVENANCE. Reconstructed after the original ad-hoc script was lost. It
- * reproduces the opening audit's per-file figures exactly for Hub, Setup,
- * Squad, Recruit, Table, EventModal and WeekBar, within nine characters for
- * Clubhouse, Teamsheet, History and Bits, and within sixty for MatchDay —
- * 99.0% of its 7,997 total. It is a report, not a gate: nothing in preflight
- * calls it.
+ * So: no source-derived figure in this file may stand in for a rendered one.
+ * `--static` counts what a FILE CAN SAY, never what a SCREEN DOES SAY, and its
+ * output is labelled that way. It deliberately does not look at config records
+ * at all any more — a screen's share of a catalogue is not knowable from source.
+ *
+ * ── WHAT --dom MEASURES ─────────────────────────────────────────────────────
+ *
+ * One real Chromium at 390x844 against a running dev server, `Math.random`
+ * seeded so both revisions roll comparable content. For each screen it reads
+ * GameShell's `<main>` (the screen slot — the top bar, tab strip and week bar
+ * are chrome the audit counted against their own files; Setup is a route with
+ * no shell, so it falls back to the app root) and reports:
+ *
+ *   chars        `innerText`, whitespace-collapsed
+ *   explanatory  characters in LEAF elements of >= EXPLANATORY_MIN chars —
+ *                a sentence explaining something, not a label naming it
+ *   over80       leaf elements longer than 80 characters
+ *
+ * The headline is the DEFAULT LANDING STATE of each screen. Tabs, selections
+ * and match beats are measured too and reported separately, named by state,
+ * because "the Clubhouse" is not one number: its Upgrades tab fell 1508 -> 422
+ * while its Sponsors tab did not move.
+ *
+ * A caveat --dom cannot resolve on its own: at full time the >80 blocks are
+ * match COMMENTARY, which is authored voice and is supposed to be long. Read
+ * that row with the voice figure from --static, not against a chrome target.
+ *
+ * ── VOICE ───────────────────────────────────────────────────────────────────
+ *
+ * `--static` also measures the authored lines a player reads as the club's own
+ * voice, and exits non-zero if they fall. Cutting chrome by cutting voice is a
+ * different trade from the one a chrome reduction claims, and the DOM cannot
+ * tell the two apart. This is the one thing the static pass is genuinely best at.
+ *
+ * Usage:
+ *   # headline — two dev servers, one per revision
+ *   node scripts/measure-sunday-chrome.mjs --dom http://127.0.0.1:8086 http://127.0.0.1:8085
+ *   # voice floor + source-side signal
+ *   npm run sunday:chrome -- --static <before-rev> [after-rev]
  */
 import { execSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
 
 // ── the files ───────────────────────────────────────────────────────────────
 
@@ -62,18 +85,11 @@ const NAMED = {
   WeekBar:    'src/components/game/sunday/SundayWeekBar.tsx',
 };
 
-/** Config records whose prose reaches a screen. */
-const CONFIG_SOURCES = [
-  { sym: 'SUNDAY_UPGRADES',      acc: 'sundayUpgrade',        file: 'src/config/sundayLeague.ts' },
-  { sym: 'SUNDAY_TACTICS',       acc: 'getSundayTactic',      file: 'src/config/sundayLeague.ts' },
-  { sym: 'SUNDAY_ARCHETYPES',    acc: 'getSundayArchetype',   file: 'src/config/sundayLeague.ts' },
-  { sym: 'SUNDAY_PERSONALITIES', acc: 'getSundayPersonality', file: 'src/config/sundayLeague.ts' },
-  // Sponsors reach the screen through saved state, not the config array, so
-  // the maps that render them are named rather than discovered.
-  { sym: 'SUNDAY_SPONSORS', acc: 'sundaySponsor', file: 'src/data/sundayNames.ts', mapVia: ['sponsorOffers', 'sponsors'] },
-];
-/** `name` is an identity, not chrome — the audit excluded it and so does this. */
-const PROSE_FIELDS = ['tagline', 'description', 'blurb'];
+// NOTE: there is deliberately no config-record counting here. See the header.
+// A screen renders a slice of a catalogue chosen at runtime, and source cannot
+// say which slice; counting the whole pool is how this tool once reported a
+// 47% reduction as a 1% increase. Catalogue prose is measured by --dom, where
+// it is either on the glass or it is not.
 
 /** Authored narrative. Chrome may fall; this may not. */
 const VOICE_FILES = [
@@ -170,52 +186,8 @@ function hardcodedStrings(src) {
   return [...out];
 }
 
-function arrayBlock(src, name) {
-  const i = src.indexOf(`export const ${name}`);
-  if (i < 0) return '';
-  const open = src.indexOf('[', src.indexOf('=', i));
-  let depth = 0;
-  for (let j = open; j < src.length; j++) {
-    if (src[j] === '[') depth++;
-    else if (src[j] === ']' && !--depth) return src.slice(open, j + 1);
-  }
-  return '';
-}
 
-function fieldValues(block, field) {
-  const re = new RegExp(`(?:^|[,{\\s])${field}:\\s*'((?:[^'\\\\]|\\\\.)*)'`, 'g');
-  const out = []; let m;
-  while ((m = re.exec(block))) out.push(m[1].replace(/\\'/g, "'"));
-  return out;
-}
 
-function configProse(rev, path) {
-  const src = stripComments(readAt(rev, path) ?? '');
-  const rows = [];
-  for (const s of CONFIG_SOURCES) {
-    const via = s.mapVia ?? [];
-    const referenced = new RegExp(`\\b${s.sym}\\b`).test(src) || via.some(v => new RegExp(`\\b${v}\\b`).test(src));
-    const accessed = new RegExp(`\\b${s.acc}[A-Za-z]*\\(`).test(src);
-    if (!referenced && !accessed) continue;
-    const block = arrayBlock(readAt(rev, s.file) ?? '', s.sym);
-    if (!block) continue;
-    const params = new Set();
-    for (const sym of [s.sym, ...via])
-      for (const m of src.matchAll(new RegExp(`\\b${sym}\\s*\\.\\s*(?:map|filter|flatMap)\\s*\\(\\s*\\(?\\s*([A-Za-z_$][\\w$]*)`, 'g')))
-        params.add(m[1]);
-    for (const f of PROSE_FIELDS) {
-      if (!new RegExp(`\\.${f}\\b`).test(src)) continue;
-      const vals = fieldValues(block, f);
-      if (!vals.length) continue;
-      const everyRecord = [...params].some(p => new RegExp(`\\b${p}\\.${f}\\b`).test(src));
-      const total = vals.reduce((a, x) => a + x.length, 0);
-      rows.push(everyRecord
-        ? { label: `${s.sym.replace('SUNDAY_', '')}.${f}×${vals.length}`, chars: total, strings: vals }
-        : { label: `${s.sym.replace('SUNDAY_', '')}.${f}×1`, chars: Math.round(total / vals.length), strings: [] });
-    }
-  }
-  return rows;
-}
 
 // ── measuring ───────────────────────────────────────────────────────────────
 
@@ -234,21 +206,14 @@ function measure(rev, files) {
   for (const [name, path] of Object.entries(files)) {
     const src = readAt(rev, path);
     if (src === null) { rows[name] = null; continue; }
-    const cfg = configProse(rev, path);
     const ui = [...new Set([
       ...literalTStrings(src, en), ...templateStrings(src, en),
       ...mappedStrings(src, en), ...hardcodedStrings(src),
     ])];
-    const all = [...new Set([...ui, ...cfg.flatMap(r => r.strings)])];
-    let chrome = all.reduce((a, s) => a + s.length, 0);
-    for (const r of cfg) if (!r.strings.length) chrome += r.chars;   // accessor: the mean record
-    const explanatory = all.filter(s => s.length >= EXPLANATORY_MIN).reduce((a, s) => a + s.length, 0);
     rows[name] = {
-      chrome, explanatory,
-      big: all.filter(s => s.length > EXPLANATORY_MIN * 2 + 10).length,   // >80 chars
       ui: ui.reduce((a, s) => a + s.length, 0),
       uiExplanatory: ui.filter(s => s.length >= EXPLANATORY_MIN).reduce((a, s) => a + s.length, 0),
-      sources: cfg.map(r => r.label),
+      uiBig: ui.filter(s => s.length > 80).length,
     };
   }
   return rows;
@@ -277,51 +242,197 @@ function voice(rev) {
   return out;
 }
 
-// ── report ──────────────────────────────────────────────────────────────────
+// ── DOM mode: what is on the glass ─────────────────────────────────────────
 
-function main() {
-  const before = process.argv[2];
-  const after = process.argv[3] ?? 'HEAD';
-  if (!before) {
-    console.error('usage: node scripts/measure-sunday-chrome.mjs <before-rev> [after-rev]');
-    process.exit(2);
+/** Seeded in the page so both revisions roll comparable clubs and squads. */
+const SEED_MATH_RANDOM = () => {
+  let s = 0x2f6e2b1 >>> 0;
+  Math.random = () => {
+    s ^= s << 13; s >>>= 0; s ^= s >> 17; s ^= s << 5; s >>>= 0;
+    return s / 0x100000000;
+  };
+};
+
+function readGlass() {
+  // GameShell's screen slot. Setup is a route with no shell, so fall back.
+  const root = document.querySelector('main') ?? document.getElementById('root');
+  if (!root) return null;
+  const text = (root.innerText || '').replace(/\s+/g, ' ').trim();
+  const blocks = [];
+  let explanatory = 0;
+  for (const el of root.querySelectorAll('*')) {
+    // Leaf elements only, so a paragraph counts once and not once per ancestor.
+    if (el.childElementCount) continue;
+    const t = (el.textContent || '').replace(/\s+/g, ' ').trim();
+    if (!t) continue;
+    if (t.length >= 35) explanatory += t.length;
+    if (t.length > 80) blocks.push(t);
   }
+  return { chars: text.length, explanatory, over80: blocks.length, blocks };
+}
+
+/** Landing states form the headline; everything else is reported beside it. */
+const LANDING = new Set([
+  'Setup', 'Hub', 'Teamsheet', 'Squad', 'Recruit', 'Table', 'Clubhouse', 'History', 'MatchDay',
+]);
+
+/**
+ * Playwright's bundled-browser revision and whatever is actually on the box do
+ * not always agree (CI images pin one, `npx playwright install` fetches
+ * another). Try the default resolution first, then any chromium sitting in the
+ * browsers directory, then say which knob to turn instead of printing
+ * Playwright's install banner at someone who cannot run the installer.
+ */
+async function launchChromium(chromium) {
+  const args = ['--no-sandbox', '--disable-dev-shm-usage'];
+  const tries = [process.env.SUNDAY_CHROME_PATH, undefined];
+  const dir = process.env.PLAYWRIGHT_BROWSERS_PATH || '/opt/pw-browsers';
+  try {
+    for (const d of fs.readdirSync(dir)) {
+      if (!d.startsWith('chromium-')) continue;
+      tries.push(path.join(dir, d, 'chrome-linux', 'chrome'));
+    }
+  } catch { /* no browsers directory; the default resolution is all there is */ }
+  let last;
+  for (const executablePath of tries) {
+    if (executablePath !== undefined && !fs.existsSync(executablePath)) continue;
+    try { return await chromium.launch({ args, executablePath }); } catch (e) { last = e; }
+  }
+  throw new Error(`no usable chromium — set SUNDAY_CHROME_PATH. Last error: ${last?.message ?? 'none'}`);
+}
+
+async function walk(baseURL) {
+  const { chromium } = await import('playwright');
+  const browser = await launchChromium(chromium);
+  const ctx = await browser.newContext({
+    viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true,
+  });
+  await ctx.addInitScript(SEED_MATH_RANDOM);
+  const page = await ctx.newPage();
+  const out = {};
+  const tap = async (rx, to = 6000) => {
+    const el = page.getByText(rx).last();
+    try { await el.waitFor({ state: 'visible', timeout: to }); await el.click(); await page.waitForTimeout(600); return true; }
+    catch { return false; }
+  };
+  const rec = async (name) => { await page.waitForTimeout(400); out[name] = await page.evaluate(readGlass); };
+
+  await page.goto(baseURL, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(700);
+  const consent = page.getByRole('button', { name: /no thanks/i });
+  if (await consent.count()) { await consent.first().click(); await page.waitForTimeout(400); }
+  await tap(/new game/i);
+  const close = page.locator('[aria-label*="aywall"], [aria-label*="lose"]').first();
+  try { await close.waitFor({ state: 'visible', timeout: 6000 }); await close.click(); } catch { /* no paywall */ }
+  await page.waitForTimeout(700);
+  await tap(/sunday league/i);
+  await page.waitForTimeout(900);
+
+  await rec('Setup');
+  await tap(/Chaos FC/);           await rec('Setup · another personality selected');
+  await tap(/Get Started/i);       await page.waitForTimeout(1200);
+  await rec('Hub');
+  await tap(/^Team$/);             await rec('Teamsheet');
+  await tap(/Pick it for me/i);    await page.waitForTimeout(900);
+  await rec('Teamsheet · XI named');
+  await tap(/^Squad$/);            await rec('Squad');
+  await tap(/Recruit/);            await rec('Recruit');
+  await tap(/^League$/);           await rec('Table');
+  await tap(/^Fixtures$/);         await rec('Table · Fixtures tab');
+  await tap(/^Cup$/);              await rec('Table · Cup tab');
+  await tap(/^Clubhouse$/);        await rec('Clubhouse');
+  await tap(/^Sponsors$/);         await rec('Clubhouse · Sponsors tab');
+  await tap(/The books/i);         await rec('Clubhouse · The books tab');
+  await tap(/^History$/);          await rec('History');
+  await tap(/^Home$/);
+  await tap(/Match Day|Pick the team/i);
+  await page.waitForTimeout(700);
+  if (await page.getByText(/Match Day/i).count()) await tap(/Match Day/i);
+  await page.waitForTimeout(900);
+  await rec('MatchDay');
+  await tap(/Sunday morning/i);
+  await tap(/Play with \d+|Bring in/i, 2500);
+  await rec('MatchDay · side locked');
+  await tap(/Kick off/i, 4000);
+  for (let i = 0; i < 45; i++) {
+    await page.waitForTimeout(700);
+    const b = await page.locator('body').innerText();
+    if (/Back to the club/i.test(b)) break;
+    if (/Half time/i.test(b) && /as you set up/.test(b)) { await tap(/as you set up/, 1500); continue; }
+    if (/Skip to the result/i.test(b)) { await tap(/Skip to the result/i, 1200); continue; }
+  }
+  await rec('MatchDay · full time');
+  await browser.close();
+  return out;
+}
+
+async function domMode(beforeURL, afterURL) {
+  const A = await walk(beforeURL), B = await walk(afterURL);
+  const pad = (s, n) => String(s).padEnd(n), r = (s, n) => String(s).padStart(n);
+  const d = (a, b) => (a ? `${b > a ? '+' : ''}${(100 * (b - a) / a).toFixed(0)}%` : '—');
+  const names = Object.keys(A);
+  const emit = (title, keys) => {
+    console.log(`\n${title}\n`);
+    console.log('| state | chars before | chars after | explanatory before | explanatory after | blocks >80 before/after |');
+    console.log('|---|---|---|---|---|---|');
+    const t = { ca: 0, cb: 0, ea: 0, eb: 0, ba: 0, bb: 0 };
+    for (const k of keys) {
+      const a = A[k], b = B[k];
+      if (!a || !b) { console.log(`| ${k} | — | — | — | — | — |`); continue; }
+      t.ca += a.chars; t.cb += b.chars; t.ea += a.explanatory; t.eb += b.explanatory;
+      t.ba += a.over80; t.bb += b.over80;
+      console.log(`| ${pad(k, 34)} | ${r(a.chars, 5)} | ${r(b.chars, 5)} (${d(a.chars, b.chars)}) | ${r(a.explanatory, 5)} | ${r(b.explanatory, 5)} (${d(a.explanatory, b.explanatory)}) | ${a.over80} / ${b.over80} |`);
+    }
+    console.log(`| **TOTAL** | **${t.ca}** | **${t.cb}** (${d(t.ca, t.cb)}) | **${t.ea}** | **${t.eb}** (${d(t.ea, t.eb)}) | **${t.ba} / ${t.bb}** |`);
+  };
+  emit('### Headline — default landing state of every Sunday screen', names.filter(n => LANDING.has(n)));
+  emit('### Other states, reported separately', names.filter(n => !LANDING.has(n)));
+  console.log('\nAt full time the >80 blocks are match commentary — authored voice, long by design.');
+  console.log('Read that row against the voice figure from --static, not against a chrome target.');
+}
+
+// ── static mode: what a file CAN say, plus the voice floor ──────────────────
+
+function staticMode(before, after) {
   const files = { ...NAMED };
   for (const f of new Set([...sundayComponentFiles(before), ...sundayComponentFiles(after)])) {
     const n = f.split('/').pop().replace(/\.tsx?$/, '').replace(/^Sunday/, '');
     if (!Object.values(files).includes(f)) files[n] = f;
   }
   const A = measure(before, files), B = measure(after, files);
-
-  const pad = (s, n) => String(s).padEnd(n), r = (s, n) => String(s).padStart(n);
-  console.log(`\nSunday chrome — ${before} → ${after}\n`);
-  console.log('| screen | chrome before | chrome after | explanatory before | explanatory after | blocks >80 before/after |');
-  console.log('|---|---|---|---|---|---|');
-  const tot = { ca: 0, cb: 0, ea: 0, eb: 0, ba: 0, bb: 0, ua: 0, ub: 0, uea: 0, ueb: 0 };
-  for (const name of Object.keys(files)) {
-    const a = A[name], b = B[name];
-    const [c0, c1] = [a?.chrome ?? 0, b?.chrome ?? 0];
-    const [e0, e1] = [a?.explanatory ?? 0, b?.explanatory ?? 0];
-    const [g0, g1] = [a?.big ?? 0, b?.big ?? 0];
-    tot.ca += c0; tot.cb += c1; tot.ea += e0; tot.eb += e1; tot.ba += g0; tot.bb += g1;
-    tot.ua += a?.ui ?? 0; tot.ub += b?.ui ?? 0;
-    tot.uea += a?.uiExplanatory ?? 0; tot.ueb += b?.uiExplanatory ?? 0;
-    const pct = c0 ? ` (${c1 > c0 ? '+' : ''}${(100 * (c1 - c0) / c0).toFixed(0)}%)` : '';
-    console.log(`| ${pad(name, 14)} | ${r(c0, 5)} | ${r(c1, 5)}${pct} | ${r(e0, 5)} | ${r(e1, 5)} | ${g0} / ${g1} |`);
+  let ua = 0, ub = 0, ea = 0, eb = 0, ga = 0, gb = 0;
+  for (const n of Object.keys(files)) {
+    ua += A[n]?.ui ?? 0; ub += B[n]?.ui ?? 0;
+    ea += A[n]?.uiExplanatory ?? 0; eb += B[n]?.uiExplanatory ?? 0;
+    ga += A[n]?.uiBig ?? 0; gb += B[n]?.uiBig ?? 0;
   }
   const d = (a, b) => `${b > a ? '+' : ''}${a ? (100 * (b - a) / a).toFixed(1) : '0.0'}%`;
-  console.log(`| **TOTAL** | **${tot.ca}** | **${tot.cb}** (${d(tot.ca, tot.cb)}) | **${tot.ea}** | **${tot.eb}** (${d(tot.ea, tot.eb)}) | ${tot.ba} / ${tot.bb} |`);
-
-  console.log(`\nUI copy only (config and game prose excluded):`);
-  console.log(`  chrome      ${tot.ua} → ${tot.ub}  (${d(tot.ua, tot.ub)})`);
-  console.log(`  explanatory ${tot.uea} → ${tot.ueb}  (${d(tot.uea, tot.ueb)})`);
+  console.log(`\nStatic UI copy — what these files CAN put on screen, not what any screen DOES show.`);
+  console.log(`Not the headline: run --dom for that. See the header of this file.`);
+  console.log(`  copy        ${ua} → ${ub}  (${d(ua, ub)})`);
+  console.log(`  explanatory ${ea} → ${eb}  (${d(ea, eb)})`);
+  console.log(`  strings >80 ${ga} → ${gb}`);
 
   const va = voice(before), vb = voice(after);
   let ta = 0, tb = 0;
   for (const k of Object.keys(va)) { ta += va[k]; tb += vb[k]; }
   console.log(`\nAuthored voice: ${ta} → ${tb} (${tb - ta >= 0 ? '+' : ''}${tb - ta})`);
   for (const k of Object.keys(va)) if (vb[k] !== va[k]) console.log(`  ${k}: ${va[k]} → ${vb[k]}`);
-  if (tb < ta) { console.error('\nVOICE FELL. Chrome cut by cutting voice is not the trade.'); process.exitCode = 1; }
+  if (tb < ta) { console.error('\nVOICE FELL. Chrome cut by cutting voice is not the trade being claimed.'); process.exitCode = 1; }
+}
+
+async function main() {
+  const [mode, a, b] = process.argv.slice(2);
+  if (mode === '--dom') {
+    if (!a || !b) { console.error('usage: --dom <beforeURL> <afterURL>  (two running dev servers)'); process.exit(2); }
+    await domMode(a, b);
+  } else if (mode === '--static') {
+    if (!a) { console.error('usage: --static <before-rev> [after-rev]'); process.exit(2); }
+    staticMode(a, b ?? 'HEAD');
+  } else {
+    console.error('usage:\n  --dom    <beforeURL> <afterURL>   the headline: what is on the glass\n  --static <beforeRev> [afterRev]   source-side signal + the voice floor');
+    process.exit(2);
+  }
 }
 
 main();

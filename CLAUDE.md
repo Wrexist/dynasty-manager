@@ -282,10 +282,19 @@ consumable player-pack IAPs (RevenueCat).
     half-pitch, extracted from `LineupEditor` and used by both games. It reads
     `useReducedMotionPref()` itself — it is the only thing on the board that
     moves.
-  - `npm run sunday:chrome -- <before-rev> [after-rev]` measures the static
-    English every Sunday screen can put on the glass, and fails if authored
-    voice falls. A report, not a preflight gate — see
-    `scripts/measure-sunday-chrome.mjs`.
+  - **Measuring the mode's copy: `scripts/measure-sunday-chrome.mjs`.** Two
+    modes, and the distinction is the whole point.
+    `--dom <beforeURL> <afterURL>` drives real Chromium at 390x844 against two
+    running dev servers and reports what is ON THE GLASS — this is the
+    headline. `npm run sunday:chrome -- --static <beforeRev> [afterRev]`
+    reports what the FILES CAN SAY plus the authored-voice floor, and exits
+    non-zero if voice falls.
+    **Never let a source-derived number stand in for a rendered one.** An
+    earlier version counted config prose from the pool — all eight
+    `SUNDAY_PERSONALITIES` descriptions — when `SundayPersonalityCard` renders
+    one, and scored a screen +1% that the browser measures at -47%. A screen's
+    share of a catalogue is not knowable from source, so the static mode does
+    not look at config records at all. A report, not a preflight gate.
 - **Online** — `comingSoon: true`, not implemented.
 - **Challenges** (`/challenge`) — scenario starts from `src/data/challenges.ts`.
 
@@ -581,7 +590,9 @@ npm run test:watch   # Vitest in watch mode
 npm run lint         # ESLint
 npm run typecheck    # TypeScript type-check (standalone)
 npm run size:check   # Eager-bundle budget check
-npm run sunday:chrome -- <before-rev> [after-rev]   # Sunday screen copy meter
+npm run sunday:chrome -- --static <before-rev> [after-rev]   # copy meter (source side + voice floor)
+# headline copy measurement — two dev servers, real Chromium:
+#   node scripts/measure-sunday-chrome.mjs --dom http://127.0.0.1:8086 http://127.0.0.1:8085
 npm run preflight    # lint + typecheck + FAST tests + build + size:check (per commit)
 npm run preflight:full # ...plus the long-running suites (what CI enforces)
 npm run test:fast    # Vitest minus the slow season/longevity suites
