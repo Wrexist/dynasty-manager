@@ -4,6 +4,7 @@ import { PACK_TIER_MAP } from '@/config/packs';
 import { PENDING_CREDIT_TTL_MS } from '@/config/monetization';
 import { infoToast, successToast } from '@/utils/gameToast';
 import { readPendingPackCredit, writePendingPackCredit, clearPendingPackCredit } from '@/store/helpers/persistence';
+import { track } from '@/utils/analytics';
 import type { PackTierKey } from '@/types/game';
 
 /**
@@ -68,6 +69,10 @@ export function reconcilePendingPackCreditAtLaunch(): void {
     state.flushSave();
     if (useGameStore.getState().saveStatus !== 'failed') clearPendingPackCredit();
     successToast('Purchase restored', `Your paid ${tier.label} from the previous session has been credited.`);
+    // The original purchase_completed never fired (the crash ate it) — this
+    // is the revenue event for that money.
+    track('purchase_completed', { productId: pending.productId, surface: 'packs' });
+    track('pack_opened', { tierKey: pending.tierKey, method: 'iap', pityTriggered: result.pityTriggered === true });
   } else {
     // Grant is blocked — keep the marker so the claim survives, and keep
     // telling the player exactly what's in the way (once per session).

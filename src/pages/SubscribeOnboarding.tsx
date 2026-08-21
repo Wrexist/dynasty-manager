@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react';
 import { useTranslation } from '@/hooks/useTranslation';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
@@ -238,10 +238,30 @@ const SubscribeOnboarding = () => {
     if (!visibleRows.some(r => r.productId === selected)) setSelected(visibleRows[0].productId);
   }, [visibleRows, selected]);
 
+  // ── Paywall funnel instrumentation ──
+  const paywallMountedAtRef = useRef(Date.now());
+  const paywallViewedRef = useRef(false);
+  // "Viewed" fires when the paywall is actually usable (store probe answered),
+  // not on bare mount. Caveat: on device the intro-offer probe may still be in
+  // flight, so `trialEligible` can read false at fire time; `trial_started` is
+  // the authoritative trial signal, this flag is advisory.
+  useEffect(() => {
+    if (storeStatus !== 'ready' || paywallViewedRef.current) return;
+    paywallViewedRef.current = true;
+    track('paywall_viewed', { surface: 'onboarding', trialEligible });
+  }, [storeStatus, trialEligible]);
+
   const priceFor = (productId: ProductId) =>
     storePrices[productId] || `$${PRODUCTS[productId].priceUsd.toFixed(2)}`;
 
   const finish = () => {
+    // Every exit path funnels through here (skip, purchase success, restore
+    // success) — record how long the paywall held the user. Per-surface CVR
+    // is completed/viewed; dismissed is the complement detail.
+    track('paywall_dismissed', {
+      surface: 'onboarding',
+      secondsOnScreen: Math.round((Date.now() - paywallMountedAtRef.current) / 1000),
+    });
     setFlag(STORAGE_KEYS.SUBSCRIBE_ONBOARDING_SEEN);
     navigate(returnTo, { state: { slot, communityPackEnabled } });
   };
@@ -262,7 +282,7 @@ const SubscribeOnboarding = () => {
     if (purchasing || storeStatus !== 'ready') return;
     hapticMedium();
     setPurchasing(true);
-    track('purchase_initiated', { productId: selected });
+    track('purchase_initiated', { productId: selected, surface: 'onboarding' });
     addGameBreadcrumb('purchase', 'subscribe initiated', { surface: 'onboarding', productId: selected });
     try {
       const result = await purchaseProduct(selected);
@@ -271,7 +291,7 @@ const SubscribeOnboarding = () => {
         // charge — a completed subscription purchase legitimately returns
         // an empty `granted` list, since sub status flows through
         // subscription.expiresAt, not entitlements.)
-        track('purchase_cancelled', { productId: selected });
+        track('purchase_cancelled', { productId: selected, surface: 'onboarding' });
         infoToast('Purchase Cancelled', 'No charge was made.');
         return;
       }
@@ -292,7 +312,10 @@ const SubscribeOnboarding = () => {
       const isTrial = trialEligible && SUB_TRIAL_PRODUCT_IDS.includes(selected);
       const syncedSub = await syncAfterPurchase();
       if (isTrial && !syncedSub) startFreeTrial(selected);
-      track('purchase_completed', { productId: selected });
+      // `trial_started` is the authoritative trial signal — the
+      // `trialEligible` flag on paywall_viewed is advisory only.
+      if (isTrial) track('trial_started', { productId: selected, surface: 'onboarding' });
+      track('purchase_completed', { productId: selected, surface: 'onboarding' });
 
       const product = PRODUCTS[selected];
       successToast(
@@ -303,7 +326,7 @@ const SubscribeOnboarding = () => {
       );
       finish();
     } catch (err) {
-      track('purchase_failed', { productId: selected });
+      track('purchase_failed', { productId: selected, surface: 'onboarding' });
       addGameBreadcrumb('purchase', 'subscribe threw', { surface: 'onboarding', productId: selected });
       Sentry.captureException(err, { tags: { context: 'subscribe-onboarding.subscribe' }, extra: { productId: selected } });
       // The throw can arrive AFTER the App Store charge — RevenueCat doesn't

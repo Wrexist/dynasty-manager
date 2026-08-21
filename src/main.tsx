@@ -12,7 +12,7 @@ import { scheduleEngagementReminders, cancelAllEngagementReminders, derivePerson
 import { useGameStore } from '@/store/gameStore';
 import type { ProductId, SubscriptionInfo } from '@/types/game';
 import { initSentry, addGameBreadcrumb } from '@/utils/sentry';
-import { track } from '@/utils/analytics';
+import { track, trackAppOpen, refreshAnalyticsConsent } from '@/utils/analytics';
 import { hydrateSaveStorage, readDeviceEntitlements } from '@/store/helpers/persistence';
 import { setSfxEnabled, sfxRoar, sfxChime, sfxWhoosh, sfxBurst } from '@/utils/sfx';
 import { setPackSfxHandler } from '@/utils/packAudio';
@@ -66,6 +66,16 @@ try {
 } catch (err) {
   if (import.meta.env.DEV) console.warn('[main] device entitlement hydrate failed:', err);
 }
+
+// Install denominator — fire once per session, after the device entitlement
+// hydration above has restored the real first-launch stamp (otherwise every
+// launch would read as day 0). Consent-gated inside track(): a user who has
+// not granted emits nothing. daysSinceInstall is a coarse whole-day bucket,
+// not an identifier.
+try {
+  refreshAnalyticsConsent();
+  trackAppOpen(useGameStore.getState().monetization?.firstLaunchTimestamp ?? 0);
+} catch { /* analytics must never block startup */ }
 
 // Promise that resolves once the first frame has painted
 let resolveAppReady: (() => void) | null = null;

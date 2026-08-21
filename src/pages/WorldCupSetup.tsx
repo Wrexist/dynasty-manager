@@ -18,6 +18,7 @@ import { hapticLight, hapticMedium } from '@/utils/haptics';
 import { readCommunityPackSlotPref, writeCommunityPackSlotPref } from '@/store/helpers/persistence';
 import { CommunityPackToggle } from '@/components/game/CommunityPackToggle';
 import { cn } from '@/lib/utils';
+import { track } from '@/utils/analytics';
 
 const CONFED_LABEL: Record<string, string> = {
   UEFA: 'Europe', CONMEBOL: 'South America', CAF: 'Africa', AFC: 'Asia', CONCACAF: 'N. America',
@@ -66,6 +67,7 @@ const WorldCupSetup = () => {
     // Persist the per-slot community-pack choice (was written by the old
     // TitleScreen popup; now owned by this inline toggle).
     writeCommunityPackSlotPref(slot, communityPackEnabled);
+    track('world_cup_started', { nation: selected });
     // Target the chosen slot first — startWorldCup → resetGame reads activeSlot.
     useGameStore.setState({ activeSlot: slot });
     startWorldCup(selected, { communityPackEnabled });

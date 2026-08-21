@@ -60,7 +60,8 @@ export function AnalyticsConsentModal({ open, onChoice }: Props) {
               <div>
                 <p className="text-[11px] font-semibold text-foreground leading-tight">We collect</p>
                 <p className="text-[10px] text-muted-foreground leading-snug">
-                  Game events (started, season complete, save, crash category) and app version.
+                  Anonymous game events (app opens, matches, purchases, packs, saves,
+                  crash category), the app version, and whole days since you installed.
                 </p>
               </div>
             </div>
