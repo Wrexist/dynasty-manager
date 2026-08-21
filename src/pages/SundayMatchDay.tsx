@@ -679,7 +679,13 @@ const SundayMatchDay = () => {
             level="section"
             title={t('sunday.match.narrative')}
             accessory={
-              !done ? (
+              /* There has to be something LEFT to skip. `!done` is false for
+                 the whole of half time (there is no report yet), so the break
+                 rendered a live-looking green control that set `revealed` to
+                 the length it already had — a button that visibly did nothing,
+                 sitting directly above the decision the player was actually
+                 waiting on. Same class of bug as the "Playing…" line below. */
+              revealed < feed.length ? (
                 <button
                   type="button"
                   onClick={() => { clearTimer(); setPlaying(false); setRevealed(feed.length); }}
@@ -729,6 +735,13 @@ const SundayMatchDay = () => {
             level="section"
             title={t('sunday.match.halfTime')}
           />
+          {/* The four tactic buttons ARE the whistle — tapping the one you are
+              already playing is how you go back out unchanged. Nothing said so,
+              and a manager happy with his shape had no visible way to restart
+              the match: the panel read as four settings and no action. One
+              line, because the alternative is a fifth button that duplicates
+              the highlighted one. */}
+          <p className="text-micro text-muted-foreground">{t('sunday.match.halfTimePrompt')}</p>
           {/* WHAT HAS ACTUALLY HAPPENED, before the decision that turns on it.
               A tactic switch chosen off eighteen sentences of prose is chosen
               off whatever the manager can still remember of them. */}

@@ -157,6 +157,7 @@ export const en = {
   'sunday.match.noFixture': 'There is no fixture to play.',
   'sunday.match.skip': 'Skip to the result',
   'sunday.match.halfTime': 'Half time',
+  'sunday.match.halfTimePrompt': 'Tap a shape to send them back out.',
   'sunday.match.asWeAre': 'as you set up',
   'sunday.match.fit': 'fit',
   'sunday.match.resumed': 'Restarted at the break — played on as you set up.',
