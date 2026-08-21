@@ -795,6 +795,147 @@ const Dashboard = () => {
           pending decision for a returning player. */}
       <ContinueResumeCard />
 
+      {/* Next Match — deliberately the first content card (only the resume
+          card, which self-hides on week 1 season 1, sits above it). The core
+          loop must be above the fold; everything else is secondary. */}
+      {!seasonOver && nextMatch && opponent ? (
+        <GlassPanel className={cn("p-5", competitionInfo.borderAccent)} onClick={() => setScreen('match-prep')}>
+          <div className="flex items-center justify-center gap-2 mb-3">
+            <span className={cn(
+              'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-micro font-bold uppercase tracking-wider border',
+              competitionInfo.bg
+            )}>
+              <Trophy className="w-3 h-3" />
+              <span className={competitionInfo.color}>{competitionInfo.name}</span>
+            </span>
+            <span className="text-micro text-muted-foreground">Week {week}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="text-center flex-1">
+              <div
+                className="w-12 h-12 rounded-full mx-auto mb-2 flex items-center justify-center font-bold text-xs"
+                style={{ backgroundColor: club.color, color: club.secondaryColor }}
+              >
+                {club.shortName}
+              </div>
+              <p className="text-sm font-bold text-foreground">{club.shortName}</p>
+              <p className="text-micro text-muted-foreground">{isHome ? 'HOME' : 'AWAY'}</p>
+            </div>
+            <div className="px-4">
+              <p className="text-2xl font-black text-muted-foreground">VS</p>
+            </div>
+            <div className="text-center flex-1">
+              <div
+                className="w-12 h-12 rounded-full mx-auto mb-2 flex items-center justify-center font-bold text-xs"
+                style={{ backgroundColor: opponent.color, color: opponent.secondaryColor }}
+              >
+                {opponent.shortName}
+              </div>
+              <p className="text-sm font-bold text-foreground">{opponent.shortName}</p>
+              <p className="text-micro text-muted-foreground">{isHome ? 'AWAY' : 'HOME'}</p>
+            </div>
+          </div>
+          {hasCupMatchToo && (
+            <div className="flex items-center justify-center gap-1.5 mt-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20">
+              <Trophy className="w-3 h-3 text-primary" />
+              <span className="text-micro font-medium text-primary">Cup match also this week</span>
+            </div>
+          )}
+          <Button
+            className="w-full mt-4 gap-2"
+            onClick={(e) => { e.stopPropagation(); setScreen('match-prep'); }}
+          >
+            <Play className="w-4 h-4" /> Match Prep
+          </Button>
+        </GlassPanel>
+      ) : !seasonOver && (
+        <GlassPanel className="p-5 space-y-3">
+          <div className="text-center space-y-1">
+            <p className="text-sm font-semibold text-foreground">
+              {season === 1 && week <= 2 && (club.lineup || []).filter(Boolean).length < 11 ? 'Get Your Team Ready' : 'Training Week'}
+            </p>
+            {season === 1 && week <= 2 && (
+              <p className="text-micro text-muted-foreground">Set your lineup and tactics before advancing</p>
+            )}
+          </div>
+          {/* Activity suggestions */}
+          <div className="flex flex-wrap gap-2 justify-center">
+            {transferWindowOpen && (
+              <button type="button" onClick={() => setScreen('transfers')} className="inline-flex items-center gap-1 bg-primary/10 border border-primary/20 rounded-full px-3 py-1 text-xs font-medium text-primary hover:bg-primary/20 transition-colors">
+                <UserPlus className="w-3 h-3" /> Scout Transfers
+              </button>
+            )}
+            <button type="button" onClick={() => setScreen('training')} className="inline-flex items-center gap-1 bg-muted/30 border border-border/50 rounded-full px-3 py-1 text-xs font-medium text-muted-foreground hover:bg-muted/50 transition-colors">
+              <Dumbbell className="w-3 h-3" /> Training
+            </button>
+            {youthAcademy.prospects.some(p => p.readyToPromote) && (
+              <button type="button" onClick={() => setScreen('youth-academy')} className="inline-flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-3 py-1 text-xs font-medium text-emerald-400 hover:bg-emerald-500/20 transition-colors">
+                <Users className="w-3 h-3" /> Youth Ready
+              </button>
+            )}
+            {scouting.reports.length > 0 && (
+              <button type="button" onClick={() => setScreen('scouting')} className="inline-flex items-center gap-1 bg-muted/30 border border-border/50 rounded-full px-3 py-1 text-xs font-medium text-muted-foreground hover:bg-muted/50 transition-colors">
+                <BarChart3 className="w-3 h-3" /> Scout Reports
+              </button>
+            )}
+          </div>
+          <Button className={cn(
+            "w-full gap-2 active:scale-[0.97] transition-all",
+            isAdvancing && "animate-pulse shadow-[0_0_12px_hsl(var(--primary)/0.3)]",
+            advanceDone && "scale-[1.03] shadow-[0_0_16px_hsl(var(--primary)/0.4)]"
+          )} disabled={isAdvancing} onClick={() => {
+            hapticMedium();
+            setIsAdvancing(true);
+            if (advanceKickoffTimerRef.current) clearTimeout(advanceKickoffTimerRef.current);
+            advanceKickoffTimerRef.current = setTimeout(() => {
+              const advancePromise = advanceWeek();
+              guardAsync(
+                advancePromise,
+                'Dashboard.advanceWeek',
+                { title: 'Could not advance week', body: 'Please try again.' },
+              );
+              // Re-enable only after the (async) advance settles — otherwise a fast
+              // second tap fires a concurrent advanceWeek() and double-processes the
+              // week (double income/stats/fixtures). Promise.resolve handles the sync path.
+              Promise.resolve(advancePromise).finally(() => {
+                setIsAdvancing(false);
+                setAdvanceDone(true);
+                hapticHeavy();
+                if (advanceDoneTimerRef.current) clearTimeout(advanceDoneTimerRef.current);
+                advanceDoneTimerRef.current = setTimeout(() => setAdvanceDone(false), ADVANCE_DONE_MS);
+              });
+            }, 50);
+          }}>
+            {isAdvancing ? <><Loader2 className="w-4 h-4 animate-spin" /> Advancing...</> : <><ChevronRight className="w-4 h-4" /> Advance to Week {week + 1}</>}
+          </Button>
+          {!nextMatch && seasonPhase === 'regular' && week < totalWeeks && (
+            <button
+              type="button"
+              className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors py-1.5"
+              disabled={isAdvancing}
+              onClick={() => {
+                hapticMedium();
+                // Same double-fire hazard as the Advance button above: without
+                // setting isAdvancing before the call, a fast double-tap runs two
+                // concurrent multi-week advances (double income/stats/fixtures).
+                setIsAdvancing(true);
+                const skipPromise = advanceToNextMatch();
+                guardAsync(
+                  skipPromise,
+                  'Dashboard.advanceToNextMatch',
+                  { title: 'Could not advance', body: 'Please try again.' },
+                );
+                Promise.resolve(skipPromise).finally(() => setIsAdvancing(false));
+              }}
+            >
+              {isAdvancing
+                ? <><Loader2 className="w-3.5 h-3.5 inline mr-1 align-[-2px] animate-spin" /> Advancing...</>
+                : <><FastForward className="w-3.5 h-3.5 inline mr-1 align-[-2px]" /> Skip to Next Match</>}
+            </button>
+          )}
+        </GlassPanel>
+      )}
+
       {/* Persistent legacy/streak visibility — self-hides for fresh installs. */}
       <DynastyStatusChip />
 
@@ -1092,145 +1233,6 @@ const Dashboard = () => {
             <p className="text-xs font-semibold text-foreground truncate">{getDerbyName(playerClubId, opponent.id) || `vs ${opponent.shortName}`}</p>
           </div>
           <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-        </GlassPanel>
-      )}
-
-      {/* Next Match */}
-      {!seasonOver && nextMatch && opponent ? (
-        <GlassPanel className={cn("p-5", competitionInfo.borderAccent)} onClick={() => setScreen('match-prep')}>
-          <div className="flex items-center justify-center gap-2 mb-3">
-            <span className={cn(
-              'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-micro font-bold uppercase tracking-wider border',
-              competitionInfo.bg
-            )}>
-              <Trophy className="w-3 h-3" />
-              <span className={competitionInfo.color}>{competitionInfo.name}</span>
-            </span>
-            <span className="text-micro text-muted-foreground">Week {week}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="text-center flex-1">
-              <div
-                className="w-12 h-12 rounded-full mx-auto mb-2 flex items-center justify-center font-bold text-xs"
-                style={{ backgroundColor: club.color, color: club.secondaryColor }}
-              >
-                {club.shortName}
-              </div>
-              <p className="text-sm font-bold text-foreground">{club.shortName}</p>
-              <p className="text-micro text-muted-foreground">{isHome ? 'HOME' : 'AWAY'}</p>
-            </div>
-            <div className="px-4">
-              <p className="text-2xl font-black text-muted-foreground">VS</p>
-            </div>
-            <div className="text-center flex-1">
-              <div
-                className="w-12 h-12 rounded-full mx-auto mb-2 flex items-center justify-center font-bold text-xs"
-                style={{ backgroundColor: opponent.color, color: opponent.secondaryColor }}
-              >
-                {opponent.shortName}
-              </div>
-              <p className="text-sm font-bold text-foreground">{opponent.shortName}</p>
-              <p className="text-micro text-muted-foreground">{isHome ? 'AWAY' : 'HOME'}</p>
-            </div>
-          </div>
-          {hasCupMatchToo && (
-            <div className="flex items-center justify-center gap-1.5 mt-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20">
-              <Trophy className="w-3 h-3 text-primary" />
-              <span className="text-micro font-medium text-primary">Cup match also this week</span>
-            </div>
-          )}
-          <Button
-            className="w-full mt-4 gap-2"
-            onClick={(e) => { e.stopPropagation(); setScreen('match-prep'); }}
-          >
-            <Play className="w-4 h-4" /> Match Prep
-          </Button>
-        </GlassPanel>
-      ) : !seasonOver && (
-        <GlassPanel className="p-5 space-y-3">
-          <div className="text-center space-y-1">
-            <p className="text-sm font-semibold text-foreground">
-              {season === 1 && week <= 2 && (club.lineup || []).filter(Boolean).length < 11 ? 'Get Your Team Ready' : 'Training Week'}
-            </p>
-            {season === 1 && week <= 2 && (
-              <p className="text-micro text-muted-foreground">Set your lineup and tactics before advancing</p>
-            )}
-          </div>
-          {/* Activity suggestions */}
-          <div className="flex flex-wrap gap-2 justify-center">
-            {transferWindowOpen && (
-              <button type="button" onClick={() => setScreen('transfers')} className="inline-flex items-center gap-1 bg-primary/10 border border-primary/20 rounded-full px-3 py-1 text-xs font-medium text-primary hover:bg-primary/20 transition-colors">
-                <UserPlus className="w-3 h-3" /> Scout Transfers
-              </button>
-            )}
-            <button type="button" onClick={() => setScreen('training')} className="inline-flex items-center gap-1 bg-muted/30 border border-border/50 rounded-full px-3 py-1 text-xs font-medium text-muted-foreground hover:bg-muted/50 transition-colors">
-              <Dumbbell className="w-3 h-3" /> Training
-            </button>
-            {youthAcademy.prospects.some(p => p.readyToPromote) && (
-              <button type="button" onClick={() => setScreen('youth-academy')} className="inline-flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-3 py-1 text-xs font-medium text-emerald-400 hover:bg-emerald-500/20 transition-colors">
-                <Users className="w-3 h-3" /> Youth Ready
-              </button>
-            )}
-            {scouting.reports.length > 0 && (
-              <button type="button" onClick={() => setScreen('scouting')} className="inline-flex items-center gap-1 bg-muted/30 border border-border/50 rounded-full px-3 py-1 text-xs font-medium text-muted-foreground hover:bg-muted/50 transition-colors">
-                <BarChart3 className="w-3 h-3" /> Scout Reports
-              </button>
-            )}
-          </div>
-          <Button className={cn(
-            "w-full gap-2 active:scale-[0.97] transition-all",
-            isAdvancing && "animate-pulse shadow-[0_0_12px_hsl(var(--primary)/0.3)]",
-            advanceDone && "scale-[1.03] shadow-[0_0_16px_hsl(var(--primary)/0.4)]"
-          )} disabled={isAdvancing} onClick={() => {
-            hapticMedium();
-            setIsAdvancing(true);
-            if (advanceKickoffTimerRef.current) clearTimeout(advanceKickoffTimerRef.current);
-            advanceKickoffTimerRef.current = setTimeout(() => {
-              const advancePromise = advanceWeek();
-              guardAsync(
-                advancePromise,
-                'Dashboard.advanceWeek',
-                { title: 'Could not advance week', body: 'Please try again.' },
-              );
-              // Re-enable only after the (async) advance settles — otherwise a fast
-              // second tap fires a concurrent advanceWeek() and double-processes the
-              // week (double income/stats/fixtures). Promise.resolve handles the sync path.
-              Promise.resolve(advancePromise).finally(() => {
-                setIsAdvancing(false);
-                setAdvanceDone(true);
-                hapticHeavy();
-                if (advanceDoneTimerRef.current) clearTimeout(advanceDoneTimerRef.current);
-                advanceDoneTimerRef.current = setTimeout(() => setAdvanceDone(false), ADVANCE_DONE_MS);
-              });
-            }, 50);
-          }}>
-            {isAdvancing ? <><Loader2 className="w-4 h-4 animate-spin" /> Advancing...</> : <><ChevronRight className="w-4 h-4" /> Advance to Week {week + 1}</>}
-          </Button>
-          {!nextMatch && seasonPhase === 'regular' && week < totalWeeks && (
-            <button
-              type="button"
-              className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors py-1.5"
-              disabled={isAdvancing}
-              onClick={() => {
-                hapticMedium();
-                // Same double-fire hazard as the Advance button above: without
-                // setting isAdvancing before the call, a fast double-tap runs two
-                // concurrent multi-week advances (double income/stats/fixtures).
-                setIsAdvancing(true);
-                const skipPromise = advanceToNextMatch();
-                guardAsync(
-                  skipPromise,
-                  'Dashboard.advanceToNextMatch',
-                  { title: 'Could not advance', body: 'Please try again.' },
-                );
-                Promise.resolve(skipPromise).finally(() => setIsAdvancing(false));
-              }}
-            >
-              {isAdvancing
-                ? <><Loader2 className="w-3.5 h-3.5 inline mr-1 align-[-2px] animate-spin" /> Advancing...</>
-                : <><FastForward className="w-3.5 h-3.5 inline mr-1 align-[-2px]" /> Skip to Next Match</>}
-            </button>
-          )}
         </GlassPanel>
       )}
 
