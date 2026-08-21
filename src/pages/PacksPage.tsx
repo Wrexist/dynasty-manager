@@ -25,6 +25,7 @@ import { isPro } from '@/utils/monetization';
 import { PENDING_CREDIT_TTL_MS } from '@/config/monetization';
 import { purchaseConsumable, getStoreAvailability, isPurchaseNotAttempted } from '@/utils/purchases';
 import { readPendingPackCredit, writePendingPackCredit, clearPendingPackCredit } from '@/store/helpers/persistence';
+import { track } from '@/utils/analytics';
 import { isReviewWorthyPackTier, maybeRequestReview } from '@/utils/appReview';
 import { addGameBreadcrumb } from '@/utils/sentry';
 
@@ -415,6 +416,7 @@ const PacksPage = () => {
         errorToast('Could not open pack', result.message);
         return;
       }
+      track('pack_opened', { tierKey, method, pityTriggered: result.pityTriggered === true });
       setOpening({ tier: tierKey, players: result.players, pityTriggered: result.pityTriggered });
       return;
     }
@@ -436,6 +438,7 @@ const PacksPage = () => {
           errorToast('Could not open pack', result.message);
           return;
         }
+        track('pack_opened', { tierKey, method, pityTriggered: result.pityTriggered === true });
         setOpening({ tier: tierKey, players: result.players, pityTriggered: result.pityTriggered });
       } finally {
         setBusy(false);
@@ -451,6 +454,7 @@ const PacksPage = () => {
     setBusy(true);
     iapInFlight = true;
     addGameBreadcrumb('purchase', 'pack iap initiated', { surface: 'packs', productId: tier.productId, tierKey });
+    track('purchase_initiated', { productId: tier.productId, surface: 'packs' });
     try {
       // Crash durability: persist a pending-credit marker BEFORE the StoreKit
       // charge. Consumables never appear in RevenueCat entitlements, so if
@@ -467,6 +471,7 @@ const PacksPage = () => {
       const purchased = await purchaseConsumable(tier.productId);
       if (!purchased) {
         // User cancelled or store unavailable — no charge, drop the marker.
+        track('purchase_cancelled', { productId: tier.productId, surface: 'packs' });
         clearPendingPackCredit();
         return;
       }
@@ -496,6 +501,8 @@ const PacksPage = () => {
       flushSave();
       if (useGameStore.getState().saveStatus !== 'failed') clearPendingPackCredit();
       successToast('Purchase complete', `${tier.label} unlocked.`);
+      track('purchase_completed', { productId: tier.productId, surface: 'packs' });
+      track('pack_opened', { tierKey, method, pityTriggered: result.pityTriggered === true });
       setOpening({ tier: tierKey, players: result.players, pityTriggered: result.pityTriggered });
     } catch (err) {
       // Capture the actual error to Sentry — silent catch was making it
@@ -510,6 +517,7 @@ const PacksPage = () => {
       if (isPurchaseNotAttempted(err)) clearPendingPackCredit();
       addGameBreadcrumb('purchase', 'pack iap threw', { surface: 'packs', tierKey, notAttempted: isPurchaseNotAttempted(err) });
       Sentry.captureException(err, { tags: { context: 'PacksPage.iap' }, extra: { tierKey } });
+      track('purchase_failed', { productId: tier.productId, surface: 'packs' });
       errorToast('Purchase failed', 'Please try again.');
     } finally {
       iapInFlight = false;

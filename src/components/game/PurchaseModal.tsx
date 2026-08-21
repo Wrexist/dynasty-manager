@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { PRODUCTS } from '@/config/monetization';
 import type { ProductId } from '@/types/game';
 import { Crown, X } from 'lucide-react';
@@ -41,10 +42,17 @@ export function PurchaseModal({ productId, onConfirm, onCancel, loading, storePr
   if (!product) return null;
 
   const isSubscription = product.type === 'subscription';
+  // On a native build the store is the only honest price source — a USD
+  // fallback on the final confirm-and-charge dialog can misquote a non-US
+  // storefront (per-currency tiers are not proportional). Web/dev keeps the
+  // config fallback because no store exists there.
+  const missingStorePrice = Capacitor.isNativePlatform() && !storePrice;
   const basePrice = storePrice || `$${product.priceUsd.toFixed(2)}`;
-  const priceLabel = isSubscription && product.billingPeriod && product.billingPeriod !== 'one-time'
-    ? `${basePrice}${product.billingPeriod}`
-    : basePrice;
+  const priceLabel = missingStorePrice
+    ? 'Price unavailable'
+    : isSubscription && product.billingPeriod && product.billingPeriod !== 'one-time'
+      ? `${basePrice}${product.billingPeriod}`
+      : basePrice;
 
   return (
     <AnimatePresence>
@@ -101,10 +109,10 @@ export function PurchaseModal({ productId, onConfirm, onCancel, loading, storePr
 
             <button
               onClick={handleConfirm}
-              disabled={loading}
+              disabled={loading || missingStorePrice}
               className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm active:scale-[0.98] transition-transform disabled:opacity-50"
             >
-              {loading ? 'Processing...' : isSubscription ? 'Subscribe' : 'Purchase'}
+              {missingStorePrice ? 'Store price unavailable' : loading ? 'Processing...' : isSubscription ? 'Subscribe' : 'Purchase'}
             </button>
 
             <button

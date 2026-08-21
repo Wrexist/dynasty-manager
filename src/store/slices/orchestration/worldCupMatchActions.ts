@@ -28,6 +28,7 @@ import type { GameState } from '@/store/storeTypes';
 import { HalfState, finalizeMatch, generateMatchWeather, simulateHalf } from '@/engine/match';
 import { buildInternationalMatchTeams, getPlayerNextWorldCupMatch, NextWorldCupMatch } from '@/utils/internationalMatch';
 import { simulateKnockoutToCompletion } from '@/utils/international';
+import { track } from '@/utils/analytics';
 import { advanceWeekImpl } from '@/store/slices/orchestration/weekAdvance';
 import { beginInteractiveShootoutImpl } from '@/store/slices/orchestration/matchActions';
 import { CUP_PENALTY_KICKS, INTERNATIONAL_FITNESS_COST } from '@/config/gameBalance';
@@ -362,6 +363,13 @@ function applyWorldCupResult(
     round: ctx.knockout ? (tournament.currentRound ?? 'Knockout') : 'Group Stage',
     ...(ctx.knockout && { won: winnerId === nation }),
   }];
+  // WC funnel: the player's own match result (AI-simmed weeks are noise).
+  track('world_cup_match_completed', {
+    round: ctx.knockout ? (tournament.currentRound ?? 'Knockout') : 'Group Stage',
+    result: myGoals > oppGoals ? 'W' : myGoals < oppGoals ? 'L' : 'D',
+    goalsFor: myGoals,
+    goalsAgainst: oppGoals,
+  });
 
   const matchDisplay = {
     currentMatchResult: result, matchPhase: 'full_time' as const, halfTimeState: null,

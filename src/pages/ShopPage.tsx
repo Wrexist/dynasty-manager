@@ -196,7 +196,6 @@ const ShopPage = () => {
   const handlePurchase = (productId: ProductId) => {
     setPurchaseError(null);
     setPurchaseProduct(productId);
-    track('purchase_initiated', { productId });
   };
 
   /** Sync entitlements + subscription from RevenueCat after a purchase or restore */
@@ -217,13 +216,16 @@ const ShopPage = () => {
     setPurchasing(true);
     setPurchaseError(null);
     addGameBreadcrumb('purchase', 'shop purchase initiated', { surface: 'shop', productId });
+    // Fired here (confirm tap), not when the modal opens — an abandoned modal
+    // must not inflate the initiated denominator.
+    track('purchase_initiated', { productId, surface: 'shop' });
     try {
       const result = await purchaseViaSDK(productId);
       // Only an explicit cancel means no charge. A completed purchase with an
       // empty granted list (entitlement-mapping lag) still proceeds to the
       // sync below, which re-reads entitlements from RevenueCat.
       if (result.cancelled) {
-        track('purchase_cancelled', { productId });
+        track('purchase_cancelled', { productId, surface: 'shop' });
         infoToast('Purchase Cancelled', 'No charge was made.');
         setPurchaseProduct(null);
         return;
@@ -231,7 +233,7 @@ const ShopPage = () => {
       restoreEntitlements(result.granted);
       await syncAfterPurchase();
       hapticMedium();
-      track('purchase_completed', { productId });
+      track('purchase_completed', { productId, surface: 'shop' });
       successToast('Purchase complete!');
       setPurchaseProduct(null);
     } catch (err) {
@@ -244,7 +246,7 @@ const ShopPage = () => {
       addGameBreadcrumb('purchase', 'shop purchase threw', { surface: 'shop', productId });
       Sentry.captureException(err, { tags: { context: 'ShopPage.purchase' }, extra: { productId } });
       try { await syncAfterPurchase(); } catch { /* second-stage sync best-effort */ }
-      track('purchase_failed', { productId });
+      track('purchase_failed', { productId, surface: 'shop' });
       setPurchaseError(
         'Purchase could not be confirmed. If you were charged, restore purchases from Settings — your entitlement will be granted. Contact support if it persists.',
       );
@@ -799,7 +801,12 @@ const ShopPage = () => {
           productId={purchaseProduct}
           storePrice={storePrices[purchaseProduct]}
           onConfirm={handleConfirmPurchase}
-          onCancel={() => setPurchaseProduct(null)}
+          onCancel={() => {
+            // An abandoned confirm modal is a funnel exit — record it or every
+            // initiated event from a dismissed modal becomes an orphan.
+            if (purchaseProduct) track('purchase_cancelled', { productId: purchaseProduct, surface: 'shop' });
+            setPurchaseProduct(null);
+          }}
           loading={purchasing}
         />
       )}

@@ -1,6 +1,7 @@
 import { defineConfig, configDefaults } from "vitest/config";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+import os from "os";
 import { createRequire } from "module";
 
 const pkgVersion = createRequire(import.meta.url)("./package.json").version;
@@ -93,14 +94,25 @@ export default defineConfig({
     // binding constraint, not CPU. Raise only alongside a memory measurement —
     // and re-check the stress-suite timeouts, which scale with contention.
     //
-    // This lived at `test.maxForks` and was doing NOTHING. `maxForks` is a
-    // `poolOptions.forks` key (see `ForksOptions` in vitest's own types); the
-    // only top-level spellings are `maxWorkers`/`minWorkers`. Vitest does not
-    // reject unknown keys, so the cap read as applied for as long as it was
-    // written in the wrong place. It is now where the pool actually looks.
+    // CI reserves one core for the main process (`main` added this while
+    // hunting the same failure). Keeping it: the main process does every
+    // module transform for every fork, so leaving it a core is defensible on
+    // its own. But it is NOT what fixed the failure, and the reasoning it
+    // arrived with was wrong — it blamed four forks starving the main
+    // thread's RPC channel. Measured, that is not the mechanism: the timeout
+    // reproduces with ONE file and no parallelism at all. See the reporter
+    // note below and `src/test/helpers/eventLoop.ts`. Do not expect this line
+    // to protect against it.
+    //
+    // The value also lived at `test.maxForks`, where it did NOTHING —
+    // `maxForks` is a `poolOptions.forks` key (see `ForksOptions` in vitest's
+    // own types); the only top-level spellings are `maxWorkers`/`minWorkers`.
+    // Vitest does not reject unknown keys, so the cap read as applied for as
+    // long as it was written in the wrong place. It is now where the pool
+    // actually looks.
     poolOptions: {
       forks: {
-        maxForks: 4,
+        maxForks: process.env.CI ? Math.max(1, os.cpus().length - 1) : 4,
       },
     },
     // Low-chatter reporter by default. A CLI `--reporter=verbose` still
