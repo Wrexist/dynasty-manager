@@ -23,6 +23,7 @@
     "test:fast": "VITEST_FAST=1 vitest run",
     "test:watch": "vitest",
     "size:check": "node scripts/check-eager-bundle.mjs",
+    "sunday:chrome": "node scripts/measure-sunday-chrome.mjs",
     "preflight": "npm run lint && npm run typecheck && npm run docs:check && npm run i18n:check && npm run test:fast && npm run build && npm run size:check",
     "cap:sync": "npm run build:native && npx cap sync",
     "cap:ios": "npx cap open ios",
