@@ -100,41 +100,24 @@ function mkSessionId(): string {
 }
 const SESSION_ID = mkSessionId();
 
-/** Sink abstraction. Default is a no-op; callers can override (useful for
- *  tests, or for wiring up a backend later without changing call sites). */
+/** Sink abstraction. Default is a LOCAL-ONLY log: product analytics travel
+ *  via RevenueCat + App Store Connect instead (decision recorded in
+ *  docs/growth-overhaul-plan.md §1.2), so nothing here ever touches the
+ *  network. Callers can override (tests, or re-wiring a backend later
+ *  without changing call sites). */
 export type AnalyticsSink = (payload: AnalyticsPayload) => void;
 
 let sink: AnalyticsSink = defaultSink;
 let cachedConsent: AnalyticsConsent | null = null;
 
 function defaultSink(payload: AnalyticsPayload): void {
-  // In dev, log so developers can see what would have been sent. In prod
-  // with no endpoint configured, stay silent — events leave the device only
-  // if an explicit endpoint is set AND the user granted consent.
+  // Dev builds log so developers can see what would have been collected.
+  // Production: silent by design — no endpoint exists, no event leaves the
+  // device. The consent-gated pipeline above stays intact so a future
+  // decision to ship an endpoint is a one-function change, not a rewrite.
   if (import.meta.env.DEV) {
     // eslint-disable-next-line no-console
     console.info('[analytics]', payload.event, payload.data);
-  }
-  const endpoint = import.meta.env.VITE_ANALYTICS_ENDPOINT;
-  if (!endpoint || typeof fetch === 'undefined') return;
-  // Best-effort; never throw, never await.
-  try {
-    const body = JSON.stringify(payload);
-    // Use sendBeacon when available (survives page unload) then fall back.
-    if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
-      const ok = navigator.sendBeacon(endpoint, body);
-      if (ok) return;
-    }
-    fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body,
-      keepalive: true,
-    }).catch(() => {
-      /* swallow — analytics is best-effort, never retried */
-    });
-  } catch {
-    /* sink errors must never surface to the app */
   }
 }
 

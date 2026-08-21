@@ -89,11 +89,9 @@ jobs:
 
       # Surfaces a missing observability secret in the run log. Warn-only until
       # the secrets exist (a fatal check would block every build today); flip
-      # to `--strict-sentry` once VITE_SENTRY_DSN is set, and `--strict` once
-      # the analytics endpoint decision is made — see runbook §4.
+      # to `--strict-sentry` once VITE_SENTRY_DSN is set — see runbook §4.
       - name: Check observability secrets
         env:
-          VITE_ANALYTICS_ENDPOINT: ${{ secrets.VITE_ANALYTICS_ENDPOINT }}
           VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
         run: node scripts/check-observability.mjs
 
@@ -101,13 +99,9 @@ jobs:
         env:
           VITE_REVENUECAT_API_KEY: ${{ secrets.VITE_REVENUECAT_API_KEY }}
           VITE_REVENUECAT_API_KEY_IOS: ${{ secrets.VITE_REVENUECAT_API_KEY_IOS }}
-          # Observability. Both consumers hard-return when their value is empty
-          # (analytics.ts `if (!endpoint) return`, sentry.ts `if (!dsn) return`),
-          # so an unset secret is a safe no-op and behaviour is unchanged until
-          # the secrets exist. Until they do, NO analytics event and NO crash
-          # report leaves a production device — which also means every
-          # conversion rate in marketing/ads/unit-economics.mjs is unmeasurable.
-          VITE_ANALYTICS_ENDPOINT: ${{ secrets.VITE_ANALYTICS_ENDPOINT }}
+          # Observability: only Sentry now (analytics travels via RC/ASC —
+          # see docs/growth-overhaul-plan.md §1.2). Sentry DSN is optional at
+          # build time; if missing, the SDK no-ops silently.
           VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
           # Opt-in per-run: exposes the in-app Developer section. Only true when
           # the workflow is dispatched with dev_tools checked — real releases

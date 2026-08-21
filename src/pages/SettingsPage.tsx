@@ -224,9 +224,8 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
   // and Send button stay visible above the on-screen keyboard.
   const keyboardInset = useKeyboardInset();
   const feedbackTextareaRef = useRef<HTMLTextAreaElement>(null);
-  // Analytics consent — device-level pref, lives outside the save. Seed from
-  // localStorage; toggling writes back immediately.
-  const [analyticsGranted, setAnalyticsGranted] = useState(() => readAnalyticsConsent() === 'granted');
+  // (Analytics consent toggle removed — no first-party stats leave the device;
+  // see docs/growth-overhaul-plan.md §1.2.)
   const userIsPro = isPro(monetization);
   const hasActiveSub = isSubscriptionActive(monetization);
 
@@ -887,22 +886,6 @@ const SettingsBodyInner = ({ variant }: { variant: SettingsVariant }) => {
             </span>
           </LiquidButton>
         </div>
-      </SettingsSection>
-
-      {/* ─── Privacy ─── */}
-      <SettingsSection title={t('settings.privacy')}>
-        <ToggleRow
-          icon={ChartBar}
-          label={t('settingsPage.shareAnonymousUsageStats')}
-          description={t('settingsPage.helpImproveTheGameWe')}
-          value={analyticsGranted}
-          onChange={() => {
-            const next = !analyticsGranted;
-            setAnalyticsGranted(next);
-            writeAnalyticsConsent(next ? 'granted' : 'denied');
-            refreshAnalyticsConsent();
-          }}
-        />
       </SettingsSection>
 
       {/* ─── Data Management (destructive) ─── */}
