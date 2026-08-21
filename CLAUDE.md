@@ -261,9 +261,31 @@ consumable player-pack IAPs (RevenueCat).
   earn contracts/bonuses, get sacked, climb the job market, retire.
 - **Sunday League** (`/sunday-league`) — run a local park team: seeded RNG,
   weekly availability crises, pound-scale finances, a 5-division local pyramid.
-  Whole mode lives in `state.sunday` + `src/store/slices/sunday/` +
-  `src/utils/sunday/` + `src/config/sundayLeague.ts`; implementation is
-  dynamic-imported so it stays off the eager bundle.
+  Whole mode lives in `state.sunday` + `src/store/slices/sunday/` (6 files) +
+  `src/utils/sunday/` (18 files) + `src/config/sundayLeague.ts`; implementation
+  is dynamic-imported so it stays off the eager bundle.
+  - **Its own component system**, `src/components/game/sunday/` (19 files):
+    `SundayFace` (procedural faces), `SundayKit`, `SundayCrest`, `SundayGround`
+    (the clubhouse drawn as a ground — every mark is a real upgrade level),
+    `SundayPitch`/`SundayPitchToken`/`SundayXiCount`, `SundayFixtureHero`,
+    `SundayBriefing`, `SundayTimeline` (the match sheet), `SundayStory`,
+    `SundayPlayerCard`, `SundayRecruitCard`, `SundaySeasonCard`,
+    `SundayTacticCard`/`SundayTacticDiagram`, `SundayNewsList`,
+    `SundayPersonalityCard`, `SundayAdjustments`, `SundayBits`.
+  - **Icons come from `src/config/sundayIcons.ts`, never from lucide directly.**
+    A Sunday screen importing `lucide-react` is a review failure.
+  - **View helpers** turn state into what a screen draws, so components stay
+    dumb: `utils/sunday/view.ts` (the big one — squad rows, club summary,
+    league buzz, upgrade scene, sponsor boards), `visuals.ts` (crest/kit specs
+    from a club's own colours), `teamsheet.ts`, `timeline.ts`.
+  - `PitchBoard` (`src/components/game/PitchBoard.tsx`) is the shared
+    half-pitch, extracted from `LineupEditor` and used by both games. It reads
+    `useReducedMotionPref()` itself — it is the only thing on the board that
+    moves.
+  - `npm run sunday:chrome -- <before-rev> [after-rev]` measures the static
+    English every Sunday screen can put on the glass, and fails if authored
+    voice falls. A report, not a preflight gate — see
+    `scripts/measure-sunday-chrome.mjs`.
 - **Online** — `comingSoon: true`, not implemented.
 - **Challenges** (`/challenge`) — scenario starts from `src/data/challenges.ts`.
 
@@ -291,30 +313,32 @@ consumable player-pack IAPs (RevenueCat).
 
 ```
 .claude/
-├── commands/            → 12 slash commands (see "Claude Code Slash Commands")
+├── commands/            → 13 slash commands (see "Claude Code Slash Commands")
 ├── settings.json        → permission allow/deny rails (see "Project Settings")
 src/
 ├── App.tsx              → HashRouter, lazy routes, ErrorBoundary scopes,
 │                          analytics-consent gate, SaveRecoveryDialog
 ├── components/
-│   ├── game/            → 86 components: TopBar, BottomNav, SubNav, GlassPanel,
+│   ├── game/            → 100 components: TopBar, BottomNav, SubNav, GlassPanel,
 │   │                      LineupEditor, SubstitutionSheet, PenaltyShootout,
 │   │                      KnockoutBracket, GroupTable, ContractNegotiation,
 │   │                      TransferNegotiation, LoanNegotiation, PressConference,
 │   │                      PostMatchPopup, ProUpsell, PurchaseModal, TalentTree,
 │   │                      StadiumView, WeeklyDigest, OnboardingChecklist, …
-│   │   ├── pack/        → 12 files: pack-opening overlay, walkout reveal, confetti
-│   │   └── icons/       → 3 premium icon components
-│   ├── ui/              → 8 shadcn/ui files (DO NOT modify unless asked)
+│   │   ├── sunday/      → 19 files: the Sunday League component system (above)
+│   │   ├── pack/        → 9 files: pack-opening overlay, walkout reveal, confetti
+│   │   └── icons/       → 4 premium icon components
+│   ├── ui/              → 5 shadcn/ui files (DO NOT modify unless asked)
 │   ├── ErrorBoundary, SaveRecoveryDialog, AnalyticsConsentModal
-├── config/              → 33 files: gameBalance, matchEngine, matchSpeed, tactics,
+├── config/              → 41 files: gameBalance, matchEngine, matchSpeed, tactics,
 │                          transfers, contracts, training, staff, scouting, youth,
 │                          chemistry, personality, playoffs, continental, packs,
 │                          monetization, legal, sponsorship, merchandise, managerCareer,
 │                          aiManager, aiSimulation, lineupOptimization, navigation,
 │                          namePool, playerGeneration, playerAppearance,
+                          sundayLeague, sundayIcons,
 │                          managerAppearance, halftimeAnalysis, keyMoments, teamTalk, ui
-├── data/                → 16 files + 2 generated dirs:
+├── data/                → 17 files + 2 generated dirs:
 │   ├── leagues/         → 45 league files, 37 countries, 756 clubs (real clubs)
 │   ├── communityPack/   → GENERATED real-player data (~395K LOC): freeAgents,
 │   │                      byClub, newLeagues — never hand-edit, loaded lazily
@@ -327,9 +351,11 @@ src/
 ├── engine/
 │   ├── match.ts         → match sim (1,828 LOC, event-based, minute-by-minute)
 │   └── match/helpers.ts
-├── hooks/               → 11 hooks: useGameSelectors, useLineupOptimizer,
-│                          useSwipeGesture, useKeyboardInset, useFocusTrap, …
-├── pages/               → 52 pages: Dashboard (2,192 LOC), MatchDay, GameShell,
+├── hooks/               → 13 hooks: useGameSelectors, useLineupOptimizer,
+│                          useSwipeGesture, useKeyboardInset, useFocusTrap,
+│                          useReducedMotionPref (the single source of truth for
+│                          "should this animate?"), …
+├── pages/               → 70 pages: Dashboard (2,192 LOC), MatchDay, GameShell,
 │                          SquadPage, TacticsPage, TransferPage, TrainingPage,
 │                          StaffPage, ScoutingPage, YouthAcademy, FacilitiesPage,
 │                          FinancePage, MerchandisePage, BoardPage, CupPage,
@@ -339,7 +365,7 @@ src/
 │                          ModeSelect, PacksPage, ShopPage, SubscribeOnboarding,
 │                          WhatsNewPage, SettingsPage, HelpPage, ClubSelection, …
 ├── store/
-│   ├── gameStore.ts     → Zustand composition of 15 slices
+│   ├── gameStore.ts     → Zustand composition of 16 slices
 │   ├── storeTypes.ts    → GameState interface (492 LOC)
 │   ├── slices/          → core, club, transfer, match, systems, orchestration,
 │   │                      loan, cup, feature, sponsor, merchandise, monetization,
@@ -353,7 +379,7 @@ src/
 ├── types/game.ts        → ALL types (2,083 LOC): Player, Club, Match, LeagueInfo,
 │                          10 formations, 45 GameScreens, MonetizationState,
 │                          CareerManager, NationalTeamState, PackTierDefinition, …
-├── utils/               → 74+ files: playerGen, saveMigration (v86),
+├── utils/               → 98 files + `sunday/` (18): playerGen, saveMigration (v86),
 │                          purchases (RevenueCat wrapper), monetization, ads (stub),
 │                          packGeneration, communityPackPool, international,
 │                          managerCareer, continental, continentalCoefficients,
@@ -507,7 +533,16 @@ identities draw from the **community pack** real-player dataset
 - Rating colors: >=80 emerald, >=70 primary, >=60 amber, <60 muted
 - Club colors are the only place where inline `style={{ backgroundColor }}` is acceptable
 - **Performance mode** (`settings.performanceMode`) toggles a root `perf-mode`
-  class that strips backdrop-blur/decorative layers and forces reduced motion
+  class that strips backdrop-blur/decorative layers and forces reduced motion.
+  It strips `.glass-surface` specifically — a component that blurs through a
+  bare `backdrop-blur-*` utility (LiquidButton does) is NOT covered.
+- **Reduced motion is not free.** `MotionConfig` covers framer-motion and the
+  `@media (prefers-reduced-motion)` block in `index.css` cancels the
+  `animate-*` keyframe classes — **neither touches a plain CSS `transition`**.
+  A component that animates `left`/`top`/`transform` through a Tailwind
+  `transition-*` utility must ask `useReducedMotionPref()` and drop it itself
+  (see `PitchBoard`). Decorative layers return `null`; they do not merely
+  freeze.
 
 ## Key Patterns
 - **Game loop:** `advanceWeek()` in `orchestration/weekAdvance.ts` — training, development, AI sims, injuries, income, messages, offers, weekly objectives, cup/continental/international scheduling.
@@ -546,6 +581,7 @@ npm run test:watch   # Vitest in watch mode
 npm run lint         # ESLint
 npm run typecheck    # TypeScript type-check (standalone)
 npm run size:check   # Eager-bundle budget check
+npm run sunday:chrome -- <before-rev> [after-rev]   # Sunday screen copy meter
 npm run preflight    # lint + typecheck + FAST tests + build + size:check (per commit)
 npm run preflight:full # ...plus the long-running suites (what CI enforces)
 npm run test:fast    # Vitest minus the slow season/longevity suites
@@ -672,7 +708,13 @@ ad capture) still exists in `src/pages/`, but its route and Settings entry are
 - NEVER let monetization code touch sim parameters (match outcomes, training, transfer values)
 - NEVER hand-edit generated data (`src/data/communityPack/*`, `nationalPlayerPool.ts`) — regenerate via scripts
 - NEVER import heavy data eagerly — `size:check` enforces the eager-bundle budget
-- NEVER break mobile-first layout — test at 375px
+- NEVER break mobile-first layout — test at 375px. Tap targets are 44px; the
+  type floor is 11px (a crest monogram is a graphic, not copy)
+- NEVER import `lucide-react` in a Sunday screen or Sunday component — icons
+  come from `src/config/sundayIcons.ts`
+- NEVER rely on `MotionConfig` or the `prefers-reduced-motion` CSS block to
+  stop a Tailwind `transition-*` utility — it does not. Ask
+  `useReducedMotionPref()`
 - NEVER create type files outside `src/types/game.ts` — single source of truth
 - NEVER use `gh pr create` — GitHub API auth is not available. Give the user the PR URL from git push output instead
 - NEVER push without running `npm run preflight` first (or `npm run ship` which includes it)
