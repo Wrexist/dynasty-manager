@@ -92,21 +92,35 @@ export default defineConfig({
     // generated national + club-template data in `setup.ts`, so memory is the
     // binding constraint, not CPU. Raise only alongside a memory measurement —
     // and re-check the stress-suite timeouts, which scale with contention.
-    maxForks: 4,
-    // Low-chatter reporter by default.
     //
-    // WHY. The full suite twice exited 1 with *every* test passing — 2422
-    // passed, 0 failed — on `Error: [vitest-worker]: Timeout calling
-    // "onTaskUpdate"`. That is the worker's progress RPC to the main process
-    // timing out, not a product failure: four forks streaming per-test updates
-    // while one of them sits inside a 200-second season simulation is enough to
-    // stall the channel, and Vitest counts the stall as an unhandled error.
+    // This lived at `test.maxForks` and was doing NOTHING. `maxForks` is a
+    // `poolOptions.forks` key (see `ForksOptions` in vitest's own types); the
+    // only top-level spellings are `maxWorkers`/`minWorkers`. Vitest does not
+    // reject unknown keys, so the cap read as applied for as long as it was
+    // written in the wrong place. It is now where the pool actually looks.
+    poolOptions: {
+      forks: {
+        maxForks: 4,
+      },
+    },
+    // Low-chatter reporter by default. A CLI `--reporter=verbose` still
+    // overrides this, which is what a flake hunt needs.
     //
-    // A gate that reports failure on a green run is worse than no gate — it is
-    // exactly the disease finding 18 was about, and I very nearly dismissed a
-    // REAL failure as this same noise. `dot` emits a fraction of the traffic.
-    // A CLI `--reporter=verbose` still overrides this, which is what a flake
-    // hunt needs.
+    // This used to carry a WRONG explanation, kept here because the wrong one
+    // cost several rounds. The full suite repeatedly exited 1 with *every* test
+    // passing — 3129 passed, 0 failed — on `Error: [vitest-worker]: Timeout
+    // calling "onTaskUpdate"`, and the note here blamed four forks streaming
+    // per-test updates until the channel stalled. It is not channel
+    // contention, and switching reporters was never the fix.
+    //
+    // It reproduces with ONE file and no parallelism: leave an `onTaskUpdate`
+    // in flight, then run a single test that loops for 70 s on
+    // `await Promise.resolve()`. Microtask-only awaits never reach the timer
+    // phase, so neither the main process's reply nor birpc's own 60 s timer
+    // can be processed; when the block ends Node runs timers before poll, the
+    // expired timer wins the race, and a green run exits 1. Replacing that one
+    // await with `setTimeout(0)` clears it. The fix lives in the harnesses —
+    // see `src/test/helpers/eventLoop.ts`.
     reporters: ["dot"],
   },
   resolve: {
