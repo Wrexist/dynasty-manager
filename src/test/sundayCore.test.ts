@@ -12,6 +12,7 @@ import { sundaySeasonWeeks } from '@/utils/sunday/season';
 import {
   SUNDAY_MEMORIES_MAX, SUNDAY_MIN_START, SUNDAY_SHIRT_MAX, SUNDAY_SHIRT_MIN,
 } from '@/config/sundayLeague';
+import { shortenClubName, SUNDAY_SHORT_NAME_MAX } from '@/utils/sunday/generation';
 
 const SEED = 12345;
 
@@ -345,5 +346,38 @@ describe('validateSundayState', () => {
       week: s.week,
     });
     expect(result.ok).toBe(false);
+  });
+});
+
+/**
+ * The name a league table row carries. The first-word rule turned every
+ * multi-word pub prefix into its least distinctive half, so a Division Four
+ * table read "Red / Crown / Ring / Old".
+ */
+describe('shortenClubName', () => {
+  it('keeps the whole identity, not its first word', () => {
+    expect(shortenClubName('Red Lion Athletic')).toBe('Red Lion');
+    expect(shortenClubName('Ring Road United')).toBe('Ring Road');
+    expect(shortenClubName('Old Mill Rovers')).toBe('Old Mill');
+    expect(shortenClubName('Crown & Anchor Vets')).toBe('Crown & Anchor');
+  });
+
+  it('never exceeds the column budget, and never cuts mid-word when it can help it', () => {
+    for (const n of ['Traveller\u2019s Rest Casuals', 'Tandoori Nights All Stars', 'Wainwright Reserves']) {
+      const short = shortenClubName(n);
+      expect(short.length, n).toBeLessThanOrEqual(SUNDAY_SHORT_NAME_MAX);
+      expect(n.startsWith(short), `${n} -> ${short}`).toBe(true);
+    }
+  });
+
+  it('leaves a name that already fits alone', () => {
+    expect(shortenClubName('Westhill FC')).toBe('Westhill FC');
+  });
+
+  it('gives every club in a division a table row you can tell apart', () => {
+    const s = useGameStore.getState();
+    const ids = Object.keys(s.clubs);
+    const shorts = ids.map(id => s.clubs[id].shortName.toLowerCase());
+    expect(new Set(shorts).size).toBe(shorts.length);
   });
 });

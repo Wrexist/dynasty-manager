@@ -350,13 +350,33 @@ export function generateSundayIdentity(rng: SundayRng, personality: SundayClubPe
   };
 }
 
-/** Short names have to fit a league table row — 12 characters, hard. */
+/** How much of a club name a league-table row can carry. */
+export const SUNDAY_SHORT_NAME_MAX = 14;
+
+/**
+ * The name a league table shows.
+ *
+ * TAKES WHOLE WORDS UNTIL THE BUDGET RUNS OUT, rather than the first word.
+ * Club names are `<prefix> <suffix>` where the prefix is the pub, the estate
+ * or the industrial unit — the identity — and the first-word rule cut every
+ * multi-word prefix down to its least distinctive half. "Red Lion Athletic"
+ * became "Red", "Ring Road United" became "Ring", "Old Mill Rovers" became
+ * "Old", and a Division Four table read as a list of adjectives. Fourteen
+ * characters is what the Club column holds at 375px and it fits every
+ * two-word prefix in the pool, "Crown & Anchor" included.
+ */
 export function shortenClubName(name: string): string {
   const trimmed = name.trim();
-  if (trimmed.length <= 12) return trimmed;
+  if (trimmed.length <= SUNDAY_SHORT_NAME_MAX) return trimmed;
   const words = trimmed.split(/\s+/);
-  if (words.length > 1 && words[0].length <= 12) return words[0];
-  return trimmed.slice(0, 12).trim();
+  let out = '';
+  for (const w of words) {
+    const next = out ? `${out} ${w}` : w;
+    if (next.length > SUNDAY_SHORT_NAME_MAX) break;
+    out = next;
+  }
+  // A single word longer than the budget still has to be cut somewhere.
+  return out || trimmed.slice(0, SUNDAY_SHORT_NAME_MAX).trim();
 }
 
 /** The player's club as a normal `Club`, so every shared system works on it. */
@@ -438,6 +458,10 @@ export function generateSundayDivision(
   const div = getSundayDivision(divisionId);
   const out: GeneratedSundayOpponent[] = [];
   const used = new Set(excludeNames.map(n => n.toLowerCase()));
+  // The table shows SHORT names, so two clubs whose full names differ but
+  // whose short names do not ("Westhill Rovers" and "Westhill FC" both print
+  // as a Westhill) are a duplicate row as far as the player is concerned.
+  const usedShort = new Set(excludeNames.map(n => shortenClubName(n).toLowerCase()));
 
   for (let i = 0; i < count; i++) {
     const identity = createSundayRng(subSeed(rootSeed, `club:${divisionId}:${i}`));
@@ -451,10 +475,14 @@ export function generateSundayDivision(
     // across seasons too.
     for (let attempt = 0; attempt < 12; attempt++) {
       const candidate = `${identity.pick(SUNDAY_CLUB_PREFIX)} ${identity.pick(SUNDAY_CLUB_SUFFIX)}`;
-      if (!used.has(candidate.toLowerCase())) { name = candidate; break; }
+      if (used.has(candidate.toLowerCase())) continue;
+      if (usedShort.has(shortenClubName(candidate).toLowerCase())) continue;
+      name = candidate;
+      break;
     }
     if (!name) name = `${identity.pick(SUNDAY_CLUB_PREFIX)} ${identity.pick(SUNDAY_CLUB_SUFFIX)} ${i + 1}`;
     used.add(name.toLowerCase());
+    usedShort.add(shortenClubName(name).toLowerCase());
 
     const colors = identity.pick(SUNDAY_KIT_COLORS) ?? (['#1E4FD8', '#FFFFFF'] as const);
     const venue = identity.pick(SUNDAY_VENUES) ?? 'The Rec';
