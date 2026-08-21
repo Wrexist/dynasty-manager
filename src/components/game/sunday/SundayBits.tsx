@@ -179,10 +179,16 @@ export function Meter({ label, value, icon: Icon, tight, iconOnly, mark, classNa
    * that screen (925 -> 1364 characters on the glass). A word printed once,
    * on a panel or a detail view, stays a word.
    *
-   * NOTHING IS LOST TO A SCREEN READER. `label` is still the meter's
-   * `aria-label`, so the element announces "Mood 72" exactly as before, and
-   * `aria-hidden` on the number stops it being read a second time as a bare
-   * "72" beside it. Requires `icon`: a lone number is not a label.
+   * NOTHING IS LOST TO A SCREEN READER, AND THIS WAS MEASURED. `label` stays
+   * the meter's `aria-label`, so the element still announces "Mood 72"; and
+   * the glyph takes the word as `role="img" aria-label` so it also survives
+   * the FLATTENING that happens when the meter sits inside a button, where a
+   * screen reader reads one accessible name and never reaches the meter.
+   * Chrome's name-for-the-card came out byte-identical across the change
+   * ("… 59 Mood 74 74 Fitness 81 81 Form 61 61 Available"). Dropping the
+   * `role="img"` costs the three words there and nowhere else, which is the
+   * kind of regression only a CDP dump finds. Requires `icon`: a lone number
+   * is not a label.
    */
   iconOnly?: boolean;
   /**
@@ -202,14 +208,17 @@ export function Meter({ label, value, icon: Icon, tight, iconOnly, mark, classNa
   const markPct = mark == null ? null : Math.max(0, Math.min(100, mark));
   return (
     <span className={cn('block min-w-0', className)}>
-      <span
-        className={cn('flex items-baseline gap-1.5 min-w-0', !tight && 'justify-between gap-2')}
-        aria-hidden={iconOnly || undefined}
-      >
+      <span className={cn('flex items-baseline gap-1.5 min-w-0', !tight && 'justify-between gap-2')}>
         <span className="text-micro text-muted-foreground truncate inline-flex items-baseline gap-1">
           {/* Bigger when it is carrying the label on its own — a 12px glyph
-              standing in for a word has to survive being glanced at. */}
-          {Icon && <Icon className={cn('shrink-0 self-center', iconOnly ? 'w-3.5 h-3.5' : 'w-3 h-3')} aria-hidden />}
+              standing in for a word has to survive being glanced at — and
+              named, because it is then the only thing carrying the word. */}
+          {Icon && (
+            <Icon
+              className={cn('shrink-0 self-center', iconOnly ? 'w-3.5 h-3.5' : 'w-3 h-3')}
+              {...(iconOnly ? { role: 'img', 'aria-label': label } : { 'aria-hidden': true })}
+            />
+          )}
           {!iconOnly && label}
         </span>
         <span className="text-micro font-semibold text-foreground tabular-nums shrink-0">{pct}</span>

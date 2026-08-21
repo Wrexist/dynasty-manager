@@ -161,6 +161,16 @@ describe('SundaySquad renders the people', () => {
         const meter = within(card).getByRole('meter', { name: label });
         expect(meter.getAttribute('aria-label'), `${player.id} ${label}`).toBe(label);
         expect(meter.getAttribute('aria-valuenow'), `${player.id} ${label}`).toBeTruthy();
+        // AND ON THE GLYPH. The meter sits inside the disclosure button, and a
+        // button is named from its CONTENT — the meter is flattened into that
+        // name and contributes its value but not its label, so without this
+        // the card would announce "… 59 74 81 61 Available" and the three
+        // words would be lost to anyone who tabs to the row rather than
+        // exploring inside it. Measured in Chrome over CDP: with it, the
+        // card's accessible name is byte-identical to the words-on-the-row
+        // version it replaced.
+        const named = card.querySelector(`[role="img"][aria-label="${label}"]`);
+        expect(named, `${player.id} ${label} glyph is unnamed`).toBeTruthy();
       }
     }
   });
