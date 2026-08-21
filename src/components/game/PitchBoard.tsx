@@ -37,6 +37,7 @@
  */
 import { memo, type ReactNode } from 'react';
 import { PITCH_COLORS, pitchSlotPoint } from '@/config/ui';
+import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 import { cn } from '@/lib/utils';
 import type { FormationSlot } from '@/types/game';
 
@@ -101,6 +102,10 @@ export const PitchBoard = memo(function PitchBoard({
   className,
   ariaLabel,
 }: PitchBoardProps) {
+  // The board's one piece of motion. Read here rather than taken as a prop so
+  // that no caller can forget it — this component is the only thing that
+  // animates, so it is the only thing that has to ask.
+  const reduceMotion = useReducedMotionPref();
   return (
     <div
       className={cn('relative w-full mx-auto', className)}
@@ -146,7 +151,14 @@ export const PitchBoard = memo(function PitchBoard({
             className={cn(
               // Animate left/top so a formation switch visibly slides each
               // tile to its new slot rather than snapping in place.
-              'absolute transition-[left,top,opacity] duration-300 ease-out',
+              //
+              // NOT UNDER REDUCED MOTION. The global
+              // `prefers-reduced-motion` block in index.css only cancels the
+              // `animate-*` keyframe classes — a CSS `transition` on `left`
+              // and `top` walks straight past it, so eleven tiles still slid
+              // across the pitch for a player who had asked them not to.
+              'absolute',
+              reduceMotion ? 'transition-none' : 'transition-[left,top,opacity] duration-300 ease-out',
               slotClassName?.(ctx),
             )}
             style={{
