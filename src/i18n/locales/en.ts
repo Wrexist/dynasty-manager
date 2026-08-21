@@ -15,6 +15,8 @@ export const en = {
   // The mode's UI copy. Narrative, event text, absence notes and player names
   // are GAME DATA and stay in `src/data/sunday*.ts` and `src/config/` — see
   // the note at the top of `src/i18n/index.ts`.
+  // Mode select — the Sunday League tile is flagged as the new mode.
+  'modeSelect.newGamemode': 'New gamemode!',
   'sunday.mode.name': 'Sunday League',
   'sunday.mode.tagline': 'Eleven people. One pitch. No guarantees.',
   'sunday.mode.description': 'Run a local Sunday side. Work out who is actually turning up, find the money for the referee, and try to turn a pub team into a football club.',

@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Gamepad2, Briefcase, Users, Sparkles, Trophy, Beer } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { TranslationKey } from '@/i18n';
 import { cn } from '@/lib/utils';
@@ -26,6 +27,11 @@ type Mode = {
   iconBg: string;
   route?: string;
   comingSoon?: boolean;
+  /** The one mode we are actively promoting. Exactly one tile may set this —
+   *  a "new" badge on two cards is a badge on neither. It buys a brighter
+   *  frame, a lifted resting state and a slow sheen, not a different shape:
+   *  the tile has to still read as one of the row. */
+  featured?: boolean;
 };
 
 const modes: readonly Mode[] = [
@@ -76,11 +82,12 @@ const modes: readonly Mode[] = [
     taglineKey: 'sunday.mode.tagline',
     descKey: 'sunday.mode.description',
     icon: Beer,
-    color: 'from-lime-500/20 to-lime-600/5',
-    borderColor: 'border-lime-500/30 hover:border-lime-500/60',
+    color: 'from-lime-500/25 to-lime-600/5',
+    borderColor: 'border-lime-400/60 hover:border-lime-300/80',
     iconColor: 'text-lime-400',
     iconBg: 'bg-lime-500/10',
     route: '/sunday-league',
+    featured: true,
   },
   {
     id: 'online',
@@ -98,6 +105,7 @@ const modes: readonly Mode[] = [
 
 const ModeSelect = () => {
   const { t } = useTranslation();
+  const reduceMotion = useReducedMotionPref();
   const navigate = useNavigate();
   const location = useLocation();
   const navState = (location.state as { slot?: number; communityPackEnabled?: boolean }) || {};
@@ -169,6 +177,16 @@ const ModeSelect = () => {
                 'transition-all duration-300 ease-out',
                 !disabled && 'hover:-translate-y-0.5 active:scale-[0.98]',
                 disabled && 'opacity-70 cursor-default',
+                // The promoted tile sits proud of the row: a little wider than
+                // its siblings, already lifted before you touch it, and ringed
+                // in its own colour. Shape and spacing stay identical so it
+                // reads as the same kind of thing, not a different control.
+                mode.featured && [
+                  'scale-[1.035] -translate-y-0.5 z-10',
+                  'ring-1 ring-lime-400/40',
+                  'shadow-[0_0_0_0.5px_rgba(255,255,255,0.14)_inset,inset_0_1px_0_rgba(255,255,255,0.2),0_18px_44px_-14px_rgba(163,230,53,0.35),0_14px_36px_-16px_rgba(0,0,0,0.55)]',
+                  'hover:scale-[1.05]',
+                ],
                 mode.borderColor,
               )}
             >
@@ -181,6 +199,19 @@ const ModeSelect = () => {
                 )}
               />
 
+              {/* A slow sheen across the promoted tile. Decoration only, so it
+                  must not RENDER under reduced motion or performance mode —
+                  MotionConfig stops the transform but the layer would still
+                  paint, and a frozen highlight reads as a rendering fault. */}
+              {mode.featured && !reduceMotion && (
+                <motion.div
+                  aria-hidden
+                  className="absolute inset-y-0 -left-1/3 w-1/3 z-[5] pointer-events-none bg-gradient-to-r from-transparent via-lime-200/12 to-transparent -skew-x-12"
+                  animate={{ x: ['0%', '520%'] }}
+                  transition={{ duration: 3.4, repeat: Infinity, repeatDelay: 3.6, ease: 'easeInOut' }}
+                />
+              )}
+
               {disabled && (
                 <div className="absolute top-3 right-3 z-20 flex items-center gap-1 px-2 py-0.5 rounded-full bg-sky-500/15 border border-sky-500/30">
                   <Sparkles className="w-3 h-3 text-sky-300" />
@@ -191,7 +222,20 @@ const ModeSelect = () => {
               )}
 
               <div className="relative z-10">
-                <div className="flex items-center gap-3 mb-3">
+                {/* "New gamemode!" is a much wider badge than "Coming soon",
+                    and absolutely positioning it truncated the mode name and
+                    forced the tagline onto two lines. It gets its own row
+                    instead, so the title keeps the full width of the card. */}
+                {mode.featured && (
+                  <div className="mb-2.5 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-lime-400/20 border border-lime-300/50 shadow-[0_2px_10px_-2px_rgba(163,230,53,0.45)]">
+                    <Sparkles className="w-3 h-3 text-lime-200 shrink-0" aria-hidden />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-lime-100">
+                      {t('modeSelect.newGamemode')}
+                    </span>
+                  </div>
+                )}
+
+                <div className={cn('flex items-center gap-3 mb-3', disabled && 'pr-24')}>
                   <div
                     className={cn(
                       'w-11 h-11 rounded-xl flex items-center justify-center shrink-0',
