@@ -20,6 +20,7 @@ import { PresentationQueueProvider } from '@/hooks/usePresentationQueue';
 import { AdOfferHost } from '@/components/game/AdOfferHost';
 import { REWARDED_ADS_USABLE } from '@/utils/ads';
 import { getEntitlementsDefinitive, getCustomerInfo, extractSubscriptionInfo, startEntitlementListener, stopEntitlementListener } from '@/utils/purchases';
+import { reconcilePendingPackCreditAtLaunch } from '@/utils/packCreditRecovery';
 
 // Lazy-load all pages for code splitting (Dashboard prefetched from TitleScreen)
 const Dashboard = lazy(() => import('./Dashboard'));
@@ -221,6 +222,14 @@ const GameShell = () => {
       void import('./TrainingPage').catch(swallow);
       void import('./MatchPrep').catch(swallow);
     });
+  }, []);
+
+  // Restore a crash-stranded paid pack on the first session after the crash —
+  // without this, the credit waits for a PacksPage visit and TTL-expires
+  // unclaimed if the player never goes there. No-op unless a charged marker
+  // exists for the active save slot (see utils/packCreditRecovery.ts).
+  useEffect(() => {
+    reconcilePendingPackCreditAtLaunch();
   }, []);
 
   // Sync monetization state on game load
