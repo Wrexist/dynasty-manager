@@ -46,6 +46,9 @@ import type {
 const ExpandIcon = SUNDAY_ICON.expand;
 const ReleaseIcon = SUNDAY_ICON.release;
 const CaptainIcon = SUNDAY_ICON.captain;
+const MoodIcon = SUNDAY_ICON.mood;
+const FitnessIcon = SUNDAY_ICON.fitness;
+const FormIcon = SUNDAY_ICON.form;
 
 /**
  * Rating tier → ink. The tier itself is decided by `sundayRatingTier`, which
@@ -63,6 +66,46 @@ const RATING_TONE: Record<SundayRatingTier, string> = {
 /** The portrait's rendered size in the card. Comfortably inside `SundayFace`'s
  *  large tier (>= 44), so the seams, the gradient and the stubble are drawn. */
 const FACE_SIZE = 52;
+
+/**
+ * The three glyphs, spelled out — ONCE, above the list.
+ *
+ * THE OTHER HALF OF THE ICON DECISION. The cards below label their three
+ * meters with a face, a heart and a bolt instead of the words "Mood",
+ * "Fitness" and "Form", because those words were being printed fifteen times
+ * down a scrolling list. A face is guessable; a heart on a football card is
+ * not, and neither is a bolt. So the words are drawn exactly once, in a row
+ * whose columns line up with the meters underneath them — 72px of left
+ * padding is the card's own `p-2.5` plus `FACE_SIZE` plus its `gap-2.5`, so
+ * each word sits directly over the column it names.
+ *
+ * WHY NOT ONLY THIS. A legend scrolls away; by the sixth card it is off the
+ * screen and the row would be three numbers nobody can decode. The glyphs
+ * travel with the row, the legend teaches them at the top. Eighteen
+ * characters buys back two hundred and twenty-five.
+ *
+ * `aria-hidden` because it is a decode key for the eye only: every meter
+ * already carries its own word as an accessible name, so a screen reader gets
+ * the label on the row itself and would otherwise hear this list twice.
+ */
+export function SundayCardMeterLegend() {
+  const { t } = useTranslation();
+  const items: [React.ElementType, string][] = [
+    [MoodIcon, t('sunday.squad.happiness')],
+    [FitnessIcon, t('sunday.squad.fitness')],
+    [FormIcon, t('sunday.squad.form')],
+  ];
+  return (
+    <div className="grid grid-cols-3 gap-2 pl-[72px] pr-2.5 pb-0.5" aria-hidden>
+      {items.map(([Icon, label]) => (
+        <span key={label} className="inline-flex items-center gap-1 text-micro text-muted-foreground truncate">
+          <Icon className="w-3 h-3 shrink-0" />
+          {label}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 export interface SundayPlayerCardProps extends Pick<
   SundayFaceProps,
@@ -194,11 +237,26 @@ export const SundayPlayerCard = memo(function SundayPlayerCard({
               about the panel behind it, so opening one was a lucky dip. Mood
               is why he leaves, fitness is whether he lasts ninety minutes and
               form is whether he is worth picking — the three the expanded
-              panel then gives in full. */}
+              panel then gives in full.
+
+              GLYPHS, NOT WORDS. The bars are right and stay; the three words
+              beside them were not, because they are the SAME three words on
+              every card and there are fifteen cards. Measured, that triple was
+              most of why this screen went 925 -> 1364 characters on the glass
+              in a pass whose whole point was fewer. A face, a heart and a bolt
+              say it once each, in three silhouettes that stay apart at 14px —
+              and the label survives verbatim as the meter's accessible name,
+              so nothing is lost to a screen reader. See `Meter`'s `iconOnly`.
+
+              A LEGEND AS WELL, NOT INSTEAD. `SundayCardMeterLegend` names the
+              three above the list, because a heart and a bolt are not
+              self-evident the first time. But it cannot be the whole answer:
+              the list scrolls, and by card six a legend is off the screen.
+              Icons travel with the row; the legend teaches them once. */}
           <span className="grid grid-cols-3 gap-2">
-            <Meter tight label={t('sunday.squad.happiness')} value={happiness} />
-            <Meter tight label={t('sunday.squad.fitness')} value={fitness} />
-            <Meter tight label={t('sunday.squad.form')} value={form} />
+            <Meter tight iconOnly icon={MoodIcon} label={t('sunday.squad.happiness')} value={happiness} />
+            <Meter tight iconOnly icon={FitnessIcon} label={t('sunday.squad.fitness')} value={fitness} />
+            <Meter tight iconOnly icon={FormIcon} label={t('sunday.squad.form')} value={form} />
           </span>
 
           {/* Status and flags on their own row. They used to sit inline after
@@ -379,7 +437,10 @@ export function SundayPlayerDetail({
         <Meter tight label={t('sunday.squad.reliability')} value={scale20(punctuality)} />
         <Meter tight label={t('sunday.squad.commitment')} value={scale20(commitment)} />
         <Meter tight label={t('sunday.squad.condition')} value={scale20(condition)} />
-        <Meter tight label={t('sunday.squad.happiness')} value={happiness} />
+        {/* The one place the word and the glyph appear together — shown once,
+            on the open card, which is where the collapsed row's face is
+            learned. */}
+        <Meter tight icon={MoodIcon} label={t('sunday.squad.happiness')} value={happiness} />
         <Meter tight label={t('sunday.squad.temper')} value={scale20(temper)} />
         <Meter tight label={t('sunday.squad.ego')} value={scale20(ego)} />
       </div>

@@ -35,6 +35,11 @@ vi.mock('@/utils/haptics', () => ({
 
 const SEED = 4242;
 
+/** The three the collapsed card summarises, in the order it draws them. */
+const MOOD_FITNESS_FORM = [
+  en['sunday.squad.happiness'], en['sunday.squad.fitness'], en['sunday.squad.form'],
+] as const;
+
 const escapeRe = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 let consoleError: ReturnType<typeof vi.spyOn>;
@@ -113,7 +118,7 @@ describe('SundaySquad renders the people', () => {
     const s = useGameStore.getState();
     const rows = sundaySquadView(s.sunday!, s.players);
     render(<SundaySquad />);
-    for (const label of [en['sunday.squad.happiness'], en['sunday.squad.fitness'], en['sunday.squad.form']]) {
+    for (const label of MOOD_FITNESS_FORM) {
       expect(screen.getAllByRole('meter', { name: label })).toHaveLength(rows.length);
     }
     // …reading, on each man's own card, the values the state holds for him.
@@ -123,7 +128,49 @@ describe('SundaySquad renders the people', () => {
       expect(mood.getAttribute('aria-valuenow'), player.id).toBe(String(Math.round(member.happiness)));
       const fitness = within(card).getByRole('meter', { name: en['sunday.squad.fitness'] });
       expect(fitness.getAttribute('aria-valuenow'), player.id).toBe(String(Math.round(player.fitness)));
+      const form = within(card).getByRole('meter', { name: en['sunday.squad.form'] });
+      expect(form.getAttribute('aria-valuenow'), player.id).toBe(String(Math.round(player.form)));
     }
+  });
+
+  /**
+   * …AND SAYS IT IN GLYPHS.
+   *
+   * The three meters are right; the three WORDS beside them were not, because
+   * they were the same three words on all fifteen rows — measured, most of why
+   * a pass that set out to cut copy took this screen from 925 to 1364
+   * characters on the glass. The words are gone from the row and the glyph
+   * carries them.
+   *
+   * WHAT MUST NOT GO WITH THEM is the label a screen reader reads: `Meter`
+   * keeps `label` as the meter's `aria-label`, so the element still announces
+   * "Mood 72" rather than a naked "72". This test is the thing standing
+   * between "fewer characters" and "fewer characters for sighted users only".
+   */
+  it('drops the repeated words from the row but not from the accessible name', () => {
+    const s = useGameStore.getState();
+    const rows = sundaySquadView(s.sunday!, s.players);
+    render(<SundaySquad />);
+
+    for (const { player } of rows) {
+      const card = cardFor(player.id);
+      for (const label of MOOD_FITNESS_FORM) {
+        // Not printed on the row — fifteen times three words is the bug.
+        expect(within(card).queryAllByText(label), `${player.id} ${label}`).toHaveLength(0);
+        // Still the meter's name, and still paired with its own value.
+        const meter = within(card).getByRole('meter', { name: label });
+        expect(meter.getAttribute('aria-label'), `${player.id} ${label}`).toBe(label);
+        expect(meter.getAttribute('aria-valuenow'), `${player.id} ${label}`).toBeTruthy();
+      }
+    }
+  });
+
+  /** The word survives where it is drawn ONCE — on the one open card. */
+  it('still writes Mood out in full inside the panel that opens', () => {
+    const rows = sundaySquadView(useGameStore.getState().sunday!, useGameStore.getState().players);
+    render(<SundaySquad />);
+    const card = openCard(rows[0].player.id);
+    expect(within(card).getAllByText(en['sunday.squad.happiness']).length).toBeGreaterThan(0);
   });
 
   it('colours a rating by the modes own ladder, not the house one', () => {

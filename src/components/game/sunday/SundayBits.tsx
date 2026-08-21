@@ -163,13 +163,28 @@ function meterTone(pct: number): string {
  * the pair together and lets the grid gap do the separating; the spread form
  * stays the default because a lone meter under a wide header wants it.
  */
-export function Meter({ label, value, icon: Icon, tight, mark, className }: {
+export function Meter({ label, value, icon: Icon, tight, iconOnly, mark, className }: {
   label: string;
   value: number;
   icon?: React.ElementType;
   /** Label and number sit together rather than at opposite ends. Use in a
    *  multi-column row of meters. */
   tight?: boolean;
+  /**
+   * The glyph IS the label — the word is not drawn.
+   *
+   * FOR REPEATING ROWS ONLY. Three meters on one squad card is information;
+   * the same three words down fifteen cards is the same three words fifteen
+   * times, which is what the immersion pass measured going the wrong way on
+   * that screen (925 -> 1364 characters on the glass). A word printed once,
+   * on a panel or a detail view, stays a word.
+   *
+   * NOTHING IS LOST TO A SCREEN READER. `label` is still the meter's
+   * `aria-label`, so the element announces "Mood 72" exactly as before, and
+   * `aria-hidden` on the number stops it being read a second time as a bare
+   * "72" beside it. Requires `icon`: a lone number is not a label.
+   */
+  iconOnly?: boolean;
   /**
    * A reference line at 0-100, drawn inside the track.
    *
@@ -187,10 +202,15 @@ export function Meter({ label, value, icon: Icon, tight, mark, className }: {
   const markPct = mark == null ? null : Math.max(0, Math.min(100, mark));
   return (
     <span className={cn('block min-w-0', className)}>
-      <span className={cn('flex items-baseline gap-1.5 min-w-0', !tight && 'justify-between gap-2')}>
+      <span
+        className={cn('flex items-baseline gap-1.5 min-w-0', !tight && 'justify-between gap-2')}
+        aria-hidden={iconOnly || undefined}
+      >
         <span className="text-micro text-muted-foreground truncate inline-flex items-baseline gap-1">
-          {Icon && <Icon className="w-3 h-3 shrink-0 self-center" aria-hidden />}
-          {label}
+          {/* Bigger when it is carrying the label on its own — a 12px glyph
+              standing in for a word has to survive being glanced at. */}
+          {Icon && <Icon className={cn('shrink-0 self-center', iconOnly ? 'w-3.5 h-3.5' : 'w-3 h-3')} aria-hidden />}
+          {!iconOnly && label}
         </span>
         <span className="text-micro font-semibold text-foreground tabular-nums shrink-0">{pct}</span>
       </span>

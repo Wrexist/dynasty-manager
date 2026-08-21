@@ -24,7 +24,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { SectionHeader } from '@/components/game/SectionHeader';
 import { ConfirmDialog } from '@/components/game/ConfirmDialog';
-import { SundayPlayerCard, SundayPlayerDetail } from '@/components/game/sunday/SundayPlayerCard';
+import { SundayCardMeterLegend, SundayPlayerCard, SundayPlayerDetail } from '@/components/game/sunday/SundayPlayerCard';
 import { useGameStore } from '@/store/gameStore';
 import { useTranslation } from '@/hooks/useTranslation';
 import { cn } from '@/lib/utils';
@@ -170,6 +170,7 @@ const SundaySquad = () => {
         // of it: twenty backdrop-filters scrolling under a thumb is the single
         // most expensive thing this mode could do on a phone.
         <GlassPanel className="p-2 space-y-1.5">
+          <SundayCardMeterLegend />
           {rows.map(({ member, player }) => {
             const arch = getSundayArchetype(member.archetype);
             const open = expanded === player.id;

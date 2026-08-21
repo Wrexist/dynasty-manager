@@ -27,11 +27,11 @@
 import {
   AlertTriangle, Armchair, ArrowLeft, ArrowRight, Award, Banknote, Beer,
   CalendarDays, Check, ChevronDown, CloudRain, Coins, Dices, Dumbbell, Eye,
-  Flag, Flame, Footprints, Frown, Gauge, Hand, HandCoins, HeartCrack,
+  Flag, Flame, Footprints, Frown, Gauge, Hand, HandCoins, Heart, HeartCrack,
   HeartHandshake, History, Landmark, Lightbulb, ListOrdered, MapPin, Medal,
   MessageSquare,
   PartyPopper, Phone, Play, Receipt, Repeat, Shield, Shirt, SkipForward,
-  Snowflake, Sparkles, Star, Stethoscope, Sun, Swords, TrendingDown,
+  Smile, Snowflake, Sparkles, Star, Stethoscope, Sun, Swords, TrendingDown,
   TrendingUp, Trophy, Users, UserMinus, UserPlus, Wallet, Wand2, Wind, Wrench,
   Zap,
 } from 'lucide-react';
@@ -111,6 +111,15 @@ export const SUNDAY_ICON = {
   skip: SkipForward,
   substitution: Repeat,
   ratings: Gauge,
+  /** How one man feels about being here. Distinct from `morale`, which is the
+   *  CLUB's mood and is a pint; this is a face, because it is a person. Used
+   *  where the word "Mood" would otherwise be printed once per squad row. */
+  mood: Smile,
+  /** Whether he lasts ninety minutes. Not `Stethoscope` — that is `injury`,
+   *  a thing that has happened, where this is a level that moves every week.
+   *  A heart rather than `Gauge` (taken by `ratings`) or `Activity`, whose
+   *  zigzag is indistinguishable from `form`'s bolt at 12px. */
+  fitness: Heart,
   hero: Sparkles,
   lowlight: Frown,
   injury: Stethoscope,
