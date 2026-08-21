@@ -260,15 +260,28 @@ function readGlass() {
   const text = (root.innerText || '').replace(/\s+/g, ' ').trim();
   const blocks = [];
   let explanatory = 0;
+  let dataLines = 0;
   for (const el of root.querySelectorAll('*')) {
     // Leaf elements only, so a paragraph counts once and not once per ancestor.
     if (el.childElementCount) continue;
     const t = (el.textContent || '').replace(/\s+/g, ' ').trim();
     if (!t) continue;
-    if (t.length >= 35) explanatory += t.length;
+    if (t.length >= 35) {
+      explanatory += t.length;
+      // KNOWN FALSE POSITIVE, REPORTED RATHER THAN QUIETLY SUBTRACTED. A
+      // middot-delimited row with no sentence punctuation is a data line, not
+      // prose: "CB · The Glass Ankle · warehouse picker" is 39 characters of
+      // position, archetype and job. It crosses the 35-character floor because
+      // the DATA is wordy, not because a screen is explaining itself. The
+      // Squad screen is almost entirely this. Surfaced as its own column so a
+      // reader can discount it; not filtered out, because the threshold is
+      // what the opening audit's share was calibrated against and moving it
+      // after the fact would be tuning the metric to the answer.
+      if (t.includes('·') && !/[.!?]$/.test(t)) dataLines += t.length;
+    }
     if (t.length > 80) blocks.push(t);
   }
-  return { chars: text.length, explanatory, over80: blocks.length, blocks };
+  return { chars: text.length, explanatory, dataLines, over80: blocks.length, blocks };
 }
 
 /** Landing states form the headline; everything else is reported beside it. */
@@ -375,15 +388,18 @@ async function domMode(beforeURL, afterURL) {
     console.log(`\n${title}\n`);
     console.log('| state | chars before | chars after | explanatory before | explanatory after | blocks >80 before/after |');
     console.log('|---|---|---|---|---|---|');
-    const t = { ca: 0, cb: 0, ea: 0, eb: 0, ba: 0, bb: 0 };
+    const t = { ca: 0, cb: 0, ea: 0, eb: 0, ba: 0, bb: 0, da: 0, db: 0 };
     for (const k of keys) {
       const a = A[k], b = B[k];
       if (!a || !b) { console.log(`| ${k} | — | — | — | — | — |`); continue; }
       t.ca += a.chars; t.cb += b.chars; t.ea += a.explanatory; t.eb += b.explanatory;
-      t.ba += a.over80; t.bb += b.over80;
-      console.log(`| ${pad(k, 34)} | ${r(a.chars, 5)} | ${r(b.chars, 5)} (${d(a.chars, b.chars)}) | ${r(a.explanatory, 5)} | ${r(b.explanatory, 5)} (${d(a.explanatory, b.explanatory)}) | ${a.over80} / ${b.over80} |`);
+      t.ba += a.over80; t.bb += b.over80; t.da += a.dataLines ?? 0; t.db += b.dataLines ?? 0;
+      const dn = (b.dataLines ?? 0) ? ` [${b.dataLines} data]` : '';
+      console.log(`| ${pad(k, 34)} | ${r(a.chars, 5)} | ${r(b.chars, 5)} (${d(a.chars, b.chars)}) | ${r(a.explanatory, 5)} | ${r(b.explanatory, 5)} (${d(a.explanatory, b.explanatory)})${dn} | ${a.over80} / ${b.over80} |`);
     }
     console.log(`| **TOTAL** | **${t.ca}** | **${t.cb}** (${d(t.ca, t.cb)}) | **${t.ea}** | **${t.eb}** (${d(t.ea, t.eb)}) | **${t.ba} / ${t.bb}** |`);
+    console.log(`\nOf that explanatory total, middot-delimited DATA lines (not prose — see readGlass):`);
+    console.log(`  before ${t.da}, after ${t.db}. Discounting them: ${t.ea - t.da} → ${t.eb - t.db} (${d(t.ea - t.da, t.eb - t.db)}).`);
   };
   emit('### Headline — default landing state of every Sunday screen', names.filter(n => LANDING.has(n)));
   emit('### Other states, reported separately', names.filter(n => !LANDING.has(n)));
