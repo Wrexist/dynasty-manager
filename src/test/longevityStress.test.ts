@@ -45,9 +45,18 @@ async function advanceFullSeason() {
   for (let w = 0; w < TOTAL_WEEKS; w++) {
     await store.getState().advanceWeek();
     store.getState().playCurrentMatch();
-    if (w % 10 === 9) await tick();
+  // Yield to the event loop EVERY week, and around `endSeason`, not once every
+  // ten. The worker answers the reporter's `onTaskUpdate` RPC on this loop; a
+  // long synchronous stretch starves it and vitest raises
+  // `[vitest-worker]: Timeout calling "onTaskUpdate"` as an unhandled error,
+  // which fails the run with exit 1 even when every test passed. That is
+  // exactly how this suite last broke CI: 3129 passed, 0 failed, exit 1.
+  // `setTimeout(0)` costs ~1 ms against a ~15 s season, so this is free.
+    await tick();
   }
+  await tick();
   store.getState().endSeason();
+  await tick();
   // `endSeason` DEFERS the rollover when the club qualifies for the promotion
   // playoff — the ties are played first, as ordinary matches. A harness that
   // stops here leaves the save parked in the playoff phase at `totalWeeks + 1`
