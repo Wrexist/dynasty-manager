@@ -47,6 +47,7 @@ import { PlayerTransferTalk } from '@/components/game/PlayerTransferTalk';
 import { AchievementUnlockModal } from '@/components/game/AchievementUnlockModal';
 import { PageHint } from '@/components/game/PageHint';
 import { OnboardingChecklist } from '@/components/game/OnboardingChecklist';
+import { StarterKitBanner } from '@/components/game/StarterKitBanner';
 import { DailyRewardModal } from '@/components/game/DailyRewardModal';
 import { FestivalBanner } from '@/components/game/FestivalBanner';
 import { ContinueResumeCard } from '@/components/game/ContinueResumeCard';
@@ -942,6 +943,11 @@ const Dashboard = () => {
       {/* Week-1 onboarding checklist for brand-new careers. Self-hides after
           the user advances week or dismisses it. */}
       <OnboardingChecklist />
+
+      {/* Starter Kit offer — same product/price as the Shop card, surfaced on
+          the screen new managers actually live on before its 7-day window
+          expires. Self-hides when purchased, dismissed or expired. */}
+      <StarterKitBanner />
 
       {/* Mid-Season Report (shown at week 23, once per season) */}
       {showMidSeason && <MidSeasonReport onDismiss={dismissMidSeason} />}

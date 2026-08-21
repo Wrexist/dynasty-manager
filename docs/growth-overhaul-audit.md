@@ -26,7 +26,7 @@
 | Item | Sev | Status |
 |---|---|---|
 | **A-3** No CI assertion that observability secrets exist; no sourcemap upload step | P1 | Open. Missing secret silently produces an unobservable build identical to a good one. `vite.config.ts:91` emits hidden sourcemaps nobody uploads. |
-| **A-6** `fetchStoreProducts` batch rejection blanks whole direct-lookup path | P2 | Open (mitigated by 8-SKU probe lists; underlying batching unchanged, `purchases.ts:188-212`). Needs on-device settle (§9.6 of runbook). |
+| **A-6** `fetchStoreProducts` batch rejection blanks whole direct-lookup path | P2 | ✅ FIXED at HEAD (verified 2026-08-21): failure-isolating per-ID retry + Sentry warning exists (`purchases.ts:208-237`). The on-device settle (§9.6 of the runbook) remains worthwhile to confirm the wholesale-reject assumption, but the defensive path is in place. |
 | **A-7** No install denominator (`app_open`), no persisted install id | P2 | Confirmed open: union has 33 events, none lifecycle-opening; payload has no identifier (`analytics.ts:16-66`). |
 | **A-8** Packs commerce fully uninstrumented | P2 | Confirmed open: **zero `track()` calls in PacksPage**. |
 | **A-9/A-10** purchase events lack `surface`; no paywall_viewed/dismissed/trial_started | P2 | Confirmed open: all four `purchase_*` carry `{productId}` only (`analytics.ts:25-28`). |
