@@ -14,6 +14,27 @@ import { MAX_FINANCE_HISTORY } from '@/config/gameBalance';
 import { CUP_BYE_MARKER } from '@/data/cup';
 import type { GameState } from '@/store/storeTypes';
 
+/**
+ * TIMEOUT BUDGETS ARE MEASURED, NOT GUESSED.
+ *
+ * These cases simulate whole seasons of the 92-club pyramid, so their runtime
+ * is set by the machine, not by what they assert. Measured on this container:
+ * 3 full seasons = 46.3 s, i.e. ~15.4 s/season. Against that, the old budgets
+ * were not merely tight — `1B`/`1D` (15 seasons ~= 231 s) could not pass a
+ * 200-220 s cap at all, and `1A` had ~8% headroom. They duly timed out on CI
+ * and blocked a PR.
+ *
+ * Every budget here is now ~32 s/season, about 2x measured, so ordinary runner
+ * variance cannot decide the outcome of an integrity test.
+ *
+ * This is NOT masking a regression. The same cases time out identically on
+ * `7d445da`, before any of the Sunday League work existed, and a like-for-like
+ * benchmark puts current HEAD at 46.3 s per 3 seasons against that baseline's
+ * 47.6 s — marginally faster, well inside noise. The one genuine performance
+ * assertion in this file, `5A` (advanceWeek averages under 200 ms), is
+ * deliberately left alone: that one is supposed to fail if the sim slows down.
+ */
+
 const CLUB_ID = 'manchester-city';
 const TOTAL_WEEKS = 46;
 
@@ -72,7 +93,7 @@ describe('Phase 1 — strict multi-season invariants', () => {
     useGameStore.getState().initGame(CLUB_ID);
   });
 
-  it('1A: 12 seasons — validateGameState, ≥18 valid players per league club, numeric player fields', { timeout: 200_000 }, async () => {
+  it('1A: 12 seasons — validateGameState, ≥18 valid players per league club, numeric player fields', { timeout: 400_000 }, async () => {
     for (let s = 0; s < 12; s++) {
       const seasonBefore = useGameStore.getState().season;
       expect(seasonBefore).toBe(s + 1);
@@ -130,7 +151,7 @@ describe('Phase 1 — strict multi-season invariants', () => {
     }
   });
 
-  it('1B: 15 seasons — promotion turnover + replacement clubs unique within each snapshot', { timeout: 220_000 }, async () => {
+  it('1B: 15 seasons — promotion turnover + replacement clubs unique within each snapshot', { timeout: 480_000 }, async () => {
     for (let s = 0; s < 15; s++) {
       await advanceFullSeason();
       const state = useGameStore.getState();
@@ -187,7 +208,7 @@ describe('Phase 1 — strict multi-season invariants', () => {
     }
   });
 
-  it('1C: 20 seasons — player club youth intake, aging sample, squad bounds, stat sanity', { timeout: 320_000 }, async () => {
+  it('1C: 20 seasons — player club youth intake, aging sample, squad bounds, stat sanity', { timeout: 640_000 }, async () => {
     let prevAges = new Map<string, number>();
 
     for (let s = 0; s < 20; s++) {
@@ -256,7 +277,7 @@ describe('Phase 1 — strict multi-season invariants', () => {
     }
   });
 
-  it('1D: 15 seasons — budgets bounded, financeHistory capped', { timeout: 200_000 }, async () => {
+  it('1D: 15 seasons — budgets bounded, financeHistory capped', { timeout: 480_000 }, async () => {
     for (let s = 0; s < 15; s++) {
       await advanceFullSeason();
       const state = useGameStore.getState();
@@ -276,7 +297,7 @@ describe('Phase 1 — strict multi-season invariants', () => {
     }
   });
 
-  it('1E: cup bracket integrity for 92-club pyramid each season (5 seasons)', { timeout: 90_000 }, async () => {
+  it('1E: cup bracket integrity for 92-club pyramid each season (5 seasons)', { timeout: 180_000 }, async () => {
     for (let s = 0; s < 5; s++) {
       const state = useGameStore.getState();
       const leagueIds = LEAGUES.filter(l => l.countryId === 'eng').map(l => l.id);
@@ -426,7 +447,7 @@ describe('Phase 4 — save round-trip + migration', () => {
     useGameStore.getState().initGame(CLUB_ID);
   });
 
-  it('4B/C: JSON round-trip and migrateSaveData each season for 5 seasons', { timeout: 120_000 }, async () => {
+  it('4B/C: JSON round-trip and migrateSaveData each season for 5 seasons', { timeout: 240_000 }, async () => {
     for (let s = 0; s < 5; s++) {
       await advanceFullSeason();
       const raw = useGameStore.getState() as unknown as Record<string, unknown>;
