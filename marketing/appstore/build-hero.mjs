@@ -20,8 +20,13 @@
  * Usage:
  *   node marketing/appstore/build-hero.mjs                 # all targets
  *   node marketing/appstore/build-hero.mjs ipad-13         # one target
+ *   node marketing/appstore/build-hero.mjs --order 01,05,03 --suffix career
+ *     --order   comma-separated panel ids; first = lead screenshot. This is
+ *               how the Custom Product Pages (career/tactics/transfers/nation/
+ *               brand/pro) are produced — one re-render per CPP ordering.
+ *     --suffix  output folder suffix so a CPP set never overwrites the main set.
  *
- * Output: marketing/appstore/hero/<target>/01..05.png
+ * Output: marketing/appstore/hero/<target>[-<suffix>]/01..05.png
  *
  * Requires Playwright + the bundled Chromium at /opt/pw-browsers/chromium-1194
  * (falls back to the default install). Fonts load from Google Fonts at render
@@ -334,7 +339,27 @@ function html(p, t) {
 
 /* ── render ────────────────────────────────────────────────────────────── */
 
-const only = process.argv[2];
+const argv = process.argv.slice(2);
+const argValue = (name) => {
+  const i = argv.indexOf(name);
+  return i >= 0 ? argv[i + 1] : undefined;
+};
+const orderArg = argValue('--order');
+const suffixArg = argValue('--suffix') || '';
+const only = argv.find((a, i) => !a.startsWith('--') && argv[i - 1] !== '--order' && argv[i - 1] !== '--suffix');
+
+let panels = PANELS;
+if (orderArg !== undefined) {
+  const ids = orderArg.split(',').map((s) => s.trim()).filter(Boolean);
+  const byId = new Map(PANELS.map((p) => [p.id, p]));
+  const unknown = ids.filter((id) => !byId.has(id));
+  if (ids.length === 0 || unknown.length > 0) {
+    console.error(`Bad --order "${orderArg}". Known panel ids: ${PANELS.map((p) => p.id).join(', ')}`);
+    process.exit(1);
+  }
+  panels = ids.map((id) => byId.get(id));
+}
+
 const targets = only ? TARGETS.filter((t) => t.id === only) : TARGETS;
 if (!targets.length) {
   console.error(`Unknown target "${only}". Known: ${TARGETS.map((t) => t.id).join(', ')}`);
@@ -347,11 +372,11 @@ const browser = await chromium.launch({
 });
 
 for (const t of targets) {
-  const dir = join(OUT, t.id);
+  const dir = join(OUT, suffixArg ? `${t.id}-${suffixArg}` : t.id);
   rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir, { recursive: true });
   const page = await browser.newPage({ viewport: { width: t.w, height: t.h }, deviceScaleFactor: 1 });
-  for (const p of PANELS) {
+  for (const p of panels) {
     const f = join(dir, `${p.id}.html`);
     writeFileSync(f, html(p, t));
     await page.goto('file://' + f, { waitUntil: 'networkidle' });

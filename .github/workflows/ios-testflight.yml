@@ -87,9 +87,10 @@ jobs:
       - name: Validate + stamp What's New build number
         run: node scripts/check-whats-new.mjs --inject-build ${{ github.run_number }}
 
-      # Surfaces a missing observability secret in the run log. Warn-only for
-      # now — flip to `--strict` once the secrets exist so a rotated or renamed
-      # secret fails the build instead of silently blinding production.
+      # Surfaces a missing observability secret in the run log. Warn-only until
+      # the secrets exist (a fatal check would block every build today); flip
+      # to `--strict-sentry` once VITE_SENTRY_DSN is set, and `--strict` once
+      # the analytics endpoint decision is made — see runbook §4.
       - name: Check observability secrets
         env:
           VITE_ANALYTICS_ENDPOINT: ${{ secrets.VITE_ANALYTICS_ENDPOINT }}
@@ -113,6 +114,22 @@ jobs:
           # (blank/false) ship without it.
           VITE_DEV_TOOLS: ${{ github.event.inputs.dev_tools }}
         run: npm run build
+
+      # Upload source maps to Sentry BEFORE they are stripped below (the strip
+      # exists because cap sync would otherwise ship ~35 MB of maps in the
+      # bundle). Skipped when SENTRY_AUTH_TOKEN is absent so the build stays
+      # green until the token + org/project are configured — but until then,
+      # Sentry stack traces stay minified. The release id must match the SDK's
+      # `dynasty-manager@<version>` (src/utils/sentry.ts).
+      - name: Upload source maps to Sentry
+        if: ${{ env.SENTRY_AUTH_TOKEN != '' }}
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+        run: |
+          npx --yes @sentry/cli sourcemaps inject ./dist
+          npx --yes @sentry/cli sourcemaps upload ./dist --release "dynasty-manager@$(node -p "require('./package.json').version")"
 
       # `sourcemap: 'hidden'` still WRITES .map files, and Capacitor's webDir is
       # `dist`, so `cap sync` would copy ~35 MB of readable source maps into the

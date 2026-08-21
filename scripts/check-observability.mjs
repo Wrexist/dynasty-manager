@@ -17,18 +17,22 @@
  *
  * So: make it loud at build time instead of silent at run time.
  *
- *   node scripts/check-observability.mjs           # warn only (default)
- *   node scripts/check-observability.mjs --strict  # exit 1 if anything missing
+ *   node scripts/check-observability.mjs                 # warn only (default)
+ *   node scripts/check-observability.mjs --strict        # exit 1 if anything missing
+ *   node scripts/check-observability.mjs --strict-sentry # exit 1 if VITE_SENTRY_DSN missing
  *
- * Use --strict in the TestFlight/release workflow once the secrets exist, so a
- * secret that gets rotated away or renamed fails the build instead of silently
- * blinding production.
+ * Use --strict-sentry in the TestFlight workflow once the DSN secret exists
+ * (crash visibility is non-negotiable for a live app) while analytics stays
+ * warn-only until decision 1.3 of the runbook is made. Use --strict once BOTH
+ * secrets exist, so a rotated or renamed secret fails the build instead of
+ * silently blinding production.
  */
 
 const CHECKS = [
   {
     env: 'VITE_SENTRY_DSN',
     what: 'Crash reporting',
+    fatal: true,
     consequence:
       'No crash report leaves a production device, and every Sentry.captureException in the purchase paths is a no-op — a live revenue incident would be invisible.',
     fix: 'Create a project at https://sentry.io, copy its DSN, and add it as a GitHub Actions secret named VITE_SENTRY_DSN.',
@@ -43,6 +47,7 @@ const CHECKS = [
 ];
 
 const strict = process.argv.includes('--strict');
+const strictSentry = process.argv.includes('--strict-sentry');
 const missing = CHECKS.filter((c) => !process.env[c.env]);
 
 if (missing.length === 0) {
@@ -50,23 +55,27 @@ if (missing.length === 0) {
   process.exit(0);
 }
 
-const label = strict ? 'ERROR' : 'WARNING';
+// Which missing secrets are FATAL right now: everything under --strict, or
+// just the crash-reporting DSN under --strict-sentry.
+const failing = missing.filter((c) => strict || (strictSentry && c.fatal));
+
+const label = failing.length > 0 ? 'ERROR' : 'WARNING';
 console.log('');
 console.log(`  ${label}: ${missing.length} of ${CHECKS.length} observability secret(s) missing.`);
 console.log('  ' + '─'.repeat(70));
 for (const c of missing) {
   console.log('');
-  console.log(`  ✗ ${c.env} — ${c.what} is DISABLED`);
+  console.log(`  ✗ ${c.env} — ${c.what} is DISABLED${c.fatal && !strict ? ' (fatal under --strict-sentry)' : ''}`);
   console.log(`    Consequence: ${c.consequence}`);
   console.log(`    Fix: ${c.fix}`);
 }
 console.log('');
 
-if (strict) {
-  console.error('  Failing the build because --strict was requested.');
+if (failing.length > 0) {
+  console.error('  Failing the build: fatal observability secrets are missing.');
   process.exit(1);
 }
 
-console.log('  Building anyway (warn-only mode). Pass --strict to make this fatal.');
+console.log('  Building anyway (warn-only mode). Pass --strict-sentry / --strict to make this fatal.');
 console.log('');
 process.exit(0);
