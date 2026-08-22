@@ -52,6 +52,7 @@ export const PENDING_NEWS: PendingRelease = {
     'The Shop now leads with Pro Yearly instead of Pro Monthly, matching the subscribe screen.',
     'Kick Off can no longer do nothing at all.',
     'Growth overhaul.',
+    'Add Sunday League — a complete local football management mode.',
   ],
   fixed: [
     'Fan mood now reacts to results and league position instead of sitting at a flat 50 all game — matchday income finally rises with a winning run and dips during a slump.',
