@@ -15,6 +15,7 @@ import { createMonetizationSlice } from './slices/monetizationSlice';
 import { createNationalTeamSlice } from './slices/nationalTeamSlice';
 import { createCareerSlice } from './slices/careerSlice';
 import { createPacksSlice } from './slices/packsSlice';
+import { createSundaySlice } from './slices/sundaySlice';
 
 export type { GameState } from './storeTypes';
 
@@ -34,4 +35,5 @@ export const useGameStore = create<GameState>((set, get) => ({
   ...createNationalTeamSlice(set, get),
   ...createCareerSlice(set, get),
   ...createPacksSlice(set, get),
+  ...createSundaySlice(set, get),
 }));

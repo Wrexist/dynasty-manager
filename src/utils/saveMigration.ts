@@ -12,11 +12,349 @@ import { isPlaceholderClubId } from '@/config/continental';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 83;
+const CURRENT_VERSION = 86;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
 const migrations: Record<number, MigrationFn> = {
+  // v85 → v86: Sunday League schema v3. Additive apart from one deletion, and
+  // every field is backfilled with the value the old behaviour implied:
+  //
+  //   - `lastMatch` gains `redCards` / `injuries` (the counts the weekly
+  //     settlement used to read from the unpersisted `currentMatchResult`) and
+  //     `motmName` / `lowlightName` (name snapshots, so a guest who was man of
+  //     the match survives being wiped after the whistle). Zero and null are
+  //     correct for a report written before the fields existed: the fine for
+  //     that week has already been settled one way or the other, and inventing
+  //     a retrospective charge would be worse than losing it.
+  //   - `onceFiredIds` replaces deriving "has this fired?" from the capped
+  //     event log. Seeded from whatever the log still remembers, which is the
+  //     best available answer and never wrong in the direction of re-firing
+  //     something the player saw recently.
+  //   - `pendingLedger` starts empty: no action has run since the last
+  //     settlement in a save that is being loaded.
+  //   - `pitchDamage` starts at zero: the effect that writes it did nothing at
+  //     all before this version, so no old save has any damage to carry.
+  //   - `divisionStyles` starts EMPTY rather than being computed here. The map
+  //     says how each AI club plays, derived from that club's squad — and
+  //     `sundayStyleOf` re-derives exactly the same answer from the loaded
+  //     world whenever a key is absent. Backfilling it here would mean pulling
+  //     the Sunday fit metric into the migration chain to reproduce a value the
+  //     read path already produces, and would go stale the moment the save's
+  //     division did. Empty-with-lazy-fill is the robust option: an old save
+  //     meets a division that plays four different ways from its first fixture,
+  //     and the map fills itself at the next rollover.
+  //   - `chains` holds the live multi-step stories. Empty for a save that
+  //     never had one — EXCEPT for the single chain that already shipped as an
+  //     ad-hoc flag. A live `wants-out:<playerId>` flag WAS the rival-defection
+  //     story sitting at its second beat, so it is converted into the
+  //     equivalent chain (step 2, same subject, same deadline) and the flag is
+  //     dropped. Without that, a save reloaded mid-story would lose it
+  //     silently: the flag no longer selects anything and the payoff beat is
+  //     now chain-gated.
+  //   - SQUAD NUMBERS. `shirtNumber` cannot be derived after the fact — a
+  //     number taken from a position in the `squad` array changes the moment
+  //     somebody signs or retires, and a number that moves is not a squad
+  //     number. Old saves therefore get one assigned HERE, once, in squad
+  //     order: the first goalkeeper takes 1 (the only preference cheap enough
+  //     to honour without dragging the mode's config into the eager migration
+  //     chunk) and everybody else takes the lowest free number. The rule is
+  //     re-stated inline below rather than imported for exactly the reason the
+  //     flag rule is — `utils/sunday/generation.ts` is a lazy chunk and must
+  //     not be pulled into the eagerly-loaded migration. `sundaySave.test.ts`
+  //     pins this copy against the real `sundayShirtNumber` so the two agree
+  //     about range and uniqueness.
+  //   - `lastMatch.timeline` becomes empty, for the same reason `adjustments`
+  //     does: the events it flattens were on the unpersisted
+  //     `currentMatchResult` and are gone.
+  //   - `lastMatch.weather` becomes null. The weather is rolled inside
+  //     `prepareSundayMatch` from the match-week stream AFTER the ringer draws,
+  //     so it is not reconstructible without replaying that stream — and
+  //     replaying it would change results in every existing save. Null is the
+  //     truth: nobody wrote it down at the time.
+  //   - `eventQueue` is dropped. It was never written to.
+  //   - THE RELATIONSHIPS LAYER. `friends` / `rivals` existed and were drawn at
+  //     founding, but nothing maintained them: every departure left a dangling
+  //     id behind, so an old save can name mates who have not been at the club
+  //     for three seasons. They are scrubbed against the squad's own id list
+  //     here — the same invariant the validator now enforces — deduplicated,
+  //     capped, and de-overlapped (a man cannot be both). `formerTeammates`
+  //     starts empty because the names are gone; `appsWith` starts empty
+  //     because nobody counted, which honestly means a loaded save begins
+  //     accumulating shared afternoons from the upgrade rather than inventing
+  //     a history. Pending recruits gain `voucherId: null`: the lad who
+  //     recommended them is unknowable after the fact, and null is exactly what
+  //     "nobody vouched" means at the signing desk.
+  //
+  // Later waves EXTEND this step rather than adding another: keep the shape
+  // below (a single `sunday` rewrite with per-field fallbacks) and add fields.
+  85: (data) => {
+    const sunday = data.sunday as Record<string, unknown> | null | undefined;
+    if (!sunday || typeof sunday !== 'object') return { ...data, version: 86, sunday: sunday ?? null };
+    const { eventQueue: _dropped, ...rest } = sunday;
+    const lastMatch = sunday.lastMatch && typeof sunday.lastMatch === 'object'
+      ? (() => {
+          const lm = sunday.lastMatch as Record<string, unknown>;
+          return {
+            ...lm,
+            redCards: typeof lm.redCards === 'number' ? lm.redCards : 0,
+            injuries: typeof lm.injuries === 'number' ? lm.injuries : 0,
+            motmName: lm.motmName ?? null,
+            lowlightName: lm.lowlightName ?? null,
+            // Presentation tier. 'routine' is the honest backfill: every
+            // fixture WAS presented as routine before the tiers existed, and
+            // recomputing an old report's stakes would need the table as it
+            // stood that week, which the save does not keep.
+            tier: typeof lm.tier === 'string' ? lm.tier : 'routine',
+            // The breakdown and the guests' ratings were computed and thrown
+            // away, so an old report genuinely has neither. Empty is the truth;
+            // reconstructing either would need a pitch, a squad and a morale
+            // that have all since moved.
+            adjustments: Array.isArray(lm.adjustments) ? lm.adjustments : [],
+            guestRatings: Array.isArray(lm.guestRatings) ? lm.guestRatings : [],
+            // Not derivable — see the note above. Nobody wrote it down.
+            weather: lm.weather && typeof lm.weather === 'object' ? lm.weather : null,
+            // The timeline rows. Empty for the same reason `adjustments` is:
+            // the engine's event array lives on the unpersisted
+            // `currentMatchResult`, so an old report has no events to flatten
+            // and the only alternative would be parsing the generated English
+            // in `narrative` back into facts. The screen renders the prose feed
+            // and simply omits the timeline when there is nothing to draw.
+            timeline: Array.isArray(lm.timeline) ? lm.timeline : [],
+          };
+        })()
+      : null;
+    const log = Array.isArray(sunday.eventLog) ? (sunday.eventLog as Record<string, unknown>[]) : [];
+    const onceFiredIds = Array.isArray(sunday.onceFiredIds)
+      ? sunday.onceFiredIds
+      : [...new Set(log.map(e => e?.defId).filter((id): id is string => typeof id === 'string'))];
+
+    // WHO IS STILL ON THE BOOKS. Computed FIRST, because both blocks below need
+    // it: the chain conversion may not mint a story about somebody who left,
+    // and the flags may not carry one about him either.
+    //
+    // The relationships caps further down are LITERALS for the same reason the
+    // chain deadline is: this describes what an old save is allowed to have
+    // contained, and re-reading a balance constant here would silently rewrite
+    // old saves the next time the dressing room is tuned.
+    const squadIn = Array.isArray(sunday.squad) ? (sunday.squad as Record<string, unknown>[]) : [];
+    const liveIds = new Set(squadIn.map(m => String(m.playerId)));
+
+    // The legacy 'wants-out:<playerId>' flag → the rival-defection chain.
+    // Numbers are LITERALS on purpose: a migration describes what an old save
+    // meant at the moment it was written, so reading a live balance constant
+    // here would silently rewrite history the next time that constant is tuned.
+    const flagsIn: Record<string, unknown> =
+      sunday.flags && typeof sunday.flags === 'object' && !Array.isArray(sunday.flags)
+        ? { ...(sunday.flags as Record<string, unknown>) }
+        : {};
+    const wantsOut = Object.entries(flagsIn).find(([k]) => k.startsWith('wants-out:'));
+    const players = (data.players ?? {}) as Record<string, { firstName?: string }>;
+    let chains: unknown[] = Array.isArray(sunday.chains) ? sunday.chains : [];
+    let flags: Record<string, unknown> = flagsIn;
+    // ONLY IF HE IS STILL HERE. A v85 save can genuinely carry a wants-out flag
+    // about a departed player — the baseline swept flags by age alone, never by
+    // squad membership, which is the documented pre-existing bug this migration
+    // is most likely to meet. Promoting that into a chain is worse than losing
+    // it: the validator rejects a chain about a man who is not in the squad,
+    // and none of its beats could ever fire. Drop the flag instead.
+    let convertedFlag: string | null = null;
+    if (!Array.isArray(sunday.chains) && wantsOut && liveIds.has(wantsOut[0].slice('wants-out:'.length))) {
+      const subjectId = wantsOut[0].slice('wants-out:'.length);
+      convertedFlag = wantsOut[0];
+      const setWeek = typeof wantsOut[1] === 'number' ? wantsOut[1] : Number(data.week) || 1;
+      const name = players[subjectId]?.firstName;
+      chains = [{
+        id: 'rival-defection',
+        step: 2,
+        subjectId,
+        startedWeek: setWeek,
+        startedSeason: Number(data.season) || 1,
+        // Four weeks was the flag's effective life once the six-week sweep and
+        // the payoff event's own cooldown were both accounted for.
+        dueWeek: setWeek + 4,
+        data: name ? { name } : {},
+      }];
+    }
+    // Then scrub every flag whose subject has gone — including the wants-out
+    // one, whether it became a chain or not. This is the one load path that
+    // never runs `pruneSundayFlags` (the mode's own code prunes on every
+    // departure), so the rule is restated here rather than imported: the
+    // Sunday event module is a lazy chunk and must not be pulled into the
+    // eagerly-loaded migration. `sundayFlagSubjectId` is the source of truth
+    // for the rule; the migration block in `sundaySave.test.ts` pins this copy
+    // of it against `pruneSundayFlags` so the two cannot drift.
+    flags = Object.fromEntries(Object.entries(flags).filter(([name]) => {
+      if (name === convertedFlag) return false;
+      const colon = name.indexOf(':');
+      if (colon < 0) return true;
+      const subject = name.slice(colon + 1);
+      return !subject.startsWith('sun-') || liveIds.has(subject);
+    }));
+    const idList = (value: unknown, self: unknown, exclude: readonly string[] = []): string[] => {
+      if (!Array.isArray(value)) return [];
+      const out: string[] = [];
+      for (const id of value) {
+        if (typeof id !== 'string' || id === self) continue;
+        if (!liveIds.has(id) || out.includes(id) || exclude.includes(id)) continue;
+        out.push(id);
+      }
+      return out;
+    };
+    // Squad numbers, handed out once and then owned by the save. Literals
+    // rather than `SUNDAY_SHIRT_MIN`/`MAX` for the same reason the caps above
+    // are: this describes what an old save is allowed to contain, and reading a
+    // live constant would silently rewrite old saves the next time it moved.
+    // This block is in the EAGER bundle — `migrateSaveData` runs at load, so
+    // every byte here is on the first-paint path for players who never open
+    // the mode. One predicate, reused; nothing here for show. Measured cost of
+    // the whole persisted addition: +0.2 kB gz.
+    const keptShirt = (m: Record<string, unknown>): number | null =>
+      typeof m.shirtNumber === 'number' && Number.isInteger(m.shirtNumber)
+        && m.shirtNumber >= 1 && m.shirtNumber <= 99
+        ? m.shirtNumber
+        : null;
+    const takenShirts = new Set<number>(
+      squadIn.map(keptShirt).filter((n): n is number => n !== null),
+    );
+    const nextShirt = (): number => {
+      for (let n = 1; n <= 99; n++) {
+        if (!takenShirts.has(n)) { takenShirts.add(n); return n; }
+      }
+      return 99;
+    };
+    // The first unnumbered keeper in squad order gets the shirt everybody
+    // expects — reserved BEFORE the walk, or a centre-half standing ahead of
+    // him in the array would take it as the lowest free number. A second
+    // keeper is just another man in the queue.
+    const playerPositions = (data.players ?? {}) as Record<string, { position?: string }>;
+    const keeperId = squadIn.find(m =>
+      keptShirt(m) === null && playerPositions[String(m.playerId)]?.position === 'GK')?.playerId;
+    const keeperGetsOne = keeperId != null && !takenShirts.has(1);
+    if (keeperGetsOne) takenShirts.add(1);
+
+    const squad = squadIn.map(m => {
+      const friends = idList(m.friends, m.playerId).slice(0, 3);
+      const existing = keptShirt(m);
+      return {
+        ...m,
+        shirtNumber: existing
+          ?? (keeperGetsOne && m.playerId === keeperId ? 1 : nextShirt()),
+        friends,
+        rivals: idList(m.rivals, m.playerId, friends).slice(0, 2),
+        formerTeammates: Array.isArray(m.formerTeammates) ? m.formerTeammates : [],
+        appsWith: m.appsWith && typeof m.appsWith === 'object' && !Array.isArray(m.appsWith)
+          ? m.appsWith
+          : {},
+      };
+    });
+    const recruits = Array.isArray(sunday.recruits)
+      ? (sunday.recruits as Record<string, unknown>[]).map(r => {
+          const member = r.member && typeof r.member === 'object' && !Array.isArray(r.member)
+            ? (r.member as Record<string, unknown>)
+            : {};
+          return {
+            ...r,
+            voucherId: typeof r.voucherId === 'string' ? r.voucherId : null,
+            // He has not signed, so he cannot have mates at the club yet — and
+            // the number on his card is provisional either way: `signSundayRecruit`
+            // re-issues it against the pegs the moment he does.
+            member: {
+              ...member,
+              shirtNumber: typeof member.shirtNumber === 'number' ? member.shirtNumber : 1,
+              friends: [], rivals: [], formerTeammates: [], appsWith: {},
+            },
+          };
+        })
+      : (sunday.recruits ?? []);
+
+    return {
+      ...data,
+      version: 86,
+      sunday: {
+        ...rest,
+        v: 3,
+        lastMatch,
+        onceFiredIds,
+        flags,
+        chains,
+        squad,
+        recruits,
+        pendingLedger: Array.isArray(sunday.pendingLedger) ? sunday.pendingLedger : [],
+        // No save can be mid-match: the field did not exist, and a match was
+        // settled in one call before it did.
+        halfTime: null,
+        pitchDamage: typeof sunday.pitchDamage === 'number' ? sunday.pitchDamage : 0,
+        // Nobody can owe the manager anything in a save written before the
+        // club could borrow from him.
+        managerLoan: typeof sunday.managerLoan === 'number' ? sunday.managerLoan : 0,
+        // Signings were uncapped, so a save mid-season has an unknown count.
+        // Zero is the generous reading and the only one that cannot retro-
+        // actively lock a manager out of a window he was told was open.
+        signingsThisSeason: typeof sunday.signingsThisSeason === 'number' ? sunday.signingsThisSeason : 0,
+        // Same reading for the week's phone calls: the save was written under
+        // no cap, so zero is the only number that cannot take away a call the
+        // manager was told he had.
+        ringRoundsThisWeek: typeof sunday.ringRoundsThisWeek === 'number' ? sunday.ringRoundsThisWeek : 0,
+        divisionStyles: sunday.divisionStyles && typeof sunday.divisionStyles === 'object'
+          ? sunday.divisionStyles
+          : {},
+      },
+    };
+  },
+
+  // v84 → v85: Sunday League schema v2 — player memories and promises, the
+  // arrival phase, event-chain flags, the rival's manager. All additive, all
+  // backfilled with their empty values here so the sub-state validator (which
+  // refuses shapes it does not recognise) accepts an upgraded save. A non-
+  // Sunday save carries `sunday: null` and passes through untouched.
+  84: (data) => {
+    const sunday = data.sunday as Record<string, unknown> | null | undefined;
+    if (!sunday || typeof sunday !== 'object') return { ...data, version: 85, sunday: sunday ?? null };
+    const squad = Array.isArray(sunday.squad)
+      ? (sunday.squad as Record<string, unknown>[]).map(m => ({
+          ...m,
+          memories: Array.isArray(m.memories) ? m.memories : [],
+          promise: m.promise ?? null,
+        }))
+      : sunday.squad;
+    const rivalry = sunday.rivalry && typeof sunday.rivalry === 'object'
+      ? {
+          ...(sunday.rivalry as Record<string, unknown>),
+          // A v1 rivalry never had a manager; give it a placeholder identity
+          // rather than an invented one — the next season's rival is built
+          // properly. English strings are game data, not UI copy.
+          managerName: (sunday.rivalry as Record<string, unknown>).managerName ?? 'their manager',
+          managerStyle: (sunday.rivalry as Record<string, unknown>).managerStyle ?? 'Nobody has worked him out yet.',
+          story: Array.isArray((sunday.rivalry as Record<string, unknown>).story)
+            ? (sunday.rivalry as Record<string, unknown>).story
+            : [],
+          defector: (sunday.rivalry as Record<string, unknown>).defector ?? null,
+        }
+      : sunday.rivalry ?? null;
+    return {
+      ...data,
+      version: 85,
+      sunday: {
+        ...sunday,
+        v: 2,
+        squad,
+        rivalry,
+        arrival: null,
+        flags: sunday.flags ?? {},
+      },
+    };
+  },
+
+  // v83 → v84: `sunday` carries the whole Sunday League mode. Every save
+  // written before this is by definition not a Sunday save — the mode did not
+  // exist — so `null` is the only correct value and there is nothing to
+  // backfill. The bump exists so the shape change is declared rather than
+  // sneaking in, and so a v84 Sunday save cannot be silently loaded by an
+  // older build that would drop the key and leave `gameMode: 'sunday'` with
+  // no state behind it.
+  83: (data) => ({ ...data, version: 84, sunday: data.sunday ?? null }),
+
   // v82 -> v83: `SuperCupMatch` gained the optional `playedWeek`, the week a
   // Super Cup was ACTUALLY played when a catch-up moved it off its scheduled
   // `week`. Every reader falls back to `week` when it is absent, so an old save

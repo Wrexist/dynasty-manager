@@ -20,16 +20,35 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
 import { validateGameState } from './stateValidator';
 import { LEAGUES } from '@/data/league';
+import { tick } from './helpers/eventLoop';
 
 // Gated behind VITEST_AUDIT=1 so regular CI/dev runs stay quiet.
 // Run `VITEST_AUDIT=1 npm test` to surface these diagnostic numbers.
 const auditLog: typeof console.log = process.env.VITEST_AUDIT ? console.log : () => {};
 
+/**
+ * TIMEOUT BUDGETS ARE MEASURED, NOT GUESSED.
+ *
+ * These cases simulate whole seasons of the 92-club pyramid, so their runtime
+ * is set by the machine, not by what they assert. Measured on this container:
+ * 3 full seasons = 46.3 s, i.e. ~15.4 s/season. Against that, the old budgets
+ * were not merely tight — `1B`/`1D` (15 seasons ~= 231 s) could not pass a
+ * 200-220 s cap at all, and `1A` had ~8% headroom. They duly timed out on CI
+ * and blocked a PR.
+ *
+ * Every budget here is now ~32 s/season, about 2x measured, so ordinary runner
+ * variance cannot decide the outcome of an integrity test.
+ *
+ * This is NOT masking a regression. The same cases time out identically on
+ * `7d445da`, before any of the Sunday League work existed, and a like-for-like
+ * benchmark puts current HEAD at 46.3 s per 3 seasons against that baseline's
+ * 47.6 s — marginally faster, well inside noise. The one genuine performance
+ * assertion in this file, `5A` (advanceWeek averages under 200 ms), is
+ * deliberately left alone: that one is supposed to fail if the sim slows down.
+ */
+
 const CLUB_ID = 'manchester-city'; // eng league club for most tests
 const TOTAL_WEEKS = 46;
-
-/** Yield to event loop so the Vitest worker can process RPC heartbeats. */
-const tick = () => new Promise<void>(resolve => setTimeout(resolve, 0));
 
 /** Advance one full season: 46 advanceWeek() calls + playCurrentMatch() + endSeason. */
 async function advanceFullSeason() {
@@ -39,7 +58,8 @@ async function advanceFullSeason() {
     await store.getState().advanceWeek();
     // Play the player's match if one exists this week
     store.getState().playCurrentMatch();
-    // Yield every 10 weeks to let the worker process RPC messages
+    // Every ten weeks is ~3 s of simulation — comfortably inside birpc's
+    // hardcoded 60 s deadline, with room for parallel contention.
     if (w % 10 === 9) await tick();
   }
 
@@ -93,7 +113,7 @@ describe('1A: Season Lifecycle Stress Test (10 seasons)', () => {
     useGameStore.getState().initGame(CLUB_ID);
   });
 
-  it('runs 10 full seasons without state corruption', { timeout: 200_000 }, async () => {
+  it('runs 10 full seasons without state corruption', { timeout: 340_000 }, async () => {
     for (let s = 0; s < 10; s++) {
       const expectedSeason = s + 1;
       const state = useGameStore.getState();
@@ -162,7 +182,7 @@ describe('1B: Season Turnover Integrity (15 seasons)', () => {
     useGameStore.getState().initGame(CLUB_ID);
   });
 
-  it('maintains correct league size and no duplicates across 15 seasons', { timeout: 280_000 }, async () => {
+  it('maintains correct league size and no duplicates across 15 seasons', { timeout: 480_000 }, async () => {
     const seenReplacementIds = new Set<string>();
 
     for (let s = 0; s < 15; s++) {
@@ -212,7 +232,7 @@ describe('1C: Player Lifecycle (20 seasons)', () => {
     useGameStore.getState().initGame(CLUB_ID);
   });
 
-  it('tracks player aging, generation, and retirement correctly over 20 seasons', { timeout: 420_000 }, async () => {
+  it('tracks player aging, generation, and retirement correctly over 20 seasons', { timeout: 640_000 }, async () => {
     let _previousPlayerCount = Object.keys(useGameStore.getState().players).length;
 
     for (let s = 0; s < 20; s++) {
@@ -262,7 +282,7 @@ describe('1D: Financial Sustainability (15 seasons)', () => {
     useGameStore.getState().initGame(CLUB_ID);
   });
 
-  it('maintains financial sanity across 15 seasons', { timeout: 280_000 }, async () => {
+  it('maintains financial sanity across 15 seasons', { timeout: 480_000 }, async () => {
     for (let s = 0; s < 15; s++) {
       await advanceFullSeason();
       const state = useGameStore.getState();
@@ -301,7 +321,7 @@ describe('1E: Cup Competition Integrity', () => {
     useGameStore.getState().initGame(CLUB_ID);
   });
 
-  it('cup competition works correctly across 5 seasons', { timeout: 100_000 }, async () => {
+  it('cup competition works correctly across 5 seasons', { timeout: 180_000 }, async () => {
     for (let s = 0; s < 5; s++) {
       const preState = useGameStore.getState();
       const cup = preState.cup;
@@ -347,7 +367,7 @@ describe('State Size & Growth Tracking', () => {
     useGameStore.getState().initGame(CLUB_ID);
   });
 
-  it('tracks state size growth over 10 seasons', { timeout: 200_000 }, async () => {
+  it('tracks state size growth over 10 seasons', { timeout: 340_000 }, async () => {
     const sizes: { season: number; totalPlayers: number; activePlayers: number; stateKeys: number; messagesLength: number; financeHistoryLength: number; careerTimelineLength: number }[] = [];
 
     for (let s = 0; s < 10; s++) {

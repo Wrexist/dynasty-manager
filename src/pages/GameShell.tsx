@@ -11,8 +11,8 @@ import { PageErrorBoundary } from '@/components/game/PageErrorBoundary';
 import { ErrorBoundary } from '@/components/game/ErrorBoundary';
 import { ContractNegotiation } from '@/components/game/ContractNegotiation';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
-import { BACK_TARGET, MAIN_TABS, WC_MAIN_TABS, SCREEN_GROUPS, UNEMPLOYED_MAIN_TABS, UNEMPLOYED_ALLOWED_SCREENS } from '@/config/navigation';
-import { MARKET_SUB_NAV, SQUAD_SUB_NAV } from '@/config/ui';
+import { BACK_TARGET, MAIN_TABS, WC_MAIN_TABS, SUNDAY_MAIN_TABS, SCREEN_GROUPS, SUNDAY_SCREEN_GROUPS, SUNDAY_TEAM_GROUP, UNEMPLOYED_MAIN_TABS, UNEMPLOYED_ALLOWED_SCREENS } from '@/config/navigation';
+import { MARKET_SUB_NAV, SQUAD_SUB_NAV, SUNDAY_TEAM_SUB_NAV, SUNDAY_CLUB_SUB_NAV } from '@/config/ui';
 import { PACK_PITY_THRESHOLD } from '@/config/packs';
 import { useMatchLocked, useCareerUnemployed, useCareerRetired } from '@/hooks/useGameSelectors';
 import { InfoTipProvider } from '@/components/game/InfoTip';
@@ -74,6 +74,28 @@ const WorldCupDraw = lazy(() => import('./WorldCupDraw'));
 const WorldCupDashboard = lazy(() => import('./WorldCupDashboard'));
 const RivalriesPage = lazy(() => import('./RivalriesPage'));
 const CompetitionsPage = lazy(() => import('./CompetitionsPage'));
+const SundayHub = lazy(() => import('./SundayHub'));
+const SundayTeamsheet = lazy(() => import('./SundayTeamsheet'));
+const SundayMatchDay = lazy(() => import('./SundayMatchDay'));
+const SundaySquad = lazy(() => import('./SundaySquad'));
+const SundayClubhouse = lazy(() => import('./SundayClubhouse'));
+const SundayTable = lazy(() => import('./SundayTable'));
+const SundayRecruit = lazy(() => import('./SundayRecruit'));
+const SundayHistory = lazy(() => import('./SundayHistory'));
+// Lazy like the pages, not static like the rest of the shell: the bar reads
+// `findSundayFixture`, which lives in the Sunday matchday module and would
+// otherwise be pulled into the GameShell chunk every elite player downloads.
+const SundayWeekBar = lazy(() =>
+  import('@/components/game/sunday/SundayWeekBar').then(m => ({ default: m.SundayWeekBar })),
+);
+// ONE instance for the whole mode. It used to be mounted per page, on six of
+// the eight Sunday screens — History was the miss, and History is now a tab, so
+// a pending event would have been invisible there while `advanceSundayWeek`
+// refused to run: a soft deadlock with nothing on screen explaining it. The
+// modal self-gates on `sunday.pendingEvent`, so mounting it once here is enough.
+const SundayEventModal = lazy(() =>
+  import('@/components/game/sunday/SundayEventModal').then(m => ({ default: m.SundayEventModal })),
+);
 
 const screens: Record<string, React.ComponentType> = {
   dashboard: Dashboard,
@@ -128,6 +150,14 @@ const screens: Record<string, React.ComponentType> = {
   'world-cup-result': WorldCupResult,
   'rivalries': RivalriesPage,
   'competitions': CompetitionsPage,
+  'sunday-hub': SundayHub,
+  'sunday-teamsheet': SundayTeamsheet,
+  'sunday-match': SundayMatchDay,
+  'sunday-squad': SundaySquad,
+  'sunday-clubhouse': SundayClubhouse,
+  'sunday-table': SundayTable,
+  'sunday-recruit': SundayRecruit,
+  'sunday-history': SundayHistory,
 };
 
 // Route-level Suspense fallback while a lazy page chunk downloads. Renders
@@ -155,6 +185,7 @@ const PageSuspenseFallback = () => {
 
 const GameShell = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { gameStarted, currentScreen, packPityCounter, gameMode } = useGameStore(useShallow(s => ({
     gameStarted: s.gameStarted,
     currentScreen: s.currentScreen,
@@ -165,7 +196,9 @@ const GameShell = () => {
   const matchLocked = useMatchLocked();
   const isUnemployed = useCareerUnemployed();
   const isRetired = useCareerRetired();
-  const activeTabs = gameMode === 'world-cup' ? WC_MAIN_TABS : isUnemployed ? UNEMPLOYED_MAIN_TABS : MAIN_TABS;
+  const activeTabs = gameMode === 'sunday'
+    ? SUNDAY_MAIN_TABS
+    : gameMode === 'world-cup' ? WC_MAIN_TABS : isUnemployed ? UNEMPLOYED_MAIN_TABS : MAIN_TABS;
 
   // A retired manager has no club, so the club tabs would point at a squad they
   // no longer manage. Keep them on the retrospective; everything reachable from
@@ -180,8 +213,20 @@ const GameShell = () => {
   // SubNav doesn't receive a fresh `items` array on every GameShell render
   // (which would defeat its prop stability and trigger child re-renders).
   const subNavGroup = useMemo(() => {
-    // World Cup mode strips the club sub-screens (Staff/Youth/Training,
-    // Scouting/Packs) — so no Squad/Market sub-nav to show.
+    // Sunday League has its own two groups (Team and Clubhouse) and its own
+    // key-based labels, so it branches out before the club-game lookup.
+    if (gameMode === 'sunday') {
+      const sundayGroup = SUNDAY_SCREEN_GROUPS.find(g => g.includes(currentScreen));
+      if (!sundayGroup) return null;
+      const isTeam = sundayGroup === SUNDAY_TEAM_GROUP;
+      const source = isTeam ? SUNDAY_TEAM_SUB_NAV : SUNDAY_CLUB_SUB_NAV;
+      return {
+        items: source.map(i => ({ screen: i.screen, label: t(i.labelKey) })),
+        layoutId: isTeam ? 'subnav-pill-sunday-team' : 'subnav-pill-sunday-club',
+      };
+    }
+    // World Cup strips the club sub-screens (Staff/Youth/Training,
+    // Scouting/Packs) — so there is no Squad/Market sub-nav to show.
     if (gameMode === 'world-cup') return null;
     const group = SCREEN_GROUPS.find(g => g.includes(currentScreen));
     if (!group) return null;
@@ -197,7 +242,7 @@ const GameShell = () => {
       return { items, layoutId: 'subnav-pill-market' };
     }
     return null;
-  }, [currentScreen, packPityCounter, gameMode]);
+  }, [currentScreen, packPityCounter, gameMode, t]);
 
   useEffect(() => {
     if (!gameStarted) navigate('/');
@@ -276,14 +321,16 @@ const GameShell = () => {
     return () => { cancelled = true; stopEntitlementListener(); };
   }, []);
 
-  // World Cup mode has no Squad/Market sub-groups, so swipe ignores them.
+  // World Cup mode has no sub-groups, so swipe ignores them. Sunday League has
+  // its own two, so swipe walks those instead of the club game's.
   const useSubGroups = !isUnemployed && gameMode !== 'world-cup';
+  const activeGroups = gameMode === 'sunday' ? SUNDAY_SCREEN_GROUPS : SCREEN_GROUPS;
 
   const handleSwipeLeft = useCallback(() => {
     if (matchLocked) return;
     // Check SubNav groups first (skip when unemployed / World Cup — no sub-groups)
     if (useSubGroups) {
-      for (const group of SCREEN_GROUPS) {
+      for (const group of activeGroups) {
         const gIdx = group.indexOf(currentScreen);
         if (gIdx >= 0 && gIdx < group.length - 1) {
           setScreen(group[gIdx + 1]);
@@ -296,13 +343,13 @@ const GameShell = () => {
     if (idx >= 0 && idx < activeTabs.length - 1) {
       setScreen(activeTabs[idx + 1]);
     }
-  }, [currentScreen, setScreen, matchLocked, useSubGroups, activeTabs]);
+  }, [currentScreen, setScreen, matchLocked, useSubGroups, activeGroups, activeTabs]);
 
   const handleSwipeRight = useCallback(() => {
     if (matchLocked) return;
     // Check SubNav groups first (skip when unemployed / World Cup — no sub-groups)
     if (useSubGroups) {
-      for (const group of SCREEN_GROUPS) {
+      for (const group of activeGroups) {
         const gIdx = group.indexOf(currentScreen);
         if (gIdx > 0) {
           setScreen(group[gIdx - 1]);
@@ -321,7 +368,7 @@ const GameShell = () => {
       const backTarget = BACK_TARGET[currentScreen] || (isUnemployed ? 'job-market' : 'dashboard');
       setScreen(backTarget);
     }
-  }, [currentScreen, setScreen, matchLocked, isUnemployed, useSubGroups, activeTabs]);
+  }, [currentScreen, setScreen, matchLocked, isUnemployed, useSubGroups, activeGroups, activeTabs]);
 
   const swipeHandlers = useSwipeGesture({
     onSwipeLeft: handleSwipeLeft,
@@ -334,9 +381,14 @@ const GameShell = () => {
   // World Cup mode swaps the club Dashboard for a nation-adapted hub. Every
   // other screen (Squad, Tactics, MatchDay, …) is shared — the national team
   // is the player's club, so they operate on it natively.
+  // Sunday League never uses `dashboard`; `startSundayLeague` and every
+  // Sunday screen navigate to `sunday-hub` directly. The redirect here catches
+  // the one path that cannot: `loadGame`, which sets `dashboard` for every mode.
   const Screen = (gameMode === 'world-cup' && currentScreen === 'dashboard')
     ? WorldCupDashboard
-    : (screens[currentScreen] || Dashboard);
+    : (gameMode === 'sunday' && currentScreen === 'dashboard')
+      ? SundayHub
+      : (screens[currentScreen] || Dashboard);
 
   // Scroll-position memory per screen. Returning to a long list (Market, Squad,
   // Inbox) should land you back where you were, not dumped at the top — which
@@ -372,7 +424,15 @@ const GameShell = () => {
           // intentional left/right swipes via useSwipeGesture (which already
           // ignores edge-originating touches).
           className="touch-pan-y"
-          style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))', paddingBottom: 'calc(6rem + env(safe-area-inset-bottom, 0px))' }}
+          style={{
+            paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))',
+            // Sunday reserves the week bar's strip ALWAYS, even on the two
+            // screens that hide it — render conditionally, reserve
+            // unconditionally, so changing tabs never reflows the page.
+            paddingBottom: gameMode === 'sunday'
+              ? 'calc(9.5rem + env(safe-area-inset-bottom, 0px))'
+              : 'calc(6rem + env(safe-area-inset-bottom, 0px))',
+          }}
           {...swipeHandlers}
         >
           {subNavGroup && (
@@ -407,6 +467,14 @@ const GameShell = () => {
             </Suspense>
           </PageErrorBoundary>
         </main>
+        {gameMode === 'sunday' && (
+          <Suspense fallback={null}><SundayWeekBar /></Suspense>
+        )}
+        {/* Match day deliberately does not raise events mid-match and must stay
+            clean, so the modal is excluded there rather than self-suppressed. */}
+        {gameMode === 'sunday' && currentScreen !== 'sunday-match' && (
+          <Suspense fallback={null}><SundayEventModal /></Suspense>
+        )}
         <BottomNav />
         <ContractNegotiation />
       </div>

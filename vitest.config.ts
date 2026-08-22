@@ -37,6 +37,15 @@ const SLOW_SUITES = [
   "src/test/seasonLifecycle.test.ts",    // 13s
   "src/test/boardUltimatum.test.ts",     // 12s
   "src/test/seasonRolloverState.test.ts", // 9s
+  // RE-TIMED in wave 7 and confirmed here rather than assumed. The audit
+  // argued this file did not belong alongside 45-second suites on a 15s
+  // measurement; it is now 29s of test time — 48 careers × 5 seasons (240
+  // seasons, ~3,800 matches) plus a 12 × 8-season economy sweep — which is
+  // longer than three of the entries above it and squarely in this list. The
+  // per-commit gate keeps its Sunday balance cover from `sundayBalance` (12s),
+  // `sundayPersonas` (9s), `sundayStress` (12s) and `sundayStoryQuality` (13s),
+  // all of which stayed fast.
+  "src/test/sundayCampaign.test.ts",
 ];
 
 export default defineConfig({
@@ -85,29 +94,45 @@ export default defineConfig({
     // binding constraint, not CPU. Raise only alongside a memory measurement —
     // and re-check the stress-suite timeouts, which scale with contention.
     //
-    // CI keeps ONE core free for the main process. The full suite has twice
-    // exited 1 with every test passing because four forks starved the main
-    // thread's RPC channel while a season simulation ran — the worker's
-    // `onTaskUpdate` call times out and Vitest counts it as an unhandled
-    // error (see the reporter note below). The `dot` reporter reduced that
-    // traffic but did not eliminate it; on shared CI runners the starvation
-    // still happened. Reserving a core for the main process removes the
-    // contention at its source instead of tuning for it downstream.
-    maxForks: process.env.CI ? Math.max(1, os.cpus().length - 1) : 4,
-    // Low-chatter reporter by default.
+    // CI reserves one core for the main process (`main` added this while
+    // hunting the same failure). Keeping it: the main process does every
+    // module transform for every fork, so leaving it a core is defensible on
+    // its own. But it is NOT what fixed the failure, and the reasoning it
+    // arrived with was wrong — it blamed four forks starving the main
+    // thread's RPC channel. Measured, that is not the mechanism: the timeout
+    // reproduces with ONE file and no parallelism at all. See the reporter
+    // note below and `src/test/helpers/eventLoop.ts`. Do not expect this line
+    // to protect against it.
     //
-    // WHY. The full suite twice exited 1 with *every* test passing — 2422
-    // passed, 0 failed — on `Error: [vitest-worker]: Timeout calling
-    // "onTaskUpdate"`. That is the worker's progress RPC to the main process
-    // timing out, not a product failure: four forks streaming per-test updates
-    // while one of them sits inside a 200-second season simulation is enough to
-    // stall the channel, and Vitest counts the stall as an unhandled error.
+    // The value also lived at `test.maxForks`, where it did NOTHING —
+    // `maxForks` is a `poolOptions.forks` key (see `ForksOptions` in vitest's
+    // own types); the only top-level spellings are `maxWorkers`/`minWorkers`.
+    // Vitest does not reject unknown keys, so the cap read as applied for as
+    // long as it was written in the wrong place. It is now where the pool
+    // actually looks.
+    poolOptions: {
+      forks: {
+        maxForks: process.env.CI ? Math.max(1, os.cpus().length - 1) : 4,
+      },
+    },
+    // Low-chatter reporter by default. A CLI `--reporter=verbose` still
+    // overrides this, which is what a flake hunt needs.
     //
-    // A gate that reports failure on a green run is worse than no gate — it is
-    // exactly the disease finding 18 was about, and I very nearly dismissed a
-    // REAL failure as this same noise. `dot` emits a fraction of the traffic.
-    // A CLI `--reporter=verbose` still overrides this, which is what a flake
-    // hunt needs.
+    // This used to carry a WRONG explanation, kept here because the wrong one
+    // cost several rounds. The full suite repeatedly exited 1 with *every* test
+    // passing — 3129 passed, 0 failed — on `Error: [vitest-worker]: Timeout
+    // calling "onTaskUpdate"`, and the note here blamed four forks streaming
+    // per-test updates until the channel stalled. It is not channel
+    // contention, and switching reporters was never the fix.
+    //
+    // It reproduces with ONE file and no parallelism: leave an `onTaskUpdate`
+    // in flight, then run a single test that loops for 70 s on
+    // `await Promise.resolve()`. Microtask-only awaits never reach the timer
+    // phase, so neither the main process's reply nor birpc's own 60 s timer
+    // can be processed; when the block ends Node runs timers before poll, the
+    // expired timer wins the race, and a green run exits 1. Replacing that one
+    // await with `setTimeout(0)` clears it. The fix lives in the harnesses —
+    // see `src/test/helpers/eventLoop.ts`.
     reporters: ["dot"],
   },
   resolve: {

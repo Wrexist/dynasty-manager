@@ -2,8 +2,86 @@ import { describe, it, expect } from 'vitest';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 
 describe('saveMigration', () => {
-  it('should have current version set to 83', () => {
-    expect(CURRENT_VERSION).toBe(83);
+  it('should have current version set to 86', () => {
+    expect(CURRENT_VERSION).toBe(86);
+  });
+
+  it('v85 → v86 upgrades a Sunday save to sub-schema v3', () => {
+    const out = migrateSaveData({
+      version: 85,
+      playerClubId: 'sunday-club',
+      clubs: { 'sunday-club': {} },
+      season: 3, week: 9,
+      sunday: {
+        v: 2,
+        eventQueue: [],
+        eventLog: [
+          { season: 1, week: 4, defId: 'social-media', summary: 'x' },
+          { season: 2, week: 6, defId: 'broke', summary: 'y' },
+          { season: 2, week: 9, defId: 'broke', summary: 'z' },
+        ],
+        lastMatch: { matchId: 'm', goalsFor: 2, goalsAgainst: 1, motmPlayerId: 'a' },
+      },
+    }) as Record<string, unknown>;
+    expect(out.version).toBe(CURRENT_VERSION);
+    const sunday = out.sunday as Record<string, unknown>;
+    expect(sunday.v).toBe(3);
+    // The dead queue is gone, not carried forward as an empty array.
+    expect('eventQueue' in sunday).toBe(false);
+    expect(sunday.pendingLedger).toEqual([]);
+    // Left empty on purpose: `sundayStyleOf` re-derives each AI club's style
+    // from its squad, so an old save meets a varied division without the
+    // migration having to reproduce the fit metric. See the step's comment.
+    expect(sunday.divisionStyles).toEqual({});
+    // Seeded from whatever the capped log still remembers, deduplicated.
+    expect(sunday.onceFiredIds).toEqual(['social-media', 'broke']);
+    const lastMatch = sunday.lastMatch as Record<string, unknown>;
+    expect(lastMatch.redCards).toBe(0);
+    expect(lastMatch.injuries).toBe(0);
+    expect(lastMatch.motmName).toBeNull();
+    expect(lastMatch.lowlightName).toBeNull();
+    // Everything that was already there survives.
+    expect(lastMatch.goalsFor).toBe(2);
+    expect(lastMatch.motmPlayerId).toBe('a');
+  });
+
+  it('v85 → v86 leaves a save with no Sunday state alone', () => {
+    const out = migrateSaveData({ version: 85, playerClubId: 'x', clubs: { x: {} }, sunday: null });
+    expect(out.version).toBe(CURRENT_VERSION);
+    expect(out.sunday).toBeNull();
+    expect(out.migrationError).toBeUndefined();
+  });
+
+  it('v84 → v85 upgrades a Sunday save to sub-schema v2 with empty stories', () => {
+    const out = migrateSaveData({
+      version: 84,
+      playerClubId: 'sunday-club',
+      clubs: { 'sunday-club': {} },
+      season: 2, week: 5,
+      sunday: {
+        v: 1,
+        squad: [{ playerId: 'a', happiness: 60 }],
+        rivalry: { clubId: 'r', name: 'The Rec Derby', wins: 1, draws: 0, losses: 2, heat: 6, lastTaunt: null },
+      },
+    }) as Record<string, Record<string, unknown>>;
+    expect(out.version).toBe(CURRENT_VERSION);
+    const sunday = out.sunday as Record<string, unknown>;
+    // The chain runs all the way to CURRENT_VERSION, so the sub-schema arrives
+    // at v3; what this case pins is that the v2 fields are backfilled on the way.
+    expect(sunday.v).toBe(3);
+    expect((sunday.squad as Record<string, unknown>[])[0].memories).toEqual([]);
+    expect((sunday.squad as Record<string, unknown>[])[0].promise).toBeNull();
+    expect((sunday.rivalry as Record<string, unknown>).story).toEqual([]);
+    expect((sunday.rivalry as Record<string, unknown>).defector).toBeNull();
+    expect(sunday.flags).toEqual({});
+    expect(sunday.arrival).toBeNull();
+  });
+
+  it('v83 → v84 introduces the Sunday League key as null on every older save', () => {
+    const out = migrateSaveData({ version: 83, playerClubId: 'x', clubs: { x: {} }, season: 1, week: 1 });
+    expect(out.version).toBe(CURRENT_VERSION);
+    expect(out.sunday).toBeNull();
+    expect(out.migrationError).toBeUndefined();
   });
 
   it('v78 → v79 backfills monetization.adEngagement', () => {

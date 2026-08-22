@@ -671,6 +671,19 @@ const KNOCKOUT_ROUNDS = new Set<string>(['R32', 'R16', 'QF', 'SF', 'F']);
 export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   const state = get();
 
+  // Sunday League is its own world: a local pyramid, its own economy, its own
+  // weekly loop. None of the club/finance/board/continental processing below
+  // applies (and most of it would corrupt a state that has no board, no wages
+  // and no transfer market), so it runs its own advance and returns.
+  if (state.gameMode === 'sunday') {
+    // Dynamic-imported so the mode's config, content and simulation stay out
+    // of the eager boot bundle — see the header of `sundaySlice.ts`. This
+    // function is already async, so the await costs nothing structurally.
+    const { advanceSundayWeek } = await import('@/store/slices/sunday/week');
+    advanceSundayWeek(set, get);
+    return;
+  }
+
   // World Cup mode is a pure international tournament — there's no club league
   // season around it, so run the tournament directly and skip ALL the
   // club/league/finance/season processing below (which would corrupt the

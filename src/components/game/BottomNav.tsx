@@ -3,25 +3,39 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GameScreen } from '@/types/game';
-import { LayoutDashboard, Users, Target, ArrowLeftRight, Briefcase, User, Mail, Trophy } from 'lucide-react';
+import type { TranslationKey } from '@/i18n';
+import { LayoutDashboard, Users, Target, ArrowLeftRight, Briefcase, User, Mail, Trophy, ClipboardList, Landmark, ListOrdered } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { MoreDrawer } from './MoreDrawer';
 import { hapticLight } from '@/utils/haptics';
 import { useMatchLocked, useCareerUnemployed } from '@/hooks/useGameSelectors';
 import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
+import { SUNDAY_TEAM_GROUP, SUNDAY_CLUB_GROUP } from '@/config/navigation';
+
+/** A bottom-nav tab. `label` is a legacy English literal (elite / World Cup /
+ *  unemployed sets); `labelKey` resolves through `t()`. Exactly one is set —
+ *  every Sunday tab uses the key, so its text cannot drift from the sub-nav
+ *  or from SCREEN_TITLES. */
+interface NavTab {
+  screen: GameScreen;
+  label?: string;
+  labelKey?: TranslationKey;
+  icon: React.ElementType;
+  group?: GameScreen[];
+}
 
 const SQUAD_SCREENS: GameScreen[] = ['squad', 'staff', 'youth-academy', 'training'];
 const MARKET_SCREENS: GameScreen[] = ['transfers', 'scouting', 'packs'];
 
-const tabs: { screen: GameScreen; label: string; icon: React.ElementType; group?: GameScreen[] }[] = [
+const tabs: NavTab[] = [
   { screen: 'dashboard', label: 'Home', icon: LayoutDashboard },
   { screen: 'squad', label: 'Squad', icon: Users, group: SQUAD_SCREENS },
   { screen: 'tactics', label: 'Tactics', icon: Target },
   { screen: 'transfers', label: 'Market', icon: ArrowLeftRight, group: MARKET_SCREENS },
 ];
 
-const unemployedTabs: { screen: GameScreen; label: string; icon: React.ElementType; group?: GameScreen[] }[] = [
+const unemployedTabs: NavTab[] = [
   { screen: 'job-market', label: 'Jobs', icon: Briefcase },
   { screen: 'career-overview', label: 'Career', icon: User },
   { screen: 'inbox', label: 'Inbox', icon: Mail },
@@ -30,18 +44,34 @@ const unemployedTabs: { screen: GameScreen; label: string; icon: React.ElementTy
 // World Cup mode is the normal game with the national team as your club — same
 // Home/Squad/Tactics tabs and icons; only the Market slot is reformatted to the
 // tournament. No league/market/finance.
-const worldCupTabs: { screen: GameScreen; label: string; icon: React.ElementType; group?: GameScreen[] }[] = [
+const worldCupTabs: NavTab[] = [
   { screen: 'dashboard', label: 'Home', icon: LayoutDashboard },
   { screen: 'squad', label: 'Squad', icon: Users },
   { screen: 'tactics', label: 'Tactics', icon: Target },
   { screen: 'international-tournament', label: 'Tournament', icon: Trophy },
 ];
 
+// Sunday League: where you are (Home), the side you name (Team), the division
+// you are in (League), and the club behind it (Clubhouse). No market, no
+// tactics screen — tactics live on the teamsheet where the XI they apply to is
+// visible. Squad, Recruits and History hang off the Team and Clubhouse groups.
+const sundayTabs: NavTab[] = [
+  // 'dashboard' in the group: shared screens back-target 'dashboard', which
+  // GameShell renders as the hub in this mode — the tab highlight must agree.
+  { screen: 'sunday-hub', labelKey: 'sunday.nav.home', icon: LayoutDashboard, group: ['sunday-hub', 'dashboard'] },
+  { screen: 'sunday-teamsheet', labelKey: 'sunday.nav.team', icon: ClipboardList, group: SUNDAY_TEAM_GROUP },
+  { screen: 'sunday-table', labelKey: 'sunday.nav.league', icon: ListOrdered },
+  { screen: 'sunday-clubhouse', labelKey: 'sunday.nav.clubhouse', icon: Landmark, group: SUNDAY_CLUB_GROUP },
+];
+
 export function BottomNav() {
   const { t } = useTranslation();
-  const { currentScreen, messages, incomingOffers, jobOffers, gameMode } = useGameStore(useShallow(s => ({
+  const { currentScreen, messages, incomingOffers, jobOffers, gameMode, sundayRecruits } = useGameStore(useShallow(s => ({
     currentScreen: s.currentScreen, messages: s.messages, incomingOffers: s.incomingOffers,
     jobOffers: s.jobOffers, gameMode: s.gameMode,
+    // Scalar, not the array — a length through useShallow keeps this component
+    // off every recruit-list mutation (renderHygiene guards this file).
+    sundayRecruits: s.sunday?.recruits.length ?? 0,
   })));
   const setScreen = useGameStore(s => s.setScreen);
   const matchLocked = useMatchLocked();
@@ -52,7 +82,8 @@ export function BottomNav() {
   const pendingOffers = incomingOffers.length;
   const hasJobOffers = gameMode === 'career' && jobOffers.length > 0;
   const isWorldCup = gameMode === 'world-cup';
-  const activeTabs = isWorldCup ? worldCupTabs : isUnemployed ? unemployedTabs : tabs;
+  const isSunday = gameMode === 'sunday';
+  const activeTabs = isSunday ? sundayTabs : isWorldCup ? worldCupTabs : isUnemployed ? unemployedTabs : tabs;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 px-3 pt-2 pb-2 safe-area-bottom pointer-events-none transform-gpu">
@@ -64,7 +95,8 @@ export function BottomNav() {
           matchLocked && 'opacity-60',
         )}
       >
-        {activeTabs.map(({ screen, label, icon: Icon, group }) => {
+        {activeTabs.map(({ screen, label, labelKey, icon: Icon, group }) => {
+          const text = labelKey ? t(labelKey) : (label ?? '');
           const screenActive = group
             ? group.includes(currentScreen)
             : currentScreen === screen;
@@ -76,7 +108,12 @@ export function BottomNav() {
           const showUnreadBadge =
             (screen === 'inbox' || (screen === 'dashboard' && !hasJobOffers)) && unreadCount > 0;
           const showOffersBadge = screen === 'transfers' && pendingOffers > 0;
-          const badgeSuffix = showJobBadge
+          // Sunday: recruits live one sub-nav tap under Team, so the Team tab
+          // carries the "somebody is interested" dot the hub button used to own.
+          const showRecruitsBadge = screen === 'sunday-teamsheet' && sundayRecruits > 0;
+          const badgeSuffix = showRecruitsBadge
+            ? ` — ${t('sunday.nav.recruitsInterested', { n: sundayRecruits })}`
+            : showJobBadge
             ? ` — ${jobOffers.length} job offer${jobOffers.length === 1 ? '' : 's'}`
             : showUnreadBadge
               ? ` — ${unreadCount} unread`
@@ -88,7 +125,7 @@ export function BottomNav() {
               key={screen}
               type="button"
               onClick={() => { if (matchLocked) return; hapticLight(); setScreen(screen); }}
-              aria-label={`${label}${badgeSuffix}`}
+              aria-label={`${text}${badgeSuffix}`}
               aria-current={screenActive ? 'page' : undefined}
               aria-disabled={matchLocked || undefined}
               className={cn(
@@ -124,7 +161,7 @@ export function BottomNav() {
                       }}
                     />
                   )}
-                  {(showUnreadBadge || showOffersBadge) && (
+                  {(showUnreadBadge || showOffersBadge || showRecruitsBadge) && (
                     <motion.div
                       aria-hidden
                       initial={{ scale: 0 }}
@@ -138,14 +175,17 @@ export function BottomNav() {
                     />
                   )}
                 </span>
-                <span className="text-[10px] font-medium">{label}</span>
+                <span className="text-[10px] font-medium">{text}</span>
               </span>
             </button>
           );
         })}
         {/* No "More" drawer in World Cup mode — there are no club screens
             (transfers, finance, board, …) to surface. */}
-        {!isWorldCup && <MoreDrawer disabled={matchLocked} open={drawerOpen} onOpenChange={setDrawerOpen} />}
+        {/* The More drawer lists club-game screens (Training, Scouting, Board,
+            Continental…) that do not exist in World Cup or Sunday League, so it is
+            hidden in both rather than offering routes that dead-end. */}
+        {!isWorldCup && !isSunday && <MoreDrawer disabled={matchLocked} open={drawerOpen} onOpenChange={setDrawerOpen} />}
       </nav>
     </div>
   );

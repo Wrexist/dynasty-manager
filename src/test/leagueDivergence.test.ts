@@ -18,6 +18,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
+import { tick } from './helpers/eventLoop';
 
 const CLUB_ID = 'arsenal';
 const SEASONS = 6;
@@ -70,8 +71,14 @@ async function advanceFullSeason() {
     if (st.week > total) break;
     await st.advanceWeek();
     useGameStore.getState().playCurrentMatch();
+    // The whole audit below is ONE test running six full seasons. Without a
+    // macrotask yield the loop never reaches the timer phase, and birpc's
+    // hardcoded 60 s `onTaskUpdate` deadline expires inside it — which exits
+    // the run 1 with every test green. See `helpers/eventLoop.ts`.
+    await tick();
   }
   await useGameStore.getState().endSeason();
+  await tick();
 }
 
 describe('audit 6.2 — the pyramid keeps its shape across seasons', () => {

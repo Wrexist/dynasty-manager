@@ -3,6 +3,7 @@
  * Rating colors, confidence colors, position filters, verdict labels, and thresholds.
  */
 
+import type { TranslationKey } from '@/i18n';
 import type { GameScreen, Position } from '@/types/game';
 
 // ── Rating Color Thresholds (overall, attribute values) ──
@@ -148,6 +149,22 @@ export const PITCH_COLORS = {
 // same shape on the tactics screen and in-match.
 export const SLOT_Y_RANGE = 54;
 export const SLOT_Y_BOTTOM = 97;
+
+/**
+ * A formation slot's centre, in the half-pitch SVG's own units.
+ *
+ * Lives beside the constants it uses rather than in `PitchBoard`, because the
+ * chemistry lines, the tokens and (one day) `SubstitutionSheet`'s badges all
+ * need it and none of them should have to import a component to get it. Two
+ * copies of this arithmetic is how a chemistry line ends up half a tile off
+ * the player it belongs to.
+ */
+export function pitchSlotPoint(slot: { x: number; y: number }): { x: number; y: number } {
+  return {
+    x: 2 + (slot.x / 100) * 64,
+    y: SLOT_Y_BOTTOM - (slot.y / 100) * SLOT_Y_RANGE,
+  };
+}
 
 // ── Chart Colors ──
 export const CHART_COLORS = {
@@ -439,6 +456,22 @@ export const SQUAD_SUB_NAV: { screen: GameScreen; label: string }[] = [
   { screen: 'training', label: 'Training' },
   { screen: 'staff', label: 'Staff' },
   { screen: 'youth-academy', label: 'Youth' },
+];
+
+// ── Sunday League Sub-Navigation ──
+// Key-based, unlike the two lists above: every Sunday nav label resolves
+// through `t()` so the tab strip, the sub-nav strip and SCREEN_TITLES cannot
+// drift apart the way "Club"/"Money" did. The legacy English literals above
+// are left alone deliberately — converting them is a separate job.
+export const SUNDAY_TEAM_SUB_NAV: { screen: GameScreen; labelKey: TranslationKey }[] = [
+  { screen: 'sunday-teamsheet', labelKey: 'sunday.nav.teamsheet' },
+  { screen: 'sunday-squad', labelKey: 'sunday.nav.squad' },
+  { screen: 'sunday-recruit', labelKey: 'sunday.nav.recruits' },
+];
+
+export const SUNDAY_CLUB_SUB_NAV: { screen: GameScreen; labelKey: TranslationKey }[] = [
+  { screen: 'sunday-clubhouse', labelKey: 'sunday.nav.clubhouse' },
+  { screen: 'sunday-history', labelKey: 'sunday.nav.history' },
 ];
 
 // ── Team Talk Options (match day half-time) ──

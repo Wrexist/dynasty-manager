@@ -60,7 +60,12 @@ export function SubNav({ items, layoutId = 'subnav-pill' }: SubNavProps) {
                 setScreen(screen);
               }}
               className={cn(
-                'relative px-4 py-2.5 rounded-full text-sm font-semibold whitespace-nowrap shrink-0',
+                // 44px MINIMUM. `py-2.5` on a text-sm line box measured 40px in
+                // the browser, four short of the target every other control in
+                // this app is built to — and this strip is how you reach the
+                // squad, the recruits and the club history.
+                'relative px-4 py-2.5 min-h-[44px] inline-flex items-center justify-center',
+                'rounded-full text-sm font-semibold whitespace-nowrap shrink-0',
                 'transition-[transform,colors] duration-150 active:scale-[0.97] motion-reduce:active:scale-100',
                 active ? 'text-primary-foreground' : 'text-foreground/70 hover:text-foreground',
                 matchLocked && 'cursor-not-allowed',

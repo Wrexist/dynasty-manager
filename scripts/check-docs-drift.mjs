@@ -87,6 +87,23 @@ const checks = [
     re: /# Vitest \((\d+) test files\)/,
   },
   {
+    label: 'test file count (Architecture tree)',
+    actual: testFiles,
+    // "├── test/  → 136 test files incl. longevity/stress suites"
+    re: /→ (\d+) test files incl\./,
+  },
+  {
+    label: 'save schema version (Architecture tree)',
+    actual: saveVersion,
+    // "saveMigration (v78)" in the utils/ line.
+    re: /saveMigration \(v(\d+)\)/,
+  },
+  {
+    label: 'save schema version (Critical Files)',
+    actual: saveVersion,
+    re: /save schema `CURRENT_VERSION = (\d+)`/,
+  },
+  {
     label: 'league file count',
     actual: leagueFiles,
     re: /→ (\d+) league files/,

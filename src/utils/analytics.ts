@@ -25,7 +25,7 @@ export type AnalyticsEvent =
   // the retention denominator (installs) and D1/D7/D30 buckets, NOT a
   // stable identifier: two devices installed the same day are identical.
   | { name: 'app_open'; data: { daysSinceInstall: number } }
-  | { name: 'game_started'; data: { communityPackEnabled: boolean; gameMode: 'sandbox' | 'career' | 'world-cup'; division: string } }
+  | { name: 'game_started'; data: { communityPackEnabled: boolean; gameMode: 'sandbox' | 'career' | 'world-cup' | 'sunday'; division: string } }
   | { name: 'season_completed'; data: { season: number; finalPosition: number; division: string } }
   | { name: 'save_created'; data: { slot: number; bytes: number } }
   | { name: 'save_loaded'; data: { slot: number } }

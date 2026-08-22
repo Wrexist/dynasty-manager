@@ -228,44 +228,77 @@ describe('applyWorldWeeklyUpkeep', () => {
 describe('injury recovery in the live game loop', () => {
   const tick = () => new Promise<void>(r => setTimeout(r, 0));
 
-  beforeEach(() => {
+  beforeEach(async () => {
     __resetAutosaveSchedulerForTests();
     __resetSaveStorageForTests();
     localStorage.clear();
-    useGameStore.getState().initGame(CLUB);
+    // AWAITED. `initGame` is async (it may dynamic-import the community pack),
+    // so a synchronous `beforeEach` let the first assertions of a case race the
+    // world being built.
+    await useGameStore.getState().initGame(CLUB);
   });
 
   it('aiClubsHeal: an injured AI player recovers as weeks pass', { timeout: 120_000 }, async () => {
     const st = useGameStore.getState();
     const rivalId = (st.divisionClubs[st.playerDivision] || []).find(id => id !== CLUB)!;
     const victimId = st.clubs[rivalId].playerIds[0];
+    // A `totalWeeks` the injury generator never produces, so a NEW injury
+    // picked up on the way back is always distinguishable from this one.
+    // (`type` would read better and is a closed union, so it cannot carry a
+    // marker.)
+    const MARKER = 99;
     useGameStore.setState({
       players: {
         ...st.players,
-        [victimId]: { ...st.players[victimId], injured: true, injuryWeeks: 3, fitness: 40 },
+        [victimId]: {
+          ...st.players[victimId], injured: true, injuryWeeks: 3, fitness: 40,
+          injuryDetails: { ...details(), weeksRemaining: 3, totalWeeks: MARKER },
+        },
       },
     });
 
-    // Stop at the first week he is observed fit rather than looking once at a
-    // fixed horizon. The regression under test is that the clock MOVES for a
-    // club that is not the player's — pre-fix `injuryWeeks` stayed at 3 and
-    // `injured` stayed true for the rest of the save. It is deliberately not a
-    // test of the schedule.
-    //
-    // The schedule is not the sim's to promise. Recovery and a fresh injury can
-    // both land inside a single `advanceWeek`: he heals, is eligible again, and
-    // is hurt in that same week's match. Measured over 14 saves he is fit at
-    // week 3 every time, but an earlier assertion bounded at 4 weeks still
-    // failed a run at 6 — three weeks on the original clock plus a new
-    // three-week injury. Bounding the week just re-created the flake one step
-    // further out, so the only bound here is the loop itself.
-    let firstFitWeek = 0;
-    for (let w = 1; w <= 14 && !firstFitWeek; w++) {
+    /**
+     * WATCH THE CLOCK FIRST, THEN WAIT FOR THE ALL-CLEAR.
+     *
+     * This case flaked about one run in six on both trees, and the two fixes
+     * that landed for it — one here, one on main — were each half of the
+     * answer, so this keeps both.
+     *
+     * The flake's cause: the old case advanced FIVE weeks for a THREE-week
+     * injury, so the victim healed on week three, became selectable, and could
+     * pick up a FRESH knock in week four or five — `injured` true again, case
+     * failed for the opposite reason to the bug it guards.
+     *
+     * Weeks one and two are confound-free by construction: an injured player is
+     * never selected, so nothing can re-injure him and the clock reading is
+     * exact. Pre-fix those two readings are [3, 3]; post-fix [2, 1]. That is
+     * the regression itself — the clock MOVES for a club that is not the
+     * player's — asserted deterministically rather than inferred.
+     *
+     * Recovery then gets main's unbounded wait instead of a fixed horizon:
+     * bounding the week merely re-created the flake one step further out (a
+     * run failed at six — three weeks of original clock plus a fresh
+     * three-week injury). The MARKER keeps that honest: a new injury carries a
+     * different `totalWeeks`, so a fresh knock cannot masquerade as this one
+     * never ending.
+     */
+    const clock: number[] = [];
+    for (let w = 0; w < 2; w++) {
       await useGameStore.getState().advanceWeek();
-      if (!useGameStore.getState().players[victimId].injured) firstFitWeek = w;
+      clock.push(useGameStore.getState().players[victimId].injuryWeeks);
     }
+    expect(clock, 'an AI club\'s injury clock did not tick down').toEqual([2, 1]);
 
-    expect(firstFitWeek, 'an AI club player never recovered').toBeGreaterThan(0);
+    // The injury under test must end. A knock picked up on the way back is a
+    // different event and is explicitly allowed — what may not happen is THIS
+    // one still running, which the marker distinguishes.
+    let cleared = false;
+    for (let w = 0; w < 14 && !cleared; w++) {
+      const p = useGameStore.getState().players[victimId];
+      cleared = !(p.injured && p.injuryDetails?.totalWeeks === MARKER);
+      if (!cleared) await useGameStore.getState().advanceWeek();
+    }
+    expect(cleared, 'an AI club player never recovered').toBe(true);
   });
 
   it('divisionStaysAvailable: the division does not silt up with injuries', { timeout: 300_000 }, async () => {

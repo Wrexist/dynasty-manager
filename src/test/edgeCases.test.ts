@@ -10,6 +10,7 @@ import { assertValidGameState } from './stateValidator';
 import { determineZones } from '@/utils/promotionRelegation';
 import { LEAGUES } from '@/data/league';
 import { getTransferWindows } from '@/config/transfers';
+import { tick } from './helpers/eventLoop';
 const CLUB_ID = 'manchester-city';
 const TOTAL_WEEKS = 46;
 
@@ -18,8 +19,15 @@ async function advanceFullSeason() {
   for (let w = 0; w < TOTAL_WEEKS; w++) {
     await useGameStore.getState().advanceWeek();
     useGameStore.getState().playCurrentMatch();
+    // `advanceWeek` resolves on a microtask once its imports are cached, so a
+    // bare loop of it never reaches the timer phase and starves the worker's
+    // reporter RPC. The 3-season test below is one `it()` and runs close
+    // enough to birpc's hardcoded 60 s deadline to cross it under parallel
+    // contention. See `helpers/eventLoop.ts`.
+    await tick();
   }
   useGameStore.getState().endSeason();
+  await tick();
 }
 
 describe('2A: Mass Contract Expiry', () => {
