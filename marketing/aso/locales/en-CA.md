@@ -14,7 +14,7 @@ Storefronts reached: Canada (English). The Canadian store carries en-CA alongsid
 ## Keywords [99/100]
 `football,club,league,squad,transfer,scout,youth,promotion,coach,lineup,penalty,wonderkid,gm,academy`
 
-## Description [1497/4000]
+## Description [1656/4000]
 
 The 2026-27 season is under way. Pick a club, pick your XI, and manage every single minute of it.
 
@@ -33,6 +33,9 @@ What you can do:
 No grind, no gimmicks — and no subscription wall. Everything above is in the free download; go Dynasty Pro for instant sim, advanced analytics, custom tactics and more, or start with a 7-day free trial.
 
 Free to download. Build your dynasty.
+
+Privacy Policy: https://wrexist.github.io/dynasty-manager/privacy.html
+Terms of Use (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ## What's New (next release note blurb)
 

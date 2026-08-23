@@ -14,7 +14,7 @@ Storefronts reached: Norway. Copy is written in Bokmål, the form the overwhelmi
 ## Keywords [99/100]
 `taktikk,oppstilling,tropp,overganger,trener,liga,karriere,cup,landslag,klubb,spill,managerspill,lag`
 
-## Description [1411/4000]
+## Description [1574/4000]
 Sesongen 2026-27 er i gang. Velg klubben din, sett laget og styr hvert eneste minutt.
 
 Dynasty Manager er en skikkelig, dyp fotballmanager-simulator for mobilen. Ingen pay-to-win, ingen energimålere, ingen hvilepakker, ingen venting mellom rundene. Spill så mye du vil, når du vil – hele dybden er der uten abonnement.
@@ -37,6 +37,9 @@ Ingen energimålere. Ingen venting. Bare fotball, når du vil.
 Dynasty Pro låser opp avansert statistikk, egne taktikker, instant-sim og mer – med 7 dager gratis å prøve. Hele karrieren kan spilles også uten abonnement.
 
 Gratis å laste ned. Bygg dynastiet ditt.
+
+Personvernerklæring: https://wrexist.github.io/dynasty-manager/privacy.html
+Bruksvilkår (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ## What's New (next release note blurb)
 Ny sesong, nytt dynasti. Friskere uttrykk i App Store, skarpere AI på sidelinjen og et par kampdagsfikser. Fortsatt ingen energimålere, ingen venting – bare fotball.

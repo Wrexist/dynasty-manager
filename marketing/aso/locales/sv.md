@@ -14,7 +14,7 @@ Storefronts reached: Sweden primarily; also the default for Swedish-preferring u
 ## Keywords [96/100]
 `taktik,laguppställning,trupp,övergångar,tränare,liga,karriär,landslag,klubb,cup,spel,managerspel`
 
-## Description [1424/4000]
+## Description [1589/4000]
 Säsongen 2026-27 har dragit i gång. Välj din klubb, sätt din elva och styr varje minut.
 
 Dynasty Manager är en på riktigt djup fotbollsmanager-simulator för mobilen. Inget pay-to-win, inga energimätare, inga vilopaket, ingen väntan mellan omgångarna. Spela så mycket du vill, när du vill – hela djupet finns utan prenumeration.
@@ -37,6 +37,9 @@ Inga energimätare. Ingen väntan. Bara fotboll, när du vill.
 Dynasty Pro låser upp avancerad statistik, egna taktiker, instant-sim och mer – med 7 dagar gratis att testa. Hela karriären går att spela även utan prenumeration.
 
 Gratis att ladda ner. Bygg din dynasti.
+
+Integritetspolicy: https://wrexist.github.io/dynasty-manager/privacy.html
+Användarvillkor (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ## What's New (next release note blurb)
 Ny säsong, ny dynasti. Nytt utseende i App Store, vassare AI vid sidlinjen och ett par matchdagsfixar. Fortfarande inga energimätare, ingen väntan – bara fotboll.

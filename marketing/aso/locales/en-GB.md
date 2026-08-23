@@ -14,7 +14,7 @@ Storefronts reached: United Kingdom and Ireland primarily. Apple falls other Eng
 ## Keywords [99/100]
 `club,league,squad,fixtures,promotion,relegation,scout,youth,sim,sunday,lineup,penalty,wonderkid,cup`
 
-## Description [1441/4000]
+## Description [1600/4000]
 
 The 2026-27 season is under way. Pick a club, pick your XI, and manage every single minute of it.
 
@@ -33,6 +33,9 @@ What you can do:
 No grind, no gimmicks — and no subscription wall. Everything above is in the free download; go Dynasty Pro if you want instant sim, advanced analytics, custom tactics and more, or start with a 7-day free trial.
 
 Free to download. Manage your dynasty.
+
+Privacy Policy: https://wrexist.github.io/dynasty-manager/privacy.html
+Terms of Use (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ## What's New (next release note blurb)
 

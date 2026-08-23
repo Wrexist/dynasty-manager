@@ -14,7 +14,7 @@ Storefronts reached: Italy, San Marino, Vatican City, and the Italian localizati
 ## Keywords [86/100]
 `squadra,campionato,formazione,rosa,allenatore,simulatore,giovani,vivaio,coppa,stagione`
 
-## Description [1270/4000]
+## Description [1447/4000]
 
 La stagione 2026-27 è iniziata. Scegli il club, scegli l’undici e vivi ogni singolo minuto.
 
@@ -34,6 +34,9 @@ Gioca quanto vuoi. Niente barre di energia. Niente pacchetti di riposo. Niente a
 Dynasty Pro sblocca analisi avanzate, simulazione istantanea, tattiche personalizzate e molto altro — con 7 giorni di prova gratuita. Abbonamento o acquisto unico, scegli tu.
 
 Download gratuito. Ora tocca a te, mister.
+
+Informativa sulla privacy: https://wrexist.github.io/dynasty-manager/privacy.html
+Termini di utilizzo (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ## What's New (next release note blurb)
 

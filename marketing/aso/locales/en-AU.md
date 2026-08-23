@@ -14,7 +14,7 @@ Storefronts reached: Australia (and New Zealand fans on the AU store). Australia
 ## Keywords [99/100]
 `club,league,squad,transfer,scout,youth,promotion,relegation,fixtures,lineup,penalty,wonderkid,coach`
 
-## Description [1485/4000]
+## Description [1644/4000]
 
 The 2026-27 season is under way. Pick a club, pick your XI, and manage every single minute of it.
 
@@ -33,6 +33,9 @@ What you can do:
 No grind, no gimmicks — and no subscription wall. Everything above is in the free download; go Dynasty Pro for instant sim, advanced analytics, custom tactics and more, or kick off with a 7-day free trial.
 
 Free to download. Build your dynasty.
+
+Privacy Policy: https://wrexist.github.io/dynasty-manager/privacy.html
+Terms of Use (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ## What's New (next release note blurb)
 

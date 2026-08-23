@@ -14,7 +14,7 @@ Storefronts reached: Finland. Finnish is not a Scandinavian language — vocabul
 ## Keywords [98/100]
 `taktiikka,kokoonpano,valmentaja,joukkue,siirrot,sarja,ura,maajoukkue,seura,peli,manageripeli,liiga`
 
-## Description [1499/4000]
+## Description [1661/4000]
 Kausi 2026-27 on alkanut. Valitse seurasi, valitse avauskokoonpanosi ja ohjaa jokainen minuutti.
 
 Dynasty Manager on aidosti syvällinen jalkapallon valmennussimulaattori mukaan otettavaksi. Ei pay-to-winiä, ei energiamittareita, ei lepopakkauksia, ei odottelua kierrosten välillä. Pelaa niin paljon kuin haluat, milloin haluat – koko syvyys on käytettävissä ilman tilausta.
@@ -37,6 +37,9 @@ Ei energiamittareita. Ei odottelua. Pelkkää jalkapalloa, milloin haluat.
 Dynasty Pro avaa syvälliset tilastot, omat taktiikat, pikasimulaation ja muuta – 7 päivää ilmaiseksi kokeiltavaksi. Koko ura on pelattavissa myös ilman tilausta.
 
 Ilmainen ladata. Rakenna oma dynastiasi.
+
+Tietosuojakäytäntö: https://wrexist.github.io/dynasty-manager/privacy.html
+Käyttöehdot (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ## What's New (next release note blurb)
 Uusi kausi, uusi dynastia. Raikkaampi ilme App Storessa, terävämpi sivurajan tekoäly ja pari ottelupäivän korjausta. Yhä ei energiamittareita, ei odottelua – pelkkää jalkapalloa.

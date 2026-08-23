@@ -14,7 +14,7 @@ Storefronts reached: Canada (French-Canadian localization). In the Canadian App 
 ## Keywords [91/100]
 `tactique,carriere,alignement,formation,ligue,club,jeune,penalty,simulation,saison,selection`
 
-## Description [1485/4000]
+## Description [1670/4000]
 La saison 2026-27 est lancée. Choisissez votre club, composez votre alignement et dirigez chaque minute de chaque match. Chaque décision compte : l'alignement, les changements, la tactique à la demie.
 
 Dynasty Manager est un simulateur de soccer complet. Prenez les commandes d'un club parmi 45 ligues et 756 clubs réels, bâtissez votre effectif, gérez les transactions, ajustez votre tactique et vivez chaque match minute par minute. Enchaînez les saisons, remportez des trophées continentaux, dirigez une équipe nationale et bâtissez une carrière d'entraîneur inoubliable.
@@ -34,6 +34,9 @@ Jouez à votre rythme. Aucune jauge d'énergie. Aucun pack de repos. Aucune atte
 Dynasty Pro débloque l'analyse avancée, la simulation instantanée, les tactiques personnalisées et plus encore — avec 7 jours d'essai gratuit. Abonnement ou achat unique, à vous de choisir.
 
 Téléchargement gratuit. À vous de jouer, coach.
+
+Politique de confidentialité: https://wrexist.github.io/dynasty-manager/privacy.html
+Conditions d'utilisation (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ## What's New (next release note blurb)
 Nouvelle saison, nouvelle dynastie. La saison 2026-27 est lancée : choisissez votre club, menez-le de la préparation au titre et dirigez chaque minute. IA de banc plus affûtée et plusieurs correctifs de jour de match. Toujours sans jauge d'énergie ni attente — jouez autant que vous voulez. Merci de jouer à Dynasty Manager !

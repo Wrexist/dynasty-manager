@@ -14,7 +14,7 @@ Storefronts reached: Czechia. Apple serves cs metadata to Czech-preferring users
 ## Keywords [100/100]
 `liga,sestava,taktika,prestup,klub,trener,pohar,simulator,sezona,akademie,skaut,penalta,online,postup`
 
-## Description [1721/4000]
+## Description [1899/4000]
 Sezona 2026/27 začíná. Vyber si klub, postav základní jedenáctku a odřiď každou její minutu.
 
 Dynasty Manager je hloubková fotbalová manažerská simulace – opravdová trenérská kariéra, ne sbírání karet. Převezmi kterýkoli ze 756 skutečných klubů ve 45 ligách a 37 zemích, nebo si vezmi lavičku reprezentace. Nastav taktiku, odpracuj přestupové okno a řeš každé střídání, zatímco zápas běží minutu po minutě.
@@ -37,6 +37,9 @@ STÁHNI SI ZDARMA
 Všechno výše je v bezplatném stažení. Dynasty Pro je volitelné: okamžitá simulace, pokročilé statistiky, vlastní taktiky, rozšířené tiskové konference, historické rekordy a hraní bez reklam. Začni se 7 dny zdarma, nebo si ho kup jednou a máš ho napořád.
 
 Postav svou dynastii.
+
+Zásady ochrany osobních údajů: https://wrexist.github.io/dynasty-manager/privacy.html
+Podmínky použití (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ## What's New (next release note blurb)
 Nová sezona, nová dynastie. Svěží vzhled na App Storu, chytřejší AI na lavičce a několik oprav pro den zápasu. Pořád žádné ukazatele energie, žádné odpočinkové balíčky, žádné čekání – jen fotbal.

@@ -14,7 +14,7 @@ Storefronts reached: Poland. Apple serves pl metadata to Polish-preferring users
 ## Keywords [90/100]
 `futbol,reprezentacja,karne,liga,trener,sklad,puchar,klub,mlodziez,akademia,symulator,awans`
 
-## Description [1542/4000]
+## Description [1714/4000]
 Sezon 2026-27 właśnie ruszył. Wybierz klub, ustaw skład i poprowadź go od okresu przygotowawczego aż po mistrzostwo – każda decyzja należy do ciebie.
 
 Dynasty Manager to głęboki symulator zarządzania piłką nożną, w który zagrasz, gdziekolwiek jesteś. Bez pay-to-win, bez pasków energii, bez pakietów odpoczynku, bez czekania między sesjami. Graj tyle, ile chcesz – pełna głębia menedżerska bez żadnego abonamentu.
@@ -36,6 +36,9 @@ Bez pasków energii. Bez czekania. Tylko piłka, kiedy tylko chcesz.
 Dynasty Pro odblokowuje zaawansowane statystyki, własne taktyki, natychmiastową symulację i więcej – z 7 dniami za darmo na start. Pełna ścieżka kariery pozostaje w pełni grywalna także bez abonamentu.
 
 Pobierz za darmo. Zostań trenerem i sięgnij po mistrzostwo.
+
+Polityka prywatności: https://wrexist.github.io/dynasty-manager/privacy.html
+Warunki użytkowania (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ## What's New (next release note blurb)
 Nowy sezon, nowa dynastia. Sezon 2026-27 już wystartował – wybierz klub i poprowadź go od okresu przygotowawczego po tytuł, minuta po minucie. AI na ławce jest sprytniejsze, a kilka błędów w dniu meczu zostało naprawionych. Wciąż bez pasków energii i bez czekania – tylko piłka.

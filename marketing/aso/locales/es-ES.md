@@ -14,7 +14,7 @@ Storefronts reached: España (es-ES es la localización principal). El texto cas
 ## Keywords [88/100]
 `entrenador,liga,alineacion,plantilla,simulador,equipo,cantera,penaltis,ascenso,seleccion`
 
-## Description [1465/4000]
+## Description [1635/4000]
 
 Arranca la temporada 2026-27. Elige club, elige tu once y dirige cada minuto de cada partido.
 
@@ -34,6 +34,9 @@ La diferencia: profundidad total sin muros de espera. Nada de energía que se ag
 Dynasty Pro desbloquea análisis avanzados, tácticas personalizadas, simulación instantánea, historiales completos y más, con 7 días gratis para probarlo. Pero la profundidad de gestión no está detrás de una suscripción: se juega entero sin pagar cuota.
 
 Descarga gratis y empieza tu dinastía hoy.
+
+Política de Privacidad: https://wrexist.github.io/dynasty-manager/privacy.html
+Términos de Uso (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ## What's New (next release note blurb)
 

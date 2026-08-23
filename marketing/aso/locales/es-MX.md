@@ -14,7 +14,7 @@ Storefronts reached: México y la mayoría de las tiendas de América Latina (Ar
 ## Keywords [91/100]
 `director tecnico,liga,alineacion,plantel,simulador,equipo,cantera,penales,ascenso,seleccion`
 
-## Description [1472/4000]
+## Description [1642/4000]
 
 Arranca la temporada 2026-27. Agarra tu club, arma tu once y dirige cada minuto de cada partido.
 
@@ -34,6 +34,9 @@ La diferencia: profundidad total sin muros de espera. Nada de energía que se ac
 Dynasty Pro desbloquea estadísticas avanzadas, tácticas personalizadas, simulación instantánea, historiales completos y más, con 7 días gratis para probarlo. Pero la profundidad de gestión no está detrás de una suscripción: se juega completo sin pagar mensualidad.
 
 Descarga gratis y arranca tu dinastía hoy.
+
+Política de Privacidad: https://wrexist.github.io/dynasty-manager/privacy.html
+Términos de Uso (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ## What's New (next release note blurb)
 

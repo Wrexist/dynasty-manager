@@ -14,7 +14,7 @@ Storefronts reached: Romania and Moldova (Romanian localization). Single Romania
 ## Keywords [99/100]
 `simulator,lot,tactica,transferuri,cariera,penaltiuri,echipa nationala,liga,gratis,juniori,cupa,meci`
 
-## Description [1875/4000]
+## Description [2057/4000]
 Sezonul 2026-27 a început. Alege un club, alege primul unsprezece și condu fiecare minut.
 
 Dynasty Manager este un simulator complet de management fotbalistic — o carieră adevărată de antrenor, nu o colecție de cartonașe. Preia oricare dintre cele 756 de cluburi reale din 45 de ligi și 37 de țări, sau preia banca unei echipe naționale. Reglează tactica, lucrează piața transferurilor și decide fiecare schimbare în timp ce meciul se joacă minut cu minut.
@@ -37,6 +37,9 @@ DESCĂRCARE GRATUITĂ
 Tot ce e mai sus intră în descărcarea gratuită. Dynasty Pro este opțional: simulare instantanee, analize avansate, tactici personalizate, conferințe de presă extinse, recorduri istorice și experiență fără reclame. Începe cu 7 zile gratuite sau cumperi o singură dată și rămâne al tău pentru totdeauna.
 
 Construiește-ți dinastia.
+
+Politica de confidențialitate: https://wrexist.github.io/dynasty-manager/privacy.html
+Termeni de utilizare (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ## What's New (next release note blurb)
 Sezon nou, dinastie nouă. Aspect proaspăt în App Store, AI mai ascuțit pe bancă și câteva erori de zi de meci rezolvate. În continuare fără bare de energie și fără așteptare — doar fotbal.

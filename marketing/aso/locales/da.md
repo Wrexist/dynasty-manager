@@ -14,7 +14,7 @@ Storefronts reached: Denmark (and Danish-preferring users in Greenland/Faroe Isl
 ## Keywords [96/100]
 `taktik,opstilling,trup,træner,transfers,liga,karriere,pokal,landshold,klub,spil,managerspil,hold`
 
-## Description [1429/4000]
+## Description [1594/4000]
 Sæsonen 2026-27 er skudt i gang. Vælg din klub, sæt dit hold, og styr hvert eneste minut.
 
 Dynasty Manager er en rigtig, dyb fodboldmanager-simulator til farten. Ingen pay-to-win, ingen energimålere, ingen hvilepakker, ingen ventetid mellem runderne. Spil så meget du vil, når du vil – den fulde dybde er der uden abonnement.
@@ -37,6 +37,9 @@ Ingen energimålere. Ingen ventetid. Bare fodbold, når du vil.
 Dynasty Pro låser op for avanceret statistik, egne taktikker, instant-sim og mere – med 7 dage gratis at prøve. Hele karrieren kan spilles også uden abonnement.
 
 Gratis at downloade. Byg dit dynasti.
+
+Privatlivspolitik: https://wrexist.github.io/dynasty-manager/privacy.html
+Vilkår for brug (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ## What's New (next release note blurb)
 Ny sæson, nyt dynasti. Friskere look i App Store, skarpere AI på sidelinjen og et par rettelser på kampdagen. Stadig ingen energimålere, ingen ventetid – bare fodbold.

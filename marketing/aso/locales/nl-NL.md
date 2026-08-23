@@ -14,7 +14,7 @@ Storefronts reached: Netherlands and Belgium (Flemish/Dutch-preferring users). A
 ## Keywords [100/100]
 `elftal,opstelling,tactiek,strafschoppen,transfers,competitie,coach,selectie,spel,seizoen,beker,jeugd`
 
-## Description [1887/4000]
+## Description [2052/4000]
 Het seizoen 2026-27 is begonnen. Kies een club, kies je elftal en beheer elke minuut ervan.
 
 Dynasty Manager is een diepe voetbalmanager-simulatie – een echte trainerscarrière, geen kaartjes verzamelen. Neem een van de 756 echte clubs uit 45 competities in 37 landen over, of word bondscoach van je eigen land. Bepaal de tactiek, werk de transfermarkt af en beslis over elke wissel terwijl de wedstrijd minuut voor minuut wordt gespeeld.
@@ -37,6 +37,9 @@ GRATIS TE DOWNLOADEN
 Alles hierboven zit in de gratis download. Dynasty Pro is optioneel: instant-sim, uitgebreide analyses, eigen tactieken, uitgebreide persconferenties, historische records en een ervaring zonder advertenties. Begin met 7 dagen gratis proberen, of koop het één keer en houd het voor altijd.
 
 Bouw je dynastie.
+
+Privacybeleid: https://wrexist.github.io/dynasty-manager/privacy.html
+Gebruiksvoorwaarden (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ## What's New (next release note blurb)
 Nieuw seizoen, nieuwe dynastie. Frisse App Store-look, scherpere AI langs de lijn en een handvol wedstrijdbugs opgelost. Nog steeds geen energiebalk, geen rustpacks, geen wachttijd – gewoon voetbal.
