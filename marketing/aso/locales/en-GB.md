@@ -11,8 +11,8 @@ Storefronts reached: United Kingdom and Ireland primarily. Apple falls other Eng
 ## Promotional Text [168/170]
 `New season, new dynasty. Take any of 756 real clubs from pre-season to the title — every transfer, every tactic, every minute. No energy timers. No waiting. No paywall.`
 
-## Keywords [92/100]
-`club,league,squad,formation,fixtures,promotion,relegation,academy,scout,youth,sim,season,cup`
+## Keywords [99/100]
+`club,league,squad,fixtures,promotion,relegation,scout,youth,sim,sunday,lineup,penalty,wonderkid,cup`
 
 ## Description [1441/4000]
 
@@ -53,3 +53,4 @@ New season, new dynasty. A fresh App Store look, sharper touchline AI and a hand
 - **Added "relegation" (pairing with "promotion") and "academy".** The promotion/relegation league pyramid and the youth academy are management-depth terms the arcade and card-collector rivals (draft builders, licensed-player collectors) structurally don't own — our counter to their real-player licence is depth, not likeness. To fund them within 100 chars we dropped "penalty shootout" from Keywords: it's a marquee screenshot/promo feature but a narrow search term, so it sells visually rather than via the keyword field.
 - "national team" rides the World Cup 2026 window generically without repeating "World Cup" (already indexed via Subtitle) — Apple indexes Name/Subtitle separately, so those words are omitted from Keywords to save space.
 - No plurals of included singulars and no competitor/club/league proper nouns — pure category and culture terms only.
+- **2026-08-23 measured-volume surgery** (Semrush UK, `../RESEARCH-2026.md` §0.5): added `lineup` ("lineup builder" 9,900/mo UK — the biggest untapped term in the whole kit), `penalty` ("penalty shootout game" 1,900/mo — the old "narrow query" call was wrong), `wonderkid` (480/mo) and `sunday` (combines with `league` → "sunday league", 1,900/mo UK; genuinely relevant — the game ships a full Sunday League mode). Cut `formation` (no measured demand; still OCR-indexed via the panel-03 screenshot caption), `academy` (~30/mo) and `season` (~0).
