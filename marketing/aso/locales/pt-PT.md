@@ -14,7 +14,7 @@ Storefronts reached: Portugal e mercados lusófonos que seguem a norma europeia 
 ## Keywords [91/100]
 `selecao,penaltis,transferencias,equipa,liga,gestao,simulador,formacao,juniores,epoca,subida`
 
-## Description [1847/4000]
+## Description [2023/4000]
 A época 2026-27 já arrancou: escolhe um dos 756 clubes reais e comanda cada minuto, da pré-época ao título. Dynasty Manager é um simulador de futebol com profundidade a sério, não um jogo de andar à espera. Sem barras de energia. Sem pacotes de descanso. Sem contagens decrescentes. Joga tudo o que quiseres, quando quiseres.
 
 Aqui o treinador és tu. Fechas as transferências, montas o plantel, defines a táctica jogo a jogo e levas a tua equipa de baixo até ao topo ao longo de muitas épocas.
@@ -34,6 +34,9 @@ A diferença: profundidade total sem muros de espera. Nada de energia que se esg
 O Dynasty Pro desbloqueia estatísticas avançadas, tácticas personalizadas, simulação instantânea, históricos completos e muito mais, com 7 dias grátis para experimentar. Mas a profundidade de gestão não fica presa a uma subscrição: joga-se por inteiro sem pagar mensalidade.
 
 Descarrega grátis e começa a tua dinastia hoje.
+
+Política de Privacidade: https://wrexist.github.io/dynasty-manager/privacy.html
+Termos de Utilização (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ## What's New (next release note blurb)
 Nova época, nova dinastia. A época 2026-27 entrou em campo: escolhe o teu clube e comanda cada minuto, da pré-época ao título. Tornámos também as negociações de transferências mais fluidas e afinámos vários pormenores para cada época correr redonda.

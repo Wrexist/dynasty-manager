@@ -111,7 +111,18 @@ FREE TO DOWNLOAD
 Everything above is in the free download. Dynasty Pro is optional: instant sim, advanced analytics, custom tactics, expanded press conferences, historical records and an ad-free experience. Start with a 7-day free trial, or buy it once and own it forever.
 
 Manage your dynasty.
+
+Privacy Policy: https://wrexist.github.io/dynasty-manager/privacy.html
+Terms of Use (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 ```
+The last two lines are **not optional**: Guideline 3.1.2(a) requires a
+functional Terms of Use (EULA) link in the metadata of any app with an
+auto-renewable subscription, and Apple rejected this app once for exactly that
+omission (`docs/apple-review-response-eula-metadata.md`). Both URLs mirror
+`src/config/legal.ts` (`TERMS_URL` / `PRIVACY_URL`), which is what the in-app
+paywall footer opens — metadata and binary must not drift apart. Every one of
+the 37 locale descriptions carries the same two lines, localized.
+
 The description is **not indexed for search** on the App Store — it earns its
 keep two other ways: conversion for the minority who expand it, and as the
 main input to Apple's AI tag generator. That is why every feature is named

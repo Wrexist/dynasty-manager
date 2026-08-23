@@ -14,7 +14,7 @@ Storefronts reached: Malaysia primarily (Apple serves ms metadata to Malay-prefe
 ## Keywords [94/100]
 `jurulatih,pasukan kebangsaan,penalti,liga,skuad,formasi,kelab,permainan,akademi,musim,simulasi`
 
-## Description [1979/4000]
+## Description [2141/4000]
 Musim 2026-27 sudah bermula: pilih mana-mana daripada 756 kelab sebenar dan uruskan setiap minit dari pramusim hingga ke gelaran juara — setiap keputusan di tangan anda.
 
 Dynasty Manager ialah simulasi pengurusan bola sepak yang benar-benar mendalam, bukan permainan tunggu-menunggu. Tiada bar tenaga. Tiada pakej rehat. Tiada kira detik. Main sepuas hati, bila-bila masa. Kedalaman pengurusan penuh tanpa perlu langganan.
@@ -36,6 +36,9 @@ Bezanya: kedalaman penuh tanpa dinding menunggu. Tiada tenaga yang habis, tiada 
 Dynasty Pro membuka statistik lanjutan, taktik tersuai, simulasi segera, rekod penuh dan banyak lagi — dengan 7 hari percuma untuk mencuba. Namun kedalaman pengurusannya tidak dikunci di sebalik langganan: boleh dimainkan sepenuhnya tanpa bayaran bulanan.
 
 Percuma dimuat turun. Mulakan dinasti anda hari ini.
+
+Dasar Privasi: https://wrexist.github.io/dynasty-manager/privacy.html
+Terma Penggunaan (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ## What's New (next release note blurb)
 Musim baharu, dinasti baharu. Musim 2026-27 kini di padang — pilih kelab anda dan uruskan setiap minit dari pramusim hingga ke gelaran juara. Kami juga menajamkan AI di tepi padang dan membaiki beberapa pepijat hari perlawanan. Masih tiada bar tenaga, tiada menunggu — hanya bola sepak.

@@ -14,7 +14,7 @@ Storefronts reached: Türkiye (tr storefront). Turkish is single-storefront but 
 ## Keywords [81/100]
 `kulup,lig,kadro,dizilis,teknik direktor,simulasyon,altyapi,kupa,sezon,milli takim`
 
-## Description [1120/4000]
+## Description [1290/4000]
 
 2026-27 sezonu başlıyor. Kulübünü seç, on birini kur ve her maçın her dakikasını yönet.
 
@@ -35,6 +35,9 @@ Dynasty Manager derin bir futbol menajerlik simülasyonu. 37 ülkede 45 lig ve 7
 Dynasty Pro ile reklamsız deneyim, gelişmiş analizler, anlık maç simülasyonu ve özel taktikler açılır — 7 gün ücretsiz dene, sonrasında abonelik ya da tek seferlik satın alma. Ama tüm menajerlik derinliği için aboneliğe gerek yok.
 
 İndirmesi ücretsiz. Kariyerine bugün başla.
+
+Gizlilik Politikası: https://wrexist.github.io/dynasty-manager/privacy.html
+Kullanım Koşulları (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ## What's New (next release note blurb)
 

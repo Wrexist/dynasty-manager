@@ -20,7 +20,7 @@ Storefronts reached: Taiwan and Hong Kong (and Macau), plus any device set to �
 ## Keywords [99/100]
 `陣容,陣型,聯賽,模擬經營,戰略,卡包,球員,名門,球探,升降級,洲際賽,養成,冠軍,王朝,訓練,球隊,租借,簽約,比賽,經營遊戲,領隊,教練,主帥,國家隊,保級,換人,引援,免費,先發,新星,合約`
 
-## Description [931/4000]
+## Description [1071/4000]
 2026-27賽季就要開踢了。挑一家球會，排好先發十一人，然後親手指揮它的每一分鐘。
 
 Dynasty Manager是一款硬派的足球經營模擬遊戲——一段真正的主帥生涯，而不是抽卡刷圖。在37個國家、45個聯賽、756家真實球會中選擇你鍾愛的球隊，或者接下國家隊的帥位。排兵佈陣，鑽研陣型與戰術，在轉會市場上鬥智鬥勇，逐分鐘指揮每一場比賽。中場喊話、定位球、臨場換人，每一個決定生死的細節都由你掌控。
@@ -46,6 +46,9 @@ Dynasty Manager是一款硬派的足球經營模擬遊戲——一段真正的�
 訂閱Dynasty Pro可享比賽即時模擬、進階數據分析、自訂戰術、加長版記者會、歷史紀錄與無廣告體驗——7天免費試用，之後可選擇訂閱或一次性買斷。但完整的經營深度，無需訂閱即可暢玩。
 
 免費下載，今天就開創屬於你的王朝。
+
+隱私政策: https://wrexist.github.io/dynasty-manager/privacy.html
+使用條款（EULA）: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ## What's New (next release note blurb)
 新賽季開幕。App Store頁面煥然一新，場邊AI的臨場判斷更犀利，比賽日的一批問題也一併修好了。一如既往，沒有體力條、沒有體力包、沒有等待——只有足球。在新賽季開創屬於你的王朝。

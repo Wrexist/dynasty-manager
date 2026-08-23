@@ -14,7 +14,7 @@ Storefronts reached: Vietnam (Apple serves vi metadata to Vietnamese-preferring 
 ## Keywords [92/100]
 `HLV,đội tuyển,sự nghiệp,giải đấu,sút luân lưu,đội hình,câu lạc bộ,học viện,mùa giải,mô phỏng`
 
-## Description [1901/4000]
+## Description [2077/4000]
 Mùa giải 2026-27 đã khởi tranh: chọn một trong 756 câu lạc bộ thật và điều hành từng phút từ tiền mùa giải đến chức vô địch — mọi quyết định nằm trong tay bạn.
 
 Dynasty Manager là game mô phỏng quản lý bóng đá thực sự chuyên sâu, không phải game ngồi chờ. Không thanh năng lượng. Không gói nghỉ. Không đếm ngược. Chơi bao nhiêu tùy thích, bất cứ lúc nào. Toàn bộ chiều sâu quản lý mà không cần đăng ký thuê bao.
@@ -36,6 +36,9 @@ Những gì bạn điều hành:
 Dynasty Pro mở khóa thống kê nâng cao, chiến thuật tùy chỉnh, mô phỏng tức thì, lịch sử kỷ lục đầy đủ và hơn thế — với 7 ngày dùng thử miễn phí. Nhưng chiều sâu quản lý không bị khóa sau thuê bao: chơi trọn vẹn mà không tốn phí hằng tháng.
 
 Tải miễn phí. Bắt đầu triều đại của bạn hôm nay.
+
+Chính sách quyền riêng tư: https://wrexist.github.io/dynasty-manager/privacy.html
+Điều khoản sử dụng (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ## What's New (next release note blurb)
 Mùa giải mới, triều đại mới. Mùa giải 2026-27 đã lăn bóng — chọn câu lạc bộ của bạn và điều hành từng phút từ tiền mùa giải đến chức vô địch. Chúng tôi cũng làm AI bên đường biên thông minh hơn và sửa vài lỗi ngày thi đấu. Vẫn không thanh năng lượng, không chờ đợi — chỉ có bóng đá.

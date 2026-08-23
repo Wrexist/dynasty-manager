@@ -14,7 +14,7 @@ Storefronts reached: Croatia (and Croatian-preferring users in the Bosnia & Herz
 ## Keywords [99/100]
 `liga,postava,taktika,transfer,klub,trener,kup,simulator,sezona,akademija,skaut,penal,prvenstvo,igra`
 
-## Description [1785/4000]
+## Description [1956/4000]
 Sezona 2026/27 počinje. Odaberi klub, složi početnu postavu i vodi svaku njezinu minutu.
 
 Dynasty Manager je duboka nogometna menadžerska simulacija – prava trenerska karijera, a ne skupljanje sličica. Preuzmi bilo koji od 756 stvarnih klubova u 45 liga i 37 zemalja, ili sjedni na klupu reprezentacije. Postavi taktiku, odradi prijelazni rok i odluči o svakoj izmjeni dok utakmica teče minutu po minutu.
@@ -37,6 +37,9 @@ PREUZMI BESPLATNO
 Sve navedeno je u besplatnom preuzimanju. Dynasty Pro je opcionalan: trenutna simulacija, napredne statistike, vlastite taktike, proširene konferencije za medije, povijesni rekordi i igra bez reklama. Kreni sa 7 dana besplatno ili ga kupi jednom i zadrži zauvijek.
 
 Izgradi svoju dinastiju.
+
+Pravila o privatnosti: https://wrexist.github.io/dynasty-manager/privacy.html
+Uvjeti korištenja (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ## What's New (next release note blurb)
 Nova sezona, nova dinastija. Osvježen izgled na App Storeu, pametnija UI na klupi i nekoliko popravaka za dan utakmice. I dalje bez traka energije, bez paketa odmora, bez čekanja – samo nogomet.

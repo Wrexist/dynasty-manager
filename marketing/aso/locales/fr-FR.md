@@ -14,7 +14,7 @@ Storefronts reached: France plus the default French localization across most Fre
 ## Keywords [86/100]
 `club,ligue,composition,effectif,entraineur,simulation,jeune,centre,coupe,saison,montee`
 
-## Description [1352/4000]
+## Description [1537/4000]
 
 La saison 2026-27 démarre. Choisissez votre club, composez votre onze et dirigez chaque minute de chaque match.
 
@@ -34,6 +34,9 @@ Jouez à votre rythme. Aucune jauge d'énergie. Aucun pack de repos. Aucune atte
 Dynasty Pro débloque l'analyse avancée, la simulation instantanée, les tactiques personnalisées et bien plus — avec 7 jours d'essai gratuit. Abonnement ou achat unique, à vous de choisir.
 
 Téléchargement gratuit. À vous de jouer, entraîneur.
+
+Politique de confidentialité: https://wrexist.github.io/dynasty-manager/privacy.html
+Conditions d'utilisation (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ## What's New (next release note blurb)
 

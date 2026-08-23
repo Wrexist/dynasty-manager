@@ -14,7 +14,7 @@ Storefronts reached: Brasil (pt-BR é a localização principal). É a variante 
 ## Keywords [84/100]
 `treinador,liga,escalacao,simulador,time,base,penalti,acesso,selecao,torneio,carreira`
 
-## Description [1461/4000]
+## Description [1630/4000]
 
 Começa a temporada 2026-27. Escolha o clube, escale o time e comande cada minuto de cada jogo.
 
@@ -34,6 +34,9 @@ A diferença: profundidade total sem muro de espera. Nada de energia que acaba, 
 O Dynasty Pro libera estatísticas avançadas, táticas personalizadas, simulação instantânea, históricos completos e mais, com 7 dias grátis para testar. Mas a profundidade de gestão não fica presa a uma assinatura: dá pra jogar completo sem pagar mensalidade.
 
 Baixe grátis e comece sua dinastia hoje.
+
+Política de Privacidade: https://wrexist.github.io/dynasty-manager/privacy.html
+Termos de Uso (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ## What's New (next release note blurb)
 

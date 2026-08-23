@@ -14,7 +14,7 @@ Storefronts reached: Indonesia (huge mobile-football market; Apple serves id met
 ## Keywords [85/100]
 `klub,liga,skuad,formasi,pelatih,simulasi,akademi,piala,musim,promosi,timnas,manajemen`
 
-## Description [1699/4000]
+## Description [1869/4000]
 
 Musim 2026-27 dimulai. Pilih klubmu, susun sebelas pemain, dan kelola setiap menit pertandingan.
 
@@ -36,6 +36,9 @@ Bedanya: kedalaman penuh tanpa tembok tunggu. Tidak ada energi yang habis, tidak
 Dynasty Pro membuka statistik lanjutan, taktik kustom, simulasi instan, rekor lengkap, dan lainnya — dengan 7 hari gratis untuk mencoba. Tapi kedalaman manajemennya tidak dikunci di balik langganan: bisa dimainkan penuh tanpa biaya bulanan.
 
 Gratis diunduh. Mulai dinastimu hari ini.
+
+Kebijakan Privasi: https://wrexist.github.io/dynasty-manager/privacy.html
+Ketentuan Penggunaan (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ## What's New (next release note blurb)
 

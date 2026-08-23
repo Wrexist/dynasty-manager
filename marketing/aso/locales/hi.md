@@ -14,7 +14,7 @@ Storefronts reached: India (Apple serves hi metadata to Hindi-preferring users).
 ## Keywords [95/100]
 `national team,penalty shootout,league,transfers,squad,formation,coach,youth,academy,फुटबॉल,क्लब`
 
-## Description [1758/4000]
+## Description [1919/4000]
 2026-27 season शुरू हो चुका है: 756 असली clubs में से कोई भी चुनो और pre-season से title तक हर मिनट खुद manage करो — हर फैसला तुम्हारा।
 
 Dynasty Manager एक सच में गहरा football management sim है, कोई wait-and-watch गेम नहीं। कोई energy बार नहीं। कोई rest pack नहीं। कोई countdown नहीं। जब चाहो, जितना चाहो खेलो। पूरी management depth, वो भी बिना किसी subscription के।
@@ -36,6 +36,9 @@ Dynasty Manager एक सच में गहरा football management sim ह
 Dynasty Pro advanced stats, custom tactics, instant sim, पूरे historical records और बहुत कुछ unlock करता है — 7 दिन free trial के साथ। लेकिन management की depth किसी subscription के पीछे बंद नहीं है: बिना monthly fee के पूरा गेम खेल सकते हो।
 
 Download free. आज ही अपनी dynasty शुरू करो।
+
+गोपनीयता नीति: https://wrexist.github.io/dynasty-manager/privacy.html
+उपयोग की शर्तें (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ## What's New (next release note blurb)
 नया season, नई dynasty. 2026-27 season live है — अपना club चुनो और pre-season से title तक हर मिनट manage करो। हमने sideline की AI को और smart किया है और match-day के कई bugs fix किए हैं। अब भी कोई energy बार नहीं, कोई waiting नहीं — बस football।

@@ -14,7 +14,7 @@ Storefronts reached: Hungary. Apple serves hu metadata to Hungarian-preferring u
 ## Keywords [100/100]
 `labdarugas,focimenedzser,liga,taktika,atigazolas,keret,kupa,edzo,szimulator,szezon,utanpotlas,bajnok`
 
-## Description [1903/4000]
+## Description [2082/4000]
 Kezdődik a 2026/27-es szezon. Válassz klubot, állítsd össze a kezdőt, és irányítsd minden percét.
 
 A Dynasty Manager mély futballmenedzser-szimuláció – igazi edzői karrier, nem kártyagyűjtögetés. Vedd át a 756 valódi klub bármelyikét 45 ligában és 37 országban, vagy ülj le a válogatott kispadjára. Állítsd be a taktikát, dolgozd végig az átigazolási időszakot, és döntsd el minden cserét, miközben a meccs percről percre zajlik.
@@ -37,6 +37,9 @@ TÖLTSD LE INGYEN
 A fentiek mind benne vannak az ingyenes letöltésben. A Dynasty Pro opcionális: azonnali szimuláció, haladó statisztikák, egyéni taktikák, bővített sajtótájékoztatók, történelmi rekordok és reklámmentes játék. Kezdd 7 nap ingyenes próbával, vagy vedd meg egyszer, és a tiéd marad.
 
 Építsd fel a dinasztiádat.
+
+Adatvédelmi irányelvek: https://wrexist.github.io/dynasty-manager/privacy.html
+Felhasználási feltételek (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ## What's New (next release note blurb)
 Új szezon, új dinasztia. Frissült App Store-os megjelenés, okosabb MI a kispadon és néhány meccsnapi javítás. Továbbra sincs energiacsík, nincs pihenőcsomag, nincs várakozás – csak foci.

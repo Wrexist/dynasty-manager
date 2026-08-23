@@ -14,7 +14,7 @@ Storefronts reached: Germany, Austria, and Switzerland (German-preferring users)
 ## Keywords [86/100]
 `verein,liga,aufstellung,kader,trainer,simulation,jugend,akademie,pokal,saison,aufstieg`
 
-## Description [1551/4000]
+## Description [1724/4000]
 
 Die Saison 2026-27 beginnt. Wähle deinen Verein, stelle deine Elf auf und leite jede einzelne Minute.
 
@@ -37,6 +37,9 @@ Keine Energiebalken. Keine Wartezeit. Nur Fußball, wann immer du willst.
 Dynasty Pro schaltet erweiterte Analysen, individuelle Taktiken, Instant-Sim und mehr frei – mit 7 Tagen kostenlos zum Ausprobieren. Der komplette Karriereweg bleibt aber auch ohne Abo voll spielbar.
 
 Kostenloser Download. Übernimm jetzt einen Verein und bau deine Dynastie auf.
+
+Datenschutzrichtlinie: https://wrexist.github.io/dynasty-manager/privacy.html
+Nutzungsbedingungen (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 ## What's New (next release note blurb)
 
