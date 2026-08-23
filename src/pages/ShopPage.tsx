@@ -49,7 +49,9 @@ const SUBSCRIPTION_PRODUCTS: ProductId[] = [
  *  the products that are configured. Consumable player packs are sold on
  *  PacksPage, not here, so they are deliberately absent. */
 const SHOP_PROBE_IDS: ProductId[] = [
-  'com.dynastymanager.pro',
+  // `com.dynastymanager.pro` is deliberately absent — it is retired from sale
+  // (see RETIRED_PRODUCT_IDS). Probing a SKU nothing renders only widens the
+  // batch that one unconfigured product can drag down.
   'com.dynastymanager.pro.monthly',
   'com.dynastymanager.pro.annual',
   'com.dynastymanager.pro.lifetime',
@@ -160,7 +162,7 @@ const ShopPage = () => {
 
   const bundleIndividualTotal = (() => {
     const parts = ([
-      'com.dynastymanager.pro',
+      'com.dynastymanager.pro.lifetime',
       'com.dynastymanager.pack.manager',
       'com.dynastymanager.pack.stadium',
       'com.dynastymanager.pack.legends',
@@ -550,29 +552,13 @@ const ShopPage = () => {
                 );
               })}
 
-              {/* One-time Pro alternative. Hidden outright when the store
-                  cannot sell it — a visible CTA for a removed SKU can only
-                  fail, which is the Guideline 2.1.0 rejection condition. */}
-              {isPurchasable('com.dynastymanager.pro') && (<>
-              <div className="relative">
-                <div className="absolute inset-x-0 top-0 h-px bg-border/30" />
-                <p className="text-[10px] text-muted-foreground text-center py-2">or buy once</p>
-              </div>
-              <GlassPanel className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-sm font-semibold text-foreground">{PRODUCTS['com.dynastymanager.pro'].name}</h4>
-                    <p className="text-xs text-muted-foreground mt-0.5">All Pro features, one-time purchase</p>
-                  </div>
-                  <button
-                    onClick={() => handlePurchase('com.dynastymanager.pro')}
-                    className="px-4 py-2 rounded-lg bg-muted/50 hover:bg-muted text-foreground font-bold text-sm active:scale-[0.98] transition-all border border-border/50 shrink-0"
-                  >
-                    {priceFor('com.dynastymanager.pro')}
-                  </button>
-                </div>
-              </GlassPanel>
-              </>)}
+              {/* The "or buy once" row used to sell `com.dynastymanager.pro`
+                  here for $7.99 — the same permanent Pro entitlement Lifetime
+                  grants, at a fraction of the price, directly beneath the
+                  subscription cards it made unsellable. The SKU is retired
+                  (RETIRED_PRODUCT_IDS); Lifetime above is now the only
+                  buy-once route to Pro. Existing owners keep it through
+                  `restoreEntitlements` — nothing about that path changed. */}
             </div>
           )}
         </div>

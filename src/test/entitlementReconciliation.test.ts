@@ -20,6 +20,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
 import { isPro } from '@/utils/monetization';
+import { DEFAULT_MONETIZATION_STATE } from '@/config/monetization';
 import type { ProductId } from '@/types/game';
 
 const PRO: ProductId = 'com.dynastymanager.pro';
@@ -29,6 +30,10 @@ describe('entitlement reconciliation', () => {
   beforeEach(() => {
     localStorage.clear();
     useGameStore.getState().resetGame();
+    // `resetGame` deliberately preserves purchases — you do not lose Pro by
+    // starting a new dynasty — so entitlements survive it and leak between
+    // tests. Reset them explicitly or each case inherits the last one's grants.
+    useGameStore.setState({ monetization: { ...DEFAULT_MONETIZATION_STATE } });
   });
 
   it('revokes a refunded one-time purchase', () => {

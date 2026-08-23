@@ -119,6 +119,16 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
           const product = PRODUCTS[id];
           if (product?.includes) for (const inc of product.includes) owned.add(inc);
         }
+        // Retired SKUs are pruned like any other. `mapEntitlements` reads the
+        // receipt (`allPurchasedProductIdentifiers`) and still lists
+        // `com.dynastymanager.pro` among its valid IDs, so a legitimate owner
+        // of the retired SKU is still reported by a definitive answer —
+        // exempting it here would only have opened a refund hole.
+        //
+        // A Dynasty Edition owner from before the bundle expanded to
+        // `pro.lifetime` does lose the redundant `com.dynastymanager.pro` ID
+        // here. They keep Pro: `bundle.all` is itself in
+        // `PRO_ONE_TIME_PRODUCT_IDS`, and the next restore re-grants Lifetime.
         const kept = s.monetization.entitlements.filter(id => owned.has(id));
         if (kept.length === s.monetization.entitlements.length) return {};
         return { monetization: { ...s.monetization, entitlements: kept } };
