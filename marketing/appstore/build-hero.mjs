@@ -13,7 +13,7 @@
  * detect-glass.mjs) and re-frame it. No mockups, no fake UI.
  *
  * Renders every App Store display size we upload:
- *   iphone-6.9  1290 × 2796
+ *   iphone-6.9  1284 × 2778  (6.7" canvas — see the note on TARGETS)
  *   iphone-6.5  1242 × 2688
  *   ipad-13     2064 × 2752
  *
@@ -156,7 +156,10 @@ const PANELS = [
 // devices shrink and spread while the type scale drops off the width.
 
 const TARGETS = [
-  { id: 'iphone-6.9', w: 1290, h: 2796, kind: 'phone' },
+  // 1284 × 2778 is the 6.7" canvas (iPhone 12–14 Pro Max). App Store Connect
+  // accepts it in the 6.5" slot; the 6.9" slot itself only takes 1290 × 2796
+  // or 1320 × 2868, so this folder is no longer a drop-in for that slot.
+  { id: 'iphone-6.9', w: 1284, h: 2778, kind: 'phone' },
   { id: 'iphone-6.5', w: 1242, h: 2688, kind: 'phone' },
   { id: 'ipad-13', w: 2064, h: 2752, kind: 'tablet' },
 ];

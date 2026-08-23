@@ -69,7 +69,7 @@ listing needs:
 
 | Target | Canvas | Slot |
 |---|---|---|
-| `iphone-6.9` | 1290 × 2796 | iPhone 6.9" |
+| `iphone-6.9` | 1284 × 2778 | 6.7" canvas — ASC takes it in the 6.5" slot |
 | `iphone-6.5` | 1242 × 2688 | iPhone 6.5" |
 | `ipad-13` | 2064 × 2752 | iPad 13" |
 
