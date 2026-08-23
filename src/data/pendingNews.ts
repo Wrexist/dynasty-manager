@@ -53,6 +53,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Kick Off can no longer do nothing at all.',
     'Growth overhaul.',
     'Add Sunday League — a complete local football management mode.',
+    'Retire $7.99 Pro SKU and rebalance the subscription ladder.',
   ],
   fixed: [
     'Fan mood now reacts to results and league position instead of sitting at a flat 50 all game — matchday income finally rises with a winning run and dips during a slump.',
