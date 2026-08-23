@@ -91,7 +91,7 @@ interface PlanRow {
 
 const PLAN_ROWS: PlanRow[] = [
   {
-    productId: 'com.dynastymanager.pro.annual',
+    productId: 'com.dynastymanager.pro.yearly',
     title: 'Pro Yearly',
     lengthLabel: '12 months · auto-renews yearly',
     trialCaption: `${FREE_TRIAL_DAYS}-day free trial included`,
@@ -174,7 +174,7 @@ const SubscribeOnboarding = () => {
   const [restoring, setRestoring] = useState(false);
   // Default to Yearly — it's the best value AND the row whose billed amount
   // Apple needs to see prominently displayed.
-  const [selected, setSelected] = useState<ProductId>('com.dynastymanager.pro.annual');
+  const [selected, setSelected] = useState<ProductId>('com.dynastymanager.pro.yearly');
 
   // Store availability probe. Presenting a buy button that can only ever fail
   // is exactly what got build 174 rejected under Guideline 2.1.0 (App
@@ -273,7 +273,7 @@ const SubscribeOnboarding = () => {
     storeAmounts[id] ?? (storeAnswered ? null : PRODUCTS[id].priceUsd);
 
   const monthlyAmount = amountFor('com.dynastymanager.pro.monthly');
-  const annualAmount = amountFor('com.dynastymanager.pro.annual');
+  const annualAmount = amountFor('com.dynastymanager.pro.yearly');
   /** Percent Yearly saves against twelve months of Monthly, or null if either
    *  price is unknown or the saving is not actually positive. */
   const annualSavingsPct = (() => {
@@ -290,7 +290,7 @@ const SubscribeOnboarding = () => {
   const annualPerMonth = (() => {
     if (annualAmount == null) return null;
     const value = annualAmount / 12;
-    const localized = storePrices['com.dynastymanager.pro.annual'];
+    const localized = storePrices['com.dynastymanager.pro.yearly'];
     if (!localized) return `$${value.toFixed(2)}`;
     const numeric = localized.match(/[\d.,]+/);
     return numeric ? localized.replace(numeric[0], value.toFixed(2)) : null;

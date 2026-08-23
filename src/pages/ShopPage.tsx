@@ -39,7 +39,7 @@ const FEATURE_ICONS: Record<ProFeature, React.ElementType> = {
  *  orders and preselects Yearly; the two paywalls now agree. Display order
  *  only — nothing here decides what is purchasable or what is granted. */
 const SUBSCRIPTION_PRODUCTS: ProductId[] = [
-  'com.dynastymanager.pro.annual',
+  'com.dynastymanager.pro.yearly',
   'com.dynastymanager.pro.lifetime',
   'com.dynastymanager.pro.monthly',
 ];
@@ -53,7 +53,7 @@ const SHOP_PROBE_IDS: ProductId[] = [
   // (see RETIRED_PRODUCT_IDS). Probing a SKU nothing renders only widens the
   // batch that one unconfigured product can drag down.
   'com.dynastymanager.pro.monthly',
-  'com.dynastymanager.pro.annual',
+  'com.dynastymanager.pro.yearly',
   'com.dynastymanager.pro.lifetime',
   'com.dynastymanager.bundle.all',
   'com.dynastymanager.pack.manager',
@@ -172,7 +172,7 @@ const ShopPage = () => {
   const bundleSavingsPct = savingsPct(bundleIndividualTotal, amountFor('com.dynastymanager.bundle.all'));
 
   const monthlyAmount = amountFor('com.dynastymanager.pro.monthly');
-  const annualAmount = amountFor('com.dynastymanager.pro.annual');
+  const annualAmount = amountFor('com.dynastymanager.pro.yearly');
   const annualSavingsPct = savingsPct(monthlyAmount != null ? monthlyAmount * 12 : null, annualAmount);
 
   /** Format a derived per-period amount in the storefront's own formatting by
@@ -469,13 +469,13 @@ const ShopPage = () => {
                 Pay yearly and save vs your current monthly plan — same Pro features.
               </p>
               <p className="text-[10px] text-muted-foreground/60 mb-3">
-                {perPeriod('com.dynastymanager.pro.annual', 12) && `Just ${perPeriod('com.dynastymanager.pro.annual', 12)}/month billed yearly`}
+                {perPeriod('com.dynastymanager.pro.yearly', 12) && `Just ${perPeriod('com.dynastymanager.pro.yearly', 12)}/month billed yearly`}
               </p>
-              {isPurchasable('com.dynastymanager.pro.annual') && <button
-                onClick={() => handlePurchase('com.dynastymanager.pro.annual')}
+              {isPurchasable('com.dynastymanager.pro.yearly') && <button
+                onClick={() => handlePurchase('com.dynastymanager.pro.yearly')}
                 className="w-full py-2.5 rounded-lg bg-emerald-500/90 hover:bg-emerald-500 text-white font-bold text-sm active:scale-[0.98] transition-all shadow-[0_0_12px_rgba(16,185,129,0.25)]"
               >
-                Upgrade — {priceFor('com.dynastymanager.pro.annual')}/year
+                Upgrade — {priceFor('com.dynastymanager.pro.yearly')}/year
               </button>}
             </GlassPanel>
           )}
@@ -529,8 +529,8 @@ const ShopPage = () => {
                     {isMonthly && perPeriod('com.dynastymanager.pro.monthly', 30) && (
                       <p className="text-[10px] text-muted-foreground/60 mb-2">Just {perPeriod('com.dynastymanager.pro.monthly', 30)}/day — cancel anytime</p>
                     )}
-                    {isAnnual && perPeriod('com.dynastymanager.pro.annual', 12) && (
-                      <p className="text-[10px] text-muted-foreground/60 mb-2">Just {perPeriod('com.dynastymanager.pro.annual', 12)}/month — billed yearly</p>
+                    {isAnnual && perPeriod('com.dynastymanager.pro.yearly', 12) && (
+                      <p className="text-[10px] text-muted-foreground/60 mb-2">Just {perPeriod('com.dynastymanager.pro.yearly', 12)}/month — billed yearly</p>
                     )}
                     {isLifetime && (
                       <p className="text-[10px] text-muted-foreground/60 mb-2">One-time purchase, yours forever</p>

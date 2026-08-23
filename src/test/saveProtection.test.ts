@@ -537,7 +537,7 @@ describe('device-scoped purchase record', () => {
 
     const sub = {
       tier: 'annual' as const,
-      productId: 'com.dynastymanager.pro.annual' as const,
+      productId: 'com.dynastymanager.pro.yearly' as const,
       expiresAt: new Date(Date.now() + 365 * 86_400_000).toISOString(),
       isInGracePeriod: false,
       willRenew: true,

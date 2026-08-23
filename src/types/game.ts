@@ -1804,7 +1804,7 @@ export interface SessionStats {
 export type ProductId =
   | 'com.dynastymanager.pro'
   | 'com.dynastymanager.pro.monthly'
-  | 'com.dynastymanager.pro.annual'
+  | 'com.dynastymanager.pro.yearly'
   | 'com.dynastymanager.pro.lifetime'
   | 'com.dynastymanager.pack.manager'
   | 'com.dynastymanager.pack.stadium'

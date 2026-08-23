@@ -52,7 +52,7 @@ import {
   getStoreAvailability,
 } from '@/utils/purchases';
 
-const ANNUAL = 'com.dynastymanager.pro.annual' as const;
+const ANNUAL = 'com.dynastymanager.pro.yearly' as const;
 const GOLD_PACK = 'com.dynastymanager.pack.gold' as const;
 
 /** The exact shape iOS delivers: `call.reject(message, "\(error.code)", nsError)`. */
