@@ -728,6 +728,12 @@ ad capture) still exists in `src/pages/`, but its route and Settings entry are
   near zero. The meter itself lied for a while (it skipped every line containing
   `className=`, i.e. every JSX text node, and reported 0) — see the correction in
   `docs/CRITICAL-REVIEW-2026-08.md` §17.
+  **Release-scope decision (2026-08-23, v1.5.0):** i18n is explicitly deferred
+  for this release — not a goal, not on the roadmap for this cycle. The 999
+  hardcoded-English strings are known debt, not a blocker; do not hold a
+  release on this count, and do not advertise Swedish (or any) localisation
+  in store copy or release notes until a future release explicitly commits to
+  finishing the migration.
 - `orchestration/weekAdvance.ts` (3,094 LOC) and `pages/Dashboard.tsx` (2,192 LOC) are the new oversized files — use `/refactor` for guided extraction.
 - TS strict mode OFF (`strict: false`, `strictNullChecks: false`).
 - Generated data dwarfs the code (~410K vs ~139K LOC) — keep it lazily imported; `size:check` is the guard.
