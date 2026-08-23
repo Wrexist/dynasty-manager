@@ -48,7 +48,8 @@ Adds **career** — a real query cluster for this genre — at title weight
 (~5× the same word in the subtitle). The brand string is untouched, so brand
 search and recall are unaffected. **Conservative variant** if you would rather
 not touch the title this cycle: keep `Dynasty Manager: Soccer` `[23/30]` and
-move `career` into the keyword field (it costs 7 of 100 characters there).
+move `career` into the keyword field — at 98/100 that means trading out
+`cup,gm` (or `pack,cup`) to make room for its 7 characters + comma.
 
 ### Subtitle `[29/30]` *(no build needed)*
 ```
@@ -59,19 +60,27 @@ Three fresh indexed terms, reads as a benefit for the Today-tab ad format
 `Deep Career Sim · No Timers` `[27/30]` — wedge-forward, fewer head terms.
 Run both; subtitle is free to change.
 
-### Keywords `[99/100]` *(no build needed; no space after commas)*
+### Keywords `[98/100]` *(no build needed; no space after commas)*
 ```
-football,club,league,squad,formation,sim,coach,scout,youth,academy,season,cup,champion,offline,team
+football,club,league,squad,sim,coach,scout,youth,lineup,penalty,wonderkid,gm,offline,pack,team,cup
 ```
+Rebuilt 2026-08-23 against measured Semrush volume (`RESEARCH-2026.md` §0.5).
 Excludes every word already in the App Name and Subtitle (`dynasty`,
 `manager`, `soccer`, `career`, `tactics`, `transfers`, `trophies`) — Apple
 indexes the union, so repeats are wasted characters. Singulars only. Notes:
+- **Added on data:** `lineup` ("lineup builder" 4,400/mo US — the set's
+  biggest miss; we ship a lineup editor + Smart Optimize), `penalty`
+  ("penalty game" 1,600 + "penalty shootout game" 1,000/mo — the earlier
+  "narrow query" call was wrong), `wonderkid` (1,300/mo, was captions-only),
+  `gm` ("soccer gm" 590 + "general manager games" 720/mo, 2 chars), `pack`
+  ("soccer pack opener" 320/mo, purchase-intent fit with the pack feature).
+- **Cut on data:** `formation` (9 chars, ~140/mo — still OCR-indexed via the
+  panel-03 caption "SQUAD & FORMATION"), `academy` (30/mo), `season` (~0),
+  `champion` (20/mo).
 - `football` is held here rather than in the title: in the US it reads as NFL
   intent in a title, but it still needs to be indexed for "football manager".
-- `offline` is a real differentiator query for a sim with no forced online
-  mode, and no rival in the scan owns it.
-- No `penalty shootout` — marquee feature, narrow query. It sells visually, in
-  the screenshot captions (which are now indexed) rather than here.
+- `offline` survives unmeasured: Google web volume can't see in-store
+  "offline games" browsing, which is the query this token exists for.
 
 ### Promotional Text `[168/170]` *(no build needed)*
 ```
@@ -132,8 +141,11 @@ appear nowhere else in the listing. These are written to cover terms the
 | 05 | NATIONAL TEAM & TOURNAMENTS | Lead your **nation.** | Qualify, pick your 23, chase the trophy. |
 
 New terms this set introduces that are in **no other field**: `match day`,
-`penalty shootout`, `wonderkid`, `transfer window`, `commentary`, `chemistry`,
-`national team`, `career mode`, `XI`.
+`transfer window`, `commentary`, `chemistry`, `national team`, `career mode`,
+`XI`, plus `formation` (cut from the keyword field 2026-08-23, kept indexed
+here by the panel-03 kicker). `penalty` and `wonderkid` moved into the
+keyword field on measured volume — the captions repeating them costs nothing,
+since the no-repeat rule only spans Name/Subtitle/Keywords.
 
 > **Open item — a trademark is still visible in panel 05's device pixels.**
 > The overlay copy is now generic, but the in-game screen behind it renders the

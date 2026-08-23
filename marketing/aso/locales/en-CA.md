@@ -11,8 +11,8 @@ Storefronts reached: Canada (English). The Canadian store carries en-CA alongsid
 ## Promotional Text [168/170]
 `New season, new dynasty. Take any of 756 real clubs from pre-season to the title — every transfer, every tactic, every minute. No energy timers. No waiting. No paywall.`
 
-## Keywords [88/100]
-`football,club,league,squad,formation,transfer,scout,youth,academy,season,promotion,coach`
+## Keywords [99/100]
+`football,club,league,squad,transfer,scout,youth,promotion,coach,lineup,penalty,wonderkid,gm,academy`
 
 ## Description [1497/4000]
 
@@ -53,3 +53,4 @@ New season, new dynasty. A fresh App Store look, sharper touchline AI and a hand
 - Core sim head terms (tactics, career, formation, league) are retained because they are the demand centre of the category and can't be sacrificed for pure differentiation.
 - **Added "academy"** — the youth academy is a management-depth term the arcade and card-collector rivals (draft builders, licensed-player collectors) don't own; it's the durable counter to their real-player licence and outlasts the WC window. It replaces "dugout" (evocative but near-zero search); to stay within 100 chars "penalty kicks" was tightened to "penalties" (broader match, still distinct from en-US).
 - "manager" is excluded from Keywords (already in App Name and indexed); the career-mode intent is carried by "career" and the Description copy instead.
+- **2026-08-23 measured-volume surgery** (Semrush US/UK, `../RESEARCH-2026.md` §0.5): added `lineup` ("lineup builder" 4,400/mo US), `penalty` (2,600/mo US cluster), `wonderkid` (1,300/mo US) and `gm` ("soccer gm" 590 + "general manager games" 720/mo — North-American vocabulary, 2 chars). Cut `formation` and `season` (no measured demand; `formation` stays OCR-indexed via the panel-03 caption). Still complements fr-CA (French tokens, no overlap) per the Canada dual-index rule.

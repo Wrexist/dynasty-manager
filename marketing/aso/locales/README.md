@@ -8,15 +8,13 @@
 > `../season-2026-refresh.md` (NOT `../wc-2026-refresh.md`, which is the
 > superseded tournament set, kept only for the next tournament window).
 >
-> **Known residue — do not read this notice as "all clear".** Seven locales
-> still carry tournament copy in fields the validator does not scan
-> (What's New, Description tail, screenshot captions): `de-DE`, `fr-CA`,
-> `hi`, `it`, `ms`, `pl`, `pt-PT`, plus `vi`. Six of those are literal marks
-> in the What's New blurb ("World Cup 2026", "Coupe du Monde 2026",
-> "Piala Dunia 2026", "Mundial 2026") and are an `APP_STORE_LISTING.md`
-> risk #4 exposure. Several of those files also still have rationale prose
-> arguing for a tournament token their Subtitle no longer contains. These
-> need a follow-up pass before the next version submission.
+> **Residue check 2026-08-23:** the tournament copy the 2026-07-29 notice
+> flagged in What's New / description tails has been re-scanned — all eight
+> locales' consumer-visible fields are clean; the one live mark left
+> ("Modo Copa 2026" in the pt-BR description) is now fixed. Remaining
+> tournament mentions in these files are rationale prose only, which never
+> ships. Keyword fields for the four English locales were rebuilt against
+> measured Semrush volume on 2026-08-23 — see `../RESEARCH-2026.md` §0.5.
 
 > Paste-ready App Store Connect metadata for every football-relevant storefront,
 > transcreated (not translated) by native-market passes and machine-validated

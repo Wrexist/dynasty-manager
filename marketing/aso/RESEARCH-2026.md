@@ -40,6 +40,46 @@ stands).
 
 ---
 
+## 0.5 Measured demand (Semrush, 2026-08-23) — the volume caveat, partially closed
+
+The caveat above ("no measured download-seasonality data") is now partially
+closed: six Semrush queries (US + UK web databases, Aug 2026) put real volume
+numbers behind the keyword picks. **Method caveat that stays:** this is Google
+web search volume, not App Store search volume — use it as a *relative* demand
+signal between candidate terms, and still validate against Apple Ads Search
+Popularity before spending money. In-store-only behaviours (e.g. "offline
+games" browsing) are invisible here.
+
+### What the data confirmed
+
+| Term | US vol/mo | UK vol/mo | Read |
+|---|---|---|---|
+| football manager | 8,100 | (brand-dominated) | Head term; covered via `manager` (Name) + `football` (keywords) union |
+| soccer manager | 1,300 | — | Covered by Name |
+| football manager game | 720 | 720 | Covered by union |
+| soccer sim / football sim | 720 | 880 | `sim` earns its slot |
+| football career game | — | 210 | `career` in the Name validated |
+
+### What the data overturned
+
+| Term | US vol/mo | UK vol/mo | Old call → new call |
+|---|---|---|---|
+| **lineup builder** | **4,400** | **9,900** | Not indexed anywhere → `lineup` added to every English keyword field. Biggest single miss; we ship a lineup editor + Smart Optimize. |
+| **penalty game / penalty shootout game** | 1,600 / 1,000 | 1,900 | Dropped as "narrow query" → wrong; `penalty` restored to keywords |
+| **wonderkid** | 1,300 | 480 | Was captions-only → added to keywords |
+| **soccer gm / general manager games** | 590 / 720 | — | Never considered → `gm` added (en-US/en-CA; 2 chars, US vocabulary) |
+| **sunday league football** | — | **1,900** | Never considered → `sunday` added to en-GB (combines with `league`; the Sunday League game mode makes it genuinely relevant) |
+| soccer pack opener | 320 | — | `pack` added to en-US (we sell packs; high purchase-intent fit) |
+| formation creator / soccer formation app | 140 / 30 | — | `formation` cut from keywords (9 chars for ~no demand); stays indexed via the panel-03 caption "SQUAD & FORMATION" |
+| soccer season game / soccer champion game | ~0 / 20 | — | `season`, `champion` cut — dead weight |
+| soccer youth academy | 30 | — | `academy` cut from en-US/en-AU (kept en-CA); candidate for a caption if a re-render happens anyway |
+
+Also measured, for the record: `soccer manager 2026` = 320/mo US (year tokens
+carry real volume — a `2026` token is a legitimate seasonal play but was not
+worth displacing an evergreen term; revisit for Apple Ads instead), and
+`online soccer manager` = 5,400/mo US (competitor brand — Ads conquest
+territory only, never metadata).
+
 ## 1. What actually ranks (Apple, 2026)
 
 ### Indexed text fields — where keywords can come from

@@ -14,14 +14,14 @@ Storefronts reached: Brasil (pt-BR é a localização principal). É a variante 
 ## Keywords [84/100]
 `treinador,liga,escalacao,simulador,time,base,penalti,acesso,selecao,torneio,carreira`
 
-## Description [1447/4000]
+## Description [1461/4000]
 
 Começa a temporada 2026-27. Escolha o clube, escale o time e comande cada minuto de cada jogo.
 
 Aqui o técnico é você. Fecha as contratações, monta o elenco, define a escalação e a tática jogo a jogo e leva o seu time de baixo até o topo ao longo de muitas temporadas.
 
 O que você vai comandar:
-- Modo Copa 2026: classifique sua seleção e leve ela do grupo até a final.
+- Modo seleção: classifique seu país e leve ele do grupo até a final do torneio mundial.
 - 45 ligas em 37 países com 756 clubes reais, com acessos, rebaixamentos e mata-mata.
 - Modo carreira: crie seu técnico, conquiste contratos nas entrevistas com a diretoria, receba bônus, sobreviva às demissões e vire lenda.
 - Pênaltis interativos: você bate e você defende, com toda a tensão de uma final em cada cobrança.

@@ -11,8 +11,8 @@ Storefronts reached: Australia (and New Zealand fans on the AU store). Australia
 ## Promotional Text [168/170]
 `New season, new dynasty. Take any of 756 real clubs from pre-season to the title — every transfer, every tactic, every minute. No energy timers. No waiting. No paywall.`
 
-## Keywords [93/100]
-`club,league,squad,formation,transfer,scout,youth,academy,season,promotion,relegation,fixtures`
+## Keywords [99/100]
+`club,league,squad,transfer,scout,youth,promotion,relegation,fixtures,lineup,penalty,wonderkid,coach`
 
 ## Description [1485/4000]
 
@@ -53,3 +53,4 @@ New season, new dynasty. A fresh App Store look, sharper touchline AI and a hand
 - "qualifiers" is an Australia-relevant World Cup 2026 hook — the Socceroos' qualifying run is a live in-market term — and it does not appear in en-US, widening total English coverage.
 - **Added "academy" and "relegation".** Youth academy and the promotion/relegation pyramid are management-depth terms the arcade and card-collector rivals don't own — the durable counter to their real-player licence. They replace "penalty shootout" (a marquee screenshot feature but narrow search term, better sold visually) so every character keeps earning.
 - "national team" rides the tournament window without repeating "World Cup" (already indexed via Subtitle); "coach" intent is carried by the Description rather than a Keyword.
+- **2026-08-23 measured-volume surgery** (Semrush UK proxy, `../RESEARCH-2026.md` §0.5): added `lineup` ("lineup builder" 9,900/mo UK), `penalty` ("penalty shootout game" 1,900/mo UK), `wonderkid` (480/mo UK) and `coach`. Cut `formation`, `season` and `academy` — no measured demand; `formation` stays OCR-indexed via the panel-03 screenshot caption.
