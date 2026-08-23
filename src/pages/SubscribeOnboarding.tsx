@@ -184,6 +184,12 @@ const SubscribeOnboarding = () => {
   const [storeStatus, setStoreStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading');
   // Localised store prices. Empty on web/dev — falls back to the USD config price.
   const [storePrices, setStorePrices] = useState<Partial<Record<ProductId, string>>>({});
+  // Numeric prices in the storefront's own currency. Every comparative claim
+  // on this screen ("SAVE 58%", the per-month line) is computed from these and
+  // NOT from `priceUsd` — Apple's price tiers do not preserve the USD ratios,
+  // so a percentage derived from config is wrong in most storefronts even
+  // before the currency symbol is. Same convention as ShopPage.
+  const [storeAmounts, setStoreAmounts] = useState<Partial<Record<ProductId, number>>>({});
   const [availableIds, setAvailableIds] = useState<ProductId[] | null>(null);
   const [probeNonce, setProbeNonce] = useState(0);
 
@@ -191,9 +197,10 @@ const SubscribeOnboarding = () => {
     let cancelled = false;
     setStoreStatus('loading');
     getStoreAvailability(PLAN_ROWS.map(r => r.productId))
-      .then(({ supported, available, prices }) => {
+      .then(({ supported, available, prices, amounts }) => {
         if (cancelled) return;
         setStorePrices(prices);
+        setStoreAmounts(amounts || {});
         // Off-device (web/dev) purchases are mocked — every plan stays live so
         // the flow remains testable in the browser.
         if (!supported) {
@@ -253,6 +260,41 @@ const SubscribeOnboarding = () => {
 
   const priceFor = (productId: ProductId) =>
     storePrices[productId] || `$${PRODUCTS[productId].priceUsd.toFixed(2)}`;
+
+  // ── Comparative claims: storefront-correct, or omitted ──
+  //
+  // `amountFor` returns the store's real local amount when it gave us one, and
+  // falls back to the USD config price ONLY when the store has not answered at
+  // all (web/dev/off-device) — where no claim is being made to a real buyer.
+  // On device, an unanswered SKU yields null and the claim is dropped rather
+  // than guessed.
+  const storeAnswered = Object.keys(storeAmounts).length > 0;
+  const amountFor = (id: ProductId): number | null =>
+    storeAmounts[id] ?? (storeAnswered ? null : PRODUCTS[id].priceUsd);
+
+  const monthlyAmount = amountFor('com.dynastymanager.pro.monthly');
+  const annualAmount = amountFor('com.dynastymanager.pro.annual');
+  /** Percent Yearly saves against twelve months of Monthly, or null if either
+   *  price is unknown or the saving is not actually positive. */
+  const annualSavingsPct = (() => {
+    if (monthlyAmount == null || annualAmount == null) return null;
+    const full = monthlyAmount * 12;
+    if (full <= 0 || annualAmount > full) return null;
+    const pct = Math.round((1 - annualAmount / full) * 100);
+    return pct > 0 ? pct : null;
+  })();
+
+  /** Yearly expressed per month, in the storefront's own formatting. Rebuilds
+   *  the number inside the store's localized string so symbol, placement and
+   *  separators stay correct. Null when there is nothing to model. */
+  const annualPerMonth = (() => {
+    if (annualAmount == null) return null;
+    const value = annualAmount / 12;
+    const localized = storePrices['com.dynastymanager.pro.annual'];
+    if (!localized) return `$${value.toFixed(2)}`;
+    const numeric = localized.match(/[\d.,]+/);
+    return numeric ? localized.replace(numeric[0], value.toFixed(2)) : null;
+  })();
 
   const finish = () => {
     // Every exit path funnels through here (skip, purchase success, restore
@@ -535,6 +577,12 @@ const SubscribeOnboarding = () => {
             const product = PRODUCTS[row.productId];
             const isSelected = selected === row.productId;
             const isAnnualBest = row.badge === 'BEST VALUE';
+            // A measured saving outsells a generic superlative — but only when
+            // it is a real number from this storefront. Falls back to the
+            // static badge whenever the store has not priced both plans.
+            const badgeText = isAnnualBest && annualSavingsPct != null
+              ? `SAVE ${annualSavingsPct}%`
+              : row.badge;
             // Apple 3.1.2(c) — billed amount must be the most prominent
             // pricing element. We show the full price + cadence in bold,
             // and any per-month framing in a smaller, lighter caption.
@@ -573,15 +621,25 @@ const SubscribeOnboarding = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
                     <span className="text-[13px] font-bold text-foreground truncate">{row.title}</span>
-                    {row.badge && (
+                    {badgeText && (
                       <span className="text-[9px] font-bold uppercase tracking-wider bg-[hsl(var(--gold)/0.18)] text-[hsl(var(--gold))] px-1.5 py-0.5 rounded">
-                        {row.badge}
+                        {badgeText}
                       </span>
                     )}
                   </div>
                   <p className="text-[11px] text-muted-foreground leading-snug">
                     {row.lengthLabel}
                   </p>
+                  {/* Per-month framing of the yearly price. Deliberately
+                      smaller and lighter than the billed amount on the right —
+                      Apple 3.1.2(c) requires the actual charge to be the most
+                      prominent pricing element, and the cadence is spelled out
+                      in full by `lengthLabel` directly above. */}
+                  {isAnnualBest && annualPerMonth && (
+                    <p className="text-[10px] text-muted-foreground/70 leading-snug mt-0.5">
+                      Works out at {annualPerMonth}/month
+                    </p>
+                  )}
                   {row.trialCaption && trialEligible && (
                     <p className="text-[10px] text-muted-foreground/80 leading-snug mt-0.5">
                       {row.trialCaption}

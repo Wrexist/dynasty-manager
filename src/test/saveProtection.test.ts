@@ -555,7 +555,9 @@ describe('device-scoped purchase record', () => {
 
     const stored = readDeviceEntitlements()!.entitlements;
     expect(stored).toContain('com.dynastymanager.bundle.all');
-    expect(stored).toContain('com.dynastymanager.pro');
+    // The bundle's Pro component is Lifetime — `com.dynastymanager.pro` is
+    // retired and no longer produced by any grant path.
+    expect(stored).toContain('com.dynastymanager.pro.lifetime');
     expect(stored).toContain('com.dynastymanager.pack.manager');
     // Subscription and consumable SKUs must never reach the record.
     expect(stored).not.toContain('com.dynastymanager.pro.monthly');

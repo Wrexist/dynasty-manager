@@ -28,7 +28,46 @@ interface ProductDef {
   billingPeriod?: string;
 }
 
+// ── The Pro price ladder ──
+//
+// Four rows, and the ordering between them is the whole design. Break any of
+// these relations and a row becomes unsellable:
+//
+//   Monthly  $4.99/mo   entry price. Below ~$3 the trial-to-paid economics stop
+//                       covering acquisition, and monthly has to stay high
+//                       enough that Yearly reads as a real saving.
+//   Yearly   $24.99/yr  58% off twelve months of Monthly. This is the row the
+//                       paywall preselects and badges — a year collected up
+//                       front is worth several months of churning Monthly.
+//   Lifetime $39.99     1.6x Yearly. Below ~1.5x it cannibalises the
+//                       subscription; above ~2x nobody takes it. Its second job
+//                       is anchoring the Yearly row it sits next to.
+//   Bundle   $42.99     Lifetime + all three cosmetic packs ($48.96 apart).
+//
+// The ladder previously had a fifth row — `com.dynastymanager.pro` at $7.99,
+// a permanent Pro unlock. It granted precisely what Lifetime grants at $19.99,
+// so it dominated the entire ladder and capped realised revenue per paying
+// player at $7.99. It is retired from sale (see `RETIRED_PRODUCT_IDS`).
+//
+// `priceUsd` is a DISPLAY FALLBACK for web/dev only. The prices a real buyer
+// sees come localized from the store, and every comparative claim in the UI is
+// computed from those numbers — never from these. Changing a number here does
+// not change what anyone is charged: App Store Connect and the RevenueCat
+// offering do that, and they must be changed together or non-US storefronts
+// render a false price.
 export const PRODUCTS: Record<ProductId, ProductDef> = {
+  // ⚠ RETIRED FROM SALE — grandfathered, never deleted.
+  //
+  // This SKU granted exactly the same Pro entitlement as
+  // `com.dynastymanager.pro.lifetime` for less than half the price, so it
+  // dominated every other row on the ladder: nobody rational bought Yearly,
+  // Lifetime or the bundle while a permanent unlock sat below them at $7.99.
+  // It is no longer offered by any surface and is not probed by the store.
+  //
+  // It MUST stay in `PRODUCTS` and in `PRO_ONE_TIME_PRODUCT_IDS` forever:
+  // existing owners hold this ID in `monetization.entitlements` and recover it
+  // through `restoreEntitlements`. Removing it revokes Pro from every player
+  // who already paid for it.
   'com.dynastymanager.pro': {
     id: 'com.dynastymanager.pro',
     name: 'Dynasty Pro',
@@ -40,7 +79,7 @@ export const PRODUCTS: Record<ProductId, ProductDef> = {
     id: 'com.dynastymanager.pro.monthly',
     name: 'Dynasty Pro Monthly',
     description: 'All Pro features, billed monthly. Cancel anytime.',
-    priceUsd: 1.99,
+    priceUsd: 4.99,
     type: 'subscription',
     subscriptionTier: 'monthly',
     billingPeriod: '/month',
@@ -49,7 +88,7 @@ export const PRODUCTS: Record<ProductId, ProductDef> = {
     id: 'com.dynastymanager.pro.annual',
     name: 'Dynasty Pro Annual',
     description: 'All Pro features, billed yearly.',
-    priceUsd: 14.99,
+    priceUsd: 24.99,
     type: 'subscription',
     subscriptionTier: 'annual',
     billingPeriod: '/year',
@@ -58,7 +97,7 @@ export const PRODUCTS: Record<ProductId, ProductDef> = {
     id: 'com.dynastymanager.pro.lifetime',
     name: 'Dynasty Pro Lifetime',
     description: 'All Pro features forever. One-time purchase.',
-    priceUsd: 19.99,
+    priceUsd: 39.99,
     type: 'one_time',
     subscriptionTier: 'lifetime',
   },
@@ -86,11 +125,15 @@ export const PRODUCTS: Record<ProductId, ProductDef> = {
   'com.dynastymanager.bundle.all': {
     id: 'com.dynastymanager.bundle.all',
     name: 'Dynasty Edition',
-    description: 'Everything — Dynasty Pro plus all cosmetic packs.',
-    priceUsd: 14.99,
+    description: 'Everything — Dynasty Pro Lifetime plus all cosmetic packs.',
+    priceUsd: 42.99,
     type: 'one_time',
     includes: [
-      'com.dynastymanager.pro',
+      // Lifetime, not the retired `com.dynastymanager.pro`. Both grant the
+      // same Pro, but the bundle's "save N%" claim is computed from the parts
+      // it lists — and a part the store no longer sells has no price, which
+      // silently suppresses the claim.
+      'com.dynastymanager.pro.lifetime',
       'com.dynastymanager.pack.manager',
       'com.dynastymanager.pack.stadium',
       'com.dynastymanager.pack.legends',
@@ -149,6 +192,21 @@ export const PRO_ONE_TIME_PRODUCT_IDS: ProductId[] = [
   'com.dynastymanager.pro.lifetime',
   'com.dynastymanager.bundle.all',
 ];
+
+/** Products still honoured as entitlements but no longer offered for sale on
+ *  any surface. A retired ID must never be deleted from `PRODUCTS` or from
+ *  `PRO_ONE_TIME_PRODUCT_IDS` — players who already bought it hold that ID in
+ *  `monetization.entitlements` and recover it through `restoreEntitlements`.
+ *  Retiring is a *sale* change: stop listing it, keep honouring it. */
+export const RETIRED_PRODUCT_IDS: ProductId[] = [
+  'com.dynastymanager.pro',
+];
+
+/** May a surface render a buy CTA for this product? Store availability is a
+ *  separate, stricter gate — this only says whether we still offer it at all. */
+export function isSellable(productId: ProductId): boolean {
+  return !RETIRED_PRODUCT_IDS.includes(productId);
+}
 
 // NOTE: there is deliberately no subscription-inclusive "all Pro products"
 // list here. One existed, unused, and it was precisely the footgun the
@@ -359,10 +417,19 @@ export const SUB_TRIAL_PRODUCT_IDS: ProductId[] = [
   'com.dynastymanager.pro.monthly',
 ];
 
-/** The product the free trial converts into when it ends. Players opting
- *  into the trial during onboarding are auto-enrolled in the monthly plan
- *  via `purchaseProduct(TRIAL_TARGET_PRODUCT_ID)`. */
-export const TRIAL_TARGET_PRODUCT_ID: ProductId = 'com.dynastymanager.pro.monthly';
+/** The product the free trial converts into when it ends, and the SKU whose
+ *  store intro-offer eligibility the paywall probes.
+ *
+ *  This is Yearly, not Monthly. A trial that converts to $24.99/yr is worth
+ *  multiples of one that converts to $4.99/mo and then churns, and Yearly is
+ *  already the row both paywalls preselect and badge — pointing the trial
+ *  anywhere else made the default CTA and the trial target disagree.
+ *
+ *  ⚠ Apple grants the introductory offer once per Apple ID per *subscription
+ *  group*, so the eligibility probe answers the same for either SKU as long as
+ *  both live in one group. If they are ever split into separate groups, this
+ *  probe stops describing Monthly and the trial caption on that row lies. */
+export const TRIAL_TARGET_PRODUCT_ID: ProductId = 'com.dynastymanager.pro.annual';
 
 // ── Starter Kit (new-manager recommendation) ──
 //

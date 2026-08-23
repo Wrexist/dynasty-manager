@@ -24,8 +24,13 @@ import {
   COSMETIC_ITEMS,
   DEFAULT_MONETIZATION_STATE,
   STARTER_KIT_WINDOW_MS,
+  PRO_ONE_TIME_PRODUCT_IDS,
+  CONSUMABLE_PRODUCT_IDS,
+  RETIRED_PRODUCT_IDS,
+  isSellable,
+  TRIAL_TARGET_PRODUCT_ID,
 } from '@/config/monetization';
-import type { MonetizationState } from '@/types/game';
+import type { MonetizationState, ProductId } from '@/types/game';
 
 function makeState(overrides: Partial<MonetizationState> = {}): MonetizationState {
   return {
@@ -342,6 +347,90 @@ describe('product catalog', () => {
     for (const included of bundle.includes!) {
       expect(PRODUCTS[included]).toBeDefined();
     }
+  });
+
+  it('never offers two sellable products that grant the same thing', () => {
+    // The $7.99 `com.dynastymanager.pro` regression: it granted precisely the
+    // Pro that `pro.lifetime` grants, for less than half the price, on the same
+    // screen. Every row above it became unsellable and revenue per paying
+    // player was capped at the cheapest duplicate. Two sellable SKUs may
+    // overlap only if one grants strictly more — and then it must cost more.
+    // Compare what a purchase actually LEAVES the player with, not which IDs
+    // it writes. `pro` and `pro.lifetime` are different IDs that both resolve
+    // to the same thing — permanent Pro — which is exactly why an ID-set
+    // comparison would have waved the original bug straight through.
+    const cosmeticPacks = new Set<string>(COSMETIC_ITEMS.map(item => item.pack));
+    const grants = (id: ProductId): Set<string> => {
+      const ids = [id, ...(PRODUCTS[id].includes || [])];
+      const out = new Set<string>();
+      if (ids.some(x => PRO_ONE_TIME_PRODUCT_IDS.includes(x))) out.add('PERMANENT_PRO');
+      for (const x of ids) if (cosmeticPacks.has(x)) out.add(x);
+      return out;
+    };
+
+    // Scoped to permanent, non-consumable products. Subscriptions grant Pro
+    // too but expire, so they are not substitutes for a one-time unlock;
+    // consumables grant nothing persistent and would all compare equal.
+    const sellable = (Object.keys(PRODUCTS) as ProductId[]).filter(
+      id => isSellable(id)
+        && PRODUCTS[id].type === 'one_time'
+        && !CONSUMABLE_PRODUCT_IDS.includes(id),
+    );
+
+    for (let i = 0; i < sellable.length; i++) {
+      for (let j = i + 1; j < sellable.length; j++) {
+        const [a, b] = [sellable[i], sellable[j]];
+        const [ga, gb] = [grants(a), grants(b)];
+        const aInB = [...ga].every(x => gb.has(x));
+        const bInA = [...gb].every(x => ga.has(x));
+
+        // Identical grant sets — one of them is dead weight.
+        expect(aInB && bInA, `${a} and ${b} grant the same products`).toBe(false);
+
+        // Strict superset must be the dearer of the two.
+        if (aInB) expect(PRODUCTS[b].priceUsd, `${b} grants more than ${a} but costs less`).toBeGreaterThan(PRODUCTS[a].priceUsd);
+        if (bInA) expect(PRODUCTS[a].priceUsd, `${a} grants more than ${b} but costs less`).toBeGreaterThan(PRODUCTS[b].priceUsd);
+      }
+    }
+  });
+
+  it('keeps the Pro ladder in a sellable order', () => {
+    const monthly = PRODUCTS['com.dynastymanager.pro.monthly'].priceUsd;
+    const annual = PRODUCTS['com.dynastymanager.pro.annual'].priceUsd;
+    const lifetime = PRODUCTS['com.dynastymanager.pro.lifetime'].priceUsd;
+
+    // Yearly must beat twelve months of Monthly by enough to be worth badging.
+    // Below ~40% the "BEST VALUE" row is a rounding error and nobody upgrades.
+    const annualSaving = 1 - annual / (monthly * 12);
+    expect(annualSaving).toBeGreaterThanOrEqual(0.4);
+
+    // Lifetime brackets Yearly. Under 1.5x it cannibalises the subscription;
+    // over 2x nobody takes it and it stops working as an anchor.
+    expect(lifetime).toBeGreaterThanOrEqual(annual * 1.5);
+    expect(lifetime).toBeLessThanOrEqual(annual * 2);
+  });
+
+  it('prices the bundle below the sum of what it grants', () => {
+    const bundle = PRODUCTS['com.dynastymanager.bundle.all'];
+    const parts = bundle.includes!.reduce((sum, id) => sum + PRODUCTS[id].priceUsd, 0);
+    expect(bundle.priceUsd).toBeLessThan(parts);
+  });
+
+  it('honours retired products forever', () => {
+    // Retiring is a *sale* change. A retired ID stays in the catalog and in the
+    // Pro entitlement list, because owners hold it in `monetization.entitlements`
+    // and recover it through `restoreEntitlements`. Deleting one revokes Pro
+    // from players who already paid.
+    for (const id of RETIRED_PRODUCT_IDS) {
+      expect(PRODUCTS[id], `retired ${id} was deleted from the catalog`).toBeDefined();
+      expect(isSellable(id)).toBe(false);
+    }
+    expect(PRO_ONE_TIME_PRODUCT_IDS).toContain('com.dynastymanager.pro');
+  });
+
+  it('points the free trial at a plan that actually offers one', () => {
+    expect(SUB_TRIAL_PRODUCT_IDS).toContain(TRIAL_TARGET_PRODUCT_ID);
+    expect(PRODUCTS[TRIAL_TARGET_PRODUCT_ID].type).toBe('subscription');
   });
 
   it('all cosmetic items reference valid packs', () => {
