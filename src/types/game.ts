@@ -2557,6 +2557,7 @@ export type SundayMemoryKind =
   | 'promotion' | 'relegation'
   | 'red-card'
   | 'motm'             // an outstanding individual performance
+  | 'comeback'         // back in the side after a long lay-off
   | 'bad-day'          // an abject one
   | 'injury'           // a long one
   | 'milestone'        // 50/100/150 apps, 25/50 goals

@@ -787,7 +787,7 @@ export function advanceSundayWeek(set: Set, get: Get): void {
       // narrative both get to say "he's back".
       const memories = longAbsence && rolled.status === 'available'
         && (players[m.playerId]?.injuryWeeks ?? 0) === 0
-        ? rememberMoment(m.memories, makeMemory(season, nextWeek, 'motm',
+        ? rememberMoment(m.memories, makeMemory(season, nextWeek, 'comeback',
             `Back after ${Math.max(2, m.availability.weeksRemaining + 1)} weeks out. First name on the sheet.`))
         : m.memories;
       return { ...withTick, memories, availability: rolled };

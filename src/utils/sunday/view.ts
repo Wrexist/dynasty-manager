@@ -286,11 +286,13 @@ export function sundayNewsFeed(sunday: SundayState, limit = 20): SundayNewsEntry
   //
   // WHY, and it is not belt-and-braces. The descriptive tuple is not unique and
   // cannot be made unique: one man can collect two memories of the SAME kind in
-  // the SAME week, and does. The observed collision was a player who came back
-  // from a lay-off and then ran the game — `week.ts` writes the comeback line as
-  // `motm` and `memories.ts` writes the performance as `motm`, both stamped
-  // season 1 week 3, so both hashed to `memory-<id>-1-3-motm`. Two entries, one
-  // key, and `SundayNewsList` renders them under a duplicate React key.
+  // the SAME week, and does. The collision CI observed was a player who came
+  // back from a lay-off and then ran the game — at the time `week.ts` wrote the
+  // comeback line as `motm` (since retagged `comeback`) and `memories.ts` wrote
+  // the performance as `motm`, both stamped season 1 week 3, so both hashed to
+  // `memory-<id>-1-3-motm`. Two entries, one key, and `SundayNewsList` rendered
+  // them under a duplicate React key. Retagging shrank that one pair, not the
+  // class — nothing stops two same-kind memories landing in one week.
   //
   // That is legitimate data — two things did happen to him that week — so the
   // fix belongs in the key, not in the events it describes. The counter runs
