@@ -335,6 +335,7 @@ export const SUNDAY_MEMORY_ICON: Record<SundayMemoryKind, LucideIcon> = {
   relegation: TrendingDown,
   'red-card': AlertTriangle,
   motm: Star,
+  comeback: HeartHandshake,
   'bad-day': Frown,
   injury: Stethoscope,
   milestone: Medal,

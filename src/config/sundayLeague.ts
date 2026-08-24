@@ -1465,6 +1465,10 @@ export const SUNDAY_MEMORY_WEIGHTS: Readonly<Record<string, number>> = {
   relegation: 6,
   'red-card': 5,
   motm: 6,
+  // Heavier than a debut, lighter than the injury that caused it — the lay-off
+  // is the story, the return is its happy footnote. This rode `motm`'s 6 until
+  // the mislabel was split out; see the writer in `slices/sunday/week.ts`.
+  comeback: 4,
   'bad-day': 4,
   injury: 5,
   milestone: 7,
