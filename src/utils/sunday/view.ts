@@ -282,24 +282,42 @@ export function sundayNewsFeed(sunday: SundayState, limit = 20): SundayNewsEntry
     .reverse()
     .map((text, i) => ({ kind: 'week' as const, text, season: null, week: null, id: `week-${i}` }));
 
+  // The dated ids carry a running index as well as their descriptive part.
+  //
+  // WHY, and it is not belt-and-braces. The descriptive tuple is not unique and
+  // cannot be made unique: one man can collect two memories of the SAME kind in
+  // the SAME week, and does. The observed collision was a player who came back
+  // from a lay-off and then ran the game — `week.ts` writes the comeback line as
+  // `motm` and `memories.ts` writes the performance as `motm`, both stamped
+  // season 1 week 3, so both hashed to `memory-<id>-1-3-motm`. Two entries, one
+  // key, and `SundayNewsList` renders them under a duplicate React key.
+  //
+  // That is legitimate data — two things did happen to him that week — so the
+  // fix belongs in the key, not in the events it describes. The counter runs
+  // across all three dated sources, so it also rules out the same class of clash
+  // between an event and a record. It is stable within one feed: the push order
+  // is `eventLog`, then `records`, then squad order x memory order, all of which
+  // are array order, and the sort below does not change what was already
+  // assigned.
   const dated: SundayNewsEntry[] = [];
+  let n = 0;
   for (const e of sunday.eventLog) {
     dated.push({
       kind: 'event', text: e.summary, season: e.season, week: e.week,
-      id: `event-${e.season}-${e.week}-${e.defId}`,
+      id: `event-${e.season}-${e.week}-${e.defId}-${n++}`,
     });
   }
   for (const r of sunday.records) {
     dated.push({
       kind: 'record', text: `${r.label}: ${r.value}${r.detail ? ` — ${r.detail}` : ''}`,
-      season: r.season, week: r.week, id: `record-${r.id}-${r.season}-${r.week}`,
+      season: r.season, week: r.week, id: `record-${r.id}-${r.season}-${r.week}-${n++}`,
     });
   }
   for (const m of sunday.squad) {
     for (const mem of m.memories) {
       dated.push({
         kind: 'memory', text: mem.text, season: mem.season, week: mem.week,
-        playerId: m.playerId, id: `memory-${m.playerId}-${mem.season}-${mem.week}-${mem.kind}`,
+        playerId: m.playerId, id: `memory-${m.playerId}-${mem.season}-${mem.week}-${mem.kind}-${n++}`,
       });
     }
   }

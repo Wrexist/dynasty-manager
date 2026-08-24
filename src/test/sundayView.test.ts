@@ -117,6 +117,29 @@ describe('sundayNewsFeed', () => {
     expect(feed.slice(0, weekEntries.length).every(e => e.kind === 'week')).toBe(true);
   });
 
+  it('keys two same-kind memories in the same week apart', () => {
+    // The collision this pins is real and was found by CI, not imagined: a man
+    // who comes back from a lay-off gets a `motm` memory from `week.ts`, and if
+    // he then runs the game he gets a second `motm` memory from `memories.ts`,
+    // same season and same week. The descriptive tuple cannot separate them, so
+    // the id carries an index. Built directly rather than played for, because a
+    // scenario that shows up in roughly one run in six is not a test.
+    const s = useGameStore.getState();
+    const [first] = s.sunday!.squad;
+    const twice = {
+      ...first,
+      memories: [
+        { season: 1, week: 3, kind: 'motm' as const, text: 'Back after 2 weeks out.', weight: 4 },
+        { season: 1, week: 3, kind: 'motm' as const, text: 'Ran the game — 8.9 and everyone knew it.', weight: 6 },
+      ],
+    };
+    const sunday: SundayState = { ...s.sunday!, squad: [twice, ...s.sunday!.squad.slice(1)] };
+    const feed = sundayNewsFeed(sunday, 200);
+    const mine = feed.filter(e => e.playerId === first.playerId);
+    expect(mine).toHaveLength(2);
+    expect(new Set(feed.map(e => e.id)).size).toBe(feed.length);
+  });
+
   it('puts this week first, then the dated entries newest first', () => {
     const s = useGameStore.getState();
     const sunday: SundayState = {
