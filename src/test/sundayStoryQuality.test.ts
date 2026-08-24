@@ -230,19 +230,59 @@ async function playCareer(seed: number, personality: SundayClubPersonalityId, ta
   };
 }
 
+/**
+ * Pin `Math.random` for the population run, and put it back afterwards.
+ *
+ * The Sunday seed is NOT enough to make a career reproducible, and assuming it
+ * was is what made this file flake. The mode's own draws — availability,
+ * events, recruits — all go through the seeded generator (`utils/sunday/rng.ts`),
+ * but the mode does not have its own simulation: `utils/sunday/match.ts` hands
+ * every fixture to the shared `simulateMatch`, which draws from `Math.random`
+ * like the rest of the game. So the results, and everything downstream of them
+ * — form, morale, memories, and which chains fire — moved on every run.
+ *
+ * That is fine for the game and fatal for a population gate: the assertions
+ * below are calibrated on measured numbers, and a floor measured over three
+ * lucky samples of a moving distribution is not a floor. CI found the tail on
+ * `careersWithAChain`, 23/24 against a `toBe(24)`.
+ *
+ * Pinning the engine's stream makes the measurement the same measurement every
+ * run, so the strict assertions can stay strict and a failure means the mode
+ * changed rather than the dice did. Same generator as
+ * `helpers/seasonFixtures.withSeededRandom`; installed around the whole
+ * population rather than per call because the careers are async.
+ */
+function pinRandom(seed: number): () => void {
+  const original = Math.random;
+  let s = seed >>> 0;
+  Math.random = () => {
+    s = (s + 0x6D2B79F5) >>> 0;
+    let t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  return () => { Math.random = original; };
+}
+
 /** The whole population, played once and shared by every case in the file. */
 let population: Story[] | null = null;
 async function stories(): Promise<Story[]> {
   if (population) return population;
+  const restoreRandom = pinRandom(0x5EA50FF);
   const out: Story[] = [];
   const personalities = SUNDAY_PERSONALITIES.map(p => p.id);
   const tactics = SUNDAY_TACTICS.map(t => t.id);
-  for (let i = 0; i < CAREERS; i++) {
-    out.push(await playCareer(
-      3100 + i,
-      personalities[i % personalities.length],
-      tactics[i % tactics.length],
-    ));
+  try {
+    for (let i = 0; i < CAREERS; i++) {
+      out.push(await playCareer(
+        3100 + i,
+        personalities[i % personalities.length],
+        tactics[i % tactics.length],
+      ));
+    }
+  } finally {
+    restoreRandom();
   }
   population = out;
   return out;
@@ -286,11 +326,14 @@ describe('no career is dead', () => {
     const detail = `started=${started} ended=${ended} sweptAtRollover=${swept} leaked=${leaked} `
       + `resolvedInSeason=${(inSeason * 100).toFixed(0)}% careersWithAChain=${withAChain}/${all.length}`;
 
-    // MEASURED, 24 careers x 4 seasons, three runs: 102-128 chain instances
-    // started, all of them accounted for, 24/24 careers telling at least one
-    // multi-week story every run, and 86% / 89% / 93% of instances reaching an
-    // ENDING inside the season that started them. Nothing ever leaked past a
-    // rollover.
+    // MEASURED, 24 careers x 4 seasons, on the pinned engine stream (see
+    // `pinRandom`): 120 chain instances started, all of them accounted for,
+    // 24/24 careers telling at least one multi-week story, and 94% of
+    // instances reaching an ENDING inside the season that started them.
+    // Nothing leaks past a rollover. These numbers are now reproducible run to
+    // run — before the stream was pinned they moved (102-133 started, 87-94%
+    // in-season), and CI eventually drew a career with no chain at all against
+    // the `toBe` below.
     expect(started, detail).toBeGreaterThan(all.length * 2);
     expect(withAChain, detail).toBe(all.length);
     // Nothing is abandoned. Every instance seen alive was later accounted for

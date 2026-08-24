@@ -1,6 +1,6 @@
 # CLAUDE.md — Dynasty Manager
 
-> Last verified against the codebase 2026-07-29 (app v1.3.0, save schema v86).
+> Last verified against the codebase 2026-08-23 (app v1.5.0, save schema v86).
 > If the numbers below disagree with the code, trust the code — and update this file.
 > `npm run docs:check` verifies the countable claims (schema version, file counts,
 > LOC of the named files) and `-- --fix` updates them. It runs in preflight, so this
@@ -90,6 +90,7 @@ seal automatically before the build:
 | Input | Required | Notes |
 |-------|----------|-------|
 | `marketing_version` | no | Override `package.json.version` for this build only. Leave blank to use whatever's currently in `package.json`. |
+| `dev_tools` | no | Boolean, default `false`. Includes the in-app Developer section (Reset Pro & open paywall, etc.) for internal testing. **Leave OFF for a real App Store release; turn ON only when the build is for IAP testing.** |
 
 Steps the workflow performs:
 
@@ -448,7 +449,10 @@ and Pro feature list live in `src/config/monetization.ts`; entitlement checks
 in `src/utils/monetization.ts`; state in `monetizationSlice`.
 
 - **Dynasty Pro SKUs:** one-time `com.dynastymanager.pro`, subscriptions
-  `.pro.monthly` / `.pro.annual`, one-time `.pro.lifetime`, and the
+  `.pro.monthly` / `.pro.yearly` (⚠ the real ASC/RevenueCat product ID is
+  `.yearly`, not `.annual` — see the entitlement invariants below; `annual`
+  only survives as the internal `SubscriptionTier` label), one-time
+  `.pro.lifetime`, and the
   `bundle.all` "Dynasty Edition" (Pro + all cosmetic packs). USD prices in
   config are fallbacks — real prices come localized from the store.
 - **Pro features:** `ad_free`, `advanced_analytics`, `custom_tactics`,
@@ -458,9 +462,13 @@ in `src/utils/monetization.ts`; state in `monetizationSlice`.
   permanent entitlements with an in-game cosmetics catalog.
 - **Consumable player-pack IAPs:** gold / premium_gold / rare_gold / icon —
   consumed per open, NEVER stored as entitlements, NEVER restorable.
-- **Free trial:** `FREE_TRIAL_DAYS` intro trial (currently 7) → monthly plan
-  (`startFreeTrial` is a no-op if ANY subscription record exists — prevents
-  trial-restart abuse).
+- **Free trial:** `FREE_TRIAL_DAYS` intro trial (currently 7) → **Yearly**
+  plan (`TRIAL_TARGET_PRODUCT_ID`; retargeted from Monthly by #610 — a trial
+  converting to $24.99/yr is worth multiples of one converting to $4.99/mo).
+  Both Monthly and Annual are in `SUB_TRIAL_PRODUCT_IDS` and must stay in the
+  same ASC subscription group, or the eligibility probe misdescribes one of
+  them. (`startFreeTrial` is a no-op if ANY subscription record exists —
+  prevents trial-restart abuse.)
   **Starter Kit** is a 7-day-from-first-launch offer.
 
 ### Entitlement invariants (violating these = revenue bugs)
@@ -479,17 +487,35 @@ in `src/utils/monetization.ts`; state in `monetizationSlice`.
 5. Off-device (web/dev), purchases are mocked to succeed
    (`purchaseProduct` → `[productId]`, `purchaseConsumable` → `true`).
    Real purchase paths only run on device.
+6. Every `ProductId` string in code MUST byte-for-byte match the product
+   identifier registered in App Store Connect / Google Play / RevenueCat —
+   StoreKit and RevenueCat match by exact string, and a mismatch fails
+   silently (product resolves as "not available," not an error). Apple does
+   not allow renaming a product ID after creation, so if code and store ever
+   disagree, **fix the code, never assume the console is wrong.** (This
+   invariant exists because it was violated: the Yearly subscription shipped
+   as `com.dynastymanager.pro.annual` in code against a store product actually
+   registered as `com.dynastymanager.pro.yearly`, making Yearly unpurchasable
+   on device until fixed 2026-08-23.)
 
-### Observability: wired but INERT until secrets exist
+### Observability: Sentry wired but inert until its secret is set; analytics has no transport by design
 
-`VITE_ANALYTICS_ENDPOINT` and `VITE_SENTRY_DSN` are now passed through in
-`ios-testflight.yml` / `android-build.yml`, but **the GitHub secrets do not
-exist yet**. Both consumers hard-return on an empty value
-(`analytics.ts` `if (!endpoint) return`, `sentry.ts` `if (!dsn) return`), so
-until those secrets are set: no analytics event and no crash report leaves a
-production device, and every conversion rate in
-`marketing/ads/unit-economics.mjs` is unmeasurable. See
-`marketing/ads/RELEASE-READINESS.md` for the setup steps.
+`VITE_SENTRY_DSN` is passed through in `ios-testflight.yml` /
+`android-build.yml`. `sentry.ts` no-ops when the DSN is empty at build time,
+so crash reporting stays silent until the `VITE_SENTRY_DSN` **repo secret**
+is confirmed set (GitHub → Settings → Secrets and Variables → Actions — this
+can't be verified from the repo itself). See `marketing/ads/RELEASE-READINESS.md`
+§8 for the setup steps.
+
+`src/utils/analytics.ts` has **no endpoint and no `VITE_ANALYTICS_ENDPOINT`
+anywhere in this repo** — the sink is hardcoded local-only (dev builds
+`console.info`; production is a silent no-op), by deliberate decision:
+product analytics travel via RevenueCat + App Store Connect instead of a
+first-party pipeline (`marketing/ads/RELEASE-READINESS.md` §1.3, decided:
+delete). Don't reintroduce a transport without revisiting that decision, and
+every conversion rate in `marketing/ads/unit-economics.mjs` stays unmeasurable
+— and must be labelled an assumption, never a fact — until RevenueCat/ASC
+data exists.
 
 ### Ads: disabled in V1
 `@capacitor-community/admob` is fully removed (it crashed TestFlight builds —
@@ -702,6 +728,12 @@ ad capture) still exists in `src/pages/`, but its route and Settings entry are
   near zero. The meter itself lied for a while (it skipped every line containing
   `className=`, i.e. every JSX text node, and reported 0) — see the correction in
   `docs/CRITICAL-REVIEW-2026-08.md` §17.
+  **Release-scope decision (2026-08-23, v1.5.0):** i18n is explicitly deferred
+  for this release — not a goal, not on the roadmap for this cycle. The 999
+  hardcoded-English strings are known debt, not a blocker; do not hold a
+  release on this count, and do not advertise Swedish (or any) localisation
+  in store copy or release notes until a future release explicitly commits to
+  finishing the migration.
 - `orchestration/weekAdvance.ts` (3,094 LOC) and `pages/Dashboard.tsx` (2,192 LOC) are the new oversized files — use `/refactor` for guided extraction.
 - TS strict mode OFF (`strict: false`, `strictNullChecks: false`).
 - Generated data dwarfs the code (~410K vs ~139K LOC) — keep it lazily imported; `size:check` is the guard.

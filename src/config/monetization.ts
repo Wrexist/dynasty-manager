@@ -84,8 +84,8 @@ export const PRODUCTS: Record<ProductId, ProductDef> = {
     subscriptionTier: 'monthly',
     billingPeriod: '/month',
   },
-  'com.dynastymanager.pro.annual': {
-    id: 'com.dynastymanager.pro.annual',
+  'com.dynastymanager.pro.yearly': {
+    id: 'com.dynastymanager.pro.yearly',
     name: 'Dynasty Pro Annual',
     description: 'All Pro features, billed yearly.',
     priceUsd: 24.99,
@@ -413,7 +413,7 @@ export const FREE_TRIAL_MS = FREE_TRIAL_DAYS * 24 * 60 * 60 * 1000;
  *  listed here show trial framing on the paywall ("free trial included",
  *  trial CTA, no-payment-now note) — and only to trial-eligible users. */
 export const SUB_TRIAL_PRODUCT_IDS: ProductId[] = [
-  'com.dynastymanager.pro.annual',
+  'com.dynastymanager.pro.yearly',
   'com.dynastymanager.pro.monthly',
 ];
 
@@ -429,7 +429,7 @@ export const SUB_TRIAL_PRODUCT_IDS: ProductId[] = [
  *  group*, so the eligibility probe answers the same for either SKU as long as
  *  both live in one group. If they are ever split into separate groups, this
  *  probe stops describing Monthly and the trial caption on that row lies. */
-export const TRIAL_TARGET_PRODUCT_ID: ProductId = 'com.dynastymanager.pro.annual';
+export const TRIAL_TARGET_PRODUCT_ID: ProductId = 'com.dynastymanager.pro.yearly';
 
 // ── Starter Kit (new-manager recommendation) ──
 //

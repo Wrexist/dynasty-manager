@@ -32,6 +32,7 @@
 > | **A-5** PacksPage had no availability probe | this commit — `packSkuPurchasable()` gates the `iap` method | typecheck |
 > | **A-12** `adBudgetReward` clamp when `min > max` | this commit — bounds normalised before clamping | `monetization.test.ts` |
 > | **A-18** CLAUDE.md said schema v73 | `87c723e` — corrected to v78 in all four places | — |
+> | **NEW (found 2026-08-23, not in original sweep)** Yearly subscription product ID mismatch | Code shipped `com.dynastymanager.pro.annual`; the real ASC/RevenueCat/Play product (verified live in-console) is `com.dynastymanager.pro.yearly`. StoreKit/RevenueCat match by exact string, so Yearly — the row #610 just retargeted the free trial to — has been unpurchasable on device. Renamed every code reference to `.yearly` to match the console (product IDs can't be renamed on Apple's side); this doc's §2/§3/§4 `pro.annual` references corrected to `pro.yearly` too | typecheck + `monetization.test.ts` + `purchaseFailureModes.test.ts` |
 >
 > **A-3 remains the most important open item** and is not a code fix: the env
 > wiring for `VITE_ANALYTICS_ENDPOINT` / `VITE_SENTRY_DSN` now exists in both
@@ -785,7 +786,7 @@ its status.
 | `com.dynastymanager.pack.stadium` | Non-Consumable | Approved |
 | `com.dynastymanager.pack.legends` | Non-Consumable | Approved |
 | `com.dynastymanager.pro.monthly` | Auto-Renewable Subscription | Approved |
-| `com.dynastymanager.pro.annual` | Auto-Renewable Subscription | Approved |
+| `com.dynastymanager.pro.yearly` | Auto-Renewable Subscription | Approved |
 | `com.dynastymanager.pack.gold` | **Consumable** | Approved |
 | `com.dynastymanager.pack.premium_gold` | **Consumable** | Approved |
 | `com.dynastymanager.pack.rare_gold` | **Consumable** | Approved |
@@ -840,15 +841,15 @@ remove the old one from sale — never the reverse.
 
 **3.1 — Verify there is exactly one subscription group containing both Pro SKUs.**
 **Monetization → Subscriptions**.
-**Verify:** `pro.monthly` and `pro.annual` are in the same group.
+**Verify:** `pro.monthly` and `pro.yearly` are in the same group.
 **If they are in different groups:** a user can hold both simultaneously and Apple
 will not offer upgrade/downgrade/crossgrade between them. The app's
 `openSubscriptionManagement` path assumes one group.
 
 **3.2 — Set the upgrade/downgrade ranking within the group.**
-Same screen → drag annual above monthly (level 1 = highest).
-**Verify:** annual sits at a higher level than monthly.
-**If skipped:** the annual "upgrade" card in ShopPage triggers a *crossgrade* that
+Same screen → drag yearly above monthly (level 1 = highest).
+**Verify:** yearly sits at a higher level than monthly.
+**If skipped:** the yearly "upgrade" card in ShopPage triggers a *crossgrade* that
 takes effect at the next renewal instead of an immediate upgrade with proration.
 The user pays and sees nothing change, which reads as a broken purchase.
 
@@ -864,7 +865,7 @@ Subscription → **Subscription Prices** → **Introductory Offers** → **+**.
 - Type: **Free Trial**
 - Duration: **1 week** (= `FREE_TRIAL_DAYS = 7`, `src/config/monetization.ts:320`)
 - Territories: all where you sell
-- Do this for **both** `pro.monthly` and `pro.annual`.
+- Do this for **both** `pro.monthly` and `pro.yearly`.
 
 **Verify:** each SKU lists an active Free Trial offer of 1 week, with no end date
 in the past.
@@ -926,7 +927,7 @@ const proEntitlement = activeEntitlements['pro'] || activeEntitlements['dynasty_
 
 Attach to it: `com.dynastymanager.pro`, `com.dynastymanager.pro.lifetime`,
 `com.dynastymanager.bundle.all`, `com.dynastymanager.pro.monthly`,
-`com.dynastymanager.pro.annual`.
+`com.dynastymanager.pro.yearly`.
 **Verify:** the entitlement's identifier string in the dashboard reads `pro` (or
 `dynasty_pro`) — not `Pro`, not `pro_access`, not `dynasty-pro`. It is
 case-sensitive and exact.

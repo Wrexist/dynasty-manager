@@ -98,7 +98,7 @@ describe('monetization utils', () => {
       // monthly/annual are not one-time Pro IDs, so their presence in
       // `entitlements` must not, on its own, grant Pro.
       expect(isPro(makeState({ entitlements: ['com.dynastymanager.pro.monthly'] }))).toBe(false);
-      expect(isPro(makeState({ entitlements: ['com.dynastymanager.pro.annual'] }))).toBe(false);
+      expect(isPro(makeState({ entitlements: ['com.dynastymanager.pro.yearly'] }))).toBe(false);
     });
 
     it('does NOT grant Pro to a lapsed subscriber even with the sub SKU in entitlements', () => {
@@ -396,7 +396,7 @@ describe('product catalog', () => {
 
   it('keeps the Pro ladder in a sellable order', () => {
     const monthly = PRODUCTS['com.dynastymanager.pro.monthly'].priceUsd;
-    const annual = PRODUCTS['com.dynastymanager.pro.annual'].priceUsd;
+    const annual = PRODUCTS['com.dynastymanager.pro.yearly'].priceUsd;
     const lifetime = PRODUCTS['com.dynastymanager.pro.lifetime'].priceUsd;
 
     // Yearly must beat twelve months of Monthly by enough to be worth badging.

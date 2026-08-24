@@ -58,12 +58,45 @@ function restoreBaseline() {
     boardConfidence: baseline.boardConfidence,
     transferMarket: baseline.transferMarket,
     playerDivision: baseline.playerDivision,
+    // The phase pair belongs in the snapshot. Left out, a test that happened
+    // to enter the promotion playoff (see `rollSeason`) leaked
+    // `seasonPhase: 'playoff'` into every test after it, and `endSeason`
+    // correctly refused to roll for the rest of the file.
+    seasonPhase: baseline.seasonPhase,
+    playoffState: baseline.playoffState,
   }));
   useGameStore.setState(fresh);
 }
 
 beforeAll(async () => { await initBaseline(); }, 60_000);
 beforeEach(() => { restoreBaseline(); });
+
+/**
+ * Roll the season, playing out a promotion playoff if one is offered.
+ *
+ * `endSeason` defers the rollover when the player's club lands in a playoff
+ * zone (`orchestration/playoff.ts`) — the bracket is real matches the player
+ * has to play first. This harness injects `divisionTables`, but rollover
+ * rebuilds its own tables from `divisionFixtures`, so the club's real finishing
+ * position is whatever the catch-up simulation produces. Once a season
+ * relegates it into a tier that HAS a playoff (eng-2 has four spots), a
+ * mid-table injection is no protection: the club can qualify, the rollover is
+ * deferred, and every later `endSeason` in the file becomes a no-op.
+ *
+ * So drive the playoff the way the game does, through `playCurrentMatch`, and
+ * return once the season has actually rolled.
+ */
+function rollSeason(seed: number) {
+  withSeededRandom(seed, () => {
+    useGameStore.getState().endSeason();
+    // Bounded: the bracket is a semi-final and a final at most.
+    for (let guard = 0; guard < 4; guard++) {
+      const s = useGameStore.getState();
+      if (s.seasonPhase !== 'playoff' || !s.playoffState?.pendingMatch) break;
+      useGameStore.getState().playCurrentMatch();
+    }
+  });
+}
 
 /**
  * Place player's club at a specific position in their division and fill
@@ -132,13 +165,13 @@ describe('endSeason — consecutive runs preserve state integrity', () => {
     // are not reliably forced from this test harness. We assert the
     // robustness invariants rather than a specific division change.
     placePlayerAtAndFillTables(5);
-    withSeededRandom(1, () => useGameStore.getState().endSeason());
+    rollSeason(1);
     const state2 = useGameStore.getState();
     expect(state2.clubs[PLAYER_CLUB_ID]).toBeDefined();
     expect(state2.season).toBe(baseline!.season + 1);
 
     placePlayerAtAndFillTables(5);
-    withSeededRandom(2, () => useGameStore.getState().endSeason());
+    rollSeason(2);
     const state3 = useGameStore.getState();
 
     expect(state3.clubs[PLAYER_CLUB_ID]).toBeDefined();
@@ -150,7 +183,7 @@ describe('endSeason — consecutive runs preserve state integrity', () => {
 
   it('player\'s playerDivision matches their club\'s divisionId after rollover', () => {
     placePlayerAtAndFillTables(5);
-    withSeededRandom(3, () => useGameStore.getState().endSeason());
+    rollSeason(3);
     const state = useGameStore.getState();
     const club = state.clubs[PLAYER_CLUB_ID];
     expect(club.divisionId).toBe(state.playerDivision);
@@ -163,7 +196,7 @@ describe('endSeason — 3-season smoke run with no state corruption', () => {
   it('three consecutive endSeasons leave no orphans, no duplicates, valid squads', () => {
     for (let i = 0; i < 3; i++) {
       placePlayerAtAndFillTables(5); // mid-table — no promo/releg flips
-      withSeededRandom(100 + i, () => useGameStore.getState().endSeason());
+      rollSeason(100 + i);
       expect(clubHasNoOrphans()).toBe(true);
       expect(divisionsHaveNoDuplicates()).toBe(true);
     }
@@ -194,7 +227,7 @@ describe('endSeason — mass contract expiry across the lineup', () => {
     }
     useGameStore.setState({ players: updatedPlayers });
 
-    withSeededRandom(200, () => useGameStore.getState().endSeason());
+    rollSeason(200);
 
     const after = useGameStore.getState();
     const club = after.clubs[PLAYER_CLUB_ID];
@@ -223,7 +256,7 @@ describe('endSeason — mass contract expiry across the lineup', () => {
     }
     useGameStore.setState({ players: updatedPlayers });
 
-    withSeededRandom(201, () => useGameStore.getState().endSeason());
+    rollSeason(201);
 
     expect(clubHasNoOrphans()).toBe(true);
     expect(divisionsHaveNoDuplicates()).toBe(true);
@@ -256,7 +289,7 @@ describe('endSeason — promotion + cup win same season', () => {
       },
     });
 
-    withSeededRandom(300, () => useGameStore.getState().endSeason());
+    rollSeason(300);
 
     const { seasonHistory } = useGameStore.getState();
     const latest = seasonHistory[seasonHistory.length - 1];

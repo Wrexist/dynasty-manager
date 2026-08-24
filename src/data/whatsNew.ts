@@ -65,6 +65,37 @@ export { readWhatsNewSeenVersion, writeWhatsNewSeenVersion };
  */
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.5.0',
+    build: null,
+    date: '2026-08-23',
+    headline: 'Injuries across the rest of the world now heal. Previously only your own squad recovered, so by season three most of the league was permanently injured — which is also why your fixtures could quietly go unplayed.',
+    summary: 'Injuries across the rest of the world now heal. Previously only your own squad recovered, so by season three most of the league was permanently injured — which is also why your fixtures could quietly go unplayed. V1.4.0: Fix critical save, training, and monetization regressions. Plus 7 improvements and 8 fixes across the rest of the build.',
+    highlights: [
+      'Injuries across the rest of the world now heal. Previously only your own squad recovered, so by season three most of the league was permanently injured — which is also why your fixtures could quietly go unplayed.',
+    ],
+    new: [],
+    improved: [
+      'V1.4.0: Fix critical save, training, and monetization regressions.',
+      'Make fan mood react to results instead of sitting at 50.',
+      'The Shop now leads with Pro Yearly instead of Pro Monthly, matching the subscribe screen.',
+      'Kick Off can no longer do nothing at all.',
+      'Growth overhaul.',
+      'Add Sunday League — a complete local football management mode.',
+      'Retire $7.99 Pro SKU and rebalance the subscription ladder.',
+      'App Store descriptions now carry the required Privacy Policy and Terms of Use links in every language.',
+    ],
+    fixed: [
+      'Fan mood now reacts to results and league position instead of sitting at a flat 50 all game — matchday income finally rises with a winning run and dips during a slump.',
+      'The Super Cup now actually finishes: if it gets bumped off its scheduled week it is played once, awards the trophy and the prize money, and stops reappearing every free week.',
+      'Your assistant now fills gaps in the starting XI from the whole squad, not just the named bench, so a run of injuries can no longer leave a match unplayable.',
+      'Rival clubs now recover fitness between matches like your own squad does. Previously only your players rested, so the rest of the world got quietly and permanently more tired every season.',
+      'Starting a game with a club that no longer exists (an old deep link, a stale save) now fails cleanly instead of crashing part-way through building the world.',
+      'Kick Off and Instant Sim could silently do nothing when a squad was deep in an injury crisis, leaving a save stuck on one fixture. Your side — and the opposition — now field emergency cover so the match is always playable, and any remaining failure says so instead of ignoring the tap.',
+      'The promotion playoff can now be played, not just watched. Kick Off did nothing on a playoff tie and Instant Sim is a Pro feature, so a free manager who finished in the playoff places could never finish their season.',
+      'Cup, League Cup, continental and Super Cup matches show their competition badge on the Kick Off screen again, and count as the big occasions they are — knockout ties and derbies now offer the pre-match team talk they were quietly skipping.',
+    ],
+  },
+  {
     version: '1.4.0',
     build: null,
     date: '2026-08-17',
