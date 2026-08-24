@@ -44,7 +44,9 @@ export interface PendingRelease {
 export const PENDING_NEWS: PendingRelease = {
   highlights: [],
   new: [],
-  improved: [],
+  improved: [
+    'Release 1.4.1 docs version.',
+  ],
   fixed: [],
   headline: null,
   summary: null,
