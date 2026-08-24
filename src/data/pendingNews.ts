@@ -46,6 +46,7 @@ export const PENDING_NEWS: PendingRelease = {
   new: [],
   improved: [
     'Release 1.4.1 docs version.',
+    'A comeback is not a man-of-the-match.',
   ],
   fixed: [],
   headline: null,
