@@ -209,12 +209,23 @@ export function generatePackContents(
   // A free/ad open resolves to the tier's weaker odds where it defines them;
   // the Daily Pack additionally resolves its streak band. Single resolver, so
   // the odds sheet and the generator can never disagree.
-  const tier = resolvePackTier(PACK_TIER_MAP[tierKey], {
+  const resolved = resolvePackTier(PACK_TIER_MAP[tierKey], {
     freeOpen: !!opts.freeOpen,
     streak: opts.streak,
   });
+  const versionBoost = opts.versionBoost ?? resolved.versionBoost ?? 0;
+  // A promo week's +1 raises the FINAL ceiling with it — the base pick band's
+  // top (ovrMax − boost) is unchanged, the issued cards go one higher. Without
+  // this, the promo odds sheet (built from the raised presentation) published
+  // a top row the generator was mathematically incapable of dealing: during a
+  // Golden Era week the guide said "Legendary (90 OVR) 5%" while every card
+  // clamped to 89 (audit finding, and the exact false-odds class Guideline
+  // 3.1.1 is about).
+  const extraOverTier = Math.max(0, versionBoost - (resolved.versionBoost ?? 0));
+  const tier = extraOverTier > 0
+    ? { ...resolved, ovrMax: resolved.ovrMax + extraOverTier }
+    : resolved;
   const players: Player[] = [];
-  const versionBoost = opts.versionBoost ?? tier.versionBoost ?? 0;
 
   // ── Guaranteed slot ──
   // Pity aims the floor at PACK_PITY_MIN_OVR, but the roll stays tied to what

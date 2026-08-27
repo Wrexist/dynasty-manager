@@ -494,9 +494,16 @@ export const PACK_QUICK_SELL_RATE = 0.65;
  *  transfer budget, minted at reveal time by a tap. Real money must never
  *  convert into decisive in-game cash on the spot.
  *
- *  Selling a star the slow way still works and still pays full price: list him,
- *  wait for a club that can afford him, like any other transfer. That path
- *  takes weeks and a buyer — the same friction every star sale has. */
+ *  Selling a star the slow way still works where a buyer exists: list him and
+ *  wait for a club that can afford him, like any other transfer. At the very
+ *  top that buyer may never come — AI bids require a budget ~1.2× the fee, and
+ *  no club can bid on a £600M Legends card — and that is accepted: a card like
+ *  that IS squad strength, not a cash instrument, and giving it a guaranteed
+ *  cash exit is precisely the faucet this cap closes.
+ *
+ *  The cap is PER OPEN, drawn down sale by sale (see
+ *  `OpenedPackRecord.quickSoldTotal`). Per card it degenerated into a flat
+ *  n × cap payout on Sell All. */
 export const PACK_QUICK_SELL_CAP = 10_000_000;
 
 /** ── AI counter-signings (league-balance scaling) ──

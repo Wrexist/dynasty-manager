@@ -12,7 +12,7 @@ import { isPlaceholderClubId } from '@/config/continental';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 89;
+const CURRENT_VERSION = 90;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -88,6 +88,14 @@ const migrations: Record<number, MigrationFn> = {
   //
   // Later waves EXTEND this step rather than adding another: keep the shape
   // below (a single `sunday` rewrite with per-field fallbacks) and add fields.
+  // v89 → v90: `OpenedPackRecord.quickSoldTotal` — the per-open quick-sell
+  // refund ledger behind PACK_QUICK_SELL_CAP. Optional and absent-reads-as-0,
+  // so nothing needs writing into old payloads; the step exists to record the
+  // shape change per the CURRENT_VERSION rule. No backfill is also CORRECT:
+  // quick-sell is restricted to the most recent open in the same in-game week,
+  // and any pre-migration open is by definition older than that.
+  89: (data) => ({ ...data, version: 90 }),
+
   // v88 → v89: `Player.wageFactor` + a global wage easing.
   //
   // Two things happened and only one of them needs a migration step.

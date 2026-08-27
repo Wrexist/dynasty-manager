@@ -76,7 +76,9 @@ export function PackOddsSheet({ tier: rawTier, streak, bonusCards = 0, onClose }
   const versionBoost = tier.versionBoost ?? 0;
   // "Champions Pack" → "Champions". The word "version" follows it in the copy,
   // and "a Champions Pack version" reads as a mouthful of nouns.
-  const versionName = rawTier.label.replace(/\s+pack$/i, '');
+  // "The Dynasty Pack" → "Dynasty": strip the trailing "Pack" AND a leading
+  // "The", or the copy reads "a The Dynasty version".
+  const versionName = rawTier.label.replace(/\s+pack$/i, '').replace(/^the\s+/i, '');
   // Expected 80+ cards per open. Weights are authored to sum to 1, but a tier
   // edited to sum to anything else must not silently turn this into a fiction —
   // normalise, so the number is always a real expectation over the same table
@@ -87,7 +89,16 @@ export function PackOddsSheet({ tier: rawTier, streak, bonusCards = 0, onClose }
     : 0;
   // A guaranteed floor at 80+ makes every guaranteed card (including the weekly
   // bonus cards, which roll at that same floor) a certain elite pull.
-  const expectedElite = (tier.guaranteedMinOvr >= 80 ? guaranteed : 0) + random * elitePerCard;
+  // The guaranteed slot rolls uniformly over [floor, ceiling], not from the
+  // rarity table — so when the floor is BELOW 80 it still lands 80+ whenever
+  // the roll does, and counting it as zero understated Champions by ~0.5
+  // cards per open (audit finding). Uniform over the final band is the
+  // generator's target; pool density wobbles around it, which is why the line
+  // says "~".
+  const guaranteedEliteShare = tier.guaranteedMinOvr >= 80
+    ? 1
+    : Math.max(0, Math.min(1, (tier.ovrMax - 79) / (tier.ovrMax - tier.guaranteedMinOvr + 1)));
+  const expectedElite = guaranteed * guaranteedEliteShare + random * elitePerCard;
 
   return (
     <motion.div
@@ -181,8 +192,8 @@ export function PackOddsSheet({ tier: rawTier, streak, bonusCards = 0, onClose }
               </p>
               {versionBoost > 0 && (
                 <p className="text-foreground/90">
-                  Every card is a {versionName} version: +{versionBoost} to every stat and +{versionBoost} overall
-                  over the player&apos;s base card.
+                  Every card is a {versionName} version: +{versionBoost} to every stat and overall
+                  over the player&apos;s base card (stats cap at 99).
                 </p>
               )}
             </div>
@@ -203,6 +214,23 @@ export function PackOddsSheet({ tier: rawTier, streak, bonusCards = 0, onClose }
           </div>
         )}
 
+        {tier.cards + bonusCards === 1 ? (
+          /* A one-card pack IS its guaranteed slot: the filler loop that rolls
+             the rarity table never executes, so publishing weight percentages
+             would disclose a roll that never happens (audit finding — the
+             Legends table said 45/55 while the card draws uniformly across the
+             band from whichever real players live there). One honest row. */
+          <div className="text-xs">
+            <div className="flex items-center justify-between text-[10px] uppercase tracking-widest text-muted-foreground pb-1.5">
+              <span className="font-semibold">Rating</span>
+              <span className="font-semibold">Chance</span>
+            </div>
+            <div className="flex items-center justify-between border-t border-border/40 py-2">
+              <span className="text-foreground/90">{tier.guaranteedMinOvr}–{tier.ovrMax} OVR, drawn from every real player in that range</span>
+              <span className="tabular-nums font-semibold text-foreground">100%</span>
+            </div>
+          </div>
+        ) : (
         <table className="w-full text-xs">
           <caption className="sr-only">Per-card drop rates for the {tier.label}</caption>
           <thead>
@@ -220,6 +248,7 @@ export function PackOddsSheet({ tier: rawTier, streak, bonusCards = 0, onClose }
             ))}
           </tbody>
         </table>
+        )}
 
         {/* Streak ladder — only the Daily Pack has one. Shown as what today's
             pack is and what the next days are worth, so the escalation is a

@@ -168,30 +168,65 @@ describe('packsSlice — quickSellPackedPlayer', () => {
 });
 
 describe('packsSlice — quick-sell cap', () => {
-  it('caps the refund on a high-value pull, and leaves filler alone', () => {
-    // The reveal-time quick-sell must never be a liquidation channel: before
-    // the cap, one $9.99 Legends pull quick-sold for ~£127M — instant, decisive
-    // cash minted from real money. Filler is what quick-sell is FOR, and filler
-    // passes under the cap untouched.
+  it('the cap is a budget for the whole open, not a per-card rate', () => {
+    // Per card, every Elite-or-better card from ~75 OVR up hit the cap, so
+    // Sell All paid n × cap and a $4.99 pack still minted ~£50M at reveal —
+    // the exact faucet the cap exists to close, at a 4× discount. Per open,
+    // however the cards are sold, the pack refunds at most one cap in total.
+    const open = useGameStore.getState().openPack('daily');
+    expect(open.success).toBe(true);
+    const [a, b, c] = open.players!;
+
+    // Three stars: the first sale drains most of the cap, the second takes
+    // the remainder, the third gets nothing — and none of it errors.
+    const inflate = (p: typeof a, value: number) => useGameStore.setState({
+      players: { ...useGameStore.getState().players, [p.id]: { ...useGameStore.getState().players[p.id], value } },
+    });
+    inflate(a, 200_000_000);
+    inflate(b, 200_000_000);
+    inflate(c, 4_000_000);
+
+    const first = useGameStore.getState().quickSellPackedPlayer(a.id);
+    expect(first.success).toBe(true);
+    expect(first.amount).toBe(PACK_QUICK_SELL_CAP);
+
+    const second = useGameStore.getState().quickSellPackedPlayer(b.id);
+    expect(second.success).toBe(true);
+    expect(second.amount).toBe(0);
+
+    // The ledger is on the record, so the UI can reprice its SELL labels.
+    expect(useGameStore.getState().openedPacks[0].quickSoldTotal).toBe(PACK_QUICK_SELL_CAP);
+
+    const third = useGameStore.getState().quickSellPackedPlayer(c.id);
+    expect(third.success).toBe(true);
+    expect(third.amount).toBe(0);
+  });
+
+  it('filler passes under the cap untouched — quick-sell is FOR filler', () => {
+    const open = useGameStore.getState().openPack('daily');
+    const filler = open.players![0];
+    useGameStore.setState({
+      players: { ...useGameStore.getState().players, [filler.id]: { ...useGameStore.getState().players[filler.id], value: 4_000_000 } },
+    });
+    const sold = useGameStore.getState().quickSellPackedPlayer(filler.id);
+    expect(sold.success).toBe(true);
+    expect(sold.amount).toBe(Math.round(4_000_000 * PACK_QUICK_SELL_RATE));
+    expect(useGameStore.getState().openedPacks[0].quickSoldTotal).toBe(sold.amount);
+  });
+
+  it('undo restores the drawn-down cap along with everything else', () => {
+    // The refund ledger rides on openedPacks[0], which the undo snapshot
+    // already captures — this pins that a reverted sale re-arms the cap
+    // rather than leaving it half-spent against a sale that never happened.
     const open = useGameStore.getState().openPack('daily');
     const target = open.players![0];
-
-    // A star: refund pins to the cap, not to 65% of a nine-figure value.
     useGameStore.setState({
-      players: { ...useGameStore.getState().players, [target.id]: { ...target, value: 200_000_000 } },
+      players: { ...useGameStore.getState().players, [target.id]: { ...useGameStore.getState().players[target.id], value: 200_000_000 } },
     });
-    const capped = useGameStore.getState().quickSellPackedPlayer(target.id);
-    expect(capped.success).toBe(true);
-    expect(capped.amount).toBe(PACK_QUICK_SELL_CAP);
-
-    // Filler: 65% of a £4M card is £2.6M, nowhere near the cap.
-    const filler = open.players![1];
-    useGameStore.setState({
-      players: { ...useGameStore.getState().players, [filler.id]: { ...filler, value: 4_000_000 } },
-    });
-    const small = useGameStore.getState().quickSellPackedPlayer(filler.id);
-    expect(small.success).toBe(true);
-    expect(small.amount).toBe(Math.round(4_000_000 * PACK_QUICK_SELL_RATE));
+    useGameStore.getState().quickSellPackedPlayer(target.id);
+    expect(useGameStore.getState().openedPacks[0].quickSoldTotal).toBe(PACK_QUICK_SELL_CAP);
+    expect(useGameStore.getState().undoLastQuickSell()).toBe(true);
+    expect(useGameStore.getState().openedPacks[0].quickSoldTotal ?? 0).toBe(0);
   });
 });
 

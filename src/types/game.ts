@@ -2467,6 +2467,11 @@ export interface OpenedPackRecord {
   playerIds: string[];
   /** Cached top OVR so the shop can badge the record without touching `players`. */
   topOvr: number;
+  /** Total already refunded by quick-sells from THIS open. The quick-sell cap
+   *  is per open, not per card: a per-card cap turned Sell All into a flat
+   *  n × cap payout — a $4.99 pack reliably minted ~£50M, which is the exact
+   *  faucet the cap exists to close. Optional; absent reads as 0. */
+  quickSoldTotal?: number;
 }
 
 /** Where a pulled player landed after auto-place: XI, bench, or squad-only. */

@@ -129,11 +129,15 @@ export function currentLoginStreak(): number {
 export function weeklyBonusCardsFor(
   tierKey: PackTierKey,
   method: PackUnlockMethod | null,
+  /** Pass the open's single week reading (see openPack) so bonus, boost and
+   *  frame can never disagree about which week it is. Display-only callers may
+   *  omit it. */
+  atWeekIndex?: number,
 ): number {
   if (method !== 'iap') return 0;
   const tier = PACK_TIER_MAP[tierKey];
   if (!tier?.weeklyEligible) return 0;
-  const weekIndex = currentWeekIndex();
+  const weekIndex = atWeekIndex ?? currentWeekIndex();
   if (getFeaturedPackTier(weekIndex) !== tierKey) return 0;
   const claim = readWeeklyPackBonus();
   if (claim && claim.weekIndex === weekIndex) return 0;
@@ -329,12 +333,14 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     // them (currently Gold). Paid opens are unaffected.
     const freeOpen = isFreeOpenMethod(method);
     const streak = currentLoginStreak();
-    const bonusCards = weeklyBonusCardsFor(tierKey, method);
-    // Boost and frame (below) resolve from the SAME week on purpose: the frame
-    // is the claim ("this is a Dynasty card") and the boost is what the claim
-    // is worth. If they ever came apart, a promo frame would sit on a
-    // standard-issue card or vice versa.
-    const versionBoost = packVersionBoostFor(tierKey, currentWeekIndex());
+    // One week reading for the whole open. Bonus, boost and frame must agree
+    // on which week this is — the frame is the claim ("this is a Dynasty
+    // card") and the boost is what the claim is worth, and three separate
+    // currentWeekIndex() calls left a (microsecond) rollover window where
+    // they could disagree. Structural beats improbable.
+    const weekIndex = currentWeekIndex();
+    const bonusCards = weeklyBonusCardsFor(tierKey, method, weekIndex);
+    const versionBoost = packVersionBoostFor(tierKey, weekIndex);
     const players = generatePackContents(tierKey, state.season, {
       pityTriggered, freeOpen, streak, extraCards: bonusCards, versionBoost,
     });
@@ -345,7 +351,7 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     // Frame for cards that cleared this pack's guaranteed floor. Resolved with
     // the CURRENT week so a featured pack stamps its promo frame — that is what
     // makes a promo frame dated rather than farmable. Cosmetic only.
-    const earnedFrame = packFrameFor(tierKey, currentWeekIndex());
+    const earnedFrame = packFrameFor(tierKey, weekIndex);
     const frameFloor = resolvePackTier(tier, { freeOpen, streak }).guaranteedMinOvr;
 
     const finalizedPlayers: Player[] = players.map(p => {
@@ -478,7 +484,7 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     // the bonus comes back). It is recorded only once the pack has actually been
     // generated, so a rejected open never consumes the week's bonus.
     if (bonusCards > 0) {
-      writeWeeklyPackBonus({ weekIndex: currentWeekIndex(), tier: tierKey });
+      writeWeeklyPackBonus({ weekIndex, tier: tierKey });
     }
 
     if (nextDailyOpens !== usedToday) {
@@ -505,7 +511,7 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       lastPackSeason: state.season,
       dailyPackOpens: nextDailyOpens,
       ...(bonusCards > 0
-        ? { weeklyPackBonus: { weekIndex: currentWeekIndex(), tier: tierKey } }
+        ? { weeklyPackBonus: { weekIndex, tier: tierKey } }
         : {}),
       messages: newMessages,
       seasonTotalExpenses: (state.seasonTotalExpenses || 0) + budgetDeduction,
@@ -667,7 +673,9 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       sellOnClubId: undefined,
     };
 
-    // Remove from the record so the summary re-renders without this card
+    // Remove from the record so the summary re-renders without this card.
+    // (`...last` carries quickSoldTotal forward untouched — a release pays
+    // severance, it does not draw down the quick-sell cap.)
     const updatedRecord: OpenedPackRecord = {
       ...last,
       playerIds: last.playerIds.filter(id => id !== playerId),
@@ -731,10 +739,15 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     if (club.playerIds.length <= MIN_SQUAD_SIZE) {
       return { success: false, message: `Cannot quick-sell — squad would drop below minimum size (${MIN_SQUAD_SIZE}).` };
     }
-    const amount = Math.min(
-      PACK_QUICK_SELL_CAP,
-      Math.max(0, Math.round((player.value || 0) * PACK_QUICK_SELL_RATE)),
-    );
+    // The cap is a budget for the whole open, drawn down sale by sale. Per
+    // card it was a flat £10M exchange rate: every Elite-or-better card from
+    // ~75 OVR up hit it, so Sell All paid n × cap and a $4.99 pack still
+    // minted ~£50M at reveal (audit finding). Per open, a pack can refund at
+    // most one cap total, however it is sold.
+    const alreadyRefunded = last.quickSoldTotal ?? 0;
+    const remainingCap = Math.max(0, PACK_QUICK_SELL_CAP - alreadyRefunded);
+    const uncapped = Math.max(0, Math.round((player.value || 0) * PACK_QUICK_SELL_RATE));
+    const amount = Math.min(remainingCap, uncapped);
 
     const strippedClub = {
       ...club,
@@ -774,6 +787,7 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     const updatedRecord: OpenedPackRecord = {
       ...last,
       playerIds: last.playerIds.filter(id => id !== playerId),
+      quickSoldTotal: alreadyRefunded + amount,
     };
     const remainingPackPlayers = updatedRecord.playerIds
       .map(id => state.players[id])
@@ -788,7 +802,11 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       season: state.season,
       type: 'transfer',
       title: `${player.lastName} Quick-Sold`,
-      body: `${player.firstName} ${player.lastName} was quick-sold for £${amount.toLocaleString()} (65% of market value).`,
+      // Only claim the rate when the payout actually followed it — a capped
+      // refund captioned "65% of market value" is a lie with arithmetic in it.
+      body: amount < uncapped
+        ? `${player.firstName} ${player.lastName} was quick-sold for £${amount.toLocaleString()} (pack quick-sell cap reached).`
+        : `${player.firstName} ${player.lastName} was quick-sold for £${amount.toLocaleString()} (${Math.round(PACK_QUICK_SELL_RATE * 100)}% of market value).`,
     });
 
     // Snapshot every slice this sale mutates so the "Undo" toast can revert it

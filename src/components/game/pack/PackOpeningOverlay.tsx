@@ -71,6 +71,12 @@ interface PackOpeningOverlayProps {
    *  on key presence alone. Computed by the parent (which has the squad in
    *  state) and passed in. */
   improvement?: Record<string, { delta: number; currentBestOvr: number }>;
+  /** What is left of this open's quick-sell cap (PACK_QUICK_SELL_CAP minus
+   *  refunds already taken). The cap is per OPEN, so every SELL label must be
+   *  priced against the live remainder — a per-card min(cap, value×rate) would
+   *  promise money the slice will not pay. Defaults to the full cap for
+   *  replays, where selling is disabled anyway. */
+  quickSellRemaining?: number;
 }
 
 type Phase = 'loading' | 'portal' | 'arrival' | 'charge' | 'explode' | 'reveal' | 'walkout' | 'summary';
@@ -93,7 +99,7 @@ const PLACEMENT_LABEL: Record<PackPlayerPlacement, string> = {
  *
  * Mounts a portal so the overlay sits above bottom nav and other UI.
  */
-export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKeep, onQuickSell, onKeepAll, onSellAll, placement, improvement }: PackOpeningOverlayProps) {
+export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKeep, onQuickSell, onKeepAll, onSellAll, placement, improvement, quickSellRemaining = PACK_QUICK_SELL_CAP }: PackOpeningOverlayProps) {
   const { t } = useTranslation();
   const tierDef = PACK_TIER_MAP[tier];
   const prefersReducedMotion = useReducedMotionPref();
@@ -1539,7 +1545,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
             )}
           >
             {displayPlayers.map((p, i) => {
-              const quickSellAmount = Math.min(PACK_QUICK_SELL_CAP, Math.max(0, Math.round((p.value || 0) * PACK_QUICK_SELL_RATE)));
+              const quickSellAmount = Math.min(quickSellRemaining, Math.max(0, Math.round((p.value || 0) * PACK_QUICK_SELL_RATE)));
               const upgrade = improvement?.[p.id];
               const placementLabel = placement?.[p.id] ? PLACEMENT_LABEL[placement[p.id]] : null;
               return (
@@ -1642,9 +1648,14 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
           </div>
 
           {phase === 'summary' && players.length >= 2 && (onKeepAll || onSellAll) && (() => {
-            const sellAllTotal = players.reduce(
-              (sum, p) => sum + Math.min(PACK_QUICK_SELL_CAP, Math.max(0, Math.round((p.value || 0) * PACK_QUICK_SELL_RATE))),
-              0,
+            // Sell All pays out of the same per-open cap the singles do, so
+            // its total is the SUM clamped to what is left of the cap.
+            const sellAllTotal = Math.min(
+              quickSellRemaining,
+              players.reduce(
+                (sum, p) => sum + Math.max(0, Math.round((p.value || 0) * PACK_QUICK_SELL_RATE)),
+                0,
+              ),
             );
             return (
               <motion.div

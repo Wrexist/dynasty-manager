@@ -231,3 +231,34 @@ describe('Pack versions — supply honesty', () => {
     }
   });
 });
+
+describe('promo week — the sheet and the generator agree', () => {
+  it('a promo-boosted open can reach, and never exceeds, the raised ceiling', () => {
+    // The audit's blocker: the featured presentation raised ovrMax for the
+    // sheet while generation clamped to the tier's unraised ceiling, so one
+    // week in three the guide published a top odds row ("Legendary (90 OVR)
+    // 5%") that the generator was mathematically incapable of dealing. This
+    // pins the two together the way the deleted skin-immutability assertion
+    // used to, but for the raised band the promo legitimately has.
+    for (const skin of WEEKLY_PACK_SKINS) {
+      const tier = PACK_TIER_MAP[skin.tier];
+      const promoBoost = (tier.versionBoost ?? 0) + (skin.extraBoost ?? 0);
+      const raisedCeiling = tier.ovrMax + (skin.extraBoost ?? 0);
+
+      let sawTop = 0;
+      const RUNS = 60;
+      for (let i = 0; i < RUNS; i++) {
+        for (const p of generatePackContents(skin.tier, 1, { versionBoost: promoBoost })) {
+          expect(p.overall, `${skin.name} dealt ${p.overall} past its ceiling ${raisedCeiling}`)
+            .toBeLessThanOrEqual(raisedCeiling);
+          if (p.overall > tier.ovrMax) sawTop++;
+        }
+      }
+      // The raised point must be genuinely reachable, or the promo's top odds
+      // row is decoration. The guaranteed slot alone rolls a uniform target
+      // across the band, so 60 opens missing it entirely means the clamp is
+      // back.
+      expect(sawTop, `${skin.name} never dealt above the base ceiling in ${RUNS} opens`).toBeGreaterThan(0);
+    }
+  });
+});

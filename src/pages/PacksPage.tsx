@@ -17,6 +17,7 @@ import {
   RECENT_PULLS_LIMIT,
   getFeaturedPackTier,
   getFeaturedPackPresentation,
+  PACK_QUICK_SELL_CAP,
   FREE_PACK_TIER,
   PAID_PACK_TIERS,
   nextStreakBand,
@@ -1005,6 +1006,10 @@ const PacksPage = () => {
             onKeepAll={handleKeepAll}
             onSellAll={handleSellAll}
             placement={openingPlacement}
+            // Live remainder of this open's quick-sell cap — openedPacks[0] is
+            // the pack on screen, and its quickSoldTotal ticks up as the slice
+            // pays refunds, so the SELL labels reprice after every sale.
+            quickSellRemaining={Math.max(0, PACK_QUICK_SELL_CAP - (openedPacks[0]?.quickSoldTotal ?? 0))}
           />
         )}
       </AnimatePresence>
