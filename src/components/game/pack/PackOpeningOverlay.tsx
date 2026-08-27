@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, animate, useAnimationFrame, useMotionValue, useTransform } from 'framer-motion';
 import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 import type { PackPlayerPlacement, PackTierKey, Player } from '@/types/game';
 import { MAX_WALKOUTS_PER_PACK, PACK_ANIM, PACK_TIER_MAP, WALKOUT_OVR_THRESHOLD } from '@/config/packs';
@@ -194,6 +194,78 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
     : topOvr >= 75 ? 300 : 0
   );
 
+  // ── One driver for the whole charge ──
+  //
+  // `chargeProgress` runs 0 → 1 across the charge beat and everything that
+  // escalates reads from it: shake amplitude, tilt, scale, halo, rumble.
+  //
+  // It is a MOTION VALUE, not React state, for two reasons. It updates every
+  // frame and this component is ~1500 lines, so setState would re-render the
+  // entire overlay 60 times a second. And a motion value keeps every derived
+  // property on the same clock — the old charge ran the shake on a 0.35s
+  // linear loop, the tilt on a 0.6s loop and the scale on the charge's full
+  // duration, three independent timers whose beat frequencies drifted apart.
+  // That is why it read as a rattle rather than a build: nothing was rising
+  // together, and a constant-amplitude shake carries no information about how
+  // close the pack is to bursting.
+  const chargeProgress = useMotionValue(0);
+  /** Live shake offset, written by the frame loop below. */
+  const shakeX = useMotionValue(0);
+  const shakeRotate = useMotionValue(0);
+  // Scale and halo ride the same curve, but as PLAIN motion values written by
+  // the frame loop rather than `useTransform` outputs. A transform output is
+  // derived and read-only in practice: the tear needs to animate these away
+  // from the charge curve, and any `animate()` on a transform is overwritten by
+  // its source on the next frame. One writer at a time instead — the frame loop
+  // owns them during `charge`, the tear's `animate` owns them during `explode`.
+  const packScale = useMotionValue(1);
+  const haloOpacity = useMotionValue(0.45);
+  const haloScale = useMotionValue(1);
+  // These two only exist during the charge and unmount with it, so nothing
+  // else ever writes them and a derived value is exactly right.
+  const leakOpacity = useTransform(chargeProgress, [0, 0.35, 1], [0, 0.55, 1]);
+  const rayOpacity = useTransform(chargeProgress, [0, 0.5, 1], [0, 0.45, 0.95]);
+
+  /** True once the charge has entered its held-breath tail: the shake stops
+   *  dead and the glow spikes. Kept as a ref so the frame loop can read it
+   *  without a re-render. */
+  const breathingRef = useRef(false);
+
+  // The shake itself. A sine oscillator whose AMPLITUDE is a function of
+  // progress, so the pack barely stirs at the start and is hammering by the
+  // end — and then, during the breath, stops completely.
+  useAnimationFrame((t) => {
+    if (phase !== 'charge' || prefersReducedMotion) {
+      // Don't zero the shake here during the tear — `explode` runs its own
+      // short settle on these values, and writing 0 every frame would cancel it.
+      if (phase !== 'explode' && shakeX.get() !== 0) { shakeX.set(0); shakeRotate.set(0); }
+      return;
+    }
+    const p = chargeProgress.get();
+    // Everything that escalates, on one curve and one frame.
+    packScale.set(1 + 0.07 * p);
+    haloScale.set(0.85 + 0.45 * p);
+    // 0.35 → 0.80 over the first 60%, then 0.80 → 1.0 over the last 40%, so
+    // the glow is already bright well before the burst and the final stretch
+    // reads as saturation rather than as the light only just arriving.
+    haloOpacity.set(p < 0.6 ? 0.35 + 0.45 * (p / 0.6) : 0.8 + 0.2 * ((p - 0.6) / 0.4));
+
+    if (breathingRef.current) {
+      // The held breath: movement eases out rather than cutting, so the
+      // stillness arrives as a settle and not a dropped frame. The glow is
+      // left at full — bright and completely motionless is the whole effect.
+      shakeX.set(shakeX.get() * 0.8);
+      shakeRotate.set(shakeRotate.get() * 0.8);
+      return;
+    }
+    // Amplitude and frequency both climb with p. Cubed amplitude keeps the
+    // first half of the charge calm so the second half has somewhere to go.
+    const amp = 11 * p * p * p;
+    const freq = 0.011 + 0.019 * p;
+    shakeX.set(Math.sin(t * freq) * amp);
+    shakeRotate.set(Math.sin(t * freq * 0.6 + 1) * amp * 0.28);
+  });
+
   // Foil-shred params — generated once per explode entry. Inlining the
   // randoms in the .map() would re-roll them on any re-render during the
   // ~0.7s burst, retargeting in-flight Framer Motion animations mid-flight.
@@ -258,6 +330,14 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
 
   useEffect(() => {
     if (phase !== 'arrival') return;
+    // A rip that was requested before the pack existed: let it land, then tear
+    // it. Long enough that the entrance spring reads as a landing, short enough
+    // that it still answers the tap.
+    if (pendingRipRef.current) {
+      pendingRipRef.current = false;
+      const t = window.setTimeout(() => { hapticHeavy(); setPhase('explode'); }, PACK_ANIM.earlyRipMs);
+      return () => window.clearTimeout(t);
+    }
     // Auto-advance to charge after a brief float pause
     const t = window.setTimeout(() => setPhase('charge'), PACK_ANIM.arrivalMs + 300);
     return () => window.clearTimeout(t);
@@ -265,31 +345,93 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
 
   useEffect(() => {
     if (phase !== 'charge') return;
-    // Charging rumble pulse — held in refs so a tap-to-rip can cancel
-    // the same scheduling without resetting effect state.
-    chargeRumbleRef.current = window.setInterval(() => hapticMedium(), 180);
+    breathingRef.current = false;
+    chargeProgress.set(0);
+    packScale.set(1);
+    haloScale.set(0.85);
+    haloOpacity.set(0.35);
+
+    // The single curve everything else reads from. `easeIn` so the build
+    // accelerates — a linear ramp reads as a machine idling, not as pressure.
+    const rampMs = Math.max(1, chargeLength - PACK_ANIM.chargeBreathMs);
+    const ramp = animate(chargeProgress, 1, {
+      duration: rampMs / 1000,
+      ease: 'easeIn',
+    });
+
+    // Rumble that accelerates with the build. A recursive timeout rather than
+    // an interval, because the whole point is that the GAP shrinks: the old
+    // flat 180ms tick carried no information about how far along the charge
+    // was, so the haptics said "something is happening" for the entire beat
+    // and never "it is about to go".
+    const pulse = () => {
+      hapticMedium();
+      const p = chargeProgress.get();
+      const gap = PACK_ANIM.chargeHapticStartMs
+        + (PACK_ANIM.chargeHapticEndMs - PACK_ANIM.chargeHapticStartMs) * p;
+      chargeRumbleRef.current = window.setTimeout(pulse, Math.max(40, gap));
+    };
+    chargeRumbleRef.current = window.setTimeout(pulse, PACK_ANIM.chargeHapticStartMs);
+
+    // Held breath, then burst. The shake settles to nothing and the glow is at
+    // full while absolutely nothing moves; the tear lands into that silence.
+    const breathTimer = window.setTimeout(() => {
+      breathingRef.current = true;
+      if (chargeRumbleRef.current !== null) {
+        window.clearTimeout(chargeRumbleRef.current);
+        chargeRumbleRef.current = null;
+      }
+    }, rampMs);
+
     chargeTimerRef.current = window.setTimeout(() => {
-      if (chargeRumbleRef.current !== null) window.clearInterval(chargeRumbleRef.current);
-      chargeRumbleRef.current = null;
       chargeTimerRef.current = null;
       setPhase('explode');
       hapticHeavy();
     }, chargeLength);
+
     return () => {
-      if (chargeRumbleRef.current !== null) window.clearInterval(chargeRumbleRef.current);
+      ramp.stop();
+      window.clearTimeout(breathTimer);
+      if (chargeRumbleRef.current !== null) window.clearTimeout(chargeRumbleRef.current);
       if (chargeTimerRef.current !== null) window.clearTimeout(chargeTimerRef.current);
       chargeRumbleRef.current = null;
       chargeTimerRef.current = null;
+      breathingRef.current = false;
     };
-  }, [phase, chargeLength]);
+  }, [phase, chargeLength, chargeProgress, packScale, haloScale, haloOpacity]);
 
-  // Tap-to-rip: short-circuits the charge timer so users can drive the
-  // payoff themselves instead of watching the pack auto-shake. Only valid
-  // during arrival/charge; ignored at every other beat.
+  /** True while a tap should rip the pack — i.e. every beat before it tears.
+   *  Deliberately includes `loading` and `portal`: those two beats are under
+   *  half a second combined, but they used to swallow taps, and a store that
+   *  ignores the first tap teaches the player the pack is not tappable. */
+  const canRip = phase === 'loading' || phase === 'portal' || phase === 'arrival' || phase === 'charge';
+
+  /** Set when the player ripped the pack themselves rather than waiting out
+   *  the charge. Shortens the tear so a deliberate tap pays off immediately —
+   *  they have already had whatever build-up they wanted. */
+  const [rippedByTap, setRippedByTap] = useState(false);
+  /** Set when the player tapped before the pack had flown in, so the arrival
+   *  beat knows to tear immediately instead of starting a charge. */
+  const pendingRipRef = useRef(false);
+
+  // Tap-to-rip: short-circuits the build so the player drives the payoff
+  // themselves instead of watching the pack shake. Valid from the first frame
+  // to the tear; ignored afterwards.
   const tapToRip = useCallback(() => {
-    if (phase !== 'arrival' && phase !== 'charge') return;
+    if (!canRip) return;
+    // Tapped before the pack has even flown in. Going straight to `explode`
+    // would mount the pack mid-tear, so instead snap the entrance forward and
+    // let the arrival beat fire the tear a moment later — the pack still lands
+    // and still rips, just immediately.
+    if (phase === 'loading' || phase === 'portal') {
+      pendingRipRef.current = true;
+      setRippedByTap(true);
+      hapticMedium();
+      setPhase('arrival');
+      return;
+    }
     if (chargeRumbleRef.current !== null) {
-      window.clearInterval(chargeRumbleRef.current);
+      window.clearTimeout(chargeRumbleRef.current);
       chargeRumbleRef.current = null;
     }
     if (chargeTimerRef.current !== null) {
@@ -297,14 +439,32 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
       chargeTimerRef.current = null;
     }
     hapticHeavy();
+    setRippedByTap(true);
     setPhase('explode');
-  }, [phase]);
+  }, [canRip, phase]);
+
+  // The tear takes over the charge's motion values rather than handing control
+  // back to the `animate` prop, so the pack continues from exactly where the
+  // build left it — from a half-charged 1.02 on an early tap as readily as from
+  // a fully-charged 1.07.
+  useEffect(() => {
+    if (phase !== 'explode') return;
+    const burst = [
+      animate(packScale, 1.16, { duration: 0.25, ease: [0.22, 1, 0.36, 1] }),
+      animate(haloOpacity, 1, { duration: 0.25, ease: 'easeOut' }),
+      animate(haloScale, 1.4, { duration: 0.3, ease: 'easeOut' }),
+      animate(shakeX, 0, { duration: 0.12 }),
+      animate(shakeRotate, 0, { duration: 0.12 }),
+    ];
+    return () => burst.forEach(a => a.stop());
+  }, [phase, packScale, haloOpacity, haloScale, shakeX, shakeRotate]);
 
   useEffect(() => {
     if (phase !== 'explode') return;
-    const t = window.setTimeout(() => setPhase('reveal'), PACK_ANIM.explodeMs + 200);
+    const hold = rippedByTap ? PACK_ANIM.explodeTappedMs : PACK_ANIM.explodeMs + 200;
+    const t = window.setTimeout(() => setPhase('reveal'), hold);
     return () => window.clearTimeout(t);
-  }, [phase]);
+  }, [phase, rippedByTap]);
 
   // Players destined for a walkout cinematic stay face-down through the
   // reveal phase — a quiet flip would waste their payoff. Tapping one instead
@@ -699,57 +859,32 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
         {(phase === 'arrival' || phase === 'charge' || phase === 'explode') && (
           <motion.div
             key="pack"
-            role={phase === 'arrival' || phase === 'charge' ? 'button' : undefined}
-            aria-label={phase === 'arrival' || phase === 'charge' ? 'Tap to rip open the pack' : undefined}
-            tabIndex={phase === 'arrival' || phase === 'charge' ? 0 : -1}
-            onClick={phase === 'arrival' || phase === 'charge' ? tapToRip : undefined}
-            onKeyDown={(e) => {
-              if (phase !== 'arrival' && phase !== 'charge') return;
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                tapToRip();
-              }
-            }}
-            className={cn(
-              'relative flex flex-col items-center justify-center',
-              phase === 'arrival' || phase === 'charge'
-                ? 'cursor-pointer pointer-events-auto'
-                : 'pointer-events-none',
-            )}
+            className="relative flex flex-col items-center justify-center pointer-events-none"
             style={{
               width: 260,
               height: 360,
               perspective: 1200,
+              // The charge's live offsets. Applied as style rather than as
+              // `animate` keyframes so they update per frame without React
+              // re-rendering, and so shake, tilt and scale stay on one clock.
+              // Bound for the tear as well as the charge. Handing `scale` back
+              // to the `animate` prop at the phase flip made the pack pop from
+              // its charged 1.07 to 1 for one frame, because the animate track
+              // had not been driving scale during the charge and still held its
+              // arrival value. The tear animates the motion value instead.
+              ...(phase === 'charge' || phase === 'explode'
+                ? { x: shakeX, rotateZ: shakeRotate, scale: packScale }
+                : null),
               ...(phase === 'charge' || phase === 'explode' ? { willChange: 'transform' } : null),
             }}
             initial={{ opacity: 0, scale: 0.25, rotateY: 50, rotateX: -20, y: 140 }}
-            animate={(() => {
-              if (phase === 'explode') {
-                return { opacity: 1, scale: 1.16, rotateY: 0, rotateX: 0, y: 0 };
-              }
-              if (phase === 'charge') {
-                return {
-                  opacity: 1,
-                  scale: prefersReducedMotion ? 1 : [1, 1.02, 1, 1.04, 1, 1.05],
-                  rotateY: 0,
-                  rotateX: prefersReducedMotion ? 0 : [0, -2, 2, -3, 3, 0],
-                  y: 0,
-                  x: prefersReducedMotion ? 0 : [0, -4, 4, -6, 6, -8, 8, -10, 10, -8, 8, -6, 6, -4, 4, 0],
-                };
-              }
-              return { opacity: 1, scale: 1, rotateY: 0, rotateX: 0, y: 0 };
-            })()}
+            animate={phase === 'explode' || phase === 'charge'
+              ? { opacity: 1, rotateY: 0, rotateX: 0, y: 0 }
+              : { opacity: 1, scale: 1, rotateY: 0, rotateX: 0, y: 0 }}
             exit={{ opacity: 0, scale: 1.25 }}
-            transition={phase === 'charge' && !prefersReducedMotion
-              ? {
-                  x: { duration: 0.35, repeat: Infinity, ease: 'linear' },
-                  scale: { duration: chargeLength / 1000, ease: 'easeIn' },
-                  rotateX: { duration: 0.6, repeat: Infinity, ease: 'easeInOut' },
-                }
-              : phase === 'explode'
-                ? { duration: 0.25, ease: [0.22, 1, 0.36, 1] }
-                : { type: 'spring', stiffness: 220, damping: 16 }
-            }
+            transition={phase === 'explode'
+              ? { duration: 0.25, ease: [0.22, 1, 0.36, 1] }
+              : { type: 'spring', stiffness: 220, damping: 16 }}
           >
             {/* Floor shadow */}
             <motion.div
@@ -771,9 +906,8 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                   key="rays"
                   className="absolute inset-0 pointer-events-none overflow-visible"
                   initial={{ opacity: 0 }}
-                  animate={{ opacity: [0, 0.5, 0.9] }}
+                  style={{ opacity: rayOpacity }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration: chargeLength / 1000, ease: 'easeIn' }}
                 >
                   <div className="pack-rays" />
                 </motion.div>
@@ -788,15 +922,16 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                 background: `radial-gradient(circle at 50% 50%, color-mix(in srgb, ${tierDef.accent} 45%, transparent) 0%, transparent 60%)`,
                 mixBlendMode: 'screen',
                 filter: 'blur(20px)',
+                ...(phase === 'charge' || phase === 'explode'
+                  ? { opacity: haloOpacity, scale: haloScale }
+                  : null),
               }}
               initial={{ opacity: 0.25, scale: 0.85 }}
-              animate={phase === 'charge'
-                ? { opacity: [0.35, 0.75, 0.95], scale: [0.85, 1.05, 1.25] }
-                : phase === 'explode'
-                  ? { opacity: 1, scale: 1.4 }
-                  : { opacity: 0.45, scale: 1 }}
+              animate={phase === 'charge' || phase === 'explode'
+                ? {}
+                : { opacity: 0.45, scale: 1 }}
               transition={{
-                duration: phase === 'charge' ? chargeLength / 1000 : 0.3,
+                duration: 0.3,
                 ease: 'easeOut',
               }}
             />
@@ -922,11 +1057,9 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                                    radial-gradient(circle at 30% 40%, ${topTier.gradientTo}aa, transparent 35%),
                                    radial-gradient(circle at 70% 60%, ${topTier.gradientFrom}aa, transparent 35%)`,
                       filter: 'blur(2px)',
+                      opacity: leakOpacity,
                     }}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: [0, 0.7, 0.85, 1] }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: chargeLength / 1000, ease: 'easeIn' }}
                   />
                 )}
               </AnimatePresence>
@@ -1007,19 +1140,34 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
         )}
       </AnimatePresence>
 
-      {/* Tap-to-open hint — pulses during the charge beat to telegraph
-          that the user can drive the payoff themselves rather than just
-          watching. Hidden under reduced-motion (no pulse) but the pack
-          itself is still tappable for keyboard/click users. */}
+      {/* ── Tap anywhere to rip ──
+          A full-bleed target rather than a hit box on the pack art. Two
+          reasons. The pack is a 260x360 shape in the middle of a phone screen,
+          so aiming at it is a small-target task at the exact moment the player
+          is excited and jabbing; and it covers `loading` and `portal`, the two
+          beats that used to swallow the first tap entirely. Sits under the
+          pack in z-order so nothing here intercepts a card reveal later. */}
+      {canRip && (
+        <button
+          type="button"
+          onClick={tapToRip}
+          className="absolute inset-0 z-0 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/40"
+          aria-label="Tap to rip open the pack"
+        />
+      )}
+
+      {/* Tap-to-open hint. Shown from the moment the pack lands, not from the
+          charge beat — the pack accepts a tap well before then and a hint that
+          arrives after the affordance does is a hint that arrives too late. */}
       <AnimatePresence>
-        {phase === 'charge' && (
+        {(phase === 'arrival' || phase === 'charge') && (
           <motion.div
             key="rip-hint"
             className="absolute left-1/2 -translate-x-1/2 top-[calc(50%+200px)] text-center pointer-events-none"
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.4, delay: 0.3 }}
+            transition={{ duration: 0.35 }}
           >
             <motion.span
               className="text-[10px] uppercase tracking-[0.4em] font-semibold text-white/75"

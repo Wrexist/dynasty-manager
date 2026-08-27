@@ -626,15 +626,47 @@ export function packEliteCardsPerDollar(tier: PackTierDefinition): number {
 
 /** All animation timings in ms. Tune here, not in components. */
 export const PACK_ANIM = {
-  /** Cinematic "opening…" beat — dim + loading ring before the pack scene.
-   *  Kept short: at 1000ms the first visible motion arrived ~1.5s after the
-   *  tap and read as a hang (live UX run-through P2 finding). */
-  loadingMs: 400,
-  portalOpenMs: 400,
-  arrivalMs: 600,
-  chargeBaseMs: 1200,
+  // ── The open, beat by beat ──
+  //
+  //   loading → portal → arrival → charge → (breath) → explode → reveal
+  //
+  // The pack is TAPPABLE FROM THE FIRST FRAME. Every beat before `explode` is
+  // a build the player can cut short whenever they like; nothing here is a
+  // gate. That is the whole shape of it — an opening that rewards waiting and
+  // never punishes not waiting.
+  //
+  // The pre-tap beats used to run 1.7s before the pack would even accept a
+  // tap, which is the opposite trade: it made an impatient player feel the app
+  // was ignoring them, and it made a patient one watch a loading ring.
+
+  /** Dim + loading ring before the pack scene. Short — this beat exists to
+   *  cover the first paint of the pack art, not to be watched. */
+  loadingMs: 220,
+  portalOpenMs: 260,
+  arrivalMs: 520,
+  /** Base charge length. Longer than it was (1200ms) because the charge is
+   *  now a genuine escalation rather than a constant rattle — a ramp needs
+   *  room to be felt, and this is the only beat a player would choose to sit
+   *  through. */
+  chargeBaseMs: 1700,
   chargePerTierBonusMs: 250,
+  /** Held breath at the end of the charge: shake stops dead, glow spikes,
+   *  nothing moves. The contrast is what makes the burst land — the walkout
+   *  reveal uses the same trick (`walkout.breathMs`) for the same reason. */
+  chargeBreathMs: 240,
+  /** Haptic pulse spacing at the start and end of the charge. The gap closes
+   *  as the charge builds, so the rumble accelerates into the burst instead of
+   *  ticking at one flat rate. */
+  chargeHapticStartMs: 260,
+  chargeHapticEndMs: 70,
   explodeMs: 400,
+  /** Delay between the pack landing and tearing when the player tapped before
+   *  it had even flown in. Long enough that the entrance still reads as a
+   *  landing rather than the pack appearing already torn. */
+  earlyRipMs: 260,
+  /** Explode beat when the player TAPPED rather than waited. They have already
+   *  had their build; make the payoff immediate. */
+  explodeTappedMs: 170,
   revealStaggerMs: 110,
   flipMs: 520,
   walkout: {

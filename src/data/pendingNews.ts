@@ -53,6 +53,7 @@ export const PENDING_NEWS: PendingRelease = {
     'Release 1.4.1 docs version.',
     'A comeback is not a man-of-the-match.',
     'One clear free pack a day instead of three overlapping ones, and paid packs now say exactly what is inside.',
+    'Pack opening builds properly now — the shake, glow and rumble all ramp together into a held beat before the tear. And a tap opens the pack the moment you touch it, from the very first frame.',
   ],
   fixed: [
     'Pack cards now show the full artwork — no cropped frame edges and no glow outline drawn over the card.',
