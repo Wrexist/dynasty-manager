@@ -18,6 +18,11 @@ interface PackOddsSheetProps {
   /** Login streak, so the Daily Pack's sheet describes TODAY's pack and can
    *  show the rest of the ladder as what the player is working toward. */
   streak?: number;
+  /** Weekly bonus cards this open would include. The sheet must describe the
+   *  pack the player is about to buy, not a generic one — a featured pack ships
+   *  six cards and two at the floor, and a sheet that says five and one is
+   *  understating the offer it is attached to. */
+  bonusCards?: number;
   onClose: () => void;
 }
 
@@ -43,7 +48,7 @@ function pct(chance: number): string {
  * drifts is worse than none, because then it is a false claim rather than a
  * missing one.
  */
-export function PackOddsSheet({ tier: rawTier, streak, onClose }: PackOddsSheetProps) {
+export function PackOddsSheet({ tier: rawTier, streak, bonusCards = 0, onClose }: PackOddsSheetProps) {
   const prefersReducedMotion = useReducedMotionPref();
   const panelRef = useRef<HTMLDivElement>(null);
   useFocusTrap(panelRef, true);
@@ -56,6 +61,11 @@ export function PackOddsSheet({ tier: rawTier, streak, onClose }: PackOddsSheetP
   const tier = resolvePackTier(rawTier, { streak });
   const rows = describePackOdds(rawTier, { streak });
   const ladder = rawTier.streakOverrides;
+  // Bonus cards roll at the guaranteed floor (see `generatePackContents`), so
+  // they add to the guaranteed count, not to the randomised remainder.
+  const guaranteed = 1 + bonusCards;
+  const random = Math.max(0, tier.cards - 1);
+  const totalCards = tier.cards + bonusCards;
 
   return (
     <motion.div
@@ -80,7 +90,11 @@ export function PackOddsSheet({ tier: rawTier, streak, onClose }: PackOddsSheetP
         <div className="flex items-start justify-between gap-3 mb-3">
           <div>
             <h2 className="text-base font-display font-bold text-foreground">{tier.label} — drop rates</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">{rawTier.storeCaption}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {bonusCards > 0
+                ? `${totalCards} players this week, including the bonus card.`
+                : rawTier.storeCaption}
+            </p>
           </div>
           <button
             type="button"
@@ -96,8 +110,12 @@ export function PackOddsSheet({ tier: rawTier, streak, onClose }: PackOddsSheetP
         <div className="flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 mb-3">
           <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
           <p className="text-xs text-foreground">
-            <span className="font-semibold">1 card is guaranteed {tier.guaranteedMinOvr}+ OVR.</span>{' '}
-            The other {Math.max(0, tier.cards - 1)} roll at the rates below.
+            <span className="font-semibold">
+              {guaranteed === 1
+                ? `1 card is guaranteed ${tier.guaranteedMinOvr}+ OVR.`
+                : `${guaranteed} cards are guaranteed ${tier.guaranteedMinOvr}+ OVR.`}
+            </span>{' '}
+            {random === 1 ? 'The other card rolls' : `The other ${random} roll`} at the rates below.
           </p>
         </div>
 

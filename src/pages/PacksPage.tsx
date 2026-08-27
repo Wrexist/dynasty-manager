@@ -64,12 +64,17 @@ function msUntilNextMidnight(now: Date = new Date()): number {
   return next.getTime() - now.getTime();
 }
 
-/** Format a duration like `5h 23m 14s`. Drops leading zero components. */
+/** Format a duration like `6d 9h`, `5h 23m`, `4m 07s`. Drops leading zero
+ *  components, and rolls into DAYS past 24 hours — the weekly rotation is up to
+ *  seven days out and rendered "153h 55m", which is a number nobody converts in
+ *  their head into "next Thursday". */
 function formatCountdown(ms: number): string {
   const total = Math.max(0, Math.floor(ms / 1000));
-  const h = Math.floor(total / 3600);
+  const d = Math.floor(total / 86400);
+  const h = Math.floor((total % 86400) / 3600);
   const m = Math.floor((total % 3600) / 60);
   const s = total % 60;
+  if (d > 0) return `${d}d ${h}h`;
   if (h > 0) return `${h}h ${String(m).padStart(2, '0')}m`;
   if (m > 0) return `${m}m ${String(s).padStart(2, '0')}s`;
   return `${s}s`;
@@ -971,6 +976,7 @@ const PacksPage = () => {
             // it is the same offer.
             tier={oddsTier === featuredKey ? featured : PACK_TIER_MAP[oddsTier]}
             streak={oddsTier === FREE_PACK_TIER ? streak : undefined}
+            bonusCards={oddsTier === featuredKey ? featuredBonus : 0}
             onClose={() => setOddsTier(null)}
           />
         )}

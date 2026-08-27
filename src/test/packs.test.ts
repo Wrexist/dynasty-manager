@@ -1,4 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { existsSync, readdirSync } from 'node:fs';
+import path from 'node:path';
 import { useGameStore } from '@/store/gameStore';
 import { writeDailyPackOpens, currentDayIndex } from '@/store/helpers/persistence';
 import { generateAiCounterSignings, generatePackContents, shouldPityTrigger, updatedPityCounter } from '@/utils/packGeneration';
@@ -11,6 +13,7 @@ import {
   PACK_PITY_MAX_OVERSHOOT,
   PACK_STOREFRONT_ORDER,
   PACK_STREAK_BANDS,
+  PACK_RARITY_BANDS,
   PAID_PACK_TIERS,
   FREE_PACK_TIER,
   FEATURED_PACK_ROTATION,
@@ -265,6 +268,43 @@ describe('Market — storefront integrity', () => {
     }
   });
 
+  it('never publishes a rarity row the pack cannot actually reach', () => {
+    // The clamp in `rollPackPlayer` pins every roll to [ovrMin, ovrMax], so a
+    // rung whose band sits outside that window produces a card of a DIFFERENT
+    // rarity. Publishing the nominal rung gave the Elite Pack a "Bronze (72
+    // OVR) 4%" row paying more than its own Silver floor, and a "Legendary (87
+    // OVR)" row three points short of legendary.
+    for (const key of PACK_STOREFRONT_ORDER) {
+      const tier = PACK_TIER_MAP[key];
+      for (const row of describePackOdds(tier)) {
+        const nums = row.label.match(/(\d+)(?:-(\d+))?\s+OVR/);
+        expect(nums, `unparseable odds row: ${row.label}`).toBeTruthy();
+        const lo = Number(nums![1]);
+        const hi = nums![2] ? Number(nums![2]) : lo;
+        expect(lo, `${key}: ${row.label} starts below the pack floor`).toBeGreaterThanOrEqual(tier.ovrMin);
+        expect(hi, `${key}: ${row.label} exceeds the pack ceiling`).toBeLessThanOrEqual(tier.ovrMax);
+
+        // And the row's band must be the rarity it claims. A "Bronze" row that
+        // pays 72 is the exact bug this test exists for.
+        const rung = row.label.split(' ')[0].toLowerCase() as keyof typeof PACK_RARITY_BANDS;
+        const [nomLo, nomHi] = PACK_RARITY_BANDS[rung];
+        expect(lo, `${key}: ${row.label} is not in the ${rung} band`).toBeGreaterThanOrEqual(nomLo);
+        expect(hi, `${key}: ${row.label} is not in the ${rung} band`).toBeLessThanOrEqual(nomHi);
+      }
+    }
+  });
+
+  it('folding preserves the total — no probability is lost or invented', () => {
+    // Folding moves weight between rungs; it must never change how much there
+    // is. Checked against the raw tier tables, not the published rows.
+    for (const key of PACK_STOREFRONT_ORDER) {
+      const tier = PACK_TIER_MAP[key];
+      const rows = describePackOdds(tier);
+      const published = rows.reduce((s2, r) => s2 + r.chance, 0);
+      expect(published, `${key} odds sum to ${published}`).toBeCloseTo(1, 6);
+    }
+  });
+
   it('published odds describe the same table the generator rolls', () => {
     // The one property that makes the disclosure trustworthy: both sides go
     // through `resolvePackTier`, so a streak or free-path override cannot leave
@@ -275,6 +315,51 @@ describe('Market — storefront integrity', () => {
       const goldRow = rows.find(r => r.label.startsWith('Gold'));
       if ((resolved.rarity.gold || 0) === 0) expect(goldRow).toBeUndefined();
       else expect(goldRow?.chance).toBeCloseTo(resolved.rarity.gold, 6);
+    }
+  });
+});
+
+describe('Market — pack artwork', () => {
+  // Node-only reads: this file already runs in jsdom with the real filesystem
+  // available, and the covers are static assets under `public/`.
+  const packDir = path.resolve(process.cwd(), 'public/packs');
+
+  it('every referenced cover exists on disk', () => {
+    // The art chain degrades silently by design (missing cover → previous
+    // cover → gradient), which is exactly why a missing file needs a test: a
+    // typo'd path ships as a slightly-worse-looking card that nobody notices
+    // until a player asks why one pack has no picture.
+    const referenced = [
+      ...PACK_TIERS.flatMap(t => [t.artSrc, t.artLegacySrc]),
+      ...WEEKLY_PACK_SKINS.map(sk => sk.artSrc),
+    ].filter(Boolean) as string[];
+    expect(referenced.length).toBeGreaterThan(0);
+    for (const ref of new Set(referenced)) {
+      expect(ref.startsWith('/packs/'), `${ref} must live under /packs/`).toBe(true);
+      const onDisk = path.join(packDir, path.basename(ref));
+      expect(existsSync(onDisk), `missing pack art: ${ref}`).toBe(true);
+    }
+  });
+
+  it('ships no cover that nothing references', () => {
+    // The other direction: a retired cover left in `public/` is dead weight in
+    // the app binary, and these files are ~0.5 MB each.
+    const referenced = new Set([
+      ...PACK_TIERS.flatMap(t => [t.artSrc, t.artLegacySrc]),
+      ...WEEKLY_PACK_SKINS.map(sk => sk.artSrc),
+    ].filter(Boolean).map(ref => path.basename(ref as string)));
+    const onDisk = readdirSync(packDir).filter(f => /\.(webp|png|jpg|jpeg)$/i.test(f));
+    for (const file of onDisk) {
+      expect(referenced.has(file), `unreferenced pack art: public/packs/${file}`).toBe(true);
+    }
+  });
+
+  it('every cover is a webp — no stray source PNGs in the shipped bundle', () => {
+    // A 1024x1536 PNG cover is ~3.2 MB; the webp is ~0.45 MB. Eight of them is
+    // the difference between a 4 MB and a 26 MB addition to the app binary.
+    const onDisk = readdirSync(packDir).filter(f => /\.(webp|png|jpg|jpeg)$/i.test(f));
+    for (const file of onDisk) {
+      expect(file.endsWith('.webp'), `${file} should be converted to .webp`).toBe(true);
     }
   });
 });

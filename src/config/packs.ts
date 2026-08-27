@@ -73,7 +73,6 @@ export const PACK_TIERS: PackTierDefinition[] = [
     gradientTo: 'hsl(var(--pack-silver-to))',
     accent: 'hsl(var(--pack-silver-accent))',
     artSrc: '/packs/rise-to-glory.webp',
-    artLegacySrc: '/packs/silver.webp',
     freeDailyLimit: 1,
     // A SECOND daily pack for one rewarded ad — one, not three. Inert while
     // `REWARDED_ADS_USABLE` is false (see `utils/ads.ts`); the Market never
@@ -135,7 +134,6 @@ export const PACK_TIERS: PackTierDefinition[] = [
     gradientTo: 'hsl(var(--pack-gold-to))',
     accent: 'hsl(var(--pack-gold-accent))',
     artSrc: '/packs/champions.webp',
-    artLegacySrc: '/packs/gold.webp',
     productId: 'com.dynastymanager.pack.gold',
     iapPriceDisplay: '$2.99',
     weeklyEligible: true,
@@ -162,7 +160,6 @@ export const PACK_TIERS: PackTierDefinition[] = [
     gradientTo: 'hsl(var(--pack-premium-to))',
     accent: 'hsl(var(--pack-premium-accent))',
     artSrc: '/packs/elite.webp',
-    artLegacySrc: '/packs/premium.webp',
     productId: 'com.dynastymanager.pack.premium_gold',
     iapPriceDisplay: '$4.99',
     weeklyEligible: true,
@@ -185,7 +182,6 @@ export const PACK_TIERS: PackTierDefinition[] = [
     gradientTo: 'hsl(var(--pack-rare-to))',
     accent: 'hsl(var(--pack-rare-accent))',
     artSrc: '/packs/world-class.webp',
-    artLegacySrc: '/packs/rare.webp',
     productId: 'com.dynastymanager.pack.rare_gold',
     iapPriceDisplay: '$6.99',
     weeklyEligible: true,
@@ -209,7 +205,6 @@ export const PACK_TIERS: PackTierDefinition[] = [
     gradientTo: 'hsl(var(--pack-icon-to))',
     accent: 'hsl(var(--pack-icon-accent))',
     artSrc: '/packs/legends.webp',
-    artLegacySrc: '/packs/icon.webp',
     productId: 'com.dynastymanager.pack.icon',
     iapPriceDisplay: '$9.99',
   },
@@ -493,10 +488,46 @@ export function describePackOdds(
   ctx: PackOddsContext = {},
 ): PackOddsRow[] {
   const t = resolvePackTier(tier, ctx);
-  const total = RARITY_ORDER.reduce((s, k) => s + Math.max(0, t.rarity[k] || 0), 0);
+
+  // ── Fold unreachable rungs into the rung they actually land in ──
+  //
+  // `rollPackPlayer` clamps every roll to the tier's own [ovrMin, ovrMax], so a
+  // rarity rung whose band lies entirely outside that window does not produce a
+  // card of that rarity — it produces a card pinned to the tier's edge, which
+  // belongs to a different rung. Reporting the nominal rung instead published
+  // rows the pack cannot deliver: the Elite Pack's sheet read "Bronze (72 OVR)
+  // 4%" — a Bronze row paying more than the Silver row's own floor — and
+  // "Legendary (87 OVR) 5%", a legendary card three points short of legendary.
+  //
+  // Both were true to the config and false about the pack. Weight from a rung
+  // below the window folds upward into the lowest reachable rung and weight
+  // from a rung above folds downward into the highest, which is exactly where
+  // the clamp sends those rolls. The tier tables are untouched — they still
+  // shape the distribution inside the band; only the disclosure is corrected.
+  const rungs = RARITY_ORDER.filter(k => (t.rarity[k] || 0) > 0);
+  const reachable = RARITY_ORDER.filter(k => {
+    const [lo, hi] = PACK_RARITY_BANDS[k];
+    return hi >= t.ovrMin && lo <= t.ovrMax;
+  });
+  if (reachable.length === 0) return [];
+  // RARITY_ORDER runs highest-first, so index 0 is the top reachable rung.
+  const highest = reachable[0];
+  const lowest = reachable[reachable.length - 1];
+
+  const merged = new Map<keyof PackRarityWeights, number>();
+  for (const k of rungs) {
+    const [lo] = PACK_RARITY_BANDS[k];
+    const target = reachable.includes(k)
+      ? k
+      : lo > t.ovrMax ? highest : lowest;
+    merged.set(target, (merged.get(target) || 0) + Math.max(0, t.rarity[k]));
+  }
+
+  const total = [...merged.values()].reduce((a, b) => a + b, 0);
   if (total <= 0) return [];
+
   return RARITY_ORDER
-    .filter(k => (t.rarity[k] || 0) > 0)
+    .filter(k => (merged.get(k) || 0) > 0)
     .map(k => {
       const [lo, hi] = PACK_RARITY_BANDS[k];
       const clampedLo = Math.max(t.ovrMin, Math.min(lo, t.ovrMax));
@@ -504,7 +535,7 @@ export function describePackOdds(
       const band = clampedLo === clampedHi ? `${clampedLo}` : `${clampedLo}-${clampedHi}`;
       return {
         label: `${RARITY_LABELS[k]} (${band} OVR)`,
-        chance: Math.max(0, t.rarity[k]) / total,
+        chance: (merged.get(k) as number) / total,
       };
     });
 }
