@@ -411,6 +411,26 @@ export const LEGENDARY_OVR_THRESHOLD = 90;
  *  the user to sit through 30+ seconds of back-to-back walkouts. */
 export const MAX_WALKOUTS_PER_PACK = 1;
 
+/**
+ * Wage a pack-pulled player signs for, as a fraction of their market wage.
+ *
+ * Pack pulls are real players at real ratings, so an Icon Pack hands you
+ * someone who genuinely earns £400k a week. Measured before this existed: one
+ * $6.99 Rare Gold added ~£920k/week to the bill — 21% of Arsenal's entire wage
+ * budget, or 58% of Celtic's — so buying a pack made your club materially worse
+ * off. Paying money to be punished is the worst shape a store can have.
+ *
+ * Applied to EVERY pull, free daily included. That is deliberate: it makes the
+ * discount a property of "arrived through a pack" rather than of "was paid
+ * for", which keeps it clear of the rule that monetization must never move a
+ * simulation parameter. A free pull and a paid pull sign identical contracts.
+ *
+ * In fiction: a pack player joins on the club's own wage scale rather than the
+ * deal they would have commanded in a bidding war — you found them, you did not
+ * outbid anyone for them.
+ */
+export const PACK_WAGE_FACTOR = 0.55;
+
 /** Fraction of a pulled player's market value returned by quick-sell.
  *  Lives here rather than inline in `packsSlice` per the no-hardcoded-balance
  *  rule — it is the exchange rate between the pack economy and the transfer
@@ -446,7 +466,15 @@ export const AI_BACKFILL_OVR_SPREAD = 6;
  *  guaranteed slot toward `PACK_PITY_MIN_OVR`. */
 export const PACK_PITY_THRESHOLD = 8;
 
-/** OVR the pity bonus aims the guaranteed slot at. */
+/** OVR the pity bonus aims the guaranteed slot at.
+ *
+ *  ⚠ Pity iseffectively a no-op on the top tiers now, and that is a real limitation
+ *  rather than a bug to chase. It works by widening the band the guaranteed
+ *  card is drawn from, and pack pulls are real players — so widening only helps
+ *  where the pool holds anyone up there. Above each tier's ceiling it holds 101
+ *  templates (Gold), 28 (Premium), 8 (Rare) and none at all (Icon). Making pity
+ *  meaningful for Rare and Icon would mean a different mechanic, not a bigger
+ *  number: there is nobody better to give you. */
 export const PACK_PITY_MIN_OVR = 80;
 
 /** How far above its OWN ceiling a pity pull may push a pack.

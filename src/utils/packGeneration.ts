@@ -12,6 +12,7 @@ import {
   PACK_PITY_MAX_OVERSHOOT,
   PACK_PITY_MIN_BAND,
   PACK_RARITY_BANDS,
+  PACK_WAGE_FACTOR,
   resolvePackTier,
   AI_BACKFILL_PER_TIER,
   AI_BACKFILL_OVR_GAP,
@@ -100,8 +101,11 @@ function rollPackPlayer(
     if (template.fcId) taken?.add(template.fcId);
     const real = buildPlayerFromTemplate(template, '', season);
     // The template owns the rating, so the pack's own clamp must not touch it.
-    // `buildPlayerFromTemplate` already ran the economics helper against it.
     if (real.potential < real.overall) real.potential = real.overall;
+    // Sign on the pack wage scale, then re-price so the discount is live from
+    // the first week rather than from the first development tick.
+    real.wageFactor = PACK_WAGE_FACTOR;
+    recomputeDerivedEconomics(real);
     return real;
   }
 
@@ -141,7 +145,9 @@ function rollPackPlayer(
   player.overall = clamp(derived, lo, hi);
 
   // Pack-pulled players run through the shared economics helper so the
-  // walkout reveal carries the right rarity/value/wage premium.
+  // walkout reveal carries the right rarity/value/wage premium. Same contract
+  // as a real pull — the discount belongs to the pack, not to the player.
+  player.wageFactor = PACK_WAGE_FACTOR;
   recomputeDerivedEconomics(player);
   // Potential floors at overall — never below.
   if (player.potential < player.overall) player.potential = player.overall;

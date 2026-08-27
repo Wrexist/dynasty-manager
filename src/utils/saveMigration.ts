@@ -12,7 +12,7 @@ import { isPlaceholderClubId } from '@/config/continental';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 88;
+const CURRENT_VERSION = 89;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -88,6 +88,23 @@ const migrations: Record<number, MigrationFn> = {
   //
   // Later waves EXTEND this step rather than adding another: keep the shape
   // below (a single `sunday` rewrite with per-field fallbacks) and add fields.
+  // v88 → v89: `Player.wageFactor` + a global wage easing.
+  //
+  // Two things happened and only one of them needs a migration step.
+  //
+  // `WAGE_EXP_BASE` dropped 10 → 8.5 (a uniform −15%). Nothing to migrate:
+  // every path that touches a wage runs `recomputeDerivedEconomics`, so
+  // existing players re-price themselves on their next development tick. They
+  // are briefly on old money, which is what a pay rise freeze looks like.
+  //
+  // `wageFactor` is optional and reads as 1.0 when absent, so no backfill is
+  // needed either — and no backfill would be CORRECT. It marks a player as
+  // having signed on the pack wage scale, and a save has no record of which
+  // players arrived through a pack. Retro-discounting everyone would hand
+  // existing squads a wage cut they never earned; leaving it unset means
+  // players pulled from here on get the new contract and nobody else does.
+  88: (data) => ({ ...data, version: 89 }),
+
   // v87 → v88: pack card frames.
   //
   // `Player.packFrame` is a cosmetic frame id earned by being pulled from a pack

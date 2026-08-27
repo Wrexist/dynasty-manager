@@ -57,7 +57,13 @@ export function recomputeDerivedEconomics(player: Player): void {
   const rarityWageMult = getRarityWageMultiplier(player.rarity);
   const placementMult = getBallonDorPlacementPremium(player.ballonDOrPlacements);
   player.value = Math.round(calculatePlayerValue(player.overall) * ageMult * rarityValueMult * placementMult);
-  player.wage = Math.round(calculatePlayerWage(player.overall) * rarityWageMult);
+  // `wageFactor` is a permanent property of the contract, not a one-off
+  // discount at signing — see `Player.wageFactor`. Applied here so it survives
+  // every development, training and season-rollover recompute.
+  const wageFactor = typeof player.wageFactor === 'number' && player.wageFactor > 0
+    ? player.wageFactor
+    : 1;
+  player.wage = Math.round(calculatePlayerWage(player.overall) * rarityWageMult * wageFactor);
 }
 
 /**

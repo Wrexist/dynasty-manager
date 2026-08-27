@@ -215,6 +215,21 @@ export interface PlayerCardArtOptions {
   /** Pack-earned card frame id (see `Player.packFrame`). Outranked by the
    *  Ballon d'Or card, outranks the OVR tier card. */
   packFrame?: string;
+  /**
+   * Multiplier applied to this player's wage on every recompute, so a signing
+   * discount survives development, training and season rollover.
+   *
+   * Exists because pack pulls are real players at real ratings, and a real
+   * 88-rated player earns real 88-rated money. One $6.99 pack was adding
+   * ~£920k/week — 58% of Celtic's entire wage bill, from a single purchase —
+   * which turns paying money into a punishment. A signing-time-only discount
+   * was not enough: `recomputeDerivedEconomics` runs on every development tick,
+   * so the discount would silently evaporate and the player's wage would double
+   * between seasons. It has to be a property OF the player.
+   *
+   * Absent on almost everyone, which reads as 1.0.
+   */
+  wageFactor?: number;
 }
 
 // ── Injury System ──
@@ -323,6 +338,21 @@ export interface Player {
    * Absent on every player not pulled from a pack, which is almost all of them.
    */
   packFrame?: string;
+  /**
+   * Multiplier applied to this player's wage on every recompute, so a signing
+   * discount survives development, training and season rollover.
+   *
+   * Exists because pack pulls are real players at real ratings, and a real
+   * 88-rated player earns real 88-rated money. One $6.99 pack was adding
+   * ~£920k/week — 58% of Celtic's entire wage bill, from a single purchase —
+   * which turns paying money into a punishment. A signing-time-only discount
+   * was not enough: `recomputeDerivedEconomics` runs on every development tick,
+   * so the discount would silently evaporate and the player's wage would double
+   * between seasons. It has to be a property OF the player.
+   *
+   * Absent on almost everyone, which reads as 1.0.
+   */
+  wageFactor?: number;
   /**
    * Per-attribute deltas applied by the active Ballon d'Or top-10 boost.
    * Stored as deltas (not absolute snapshots) so development, training, and

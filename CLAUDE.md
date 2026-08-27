@@ -1,6 +1,6 @@
 # CLAUDE.md — Dynasty Manager
 
-> Last verified against the codebase 2026-08-23 (app v1.5.0, save schema v88).
+> Last verified against the codebase 2026-08-23 (app v1.5.0, save schema v89).
 > If the numbers below disagree with the code, trust the code — and update this file.
 > `npm run docs:check` verifies the countable claims (schema version, file counts,
 > LOC of the named files) and `-- --fix` updates them. It runs in preflight, so this
@@ -389,7 +389,7 @@ src/
 ├── types/game.ts        → ALL types (2,083 LOC): Player, Club, Match, LeagueInfo,
 │                          10 formations, 45 GameScreens, MonetizationState,
 │                          CareerManager, NationalTeamState, PackTierDefinition, …
-├── utils/               → 98 files + `sunday/` (18): playerGen, saveMigration (v88),
+├── utils/               → 98 files + `sunday/` (18): playerGen, saveMigration (v89),
 │                          purchases (RevenueCat wrapper), monetization, ads (stub),
 │                          packGeneration, communityPackPool, international,
 │                          managerCareer, continental, continentalCoefficients,
@@ -410,7 +410,17 @@ src/
 5. **`src/engine/match.ts`** — match simulation (2243 LOC).
 6. **`src/data/leagues/index.ts`** — aggregates 45 leagues / 756 clubs; `src/data/league.ts` for fixtures/tables/derbies.
 7. **`src/utils/playerGen.ts`** — player generation, overall calc, squad building.
-8. **`src/utils/saveMigration.ts`** — save schema `CURRENT_VERSION = 88` + migration chain. Every state-shape change bumps it.
+- **Pack pulls sign on a discount (`PACK_WAGE_FACTOR`, 0.55)** that lives on the
+  player as `Player.wageFactor` and is re-applied by `recomputeDerivedEconomics`
+  on every development tick. It has to be a property of the player, not a
+  signing-time adjustment, or the discount evaporates on the first recompute and
+  the wage silently doubles between seasons. It applies to FREE pulls too — that
+  keeps it a property of "arrived via a pack" rather than of "was paid for", and
+  therefore clear of the rule that monetization never moves a sim parameter.
+  Measured reason it exists: one $6.99 Rare Gold used to add ~£920k/week, 58% of
+  a mid-table club's entire wage bill, so buying a pack made your club worse off.
+
+8. **`src/utils/saveMigration.ts`** — save schema `CURRENT_VERSION = 89` + migration chain. Every state-shape change bumps it.
 9. **`src/config/monetization.ts` + `src/utils/purchases.ts` + `src/utils/monetization.ts`** — product catalog, RevenueCat wrapper, entitlement checks (see Monetization).
 10. **`src/store/slices/orchestration/seasonEnd.ts`** — end-of-season: aging, contracts, promotion/relegation cascade, awards, fixtures.
 
@@ -623,7 +633,7 @@ Player identities draw from the **community pack** real-player dataset
 - ALL storage access goes through `src/store/helpers/persistence.ts`
   (`readSaveSlot`, `getFlag`/`setFlag`, `readSessionJson`, …). New keys
   register in `STORAGE_KEYS`. Direct `localStorage` use is ESLint-banned.
-- **Save schema version `88`** in `utils/saveMigration.ts`. Any change to
+- **Save schema version `89`** in `utils/saveMigration.ts`. Any change to
   persisted state shape bumps `CURRENT_VERSION` and adds a migration step.
   `SaveRecoveryDialog` + backup slots handle corrupted saves; parse failures
   breadcrumb to Sentry.
