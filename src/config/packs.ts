@@ -659,14 +659,54 @@ export const PACK_ANIM = {
    *  ticking at one flat rate. */
   chargeHapticStartMs: 260,
   chargeHapticEndMs: 70,
-  explodeMs: 400,
+  /** Tear start → cards on screen.
+   *
+   *  Tuned so the cards arrive at the PEAK of the burst (burstDelayMs plus the
+   *  bloom's own rise), which is the oldest trick in the reveal book: the light
+   *  hides the swap, so there is no moment where the player watches an empty
+   *  stage between the pack leaving and the cards arriving.
+   *
+   *  There used to be two of these — a long one for a charge that ran out and a
+   *  short one for a tap. Once the tap path was lengthened enough to actually
+   *  show the tear the two numbers met in the middle, so there is one. */
+  explodeMs: 340,
+  /** ── The side tear ──
+   *  The pack is torn down its LEFT edge, the way you actually open a foil
+   *  booster: a narrow strip comes away from the side rather than the top
+   *  third lifting off like a lid.
+   *
+   *  It is built as `segments` horizontal slices of that strip, each with its
+   *  OWN STATIC clip-path, peeling on a stagger from top to bottom. The
+   *  obvious implementation — one strip whose clip-path animates as the tear
+   *  travels — is the wrong one: `clip-path` is not a compositor property, so
+   *  animating it repaints a 260x360 element every frame, and this overlay
+   *  already treats iOS WebKit rasterization as its main performance budget
+   *  (see the note on `filter: blur()` in PackCardAura). Static clips plus
+   *  transform-and-opacity per segment reads as the same travelling tear and
+   *  stays on the fast path. */
+  tear: {
+    /** Distance of the seam from the left edge, as a % of pack width. */
+    seamXPct: 17,
+    /** Slices the strip is cut into. More is smoother and costs more layers;
+     *  below about 6 the stagger reads as a flip-book rather than a tear. */
+    segments: 9,
+    /** Delay between one slice starting to peel and the next. This IS the
+     *  speed the tear travels down the edge. */
+    staggerMs: 26,
+    /** How long a single slice takes to come away. */
+    segmentMs: 380,
+    /** Half-width of the jagged seam wobble, in % of pack width. */
+    jagPct: 1.8,
+    /** How long after the tear starts the burst of light fires. The flash used
+     *  to go off on the same frame as the tear and washed it out completely —
+     *  which is why the pack has never visibly ripped, before this change or
+     *  after it. The light belongs at the END of the tear, not over it. */
+    burstDelayMs: 220,
+  },
   /** Delay between the pack landing and tearing when the player tapped before
    *  it had even flown in. Long enough that the entrance still reads as a
    *  landing rather than the pack appearing already torn. */
   earlyRipMs: 260,
-  /** Explode beat when the player TAPPED rather than waited. They have already
-   *  had their build; make the payoff immediate. */
-  explodeTappedMs: 170,
   revealStaggerMs: 110,
   flipMs: 520,
   walkout: {

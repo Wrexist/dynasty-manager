@@ -266,6 +266,48 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
     shakeRotate.set(Math.sin(t * freq * 0.6 + 1) * amp * 0.28);
   });
 
+  /**
+   * Side-tear geometry, generated once per open.
+   *
+   * A jagged vertical seam near the left edge, sampled at `segments + 1` y
+   * boundaries. Adjacent slices reuse the SAME boundary x, so the strip tiles
+   * against itself with no hairline gap and the body's edge is the exact
+   * negative of the strip's.
+   */
+  const tearGeometry = useMemo(() => {
+    const { seamXPct, segments, jagPct } = PACK_ANIM.tear;
+    // Seam x at each y boundary. Deterministic wobble rather than Math.random
+    // so a replayed open tears along the same line it did the first time.
+    const seamAt = (i: number) =>
+      seamXPct + Math.sin(i * 2.399) * jagPct + Math.sin(i * 5.117) * (jagPct * 0.45);
+    const bounds = Array.from({ length: segments + 1 }, (_, i) => ({
+      y: (i / segments) * 100,
+      x: seamAt(i),
+    }));
+
+    // One slice of the strip: left edge to the seam, between two boundaries.
+    const strip = Array.from({ length: segments }, (_, i) => {
+      const a = bounds[i];
+      const b = bounds[i + 1];
+      return {
+        i,
+        clipPath: `polygon(0 ${a.y}%, ${a.x}% ${a.y}%, ${b.x}% ${b.y}%, 0 ${b.y}%)`,
+      };
+    });
+
+    // The body: everything right of the seam. Top edge, down the right side,
+    // along the bottom, then back UP through the boundaries in reverse so the
+    // torn edge matches the strip exactly.
+    const bodyPoints = [
+      `${bounds[0].x}% 0%`,
+      '100% 0%',
+      '100% 100%',
+      `${bounds[segments].x}% 100%`,
+      ...bounds.slice(0, segments).reverse().map(pt => `${pt.x}% ${pt.y}%`),
+    ];
+    return { strip, bodyClip: `polygon(${bodyPoints.join(', ')})`, seamXPct };
+  }, []);
+
   // Foil-shred params — generated once per explode entry. Inlining the
   // randoms in the .map() would re-roll them on any re-render during the
   // ~0.7s burst, retargeting in-flight Framer Motion animations mid-flight.
@@ -290,10 +332,13 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
   // foilShreds: roll the random specs once. Inlined randoms re-rolled on
   // every re-render (typewriter ticks, card-reveal taps), teleporting
   // in-flight infinite Framer animations.
+  // Sparks flicking off the tear seam. `along` is a percentage DOWN the seam
+  // (it was across a horizontal one before the pack started opening from the
+  // side) and `dist` is how far sideways each one flies.
   const seamSparks = useMemo(() =>
     Array.from({ length: 8 }).map((_, i) => ({
       i,
-      left: 10 + Math.random() * 80,
+      along: 10 + Math.random() * 80,
       up: Math.random() > 0.5,
       dist: 16 + Math.random() * 24,
       dur: 0.5 + Math.random() * 0.45,
@@ -406,10 +451,6 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
    *  ignores the first tap teaches the player the pack is not tappable. */
   const canRip = phase === 'loading' || phase === 'portal' || phase === 'arrival' || phase === 'charge';
 
-  /** Set when the player ripped the pack themselves rather than waiting out
-   *  the charge. Shortens the tear so a deliberate tap pays off immediately —
-   *  they have already had whatever build-up they wanted. */
-  const [rippedByTap, setRippedByTap] = useState(false);
   /** Set when the player tapped before the pack had flown in, so the arrival
    *  beat knows to tear immediately instead of starting a charge. */
   const pendingRipRef = useRef(false);
@@ -425,7 +466,6 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
     // and still rips, just immediately.
     if (phase === 'loading' || phase === 'portal') {
       pendingRipRef.current = true;
-      setRippedByTap(true);
       hapticMedium();
       setPhase('arrival');
       return;
@@ -439,7 +479,6 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
       chargeTimerRef.current = null;
     }
     hapticHeavy();
-    setRippedByTap(true);
     setPhase('explode');
   }, [canRip, phase]);
 
@@ -461,10 +500,9 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
 
   useEffect(() => {
     if (phase !== 'explode') return;
-    const hold = rippedByTap ? PACK_ANIM.explodeTappedMs : PACK_ANIM.explodeMs + 200;
-    const t = window.setTimeout(() => setPhase('reveal'), hold);
+    const t = window.setTimeout(() => setPhase('reveal'), PACK_ANIM.explodeMs);
     return () => window.clearTimeout(t);
-  }, [phase, rippedByTap]);
+  }, [phase]);
 
   // Players destined for a walkout cinematic stay face-down through the
   // reveal phase — a quiet flip would waste their payoff. Tapping one instead
@@ -960,23 +998,95 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                   }
                 : { duration: 0.3, ease: 'easeOut' }}
             >
-              {/* Top flap — the smaller top third. On explode it peels up
-                  and rotates back so the pack reads as opening from the
-                  top seam, not splitting in half. */}
+              {/* ── The torn strip ──
+                  The pack's left edge, cut into slices that peel away one
+                  after another from the top down. Each slice carries its own
+                  copy of the art under its own STATIC clip-path and animates
+                  only transform and opacity, so the travelling tear costs no
+                  repaints — see the note in `PACK_ANIM.tear`.
+
+                  Slices further down peel harder and rotate further: the strip
+                  is still attached at the bottom while the top is already
+                  away, which is what makes it read as tearing rather than as
+                  a piece sliding off. */}
+              {tearGeometry.strip.map(({ i, clipPath }) => {
+                const t = i / Math.max(1, PACK_ANIM.tear.segments - 1);
+                return (
+                  <motion.div
+                    key={`tear-${i}`}
+                    className="absolute inset-0"
+                    style={{
+                      clipPath,
+                      willChange: phase === 'explode' ? 'transform, opacity' : 'auto',
+                      transformOrigin: '0% 50%',
+                      filter: 'drop-shadow(-6px 8px 18px rgba(0,0,0,0.55))',
+                    }}
+                    initial={{ x: 0, rotate: 0, opacity: 1 }}
+                    animate={phase === 'explode'
+                      // Travel is deliberately short. A 17%-wide strip on a
+                      // 260px pack is ~44px, so it is clear of the pack after
+                      // 44px and everything beyond that happens off-screen: at
+                      // -150 the strip was gone within 60ms and the peel was
+                      // never visible. It comes away, curls, and fades in view.
+                      ? { x: -66 - 58 * t, rotate: -17 - 21 * t, opacity: [1, 1, 0] }
+                      : { x: 0, rotate: 0, opacity: 1 }}
+                    transition={phase === 'explode'
+                      ? {
+                          // Transform gets the snappy near-exponential ease —
+                          // that is what makes it read as a rip rather than a
+                          // slide. Opacity must NOT share it: on that curve the
+                          // slice is 80% faded within ~100ms, which is why the
+                          // pack appeared to vanish instead of tear.
+                          default: {
+                            duration: PACK_ANIM.tear.segmentMs / 1000,
+                            delay: (i * PACK_ANIM.tear.staggerMs) / 1000,
+                            ease: [0.22, 1, 0.36, 1],
+                          },
+                          opacity: {
+                            duration: PACK_ANIM.tear.segmentMs / 1000,
+                            delay: (i * PACK_ANIM.tear.staggerMs) / 1000,
+                            times: [0, 0.72, 1],
+                            ease: 'linear',
+                          },
+                        }
+                      : { duration: 0 }}
+                  >
+                <PackArt
+                  src={tierDef.artSrc}
+                  loading="eager"
+                  className="absolute inset-0 w-full h-full object-contain object-center"
+                  fallback={
+                    <div
+                      className="absolute inset-0 rounded-2xl border border-white/15"
+                      style={{ background: `linear-gradient(160deg, ${tierDef.gradientFrom}, ${tierDef.gradientTo})` }}
+                    />
+                  }
+                />
+                  </motion.div>
+                );
+              })}
+
+              {/* ── The pack body ──
+                  Everything right of the seam. It leans away from the tear and
+                  settles rather than dropping: the strip is what moves, the
+                  body is what is being opened. */}
               <motion.div
                 className="absolute inset-0"
                 style={{
-                  clipPath:
-                    'polygon(0 0, 100% 0, 100% 33%, 90% 35%, 80% 32%, 70% 35%, 60% 32%, 50% 35%, 40% 32%, 30% 35%, 20% 32%, 10% 35%, 0 33%)',
+                  clipPath: tearGeometry.bodyClip,
                   willChange: phase === 'explode' ? 'transform, opacity' : 'auto',
+                  transformOrigin: '100% 50%',
                   filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.6))',
                 }}
-                initial={{ y: 0, rotate: 0, opacity: 1 }}
+                initial={{ x: 0, rotate: 0, opacity: 1 }}
                 animate={phase === 'explode'
-                  ? { y: -320, rotate: -20, opacity: 0 }
-                  : { y: 0, rotate: 0, opacity: 1 }}
+                  ? { x: 26, rotate: 2.5, opacity: [1, 1, 0] }
+                  : { x: 0, rotate: 0, opacity: 1 }}
                 transition={phase === 'explode'
-                  ? { duration: 0.62, ease: [0.22, 1, 0.36, 1] }
+                  ? {
+                      default: { duration: 0.62, ease: [0.22, 1, 0.36, 1] },
+                      opacity: { duration: 0.62, times: [0, 0.5, 1], ease: 'linear' },
+                    }
                   : { duration: 0 }}
               >
                 <PackArt
@@ -992,54 +1102,59 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                 />
               </motion.div>
 
-              {/* Pack body — the larger lower portion. Sinks slightly and
-                  dissolves as the flap opens and the card rises through. */}
-              <motion.div
-                className="absolute inset-0"
-                style={{
-                  clipPath:
-                    'polygon(0 33%, 10% 35%, 20% 32%, 30% 35%, 40% 32%, 50% 35%, 60% 32%, 70% 35%, 80% 32%, 90% 35%, 100% 33%, 100% 100%, 0 100%)',
-                  willChange: phase === 'explode' ? 'transform, opacity' : 'auto',
-                  filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.6))',
-                }}
-                initial={{ y: 0, rotate: 0, opacity: 1 }}
-                animate={phase === 'explode'
-                  ? { y: 70, rotate: 3, opacity: 0 }
-                  : { y: 0, rotate: 0, opacity: 1 }}
-                transition={phase === 'explode'
-                  ? { duration: 0.55, ease: [0.22, 1, 0.36, 1] }
-                  : { duration: 0 }}
-              >
-                <PackArt
-                  src={tierDef.artSrc}
-                  loading="eager"
-                  className="absolute inset-0 w-full h-full object-contain object-center"
-                  fallback={
-                    <div
-                      className="absolute inset-0 rounded-2xl border border-white/15"
-                      style={{ background: `linear-gradient(160deg, ${tierDef.gradientFrom}, ${tierDef.gradientTo})` }}
-                    />
-                  }
-                />
-              </motion.div>
+              {/* ── The tear head ──
+                  A hot point of light that runs DOWN the seam, arriving at
+                  each slice just as that slice starts to peel. This is what
+                  actually sells the direction of the tear: the slices alone
+                  read as "the edge came off", the travelling head reads as
+                  "something is tearing it, and it is here now". Timed off the
+                  same stagger, so the two can never disagree. */}
+              <AnimatePresence>
+                {phase === 'explode' && (
+                  <motion.div
+                    key="tear-head"
+                    className="absolute pointer-events-none"
+                    style={{
+                      left: `${tearGeometry.seamXPct}%`,
+                      top: 0,
+                      width: 10,
+                      height: 40,
+                      marginLeft: -5,
+                      borderRadius: 99,
+                      background: `radial-gradient(circle, #fff 0%, ${tierDef.accent} 45%, transparent 72%)`,
+                      boxShadow: `0 0 26px ${tierDef.accent}, 0 0 54px white`,
+                      filter: 'blur(1px)',
+                    }}
+                    initial={{ y: '-10%', opacity: 0, scaleY: 0.6 }}
+                    animate={{ y: '105%', opacity: [0, 1, 1, 0], scaleY: [0.6, 1, 1, 0.7] }}
+                    transition={{
+                      duration: (PACK_ANIM.tear.staggerMs * PACK_ANIM.tear.segments + 160) / 1000,
+                      ease: 'easeIn',
+                    }}
+                  />
+                )}
+              </AnimatePresence>
 
-              {/* Seam flash — bright line along the tear as it opens */}
+              {/* The open seam behind the departing strip — a bright edge left
+                  where the foil was, fading as the whole pack goes. */}
               <AnimatePresence>
                 {phase === 'explode' && (
                   <motion.div
                     key="seam-flash"
-                    className="absolute left-0 right-0 pointer-events-none"
+                    className="absolute pointer-events-none"
                     style={{
-                      top: '33%',
-                      height: 6,
-                      background: `linear-gradient(90deg, transparent, ${tierDef.accent}, white, ${tierDef.accent}, transparent)`,
+                      left: `${tearGeometry.seamXPct}%`,
+                      top: 0,
+                      bottom: 0,
+                      width: 5,
+                      marginLeft: -2,
+                      background: `linear-gradient(180deg, transparent, ${tierDef.accent}, white, ${tierDef.accent}, transparent)`,
                       boxShadow: `0 0 24px ${tierDef.accent}, 0 0 48px white`,
-                      transform: 'translateY(-50%)',
                       filter: 'blur(1px)',
                     }}
-                    initial={{ opacity: 0, scaleX: 0 }}
-                    animate={{ opacity: [0, 1, 1, 0], scaleX: [0, 1, 1.1, 1.2] }}
-                    transition={{ duration: 0.55, ease: 'easeOut' }}
+                    initial={{ opacity: 0, scaleY: 0 }}
+                    animate={{ opacity: [0, 1, 1, 0], scaleY: [0, 1, 1, 1] }}
+                    transition={{ duration: 0.6, ease: 'easeOut' }}
                   />
                 )}
               </AnimatePresence>
@@ -1064,58 +1179,65 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                 )}
               </AnimatePresence>
 
-              {/* Top-seam energy — gold/tier energy gathers along the tear
-                  seam during charge, with a metallic shimmer and spark
-                  particles, telegraphing exactly where the pack opens. */}
+              {/* ── Where it is about to tear ──
+                  Energy gathers along the vertical seam during the charge, so
+                  by the time the pack rips the player has been staring at the
+                  line it rips along for a second and a half. It used to gather
+                  on a horizontal line across the top third, which is where the
+                  pack used to open. */}
               <AnimatePresence>
                 {phase === 'charge' && (
                   <motion.div
                     key="seam-energy"
-                    className="absolute left-0 right-0 pointer-events-none"
-                    style={{ top: '33%', height: 44, transform: 'translateY(-50%)' }}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
+                    className="absolute pointer-events-none"
+                    style={{
+                      left: `${tearGeometry.seamXPct}%`,
+                      top: 0,
+                      bottom: 0,
+                      width: 44,
+                      marginLeft: -22,
+                      opacity: leakOpacity,
+                    }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: chargeLength / 1000, ease: 'easeIn' }}
                   >
                     {/* Soft bloom hugging the seam */}
                     <div
-                      className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-11"
+                      className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-11"
                       style={{
-                        background: `radial-gradient(70% 100% at 50% 50%, color-mix(in srgb, ${tierDef.accent} 50%, transparent), transparent 72%)`,
+                        background: `radial-gradient(100% 70% at 50% 50%, color-mix(in srgb, ${tierDef.accent} 50%, transparent), transparent 72%)`,
                         mixBlendMode: 'screen',
                         filter: 'blur(7px)',
                       }}
                     />
                     {/* Energy glow line */}
                     <motion.div
-                      className="absolute left-3 right-3 top-1/2 -translate-y-1/2"
+                      className="absolute top-3 bottom-3 left-1/2 -translate-x-1/2"
                       style={{
-                        height: 3,
+                        width: 3,
                         borderRadius: 99,
-                        background: `linear-gradient(90deg, transparent, ${tierDef.accent}, #fff, ${tierDef.accent}, transparent)`,
+                        background: `linear-gradient(180deg, transparent, ${tierDef.accent}, #fff, ${tierDef.accent}, transparent)`,
                         boxShadow: `0 0 14px ${tierDef.accent}, 0 0 30px color-mix(in srgb, ${tierDef.accent} 55%, transparent)`,
                       }}
                       animate={prefersReducedMotion
                         ? { opacity: 0.95 }
-                        : { opacity: [0.45, 1, 0.6, 1], scaleX: [0.8, 1, 0.88, 1] }}
+                        : { opacity: [0.45, 1, 0.6, 1], scaleY: [0.8, 1, 0.88, 1] }}
                       transition={prefersReducedMotion ? undefined : { duration: 1, repeat: Infinity, ease: 'easeInOut' }}
                     />
-                    {/* Spark particles flicking off the seam */}
+                    {/* Sparks flicking sideways off the seam */}
                     {!prefersReducedMotion && seamSparks.map(s => (
                       <motion.span
                         key={`spark-${s.i}`}
                         className="absolute rounded-full"
                         style={{
-                          left: `${s.left}%`,
-                          top: '50%',
+                          top: `${s.along}%`,
+                          left: '50%',
                           width: 3,
                           height: 3,
                           background: '#fff',
                           boxShadow: `0 0 6px ${tierDef.accent}`,
                         }}
-                        initial={{ opacity: 0, y: 0 }}
-                        animate={{ opacity: [0, 1, 0], y: s.up ? -s.dist : s.dist }}
+                        initial={{ opacity: 0, x: 0 }}
+                        animate={{ opacity: [0, 1, 0], x: s.up ? -s.dist : s.dist }}
                         transition={{ duration: s.dur, delay: s.delay, repeat: Infinity, repeatDelay: 0.5, ease: 'easeOut' }}
                       />
                     ))}
@@ -1221,7 +1343,11 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
               }}
               initial={{ width: 0, height: 0, opacity: 1 }}
               animate={{ width: '120vmax', height: '120vmax', opacity: 0 }}
-              transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+              transition={{
+                duration: 0.55,
+                delay: PACK_ANIM.tear.burstDelayMs / 1000,
+                ease: [0.22, 1, 0.36, 1],
+              }}
             />
             {/* Cinematic white bloom — a radial core that blooms outward
                 rather than a flat full-screen fill, so the reveal lands like
@@ -1236,7 +1362,12 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
               }}
               initial={{ opacity: 0, scale: 0.35 }}
               animate={{ opacity: [0, 0.95, 0], scale: [0.35, 1.5, 2.4] }}
-              transition={{ duration: 0.36, times: [0, 0.3, 1], ease: [0.22, 1, 0.36, 1] }}
+              transition={{
+                duration: 0.36,
+                delay: PACK_ANIM.tear.burstDelayMs / 1000,
+                times: [0, 0.3, 1],
+                ease: [0.22, 1, 0.36, 1],
+              }}
             />
             {/* Anamorphic lens flare — a fast bright streak raking across
                 the burst, the cinematic "energy" beat of the reveal. */}
