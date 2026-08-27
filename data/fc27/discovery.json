@@ -1,0 +1,109 @@
+{
+  "probedAt": "2026-08-27T14:36:15.620Z",
+  "anyReachable": false,
+  "results": [
+    {
+      "id": "ea-drop-api",
+      "label": "EA SPORTS FC official ratings API (Drop API)",
+      "official": true,
+      "tier": 1,
+      "usableByDesign": true,
+      "hasPotential": false,
+      "hasGender": true,
+      "hasPlaystyles": true,
+      "notes": "Official, no auth, offset/limit pagination, explicit gender field, PlayStyles and PlayStyles+. Carries NO career-mode potential.",
+      "probes": [
+        {
+          "slug": "ea-sports-fc-27",
+          "url": "https://drop-api.ea.com/rating/ea-sports-fc-27?locale=en&limit=1&offset=0",
+          "ok": false,
+          "status": 403,
+          "error": null
+        },
+        {
+          "slug": "fc-27",
+          "url": "https://drop-api.ea.com/rating/fc-27?locale=en&limit=1&offset=0",
+          "ok": false,
+          "status": 403,
+          "error": null
+        },
+        {
+          "slug": "ea-sports-fc",
+          "url": "https://drop-api.ea.com/rating/ea-sports-fc?locale=en&limit=1&offset=0",
+          "ok": false,
+          "status": 403,
+          "error": null
+        }
+      ],
+      "reachable": false,
+      "reportedTotal": null,
+      "resolvedSlug": null
+    },
+    {
+      "id": "sofifa",
+      "label": "SoFIFA",
+      "official": false,
+      "tier": 5,
+      "usableByDesign": false,
+      "hasPotential": true,
+      "hasGender": true,
+      "hasPlaystyles": true,
+      "notes": "One of the only sources carrying potential. Cloudflare browser clearance in front of it; scraping it needs Playwright and is slow. Candidate for the potential merge only, never for the base pull.",
+      "probes": [
+        {
+          "url": "https://sofifa.com",
+          "ok": false,
+          "status": 403,
+          "error": null
+        }
+      ],
+      "reachable": false,
+      "reportedTotal": null,
+      "resolvedSlug": null
+    },
+    {
+      "id": "cmtracker",
+      "label": "CMTracker (career-mode database)",
+      "official": false,
+      "tier": 5,
+      "usableByDesign": false,
+      "hasPotential": true,
+      "hasGender": true,
+      "hasPlaystyles": true,
+      "notes": "Career-mode oriented, so it carries potential. Its export UI caps at ~50 rows per CSV. No public documented bulk endpoint was reachable from this environment to verify an alternative.",
+      "probes": [
+        {
+          "url": "https://cmtracker.net",
+          "ok": false,
+          "status": 403,
+          "error": null
+        }
+      ],
+      "reachable": false,
+      "reportedTotal": null,
+      "resolvedSlug": null
+    },
+    {
+      "id": "wefut",
+      "label": "WeFUT player database",
+      "official": false,
+      "tier": 5,
+      "usableByDesign": false,
+      "hasPotential": false,
+      "hasGender": true,
+      "hasPlaystyles": true,
+      "notes": "Ultimate Team oriented. UT data has no career-mode potential, so it adds nothing over the official EA API, which is the same underlying ratings data with better access.",
+      "probes": [
+        {
+          "url": "https://wefut.com",
+          "ok": false,
+          "status": 403,
+          "error": null
+        }
+      ],
+      "reachable": false,
+      "reportedTotal": null,
+      "resolvedSlug": null
+    }
+  ]
+}

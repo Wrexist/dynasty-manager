@@ -52,3 +52,9 @@ fc25_icons.csv
 fc25_icons_meta.json
 scripts/.icons-cache.json
 scripts/.icons-debug.html
+
+# FC27 pipeline: raw API pages and run state are large, regenerable and
+# machine-specific. The normalized CSV/JSON deliverables under data/fc27/
+# ARE committed — they are the point of the pipeline.
+data/fc27/raw/
+data/fc27/last-run.json
