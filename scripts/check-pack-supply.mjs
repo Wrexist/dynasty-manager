@@ -48,16 +48,29 @@ function readTiers() {
 
   const tiers = [];
   for (const key of keys) {
-    const block = new RegExp(
-      `key:\\s*'${key}',[\\s\\S]*?guaranteedMinOvr:\\s*(\\d+),[\\s\\S]*?ovrMin:\\s*(\\d+),[\\s\\S]*?ovrMax:\\s*(\\d+),`,
-    ).exec(src);
-    if (!block) throw new Error(`could not read bands for tier "${key}"`);
-    tiers.push({
-      key,
-      guaranteedMinOvr: Number(block[1]),
-      ovrMin: Number(block[2]),
-      ovrMax: Number(block[3]),
-    });
+    // Scope every field read to THIS tier's own object literal — a lazy
+    // [\s\S]*? scan from `key: 'daily'` happily runs past the end of the
+    // daily block and matches the NEXT tier's field, which is exactly how a
+    // first version of this script reported a +1 version boost on the free
+    // pack. The slice between this `key:` and the next is the block.
+    const startM = new RegExp(`key:\\s*'${key}',`).exec(src);
+    if (!startM) throw new Error(`could not find tier "${key}"`);
+    const rest = src.slice(startM.index + startM[0].length);
+    const nextKey = /key:\s*'[a-z_]+',/.exec(rest);
+    const block = nextKey ? rest.slice(0, nextKey.index) : rest;
+
+    const num = (field) => {
+      const m = new RegExp(`${field}:\\s*(\\d+),`).exec(block);
+      return m ? Number(m[1]) : null;
+    };
+    const g = num('guaranteedMinOvr');
+    const lo = num('ovrMin');
+    const hi = num('ovrMax');
+    if (g === null || lo === null || hi === null) throw new Error(`could not read bands for tier "${key}"`);
+    // Band numbers in config are the FINAL ratings a buyer receives; the
+    // underlying real player is picked at (final − boost), so THAT is the band
+    // the pool has to supply.
+    tiers.push({ key, guaranteedMinOvr: g, ovrMin: lo, ovrMax: hi, boost: num('versionBoost') ?? 0 });
   }
   return tiers;
 }
@@ -76,27 +89,31 @@ function main() {
   const rows = [];
 
   for (const t of tiers) {
-    const guaranteed = count(t.guaranteedMinOvr, t.ovrMax);
-    const band = count(t.ovrMin, t.ovrMax);
-    rows.push({ key: t.key, guaranteed, band, g: t.guaranteedMinOvr, lo: t.ovrMin, hi: t.ovrMax });
+    // Supply is judged at BASE ratings — where the real players actually live.
+    const baseG = t.guaranteedMinOvr - t.boost;
+    const baseLo = t.ovrMin - t.boost;
+    const baseHi = t.ovrMax - t.boost;
+    const guaranteed = count(baseG, baseHi);
+    const band = count(baseLo, baseHi);
+    rows.push({ key: t.key, guaranteed, band, g: t.guaranteedMinOvr, lo: t.ovrMin, hi: t.ovrMax, boost: t.boost });
 
     if (guaranteed < MIN_FOR_GUARANTEE) {
       errors.push(
-        `${t.key}: only ${guaranteed} real players at ${t.guaranteedMinOvr}-${t.ovrMax} `
+        `${t.key}: only ${guaranteed} real players at base ${baseG}-${baseHi} `
         + `(need ${MIN_FOR_GUARANTEE}) — every open of this pack draws its guaranteed card from that band.`,
       );
     }
     if (band < MIN_FOR_BAND) {
       errors.push(
-        `${t.key}: only ${band} real players across its ${t.ovrMin}-${t.ovrMax} band (need ${MIN_FOR_BAND}).`,
+        `${t.key}: only ${band} real players across its base ${baseLo}-${baseHi} band (need ${MIN_FOR_BAND}).`,
       );
     }
-    // A ceiling above the best player alive is a published odds row that can
-    // never be dealt — the store would be advertising a rating the world does
-    // not contain.
-    if (t.ovrMax > poolMax) {
+    // A ceiling the world cannot reach is a published odds row that can never
+    // be dealt. With a version boost the honest ceiling is (best base player +
+    // boost) — a +4 Legends issue of a 91 genuinely is a 95.
+    if (baseHi > poolMax) {
       errors.push(
-        `${t.key}: ovrMax ${t.ovrMax} is above the pool's best player (${poolMax}). `
+        `${t.key}: final ovrMax ${t.ovrMax} needs base players at ${baseHi}, above the pool's best (${poolMax}). `
         + `Lower it, or the odds sheet advertises a band nobody can be dealt.`,
       );
     }
@@ -106,7 +123,8 @@ function main() {
   console.log(`  templates: ${ovrs.length}   best player: ${poolMax}`);
   for (const r of rows) {
     console.log(
-      `  ${r.key.padEnd(9)} band ${String(r.lo).padStart(2)}-${r.hi}: ${String(r.band).padStart(5)} players`
+      `  ${r.key.padEnd(9)} final ${String(r.lo).padStart(2)}-${r.hi}${r.boost ? ` (+${r.boost} version)` : '      '}`
+      + `  base supply: ${String(r.band).padStart(5)}`
       + `   guaranteed ${r.g}+: ${String(r.guaranteed).padStart(4)}`,
     );
   }

@@ -39,6 +39,7 @@ export const PACK_TIERS: PackTierDefinition[] = [
     key: 'daily',
     label: 'Rise to Glory',
     storeCaption: '3 players, free every day. Better the longer your streak.',
+    storeBlurb: 'Your free pack, once a day. It deals base cards — real players at their real ratings — and its guaranteed floor climbs the longer your login streak runs, peaking on day 7. No purchase, no catch: this is where a squad starts.',
     price: 0,
     cards: 3,
     guaranteedMinOvr: 66,
@@ -125,11 +126,15 @@ export const PACK_TIERS: PackTierDefinition[] = [
     label: 'Champions Pack',
     storeCaption: '5 players, one guaranteed 78+.',
     badge: 'entry',
+    storeBlurb: 'The entry pack. Five real players issued as Champions versions — +1 to every stat over their base card — with one guaranteed 78 or better. The cheapest way to put a recognisable name in your squad.',
     price: 0,
     cards: 5,
     guaranteedMinOvr: 78,
-    ovrMin: 68,
-    ovrMax: 84,
+    // Final ratings, one point over the proven 68–84 base band — see
+    // `versionBoost` on the type for why generation subtracts the boost.
+    ovrMin: 69,
+    ovrMax: 85,
+    versionBoost: 1,
     rarity: { common: 0, bronze: 0.12, silver: 0.48, gold: 0.38, legendary: 0.02 },
     gradientFrom: 'hsl(var(--pack-gold-from))',
     gradientTo: 'hsl(var(--pack-gold-to))',
@@ -152,11 +157,13 @@ export const PACK_TIERS: PackTierDefinition[] = [
     label: 'Elite Pack',
     storeCaption: '5 players, one guaranteed 82+.',
     badge: 'best_value',
+    storeBlurb: 'The value pick. Five Elite versions — +2 to every stat — with one card guaranteed 82 or better. More top-rated cards per dollar than any other pack on the shelf, which is why it wears the badge.',
     price: 0,
     cards: 5,
     guaranteedMinOvr: 82,
-    ovrMin: 72,
-    ovrMax: 87,
+    ovrMin: 74,
+    ovrMax: 89,
+    versionBoost: 2,
     rarity: { common: 0, bronze: 0.04, silver: 0.28, gold: 0.63, legendary: 0.05 },
     gradientFrom: 'hsl(var(--pack-premium-from))',
     gradientTo: 'hsl(var(--pack-premium-to))',
@@ -175,11 +182,13 @@ export const PACK_TIERS: PackTierDefinition[] = [
     key: 'rare',
     label: 'World Class Pack',
     storeCaption: '5 players, one guaranteed 84+, walkout possible.',
+    storeBlurb: 'Five World Class versions — +3 to every stat — with one card guaranteed 84 or better, which is walkout territory. The pack for turning a good squad into a contender.',
     price: 0,
     cards: 5,
     guaranteedMinOvr: 84,
-    ovrMin: 75,
-    ovrMax: 89,
+    ovrMin: 78,
+    ovrMax: 92,
+    versionBoost: 3,
     rarity: { common: 0, bronze: 0, silver: 0.12, gold: 0.78, legendary: 0.10 },
     gradientFrom: 'hsl(var(--pack-rare-from))',
     gradientTo: 'hsl(var(--pack-rare-to))',
@@ -199,14 +208,17 @@ export const PACK_TIERS: PackTierDefinition[] = [
     label: 'Legends Pack',
     storeCaption: '1 guaranteed Icon, 88+, walkout guaranteed.',
     badge: 'trophy',
+    storeBlurb: 'One card, and it is the best version in the game: a Legends issue at +4 to every stat, guaranteed 88 or better, walkout guaranteed. The only place a card can reach the mid-90s. A trophy, not a squad-filler.',
     price: 0,
     cards: 1,
     guaranteedMinOvr: 88,
-    ovrMin: 85,
-    // 91, not 93: that is the highest rating in the real player pool, and pack
-    // pulls are real players now. A ceiling above what the world contains is a
-    // published odds row nobody can ever be dealt.
-    ovrMax: 91,
+    // Final ratings. The +4 Legends boost is what makes this band honest: the
+    // pool's best base player is 91, but a Legends version of him is 95, and
+    // the 88+ guarantee draws on the 122 players at 84+ rather than the 28 at
+    // 88+ — the version system is ALSO the fix for top-end supply thinness.
+    ovrMin: 88,
+    ovrMax: 95,
+    versionBoost: 4,
     rarity: { common: 0, bronze: 0, silver: 0, gold: 0.55, legendary: 0.45 },
     gradientFrom: 'hsl(var(--pack-icon-from))',
     gradientTo: 'hsl(var(--pack-icon-to))',
@@ -319,9 +331,18 @@ export function getFeaturedPackTier(weekIndex: number): PackTierKey {
  *  store, and it is the reason this is a `name`/`artSrc` pair and not a second
  *  set of rarity weights. */
 export const WEEKLY_PACK_SKINS: WeeklyPackSkin[] = [
-  { name: 'The Dynasty Pack', artSrc: '/packs/dynasty.webp', tier: 'rare', cardFrame: 'dynasty' },
-  { name: 'Golden Era Pack', artSrc: '/packs/golden-era.webp', tier: 'premium', cardFrame: 'golden-era' },
-  { name: 'Royal Reserve Pack', artSrc: '/packs/royal-reserve.webp', tier: 'gold', cardFrame: 'royal-reserve' },
+  {
+    name: 'The Dynasty Pack', artSrc: '/packs/dynasty.webp', tier: 'rare', cardFrame: 'dynasty', extraBoost: 1,
+    blurb: 'This week only: World Class contents issued as Dynasty versions — +4 to every stat, one better than the standard issue — in a frame that can never be pulled again once the week ends.',
+  },
+  {
+    name: 'Golden Era Pack', artSrc: '/packs/golden-era.webp', tier: 'premium', cardFrame: 'golden-era', extraBoost: 1,
+    blurb: 'This week only: Elite contents issued as Golden Era versions — +3 to every stat — in a dated frame. When the week ends, so does the print run.',
+  },
+  {
+    name: 'Royal Reserve Pack', artSrc: '/packs/royal-reserve.webp', tier: 'gold', cardFrame: 'royal-reserve', extraBoost: 1,
+    blurb: 'This week only: Champions contents issued as Royal Reserve versions — +2 to every stat — in a frame only this week can produce.',
+  },
 ];
 
 // ── Pack card frames ──
@@ -381,6 +402,21 @@ export function packFrameFor(tierKey: PackTierKey, weekIndex?: number): string |
   return PACK_TIER_MAP[tierKey]?.cardFrame ?? null;
 }
 
+/** The version boost a pull from this pack carries — the tier's own, plus the
+ *  promo's `extraBoost` while its week runs. Mirrors `packFrameFor` exactly,
+ *  and MUST keep doing so: the frame is the claim ("this is a Dynasty card")
+ *  and the boost is what the claim is worth. Dated the same way for the same
+ *  reason — a promo version that could be minted after its week is a promo
+ *  version worth nothing. */
+export function packVersionBoostFor(tierKey: PackTierKey, weekIndex?: number): number {
+  const base = PACK_TIER_MAP[tierKey]?.versionBoost ?? 0;
+  if (typeof weekIndex === 'number' && getFeaturedPackTier(weekIndex) === tierKey) {
+    const skin = getWeeklyPackSkin(weekIndex);
+    if (skin?.extraBoost) return base + skin.extraBoost;
+  }
+  return base;
+}
+
 /** This week's promo cover, or null if the rotation and the skin list have
  *  drifted apart — in which case the featured slot falls back to the plain
  *  tier rather than showing a name backed by the wrong pack. */
@@ -396,7 +432,18 @@ export function getFeaturedPackPresentation(weekIndex: number): PackTierDefiniti
   const tier = PACK_TIER_MAP[getFeaturedPackTier(weekIndex)];
   const skin = getWeeklyPackSkin(weekIndex);
   if (!skin) return tier;
-  return { ...tier, label: skin.name, artSrc: skin.artSrc, artLegacySrc: tier.artSrc };
+  return {
+    ...tier,
+    label: skin.name,
+    artSrc: skin.artSrc,
+    artLegacySrc: tier.artSrc,
+    ...(skin.blurb ? { storeBlurb: skin.blurb } : {}),
+    // The promo week's cards genuinely carry the extra point, and the ceiling
+    // rises with them — the presentation must say what the week actually deals.
+    ...(skin.extraBoost
+      ? { versionBoost: (tier.versionBoost ?? 0) + skin.extraBoost, ovrMax: tier.ovrMax + skin.extraBoost }
+      : {}),
+  };
 }
 
 /** OVR at/above which a card triggers the walkout reveal instead of a flip. */

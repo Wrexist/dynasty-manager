@@ -611,6 +611,17 @@ contains, what it costs, and what its odds are.
   Mbappé is worse than no Mbappé). Duplicates within ONE pack are prevented;
   duplicates across packs are the chase. Falls back to a generated player only
   when a band has nobody at a position.
+- **Card versions.** Every card a paid pack deals is that pack's VERSION of the
+  real player: +N to every attribute and overall (`versionBoost` — Champions +1,
+  Elite +2, World Class +3, Legends +4; the free Daily deals base cards), priced
+  from the boosted rating. Config band numbers are FINAL ratings; generation
+  picks the template at (final − boost). This is also the top-end supply fix: an
+  88+ guarantee draws on the 122 base players at 84+, not the 28 at 88+, and a
+  Legends issue of the world's best (91) is honestly a 95. Weekly promo skins
+  add `extraBoost: 1` for their week only — `packVersionBoostFor` mirrors
+  `packFrameFor` and the two must never date apart (frame = the claim, boost =
+  what the claim is worth). A promo may only make the pack BETTER: same price,
+  cards, floor and odds weights, pinned by test.
 - **`npm run packs:supply` guards that.** It reads the storefront bands out of
   `config/packs.ts` and the ratings out of the generated pool, and fails if a
   band cannot be filled or if a tier's `ovrMax` exceeds the best player alive.

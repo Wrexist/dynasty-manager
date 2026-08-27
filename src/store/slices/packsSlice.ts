@@ -12,6 +12,7 @@ import {
   WEEKLY_BONUS_CARDS,
   PACK_QUICK_SELL_RATE,
   packFrameFor,
+  packVersionBoostFor,
 } from '@/config/packs';
 import { evaluateDailyStreak } from '@/utils/dailyStreak';
 import { generateAiCounterSignings, generatePackContents, shouldPityTrigger, updatedPityCounter } from '@/utils/packGeneration';
@@ -328,8 +329,13 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     const freeOpen = isFreeOpenMethod(method);
     const streak = currentLoginStreak();
     const bonusCards = weeklyBonusCardsFor(tierKey, method);
+    // Boost and frame (below) resolve from the SAME week on purpose: the frame
+    // is the claim ("this is a Dynasty card") and the boost is what the claim
+    // is worth. If they ever came apart, a promo frame would sit on a
+    // standard-issue card or vice versa.
+    const versionBoost = packVersionBoostFor(tierKey, currentWeekIndex());
     const players = generatePackContents(tierKey, state.season, {
-      pityTriggered, freeOpen, streak, extraCards: bonusCards,
+      pityTriggered, freeOpen, streak, extraCards: bonusCards, versionBoost,
     });
 
     // Claim players onto the club roster. Generators created them with

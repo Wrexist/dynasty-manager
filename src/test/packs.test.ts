@@ -402,17 +402,29 @@ describe('Pack opening — real players', () => {
     }
   });
 
-  it('a pull keeps the real player\'s own rating', () => {
-    // The band chooses WHICH real players are eligible; it never rewrites one.
-    // Stamping a pack's rolled rating onto a template would produce a 74-rated
-    // Mbappé, which is worse than no Mbappé.
-    for (let run = 0; run < 40; run++) {
-      for (const p of generatePackContents('icon', 1)) {
+  it('a pull is the real player\'s own rating plus exactly the version boost', () => {
+    // The band chooses WHICH real players are eligible; the version boost is
+    // the only thing that may move the number, and it moves it by exactly the
+    // tier's advertised +N. Anything else — a reroll, a clamp, a re-derive —
+    // and a "Legends +4" card is a lie in one direction or the other.
+    for (const key of PAID_PACK_TIERS) {
+      const boost = PACK_TIER_MAP[key].versionBoost ?? 0;
+      for (let run = 0; run < 12; run++) {
+        for (const p of generatePackContents(key, 1)) {
+          if (p.source !== 'real' || !p.fcId) continue;
+          const template = findTemplateByFcId(p.fcId);
+          expect(template, `pulled fcId ${p.fcId} is not in the pool`).toBeTruthy();
+          expect(p.overall, `${p.lastName} dealt at ${p.overall}, base ${template!.ovr}, boost +${boost}`)
+            .toBe(Math.min(99, template!.ovr + boost));
+        }
+      }
+    }
+    // And the free pack deals base cards — the version system is what the
+    // paid tiers are selling, so the free tier must not hand it out.
+    for (let run = 0; run < 8; run++) {
+      for (const p of generatePackContents('daily', 1, { freeOpen: true, streak: 7 })) {
         if (p.source !== 'real' || !p.fcId) continue;
-        const template = findTemplateByFcId(p.fcId);
-        expect(template, `pulled fcId ${p.fcId} is not in the pool`).toBeTruthy();
-        expect(p.overall, `${p.lastName} was dealt at ${p.overall}, pool says ${template!.ovr}`)
-          .toBe(template!.ovr);
+        expect(p.overall).toBe(findTemplateByFcId(p.fcId)!.ovr);
       }
     }
   });
@@ -430,12 +442,16 @@ describe('Pack opening — real players', () => {
     }
   });
 
-  it('no tier advertises a ceiling above the best player alive', () => {
-    // An ovrMax above the pool's top rating is an odds row that can never be
-    // dealt. `npm run packs:supply` enforces the same thing against the data
-    // file; this catches a config edit without a data import.
+  it('no tier advertises a ceiling its version cannot actually mint', () => {
+    // The honest ceiling is (best base player + version boost): a +4 Legends
+    // issue of a 91 genuinely is a 95, but a final band needing base players
+    // above the pool's best is an odds row that can never be dealt. `npm run
+    // packs:supply` enforces the same thing against the data file; this
+    // catches a config edit without a data import.
     for (const key of PACK_STOREFRONT_ORDER) {
-      expect(PACK_TIER_MAP[key].ovrMax, `${key} ceiling exceeds the pool`).toBeLessThanOrEqual(poolMaxOvr());
+      const tier = PACK_TIER_MAP[key];
+      expect(tier.ovrMax - (tier.versionBoost ?? 0), `${key} ceiling exceeds the pool`)
+        .toBeLessThanOrEqual(poolMaxOvr());
     }
   });
 });
@@ -686,17 +702,30 @@ describe('Market — weekly featured offer', () => {
     }
   });
 
-  it('a skin changes only the name and the art — never the contents', () => {
-    // The whole trust argument for promo naming rests on this. If a skin could
-    // move a rarity weight or a guarantee, the Market would be advertising one
-    // pack and shipping another.
+  it('a promo changes name, art and exactly +1 version — never price, floor or odds', () => {
+    // The trust argument, updated for versions. A promo week may make the pack
+    // BETTER (its own frame, +1 on the issue, a ceiling one higher) and must
+    // never make it different in any way a buyer could be short-changed by:
+    // same price, same card count, same guaranteed floor, same rarity weights.
     for (let w = 0; w < 9; w++) {
       const tier = PACK_TIER_MAP[getFeaturedPackTier(w)];
       const shown = getFeaturedPackPresentation(w);
-      const { label: _l, artSrc: _a, artLegacySrc: _al, ...shownRest } = shown;
-      const { label: _l2, artSrc: _a2, artLegacySrc: _al2, ...tierRest } = tier;
+      const extra = WEEKLY_PACK_SKINS.find(sk => sk.tier === tier.key)?.extraBoost ?? 0;
+
+      expect(shown.versionBoost).toBe((tier.versionBoost ?? 0) + extra);
+      expect(shown.ovrMax).toBe(tier.ovrMax + extra);
+
+      const {
+        label: _l, artSrc: _a, artLegacySrc: _al,
+        storeBlurb: _b, versionBoost: _v, ovrMax: _m,
+        ...shownRest
+      } = shown;
+      const {
+        label: _l2, artSrc: _a2, artLegacySrc: _al2,
+        storeBlurb: _b2, versionBoost: _v2, ovrMax: _m2,
+        ...tierRest
+      } = tier;
       expect(shownRest).toEqual(tierRest);
-      expect(describePackOdds(shown)).toEqual(describePackOdds(tier));
     }
   });
 

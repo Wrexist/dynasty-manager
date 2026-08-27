@@ -2395,6 +2395,23 @@ export interface PackTierDefinition {
   /** Card-frame id awarded to cards pulled from this pack at or above its
    *  guaranteed floor. See `Player.packFrame`. */
   cardFrame?: string;
+  /** ── Card version boost ──
+   *  Every card dealt by this pack is the pack's own VERSION of the player:
+   *  the real player with +N to every attribute and +N overall, priced (wage,
+   *  value, rarity) from the boosted rating. A Champions Haaland and a Legends
+   *  Haaland are different cards of the same person, which is the entire
+   *  collect-them-all draw of the storefront.
+   *
+   *  All of this tier's band numbers (`ovrMin`, `ovrMax`, `guaranteedMinOvr`,
+   *  odds-sheet rows) are FINAL ratings — what the buyer receives. Generation
+   *  picks the underlying real player at (final − boost), which is what lets
+   *  a $9.99 pack guarantee 88+ from a world that holds only 28 such players:
+   *  it draws from the 122 players at 84+ and issues them at +4. */
+  versionBoost?: number;
+  /** Two–three sentences for the pack info popup: what this pack is, who it is
+   *  for, what its version means. Player-facing teaching copy, not marketing
+   *  fluff — the popup exists so a new player LEARNS the storefront. */
+  storeBlurb?: string;
 }
 
 /** Card badges. Deliberately few — a badge on every card is a badge on none. */
@@ -2420,6 +2437,13 @@ export interface WeeklyPackSkin {
    *  floor. This is the promo's lasting artefact — the only way to own a
    *  Golden Era card is to have opened one during a Golden Era week. */
   cardFrame?: string;
+  /** Extra version boost on top of the backing tier's, for the promo week
+   *  only. Dated the same way the frame is: a Dynasty card can only exist if
+   *  it was pulled during a Dynasty week. Kept at +1 so no promo version ever
+   *  beats the Legends Pack — special is a date, not a power ceiling. */
+  extraBoost?: number;
+  /** Popup blurb for the promo week, replacing the backing tier's. */
+  blurb?: string;
 }
 
 /** One row of the published odds table for a pack. Derived from config by
