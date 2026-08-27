@@ -615,7 +615,7 @@ export function WalkoutReveal({ player, onComplete, onAdvance }: WalkoutRevealPr
                   className="text-[10px] uppercase tracking-[0.42em] font-semibold text-white/85"
                   style={{ textShadow: '0 1px 2px rgba(0,0,0,0.6)' }}
                 >
-                  Dynasty Pack
+                  Opening
                 </p>
                 <p
                   className="mt-1 text-xl font-display font-black tracking-[0.08em] uppercase"

@@ -144,7 +144,7 @@ export const PackCard = memo(function PackCard({ player, revealed, onReveal, ent
               className="text-[9px] uppercase tracking-[0.35em] text-white/85 font-semibold"
               style={{ textShadow: '0 1px 2px rgba(0,0,0,0.55)' }}
             >
-              Dynasty Pack
+              Opening
             </span>
             <span
               className="text-[9px] uppercase tracking-widest text-white/60 font-semibold mt-0.5"

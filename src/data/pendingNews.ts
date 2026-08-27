@@ -47,6 +47,7 @@ export const PENDING_NEWS: PendingRelease = {
   ],
   new: [
     'Every pack now shows its drop rates before you open it.',
+    'Cards pulled from a pack now keep that pack\'s frame — and the weekly promo frames are only awarded during their week.',
   ],
   improved: [
     'Release 1.4.1 docs version.',

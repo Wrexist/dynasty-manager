@@ -148,6 +148,7 @@ export const PlayerCard = memo(function PlayerCard({
   const tk = sizeTokens(size);
   const cardArt = getPlayerCardArt(player.overall, {
     ballonDorTop10: typeof player.ballonDOrTop10HoldSeason === 'number',
+    packFrame: player.packFrame,
   });
   const prefersReducedMotion = useReducedMotionPref();
   const [statView, setStatView] = useState<StatView>(0);
@@ -238,9 +239,16 @@ export const PlayerCard = memo(function PlayerCard({
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              'radial-gradient(ellipse 42% 32% at 18% 17%, rgba(0,0,0,0.65), transparent 75%),' +
-              'linear-gradient(to bottom, transparent 48%, rgba(0,0,0,0.32) 58%, rgba(0,0,0,0.18) 62%, transparent 64%),' +
-              'linear-gradient(to bottom, transparent 63%, rgba(0,0,0,0.4) 72%, rgba(0,0,0,0.55) 86%, rgba(0,0,0,0.65) 100%)',
+              cardArt.scrim === 'strong'
+                // Pack frames and the Ballon d'Or card put a light burst
+                // exactly where the rating and the surname sit, so the scrim
+                // tuned for the calm tier shields left white-on-gold text.
+                ? 'radial-gradient(ellipse 46% 36% at 18% 17%, rgba(0,0,0,0.78), transparent 78%),'
+                  + 'linear-gradient(to bottom, transparent 44%, rgba(0,0,0,0.52) 56%, rgba(0,0,0,0.4) 64%, transparent 69%),'
+                  + 'linear-gradient(to bottom, transparent 62%, rgba(0,0,0,0.5) 72%, rgba(0,0,0,0.66) 86%, rgba(0,0,0,0.74) 100%)'
+                : 'radial-gradient(ellipse 42% 32% at 18% 17%, rgba(0,0,0,0.65), transparent 75%),'
+                  + 'linear-gradient(to bottom, transparent 48%, rgba(0,0,0,0.32) 58%, rgba(0,0,0,0.18) 62%, transparent 64%),'
+                  + 'linear-gradient(to bottom, transparent 63%, rgba(0,0,0,0.4) 72%, rgba(0,0,0,0.55) 86%, rgba(0,0,0,0.65) 100%)',
           }}
         />
       )}

@@ -73,6 +73,7 @@ export const PACK_TIERS: PackTierDefinition[] = [
     gradientTo: 'hsl(var(--pack-silver-to))',
     accent: 'hsl(var(--pack-silver-accent))',
     artSrc: '/packs/rise-to-glory.webp',
+    cardFrame: 'rise-to-glory',
     freeDailyLimit: 1,
     // A SECOND daily pack for one rewarded ad — one, not three. Inert while
     // `REWARDED_ADS_USABLE` is false (see `utils/ads.ts`); the Market never
@@ -134,6 +135,7 @@ export const PACK_TIERS: PackTierDefinition[] = [
     gradientTo: 'hsl(var(--pack-gold-to))',
     accent: 'hsl(var(--pack-gold-accent))',
     artSrc: '/packs/champions.webp',
+    cardFrame: 'champions',
     productId: 'com.dynastymanager.pack.gold',
     iapPriceDisplay: '$2.99',
     weeklyEligible: true,
@@ -160,6 +162,7 @@ export const PACK_TIERS: PackTierDefinition[] = [
     gradientTo: 'hsl(var(--pack-premium-to))',
     accent: 'hsl(var(--pack-premium-accent))',
     artSrc: '/packs/elite.webp',
+    cardFrame: 'elite',
     productId: 'com.dynastymanager.pack.premium_gold',
     iapPriceDisplay: '$4.99',
     weeklyEligible: true,
@@ -182,6 +185,7 @@ export const PACK_TIERS: PackTierDefinition[] = [
     gradientTo: 'hsl(var(--pack-rare-to))',
     accent: 'hsl(var(--pack-rare-accent))',
     artSrc: '/packs/world-class.webp',
+    cardFrame: 'world-class',
     productId: 'com.dynastymanager.pack.rare_gold',
     iapPriceDisplay: '$6.99',
     weeklyEligible: true,
@@ -205,6 +209,7 @@ export const PACK_TIERS: PackTierDefinition[] = [
     gradientTo: 'hsl(var(--pack-icon-to))',
     accent: 'hsl(var(--pack-icon-accent))',
     artSrc: '/packs/legends.webp',
+    cardFrame: 'legends',
     productId: 'com.dynastymanager.pack.icon',
     iapPriceDisplay: '$9.99',
   },
@@ -311,10 +316,67 @@ export function getFeaturedPackTier(weekIndex: number): PackTierKey {
  *  store, and it is the reason this is a `name`/`artSrc` pair and not a second
  *  set of rarity weights. */
 export const WEEKLY_PACK_SKINS: WeeklyPackSkin[] = [
-  { name: 'The Dynasty Pack', artSrc: '/packs/dynasty.webp', tier: 'rare' },
-  { name: 'Golden Era Pack', artSrc: '/packs/golden-era.webp', tier: 'premium' },
-  { name: 'Royal Reserve Pack', artSrc: '/packs/royal-reserve.webp', tier: 'gold' },
+  { name: 'The Dynasty Pack', artSrc: '/packs/dynasty.webp', tier: 'rare', cardFrame: 'dynasty' },
+  { name: 'Golden Era Pack', artSrc: '/packs/golden-era.webp', tier: 'premium', cardFrame: 'golden-era' },
+  { name: 'Royal Reserve Pack', artSrc: '/packs/royal-reserve.webp', tier: 'gold', cardFrame: 'royal-reserve' },
 ];
+
+// ── Pack card frames ──
+//
+// A card pulled from a pack AT OR ABOVE that pack's guaranteed floor keeps the
+// pack's frame forever. It is the only lasting thing a pack leaves behind: the
+// players themselves get sold, loaned and retired, but a Golden Era card is
+// proof you were there the week Golden Era ran.
+//
+// Two rules make it worth having rather than merely decorative:
+//
+//   1. THE FLOOR GATE. Only a card that cleared the guarantee wears the frame,
+//      so a promo frame always means a good card. Without it the Daily Pack's
+//      62-rated filler would wear the same frame as its best pull, and the
+//      frame would stop meaning anything — which is also what would break the
+//      at-a-glance read of a squad list, where the card art IS the tier signal.
+//   2. THE WEEKLY FRAMES CANNOT BE FARMED. Dynasty, Golden Era and Royal
+//      Reserve are only awarded while their week is running, so they are
+//      genuinely dated. Nothing about them is stronger than a base card.
+//
+// Cosmetic only. A frame never touches an attribute, a wage, a value or any
+// simulation parameter — same contract as the cosmetic IAPs.
+export const PACK_CARD_FRAMES: Record<string, string> = {
+  'rise-to-glory': '/player-cards/rise-to-glory.webp',
+  champions: '/player-cards/champions.webp',
+  elite: '/player-cards/elite.webp',
+  'world-class': '/player-cards/world-class.webp',
+  legends: '/player-cards/legends.webp',
+  // Weekly promo frames.
+  dynasty: '/player-cards/dynasty.webp',
+  'golden-era': '/player-cards/golden-era.webp',
+  'royal-reserve': '/player-cards/royal-reserve.webp',
+};
+
+/** Resolve a frame id to its artwork, or null when the id is unknown.
+ *
+ *  Null is a supported answer, not an error: a save can carry a frame id that a
+ *  later build has retired, and the card must fall back to its ordinary OVR
+ *  tier art rather than render a broken image. Same contract as the archived
+ *  pack tiers — stop awarding it, keep resolving it, and when you cannot
+ *  resolve it, degrade quietly. */
+export function packFrameArt(frameId: string | null | undefined): string | null {
+  if (!frameId) return null;
+  return PACK_CARD_FRAMES[frameId] ?? null;
+}
+
+/** The frame a pull from this pack earns, accounting for the weekly promo skin.
+ *
+ *  `weekIndex` is what makes a promo frame dated: pass the week the pack was
+ *  opened in and a featured pack awards its promo frame; pass nothing and it
+ *  awards the tier's own. */
+export function packFrameFor(tierKey: PackTierKey, weekIndex?: number): string | null {
+  if (typeof weekIndex === 'number' && getFeaturedPackTier(weekIndex) === tierKey) {
+    const skin = getWeeklyPackSkin(weekIndex);
+    if (skin?.cardFrame) return skin.cardFrame;
+  }
+  return PACK_TIER_MAP[tierKey]?.cardFrame ?? null;
+}
 
 /** This week's promo cover, or null if the rotation and the skin list have
  *  drifted apart — in which case the featured slot falls back to the plain

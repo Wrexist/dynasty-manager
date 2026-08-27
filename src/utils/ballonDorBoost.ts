@@ -2,7 +2,7 @@
  * Ballon d'Or top-10 reign — temporary stats boost + special card.
  *
  * When a player finishes in the Ballon d'Or top 10 at season end, they earn
- * a flat stats boost across all six attributes and the special `ballondor.png`
+ * a flat stats boost across all six attributes and the special `ballondor.webp`
  * card. The reign lasts exactly one Ballon d'Or cycle: at the next season's
  * award ceremony, players who keep their top-10 spot have the boost refreshed,
  * and players who drop out have their boost reverted (deltas subtracted) and

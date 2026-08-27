@@ -12,7 +12,7 @@ import { isPlaceholderClubId } from '@/config/continental';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 87;
+const CURRENT_VERSION = 88;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -88,6 +88,21 @@ const migrations: Record<number, MigrationFn> = {
   //
   // Later waves EXTEND this step rather than adding another: keep the shape
   // below (a single `sunday` rewrite with per-field fallbacks) and add fields.
+  // v87 → v88: pack card frames.
+  //
+  // `Player.packFrame` is a cosmetic frame id earned by being pulled from a pack
+  // at or above its guaranteed floor. There is deliberately NO backfill: the
+  // frame records where a card came from, and a save has no record of which
+  // players arrived through a pack (`openedPacks` keeps ids, but those players
+  // may since have been sold, retired or purged). Inventing an origin would be
+  // fabricating history to make old cards prettier. Existing players keep their
+  // OVR-tier art; every card pulled from here on earns a frame honestly.
+  //
+  // The field is optional and `getPlayerCardArt` treats an unknown or missing id
+  // as "no frame", so nothing needs writing into the payload at all — this step
+  // exists to record the version and the decision.
+  87: (data) => ({ ...data, version: 88 }),
+
   // v86 → v87: Market redesign.
   //
   //   - `weeklyPackBonus` mirrors the device-global weekly featured-pack bonus

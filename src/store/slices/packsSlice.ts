@@ -7,9 +7,11 @@ import {
   PACK_TIER_MAP,
   RECENT_PULLS_LIMIT,
   isFreeOpenMethod,
+  resolvePackTier,
   getFeaturedPackTier,
   WEEKLY_BONUS_CARDS,
   PACK_QUICK_SELL_RATE,
+  packFrameFor,
 } from '@/config/packs';
 import { evaluateDailyStreak } from '@/utils/dailyStreak';
 import { generateAiCounterSignings, generatePackContents, shouldPityTrigger, updatedPityCounter } from '@/utils/packGeneration';
@@ -333,8 +335,15 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     // Claim players onto the club roster. Generators created them with
     // clubId = ''; we finalize ownership here.
     const newPlayers = { ...state.players };
+    // Frame for cards that cleared this pack's guaranteed floor. Resolved with
+    // the CURRENT week so a featured pack stamps its promo frame — that is what
+    // makes a promo frame dated rather than farmable. Cosmetic only.
+    const earnedFrame = packFrameFor(tierKey, currentWeekIndex());
+    const frameFloor = resolvePackTier(tier, { freeOpen, streak }).guaranteedMinOvr;
+
     const finalizedPlayers: Player[] = players.map(p => {
       const owned: Player = { ...p, clubId: state.playerClubId, joinedSeason: state.season };
+      if (earnedFrame && p.overall >= frameFloor) owned.packFrame = earnedFrame;
       newPlayers[owned.id] = owned;
       return owned;
     });

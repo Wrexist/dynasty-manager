@@ -6,6 +6,7 @@
 import type { CSSProperties } from 'react';
 import { PlayerAttributes, PlayerCardArt, PlayerCardArtOptions, Position } from '@/types/game';
 import { FAN_CONFIDENCE_FAN_WEIGHT, FAN_CONFIDENCE_BOARD_WEIGHT } from '@/config/gameBalance';
+import { packFrameArt } from '@/config/packs';
 import {
   RATING_COLOR_THRESHOLDS,
   STAT_BAR_THRESHOLDS,
@@ -75,11 +76,16 @@ export function getPlayerTier(overall: number | null | undefined): PlayerTier {
 }
 
 /**
- * Tier-themed shield artwork for the player-card background layer. Legends
- * (90+) get the white icon shield; every other gold-rated player (80–89) gets
- * the rare gold shield, so the icon look is reserved as a true top-end
- * differentiator. Silver and Bronze cover the mid/lower bands, with Common
- * reusing the Bronze shield under a desaturate filter.
+ * Artwork for the player-card background layer, in strict precedence order:
+ *
+ *   1. Ballon d'Or top-10 card — what the player DID.
+ *   2. Pack frame — where the player CAME FROM, if they cleared the pack's
+ *      guaranteed floor (see `PACK_CARD_FRAMES` in `config/packs.ts`).
+ *   3. OVR tier shield — what the player IS. Legends (90+) get the white icon
+ *      shield; every other gold-rated player (80–89) gets the rare gold shield,
+ *      so the icon look is reserved as a true top-end differentiator. Silver
+ *      and Bronze cover the mid/lower bands, with Common reusing the Bronze
+ *      shield under a desaturate filter.
  *
  * The PlayerCardArt + PlayerCardArtOptions types live in src/types/game.ts
  * (single source of truth for all game types).
@@ -88,10 +94,19 @@ export type { PlayerCardArt, PlayerCardArtOptions };
 
 export function getPlayerCardArt(overall: number | null | undefined, options?: PlayerCardArtOptions): PlayerCardArt {
   if (options?.ballonDorTop10) {
-    // Ballon d'Or top-10 card outranks every tier shield. Lasts until the
-    // next BdO ceremony — see src/utils/ballonDorBoost.ts for the lifecycle.
-    return { src: '/player-cards/ballondor.png' };
+    // Ballon d'Or top-10 card outranks every tier shield AND every pack frame.
+    // It is the only card in the game that says something about what the player
+    // did rather than where they came from. Lasts until the next BdO ceremony —
+    // see src/utils/ballonDorBoost.ts for the lifecycle.
+    return { src: '/player-cards/ballondor.webp', scrim: 'strong' };
   }
+  // A pack frame, earned by clearing that pack's guaranteed floor. Below the
+  // Ballon d'Or card, above the OVR tier art. `packFrameArt` returns null for a
+  // frame id this build no longer knows, which falls through to the tier art
+  // rather than rendering a broken image — that is deliberate, so a frame can
+  // be retired without breaking saves that carry it.
+  const frame = packFrameArt(options?.packFrame);
+  if (frame) return { src: frame, scrim: 'strong' };
   if (overall == null || !Number.isFinite(overall)) {
     return { src: '/player-cards/bronze.webp', filter: 'grayscale(1) brightness(0.55)' };
   }

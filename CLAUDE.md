@@ -1,6 +1,6 @@
 # CLAUDE.md — Dynasty Manager
 
-> Last verified against the codebase 2026-08-23 (app v1.5.0, save schema v87).
+> Last verified against the codebase 2026-08-23 (app v1.5.0, save schema v88).
 > If the numbers below disagree with the code, trust the code — and update this file.
 > `npm run docs:check` verifies the countable claims (schema version, file counts,
 > LOC of the named files) and `-- --fix` updates them. It runs in preflight, so this
@@ -389,7 +389,7 @@ src/
 ├── types/game.ts        → ALL types (2,083 LOC): Player, Club, Match, LeagueInfo,
 │                          10 formations, 45 GameScreens, MonetizationState,
 │                          CareerManager, NationalTeamState, PackTierDefinition, …
-├── utils/               → 98 files + `sunday/` (18): playerGen, saveMigration (v87),
+├── utils/               → 98 files + `sunday/` (18): playerGen, saveMigration (v88),
 │                          purchases (RevenueCat wrapper), monetization, ads (stub),
 │                          packGeneration, communityPackPool, international,
 │                          managerCareer, continental, continentalCoefficients,
@@ -410,7 +410,7 @@ src/
 5. **`src/engine/match.ts`** — match simulation (2243 LOC).
 6. **`src/data/leagues/index.ts`** — aggregates 45 leagues / 756 clubs; `src/data/league.ts` for fixtures/tables/derbies.
 7. **`src/utils/playerGen.ts`** — player generation, overall calc, squad building.
-8. **`src/utils/saveMigration.ts`** — save schema `CURRENT_VERSION = 87` + migration chain. Every state-shape change bumps it.
+8. **`src/utils/saveMigration.ts`** — save schema `CURRENT_VERSION = 88` + migration chain. Every state-shape change bumps it.
 9. **`src/config/monetization.ts` + `src/utils/purchases.ts` + `src/utils/monetization.ts`** — product catalog, RevenueCat wrapper, entitlement checks (see Monetization).
 10. **`src/store/slices/orchestration/seasonEnd.ts`** — end-of-season: aging, contracts, promotion/relegation cascade, awards, fixtures.
 
@@ -571,7 +571,20 @@ contains, what it costs, and what its odds are.
   `evaluateDailyStreak`) read INSIDE the slice — never passed in by the page, or
   a caller could hand itself the day-7 pack on day one.
 - **Art chain** is `artSrc` → `artLegacySrc` → tier gradient, so new covers can
-  be referenced before the files ship.
+  be referenced before the files ship. Covers live in `public/packs/`; three
+  tests pin that every referenced cover exists, nothing unreferenced ships, and
+  everything is `.webp` (the source PNGs are ~3.2 MB each, the webp ~0.47 MB).
+- **Pack card frames.** A card pulled AT OR ABOVE its pack's guaranteed floor
+  keeps that pack's frame forever (`Player.packFrame`, art in
+  `public/player-cards/`, registry `PACK_CARD_FRAMES`). Precedence in
+  `getPlayerCardArt`: Ballon d'Or > pack frame > OVR tier shield. Two rules make
+  it worth having and both are tested: the **floor gate** (sub-floor filler
+  keeps its tier art, so a frame always means a good card and the squad-list
+  tier read survives) and **weekly frames cannot be farmed** (Dynasty / Golden
+  Era / Royal Reserve are awarded only while their week runs). Purely
+  cosmetic — a frame never touches a sim parameter. An unknown frame id
+  resolves to `null` and falls back to tier art, so a frame can be retired
+  without breaking saves.
 - ⚠ **ASC action item:** the four consumables' in-app display names changed
   (Champions / Elite / World Class / Legends) and the cosmetic pack became
   *Dynasty Legacy Pack*. Product IDs are frozen; the App Store Connect and Play
@@ -593,7 +606,7 @@ Player identities draw from the **community pack** real-player dataset
 - ALL storage access goes through `src/store/helpers/persistence.ts`
   (`readSaveSlot`, `getFlag`/`setFlag`, `readSessionJson`, …). New keys
   register in `STORAGE_KEYS`. Direct `localStorage` use is ESLint-banned.
-- **Save schema version `87`** in `utils/saveMigration.ts`. Any change to
+- **Save schema version `88`** in `utils/saveMigration.ts`. Any change to
   persisted state shape bumps `CURRENT_VERSION` and adds a migration step.
   `SaveRecoveryDialog` + backup slots handle corrupted saves; parse failures
   breadcrumb to Sentry.

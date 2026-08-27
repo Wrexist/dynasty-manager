@@ -194,15 +194,27 @@ export type PlayerRarity = 'common' | 'rare' | 'star' | 'icon' | 'legend';
 export interface PlayerCardArt {
   src: string;
   filter?: string;
+  /** How hard the legibility scrim over this artwork has to work.
+   *
+   *  `'standard'` is tuned for the OVR tier shields, whose centres are calm.
+   *  `'strong'` is for artwork with a bright burst behind the name and rating —
+   *  the pack frames and the Ballon d'Or card both put light exactly where the
+   *  text sits, and the standard scrim leaves white-on-gold at the top-left
+   *  rating and the surname. Defaults to `'standard'` when absent. */
+  scrim?: 'standard' | 'strong';
 }
 
-/** Options for {@link PlayerCardArt} resolution — currently only the
- *  Ballon d'Or top-10 override, which outranks every overall-based tier. */
+/** Options for {@link PlayerCardArt} resolution — the Ballon d'Or top-10
+ *  override and the pack-earned frame, in that precedence order, both of which
+ *  outrank the overall-based tier shield. */
 export interface PlayerCardArtOptions {
   /** When true, return the Ballon d'Or top-10 card instead of the tier shield.
    *  Set this for players whose `ballonDOrTop10HoldSeason` is the current
    *  reigning season — see src/utils/ballonDorBoost.ts for the lifecycle. */
   ballonDorTop10?: boolean;
+  /** Pack-earned card frame id (see `Player.packFrame`). Outranked by the
+   *  Ballon d'Or card, outranks the OVR tier card. */
+  packFrame?: string;
 }
 
 // ── Injury System ──
@@ -293,11 +305,24 @@ export interface Player {
   /**
    * Season in which the player most recently finished in the Ballon d'Or
    * top 10. While set, the player is the reigning top-10 holder — they
-   * carry a stats boost and the special `ballondor.png` card. The marker is
+   * carry a stats boost and the special `ballondor.webp` card. The marker is
    * refreshed each season they re-make the top 10, and cleared at next
    * season-end if they drop out (along with reverting the stats boost).
    */
   ballonDOrTop10HoldSeason?: number;
+  /**
+   * Card frame this player wears, earned by being pulled from a pack at or
+   * above that pack's guaranteed floor. Purely cosmetic — it changes the card
+   * artwork and nothing else, and it never touches a simulation parameter.
+   *
+   * A frame id, not a path: `PACK_CARD_FRAMES` in `config/packs.ts` resolves it,
+   * and an id that resolver does not know falls back to the ordinary OVR-tier
+   * card. That fallback is what lets a frame be retired without breaking every
+   * save that has one, the same contract the archived pack tiers live under.
+   *
+   * Absent on every player not pulled from a pack, which is almost all of them.
+   */
+  packFrame?: string;
   /**
    * Per-attribute deltas applied by the active Ballon d'Or top-10 boost.
    * Stored as deltas (not absolute snapshots) so development, training, and
@@ -2337,6 +2362,9 @@ export interface PackTierDefinition {
   /** May this tier appear in the weekly featured rotation? Icon is excluded so
    *  it stays a deliberate splurge rather than a recurring headline. */
   weeklyEligible?: boolean;
+  /** Card-frame id awarded to cards pulled from this pack at or above its
+   *  guaranteed floor. See `Player.packFrame`. */
+  cardFrame?: string;
 }
 
 /** Card badges. Deliberately few — a badge on every card is a badge on none. */
@@ -2358,6 +2386,10 @@ export interface WeeklyPackSkin {
   artSrc: string;
   /** The storefront tier (and therefore the SKU and the contents) behind it. */
   tier: PackTierKey;
+  /** Card-frame id awarded to cards pulled at or above the pack's guaranteed
+   *  floor. This is the promo's lasting artefact — the only way to own a
+   *  Golden Era card is to have opened one during a Golden Era week. */
+  cardFrame?: string;
 }
 
 /** One row of the published odds table for a pack. Derived from config by

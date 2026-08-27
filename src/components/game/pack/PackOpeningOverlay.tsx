@@ -660,11 +660,16 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.4, delay: 0.15 }}
           >
+            {/* Eyebrow above the pack's own name. It read "Dynasty Pack",
+                which was fine when no pack was called that and is not now: the
+                weekly promo is "The Dynasty Pack", so the reveal announced
+                "DYNASTY PACK / THE DYNASTY PACK" and implied every other pack
+                was a Dynasty Pack too. */}
             <span
               className="text-[9px] uppercase font-semibold tracking-[0.42em] text-white/60"
               style={{ textShadow: '0 1px 4px rgba(0,0,0,0.7)' }}
             >
-              Dynasty Pack
+              Opening
             </span>
             <span
               className="mt-1 text-[22px] font-display font-black tracking-[0.04em] uppercase leading-none"

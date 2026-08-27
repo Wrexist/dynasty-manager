@@ -24,6 +24,9 @@ import {
   getFeaturedPackPresentation,
   WEEKLY_PACK_SKINS,
   packEliteCardsPerDollar,
+  packFrameArt,
+  packFrameFor,
+  PACK_CARD_FRAMES,
   resolvePackTier,
 } from '@/config/packs';
 import type { Club, PackTierKey } from '@/types/game';
@@ -324,6 +327,14 @@ describe('Market — pack artwork', () => {
   // available, and the covers are static assets under `public/`.
   const packDir = path.resolve(process.cwd(), 'public/packs');
 
+  it('every card frame exists on disk', () => {
+    const cardDir = path.resolve(process.cwd(), 'public/player-cards');
+    for (const [id, ref] of Object.entries(PACK_CARD_FRAMES)) {
+      expect(ref.startsWith('/player-cards/'), `${id} must live under /player-cards/`).toBe(true);
+      expect(existsSync(path.join(cardDir, path.basename(ref))), `missing card frame: ${ref}`).toBe(true);
+    }
+  });
+
   it('every referenced cover exists on disk', () => {
     // The art chain degrades silently by design (missing cover → previous
     // cover → gradient), which is exactly why a missing file needs a test: a
@@ -360,6 +371,93 @@ describe('Market — pack artwork', () => {
     const onDisk = readdirSync(packDir).filter(f => /\.(webp|png|jpg|jpeg)$/i.test(f));
     for (const file of onDisk) {
       expect(file.endsWith('.webp'), `${file} should be converted to .webp`).toBe(true);
+    }
+  });
+});
+
+describe('Market — pack card frames', () => {
+  beforeEach(() => { initAndGetState(); });
+
+  it('every storefront pack awards a frame, and every frame resolves to art', () => {
+    for (const key of PACK_STOREFRONT_ORDER) {
+      const frame = PACK_TIER_MAP[key].cardFrame;
+      expect(frame, `${key} awards no card frame`).toBeTruthy();
+      expect(packFrameArt(frame), `${key}'s frame "${frame}" resolves to nothing`).toBeTruthy();
+    }
+    for (const skin of WEEKLY_PACK_SKINS) {
+      expect(packFrameArt(skin.cardFrame), `${skin.name}'s frame resolves to nothing`).toBeTruthy();
+    }
+  });
+
+  it('an unknown frame id resolves to null rather than a broken path', () => {
+    // The compatibility contract: a save can carry a frame a later build has
+    // retired, and the card must fall back to its OVR tier art.
+    expect(packFrameArt('a-frame-we-retired')).toBeNull();
+    expect(packFrameArt(undefined)).toBeNull();
+    expect(packFrameArt('')).toBeNull();
+  });
+
+  it('a featured pack awards its PROMO frame, only during its own week', () => {
+    // This is what makes a promo frame dated instead of farmable.
+    for (let w = 0; w < 6; w++) {
+      const featured = getFeaturedPackTier(w);
+      const skin = WEEKLY_PACK_SKINS.find(sk => sk.tier === featured);
+      expect(packFrameFor(featured, w)).toBe(skin!.cardFrame);
+      // The same pack in a week it is NOT featured awards its ordinary frame.
+      const otherWeek = [0, 1, 2, 3, 4, 5].find(x => getFeaturedPackTier(x) !== featured)!;
+      expect(packFrameFor(featured, otherWeek)).toBe(PACK_TIER_MAP[featured].cardFrame);
+      // And with no week supplied at all, never a promo frame.
+      expect(packFrameFor(featured)).toBe(PACK_TIER_MAP[featured].cardFrame);
+    }
+  });
+
+  it('stamps the frame only on cards that cleared the guaranteed floor', () => {
+    // The gate that keeps a frame meaning something: the Daily Pack's low
+    // filler cards must NOT wear the same frame as its guaranteed pull, or the
+    // frame stops signalling anything and the squad-list tier read goes with it.
+    const floor = resolvePackTier(PACK_TIER_MAP.daily, { streak: 1 }).guaranteedMinOvr;
+    let sawFramed = false;
+    let sawUnframed = false;
+    for (let run = 0; run < 12; run++) {
+      initAndGetState();
+      const open = useGameStore.getState().openPack('daily', { method: 'free' });
+      expect(open.success).toBe(true);
+      for (const p of open.players!) {
+        if (p.overall >= floor) {
+          expect(p.packFrame, `${p.overall} cleared ${floor} but wears no frame`).toBe('rise-to-glory');
+          sawFramed = true;
+        } else {
+          expect(p.packFrame, `${p.overall} is below ${floor} but wears a frame`).toBeUndefined();
+          sawUnframed = true;
+        }
+      }
+    }
+    // The guaranteed slot means at least one framed card is certain; the filler
+    // cards mean an unframed one is all but certain over twelve opens.
+    expect(sawFramed).toBe(true);
+    expect(sawUnframed, 'no sub-floor card appeared in 36 pulls — check the bands').toBe(true);
+  });
+
+  it('the frame survives into the stored squad, not just the reveal payload', () => {
+    initAndGetState();
+    const open = useGameStore.getState().openPack('daily', { method: 'free' });
+    const framed = open.players!.find(p => p.packFrame);
+    expect(framed, 'the guaranteed pull should always carry a frame').toBeTruthy();
+    expect(useGameStore.getState().players[framed!.id].packFrame).toBe('rise-to-glory');
+  });
+
+  it('a frame is cosmetic — it never rides along with a rating change', () => {
+    // The monetization contract: nothing that can be bought may touch a sim
+    // parameter. A frame is art, so a framed and an unframed card of the same
+    // overall must be identical everywhere the sim looks.
+    initAndGetState();
+    const open = useGameStore.getState().openPack('daily', { method: 'free' });
+    for (const p of open.players!) {
+      const stored = useGameStore.getState().players[p.id];
+      expect(stored.overall).toBe(p.overall);
+      expect(stored.attributes).toEqual(p.attributes);
+      expect(stored.value).toBe(p.value);
+      expect(stored.wage).toBe(p.wage);
     }
   });
 });

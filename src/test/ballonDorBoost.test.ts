@@ -191,13 +191,13 @@ describe('full reign cycle — apply → refresh → revert', () => {
 describe('getPlayerCardArt — Ballon d\'Or override', () => {
   it('returns the Ballon d\'Or card when ballonDorTop10 is true', () => {
     const art = getPlayerCardArt(75, { ballonDorTop10: true });
-    expect(art.src).toBe('/player-cards/ballondor.png');
+    expect(art.src).toBe('/player-cards/ballondor.webp');
   });
 
   it('Ballon d\'Or override outranks every overall tier', () => {
     // Even a 99-rated icon shows the Ballon d'Or card while reigning.
-    expect(getPlayerCardArt(99, { ballonDorTop10: true }).src).toBe('/player-cards/ballondor.png');
-    expect(getPlayerCardArt(50, { ballonDorTop10: true }).src).toBe('/player-cards/ballondor.png');
+    expect(getPlayerCardArt(99, { ballonDorTop10: true }).src).toBe('/player-cards/ballondor.webp');
+    expect(getPlayerCardArt(50, { ballonDorTop10: true }).src).toBe('/player-cards/ballondor.webp');
   });
 
   it('falls back to tier shield when override is false or missing', () => {
