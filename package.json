@@ -40,6 +40,8 @@
     "fc27:normalize": "node scripts/fc27/normalize_fc27.mjs",
     "fc27:validate": "node scripts/fc27/validate_fc27.mjs",
     "fc27:compare": "node scripts/fc27/compare_fc25.mjs",
+    "fc27:merge-potential": "node scripts/fc27/merge_potential.mjs",
+    "fc27:export-game": "node scripts/fc27/export_for_game.mjs",
     "fc27:build": "node scripts/fc27/build_database.mjs",
     "fc27:fixture": "node scripts/fc27/fixture_server.mjs",
     "ads:model": "node marketing/ads/unit-economics.mjs",

@@ -15,6 +15,8 @@ import { normalizeEaPlayer, deriveAge, normalizeFoot, isMale, isFemale } from '.
 import { dedupeById, splitByGender } from '../../scripts/fc27/normalize_fc27.mjs';
 import { matchPlayers, normName } from '../../scripts/fc27/compare_fc25.mjs';
 import { analyse } from '../../scripts/fc27/validate_fc27.mjs';
+import { mergePotential } from '../../scripts/fc27/merge_potential.mjs';
+import { toGameRow, buildLeagueMap, GAME_COLUMNS } from '../../scripts/fc27/export_for_game.mjs';
 
 const META = {
   source: 'ea-drop-api',
@@ -162,5 +164,114 @@ describe('fc27 validation', () => {
     const result = analyse([row()], { minExpected: 1 });
     expect(result.hard).toHaveLength(0);
     expect(result.soft.join(' ')).toMatch(/No potential values present/);
+  });
+});
+
+describe('fc27 potential merge', () => {
+  const provider = [
+    { id: '10', name: 'A Player', dob: '2000-01-01', club: 'X', league: 'L', position: 'ST', overall: 80, potential: 88 },
+    { id: '11', name: 'B Player', dob: '2001-01-01', club: 'Y', league: 'L', position: 'CM', overall: 70, potential: null },
+  ];
+  const row = (over: Record<string, unknown> = {}) => ({
+    player_id: '10', name: 'A Player', first_name: 'A', last_name: 'Player',
+    date_of_birth: '2000-01-01', club: 'X', league: 'L', position: 'ST',
+    overall: '80', potential: '', potential_source: '', ...over,
+  });
+
+  it('fills potential and stamps where it came from', () => {
+    const rows = [row()];
+    const result = mergePotential(rows, provider, { label: 'fc26-carryover' });
+    expect(rows[0].potential).toBe(88);
+    expect(rows[0].potential_source).toBe('fc26-carryover');
+    expect(result.filled).toBe(1);
+  });
+
+  it('never overwrites a potential that is already present', () => {
+    const rows = [row({ potential: '91', potential_source: 'cmtracker' })];
+    const result = mergePotential(rows, provider, { label: 'fc26-carryover' });
+    expect(rows[0].potential).toBe('91');
+    expect(rows[0].potential_source).toBe('cmtracker');
+    expect(result.alreadyPresent).toBe(1);
+  });
+
+  it('leaves potential empty when the provider has none for that player', () => {
+    const rows = [row({ player_id: '11', name: 'B Player', date_of_birth: '2001-01-01', club: 'Y', overall: '70' })];
+    const result = mergePotential(rows, provider, { label: 'fc26-carryover' });
+    expect(rows[0].potential).toBe('');
+    expect(result.filled).toBe(0);
+    expect(result.matchedWithoutPotential).toBe(1);
+  });
+
+  it('leaves unmatched players untouched rather than guessing', () => {
+    const rows = [row({ player_id: '999', name: 'Unknown', date_of_birth: '1999-09-09', club: 'Z' })];
+    mergePotential(rows, provider, { label: 'fc26-carryover' });
+    expect(rows[0].potential).toBe('');
+    expect(rows[0].potential_source).toBe('');
+  });
+
+  it('only clamps potential below overall when asked, and says so in the stamp', () => {
+    const low = [{ ...provider[0], potential: 75 }];
+    const off = [row()];
+    mergePotential(off, low, { label: 'p' });
+    expect(off[0].potential).toBe(75);
+    expect(off[0].potential_source).toBe('p');
+
+    const on = [row()];
+    const result = mergePotential(on, low, { label: 'p', clamp: true });
+    expect(on[0].potential).toBe(80);
+    expect(on[0].potential_source).toBe('p+clamped-to-overall');
+    expect(result.clamped).toBe(1);
+  });
+});
+
+describe('fc27 game export', () => {
+  const leagueMap = buildLeagueMap('league_id,league_name\n53,La Liga\n13,Premier League\n');
+
+  it('emits every column processFC26.mjs reads', () => {
+    const required = [
+      'player_id', 'short_name', 'long_name', 'player_positions', 'overall', 'potential',
+      'age', 'nationality_name', 'height_cm', 'weight_kg', 'skill_moves', 'club_name',
+      'league_id', 'league_name', 'pace', 'shooting', 'passing', 'dribbling', 'defending',
+      'physic', 'goalkeeping_diving', 'goalkeeping_handling', 'goalkeeping_kicking',
+      'goalkeeping_positioning', 'goalkeeping_reflexes', 'mentality_composure',
+      'movement_reactions', 'mentality_vision',
+    ];
+    for (const column of required) expect(GAME_COLUMNS).toContain(column);
+  });
+
+  it('renames physical to the physic column the game expects', () => {
+    expect(toGameRow({ physical: '85', league: 'La Liga' }, leagueMap).physic).toBe('85');
+  });
+
+  it('resolves league_id by name and leaves it empty when unknown', () => {
+    expect(toGameRow({ league: 'La Liga' }, leagueMap).league_id).toBe('53');
+    expect(toGameRow({ league: 'Some Other League' }, leagueMap).league_id).toBe('');
+    expect(toGameRow({ league: '' }, leagueMap).league_id).toBe('');
+  });
+
+  it('carries derived_age across without inventing one', () => {
+    expect(toGameRow({ derived_age: '26' }, leagueMap).age).toBe('26');
+    expect(toGameRow({}, leagueMap).age).toBe('');
+  });
+
+  it('leaves goalkeeping_speed empty because EA does not publish it', () => {
+    expect(toGameRow({ gk_diving: '80' }, leagueMap).goalkeeping_speed).toBe('');
+  });
+});
+
+describe('fc27 merge on in-memory normalizer rows', () => {
+  it('fills a null potential, not just an empty-string one', () => {
+    // Rows straight from the normalizer carry null; rows parsed back from CSV
+    // carry ''. Both mean "not supplied" and both must be fillable.
+    const rows = [{
+      player_id: '10', name: 'A Player', first_name: 'A', last_name: 'Player',
+      date_of_birth: '2000-01-01', club: 'X', league: 'L', position: 'ST',
+      overall: 80, potential: null, potential_source: null,
+    }];
+    const provider = [{ id: '10', name: 'A Player', dob: '2000-01-01', club: 'X', league: 'L', position: 'ST', overall: 80, potential: 88 }];
+    const result = mergePotential(rows, provider, { label: 'p' });
+    expect(rows[0].potential).toBe(88);
+    expect(result.filled).toBe(1);
+    expect(result.alreadyPresent).toBe(0);
   });
 });

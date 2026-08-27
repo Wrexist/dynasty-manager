@@ -31,11 +31,23 @@ never arrived. `--fresh` starts the pull over.
 | `npm run fc27:normalize` | Raw → normalized CSV/JSON, split by gender, deduped |
 | `npm run fc27:validate` | Quality report → `docs/fc27-data-quality.md` |
 | `npm run fc27:compare` | Diff vs the FC26/FC25 baseline → `data/fc27/comparison/` |
+| `npm run fc27:merge-potential` | Fill `potential` from a second source (see below) |
+| `npm run fc27:export-game` | Translate to the shape `processFC26.mjs` consumes |
 | `npm run fc27:fixture` | Local synthetic API for exercising the pipeline offline |
 
 Useful flags: `--limit` (page size, EA caps at 100), `--delay` (ms between
 requests, default 1000), `--max` (stop early), `--gender 0|1`, `--slug`,
-`--base` (point at a different host), `--no-compare`.
+`--base` (point at a different host), `--no-compare`,
+`--merge-potential <csv>`, `--potential-label <label>`, `--clamp-potential`,
+`--export-for-game`.
+
+### The full build, including the optional stages
+
+```bash
+npm run fc27:build -- \
+  --merge-potential FC26_20250921.csv --potential-label fc26-carryover \
+  --export-for-game
+```
 
 ## Where the data comes from
 
@@ -66,17 +78,63 @@ UI caps at ~50 rows; SoFIFA is HTML behind Cloudflare. Full comparison table in
 needs it: `scripts/processFC26.mjs` writes `pot` onto every generated player,
 and player development is driven by the `ovr`→`pot` gap.
 
-So `potential` is emitted as an **empty cell**, and `potential_source` is empty
-with it. It is never derived from `overall`, never defaulted, never guessed.
-Filling it requires merging a career-mode source (CMTracker or SoFIFA) on top of
-the EA base — the schema carries `overall_source`, `attributes_source` and
-`potential_source` for that merge, and the columns exist so two sources can
-never be silently blended. That merge is **not implemented**: neither source
-could be probed from the development environment, and writing an extractor
-against an unverified endpoint shape would be guesswork.
+So the extractor emits `potential` as an **empty cell**, with `potential_source`
+empty beside it. It is never derived from `overall`, never defaulted, never
+guessed.
 
-Until it is done, this dataset is a complete FC27 *ratings* database, not a
-drop-in replacement for `FC26_20250921.csv`.
+`merge_potential.mjs` fills that column from a second source and stamps
+`potential_source` on every row it touches, so the two sources are never
+silently blended:
+
+```bash
+npm run fc27:merge-potential -- --from <provider.csv> --label cmtracker-fc27
+```
+
+The provider is any CSV in a baseline shape carrying `potential` — which covers
+both the intended end state and the interim:
+
+- **End state:** a CMTracker or SoFIFA **FC27** export dropped in here. That is
+  real FC27 potential, and it is what you want.
+- **Interim:** `--from FC26_20250921.csv`, carrying the prior season's potential
+  across so career mode is functional while no FC27 potential source is
+  reachable. Every such row is stamped `fc26-carryover` — **this is not FC27
+  data** and the label exists so nobody can mistake it for FC27 data.
+
+Rules the merge follows: a potential already present is never overwritten (a
+real FC27 source merged first outranks a carry-over merged later); a matched
+player whose provider record has no potential is left empty, not filled with a
+neighbour's value; unmatched players are left untouched. `--clamp` raises a
+potential that sits below `overall` and changes the stamp to
+`<label>+clamped-to-overall`, because that is a judgement call rather than
+source data — it is off by default.
+
+Verified on real data: merging `FC26_20250921.csv` into 4,000 EA-shaped rows
+carrying real ids fills 4,000/4,000 on the `id` tier with zero value
+mismatches against the source.
+
+### Feeding it to the game
+
+`export_for_game.mjs` translates the EA-shaped schema into the SoFIFA-shaped
+CSV that `scripts/processFC26.mjs` already reads, so FC27 data goes through the
+existing community-pack build unchanged:
+
+```bash
+npm run fc27:export-game            # -> data/fc27/FC27_community_pack_input.csv
+```
+
+It renames `physical` to the game's `physic`, carries `derived_age` across as
+`age`, maps PlayStyles into `player_traits`, and resolves the numeric
+`league_id` — which EA does not publish — by matching league **name** against
+the baseline CSV, reporting every league that fails to resolve rather than
+dropping it. `goalkeeping_speed` is left empty because EA publishes no
+equivalent.
+
+Verified against real data: every column `processFC26.mjs` reads is present,
+and all 42 real league names resolve to ids (the only unresolved rows are free
+agents, who have no league at all).
+
+It writes one CSV and stops — running the community-pack build over it stays a
+separate, deliberate step, and nothing under `src/data/` is touched.
 
 ## How gender is determined
 
@@ -158,11 +216,12 @@ sample.
 
 ## Testing
 
-`src/test/fc27Pipeline.test.ts` (15 tests) covers CSV round-tripping, the
+`src/test/fc27Pipeline.test.ts` (25 tests) covers CSV round-tripping, the
 never-fabricate-potential rule, derived-age labelling, PlayStyle splitting,
 gender splitting including the unknown bucket, dedupe, the match-tier
-preference and ambiguous-name refusal, and the validator's blocking/advisory
-split.
+preference and ambiguous-name refusal, the validator's blocking/advisory split,
+every merge rule above, and the game export's column contract and league
+resolution.
 
 The network path is exercised separately against `fc27:fixture`, a local server
 serving synthetic records:
@@ -193,8 +252,10 @@ client and defeats no access control.
 
 1. **No FC27 data has been extracted yet** — the source is blocked from the
    development environment.
-2. **No `potential`** — EA does not publish it; the merge is designed but not
-   implemented.
+2. **No FC27 `potential` source is reachable.** The merge stage is built and
+   verified, but it needs a provider. Until a CMTracker/SoFIFA FC27 export
+   exists, the only available provider is the prior season's file, and rows
+   filled from it are carry-overs, not FC27 values.
 3. **No `value` / `wage` / `release_clause` / `contract_until`** — not in the EA
    ratings payload; they live in UT and career sources.
 4. **`preferredFoot` numeric mapping (1=Right, 2=Left)** is the community
@@ -202,9 +263,9 @@ client and defeats no access control.
    is what will catch it if EA changed the codes.
 5. **The 21,000+ figure is EA's reported number, not a measured one** — it
    spans men's and women's databases, so the men's file will be smaller.
-6. **Not wired into the game.** Converting the normalized schema to what
-   `processFC26.mjs` consumes is a separate, deliberate follow-up. No
-   production data under `src/data/` was touched.
+6. **The game conversion is built but not applied.** `fc27:export-game`
+   produces the input file; actually rebuilding the community pack from it is
+   your call to make. No production data under `src/data/` was touched.
 
 ## Regenerating
 

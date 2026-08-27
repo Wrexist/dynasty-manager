@@ -47,6 +47,14 @@ export function parseArgs(argv) {
       case '--gender': args.gender = next(); break;
       case '--raw-dir': args.rawDir = next(); break;
       case '--locale': args.locale = next(); break;
+      case '--out-dir': args.outDir = next(); break;
+      case '--min': args.minExpected = Number(next()); break;
+      // Consumed by build_database.mjs rather than the extractor itself.
+      case '--merge-potential': args.mergePotentialFrom = next(); break;
+      case '--potential-label': args.potentialLabel = next(); break;
+      case '--game-out': args.gameOutPath = next(); break;
+      case '--clamp-potential': args.clampPotential = true; break;
+      case '--export-for-game': args.exportForGame = true; break;
       case '--fresh': args.fresh = true; break;
       default: break;
     }

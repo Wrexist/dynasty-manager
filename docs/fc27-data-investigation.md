@@ -5,10 +5,26 @@
 
 ## Outcome in one line
 
-The pipeline is built, tested and runnable — but **no FC27 data could be
-downloaded from this environment**, because every source that carries FC27 data
-is refused at the network layer by this session's egress policy. `npm run
+The pipeline is built, tested and runnable end to end — but **no FC27 data could
+be downloaded from this environment**, because every source that carries FC27
+data is refused at the network layer by this session's egress policy. `npm run
 fc27:build` produces the dataset on any network that permits `drop-api.ea.com`.
+
+### What was actually executed
+
+| Stage | Run against | Result |
+|---|---|---|
+| `discover_sources` | the real hosts | All 4 sources refused (403). Recorded in `data/fc27/discovery.json` |
+| `extract` | local fixture, 2,000 records | 20 pages, slug probe resolved `ea-sports-fc-27`; interrupted at 200 and resumed, re-requesting only missing pages |
+| `normalize` | fixture output | 2,000 → 1,714 male / 286 female / 0 unknown |
+| `merge_potential` | **real** `FC26_20250921.csv` → 4,000 real-id rows | 4,000/4,000 filled on the `id` tier, 0 value mismatches |
+| `validate` | fixture output | Advisories raised as designed (null potential, unmapped stat key) |
+| `compare` | **real** FC26 + FC25 baselines | Parsed 18,405 and 16,161 rows; id-tier matching 2,646/3,000 cross-version |
+| `export_for_game` | **real** league names | Every `processFC26.mjs` column present; all 42 real leagues resolved |
+| test suite | — | 25 unit tests pass |
+
+Every stage that does not require the blocked network was run against real repo
+data, not just the fixture.
 
 ---
 
@@ -66,11 +82,15 @@ with per-field provenance. The schema carries `overall_source`,
   and splits, so the women's set exists as a validation cross-check.
 - **Are FC25 ids used elsewhere?** Not in game state. `fcId` is carried on
   generated players as a provenance stamp only.
-- **Compatibility layer needed?** Yes. The normalized FC27 schema is
-  EA-shaped (`overall`, `club`, `position`); `processFC26.mjs` expects
-  SoFIFA-shaped column names (`overall`, `club_name`, `player_positions`,
-  `physic`). Wiring FC27 into the game is a follow-up step and is deliberately
-  **not** done here — no production data was touched.
+- **Compatibility layer needed?** Yes, and it is built. The normalized FC27
+  schema is EA-shaped (`overall`, `club`, `position`); `processFC26.mjs`
+  expects SoFIFA-shaped names (`club_name`, `player_positions`, `physic`).
+  `scripts/fc27/export_for_game.mjs` translates between them — verified on real
+  data to emit every column `processFC26.mjs` reads, with all 42 real league
+  names resolving to the numeric `league_id` the game keys on (EA publishes no
+  league ids, so they are resolved by league name against the baseline).
+  Actually rebuilding the community pack from it remains a deliberate separate
+  step — no production data under `src/data/` was touched.
 - **Are the id spaces compatible?** Yes, verified: SoFIFA's `player_id` and the
   trailing id in an EA ratings URL are the same id space. 11,659 of 16,161 FC25
   ids (72.1%) appear in the FC26 file, and cross-version matching on the id tier
@@ -191,10 +211,19 @@ blocked. Nothing in this table is presented as measured.
 1. **Primary: EA Drop API.** Official, no auth, genuine bulk pagination, an
    explicit gender field, and the full PlayStyles set. Implemented in
    `scripts/fc27/extract_fc27.mjs`.
-2. **Potential merge: CMTracker, SoFIFA second.** Not implemented, because
-   neither could be probed from here and implementing an extractor against an
-   endpoint whose shape is unverified would be guesswork committed as code.
-   The schema and provenance columns are in place for it.
+2. **Potential merge: CMTracker, SoFIFA second.** The merge stage is
+   implemented (`scripts/fc27/merge_potential.mjs`) and verified against real
+   data — merging `FC26_20250921.csv` into 4,000 EA-shaped rows fills
+   4,000/4,000 on the `id` tier with zero value mismatches. What is *not*
+   implemented is a live extractor for either site: neither could be probed
+   from here, and coding against an unverified endpoint shape would be
+   guesswork committed as fact. The merge takes a CSV, so a CMTracker or
+   SoFIFA FC27 export dropped in works immediately.
+
+   Until such an export exists, the only available provider is the prior
+   season's file. Carrying FC26 potential across keeps career mode functional,
+   and every row filled that way is stamped `fc26-carryover` — it is a labelled
+   stopgap, not FC27 data.
 
 WeFUT is rejected on the merits, not on reachability: it adds nothing EA does
 not already provide, and lacks the one field that would justify it.
