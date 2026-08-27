@@ -137,8 +137,11 @@ export const PackShopCard = memo(function PackShopCard({
         ? 'bg-primary/90 text-primary-foreground border-primary/50'
         : 'bg-black/55 text-white border-white/20';
 
+  // The weekly bonus card also rolls at the guaranteed floor, so the spoken
+  // guarantee count must include it — the visible copy already does.
+  const guaranteedCount = 1 + bonusCards;
   const ariaLabel = `${ctaLabel} ${tier.label}, ${totalCards} player${totalCards === 1 ? '' : 's'}, `
-    + `one guaranteed ${tier.guaranteedMinOvr} or higher, ${ariaPrice}`
+    + `${guaranteedCount === 1 ? 'one' : guaranteedCount} guaranteed ${tier.guaranteedMinOvr} or higher, ${ariaPrice}`
     + (disabled ? ` (unavailable — ${lockedReason.toLowerCase()})` : '');
 
   /* ── Art tile ──
@@ -281,12 +284,13 @@ export const PackShopCard = memo(function PackShopCard({
             Deliberately never disabled: the guide must be readable even when
             the pack cannot be opened right now, which is exactly when someone
             is deciding whether it is worth buying.
-            `p-2 -m-2` buys the 44px tap target without moving the layout. */}
+            The icon is 16px, so `p-3.5 -m-3.5` (14px each side) buys the 44px
+            tap target without moving the layout. */}
         <button
           type="button"
           onClick={() => { hapticLight(); onShowOdds(); }}
           className={cn(
-            'shrink-0 p-2 -m-2 rounded-full',
+            'shrink-0 p-3.5 -m-3.5 rounded-full',
             'text-muted-foreground hover:text-foreground',
             'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
           )}
@@ -310,20 +314,24 @@ export const PackShopCard = memo(function PackShopCard({
   );
 
   /** The art is its own tap target — tapping the packet is the natural gesture,
-   *  and it does the same thing the CTA does. */
+   *  and it does the same thing the CTA does. Pointer-only: the CTA below is
+   *  the single keyboard/screen-reader control, so this stays out of the
+   *  accessibility tree — two tab stops with the identical name and action
+   *  were indistinguishable to a screen-reader user. */
   const artButton = (
     <motion.button
       type="button"
+      tabIndex={-1}
+      aria-hidden
       whileHover={disabled || prefersReducedMotion ? undefined : { y: -3 }}
       whileTap={disabled ? undefined : { scale: 0.98 }}
       onClick={() => { if (disabled) return; hapticLight(); onSelect(); }}
       disabled={disabled}
       className={cn(
         'w-full block bg-transparent rounded-2xl',
-        'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
+        'focus:outline-none',
         disabled && 'opacity-60 grayscale cursor-not-allowed',
       )}
-      aria-label={ariaLabel}
     >
       {art}
     </motion.button>

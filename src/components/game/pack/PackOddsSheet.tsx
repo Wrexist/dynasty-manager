@@ -4,6 +4,7 @@ import { X, ShieldCheck, Info } from 'lucide-react';
 import type { PackTierDefinition } from '@/types/game';
 import {
   describePackOdds,
+  packEliteSharePerCard,
   resolvePackTier,
   PACK_PITY_THRESHOLD,
   PACK_PITY_MIN_OVR,
@@ -79,14 +80,12 @@ export function PackOddsSheet({ tier: rawTier, streak, bonusCards = 0, onClose }
   // "The Dynasty Pack" → "Dynasty": strip the trailing "Pack" AND a leading
   // "The", or the copy reads "a The Dynasty version".
   const versionName = rawTier.label.replace(/\s+pack$/i, '').replace(/^the\s+/i, '');
-  // Expected 80+ cards per open. Weights are authored to sum to 1, but a tier
-  // edited to sum to anything else must not silently turn this into a fiction —
-  // normalise, so the number is always a real expectation over the same table
-  // the odds rows below are drawn from.
-  const weightSum = Object.values(tier.rarity).reduce((sum, w) => sum + Math.max(0, w || 0), 0);
-  const elitePerCard = weightSum > 0
-    ? ((tier.rarity.gold || 0) + (tier.rarity.legendary || 0)) / weightSum
-    : 0;
+  // Expected 80+ cards per open, over the SAME folded distribution the odds
+  // rows below publish. Raw gold+legendary weight was wrong in both
+  // directions: under a sub-80 ceiling a raw gold roll clamps to a sub-80
+  // card, and over an 88 floor every roll is elite whatever its rung
+  // (audit finding).
+  const elitePerCard = packEliteSharePerCard(rawTier, { streak });
   // A guaranteed floor at 80+ makes every guaranteed card (including the weekly
   // bonus cards, which roll at that same floor) a certain elite pull.
   // The guaranteed slot rolls uniformly over [floor, ceiling], not from the

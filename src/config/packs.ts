@@ -698,8 +698,30 @@ export function describePackOdds(
       return {
         label: `${RARITY_LABELS[k]} (${band} OVR)`,
         chance: (merged.get(k) as number) / total,
+        minOvr: clampedLo,
+        maxOvr: clampedHi,
       };
     });
+}
+
+/**
+ * Share of a single NON-guaranteed card expected to land 80+ ("elite"), for a
+ * tier as resolved with `ctx`. Computed over the FOLDED odds rows — the same
+ * distribution `describePackOdds` publishes — not the raw rarity weights: the
+ * clamp means a raw gold roll under a sub-80 ceiling is not an 80+ card, and a
+ * raw silver roll over an 88 floor is. Assumes a uniform roll inside each
+ * clamped band, the generator's target.
+ */
+export function packEliteSharePerCard(
+  tier: PackTierDefinition,
+  ctx: PackOddsContext = {},
+): number {
+  return describePackOdds(tier, ctx).reduce((sum, row) => {
+    if (row.maxOvr < 80) return sum;
+    const width = row.maxOvr - row.minOvr + 1;
+    const eliteWidth = Math.min(row.maxOvr, 99) - Math.max(row.minOvr, 80) + 1;
+    return sum + row.chance * Math.max(0, Math.min(1, eliteWidth / width));
+  }, 0);
 }
 
 /**

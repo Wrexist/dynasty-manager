@@ -45,6 +45,7 @@ import {
   WAGE_RANDOM_FACTOR,
 } from '@/config/playerGeneration';
 import { XP_REWARDS } from '@/utils/managerPerks';
+import { withSeededRandom } from './helpers/seasonFixtures';
 
 /** Theoretical worst-case outputs of the wage/value calculators for a given
  *  OVR — the random multiplier maxes out at `1 + RANDOM_FACTOR`. Used to
@@ -162,13 +163,20 @@ describe('Pack opening — generation', () => {
       const supplyAbove = countRealPlayersInBand(tier.ovrMax + 1, 99);
       if (supplyAbove < HEADROOM) continue;
 
-      const RUNS = 60;
-      let withPity = 0;
-      let without = 0;
-      for (let run = 0; run < RUNS; run++) {
-        withPity += Math.max(...generatePackContents(key, 1, { pityTriggered: true }).map(p => p.overall));
-        without += Math.max(...generatePackContents(key, 1).map(p => p.overall));
-      }
+      // Seeded: a 60-vs-60 comparison of independent samples is a statistical
+      // claim, and on live Math.random the fast tail of "without" can beat the
+      // slow tail of "with" on a valid run. The seed makes the comparison a
+      // fixed fact about the generator rather than a coin with good odds.
+      const { withPity, without, RUNS } = withSeededRandom(0xbeef01, () => {
+        const R = 60;
+        let w = 0;
+        let wo = 0;
+        for (let run = 0; run < R; run++) {
+          w += Math.max(...generatePackContents(key, 1, { pityTriggered: true }).map(p => p.overall));
+          wo += Math.max(...generatePackContents(key, 1).map(p => p.overall));
+        }
+        return { withPity: w, without: wo, RUNS: R };
+      });
       expect(
         withPity / RUNS,
         `${key} pity averaged ${(withPity / RUNS).toFixed(1)} vs ${(without / RUNS).toFixed(1)} without`,
@@ -617,24 +625,31 @@ describe('Market — pack card frames', () => {
     // filler cards must NOT wear the same frame as its guaranteed pull, or the
     // frame stops signalling anything and the squad-list tier read goes with it.
     const floor = resolvePackTier(PACK_TIER_MAP.daily, { streak: 1 }).guaranteedMinOvr;
-    let sawFramed = false;
-    let sawUnframed = false;
-    for (let run = 0; run < 12; run++) {
-      initAndGetState();
-      const open = useGameStore.getState().openPack('daily', { method: 'free' });
-      expect(open.success).toBe(true);
-      for (const p of open.players!) {
-        if (p.overall >= floor) {
-          expect(p.packFrame, `${p.overall} cleared ${floor} but wears no frame`).toBe('rise-to-glory');
-          sawFramed = true;
-        } else {
-          expect(p.packFrame, `${p.overall} is below ${floor} but wears a frame`).toBeUndefined();
-          sawUnframed = true;
+    // Seeded: the gate itself (framed iff >= floor) holds on every run, but
+    // the "we saw an unframed filler" half needs a random sub-floor roll to
+    // occur at all. The seed pins a sequence where one does, so the coverage
+    // assertion is a fact rather than a 36-pull probability.
+    const { sawFramed, sawUnframed } = withSeededRandom(0xbeef02, () => {
+      let framed = false;
+      let unframed = false;
+      for (let run = 0; run < 12; run++) {
+        initAndGetState();
+        const open = useGameStore.getState().openPack('daily', { method: 'free' });
+        expect(open.success).toBe(true);
+        for (const p of open.players!) {
+          if (p.overall >= floor) {
+            expect(p.packFrame, `${p.overall} cleared ${floor} but wears no frame`).toBe('rise-to-glory');
+            framed = true;
+          } else {
+            expect(p.packFrame, `${p.overall} is below ${floor} but wears a frame`).toBeUndefined();
+            unframed = true;
+          }
         }
       }
-    }
+      return { sawFramed: framed, sawUnframed: unframed };
+    });
     // The guaranteed slot means at least one framed card is certain; the filler
-    // cards mean an unframed one is all but certain over twelve opens.
+    // cards mean an unframed one is certain under this seed.
     expect(sawFramed).toBe(true);
     expect(sawUnframed, 'no sub-floor card appeared in 36 pulls — check the bands').toBe(true);
   });

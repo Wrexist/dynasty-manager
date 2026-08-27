@@ -32,10 +32,59 @@ const PACKS_FILE = path.join(ROOT, 'src/config/packs.ts');
 const MIN_FOR_GUARANTEE = 12;
 const MIN_FOR_BAND = 25;
 
-function readOvrs() {
+function readTemplates() {
   const src = fs.readFileSync(POOL_FILE, 'utf8');
-  const m = src.match(/ovr:\s*(\d+)/g) || [];
-  return m.map(x => Number(x.replace(/\D/g, '')));
+  // One template per line in the generated file. Read position, alternates and
+  // rating — the three fields `pickRealPlayerForPack` filters on.
+  const templates = [];
+  for (const line of src.split('\n')) {
+    const pos = /\bpos:\s*'([A-Z]+)'/.exec(line);
+    const ovr = /\bovr:\s*(\d+)/.exec(line);
+    if (!pos || !ovr) continue;
+    const altM = /\baltPos:\s*\[([^\]]*)\]/.exec(line);
+    const altPos = altM ? [...altM[1].matchAll(/'([A-Z]+)'/g)].map(m => m[1]) : [];
+    templates.push({ pos: pos[1], altPos, ovr: Number(ovr[1]) });
+  }
+  return templates;
+}
+
+// The positions packs roll and the widening ladder the picker walks when a
+// position has nobody in band. MUST mirror `PACK_POSITION_POOL` in
+// `src/config/packs.ts` and `POSITION_FALLBACK` in
+// `src/utils/realPlayerPicker.ts` — this script reads generated data with a
+// regex and cannot import TS, so the tables are duplicated here on purpose.
+const PACK_POSITIONS = ['GK', 'CB', 'LB', 'RB', 'CDM', 'CM', 'CAM', 'LM', 'RM', 'LW', 'RW', 'ST'];
+const POSITION_FALLBACK = {
+  GK: [],
+  CB: ['LB', 'RB', 'CDM'],
+  LB: ['CB', 'LM'],
+  RB: ['CB', 'RM'],
+  CDM: ['CM', 'CB'],
+  CM: ['CDM', 'CAM'],
+  CAM: ['CM', 'LM', 'RM'],
+  LM: ['LW', 'CAM', 'LB'],
+  RM: ['RW', 'CAM', 'RB'],
+  LW: ['LM', 'ST', 'CAM'],
+  RW: ['RM', 'ST', 'CAM'],
+  ST: ['CAM', 'LW', 'RW'],
+};
+
+/** How many templates the picker's full ladder (exact → alternate → related
+ *  position) can reach for `position` inside [lo, hi]. Zero means a pull at
+ *  that position falls through to an invented player — the aggregate count
+ *  can pass while a single position (GK especially, which has no ladder at
+ *  all) is empty. */
+function reachableForPosition(templates, position, lo, hi) {
+  const inBand = templates.filter(t => t.ovr >= lo && t.ovr <= hi);
+  const exact = inBand.filter(t => t.pos === position).length;
+  if (exact > 0) return exact;
+  const alt = inBand.filter(t => t.altPos.includes(position)).length;
+  if (alt > 0) return alt;
+  for (const fb of POSITION_FALLBACK[position] ?? []) {
+    const n = inBand.filter(t => t.pos === fb || t.altPos.includes(fb)).length;
+    if (n > 0) return n;
+  }
+  return 0;
 }
 
 /** Pull the numbers straight out of the config rather than duplicating them,
@@ -76,7 +125,8 @@ function readTiers() {
 }
 
 function main() {
-  const ovrs = readOvrs();
+  const templates = readTemplates();
+  const ovrs = templates.map(t => t.ovr);
   if (ovrs.length === 0) {
     console.error('Pack supply: no player templates found in nationalPlayerPool.ts');
     process.exit(1);
@@ -115,6 +165,19 @@ function main() {
       errors.push(
         `${t.key}: final ovrMax ${t.ovrMax} needs base players at ${baseHi}, above the pool's best (${poolMax}). `
         + `Lower it, or the odds sheet advertises a band nobody can be dealt.`,
+      );
+    }
+    // Aggregate supply can pass while one POSITION is empty — the picker
+    // selects by position and only then widens, and a position its whole
+    // ladder cannot fill falls through to an invented player. GK is the
+    // realistic risk: it has no ladder at all.
+    const emptyPositions = PACK_POSITIONS.filter(
+      pos => reachableForPosition(templates, pos, baseG, baseHi) === 0,
+    );
+    if (emptyPositions.length > 0) {
+      errors.push(
+        `${t.key}: no real player reachable for ${emptyPositions.join(', ')} in the guaranteed base band `
+        + `${baseG}-${baseHi} (after position widening) — pulls there would invent a player.`,
       );
     }
   }

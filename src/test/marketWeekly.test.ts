@@ -106,6 +106,10 @@ describe('Market — weekly bonus lifecycle', () => {
     const featured = getFeaturedPackTier(week);
     writeWeeklyPackBonus({ weekIndex: week + 5, tier: featured });
     expect(readWeeklyPackBonus()).not.toBeNull();
+    // Keeping the record is only half the guard — the eligibility check must
+    // also treat the future-dated claim as spent. An equality check here let
+    // every week BEFORE the recorded one hand out the bonus again.
+    expect(weeklyBonusCardsFor(featured, 'iap')).toBe(0);
   });
 
   it('survives a corrupt weekly record without granting a free bonus loop', () => {

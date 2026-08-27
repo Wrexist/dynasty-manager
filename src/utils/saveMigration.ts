@@ -87,7 +87,12 @@ const migrations: Record<number, MigrationFn> = {
   //     "nobody vouched" means at the signing desk.
   //
   // Later waves EXTEND this step rather than adding another: keep the shape
-  // below (a single `sunday` rewrite with per-field fallbacks) and add fields.
+  // it uses (a single `sunday` rewrite with per-field fallbacks) and add fields.
+  //
+  // ⚠ The block above documents the v85→v86 SUNDAY LEAGUE step, which is the
+  // `85:` entry near the bottom of this map — the Market-era steps sit between
+  // here and there because the map reads newest-first.
+
   // v89 → v90: `OpenedPackRecord.quickSoldTotal` — the per-open quick-sell
   // refund ledger behind PACK_QUICK_SELL_CAP. Optional and absent-reads-as-0,
   // so nothing needs writing into old payloads; the step exists to record the

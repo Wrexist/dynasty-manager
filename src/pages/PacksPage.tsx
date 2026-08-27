@@ -410,11 +410,14 @@ const PacksPage = () => {
   // in one sitting during a season sim — so no countdown could be honest and
   // the slot carried no scarcity at all. `weekTick` is only here to re-render
   // the countdown; the values themselves come from the monotonic clock.
-  const featuredKey = getFeaturedPackTier(currentWeekIndex());
+  const weekIndex = currentWeekIndex();
+  const featuredKey = getFeaturedPackTier(weekIndex);
   // The hero wears this week's promo cover (name + art). Contents, price,
   // guarantee and odds all still come from the tier underneath — a skin never
-  // changes what is in the pack.
-  const featured = getFeaturedPackPresentation(currentWeekIndex());
+  // changes what is in the pack. Memoised on the week: the presentation is a
+  // fresh object every call, and handing the memo'd hero PackShopCard a new
+  // `tier` reference on every 30s countdown tick re-rendered it for nothing.
+  const featured = useMemo(() => getFeaturedPackPresentation(weekIndex), [weekIndex]);
   const freeTier = PACK_TIER_MAP[FREE_PACK_TIER];
   /** Paid ladder, cheapest first, with the featured pack lifted out of the
    *  grid — it is already the hero, and showing it twice was the single most

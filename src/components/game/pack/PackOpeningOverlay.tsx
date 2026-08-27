@@ -315,11 +315,26 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
     return { strip, bodyClip: `polygon(${bodyPoints.join(', ')})`, seamXPct };
   }, []);
 
+  // The burst layers (shockwave, bloom, flare, shreds, confetti) outlive the
+  // explode PHASE on purpose: the phase hands off to the reveal at
+  // `explodeMs` so the cards land fast, but the shockwave (220ms delay +
+  // 550ms), bloom and shreds are still mid-flight — unmounting them with the
+  // phase cut every one of them off at ~120ms, a hard cut where the design
+  // wants a bloom. They run to completion on their own clock behind the
+  // reveal grid (all pointer-events-none), then unmount at their finished,
+  // invisible state. The effects driving this live beside the
+  // explode→reveal timer below.
+  const [burstAlive, setBurstAlive] = useState(false);
+  const burstMounted = phase === 'explode' || burstAlive;
+
   // Foil-shred params — generated once per explode entry. Inlining the
   // randoms in the .map() would re-roll them on any re-render during the
   // ~0.7s burst, retargeting in-flight Framer Motion animations mid-flight.
+  // Keyed on `burstMounted`, which stays true across the explode→reveal
+  // handoff — keying on the phase re-rolled every spec at the handoff and
+  // teleported the in-flight shreds.
   const foilShreds = useMemo(() => {
-    if (phase !== 'explode' || prefersReducedMotion) return [];
+    if (!burstMounted || prefersReducedMotion) return [];
     return Array.from({ length: 18 }).map((_, i) => {
       const angle = (i / 18) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
       const distance = 220 + Math.random() * 200;
@@ -333,7 +348,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
         duration: 0.7 + Math.random() * 0.4,
       };
     });
-  }, [phase, prefersReducedMotion]);
+  }, [burstMounted, prefersReducedMotion]);
 
   // Charge-seam sparks + arrival/charge ambient motes — same rule as
   // foilShreds: roll the random specs once. Inlined randoms re-rolled on
@@ -507,9 +522,15 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
 
   useEffect(() => {
     if (phase !== 'explode') return;
+    setBurstAlive(true);
     const t = window.setTimeout(() => setPhase('reveal'), PACK_ANIM.explodeMs);
     return () => window.clearTimeout(t);
   }, [phase]);
+  useEffect(() => {
+    if (!burstAlive) return;
+    const t = window.setTimeout(() => setBurstAlive(false), PACK_ANIM.tear.burstDelayMs + 1150);
+    return () => window.clearTimeout(t);
+  }, [burstAlive]);
 
   // Players destined for a walkout cinematic stay face-down through the
   // reveal phase — a quiet flip would waste their payoff. Tapping one instead
@@ -1338,7 +1359,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
           18 small foil rectangles fly out from the seam in a 360° spread
           to sell the "ripped wrapper" feel a Pokémon-pack opening lives on. */}
       <AnimatePresence>
-        {phase === 'explode' && (
+        {burstMounted && (
           <>
             <motion.div
               key="shockwave"

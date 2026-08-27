@@ -140,7 +140,10 @@ export function weeklyBonusCardsFor(
   const weekIndex = atWeekIndex ?? currentWeekIndex();
   if (getFeaturedPackTier(weekIndex) !== tierKey) return 0;
   const claim = readWeeklyPackBonus();
-  if (claim && claim.weekIndex === weekIndex) return 0;
+  // `>=`, not `===`: `readWeeklyPackBonus` deliberately keeps a FUTURE-dated
+  // claim (the only way to see one is a clock wound backwards), and an
+  // equality check let that record re-arm the bonus for every week before it.
+  if (claim && claim.weekIndex >= weekIndex) return 0;
   return WEEKLY_BONUS_CARDS;
 }
 
@@ -396,7 +399,7 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       season: state.season,
       type: 'transfer',
       title: `${tier.label} Opened`,
-      body: `${tier.label} ${costLabel}. Top pull: ${topPlayer.firstName} ${topPlayer.lastName} (${topPlayer.overall} OVR, ${topPlayer.position}). ${tier.cards} player(s) added to your squad.`,
+      body: `${tier.label} ${costLabel}. Top pull: ${topPlayer.firstName} ${topPlayer.lastName} (${topPlayer.overall} OVR, ${topPlayer.position}). ${finalizedPlayers.length} player(s) added to your squad.`,
     });
 
     // FFP wage-ratio warning — mirrors renewContract. A stack of Icon/Rare
@@ -595,7 +598,7 @@ export const createPacksSlice = (set: Set, get: Get) => ({
 
     return {
       success: true,
-      message: `${tier.label} opened — ${tier.cards} player(s) signed.`,
+      message: `${tier.label} opened — ${finalizedPlayers.length} player(s) signed.`,
       players: finalizedPlayers,
       record,
       pityTriggered,
@@ -747,6 +750,15 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     const alreadyRefunded = last.quickSoldTotal ?? 0;
     const remainingCap = Math.max(0, PACK_QUICK_SELL_CAP - alreadyRefunded);
     const uncapped = Math.max(0, Math.round((player.value || 0) * PACK_QUICK_SELL_RATE));
+    // An exhausted cap must REFUSE, not silently take the player for £0 —
+    // that would also burn the undo snapshot on a sale worth nothing. A
+    // genuinely worthless card (uncapped 0) may still be cleared for £0.
+    if (uncapped > 0 && remainingCap === 0) {
+      return {
+        success: false,
+        message: 'Pack quick-sell cap reached for this pack — list the player on the transfer market or release them instead.',
+      };
+    }
     const amount = Math.min(remainingCap, uncapped);
 
     const strippedClub = {

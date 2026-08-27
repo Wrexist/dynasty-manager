@@ -177,8 +177,9 @@ describe('packsSlice — quick-sell cap', () => {
     expect(open.success).toBe(true);
     const [a, b, c] = open.players!;
 
-    // Three stars: the first sale drains most of the cap, the second takes
-    // the remainder, the third gets nothing — and none of it errors.
+    // Three stars: the first sale drains the whole cap; every later sale is
+    // REFUSED rather than silently taking the player for £0 — a £0 "sale"
+    // would also burn the undo snapshot on nothing.
     const inflate = (p: typeof a, value: number) => useGameStore.setState({
       players: { ...useGameStore.getState().players, [p.id]: { ...useGameStore.getState().players[p.id], value } },
     });
@@ -191,15 +192,18 @@ describe('packsSlice — quick-sell cap', () => {
     expect(first.amount).toBe(PACK_QUICK_SELL_CAP);
 
     const second = useGameStore.getState().quickSellPackedPlayer(b.id);
-    expect(second.success).toBe(true);
-    expect(second.amount).toBe(0);
+    expect(second.success).toBe(false);
+    expect(second.message).toMatch(/cap/i);
+    // The refused player is still on the squad, untouched.
+    const clubId = useGameStore.getState().playerClubId;
+    expect(useGameStore.getState().players[b.id].clubId).toBe(clubId);
+    expect(useGameStore.getState().clubs[clubId].playerIds).toContain(b.id);
 
     // The ledger is on the record, so the UI can reprice its SELL labels.
     expect(useGameStore.getState().openedPacks[0].quickSoldTotal).toBe(PACK_QUICK_SELL_CAP);
 
     const third = useGameStore.getState().quickSellPackedPlayer(c.id);
-    expect(third.success).toBe(true);
-    expect(third.amount).toBe(0);
+    expect(third.success).toBe(false);
   });
 
   it('filler passes under the cap untouched — quick-sell is FOR filler', () => {

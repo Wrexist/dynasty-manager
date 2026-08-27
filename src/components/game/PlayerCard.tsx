@@ -169,7 +169,10 @@ export const PlayerCard = memo(function PlayerCard({
   const tk = sizeTokens(size);
   const cardArt = getPlayerCardArt(player.overall, {
     ballonDorTop10: typeof player.ballonDOrTop10HoldSeason === 'number',
-    packFrame: player.packFrame,
+    // Chips crop their art to fill a 3:4 box (see sizeTokens), which would
+    // eat a pack frame's pointed top and ornate base — the frame's whole
+    // identity. Chips keep the tier shield; the frame shows on real cards.
+    packFrame: tk.chip ? undefined : player.packFrame,
   });
   const prefersReducedMotion = useReducedMotionPref();
   const [statView, setStatView] = useState<StatView>(0);
