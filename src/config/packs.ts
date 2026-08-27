@@ -484,6 +484,21 @@ export const PACK_WAGE_FACTOR = 0.55;
  *  budget, and it belongs next to the packs it prices. */
 export const PACK_QUICK_SELL_RATE = 0.65;
 
+/** Hard ceiling on a single quick-sell refund.
+ *
+ *  Quick-sell exists so a pull you don't want never clogs the squad — it is a
+ *  convenience for clearing filler, and filler (60s–70s, £2–20M book) passes
+ *  under this cap untouched. What it must NOT be is a liquidation channel:
+ *  measured before the cap, one $9.99 Legends pull carried ~£196M of book
+ *  value, which quick-sold for ~£127M — more cash than most clubs' entire
+ *  transfer budget, minted at reveal time by a tap. Real money must never
+ *  convert into decisive in-game cash on the spot.
+ *
+ *  Selling a star the slow way still works and still pays full price: list him,
+ *  wait for a club that can afford him, like any other transfer. That path
+ *  takes weeks and a buyer — the same friction every star sale has. */
+export const PACK_QUICK_SELL_CAP = 10_000_000;
+
 /** ── AI counter-signings (league-balance scaling) ──
  *  Each pack the user opens triggers a small set of AI signings that keep
  *  the league quality from drifting too far below the user. The system is

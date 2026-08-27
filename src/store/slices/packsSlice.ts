@@ -11,6 +11,7 @@ import {
   getFeaturedPackTier,
   WEEKLY_BONUS_CARDS,
   PACK_QUICK_SELL_RATE,
+  PACK_QUICK_SELL_CAP,
   packFrameFor,
   packVersionBoostFor,
 } from '@/config/packs';
@@ -730,7 +731,10 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     if (club.playerIds.length <= MIN_SQUAD_SIZE) {
       return { success: false, message: `Cannot quick-sell — squad would drop below minimum size (${MIN_SQUAD_SIZE}).` };
     }
-    const amount = Math.max(0, Math.round((player.value || 0) * PACK_QUICK_SELL_RATE));
+    const amount = Math.min(
+      PACK_QUICK_SELL_CAP,
+      Math.max(0, Math.round((player.value || 0) * PACK_QUICK_SELL_RATE)),
+    );
 
     const strippedClub = {
       ...club,

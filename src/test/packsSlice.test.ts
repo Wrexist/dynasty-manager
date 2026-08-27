@@ -7,6 +7,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
 import { writeDailyPackOpens, currentDayIndex } from '@/store/helpers/persistence';
+import { PACK_QUICK_SELL_CAP, PACK_QUICK_SELL_RATE } from '@/config/packs';
 
 const CLUB_ID = 'celtic';
 
@@ -163,6 +164,34 @@ describe('packsSlice — quickSellPackedPlayer', () => {
     const result = useGameStore.getState().quickSellPackedPlayer(target.id);
     expect(result.success).toBe(true);
     expect(result.amount).toBe(0);
+  });
+});
+
+describe('packsSlice — quick-sell cap', () => {
+  it('caps the refund on a high-value pull, and leaves filler alone', () => {
+    // The reveal-time quick-sell must never be a liquidation channel: before
+    // the cap, one $9.99 Legends pull quick-sold for ~£127M — instant, decisive
+    // cash minted from real money. Filler is what quick-sell is FOR, and filler
+    // passes under the cap untouched.
+    const open = useGameStore.getState().openPack('daily');
+    const target = open.players![0];
+
+    // A star: refund pins to the cap, not to 65% of a nine-figure value.
+    useGameStore.setState({
+      players: { ...useGameStore.getState().players, [target.id]: { ...target, value: 200_000_000 } },
+    });
+    const capped = useGameStore.getState().quickSellPackedPlayer(target.id);
+    expect(capped.success).toBe(true);
+    expect(capped.amount).toBe(PACK_QUICK_SELL_CAP);
+
+    // Filler: 65% of a £4M card is £2.6M, nowhere near the cap.
+    const filler = open.players![1];
+    useGameStore.setState({
+      players: { ...useGameStore.getState().players, [filler.id]: { ...filler, value: 4_000_000 } },
+    });
+    const small = useGameStore.getState().quickSellPackedPlayer(filler.id);
+    expect(small.success).toBe(true);
+    expect(small.amount).toBe(Math.round(4_000_000 * PACK_QUICK_SELL_RATE));
   });
 });
 

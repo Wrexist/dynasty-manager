@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { motion } from 'framer-motion';
 import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
-import { Lock, ShieldCheck, Play, ShoppingBag, Gift, Info, Clock, Plus } from 'lucide-react';
+import { Lock, ShieldCheck, Play, ShoppingBag, Gift, HelpCircle, Clock, Plus } from 'lucide-react';
 import { PremiumSparkle } from '@/components/game/icons/PremiumSparkle';
 import type { PackTierDefinition, PackUnlockMethod } from '@/types/game';
 import { resolvePackTier, isFreeOpenMethod } from '@/config/packs';
@@ -273,21 +273,26 @@ export const PackShopCard = memo(function PackShopCard({
               on both layouts. */}
           {` · ${tier.guaranteedMinOvr}+`}
         </p>
-        {/* Deliberately never disabled: the drop rates must be readable even
-            when the pack cannot be opened right now, which is exactly when
-            someone is deciding whether it is worth buying. */}
+        {/* A circled (?), not an "Odds" link: the sheet behind it is now the
+            whole pack guide — what a version is, what an average open looks
+            like, the odds — and "Odds" undersold it. It stays on the details
+            row rather than over the artwork, because corner chrome there
+            collides with the ribbon and guarantee badge.
+            Deliberately never disabled: the guide must be readable even when
+            the pack cannot be opened right now, which is exactly when someone
+            is deciding whether it is worth buying.
+            `p-2 -m-2` buys the 44px tap target without moving the layout. */}
         <button
           type="button"
           onClick={() => { hapticLight(); onShowOdds(); }}
           className={cn(
-            'shrink-0 flex items-center gap-0.5 rounded',
-            'text-muted-foreground hover:text-foreground underline underline-offset-2',
+            'shrink-0 p-2 -m-2 rounded-full',
+            'text-muted-foreground hover:text-foreground',
             'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
-            featured ? 'text-xs' : 'text-[10px]',
           )}
-          aria-label={`View drop rates for ${tier.label}`}
+          aria-label={`What's in the ${tier.label}? Odds and details`}
         >
-          <Info className="w-3 h-3" /> Odds
+          <HelpCircle className="w-4 h-4" />
         </button>
       </div>
       {bonusCards > 0 && (

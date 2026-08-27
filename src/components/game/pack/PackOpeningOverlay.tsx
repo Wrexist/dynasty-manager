@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, animate, useAnimationFrame, useMotionValue, useTransform } from 'framer-motion';
 import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 import type { PackPlayerPlacement, PackTierKey, Player } from '@/types/game';
-import { MAX_WALKOUTS_PER_PACK, PACK_ANIM, PACK_TIER_MAP, WALKOUT_OVR_THRESHOLD } from '@/config/packs';
+import { MAX_WALKOUTS_PER_PACK, PACK_ANIM, PACK_QUICK_SELL_CAP, PACK_QUICK_SELL_RATE, PACK_TIER_MAP, WALKOUT_OVR_THRESHOLD } from '@/config/packs';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { hapticHeavy, hapticLight, hapticMedium } from '@/utils/haptics';
 import { formatMoney } from '@/utils/helpers';
@@ -17,8 +17,9 @@ import { WalkoutReveal } from './WalkoutReveal';
 import { tierForOvr } from './packHelpers';
 import { cn } from '@/lib/utils';
 
-/** Quick-sell refund rate — matches packsSlice.quickSellPackedPlayer. */
-const QUICK_SELL_RATE = 0.65;
+// Quick-sell pricing comes from config so the button can never promise a
+// different number than the slice pays out — the cap especially: an uncapped
+// preview over a capped refund would read as the game shorting the player.
 
 /**
  * Counts a money value up from 0 over ~900ms for the summary header. A small
@@ -57,7 +58,7 @@ interface PackOpeningOverlayProps {
   onClose: () => void;
   /** Keep the pulled player — just removes them from the summary view. */
   onKeep?: (playerId: string) => void;
-  /** Quick-sell the pulled player at {@link QUICK_SELL_RATE} of market value. */
+  /** Quick-sell the pulled player at the config rate, capped — see PACK_QUICK_SELL_CAP. */
   onQuickSell?: (playerId: string) => void;
   /** Bulk-keep every remaining player in the summary. */
   onKeepAll?: () => void;
@@ -1538,7 +1539,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
             )}
           >
             {displayPlayers.map((p, i) => {
-              const quickSellAmount = Math.max(0, Math.round((p.value || 0) * QUICK_SELL_RATE));
+              const quickSellAmount = Math.min(PACK_QUICK_SELL_CAP, Math.max(0, Math.round((p.value || 0) * PACK_QUICK_SELL_RATE)));
               const upgrade = improvement?.[p.id];
               const placementLabel = placement?.[p.id] ? PLACEMENT_LABEL[placement[p.id]] : null;
               return (
@@ -1642,7 +1643,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
 
           {phase === 'summary' && players.length >= 2 && (onKeepAll || onSellAll) && (() => {
             const sellAllTotal = players.reduce(
-              (sum, p) => sum + Math.max(0, Math.round((p.value || 0) * QUICK_SELL_RATE)),
+              (sum, p) => sum + Math.min(PACK_QUICK_SELL_CAP, Math.max(0, Math.round((p.value || 0) * PACK_QUICK_SELL_RATE))),
               0,
             );
             return (
