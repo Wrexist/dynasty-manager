@@ -115,9 +115,16 @@ export const PRODUCTS: Record<ProductId, ProductDef> = {
     priceUsd: 1.99,
     type: 'one_time',
   },
+  // Renamed "Dynasty Legends Pack" → "Dynasty Legacy Pack" to clear a collision
+  // the Market redesign introduced: the Icon consumable is now presented as the
+  // "Legends Pack", and two products a tap apart both called Legends is exactly
+  // the kind of ambiguity that produces a wrong purchase and a refund. "Legacy"
+  // is also the more accurate word — this pack's contents are the trophy
+  // cabinet, prestige badges, Hall of Managers frame and the Legacy title.
+  // Same ASC display-name update applies as for the consumables above.
   'com.dynastymanager.pack.legends': {
     id: 'com.dynastymanager.pack.legends',
-    name: 'Dynasty Legends Pack',
+    name: 'Dynasty Legacy Pack',
     description: 'Premium trophy cabinet styles, 6 prestige badge designs, animated Hall of Managers frame, and Legacy title.',
     priceUsd: 3.99,
     type: 'one_time',
@@ -143,30 +150,42 @@ export const PRODUCTS: Record<ProductId, ProductDef> = {
   // consumed each time the user opens the pack — no permanent entitlement is
   // granted. Configure them as consumable products in App Store Connect /
   // Google Play, and as non-restoring products in RevenueCat.
+  // ⚠ IN-APP DISPLAY NAMES CHANGED (Market redesign), PRODUCT IDS DID NOT.
+  //
+  // The four consumable packs are now presented as Champions / Elite / World
+  // Class / Legends. The IDs below are frozen forever — Apple does not allow a
+  // product identifier to be renamed and StoreKit matches by exact string.
+  //
+  // ACTION REQUIRED IN APP STORE CONNECT (and Google Play): update each
+  // product's *display name* to match the `name` fields here. The display name
+  // IS editable; only the ID is not. Until that is done, the StoreKit purchase
+  // sheet says "Gold Pack" while the card that opened it says "Champions Pack",
+  // which reads as the wrong item being charged for and is a refund request
+  // waiting to happen.
   'com.dynastymanager.pack.gold': {
     id: 'com.dynastymanager.pack.gold',
-    name: 'Gold Pack',
-    description: '5 players with at least one 78+ rated player. Consumable — buy each open beyond the daily free pack.',
+    name: 'Champions Pack',
+    description: '5 players with at least one 78+ rated player. Consumable — buy each open.',
     priceUsd: 2.99,
     type: 'one_time',
   },
   'com.dynastymanager.pack.premium_gold': {
     id: 'com.dynastymanager.pack.premium_gold',
-    name: 'Premium Gold Pack',
+    name: 'Elite Pack',
     description: '5 players with at least one 82+ rated star. Consumable — buy each open.',
     priceUsd: 4.99,
     type: 'one_time',
   },
   'com.dynastymanager.pack.rare_gold': {
     id: 'com.dynastymanager.pack.rare_gold',
-    name: 'Rare Gold Pack',
+    name: 'World Class Pack',
     description: '5 players with at least one 84+ rated player and a possible walkout reveal. Consumable — buy each open.',
     priceUsd: 6.99,
     type: 'one_time',
   },
   'com.dynastymanager.pack.icon': {
     id: 'com.dynastymanager.pack.icon',
-    name: 'Icon Pack',
+    name: 'Legends Pack',
     description: '1 guaranteed 88+ Icon player with a walkout reveal. Consumable — buy each open.',
     priceUsd: 9.99,
     type: 'one_time',

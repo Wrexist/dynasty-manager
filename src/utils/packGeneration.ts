@@ -32,6 +32,11 @@ function pickRarity(weights: PackRarityWeights): keyof PackRarityWeights {
  *  adversarial cases. */
 const MAX_FIT_REROLLS = 20;
 
+/** Hard ceiling on weekly-bonus cards, independent of what config asks for.
+ *  A pack is a reveal sequence the player sits through; past a handful of cards
+ *  the ceremony becomes a chore. */
+const MAX_EXTRA_CARDS = 3;
+
 /** Scale every attribute by the given ratio so the derived overall lands
  *  on target. Mirrors the pattern playerGen.ts uses to cap star/veteran
  *  overalls after a boost. Mutates `attrs` in place and returns it. */
@@ -114,6 +119,14 @@ export interface PackContentsOptions {
    *  them. Defaults to false so a caller that forgets it gets the PAID odds
    *  rather than silently under-rewarding a purchase. */
   freeOpen?: boolean;
+  /** Consecutive-login streak, which selects the Daily Pack's odds band.
+   *  Defaults to 1 (the weakest band) so a caller that forgets it cannot
+   *  accidentally hand out the day-7 pack. */
+  streak?: number;
+  /** Extra cards beyond `tier.cards`, granted by the weekly featured bonus.
+   *  Each one rolls at the tier's guaranteed floor — that is precisely what
+   *  the offer promises on the card, so it is what the generator delivers. */
+  extraCards?: number;
 }
 
 /** Generate the full set of players contained in a pack. The first card is
@@ -125,8 +138,13 @@ export function generatePackContents(
   season: number,
   opts: PackContentsOptions = {},
 ): Player[] {
-  // A free/ad open resolves to the tier's weaker odds where it defines them.
-  const tier = resolvePackTier(PACK_TIER_MAP[tierKey], !!opts.freeOpen);
+  // A free/ad open resolves to the tier's weaker odds where it defines them;
+  // the Daily Pack additionally resolves its streak band. Single resolver, so
+  // the odds sheet and the generator can never disagree.
+  const tier = resolvePackTier(PACK_TIER_MAP[tierKey], {
+    freeOpen: !!opts.freeOpen,
+    streak: opts.streak,
+  });
   const players: Player[] = [];
 
   // ── Guaranteed slot ──
@@ -145,6 +163,17 @@ export function generatePackContents(
     guaranteedPosition, tier, season, guaranteedMin, guaranteedMax,
     pityOn ? pityCeiling : tier.ovrMax,
   ));
+
+  // ── Weekly bonus cards ──
+  // Rolled at the guaranteed floor, matching the offer's wording exactly
+  // ("+1 card, guaranteed 84+"). Clamped so a misconfigured bonus can never
+  // inflate a pack past a sane size — a pack is a reveal sequence, not a list.
+  const extra = Math.max(0, Math.min(Math.floor(opts.extraCards ?? 0), MAX_EXTRA_CARDS));
+  for (let i = 0; i < extra; i++) {
+    players.push(rollPackPlayer(
+      pick(PACK_POSITION_POOL), tier, season, tier.guaranteedMinOvr, tier.ovrMax,
+    ));
+  }
 
   // ── Remaining cards: weighted rarity roll ──
   for (let i = 1; i < tier.cards; i++) {
@@ -188,8 +217,9 @@ export function generateAiCounterSignings(
   playerDivision: string,
   season: number,
   freeOpen = false,
+  streak?: number,
 ): AiBackfillResult {
-  const tier = resolvePackTier(PACK_TIER_MAP[tierKey], freeOpen);
+  const tier = resolvePackTier(PACK_TIER_MAP[tierKey], { freeOpen, streak });
   const slots = AI_BACKFILL_PER_TIER[tierKey] || 0;
   if (slots === 0) return { perClub: {} };
 

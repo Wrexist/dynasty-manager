@@ -2,7 +2,27 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
 import { writeDailyPackOpens, currentDayIndex } from '@/store/helpers/persistence';
 import { generateAiCounterSignings, generatePackContents, shouldPityTrigger, updatedPityCounter } from '@/utils/packGeneration';
-import { AI_BACKFILL_OVR_GAP, AI_BACKFILL_PER_TIER, PACK_TIER_MAP, PACK_PITY_THRESHOLD, PACK_PITY_MAX_OVERSHOOT, WALKOUT_OVR_THRESHOLD, resolvePackTier } from '@/config/packs';
+import {
+  AI_BACKFILL_OVR_GAP,
+  AI_BACKFILL_PER_TIER,
+  PACK_TIER_MAP,
+  PACK_TIERS,
+  PACK_PITY_THRESHOLD,
+  PACK_PITY_MAX_OVERSHOOT,
+  PACK_STOREFRONT_ORDER,
+  PACK_STREAK_BANDS,
+  PAID_PACK_TIERS,
+  FREE_PACK_TIER,
+  FEATURED_PACK_ROTATION,
+  WEEKLY_BONUS_CARDS,
+  WALKOUT_OVR_THRESHOLD,
+  describePackOdds,
+  getFeaturedPackTier,
+  getFeaturedPackPresentation,
+  WEEKLY_PACK_SKINS,
+  packEliteCardsPerDollar,
+  resolvePackTier,
+} from '@/config/packs';
 import type { Club, PackTierKey } from '@/types/game';
 import { MAX_SQUAD_SIZE } from '@/config/gameBalance';
 import {
@@ -105,85 +125,227 @@ describe('Pack opening — generation', () => {
   });
 });
 
-describe('Pack opening — free vs paid odds', () => {
-  it('a free Gold open cannot exceed the free ceiling', () => {
-    const paid = PACK_TIER_MAP.gold;
-    const free = resolvePackTier(paid, true);
-    expect(free.ovrMax).toBeLessThan(paid.ovrMax);
-    for (let run = 0; run < 60; run++) {
-      const players = generatePackContents('gold', 1, { freeOpen: true });
-      for (const p of players) {
-        expect(p.overall).toBeLessThanOrEqual(free.ovrMax);
+describe('Daily Pack — streak ladder', () => {
+  const daily = PACK_TIER_MAP.daily;
+
+  it('is the only free pack in the storefront', () => {
+    // Three free daily packs dominated one another and shipped ~11 players a
+    // day into a 40-man squad. If a second one ever reappears, that is a
+    // deliberate economy decision and this test should be the thing that
+    // forces the conversation.
+    const freeTiers = PACK_STOREFRONT_ORDER.filter(k => (PACK_TIER_MAP[k].freeDailyLimit ?? 0) > 0);
+    expect(freeTiers).toEqual([FREE_PACK_TIER]);
+  });
+
+  it('raises the guaranteed floor monotonically across streak bands', () => {
+    const floors = PACK_STREAK_BANDS.map(b => resolvePackTier(daily, { streak: b }).guaranteedMinOvr);
+    for (let i = 1; i < floors.length; i++) {
+      expect(floors[i], `band ${i} must beat band ${i - 1}`).toBeGreaterThan(floors[i - 1]);
+    }
+  });
+
+  it('never out-guarantees the cheapest paid pack, even at max streak', () => {
+    // The free path must not dominate the $2.99 entry purchase. If it does,
+    // the entry rung is unsellable and the ladder collapses.
+    const maxStreak = PACK_STREAK_BANDS[PACK_STREAK_BANDS.length - 1];
+    const best = resolvePackTier(daily, { streak: maxStreak });
+    expect(best.guaranteedMinOvr).toBeLessThan(PACK_TIER_MAP.gold.guaranteedMinOvr);
+    expect(best.ovrMax).toBeLessThan(PACK_TIER_MAP.gold.ovrMax);
+  });
+
+  it('defaults to the WEAKEST band when the caller omits the streak', () => {
+    // Failing open to the day-7 pack would hand every new player the top band.
+    expect(resolvePackTier(daily, {}).guaranteedMinOvr)
+      .toBe(resolvePackTier(daily, { streak: 1 }).guaranteedMinOvr);
+  });
+
+  it('generates inside the resolved band for every streak level', () => {
+    for (const streak of [1, 3, 5, 7, 40]) {
+      const band = resolvePackTier(daily, { streak });
+      for (let run = 0; run < 25; run++) {
+        const players = generatePackContents('daily', 1, { freeOpen: true, streak });
+        expect(players).toHaveLength(daily.cards);
+        for (const p of players) {
+          expect(p.overall).toBeLessThanOrEqual(band.ovrMax);
+        }
+        expect(Math.max(...players.map(p => p.overall))).toBeGreaterThanOrEqual(band.guaranteedMinOvr);
       }
-      expect(Math.max(...players.map(p => p.overall))).toBeGreaterThanOrEqual(free.guaranteedMinOvr);
     }
   });
 
-  it('a paid Gold open keeps the full guarantee — nobody\'s purchase got worse', () => {
-    const paid = PACK_TIER_MAP.gold;
-    for (let run = 0; run < 60; run++) {
-      const players = generatePackContents('gold', 1, { freeOpen: false });
-      expect(Math.max(...players.map(p => p.overall))).toBeGreaterThanOrEqual(paid.guaranteedMinOvr);
-      for (const p of players) expect(p.overall).toBeLessThanOrEqual(paid.ovrMax);
-    }
-  });
-
-  it('defaults to PAID odds when the caller omits freeOpen', () => {
-    // Failing open to the weaker odds would silently short-change purchases,
-    // which is the more damaging direction to get wrong.
-    const paid = PACK_TIER_MAP.gold;
-    let sawAbovefreeCeiling = false;
-    const freeCeiling = resolvePackTier(paid, true).ovrMax;
-    for (let run = 0; run < 80 && !sawAbovefreeCeiling; run++) {
-      const players = generatePackContents('gold', 1);
-      if (players.some(p => p.overall > freeCeiling)) sawAbovefreeCeiling = true;
-    }
-    expect(sawAbovefreeCeiling).toBe(true);
-  });
-
-  it('free odds make 80+ markedly rarer without making it impossible', () => {
-    // The point of the change: the free daily Gold was handing out ~2.3 cards
-    // at 80+ every single day, which outran the transfer market as a route to
-    // a squad. It should still be possible — just not a firehose.
+  it('day-7 free supply stays well under the old three-free-pack firehose', () => {
+    // The old free lineup delivered 11 cards/day; this one delivers 3, and its
+    // 80+ rate at the very top of the ladder must stay a treat, not a supply.
     const RUNS = 300;
-    let freeGold = 0;
-    let paidGold = 0;
+    let elite = 0;
     for (let i = 0; i < RUNS; i++) {
-      freeGold += generatePackContents('gold', 1, { freeOpen: true }).filter(p => p.overall >= 80).length;
-      paidGold += generatePackContents('gold', 1, { freeOpen: false }).filter(p => p.overall >= 80).length;
+      elite += generatePackContents('daily', 1, { freeOpen: true, streak: 7 })
+        .filter(p => p.overall >= 80).length;
     }
-    const freePerOpen = freeGold / RUNS;
-    const paidPerOpen = paidGold / RUNS;
-    expect(freePerOpen, `free 80+/open was ${freePerOpen.toFixed(2)}`).toBeLessThan(1.2);
-    expect(freePerOpen).toBeGreaterThan(0);
-    expect(paidPerOpen, 'paid opens must stay clearly more rewarding').toBeGreaterThan(freePerOpen * 1.5);
+    const perOpen = elite / RUNS;
+    expect(perOpen, `free 80+/open at max streak was ${perOpen.toFixed(2)}`).toBeLessThan(0.40);
   });
 
-  it('tiers with no free override are identical on both paths', () => {
-    for (const tier of Object.values(PACK_TIER_MAP)) {
-      if (tier.freeOpenOverride) continue;
-      expect(resolvePackTier(tier, true)).toBe(tier);
-    }
-  });
-
-  it('AI counter-signings stay below the FREE guarantee on a free open', () => {
-    // The AI ceiling is derived from the user's guarantee. If a free Gold open
-    // lowered the user's card but not the AI's, the league would out-sign the
-    // player off their own pack.
-    const free = resolvePackTier(PACK_TIER_MAP.gold, true);
+  it('AI counter-signings track the streak-resolved guarantee', () => {
+    // The AI ceiling derives from the user's guarantee. If the user's floor
+    // moves with the streak and the AI's does not, the league either out-signs
+    // the player or is trivially outclassed by them.
     const clubs: Record<string, Club> = {
       me: { id: 'me', divisionId: 'd1', playerIds: [], reputation: 50, wageBill: 0 } as unknown as Club,
       rival: { id: 'rival', divisionId: 'd1', playerIds: [], reputation: 70, wageBill: 0 } as unknown as Club,
       other: { id: 'other', divisionId: 'd1', playerIds: [], reputation: 60, wageBill: 0 } as unknown as Club,
     };
-    for (let run = 0; run < 30; run++) {
-      const { perClub } = generateAiCounterSignings('gold', clubs, 'me', 'd1', 1, true);
-      for (const players of Object.values(perClub)) {
-        for (const p of players) {
-          expect(p.overall).toBeLessThan(free.guaranteedMinOvr);
+    for (const streak of [1, 7]) {
+      const floor = resolvePackTier(PACK_TIER_MAP.daily, { streak }).guaranteedMinOvr;
+      for (let run = 0; run < 20; run++) {
+        const { perClub } = generateAiCounterSignings('daily', clubs, 'me', 'd1', 1, true, streak);
+        for (const players of Object.values(perClub)) {
+          for (const p of players) expect(p.overall).toBeLessThan(floor);
         }
       }
     }
+  });
+});
+
+describe('Market — storefront integrity', () => {
+  it('every storefront tier resolves and every archived tier still resolves too', () => {
+    // Archived tiers must never be deleted: `OpenedPackRecord.tier` in shipped
+    // saves points at them and Recent Pulls resolves label/art through the map.
+    for (const key of PACK_STOREFRONT_ORDER) expect(PACK_TIER_MAP[key]).toBeTruthy();
+    for (const key of ['bronze', 'silver'] as PackTierKey[]) {
+      expect(PACK_TIER_MAP[key], `archived tier ${key} was deleted — old saves will crash`).toBeTruthy();
+      expect(PACK_STOREFRONT_ORDER).not.toContain(key);
+    }
+  });
+
+  it('archived tiers are unobtainable — no free allowance, no product', () => {
+    for (const key of ['bronze', 'silver'] as PackTierKey[]) {
+      const tier = PACK_TIER_MAP[key];
+      expect(tier.freeDailyLimit ?? 0).toBe(0);
+      expect(tier.adDailyLimit ?? 0).toBe(0);
+      expect(tier.productId).toBeUndefined();
+    }
+  });
+
+  it('the paid ladder is monotonic in price, guarantee and ceiling', () => {
+    // A rung that costs more and gives less is a rung nobody buys. Icon is the
+    // exception on card count (1 card) and is checked separately below.
+    const ladder = PAID_PACK_TIERS.map(k => PACK_TIER_MAP[k]);
+    for (let i = 1; i < ladder.length; i++) {
+      const prev = ladder[i - 1];
+      const cur = ladder[i];
+      const price = (t: typeof cur) => Number((t.iapPriceDisplay || '').replace(/[^0-9.]/g, ''));
+      expect(price(cur), `${cur.key} must cost more than ${prev.key}`).toBeGreaterThan(price(prev));
+      expect(cur.guaranteedMinOvr).toBeGreaterThan(prev.guaranteedMinOvr);
+      expect(cur.ovrMax).toBeGreaterThan(prev.ovrMax);
+    }
+  });
+
+  it('exactly one tier wears BEST VALUE, and it is the actual best value', () => {
+    // The badge is only worth anything while it is earned. `packEliteCardsPerDollar`
+    // is the metric; if a price or a rarity table changes so that another tier
+    // wins, this fails rather than letting the label quietly become decoration.
+    const badged = PACK_TIERS.filter(t => t.badge === 'best_value');
+    expect(badged).toHaveLength(1);
+    const ranked = [...PAID_PACK_TIERS]
+      .map(k => PACK_TIER_MAP[k])
+      .sort((a, b) => packEliteCardsPerDollar(b) - packEliteCardsPerDollar(a));
+    expect(badged[0].key).toBe(ranked[0].key);
+  });
+
+  it('every paid pack publishes odds that sum to 100%', () => {
+    // Apple Guideline 3.1.1. A disclosure that does not add up is worse than
+    // no disclosure, because then it is a false claim.
+    for (const key of PAID_PACK_TIERS) {
+      const rows = describePackOdds(PACK_TIER_MAP[key]);
+      expect(rows.length, `${key} publishes no odds`).toBeGreaterThan(0);
+      const total = rows.reduce((s, r) => s + r.chance, 0);
+      expect(total, `${key} odds sum to ${total}`).toBeCloseTo(1, 6);
+      for (const row of rows) expect(row.chance).toBeGreaterThan(0);
+    }
+  });
+
+  it('published odds describe the same table the generator rolls', () => {
+    // The one property that makes the disclosure trustworthy: both sides go
+    // through `resolvePackTier`, so a streak or free-path override cannot leave
+    // the sheet advertising a pack the generator does not produce.
+    for (const streak of [1, 7]) {
+      const rows = describePackOdds(PACK_TIER_MAP.daily, { streak });
+      const resolved = resolvePackTier(PACK_TIER_MAP.daily, { streak });
+      const goldRow = rows.find(r => r.label.startsWith('Gold'));
+      if ((resolved.rarity.gold || 0) === 0) expect(goldRow).toBeUndefined();
+      else expect(goldRow?.chance).toBeCloseTo(resolved.rarity.gold, 6);
+    }
+  });
+});
+
+describe('Market — weekly featured offer', () => {
+  it('rotates deterministically over paid, weekly-eligible tiers only', () => {
+    const seen = new Set<PackTierKey>();
+    for (let w = 0; w < 24; w++) {
+      const key = getFeaturedPackTier(w);
+      seen.add(key);
+      // Same week always resolves to the same pack — the countdown would be a
+      // lie otherwise.
+      expect(getFeaturedPackTier(w)).toBe(key);
+      const tier = PACK_TIER_MAP[key];
+      expect(tier.weeklyEligible).toBe(true);
+      expect(tier.productId, 'a featured pack must be purchasable').toBeTruthy();
+    }
+    expect(seen.size).toBeGreaterThan(1);
+    expect(seen.has('icon'), 'Icon stays out of the rotation on purpose').toBe(false);
+  });
+
+  it('the featured rotation only names tiers that exist and are on sale', () => {
+    for (const key of FEATURED_PACK_ROTATION) {
+      expect(PACK_TIER_MAP[key]).toBeTruthy();
+      expect(PACK_STOREFRONT_ORDER).toContain(key);
+    }
+  });
+
+  it('every weekly skin backs onto a real, purchasable, weekly-eligible tier', () => {
+    for (const skin of WEEKLY_PACK_SKINS) {
+      const tier = PACK_TIER_MAP[skin.tier];
+      expect(tier, `skin ${skin.name} names an unknown tier`).toBeTruthy();
+      expect(tier.weeklyEligible).toBe(true);
+      expect(tier.productId).toBeTruthy();
+      expect(skin.artSrc).toMatch(/^\/packs\/.+\.webp$/);
+    }
+    // Every rotation slot must have a cover, or one week in three the headline
+    // silently degrades to the same card the grid already shows.
+    for (const key of FEATURED_PACK_ROTATION) {
+      expect(WEEKLY_PACK_SKINS.some(sk => sk.tier === key), `no skin for ${key}`).toBe(true);
+    }
+  });
+
+  it('a skin changes only the name and the art — never the contents', () => {
+    // The whole trust argument for promo naming rests on this. If a skin could
+    // move a rarity weight or a guarantee, the Market would be advertising one
+    // pack and shipping another.
+    for (let w = 0; w < 9; w++) {
+      const tier = PACK_TIER_MAP[getFeaturedPackTier(w)];
+      const shown = getFeaturedPackPresentation(w);
+      const { label: _l, artSrc: _a, artLegacySrc: _al, ...shownRest } = shown;
+      const { label: _l2, artSrc: _a2, artLegacySrc: _al2, ...tierRest } = tier;
+      expect(shownRest).toEqual(tierRest);
+      expect(describePackOdds(shown)).toEqual(describePackOdds(tier));
+    }
+  });
+
+  it('bonus cards roll at the guaranteed floor and enlarge the pack', () => {
+    const tier = PACK_TIER_MAP.rare;
+    for (let run = 0; run < 30; run++) {
+      const players = generatePackContents('rare', 1, { extraCards: WEEKLY_BONUS_CARDS });
+      expect(players).toHaveLength(tier.cards + WEEKLY_BONUS_CARDS);
+      const atFloor = players.filter(p => p.overall >= tier.guaranteedMinOvr).length;
+      expect(atFloor, 'guaranteed card + bonus card must both clear the floor')
+        .toBeGreaterThanOrEqual(1 + WEEKLY_BONUS_CARDS);
+    }
+  });
+
+  it('clamps an absurd bonus rather than generating an endless reveal', () => {
+    const players = generatePackContents('rare', 1, { extraCards: 999 });
+    expect(players.length).toBeLessThanOrEqual(PACK_TIER_MAP.rare.cards + 3);
   });
 });
 
@@ -247,14 +409,18 @@ describe('Pack opening — openPack action', () => {
         },
       },
     });
-    const result = useGameStore.getState().openPack('bronze');
+    const result = useGameStore.getState().openPack('daily');
     expect(result.success).toBe(false);
     expect(result.message).toMatch(/squad space/i);
   });
 
-  it('deducts budget, adds players to roster, and logs an opened pack record', () => {
-    // Silver is currency-unlock — bronze is now a free ad pack and no
-    // longer deducts in-game budget, so this ledger test moved to silver.
+  it('adds players to the roster and logs an opened pack record', () => {
+    // NOTE: no storefront tier has an in-game-currency price any more, so this
+    // asserts the roster + ledger writes on the free path and pins that the
+    // free path costs nothing. The old version of this test opened Silver "to
+    // test the budget deduction" against `PACK_TIER_MAP.silver.price`, which
+    // has been 0 for as long as the tier has existed — it asserted
+    // `budget - 0 === budget` and passed for years without testing anything.
     const state = useGameStore.getState();
     const club = state.clubs[state.playerClubId];
     useGameStore.setState({
@@ -266,40 +432,35 @@ describe('Pack opening — openPack action', () => {
     const budgetBefore = useGameStore.getState().clubs[state.playerClubId].budget;
     const squadBefore = useGameStore.getState().clubs[state.playerClubId].playerIds.length;
 
-    const result = useGameStore.getState().openPack('silver');
+    const result = useGameStore.getState().openPack('daily');
     expect(result.success).toBe(true);
-    expect(result.players).toBeDefined();
-    expect(result.players).toHaveLength(PACK_TIER_MAP.silver.cards);
+    expect(result.players).toHaveLength(PACK_TIER_MAP.daily.cards);
 
     const after = useGameStore.getState();
     const clubAfter = after.clubs[state.playerClubId];
-    expect(clubAfter.budget).toBe(budgetBefore - PACK_TIER_MAP.silver.price);
-    expect(clubAfter.playerIds.length).toBe(squadBefore + PACK_TIER_MAP.silver.cards);
+    expect(clubAfter.budget, 'the free pack must never touch the budget').toBe(budgetBefore);
+    expect(clubAfter.playerIds.length).toBe(squadBefore + PACK_TIER_MAP.daily.cards);
     for (const p of result.players!) {
       expect(clubAfter.playerIds).toContain(p.id);
       expect(after.players[p.id]).toBeDefined();
       expect(after.players[p.id].clubId).toBe(state.playerClubId);
     }
     expect(after.openedPacks.length).toBeGreaterThan(0);
-    expect(after.openedPacks[0].tier).toBe('silver');
+    expect(after.openedPacks[0].tier).toBe('daily');
   });
 
-  it('does not deduct in-game budget for free (ad-unlock) bronze packs', () => {
-    const state = useGameStore.getState();
-    const club = state.clubs[state.playerClubId];
-    useGameStore.setState({
-      clubs: { ...state.clubs, [state.playerClubId]: { ...club, budget: 5_000_000 } },
-    });
-    const budgetBefore = useGameStore.getState().clubs[state.playerClubId].budget;
-    const result = useGameStore.getState().openPack('bronze');
-    expect(result.success).toBe(true);
-    const after = useGameStore.getState();
-    expect(after.clubs[state.playerClubId].budget).toBe(budgetBefore);
+  it('refuses to open an archived tier — it has no unlock method left', () => {
+    // Bronze and Silver still resolve (old saves replay them) but nothing can
+    // obtain one. If a method ever comes back, that is a storefront decision.
+    for (const key of ['bronze', 'silver'] as PackTierKey[]) {
+      const result = useGameStore.getState().openPack(key);
+      expect(result.success, `${key} must not be openable`).toBe(false);
+    }
   });
 
-  it('caps bronze opens at free + ad daily limits combined', () => {
-    // Trim the default squad to a known small size so 4 bronze packs
-    // (3 cards each = 12 players) don't bump up against MAX_SQUAD_SIZE.
+  it('caps daily-pack opens at free + ad daily limits combined', () => {
+    // Trim the default squad to a known small size so the run of packs
+    // doesn't bump up against MAX_SQUAD_SIZE.
     const state = useGameStore.getState();
     const club = state.clubs[state.playerClubId];
     const trimmedIds = club.playerIds.slice(0, 20);
@@ -309,25 +470,26 @@ describe('Pack opening — openPack action', () => {
         [state.playerClubId]: { ...club, playerIds: trimmedIds, budget: 1_000_000 },
       },
     });
-    const freeCap = PACK_TIER_MAP.bronze.freeDailyLimit ?? 0;
-    const adCap = PACK_TIER_MAP.bronze.adDailyLimit ?? 0;
-    expect(freeCap + adCap).toBeGreaterThan(0);
+    const freeCap = PACK_TIER_MAP.daily.freeDailyLimit ?? 0;
+    const adCap = PACK_TIER_MAP.daily.adDailyLimit ?? 0;
+    expect(freeCap).toBe(1);
+    expect(adCap).toBeGreaterThan(0);
 
     // First open uses today's free allowance.
     for (let i = 0; i < freeCap; i++) {
-      const open = useGameStore.getState().openPack('bronze', { method: 'free' });
+      const open = useGameStore.getState().openPack('daily', { method: 'free' });
       expect(open.success).toBe(true);
       expect(open.method).toBe('free');
     }
     // Subsequent opens fall back to ad (page would have shown a rewarded
     // ad before calling). skipPayment mirrors the page's contract.
     for (let i = 0; i < adCap; i++) {
-      const open = useGameStore.getState().openPack('bronze', { method: 'ad', skipPayment: true });
+      const open = useGameStore.getState().openPack('daily', { method: 'ad', skipPayment: true });
       expect(open.success).toBe(true);
       expect(open.method).toBe('ad');
     }
     // After both caps are hit, additional opens are blocked.
-    const overflow = useGameStore.getState().openPack('bronze', { method: 'ad', skipPayment: true });
+    const overflow = useGameStore.getState().openPack('daily', { method: 'ad', skipPayment: true });
     expect(overflow.success).toBe(false);
     expect(overflow.message).toMatch(/daily ad limit/i);
   });
@@ -389,10 +551,13 @@ describe('Pack opening — openPack action', () => {
     useGameStore.setState({
       clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 50_000_000 } },
     });
-    const result = useGameStore.getState().openPack('bronze');
+    const result = useGameStore.getState().openPack('daily');
     expect(result.success).toBe(true);
     for (const p of result.players!) {
-      expect(p.overall).toBeLessThanOrEqual(PACK_TIER_MAP.bronze.ovrMax);
+      // The band the DAILY pack actually resolves to at the default streak,
+      // not a hard-coded tier ceiling — the ladder moves and this bound must
+      // move with it or it silently stops testing the clamp.
+      expect(p.overall).toBeLessThanOrEqual(resolvePackTier(PACK_TIER_MAP.daily, { streak: 1 }).ovrMax);
       // Theoretical max uses (1 + RANDOM_FACTOR); +1 covers rounding.
       // Bound is still tight enough to catch a wage that leaked from a
       // 75+ OVR pre-clamp roll (pre-clamp leakage would exceed this by 2-100x).
@@ -468,7 +633,7 @@ describe('Pack opening — openPack action', () => {
         [state.playerClubId]: { ...club, budget: 5_000_000 },
       },
     });
-    const result = useGameStore.getState().openPack('bronze');
+    const result = useGameStore.getState().openPack('daily');
     expect(result.success).toBe(true);
 
     const after = useGameStore.getState().clubs[state.playerClubId];
@@ -509,7 +674,7 @@ describe('Pack opening — openPack action', () => {
       },
     });
 
-    const result = useGameStore.getState().openPack('bronze');
+    const result = useGameStore.getState().openPack('daily');
     expect(result.success).toBe(true);
     const after = useGameStore.getState().clubs[state.playerClubId];
     expect(after.lineup).toEqual(preLineup);
@@ -524,7 +689,7 @@ describe('Pack opening — releasePackedPlayer action', () => {
     useGameStore.setState({
       clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 50_000_000 } },
     });
-    const openResult = useGameStore.getState().openPack('bronze');
+    const openResult = useGameStore.getState().openPack('daily');
     expect(openResult.success).toBe(true);
     const target = openResult.players![0];
     const budgetBefore = useGameStore.getState().clubs[state.playerClubId].budget;
@@ -576,7 +741,7 @@ describe('Pack opening — releasePackedPlayer action', () => {
     useGameStore.setState({
       clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 50_000_000 } },
     });
-    const open = useGameStore.getState().openPack('bronze');
+    const open = useGameStore.getState().openPack('daily');
     expect(open.success).toBe(true);
     const target = open.players![0];
     // Simulate a week advance without going through advanceWeek — same
@@ -596,7 +761,7 @@ describe('Pack opening — save/load persistence', () => {
     useGameStore.setState({
       clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 50_000_000 } },
     });
-    const open = useGameStore.getState().openPack('bronze');
+    const open = useGameStore.getState().openPack('daily');
     expect(open.success).toBe(true);
 
     const preSave = useGameStore.getState();
@@ -604,8 +769,8 @@ describe('Pack opening — save/load persistence', () => {
     const expectedPity = preSave.packPityCounter;
     const expectedDailyOpens = preSave.dailyPackOpens;
     expect(expectedOpenedPacksLength).toBeGreaterThan(0);
-    // Bronze's first daily open is `free`, so the free bucket should be 1.
-    expect(expectedDailyOpens.free.bronze).toBe(1);
+    // The Daily Pack's first open of the day is `free`, so that bucket is 1.
+    expect(expectedDailyOpens.free.daily).toBe(1);
 
     useGameStore.getState().saveGame(1);
     // Wipe in-memory pack state to prove the values come from storage
@@ -621,7 +786,7 @@ describe('Pack opening — save/load persistence', () => {
 
     const after = useGameStore.getState();
     expect(after.openedPacks.length).toBe(expectedOpenedPacksLength);
-    expect(after.openedPacks[0].tier).toBe('bronze');
+    expect(after.openedPacks[0].tier).toBe('daily');
     expect(after.packPityCounter).toBe(expectedPity);
     expect(after.dailyPackOpens).toEqual(expectedDailyOpens);
   });
@@ -637,7 +802,7 @@ describe('Pack opening — challenge guard', () => {
       // Penny Pincher disables all transfers
       activeChallenge: { scenarioId: 'penny-pincher', startSeason: 1, seasonsRemaining: 1, completed: false, failed: false },
     });
-    const result = useGameStore.getState().openPack('bronze');
+    const result = useGameStore.getState().openPack('daily');
     expect(result.success).toBe(false);
     expect(result.message).toMatch(/challenge/i);
   });
@@ -664,7 +829,7 @@ describe('Pack opening — challenge guard', () => {
   });
 
   it('canOpenPack reports the daily limit before the page plays an ad', () => {
-    // Trim squad so 4 bronze packs (12 cards) don't bump MAX_SQUAD_SIZE.
+    // Trim squad so the run of daily packs doesn't bump MAX_SQUAD_SIZE.
     const state = useGameStore.getState();
     const club = state.clubs[state.playerClubId];
     useGameStore.setState({
@@ -673,21 +838,21 @@ describe('Pack opening — challenge guard', () => {
         [state.playerClubId]: { ...club, playerIds: club.playerIds.slice(0, 20), budget: 1_000_000 },
       },
     });
-    // Burn through every free + ad open for bronze, then ask if more
+    // Burn through every free + ad open for the Daily Pack, then ask if more
     // are available. canOpenPack with no method picks the next-cheapest
     // available — once both caps hit, that's `null` and the slice
     // surfaces a "no opens available" message.
-    const freeCap = PACK_TIER_MAP.bronze.freeDailyLimit ?? 0;
-    const adCap = PACK_TIER_MAP.bronze.adDailyLimit ?? 0;
+    const freeCap = PACK_TIER_MAP.daily.freeDailyLimit ?? 0;
+    const adCap = PACK_TIER_MAP.daily.adDailyLimit ?? 0;
     for (let i = 0; i < freeCap; i++) {
-      const open = useGameStore.getState().openPack('bronze', { method: 'free' });
+      const open = useGameStore.getState().openPack('daily', { method: 'free' });
       expect(open.success).toBe(true);
     }
     for (let i = 0; i < adCap; i++) {
-      const open = useGameStore.getState().openPack('bronze', { method: 'ad', skipPayment: true });
+      const open = useGameStore.getState().openPack('daily', { method: 'ad', skipPayment: true });
       expect(open.success).toBe(true);
     }
-    const can = useGameStore.getState().canOpenPack('bronze');
+    const can = useGameStore.getState().canOpenPack('daily');
     expect(can.ok).toBe(false);
     if (can.ok === false) expect(can.message).toMatch(/no opens available|daily/i);
   });
@@ -704,7 +869,9 @@ describe('Pack opening — AI counter-signings (league balance)', () => {
       clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 50_000_000 } },
     });
     const beforeIds = new Set(Object.keys(useGameStore.getState().players));
-    const result = useGameStore.getState().openPack('gold');
+    // Gold is a paid tier with no free allowance, so the page's contract
+    // applies: the IAP is completed outside the slice and `skipPayment` says so.
+    const result = useGameStore.getState().openPack('gold', { method: 'iap', skipPayment: true });
     expect(result.success).toBe(true);
     const userPackIds = new Set(result.players!.map(p => p.id));
 
@@ -787,7 +954,7 @@ describe('Pack opening — manager XP & career stat growth', () => {
     });
     const xpBefore = useGameStore.getState().managerProgression.xp || 0;
     // Bronze pack ceiling is 68 OVR — well below WALKOUT_OVR_THRESHOLD (84).
-    const result = useGameStore.getState().openPack('bronze');
+    const result = useGameStore.getState().openPack('daily');
     expect(result.success).toBe(true);
     const xpAfter = useGameStore.getState().managerProgression.xp || 0;
     expect(xpAfter).toBe(xpBefore);

@@ -42,11 +42,16 @@ export interface PendingRelease {
 }
 
 export const PENDING_NEWS: PendingRelease = {
-  highlights: [],
-  new: [],
+  highlights: [
+    'The Market is rebuilt: one free pack a day that improves with your login streak, a featured pack each week with a bonus card, and published drop rates on every pack.',
+  ],
+  new: [
+    'Every pack now shows its drop rates before you open it.',
+  ],
   improved: [
     'Release 1.4.1 docs version.',
     'A comeback is not a man-of-the-match.',
+    'One clear free pack a day instead of three overlapping ones, and paid packs now say exactly what is inside.',
   ],
   fixed: [],
   headline: null,

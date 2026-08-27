@@ -341,6 +341,11 @@ export const STORAGE_KEYS = {
    *  from `observeClock`, not a date string compared for inequality, so winding
    *  the device clock backwards — or switching timezone — cannot re-arm it. */
   DAILY_PACK_OPENS: 'dynasty-daily-pack-opens',
+  /** localStorage: device-global weekly featured-pack bonus claim
+   *  (JSON WeeklyPackBonusRecord). Device-global for the same reason the daily
+   *  bucket is: per-save it would be a bonus per save slot, and re-rollable by
+   *  force-quitting after a bad pull. */
+  WEEKLY_PACK_BONUS: 'dynasty-weekly-pack-bonus',
   /** localStorage: crash-durable record of a paid consumable pack purchase
    *  that has not yet been granted in-game. Written BEFORE the StoreKit
    *  charge, cleared after the pack is opened and the save flushed.
@@ -834,6 +839,57 @@ export function readDailyPackOpens(): DailyPackOpensRecord {
 
 export function writeDailyPackOpens(record: DailyPackOpensRecord): void {
   try { localStorage.setItem(STORAGE_KEYS.DAILY_PACK_OPENS, JSON.stringify(record)); }
+  catch { /* storage unavailable — the in-memory mirror still holds this session */ }
+}
+
+const MS_PER_WEEK = 7 * MS_PER_DAY;
+
+/** The current week, as a monotonic index. Same monotonic guarantee as
+ *  `currentDayIndex`: `observeClock` returns the furthest time this device has
+ *  ever seen, so winding the clock back cannot re-arm a weekly offer.
+ *
+ *  Weeks are epoch-aligned (epoch day 0 was a Thursday), so the rollover lands
+ *  at local-equivalent Thursday midnight UTC. Which weekday it falls on does
+ *  not matter — only that it is the same instant for everyone and that the
+ *  countdown the Market renders is computed from this same function. */
+export function currentWeekIndex(): number {
+  return Math.floor(observeClock() / MS_PER_WEEK);
+}
+
+/** Milliseconds remaining until the weekly featured offer rotates. */
+export function msUntilNextWeekIndex(): number {
+  const now = observeClock();
+  return (Math.floor(now / MS_PER_WEEK) + 1) * MS_PER_WEEK - now;
+}
+
+/** Device-global record of which featured pack's weekly bonus has been claimed.
+ *  `tier` is the tier key whose bonus was consumed in `weekIndex`. */
+export interface WeeklyPackBonusRecord {
+  weekIndex: number;
+  tier: string;
+}
+
+/** Read the weekly-bonus claim, or null when this week's bonus is unspent.
+ *  A record from an earlier week reads as null (the bonus has rearmed); a
+ *  record from a LATER week is kept, because the only way to see one is a
+ *  clock that moved backwards, and that must not re-arm the offer. */
+export function readWeeklyPackBonus(): WeeklyPackBonusRecord | null {
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem(STORAGE_KEYS.WEEKLY_PACK_BONUS);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (typeof parsed?.weekIndex !== 'number' || typeof parsed?.tier !== 'string') return null;
+    if (currentWeekIndex() > parsed.weekIndex) return null;
+    return { weekIndex: parsed.weekIndex, tier: parsed.tier };
+  } catch (err) {
+    if (raw !== null) breadcrumbCorruption('readWeeklyPackBonus', raw, err);
+    return null;
+  }
+}
+
+export function writeWeeklyPackBonus(record: WeeklyPackBonusRecord): void {
+  try { localStorage.setItem(STORAGE_KEYS.WEEKLY_PACK_BONUS, JSON.stringify(record)); }
   catch { /* storage unavailable — the in-memory mirror still holds this session */ }
 }
 

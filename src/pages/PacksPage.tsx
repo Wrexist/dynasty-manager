@@ -3,14 +3,28 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
-import { Package, Coins, Flame, Clock, Loader2 } from 'lucide-react';
+import { Package, Coins, Flame, Clock, Loader2, Gift, Store } from 'lucide-react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel, LIQUID_GLASS_SURFACE } from '@/components/game/GlassPanel';
 import { PageHint } from '@/components/game/PageHint';
 import { AnimatedNumber } from '@/components/game/AnimatedNumber';
 import { PAGE_HINTS, PLAYER_TIER_THRESHOLDS } from '@/config/ui';
 import { MAX_SQUAD_SIZE } from '@/config/gameBalance';
-import { PACK_TIERS, PACK_TIER_MAP, PACK_PITY_THRESHOLD, RECENT_PULLS_LIMIT, getFeaturedPackTier } from '@/config/packs';
+import {
+  PACK_TIERS,
+  PACK_TIER_MAP,
+  PACK_PITY_THRESHOLD,
+  RECENT_PULLS_LIMIT,
+  getFeaturedPackTier,
+  getFeaturedPackPresentation,
+  FREE_PACK_TIER,
+  PAID_PACK_TIERS,
+  nextStreakBand,
+  resolvePackTier,
+  WEEKLY_PACK_SKINS,
+} from '@/config/packs';
+import { PackOddsSheet } from '@/components/game/pack/PackOddsSheet';
+import { currentLoginStreak, weeklyBonusCardsFor } from '@/store/slices/packsSlice';
 import { hapticLight } from '@/utils/haptics';
 import type { PackPlayerPlacement, PackTierKey, PackTierDefinition, PackUnlockMethod, ProductId } from '@/types/game';
 import { PackShopCard } from '@/components/game/pack/PackShopCard';
@@ -24,7 +38,7 @@ import { REWARDED_ADS_USABLE, showRewardedAd } from '@/utils/ads';
 import { isPro } from '@/utils/monetization';
 import { PENDING_CREDIT_TTL_MS } from '@/config/monetization';
 import { purchaseConsumable, getStoreAvailability, isPurchaseNotAttempted } from '@/utils/purchases';
-import { readPendingPackCredit, writePendingPackCredit, clearPendingPackCredit } from '@/store/helpers/persistence';
+import { readPendingPackCredit, writePendingPackCredit, clearPendingPackCredit, currentWeekIndex, msUntilNextWeekIndex } from '@/store/helpers/persistence';
 import { track } from '@/utils/analytics';
 import { isReviewWorthyPackTier, maybeRequestReview } from '@/utils/appReview';
 import { addGameBreadcrumb } from '@/utils/sentry';
@@ -98,14 +112,17 @@ let iapInFlight = false;
 
 const PacksPage = () => {
   const { t } = useTranslation();
-  const { club, players, openedPacks, packPityCounter, season, week, dailyPackOpens } = useGameStore(useShallow((s) => ({
+  // `season`/`week` are deliberately NOT selected any more: the featured pack
+  // rotates on the real week, so subscribing to the in-game clock here would
+  // re-render the whole Market on every week advance for nothing.
+  const { club, players, openedPacks, packPityCounter, dailyPackOpens, weeklyPackBonus } = useGameStore(useShallow((s) => ({
     club: s.clubs[s.playerClubId],
     players: s.players,
     openedPacks: s.openedPacks || [],
     packPityCounter: s.packPityCounter || 0,
-    season: s.season,
-    week: s.week,
     dailyPackOpens: s.dailyPackOpens || { date: '', free: {}, ad: {} },
+    // Subscribed purely so spending the week's bonus re-renders the hero.
+    weeklyPackBonus: s.weeklyPackBonus || null,
   })));
   const monetization = useGameStore(s => s.monetization);
   const recordAdWatched = useGameStore(s => s.recordAdWatched);
@@ -272,7 +289,23 @@ const PacksPage = () => {
   };
 
   useEffect(() => {
-    PACK_TIERS.forEach((t) => { if (t.artSrc) { const img = new Image(); img.src = t.artSrc; } });
+    PACK_TIERS.forEach((t) => {
+      for (const src of [t.artSrc, t.artLegacySrc]) {
+        if (src) { const img = new Image(); img.src = src; }
+      }
+    });
+    WEEKLY_PACK_SKINS.forEach((sk) => { const img = new Image(); img.src = sk.artSrc; });
+  }, []);
+
+  // Market impression — the denominator for every conversion rate on this
+  // page. Fired once per mount, not per render.
+  useEffect(() => {
+    track('market_viewed', {
+      featuredTier: featuredKey,
+      weeklyBonusAvailable: featuredBonus > 0,
+      streak,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one impression per visit
   }, []);
 
   const budget = club?.budget ?? 0;
@@ -365,9 +398,49 @@ const PacksPage = () => {
   const packSkuPurchasable = (productId: ProductId) =>
     packAvailableIds === null || packAvailableIds.includes(productId);
 
-  const featuredKey = useMemo(() => getFeaturedPackTier(season, week), [season, week]);
-  const featured = PACK_TIER_MAP[featuredKey];
-  const nonFeatured = useMemo(() => PACK_TIERS.filter(t => t.key !== featuredKey), [featuredKey]);
+  // ── Market composition ──
+  // Featured rotates on the REAL week, not the in-game one. `(season, week)`
+  // meant the headline pack changed while the player watched — several times
+  // in one sitting during a season sim — so no countdown could be honest and
+  // the slot carried no scarcity at all. `weekTick` is only here to re-render
+  // the countdown; the values themselves come from the monotonic clock.
+  const featuredKey = getFeaturedPackTier(currentWeekIndex());
+  // The hero wears this week's promo cover (name + art). Contents, price,
+  // guarantee and odds all still come from the tier underneath — a skin never
+  // changes what is in the pack.
+  const featured = getFeaturedPackPresentation(currentWeekIndex());
+  const freeTier = PACK_TIER_MAP[FREE_PACK_TIER];
+  /** Paid ladder, cheapest first, with the featured pack lifted out of the
+   *  grid — it is already the hero, and showing it twice was the single most
+   *  confusing thing about the old layout. */
+  const paidTiers = useMemo(
+    () => PAID_PACK_TIERS.filter(k => k !== featuredKey).map(k => PACK_TIER_MAP[k]),
+    [featuredKey],
+  );
+  const streak = currentLoginStreak();
+  const nextBand = nextStreakBand(streak);
+  const nextBandFloor = nextBand === null
+    ? null
+    : resolvePackTier(freeTier, { streak: nextBand }).guaranteedMinOvr;
+  // `weeklyPackBonus` is referenced so the memo re-runs when the claim lands;
+  // the authority is the device record `weeklyBonusCardsFor` reads.
+   
+  // not read here on purpose: it is the state MIRROR whose change re-runs this
+  // memo, while the authoritative claim is the device record that
+  // `weeklyBonusCardsFor` reads. Dropping it would leave the hero showing a
+  // bonus that has just been spent until the next unrelated re-render.
+  const featuredBonus = useMemo(
+    () => weeklyBonusCardsFor(featuredKey, 'iap'),
+    [featuredKey, weeklyPackBonus],
+  );
+  const weeklyCountdown = formatCountdown(msUntilNextWeekIndex());
+
+  /** Pack whose odds sheet is open, or null. */
+  const [oddsTier, setOddsTier] = useState<PackTierKey | null>(null);
+  const showOdds = (key: PackTierKey) => {
+    setOddsTier(key);
+    track('pack_odds_viewed', { tierKey: key });
+  };
 
   /** True if the player can use the active method right now. Currency
    *  packs check budget; free/ad respect daily caps; IAP is always
@@ -451,6 +524,10 @@ const PacksPage = () => {
       errorToast('Pack unavailable', 'This pack is missing a store product ID.');
       return;
     }
+    // Snapshot the bonus BEFORE the open consumes it — after `openPack`,
+    // `weeklyBonusCardsFor` reads 0 and the analytics event would under-report
+    // every bonus that was actually granted.
+    const bonusAtPurchase = weeklyBonusCardsFor(tierKey, 'iap');
     setBusy(true);
     iapInFlight = true;
     addGameBreadcrumb('purchase', 'pack iap initiated', { surface: 'packs', productId: tier.productId, tierKey });
@@ -502,7 +579,9 @@ const PacksPage = () => {
       if (useGameStore.getState().saveStatus !== 'failed') clearPendingPackCredit();
       successToast('Purchase complete', `${tier.label} unlocked.`);
       track('purchase_completed', { productId: tier.productId, surface: 'packs' });
-      track('pack_opened', { tierKey, method, pityTriggered: result.pityTriggered === true });
+      const claimedBonus = weeklyBonusCardsFor(tierKey, 'iap') === 0 ? bonusAtPurchase : 0;
+      if (claimedBonus > 0) track('weekly_bonus_claimed', { tierKey, bonusCards: claimedBonus });
+      track('pack_opened', { tierKey, method, pityTriggered: result.pityTriggered === true, bonusCards: claimedBonus });
       setOpening({ tier: tierKey, players: result.players, pityTriggered: result.pityTriggered });
     } catch (err) {
       // Capture the actual error to Sentry — silent catch was making it
@@ -572,37 +651,109 @@ const PacksPage = () => {
           </div>
         </div>
 
-        {/* Featured hero — header inlined to save vertical space; the
-            flame + label + pack are visually one unit. */}
-        <div>
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <Flame className="w-3.5 h-3.5 text-primary" />
-            <h3 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Featured Pack</h3>
+        {/* ── THIS WEEK ──
+            One paid pack, featured for a real week, whose first purchase this
+            week carries a bonus card. Only ONE offer gets the hero slot and it
+            is never the free pack: a store's headline should be the thing worth
+            paying for, and the old rotation put Silver — a free pack — in the
+            featured slot one week in six. */}
+        <section aria-labelledby="market-week">
+          <div className="flex items-center justify-between gap-2 mb-1.5">
+            <div className="flex items-center gap-1.5">
+              <Flame className="w-3.5 h-3.5 text-primary" />
+              <h3 id="market-week" className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                This Week
+              </h3>
+            </div>
+            <span className="text-[10px] text-muted-foreground tabular-nums flex items-center gap-1">
+              <Clock className="w-3 h-3" /> {weeklyCountdown} left
+            </span>
           </div>
           <PackShopCard
             featured
             tier={featured}
             affordable={isAffordable(featured)}
-            squadOk={squadSize + featured.cards <= MAX_SQUAD_SIZE}
+            squadOk={squadSize + featured.cards + featuredBonus <= MAX_SQUAD_SIZE}
             onSelect={() => { void handleOpen(featured.key); }}
+            onShowOdds={() => showOdds(featured.key)}
             method={activeMethodFor(featured)}
             freeRemaining={freeRemaining(featured)}
             adRemaining={adRemaining(featured)}
             resetCountdown={dailyAllowanceUsed ? formatCountdown(msToReset) : undefined}
+            bonusCards={featuredBonus}
+            weeklyCountdown={weeklyCountdown}
           />
-        </div>
+          {featuredBonus === 0 && (
+            <p className="text-[10px] text-muted-foreground mt-1 px-0.5">
+              This week&apos;s bonus card is claimed. The pack is still available at its
+              normal contents — the next bonus arrives in {weeklyCountdown}.
+            </p>
+          )}
+        </section>
 
-        {/* Standard pack grid */}
-        <div>
-          <h3 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">All Packs</h3>
+        {/* ── FREE TODAY ──
+            Exactly one free pack, whose floor rises with the login streak. It
+            replaced three flat free packs that dominated one another and
+            delivered ~11 players a day into a 40-man squad. */}
+        <section aria-labelledby="market-free">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <Gift className="w-3.5 h-3.5 text-emerald-400" />
+            <h3 id="market-free" className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Free Today
+            </h3>
+          </div>
           <div className="grid grid-cols-2 gap-3">
-            {nonFeatured.map(tier => (
+            <PackShopCard
+              tier={freeTier}
+              affordable={isAffordable(freeTier)}
+              squadOk={squadSize + freeTier.cards <= MAX_SQUAD_SIZE}
+              onSelect={() => { void handleOpen(freeTier.key); }}
+              onShowOdds={() => showOdds(freeTier.key)}
+              method={activeMethodFor(freeTier)}
+              freeRemaining={freeRemaining(freeTier)}
+              adRemaining={adRemaining(freeTier)}
+              resetCountdown={dailyAllowanceUsed ? formatCountdown(msToReset) : undefined}
+              streak={streak}
+            />
+            {/* Streak panel — the free pack's second half. Without it the
+                escalation is invisible and the player has no reason to know
+                tomorrow is worth more than today. */}
+            <GlassPanel className="p-3 flex flex-col justify-center gap-1.5">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Login streak
+              </p>
+              <p className="text-2xl font-display font-bold text-foreground tabular-nums leading-none">
+                {streak} <span className="text-xs font-normal text-muted-foreground">day{streak === 1 ? '' : 's'}</span>
+              </p>
+              <p className="text-[11px] text-muted-foreground leading-snug">
+                {nextBand === null
+                  ? 'Top tier reached — your Daily Pack is as good as it gets. Keep the run going to hold it.'
+                  : `Day ${nextBand} lifts your Daily Pack to a guaranteed ${nextBandFloor}+.`}
+              </p>
+            </GlassPanel>
+          </div>
+        </section>
+
+        {/* ── PACKS ──
+            The paid ladder, cheapest first. The featured pack is absent because
+            it is the hero above; listing it twice was the old layout's worst
+            habit. */}
+        <section aria-labelledby="market-packs">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <Store className="w-3.5 h-3.5 text-muted-foreground" />
+            <h3 id="market-packs" className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Packs
+            </h3>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {paidTiers.map(tier => (
               <PackShopCard
                 key={tier.key}
                 tier={tier}
                 affordable={isAffordable(tier)}
                 squadOk={squadSize + tier.cards <= MAX_SQUAD_SIZE}
                 onSelect={() => { void handleOpen(tier.key); }}
+                onShowOdds={() => showOdds(tier.key)}
                 method={activeMethodFor(tier)}
                 freeRemaining={freeRemaining(tier)}
                 adRemaining={adRemaining(tier)}
@@ -610,7 +761,7 @@ const PacksPage = () => {
               />
             ))}
           </div>
-        </div>
+        </section>
 
         {/* Guarantee Tracker — premium "what's coming next" reward meter.
             Three visual states keyed off pityRemaining:
@@ -808,6 +959,22 @@ const PacksPage = () => {
           </GlassPanel>
         )}
       </div>
+
+      {/* Drop-rate disclosure. Reachable from every pack card, which is what
+          Guideline 3.1.1 asks for: the odds are available before the buy. */}
+      <AnimatePresence>
+        {oddsTier && (
+          <PackOddsSheet
+            // The featured slot's sheet must carry the same NAME the card
+            // does, or a player checking the odds on "The Dynasty Pack" is
+            // shown a sheet headed "World Class Pack" and has no way to know
+            // it is the same offer.
+            tier={oddsTier === featuredKey ? featured : PACK_TIER_MAP[oddsTier]}
+            streak={oddsTier === FREE_PACK_TIER ? streak : undefined}
+            onClose={() => setOddsTier(null)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Pack Opening Overlay */}
       <AnimatePresence>

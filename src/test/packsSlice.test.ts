@@ -26,7 +26,7 @@ describe('packsSlice — quickSellPackedPlayer', () => {
     useGameStore.setState({
       clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 50_000_000 } },
     });
-    const open = useGameStore.getState().openPack('bronze');
+    const open = useGameStore.getState().openPack('daily');
     expect(open.success).toBe(true);
     const target = open.players![0];
 
@@ -46,7 +46,7 @@ describe('packsSlice — quickSellPackedPlayer', () => {
     useGameStore.setState({
       clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 50_000_000 } },
     });
-    const open = useGameStore.getState().openPack('bronze');
+    const open = useGameStore.getState().openPack('daily');
     const target = open.players![0];
     useGameStore.getState().quickSellPackedPlayer(target.id);
 
@@ -66,7 +66,7 @@ describe('packsSlice — quickSellPackedPlayer', () => {
     useGameStore.setState({
       clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 50_000_000 } },
     });
-    const open = useGameStore.getState().openPack('bronze');
+    const open = useGameStore.getState().openPack('daily');
     const target = open.players![0];
     const budgetBefore = useGameStore.getState().clubs[state.playerClubId].budget;
     useGameStore.getState().quickSellPackedPlayer(target.id);
@@ -79,7 +79,7 @@ describe('packsSlice — quickSellPackedPlayer', () => {
     useGameStore.setState({
       clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 50_000_000 } },
     });
-    const open = useGameStore.getState().openPack('bronze');
+    const open = useGameStore.getState().openPack('daily');
     const target = open.players![0];
     const wageBillBefore = useGameStore.getState().clubs[state.playerClubId].wageBill;
     useGameStore.getState().quickSellPackedPlayer(target.id);
@@ -113,7 +113,7 @@ describe('packsSlice — quickSellPackedPlayer', () => {
     useGameStore.setState({
       clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 50_000_000 } },
     });
-    const open = useGameStore.getState().openPack('bronze');
+    const open = useGameStore.getState().openPack('daily');
     const target = open.players![0];
     useGameStore.setState({ week: state.week + 1 });
     const result = useGameStore.getState().quickSellPackedPlayer(target.id);
@@ -126,7 +126,7 @@ describe('packsSlice — quickSellPackedPlayer', () => {
     useGameStore.setState({
       clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 50_000_000 } },
     });
-    const open = useGameStore.getState().openPack('bronze');
+    const open = useGameStore.getState().openPack('daily');
     const target = open.players![0];
     useGameStore.setState({ season: state.season + 1 });
     const result = useGameStore.getState().quickSellPackedPlayer(target.id);
@@ -154,7 +154,7 @@ describe('packsSlice — quickSellPackedPlayer', () => {
     useGameStore.setState({
       clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 50_000_000 } },
     });
-    const open = useGameStore.getState().openPack('bronze');
+    const open = useGameStore.getState().openPack('daily');
     const target = open.players![0];
     // Force value to 0
     useGameStore.setState({
@@ -167,21 +167,21 @@ describe('packsSlice — quickSellPackedPlayer', () => {
 });
 
 describe('packsSlice — canOpenPack edge cases', () => {
-  it('reports OK for the bronze daily-free path on a fresh game', () => {
-    const result = useGameStore.getState().canOpenPack('bronze', 'free');
-    // bronze has a freeDailyLimit > 0, so a fresh state should be OK
+  it('reports OK for the Daily Pack free path on a fresh game', () => {
+    const result = useGameStore.getState().canOpenPack('daily', 'free');
+    // `daily` has a freeDailyLimit > 0, so a fresh state should be OK
     if ('ok' in result) {
       expect(result.ok).toBe(true);
     }
   });
 
-  it('blocks bronze free path after the daily allowance is used', () => {
-    // Simulate today's bronze free already taken. The allowance is judged
+  it('blocks the Daily Pack free path after the allowance is used', () => {
+    // Simulate today's free open already taken. The allowance is judged
     // against the DEVICE record, not the save — seeding `dailyPackOpens` in
     // state no longer means anything, which is the whole point: a per-slot,
     // save-scummable "daily" limit was not a daily limit.
-    writeDailyPackOpens({ dayIndex: currentDayIndex(), free: { bronze: 99 }, ad: {} });
-    const result = useGameStore.getState().canOpenPack('bronze', 'free');
+    writeDailyPackOpens({ dayIndex: currentDayIndex(), free: { daily: 99 }, ad: {} });
+    const result = useGameStore.getState().canOpenPack('daily', 'free');
     expect('ok' in result && result.ok).toBe(false);
   });
 
@@ -201,7 +201,7 @@ describe('packsSlice — MIN_SQUAD_SIZE guards', () => {
     useGameStore.setState({
       clubs: { ...state.clubs, [state.playerClubId]: { ...club, budget: 50_000_000 } },
     });
-    const open = useGameStore.getState().openPack('bronze');
+    const open = useGameStore.getState().openPack('daily');
     expect(open.success).toBe(true);
     const target = open.players![0];
 
@@ -225,7 +225,7 @@ describe('packsSlice — MIN_SQUAD_SIZE guards', () => {
     useGameStore.setState({
       clubs: { ...state.clubs, [state.playerClubId]: { ...club, budget: 50_000_000 } },
     });
-    const open = useGameStore.getState().openPack('bronze');
+    const open = useGameStore.getState().openPack('daily');
     expect(open.success).toBe(true);
     const target = open.players![0];
 
@@ -268,7 +268,7 @@ describe('packsSlice — paid-IAP rejection surfaces refund signal', () => {
     useGameStore.setState({
       clubs: { ...state.clubs, [state.playerClubId]: { ...club, playerIds: filled } },
     });
-    const result = useGameStore.getState().openPack('bronze', { method: 'free' });
+    const result = useGameStore.getState().openPack('daily', { method: 'free' });
     expect(result.success).toBe(false);
     expect(result.paidButRejected).toBeUndefined();
   });
@@ -280,7 +280,7 @@ describe('packsSlice — undoLastQuickSell', () => {
     useGameStore.setState({
       clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 50_000_000 } },
     });
-    const open = useGameStore.getState().openPack('bronze');
+    const open = useGameStore.getState().openPack('daily');
     expect(open.success).toBe(true);
     return open.players![0];
   }
@@ -317,7 +317,7 @@ describe('packsSlice — undoLastQuickSell', () => {
   it('refuses to undo once a new pack is opened', () => {
     const target = openAndGetTarget();
     useGameStore.getState().quickSellPackedPlayer(target.id);
-    useGameStore.getState().openPack('bronze'); // invalidates the snapshot
+    useGameStore.getState().openPack('daily'); // invalidates the snapshot
     expect(useGameStore.getState().undoLastQuickSell()).toBe(false);
   });
 });

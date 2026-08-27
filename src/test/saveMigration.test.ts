@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 
 describe('saveMigration', () => {
-  it('should have current version set to 86', () => {
-    expect(CURRENT_VERSION).toBe(86);
+  it('should have current version set to 87', () => {
+    expect(CURRENT_VERSION).toBe(87);
   });
 
   it('v85 → v86 upgrades a Sunday save to sub-schema v3', () => {
@@ -282,12 +282,14 @@ describe('saveMigration', () => {
     const existing = { date: '2026-04-26', counts: { bronze: 2 } };
     const v62Data: Record<string, unknown> = { version: 62, adPackOpens: existing };
     const result = migrateSaveData(v62Data) as Record<string, unknown>;
-    // v62→v63 keeps the bucket; v63→v64 then converts it into the new
-    // dailyPackOpens shape, preserving the ad counts and starting free at 0.
+    // v62→v63 keeps the bucket and v63→v64 converts it into the dailyPackOpens
+    // shape; v86→v87 then CLEARS both buckets, because the Market redesign
+    // retired the tiers those counts were counted against. The date label
+    // survives so the mirror still says which day it describes.
     expect(result.dailyPackOpens).toEqual({
       date: '2026-04-26',
       free: {},
-      ad: { bronze: 2 },
+      ad: {},
     });
   });
 
@@ -297,10 +299,11 @@ describe('saveMigration', () => {
       adPackOpens: { date: '2026-04-26', counts: { bronze: 2, silver: 1 } },
     };
     const result = migrateSaveData(v63Data) as Record<string, unknown>;
+    // Cleared again at v86→v87 — see the note on the v62 case above.
     expect(result.dailyPackOpens).toEqual({
       date: '2026-04-26',
       free: {},
-      ad: { bronze: 2, silver: 1 },
+      ad: {},
     });
   });
 
@@ -475,7 +478,9 @@ describe('saveMigration', () => {
     const out = migrateSaveData(v63) as Record<string, unknown>;
     const dp = out.dailyPackOpens as Record<string, unknown>;
     expect(dp.date).toBe('2026-04-29');
-    expect(dp.ad).toEqual({ bronze: 2, silver: 1 });
+    // v86→v87 clears both buckets: bronze/silver are archived tiers and their
+    // counts are counts against allowances that no longer exist.
+    expect(dp.ad).toEqual({});
     expect(dp.free).toEqual({}); // fresh bucket so today's free pack is available
   });
 

@@ -12,7 +12,7 @@ import { isPlaceholderClubId } from '@/config/continental';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 86;
+const CURRENT_VERSION = 87;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -88,6 +88,42 @@ const migrations: Record<number, MigrationFn> = {
   //
   // Later waves EXTEND this step rather than adding another: keep the shape
   // below (a single `sunday` rewrite with per-field fallbacks) and add fields.
+  // v86 → v87: Market redesign.
+  //
+  //   - `weeklyPackBonus` mirrors the device-global weekly featured-pack bonus
+  //     claim so the Market re-renders when it is spent. `null` = unspent, and
+  //     that is also the right backfill: no save can have claimed a bonus that
+  //     did not exist, and the authority (`readWeeklyPackBonus`) is device-side
+  //     and unaffected by this field either way.
+  //
+  //   - The free daily allowance moved from three tiers (bronze, silver, gold)
+  //     onto one new `daily` tier. The old per-tier `free` counts are DROPPED
+  //     rather than carried: they are counts against allowances that no longer
+  //     exist, and mapping any of them onto `daily` would mean a player who had
+  //     opened a Bronze pack today loses a free pack they never spent. Leaving
+  //     `daily` unset gives everyone today's free pack, which is the generous
+  //     reading and costs one pack once.
+  //
+  //     The `ad` bucket is dropped for the same reason. Note this state field is
+  //     only a MIRROR — the authoritative bucket is device-global localStorage
+  //     (`readDailyPackOpens`) and is untouched by a save migration. A player
+  //     mid-day keeps whatever device-side counts they had for `bronze` /
+  //     `silver` / `gold`, which are now inert keys nothing reads.
+  //
+  //   - `openedPacks` records referencing `bronze` / `silver` are LEFT ALONE.
+  //     Those tiers stay in `PACK_TIERS` precisely so Recent Pulls can still
+  //     resolve their label, art and palette; rewriting history to a tier the
+  //     player never opened would be a lie in service of nothing.
+  86: (data) => {
+    const old = data.dailyPackOpens as { date?: string } | undefined;
+    return {
+      ...data,
+      version: 87,
+      weeklyPackBonus: null,
+      dailyPackOpens: { date: old?.date || '', free: {}, ad: {} },
+    };
+  },
+
   85: (data) => {
     const sunday = data.sunday as Record<string, unknown> | null | undefined;
     if (!sunday || typeof sunday !== 'object') return { ...data, version: 86, sunday: sunday ?? null };

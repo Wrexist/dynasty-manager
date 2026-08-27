@@ -3,7 +3,15 @@ import type { OpenedPackRecord, OpenPackResult, PackTierKey, PackUnlockMethod, P
 import type { GameState } from '../storeTypes';
 import { addMsg, safeRandomUUID } from '@/utils/helpers';
 import { MAX_SQUAD_SIZE, MIN_SQUAD_SIZE, FFP_WAGE_RATIO_WARNING } from '@/config/gameBalance';
-import { PACK_TIER_MAP, RECENT_PULLS_LIMIT, isFreeOpenMethod } from '@/config/packs';
+import {
+  PACK_TIER_MAP,
+  RECENT_PULLS_LIMIT,
+  isFreeOpenMethod,
+  getFeaturedPackTier,
+  WEEKLY_BONUS_CARDS,
+  PACK_QUICK_SELL_RATE,
+} from '@/config/packs';
+import { evaluateDailyStreak } from '@/utils/dailyStreak';
 import { generateAiCounterSignings, generatePackContents, shouldPityTrigger, updatedPityCounter } from '@/utils/packGeneration';
 import { CHALLENGES } from '@/data/challenges';
 import { grantXP, XP_REWARDS } from '@/utils/managerPerks';
@@ -16,7 +24,15 @@ import {
   candidatesCanCrackSquad,
 } from '@/utils/autoFillContext';
 import { purgePlayerReferences } from '../helpers/rosterOps';
-import { readDailyPackOpens, writeDailyPackOpens, currentDayIndex } from '../helpers/persistence';
+import {
+  readDailyPackOpens,
+  writeDailyPackOpens,
+  currentDayIndex,
+  readDailyStreak,
+  readWeeklyPackBonus,
+  writeWeeklyPackBonus,
+  currentWeekIndex,
+} from '../helpers/persistence';
 
 /**
  * Transient (non-persisted) snapshot of the state slices a quick-sell touches,
@@ -75,6 +91,49 @@ function todayCounts(_state: GameState, tierKey: PackTierKey): { free: number; a
     free: record.free[tierKey] || 0,
     ad: record.ad[tierKey] || 0,
   };
+}
+
+/** The player's consecutive-login streak, as the Daily Pack sees it.
+ *
+ *  Read from the DEVICE-global streak record rather than passed in by the page:
+ *  the streak selects the Daily Pack's odds band, so a caller that could supply
+ *  it could supply the day-7 pack on day one. Same reason the daily allowance
+ *  is device-global and not per-save.
+ *
+ *  `evaluateDailyStreak(...).current` is today's run length whether or not the
+ *  daily XP reward has been claimed — opening the free pack should not require
+ *  first dismissing a modal. */
+export function currentLoginStreak(): number {
+  try {
+    return Math.max(1, evaluateDailyStreak(readDailyStreak()).current);
+  } catch {
+    // A corrupt streak record must never block the free pack; fall back to the
+    // weakest band, which is what a brand-new player gets anyway.
+    return 1;
+  }
+}
+
+/** Extra cards this open earns from the weekly featured bonus.
+ *
+ *  Granted only for a REAL-MONEY open of the currently featured tier, and only
+ *  once per real week. Free and ad opens are excluded on purpose: the bonus is
+ *  the reason to come back and buy this week's pack, and stapling it to the
+ *  free pack would make it a weekly free upgrade instead.
+ *
+ *  Both `evaluateOpenPack` (squad-space check) and `openPack` (generation) call
+ *  this, so the space we reserve is always the space we fill. */
+export function weeklyBonusCardsFor(
+  tierKey: PackTierKey,
+  method: PackUnlockMethod | null,
+): number {
+  if (method !== 'iap') return 0;
+  const tier = PACK_TIER_MAP[tierKey];
+  if (!tier?.weeklyEligible) return 0;
+  const weekIndex = currentWeekIndex();
+  if (getFeaturedPackTier(weekIndex) !== tierKey) return 0;
+  const claim = readWeeklyPackBonus();
+  if (claim && claim.weekIndex === weekIndex) return 0;
+  return WEEKLY_BONUS_CARDS;
 }
 
 /** Pick the cheapest available method for the user given their current
@@ -148,11 +207,15 @@ function evaluateOpenPack(
     if (club.budget < tier.price) return { ok: false, message: 'Insufficient funds for this pack.' };
   }
 
+  // Reserve space for the weekly bonus card too. Checking only `tier.cards`
+  // would let a bonus-carrying purchase pass pre-flight and then be rejected by
+  // the same rule after the store had already charged for it.
+  const packCards = tier.cards + weeklyBonusCardsFor(tierKey, resolvedMethod);
   const slotsAvailable = MAX_SQUAD_SIZE - club.playerIds.length;
-  if (slotsAvailable < tier.cards) {
+  if (slotsAvailable < packCards) {
     return {
       ok: false,
-      message: `Not enough squad space — this pack delivers ${tier.cards} player(s). Release players first.`,
+      message: `Not enough squad space — this pack delivers ${packCards} player(s). Release players first.`,
     };
   }
 
@@ -169,6 +232,10 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     free: Partial<Record<PackTierKey, number>>;
     ad: Partial<Record<PackTierKey, number>>;
   },
+  /** Mirror of the device-global weekly-bonus claim, kept in state purely so
+   *  the Market re-renders the moment the bonus is spent. The authority is
+   *  `readWeeklyPackBonus()`; never gate on this field. */
+  weeklyPackBonus: null as { weekIndex: number; tier: PackTierKey } | null,
 
   /** Eligibility pre-flight. Optional `method` lets the page check a
    *  specific path (e.g. "is the IAP path open?"); without it the slice
@@ -257,7 +324,11 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     // A free daily / rewarded-ad open uses the tier's weaker odds where it has
     // them (currently Gold). Paid opens are unaffected.
     const freeOpen = isFreeOpenMethod(method);
-    const players = generatePackContents(tierKey, state.season, { pityTriggered, freeOpen });
+    const streak = currentLoginStreak();
+    const bonusCards = weeklyBonusCardsFor(tierKey, method);
+    const players = generatePackContents(tierKey, state.season, {
+      pityTriggered, freeOpen, streak, extraCards: bonusCards,
+    });
 
     // Claim players onto the club roster. Generators created them with
     // clubId = ''; we finalize ownership here.
@@ -385,6 +456,15 @@ export const createPacksSlice = (set: Set, get: Get) => ({
         ad: { ...usedToday.ad, [tierKey]: (usedToday.ad[tierKey] || 0) + 1 },
       };
     }
+    // Burn the weekly featured bonus. Written OUTSIDE the save and immediately,
+    // for the same reason the daily bucket is: deferring it to the next autosave
+    // would make the bonus a best-of-N reroll (force-quit after a bad pull and
+    // the bonus comes back). It is recorded only once the pack has actually been
+    // generated, so a rejected open never consumes the week's bonus.
+    if (bonusCards > 0) {
+      writeWeeklyPackBonus({ weekIndex: currentWeekIndex(), tier: tierKey });
+    }
+
     if (nextDailyOpens !== usedToday) {
       // Persist outside the save, immediately. Deferring this to the next
       // autosave is what made the free daily pack a best-of-N reroll: quit
@@ -408,6 +488,9 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       lastPackWeek: state.week,
       lastPackSeason: state.season,
       dailyPackOpens: nextDailyOpens,
+      ...(bonusCards > 0
+        ? { weeklyPackBonus: { weekIndex: currentWeekIndex(), tier: tierKey } }
+        : {}),
       messages: newMessages,
       seasonTotalExpenses: (state.seasonTotalExpenses || 0) + budgetDeduction,
       managerProgression: newProgression,
@@ -433,7 +516,7 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       // the same `freeOpen` resolution as the pull itself — the AI ceiling is
       // derived from the user's guarantee, so a free Gold open must lower the
       // AI ceiling too or the counter-signings would out-rate the user's card.
-      const aiBackfill = generateAiCounterSignings(tierKey, s.clubs, pid, s.playerDivision, s.season, freeOpen);
+      const aiBackfill = generateAiCounterSignings(tierKey, s.clubs, pid, s.playerDivision, s.season, freeOpen, streak);
       let clubsAcc = s.clubs;
       const playersAcc = { ...s.players };
       for (const [aiClubId, aiPlayers] of Object.entries(aiBackfill.perClub)) {
@@ -632,7 +715,7 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     if (club.playerIds.length <= MIN_SQUAD_SIZE) {
       return { success: false, message: `Cannot quick-sell — squad would drop below minimum size (${MIN_SQUAD_SIZE}).` };
     }
-    const amount = Math.max(0, Math.round((player.value || 0) * 0.65));
+    const amount = Math.max(0, Math.round((player.value || 0) * PACK_QUICK_SELL_RATE));
 
     const strippedClub = {
       ...club,

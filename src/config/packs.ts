@@ -1,11 +1,26 @@
-import type { PackRarityWeights, PackTierDefinition, PackTierKey, Position } from '@/types/game';
+import type { PackOddsRow, PackRarityWeights, PackTierDefinition, PackTierKey, Position, WeeklyPackSkin } from '@/types/game';
 
 /**
- * Pack Opening — tuning constants, tier definitions, and animation timing.
+ * Pack Opening — storefront definition, economy tuning, and animation timing.
  * Keep all pack-economy and pack-animation numbers here so they can be
  * balanced independently of feature code.
  *
  * Types live in `src/types/game.ts` per the single-source-of-truth rule.
+ *
+ * ── THE MARKET, IN ONE PARAGRAPH ──
+ * One free pack a day whose quality rises with the login streak; four paid
+ * packs forming a clean price ladder; one of the paid packs featured each real
+ * week with a bonus card on its first purchase. Nothing else. The previous
+ * lineup ran THREE free daily packs (Bronze, Silver and a free-odds Gold) that
+ * dominated one another — a rational player opened free Gold and treated the
+ * other two as squad-slot litter — and shipped ~11 free players a day into a
+ * 40-man squad, which made the transfer market decorative.
+ *
+ * ── ARCHIVED TIERS ──
+ * `bronze` and `silver` are no longer sold or given away, but their definitions
+ * stay here forever: `OpenedPackRecord.tier` in every existing save points at
+ * them and Recent Pulls resolves label/art/palette through `PACK_TIER_MAP`.
+ * `PACK_STOREFRONT_ORDER` is what the Market renders — not `PACK_TIERS`.
  */
 
 // Color fields reference the HSL-tuple CSS vars declared in `src/index.css`
@@ -14,81 +29,129 @@ import type { PackRarityWeights, PackTierDefinition, PackTierKey, Position } fro
 // can swap the palette without touching config.
 export const PACK_TIERS: PackTierDefinition[] = [
   {
+    // ── The single free pack ──
+    // Replaces the free Bronze + free Silver + free-odds Gold. Its odds scale
+    // with the player's LOGIN STREAK (see `PACK_STREAK_BANDS`), so returning
+    // seven days running is worth materially more than dipping in once — the
+    // retention lever the three flat free packs never pulled.
+    //
+    // The base fields below ARE the day-1 pack; `streakOverrides` lift it.
+    key: 'daily',
+    label: 'Rise to Glory',
+    storeCaption: '3 players, free every day. Better the longer your streak.',
+    price: 0,
+    cards: 3,
+    guaranteedMinOvr: 66,
+    ovrMin: 56,
+    ovrMax: 74,
+    rarity: { common: 0.32, bronze: 0.48, silver: 0.20, gold: 0, legendary: 0 },
+    // ── Why the ceilings sit where they do ──
+    // The guaranteed card rolls UNIFORMLY in [guaranteedMinOvr, ovrMax], so the
+    // ceiling — not the rarity table — is what decides how often the free pack
+    // hands out an 80+. A first pass at this ladder topped out at 77+/82 and
+    // measured 0.80 elite cards per open at max streak, which is most of a
+    // gold card every single day for free: the exact firehose the three old
+    // free packs were removed for. The top band now measures ~0.30, pinned by
+    // a unit test, with 80+ still reachable so the pull keeps its tension.
+    streakOverrides: [
+      // Band 1 (days 1-2) — identical to the base fields. Spelled out rather
+      // than left implicit so the odds sheet can render all four rows from one
+      // array and a reader can compare the ladder at a glance.
+      { guaranteedMinOvr: 66, ovrMin: 56, ovrMax: 74, rarity: { common: 0.32, bronze: 0.48, silver: 0.20, gold: 0, legendary: 0 } },
+      // Band 2 (days 3-4)
+      { guaranteedMinOvr: 69, ovrMin: 58, ovrMax: 76, rarity: { common: 0.20, bronze: 0.47, silver: 0.33, gold: 0, legendary: 0 } },
+      // Band 3 (days 5-6)
+      { guaranteedMinOvr: 72, ovrMin: 60, ovrMax: 78, rarity: { common: 0.11, bronze: 0.42, silver: 0.46, gold: 0.01, legendary: 0 } },
+      // Band 4 (day 7+) — the ceiling. Still below what the $2.99 Gold Pack
+      // guarantees (78+) and below its band, so the free path never dominates
+      // the entry purchase. Measured at ~0.30 elite (80+) cards per open;
+      // 76+/80 measured 0.38 and 74+/79 measured 0.00, and neither is what this
+      // pack should be — the first is a supply, the second removes the tension.
+      { guaranteedMinOvr: 75, ovrMin: 62, ovrMax: 80, rarity: { common: 0.04, bronze: 0.34, silver: 0.60, gold: 0.02, legendary: 0 } },
+    ],
+    gradientFrom: 'hsl(var(--pack-silver-from))',
+    gradientTo: 'hsl(var(--pack-silver-to))',
+    accent: 'hsl(var(--pack-silver-accent))',
+    artSrc: '/packs/rise-to-glory.webp',
+    artLegacySrc: '/packs/silver.webp',
+    freeDailyLimit: 1,
+    // A SECOND daily pack for one rewarded ad — one, not three. Inert while
+    // `REWARDED_ADS_USABLE` is false (see `utils/ads.ts`); the Market never
+    // renders an ad affordance it cannot honour. One ad for one extra pack is
+    // an opportunity; three is a chore, and three was what the old Bronze and
+    // Silver tiers each advertised in a `tagline` that no screen ever rendered.
+    adDailyLimit: 1,
+  },
+  {
+    // ── ARCHIVED — history replay only. Not in PACK_STOREFRONT_ORDER. ──
     key: 'bronze',
     label: 'Bronze Pack',
-    tagline: '1 free daily · watch ad for 3 more · 1× 60+ guaranteed',
+    storeCaption: 'Retired pack.',
     price: 0,
     cards: 3,
     guaranteedMinOvr: 60,
     ovrMin: 55,
     ovrMax: 68,
-    // Every rung above `silver` clamps to `ovrMax` in rollPackPlayer, so the
-    // old silver+gold 15% was really "15% of cards land exactly on the tier
-    // ceiling". Trimmed to 7% and pushed into `common` — a Bronze pack should
-    // feel like a Bronze pack, not a reliable route to its own best card.
     rarity: { common: 0.38, bronze: 0.55, silver: 0.07, gold: 0, legendary: 0 },
     gradientFrom: 'hsl(var(--pack-bronze-from))',
     gradientTo: 'hsl(var(--pack-bronze-to))',
     accent: 'hsl(var(--pack-bronze-accent))',
     artSrc: '/packs/bronze.webp',
-    freeDailyLimit: 1,
-    adDailyLimit: 3,
   },
   {
+    // ── ARCHIVED — history replay only. Not in PACK_STOREFRONT_ORDER. ──
     key: 'silver',
     label: 'Silver Pack',
-    tagline: '1 free daily · watch ad for 3 more · 1× 70+ guaranteed',
+    storeCaption: 'Retired pack.',
     price: 0,
     cards: 3,
     guaranteedMinOvr: 70,
     ovrMin: 62,
     ovrMax: 76,
-    // Same ceiling-pinning as Bronze: gold+legendary was 12% of cards landing
-    // exactly on 76. Cut to 4%.
     rarity: { common: 0.10, bronze: 0.42, silver: 0.44, gold: 0.04, legendary: 0 },
     gradientFrom: 'hsl(var(--pack-silver-from))',
     gradientTo: 'hsl(var(--pack-silver-to))',
     accent: 'hsl(var(--pack-silver-accent))',
     artSrc: '/packs/silver.webp',
-    freeDailyLimit: 1,
-    adDailyLimit: 3,
   },
   {
+    // ── Entry purchase ──
+    // The `freeOpenOverride` is GONE along with the free daily open. One pack
+    // that guaranteed 74+ when free and 78+ when bought is one pack with two
+    // identities: the card's badge changed depending on the day, and no player
+    // could form a stable idea of what "Gold Pack" means. It is now purely the
+    // $2.99 entry rung, at its full paid odds — nobody's purchase got worse.
     key: 'gold',
-    label: 'Gold Pack',
-    tagline: '1 free daily (74+) · in-app purchase for 78+ guaranteed',
+    label: 'Champions Pack',
+    storeCaption: '5 players, one guaranteed 78+.',
+    badge: 'entry',
     price: 0,
     cards: 5,
     guaranteedMinOvr: 78,
     ovrMin: 68,
     ovrMax: 84,
     rarity: { common: 0, bronze: 0.12, silver: 0.48, gold: 0.38, legendary: 0.02 },
-    // The free daily Gold was the single biggest source of good players in the
-    // game: a guaranteed 78+ (≥80 about 71% of the time) plus four more cards
-    // at a 40% chance each of landing in the 80–84 band — roughly 2.3 cards at
-    // 80+ EVERY DAY, for nothing. Measured, that outpaces the transfer market
-    // as a squad-building route, which makes the rest of the game decorative.
-    //
-    // The free path is now a taster: ~0.65 expected 80+ per open instead of
-    // ~2.3, with 80+ still reachable so the pull keeps its tension. The PAID
-    // $2.99 open is untouched — nobody's purchase gets worse.
-    freeOpenOverride: {
-      guaranteedMinOvr: 74,
-      ovrMax: 82,
-      rarity: { common: 0.04, bronze: 0.26, silver: 0.62, gold: 0.08, legendary: 0 },
-    },
     gradientFrom: 'hsl(var(--pack-gold-from))',
     gradientTo: 'hsl(var(--pack-gold-to))',
     accent: 'hsl(var(--pack-gold-accent))',
-    artSrc: '/packs/gold.webp',
-    freeDailyLimit: 1,
+    artSrc: '/packs/champions.webp',
+    artLegacySrc: '/packs/gold.webp',
     productId: 'com.dynastymanager.pack.gold',
     iapPriceDisplay: '$2.99',
+    weeklyEligible: true,
   },
   {
+    // ── The value pick, and the only card carrying `best_value` ──
+    // It genuinely is, and not by intuition: `packEliteCardsPerDollar` scores
+    // Premium at ~0.75 expected 80+ cards per dollar against Rare's ~0.65 and
+    // Gold's ~0.54. Rare has the better FLOOR (84+ and a walkout) and sells on
+    // that; Premium has the better RATE. The badge follows the metric, and a
+    // unit test asserts the badged tier is its argmax, so a future price or
+    // rarity edit cannot leave the label sitting on the wrong card.
     key: 'premium',
-    label: 'Premium Gold',
-    tagline: '5 players · 1× 82+ guaranteed · in-app purchase',
+    label: 'Elite Pack',
+    storeCaption: '5 players, one guaranteed 82+.',
+    badge: 'best_value',
     price: 0,
     cards: 5,
     guaranteedMinOvr: 82,
@@ -98,14 +161,20 @@ export const PACK_TIERS: PackTierDefinition[] = [
     gradientFrom: 'hsl(var(--pack-premium-from))',
     gradientTo: 'hsl(var(--pack-premium-to))',
     accent: 'hsl(var(--pack-premium-accent))',
-    artSrc: '/packs/premium.webp',
+    artSrc: '/packs/elite.webp',
+    artLegacySrc: '/packs/premium.webp',
     productId: 'com.dynastymanager.pack.premium_gold',
     iapPriceDisplay: '$4.99',
+    weeklyEligible: true,
   },
   {
+    // Deliberately unbadged. Rare's pitch is its floor — 84+ guaranteed, which
+    // is the walkout threshold — and that is already the loudest thing on the
+    // card. Adding a second superlative next to Premium's `best_value` would
+    // put two "buy this one" signals side by side and neutralise both.
     key: 'rare',
-    label: 'Rare Gold',
-    tagline: '5 players · 1× 84+ guaranteed · walkout possible · in-app purchase',
+    label: 'World Class Pack',
+    storeCaption: '5 players, one guaranteed 84+, walkout possible.',
     price: 0,
     cards: 5,
     guaranteedMinOvr: 84,
@@ -115,14 +184,21 @@ export const PACK_TIERS: PackTierDefinition[] = [
     gradientFrom: 'hsl(var(--pack-rare-from))',
     gradientTo: 'hsl(var(--pack-rare-to))',
     accent: 'hsl(var(--pack-rare-accent))',
-    artSrc: '/packs/rare.webp',
+    artSrc: '/packs/world-class.webp',
+    artLegacySrc: '/packs/rare.webp',
     productId: 'com.dynastymanager.pack.rare_gold',
     iapPriceDisplay: '$6.99',
+    weeklyEligible: true,
   },
   {
+    // Deliberately NOT `weeklyEligible`. Icon is the one purchase that should
+    // stay a decision rather than a habit, and a +1 card weekly bonus on a
+    // one-card pack would double it — the single most distorting bonus in the
+    // lineup, on the tier that least needs a reason to be bought.
     key: 'icon',
-    label: 'Icon Pack',
-    tagline: '1 player · 88+ guaranteed · walkout guaranteed · in-app purchase',
+    label: 'Legends Pack',
+    storeCaption: '1 guaranteed Icon, 88+, walkout guaranteed.',
+    badge: 'trophy',
     price: 0,
     cards: 1,
     guaranteedMinOvr: 88,
@@ -132,7 +208,8 @@ export const PACK_TIERS: PackTierDefinition[] = [
     gradientFrom: 'hsl(var(--pack-icon-from))',
     gradientTo: 'hsl(var(--pack-icon-to))',
     accent: 'hsl(var(--pack-icon-accent))',
-    artSrc: '/packs/icon.webp',
+    artSrc: '/packs/legends.webp',
+    artLegacySrc: '/packs/icon.webp',
     productId: 'com.dynastymanager.pack.icon',
     iapPriceDisplay: '$9.99',
   },
@@ -142,6 +219,125 @@ export const PACK_TIER_MAP: Record<PackTierKey, PackTierDefinition> = PACK_TIERS
   (acc, t) => { acc[t.key] = t; return acc; },
   {} as Record<PackTierKey, PackTierDefinition>,
 );
+
+/** ── What the Market actually renders, in order ──
+ *  Free first (it costs the player nothing to understand), then the paid ladder
+ *  cheapest to dearest so the price axis reads left-to-right, top-to-bottom.
+ *  Archived tiers are absent by construction: adding a tier to `PACK_TIERS`
+ *  does NOT put it on sale. */
+export const PACK_STOREFRONT_ORDER: PackTierKey[] = ['daily', 'gold', 'premium', 'rare', 'icon'];
+
+/** The free tier. Exactly one — a second free pack is a design change, not a
+ *  config change, and every surface that says "today's free pack" reads this. */
+export const FREE_PACK_TIER: PackTierKey = 'daily';
+
+/** Paid storefront tiers, in ladder order. */
+export const PAID_PACK_TIERS: PackTierKey[] = PACK_STOREFRONT_ORDER.filter(
+  k => !!PACK_TIER_MAP[k].productId,
+);
+
+/** True when a tier is currently offered by the Market. Archived tiers resolve
+ *  through `PACK_TIER_MAP` for history but must never render a buy CTA. */
+export function isStorefrontTier(key: PackTierKey): boolean {
+  return PACK_STOREFRONT_ORDER.includes(key);
+}
+
+// ── Daily-Pack streak ladder ──
+//
+// Minimum consecutive-login streak for each band, ascending. Index i of this
+// array pairs with index i of `daily.streakOverrides`. Read through
+// `streakBandIndex` so the two can never be indexed apart.
+//
+// Why 7 bands' worth of value compressed into 4: a ladder the player can hold
+// in their head ("it gets better on day 3, day 5 and day 7") beats a smooth
+// curve nobody can perceive. The top band is reachable inside one week, so the
+// reward is a habit worth forming rather than a month-long grind.
+export const PACK_STREAK_BANDS: number[] = [1, 3, 5, 7];
+
+/** Band index (0-based) for a login streak length. Clamped at both ends. */
+export function streakBandIndex(streak: number): number {
+  let idx = 0;
+  for (let i = 0; i < PACK_STREAK_BANDS.length; i++) {
+    if (streak >= PACK_STREAK_BANDS[i]) idx = i;
+  }
+  return idx;
+}
+
+/** Streak needed to reach the NEXT band, or null when already at the top.
+ *  Drives the Market's "day 5 unlocks 74+ guaranteed" teaser. */
+export function nextStreakBand(streak: number): number | null {
+  const idx = streakBandIndex(streak);
+  return idx >= PACK_STREAK_BANDS.length - 1 ? null : PACK_STREAK_BANDS[idx + 1];
+}
+
+// ── Weekly featured offer ──
+//
+// One paid pack is featured for a whole REAL week and its first purchase that
+// week ships an extra card at the pack's guaranteed floor, for the same price.
+//
+// Why a bonus card on an existing SKU and not a "Weekly Dynasty Pack" product:
+// StoreKit and RevenueCat match products by exact identifier string and Apple
+// does not allow a product ID to be created ad hoc from the client. A brand-new
+// weekly SKU would render as a buy button the store rejects — precisely the
+// Guideline 2.1.0 condition that got build 174 rejected. The weekly offer must
+// therefore be a *contents* change on a SKU that already exists, and it is.
+//
+// Why the bonus and not the pack is limited: nothing is ever taken away. After
+// the bonus is spent the pack is still on sale at its normal contents, so the
+// countdown is a genuine "this is better this week", not a gate. That is the
+// difference between scarcity a player respects and scarcity they resent.
+export const FEATURED_PACK_ROTATION: PackTierKey[] = ['rare', 'premium', 'gold'];
+
+/** Extra cards granted on the first purchase of the featured pack each week. */
+export const WEEKLY_BONUS_CARDS = 1;
+
+/** Featured tier for a given real-world week index (see `currentWeekIndex`).
+ *
+ *  Keyed on the REAL week, not `(season, week)` as before. In-game weeks tick
+ *  several times in one sitting, so the old "featured" pack changed while the
+ *  player watched — a rotation with no scarcity and no countdown that could be
+ *  trusted. A real week is a week. */
+export function getFeaturedPackTier(weekIndex: number): PackTierKey {
+  const rotation = FEATURED_PACK_ROTATION.filter(k => PACK_TIER_MAP[k]?.weeklyEligible);
+  const safe = rotation.length > 0 ? rotation : ['rare' as PackTierKey];
+  return safe[Math.abs(Math.floor(weekIndex)) % safe.length];
+}
+
+/** ── Weekly promo covers ──
+ *
+ *  One per entry in `FEATURED_PACK_ROTATION`, index-for-index, so the week's
+ *  headline has a name and a cover of its own instead of being the same card
+ *  the grid already shows with a ribbon stuck on it.
+ *
+ *  A skin changes the NAME and the ART. It never changes the contents: the card
+ *  and the odds sheet both render the backing tier's real numbers, and the
+ *  bonus card is stated explicitly. That line matters — a promo name over
+ *  quietly worse contents is the thing that makes players stop trusting a
+ *  store, and it is the reason this is a `name`/`artSrc` pair and not a second
+ *  set of rarity weights. */
+export const WEEKLY_PACK_SKINS: WeeklyPackSkin[] = [
+  { name: 'The Dynasty Pack', artSrc: '/packs/dynasty.webp', tier: 'rare' },
+  { name: 'Golden Era Pack', artSrc: '/packs/golden-era.webp', tier: 'premium' },
+  { name: 'Royal Reserve Pack', artSrc: '/packs/royal-reserve.webp', tier: 'gold' },
+];
+
+/** This week's promo cover, or null if the rotation and the skin list have
+ *  drifted apart — in which case the featured slot falls back to the plain
+ *  tier rather than showing a name backed by the wrong pack. */
+export function getWeeklyPackSkin(weekIndex: number): WeeklyPackSkin | null {
+  const tierKey = getFeaturedPackTier(weekIndex);
+  const skin = WEEKLY_PACK_SKINS.find(sk => sk.tier === tierKey);
+  return skin ?? null;
+}
+
+/** The featured tier wearing this week's cover. Contents, odds, price and
+ *  guarantees all still come from the tier — only `label` and `artSrc` move. */
+export function getFeaturedPackPresentation(weekIndex: number): PackTierDefinition {
+  const tier = PACK_TIER_MAP[getFeaturedPackTier(weekIndex)];
+  const skin = getWeeklyPackSkin(weekIndex);
+  if (!skin) return tier;
+  return { ...tier, label: skin.name, artSrc: skin.artSrc, artLegacySrc: tier.artSrc };
+}
 
 /** OVR at/above which a card triggers the walkout reveal instead of a flip. */
 export const WALKOUT_OVR_THRESHOLD = 84;
@@ -155,6 +351,12 @@ export const LEGENDARY_OVR_THRESHOLD = 90;
  *  the user to sit through 30+ seconds of back-to-back walkouts. */
 export const MAX_WALKOUTS_PER_PACK = 1;
 
+/** Fraction of a pulled player's market value returned by quick-sell.
+ *  Lives here rather than inline in `packsSlice` per the no-hardcoded-balance
+ *  rule — it is the exchange rate between the pack economy and the transfer
+ *  budget, and it belongs next to the packs it prices. */
+export const PACK_QUICK_SELL_RATE = 0.65;
+
 /** ── AI counter-signings (league-balance scaling) ──
  *  Each pack the user opens triggers a small set of AI signings that keep
  *  the league quality from drifting too far below the user. The system is
@@ -162,12 +364,13 @@ export const MAX_WALKOUTS_PER_PACK = 1;
  *  players than any single AI club: AI gets fewer cards, at lower OVR,
  *  spread across multiple clubs. */
 export const AI_BACKFILL_PER_TIER: Record<PackTierKey, number> = {
-  bronze: 1,
-  silver: 1,
+  daily: 1,
+  bronze: 1,   // archived tier — kept so a legacy record can never index undefined
+  silver: 1,   // archived tier
   gold: 2,
   premium: 2,
   rare: 3,
-  icon: 0,    // Icon is the user's special prize — no AI peer
+  icon: 0,     // Icon is the user's special prize — no AI peer
 };
 
 /** OVR gap between the player's pack guarantee and the AI counter-signings.
@@ -188,31 +391,51 @@ export const PACK_PITY_MIN_OVR = 80;
 
 /** How far above its OWN ceiling a pity pull may push a pack.
  *
- *  Pity used to ignore `tier.ovrMax` completely (`respectTierCeiling = !pityOn`),
- *  so one free daily Bronze pack in nine could produce an 89 — a card better
- *  than anything the $6.99 Rare Gold guarantees. Now the mercy pull is relative
- *  to what the pack itself is worth: a Bronze pity lands ~69–71, a Silver ~77–79,
- *  and Premium/Rare/Icon are unaffected because their ceilings already sit at or
- *  above the 80–89 pity band. */
+ *  Pity used to ignore `tier.ovrMax` completely, so one free pack in nine could
+ *  produce an 89 — a card better than anything the $6.99 Rare Gold guarantees.
+ *  The mercy pull is now relative to what the pack itself is worth: a Daily
+ *  pity lands a few points over its band, and Premium/Rare/Icon are unaffected
+ *  because their ceilings already sit at or above the 80-89 pity band. */
 export const PACK_PITY_MAX_OVERSHOOT = 3;
 
 /** Minimum width of the pity band, so a capped tier still rolls a range
  *  instead of always handing out the same number. */
 export const PACK_PITY_MIN_BAND = 2;
 
+/** What an open costs the player, and what they have earned toward it. */
+export interface PackOddsContext {
+  /** True when the open costs nothing (free daily or rewarded ad). */
+  freeOpen?: boolean;
+  /** Consecutive-login streak, for the streak-scaled Daily Pack. */
+  streak?: number;
+}
+
 /**
  * Resolve the odds that actually apply to an open.
  *
- * A tier can carry weaker `freeOpenOverride` odds for its unpaid path. Both the
- * generator and the shop badge MUST go through here — reading `tier.*` directly
- * is how a card ends up promising "78+" and delivering 74.
+ * A tier can carry weaker `freeOpenOverride` odds for its unpaid path, and the
+ * Daily Pack carries a `streakOverrides` ladder. Both the generator, the odds
+ * sheet and the shop badge MUST go through here — reading `tier.*` directly is
+ * how a card ends up promising 78+ and delivering 74.
+ *
+ * Order matters: the streak ladder is applied first (it defines the pack), then
+ * any free-path penalty on top (it discounts the pack).
  */
 export function resolvePackTier(
   tier: PackTierDefinition,
-  freeOpen: boolean,
+  ctx: PackOddsContext = {},
 ): PackTierDefinition {
-  if (!freeOpen || !tier.freeOpenOverride) return tier;
-  return { ...tier, ...tier.freeOpenOverride };
+  let resolved = tier;
+  if (tier.streakOverrides && tier.streakOverrides.length > 0) {
+    const band = tier.streakOverrides[
+      Math.min(streakBandIndex(ctx.streak ?? 1), tier.streakOverrides.length - 1)
+    ];
+    if (band) resolved = { ...resolved, ...band };
+  }
+  if (ctx.freeOpen && tier.freeOpenOverride) {
+    resolved = { ...resolved, ...tier.freeOpenOverride };
+  }
+  return resolved;
 }
 
 /** True when an unlock method costs the user nothing (free daily or ad). */
@@ -238,14 +461,74 @@ export const PACK_RARITY_BANDS: Record<keyof PackRarityWeights, [number, number]
   legendary: [90, 94],
 };
 
-/** Rotation of tiers surfaced in the Featured slot. Icon is excluded so it
- *  stays special and doesn't show up every month. Cycles deterministically
- *  by (season, week) so the same week shows the same featured pack. */
-export const FEATURED_PACK_ROTATION: PackTierKey[] = ['premium', 'rare', 'gold', 'silver', 'premium', 'rare'];
+/** Human labels for the published odds table. */
+const RARITY_LABELS: Record<keyof PackRarityWeights, string> = {
+  common: 'Common',
+  bronze: 'Bronze',
+  silver: 'Silver',
+  gold: 'Gold',
+  legendary: 'Legendary',
+};
 
-export function getFeaturedPackTier(season: number, week: number): PackTierKey {
-  const idx = Math.abs(season * 100 + week) % FEATURED_PACK_ROTATION.length;
-  return FEATURED_PACK_ROTATION[idx];
+const RARITY_ORDER: (keyof PackRarityWeights)[] = ['legendary', 'gold', 'silver', 'bronze', 'common'];
+
+/**
+ * Published per-card odds for a pack, derived from the SAME config the
+ * generator reads.
+ *
+ * This exists because it has to. Apple Guideline 3.1.1 requires an app that
+ * sells randomized items to disclose the odds of each outcome BEFORE purchase,
+ * and this app sold four randomized consumable packs disclosing nothing at all.
+ * Deriving the table rather than authoring it means the disclosure cannot drift
+ * from what `generatePackContents` actually rolls — a hand-written odds table
+ * that goes stale is worse than none, because it is a false claim.
+ *
+ * Weights are normalised: the tier tables are authored to sum to 1 but a future
+ * edit that sums to 0.99 must not publish odds that quietly don't add up.
+ * Bands are clamped to the tier ceiling, so a rung the pack cannot actually
+ * reach is reported at its real (clamped) band rather than its nominal one.
+ */
+export function describePackOdds(
+  tier: PackTierDefinition,
+  ctx: PackOddsContext = {},
+): PackOddsRow[] {
+  const t = resolvePackTier(tier, ctx);
+  const total = RARITY_ORDER.reduce((s, k) => s + Math.max(0, t.rarity[k] || 0), 0);
+  if (total <= 0) return [];
+  return RARITY_ORDER
+    .filter(k => (t.rarity[k] || 0) > 0)
+    .map(k => {
+      const [lo, hi] = PACK_RARITY_BANDS[k];
+      const clampedLo = Math.max(t.ovrMin, Math.min(lo, t.ovrMax));
+      const clampedHi = Math.max(clampedLo, Math.min(hi, t.ovrMax));
+      const band = clampedLo === clampedHi ? `${clampedLo}` : `${clampedLo}-${clampedHi}`;
+      return {
+        label: `${RARITY_LABELS[k]} (${band} OVR)`,
+        chance: Math.max(0, t.rarity[k]) / total,
+      };
+    });
+}
+
+/**
+ * Expected number of 80+ ("elite") cards per dollar for a paid tier.
+ *
+ * The one number that decides which card may wear `best_value`. The guaranteed
+ * slot counts as elite when its floor is 80+; every other card contributes its
+ * gold + legendary weight. A unit test asserts the badged tier is the argmax,
+ * so the label can never become decoration bolted onto whatever we want to sell
+ * that month — which is exactly how "BEST VALUE" stops meaning anything.
+ *
+ * Uses `iapPriceDisplay` (the planned US price) purely to RANK tiers against
+ * each other. It is never shown as a price: what a buyer is charged comes
+ * localized from the store.
+ */
+export function packEliteCardsPerDollar(tier: PackTierDefinition): number {
+  const usd = Number((tier.iapPriceDisplay || '').replace(/[^0-9.]/g, ''));
+  if (!Number.isFinite(usd) || usd <= 0) return 0;
+  const guaranteedElite = tier.guaranteedMinOvr >= 80 ? 1 : 0;
+  const perCard = (tier.rarity.gold || 0) + (tier.rarity.legendary || 0);
+  const expectedElite = guaranteedElite + Math.max(0, tier.cards - 1) * perCard;
+  return expectedElite / usd;
 }
 
 /** All animation timings in ms. Tune here, not in components. */

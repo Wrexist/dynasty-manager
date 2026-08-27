@@ -2251,7 +2251,15 @@ export interface ActiveInterview {
 }
 
 // ── Player Packs ──
-export type PackTierKey = 'bronze' | 'silver' | 'gold' | 'premium' | 'rare' | 'icon';
+/** Pack tiers.
+ *
+ *  `bronze` and `silver` are ARCHIVED: they are no longer sold or given away
+ *  (see `PACK_STOREFRONT_ORDER` in `config/packs.ts`), but their definitions
+ *  must never be deleted — `OpenedPackRecord.tier` in every existing save
+ *  references them, and the Recent Pulls replay resolves the label, art and
+ *  palette through `PACK_TIER_MAP`. Retiring a tier is a *storefront* change:
+ *  stop listing it, keep resolving it. */
+export type PackTierKey = 'daily' | 'bronze' | 'silver' | 'gold' | 'premium' | 'rare' | 'icon';
 
 export interface PackRarityWeights {
   common: number;     // < 60
@@ -2274,7 +2282,6 @@ export type PackUnlockMethod = 'free' | 'ad' | 'currency' | 'iap';
 export interface PackTierDefinition {
   key: PackTierKey;
   label: string;
-  tagline: string;
   /** In-game currency price. 0 means the pack is not buyable with money. */
   price: number;
   cards: number;
@@ -2294,6 +2301,10 @@ export interface PackTierDefinition {
    *  placeholder. Public asset path (e.g. `/packs/bronze.png`). The img
    *  fails silently to the placeholder if the asset isn't deployed yet. */
   artSrc?: string;
+  /** Previous cover, rendered when `artSrc` has not been deployed yet. Lets a
+   *  new art drop be referenced before the file lands without the card falling
+   *  all the way back to a bare gradient in the meantime. */
+  artLegacySrc?: string;
   /** Free opens per real-world day (no ad, no payment). Default 0. */
   freeDailyLimit?: number;
   /** Rewarded-ad opens per real-world day, used after free opens are
@@ -2312,6 +2323,52 @@ export interface PackTierDefinition {
    *  never read these fields directly, or the shop badge and the generator
    *  will drift apart. */
   freeOpenOverride?: Partial<Pick<PackTierDefinition, 'guaranteedMinOvr' | 'ovrMin' | 'ovrMax' | 'rarity'>>;
+  /** Streak-scaled odds for the free Daily Pack. Index 0 applies at the lowest
+   *  streak band, the last entry at the highest — see `PACK_STREAK_BANDS`.
+   *  Resolved through `resolvePackTier`, never read directly. */
+  streakOverrides?: Array<Partial<Pick<PackTierDefinition, 'guaranteedMinOvr' | 'ovrMin' | 'ovrMax' | 'rarity'>>>;
+  /** One-line store caption rendered on the pack card. Must describe what the
+   *  buyer actually gets — it is shown, unlike the old `tagline` field, which
+   *  was never rendered and advertised rewarded ads that do not exist. */
+  storeCaption?: string;
+  /** Marketing badge shown on the card. At most one tier may carry
+   *  `best_value` at a time, or the label means nothing. */
+  badge?: PackCardBadge;
+  /** May this tier appear in the weekly featured rotation? Icon is excluded so
+   *  it stays a deliberate splurge rather than a recurring headline. */
+  weeklyEligible?: boolean;
+}
+
+/** Card badges. Deliberately few — a badge on every card is a badge on none. */
+export type PackCardBadge = 'best_value' | 'entry' | 'trophy';
+
+/** A weekly promo cover: a NAME and ARTWORK laid over an existing pack tier.
+ *
+ *  The Market's weekly slot needs its own identity to be worth returning for,
+ *  but Apple will not let the app invent a product ID, so the offer has to be
+ *  backed by a SKU that already exists. A skin is how those two facts are
+ *  reconciled: the player sees "Golden Era Pack — 6 players, one guaranteed
+ *  82+", which is exactly what they get; underneath it is the Premium Gold
+ *  consumable plus this week's bonus card. Contents are never overstated —
+ *  the card and the odds sheet both render the backing tier's real numbers. */
+export interface WeeklyPackSkin {
+  /** Player-facing name for the week. */
+  name: string;
+  /** Cover art path under `public/packs/`. Falls back to the tier's own art. */
+  artSrc: string;
+  /** The storefront tier (and therefore the SKU and the contents) behind it. */
+  tier: PackTierKey;
+}
+
+/** One row of the published odds table for a pack. Derived from config by
+ *  `describePackOdds`, never authored by hand, so the disclosed odds cannot
+ *  drift from the generator. Apple Guideline 3.1.1 requires these to be
+ *  visible BEFORE a randomized paid pack is purchased. */
+export interface PackOddsRow {
+  /** Rarity rung label, e.g. `Gold (80-89 OVR)`. */
+  label: string;
+  /** Probability for a single non-guaranteed card, 0-1. */
+  chance: number;
 }
 
 export interface OpenedPackRecord {

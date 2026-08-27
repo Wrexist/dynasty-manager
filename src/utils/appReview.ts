@@ -29,10 +29,11 @@ export type ReviewTrigger =
   | 'season-end-celebratory'
   | 'pack-elite-open';
 
-/** Pack tiers high-emotion enough to be worth a review prompt: Gold and
- *  above are 5-card reveals with a 78+ guarantee, and the paid tiers carry
- *  walkout odds. Bronze/Silver are low-stakes free dailies — never prompt
- *  on those, or we'd burn Apple's 3-per-365 quota on a routine moment. */
+/** Pack tiers high-emotion enough to be worth a review prompt: the PAID tiers,
+ *  which are 5-card reveals with a 78+ floor and walkout odds. `daily` is the
+ *  free pack a player opens every single day — never prompt on it, or we burn
+ *  Apple's 3-per-365 quota on the most routine moment in the game. (Bronze and
+ *  Silver are archived and unobtainable; they stay out for the same reason.) */
 const REVIEW_WORTHY_PACK_TIERS: ReadonlySet<PackTierKey> = new Set<PackTierKey>([
   'gold', 'premium', 'rare', 'icon',
 ]);
