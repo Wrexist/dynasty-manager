@@ -34,6 +34,7 @@ never arrived. `--fresh` starts the pull over.
 | `npm run fc27:merge-potential` | Fill `potential` from a second source (see below) |
 | `npm run fc27:export-game` | Translate to the shape `processFC26.mjs` consumes |
 | `npm run fc27:fixture` | Local synthetic API for exercising the pipeline offline |
+| `npm run fc27:smoke` | Full end-to-end run against that fixture; exits non-zero on failure |
 
 Useful flags: `--limit` (page size, EA caps at 100), `--delay` (ms between
 requests, default 1000), `--max` (stop early), `--gender 0|1`, `--slug`,
@@ -48,6 +49,37 @@ npm run fc27:build -- \
   --merge-potential FC26_20250921.csv --potential-label fc26-carryover \
   --export-for-game
 ```
+
+## How the code is laid out
+
+```
+scripts/fc27/
+  lib/
+    args.mjs      one CLI parser for every stage; an unknown flag is an error
+    csv.mjs       RFC4180 read/write (quoted commas, quotes, embedded newlines)
+    http.mjs      polite GET: retry on 429/5xx, never retry a 401/403
+    paths.mjs     every default path, plus sidecarFor() redirection
+    players.mjs   the one comparable player shape + the match tiers
+    raw.mjs       raw page storage and the restart checkpoint
+    schema.mjs    the normalized schema and the EA -> schema mapping
+    sources.mjs   the candidate source registry
+  discover_sources.mjs   probe every source, record what answered
+  extract_fc27.mjs       paginated, restartable pull
+  normalize_fc27.mjs     raw -> schema, gender split, dedupe
+  merge_potential.mjs    fill `potential` from a second source, with provenance
+  validate_fc27.mjs      quality report; non-zero exit on a blocking finding
+  compare_fc25.mjs       diff against a baseline, with match-tier reporting
+  export_for_game.mjs    translate to the shape processFC26.mjs consumes
+  build_database.mjs     the orchestrator
+  fixture_server.mjs     local stand-in for the EA API
+  smoke.mjs              end-to-end verification, no network
+```
+
+Two rules keep the stages honest and are worth knowing before editing:
+`lib/paths.mjs` owns every location, so a stage cannot invent one and write
+somewhere unexpected; and `lib/players.mjs` owns the single answer to "is this
+the same player in both files?", so the comparison and the merge cannot drift
+into two different answers.
 
 ## Where the data comes from
 
@@ -216,24 +248,29 @@ sample.
 
 ## Testing
 
-`src/test/fc27Pipeline.test.ts` (25 tests) covers CSV round-tripping, the
+`src/test/fc27Pipeline.test.ts` (33 tests) covers CSV round-tripping, the
 never-fabricate-potential rule, derived-age labelling, PlayStyle splitting,
 gender splitting including the unknown bucket, dedupe, the match-tier
 preference and ambiguous-name refusal, the validator's blocking/advisory split,
-every merge rule above, and the game export's column contract and league
-resolution.
+every merge rule above, the game export's column contract and league
+resolution, CLI parsing (including the refusal to ignore an unknown flag), the
+sidecar path rules, schema detection across all three dataset shapes, and the
+rule that a keeper's stats never leak into outfield columns.
 
-The network path is exercised separately against `fc27:fixture`, a local server
-serving synthetic records:
+The network path is exercised separately by one command:
 
 ```bash
-npm run fc27:fixture &
-node scripts/fc27/extract_fc27.mjs --base http://127.0.0.1:8791/rating \
-  --raw-dir /tmp/fc27/raw --limit 100 --delay 0 --max 200   # partial run
-node scripts/fc27/extract_fc27.mjs --base http://127.0.0.1:8791/rating \
-  --raw-dir /tmp/fc27/raw --limit 100 --delay 0             # resumes
-node scripts/fc27/normalize_fc27.mjs --raw-dir /tmp/fc27/raw --out-dir /tmp/fc27/out
+npm run fc27:smoke
 ```
+
+It starts the fixture server and drives every stage the way a real build does —
+including a deliberate mid-pull interrupt, so the restart path is *exercised*
+rather than assumed — and asserts 17 behaviours: the slug probe resolves, the
+resume re-requests only missing pages, gender splits with nothing assumed male,
+unmapped EA stats survive, a quoted club name round-trips, the merge fills
+nothing when it has no match, validation flags the absent potential, the export
+emits every column the game reads, and **nothing is written under `data/fc27/`**.
+It exits non-zero on the first broken expectation, so it works as a gate.
 
 The fixture's players are named "Fixture Player N" on purpose. Its output is
 written to a temp directory, never to `data/fc27/`, so synthetic rows can never

@@ -44,6 +44,7 @@
     "fc27:export-game": "node scripts/fc27/export_for_game.mjs",
     "fc27:build": "node scripts/fc27/build_database.mjs",
     "fc27:fixture": "node scripts/fc27/fixture_server.mjs",
+    "fc27:smoke": "node scripts/fc27/smoke.mjs",
     "ads:model": "node marketing/ads/unit-economics.mjs",
     "check:observability": "node scripts/check-observability.mjs",
     "redeem-code": "node scripts/gen-redeem-code.mjs",

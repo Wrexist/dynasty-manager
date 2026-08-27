@@ -8,13 +8,10 @@
  * assumption, and so a blocked run reports the blocked host by name.
  */
 import { writeFileSync, mkdirSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 import { probe } from './lib/http.mjs';
 import { SOURCES, pageUrl } from './lib/sources.mjs';
-
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const OUT = join(ROOT, 'data/fc27/discovery.json');
+import { DISCOVERY_PATH as OUT } from './lib/paths.mjs';
 
 const UA = {
   'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) '

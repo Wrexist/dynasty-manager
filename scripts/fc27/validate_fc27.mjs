@@ -7,13 +7,10 @@
  * is not success: a run that produces 400 players exits 1.
  */
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 import { parseCsv } from './lib/csv.mjs';
-
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const DEFAULT_CSV = join(ROOT, 'data/fc27/FC27_male_players.csv');
-const DEFAULT_REPORT = join(ROOT, 'docs/fc27-data-quality.md');
+import { parseArgs } from './lib/args.mjs';
+import { MALE_CSV, QUALITY_REPORT_PATH } from './lib/paths.mjs';
 
 /** Below this, assume the extraction was truncated rather than complete. */
 export const MIN_EXPECTED_PLAYERS = 15_000;
@@ -194,7 +191,7 @@ export function renderReport(result, { csvPath, generatedAt }) {
   return `${lines.join('\n')}\n`;
 }
 
-export function run({ csvPath = DEFAULT_CSV, reportPath = DEFAULT_REPORT, minExpected } = {}) {
+export function run({ csvPath = MALE_CSV, reportPath = QUALITY_REPORT_PATH, minExpected } = {}) {
   if (!existsSync(csvPath)) {
     throw new Error(`No dataset at ${csvPath}. Run the extract + normalize stages first.`);
   }
@@ -206,15 +203,8 @@ export function run({ csvPath = DEFAULT_CSV, reportPath = DEFAULT_REPORT, minExp
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const arg = (name) => {
-    const i = process.argv.indexOf(name);
-    return i > -1 ? process.argv[i + 1] : undefined;
-  };
-  const result = run({
-    csvPath: arg('--csv'),
-    reportPath: arg('--report'),
-    minExpected: arg('--min') ? Number(arg('--min')) : undefined,
-  });
+  const args = parseArgs(process.argv.slice(2));
+  const result = run({ csvPath: args.csv, reportPath: args.report, minExpected: args.min });
   console.log(`[validate] ${result.stats.total} players -> ${result.reportPath}`);
   for (const s of result.soft) console.log(`  ⚠️  ${s}`);
   for (const h of result.hard) console.error(`  ❌ ${h}`);

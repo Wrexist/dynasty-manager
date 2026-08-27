@@ -67,12 +67,19 @@ export const COLUMNS = [
  * outfield slots on the ratings page.
  */
 export const STAT_ALIASES = {
-  pace: ['pace', 'gkDiving'],
-  shooting: ['shooting', 'gkHandling'],
-  passing: ['passing', 'gkKicking'],
-  dribbling: ['dribbling', 'gkReflexes'],
-  defending: ['defending', 'gkPace', 'gkSpeed'],
-  physical: ['physicality', 'physical', 'gkPositioning'],
+  // Outfield face stats. These deliberately do NOT fall back to goalkeeping
+  // stats: a keeper's DIV/HAN/KIC/REF are shown in the same six boxes on EA's
+  // card, but they are different quantities, and writing diving into a `pace`
+  // column would assert an equivalence the source never makes. A keeper's face
+  // stats simply stay empty here, and the gk_* columns below carry the real
+  // values. The missing-value table in the quality report shows this clearly.
+  pace: ['pace'],
+  shooting: ['shooting'],
+  passing: ['passing'],
+  dribbling: ['dribbling'],
+  defending: ['defending'],
+  // EA has spelled physicality both ways across seasons.
+  physical: ['physicality', 'physical'],
 
   acceleration: ['acceleration'],
   sprint_speed: ['sprintSpeed'],

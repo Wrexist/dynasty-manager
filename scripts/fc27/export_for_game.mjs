@@ -27,14 +27,10 @@
  *        [--league-map FC26_20250921.csv] [--out data/fc27/FC27_community_pack_input.csv]
  */
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 import { parseCsv, toCsv } from './lib/csv.mjs';
-
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const DEFAULT_CSV = join(ROOT, 'data/fc27/FC27_male_players.csv');
-const DEFAULT_LEAGUE_MAP = join(ROOT, 'FC26_20250921.csv');
-const DEFAULT_OUT = join(ROOT, 'data/fc27/FC27_community_pack_input.csv');
+import { parseArgs } from './lib/args.mjs';
+import { BASELINES, MALE_CSV, GAME_INPUT_PATH } from './lib/paths.mjs';
 
 /** The exact columns processFC26.mjs reads, in the baseline's own order. */
 export const GAME_COLUMNS = [
@@ -109,7 +105,7 @@ export function toGameRow(row, leagueMap) {
   };
 }
 
-export function run({ csvPath = DEFAULT_CSV, leagueMapPath = DEFAULT_LEAGUE_MAP, outPath = DEFAULT_OUT } = {}) {
+export function run({ csvPath = MALE_CSV, leagueMapPath = BASELINES.fc26, outPath = GAME_INPUT_PATH } = {}) {
   if (!existsSync(csvPath)) throw new Error(`No FC27 dataset at ${csvPath}.`);
   const leagueMap = existsSync(leagueMapPath)
     ? buildLeagueMap(readFileSync(leagueMapPath, 'utf8'))
@@ -140,8 +136,8 @@ export function run({ csvPath = DEFAULT_CSV, leagueMapPath = DEFAULT_LEAGUE_MAP,
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const arg = (n) => { const i = process.argv.indexOf(n); return i > -1 ? process.argv[i + 1] : undefined; };
-  const result = run({ csvPath: arg('--csv'), leagueMapPath: arg('--league-map'), outPath: arg('--out') });
+  const args = parseArgs(process.argv.slice(2));
+  const result = run({ csvPath: args.csv, leagueMapPath: args.leagueMap, outPath: args.out });
   console.log(`[export] ${result.total} rows -> ${result.outPath}`);
   console.log(`[export] league ids resolved from ${result.knownLeagues} known league names`);
   if (result.unresolvedLeagues.length) {

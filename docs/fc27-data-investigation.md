@@ -21,7 +21,8 @@ fc27:build` produces the dataset on any network that permits `drop-api.ea.com`.
 | `validate` | fixture output | Advisories raised as designed (null potential, unmapped stat key) |
 | `compare` | **real** FC26 + FC25 baselines | Parsed 18,405 and 16,161 rows; id-tier matching 2,646/3,000 cross-version |
 | `export_for_game` | **real** league names | Every `processFC26.mjs` column present; all 42 real leagues resolved |
-| test suite | — | 25 unit tests pass |
+| test suite | — | 33 unit tests pass |
+| `npm run fc27:smoke` | fixture, all stages | 17/17 checks pass |
 
 Every stage that does not require the blocked network was run against real repo
 data, not just the fixture.

@@ -13,7 +13,9 @@ import { describe, it, expect } from 'vitest';
 import { parseCsv, toCsv, csvCell } from '../../scripts/fc27/lib/csv.mjs';
 import { normalizeEaPlayer, deriveAge, normalizeFoot, isMale, isFemale } from '../../scripts/fc27/lib/schema.mjs';
 import { dedupeById, splitByGender } from '../../scripts/fc27/normalize_fc27.mjs';
-import { matchPlayers, normName } from '../../scripts/fc27/compare_fc25.mjs';
+import { matchPlayers, normName, readComparable } from '../../scripts/fc27/lib/players.mjs';
+import { parseArgs } from '../../scripts/fc27/lib/args.mjs';
+import { sidecarFor } from '../../scripts/fc27/lib/paths.mjs';
 import { analyse } from '../../scripts/fc27/validate_fc27.mjs';
 import { mergePotential } from '../../scripts/fc27/merge_potential.mjs';
 import { toGameRow, buildLeagueMap, GAME_COLUMNS } from '../../scripts/fc27/export_for_game.mjs';
@@ -273,5 +275,73 @@ describe('fc27 merge on in-memory normalizer rows', () => {
     expect(rows[0].potential).toBe(88);
     expect(result.filled).toBe(1);
     expect(result.alreadyPresent).toBe(0);
+  });
+});
+
+describe('fc27 cli arguments', () => {
+  it('accepts --flag value and --flag=value alike', () => {
+    expect(parseArgs(['--limit', '50']).limit).toBe(50);
+    expect(parseArgs(['--limit=50']).limit).toBe(50);
+    expect(parseArgs(['--fresh']).fresh).toBe(true);
+    expect(parseArgs(['--out-dir', '/tmp/x']).outDir).toBe('/tmp/x');
+  });
+
+  it('rejects an unknown flag instead of silently ignoring it', () => {
+    // A typo'd --merge-potentials must not quietly skip the merge.
+    expect(() => parseArgs(['--merge-potentials', 'x.csv'])).toThrow(/Unknown flag/);
+  });
+
+  it('rejects a numeric flag given a non-number', () => {
+    expect(() => parseArgs(['--limit', 'lots'])).toThrow(/needs a number/);
+  });
+});
+
+describe('fc27 artifact paths', () => {
+  it('writes to the repo locations for a real build', () => {
+    const paths = sidecarFor(undefined);
+    expect(paths.redirected).toBe(false);
+    expect(paths.qualityReport).toMatch(/docs\/fc27-data-quality\.md$/);
+  });
+
+  it('moves every artifact next to the dataset when a run is redirected', () => {
+    // This is the guard on the bug where a fixture run overwrote the repo's
+    // committed comparison and quality reports.
+    const paths = sidecarFor('/tmp/run');
+    expect(paths.redirected).toBe(true);
+    expect(paths.qualityReport).toBe('/tmp/run/fc27-data-quality.md');
+    expect(paths.comparisonReport).toBe('/tmp/run/fc25-vs-fc27.md');
+    expect(paths.comparisonDir).toBe('/tmp/run/comparison');
+    expect(paths.runReport).toBe('/tmp/run/last-run.json');
+    expect(paths.gameInput).toBe('/tmp/run/FC27_community_pack_input.csv');
+  });
+});
+
+describe('fc27 schema shape detection', () => {
+  it('reads all three dataset schemas into one comparable shape', () => {
+    const sofifa = readComparable('player_id,short_name,long_name,club_name,league_name,player_positions,overall,potential,dob\n1,S. Name,Some Name,Club,League,"ST, CF",80,88,2000-01-01\n');
+    expect(sofifa[0]).toMatchObject({ id: '1', club: 'Club', position: 'ST', overall: 80, potential: 88 });
+
+    const eaRatings = readComparable('Name,OVR,Position,Team,League,url\nA Player,77,CM,Club,League,https://www.ea.com/x/a-player/231747\n');
+    expect(eaRatings[0]).toMatchObject({ id: '231747', overall: 77, potential: null });
+
+    const normalized = readComparable('player_id,name,first_name,last_name,date_of_birth,club,league,position,overall,potential\n9,N Player,N,Player,1999-02-03,Club,League,GK,70,\n');
+    expect(normalized[0]).toMatchObject({ id: '9', position: 'GK', overall: 70, potential: null });
+  });
+});
+
+describe('fc27 goalkeeper stats', () => {
+  it('does not write goalkeeping values into outfield face-stat columns', () => {
+    // EA shows a keeper's DIV/HAN/KIC/REF in the same six card boxes, but they
+    // are different quantities. Asserting that equivalence would be invention.
+    const row = normalizeEaPlayer({
+      id: 7, overallRating: 85, gender: { label: 'Male' },
+      position: { shortLabel: 'GK' },
+      stats: { gkDiving: { value: 86 }, gkHandling: { value: 84 }, gkReflexes: { value: 88 } },
+    }, META);
+    expect(row.gk_diving).toBe(86);
+    expect(row.gk_reflexes).toBe(88);
+    expect(row.pace).toBeNull();
+    expect(row.shooting).toBeNull();
+    expect(row.dribbling).toBeNull();
   });
 });
