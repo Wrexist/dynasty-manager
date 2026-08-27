@@ -626,6 +626,15 @@ Player identities draw from the **community pack** real-player dataset
 - Primary/Gold: `43 96% 46%` | Background: `222 30% 7%` | Accent: `215 60% 50%`
 - Mobile-first: `max-w-lg mx-auto`, bottom nav, safe-area padding
 - Rating colors: >=80 emerald, >=70 primary, >=60 amber, <60 muted
+- **Player-card art is 2:3 and its alpha is the card's edge.** Every file in
+  `public/player-cards/` is 1024x1536. `PlayerCard` renders `md`/`lg`/`xl` at
+  `aspect-[2/3]` with NO rounded container, no cast shadow and the legibility
+  scrim masked to the artwork — a box behind a scalloped shield or a pointed
+  pack frame shows through the corners as a rectangle the card does not have.
+  The two small tokens (`xs` tactics tile, `sm` bench strip) are chips, not
+  cards: they keep `aspect-[3/4]`, crop the art to fill, and DO get the rounded
+  box, because at 52px it is their edge. `PitchBoard`'s empty-slot placeholder
+  is hardcoded `aspect-[3/4]` to match `xs` — change one and change both.
 - Club colors are the only place where inline `style={{ backgroundColor }}` is acceptable
 - **Performance mode** (`settings.performanceMode`) toggles a root `perf-mode`
   class that strips backdrop-blur/decorative layers and forces reduced motion.

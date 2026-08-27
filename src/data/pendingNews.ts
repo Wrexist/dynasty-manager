@@ -54,7 +54,9 @@ export const PENDING_NEWS: PendingRelease = {
     'A comeback is not a man-of-the-match.',
     'One clear free pack a day instead of three overlapping ones, and paid packs now say exactly what is inside.',
   ],
-  fixed: [],
+  fixed: [
+    'Pack cards now show the full artwork — no cropped frame edges and no glow outline drawn over the card.',
+  ],
   headline: null,
   summary: null,
 };
