@@ -591,6 +591,23 @@ contains, what it costs, and what its odds are.
   Console **display names** must be updated to match or the purchase sheet names
   a different item than the card that opened it.
 
+- **Pack pulls are REAL players, with duplicates allowed.** `rollPackPlayer`
+  draws from `nationalPlayerPool.ts` via `pickRealPlayerForPack`, which
+  deliberately does NOT claim: there are only 28 templates rated 88+ and 8 at
+  90+, all already on clubs at kickoff, so a claiming Icon Pack would find
+  nobody and silently deal an invented player. A pull is a *card of* a player —
+  you can pull Haaland while Haaland plays for City. The band selects which
+  real players are eligible; the template brings its own rating (a 74-rated
+  Mbappé is worse than no Mbappé). Duplicates within ONE pack are prevented;
+  duplicates across packs are the chase. Falls back to a generated player only
+  when a band has nobody at a position.
+- **`npm run packs:supply` guards that.** It reads the storefront bands out of
+  `config/packs.ts` and the ratings out of the generated pool, and fails if a
+  band cannot be filled or if a tier's `ovrMax` exceeds the best player alive.
+  **Run it after any player-data import** (FC26/FC27/etc.) — it is in preflight
+  precisely because a short band does not break anything visibly, it just turns
+  the packs back into strangers.
+
 Player identities draw from the **community pack** real-player dataset
 (`src/data/communityPack/` — generated, lazily imported) with
 `utils/communityPackPool.ts` + `npm run validate-cp` for integrity.

@@ -203,7 +203,10 @@ export const PACK_TIERS: PackTierDefinition[] = [
     cards: 1,
     guaranteedMinOvr: 88,
     ovrMin: 85,
-    ovrMax: 93,
+    // 91, not 93: that is the highest rating in the real player pool, and pack
+    // pulls are real players now. A ceiling above what the world contains is a
+    // published odds row nobody can ever be dealt.
+    ovrMax: 91,
     rarity: { common: 0, bronze: 0, silver: 0, gold: 0.55, legendary: 0.45 },
     gradientFrom: 'hsl(var(--pack-icon-from))',
     gradientTo: 'hsl(var(--pack-icon-to))',

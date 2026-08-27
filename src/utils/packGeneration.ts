@@ -1,5 +1,6 @@
 import type { Club, Player, PlayerAttributes, Position, PackTierDefinition, PackTierKey, PackRarityWeights } from '@/types/game';
-import { generatePlayer, calculateOverall } from '@/utils/playerGen';
+import { generatePlayer, calculateOverall, buildPlayerFromTemplate } from '@/utils/playerGen';
+import { pickRealPlayerForPack } from '@/utils/realPlayerPicker';
 import { pick, clamp } from '@/utils/helpers';
 import { MAX_SQUAD_SIZE } from '@/config/gameBalance';
 import { recomputeDerivedEconomics } from '@/utils/playerEconomics';
@@ -69,10 +70,47 @@ function rollPackPlayer(
   minOvr: number,
   maxOvr: number,
   ceiling: number = tier.ovrMax,
+  /** fcIds already dealt in THIS pack. Pulling the same player twice in one
+   *  five-card pack reads as a bug even in a game where duplicates across
+   *  packs are the whole point. */
+  taken?: Set<string>,
 ): Player {
   let lo = Math.max(tier.ovrMin, Math.min(minOvr, ceiling));
   let hi = Math.max(lo, Math.min(Math.max(maxOvr, minOvr), ceiling));
   if (hi < lo) { const tmp = lo; lo = hi; hi = tmp; }
+
+  // ── Real player first ──
+  //
+  // A pack is the one surface in the game that was handing out invented people.
+  // Everything else — squads, the transfer market, free agents — is built from
+  // the real-player templates, so the monetised screen was the only place you
+  // could not pull a name you recognise. That is backwards.
+  //
+  // The band selects the player and the player brings his own rating; see
+  // `pickRealPlayerForPack` for why pack pulls are allowed to duplicate real
+  // players when nothing else in the game is.
+  let template = pickRealPlayerForPack(position, lo, hi);
+  // A few rerolls is plenty: the narrowest band any tier uses still holds
+  // dozens of players, and giving up falls through to a fresh invented player
+  // rather than dealing a duplicate.
+  for (let i = 0; i < 6 && template?.fcId && taken?.has(template.fcId); i++) {
+    template = pickRealPlayerForPack(position, lo, hi);
+  }
+  if (template && !(template.fcId && taken?.has(template.fcId))) {
+    if (template.fcId) taken?.add(template.fcId);
+    const real = buildPlayerFromTemplate(template, '', season);
+    // The template owns the rating, so the pack's own clamp must not touch it.
+    // `buildPlayerFromTemplate` already ran the economics helper against it.
+    if (real.potential < real.overall) real.potential = real.overall;
+    return real;
+  }
+
+  // ── Fallback: an invented player ──
+  //
+  // Reached when the pool has nobody in this band at this position. It should
+  // be rare and the storefront supply guard (`scripts/check-pack-supply.mjs`)
+  // exists so an imported dataset that makes it COMMON fails the build rather
+  // than quietly filling the Icon Pack with strangers.
   const target = lo + Math.floor(Math.random() * (hi - lo + 1));
 
   let player = generatePlayer(position, target, '', season);
@@ -158,10 +196,11 @@ export function generatePackContents(
   const guaranteedMax = pityOn
     ? Math.min(Math.max(guaranteedMin + 8, 89), pityCeiling)
     : Math.max(guaranteedMin, tier.ovrMax);
+  const taken = new Set<string>();
   const guaranteedPosition = pick(PACK_POSITION_POOL);
   players.push(rollPackPlayer(
     guaranteedPosition, tier, season, guaranteedMin, guaranteedMax,
-    pityOn ? pityCeiling : tier.ovrMax,
+    pityOn ? pityCeiling : tier.ovrMax, taken,
   ));
 
   // ── Weekly bonus cards ──
@@ -172,6 +211,7 @@ export function generatePackContents(
   for (let i = 0; i < extra; i++) {
     players.push(rollPackPlayer(
       pick(PACK_POSITION_POOL), tier, season, tier.guaranteedMinOvr, tier.ovrMax,
+      tier.ovrMax, taken,
     ));
   }
 
@@ -180,7 +220,7 @@ export function generatePackContents(
     const rarity = pickRarity(tier.rarity);
     const [rMin, rMax] = PACK_RARITY_BANDS[rarity];
     const position = pick(PACK_POSITION_POOL);
-    players.push(rollPackPlayer(position, tier, season, rMin, rMax));
+    players.push(rollPackPlayer(position, tier, season, rMin, rMax, tier.ovrMax, taken));
   }
 
   // Shuffle so the guaranteed card isn't always first in the reveal order

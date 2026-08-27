@@ -45,6 +45,7 @@ export const PENDING_NEWS: PendingRelease = {
   highlights: [
     'The Market is rebuilt: one free pack a day that improves with your login streak, a featured pack each week with a bonus card, and published drop rates on every pack.',
     'Packs now tear open down the side like a real foil booster — the rip travels down the seam and the wrapper peels away.',
+    'Packs now pull real players. Every card you open is someone you have heard of, right up to the 88+ Legends Pack.',
   ],
   new: [
     'Every pack now shows its drop rates before you open it.',

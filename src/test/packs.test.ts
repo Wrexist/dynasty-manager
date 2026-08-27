@@ -31,6 +31,7 @@ import {
 } from '@/config/packs';
 import type { Club, PackTierKey } from '@/types/game';
 import { MAX_SQUAD_SIZE } from '@/config/gameBalance';
+import { getNationalPoolSync } from '@/data/nationalPlayerPoolAccess';
 import {
   VALUE_EXP_BASE,
   VALUE_EXP_RATE,
@@ -70,6 +71,29 @@ function initAndGetState() {
 // after every test so it can't fire into — and pollute the state of — the next
 // test (e.g. inflating an exact player-count assertion).
 afterEach(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
+
+/** Look a pulled card back up in the pool it came from. */
+function findTemplateByFcId(fcId: string) {
+  for (const list of Object.values(getNationalPoolSync())) {
+    const hit = list.find(t => t.fcId === fcId);
+    if (hit) return hit;
+  }
+  return undefined;
+}
+
+/** Highest rating in the real player pool. Pack pulls are real players, so
+ *  this is the hard ceiling on anything a pack can produce — including a pity
+ *  pull, which raises the band's floor rather than inventing a better player.
+ *
+ *  A function, not a const: the pool is loaded by the suite's global setup, so
+ *  reading it at module-evaluation time returns {} and a ceiling of 0. */
+function poolMaxOvr(): number {
+  let max = 0;
+  for (const list of Object.values(getNationalPoolSync())) {
+    for (const t of list) if (t.ovr > max) max = t.ovr;
+  }
+  return max;
+}
 
 describe('Pack opening — generation', () => {
   it('returns exactly `cards` players per pack tier', () => {
@@ -115,6 +139,11 @@ describe('Pack opening — generation', () => {
         expect(topOvr).toBeGreaterThanOrEqual(tier.guaranteedMinOvr);
         if (topOvr > tier.ovrMax) sawImprovement = true;
       }
+      // A tier already drawing from the top of the real player pool has
+      // nowhere to be lifted TO — pity raises the floor of the band it picks
+      // real players from, and no player exists above the pool's best. Skip
+      // those rather than assert an improvement the world cannot supply.
+      if (tier.ovrMax >= poolMaxOvr()) continue;
       expect(sawImprovement, `${tier.key} pity never beat its normal ceiling`).toBe(true);
     }
   });
@@ -318,6 +347,67 @@ describe('Market — storefront integrity', () => {
       const goldRow = rows.find(r => r.label.startsWith('Gold'));
       if ((resolved.rarity.gold || 0) === 0) expect(goldRow).toBeUndefined();
       else expect(goldRow?.chance).toBeCloseTo(resolved.rarity.gold, 6);
+    }
+  });
+});
+
+describe('Pack opening — real players', () => {
+  it('deals real players, not invented ones, at every storefront tier', () => {
+    // The whole game is built from real-player templates except, until now, the
+    // one screen you pay money on. A pack that hands out a stranger is worth
+    // less than the same pack handing out someone you have heard of, and the
+    // gap is the entire reason to buy it.
+    for (const key of PACK_STOREFRONT_ORDER) {
+      let cards = 0;
+      let real = 0;
+      for (let run = 0; run < 25; run++) {
+        for (const p of generatePackContents(key, 1, { freeOpen: key === FREE_PACK_TIER, streak: 7 })) {
+          cards++;
+          if (p.source === 'real') real++;
+        }
+      }
+      // Not 100%: the generator still falls back to an invented player when a
+      // band has nobody at a position, and that is the correct behaviour. It
+      // must be the exception. `npm run packs:supply` is what fails loudly if
+      // an imported dataset ever makes it the rule.
+      expect(real / cards, `${key} dealt ${real}/${cards} real players`).toBeGreaterThan(0.9);
+    }
+  });
+
+  it('a pull keeps the real player\'s own rating', () => {
+    // The band chooses WHICH real players are eligible; it never rewrites one.
+    // Stamping a pack's rolled rating onto a template would produce a 74-rated
+    // Mbappé, which is worse than no Mbappé.
+    for (let run = 0; run < 40; run++) {
+      for (const p of generatePackContents('icon', 1)) {
+        if (p.source !== 'real' || !p.fcId) continue;
+        const template = findTemplateByFcId(p.fcId);
+        expect(template, `pulled fcId ${p.fcId} is not in the pool`).toBeTruthy();
+        expect(p.overall, `${p.lastName} was dealt at ${p.overall}, pool says ${template!.ovr}`)
+          .toBe(template!.ovr);
+      }
+    }
+  });
+
+  it('never deals the same player twice in one pack', () => {
+    // Duplicates ACROSS packs are the point — you can pull the same star twice
+    // in a week, and that is how the genre works. Twice in the same five-card
+    // pack just reads as a bug.
+    for (const key of ['gold', 'premium', 'rare'] as PackTierKey[]) {
+      for (let run = 0; run < 60; run++) {
+        const players = generatePackContents(key, 1);
+        const ids = players.map(p => p.fcId).filter(Boolean) as string[];
+        expect(new Set(ids).size, `${key} dealt a duplicate: ${ids.join(', ')}`).toBe(ids.length);
+      }
+    }
+  });
+
+  it('no tier advertises a ceiling above the best player alive', () => {
+    // An ovrMax above the pool's top rating is an odds row that can never be
+    // dealt. `npm run packs:supply` enforces the same thing against the data
+    // file; this catches a config edit without a data import.
+    for (const key of PACK_STOREFRONT_ORDER) {
+      expect(PACK_TIER_MAP[key].ovrMax, `${key} ceiling exceeds the pool`).toBeLessThanOrEqual(poolMaxOvr());
     }
   });
 });
