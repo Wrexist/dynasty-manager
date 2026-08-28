@@ -59,6 +59,7 @@ export const PENDING_NEWS: PendingRelease = {
     'One clear free pack a day instead of three overlapping ones, and paid packs now say exactly what is inside.',
     'Pack opening builds properly now — the shake, glow and rumble all ramp together into a held beat before the tear. And a tap opens the pack the moment you touch it, from the very first frame.',
     'Wages eased across the board, and players pulled from packs now sign on club terms instead of superstar money — a pack no longer wrecks your wage bill.',
+    'Rebuild the pack Market — one free daily, published odds, weekly offer.',
   ],
   fixed: [
     'Pack cards now show the full artwork — no cropped frame edges and no glow outline drawn over the card.',
