@@ -345,14 +345,15 @@ export const PlayerCard = memo(function PlayerCard({
             inline with the surname (squad-page / pack look). */}
         {(() => {
           const flagOverName = size === 'xs' || size === 'sm';
-          // Mononym players (Savinho, Rodri, Ederson, …) come through with
-          // identical firstName / lastName from the FC26-sourced templates.
-          // Showing both lines as the same word reads as a duplicate, so
-          // suppress the secondary first-name row in that case.
+          // Mononym players (Savinho, Rodri, Ederson, …) read as a duplicate
+          // when both name rows show the same word. Compare against the
+          // DISPLAYED name, not the raw lastName: a suffix-only surname like
+          // Vini "Jr." makes getPlayerDisplayName fall back to the first
+          // name, and comparing raw fields printed "VINI" over "Vini" on the
+          // hero card of the first App Preview cut.
           const isMononym =
             !!player.firstName &&
-            !!player.lastName &&
-            player.firstName.trim().toLowerCase() === player.lastName.trim().toLowerCase();
+            player.firstName.trim().toLowerCase() === getPlayerDisplayName(player).trim().toLowerCase();
           const showFirstName =
             !isMononym && (size === 'xs' ? compact : size === 'sm' ? true : !compact);
           return (
