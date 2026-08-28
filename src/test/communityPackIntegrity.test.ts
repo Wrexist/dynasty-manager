@@ -16,6 +16,8 @@
  */
 import { describe, it, expect } from 'vitest';
 import { byClub } from '@/data/communityPack/byClub';
+import { buildPlayerFromTemplate, topUpSquad } from '@/utils/playerGen';
+import { MIN_SQUAD_GOALKEEPERS, INITIAL_SQUAD_MIN_TARGET } from '@/config/playerGeneration';
 import { ALL_CLUBS } from '@/data/league';
 import { NATIONS } from '@/data/nations';
 
@@ -81,6 +83,27 @@ describe('community pack integrity', () => {
     // given name from the long name, leaving only genuine mononyms.
     const doubled = players.filter((p) => p.fn === p.ln);
     expect(doubled.length / players.length).toBeLessThan(0.02);
+  });
+
+  it('gives every community-pack club a playable squad after top-up', () => {
+    // The CP path in initGame maps templates straight to players and never
+    // runs generateSquad's filler, so whatever the roster data ships IS the
+    // squad. FC27 ships Trabzonspor and CD Mirandés with no goalkeeper at
+    // all, eight clubs with a single keeper and no cover, and four clubs of
+    // 14-15 players. An outfield player in goal is scored by the match
+    // engine's GK formula, so those two clubs conceded for a whole save.
+    // `topUpSquad` restores the same minimum the non-CP path guarantees.
+    const broken: string[] = [];
+    for (const [clubId, templates] of Object.entries(byClub)) {
+      const squad = topUpSquad(
+        templates.map((t) => buildPlayerFromTemplate(t, clubId, 1)),
+        clubId, 70, 1, undefined, true,
+      );
+      const keepers = squad.filter((p) => p.position === 'GK').length;
+      if (keepers < MIN_SQUAD_GOALKEEPERS) broken.push(`${clubId}: ${keepers} GK`);
+      if (squad.length < INITIAL_SQUAD_MIN_TARGET) broken.push(`${clubId}: ${squad.length} players`);
+    }
+    expect(broken, `clubs below the playable minimum: ${broken.join(', ')}`).toEqual([]);
   });
 
   it('uses the nation names the game selects national squads by', () => {

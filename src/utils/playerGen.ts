@@ -9,7 +9,7 @@ import {
   CONTRACT_BASE_YEARS, CONTRACT_RANDOM_YEARS,
   FITNESS_BASE, FITNESS_RANGE, MORALE_BASE, MORALE_RANGE, FORM_BASE, FORM_RANGE,
   SQUAD_TEMPLATE as CONFIG_SQUAD_TEMPLATE, AGE_BUCKETS as CONFIG_AGE_BUCKETS, PEAK_AGE_BUCKET,
-  INITIAL_SQUAD_MIN_TARGET,
+  INITIAL_SQUAD_MIN_TARGET, MIN_SQUAD_GOALKEEPERS,
   SQUAD_QUALITY_VARIANCE, SQUAD_QUALITY_MIN, SQUAD_QUALITY_MAX,
   QUALITY_SCALING_REFERENCE, QUALITY_SCALING_FLOOR, SQUAD_QUALITY_MIN_LOW, VETERAN_MENTAL_BONUS,
   YOUNG_POTENTIAL_BOOST_BASE, YOUNG_POTENTIAL_BOOST_RANGE, YOUNG_POTENTIAL_AGE_THRESHOLD,
@@ -402,6 +402,120 @@ export function buildPlayerFromTemplate(
   return player;
 }
 
+/**
+ * Build filler players for a list of positions: a real player from the pool
+ * where one is available at the club's quality tier, a procedural player
+ * otherwise. Real-template fillers carry their actual name, ratings,
+ * attributes, height/weight and skill moves — only the clubId is overridden.
+ * Procedural fallbacks get the age-bucket spread and young-player potential
+ * boost.
+ *
+ * Extracted so both `generateSquad` (which fills a club from scratch) and
+ * `topUpSquad` (which repairs a roster that came from real-world data) build
+ * fillers the same way.
+ */
+function buildFillerPlayers(
+  fillerPositions: Position[],
+  clubId: string,
+  quality: number,
+  season: number,
+  divisionTier: number | string | undefined,
+  useRealNames: boolean,
+  scale: number,
+): { players: Player[]; realFillerIds: Set<string> } {
+  const ageTargets = buildAgeTargets(fillerPositions.length);
+  const leagueKeyForNationality = typeof divisionTier === 'string' ? divisionTier : undefined;
+  const realFillerIds = new Set<string>();
+  const players = fillerPositions.map((pos, idx) => {
+    const nationality = pickNationality(leagueKeyForNationality);
+    // Bias the real-player pick toward the club's quality tier so a
+    // 4th-division side doesn't accidentally sign Mbappé as a filler.
+    const realTemplate = pickUnclaimedRealPlayer(nationality, pos, {
+      minOvr: Math.max(REAL_FILLER_OVR_FLOOR, quality - REAL_FILLER_OVR_BAND_BELOW),
+      maxOvr: Math.min(REAL_FILLER_OVR_CEIL, quality + REAL_FILLER_OVR_BAND_ABOVE),
+    });
+    if (realTemplate) {
+      // Only canonicalise nationality when the picker's choice is an
+      // alias of the preferred nation (e.g. Holland ↔ Netherlands). On
+      // a global-pool fallback the chosen template belongs to a
+      // different nation, so keep its real nationality + flag.
+      const overrideNat = isNationalityAliasOf(realTemplate.nat, nationality)
+        ? nationality
+        : undefined;
+      const real = buildPlayerFromTemplate(realTemplate, clubId, season, overrideNat, useRealNames);
+      realFillerIds.add(real.id);
+      return real;
+    }
+
+    const scaledVariance = Math.round(SQUAD_QUALITY_VARIANCE * scale);
+    const effectiveMin = Math.round(SQUAD_QUALITY_MIN_LOW + (SQUAD_QUALITY_MIN - SQUAD_QUALITY_MIN_LOW) * scale);
+    const q = clamp(quality + variance(scaledVariance), effectiveMin, SQUAD_QUALITY_MAX);
+    const player = generatePlayer(pos, q, clubId, season, divisionTier);
+    const ageBucket = ageTargets[idx];
+    player.age = ageBucket.min + Math.floor(Math.random() * (ageBucket.max - ageBucket.min + 1));
+    if (player.age <= YOUNG_POTENTIAL_AGE_THRESHOLD) {
+      player.potential = clamp(player.overall + YOUNG_POTENTIAL_BOOST_BASE + Math.floor(Math.random() * YOUNG_POTENTIAL_BOOST_RANGE));
+    }
+    return player;
+  });
+  return { players, realFillerIds };
+}
+
+/**
+ * Bring a roster built straight from real-world templates up to a playable
+ * minimum: at least `MIN_SQUAD_GOALKEEPERS` keepers and at least
+ * `INITIAL_SQUAD_MIN_TARGET` players.
+ *
+ * `generateSquad` already does this for clubs it builds itself, but the
+ * community-pack path in `initGame` maps templates directly and skips it — so
+ * a club whose real-world roster data carries no goalkeeper (FC27 ships two,
+ * Trabzonspor and CD Mirandés) fielded an outfield player in goal for the
+ * entire save, scored by the match engine's GK formula. Eight more clubs
+ * carried a single keeper with no cover for an injury, and four shipped
+ * squads of 14-15.
+ *
+ * Returns the squad unchanged when it already meets both minimums, so this is
+ * safe to call on every club.
+ */
+export function topUpSquad(
+  squad: Player[],
+  clubId: string,
+  quality: number,
+  season: number,
+  divisionTier?: number | string,
+  useRealNames: boolean = true,
+): Player[] {
+  const gkDeficit = Math.max(0, MIN_SQUAD_GOALKEEPERS - squad.filter(p => p.position === 'GK').length);
+  const sizeDeficit = Math.max(0, INITIAL_SQUAD_MIN_TARGET - squad.length);
+  if (gkDeficit === 0 && sizeDeficit === 0) return squad;
+
+  // Keepers first, then whatever the squad is thinnest in, taken in
+  // SQUAD_TEMPLATE order so the outfield shape stays sensible.
+  const needed: Position[] = Array<Position>(gkDeficit).fill('GK');
+  const covered: Record<string, number> = {};
+  for (const p of squad) covered[p.position] = (covered[p.position] || 0) + 1;
+  covered.GK = (covered.GK || 0) + gkDeficit;
+  for (const pos of SQUAD_TEMPLATE) {
+    if (squad.length + needed.length >= INITIAL_SQUAD_MIN_TARGET) break;
+    if ((covered[pos] || 0) > 0) {
+      covered[pos]--;
+    } else {
+      needed.push(pos);
+    }
+  }
+
+  // A roster stacked on a few positions can exhaust SQUAD_TEMPLATE while still
+  // short of the target; keep cycling it rather than returning an undersized squad.
+  for (let i = 0; squad.length + needed.length < INITIAL_SQUAD_MIN_TARGET; i++) {
+    needed.push(SQUAD_TEMPLATE[i % SQUAD_TEMPLATE.length]);
+  }
+
+  const { players } = buildFillerPlayers(
+    needed, clubId, quality, season, divisionTier, useRealNames, qualityScale(quality),
+  );
+  return [...squad, ...players];
+}
+
 export function generateSquad(clubId: string, quality: number, season: number, divisionTier?: number | string, isInitialSeason: boolean = false, useRealNames: boolean = true): Player[] {
   const scale = qualityScale(quality);
   // Real-player TEMPLATES (stats, positions, ages) are always used so opt-out
@@ -438,46 +552,10 @@ export function generateSquad(clubId: string, quality: number, season: number, d
     ? remainingPositions.slice(0, Math.max(0, INITIAL_SQUAD_MIN_TARGET - templatePlayers.length))
     : remainingPositions;
 
-  // ── Step 3: Fill remaining slots with real FC26 players first, then ──
-  // procedural fallbacks. Real-template fillers carry their actual name,
-  // ratings, attributes, height/weight and skill moves — only the clubId
-  // is overridden in buildPlayerFromTemplate. Procedural fallbacks keep
-  // the existing age-bucket / potential-boost behaviour.
-  const ageTargets = buildAgeTargets(fillerPositions.length);
-  const leagueKeyForNationality = typeof divisionTier === 'string' ? divisionTier : undefined;
-  const realFillerIds = new Set<string>();
-  const fillerPlayers = fillerPositions.map((pos, idx) => {
-    const nationality = pickNationality(leagueKeyForNationality);
-    // Bias the real-player pick toward the club's quality tier so a
-    // 4th-division side doesn't accidentally sign Mbappé as a filler.
-    const realTemplate = pickUnclaimedRealPlayer(nationality, pos, {
-      minOvr: Math.max(REAL_FILLER_OVR_FLOOR, quality - REAL_FILLER_OVR_BAND_BELOW),
-      maxOvr: Math.min(REAL_FILLER_OVR_CEIL, quality + REAL_FILLER_OVR_BAND_ABOVE),
-    });
-    if (realTemplate) {
-      // Only canonicalise nationality when the picker's choice is an
-      // alias of the preferred nation (e.g. Holland ↔ Netherlands). On
-      // a global-pool fallback the chosen template belongs to a
-      // different nation, so keep its real nationality + flag.
-      const overrideNat = isNationalityAliasOf(realTemplate.nat, nationality)
-        ? nationality
-        : undefined;
-      const real = buildPlayerFromTemplate(realTemplate, clubId, season, overrideNat, useRealNames);
-      realFillerIds.add(real.id);
-      return real;
-    }
-
-    const scaledVariance = Math.round(SQUAD_QUALITY_VARIANCE * scale);
-    const effectiveMin = Math.round(SQUAD_QUALITY_MIN_LOW + (SQUAD_QUALITY_MIN - SQUAD_QUALITY_MIN_LOW) * scale);
-    const q = clamp(quality + variance(scaledVariance), effectiveMin, SQUAD_QUALITY_MAX);
-    const player = generatePlayer(pos, q, clubId, season, divisionTier);
-    const ageBucket = ageTargets[idx];
-    player.age = ageBucket.min + Math.floor(Math.random() * (ageBucket.max - ageBucket.min + 1));
-    if (player.age <= YOUNG_POTENTIAL_AGE_THRESHOLD) {
-      player.potential = clamp(player.overall + YOUNG_POTENTIAL_BOOST_BASE + Math.floor(Math.random() * YOUNG_POTENTIAL_BOOST_RANGE));
-    }
-    return player;
-  });
+  // ── Step 3: Fill remaining slots with real players first, then ──
+  // procedural fallbacks (see buildFillerPlayers).
+  const { players: fillerPlayers, realFillerIds } =
+    buildFillerPlayers(fillerPositions, clubId, quality, season, divisionTier, useRealNames, scale);
 
   const squad = [...templatePlayers, ...fillerPlayers];
 
