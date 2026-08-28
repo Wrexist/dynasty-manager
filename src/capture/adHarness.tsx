@@ -245,11 +245,16 @@ function SquadScene() {
       // exactly, or the editor's own audit reports "N players in wrong
       // position" over the shot — true, and the last thing a store preview
       // should say about your team.
+      //
+      // Floors start at 90 wherever the pool can pay it: at 90+ the card art
+      // goes white marble (the icon tier), and a pitch that is half marble,
+      // half top-gold is the "team of legends" read this beat exists for.
+      // Walk-down keeps thin positions honest rather than inventing anyone.
       const SHAPE: { pos: Position; min: number }[] = [
-        { pos: 'GK', min: 87 },
-        { pos: 'LB', min: 84 }, { pos: 'CB', min: 86 }, { pos: 'CB', min: 85 }, { pos: 'RB', min: 84 },
-        { pos: 'CM', min: 86 }, { pos: 'CM', min: 87 }, { pos: 'CM', min: 86 },
-        { pos: 'LW', min: 88 }, { pos: 'ST', min: 89 }, { pos: 'RW', min: 88 },
+        { pos: 'GK', min: 90 },
+        { pos: 'LB', min: 88 }, { pos: 'CB', min: 90 }, { pos: 'CB', min: 89 }, { pos: 'RB', min: 89 },
+        { pos: 'CM', min: 90 }, { pos: 'CM', min: 90 }, { pos: 'CM', min: 89 },
+        { pos: 'LW', min: 90 }, { pos: 'ST', min: 91 }, { pos: 'RW', min: 91 },
       ];
       const used = new Set<string>();
       const squad: Player[] = [];
@@ -260,12 +265,23 @@ function SquadScene() {
         for (let floor = min; floor >= 80 && !t; floor -= 1) {
           for (let i = 0; i < 30 && !t; i++) {
             const c = pickRealPlayerForPack(pos, floor, 95);
-            if (c && !used.has(c.fcId ?? `${c.fn}|${c.ln}`)) t = c;
+            // The picker widens to RELATED positions when a band is thin,
+            // which puts "1 player in wrong position" over the shot. Only
+            // accept a natural or listed-alternate fit for this slot.
+            if (c && (c.pos === pos || (c.altPos ?? []).includes(pos))
+              && !used.has(c.fcId ?? `${c.fn}|${c.ln}`)) t = c;
           }
         }
         if (!t) continue;
         used.add(t.fcId ?? `${t.fn}|${t.ln}`);
-        squad.push(buildPlayerFromTemplate(t, 'my-club', 1));
+        const built = buildPlayerFromTemplate(t, 'my-club', 1);
+        // A Legends-issue squad, in form: the pack frame shows on every
+        // full-size card surface, and maxed form/morale/fitness put the
+        // green surge arrows and full bars on every token. Capture-only
+        // dressing — ratings stay the template's own.
+        built.packFrame = 'legends';
+        built.form = 96; built.morale = 98; built.fitness = 100;
+        squad.push(built);
       }
       if (squad.length < 11) {
         console.error(`[capture] squad scene only filled ${squad.length}/11 slots`);
@@ -274,8 +290,8 @@ function SquadScene() {
       // pitch, and leaving it empty put a black band across the bottom third
       // of every 9:16 crop.
       const BENCH: { pos: Position; min: number }[] = [
-        { pos: 'GK', min: 84 }, { pos: 'CB', min: 84 }, { pos: 'CM', min: 85 },
-        { pos: 'ST', min: 86 }, { pos: 'LW', min: 84 }, { pos: 'RW', min: 84 },
+        { pos: 'GK', min: 88 }, { pos: 'CB', min: 88 }, { pos: 'CM', min: 89 },
+        { pos: 'ST', min: 89 }, { pos: 'LW', min: 89 }, { pos: 'RW', min: 88 },
       ];
       const bench: Player[] = [];
       for (const { pos, min } of BENCH) {
@@ -283,12 +299,19 @@ function SquadScene() {
         for (let floor = min; floor >= 80 && !t; floor -= 1) {
           for (let i = 0; i < 30 && !t; i++) {
             const c = pickRealPlayerForPack(pos, floor, 95);
-            if (c && !used.has(c.fcId ?? `${c.fn}|${c.ln}`)) t = c;
+            // The picker widens to RELATED positions when a band is thin,
+            // which puts "1 player in wrong position" over the shot. Only
+            // accept a natural or listed-alternate fit for this slot.
+            if (c && (c.pos === pos || (c.altPos ?? []).includes(pos))
+              && !used.has(c.fcId ?? `${c.fn}|${c.ln}`)) t = c;
           }
         }
         if (!t) continue;
         used.add(t.fcId ?? `${t.fn}|${t.ln}`);
-        bench.push(buildPlayerFromTemplate(t, 'my-club', 1));
+        const built = buildPlayerFromTemplate(t, 'my-club', 1);
+        built.packFrame = 'legends';
+        built.form = 94; built.morale = 96; built.fitness = 100;
+        bench.push(built);
       }
       const club = {
         id: 'my-club', name: 'Your Club', shortName: 'YOU',
