@@ -291,7 +291,7 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
                     </div>
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">Wage Saved</span>
-                      <span className="text-emerald-400 font-semibold">{formatWage(player.wage)}/wk</span>
+                      <span className="text-emerald-400 font-semibold">{formatWage(player.wage)}</span>
                     </div>
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">Contract</span>
@@ -521,7 +521,7 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
                   )}
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">Wage Saved</span>
-                    <span className="text-sm font-bold text-foreground">{formatWage(player.wage)}/wk</span>
+                    <span className="text-sm font-bold text-foreground">{formatWage(player.wage)}</span>
                   </div>
                 </motion.div>
 

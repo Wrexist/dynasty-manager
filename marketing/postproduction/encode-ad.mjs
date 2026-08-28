@@ -19,8 +19,16 @@ import { readFileSync, existsSync } from 'fs';
 import { spawn, execFileSync } from 'child_process';
 import { join } from 'path';
 
-const [DIR, OUT_ARG, startArg, endArg] = process.argv.slice(2);
-const FPS = 60;
+const args = process.argv.slice(2);
+// --preview: App Store App Preview output. Apple's spec, not a preference:
+// portrait previews for the current phone size class are 886x1920, frame
+// rate at most 30fps, and App Store Connect warns on a missing audio track —
+// so the preview mode synthesises a quiet stadium-ambience bed (filtered
+// noise, faded in and out) rather than shipping silence. Nothing licensed,
+// nothing to clear.
+const PREVIEW = args.includes('--preview');
+const [DIR, OUT_ARG, startArg, endArg] = args.filter(a => a !== '--preview');
+const FPS = PREVIEW ? 30 : 60;
 
 /** ffmpeg builds to try, best first. `FFMPEG` overrides everything. */
 function candidateBinaries() {
@@ -92,16 +100,30 @@ console.log(`${times.length} rendered frames -> ${order.length} @ ${FPS}fps  (${
 // the excess height around the centre of the action rather than letterboxing —
 // a padded ad reads as a screenshot, not as native content. `setsar=1` because
 // scale-then-crop leaves a non-square SAR that some uploaders mishandle.
-const VF = 'scale=1080:-2:flags=lanczos,crop=1080:1920:0:(ih-1920)/2,setsar=1,format=yuv420p';
+const VF = PREVIEW
+  // 886x1920: scale to height and centre-crop the sliver of extra width.
+  ? 'scale=-2:1920:flags=lanczos,crop=886:1920:(iw-886)/2:0,setsar=1,format=yuv420p'
+  : 'scale=1080:-2:flags=lanczos,crop=1080:1920:0:(ih-1920)/2,setsar=1,format=yuv420p';
 const codec = ff.h264
   ? ['-c:v', 'libx264', '-profile:v', 'high', '-level', '4.2', '-preset', 'slow', '-crf', '18',
      '-x264-params', 'keyint=120:min-keyint=60', '-movflags', '+faststart']
   : ['-c:v', 'libvpx', '-b:v', '6M', '-crf', '14', '-qmin', '2', '-qmax', '32',
      '-deadline', 'good', '-cpu-used', '2', '-auto-alt-ref', '0'];
 
+const dur = order.length / FPS;
+const withAudio = PREVIEW && ff.h264;
+const audioIn = withAudio
+  ? ['-f', 'lavfi', '-i',
+     `anoisesrc=color=pink:sample_rate=44100:duration=${dur.toFixed(2)},`
+     + 'highpass=f=140,lowpass=f=750,volume=0.06,'
+     + `afade=t=in:d=1.5,afade=t=out:st=${Math.max(0, dur - 1.8).toFixed(2)}:d=1.8`]
+  : [];
+const audioOut = withAudio ? ['-c:a', 'aac', '-b:a', '96k', '-shortest'] : [];
 const proc = spawn(ff.bin, [
   '-y', '-framerate', String(FPS), '-f', 'image2pipe', '-c:v', 'mjpeg', '-i', 'pipe:0',
-  '-vf', VF, ...codec, '-r', String(FPS), OUT,
+  ...audioIn,
+  '-vf', VF, ...codec, ...audioOut,
+  '-r', String(FPS), OUT,
 ], { stdio: ['pipe', 'ignore', 'ignore'] });
 
 for (const idx of order) proc.stdin.write(readFileSync(`${DIR}/f${String(idx).padStart(5, '0')}.jpg`));

@@ -22,7 +22,9 @@ const b = await chromium.launch({
   executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
   args: ['--force-device-scale-factor=2'],
 });
-const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
+// deviceScaleFactor matters for `page.screenshot` (the still plan): the
+// launch-arg forced factor reaches the screencast but not screenshots.
+const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true });
 
 await ctx.addInitScript(`(() => {
   const SLOW = ${SLOW};
@@ -45,7 +47,7 @@ await ctx.addInitScript(`(() => {
 
 const page = await ctx.newPage();
 page.on('pageerror', e => console.log('PAGE ERR:', String(e).slice(0, 200)));
-page.on('console', m => { if (m.text().startsWith('[capture]')) console.log(m.text()); });
+page.on('console', m => { const t = m.text(); if (t.startsWith('[capture]') || m.type() === 'error') console.log('[page]', t.slice(0, 160)); });
 await page.goto(URL, { waitUntil: 'networkidle' });
 await page.waitForTimeout(1500 * SLOW);
 
@@ -68,6 +70,53 @@ await page.evaluate(() => (window).__adClockStart?.());
 const wait = ms => page.waitForTimeout(ms * SLOW);
 const tap = async (x, y) => { await page.mouse.click(x, y); };
 
+if (PLAN === 'preview') {
+  // App Store App Preview take. Differences from the ad plan are all Apple
+  // rules: 15-30s required length, pure app footage (the harness URL must
+  // pass NO caption params), and the first ~4s autoplay muted in search
+  // results — so the take opens on the sealed packet for a beat before the
+  // rip, which is the strongest silent opener the app has.
+  await wait(1400);
+  for (let i = 0; i < 8; i++) {
+    if (await page.getByText('TAP ALL TO REVEAL').count()) break;
+    await tap(195, 422); await wait(750);
+  }
+  await wait(1200);
+  // Reveal one at a time with room to breathe — a store visitor is judging
+  // the app, not chasing a hook, so the pacing is calmer than the ad cut.
+  for (const [x, y] of [[113, 150], [276, 150], [113, 392], [276, 392]]) {
+    await tap(x, y); await wait(1050);
+  }
+  await wait(500);
+  await tap(195, 620);
+  // Ride the full walkout, then hold the summary long enough for the total
+  // to clear Apple's 15s floor with margin.
+  await wait(10500);
+}
+
+if (PLAN === 'still') {
+  // Single full-quality frame, no screencast — the source for encoder-side
+  // motion (a zoompan push-in beats a screencast of a static page, whose
+  // compositor emits a handful of frames and steps visibly at 60fps).
+  // The transfer scene loads the lazy player pool and retries flaky flag
+  // loads before mounting — give it real headroom, then confirm the scene
+  // actually mounted rather than shipping a frame of empty backdrop.
+  await wait(15000);
+  const mounted = await page.evaluate(() => document.body.innerText.length > 200);
+  if (!mounted) console.error('[capture] still: scene did not mount — frame is likely empty');
+  await page.screenshot({ path: `${DIR}/still.png` });
+  console.log('still ->', `${DIR}/still.png`);
+  await b.close();
+  process.exit(0);
+}
+
+if (PLAN === 'transfer') {
+  // One continuous tension-frozen shot — the POV text-wall formula. The
+  // negotiation modal's entrance plays in luxurious slow motion under the
+  // dilation, then the shot just holds; the text does the storytelling.
+  await wait(11000);
+}
+
 if (PLAN === 'pack') {
   // Rip the packet, then reveal the ordinary cards before the legend so the
   // walkout is the closing beat.
@@ -81,7 +130,7 @@ if (PLAN === 'pack') {
   }
   await wait(400);
   await tap(195, 620);
-  await wait(9000);
+  await wait(15000);
 }
 
 await cdp.send('Page.stopScreencast');
