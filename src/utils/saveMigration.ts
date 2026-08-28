@@ -54,10 +54,47 @@ const migrations: Record<number, MigrationFn> = {
   // save legitimately carries (loaned-out players are accounted for separately
   // — see `initGame`), which is a behaviour change beyond this step's scope.
   90: (data) => {
-    // Frozen at the value in force at v91, per the convention that a migration
-    // reproduces history rather than following a live constant.
+    // Frozen at the values in force at v91, per the convention that a
+    // migration reproduces history rather than following a live constant.
     const WAGE_FLOOR = 500;
     const EASING = 0.85;
+    const OLD_BASE = 10;      // WAGE_EXP_BASE before v89
+    const NEW_BASE = 8.5;     // WAGE_EXP_BASE from v89 on
+    const RATE = 0.116;       // WAGE_EXP_RATE, unchanged across the easing
+
+    // ── Which curve is this save already on? ──
+    //
+    // Version 90 alone cannot answer that, and assuming it could was a bug:
+    // a save migrated up from before v89 carries OLD-curve wages and needs
+    // the easing, while a save CREATED by a v89 or v90 build already carries
+    // NEW-curve wages and must not be eased a second time — that would leave
+    // it at 72.25% of the original curve, cutting the wage bill of every save
+    // currently in the wild.
+    //
+    // Generation prices a wage at BASE*exp(RATE*ovr)*(1+rand*0.10), so the
+    // median of wage/exp(RATE*ovr) lands near 10.5 on the old curve and 8.9
+    // on the new one. Sampled only over ovr >= 55, because WAGE_FLOOR pins
+    // the bottom of the range and would drag the ratio up; the median shrugs
+    // off the minority priced away from the curve (pack pulls carrying
+    // `wageFactor`, negotiated transfers, free agents who took 0.8x).
+    //
+    // Deliberately biased toward NOT easing: skipping leaves an old save
+    // exactly where it already was, while easing a current save corrupts it.
+    // Too small a sample to judge is therefore also a skip.
+    const sampleRatios: number[] = [];
+    for (const p of Object.values((data.players ?? {}) as Record<string, { wage?: unknown; overall?: unknown }>)) {
+      if (!p || typeof p !== 'object') continue;
+      const w = typeof p.wage === 'number' ? p.wage : null;
+      const o = typeof p.overall === 'number' ? p.overall : null;
+      if (w === null || o === null || !Number.isFinite(w) || !Number.isFinite(o)) continue;
+      if (o < 55 || w <= WAGE_FLOOR) continue;
+      sampleRatios.push(w / Math.exp(RATE * o));
+    }
+    sampleRatios.sort((a, b) => a - b);
+    const median = sampleRatios.length ? sampleRatios[Math.floor(sampleRatios.length / 2)] : 0;
+    const MIDPOINT = ((OLD_BASE + NEW_BASE) / 2) * 1.05;
+    const alreadyEased = sampleRatios.length < 20 || median < MIDPOINT;
+    if (alreadyEased) return { ...data, version: 91 };
 
     const players = (data.players ?? {}) as Record<string, { wage?: unknown }>;
     for (const player of Object.values(players)) {

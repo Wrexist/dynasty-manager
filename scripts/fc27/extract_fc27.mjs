@@ -17,7 +17,7 @@
  */
 import { sleep, getJson, AccessDeniedError, EgressBlockedError } from './lib/http.mjs';
 import { byId, pageUrl } from './lib/sources.mjs';
-import { loadState, saveState, writeRawPage } from './lib/raw.mjs';
+import { loadState, saveState, writeRawPage, requestFingerprint } from './lib/raw.mjs';
 import { parseArgs } from './lib/args.mjs';
 import { RAW_DIR } from './lib/paths.mjs';
 
@@ -96,8 +96,15 @@ export async function extract(args = {}) {
   const delay = args.delay ?? 1000;
   const max = args.max ?? Infinity;
 
-  const state = loadState(rawDir, { fresh: args.fresh });
+  // Pages are only reusable by a run asking EA the same question, so the
+  // checkpoint carries the request identity and `loadState` discards pages
+  // pulled under a different one.
+  const fingerprint = requestFingerprint({
+    base, gender: args.gender, locale: args.locale, slug: args.slug ?? null,
+  });
+  const state = loadState(rawDir, { fresh: args.fresh, fingerprint });
   state.base = base;
+  state.fingerprint = fingerprint;
 
   if (!state.slug) {
     const candidates = args.slug ? [args.slug] : source.slugCandidates;

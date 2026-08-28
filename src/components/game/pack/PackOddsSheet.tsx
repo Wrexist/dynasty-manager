@@ -14,6 +14,7 @@ import {
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 import { cn } from '@/lib/utils';
+import { GlassPanel } from '@/components/game/GlassPanel';
 import { PackArt } from './PackArt';
 
 interface PackOddsSheetProps {
@@ -208,7 +209,7 @@ export function PackOddsSheet({ tier: rawTier, streak, bonusCards = 0, onClose }
             rarity row, because it replaces the GUARANTEED slot (the rarity
             table below describes the other cards and is untouched by it). */}
         {legendChance > 0 && (
-          <div className="rounded-xl border border-border/50 bg-muted/20 px-3 py-2.5 mb-3 text-xs">
+          <GlassPanel className="px-3 py-2.5 mb-3 text-xs">
             <div className="flex items-center justify-between gap-3">
               <span className="text-foreground/90">
                 The guaranteed card is a <span className="font-semibold text-foreground">Hall of Legends</span> icon —
@@ -219,7 +220,7 @@ export function PackOddsSheet({ tier: rawTier, streak, bonusCards = 0, onClose }
             <p className="text-[11px] text-muted-foreground mt-1">
               Drawn from the hall&apos;s founding class and the greats who have retired in your own save.
             </p>
-          </div>
+          </GlassPanel>
         )}
 
         {/* What to expect — the guarantee tells you the floor; this tells you

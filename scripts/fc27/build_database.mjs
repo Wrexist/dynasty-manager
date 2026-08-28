@@ -13,7 +13,7 @@
  * failure costs only the pages that never landed. `--fresh` re-pulls from zero.
  */
 import { writeFileSync, mkdirSync } from 'fs';
-import { dirname } from 'path';
+import { dirname, join } from 'path';
 import { extract, SourceRefusedError } from './extract_fc27.mjs';
 import { run as normalizeRun } from './normalize_fc27.mjs';
 import { run as validateRun } from './validate_fc27.mjs';
@@ -22,15 +22,18 @@ import { run as mergePotentialRun } from './merge_potential.mjs';
 import { run as exportForGameRun } from './export_for_game.mjs';
 import { EgressBlockedError } from './lib/http.mjs';
 import { parseArgs } from './lib/args.mjs';
-import { sidecarFor, RAW_DIR, DATA_DIR } from './lib/paths.mjs';
+import { sidecarFor, DATA_DIR } from './lib/paths.mjs';
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  const rawDir = args.rawDir ?? RAW_DIR;
   const outDir = args.outDir ?? DATA_DIR;
   // A run redirected with --out-dir must not write its reports over the repo's
   // committed ones, so every downstream artifact follows the dataset.
   const paths = sidecarFor(args.outDir);
+  // ...including the raw pages and their checkpoint. This defaulted to the
+  // shared RAW_DIR, so a fixture or side-by-side run redirected with only
+  // --out-dir would overwrite the main extraction's checkpoint.
+  const rawDir = args.rawDir ?? join(paths.dataDir, 'raw');
 
   const plan = [
     'extract', 'normalize',
@@ -108,7 +111,13 @@ async function main() {
 
   if (args.exportForGame) {
     announce('export for game');
-    const exported = exportForGameRun({ csvPath: maleCsv, outPath: args.gameOut ?? paths.gameInput });
+    const exported = exportForGameRun({
+      csvPath: maleCsv,
+      outPath: args.gameOut ?? paths.gameInput,
+      // Parsed by args.mjs and implemented by the export stage, but never
+      // forwarded — so the documented flag silently did nothing here.
+      allowMissingPotential: Boolean(args.allowMissingPotential),
+    });
     record('export-for-game', {
       out: exported.outPath, rows: exported.total,
       unresolvedLeagues: exported.unresolvedLeagues.length, missingPotential: exported.missingPotential,

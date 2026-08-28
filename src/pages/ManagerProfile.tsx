@@ -9,6 +9,7 @@ import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { ACHIEVEMENTS } from '@/utils/achievements';
 import { cn } from '@/lib/utils';
+import { getRatingColor } from '@/utils/uiHelpers';
 import type { RecordEntry } from '@/types/game';
 import { getMilestoneIcon } from '@/utils/milestones';
 import { PageHint } from '@/components/game/PageHint';
@@ -302,8 +303,11 @@ const ManagerProfile = () => {
                     <p className="text-foreground font-semibold truncate">{l.firstName} {l.lastName}</p>
                     <p className="text-muted-foreground truncate">{l.era}</p>
                   </div>
-                  <span className="text-primary font-bold tabular-nums shrink-0">
-                    {l.peakOverall}{l.retiredSeason !== null ? ` · S${l.retiredSeason}` : ''}
+                  <span className="shrink-0 tabular-nums">
+                    {/* Ratings carry the threshold colour everywhere else in
+                        the app; a flat gold here made a 88 read like a 95. */}
+                    <span className={cn('font-mono font-black', getRatingColor(l.peakOverall))}>{l.peakOverall}</span>
+                    {l.retiredSeason !== null && <span className="text-muted-foreground font-semibold"> · S{l.retiredSeason}</span>}
                   </span>
                 </div>
               ))}

@@ -9,7 +9,7 @@
  * write elsewhere, so the untouched API responses always remain to re-derive
  * from if the normalizer changes.
  */
-import { mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync } from 'fs';
+import { mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync, rmSync } from 'fs';
 import { join } from 'path';
 import { RAW_DIR } from './paths.mjs';
 
@@ -17,12 +17,45 @@ const STATE_FILE = '_state.json';
 const pageName = (offset) => `source_${String(offset).padStart(6, '0')}.json`;
 
 /** @returns {{source:string, slug:string|null, base:string|null, total:number|null, pages:Record<string,{file:string,count:number}>, done:boolean}} */
-export function loadState(rawDir = RAW_DIR, { fresh = false } = {}) {
-  const file = join(rawDir, STATE_FILE);
-  if (fresh || !existsSync(file)) {
-    return { source: 'ea-drop-api', slug: null, base: null, total: null, pages: {}, done: false };
+/** Delete cached page files so a reset checkpoint cannot inherit them.
+ *
+ *  `--fresh` used to clear only `_state.json`, but `readRawItems` globs every
+ *  `source_*.json` in the directory — so a fresh run, or a run with a
+ *  different `--base`/`--gender`, normalised whatever the previous pull left
+ *  behind. That is how wrong-gender or stale records reach the CSV without
+ *  anything reporting it. */
+function clearRawPages(rawDir) {
+  if (!existsSync(rawDir)) return;
+  for (const f of readdirSync(rawDir)) {
+    if (/^source_\d+\.json$/.test(f)) rmSync(join(rawDir, f), { force: true });
   }
-  return JSON.parse(readFileSync(file, 'utf8'));
+}
+
+/** Identity of the request set a checkpoint's pages were pulled with. Pages
+ *  are only reusable by a run asking EA the same question. */
+export function requestFingerprint({ base = null, gender = null, locale = null, slug = null } = {}) {
+  return JSON.stringify({ base, gender: gender ?? null, locale: locale ?? null, slug: slug ?? null });
+}
+
+export function loadState(rawDir = RAW_DIR, { fresh = false, fingerprint = null } = {}) {
+  const file = join(rawDir, STATE_FILE);
+  const empty = () => ({
+    source: 'ea-drop-api', slug: null, base: null, fingerprint, total: null, pages: {}, done: false,
+  });
+  if (fresh || !existsSync(file)) {
+    clearRawPages(rawDir);
+    return empty();
+  }
+  const state = JSON.parse(readFileSync(file, 'utf8'));
+  // A checkpoint whose pages answer a different question is not a checkpoint
+  // for this run — resuming from it would silently mix two extractions.
+  if (fingerprint !== null && state.fingerprint !== undefined && state.fingerprint !== fingerprint) {
+    console.log('[extract] request parameters changed since the last run — discarding cached pages');
+    clearRawPages(rawDir);
+    return empty();
+  }
+  if (fingerprint !== null && state.fingerprint === undefined) state.fingerprint = fingerprint;
+  return state;
 }
 
 export function saveState(rawDir, state) {

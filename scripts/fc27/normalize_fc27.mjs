@@ -27,13 +27,21 @@ const SOURCE_URL_TEMPLATE = 'https://www.ea.com/games/ea-sports-fc/ratings?playe
 export function dedupeById(rows) {
   const seen = new Map();
   const counts = new Map();
+  const missingId = [];
   for (const row of rows) {
     const id = row.player_id;
+    // `normalizeEaPlayer` leaves `player_id` null when EA ships no id. Keyed
+    // on null, every such record collapsed into one retained row and the rest
+    // were dropped — reported as a duplicate of `player_id: null`, which reads
+    // as overlapping pages rather than as discarded players. A missing id is
+    // not evidence of a duplicate, so those rows bypass dedup entirely.
+    if (id === null || id === undefined || id === '') { missingId.push(row); continue; }
     counts.set(id, (counts.get(id) ?? 0) + 1);
     if (!seen.has(id)) seen.set(id, row);
   }
   return {
-    rows: [...seen.values()],
+    rows: [...seen.values(), ...missingId],
+    missingId: missingId.length,
     duplicates: [...counts.entries()]
       .filter(([, count]) => count > 1)
       .map(([player_id, count]) => ({ player_id, count })),

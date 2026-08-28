@@ -52,6 +52,15 @@ const REPORT_JSON = join(ROOT, 'scripts/fc26-report.json');
 const OUT_CSV = join(ROOT, 'data/fc27/FC27_male_players_reconciled.csv');
 const OUT_REPORT = join(ROOT, 'data/fc27/reconciliation.json');
 
+/** Evidence classes, strongest first — see the contested-claim sort below. */
+const CLUB_TIER_RANK = {
+  'squad-fingerprint': 5,
+  'player-vote': 4,
+  'fc26-report': 3,
+  'exact-name': 2,
+  'token-subset': 1,
+};
+
 const norm = (s) => normClub(s);
 
 function gameClubIndex() {
@@ -196,11 +205,26 @@ export function main() {
   const contested = [];
   for (const [clubId, list] of claims) {
     if (list.length < 2) continue;
-    list.sort((a, b) => b.evidence - a.evidence);
+    // `evidence` is only ever set on the squad-fingerprint tier, so sorting on
+    // it alone left every other contest a tie — and a tie resolved by Map
+    // insertion order, i.e. by the order EA happened to list the clubs in the
+    // CSV. The loser's entire squad then falls to `unresolved`, so which real
+    // players make it into the game was decided by row order. Rank by how
+    // strong the evidence CLASS is first, then by its magnitude, then by name
+    // so the outcome is reproducible run to run.
+    list.sort((a, b) =>
+      (CLUB_TIER_RANK[b.tier] ?? 0) - (CLUB_TIER_RANK[a.tier] ?? 0)
+      || b.evidence - a.evidence
+      || String(a.ea).localeCompare(String(b.ea)));
     const [winner, ...losers] = list;
     for (const l of losers) resolvedClub.delete(l.ea);
     contested.push({
       gameClubId: clubId,
+      // `basis` records WHY this claimant survived, so the report explains the
+      // decision instead of just naming it.
+      basis: (CLUB_TIER_RANK[winner.tier] ?? 0) > (CLUB_TIER_RANK[losers[0].tier] ?? 0)
+        ? 'tier'
+        : winner.evidence !== losers[0].evidence ? 'evidence' : 'name-order',
       kept: { eaClub: winner.ea, tier: winner.tier, evidence: winner.evidence },
       dropped: losers.map((l) => ({ eaClub: l.ea, tier: l.tier, evidence: l.evidence })),
     });

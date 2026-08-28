@@ -113,7 +113,15 @@ async function main() {
     check('fixture players read as new', comparison.counts.new_players === normalized.split.male.length);
 
     console.log('export for game');
-    const exported = exportForGameRun({ csvPath: maleCsv, outPath: join(outDir, 'game_input.csv') });
+    // The fixture deliberately leaves every `potential` empty (EA's ratings
+    // API carries none), and the export drops those rows by default — so
+    // gameRows[0] was undefined and this check failed before it ever tested
+    // the export contract it exists to test.
+    const exported = exportForGameRun({
+      csvPath: maleCsv,
+      outPath: join(outDir, 'game_input.csv'),
+      allowMissingPotential: true,
+    });
     const gameRows = parseCsv(readFileSync(exported.outPath, 'utf8'));
     const REQUIRED = ['player_id', 'short_name', 'player_positions', 'overall', 'potential', 'age',
       'club_name', 'league_id', 'league_name', 'pace', 'physic', 'goalkeeping_diving',

@@ -24,6 +24,7 @@ import { LEAGUES, ALL_CLUBS } from '@/data/league';
 import { parseCsv } from './lib/csv.mjs';
 import { normClub } from './match_game_clubs.mjs';
 import { LEAGUE_ALIASES } from './leagueAliases.mjs';
+import { sameNationality } from './lib/nationality.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const FC27 = join(ROOT, 'data/fc27/FC27_male_players.csv');
@@ -65,7 +66,11 @@ function main() {
 
     checked += 1;
     // Nationality is the cross-check on identity: same id AND same country.
-    if (norm(row.nationality) !== norm(base.nationality_name)) {
+    // Through `sameNationality`, not a raw compare: EA labels the same nation
+    // differently from the baseline ("Holland"/"Netherlands"), and the raw
+    // compare discarded 461 valid votes — 408 Dutch, 239 Turkish, 88 Czech —
+    // as mismatches. `lib/nationality.mjs` exists precisely for this.
+    if (!sameNationality(row.nationality, base.nationality_name)) {
       nationalityMismatch += 1;
       continue;
     }

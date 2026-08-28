@@ -2,11 +2,32 @@ import { describe, it, expect } from 'vitest';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 
 /**
- * The uniform wage scaling applied by the v90 → v91 migration. Tests that
- * assert an absolute wage after a FULL chain migration have to account for it;
- * tests about a single earlier step should assert ratios instead.
+ * A squad priced on the PRE-v89 wage curve (`WAGE_EXP_BASE = 10`).
+ *
+ * The v90 → v91 easing no longer fires on version alone — version 90 cannot
+ * distinguish a save migrated up from before v89 (old-curve wages, needs the
+ * easing) from one CREATED by a v89/v90 build (new-curve wages, must not be
+ * eased again). It reads the curve off the save instead, so a fixture that
+ * wants the easing has to look like a real old-curve save.
  */
-const WAGE_EASING_V91 = 0.85;
+function oldCurveSquad(n = 30): Record<string, { wage: number; overall: number }> {
+  const out: Record<string, { wage: number; overall: number }> = {};
+  for (let i = 0; i < n; i++) {
+    const overall = 60 + (i % 30);
+    out[`curve-${i}`] = { overall, wage: Math.round(10 * Math.exp(0.116 * overall) * 1.05) };
+  }
+  return out;
+}
+
+/** The same squad priced on the POST-v89 curve — must NOT be eased again. */
+function newCurveSquad(n = 30): Record<string, { wage: number; overall: number }> {
+  const out: Record<string, { wage: number; overall: number }> = {};
+  for (let i = 0; i < n; i++) {
+    const overall = 60 + (i % 30);
+    out[`curve-${i}`] = { overall, wage: Math.round(8.5 * Math.exp(0.116 * overall) * 1.05) };
+  }
+  return out;
+}
 
 describe('saveMigration', () => {
   it('should have current version set to 92', () => {
@@ -340,10 +361,11 @@ describe('saveMigration', () => {
     expect(players.legend.wage).toBeGreaterThan(400_000);
     expect(players.icon.wage).toBeGreaterThan(250_000);
     expect(players.squad.value).toBe(5_000_000);
-    // The v90 → v91 wage easing scales every wage by 0.85 later in the chain,
-    // so a common player's wage arrives eased rather than untouched. Value is
-    // not eased, which is why only the wage carries the factor.
-    expect(players.squad.wage).toBe(Math.round(50_000 * WAGE_EASING_V91));
+    // The v90 → v91 wage easing declines to run here, and that is the point:
+    // it now reads the wage curve off the save rather than trusting the
+    // version, and a three-player fixture cannot be read. It errs toward
+    // leaving wages alone, so this common player's wage arrives untouched.
+    expect(players.squad.wage).toBe(50_000);
   });
 
   it('v66 → v67 leaves saves without a players map untouched', () => {
@@ -609,9 +631,11 @@ describe('saveMigration', () => {
     const out = migrateSaveData(v66) as Record<string, unknown>;
     const players = out.players as Record<string, { value: number; wage: number }>;
     expect(players.bronze.value).toBeGreaterThanOrEqual(500_000);
-    // v67 must not deflate the wage; the only reduction along the chain is the
-    // v91 easing, which is uniform and deliberate, so the floor moves with it.
-    expect(players.bronze.wage).toBeGreaterThanOrEqual(Math.round(2_000 * WAGE_EASING_V91));
+    // v67 must not deflate the wage. The v90 → v91 easing is the only
+    // reduction along the chain and it declines on a fixture this small (it
+    // reads the wage curve off the save and two players cannot be read), so
+    // the original wage is the floor here.
+    expect(players.bronze.wage).toBeGreaterThanOrEqual(2_000);
   });
 
   it('v66 → v67 leaves saves without players untouched', () => {
@@ -694,10 +718,10 @@ describe('v90 → v91: the wage easing reaches existing saves', () => {
   // `recomputePlayerValueOnly`, which never writes `wage` — so pre-v89 squads
   // stayed 15% expensive forever while every new arrival came in cheap.
   const save = (players: Record<string, unknown>, clubs: Record<string, unknown> = {}) =>
-    migrateSaveData({ version: 90, players, clubs });
+    migrateSaveData({ version: 90, players: { ...oldCurveSquad(), ...players }, clubs });
 
   it('scales existing player wages by 0.85', () => {
-    const out = migrateSaveData({ version: 90, players: { a: { wage: 100_000 } }, clubs: {} });
+    const out = save({ a: { wage: 100_000 } });
     expect((out.players as Record<string, { wage: number }>).a.wage).toBe(85_000);
     expect(out.version).toBe(CURRENT_VERSION);
   });
@@ -734,7 +758,7 @@ describe('v90 → v91: the wage easing reaches existing saves', () => {
   it('survives malformed players and clubs', () => {
     const out = migrateSaveData({
       version: 90,
-      players: { a: null, b: { wage: 'lots' }, c: { wage: 20_000 } },
+      players: { ...oldCurveSquad(), a: null, b: { wage: 'lots' }, c: { wage: 20_000 } },
       clubs: { x: null, y: { wageBill: undefined }, z: { wageBill: 200_000 } },
     });
     const players = out.players as Record<string, { wage?: unknown }>;
@@ -744,8 +768,29 @@ describe('v90 → v91: the wage easing reaches existing saves', () => {
     expect(out.version).toBe(CURRENT_VERSION);
   });
 
+  it('does NOT ease a save whose wages already sit on the post-v89 curve', () => {
+    // The regression this guard exists for: a save CREATED by a v89/v90 build
+    // is also version 90, and easing it a second time leaves every wage at
+    // 72.25% of the original curve — a 15% pay cut across every squad in the
+    // wild. Detection reads the curve off the save rather than trusting the
+    // version number.
+    const priced = newCurveSquad();
+    const out = migrateSaveData({ version: 90, players: { ...priced }, clubs: { c: { wageBill: 1_000_000 } } });
+    const players = out.players as Record<string, { wage: number }>;
+    expect(players['curve-0'].wage).toBe(priced['curve-0'].wage);
+    expect((out.clubs as Record<string, { wageBill: number }>).c.wageBill).toBe(1_000_000);
+    expect(out.version).toBe(CURRENT_VERSION);
+  });
+
+  it('declines to ease when the sample is too small to read the curve', () => {
+    // Biased toward NOT easing: skipping leaves an old save where it already
+    // was, while easing a current save corrupts it.
+    const out = migrateSaveData({ version: 90, players: { a: { wage: 100_000, overall: 80 } }, clubs: {} });
+    expect((out.players as Record<string, { wage: number }>).a.wage).toBe(100_000);
+  });
+
   it('does not run twice on a save already at the current version', () => {
-    const once = migrateSaveData({ version: 90, players: { a: { wage: 100_000 } }, clubs: {} });
+    const once = save({ a: { wage: 100_000 } });
     const twice = migrateSaveData(once);
     expect((twice.players as Record<string, { wage: number }>).a.wage).toBe(85_000);
   });
