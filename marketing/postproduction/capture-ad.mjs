@@ -45,6 +45,7 @@ await ctx.addInitScript(`(() => {
 
 const page = await ctx.newPage();
 page.on('pageerror', e => console.log('PAGE ERR:', String(e).slice(0, 200)));
+page.on('console', m => { if (m.text().startsWith('[capture]')) console.log(m.text()); });
 await page.goto(URL, { waitUntil: 'networkidle' });
 await page.waitForTimeout(1500 * SLOW);
 
@@ -60,6 +61,9 @@ cdp.on('Page.screencastFrame', async ({ data, sessionId, metadata }) => {
   try { await cdp.send('Page.screencastFrameAck', { sessionId }); } catch (e) { void e; }
 });
 await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 80, everyNthFrame: 1 });
+// Zero the harness's caption clock to the start of the take, so caption
+// timings are expressed in the same seconds the finished file uses.
+await page.evaluate(() => (window).__adClockStart?.());
 
 const wait = ms => page.waitForTimeout(ms * SLOW);
 const tap = async (x, y) => { await page.mouse.click(x, y); };
