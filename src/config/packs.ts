@@ -206,7 +206,13 @@ export const PACK_TIERS: PackTierDefinition[] = [
     // lineup, on the tier that least needs a reason to be bought.
     key: 'icon',
     label: 'Legends Pack',
-    storeCaption: '1 guaranteed Icon, 88+, walkout guaranteed.',
+    // NOT "1 guaranteed Icon". The game ships no Icons — there is no retired-
+    // legend pool anywhere in the data, and `pickRealPlayerForPack` draws from
+    // the community pack, which is current players only. "Legends" here is the
+    // card ISSUE (a +4 version), which is what the blurb below describes and
+    // what the pack actually delivers. A paid pack must describe its contents
+    // accurately; see the odds sheet added for the same reason.
+    storeCaption: '1 card, Legends issue, 88+, walkout guaranteed.',
     badge: 'trophy',
     storeBlurb: 'One card, and it is the best version in the game: a Legends issue at +4 to every stat, guaranteed 88 or better, walkout guaranteed. The only place a card can reach the mid-90s. A trophy, not a squad-filler.',
     price: 0,
@@ -461,7 +467,7 @@ export const MAX_WALKOUTS_PER_PACK = 1;
 /**
  * Wage a pack-pulled player signs for, as a fraction of their market wage.
  *
- * Pack pulls are real players at real ratings, so an Icon Pack hands you
+ * Pack pulls are real players at real ratings, so a Legends Pack hands you
  * someone who genuinely earns £400k a week. Measured before this existed: one
  * $6.99 Rare Gold added ~£920k/week to the bill — 21% of Arsenal's entire wage
  * budget, or 58% of Celtic's — so buying a pack made your club materially worse

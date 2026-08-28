@@ -1372,3 +1372,40 @@ describe('Pack opening — manager XP & career stat growth', () => {
     expect(xpAfter).toBe(xpBefore);
   });
 });
+
+describe('paid packs describe what they actually contain', () => {
+  // The Legends Pack shipped as "1 guaranteed Icon, 88+" on a $9.99 IAP while
+  // the game had no Icons at all: there is no retired-legend pool in the data,
+  // and pack pulls come from the community pack, which is current players only.
+  // "Legends" is the card ISSUE (a +4 version), not a player type. An App Store
+  // paid item has to describe its contents accurately — the same reason the
+  // odds sheet exists — so this guards the claim rather than just the wording.
+  const CONTENT_CLAIM_FIELDS = ['storeCaption', 'storeBlurb', 'label'] as const;
+
+  it('never promises an Icon while no icon pool exists', () => {
+    for (const tier of PACK_TIERS) {
+      for (const field of CONTENT_CLAIM_FIELDS) {
+        const text = String(tier[field] ?? '');
+        // "Legends" (the issue/frame name) is fine; "Icon" as a thing you
+        // receive is not, until a retired-legend pool actually ships.
+        expect(text, `${tier.key}.${field} promises an Icon`).not.toMatch(/\bicons?\b/i);
+      }
+    }
+  });
+
+  it('states a guaranteed floor only when the tier really guarantees one', () => {
+    for (const tier of PACK_TIERS) {
+      const claim = String(tier.storeCaption ?? '').match(/(\d{2})\+/);
+      if (!claim) continue;
+      expect(tier.guaranteedMinOvr, `${tier.key} advertises ${claim[1]}+`).toBe(Number(claim[1]));
+    }
+  });
+
+  it('states a card count that matches what the tier deals', () => {
+    for (const tier of PACK_TIERS) {
+      const claim = String(tier.storeCaption ?? '').match(/^(\d+)\s+(card|player)/i);
+      if (!claim) continue;
+      expect(tier.cards, `${tier.key} advertises ${claim[1]} ${claim[2]}(s)`).toBe(Number(claim[1]));
+    }
+  });
+});
