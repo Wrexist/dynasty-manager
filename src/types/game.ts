@@ -339,6 +339,29 @@ export interface Player {
    */
   wageFactor?: number;
   /**
+   * Highest overall this player has ever held, sampled at every season
+   * rollover (see `seasonEnd`). The retirement archive judges legend
+   * worthiness on this — by 40 every great has declined far below the peak
+   * that made him one, so judging on final overall would archive nobody.
+   * Absent reads as "current overall is the peak so far".
+   */
+  peakOverall?: number;
+  /**
+   * Set the first time a player makes the Ballon d'Or top 10 and NEVER
+   * cleared — unlike `ballonDOrTop10HoldSeason`, which is the reigning-season
+   * marker and is reverted when the reign ends. Career pedigree, not current
+   * form; one of the two rungs of legend eligibility reads it.
+   */
+  ballonDorTop10Ever?: boolean;
+  /**
+   * When present, this card is a Hall of Legends issue of a retired great —
+   * the id points into the seed set (`src/data/legends.ts`) or the save's own
+   * `retiredLegends` archive. Cosmetic + provenance only: the card plays
+   * exactly as its attributes say, and an id that no longer resolves simply
+   * stops badging (same degrade contract as `packFrame`).
+   */
+  legendId?: string;
+  /**
    * Per-attribute deltas applied by the active Ballon d'Or top-10 boost.
    * Stored as deltas (not absolute snapshots) so development, training, and
    * decline that happen *during* the reign are preserved when the boost is
@@ -853,6 +876,47 @@ export interface ClubRecords {
   cupWins: number;
   seasonsManaged: number;
   hallOfFame: RecordEntry[];
+}
+
+/**
+ * A retired great, slim enough to persist forever.
+ *
+ * Two sources, one shape: `seed` legends are the authored fictional greats in
+ * `src/data/legends.ts` (there so Legend cards exist from season 1), and
+ * `career` legends are archived by `seasonEnd` when a player anywhere in the
+ * world retires with a legend-worthy peak — including, eventually, the real
+ * stars the save started with. Deliberately NOT a full `Player`: the archive
+ * lives in every save slot forever, so it stores what a card needs and
+ * nothing a simulation needs.
+ *
+ * `attributes` are stored PRE-RESCALED to `peakOverall` at archive time (the
+ * retiree's declined attributes scaled back up), so dealing a card is a pure
+ * read — no maths at open time that could drift from the stored rating.
+ */
+export interface RetiredLegend {
+  /** `legend-<playerId>` for career legends, `seed-<slug>` for authored ones. */
+  id: string;
+  firstName: string;
+  lastName: string;
+  nationality: string;
+  position: Position;
+  altPos?: Position[];
+  /** The rating the Legend card is issued at. */
+  peakOverall: number;
+  attributes: PlayerAttributes;
+  skillMoves?: number;
+  /** Kept so the archived face matches the player the manager remembers. */
+  appearance?: PlayerAppearance;
+  /** In-game season of retirement; null for seed legends (pre-history). */
+  retiredSeason: number | null;
+  /** One line of provenance shown on the card — club served + span for career
+   *  legends, an authored era line for seeds. */
+  era: string;
+  careerGoals: number;
+  careerAssists: number;
+  careerApps: number;
+  ballonDorTop10: boolean;
+  source: 'career' | 'seed';
 }
 
 export interface BallonDOrPlacement {
@@ -2397,6 +2461,18 @@ export interface PackTierDefinition {
    *  for, what its version means. Player-facing teaching copy, not marketing
    *  fluff — the popup exists so a new player LEARNS the storefront. */
   storeBlurb?: string;
+  /** ── Legend card chance ──
+   *  Probability (0–1) that this pack's guaranteed slot is a Hall of Legends
+   *  card — a retired great from the authored seed set or the save's own
+   *  archive — instead of an active player. A Legend card is issued at the
+   *  legend's own peak rating with NO version boost: the legend IS the
+   *  version, and boosting a 95 peak to 99 would out-rate every card the
+   *  living game can produce.
+   *
+   *  Published in the odds sheet like every other random outcome (Guideline
+   *  3.1.1 — this is a randomized paid outcome and must be disclosed before
+   *  purchase). Absent means 0. */
+  legendChance?: number;
 }
 
 /** Card badges. Deliberately few — a badge on every card is a badge on none. */

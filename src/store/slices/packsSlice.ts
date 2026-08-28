@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/react';
-import type { OpenedPackRecord, OpenPackResult, PackTierKey, PackUnlockMethod, Player, QuickSellPackedPlayerResult, ReleasePackedPlayerResult } from '@/types/game';
+import type { RetiredLegend, OpenedPackRecord, OpenPackResult, PackTierKey, PackUnlockMethod, Player, QuickSellPackedPlayerResult, ReleasePackedPlayerResult } from '@/types/game';
 import type { GameState } from '../storeTypes';
 import { addMsg, safeRandomUUID } from '@/utils/helpers';
 import { MAX_SQUAD_SIZE, MIN_SQUAD_SIZE, FFP_WAGE_RATIO_WARNING } from '@/config/gameBalance';
@@ -236,6 +236,7 @@ function evaluateOpenPack(
 export const createPacksSlice = (set: Set, get: Get) => ({
   openedPacks: [] as OpenedPackRecord[],
   packPityCounter: 0,
+  retiredLegends: [] as RetiredLegend[],
   lastPackWeek: 0,
   lastPackSeason: 0,
   dailyPackOpens: { date: '', free: {}, ad: {} } as {
@@ -346,6 +347,10 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     const versionBoost = packVersionBoostFor(tierKey, weekIndex);
     const players = generatePackContents(tierKey, state.season, {
       pityTriggered, freeOpen, streak, extraCards: bonusCards, versionBoost,
+      // The Hall of Legends pool this open can deal from. The generator merges
+      // it with the authored seed set; an empty archive is normal for the
+      // first seasons of a save.
+      legendArchive: state.retiredLegends,
     });
 
     // Claim players onto the club roster. Generators created them with
@@ -359,7 +364,10 @@ export const createPacksSlice = (set: Set, get: Get) => ({
 
     const finalizedPlayers: Player[] = players.map(p => {
       const owned: Player = { ...p, clubId: state.playerClubId, joinedSeason: state.season };
-      if (earnedFrame && p.overall >= frameFloor) owned.packFrame = earnedFrame;
+      // A Legend card arrives already wearing the Legends frame (set by
+      // `buildPlayerFromLegend`) — the tier's own frame must not overwrite the
+      // hall's claim.
+      if (earnedFrame && !p.packFrame && p.overall >= frameFloor) owned.packFrame = earnedFrame;
       newPlayers[owned.id] = owned;
       return owned;
     });

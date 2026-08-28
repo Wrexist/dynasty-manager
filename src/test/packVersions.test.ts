@@ -49,7 +49,14 @@ beforeAll(() => {
     for (let run = 0; run < PACKS_PER_TIER; run++) {
       // The free tier is resolved at max streak so it is measured at the band
       // it actually ships at on day 7 — its weakest band would understate it.
-      packs.push(generatePackContents(key, 1, key === FREE_PACK_TIER ? { streak: 7 } : {}));
+      // Legend deals are forced OFF: this file pins the ACTIVE-player version
+      // pipeline (band, boost, ceiling), and a Hall of Legends card is the
+      // disclosed exception to that band — it has its own suite in
+      // legends.test.ts.
+      packs.push(generatePackContents(key, 1, {
+        forceLegendRoll: false,
+        ...(key === FREE_PACK_TIER ? { streak: 7 } : {}),
+      }));
     }
     corpus[key] = packs;
   }
@@ -248,7 +255,7 @@ describe('promo week — the sheet and the generator agree', () => {
       let sawTop = 0;
       const RUNS = 60;
       for (let i = 0; i < RUNS; i++) {
-        for (const p of generatePackContents(skin.tier, 1, { versionBoost: promoBoost })) {
+        for (const p of generatePackContents(skin.tier, 1, { forceLegendRoll: false, versionBoost: promoBoost })) {
           expect(p.overall, `${skin.name} dealt ${p.overall} past its ceiling ${raisedCeiling}`)
             .toBeLessThanOrEqual(raisedCeiling);
           if (p.overall > tier.ovrMax) sawTop++;

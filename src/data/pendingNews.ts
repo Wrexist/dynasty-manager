@@ -43,7 +43,9 @@ export interface PendingRelease {
 
 export const PENDING_NEWS: PendingRelease = {
   highlights: [],
-  new: [],
+  new: [
+    'Hall of Legends: retired greats can now appear as Legend cards in Elite, World Class and Legends packs — including stars who retire in your own save.',
+  ],
   improved: [],
   fixed: [],
   headline: null,

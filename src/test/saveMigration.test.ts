@@ -9,8 +9,8 @@ import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 const WAGE_EASING_V91 = 0.85;
 
 describe('saveMigration', () => {
-  it('should have current version set to 90', () => {
-    expect(CURRENT_VERSION).toBe(91);
+  it('should have current version set to 92', () => {
+    expect(CURRENT_VERSION).toBe(92);
   });
 
   it('v85 → v86 upgrades a Sunday save to sub-schema v3', () => {

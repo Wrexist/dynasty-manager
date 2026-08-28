@@ -662,6 +662,7 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
     pendingFarewell: [],
     openedPacks: [],
     packPityCounter: 0,
+    retiredLegends: [],
     lastPackWeek: 0,
     lastPackSeason: 0,
     dailyPackOpens: { date: '', free: {}, ad: {} },

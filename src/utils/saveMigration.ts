@@ -12,11 +12,25 @@ import { isPlaceholderClubId } from '@/config/continental';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 91;
+const CURRENT_VERSION = 92;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
 const migrations: Record<number, MigrationFn> = {
+  // v91 -> v92: Hall of Legends. `retiredLegends` starts empty — a loaded save
+  // has archived nobody, and the seasons already played cannot be re-judged
+  // (their retirees were deleted at the time, per the old behaviour). The two
+  // new per-player fields (`peakOverall`, `ballonDorTop10Ever`) are optional
+  // and self-seeding: absent reads as "current overall is the peak so far" /
+  // "no top-10 yet", which is the correct statement about a v91 save.
+  91: (data) => ({
+    ...data,
+    retiredLegends: Array.isArray((data as { retiredLegends?: unknown }).retiredLegends)
+      ? (data as { retiredLegends?: unknown[] }).retiredLegends
+      : [],
+    version: 92,
+  }),
+
   // v90 → v91: apply the v89 wage easing to saves that already existed.
   //
   // v89 dropped `WAGE_EXP_BASE` 10 → 8.5 and migrated nothing, believing

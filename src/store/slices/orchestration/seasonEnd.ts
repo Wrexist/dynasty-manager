@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/react';
-import { Club, Player, TransferListing, SeasonHistory, Position, Match, LeagueId, SeasonTurnover, LeagueTableEntry, ContinentalTournamentState, PlayoffTieResult } from '@/types/game';
+import { Club, Player, RetiredLegend, TransferListing, SeasonHistory, Position, Match, LeagueId, SeasonTurnover, LeagueTableEntry, ContinentalTournamentState, PlayoffTieResult } from '@/types/game';
 import { calculateReputationTier, generateJobVacancies, getRetirementAge, calculateLegacyScore, generateCompetitors } from '@/utils/managerCareer';
 import {
   REP_PROMOTION, REP_RELEGATION, REP_OVERACHIEVE_BONUS, REP_UNDERACHIEVE_PENALTY, REP_TITLE, REP_CUP_WIN, REP_SACKING, REP_MIN, REP_MAX,
@@ -31,6 +31,7 @@ import { calculateSeasonAwards } from '@/utils/seasonAwards';
 import { calculateBallonDOr } from '@/utils/ballonDor';
 import { applyRarityToPlayer } from '@/utils/playerRarity';
 import { applyBallonDorTop10Boost, revertBallonDorTop10Boost, hasBallonDorTop10Reign } from '@/utils/ballonDorBoost';
+import { isLegendWorthy, buildRetiredLegend, addLegendToArchive } from '@/utils/legends';
 import { recomputePlayerValueOnly as recomputePlacementValue } from '@/utils/playerEconomics';
 import { BALLON_DOR_TOP10_RANK, MAX_CAREER_TIMELINE } from '@/config/gameBalance';
 
@@ -710,14 +711,44 @@ function finalizeSeason(
   // persisted long enough to reach the user's FA tab. Existing FAs that age
   // past the 34 retirement threshold here are dropped (same gate we use when
   // admitting newly-expiring players).
+
+
+  // ── Hall of Legends intake ──
+  // Every path below that DELETES a player (forced retirement, contract
+  // expiry past the FA age gate, the FA pool's silent evictions) runs him
+  // through this gate first. Retirement used to be pure deletion, which meant
+  // the save generated genuine legends every season and binned them; now the
+  // worthy few are frozen into `retiredLegends`, which is the pool the
+  // Legend-chance packs deal from. Idempotent per player and capped — see
+  // `addLegendToArchive`.
+  let legendArchive: RetiredLegend[] = state.retiredLegends ?? [];
+  const newLegendLines: string[] = [];
+  const maybeArchiveLegend = (pl: Player) => {
+    if (!isLegendWorthy(pl)) return;
+    const clubName = newClubs[pl.clubId]?.name ?? state.clubs[pl.clubId]?.name;
+    const record = buildRetiredLegend(pl, season, clubName);
+    const next = addLegendToArchive(legendArchive, record);
+    if (next !== legendArchive) {
+      legendArchive = next;
+      newLegendLines.push(`${pl.firstName} ${pl.lastName} (peak ${record.peakOverall})`);
+    }
+  };
+
   const existingFaSet = new Set(state.freeAgents);
   const freeAgentIds: string[] = [];
   for (const faId of state.freeAgents) {
     const fa = mergedPlayers[faId];
     if (!fa) continue;
-    if (fa.age + 1 > 34) continue;
+    if (fa.age + 1 > 34) {
+      // Aging out of the FA pool is a deletion point — the last one a great
+      // who ended his career unsigned will ever pass. Judge him for the hall
+      // before he vanishes.
+      maybeArchiveLegend(fa);
+      continue;
+    }
     const agedFa: Player = {
       ...fa, age: fa.age + 1,
+      peakOverall: Math.max(fa.peakOverall ?? 0, fa.overall),
       careerGoals: (fa.careerGoals || 0) + fa.goals,
       careerAssists: (fa.careerAssists || 0) + fa.assists,
       careerAppearances: (fa.careerAppearances || 0) + fa.appearances,
@@ -773,6 +804,10 @@ function finalizeSeason(
 
     const aged = {
       ...p, age: p.age + 1,
+      // Sample the career peak at every rollover. This is what the retirement
+      // archive judges YEARS later, after decline has erased the rating that
+      // made the player great — see `isLegendWorthy`.
+      peakOverall: Math.max(p.peakOverall ?? 0, p.overall),
       // Accumulate career stats before resetting season stats
       careerGoals: (p.careerGoals || 0) + p.goals,
       careerAssists: (p.careerAssists || 0) + p.assists,
@@ -796,7 +831,9 @@ function finalizeSeason(
           farewells.push({ playerId: p.id, playerName: `${p.firstName} ${p.lastName}`, seasonsServed: farewell.seasonsServed, stats: farewell.stats });
         }
       }
-      // Retired players never enter the FA pool — they're gone.
+      // Retired players never enter the FA pool — but the legend-worthy few
+      // enter the hall on their way out.
+      maybeArchiveLegend(aged);
       return;
     }
 
@@ -829,12 +866,20 @@ function finalizeSeason(
             delete newPlayers[freeAgentIds[weakestIdx]];
             freeAgentIds[weakestIdx] = aged.id;
             newPlayers[aged.id] = aged;
+          } else {
+            // Not better than anyone in the pool — released and deleted, so
+            // this is a hall gate too (practically unreachable for a legend-
+            // grade player, but deletion points and hall gates must stay 1:1).
+            maybeArchiveLegend(aged);
           }
-          // If not better than anyone in pool, player is simply released (not tracked)
         } else {
           newPlayers[aged.id] = aged;
           freeAgentIds.push(aged.id);
         }
+      } else {
+        // Too old or too weak for the FA pool — the other deletion point a
+        // career can end at.
+        maybeArchiveLegend(aged);
       }
       return;
     }
@@ -992,6 +1037,17 @@ function finalizeSeason(
         body: `${retiredNTPlayers.length} player${retiredNTPlayers.length > 1 ? 's have' : ' has'} retired from international duty: ${retiredNTPlayers.join(', ')}.`,
       });
     }
+  }
+
+  // Hall of Legends inductions — surfaced or the archive is invisible until a
+  // pack happens to deal from it. Rare by construction (a 93+ peak retires a
+  // handful of times per decade world-wide), so this never spams the inbox.
+  if (newLegendLines.length > 0) {
+    newMessages = addMsg(newMessages, {
+      week: 1, season, type: 'board',
+      title: 'Hall of Legends',
+      body: `${newLegendLines.join(', ')} ${newLegendLines.length > 1 ? 'have' : 'has'} retired and entered the Hall of Legends. Their cards can now appear in Legend-chance packs.`,
+    });
   }
 
   // ── Position-based season rewards: budget bonuses scaled by league prize money ──
@@ -1559,6 +1615,7 @@ function finalizeSeason(
     currentContinentalCompetition: null,
     currentLeagueCupTieId: null,
     clubRecords: updatedRecords,
+    retiredLegends: legendArchive,
     activeChallenge: endChallenge,
     activeStorylineChains: [],
     completedStorylineChainIds: [],

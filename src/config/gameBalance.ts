@@ -897,6 +897,33 @@ export const REGEN_YOUTH_AGE_MIN = 17;
 export const REGEN_YOUTH_AGE_MAX = 21;
 
 export const FORCED_RETIREMENT_AGE = 40;
+
+// ── Hall of Legends (retirement archive) ──
+//
+// When a player anywhere in the world retires, `seasonEnd` judges his PEAK
+// overall (see `Player.peakOverall`) against these rungs and, if worthy,
+// archives a slim `RetiredLegend` record the pack system can later deal as a
+// Legend card. The rungs deliberately mirror the documented `PlayerRarity`
+// 'legend' gate (types/game.ts): sustained world-class peak, or a slightly
+// lower peak backed by Ballon d'Or pedigree. Judged on peak, never on final
+// overall — by the forced-retirement age every great has declined far below
+// the rating that made him one, and a final-overall gate would archive nobody.
+/** Peak overall that makes a retiree legend-worthy outright. */
+export const LEGEND_MIN_PEAK_OVR = 93;
+/** Peak overall that suffices when the player ever made the Ballon d'Or
+ *  top 10 (`Player.ballonDorTop10Ever`). */
+export const LEGEND_MIN_PEAK_OVR_WITH_BALLON_DOR = 90;
+/** Hard cap on the archive. When full, a new legend displaces the lowest
+ *  peak only if he beats it — the hall keeps its best, not its latest. The
+ *  cap exists because the archive lives in every save slot forever. */
+export const LEGEND_ARCHIVE_CAP = 60;
+/** Age printed on a dealt Legend card. A legend returns at his prime, not at
+ *  his retirement age — a 40-year-old card would decline immediately and be
+ *  force-retired (i.e. deleted) at the very next season end, which turns the
+ *  premium pull into a rental. 27 sits inside the growth plateau: old enough
+ *  to read as a finished great, young enough to serve seasons of use. */
+export const LEGEND_CARD_AGE = 27;
+
 // ── Cliffhanger System ──
 /** Maximum number of cliffhangers shown per week */
 export const MAX_CLIFFHANGERS = 3;

@@ -541,7 +541,7 @@ function buildFreshSessionState(get: Get): Partial<GameState> {
     cup: { ties: [], currentRound: null, eliminated: false, winner: null },
     pendingPressConference: null, activeNegotiation: null,
     pendingFarewell: [], pendingStoryline: null,
-    openedPacks: [], packPityCounter: 0, lastPackWeek: 0, lastPackSeason: 0,
+    openedPacks: [], packPityCounter: 0, retiredLegends: [], lastPackWeek: 0, lastPackSeason: 0,
     dailyPackOpens: { date: '', free: {}, ad: {} },
     weeklyPackBonus: null,
     activeStorylineChains: [], completedStorylineChainIds: [], weeklyObjectives: [],
