@@ -19,9 +19,14 @@ const CLUBS = ['Fixture City', 'Fixture United', 'Fixture, Rovers', 'Fixture "At
 
 function makePlayer(i) {
   const isGk = i % 10 === 0;
+  // Stat KEYS mirror the live payload exactly: EA abbreviates the six face
+  // stats (pac/sho/pas/dri/def/phy). An earlier version of this fixture used
+  // the long spellings, which is why it happily validated a normalizer that
+  // mapped every face stat to null against the real API. A fixture that
+  // encodes our assumptions tests our assumptions, not the source.
   const stats = isGk
     ? { gkDiving: 60 + (i % 30), gkHandling: 60 + (i % 25), gkKicking: 55 + (i % 20), gkPositioning: 58 + (i % 22), gkReflexes: 62 + (i % 28) }
-    : { pace: 40 + (i % 55), shooting: 35 + (i % 60), passing: 40 + (i % 50), dribbling: 42 + (i % 52), defending: 30 + (i % 65), physicality: 45 + (i % 48), acceleration: 40 + (i % 55), sprintSpeed: 41 + (i % 54), finishing: 35 + (i % 60), unmappedNewStat: i % 9 };
+    : { pac: 40 + (i % 55), sho: 35 + (i % 60), pas: 40 + (i % 50), dri: 42 + (i % 52), def: 30 + (i % 65), phy: 45 + (i % 48), acceleration: 40 + (i % 55), sprintSpeed: 41 + (i % 54), finishing: 35 + (i % 60), unmappedNewStat: i % 9 };
   return {
     id: 900000 + i,
     rank: i + 1,
@@ -29,7 +34,8 @@ function makePlayer(i) {
     lastName: `Player ${i}`,
     commonName: i % 3 === 0 ? `F. Player ${i}` : null,
     overallRating: 45 + (i % 45),
-    birthdate: `${1990 + (i % 18)}-0${1 + (i % 9)}-1${i % 9}`,
+    // EA's format, verbatim: US M/D/YYYY with a midnight time component.
+    birthdate: `${1 + (i % 9)}/1${i % 9}/${1990 + (i % 18)} 12:00:00 AM`,
     height: 165 + (i % 30),
     weight: 60 + (i % 30),
     skillMoves: 1 + (i % 5),
@@ -37,7 +43,12 @@ function makePlayer(i) {
     // 1=Right, 2=Left with a realistic ~75/25 split so the validator's foot
     // check has something meaningful to assert against.
     preferredFoot: i % 4 === 0 ? 2 : 1,
-    gender: { id: i % 7 === 0 ? 1 : 0, label: i % 7 === 0 ? 'Female' : 'Male' },
+    // The live API labels these "Men's Football" / "Women's Football" with a
+    // numeric id, NOT "Male" / "Female". Note "women" contains "men", which is
+    // exactly the trap a naive substring classifier falls into.
+    gender: i % 7 === 0
+      ? { id: 1, label: "Women's Football" }
+      : { id: 0, label: "Men's Football" },
     nationality: { id: 1 + (i % 40), label: `Nation ${i % 40}` },
     team: { id: 100 + (i % 4), label: CLUBS[i % CLUBS.length] },
     leagueName: `Fixture League ${i % 5}`,

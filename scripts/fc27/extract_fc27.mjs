@@ -61,6 +61,7 @@ export class SourceRefusedError extends Error {
  */
 export async function resolveSlug(source, base, candidates, { locale, gender } = {}) {
   const refusals = [];
+  const empty = [];
 
   for (const slug of candidates) {
     const url = pageUrl({ ...source, base }, slug, { offset: 0, limit: 1, locale, extra: { gender } });
@@ -69,6 +70,10 @@ export async function resolveSlug(source, base, candidates, { locale, gender } =
       if (Array.isArray(body?.[source.itemsKey])) {
         return { slug, total: body?.[source.totalKey] ?? null };
       }
+      // A 200 with no items, or a 204 with no body at all, means "this season
+      // slug is not the live one" — EA answers retired slugs that way rather
+      // than 404ing them. Try the next candidate instead of aborting.
+      empty.push({ slug, reason: body === null ? 'no content' : 'no items array' });
     } catch (err) {
       if (err instanceof EgressBlockedError) throw err;
       if (!(err instanceof AccessDeniedError)) throw err;
@@ -77,6 +82,9 @@ export async function resolveSlug(source, base, candidates, { locale, gender } =
   }
 
   if (refusals.length === candidates.length) throw new SourceRefusedError(base, refusals);
+  if (empty.length) {
+    console.log(`[discover] answered but empty: ${empty.map((e) => `${e.slug} (${e.reason})`).join(', ')}`);
+  }
   return null;
 }
 

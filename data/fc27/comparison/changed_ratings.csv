@@ -1,0 +1,623 @@
+player_id,name,match_tier,overall_before,overall_after,delta
+221358,Jordan Rossiter,id,58,61,3
+219575,Cristian Bordacahar,id,73,75,2
+225532,Ibrahim Cissé,id,70,72,2
+220785,Antonio Čolak,id,69,71,2
+220702,Gastón Silva,id,68,70,2
+259036,Viktor Korniienko,id,67,69,2
+252038,Romário Baró,id,67,69,2
+258041,Hugo Novoa,id,67,69,2
+241588,Toni Moya,id,67,69,2
+274231,Óscar Perea,id,67,69,2
+252470,Matchoi Djaló,id,66,68,2
+279256,Théo,id,66,68,2
+267632,Lóránd Pászka,id,66,68,2
+199602,John Guidetti,id,64,66,2
+79080,Emre Aytun,id,62,64,2
+229856,Javier Parraguez,id,61,63,2
+225674,Diego Fernández,id,60,62,2
+279196,Nahuel Arias,id,60,62,2
+245059,Maximiliano Zelaya,id,60,62,2
+279201,Matt Sheridan,id,58,60,2
+239842,Georgios Giakoumakis,id,75,76,1
+263439,Paulo Bernardo,id,73,74,1
+248166,Lasse Berg Johnsen,id,73,74,1
+226789,Angelo Fulgini,id,73,74,1
+223779,Damian Szymański,id,73,74,1
+194794,Andriy Yarmolenko,id,73,74,1
+233588,Elgezabal,id,73,74,1
+244288,Adam Idah,id,73,74,1
+187132,Carlos Zambrano,id,73,74,1
+256341,Francho Serrano,id,72,73,1
+227835,Tesfaldet Tekie,id,72,73,1
+262219,Björn Meijer,id,72,73,1
+223637,Andy Polo,id,72,73,1
+211241,Rubén Peña,id,72,73,1
+243731,Santiago González,id,72,73,1
+227508,Melero,id,72,73,1
+258308,Oleksandr Tymchyk,id,72,73,1
+252573,Aleksa Terzić,id,72,73,1
+210951,Edison Flores,id,72,73,1
+73413,Carracedo,id,72,73,1
+238235,Hugo Vetlesen,id,71,72,1
+257271,Lucas Gourna-Douath,id,71,72,1
+227477,Facundo Altamirano,id,71,72,1
+266755,Vladyslav Dubinchak,id,71,72,1
+248049,Claudiu Petrila,id,71,72,1
+251922,Soberón,id,71,72,1
+229436,Stefan Gartenmann,id,71,72,1
+234827,Jacob Rasmussen,id,71,72,1
+226958,Ronivaldo,id,71,72,1
+237031,Bernardo Cuesta,id,71,72,1
+265671,Dani Tasende,id,70,71,1
+208621,Óscar Plano,id,70,71,1
+182896,Roberto Rosales,id,70,71,1
+225204,Raúl Guti,id,70,71,1
+260397,Yang Hyun Jun,id,70,71,1
+212747,Tomás Martínez,id,70,71,1
+236817,Habib Maïga,id,70,71,1
+223489,Aleksandar Pešić,id,70,71,1
+254099,Carlos Marín,id,70,71,1
+274724,Vladyslav Kabaev,id,70,71,1
+241499,Carlos Garcés,id,70,71,1
+198904,Grant Hanley,id,70,71,1
+254373,Jean-Pierre Archimbaud,id,69,70,1
+214294,Esteban Pavez,id,69,70,1
+248471,Matthäus Taferner,id,69,70,1
+270338,Vilarrasa,id,69,70,1
+261648,Maurice Cova,id,69,70,1
+241055,Diego Pampín,id,69,70,1
+259833,Jhilmar Lora,id,69,70,1
+197971,Denis Alibec,id,69,70,1
+74978,Eduardo Guerrero,id,69,70,1
+274845,Mathys Tourraine,id,69,70,1
+222165,Emil Hansson,id,69,70,1
+271620,Leo Bolgado,id,69,70,1
+269489,Fábio Ronaldo,id,68,69,1
+244438,Youba Diarra,id,68,69,1
+234867,Daniel Arzani,id,68,69,1
+246013,Horacio Calcaterra,id,68,69,1
+272599,Tuomas Ollila,id,68,69,1
+275462,Catriel Cabellos,id,68,69,1
+255760,Bartłomiej Wdowik,id,68,69,1
+241536,Manprit Sarkaria,id,68,69,1
+250952,Karlo Muhar,id,68,69,1
+263787,Victor Bobsin,id,68,69,1
+242489,Pejiño,id,68,69,1
+209532,Daniel Bachmann,id,68,69,1
+239091,Lukas Grgić,id,68,69,1
+255105,Ilya Shkurin,id,68,69,1
+269562,Sayfallah Ltaief,id,68,69,1
+248054,Laurențiu Popescu,id,68,69,1
+260086,Alex Millán,id,68,69,1
+212208,Leonel Galeano,id,68,69,1
+236508,Adrián Diéguez,id,68,69,1
+233435,Manuel Maranda,id,68,69,1
+248470,Johannes Handl,id,68,69,1
+186395,Matt Ritchie,id,67,68,1
+244795,Jonas Auer,id,67,68,1
+254204,Paolo Reyna,id,67,68,1
+239397,Braydon Manu,id,67,68,1
+262081,Álex Cantero,id,67,68,1
+274830,Michał Gurgul,id,67,68,1
+210489,Louis Schaub,id,67,68,1
+240725,Ismaël Aaneba,id,67,68,1
+259579,Salomón Rodríguez,id,67,68,1
+274729,Maksym Dyachuk,id,67,68,1
+238940,Jakub Jugas,id,67,68,1
+278001,Dani Barcia,id,67,68,1
+239394,Florian Flecker,id,66,67,1
+254347,Alfredo Ramúa,id,66,67,1
+221986,Jeff Hardeveld,id,66,67,1
+214874,Marcos Bolados,id,66,67,1
+203026,Petar Filipović,id,66,67,1
+237206,Alvaro Rodríguez,id,66,67,1
+176048,Kei Kamara,id,66,67,1
+266692,Alexander Oroz,id,66,67,1
+71388,Cabello,id,66,67,1
+260204,Alejandro Ramos,id,66,67,1
+210482,Simon Piesinger,id,66,67,1
+228058,Lukas Gugganig,id,66,67,1
+224724,Tayfur Bingöl,id,65,66,1
+270704,Dylan Durivaux,id,65,66,1
+248300,Manvir Singh,id,65,66,1
+277593,Srđan Kuzmić,id,65,66,1
+260336,Raudy Guerrero,id,65,66,1
+274463,Cheick Oumar Konaté,id,65,66,1
+186101,Even Hovland,id,65,66,1
+242325,Malcom Edjouma,id,63,64,1
+242764,Hideki Ishige,id,63,64,1
+209361,Tim Payne,id,63,64,1
+243664,Florian Rieder,id,63,64,1
+269952,Yvandro Borges Sanches,id,63,64,1
+229543,David Kiki,id,63,64,1
+214231,Marcelo Jorquera,id,63,64,1
+257304,Ammar Helac,id,63,64,1
+192765,Pablo Camacho,id,63,64,1
+221425,Kazuki Nagasawa,id,62,63,1
+240978,Danny Mândroiu,id,62,63,1
+217990,Juan Pablo Gómez,id,62,63,1
+258453,Benjamin Babati,id,62,63,1
+225625,Kane Vincent-Young,id,61,62,1
+73927,Marcelo,id,61,62,1
+251884,Bryan Fiabema,id,61,62,1
+248227,Carlo Armiento,id,60,61,1
+243163,Danny Grant,id,60,61,1
+213281,Paulo Retre,id,60,61,1
+79181,Luca Stancu,id,60,61,1
+258122,Axel Sjöberg,id,60,61,1
+252477,Joshua Oluwayemi,id,60,61,1
+198190,Greg Cunningham,id,60,61,1
+258373,Marian Danciu,id,60,61,1
+263046,Oliver Strunz,id,59,60,1
+211978,Seán Hoare,id,59,60,1
+262181,Archie Meekison,id,58,59,1
+273464,John-Kymani Gordon,id,58,59,1
+239353,Navajo Bakboord,id,58,59,1
+225406,James Talbot,id,58,59,1
+250815,Connor Parsons,id,58,59,1
+276461,Lukas Kelly-Heald,id,58,59,1
+267768,Colm Whelan,id,58,59,1
+248770,Kacper Radkowski,id,58,59,1
+279520,Leigh Kavanagh,id,58,59,1
+228195,Prabir Das,id,56,57,1
+251777,Ionuț Pop,id,56,57,1
+78374,Dawid Polak,id,55,56,1
+227570,Lee Steacy,id,55,56,1
+76226,Max Jolliffe,id,54,55,1
+73104,Adama Coulibaly,id,52,53,1
+75457,Quentin Benaets,id,52,53,1
+257118,Ilan Kebbal,id,76,75,-1
+244399,Timothé Cognat,id,75,74,-1
+215998,Ignacio Fernández,id,75,74,-1
+246991,Liam Scales,id,75,74,-1
+266282,Kristijan Kahlina,id,75,74,-1
+260952,Andreas Schjelderup,id,75,74,-1
+70415,Estéban Lepaul,id,75,74,-1
+236510,Barnabás Varga,id,75,74,-1
+233097,Rick van Drongelen,id,75,74,-1
+257345,Amar Dedić,id,74,73,-1
+240040,Carlo Holse,id,74,73,-1
+234371,Rémy Descamps,id,74,73,-1
+236583,Jiří Pavlenka,id,74,73,-1
+220570,Jan Bednarek,id,74,73,-1
+260876,Maurits Kjaergaard,id,73,72,-1
+243646,Benjamin Nygren,id,73,72,-1
+248356,Thierno Ballo,id,73,72,-1
+193794,Villalibre,id,73,72,-1
+258936,Lukas Hornicek,id,73,72,-1
+71305,Joaquin Seys,id,73,72,-1
+74295,Arseniy Batagov,id,73,72,-1
+244486,Mustafa Eskihellaç,id,72,71,-1
+256776,Isaac Schmidt,id,72,71,-1
+276909,Wagner Pina,id,72,71,-1
+278187,Tom Louchet,id,72,71,-1
+279841,Maher Carrizo,id,72,71,-1
+271918,Robin Risser,id,72,71,-1
+264418,Jean Baptiste Gorby,id,72,71,-1
+189296,Etrit Berisha,id,72,71,-1
+277327,Francesco Pio Esposito,id,72,71,-1
+275051,Romeo Vermant,id,72,71,-1
+223593,Javier Correa,id,72,71,-1
+275050,Kyriani Sabbe,id,71,70,-1
+253619,Martín Távara,id,71,70,-1
+277809,Kodai Sano,id,71,70,-1
+264173,Iván Romero,id,71,70,-1
+252526,Darian Males,id,71,70,-1
+262334,Dirk Proper,id,71,70,-1
+240834,Lazar Carević,id,71,70,-1
+236555,Guilherme Schettine,id,71,70,-1
+264191,Gustaf Lagerbielke,id,71,70,-1
+259657,Renzo Garcés,id,71,70,-1
+270863,Andrei Borza,id,70,69,-1
+262501,Aldasoro,id,70,69,-1
+267446,Denso Kasius,id,70,69,-1
+255098,José Carabalí,id,70,69,-1
+262025,Alonzo Engwanda,id,70,69,-1
+200713,Soner Aydoğdu,id,70,69,-1
+228774,Vincent Marchetti,id,70,69,-1
+244464,Eryc Castillo,id,70,69,-1
+259070,Pau Víctor,id,70,69,-1
+72374,Yanis Zouaoui,id,70,69,-1
+277322,Rodrigo Pinheiro,id,70,69,-1
+228255,Nicolas Lemaître,id,70,69,-1
+248710,Paulino,id,70,69,-1
+219774,Sebas Moyano,id,70,69,-1
+240589,Miguel,id,70,69,-1
+252789,Ruslan Neshcheret,id,70,69,-1
+264290,Pablo Felipe,id,70,69,-1
+262240,Tomás Galván,id,70,69,-1
+202170,Michael Boxall,id,70,69,-1
+75598,Mohamed Kader Meïté,id,70,69,-1
+209232,Ľubomír Šatka,id,70,69,-1
+207431,Insua,id,70,69,-1
+263233,Bendegúz Bolla,id,69,68,-1
+241875,Will Ferry,id,69,68,-1
+219605,Cristian Cuevas,id,69,68,-1
+257406,Fodé Doucouré,id,69,68,-1
+263099,Mees de Wit,id,69,68,-1
+277483,Gjivai Zechiël,id,69,68,-1
+198145,Sergio Araujo,id,69,68,-1
+264828,Kortajarena,id,69,68,-1
+239379,Victor Jensen,id,69,68,-1
+276946,Tim Jabol-Folcarelli,id,69,68,-1
+265609,Guillermo Enrique,id,69,68,-1
+277811,Mathias de Amorim,id,69,68,-1
+255776,Jakub Kałuziński,id,69,68,-1
+246112,Näis Djouahra,id,69,68,-1
+269719,Santiago Hidalgo,id,69,68,-1
+262652,Lenny Joseph,id,69,68,-1
+196848,Írven Ávila,id,69,68,-1
+221014,Carlos Fernández,id,69,68,-1
+262142,Nicolás Romero,id,69,68,-1
+247264,Ayumu Seko,id,69,68,-1
+244154,Sebastian Mailat,id,69,68,-1
+255010,Naci Ünüvar,id,69,68,-1
+276600,Lee Hyun Ju,id,69,68,-1
+79427,Oleksandr Romanchuk,id,69,68,-1
+260977,Faisal Al Ghamdi,id,68,67,-1
+248587,Alin Fică,id,68,67,-1
+270611,Duk,id,68,67,-1
+73412,Albarrán,id,68,67,-1
+253758,Mihai Lixandru,id,68,67,-1
+251030,Alexis Cuello,id,68,67,-1
+248040,Adrian Rus,id,68,67,-1
+264137,Owen Gene,id,68,67,-1
+274834,Mats Rots,id,68,67,-1
+232653,Rodrigo Tapia,id,68,67,-1
+73355,Başar Önal,id,68,67,-1
+75318,Abdoul Ouattara,id,68,67,-1
+258149,Alan Cantero,id,68,67,-1
+75519,Ro-Zangelo Daal,id,68,67,-1
+239271,Giannis Anestis,id,68,67,-1
+244250,Prince Owusu,id,68,67,-1
+240240,Jean-Pierre Nsame,longname+dob,68,67,-1
+263561,Dane Murray,id,68,67,-1
+259581,Sergio Barcia,id,68,67,-1
+261377,Rafael Lutiger,id,68,67,-1
+264195,Javi Martón,id,68,67,-1
+257003,Jonathan Villagra,id,68,67,-1
+274949,Nahuel Herrera,id,68,67,-1
+188554,Dani Pacheco,id,67,66,-1
+226395,Michael Covea,id,67,66,-1
+228283,Ramazan Civelek,id,67,66,-1
+246609,Juan Requena,id,67,66,-1
+262498,Álex Petxa,id,67,66,-1
+260144,Patiño,id,67,66,-1
+265680,Jesús Yendis,id,67,66,-1
+228744,Jhojan Valencia,id,67,66,-1
+268787,Kazeem Olaigbe,id,67,66,-1
+221336,Lyes Houri,id,67,66,-1
+255562,Filip Stojilković,id,67,66,-1
+233820,Sheriff Sinyan,id,67,66,-1
+246881,João Valido,id,67,66,-1
+78086,Joshuan Berríos,id,67,66,-1
+266543,Ange Ahoussou,id,67,66,-1
+263923,Daniel Gutiérrez,id,67,66,-1
+252962,Miguel Jacquet,id,67,66,-1
+241812,Lars Kramer,id,67,66,-1
+254094,Federico Bonini,id,67,66,-1
+239750,Jimmy Valoyes,id,67,66,-1
+203575,Dawid Abramowicz,id,66,65,-1
+266386,Junior Cedeño,id,66,65,-1
+253551,Fernando Pacheco,id,66,65,-1
+265626,Mathías Llontop,id,66,65,-1
+273548,Peter Stroud,id,66,65,-1
+229657,Dino Mikanović,id,66,65,-1
+76879,Matias Siltanen,id,66,65,-1
+256898,Alexandru Pantea,id,66,65,-1
+257374,Cosmin Dur-Bozoancă,id,66,65,-1
+262584,Ivan Dolček,id,66,65,-1
+258364,Ștefan Bodișteanu,id,66,65,-1
+265476,Jeremy Rostaing,id,66,65,-1
+260910,Shola Shoretire,id,66,65,-1
+277673,August Priske,id,66,65,-1
+277501,Petter Nosa Dahl,id,66,65,-1
+261457,Brynjólfur Willumsson,id,66,65,-1
+236237,Juan Cruz Bolado,id,66,65,-1
+279702,Samir El Mourabet,id,66,65,-1
+278404,De la Rosa,id,66,65,-1
+271746,Adrian Blake,id,66,65,-1
+272613,Né Lopes,id,66,65,-1
+256604,Daniel Luna,id,66,65,-1
+276680,Jan Ziółkowski,id,66,65,-1
+262752,Carlos Calzadilla,id,65,64,-1
+79608,João Veloso,id,65,64,-1
+74314,Chiheb Labidi,id,65,64,-1
+237927,Ed McGinty,id,65,64,-1
+231600,Marc Navarro,id,65,64,-1
+70450,Fahem Benaissa-Yahia,id,65,64,-1
+278499,Alejandro Granados,id,65,64,-1
+254064,Julio Herrera,id,65,64,-1
+267397,José Manuel Hernández,id,65,64,-1
+254244,Nabil Touaizi,id,65,64,-1
+271252,Simon Ebonog,id,65,64,-1
+76116,Aaron Bouwman,id,65,64,-1
+73882,Pedro Carvalho,id,65,64,-1
+270136,Benjamin Böckle,id,65,64,-1
+275224,Christ Kouadio,id,65,64,-1
+71972,Bauza,id,65,64,-1
+269731,Steven Nsimba,id,65,64,-1
+244762,Lamine Diaby Fadiga,id,65,64,-1
+231965,Beto da Silva,id,65,64,-1
+77633,Rayan Fofana,id,65,64,-1
+278261,Ousmane Touré,id,65,64,-1
+253919,Jeriel De Santis,id,65,64,-1
+74785,Iker Córdoba,id,65,64,-1
+236307,Daniel Graovac,id,65,64,-1
+279603,Olabarrieta,id,65,64,-1
+263813,Luan Patrick,id,65,64,-1
+241552,Jacob Italiano,id,64,63,-1
+272562,Jed Drew,id,64,63,-1
+250992,Jesús Alvarez,id,64,63,-1
+74117,Theofanis Bakoulas,id,64,63,-1
+259184,Rodrigo Vilca,id,64,63,-1
+251454,Ross Tierney,id,64,63,-1
+276178,Elias Havel,id,64,63,-1
+257765,Alexandru Ișfan,id,64,63,-1
+271459,Víctor Aznar,id,64,63,-1
+276346,Mason Melia,id,64,63,-1
+79070,Jorge Jiménez,id,64,63,-1
+76410,Robinio Vaz,id,64,63,-1
+79772,Marco Boras,id,64,63,-1
+70885,Mahmoud Jaber,id,64,63,-1
+78704,Anderson Ceará,id,64,63,-1
+235274,Miłosz Mleczko,id,64,63,-1
+77524,Modou Kéba Cissé,id,64,63,-1
+256529,Vicente Bernedo,id,64,63,-1
+75754,Oskar Pietuszewski,id,64,63,-1
+79690,Gonçalo Oliveira,id,64,63,-1
+76944,Rayane Bounida,id,64,63,-1
+77043,Harry Milne,id,64,63,-1
+79000,Leard Sadriu,id,64,63,-1
+263702,Samuel Adeniran,id,64,63,-1
+73260,Jason Daði Svanþórs­son,id,63,62,-1
+79397,Gibson Yah,id,63,62,-1
+233051,Luke Bolton,id,63,62,-1
+72918,Isaac Pappoe,id,63,62,-1
+72098,Darryl Bakola,id,63,62,-1
+278573,Mihai Toma,id,63,62,-1
+79691,Nodar Lominadze,id,63,62,-1
+274734,Charles Petro,id,63,62,-1
+273573,Matt Healy,id,63,62,-1
+70327,Ousmane Diawara,id,63,62,-1
+78670,Rober Sierra,id,63,62,-1
+265185,Moritz Wels,id,63,62,-1
+264170,Luis López,id,63,62,-1
+271984,Lukáš Ambros,id,63,62,-1
+222164,Arkadiusz Kasperkiewicz,id,63,62,-1
+244046,Patrick,id,63,62,-1
+70268,Ștefan Bană,id,63,62,-1
+74340,Dimitris Rallis,id,63,62,-1
+270859,Hugo Pérez,id,63,62,-1
+278758,Jastin,id,63,62,-1
+78558,Gabriel Isik,id,63,62,-1
+79030,Devon Koswal,id,63,62,-1
+76299,Tim Trummer,id,62,61,-1
+238765,Jamie Brandon,id,62,61,-1
+270475,Patrick Brouwer,id,62,61,-1
+248117,Andrei Ciobanu,id,62,61,-1
+265822,Ezequiel Herrera,id,62,61,-1
+253607,Carlos Ramos,id,62,61,-1
+78797,Antonio van Wyk,id,62,61,-1
+275374,Narcis Ilaș,id,62,61,-1
+245708,Bálint Szabó,id,62,61,-1
+279622,Noël Aséko,id,62,61,-1
+75309,Fabricio López,id,62,61,-1
+260728,Aaron Pressley,id,62,61,-1
+73209,Quincy Butler,id,62,61,-1
+241507,Jack Tucker,id,62,61,-1
+70754,Lucciano Reinoso,id,62,61,-1
+265829,Evan Weir,id,61,60,-1
+271618,James McManus,id,61,60,-1
+254820,Dawid Kocyła,id,61,60,-1
+73205,Marco Hoffmann,id,61,60,-1
+78419,Yannick Cappelle,id,61,60,-1
+269954,Douglas James-Taylor,id,61,60,-1
+76409,Bright Ede,id,61,60,-1
+74604,Oscar Naasei Oppong,id,61,60,-1
+77265,Jherson Reyes,id,61,60,-1
+251262,Barry Baggley,id,60,59,-1
+252596,Adam Senior,id,60,59,-1
+243127,John Martin,id,60,59,-1
+271546,Valentyn Morgun,id,60,59,-1
+277997,Owen Elding,id,60,59,-1
+275195,Yanis Pîrvu,id,60,59,-1
+277571,Dylan Peraić-Cullen,id,60,59,-1
+76970,Ibrahima Seck,id,60,59,-1
+80080,Sabah Kerjota,id,60,59,-1
+278761,Mariano Barreda,id,60,59,-1
+73666,Dejan Radonjic,id,60,59,-1
+245170,Anirudh Thapa,id,59,58,-1
+74932,Hjalte Bidstrup,id,59,58,-1
+228134,Patrick McClean,id,59,58,-1
+79836,Marcel Predenkiewicz,id,59,58,-1
+255980,Jaze Kabia,id,59,58,-1
+262706,Szilárd Vereș,id,59,58,-1
+71088,Gustavo Marecos,id,59,58,-1
+207491,Rory Gaffney,id,59,58,-1
+76616,Mathys Detourbet,id,59,58,-1
+270374,Seb Quirk,id,58,57,-1
+273889,Tom Smith,id,58,57,-1
+248304,Nim Dorjee Tamang,id,58,57,-1
+270593,Darren Robinson,id,57,56,-1
+256926,Theo Ogbidi,id,57,56,-1
+76570,Keisuke Goto,id,57,56,-1
+270000,Abdullah Al Enazi,id,56,55,-1
+77376,Bartosz Mazurek,id,56,55,-1
+253697,Sahil Tavora,id,55,54,-1
+259346,Glan Martins,id,55,54,-1
+73699,Jin Yonghao,id,55,54,-1
+247626,Dheeraj Singh Moirangthem,id,55,54,-1
+277580,Jay Gupta,id,55,54,-1
+266718,Kiyan Nassiri,id,55,54,-1
+77724,Diego Porcel,id,55,54,-1
+247631,Mohamad Rakip,id,54,53,-1
+271240,Muhammed Uvais,id,54,53,-1
+248177,Souvik Chakrabarti,id,52,51,-1
+80817,James Nam,id,52,51,-1
+248272,Edmund Lalrindika,id,51,50,-1
+240020,Ricardo Mangas,id,74,72,-2
+265459,Tyler Morton,id,74,72,-2
+233814,Jhohan Romaña,id,74,72,-2
+225028,Nemanja Radoja,id,73,71,-2
+237378,Alex Dobre,id,72,70,-2
+234779,Caro,id,72,70,-2
+74835,Santiago Lencina,id,71,69,-2
+271741,Patrik Mercado,id,70,68,-2
+222263,Nordin Jackers,id,70,68,-2
+235988,Jacobo González,id,70,68,-2
+77033,William Gomes,id,70,68,-2
+219461,Erik Palmer-Brown,id,70,68,-2
+271495,Mario Dorgeles,id,69,67,-2
+262071,Nathan Ngoy,id,69,67,-2
+267778,Leonardo Buta,id,69,67,-2
+279076,César Inga,id,69,67,-2
+260951,Johnny Kenny,id,69,67,-2
+258439,Ousmane Camara,id,69,67,-2
+74857,Jano Gordon,id,69,67,-2
+76739,Pablo García,id,68,66,-2
+72426,Javi Rueda,id,68,66,-2
+73598,Zsombor Gruber,id,68,66,-2
+271414,Karl Edouard Etta Eyong,id,68,66,-2
+79274,Cláudio Braga,id,68,66,-2
+74449,Ibrahim Mbaye,id,68,66,-2
+73192,Abdelhamid Ait Boudlal,id,68,66,-2
+227945,Stuart Findlay,id,68,66,-2
+266033,Daniel Edelman,id,67,65,-2
+79607,Rafael Luís,id,67,65,-2
+243271,Celil Yüksel,id,67,65,-2
+79428,Claudy Mbuyi,id,67,65,-2
+244394,Clemente,id,67,65,-2
+254507,Manu Nieto,id,67,65,-2
+75437,Minsu,id,67,65,-2
+264665,Magunazelaia,id,66,64,-2
+76240,Diego Rodrigues,id,66,64,-2
+212453,Germán Parreño,id,66,64,-2
+269475,Zac Sapsford,id,66,64,-2
+269251,Frankarlos Benítez,id,66,64,-2
+275126,Aleix Garrido,id,66,64,-2
+253216,Adrián,id,66,64,-2
+80067,Khalis Merah,id,66,64,-2
+276393,Yunus Emre Çift,id,66,64,-2
+273931,Elias Bakatukanda,id,66,64,-2
+270680,Adrion Pajaziti,id,65,63,-2
+252758,Dawson Devoy,id,65,63,-2
+74545,Guirao,id,65,63,-2
+75734,Aladji Bamba,id,65,63,-2
+71169,Ian Wisdom,id,65,63,-2
+276198,Áron Yaakobishvili,id,65,63,-2
+271940,Martial Godo,id,65,63,-2
+223696,Mohamed Hamdaoui,id,65,63,-2
+267881,Sota Kitano,id,65,63,-2
+221316,Matías Blázquez,id,65,63,-2
+265478,Emiliano Viveros,id,64,62,-2
+262384,Patrick Greil,id,64,62,-2
+77152,Sean Steur,id,64,62,-2
+277210,Juan Francisco Rossel,id,64,62,-2
+78145,Alejandro Gomes Rodríguez,id,64,62,-2
+74559,Matia Barzić,id,64,62,-2
+253111,Oisín McEntee,id,63,61,-2
+227759,Calvin Miller,id,63,61,-2
+75533,Kerim Alajbegović,id,63,61,-2
+266026,Manu Rico,id,63,61,-2
+170114,Brian Graham,id,63,61,-2
+73610,Emmanuel Agyemang,id,63,61,-2
+263424,Malcolm Viltard,id,62,60,-2
+273872,Dániel Radnóti,id,62,60,-2
+267761,Marco Sulzner,id,62,60,-2
+278872,Killane,id,62,60,-2
+75478,Luca Băsceanu,id,62,60,-2
+79942,Peter Kiedl,id,62,60,-2
+70013,Poyraz Yıldırım,id,62,60,-2
+71815,Daniel Herrera,id,62,60,-2
+78535,Kamil Jakubczyk,id,61,59,-2
+73625,Guy Noël Zohouri,id,61,59,-2
+72027,Finley Munroe,id,61,59,-2
+271202,Nicolò Cavuoti,id,61,59,-2
+263411,Jamie Mullins,id,61,59,-2
+70781,Benjamin Fredrick,id,61,59,-2
+266209,Jad Hakiki,id,60,58,-2
+77268,Benjamín García,id,60,58,-2
+73295,Simon Wæver,id,60,58,-2
+275272,Myles Roberts,id,60,58,-2
+72163,Sanel Šaljić,id,60,58,-2
+242382,Luca Ashby-Hammond,id,60,58,-2
+279008,Luc De Fougerolles,id,60,58,-2
+268519,Adnane Abid,id,60,58,-2
+73292,Ludwig Vraa,id,60,58,-2
+263324,Joe Snowdon,id,59,57,-2
+72731,Samet Yalçın,id,59,57,-2
+270113,Brandon Khela,id,59,57,-2
+270609,Kyreece Lisbie,id,59,57,-2
+79613,Henry Caparó,id,59,57,-2
+74606,Jorge Salinas,id,59,57,-2
+276760,Noah Marec,id,59,57,-2
+74231,Leenhan Romero,id,59,57,-2
+265548,Marcus Dackers,id,59,57,-2
+73464,Alin Botogan,id,59,57,-2
+77604,Jhoao Velásquez,id,59,57,-2
+228292,Ciaron Harkin,id,58,56,-2
+77070,Esquerdinha,id,58,56,-2
+271605,Jakob Knollmüller,id,58,56,-2
+79820,Abdoul Karim Traoré,id,58,56,-2
+77053,Thomas Wilson-Brown,id,58,56,-2
+78175,Ángel Figueroa,id,57,55,-2
+78176,Chris Martinez,id,57,55,-2
+278183,Finlay Armstrong,id,57,55,-2
+277002,Yannick Vötter,id,57,55,-2
+78199,José Alexander Rondón,id,57,55,-2
+75802,Diego Arroyo,id,57,55,-2
+79923,Krisztián Keresztes,id,57,55,-2
+80205,Jokūbas Mažionis,id,57,55,-2
+276679,Seydou Traoré,id,56,54,-2
+73141,Filip Milojević,id,55,53,-2
+74622,Matthew Edwards,id,55,53,-2
+74366,Emmanuel Osho,id,54,52,-2
+78736,Kamil Nowogoński,id,54,52,-2
+274232,Jung Jin Woo,id,53,51,-2
+279503,Eray Özbek,id,53,51,-2
+277478,Abhishek Singh,id,53,51,-2
+275642,Anteo Fetahu,id,52,50,-2
+276211,Alexandros Kyziridis,id,70,67,-3
+278096,Lorenzo Amatucci,id,68,65,-3
+273948,Kojo Peprah Oppong,id,68,65,-3
+272430,Ale García,id,67,64,-3
+74784,Elías Báez,id,67,64,-3
+277485,Sidiki Chérif,id,67,64,-3
+258196,Yassine Benhattab,id,67,64,-3
+277979,Giorgi Abuashvili,id,66,63,-3
+75260,Orlando Gill,id,65,62,-3
+75085,Vasilije Adžić,id,65,62,-3
+278965,Viktor Baier,id,64,61,-3
+74491,Dayann Methalie,id,64,61,-3
+73624,Daren Mosengo,id,63,60,-3
+255014,Teddy Bartouche-Selbonne,id,62,59,-3
+279061,Abdoulkarim Traore,id,62,59,-3
+78259,Djenairo Daniels,id,61,58,-3
+74520,Gabriele Calvani,id,61,58,-3
+272675,Kevin Ciubotaru,id,60,57,-3
+75653,Agustin Ladstatter,id,60,57,-3
+278098,Kaelan Casey,id,60,57,-3
+78215,Telli Siwe,id,60,57,-3
+74149,Ben Brannan,id,58,55,-3
+277345,Josh Fitzpatrick,id,57,54,-3
+74151,Ethan Brown,id,57,54,-3
+242730,Jack Evans,id,56,53,-3
+72210,Dakarai Mafico,id,55,52,-3
+74980,Nikolaus Wurmbrand,id,68,64,-4
+271013,Patrick Nuamah,id,65,61,-4
+276485,Patrizio Masini,id,65,61,-4
+278339,Marco Palestra,id,65,61,-4
+271227,Divin Mubama,id,63,59,-4
+72324,Matteo Palma,id,62,58,-4
+277669,Tom Hülsmann,id,61,57,-4
+71191,Jovan Mijatović,id,60,56,-4
+75296,Ronan Kpakio,id,59,55,-4
+72046,Dylan Lawlor,id,59,55,-4
+279891,Diego Mascardi,id,57,53,-4
+275323,Freddy Willcox,id,55,51,-4
+78184,Jay Robinson,id,64,59,-5
+78295,Prosper Peter,id,63,58,-5
+74115,Jacob Peter Hödl,id,58,53,-5
+277995,Calum Agius,id,56,51,-5

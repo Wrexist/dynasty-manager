@@ -38,6 +38,7 @@ const FLAGS = {
   '--export-for-game': 'boolean',
   '--no-compare': 'boolean',
   '--dry-run': 'boolean',
+  '--allow-missing-potential': 'boolean',
 };
 
 /** `--out-dir` -> `outDir`. */

@@ -54,7 +54,7 @@ export const COLUMNS = [
   // PlayStyles
   'playstyles', 'playstyles_plus',
   // Gender
-  'gender',
+  'gender', 'gender_id',
   // Provenance
   'source', 'source_player_id', 'source_url', 'overall_source', 'attributes_source',
   'potential_source', 'data_version', 'scraped_at',
@@ -73,13 +73,15 @@ export const STAT_ALIASES = {
   // column would assert an equivalence the source never makes. A keeper's face
   // stats simply stay empty here, and the gk_* columns below carry the real
   // values. The missing-value table in the quality report shows this clearly.
-  pace: ['pace'],
-  shooting: ['shooting'],
-  passing: ['passing'],
-  dribbling: ['dribbling'],
-  defending: ['defending'],
-  // EA has spelled physicality both ways across seasons.
-  physical: ['physicality', 'physical'],
+  // EA abbreviates the six face stats in the payload (`pac`, `sho`, ...) even
+  // though the card shows them in full. The long spellings are kept as
+  // fallbacks because they are what earlier seasons used.
+  pace: ['pac', 'pace'],
+  shooting: ['sho', 'shooting'],
+  passing: ['pas', 'passing'],
+  dribbling: ['dri', 'dribbling'],
+  defending: ['def', 'defending'],
+  physical: ['phy', 'physicality', 'physical'],
 
   acceleration: ['acceleration'],
   sprint_speed: ['sprintSpeed'],
@@ -257,7 +259,9 @@ export function normalizeEaPlayer(raw, meta) {
     playstyles: playstyles.join(', ') || null,
     playstyles_plus: playstylesPlus.join(', ') || null,
 
+    // Raw label kept verbatim; the id is what classifyGender() trusts.
     gender: nullIfBlank(raw.gender?.label ?? raw.gender),
+    gender_id: raw.gender?.id ?? null,
 
     source: meta.source,
     source_player_id: nullIfBlank(raw.id),
@@ -296,6 +300,31 @@ export function resolveColumns(rows) {
   return [...COLUMNS, ...[...extras].sort()];
 }
 
-/** EA labels the men's database "Male"; anything else is not a men's player. */
-export const isMale = (row) => String(row.gender ?? '').toLowerCase() === 'male';
-export const isFemale = (row) => String(row.gender ?? '').toLowerCase() === 'female';
+/**
+ * Classify a record's gender.
+ *
+ * EA sends `gender: { id, label }` where the label is "Men's Football" /
+ * "Women's Football" — NOT "Male" / "Female". The numeric id (0 men, 1 women)
+ * is the primary signal because it cannot be reworded by a locale change.
+ *
+ * The label fallback tests for women FIRST, deliberately: "women" contains
+ * "men", so a naive substring check files every women's player as a man.
+ *
+ * Anything unrecognised is `unknown`, never defaulted to male.
+ *
+ * @returns {'male' | 'female' | 'unknown'}
+ */
+export function classifyGender(row) {
+  const id = row?.gender_id;
+  if (id === 0 || id === '0') return 'male';
+  if (id === 1 || id === '1') return 'female';
+
+  const label = String(row?.gender ?? '').toLowerCase().trim();
+  if (!label) return 'unknown';
+  if (/wom[ae]n|female|\bw\b/.test(label)) return 'female';
+  if (/\bmen\b|\bmale\b|\bm\b/.test(label)) return 'male';
+  return 'unknown';
+}
+
+export const isMale = (row) => classifyGender(row) === 'male';
+export const isFemale = (row) => classifyGender(row) === 'female';

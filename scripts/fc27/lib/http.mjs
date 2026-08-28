@@ -67,7 +67,12 @@ export async function getJson(url, opts = {}) {
       }
 
       if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
-      return await res.json();
+      // 204 (and any empty body) is a valid answer meaning "nothing here".
+      // Returning null lets callers treat it as absence; res.json() would
+      // throw on the empty payload and look like a transport failure.
+      if (res.status === 204) return null;
+      const text = await res.text();
+      return text.trim() === '' ? null : JSON.parse(text);
     } catch (err) {
       if (err instanceof AccessDeniedError) throw err;
 

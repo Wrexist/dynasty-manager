@@ -58,3 +58,9 @@ scripts/.icons-debug.html
 # ARE committed — they are the point of the pipeline.
 data/fc27/raw/
 data/fc27/last-run.json
+# The JSON mirrors are the same records as the committed CSVs — the male one
+# alone is 26 MB, 2.5x the largest data file the repo already carries. The CSVs
+# are the deliverable; regenerate the JSON with `npm run fc27:normalize` (or a
+# full `npm run fc27:build`) when a consumer needs it.
+data/fc27/*.json
+!data/fc27/discovery.json

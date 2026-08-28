@@ -11,7 +11,7 @@ import { describe, it, expect } from 'vitest';
 // The pipeline is plain ESM JS by design — it runs under bare `node` with no
 // build step, the same as every other script in scripts/.
 import { parseCsv, toCsv, csvCell } from '../../scripts/fc27/lib/csv.mjs';
-import { normalizeEaPlayer, deriveAge, normalizeFoot, isMale, isFemale } from '../../scripts/fc27/lib/schema.mjs';
+import { normalizeEaPlayer, deriveAge, normalizeFoot, isMale, isFemale, classifyGender } from '../../scripts/fc27/lib/schema.mjs';
 import { dedupeById, splitByGender } from '../../scripts/fc27/normalize_fc27.mjs';
 import { matchPlayers, normName, readComparable } from '../../scripts/fc27/lib/players.mjs';
 import { parseArgs } from '../../scripts/fc27/lib/args.mjs';
@@ -343,5 +343,72 @@ describe('fc27 goalkeeper stats', () => {
     expect(row.pace).toBeNull();
     expect(row.shooting).toBeNull();
     expect(row.dribbling).toBeNull();
+  });
+});
+
+describe('fc27 against the shapes the live EA API actually sends', () => {
+  // Every case here was found by running against the real endpoint. The
+  // original fixture encoded assumptions instead, so it validated a normalizer
+  // that produced null face stats and zero male players on real data.
+  const live = (over: Record<string, unknown> = {}) => normalizeEaPlayer({
+    id: 209331,
+    firstName: 'Mohamed',
+    lastName: 'Salah',
+    commonName: null,
+    overallRating: 91,
+    birthdate: '6/15/1992 12:00:00 AM',
+    preferredFoot: 2,
+    height: 175,
+    weight: 72,
+    gender: { id: 0, label: "Men's Football" },
+    position: { id: '12', shortLabel: 'RM', positionType: { id: 'midfielder', name: 'Midfielder' } },
+    alternatePositions: [{ id: '23', shortLabel: 'RW' }],
+    team: { id: 9, label: 'Liverpool' },
+    nationality: { id: 111, label: 'Egypt' },
+    leagueName: 'Premier League',
+    // EA abbreviates the face stats in the payload.
+    stats: { pac: { value: 89, diff: 0 }, sho: { value: 88 }, pas: { value: 86 }, dri: { value: 90 }, def: { value: 45 }, phy: { value: 76 } },
+    playerAbilities: [{ id: 'trait1_64', label: 'Low Driven Shot', type: { id: 'playStyle', label: 'Play Style' } }],
+    ...over,
+  }, META);
+
+  it('reads the abbreviated face stats EA sends', () => {
+    const row = live();
+    expect(row.pace).toBe(89);
+    expect(row.shooting).toBe(88);
+    expect(row.passing).toBe(86);
+    expect(row.dribbling).toBe(90);
+    expect(row.defending).toBe(45);
+    expect(row.physical).toBe(76);
+  });
+
+  it("classifies EA's \"Men's Football\" / \"Women's Football\" labels", () => {
+    expect(isMale(live())).toBe(true);
+    expect(isFemale(live({ gender: { id: 1, label: "Women's Football" } }))).toBe(true);
+  });
+
+  it('does not file a women\'s player as a man because "women" contains "men"', () => {
+    // The label alone, with no id to fall back on.
+    expect(classifyGender({ gender: "Women's Football" })).toBe('female');
+    expect(classifyGender({ gender: "Men's Football" })).toBe('male');
+  });
+
+  it('trusts the numeric gender id over the label wording', () => {
+    // A locale change can reword the label; the id cannot.
+    expect(classifyGender({ gender_id: 1, gender: 'Fútbol femenino' })).toBe('female');
+    expect(classifyGender({ gender_id: 0, gender: 'anything at all' })).toBe('male');
+  });
+
+  it('never assumes male when gender is missing or unrecognised', () => {
+    expect(classifyGender({})).toBe('unknown');
+    expect(classifyGender({ gender: 'Mixed' })).toBe('unknown');
+  });
+
+  it("parses EA's US-format birthdate with its time component", () => {
+    expect(live().date_of_birth).toBe('1992-06-15');
+  });
+
+  it('maps preferredFoot 2 to Left, as Salah is', () => {
+    expect(live().preferred_foot).toBe('Left');
   });
 });
