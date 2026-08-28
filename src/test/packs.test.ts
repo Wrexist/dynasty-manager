@@ -27,6 +27,7 @@ import {
   packFrameArt,
   packFrameFor,
   PACK_CARD_FRAMES,
+  CARD_BACK_SRC,
   PACK_WAGE_FACTOR,
   resolvePackTier,
 } from '@/config/packs';
@@ -551,6 +552,20 @@ describe('Market — pack artwork', () => {
       expect(ref.startsWith('/player-cards/'), `${id} must live under /player-cards/`).toBe(true);
       expect(existsSync(path.join(cardDir, path.basename(ref))), `missing card frame: ${ref}`).toBe(true);
     }
+  });
+
+  it('the card back exists, is a webp, and matches the front geometry', () => {
+    // The back flips into a PlayerCard whose ALPHA is its edge: a scalloped
+    // 2:3 shield from 1024x1536 art. The walkout back used to be a rounded
+    // 3:4 rectangle, so the card grew 41px taller and changed shape mid-flip.
+    // Whatever art replaces the placeholder must keep that contract.
+    const cardDir = path.resolve(process.cwd(), 'public/player-cards');
+    expect(CARD_BACK_SRC.startsWith('/player-cards/'),
+      'the card back must live under /player-cards/').toBe(true);
+    expect(CARD_BACK_SRC.endsWith('.webp'),
+      'the card back must be a webp — a 1024x1536 PNG is ~3.2 MB against ~0.45 MB').toBe(true);
+    expect(existsSync(path.join(cardDir, path.basename(CARD_BACK_SRC))),
+      `missing card back: ${CARD_BACK_SRC}`).toBe(true);
   });
 
   it('every referenced cover exists on disk', () => {

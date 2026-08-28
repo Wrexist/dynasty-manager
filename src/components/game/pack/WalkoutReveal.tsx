@@ -3,6 +3,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 import type { Player } from '@/types/game';
+import { CardBack } from '@/components/game/pack/CardBack';
 import { PlayerCard } from '@/components/game/PlayerCard';
 import { PACK_ANIM, LEGENDARY_OVR_THRESHOLD } from '@/config/packs';
 import { tierForOvr } from './packHelpers';
@@ -545,7 +546,7 @@ export function WalkoutReveal({ player, onComplete, onAdvance }: WalkoutRevealPr
         className="relative"
         style={{
           width: WALKOUT_CARD_W,
-          aspectRatio: '3 / 4',
+          aspectRatio: '2 / 3',
           perspective: 1400,
           willChange: 'transform, opacity',
         }}
@@ -583,69 +584,10 @@ export function WalkoutReveal({ player, onComplete, onAdvance }: WalkoutRevealPr
           animate={{ rotateY: revealed ? 180 : 0 }}
           transition={{ duration: 0.72, ease: [0.22, 1, 0.36, 1] }}
         >
-          {/* Back — tier-gradient with marble specular, monogram crest,
-              Dynasty Pack / tier typography, shimmer sweep. */}
-          <div
-            className="absolute inset-0 rounded-2xl overflow-hidden border border-white/15 shadow-[0_24px_56px_rgba(0,0,0,0.65)]"
-            style={{ backfaceVisibility: 'hidden', background: tierGradient }}
-          >
-            {/* Specular sheen — top-left bright, bottom-right dark — gives
-                the back an inherent light direction. */}
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                background:
-                  'linear-gradient(160deg, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0) 40%),' +
-                  'radial-gradient(circle at 50% 118%, rgba(0,0,0,0.55), transparent 60%)',
-              }}
-            />
-            {/* Inset rule for the framed ornate feel */}
-            <div className="absolute inset-[10px] rounded-[14px] border border-white/25 pointer-events-none" />
-
-            {/* Monogram crest — simple crown silhouette in a glass disc. */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-white text-center px-6 pointer-events-none">
-              <div className="w-[72px] h-[72px] rounded-full bg-black/35 border border-white/30 flex items-center justify-center backdrop-blur-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_8px_24px_rgba(0,0,0,0.5)]">
-                <svg viewBox="0 0 24 24" className="w-9 h-9 text-white/95" aria-hidden>
-                  <path
-                    d="M3 16 L5 8 L9 12 L12 5.5 L15 12 L19 8 L21 16 L21 19 L3 19 Z"
-                    fill="currentColor"
-                    stroke="currentColor"
-                    strokeWidth="0.75"
-                    strokeLinejoin="round"
-                  />
-                  <circle cx="5" cy="7" r="1.1" fill="currentColor" />
-                  <circle cx="12" cy="4.2" r="1.2" fill="currentColor" />
-                  <circle cx="19" cy="7" r="1.1" fill="currentColor" />
-                </svg>
-              </div>
-              <div>
-                <p
-                  className="text-[10px] uppercase tracking-[0.42em] font-semibold text-white/85"
-                  style={{ textShadow: '0 1px 2px rgba(0,0,0,0.6)' }}
-                >
-                  Opening
-                </p>
-                <p
-                  className="mt-1 text-xl font-display font-black tracking-[0.08em] uppercase"
-                  style={{ textShadow: '0 2px 6px rgba(0,0,0,0.55)' }}
-                >
-                  {tier.label}
-                </p>
-              </div>
-            </div>
-
-            {/* Shimmer sweep — only before the flip, keeps the back alive. */}
-            {!prefersReducedMotion && !revealed && (
-              <motion.div
-                className="absolute inset-0 pointer-events-none overflow-hidden"
-                style={{
-                  background: 'linear-gradient(115deg, transparent 38%, rgba(255,255,255,0.18) 50%, transparent 62%)',
-                }}
-                initial={{ x: '-100%' }}
-                animate={{ x: '120%' }}
-                transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
-              />
-            )}
+          {/* Back — one universal card back, same silhouette and aspect as
+              the face it turns into (see CardBack). */}
+          <div className="absolute inset-0" style={{ backfaceVisibility: 'hidden' }}>
+            <CardBack revealed={revealed} />
           </div>
 
           {/* Face — the real PlayerCard, reused across the app. Scaled up to

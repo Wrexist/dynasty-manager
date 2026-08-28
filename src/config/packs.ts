@@ -379,6 +379,17 @@ export const WEEKLY_PACK_SKINS: WeeklyPackSkin[] = [
 //
 // Cosmetic only. A frame never touches an attribute, a wage, a value or any
 // simulation parameter — same contract as the cosmetic IAPs.
+/**
+ * The face-down side of every player card. ONE universal back: the tier tell
+ * is the glow and holographic ring drawn outside the card edge, not the
+ * artwork, so Champions through Legends share this asset.
+ *
+ * Same contract as the front art in `PACK_CARD_FRAMES` — 1024x1536, 2:3, and
+ * its ALPHA is the card's edge. A rectangular back shows as a box behind the
+ * scalloped corners of the face it flips into.
+ */
+export const CARD_BACK_SRC = '/player-cards/card-back.webp';
+
 export const PACK_CARD_FRAMES: Record<string, string> = {
   'rise-to-glory': '/player-cards/rise-to-glory.webp',
   champions: '/player-cards/champions.webp',
