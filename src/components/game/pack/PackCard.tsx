@@ -7,6 +7,7 @@ import { tierForOvr } from './packHelpers';
 import { PACK_ANIM } from '@/config/packs';
 import { hapticMedium } from '@/utils/haptics';
 import { CardBack } from '@/components/game/pack/CardBack';
+import { getPlayerCardArt } from '@/utils/uiHelpers';
 import { PlayerCard, PLAYER_CARD_SIZE_PX } from '@/components/game/PlayerCard';
 import { PackCardAura } from './PackCardAura';
 
@@ -46,6 +47,12 @@ interface PackCardProps {
  */
 export const PackCard = memo(function PackCard({ player, revealed, onReveal, entranceDelay = 0, onDismiss }: PackCardProps) {
   const tier = tierForOvr(player.overall);
+  // Mask the back with the face's own art so the flip never changes shape —
+  // fronts do not share one silhouette (tier shields vs pack frames).
+  const backMaskSrc = getPlayerCardArt(player.overall, {
+    ballonDorTop10: typeof player.ballonDOrTop10HoldSeason === 'number',
+    packFrame: player.packFrame,
+  }).src;
   const prefersReducedMotion = useReducedMotionPref();
   // The reveal renders PlayerCard at `lg`, which is a 2:3 card whose artwork
   // supplies its own edge. So the wrapper must not put a rounded box or a glow
@@ -117,7 +124,7 @@ export const PackCard = memo(function PackCard({ player, revealed, onReveal, ent
         {/* Back — the shared universal card back. Same asset the walkout
             uses, so the grid reveal and the hero reveal are one language. */}
         <div className="absolute inset-0" style={{ backfaceVisibility: 'hidden' }}>
-          <CardBack revealed={revealed} />
+          <CardBack maskSrc={backMaskSrc} revealed={revealed} />
         </div>
 
         <div

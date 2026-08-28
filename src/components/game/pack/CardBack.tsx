@@ -1,19 +1,19 @@
 /**
  * The face-down side of a player card.
  *
- * One universal back for every pack. The tier tell lives in the glow and the
- * holographic ring the callers draw OUTSIDE the card edge, not in the artwork,
- * so a single asset serves Champions through Legends.
+ * One universal FULL-BLEED artwork (`CARD_BACK_SRC`, 1024x1536, no alpha),
+ * masked at render time to the silhouette of the card it is about to flip
+ * into. The mask is not decorative: card fronts do NOT share one outline —
+ * gold/silver are plain shields, icon carries an inner cut-out ring, and each
+ * pack frame is notched differently. A back baked to any single silhouette
+ * (the first cut used the Legends outline) pokes out past or falls short of
+ * every other card's edge, and the pre-baked cut also sliced through the
+ * artwork's own border. Masking with the SAME art url the front renders makes
+ * back and front geometrically identical for every card, by construction.
  *
- * Geometry is not decorative here. The front is a `PlayerCard` whose ALPHA is
- * the card's edge (a scalloped shield, `aspect-[2/3]`, 1024x1536 art). The
- * back it flips out of must be the same aspect and the same silhouette, or the
- * card changes shape mid-flip — the walkout back used to be a rounded 3:4
- * rectangle, 41px shorter than the face it turned into.
- *
- * The shimmer is therefore masked to the artwork's own alpha, the same way
- * PlayerCard masks its legibility scrim: an unmasked sweep would draw a
- * rectangle across the transparent corners the card does not have.
+ * The shimmer sweep rides inside the same mask, the way PlayerCard masks its
+ * legibility scrim — unmasked it would draw a rectangle across transparent
+ * corners the card does not have.
  */
 import { motion } from 'framer-motion';
 import { CARD_BACK_SRC } from '@/config/packs';
@@ -21,36 +21,42 @@ import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 import { cn } from '@/lib/utils';
 
 interface CardBackProps {
+  /**
+   * URL of the artwork the card's FACE renders (from `getPlayerCardArt`).
+   * Its alpha channel becomes this back's outline, so the flip is
+   * shape-perfect whatever tier shield or pack frame the player carries.
+   */
+  maskSrc: string;
   /** Suppress the shimmer sweep once the card has turned. */
   revealed?: boolean;
   className?: string;
 }
 
-export function CardBack({ revealed = false, className }: CardBackProps) {
+export function CardBack({ maskSrc, revealed = false, className }: CardBackProps) {
   const prefersReducedMotion = useReducedMotionPref();
-  const mask = {
-    WebkitMaskImage: `url(${CARD_BACK_SRC})`,
-    maskImage: `url(${CARD_BACK_SRC})`,
-    WebkitMaskSize: '100% 100%',
-    maskSize: '100% 100%',
-    WebkitMaskRepeat: 'no-repeat',
-    maskRepeat: 'no-repeat',
-  } as const;
-
   return (
-    <div className={cn('absolute inset-0 overflow-hidden', className)}>
+    <div
+      className={cn('absolute inset-0 overflow-hidden', className)}
+      style={{
+        WebkitMaskImage: `url(${maskSrc})`,
+        maskImage: `url(${maskSrc})`,
+        WebkitMaskSize: '100% 100%',
+        maskSize: '100% 100%',
+        WebkitMaskRepeat: 'no-repeat',
+        maskRepeat: 'no-repeat',
+      }}
+    >
       <img
         src={CARD_BACK_SRC}
         alt=""
         aria-hidden
         draggable={false}
-        className="absolute inset-0 w-full h-full object-contain select-none"
+        className="absolute inset-0 w-full h-full object-fill select-none"
       />
       {!prefersReducedMotion && !revealed && (
         <motion.div
           className="absolute inset-0 pointer-events-none"
           style={{
-            ...mask,
             background: 'linear-gradient(115deg, transparent 38%, rgba(255,255,255,0.18) 50%, transparent 62%)',
           }}
           initial={{ x: '-100%' }}

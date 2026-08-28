@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 import type { Player } from '@/types/game';
 import { CardBack } from '@/components/game/pack/CardBack';
+import { getPlayerCardArt } from '@/utils/uiHelpers';
 import { PlayerCard } from '@/components/game/PlayerCard';
 import { PACK_ANIM, LEGENDARY_OVR_THRESHOLD } from '@/config/packs';
 import { tierForOvr } from './packHelpers';
@@ -361,6 +362,13 @@ export function WalkoutReveal({ player, onComplete, onAdvance }: WalkoutRevealPr
   // Held-breath beat — visual cue is that we briefly de-saturate the halo
   // / dim the particles so the moment really lands as silence.
   const isBreath = phase === 'breath';
+  // The back is masked with the SAME art the face renders, so the flip is
+  // shape-perfect whatever shield or frame this player carries. Mirrors the
+  // getPlayerCardArt call inside PlayerCard (never a chip at this size).
+  const backMaskSrc = getPlayerCardArt(player.overall, {
+    ballonDorTop10: typeof player.ballonDOrTop10HoldSeason === 'number',
+    packFrame: player.packFrame,
+  }).src;
   const tierGradient = `linear-gradient(135deg, ${tier.gradientFrom} 0%, ${tier.gradientVia} 45%, ${tier.gradientTo} 100%)`;
 
   return (
@@ -587,7 +595,7 @@ export function WalkoutReveal({ player, onComplete, onAdvance }: WalkoutRevealPr
           {/* Back — one universal card back, same silhouette and aspect as
               the face it turns into (see CardBack). */}
           <div className="absolute inset-0" style={{ backfaceVisibility: 'hidden' }}>
-            <CardBack revealed={revealed} />
+            <CardBack maskSrc={backMaskSrc} revealed={revealed} />
           </div>
 
           {/* Face — the real PlayerCard, reused across the app. Scaled up to
