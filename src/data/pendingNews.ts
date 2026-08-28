@@ -49,6 +49,8 @@ export const PENDING_NEWS: PendingRelease = {
   improved: [
     'FC27 player database + Hall of Legends.',
     'Fixed player cards showing a doubled name for suffix-only surnames (e.g. "VINI / Vini" for Vini Jr.).',
+    'Fixed two clubs fielding a team with no goalkeeper.',
+    'Players now show their full names — Alisson Becker, Gabriel Magalhães, Vinícius Júnior.',
   ],
   fixed: [],
   headline: null,
