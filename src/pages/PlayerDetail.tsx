@@ -13,6 +13,7 @@ import { LoanNegotiation } from '@/components/game/LoanNegotiation';
 import { ListForSaleModal } from '@/components/game/ListForSaleModal';
 import { motion } from 'framer-motion';
 import { getPlayerNarratives } from '@/utils/playerNarratives';
+import { resolveLegend } from '@/utils/legends';
 import { cn } from '@/lib/utils';
 import { getRatingColor, getMoodColor, getMoodLabel } from '@/utils/uiHelpers';
 import { FlagIcon } from '@/components/game/FlagIcon';
@@ -97,6 +98,10 @@ const PlayerDetail = () => {
 
   // Win streak for recovery guide (must be before early return to satisfy hook rules)
   const currentWinStreak = useMemo(() => getWinStreak(playerClubId, fixtures), [playerClubId, fixtures]);
+
+  // Hall of Legends archive (hook must sit before the early return; the
+  // record itself resolves below once `player` is known to exist).
+  const retiredLegends = useGameStore(st => st.retiredLegends);
 
   // Training widget data (memoized, must be before early return to satisfy hooks rules)
   const trainingWidgetData = useMemo(() => {
@@ -257,6 +262,8 @@ const PlayerDetail = () => {
   if (player.personality?.temperament && player.personality.temperament < LABEL_HOT_HEAD_TEMP_BELOW) moraleFactors.push({ label: 'Volatile temperament', impact: 'negative' });
 
   // Season performance derived stats
+  const legend = resolveLegend(player.legendId, retiredLegends);
+
   const goalsPerApp = player.appearances > 0 ? (player.goals / player.appearances).toFixed(2) : '0.00';
   const assistsPerApp = player.appearances > 0 ? (player.assists / player.appearances).toFixed(2) : '0.00';
   const goalContributions = player.goals + player.assists;
@@ -281,6 +288,37 @@ const PlayerDetail = () => {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Hall of Legends provenance — who this card IS. Sits above the
+          Ballon d'Or panel because the era line is the header for everything
+          under it; the three career totals are the archive's, not the card's
+          (the card's own stats start at zero and accrue below). */}
+      {legend && (
+        <GlassPanel className="p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Medal className="w-4 h-4 text-[hsl(43,96%,56%)]" />
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">Hall of Legends</p>
+            {legend.source === 'career' && (
+              <span className="text-[10px] text-[hsl(43,96%,56%)] font-bold ml-auto uppercase tracking-wider">Your save</span>
+            )}
+          </div>
+          <p className="text-xs text-foreground/90 leading-relaxed mb-3">{legend.era}</p>
+          <div className="grid grid-cols-3 gap-2">
+            <div className="bg-muted/30 border border-border/40 rounded-lg p-2 text-center">
+              <p className="text-sm font-bold text-foreground tabular-nums">{legend.careerApps}</p>
+              <p className="text-[9px] uppercase tracking-widest text-muted-foreground mt-0.5">Apps</p>
+            </div>
+            <div className="bg-muted/30 border border-border/40 rounded-lg p-2 text-center">
+              <p className="text-sm font-bold text-foreground tabular-nums">{legend.careerGoals}</p>
+              <p className="text-[9px] uppercase tracking-widest text-muted-foreground mt-0.5">Goals</p>
+            </div>
+            <div className="bg-muted/30 border border-border/40 rounded-lg p-2 text-center">
+              <p className="text-sm font-bold text-foreground tabular-nums">{legend.careerAssists}</p>
+              <p className="text-[9px] uppercase tracking-widest text-muted-foreground mt-0.5">Assists</p>
+            </div>
+          </div>
+        </GlassPanel>
       )}
 
       {/* Ballon d'Or Medals */}

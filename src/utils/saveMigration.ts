@@ -12,11 +12,109 @@ import { isPlaceholderClubId } from '@/config/continental';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 90;
+const CURRENT_VERSION = 92;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
 const migrations: Record<number, MigrationFn> = {
+  // v91 -> v92: Hall of Legends. `retiredLegends` starts empty — a loaded save
+  // has archived nobody, and the seasons already played cannot be re-judged
+  // (their retirees were deleted at the time, per the old behaviour). The two
+  // new per-player fields (`peakOverall`, `ballonDorTop10Ever`) are optional
+  // and self-seeding: absent reads as "current overall is the peak so far" /
+  // "no top-10 yet", which is the correct statement about a v91 save.
+  91: (data) => ({
+    ...data,
+    retiredLegends: Array.isArray((data as { retiredLegends?: unknown }).retiredLegends)
+      ? (data as { retiredLegends?: unknown[] }).retiredLegends
+      : [],
+    version: 92,
+  }),
+
+  // v90 → v91: apply the v89 wage easing to saves that already existed.
+  //
+  // v89 dropped `WAGE_EXP_BASE` 10 → 8.5 and migrated nothing, believing
+  // existing players would re-price on a development tick. They do not (see
+  // the v88 → v89 note below), so every save created before v89 kept a squad
+  // priced on the old curve while every new arrival — pack pulls, youth
+  // intake, transfer listings, regens — came in 15% cheaper. The realism fix
+  // the easing was written for (Arsenal at £232M/yr against a real ~£235M)
+  // never reached anyone who was already playing.
+  //
+  // Wages are SCALED by 0.85, not re-derived from `overall`. Re-deriving would
+  // be the destructive option: it would overwrite wages that were deliberately
+  // set away from the curve — a wage agreed through `getSignedWage` on a
+  // transfer, a pack pull carrying `wageFactor`, a free agent who accepted 0.8×
+  // at season end — and hand every squad a contract reset it never agreed to.
+  // Scaling preserves each contract's relationship to the curve and reproduces
+  // exactly what the constant change did.
+  //
+  // `wageBill` is scaled by the same factor rather than re-summed from the
+  // squad, for the same reason: re-summing would silently repair any drift a
+  // save legitimately carries (loaned-out players are accounted for separately
+  // — see `initGame`), which is a behaviour change beyond this step's scope.
+  90: (data) => {
+    // Frozen at the values in force at v91, per the convention that a
+    // migration reproduces history rather than following a live constant.
+    const WAGE_FLOOR = 500;
+    const EASING = 0.85;
+    const OLD_BASE = 10;      // WAGE_EXP_BASE before v89
+    const NEW_BASE = 8.5;     // WAGE_EXP_BASE from v89 on
+    const RATE = 0.116;       // WAGE_EXP_RATE, unchanged across the easing
+
+    // ── Which curve is this save already on? ──
+    //
+    // Version 90 alone cannot answer that, and assuming it could was a bug:
+    // a save migrated up from before v89 carries OLD-curve wages and needs
+    // the easing, while a save CREATED by a v89 or v90 build already carries
+    // NEW-curve wages and must not be eased a second time — that would leave
+    // it at 72.25% of the original curve, cutting the wage bill of every save
+    // currently in the wild.
+    //
+    // Generation prices a wage at BASE*exp(RATE*ovr)*(1+rand*0.10), so the
+    // median of wage/exp(RATE*ovr) lands near 10.5 on the old curve and 8.9
+    // on the new one. Sampled only over ovr >= 55, because WAGE_FLOOR pins
+    // the bottom of the range and would drag the ratio up; the median shrugs
+    // off the minority priced away from the curve (pack pulls carrying
+    // `wageFactor`, negotiated transfers, free agents who took 0.8x).
+    //
+    // Deliberately biased toward NOT easing: skipping leaves an old save
+    // exactly where it already was, while easing a current save corrupts it.
+    // Too small a sample to judge is therefore also a skip.
+    const sampleRatios: number[] = [];
+    for (const p of Object.values((data.players ?? {}) as Record<string, { wage?: unknown; overall?: unknown }>)) {
+      if (!p || typeof p !== 'object') continue;
+      const w = typeof p.wage === 'number' ? p.wage : null;
+      const o = typeof p.overall === 'number' ? p.overall : null;
+      if (w === null || o === null || !Number.isFinite(w) || !Number.isFinite(o)) continue;
+      if (o < 55 || w <= WAGE_FLOOR) continue;
+      sampleRatios.push(w / Math.exp(RATE * o));
+    }
+    sampleRatios.sort((a, b) => a - b);
+    const median = sampleRatios.length ? sampleRatios[Math.floor(sampleRatios.length / 2)] : 0;
+    const MIDPOINT = ((OLD_BASE + NEW_BASE) / 2) * 1.05;
+    const alreadyEased = sampleRatios.length < 20 || median < MIDPOINT;
+    if (alreadyEased) return { ...data, version: 91 };
+
+    const players = (data.players ?? {}) as Record<string, { wage?: unknown }>;
+    for (const player of Object.values(players)) {
+      if (!player || typeof player !== 'object') continue;
+      const wage = typeof player.wage === 'number' ? player.wage : null;
+      if (wage === null || !Number.isFinite(wage)) continue;
+      player.wage = Math.max(WAGE_FLOOR, Math.round(wage * EASING));
+    }
+
+    const clubs = (data.clubs ?? {}) as Record<string, { wageBill?: unknown }>;
+    for (const club of Object.values(clubs)) {
+      if (!club || typeof club !== 'object') continue;
+      const bill = typeof club.wageBill === 'number' ? club.wageBill : null;
+      if (bill === null || !Number.isFinite(bill)) continue;
+      club.wageBill = Math.max(0, Math.round(bill * EASING));
+    }
+
+    return { ...data, version: 91 };
+  },
+
   // v85 → v86: Sunday League schema v3. Additive apart from one deletion, and
   // every field is backfilled with the value the old behaviour implied:
   //
@@ -105,10 +203,14 @@ const migrations: Record<number, MigrationFn> = {
   //
   // Two things happened and only one of them needs a migration step.
   //
-  // `WAGE_EXP_BASE` dropped 10 → 8.5 (a uniform −15%). Nothing to migrate:
-  // every path that touches a wage runs `recomputeDerivedEconomics`, so
-  // existing players re-price themselves on their next development tick. They
-  // are briefly on old money, which is what a pay rise freeze looks like.
+  // `WAGE_EXP_BASE` dropped 10 → 8.5 (a uniform −15%). This step did NOT
+  // migrate it, on the stated grounds that existing players "re-price
+  // themselves on their next development tick". That was wrong: the
+  // development tick (`development.ts`), `weekAdvance` and `seasonEnd` all
+  // call `recomputePlayerValueOnly`, which by design never writes
+  // `player.wage`. Only generation, pack pulls, market listings and transfers
+  // re-price wages, so an existing squad stayed on old money permanently
+  // rather than briefly. v90 → v91 below is the correction.
   //
   // `wageFactor` is optional and reads as 1.0 when absent, so no backfill is
   // needed either — and no backfill would be CORRECT. It marks a player as

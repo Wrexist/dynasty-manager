@@ -1,0 +1,755 @@
+{
+  "generatedAt": "2026-08-28T09:09:12.193Z",
+  "fromEaClub": 12559,
+  "backfilled": 1102,
+  "backfillRefused": 27,
+  "unresolved": 2567,
+  "resolved": 13661,
+  "resolvedPct": 84.2,
+  "clubResolutionTiers": {
+    "squad-fingerprint": 374,
+    "token-subset": 3,
+    "player-vote": 75,
+    "exact-name": 36
+  },
+  "fingerprintRejectedCrossCountry": [
+    {
+      "eaClub": "Red Star FC",
+      "matched": "Red Star Belgrade",
+      "overlap": 7
+    },
+    {
+      "eaClub": "Laval MFC",
+      "matched": "Slavia Sofia",
+      "overlap": 12
+    },
+    {
+      "eaClub": "Crawley Town",
+      "matched": "Kilmarnock FC",
+      "overlap": 4
+    },
+    {
+      "eaClub": "Accrington",
+      "matched": "Maccabi Netanya",
+      "overlap": 11
+    }
+  ],
+  "contestedGameClubs": [
+    {
+      "gameClubId": "tigre",
+      "kept": {
+        "eaClub": "Tigre",
+        "tier": "squad-fingerprint",
+        "evidence": 30
+      },
+      "dropped": [
+        {
+          "eaClub": "Atl. Nacional",
+          "tier": "squad-fingerprint",
+          "evidence": 5
+        }
+      ]
+    },
+    {
+      "gameClubId": "brann",
+      "kept": {
+        "eaClub": "SK Brann",
+        "tier": "squad-fingerprint",
+        "evidence": 26
+      },
+      "dropped": [
+        {
+          "eaClub": "HamKam Fotball",
+          "tier": "squad-fingerprint",
+          "evidence": 3
+        }
+      ]
+    }
+  ],
+  "unresolvedClubs": [
+    {
+      "eaClub": "Beijing FC",
+      "players": 30,
+      "league": "CSL"
+    },
+    {
+      "eaClub": "Shanghai Port FC",
+      "players": 30,
+      "league": "CSL"
+    },
+    {
+      "eaClub": "Changchun Yatai",
+      "players": 30,
+      "league": "CSL"
+    },
+    {
+      "eaClub": "Chengdu FC",
+      "players": 29,
+      "league": "CSL"
+    },
+    {
+      "eaClub": "Shanghai Shenhua",
+      "players": 29,
+      "league": "CSL"
+    },
+    {
+      "eaClub": "Wuhan Three Towns",
+      "players": 29,
+      "league": "CSL"
+    },
+    {
+      "eaClub": "WSG Tirol",
+      "players": 29,
+      "league": "Ö. Bundesliga"
+    },
+    {
+      "eaClub": "Barnet",
+      "players": 29,
+      "league": "EFL League Two"
+    },
+    {
+      "eaClub": "Slavia Praha",
+      "players": 28,
+      "league": "Česká Liga"
+    },
+    {
+      "eaClub": "Henan FC",
+      "players": 28,
+      "league": "CSL"
+    },
+    {
+      "eaClub": "Qingdao Hainiu",
+      "players": 28,
+      "league": "CSL"
+    },
+    {
+      "eaClub": "Yunnan Yukun",
+      "players": 28,
+      "league": "CSL"
+    },
+    {
+      "eaClub": "GKS Katowice",
+      "players": 28,
+      "league": "PKO BP Ekstraklasa"
+    },
+    {
+      "eaClub": "Kocaelispor",
+      "players": 27,
+      "league": "Trendyol Süper Lig"
+    },
+    {
+      "eaClub": "Zhejiang Pro",
+      "players": 27,
+      "league": "CSL"
+    },
+    {
+      "eaClub": "Qingdao W. Coast",
+      "players": 27,
+      "league": "CSL"
+    },
+    {
+      "eaClub": "Widzew Łódź",
+      "players": 27,
+      "league": "PKO BP Ekstraklasa"
+    },
+    {
+      "eaClub": "SZ Peng City",
+      "players": 27,
+      "league": "CSL"
+    },
+    {
+      "eaClub": "Dalian Yingbo",
+      "players": 27,
+      "league": "CSL"
+    },
+    {
+      "eaClub": "Sparta Praha",
+      "players": 26,
+      "league": "Česká Liga"
+    },
+    {
+      "eaClub": "Tianjin JMT FC",
+      "players": 26,
+      "league": "CSL"
+    },
+    {
+      "eaClub": "FK Csíkszereda",
+      "players": 26,
+      "league": "SUPERLIGA"
+    },
+    {
+      "eaClub": "Falkirk",
+      "players": 26,
+      "league": "Scottish Prem"
+    },
+    {
+      "eaClub": "MSV Duisburg",
+      "players": 26,
+      "league": "3. Liga"
+    },
+    {
+      "eaClub": "US Boulogne",
+      "players": 26,
+      "league": "Ligue 2 BKT"
+    },
+    {
+      "eaClub": "Shandong Taishan",
+      "players": 25,
+      "league": "CSL"
+    },
+    {
+      "eaClub": "Uni. Católica",
+      "players": 25,
+      "league": "Liga Chile"
+    },
+    {
+      "eaClub": "Sp. Charleroi",
+      "players": 25,
+      "league": "1A Pro League"
+    },
+    {
+      "eaClub": "FC Thun",
+      "players": 25,
+      "league": "Brack Super League"
+    },
+    {
+      "eaClub": "Livingston",
+      "players": 25,
+      "league": "Scottish Prem"
+    },
+    {
+      "eaClub": "SV Oberbank Ried",
+      "players": 25,
+      "league": "Ö. Bundesliga"
+    },
+    {
+      "eaClub": "TSV Havelse",
+      "players": 25,
+      "league": "3. Liga"
+    },
+    {
+      "eaClub": "Oldham Athletic",
+      "players": 25,
+      "league": "EFL League Two"
+    },
+    {
+      "eaClub": "Odense BK",
+      "players": 24,
+      "league": "3F Superliga"
+    },
+    {
+      "eaClub": "RAAL La Louvière",
+      "players": 24,
+      "league": "1A Pro League"
+    },
+    {
+      "eaClub": "Meizhou Hakka FC",
+      "players": 24,
+      "league": "CSL"
+    },
+    {
+      "eaClub": "KFUM-Kameratene",
+      "players": 24,
+      "league": "Eliteserien"
+    },
+    {
+      "eaClub": "TSG Hoffenheim II",
+      "players": 24,
+      "league": "3. Liga"
+    },
+    {
+      "eaClub": "Cork City",
+      "players": 24,
+      "league": "SSE Airtricity PD"
+    },
+    {
+      "eaClub": "AS Nancy Lorraine",
+      "players": 23,
+      "league": "Ligue 2 BKT"
+    },
+    {
+      "eaClub": "Zulte Waregem",
+      "players": 23,
+      "league": "1A Pro League"
+    },
+    {
+      "eaClub": "Wisła Płock",
+      "players": 23,
+      "league": "PKO BP Ekstraklasa"
+    },
+    {
+      "eaClub": "Le Mans FC",
+      "players": 23,
+      "league": "Ligue 2 BKT"
+    },
+    {
+      "eaClub": "FC Argeș",
+      "players": 23,
+      "league": "SUPERLIGA"
+    },
+    {
+      "eaClub": "Avellino",
+      "players": 22,
+      "league": "Serie BKT"
+    },
+    {
+      "eaClub": "Qarabağ FK",
+      "players": 22,
+      "league": "Liga Azerbaijan"
+    },
+    {
+      "eaClub": "Gençlerbirliği",
+      "players": 21,
+      "league": "Trendyol Süper Lig"
+    },
+    {
+      "eaClub": "FC Andorra",
+      "players": 21,
+      "league": "LALIGA HYPERMOTION"
+    },
+    {
+      "eaClub": "Al Ain FC",
+      "players": 20,
+      "league": "United Emirates League"
+    },
+    {
+      "eaClub": "Degerfors IF",
+      "players": 20,
+      "league": "Allsvenskan"
+    },
+    {
+      "eaClub": "FC Alverca",
+      "players": 17,
+      "league": "Liga Portugal"
+    },
+    {
+      "eaClub": "AD Ceuta FC",
+      "players": 16,
+      "league": "LALIGA HYPERMOTION"
+    },
+    {
+      "eaClub": "Padova",
+      "players": 13,
+      "league": "Serie BKT"
+    },
+    {
+      "eaClub": "Entella",
+      "players": 11,
+      "league": "Serie BKT"
+    },
+    {
+      "eaClub": "Real Sociedad B",
+      "players": 7,
+      "league": "LALIGA HYPERMOTION"
+    }
+  ],
+  "gameClubsCovered": 532,
+  "gameClubsTotal": 756,
+  "leagueCoverage": [
+    {
+      "id": "srb",
+      "name": "SuperLiga",
+      "country": "Serbia",
+      "gameClubs": 16,
+      "clubsMatched": 0,
+      "pct": 0,
+      "players": 0
+    },
+    {
+      "id": "bgr",
+      "name": "First Professional Football League",
+      "country": "Bulgaria",
+      "gameClubs": 16,
+      "clubsMatched": 0,
+      "pct": 0,
+      "players": 0
+    },
+    {
+      "id": "svk",
+      "name": "Fortuna Liga",
+      "country": "Slovakia",
+      "gameClubs": 12,
+      "clubsMatched": 0,
+      "pct": 0,
+      "players": 0
+    },
+    {
+      "id": "isl",
+      "name": "Úrvalsdeild",
+      "country": "Iceland",
+      "gameClubs": 12,
+      "clubsMatched": 0,
+      "pct": 0,
+      "players": 0
+    },
+    {
+      "id": "isr",
+      "name": "Israeli Premier League",
+      "country": "Israel",
+      "gameClubs": 14,
+      "clubsMatched": 0,
+      "pct": 0,
+      "players": 0
+    },
+    {
+      "id": "bra",
+      "name": "Brasileirão Série A",
+      "country": "Brazil",
+      "gameClubs": 14,
+      "clubsMatched": 0,
+      "pct": 0,
+      "players": 0
+    },
+    {
+      "id": "cze",
+      "name": "Czech First League",
+      "country": "Czechia",
+      "gameClubs": 16,
+      "clubsMatched": 1,
+      "pct": 6,
+      "players": 26
+    },
+    {
+      "id": "cyp",
+      "name": "Cypriot First Division",
+      "country": "Cyprus",
+      "gameClubs": 14,
+      "clubsMatched": 1,
+      "pct": 7,
+      "players": 25
+    },
+    {
+      "id": "hun",
+      "name": "Nemzeti Bajnokság I",
+      "country": "Hungary",
+      "gameClubs": 12,
+      "clubsMatched": 1,
+      "pct": 8,
+      "players": 32
+    },
+    {
+      "id": "fin",
+      "name": "Veikkausliiga",
+      "country": "Finland",
+      "gameClubs": 12,
+      "clubsMatched": 1,
+      "pct": 8,
+      "players": 18
+    },
+    {
+      "id": "ukr",
+      "name": "Ukrainian Premier League",
+      "country": "Ukraine",
+      "gameClubs": 16,
+      "clubsMatched": 2,
+      "pct": 13,
+      "players": 56
+    },
+    {
+      "id": "cro",
+      "name": "Hrvatska Nogometna Liga",
+      "country": "Croatia",
+      "gameClubs": 10,
+      "clubsMatched": 2,
+      "pct": 20,
+      "players": 57
+    },
+    {
+      "id": "gre",
+      "name": "Super League Greece",
+      "country": "Greece",
+      "gameClubs": 14,
+      "clubsMatched": 4,
+      "pct": 29,
+      "players": 115
+    },
+    {
+      "id": "pol",
+      "name": "Ekstraklasa",
+      "country": "Poland",
+      "gameClubs": 18,
+      "clubsMatched": 13,
+      "pct": 72,
+      "players": 334
+    },
+    {
+      "id": "den",
+      "name": "Superliga",
+      "country": "Denmark",
+      "gameClubs": 12,
+      "clubsMatched": 9,
+      "pct": 75,
+      "players": 214
+    },
+    {
+      "id": "rou",
+      "name": "Liga 1",
+      "country": "Romania",
+      "gameClubs": 16,
+      "clubsMatched": 12,
+      "pct": 75,
+      "players": 310
+    },
+    {
+      "id": "fra-2",
+      "name": "Ligue 2",
+      "country": "France",
+      "gameClubs": 18,
+      "clubsMatched": 14,
+      "pct": 78,
+      "players": 349
+    },
+    {
+      "id": "tur",
+      "name": "Süper Lig",
+      "country": "Turkey",
+      "gameClubs": 19,
+      "clubsMatched": 15,
+      "pct": 79,
+      "players": 350
+    },
+    {
+      "id": "ind",
+      "name": "Indian Super League",
+      "country": "India",
+      "gameClubs": 14,
+      "clubsMatched": 11,
+      "pct": 79,
+      "players": 245
+    },
+    {
+      "id": "ita-2",
+      "name": "Serie B",
+      "country": "Italy",
+      "gameClubs": 20,
+      "clubsMatched": 16,
+      "pct": 80,
+      "players": 379
+    },
+    {
+      "id": "ger-3",
+      "name": "3. Liga",
+      "country": "Germany",
+      "gameClubs": 20,
+      "clubsMatched": 16,
+      "pct": 80,
+      "players": 416
+    },
+    {
+      "id": "bel",
+      "name": "Pro League",
+      "country": "Belgium",
+      "gameClubs": 16,
+      "clubsMatched": 13,
+      "pct": 81,
+      "players": 354
+    },
+    {
+      "id": "nor",
+      "name": "Eliteserien",
+      "country": "Norway",
+      "gameClubs": 16,
+      "clubsMatched": 13,
+      "pct": 81,
+      "players": 312
+    },
+    {
+      "id": "esp-2",
+      "name": "La Liga 2",
+      "country": "Spain",
+      "gameClubs": 22,
+      "clubsMatched": 18,
+      "pct": 82,
+      "players": 411
+    },
+    {
+      "id": "ned",
+      "name": "Eredivisie",
+      "country": "Netherlands",
+      "gameClubs": 18,
+      "clubsMatched": 15,
+      "pct": 83,
+      "players": 394
+    },
+    {
+      "id": "aut",
+      "name": "Bundesliga",
+      "country": "Austria",
+      "gameClubs": 12,
+      "clubsMatched": 10,
+      "pct": 83,
+      "players": 259
+    },
+    {
+      "id": "sco",
+      "name": "Scottish Premiership",
+      "country": "Scotland",
+      "gameClubs": 12,
+      "clubsMatched": 10,
+      "pct": 83,
+      "players": 258
+    },
+    {
+      "id": "swe",
+      "name": "Allsvenskan",
+      "country": "Sweden",
+      "gameClubs": 16,
+      "clubsMatched": 14,
+      "pct": 88,
+      "players": 329
+    },
+    {
+      "id": "por",
+      "name": "Primeira Liga",
+      "country": "Portugal",
+      "gameClubs": 18,
+      "clubsMatched": 16,
+      "pct": 89,
+      "players": 356
+    },
+    {
+      "id": "irl",
+      "name": "League of Ireland Premier Division",
+      "country": "Ireland",
+      "gameClubs": 10,
+      "clubsMatched": 9,
+      "pct": 90,
+      "players": 213
+    },
+    {
+      "id": "eng-4",
+      "name": "EFL League Two",
+      "country": "England",
+      "gameClubs": 24,
+      "clubsMatched": 22,
+      "pct": 92,
+      "players": 566
+    },
+    {
+      "id": "che",
+      "name": "Super League",
+      "country": "Switzerland",
+      "gameClubs": 12,
+      "clubsMatched": 11,
+      "pct": 92,
+      "players": 296
+    },
+    {
+      "id": "aus",
+      "name": "A-League Men",
+      "country": "Australia",
+      "gameClubs": 13,
+      "clubsMatched": 12,
+      "pct": 92,
+      "players": 247
+    },
+    {
+      "id": "ger-2",
+      "name": "2. Bundesliga",
+      "country": "Germany",
+      "gameClubs": 18,
+      "clubsMatched": 17,
+      "pct": 94,
+      "players": 483
+    },
+    {
+      "id": "eng",
+      "name": "Premier League",
+      "country": "England",
+      "gameClubs": 20,
+      "clubsMatched": 20,
+      "pct": 100,
+      "players": 532
+    },
+    {
+      "id": "eng-2",
+      "name": "EFL Championship",
+      "country": "England",
+      "gameClubs": 24,
+      "clubsMatched": 24,
+      "pct": 100,
+      "players": 659
+    },
+    {
+      "id": "eng-3",
+      "name": "EFL League One",
+      "country": "England",
+      "gameClubs": 24,
+      "clubsMatched": 24,
+      "pct": 100,
+      "players": 633
+    },
+    {
+      "id": "esp",
+      "name": "La Liga",
+      "country": "Spain",
+      "gameClubs": 20,
+      "clubsMatched": 20,
+      "pct": 100,
+      "players": 491
+    },
+    {
+      "id": "ita",
+      "name": "Serie A",
+      "country": "Italy",
+      "gameClubs": 20,
+      "clubsMatched": 20,
+      "pct": 100,
+      "players": 517
+    },
+    {
+      "id": "ger",
+      "name": "Bundesliga",
+      "country": "Germany",
+      "gameClubs": 18,
+      "clubsMatched": 18,
+      "pct": 100,
+      "players": 515
+    },
+    {
+      "id": "fra",
+      "name": "Ligue 1",
+      "country": "France",
+      "gameClubs": 18,
+      "clubsMatched": 18,
+      "pct": 100,
+      "players": 449
+    },
+    {
+      "id": "arg",
+      "name": "Liga Profesional",
+      "country": "Argentina",
+      "gameClubs": 30,
+      "clubsMatched": 30,
+      "pct": 100,
+      "players": 869
+    },
+    {
+      "id": "mls",
+      "name": "Major League Soccer",
+      "country": "United States",
+      "gameClubs": 30,
+      "clubsMatched": 30,
+      "pct": 100,
+      "players": 770
+    },
+    {
+      "id": "sau",
+      "name": "Saudi Pro League",
+      "country": "Saudi Arabia",
+      "gameClubs": 18,
+      "clubsMatched": 18,
+      "pct": 100,
+      "players": 406
+    },
+    {
+      "id": "kor",
+      "name": "K League 1",
+      "country": "South Korea",
+      "gameClubs": 12,
+      "clubsMatched": 12,
+      "pct": 100,
+      "players": 416
+    }
+  ]
+}

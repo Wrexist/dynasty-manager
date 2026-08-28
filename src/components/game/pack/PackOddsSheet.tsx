@@ -9,10 +9,12 @@ import {
   PACK_PITY_THRESHOLD,
   PACK_PITY_MIN_OVR,
   PACK_STREAK_BANDS,
+  packLegendChance,
 } from '@/config/packs';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 import { cn } from '@/lib/utils';
+import { GlassPanel } from '@/components/game/GlassPanel';
 import { PackArt } from './PackArt';
 
 interface PackOddsSheetProps {
@@ -75,6 +77,10 @@ export function PackOddsSheet({ tier: rawTier, streak, bonusCards = 0, onClose }
   const random = Math.max(0, tier.cards - 1);
   const totalCards = tier.cards + bonusCards;
   const versionBoost = tier.versionBoost ?? 0;
+  // The Legend outcome is a randomized paid outcome, so it is disclosed here
+  // exactly like the rarity rows — same Guideline 3.1.1 duty, same single
+  // source (`packLegendChance` reads the config the generator rolls).
+  const legendChance = packLegendChance(rawTier.key);
   // "Champions Pack" → "Champions". The word "version" follows it in the copy,
   // and "a Champions Pack version" reads as a mouthful of nouns.
   // "The Dynasty Pack" → "Dynasty": strip the trailing "Pack" AND a leading
@@ -199,6 +205,24 @@ export function PackOddsSheet({ tier: rawTier, streak, bonusCards = 0, onClose }
           </div>
         </div>
 
+        {/* Hall of Legends chance — a separate disclosure line rather than a
+            rarity row, because it replaces the GUARANTEED slot (the rarity
+            table below describes the other cards and is untouched by it). */}
+        {legendChance > 0 && (
+          <GlassPanel className="px-3 py-2.5 mb-3 text-xs">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-foreground/90">
+                The guaranteed card is a <span className="font-semibold text-foreground">Hall of Legends</span> icon —
+                a retired great at his career peak, no version boost needed.
+              </span>
+              <span className="tabular-nums font-semibold text-foreground shrink-0">{pct(legendChance)}</span>
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Drawn from the hall&apos;s founding class and the greats who have retired in your own save.
+            </p>
+          </GlassPanel>
+        )}
+
         {/* What to expect — the guarantee tells you the floor; this tells you
             what an average open actually looks like, which is the question a
             buyer is really asking when they open this sheet. Suppressed when
@@ -224,10 +248,25 @@ export function PackOddsSheet({ tier: rawTier, streak, bonusCards = 0, onClose }
               <span className="font-semibold">Rating</span>
               <span className="font-semibold">Chance</span>
             </div>
-            <div className="flex items-center justify-between border-t border-border/40 py-2">
-              <span className="text-foreground/90">{tier.guaranteedMinOvr}–{tier.ovrMax} OVR, drawn from every real player in that range</span>
-              <span className="tabular-nums font-semibold text-foreground">100%</span>
-            </div>
+            {/* With a Legend chance in play, "100%" would be a false claim —
+                the split is the disclosure. */}
+            {legendChance > 0 ? (
+              <>
+                <div className="flex items-center justify-between border-t border-border/40 py-2">
+                  <span className="text-foreground/90">{tier.guaranteedMinOvr}–{tier.ovrMax} OVR, drawn from every real player in that range</span>
+                  <span className="tabular-nums font-semibold text-foreground">{pct(1 - legendChance)}</span>
+                </div>
+                <div className="flex items-center justify-between border-t border-border/40 py-2">
+                  <span className="text-foreground/90">Hall of Legends icon at his career peak</span>
+                  <span className="tabular-nums font-semibold text-foreground">{pct(legendChance)}</span>
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center justify-between border-t border-border/40 py-2">
+                <span className="text-foreground/90">{tier.guaranteedMinOvr}–{tier.ovrMax} OVR, drawn from every real player in that range</span>
+                <span className="tabular-nums font-semibold text-foreground">100%</span>
+              </div>
+            )}
           </div>
         ) : (
         <table className="w-full text-xs">

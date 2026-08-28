@@ -110,7 +110,9 @@ describe('Pack opening — generation', () => {
   it('always respects the guaranteed-rare floor', () => {
     for (const tier of Object.values(PACK_TIER_MAP)) {
       for (let run = 0; run < 40; run++) {
-        const players = generatePackContents(tier.key, 1);
+        // Legend deals off — the hall card is the disclosed exception to the
+        // tier band (its own suite: legends.test.ts).
+        const players = generatePackContents(tier.key, 1, { forceLegendRoll: false });
         const topOvr = Math.max(...players.map(p => p.overall));
         expect(topOvr).toBeGreaterThanOrEqual(tier.guaranteedMinOvr);
       }
@@ -120,7 +122,9 @@ describe('Pack opening — generation', () => {
   it('keeps all generated players inside the tier OVR band', () => {
     for (const tier of Object.values(PACK_TIER_MAP)) {
       for (let run = 0; run < 20; run++) {
-        const players = generatePackContents(tier.key, 1);
+        // Legend deals off — the hall card is the disclosed exception to the
+        // tier band (its own suite: legends.test.ts).
+        const players = generatePackContents(tier.key, 1, { forceLegendRoll: false });
         for (const p of players) {
           expect(p.overall).toBeLessThanOrEqual(tier.ovrMax);
         }
@@ -134,7 +138,7 @@ describe('Pack opening — generation', () => {
     for (const tier of Object.values(PACK_TIER_MAP)) {
       const cap = tier.ovrMax + PACK_PITY_MAX_OVERSHOOT;
       for (let run = 0; run < 30; run++) {
-        const players = generatePackContents(tier.key, 1, { pityTriggered: true });
+        const players = generatePackContents(tier.key, 1, { forceLegendRoll: false, pityTriggered: true });
         const topOvr = Math.max(...players.map(p => p.overall));
         expect(topOvr, `${tier.key} pity pull ${topOvr} exceeded cap ${cap}`).toBeLessThanOrEqual(cap);
         expect(topOvr).toBeGreaterThanOrEqual(tier.guaranteedMinOvr);
@@ -397,7 +401,9 @@ describe('Pack opening — real players', () => {
       let cards = 0;
       let real = 0;
       for (let run = 0; run < 25; run++) {
-        for (const p of generatePackContents(key, 1, { freeOpen: key === FREE_PACK_TIER, streak: 7 })) {
+        // Legend deals excluded — a hall card is authored, not drawn from the
+        // real-template pool, and has its own provenance suite in legends.test.ts.
+        for (const p of generatePackContents(key, 1, { freeOpen: key === FREE_PACK_TIER, streak: 7, forceLegendRoll: false })) {
           cards++;
           if (p.source === 'real') real++;
         }
@@ -520,7 +526,10 @@ describe('Pack opening — what a pull costs to run', () => {
       let total = 0;
       const RUNS = 30;
       for (let i = 0; i < RUNS; i++) {
-        total += generatePackContents(key, 1).reduce((t, p) => t + (p.wage || 0), 0);
+        // Legend deals off: the wage bound pins the version pipeline. A hall
+        // card's wage is priced from a rating the Legends tier already deals
+        // (88–95, same PACK_WAGE_FACTOR), so it introduces no new burden class.
+        total += generatePackContents(key, 1, { forceLegendRoll: false }).reduce((t, p) => t + (p.wage || 0), 0);
       }
       const avg = total / RUNS;
       expect(
@@ -1370,5 +1379,46 @@ describe('Pack opening — manager XP & career stat growth', () => {
     expect(result.success).toBe(true);
     const xpAfter = useGameStore.getState().managerProgression.xp || 0;
     expect(xpAfter).toBe(xpBefore);
+  });
+});
+
+describe('paid packs describe what they actually contain', () => {
+  // The Legends Pack shipped as "1 guaranteed Icon, 88+" on a $9.99 IAP while
+  // the game had no Icons at all: there is no retired-legend pool in the data,
+  // and pack pulls come from the community pack, which is current players only.
+  // "Legends" is the card ISSUE (a +4 version), not a player type. An App Store
+  // paid item has to describe its contents accurately — the same reason the
+  // odds sheet exists — so this guards the claim rather than just the wording.
+  const CONTENT_CLAIM_FIELDS = ['storeCaption', 'storeBlurb', 'label'] as const;
+
+  it('promises an Icon only as the Hall of Legends outcome, which now exists', () => {
+    // The retired-legend pool ships (src/data/legends.ts + the save archive),
+    // so an "icon" promise is legitimate — but ONLY in its qualified form.
+    // "Hall of Legends icon" names the disclosed 3–25% outcome; a bare "Icon"
+    // would read as EA-style licensed Icons, which the game does not and
+    // cannot ship (retired-player likeness rights are licensed individually).
+    for (const tier of PACK_TIERS) {
+      for (const field of CONTENT_CLAIM_FIELDS) {
+        const text = String(tier[field] ?? '');
+        const stripped = text.replace(/Hall of Legends icons?/gi, '');
+        expect(stripped, `${tier.key}.${field} promises a bare Icon`).not.toMatch(/\bicons?\b/i);
+      }
+    }
+  });
+
+  it('states a guaranteed floor only when the tier really guarantees one', () => {
+    for (const tier of PACK_TIERS) {
+      const claim = String(tier.storeCaption ?? '').match(/(\d{2})\+/);
+      if (!claim) continue;
+      expect(tier.guaranteedMinOvr, `${tier.key} advertises ${claim[1]}+`).toBe(Number(claim[1]));
+    }
+  });
+
+  it('states a card count that matches what the tier deals', () => {
+    for (const tier of PACK_TIERS) {
+      const claim = String(tier.storeCaption ?? '').match(/^(\d+)\s+(card|player)/i);
+      if (!claim) continue;
+      expect(tier.cards, `${tier.key} advertises ${claim[1]} ${claim[2]}(s)`).toBe(Number(claim[1]));
+    }
   });
 });

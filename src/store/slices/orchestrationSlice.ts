@@ -339,6 +339,10 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
     lastPackSeason: state.lastPackSeason || 0,
     dailyPackOpens: state.dailyPackOpens || { date: '', free: {}, ad: {} },
     weeklyPackBonus: state.weeklyPackBonus || null,
+    // Hall of Legends archive. This whitelist is exactly why the field MUST
+    // be listed here explicitly: v92's whole point was persisting the hall,
+    // and an unlisted field is silently dropped on every save.
+    retiredLegends: state.retiredLegends || [],
     // ── Previously-unsaved fields (v68 fix) ──
     // Each of these is mutated by gameplay but was missing from the save
     // payload, so accumulated state was silently dropped on every reload.
@@ -541,7 +545,7 @@ function buildFreshSessionState(get: Get): Partial<GameState> {
     cup: { ties: [], currentRound: null, eliminated: false, winner: null },
     pendingPressConference: null, activeNegotiation: null,
     pendingFarewell: [], pendingStoryline: null,
-    openedPacks: [], packPityCounter: 0, lastPackWeek: 0, lastPackSeason: 0,
+    openedPacks: [], packPityCounter: 0, retiredLegends: [], lastPackWeek: 0, lastPackSeason: 0,
     dailyPackOpens: { date: '', free: {}, ad: {} },
     weeklyPackBonus: null,
     activeStorylineChains: [], completedStorylineChainIds: [], weeklyObjectives: [],
@@ -1092,6 +1096,11 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         scoutWatchList: data.scoutWatchList || [],
         freeAgents: data.freeAgents || [],
         transferNews: data.transferNews || [],
+        // Explicit backfill, never inherited: without this, loading a save
+        // that predates the field (or was written by the brief window where
+        // v92 forgot to persist it) would keep the PREVIOUS session's hall —
+        // a cross-slot leak that endSeason would then commit into this save.
+        retiredLegends: data.retiredLegends || [],
         sponsorDeals: data.sponsorDeals || [],
         sponsorOffers: data.sponsorOffers || [],
         sponsorSlotCooldowns: data.sponsorSlotCooldowns || {},

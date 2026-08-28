@@ -34,11 +34,33 @@ export const POSITION_WEIGHTS: Record<string, number[]> = {
 
 export const DEFAULT_POSITION_WEIGHTS = [1/6, 1/6, 1/6, 1/6, 1/6, 1/6];
 
-// ── Value & Wage Formulas (exponential curves calibrated to Transfermarkt 2024-25) ──
-// Value curve: ~£137K at OVR 40  →  ~£130M at OVR 91
+// ── Value & Wage Formulas (exponential curves calibrated to real 2024-25 fees) ──
 // Wage curve:  ~£1.1K/wk at OVR 40  →  ~£390K/wk at OVR 91
-export const VALUE_EXP_BASE = 550;
-export const VALUE_EXP_RATE = 0.136;
+//
+// ── Why the value curve was re-fitted (2026-08-28) ──
+// The old curve (base 550, rate 0.136) was calibrated as a STANDALONE answer
+// — "~£130M at OVR 91", which is about right for a market value. But nothing
+// consumes it standalone: `recomputeDerivedEconomics` multiplies it by the
+// age curve AND by `RARITY_VALUE_MULTIPLIERS`, which is 2.50 at legend tier
+// and 1.65 at icon. So the superstar premium was applied twice — once by the
+// exponential itself, once by the rarity step — and the top of the game
+// priced a 94 at £490M against a real-world ceiling near £190M. A five-card
+// pack summed to £946M, which is what made it visibly wrong.
+//
+// The curve below is fitted so the FINAL number — after the rarity
+// multiplier, at peak age — lands on real fees, rather than the intermediate
+// one. Anchors: OVR 94 ≈ £190M (a world-best transfer), OVR 88 ≈ £60M,
+// OVR 79 ≈ £12M, OVR 70 ≈ £4M. The rarity multipliers are deliberately left
+// alone: they still express "elite players carry a commercial premium", and
+// they are now the ONLY place that premium is applied.
+//
+// Blast radius, stated because this moves the whole economy: transfer fees,
+// sell revenue, quick-sell payouts, squad valuations and any AI decision
+// priced off `player.value` all drop at the top end (roughly halved at 90+,
+// broadly unchanged below 70). Budgets were NOT re-tuned to compensate, so
+// buying elite players is genuinely cheaper than it was.
+export const VALUE_EXP_BASE = 744;
+export const VALUE_EXP_RATE = 0.1227;
 export const VALUE_RANDOM_FACTOR = 0.15;
 // Eased from 10 (a uniform −15% across every rating) at the user's call.
 //

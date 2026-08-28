@@ -10,6 +10,8 @@ import { PackConfetti } from './PackConfetti';
 import { WalkoutStadium } from './WalkoutStadium';
 import { useTypewriter } from './useTypewriter';
 import { hapticHeavy, hapticLight, hapticMedium } from '@/utils/haptics';
+import { resolveLegend } from '@/utils/legends';
+import { useGameStore } from '@/store/gameStore';
 import { cn } from '@/lib/utils';
 
 interface WalkoutRevealProps {
@@ -274,6 +276,12 @@ function AttributePill({
 export function WalkoutReveal({ player, onComplete, onAdvance }: WalkoutRevealProps) {
   const { t } = useTranslation();
   const tier = tierForOvr(player.overall);
+  // Hall of Legends provenance. Without this the feature is invisible at its
+  // own money moment — a 95 hall icon and a 95 ordinary pull revealed
+  // identically. Resolves against the seed set + this save's archive; an
+  // unknown id degrades to a normal reveal, per the `legendId` contract.
+  const retiredLegends = useGameStore(s => s.retiredLegends);
+  const legend = resolveLegend(player.legendId, retiredLegends);
   const isLegendary = player.overall >= LEGENDARY_OVR_THRESHOLD;
   const prefersReducedMotion = useReducedMotionPref();
 
@@ -682,8 +690,8 @@ export function WalkoutReveal({ player, onComplete, onAdvance }: WalkoutRevealPr
           animate={{ opacity: phase === 'enter' ? 0 : 1, y: phase === 'enter' ? 6 : 0 }}
           transition={{ duration: 0.35 }}
         >
-          <span aria-hidden style={{ color: tier.gradientVia, textShadow: `0 0 8px ${tier.gradientVia}` }}>★</span>
-          <span>{tier.label}</span>
+          <span aria-hidden style={{ color: tier.gradientVia, textShadow: `0 0 8px ${tier.gradientVia}` }}>{legend ? '♛' : '★'}</span>
+          <span>{legend ? 'Hall of Legends' : tier.label}</span>
         </motion.div>
 
         <h1
@@ -709,6 +717,20 @@ export function WalkoutReveal({ player, onComplete, onAdvance }: WalkoutRevealPr
             </motion.span>
           )}
         </h1>
+
+        {/* Era line — the one sentence of provenance a Hall of Legends card
+            carries. Rendered only once the name has landed so it reads as the
+            reveal's closing beat, not competing chrome. */}
+        {legend && (
+          <motion.p
+            className="mt-1.5 text-[11px] leading-snug text-white/75 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: phase === 'enter' || phase === 'name' ? 0 : 1 }}
+            transition={{ duration: 0.4 }}
+          >
+            {legend.era}
+          </motion.p>
+        )}
 
         {/* Attribute row — six FIFA-style pills tick from 0 → final value in
             sequence during the `stats` phase, with a sub-haptic on each
@@ -815,7 +837,7 @@ export function WalkoutReveal({ player, onComplete, onAdvance }: WalkoutRevealPr
       {/* SR announcement at reveal. */}
       {revealed && (
         <div className="sr-only" aria-live="polite" role="status">
-          {`${tier.label} pull — ${player.firstName} ${player.lastName}, ${player.overall} overall, ${player.position}, ${player.nationality}.`}
+          {`${legend ? 'Hall of Legends' : tier.label} pull — ${player.firstName} ${player.lastName}, ${player.overall} overall, ${player.position}, ${player.nationality}.${legend ? ` ${legend.era}` : ''}`}
         </div>
       )}
 

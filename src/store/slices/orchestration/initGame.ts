@@ -219,9 +219,14 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
       import('@/data/communityPack/cpLeagueSquads'),
     ]);
     // Merge the 7 community-pack-only league squads (arg, mls, sau, kor,
-    // bra, aus, ind) into cpByClub. byClub entries win on collision since
-    // they carry richer metadata (fcId, height/weight), but the two
-    // datasets cover disjoint club ids in practice.
+    // bra, aus, ind) into cpByClub. byClub entries win on collision because
+    // they are the newer season's data.
+    //
+    // The two datasets DO overlap now: byClub is built from FC27 and covers
+    // Argentina, MLS, Saudi and K League fully, while cpLeagueSquads is still
+    // FC26. The overlap is deliberate — cpLeagueSquads keeps clubs populated
+    // in those leagues wherever FC27 has no data for them (Brazil above all,
+    // which EA's public endpoint carries no clubs for at all).
     cpByClub = {
       ...cpLeagueSquadsMod.cpLeagueSquads,
       ...byClubMod.byClub,
@@ -657,6 +662,7 @@ export async function initGameImpl(set: Set, get: Get, clubId: string, options?:
     pendingFarewell: [],
     openedPacks: [],
     packPityCounter: 0,
+    retiredLegends: [],
     lastPackWeek: 0,
     lastPackSeason: 0,
     dailyPackOpens: { date: '', free: {}, ad: {} },

@@ -34,6 +34,10 @@ export function hasBallonDorTop10Reign(player: Pick<Player, 'ballonDOrTop10HoldS
  * place — and just refresh `ballonDOrTop10HoldSeason` to the new season.
  */
 export function applyBallonDorTop10Boost<T extends Player>(player: T, season: number): T {
+  // Career pedigree, distinct from the reign: set once, never reverted.
+  // `isLegendWorthy` reads this decades later, when the reign markers and the
+  // boost itself are long gone.
+  player.ballonDorTop10Ever = true;
   if (hasBallonDorTop10Reign(player)) {
     // Already boosted from last cycle — refresh the reign marker only.
     player.ballonDOrTop10HoldSeason = season;

@@ -69,9 +69,22 @@ export function resetRealPlayerClaims(): void {
   allPoolsCache = null;
 }
 
+/**
+ * Two generators, two id namespaces: `processFC26.mjs` writes bare ids into
+ * `byClub`/`freeAgents` (`"233965"`) while `buildNationalPool.mjs` prefixes
+ * them (`fc26-233965`). Claiming compared them literally, so a club squad's
+ * claim never blocked the SAME player from the national filler pool — and the
+ * name fallback never fired either, because a template carrying an fcId claims
+ * by id only. The result was one real player generated at several clubs, or
+ * alongside his own free-agent copy. Fold the namespace on both sides.
+ */
+function fcKey(fcId: string): string {
+  return fcId.replace(/^fc\d{2}-/, '');
+}
+
 export function claimRealPlayer(t: { fcId?: string; fn: string; ln: string }): void {
   if (t.fcId) {
-    claimedFcIds.add(t.fcId);
+    claimedFcIds.add(fcKey(t.fcId));
     return;
   }
   claimedNames.add(nameKey(t.fn, t.ln));
@@ -79,7 +92,7 @@ export function claimRealPlayer(t: { fcId?: string; fn: string; ln: string }): v
 
 
 function isClaimed(t: PlayerTemplate): boolean {
-  if (t.fcId && claimedFcIds.has(t.fcId)) return true;
+  if (t.fcId && claimedFcIds.has(fcKey(t.fcId))) return true;
   // Name-based claims block by name even for fcId-backed candidates,
   // so a CLUB_TEMPLATES entry without a stable fcId can still keep
   // "their" person out of other clubs' filler slots.

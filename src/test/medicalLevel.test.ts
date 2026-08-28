@@ -78,7 +78,19 @@ describe('simulateMatch — Medical Centre level reaches the injury system', () 
   beforeEach(() => { resetRealPlayerClaims(); });
 
   it('a maxed Medical Centre produces fewer injuries than none at all', () => {
-    const SEEDS = 60;
+    // 400, not the 60 this started with. The effect being measured is real but
+    // SMALL, because medical level only reaches ONE of the two injury paths:
+    // non-foul injuries have their probability reduced (match.ts:1905, 0.02
+    // down to the 0.005 floor at max level), while foul injuries fire on a
+    // flat FOUL_INJURY_CHANCE and are unaffected in occurrence — a physio does
+    // not stop a bad tackle, it only shortens the recovery. Fouls are frequent
+    // enough to dominate the total, so the whole-squad reduction measures
+    // around 3%, not the 75% the non-foul path alone would suggest.
+    //
+    // At 60 seeds that is invisible: both arms tied at 17 and the test passed
+    // only because the previous player pool happened to break the tie. It
+    // needs a sample large enough to see 3%.
+    const SEEDS = 400;
     let injuriesAtZero = 0;
     let injuriesAtMax = 0;
 
@@ -115,6 +127,10 @@ describe('simulateMatch — Medical Centre level reaches the injury system', () 
     // MEDICAL_INJURY_PREVENTION_PER_LEVEL is 0.015, so ten levels subtract 0.15
     // from a base non-foul injury probability of 0.02 — i.e. it floors out.
     // Pre-fix both arms were identical because the parameter never varied.
+    // This run is deterministic (seeded), so the margin is stable — but it is
+    // a margin of a few injuries, and a change to the player pool moves it.
+    // If this fails after a data import, check the margin before assuming a
+    // regression in the injury system.
     expect(injuriesAtMax).toBeLessThan(injuriesAtZero);
   });
 });

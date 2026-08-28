@@ -1,9 +1,37 @@
 import { describe, it, expect } from 'vitest';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 
+/**
+ * A squad priced on the PRE-v89 wage curve (`WAGE_EXP_BASE = 10`).
+ *
+ * The v90 → v91 easing no longer fires on version alone — version 90 cannot
+ * distinguish a save migrated up from before v89 (old-curve wages, needs the
+ * easing) from one CREATED by a v89/v90 build (new-curve wages, must not be
+ * eased again). It reads the curve off the save instead, so a fixture that
+ * wants the easing has to look like a real old-curve save.
+ */
+function oldCurveSquad(n = 30): Record<string, { wage: number; overall: number }> {
+  const out: Record<string, { wage: number; overall: number }> = {};
+  for (let i = 0; i < n; i++) {
+    const overall = 60 + (i % 30);
+    out[`curve-${i}`] = { overall, wage: Math.round(10 * Math.exp(0.116 * overall) * 1.05) };
+  }
+  return out;
+}
+
+/** The same squad priced on the POST-v89 curve — must NOT be eased again. */
+function newCurveSquad(n = 30): Record<string, { wage: number; overall: number }> {
+  const out: Record<string, { wage: number; overall: number }> = {};
+  for (let i = 0; i < n; i++) {
+    const overall = 60 + (i % 30);
+    out[`curve-${i}`] = { overall, wage: Math.round(8.5 * Math.exp(0.116 * overall) * 1.05) };
+  }
+  return out;
+}
+
 describe('saveMigration', () => {
-  it('should have current version set to 90', () => {
-    expect(CURRENT_VERSION).toBe(90);
+  it('should have current version set to 92', () => {
+    expect(CURRENT_VERSION).toBe(92);
   });
 
   it('v85 → v86 upgrades a Sunday save to sub-schema v3', () => {
@@ -333,6 +361,10 @@ describe('saveMigration', () => {
     expect(players.legend.wage).toBeGreaterThan(400_000);
     expect(players.icon.wage).toBeGreaterThan(250_000);
     expect(players.squad.value).toBe(5_000_000);
+    // The v90 → v91 wage easing declines to run here, and that is the point:
+    // it now reads the wage curve off the save rather than trusting the
+    // version, and a three-player fixture cannot be read. It errs toward
+    // leaving wages alone, so this common player's wage arrives untouched.
     expect(players.squad.wage).toBe(50_000);
   });
 
@@ -599,6 +631,10 @@ describe('saveMigration', () => {
     const out = migrateSaveData(v66) as Record<string, unknown>;
     const players = out.players as Record<string, { value: number; wage: number }>;
     expect(players.bronze.value).toBeGreaterThanOrEqual(500_000);
+    // v67 must not deflate the wage. The v90 → v91 easing is the only
+    // reduction along the chain and it declines on a fixture this small (it
+    // reads the wage curve off the save and two players cannot be read), so
+    // the original wage is the floor here.
     expect(players.bronze.wage).toBeGreaterThanOrEqual(2_000);
   });
 
@@ -673,5 +709,89 @@ describe('v73 → v74 (subscription anchoring, retirement flag)', () => {
     const sub = (out.monetization as Record<string, unknown>).subscription as Record<string, unknown>;
     expect(sub).not.toBeNull();
     expect(sub.tier).toBe('lifetime');
+  });
+});
+
+describe('v90 → v91: the wage easing reaches existing saves', () => {
+  // v89 eased WAGE_EXP_BASE 10 → 8.5 but migrated nothing, on the belief that
+  // players re-price on a development tick. They do not — that path calls
+  // `recomputePlayerValueOnly`, which never writes `wage` — so pre-v89 squads
+  // stayed 15% expensive forever while every new arrival came in cheap.
+  const save = (players: Record<string, unknown>, clubs: Record<string, unknown> = {}) =>
+    migrateSaveData({ version: 90, players: { ...oldCurveSquad(), ...players }, clubs });
+
+  it('scales existing player wages by 0.85', () => {
+    const out = save({ a: { wage: 100_000 } });
+    expect((out.players as Record<string, { wage: number }>).a.wage).toBe(85_000);
+    expect(out.version).toBe(CURRENT_VERSION);
+  });
+
+  it('scales the club wage bill by the same factor', () => {
+    const out = save({ a: { wage: 100_000 } }, { c: { wageBill: 1_000_000 } });
+    expect((out.clubs as Record<string, { wageBill: number }>).c.wageBill).toBe(850_000);
+  });
+
+  it('preserves the RATIO between contracts rather than re-deriving from overall', () => {
+    // A transfer-signed wage, a pack pull's wageFactor discount and a free
+    // agent's 0.8x are all deliberate departures from the curve. Re-deriving
+    // would erase them; scaling must not.
+    const out = save({
+      curve: { wage: 100_000, overall: 80 },
+      discounted: { wage: 40_000, overall: 80 },
+    });
+    const players = out.players as Record<string, { wage: number }>;
+    expect(players.curve.wage).toBe(85_000);
+    expect(players.discounted.wage).toBe(34_000);
+    expect(players.discounted.wage / players.curve.wage).toBeCloseTo(0.4, 5);
+  });
+
+  it('never takes a wage below the floor', () => {
+    const out = save({ a: { wage: 500 } });
+    expect((out.players as Record<string, { wage: number }>).a.wage).toBe(500);
+  });
+
+  it('leaves a player with no wage field alone instead of inventing one', () => {
+    const out = save({ a: { overall: 70 } });
+    expect((out.players as Record<string, { wage?: number }>).a.wage).toBeUndefined();
+  });
+
+  it('survives malformed players and clubs', () => {
+    const out = migrateSaveData({
+      version: 90,
+      players: { ...oldCurveSquad(), a: null, b: { wage: 'lots' }, c: { wage: 20_000 } },
+      clubs: { x: null, y: { wageBill: undefined }, z: { wageBill: 200_000 } },
+    });
+    const players = out.players as Record<string, { wage?: unknown }>;
+    expect(players.b.wage).toBe('lots');
+    expect(players.c.wage).toBe(17_000);
+    expect((out.clubs as Record<string, { wageBill?: number }>).z.wageBill).toBe(170_000);
+    expect(out.version).toBe(CURRENT_VERSION);
+  });
+
+  it('does NOT ease a save whose wages already sit on the post-v89 curve', () => {
+    // The regression this guard exists for: a save CREATED by a v89/v90 build
+    // is also version 90, and easing it a second time leaves every wage at
+    // 72.25% of the original curve — a 15% pay cut across every squad in the
+    // wild. Detection reads the curve off the save rather than trusting the
+    // version number.
+    const priced = newCurveSquad();
+    const out = migrateSaveData({ version: 90, players: { ...priced }, clubs: { c: { wageBill: 1_000_000 } } });
+    const players = out.players as Record<string, { wage: number }>;
+    expect(players['curve-0'].wage).toBe(priced['curve-0'].wage);
+    expect((out.clubs as Record<string, { wageBill: number }>).c.wageBill).toBe(1_000_000);
+    expect(out.version).toBe(CURRENT_VERSION);
+  });
+
+  it('declines to ease when the sample is too small to read the curve', () => {
+    // Biased toward NOT easing: skipping leaves an old save where it already
+    // was, while easing a current save corrupts it.
+    const out = migrateSaveData({ version: 90, players: { a: { wage: 100_000, overall: 80 } }, clubs: {} });
+    expect((out.players as Record<string, { wage: number }>).a.wage).toBe(100_000);
+  });
+
+  it('does not run twice on a save already at the current version', () => {
+    const once = save({ a: { wage: 100_000 } });
+    const twice = migrateSaveData(once);
+    expect((twice.players as Record<string, { wage: number }>).a.wage).toBe(85_000);
   });
 });

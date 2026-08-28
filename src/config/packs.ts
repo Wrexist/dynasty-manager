@@ -157,9 +157,12 @@ export const PACK_TIERS: PackTierDefinition[] = [
     label: 'Elite Pack',
     storeCaption: '5 players, one guaranteed 82+.',
     badge: 'best_value',
-    storeBlurb: 'The value pick. Five Elite versions — +2 to every stat — with one card guaranteed 82 or better. More top-rated cards per dollar than any other pack on the shelf, which is why it wears the badge.',
+    storeBlurb: 'The value pick. Five Elite versions — +2 to every stat — with one card guaranteed 82 or better. More top-rated cards per dollar than any other pack on the shelf, which is why it wears the badge. A small chance the top card is a Hall of Legends icon — odds in the guide.',
     price: 0,
     cards: 5,
+    // The bottom rung of the Legend chance ladder (3% → 8% → 25%) — see the
+    // "Hall of Legends dealing" block near packLegendChance for the design.
+    legendChance: 0.03,
     guaranteedMinOvr: 82,
     ovrMin: 74,
     ovrMax: 89,
@@ -182,9 +185,10 @@ export const PACK_TIERS: PackTierDefinition[] = [
     key: 'rare',
     label: 'World Class Pack',
     storeCaption: '5 players, one guaranteed 84+, walkout possible.',
-    storeBlurb: 'Five World Class versions — +3 to every stat — with one card guaranteed 84 or better, which is walkout territory. The pack for turning a good squad into a contender.',
+    storeBlurb: 'Five World Class versions — +3 to every stat — with one card guaranteed 84 or better, which is walkout territory. The pack for turning a good squad into a contender. Nearly one open in twelve, the top card is a Hall of Legends icon instead — odds in the guide.',
     price: 0,
     cards: 5,
+    legendChance: 0.08,
     guaranteedMinOvr: 84,
     ovrMin: 78,
     ovrMax: 92,
@@ -206,11 +210,21 @@ export const PACK_TIERS: PackTierDefinition[] = [
     // lineup, on the tier that least needs a reason to be bought.
     key: 'icon',
     label: 'Legends Pack',
-    storeCaption: '1 guaranteed Icon, 88+, walkout guaranteed.',
+    // NOT "1 guaranteed Icon" — the legend outcome is a CHANCE (25%), and a
+    // paid pack must describe its contents accurately. The caption promises
+    // what every open delivers (a Legends-issue card, 88+, walkout) and names
+    // the legend outcome as a possibility; the odds sheet publishes the exact
+    // number, per the same Guideline 3.1.1 duty as the rarity table. The Hall
+    // of Legends pool is the authored seed set in `src/data/legends.ts` plus
+    // whatever greats have retired inside THIS save (`state.retiredLegends`) —
+    // it deliberately contains no real-world retired player, because retired-
+    // player name/likeness rights are licensed individually and we hold none.
+    storeCaption: '1 card, 88+, walkout guaranteed. 1 in 4 is a Hall of Legends icon.',
     badge: 'trophy',
-    storeBlurb: 'One card, and it is the best version in the game: a Legends issue at +4 to every stat, guaranteed 88 or better, walkout guaranteed. The only place a card can reach the mid-90s. A trophy, not a squad-filler.',
+    storeBlurb: 'One card, and it is the best in the game: a Legends issue at +4 to every stat, guaranteed 88 or better, walkout guaranteed. One open in four deals a Hall of Legends icon instead — a retired great at his career peak, up to 95. The longer your save runs, the more of its own legends the hall holds.',
     price: 0,
     cards: 1,
+    legendChance: 0.25,
     guaranteedMinOvr: 88,
     // Final ratings. The +4 Legends boost is what makes this band honest: the
     // pool's best base player is 91, but a Legends version of him is 95, and
@@ -417,6 +431,33 @@ export function packVersionBoostFor(tierKey: PackTierKey, weekIndex?: number): n
   return base;
 }
 
+// ── Hall of Legends dealing ──
+//
+// The Legend chance ladder (Elite 3% → World Class 8% → Legends 25%) exists so
+// the legend outcome is a property of the STOREFRONT, not of one SKU: every
+// serious pack can produce one, but the pack named after them is where you go
+// hunting. Champions and the free Daily deliberately stay at zero — the free
+// tier must never headline the rarest outcome, and Champions is the entry
+// rung whose whole identity is "cheap and honest".
+//
+// A promo skin never touches `legendChance` — the promo contract ("a promo may
+// only make the pack BETTER: same price, cards, floor and odds weights") is
+// pinned by test, and the legend chance is part of those odds.
+
+/** Chance (0–1) that a pack's guaranteed slot deals a Hall of Legends card.
+ *  Read through this helper, never off the tier directly — same rule as
+ *  `resolvePackTier`, so the odds sheet and the generator cannot drift. */
+export function packLegendChance(tierKey: PackTierKey): number {
+  return PACK_TIER_MAP[tierKey]?.legendChance ?? 0;
+}
+
+/** When the save's own archive is non-empty, this share of legend deals draws
+ *  from it rather than the authored seed set. Biased toward the save's own
+ *  history on purpose: pulling the striker YOU brought through the academy is
+ *  the whole emotional payload of the feature, and an unweighted draw would
+ *  bury a young archive under 40 seed legends. */
+export const LEGEND_OWN_ARCHIVE_BIAS = 0.5;
+
 /** This week's promo cover, or null if the rotation and the skin list have
  *  drifted apart — in which case the featured slot falls back to the plain
  *  tier rather than showing a name backed by the wrong pack. */
@@ -461,7 +502,7 @@ export const MAX_WALKOUTS_PER_PACK = 1;
 /**
  * Wage a pack-pulled player signs for, as a fraction of their market wage.
  *
- * Pack pulls are real players at real ratings, so an Icon Pack hands you
+ * Pack pulls are real players at real ratings, so a Legends Pack hands you
  * someone who genuinely earns £400k a week. Measured before this existed: one
  * $6.99 Rare Gold added ~£920k/week to the bill — 21% of Arsenal's entire wage
  * budget, or 58% of Celtic's — so buying a pack made your club materially worse
