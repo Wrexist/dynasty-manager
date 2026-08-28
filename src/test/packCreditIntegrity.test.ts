@@ -29,7 +29,7 @@ import {
 } from '@/store/helpers/persistence';
 import { isPurchaseNotAttempted, PurchaseNotAttemptedError } from '@/utils/purchases';
 import { useGameStore } from '@/store/gameStore';
-import { PACK_TIER_MAP } from '@/config/packs';
+import { PACK_TIER_MAP, FREE_PACK_TIER } from '@/config/packs';
 
 const CLUB = 'manchester-city';
 
@@ -69,53 +69,56 @@ describe('daily free pack allowance is device-global and clock-monotonic', () =>
   afterEach(() => { vi.useRealTimers(); });
 
   it('a free open is spent immediately, outside the save', () => {
-    const goldFree = PACK_TIER_MAP.gold?.freeDailyLimit ?? 0;
-    expect(goldFree, 'gold must have a free daily allowance for this test to mean anything').toBeGreaterThan(0);
+    // Retargeted from `gold` to `daily` by the Market redesign: Gold is now a
+    // purely paid tier and the single free daily pack is `daily`. The property
+    // under test is unchanged — a free open is spent on the DEVICE, at once.
+    const dailyFree = PACK_TIER_MAP[FREE_PACK_TIER]?.freeDailyLimit ?? 0;
+    expect(dailyFree, 'the free tier must have a daily allowance for this test to mean anything').toBeGreaterThan(0);
 
-    expect(useGameStore.getState().canOpenPack('gold', 'free').ok).toBe(true);
-    const result = useGameStore.getState().openPack('gold', { method: 'free' });
+    expect(useGameStore.getState().canOpenPack(FREE_PACK_TIER, 'free').ok).toBe(true);
+    const result = useGameStore.getState().openPack(FREE_PACK_TIER, { method: 'free' });
     expect(result.success).toBe(true);
 
     // Spent — and recorded on the device, not in the save payload.
-    expect(useGameStore.getState().canOpenPack('gold', 'free').ok).toBe(false);
-    expect(readDailyPackOpens().free.gold).toBe(1);
+    expect(useGameStore.getState().canOpenPack(FREE_PACK_TIER, 'free').ok).toBe(false);
+    expect(readDailyPackOpens().free[FREE_PACK_TIER]).toBe(1);
   });
 
   it('reloading the save does not refund the allowance', () => {
-    useGameStore.getState().openPack('gold', { method: 'free' });
-    expect(useGameStore.getState().canOpenPack('gold', 'free').ok).toBe(false);
+    useGameStore.getState().openPack(FREE_PACK_TIER, { method: 'free' });
+    expect(useGameStore.getState().canOpenPack(FREE_PACK_TIER, 'free').ok).toBe(false);
 
     // Force-quit + reload, the save-scum reroll: a brand-new session on the
     // same device must still see the allowance as spent.
     useGameStore.getState().resetGame();
     useGameStore.getState().initGame(CLUB);
-    expect(useGameStore.getState().canOpenPack('gold', 'free').ok).toBe(false);
+    expect(useGameStore.getState().canOpenPack(FREE_PACK_TIER, 'free').ok).toBe(false);
   });
 
   it('a second save slot shares the same daily allowance', () => {
-    useGameStore.getState().openPack('gold', { method: 'free' });
+    useGameStore.getState().openPack(FREE_PACK_TIER, { method: 'free' });
     // A different career is still the same device and the same day.
     useGameStore.setState({ activeSlot: 2 });
-    expect(useGameStore.getState().canOpenPack('gold', 'free').ok).toBe(false);
+    expect(useGameStore.getState().canOpenPack(FREE_PACK_TIER, 'free').ok).toBe(false);
   });
 
   it('winding the clock backwards does not re-arm it', () => {
-    useGameStore.getState().openPack('gold', { method: 'free' });
+    useGameStore.getState().openPack(FREE_PACK_TIER, { method: 'free' });
     const spent = readDailyPackOpens();
-    expect(spent.free.gold).toBe(1);
+    expect(spent.free[FREE_PACK_TIER]).toBe(1);
 
     // Pretend the stored record was written "tomorrow" — i.e. the device clock
     // has since gone backwards. Reset must require a STRICTLY GREATER day.
     writeDailyPackOpens({ ...spent, dayIndex: currentDayIndex() + 1 });
-    expect(readDailyPackOpens().free.gold).toBe(1);
-    expect(useGameStore.getState().canOpenPack('gold', 'free').ok).toBe(false);
+    expect(readDailyPackOpens().free[FREE_PACK_TIER]).toBe(1);
+    expect(useGameStore.getState().canOpenPack(FREE_PACK_TIER, 'free').ok).toBe(false);
   });
 
   it('a genuinely new day does reset it', () => {
-    useGameStore.getState().openPack('gold', { method: 'free' });
+    useGameStore.getState().openPack(FREE_PACK_TIER, { method: 'free' });
     // Record stamped a day in the past — the honest rollover case.
     writeDailyPackOpens({ ...readDailyPackOpens(), dayIndex: currentDayIndex() - 1 });
-    expect(readDailyPackOpens().free.gold).toBeUndefined();
-    expect(useGameStore.getState().canOpenPack('gold', 'free').ok).toBe(true);
+    expect(readDailyPackOpens().free[FREE_PACK_TIER]).toBeUndefined();
+    expect(useGameStore.getState().canOpenPack(FREE_PACK_TIER, 'free').ok).toBe(true);
   });
 });

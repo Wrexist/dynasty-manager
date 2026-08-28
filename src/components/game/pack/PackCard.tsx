@@ -46,6 +46,10 @@ interface PackCardProps {
 export const PackCard = memo(function PackCard({ player, revealed, onReveal, entranceDelay = 0, onDismiss }: PackCardProps) {
   const tier = tierForOvr(player.overall);
   const prefersReducedMotion = useReducedMotionPref();
+  // The reveal renders PlayerCard at `lg`, which is a 2:3 card whose artwork
+  // supplies its own edge. So the wrapper must not put a rounded box or a glow
+  // rim around it. The face-DOWN back keeps its rounding — that side really is
+  // a rectangle.
   const [hovered, setHovered] = useState(false);
 
   const canReveal = !revealed && !!onReveal;
@@ -68,7 +72,9 @@ export const PackCard = memo(function PackCard({ player, revealed, onReveal, ent
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       className={cn(
-        'relative block aspect-[3/4] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 rounded-2xl',
+        'relative block focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 rounded-2xl',
+        // Matches PlayerCard's `lg` box so the flip has no letterboxing.
+        'aspect-[2/3]',
         canReveal && 'cursor-pointer',
       )}
       role={canReveal ? 'button' : undefined}
@@ -84,7 +90,7 @@ export const PackCard = memo(function PackCard({ player, revealed, onReveal, ent
       {revealed && <PackCardAura tierKey={tier.key} />}
 
       <motion.div
-        className="relative w-full h-full rounded-2xl"
+        className="relative w-full h-full"
         style={{
           transformStyle: 'preserve-3d',
           // Narrow the GPU layer hint to moments the card is actually
@@ -144,7 +150,7 @@ export const PackCard = memo(function PackCard({ player, revealed, onReveal, ent
               className="text-[9px] uppercase tracking-[0.35em] text-white/85 font-semibold"
               style={{ textShadow: '0 1px 2px rgba(0,0,0,0.55)' }}
             >
-              Dynasty Pack
+              Opening
             </span>
             <span
               className="text-[9px] uppercase tracking-widest text-white/60 font-semibold mt-0.5"

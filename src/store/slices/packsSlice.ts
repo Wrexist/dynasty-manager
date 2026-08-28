@@ -3,7 +3,19 @@ import type { OpenedPackRecord, OpenPackResult, PackTierKey, PackUnlockMethod, P
 import type { GameState } from '../storeTypes';
 import { addMsg, safeRandomUUID } from '@/utils/helpers';
 import { MAX_SQUAD_SIZE, MIN_SQUAD_SIZE, FFP_WAGE_RATIO_WARNING } from '@/config/gameBalance';
-import { PACK_TIER_MAP, RECENT_PULLS_LIMIT, isFreeOpenMethod } from '@/config/packs';
+import {
+  PACK_TIER_MAP,
+  RECENT_PULLS_LIMIT,
+  isFreeOpenMethod,
+  resolvePackTier,
+  getFeaturedPackTier,
+  WEEKLY_BONUS_CARDS,
+  PACK_QUICK_SELL_RATE,
+  PACK_QUICK_SELL_CAP,
+  packFrameFor,
+  packVersionBoostFor,
+} from '@/config/packs';
+import { evaluateDailyStreak } from '@/utils/dailyStreak';
 import { generateAiCounterSignings, generatePackContents, shouldPityTrigger, updatedPityCounter } from '@/utils/packGeneration';
 import { CHALLENGES } from '@/data/challenges';
 import { grantXP, XP_REWARDS } from '@/utils/managerPerks';
@@ -16,7 +28,15 @@ import {
   candidatesCanCrackSquad,
 } from '@/utils/autoFillContext';
 import { purgePlayerReferences } from '../helpers/rosterOps';
-import { readDailyPackOpens, writeDailyPackOpens, currentDayIndex } from '../helpers/persistence';
+import {
+  readDailyPackOpens,
+  writeDailyPackOpens,
+  currentDayIndex,
+  readDailyStreak,
+  readWeeklyPackBonus,
+  writeWeeklyPackBonus,
+  currentWeekIndex,
+} from '../helpers/persistence';
 
 /**
  * Transient (non-persisted) snapshot of the state slices a quick-sell touches,
@@ -75,6 +95,56 @@ function todayCounts(_state: GameState, tierKey: PackTierKey): { free: number; a
     free: record.free[tierKey] || 0,
     ad: record.ad[tierKey] || 0,
   };
+}
+
+/** The player's consecutive-login streak, as the Daily Pack sees it.
+ *
+ *  Read from the DEVICE-global streak record rather than passed in by the page:
+ *  the streak selects the Daily Pack's odds band, so a caller that could supply
+ *  it could supply the day-7 pack on day one. Same reason the daily allowance
+ *  is device-global and not per-save.
+ *
+ *  `evaluateDailyStreak(...).current` is today's run length whether or not the
+ *  daily XP reward has been claimed — opening the free pack should not require
+ *  first dismissing a modal. */
+export function currentLoginStreak(): number {
+  try {
+    return Math.max(1, evaluateDailyStreak(readDailyStreak()).current);
+  } catch {
+    // A corrupt streak record must never block the free pack; fall back to the
+    // weakest band, which is what a brand-new player gets anyway.
+    return 1;
+  }
+}
+
+/** Extra cards this open earns from the weekly featured bonus.
+ *
+ *  Granted only for a REAL-MONEY open of the currently featured tier, and only
+ *  once per real week. Free and ad opens are excluded on purpose: the bonus is
+ *  the reason to come back and buy this week's pack, and stapling it to the
+ *  free pack would make it a weekly free upgrade instead.
+ *
+ *  Both `evaluateOpenPack` (squad-space check) and `openPack` (generation) call
+ *  this, so the space we reserve is always the space we fill. */
+export function weeklyBonusCardsFor(
+  tierKey: PackTierKey,
+  method: PackUnlockMethod | null,
+  /** Pass the open's single week reading (see openPack) so bonus, boost and
+   *  frame can never disagree about which week it is. Display-only callers may
+   *  omit it. */
+  atWeekIndex?: number,
+): number {
+  if (method !== 'iap') return 0;
+  const tier = PACK_TIER_MAP[tierKey];
+  if (!tier?.weeklyEligible) return 0;
+  const weekIndex = atWeekIndex ?? currentWeekIndex();
+  if (getFeaturedPackTier(weekIndex) !== tierKey) return 0;
+  const claim = readWeeklyPackBonus();
+  // `>=`, not `===`: `readWeeklyPackBonus` deliberately keeps a FUTURE-dated
+  // claim (the only way to see one is a clock wound backwards), and an
+  // equality check let that record re-arm the bonus for every week before it.
+  if (claim && claim.weekIndex >= weekIndex) return 0;
+  return WEEKLY_BONUS_CARDS;
 }
 
 /** Pick the cheapest available method for the user given their current
@@ -148,11 +218,15 @@ function evaluateOpenPack(
     if (club.budget < tier.price) return { ok: false, message: 'Insufficient funds for this pack.' };
   }
 
+  // Reserve space for the weekly bonus card too. Checking only `tier.cards`
+  // would let a bonus-carrying purchase pass pre-flight and then be rejected by
+  // the same rule after the store had already charged for it.
+  const packCards = tier.cards + weeklyBonusCardsFor(tierKey, resolvedMethod);
   const slotsAvailable = MAX_SQUAD_SIZE - club.playerIds.length;
-  if (slotsAvailable < tier.cards) {
+  if (slotsAvailable < packCards) {
     return {
       ok: false,
-      message: `Not enough squad space — this pack delivers ${tier.cards} player(s). Release players first.`,
+      message: `Not enough squad space — this pack delivers ${packCards} player(s). Release players first.`,
     };
   }
 
@@ -169,6 +243,10 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     free: Partial<Record<PackTierKey, number>>;
     ad: Partial<Record<PackTierKey, number>>;
   },
+  /** Mirror of the device-global weekly-bonus claim, kept in state purely so
+   *  the Market re-renders the moment the bonus is spent. The authority is
+   *  `readWeeklyPackBonus()`; never gate on this field. */
+  weeklyPackBonus: null as { weekIndex: number; tier: PackTierKey } | null,
 
   /** Eligibility pre-flight. Optional `method` lets the page check a
    *  specific path (e.g. "is the IAP path open?"); without it the slice
@@ -257,13 +335,31 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     // A free daily / rewarded-ad open uses the tier's weaker odds where it has
     // them (currently Gold). Paid opens are unaffected.
     const freeOpen = isFreeOpenMethod(method);
-    const players = generatePackContents(tierKey, state.season, { pityTriggered, freeOpen });
+    const streak = currentLoginStreak();
+    // One week reading for the whole open. Bonus, boost and frame must agree
+    // on which week this is — the frame is the claim ("this is a Dynasty
+    // card") and the boost is what the claim is worth, and three separate
+    // currentWeekIndex() calls left a (microsecond) rollover window where
+    // they could disagree. Structural beats improbable.
+    const weekIndex = currentWeekIndex();
+    const bonusCards = weeklyBonusCardsFor(tierKey, method, weekIndex);
+    const versionBoost = packVersionBoostFor(tierKey, weekIndex);
+    const players = generatePackContents(tierKey, state.season, {
+      pityTriggered, freeOpen, streak, extraCards: bonusCards, versionBoost,
+    });
 
     // Claim players onto the club roster. Generators created them with
     // clubId = ''; we finalize ownership here.
     const newPlayers = { ...state.players };
+    // Frame for cards that cleared this pack's guaranteed floor. Resolved with
+    // the CURRENT week so a featured pack stamps its promo frame — that is what
+    // makes a promo frame dated rather than farmable. Cosmetic only.
+    const earnedFrame = packFrameFor(tierKey, weekIndex);
+    const frameFloor = resolvePackTier(tier, { freeOpen, streak }).guaranteedMinOvr;
+
     const finalizedPlayers: Player[] = players.map(p => {
       const owned: Player = { ...p, clubId: state.playerClubId, joinedSeason: state.season };
+      if (earnedFrame && p.overall >= frameFloor) owned.packFrame = earnedFrame;
       newPlayers[owned.id] = owned;
       return owned;
     });
@@ -303,7 +399,7 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       season: state.season,
       type: 'transfer',
       title: `${tier.label} Opened`,
-      body: `${tier.label} ${costLabel}. Top pull: ${topPlayer.firstName} ${topPlayer.lastName} (${topPlayer.overall} OVR, ${topPlayer.position}). ${tier.cards} player(s) added to your squad.`,
+      body: `${tier.label} ${costLabel}. Top pull: ${topPlayer.firstName} ${topPlayer.lastName} (${topPlayer.overall} OVR, ${topPlayer.position}). ${finalizedPlayers.length} player(s) added to your squad.`,
     });
 
     // FFP wage-ratio warning — mirrors renewContract. A stack of Icon/Rare
@@ -385,6 +481,15 @@ export const createPacksSlice = (set: Set, get: Get) => ({
         ad: { ...usedToday.ad, [tierKey]: (usedToday.ad[tierKey] || 0) + 1 },
       };
     }
+    // Burn the weekly featured bonus. Written OUTSIDE the save and immediately,
+    // for the same reason the daily bucket is: deferring it to the next autosave
+    // would make the bonus a best-of-N reroll (force-quit after a bad pull and
+    // the bonus comes back). It is recorded only once the pack has actually been
+    // generated, so a rejected open never consumes the week's bonus.
+    if (bonusCards > 0) {
+      writeWeeklyPackBonus({ weekIndex, tier: tierKey });
+    }
+
     if (nextDailyOpens !== usedToday) {
       // Persist outside the save, immediately. Deferring this to the next
       // autosave is what made the free daily pack a best-of-N reroll: quit
@@ -408,6 +513,9 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       lastPackWeek: state.week,
       lastPackSeason: state.season,
       dailyPackOpens: nextDailyOpens,
+      ...(bonusCards > 0
+        ? { weeklyPackBonus: { weekIndex, tier: tierKey } }
+        : {}),
       messages: newMessages,
       seasonTotalExpenses: (state.seasonTotalExpenses || 0) + budgetDeduction,
       managerProgression: newProgression,
@@ -433,7 +541,7 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       // the same `freeOpen` resolution as the pull itself — the AI ceiling is
       // derived from the user's guarantee, so a free Gold open must lower the
       // AI ceiling too or the counter-signings would out-rate the user's card.
-      const aiBackfill = generateAiCounterSignings(tierKey, s.clubs, pid, s.playerDivision, s.season, freeOpen);
+      const aiBackfill = generateAiCounterSignings(tierKey, s.clubs, pid, s.playerDivision, s.season, freeOpen, streak);
       let clubsAcc = s.clubs;
       const playersAcc = { ...s.players };
       for (const [aiClubId, aiPlayers] of Object.entries(aiBackfill.perClub)) {
@@ -490,7 +598,7 @@ export const createPacksSlice = (set: Set, get: Get) => ({
 
     return {
       success: true,
-      message: `${tier.label} opened — ${tier.cards} player(s) signed.`,
+      message: `${tier.label} opened — ${finalizedPlayers.length} player(s) signed.`,
       players: finalizedPlayers,
       record,
       pityTriggered,
@@ -568,7 +676,9 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       sellOnClubId: undefined,
     };
 
-    // Remove from the record so the summary re-renders without this card
+    // Remove from the record so the summary re-renders without this card.
+    // (`...last` carries quickSoldTotal forward untouched — a release pays
+    // severance, it does not draw down the quick-sell cap.)
     const updatedRecord: OpenedPackRecord = {
       ...last,
       playerIds: last.playerIds.filter(id => id !== playerId),
@@ -632,7 +742,24 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     if (club.playerIds.length <= MIN_SQUAD_SIZE) {
       return { success: false, message: `Cannot quick-sell — squad would drop below minimum size (${MIN_SQUAD_SIZE}).` };
     }
-    const amount = Math.max(0, Math.round((player.value || 0) * 0.65));
+    // The cap is a budget for the whole open, drawn down sale by sale. Per
+    // card it was a flat £10M exchange rate: every Elite-or-better card from
+    // ~75 OVR up hit it, so Sell All paid n × cap and a $4.99 pack still
+    // minted ~£50M at reveal (audit finding). Per open, a pack can refund at
+    // most one cap total, however it is sold.
+    const alreadyRefunded = last.quickSoldTotal ?? 0;
+    const remainingCap = Math.max(0, PACK_QUICK_SELL_CAP - alreadyRefunded);
+    const uncapped = Math.max(0, Math.round((player.value || 0) * PACK_QUICK_SELL_RATE));
+    // An exhausted cap must REFUSE, not silently take the player for £0 —
+    // that would also burn the undo snapshot on a sale worth nothing. A
+    // genuinely worthless card (uncapped 0) may still be cleared for £0.
+    if (uncapped > 0 && remainingCap === 0) {
+      return {
+        success: false,
+        message: 'Pack quick-sell cap reached for this pack — list the player on the transfer market or release them instead.',
+      };
+    }
+    const amount = Math.min(remainingCap, uncapped);
 
     const strippedClub = {
       ...club,
@@ -672,6 +799,7 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     const updatedRecord: OpenedPackRecord = {
       ...last,
       playerIds: last.playerIds.filter(id => id !== playerId),
+      quickSoldTotal: alreadyRefunded + amount,
     };
     const remainingPackPlayers = updatedRecord.playerIds
       .map(id => state.players[id])
@@ -686,7 +814,11 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       season: state.season,
       type: 'transfer',
       title: `${player.lastName} Quick-Sold`,
-      body: `${player.firstName} ${player.lastName} was quick-sold for £${amount.toLocaleString()} (65% of market value).`,
+      // Only claim the rate when the payout actually followed it — a capped
+      // refund captioned "65% of market value" is a lie with arithmetic in it.
+      body: amount < uncapped
+        ? `${player.firstName} ${player.lastName} was quick-sold for £${amount.toLocaleString()} (pack quick-sell cap reached).`
+        : `${player.firstName} ${player.lastName} was quick-sold for £${amount.toLocaleString()} (${Math.round(PACK_QUICK_SELL_RATE * 100)}% of market value).`,
     });
 
     // Snapshot every slice this sale mutates so the "Undo" toast can revert it

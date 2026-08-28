@@ -1,6 +1,6 @@
 # CLAUDE.md — Dynasty Manager
 
-> Last verified against the codebase 2026-08-23 (app v1.5.0, save schema v86).
+> Last verified against the codebase 2026-08-23 (app v1.5.0, save schema v90).
 > If the numbers below disagree with the code, trust the code — and update this file.
 > `npm run docs:check` verifies the countable claims (schema version, file counts,
 > LOC of the named files) and `-- --fix` updates them. It runs in preflight, so this
@@ -314,7 +314,7 @@ consumable player-pack IAPs (RevenueCat).
   status-bar, `@capacitor-community/in-app-review`)
 - **RevenueCat** `@revenuecat/purchases-capacitor` 12.3.2 (+ `-ui`) — all IAP/subscriptions
 - **Sentry** `@sentry/react` 10.49 — crash reporting + game breadcrumbs (`src/utils/sentry.ts`)
-- **Vitest 3.2.4 + jsdom + Testing Library** — 235 test files in `src/test/`
+- **Vitest 3.2.4 + jsdom + Testing Library** — 237 test files in `src/test/`
 - **Husky 9.1.7 + lint-staged 16.4.0** — pre-commit hooks
 - **Fonts:** Oswald (headings) + DM Sans (body), self-hosted via `@fontsource/*`
 - **Package manager:** npm
@@ -389,13 +389,13 @@ src/
 ├── types/game.ts        → ALL types (2,083 LOC): Player, Club, Match, LeagueInfo,
 │                          10 formations, 45 GameScreens, MonetizationState,
 │                          CareerManager, NationalTeamState, PackTierDefinition, …
-├── utils/               → 98 files + `sunday/` (18): playerGen, saveMigration (v86),
+├── utils/               → 98 files + `sunday/` (18): playerGen, saveMigration (v90),
 │                          purchases (RevenueCat wrapper), monetization, ads (stub),
 │                          packGeneration, communityPackPool, international,
 │                          managerCareer, continental, continentalCoefficients,
 │                          ballonDor, penaltyShootout, substitutionLogic, analytics,
 │                          sentry, appReview, haptics, promotionRelegation, …
-├── test/                → 235 test files incl. longevity/stress suites, adversarial
+├── test/                → 237 test files incl. longevity/stress suites, adversarial
 │                          season tests, release-readiness, render hygiene,
 │                          launch-crash guardrails, balance reports, perf
 ├── index.css            → Tailwind + CSS vars (incl. pack tier palettes, perf-mode)
@@ -404,13 +404,23 @@ src/
 
 ## Critical Files (read these first)
 1. **`src/store/slices/orchestration/weekAdvance.ts`** — THE game loop (3,094 LOC). `advanceWeek()`: training, development, AI sims, injuries, finances, offers, cups, continental, international windows, objectives.
-2. **`src/store/storeTypes.ts`** — complete `GameState` interface (696 LOC).
+2. **`src/store/storeTypes.ts`** — complete `GameState` interface (701 LOC).
 3. **`src/types/game.ts`** — all types (2,083 LOC). Single source of truth.
 4. **`src/config/gameBalance.ts`** — central balancing constants. Check here before hardcoding values.
 5. **`src/engine/match.ts`** — match simulation (2243 LOC).
 6. **`src/data/leagues/index.ts`** — aggregates 45 leagues / 756 clubs; `src/data/league.ts` for fixtures/tables/derbies.
 7. **`src/utils/playerGen.ts`** — player generation, overall calc, squad building.
-8. **`src/utils/saveMigration.ts`** — save schema `CURRENT_VERSION = 86` + migration chain. Every state-shape change bumps it.
+- **Pack pulls sign on a discount (`PACK_WAGE_FACTOR`, 0.55)** that lives on the
+  player as `Player.wageFactor` and is re-applied by `recomputeDerivedEconomics`
+  on every development tick. It has to be a property of the player, not a
+  signing-time adjustment, or the discount evaporates on the first recompute and
+  the wage silently doubles between seasons. It applies to FREE pulls too — that
+  keeps it a property of "arrived via a pack" rather than of "was paid for", and
+  therefore clear of the rule that monetization never moves a sim parameter.
+  Measured reason it exists: one $6.99 Rare Gold used to add ~£920k/week, 58% of
+  a mid-table club's entire wage bill, so buying a pack made your club worse off.
+
+8. **`src/utils/saveMigration.ts`** — save schema `CURRENT_VERSION = 90` + migration chain. Every state-shape change bumps it.
 9. **`src/config/monetization.ts` + `src/utils/purchases.ts` + `src/utils/monetization.ts`** — product catalog, RevenueCat wrapper, entitlement checks (see Monetization).
 10. **`src/store/slices/orchestration/seasonEnd.ts`** — end-of-season: aging, contracts, promotion/relegation cascade, awards, fixtures.
 
@@ -525,13 +535,101 @@ The ad-reward config (budget boosts, double XP, limits per season) is retained
 in `config/monetization.ts` for a future re-enable — re-enable steps are
 documented in `ads.ts`.
 
-## Pack Opening (live feature)
+## The Market (packs) — live feature
 
-FUT-style pack system: `config/packs.ts` defines `PACK_TIERS` (bronze/silver
-free — 1/day + ad-gated extras while ads are off — up through paid consumable
-tiers) with rarity weights, guaranteed-OVR floors, and walkout reveals
-(`components/game/pack/`, `utils/packGeneration.ts`, `packsSlice`). Player
-identities draw from the **community pack** real-player dataset
+The Market tab is `transfers` → `scouting` → `packs`; `PacksPage` is the store.
+`config/packs.ts` is the single source of truth for what is on sale, what it
+contains, what it costs, and what its odds are.
+
+**Structure (top to bottom): This Week → Free Today → Packs.**
+
+| Slot | Tier key | Price | Contents |
+|---|---|---|---|
+| Free Today | `daily` — *Rise to Glory* | free, 1/day (+1 per ad when ads ship) | 3 players, floor rises with login streak: 66+ → 69+ → 72+ → 75+ at day 7 |
+| Packs | `gold` — *Champions* | $2.99 | 5 players, 78+ guaranteed |
+| Packs | `premium` — *Elite* | $4.99 | 5 players, 82+ guaranteed — **BEST VALUE** |
+| Packs | `rare` — *World Class* | $6.99 | 5 players, 84+ guaranteed, walkout possible |
+| Packs | `icon` — *Legends* | $9.99 | 1 player, 88+ guaranteed, walkout guaranteed |
+
+- **`PACK_STOREFRONT_ORDER` is what renders, not `PACK_TIERS`.** `bronze` and
+  `silver` are ARCHIVED: unobtainable, but never deletable — `OpenedPackRecord`
+  in shipped saves references them and Recent Pulls resolves label/art through
+  `PACK_TIER_MAP`.
+- **One free pack, not three.** Bronze, Silver and a free-odds Gold used to run
+  side by side, dominating each other and shipping ~11 players/day into a 40-man
+  squad. `FREE_PACK_TIER` is the one free tier and a test pins that count at 1.
+- **Weekly featured offer.** `getFeaturedPackTier(currentWeekIndex())` rotates
+  over `FEATURED_PACK_ROTATION` on the REAL week (it used to key on the in-game
+  week, so the headline changed several times per sitting). The first purchase
+  of the featured pack each week ships `WEEKLY_BONUS_CARDS` extra cards at its
+  guaranteed floor; the claim is device-global (`readWeeklyPackBonus`), so it is
+  not per-save and not re-rollable by force-quitting. **There is no weekly SKU
+  and there cannot be one** — Apple will not let the client invent a product ID,
+  so the weekly offer is a contents bonus on an existing consumable.
+- **Weekly promo skins.** `WEEKLY_PACK_SKINS` gives the featured slot its own
+  name and cover (The Dynasty / Golden Era / Royal Reserve). A skin changes
+  `label` and `artSrc` ONLY — a test asserts contents and odds are untouched.
+- **Published odds are mandatory, not optional.** `describePackOdds` derives the
+  drop-rate table from the same config the generator rolls, and `PackOddsSheet`
+  is linked from every pack card. App Store Guideline 3.1.1 requires randomized
+  paid items to disclose odds before purchase; this app shipped four randomized
+  consumable SKUs disclosing nothing until the Market redesign. Never
+  hand-author an odds table.
+- **`packEliteCardsPerDollar` decides who wears BEST VALUE**, and a test asserts
+  the badged tier is its argmax. The badge is not a marketing decision.
+- **Streak** comes from the existing login streak (`readDailyStreak` +
+  `evaluateDailyStreak`) read INSIDE the slice — never passed in by the page, or
+  a caller could hand itself the day-7 pack on day one.
+- **Art chain** is `artSrc` → `artLegacySrc` → tier gradient, so new covers can
+  be referenced before the files ship. Covers live in `public/packs/`; three
+  tests pin that every referenced cover exists, nothing unreferenced ships, and
+  everything is `.webp` (the source PNGs are ~3.2 MB each, the webp ~0.47 MB).
+- **Pack card frames.** A card pulled AT OR ABOVE its pack's guaranteed floor
+  keeps that pack's frame forever (`Player.packFrame`, art in
+  `public/player-cards/`, registry `PACK_CARD_FRAMES`). Precedence in
+  `getPlayerCardArt`: Ballon d'Or > pack frame > OVR tier shield. Two rules make
+  it worth having and both are tested: the **floor gate** (sub-floor filler
+  keeps its tier art, so a frame always means a good card and the squad-list
+  tier read survives) and **weekly frames cannot be farmed** (Dynasty / Golden
+  Era / Royal Reserve are awarded only while their week runs). Purely
+  cosmetic — a frame never touches a sim parameter. An unknown frame id
+  resolves to `null` and falls back to tier art, so a frame can be retired
+  without breaking saves.
+- ⚠ **ASC action item:** the four consumables' in-app display names changed
+  (Champions / Elite / World Class / Legends) and the cosmetic pack became
+  *Dynasty Legacy Pack*. Product IDs are frozen; the App Store Connect and Play
+  Console **display names** must be updated to match or the purchase sheet names
+  a different item than the card that opened it.
+
+- **Pack pulls are REAL players, with duplicates allowed.** `rollPackPlayer`
+  draws from `nationalPlayerPool.ts` via `pickRealPlayerForPack`, which
+  deliberately does NOT claim: there are only 28 templates rated 88+ and 8 at
+  90+, all already on clubs at kickoff, so a claiming Icon Pack would find
+  nobody and silently deal an invented player. A pull is a *card of* a player —
+  you can pull Haaland while Haaland plays for City. The band selects which
+  real players are eligible; the template brings its own rating (a 74-rated
+  Mbappé is worse than no Mbappé). Duplicates within ONE pack are prevented;
+  duplicates across packs are the chase. Falls back to a generated player only
+  when a band has nobody at a position.
+- **Card versions.** Every card a paid pack deals is that pack's VERSION of the
+  real player: +N to every attribute and overall (`versionBoost` — Champions +1,
+  Elite +2, World Class +3, Legends +4; the free Daily deals base cards), priced
+  from the boosted rating. Config band numbers are FINAL ratings; generation
+  picks the template at (final − boost). This is also the top-end supply fix: an
+  88+ guarantee draws on the 122 base players at 84+, not the 28 at 88+, and a
+  Legends issue of the world's best (91) is honestly a 95. Weekly promo skins
+  add `extraBoost: 1` for their week only — `packVersionBoostFor` mirrors
+  `packFrameFor` and the two must never date apart (frame = the claim, boost =
+  what the claim is worth). A promo may only make the pack BETTER: same price,
+  cards, floor and odds weights, pinned by test.
+- **`npm run packs:supply` guards that.** It reads the storefront bands out of
+  `config/packs.ts` and the ratings out of the generated pool, and fails if a
+  band cannot be filled or if a tier's `ovrMax` exceeds the best player alive.
+  **Run it after any player-data import** (FC26/FC27/etc.) — it is in preflight
+  precisely because a short band does not break anything visibly, it just turns
+  the packs back into strangers.
+
+Player identities draw from the **community pack** real-player dataset
 (`src/data/communityPack/` — generated, lazily imported) with
 `utils/communityPackPool.ts` + `npm run validate-cp` for integrity.
 
@@ -546,7 +644,7 @@ identities draw from the **community pack** real-player dataset
 - ALL storage access goes through `src/store/helpers/persistence.ts`
   (`readSaveSlot`, `getFlag`/`setFlag`, `readSessionJson`, …). New keys
   register in `STORAGE_KEYS`. Direct `localStorage` use is ESLint-banned.
-- **Save schema version `86`** in `utils/saveMigration.ts`. Any change to
+- **Save schema version `90`** in `utils/saveMigration.ts`. Any change to
   persisted state shape bumps `CURRENT_VERSION` and adds a migration step.
   `SaveRecoveryDialog` + backup slots handle corrupted saves; parse failures
   breadcrumb to Sentry.
@@ -566,6 +664,15 @@ identities draw from the **community pack** real-player dataset
 - Primary/Gold: `43 96% 46%` | Background: `222 30% 7%` | Accent: `215 60% 50%`
 - Mobile-first: `max-w-lg mx-auto`, bottom nav, safe-area padding
 - Rating colors: >=80 emerald, >=70 primary, >=60 amber, <60 muted
+- **Player-card art is 2:3 and its alpha is the card's edge.** Every file in
+  `public/player-cards/` is 1024x1536. `PlayerCard` renders `md`/`lg`/`xl` at
+  `aspect-[2/3]` with NO rounded container, no cast shadow and the legibility
+  scrim masked to the artwork — a box behind a scalloped shield or a pointed
+  pack frame shows through the corners as a rectangle the card does not have.
+  The two small tokens (`xs` tactics tile, `sm` bench strip) are chips, not
+  cards: they keep `aspect-[3/4]`, crop the art to fill, and DO get the rounded
+  box, because at 52px it is their edge. `PitchBoard`'s empty-slot placeholder
+  is hardcoded `aspect-[3/4]` to match `xs` — change one and change both.
 - Club colors are the only place where inline `style={{ backgroundColor }}` is acceptable
 - **Performance mode** (`settings.performanceMode`) toggles a root `perf-mode`
   class that strips backdrop-blur/decorative layers and forces reduced motion.
@@ -611,7 +718,7 @@ npm run dev          # Dev server (port 8080)
 npm run build        # Production build
 npm run build:dev    # Development build
 npm run preview      # Preview production build
-npm run test         # Vitest (235 test files)
+npm run test         # Vitest (237 test files)
 npm run test:watch   # Vitest in watch mode
 npm run lint         # ESLint
 npm run typecheck    # TypeScript type-check (standalone)

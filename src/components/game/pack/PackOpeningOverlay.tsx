@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, animate, useAnimationFrame, useMotionValue, useTransform } from 'framer-motion';
 import { useReducedMotionPref } from '@/hooks/useReducedMotionPref';
 import type { PackPlayerPlacement, PackTierKey, Player } from '@/types/game';
-import { MAX_WALKOUTS_PER_PACK, PACK_ANIM, PACK_TIER_MAP, WALKOUT_OVR_THRESHOLD } from '@/config/packs';
+import { MAX_WALKOUTS_PER_PACK, PACK_ANIM, PACK_QUICK_SELL_CAP, PACK_QUICK_SELL_RATE, PACK_TIER_MAP, WALKOUT_OVR_THRESHOLD } from '@/config/packs';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { hapticHeavy, hapticLight, hapticMedium } from '@/utils/haptics';
 import { formatMoney } from '@/utils/helpers';
@@ -17,8 +17,9 @@ import { WalkoutReveal } from './WalkoutReveal';
 import { tierForOvr } from './packHelpers';
 import { cn } from '@/lib/utils';
 
-/** Quick-sell refund rate — matches packsSlice.quickSellPackedPlayer. */
-const QUICK_SELL_RATE = 0.65;
+// Quick-sell pricing comes from config so the button can never promise a
+// different number than the slice pays out — the cap especially: an uncapped
+// preview over a capped refund would read as the game shorting the player.
 
 /**
  * Counts a money value up from 0 over ~900ms for the summary header. A small
@@ -57,7 +58,7 @@ interface PackOpeningOverlayProps {
   onClose: () => void;
   /** Keep the pulled player — just removes them from the summary view. */
   onKeep?: (playerId: string) => void;
-  /** Quick-sell the pulled player at {@link QUICK_SELL_RATE} of market value. */
+  /** Quick-sell the pulled player at the config rate, capped — see PACK_QUICK_SELL_CAP. */
   onQuickSell?: (playerId: string) => void;
   /** Bulk-keep every remaining player in the summary. */
   onKeepAll?: () => void;
@@ -70,6 +71,12 @@ interface PackOpeningOverlayProps {
    *  on key presence alone. Computed by the parent (which has the squad in
    *  state) and passed in. */
   improvement?: Record<string, { delta: number; currentBestOvr: number }>;
+  /** What is left of this open's quick-sell cap (PACK_QUICK_SELL_CAP minus
+   *  refunds already taken). The cap is per OPEN, so every SELL label must be
+   *  priced against the live remainder — a per-card min(cap, value×rate) would
+   *  promise money the slice will not pay. Defaults to the full cap for
+   *  replays, where selling is disabled anyway. */
+  quickSellRemaining?: number;
 }
 
 type Phase = 'loading' | 'portal' | 'arrival' | 'charge' | 'explode' | 'reveal' | 'walkout' | 'summary';
@@ -92,7 +99,7 @@ const PLACEMENT_LABEL: Record<PackPlayerPlacement, string> = {
  *
  * Mounts a portal so the overlay sits above bottom nav and other UI.
  */
-export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKeep, onQuickSell, onKeepAll, onSellAll, placement, improvement }: PackOpeningOverlayProps) {
+export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKeep, onQuickSell, onKeepAll, onSellAll, placement, improvement, quickSellRemaining = PACK_QUICK_SELL_CAP }: PackOpeningOverlayProps) {
   const { t } = useTranslation();
   const tierDef = PACK_TIER_MAP[tier];
   const prefersReducedMotion = useReducedMotionPref();
@@ -194,11 +201,140 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
     : topOvr >= 75 ? 300 : 0
   );
 
+  // ── One driver for the whole charge ──
+  //
+  // `chargeProgress` runs 0 → 1 across the charge beat and everything that
+  // escalates reads from it: shake amplitude, tilt, scale, halo, rumble.
+  //
+  // It is a MOTION VALUE, not React state, for two reasons. It updates every
+  // frame and this component is ~1500 lines, so setState would re-render the
+  // entire overlay 60 times a second. And a motion value keeps every derived
+  // property on the same clock — the old charge ran the shake on a 0.35s
+  // linear loop, the tilt on a 0.6s loop and the scale on the charge's full
+  // duration, three independent timers whose beat frequencies drifted apart.
+  // That is why it read as a rattle rather than a build: nothing was rising
+  // together, and a constant-amplitude shake carries no information about how
+  // close the pack is to bursting.
+  const chargeProgress = useMotionValue(0);
+  /** Live shake offset, written by the frame loop below. */
+  const shakeX = useMotionValue(0);
+  const shakeRotate = useMotionValue(0);
+  // Scale and halo ride the same curve, but as PLAIN motion values written by
+  // the frame loop rather than `useTransform` outputs. A transform output is
+  // derived and read-only in practice: the tear needs to animate these away
+  // from the charge curve, and any `animate()` on a transform is overwritten by
+  // its source on the next frame. One writer at a time instead — the frame loop
+  // owns them during `charge`, the tear's `animate` owns them during `explode`.
+  const packScale = useMotionValue(1);
+  const haloOpacity = useMotionValue(0.45);
+  const haloScale = useMotionValue(1);
+  // These two only exist during the charge and unmount with it, so nothing
+  // else ever writes them and a derived value is exactly right.
+  const leakOpacity = useTransform(chargeProgress, [0, 0.35, 1], [0, 0.55, 1]);
+  const rayOpacity = useTransform(chargeProgress, [0, 0.5, 1], [0, 0.45, 0.95]);
+
+  /** True once the charge has entered its held-breath tail: the shake stops
+   *  dead and the glow spikes. Kept as a ref so the frame loop can read it
+   *  without a re-render. */
+  const breathingRef = useRef(false);
+
+  // The shake itself. A sine oscillator whose AMPLITUDE is a function of
+  // progress, so the pack barely stirs at the start and is hammering by the
+  // end — and then, during the breath, stops completely.
+  useAnimationFrame((t) => {
+    if (phase !== 'charge' || prefersReducedMotion) {
+      // Don't zero the shake here during the tear — `explode` runs its own
+      // short settle on these values, and writing 0 every frame would cancel it.
+      if (phase !== 'explode' && shakeX.get() !== 0) { shakeX.set(0); shakeRotate.set(0); }
+      return;
+    }
+    const p = chargeProgress.get();
+    // Everything that escalates, on one curve and one frame.
+    packScale.set(1 + 0.07 * p);
+    haloScale.set(0.85 + 0.45 * p);
+    // 0.35 → 0.80 over the first 60%, then 0.80 → 1.0 over the last 40%, so
+    // the glow is already bright well before the burst and the final stretch
+    // reads as saturation rather than as the light only just arriving.
+    haloOpacity.set(p < 0.6 ? 0.35 + 0.45 * (p / 0.6) : 0.8 + 0.2 * ((p - 0.6) / 0.4));
+
+    if (breathingRef.current) {
+      // The held breath: movement eases out rather than cutting, so the
+      // stillness arrives as a settle and not a dropped frame. The glow is
+      // left at full — bright and completely motionless is the whole effect.
+      shakeX.set(shakeX.get() * 0.8);
+      shakeRotate.set(shakeRotate.get() * 0.8);
+      return;
+    }
+    // Amplitude and frequency both climb with p. Cubed amplitude keeps the
+    // first half of the charge calm so the second half has somewhere to go.
+    const amp = 11 * p * p * p;
+    const freq = 0.011 + 0.019 * p;
+    shakeX.set(Math.sin(t * freq) * amp);
+    shakeRotate.set(Math.sin(t * freq * 0.6 + 1) * amp * 0.28);
+  });
+
+  /**
+   * Side-tear geometry, generated once per open.
+   *
+   * A jagged vertical seam near the left edge, sampled at `segments + 1` y
+   * boundaries. Adjacent slices reuse the SAME boundary x, so the strip tiles
+   * against itself with no hairline gap and the body's edge is the exact
+   * negative of the strip's.
+   */
+  const tearGeometry = useMemo(() => {
+    const { seamXPct, segments, jagPct } = PACK_ANIM.tear;
+    // Seam x at each y boundary. Deterministic wobble rather than Math.random
+    // so a replayed open tears along the same line it did the first time.
+    const seamAt = (i: number) =>
+      seamXPct + Math.sin(i * 2.399) * jagPct + Math.sin(i * 5.117) * (jagPct * 0.45);
+    const bounds = Array.from({ length: segments + 1 }, (_, i) => ({
+      y: (i / segments) * 100,
+      x: seamAt(i),
+    }));
+
+    // One slice of the strip: left edge to the seam, between two boundaries.
+    const strip = Array.from({ length: segments }, (_, i) => {
+      const a = bounds[i];
+      const b = bounds[i + 1];
+      return {
+        i,
+        clipPath: `polygon(0 ${a.y}%, ${a.x}% ${a.y}%, ${b.x}% ${b.y}%, 0 ${b.y}%)`,
+      };
+    });
+
+    // The body: everything right of the seam. Top edge, down the right side,
+    // along the bottom, then back UP through the boundaries in reverse so the
+    // torn edge matches the strip exactly.
+    const bodyPoints = [
+      `${bounds[0].x}% 0%`,
+      '100% 0%',
+      '100% 100%',
+      `${bounds[segments].x}% 100%`,
+      ...bounds.slice(0, segments).reverse().map(pt => `${pt.x}% ${pt.y}%`),
+    ];
+    return { strip, bodyClip: `polygon(${bodyPoints.join(', ')})`, seamXPct };
+  }, []);
+
+  // The burst layers (shockwave, bloom, flare, shreds, confetti) outlive the
+  // explode PHASE on purpose: the phase hands off to the reveal at
+  // `explodeMs` so the cards land fast, but the shockwave (220ms delay +
+  // 550ms), bloom and shreds are still mid-flight — unmounting them with the
+  // phase cut every one of them off at ~120ms, a hard cut where the design
+  // wants a bloom. They run to completion on their own clock behind the
+  // reveal grid (all pointer-events-none), then unmount at their finished,
+  // invisible state. The effects driving this live beside the
+  // explode→reveal timer below.
+  const [burstAlive, setBurstAlive] = useState(false);
+  const burstMounted = phase === 'explode' || burstAlive;
+
   // Foil-shred params — generated once per explode entry. Inlining the
   // randoms in the .map() would re-roll them on any re-render during the
   // ~0.7s burst, retargeting in-flight Framer Motion animations mid-flight.
+  // Keyed on `burstMounted`, which stays true across the explode→reveal
+  // handoff — keying on the phase re-rolled every spec at the handoff and
+  // teleported the in-flight shreds.
   const foilShreds = useMemo(() => {
-    if (phase !== 'explode' || prefersReducedMotion) return [];
+    if (!burstMounted || prefersReducedMotion) return [];
     return Array.from({ length: 18 }).map((_, i) => {
       const angle = (i / 18) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
       const distance = 220 + Math.random() * 200;
@@ -212,16 +348,19 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
         duration: 0.7 + Math.random() * 0.4,
       };
     });
-  }, [phase, prefersReducedMotion]);
+  }, [burstMounted, prefersReducedMotion]);
 
   // Charge-seam sparks + arrival/charge ambient motes — same rule as
   // foilShreds: roll the random specs once. Inlined randoms re-rolled on
   // every re-render (typewriter ticks, card-reveal taps), teleporting
   // in-flight infinite Framer animations.
+  // Sparks flicking off the tear seam. `along` is a percentage DOWN the seam
+  // (it was across a horizontal one before the pack started opening from the
+  // side) and `dist` is how far sideways each one flies.
   const seamSparks = useMemo(() =>
     Array.from({ length: 8 }).map((_, i) => ({
       i,
-      left: 10 + Math.random() * 80,
+      along: 10 + Math.random() * 80,
       up: Math.random() > 0.5,
       dist: 16 + Math.random() * 24,
       dur: 0.5 + Math.random() * 0.45,
@@ -258,6 +397,14 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
 
   useEffect(() => {
     if (phase !== 'arrival') return;
+    // A rip that was requested before the pack existed: let it land, then tear
+    // it. Long enough that the entrance spring reads as a landing, short enough
+    // that it still answers the tap.
+    if (pendingRipRef.current) {
+      pendingRipRef.current = false;
+      const t = window.setTimeout(() => { hapticHeavy(); setPhase('explode'); }, PACK_ANIM.earlyRipMs);
+      return () => window.clearTimeout(t);
+    }
     // Auto-advance to charge after a brief float pause
     const t = window.setTimeout(() => setPhase('charge'), PACK_ANIM.arrivalMs + 300);
     return () => window.clearTimeout(t);
@@ -265,31 +412,88 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
 
   useEffect(() => {
     if (phase !== 'charge') return;
-    // Charging rumble pulse — held in refs so a tap-to-rip can cancel
-    // the same scheduling without resetting effect state.
-    chargeRumbleRef.current = window.setInterval(() => hapticMedium(), 180);
+    breathingRef.current = false;
+    chargeProgress.set(0);
+    packScale.set(1);
+    haloScale.set(0.85);
+    haloOpacity.set(0.35);
+
+    // The single curve everything else reads from. `easeIn` so the build
+    // accelerates — a linear ramp reads as a machine idling, not as pressure.
+    const rampMs = Math.max(1, chargeLength - PACK_ANIM.chargeBreathMs);
+    const ramp = animate(chargeProgress, 1, {
+      duration: rampMs / 1000,
+      ease: 'easeIn',
+    });
+
+    // Rumble that accelerates with the build. A recursive timeout rather than
+    // an interval, because the whole point is that the GAP shrinks: the old
+    // flat 180ms tick carried no information about how far along the charge
+    // was, so the haptics said "something is happening" for the entire beat
+    // and never "it is about to go".
+    const pulse = () => {
+      hapticMedium();
+      const p = chargeProgress.get();
+      const gap = PACK_ANIM.chargeHapticStartMs
+        + (PACK_ANIM.chargeHapticEndMs - PACK_ANIM.chargeHapticStartMs) * p;
+      chargeRumbleRef.current = window.setTimeout(pulse, Math.max(40, gap));
+    };
+    chargeRumbleRef.current = window.setTimeout(pulse, PACK_ANIM.chargeHapticStartMs);
+
+    // Held breath, then burst. The shake settles to nothing and the glow is at
+    // full while absolutely nothing moves; the tear lands into that silence.
+    const breathTimer = window.setTimeout(() => {
+      breathingRef.current = true;
+      if (chargeRumbleRef.current !== null) {
+        window.clearTimeout(chargeRumbleRef.current);
+        chargeRumbleRef.current = null;
+      }
+    }, rampMs);
+
     chargeTimerRef.current = window.setTimeout(() => {
-      if (chargeRumbleRef.current !== null) window.clearInterval(chargeRumbleRef.current);
-      chargeRumbleRef.current = null;
       chargeTimerRef.current = null;
       setPhase('explode');
       hapticHeavy();
     }, chargeLength);
+
     return () => {
-      if (chargeRumbleRef.current !== null) window.clearInterval(chargeRumbleRef.current);
+      ramp.stop();
+      window.clearTimeout(breathTimer);
+      if (chargeRumbleRef.current !== null) window.clearTimeout(chargeRumbleRef.current);
       if (chargeTimerRef.current !== null) window.clearTimeout(chargeTimerRef.current);
       chargeRumbleRef.current = null;
       chargeTimerRef.current = null;
+      breathingRef.current = false;
     };
-  }, [phase, chargeLength]);
+  }, [phase, chargeLength, chargeProgress, packScale, haloScale, haloOpacity]);
 
-  // Tap-to-rip: short-circuits the charge timer so users can drive the
-  // payoff themselves instead of watching the pack auto-shake. Only valid
-  // during arrival/charge; ignored at every other beat.
+  /** True while a tap should rip the pack — i.e. every beat before it tears.
+   *  Deliberately includes `loading` and `portal`: those two beats are under
+   *  half a second combined, but they used to swallow taps, and a store that
+   *  ignores the first tap teaches the player the pack is not tappable. */
+  const canRip = phase === 'loading' || phase === 'portal' || phase === 'arrival' || phase === 'charge';
+
+  /** Set when the player tapped before the pack had flown in, so the arrival
+   *  beat knows to tear immediately instead of starting a charge. */
+  const pendingRipRef = useRef(false);
+
+  // Tap-to-rip: short-circuits the build so the player drives the payoff
+  // themselves instead of watching the pack shake. Valid from the first frame
+  // to the tear; ignored afterwards.
   const tapToRip = useCallback(() => {
-    if (phase !== 'arrival' && phase !== 'charge') return;
+    if (!canRip) return;
+    // Tapped before the pack has even flown in. Going straight to `explode`
+    // would mount the pack mid-tear, so instead snap the entrance forward and
+    // let the arrival beat fire the tear a moment later — the pack still lands
+    // and still rips, just immediately.
+    if (phase === 'loading' || phase === 'portal') {
+      pendingRipRef.current = true;
+      hapticMedium();
+      setPhase('arrival');
+      return;
+    }
     if (chargeRumbleRef.current !== null) {
-      window.clearInterval(chargeRumbleRef.current);
+      window.clearTimeout(chargeRumbleRef.current);
       chargeRumbleRef.current = null;
     }
     if (chargeTimerRef.current !== null) {
@@ -298,13 +502,35 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
     }
     hapticHeavy();
     setPhase('explode');
-  }, [phase]);
+  }, [canRip, phase]);
+
+  // The tear takes over the charge's motion values rather than handing control
+  // back to the `animate` prop, so the pack continues from exactly where the
+  // build left it — from a half-charged 1.02 on an early tap as readily as from
+  // a fully-charged 1.07.
+  useEffect(() => {
+    if (phase !== 'explode') return;
+    const burst = [
+      animate(packScale, 1.16, { duration: 0.25, ease: [0.22, 1, 0.36, 1] }),
+      animate(haloOpacity, 1, { duration: 0.25, ease: 'easeOut' }),
+      animate(haloScale, 1.4, { duration: 0.3, ease: 'easeOut' }),
+      animate(shakeX, 0, { duration: 0.12 }),
+      animate(shakeRotate, 0, { duration: 0.12 }),
+    ];
+    return () => burst.forEach(a => a.stop());
+  }, [phase, packScale, haloOpacity, haloScale, shakeX, shakeRotate]);
 
   useEffect(() => {
     if (phase !== 'explode') return;
-    const t = window.setTimeout(() => setPhase('reveal'), PACK_ANIM.explodeMs + 200);
+    setBurstAlive(true);
+    const t = window.setTimeout(() => setPhase('reveal'), PACK_ANIM.explodeMs);
     return () => window.clearTimeout(t);
   }, [phase]);
+  useEffect(() => {
+    if (!burstAlive) return;
+    const t = window.setTimeout(() => setBurstAlive(false), PACK_ANIM.tear.burstDelayMs + 1150);
+    return () => window.clearTimeout(t);
+  }, [burstAlive]);
 
   // Players destined for a walkout cinematic stay face-down through the
   // reveal phase — a quiet flip would waste their payoff. Tapping one instead
@@ -660,11 +886,16 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.4, delay: 0.15 }}
           >
+            {/* Eyebrow above the pack's own name. It read "Dynasty Pack",
+                which was fine when no pack was called that and is not now: the
+                weekly promo is "The Dynasty Pack", so the reveal announced
+                "DYNASTY PACK / THE DYNASTY PACK" and implied every other pack
+                was a Dynasty Pack too. */}
             <span
               className="text-[9px] uppercase font-semibold tracking-[0.42em] text-white/60"
               style={{ textShadow: '0 1px 4px rgba(0,0,0,0.7)' }}
             >
-              Dynasty Pack
+              Opening
             </span>
             <span
               className="mt-1 text-[22px] font-display font-black tracking-[0.04em] uppercase leading-none"
@@ -694,57 +925,32 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
         {(phase === 'arrival' || phase === 'charge' || phase === 'explode') && (
           <motion.div
             key="pack"
-            role={phase === 'arrival' || phase === 'charge' ? 'button' : undefined}
-            aria-label={phase === 'arrival' || phase === 'charge' ? 'Tap to rip open the pack' : undefined}
-            tabIndex={phase === 'arrival' || phase === 'charge' ? 0 : -1}
-            onClick={phase === 'arrival' || phase === 'charge' ? tapToRip : undefined}
-            onKeyDown={(e) => {
-              if (phase !== 'arrival' && phase !== 'charge') return;
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                tapToRip();
-              }
-            }}
-            className={cn(
-              'relative flex flex-col items-center justify-center',
-              phase === 'arrival' || phase === 'charge'
-                ? 'cursor-pointer pointer-events-auto'
-                : 'pointer-events-none',
-            )}
+            className="relative flex flex-col items-center justify-center pointer-events-none"
             style={{
               width: 260,
               height: 360,
               perspective: 1200,
+              // The charge's live offsets. Applied as style rather than as
+              // `animate` keyframes so they update per frame without React
+              // re-rendering, and so shake, tilt and scale stay on one clock.
+              // Bound for the tear as well as the charge. Handing `scale` back
+              // to the `animate` prop at the phase flip made the pack pop from
+              // its charged 1.07 to 1 for one frame, because the animate track
+              // had not been driving scale during the charge and still held its
+              // arrival value. The tear animates the motion value instead.
+              ...(phase === 'charge' || phase === 'explode'
+                ? { x: shakeX, rotateZ: shakeRotate, scale: packScale }
+                : null),
               ...(phase === 'charge' || phase === 'explode' ? { willChange: 'transform' } : null),
             }}
             initial={{ opacity: 0, scale: 0.25, rotateY: 50, rotateX: -20, y: 140 }}
-            animate={(() => {
-              if (phase === 'explode') {
-                return { opacity: 1, scale: 1.16, rotateY: 0, rotateX: 0, y: 0 };
-              }
-              if (phase === 'charge') {
-                return {
-                  opacity: 1,
-                  scale: prefersReducedMotion ? 1 : [1, 1.02, 1, 1.04, 1, 1.05],
-                  rotateY: 0,
-                  rotateX: prefersReducedMotion ? 0 : [0, -2, 2, -3, 3, 0],
-                  y: 0,
-                  x: prefersReducedMotion ? 0 : [0, -4, 4, -6, 6, -8, 8, -10, 10, -8, 8, -6, 6, -4, 4, 0],
-                };
-              }
-              return { opacity: 1, scale: 1, rotateY: 0, rotateX: 0, y: 0 };
-            })()}
+            animate={phase === 'explode' || phase === 'charge'
+              ? { opacity: 1, rotateY: 0, rotateX: 0, y: 0 }
+              : { opacity: 1, scale: 1, rotateY: 0, rotateX: 0, y: 0 }}
             exit={{ opacity: 0, scale: 1.25 }}
-            transition={phase === 'charge' && !prefersReducedMotion
-              ? {
-                  x: { duration: 0.35, repeat: Infinity, ease: 'linear' },
-                  scale: { duration: chargeLength / 1000, ease: 'easeIn' },
-                  rotateX: { duration: 0.6, repeat: Infinity, ease: 'easeInOut' },
-                }
-              : phase === 'explode'
-                ? { duration: 0.25, ease: [0.22, 1, 0.36, 1] }
-                : { type: 'spring', stiffness: 220, damping: 16 }
-            }
+            transition={phase === 'explode'
+              ? { duration: 0.25, ease: [0.22, 1, 0.36, 1] }
+              : { type: 'spring', stiffness: 220, damping: 16 }}
           >
             {/* Floor shadow */}
             <motion.div
@@ -766,9 +972,8 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                   key="rays"
                   className="absolute inset-0 pointer-events-none overflow-visible"
                   initial={{ opacity: 0 }}
-                  animate={{ opacity: [0, 0.5, 0.9] }}
+                  style={{ opacity: rayOpacity }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration: chargeLength / 1000, ease: 'easeIn' }}
                 >
                   <div className="pack-rays" />
                 </motion.div>
@@ -783,15 +988,16 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                 background: `radial-gradient(circle at 50% 50%, color-mix(in srgb, ${tierDef.accent} 45%, transparent) 0%, transparent 60%)`,
                 mixBlendMode: 'screen',
                 filter: 'blur(20px)',
+                ...(phase === 'charge' || phase === 'explode'
+                  ? { opacity: haloOpacity, scale: haloScale }
+                  : null),
               }}
               initial={{ opacity: 0.25, scale: 0.85 }}
-              animate={phase === 'charge'
-                ? { opacity: [0.35, 0.75, 0.95], scale: [0.85, 1.05, 1.25] }
-                : phase === 'explode'
-                  ? { opacity: 1, scale: 1.4 }
-                  : { opacity: 0.45, scale: 1 }}
+              animate={phase === 'charge' || phase === 'explode'
+                ? {}
+                : { opacity: 0.45, scale: 1 }}
               transition={{
-                duration: phase === 'charge' ? chargeLength / 1000 : 0.3,
+                duration: 0.3,
                 ease: 'easeOut',
               }}
             />
@@ -820,23 +1026,95 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                   }
                 : { duration: 0.3, ease: 'easeOut' }}
             >
-              {/* Top flap — the smaller top third. On explode it peels up
-                  and rotates back so the pack reads as opening from the
-                  top seam, not splitting in half. */}
+              {/* ── The torn strip ──
+                  The pack's left edge, cut into slices that peel away one
+                  after another from the top down. Each slice carries its own
+                  copy of the art under its own STATIC clip-path and animates
+                  only transform and opacity, so the travelling tear costs no
+                  repaints — see the note in `PACK_ANIM.tear`.
+
+                  Slices further down peel harder and rotate further: the strip
+                  is still attached at the bottom while the top is already
+                  away, which is what makes it read as tearing rather than as
+                  a piece sliding off. */}
+              {tearGeometry.strip.map(({ i, clipPath }) => {
+                const t = i / Math.max(1, PACK_ANIM.tear.segments - 1);
+                return (
+                  <motion.div
+                    key={`tear-${i}`}
+                    className="absolute inset-0"
+                    style={{
+                      clipPath,
+                      willChange: phase === 'explode' ? 'transform, opacity' : 'auto',
+                      transformOrigin: '0% 50%',
+                      filter: 'drop-shadow(-6px 8px 18px rgba(0,0,0,0.55))',
+                    }}
+                    initial={{ x: 0, rotate: 0, opacity: 1 }}
+                    animate={phase === 'explode'
+                      // Travel is deliberately short. A 17%-wide strip on a
+                      // 260px pack is ~44px, so it is clear of the pack after
+                      // 44px and everything beyond that happens off-screen: at
+                      // -150 the strip was gone within 60ms and the peel was
+                      // never visible. It comes away, curls, and fades in view.
+                      ? { x: -66 - 58 * t, rotate: -17 - 21 * t, opacity: [1, 1, 0] }
+                      : { x: 0, rotate: 0, opacity: 1 }}
+                    transition={phase === 'explode'
+                      ? {
+                          // Transform gets the snappy near-exponential ease —
+                          // that is what makes it read as a rip rather than a
+                          // slide. Opacity must NOT share it: on that curve the
+                          // slice is 80% faded within ~100ms, which is why the
+                          // pack appeared to vanish instead of tear.
+                          default: {
+                            duration: PACK_ANIM.tear.segmentMs / 1000,
+                            delay: (i * PACK_ANIM.tear.staggerMs) / 1000,
+                            ease: [0.22, 1, 0.36, 1],
+                          },
+                          opacity: {
+                            duration: PACK_ANIM.tear.segmentMs / 1000,
+                            delay: (i * PACK_ANIM.tear.staggerMs) / 1000,
+                            times: [0, 0.72, 1],
+                            ease: 'linear',
+                          },
+                        }
+                      : { duration: 0 }}
+                  >
+                <PackArt
+                  src={tierDef.artSrc}
+                  loading="eager"
+                  className="absolute inset-0 w-full h-full object-contain object-center"
+                  fallback={
+                    <div
+                      className="absolute inset-0 rounded-2xl border border-white/15"
+                      style={{ background: `linear-gradient(160deg, ${tierDef.gradientFrom}, ${tierDef.gradientTo})` }}
+                    />
+                  }
+                />
+                  </motion.div>
+                );
+              })}
+
+              {/* ── The pack body ──
+                  Everything right of the seam. It leans away from the tear and
+                  settles rather than dropping: the strip is what moves, the
+                  body is what is being opened. */}
               <motion.div
                 className="absolute inset-0"
                 style={{
-                  clipPath:
-                    'polygon(0 0, 100% 0, 100% 33%, 90% 35%, 80% 32%, 70% 35%, 60% 32%, 50% 35%, 40% 32%, 30% 35%, 20% 32%, 10% 35%, 0 33%)',
+                  clipPath: tearGeometry.bodyClip,
                   willChange: phase === 'explode' ? 'transform, opacity' : 'auto',
+                  transformOrigin: '100% 50%',
                   filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.6))',
                 }}
-                initial={{ y: 0, rotate: 0, opacity: 1 }}
+                initial={{ x: 0, rotate: 0, opacity: 1 }}
                 animate={phase === 'explode'
-                  ? { y: -320, rotate: -20, opacity: 0 }
-                  : { y: 0, rotate: 0, opacity: 1 }}
+                  ? { x: 26, rotate: 2.5, opacity: [1, 1, 0] }
+                  : { x: 0, rotate: 0, opacity: 1 }}
                 transition={phase === 'explode'
-                  ? { duration: 0.62, ease: [0.22, 1, 0.36, 1] }
+                  ? {
+                      default: { duration: 0.62, ease: [0.22, 1, 0.36, 1] },
+                      opacity: { duration: 0.62, times: [0, 0.5, 1], ease: 'linear' },
+                    }
                   : { duration: 0 }}
               >
                 <PackArt
@@ -852,54 +1130,59 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                 />
               </motion.div>
 
-              {/* Pack body — the larger lower portion. Sinks slightly and
-                  dissolves as the flap opens and the card rises through. */}
-              <motion.div
-                className="absolute inset-0"
-                style={{
-                  clipPath:
-                    'polygon(0 33%, 10% 35%, 20% 32%, 30% 35%, 40% 32%, 50% 35%, 60% 32%, 70% 35%, 80% 32%, 90% 35%, 100% 33%, 100% 100%, 0 100%)',
-                  willChange: phase === 'explode' ? 'transform, opacity' : 'auto',
-                  filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.6))',
-                }}
-                initial={{ y: 0, rotate: 0, opacity: 1 }}
-                animate={phase === 'explode'
-                  ? { y: 70, rotate: 3, opacity: 0 }
-                  : { y: 0, rotate: 0, opacity: 1 }}
-                transition={phase === 'explode'
-                  ? { duration: 0.55, ease: [0.22, 1, 0.36, 1] }
-                  : { duration: 0 }}
-              >
-                <PackArt
-                  src={tierDef.artSrc}
-                  loading="eager"
-                  className="absolute inset-0 w-full h-full object-contain object-center"
-                  fallback={
-                    <div
-                      className="absolute inset-0 rounded-2xl border border-white/15"
-                      style={{ background: `linear-gradient(160deg, ${tierDef.gradientFrom}, ${tierDef.gradientTo})` }}
-                    />
-                  }
-                />
-              </motion.div>
+              {/* ── The tear head ──
+                  A hot point of light that runs DOWN the seam, arriving at
+                  each slice just as that slice starts to peel. This is what
+                  actually sells the direction of the tear: the slices alone
+                  read as "the edge came off", the travelling head reads as
+                  "something is tearing it, and it is here now". Timed off the
+                  same stagger, so the two can never disagree. */}
+              <AnimatePresence>
+                {phase === 'explode' && (
+                  <motion.div
+                    key="tear-head"
+                    className="absolute pointer-events-none"
+                    style={{
+                      left: `${tearGeometry.seamXPct}%`,
+                      top: 0,
+                      width: 10,
+                      height: 40,
+                      marginLeft: -5,
+                      borderRadius: 99,
+                      background: `radial-gradient(circle, #fff 0%, ${tierDef.accent} 45%, transparent 72%)`,
+                      boxShadow: `0 0 26px ${tierDef.accent}, 0 0 54px white`,
+                      filter: 'blur(1px)',
+                    }}
+                    initial={{ y: '-10%', opacity: 0, scaleY: 0.6 }}
+                    animate={{ y: '105%', opacity: [0, 1, 1, 0], scaleY: [0.6, 1, 1, 0.7] }}
+                    transition={{
+                      duration: (PACK_ANIM.tear.staggerMs * PACK_ANIM.tear.segments + 160) / 1000,
+                      ease: 'easeIn',
+                    }}
+                  />
+                )}
+              </AnimatePresence>
 
-              {/* Seam flash — bright line along the tear as it opens */}
+              {/* The open seam behind the departing strip — a bright edge left
+                  where the foil was, fading as the whole pack goes. */}
               <AnimatePresence>
                 {phase === 'explode' && (
                   <motion.div
                     key="seam-flash"
-                    className="absolute left-0 right-0 pointer-events-none"
+                    className="absolute pointer-events-none"
                     style={{
-                      top: '33%',
-                      height: 6,
-                      background: `linear-gradient(90deg, transparent, ${tierDef.accent}, white, ${tierDef.accent}, transparent)`,
+                      left: `${tearGeometry.seamXPct}%`,
+                      top: 0,
+                      bottom: 0,
+                      width: 5,
+                      marginLeft: -2,
+                      background: `linear-gradient(180deg, transparent, ${tierDef.accent}, white, ${tierDef.accent}, transparent)`,
                       boxShadow: `0 0 24px ${tierDef.accent}, 0 0 48px white`,
-                      transform: 'translateY(-50%)',
                       filter: 'blur(1px)',
                     }}
-                    initial={{ opacity: 0, scaleX: 0 }}
-                    animate={{ opacity: [0, 1, 1, 0], scaleX: [0, 1, 1.1, 1.2] }}
-                    transition={{ duration: 0.55, ease: 'easeOut' }}
+                    initial={{ opacity: 0, scaleY: 0 }}
+                    animate={{ opacity: [0, 1, 1, 0], scaleY: [0, 1, 1, 1] }}
+                    transition={{ duration: 0.6, ease: 'easeOut' }}
                   />
                 )}
               </AnimatePresence>
@@ -917,67 +1200,72 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                                    radial-gradient(circle at 30% 40%, ${topTier.gradientTo}aa, transparent 35%),
                                    radial-gradient(circle at 70% 60%, ${topTier.gradientFrom}aa, transparent 35%)`,
                       filter: 'blur(2px)',
+                      opacity: leakOpacity,
                     }}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: [0, 0.7, 0.85, 1] }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: chargeLength / 1000, ease: 'easeIn' }}
                   />
                 )}
               </AnimatePresence>
 
-              {/* Top-seam energy — gold/tier energy gathers along the tear
-                  seam during charge, with a metallic shimmer and spark
-                  particles, telegraphing exactly where the pack opens. */}
+              {/* ── Where it is about to tear ──
+                  Energy gathers along the vertical seam during the charge, so
+                  by the time the pack rips the player has been staring at the
+                  line it rips along for a second and a half. It used to gather
+                  on a horizontal line across the top third, which is where the
+                  pack used to open. */}
               <AnimatePresence>
                 {phase === 'charge' && (
                   <motion.div
                     key="seam-energy"
-                    className="absolute left-0 right-0 pointer-events-none"
-                    style={{ top: '33%', height: 44, transform: 'translateY(-50%)' }}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
+                    className="absolute pointer-events-none"
+                    style={{
+                      left: `${tearGeometry.seamXPct}%`,
+                      top: 0,
+                      bottom: 0,
+                      width: 44,
+                      marginLeft: -22,
+                      opacity: leakOpacity,
+                    }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: chargeLength / 1000, ease: 'easeIn' }}
                   >
                     {/* Soft bloom hugging the seam */}
                     <div
-                      className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-11"
+                      className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-11"
                       style={{
-                        background: `radial-gradient(70% 100% at 50% 50%, color-mix(in srgb, ${tierDef.accent} 50%, transparent), transparent 72%)`,
+                        background: `radial-gradient(100% 70% at 50% 50%, color-mix(in srgb, ${tierDef.accent} 50%, transparent), transparent 72%)`,
                         mixBlendMode: 'screen',
                         filter: 'blur(7px)',
                       }}
                     />
                     {/* Energy glow line */}
                     <motion.div
-                      className="absolute left-3 right-3 top-1/2 -translate-y-1/2"
+                      className="absolute top-3 bottom-3 left-1/2 -translate-x-1/2"
                       style={{
-                        height: 3,
+                        width: 3,
                         borderRadius: 99,
-                        background: `linear-gradient(90deg, transparent, ${tierDef.accent}, #fff, ${tierDef.accent}, transparent)`,
+                        background: `linear-gradient(180deg, transparent, ${tierDef.accent}, #fff, ${tierDef.accent}, transparent)`,
                         boxShadow: `0 0 14px ${tierDef.accent}, 0 0 30px color-mix(in srgb, ${tierDef.accent} 55%, transparent)`,
                       }}
                       animate={prefersReducedMotion
                         ? { opacity: 0.95 }
-                        : { opacity: [0.45, 1, 0.6, 1], scaleX: [0.8, 1, 0.88, 1] }}
+                        : { opacity: [0.45, 1, 0.6, 1], scaleY: [0.8, 1, 0.88, 1] }}
                       transition={prefersReducedMotion ? undefined : { duration: 1, repeat: Infinity, ease: 'easeInOut' }}
                     />
-                    {/* Spark particles flicking off the seam */}
+                    {/* Sparks flicking sideways off the seam */}
                     {!prefersReducedMotion && seamSparks.map(s => (
                       <motion.span
                         key={`spark-${s.i}`}
                         className="absolute rounded-full"
                         style={{
-                          left: `${s.left}%`,
-                          top: '50%',
+                          top: `${s.along}%`,
+                          left: '50%',
                           width: 3,
                           height: 3,
                           background: '#fff',
                           boxShadow: `0 0 6px ${tierDef.accent}`,
                         }}
-                        initial={{ opacity: 0, y: 0 }}
-                        animate={{ opacity: [0, 1, 0], y: s.up ? -s.dist : s.dist }}
+                        initial={{ opacity: 0, x: 0 }}
+                        animate={{ opacity: [0, 1, 0], x: s.up ? -s.dist : s.dist }}
                         transition={{ duration: s.dur, delay: s.delay, repeat: Infinity, repeatDelay: 0.5, ease: 'easeOut' }}
                       />
                     ))}
@@ -1002,19 +1290,34 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
         )}
       </AnimatePresence>
 
-      {/* Tap-to-open hint — pulses during the charge beat to telegraph
-          that the user can drive the payoff themselves rather than just
-          watching. Hidden under reduced-motion (no pulse) but the pack
-          itself is still tappable for keyboard/click users. */}
+      {/* ── Tap anywhere to rip ──
+          A full-bleed target rather than a hit box on the pack art. Two
+          reasons. The pack is a 260x360 shape in the middle of a phone screen,
+          so aiming at it is a small-target task at the exact moment the player
+          is excited and jabbing; and it covers `loading` and `portal`, the two
+          beats that used to swallow the first tap entirely. Sits under the
+          pack in z-order so nothing here intercepts a card reveal later. */}
+      {canRip && (
+        <button
+          type="button"
+          onClick={tapToRip}
+          className="absolute inset-0 z-0 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/40"
+          aria-label="Tap to rip open the pack"
+        />
+      )}
+
+      {/* Tap-to-open hint. Shown from the moment the pack lands, not from the
+          charge beat — the pack accepts a tap well before then and a hint that
+          arrives after the affordance does is a hint that arrives too late. */}
       <AnimatePresence>
-        {phase === 'charge' && (
+        {(phase === 'arrival' || phase === 'charge') && (
           <motion.div
             key="rip-hint"
             className="absolute left-1/2 -translate-x-1/2 top-[calc(50%+200px)] text-center pointer-events-none"
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.4, delay: 0.3 }}
+            transition={{ duration: 0.35 }}
           >
             <motion.span
               className="text-[10px] uppercase tracking-[0.4em] font-semibold text-white/75"
@@ -1056,7 +1359,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
           18 small foil rectangles fly out from the seam in a 360° spread
           to sell the "ripped wrapper" feel a Pokémon-pack opening lives on. */}
       <AnimatePresence>
-        {phase === 'explode' && (
+        {burstMounted && (
           <>
             <motion.div
               key="shockwave"
@@ -1068,7 +1371,11 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
               }}
               initial={{ width: 0, height: 0, opacity: 1 }}
               animate={{ width: '120vmax', height: '120vmax', opacity: 0 }}
-              transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+              transition={{
+                duration: 0.55,
+                delay: PACK_ANIM.tear.burstDelayMs / 1000,
+                ease: [0.22, 1, 0.36, 1],
+              }}
             />
             {/* Cinematic white bloom — a radial core that blooms outward
                 rather than a flat full-screen fill, so the reveal lands like
@@ -1083,7 +1390,12 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
               }}
               initial={{ opacity: 0, scale: 0.35 }}
               animate={{ opacity: [0, 0.95, 0], scale: [0.35, 1.5, 2.4] }}
-              transition={{ duration: 0.36, times: [0, 0.3, 1], ease: [0.22, 1, 0.36, 1] }}
+              transition={{
+                duration: 0.36,
+                delay: PACK_ANIM.tear.burstDelayMs / 1000,
+                times: [0, 0.3, 1],
+                ease: [0.22, 1, 0.36, 1],
+              }}
             />
             {/* Anamorphic lens flare — a fast bright streak raking across
                 the burst, the cinematic "energy" beat of the reveal. */}
@@ -1254,7 +1566,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
             )}
           >
             {displayPlayers.map((p, i) => {
-              const quickSellAmount = Math.max(0, Math.round((p.value || 0) * QUICK_SELL_RATE));
+              const quickSellAmount = Math.min(quickSellRemaining, Math.max(0, Math.round((p.value || 0) * PACK_QUICK_SELL_RATE)));
               const upgrade = improvement?.[p.id];
               const placementLabel = placement?.[p.id] ? PLACEMENT_LABEL[placement[p.id]] : null;
               return (
@@ -1357,9 +1669,14 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
           </div>
 
           {phase === 'summary' && players.length >= 2 && (onKeepAll || onSellAll) && (() => {
-            const sellAllTotal = players.reduce(
-              (sum, p) => sum + Math.max(0, Math.round((p.value || 0) * QUICK_SELL_RATE)),
-              0,
+            // Sell All pays out of the same per-open cap the singles do, so
+            // its total is the SUM clamped to what is left of the cap.
+            const sellAllTotal = Math.min(
+              quickSellRemaining,
+              players.reduce(
+                (sum, p) => sum + Math.max(0, Math.round((p.value || 0) * PACK_QUICK_SELL_RATE)),
+                0,
+              ),
             );
             return (
               <motion.div

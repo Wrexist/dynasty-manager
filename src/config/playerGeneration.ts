@@ -40,7 +40,16 @@ export const DEFAULT_POSITION_WEIGHTS = [1/6, 1/6, 1/6, 1/6, 1/6, 1/6];
 export const VALUE_EXP_BASE = 550;
 export const VALUE_EXP_RATE = 0.136;
 export const VALUE_RANDOM_FACTOR = 0.15;
-export const WAGE_EXP_BASE = 10;
+// Eased from 10 (a uniform −15% across every rating) at the user's call.
+//
+// Worth knowing what that trades: at 10 the AGGREGATE bills were accurate —
+// Arsenal's squad came out at £232M/year against a real ~£235M, and its wage
+// ratio sat at 0.45 of income, which is healthy-but-tight the way a real
+// balance sheet is. At 8.5 Arsenal runs ~£197M and a ratio near 0.38, so the
+// finance game has more slack everywhere. That is a difficulty choice, not a
+// realism fix, and it is the reason this comment exists rather than a silent
+// number change.
+export const WAGE_EXP_BASE = 8.5;
 export const WAGE_EXP_RATE = 0.116;
 export const WAGE_RANDOM_FACTOR = 0.10;
 export const WAGE_FLOOR = 500;

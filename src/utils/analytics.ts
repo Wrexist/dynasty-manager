@@ -45,7 +45,16 @@ export type AnalyticsEvent =
   | { name: 'restore_completed'; data: { restoredCount: number } }
   | { name: 'crash'; data: { category: string } }
   // ── Pack opening (free and paid share one funnel) ──
-  | { name: 'pack_opened'; data: { tierKey: string; method: 'free' | 'currency' | 'ad' | 'iap'; pityTriggered: boolean } }
+  | { name: 'pack_opened'; data: { tierKey: string; method: 'free' | 'currency' | 'ad' | 'iap'; pityTriggered: boolean; bonusCards?: number } }
+  // ── Market ──
+  // `market_viewed` is the denominator for every pack conversion rate; without
+  // it a purchase count says nothing about whether the store works.
+  | { name: 'market_viewed'; data: { featuredTier: string; weeklyBonusAvailable: boolean; streak: number } }
+  // Odds-sheet opens. Worth measuring on its own: a disclosure nobody opens is
+  // still required, but a disclosure many players open before buying says the
+  // cards are not explaining themselves.
+  | { name: 'pack_odds_viewed'; data: { tierKey: string } }
+  | { name: 'weekly_bonus_claimed'; data: { tierKey: string; bonusCards: number } }
   // ── World Cup funnel ──
   | { name: 'world_cup_started'; data: { nation: string } }
   | { name: 'world_cup_match_completed'; data: { round: string; result: 'W' | 'D' | 'L'; goalsFor: number; goalsAgainst: number } }

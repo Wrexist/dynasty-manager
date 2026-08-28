@@ -42,13 +42,27 @@ export interface PendingRelease {
 }
 
 export const PENDING_NEWS: PendingRelease = {
-  highlights: [],
-  new: [],
+  highlights: [
+    'The Market is rebuilt: one free pack a day that improves with your login streak, a featured pack each week with a bonus card, and published drop rates on every pack.',
+    'Packs now tear open down the side like a real foil booster — the rip travels down the seam and the wrapper peels away.',
+    'Packs now pull real players. Every card you open is someone you have heard of, right up to the 88+ Legends Pack.',
+    'Card versions: every paid pack now issues its own boosted edition of real players — a Champions Haaland and a Legends Haaland are different cards with different stats, and only Legends can mint a 95.',
+  ],
+  new: [
+    'Every pack now shows its drop rates before you open it.',
+    'Cards pulled from a pack now keep that pack\'s frame — and the weekly promo frames are only awarded during their week.',
+    'Tap the (?) on any pack for a full guide: the cover, what it is, exact drop rates and what to expect from an open.',
+  ],
   improved: [
     'Release 1.4.1 docs version.',
     'A comeback is not a man-of-the-match.',
+    'One clear free pack a day instead of three overlapping ones, and paid packs now say exactly what is inside.',
+    'Pack opening builds properly now — the shake, glow and rumble all ramp together into a held beat before the tear. And a tap opens the pack the moment you touch it, from the very first frame.',
+    'Wages eased across the board, and players pulled from packs now sign on club terms instead of superstar money — a pack no longer wrecks your wage bill.',
   ],
-  fixed: [],
+  fixed: [
+    'Pack cards now show the full artwork — no cropped frame edges and no glow outline drawn over the card.',
+  ],
   headline: null,
   summary: null,
 };

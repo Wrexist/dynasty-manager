@@ -338,6 +338,7 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
     lastPackWeek: state.lastPackWeek || 0,
     lastPackSeason: state.lastPackSeason || 0,
     dailyPackOpens: state.dailyPackOpens || { date: '', free: {}, ad: {} },
+    weeklyPackBonus: state.weeklyPackBonus || null,
     // ── Previously-unsaved fields (v68 fix) ──
     // Each of these is mutated by gameplay but was missing from the save
     // payload, so accumulated state was silently dropped on every reload.
@@ -542,6 +543,7 @@ function buildFreshSessionState(get: Get): Partial<GameState> {
     pendingFarewell: [], pendingStoryline: null,
     openedPacks: [], packPityCounter: 0, lastPackWeek: 0, lastPackSeason: 0,
     dailyPackOpens: { date: '', free: {}, ad: {} },
+    weeklyPackBonus: null,
     activeStorylineChains: [], completedStorylineChainIds: [], weeklyObjectives: [],
     objectiveStreak: 0, objectivesStartWeek: 1, completedCoachTaskIds: [],
     weekCliffhangers: [], rivalries: {},
