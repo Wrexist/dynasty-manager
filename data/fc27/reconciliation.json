@@ -1,0 +1,421 @@
+{
+  "generatedAt": "2026-08-28T07:09:04.242Z",
+  "total": 16228,
+  "resolvedFromEaClub": 12400,
+  "resolvedByTokenMatch": 378,
+  "resolvedByBackfill": 1070,
+  "backfillRejectedLeagueMismatch": 27,
+  "unresolved": 2758,
+  "resolved": 13470,
+  "resolvedPct": 83,
+  "aliasesDerived": 467,
+  "gameClubsCovered": 525,
+  "gameClubsTotal": 756,
+  "leagueCoverage": [
+    {
+      "id": "srb",
+      "name": "SuperLiga",
+      "country": "Serbia",
+      "gameClubs": 16,
+      "clubsMatched": 0,
+      "pct": 0,
+      "players": 0
+    },
+    {
+      "id": "bgr",
+      "name": "First Professional Football League",
+      "country": "Bulgaria",
+      "gameClubs": 16,
+      "clubsMatched": 0,
+      "pct": 0,
+      "players": 0
+    },
+    {
+      "id": "svk",
+      "name": "Fortuna Liga",
+      "country": "Slovakia",
+      "gameClubs": 12,
+      "clubsMatched": 0,
+      "pct": 0,
+      "players": 0
+    },
+    {
+      "id": "isl",
+      "name": "Úrvalsdeild",
+      "country": "Iceland",
+      "gameClubs": 12,
+      "clubsMatched": 0,
+      "pct": 0,
+      "players": 0
+    },
+    {
+      "id": "isr",
+      "name": "Israeli Premier League",
+      "country": "Israel",
+      "gameClubs": 14,
+      "clubsMatched": 0,
+      "pct": 0,
+      "players": 0
+    },
+    {
+      "id": "bra",
+      "name": "Brasileirão Série A",
+      "country": "Brazil",
+      "gameClubs": 14,
+      "clubsMatched": 0,
+      "pct": 0,
+      "players": 0
+    },
+    {
+      "id": "cze",
+      "name": "Czech First League",
+      "country": "Czechia",
+      "gameClubs": 16,
+      "clubsMatched": 1,
+      "pct": 6,
+      "players": 26
+    },
+    {
+      "id": "cyp",
+      "name": "Cypriot First Division",
+      "country": "Cyprus",
+      "gameClubs": 14,
+      "clubsMatched": 1,
+      "pct": 7,
+      "players": 25
+    },
+    {
+      "id": "hun",
+      "name": "Nemzeti Bajnokság I",
+      "country": "Hungary",
+      "gameClubs": 12,
+      "clubsMatched": 1,
+      "pct": 8,
+      "players": 32
+    },
+    {
+      "id": "fin",
+      "name": "Veikkausliiga",
+      "country": "Finland",
+      "gameClubs": 12,
+      "clubsMatched": 1,
+      "pct": 8,
+      "players": 18
+    },
+    {
+      "id": "ukr",
+      "name": "Ukrainian Premier League",
+      "country": "Ukraine",
+      "gameClubs": 16,
+      "clubsMatched": 2,
+      "pct": 13,
+      "players": 56
+    },
+    {
+      "id": "cro",
+      "name": "Hrvatska Nogometna Liga",
+      "country": "Croatia",
+      "gameClubs": 10,
+      "clubsMatched": 2,
+      "pct": 20,
+      "players": 57
+    },
+    {
+      "id": "gre",
+      "name": "Super League Greece",
+      "country": "Greece",
+      "gameClubs": 14,
+      "clubsMatched": 4,
+      "pct": 29,
+      "players": 115
+    },
+    {
+      "id": "pol",
+      "name": "Ekstraklasa",
+      "country": "Poland",
+      "gameClubs": 18,
+      "clubsMatched": 12,
+      "pct": 67,
+      "players": 304
+    },
+    {
+      "id": "den",
+      "name": "Superliga",
+      "country": "Denmark",
+      "gameClubs": 12,
+      "clubsMatched": 8,
+      "pct": 67,
+      "players": 186
+    },
+    {
+      "id": "bel",
+      "name": "Pro League",
+      "country": "Belgium",
+      "gameClubs": 16,
+      "clubsMatched": 12,
+      "pct": 75,
+      "players": 330
+    },
+    {
+      "id": "sco",
+      "name": "Scottish Premiership",
+      "country": "Scotland",
+      "gameClubs": 12,
+      "clubsMatched": 9,
+      "pct": 75,
+      "players": 231
+    },
+    {
+      "id": "rou",
+      "name": "Liga 1",
+      "country": "Romania",
+      "gameClubs": 16,
+      "clubsMatched": 12,
+      "pct": 75,
+      "players": 310
+    },
+    {
+      "id": "fra-2",
+      "name": "Ligue 2",
+      "country": "France",
+      "gameClubs": 18,
+      "clubsMatched": 14,
+      "pct": 78,
+      "players": 349
+    },
+    {
+      "id": "ned",
+      "name": "Eredivisie",
+      "country": "Netherlands",
+      "gameClubs": 18,
+      "clubsMatched": 14,
+      "pct": 78,
+      "players": 362
+    },
+    {
+      "id": "tur",
+      "name": "Süper Lig",
+      "country": "Turkey",
+      "gameClubs": 19,
+      "clubsMatched": 15,
+      "pct": 79,
+      "players": 350
+    },
+    {
+      "id": "ind",
+      "name": "Indian Super League",
+      "country": "India",
+      "gameClubs": 14,
+      "clubsMatched": 11,
+      "pct": 79,
+      "players": 245
+    },
+    {
+      "id": "ita-2",
+      "name": "Serie B",
+      "country": "Italy",
+      "gameClubs": 20,
+      "clubsMatched": 16,
+      "pct": 80,
+      "players": 379
+    },
+    {
+      "id": "ger-3",
+      "name": "3. Liga",
+      "country": "Germany",
+      "gameClubs": 20,
+      "clubsMatched": 16,
+      "pct": 80,
+      "players": 416
+    },
+    {
+      "id": "swe",
+      "name": "Allsvenskan",
+      "country": "Sweden",
+      "gameClubs": 16,
+      "clubsMatched": 13,
+      "pct": 81,
+      "players": 307
+    },
+    {
+      "id": "esp-2",
+      "name": "La Liga 2",
+      "country": "Spain",
+      "gameClubs": 22,
+      "clubsMatched": 18,
+      "pct": 82,
+      "players": 411
+    },
+    {
+      "id": "aut",
+      "name": "Bundesliga",
+      "country": "Austria",
+      "gameClubs": 12,
+      "clubsMatched": 10,
+      "pct": 83,
+      "players": 259
+    },
+    {
+      "id": "nor",
+      "name": "Eliteserien",
+      "country": "Norway",
+      "gameClubs": 16,
+      "clubsMatched": 14,
+      "pct": 88,
+      "players": 334
+    },
+    {
+      "id": "por",
+      "name": "Primeira Liga",
+      "country": "Portugal",
+      "gameClubs": 18,
+      "clubsMatched": 16,
+      "pct": 89,
+      "players": 356
+    },
+    {
+      "id": "irl",
+      "name": "League of Ireland Premier Division",
+      "country": "Ireland",
+      "gameClubs": 10,
+      "clubsMatched": 9,
+      "pct": 90,
+      "players": 213
+    },
+    {
+      "id": "eng-4",
+      "name": "EFL League Two",
+      "country": "England",
+      "gameClubs": 24,
+      "clubsMatched": 22,
+      "pct": 92,
+      "players": 566
+    },
+    {
+      "id": "che",
+      "name": "Super League",
+      "country": "Switzerland",
+      "gameClubs": 12,
+      "clubsMatched": 11,
+      "pct": 92,
+      "players": 296
+    },
+    {
+      "id": "aus",
+      "name": "A-League Men",
+      "country": "Australia",
+      "gameClubs": 13,
+      "clubsMatched": 12,
+      "pct": 92,
+      "players": 247
+    },
+    {
+      "id": "ger",
+      "name": "Bundesliga",
+      "country": "Germany",
+      "gameClubs": 18,
+      "clubsMatched": 17,
+      "pct": 94,
+      "players": 490
+    },
+    {
+      "id": "ger-2",
+      "name": "2. Bundesliga",
+      "country": "Germany",
+      "gameClubs": 18,
+      "clubsMatched": 17,
+      "pct": 94,
+      "players": 483
+    },
+    {
+      "id": "ita",
+      "name": "Serie A",
+      "country": "Italy",
+      "gameClubs": 20,
+      "clubsMatched": 19,
+      "pct": 95,
+      "players": 492
+    },
+    {
+      "id": "eng",
+      "name": "Premier League",
+      "country": "England",
+      "gameClubs": 20,
+      "clubsMatched": 20,
+      "pct": 100,
+      "players": 532
+    },
+    {
+      "id": "eng-2",
+      "name": "EFL Championship",
+      "country": "England",
+      "gameClubs": 24,
+      "clubsMatched": 24,
+      "pct": 100,
+      "players": 659
+    },
+    {
+      "id": "eng-3",
+      "name": "EFL League One",
+      "country": "England",
+      "gameClubs": 24,
+      "clubsMatched": 24,
+      "pct": 100,
+      "players": 633
+    },
+    {
+      "id": "esp",
+      "name": "La Liga",
+      "country": "Spain",
+      "gameClubs": 20,
+      "clubsMatched": 20,
+      "pct": 100,
+      "players": 491
+    },
+    {
+      "id": "fra",
+      "name": "Ligue 1",
+      "country": "France",
+      "gameClubs": 18,
+      "clubsMatched": 18,
+      "pct": 100,
+      "players": 449
+    },
+    {
+      "id": "arg",
+      "name": "Liga Profesional",
+      "country": "Argentina",
+      "gameClubs": 30,
+      "clubsMatched": 30,
+      "pct": 100,
+      "players": 869
+    },
+    {
+      "id": "mls",
+      "name": "Major League Soccer",
+      "country": "United States",
+      "gameClubs": 30,
+      "clubsMatched": 30,
+      "pct": 100,
+      "players": 770
+    },
+    {
+      "id": "sau",
+      "name": "Saudi Pro League",
+      "country": "Saudi Arabia",
+      "gameClubs": 18,
+      "clubsMatched": 18,
+      "pct": 100,
+      "players": 406
+    },
+    {
+      "id": "kor",
+      "name": "K League 1",
+      "country": "South Korea",
+      "gameClubs": 12,
+      "clubsMatched": 12,
+      "pct": 100,
+      "players": 416
+    }
+  ]
+}

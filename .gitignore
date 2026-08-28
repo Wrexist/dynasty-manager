@@ -64,3 +64,6 @@ data/fc27/last-run.json
 # full `npm run fc27:build`) when a consumer needs it.
 data/fc27/*.json
 !data/fc27/discovery.json
+# The reconciliation report is the evidence behind the club/league coverage
+# claims, and small enough to review in a diff.
+!data/fc27/reconciliation.json
