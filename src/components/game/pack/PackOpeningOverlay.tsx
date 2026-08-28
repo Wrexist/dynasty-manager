@@ -189,6 +189,11 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
 
   const topOvr = useMemo(() => players.reduce((m, p) => Math.max(m, p.overall), 0), [players]);
   const topTier = useMemo(() => tierForOvr(topOvr), [topOvr]);
+  // A Hall of Legends card in the pack renames the best-pull chip. The pack's
+  // headline outcome IS the hall card — reporting it as merely "Legendary"
+  // (the OVR tier every 90+ pull shares) throws away the one thing that made
+  // this open different, on the screen the player lingers on.
+  const hasLegendPull = useMemo(() => players.some(p => p.legendId), [players]);
   const confettiCount = topOvr >= 90
     ? PACK_ANIM.confetti.icon
     : topOvr >= 84 ? PACK_ANIM.confetti.legendary
@@ -1535,8 +1540,8 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.14 }}
                 >
-                  <span aria-hidden style={{ color: topTier.gradientVia, textShadow: `0 0 8px ${topTier.gradientVia}` }}>★</span>
-                  <span>Best pull · {topTier.label}</span>
+                  <span aria-hidden style={{ color: topTier.gradientVia, textShadow: `0 0 8px ${topTier.gradientVia}` }}>{hasLegendPull ? '♛' : '★'}</span>
+                  <span>Best pull · {hasLegendPull ? 'Hall of Legends' : topTier.label}</span>
                 </motion.div>
               )}
               {/* Soft gradient rule — visually separates the header from the

@@ -237,6 +237,19 @@ describe('Hall of Legends — packs', () => {
   });
 });
 
+describe('Hall of Legends — the pack summary reads the pull correctly', () => {
+  it('a pack containing a legend is identifiable from its cards alone', () => {
+    // The summary's best-pull chip keys off `players.some(p => p.legendId)`,
+    // not off the top OVR tier — a 94 hall card and a 94 ordinary pull share
+    // the "Legendary" tier, and reporting the tier threw away the one thing
+    // that made the open different. Caught by capturing the real screen.
+    const withLegend = generatePackContents('icon', 5, { forceLegendRoll: true });
+    expect(withLegend.some(p => p.legendId)).toBe(true);
+    const without = generatePackContents('icon', 5, { forceLegendRoll: false });
+    expect(without.some(p => p.legendId)).toBe(false);
+  });
+});
+
 describe('Hall of Legends — save migration', () => {
   it('v91 saves gain an empty archive and land on v92', () => {
     const migrated = migrateSaveData({ version: 91, players: {}, clubs: {} } as Record<string, unknown>);
