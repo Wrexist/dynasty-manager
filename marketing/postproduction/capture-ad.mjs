@@ -10,7 +10,9 @@
  * afterwards. Every frame is genuinely rendered — nothing is duplicated.
  */
 import { chromium } from 'playwright';
-import { mkdirSync, writeFileSync } from 'fs';
+import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'fs';
+import { execFileSync } from 'child_process';
+import { join } from 'path';
 
 const DIR = process.argv[2];
 const URL = process.argv[3];
@@ -46,6 +48,36 @@ await ctx.addInitScript(`(() => {
 })()`);
 
 const page = await ctx.newPage();
+
+// ── Flags come from disk, not from luck ──
+// FlagIcon loads from flagcdn.com, and through this container's proxy that
+// host resets transiently. In-page retries and preloads only shrink the
+// window — a take can still catch a blank flag, and did. So the rig
+// intercepts every flag request and serves it from a persistent disk cache
+// (.cache/flags), fetching each file once via node with its own retries.
+// After the first success a flag never touches the network again, and every
+// take is deterministic.
+const FLAG_CACHE = join(process.cwd(), '.cache', 'flags');
+mkdirSync(FLAG_CACHE, { recursive: true });
+await page.route('https://flagcdn.com/**', async route => {
+  // NB: this script's own `URL` argv binding shadows the global constructor,
+  // so parse the path textually.
+  const href = route.request().url();
+  const path = href.split('flagcdn.com')[1] || '/unknown.png';
+  const file = join(FLAG_CACHE, path.replace(/\//g, '_'));
+  if (!existsSync(file)) {
+    // curl, not node fetch: node's fetch only honours HTTPS_PROXY when the
+    // process starts with NODE_USE_ENV_PROXY=1, and this environment's
+    // egress requires the proxy — fetch here fails silently while curl
+    // succeeds. Retried because the upstream host resets transiently.
+    for (let i = 0; i < 5 && !existsSync(file); i++) {
+      try { execFileSync('curl', ['-sf', '--max-time', '10', '-o', file, href]); } catch { /* retry */ }
+      if (!existsSync(file)) await new Promise(res => setTimeout(res, 500));
+    }
+  }
+  if (existsSync(file)) await route.fulfill({ body: readFileSync(file), contentType: 'image/png' });
+  else await route.abort(); // FlagIcon's own fallback handles it — same as today, never worse
+});
 page.on('pageerror', e => console.log('PAGE ERR:', String(e).slice(0, 200)));
 page.on('console', m => { const t = m.text(); if (t.startsWith('[capture]') || m.type() === 'error') console.log('[page]', t.slice(0, 160)); });
 await page.goto(URL, { waitUntil: 'networkidle' });
