@@ -46,7 +46,9 @@ export const PENDING_NEWS: PendingRelease = {
   new: [
     'Hall of Legends: retired greats can now appear as Legend cards in Elite, World Class and Legends packs — including stars who retire in your own save.',
   ],
-  improved: [],
+  improved: [
+    'FC27 player database + Hall of Legends.',
+  ],
   fixed: [],
   headline: null,
   summary: null,
