@@ -89,8 +89,12 @@ describe('community pack integrity', () => {
     // nations are "Netherlands", "South Korea", "USA". Importing EA's labels
     // verbatim makes those players unpickable for their own country.
     const gameNations = new Set(NATIONS.map((n) => n.name));
-    const broken = ['Holland', 'Korea Republic', 'United States', 'Republic of Ireland',
-      "Côte d'Ivoire", 'Czech Republic', 'Congo DR'];
+    // "Turkey" and "Czech Republic" are deliberately absent from this list:
+    // nations.ts carries BOTH spellings of each as separate nations, and the
+    // in-game label is EA's spelling, so mapping them would move players to
+    // the wrong one of the two duplicate entries. See lib/nationality.mjs.
+    const broken = ['Holland', 'Korea Republic', 'United States',
+      'Republic of Ireland', "Côte d'Ivoire", 'Congo DR'];
     const present = broken.filter((label) => players.some((p) => p.nat === label));
     expect(present, `un-canonicalised nationality labels in the pack: ${present.join(', ')}`).toEqual([]);
 

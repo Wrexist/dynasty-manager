@@ -27,9 +27,15 @@
  */
 export const NATIONALITY_ALIASES = {
   // Same country, different spelling between EA and the baseline.
+  //
+  // NOT here, deliberately: Turkey and Czech Republic. The FC26 baseline spells
+  // those "Türkiye" and "Czechia", so a baseline-derived mapping would fold EA
+  // onto those — but src/data/nations.ts carries BOTH spellings of each as
+  // separate nations, and buildNationalPool.mjs records that the in-game label
+  // is "Turkey" / "Czech Republic". EA already uses the in-game label, so
+  // mapping them moves the players to the wrong one of the two entries. The
+  // duplicate nations are a pre-existing bug; see docs/fc27/AUDIT-2026-08-28.md.
   Holland: 'Netherlands',
-  Turkey: 'Türkiye',
-  'Czech Republic': 'Czechia',
   'Cape Verde Islands': 'Cabo Verde',
   'St. Kitts and Nevis': 'Saint Kitts and Nevis',
   'St. Lucia': 'Saint Lucia',
