@@ -1,9 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 
+/**
+ * The uniform wage scaling applied by the v90 → v91 migration. Tests that
+ * assert an absolute wage after a FULL chain migration have to account for it;
+ * tests about a single earlier step should assert ratios instead.
+ */
+const WAGE_EASING_V91 = 0.85;
+
 describe('saveMigration', () => {
   it('should have current version set to 90', () => {
-    expect(CURRENT_VERSION).toBe(90);
+    expect(CURRENT_VERSION).toBe(91);
   });
 
   it('v85 → v86 upgrades a Sunday save to sub-schema v3', () => {
@@ -333,7 +340,10 @@ describe('saveMigration', () => {
     expect(players.legend.wage).toBeGreaterThan(400_000);
     expect(players.icon.wage).toBeGreaterThan(250_000);
     expect(players.squad.value).toBe(5_000_000);
-    expect(players.squad.wage).toBe(50_000);
+    // The v90 → v91 wage easing scales every wage by 0.85 later in the chain,
+    // so a common player's wage arrives eased rather than untouched. Value is
+    // not eased, which is why only the wage carries the factor.
+    expect(players.squad.wage).toBe(Math.round(50_000 * WAGE_EASING_V91));
   });
 
   it('v66 → v67 leaves saves without a players map untouched', () => {
@@ -599,7 +609,9 @@ describe('saveMigration', () => {
     const out = migrateSaveData(v66) as Record<string, unknown>;
     const players = out.players as Record<string, { value: number; wage: number }>;
     expect(players.bronze.value).toBeGreaterThanOrEqual(500_000);
-    expect(players.bronze.wage).toBeGreaterThanOrEqual(2_000);
+    // v67 must not deflate the wage; the only reduction along the chain is the
+    // v91 easing, which is uniform and deliberate, so the floor moves with it.
+    expect(players.bronze.wage).toBeGreaterThanOrEqual(Math.round(2_000 * WAGE_EASING_V91));
   });
 
   it('v66 → v67 leaves saves without players untouched', () => {
@@ -673,5 +685,68 @@ describe('v73 → v74 (subscription anchoring, retirement flag)', () => {
     const sub = (out.monetization as Record<string, unknown>).subscription as Record<string, unknown>;
     expect(sub).not.toBeNull();
     expect(sub.tier).toBe('lifetime');
+  });
+});
+
+describe('v90 → v91: the wage easing reaches existing saves', () => {
+  // v89 eased WAGE_EXP_BASE 10 → 8.5 but migrated nothing, on the belief that
+  // players re-price on a development tick. They do not — that path calls
+  // `recomputePlayerValueOnly`, which never writes `wage` — so pre-v89 squads
+  // stayed 15% expensive forever while every new arrival came in cheap.
+  const save = (players: Record<string, unknown>, clubs: Record<string, unknown> = {}) =>
+    migrateSaveData({ version: 90, players, clubs });
+
+  it('scales existing player wages by 0.85', () => {
+    const out = migrateSaveData({ version: 90, players: { a: { wage: 100_000 } }, clubs: {} });
+    expect((out.players as Record<string, { wage: number }>).a.wage).toBe(85_000);
+    expect(out.version).toBe(CURRENT_VERSION);
+  });
+
+  it('scales the club wage bill by the same factor', () => {
+    const out = save({ a: { wage: 100_000 } }, { c: { wageBill: 1_000_000 } });
+    expect((out.clubs as Record<string, { wageBill: number }>).c.wageBill).toBe(850_000);
+  });
+
+  it('preserves the RATIO between contracts rather than re-deriving from overall', () => {
+    // A transfer-signed wage, a pack pull's wageFactor discount and a free
+    // agent's 0.8x are all deliberate departures from the curve. Re-deriving
+    // would erase them; scaling must not.
+    const out = save({
+      curve: { wage: 100_000, overall: 80 },
+      discounted: { wage: 40_000, overall: 80 },
+    });
+    const players = out.players as Record<string, { wage: number }>;
+    expect(players.curve.wage).toBe(85_000);
+    expect(players.discounted.wage).toBe(34_000);
+    expect(players.discounted.wage / players.curve.wage).toBeCloseTo(0.4, 5);
+  });
+
+  it('never takes a wage below the floor', () => {
+    const out = save({ a: { wage: 500 } });
+    expect((out.players as Record<string, { wage: number }>).a.wage).toBe(500);
+  });
+
+  it('leaves a player with no wage field alone instead of inventing one', () => {
+    const out = save({ a: { overall: 70 } });
+    expect((out.players as Record<string, { wage?: number }>).a.wage).toBeUndefined();
+  });
+
+  it('survives malformed players and clubs', () => {
+    const out = migrateSaveData({
+      version: 90,
+      players: { a: null, b: { wage: 'lots' }, c: { wage: 20_000 } },
+      clubs: { x: null, y: { wageBill: undefined }, z: { wageBill: 200_000 } },
+    });
+    const players = out.players as Record<string, { wage?: unknown }>;
+    expect(players.b.wage).toBe('lots');
+    expect(players.c.wage).toBe(17_000);
+    expect((out.clubs as Record<string, { wageBill?: number }>).z.wageBill).toBe(170_000);
+    expect(out.version).toBe(CURRENT_VERSION);
+  });
+
+  it('does not run twice on a save already at the current version', () => {
+    const once = migrateSaveData({ version: 90, players: { a: { wage: 100_000 } }, clubs: {} });
+    const twice = migrateSaveData(once);
+    expect((twice.players as Record<string, { wage: number }>).a.wage).toBe(85_000);
   });
 });
