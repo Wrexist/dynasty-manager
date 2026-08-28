@@ -43,6 +43,7 @@ import { parseCsv, toCsv } from './lib/csv.mjs';
 import { normClub } from './match_game_clubs.mjs';
 import { LEAGUE_ALIASES } from './leagueAliases.mjs';
 import { buildSquadIndex, fingerprintClub } from './lib/squadFingerprint.mjs';
+import { sameNationality } from './lib/nationality.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const FC27 = join(ROOT, 'data/fc27/FC27_male_players.csv');
@@ -102,7 +103,11 @@ export function main() {
     const entry = eaClubs.get(ea);
     entry.rows.push(row);
     const base = byId.get(String(row.player_id));
-    if (!base || norm(row.nationality) !== norm(base.nationality_name)) continue;
+    // Fold nationality aliases before comparing: EA writes "Holland" where the
+    // baseline writes "Netherlands". Comparing raw labels discarded 461
+    // perfectly good votes — 408 Dutch, 239 Turkish, 88 Czech — as if the two
+    // sources disagreed about who the player was.
+    if (!base || !sameNationality(row.nationality, base.nationality_name)) continue;
     const bc = (base.club_name ?? '').trim();
     if (bc) entry.votes.set(bc, (entry.votes.get(bc) ?? 0) + 1);
   }

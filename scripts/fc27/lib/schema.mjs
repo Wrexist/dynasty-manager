@@ -20,12 +20,14 @@
  * and are reported by validate_fc27.mjs.
  */
 
+import { canonicalNationality } from './nationality.mjs';
+
 /** Fixed column order for the emitted CSV. Stable across runs. */
 export const COLUMNS = [
   // Identity
   'player_id', 'name', 'first_name', 'last_name', 'short_name',
   // Demographics
-  'date_of_birth', 'derived_age', 'nationality', 'nationality_id', 'height', 'weight',
+  'date_of_birth', 'derived_age', 'nationality', 'nationality_raw', 'nationality_id', 'height', 'weight',
   // Club
   'club', 'club_id', 'league', 'league_id',
   // Position
@@ -225,7 +227,11 @@ export function normalizeEaPlayer(raw, meta) {
 
     date_of_birth: isoDate(raw.birthdate),
     derived_age: deriveAge(raw.birthdate, meta.asOf),
-    nationality: nullIfBlank(raw.nationality?.label),
+    // Canonicalised: national-team selection matches nationality exactly, so
+    // EA's "Holland" would make every Dutch player unpickable for the
+    // Netherlands. See lib/nationality.mjs.
+    nationality: canonicalNationality(nullIfBlank(raw.nationality?.label)),
+    nationality_raw: nullIfBlank(raw.nationality?.label),
     nationality_id: nullIfBlank(raw.nationality?.id),
     height: nullIfBlank(raw.height),
     weight: nullIfBlank(raw.weight),

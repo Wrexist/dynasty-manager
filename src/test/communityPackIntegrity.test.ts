@@ -17,6 +17,7 @@
 import { describe, it, expect } from 'vitest';
 import { byClub } from '@/data/communityPack/byClub';
 import { ALL_CLUBS } from '@/data/league';
+import { NATIONS } from '@/data/nations';
 
 const clubIds = new Set(ALL_CLUBS.map((c) => c.id));
 const squads = Object.entries(byClub);
@@ -80,5 +81,24 @@ describe('community pack integrity', () => {
     // given name from the long name, leaving only genuine mononyms.
     const doubled = players.filter((p) => p.fn === p.ln);
     expect(doubled.length / players.length).toBeLessThan(0.02);
+  });
+
+  it('uses the nation names the game selects national squads by', () => {
+    // international.ts filters with `nats.has(p.nationality)` — an exact match.
+    // EA writes "Holland", "Korea Republic", "United States"; the game's
+    // nations are "Netherlands", "South Korea", "USA". Importing EA's labels
+    // verbatim makes those players unpickable for their own country.
+    const gameNations = new Set(NATIONS.map((n) => n.name));
+    const broken = ['Holland', 'Korea Republic', 'United States', 'Republic of Ireland',
+      "Côte d'Ivoire", 'Czech Republic', 'Congo DR'];
+    const present = broken.filter((label) => players.some((p) => p.nat === label));
+    expect(present, `un-canonicalised nationality labels in the pack: ${present.join(', ')}`).toEqual([]);
+
+    // And the big footballing nations must actually resolve.
+    for (const nation of ['Netherlands', 'South Korea', 'USA', 'Ireland', 'Ivory Coast']) {
+      expect(gameNations.has(nation), `${nation} missing from NATIONS`).toBe(true);
+      expect(players.filter((p) => p.nat === nation).length,
+        `no players carry nationality "${nation}"`).toBeGreaterThan(0);
+    }
   });
 });
